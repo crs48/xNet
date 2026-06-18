@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { aggregateMargin, measuredCogs, reconcileTenantMargin, type TenantUsageMeasurement } from './reconcile'
+import {
+  aggregateMargin,
+  measuredCogs,
+  reconcileTenantMargin,
+  type TenantUsageMeasurement
+} from './reconcile'
 
 const GiB = 1024 * 1024 * 1024
 
@@ -55,7 +60,9 @@ describe('reconcileTenantMargin', () => {
 describe('aggregateMargin', () => {
   it('sums the fleet P&L and lists negative-margin tenants', () => {
     const a = reconcileTenantMargin(usage({ tenantId: 'a', revenueUsd: 15 }))
-    const b = reconcileTenantMargin(usage({ tenantId: 'b', revenueUsd: 0.01, aiProviderCostUsd: 20 }))
+    const b = reconcileTenantMargin(
+      usage({ tenantId: 'b', revenueUsd: 0.01, aiProviderCostUsd: 20 })
+    )
     const fleet = aggregateMargin([a, b])
     expect(fleet.tenantCount).toBe(2)
     expect(fleet.revenueUsd).toBeCloseTo(15.01, 4)

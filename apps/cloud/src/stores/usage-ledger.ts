@@ -12,7 +12,12 @@
  * scale; swap for an indexed/period-partitioned query if the ledger grows large.
  */
 
-import { MemoryUsageLedger, inScope, type UsageEntry, type UsageLedger } from '@xnetjs/cloud/billing'
+import {
+  MemoryUsageLedger,
+  inScope,
+  type UsageEntry,
+  type UsageLedger
+} from '@xnetjs/cloud/billing'
 import type { DocStore } from './durable'
 import { FirestoreDocStore, firestoreFromEnv } from './firestore'
 

@@ -3,7 +3,12 @@ import { describe, expect, it } from 'vitest'
 import { InMemoryDocStore } from './durable'
 import { usageLedgerFromDocs } from './usage-ledger'
 
-const entry = (key: string, tenantId: string, chargeUsd: number, timestampMs = 1000): UsageEntry => ({
+const entry = (
+  key: string,
+  tenantId: string,
+  chargeUsd: number,
+  timestampMs = 1000
+): UsageEntry => ({
   key,
   tenantId,
   inputTokens: 100,

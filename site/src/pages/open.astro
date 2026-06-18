@@ -1,0 +1,40 @@
+---
+import Base from '../layouts/Base.astro'
+import Nav from '../components/sections/Nav.astro'
+import Footer from '../components/sections/Footer.astro'
+import OpenMetrics from '../components/sections/OpenMetrics.astro'
+import { updated } from '../data/metrics'
+
+const editUrl = 'https://github.com/crs48/xNet/blob/main/site/src/data/metrics.json'
+---
+
+<Base
+  title="xNet Cloud — Run in the open"
+  description="Customer growth, revenue, and our full cost breakdown — published transparently as we build toward break-even."
+>
+  <Nav />
+  <main class="py-20 lg:py-28">
+    <div class="mx-auto max-w-5xl px-6">
+      <div class="mb-2 text-center">
+        <h1 class="mb-5 text-4xl font-bold text-gray-800 dark:text-white sm:text-5xl">
+          Running the company in the open
+        </h1>
+        <p class="mx-auto max-w-2xl text-lg leading-relaxed text-gray-500 dark:text-gray-400">
+          We sell trust, so we show our work. Here's how xNet Cloud is actually doing —
+          customers, revenue, and every dollar of cost — updated as we grow.
+        </p>
+      </div>
+    </div>
+
+    <OpenMetrics />
+
+    <div class="mx-auto max-w-5xl px-6">
+      <p class="text-center text-sm text-gray-500">
+        Snapshot updated {updated}. The numbers are produced by a privacy-safe rollup and committed to the
+        repo — <a href={editUrl} class="text-indigo-400 hover:underline">see the data on GitHub</a>. Aggregates
+        only; no individual customer is ever identifiable.
+      </p>
+    </div>
+  </main>
+  <Footer />
+</Base>

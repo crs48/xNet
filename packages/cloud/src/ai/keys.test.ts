@@ -18,10 +18,14 @@ describe('FakeVirtualKeyManager', () => {
 
 describe('LiteLLMKeyManager (over an injected fetch)', () => {
   it('POSTs /key/generate with the alias + budget and returns the key', async () => {
-    const fetchImpl = vi.fn(async () =>
-      new Response(JSON.stringify({ key: 'sk-real-123' }), { status: 200 })
+    const fetchImpl = vi.fn(
+      async () => new Response(JSON.stringify({ key: 'sk-real-123' }), { status: 200 })
     ) as unknown as typeof fetch
-    const m = new LiteLLMKeyManager({ baseUrl: 'http://litellm:4000/', masterKey: 'sk-master', fetchImpl })
+    const m = new LiteLLMKeyManager({
+      baseUrl: 'http://litellm:4000/',
+      masterKey: 'sk-master',
+      fetchImpl
+    })
 
     const vk = await m.create({ alias: 't_xyz', maxBudgetUsd: 25, budgetDuration: '30d' })
     expect(vk.key).toBe('sk-real-123')
@@ -34,13 +38,17 @@ describe('LiteLLMKeyManager (over an injected fetch)', () => {
   })
 
   it('throws VirtualKeyError on a non-2xx response', async () => {
-    const fetchImpl = vi.fn(async () => new Response('nope', { status: 403 })) as unknown as typeof fetch
+    const fetchImpl = vi.fn(
+      async () => new Response('nope', { status: 403 })
+    ) as unknown as typeof fetch
     const m = new LiteLLMKeyManager({ baseUrl: 'http://litellm:4000', masterKey: 'k', fetchImpl })
     await expect(m.create({ alias: 't', maxBudgetUsd: 1 })).rejects.toBeInstanceOf(VirtualKeyError)
   })
 
   it('deletes via /key/delete with the key in an array', async () => {
-    const fetchImpl = vi.fn(async () => new Response('{}', { status: 200 })) as unknown as typeof fetch
+    const fetchImpl = vi.fn(
+      async () => new Response('{}', { status: 200 })
+    ) as unknown as typeof fetch
     const m = new LiteLLMKeyManager({ baseUrl: 'http://litellm:4000', masterKey: 'k', fetchImpl })
     await m.remove('sk-real-123')
     const [url, init] = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0]

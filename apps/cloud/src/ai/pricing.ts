@@ -32,7 +32,9 @@ export function markupFromEnv(env: NodeJS.ProcessEnv = process.env): number {
 }
 
 /** A `pricingFor(model)` resolver for the metered gateway, with the env markup baked in. */
-export function pricingFromEnv(env: NodeJS.ProcessEnv = process.env): (model: string) => TokenPricing {
+export function pricingFromEnv(
+  env: NodeJS.ProcessEnv = process.env
+): (model: string) => TokenPricing {
   const markup = markupFromEnv(env)
   return (model: string): TokenPricing => {
     const rate = PROVIDER_RATES[model] ?? DEFAULT_RATE

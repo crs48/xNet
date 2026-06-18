@@ -146,7 +146,10 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
     // Surface the period's AI spend when AI is wired and the tenant has it enabled.
     let aiUsage: { usedUsd: number; includedUsd: number; budgetUsd: number } | undefined
     if (tenant?.entitlements.aiEnabled && deps.ai) {
-      const usedUsd = await deps.ai.ledger.totalChargeUsd(tenant.tenantId, currentPeriodStartMs(now()))
+      const usedUsd = await deps.ai.ledger.totalChargeUsd(
+        tenant.tenantId,
+        currentPeriodStartMs(now())
+      )
       aiUsage = {
         usedUsd,
         includedUsd: tenant.entitlements.includedAiUsd,

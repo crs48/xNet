@@ -56,6 +56,8 @@ export class MemoryUsageLedger implements UsageLedger {
   }
 
   async entries(tenantId?: string, sinceMs?: number): Promise<UsageEntry[]> {
-    return [...this.byKey.values()].filter((e) => inScope(e, tenantId, sinceMs)).map((e) => ({ ...e }))
+    return [...this.byKey.values()]
+      .filter((e) => inScope(e, tenantId, sinceMs))
+      .map((e) => ({ ...e }))
   }
 }

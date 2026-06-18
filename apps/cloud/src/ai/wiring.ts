@@ -82,7 +82,9 @@ export function aiChatDepsFromEnv(
 ): AiChatDeps | null {
   if (!env.LITELLM_BASE_URL) return null
   const allowedModels = env.AI_ALLOWED_MODELS
-    ? env.AI_ALLOWED_MODELS.split(',').map((m) => m.trim()).filter(Boolean)
+    ? env.AI_ALLOWED_MODELS.split(',')
+        .map((m) => m.trim())
+        .filter(Boolean)
     : undefined
   return {
     gateway: new GatewayClient({ baseUrl: env.LITELLM_BASE_URL }),

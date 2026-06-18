@@ -96,7 +96,10 @@ describe('control-plane HTTP API', () => {
   it('changes plan for the signed-in tenant (flip) and reports migration for a tier cross', async () => {
     const billing = new MemoryBillingIdentityProvider('https://auth.test/authorize')
     const { controlPlane } = buildControlPlane({ billing })
-    const tenant = await controlPlane.provisionForBilling({ plan: 'personal', billingUserId: 'user_a' })
+    const tenant = await controlPlane.provisionForBilling({
+      plan: 'personal',
+      billingUserId: 'user_a'
+    })
     const a = createControlPlaneApp({ controlPlane, billing, sessionSecret: SESSION_SECRET })
     const cookie = `${SESSION_COOKIE}=${sealSession(SESSION_SECRET, { billingUserId: 'user_a', issuedAtMs: Date.now() })}`
 
@@ -146,7 +149,13 @@ describe('control-plane HTTP API', () => {
       controlPlane,
       billing,
       ai: {
-        gateway: { chat: async () => ({ text: '', model: 'm', usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 } }) },
+        gateway: {
+          chat: async () => ({
+            text: '',
+            model: 'm',
+            usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 }
+          })
+        },
         ledger: new MemoryUsageLedger(),
         billing: new FakeStripeBilling(),
         pricingFor: () => ({ inputUsdPerMillion: 3, outputUsdPerMillion: 15, markup: 1.25 }),

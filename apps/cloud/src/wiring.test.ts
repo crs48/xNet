@@ -49,7 +49,11 @@ describe('env-driven wiring', () => {
     const { controlPlane } = buildControlPlane({ env: env({}) })
     const ledger = usageLedgerFromEnv(env({}))
     expect(aiChatDepsFromEnv(controlPlane, ledger, env({}))).toBeNull()
-    const deps = aiChatDepsFromEnv(controlPlane, ledger, env({ LITELLM_BASE_URL: 'http://litellm:4000' }))
+    const deps = aiChatDepsFromEnv(
+      controlPlane,
+      ledger,
+      env({ LITELLM_BASE_URL: 'http://litellm:4000' })
+    )
     expect(deps?.gateway).toBeDefined()
     expect(deps?.pricingFor('claude-sonnet-4-6').markup).toBe(1.25)
   })
@@ -58,7 +62,9 @@ describe('env-driven wiring', () => {
     expect(aiKeysFromEnv(env({}))).toBeUndefined()
     expect(aiKeysFromEnv(env({ LITELLM_BASE_URL: 'http://litellm:4000' }))).toBeUndefined() // needs master key
     expect(
-      aiKeysFromEnv(env({ LITELLM_BASE_URL: 'http://litellm:4000', LITELLM_MASTER_KEY: 'sk-master' }))
+      aiKeysFromEnv(
+        env({ LITELLM_BASE_URL: 'http://litellm:4000', LITELLM_MASTER_KEY: 'sk-master' })
+      )
     ).toBeDefined()
   })
 

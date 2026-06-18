@@ -16,7 +16,11 @@ const fakeGateway = (tokens = { input: 1000, output: 500 }): ChatGateway => ({
     return {
       text: 'hello',
       model: 'claude-sonnet',
-      usage: { inputTokens: tokens.input, outputTokens: tokens.output, totalTokens: tokens.input + tokens.output }
+      usage: {
+        inputTokens: tokens.input,
+        outputTokens: tokens.output,
+        totalTokens: tokens.input + tokens.output
+      }
     }
   }
 })
@@ -31,7 +35,9 @@ const tenant = (over: Partial<AiTenantContext> = {}): AiTenantContext => ({
   ...over
 })
 
-function makeApp(opts: { gateway?: ChatGateway; resolve?: AiTenantContext | null; allowedModels?: string[] } = {}) {
+function makeApp(
+  opts: { gateway?: ChatGateway; resolve?: AiTenantContext | null; allowedModels?: string[] } = {}
+) {
   const ledger = new MemoryUsageLedger()
   const billing = new FakeStripeBilling()
   const app = createAiRoute({

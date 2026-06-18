@@ -107,13 +107,17 @@ export {
 export { usageLedgerFromDocs, usageLedgerFromEnv } from './stores/usage-ledger'
 export { createAiRoute, type AiChatDeps, type AiTenantContext } from './ai/route'
 export { aiChatDepsFromEnv, aiKeysFromEnv } from './ai/wiring'
-export {
-  pricingFromEnv,
-  markupFromEnv,
-  PROVIDER_RATES,
-  DEFAULT_RATE
-} from './ai/pricing'
+export { pricingFromEnv, markupFromEnv, PROVIDER_RATES, DEFAULT_RATE } from './ai/pricing'
 export { currentPeriodStartMs } from './control-plane'
+export {
+  buildCompanyMetrics,
+  computeBreakEven,
+  type CompanyMetrics,
+  type CompanyMetricsWeek,
+  type BuildMetricsInput,
+  type WeeklyInput,
+  type WeeklyOpex
+} from './metrics/rollup'
 export {
   GoogleCloudRunClient,
   cloudRunProvisionerFromEnv,
