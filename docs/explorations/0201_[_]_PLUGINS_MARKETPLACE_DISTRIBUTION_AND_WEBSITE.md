@@ -562,11 +562,13 @@ export const BUNDLED_PLUGINS = [mermaidPlugin /*, kanban, slackConnector, … */
 ## Risks And Open Questions
 
 - **Remote-code execution on install.** Loading author `plugin.js` is the core
-  risk. Mitigations already exist (`sandboxForTier`, `evaluateInstallConsent`,
-  `guardStore`, capability allowlists, `verifyProvenance`) but are **not yet
-  wired into `PluginRegistry.install`** — confirm and wire the consent/sandbox
-  gate before the in-app install ships (Phase 3). The website (Phases 1–2) has
-  no such risk.
+  risk. The consent + license gates **are** wired into `PluginRegistry.install`
+  (via `onConsent`/`checkLicense` — confirmed in `registry.ts`; the in-app
+  `MarketplaceView` supplies the consent dialog with `marketplace` provenance).
+  What remains is the **secure loader**: fetching and executing a community
+  plugin's `plugin.js` inside the tier's sandbox (`sandboxForTier`). That's
+  deferred to Phase 4 and is the one piece to build before community plugins can
+  ship executable behavior. The website (Phases 1–2) has no such risk.
 - **The Obsidian "author controls updates" weakness.** Our answer is the sandbox
   + per-version Sigstore provenance + a revocation list in the index (0047's
   `revoked[]`). Decide: do we pin installed versions and require explicit update,
@@ -635,15 +637,27 @@ export const BUNDLED_PLUGINS = [mermaidPlugin /*, kanban, slackConnector, … */
 
 **Phase 3 — In-app marketplace + safe install loop**
 
-- [ ] Build `apps/web/src/components/MarketplaceView.tsx` consuming
-      `MarketplaceClient` against the same `REGISTRY_URL`.
-- [ ] Wire `evaluateInstallConsent` + `deriveTrustTier`/`sandboxForTier` into the
-      install path (and confirm `PluginRegistry.install` enforces the consent/
-      capability gate); reuse `PluginManager`'s dialogs.
-- [ ] Register an `xnet://install?...` deep-link handler so the website "Open in
-      xNet" button works (web + electron).
-- [ ] Derive first-party `registry.json` entries from `BUNDLED_PLUGINS` manifests
-      at build (single source of truth, no drift).
+- [x] Build `apps/web/src/components/MarketplaceView.tsx` consuming
+      `MarketplaceClient` against `PLUGIN_REGISTRY_URL` (root-relative
+      `/registry.json`), plus `PluginsPanel` (Installed | Browse tabs) mounted in
+      Settings → Plugins. Pure logic in `marketplace-listing.ts` (unit-tested).
+- [x] Consent gate wired: `PluginRegistry.install` already enforces it via
+      `onConsent` — confirmed in `registry.ts` (the earlier "not wired" risk note
+      was from a stale worktree reading). `MarketplaceView` supplies an
+      `onConsent` dialog (capability lines + danger warning from
+      `describeCapabilities`) and `provenance: 'marketplace'`.
+- [ ] **Deferred:** `xnet://install` deep-link handler (electron protocol + web
+      route). The website "Open in xNet" button uses the scheme; wiring it across
+      electron + web is a separate change and no community plugins exist to drive
+      it yet.
+- [ ] **Deferred (security):** loading a community plugin's executable
+      `plugin.js` into a tier-appropriate sandbox (`sandboxForTier`). The install
+      pipeline + consent are in place; the remote-code *loader* is Phase 4
+      hardening. Today the consent-gated install path handles the fetched
+      manifest.
+- [x] First-party no-drift guard: `apps/web/src/plugins/first-party-registry.test.ts`
+      asserts every `BUNDLED_PLUGINS` id is catalogued in `registry/first-party.json`
+      as `bundled` (a guard is simpler + safer than build-time codegen).
 
 **Phase 4 — Trust, monetization, scale**
 

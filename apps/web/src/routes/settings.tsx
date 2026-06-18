@@ -28,7 +28,7 @@ import {
 import { useState, useCallback } from 'react'
 import { ProfileSettings } from '../comms/ProfileSettings'
 import { ContentSafetySettings } from '../components/ContentSafetySettings'
-import { PluginManager } from '../components/PluginManager'
+import { PluginsPanel } from '../components/PluginsPanel'
 import { SafetyCenterSettings } from '../components/SafetyCenterSettings'
 import { requestXNetBrowserStorageReset } from '../lib/browser-storage-reset'
 import { persistedHubUrl, setPersistedHubUrl } from '../lib/hub-url'
@@ -134,7 +134,7 @@ function SettingsPage() {
         )}
         {activeSection === 'data' && <DataSettings />}
         {activeSection === 'network' && <NetworkSettings />}
-        {activeSection === 'plugins' && <PluginManager />}
+        {activeSection === 'plugins' && <PluginsPanel />}
         {activeSection === 'account' && <AccountSettings />}
         {activeSection === 'about' && <AboutSettings />}
       </div>
