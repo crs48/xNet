@@ -38,18 +38,19 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { BootTimelineProbe } from './components/BootTimelineProbe'
 import { BundledPluginInstaller } from './components/BundledPluginInstaller'
 import { StorageWarningBanner } from './components/StorageWarningBanner'
+import { bootMark } from './lib/boot-timeline'
 import {
   clearXNetBrowserStorage,
   clearXNetBrowserStorageResetRequest,
   shouldResetXNetBrowserStorageOnLoad,
   subscribeXNetStorageCorruption
 } from './lib/browser-storage-reset'
-import { bootMark } from './lib/boot-timeline'
 import { isWorkerRuntimeEnabled } from './lib/data-runtime'
 import { persistedHubUrl } from './lib/hub-url'
 import { identityManager } from './lib/identity'
 import { detectBrowserFamily, getStorageBanner } from './lib/storage-banner'
 import { recordDurabilityTransition, subscribeStorageStatus } from './lib/storage-durability'
+import { looksEvicted, probeStoreColdStart, recordColdStartProbe } from './lib/store-cold-start'
 import { createWebTraceCollector } from './lib/tracing'
 import { routeTree } from './routeTree.gen'
 import './styles/globals.css'
@@ -389,6 +390,19 @@ export function App(): JSX.Element {
         // Apply schema
         await sqliteAdapter.applySchema(SCHEMA_VERSION, SCHEMA_DDL)
         bootMark('sqlite:schema')
+
+        // Probe whether the local cache is cold/evicted so views can show a
+        // "restoring from hub" affordance instead of a blank screen, and so a
+        // silent OPFS eviction is diagnosable (exploration 0204).
+        const coldStart = await probeStoreColdStart(sqliteAdapter, storageStatus.persisted)
+        recordColdStartProbe(coldStart)
+        if (looksEvicted(coldStart)) {
+          console.warn(
+            '[xNet] Local cache is empty and this origin is not persisted — the ' +
+              'browser may have evicted it. Re-syncing from the hub; enable persistent ' +
+              'storage to keep data across sessions.'
+          )
+        }
 
         const nodeStorage = new SQLiteNodeStorageAdapter(sqliteAdapter)
         const storageAdapter = new SQLiteStorageAdapter(sqliteAdapter)
