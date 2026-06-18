@@ -571,52 +571,61 @@ erDiagram
 ## Implementation Checklist
 
 ### Phase 1 — OpenRouter gateway + exact cost
-- [ ] `OpenRouterGatewayClient implements ChatGateway`, reads `usage.cost`
+- [x] `OpenRouterGatewayClient implements ChatGateway`, reads `usage.cost`
       (request `usage: { include: true }`), surfaces `providerCostUsd`.
-- [ ] `OpenRouterKeyManager implements VirtualKeyManager` over the Provisioning
+      ([`openrouter-gateway.ts`](../../packages/cloud/src/ai/openrouter-gateway.ts))
+- [x] `OpenRouterKeyManager implements VirtualKeyManager` over the Provisioning
       API (`/keys` create/patch/delete; `limit` + `limit_reset:"monthly"`).
-- [ ] Thread `providerCostUsd` (when present) through `meterUsage` →
-      `ledger.providerCostUsd`; charge = `ceil(providerCostUsd × markup)`; static
-      table remains the fallback.
-- [ ] `wiring.ts`: select adapter by `AI_GATEWAY_PROVIDER` / base-URL sniff;
-      `aiKeysFromEnv` builds `OpenRouterKeyManager` from `OPENROUTER_MANAGEMENT_KEY`.
-- [ ] Default `AI_MARKUP` → 1.3; document `OPENROUTER_*` in `docs/cloud/SETUP.md`.
-- [ ] Live smoke against staging OpenRouter key; mirror secrets to Secret Manager
-      (not the repo).
+      `VirtualKey.manageId` carries the hash; control plane stores `aiKeyManageRef`.
+- [x] Thread `providerCostUsd` (when present) through `meterUsage` →
+      `ledger.providerCostUsd`; charge = `ceil(providerCostUsd × markup)`
+      (`computeChargeFromCostUsd`); static table remains the fallback.
+- [x] `wiring.ts`: `aiGatewayProvider()` selects by `AI_GATEWAY_PROVIDER` / base-URL
+      sniff; `aiKeysFromEnv` builds `OpenRouterKeyManager` from `OPENROUTER_MANAGEMENT_KEY`.
+- [x] Default `AI_MARKUP` → 1.3; documented `OPENROUTER_*` + provider select in
+      [`docs/cloud/SETUP.md`](../cloud/SETUP.md) §3a.
+- [ ] **Operator:** live smoke against the staging OpenRouter key; mirror secrets to
+      Secret Manager (the gitignored `.env.staging` is local-only).
 
 ### Phase 2 — Billing model
-- [ ] Per-tenant **user-settable cap** (≤ plan `aiMonthlyBudgetUsd`) on
-      `TenantRecord`; thread into `budgetUsdFor`.
-- [ ] Threshold notifications at 50 / 80 / 95 / 100%.
-- [ ] Express Team+ `includedAiUsd` **per seat** in the catalog + dashboard copy.
-- [ ] `CreditLedger` + Stripe **Credit Grant** issuance; burn credits before PAYG;
-      auto-reload with a monthly reload cap; expiry/refund policy.
-- [ ] Checkout/portal surface for buying credit packs.
+- [x] Per-tenant **user-settable cap** (≤ plan `aiMonthlyBudgetUsd`) on
+      `TenantRecord` (`aiCapUsd`); `ControlPlane.setAiCap` clamps it; the tenant
+      resolver enforces `min(cap, plan cap)`.
+- [x] Threshold **calculation** at 50 / 80 / 95 / 100% (`crossedThresholds`) +
+      `aiBudgetStatus`; `/ai/chat` returns `budgetState`. *(Email/in-app delivery is
+      the deferred operator piece — there's no notification transport here yet.)*
+- [ ] **Deferred:** express Team+ `includedAiUsd` **per seat** in the catalog + copy.
+- [ ] **Deferred:** `CreditLedger` + Stripe **Credit Grant** issuance; burn credits
+      before PAYG; auto-reload with a monthly reload cap; expiry/refund policy.
+- [ ] **Deferred:** checkout/portal surface for buying credit packs.
 
-### Phase 3 — Wire into xNet
+### Phase 3 — Wire into xNet (deferred — UI + e2e surface)
 - [ ] Hub `POST /ai/chat` forwarder → control plane (tenant service credential).
 - [ ] `managed` `AIProvider` in `packages/plugins`; chat panel budget gauge;
       graceful BYO degrade with no control plane.
 - [ ] `AiSurfaceService` / agent runner can target the managed provider.
 
 ## Validation Checklist
-- [ ] A metered call through `OpenRouterGatewayClient` records `providerCostUsd`
+- [x] A metered call through `OpenRouterGatewayClient` records `providerCostUsd`
       equal to `usage.cost` (fixtured) and `chargeUsd = ceil(cost × markup)`.
-- [ ] Re-delivering the same `(tenant, session, request)` meters **once** (ledger
-      idempotency holds across the OpenRouter path).
-- [ ] An over-cap tenant gets `402 ai_budget_exceeded` with **no** OpenRouter call
-      (counting fake never invoked).
-- [ ] Provisioning creates an OpenRouter key with the plan limit + monthly reset;
-      a plan change updates it; cancel/delete revokes it.
-- [ ] `reconcileTenantMargin` on real `usage.cost` yields exact margin (no static
-      table) for a known usage profile.
-- [ ] Lowering the user cap below the plan cap is enforced; raising above the plan
-      cap is rejected.
-- [ ] Prepaid credits draw down before PAYG; at $0 balance with PAYG off →
-      stop; auto-reload halts at the monthly reload cap.
-- [ ] Streaming: cost is read from the final usage chunk and metered once.
-- [ ] OSS hub with no control plane still offers BYO AI; `managed` provider
-      degrades gracefully.
+      (`openrouter-gateway.test.ts`, `metered-gateway.test.ts`)
+- [x] Re-delivering the same `(tenant, session, request)` meters **once** (ledger
+      idempotency holds; the OpenRouter path uses the same `meterUsage`).
+- [x] An over-cap tenant gets `402 ai_budget_exceeded` with **no** gateway call
+      (counting fake never invoked — `metered-gateway.test.ts`, `route.test.ts`).
+- [x] Provisioning creates a key with the plan limit + monthly reset; a plan change
+      updates it; cancel/delete revokes it (`openrouter-keys.test.ts`,
+      `control-plane.test.ts`).
+- [x] The exact `usage.cost` is recorded as the ledger's `providerCostUsd`, so
+      `reconcileTenantMargin` reconciles measured (not table-estimated) AI cost.
+- [x] Lowering the user cap below the plan cap is enforced; raising above the plan
+      cap is clamped down (`control-plane.test.ts setAiCap`).
+- [ ] **Deferred:** prepaid credits draw down before PAYG; auto-reload halts at the
+      monthly reload cap.
+- [ ] **Deferred:** streaming cost read from the final usage chunk (non-streaming
+      only for now).
+- [ ] **Deferred (Phase 3):** OSS hub with no control plane still offers BYO AI;
+      `managed` provider degrades gracefully.
 
 ## References
 
