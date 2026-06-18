@@ -165,6 +165,70 @@ describe('createConnectionManager', () => {
     expect(statuses).not.toContain('error')
   })
 
+  it('bounds the first attempt by the shorter initialConnectTimeout (0204)', async () => {
+    const manager = createConnectionManager({
+      url: 'ws://localhost:4444',
+      connectTimeout: 10000 // initialConnectTimeout defaults to min(10000, 6000) = 6000
+    })
+    const statuses: string[] = []
+    manager.onStatus((status) => {
+      statuses.push(status)
+    })
+
+    manager.connect()
+    await Promise.resolve()
+
+    // The first attempt fails fast at 6000ms, not the full 10000ms.
+    await vi.advanceTimersByTimeAsync(5999)
+    expect(statuses).not.toContain('error')
+    await vi.advanceTimersByTimeAsync(1)
+    expect(statuses).toContain('error')
+    const errorsAfterFirst = statuses.filter((s) => s === 'error').length
+    expect(errorsAfterFirst).toBe(1)
+
+    // After backoff a second attempt dials, now bounded by the FULL
+    // connectTimeout (network is evidently slow) — 6000ms is not enough.
+    await vi.advanceTimersByTimeAsync(2000) // default reconnectDelay
+    expect(MockWebSocket.instances[1]).toBeDefined()
+    await vi.advanceTimersByTimeAsync(6000)
+    expect(statuses.filter((s) => s === 'error').length).toBe(1) // still connecting
+    await vi.advanceTimersByTimeAsync(4000) // total 10000 on the second attempt
+    expect(statuses.filter((s) => s === 'error').length).toBe(2)
+  })
+
+  it('backs off reconnect delay exponentially across attempts (0204)', async () => {
+    const manager = createConnectionManager({
+      url: 'ws://localhost:4444',
+      connectTimeout: 500,
+      reconnectDelay: 100,
+      maxReconnectDelay: 10000
+    })
+    manager.connect()
+    await Promise.resolve()
+    expect(MockWebSocket.instances).toHaveLength(1)
+
+    // Attempt 1 stalls → backoff 100 * 2^0 = 100ms before the 2nd dial.
+    await vi.advanceTimersByTimeAsync(500)
+    await vi.advanceTimersByTimeAsync(99)
+    expect(MockWebSocket.instances).toHaveLength(1)
+    await vi.advanceTimersByTimeAsync(1)
+    expect(MockWebSocket.instances).toHaveLength(2)
+
+    // Attempt 2 stalls → backoff 100 * 2^1 = 200ms.
+    await vi.advanceTimersByTimeAsync(500)
+    await vi.advanceTimersByTimeAsync(199)
+    expect(MockWebSocket.instances).toHaveLength(2)
+    await vi.advanceTimersByTimeAsync(1)
+    expect(MockWebSocket.instances).toHaveLength(3)
+
+    // Attempt 3 stalls → backoff 100 * 2^2 = 400ms.
+    await vi.advanceTimersByTimeAsync(500)
+    await vi.advanceTimersByTimeAsync(399)
+    expect(MockWebSocket.instances).toHaveLength(3)
+    await vi.advanceTimersByTimeAsync(1)
+    expect(MockWebSocket.instances).toHaveLength(4)
+  })
+
   it('stays offline without opening a socket when no hub URL is configured (0188)', async () => {
     const manager = createConnectionManager({ url: '' })
     const statuses: string[] = []

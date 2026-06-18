@@ -35,8 +35,11 @@ import {
 import { SQLiteStorageAdapter, BlobStore, ChunkManager } from '@xnetjs/storage'
 import { ThemeProvider } from '@xnetjs/ui'
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { BootTimelineProbe } from './components/BootTimelineProbe'
 import { BundledPluginInstaller } from './components/BundledPluginInstaller'
 import { StorageWarningBanner } from './components/StorageWarningBanner'
+import { WorkingSetPrewarm } from './components/WorkingSetPrewarm'
+import { bootMark } from './lib/boot-timeline'
 import {
   clearXNetBrowserStorage,
   clearXNetBrowserStorageResetRequest,
@@ -44,10 +47,11 @@ import {
   subscribeXNetStorageCorruption
 } from './lib/browser-storage-reset'
 import { isWorkerRuntimeEnabled } from './lib/data-runtime'
-import { persistedHubUrl } from './lib/hub-url'
+import { defaultHubUrl, persistedHubUrl } from './lib/hub-url'
 import { identityManager } from './lib/identity'
 import { detectBrowserFamily, getStorageBanner } from './lib/storage-banner'
 import { recordDurabilityTransition, subscribeStorageStatus } from './lib/storage-durability'
+import { looksEvicted, probeStoreColdStart, recordColdStartProbe } from './lib/store-cold-start'
 import { createWebTraceCollector } from './lib/tracing'
 import { routeTree } from './routeTree.gen'
 import './styles/globals.css'
@@ -74,8 +78,7 @@ declare module '@tanstack/react-router' {
 // subscriptions, which used to stall page loads (exploration 0188) and also
 // leaked dev presence to production. A falsy hub URL keeps the app local-first;
 // opt into a real hub by setting VITE_HUB_URL (e.g. ws://localhost:4444).
-const DEFAULT_HUB_URL =
-  import.meta.env.VITE_HUB_URL ?? (import.meta.env.DEV ? '' : 'wss://hub.xnet.fyi')
+const DEFAULT_HUB_URL = defaultHubUrl()
 
 // A hub the user connected via Settings or the xNet Cloud claim flow (persisted in
 // localStorage) wins over the build-time default — this is the read half of that
@@ -338,6 +341,7 @@ export function App(): JSX.Element {
 
     async function initialize() {
       try {
+        bootMark('init:start')
         if (shouldResetXNetBrowserStorageOnLoad()) {
           clearXNetBrowserStorageResetRequest()
           await clearXNetBrowserStorage()
@@ -376,6 +380,7 @@ export function App(): JSX.Element {
         }
 
         await sqliteAdapter.open({ path: '/xnet.db' })
+        bootMark('sqlite:open')
 
         if (cancelled) {
           await sqliteAdapter.close()
@@ -384,6 +389,24 @@ export function App(): JSX.Element {
 
         // Apply schema
         await sqliteAdapter.applySchema(SCHEMA_VERSION, SCHEMA_DDL)
+        bootMark('sqlite:schema')
+
+        // Probe whether the local cache is cold/evicted so views can show a
+        // "restoring from hub" affordance instead of a blank screen, and so a
+        // silent OPFS eviction is diagnosable (exploration 0204).
+        const coldStart = await probeStoreColdStart(
+          sqliteAdapter,
+          storageStatus.persisted,
+          Boolean(hubUrl)
+        )
+        recordColdStartProbe(coldStart)
+        if (looksEvicted(coldStart)) {
+          console.warn(
+            '[xNet] Local cache is empty and this origin is not persisted — the ' +
+              'browser may have evicted it. Re-syncing from the hub; enable persistent ' +
+              'storage to keep data across sessions.'
+          )
+        }
 
         const nodeStorage = new SQLiteNodeStorageAdapter(sqliteAdapter)
         const storageAdapter = new SQLiteStorageAdapter(sqliteAdapter)
@@ -426,6 +449,7 @@ export function App(): JSX.Element {
           if (cancelled) return
 
           if (resumed) {
+            bootMark('identity:ready')
             setAppState({
               status: 'authenticated',
               identity: resumed.identity,
@@ -440,6 +464,7 @@ export function App(): JSX.Element {
           try {
             const keyBundle = await identityManager.unlock()
             if (cancelled) return
+            bootMark('identity:ready')
             setAppState({
               status: 'authenticated',
               identity: keyBundle.identity,
@@ -490,7 +515,10 @@ export function App(): JSX.Element {
         storageRef.current.sqliteAdapter.close().catch(console.error)
       }
     }
-  }, [])
+    // hubUrl is resolved once from a useState initializer and never re-set, so
+    // this still runs a single time; it's listed to satisfy exhaustive-deps now
+    // that the cold-start probe reads it (exploration 0204).
+  }, [hubUrl])
 
   // A persistent-storage grant can land mid-session (notification opt-in,
   // install, engagement crossing Chrome's threshold). Watching the
@@ -779,6 +807,8 @@ export function App(): JSX.Element {
             tracing: traceCollector
           }}
         >
+          <BootTimelineProbe />
+          <WorkingSetPrewarm />
           <BundledPluginInstaller />
           <XNetDevToolsProvider
             position="bottom"

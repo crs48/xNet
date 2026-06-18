@@ -21,8 +21,13 @@ export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'er
 export interface ConnectionManagerConfig {
   /** Signaling/hub WebSocket URL */
   url: string
-  /** Reconnect delay in ms (default: 2000) */
+  /** Base reconnect delay in ms (default: 2000); grows exponentially per attempt. */
   reconnectDelay?: number
+  /**
+   * Cap on the exponentially-backed-off reconnect delay (default: 30000).
+   * Backoff is `min(reconnectDelay * 2^(attempt-1), maxReconnectDelay)`.
+   */
+  maxReconnectDelay?: number
   /** Max reconnect attempts (default: Infinity) */
   maxReconnects?: number
   /**
@@ -32,6 +37,15 @@ export interface ConnectionManagerConfig {
    * tens of seconds (exploration 0188). Set to 0 to disable.
    */
   connectTimeout?: number
+  /**
+   * Timeout for the FIRST handshake attempt (default: min(connectTimeout,
+   * 6000)). A healthy hub handshake completes in well under a second, so the
+   * first attempt fails fast and retries instead of pinning the "connecting"
+   * indicator for the full connectTimeout on a stalled cold dial; subsequent
+   * attempts use the full connectTimeout since the network is evidently slow
+   * (exploration 0204). Set to 0 to disable bounding the first attempt.
+   */
+  initialConnectTimeout?: number
   /** UCAN token for hub auth */
   ucanToken?: string
   /** Async UCAN token provider (preferred for rotation) */
@@ -88,8 +102,11 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
   let connectInProgress = false
 
   const reconnectDelay = config.reconnectDelay ?? 2000
+  const maxReconnectDelay = config.maxReconnectDelay ?? 30000
   const maxReconnects = config.maxReconnects ?? Infinity
   const connectTimeout = config.connectTimeout ?? 10000
+  const initialConnectTimeout =
+    config.initialConnectTimeout ?? (connectTimeout > 0 ? Math.min(connectTimeout, 6000) : 0)
 
   function clearConnectTimer(): void {
     if (connectTimer) {
@@ -128,11 +145,15 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
   /**
    * Bound the handshake: a browser WebSocket has no connect timeout, so a
    * stalled (not refused) handshake would otherwise hang indefinitely
-   * (exploration 0188). Set connectTimeout to 0 to disable.
+   * (exploration 0188). The first attempt uses the shorter
+   * initialConnectTimeout so a stalled cold dial fails fast and retries
+   * rather than pinning "connecting" for the full timeout (exploration 0204).
+   * Set the relevant timeout to 0 to disable.
    */
   function armConnectTimeout(): void {
-    if (connectTimeout <= 0 || !Number.isFinite(connectTimeout)) return
-    connectTimer = setTimeout(onConnectTimeout, connectTimeout)
+    const timeout = reconnectAttempts === 0 ? initialConnectTimeout : connectTimeout
+    if (timeout <= 0 || !Number.isFinite(timeout)) return
+    connectTimer = setTimeout(onConnectTimeout, timeout)
   }
 
   const rooms = new Map<string, Set<RoomHandler>>()
@@ -321,10 +342,14 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
     if (reconnectTimer) return
 
     reconnectAttempts++
+    // Exponential backoff capped at maxReconnectDelay. The first retry keeps
+    // the base delay (back-compat); later retries back off so a persistently
+    // unreachable hub isn't dialed every reconnectDelay ms (exploration 0204).
+    const backoff = Math.min(reconnectDelay * 2 ** (reconnectAttempts - 1), maxReconnectDelay)
     reconnectTimer = setTimeout(() => {
       reconnectTimer = null
       void doConnect()
-    }, reconnectDelay)
+    }, backoff)
   }
 
   return {

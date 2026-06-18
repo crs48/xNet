@@ -1,0 +1,15 @@
+{
+  "id": "2026-06-18-faster-cold-start-your-data-shows-before",
+  "date": "June 18, 2026",
+  "title": "Faster cold start — your data shows before the hub connects",
+  "summary": "The app now warms the local cache and hub connection during boot and shows a clear 'restoring' state instead of a blank screen, so returning users see their workspace sooner.",
+  "highlights": [
+    "Boot timeline instrumentation to attribute startup cost",
+    "Local-first 'restoring from hub' state replaces blank/empty screens after a browser cache eviction",
+    "Hub preconnect + faster first-dial retry shrink time-to-connected"
+  ],
+  "tags": [
+    "performance",
+    "app"
+  ]
+}
