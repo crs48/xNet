@@ -1,0 +1,12 @@
+{
+  "id": "2026-06-18-stamp-verification-temporary",
+  "date": "June 18, 2026",
+  "title": "Stamp verification (temporary)",
+  "summary": "Temporary entry to verify automatic PR-number stamping end-to-end; removed right after.",
+  "highlights": [
+    "Confirms the merge-time stamp can push the PR number into source"
+  ],
+  "tags": [
+    "ci"
+  ]
+}
