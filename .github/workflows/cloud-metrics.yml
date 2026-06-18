@@ -1,0 +1,56 @@
+name: cloud-metrics
+
+# Refresh the run-in-public /open snapshot from live Stripe, weekly (exploration 0201).
+#
+# INERT BY DEFAULT: the job is guarded by `vars.CLOUD_METRICS_ENABLED`, so on a repo
+# without billing wired it never runs on the schedule (a skipped job is green, and
+# no PR is opened). Turn it on once Stripe is live:
+#   • Repo variable  CLOUD_METRICS_ENABLED = true
+#   • Repo secret    STRIPE_SECRET_KEY (read-only-capable key is fine)
+# Nothing publishes automatically — the job opens a PR; the data lands only on review.
+
+on:
+  schedule:
+    - cron: '0 14 * * 1' # Mondays 14:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: cloud-metrics
+  cancel-in-progress: false
+
+jobs:
+  rollup:
+    if: ${{ vars.CLOUD_METRICS_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Compute metrics from Stripe + publish gate
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+        run: |
+          node scripts/cloud-company-metrics.mjs company-metrics.json
+          # The publish gate re-applies the k-anon floor + bans per-customer fields,
+          # writing site/src/data/metrics.json. No-op (no diff) if Stripe was empty.
+          node scripts/cloud-metrics-rollup.mjs company-metrics.json
+          rm -f company-metrics.json
+
+      - name: Open a PR if the snapshot changed
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: 'chore(open): refresh run-in-public metrics snapshot'
+          title: 'chore(open): weekly run-in-public metrics refresh'
+          body: |
+            Automated weekly refresh of `site/src/data/metrics.json` from live Stripe,
+            re-applying the k-anonymity floor + per-customer-field ban (exploration 0201).
+            Review the diff before merging — the git history is the transparency log.
+          branch: chore/open-metrics-refresh
+          add-paths: site/src/data/metrics.json
+          delete-branch: true
