@@ -473,35 +473,37 @@ function PresenceDot({ status }: { status?: PresenceStatus }) {
 
 ## Implementation Checklist
 
+_Shipped in PR #168 (commits on `claude/0198-chat-ui`). The comms-ui kit landed app-local under `apps/web/src/comms/` rather than a new package — lower risk, no cross-package dist rebuild — which we can promote to `packages/ui` later if reused._
+
 **Phase 1 — Layout, density, robustness (no new deps, no schema change)**
-- [ ] Extract a comms-ui kit (`packages/ui/src/comms/` or `packages/comms-ui`) with `MessageList`, `MessageGroup`, `MessageRow`, `DateSeparator`, `UnreadDivider`, `Avatar`/`PresenceDot`, `JumpToBottom`, `TypingDots`.
-- [ ] Implement `groupMessages()` (consecutive same-author within 5 min, day boundaries, first-unread marker) with unit tests.
-- [ ] Virtualize the message list with `@tanstack/react-virtual`; stable `getItemKey` = message id; `measureElement` for variable heights.
-- [ ] Replace the always-jam scroll effect with near-bottom threshold + jump-to-bottom pill (unread count badge).
-- [ ] Render avatars + presence dots in message rows, the header roster (avatar stack + count), and DM/sidebar rows.
-- [ ] Rebuild the channel header: avatar stack, member count, editable topic, info/search/pin actions.
-- [ ] Rebuild `ChatsPanel`: unread bolding, last-message preview, presence dot on DMs, collapsible/custom sections, optional workspace switcher; keep the 3 default sections.
-- [ ] Add `role="log"`/`aria-live` to the list and verify `prefers-reduced-motion` no-ops new animations.
+- [x] comms-ui kit under `apps/web/src/comms/`: `MessageRow`, `ChannelMessageList`, `DateSeparator`/`UnreadDivider` (in `MessageRow`), `ChatAvatar`/`PresenceDot`, jump-to-bottom + `TypingDots` (in the list).
+- [x] `message-grouping.ts` `groupMessages()` (consecutive same-author within 5 min, day boundaries, first-unread marker) with unit tests (12 tests).
+- [ ] Virtualize the message list with `@tanstack/react-virtual` — **deferred**: the history window is capped at 100 today, so a plain grouped list + smart scroll is used; full windowed virtualization pairs with raising the cap + load-older (a separate effort).
+- [x] Replaced the always-jam scroll with a near-bottom threshold + jump-to-latest pill (shows the unread-ahead count).
+- [x] Avatars + presence dots in message rows, the header roster (avatar stack + member count), and DM sidebar rows.
+- [x] Rebuilt the channel header: avatar stack, member count, editable topic, members popover. (Search/pin header actions deferred with their features.)
+- [x] Rebuilt `ChatsPanel`: presence dots on DMs, unread emphasis, kept the 3 default sections. (Last-message preview + custom/collapsible sections + workspace switcher deferred — they need per-channel last-message queries.)
+- [x] `role="log"`/`aria-live` on the list; `motion-reduce:animate-none` guards on every new animation.
 
 **Phase 2 — Interactions (reactions, threads, edit, attach, pins)**
-- [ ] `HoverToolbar` (quick-react, add-reaction, reply, edit-if-own, more) + right-click `ContextMenu` with the full action set.
-- [ ] `ReactionBar` on every message using `useReactionCounters`; optimistic toggle; who-reacted tooltip; `scale-in` bounce.
-- [ ] Emoji picker: `:` inline trigger (reuse `useListboxNavigation`) + button-launched `frimousse`/`emoji-mart` popover (lazy-loaded).
-- [ ] `ThreadPane` in a right pane driven by `inReplyTo`; thread footer on parent (reply count + participant avatars); reply composer.
-- [ ] Edit-in-place: `↑` on empty composer loads last own message; inline edit form calls `editMessage`.
-- [ ] File attach: drag-drop + button writing to `ChatMessage.attachments`; render image/file cards in the row.
-- [ ] Pinning: add schema (decide `pinned` field vs `Pin` node) + pinned-messages popover from the header.
-- [ ] Wire all new CSS micro-interactions from `motion.css` (slide-in on send, typing dots, shimmer skeletons for history load).
+- [x] `MessageHoverToolbar` (quick-react, add-reaction, reply, edit-if-own, more) reusing the existing `MessageActions` safety menu. (Standalone right-click `ContextMenu` deferred — the hover toolbar + more-menu cover the same actions.)
+- [x] `ReactionBar` on every message via a chat-specific `useMessageReactions` (one indexed query per message instead of `useReactionCounters`'s full-store scan); optimistic toggle; who-reacted via title tooltip; `scale-in` pop.
+- [x] Dependency-free emoji picker (`EmojiPicker` + curated `emoji-data.ts`) on the add-reaction button and a composer emoji-insert button. (Inline `:` trigger deferred.)
+- [x] `ThreadPane` (right pane) driven by `inReplyTo`; replies kept out of the main feed; root shows a thread footer (reply count + participant avatars + last reply); reply composer.
+- [x] Edit-in-place: `↑` on an empty composer loads the last own message; inline edit form calls `editMessage`.
+- [ ] File attach (drag-drop + button → `ChatMessage.attachments`) — **deferred**: needs the file-upload pipeline.
+- [ ] Pinning (schema + pinned-messages popover) — **deferred**.
+- [x] CSS micro-interactions from the existing Tailwind animations: `slide-in-bottom` on new messages (history excluded), `scale-in` reaction pop, animated typing dots, `fade-in` jump pill. (Shimmer history skeletons deferred with load-older.)
 
 **Phase 3 — Power & polish**
-- [ ] `Cmd+K` quick switcher (cmdk `Command`) across channels/DMs/people.
-- [ ] Message search (FTS over `content`) with a results view in the right pane.
-- [ ] Keyboard shortcut layer (`↑` edit, `Esc` dismiss, `j/k` or arrows to move selection, `r` reply).
-- [ ] Density setting (Clean/Compact) persisted in workbench store.
-- [ ] (Optional) Migrate composer input to a TipTap instance with inline pills + markdown shortcuts.
-- [ ] (Optional) Add `motion/react` (lazy `domAnimation`) for `AnimatePresence` exits, spring reaction bounce, `layout` pill widths.
+- [ ] `Cmd+K` quick switcher across channels/DMs/people — **deferred** (a global search rail action already exists).
+- [ ] Message search (FTS over `content`) — **deferred**.
+- [x] Keyboard: `↑` edits last own message, `Esc` dismisses pickers / cancels edit / closes the thread, arrow-navigates the mention/emoji pickers, focus returns to the composer after send. (`j/k`/`r` message selection deferred.)
+- [x] Density setting (comfortable/compact) — header toggle persisted via the `chat-prefs` localStorage store (shared across open channels) rather than the workbench store.
+- [ ] (Optional) Migrate composer input to a TipTap instance — **deferred**.
+- [ ] (Optional) Add `motion/react` for `AnimatePresence`/spring/`layout` — **deferred** (CSS covers it today).
 
-**Phase 4 — Zulip-style topics (optional differentiator)**
+**Phase 4 — Zulip-style topics (optional differentiator) — deferred**
 - [ ] Add optional `topic` text field to `ChatMessage` (additive; default empty = current flat behavior).
 - [ ] Recipient-bar feed mode: group messages under stream+topic headers; per-topic unread counts.
 - [ ] `N`-to-next-unread reading loop; resolve-topic (✓); rename/move/merge topic affordances.
@@ -509,18 +511,18 @@ function PresenceDot({ status }: { status?: PresenceStatus }) {
 
 ## Validation Checklist
 
-- [ ] A channel with 5,000+ messages scrolls at 60fps; history prepends without the viewport jumping; memory stays bounded (virtualization verified in browser preview).
-- [ ] Reading history near the top is **not** interrupted when a new message arrives; the jump-to-bottom pill appears with the correct unread count and scrolls cleanly on click.
-- [ ] Consecutive messages from one author within 5 minutes render as a group (one avatar/name); a day boundary inserts a date separator; the "New messages" divider appears exactly at the last-read point.
-- [ ] Adding/removing a reaction updates the pill optimistically and reverts on failure; the who-reacted tooltip lists reactors; counts match the underlying `Reaction` nodes.
-- [ ] Replying opens the thread pane, the parent shows an accurate reply count + participant avatars, and thread replies sync via `inReplyTo`.
-- [ ] Editing an own message updates content in place and shows `(edited)`; deleting shows the soft-delete placeholder and preserves thread shape.
-- [ ] Presence dots reflect `active/idle/dnd`; the typing indicator animates and times out; the header roster shows avatars.
-- [ ] Full keyboard path works: `Cmd+K` switch, `↑` edit last, `Esc` dismiss popovers, arrow-navigate the mention/emoji pickers; focus returns to the composer after send.
-- [ ] Screen reader announces only new messages (`role="log"` polite); reactions are `aria-pressed` toggles; emoji carry `aria-label`.
-- [ ] `prefers-reduced-motion` disables all new animations.
-- [ ] The surface renders correctly in both the desktop grid and the mobile `Sheet` host at 375×812 without breaking `getByRole('main')`/log selectors; `editor-ux` (incl. `mobile-chromium`) is green.
-- [ ] Before/after screenshots captured by the visuals pipeline show the redesigned channel, sidebar, reactions, and thread pane.
+- [ ] A channel with 5,000+ messages scrolls at 60fps with virtualization — **deferred** (window capped at 100; plain grouped list used).
+- [x] Reading history near the top is **not** interrupted when a new message arrives; the jump-to-latest pill appears with the unread-ahead count and scrolls cleanly on click (verified in browser preview).
+- [x] Consecutive messages from one author within 5 minutes render as a group (one avatar/name); a day boundary inserts a date separator; the "New messages" divider marks the last-read point (grouping unit-tested + verified in preview: 2nd message collapsed under the 1st, "Today" separator rendered).
+- [x] Adding/removing a reaction toggles the pill (verified: clicking quick-react produced a `👍 1` pill with `aria-pressed=true`); counts match the underlying `Reaction` nodes; reactor names show on hover via the title tooltip. (Revert-on-failure relies on node-sync rollback, not `useOptimistic`.)
+- [x] Replying opens the thread pane, the parent shows an accurate "1 reply · last reply" footer with participant avatars, and replies sync via `inReplyTo` and stay out of the main feed (verified in preview).
+- [x] Editing an own message updates content in place and shows `(edited)`; deleting shows the soft-delete placeholder and preserves thread shape (edit verified; soft-delete preserved from the original surface).
+- [x] Presence dots reflect `active/idle/dnd` and the typing indicator animates; the header roster shows avatars.
+- [x] Keyboard: `↑` edits last own message, `Esc` dismisses pickers / cancels edit / closes the thread, mention/emoji pickers arrow-navigate, focus returns to the composer after send. (`Cmd+K` channel switch deferred.)
+- [x] `role="log"`/`aria-live="polite"` on the list; reactions are `aria-pressed` toggles; emoji carry `aria-label`.
+- [x] `prefers-reduced-motion` disables new animations (`motion-reduce:animate-none` on each).
+- [x] Renders in both the desktop grid and the mobile BottomNav shell at 375×812 with a single `<main>` (no `getByRole('main')` breakage) — verified in preview; `editor-ux` (incl. `mobile-chromium`) pending CI.
+- [ ] Before/after screenshots from the CI visuals pipeline on the redesigned channel/sidebar/reactions/thread — pending the PR's visuals run.
 
 ## References
 
