@@ -67,11 +67,11 @@ export const VARS = [
     group: 'Service',
     secret: false,
     milestone: 'M1',
-    where: 'immutable hub image new tenants boot (NEVER :latest)',
+    where: 'hub image TAG only (NEVER :latest); combined with GCP_ARTIFACT_REGISTRY → repo:tag',
     values: {
-      development: 'xnet-hub@0.0.1',
-      staging: 'xnet-hub@1.0.0',
-      production: 'xnet-hub@1.0.0'
+      development: '1.0.0',
+      staging: '1.0.0',
+      production: '1.0.0'
     }
   },
 

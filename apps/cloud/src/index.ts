@@ -13,13 +13,17 @@ import {
   MemoryBindingStore,
   WorkOSAuthKitProvider,
   type BillingIdentityProvider,
+  type BindingStore,
   type DidChallengeVerifier
 } from '@xnetjs/cloud/identity'
 import { MemoryProvisioner, type Provisioner } from '@xnetjs/cloud/provisioner'
+import { stripeGatewayFromEnv } from './billing/stripe-gateway'
 import { FakeTenantBillingGateway, type TenantBillingGateway } from './billing-gateway'
 import { ControlPlane } from './control-plane'
-import { MemoryTenantStore } from './registry'
+import { cloudRunProvisionerFromEnv } from './provisioner/google-cloud-run-client'
+import { MemoryTenantStore, type TenantStore } from './registry'
 import { createControlPlaneApp } from './server'
+import { firestoreStoresFromEnv } from './stores/firestore'
 
 export { ControlPlane } from './control-plane'
 export { MemoryTenantStore, type TenantRecord, type TenantStore } from './registry'
@@ -80,6 +84,25 @@ export {
 } from './rollout/engine'
 export { controlPlaneRolloutDeps } from './rollout/control-plane-deps'
 export {
+  StripeTenantBillingGateway,
+  stripeGatewayFromEnv,
+  type StripeClient,
+  type StripeGatewayConfig
+} from './billing/stripe-gateway'
+export {
+  InMemoryDocStore,
+  tenantStoreFromDocs,
+  bindingStoreFromDocs,
+  type DocStore
+} from './stores/durable'
+export { FirestoreDocStore, firestoreStoresFromEnv, type DurableStores } from './stores/firestore'
+export {
+  GoogleCloudRunClient,
+  cloudRunProvisionerFromEnv,
+  type RunService,
+  type RunServicesClient
+} from './provisioner/google-cloud-run-client'
+export {
   verifyRestore,
   runRestoreDrills,
   pickDrillSample,
@@ -114,20 +137,29 @@ export interface BuildControlPlaneOptions {
   provisioner?: Provisioner
   billing?: BillingIdentityProvider
   verifyDid?: DidChallengeVerifier
+  tenants?: TenantStore
+  bindings?: BindingStore
   env?: NodeJS.ProcessEnv
 }
 
-/** Build a fully-composed control plane with sensible defaults (in-memory). */
+/**
+ * Compose the control plane, selecting real implementations from the environment
+ * and falling back to in-memory fakes for dev/tests:
+ *   - stores      → Firestore when GCP/Firestore is configured, else in-memory
+ *   - provisioner → Cloud Run + Litestream when GCP/R2 is configured, else in-memory
+ * Explicit `options` always win (test injection).
+ */
 export function buildControlPlane(options: BuildControlPlaneOptions = {}): {
   controlPlane: ControlPlane
   billing: BillingIdentityProvider
 } {
   const env = options.env ?? process.env
   const billing = options.billing ?? resolveBillingProvider(env)
+  const stores = firestoreStoresFromEnv(env)
   const controlPlane = new ControlPlane({
-    tenants: new MemoryTenantStore(),
-    bindings: new MemoryBindingStore(),
-    provisioner: options.provisioner ?? new MemoryProvisioner(),
+    tenants: options.tenants ?? stores?.tenants ?? new MemoryTenantStore(),
+    bindings: options.bindings ?? stores?.bindings ?? new MemoryBindingStore(),
+    provisioner: options.provisioner ?? cloudRunProvisionerFromEnv(env) ?? new MemoryProvisioner(),
     verifyDid: options.verifyDid ?? devDidVerifier,
     planSecret: env.XNET_PLAN_SECRET ?? 'dev-insecure-plan-secret',
     defaultTargetVersion: env.HUB_IMAGE_TAG ?? 'xnet-hub@0.0.1'
@@ -136,21 +168,22 @@ export function buildControlPlane(options: BuildControlPlaneOptions = {}): {
 }
 
 /**
- * Pick the plan-subscription gateway. The real Stripe adapter is deferred; until
- * then a keyless fake drives the funnel locally (and in tests). The webhook secret,
- * when set, makes the fake require a signed webhook.
+ * Pick the plan-subscription gateway: real Stripe when `STRIPE_SECRET_KEY` +
+ * `STRIPE_WEBHOOK_SECRET` are set, otherwise the keyless fake that drives the
+ * funnel locally and in tests.
  */
 export function resolveBillingGateway(env: NodeJS.ProcessEnv = process.env): TenantBillingGateway {
-  return new FakeTenantBillingGateway(env.XNET_CLOUD_WEBHOOK_SECRET)
+  return stripeGatewayFromEnv(env) ?? new FakeTenantBillingGateway(env.XNET_CLOUD_WEBHOOK_SECRET)
 }
 
 function start(): void {
-  const { controlPlane, billing } = buildControlPlane()
   const env = process.env
+  const { controlPlane, billing } = buildControlPlane()
+  const payments = resolveBillingGateway(env)
   const app = createControlPlaneApp({
     controlPlane,
     billing,
-    payments: resolveBillingGateway(env),
+    payments,
     sessionSecret: env.XNET_CLOUD_SESSION_SECRET ?? 'dev-insecure-session-secret',
     baseUrl: env.XNET_CLOUD_BASE_URL ?? '',
     marketingUrl: env.XNET_CLOUD_MARKETING_URL ?? 'https://xnet.fyi/cloud',
@@ -158,8 +191,14 @@ function start(): void {
   })
   const port = Number(env.PORT ?? 4455)
   serve({ fetch: app.fetch, port })
+  const mode = {
+    auth: billing.name,
+    payments: payments.id,
+    provisioner: env.GCP_ARTIFACT_REGISTRY ? 'cloud-run' : 'memory',
+    stores: env.GCP_FIRESTORE_DATABASE ? 'firestore' : 'memory'
+  }
   // eslint-disable-next-line no-console
-  console.log(`xnet-cloud control plane listening on :${port} (billing: ${billing.name})`)
+  console.log(`xnet-cloud listening on :${port} — ${JSON.stringify(mode)}`)
 }
 
 // Only start a server when run directly, not when imported by tests.
