@@ -1,0 +1,14 @@
+{
+  "id": "2026-06-17-pr169",
+  "date": "June 2026",
+  "title": "Cleaner page editor typography",
+  "summary": "Page documents now read like Notion or Obsidian. Body text, bullets, numbered lists, to-dos, and blockquotes all share one clean left edge, the text column is centered, and the page title has a clear hierarchy.",
+  "highlights": [
+    "Bullets, numbered lists, to-dos, and blockquotes align to a single left edge",
+    "Centered text column with consistent vertical rhythm between blocks",
+    "Checkboxes sit centered on their first line; the page title now clearly outranks H1"
+  ],
+  "tags": ["editor"],
+  "author": { "login": "crs48" },
+  "pr": 169
+}

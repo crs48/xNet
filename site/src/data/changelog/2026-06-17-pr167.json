@@ -1,0 +1,15 @@
+{
+  "id": "2026-06-17-pr167",
+  "date": "June 2026",
+  "title": "Linear-grade Tasks",
+  "summary": "The Tasks surface gets a Linear-style overhaul — faster in-surface navigation, multi-select bulk actions, a detail slide-over, and powerful filtering and grouping.",
+  "highlights": [
+    "In-surface sub-nav (All Issues / My Issues / Triage) plus the Projects list",
+    "Multi-select with a floating bulk-action bar — set status, priority, or assignee in one batch",
+    "Filter bar, Display Options (group / order / density), Space-to-peek, and a detail slide-over",
+    "Opt-in violet \"Linear\" accent theme (Settings → Appearance → Accent)"
+  ],
+  "tags": ["tasks", "app"],
+  "author": { "login": "crs48" },
+  "pr": 167
+}

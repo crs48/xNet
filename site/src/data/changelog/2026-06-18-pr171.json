@@ -1,0 +1,14 @@
+{
+  "id": "2026-06-18-pr171",
+  "date": "June 2026",
+  "title": "Smoother, more consistent motion",
+  "summary": "A small, consistent animation vocabulary now runs across the app, so things move in a calm, on-style way. Toasts and banners glide in and out, and switching workspace scope cross-fades instead of snapping.",
+  "highlights": [
+    "Toasts and banners animate both in and out",
+    "Workspace re-scoping cross-fades smoothly",
+    "Honors your system \"reduce motion\" setting"
+  ],
+  "tags": ["app"],
+  "author": { "login": "crs48" },
+  "pr": 171
+}
