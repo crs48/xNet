@@ -180,6 +180,15 @@ const view = entries.map((entry, i) => {
 
               <Gallery entryId={entry.id} items={items} video={video} galleryLink={galleryLink} />
 
+              {entry.pr && items.length === 0 && !video && (
+                <a
+                  href={`${repo}/pull/${entry.pr}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="mb-4 inline-flex items-center gap-1 text-sm text-indigo-400 hover:underline"
+                >View PR #{entry.pr} →</a>
+              )}
+
               <ul class="mb-4 grid gap-1.5">
                 {entry.highlights.map((h) => (
                   <li class="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300">

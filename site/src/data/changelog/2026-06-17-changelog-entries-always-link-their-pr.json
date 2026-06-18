@@ -1,0 +1,14 @@
+{
+  "id": "2026-06-17-changelog-entries-always-link-their-pr",
+  "date": "June 17, 2026",
+  "title": "Changelog entries always link their PR",
+  "summary": "Every changelog entry now links to its pull request and shows a 'View PR' link even when there are no screenshots.",
+  "highlights": [
+    "PR links resolve reliably (GitHub API fallback), not just from commit messages",
+    "Entries without screenshots show a clear 'View PR #N' link"
+  ],
+  "tags": [
+    "platform"
+  ],
+  "pr": 191
+}

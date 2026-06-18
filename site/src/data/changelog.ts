@@ -18,8 +18,11 @@
  *   - Every entry maps to real shipped work (a merged PR where applicable).
  *   - `summary` leads with the user benefit; `highlights` are user-visible.
  *   - `hero.src`/`images[].src` is an absolute path (/images/…) or https URL.
- * To add an entry by hand, drop a `<id>.json` file in ./changelog/. In CI, the
- * Changelog workflow writes one automatically from each merged PR.
+ *   - `pr` is optional at author time: `scripts/changelog/new.mjs` bakes it in
+ *     when the branch already has a PR, otherwise `scripts/changelog/resolve-prs.mjs`
+ *     fills it from git history + the GitHub API at deploy (explorations 0197/0202).
+ * To add an entry, run `node scripts/changelog/new.mjs …` (or drop a `<id>.json`
+ * file here) and commit it in your PR — the changelog-check workflow requires one.
  */
 export type ChangelogTag =
   | 'app'
