@@ -1,5 +1,18 @@
 # Automated Changelog Updates On PR Merge
 
+> **Revision (post-implementation).** The original design here — a workflow that
+> writes the entry and **commits it to `main` on merge** — proved unworkable
+> against the branch ruleset: the bot's push to protected `main` is rejected
+> ("changes must be made through a pull request"), and the token-free escapes
+> (bot PR, Actions bypass) each had fatal flaws (a `GITHUB_TOKEN`-created PR
+> doesn't trigger CI; a bypass loosens `main`). The shipped design instead
+> **never writes to `main`**: the author commits a changelog **fragment**
+> (`site/src/data/changelog/<id>.json`) as part of the PR — Changesets-style — so
+> it lands with the merge. A required `changelog-section` check enforces it, and
+> `deploy-site` fills in the PR number from git history at build time (so authors
+> don't need a second commit). See the "Author-commits-the-fragment" path below;
+> the on-merge writer was removed.
+
 ## Problem Statement
 
 The changelog (`site/src/data/changelog.ts`, exploration 0195) is a **hand-edited
