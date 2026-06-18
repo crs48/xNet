@@ -109,7 +109,7 @@ test('routes and flows match by glob', () => {
   )
 })
 
-test('web UI change with no specific route falls back to home', () => {
+test('web UI change with no specific route falls back to home + flags the gap (0200)', () => {
   const set = computeCaptureSet({
     changedFiles: ['apps/web/src/components/Widget.tsx'],
     storyEntries: [],
@@ -120,6 +120,63 @@ test('web UI change with no specific route falls back to home', () => {
     set.routes.map((r) => r.id),
     ['home']
   )
+  // The fallback must announce itself so the comment can flag the coverage gap
+  // instead of silently reporting "no visual differences" (the PR #174 miss).
+  assert.equal(set.fallbackUsed, true)
+  assert.deepEqual(set.unmappedFiles, ['apps/web/src/components/Widget.tsx'])
+})
+
+test('a matched story suppresses the home fallback — not a coverage gap (0200)', () => {
+  // packages/ui change WITH a story: the story is "something specific", so we do
+  // NOT also pile on the home shell, and the gap signal stays off.
+  const set = computeCaptureSet({
+    changedFiles: ['packages/ui/src/primitives/Button.tsx'],
+    storyEntries: STORIES,
+    routeManifest: [
+      { id: 'home', label: 'Home', path: '/', globs: ['apps/web/src/routes/index.tsx'] }
+    ],
+    flowManifest: FLOWS
+  })
+  assert.deepEqual(
+    set.stories.map((s) => s.id),
+    ['ui-primitives-button--default']
+  )
+  assert.deepEqual(
+    set.routes.map((r) => r.id),
+    []
+  )
+  assert.equal(set.fallbackUsed, false)
+  assert.deepEqual(set.unmappedFiles, [])
+})
+
+test('a matched flow suppresses the home fallback — not a coverage gap (0200)', () => {
+  // An editor change matches the create-page flow but no route: the flow is the
+  // capture, so no home fallback and no gap warning.
+  const set = computeCaptureSet({
+    changedFiles: ['packages/editor/src/Editor.tsx'],
+    storyEntries: [],
+    routeManifest: [
+      { id: 'home', label: 'Home', path: '/', globs: ['apps/web/src/routes/index.tsx'] }
+    ],
+    flowManifest: FLOWS
+  })
+  assert.deepEqual(
+    set.flows.map((f) => f.id),
+    ['create-page']
+  )
+  assert.equal(set.fallbackUsed, false)
+  assert.deepEqual(set.unmappedFiles, [])
+})
+
+test('a non-UI change sets no fallback and no unmapped files (0200)', () => {
+  const set = computeCaptureSet({
+    changedFiles: ['packages/core/src/store.ts'],
+    storyEntries: STORIES,
+    routeManifest: ROUTES,
+    flowManifest: FLOWS
+  })
+  assert.equal(set.fallbackUsed, false)
+  assert.deepEqual(set.unmappedFiles, [])
 })
 
 test('a non-UI change captures nothing', () => {

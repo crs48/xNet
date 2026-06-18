@@ -53,7 +53,7 @@ the corresponding sticky comment to a tombstone so no broken image survives.
 | `lib/static-server.mjs`   | Zero-dep static server for the Storybook iframe                             |
 | `flows.mjs`               | Interaction-flow runners, keyed to `manifests.json` flow ids                |
 | `manifests.json`          | Maps source globs → app routes and interaction flows                        |
-| `lib/manifest-coverage.test.mjs` | Drift guard: every singleton route must be mapped (or `EXEMPT`)        |
+| `lib/manifest-coverage.test.mjs` | Drift guard: every singleton route mapped (or `EXEMPT`); every `$`‑route flow‑covered (or `PARAM_EXEMPT`) |
 
 ## Tuning
 
@@ -66,6 +66,19 @@ the corresponding sticky comment to a tombstone so no broken image survives.
   ever captures the top of funnel. `lib/manifest-coverage.test.mjs` **fails** if a
   new singleton route is left unmapped (or not explicitly `EXEMPT`), so this isn't
   optional. Background: [`docs/explorations/0191`](../../docs/explorations/0191_%5B_%5D_VISUAL_CAPTURE_MISSES_UNMAPPED_AND_INTERACTION_GATED_SURFACES.md).
+- **Parameterized routes** (`name.$param.tsx`, e.g. `/channel/$channelId`) can
+  **never** be captured as a static URL — they need a real id + seed data, so they
+  are invisible to the route capturer. Each **must** be reachable by a `flows[]`
+  runner whose globs include the route file, or be listed in `PARAM_EXEMPT` (with
+  a reason) in `lib/manifest-coverage.test.mjs` — which **fails** otherwise. This
+  was the chat‑redesign blind spot. Background:
+  [`docs/explorations/0200`](../../docs/explorations/0200_%5Bx%5D_VISUAL_CAPTURE_SILENT_COVERAGE_GAPS.md).
+- **The coverage‑gap warning**: when changed UI files map to *no* story/route/flow,
+  capture falls back to the `home` shell and `computeCaptureSet` sets
+  `fallbackUsed`/`unmappedFiles`. The PR comment then shows a `> [!WARNING]` listing
+  the unmapped files instead of the misleading "No visual differences detected" —
+  so a coverage gap reads as a TODO, not a no‑op. If you see that warning on your
+  PR, add a route/flow mapping for the files it lists.
 - **Don't broaden `home`**: keep its globs to the shell (`index`/`__root`/`App`/
   `workbench`). A broad `apps/web/src/components/**` glob false‑matches every
   domain surface onto `/`, hiding the real diff (the 0191 bug); generic UI changes

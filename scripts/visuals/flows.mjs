@@ -89,5 +89,70 @@ export const FLOWS = {
       await tryClick(/Deal details/i)
       await wait(page, 1200)
     }
+  },
+
+  // The redesigned chat surface (exploration 0198, PR #174) only renders at the
+  // parameterized /channel/$channelId route, behind a seeded channel + messages,
+  // so no static route shot can see it -- this flow seeds it. Every step is
+  // best-effort (a missing control must not abort the recording): open the Chats
+  // panel from the rail, create a channel, post two messages (to show grouping),
+  // then hover a row to reveal the action toolbar, react, and open the thread.
+  chat: {
+    label: 'Open a channel and post a message',
+    async run(page) {
+      const tryClick = async (target) => {
+        try {
+          await target.click({ timeout: 5000 })
+        } catch {
+          /* best-effort */
+        }
+      }
+      const byLabel = (name) => page.getByRole('button', { name }).first()
+
+      // Open the left "Chats" panel from the 44px rail (aria-label="Chats").
+      await tryClick(byLabel(/^Chats$/))
+      await wait(page, 500)
+
+      // "New channel" (+) -> type a name -> Enter creates the channel.
+      await tryClick(byLabel('New channel'))
+      const nameInput = page.getByPlaceholder(/channel name/i)
+      try {
+        await nameInput.fill('visual-demo', { timeout: 4000 })
+        await nameInput.press('Enter')
+      } catch {
+        /* the panel may already have a channel to open */
+      }
+      await wait(page, 800)
+
+      // Open the channel row we just made (falls back to any channel row).
+      await tryClick(byLabel(/visual-demo/i))
+      await page.waitForURL(/\/channel\//, { timeout: 15_000 }).catch(() => {})
+      await wait(page, 600)
+
+      // Post two messages so grouping + the feed redesign are visible.
+      const composer = page.getByPlaceholder(/Message/i).first()
+      try {
+        await composer.click({ timeout: 5000 })
+        await composer.type('Visual capture demo — first message.', { delay: 25 })
+        await composer.press('Enter')
+        await composer.type('And a second, to show message grouping.', { delay: 25 })
+        await composer.press('Enter')
+      } catch {
+        /* composer may be gated; the channel shell is still worth recording */
+      }
+      await wait(page, 600)
+
+      // Hover the latest row to reveal the action toolbar, then react + reply.
+      try {
+        const row = page.getByRole('listitem').last()
+        await row.hover({ timeout: 4000 })
+        await wait(page, 300)
+        await tryClick(byLabel(/add reaction|react/i))
+        await tryClick(byLabel(/reply|thread/i))
+      } catch {
+        /* hover/toolbar is cosmetic */
+      }
+      await wait(page, 1200)
+    }
   }
 }
