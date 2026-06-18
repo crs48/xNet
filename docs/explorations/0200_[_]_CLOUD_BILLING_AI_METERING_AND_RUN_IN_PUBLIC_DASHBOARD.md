@@ -501,61 +501,74 @@ stateDiagram-v2
 ## Implementation Checklist
 
 ### Slice A — Managed AI
-- [ ] Add `includedAiUsd` + `aiMonthlyBudgetUsd` to `PlanEntitlements` +
-      `PLAN_CATALOG`; update the signed-token round-trip + tests.
-- [ ] Firestore-backed `UsageLedger` (durable, idempotent by key); wire into
-      `buildControlPlane` like the PR #175 stores.
-- [ ] LiteLLM virtual-key client: create/update/delete a key with a budget;
-      provision one when an `aiEnabled` tenant is created; store `aiKeyRef` +
-      `aiBudgetUsd` on `TenantRecord`.
-- [ ] `POST /ai/chat` control-plane route backed by a wired `MeteredGateway`
-      (`pricingFor` with 1.25× markup, `budgetUsdFor` = included + cap).
-- [ ] Hub AI proxy route → control plane (tenant service credential);
-      `managed` `AIProvider` in the client that targets it (BYO stays default).
-- [ ] Deploy a LiteLLM proxy (Cloud Run + Postgres) per env; configure upstreams
-      (providers and/or OpenRouter); secrets in Secret Manager; document in
-      `docs/cloud/SETUP.md`.
-- [ ] Dashboard: live "AI used / included / cap" with near-cap warning.
+- [x] Add `includedAiUsd` + `aiMonthlyBudgetUsd` to `PlanEntitlements` +
+      `PLAN_CATALOG`; update the signed-token round-trip + tests. (`withAiBudget`)
+- [x] Firestore-backed `UsageLedger` (durable, idempotent by key); wire into
+      `buildControlPlane` like the PR #175 stores. (`usageLedgerFromDocs/FromEnv`,
+      `sinceMs` for monthly periods)
+- [x] LiteLLM virtual-key client: create/update/delete a key with a budget;
+      provision one when an `aiEnabled` tenant is created; store `aiKeyRef` on
+      `TenantRecord`. (budget/included read from the entitlement token, not a
+      separate field; updated on plan flip, revoked on delete)
+- [x] `POST /ai/chat` control-plane route backed by a wired `MeteredGateway`
+      (`pricingFor` with 1.25× markup, `budgetUsdFor` = cap, period-scoped).
+- [ ] **Deferred:** hub AI proxy route → control plane + a `managed` `AIProvider`
+      in the client (the route + metering exist; the hub forwarder + client
+      provider are a follow-up — BYO stays the default path).
+- [ ] **Operator:** deploy a LiteLLM proxy (Cloud Run + Postgres) per env;
+      configure upstreams (providers and/or OpenRouter); secrets in Secret
+      Manager. (Env wiring + SETUP docs landed; the deploy is yours.)
+- [x] Dashboard: live "AI used / included / cap" with near-cap warning.
 
 ### Slice B — Billing & cost truth
-- [ ] Session-authed self-serve `changePlan` + seat change (honest migration path).
-- [ ] Dashboard usage panel (storage/seats/AI) + invoices + portal link.
-- [ ] "Cloud & Billing" read-only panel in `apps/web` settings (deep-links out).
-- [ ] Per-tenant `CostLedger` + periodic usage collector (storage bytes, active
-      hours, AI `providerCostUsd`, Stripe fees).
-- [ ] Margin reconciliation: revenue − measured COGS, per tenant + aggregate;
-      flag negative-margin tenants.
+- [x] Session-authed self-serve `changePlan` (in-tier flip live; tier cross →
+      migration notice). Seat changes ride `changePlan` overrides.
+- [x] Dashboard usage panel (AI used/included/cap) + Stripe portal link + a
+      self-serve plan-change card. (Invoice list left as a follow-up.)
+- [x] "Cloud & Billing" row in `apps/web` settings (deep-links to the dashboard).
+- [x] Margin reconciliation engine: `measuredCogs` / `reconcileTenantMargin` /
+      `aggregateMargin` — revenue − measured COGS, per tenant + fleet, flags
+      negative-margin tenants.
+- [ ] **Deferred:** the periodic usage *collector* that feeds the reconciliation
+      live storage-bytes / active-hours / Stripe-fee measurements (needs the
+      GCP/R2 metering APIs). AI `providerCostUsd` is already captured in the ledger.
 
 ### Slice C — Run-in-public dashboard
-- [ ] Control-plane weekly metrics rollup with a k-anonymity floor.
-- [ ] `site/src/data/opex.ts` (hand-maintained, categorized).
-- [ ] Scheduled job writes `site/src/data/metrics.json` and opens a PR.
-- [ ] Inline-SVG chart components (area/bar/line) on the site.
-- [ ] `/open` Astro page: customer growth, MRR growth, stacked cost breakdown,
-      break-even line; linked from the footer + `/cloud`.
+- [x] Control-plane weekly metrics rollup with a k-anonymity floor + break-even
+      (`buildCompanyMetrics` / `computeBreakEven`, tested).
+- [x] `site/src/data/opex.ts` (hand-maintained, categorized).
+- [x] Publish script `scripts/cloud-metrics-rollup.mjs` writes
+      `site/src/data/metrics.json` with a defense-in-depth k-anon re-check + a ban
+      on per-customer fields. (Wiring it to a **scheduled cron + auto-PR** is the
+      operator step.)
+- [x] Inline-SVG chart components (area/stacked-bar) on the site.
+- [x] `/open` Astro page: customer growth, MRR growth, stacked cost breakdown,
+      break-even framing; linked from the footer. (A `/cloud` cross-link is a nicety.)
 
 ## Validation Checklist
 
-- [ ] A managed AI chat round-trips through hub → control plane → LiteLLM with a
-      `mockResponse`, and the call is metered exactly once (idempotent on retry).
-- [ ] An over-budget tenant gets a `402 ai_budget_exceeded` with **no** provider
-      call (verified: no LiteLLM request issued).
-- [ ] A metered call emits exactly one Stripe meter event (deduped by identifier)
-      and appears on the next invoice in test mode.
-- [ ] The ledger's marked-up charge ≥ provider cost for every call (margin never
-      negative at the per-call level); reconciliation matches LiteLLM spend
-      within tolerance.
-- [ ] The dashboard shows correct included/used/cap for a tenant after N calls.
-- [ ] Self-serve plan change works for an in-tier flip and correctly reports
+- [x] A metered AI chat call (through the `/ai/chat` route with a fake gateway) is
+      metered exactly once and is idempotent on a redelivered (session, request).
+- [x] An over-budget tenant gets a `402 ai_budget_exceeded` with **no** provider
+      call (verified: the counting gateway is never invoked).
+- [ ] **Live smoke:** a metered call emits exactly one Stripe meter event and
+      appears on the next invoice in test mode. (FakeStripeBilling's identifier
+      dedup is unit-tested; the real Stripe leg needs a keyed deploy.)
+- [x] The ledger's marked-up charge ≥ provider cost for every call (pricing rounds
+      up; `reconcileTenantMargin` flags any negative margin).
+- [x] The dashboard shows correct included/used/cap for a tenant (server test +
+      rendered meter).
+- [x] Self-serve plan change works for an in-tier flip and correctly reports
       migration-required for a tier crossing.
-- [ ] The cost ledger produces a per-tenant margin that matches a hand
+- [x] The reconciliation produces a per-tenant margin that matches a hand
       calculation for a known usage profile.
-- [ ] `metrics.json` never contains per-customer revenue and suppresses any
-      bucket below the cohort floor (test with a fixture of 1 enterprise tenant).
-- [ ] `/open` renders growth, cost breakdown, and a break-even line from
-      `metrics.json` + `opex.ts` with no runtime dependency on the control plane.
-- [ ] The OSS hub with no control plane still offers BYO AI (managed path
-      degrades gracefully; anti-lock-in invariant holds).
+- [x] `metrics.json` never contains per-customer revenue and suppresses any
+      bucket below the cohort floor (rollup test with a 1-customer week + the
+      publish script's re-check).
+- [x] `/open` renders growth, cost breakdown, and break-even from `metrics.json`
+      + `opex.ts` with no runtime dependency on the control plane (preview-verified).
+- [x] The OSS hub with no control plane still offers BYO AI — the managed path is
+      additive and Cloud-only; the BYO `AIProvider` default is untouched.
 
 ## References
 

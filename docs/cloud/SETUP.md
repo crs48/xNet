@@ -158,6 +158,53 @@ Manager instead: `./scripts/cloud-gen-secrets.sh`.
 
 ---
 
+## Part 3 — Optional: managed AI (metered, billed) + run-in-public metrics
+
+### 3a. Managed AI gateway (LiteLLM) — exploration 0200
+
+Offer AI to customers without them bringing a key: we host an AI gateway, meter
+token usage with a markup, and bill the overage with a hard budget cap (no
+surprise bills). The control plane has the whole metered pipeline already
+(`MeteredGateway`); it just needs a proxy to point at.
+
+1. **Deploy a [LiteLLM proxy](https://docs.litellm.ai/docs/proxy/deploy)** (its own
+   Cloud Run service + a small Postgres for keys/spend). Configure upstreams —
+   either direct providers (best margin) or **[OpenRouter](https://openrouter.ai)**
+   as a multi-provider upstream for breadth/failover. → `AI_GATEWAY_BASE_URL`
+2. Copy LiteLLM's **master key** so the control plane can mint each tenant a
+   budgeted virtual key at provision time. → `LITELLM_MASTER_KEY` (Secret Manager)
+3. **Pricing:** set the retail markup over provider cost (default `1.25` = 25%).
+   → `AI_MARKUP`. Optionally restrict models with `AI_ALLOWED_MODELS` (comma-list).
+4. **Stripe meter:** create a **metered Price** on a [Billing Meter](https://dashboard.stripe.com/test/billing/meters)
+   named `ai_usage_usd` (aggregation **sum**), with a **graduated** tier where the
+   first _included_ amount per plan is $0 and the rest is 1:1 — that's how the
+   plan's `includedAiUsd` becomes "included" while overage bills.
+5. Per-plan included + cap live in `@xnetjs/entitlements` (`includedAiUsd` /
+   `aiMonthlyBudgetUsd`); they ride the signed `HUB_PLAN` token. Tune them there.
+
+When `AI_GATEWAY_BASE_URL` is set the control plane mounts `POST /ai/chat`
+(budget hard-stop → meter → Stripe) and shows live "used / included / cap" on the
+dashboard. Unset = no managed AI (BYO-key stays the default). Validate against the
+live proxy with a `mock_response` call once deployed.
+
+### 3b. Run-the-company-in-public metrics — the `/open` page
+
+The marketing site renders `site/src/data/metrics.json` (committed; the git
+history is the transparency log). To refresh it, have the control plane emit a
+`CompanyMetrics` rollup (`buildCompanyMetrics` — aggregates only, k-anonymity
+floor) and pipe it through the publish gate:
+
+```bash
+node scripts/cloud-metrics-rollup.mjs company-metrics.json   # writes site/src/data/metrics.json
+```
+
+The script re-applies the cohort-floor suppression and refuses any per-customer
+field, then prompts you to commit + open a PR (nothing goes public without
+review). Wire it to a weekly scheduled job when you're ready. Company opex lives
+in `site/src/data/opex.ts` (hand-maintained).
+
+---
+
 ## Anything you can hand me to go faster
 
 - The **non-secret** config (project id, region, Artifact Registry path, R2 bucket + endpoint) — paste it in chat; none of it is sensitive.

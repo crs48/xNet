@@ -27,10 +27,17 @@ import { currentPeriodStartMs } from '../control-plane'
 import type { AiChatDeps, AiTenantContext } from './route'
 import { pricingFromEnv } from './pricing'
 
-/** The LiteLLM virtual-key manager when LITELLM_BASE_URL + LITELLM_MASTER_KEY are set. */
+/**
+ * The LiteLLM virtual-key manager when the admin API is reachable: a master key
+ * (`LITELLM_MASTER_KEY`) plus a base URL (`LITELLM_BASE_URL`, defaulting to the
+ * shared `AI_GATEWAY_BASE_URL` — usually the same LiteLLM proxy). Key provisioning
+ * is LiteLLM-specific even when the chat path points at an OpenAI-compatible
+ * upstream like OpenRouter.
+ */
 export function aiKeysFromEnv(env: NodeJS.ProcessEnv = process.env): VirtualKeyManager | undefined {
-  if (!env.LITELLM_BASE_URL || !env.LITELLM_MASTER_KEY) return undefined
-  return new LiteLLMKeyManager({ baseUrl: env.LITELLM_BASE_URL, masterKey: env.LITELLM_MASTER_KEY })
+  const baseUrl = env.LITELLM_BASE_URL ?? env.AI_GATEWAY_BASE_URL
+  if (!baseUrl || !env.LITELLM_MASTER_KEY) return undefined
+  return new LiteLLMKeyManager({ baseUrl, masterKey: env.LITELLM_MASTER_KEY })
 }
 
 /** Real Stripe meter adapter when a secret key is set, else the keyless fake. */
@@ -70,9 +77,10 @@ function tenantResolver(
 }
 
 /**
- * Build the managed-AI route deps from the environment, or null when LiteLLM is
- * unconfigured (route stays unmounted). The `ledger` is shared with the dashboard
- * so "used / included / cap" reads the same accrued spend.
+ * Build the managed-AI route deps from the environment, or null when the gateway
+ * is unconfigured (route stays unmounted). The chat path uses `AI_GATEWAY_BASE_URL`
+ * (any OpenAI-compatible proxy — LiteLLM or OpenRouter). The `ledger` is shared
+ * with the dashboard so "used / included / cap" reads the same accrued spend.
  */
 export function aiChatDepsFromEnv(
   controlPlane: ControlPlane,
@@ -80,14 +88,14 @@ export function aiChatDepsFromEnv(
   env: NodeJS.ProcessEnv = process.env,
   nowMs: () => number = () => Date.now()
 ): AiChatDeps | null {
-  if (!env.LITELLM_BASE_URL) return null
+  if (!env.AI_GATEWAY_BASE_URL) return null
   const allowedModels = env.AI_ALLOWED_MODELS
     ? env.AI_ALLOWED_MODELS.split(',')
         .map((m) => m.trim())
         .filter(Boolean)
     : undefined
   return {
-    gateway: new GatewayClient({ baseUrl: env.LITELLM_BASE_URL }),
+    gateway: new GatewayClient({ baseUrl: env.AI_GATEWAY_BASE_URL }),
     ledger,
     billing: billingFromEnv(env),
     pricingFor: pricingFromEnv(env),

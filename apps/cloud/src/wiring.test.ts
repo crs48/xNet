@@ -45,25 +45,25 @@ describe('env-driven wiring', () => {
     expect(stores?.bindings).toBeDefined()
   })
 
-  it('mounts managed AI only when LITELLM_BASE_URL is set', () => {
+  it('mounts managed AI only when AI_GATEWAY_BASE_URL is set', () => {
     const { controlPlane } = buildControlPlane({ env: env({}) })
     const ledger = usageLedgerFromEnv(env({}))
     expect(aiChatDepsFromEnv(controlPlane, ledger, env({}))).toBeNull()
     const deps = aiChatDepsFromEnv(
       controlPlane,
       ledger,
-      env({ LITELLM_BASE_URL: 'http://litellm:4000' })
+      env({ AI_GATEWAY_BASE_URL: 'http://litellm:4000' })
     )
     expect(deps?.gateway).toBeDefined()
     expect(deps?.pricingFor('claude-sonnet-4-6').markup).toBe(1.25)
   })
 
-  it('selects the LiteLLM key manager only when base URL + master key are set', () => {
+  it('selects the LiteLLM key manager only when a base URL + master key are set', () => {
     expect(aiKeysFromEnv(env({}))).toBeUndefined()
-    expect(aiKeysFromEnv(env({ LITELLM_BASE_URL: 'http://litellm:4000' }))).toBeUndefined() // needs master key
+    expect(aiKeysFromEnv(env({ AI_GATEWAY_BASE_URL: 'http://litellm:4000' }))).toBeUndefined() // needs master key
     expect(
       aiKeysFromEnv(
-        env({ LITELLM_BASE_URL: 'http://litellm:4000', LITELLM_MASTER_KEY: 'sk-master' })
+        env({ AI_GATEWAY_BASE_URL: 'http://litellm:4000', LITELLM_MASTER_KEY: 'sk-master' })
       )
     ).toBeDefined()
   })

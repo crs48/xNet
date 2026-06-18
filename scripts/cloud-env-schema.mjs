@@ -273,7 +273,31 @@ export const VARS = [
     group: 'Optional',
     secret: false,
     milestone: 'optional',
-    where: 'LiteLLM/OpenAI-compatible proxy (per-tenant keys live there)',
+    where: 'LiteLLM/OpenAI-compatible proxy for the chat path (per-tenant keys live there)',
+    values: { development: '', staging: '', production: '' }
+  },
+  {
+    key: 'LITELLM_MASTER_KEY',
+    group: 'Optional',
+    secret: true,
+    milestone: 'optional',
+    where: "LiteLLM admin key — lets the control plane mint each tenant's budgeted virtual key",
+    values: { development: '', staging: '', production: '' }
+  },
+  {
+    key: 'AI_MARKUP',
+    group: 'Optional',
+    secret: false,
+    milestone: 'optional',
+    where: 'retail markup over provider token cost (default 1.25 = 25%); clamped to >= 1',
+    values: { development: '', staging: '', production: '' }
+  },
+  {
+    key: 'AI_ALLOWED_MODELS',
+    group: 'Optional',
+    secret: false,
+    milestone: 'optional',
+    where: 'comma-separated model allow-list for managed AI (blank = allow any the proxy serves)',
     values: { development: '', staging: '', production: '' }
   }
 ]
