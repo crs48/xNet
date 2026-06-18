@@ -1,0 +1,14 @@
+{
+  "id": "2026-06-18-pr173",
+  "date": "June 2026",
+  "title": "Airtable-grade database grids",
+  "summary": "Database grids gain a summary footer with per-column aggregations and an adjustable row height, so you can read totals and tune density right in the view.",
+  "highlights": [
+    "Per-column summary footer — Sum, Average, Min/Max, Median, Filled %, Unique, and more",
+    "Row-height control (Short / Medium / Tall / Extra tall), saved per view",
+    "Polished field-type pickers with readable labels"
+  ],
+  "tags": ["app"],
+  "author": { "login": "crs48" },
+  "pr": 173
+}

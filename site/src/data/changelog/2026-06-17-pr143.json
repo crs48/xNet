@@ -1,0 +1,14 @@
+{
+  "id": "2026-06-17-pr143",
+  "date": "June 2026",
+  "title": "AI chat that knows your workspace",
+  "summary": "The in-app assistant now reads your own workspace — your notes, tasks, contacts, and more — so its answers are grounded in your data, with citations. It also remembers the conversation instead of treating every message as the first.",
+  "highlights": [
+    "Answers are grounded in your workspace and cite the items they draw from",
+    "Conversations have memory — the assistant sees the whole thread, not just your last message",
+    "A clear \"reads workspace\" badge and privacy note explain what it can see"
+  ],
+  "tags": ["ai"],
+  "author": { "login": "crs48" },
+  "pr": 143
+}
