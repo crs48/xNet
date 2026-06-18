@@ -1,0 +1,16 @@
+{
+  "id": "2026-06-18-plugins-marketplace-live-on-the-web",
+  "date": "June 18, 2026",
+  "title": "Plugins marketplace, live on the web",
+  "summary": "Browse every plugin xNet ships out of the box and everything the community builds — on the website and inside the app — and publish your own with a one-line PR.",
+  "highlights": [
+    "A new /plugins page with search, categories, and per-plugin detail pages",
+    "In-app Browse tab installs community plugins through a capability-consent gate",
+    "Publish via a metadata PR — your code stays in your repo and updates ship automatically"
+  ],
+  "tags": [
+    "plugins",
+    "app",
+    "platform"
+  ]
+}
