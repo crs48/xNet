@@ -1,0 +1,14 @@
+{
+  "id": "2026-06-18-xnet-is-now-an-open-re-implementable-pro",
+  "date": "June 18, 2026",
+  "title": "xNet is now an open, re-implementable protocol",
+  "summary": "The data model, sync, identity, and authorization are now a written standard — re-implement xNet in any language, over any database, and interoperate.",
+  "highlights": [
+    "New /docs/protocol section: four normative layers (primitives, data model, replication, authorization) and the xnet/1.0 umbrella version",
+    "A language-agnostic conformance corpus with golden vectors and a Python reference kernel that verifies TypeScript-signed changes byte-for-byte",
+    "The XPP proposal process for evolving the standard"
+  ],
+  "tags": [
+    "platform"
+  ]
+}
