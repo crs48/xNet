@@ -52,10 +52,13 @@ jobs:
         run: pnpm install --ignore-workspace
         working-directory: site
 
-      # Fill in each changelog fragment's PR number from git history (the merge
-      # commit that introduced it). Edits the workspace only — nothing committed.
+      # Fill in each changelog fragment's PR number — git history first, then the
+      # GitHub API (merge-method-proof) for anything git can't resolve (0202).
+      # Edits the workspace only — nothing committed.
       - name: Resolve changelog PR numbers
         run: node scripts/changelog/resolve-prs.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
 
       - name: Build site
         run: pnpm build
