@@ -375,13 +375,8 @@ const view = entries.map((entry, i) => {
     })
   })
 
-  // ── Before/after sliders ───────────────────────────────────────────────
-  document.querySelectorAll<HTMLElement>('.cl-cmp').forEach((cmp) => {
-    const range = cmp.querySelector<HTMLInputElement>('.cl-cmp-range')
-    const set = (v: number) => cmp.style.setProperty('--cl-pos', `${v}%`)
-    set(50)
-    range?.addEventListener('input', () => set(Number(range.value)))
-  })
+  // Before/after comparisons are pure CSS now (after by default → before on
+  // hover/focus), so no JS is needed for them.
 
   // ── Lightbox ───────────────────────────────────────────────────────────
   const lb = document.getElementById('cl-lightbox') as HTMLDialogElement | null

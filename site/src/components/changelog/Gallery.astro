@@ -1,11 +1,11 @@
 ---
 /**
  * Changelog media gallery (exploration 0196). Zero runtime dependencies:
- *  - before/after surfaces → a hand-rolled, keyboard-accessible CSS slider
+ *  - before/after surfaces → "after" by default, instant swap to "before" on
+ *    hover/focus (pure CSS), with a corner badge labelling which is shown
  *  - new/curated surfaces  → a CSS scroll-snap thumbnail strip → <dialog> lightbox
  *  - interaction flows      → a click-to-play <video> with a poster frame
- * The interactive behaviour (lightbox + slider drag) is wired by the island
- * script in changelog/index.astro, which operates on the markup rendered here.
+ * The lightbox behaviour is wired by the island script in changelog/index.astro.
  */
 interface Thumb {
   src: string
@@ -40,22 +40,17 @@ const hasMedia = comparisons.length > 0 || thumbs.length > 0 || Boolean(video)
         <figure
           class="cl-cmp"
           tabindex="0"
-          aria-label={`Before and after: ${c.alt}. Use left and right arrow keys to compare.`}
+          aria-label={`Before and after: ${c.alt}. Hover or focus to see the "before" image.`}
         >
-          <img class="cl-cmp-after" src={c.after} alt={`After — ${c.alt}`} loading="lazy" />
-          <div class="cl-cmp-before-wrap" aria-hidden="true">
-            <img class="cl-cmp-before" src={c.before} alt="" loading="lazy" />
-          </div>
-          <span class="cl-cmp-divider" aria-hidden="true" />
-          <input
-            class="cl-cmp-range"
-            type="range"
-            min="0"
-            max="100"
-            value="50"
-            aria-label={`Reveal before/after for ${c.alt}`}
-          />
-          <figcaption class="cl-cmp-cap">{c.alt} — before / after</figcaption>
+          <span class="cl-cmp-media">
+            <img class="cl-cmp-after" src={c.after} alt={`${c.alt} — after`} loading="lazy" />
+            <img class="cl-cmp-before" src={c.before} alt={`${c.alt} — before`} loading="lazy" />
+            <span class="cl-cmp-badge" aria-hidden="true">
+              <span class="cl-cmp-badge-after">After</span>
+              <span class="cl-cmp-badge-before">Before</span>
+            </span>
+          </span>
+          <figcaption class="cl-cmp-cap">{c.alt} — hover to compare</figcaption>
         </figure>
       ))}
 
@@ -117,55 +112,65 @@ const hasMedia = comparisons.length > 0 || thumbs.length > 0 || Boolean(video)
     margin-top: 0.75rem;
   }
 
-  /* Before/after comparison — the "after" image defines the box; "before" is
-     overlaid and clipped to --cl-pos (set by the island script in index.astro). */
+  /* Before/after comparison — "after" defines the box and shows by default;
+     hovering or keyboard-focusing the figure instantly swaps to "before" (no
+     animation). A corner badge labels which image is showing. */
   .cl-cmp {
-    position: relative;
     display: block;
     margin: 0;
     border: 1px solid var(--lp-border);
     border-radius: 0.5rem;
     overflow: hidden;
-    --cl-pos: 50%;
   }
   .cl-cmp:focus-visible {
     outline: 2px solid #6366f1;
     outline-offset: 2px;
+  }
+  .cl-cmp-media {
+    position: relative;
+    display: block;
   }
   .cl-cmp-after {
     display: block;
     width: 100%;
     height: auto;
   }
-  .cl-cmp-before-wrap {
+  .cl-cmp-before {
     position: absolute;
     inset: 0;
-    clip-path: inset(0 calc(100% - var(--cl-pos)) 0 0);
-  }
-  .cl-cmp-before {
-    display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
+    opacity: 0; /* after shown by default; no transition = instant swap */
   }
-  .cl-cmp-divider {
+  .cl-cmp:hover .cl-cmp-before,
+  .cl-cmp:focus .cl-cmp-before {
+    opacity: 1;
+  }
+  .cl-cmp-badge {
     position: absolute;
-    top: 0;
-    bottom: 0;
-    left: var(--cl-pos);
-    width: 2px;
-    margin-left: -1px;
-    background: #6366f1;
+    top: 0.4rem;
+    left: 0.4rem;
+    padding: 0.1rem 0.45rem;
+    border-radius: 0.25rem;
+    background: rgba(0, 0, 0, 0.65);
+    color: #fff;
+    font-size: 0.6rem;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
     pointer-events: none;
   }
-  .cl-cmp-range {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    margin: 0;
-    opacity: 0;
-    cursor: ew-resize;
+  .cl-cmp-badge-before {
+    display: none;
+  }
+  .cl-cmp:hover .cl-cmp-badge-after,
+  .cl-cmp:focus .cl-cmp-badge-after {
+    display: none;
+  }
+  .cl-cmp:hover .cl-cmp-badge-before,
+  .cl-cmp:focus .cl-cmp-badge-before {
+    display: inline;
   }
   .cl-cmp-cap {
     padding: 0.35rem 0.5rem;
