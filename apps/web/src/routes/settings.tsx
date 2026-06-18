@@ -37,6 +37,8 @@ import { logout } from '../lib/identity'
 /** Marketing + dashboard origins for xNet Cloud (managed hub hosting). */
 const CLOUD_MARKETING_URL = 'https://xnet.fyi/cloud'
 const CLOUD_DASHBOARD_URL = 'https://cloud.xnet.fyi/dashboard'
+/** The dashboard surfaces plan, billing portal, and managed-AI usage (exploration 0200). */
+const CLOUD_BILLING_URL = 'https://cloud.xnet.fyi/dashboard#billing'
 
 export const Route = createFileRoute('/settings')({
   component: SettingsPage
@@ -497,6 +499,20 @@ function NetworkSettings() {
             className={QUIET_BUTTON}
           >
             Open dashboard
+          </a>
+        </SettingRow>
+
+        <SettingRow
+          label="Billing & AI usage"
+          description="Change your plan, manage your payment method, and see your managed-AI usage against the included budget — all on your cloud dashboard. Your billing identity stays separate from this device's data identity."
+        >
+          <a
+            href={CLOUD_BILLING_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={QUIET_BUTTON}
+          >
+            Manage billing
           </a>
         </SettingRow>
       </SettingsGroup>
