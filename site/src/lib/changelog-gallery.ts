@@ -60,14 +60,17 @@ function caption(s: DiffSurface): string {
 }
 
 /**
- * Fetch + shape a PR's gallery. Returns null on 404 / offline / empty so the
- * caller degrades to the curated hero. Never throws.
+ * Fetch + shape a PR's gallery. Returns null on 404 / offline / empty / timeout
+ * so the caller degrades to the curated hero. Never throws. The 5s timeout
+ * bounds the build-time fetch (these run as `Promise.all` over every entry in
+ * index.astro) so a slow or hung host can never stall the production deploy
+ * (exploration 0203).
  */
 export async function loadPrGallery(pr: number, cap = 12): Promise<PrGallery | null> {
   const base = `${VISUALS_BASE}/${pr}`
   let manifest: DiffManifest
   try {
-    const res = await fetch(`${base}/diff-manifest.json`)
+    const res = await fetch(`${base}/diff-manifest.json`, { signal: AbortSignal.timeout(5000) })
     if (!res.ok) return null
     manifest = (await res.json()) as DiffManifest
   } catch {

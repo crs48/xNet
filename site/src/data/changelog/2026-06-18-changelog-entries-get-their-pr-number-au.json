@@ -1,0 +1,16 @@
+{
+  "id": "2026-06-18-changelog-entries-get-their-pr-number-au",
+  "date": "June 18, 2026",
+  "title": "Changelog entries get their PR number automatically",
+  "summary": "Every changelog entry now reliably links its pull request — the number is stamped into the entry when the PR merges, with no extra commit from you.",
+  "highlights": [
+    "PR number is written into the entry at merge, so the repo matches what's published",
+    "Pull requests are verified at PR time — a numberless or malformed entry fails CI, not the live deploy",
+    "The deploy-time resolver remains a safety net for anything merged outside the normal flow"
+  ],
+  "tags": [
+    "platform",
+    "devtools",
+    "ci"
+  ]
+}
