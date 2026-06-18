@@ -1,0 +1,13 @@
+{
+  "id": "2026-06-17-pr163",
+  "date": "June 2026",
+  "title": "See your local agent in the AI panel",
+  "summary": "The AI panel now shows the local bridge agent and its connection status, with a picker to choose which agent handles your requests.",
+  "highlights": [
+    "Live status for the local bridge agent",
+    "Pick which agent runs (your own Claude Code, Codex, …)"
+  ],
+  "tags": ["ai", "app"],
+  "author": { "login": "crs48" },
+  "pr": 163
+}
