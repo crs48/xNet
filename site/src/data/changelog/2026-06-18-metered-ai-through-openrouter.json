@@ -1,0 +1,14 @@
+{
+  "id": "2026-06-18-metered-ai-through-openrouter",
+  "date": "June 18, 2026",
+  "title": "Metered AI through OpenRouter",
+  "summary": "xNet Cloud can now run managed AI through OpenRouter with per-tenant budgets, exact per-call cost, and a self-serve spend cap.",
+  "highlights": [
+    "OpenRouter gateway with per-tenant provisioned keys and monthly spend limits",
+    "Bills off OpenRouter's exact usage.cost, not a static price estimate",
+    "Self-serve hard spend cap (clamped to your plan) with near-cap warnings"
+  ],
+  "tags": [
+    "ai"
+  ]
+}
