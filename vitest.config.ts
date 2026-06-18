@@ -66,6 +66,7 @@ const workspaceAliases = {
   '@xnetjs/telemetry': new URL('./packages/telemetry/src/index.ts', import.meta.url).pathname,
   '@xnetjs/trust': new URL('./packages/trust/src/index.ts', import.meta.url).pathname,
   '@xnetjs/ui': new URL('./packages/ui/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/unreal': new URL('./packages/unreal/src/index.ts', import.meta.url).pathname,
   '@xnetjs/vectors': new URL('./packages/vectors/src/index.ts', import.meta.url).pathname,
   '@xnetjs/views': new URL('./packages/views/src/index.ts', import.meta.url).pathname
 }
@@ -149,8 +150,8 @@ export default defineConfig({
           isolate: true,
           testTimeout: 15000,
           include: [
-            'packages/{hub,plugins,sdk,devkit}/src/**/*.test.ts',
-            'packages/{hub,plugins,sdk,devkit}/test/**/*.test.ts'
+            'packages/{hub,plugins,sdk,devkit,unreal}/src/**/*.test.ts',
+            'packages/{hub,plugins,sdk,devkit,unreal}/test/**/*.test.ts'
           ],
           server: {
             deps: {
