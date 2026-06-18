@@ -6,7 +6,8 @@
     "**/storybook-static/**",
     "**/*.generated.ts",
     "patches/**",
-    "examples/**"
+    "examples/**",
+    "scripts/changelog/**"
   ],
   "ignoreDependencies": ["expo-splash-screen", "expo-sqlite"],
   "dynamicallyLoaded": [
