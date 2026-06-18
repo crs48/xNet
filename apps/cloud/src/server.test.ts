@@ -27,6 +27,28 @@ describe('control-plane HTTP API', () => {
     expect(await res.json()).toMatchObject({ status: 'ok', service: 'xnet-cloud' })
   })
 
+  it('serves a public, aggregate-only /status.json that never leaks a tenant', async () => {
+    const a = app()
+    // Provision a real (hot, hub-bearing) tenant, then confirm it can't surface.
+    await a.request('/internal/tenants', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-internal-secret': INTERNAL },
+      body: JSON.stringify(provisionBody)
+    })
+    const res = await a.request('/status.json')
+    expect(res.status).toBe(200)
+    const body = await res.text()
+    expect(body).not.toContain('acme') // the tenantId must never appear
+    const status = JSON.parse(body) as {
+      overall: string
+      components: { id: string }[]
+      errorBudgetPolicy: Record<string, number>
+    }
+    expect(status.overall).toBe('operational')
+    expect(status.components.map((c) => c.id)).toContain('hub-fleet')
+    expect(status.errorBudgetPolicy).toMatchObject({ ship: 0, caution: 0, freeze: 0 })
+  })
+
   it('redirects /auth/start to the billing provider', async () => {
     const res = await app().request('/auth/start?state=abc')
     expect(res.status).toBe(302)

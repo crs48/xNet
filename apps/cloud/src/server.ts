@@ -28,6 +28,7 @@ import {
 } from './dashboard'
 import { MemoryDeviceGrantStore, isExpired, type DeviceGrantStore } from './device-grant'
 import { fleetSummary, tenantSli, type HealthSampleStore } from './observability/health'
+import { publicStatus } from './observability/status'
 import { SESSION_COOKIE, readSession, sealSession, type SessionData } from './session'
 
 export interface ControlPlaneAppDeps {
@@ -39,6 +40,8 @@ export interface ControlPlaneAppDeps {
   deviceGrants?: DeviceGrantStore
   /** Fleet health samples (Phase 1 observability). If set, exposes /internal/fleet/health. */
   health?: HealthSampleStore
+  /** Whether per-hub backups (Litestream→R2) are configured; surfaced on /status.json. */
+  backupsConfigured?: boolean
   /** Managed AI chat deps. If set, exposes `POST /ai/chat` (metered gateway). */
   ai?: AiChatDeps
   /** Secret used to sign session cookies. If unset, the dashboard + auth callback are disabled. */
@@ -84,6 +87,28 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
   app.get('/health', (c) =>
     c.json({ status: 'ok', service: 'xnet-cloud', substrate: deps.controlPlane ? 'ready' : 'init' })
   )
+
+  // Public, aggregate-only status (exploration 0201). Unauthenticated by design —
+  // it feeds the marketing site's /status page — so it must never carry anything
+  // tenant-identifying. We pass only per-tenant availability *numbers* into
+  // `publicStatus`, which is structurally incapable of emitting an id or hub URL.
+  app.get('/status.json', async (c) => {
+    const tenants = await deps.controlPlane.listTenants()
+    const hot = tenants.filter((t) => t.dataTier === 'hot' && t.hubUrl)
+    const slis = deps.health
+      ? hot.map((t) =>
+          tenantSli(deps.health!, { tenantId: t.tenantId, plan: t.plan, hubUrl: t.hubUrl }, now())
+        )
+      : []
+    const status = publicStatus({
+      nowMs: now(),
+      fleet: fleetSummary(slis),
+      availabilities: slis.map((s) => s.availability),
+      aiConfigured: Boolean(deps.ai),
+      backupsHealthy: deps.backupsConfigured ? true : null
+    })
+    return c.json(status)
+  })
 
   // Managed AI: `POST /ai/chat` (metered gateway). Mounted only when configured.
   if (deps.ai) app.route('/', createAiRoute(deps.ai))

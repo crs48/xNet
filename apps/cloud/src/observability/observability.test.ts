@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { FakeHealthProbe, HealthSampleStore, sampleTenantHealth, tenantSli } from './health'
+import {
+  FakeHealthProbe,
+  HealthSampleStore,
+  probeFleet,
+  sampleTenantHealth,
+  tenantSli
+} from './health'
 import {
   availability,
   backupHealthy,
@@ -113,5 +119,29 @@ describe('health sampling → tenant SLI', () => {
     const store = new HealthSampleStore(5)
     for (let i = 0; i < 20; i++) store.record('t_c', ok(i))
     expect(store.samples('t_c')).toHaveLength(5)
+  })
+
+  it('probeFleet samples only hot tenants with a live hub', async () => {
+    const probe = new FakeHealthProbe({
+      'wss://a.hub': { ok: true, latencyMs: 10 },
+      'wss://b.hub': { ok: true, latencyMs: 20 }
+    })
+    const store = new HealthSampleStore()
+    const probed = await probeFleet(
+      probe,
+      store,
+      [
+        { tenantId: 'a', hubUrl: 'wss://a.hub', dataTier: 'hot' },
+        { tenantId: 'b', hubUrl: 'wss://b.hub', dataTier: 'hot' },
+        { tenantId: 'c', hubUrl: '', dataTier: 'hot' }, // hot but no live hub → skipped
+        { tenantId: 'd', hubUrl: 'wss://d.hub', dataTier: 'cold' } // cold → skipped
+      ],
+      1000
+    )
+    expect(probed).toBe(2)
+    expect(store.samples('a')).toHaveLength(1)
+    expect(store.samples('b')).toHaveLength(1)
+    expect(store.samples('c')).toHaveLength(0)
+    expect(store.samples('d')).toHaveLength(0)
   })
 })

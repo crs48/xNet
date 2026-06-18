@@ -80,6 +80,27 @@ export async function sampleTenantHealth(
   return sample
 }
 
+/**
+ * Probe every *hot* tenant once, recording a sample for each. The cold tenants
+ * (scale-to-zero, no live hub) are skipped — probing them would force a cold
+ * start. Used by the control plane's background loop (`apps/cloud/src/index.ts`)
+ * and exhaustively testable with a {@link FakeHealthProbe}. Returns the count probed.
+ */
+export async function probeFleet(
+  probe: HealthProbe,
+  store: HealthSampleStore,
+  tenants: { tenantId: string; hubUrl: string; dataTier: 'hot' | 'cold' }[],
+  nowMs: number
+): Promise<number> {
+  const hot = tenants.filter((t) => t.dataTier === 'hot' && Boolean(t.hubUrl))
+  await Promise.all(
+    hot.map((t) =>
+      sampleTenantHealth(probe, store, { tenantId: t.tenantId, hubUrl: t.hubUrl }, nowMs)
+    )
+  )
+  return hot.length
+}
+
 /** The derived SLI summary for one tenant against its plan's SLO. */
 export interface TenantSli {
   tenantId: string
