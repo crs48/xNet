@@ -13,7 +13,6 @@
  * reorder/resize/hide without duplicating the schema.
  */
 
-import type { RowHeight } from '../../database/row-height'
 import type { SummaryFunction } from '../../database/summary-engine'
 import type { FilterGroup, SortConfig } from '../../database/view-types'
 import type { InferNode } from '../types'
