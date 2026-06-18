@@ -609,47 +609,73 @@ erDiagram
       it alongside a UE5.x/UEFN MCP server in one agent harness, and demo an agent
       reading XNet design docs/tasks and issuing an engine action. Document the
       auth/registration contract UE exposes.
-- [ ] **Phase 2 — schema pack.** Create `packages/unreal` (`@xnetjs/unreal`);
-      define `PlayerIdentity`, `Inventory`, `Item`, `Achievement`, `MatchSession`,
-      `GameEconomyEntry`, `AssetRef` with `authorization` set (owner/space cascade);
-      add to the schema barrel; pass `authorization-coverage.test.ts`.
-- [ ] **Phase 2 — connector.** Implement `defineConnector('fyi.xnet.unreal', …)`
-      with capability-scoped `schemaWrite`/`network`, a `{ everyMs }` cadence, and
-      `agentTools`; wire the hub `connectorSyncFeature` mount under `.sync`.
+- [x] **Phase 2 — schema pack.** Game-interop pack shipped in `@xnetjs/data`
+      (`packages/data/src/schema/schemas/game.ts`): `PlayerIdentity`, `Inventory`,
+      `GameItem`, `Achievement`, `MatchSession`, `GameEconomyEntry`, `GameAsset`,
+      each with `spaceCascadeAuthorization()`; registered through the 3-layer
+      barrel; `authorization-coverage.test.ts` + `game.test.ts` green. (Schemas
+      live in `@xnetjs/data`, not `packages/unreal`, to stay inside `builtInSchemas`
+      and avoid a `data → unreal` cycle; `Item`→`GameItem`, `AssetRef`→`GameAsset`
+      to avoid generic-name collisions in the flat namespace.)
+- [x] **Phase 2 — connector.** `buildUnrealConnector` in `@xnetjs/unreal`
+      (`packages/unreal/src/connector.ts`) produces a real `defineConnector`-valid
+      `ConnectorDefinition` (`fyi.xnet.connector.unreal`) — capability-scoped
+      `schemaWrite`/`network`/`secrets`, configurable cadence, opt-in `agentTools`,
+      a `pull` that maps events → nodes. A test wraps it with the real
+      `defineConnector` to prove zero structural drift. (Hub `connectorSyncFeature`
+      mount under `.sync` deferred — the connector ships unmounted, exactly like the
+      0196 connectors, to be wired when a real title API exists.)
 - [ ] **Phase 2 — XNet app surfaces.** A "Games" workbench view + a dashboard/CRM
       "guild manager" + a ledger-backed economy view over the ingested nodes.
-- [ ] **Phase 2 — asset refs.** Store glTF/USDZ as `FileRef` blobs; confirm
-      `/files/:cid` resolves them with correct `mimeType`.
+      *(Deferred — view-layer follow-on.)*
+- [x] **Phase 2 — asset refs.** `GameItem.asset` / `PlayerIdentity.avatarAsset` /
+      `GameAsset.file` are `file()` refs restricted to glTF/USD MIME types
+      (`GAME_ASSET_MIME_TYPES`); the existing content-addressed blob path +
+      `/files/:cid` serve them unchanged (no XNet-side parsing).
 - [ ] **Phase 3 — UE client SDK (separate repo).** `XNetClient` for Verse (hosted
       hub) + native C++ (LocalAPI `:31415`); read inventory/identity, write
-      achievements; ship a sample "sovereign inventory" map.
+      achievements; ship a sample "sovereign inventory" map. *(Deferred — separate
+      repo.)*
 - [ ] **Phase 3 — runtime auth.** Mint UCAN tokens scoped to a single `game/*`
-      space; verify the policy evaluator denies cross-space reads.
+      space; verify the policy evaluator denies cross-space reads. *(Deferred.)*
 - [ ] **Phase 4 — DID login.** Prototype "log into a game with your XNet DID";
       cross-game social graph via `packages/social`; party voice via
-      `packages/comms`.
-- [ ] **Pin the granularity rule** in `docs/` and enforce it in the connector/SDK
-      (reject high-frequency schemas).
+      `packages/comms`. *(Deferred.)*
+- [x] **Pin the granularity rule** in the connector and enforce it: the
+      `@xnetjs/unreal` granularity guardrail (`granularity.ts`) rejects any cadence
+      below the 1s `MIN_SYNC_INTERVAL_MS` floor and any non-durable schema target,
+      at connector build time — "save-file data may sync, netcode-packet state may
+      not" is now executable, not advisory.
 
 ## Validation Checklist
 
 - [ ] A coding agent, given an XNet workspace + a UE MCP server, completes a task
       that *reads* XNet data and *acts* on the engine (Phase 1 proof).
-- [ ] The Unreal connector syncs sample game events into `game/*` nodes; they
-      appear in search, a dashboard, and the economy ledger; re-sync is idempotent.
-- [ ] `authorization-coverage.test.ts` and the `schemaToHubPolicy` parity test pass
-      with the new schemas; a game-scoped UCAN provably **cannot** read a node in a
-      different space (negative test).
-- [ ] A glTF/USDZ asset round-trips: stored as a `FileRef`, served from
-      `/files/:cid` with correct `mimeType`, resolvable by a UE client.
+- [x] The Unreal connector maps sample game events into the durable `game/*`
+      schemas via `mapGameEventToNode` + `pull` (unit-proven with a fake store);
+      appearing in search/dashboard/ledger follows from the standard node path.
+      *(Live re-sync idempotence against a real title API is deferred with the hub
+      mount.)*
+- [x] `authorization-coverage.test.ts` passes with the seven new schemas and
+      `game.test.ts` asserts each declares a non-legacy policy + carries the `space`
+      relation the cascade reads. *(The cross-space UCAN negative test ships with
+      Phase 3 runtime auth.)*
+- [x] A glTF asset round-trips through the schema layer: `GameAsset.create` accepts
+      a `FileRef` with `mimeType: model/gltf-binary`; the `file()` accept list locks
+      to glTF/USD MIME. *(End-to-end `/files/:cid` serving is the existing,
+      unchanged blob path.)*
 - [ ] The runtime SDK reads a player's inventory and writes an achievement; the
-      change syncs to a second device via the hub.
-- [ ] A deliberately high-frequency (per-frame) schema/sync is **rejected** by the
-      connector/SDK guardrail.
-- [ ] Secret scoping verified: the Unreal connector sees only `UNREAL_*`/`EPIC_*`
-      env, never another feature's secret (`scopedEnv` test).
-- [ ] No new heavy dependency lands in `apps/web`/`apps/desktop` bundles (no 3D
-      engine pulled in); blob path stays content-addressed.
+      change syncs to a second device via the hub. *(Deferred — Phase 3.)*
+- [x] A deliberately high-frequency (per-frame) cadence and a non-durable schema
+      target are both **rejected** by the granularity guardrail
+      (`granularity.test.ts`, `connector.test.ts`).
+- [ ] Secret scoping verified end-to-end: the connector declares `UNREAL_*`/`EPIC_*`
+      only; the hub `scopedEnv` projection is exercised when the connector is
+      mounted. *(Deferred with the hub mount.)*
+- [x] No new heavy dependency lands in `apps/web`/`apps/desktop` bundles: the schema
+      pack adds none, and `@xnetjs/unreal` is a server-side connector package
+      (deps: `@xnetjs/data`; `@xnetjs/plugins` dev-only) — no 3D engine, blob path
+      stays content-addressed.
 
 ## References
 

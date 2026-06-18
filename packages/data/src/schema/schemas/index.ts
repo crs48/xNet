@@ -301,6 +301,42 @@ export {
   type ReviewTask
 } from './moderation'
 
+// Game-interop schema pack (exploration 0200)
+export {
+  GAME_NAMESPACE,
+  GAME_ASSET_MIME_TYPES,
+  GAME_ASSET_FORMATS,
+  GAME_SCHEMA_IRIS,
+  PLAYER_IDENTITY_SCHEMA_IRI,
+  INVENTORY_SCHEMA_IRI,
+  GAME_ITEM_SCHEMA_IRI,
+  ACHIEVEMENT_SCHEMA_IRI,
+  MATCH_SESSION_SCHEMA_IRI,
+  GAME_ECONOMY_ENTRY_SCHEMA_IRI,
+  GAME_ASSET_SCHEMA_IRI,
+  ITEM_RARITIES,
+  MATCH_RESULTS,
+  PlayerIdentitySchema,
+  GameItemSchema,
+  InventorySchema,
+  AchievementSchema,
+  MatchSessionSchema,
+  GameEconomyEntrySchema,
+  GameAssetSchema,
+  gameSchemas,
+  type GameVisibility,
+  type ItemRarity,
+  type MatchResult,
+  type GameAssetFormat,
+  type PlayerIdentity,
+  type GameItem,
+  type Inventory,
+  type Achievement,
+  type MatchSession,
+  type GameEconomyEntry,
+  type GameAsset
+} from './game'
+
 // Comment anchor types
 export {
   type AnchorType,
@@ -450,6 +486,16 @@ export const builtInSchemas = {
     import('./moderation').then((m) => m.ContentProvenanceSchema),
   'xnet://xnet.fyi/Appeal@1.0.0': () => import('./moderation').then((m) => m.AppealSchema),
   'xnet://xnet.fyi/ReviewTask@1.0.0': () => import('./moderation').then((m) => m.ReviewTaskSchema),
+  // Game-interop schema pack (exploration 0200)
+  'xnet://xnet.fyi/PlayerIdentity@1.0.0': () =>
+    import('./game').then((m) => m.PlayerIdentitySchema),
+  'xnet://xnet.fyi/Inventory@1.0.0': () => import('./game').then((m) => m.InventorySchema),
+  'xnet://xnet.fyi/GameItem@1.0.0': () => import('./game').then((m) => m.GameItemSchema),
+  'xnet://xnet.fyi/Achievement@1.0.0': () => import('./game').then((m) => m.AchievementSchema),
+  'xnet://xnet.fyi/MatchSession@1.0.0': () => import('./game').then((m) => m.MatchSessionSchema),
+  'xnet://xnet.fyi/GameEconomyEntry@1.0.0': () =>
+    import('./game').then((m) => m.GameEconomyEntrySchema),
+  'xnet://xnet.fyi/GameAsset@1.0.0': () => import('./game').then((m) => m.GameAssetSchema),
 
   // Legacy unversioned IRIs (aliases for the current version)
   'xnet://xnet.fyi/Page': () => import('./page').then((m) => m.PageSchema),
@@ -530,7 +576,15 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/ContentProvenance': () =>
     import('./moderation').then((m) => m.ContentProvenanceSchema),
   'xnet://xnet.fyi/Appeal': () => import('./moderation').then((m) => m.AppealSchema),
-  'xnet://xnet.fyi/ReviewTask': () => import('./moderation').then((m) => m.ReviewTaskSchema)
+  'xnet://xnet.fyi/ReviewTask': () => import('./moderation').then((m) => m.ReviewTaskSchema),
+  // Game-interop schema pack (exploration 0200)
+  'xnet://xnet.fyi/PlayerIdentity': () => import('./game').then((m) => m.PlayerIdentitySchema),
+  'xnet://xnet.fyi/Inventory': () => import('./game').then((m) => m.InventorySchema),
+  'xnet://xnet.fyi/GameItem': () => import('./game').then((m) => m.GameItemSchema),
+  'xnet://xnet.fyi/Achievement': () => import('./game').then((m) => m.AchievementSchema),
+  'xnet://xnet.fyi/MatchSession': () => import('./game').then((m) => m.MatchSessionSchema),
+  'xnet://xnet.fyi/GameEconomyEntry': () => import('./game').then((m) => m.GameEconomyEntrySchema),
+  'xnet://xnet.fyi/GameAsset': () => import('./game').then((m) => m.GameAssetSchema)
 } as const
 
 /**

@@ -302,6 +302,41 @@ export {
 } from './schemas'
 export { ExternalReferenceSchema, type ExternalReference } from './schemas'
 export { MediaAssetSchema, type MediaAsset } from './schemas'
+// Game-interop schema pack (exploration 0200)
+export {
+  GAME_NAMESPACE,
+  GAME_ASSET_MIME_TYPES,
+  GAME_ASSET_FORMATS,
+  GAME_SCHEMA_IRIS,
+  PLAYER_IDENTITY_SCHEMA_IRI,
+  INVENTORY_SCHEMA_IRI,
+  GAME_ITEM_SCHEMA_IRI,
+  ACHIEVEMENT_SCHEMA_IRI,
+  MATCH_SESSION_SCHEMA_IRI,
+  GAME_ECONOMY_ENTRY_SCHEMA_IRI,
+  GAME_ASSET_SCHEMA_IRI,
+  ITEM_RARITIES,
+  MATCH_RESULTS,
+  PlayerIdentitySchema,
+  GameItemSchema,
+  InventorySchema,
+  AchievementSchema,
+  MatchSessionSchema,
+  GameEconomyEntrySchema,
+  GameAssetSchema,
+  gameSchemas,
+  type GameVisibility,
+  type ItemRarity,
+  type MatchResult,
+  type GameAssetFormat,
+  type PlayerIdentity,
+  type GameItem,
+  type Inventory,
+  type Achievement,
+  type MatchSession,
+  type GameEconomyEntry,
+  type GameAsset
+} from './schemas'
 export {
   TranscriptionSchema,
   TRANSCRIPTION_SCHEMA_IRI,
