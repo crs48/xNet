@@ -22,13 +22,15 @@ import {
   exportToJson,
   inferColumnTypes,
   parseCSV,
-  parseRow
+  parseRow,
+  resolveRowHeightPx
 } from '@xnetjs/data'
 import { useBlobService } from '@xnetjs/editor/react'
 import { useGridDatabase, useIdentity, useNode } from '@xnetjs/react'
 import {
   CommentPopover,
   MentionTextArea,
+  Select,
   setNodeTransfer,
   type CommentThreadData
 } from '@xnetjs/ui'
@@ -38,6 +40,7 @@ import {
   FieldConfigEditor,
   GridPeek,
   GridSkeleton,
+  GridSummaryBar,
   GridSurface,
   GridToolbar,
   useDatabaseComments
@@ -66,6 +69,38 @@ interface DatabaseViewProps {
 const CREATABLE_FIELD_TYPES: FieldType[] = FIELD_TYPES.filter(
   (t) => !['rollup', 'richText', 'updatedBy'].includes(t)
 )
+
+// Human-readable labels so the field-type picker reads "Long text", "Multiple
+// select" etc. rather than the raw schema ids.
+const FIELD_TYPE_LABELS: Partial<Record<FieldType, string>> = {
+  text: 'Text',
+  number: 'Number',
+  checkbox: 'Checkbox',
+  date: 'Date',
+  dateRange: 'Date range',
+  select: 'Single select',
+  multiSelect: 'Multiple select',
+  person: 'Person',
+  url: 'URL',
+  email: 'Email',
+  phone: 'Phone',
+  file: 'File',
+  relation: 'Relation',
+  tasks: 'Tasks',
+  formula: 'Formula',
+  created: 'Created time',
+  createdBy: 'Created by',
+  updated: 'Last edited time'
+}
+
+function fieldTypeLabel(type: FieldType): string {
+  return FIELD_TYPE_LABELS[type] ?? type
+}
+
+const FIELD_TYPE_OPTIONS = CREATABLE_FIELD_TYPES.map((type) => ({
+  value: type,
+  label: fieldTypeLabel(type)
+}))
 
 interface FieldMenuState {
   fieldId: string
@@ -472,6 +507,10 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
         onChangeGroupBy={(fieldId) => {
           void grid.setGroupBy(fieldId)
         }}
+        rowHeight={activeView?.rowHeight}
+        onChangeRowHeight={(height) => {
+          void grid.setRowHeight(height)
+        }}
         search={search}
         onSearchChange={setSearch}
         onExportCsv={handleExportCsv}
@@ -484,61 +523,72 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
 
       {/* Body: grid + peek */}
       <div className="flex-1 flex overflow-hidden">
-        <div className="flex-1 overflow-hidden">
-          <GridSurface
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <div className="flex-1 overflow-hidden">
+            <GridSurface
+              fields={gridFields}
+              rows={gridRows}
+              rowHeight={resolveRowHeightPx(activeView?.rowHeight)}
+              sorts={activeView?.sorts}
+              presences={cellPresences}
+              cellCommentCounts={comments.cellCommentCounts}
+              onUpdateCell={(rowId, fieldId, value) => {
+                void grid.updateCell(rowId, fieldId, value)
+              }}
+              onClearCells={(cells) => {
+                void grid.clearCells(cells)
+              }}
+              onAddRow={(afterRowId) => {
+                void grid.addRow(afterRowId)
+              }}
+              onAddRowWithCells={(cells) => {
+                void grid.addRow(undefined, cells)
+              }}
+              onAddFieldWithCell={(rowId, value) => {
+                void (async () => {
+                  const fieldId = await grid.addField(`Column ${grid.fields.length + 1}`, 'text')
+                  if (fieldId) await grid.updateCell(rowId, fieldId, value)
+                })()
+              }}
+              onDeleteRows={(rowIds) => {
+                void grid.deleteRows(rowIds)
+              }}
+              onMoveRow={(rowId, targetIndex) => {
+                void grid.moveRowToIndex(rowId, targetIndex)
+              }}
+              onMoveField={(fieldId, targetIndex) => {
+                void grid.moveFieldToIndex(fieldId, targetIndex)
+              }}
+              onResizeField={(fieldId, width) => {
+                void grid.resizeField(fieldId, width)
+              }}
+              onToggleSort={(fieldId) => {
+                void grid.toggleSort(fieldId)
+              }}
+              onFieldMenu={(fieldId, anchorEl) => setFieldMenu({ fieldId, anchor: anchorEl })}
+              onAddField={() => setAddingField(true)}
+              onCreateOption={grid.createOption}
+              onUploadFile={blobService ? handleUploadFile : undefined}
+              onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
+              onOpenRow={setPeekRowId}
+              onUndo={() => {
+                void grid.undo()
+              }}
+              onRedo={() => {
+                void grid.redo()
+              }}
+              onCommentCell={openCellComments}
+              onCellFocus={handleCellFocus}
+              onCellBlur={handleCellBlur}
+            />
+          </div>
+          <GridSummaryBar
             fields={gridFields}
             rows={gridRows}
-            sorts={activeView?.sorts}
-            presences={cellPresences}
-            cellCommentCounts={comments.cellCommentCounts}
-            onUpdateCell={(rowId, fieldId, value) => {
-              void grid.updateCell(rowId, fieldId, value)
+            summaries={activeView?.columnSummaries ?? {}}
+            onChangeSummary={(fieldId, fn) => {
+              void grid.setColumnSummary(fieldId, fn)
             }}
-            onClearCells={(cells) => {
-              void grid.clearCells(cells)
-            }}
-            onAddRow={(afterRowId) => {
-              void grid.addRow(afterRowId)
-            }}
-            onAddRowWithCells={(cells) => {
-              void grid.addRow(undefined, cells)
-            }}
-            onAddFieldWithCell={(rowId, value) => {
-              void (async () => {
-                const fieldId = await grid.addField(`Column ${grid.fields.length + 1}`, 'text')
-                if (fieldId) await grid.updateCell(rowId, fieldId, value)
-              })()
-            }}
-            onDeleteRows={(rowIds) => {
-              void grid.deleteRows(rowIds)
-            }}
-            onMoveRow={(rowId, targetIndex) => {
-              void grid.moveRowToIndex(rowId, targetIndex)
-            }}
-            onMoveField={(fieldId, targetIndex) => {
-              void grid.moveFieldToIndex(fieldId, targetIndex)
-            }}
-            onResizeField={(fieldId, width) => {
-              void grid.resizeField(fieldId, width)
-            }}
-            onToggleSort={(fieldId) => {
-              void grid.toggleSort(fieldId)
-            }}
-            onFieldMenu={(fieldId, anchorEl) => setFieldMenu({ fieldId, anchor: anchorEl })}
-            onAddField={() => setAddingField(true)}
-            onCreateOption={grid.createOption}
-            onUploadFile={blobService ? handleUploadFile : undefined}
-            onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
-            onOpenRow={setPeekRowId}
-            onUndo={() => {
-              void grid.undo()
-            }}
-            onRedo={() => {
-              void grid.redo()
-            }}
-            onCommentCell={openCellComments}
-            onCellFocus={handleCellFocus}
-            onCellBlur={handleCellBlur}
           />
         </div>
 
@@ -610,20 +660,17 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
                 if (name && name !== menuField.name) void grid.renameField(menuField.id, name)
               }}
             />
-            <select
-              aria-label="Field type"
-              value={menuField.type}
-              className="w-full mb-2 px-2 py-1 text-sm rounded border border-border bg-transparent"
-              onChange={(e) => {
-                void grid.changeFieldType(menuField.id, e.target.value as FieldType)
-              }}
-            >
-              {CREATABLE_FIELD_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
+            <div className="mb-2">
+              <Select
+                className="w-full"
+                placeholder="Field type"
+                options={FIELD_TYPE_OPTIONS}
+                value={menuField.type}
+                onValueChange={(value) => {
+                  void grid.changeFieldType(menuField.id, value as FieldType)
+                }}
+              />
+            </div>
             <FieldConfigEditor
               field={menuField}
               fields={grid.fields}
@@ -681,18 +728,15 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
                 e.stopPropagation()
               }}
             />
-            <select
-              aria-label="New field type"
-              value={newFieldType}
-              className="w-full mb-3 px-2 py-1 text-sm rounded border border-border bg-transparent"
-              onChange={(e) => setNewFieldType(e.target.value as FieldType)}
-            >
-              {CREATABLE_FIELD_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
+            <div className="mb-3">
+              <Select
+                className="w-full"
+                placeholder="Field type"
+                options={FIELD_TYPE_OPTIONS}
+                value={newFieldType}
+                onValueChange={(value) => setNewFieldType(value as FieldType)}
+              />
+            </div>
             <div className="flex justify-end gap-2">
               <button
                 type="button"

@@ -1048,6 +1048,25 @@ export {
   type QueryOptions,
   type QueryResult,
 
+  // Summary engine (footer aggregations)
+  SUMMARY_FUNCTIONS_BY_TYPE,
+  summaryFunctionLabel,
+  isFilledValue,
+  computeColumnSummary,
+  type SummaryFunction,
+  type SummaryRow,
+  type SummaryColumnLike,
+  type ColumnSummaryResult,
+
+  // Row-height density tiers
+  ROW_HEIGHT_PX,
+  ROW_HEIGHTS,
+  DEFAULT_ROW_HEIGHT,
+  rowHeightLabel,
+  resolveRowHeightPx,
+  asRowHeight,
+  type RowHeight,
+
   // Schema utilities for database-defined schemas
   buildSchemaIRI,
   parseDatabaseSchemaIRI,

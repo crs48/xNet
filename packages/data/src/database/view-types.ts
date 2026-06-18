@@ -5,6 +5,9 @@
  * enabling collaborative view editing and real-time sync.
  */
 
+import type { RowHeight } from './row-height'
+import type { SummaryFunction } from './summary-engine'
+
 // ─── View Types ───────────────────────────────────────────────────────────────
 
 /**
@@ -45,6 +48,12 @@ export interface ViewConfig {
 
   /** Collapsed group IDs */
   collapsedGroups?: string[]
+
+  /** Row-height density tier */
+  rowHeight?: RowHeight
+
+  /** Per-column footer summary functions: columnId -> SummaryFunction */
+  columnSummaries?: Record<string, SummaryFunction>
 
   // Gallery/Board specific
   /** Cover image column ID */

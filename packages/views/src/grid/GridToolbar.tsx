@@ -16,10 +16,12 @@ import type { GridField } from './model.js'
 import type {
   FilterGroup,
   FilterOperator as DataFilterOperator,
+  RowHeight,
   SortConfig,
   ViewType,
   PropertyDefinition
 } from '@xnetjs/data'
+import { ROW_HEIGHTS, rowHeightLabel } from '@xnetjs/data'
 import { cn } from '@xnetjs/ui'
 import {
   ArrowDownUp,
@@ -33,6 +35,7 @@ import {
   Layers,
   MoreHorizontal,
   Plus,
+  Rows3,
   Search,
   X
 } from 'lucide-react'
@@ -109,6 +112,9 @@ export interface GridToolbarProps {
   groupBy?: string | null
   onChangeGroupBy?: (fieldId: string | null) => void
 
+  rowHeight?: RowHeight
+  onChangeRowHeight?: (rowHeight: RowHeight) => void
+
   search?: string
   onSearchChange?: (search: string) => void
 
@@ -122,7 +128,7 @@ export interface GridToolbarProps {
   className?: string
 }
 
-type Popover = 'filter' | 'visibility' | 'group' | 'more' | null
+type Popover = 'filter' | 'visibility' | 'group' | 'rowHeight' | 'more' | null
 
 export function GridToolbar({
   views,
@@ -139,6 +145,8 @@ export function GridToolbar({
   onChangeFilters,
   groupBy = null,
   onChangeGroupBy,
+  rowHeight = 'short',
+  onChangeRowHeight,
   search = '',
   onSearchChange,
   onExportCsv,
@@ -341,6 +349,51 @@ export function GridToolbar({
                     {f.name}
                   </button>
                 ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Row height */}
+      {onChangeRowHeight && (
+        <div className="relative">
+          <button
+            type="button"
+            aria-label="Row height"
+            title="Row height"
+            aria-expanded={openPopover === 'rowHeight'}
+            className={cn(
+              'flex items-center gap-1 px-2 py-1 rounded text-xs',
+              rowHeight !== 'short'
+                ? 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100'
+                : 'text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+            )}
+            onClick={() => setOpenPopover(openPopover === 'rowHeight' ? null : 'rowHeight')}
+          >
+            <Rows3 className="w-3.5 h-3.5" />
+            Height
+          </button>
+          {openPopover === 'rowHeight' && (
+            <div
+              ref={popoverRef}
+              className="absolute right-0 top-full mt-1 z-30 w-44 py-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-lg"
+            >
+              {ROW_HEIGHTS.map((height) => (
+                <button
+                  key={height}
+                  type="button"
+                  className={cn(
+                    'w-full px-3 py-1.5 text-left text-xs hover:bg-gray-50 dark:hover:bg-gray-800',
+                    rowHeight === height && 'text-gray-900 dark:text-gray-100 font-medium'
+                  )}
+                  onClick={() => {
+                    onChangeRowHeight(height)
+                    setOpenPopover(null)
+                  }}
+                >
+                  {rowHeightLabel(height)}
+                </button>
+              ))}
             </div>
           )}
         </div>
