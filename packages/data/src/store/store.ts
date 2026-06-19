@@ -1936,6 +1936,19 @@ export class NodeStore {
   }
 
   /**
+   * Per-room sync cursor (confirmed high-water mark). Returns 0 when the
+   * storage adapter doesn't persist cursors (degrades to replay-from-0).
+   */
+  async getSyncCursor(room: string): Promise<number> {
+    return (await this.storage.getSyncCursor?.(room)) ?? 0
+  }
+
+  /** Persist the per-room confirmed sync cursor (monotonic in the adapter). */
+  async setSyncCursor(room: string, lamport: number): Promise<void> {
+    await this.storage.setSyncCursor?.(room, lamport)
+  }
+
+  /**
    * Get the current Lamport time (for sync protocol).
    */
   getCurrentLamportTime(): number {
