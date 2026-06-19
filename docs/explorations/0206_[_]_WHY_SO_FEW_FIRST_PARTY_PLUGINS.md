@@ -328,36 +328,48 @@ ctx.registerRoute({ path: '/crm', component: CrmView })   // ❌ no such API
 - **Electron lag:** electron bundles fewer plugins than web — a sign extraction
   is manual and easily skipped per-platform.
 
+## Implementation Status
+
+The hygiene/clarity items landed in the implementation PR. The one explicitly
+"(if desired)" item — surfacing registry *contributions* on the `/plugins` page —
+is deferred as a documented follow-up (it needs a committed contribution-snapshot
+pipeline, like `metrics.json`, since the site can't import app packages).
+
 ## Implementation Checklist
 
 This exploration is explanatory; these are *optional* hygiene/clarity steps, not a
 mandate to pluginize.
 
-- [ ] Document the **lift-out test** as the platform-health metric in
-      `docs/guides/extend-with-registries.md` (or a new ADR).
-- [ ] Audit that first-party `register()` entrypoints use no privileged
-      side-channel third parties lack (validate the dogfooding claim).
-- [ ] Add `ChartsExtraPlugin` to electron `BUNDLED_PLUGINS` (fix web/electron
-      drift).
-- [ ] Decide Slack/Unreal connectors: mount them, or relabel in
-      `registry/first-party.json` as uninstalled libraries.
+- [x] Document the **lift-out test** as the platform-health metric in
+      [`docs/guides/extend-with-registries.md`](../guides/extend-with-registries.md).
+- [x] Audit that first-party `register()` entrypoints use no privileged
+      side-channel third parties lack. Finding: registration is symmetric across
+      all registries; the one intentional first-party privilege is widget
+      trust-tier self-assignment (a security boundary, à la VS Code proposed
+      APIs), not an API gap. Documented in the guide.
+- [x] Add `ChartsExtraPlugin` to electron `BUNDLED_PLUGINS` (fix web/electron
+      drift) — plus the `@xnetjs/charts` dep and the duplicated plugin file.
+- [x] Decide Slack/Unreal connectors: **relabel** as `autoInstalled: false` in
+      `registry/first-party.json` (they're first-party connectors you set up, not
+      auto-installed) + a "Setup required" chip on the plugin card + a drift test
+      enforcing auto-install honesty. (Mounting them was rejected as out of scope.)
 - [ ] (If desired) surface registry contributions (chart/view/widget kinds) on
-      the `/plugins` page so the count reflects real extensibility.
-- [ ] Cross-link this doc from 0205's "pluggable top-level routes" follow-up as
+      the `/plugins` page so the count reflects real extensibility. *(follow-up)*
+- [x] Cross-link this doc from 0205's "pluggable top-level routes" follow-up as
       the *why-it-matters* rationale.
 
 ## Validation Checklist
 
-- [ ] A reader can state, in one sentence, why the manifest count is low (it's the
+- [x] A reader can state, in one sentence, why the manifest count is low (it's the
       wrong unit; registries + feature modules carry first-party extensibility).
-- [ ] The repo's first-party delivery mechanisms are each cited with a real path
+- [x] The repo's first-party delivery mechanisms are each cited with a real path
       and a current count.
-- [ ] The "real gap" (no route API) is distinguished from the "non-gap" (registry
+- [x] The "real gap" (no route API) is distinguished from the "non-gap" (registry
       built-ins not packaged as manifests).
-- [ ] The lift-out test is written down and at least one passing and one failing
-      example is verifiable in the code.
-- [ ] If hygiene items are taken: electron lists `charts-extra`; the connector
-      catalog no longer implies unmounted code runs.
+- [x] The lift-out test is written down and at least one passing and one failing
+      example is verifiable in the code (guide + this doc's Example Code).
+- [x] Hygiene items taken: electron lists `charts-extra`; the connector catalog
+      no longer implies unmounted code runs (drift test enforces it).
 
 ## References
 

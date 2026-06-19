@@ -623,7 +623,9 @@ follow-ups — they are genuinely multi-PR and higher risk.
       packs deferred.
 - [ ] Add **pluggable top-level surface** registration (constrained one-route-
       per-feature slot) to the workbench; bridge a `FeatureModule` surface
-      contribution into it. *(follow-up)*
+      contribution into it. *(follow-up — this is the single missing primitive
+      that blocks whole features from being plugins; see
+      [0206](0206_[_]_WHY_SO_FEW_FIRST_PARTY_PLUGINS.md) for why it matters.)*
 - [ ] Re-ship **Tasks** (or **Experiments**) as a first-party `FeatureModule`
       exemplar once routes are pluggable — schema pack + views + surface.
       *(follow-up)*

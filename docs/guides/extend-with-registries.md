@@ -175,3 +175,55 @@ pass it to `createXNetClient`:
 This is the SQLite-VFS-style seam: a stable core with a narrow, swappable
 adapter below it. Making the _engine_ itself a plugin is intentionally **not**
 supported (see the SQLite4 discussion in exploration 0205).
+
+## Dogfooding & the lift-out test (0206)
+
+xNet ships very few _plugin manifests_ (`BUNDLED_PLUGINS` is just Mermaid +
+Extra Charts) but **dozens of first-party contributions** — 11 dashboard
+widgets, 6 view types, the chart/basemap/shape built-ins, 3 hub features. They
+are delivered by **direct in-tree registration**, not as separately-distributed
+plugin packages. That is legitimate dogfooding, not a gap — the same pattern as
+GStreamer's static-plugin registry, Grafana's `ClassCore` panels, and VS Code's
+built-in extensions.
+
+The health metric is **not** "how many plugin manifests do we ship." It is the
+**lift-out test**:
+
+> _Can a first-party feature be moved into an external package and shipped with
+> **zero API changes**?_
+
+If yes, the feature already rides the public extension surface and packaging it
+as a manifest would add ceremony with no functional payoff. If no, the public
+API is secretly second-class and that's a real gap to fix.
+
+```ts
+// First-party (in-tree)            // Third-party (external package)
+registry.register(metricWidget)     widgetRegistry.register(myWidget)
+//                       ^ identical register() call → PASSES the lift-out test
+```
+
+### Audit: is the first-party path privileged? (0206)
+
+Audited the registration entrypoints for an Obsidian-style `internalPlugins`
+side-channel third parties can't reach. Findings:
+
+- **`viewRegistry`, `chartTypeRegistry`, `basemapRegistry`, `shapeRegistry`** —
+  a single public `register()`, no trust concept. First-party and third-party
+  registration are **fully symmetric**. ✅
+- **`widgetRegistry`** — the mechanism is symmetric (both call
+  `register(WidgetDefinition)`), but **trust-tier assignment is intentionally
+  privileged**: in-tree widgets set `trustTier: 'first-party'` directly, while a
+  plugin contributes a `WidgetContribution` (which has _no_ `trustTier` field)
+  and the host assigns the tier in `connectWidgetContributions` — "never
+  self-declared by the contribution." A lifted-out widget would register through
+  the same path but receive a host-assigned (lower) tier. That is the correct
+  security boundary, analogous to VS Code's first-party-only _proposed APIs_ —
+  **not** a dogfooding failure. ✅
+
+Conclusion: every registry contribution passes the lift-out test. The one thing
+that does **not** pass is a whole top-level surface (CRM, Tasks, …), because
+there is no route/workspace contribution API yet — see the pluggable-routes
+follow-up in exploration
+[0205](../explorations/0205_[_]_DECOMPOSING_THE_APP_INTO_PLUGINS.md) and the full
+analysis in
+[0206](../explorations/0206_[_]_WHY_SO_FEW_FIRST_PARTY_PLUGINS.md).
