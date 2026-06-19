@@ -35,6 +35,9 @@ export interface PluginListing {
   category: string
   keywords?: string[]
   tier: PluginTier
+  /** Whether a `bundled` plugin auto-installs in the app (true/omitted) or is a
+   * first-party connector/library you set up explicitly (false). 0206. */
+  autoInstalled?: boolean
   license?: string
   platforms?: ('web' | 'electron' | 'mobile')[]
   /** Contribution points the plugin extends (`views`, `slashCommands`, …). */
