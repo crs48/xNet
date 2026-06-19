@@ -1,0 +1,15 @@
+{
+  "id": "2026-06-19-a-gentle-welcome-the-first-time-you-open",
+  "date": "June 19, 2026",
+  "title": "A gentle welcome the first time you open a view",
+  "summary": "xNet now greets you with light, one-at-a-time tips the first time you open a view — what ⌘K does, where your CRM lives, how Tasks work — each dismissible and never in the way. Replay them anytime from Settings → Tips & tours.",
+  "highlights": [
+    "One tip at a time, shown the first time you reach a view — not a blocking tour",
+    "Dismiss with Escape, the ✕, or 'Got it' — it never steals focus or blocks the app",
+    "Replay onboarding anytime from Settings → Tips & tours"
+  ],
+  "tags": [
+    "app",
+    "platform"
+  ]
+}

@@ -18,6 +18,7 @@ import {
   Monitor,
   Download,
   LogOut,
+  Lightbulb,
   Puzzle,
   User,
   UserRound,
@@ -26,6 +27,7 @@ import {
   Cloud
 } from 'lucide-react'
 import { useState, useCallback } from 'react'
+import { resetCoachSession } from '../coachmarks'
 import { ProfileSettings } from '../comms/ProfileSettings'
 import { ContentSafetySettings } from '../components/ContentSafetySettings'
 import { PluginsPanel } from '../components/PluginsPanel'
@@ -33,6 +35,7 @@ import { SafetyCenterSettings } from '../components/SafetyCenterSettings'
 import { requestXNetBrowserStorageReset } from '../lib/browser-storage-reset'
 import { persistedHubUrl, setPersistedHubUrl } from '../lib/hub-url'
 import { logout } from '../lib/identity'
+import { useWorkbench } from '../workbench/state'
 
 /** Marketing + dashboard origins for xNet Cloud (managed hub hosting). */
 const CLOUD_MARKETING_URL = 'https://xnet.fyi/cloud'
@@ -51,6 +54,7 @@ type SettingsSection =
   | 'data'
   | 'network'
   | 'plugins'
+  | 'tips'
   | 'account'
   | 'about'
 
@@ -73,6 +77,7 @@ const SECTIONS: SectionConfig[] = [
   { id: 'data', label: 'Data', icon: <Database {...ICON_PROPS} /> },
   { id: 'network', label: 'Network', icon: <Wifi {...ICON_PROPS} /> },
   { id: 'plugins', label: 'Plugins', icon: <Puzzle {...ICON_PROPS} /> },
+  { id: 'tips', label: 'Tips & tours', icon: <Lightbulb {...ICON_PROPS} /> },
   { id: 'account', label: 'Account', icon: <User {...ICON_PROPS} /> },
   { id: 'about', label: 'About', icon: <Info {...ICON_PROPS} /> }
 ]
@@ -135,6 +140,7 @@ function SettingsPage() {
         {activeSection === 'data' && <DataSettings />}
         {activeSection === 'network' && <NetworkSettings />}
         {activeSection === 'plugins' && <PluginsPanel />}
+        {activeSection === 'tips' && <TipsSettings />}
         {activeSection === 'account' && <AccountSettings />}
         {activeSection === 'about' && <AboutSettings />}
       </div>
@@ -394,6 +400,52 @@ function DataSettings() {
               className="rounded-md bg-destructive px-3 py-1.5 text-xs text-destructive-foreground transition-colors hover:bg-destructive-hover"
             >
               Clear Data
+            </button>
+          )}
+        </SettingRow>
+      </SettingsGroup>
+    </SettingsPanel>
+  )
+}
+
+// ─── Tips & Tours ──────────────────────────────────────────────────────────────
+
+/**
+ * Replay the first-run coachmarks (exploration 0206). Clears the dismissed
+ * set and the per-session cap so tips re-appear the next time each view opens.
+ */
+function TipsSettings() {
+  const seenCount = useWorkbench((state) => state.seenTips.length)
+  const resetTips = useWorkbench((state) => state.resetTips)
+  const [done, setDone] = useState(false)
+
+  const handleReplay = useCallback(() => {
+    resetTips()
+    resetCoachSession()
+    setDone(true)
+    setTimeout(() => setDone(false), 2500)
+  }, [resetTips])
+
+  return (
+    <SettingsPanel
+      title="Tips & tours"
+      description="Gentle, one-at-a-time tips that appear the first time you open a view"
+    >
+      <SettingsGroup>
+        <SettingRow
+          label="Onboarding tips"
+          description={
+            seenCount === 0
+              ? "You haven't dismissed any tips yet"
+              : `${seenCount} tip${seenCount === 1 ? '' : 's'} dismissed`
+          }
+        >
+          {done ? (
+            <span className="text-xs text-success">Reset — tips will reappear</span>
+          ) : (
+            <button onClick={handleReplay} disabled={seenCount === 0} className={QUIET_BUTTON}>
+              <Lightbulb size={14} strokeWidth={1.5} />
+              Replay onboarding
             </button>
           )}
         </SettingRow>
