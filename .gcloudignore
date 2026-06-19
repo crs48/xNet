@@ -1,0 +1,23 @@
+# Build context for `gcloud builds submit` (exploration 0205).
+#
+# Cloud Build uploads the repo as the build context. The control-plane and hub
+# Dockerfiles only need the pnpm workspace manifests + packages/ + the app dir,
+# so keep the upload small and fast. (BuildKit reads apps/cloud/Dockerfile.dockerignore
+# for local `docker build`; Cloud Build reads THIS file instead.)
+.git
+node_modules
+**/node_modules
+**/dist
+**/.turbo
+**/coverage
+**/.astro
+**/playwright-report
+**/test-results
+.claude
+docs
+site
+# Never upload local secrets / env files.
+.env
+.env.*
+**/.env
+**/.env.*

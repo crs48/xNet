@@ -48,6 +48,7 @@ jobs:
       SERVICE: xnet-cloud-staging
       REPO: hub # the Artifact Registry repo the bootstrap created
       BASE_URL: https://cloud-staging.xnet.fyi
+      HUB_IMAGE_TAG: '1.0.0' # plain image tag each provisioned hub is pinned to (repo:TAG; '@' is not a valid Docker tag)
     steps:
       - uses: actions/checkout@v4
 
@@ -70,12 +71,15 @@ jobs:
       - name: Deploy to Cloud Run
         run: |
           # Non-secret config inline; secrets resolved from Secret Manager by the
-          # service at boot (the deployer SA already has secretAccessor). The
-          # secret *names* below must exist in the project — see docs/cloud/SETUP.md.
+          # service at boot. The runtime identity is the deployer SA (it already has
+          # secretAccessor + datastore.user + run.admin), set explicitly so secret
+          # resolution doesn't fall to the default compute SA. The secret *names*
+          # below must exist in the project — push them with scripts/cloud-secrets-push.mjs.
           gcloud run deploy "$SERVICE" \
             --project "$PROJECT" --region "$REGION" \
             --image "$IMAGE" --allow-unauthenticated --min-instances=1 \
-            --set-env-vars "NODE_ENV=production,XNET_CLOUD_BASE_URL=${BASE_URL},XNET_CLOUD_MARKETING_URL=https://xnet.fyi/cloud,GCP_PROJECT_PREFIX=xnet-cloud-staging,GCP_REGION=${REGION},GCP_FIRESTORE_DATABASE=(default),R2_BUCKET=xnet-hub-data-staging,AI_MARKUP=1.25" \
+            --service-account "${{ secrets.DEPLOYER_SA }}" \
+            --set-env-vars "NODE_ENV=production,XNET_CLOUD_BASE_URL=${BASE_URL},XNET_CLOUD_MARKETING_URL=https://xnet.fyi/cloud,GCP_PROJECT_PREFIX=xnet-cloud-staging,GCP_REGION=${REGION},GCP_FIRESTORE_DATABASE=(default),R2_BUCKET=xnet-hub-data-staging,HUB_IMAGE_TAG=${HUB_IMAGE_TAG},AI_MARKUP=1.25" \
             --set-secrets "XNET_PLAN_SECRET=xnet-plan-secret:latest,XNET_CLOUD_SESSION_SECRET=session-secret:latest,XNET_CLOUD_INTERNAL_SECRET=internal-secret:latest,WORKOS_CLIENT_ID=workos-client-id:latest,WORKOS_API_KEY=workos-api-key:latest,WORKOS_REDIRECT_URI=workos-redirect-uri:latest,STRIPE_SECRET_KEY=stripe-secret:latest,STRIPE_WEBHOOK_SECRET=stripe-webhook:latest,STRIPE_PRICE_PERSONAL=stripe-price-personal:latest,STRIPE_PRICE_FAMILY=stripe-price-family:latest,STRIPE_PRICE_TEAM=stripe-price-team:latest,R2_ACCOUNT_ID=r2-account-id:latest,R2_ENDPOINT=r2-endpoint:latest,R2_ACCESS_KEY_ID=r2-key-id:latest,R2_SECRET_ACCESS_KEY=r2-secret:latest,GCP_ARTIFACT_REGISTRY=gcp-artifact-registry:latest"
 
       - name: Smoke test the deploy

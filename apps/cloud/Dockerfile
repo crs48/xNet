@@ -28,9 +28,13 @@ COPY apps/cloud/ apps/cloud/
 # in place — `pnpm install --prod` leaves the built dist untouched and keeps the
 # workspace links (@xnetjs/* are runtime deps). The "..." filter installs/builds
 # every package in xnet-cloud's dependency closure, not just xnet-cloud itself.
+#
+# `--config.confirm-modules-purge=false`: switching the modules dir from the dev
+# install to prod-only makes pnpm want to purge node_modules; in a non-TTY build
+# (Cloud Build / buildx) it otherwise aborts with ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY.
 RUN pnpm install --frozen-lockfile --filter xnet-cloud... \
   && pnpm --filter xnet-cloud... build \
-  && pnpm install --prod --frozen-lockfile --ignore-scripts --filter xnet-cloud... \
+  && pnpm install --prod --frozen-lockfile --ignore-scripts --config.confirm-modules-purge=false --filter xnet-cloud... \
   && rm -rf /root/.cache/node/corepack
 
 EXPOSE 4455
