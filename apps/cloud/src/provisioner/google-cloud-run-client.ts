@@ -122,7 +122,8 @@ export class GoogleCloudRunClient implements CloudRunClient {
 
 /** Build the real Cloud Run provisioner from env, or null when GCP/R2 isn't fully configured. */
 export function cloudRunProvisionerFromEnv(
-  env: NodeJS.ProcessEnv = process.env
+  env: NodeJS.ProcessEnv = process.env,
+  client?: RunServicesClient
 ): Provisioner | null {
   const {
     GCP_PROJECT_PREFIX,
@@ -144,16 +145,22 @@ export function cloudRunProvisionerFromEnv(
   ) {
     return null
   }
+  // `GCP_ARTIFACT_REGISTRY` is the Artifact Registry *repo* (e.g. .../hub); images
+  // live under it by name. The provisioner pins tenant hubs to `<repo>/<name>:<tag>`,
+  // so append the hub image name here (the control-plane image is likewise at
+  // `<repo>/control-plane`). Pushing to the bare repo root is rejected by AR
+  // ("Missing image name"). Override the name with HUB_IMAGE_NAME if needed.
+  const hubImageName = env.HUB_IMAGE_NAME || 'xnet-hub'
   return new CloudRunLitestreamProvisioner(
     {
       projectPrefix: GCP_PROJECT_PREFIX,
       region: GCP_REGION,
-      imageRepository: GCP_ARTIFACT_REGISTRY,
+      imageRepository: `${GCP_ARTIFACT_REGISTRY}/${hubImageName}`,
       r2Bucket: R2_BUCKET,
       r2Endpoint: R2_ENDPOINT,
       r2AccessKeyId: R2_ACCESS_KEY_ID,
       r2SecretAccessKey: R2_SECRET_ACCESS_KEY
     },
-    new GoogleCloudRunClient()
+    new GoogleCloudRunClient(client)
   )
 }
