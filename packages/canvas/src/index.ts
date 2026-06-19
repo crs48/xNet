@@ -903,6 +903,17 @@ export type { ChecklistItem, ChecklistNodeData, ChecklistNodeProps } from './nod
 
 export { ShapeNodeComponent, ShapePicker, createShapePath, SHAPE_TYPES } from './nodes/shape-node'
 export type { ShapeType, ShapeNodeData, ShapeNodeProps, ShapePickerProps } from './nodes/shape-node'
+export {
+  ShapeRegistry,
+  shapeRegistry,
+  ensureBuiltinShapes,
+  hasShape,
+  resolveShapePath,
+  shapeTypes,
+  type ShapeDefinition,
+  type ShapePathOptions
+} from './nodes/shape-registry'
+export { BUILTIN_SHAPES, type BuiltinShapeType } from './nodes/shape-paths'
 
 export { EmbedNodeComponent } from './nodes/embed-node'
 export type {
