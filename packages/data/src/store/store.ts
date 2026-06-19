@@ -1910,7 +1910,17 @@ export class NodeStore {
     const sorted = [...changes].sort((a, b) => compareLamportTimestamps(a.lamport, b.lamport))
 
     for (const change of sorted) {
-      await this.applyRemoteChange(change)
+      try {
+        await this.applyRemoteChange(change)
+      } catch (err) {
+        // A single un-appliable remote change (e.g. a first change missing its
+        // schemaId) must not abort the whole batch — skip it and keep applying
+        // the rest so sync still converges (exploration 0206).
+        console.warn(
+          `[NodeStore] skipping un-appliable remote change for node ${change.payload?.nodeId}:`,
+          err instanceof Error ? err.message : err
+        )
+      }
     }
   }
 

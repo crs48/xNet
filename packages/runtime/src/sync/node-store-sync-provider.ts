@@ -217,6 +217,16 @@ export class NodeStoreSyncProvider {
   }
 
   private handleDirectMessage(message: Record<string, unknown>): void {
+    if (message.type === 'node-error') {
+      // The hub rejected a change (invalid/unauthorized/duplicate). Log it and
+      // move on — don't treat it as a reason to resend and re-flood (0206).
+      console.warn(
+        '[NodeStoreSync] hub rejected a node change:',
+        message.code ?? 'UNKNOWN',
+        message.error ?? message.message ?? ''
+      )
+      return
+    }
     if (message.type !== 'node-sync-response') return
     const response = message as NodeSyncResponse
     if (response.room !== this.room) return
@@ -255,7 +265,15 @@ export class NodeStoreSyncProvider {
       return
     }
 
-    await this.store.applyRemoteChange(change)
+    try {
+      await this.store.applyRemoteChange(change)
+    } catch (err) {
+      // One bad relayed change must not become an unhandled rejection (0206).
+      console.warn(
+        `[NodeStoreSync] skipping un-appliable remote change for node ${change.payload?.nodeId}:`,
+        err instanceof Error ? err.message : err
+      )
+    }
   }
 
   private async handleSyncResponse(
@@ -398,6 +416,14 @@ export class NodeStoreSyncProvider {
   }
 
   private deserializeChange(serialized: SerializedNodeChange): NodeChange {
+    // schemaId is carried both in the payload and (redundantly) at the top
+    // level. If the payload's is missing, fall back to the top-level field so a
+    // first change still materializes instead of throwing "must include
+    // schemaId" and aborting the batch (exploration 0206).
+    const payload =
+      serialized.payload && !serialized.payload.schemaId && serialized.schemaId
+        ? { ...serialized.payload, schemaId: serialized.schemaId as NodePayload['schemaId'] }
+        : serialized.payload
     return {
       id: serialized.id,
       type: serialized.type,
@@ -407,7 +433,7 @@ export class NodeStoreSyncProvider {
       signature: base64ToBytes(serialized.signatureB64),
       wallTime: serialized.wallTime,
       lamport: { time: serialized.lamportTime, author: serialized.lamportAuthor as DID },
-      payload: serialized.payload,
+      payload,
       protocolVersion: serialized.protocolVersion,
       batchId: serialized.batchId,
       batchIndex: serialized.batchIndex,

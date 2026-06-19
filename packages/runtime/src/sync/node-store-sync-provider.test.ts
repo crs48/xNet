@@ -55,11 +55,15 @@ function makeConnection(initialStatus: ConnectionStatus = 'connected') {
   let status = initialStatus
   const statusHandlers: Array<(s: ConnectionStatus) => void> = []
   const messageHandlers: Array<(m: Record<string, unknown>) => void> = []
+  const roomHandlers = new Map<string, (data: Record<string, unknown>) => void>()
   const conn = {
     get status() {
       return status
     },
-    joinRoom: vi.fn(() => vi.fn()),
+    joinRoom: vi.fn((room: string, h: (data: Record<string, unknown>) => void) => {
+      roomHandlers.set(room, h)
+      return vi.fn()
+    }),
     onMessage: vi.fn((h: (m: Record<string, unknown>) => void) => {
       messageHandlers.push(h)
       return vi.fn()
@@ -84,6 +88,9 @@ function makeConnection(initialStatus: ConnectionStatus = 'connected') {
     },
     injectMessage(m: Record<string, unknown>) {
       messageHandlers.forEach((h) => h(m))
+    },
+    injectRoomMessage(room: string, data: Record<string, unknown>) {
+      roomHandlers.get(room)?.(data)
     }
   }
 }
@@ -218,6 +225,56 @@ describe('NodeStoreSyncProvider', () => {
 
       await vi.advanceTimersByTimeAsync(SEND_WINDOW_MS)
       expect((conn.publish as ReturnType<typeof vi.fn>).mock.calls.length).toBe(100)
+    })
+  })
+
+  describe('resilience (0206)', () => {
+    it('restores a missing payload schemaId from the top-level field on deserialize', async () => {
+      const { store } = makeStore()
+      const applyRemoteChange = vi.fn(async () => undefined)
+      ;(store as unknown as { applyRemoteChange: typeof applyRemoteChange }).applyRemoteChange =
+        applyRemoteChange
+      const { conn, injectRoomMessage } = makeConnection('connected')
+      new NodeStoreSyncProvider(store, 'room-1').attach(conn)
+
+      injectRoomMessage('room-1', {
+        type: 'node-change',
+        change: {
+          id: 'c1',
+          type: 'node-change',
+          hash: 'cid:blake3:c1',
+          room: 'room-1',
+          nodeId: 'n1',
+          schemaId: 'xnet://xnet.fyi/Task@1.0.0', // present at top level…
+          lamportTime: 1,
+          lamportAuthor: 'did:key:z6MkAuthor',
+          authorDid: 'did:key:z6MkAuthor',
+          wallTime: 1,
+          parentHash: null,
+          payload: { nodeId: 'n1', properties: {} }, // …but missing from the payload
+          signatureB64: 'AQID'
+        }
+      })
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(applyRemoteChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          payload: expect.objectContaining({ schemaId: 'xnet://xnet.fyi/Task@1.0.0' })
+        })
+      )
+    })
+
+    it('logs and ignores a node-error from the hub (does not throw)', async () => {
+      const { store } = makeStore()
+      const { conn, injectMessage } = makeConnection('connected')
+      new NodeStoreSyncProvider(store, 'room-1').attach(conn)
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      expect(() =>
+        injectMessage({ type: 'node-error', code: 'INVALID_CHANGE', error: 'nope' })
+      ).not.toThrow()
+      expect(warn).toHaveBeenCalled()
+      warn.mockRestore()
     })
   })
 })
