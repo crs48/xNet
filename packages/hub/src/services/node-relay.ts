@@ -135,6 +135,12 @@ export class NodeRelayService {
   }
 
   private deserializeChange(serialized: SerializedNodeChange): Change<NodePayload> {
+    // Fall back to the redundant top-level schemaId when the payload's is
+    // missing, so the relayed change round-trips intact (exploration 0206).
+    const payload =
+      serialized.payload && !serialized.payload.schemaId && serialized.schemaId
+        ? { ...serialized.payload, schemaId: serialized.schemaId as NodePayload['schemaId'] }
+        : serialized.payload
     return {
       id: serialized.id,
       type: serialized.type,
@@ -144,7 +150,7 @@ export class NodeRelayService {
       signature: base64ToBytes(serialized.signatureB64),
       wallTime: serialized.wallTime,
       lamport: { time: serialized.lamportTime, author: serialized.lamportAuthor as DID },
-      payload: serialized.payload,
+      payload,
       protocolVersion: serialized.protocolVersion,
       batchId: serialized.batchId,
       batchIndex: serialized.batchIndex,

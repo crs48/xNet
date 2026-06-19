@@ -575,6 +575,37 @@ describe('NodeStore', () => {
       expect(node2!.properties.title).toBe('Store 2 Update')
     })
 
+    it('applyRemoteChanges skips one un-appliable change without aborting the batch (0206)', async () => {
+      const source = createTestStore()
+      const target = createTestStore()
+      await source.store.initialize()
+      await target.store.initialize()
+
+      const node = await source.store.create({
+        id: 'good-node',
+        schemaId: TEST_SCHEMA,
+        properties: { title: 'Good' }
+      })
+      const [validChange] = await source.store.getChanges(node.id)
+
+      // A tampered change (its hash no longer matches its payload) — verification
+      // throws. It must be skipped, not abort the whole batch.
+      const badChange: NodeChange = {
+        ...validChange,
+        payload: { ...validChange.payload, nodeId: 'bad-node' }
+      }
+
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      await expect(
+        target.store.applyRemoteChanges([badChange, validChange])
+      ).resolves.toBeUndefined()
+      warn.mockRestore()
+
+      // The valid change still applied despite the bad one in the same batch.
+      expect(await target.store.get('good-node')).not.toBeNull()
+      expect(await target.store.get('bad-node')).toBeNull()
+    })
+
     it('should track conflicts', async () => {
       const store1Setup = createTestStore()
       const store2Setup = createTestStore()

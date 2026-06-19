@@ -1046,6 +1046,31 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     )
   }
 
+  private syncCursorKey(room: string): string {
+    return `nodeSync:hwm:${room}`
+  }
+
+  async getSyncCursor(room: string): Promise<number> {
+    const row = await this.db.queryOne<{ value: string }>(
+      `SELECT value FROM sync_state WHERE key = ?`,
+      [this.syncCursorKey(room)]
+    )
+    return row ? parseInt(row.value, 10) || 0 : 0
+  }
+
+  async setSyncCursor(room: string, lamport: number): Promise<void> {
+    // Monotonic: never move the confirmed cursor backwards (the cursor tracks
+    // what the hub durably holds; a lower value would re-replay).
+    await this.enqueueWrite(async () => {
+      await this.db.run(
+        `INSERT INTO sync_state (key, value) VALUES (?, ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value
+         WHERE CAST(excluded.value AS INTEGER) > CAST(sync_state.value AS INTEGER)`,
+        [this.syncCursorKey(room), String(lamport)]
+      )
+    })
+  }
+
   // ─── Document Content (Yjs) ───────────────────────────────────────────────
 
   async getDocumentContent(nodeId: NodeId): Promise<Uint8Array | null> {

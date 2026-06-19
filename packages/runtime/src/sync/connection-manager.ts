@@ -31,6 +31,13 @@ export interface ConnectionManagerConfig {
   /** Max reconnect attempts (default: Infinity) */
   maxReconnects?: number
   /**
+   * Backoff after a policy-violation close (WebSocket code 1008, e.g. the hub's
+   * "Rate limit exceeded"): a longer, jittered delay so we don't tight-loop or
+   * stampede the hub that just asked us to stop (default: 15000). Jitter adds
+   * up to 50% on top (exploration 0206).
+   */
+  rateLimitBackoffMs?: number
+  /**
    * Max time to wait for the WebSocket handshake to open before treating the
    * attempt as failed and backing off (default: 10000). A browser WebSocket has
    * no built-in connect timeout, so a stalled handshake can otherwise hang for
@@ -100,9 +107,13 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
   let connectTimer: ReturnType<typeof setTimeout> | null = null
   let destroyed = false
   let connectInProgress = false
+  // Set when the last close was a policy violation (code 1008) — the next
+  // reconnect uses the longer, jittered rate-limit backoff (exploration 0206).
+  let policyViolation = false
 
   const reconnectDelay = config.reconnectDelay ?? 2000
   const maxReconnectDelay = config.maxReconnectDelay ?? 30000
+  const rateLimitBackoffMs = config.rateLimitBackoffMs ?? 15000
   const maxReconnects = config.maxReconnects ?? Infinity
   const connectTimeout = config.connectTimeout ?? 10000
   const initialConnectTimeout =
@@ -302,6 +313,7 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
         log('WebSocket connected')
         setStatus('connected')
         reconnectAttempts = 0
+        policyViolation = false
 
         // Re-subscribe to all rooms
         if (rooms.size > 0) {
@@ -318,6 +330,9 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
         connectInProgress = false
         log('WebSocket closed, code:', event.code, 'reason:', event.reason || '(none)')
         ws = null
+        // 1008 = policy violation (the hub's rate-limit close, or auth). Don't
+        // tight-loop reconnect-and-reflood; back off hard with jitter (0206).
+        policyViolation = event.code === 1008
         setStatus('disconnected')
         scheduleReconnect()
       }
@@ -342,10 +357,19 @@ export function createConnectionManager(config: ConnectionManagerConfig): Connec
     if (reconnectTimer) return
 
     reconnectAttempts++
-    // Exponential backoff capped at maxReconnectDelay. The first retry keeps
-    // the base delay (back-compat); later retries back off so a persistently
-    // unreachable hub isn't dialed every reconnectDelay ms (exploration 0204).
-    const backoff = Math.min(reconnectDelay * 2 ** (reconnectAttempts - 1), maxReconnectDelay)
+    let backoff: number
+    if (policyViolation) {
+      // Policy/rate-limit close (1008): the hub explicitly asked us to stop.
+      // Back off hard with jitter so we neither tight-loop nor stampede on a
+      // reconnect that would just re-flood (exploration 0206).
+      policyViolation = false
+      backoff = rateLimitBackoffMs + Math.floor(Math.random() * rateLimitBackoffMs * 0.5)
+    } else {
+      // Exponential backoff capped at maxReconnectDelay. The first retry keeps
+      // the base delay (back-compat); later retries back off so a persistently
+      // unreachable hub isn't dialed every reconnectDelay ms (exploration 0204).
+      backoff = Math.min(reconnectDelay * 2 ** (reconnectAttempts - 1), maxReconnectDelay)
+    }
     reconnectTimer = setTimeout(() => {
       reconnectTimer = null
       void doConnect()

@@ -1,5 +1,13 @@
 /**
  * NodeStoreSyncProvider - Sync NodeChange events via hub ConnectionManager.
+ *
+ * Anti-flood design (exploration 0206):
+ *  - A persisted per-room cursor (lastSyncedLamport) is loaded on connect, so
+ *    a reload no longer replays the entire change log (getChangesSince(0)).
+ *  - Request-sync-first: on connect we ask the hub for its high-water mark
+ *    before pushing, so when the hub is already ahead we push nothing.
+ *  - A throttled send queue caps outbound node-change messages per second so a
+ *    genuine backlog can't trip the hub's per-connection rate limiter (1008).
  */
 import type { ConnectionManager } from './connection-manager'
 import type { ContentId, DID } from '@xnetjs/core'
@@ -10,6 +18,16 @@ import { base64ToBytes, bytesToBase64 } from '@xnetjs/crypto'
 // Change types that this version knows how to process.
 // Unknown types are stored but not processed (forward compatibility).
 const KNOWN_CHANGE_TYPES = new Set(['node-change'])
+
+// Outbound throttle: at most MAX_SENDS_PER_WINDOW node-change messages per
+// SEND_WINDOW_MS, comfortably under the hub's 100 msg/sec limit while leaving
+// headroom for awareness/doc-sync traffic on the same connection (0206).
+const MAX_SENDS_PER_WINDOW = 40
+const SEND_WINDOW_MS = 1000
+
+// How long to wait for the hub's node-sync-response before pushing local
+// changes anyway (request-sync-first, with a fallback so we never hang).
+const SYNC_RESPONSE_TIMEOUT_MS = 4000
 
 export type SerializedNodeChange = {
   id: string
@@ -44,13 +62,27 @@ export type NodeSyncResponse = {
 export type UnknownChangeTypeListener = (change: NodeChange, peerId: string) => void
 
 export class NodeStoreSyncProvider {
+  /** Confirmed, persisted high-water mark (advanced from the hub's response). */
   private lastSyncedLamport = 0
+  /** Optimistic in-memory cursor: lamport of the last change actually sent. */
+  private pushedThrough = 0
+  private cursorLoaded = false
+
   private connection: ConnectionManager | null = null
   private roomCleanup: (() => void) | null = null
   private statusCleanup: (() => void) | null = null
   private messageCleanup: (() => void) | null = null
   private storeCleanup: (() => void) | null = null
   private unknownChangeTypeListeners = new Set<UnknownChangeTypeListener>()
+
+  // Throttled send queue.
+  private sendQueue: NodeChange[] = []
+  private queuedHashes = new Set<string>()
+  private sendTimer: ReturnType<typeof setTimeout> | null = null
+  private sentInWindow = 0
+
+  // Request-sync-first: resolver for the in-flight node-sync-response wait.
+  private syncResponseResolver: (() => void) | null = null
 
   constructor(
     private store: NodeStore,
@@ -95,19 +127,19 @@ export class NodeStoreSyncProvider {
 
     this.statusCleanup = connection.onStatus((status) => {
       if (status === 'connected') {
-        void this.syncLocalChanges()
-        this.requestSync()
+        void this.onConnected()
+      } else {
+        this.onDisconnected()
       }
     })
 
     this.storeCleanup = this.store.subscribe((event) => {
       if (event.isRemote) return
-      this.broadcastChange(event.change)
+      this.enqueueChange(event.change)
     })
 
     if (connection.status === 'connected') {
-      void this.syncLocalChanges()
-      this.requestSync()
+      void this.onConnected()
     }
   }
 
@@ -121,7 +153,61 @@ export class NodeStoreSyncProvider {
     this.messageCleanup = null
     this.storeCleanup = null
     this.connection = null
+    this.clearSendQueue()
+    this.resolveSyncResponse()
   }
+
+  // ─── Connect lifecycle ──────────────────────────────────────────────────
+
+  /**
+   * On connect: load the persisted cursor, ask the hub for its high-water mark
+   * FIRST, then push only the changes the hub is actually missing. Combined
+   * with the persisted cursor, a normal reload of an in-sync workspace pushes
+   * nothing (exploration 0206).
+   */
+  private async onConnected(): Promise<void> {
+    await this.ensureCursorLoaded()
+    if (!this.connection || this.connection.status !== 'connected') return
+
+    this.requestSync()
+    await this.waitForSyncResponse()
+    await this.syncLocalChanges()
+  }
+
+  private onDisconnected(): void {
+    // Drop the in-flight queue; syncLocalChanges() rebuilds it from
+    // pushedThrough (which only advances on a real send) when we reconnect, so
+    // nothing is lost and nothing is double-queued.
+    this.clearSendQueue()
+    this.resolveSyncResponse()
+  }
+
+  private async ensureCursorLoaded(): Promise<void> {
+    if (this.cursorLoaded) return
+    try {
+      const stored = await this.store.getSyncCursor(this.room)
+      this.lastSyncedLamport = Math.max(this.lastSyncedLamport, stored)
+      this.pushedThrough = Math.max(this.pushedThrough, this.lastSyncedLamport)
+    } catch (err) {
+      console.warn('[NodeStoreSync] failed to load sync cursor; replaying from 0:', err)
+    }
+    this.cursorLoaded = true
+  }
+
+  private waitForSyncResponse(): Promise<void> {
+    return new Promise<void>((resolve) => {
+      this.syncResponseResolver = resolve
+      setTimeout(() => this.resolveSyncResponse(), SYNC_RESPONSE_TIMEOUT_MS)
+    })
+  }
+
+  private resolveSyncResponse(): void {
+    const resolve = this.syncResponseResolver
+    this.syncResponseResolver = null
+    resolve?.()
+  }
+
+  // ─── Inbound ────────────────────────────────────────────────────────────
 
   private handleRoomMessage(data: Record<string, unknown>): void {
     if (data.type === 'node-change') {
@@ -131,6 +217,16 @@ export class NodeStoreSyncProvider {
   }
 
   private handleDirectMessage(message: Record<string, unknown>): void {
+    if (message.type === 'node-error') {
+      // The hub rejected a change (invalid/unauthorized/duplicate). Log it and
+      // move on — don't treat it as a reason to resend and re-flood (0206).
+      console.warn(
+        '[NodeStoreSync] hub rejected a node change:',
+        message.code ?? 'UNKNOWN',
+        message.error ?? message.message ?? ''
+      )
+      return
+    }
     if (message.type !== 'node-sync-response') return
     const response = message as NodeSyncResponse
     if (response.room !== this.room) return
@@ -144,33 +240,6 @@ export class NodeStoreSyncProvider {
       room: this.room,
       sinceLamport: this.lastSyncedLamport
     })
-  }
-
-  private async syncLocalChanges(): Promise<void> {
-    if (!this.connection || this.connection.status !== 'connected') return
-
-    const changes = await this.store.getChangesSince(this.lastSyncedLamport)
-    if (changes.length === 0) return
-
-    changes.sort((a, b) => a.lamport.time - b.lamport.time)
-
-    for (const change of changes) {
-      this.broadcastChange(change)
-      this.lastSyncedLamport = Math.max(this.lastSyncedLamport, change.lamport.time)
-    }
-  }
-
-  private broadcastChange(change: NodeChange): void {
-    if (!this.connection || this.connection.status !== 'connected') return
-
-    const serialized = this.serializeChange(change)
-    this.connection.publish(this.room, {
-      type: 'node-change',
-      room: this.room,
-      change: serialized
-    })
-
-    this.lastSyncedLamport = Math.max(this.lastSyncedLamport, change.lamport.time)
   }
 
   private async handleRemoteChange(
@@ -196,7 +265,15 @@ export class NodeStoreSyncProvider {
       return
     }
 
-    await this.store.applyRemoteChange(change)
+    try {
+      await this.store.applyRemoteChange(change)
+    } catch (err) {
+      // One bad relayed change must not become an unhandled rejection (0206).
+      console.warn(
+        `[NodeStoreSync] skipping un-appliable remote change for node ${change.payload?.nodeId}:`,
+        err instanceof Error ? err.message : err
+      )
+    }
   }
 
   private async handleSyncResponse(
@@ -226,7 +303,92 @@ export class NodeStoreSyncProvider {
       }
     }
 
-    this.lastSyncedLamport = Math.max(this.lastSyncedLamport, response.highWaterMark)
+    // The hub's high-water mark is the only positive confirmation that the hub
+    // durably holds changes up to this point. Advance and PERSIST the cursor
+    // from it (not from local sends) so a reload never replays already-synced
+    // history (exploration 0206).
+    if (response.highWaterMark > this.lastSyncedLamport) {
+      this.lastSyncedLamport = response.highWaterMark
+      this.pushedThrough = Math.max(this.pushedThrough, this.lastSyncedLamport)
+      try {
+        await this.store.setSyncCursor(this.room, this.lastSyncedLamport)
+      } catch (err) {
+        console.warn('[NodeStoreSync] failed to persist sync cursor:', err)
+      }
+    }
+
+    this.resolveSyncResponse()
+  }
+
+  // ─── Outbound (throttled) ────────────────────────────────────────────────
+
+  /** Enqueue every local change since the last confirmed send, then drain. */
+  private async syncLocalChanges(): Promise<void> {
+    if (!this.connection || this.connection.status !== 'connected') return
+
+    const changes = await this.store.getChangesSince(this.pushedThrough)
+    if (changes.length === 0) return
+
+    changes.sort((a, b) => a.lamport.time - b.lamport.time)
+    for (const change of changes) {
+      this.enqueueChange(change)
+    }
+  }
+
+  /** Queue a change for throttled broadcast (deduped by hash). */
+  private enqueueChange(change: NodeChange): void {
+    if (change.lamport.time <= this.pushedThrough) return
+    if (this.queuedHashes.has(change.hash)) return
+    this.queuedHashes.add(change.hash)
+    this.sendQueue.push(change)
+    this.scheduleDrain(0)
+  }
+
+  private scheduleDrain(delayMs: number): void {
+    if (this.sendTimer) return
+    this.sendTimer = setTimeout(() => {
+      this.sendTimer = null
+      this.drain()
+    }, delayMs)
+  }
+
+  private drain(): void {
+    if (!this.connection || this.connection.status !== 'connected') return
+
+    this.sentInWindow = 0
+    while (this.sendQueue.length > 0 && this.sentInWindow < MAX_SENDS_PER_WINDOW) {
+      const change = this.sendQueue.shift()!
+      this.queuedHashes.delete(change.hash)
+      this.publishChange(change)
+      this.sentInWindow += 1
+    }
+
+    // More queued than this window allows → drain the rest after the window.
+    if (this.sendQueue.length > 0) {
+      this.scheduleDrain(SEND_WINDOW_MS)
+    }
+  }
+
+  private publishChange(change: NodeChange): void {
+    if (!this.connection) return
+    this.connection.publish(this.room, {
+      type: 'node-change',
+      room: this.room,
+      change: this.serializeChange(change)
+    })
+    // Optimistic in-memory advance — keeps us from re-sending within a session.
+    // The PERSISTED cursor only advances on the hub's high-water mark.
+    this.pushedThrough = Math.max(this.pushedThrough, change.lamport.time)
+  }
+
+  private clearSendQueue(): void {
+    if (this.sendTimer) {
+      clearTimeout(this.sendTimer)
+      this.sendTimer = null
+    }
+    this.sendQueue = []
+    this.queuedHashes.clear()
+    this.sentInWindow = 0
   }
 
   private serializeChange(change: NodeChange): SerializedNodeChange {
@@ -254,6 +416,14 @@ export class NodeStoreSyncProvider {
   }
 
   private deserializeChange(serialized: SerializedNodeChange): NodeChange {
+    // schemaId is carried both in the payload and (redundantly) at the top
+    // level. If the payload's is missing, fall back to the top-level field so a
+    // first change still materializes instead of throwing "must include
+    // schemaId" and aborting the batch (exploration 0206).
+    const payload =
+      serialized.payload && !serialized.payload.schemaId && serialized.schemaId
+        ? { ...serialized.payload, schemaId: serialized.schemaId as NodePayload['schemaId'] }
+        : serialized.payload
     return {
       id: serialized.id,
       type: serialized.type,
@@ -263,7 +433,7 @@ export class NodeStoreSyncProvider {
       signature: base64ToBytes(serialized.signatureB64),
       wallTime: serialized.wallTime,
       lamport: { time: serialized.lamportTime, author: serialized.lamportAuthor as DID },
-      payload: serialized.payload,
+      payload,
       protocolVersion: serialized.protocolVersion,
       batchId: serialized.batchId,
       batchIndex: serialized.batchIndex,

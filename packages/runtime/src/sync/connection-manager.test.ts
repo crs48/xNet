@@ -165,6 +165,43 @@ describe('createConnectionManager', () => {
     expect(statuses).not.toContain('error')
   })
 
+  it('backs off hard with jitter after a 1008 rate-limit close (0206)', async () => {
+    const rand = vi.spyOn(Math, 'random').mockReturnValue(0) // deterministic: no jitter
+    const manager = createConnectionManager({
+      url: 'ws://localhost:4444',
+      reconnectDelay: 250,
+      rateLimitBackoffMs: 15000
+    })
+    manager.connect()
+    await Promise.resolve()
+    const first = MockWebSocket.instances[0]
+    first.emitOpen()
+
+    // Hub kicks us for exceeding its rate limit.
+    first.emitClose(1008, 'Rate limit exceeded')
+
+    // The normal 250ms backoff must NOT reconnect — we owe the hub a long pause.
+    await vi.advanceTimersByTimeAsync(250)
+    expect(MockWebSocket.instances).toHaveLength(1)
+
+    // After the rate-limit backoff window, a single fresh dial happens.
+    await vi.advanceTimersByTimeAsync(15000)
+    expect(MockWebSocket.instances).toHaveLength(2)
+    rand.mockRestore()
+  })
+
+  it('keeps the normal short backoff for non-1008 closes (0206)', async () => {
+    const manager = createConnectionManager({ url: 'ws://localhost:4444', reconnectDelay: 250 })
+    manager.connect()
+    await Promise.resolve()
+    const first = MockWebSocket.instances[0]
+    first.emitOpen()
+    first.emitClose(1006, 'abnormal') // not a policy violation
+
+    await vi.advanceTimersByTimeAsync(250)
+    expect(MockWebSocket.instances).toHaveLength(2)
+  })
+
   it('bounds the first attempt by the shorter initialConnectTimeout (0204)', async () => {
     const manager = createConnectionManager({
       url: 'ws://localhost:4444',

@@ -206,6 +206,15 @@ export interface NodeStorageAdapter {
   getLastLamportTime(): Promise<number>
   setLastLamportTime(time: number): Promise<void>
 
+  /**
+   * Per-room sync high-water mark (Lamport time) — the cursor a hub-sync
+   * provider has confirmed the hub durably stores. Persisting this stops the
+   * client replaying its entire change log on every reload (exploration 0206).
+   * Optional: adapters that don't implement it degrade to replay-from-0.
+   */
+  getSyncCursor?(room: string): Promise<number>
+  setSyncCursor?(room: string, lamport: number): Promise<void>
+
   // Document content operations (for nodes with CRDT document)
   getDocumentContent(nodeId: NodeId): Promise<Uint8Array | null>
   setDocumentContent(nodeId: NodeId, content: Uint8Array): Promise<void>

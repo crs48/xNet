@@ -49,6 +49,7 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
     byteSize: number
   }[] = []
   private lastLamportTime = 0
+  private syncCursors = new Map<string, number>()
 
   async withTransaction<T>(fn: (storage: NodeStorageAdapter) => Promise<T>): Promise<T> {
     const snapshot = this.createSnapshot()
@@ -266,6 +267,14 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
     this.lastLamportTime = Math.max(this.lastLamportTime, time)
   }
 
+  async getSyncCursor(room: string): Promise<number> {
+    return this.syncCursors.get(room) ?? 0
+  }
+
+  async setSyncCursor(room: string, lamport: number): Promise<void> {
+    this.syncCursors.set(room, Math.max(this.syncCursors.get(room) ?? 0, lamport))
+  }
+
   // ==========================================================================
   // Document Content Operations (for nodes with CRDT document)
   // ==========================================================================
@@ -324,6 +333,7 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
     this.documentContentStore.clear()
     this.yjsSnapshotStore = []
     this.lastLamportTime = 0
+    this.syncCursors.clear()
   }
 
   /**

@@ -1,0 +1,15 @@
+{
+  "id": "2026-06-19-sync-stays-connected-no-more-reconnect-s",
+  "date": "June 19, 2026",
+  "title": "Sync stays connected — no more reconnect storms on busy workspaces",
+  "summary": "The app no longer re-sends its whole change history to the hub on every load; sync now resumes from where it left off and throttles bursts, so the connection stays steady instead of tripping the hub's rate limit.",
+  "highlights": [
+    "Reload resumes sync from a persisted cursor instead of replaying the entire change log",
+    "Outbound changes are throttled and a rate-limit disconnect backs off instead of reconnect-storming",
+    "A single malformed change no longer aborts a whole sync batch"
+  ],
+  "tags": [
+    "sync",
+    "performance"
+  ]
+}

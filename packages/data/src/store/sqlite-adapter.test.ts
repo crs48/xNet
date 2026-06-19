@@ -152,6 +152,27 @@ describe('SQLiteNodeStorageAdapter', () => {
     await db.close()
   })
 
+  describe('sync cursor (0206)', () => {
+    it('returns 0 for an unknown room', async () => {
+      expect(await adapter.getSyncCursor('room-a')).toBe(0)
+    })
+
+    it('persists and reads back a per-room cursor', async () => {
+      await adapter.setSyncCursor('room-a', 42)
+      await adapter.setSyncCursor('room-b', 7)
+      expect(await adapter.getSyncCursor('room-a')).toBe(42)
+      expect(await adapter.getSyncCursor('room-b')).toBe(7)
+    })
+
+    it('is monotonic — never moves the cursor backwards', async () => {
+      await adapter.setSyncCursor('room-a', 100)
+      await adapter.setSyncCursor('room-a', 50) // stale ack must not regress
+      expect(await adapter.getSyncCursor('room-a')).toBe(100)
+      await adapter.setSyncCursor('room-a', 150)
+      expect(await adapter.getSyncCursor('room-a')).toBe(150)
+    })
+  })
+
   // ─── Node CRUD Operations ────────────────────────────────────────────────────
 
   describe('Node CRUD', () => {

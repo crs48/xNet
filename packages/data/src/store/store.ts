@@ -1910,7 +1910,17 @@ export class NodeStore {
     const sorted = [...changes].sort((a, b) => compareLamportTimestamps(a.lamport, b.lamport))
 
     for (const change of sorted) {
-      await this.applyRemoteChange(change)
+      try {
+        await this.applyRemoteChange(change)
+      } catch (err) {
+        // A single un-appliable remote change (e.g. a first change missing its
+        // schemaId) must not abort the whole batch — skip it and keep applying
+        // the rest so sync still converges (exploration 0206).
+        console.warn(
+          `[NodeStore] skipping un-appliable remote change for node ${change.payload?.nodeId}:`,
+          err instanceof Error ? err.message : err
+        )
+      }
     }
   }
 
@@ -1933,6 +1943,19 @@ export class NodeStore {
    */
   async getChangesSince(sinceLamport: number): Promise<NodeChange[]> {
     return this.storage.getChangesSince(sinceLamport)
+  }
+
+  /**
+   * Per-room sync cursor (confirmed high-water mark). Returns 0 when the
+   * storage adapter doesn't persist cursors (degrades to replay-from-0).
+   */
+  async getSyncCursor(room: string): Promise<number> {
+    return (await this.storage.getSyncCursor?.(room)) ?? 0
+  }
+
+  /** Persist the per-room confirmed sync cursor (monotonic in the adapter). */
+  async setSyncCursor(room: string, lamport: number): Promise<void> {
+    await this.storage.setSyncCursor?.(room, lamport)
   }
 
   /**
