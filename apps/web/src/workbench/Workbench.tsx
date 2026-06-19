@@ -10,6 +10,7 @@
 import type { ReactNode } from 'react'
 import { DemoBanner, useDemoMode } from '@xnetjs/react'
 import { Group, Panel, useDefaultLayout } from 'react-resizable-panels'
+import { CoachmarkLayer } from '../coachmarks'
 import { GlobalSearch } from '../components/GlobalSearch'
 import { UndoToastProvider } from '../components/UndoToast'
 import { WorkspaceCommands } from '../components/WorkspaceCommands'
@@ -110,8 +111,17 @@ function WorkbenchDemoBanner() {
  */
 export function Workbench({ children }: { children: ReactNode }) {
   const compact = useIsCompact()
-  if (compact) return <MobileShell>{children}</MobileShell>
-  return <DesktopWorkbench>{children}</DesktopWorkbench>
+  return (
+    <>
+      {compact ? (
+        <MobileShell>{children}</MobileShell>
+      ) : (
+        <DesktopWorkbench>{children}</DesktopWorkbench>
+      )}
+      {/* First-run coachmarks (0206) — portals to <body>, so position here is moot. */}
+      <CoachmarkLayer />
+    </>
+  )
 }
 
 function DesktopWorkbench({ children }: { children: ReactNode }) {

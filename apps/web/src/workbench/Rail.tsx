@@ -48,19 +48,23 @@ function RailButton({
   icon: Icon,
   active,
   badge,
-  onClick
+  onClick,
+  coachId
 }: {
   label: string
   icon: LucideIcon
   active?: boolean
   badge?: number
   onClick: () => void
+  /** Stable anchor id for first-run coachmarks (exploration 0206). */
+  coachId?: string
 }) {
   return (
     <button
       type="button"
       title={label}
       aria-label={label}
+      data-coach={coachId}
       onClick={onClick}
       className={`relative flex h-10 w-full items-center justify-center border-none bg-transparent cursor-pointer transition-colors ${
         active ? 'text-ink-1' : 'text-ink-3 hover:text-ink-1'
@@ -90,6 +94,7 @@ export function Rail() {
       <RailButton
         label="Search (⌘K)"
         icon={Search}
+        coachId="rail.search"
         onClick={() => void getCommandRegistry().runCommand('search.open')}
       />
 
@@ -100,6 +105,7 @@ export function Rail() {
           key={item.id}
           label={item.label}
           icon={item.icon}
+          coachId={`rail.${item.id}`}
           active={left.open && left.activeViewId === item.id}
           onClick={() => showPanelView('left', item.id)}
         />
@@ -107,11 +113,17 @@ export function Rail() {
 
       <div className="my-1 h-px w-5 bg-hairline" />
 
-      <RailButton label="CRM" icon={Contact} onClick={() => void navigate({ to: '/crm' })} />
+      <RailButton
+        label="CRM"
+        icon={Contact}
+        coachId="rail.crm"
+        onClick={() => void navigate({ to: '/crm' })}
+      />
 
       <RailButton
         label="Discover people"
         icon={Compass}
+        coachId="rail.discover"
         onClick={() => void navigate({ to: '/discover' })}
       />
 

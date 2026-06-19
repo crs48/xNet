@@ -135,6 +135,12 @@ interface WorkbenchState {
    * so existing users don't get a wall of history.
    */
   lastSeenChangelogId: string | null
+  /**
+   * Coachmark tip ids the user has dismissed (first-run onboarding,
+   * exploration 0206). Empty = nothing seen yet. Versioned ids
+   * (`crm:overview@1`) let a copy rewrite re-surface a tip once.
+   */
+  seenTips: string[]
 
   // ─── Spaces ────────────────────────────────────────────────────
   setCurrentSpace: (spaceId: string | null) => void
@@ -194,6 +200,12 @@ interface WorkbenchState {
 
   // ─── What's New ────────────────────────────────────────────────
   setLastSeenChangelogId: (id: string) => void
+
+  // ─── Onboarding coachmarks (0206) ──────────────────────────────
+  /** Record a tip as dismissed so it never auto-shows again. */
+  markTipSeen: (id: string) => void
+  /** Clear all dismissed tips so onboarding replays (Settings → Replay). */
+  resetTips: () => void
 }
 
 function freshGroups(): EditorGroup[] {
@@ -219,6 +231,7 @@ export const useWorkbench = create<WorkbenchState>()(
       spaceFilter: [],
       explorerSort: 'recent',
       lastSeenChangelogId: null,
+      seenTips: [],
 
       // Setting a single scope always exits multi-select (keeps the create
       // target unambiguous — exploration 0190).
@@ -502,7 +515,12 @@ export const useWorkbench = create<WorkbenchState>()(
 
       setStartupTab: (tab) => set({ startupTab: tab }),
 
-      setLastSeenChangelogId: (id) => set({ lastSeenChangelogId: id })
+      setLastSeenChangelogId: (id) => set({ lastSeenChangelogId: id }),
+
+      markTipSeen: (id) =>
+        set((state) => (state.seenTips.includes(id) ? {} : { seenTips: [...state.seenTips, id] })),
+
+      resetTips: () => set({ seenTips: [] })
     }),
     {
       name: 'xnet:workbench:v1'
