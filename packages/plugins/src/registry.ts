@@ -8,6 +8,7 @@ import type { Platform, Disposable } from './types'
 import type { NodeStore } from '@xnetjs/data'
 import { createExtensionContext, type ExtensionContext } from './context'
 import { ContributionRegistry } from './contributions'
+import { warnOnEditorSchemaRisks } from './editor-schema-safety'
 import { isHostCompatible } from './ecosystem/compatibility'
 import { evaluateInstallConsent, type ConsentDecision } from './ecosystem/consent'
 import {
@@ -434,6 +435,8 @@ export class PluginRegistry {
       }
     }
     if (c.editorExtensions) {
+      // Skew-safety guard (0205): warn if a contribution adds persisted schema.
+      warnOnEditorSchemaRisks(manifest.id, c.editorExtensions)
       for (const ext of c.editorExtensions) {
         ctx.registerEditorExtension(ext)
       }
