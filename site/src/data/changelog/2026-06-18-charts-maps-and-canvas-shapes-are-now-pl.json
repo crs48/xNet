@@ -1,0 +1,17 @@
+{
+  "id": "2026-06-18-charts-maps-and-canvas-shapes-are-now-pl",
+  "date": "June 18, 2026",
+  "title": "Charts, maps, and canvas shapes are now plugin-extensible",
+  "summary": "New chart types, map basemaps, and canvas shapes can be added by a plugin with no change to core code, via shared runtime registries. A bundled Extra Charts plugin adds donut and horizontal-bar charts as a worked example.",
+  "highlights": [
+    "Chart, basemap, and shape registries (unknown types fall back gracefully)",
+    "Editor schema/behavior tiering guards against silent Yjs content loss",
+    "Bundled Extra Charts plugin: donut + horizontal bar"
+  ],
+  "tags": [
+    "plugins",
+    "editor",
+    "platform"
+  ],
+  "pr": 204
+}
