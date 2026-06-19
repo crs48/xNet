@@ -1,0 +1,14 @@
+{
+  "id": "2026-06-19-desktop-gets-the-extra-charts-marketplac",
+  "date": "June 19, 2026",
+  "title": "Desktop gets the extra charts; marketplace is more honest",
+  "summary": "The Extra Charts plugin (donut + horizontal bar) now ships in the desktop app too, and the plugins marketplace clearly flags first-party connectors that need explicit setup rather than implying they auto-install.",
+  "highlights": [
+    "Donut + horizontal-bar charts now bundled in desktop (web/electron parity)",
+    "Slack/Unreal connectors marked 'Setup required' instead of implying they run"
+  ],
+  "tags": [
+    "plugins",
+    "app"
+  ]
+}
