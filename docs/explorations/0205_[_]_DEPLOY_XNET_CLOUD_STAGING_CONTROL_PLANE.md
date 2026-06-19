@@ -429,19 +429,29 @@ gcloud iam service-accounts add-iam-policy-binding "xnet-deployer@$P.iam.gservic
 
 ## Risks And Open Questions
 
-- **Runtime SA & secrets (finding #4).** If you deploy without `--service-account`,
-  boot may fail to read secrets. Confirm by tailing `gcloud run services logs` right
-  after deploy. Cleanest long-term: a dedicated runtime SA (least privilege), not
-  the deployer.
-- **R2 endpoint shape (finding #6).** Verify whether `R2_ENDPOINT` should be the
-  bare account host vs. include the bucket. Wrong shape silently breaks hub backups,
-  not the control plane — so it won't show up in the `demo` smoke test.
-- **Hub image tag mismatch (finding #5).** Paid provisioning needs
-  `xnet-hub@1.0.0` actually built and pushed; until then keep to `demo` for the
-  proof. Confirm the provisioner composes the image ref the way the tag is written
-  (`repo:xnet-hub@1.0.0` vs `repo@sha` vs `repo:1.0.0`).
-- **Cloud Run domain-mapping preview latency.** Acceptable for staging; revisit a
-  load balancer or Cloudflare proxy before production.
+- **Runtime SA & secrets (finding #4).** ✅ Resolved — deployed with
+  `--service-account=xnet-deployer@…`; boot reads all secrets and the service is
+  healthy. Cleanest long-term: a dedicated least-privilege runtime SA, not the
+  deployer (which carries `run.admin`).
+- **R2 endpoint shape (finding #6).** ✅ Resolved — `config.ts:12` wants the bare
+  account host; the env value baked in the bucket. Corrected value pushed as
+  `r2-endpoint` v2. ⚠️ The git-ignored `apps/cloud/.env.staging` still holds the old
+  value (sandbox couldn't edit it) — reconcile it so local runs match.
+- **Hub image push path (open).** The hub image **builds clean** but the existing
+  convention pushes it to the Artifact Registry **repo root** (`.../hub:1.0.0`,
+  no image name), which failed to push. The provisioner composes
+  `${GCP_ARTIFACT_REGISTRY}:${HUB_IMAGE_TAG}` = `.../hub:1.0.0`, so fixing this
+  cleanly means giving the hub image a name (e.g. `.../hub/xnet-hub:1.0.0`) and
+  teaching the provisioner/env that path — a small follow-up. Not on the demo path
+  (demo is pooled; no per-tenant hub).
+- **`HUB_IMAGE_TAG` format.** `repo:${targetVersion}` makes `xnet-hub@1.0.0` an
+  invalid Docker tag (`@`); deployed value is the plain `1.0.0`. The codebase is
+  internally inconsistent here (`index.ts` defaults to `xnet-hub@0.0.1`, the env
+  schema to `1.0.0`) — worth normalizing on the plain form.
+- **Custom domain is user-gated.** `xnet.fyi` isn't owner-verified for this account
+  and DNS lives at Cloudflare, so the mapping + DNS + WorkOS callback registration
+  can't be done from here. Cloud Run domain mapping is also preview (latency caveats)
+  — revisit a load balancer or Cloudflare proxy before production.
 - **WorkOS redirect mismatch.** Sign-in 1:1 requires the dashboard's redirect URI to
   match `WORKOS_REDIRECT_URI` exactly; a trailing-slash or http/https mismatch
   bounces the callback. (For laptop-against-staging there's the documented
@@ -455,47 +465,88 @@ gcloud iam service-accounts add-iam-policy-binding "xnet-deployer@$P.iam.gservic
 
 ## Implementation Checklist
 
-- [ ] Add `scripts/cloud-secrets-push.mjs` (idempotent create-or-add-version) and
+- [x] Add `scripts/cloud-secrets-push.mjs` (idempotent create-or-add-version) and
       run it against `apps/cloud/.env.staging` for project `xnet-cloud-staging-0`.
-- [ ] Verify the 16 secrets exist: `gcloud secrets list --project xnet-cloud-staging-0`.
-- [ ] Add a `.gcloudignore` so Cloud Build context stays small.
-- [ ] Build + push the **control-plane** image (Cloud Build or local Docker).
-- [ ] Build + push the **hub** image at `xnet-hub@1.0.0` (needed before paid provisioning).
-- [ ] Decide the **runtime SA** (deployer SA now, or mint a least-privilege one) and
-      pass `--service-account` on deploy.
-- [ ] `gcloud run deploy xnet-cloud-staging` with the env above **including
-      `HUB_IMAGE_TAG`**; confirm boot logs show `auth: workos, payments: stripe,
-      provisioner: cloud-run, stores: firestore`.
-- [ ] Map `cloud-staging.xnet.fyi` (Cloud Run domain mapping **or** Cloudflare CNAME)
-      and add the DNS record; wait for the managed certificate.
-- [ ] Register `https://cloud-staging.xnet.fyi/auth/callback` in the WorkOS **staging**
-      app's redirect URIs.
+      _(Done: 16 secrets created.)_
+- [x] Verify the 16 secrets exist: `gcloud secrets list --project xnet-cloud-staging-0`.
+      _(Done: 16 present.)_
+- [x] Add a `.gcloudignore` so Cloud Build context stays small.
+- [x] **Fix `r2-endpoint`** — the env value baked the bucket into the host; pushed a
+      corrected bare `https://<acct>.r2.cloudflarestorage.com` as version 2 (latest).
+      ⚠️ Reconcile `apps/cloud/.env.staging` to the bare host so local runs + future
+      pushes agree (the sandbox blocked editing that git-ignored file directly).
+- [x] Build + push the **control-plane** image (Cloud Build, no local Docker).
+      _(Done: `control-plane:04180f2c`. Needed BuildKit (`DOCKER_BUILDKIT=1`) so the
+      Dockerfile-scoped ignore keeps `apps/`, and a Dockerfile fix —
+      `--config.confirm-modules-purge=false` — for the non-TTY prod install.)_
+- [~] Build + push the **hub** image at `1.0.0` (needed before paid provisioning).
+      _(Builds clean (76 steps); push to the repo-root path `.../hub:1.0.0` failed —
+      see open question. Not on the demo path; tracked as a follow-up.)_
+- [x] Decide the **runtime SA** and pass `--service-account` on deploy.
+      _(Done: deploy runs as `xnet-deployer@…`; it already has secretAccessor +
+      datastore.user + run.admin.)_
+- [x] `gcloud run deploy xnet-cloud-staging` with the env incl. `HUB_IMAGE_TAG`.
+      _(Done: revision `00002` serving 100%. Boot log: `auth: workos-authkit,
+      payments: stripe, provisioner: cloud-run, stores: firestore, ai: off`.)_
+- [ ] **Map `cloud-staging.xnet.fyi`** — ⚠️ user-gated. Needs (a) verify `xnet.fyi`
+      ownership for this Google account (`list-user-verified` is empty), (b) a Cloud
+      Run domain mapping (this gcloud routes it through `beta`) or a load balancer,
+      (c) the resulting record at **Cloudflare DNS**. The sandbox has no Cloudflare
+      DNS access and can't verify the domain. _Service is live now on the run.app URL._
+- [ ] **Register `https://cloud-staging.xnet.fyi/auth/callback`** in the WorkOS
+      **staging** app's redirect URIs. ⚠️ user-gated (dashboard). The deployed
+      `/auth/start` already sends this exact `redirect_uri`.
 - [ ] Register the Stripe **test-mode** webhook
       `https://cloud-staging.xnet.fyi/webhooks/stripe`
       (`checkout.session.completed` + `customer.subscription.deleted`); confirm the
-      signing secret matches `STRIPE_WEBHOOK_SECRET`.
-- [ ] Verify / fix `R2_ENDPOINT` shape against the Litestream config.
-- [ ] Update `deploy-cloud.yml` to add `--service-account` + `HUB_IMAGE_TAG` so CI
+      signing secret matches `STRIPE_WEBHOOK_SECRET`. ⚠️ user-gated (and only needed
+      for paid checkout, not demo).
+- [x] Verify / fix `R2_ENDPOINT` shape against the Litestream config.
+      _(Done: was bucket-in-host; `config.ts` wants the bare account host. Corrected
+      value pushed as `r2-endpoint` v2. Reconcile the env file too — see above.)_
+- [x] Update `deploy-cloud.yml` to add `--service-account` + `HUB_IMAGE_TAG` so CI
       matches the proven manual deploy.
-- [ ] _(CI path)_ Create the WIF pool/provider, bind the deployer SA, add repo
-      secrets `WIF_PROVIDER` + `DEPLOYER_SA`, the protected `cloud-staging`
-      environment, and set `CLOUD_DEPLOY_ENABLED=true`.
+- [ ] _(CI path, optional)_ Create the WIF pool/provider, bind the deployer SA, add
+      repo secrets `WIF_PROVIDER` + `DEPLOYER_SA`, the protected `cloud-staging`
+      environment, and set `CLOUD_DEPLOY_ENABLED=true`. _(Left off: manual deploy
+      works; enabling the var without the WIF secrets would red main.)_
+
+## Deploy Outcome (live)
+
+The staging control plane is **deployed and serving** at the Cloud Run URL
+`https://xnet-cloud-staging-999093940939.us-central1.run.app` (revision `00002`,
+`min-instances=1`, runtime SA `xnet-deployer`). All three smoke checks pass and the
+boot log confirms the real substrates — `auth: workos-authkit, payments: stripe,
+provisioner: cloud-run, stores: firestore`. `GET /auth/start?plan=demo` 302s to
+`api.workos.com` with `state=demo` and `redirect_uri=…/auth/callback`.
+
+**To finish `cloud-staging.xnet.fyi` (three user-gated steps):**
+1. **Verify `xnet.fyi`** for this Google account, then create a Cloud Run **domain
+   mapping** (`gcloud beta run domain-mappings create --service xnet-cloud-staging
+   --domain cloud-staging.xnet.fyi --region us-central1`) — or stand up a load
+   balancer / Cloudflare proxy.
+2. **Add the emitted record at Cloudflare** (DNS-only) and wait for the managed cert.
+3. **Register `https://cloud-staging.xnet.fyi/auth/callback`** in the WorkOS staging
+   app so the post-sign-in callback is accepted.
+
+Until DNS is live, exercise the service on the run.app URL (sign-in will bounce to
+the `cloud-staging.xnet.fyi` callback, which 404s until steps 1–3 are done).
 
 ## Validation Checklist
 
-- [ ] `node scripts/cloud-smoke.mjs https://cloud-staging.xnet.fyi` passes all three
-      checks (`/health`, `/status.json` with no leaked fields, `/auth/start` redirect).
-- [ ] `GET https://cloud-staging.xnet.fyi/health` → `{"status":"ok","substrate":"ready"}`.
-- [ ] `GET https://cloud-staging.xnet.fyi/auth/start?plan=demo` 302-redirects to the
-      **WorkOS** host (not a dev provider) with `state=demo`.
-- [ ] Completing WorkOS sign-in lands on `/dashboard?plan=demo` with a session
-      cookie set (no Stripe checkout for `demo`).
-- [ ] Cloud Run logs show the resolved `mode` with `stores: firestore` and
-      `provisioner: cloud-run` (proves the real adapters, not fakes, were selected).
+- [x] `node scripts/cloud-smoke.mjs <run.app URL>` passes all three checks
+      (`/health`, `/status.json` no leaked fields, `/auth/start` redirect). _(Done.)_
+- [x] `GET /health` → `{"status":"ok","substrate":"ready"}`. _(Done on run.app.)_
+- [x] `GET /auth/start?plan=demo` 302-redirects to the **WorkOS** host with
+      `state=demo`. _(Done: → `api.workos.com/user_management/authorize?…&state=demo`.)_
+- [x] Cloud Run logs show the resolved `mode` with `stores: firestore` and
+      `provisioner: cloud-run` (real adapters, not fakes). _(Done.)_
+- [x] `/status.json` returns the aggregate shape and contains none of
+      `tenantId`/`hubUrl`/`billingUserId`/`email`. _(Done: smoke asserts it.)_
+- [ ] Completing WorkOS sign-in lands on `/dashboard?plan=demo` — needs the custom
+      domain + WorkOS redirect registration (the run.app callback isn't registered).
 - [ ] A throwaway paid checkout (Stripe test card) fires the webhook and provisions a
-      tenant hub Cloud Run service that appears under the project; clean it up after.
-- [ ] `https://cloud-staging.xnet.fyi/status.json` returns the aggregate shape and
-      contains none of `tenantId`/`hubUrl`/`billingUserId`/`email`.
+      tenant hub — needs the hub image push resolved + the Stripe webhook registered.
 - [ ] _(CI path)_ A manual `workflow_dispatch` of `deploy-cloud` authenticates via
       WIF and redeploys green.
 
