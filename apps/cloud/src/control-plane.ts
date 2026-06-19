@@ -90,8 +90,13 @@ export class ControlPlane {
 
   private hubEnv(entitlements: PlanEntitlements): Record<string, string> {
     // The hub verifies this token locally and enforces the limits — no runtime
-    // call back to the control plane (anti-lock-in invariant).
-    return { HUB_PLAN: signEntitlements(entitlements, this.deps.planSecret) }
+    // call back to the control plane (anti-lock-in invariant). It needs the same
+    // signing secret to verify HUB_PLAN (the hub crashes on boot otherwise), so
+    // every hub shares the control plane's XNET_PLAN_SECRET.
+    return {
+      HUB_PLAN: signEntitlements(entitlements, this.deps.planSecret),
+      XNET_PLAN_SECRET: this.deps.planSecret
+    }
   }
 
   /**

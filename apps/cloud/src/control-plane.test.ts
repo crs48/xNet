@@ -45,6 +45,25 @@ describe('ControlPlane.provisionTenant', () => {
     expect(await cp.getTenant('acme')).toMatchObject({ tenantId: 'acme' })
   })
 
+  it('passes XNET_PLAN_SECRET to the hub so it can verify HUB_PLAN (hub crashes otherwise)', async () => {
+    const provisioner = new MemoryProvisioner({
+      sharding: { projectPrefix: 'test', servicesPerProject: 800 }
+    })
+    const spy = vi.spyOn(provisioner, 'provision')
+    const cp = new ControlPlane({
+      tenants: new MemoryTenantStore(),
+      bindings: new MemoryBindingStore(),
+      provisioner,
+      verifyDid: async () => true,
+      planSecret: 'test-secret',
+      defaultTargetVersion: 'xnet-hub@1.0.0'
+    })
+    await cp.provisionForBilling({ plan: 'personal', billingUserId: 'user_z' })
+    const env = spy.mock.calls[0]?.[0]?.env ?? {}
+    expect(env.XNET_PLAN_SECRET).toBe('test-secret')
+    expect(env.HUB_PLAN).toBeTruthy()
+  })
+
   it('rejects a duplicate tenant and a failed DID challenge', async () => {
     const { cp } = build()
     await cp.provisionTenant({
