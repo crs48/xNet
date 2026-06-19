@@ -103,10 +103,30 @@ too, and use `pnpm --filter xnet-cloud dev:staging` — see SETUP.md Part 4.)_
 
 ---
 
-## 4. Register the Stripe webhook (scripted — paid plans only)
+## 4. Stripe — plan prices, then the webhook (paid plans only)
 
-The free `demo` plan needs no webhook. For paid checkout (personal/family/team),
-register the endpoint. There's **no webhook at the staging URL yet**, so create one:
+The free `demo` plan needs neither. For paid checkout (personal/family/team):
+
+### 4a. Create the plan Prices
+
+`STRIPE_PRICE_<PLAN>` must be a Stripe **Price ID** (`price_…`), not a dollar amount —
+the checkout passes it straight to Stripe as the line-item `price`, and a literal
+number 500s (`The price parameter should be the ID of a price object`). Create the
+Products + monthly Prices and store the IDs (idempotent via `lookup_key`):
+
+```bash
+node scripts/cloud-staging-stripe-prices.mjs --push   # create + push IDs to Secret Manager
+gcloud run services update xnet-cloud-staging --project xnet-cloud-staging-0 --region us-central1 \
+  --update-secrets STRIPE_PRICE_PERSONAL=stripe-price-personal:latest,STRIPE_PRICE_FAMILY=stripe-price-family:latest,STRIPE_PRICE_TEAM=stripe-price-team:latest
+```
+
+It reads your intended amounts from the current `STRIPE_PRICE_*` values (e.g. `4.99`)
+and prints the new `price_…` IDs — paste those back into `apps/cloud/.env.staging`
+too so local runs match.
+
+### 4b. Register the webhook
+
+There's **no webhook at the staging URL yet**, so create one:
 
 ```bash
 # Safe check first (read-only):
@@ -188,6 +208,7 @@ plan is pooled and does **not** need it, so it doesn't block go-live.
 | Script | What it does |
 | ------ | ------------ |
 | [`scripts/cloud-staging-domain.sh`](../../scripts/cloud-staging-domain.sh) | Create the Cloud Run domain mapping; print the Cloudflare DNS record |
+| [`scripts/cloud-staging-stripe-prices.mjs`](../../scripts/cloud-staging-stripe-prices.mjs) | Create the plan Products + recurring Prices; push the `price_…` IDs to Secret Manager |
 | [`scripts/cloud-staging-stripe-webhook.mjs`](../../scripts/cloud-staging-stripe-webhook.mjs) | Check/create the Stripe test webhook; print the signing secret to land |
 | [`scripts/cloud-staging-verify.sh`](../../scripts/cloud-staging-verify.sh) | End-to-end verify (DNS, TLS, smoke contract, demo redirect) |
 | [`scripts/cloud-staging-enable-ci.sh`](../../scripts/cloud-staging-enable-ci.sh) | _(optional)_ Wire WIF so CI deploys on push to main |
