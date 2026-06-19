@@ -14,8 +14,8 @@
 import type { MapBasemapId, MapLayerSpec, MapViewport } from '@xnetjs/data'
 import type { GeoJSONSource, MapMouseEvent, Map as MlMap } from 'maplibre-gl'
 import { useEffect, useRef, useState } from 'react'
+import { basemapUsesPmtiles, resolveBasemapStyle } from './basemap-registry'
 import {
-  buildBasemapStyle,
   layerSpecIdFromMapLayerId,
   ownedLayerIds,
   ownedSourceIds,
@@ -70,9 +70,9 @@ function syncDataLayers(map: MlMap, layers: MapLayerSpec[]): void {
   for (const plan of planDataLayers(layers)) addPlan(map, plan)
 }
 
-/** Register the pmtiles:// protocol once (skipped for the blank basemap). */
+/** Register the pmtiles:// protocol once (skipped for basemaps that don't use it). */
 async function registerPmtiles(maplibregl: MapLibreModule, basemap: MapBasemapId): Promise<void> {
-  if (basemap === 'blank' || pmtilesRegistered) return
+  if (!basemapUsesPmtiles(basemap) || pmtilesRegistered) return
   const { Protocol } = await import('pmtiles')
   maplibregl.addProtocol('pmtiles', new Protocol().tile)
   pmtilesRegistered = true
@@ -89,7 +89,7 @@ function createMap(
   const map = new maplibregl.Map({
     container,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    style: buildBasemapStyle(basemap, { pmtilesUrl }) as any,
+    style: resolveBasemapStyle(basemap, { pmtilesUrl }) as any,
     center: [viewport.longitude, viewport.latitude],
     zoom: viewport.zoom,
     pitch: viewport.pitch ?? 0,
