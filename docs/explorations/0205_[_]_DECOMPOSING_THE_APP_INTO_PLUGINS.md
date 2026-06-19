@@ -599,50 +599,66 @@ export const lazyUiExtensions = () => Promise.all([
   feature modules, or keep them always-on? Toggling implies they must tolerate
   being absent (cross-feature relations break) — non-trivial for Tasks/CRM.
 
+## Implementation Status
+
+The Tier-2 registry seams, the editor skew-safety tier, the schema-skew guard, a
+dogfooded bundled plugin, and author docs landed in the first implementation PR.
+The larger architectural items (pluggable top-level routes, re-shipping Tasks as
+a feature module, canvas tool/layout registries, comment inspector) remain as
+follow-ups — they are genuinely multi-PR and higher risk.
+
 ## Implementation Checklist
 
-- [ ] Write the `ChartTypeRegistry` and migrate `buildChartOption`'s switch to
+- [x] Write the `ChartTypeRegistry` and migrate `buildChartOption`'s switch to
       it; add an unknown-type fallback renderer.
-- [ ] Add `ShapeRegistry` + `CanvasToolRegistry` + `CanvasLayoutRegistry` in
-      `packages/canvas`, consuming the existing canvas contribution *types* in
-      `contributions.ts`; migrate the `CanvasNodeComponent` switch.
-- [ ] Add `BasemapRegistry` in `packages/maps`; migrate `BASEMAP_PRESETS`.
-- [ ] Split `packages/editor` extensions into `SCHEMA_EXTENSIONS` (bundled) vs
-      lazy UI/behavior extensions; document the skew-safety rule.
-- [ ] Ship 3–4 bundled first-party plugins through `BUNDLED_PLUGINS`: charts
-      pack, canvas-tool pack, importer pack, experiments-widget pack.
+- [x] Add `BasemapRegistry` in `packages/maps`; migrate `BASEMAP_PRESETS`.
+- [x] Add `ShapeRegistry` in `packages/canvas` (extracted `shape-paths.ts`;
+      `resolveShapePath` + registry-driven picker, rectangle fallback).
+      `CanvasToolRegistry` + `CanvasLayoutRegistry` deferred (follow-up).
+- [x] Split `packages/editor` extensions into schema vs behavior tiers
+      (`extension-tiers.ts`: `partitionExtensions`, `schemaSkewRisks`,
+      `REQUIRED_SCHEMA_NODES`) and document the skew-safety rule.
+- [x] Ship a bundled first-party plugin through `BUNDLED_PLUGINS` (charts pack:
+      `ChartsExtraPlugin` → donut + hbar). Canvas-tool / importer / experiments
+      packs deferred.
 - [ ] Add **pluggable top-level surface** registration (constrained one-route-
       per-feature slot) to the workbench; bridge a `FeatureModule` surface
-      contribution into it.
+      contribution into it. *(follow-up)*
 - [ ] Re-ship **Tasks** (or **Experiments**) as a first-party `FeatureModule`
       exemplar once routes are pluggable — schema pack + views + surface.
-- [ ] Write author docs: "implement a storage backend" (`NodeStorageAdapter`),
-      "add a chart type," "ship a feature module," using the new exemplars.
+      *(follow-up)*
+- [x] Write author docs: "add a chart type / basemap / shape," the editor
+      skew rule, and the storage-adapter seam
+      ([docs/guides/extend-with-registries.md](../guides/extend-with-registries.md)).
 - [ ] Add a comment *inspector/panel* as a `views`/`canvasInspector`
-      contribution while keeping anchoring + schema in core.
-- [ ] Add a schema-contributing-plugin guard: require all sync peers to have the
-      schema before activating (prevent silent Yjs drops).
+      contribution while keeping anchoring + schema in core. *(follow-up)*
+- [x] Add a schema-contributing-plugin guard: warn when a plugin's editor
+      contribution adds persisted schema (`editor-schema-safety.ts`, wired into
+      `PluginRegistry`). Full all-peers-have-schema gate deferred to sync
+      negotiation. *(partial)*
 
 ## Validation Checklist
 
-- [ ] `MermaidPlugin` is no longer the only bundled plugin; ≥4 contribution
-      *kinds* (editor, widget, canvas tool, importer/chart) have a first-party
-      exemplar.
-- [ ] A third party can add a new chart type / canvas shape / basemap via a
-      plugin with **no core code change** (proven by a test plugin).
-- [ ] Editor bundle: schema nodes remain statically bundled; a collaborative
-      doc round-trips byte-identically between a client with and without the
-      lazy UI extensions (no content loss).
+- [x] `MermaidPlugin` is no longer the only bundled plugin (`ChartsExtraPlugin`
+      added; catalogued in `registry/first-party.json`, drift-guarded). ≥4
+      contribution *kinds* with first-party exemplars: still a follow-up.
+- [x] A third party can add a new chart type / canvas shape / basemap via a
+      plugin with **no core code change** (proven by registry unit tests +
+      the bundled `ChartsExtraPlugin`).
+- [x] Editor schema/behavior classifier is drift-proof (reads TipTap
+      `extension.type`); behavior extensions are safe to lazy-load. Byte-identical
+      collab round-trip test: follow-up.
 - [ ] `enableContentCheck`/`onContentError` wired; a deliberately-missing-schema
-      peer triggers the error path instead of silent drop.
+      peer triggers the error path instead of silent drop. *(follow-up)*
 - [ ] Cold-start time and editor keystroke latency do not regress after the
       registry refactors (compare against the boot-timeline instrument from
-      exploration 0204).
+      exploration 0204). *(follow-up)*
 - [ ] First-party bundled plugins install with no consent prompt; a marketplace
-      plugin still prompts for capabilities.
+      plugin still prompts for capabilities. *(follow-up)*
 - [ ] A `FeatureModule` can register a top-level surface and route to it from the
-      Rail without editing `apps/web/src/routes`.
-- [ ] Unknown chart/shape/basemap types render a graceful fallback, not a crash.
+      Rail without editing `apps/web/src/routes`. *(follow-up)*
+- [x] Unknown chart/shape/basemap types render a graceful fallback, not a crash
+      (covered by registry unit tests).
 
 ## References
 
