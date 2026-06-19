@@ -48,7 +48,7 @@ jobs:
       SERVICE: xnet-cloud-staging
       REPO: hub # the Artifact Registry repo the bootstrap created
       BASE_URL: https://cloud-staging.xnet.fyi
-      HUB_IMAGE_TAG: xnet-hub@1.0.0 # tag each provisioned tenant hub is pinned to
+      HUB_IMAGE_TAG: '1.0.0' # plain image tag each provisioned hub is pinned to (repo:TAG; '@' is not a valid Docker tag)
     steps:
       - uses: actions/checkout@v4
 
