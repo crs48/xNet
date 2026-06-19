@@ -640,19 +640,111 @@ type DatabaseRowRow = {
   updated_at: number
 }
 
+/**
+ * A SQLite WAL shared-memory sizing failure — `SQLITE_IOERR_SHMSIZE`. WAL keeps
+ * a `-shm` shared-memory index file; an unclean shutdown (OOM / redeploy kill)
+ * can leave `-wal`/`-shm` wedged, and an oversized `-wal` can fill the volume.
+ * Either way `journal_mode = WAL` throws this at startup and the hub
+ * crash-loops forever (observed on Railway, exploration 0206 follow-up).
+ */
+export function isShmSizeError(err: unknown): boolean {
+  const e = err as { code?: string; message?: string } | null
+  if (!e) return false
+  return e.code === 'SQLITE_IOERR_SHMSIZE' || /SQLITE_IOERR_SHMSIZE/i.test(e.message ?? '')
+}
+
+/** The WAL sidecar files SQLite keeps next to the database. */
+export function walSidecarPaths(dbPath: string): string[] {
+  return [`${dbPath}-wal`, `${dbPath}-shm`]
+}
+
+export interface WalRecoveryHooks {
+  openDb: () => Database.Database
+  applyWalPragmas: (db: Database.Database) => void
+  applyRollbackPragmas: (db: Database.Database) => void
+  removeSidecars: () => void
+  underLitestream: boolean
+  onRecover?: (stage: 'retry' | 'fallback', err: unknown) => void
+}
+
+/**
+ * Open the database, recovering from `SQLITE_IOERR_SHMSIZE` instead of
+ * crash-looping. On that error — and only when NOT under Litestream, which owns
+ * the WAL — drop the `-wal`/`-shm` sidecars (clearing the wedge and freeing the
+ * space an oversized `-wal` was holding) and retry; if WAL still won't engage,
+ * fall back to a rollback journal that needs no shared memory so the hub at
+ * least starts. Pure orchestration over injected hooks (testable).
+ */
+export function openHubDatabaseWithWalRecovery(hooks: WalRecoveryHooks): Database.Database {
+  const db = hooks.openDb()
+  try {
+    hooks.applyWalPragmas(db)
+    return db
+  } catch (err) {
+    if (!isShmSizeError(err) || hooks.underLitestream) throw err
+    hooks.onRecover?.('retry', err)
+    try {
+      db.close()
+    } catch {
+      // already unusable
+    }
+    hooks.removeSidecars()
+    const retry = hooks.openDb()
+    try {
+      hooks.applyWalPragmas(retry)
+      return retry
+    } catch (err2) {
+      if (!isShmSizeError(err2)) throw err2
+      hooks.onRecover?.('fallback', err2)
+      hooks.applyRollbackPragmas(retry)
+      return retry
+    }
+  }
+}
+
+function openHubDatabase(dbPath: string): Database.Database {
+  const applyWalPragmas = (db: Database.Database): void => {
+    db.pragma('journal_mode = WAL')
+    db.pragma('synchronous = NORMAL')
+    db.pragma('busy_timeout = 5000')
+    // Hand WAL checkpointing to Litestream when replicating to R2 (exploration 0178).
+    for (const pragma of litestreamWalPragmas()) db.pragma(pragma)
+  }
+  return openHubDatabaseWithWalRecovery({
+    openDb: () => new Database(dbPath),
+    applyWalPragmas,
+    applyRollbackPragmas: (db) => {
+      db.pragma('journal_mode = DELETE')
+      db.pragma('synchronous = NORMAL')
+      db.pragma('busy_timeout = 5000')
+    },
+    removeSidecars: () => {
+      for (const sidecar of walSidecarPaths(dbPath)) {
+        try {
+          if (existsSync(sidecar)) unlinkSync(sidecar)
+        } catch {
+          // best effort — if we can't remove it, the retry/fallback still tries
+        }
+      }
+    },
+    underLitestream: process.env.LITESTREAM === '1',
+    onRecover: (stage, err) =>
+      console.error(
+        stage === 'retry'
+          ? '[hub] SQLite WAL init failed (SQLITE_IOERR_SHMSIZE); clearing -wal/-shm and retrying'
+          : '[hub] SQLite WAL still unavailable; falling back to DELETE journal mode',
+        err
+      )
+  })
+}
+
 export const createSQLiteStorage = (dataDir: string): HubStorage => {
   mkdirSync(dataDir, { recursive: true })
   mkdirSync(join(dataDir, 'blobs'), { recursive: true })
   mkdirSync(join(dataDir, 'files'), { recursive: true })
 
   const dbPath = join(dataDir, 'hub.db')
-  const db = new Database(dbPath)
-
-  db.pragma('journal_mode = WAL')
-  db.pragma('synchronous = NORMAL')
-  db.pragma('busy_timeout = 5000')
-  // Hand WAL checkpointing to Litestream when replicating to R2 (exploration 0178).
-  for (const pragma of litestreamWalPragmas()) db.pragma(pragma)
+  const db = openHubDatabase(dbPath)
 
   db.exec(SCHEMA_SQL)
 
