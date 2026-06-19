@@ -1,120 +1,223 @@
-import type { ConnectionManager } from './connection-manager'
+import type { ConnectionManager, ConnectionStatus } from './connection-manager'
 import type { ContentId, DID } from '@xnetjs/core'
 import type { NodeChange, NodeStore, SchemaIRI } from '@xnetjs/data'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { NodeStoreSyncProvider } from './node-store-sync-provider'
 
-function createSchemaDefinitionChange(): NodeChange {
+const SYNC_RESPONSE_TIMEOUT_MS = 4000
+const SEND_WINDOW_MS = 1000
+const MAX_SENDS_PER_WINDOW = 40
+
+function makeChange(lamport: number): NodeChange {
   return {
-    id: 'change-schema-definition',
+    id: `change-${lamport}`,
     type: 'node-change',
     payload: {
-      nodeId: 'schema-definition-node',
+      nodeId: `node-${lamport}`,
       schemaId: 'xnet://xnet.fyi/SchemaDefinition@1.0.0' as SchemaIRI,
-      properties: {
-        schemaIri: 'xnet://example.app/Task@1.0.0',
-        version: '1.0.0'
-      }
+      properties: { n: lamport }
     },
-    hash: 'cid:blake3:schema-definition-change' as ContentId,
+    hash: `cid:blake3:change-${lamport}` as ContentId,
     parentHash: null,
     authorDID: 'did:key:z6MkAuthor' as DID,
     signature: new Uint8Array([1, 2, 3]),
-    wallTime: 1710000000000,
-    lamport: {
-      time: 1,
-      author: 'did:key:z6MkAuthor'
+    wallTime: 1710000000000 + lamport,
+    lamport: { time: lamport, author: 'did:key:z6MkAuthor' as DID }
+  }
+}
+
+function makeStore(opts: { changes?: NodeChange[]; cursor?: number } = {}) {
+  let listener: ((event: { change: NodeChange; isRemote: boolean }) => void) | null = null
+  const setSyncCursor = vi.fn(async () => undefined)
+  const getChangesSince = vi.fn(async () => opts.changes ?? [])
+  const getSyncCursor = vi.fn(async () => opts.cursor ?? 0)
+  const store = {
+    subscribe: vi.fn((l: (event: { change: NodeChange; isRemote: boolean }) => void) => {
+      listener = l
+      return vi.fn()
+    }),
+    getChangesSince,
+    getSyncCursor,
+    setSyncCursor,
+    applyRemoteChange: vi.fn(async () => undefined),
+    applyRemoteChanges: vi.fn(async () => undefined)
+  } as unknown as NodeStore
+  return {
+    store,
+    getChangesSince,
+    getSyncCursor,
+    setSyncCursor,
+    emit: (event: { change: NodeChange; isRemote: boolean }) => listener?.(event)
+  }
+}
+
+function makeConnection(initialStatus: ConnectionStatus = 'connected') {
+  let status = initialStatus
+  const statusHandlers: Array<(s: ConnectionStatus) => void> = []
+  const messageHandlers: Array<(m: Record<string, unknown>) => void> = []
+  const conn = {
+    get status() {
+      return status
+    },
+    joinRoom: vi.fn(() => vi.fn()),
+    onMessage: vi.fn((h: (m: Record<string, unknown>) => void) => {
+      messageHandlers.push(h)
+      return vi.fn()
+    }),
+    onStatus: vi.fn((h: (s: ConnectionStatus) => void) => {
+      statusHandlers.push(h)
+      return vi.fn()
+    }),
+    publish: vi.fn(),
+    sendRaw: vi.fn(),
+    joinRoomAsync: vi.fn(),
+    leaveRoom: vi.fn(),
+    connect: vi.fn(),
+    disconnect: vi.fn(),
+    roomCount: 0
+  } as unknown as ConnectionManager
+  return {
+    conn,
+    setStatus(s: ConnectionStatus) {
+      status = s
+      statusHandlers.forEach((h) => h(s))
+    },
+    injectMessage(m: Record<string, unknown>) {
+      messageHandlers.forEach((h) => h(m))
     }
   }
 }
 
 describe('NodeStoreSyncProvider', () => {
-  it('publishes SchemaDefinition node changes to the node relay room', () => {
-    let storeListener: ((event: { change: NodeChange; isRemote: boolean }) => void) | null = null
-    const store = {
-      subscribe: vi.fn((listener: (event: { change: NodeChange; isRemote: boolean }) => void) => {
-        storeListener = listener
-        return vi.fn()
-      }),
-      getChangesSince: vi.fn(async () => []),
-      applyRemoteChange: vi.fn(async () => undefined),
-      applyRemoteChanges: vi.fn(async () => undefined)
-    } as unknown as NodeStore
-    const connection = {
-      status: 'connected',
-      joinRoom: vi.fn(() => vi.fn()),
-      onMessage: vi.fn(() => vi.fn()),
-      onStatus: vi.fn(() => vi.fn()),
-      publish: vi.fn(),
-      sendRaw: vi.fn(),
-      joinRoomAsync: vi.fn(),
-      leaveRoom: vi.fn(),
-      connect: vi.fn(),
-      disconnect: vi.fn(),
-      roomCount: 0
-    } as unknown as ConnectionManager
-    const provider = new NodeStoreSyncProvider(store, 'did:key:z6MkAuthor')
-    const change = createSchemaDefinitionChange()
-    const emitStoreEvent = (event: { change: NodeChange; isRemote: boolean }): void => {
-      if (!storeListener) {
-        throw new Error('Store listener was not registered')
-      }
-      storeListener(event)
-    }
+  beforeEach(() => vi.useFakeTimers())
+  afterEach(() => vi.useRealTimers())
 
-    provider.attach(connection)
-    emitStoreEvent({ change, isRemote: false })
+  describe('serialization', () => {
+    it('publishes node changes with schemaId to the relay room', async () => {
+      const { store, emit } = makeStore()
+      const { conn } = makeConnection('connected')
+      const provider = new NodeStoreSyncProvider(store, 'did:key:z6MkAuthor')
+      provider.attach(conn)
+      emit({ change: makeChange(1), isRemote: false })
+      await vi.advanceTimersByTimeAsync(0) // drain the throttle queue
 
-    expect(connection.publish).toHaveBeenCalledWith('did:key:z6MkAuthor', {
-      type: 'node-change',
-      room: 'did:key:z6MkAuthor',
-      change: expect.objectContaining({
-        id: 'change-schema-definition',
+      expect(conn.publish).toHaveBeenCalledWith('did:key:z6MkAuthor', {
         type: 'node-change',
-        nodeId: 'schema-definition-node',
-        schemaId: 'xnet://xnet.fyi/SchemaDefinition@1.0.0',
-        lamportTime: 1
+        room: 'did:key:z6MkAuthor',
+        change: expect.objectContaining({ type: 'node-change', nodeId: 'node-1', lamportTime: 1 })
       })
+    })
+
+    it('carries protocolVersion across the wire (part of the hashed fields)', async () => {
+      const { store, emit } = makeStore()
+      const { conn } = makeConnection('connected')
+      const provider = new NodeStoreSyncProvider(store, 'room-1')
+      provider.attach(conn)
+      emit({ change: { ...makeChange(1), protocolVersion: 1 }, isRemote: false })
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(conn.publish).toHaveBeenCalledWith('room-1', {
+        type: 'node-change',
+        room: 'room-1',
+        change: expect.objectContaining({ protocolVersion: 1 })
+      })
+    })
+
+    it('does not rebroadcast remote changes', async () => {
+      const { store, emit } = makeStore()
+      const { conn } = makeConnection('connected')
+      new NodeStoreSyncProvider(store, 'room-1').attach(conn)
+      emit({ change: makeChange(1), isRemote: true })
+      await vi.advanceTimersByTimeAsync(SEND_WINDOW_MS)
+      expect(conn.publish).not.toHaveBeenCalled()
     })
   })
 
-  it('carries protocolVersion across the wire (it is part of the hashed fields)', () => {
-    // Regression: the serializer used to drop protocolVersion, so every
-    // relayed change failed verifyChangeHash on the receiving side and
-    // browser-to-browser node sync silently never converged.
-    let storeListener: ((event: { change: NodeChange; isRemote: boolean }) => void) | null = null
-    const store = {
-      subscribe: vi.fn((listener: (event: { change: NodeChange; isRemote: boolean }) => void) => {
-        storeListener = listener
-        return vi.fn()
-      }),
-      getChangesSince: vi.fn(async () => []),
-      applyRemoteChange: vi.fn(async () => undefined),
-      applyRemoteChanges: vi.fn(async () => undefined)
-    } as unknown as NodeStore
-    const connection = {
-      status: 'connected',
-      joinRoom: vi.fn(() => vi.fn()),
-      onMessage: vi.fn(() => vi.fn()),
-      onStatus: vi.fn(() => vi.fn()),
-      publish: vi.fn(),
-      sendRaw: vi.fn(),
-      joinRoomAsync: vi.fn(),
-      leaveRoom: vi.fn(),
-      connect: vi.fn(),
-      disconnect: vi.fn(),
-      roomCount: 0
-    } as unknown as ConnectionManager
-    const provider = new NodeStoreSyncProvider(store, 'room-1')
-    provider.attach(connection)
+  describe('request-sync-first + persisted cursor (0206)', () => {
+    it('loads the persisted cursor and requests sync from it before pushing', async () => {
+      const { store, getChangesSince } = makeStore({ changes: [makeChange(5)], cursor: 3 })
+      const { conn, setStatus } = makeConnection('disconnected')
+      new NodeStoreSyncProvider(store, 'room-1').attach(conn)
 
-    const change: NodeChange = { ...createSchemaDefinitionChange(), protocolVersion: 1 }
-    storeListener!({ change, isRemote: false })
+      setStatus('connected')
+      await vi.advanceTimersByTimeAsync(0)
 
-    expect(connection.publish).toHaveBeenCalledWith('room-1', {
-      type: 'node-change',
-      room: 'room-1',
-      change: expect.objectContaining({ protocolVersion: 1 })
+      // request-first: ask the hub from the PERSISTED cursor, don't push yet.
+      expect(conn.sendRaw).toHaveBeenCalledWith({
+        type: 'node-sync-request',
+        room: 'room-1',
+        sinceLamport: 3
+      })
+      expect(getChangesSince).not.toHaveBeenCalled()
+    })
+
+    it('pushes local changes only after the hub responds', async () => {
+      const { store, getChangesSince } = makeStore({ changes: [makeChange(5)], cursor: 0 })
+      const { conn, setStatus, injectMessage } = makeConnection('disconnected')
+      new NodeStoreSyncProvider(store, 'room-1').attach(conn)
+
+      setStatus('connected')
+      await vi.advanceTimersByTimeAsync(0)
+      expect(getChangesSince).not.toHaveBeenCalled()
+
+      injectMessage({ type: 'node-sync-response', room: 'room-1', changes: [], highWaterMark: 0 })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(getChangesSince).toHaveBeenCalledWith(0)
+      await vi.advanceTimersByTimeAsync(0)
+      expect(conn.publish).toHaveBeenCalledTimes(1)
+    })
+
+    it('falls back to pushing after a timeout when the hub never responds', async () => {
+      const { store, getChangesSince } = makeStore({ changes: [makeChange(5)], cursor: 0 })
+      const { conn, setStatus } = makeConnection('disconnected')
+      new NodeStoreSyncProvider(store, 'room-1').attach(conn)
+
+      setStatus('connected')
+      await vi.advanceTimersByTimeAsync(0)
+      expect(getChangesSince).not.toHaveBeenCalled()
+
+      await vi.advanceTimersByTimeAsync(SYNC_RESPONSE_TIMEOUT_MS)
+      expect(getChangesSince).toHaveBeenCalled()
+    })
+
+    it('persists the confirmed cursor from the hub high-water mark', async () => {
+      const { store, setSyncCursor } = makeStore({ cursor: 0 })
+      const { conn, setStatus, injectMessage } = makeConnection('disconnected')
+      new NodeStoreSyncProvider(store, 'room-1').attach(conn)
+
+      setStatus('connected')
+      await vi.advanceTimersByTimeAsync(0)
+      injectMessage({ type: 'node-sync-response', room: 'room-1', changes: [], highWaterMark: 9 })
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(setSyncCursor).toHaveBeenCalledWith('room-1', 9)
+    })
+  })
+
+  describe('outbound throttle (0206)', () => {
+    it('caps node-change publishes per window and drains the rest later', async () => {
+      const changes = Array.from({ length: 100 }, (_, i) => makeChange(i + 1))
+      const { store } = makeStore({ changes, cursor: 0 })
+      const { conn, setStatus, injectMessage } = makeConnection('disconnected')
+      new NodeStoreSyncProvider(store, 'room-1').attach(conn)
+
+      setStatus('connected')
+      await vi.advanceTimersByTimeAsync(0)
+      injectMessage({ type: 'node-sync-response', room: 'room-1', changes: [], highWaterMark: 0 })
+      await vi.advanceTimersByTimeAsync(0) // getChangesSince resolves → enqueue 100
+      await vi.advanceTimersByTimeAsync(0) // first drain window
+
+      expect((conn.publish as ReturnType<typeof vi.fn>).mock.calls.length).toBe(
+        MAX_SENDS_PER_WINDOW
+      )
+
+      await vi.advanceTimersByTimeAsync(SEND_WINDOW_MS)
+      expect((conn.publish as ReturnType<typeof vi.fn>).mock.calls.length).toBe(
+        2 * MAX_SENDS_PER_WINDOW
+      )
+
+      await vi.advanceTimersByTimeAsync(SEND_WINDOW_MS)
+      expect((conn.publish as ReturnType<typeof vi.fn>).mock.calls.length).toBe(100)
     })
   })
 })
