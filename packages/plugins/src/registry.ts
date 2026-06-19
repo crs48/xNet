@@ -20,6 +20,7 @@ import {
   type InstallProvenance,
   type PluginTrustTier
 } from './ecosystem/provenance-trust'
+import { warnOnEditorSchemaRisks } from './editor-schema-safety'
 import { validateManifest, PluginValidationError, isPaidPricing } from './manifest'
 import { MiddlewareChain } from './middleware'
 import { PluginSchema } from './schemas/plugin'
@@ -434,6 +435,8 @@ export class PluginRegistry {
       }
     }
     if (c.editorExtensions) {
+      // Skew-safety guard (0205): warn if a contribution adds persisted schema.
+      warnOnEditorSchemaRisks(manifest.id, c.editorExtensions)
       for (const ext of c.editorExtensions) {
         ctx.registerEditorExtension(ext)
       }

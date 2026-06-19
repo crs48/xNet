@@ -8,6 +8,7 @@ import type { ToolbarItemContribution } from '../components/FloatingToolbar'
 import type { AnyExtension } from '@tiptap/core'
 import type { Editor } from '@tiptap/react'
 import { useState, useEffect, useMemo } from 'react'
+import { isSchemaExtension, extensionName } from '../extension-tiers'
 
 /**
  * Editor contribution from the plugin system
@@ -124,6 +125,23 @@ export function useEditorExtensions(
 
     // Extract extensions
     const extensions: AnyExtension[] = sorted.map((c) => c.extension)
+
+    // Skew-safety guard (0205): a plugin-contributed Node/Mark changes the
+    // persisted document schema. If collaborators don't all have it, Yjs
+    // silently drops the content. Warn loudly in dev so authors notice.
+    if (process.env.NODE_ENV !== 'production') {
+      for (const c of sorted) {
+        if (isSchemaExtension(c.extension)) {
+          console.warn(
+            `[editor] Plugin editor contribution '${c.id}' adds a schema ` +
+              `${(c.extension as { type?: string }).type} ('${extensionName(c.extension)}'). ` +
+              'Schema-defining extensions must be present for ALL collaborators or ' +
+              'Yjs will silently drop content across version skew. Prefer behavior-only ' +
+              'extensions, or ship schema nodes in the bundled core. See extension-tiers.ts.'
+          )
+        }
+      }
+    }
 
     // Extract toolbar items, converting the editor type
     const toolbarItems: ToolbarItemContribution[] = sorted

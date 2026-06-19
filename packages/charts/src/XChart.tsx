@@ -18,7 +18,7 @@ import {
 import * as echarts from 'echarts/core'
 import { CanvasRenderer } from 'echarts/renderers'
 import { useEffect, useMemo, useRef } from 'react'
-import { buildChartOption } from './spec'
+import { hasChartType, resolveChartOption } from './registry'
 import { readChartTheme } from './theme'
 
 echarts.use([
@@ -54,6 +54,7 @@ export function XChart({ rows, spec, width, height, className }: XChartProps): J
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<ECharts | null>(null)
   const supported = useMemo(canvasAvailable, [])
+  const known = useMemo(() => hasChartType(spec.kind), [spec.kind])
 
   useEffect(() => {
     const container = containerRef.current
@@ -70,7 +71,7 @@ export function XChart({ rows, spec, width, height, className }: XChartProps): J
   useEffect(() => {
     const chart = chartRef.current
     if (!chart) return
-    chart.setOption(buildChartOption(rows, spec, readChartTheme(containerRef.current)), {
+    chart.setOption(resolveChartOption(rows, spec, readChartTheme(containerRef.current)), {
       notMerge: true
     })
   }, [rows, spec])
@@ -81,7 +82,7 @@ export function XChart({ rows, spec, width, height, className }: XChartProps): J
     }
   }, [width, height])
 
-  if (!supported) {
+  if (!supported || !known) {
     return (
       <div
         ref={containerRef}
@@ -89,7 +90,9 @@ export function XChart({ rows, spec, width, height, className }: XChartProps): J
         data-chart-fallback="true"
         style={{ width: '100%', height: '100%' }}
       >
-        Chart ({spec.kind}) unavailable: no canvas support
+        {known
+          ? `Chart (${spec.kind}) unavailable: no canvas support`
+          : `Unsupported chart type: ${spec.kind}`}
       </div>
     )
   }

@@ -40,6 +40,17 @@ export {
   type EditorDocumentMigrationKind
 } from './document-compat'
 
+// Extension tiers & Yjs schema-skew safety (0205)
+export {
+  REQUIRED_SCHEMA_NODES,
+  isSchemaExtension,
+  extensionName,
+  partitionExtensions,
+  schemaSkewRisks,
+  type ExtensionLike,
+  type PartitionedExtensions
+} from './extension-tiers'
+
 // Types
 export type {
   EditorConfig,

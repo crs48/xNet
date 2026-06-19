@@ -42,6 +42,19 @@ export {
   popupTableHtml
 } from './style'
 
+// Registry: basemaps as an extension seam (0205)
+export {
+  BasemapRegistry,
+  basemapRegistry,
+  basemapPresets,
+  basemapUsesPmtiles,
+  ensureBuiltinBasemaps,
+  hasBasemap,
+  resolveBasemapStyle,
+  type BasemapDefinition,
+  type Disposable
+} from './basemap-registry'
+
 // Pure: map-document state derivation
 export { mapDocState, type MapDocInput, type MapDocState } from './doc'
 

@@ -149,6 +149,15 @@ export type {
   ResolveMentionOptions
 } from './mention-providers'
 
+// Editor schema-skew guard (exploration 0205) — flag schema-defining editor
+// contributions that risk silent Yjs content loss across version skew.
+export {
+  isSchemaDefiningExtension,
+  findEditorSchemaRisks,
+  warnOnEditorSchemaRisks,
+  type EditorSchemaRisk
+} from './editor-schema-safety'
+
 // Agent tools (exploration 0196) — model-facing tools a Connector exposes.
 export { agentToolToExtraTool, agentToolsAsExtraTools } from './agent-tools'
 export type { AgentToolContribution, AgentToolInputSchema } from './agent-tools'

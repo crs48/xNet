@@ -8,7 +8,8 @@
 
 import type { MapBasemapId, MapLayerGeometry, MapLayerSpec } from '@xnetjs/data'
 import { ChevronDown, ChevronUp, Eye, EyeOff, Layers, Trash2, Upload } from 'lucide-react'
-import { useId, useRef, useState } from 'react'
+import { useEffect, useId, useRef, useState } from 'react'
+import { basemapPresets, basemapRegistry } from './basemap-registry'
 import { parseCsvToFeatures, parseGeoJson } from './geojson'
 import {
   createGeoJsonLayer,
@@ -17,7 +18,6 @@ import {
   toggleLayerVisible,
   updateLayerStyle
 } from './layers'
-import { BASEMAP_PRESETS } from './style'
 
 export interface LayerPanelProps {
   layers: MapLayerSpec[]
@@ -37,6 +37,9 @@ export function LayerPanel({ layers, basemap, onChange, onBasemapChange }: Layer
   const inputId = useId()
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  // Basemaps come from the registry so plugin-contributed basemaps appear (0205).
+  const [presets, setPresets] = useState(basemapPresets)
+  useEffect(() => basemapRegistry.onChange(() => setPresets(basemapPresets())), [])
 
   const importFile = async (file: File) => {
     setBusy(true)
@@ -73,7 +76,7 @@ export function LayerPanel({ layers, basemap, onChange, onBasemapChange }: Layer
           value={basemap}
           onChange={(e) => onBasemapChange(e.target.value as MapBasemapId)}
         >
-          {BASEMAP_PRESETS.map((b) => (
+          {presets.map((b) => (
             <option key={b.id} value={b.id}>
               {b.label}
             </option>

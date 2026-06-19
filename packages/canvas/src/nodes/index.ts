@@ -18,6 +18,17 @@ export type { TaskNodeProps } from './task-node'
 
 export { ShapeNodeComponent, ShapePicker, createShapePath, SHAPE_TYPES } from './shape-node'
 export type { ShapeType, ShapeNodeData, ShapeNodeProps, ShapePickerProps } from './shape-node'
+export {
+  ShapeRegistry,
+  shapeRegistry,
+  ensureBuiltinShapes,
+  hasShape,
+  resolveShapePath,
+  shapeTypes,
+  type ShapeDefinition,
+  type ShapePathOptions
+} from './shape-registry'
+export { BUILTIN_SHAPES, type BuiltinShapeType } from './shape-paths'
 
 export { EmbedNodeComponent } from './embed-node'
 export type { EmbedViewType, EmbedNodeData, EmbedNodeProps, LinkedNodeData } from './embed-node'
