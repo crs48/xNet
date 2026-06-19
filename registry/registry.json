@@ -19,6 +19,7 @@
       "web",
       "electron"
     ],
+    "autoInstalled": true,
     "contributes": [
       "editorExtensions",
       "slashCommands"
@@ -45,6 +46,7 @@
       "web",
       "electron"
     ],
+    "autoInstalled": true,
     "contributes": [
       "chartTypes"
     ],
@@ -71,6 +73,7 @@
       "web",
       "electron"
     ],
+    "autoInstalled": false,
     "contributes": [
       "agentTools",
       "importers"
@@ -98,6 +101,7 @@
       "web",
       "electron"
     ],
+    "autoInstalled": false,
     "contributes": [
       "agentTools"
     ],

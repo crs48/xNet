@@ -7,6 +7,9 @@ interface Props {
 
 const { plugin } = Astro.props
 const isBuiltIn = plugin.tier === 'bundled'
+// First-party connectors/libraries ship in the repo but are NOT auto-installed
+// in the app — you wire them up explicitly (0206). Flag so the card is honest.
+const setupRequired = isBuiltIn && plugin.autoInstalled === false
 const tags = (plugin.keywords ?? []).slice(0, 3)
 const paid = plugin.pricing && plugin.pricing.mode !== 'free'
 ---
@@ -21,14 +24,24 @@ const paid = plugin.pricing && plugin.pricing.mode !== 'free'
     <h3 class="font-semibold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors">
       {plugin.name}
     </h3>
-    <span
-      class={`shrink-0 rounded-full border px-2.5 py-0.5 text-xs font-medium ${
-        isBuiltIn
-          ? 'border-indigo-500/30 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300'
-          : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300'
-      }`}
-    >
-      {tierLabel(plugin.tier)}
+    <span class="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+      {setupRequired && (
+        <span
+          class="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-300"
+          title="Ships in the repo but is not auto-installed — set it up explicitly."
+        >
+          Setup required
+        </span>
+      )}
+      <span
+        class={`rounded-full border px-2.5 py-0.5 text-xs font-medium ${
+          isBuiltIn
+            ? 'border-indigo-500/30 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300'
+            : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300'
+        }`}
+      >
+        {tierLabel(plugin.tier)}
+      </span>
     </span>
   </div>
 

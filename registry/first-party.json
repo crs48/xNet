@@ -10,6 +10,7 @@
     "tier": "bundled",
     "license": "MIT",
     "platforms": ["web", "electron"],
+    "autoInstalled": true,
     "contributes": ["editorExtensions", "slashCommands"],
     "homepage": "https://github.com/crs48/xNet/tree/main/apps/web/src/plugins/mermaid-plugin.ts"
   },
@@ -24,6 +25,7 @@
     "tier": "bundled",
     "license": "MIT",
     "platforms": ["web", "electron"],
+    "autoInstalled": true,
     "contributes": ["chartTypes"],
     "homepage": "https://github.com/crs48/xNet/tree/main/apps/web/src/plugins/charts-extra-plugin.ts"
   },
@@ -38,6 +40,7 @@
     "tier": "bundled",
     "license": "MIT",
     "platforms": ["web", "electron"],
+    "autoInstalled": false,
     "contributes": ["agentTools", "importers"],
     "homepage": "https://github.com/crs48/xNet/tree/main/packages/slack-compat"
   },
@@ -52,6 +55,7 @@
     "tier": "bundled",
     "license": "MIT",
     "platforms": ["web", "electron"],
+    "autoInstalled": false,
     "contributes": ["agentTools"],
     "homepage": "https://github.com/crs48/xNet/tree/main/packages/unreal"
   }
