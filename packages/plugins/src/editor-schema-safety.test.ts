@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { EditorContribution } from './contributions'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   findEditorSchemaRisks,
   isSchemaDefiningExtension,

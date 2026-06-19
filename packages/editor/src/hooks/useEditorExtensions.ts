@@ -5,10 +5,10 @@
  * that can be passed to RichTextEditor.
  */
 import type { ToolbarItemContribution } from '../components/FloatingToolbar'
-import { isSchemaExtension, extensionName } from '../extension-tiers'
 import type { AnyExtension } from '@tiptap/core'
 import type { Editor } from '@tiptap/react'
 import { useState, useEffect, useMemo } from 'react'
+import { isSchemaExtension, extensionName } from '../extension-tiers'
 
 /**
  * Editor contribution from the plugin system

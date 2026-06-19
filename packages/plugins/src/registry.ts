@@ -8,7 +8,6 @@ import type { Platform, Disposable } from './types'
 import type { NodeStore } from '@xnetjs/data'
 import { createExtensionContext, type ExtensionContext } from './context'
 import { ContributionRegistry } from './contributions'
-import { warnOnEditorSchemaRisks } from './editor-schema-safety'
 import { isHostCompatible } from './ecosystem/compatibility'
 import { evaluateInstallConsent, type ConsentDecision } from './ecosystem/consent'
 import {
@@ -21,6 +20,7 @@ import {
   type InstallProvenance,
   type PluginTrustTier
 } from './ecosystem/provenance-trust'
+import { warnOnEditorSchemaRisks } from './editor-schema-safety'
 import { validateManifest, PluginValidationError, isPaidPricing } from './manifest'
 import { MiddlewareChain } from './middleware'
 import { PluginSchema } from './schemas/plugin'

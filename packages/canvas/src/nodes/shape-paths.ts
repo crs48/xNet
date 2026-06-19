@@ -17,7 +17,7 @@ export type BuiltinShapeType =
   | 'cloud'
 
 /** A built-in kind, or any plugin-registered shape kind string. */
-export type ShapeType = BuiltinShapeType | (string & {})
+export type ShapeType = BuiltinShapeType | (string & NonNullable<unknown>)
 
 /** Built-in shapes for the picker, in display order. */
 export const BUILTIN_SHAPES: Array<{ type: BuiltinShapeType; label: string }> = [

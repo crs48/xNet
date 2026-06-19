@@ -127,7 +127,7 @@ export function basemapUsesPmtiles(id: string): boolean {
  * for an unknown id instead of throwing.
  */
 export function resolveBasemapStyle(
-  basemap: MapBasemapId | (string & {}),
+  basemap: MapBasemapId | (string & NonNullable<unknown>),
   opts: { pmtilesUrl?: string } = {}
 ): MapStyle {
   ensureBuiltinBasemaps()
