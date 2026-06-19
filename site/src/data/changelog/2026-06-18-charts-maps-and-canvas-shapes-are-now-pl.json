@@ -13,5 +13,10 @@
     "editor",
     "platform"
   ],
-  "pr": 204
+  "pr": 204,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
