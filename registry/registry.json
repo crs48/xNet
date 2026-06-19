@@ -26,6 +26,31 @@
     "homepage": "https://github.com/crs48/xNet/tree/main/apps/web/src/plugins/mermaid-plugin.ts"
   },
   {
+    "id": "fyi.xnet.charts-extra",
+    "name": "Extra Charts",
+    "description": "Adds donut and horizontal-bar chart types via the chart-type registry — a first-party dogfood showing new chart kinds can ship as a plugin with no core change.",
+    "version": "1.0.0",
+    "author": "xNet",
+    "category": "visualization",
+    "keywords": [
+      "chart",
+      "donut",
+      "bar",
+      "dashboard",
+      "registry"
+    ],
+    "tier": "bundled",
+    "license": "MIT",
+    "platforms": [
+      "web",
+      "electron"
+    ],
+    "contributes": [
+      "chartTypes"
+    ],
+    "homepage": "https://github.com/crs48/xNet/tree/main/apps/web/src/plugins/charts-extra-plugin.ts"
+  },
+  {
     "id": "fyi.xnet.slack-connector",
     "name": "Slack Connector",
     "description": "Sync Slack channels and messages into governed xNet nodes, with Block-Kit/mrkdwn conversion and slash-command + webhook ingestion. A migration-friendly Slack alternative.",
