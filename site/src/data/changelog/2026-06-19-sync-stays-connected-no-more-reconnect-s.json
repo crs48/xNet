@@ -11,5 +11,11 @@
   "tags": [
     "sync",
     "performance"
+  ],
+  "pr": 208,
+  "authors": [
+    {
+      "login": "crs48"
+    }
   ]
 }
