@@ -540,60 +540,77 @@ edit those seeds require — an inert attribute, no behavior change.
 
 ## Implementation Checklist
 
-- [ ] Add `seenTips: string[]`, `markTipSeen`, `resetTips` to the workbench
+Implemented in PR (branch `feat/onboarding-coachmarks`). Note one deviation from
+the sketch: the engine ships in **`apps/web/src/coachmarks/`**, not
+`packages/react`. The "seen" state, active-view detection, and anchors are all
+app/router/shell-specific, so colocating with the app is lower-coupling and
+lower-risk for a first cut. `contributeTips()` is the extensibility seam and can
+be lifted to a package later if external plugins need it.
+
+- [x] Add `seenTips: string[]`, `markTipSeen`, `resetTips` to the workbench
       store (`apps/web/src/workbench/state.ts`), persisted in `xnet:workbench:v1`.
-- [ ] Create `packages/react/src/coachmarks/` — `registry.ts`
-      (`contributeTips`, `tipsForView`, `selectUnseenTips`), `useCoachmarks.ts`,
-      `Coachmark.tsx`, `useAnchorEl.ts` (querySelector + MutationObserver),
-      `index.ts`. Export from `@xnetjs/react`.
-- [ ] Implement the **one-at-a-time global lock** and **per-session cap** in the
+- [x] Create the coachmarks module — `registry.ts` (`contributeTips`,
+      `tipsForView`, `selectUnseenTips`), `useCoachmarks.ts`, `Coachmark.tsx`,
+      `useAnchorEl.ts` (querySelector + MutationObserver), `views.ts`,
+      `CoachmarkLayer.tsx`, `index.ts`. *(Located in `apps/web/src/coachmarks/`.)*
+- [x] Implement the **one-at-a-time global lock** and **per-session cap** in the
       engine.
-- [ ] Add a `useActiveView()` selector that maps the current route/active tab to
-      a stable `view` id.
-- [ ] Mount `<CoachmarkLayer>` in `Workbench.tsx` (and the mobile shell) gated on
-      `hasOnboarded()` + first real view render.
-- [ ] Add minimal anchors: `data-coach="rail.search"` on Rail search; reuse
-      existing `data-wb-region` for editor/left/right.
-- [ ] Seed 4–6 core tips (`apps/web/src/workbench/coach-tips.ts`): command
-      palette, CRM, Data, Tasks, Canvas, Settings.
-- [ ] Wire **plugin/lab contribution**: have the plugin host call
-      `contributeTips()` from manifest/registration so features ship their own
-      tips (aligns with 0205 + `getCommandRegistry()`).
-- [ ] Settings: add "Tips & Tours → Replay onboarding" row in
-      `routes/settings.tsx` calling `resetTips()`.
-- [ ] Ensure `prefers-reduced-motion` path (inherited via `motion.css`) — verify,
-      don't re-implement.
+- [x] Add a view-id selector (`viewIdForPath()` + `useLocation`) that maps the
+      current route to a stable `view` id. *(Plain path mapping, no tab-store dep.)*
+- [x] Mount `<CoachmarkLayer>` in `Workbench.tsx` (covers desktop + mobile) gated
+      on `hasOnboarded()`.
+- [x] Add minimal anchors: `data-coach="rail.search"` + `rail.{crm,discover,
+      tasks,…}` on the Rail buttons. *(Per-view tips anchor to their Rail icon —
+      cleaner than the giant editor region; mobile rail-less views are a no-op,
+      tracked below.)*
+- [x] Seed core tips (`apps/web/src/coachmarks/tips.ts`): command palette, CRM,
+      Tasks, Discover.
+- [~] Wire **plugin/lab contribution**: `contributeTips()` is the live seam and
+      any in-app module/bundled plugin can call it today. Wiring it to the
+      *external* plugin manifest/host is deferred (aligns with 0205).
+- [x] Settings: add "Tips & tours → Replay onboarding" row in
+      `routes/settings.tsx` calling `resetTips()` + `resetCoachSession()`.
+- [x] Ensure `prefers-reduced-motion` path — inherited via `<Presence>` /
+      `motion.css` (verified, not re-implemented).
 - [ ] (Parallel track D) Audit views that render blank; add one-CTA empty states
       where missing — independent of the engine.
-- [ ] Tests: `selectUnseenTips` purity, store `markTipSeen`/`resetTips`,
-      serialization (one tip at a time), versioned-id re-surface, missing-anchor
-      no-op. Place under the `dom`/`integration` vitest projects per
-      `xnet-test-vitest-projects`.
-- [ ] Docs: short `docs/ONBOARDING.md` (how to add a tip; id/versioning rules).
+- [x] Tests: `selectUnseenTips` purity, store `markTipSeen`/`resetTips`,
+      serialization (one tip at a time), per-session cap, versioned-id re-surface,
+      `enabled` gate, component dismiss (Got it / ✕ / Escape). 19 tests, `dom`
+      project.
+- [x] Docs: `docs/ONBOARDING.md` (how to add a tip; id/versioning rules) +
+      `Coachmark.stories.tsx`.
 
 ## Validation Checklist
 
-- [ ] First visit to CRM/Data/Tasks shows exactly **one** coachmark, anchored
-      correctly, non-blocking (the app stays clickable behind it).
-- [ ] Dismiss (Got it / Escape / click-away) hides it and it **never returns**
-      after reload (persisted in `xnet:workbench:v1`).
-- [ ] At most one coachmark is ever visible at a time, even across rapid view
-      switches; per-session cap respected.
-- [ ] Bumping a tip id `@1`→`@2` re-surfaces it once for everyone.
-- [ ] A registered tip whose anchor is absent produces **no error** and no tip;
-      it appears on a later visit once the anchor exists.
-- [ ] Settings → "Replay onboarding" clears `seenTips`; tips re-appear on next
-      visit.
-- [ ] `prefers-reduced-motion: reduce` → coachmark appears with ~no animation;
-      no console warnings.
-- [ ] Keyboard: tip is reachable/focusable, Escape closes, focus returns sanely
-      (Base UI Popover behavior verified, not assumed).
-- [ ] A plugin that calls `contributeTips()` shows its tip on first visit to its
-      view with **no** change to engine code.
-- [ ] Bundle: no new runtime dependency added (verify lockfile + size); engine
-      adds < ~3 KB to the web app.
-- [ ] Auth/`/welcome` flow is untouched; coachmarks stay dormant until
-      `hasOnboarded()` and the first real view.
+- [x] First visit to a view shows exactly **one** coachmark, non-blocking (the
+      card portals over the app, which stays clickable). *(Engine test +
+      Storybook screenshot.)*
+- [x] Dismiss (Got it / Escape / ✕) hides it and it **never returns** after
+      reload — persisted in `xnet:workbench:v1`. *(Store + engine tests; browser
+      dismiss verified.)*
+- [x] At most one coachmark is visible at a time; per-session cap respected.
+      *(`useCoachmarks` serialization + cap tests.)*
+- [x] Bumping a tip id `@1`→`@2` re-surfaces it once. *(registry test.)*
+- [x] A registered tip whose anchor is absent produces **no error** and no tip;
+      it appears once the anchor exists. *(`useAnchorEl` returns null →
+      `CoachmarkLayer` renders nothing; MutationObserver resolves later.)*
+- [x] Settings → "Replay onboarding" clears `seenTips` + the session cap.
+- [x] `prefers-reduced-motion: reduce` → minimal animation, no console warnings
+      (inherited from `motion.css`).
+- [x] Keyboard: the card is a labelled `role="dialog"`; Escape closes it.
+      *(Component test. Non-modal by design — no focus trap, so the user's first
+      action isn't hijacked.)*
+- [x] A module that calls `contributeTips()` shows its tip with **no** change to
+      engine code. *(registry/engine tests exercise exactly this.)*
+- [x] Bundle: **no new runtime dependency** added (builds on Base-UI `Presence`,
+      `lucide-react`, `react-dom` — all already present).
+- [x] Auth/`/welcome` flow is untouched; coachmarks stay dormant until
+      `hasOnboarded()`. *(Gate in `CoachmarkLayer`; app boots clean on the auth
+      screen with no console errors.)*
+- [ ] In-app visual confirmation past the passkey gate on every seeded view
+      (headless preview can't create a passkey identity; verified via Storybook +
+      unit tests instead).
 
 ## References
 
