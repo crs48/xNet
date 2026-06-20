@@ -39,6 +39,14 @@ export interface DashboardLive {
   memoryRssBytes: number | null
   /** Rolling availability over the plan's SLO window, as a percentage. */
   uptimePct: number | null
+  /** p95 probe latency over the SLO window, in ms (from the control-plane probes). */
+  p95LatencyMs: number | null
+  /** Error budget remaining over the window, as a percentage (0..100). */
+  errorBudgetPct: number | null
+  /** Deploy-freeze signal: ship | caution | freeze. */
+  errorBudgetPolicy: 'ship' | 'caution' | 'freeze' | null
+  /** Human SLO label (e.g. "99.9% uptime"). */
+  sloLabel: string | null
   /** Managed-AI spend this billing period (only when AI is enabled). */
   aiUsedUsd: number | null
 }
@@ -115,6 +123,11 @@ export function composeDashboardLive(input: {
       : null,
     memoryRssBytes: h?.memory ? num(h.memory.rss) : null,
     uptimePct: input.sli ? Number((input.sli.availability * 100).toFixed(2)) : null,
+    p95LatencyMs:
+      input.sli && input.sli.sampleCount > 0 ? Math.round(input.sli.p95LatencyMs) : null,
+    errorBudgetPct: input.sli ? Number((input.sli.budgetRemaining * 100).toFixed(1)) : null,
+    errorBudgetPolicy: input.sli ? input.sli.policy : null,
+    sloLabel: input.sli ? input.sli.sloLabel : null,
     aiUsedUsd: input.aiUsedUsd
   }
 }

@@ -1,6 +1,6 @@
+import type { TenantSli } from './observability/health'
 import { describe, expect, it } from 'vitest'
 import { composeDashboardLive, fetchHubHealth, type HubHealth } from './hub-status'
-import type { TenantSli } from './observability/health'
 
 const sli = (availability: number): TenantSli => ({
   tenantId: 't',
@@ -43,6 +43,10 @@ describe('composeDashboardLive', () => {
       rooms: 2,
       docs: { hot: 3, warm: 1, total: 4 },
       uptimePct: 99.94,
+      p95LatencyMs: 40,
+      errorBudgetPct: 50,
+      errorBudgetPolicy: 'ship',
+      sloLabel: '99.9% uptime',
       aiUsedUsd: 1.23
     })
   })
@@ -53,6 +57,21 @@ describe('composeDashboardLive', () => {
     expect(out.state).toBe('sleeping')
     expect(out.connections).toBeNull()
     expect(out.uptimePct).toBeNull()
+    expect(out.p95LatencyMs).toBeNull()
+    expect(out.errorBudgetPct).toBeNull()
+    expect(out.errorBudgetPolicy).toBeNull()
+  })
+
+  it('omits p95 latency when the SLI window has no samples (avoid a fake 0ms)', () => {
+    const noSamples = { ...sli(1), sampleCount: 0, p95LatencyMs: 0 }
+    const out = composeDashboardLive({
+      health: HEALTH,
+      sli: noSamples,
+      aiUsedUsd: null,
+      dataTier: 'hot'
+    })
+    expect(out.p95LatencyMs).toBeNull()
+    expect(out.uptimePct).toBe(100)
   })
 
   it('reports suspended for a canceled subscription regardless of reachability', () => {
