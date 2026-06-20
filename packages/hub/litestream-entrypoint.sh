@@ -30,6 +30,11 @@ dbs:
         region: auto
         access-key-id: \${R2_ACCESS_KEY_ID}
         secret-access-key: \${R2_SECRET_ACCESS_KEY}
+        # R2 needs path-style + signed payloads. Litestream < 0.5.5 defaults
+        # sign-payload to false, which 403s R2 with SignatureDoesNotMatch (we pin
+        # 0.5.3 — 0.5.6/0.5.7 have a separate replication bug). Set both explicitly.
+        force-path-style: true
+        sign-payload: true
         sync-interval: 1s
 YAML
 fi
