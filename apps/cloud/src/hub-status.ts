@@ -22,6 +22,8 @@ export interface HubHealth {
   docs?: { hot?: number; warm?: number; total?: number }
   connections?: { active?: number; max?: number }
   memory?: { rss?: number; heapUsed?: number }
+  storage?: { usedBytes?: number }
+  backup?: { replicating?: boolean; lastWriteMs?: number | null }
 }
 
 /** The composed payload returned by `GET /dashboard/live.json`. */
@@ -37,6 +39,12 @@ export interface DashboardLive {
   rooms: number | null
   docs: { hot: number; warm: number; total: number } | null
   memoryRssBytes: number | null
+  /** On-disk data used (from the hub), the plan quota, and the percentage. */
+  storageUsedBytes: number | null
+  storageQuotaBytes: number | null
+  storagePct: number | null
+  /** Backup state: replicating to R2, and "data as of" (≈ last backed up). */
+  backup: { replicating: boolean; lastWriteMs: number | null } | null
   /** Rolling availability over the plan's SLO window, as a percentage. */
   uptimePct: number | null
   /** p95 probe latency over the SLO window, in ms (from the control-plane probes). */
@@ -86,11 +94,18 @@ export async function fetchHubHealth(
 
 const num = (v: unknown): number | null => (typeof v === 'number' && isFinite(v) ? v : null)
 
+const storagePct = (used: number | null, quota: number | null): number | null =>
+  used != null && quota != null && quota > 0
+    ? Number(Math.min(100, (used / quota) * 100).toFixed(1))
+    : null
+
 /** Pure composer: join the live hub health with the SLI window + AI spend. */
 export function composeDashboardLive(input: {
   health: HubHealth | null
   sli: TenantSli | null
   aiUsedUsd: number | null
+  /** The plan's storage quota, for the used/quota bar. */
+  quotaBytes?: number
   subscriptionStatus?: 'active' | 'canceled'
   dataTier?: 'hot' | 'cold'
 }): DashboardLive {
@@ -122,6 +137,15 @@ export function composeDashboardLive(input: {
         }
       : null,
     memoryRssBytes: h?.memory ? num(h.memory.rss) : null,
+    storageUsedBytes: h?.storage ? num(h.storage.usedBytes) : null,
+    storageQuotaBytes: num(input.quotaBytes),
+    storagePct: storagePct(h?.storage ? num(h.storage.usedBytes) : null, num(input.quotaBytes)),
+    backup: h?.backup
+      ? {
+          replicating: Boolean(h.backup.replicating),
+          lastWriteMs: num(h.backup.lastWriteMs)
+        }
+      : null,
     uptimePct: input.sli ? Number((input.sli.availability * 100).toFixed(2)) : null,
     p95LatencyMs:
       input.sli && input.sli.sampleCount > 0 ? Math.round(input.sli.p95LatencyMs) : null,
