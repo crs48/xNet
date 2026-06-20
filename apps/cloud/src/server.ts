@@ -78,6 +78,9 @@ interface ProvisionBody {
 
 /** Stand-in ledger when managed AI isn't configured — usage AI totals read as zero. */
 const EMPTY_USAGE_LEDGER: UsageLedger = {
+  async record() {
+    return { recorded: false }
+  },
   async totalChargeUsd() {
     return 0
   },

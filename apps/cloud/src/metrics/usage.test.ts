@@ -28,6 +28,9 @@ const entry = (input: number, output: number): UsageEntry => ({
 
 /** A ledger backed by a fixed entry list (period scoping is irrelevant to these tests). */
 const fakeLedger = (entries: UsageEntry[]): UsageLedger => ({
+  async record() {
+    return { recorded: true }
+  },
   async totalChargeUsd() {
     return entries.reduce((s, e) => s + e.chargeUsd, 0)
   },
