@@ -1,6 +1,8 @@
+import { resolveEntitlements } from '@xnetjs/entitlements'
 import { describe, expect, it } from 'vitest'
 import {
   GoogleCloudRunClient,
+  cloudRunProvisionerFromEnv,
   type RunService,
   type RunServicesClient
 } from './google-cloud-run-client'
@@ -8,9 +10,19 @@ import {
 /** A fake v2 ServicesClient that stores one service and records call args. */
 function fakeRun(initial?: RunService) {
   let stored: RunService | undefined = initial
-  const calls: { create?: unknown; update?: unknown; get?: unknown; delete?: unknown } = {}
+  const calls: {
+    create?: unknown
+    update?: unknown
+    get?: unknown
+    delete?: unknown
+    setIamPolicy?: unknown
+  } = {}
   const op = (svc: RunService) => ({ promise: async (): Promise<[RunService]> => [svc] })
   const client: RunServicesClient = {
+    async setIamPolicy(req) {
+      calls.setIamPolicy = req
+      return [req.policy]
+    },
     async createService(req) {
       calls.create = req
       stored = {
@@ -67,12 +79,42 @@ describe('GoogleCloudRunClient proto mapping', () => {
       value: 'tok'
     })
     expect(create.service.template?.scaling?.minInstanceCount).toBe(0)
+    // Hub is made publicly invokable (it self-auths); else Cloud Run IAM 403s it.
+    expect(calls.setIamPolicy).toMatchObject({
+      resource: 'projects/xnet-cloud-0/locations/us-central1/services/t-a',
+      policy: { bindings: [{ role: 'roles/run.invoker', members: ['allUsers'] }] }
+    })
     expect(svc).toEqual({
       uri: 'https://t-a.run.app',
       image: 'repo/hub:1.0.0',
       env: { HUB_PLAN: 'tok', LITESTREAM: '1' },
       minInstances: 0
     })
+  })
+
+  it('pins tenant hubs to <repo>/xnet-hub:<tag> — never the bare repo root (AR rejects that)', async () => {
+    const { client, calls } = fakeRun()
+    const env = {
+      GCP_PROJECT_PREFIX: 'xnet-cloud',
+      GCP_REGION: 'us-central1',
+      GCP_ARTIFACT_REGISTRY: 'us-docker.pkg.dev/xnet-cloud-0/hub',
+      R2_BUCKET: 'b',
+      R2_ENDPOINT: 'https://acct.r2.cloudflarestorage.com',
+      R2_ACCESS_KEY_ID: 'AKID',
+      R2_SECRET_ACCESS_KEY: 'SECRET'
+    } as unknown as NodeJS.ProcessEnv
+    const provisioner = cloudRunProvisionerFromEnv(env, client)
+    if (!provisioner) throw new Error('expected a provisioner')
+    await provisioner.provision({
+      tenantId: 't_user_a',
+      entitlements: resolveEntitlements('personal'),
+      targetVersion: '1.0.0',
+      env: { HUB_PLAN: 'tok' }
+    })
+    const create = calls.create as { service: RunService }
+    expect(create.service.template?.containers?.[0]?.image).toBe(
+      'us-docker.pkg.dev/xnet-cloud-0/hub/xnet-hub:1.0.0'
+    )
   })
 
   it('get returns null on NOT_FOUND (gRPC code 5)', async () => {

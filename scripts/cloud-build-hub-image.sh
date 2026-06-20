@@ -9,8 +9,9 @@
 # GCP bootstrap (cloud-gcp-bootstrap.sh) already set that up.
 set -euo pipefail
 
-REGISTRY="${GCP_ARTIFACT_REGISTRY:-${1:-}}"   # e.g. us-docker.pkg.dev/xnet-cloud-0/hub
+REGISTRY="${GCP_ARTIFACT_REGISTRY:-${1:-}}"   # AR repo, e.g. us-docker.pkg.dev/xnet-cloud-0/hub
 VERSION="${VERSION:-${2:-}}"                   # immutable tag, e.g. 1.0.0
+IMAGE_NAME="${HUB_IMAGE_NAME:-xnet-hub}"       # image name under the repo (provisioner pins <repo>/<name>:<tag>)
 
 [ -n "$REGISTRY" ] || {
   echo "✗ Set GCP_ARTIFACT_REGISTRY (or pass as arg 1), e.g. us-docker.pkg.dev/xnet-cloud-0/hub" >&2
@@ -26,7 +27,9 @@ command -v docker >/dev/null || {
 }
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-IMAGE="${REGISTRY}:${VERSION}"
+# AR requires an image name under the repo (a bare repo-root push 4xxes with
+# "Missing image name"); the provisioner pins tenants to this same <repo>/<name>:<tag>.
+IMAGE="${REGISTRY}/${IMAGE_NAME}:${VERSION}"
 
 echo "▶ building $IMAGE (linux/amd64) from $repo_root"
 # The hub Dockerfile builds from the monorepo root (it COPYs several packages).

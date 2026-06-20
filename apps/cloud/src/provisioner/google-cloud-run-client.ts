@@ -46,6 +46,10 @@ export interface RunServicesClient {
   updateService(req: { service: RunService }): Promise<[RunOperation, ...unknown[]]>
   getService(req: { name: string }): Promise<[RunService, ...unknown[]]>
   deleteService(req: { name: string }): Promise<[RunOperation, ...unknown[]]>
+  setIamPolicy?(req: {
+    resource: string
+    policy: { bindings: Array<{ role: string; members: string[] }> }
+  }): Promise<[unknown, ...unknown[]]>
 }
 
 /** gRPC NOT_FOUND status code. */
@@ -93,6 +97,13 @@ export class GoogleCloudRunClient implements CloudRunClient {
       service: this.spec(args)
     })
     const [svc] = await op.promise()
+    // Hubs are publicly routable and enforce their own DID/passkey auth, so allow
+    // unauthenticated invokes — otherwise Cloud Run's IAM 403s every request and the
+    // hub is unreachable. (No-op when the client doesn't support setIamPolicy, e.g. tests.)
+    await this.client.setIamPolicy?.({
+      resource: this.name(args),
+      policy: { bindings: [{ role: 'roles/run.invoker', members: ['allUsers'] }] }
+    })
     return this.read(svc)
   }
 
@@ -122,7 +133,8 @@ export class GoogleCloudRunClient implements CloudRunClient {
 
 /** Build the real Cloud Run provisioner from env, or null when GCP/R2 isn't fully configured. */
 export function cloudRunProvisionerFromEnv(
-  env: NodeJS.ProcessEnv = process.env
+  env: NodeJS.ProcessEnv = process.env,
+  client?: RunServicesClient
 ): Provisioner | null {
   const {
     GCP_PROJECT_PREFIX,
@@ -144,16 +156,22 @@ export function cloudRunProvisionerFromEnv(
   ) {
     return null
   }
+  // `GCP_ARTIFACT_REGISTRY` is the Artifact Registry *repo* (e.g. .../hub); images
+  // live under it by name. The provisioner pins tenant hubs to `<repo>/<name>:<tag>`,
+  // so append the hub image name here (the control-plane image is likewise at
+  // `<repo>/control-plane`). Pushing to the bare repo root is rejected by AR
+  // ("Missing image name"). Override the name with HUB_IMAGE_NAME if needed.
+  const hubImageName = env.HUB_IMAGE_NAME || 'xnet-hub'
   return new CloudRunLitestreamProvisioner(
     {
       projectPrefix: GCP_PROJECT_PREFIX,
       region: GCP_REGION,
-      imageRepository: GCP_ARTIFACT_REGISTRY,
+      imageRepository: `${GCP_ARTIFACT_REGISTRY}/${hubImageName}`,
       r2Bucket: R2_BUCKET,
       r2Endpoint: R2_ENDPOINT,
       r2AccessKeyId: R2_ACCESS_KEY_ID,
       r2SecretAccessKey: R2_SECRET_ACCESS_KEY
     },
-    new GoogleCloudRunClient()
+    new GoogleCloudRunClient(client)
   )
 }
