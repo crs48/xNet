@@ -21,13 +21,15 @@ import {
   createAIProvider,
   createAiAgentRuntime,
   createAiSurfaceService,
+  createManagedProvider,
   createPromptApiProvider,
   detectConnectors,
   type AiAgentRuntime,
   type AiSurfaceService,
   type AIProvider,
   type ConnectorDetection,
-  type ConnectorTier
+  type ConnectorTier,
+  type ManagedBudgetSnapshot
 } from '@xnetjs/plugins'
 import { useNodeStore } from '@xnetjs/react/internal'
 import { Bot, Loader2, Send } from 'lucide-react'
@@ -90,15 +92,21 @@ export function AiChatPanel() {
   const [ready, setReady] = useState(false)
   const [bridgeHealth, setBridgeHealth] = useState<BridgeHealth | null>(null)
   const [bridgeRefresh, setBridgeRefresh] = useState(0)
+  const [model, setModel] = useState(() => readSetting(AI_CHAT_STORAGE_KEYS.model))
+  const [budget, setBudget] = useState<ManagedBudgetSnapshot | null>(null)
 
   const runtimeRef = useRef<AiAgentRuntime | null>(null)
   const threadIdRef = useRef<string | null>(null)
   const cleanupRef = useRef<(() => void) | null>(null)
 
   const settings = useMemo<AiChatSettings>(
-    () => ({ apiKey: apiKey || undefined, cloudProvider }),
-    [apiKey, cloudProvider]
+    () => ({ apiKey: apiKey || undefined, cloudProvider, model: model || undefined }),
+    [apiKey, cloudProvider, model]
   )
+
+  // Reset the budget gauge whenever the active model changes — the next managed
+  // call repopulates it from the response.
+  const onBudget = useCallback((snapshot: ManagedBudgetSnapshot) => setBudget(snapshot), [])
 
   // Read-only workspace grounding: the local NodeStore + schema registry already
   // satisfy the AiSurfaceService contract, so the assistant can search the
@@ -181,7 +189,7 @@ export function AiChatPanel() {
     setReady(false)
     if (!selected?.available) return
     let cancelled = false
-    void resolveProvider(selected, settings).then((provider) => {
+    void resolveProvider(selected, settings, onBudget).then((provider) => {
       if (cancelled || !provider) return
       const runtime = createAiAgentRuntime({
         provider,
@@ -209,7 +217,7 @@ export function AiChatPanel() {
       cleanupRef.current?.()
       cleanupRef.current = null
     }
-  }, [selected, settings, handlers, surface])
+  }, [selected, settings, handlers, surface, onBudget])
 
   const send = useCallback(async () => {
     const content = input.trim()
@@ -255,6 +263,17 @@ export function AiChatPanel() {
           onProvider={(value) => {
             setCloudProvider(value)
             writeSetting(AI_CHAT_STORAGE_KEYS.cloudProvider, value)
+          }}
+        />
+      )}
+      {selected?.tier === 'managed' && selected.available && (
+        <ManagedControls
+          model={model}
+          budget={budget}
+          onModel={(value) => {
+            setModel(value)
+            writeSetting(AI_CHAT_STORAGE_KEYS.model, value)
+            setBudget(null)
           }}
         />
       )}
@@ -481,6 +500,59 @@ function CloudKeyFields({
   )
 }
 
+function ManagedControls({
+  model,
+  budget,
+  onModel
+}: {
+  model: string
+  budget: ManagedBudgetSnapshot | null
+  onModel: (value: string) => void
+}) {
+  return (
+    <div className="flex flex-col gap-1.5 border-b border-hairline px-3 py-2">
+      <input
+        value={model}
+        placeholder="Model (e.g. anthropic/claude-sonnet-4-6 · blank = auto)"
+        aria-label="Managed AI model"
+        onChange={(event) => onModel(event.target.value)}
+        className="min-w-0 rounded-md border border-hairline bg-surface-0 px-2 py-1 text-[11px] text-ink-1 outline-none placeholder:text-ink-3"
+      />
+      {budget ? (
+        <BudgetGauge budget={budget} />
+      ) : (
+        <p className="text-[10px] text-ink-3">
+          Metered AI on your plan — no key needed. You’re billed only for what you use, up to your
+          monthly cap.
+        </p>
+      )}
+    </div>
+  )
+}
+
+/** The "used / included / cap" gauge a managed call reports back. */
+function BudgetGauge({ budget }: { budget: ManagedBudgetSnapshot }) {
+  const pct = budget.budgetUsd > 0 ? Math.min(100, (budget.spendThisPeriodUsd / budget.budgetUsd) * 100) : 0
+  const tone =
+    budget.budgetState === 'over-cap' || budget.budgetState === 'near-cap'
+      ? 'bg-amber-500'
+      : budget.budgetState === 'overage'
+        ? 'bg-sky-500'
+        : 'bg-emerald-500'
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
+        <div className={`h-full ${tone}`} style={{ width: `${pct}%` }} aria-hidden />
+      </div>
+      <p className="text-[10px] text-ink-3">
+        ${budget.spendThisPeriodUsd.toFixed(2)} used
+        {budget.includedUsd > 0 ? ` · $${budget.includedUsd.toFixed(2)} included` : ''} · $
+        {budget.budgetUsd.toFixed(2)} cap
+      </p>
+    </div>
+  )
+}
+
 function appendToAssistant(messages: ChatMessage[], text: string): ChatMessage[] {
   const last = messages[messages.length - 1]
   if (last?.role !== 'assistant') return [...messages, { role: 'assistant', content: text }]
@@ -489,9 +561,19 @@ function appendToAssistant(messages: ChatMessage[], text: string): ChatMessage[]
 
 async function resolveProvider(
   detection: ConnectorDetection,
-  settings: AiChatSettings
+  settings: AiChatSettings,
+  onBudget: (snapshot: ManagedBudgetSnapshot) => void
 ): Promise<AIProvider | null> {
   if (detection.tier === 'prompt-api') return createPromptApiProvider()
+  // Managed is built directly (like prompt-api) so we can attach the budget
+  // callback the pure config mapper can't carry.
+  if (detection.tier === 'managed') {
+    return createManagedProvider({
+      baseUrl: settings.hubBaseUrl ?? '',
+      ...(settings.model ? { model: settings.model } : {}),
+      onBudget
+    })
+  }
   const config = providerConfigForConnector(detection, settings)
   return config ? createAIProvider(config) : null
 }

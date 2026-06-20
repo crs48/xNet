@@ -14,7 +14,8 @@ const NOTHING: ConnectorEnv = {
   hasPromptApi: () => false,
   localServerProbes: [],
   hasCloudKey: () => false,
-  probeBridge: async () => false
+  probeBridge: async () => false,
+  probeManaged: async () => false
 }
 
 describe('detectConnectors', () => {
@@ -24,15 +25,34 @@ describe('detectConnectors', () => {
     expect(pickBestConnector(result)).toBeNull()
   })
 
-  it('returns all five tiers, ranked by preference', async () => {
+  it('returns all six tiers, ranked by preference', async () => {
     const result = await detectConnectors(NOTHING)
     expect(result.map((d) => d.tier)).toEqual([
+      'managed',
       'bridge',
       'cloud-key',
       'local-server',
       'webllm',
       'prompt-api'
     ])
+  })
+
+  it('detects managed AI and prefers it above everything when available', async () => {
+    const result = await detectConnectors({
+      ...NOTHING,
+      hasCloudKey: () => true,
+      probeBridge: async () => true,
+      probeManaged: async () => true
+    })
+    expect(result.find((d) => d.tier === 'managed')?.available).toBe(true)
+    expect(pickBestConnector(result)?.tier).toBe('managed')
+  })
+
+  it('hides managed AI off-cloud (probe negative)', async () => {
+    const result = await detectConnectors(NOTHING)
+    const managed = result.find((d) => d.tier === 'managed')
+    expect(managed?.available).toBe(false)
+    expect(managed?.setupHint).toMatch(/XNet Cloud/)
   })
 
   it('detects WebGPU for the in-tab tier', async () => {
@@ -85,7 +105,7 @@ describe('detectConnectors', () => {
     expect(pickBestConnector(result)?.tier).toBe('cloud-key')
   })
 
-  it('prefers the bridge above everything when available', async () => {
+  it('prefers the bridge above the BYO tiers when managed is unavailable', async () => {
     const result = await detectConnectors({
       hasWebGpu: () => true,
       hasPromptApi: () => true,
@@ -93,7 +113,8 @@ describe('detectConnectors', () => {
       localServerProbes: [
         { label: 'Ollama', baseUrl: 'http://localhost:11434', probe: async () => true }
       ],
-      probeBridge: async () => true
+      probeBridge: async () => true,
+      probeManaged: async () => false
     })
     expect(pickBestConnector(result)?.tier).toBe('bridge')
   })

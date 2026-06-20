@@ -25,6 +25,13 @@ interface ConnectorMeta {
 
 /** Stable per-tier metadata. Keep ordering aligned with the recommendation. */
 export const CONNECTOR_META: Record<ConnectorTier, ConnectorMeta> = {
+  // Preferred when available: no key to paste, metered + budget-capped, switchable
+  // models — the managed path the rest of this exploration (0208) wires up.
+  managed: {
+    label: 'XNet Cloud (managed, metered)',
+    toolCalling: 'reliable',
+    preference: 0
+  },
   bridge: {
     label: 'Local bridge (Claude Code / Codex subscription)',
     toolCalling: 'reliable',
@@ -90,6 +97,26 @@ async function defaultProbeBridge(baseUrl: string): Promise<boolean> {
 }
 
 /**
+ * Default managed-AI probe: the hub's `aiForwarderFeature` answers `/ai/health`
+ * with `{ ok: true, managed: true }` only when the control plane is configured and
+ * the tenant has AI enabled. Off-cloud (self-host, no forwarder) it 404s/throws →
+ * the tier reports unavailable and hides, so BYO stays the OSS path.
+ */
+async function defaultProbeManaged(baseUrl: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${baseUrl.replace(/\/+$/, '')}/ai/health`, {
+      method: 'GET',
+      signal: AbortSignal.timeout(2000)
+    })
+    if (!res.ok) return false
+    const body = (await res.json()) as { ok?: boolean; managed?: boolean }
+    return body.ok === true && body.managed === true
+  } catch {
+    return false
+  }
+}
+
+/**
  * Detect which model connectors are usable right now, ranked by preference
  * (most capable first). Runs all probes concurrently.
  */
@@ -97,16 +124,26 @@ export async function detectConnectors(env: ConnectorEnv = {}): Promise<Connecto
   const localServerProbes = env.localServerProbes ?? defaultLocalServerProbes()
   const bridgeUrl = env.bridgeUrl ?? DEFAULT_BRIDGE_URL
   const probeBridge = env.probeBridge ?? defaultProbeBridge
+  const managedUrl = env.managedUrl ?? ''
+  const probeManaged = env.probeManaged ?? defaultProbeManaged
 
-  const [webgpu, promptApi, localServer, cloudKey, bridge] = await Promise.all([
+  const [webgpu, promptApi, localServer, cloudKey, bridge, managed] = await Promise.all([
     resolveBool(env.hasWebGpu, defaultHasWebGpu),
     resolveBool(env.hasPromptApi, defaultHasPromptApi),
     detectLocalServer(localServerProbes),
     resolveBool(env.hasCloudKey, () => false),
-    probeBridge(bridgeUrl)
+    probeBridge(bridgeUrl),
+    probeManaged(managedUrl).catch(() => false)
   ])
 
   const base: Array<Pick<ConnectorDetection, 'tier' | 'available' | 'detail' | 'setupHint'>> = [
+    {
+      tier: 'managed',
+      available: managed,
+      ...(managed
+        ? {}
+        : { setupHint: 'Managed AI is available on XNet Cloud plans with AI enabled.' })
+    },
     {
       tier: 'bridge',
       available: bridge,

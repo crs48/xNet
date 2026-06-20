@@ -70,6 +70,23 @@ describe('providerConfigForConnector', () => {
     })
   })
 
+  it('maps managed to the keyless managed provider at the same origin', () => {
+    const config = providerConfigForConnector(det({ tier: 'managed' }), {
+      model: 'anthropic/claude-sonnet-4-6'
+    })
+    expect(config).toEqual({
+      type: 'managed',
+      options: { baseUrl: '', model: 'anthropic/claude-sonnet-4-6' }
+    })
+  })
+
+  it('maps managed with an explicit hub base URL and no model', () => {
+    const config = providerConfigForConnector(det({ tier: 'managed' }), {
+      hubBaseUrl: 'https://h.xnet.app'
+    })
+    expect(config).toEqual({ type: 'managed', options: { baseUrl: 'https://h.xnet.app' } })
+  })
+
   it('returns null for in-tab tiers (constructed with an injected engine)', () => {
     expect(providerConfigForConnector(det({ tier: 'webllm' }), {})).toBeNull()
     expect(providerConfigForConnector(det({ tier: 'prompt-api' }), {})).toBeNull()

@@ -20,6 +20,8 @@ export interface AiChatSettings {
   model?: string
   /** Base URL override for the local-server tier. */
   localBaseUrl?: string
+  /** Hub base URL for the managed tier (default `''` = same origin). */
+  hubBaseUrl?: string
 }
 
 /** localStorage keys (xnet:* convention). */
@@ -34,6 +36,7 @@ export const AI_CHAT_STORAGE_KEYS = {
 
 /** Connector tiers that resolve to a `createAIProvider` config (vs. in-tab). */
 export const PROVIDER_CONFIG_TIERS: readonly ConnectorTier[] = [
+  'managed',
   'cloud-key',
   'local-server',
   'bridge'
@@ -73,6 +76,17 @@ export function providerConfigForConnector(
   settings: AiChatSettings
 ): AIProviderConfig | null {
   switch (detection.tier) {
+    case 'managed': {
+      // No key and no base-URL typing: the hub is the origin and injects the
+      // per-tenant credential. The model comes from the picker / plan default.
+      return {
+        type: 'managed',
+        options: {
+          baseUrl: settings.hubBaseUrl ?? '',
+          ...(settings.model ? { model: settings.model } : {})
+        }
+      }
+    }
     case 'cloud-key': {
       if (!settings.apiKey) return null
       const type = settings.cloudProvider ?? 'anthropic'

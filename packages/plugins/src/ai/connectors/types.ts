@@ -9,8 +9,9 @@
  * GPU, Ollama, a key, or a browser.
  */
 
-/** The model-access tiers, from the exploration's options A–E. */
+/** The model-access tiers, from the exploration's options A–E (+ managed, 0208). */
 export type ConnectorTier =
+  | 'managed' // F: XNet Cloud metered AI (no key; hub forwards to the gateway)
   | 'webllm' // A: in-tab WebGPU model, zero install, Safari-safe, offline
   | 'local-server' // B: Ollama / LM Studio over localhost
   | 'prompt-api' // C: Chrome built-in AI (Gemini Nano)
@@ -33,6 +34,13 @@ export type WriteMode = 'agentic' | 'propose-only'
  * override what they need.
  */
 export interface ConnectorEnv {
+  /**
+   * Probe XNet Cloud managed AI: GET `${managedUrl}/ai/health` is `ok` and the
+   * tenant has AI enabled. Default: a same-origin fetch (returns false off-cloud).
+   */
+  probeManaged?: (baseUrl: string) => Promise<boolean>
+  /** Base URL the hub serves the managed `/ai` routes from. Default: `''` (same origin). */
+  managedUrl?: string
   /** WebGPU present (enables in-tab models). Default: `navigator.gpu` check. */
   hasWebGpu?: () => boolean | Promise<boolean>
   /** Chrome built-in `LanguageModel` present. Default: global check. */
