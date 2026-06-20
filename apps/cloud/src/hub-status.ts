@@ -123,7 +123,8 @@ export function composeDashboardLive(input: {
       : null,
     memoryRssBytes: h?.memory ? num(h.memory.rss) : null,
     uptimePct: input.sli ? Number((input.sli.availability * 100).toFixed(2)) : null,
-    p95LatencyMs: input.sli && input.sli.sampleCount > 0 ? Math.round(input.sli.p95LatencyMs) : null,
+    p95LatencyMs:
+      input.sli && input.sli.sampleCount > 0 ? Math.round(input.sli.p95LatencyMs) : null,
     errorBudgetPct: input.sli ? Number((input.sli.budgetRemaining * 100).toFixed(1)) : null,
     errorBudgetPolicy: input.sli ? input.sli.policy : null,
     sloLabel: input.sli ? input.sli.sloLabel : null,

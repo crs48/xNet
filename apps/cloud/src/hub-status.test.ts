@@ -1,6 +1,6 @@
+import type { TenantSli } from './observability/health'
 import { describe, expect, it } from 'vitest'
 import { composeDashboardLive, fetchHubHealth, type HubHealth } from './hub-status'
-import type { TenantSli } from './observability/health'
 
 const sli = (availability: number): TenantSli => ({
   tenantId: 't',
