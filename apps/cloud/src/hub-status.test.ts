@@ -22,7 +22,9 @@ const HEALTH: HubHealth = {
   rooms: 2,
   docs: { hot: 3, warm: 1, total: 4 },
   connections: { active: 5, max: 250 },
-  memory: { rss: 100_000_000, heapUsed: 20_000_000 }
+  memory: { rss: 100_000_000, heapUsed: 20_000_000 },
+  storage: { usedBytes: 5_242_880 },
+  backup: { replicating: true, lastWriteMs: 1_700_000_000_000 }
 }
 
 describe('composeDashboardLive', () => {
@@ -31,6 +33,7 @@ describe('composeDashboardLive', () => {
       health: HEALTH,
       sli: sli(0.9994),
       aiUsedUsd: 1.23,
+      quotaBytes: 10_485_760,
       dataTier: 'hot'
     })
     expect(out).toMatchObject({
@@ -47,8 +50,34 @@ describe('composeDashboardLive', () => {
       errorBudgetPct: 50,
       errorBudgetPolicy: 'ship',
       sloLabel: '99.9% uptime',
+      storageUsedBytes: 5_242_880,
+      storageQuotaBytes: 10_485_760,
+      storagePct: 50,
+      backup: { replicating: true, lastWriteMs: 1_700_000_000_000 },
       aiUsedUsd: 1.23
     })
+  })
+
+  it('storage fields are null without a quota or without hub storage', () => {
+    const noQuota = composeDashboardLive({
+      health: HEALTH,
+      sli: null,
+      aiUsedUsd: null,
+      dataTier: 'hot'
+    })
+    expect(noQuota.storageUsedBytes).toBe(5_242_880)
+    expect(noQuota.storageQuotaBytes).toBeNull()
+    expect(noQuota.storagePct).toBeNull()
+    const noStorage = composeDashboardLive({
+      health: { status: 'ok' },
+      sli: null,
+      aiUsedUsd: null,
+      quotaBytes: 1024,
+      dataTier: 'hot'
+    })
+    expect(noStorage.storageUsedBytes).toBeNull()
+    expect(noStorage.storagePct).toBeNull()
+    expect(noStorage.backup).toBeNull()
   })
 
   it('reports sleeping when the hub is unreachable (no health)', () => {

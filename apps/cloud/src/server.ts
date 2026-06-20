@@ -254,6 +254,7 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
       health,
       sli,
       aiUsedUsd,
+      quotaBytes: tenant.entitlements.quotaBytes,
       ...(tenant.subscriptionStatus ? { subscriptionStatus: tenant.subscriptionStatus } : {}),
       dataTier: tenant.dataTier
     })

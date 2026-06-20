@@ -142,6 +142,11 @@ function hubCard(tenant: TenantRecord): string {
         </svg>
         <span class="muted spark-lbl">live connections · last <span id="spark-n">0</span> samples</span>
       </div>
+      <div class="budget" id="storage-wrap" hidden>
+        <div class="budget-bar"><div class="budget-fill" id="storage-fill"></div></div>
+        <span class="muted" id="storage-lbl"></span>
+      </div>
+      <p class="muted" id="backup-lbl" style="margin:0 0 4px">Backups: continuous → R2 object storage</p>
       <div class="budget" id="budget-wrap" hidden>
         <div class="budget-bar"><div class="budget-fill" id="budget-fill"></div></div>
         <span class="muted" id="budget-lbl"></span>
@@ -187,6 +192,33 @@ function liveScript(): string {
     return '<span class="badge ' + cls + '">' + label + '</span>';
   }
   function mb(bytes){ return bytes != null ? Math.round(bytes / 1048576) + ' MB' : '—'; }
+  function fmtBytes(b){
+    if (b == null) return '—';
+    var g = 1073741824, m = 1048576, k = 1024;
+    return b >= g ? (b/g).toFixed(1) + ' GB' : b >= m ? Math.round(b/m) + ' MB' : b >= k ? Math.round(b/k) + ' KB' : b + ' B';
+  }
+  function rel(ms){
+    if (ms == null) return 'never';
+    var s = Math.round((Date.now() - ms) / 1000);
+    if (s < 60) return s + 's ago';
+    var mm = Math.round(s / 60); if (mm < 60) return mm + 'm ago';
+    var h = Math.round(mm / 60); if (h < 24) return h + 'h ago';
+    return Math.round(h / 24) + 'd ago';
+  }
+  function storage(d){
+    var wrap = document.getElementById('storage-wrap');
+    if (wrap && d.storagePct != null) {
+      wrap.hidden = false;
+      var f = document.getElementById('storage-fill');
+      f.style.width = d.storagePct + '%';
+      f.style.background = d.storagePct >= 90 ? '#ef4444' : d.storagePct >= 70 ? '#fbbf24' : '#4f46e5';
+      set('storage-lbl', 'storage ' + fmtBytes(d.storageUsedBytes) + ' / ' + fmtBytes(d.storageQuotaBytes) + ' (' + d.storagePct + '%)');
+    }
+    var bl = document.getElementById('backup-lbl');
+    if (bl && d.backup) {
+      bl.textContent = (d.backup.replicating ? 'Backed up to R2 ✓ · ' : 'Backups off · ') + 'data as of ' + rel(d.backup.lastWriteMs);
+    }
+  }
   function spark(){
     var line = document.getElementById('spark-line');
     if (!line || !hist.length) return;
@@ -224,6 +256,7 @@ function liveScript(): string {
       set('t-region', d.region);
       set('t-version', d.version);
       if (d.connections) { hist.push(d.connections.active); if (hist.length > MAX) hist.shift(); spark(); }
+      storage(d);
       budget(d);
     } catch (e) {}
   }
