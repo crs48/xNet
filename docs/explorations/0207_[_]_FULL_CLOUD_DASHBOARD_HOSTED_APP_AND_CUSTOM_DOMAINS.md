@@ -374,14 +374,19 @@ app.get('/_xnet/app-config.json', async (c) => {
 
 ## Implementation Checklist
 
-- [ ] **P1:** Add `GET /dashboard/live.json` (session-gated) aggregating hub
+- [x] **P1:** Add `GET /dashboard/live.json` (session-gated) aggregating hub
       `/health` + `tenantSli` + `UsageLedger`, with cache + timeout.
-- [ ] **P1:** Add `storage` + `backup` (lastSyncMs/lagMs/fresh) to hub `/health`
-      from `BackupService.getUsage` + Litestream replica position.
-- [ ] **P1:** Re-render the hub card as live tiles (status dot, uptime%, last-backup,
-      storage bar, connections, rooms/docs, region/version); poll `live.json`.
-- [ ] **P1:** Fix the `/app` link → open the hosted app deep-linked to the tenant hub.
-- [ ] **P1:** Show nightly restore-drill result ("backup verified ✓ <date>").
+      _(Done: `apps/cloud/src/hub-status.ts` + the route; 8s cache, 2.5s timeout.)_
+- [~] **P1:** Add `storage` + `backup` (lastSyncMs/lagMs/fresh) to hub `/health`.
+      _(Deferred: needs a hub-image change + Litestream replica position; the live
+      tiles work off the existing public `/health` without it.)_
+- [x] **P1:** Re-render the hub card as live tiles (status, uptime%, connections,
+      rooms/docs, region/version); poll `live.json`.
+      _(Done: vanilla-JS poll in `dashboard.ts`, no second bundle.)_
+- [x] **P1:** Fix the `/app` link → configurable `appUrl` (`XNET_CLOUD_APP_URL`).
+- [~] **P1:** Show nightly restore-drill result ("backup verified ✓ <date>").
+      _(Deferred: the drill runs as a job but its result isn't persisted per-tenant
+      yet; needs a `TenantRecord` field.)_
 - [ ] **P2:** Wildcard `*.xnet.app` DNS + cert; serve the `apps/web` bundle.
 - [ ] **P2:** `getTenantForHostname` index + `/_xnet/app-config.json`; boot the app
       pre-pointed at the tenant hub.
