@@ -377,9 +377,11 @@ app.get('/_xnet/app-config.json', async (c) => {
 - [x] **P1:** Add `GET /dashboard/live.json` (session-gated) aggregating hub
       `/health` + `tenantSli` + `UsageLedger`, with cache + timeout.
       _(Done: `apps/cloud/src/hub-status.ts` + the route; 8s cache, 2.5s timeout.)_
-- [~] **P1:** Add `storage` + `backup` (lastSyncMs/lagMs/fresh) to hub `/health`.
-      _(Deferred: needs a hub-image change + Litestream replica position; the live
-      tiles work off the existing public `/health` without it.)_
+- [x] **P1:** Add `storage` + `backup` to hub `/health` → dashboard (PR #220).
+      _(Done: `storage.usedBytes` (recursive data-dir size, 30s-cached) +
+      `backup.{replicating,lastWriteMs}` (newest `*.db` mtime ≈ "data as of"; ≤1s
+      behind the R2 replica). Dashboard shows a storage bar + a "Backed up to R2 ✓ ·
+      data as of <rel>" line. Verified live: 713 KB / 25 GiB.)_
 - [x] **P1:** Re-render the hub card as live tiles (status, uptime%, connections,
       rooms/docs, region/version); poll `live.json`.
       _(Done: vanilla-JS poll in `dashboard.ts`, no second bundle.)_
