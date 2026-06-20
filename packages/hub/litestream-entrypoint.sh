@@ -12,6 +12,27 @@ PORT="${PORT:-4444}"
 CONFIG="${LITESTREAM_CONFIG:-/etc/litestream.yml}"
 HUB="node packages/hub/dist/cli.js --port ${PORT} --data ${DATA_DIR}"
 
+# Managed hubs (Cloud Run) can't have a config file written into them, so generate
+# one from env when none is mounted: LITESTREAM=1, a per-tenant LITESTREAM_PATH, and
+# R2 creds (set by the control-plane provisioner). Credentials stay as ${...} refs so
+# the rendered file never embeds secrets — Litestream expands them at runtime
+# (exploration 0205). A mounted/baked config always wins.
+if [ "$LITESTREAM" = "1" ] && [ ! -f "$CONFIG" ] && [ -n "$LITESTREAM_PATH" ] && [ -n "$R2_BUCKET" ]; then
+  echo "[entrypoint] generating ${CONFIG} for R2 replication (replica path: ${LITESTREAM_PATH})"
+  cat > "$CONFIG" <<YAML
+dbs:
+  - path: ${DATA_DIR}/hub.db
+    replicas:
+      - type: s3
+        endpoint: \${R2_ENDPOINT}
+        bucket: \${R2_BUCKET}
+        path: ${LITESTREAM_PATH}
+        access-key-id: \${R2_ACCESS_KEY_ID}
+        secret-access-key: \${R2_SECRET_ACCESS_KEY}
+        sync-interval: 1s
+YAML
+fi
+
 if [ "$LITESTREAM" = "1" ] && [ -f "$CONFIG" ]; then
   echo "[entrypoint] Litestream enabled — restoring ${DATA_DIR}/hub.db from R2 replica"
   litestream restore -config "$CONFIG" -if-db-not-exists -if-replica-exists "${DATA_DIR}/hub.db"

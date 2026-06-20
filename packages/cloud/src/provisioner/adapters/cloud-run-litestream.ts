@@ -116,6 +116,10 @@ export class CloudRunLitestreamProvisioner implements Provisioner {
     return {
       ...spec.env,
       LITESTREAM: '1',
+      // Per-tenant replica path the hub entrypoint renders into its Litestream
+      // config. Stable across (re)provisions so a reactivated hub restores from
+      // the same R2 prefix. (exploration 0178/0205.)
+      LITESTREAM_PATH: `t/${spec.tenantId}/db`,
       R2_BUCKET: this.config.r2Bucket,
       R2_ENDPOINT: this.config.r2Endpoint,
       R2_ACCESS_KEY_ID: this.config.r2AccessKeyId,
