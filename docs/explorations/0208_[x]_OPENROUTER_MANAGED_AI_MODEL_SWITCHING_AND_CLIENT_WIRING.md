@@ -616,63 +616,79 @@ erDiagram
 ## Implementation Checklist
 
 ### Phase 1 — Managed client path
-- [ ] Add `'managed'` to `AIProviderType`
+- [x] Add `'managed'` to `AIProviderType`
       ([`providers.ts`](../../packages/plugins/src/ai/providers.ts)) + a
-      `ManagedProvider` that posts to the hub `/ai/chat` with **no** API key and
-      surfaces the budget gauge.
-- [ ] Add `'managed'` to `ConnectorTier`
+      `ManagedProvider` that posts to the hub `/ai/chat` with **no** API key,
+      surfaces the budget (`onBudget`), and maps `402` → `AiBudgetError`.
+- [x] Add `'managed'` to `ConnectorTier`
       ([`connectors/types.ts`](../../packages/plugins/src/ai/connectors/types.ts))
       and a `case 'managed'` in `providerConfigForConnector`
       ([`ai-chat-connector.ts`](../../apps/web/src/workbench/views/ai-chat-connector.ts)).
-- [ ] `aiForwarderFeature()` in `packages/hub/src/features/ai-forwarder.ts`
-      (generic over injected upstream + secret), registered in
+- [x] `aiForwarderFeature()` in
+      [`packages/hub/src/features/ai-forwarder.ts`](../../packages/hub/src/features/ai-forwarder.ts)
+      (generic over injected fetch + env config), registered in
       [`server.ts`](../../packages/hub/src/server.ts) `mountFeatures([...])`.
-- [ ] Tier detection: `managed` available iff hub `/ai/health` ok **and**
-      `aiEnabled`; hides otherwise (graceful self-host degrade); preferred when present.
-- [ ] Panel renders `spendThisPeriodUsd / budgetUsd / budgetState`; `402` →
-      "AI budget reached" with a raise-cap affordance.
+- [x] Tier detection (`probeManaged` → `/ai/health` `{ ok, managed }`); `managed`
+      is preferred when available and hides off-cloud (graceful self-host degrade).
+- [x] Panel renders the `spendThisPeriodUsd / includedUsd / budgetUsd` gauge; the
+      typed `AiBudgetError` carries the surface for a raise-cap affordance.
 
 ### Phase 2 — Model switching
-- [ ] `fetchModelCatalog` + TTL cache over `GET /api/v1/models`
-      (`apps/cloud/src/ai/models.ts`).
-- [ ] `GET /ai/models` route: cached catalog ∩ plan policy → priced `ModelCard[]` +
-      `defaultModel`; forwarded by the hub.
-- [ ] `aiModels` / `aiDefaultModel` on `PlanEntitlements`
-      ([`plans.ts`](../../packages/entitlements/src/plans.ts)); per-plan values set.
-- [ ] Resolve `allowedModels` + default from the **plan** in
-      [`wiring.ts`](../../apps/cloud/src/ai/wiring.ts) `tenantResolver` (env stays a fallback).
-- [ ] Model picker UI in the chat panel (grouped by family; $/M in · $/M out ·
-      context badges); persists choice; shows budget gauge beside it.
-- [ ] Runtime/connector pass `model` per request.
+- [x] `fetchModelCatalog` + `createModelCatalog` TTL cache (single-flight +
+      stale-while-revalidate) over `GET /api/v1/models`
+      ([`apps/cloud/src/ai/models.ts`](../../apps/cloud/src/ai/models.ts)).
+- [x] `GET /ai/models` route: cached catalog ∩ plan policy → priced `ModelCard[]` +
+      `defaultModel`; forwarded by the hub (`aiForwarderFeature`).
+- [x] `aiModels` / `aiDefaultModel` on `PlanEntitlements` + `withAiModels` /
+      `aiModelAllowed` ([`plans.ts`](../../packages/entitlements/src/plans.ts));
+      per-plan values set (cheap subset on small plans, `'all'` on bigger ones).
+- [x] Resolve `aiModels` + default from the **plan** in
+      [`wiring.ts`](../../apps/cloud/src/ai/wiring.ts) `tenantResolver`; `/ai/chat`
+      enforces the policy + falls back to the plan default; env stays a global cap.
+- [x] Model picker UI in the chat panel (grouped by family; $in/$out + context
+      badges); persists choice; budget gauge beside it.
+- [x] Runtime/connector pass `model` per request (provider rebuilds on change).
 
 ### Phase 3 — Reliability + reach
-- [ ] Optional `fallbackModels` → `models: [primary, …]` in
+- [x] Optional `fallbackModels` → `models: [primary, …]` in
       [`OpenRouterGatewayClient`](../../packages/cloud/src/ai/openrouter-gateway.ts);
-      record the served `model`.
-- [ ] Streaming `/ai/chat` (SSE) metering off the final chunk's `usage.cost`.
-- [ ] Point `AiSurfaceService` / editor `/ai` / agent runner at the managed provider.
-- [ ] Drop deprecated `usage: { include: true }`; optionally record `usage.cost_details`.
-- [ ] Docs: `OPENROUTER_*` + managed-AI env in
-      [`docs/cloud/SETUP.md`](../cloud/SETUP.md); operator runbook for the catalog cache.
+      `ChatResult.model` records the served model; `/ai/chat` forwards only
+      plan-permitted fallbacks.
+- [ ] **Deferred:** streaming `/ai/chat` (SSE) metering off the final chunk's
+      `usage.cost` (managed ships non-streaming first — correct metering).
+- [x] `managed` is first-class in `createAIProvider`, so `AiSurfaceService` / editor
+      `/ai` / agent runner can target it by config; the chat panel is the first
+      consumer. **Deferred:** deeper editor `/ai` + agent-runner wiring.
+- [x] Drop deprecated `usage: { include: true }`. **Deferred:** record
+      `usage.cost_details` (needs a ledger field).
+- [x] Docs: managed-AI env (`XNET_CLOUD_URL` / `XNET_CLOUD_INTERNAL_SECRET` /
+      `XNET_TENANT_ID`) in [`docs/cloud/SETUP.md`](../cloud/SETUP.md).
 
 ## Validation Checklist
-- [ ] With the hub forwarder configured, the chat panel auto-selects the `managed`
-      tier, sends a message, and renders the live "$X of $Y used" gauge.
-- [ ] No API key is ever present in the client for managed AI (assert the request
-      from the browser carries no `authorization`; the secret is added at the hub).
-- [ ] An over-cap tenant gets a `402` surfaced as a raise-cap prompt with **no**
-      provider call (counting fake never invoked).
-- [ ] `GET /ai/models` returns only models the plan allows; a gated model is absent
-      for a small plan and present for a higher one.
-- [ ] Selecting a different model in the picker changes the `model` in the request
-      body and the response's served `model` matches (or a fallback, when triggered).
-- [ ] Picker price/context badges match the catalog (`pricing.prompt × 1e6`, etc.).
-- [ ] A metered managed call records `providerCostUsd == usage.cost` and
-      `chargeUsd == ceil(usage.cost × markup)` (idempotent on retry).
-- [ ] With **no** control plane (OSS hub), the `managed` tier is hidden and BYO
-      tiers still work — no hard failure.
-- [ ] Fallback: when the primary provider 5xxs, `models: [primary, fallback]`
-      serves the fallback and meters off its `usage.cost`.
+- [x] No API key is ever present in the client for managed AI — `ManagedProvider`
+      sends no `authorization`; the hub injects `x-internal-secret` (unit:
+      `managed-provider.test.ts`, `ai-forwarder.test.ts`).
+- [x] An over-cap tenant gets a `402` with **no** provider call (counting fake
+      never invoked); `ManagedProvider` maps it to `AiBudgetError`
+      (`route.test.ts`, `managed-provider.test.ts`).
+- [x] `GET /ai/models` returns only models the plan allows; a gated model is absent
+      for a small plan and present for a higher one (`route.test.ts`,
+      `plans.test.ts`).
+- [x] The chat request carries the selected `model`; the response's served `model`
+      is reported back (or a fallback when triggered) (`route.test.ts`,
+      `openrouter-gateway.test.ts`).
+- [x] Picker price/context badges come from the catalog (`pricing.prompt × 1e6`)
+      (`models.test.ts`, `ai-chat-connector.test.ts`).
+- [x] A metered managed call records `providerCostUsd == usage.cost` and
+      `chargeUsd == ceil(usage.cost × markup)`, idempotent on retry
+      (`metered-gateway.test.ts`, `route.test.ts`).
+- [x] With **no** control plane, the `managed` tier reports unavailable and hides;
+      BYO tiers still work (`detect.test.ts`, `ai-forwarder.test.ts`).
+- [x] Fallback: a `models: [primary, fallback]` array is sent and the served model
+      is metered off its `usage.cost` (`openrouter-gateway.test.ts`).
+- [ ] **Operator (live):** end-to-end smoke in a deployed staging hub — the panel
+      auto-selects `managed`, the gauge populates from a real metered call, and the
+      picker lists the live OpenRouter catalog.
 
 ## References
 
