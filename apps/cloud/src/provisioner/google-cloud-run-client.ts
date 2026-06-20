@@ -46,6 +46,10 @@ export interface RunServicesClient {
   updateService(req: { service: RunService }): Promise<[RunOperation, ...unknown[]]>
   getService(req: { name: string }): Promise<[RunService, ...unknown[]]>
   deleteService(req: { name: string }): Promise<[RunOperation, ...unknown[]]>
+  setIamPolicy?(req: {
+    resource: string
+    policy: { bindings: Array<{ role: string; members: string[] }> }
+  }): Promise<[unknown, ...unknown[]]>
 }
 
 /** gRPC NOT_FOUND status code. */
@@ -93,6 +97,13 @@ export class GoogleCloudRunClient implements CloudRunClient {
       service: this.spec(args)
     })
     const [svc] = await op.promise()
+    // Hubs are publicly routable and enforce their own DID/passkey auth, so allow
+    // unauthenticated invokes — otherwise Cloud Run's IAM 403s every request and the
+    // hub is unreachable. (No-op when the client doesn't support setIamPolicy, e.g. tests.)
+    await this.client.setIamPolicy?.({
+      resource: this.name(args),
+      policy: { bindings: [{ role: 'roles/run.invoker', members: ['allUsers'] }] }
+    })
     return this.read(svc)
   }
 
