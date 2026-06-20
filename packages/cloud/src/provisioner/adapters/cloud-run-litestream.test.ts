@@ -61,6 +61,7 @@ describe('CloudRunLitestreamProvisioner', () => {
     expect(svc?.env).toMatchObject({
       HUB_PLAN: 'signed-token',
       LITESTREAM: '1',
+      LITESTREAM_PATH: 't/t_user_a/db',
       R2_BUCKET: 'xnet-hub-data',
       R2_ENDPOINT: 'https://acct.r2.cloudflarestorage.com',
       R2_ACCESS_KEY_ID: 'AKID',
