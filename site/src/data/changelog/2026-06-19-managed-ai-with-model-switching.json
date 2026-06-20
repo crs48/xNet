@@ -13,5 +13,10 @@
     "app",
     "platform"
   ],
-  "pr": 223
+  "pr": 223,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
