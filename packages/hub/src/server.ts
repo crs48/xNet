@@ -506,7 +506,12 @@ const endpointClaimFor = (endpoint: string, resource: string, exp: number): stri
 export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   const app = new Hono()
   const signaling = createSignalingService()
-  const storage = await createStorage(config.storage, config.dataDir)
+  // The demo hub's data is disposable, so let it auto-reset a corrupt base DB
+  // and boot rather than crash-loop (exploration 0206 follow-up). A real
+  // self-host / production hub never does this.
+  const storage = await createStorage(config.storage, config.dataDir, {
+    resetOnCorruption: !!config.demo
+  })
   const pool = new NodePool(storage)
   const relayIdentity = generateIdentity()
   const relay = new RelayService(pool, {

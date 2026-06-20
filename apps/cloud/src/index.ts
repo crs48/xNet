@@ -153,6 +153,12 @@ export {
   type RestoreDrillResult
 } from './backup/restore-drill'
 export { reconcileTenant, type ReconcileInput, type ReconcileAction } from './reconcile/reconcile'
+export {
+  fetchHubHealth,
+  composeDashboardLive,
+  type HubHealth,
+  type DashboardLive
+} from './hub-status'
 
 /**
  * Pick the billing identity provider from the environment. WorkOS AuthKit (free
@@ -253,6 +259,7 @@ function start(): void {
     sessionSecret: env.XNET_CLOUD_SESSION_SECRET ?? 'dev-insecure-session-secret',
     baseUrl: env.XNET_CLOUD_BASE_URL ?? '',
     marketingUrl: env.XNET_CLOUD_MARKETING_URL ?? 'https://xnet.fyi/cloud',
+    appUrl: env.XNET_CLOUD_APP_URL ?? 'https://xnet.fyi/app',
     ...(env.XNET_CLOUD_INTERNAL_SECRET ? { internalSecret: env.XNET_CLOUD_INTERNAL_SECRET } : {}),
     ...(ai ? { ai } : {})
   })

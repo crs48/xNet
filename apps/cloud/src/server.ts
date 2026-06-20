@@ -28,6 +28,7 @@ import {
   renderPlanChangeNotice
 } from './dashboard'
 import { MemoryDeviceGrantStore, isExpired, type DeviceGrantStore } from './device-grant'
+import { composeDashboardLive, fetchHubHealth } from './hub-status'
 import {
   collectUsage,
   httpHubUsageProbe,
@@ -57,6 +58,8 @@ export interface ControlPlaneAppDeps {
   baseUrl?: string
   /** Where to send the user after sign-out (the marketing site). */
   marketingUrl?: string
+  /** Base URL of the hosted web app ("Open the app"). Defaults to the marketing app. */
+  appUrl?: string
   /** Shared secret for internal routes; if unset, internal routes are disabled. */
   internalSecret?: string
   /** Optional bulk-storage reader (R2) for the `/open` usage snapshot's GB-stored (Tier 1). */
@@ -212,9 +215,50 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
         tenant,
         checkoutPlans: CHECKOUT_PLANS,
         billingEnabled: Boolean(deps.payments),
+        appUrl: deps.appUrl ?? 'https://xnet.fyi/app',
         ...(aiUsage ? { aiUsage } : {})
       })
     )
+  })
+
+  // Live tiles for the dashboard (exploration 0207): the tenant's hub status read
+  // from its public /health, joined with the rolling SLI window + AI spend. Polled
+  // by the dashboard; cached briefly so rapid polls don't fan out to the hub every
+  // time, and timeout-bounded so a sleeping/slow hub never hangs the page.
+  let liveCache: { at: number; key: string; body: unknown } | null = null
+  app.get('/dashboard/live.json', async (c) => {
+    const s = session(c)
+    if (!s) return c.json({ error: 'unauthorized' }, 401)
+    const tenant = await deps.controlPlane.getTenantForBilling(s.billingUserId)
+    if (!tenant) return c.json({ state: 'none', reachable: false })
+    if (liveCache && liveCache.key === tenant.tenantId && now() - liveCache.at < 8000) {
+      return c.json(liveCache.body as Record<string, unknown>)
+    }
+    const health =
+      tenant.hubUrl && tenant.dataTier === 'hot'
+        ? await fetchHubHealth(tenant.hubUrl, { timeoutMs: 2500 })
+        : null
+    const sli =
+      deps.health && tenant.hubUrl
+        ? tenantSli(
+            deps.health,
+            { tenantId: tenant.tenantId, plan: tenant.plan, hubUrl: tenant.hubUrl },
+            now()
+          )
+        : null
+    const aiUsedUsd =
+      tenant.entitlements.aiEnabled && deps.ai
+        ? await deps.ai.ledger.totalChargeUsd(tenant.tenantId, currentPeriodStartMs(now()))
+        : null
+    const body = composeDashboardLive({
+      health,
+      sli,
+      aiUsedUsd,
+      ...(tenant.subscriptionStatus ? { subscriptionStatus: tenant.subscriptionStatus } : {}),
+      dataTier: tenant.dataTier
+    })
+    liveCache = { at: now(), key: tenant.tenantId, body }
+    return c.json(body)
   })
 
   // Self-serve plan change for the signed-in tenant. An in-tier change applies

@@ -653,62 +653,113 @@ export function isShmSizeError(err: unknown): boolean {
   return e.code === 'SQLITE_IOERR_SHMSIZE' || /SQLITE_IOERR_SHMSIZE/i.test(e.message ?? '')
 }
 
+/**
+ * A malformed / corrupt database file — `SQLITE_CORRUPT` (or `SQLITE_NOTADB`).
+ * Unlike a wedged WAL this can't be repaired by clearing sidecars; the base
+ * `hub.db` itself is bad (observed on Railway after the SHMSIZE crash-loop,
+ * exploration 0206 follow-up).
+ */
+export function isCorruptionError(err: unknown): boolean {
+  const e = err as { code?: string; message?: string } | null
+  if (!e) return false
+  if (e.code === 'SQLITE_CORRUPT' || e.code === 'SQLITE_NOTADB') return true
+  return /database disk image is malformed|file is not a database|SQLITE_CORRUPT|SQLITE_NOTADB/i.test(
+    e.message ?? ''
+  )
+}
+
 /** The WAL sidecar files SQLite keeps next to the database. */
 export function walSidecarPaths(dbPath: string): string[] {
   return [`${dbPath}-wal`, `${dbPath}-shm`]
 }
+
+export type WalRecoveryStage = 'clear-wal' | 'rollback-journal' | 'reset-corrupt'
 
 export interface WalRecoveryHooks {
   openDb: () => Database.Database
   applyWalPragmas: (db: Database.Database) => void
   applyRollbackPragmas: (db: Database.Database) => void
   removeSidecars: () => void
+  /** Destructively delete the database file + sidecars (demo hub only). */
+  resetDatabase: () => void
+  /** Whether a corrupt base DB may be reset (true only for the demo hub). */
+  allowDestructiveReset: boolean
   underLitestream: boolean
-  onRecover?: (stage: 'retry' | 'fallback', err: unknown) => void
+  onRecover?: (stage: WalRecoveryStage, err: unknown) => void
 }
 
 /**
- * Open the database, recovering from `SQLITE_IOERR_SHMSIZE` instead of
- * crash-looping. On that error — and only when NOT under Litestream, which owns
- * the WAL — drop the `-wal`/`-shm` sidecars (clearing the wedge and freeing the
- * space an oversized `-wal` was holding) and retry; if WAL still won't engage,
- * fall back to a rollback journal that needs no shared memory so the hub at
- * least starts. Pure orchestration over injected hooks (testable).
+ * Open the database, recovering instead of crash-looping. Two failure classes:
+ *  1. `SQLITE_IOERR_SHMSIZE` — WAL can't size its `-shm` (a wedged/oversized
+ *     `-wal`, or a full volume). Drop `-wal`/`-shm` and retry; if WAL still
+ *     won't engage, fall back to a rollback journal that needs no shared
+ *     memory. Skipped under Litestream, which owns the WAL.
+ *  2. `SQLITE_CORRUPT` — the base file is malformed. Only the demo hub (whose
+ *     data is disposable) and never under Litestream (which restores from its
+ *     replica) may delete the file and start fresh.
+ * Pure orchestration over injected hooks (testable).
  */
 export function openHubDatabaseWithWalRecovery(hooks: WalRecoveryHooks): Database.Database {
-  const db = hooks.openDb()
+  const attempt = (): Database.Database => {
+    const db = hooks.openDb()
+    try {
+      hooks.applyWalPragmas(db)
+      return db
+    } catch (err) {
+      try {
+        db.close()
+      } catch {
+        // already unusable
+      }
+      throw err
+    }
+  }
+
+  const recoverFromCorruptionOrThrow = (err: unknown): Database.Database => {
+    if (isCorruptionError(err) && hooks.allowDestructiveReset && !hooks.underLitestream) {
+      hooks.onRecover?.('reset-corrupt', err)
+      hooks.resetDatabase()
+      return attempt()
+    }
+    throw err
+  }
+
   try {
-    hooks.applyWalPragmas(db)
-    return db
+    return attempt()
   } catch (err) {
-    if (!isShmSizeError(err) || hooks.underLitestream) throw err
-    hooks.onRecover?.('retry', err)
-    try {
-      db.close()
-    } catch {
-      // already unusable
+    if (isShmSizeError(err) && !hooks.underLitestream) {
+      hooks.onRecover?.('clear-wal', err)
+      hooks.removeSidecars()
+      try {
+        return attempt()
+      } catch (err2) {
+        if (isShmSizeError(err2)) {
+          hooks.onRecover?.('rollback-journal', err2)
+          const db = hooks.openDb()
+          hooks.applyRollbackPragmas(db)
+          return db
+        }
+        return recoverFromCorruptionOrThrow(err2)
+      }
     }
-    hooks.removeSidecars()
-    const retry = hooks.openDb()
-    try {
-      hooks.applyWalPragmas(retry)
-      return retry
-    } catch (err2) {
-      if (!isShmSizeError(err2)) throw err2
-      hooks.onRecover?.('fallback', err2)
-      hooks.applyRollbackPragmas(retry)
-      return retry
-    }
+    return recoverFromCorruptionOrThrow(err)
   }
 }
 
-function openHubDatabase(dbPath: string): Database.Database {
+function openHubDatabase(dbPath: string, resetOnCorruption: boolean): Database.Database {
   const applyWalPragmas = (db: Database.Database): void => {
     db.pragma('journal_mode = WAL')
     db.pragma('synchronous = NORMAL')
     db.pragma('busy_timeout = 5000')
     // Hand WAL checkpointing to Litestream when replicating to R2 (exploration 0178).
     for (const pragma of litestreamWalPragmas()) db.pragma(pragma)
+  }
+  const unlinkIfExists = (p: string): void => {
+    try {
+      if (existsSync(p)) unlinkSync(p)
+    } catch {
+      // best effort
+    }
   }
   return openHubDatabaseWithWalRecovery({
     openDb: () => new Database(dbPath),
@@ -718,33 +769,32 @@ function openHubDatabase(dbPath: string): Database.Database {
       db.pragma('synchronous = NORMAL')
       db.pragma('busy_timeout = 5000')
     },
-    removeSidecars: () => {
-      for (const sidecar of walSidecarPaths(dbPath)) {
-        try {
-          if (existsSync(sidecar)) unlinkSync(sidecar)
-        } catch {
-          // best effort — if we can't remove it, the retry/fallback still tries
-        }
-      }
-    },
+    removeSidecars: () => walSidecarPaths(dbPath).forEach(unlinkIfExists),
+    resetDatabase: () => [dbPath, ...walSidecarPaths(dbPath)].forEach(unlinkIfExists),
+    allowDestructiveReset: resetOnCorruption,
     underLitestream: process.env.LITESTREAM === '1',
-    onRecover: (stage, err) =>
-      console.error(
-        stage === 'retry'
+    onRecover: (stage, err) => {
+      const message =
+        stage === 'clear-wal'
           ? '[hub] SQLite WAL init failed (SQLITE_IOERR_SHMSIZE); clearing -wal/-shm and retrying'
-          : '[hub] SQLite WAL still unavailable; falling back to DELETE journal mode',
-        err
-      )
+          : stage === 'rollback-journal'
+            ? '[hub] SQLite WAL still unavailable; falling back to DELETE journal mode'
+            : '[hub] SQLite database is malformed (SQLITE_CORRUPT); demo hub resetting to a fresh database'
+      console.error(message, err)
+    }
   })
 }
 
-export const createSQLiteStorage = (dataDir: string): HubStorage => {
+export const createSQLiteStorage = (
+  dataDir: string,
+  options: { resetOnCorruption?: boolean } = {}
+): HubStorage => {
   mkdirSync(dataDir, { recursive: true })
   mkdirSync(join(dataDir, 'blobs'), { recursive: true })
   mkdirSync(join(dataDir, 'files'), { recursive: true })
 
   const dbPath = join(dataDir, 'hub.db')
-  const db = openHubDatabase(dbPath)
+  const db = openHubDatabase(dbPath, options.resetOnCorruption ?? false)
 
   db.exec(SCHEMA_SQL)
 
