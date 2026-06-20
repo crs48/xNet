@@ -208,6 +208,14 @@ export function buildControlPlane(options: BuildControlPlaneOptions = {}): {
   const billing = options.billing ?? resolveBillingProvider(env)
   const stores = firestoreStoresFromEnv(env)
   const aiKeys = options.aiKeys ?? aiKeysFromEnv(env)
+  // Managed-AI forwarder wiring (0208): when AI keys are configured AND the control
+  // plane knows its own URL + internal secret, every AI-enabled hub is provisioned
+  // with the forwarder env so the app's `managed` tier works with zero per-hub setup.
+  const cloudUrl = env.XNET_CLOUD_URL ?? env.XNET_CLOUD_BASE_URL
+  const managedAi =
+    aiKeys && cloudUrl && env.XNET_CLOUD_INTERNAL_SECRET
+      ? { cloudUrl, internalSecret: env.XNET_CLOUD_INTERNAL_SECRET }
+      : undefined
   const controlPlane = new ControlPlane({
     tenants: options.tenants ?? stores?.tenants ?? new MemoryTenantStore(),
     bindings: options.bindings ?? stores?.bindings ?? new MemoryBindingStore(),
@@ -215,7 +223,8 @@ export function buildControlPlane(options: BuildControlPlaneOptions = {}): {
     verifyDid: options.verifyDid ?? devDidVerifier,
     planSecret: env.XNET_PLAN_SECRET ?? 'dev-insecure-plan-secret',
     defaultTargetVersion: env.HUB_IMAGE_TAG ?? 'xnet-hub@0.0.1',
-    ...(aiKeys ? { aiKeys } : {})
+    ...(aiKeys ? { aiKeys } : {}),
+    ...(managedAi ? { managedAi } : {})
   })
   return { controlPlane, billing }
 }

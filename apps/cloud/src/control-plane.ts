@@ -44,6 +44,14 @@ export interface ControlPlaneDeps {
    * Omit to skip AI-key provisioning (dev/self-host).
    */
   aiKeys?: VirtualKeyManager
+  /**
+   * When set, the control plane injects the managed-AI forwarder env into every
+   * AI-enabled hub — `XNET_CLOUD_URL`, `XNET_CLOUD_INTERNAL_SECRET`, and
+   * `XNET_TENANT_ID` — so the hub's `aiForwarderFeature` can proxy `/ai/chat` +
+   * `/ai/models` to the control plane with that tenant's credential, with no
+   * per-hub configuration (exploration 0208). Omit to leave hubs without managed AI.
+   */
+  managedAi?: { cloudUrl: string; internalSecret: string }
   /** Injectable clock for deterministic tests. */
   nowMs?: () => number
 }
@@ -88,15 +96,25 @@ export class ControlPlane {
     return this.deps.nowMs ? this.deps.nowMs() : Date.now()
   }
 
-  private hubEnv(entitlements: PlanEntitlements): Record<string, string> {
+  private hubEnv(tenantId: string, entitlements: PlanEntitlements): Record<string, string> {
     // The hub verifies this token locally and enforces the limits — no runtime
     // call back to the control plane (anti-lock-in invariant). It needs the same
     // signing secret to verify HUB_PLAN (the hub crashes on boot otherwise), so
     // every hub shares the control plane's XNET_PLAN_SECRET.
-    return {
+    const env: Record<string, string> = {
       HUB_PLAN: signEntitlements(entitlements, this.deps.planSecret),
       XNET_PLAN_SECRET: this.deps.planSecret
     }
+    // Managed AI (0208): an AI-enabled hub forwards /ai/chat + /ai/models to the
+    // control plane with this tenant's credential, so the client never holds a
+    // key. Injected here = zero per-hub config. AI-off hubs get nothing extra, so
+    // their `aiForwarderFeature` reports `managed:false` and the tier hides.
+    if (this.deps.managedAi && entitlements.aiEnabled) {
+      env.XNET_CLOUD_URL = this.deps.managedAi.cloudUrl
+      env.XNET_CLOUD_INTERNAL_SECRET = this.deps.managedAi.internalSecret
+      env.XNET_TENANT_ID = tenantId
+    }
+    return env
   }
 
   /**
@@ -166,7 +184,7 @@ export class ControlPlane {
       entitlements,
       targetVersion: this.deps.defaultTargetVersion,
       region: args.region,
-      env: this.hubEnv(entitlements)
+      env: this.hubEnv(args.tenantId, entitlements)
     })
 
     const aiVk = await this.provisionAiKey(args.tenantId, entitlements)
@@ -221,7 +239,7 @@ export class ControlPlane {
       entitlements,
       targetVersion: this.deps.defaultTargetVersion,
       region: args.region,
-      env: this.hubEnv(entitlements)
+      env: this.hubEnv(tenantId, entitlements)
     })
     const aiVk = await this.provisionAiKey(tenantId, entitlements)
     const record: TenantRecord = {
@@ -326,7 +344,10 @@ export class ControlPlane {
       return { kind: 'migration-required', from: record.entitlements, to: next }
     }
 
-    const handle = await this.deps.provisioner.setEnv(record.substrateRef, this.hubEnv(next))
+    const handle = await this.deps.provisioner.setEnv(
+      record.substrateRef,
+      this.hubEnv(record.tenantId, next)
+    )
     const aiPatch = await this.reconcileAiKey(record, next)
     const updated: TenantRecord = {
       ...record,
@@ -477,7 +498,7 @@ export class ControlPlane {
       entitlements: record.entitlements,
       targetVersion: record.targetVersion,
       region: record.region,
-      env: this.hubEnv(record.entitlements),
+      env: this.hubEnv(tenantId, record.entitlements),
       restoreFromR2: this.snapshotKey(tenantId)
     })
     const updated: TenantRecord = {

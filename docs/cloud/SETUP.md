@@ -214,6 +214,10 @@ deployed.
 
 ### 3a-bis. Managed AI in the app — model switching + the hub forwarder (0208)
 
+> **Full walkthrough + preflight script:** [MANAGED_AI_SETUP.md](MANAGED_AI_SETUP.md)
+> (`node scripts/cloud-openrouter-setup.mjs --probe-mint`).
+
+
 The control plane also serves `GET /ai/models` (the OpenRouter catalog, cached,
 intersected with the tenant's plan policy) so the app can show a **model picker**.
 Per-plan model gating lives in the entitlements (`aiModels` / `aiDefaultModel` on
