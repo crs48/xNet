@@ -267,37 +267,57 @@ export const VARS = [
     values: { development: '', staging: F, production: F }
   },
 
-  // ── Optional ──────────────────────────────────────────────────────────────
+  // ── Optional: managed AI (OpenRouter) ───────────────────────────────────────
   {
-    key: 'AI_GATEWAY_BASE_URL',
-    group: 'Optional',
+    key: 'AI_GATEWAY_PROVIDER',
+    group: 'Managed AI (https://openrouter.ai)',
     secret: false,
     milestone: 'optional',
-    where: 'LiteLLM/OpenAI-compatible proxy for the chat path (per-tenant keys live there)',
+    where: "'openrouter' (recommended) or 'litellm'; else sniffed from the base URL",
+    values: { development: '', staging: 'openrouter', production: 'openrouter' }
+  },
+  {
+    key: 'AI_GATEWAY_BASE_URL',
+    group: 'Managed AI (https://openrouter.ai)',
+    secret: false,
+    milestone: 'optional',
+    where: 'OpenAI-compatible gateway base; for OpenRouter: https://openrouter.ai/api/v1',
+    values: { development: '', staging: '', production: '' }
+  },
+  {
+    key: 'OPENROUTER_MANAGEMENT_KEY',
+    group: 'Managed AI (https://openrouter.ai)',
+    secret: true,
+    milestone: 'optional',
+    where:
+      'OpenRouter Provisioning API key (Settings → Provisioning API Keys) — mints each tenant a budgeted key',
     values: { development: '', staging: '', production: '' }
   },
   {
     key: 'LITELLM_MASTER_KEY',
-    group: 'Optional',
+    group: 'Managed AI (https://openrouter.ai)',
     secret: true,
     milestone: 'optional',
-    where: "LiteLLM admin key — lets the control plane mint each tenant's budgeted virtual key",
+    where:
+      "LiteLLM admin key — only if AI_GATEWAY_PROVIDER=litellm (mints each tenant's virtual key)",
     values: { development: '', staging: '', production: '' }
   },
   {
     key: 'AI_MARKUP',
-    group: 'Optional',
+    group: 'Managed AI (https://openrouter.ai)',
     secret: false,
     milestone: 'optional',
-    where: 'retail markup over provider token cost (default 1.25 = 25%); clamped to >= 1',
+    where:
+      'retail markup over provider token cost (default 1.3 = 30%, absorbs OpenRouter+Stripe fees); clamped to >= 1',
     values: { development: '', staging: '', production: '' }
   },
   {
     key: 'AI_ALLOWED_MODELS',
-    group: 'Optional',
+    group: 'Managed AI (https://openrouter.ai)',
     secret: false,
     milestone: 'optional',
-    where: 'comma-separated model allow-list for managed AI (blank = allow any the proxy serves)',
+    where:
+      'global model allow-list (comma-separated); blank = allow any. Per-plan gating is separate (entitlements aiModels)',
     values: { development: '', staging: '', production: '' }
   }
 ]

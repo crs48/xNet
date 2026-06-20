@@ -7,21 +7,29 @@ import { MemoryTenantStore } from './registry'
 
 const challenge = (did: string) => ({ did, nonce: 'n', signature: 'sig' })
 
-function build(opts: { aiKeys?: FakeVirtualKeyManager } = {}) {
+function build(
+  opts: {
+    aiKeys?: FakeVirtualKeyManager
+    managedAi?: { cloudUrl: string; internalSecret: string }
+  } = {}
+) {
   let clock = 1000
+  const provisioner = new MemoryProvisioner({
+    sharding: { projectPrefix: 'test', servicesPerProject: 800 }
+  })
+  const provision = vi.spyOn(provisioner, 'provision')
   const cp = new ControlPlane({
     tenants: new MemoryTenantStore(),
     bindings: new MemoryBindingStore(),
-    provisioner: new MemoryProvisioner({
-      sharding: { projectPrefix: 'test', servicesPerProject: 800 }
-    }),
+    provisioner,
     verifyDid: async (c) => Boolean(c.did && c.signature),
     planSecret: 'test-secret',
     defaultTargetVersion: 'xnet-hub@1.0.0',
     ...(opts.aiKeys ? { aiKeys: opts.aiKeys } : {}),
+    ...(opts.managedAi ? { managedAi: opts.managedAi } : {}),
     nowMs: () => clock
   })
-  return { cp, tick: (n: number) => (clock += n) }
+  return { cp, provision, tick: (n: number) => (clock += n) }
 }
 
 describe('ControlPlane.provisionTenant', () => {
@@ -152,6 +160,47 @@ describe('ControlPlane managed-AI key provisioning (0200)', () => {
     const record = await cp.provisionForBilling({ plan: 'demo', billingUserId: 'user_free' })
     expect(record.aiKeyRef).toBeUndefined()
     expect(aiKeys.list()).toHaveLength(0)
+  })
+
+  it('injects the managed-AI forwarder env into an AI-enabled hub (0208)', async () => {
+    const { cp, provision } = build({
+      aiKeys: new FakeVirtualKeyManager(),
+      managedAi: { cloudUrl: 'https://cloud.xnet.app', internalSecret: 'shh' }
+    })
+    await cp.provisionTenant({
+      tenantId: 'acme',
+      plan: 'personal',
+      billingUserId: 'user_a',
+      challenge: challenge('did:key:alice')
+    })
+    const env = provision.mock.calls[0]?.[0]?.env ?? {}
+    expect(env.XNET_CLOUD_URL).toBe('https://cloud.xnet.app')
+    expect(env.XNET_CLOUD_INTERNAL_SECRET).toBe('shh')
+    expect(env.XNET_TENANT_ID).toBe('acme')
+  })
+
+  it('does NOT inject forwarder env for an AI-off tenant (the tier stays hidden)', async () => {
+    const { cp, provision } = build({
+      aiKeys: new FakeVirtualKeyManager(),
+      managedAi: { cloudUrl: 'https://cloud.xnet.app', internalSecret: 'shh' }
+    })
+    await cp.provisionForBilling({ plan: 'demo', billingUserId: 'user_free' })
+    const env = provision.mock.calls[0]?.[0]?.env ?? {}
+    expect(env.XNET_CLOUD_URL).toBeUndefined()
+    expect(env.XNET_TENANT_ID).toBeUndefined()
+  })
+
+  it('omits forwarder env entirely when managedAi is not configured', async () => {
+    const { cp, provision } = build({ aiKeys: new FakeVirtualKeyManager() })
+    await cp.provisionTenant({
+      tenantId: 'acme',
+      plan: 'personal',
+      billingUserId: 'user_a',
+      challenge: challenge('did:key:alice')
+    })
+    const env = provision.mock.calls[0]?.[0]?.env ?? {}
+    expect(env.HUB_PLAN).toBeTruthy() // base env still present
+    expect(env.XNET_CLOUD_INTERNAL_SECRET).toBeUndefined()
   })
 
   it('updates the key budget on an in-tier plan flip', async () => {
