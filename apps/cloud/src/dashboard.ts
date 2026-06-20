@@ -132,7 +132,19 @@ function hubCard(tenant: TenantRecord): string {
         <div class="tile"><span class="tile-val" id="t-conns">—</span><span class="tile-lbl">connections</span></div>
         <div class="tile"><span class="tile-val" id="t-docs">—</span><span class="tile-lbl">documents</span></div>
         <div class="tile"><span class="tile-val" id="t-rooms">—</span><span class="tile-lbl">rooms</span></div>
+        <div class="tile"><span class="tile-val" id="t-latency">—</span><span class="tile-lbl">p95 latency</span></div>
         <div class="tile"><span class="tile-val" id="t-uptime">—</span><span class="tile-lbl">uptime (SLA window)</span></div>
+        <div class="tile"><span class="tile-val" id="t-mem">—</span><span class="tile-lbl">memory</span></div>
+      </div>
+      <div class="spark">
+        <svg id="spark-svg" viewBox="0 0 300 40" preserveAspectRatio="none" aria-hidden="true">
+          <polyline id="spark-line" fill="none" stroke="#4f46e5" stroke-width="2" points="" />
+        </svg>
+        <span class="muted spark-lbl">live connections · last <span id="spark-n">0</span> samples</span>
+      </div>
+      <div class="budget" id="budget-wrap" hidden>
+        <div class="budget-bar"><div class="budget-fill" id="budget-fill"></div></div>
+        <span class="muted" id="budget-lbl"></span>
       </div>`
       : ''
   return `
@@ -167,11 +179,35 @@ function liveScript(): string {
 (function(){
   var elTiles = document.getElementById('live-tiles');
   if (!elTiles) return;
+  var MAX = 30, hist = [];
   function set(id, v){ var el = document.getElementById(id); if (el && v != null) el.textContent = v; }
   function badge(state){
     var cls = state === 'active' ? 'badge-ok' : 'badge-warn';
     var label = state === 'active' ? 'Active' : state === 'sleeping' ? 'Sleeping' : 'Suspended';
     return '<span class="badge ' + cls + '">' + label + '</span>';
+  }
+  function mb(bytes){ return bytes != null ? Math.round(bytes / 1048576) + ' MB' : '—'; }
+  function spark(){
+    var line = document.getElementById('spark-line');
+    if (!line || !hist.length) return;
+    var max = Math.max(1, Math.max.apply(null, hist));
+    var pts = hist.map(function(v, i){
+      var x = hist.length > 1 ? (i / (hist.length - 1)) * 300 : 0;
+      var y = 38 - (v / max) * 36;
+      return x.toFixed(1) + ',' + y.toFixed(1);
+    }).join(' ');
+    line.setAttribute('points', pts);
+    set('spark-n', String(hist.length));
+  }
+  function budget(d){
+    var wrap = document.getElementById('budget-wrap');
+    if (!wrap || d.errorBudgetPct == null) return;
+    wrap.hidden = false;
+    var fill = document.getElementById('budget-fill');
+    var color = d.errorBudgetPolicy === 'freeze' ? '#ef4444' : d.errorBudgetPolicy === 'caution' ? '#fbbf24' : '#10b981';
+    fill.style.width = Math.max(0, Math.min(100, d.errorBudgetPct)) + '%';
+    fill.style.background = color;
+    set('budget-lbl', 'error budget ' + d.errorBudgetPct + '% · ' + (d.sloLabel || ''));
   }
   async function tick(){
     try {
@@ -182,9 +218,13 @@ function liveScript(): string {
       set('t-conns', d.connections ? (d.connections.active + ' / ' + d.connections.max) : (d.reachable ? '0' : '—'));
       set('t-docs', d.docs ? d.docs.total : '—');
       set('t-rooms', d.rooms != null ? d.rooms : '—');
+      set('t-latency', d.p95LatencyMs != null ? d.p95LatencyMs + ' ms' : '—');
       set('t-uptime', d.uptimePct != null ? d.uptimePct + '%' : '—');
+      set('t-mem', mb(d.memoryRssBytes));
       set('t-region', d.region);
       set('t-version', d.version);
+      if (d.connections) { hist.push(d.connections.active); if (hist.length > MAX) hist.shift(); spark(); }
+      budget(d);
     } catch (e) {}
   }
   tick();
@@ -285,6 +325,12 @@ const STYLE = `
   .tile { background: #0d0d12; border: 1px solid #1f1f27; border-radius: 10px; padding: 12px 14px; text-align: center; }
   .tile-val { display: block; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
   .tile-lbl { display: block; color: #9ca3af; font-size: 12px; margin-top: 2px; }
+  .spark { margin-bottom: 16px; }
+  .spark svg { width: 100%; height: 40px; display: block; background: #0d0d12; border: 1px solid #1f1f27; border-radius: 10px; }
+  .spark-lbl { display: block; font-size: 12px; margin-top: 6px; }
+  .budget { margin-bottom: 16px; }
+  .budget-bar { height: 8px; background: #1c1c24; border-radius: 999px; overflow: hidden; margin-bottom: 6px; }
+  .budget-fill { height: 100%; border-radius: 999px; transition: width 0.3s ease; }
 `
 
 /** Wrap inner HTML in the shared dark-themed document chrome. */
