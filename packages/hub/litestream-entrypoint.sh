@@ -37,9 +37,13 @@ if [ "$LITESTREAM" = "1" ] && [ -f "$CONFIG" ]; then
   echo "[entrypoint] Litestream enabled — restoring ${DATA_DIR}/hub.db from R2 replica"
   litestream restore -config "$CONFIG" -if-db-not-exists -if-replica-exists "${DATA_DIR}/hub.db"
   # Telemetry lives in a SEPARATE DB (exploration 0187). Restore it too when the
-  # operator's litestream.yml replicates it; harmless no-op if it has no replica.
+  # config replicates it — but tolerate its absence: a config that only backs up
+  # hub.db (e.g. the managed-hub config generated above) makes litestream exit
+  # non-zero with "database not found in config", which `set -e` would turn into a
+  # boot crash. Telemetry is operational/ephemeral, so skipping it is fine.
   echo "[entrypoint] restoring ${DATA_DIR}/telemetry.db from R2 replica (if configured)"
-  litestream restore -config "$CONFIG" -if-db-not-exists -if-replica-exists "${DATA_DIR}/telemetry.db"
+  litestream restore -config "$CONFIG" -if-db-not-exists -if-replica-exists "${DATA_DIR}/telemetry.db" \
+    || echo "[entrypoint] telemetry.db not in config — skipping its restore"
   echo "[entrypoint] starting hub under litestream replicate -exec"
   exec litestream replicate -config "$CONFIG" -exec "$HUB"
 fi
