@@ -27,6 +27,7 @@ dbs:
         endpoint: \${R2_ENDPOINT}
         bucket: \${R2_BUCKET}
         path: ${LITESTREAM_PATH}
+        region: auto
         access-key-id: \${R2_ACCESS_KEY_ID}
         secret-access-key: \${R2_SECRET_ACCESS_KEY}
         sync-interval: 1s
