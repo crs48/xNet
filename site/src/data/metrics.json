@@ -9,7 +9,12 @@
       "newCustomers": 6,
       "churnedCustomers": 0,
       "mrrUsd": 70,
-      "costs": { "infraUsd": 4, "payrollUsd": 1197, "saasUsd": 28, "otherUsd": 46 }
+      "costs": {
+        "infraUsd": 4,
+        "payrollUsd": 1197,
+        "saasUsd": 28,
+        "otherUsd": 46
+      }
     },
     {
       "week": "2026-04-13",
@@ -17,7 +22,12 @@
       "newCustomers": 5,
       "churnedCustomers": 0,
       "mrrUsd": 130,
-      "costs": { "infraUsd": 6, "payrollUsd": 1197, "saasUsd": 28, "otherUsd": 46 }
+      "costs": {
+        "infraUsd": 6,
+        "payrollUsd": 1197,
+        "saasUsd": 28,
+        "otherUsd": 46
+      }
     },
     {
       "week": "2026-04-20",
@@ -25,7 +35,12 @@
       "newCustomers": 8,
       "churnedCustomers": 1,
       "mrrUsd": 220,
-      "costs": { "infraUsd": 9, "payrollUsd": 1197, "saasUsd": 28, "otherUsd": 46 }
+      "costs": {
+        "infraUsd": 9,
+        "payrollUsd": 1197,
+        "saasUsd": 28,
+        "otherUsd": 46
+      }
     },
     {
       "week": "2026-04-27",
@@ -33,7 +48,12 @@
       "newCustomers": 10,
       "churnedCustomers": 1,
       "mrrUsd": 340,
-      "costs": { "infraUsd": 13, "payrollUsd": 1197, "saasUsd": 28, "otherUsd": 46 }
+      "costs": {
+        "infraUsd": 13,
+        "payrollUsd": 1197,
+        "saasUsd": 28,
+        "otherUsd": 46
+      }
     },
     {
       "week": "2026-05-04",
@@ -41,7 +61,12 @@
       "newCustomers": 13,
       "churnedCustomers": 1,
       "mrrUsd": 500,
-      "costs": { "infraUsd": 18, "payrollUsd": 1197, "saasUsd": 28, "otherUsd": 46 }
+      "costs": {
+        "infraUsd": 18,
+        "payrollUsd": 1197,
+        "saasUsd": 28,
+        "otherUsd": 46
+      }
     },
     {
       "week": "2026-05-11",
@@ -49,7 +74,12 @@
       "newCustomers": 17,
       "churnedCustomers": 2,
       "mrrUsd": 700,
-      "costs": { "infraUsd": 24, "payrollUsd": 1197, "saasUsd": 28, "otherUsd": 46 }
+      "costs": {
+        "infraUsd": 24,
+        "payrollUsd": 1197,
+        "saasUsd": 28,
+        "otherUsd": 46
+      }
     },
     {
       "week": "2026-05-18",
@@ -57,7 +87,12 @@
       "newCustomers": 20,
       "churnedCustomers": 2,
       "mrrUsd": 950,
-      "costs": { "infraUsd": 31, "payrollUsd": 1197, "saasUsd": 28, "otherUsd": 46 }
+      "costs": {
+        "infraUsd": 31,
+        "payrollUsd": 1197,
+        "saasUsd": 28,
+        "otherUsd": 46
+      }
     },
     {
       "week": "2026-05-25",
@@ -65,7 +100,12 @@
       "newCustomers": 25,
       "churnedCustomers": 2,
       "mrrUsd": 1280,
-      "costs": { "infraUsd": 40, "payrollUsd": 1197, "saasUsd": 28, "otherUsd": 46 }
+      "costs": {
+        "infraUsd": 40,
+        "payrollUsd": 1197,
+        "saasUsd": 28,
+        "otherUsd": 46
+      }
     },
     {
       "week": "2026-06-01",
@@ -73,7 +113,12 @@
       "newCustomers": 28,
       "churnedCustomers": 2,
       "mrrUsd": 1640,
-      "costs": { "infraUsd": 51, "payrollUsd": 1197, "saasUsd": 28, "otherUsd": 46 }
+      "costs": {
+        "infraUsd": 51,
+        "payrollUsd": 1197,
+        "saasUsd": 28,
+        "otherUsd": 46
+      }
     },
     {
       "week": "2026-06-08",
@@ -81,8 +126,24 @@
       "newCustomers": 34,
       "churnedCustomers": 3,
       "mrrUsd": 2080,
-      "costs": { "infraUsd": 63, "payrollUsd": 1197, "saasUsd": 28, "otherUsd": 46 }
+      "costs": {
+        "infraUsd": 63,
+        "payrollUsd": 1197,
+        "saasUsd": 28,
+        "otherUsd": 46
+      }
     }
   ],
-  "breakEven": { "reached": false }
+  "breakEven": {
+    "reached": false
+  },
+  "usage": {
+    "hubsHosted": 168,
+    "hubsHot": 121,
+    "documentsSynced": 48230,
+    "aiTokensTotal": 4216000,
+    "aiRequestsTotal": 9840,
+    "storageGb": 37.4,
+    "peopleOnPlatform": 412
+  }
 }

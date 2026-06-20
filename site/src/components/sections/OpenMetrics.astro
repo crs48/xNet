@@ -14,7 +14,8 @@ import {
   latestCostBreakdown,
   weekCost,
   metrics,
-  updated
+  updated,
+  usage
 } from '../../data/metrics'
 import { monthlyOpexTotal } from '../../data/opex'
 
@@ -61,6 +62,26 @@ const breakEvenCustomers = Math.ceil((monthlyCostRunRate / (latest.mrrUsd / late
 
 const fmtUsd = (n: number) => `$${n.toLocaleString('en-US')}`
 const sign = (n: number) => (n >= 0 ? `+${n}` : `${n}`)
+
+// Live usage/scale counters (exploration 0207). Compact notation for big totals
+// (48.2K docs, 4.2M tokens); only the cards we have data for are rendered.
+const compact = (n: number) =>
+  new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(n)
+const fmtGb = (gb: number) => (gb >= 1024 ? `${(gb / 1024).toFixed(1)} TB` : `${compact(gb)} GB`)
+
+const usageCards = usage
+  ? [
+      { label: 'Workspaces hosted', value: compact(usage.hubsHosted), sub: `${usage.hubsHot} live now` },
+      { label: 'Documents synced', value: compact(usage.documentsSynced), sub: 'across live hubs' },
+      ...(usage.storageGb !== undefined
+        ? [{ label: 'Data under management', value: fmtGb(usage.storageGb), sub: 'measured in R2' }]
+        : []),
+      ...(usage.peopleOnPlatform !== undefined
+        ? [{ label: 'People on xNet', value: compact(usage.peopleOnPlatform), sub: 'across all hubs' }]
+        : []),
+      { label: 'AI tokens metered', value: compact(usage.aiTokensTotal), sub: `${compact(usage.aiRequestsTotal)} requests` }
+    ]
+  : []
 ---
 
 <section class="mx-auto max-w-5xl px-6 py-12">
@@ -94,6 +115,23 @@ const sign = (n: number) => (n >= 0 ? `+${n}` : `${n}`)
       <div class="mt-1 text-sm text-neutral-500">incl. measured infra COGS</div>
     </div>
   </div>
+
+  {usageCards.length > 0 && (
+    <>
+      <h3 class="mb-4 text-sm font-medium uppercase tracking-wide text-neutral-500">
+        The product, at scale
+      </h3>
+      <div class="mb-12 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+        {usageCards.map((c) => (
+          <div class="rounded-xl border border-neutral-200 p-5 dark:border-neutral-800">
+            <div class="text-sm text-neutral-500">{c.label}</div>
+            <div class="mt-1 text-2xl font-semibold tabular-nums">{c.value}</div>
+            <div class="mt-1 text-xs text-neutral-500">{c.sub}</div>
+          </div>
+        ))}
+      </div>
+    </>
+  )}
 
   <!-- Growth charts -->
   <div class="mb-10 grid grid-cols-1 gap-6 lg:grid-cols-2">

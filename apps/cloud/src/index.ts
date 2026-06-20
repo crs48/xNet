@@ -122,12 +122,23 @@ export { currentPeriodStartMs } from './control-plane'
 export {
   buildCompanyMetrics,
   computeBreakEven,
+  gateUsage,
   type CompanyMetrics,
   type CompanyMetricsWeek,
   type BuildMetricsInput,
   type WeeklyInput,
-  type WeeklyOpex
+  type WeeklyOpex,
+  type UsageSnapshot
 } from './metrics/rollup'
+export {
+  collectUsage,
+  httpHubUsageProbe,
+  type CollectUsageDeps,
+  type HubUsageProbe,
+  type HubUsageStats,
+  type StorageUsageReader,
+  type UsageTenant
+} from './metrics/usage'
 export {
   GoogleCloudRunClient,
   cloudRunProvisionerFromEnv,

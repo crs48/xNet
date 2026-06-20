@@ -62,16 +62,45 @@ const weeks = input.weeks
   .sort((a, b) => (a.week < b.week ? -1 : 1))
 const dropped = before - weeks.length
 
+// Usage block (exploration 0207): fleet-wide aggregates only. Allow just the known
+// usage keys (so a stray per-tenant field can never ride along) and suppress the
+// whole block below the cohort floor — a "total GB stored" with a tiny fleet leaks
+// one customer's footprint.
+const USAGE_KEYS = new Set([
+  'hubsHosted',
+  'hubsHot',
+  'documentsSynced',
+  'aiTokensTotal',
+  'aiRequestsTotal',
+  'storageGb',
+  'peopleOnPlatform'
+])
+let usage = input.usage
+let usageDropped = false
+if (usage && typeof usage === 'object') {
+  for (const k of Object.keys(usage)) {
+    if (!USAGE_KEYS.has(k)) {
+      console.error(`Refusing to publish: usage block contains an unknown field "${k}".`)
+      process.exit(1)
+    }
+  }
+  if (Number(usage.hubsHosted) < input.cohortFloor) {
+    usage = undefined
+    usageDropped = true
+  }
+}
+
 const snapshot = {
   updated: input.updated ?? new Date().toISOString().slice(0, 10),
   cohortFloor: input.cohortFloor,
   ...(input.sample ? { sample: true } : {}),
   weeks,
-  breakEven: input.breakEven ?? { reached: false }
+  breakEven: input.breakEven ?? { reached: false },
+  ...(usage ? { usage } : {})
 }
 
 writeFileSync(OUT, `${JSON.stringify(snapshot, null, 2)}\n`)
 console.log(
-  `Wrote ${weeks.length} week(s) to ${OUT}${dropped ? ` (suppressed ${dropped} below the ${input.cohortFloor}-customer floor)` : ''}.`
+  `Wrote ${weeks.length} week(s) to ${OUT}${dropped ? ` (suppressed ${dropped} below the ${input.cohortFloor}-customer floor)` : ''}${usage ? ` + usage block` : usageDropped ? ` (usage suppressed below the floor)` : ''}.`
 )
 console.log('Next: commit the change and open a PR — the data lands publicly only after review.')
