@@ -20,6 +20,8 @@ export interface DashboardView {
   checkoutPlans: { id: PlanId; label: string; price: string }[]
   /** Whether checkout/portal are wired (a billing gateway is configured). */
   billingEnabled: boolean
+  /** Base URL of the hosted web app ("Open the app"). */
+  appUrl?: string
   /** Managed-AI spend for the current billing period (from the usage ledger). */
   aiUsage?: { usedUsd: number; includedUsd: number; budgetUsd: number }
 }
@@ -120,17 +122,49 @@ function hubCard(tenant: TenantRecord): string {
     ? `<code>${esc(tenant.hubUrl)}</code>`
     : `<span class="muted">suspended — re-subscribe to wake it</span>`
   const e = tenant.entitlements
+  // Live tiles are hydrated by pollLive() from /dashboard/live.json; the server
+  // render seeds them with placeholders so the card is useful even before the
+  // first poll (and if JS is off, the static dl below still tells the full story).
+  const live =
+    tenant.dataTier === 'hot' && tenant.subscriptionStatus !== 'canceled'
+      ? `
+      <div class="tiles" id="live-tiles">
+        <div class="tile"><span class="tile-val" id="t-conns">—</span><span class="tile-lbl">connections</span></div>
+        <div class="tile"><span class="tile-val" id="t-docs">—</span><span class="tile-lbl">documents</span></div>
+        <div class="tile"><span class="tile-val" id="t-rooms">—</span><span class="tile-lbl">rooms</span></div>
+        <div class="tile"><span class="tile-val" id="t-latency">—</span><span class="tile-lbl">p95 latency</span></div>
+        <div class="tile"><span class="tile-val" id="t-uptime">—</span><span class="tile-lbl">uptime (SLA window)</span></div>
+        <div class="tile"><span class="tile-val" id="t-mem">—</span><span class="tile-lbl">memory</span></div>
+      </div>
+      <div class="spark">
+        <svg id="spark-svg" viewBox="0 0 300 40" preserveAspectRatio="none" aria-hidden="true">
+          <polyline id="spark-line" fill="none" stroke="#4f46e5" stroke-width="2" points="" />
+        </svg>
+        <span class="muted spark-lbl">live connections · last <span id="spark-n">0</span> samples</span>
+      </div>
+      <div class="budget" id="storage-wrap" hidden>
+        <div class="budget-bar"><div class="budget-fill" id="storage-fill"></div></div>
+        <span class="muted" id="storage-lbl"></span>
+      </div>
+      <p class="muted" id="backup-lbl" style="margin:0 0 4px">Backups: continuous → R2 object storage</p>
+      <div class="budget" id="budget-wrap" hidden>
+        <div class="budget-bar"><div class="budget-fill" id="budget-fill"></div></div>
+        <span class="muted" id="budget-lbl"></span>
+      </div>`
+      : ''
   return `
     <div class="card">
-      <h2>Your hub ${status}</h2>
+      <h2>Your hub <span id="live-status">${status}</span></h2>
+      ${live}
       <dl>
         <div><dt>Plan</dt><dd>${esc(tenant.plan)}</dd></div>
         <div><dt>Endpoint</dt><dd>${reach}</dd></div>
-        <div><dt>Region</dt><dd>${esc(tenant.region || 'auto')}</dd></div>
-        <div><dt>Storage</dt><dd>${fmtBytes(e.quotaBytes)}</dd></div>
+        <div><dt>Region</dt><dd><span id="t-region">${esc(tenant.region || 'auto')}</span></dd></div>
+        <div><dt>Version</dt><dd><span id="t-version">${esc(tenant.targetVersion || '—')}</span></dd></div>
+        <div><dt>Storage quota</dt><dd>${fmtBytes(e.quotaBytes)}</dd></div>
         <div><dt>Seats</dt><dd>${e.seats}</dd></div>
-        <div><dt>Uptime</dt><dd>${esc(sloForPlan(tenant.plan).label)}</dd></div>
-        <div><dt>Backups</dt><dd>Continuous → object storage</dd></div>
+        <div><dt>SLA</dt><dd>${esc(sloForPlan(tenant.plan).label)}</dd></div>
+        <div><dt>Backups</dt><dd>Continuous → R2 object storage</dd></div>
         <div><dt>Data identity</dt><dd>${
           tenant.did
             ? `<code>${esc(tenant.did)}</code>`
@@ -140,13 +174,105 @@ function hubCard(tenant: TenantRecord): string {
     </div>`
 }
 
-function connectCard(tenant: TenantRecord): string {
+/**
+ * Client-side hydration: poll the live endpoint and update the hub tiles. Vanilla
+ * JS (no bundle) — re-renders status, connections, docs, rooms, uptime%, region,
+ * version every 10s. Degrades silently if the endpoint is unreachable.
+ */
+function liveScript(): string {
+  return `<script>
+(function(){
+  var elTiles = document.getElementById('live-tiles');
+  if (!elTiles) return;
+  var MAX = 30, hist = [];
+  function set(id, v){ var el = document.getElementById(id); if (el && v != null) el.textContent = v; }
+  function badge(state){
+    var cls = state === 'active' ? 'badge-ok' : 'badge-warn';
+    var label = state === 'active' ? 'Active' : state === 'sleeping' ? 'Sleeping' : 'Suspended';
+    return '<span class="badge ' + cls + '">' + label + '</span>';
+  }
+  function mb(bytes){ return bytes != null ? Math.round(bytes / 1048576) + ' MB' : '—'; }
+  function fmtBytes(b){
+    if (b == null) return '—';
+    var g = 1073741824, m = 1048576, k = 1024;
+    return b >= g ? (b/g).toFixed(1) + ' GB' : b >= m ? Math.round(b/m) + ' MB' : b >= k ? Math.round(b/k) + ' KB' : b + ' B';
+  }
+  function rel(ms){
+    if (ms == null) return 'never';
+    var s = Math.round((Date.now() - ms) / 1000);
+    if (s < 60) return s + 's ago';
+    var mm = Math.round(s / 60); if (mm < 60) return mm + 'm ago';
+    var h = Math.round(mm / 60); if (h < 24) return h + 'h ago';
+    return Math.round(h / 24) + 'd ago';
+  }
+  function storage(d){
+    var wrap = document.getElementById('storage-wrap');
+    if (wrap && d.storagePct != null) {
+      wrap.hidden = false;
+      var f = document.getElementById('storage-fill');
+      f.style.width = d.storagePct + '%';
+      f.style.background = d.storagePct >= 90 ? '#ef4444' : d.storagePct >= 70 ? '#fbbf24' : '#4f46e5';
+      set('storage-lbl', 'storage ' + fmtBytes(d.storageUsedBytes) + ' / ' + fmtBytes(d.storageQuotaBytes) + ' (' + d.storagePct + '%)');
+    }
+    var bl = document.getElementById('backup-lbl');
+    if (bl && d.backup) {
+      bl.textContent = (d.backup.replicating ? 'Backed up to R2 ✓ · ' : 'Backups off · ') + 'data as of ' + rel(d.backup.lastWriteMs);
+    }
+  }
+  function spark(){
+    var line = document.getElementById('spark-line');
+    if (!line || !hist.length) return;
+    var max = Math.max(1, Math.max.apply(null, hist));
+    var pts = hist.map(function(v, i){
+      var x = hist.length > 1 ? (i / (hist.length - 1)) * 300 : 0;
+      var y = 38 - (v / max) * 36;
+      return x.toFixed(1) + ',' + y.toFixed(1);
+    }).join(' ');
+    line.setAttribute('points', pts);
+    set('spark-n', String(hist.length));
+  }
+  function budget(d){
+    var wrap = document.getElementById('budget-wrap');
+    if (!wrap || d.errorBudgetPct == null) return;
+    wrap.hidden = false;
+    var fill = document.getElementById('budget-fill');
+    var color = d.errorBudgetPolicy === 'freeze' ? '#ef4444' : d.errorBudgetPolicy === 'caution' ? '#fbbf24' : '#10b981';
+    fill.style.width = Math.max(0, Math.min(100, d.errorBudgetPct)) + '%';
+    fill.style.background = color;
+    set('budget-lbl', 'error budget ' + d.errorBudgetPct + '% · ' + (d.sloLabel || ''));
+  }
+  async function tick(){
+    try {
+      var r = await fetch('/dashboard/live.json', { headers: { 'accept': 'application/json' } });
+      if (!r.ok) return;
+      var d = await r.json();
+      var st = document.getElementById('live-status'); if (st) st.innerHTML = badge(d.state);
+      set('t-conns', d.connections ? (d.connections.active + ' / ' + d.connections.max) : (d.reachable ? '0' : '—'));
+      set('t-docs', d.docs ? d.docs.total : '—');
+      set('t-rooms', d.rooms != null ? d.rooms : '—');
+      set('t-latency', d.p95LatencyMs != null ? d.p95LatencyMs + ' ms' : '—');
+      set('t-uptime', d.uptimePct != null ? d.uptimePct + '%' : '—');
+      set('t-mem', mb(d.memoryRssBytes));
+      set('t-region', d.region);
+      set('t-version', d.version);
+      if (d.connections) { hist.push(d.connections.active); if (hist.length > MAX) hist.shift(); spark(); }
+      storage(d);
+      budget(d);
+    } catch (e) {}
+  }
+  tick();
+  setInterval(tick, 10000);
+})();
+</script>`
+}
+
+function connectCard(tenant: TenantRecord, appUrl: string): string {
   if (tenant.did) {
     return `
       <div class="card">
         <h2>Connected</h2>
         <p class="muted">Your app is connected to this hub. Open xNet on any device and sign in with your passkey.</p>
-        <a class="btn" href="/app" target="_blank" rel="noopener">Open the app</a>
+        <a class="btn" href="${esc(appUrl)}" target="_blank" rel="noopener">Open the app</a>
       </div>`
   }
   return `
@@ -228,6 +354,16 @@ const STYLE = `
   .meter-fill { height: 100%; border-radius: 999px; transition: width 0.3s ease; }
   .meter-included { position: absolute; top: -2px; bottom: -2px; width: 2px; background: #6b7280; }
   .meter-legend { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 10px; margin-bottom: 18px; }
+  .tile { background: #0d0d12; border: 1px solid #1f1f27; border-radius: 10px; padding: 12px 14px; text-align: center; }
+  .tile-val { display: block; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .tile-lbl { display: block; color: #9ca3af; font-size: 12px; margin-top: 2px; }
+  .spark { margin-bottom: 16px; }
+  .spark svg { width: 100%; height: 40px; display: block; background: #0d0d12; border: 1px solid #1f1f27; border-radius: 10px; }
+  .spark-lbl { display: block; font-size: 12px; margin-top: 6px; }
+  .budget { margin-bottom: 16px; }
+  .budget-bar { height: 8px; background: #1c1c24; border-radius: 999px; overflow: hidden; margin-bottom: 6px; }
+  .budget-fill { height: 100%; border-radius: 999px; transition: width 0.3s ease; }
 `
 
 /** Wrap inner HTML in the shared dark-themed document chrome. */
@@ -250,8 +386,9 @@ function page(title: string, who: string, inner: string): string {
 /** Render the full dashboard HTML document. */
 export function renderDashboard(view: DashboardView): string {
   const who = view.email ?? view.billingUserId
+  const appUrl = view.appUrl ?? 'https://xnet.fyi/app'
   const body = view.tenant
-    ? `${hubCard(view.tenant)}${aiUsageCard(view, view.tenant)}${connectCard(view.tenant)}${planChangeCard(view, view.tenant)}${billingCard(view, view.tenant)}${dangerZone()}`
+    ? `${hubCard(view.tenant)}${aiUsageCard(view, view.tenant)}${connectCard(view.tenant, appUrl)}${planChangeCard(view, view.tenant)}${billingCard(view, view.tenant)}${dangerZone()}${liveScript()}`
     : `<div class="card">
          <h2>Welcome to xNet Cloud</h2>
          <p class="muted">Pick a plan to spin up your dedicated hub. You can change or cancel any time.</p>

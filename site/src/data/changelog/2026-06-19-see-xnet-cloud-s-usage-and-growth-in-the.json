@@ -1,0 +1,20 @@
+{
+  "id": "2026-06-19-see-xnet-cloud-s-usage-and-growth-in-the",
+  "date": "June 19, 2026",
+  "title": "See xNet Cloud's usage and growth in the open",
+  "summary": "The public /open dashboard now publishes live usage at scale — workspaces hosted, documents synced, data under management, people on the platform, and AI tokens metered — alongside the financials, all privacy-safe aggregates.",
+  "highlights": [
+    "New 'product, at scale' counters on /open",
+    "Aggregate-only and k-anon-gated below the cohort floor",
+    "Fed by a control-plane usage collector, published via the weekly snapshot"
+  ],
+  "tags": [
+    "platform"
+  ],
+  "pr": 218,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

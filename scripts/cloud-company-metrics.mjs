@@ -67,6 +67,29 @@ function itemMonthlyUsd(item) {
   return perMonthCents / 100
 }
 
+/**
+ * Live fleet usage totals (exploration 0207) from the control plane's internal
+ * endpoint, when pointed at one. Aggregate-only by construction; the publish gate
+ * re-applies the cohort floor. Returns undefined (carry the committed block forward)
+ * when not configured or unreachable, so the job stays green pre-launch.
+ */
+async function fetchUsage() {
+  const url = process.env.XNET_CLOUD_USAGE_URL
+  if (!url) return undefined
+  const secret = process.env.XNET_CLOUD_INTERNAL_SECRET
+  try {
+    const res = await fetch(url, { headers: secret ? { 'x-internal-secret': secret } : {} })
+    if (!res.ok) {
+      console.error(`usage fetch ${res.status}: carrying the committed usage block forward.`)
+      return undefined
+    }
+    return await res.json()
+  } catch (err) {
+    console.error(`usage fetch failed (${err.message}): carrying the committed usage block forward.`)
+    return undefined
+  }
+}
+
 const subs = await fetchActiveSubscriptions()
 const customers = new Set(subs.map((s) => s.customer)).size
 const mrrUsd = Math.round(
@@ -96,19 +119,24 @@ const row = {
 const weeks = [...prior.filter((w) => w.week !== week), row].sort((a, b) =>
   a.week < b.week ? -1 : 1
 )
+// Live usage when the control plane is reachable, else carry the committed block.
+const usage = (await fetchUsage()) ?? base.usage
 const snapshot = {
   updated: new Date().toISOString().slice(0, 10),
   cohortFloor: base.cohortFloor ?? 5,
   // NOTE: once these are real, drop `sample: true` from site/src/data/metrics.json.
   ...(base.sample ? { sample: true } : {}),
   weeks,
-  breakEven: base.breakEven ?? { reached: false }
+  breakEven: base.breakEven ?? { reached: false },
+  ...(usage ? { usage } : {})
 }
 
 const json = `${JSON.stringify(snapshot, null, 2)}\n`
 if (outArg) {
   writeFileSync(resolve(outArg), json)
-  console.error(`Wrote ${outArg} — week ${week}: ${customers} customers, $${mrrUsd} MRR.`)
+  console.error(
+    `Wrote ${outArg} — week ${week}: ${customers} customers, $${mrrUsd} MRR${usage ? `, ${usage.hubsHosted} hubs` : ''}.`
+  )
 } else {
   process.stdout.write(json)
 }

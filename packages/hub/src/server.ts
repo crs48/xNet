@@ -22,6 +22,7 @@ import {
   removeSession,
   toAuthContext
 } from './auth/ucan'
+import { measureDataUsage, type DataUsage } from './data-usage'
 import { aiForwarderFeature } from './features/ai-forwarder'
 import { billingFeature, tasksFeature, unfurlFeature } from './features/first-party'
 import { mountFeatures } from './features/registry'
@@ -703,9 +704,21 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     }
   }
 
+  // On-disk usage is cached (a recursive size walk shouldn't run on every poll —
+  // /health is hit by the control-plane probe + the dashboard). 30s is plenty.
+  let usageCache: { at: number; usage: DataUsage } | null = null
+  const dataUsage = (): DataUsage => {
+    const nowMs = Date.now()
+    if (usageCache && nowMs - usageCache.at < 30_000) return usageCache.usage
+    const usage = measureDataUsage(config.dataDir)
+    usageCache = { at: nowMs, usage }
+    return usage
+  }
+
   app.get('/health', (c) => {
     const poolStats = pool.getStats()
     const rlStats = rateLimiter.getStats()
+    const usage = dataUsage()
     return c.json({
       status: 'ok',
       uptime: Math.floor((Date.now() - startTime) / 1000),
@@ -717,6 +730,10 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
         rss: process.memoryUsage().rss,
         heapUsed: process.memoryUsage().heapUsed
       },
+      // Data footprint + a "data as of" signal (exploration 0207). With continuous
+      // Litestream replication the R2 replica is ≤ sync-interval behind lastWriteMs.
+      storage: { usedBytes: usage.usedBytes },
+      backup: { replicating: process.env.LITESTREAM === '1', lastWriteMs: usage.lastWriteMs },
       platform: config.runtime?.platform ?? 'unknown',
       region: config.runtime?.region,
       machineId: config.runtime?.machineId,

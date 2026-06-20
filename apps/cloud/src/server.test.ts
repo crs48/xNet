@@ -84,6 +84,37 @@ describe('control-plane HTTP API', () => {
     expect(missing.status).toBe(404)
   })
 
+  it('serves an aggregate-only usage snapshot for the /open dashboard', async () => {
+    const billing = new MemoryBillingIdentityProvider('https://auth.test/authorize')
+    const { controlPlane } = buildControlPlane({ billing })
+    await controlPlane.provisionForBilling({ plan: 'personal', billingUserId: 'user_a' })
+    const a = createControlPlaneApp({
+      controlPlane,
+      billing,
+      internalSecret: INTERNAL,
+      usageHubStats: {
+        async stats() {
+          return { documents: 7 }
+        }
+      }
+    })
+
+    const forbidden = await a.request('/internal/metrics/usage')
+    expect(forbidden.status).toBe(403)
+
+    const res = await a.request('/internal/metrics/usage', {
+      headers: { 'x-internal-secret': INTERNAL }
+    })
+    expect(res.status).toBe(200)
+    const usage = (await res.json()) as Record<string, unknown>
+    expect(usage.hubsHosted).toBeGreaterThanOrEqual(1)
+    expect(usage.documentsSynced).toBe((usage.hubsHot as number) * 7)
+    expect(usage.aiTokensTotal).toBe(0) // no managed AI configured → empty ledger
+    // Aggregate-only: structurally cannot carry a tenant id or hub url.
+    expect(usage).not.toHaveProperty('tenantId')
+    expect(usage).not.toHaveProperty('hubUrl')
+  })
+
   it('rejects malformed provisioning input', async () => {
     const res = await app().request('/internal/tenants', {
       method: 'POST',

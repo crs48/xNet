@@ -21,6 +21,21 @@ export interface CompanyMetricsWeek {
   costs: { infraUsd: number; payrollUsd: number; saasUsd: number; otherUsd: number }
 }
 
+/**
+ * Fleet-wide usage/scale totals (exploration 0207). Mirrors `UsageSnapshot` in
+ * `apps/cloud/src/metrics/rollup.ts`; every field is a fleet aggregate, never
+ * per-tenant, and the whole block is suppressed below `cohortFloor` upstream.
+ */
+export interface UsageSnapshot {
+  hubsHosted: number
+  hubsHot: number
+  documentsSynced: number
+  aiTokensTotal: number
+  aiRequestsTotal: number
+  storageGb?: number
+  peopleOnPlatform?: number
+}
+
 export interface CompanyMetrics {
   updated: string
   cohortFloor: number
@@ -28,12 +43,15 @@ export interface CompanyMetrics {
   sample?: boolean
   weeks: CompanyMetricsWeek[]
   breakEven: { reached: boolean; targetWeek?: string }
+  /** Live usage totals; absent until the fleet clears the cohort floor. */
+  usage?: UsageSnapshot
 }
 
 export const metrics = raw as CompanyMetrics
 export const weeks = metrics.weeks
 export const latest = weeks[weeks.length - 1]
 export const first = weeks[0]
+export const usage = metrics.usage
 
 /** Total monthly-ish cost for a week (all categories). */
 export const weekCost = (w: CompanyMetricsWeek): number =>
