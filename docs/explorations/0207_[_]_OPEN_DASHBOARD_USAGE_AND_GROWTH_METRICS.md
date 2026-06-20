@@ -533,35 +533,42 @@ sequenceDiagram
 
 ## Implementation Checklist
 
+> **Status (this PR):** Tier 0 shipped end to end. The Tier 1/2 *contracts,
+> publish gate, collector seams, and dashboard rendering* are in place
+> (`storageGb` / `peopleOnPlatform` render when present); what remains for those
+> tiers is the real measurement adapter (R2 `ListObjects`) and hub-reported
+> membership.
+
 ### Tier 0 — publish what we already measure (no new infra)
-- [ ] Add `UsageSnapshot` + optional `usage` to `CompanyMetrics` in [`apps/cloud/src/metrics/rollup.ts`](../../apps/cloud/src/metrics/rollup.ts) and mirror the interface in [`site/src/data/metrics.ts`](../../site/src/data/metrics.ts).
-- [ ] Add `apps/cloud/src/metrics/usage.ts` `collectUsage()` aggregating `listTenants()`, the ledger, and the hub `/health.docs.total` (reuse the SLI loop's last sample, not a new probe).
-- [ ] Surface `collectUsage` output through the existing `/internal/metrics/*` admin surface (gated by `internalSecret`).
-- [ ] Extend [`scripts/cloud-company-metrics.mjs`](../../scripts/cloud-company-metrics.mjs) to fetch the usage block (control-plane admin endpoint, or compute hubs/AI directly) and attach it to the snapshot.
-- [ ] Harden [`scripts/cloud-metrics-rollup.mjs`](../../scripts/cloud-metrics-rollup.mjs): usage-key allowlist + suppress `usage` below `cohortFloor`.
-- [ ] Add a headline-counter row + (optional) weekly usage growth chart to [`site/src/components/sections/OpenMetrics.astro`](../../site/src/components/sections/OpenMetrics.astro); keep the inline-SVG, no-library approach.
-- [ ] Seed `usage` (with `sample: true`) into [`site/src/data/metrics.json`](../../site/src/data/metrics.json) so the page renders before billing is live.
-- [ ] Unit tests for `collectUsage` and `gateUsage` (k-anon suppression, empty fleet, partial-probe-failure tolerance) — mirror [`apps/cloud/src/metrics/rollup.test.ts`](../../apps/cloud/src/metrics/rollup.test.ts).
+- [x] Add `UsageSnapshot` + optional `usage` to `CompanyMetrics` in [`apps/cloud/src/metrics/rollup.ts`](../../apps/cloud/src/metrics/rollup.ts) and mirror the interface in [`site/src/data/metrics.ts`](../../site/src/data/metrics.ts).
+- [x] Add [`apps/cloud/src/metrics/usage.ts`](../../apps/cloud/src/metrics/usage.ts) `collectUsage()` aggregating `listTenants()`, the ledger, and each hot hub's `/health.docs.total` (`httpHubUsageProbe`, hot-only).
+- [x] Surface `collectUsage` output through `GET /internal/metrics/usage` (gated by `internalSecret`) in [`apps/cloud/src/server.ts`](../../apps/cloud/src/server.ts).
+- [x] Extend [`scripts/cloud-company-metrics.mjs`](../../scripts/cloud-company-metrics.mjs) to fetch the usage block (`XNET_CLOUD_USAGE_URL`) and attach it, else carry the committed block forward.
+- [x] Harden [`scripts/cloud-metrics-rollup.mjs`](../../scripts/cloud-metrics-rollup.mjs): usage-key allowlist + suppress `usage` below `cohortFloor`.
+- [x] Add a headline-counter row ("the product, at scale") to [`site/src/components/sections/OpenMetrics.astro`](../../site/src/components/sections/OpenMetrics.astro); inline, no-library. _(Weekly usage growth charts deferred — no historical backfill yet.)_
+- [x] Seed `usage` (with `sample: true`) into [`site/src/data/metrics.json`](../../site/src/data/metrics.json) so the page renders before billing is live.
+- [x] Unit tests for `collectUsage`/`gateUsage`/`httpHubUsageProbe` + the route (k-anon, empty fleet, partial-probe tolerance, cold-hub skip) in [`usage.test.ts`](../../apps/cloud/src/metrics/usage.test.ts) + [`server.test.ts`](../../apps/cloud/src/server.test.ts).
 
 ### Tier 1 — measured GB stored + real infra margin
-- [ ] Add an R2 `ListObjects` collector summing `t/{tenantId}/` bytes per tenant → `storageBytes`.
-- [ ] Feed `storageBytes` (+ `hotDbBytes`, `activeHours`) into `measuredCogs()` ([`packages/cloud/src/cost/reconcile.ts`](../../packages/cloud/src/cost/reconcile.ts)) so weekly `infraUsd` is **measured**, replacing the carried-forward value in the collector.
-- [ ] Publish `usage.storageGb` and add a "Data under management" counter + growth chart.
-- [ ] Add a **gross-margin %** line to the break-even card now that COGS is real.
+- [x] Define the `StorageUsageReader` port + thread `storageGb` through the collector, gate, and dashboard (renders when present). _(Contract + seam.)_
+- [ ] Implement the R2 `ListObjects` adapter summing `t/{tenantId}/` bytes per tenant → wire as `usageStorage` in `start()`.
+- [ ] Feed `storageBytes` (+ `hotDbBytes`, `activeHours`) into `measuredCogs()` ([`packages/cloud/src/cost/reconcile.ts`](../../packages/cloud/src/cost/reconcile.ts)) so weekly `infraUsd` is **measured**, replacing the carried-forward value.
+- [ ] Add a **gross-margin %** line to the break-even card once COGS is real.
 
 ### Tier 2 — real "people on xNet"
-- [ ] Extend hub `/health` (or a new `internalSecret`-gated `/admin/usage`) to report `memberCount` + `nodeCount` (wire `nodeCount()` from [`packages/canvas/src/store.ts`](../../packages/canvas/src/store.ts)).
-- [ ] Aggregate distinct active members across hot hubs → `usage.peopleOnPlatform`; add the counter and a "data per workspace" derived stat.
+- [x] Thread `peopleOnPlatform` through the collector (`HubUsageProbe.members`), gate, and dashboard (renders when present). _(Contract + seam.)_
+- [ ] Extend hub `/health` (or a new `internalSecret`-gated `/admin/usage`) to report `members` + `nodeCount` (wire `nodeCount()` from [`packages/canvas/src/store.ts`](../../packages/canvas/src/store.ts)).
+- [ ] Add a "data per workspace" derived stat alongside the people counter.
 
 ## Validation Checklist
-- [ ] With `sample: true`, the page shows usage counters under the existing "illustrative figures" banner and never implies they are real.
-- [ ] With a synthetic fleet of <5 hubs, the publish gate **drops the entire `usage` block** (k-anon) and the page degrades gracefully (no broken cards).
-- [ ] `cloud-metrics-rollup.mjs` rejects an unknown usage key and any per-customer field; CI/unit test covers both.
-- [ ] A dry-run weekly job produces a `metrics.json` diff containing only aggregate usage fields — verified by reviewing the opened PR (the transparency log holds).
-- [ ] Tier 1: published `storageGb` reconciles (±tolerance) against an independent R2 bucket-size readout; `infraUsd` is no longer identical week-over-week (proof it's measured, not carried).
-- [ ] Collector tolerates partial hub-probe failures (one hub down ⇒ its docs omitted, not a crashed rollup).
-- [ ] No new fan-out probe wakes cold hubs (verified: hot/cold split unchanged after a collection run).
-- [ ] `pnpm exec vitest run --project unit apps/cloud/src/metrics` green; site builds; `/open` renders in the preview with the new row.
+- [x] With `sample: true`, the page shows usage counters under the existing "illustrative figures" banner and never implies they are real.
+- [x] With a synthetic fleet of <5 hubs, the publish gate **drops the entire `usage` block** (k-anon) and the page degrades gracefully (no broken cards).
+- [x] `cloud-metrics-rollup.mjs` rejects an unknown usage key and any per-customer field; covered by the gate run + unit tests.
+- [x] A dry-run of the publish gate produces a `metrics.json` diff containing only aggregate usage fields (drove the real `cloud-metrics-rollup.mjs` path).
+- [ ] Tier 1: published `storageGb` reconciles (±tolerance) against an independent R2 bucket-size readout; `infraUsd` is no longer identical week-over-week (proof it's measured, not carried). _(Pending the R2 adapter.)_
+- [x] Collector tolerates partial hub-probe failures (one hub down ⇒ its docs omitted, not a crashed rollup).
+- [x] No new fan-out probe wakes cold hubs (collector filters to `dataTier === 'hot'`; covered by a test).
+- [x] `pnpm exec vitest run --project unit apps/cloud` green (144 tests); `astro build` green; `/open` renders the counter row (168 workspaces, 48.2K docs, 37.4 GB, 412 people, 4.2M tokens).
 
 ## References
 
