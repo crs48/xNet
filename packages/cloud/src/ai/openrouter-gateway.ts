@@ -58,9 +58,12 @@ export class OpenRouterGatewayClient implements ChatGateway {
       },
       body: JSON.stringify({
         model: req.model,
+        // Model-layer fallback: OpenRouter tries these in order on the primary's
+        // failure (context overflow, moderation, rate-limit, downtime).
+        ...(req.fallbackModels?.length ? { models: [req.model, ...req.fallbackModels] } : {}),
         messages: req.messages,
-        // Ask OpenRouter to include `usage.cost` (and cached/reasoning token detail).
-        usage: { include: true },
+        // `usage.cost` (and cached/reasoning token detail) is now always returned;
+        // the legacy `usage: { include: true }` flag is deprecated and a no-op.
         ...(req.maxTokens ? { max_tokens: req.maxTokens } : {}),
         ...(req.mockResponse !== undefined ? { mock_response: req.mockResponse } : {})
       })

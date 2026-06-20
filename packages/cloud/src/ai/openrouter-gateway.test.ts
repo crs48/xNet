@@ -18,7 +18,9 @@ describe('OpenRouterGatewayClient', () => {
       expect(headers['x-title']).toBe('xNet Cloud')
       const body = JSON.parse(String(init?.body))
       expect(body.model).toBe('anthropic/claude-sonnet-4-6')
-      expect(body.usage).toEqual({ include: true }) // ask OpenRouter for cost
+      // usage.cost is always returned now — the deprecated `usage:{include:true}` is gone.
+      expect(body.usage).toBeUndefined()
+      expect(body.models).toBeUndefined() // no fallback requested
       return orResponse({
         choices: [{ message: { content: 'hi there' } }],
         model: 'anthropic/claude-sonnet-4-6',
@@ -40,6 +42,30 @@ describe('OpenRouterGatewayClient', () => {
     expect(res.text).toBe('hi there')
     expect(res.usage).toEqual({ inputTokens: 30, outputTokens: 12, totalTokens: 42 })
     expect(res.providerCostUsd).toBeCloseTo(0.000123, 8)
+  })
+
+  it('sends a models[] array (primary first) when fallbacks are given', async () => {
+    let sentBody: Record<string, unknown> = {}
+    const fetchImpl = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      sentBody = JSON.parse(String(init?.body))
+      return orResponse({
+        choices: [{ message: { content: 'ok' } }],
+        model: 'openai/gpt-4o', // a fallback actually served
+        usage: { prompt_tokens: 1, completion_tokens: 1, total_tokens: 2, cost: 0.0001 }
+      })
+    }) as unknown as typeof fetch
+    const client = new OpenRouterGatewayClient({
+      baseUrl: 'https://openrouter.ai/api/v1',
+      fetchImpl
+    })
+    const res = await client.chat({
+      virtualKey: 'k',
+      model: 'anthropic/claude-sonnet-4-6',
+      fallbackModels: ['openai/gpt-4o'],
+      messages: [{ role: 'user', content: 'hi' }]
+    })
+    expect(sentBody.models).toEqual(['anthropic/claude-sonnet-4-6', 'openai/gpt-4o'])
+    expect(res.model).toBe('openai/gpt-4o') // the served model is reported back
   })
 
   it('omits providerCostUsd when the upstream does not report a cost', async () => {

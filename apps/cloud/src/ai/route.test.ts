@@ -158,6 +158,27 @@ describe('POST /ai/chat', () => {
     expect(res.status).toBe(400)
     expect((await res.json()).error).toBe('model_not_allowed')
   })
+
+  it('forwards only the plan-permitted fallback models to the gateway', async () => {
+    let seen: string[] | undefined
+    const gw: ChatGateway = {
+      async chat(r) {
+        seen = r.fallbackModels
+        return fakeGateway().chat(r)
+      }
+    }
+    const { app } = makeApp({
+      gateway: gw,
+      resolve: tenant({ aiModels: ['claude-sonnet', 'openai/gpt-4o'] })
+    })
+    // 'anthropic/claude-opus-4-8' is outside the policy → dropped from the fallbacks.
+    const res = await post(
+      app,
+      chatBody({ fallbackModels: ['openai/gpt-4o', 'anthropic/claude-opus-4-8'] })
+    )
+    expect(res.status).toBe(200)
+    expect(seen).toEqual(['openai/gpt-4o'])
+  })
 })
 
 describe('GET /ai/models', () => {

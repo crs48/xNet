@@ -22,6 +22,14 @@ export interface ChatRequest {
   virtualKey: string
   model: string
   messages: ChatMessage[]
+  /**
+   * Same-tier fallback models tried in order if `model` is unavailable (context
+   * overflow, moderation, rate-limit, downtime). OpenRouter takes these as its
+   * `models: [primary, ...fallbacks]` array; metering still charges off whatever
+   * `usage.cost` the served model returns, and `ChatResult.model` says which ran.
+   * Ignored by upstreams without model-fallback support (LiteLLM). (Exploration 0208.)
+   */
+  fallbackModels?: string[]
   maxTokens?: number
   /** LiteLLM passthrough: return this canned text instead of calling a provider (tests/CI). */
   mockResponse?: string

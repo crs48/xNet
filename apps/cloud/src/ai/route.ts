@@ -67,6 +67,8 @@ export interface AiChatDeps {
 
 interface AiChatBody {
   model?: string
+  /** Optional same-tier fallback models (OpenRouter model-layer failover). */
+  fallbackModels?: string[]
   messages?: ChatMessage[]
   sessionId?: string
   requestId?: string
@@ -118,6 +120,10 @@ export function createAiRoute(deps: AiChatDeps): Hono {
           virtualKey: t.virtualKey,
           model,
           messages: body.messages,
+          // Only forward fallbacks the plan also permits (defense-in-depth).
+          ...(body.fallbackModels?.length
+            ? { fallbackModels: body.fallbackModels.filter((m) => aiModelAllowed(t.aiModels, m)) }
+            : {}),
           ...(body.maxTokens ? { maxTokens: body.maxTokens } : {}),
           ...(body.mockResponse !== undefined ? { mockResponse: body.mockResponse } : {})
         }
