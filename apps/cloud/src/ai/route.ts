@@ -13,6 +13,7 @@
  */
 
 import type { Context } from 'hono'
+import type { ModelCard } from './models'
 import {
   aiBudgetStatus,
   BudgetExceededError,
@@ -24,6 +25,7 @@ import {
   type TokenPricing,
   type UsageLedger
 } from '@xnetjs/cloud'
+import { aiModelAllowed } from '@xnetjs/entitlements'
 import { Hono } from 'hono'
 
 /** Everything the route needs to know about the calling tenant. */
@@ -39,6 +41,13 @@ export interface AiTenantContext {
   includedUsd: number
   /** Start of the current billing period (ms) — scopes the budget to the month. */
   periodStartMs: number
+  /**
+   * Models this tenant's plan may pick (OpenRouter ids). `'all'`/undefined ⇒ any
+   * model the gateway serves. Gates both `/ai/chat` and the `/ai/models` catalog.
+   */
+  aiModels?: 'all' | readonly string[]
+  /** The model used when a chat request omits one (the plan's default). */
+  defaultModel?: string
 }
 
 export interface AiChatDeps {
@@ -49,8 +58,10 @@ export interface AiChatDeps {
   pricingFor: (model: string) => TokenPricing
   /** Authenticate + resolve the calling tenant, or null for unauthorized. */
   resolveTenant: (c: Context) => Promise<AiTenantContext | null>
-  /** Models the managed gateway will serve; omit to allow any. */
+  /** Models the managed gateway will serve; omit to allow any. A global cap on top of the plan policy. */
   allowedModels?: string[]
+  /** The OpenRouter model catalog (cached), powering `GET /ai/models`. Omit to disable the route. */
+  modelCatalog?: () => Promise<ModelCard[]>
   timestampMs?: () => number
 }
 
@@ -73,11 +84,17 @@ export function createAiRoute(deps: AiChatDeps): Hono {
     if (!t) return c.json({ error: 'unauthorized' }, 401)
 
     const body = (await c.req.json().catch(() => ({}))) as AiChatBody
-    if (!body.model || !Array.isArray(body.messages) || body.messages.length === 0) {
+    // Fall back to the plan's default model when the client omits one.
+    const model = body.model ?? t.defaultModel
+    if (!model || !Array.isArray(body.messages) || body.messages.length === 0) {
       return c.json({ error: 'bad_request' }, 400)
     }
-    if (deps.allowedModels && !deps.allowedModels.includes(body.model)) {
-      return c.json({ error: 'model_not_allowed', model: body.model }, 400)
+    // Two gates: the global env allow-list (operator cap) and the per-plan policy.
+    if (deps.allowedModels && !deps.allowedModels.includes(model)) {
+      return c.json({ error: 'model_not_allowed', model }, 400)
+    }
+    if (!aiModelAllowed(t.aiModels, model)) {
+      return c.json({ error: 'model_not_allowed', model }, 400)
     }
 
     const gateway = new MeteredGateway({
@@ -99,7 +116,7 @@ export function createAiRoute(deps: AiChatDeps): Hono {
         key,
         request: {
           virtualKey: t.virtualKey,
-          model: body.model,
+          model,
           messages: body.messages,
           ...(body.maxTokens ? { maxTokens: body.maxTokens } : {}),
           ...(body.mockResponse !== undefined ? { mockResponse: body.mockResponse } : {})
@@ -128,6 +145,36 @@ export function createAiRoute(deps: AiChatDeps): Hono {
       }
       throw err
     }
+  })
+
+  // The plan-gated model catalog that drives the client's model picker. The cards
+  // are the cached OpenRouter catalog intersected with the tenant's `aiModels`
+  // policy; when the catalog is unavailable but the plan names models, we still
+  // return id-only cards so the picker is never empty.
+  app.get('/ai/models', async (c) => {
+    const t = await deps.resolveTenant(c)
+    if (!t) return c.json({ error: 'unauthorized' }, 401)
+
+    const policy = t.aiModels ?? 'all'
+    const all = deps.modelCatalog ? await deps.modelCatalog().catch(() => []) : []
+    const globalCap = deps.allowedModels ? new Set(deps.allowedModels) : null
+    let models = all.filter(
+      (m) => aiModelAllowed(policy, m.id) && (globalCap === null || globalCap.has(m.id))
+    )
+    if (models.length === 0 && Array.isArray(policy)) {
+      models = policy
+        .filter((id) => globalCap === null || globalCap.has(id))
+        .map((id) => ({
+          id,
+          name: id,
+          family: id.split('/')[0] ?? id,
+          inUsdPerM: null,
+          outUsdPerM: null,
+          contextLength: null,
+          modality: null
+        }))
+    }
+    return c.json({ models, defaultModel: t.defaultModel ?? null })
   })
 
   return app

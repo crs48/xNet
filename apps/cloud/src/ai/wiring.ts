@@ -28,6 +28,7 @@ import {
 } from '@xnetjs/cloud'
 import Stripe from 'stripe'
 import { currentPeriodStartMs } from '../control-plane'
+import { createModelCatalog } from './models'
 import { pricingFromEnv } from './pricing'
 
 /**
@@ -115,7 +116,14 @@ function tenantResolver(
         record.entitlements.aiMonthlyBudgetUsd
       ),
       includedUsd: record.entitlements.includedAiUsd,
-      periodStartMs: currentPeriodStartMs(nowMs())
+      periodStartMs: currentPeriodStartMs(nowMs()),
+      // Plan-driven model switching: which models this tenant may pick + the default.
+      ...(record.entitlements.aiModels !== undefined
+        ? { aiModels: record.entitlements.aiModels }
+        : {}),
+      ...(record.entitlements.aiDefaultModel !== undefined
+        ? { defaultModel: record.entitlements.aiDefaultModel }
+        : {})
     }
   }
 }
@@ -138,12 +146,20 @@ export function aiChatDepsFromEnv(
         .map((m) => m.trim())
         .filter(Boolean)
     : undefined
+  // The model picker is driven by OpenRouter's live catalog; on LiteLLM there is
+  // no such endpoint, so the catalog (and the picker's price/context badges) is
+  // OpenRouter-only — the route then falls back to id-only cards from the plan policy.
+  const catalog =
+    aiGatewayProvider(env) === 'openrouter'
+      ? createModelCatalog({ baseUrl: env.AI_GATEWAY_BASE_URL })
+      : undefined
   return {
     gateway: gatewayFromEnv(env, env.AI_GATEWAY_BASE_URL),
     ledger,
     billing: billingFromEnv(env),
     pricingFor: pricingFromEnv(env),
     resolveTenant: tenantResolver(env, controlPlane, nowMs),
-    ...(allowedModels ? { allowedModels } : {})
+    ...(allowedModels ? { allowedModels } : {}),
+    ...(catalog ? { modelCatalog: () => catalog.get() } : {})
   }
 }

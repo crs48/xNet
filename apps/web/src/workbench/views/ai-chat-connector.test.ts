@@ -5,12 +5,17 @@ import {
   baseUrlFromDetail,
   canSendMessage,
   errorMessage,
+  fetchManagedModels,
+  formatModelOption,
+  groupModelsByFamily,
   isUsableTier,
   KNOWN_BRIDGE_AGENTS,
   parseBridgeHealth,
+  parseModelsResponse,
   pickUsableConnector,
   providerConfigForConnector,
-  reduceRuntimeEvent
+  reduceRuntimeEvent,
+  type ManagedModel
 } from './ai-chat-connector'
 
 const det = (over: Partial<ConnectorDetection>): ConnectorDetection => ({
@@ -90,6 +95,74 @@ describe('providerConfigForConnector', () => {
   it('returns null for in-tab tiers (constructed with an injected engine)', () => {
     expect(providerConfigForConnector(det({ tier: 'webllm' }), {})).toBeNull()
     expect(providerConfigForConnector(det({ tier: 'prompt-api' }), {})).toBeNull()
+  })
+})
+
+describe('managed model catalog helpers', () => {
+  it('parses a /ai/models body and narrows malformed entries', () => {
+    const result = parseModelsResponse({
+      models: [
+        {
+          id: 'anthropic/claude-sonnet-4-6',
+          name: 'Claude Sonnet 4.6',
+          family: 'anthropic',
+          inUsdPerM: 3,
+          outUsdPerM: 15,
+          contextLength: 200000,
+          modality: 'text->text'
+        },
+        { id: 'openai/gpt-4o-mini', inUsdPerM: 'nope' }, // bad price → null, family derived
+        { name: 'no id' } // dropped
+      ],
+      defaultModel: 'anthropic/claude-sonnet-4-6'
+    })
+    expect(result.models.map((m) => m.id)).toEqual([
+      'anthropic/claude-sonnet-4-6',
+      'openai/gpt-4o-mini'
+    ])
+    expect(result.models[1]).toMatchObject({
+      family: 'openai',
+      inUsdPerM: null,
+      name: 'openai/gpt-4o-mini'
+    })
+    expect(result.defaultModel).toBe('anthropic/claude-sonnet-4-6')
+  })
+
+  it('returns an empty result for garbage', () => {
+    expect(parseModelsResponse(null)).toEqual({ models: [], defaultModel: null })
+    expect(parseModelsResponse({ models: 'x' })).toEqual({ models: [], defaultModel: null })
+  })
+
+  it('fetchManagedModels hits /ai/models with credentials and degrades to empty', async () => {
+    const ok = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ models: [{ id: 'a/b' }], defaultModel: null }), {
+          status: 200
+        })
+    ) as unknown as typeof fetch
+    const res = await fetchManagedModels('https://hub', ok)
+    expect(res.models).toHaveLength(1)
+    const [url, init] = (ok as unknown as ReturnType<typeof vi.fn>).mock.calls[0]
+    expect(url).toBe('https://hub/ai/models')
+    expect((init as RequestInit).credentials).toBe('include')
+
+    const bad = vi.fn(async () => new Response('', { status: 500 })) as unknown as typeof fetch
+    expect(await fetchManagedModels('', bad)).toEqual({ models: [], defaultModel: null })
+  })
+
+  it('formats a picker label with price + context and groups by family', () => {
+    const sonnet: ManagedModel = {
+      id: 'anthropic/claude-sonnet-4-6',
+      name: 'Claude Sonnet 4.6',
+      family: 'anthropic',
+      inUsdPerM: 3,
+      outUsdPerM: 15,
+      contextLength: 200000,
+      modality: null
+    }
+    expect(formatModelOption(sonnet)).toBe('Claude Sonnet 4.6 · $3/$15 per Mtok · 200k ctx')
+    const grouped = groupModelsByFamily([sonnet, { ...sonnet, id: 'openai/x', family: 'openai' }])
+    expect(grouped.map(([family]) => family)).toEqual(['anthropic', 'openai'])
   })
 })
 

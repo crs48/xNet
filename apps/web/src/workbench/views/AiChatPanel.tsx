@@ -40,13 +40,17 @@ import {
   baseUrlFromDetail,
   canSendMessage,
   errorMessage,
+  fetchManagedModels,
+  formatModelOption,
+  groupModelsByFamily,
   KNOWN_BRIDGE_AGENTS,
   parseBridgeHealth,
   pickUsableConnector,
   providerConfigForConnector,
   type AiChatSettings,
   type BridgeHealth,
-  type CloudProvider
+  type CloudProvider,
+  type ManagedModel
 } from './ai-chat-connector'
 import { AI_SYSTEM_PROMPT, formatContextMessages } from './ai-context'
 import { schemaRegistryApi } from './ai-schemas'
@@ -94,6 +98,7 @@ export function AiChatPanel() {
   const [bridgeRefresh, setBridgeRefresh] = useState(0)
   const [model, setModel] = useState(() => readSetting(AI_CHAT_STORAGE_KEYS.model))
   const [budget, setBudget] = useState<ManagedBudgetSnapshot | null>(null)
+  const [managedModels, setManagedModels] = useState<ManagedModel[]>([])
 
   const runtimeRef = useRef<AiAgentRuntime | null>(null)
   const threadIdRef = useRef<string | null>(null)
@@ -173,6 +178,28 @@ export function AiChatPanel() {
       cancelled = true
     }
   }, [bridgeBaseUrl, bridgeRefresh])
+
+  // Managed: load the plan-gated model catalog so the picker is data-driven, and
+  // preselect the plan's default model when the user hasn't chosen one.
+  const managedActive = selected?.tier === 'managed' && selected.available
+  useEffect(() => {
+    if (!managedActive) {
+      setManagedModels([])
+      return
+    }
+    let cancelled = false
+    void fetchManagedModels(settings.hubBaseUrl ?? '').then(({ models, defaultModel }) => {
+      if (cancelled) return
+      setManagedModels(models)
+      if (!readSetting(AI_CHAT_STORAGE_KEYS.model) && defaultModel) {
+        setModel(defaultModel)
+        writeSetting(AI_CHAT_STORAGE_KEYS.model, defaultModel)
+      }
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [managedActive, settings.hubBaseUrl])
 
   // Switch the running agent — only possible where a control channel exists
   // (the Electron preload bridge); the web daemon is launched with a fixed agent.
@@ -269,6 +296,7 @@ export function AiChatPanel() {
       {selected?.tier === 'managed' && selected.available && (
         <ManagedControls
           model={model}
+          models={managedModels}
           budget={budget}
           onModel={(value) => {
             setModel(value)
@@ -502,22 +530,46 @@ function CloudKeyFields({
 
 function ManagedControls({
   model,
+  models,
   budget,
   onModel
 }: {
   model: string
+  models: ManagedModel[]
   budget: ManagedBudgetSnapshot | null
   onModel: (value: string) => void
 }) {
+  const groups = groupModelsByFamily(models)
   return (
     <div className="flex flex-col gap-1.5 border-b border-hairline px-3 py-2">
-      <input
-        value={model}
-        placeholder="Model (e.g. anthropic/claude-sonnet-4-6 · blank = auto)"
-        aria-label="Managed AI model"
-        onChange={(event) => onModel(event.target.value)}
-        className="min-w-0 rounded-md border border-hairline bg-surface-0 px-2 py-1 text-[11px] text-ink-1 outline-none placeholder:text-ink-3"
-      />
+      {groups.length > 0 ? (
+        <select
+          value={model}
+          aria-label="Managed AI model"
+          onChange={(event) => onModel(event.target.value)}
+          className="min-w-0 rounded-md border border-hairline bg-surface-0 px-2 py-1 text-[11px] text-ink-1 outline-none"
+        >
+          {!model && <option value="">Choose a model…</option>}
+          {groups.map(([family, familyModels]) => (
+            <optgroup key={family} label={family}>
+              {familyModels.map((m) => (
+                <option key={m.id} value={m.id}>
+                  {formatModelOption(m)}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+      ) : (
+        // No catalog (e.g. an 'all' plan on a non-OpenRouter gateway) → free text.
+        <input
+          value={model}
+          placeholder="Model (e.g. anthropic/claude-sonnet-4-6 · blank = auto)"
+          aria-label="Managed AI model"
+          onChange={(event) => onModel(event.target.value)}
+          className="min-w-0 rounded-md border border-hairline bg-surface-0 px-2 py-1 text-[11px] text-ink-1 outline-none placeholder:text-ink-3"
+        />
+      )}
       {budget ? (
         <BudgetGauge budget={budget} />
       ) : (
@@ -532,7 +584,8 @@ function ManagedControls({
 
 /** The "used / included / cap" gauge a managed call reports back. */
 function BudgetGauge({ budget }: { budget: ManagedBudgetSnapshot }) {
-  const pct = budget.budgetUsd > 0 ? Math.min(100, (budget.spendThisPeriodUsd / budget.budgetUsd) * 100) : 0
+  const pct =
+    budget.budgetUsd > 0 ? Math.min(100, (budget.spendThisPeriodUsd / budget.budgetUsd) * 100) : 0
   const tone =
     budget.budgetState === 'over-cap' || budget.budgetState === 'near-cap'
       ? 'bg-amber-500'

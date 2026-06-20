@@ -69,9 +69,45 @@ export interface PlanEntitlements {
    * surprise-bill guard promised on the pricing page. `0` = AI off.
    */
   aiMonthlyBudgetUsd: number
+  /**
+   * Which managed-AI models (OpenRouter `provider/model` ids) this plan may pick.
+   * `'all'` = the whole gated catalog; an array gates to those ids; `undefined`
+   * defaults to `'all'` for backward compatibility. Cheaper plans get a cheaper
+   * subset so a small included allotment can't be spent in one frontier call
+   * (exploration 0208). Enforced at the `/ai/chat` route, not just the client.
+   */
+  aiModels?: 'all' | readonly string[]
+  /** The model preselected in the picker for this plan (an OpenRouter id). */
+  aiDefaultModel?: string
   /** ISO region the tenant's data is pinned to (enterprise residency); undefined = unpinned. */
   residency?: string
   sla: SlaLevel
+}
+
+/**
+ * Curated managed-AI model tiers (OpenRouter ids). `cheap` keeps a small plan's
+ * included allotment from evaporating in one call; `standard` adds the mid/strong
+ * models; bigger plans get the whole catalog (`'all'`). `openrouter/auto` lets a
+ * user defer the choice to OpenRouter's best-value router.
+ */
+export const CHEAP_AI_MODELS: readonly string[] = [
+  'openrouter/auto',
+  'anthropic/claude-haiku-4-5',
+  'openai/gpt-4o-mini',
+  'google/gemini-2.5-flash'
+]
+
+export const STANDARD_AI_MODELS: readonly string[] = [
+  ...CHEAP_AI_MODELS,
+  'anthropic/claude-sonnet-4-6',
+  'openai/gpt-4o',
+  'google/gemini-2.5-pro'
+]
+
+/** Is `model` permitted by an `aiModels` policy? `'all'`/`undefined` ⇒ any model. */
+export function aiModelAllowed(policy: PlanEntitlements['aiModels'], model: string): boolean {
+  if (policy === undefined || policy === 'all') return true
+  return policy.includes(model)
 }
 
 /** The default entitlements for each plan tier. */
@@ -98,6 +134,8 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     aiEnabled: true,
     includedAiUsd: 2,
     aiMonthlyBudgetUsd: 25,
+    aiModels: CHEAP_AI_MODELS,
+    aiDefaultModel: 'anthropic/claude-haiku-4-5',
     sla: 'best-effort'
   },
   family: {
@@ -110,6 +148,8 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     aiEnabled: true,
     includedAiUsd: 5,
     aiMonthlyBudgetUsd: 60,
+    aiModels: STANDARD_AI_MODELS,
+    aiDefaultModel: 'anthropic/claude-sonnet-4-6',
     sla: 'best-effort'
   },
   team: {
@@ -122,6 +162,8 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     aiEnabled: true,
     includedAiUsd: 8,
     aiMonthlyBudgetUsd: 200,
+    aiModels: 'all',
+    aiDefaultModel: 'anthropic/claude-sonnet-4-6',
     sla: 'best-effort'
   },
   community: {
@@ -134,6 +176,8 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     aiEnabled: true,
     includedAiUsd: 10,
     aiMonthlyBudgetUsd: 300,
+    aiModels: 'all',
+    aiDefaultModel: 'anthropic/claude-sonnet-4-6',
     sla: '99.9'
   },
   company: {
@@ -146,6 +190,8 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     aiEnabled: true,
     includedAiUsd: 15,
     aiMonthlyBudgetUsd: 500,
+    aiModels: 'all',
+    aiDefaultModel: 'anthropic/claude-sonnet-4-6',
     sla: '99.9'
   },
   enterprise: {
@@ -158,6 +204,8 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     aiEnabled: true,
     includedAiUsd: 25,
     aiMonthlyBudgetUsd: 2000,
+    aiModels: 'all',
+    aiDefaultModel: 'anthropic/claude-opus-4-8',
     sla: 'custom'
   }
 }
@@ -223,6 +271,26 @@ export function withAiBudget(
     throw new Error(`aiMonthlyBudgetUsd must be >= includedAiUsd, got ${aiMonthlyBudgetUsd}`)
   }
   return { ...entitlements, includedAiUsd, aiMonthlyBudgetUsd, aiEnabled: aiMonthlyBudgetUsd > 0 }
+}
+
+/**
+ * Set the managed-AI model policy and (optional) default model — an in-place
+ * entitlement flip, no migration. The default, when given, must be permitted by
+ * the policy so the picker never preselects a model the route will reject.
+ */
+export function withAiModels(
+  entitlements: PlanEntitlements,
+  aiModels: 'all' | readonly string[],
+  aiDefaultModel?: string
+): PlanEntitlements {
+  if (aiDefaultModel !== undefined && !aiModelAllowed(aiModels, aiDefaultModel)) {
+    throw new Error(`aiDefaultModel ${aiDefaultModel} is not permitted by the model policy`)
+  }
+  return {
+    ...entitlements,
+    aiModels,
+    ...(aiDefaultModel !== undefined ? { aiDefaultModel } : {})
+  }
 }
 
 /** Raise the concurrency ceiling — an in-place entitlement flip, no migration. */

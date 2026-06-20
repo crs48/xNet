@@ -129,6 +129,92 @@ export function baseUrlFromDetail(detail: string | undefined): string | undefine
   return /^https?:\/\//.test(detail) ? detail : undefined
 }
 
+// ─── Managed model catalog (the model picker) ───────────────────────────────────
+
+/** One selectable managed model, as `GET /ai/models` returns it. */
+export interface ManagedModel {
+  id: string
+  name: string
+  family: string
+  inUsdPerM: number | null
+  outUsdPerM: number | null
+  contextLength: number | null
+  modality: string | null
+}
+
+export interface ManagedModelsResult {
+  models: ManagedModel[]
+  defaultModel: string | null
+}
+
+const asNumberOrNull = (value: unknown): number | null =>
+  typeof value === 'number' && Number.isFinite(value) ? value : null
+
+/** Parse a `GET /ai/models` body into a typed, defensively-narrowed result. */
+export function parseModelsResponse(data: unknown): ManagedModelsResult {
+  if (!data || typeof data !== 'object') return { models: [], defaultModel: null }
+  const record = data as Record<string, unknown>
+  const raw = Array.isArray(record.models) ? record.models : []
+  const models: ManagedModel[] = raw.flatMap((entry) => {
+    if (!entry || typeof entry !== 'object') return []
+    const m = entry as Record<string, unknown>
+    if (typeof m.id !== 'string') return []
+    return [
+      {
+        id: m.id,
+        name: typeof m.name === 'string' ? m.name : m.id,
+        family: typeof m.family === 'string' ? m.family : (m.id.split('/')[0] ?? m.id),
+        inUsdPerM: asNumberOrNull(m.inUsdPerM),
+        outUsdPerM: asNumberOrNull(m.outUsdPerM),
+        contextLength: asNumberOrNull(m.contextLength),
+        modality: typeof m.modality === 'string' ? m.modality : null
+      }
+    ]
+  })
+  return {
+    models,
+    defaultModel: typeof record.defaultModel === 'string' ? record.defaultModel : null
+  }
+}
+
+/** Fetch the plan-gated managed model catalog; `[]` on any error (the picker hides). */
+export async function fetchManagedModels(
+  baseUrl: string,
+  fetchImpl: typeof fetch = fetch
+): Promise<ManagedModelsResult> {
+  try {
+    const res = await fetchImpl(`${baseUrl}/ai/models`, { credentials: 'include' })
+    if (!res.ok) return { models: [], defaultModel: null }
+    return parseModelsResponse(await res.json())
+  } catch {
+    return { models: [], defaultModel: null }
+  }
+}
+
+/** A compact picker label: name + "$in/$out per Mtok" + context when known. */
+export function formatModelOption(model: ManagedModel): string {
+  const price =
+    model.inUsdPerM !== null && model.outUsdPerM !== null
+      ? ` · $${trimPrice(model.inUsdPerM)}/$${trimPrice(model.outUsdPerM)} per Mtok`
+      : ''
+  const context = model.contextLength ? ` · ${Math.round(model.contextLength / 1000)}k ctx` : ''
+  return `${model.name}${price}${context}`
+}
+
+const trimPrice = (usdPerM: number): string =>
+  usdPerM >= 1 ? usdPerM.toFixed(2).replace(/\.00$/, '') : usdPerM.toFixed(2)
+
+/** Group models by family for an `<optgroup>`-style picker, families sorted. */
+export function groupModelsByFamily(models: readonly ManagedModel[]): [string, ManagedModel[]][] {
+  const groups = new Map<string, ManagedModel[]>()
+  for (const model of models) {
+    const list = groups.get(model.family) ?? []
+    list.push(model)
+    groups.set(model.family, list)
+  }
+  return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b))
+}
+
 // ─── Bridge status (which agent the local bridge is driving) ────────────────────
 
 export interface BridgeAgentOption {
