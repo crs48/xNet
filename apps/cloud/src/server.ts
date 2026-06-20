@@ -12,6 +12,7 @@
  */
 
 import type { ControlPlane } from './control-plane'
+import type { UsageLedger } from '@xnetjs/cloud/billing'
 import type { BillingIdentityProvider, DidChallenge } from '@xnetjs/cloud/identity'
 import type { PlanId } from '@xnetjs/entitlements'
 import type { Context } from 'hono'
@@ -27,6 +28,12 @@ import {
   renderPlanChangeNotice
 } from './dashboard'
 import { MemoryDeviceGrantStore, isExpired, type DeviceGrantStore } from './device-grant'
+import {
+  collectUsage,
+  httpHubUsageProbe,
+  type HubUsageProbe,
+  type StorageUsageReader
+} from './metrics/usage'
 import { fleetSummary, tenantSli, type HealthSampleStore } from './observability/health'
 import { publicStatus } from './observability/status'
 import { SESSION_COOKIE, readSession, sealSession, type SessionData } from './session'
@@ -52,6 +59,10 @@ export interface ControlPlaneAppDeps {
   marketingUrl?: string
   /** Shared secret for internal routes; if unset, internal routes are disabled. */
   internalSecret?: string
+  /** Optional bulk-storage reader (R2) for the `/open` usage snapshot's GB-stored (Tier 1). */
+  usageStorage?: StorageUsageReader
+  /** Optional per-hub usage probe; defaults to GETting each hot hub's `/health`. */
+  usageHubStats?: HubUsageProbe
   /** Injectable clock for deterministic tests. */
   nowMs?: () => number
 }
@@ -63,6 +74,16 @@ interface ProvisionBody {
   challenge?: DidChallenge
   overrides?: Record<string, unknown>
   region?: string
+}
+
+/** Stand-in ledger when managed AI isn't configured — usage AI totals read as zero. */
+const EMPTY_USAGE_LEDGER: UsageLedger = {
+  async totalChargeUsd() {
+    return 0
+  },
+  async entries() {
+    return []
+  }
 }
 
 /** Plans offered for self-serve checkout (free demo + contract enterprise excluded). */
@@ -416,6 +437,21 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
       cold: tenants.length - live.length,
       tenants: slis
     })
+  })
+
+  // Public usage/scale totals for the marketing `/open` dashboard (exploration 0207).
+  // Aggregate-only by construction — `collectUsage` emits fleet sums, never a tenant
+  // id — and the weekly publish gate re-applies the cohort floor before anything lands
+  // in the committed snapshot. Probes only hot hubs (cold ones would cold-start).
+  app.get('/internal/metrics/usage', async (c) => {
+    if (!requireInternal(c)) return c.json({ error: 'forbidden' }, 403)
+    const usage = await collectUsage({
+      listTenants: () => deps.controlPlane.listTenants(),
+      ledger: deps.ai?.ledger ?? EMPTY_USAGE_LEDGER,
+      hubStats: deps.usageHubStats ?? httpHubUsageProbe(),
+      ...(deps.usageStorage ? { storage: deps.usageStorage } : {})
+    })
+    return c.json(usage)
   })
 
   app.post('/internal/account/recover', async (c) => {

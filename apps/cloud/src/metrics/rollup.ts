@@ -44,6 +44,30 @@ export interface CompanyMetricsWeek {
   costs: { infraUsd: number; payrollUsd: number; saasUsd: number; otherUsd: number }
 }
 
+/**
+ * Fleet-wide usage/scale totals for the `/open` dashboard (exploration 0207).
+ * Every field is an aggregate over the whole fleet — never per-tenant — so the
+ * snapshot stays as un-identifying as the financial rollup. The block as a whole
+ * is suppressed below the cohort floor (see {@link gateUsage}); the collector that
+ * fills it lives in `usage.ts`.
+ */
+export interface UsageSnapshot {
+  /** Total provisioned tenants (hot + cold) — "workspaces hosted". */
+  hubsHosted: number
+  /** Tenants with a live hub right now. */
+  hubsHot: number
+  /** Documents synced across live hubs (Σ each hub's `/health` `docs.total`). */
+  documentsSynced: number
+  /** AI tokens metered through the gateway (input + output) for the period/all-time. */
+  aiTokensTotal: number
+  /** AI requests metered (ledger entry count). */
+  aiRequestsTotal: number
+  /** Gigabytes under management (Tier 1 — present once storage is measured). */
+  storageGb?: number
+  /** Distinct people across hubs (Tier 2 — present once hubs report membership). */
+  peopleOnPlatform?: number
+}
+
 export interface CompanyMetrics {
   /** ISO date this snapshot was produced. */
   updated: string
@@ -51,6 +75,8 @@ export interface CompanyMetrics {
   cohortFloor: number
   weeks: CompanyMetricsWeek[]
   breakEven: { reached: boolean; targetWeek?: string }
+  /** Live fleet usage totals; omitted when below the cohort floor. */
+  usage?: UsageSnapshot
 }
 
 export interface BuildMetricsInput {
@@ -58,6 +84,17 @@ export interface BuildMetricsInput {
   cohortFloor: number
   weekly: WeeklyInput[]
   opex: WeeklyOpex[]
+  /** Live usage totals to publish alongside the weeks (k-anon-gated on output). */
+  usage?: UsageSnapshot
+}
+
+/**
+ * k-anonymity for the usage block: only publish fleet totals once enough hubs
+ * exist to hide any single tenant's footprint (a "total GB stored" with one or two
+ * customers reveals one customer's data size). Returns `undefined` to suppress.
+ */
+export function gateUsage(usage: UsageSnapshot, cohortFloor: number): UsageSnapshot | undefined {
+  return usage.hubsHosted >= cohortFloor ? usage : undefined
 }
 
 const round = (n: number): number => Math.round(n * 100) / 100
@@ -111,10 +148,13 @@ export function buildCompanyMetrics(input: BuildMetricsInput): CompanyMetrics {
       }
     })
 
+  const usage = input.usage ? gateUsage(input.usage, input.cohortFloor) : undefined
+
   return {
     updated: input.updated,
     cohortFloor: input.cohortFloor,
     weeks,
-    breakEven: computeBreakEven(weeks)
+    breakEven: computeBreakEven(weeks),
+    ...(usage ? { usage } : {})
   }
 }
