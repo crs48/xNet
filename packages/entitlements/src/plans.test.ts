@@ -1,11 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import {
+  CHEAP_AI_MODELS,
   PLAN_CATALOG,
   PLAN_ORDER,
+  aiModelAllowed,
   asPlanId,
   requiresMigration,
   resolveEntitlements,
   withAiBudget,
+  withAiModels,
   withConcurrency,
   withSeats,
   withStorage
@@ -41,6 +44,43 @@ describe('PLAN_CATALOG', () => {
       // The hard cap is always at least the included (free first tier) amount.
       expect(ent.aiMonthlyBudgetUsd).toBeGreaterThanOrEqual(ent.includedAiUsd)
     }
+  })
+
+  it('every AI-enabled plan has a default model permitted by its own policy', () => {
+    for (const plan of PLAN_ORDER) {
+      const ent = PLAN_CATALOG[plan]
+      if (!ent.aiEnabled) continue
+      expect(ent.aiDefaultModel).toBeDefined()
+      expect(aiModelAllowed(ent.aiModels, ent.aiDefaultModel as string)).toBe(true)
+    }
+  })
+
+  it('gates cheaper plans to the cheap subset and gives bigger plans the whole catalog', () => {
+    expect(PLAN_CATALOG.personal.aiModels).toBe(CHEAP_AI_MODELS)
+    expect(PLAN_CATALOG.company.aiModels).toBe('all')
+    // A frontier model is rejected on a small plan but allowed on a big one.
+    expect(aiModelAllowed(PLAN_CATALOG.personal.aiModels, 'anthropic/claude-opus-4-8')).toBe(false)
+    expect(aiModelAllowed(PLAN_CATALOG.company.aiModels, 'anthropic/claude-opus-4-8')).toBe(true)
+  })
+})
+
+describe('aiModelAllowed / withAiModels', () => {
+  it("treats 'all' and undefined as permitting any model", () => {
+    expect(aiModelAllowed('all', 'anything/at-all')).toBe(true)
+    expect(aiModelAllowed(undefined, 'anything/at-all')).toBe(true)
+  })
+
+  it('gates to an explicit allowlist', () => {
+    expect(aiModelAllowed(['a/b'], 'a/b')).toBe(true)
+    expect(aiModelAllowed(['a/b'], 'c/d')).toBe(false)
+  })
+
+  it('sets the policy + default, rejecting a default outside the policy', () => {
+    const base = PLAN_CATALOG.personal
+    const updated = withAiModels(base, ['a/b', 'c/d'], 'c/d')
+    expect(updated.aiModels).toEqual(['a/b', 'c/d'])
+    expect(updated.aiDefaultModel).toBe('c/d')
+    expect(() => withAiModels(base, ['a/b'], 'z/z')).toThrow(/not permitted/)
   })
 })
 

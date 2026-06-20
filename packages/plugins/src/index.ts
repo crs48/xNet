@@ -403,6 +403,9 @@ export {
   OllamaProvider,
   OpenAICompatibleProvider,
   AIProviderRouter,
+  ManagedProvider,
+  createManagedProvider,
+  AiBudgetError,
   createAIProvider,
   createAIProviderRouter,
   isOllamaAvailable,
@@ -457,6 +460,8 @@ export type {
   AIToolSpec,
   AIUsage,
   OpenAICompatibleProviderOptions,
+  ManagedProviderOptions,
+  ManagedBudgetSnapshot,
   // Generator types
   AIScriptResponse,
   ScriptGeneratorOptions,

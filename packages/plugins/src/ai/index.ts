@@ -13,6 +13,9 @@ export {
   OllamaProvider,
   OpenAICompatibleProvider,
   AIProviderRouter,
+  ManagedProvider,
+  createManagedProvider,
+  AiBudgetError,
   createAIProvider,
   createAIProviderRouter,
   isOllamaAvailable,
@@ -22,6 +25,8 @@ export {
 export type {
   AIComplexityLevel,
   AICostModel,
+  ManagedProviderOptions,
+  ManagedBudgetSnapshot,
   AIGenerateRequest,
   AIGenerateResponse,
   AIMessage,

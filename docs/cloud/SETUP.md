@@ -212,6 +212,29 @@ dashboard; the response carries a `budgetState` (`included`/`overage`/`near-cap`
 default). Validate against the live gateway with a `mock_response` call once
 deployed.
 
+### 3a-bis. Managed AI in the app — model switching + the hub forwarder (0208)
+
+The control plane also serves `GET /ai/models` (the OpenRouter catalog, cached,
+intersected with the tenant's plan policy) so the app can show a **model picker**.
+Per-plan model gating lives in the entitlements (`aiModels` / `aiDefaultModel` on
+`PlanEntitlements`) — cheaper plans get a cheaper subset, bigger plans the whole
+catalog — and rides the signed `HUB_PLAN` token like the budget fields.
+
+For the app's chat panel to use metered managed AI (no key in the browser), each
+**hub** forwards `/ai/chat` + `/ai/models` to the control plane via the
+`aiForwarderFeature`. Set these on the hub (injected server-side; never reach the
+client):
+
+```bash
+XNET_CLOUD_URL=https://<control-plane-host>     # where /ai/chat lives
+XNET_CLOUD_INTERNAL_SECRET=<same secret the control plane checks>
+XNET_TENANT_ID=<this hub's tenant id>
+```
+
+Unset on a self-hosted hub ⇒ `GET /ai/health` reports `managed:false`, the app's
+`managed` connector tier hides, and BYO-key stays the path (anti-lock-in). The
+client never holds a provider key; the hub adds `x-internal-secret` + `x-tenant-id`.
+
 ### 3b. Run-the-company-in-public metrics — the `/open` page
 
 The marketing site renders `site/src/data/metrics.json` (committed; the git

@@ -20,6 +20,8 @@ export interface AiChatSettings {
   model?: string
   /** Base URL override for the local-server tier. */
   localBaseUrl?: string
+  /** Hub base URL for the managed tier (default `''` = same origin). */
+  hubBaseUrl?: string
 }
 
 /** localStorage keys (xnet:* convention). */
@@ -34,6 +36,7 @@ export const AI_CHAT_STORAGE_KEYS = {
 
 /** Connector tiers that resolve to a `createAIProvider` config (vs. in-tab). */
 export const PROVIDER_CONFIG_TIERS: readonly ConnectorTier[] = [
+  'managed',
   'cloud-key',
   'local-server',
   'bridge'
@@ -73,6 +76,17 @@ export function providerConfigForConnector(
   settings: AiChatSettings
 ): AIProviderConfig | null {
   switch (detection.tier) {
+    case 'managed': {
+      // No key and no base-URL typing: the hub is the origin and injects the
+      // per-tenant credential. The model comes from the picker / plan default.
+      return {
+        type: 'managed',
+        options: {
+          baseUrl: settings.hubBaseUrl ?? '',
+          ...(settings.model ? { model: settings.model } : {})
+        }
+      }
+    }
     case 'cloud-key': {
       if (!settings.apiKey) return null
       const type = settings.cloudProvider ?? 'anthropic'
@@ -113,6 +127,92 @@ export function baseUrlFromDetail(detail: string | undefined): string | undefine
   const match = detail.match(/\((https?:\/\/[^)]+)\)/)
   if (match) return match[1]
   return /^https?:\/\//.test(detail) ? detail : undefined
+}
+
+// ─── Managed model catalog (the model picker) ───────────────────────────────────
+
+/** One selectable managed model, as `GET /ai/models` returns it. */
+export interface ManagedModel {
+  id: string
+  name: string
+  family: string
+  inUsdPerM: number | null
+  outUsdPerM: number | null
+  contextLength: number | null
+  modality: string | null
+}
+
+export interface ManagedModelsResult {
+  models: ManagedModel[]
+  defaultModel: string | null
+}
+
+const asNumberOrNull = (value: unknown): number | null =>
+  typeof value === 'number' && Number.isFinite(value) ? value : null
+
+/** Parse a `GET /ai/models` body into a typed, defensively-narrowed result. */
+export function parseModelsResponse(data: unknown): ManagedModelsResult {
+  if (!data || typeof data !== 'object') return { models: [], defaultModel: null }
+  const record = data as Record<string, unknown>
+  const raw = Array.isArray(record.models) ? record.models : []
+  const models: ManagedModel[] = raw.flatMap((entry) => {
+    if (!entry || typeof entry !== 'object') return []
+    const m = entry as Record<string, unknown>
+    if (typeof m.id !== 'string') return []
+    return [
+      {
+        id: m.id,
+        name: typeof m.name === 'string' ? m.name : m.id,
+        family: typeof m.family === 'string' ? m.family : (m.id.split('/')[0] ?? m.id),
+        inUsdPerM: asNumberOrNull(m.inUsdPerM),
+        outUsdPerM: asNumberOrNull(m.outUsdPerM),
+        contextLength: asNumberOrNull(m.contextLength),
+        modality: typeof m.modality === 'string' ? m.modality : null
+      }
+    ]
+  })
+  return {
+    models,
+    defaultModel: typeof record.defaultModel === 'string' ? record.defaultModel : null
+  }
+}
+
+/** Fetch the plan-gated managed model catalog; `[]` on any error (the picker hides). */
+export async function fetchManagedModels(
+  baseUrl: string,
+  fetchImpl: typeof fetch = fetch
+): Promise<ManagedModelsResult> {
+  try {
+    const res = await fetchImpl(`${baseUrl}/ai/models`, { credentials: 'include' })
+    if (!res.ok) return { models: [], defaultModel: null }
+    return parseModelsResponse(await res.json())
+  } catch {
+    return { models: [], defaultModel: null }
+  }
+}
+
+/** A compact picker label: name + "$in/$out per Mtok" + context when known. */
+export function formatModelOption(model: ManagedModel): string {
+  const price =
+    model.inUsdPerM !== null && model.outUsdPerM !== null
+      ? ` · $${trimPrice(model.inUsdPerM)}/$${trimPrice(model.outUsdPerM)} per Mtok`
+      : ''
+  const context = model.contextLength ? ` · ${Math.round(model.contextLength / 1000)}k ctx` : ''
+  return `${model.name}${price}${context}`
+}
+
+const trimPrice = (usdPerM: number): string =>
+  usdPerM >= 1 ? usdPerM.toFixed(2).replace(/\.00$/, '') : usdPerM.toFixed(2)
+
+/** Group models by family for an `<optgroup>`-style picker, families sorted. */
+export function groupModelsByFamily(models: readonly ManagedModel[]): [string, ManagedModel[]][] {
+  const groups = new Map<string, ManagedModel[]>()
+  for (const model of models) {
+    const list = groups.get(model.family) ?? []
+    list.push(model)
+    groups.set(model.family, list)
+  }
+  return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b))
 }
 
 // ─── Bridge status (which agent the local bridge is driving) ────────────────────

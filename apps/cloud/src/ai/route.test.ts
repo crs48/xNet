@@ -7,6 +7,7 @@ import {
   type TokenPricing
 } from '@xnetjs/cloud'
 import { describe, expect, it } from 'vitest'
+import type { ModelCard } from './models'
 import { createAiRoute, type AiTenantContext } from './route'
 
 const pricing: TokenPricing = { inputUsdPerMillion: 3, outputUsdPerMillion: 15, markup: 1.25 }
@@ -36,7 +37,12 @@ const tenant = (over: Partial<AiTenantContext> = {}): AiTenantContext => ({
 })
 
 function makeApp(
-  opts: { gateway?: ChatGateway; resolve?: AiTenantContext | null; allowedModels?: string[] } = {}
+  opts: {
+    gateway?: ChatGateway
+    resolve?: AiTenantContext | null
+    allowedModels?: string[]
+    modelCatalog?: () => Promise<ModelCard[]>
+  } = {}
 ) {
   const ledger = new MemoryUsageLedger()
   const billing = new FakeStripeBilling()
@@ -46,7 +52,8 @@ function makeApp(
     billing,
     pricingFor: () => pricing,
     resolveTenant: async () => (opts.resolve === undefined ? tenant() : opts.resolve),
-    ...(opts.allowedModels ? { allowedModels: opts.allowedModels } : {})
+    ...(opts.allowedModels ? { allowedModels: opts.allowedModels } : {}),
+    ...(opts.modelCatalog ? { modelCatalog: opts.modelCatalog } : {})
   })
   return { app, ledger, billing }
 }
@@ -124,5 +131,110 @@ describe('POST /ai/chat', () => {
     expect(res.status).toBe(402)
     expect((await res.json()).error).toBe('ai_budget_exceeded')
     expect(calls).toBe(1) // the second never reached the provider
+  })
+
+  it('falls back to the plan default model when the request omits one', async () => {
+    let seenModel = ''
+    const gw: ChatGateway = {
+      async chat(r) {
+        seenModel = r.model
+        return fakeGateway().chat(r)
+      }
+    }
+    const { app } = makeApp({
+      gateway: gw,
+      resolve: tenant({ defaultModel: 'anthropic/claude-haiku-4-5' })
+    })
+    const res = await post(app, chatBody({ model: undefined }))
+    expect(res.status).toBe(200)
+    expect(seenModel).toBe('anthropic/claude-haiku-4-5')
+  })
+
+  it('400s when the model is outside the plan policy', async () => {
+    const { app } = makeApp({
+      resolve: tenant({ aiModels: ['anthropic/claude-haiku-4-5'] })
+    })
+    const res = await post(app, chatBody({ model: 'anthropic/claude-opus-4-8' }))
+    expect(res.status).toBe(400)
+    expect((await res.json()).error).toBe('model_not_allowed')
+  })
+
+  it('forwards only the plan-permitted fallback models to the gateway', async () => {
+    let seen: string[] | undefined
+    const gw: ChatGateway = {
+      async chat(r) {
+        seen = r.fallbackModels
+        return fakeGateway().chat(r)
+      }
+    }
+    const { app } = makeApp({
+      gateway: gw,
+      resolve: tenant({ aiModels: ['claude-sonnet', 'openai/gpt-4o'] })
+    })
+    // 'anthropic/claude-opus-4-8' is outside the policy → dropped from the fallbacks.
+    const res = await post(
+      app,
+      chatBody({ fallbackModels: ['openai/gpt-4o', 'anthropic/claude-opus-4-8'] })
+    )
+    expect(res.status).toBe(200)
+    expect(seen).toEqual(['openai/gpt-4o'])
+  })
+})
+
+describe('GET /ai/models', () => {
+  const get = (app: ReturnType<typeof makeApp>['app']) => app.request('/ai/models')
+  const card = (id: string): ModelCard => ({
+    id,
+    name: id,
+    family: id.split('/')[0] ?? id,
+    inUsdPerM: 3,
+    outUsdPerM: 15,
+    contextLength: 200000,
+    modality: 'text->text'
+  })
+
+  it('401s when unauthorized', async () => {
+    const { app } = makeApp({ resolve: null })
+    expect((await get(app)).status).toBe(401)
+  })
+
+  it('returns the catalog intersected with the plan policy + default', async () => {
+    const catalog = async () => [
+      card('anthropic/claude-haiku-4-5'),
+      card('anthropic/claude-opus-4-8')
+    ]
+    const { app } = makeApp({
+      modelCatalog: catalog,
+      resolve: tenant({
+        aiModels: ['anthropic/claude-haiku-4-5'],
+        defaultModel: 'anthropic/claude-haiku-4-5'
+      })
+    })
+    const json = await (await get(app)).json()
+    expect(json.models.map((m: ModelCard) => m.id)).toEqual(['anthropic/claude-haiku-4-5'])
+    expect(json.defaultModel).toBe('anthropic/claude-haiku-4-5')
+  })
+
+  it("returns the full catalog for an 'all' policy", async () => {
+    const catalog = async () => [card('a/b'), card('c/d')]
+    const { app } = makeApp({ modelCatalog: catalog, resolve: tenant({ aiModels: 'all' }) })
+    const json = await (await get(app)).json()
+    expect(json.models).toHaveLength(2)
+  })
+
+  it('falls back to id-only cards when the catalog is unavailable but the plan names models', async () => {
+    const { app } = makeApp({ resolve: tenant({ aiModels: ['anthropic/claude-haiku-4-5'] }) })
+    const json = await (await get(app)).json()
+    expect(json.models).toEqual([
+      {
+        id: 'anthropic/claude-haiku-4-5',
+        name: 'anthropic/claude-haiku-4-5',
+        family: 'anthropic',
+        inUsdPerM: null,
+        outUsdPerM: null,
+        contextLength: null,
+        modality: null
+      }
+    ])
   })
 })

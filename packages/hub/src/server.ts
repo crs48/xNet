@@ -23,6 +23,7 @@ import {
   toAuthContext
 } from './auth/ucan'
 import { measureDataUsage, type DataUsage } from './data-usage'
+import { aiForwarderFeature } from './features/ai-forwarder'
 import { billingFeature, tasksFeature, unfurlFeature } from './features/first-party'
 import { mountFeatures } from './features/registry'
 import { Metrics, HUB_METRICS } from './middleware/metrics'
@@ -821,7 +822,15 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   // applied — matching the previous hand-written route, which also never wired
   // apply. See exploration 0189 (deferred: server-side action application).
   mountFeatures(
-    [billingFeature(), tasksFeature(taskIdentifiers), unfurlFeature(crawlConfig.userAgent)],
+    [
+      billingFeature(),
+      tasksFeature(taskIdentifiers),
+      unfurlFeature(crawlConfig.userAgent),
+      // Managed-AI forwarder (0208): proxies `/ai/chat` + `/ai/models` to the
+      // control plane with this hub's tenant credential. Unconfigured off-cloud →
+      // `/ai/health` reports managed:false and the chat route stays unmounted.
+      aiForwarderFeature()
+    ],
     {
       app,
       env: process.env,

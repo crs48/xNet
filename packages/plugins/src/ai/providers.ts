@@ -194,6 +194,7 @@ export type AIProviderType =
   | 'lmstudio'
   | 'vllm'
   | 'litellm'
+  | 'managed'
   | 'custom'
 
 /**
@@ -943,7 +944,10 @@ type OpenAICompatiblePreset = {
 }
 
 const OPENAI_COMPATIBLE_PRESETS: Record<
-  Exclude<AIProviderType, 'anthropic' | 'openai' | 'ollama' | 'openai-compatible' | 'custom'>,
+  Exclude<
+    AIProviderType,
+    'anthropic' | 'openai' | 'ollama' | 'openai-compatible' | 'managed' | 'custom'
+  >,
   OpenAICompatiblePreset
 > = {
   openrouter: {
@@ -1026,6 +1030,154 @@ const createOpenAICompatiblePresetProvider = (
   })
 }
 
+// ─── Managed (XNet Cloud metered AI) ─────────────────────────────────────────
+
+/** The live budget snapshot a managed call reports back (drives the panel gauge). */
+export interface ManagedBudgetSnapshot {
+  /** Marked-up spend accrued this billing period, in USD. */
+  spendThisPeriodUsd: number
+  /** Free included allotment for the period, in USD. */
+  includedUsd: number
+  /** Hard monthly cap, in USD — requests stop here. */
+  budgetUsd: number
+  /** Coarse state driving the gauge colour. */
+  budgetState: 'included' | 'overage' | 'near-cap' | 'over-cap'
+}
+
+/** Thrown when managed AI returns `402` — the surprise-bill hard stop. */
+export class AiBudgetError extends Error {
+  constructor(
+    readonly spentUsd: number,
+    readonly budgetUsd: number
+  ) {
+    super(
+      `AI budget reached — $${spentUsd.toFixed(2)} of $${budgetUsd.toFixed(2)} used this period.`
+    )
+    this.name = 'AiBudgetError'
+  }
+}
+
+export type ManagedProviderOptions = AIProviderOptions & {
+  /** Injected fetch for tests; defaults to the global `fetch`. */
+  fetchImpl?: typeof fetch
+  /** Receives the live budget after each managed call (drives the panel gauge). */
+  onBudget?: (snapshot: ManagedBudgetSnapshot) => void
+}
+
+interface ManagedChatResponse {
+  text?: string
+  model?: string
+  usage?: { inputTokens?: number; outputTokens?: number; totalTokens?: number }
+  spendThisPeriodUsd?: number
+  includedUsd?: number
+  budgetUsd?: number
+  budgetState?: ManagedBudgetSnapshot['budgetState']
+  error?: string
+  spentUsd?: number
+}
+
+/**
+ * XNet Cloud **managed** AI provider (exploration 0208).
+ *
+ * Posts to the hub's `/ai/chat`, which forwards to the metered control-plane
+ * gateway (OpenRouter behind a per-tenant budgeted key). Unlike every other cloud
+ * provider it carries **no API key** — the hub injects the per-tenant credential
+ * server-side — so it is the only cloud tier safe to use without the user pasting
+ * a secret. It surfaces the live budget (so the panel can render "used / included
+ * / cap") and turns a `402` into a typed {@link AiBudgetError} the UI can act on.
+ *
+ * Model switching is per-instance: the configured `model` is sent on every call,
+ * so changing the picker rebuilds the provider (same pattern as the BYO tiers).
+ * No `stream` method, so the runtime uses the request/response path.
+ */
+export class ManagedProvider implements AIProvider {
+  readonly name = 'XNet Cloud'
+  private readonly baseUrl: string
+  private readonly model?: string
+  private readonly fetchImpl: typeof fetch
+  private readonly onBudget?: (snapshot: ManagedBudgetSnapshot) => void
+
+  constructor(options: ManagedProviderOptions = {}) {
+    this.baseUrl = normalizeBaseUrl(options.baseUrl ?? '')
+    this.model = options.model
+    this.fetchImpl = options.fetchImpl ?? fetch
+    this.onBudget = options.onBudget
+  }
+
+  getCapabilities(): AIModelCapabilities {
+    return createCapabilities({
+      tools: true,
+      structuredOutputs: true,
+      streaming: false,
+      contextWindow: 200000,
+      local: false,
+      privacy: 'proxy',
+      quality: 'strong'
+    })
+  }
+
+  async generate(prompt: string): Promise<string> {
+    return (await this.generateWithTools({ prompt })).text
+  }
+
+  async generateWithTools(request: AIGenerateRequest): Promise<AIGenerateResponse> {
+    // The control plane requires a model; fall back to OpenRouter's auto-router.
+    const model = this.model ?? 'openrouter/auto'
+    const res = await this.fetchImpl(`${this.baseUrl}/ai/chat`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      credentials: 'include', // the hub session cookie; the hub adds the tenant secret
+      body: JSON.stringify({ model, messages: requestToMessages(request) })
+    })
+    const data = (await res.json().catch(() => ({}))) as ManagedChatResponse
+    if (res.status === 402) {
+      throw new AiBudgetError(data.spentUsd ?? 0, data.budgetUsd ?? 0)
+    }
+    if (!res.ok) {
+      throw new AIGenerationError(
+        `Managed AI error: ${res.status} ${data.error ?? ''}`.trim(),
+        this.name
+      )
+    }
+    this.emitBudget(data)
+    return {
+      text: data.text ?? '',
+      provider: this.name,
+      model: data.model ?? model,
+      ...(data.usage
+        ? {
+            usage: {
+              ...(data.usage.inputTokens !== undefined
+                ? { inputTokens: data.usage.inputTokens }
+                : {}),
+              ...(data.usage.outputTokens !== undefined
+                ? { outputTokens: data.usage.outputTokens }
+                : {}),
+              ...(data.usage.totalTokens !== undefined
+                ? { totalTokens: data.usage.totalTokens }
+                : {})
+            }
+          }
+        : {})
+    }
+  }
+
+  private emitBudget(data: ManagedChatResponse): void {
+    if (!this.onBudget) return
+    if (typeof data.spendThisPeriodUsd !== 'number' || typeof data.budgetUsd !== 'number') return
+    this.onBudget({
+      spendThisPeriodUsd: data.spendThisPeriodUsd,
+      includedUsd: data.includedUsd ?? 0,
+      budgetUsd: data.budgetUsd,
+      budgetState: data.budgetState ?? 'included'
+    })
+  }
+}
+
+/** Build a {@link ManagedProvider} (parallels `createPromptApiProvider`). */
+export const createManagedProvider = (options: ManagedProviderOptions = {}): ManagedProvider =>
+  new ManagedProvider(options)
+
 /**
  * Create an AI provider from configuration.
  *
@@ -1050,6 +1202,8 @@ export function createAIProvider(config: AIProviderConfig): AIProvider {
       return new OllamaProvider(config.options)
     case 'openai-compatible':
       return new OpenAICompatibleProvider(config.options)
+    case 'managed':
+      return new ManagedProvider(config.options)
     case 'openrouter':
     case 'ollama-openai':
     case 'lmstudio':
