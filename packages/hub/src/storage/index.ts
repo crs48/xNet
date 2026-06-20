@@ -31,12 +31,16 @@ export type {
 } from './interface'
 export type StorageType = 'sqlite' | 'memory'
 
-export const createStorage = async (type: StorageType, dataDir: string): Promise<HubStorage> => {
+export const createStorage = async (
+  type: StorageType,
+  dataDir: string,
+  options: { resetOnCorruption?: boolean } = {}
+): Promise<HubStorage> => {
   switch (type) {
     case 'sqlite': {
       // Dynamic import to avoid loading better-sqlite3 native module when using memory storage
       const { createSQLiteStorage } = await import('./sqlite.js')
-      return createSQLiteStorage(dataDir)
+      return createSQLiteStorage(dataDir, options)
     }
     case 'memory':
       return createMemoryStorage()
