@@ -8,9 +8,18 @@
  */
 import type { Props } from '@astrojs/starlight/props'
 import Default from '@astrojs/starlight/components/Head.astro'
+
+// Cookieless analytics on the docs pages too (exploration 0210). Docs render
+// through this Starlight head, not Base.astro, so the tag must be repeated here
+// to honor the privacy policy's "how people use our documentation" wording.
+// Off unless PUBLIC_ANALYTICS_DOMAIN is set at build time.
+const analyticsDomain = import.meta.env.PUBLIC_ANALYTICS_DOMAIN
+const analyticsSrc = import.meta.env.PUBLIC_ANALYTICS_SRC || 'https://plausible.io/js/script.js'
 ---
 
 <Default {...Astro.props}><slot /></Default>
+
+{analyticsDomain && <script is:inline defer data-domain={analyticsDomain} src={analyticsSrc} />}
 
 <script type="module">
   import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'

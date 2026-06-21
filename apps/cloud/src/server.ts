@@ -29,6 +29,7 @@ import {
 } from './dashboard'
 import { MemoryDeviceGrantStore, isExpired, type DeviceGrantStore } from './device-grant'
 import { composeDashboardLive, fetchHubHealth } from './hub-status'
+import { createLogger, type Logger } from './logger'
 import {
   collectUsage,
   httpHubUsageProbe,
@@ -37,6 +38,7 @@ import {
 } from './metrics/usage'
 import { fleetSummary, tenantSli, type HealthSampleStore } from './observability/health'
 import { publicStatus } from './observability/status'
+import { reportToSentry } from './sentry'
 import { SESSION_COOKIE, readSession, sealSession, type SessionData } from './session'
 
 export interface ControlPlaneAppDeps {
@@ -68,6 +70,14 @@ export interface ControlPlaneAppDeps {
   usageHubStats?: HubUsageProbe
   /** Injectable clock for deterministic tests. */
   nowMs?: () => number
+  /** Structured logger; defaults to a console JSON logger (exploration 0210). */
+  logger?: Logger
+  /**
+   * Sentry DSN. When set, the global error handler also reports unhandled
+   * errors to Sentry. This is the wiring seam — capture is gated on the DSN so
+   * self-host/dev builds (no DSN) never phone home (exploration 0210).
+   */
+  sentryDsn?: string
 }
 
 interface ProvisionBody {
@@ -104,6 +114,39 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
   const now = (): number => (deps.nowMs ? deps.nowMs() : Date.now())
   const base = deps.baseUrl ?? ''
   const devices = deps.deviceGrants ?? new MemoryDeviceGrantStore()
+  const log = deps.logger ?? createLogger({ base: { service: 'xnet-cloud' } })
+
+  // One structured line per request (method/path/status/ms), logged in a
+  // `finally` so requests that throw are recorded too (exploration 0210).
+  app.use('*', async (c, next) => {
+    const startedAt = now()
+    try {
+      await next()
+    } finally {
+      log.info('request', {
+        method: c.req.method,
+        path: c.req.path,
+        status: c.res.status,
+        ms: now() - startedAt
+      })
+    }
+  })
+
+  // Global safety net: every route already does its own try/catch, so this only
+  // fires on a genuinely uncaught throw — log it, optionally report to Sentry,
+  // and return a clean 500 instead of leaking a stack to the client.
+  app.onError((err, c) => {
+    log.error('unhandled', {
+      method: c.req.method,
+      path: c.req.path,
+      error: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined
+    })
+    // Sentry seam (exploration 0210): the DSN gate keeps self-host/dev builds
+    // from phoning home. Capture is wired when the @sentry/node SDK is added.
+    if (deps.sentryDsn) reportToSentry(deps.sentryDsn, err)
+    return c.json({ error: 'internal_error' }, 500)
+  })
 
   /** Read + verify the session cookie, or null. */
   const session = (c: Context): SessionData | null => {

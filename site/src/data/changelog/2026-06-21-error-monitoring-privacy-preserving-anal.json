@@ -1,0 +1,23 @@
+{
+  "id": "2026-06-21-error-monitoring-privacy-preserving-anal",
+  "date": "June 21, 2026",
+  "title": "Error monitoring, privacy-preserving analytics, and a consent spine",
+  "summary": "The app now captures boot failures instead of showing a blank screen, the site and app gained cookieless analytics that need no cookie banner, the cloud server logs and reports errors, and one Privacy & Diagnostics control governs everything you share — off by default.",
+  "highlights": [
+    "A blank-screen 'didn't load' now surfaces an actionable screen and a captured error with the failing boot stage",
+    "Cookieless analytics on the website and app — no personal data, no cookie banner",
+    "Opt-in crash reporting (Sentry-ready) gated by a single consent spine; self-hosted builds phone nothing home",
+    "Cloud server adds structured request logs + a global error handler; hubs can opt in to share scrubbed diagnostics"
+  ],
+  "tags": [
+    "platform",
+    "app",
+    "performance"
+  ],
+  "pr": 226,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

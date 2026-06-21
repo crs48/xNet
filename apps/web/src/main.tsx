@@ -15,6 +15,9 @@ import ReactDOM from 'react-dom/client'
 import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 import { App } from './App'
+import { initAnalytics } from './lib/analytics'
+import { installBootDiagnostics, installBootFallback } from './lib/boot-diagnostics'
+import { initErrorReporter } from './lib/error-reporter'
 import { preconnectHub } from './lib/preconnect-hub'
 
 type WebCanvasNodeRecord = {
@@ -408,6 +411,17 @@ function createCanvasTestHarness(): WebCanvasTestHarness {
 }
 
 window.__xnetCanvasTestHarness = createCanvasTestHarness()
+
+// Capture unhandled errors/rejections and arm a blank-screen fallback before
+// React mounts, so a boot that never finishes still surfaces an actionable
+// "couldn't start" notice instead of a blank page (exploration 0210).
+installBootDiagnostics()
+installBootFallback('root')
+// Fan boot/runtime failures out to the consent-gated first-party collector and
+// the optional Sentry adapter. No-op on self-host/preview builds (0210).
+initErrorReporter()
+// Cookieless product analytics (hosted demo only). No-op without a domain (0210).
+initAnalytics()
 
 // Warm the hub's DNS/TCP/TLS during SQLite boot so the later dial is fast
 // (exploration 0204). Pure resource hint — issued before React mounts.

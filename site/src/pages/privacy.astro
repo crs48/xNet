@@ -74,15 +74,27 @@ import Footer from '../components/sections/Footer.astro'
 
           <h3>If You Visit Our Website</h3>
           <p>
-            For xnet.fyi, we use privacy-respecting analytics to understand how people find and use our documentation:
+            For xnet.fyi, we use <a href="https://plausible.io/">Plausible Analytics</a>, a
+            privacy-respecting, cookieless, open-source analytics tool, to understand how people find
+            and use our site and documentation:
           </p>
           <ul>
             <li>Page views and referrers (no cookies, no personal data)</li>
-            <li>General geographic region (country level, derived from IP)</li>
+            <li>General geographic region (country level, derived from IP — the raw IP is never stored)</li>
             <li>Browser and device type (for compatibility testing)</li>
           </ul>
           <p>
-            We don't use tracking cookies, fingerprinting, or any cross-site tracking.
+            Because no personal data or persistent identifiers are collected, no consent banner is
+            required. We don't use tracking cookies, fingerprinting, or any cross-site tracking.
+          </p>
+
+          <h3>If You Use the Hosted App</h3>
+          <p>
+            The hosted demo app at xnet.fyi/app can report crashes so we can fix what breaks
+            (a friend's app failing to load with no diagnostics is exactly what this prevents).
+            Crash reporting is <strong>opt-in</strong> and off by default — manage it under
+            Settings → Privacy &amp; Diagnostics. When enabled, reports are scrubbed of personal
+            data before they leave your device. Self-hosted builds never send anything.
           </p>
 
           <h3>If You Contact Us</h3>

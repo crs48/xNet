@@ -8,7 +8,7 @@
  */
 import { createFileRoute } from '@tanstack/react-router'
 import { useIdentity } from '@xnetjs/react'
-import { SettingRow, SettingsGroup, SettingsPanel } from '@xnetjs/ui'
+import { SettingRow, SettingsGroup, SettingsPanel, SettingToggle } from '@xnetjs/ui'
 import {
   Palette,
   Database,
@@ -24,6 +24,7 @@ import {
   UserRound,
   Wifi,
   ShieldCheck,
+  Activity,
   Cloud
 } from 'lucide-react'
 import { useState, useCallback } from 'react'
@@ -32,9 +33,12 @@ import { ProfileSettings } from '../comms/ProfileSettings'
 import { ContentSafetySettings } from '../components/ContentSafetySettings'
 import { PluginsPanel } from '../components/PluginsPanel'
 import { SafetyCenterSettings } from '../components/SafetyCenterSettings'
+import { isAnalyticsConfigured } from '../lib/analytics'
 import { requestXNetBrowserStorageReset } from '../lib/browser-storage-reset'
 import { persistedHubUrl, setPersistedHubUrl } from '../lib/hub-url'
 import { logout } from '../lib/identity'
+import { isSentryConfigured } from '../lib/sentry'
+import { useConsent } from '../lib/use-consent'
 import { useWorkbench } from '../workbench/state'
 
 /** Marketing + dashboard origins for xNet Cloud (managed hub hosting). */
@@ -52,6 +56,7 @@ type SettingsSection =
   | 'appearance'
   | 'safety'
   | 'data'
+  | 'privacy'
   | 'network'
   | 'plugins'
   | 'tips'
@@ -75,6 +80,7 @@ const SECTIONS: SectionConfig[] = [
   { id: 'appearance', label: 'Appearance', icon: <Palette {...ICON_PROPS} /> },
   { id: 'safety', label: 'Content & Safety', icon: <ShieldCheck {...ICON_PROPS} /> },
   { id: 'data', label: 'Data', icon: <Database {...ICON_PROPS} /> },
+  { id: 'privacy', label: 'Privacy & Diagnostics', icon: <Activity {...ICON_PROPS} /> },
   { id: 'network', label: 'Network', icon: <Wifi {...ICON_PROPS} /> },
   { id: 'plugins', label: 'Plugins', icon: <Puzzle {...ICON_PROPS} /> },
   { id: 'tips', label: 'Tips & tours', icon: <Lightbulb {...ICON_PROPS} /> },
@@ -138,6 +144,7 @@ function SettingsPage() {
           </div>
         )}
         {activeSection === 'data' && <DataSettings />}
+        {activeSection === 'privacy' && <PrivacySettings />}
         {activeSection === 'network' && <NetworkSettings />}
         {activeSection === 'plugins' && <PluginsPanel />}
         {activeSection === 'tips' && <TipsSettings />}
@@ -448,6 +455,75 @@ function TipsSettings() {
               Replay onboarding
             </button>
           )}
+        </SettingRow>
+      </SettingsGroup>
+    </SettingsPanel>
+  )
+}
+
+// ─── Privacy & Diagnostics Settings ─────────────────────────────────────────────
+
+/**
+ * The single, durable control for the consent spine (exploration 0210). One
+ * decision here gates every off-device sink: the first-party crash collector,
+ * the optional Sentry reporter, and product analytics. Available on every build
+ * (the first-party path works on self-host); the Sentry/analytics rows note
+ * whether those SaaS sinks are wired for this build.
+ */
+function PrivacySettings() {
+  const { allows, setTier } = useConsent()
+  const crashes = allows('crashes')
+  const anonymous = allows('anonymous')
+
+  return (
+    <SettingsPanel
+      title="Privacy & Diagnostics"
+      description="You decide what leaves your device. Everything here is off by default."
+    >
+      <SettingsGroup>
+        <SettingToggle
+          label="Help fix crashes"
+          description="Send scrubbed crash reports (no documents, no personal data) so we can fix what breaks."
+          checked={crashes}
+          onChange={(on) => setTier(on ? 'crashes' : 'off')}
+        />
+        <SettingToggle
+          label="Share anonymous usage"
+          description="Bucketed, k-anonymous usage metrics that help prioritize what to build. Implies crash reports."
+          checked={anonymous}
+          onChange={(on) => setTier(on ? 'anonymous' : 'crashes')}
+        />
+      </SettingsGroup>
+      <SettingsGroup>
+        <SettingRow
+          label="Crash reporting"
+          description={
+            isSentryConfigured()
+              ? 'Reports route to Sentry (EU region, PII scrubbed) when enabled above.'
+              : 'Stored locally only on this build — no external crash service is configured.'
+          }
+        >
+          <span className="text-xs text-ink-2">
+            {isSentryConfigured() ? 'Sentry' : 'Local only'}
+          </span>
+        </SettingRow>
+        <SettingRow
+          label="Analytics"
+          description="Cookieless, no personal data, no cross-site tracking — so no cookie banner is needed."
+        >
+          <span className="text-xs text-ink-2">
+            {isAnalyticsConfigured() ? 'Cookieless' : 'Off'}
+          </span>
+        </SettingRow>
+        <SettingRow label="Privacy policy" description="How we handle data, in plain language.">
+          <a
+            href="https://xnet.fyi/privacy"
+            target="_blank"
+            rel="noreferrer"
+            className={QUIET_BUTTON}
+          >
+            Read policy
+          </a>
         </SettingRow>
       </SettingsGroup>
     </SettingsPanel>

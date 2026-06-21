@@ -255,6 +255,24 @@ field, then prompts you to commit + open a PR (nothing goes public without
 review). Wire it to a weekly scheduled job when you're ready. Company opex lives
 in `site/src/data/opex.ts` (hand-maintained).
 
+### 3c. Error monitoring (optional) — explorations 0210
+
+The control plane logs one structured JSON line per request and routes any
+uncaught handler error through a global `app.onError()` (clean 500, no leaked
+stack). When `SENTRY_DSN` is set, that handler also reports the error to Sentry;
+unset (dev / self-host) means it never phones home. To turn it on:
+
+1. Add `@sentry/node` to `apps/cloud` (`pnpm --filter xnet-cloud add @sentry/node`)
+   — the bridge in `apps/cloud/src/sentry.ts` loads it dynamically, so the build
+   stays green without it.
+2. Set the **repo variable** `CLOUD_SENTRY_DSN` to the project DSN (Settings →
+   Secrets and variables → Actions → Variables). `deploy-cloud.yml` passes it as a
+   plain `SENTRY_DSN` env var — a DSN is a write-only ingestion key (public in
+   client builds), not a secret, so it does **not** go through Secret Manager.
+   Leave the variable unset and Sentry stays off (no deploy breakage).
+
+`LOG_LEVEL` (default `info`) tunes log verbosity.
+
 ---
 
 ## Part 4 — Test against live APIs from your laptop
