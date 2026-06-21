@@ -640,22 +640,37 @@ func sign(_ unsigned: UnsignedChange, _ key: Curve25519.Signing.PrivateKey) -> D
       local reference material, not a CI job — consistent with the Python
       kernel; a macOS Swift CI job is a deferred infra decision.)*
 
-**Phase 1 — `XNetKit` (Swift, JSC engine)**
-- [ ] Produce a single‑file bundle of `@xnetjs/runtime` for embedding (tree‑
-      shaken, no DOM/React).
-- [ ] Stand up the `JSContext` host on a serial Swift actor + call/event
-      marshalling.
-- [ ] Implement a GRDB‑backed `SQLiteAdapter` matching
-      `packages/sqlite/src/schema.ts` (incl. FTS5).
-- [ ] Implement native crypto adapters (CryptoKit + libsodium XChaCha20 +
-      BLAKE3) **or** confirm JSC `@noble/*` is acceptable for v1 (measure).
-- [ ] Implement `URLSessionWebSocketTask` transport to the hub (JSON frames).
-- [ ] Build the `@XNetSchema` macro / result‑builder DSL → `SchemaIRI` + props.
-- [ ] Build the Swift typed query builder → `QueryDescriptor`.
-- [ ] Build the `@Observable`/`AsyncSequence` adapter over `liveQuery`.
-- [ ] Wire Keychain/Secure Enclave identity storage (`did:key`).
-- [ ] Ship a SwiftUI sample app (notes/tasks) on macOS + iOS; verify live sync
-      with the web app against a shared hub.
+**Phase 1 — `XNetKit` (Swift)** — *native authoring slice landed (`swift/XNetKit/`); the JSC engine + live sync remain*
+
+A runnable native Swift package (`swift/XNetKit/`) now realizes the user‑facing
+vision — define schemas in Swift, write/query the database in Swift, observe a
+SwiftUI re‑render loop — built on the conformance kernel + a native in‑memory
+`NodeStore` (signed changes + per‑property LWW). `swift run xnet-demo` runs it
+end‑to‑end; 11 tests pass incl. the shared golden vectors. NOTE: this took the
+*native‑runtime* route (closer to the doc's Phase‑3 "JS‑free" option) rather
+than the recommended JSC‑embedded engine, which trades 100% TS parity + live
+sync for a pure‑Swift, dependency‑light core. The engine choice for full parity
+is still open.
+
+- [x] Build the schema result‑builder DSL → `SchemaIRI` + property set
+      (`Schema { … }`, `swift/XNetKit/Sources/XNetKit/Schema.swift`).
+- [x] Build the Swift typed query builder (`Query` + `Sendable` `Predicate`,
+      `Query.swift`).
+- [x] Build the `@Observable`/`AsyncSequence` adapter over `liveQuery`
+      (`LiveQuery` + `LiveQueryModel`, `LiveQuery.swift`).
+- [x] Native in‑memory `NodeStore` (sign writes, LWW materialize, query,
+      subscribe) verified against `conformance/vectors/` (`NodeStore.swift`).
+- [~] Native crypto: CryptoKit Ed25519 + BLAKE3 done; libsodium **XChaCha20** +
+      X25519 key‑wrap (E2E) not yet (no encrypted content in this slice).
+- [ ] Wire Keychain/Secure Enclave identity storage (`did:key`) — identity is
+      seed/random today; Keychain custody is a follow‑up.
+- [ ] Persistent storage: a GRDB‑backed `SQLiteAdapter` matching
+      `packages/sqlite/src/schema.ts` (incl. FTS5) — in‑memory today.
+- [ ] Live sync: `URLSessionWebSocketTask` transport to the hub (JSON frames) +
+      a SwiftUI sample app verified syncing with the web app against a shared hub.
+- [ ] *(Alternative engine path)* JSC‑embedded `@xnetjs/runtime` for 100% TS
+      parity (bundle + `JSContext` host + native adapters) — deferred; weigh
+      against the native runtime once live sync lands.
 
 **Phase 2 — `xnet-core` (Rust) + UniFFI**
 - [ ] Create the `xnet-core` crate: identity, canonical change, hash,
@@ -691,8 +706,11 @@ func sign(_ unsigned: UnsignedChange, _ key: Curve25519.Signing.PrivateKey) -> D
 - [x] Authorization expression‑AST evaluation is pinned as L3 vectors and
       verified against the reference semantics in CI. *(Full decision traces with
       space‑cascade role resolution deferred to a follow‑up XPP.)*
-- [ ] SwiftUI re‑renders on a remote change within one run‑loop tick of the
-      `liveQuery` callback firing (reactive‑loop latency). *(Phase 1.)*
+- [x] The reactive loop is implemented and tested: `LiveQuery` fires
+      immediately and on every store change, with last‑subscriber teardown
+      (`swift/XNetKit` `LiveQueryTests`); `@Observable LiveQueryModel` drives
+      SwiftUI. *(End‑to‑end latency in a real SwiftUI app + remote change is
+      pending live sync.)*
 - [ ] Cold‑start + query‑latency benchmarks on a real iOS device (JSC
       interpreter) are within target; if not, kernel hot paths are flagged for
       Phase 2.
