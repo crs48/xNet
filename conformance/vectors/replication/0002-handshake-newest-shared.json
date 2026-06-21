@@ -1,0 +1,17 @@
+{
+  "description": "the newest umbrella version shared by both peers is chosen",
+  "input": {
+    "ours": [
+      "xnet/2.0",
+      "xnet/1.0"
+    ],
+    "theirs": [
+      "xnet/1.0",
+      "xnet/2.0"
+    ]
+  },
+  "expected": {
+    "negotiated": "xnet/2.0",
+    "compatible": true
+  }
+}

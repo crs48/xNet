@@ -1,0 +1,31 @@
+{
+  "description": "catch-up returns only changes after sinceLamport, lamport-ordered",
+  "input": {
+    "changes": [
+      {
+        "id": "chg-a",
+        "lamport": 1
+      },
+      {
+        "id": "chg-c",
+        "lamport": 3
+      },
+      {
+        "id": "chg-b",
+        "lamport": 2
+      },
+      {
+        "id": "chg-d",
+        "lamport": 4
+      }
+    ],
+    "sinceLamport": 2
+  },
+  "expected": {
+    "changeIds": [
+      "chg-c",
+      "chg-d"
+    ],
+    "highWaterMark": 4
+  }
+}

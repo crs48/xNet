@@ -125,4 +125,12 @@ public**. Caching, TTLs, and the grant index are implementation‑private, but t
 (`conformance/vectors/authz/`), which give `{ graph, subject, action, nodeId } →
 { allowed, reason }`.
 
+The current [`authz` suite](../../../conformance/vectors/authz) pins the
+deterministic heart of §4 — **expression‑AST evaluation** (`{ expression, roles,
+isAuthenticated } → { allowed }`), covering `allow`/`deny`/`and`/`or`/`not`/
+`roleRef`/`PUBLIC`/`AUTHENTICATED` and the `and(allow(…), not(deny(…)))`
+deny‑wins composition. Full end‑to‑end decision traces (role resolution over a
+node graph + grants/UCAN) are tracked as a follow‑up XPP and added as that
+reference path stabilises.
+
 Continue to [Schema evolution →](05-schema-evolution.md)

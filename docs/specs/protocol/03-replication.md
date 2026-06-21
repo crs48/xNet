@@ -68,7 +68,10 @@ applying a change whose `hash` it already holds is a no‑op. Ordering is by
 `lamport`; `highWaterMark` is the relay's max applied Lamport for the room,
 enabling resumable catch‑up. Reference:
 [`node-relay.ts`](../../../packages/hub/src/services/node-relay.ts),
-[`storage/interface.ts`](../../../packages/hub/src/storage/interface.ts).
+[`storage/interface.ts`](../../../packages/hub/src/storage/interface.ts). The
+catch‑up filter (changes strictly after `sinceLamport`, lamport‑ordered, plus the
+high‑water mark) and the version handshake (§7) are pinned by
+[`conformance/vectors/replication/`](../../../conformance/vectors/replication).
 
 ## 4. Document body sync: the signed Yjs envelope
 
@@ -101,9 +104,15 @@ The compact wire form of the envelope
 ```
 
 Rules (MUST): the envelope signature is computed over `BLAKE3(update ||
-utf8(JSON(meta)))` and verified against `m.a`. A relay MUST forward the envelope
-byte‑preserving. A peer that does not implement the `yjs-v1` codec MUST still
-forward and persist the `u` bytes (see [L1 §8](02-data-model.md)).
+utf8(JSON(meta)))` and verified against `m.a`. **`meta` is serialized in
+declaration order `{ authorDID, clientId, timestamp, docId }` — *not* sorted**
+(unlike the L1 change hash in [§6](02-data-model.md), which sorts keys). A
+re‑implementation that canonicalizes these keys will produce a different signing
+input and fail verification. A relay MUST forward the envelope byte‑preserving. A
+peer that does not implement the `yjs-v1` codec MUST still forward and persist the
+`u` bytes (see [L1 §8](02-data-model.md)). The byte‑exact tuple `{ seed, update,
+meta } → { signingHash, wire envelope }` is pinned by
+[`conformance/vectors/replication/0007-yjs-envelope-sign.json`](../../../conformance/vectors/replication).
 
 ## 5. Awareness (presence)
 

@@ -1,0 +1,19 @@
+{
+  "description": "the xnet/1.0 umbrella version bundle and supported-version set",
+  "input": {},
+  "expected": {
+    "bundle": {
+      "id": "xnet/1.0",
+      "dataModel": 1,
+      "change": 3,
+      "syncEnvelope": 2,
+      "awareness": 1,
+      "schema": "1.0.0",
+      "cryptoLevel": 0,
+      "ucan": "1.0"
+    },
+    "supported": [
+      "xnet/1.0"
+    ]
+  }
+}

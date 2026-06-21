@@ -1,0 +1,13 @@
+{
+  "description": "AUTHENTICATED is false without a subject",
+  "input": {
+    "expression": {
+      "_tag": "authenticated"
+    },
+    "roles": [],
+    "isAuthenticated": false
+  },
+  "expected": {
+    "allowed": false
+  }
+}

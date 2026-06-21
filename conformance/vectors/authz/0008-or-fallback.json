@@ -1,0 +1,24 @@
+{
+  "description": "or allows when any branch is true",
+  "input": {
+    "expression": {
+      "_tag": "or",
+      "exprs": [
+        {
+          "_tag": "allow",
+          "roles": [
+            "owner"
+          ]
+        },
+        {
+          "_tag": "authenticated"
+        }
+      ]
+    },
+    "roles": [],
+    "isAuthenticated": true
+  },
+  "expected": {
+    "allowed": true
+  }
+}
