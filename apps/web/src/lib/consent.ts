@@ -10,7 +10,20 @@
  */
 import { ConsentManager, LocalStorageConsentStorage } from '@xnetjs/telemetry'
 
-export const consent = new ConsentManager({ storage: new LocalStorageConsentStorage() })
+export const consent = new ConsentManager({
+  storage: new LocalStorageConsentStorage(),
+  autoLoad: false
+})
+
+/**
+ * One shared load of the persisted consent. `load()` does NOT emit a change
+ * event, so consumers `await consentReady` once to pick up the restored tier —
+ * calling `load()` per-mount instead would race with concurrent writes and could
+ * revert a just-made choice.
+ */
+export const consentReady: Promise<void> = consent.load().catch(() => {
+  /* no persisted consent yet — stays at the privacy-first default */
+})
 
 /**
  * True once the user has made an explicit telemetry choice. `DEFAULT_CONSENT`

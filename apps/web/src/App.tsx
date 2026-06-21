@@ -37,6 +37,7 @@ import { ThemeProvider } from '@xnetjs/ui'
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { BootTimelineProbe } from './components/BootTimelineProbe'
 import { BundledPluginInstaller } from './components/BundledPluginInstaller'
+import { ConsentBanner } from './components/ConsentBanner'
 import { StorageWarningBanner } from './components/StorageWarningBanner'
 import { WorkingSetPrewarm } from './components/WorkingSetPrewarm'
 import { type BootFailure, reportBootFailure } from './lib/boot-diagnostics'
@@ -857,6 +858,7 @@ export function App(): JSX.Element {
           onSecondaryAction={storageBanner.secondaryActionLabel ? handleInstallApp : undefined}
         />
       )}
+      <ConsentBanner />
       <ErrorBoundary>
         <XNetProvider
           config={{
