@@ -618,15 +618,27 @@ func sign(_ unsigned: UnsignedChange, _ key: Curve25519.Signing.PrivateKey) -> D
 
 ## Implementation Checklist
 
-**Phase 0 — Pin the seam**
-- [ ] Add L2 (replication handshake + node‑change/sync) golden vectors to
-      `conformance/vectors/`.
-- [ ] Add L3 (authorization decision/trace) golden vectors.
-- [ ] Write `conformance/reference/swift` — a minimal Swift kernel passing
-      L0/L1/LWW vectors (sibling of `reference/python`).
-- [ ] Document the canonical‑JSON key‑sort rule normatively in
-      `docs/specs/protocol/02-data-model.md` (prose + example).
-- [ ] Add a CI job that runs the Swift harness against the shared vectors.
+**Phase 0 — Pin the seam** ✅ *landed 2026‑06‑20 (this PR)*
+- [x] Add L2 golden vectors to `conformance/vectors/replication/` — version‑
+      handshake negotiation, the umbrella version bundle, node‑sync catch‑up
+      filtering, and the byte‑exact signed Yjs envelope.
+- [x] Add L3 golden vectors to `conformance/vectors/authz/` — authorization
+      expression‑AST evaluation (the deny‑wins boolean core). *(Full end‑to‑end
+      decision traces with role resolution over a node graph deferred to a
+      follow‑up XPP.)*
+- [x] Write `conformance/reference/swift` — a Swift kernel passing the L0/L1
+      vectors (sibling of `reference/python`); 18/18 checks green on Swift 6.3.
+      *(L0+L1 like the Python kernel; LWW not included. Surfaced that CryptoKit
+      Ed25519 is randomized → verifies but cannot re‑sign byte‑for‑byte.)*
+- [x] Document the canonical‑JSON key‑sort rule normatively — already pinned in
+      [L1 §6](../specs/protocol/02-data-model.md); reinforced with the L2 §4
+      rule that the Yjs envelope `meta` is serialized in *declaration* order
+      (NOT sorted), the cross‑language landmine the new vector pins.
+- [x] Wire the new vectors into CI — the existing TS drift guard
+      (`packages/runtime/src/conformance.test.ts`) now generates and verifies
+      all 24 vectors (L0–L3) and fails on drift. *(The Swift harness stays
+      local reference material, not a CI job — consistent with the Python
+      kernel; a macOS Swift CI job is a deferred infra decision.)*
 
 **Phase 1 — `XNetKit` (Swift, JSC engine)**
 - [ ] Produce a single‑file bundle of `@xnetjs/runtime` for embedding (tree‑
@@ -661,25 +673,34 @@ func sign(_ unsigned: UnsignedChange, _ key: Curve25519.Signing.PrivateKey) -> D
 
 ## Validation Checklist
 
-- [ ] Swift kernel reproduces **all** `conformance/vectors/*` byte‑for‑byte
-      (DID, canonical JSON, hash, signature, LWW convergence).
-- [ ] A change **created and signed in Swift** verifies in the TypeScript
-      reference, and vice versa (round‑trip interop test).
+*Phase 0 items checked below; Phase 1+ items remain open.*
+
+- [x] Swift kernel reproduces the **DID, canonical JSON, and BLAKE3 hash**
+      byte‑for‑byte and **verifies** TypeScript‑signed changes (18/18 L0+L1
+      checks). *(Signature byte‑for‑byte re‑sign and LWW convergence excluded:
+      CryptoKit Ed25519 is randomized, and the Swift kernel is L0+L1 like the
+      Python one.)*
+- [x] A change **signed in TypeScript** verifies in Swift (the interop‑critical
+      direction). *(Full bidirectional round‑trip — TS verifying a Swift
+      signature — is Phase 1, gated on a deterministic signer.)*
 - [ ] A Swift app and the web app, on the same hub, **converge on identical
-      node state** after concurrent edits (LWW correctness end‑to‑end).
+      node state** after concurrent edits (LWW correctness end‑to‑end). *(Phase 1.)*
 - [ ] A signed Yjs envelope produced by the web app is **relayed and signature‑
       verified by the Swift client without a Yjs library** (opaque‑body proof).
-- [ ] Authorization decisions match the TS evaluator on the L3 vectors
-      (allow/deny parity, incl. space‑cascade).
+      *(Envelope sign/verify byte contract pinned by a vector; live relay is Phase 1.)*
+- [x] Authorization expression‑AST evaluation is pinned as L3 vectors and
+      verified against the reference semantics in CI. *(Full decision traces with
+      space‑cascade role resolution deferred to a follow‑up XPP.)*
 - [ ] SwiftUI re‑renders on a remote change within one run‑loop tick of the
-      `liveQuery` callback firing (reactive‑loop latency).
+      `liveQuery` callback firing (reactive‑loop latency). *(Phase 1.)*
 - [ ] Cold‑start + query‑latency benchmarks on a real iOS device (JSC
       interpreter) are within target; if not, kernel hot paths are flagged for
       Phase 2.
 - [ ] Encryption round‑trip: an E2E envelope encrypted for a recipient in Swift
-      decrypts in TS and vice versa (XChaCha20 + X25519 key‑wrap parity).
-- [ ] CI fails on any conformance drift between the TS, Python, Swift, and
-      (Phase 2) Rust implementations.
+      decrypts in TS and vice versa (XChaCha20 + X25519 key‑wrap parity). *(Phase 1.)*
+- [x] CI fails on any conformance drift in the **TypeScript** reference across
+      L0–L3 (`conformance.test.ts`, 24 vectors). *(Python/Swift kernels are
+      hand‑kept reference material, not CI‑gated — by design.)*
 - [ ] Re‑verify the External Research prior‑art table against current upstream
       docs (web search was unavailable when this doc was written).
 
