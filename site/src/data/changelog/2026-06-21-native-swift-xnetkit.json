@@ -9,6 +9,7 @@
     "swift run xnet-demo walks it end-to-end; 11 tests pass including the shared golden vectors (identity, change hash, LWW) — verified on Swift 6.3 / macOS"
   ],
   "tags": ["swift", "sdk", "protocol"],
+  "pr": 227,
   "authors": [
     {
       "login": "crs48"
