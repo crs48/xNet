@@ -1,0 +1,32 @@
+{
+  "description": "a member who is not banned is allowed",
+  "input": {
+    "expression": {
+      "_tag": "and",
+      "exprs": [
+        {
+          "_tag": "allow",
+          "roles": [
+            "member"
+          ]
+        },
+        {
+          "_tag": "not",
+          "expr": {
+            "_tag": "deny",
+            "roles": [
+              "banned"
+            ]
+          }
+        }
+      ]
+    },
+    "roles": [
+      "member"
+    ],
+    "isAuthenticated": true
+  },
+  "expected": {
+    "allowed": true
+  }
+}

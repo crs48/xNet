@@ -1,0 +1,19 @@
+{
+  "description": "allow matches a held role",
+  "input": {
+    "expression": {
+      "_tag": "allow",
+      "roles": [
+        "editor",
+        "owner"
+      ]
+    },
+    "roles": [
+      "owner"
+    ],
+    "isAuthenticated": true
+  },
+  "expected": {
+    "allowed": true
+  }
+}

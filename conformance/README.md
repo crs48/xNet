@@ -15,18 +15,23 @@ them.
 ```
 conformance/
   vectors/
-    identity/   L0 · seed → did:key + public key
-    change/     L1 · unsigned change → canonical bytes → BLAKE3 hash → Ed25519 sig
-    lww/        L1 · change sequence → converged state (order-independent)
+    identity/     L0 · seed → did:key + public key
+    change/       L1 · unsigned change → canonical bytes → BLAKE3 hash → Ed25519 sig
+    lww/          L1 · change sequence → converged state (order-independent)
+    replication/  L2 · version handshake, catch-up filtering, signed Yjs envelope
+    authz/        L3 · authorization expression (AST) evaluation
   reference/
-    python/     a ~100-line second-language kernel that verifies the vectors
+    python/       a ~100-line second-language kernel (L0 + L1)
+    swift/        a Swift kernel (L0 + L1) — the Apple-platform reference
 ```
 
 Each vector is `{ description, input, expected }`. The canonicalization, hashing,
 and signing contract is pinned in
 [L1 §6](../docs/specs/protocol/02-data-model.md); identity in
 [L0 §1](../docs/specs/protocol/01-primitives.md); LWW in
-[L1 §7](../docs/specs/protocol/02-data-model.md).
+[L1 §7](../docs/specs/protocol/02-data-model.md); the version handshake and
+signed envelope in [L2 §3–§7](../docs/specs/protocol/03-replication.md); the
+authorization expression AST in [L3 §4](../docs/specs/protocol/04-authorization.md).
 
 ## Reproducing / regenerating
 
@@ -51,14 +56,19 @@ python conformance/reference/python/verify_vectors.py
 
 | Implementation | Language | L0 identity | L1 change | L1 lww | L2 | L3 |
 |---|---|:--:|:--:|:--:|:--:|:--:|
-| [`xNet`](..) (reference) | TypeScript | ✅ | ✅ | ✅ | reference | reference |
+| [`xNet`](..) (reference) | TypeScript | ✅ | ✅ | ✅ | ✅ | ✅ |
 | [`reference/python`](reference/python) | Python | ✅ | ✅ | — | — | — |
+| [`reference/swift`](reference/swift) | Swift | ✅ | ✅ | — | — | — |
 | _add yours_ | | | | | | |
 
-`xnet/1.0`'s first corpus covers the **interop kernel** (L0 + L1) — the minimum
+`xnet/1.0`'s corpus began with the **interop kernel** (L0 + L1) — the minimum
 that lets an independent implementation create, sign, verify, and converge nodes.
-The L2 (replication) and L3 (authorization) suites are tracked as
-[XPPs](../docs/specs/protocol/xpp/) and added as those reference paths stabilise.
+It now also pins a starter slice of **L2** (the version handshake, catch-up
+filtering, and the byte-exact signed Yjs envelope) and **L3** (the authorization
+expression-AST evaluation — the deny-wins boolean core). Deeper L2/L3 surfaces
+(full message round-trips, end-to-end decision traces with role resolution over a
+node graph) remain tracked as [XPPs](../docs/specs/protocol/xpp/) and are added as
+those reference paths stabilise.
 
 To add your implementation: load the JSON vectors, reproduce `expected` from
 `input`, and open a PR adding a row here.

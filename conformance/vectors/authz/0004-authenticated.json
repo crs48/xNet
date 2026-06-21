@@ -1,0 +1,13 @@
+{
+  "description": "AUTHENTICATED is true for any valid DID subject",
+  "input": {
+    "expression": {
+      "_tag": "authenticated"
+    },
+    "roles": [],
+    "isAuthenticated": true
+  },
+  "expected": {
+    "allowed": true
+  }
+}

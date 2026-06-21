@@ -1,0 +1,15 @@
+{
+  "description": "identical single-version peers negotiate that version",
+  "input": {
+    "ours": [
+      "xnet/1.0"
+    ],
+    "theirs": [
+      "xnet/1.0"
+    ]
+  },
+  "expected": {
+    "negotiated": "xnet/1.0",
+    "compatible": true
+  }
+}

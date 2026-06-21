@@ -17,10 +17,22 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { getSigningPublicKeyFromPrivate, verify, hashHex } from '@xnetjs/crypto'
+import { getSigningPublicKeyFromPrivate, verify, hashHex, hash, sign } from '@xnetjs/crypto'
 import { createDID } from '@xnetjs/identity'
-import { createUnsignedChange, computeChangeHash, signChange } from '@xnetjs/sync'
+import {
+  createUnsignedChange,
+  computeChangeHash,
+  signChange,
+  serializeYjsEnvelope,
+  verifyYjsEnvelopeV2,
+  type SignedYjsEnvelopeV2
+} from '@xnetjs/sync'
 import { describe, it, expect } from 'vitest'
+import {
+  negotiateProtocolVersion,
+  XNET_PROTOCOL_VERSION,
+  XNET_SUPPORTED_PROTOCOL_VERSIONS
+} from './protocol'
 
 const here = path.dirname(fileURLToPath(import.meta.url))
 const vectorsDir = path.resolve(here, '../../..', 'conformance', 'vectors')
@@ -236,6 +248,272 @@ for (const { name, description, changes } of lwwScenarios) {
     suite: 'lww',
     name,
     data: { description, input: { changes }, expected }
+  })
+}
+
+// ── L2 · replication vectors (handshake / catch-up / signed Yjs envelope) ─────
+// Version handshake: two peers are compatible iff their advertised umbrella sets
+// intersect; negotiation returns the newest shared id (docs/specs/protocol §L2.7).
+const negotiationScenarios = [
+  {
+    name: '0001-handshake-compatible',
+    description: 'identical single-version peers negotiate that version',
+    ours: ['xnet/1.0'],
+    theirs: ['xnet/1.0']
+  },
+  {
+    name: '0002-handshake-newest-shared',
+    description: 'the newest umbrella version shared by both peers is chosen',
+    ours: ['xnet/2.0', 'xnet/1.0'],
+    theirs: ['xnet/1.0', 'xnet/2.0']
+  },
+  {
+    name: '0003-handshake-incompatible',
+    description: 'no shared umbrella version → null (the caller must refuse)',
+    ours: ['xnet/1.0'],
+    theirs: ['xnet/0.9']
+  }
+]
+for (const { name, description, ours, theirs } of negotiationScenarios) {
+  const negotiated = negotiateProtocolVersion(ours, theirs)
+  corpus.push({
+    suite: 'replication',
+    name,
+    data: {
+      description,
+      input: { ours, theirs },
+      expected: { negotiated, compatible: negotiated !== null }
+    }
+  })
+}
+
+// The umbrella version bundle every xnet/1.0 implementation advertises.
+corpus.push({
+  suite: 'replication',
+  name: '0004-protocol-version-bundle',
+  data: {
+    description: 'the xnet/1.0 umbrella version bundle and supported-version set',
+    input: {},
+    expected: {
+      bundle: XNET_PROTOCOL_VERSION,
+      supported: [...XNET_SUPPORTED_PROTOCOL_VERSIONS]
+    }
+  }
+})
+
+// Catch-up (node-sync-response): given a room's changes and a client's last-seen
+// Lamport, return the changes strictly after it (ascending by lamport) plus the
+// relay's high-water mark = max Lamport over all changes in the room (§L2.3).
+const foldCatchUp = (
+  changes: { id: string; lamport: number }[],
+  sinceLamport: number
+): { changeIds: string[]; highWaterMark: number } => ({
+  changeIds: changes
+    .filter((c) => c.lamport > sinceLamport)
+    .sort((a, b) => a.lamport - b.lamport)
+    .map((c) => c.id),
+  highWaterMark: changes.reduce((max, c) => Math.max(max, c.lamport), 0)
+})
+const catchupScenarios = [
+  {
+    name: '0005-catchup-since-mid',
+    description: 'catch-up returns only changes after sinceLamport, lamport-ordered',
+    changes: [
+      { id: 'chg-a', lamport: 1 },
+      { id: 'chg-c', lamport: 3 },
+      { id: 'chg-b', lamport: 2 },
+      { id: 'chg-d', lamport: 4 }
+    ],
+    sinceLamport: 2
+  },
+  {
+    name: '0006-catchup-from-zero',
+    description: 'sinceLamport 0 returns the whole room ordered by lamport',
+    changes: [
+      { id: 'chg-b', lamport: 2 },
+      { id: 'chg-a', lamport: 1 }
+    ],
+    sinceLamport: 0
+  }
+]
+for (const { name, description, changes, sinceLamport } of catchupScenarios) {
+  corpus.push({
+    suite: 'replication',
+    name,
+    data: {
+      description,
+      input: { changes, sinceLamport },
+      expected: foldCatchUp(changes, sinceLamport)
+    }
+  })
+}
+
+// Signed Yjs envelope (§L2.4): L2's one crypto contract. The signature is Ed25519
+// over BLAKE3(update ++ utf8(JSON(meta))), where `meta` is serialized in INSERTION
+// order { authorDID, clientId, timestamp, docId } — NOT sorted (the cross-language
+// landmine). The Yjs `update` bytes are an opaque codec payload (any bytes here).
+{
+  const update = new Uint8Array([0x01, 0x02, 0x03, 0x04])
+  const clientId = 42
+  const timestamp = 1718641200000
+  const docId = 'doc-0001'
+  const meta = { authorDID, clientId, timestamp, docId }
+  const metaBytes = new TextEncoder().encode(JSON.stringify(meta))
+  const combined = new Uint8Array(update.length + metaBytes.length)
+  combined.set(update, 0)
+  combined.set(metaBytes, update.length)
+  const signingHash = hash(combined, 'blake3')
+  const ed25519 = sign(signingHash, authorSeed)
+  const envelope: SignedYjsEnvelopeV2 = {
+    v: 2,
+    update,
+    meta,
+    signature: { level: 0, ed25519 }
+  }
+  // Anchor to the real verifier: a correctly constructed envelope MUST verify.
+  expect((await verifyYjsEnvelopeV2(envelope)).valid).toBe(true)
+  corpus.push({
+    suite: 'replication',
+    name: '0007-yjs-envelope-sign',
+    data: {
+      description: 'signed Yjs envelope: Ed25519 over BLAKE3(update ++ utf8(JSON(meta)))',
+      input: {
+        authorSeedHex: toHex(authorSeed),
+        updateHex: toHex(update),
+        clientId,
+        timestamp,
+        docId
+      },
+      expected: {
+        signingHashHex: toHex(signingHash),
+        wire: serializeYjsEnvelope(envelope)
+      }
+    }
+  })
+}
+
+// ── L3 · authorization decision vectors (expression AST evaluation) ───────────
+// The normative deny-wins / AST core (docs/specs/protocol §L3.4). This mirrors
+// `evaluateExpression` in packages/data/src/auth/evaluator.ts exactly: `deny(r)`
+// is a role-membership PREDICATE (true when the subject holds r), so literal
+// deny-wins is composed as `and(allow(...), not(deny(...)))` (and in field rules).
+type AuthExpr =
+  | { _tag: 'allow'; roles: string[] }
+  | { _tag: 'deny'; roles: string[] }
+  | { _tag: 'and'; exprs: AuthExpr[] }
+  | { _tag: 'or'; exprs: AuthExpr[] }
+  | { _tag: 'not'; expr: AuthExpr }
+  | { _tag: 'roleRef'; role: string }
+  | { _tag: 'public' }
+  | { _tag: 'authenticated' }
+const evalExpr = (expr: AuthExpr, roles: Set<string>, isAuthenticated: boolean): boolean => {
+  switch (expr._tag) {
+    case 'allow':
+    case 'deny':
+      return expr.roles.some((r) => roles.has(r))
+    case 'and':
+      return expr.exprs.every((e) => evalExpr(e, roles, isAuthenticated))
+    case 'or':
+      return expr.exprs.some((e) => evalExpr(e, roles, isAuthenticated))
+    case 'not':
+      return !evalExpr(expr.expr, roles, isAuthenticated)
+    case 'roleRef':
+      return roles.has(expr.role)
+    case 'public':
+      return true
+    case 'authenticated':
+      return isAuthenticated
+  }
+}
+const allow = (...roles: string[]): AuthExpr => ({ _tag: 'allow', roles })
+const deny = (...roles: string[]): AuthExpr => ({ _tag: 'deny', roles })
+const and = (...exprs: AuthExpr[]): AuthExpr => ({ _tag: 'and', exprs })
+const or = (...exprs: AuthExpr[]): AuthExpr => ({ _tag: 'or', exprs })
+const not = (expr: AuthExpr): AuthExpr => ({ _tag: 'not', expr })
+const PUBLIC: AuthExpr = { _tag: 'public' }
+const AUTHENTICATED: AuthExpr = { _tag: 'authenticated' }
+
+const authzScenarios: {
+  name: string
+  description: string
+  expression: AuthExpr
+  roles: string[]
+  isAuthenticated: boolean
+}[] = [
+  {
+    name: '0001-allow-hit',
+    description: 'allow matches a held role',
+    expression: allow('editor', 'owner'),
+    roles: ['owner'],
+    isAuthenticated: true
+  },
+  {
+    name: '0002-allow-miss',
+    description: 'allow with no held role denies',
+    expression: allow('editor', 'owner'),
+    roles: ['viewer'],
+    isAuthenticated: true
+  },
+  {
+    name: '0003-public',
+    description: 'PUBLIC is always true, even for an anonymous subject',
+    expression: PUBLIC,
+    roles: [],
+    isAuthenticated: false
+  },
+  {
+    name: '0004-authenticated',
+    description: 'AUTHENTICATED is true for any valid DID subject',
+    expression: AUTHENTICATED,
+    roles: [],
+    isAuthenticated: true
+  },
+  {
+    name: '0005-authenticated-anonymous',
+    description: 'AUTHENTICATED is false without a subject',
+    expression: AUTHENTICATED,
+    roles: [],
+    isAuthenticated: false
+  },
+  {
+    name: '0006-deny-wins-allowed',
+    description: 'a member who is not banned is allowed',
+    expression: and(allow('member'), not(deny('banned'))),
+    roles: ['member'],
+    isAuthenticated: true
+  },
+  {
+    name: '0007-deny-wins-denied',
+    description: 'deny wins: a banned member is denied',
+    expression: and(allow('member'), not(deny('banned'))),
+    roles: ['member', 'banned'],
+    isAuthenticated: true
+  },
+  {
+    name: '0008-or-fallback',
+    description: 'or allows when any branch is true',
+    expression: or(allow('owner'), AUTHENTICATED),
+    roles: [],
+    isAuthenticated: true
+  },
+  {
+    name: '0009-roleref',
+    description: 'roleRef is true when the subject holds the named role',
+    expression: { _tag: 'roleRef', role: 'admin' },
+    roles: ['admin'],
+    isAuthenticated: true
+  }
+]
+for (const { name, description, expression, roles, isAuthenticated } of authzScenarios) {
+  const allowed = evalExpr(expression, new Set(roles), isAuthenticated)
+  corpus.push({
+    suite: 'authz',
+    name,
+    data: {
+      description,
+      input: { expression, roles, isAuthenticated },
+      expected: { allowed }
+    }
   })
 }
 

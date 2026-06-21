@@ -1,0 +1,19 @@
+{
+  "description": "allow with no held role denies",
+  "input": {
+    "expression": {
+      "_tag": "allow",
+      "roles": [
+        "editor",
+        "owner"
+      ]
+    },
+    "roles": [
+      "viewer"
+    ],
+    "isAuthenticated": true
+  },
+  "expected": {
+    "allowed": false
+  }
+}

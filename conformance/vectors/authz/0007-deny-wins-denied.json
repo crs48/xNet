@@ -1,0 +1,33 @@
+{
+  "description": "deny wins: a banned member is denied",
+  "input": {
+    "expression": {
+      "_tag": "and",
+      "exprs": [
+        {
+          "_tag": "allow",
+          "roles": [
+            "member"
+          ]
+        },
+        {
+          "_tag": "not",
+          "expr": {
+            "_tag": "deny",
+            "roles": [
+              "banned"
+            ]
+          }
+        }
+      ]
+    },
+    "roles": [
+      "member",
+      "banned"
+    ],
+    "isAuthenticated": true
+  },
+  "expected": {
+    "allowed": false
+  }
+}

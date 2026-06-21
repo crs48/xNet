@@ -1,0 +1,27 @@
+{
+  "description": "signed Yjs envelope: Ed25519 over BLAKE3(update ++ utf8(JSON(meta)))",
+  "input": {
+    "authorSeedHex": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "updateHex": "01020304",
+    "clientId": 42,
+    "timestamp": 1718641200000,
+    "docId": "doc-0001"
+  },
+  "expected": {
+    "signingHashHex": "8a3b0c0728a943827cd9c59cb597e30238227a30ed982f85603e866da5c70409",
+    "wire": {
+      "v": 2,
+      "u": "AQIDBA==",
+      "m": {
+        "a": "did:key:z6Mkv1o2GEgtXjFdEMfLtupcKhGRydM8V7VHzii7Uh4aHoqH",
+        "c": 42,
+        "t": 1718641200000,
+        "d": "doc-0001"
+      },
+      "s": {
+        "l": 0,
+        "e": "jYD6emKGdr1i+WDAC04dSOPJMpgx7HhdVqS/E/eqo+IF2S3SCeT2BSDybsuwizOFJyrnmlX9YyAJtyF+1cd0Dg=="
+      }
+    }
+  }
+}

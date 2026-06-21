@@ -1,0 +1,15 @@
+{
+  "description": "no shared umbrella version → null (the caller must refuse)",
+  "input": {
+    "ours": [
+      "xnet/1.0"
+    ],
+    "theirs": [
+      "xnet/0.9"
+    ]
+  },
+  "expected": {
+    "negotiated": null,
+    "compatible": false
+  }
+}

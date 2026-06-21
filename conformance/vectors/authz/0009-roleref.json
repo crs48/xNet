@@ -1,0 +1,16 @@
+{
+  "description": "roleRef is true when the subject holds the named role",
+  "input": {
+    "expression": {
+      "_tag": "roleRef",
+      "role": "admin"
+    },
+    "roles": [
+      "admin"
+    ],
+    "isAuthenticated": true
+  },
+  "expected": {
+    "allowed": true
+  }
+}

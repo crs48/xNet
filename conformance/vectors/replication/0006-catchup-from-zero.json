@@ -1,0 +1,23 @@
+{
+  "description": "sinceLamport 0 returns the whole room ordered by lamport",
+  "input": {
+    "changes": [
+      {
+        "id": "chg-b",
+        "lamport": 2
+      },
+      {
+        "id": "chg-a",
+        "lamport": 1
+      }
+    ],
+    "sinceLamport": 0
+  },
+  "expected": {
+    "changeIds": [
+      "chg-a",
+      "chg-b"
+    ],
+    "highWaterMark": 2
+  }
+}

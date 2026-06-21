@@ -1,0 +1,13 @@
+{
+  "description": "PUBLIC is always true, even for an anonymous subject",
+  "input": {
+    "expression": {
+      "_tag": "public"
+    },
+    "roles": [],
+    "isAuthenticated": false
+  },
+  "expected": {
+    "allowed": true
+  }
+}
