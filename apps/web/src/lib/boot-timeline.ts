@@ -56,6 +56,18 @@ export function bootMarkAt(phase: BootPhase): number | undefined {
 }
 
 /**
+ * The furthest boot phase reached so far, or undefined before `init:start`.
+ * Marks are inserted in occurrence order (first-write-wins), so the last
+ * inserted key is the latest phase — useful as the `stage` on a boot failure
+ * report ("it died at `sqlite:open`") (exploration 0210).
+ */
+export function lastBootPhase(): BootPhase | undefined {
+  let last: BootPhase | undefined
+  for (const phase of marks.keys()) last = phase
+  return last
+}
+
+/**
  * Milliseconds between two phases, or undefined if either is missing.
  * Rounded to the nearest millisecond.
  */

@@ -39,6 +39,7 @@ import { BootTimelineProbe } from './components/BootTimelineProbe'
 import { BundledPluginInstaller } from './components/BundledPluginInstaller'
 import { StorageWarningBanner } from './components/StorageWarningBanner'
 import { WorkingSetPrewarm } from './components/WorkingSetPrewarm'
+import { type BootFailure, reportBootFailure } from './lib/boot-diagnostics'
 import { bootMark } from './lib/boot-timeline'
 import {
   clearXNetBrowserStorage,
@@ -232,6 +233,11 @@ function useWebInstallPrompt(): {
   }
 }
 
+// Cold start can legitimately take 10–20s on a slow first load (SQLite WASM
+// download + OPFS), so the watchdog waits past that before declaring a hang
+// (exploration 0210). A late success still replaces the timeout screen.
+const BOOT_TIMEOUT_MS = 25_000
+
 // ─── Types ──────────────────────────────────────────────────────
 type AppState =
   | { status: 'initializing' }
@@ -240,6 +246,7 @@ type AppState =
   | { status: 'needs-onboarding'; storageWarning?: string; storageStatus?: PersistentStorageStatus }
   | { status: 'unlocking'; storageWarning?: string; storageStatus?: PersistentStorageStatus }
   | { status: 'storage-corrupt'; error: Error }
+  | { status: 'boot-timeout'; failure: BootFailure }
   | {
       status: 'authenticated'
       identity: Identity
@@ -488,6 +495,9 @@ export function App(): JSX.Element {
 
         console.error('[App] Initialization failed:', err)
         const error = err instanceof Error ? err : new Error(String(err))
+        // Report with the furthest boot phase reached so a field failure is
+        // diagnosable instead of a silent blank/error screen (exploration 0210).
+        reportBootFailure('init', error)
         if (isSQLiteCorruptionError(error)) {
           setAppState({ status: 'storage-corrupt', error })
           return
@@ -519,6 +529,23 @@ export function App(): JSX.Element {
     // this still runs a single time; it's listed to satisfy exhaustive-deps now
     // that the cold-start probe reads it (exploration 0204).
   }, [hubUrl])
+
+  // Boot watchdog (exploration 0210): a hung boot — SQLite WASM that never
+  // resolves, an OPFS handle that blocks, a hub socket that connects but never
+  // acks — throws nothing, so the init try/catch can't see it and the user is
+  // stuck on the "Initializing database…" spinner forever. If we're still
+  // initializing after the timeout, surface an actionable screen and report it.
+  useEffect(() => {
+    if (appState.status !== 'initializing') return
+    const timer = window.setTimeout(() => {
+      const failure = reportBootFailure(
+        'timeout',
+        new Error(`Boot did not complete within ${BOOT_TIMEOUT_MS / 1000}s`)
+      )
+      setAppState({ status: 'boot-timeout', failure })
+    }, BOOT_TIMEOUT_MS)
+    return () => window.clearTimeout(timer)
+  }, [appState.status])
 
   // A persistent-storage grant can land mid-session (notification opt-in,
   // install, engagement crossing Chrome's threshold). Watching the
@@ -702,6 +729,43 @@ export function App(): JSX.Element {
             >
               Reload
             </button>
+          </div>
+        </div>
+      </ThemeProvider>
+    )
+  }
+
+  // Boot watchdog fired — boot never finished (exploration 0210). Show the
+  // furthest stage reached and offer recovery instead of an endless spinner.
+  if (appState.status === 'boot-timeout') {
+    return (
+      <ThemeProvider defaultTheme="system" storageKey="xnet-web-theme">
+        <div className="flex items-center justify-center h-screen bg-background">
+          <div className="text-center max-w-md p-6">
+            <div className="text-4xl mb-4">⏳</div>
+            <h1 className="text-xl font-semibold mb-2">xNet is taking too long to start</h1>
+            <p className="text-muted-foreground mb-2">
+              The app didn't finish loading. This usually clears up on a reload; if it keeps
+              happening, resetting local data starts you fresh.
+            </p>
+            <p className="text-xs text-muted-foreground mb-6">
+              Stalled at: <span className="font-mono">{appState.failure.stage}</span>
+            </p>
+            <div className="flex justify-center gap-3">
+              <button
+                onClick={() => window.location.reload()}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+              >
+                Reload
+              </button>
+              <button
+                onClick={handleResetCorruptStorage}
+                disabled={isResettingStorage}
+                className="px-4 py-2 border border-border rounded-md hover:bg-accent disabled:opacity-60"
+              >
+                {isResettingStorage ? 'Resetting…' : 'Reset local data'}
+              </button>
+            </div>
           </div>
         </div>
       </ThemeProvider>

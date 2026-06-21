@@ -3,6 +3,7 @@
  */
 // Must be first: sets the storage scope before any module can open IndexedDB.
 import './lib/storage-scope'
+import { installBootDiagnostics, installBootFallback } from './lib/boot-diagnostics'
 import {
   getCanvasObjectsMap,
   seedCanvasPerformanceScene,
@@ -408,6 +409,12 @@ function createCanvasTestHarness(): WebCanvasTestHarness {
 }
 
 window.__xnetCanvasTestHarness = createCanvasTestHarness()
+
+// Capture unhandled errors/rejections and arm a blank-screen fallback before
+// React mounts, so a boot that never finishes still surfaces an actionable
+// "couldn't start" notice instead of a blank page (exploration 0210).
+installBootDiagnostics()
+installBootFallback('root')
 
 // Warm the hub's DNS/TCP/TLS during SQLite boot so the later dial is fast
 // (exploration 0204). Pure resource hint — issued before React mounts.
