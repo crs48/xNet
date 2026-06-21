@@ -40,6 +40,11 @@ jobs:
         env:
           VITE_BASE_PATH: '/app/'
           VITE_USE_HASH_ROUTER: 'true'
+          # Hosted demo only: enables consent-gated error reporting + cookieless
+          # analytics. Self-host/preview builds omit these and phone nothing home (0210).
+          VITE_XNET_TELEMETRY: 'on'
+          VITE_SENTRY_DSN: ${{ vars.WEB_SENTRY_DSN }}
+          VITE_ANALYTICS_DOMAIN: ${{ vars.PUBLIC_ANALYTICS_DOMAIN }}
 
       - name: Cache Astro build
         uses: actions/cache@v4
@@ -63,6 +68,12 @@ jobs:
       - name: Build site
         run: pnpm build
         working-directory: site
+        env:
+          # Cookieless analytics on the marketing + docs pages. Off until the
+          # PUBLIC_ANALYTICS_DOMAIN repo variable is set (no code change to toggle).
+          # PUBLIC_ANALYTICS_SRC optionally swaps Plausible cloud for self-hosted (0210).
+          PUBLIC_ANALYTICS_DOMAIN: ${{ vars.PUBLIC_ANALYTICS_DOMAIN }}
+          PUBLIC_ANALYTICS_SRC: ${{ vars.PUBLIC_ANALYTICS_SRC }}
 
       - name: Prepare production site tree
         run: |

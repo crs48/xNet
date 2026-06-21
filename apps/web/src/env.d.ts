@@ -15,6 +15,8 @@ interface ImportMetaEnv {
   readonly VITE_SENTRY_DSN?: string
   /** Cookieless analytics domain (e.g. xnet.fyi); unset = no analytics (0210). */
   readonly VITE_ANALYTICS_DOMAIN?: string
+  /** Analytics script src; defaults to Plausible's SPA script (0210). */
+  readonly VITE_ANALYTICS_SRC?: string
 }
 
 interface ImportMeta {
