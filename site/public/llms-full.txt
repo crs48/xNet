@@ -7181,6 +7181,17 @@ Your Hub is live. Copy the URL and configure your app:
 | `HUB_LOG_LEVEL`             | `info`            | Log verbosity: debug, info, warn, error       |
 | `HUB_PUBLIC_URL`            | —                 | Public URL for discovery + federation         |
 | `RAILWAY_VOLUME_MOUNT_PATH` | —                 | Auto-set by Railway when a volume is attached |
+| `XNET_DIAGNOSTICS_URL`      | —                 | Opt-in: upstream sink for scrubbed crash reports (see below) |
+| `XNET_DIAGNOSTICS_SECRET`   | —                 | Opt-in: shared secret for diagnostics sharing |
+
+### Diagnostics sharing (opt-in, off by default)
+
+Your hub keeps its own errors to itself. If you'd like xNet to help debug your
+hub, set both `XNET_DIAGNOSTICS_URL` and `XNET_DIAGNOSTICS_SECRET` to enable the
+`POST /diagnostics/report` route, which forwards **scrubbed, content-free** crash
+reports upstream — the sender's DID is hashed (never sent raw) and document
+content is never included. Leave them unset (the default) and nothing is
+forwarded; `GET /diagnostics/health` simply reports `sharing: false`.
 
 ### CLI Flags
 
