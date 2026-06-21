@@ -56,7 +56,8 @@ const SECRET_NAMES = {
   R2_ENDPOINT: 'r2-endpoint',
   R2_ACCESS_KEY_ID: 'r2-key-id',
   R2_SECRET_ACCESS_KEY: 'r2-secret',
-  GCP_ARTIFACT_REGISTRY: 'gcp-artifact-registry'
+  GCP_ARTIFACT_REGISTRY: 'gcp-artifact-registry',
+  SENTRY_DSN: 'sentry-dsn'
 }
 
 function parseEnv(text) {
