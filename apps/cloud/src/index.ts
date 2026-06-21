@@ -270,6 +270,7 @@ function start(): void {
     marketingUrl: env.XNET_CLOUD_MARKETING_URL ?? 'https://xnet.fyi/cloud',
     appUrl: env.XNET_CLOUD_APP_URL ?? 'https://xnet.fyi/app',
     ...(env.XNET_CLOUD_INTERNAL_SECRET ? { internalSecret: env.XNET_CLOUD_INTERNAL_SECRET } : {}),
+    ...(env.SENTRY_DSN ? { sentryDsn: env.SENTRY_DSN } : {}),
     ...(ai ? { ai } : {})
   })
   const port = Number(env.PORT ?? 4455)
@@ -279,7 +280,8 @@ function start(): void {
     payments: payments.id,
     provisioner: env.GCP_ARTIFACT_REGISTRY ? 'cloud-run' : 'memory',
     stores: env.GCP_FIRESTORE_DATABASE ? 'firestore' : 'memory',
-    ai: ai ? 'litellm' : 'off'
+    ai: ai ? 'litellm' : 'off',
+    sentry: env.SENTRY_DSN ? 'on' : 'off'
   }
   // eslint-disable-next-line no-console
   console.log(`xnet-cloud listening on :${port} — ${JSON.stringify(mode)}`)

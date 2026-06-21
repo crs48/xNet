@@ -7,6 +7,14 @@ interface Props {
 }
 
 const { title, description } = Astro.props
+
+// Cookieless, privacy-preserving analytics (exploration 0210). Off unless
+// PUBLIC_ANALYTICS_DOMAIN is set at build time (e.g. in the deploy workflow), so
+// local dev and PR previews load nothing. Defaults to Plausible's cloud script;
+// point PUBLIC_ANALYTICS_SRC at a self-hosted Umami/Plausible to swap vendors.
+// No cookies, no personal data → no consent banner required.
+const analyticsDomain = import.meta.env.PUBLIC_ANALYTICS_DOMAIN
+const analyticsSrc = import.meta.env.PUBLIC_ANALYTICS_SRC || 'https://plausible.io/js/script.js'
 ---
 
 <!doctype html>
@@ -99,6 +107,11 @@ const { title, description } = Astro.props
         }
       })()
     </script>
+    {
+      analyticsDomain && (
+        <script is:inline defer data-domain={analyticsDomain} src={analyticsSrc} />
+      )
+    }
   </head>
   <body class="bg-white dark:bg-[#0a0a0f] text-gray-800 dark:text-gray-200 antialiased font-sans leading-relaxed">
     <slot />
