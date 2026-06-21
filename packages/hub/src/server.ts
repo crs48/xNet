@@ -24,6 +24,7 @@ import {
 } from './auth/ucan'
 import { measureDataUsage, type DataUsage } from './data-usage'
 import { aiForwarderFeature } from './features/ai-forwarder'
+import { diagnosticsSharingFeature } from './features/diagnostics-sharing'
 import { billingFeature, tasksFeature, unfurlFeature } from './features/first-party'
 import { mountFeatures } from './features/registry'
 import { Metrics, HUB_METRICS } from './middleware/metrics'
@@ -829,7 +830,11 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
       // Managed-AI forwarder (0208): proxies `/ai/chat` + `/ai/models` to the
       // control plane with this hub's tenant credential. Unconfigured off-cloud →
       // `/ai/health` reports managed:false and the chat route stays unmounted.
-      aiForwarderFeature()
+      aiForwarderFeature(),
+      // Opt-in diagnostics sharing (0210): off by default. When the owner sets
+      // XNET_DIAGNOSTICS_URL/SECRET, forwards scrubbed, content-free crash
+      // reports upstream so we can help debug their hub.
+      diagnosticsSharingFeature()
     ],
     {
       app,
