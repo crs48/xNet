@@ -55,15 +55,31 @@ export function bootMarkAt(phase: BootPhase): number | undefined {
   return marks.get(phase)
 }
 
+/** The phases in canonical occurrence order — the source of truth for "furthest". */
+const BOOT_PHASE_ORDER: readonly BootPhase[] = [
+  'init:start',
+  'sqlite:open',
+  'sqlite:schema',
+  'identity:ready',
+  'store:ready',
+  'hub:connected',
+  'sync:first',
+  'query:first-rows'
+]
+
 /**
- * The furthest boot phase reached so far, or undefined before `init:start`.
- * Marks are inserted in occurrence order (first-write-wins), so the last
- * inserted key is the latest phase — useful as the `stage` on a boot failure
- * report ("it died at `sqlite:open`") (exploration 0210).
+ * The furthest boot phase reached so far, or undefined before `init:start`,
+ * useful as the `stage` on a boot failure report ("it died at `sqlite:open`")
+ * (exploration 0210). Resolved by the canonical phase ORDER rather than Map
+ * insertion order: phases are marked by independent observers, so on a warm
+ * local-first load `query:first-rows` can land before `hub:connected` — using
+ * insertion order would mislabel the furthest phase in that window.
  */
 export function lastBootPhase(): BootPhase | undefined {
   let last: BootPhase | undefined
-  for (const phase of marks.keys()) last = phase
+  for (const phase of BOOT_PHASE_ORDER) {
+    if (marks.has(phase)) last = phase
+  }
   return last
 }
 

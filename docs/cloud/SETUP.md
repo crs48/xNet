@@ -265,12 +265,13 @@ unset (dev / self-host) means it never phones home. To turn it on:
 1. Add `@sentry/node` to `apps/cloud` (`pnpm --filter xnet-cloud add @sentry/node`)
    — the bridge in `apps/cloud/src/sentry.ts` loads it dynamically, so the build
    stays green without it.
-2. Put the project DSN in `.env.<env>` as `SENTRY_DSN=...` and push it
-   (`node scripts/cloud-secrets-push.mjs` creates the `sentry-dsn` secret).
-   `deploy-cloud.yml` already wires `SENTRY_DSN=sentry-dsn:latest`.
+2. Set the **repo variable** `CLOUD_SENTRY_DSN` to the project DSN (Settings →
+   Secrets and variables → Actions → Variables). `deploy-cloud.yml` passes it as a
+   plain `SENTRY_DSN` env var — a DSN is a write-only ingestion key (public in
+   client builds), not a secret, so it does **not** go through Secret Manager.
+   Leave the variable unset and Sentry stays off (no deploy breakage).
 
-`LOG_LEVEL` (default `info`) tunes log verbosity. Keep the secret name in lockstep
-across `scripts/cloud-secrets-push.mjs`, `deploy-cloud.yml`, and this doc.
+`LOG_LEVEL` (default `info`) tunes log verbosity.
 
 ---
 

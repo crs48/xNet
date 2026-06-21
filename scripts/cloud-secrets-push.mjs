@@ -56,8 +56,11 @@ const SECRET_NAMES = {
   R2_ENDPOINT: 'r2-endpoint',
   R2_ACCESS_KEY_ID: 'r2-key-id',
   R2_SECRET_ACCESS_KEY: 'r2-secret',
-  GCP_ARTIFACT_REGISTRY: 'gcp-artifact-registry',
-  SENTRY_DSN: 'sentry-dsn'
+  GCP_ARTIFACT_REGISTRY: 'gcp-artifact-registry'
+  // Note: SENTRY_DSN is NOT a Secret Manager secret — a Sentry DSN is a
+  // write-only ingestion key (public in client builds), so it rides as a plain
+  // env var from the `CLOUD_SENTRY_DSN` repo variable in deploy-cloud.yml. That
+  // also avoids a missing-secret deploy failure when Sentry is left unconfigured.
 }
 
 function parseEnv(text) {

@@ -5,7 +5,7 @@ import {
   reportBootFailure,
   type BootFailure
 } from './boot-diagnostics'
-import { __resetBootTimeline, bootMark } from './boot-timeline'
+import { __resetBootTimeline, bootMark, lastBootPhase } from './boot-timeline'
 
 afterEach(() => {
   __resetBootDiagnostics()
@@ -33,6 +33,17 @@ describe('reportBootFailure', () => {
     const failure = reportBootFailure('window.onerror', 'boom')
     expect(failure.stage).toBe('pre-react')
     expect(failure.message).toBe('boom')
+  })
+
+  it('reports the canonically-furthest phase even when marks land out of order', () => {
+    // Warm local-first path: the local query paints before the hub connects, so
+    // query:first-rows is *inserted* before hub:connected — but hub:connected is
+    // the canonically-later phase.
+    bootMark('init:start')
+    bootMark('store:ready')
+    bootMark('query:first-rows')
+    bootMark('hub:connected')
+    expect(lastBootPhase()).toBe('query:first-rows')
   })
 })
 
