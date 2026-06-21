@@ -1,0 +1,51 @@
+{
+  "originHash" : "301d6dd8c509f10bf35323fc5931ad3973e96e272eb09d343e9b6db85a1d929f",
+  "pins" : [
+    {
+      "identity" : "blake3-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/nixberg/blake3-swift",
+      "state" : {
+        "revision" : "eed608f997bbf2fc4532310e354ffaacf5575355",
+        "version" : "0.1.2"
+      }
+    },
+    {
+      "identity" : "crypto-traits-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/nixberg/crypto-traits-swift",
+      "state" : {
+        "revision" : "edbb488fbe7a09572e889e026a5aa07e0feb1198",
+        "version" : "0.2.1"
+      }
+    },
+    {
+      "identity" : "endianbytes-swift",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/nixberg/endianbytes-swift",
+      "state" : {
+        "revision" : "c58c2275ba94c50de2573c5a1df3f5ceb2089cb4",
+        "version" : "0.5.1"
+      }
+    },
+    {
+      "identity" : "swift-algorithms",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-algorithms",
+      "state" : {
+        "revision" : "87e50f483c54e6efd60e885f7f5aa946cee68023",
+        "version" : "1.2.1"
+      }
+    },
+    {
+      "identity" : "swift-numerics",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/apple/swift-numerics.git",
+      "state" : {
+        "revision" : "0c0290ff6b24942dadb83a929ffaaa1481df04a2",
+        "version" : "1.1.1"
+      }
+    }
+  ],
+  "version" : 3
+}
