@@ -3,7 +3,6 @@
  */
 // Must be first: sets the storage scope before any module can open IndexedDB.
 import './lib/storage-scope'
-import { installBootDiagnostics, installBootFallback } from './lib/boot-diagnostics'
 import {
   getCanvasObjectsMap,
   seedCanvasPerformanceScene,
@@ -16,6 +15,8 @@ import ReactDOM from 'react-dom/client'
 import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 import { App } from './App'
+import { installBootDiagnostics, installBootFallback } from './lib/boot-diagnostics'
+import { initErrorReporter } from './lib/error-reporter'
 import { preconnectHub } from './lib/preconnect-hub'
 
 type WebCanvasNodeRecord = {
@@ -415,6 +416,9 @@ window.__xnetCanvasTestHarness = createCanvasTestHarness()
 // "couldn't start" notice instead of a blank page (exploration 0210).
 installBootDiagnostics()
 installBootFallback('root')
+// Fan boot/runtime failures out to the consent-gated first-party collector and
+// the optional Sentry adapter. No-op on self-host/preview builds (0210).
+initErrorReporter()
 
 // Warm the hub's DNS/TCP/TLS during SQLite boot so the later dial is fast
 // (exploration 0204). Pure resource hint — issued before React mounts.
