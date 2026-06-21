@@ -13,5 +13,11 @@
     "platform",
     "app",
     "performance"
+  ],
+  "pr": 226,
+  "authors": [
+    {
+      "login": "crs48"
+    }
   ]
 }
