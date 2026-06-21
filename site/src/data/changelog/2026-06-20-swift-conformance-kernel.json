@@ -9,6 +9,7 @@
     "Surfaced and documented a real Apple-platform constraint: CryptoKit's Ed25519 is randomized, so it verifies signatures but can't reproduce them byte-for-byte"
   ],
   "tags": ["protocol", "conformance", "swift"],
+  "pr": 225,
   "authors": [
     {
       "login": "crs48"
