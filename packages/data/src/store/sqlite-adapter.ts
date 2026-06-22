@@ -503,17 +503,17 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     const payload = this.serializePayload(change.payload)
 
     // Note: The schema uses 'lamport_peer' and 'author' columns but we adapt here
-    // to match Change<T> interface which uses lamport.author and authorDID
+    // to match Change<T> interface which uses a numeric lamport and authorDID
     await this.db.run(
-      `INSERT OR IGNORE INTO changes 
+      `INSERT OR IGNORE INTO changes
        (hash, node_id, payload, lamport_time, lamport_peer, wall_time, author, parent_hash, batch_id, signature)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         change.hash,
         change.payload.nodeId,
         payload,
-        change.lamport.time,
-        change.lamport.author, // lamport.author maps to lamport_peer column
+        change.lamport,
+        change.authorDID, // change author maps to lamport_peer column
         change.wallTime,
         change.authorDID, // authorDID maps to author column
         change.parentHash ?? null,
@@ -661,7 +661,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     for (const prop of propRows) {
       properties[prop.property_key] = this.deserializeValue(prop.value)
       timestamps[prop.property_key] = {
-        lamport: { time: prop.lamport_time, author: prop.updated_by as DID },
+        lamport: prop.lamport_time,
+        author: prop.updated_by as DID,
         wallTime: prop.updated_at
       }
       // Track the most recent updater
@@ -677,7 +678,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       timestamps,
       deleted: nodeRow.deleted_at !== null,
       deletedAt: nodeRow.deleted_at
-        ? { lamport: { time: 0, author: '' as DID }, wallTime: nodeRow.deleted_at }
+        ? { lamport: 0, author: '' as DID, wallTime: nodeRow.deleted_at }
         : undefined,
       createdAt: nodeRow.created_at,
       createdBy: nodeRow.created_by as DID,
@@ -786,8 +787,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
           node.id,
           key,
           this.serializeValue(value),
-          timestamp.lamport.time,
-          timestamp.lamport.author,
+          timestamp.lamport,
+          timestamp.author,
           timestamp.wallTime
         ]
       )
@@ -1303,7 +1304,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
             valueBoolean: scalar.valueBoolean,
             valueHash: scalar.valueHash,
             updatedAt: timestamp.wallTime,
-            lamportTime: timestamp.lamport.time
+            lamportTime: timestamp.lamport
           })
         }
       }
@@ -1346,8 +1347,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
               nodeId: node.id,
               propertyKey: key,
               value: this.serializeValue(value),
-              lamportTime: timestamp.lamport.time,
-              updatedBy: timestamp.lamport.author,
+              lamportTime: timestamp.lamport,
+              updatedBy: timestamp.author,
               updatedAt: timestamp.wallTime
             }
           ]
@@ -1357,8 +1358,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
         hash: change.hash,
         nodeId: change.payload.nodeId,
         payload: this.serializePayload(change.payload),
-        lamportTime: change.lamport.time,
-        lamportPeer: change.lamport.author,
+        lamportTime: change.lamport,
+        lamportPeer: change.authorDID,
         wallTime: change.wallTime,
         author: change.authorDID,
         parentHash: change.parentHash ?? null,
@@ -1567,8 +1568,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
           node.id,
           key,
           this.serializeValue(value),
-          timestamp.lamport.time,
-          timestamp.lamport.author,
+          timestamp.lamport,
+          timestamp.author,
           timestamp.wallTime
         ]
       })
@@ -1599,8 +1600,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
         change.hash,
         change.payload.nodeId,
         this.serializePayload(change.payload),
-        change.lamport.time,
-        change.lamport.author,
+        change.lamport,
+        change.authorDID,
         change.wallTime,
         change.authorDID,
         change.parentHash ?? null,
@@ -1684,7 +1685,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
             scalar.valueBoolean,
             scalar.valueHash,
             timestamp.wallTime,
-            timestamp.lamport.time
+            timestamp.lamport
           ]
         }
       ]
@@ -1977,7 +1978,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
           timestamps: {},
           deleted: row.deleted_at !== null,
           deletedAt: row.deleted_at
-            ? { lamport: { time: 0, author: '' as DID }, wallTime: row.deleted_at }
+            ? { lamport: 0, author: '' as DID, wallTime: row.deleted_at }
             : undefined,
           createdAt: row.created_at,
           createdBy: row.created_by as DID,
@@ -1990,7 +1991,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       if (row.property_key && row.value !== null) {
         node.properties[row.property_key] = this.deserializeValue(row.value)
         node.timestamps[row.property_key] = {
-          lamport: { time: row.lamport_time ?? 0, author: (row.updated_by ?? '') as DID },
+          lamport: row.lamport_time ?? 0,
+          author: (row.updated_by ?? '') as DID,
           wallTime: row.prop_updated_at ?? 0
         }
         if ((row.prop_updated_at ?? 0) >= node.updatedAt) {
@@ -2299,7 +2301,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
           scalar.valueBoolean,
           scalar.valueHash,
           timestamp.wallTime,
-          timestamp.lamport.time
+          timestamp.lamport
         ]
       )
       rowsWritten += 1
@@ -3744,7 +3746,7 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
       type: 'node', // All node changes have type 'node'
       hash: row.hash as ContentId,
       payload,
-      lamport: { time: row.lamport_time, author: row.lamport_author as DID },
+      lamport: row.lamport_time,
       wallTime: row.wall_time,
       authorDID: row.author_did as DID,
       parentHash: (row.parent_hash as ContentId) ?? null,

@@ -2,7 +2,6 @@
  * Tests for YjsChange - Yjs updates wrapped in Change<T> envelope
  */
 
-import type { DID } from '@xnetjs/core'
 import { generateIdentity } from '@xnetjs/identity'
 import { describe, it, expect } from 'vitest'
 import { verifyChange, verifyChangeHash } from './change'
@@ -30,7 +29,7 @@ describe('createYjsChange', () => {
       authorDID: identity.did,
       privateKey,
       parentHash: null,
-      lamport: { time: 1, author: identity.did as DID }
+      lamport: 1
     })
 
     expect(change.type).toBe(YJS_CHANGE_TYPE)
@@ -40,7 +39,7 @@ describe('createYjsChange', () => {
     expect(change.payload.updateCount).toBe(5)
     expect(change.authorDID).toBe(identity.did)
     expect(change.parentHash).toBeNull()
-    expect(change.lamport.time).toBe(1)
+    expect(change.lamport).toBe(1)
     expect(change.hash).toBeTruthy()
     expect(change.signature).toBeInstanceOf(Uint8Array)
     expect(change.signature.length).toBe(64) // Ed25519 signature
@@ -57,7 +56,7 @@ describe('createYjsChange', () => {
       authorDID: identity.did,
       privateKey,
       parentHash: null,
-      lamport: { time: 1, author: identity.did as DID }
+      lamport: 1
     })
 
     const change2 = createYjsChange({
@@ -68,7 +67,7 @@ describe('createYjsChange', () => {
       authorDID: identity.did,
       privateKey,
       parentHash: change1.hash,
-      lamport: { time: 2, author: identity.did as DID }
+      lamport: 2
     })
 
     expect(change2.parentHash).toBe(change1.hash)
@@ -86,7 +85,7 @@ describe('createYjsChange', () => {
       authorDID: identity.did,
       privateKey,
       parentHash: null,
-      lamport: { time: 1, author: identity.did as DID }
+      lamport: 1
     })
 
     const change2 = createYjsChange({
@@ -97,7 +96,7 @@ describe('createYjsChange', () => {
       authorDID: identity.did,
       privateKey,
       parentHash: null,
-      lamport: { time: 1, author: identity.did as DID }
+      lamport: 1
     })
 
     expect(change1.hash).not.toBe(change2.hash)
@@ -116,7 +115,7 @@ describe('createYjsChange', () => {
       authorDID: identity.did,
       privateKey,
       parentHash: null,
-      lamport: { time: 1, author: identity.did as DID },
+      lamport: 1,
       wallTime: customWallTime
     })
 
@@ -135,7 +134,7 @@ describe('createUnsignedYjsChange', () => {
       updateCount: 3,
       authorDID: identity.did,
       parentHash: null,
-      lamport: { time: 1, author: identity.did as DID }
+      lamport: 1
     })
 
     expect(unsigned.type).toBe(YJS_CHANGE_TYPE)
@@ -161,7 +160,7 @@ describe('verification', () => {
       authorDID: identity.did,
       privateKey,
       parentHash: null,
-      lamport: { time: 1, author: identity.did as DID }
+      lamport: 1
     })
 
     expect(verifyChange(change, identity.publicKey)).toBe(true)
@@ -178,7 +177,7 @@ describe('verification', () => {
       authorDID: identity.did,
       privateKey,
       parentHash: null,
-      lamport: { time: 1, author: identity.did as DID }
+      lamport: 1
     })
 
     // Tamper with the update
@@ -200,7 +199,7 @@ describe('verification', () => {
       authorDID: identity.did,
       privateKey,
       parentHash: null,
-      lamport: { time: 1, author: identity.did as DID }
+      lamport: 1
     })
 
     expect(verifyChange(change, other.publicKey)).toBe(false)
@@ -217,7 +216,7 @@ describe('verification', () => {
       authorDID: identity.did,
       privateKey,
       parentHash: null,
-      lamport: { time: 1, author: identity.did as DID }
+      lamport: 1
     })
 
     // Tamper with hash directly
@@ -239,7 +238,7 @@ describe('isYjsChange', () => {
       authorDID: identity.did,
       privateKey,
       parentHash: null,
-      lamport: { time: 1, author: identity.did as DID }
+      lamport: 1
     })
 
     expect(isYjsChange(change)).toBe(true)
@@ -290,7 +289,7 @@ describe('isNodeChange', () => {
       authorDID: identity.did,
       privateKey,
       parentHash: null,
-      lamport: { time: 1, author: identity.did as DID }
+      lamport: 1
     })
 
     expect(isNodeChange(change)).toBe(false)
@@ -309,7 +308,7 @@ describe('getChangeNodeId', () => {
       authorDID: identity.did,
       privateKey,
       parentHash: null,
-      lamport: { time: 1, author: identity.did as DID }
+      lamport: 1
     })
 
     expect(getChangeNodeId(change)).toBe('page-abc-123')
@@ -346,7 +345,7 @@ describe('hash chain integrity', () => {
         authorDID: identity.did,
         privateKey,
         parentHash: parentHash as any,
-        lamport: { time: i + 1, author: identity.did as DID }
+        lamport: i + 1
       })
       changes.push(change)
       parentHash = change.hash

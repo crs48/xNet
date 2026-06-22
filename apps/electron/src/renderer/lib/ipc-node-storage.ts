@@ -16,9 +16,9 @@ import type {
   ListNodesOptions,
   CountNodesOptions,
   SetNodeOptions,
-  SchemaIRI
+  SchemaIRI,
+  PropertyTimestamp
 } from '@xnetjs/data'
-import type { LamportTimestamp } from '@xnetjs/sync'
 
 // Debug logging - controlled by localStorage flag (same as sync debug)
 function log(...args: unknown[]): void {
@@ -172,10 +172,8 @@ interface SerializedNodeChange {
     properties: Record<string, unknown>
     deleted?: boolean
   }
-  lamport: {
-    time: number
-    author: string
-  }
+  /** Lamport logical time (plain integer); author carried via authorDID. */
+  lamport: number
   wallTime: number
   authorDID: string
   parentHash: string | null
@@ -185,13 +183,9 @@ interface SerializedNodeChange {
   signature: number[]
 }
 
-interface SerializedLamportTimestamp {
-  time: number
-  author: string
-}
-
 interface SerializedPropertyTimestamp {
-  lamport: SerializedLamportTimestamp
+  lamport: number
+  author: string
   wallTime: number
 }
 
@@ -223,10 +217,7 @@ function serializeChange(change: NodeChange): SerializedNodeChange {
       properties: change.payload.properties,
       deleted: change.payload.deleted
     },
-    lamport: {
-      time: change.lamport.time,
-      author: change.lamport.author
-    },
+    lamport: change.lamport,
     wallTime: change.wallTime,
     authorDID: change.authorDID,
     parentHash: change.parentHash,
@@ -249,10 +240,7 @@ function deserializeChange(data: SerializedNodeChange): NodeChange {
       properties: data.payload.properties,
       deleted: data.payload.deleted
     },
-    lamport: {
-      time: data.lamport.time,
-      author: data.lamport.author as DID
-    } as LamportTimestamp,
+    lamport: data.lamport,
     wallTime: data.wallTime,
     authorDID: data.authorDID as DID,
     parentHash: data.parentHash as ContentId | null,
@@ -267,10 +255,8 @@ function serializeNodeState(node: NodeState): SerializedNodeState {
   const timestamps: Record<string, SerializedPropertyTimestamp> = {}
   for (const [key, ts] of Object.entries(node.timestamps)) {
     timestamps[key] = {
-      lamport: {
-        time: ts.lamport.time,
-        author: ts.lamport.author
-      },
+      lamport: ts.lamport,
+      author: ts.author,
       wallTime: ts.wallTime
     }
   }
@@ -283,10 +269,8 @@ function serializeNodeState(node: NodeState): SerializedNodeState {
     deleted: node.deleted,
     deletedAt: node.deletedAt
       ? {
-          lamport: {
-            time: node.deletedAt.lamport.time,
-            author: node.deletedAt.lamport.author
-          },
+          lamport: node.deletedAt.lamport,
+          author: node.deletedAt.author,
           wallTime: node.deletedAt.wallTime
         }
       : undefined,
@@ -301,13 +285,11 @@ function serializeNodeState(node: NodeState): SerializedNodeState {
 }
 
 function deserializeNodeState(data: SerializedNodeState): NodeState {
-  const timestamps: Record<string, { lamport: LamportTimestamp; wallTime: number }> = {}
+  const timestamps: Record<string, PropertyTimestamp> = {}
   for (const [key, ts] of Object.entries(data.timestamps)) {
     timestamps[key] = {
-      lamport: {
-        time: ts.lamport.time,
-        author: ts.lamport.author as DID
-      },
+      lamport: ts.lamport,
+      author: ts.author as DID,
       wallTime: ts.wallTime
     }
   }
@@ -320,10 +302,8 @@ function deserializeNodeState(data: SerializedNodeState): NodeState {
     deleted: data.deleted,
     deletedAt: data.deletedAt
       ? {
-          lamport: {
-            time: data.deletedAt.lamport.time,
-            author: data.deletedAt.lamport.author as DID
-          },
+          lamport: data.deletedAt.lamport,
+          author: data.deletedAt.author as DID,
           wallTime: data.deletedAt.wallTime
         }
       : undefined,

@@ -121,7 +121,7 @@ const makeChange = (
     parentHash: null,
     authorDID: actor.did as DID,
     wallTime: Date.now(),
-    lamport: { time: 1, author: actor.did as DID }
+    lamport: 1
   })
   const signed = signChange(unsigned, actor.bundle.signingKey)
   return {
@@ -131,8 +131,8 @@ const makeChange = (
     room: `xnet-doc-${docId}`,
     nodeId: payload.nodeId,
     schemaId: payload.schemaId,
-    lamportTime: signed.lamport.time,
-    lamportAuthor: signed.lamport.author,
+    lamportTime: signed.lamport,
+    lamportAuthor: signed.authorDID,
     authorDid: signed.authorDID,
     wallTime: signed.wallTime,
     parentHash: signed.parentHash,

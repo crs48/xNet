@@ -500,6 +500,6 @@ describe('NodeStore transaction with temp IDs', () => {
     expect(result.changes[1].batchIndex).toBe(1)
 
     // All changes share the same Lamport timestamp
-    expect(result.changes[0].lamport.time).toBe(result.changes[1].lamport.time)
+    expect(result.changes[0].lamport).toBe(result.changes[1].lamport)
   })
 })

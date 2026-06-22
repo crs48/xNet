@@ -65,7 +65,7 @@ describe('IPCNodeStorageAdapter', () => {
           schemaId: 'xnet://test/Task' as const,
           properties: { title: 'Test' }
         },
-        lamport: { time: 1, author: 'did:key:test' as const },
+        lamport: 1,
         wallTime: Date.now(),
         authorDID: 'did:key:test' as const,
         parentHash: null,
@@ -89,7 +89,7 @@ describe('IPCNodeStorageAdapter', () => {
           type: 'node-change',
           hash: 'cid:blake3:abc123',
           payload: { nodeId: 'node-1', properties: {} },
-          lamport: { time: 1, author: 'did:key:test' },
+          lamport: 1,
           wallTime: Date.now(),
           authorDID: 'did:key:test',
           parentHash: null,

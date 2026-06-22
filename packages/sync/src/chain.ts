@@ -11,7 +11,17 @@
 import type { Change } from './change'
 import type { ContentId } from '@xnetjs/core'
 import { verifyChangeHash } from './change'
-import { compareLamportTimestamps } from './clock'
+
+/**
+ * Deterministic change ordering (docs/specs/protocol §L1.7): higher lamport,
+ * then higher wallTime, then higher authorDID. `lamport` is a plain integer;
+ * the author tiebreak comes from `authorDID`.
+ */
+function compareChangeOrder<T>(a: Change<T>, b: Change<T>): number {
+  if (a.lamport !== b.lamport) return a.lamport - b.lamport
+  if (a.wallTime !== b.wallTime) return a.wallTime - b.wallTime
+  return a.authorDID.localeCompare(b.authorDID)
+}
 
 /**
  * Result of validating a chain of changes
@@ -237,7 +247,7 @@ export function getForks<T>(changes: Change<T>[]): Fork<T>[] {
 
     if (children.length >= 2) {
       // Sort by Lamport timestamp (deterministic ordering)
-      children.sort((a, b) => compareLamportTimestamps(a.lamport, b.lamport))
+      children.sort(compareChangeOrder)
 
       forks.push({
         commonAncestor: forkPoint,
@@ -289,7 +299,7 @@ export function topologicalSort<T>(changes: Change<T>[]): Change<T>[] {
   }
 
   // Sort input by Lamport timestamp for deterministic output
-  const sortedInput = [...changes].sort((a, b) => compareLamportTimestamps(a.lamport, b.lamport))
+  const sortedInput = [...changes].sort(compareChangeOrder)
 
   for (const change of sortedInput) {
     visit(change)

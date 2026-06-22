@@ -93,12 +93,12 @@ export class VerificationEngine {
       // 4. Verify clock monotonicity
       if (change.parentHash !== null) {
         const parent = hashMap.get(change.parentHash)
-        if (parent && change.lamport.time <= parent.lamport.time) {
+        if (parent && change.lamport <= parent.lamport) {
           errors.push({
             changeHash: change.hash,
             changeIndex: i,
             type: 'clock-anomaly',
-            details: `Lamport ${change.lamport.time} <= parent's ${parent.lamport.time}`,
+            details: `Lamport ${change.lamport} <= parent's ${parent.lamport}`,
             authorDID: change.authorDID,
             wallTime: change.wallTime
           })

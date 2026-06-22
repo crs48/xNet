@@ -183,7 +183,7 @@ describe('HistoryEngine', () => {
       await store.update(node.id, { properties: { count: 2 } })
 
       const changes = await adapter.getChanges(node.id)
-      const lamportTime = changes[0].lamport.time
+      const lamportTime = changes[0].lamport
 
       const state = await engine.materializeAt(node.id, {
         type: 'lamport',
@@ -1621,7 +1621,7 @@ describe('SchemaTimeline', () => {
     expect(timeline).toHaveLength(3)
     // Should be sorted by lamport time
     for (let i = 1; i < timeline.length; i++) {
-      expect(timeline[i].lamport.time).toBeGreaterThanOrEqual(timeline[i - 1].lamport.time)
+      expect(timeline[i].lamport).toBeGreaterThanOrEqual(timeline[i - 1].lamport)
     }
   })
 

@@ -125,8 +125,8 @@ export class AuditIndex {
     if (q.authors && !q.authors.includes(entry.author)) return false
     if (q.fromWallTime && entry.wallTime < q.fromWallTime) return false
     if (q.toWallTime && entry.wallTime > q.toWallTime) return false
-    if (q.fromLamport && entry.lamport.time < q.fromLamport) return false
-    if (q.toLamport && entry.lamport.time > q.toLamport) return false
+    if (q.fromLamport && entry.lamport < q.fromLamport) return false
+    if (q.toLamport && entry.lamport > q.toLamport) return false
     if (q.operations && !q.operations.includes(entry.operation)) return false
     if (q.batchId && entry.batchId !== q.batchId) return false
     if (q.properties && !q.properties.some((p) => entry.properties.includes(p))) return false

@@ -706,9 +706,7 @@ describe('NodeStore', () => {
       const fetched = await store.get(node.id)
 
       // Title should have newer timestamp than count
-      expect(fetched!.timestamps.title.lamport.time).toBeGreaterThan(
-        fetched!.timestamps.count.lamport.time
-      )
+      expect(fetched!.timestamps.title.lamport).toBeGreaterThan(fetched!.timestamps.count.lamport)
     })
   })
 })
@@ -819,9 +817,9 @@ describe('transaction support', () => {
     ])
 
     // All changes should have the same Lamport time
-    const lamportTime = result.changes[0].lamport.time
+    const lamportTime = result.changes[0].lamport
     for (const change of result.changes) {
-      expect(change.lamport.time).toBe(lamportTime)
+      expect(change.lamport).toBe(lamportTime)
     }
   })
 
@@ -1434,8 +1432,8 @@ describe('deterministic node import', () => {
       schemaId: TEST_SCHEMA,
       properties: { title: 'Locked', status: 'kept' },
       timestamps: {
-        title: { lamport: { time: 50, author: 'did:key:remote' as DID }, wallTime: 50 },
-        status: { lamport: { time: 50, author: 'did:key:remote' as DID }, wallTime: 50 }
+        title: { lamport: 50, author: 'did:key:remote' as DID, wallTime: 50 },
+        status: { lamport: 50, author: 'did:key:remote' as DID, wallTime: 50 }
       },
       deleted: false,
       createdAt: 50,

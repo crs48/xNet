@@ -4,7 +4,6 @@
 
 import type { DID, ContentId } from '@xnetjs/core'
 import type { NodeChange, NodeState, NodeId, SchemaIRI } from '@xnetjs/data'
-import type { LamportTimestamp } from '@xnetjs/sync'
 
 // ─── History Targeting ───────────────────────────────────────
 
@@ -40,7 +39,7 @@ export interface TimelineEntry {
   operation: 'create' | 'update' | 'delete' | 'restore'
   author: DID
   wallTime: number
-  lamport: LamportTimestamp
+  lamport: number
   batchId?: string
   batchSize?: number
 }
@@ -97,7 +96,7 @@ export interface AuditEntry {
   operation: 'create' | 'update' | 'delete' | 'restore'
   author: DID
   wallTime: number
-  lamport: LamportTimestamp
+  lamport: number
   nodeId: NodeId
   schemaIRI: SchemaIRI
   properties: string[]
@@ -135,7 +134,7 @@ export interface PropertyHistoryEntry {
   value: unknown
   author: DID
   wallTime: number
-  lamport: LamportTimestamp
+  lamport: number
   changeHash: ContentId
   changeIndex: number
 }

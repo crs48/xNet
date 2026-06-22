@@ -35,7 +35,7 @@ describe('serializers', () => {
       payload,
       parentHash: null,
       authorDID: testDID,
-      lamport
+      lamport: lamport.time
     })
     return signChange(unsigned, keyPair.privateKey)
   }
@@ -53,8 +53,8 @@ describe('serializers', () => {
         expect(result.change.payload).toEqual(change.payload)
         expect(result.change.hash).toBe(change.hash)
         expect(result.change.authorDID).toBe(change.authorDID)
-        expect(result.change.lamport.time).toBe(change.lamport.time)
-        expect(result.change.lamport.author).toBe(change.lamport.author)
+        expect(result.change.lamport).toBe(change.lamport)
+        expect(result.change.authorDID).toBe(change.authorDID)
       }
     })
 
@@ -67,7 +67,7 @@ describe('serializers', () => {
         payload: { data: 'test' },
         parentHash: null,
         authorDID: testDID,
-        lamport,
+        lamport: lamport.time,
         batchId: 'batch-123',
         batchIndex: 0,
         batchSize: 3
@@ -442,7 +442,7 @@ describe('serializers', () => {
         payload: { data: 'test' },
         parentHash: null,
         authorDID: testDID,
-        lamport,
+        lamport: lamport.time,
         batchId: 'batch-v3',
         batchIndex: 1,
         batchSize: 5
@@ -471,7 +471,7 @@ describe('serializers', () => {
         a: 'did',
         s: 'sig', // V2 uses 's' not 'sig'
         w: 1,
-        l: { t: 1, a: 'author' }
+        l: 1
       }
 
       const result = v3Serializer.deserialize(v2Wire as unknown as Record<string, unknown>)

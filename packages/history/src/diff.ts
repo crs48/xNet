@@ -34,7 +34,7 @@ export class DiffEngine {
           before: undefined,
           after,
           type: 'added',
-          changedBy: (stateTo.node.timestamps?.[key]?.lamport?.author ?? stateTo.author) as DID,
+          changedBy: (stateTo.node.timestamps?.[key]?.author ?? stateTo.author) as DID,
           changedAt: stateTo.node.timestamps?.[key]?.wallTime ?? stateTo.timestamp
         })
       } else if (before !== undefined && after === undefined) {
@@ -52,7 +52,7 @@ export class DiffEngine {
           before,
           after,
           type: 'modified',
-          changedBy: (stateTo.node.timestamps?.[key]?.lamport?.author ?? stateTo.author) as DID,
+          changedBy: (stateTo.node.timestamps?.[key]?.author ?? stateTo.author) as DID,
           changedAt: stateTo.node.timestamps?.[key]?.wallTime ?? stateTo.timestamp
         })
       }

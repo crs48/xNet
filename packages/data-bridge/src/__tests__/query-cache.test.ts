@@ -16,7 +16,7 @@ function createMockNode(id: string, title: string): NodeState {
     id,
     schemaId: TEST_SCHEMA_ID,
     properties: { title },
-    timestamps: { title: { lamport: { time: 1, author: 'did:key:test' }, wallTime: now } },
+    timestamps: { title: { lamport: 1, author: 'did:key:test', wallTime: now } },
     createdAt: now,
     createdBy: 'did:key:test',
     updatedAt: now,

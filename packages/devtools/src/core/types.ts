@@ -6,7 +6,7 @@
  */
 
 import type { NodeChange, MergeConflict } from '@xnetjs/data'
-import type { SyncStatus, PeerInfo, LamportTimestamp } from '@xnetjs/sync'
+import type { SyncStatus, PeerInfo } from '@xnetjs/sync'
 
 // ─── Base Event ────────────────────────────────────────────
 
@@ -26,7 +26,7 @@ export interface StoreCreateEvent extends DevToolsEventBase {
   nodeId: string
   schemaId: string
   properties: Record<string, unknown>
-  lamport: LamportTimestamp
+  lamport: number
   duration: number
 }
 
@@ -34,7 +34,7 @@ export interface StoreUpdateEvent extends DevToolsEventBase {
   type: 'store:update'
   nodeId: string
   properties: Record<string, unknown>
-  lamport: LamportTimestamp
+  lamport: number
   duration: number
 }
 
@@ -97,14 +97,14 @@ export interface SyncChangeReceivedEvent extends DevToolsEventBase {
   type: 'sync:change-received'
   changeId: string
   peerId: string
-  lamport: LamportTimestamp
+  lamport: number
   room: string
 }
 
 export interface SyncBroadcastEvent extends DevToolsEventBase {
   type: 'sync:broadcast'
   changeId: string
-  lamport: LamportTimestamp
+  lamport: number
   room: string
 }
 

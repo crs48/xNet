@@ -36,10 +36,7 @@ async function createTestChange(
     payload: { data: 'test' },
     parentHash: (overrides.parentHash ?? null) as any,
     authorDID: 'did:key:test' as any,
-    lamport: {
-      time: overrides.lamportTime ?? 1,
-      author: 'did:key:test' as any
-    },
+    lamport: overrides.lamportTime ?? 1,
     wallTime: overrides.wallTime ?? Date.now()
   })
   return signChange(unsigned, keyPair.privateKey)
@@ -125,7 +122,7 @@ describe('verifyIntegrity', () => {
   it('should detect invalid lamport time', async () => {
     const change = await createTestChange({ id: 'bad-lamport' })
     // Set invalid lamport time
-    ;(change as any).lamport.time = -1
+    ;(change as any).lamport = -1
 
     const report = await verifyIntegrity([change], { skipHashes: true })
 

@@ -98,12 +98,12 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
       all.push(...changes)
     }
     // Sort by Lamport time for consistent ordering
-    return all.sort((a, b) => a.lamport.time - b.lamport.time)
+    return all.sort((a, b) => a.lamport - b.lamport)
   }
 
   async getChangesSince(sinceLamport: number): Promise<NodeChange[]> {
     const all = await this.getAllChanges()
-    return all.filter((change) => change.lamport.time > sinceLamport)
+    return all.filter((change) => change.lamport > sinceLamport)
   }
 
   async getChangeByHash(hash: ContentId): Promise<NodeChange | null> {

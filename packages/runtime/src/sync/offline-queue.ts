@@ -87,7 +87,8 @@ export function createOfflineQueue(config: OfflineQueueConfig): OfflineQueue {
       timestamps: {},
       deleted: true,
       deletedAt: {
-        lamport: { time: 0, author: systemDid },
+        lamport: 0,
+        author: systemDid,
         wallTime: now
       },
       createdAt: now,

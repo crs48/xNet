@@ -71,7 +71,7 @@ interface V2WireFormat {
   a: string // authorDID
   s: string // signature (base64)
   w: number // wallTime
-  l: { t: number; a: string } // lamport { time, author }
+  l: number // lamport (logical clock)
   bi?: string // batchId
   bx?: number // batchIndex
   bs?: number // batchSize
@@ -104,7 +104,7 @@ export class V2Serializer implements ChangeSerializer {
       a: change.authorDID,
       s: encodeBase64(change.signature),
       w: change.wallTime,
-      l: { t: change.lamport.time, a: change.lamport.author }
+      l: change.lamport
     }
 
     // Include batch fields if present (abbreviated)
@@ -147,7 +147,7 @@ export class V2Serializer implements ChangeSerializer {
       }
 
       // Validate lamport timestamp
-      if (!wire.l || typeof wire.l.t !== 'number' || !wire.l.a) {
+      if (typeof wire.l !== 'number') {
         return {
           success: false,
           error: 'Invalid or missing lamport timestamp',
@@ -166,10 +166,7 @@ export class V2Serializer implements ChangeSerializer {
         authorDID: wire.a as Change<T>['authorDID'],
         signature: decodeBase64(wire.s),
         wallTime: wire.w,
-        lamport: {
-          time: wire.l.t,
-          author: wire.l.a as Change<T>['lamport']['author']
-        }
+        lamport: wire.l
       }
 
       // Include batch fields if present

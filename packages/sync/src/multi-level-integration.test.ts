@@ -170,7 +170,7 @@ describe('Multi-Level Sync Integration', () => {
         a: 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK',
         sig: { l: 0, e: 'AAAA' }, // Level 0 with minimal Ed25519
         w: Date.now(),
-        l: { t: 1, a: 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK' }
+        l: 1
       }
 
       const result = autoDeserialize(v3Wire)

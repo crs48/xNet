@@ -115,7 +115,8 @@ function createPropertyTimestamps(
     propertyKeys.map((key, index) => [
       key,
       {
-        lamport: { time: index + 1, author: authorDID },
+        lamport: index + 1,
+        author: authorDID,
         wallTime
       }
     ])

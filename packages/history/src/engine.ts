@@ -17,7 +17,7 @@ import type {
   PropertyTimestamp,
   SchemaIRI
 } from '@xnetjs/data'
-import { topologicalSort, compareLamportTimestamps } from '@xnetjs/sync'
+import { topologicalSort } from '@xnetjs/sync'
 import { deepEqual } from './utils'
 
 /**
@@ -174,7 +174,7 @@ export class HistoryEngine {
           after,
           type: 'added',
           changedAt: stateTo.node.timestamps?.[key]?.wallTime ?? stateTo.timestamp,
-          changedBy: (stateTo.node.timestamps?.[key]?.lamport?.author ?? stateTo.author) as DID
+          changedBy: (stateTo.node.timestamps?.[key]?.author ?? stateTo.author) as DID
         })
       } else if (before !== undefined && after === undefined) {
         diffs.push({
@@ -192,7 +192,7 @@ export class HistoryEngine {
           after,
           type: 'modified',
           changedAt: stateTo.node.timestamps?.[key]?.wallTime ?? stateTo.timestamp,
-          changedBy: (stateTo.node.timestamps?.[key]?.lamport?.author ?? stateTo.author) as DID
+          changedBy: (stateTo.node.timestamps?.[key]?.author ?? stateTo.author) as DID
         })
       }
     }
@@ -243,7 +243,7 @@ export class HistoryEngine {
 
       case 'lamport':
         for (let i = sorted.length - 1; i >= 0; i--) {
-          if (sorted[i].lamport.time <= target.time) return i
+          if (sorted[i].lamport <= target.time) return i
         }
         return 0
 
@@ -266,6 +266,16 @@ export class HistoryEngine {
 }
 
 // ─── Shared Helpers (exported for reuse by ScrubCache etc.) ──
+
+/**
+ * LWW ordering for per-property timestamps: higher Lamport wins, then higher
+ * wallTime, then higher authorDID (lexicographic). Returns >0 if `a` wins.
+ */
+function comparePropertyTimestamps(a: PropertyTimestamp, b: PropertyTimestamp): number {
+  if (a.lamport !== b.lamport) return a.lamport - b.lamport
+  if (a.wallTime !== b.wallTime) return a.wallTime - b.wallTime
+  return a.author.localeCompare(b.author)
+}
 
 /** Create an empty NodeState for the first change of a node */
 export function createEmptyState(nodeId: NodeId, firstChange: NodeChange): NodeState {
@@ -293,11 +303,12 @@ export function applyChangeToState(state: NodeState, change: NodeChange): NodeSt
   for (const [key, value] of Object.entries(change.payload.properties ?? {})) {
     const incoming: PropertyTimestamp = {
       lamport: change.lamport,
-      wallTime: change.wallTime
+      wallTime: change.wallTime,
+      author: change.authorDID
     }
     const existing = newState.timestamps[key]
 
-    if (!existing || compareLamportTimestamps(incoming.lamport, existing.lamport) > 0) {
+    if (!existing || comparePropertyTimestamps(incoming, existing) > 0) {
       if (value === undefined) {
         delete newState.properties[key]
         delete newState.timestamps[key]
@@ -311,7 +322,11 @@ export function applyChangeToState(state: NodeState, change: NodeChange): NodeSt
   if (change.payload.deleted !== undefined) {
     newState.deleted = change.payload.deleted
     if (change.payload.deleted) {
-      newState.deletedAt = { lamport: change.lamport, wallTime: change.wallTime }
+      newState.deletedAt = {
+        lamport: change.lamport,
+        wallTime: change.wallTime,
+        author: change.authorDID
+      }
     }
   }
 

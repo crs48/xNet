@@ -326,7 +326,7 @@ function generateDemoChanges(): Change<unknown>[] {
       authorDID: demoAuthor,
       signature: new Uint8Array([1, 2, 3, 4]),
       wallTime: now - 10000,
-      lamport: { time: 1, author: demoAuthor }
+      lamport: 1
     },
     {
       id: 'change-2',
@@ -338,7 +338,7 @@ function generateDemoChanges(): Change<unknown>[] {
       authorDID: demoAuthor,
       signature: new Uint8Array([5, 6, 7, 8]),
       wallTime: now - 5000,
-      lamport: { time: 2, author: demoAuthor }
+      lamport: 2
     }
   ]
 }
@@ -532,7 +532,7 @@ async function importCommand(options: ImportOptions): Promise<void> {
         authorDID: string
         signature: string
         wallTime: number
-        lamport: { time: number; peerId: string }
+        lamport: number
         protocolVersion?: number
       }>
       stats?: { changes: number }

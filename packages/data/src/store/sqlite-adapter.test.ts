@@ -79,14 +79,15 @@ describe('SQLiteNodeStorageAdapter', () => {
         Object.keys(properties).map((key, index) => [
           key,
           {
-            lamport: { time: index + 1, author: testDID },
+            lamport: index + 1,
+            author: testDID,
             wallTime: input.updatedAt ?? now
           }
         ])
       ),
       deleted: input.deleted ?? false,
       deletedAt: input.deleted
-        ? { lamport: { time: 99, author: testDID }, wallTime: input.updatedAt ?? now }
+        ? { lamport: 99, author: testDID, wallTime: input.updatedAt ?? now }
         : undefined,
       createdAt: now,
       createdBy: testDID,
@@ -113,7 +114,7 @@ describe('SQLiteNodeStorageAdapter', () => {
         ...(input.schemaId ? { schemaId: input.schemaId } : {}),
         properties: input.properties ?? {}
       } as NodePayload,
-      lamport: { time: input.lamportTime, author: testDID },
+      lamport: input.lamportTime,
       wallTime: now,
       authorDID: testDID,
       parentHash: null,
@@ -183,7 +184,7 @@ describe('SQLiteNodeStorageAdapter', () => {
         schemaId: testSchemaId,
         properties: { title: 'Test Page' },
         timestamps: {
-          title: { lamport: { time: 1, author: testDID }, wallTime: now }
+          title: { lamport: 1, author: testDID, wallTime: now }
         },
         deleted: false,
         createdAt: now,
@@ -214,7 +215,7 @@ describe('SQLiteNodeStorageAdapter', () => {
         schemaId: testSchemaId,
         properties: { title: 'Original' },
         timestamps: {
-          title: { lamport: { time: 1, author: testDID }, wallTime: now }
+          title: { lamport: 1, author: testDID, wallTime: now }
         },
         deleted: false,
         createdAt: now,
@@ -227,7 +228,7 @@ describe('SQLiteNodeStorageAdapter', () => {
 
       // Update with higher lamport time
       node.properties.title = 'Updated'
-      node.timestamps.title = { lamport: { time: 2, author: testDID }, wallTime: now + 1000 }
+      node.timestamps.title = { lamport: 2, author: testDID, wallTime: now + 1000 }
       node.updatedAt = now + 1000
 
       await adapter.setNode(node)
@@ -340,7 +341,7 @@ describe('SQLiteNodeStorageAdapter', () => {
         properties: { title: 'Deferred Node', status: 'done' },
         updatedAt: Date.now() + 1000
       })
-      updated.timestamps.status.lamport.time = 10
+      updated.timestamps.status.lamport = 10
       await adapter.importNodes([updated], { deferIndexes: true })
 
       const beforeRebuild = await db.queryOne<{ value_text: string | null }>(
@@ -424,7 +425,7 @@ describe('SQLiteNodeStorageAdapter', () => {
           schemaId: node.schemaId,
           properties: node.properties
         } as NodePayload,
-        lamport: { time: 12, author: testDID },
+        lamport: 12,
         wallTime: now,
         authorDID: testDID,
         parentHash: null,
@@ -564,7 +565,7 @@ describe('SQLiteNodeStorageAdapter', () => {
           schemaId: node.schemaId,
           properties: node.properties
         } as NodePayload,
-        lamport: { time: 21, author: testDID },
+        lamport: 21,
         wallTime: now,
         authorDID: testDID,
         parentHash: null,
@@ -637,7 +638,7 @@ describe('SQLiteNodeStorageAdapter', () => {
           schemaId: node.schemaId,
           properties: { title: 'Should fail' }
         } as NodePayload,
-        lamport: { time: 44, author: testDID },
+        lamport: 44,
         wallTime: now,
         authorDID: testDID,
         parentHash: null,
@@ -770,7 +771,7 @@ describe('SQLiteNodeStorageAdapter', () => {
         schemaId: testSchemaId,
         properties: { title: 'First (higher lamport)' },
         timestamps: {
-          title: { lamport: { time: 5, author: testDID }, wallTime: now }
+          title: { lamport: 5, author: testDID, wallTime: now }
         },
         deleted: false,
         createdAt: now,
@@ -785,7 +786,7 @@ describe('SQLiteNodeStorageAdapter', () => {
         schemaId: testSchemaId,
         properties: { title: 'Second (lower lamport)' },
         timestamps: {
-          title: { lamport: { time: 3, author: testDID }, wallTime: now + 1000 }
+          title: { lamport: 3, author: testDID, wallTime: now + 1000 }
         },
         deleted: false,
         createdAt: now,
@@ -807,7 +808,7 @@ describe('SQLiteNodeStorageAdapter', () => {
         schemaId: testSchemaId,
         properties: { title: 'Test' },
         timestamps: {
-          title: { lamport: { time: 5, author: testDID }, wallTime: now }
+          title: { lamport: 5, author: testDID, wallTime: now }
         },
         deleted: false,
         createdAt: now,
@@ -822,8 +823,8 @@ describe('SQLiteNodeStorageAdapter', () => {
         schemaId: testSchemaId,
         properties: { title: 'Test', description: 'A description' },
         timestamps: {
-          title: { lamport: { time: 5, author: testDID }, wallTime: now },
-          description: { lamport: { time: 1, author: testDID }, wallTime: now + 1000 }
+          title: { lamport: 5, author: testDID, wallTime: now },
+          description: { lamport: 1, author: testDID, wallTime: now + 1000 }
         },
         deleted: false,
         createdAt: now,
@@ -845,7 +846,7 @@ describe('SQLiteNodeStorageAdapter', () => {
         schemaId: testSchemaId,
         properties: { title: 'To Delete' },
         timestamps: {
-          title: { lamport: { time: 1, author: testDID }, wallTime: now }
+          title: { lamport: 1, author: testDID, wallTime: now }
         },
         deleted: false,
         createdAt: now,
@@ -868,10 +869,10 @@ describe('SQLiteNodeStorageAdapter', () => {
         schemaId: testSchemaId,
         properties: { title: 'Soft Deleted' },
         timestamps: {
-          title: { lamport: { time: 1, author: testDID }, wallTime: now }
+          title: { lamport: 1, author: testDID, wallTime: now }
         },
         deleted: true,
-        deletedAt: { lamport: { time: 2, author: testDID }, wallTime: now + 1000 },
+        deletedAt: { lamport: 2, author: testDID, wallTime: now + 1000 },
         createdAt: now,
         createdBy: testDID,
         updatedAt: now + 1000,
@@ -897,11 +898,10 @@ describe('SQLiteNodeStorageAdapter', () => {
           schemaId: i % 2 === 0 ? testSchemaId : ('xnet://xnet.fyi/Database' as SchemaIRI),
           properties: { title: `Node ${i}` },
           timestamps: {
-            title: { lamport: { time: i, author: testDID }, wallTime: now + i * 1000 }
+            title: { lamport: i, author: testDID, wallTime: now + i * 1000 }
           },
           deleted: i === 9, // Last one is soft-deleted
-          deletedAt:
-            i === 9 ? { lamport: { time: 10, author: testDID }, wallTime: now + 10000 } : undefined,
+          deletedAt: i === 9 ? { lamport: 10, author: testDID, wallTime: now + 10000 } : undefined,
           createdAt: now,
           createdBy: testDID,
           updatedAt: now + i * 1000,
@@ -965,7 +965,7 @@ describe('SQLiteNodeStorageAdapter', () => {
           properties: {},
           timestamps: {},
           deleted: i === 4, // Last one is soft-deleted
-          deletedAt: i === 4 ? { lamport: { time: 5, author: testDID }, wallTime: now } : undefined,
+          deletedAt: i === 4 ? { lamport: 5, author: testDID, wallTime: now } : undefined,
           createdAt: now,
           createdBy: testDID,
           updatedAt: now,
@@ -1127,7 +1127,7 @@ describe('SQLiteNodeStorageAdapter', () => {
         updatedAt: now + 2
       })
       Object.values(updatedNode.timestamps).forEach((timestamp, index) => {
-        timestamp.lamport.time = 80 + index
+        timestamp.lamport = 80 + index
       })
 
       await adapter.applyNodeBatch({
@@ -1221,7 +1221,7 @@ describe('SQLiteNodeStorageAdapter', () => {
         updatedAt: now + 2
       })
       Object.values(updatedNode.timestamps).forEach((timestamp, index) => {
-        timestamp.lamport.time = 81 + index
+        timestamp.lamport = 81 + index
       })
 
       await adapter.applyNodeBatch({
@@ -1513,7 +1513,7 @@ describe('SQLiteNodeStorageAdapter', () => {
         updatedAt: Date.now() + 10_000
       })
       Object.values(updatedLow.timestamps).forEach((timestamp, index) => {
-        timestamp.lamport.time = 100 + index
+        timestamp.lamport = 100 + index
       })
       await adapter.setNode(updatedLow)
 
@@ -1593,7 +1593,7 @@ describe('SQLiteNodeStorageAdapter', () => {
       })
       for (const [nodeIndex, node] of [updatedHigh, updatedLow].entries()) {
         Object.values(node.timestamps).forEach((timestamp, propertyIndex) => {
-          timestamp.lamport.time = 90 + nodeIndex * 10 + propertyIndex
+          timestamp.lamport = 90 + nodeIndex * 10 + propertyIndex
         })
       }
 
@@ -1955,8 +1955,8 @@ describe('SQLiteNodeStorageAdapter', () => {
           properties: { title: 'Notes', body: 'Archive details' },
           updatedAt: now + 4
         })
-        updatedContentMatch.timestamps.title.lamport.time = 10
-        updatedContentMatch.timestamps.body.lamport.time = 11
+        updatedContentMatch.timestamps.title.lamport = 10
+        updatedContentMatch.timestamps.body.lamport = 11
         await nativeAdapter.setNode(updatedContentMatch)
 
         const afterUpdate = await nativeAdapter.queryNodes({
@@ -2374,7 +2374,7 @@ describe('SQLiteNodeStorageAdapter', () => {
         schemaId: testSchemaId,
         properties
       } as NodePayload,
-      lamport: { time: lamportTime, author: testDID },
+      lamport: lamportTime,
       wallTime: Date.now(),
       authorDID: testDID,
       parentHash: null,
@@ -2430,8 +2430,8 @@ describe('SQLiteNodeStorageAdapter', () => {
 
       const changes = await adapter.getChangesSince(3)
       expect(changes).toHaveLength(2) // Changes 4 and 5
-      expect(changes[0].lamport.time).toBe(4)
-      expect(changes[1].lamport.time).toBe(5)
+      expect(changes[0].lamport).toBe(4)
+      expect(changes[1].lamport).toBe(5)
     })
 
     it('getChangeByHash returns specific change', async () => {
@@ -2457,7 +2457,7 @@ describe('SQLiteNodeStorageAdapter', () => {
 
       const lastChange = await adapter.getLastChange('node-1')
       expect(lastChange).not.toBeNull()
-      expect(lastChange!.lamport.time).toBe(5)
+      expect(lastChange!.lamport).toBe(5)
     })
 
     it('getLastChangesByNodeId returns latest changes for multiple nodes', async () => {
@@ -2688,7 +2688,7 @@ describe('SQLiteNodeStorageAdapter', () => {
           schemaId: testSchemaId,
           properties: { title: `Node ${i}` },
           timestamps: {
-            title: { lamport: { time: i, author: testDID }, wallTime: now }
+            title: { lamport: i, author: testDID, wallTime: now }
           },
           deleted: false,
           createdAt: now,
@@ -2732,7 +2732,7 @@ describe('SQLiteNodeStorageAdapter', () => {
             nodeId: `node-${i % 5}`,
             properties: { value: i }
           } as NodePayload,
-          lamport: { time: i, author: testDID },
+          lamport: i,
           wallTime: Date.now(),
           authorDID: testDID,
           parentHash: null,

@@ -30,7 +30,7 @@ function createMockNode(
     timestamps: Object.fromEntries(
       Object.keys(properties).map((key) => [
         key,
-        { lamport: { time: 1, author: 'did:key:test' }, wallTime: now }
+        { lamport: 1, author: 'did:key:test', wallTime: now }
       ])
     ),
     createdAt: now,

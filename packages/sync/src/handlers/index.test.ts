@@ -25,7 +25,7 @@ function createMockChange(type: string, protocolVersion?: number): Change<unknow
     parentHash: null,
     authorDID: 'did:key:test' as any,
     signature: new Uint8Array(),
-    lamport: { time: 1, author: 'did:key:test' as any },
+    lamport: 1,
     wallTime: Date.now()
   }
 }

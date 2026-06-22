@@ -14,7 +14,7 @@ function createTestState(id: string, props: Record<string, unknown> = {}): NodeS
     schemaId: 'xnet://test/schema' as NodeState['schemaId'],
     properties: { title: 'Test', ...props },
     timestamps: {
-      title: { lamport: { time: 1, author: did }, wallTime: Date.now() }
+      title: { lamport: 1, author: did, wallTime: Date.now() }
     },
     deleted: false,
     createdAt: Date.now(),
@@ -110,14 +110,14 @@ describe('binary-state', () => {
       const did = 'did:key:z6MkTest' as DID
       const state = createTestState('node1')
       state.deleted = true
-      state.deletedAt = { lamport: { time: 5, author: did }, wallTime: Date.now() }
+      state.deletedAt = { lamport: 5, author: did, wallTime: Date.now() }
 
       const encoded = encodeNodeStates([state])
       const decoded = decodeNodeStates(encoded)
 
       expect(decoded[0].deleted).toBe(true)
       expect(decoded[0].deletedAt).toBeDefined()
-      expect(decoded[0].deletedAt?.lamport.time).toBe(5)
+      expect(decoded[0].deletedAt?.lamport).toBe(5)
     })
 
     it('should handle _unknown properties', () => {
@@ -163,17 +163,17 @@ describe('binary-state', () => {
       const wallTime = Date.now()
       const state = createTestState('node1')
       state.timestamps = {
-        title: { lamport: { time: 42, author: did }, wallTime },
-        desc: { lamport: { time: 43, author: did }, wallTime: wallTime + 1000 }
+        title: { lamport: 42, author: did, wallTime },
+        desc: { lamport: 43, author: did, wallTime: wallTime + 1000 }
       }
 
       const encoded = encodeNodeStates([state])
       const decoded = decodeNodeStates(encoded)
 
-      expect(decoded[0].timestamps.title.lamport.time).toBe(42)
-      expect(decoded[0].timestamps.title.lamport.author).toBe(did)
+      expect(decoded[0].timestamps.title.lamport).toBe(42)
+      expect(decoded[0].timestamps.title.author).toBe(did)
       expect(decoded[0].timestamps.title.wallTime).toBe(wallTime)
-      expect(decoded[0].timestamps.desc.lamport.time).toBe(43)
+      expect(decoded[0].timestamps.desc.lamport).toBe(43)
     })
   })
 

@@ -109,7 +109,7 @@ function TimelineEntry({
 }) {
   const isConflict = event.type === 'store:conflict'
   const isRemote = event.type === 'store:remote-change'
-  const lamport = 'lamport' in event ? ((event as any).lamport?.time ?? '?') : '?'
+  const lamport = 'lamport' in event ? ((event as any).lamport ?? '?') : '?'
   const nodeId = 'nodeId' in event ? (event as any).nodeId : ''
 
   return (

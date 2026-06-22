@@ -92,7 +92,7 @@ function createRemoteNode(id: string, title: string, updatedAt = Date.now()): No
     schemaId: TestTaskSchema._schemaId,
     properties: { title, done: false },
     timestamps: {
-      title: { lamport: { time: 1, author: 'did:key:remote' }, wallTime: updatedAt }
+      title: { lamport: 1, author: 'did:key:remote', wallTime: updatedAt }
     },
     createdAt: updatedAt,
     createdBy: 'did:key:remote',
