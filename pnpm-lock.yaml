@@ -466,6 +466,9 @@ importers:
       '@xnetjs/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@xnetjs/vectors':
+        specifier: workspace:*
+        version: link:../../packages/vectors
       '@xnetjs/views':
         specifier: workspace:*
         version: link:../../packages/views

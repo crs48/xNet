@@ -41,6 +41,7 @@
     "@xnetjs/sync": "workspace:*",
     "@xnetjs/telemetry": "workspace:*",
     "@xnetjs/ui": "workspace:*",
+    "@xnetjs/vectors": "workspace:*",
     "@xnetjs/views": "workspace:*",
     "lucide-react": "^0.453.0",
     "maplibre-gl": "^5.0.0",

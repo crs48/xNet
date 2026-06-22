@@ -1,0 +1,12 @@
+{
+  "id": "2026-06-22-semantic-search",
+  "date": "June 2026",
+  "title": "On-device semantic search for the assistant",
+  "summary": "Turn on Semantic search in the AI chat and the assistant finds context by meaning, not just matching words — fused with keyword search and your data's connections. It runs entirely on your device and is off by default.",
+  "highlights": [
+    "Finds related notes even when they don't share the exact words you typed",
+    "Runs on-device — the model loads only when you opt in, and never leaves your machine",
+    "Always safe: falls back to keyword search instantly, so it can only help, never slow you down"
+  ],
+  "tags": ["ai", "app"]
+}
