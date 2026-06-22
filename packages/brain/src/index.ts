@@ -76,6 +76,21 @@ export {
   type WorkingSetSignal,
   type WorkingSetWeights
 } from './locality'
+export { relationFieldsResolver, schemaRelationFields, type SchemaLike } from './schema'
+export {
+  applyMemoryOp,
+  rememberFact,
+  type AppliedMemory,
+  type ApplyMemoryOptions,
+  type MemoryStore
+} from './memory-apply'
+export {
+  loadVectorTier,
+  saveVectorTier,
+  VECTOR_TIER_BLOB_KEY,
+  type BlobStore,
+  type SerializableIndex
+} from './persist'
 
 import { nodeStoreGraphAccess, type NodeReader, type RelationFieldsResolver } from './expand'
 import { defaultTextOf, createBrainIndexer, type BrainIndexer, type IndexableNode } from './indexer'
