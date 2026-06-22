@@ -25,7 +25,8 @@ let package = Package(
     targets: [
         .target(
             name: "XNetKit",
-            dependencies: [.product(name: "BLAKE3", package: "blake3-swift")]
+            dependencies: [.product(name: "BLAKE3", package: "blake3-swift")],
+            linkerSettings: [.linkedLibrary("sqlite3")]
         ),
         .executableTarget(name: "xnet-demo", dependencies: ["XNetKit"]),
         .executableTarget(name: "xnet-sync-demo", dependencies: ["XNetKit"]),

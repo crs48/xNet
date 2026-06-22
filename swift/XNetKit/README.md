@@ -30,7 +30,8 @@ let Task = Schema(name: "Task", namespace: "xnet://xnet.fyi/",
 Task.id   // "xnet://xnet.fyi/Task@1.0.0"
 
 // A local store, owned by `me`. Every write signs a Change and folds it via LWW.
-let store = NodeStore(identity: me)
+// Pass a SQLiteChangeLog to persist — state is replayed from it on next launch.
+let store = NodeStore(identity: me, persistence: SQLiteChangeLog(path: dbPath))
 let task = store.create(Task, ["title": "Ship the Swift SDK", "status": "todo"])
 store.update(task.id, ["status": "doing"])
 
@@ -103,7 +104,7 @@ the writer publishes it — a true cross-language, real-time round-trip.
 ```bash
 cd swift/XNetKit
 swift run xnet-demo     # headless walkthrough: schema → writes → query → reactive loop
-swift test              # 16 tests incl. the shared golden vectors + wire codec
+swift test              # 18 tests incl. golden vectors, wire codec, persistence
 
 # live interop against a local hub (from the repo root, in another shell):
 #   node packages/hub/dist/cli.js --no-auth --port 31999
@@ -129,6 +130,7 @@ against the reference hub.
 | Query | `Query.swift` | `Sendable` `Predicate` enum + fluent `Query` |
 | Reactivity | `LiveQuery.swift` | `LiveQuery` (subscribe/unsubscribe) and `@Observable LiveQueryModel` |
 | Sync | `HubConnection.swift` | `URLSessionWebSocketTask` L2 client + `WireCodec` (Change ↔ the hub's `SerializedNodeChange`) — proven against the TS hub |
+| Persistence | `Persistence.swift` | `SQLiteChangeLog` (system SQLite) — durable change log; the store replays it on open so state survives restarts |
 
 ## Scope & status
 

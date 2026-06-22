@@ -30,15 +30,25 @@ public final class NodeStore {
     private var seenHashes: Set<String> = []
     private var lamportClock: Int64 = 0
     private var listeners: [UUID: () -> Void] = [:]
+    private let persistence: ChangeLogStore?
 
     /// Fired for each change authored locally (via create/update/delete), e.g. so
     /// a `HubConnection` can publish it. NOT fired for changes applied via `apply`
     /// (which carries remote/peer changes), avoiding echo loops.
     public var onLocalChange: ((Change) -> Void)?
 
-    public init(identity: Identity, now: @escaping () -> Int64 = NodeStore.wallClock) {
+    public init(
+        identity: Identity,
+        persistence: ChangeLogStore? = nil,
+        now: @escaping () -> Int64 = NodeStore.wallClock
+    ) {
         self.identity = identity
+        self.persistence = persistence
         self.now = now
+        // Rebuild state by replaying the durable log (without re-persisting it).
+        if let persistence {
+            for change in persistence.load() { applyInternal(change, persist: false) }
+        }
     }
 
     public static let wallClock: () -> Int64 = { Int64(Date().timeIntervalSince1970 * 1000) }
@@ -107,13 +117,17 @@ public final class NodeStore {
     /// Verifies the signature, is idempotent, advances the Lamport clock, then
     /// re-materializes the node and notifies subscribers.
     @discardableResult
-    public func apply(_ change: Change) -> Bool {
+    public func apply(_ change: Change) -> Bool { applyInternal(change, persist: true) }
+
+    @discardableResult
+    private func applyInternal(_ change: Change, persist: Bool) -> Bool {
         guard change.verify() else { return false }
         guard !seenHashes.contains(change.hash) else { return true }
         seenHashes.insert(change.hash)
         lamportClock = max(lamportClock, change.lamport)
         log[change.payload.nodeId, default: []].append(change)
         states[change.payload.nodeId] = materialize(change.payload.nodeId)
+        if persist { persistence?.append(change) }
         notify()
         return true
     }
