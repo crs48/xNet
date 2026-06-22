@@ -394,6 +394,9 @@ importers:
       '@xnetjs/abuse':
         specifier: workspace:*
         version: link:../../packages/abuse
+      '@xnetjs/brain':
+        specifier: workspace:*
+        version: link:../../packages/brain
       '@xnetjs/canvas':
         specifier: workspace:*
         version: link:../../packages/canvas

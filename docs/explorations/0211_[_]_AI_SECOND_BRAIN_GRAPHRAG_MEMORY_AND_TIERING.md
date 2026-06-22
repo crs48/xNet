@@ -1,17 +1,19 @@
 # AI Second Brain: GraphRAG Retrieval, Memory, and Data Tiering on the XNet Substrate
 
 > Exploration 0211 — 2026-06-21
-> Status: **Phases 1–2 implemented** (PR #228 + follow-up). The engine
-> (`@xnetjs/brain`: retriever, embedding indexer, memory planner + apply,
-> locality planner, schema/persistence helpers) and the `MemoryItem` schema all
-> ship as tested packages, and `AiSurfaceService` now has an injected
-> `retrieveContext` seam that drives its context-pack query path. Remaining and
-> still-unchecked below: the **live injection in `apps/web`** (wiring a
-> `SemanticSearch` + `@xnetjs/brain` into the AI surface, with embedding backfill
-> + tier persistence on boot — deserves its own perf-aware PR per [0204]), an
-> `xnet_graph_expand` MCP tool, the `data-bridge` query-path placement of the
-> locality planner, `WorkingSetPrewarm` consumption, and a managed `/ai/embed`
-> hub route. Filename stays `[_]` until the live app wiring lands.
+> Status: **Phases 1–3 implemented and LIVE** (PRs #228, #230, + this one). The
+> engine (`@xnetjs/brain`: retriever, embedding indexer, memory planner + apply,
+> locality planner, schema/persistence helpers) and the `MemoryItem` schema ship
+> as tested packages; `AiSurfaceService` has an injected `retrieveContext` seam;
+> and the **`apps/web` AI chat now uses it live** — `createGraphContextRetriever`
+> drives the chat's context pack with keyword entry search + bounded graph-walk +
+> budgeting + readable provenance paths (`apps/web/src/workbench/views/ai-graph-retriever.ts`,
+> verified in-browser). It is deliberately **model-free** (keyword entry search,
+> no embedding download) to keep cold-start untouched per [0204]. Remaining
+> enhancements (still `[_]`): swap the **vector tier** in behind the same seam
+> (wake `@xnetjs/vectors` in the app + backfill/persist), an `xnet_graph_expand`
+> MCP tool, the `data-bridge` query-path placement of the locality planner,
+> `WorkingSetPrewarm` consumption, and a managed `/ai/embed` hub route.
 
 ## Problem Statement
 

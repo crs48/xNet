@@ -53,6 +53,7 @@ import {
   type ManagedModel
 } from './ai-chat-connector'
 import { AI_SYSTEM_PROMPT, formatContextMessages } from './ai-context'
+import { createGraphContextRetriever } from './ai-graph-retriever'
 import { schemaRegistryApi } from './ai-schemas'
 
 /** Electron preload control channel for the local agent bridge (absent on web). */
@@ -118,7 +119,17 @@ export function AiChatPanel() {
   // user's own pages/databases/nodes for context (exploration 0192, Phase 1).
   const { store } = useNodeStore()
   const surface = useMemo<AiSurfaceService | null>(
-    () => (store ? createAiSurfaceService({ store, schemas: schemaRegistryApi() }) : null),
+    () =>
+      store
+        ? createAiSurfaceService({
+            store,
+            schemas: schemaRegistryApi(),
+            // Graph-aware, budgeted context retrieval (exploration 0211): the
+            // context pack now walks typed relations instead of a flat keyword
+            // scan. Keyword entry search keeps it model-free (no boot cost).
+            retrieveContext: createGraphContextRetriever(store)
+          })
+        : null,
     [store]
   )
 
