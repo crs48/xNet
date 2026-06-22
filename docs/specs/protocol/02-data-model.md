@@ -190,8 +190,13 @@ wallTime }`. When two changes touch the same property:
 
 1. Higher **`lamport`** wins.
 2. Tie on `lamport` → higher `wallTime` wins.
-3. Tie on both → higher `authorDID` (lexicographic) wins — a deterministic final
-   tiebreak so all peers converge identically.
+3. Tie on both → higher `authorDID` wins, compared **by UTF-16 code unit** (the
+   JS `<`/`>` operators, same order as the §6 canonical-JSON key sort) — a
+   deterministic final tiebreak so all peers converge identically.
+   Implementations MUST NOT use locale-aware collation (e.g. JS
+   `localeCompare`): it is locale- and ICU-version-dependent, so it would make
+   convergence non-deterministic across peers. Pinned by
+   `conformance/vectors/lww/0004-tie-author-case-codeunit.json`.
 
 Lamport clocks advance per the standard rule (on receive, `lamport =
 max(local, incoming) + 1`). LWW is **per property**, so concurrent edits to

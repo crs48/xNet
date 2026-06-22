@@ -235,6 +235,18 @@ const lwwScenarios = [
       { authorDID, lamport: 5, wallTime: 500, properties: { title: 'from-A' } },
       { authorDID: didB, lamport: 5, wallTime: 500, properties: { title: 'from-B' } }
     ] as LwwChange[]
+  },
+  {
+    // Pins the tiebreak to UTF-16 code-unit order (`<`/`>`), NOT locale collation:
+    // 'A' (U+0041) < 'a' (U+0061), so the lowercase DID wins. `localeCompare`
+    // would order these the other way in many locales — and is non-deterministic
+    // across ICU versions — so it must not be used for CRDT convergence.
+    name: '0004-tie-author-case-codeunit',
+    description: 'author tiebreak is by UTF-16 code unit (uppercase < lowercase), not locale',
+    changes: [
+      { authorDID: 'did:key:zAAA', lamport: 1, wallTime: 1, properties: { title: 'from-upper' } },
+      { authorDID: 'did:key:zaaa', lamport: 1, wallTime: 1, properties: { title: 'from-lower' } }
+    ] as LwwChange[]
   }
 ]
 

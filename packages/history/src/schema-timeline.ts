@@ -46,7 +46,13 @@ export class SchemaTimeline {
     // Sort by Lamport time (global causal order), authorDID as tiebreak
     allChanges.sort(
       (a, b) =>
-        a.change.lamport - b.change.lamport || a.change.authorDID.localeCompare(b.change.authorDID)
+        a.change.lamport - b.change.lamport ||
+        // UTF-16 code-unit order (not localeCompare) for deterministic convergence.
+        (a.change.authorDID < b.change.authorDID
+          ? -1
+          : a.change.authorDID > b.change.authorDID
+            ? 1
+            : 0)
     )
 
     // Convert to timeline entries

@@ -274,7 +274,8 @@ export class HistoryEngine {
 function comparePropertyTimestamps(a: PropertyTimestamp, b: PropertyTimestamp): number {
   if (a.lamport !== b.lamport) return a.lamport - b.lamport
   if (a.wallTime !== b.wallTime) return a.wallTime - b.wallTime
-  return a.author.localeCompare(b.author)
+  // UTF-16 code-unit order (not localeCompare) for deterministic convergence.
+  return a.author < b.author ? -1 : a.author > b.author ? 1 : 0
 }
 
 /** Create an empty NodeState for the first change of a node */

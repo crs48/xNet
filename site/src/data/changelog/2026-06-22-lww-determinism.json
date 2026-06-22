@@ -1,0 +1,18 @@
+{
+  "id": "2026-06-22-lww-determinism",
+  "date": "June 22, 2026",
+  "title": "Conflict resolution is now deterministic across devices — fixed a locale-dependent tiebreak",
+  "summary": "The last-writer-wins tiebreak that settles concurrent edits to the same field compared author IDs with `localeCompare`, which is locale- and ICU-version-dependent — so two devices could, in rare same-timestamp ties involving mixed-case IDs, disagree on which edit wins. It now compares by code-unit order everywhere, matching the protocol spec and the conformance vectors, so all peers converge identically. Found by the Rust core's adversarial review.",
+  "highlights": [
+    "Six author-tiebreak sites (store, sync chain/clock, history) switched from `localeCompare` to deterministic UTF-16 code-unit ordering",
+    "Spec §7 now states the rule explicitly and forbids locale collation; a new golden vector (`lww/0004`) pins the mixed-case case",
+    "No behavior change for the common case — only removes a latent cross-device divergence in same-lamport/same-wallTime ties"
+  ],
+  "tags": ["sync", "protocol", "bugfix"],
+  "pr": 238,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

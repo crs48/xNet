@@ -20,7 +20,8 @@ import { verifyChangeHash } from './change'
 function compareChangeOrder<T>(a: Change<T>, b: Change<T>): number {
   if (a.lamport !== b.lamport) return a.lamport - b.lamport
   if (a.wallTime !== b.wallTime) return a.wallTime - b.wallTime
-  return a.authorDID.localeCompare(b.authorDID)
+  // UTF-16 code-unit order (not localeCompare) for deterministic convergence.
+  return a.authorDID < b.authorDID ? -1 : a.authorDID > b.authorDID ? 1 : 0
 }
 
 /**

@@ -1913,7 +1913,10 @@ export class NodeStore {
   async applyRemoteChanges(changes: NodeChange[]): Promise<void> {
     // Sort by Lamport timestamp for causal ordering
     const sorted = [...changes].sort(
-      (a, b) => a.lamport - b.lamport || a.authorDID.localeCompare(b.authorDID)
+      (a, b) =>
+        a.lamport - b.lamport ||
+        // UTF-16 code-unit order (not localeCompare) for deterministic convergence.
+        (a.authorDID < b.authorDID ? -1 : a.authorDID > b.authorDID ? 1 : 0)
     )
 
     for (const change of sorted) {
@@ -2435,7 +2438,8 @@ export class NodeStore {
   private shouldReplace(existing: PropertyTimestamp, incoming: PropertyTimestamp): boolean {
     if (incoming.lamport !== existing.lamport) return incoming.lamport > existing.lamport
     if (incoming.wallTime !== existing.wallTime) return incoming.wallTime > existing.wallTime
-    return incoming.author.localeCompare(existing.author) > 0
+    // UTF-16 code-unit order (not localeCompare) for deterministic convergence.
+    return incoming.author > existing.author
   }
 
   /**
