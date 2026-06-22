@@ -89,6 +89,12 @@ public final class HubConnection {
 
     private let task: URLSessionWebSocketTask
     private let did: DID
+    private var streaming = false
+
+    /// Invoked for each relayed `node-change` received while streaming. Set this
+    /// before `startStreaming()`. The handler runs on the read-loop's task — drive
+    /// a single store from it and don't touch that store from elsewhere concurrently.
+    public var onRemoteChange: ((Change) -> Void)?
 
     public init(url: URL, did: DID, session: URLSession = .shared) {
         self.did = did
@@ -111,6 +117,32 @@ public final class HubConnection {
             "features": [],
             "packageVersion": XNetKit.version
         ])
+    }
+
+    /// Subscribe to a room's pub/sub topic so the hub relays others' changes here.
+    public func subscribe(room: String) async throws {
+        try await sendJSON(["type": "subscribe", "topics": ["xnet-doc-\(room)"]])
+    }
+
+    /// Start a background read loop that delivers relayed `node-change`s to
+    /// `onRemoteChange` in real time (call `subscribe(room:)` first). Use this for
+    /// the streaming phase; do not interleave `syncRequest` (which reads directly)
+    /// with an active stream on the same connection. `publish` is safe concurrently.
+    public func startStreaming() {
+        guard !streaming else { return }
+        streaming = true
+        Task { [weak self] in
+            while let self, self.streaming {
+                guard let msg = try? await self.receiveJSON() else { break }
+                guard msg["type"] as? String == "publish",
+                      let data = msg["data"] as? [String: Any],
+                      data["type"] as? String == "node-change",
+                      let raw = data["change"] as? [String: Any],
+                      let change = WireCodec.deserialize(raw)
+                else { continue }
+                self.onRemoteChange?(change)
+            }
+        }
     }
 
     /// Publish a signed change into a room (the hub verifies hash + signature,
@@ -145,7 +177,10 @@ public final class HubConnection {
         throw HubError.timeout
     }
 
-    public func close() { task.cancel(with: .goingAway, reason: nil) }
+    public func close() {
+        streaming = false
+        task.cancel(with: .goingAway, reason: nil)
+    }
 
     private func sendJSON(_ obj: [String: Any]) async throws {
         let data = try JSONSerialization.data(withJSONObject: obj)
