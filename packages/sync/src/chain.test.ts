@@ -1,5 +1,4 @@
 import type { Change } from './change'
-import type { LamportTimestamp } from './clock'
 import type { DID, ContentId } from '@xnetjs/core'
 import { generateSigningKeyPair } from '@xnetjs/crypto'
 import { describe, it, expect } from 'vitest'
@@ -24,7 +23,6 @@ describe('Chain', () => {
     parentHash: ContentId | null,
     lamportTime: number
   ): Change<{ seq: number }> {
-    const lamport: LamportTimestamp = { time: lamportTime, author: testDID }
     return signChange(
       createUnsignedChange({
         id,
@@ -32,7 +30,7 @@ describe('Chain', () => {
         payload: { seq: lamportTime },
         parentHash,
         authorDID: testDID,
-        lamport,
+        lamport: lamportTime,
         wallTime: lamportTime * 1000
       }),
       keyPair.privateKey

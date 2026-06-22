@@ -16,7 +16,7 @@ import type {
   TransactionOperation,
   SchemaIRI
 } from '@xnetjs/data'
-import { topologicalSort, compareLamportTimestamps } from '@xnetjs/sync'
+import { topologicalSort } from '@xnetjs/sync'
 import { createEmptyState, applyChangeToState } from './engine'
 import { deepEqual } from './utils'
 
@@ -43,8 +43,11 @@ export class SchemaTimeline {
 
     if (allChanges.length === 0) return []
 
-    // Sort by Lamport time (global causal order)
-    allChanges.sort((a, b) => compareLamportTimestamps(a.change.lamport, b.change.lamport))
+    // Sort by Lamport time (global causal order), authorDID as tiebreak
+    allChanges.sort(
+      (a, b) =>
+        a.change.lamport - b.change.lamport || a.change.authorDID.localeCompare(b.change.authorDID)
+    )
 
     // Convert to timeline entries
     // Track per-node change count to infer create vs update

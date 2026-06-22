@@ -59,7 +59,7 @@ function createNode(input: {
       priority: input.priority
     },
     timestamps: {
-      title: { lamport: { time: 1, author: TEST_AUTHOR }, wallTime: input.updatedAt }
+      title: { lamport: 1, author: TEST_AUTHOR, wallTime: input.updatedAt }
     },
     deleted: input.deleted ?? false,
     createdAt: input.updatedAt,

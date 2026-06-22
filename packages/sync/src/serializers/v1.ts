@@ -17,7 +17,7 @@
  *   authorDID: string,
  *   signature: string (base64),
  *   wallTime: number,
- *   lamport: { time: number, did: string },
+ *   lamport: number,
  *   batchId?: string,
  *   batchIndex?: number,
  *   batchSize?: number
@@ -74,7 +74,7 @@ interface V1WireFormat {
   authorDID: string
   signature: string // base64
   wallTime: number
-  lamport: { time: number; author: string }
+  lamport: number
   batchId?: string
   batchIndex?: number
   batchSize?: number
@@ -97,7 +97,7 @@ export class V1Serializer implements ChangeSerializer {
       authorDID: change.authorDID,
       signature: encodeBase64(change.signature),
       wallTime: change.wallTime,
-      lamport: { time: change.lamport.time, author: change.lamport.author }
+      lamport: change.lamport
     }
 
     // Include protocolVersion if present (may be undefined for legacy)
@@ -137,7 +137,7 @@ export class V1Serializer implements ChangeSerializer {
       }
 
       // Validate lamport timestamp
-      if (!wire.lamport || typeof wire.lamport.time !== 'number' || !wire.lamport.author) {
+      if (typeof wire.lamport !== 'number') {
         return {
           success: false,
           error: 'Invalid or missing lamport timestamp',
@@ -155,10 +155,7 @@ export class V1Serializer implements ChangeSerializer {
         authorDID: wire.authorDID as Change<T>['authorDID'],
         signature: decodeBase64(wire.signature),
         wallTime: wire.wallTime,
-        lamport: {
-          time: wire.lamport.time,
-          author: wire.lamport.author as Change<T>['lamport']['author']
-        }
+        lamport: wire.lamport
       }
 
       // Include protocolVersion if present

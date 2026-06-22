@@ -19,7 +19,7 @@ function createTestChange(overrides: Partial<Change<unknown>> = {}): Change<unkn
     authorDID: 'did:key:test' as any,
     signature: new Uint8Array([1, 2, 3]),
     wallTime: Date.now(),
-    lamport: { time: 1, author: 'did:key:test' as any },
+    lamport: 1,
     protocolVersion: 1,
     ...overrides
   }

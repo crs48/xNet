@@ -60,7 +60,7 @@ const makeSerializedChange = (
     parentHash: null,
     authorDID: identity.did as DID,
     wallTime: Date.now(),
-    lamport: { time: 1, author: identity.did as DID }
+    lamport: 1
   })
 
   const signed = signChange(unsigned, privateKey)
@@ -72,8 +72,8 @@ const makeSerializedChange = (
     room: overrides.room ?? ROOM,
     nodeId: payload.nodeId,
     schemaId: payload.schemaId,
-    lamportTime: signed.lamport.time,
-    lamportAuthor: signed.lamport.author,
+    lamportTime: signed.lamport,
+    lamportAuthor: signed.authorDID,
     authorDid: signed.authorDID,
     wallTime: signed.wallTime,
     parentHash: signed.parentHash,

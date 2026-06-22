@@ -225,14 +225,14 @@ describe('DocumentHistoryEngine', () => {
           operation: 'create',
           properties: ['title'],
           author: 'did:key:a',
-          lamport: { time: 1, node: 'a' }
+          lamport: 1
         },
         {
           wallTime: 300,
           operation: 'update',
           properties: ['status'],
           author: 'did:key:a',
-          lamport: { time: 3, node: 'a' }
+          lamport: 3
         }
       ] as any
 

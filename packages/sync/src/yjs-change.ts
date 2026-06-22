@@ -10,7 +10,6 @@
  */
 
 import type { Change, UnsignedChange } from './change'
-import type { LamportTimestamp } from './clock'
 import type { ContentId, DID } from '@xnetjs/core'
 import { createUnsignedChange, signChange, createChangeId } from './change'
 
@@ -72,8 +71,8 @@ export interface CreateYjsChangeOptions {
   /** Hash of the previous change in the chain (null for first) */
   parentHash: ContentId | null
 
-  /** Lamport timestamp for ordering */
-  lamport: LamportTimestamp
+  /** Lamport logical clock value for ordering */
+  lamport: number
 
   /** Optional wall time (defaults to Date.now()) */
   wallTime?: number
@@ -122,7 +121,7 @@ export function createUnsignedYjsChange(
  *   authorDID: identity.did,
  *   privateKey: identity.privateKey,
  *   parentHash: lastChangeHash,
- *   lamport: { time: 42, did: identity.did }
+ *   lamport: 42
  * })
  * ```
  */

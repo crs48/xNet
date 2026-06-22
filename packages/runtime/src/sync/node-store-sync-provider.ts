@@ -329,7 +329,7 @@ export class NodeStoreSyncProvider {
     const changes = await this.store.getChangesSince(this.pushedThrough)
     if (changes.length === 0) return
 
-    changes.sort((a, b) => a.lamport.time - b.lamport.time)
+    changes.sort((a, b) => a.lamport - b.lamport || a.authorDID.localeCompare(b.authorDID))
     for (const change of changes) {
       this.enqueueChange(change)
     }
@@ -337,7 +337,7 @@ export class NodeStoreSyncProvider {
 
   /** Queue a change for throttled broadcast (deduped by hash). */
   private enqueueChange(change: NodeChange): void {
-    if (change.lamport.time <= this.pushedThrough) return
+    if (change.lamport <= this.pushedThrough) return
     if (this.queuedHashes.has(change.hash)) return
     this.queuedHashes.add(change.hash)
     this.sendQueue.push(change)
@@ -378,7 +378,7 @@ export class NodeStoreSyncProvider {
     })
     // Optimistic in-memory advance — keeps us from re-sending within a session.
     // The PERSISTED cursor only advances on the hub's high-water mark.
-    this.pushedThrough = Math.max(this.pushedThrough, change.lamport.time)
+    this.pushedThrough = Math.max(this.pushedThrough, change.lamport)
   }
 
   private clearSendQueue(): void {
@@ -399,8 +399,8 @@ export class NodeStoreSyncProvider {
       room: this.room,
       nodeId: change.payload.nodeId,
       schemaId: change.payload.schemaId,
-      lamportTime: change.lamport.time,
-      lamportAuthor: change.lamport.author,
+      lamportTime: change.lamport,
+      lamportAuthor: change.authorDID,
       authorDid: change.authorDID,
       wallTime: change.wallTime,
       parentHash: change.parentHash,
@@ -432,7 +432,7 @@ export class NodeStoreSyncProvider {
       authorDID: serialized.authorDid as DID,
       signature: base64ToBytes(serialized.signatureB64),
       wallTime: serialized.wallTime,
-      lamport: { time: serialized.lamportTime, author: serialized.lamportAuthor as DID },
+      lamport: serialized.lamportTime,
       payload,
       protocolVersion: serialized.protocolVersion,
       batchId: serialized.batchId,

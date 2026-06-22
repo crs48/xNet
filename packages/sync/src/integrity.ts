@@ -234,11 +234,11 @@ export async function verifyIntegrity(
     }
 
     // 4. Lamport timestamp validation
-    if (change.lamport.time < 0) {
+    if (change.lamport < 0) {
       issues.push({
         changeId: change.id,
         type: 'invalid-lamport',
-        details: `Invalid Lamport time: ${change.lamport.time}`,
+        details: `Invalid Lamport time: ${change.lamport}`,
         severity: 'error'
       })
       hasIssue = true

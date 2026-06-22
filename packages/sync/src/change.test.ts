@@ -1,4 +1,3 @@
-import type { LamportTimestamp } from './clock'
 import type { DID } from '@xnetjs/core'
 import { generateSigningKeyPair } from '@xnetjs/crypto'
 import { describe, it, expect } from 'vitest'
@@ -14,7 +13,7 @@ import {
 
 describe('Change', () => {
   const testDID = 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK' as DID
-  const testLamport: LamportTimestamp = { time: 1, author: testDID }
+  const testLamport = 1
 
   describe('createUnsignedChange', () => {
     it('creates an unsigned change with provided values', () => {
@@ -275,7 +274,7 @@ describe('Change', () => {
           payload: { seq: 1 },
           parentHash: null,
           authorDID: testDID,
-          lamport: { time: 1, author: testDID },
+          lamport: 1,
           wallTime: 1000
         }),
         keyPair.privateKey
@@ -289,7 +288,7 @@ describe('Change', () => {
           payload: { seq: 2 },
           parentHash: change1.hash,
           authorDID: testDID,
-          lamport: { time: 2, author: testDID },
+          lamport: 2,
           wallTime: 2000
         }),
         keyPair.privateKey
@@ -311,14 +310,14 @@ describe('Change', () => {
           payload: {},
           parentHash: null,
           authorDID: testDID,
-          lamport: { time: 42, author: testDID },
+          lamport: 42,
           wallTime: 1000
         }),
         keyPair.privateKey
       )
 
-      expect(change.lamport.time).toBe(42)
-      expect(change.lamport.author).toBe(testDID)
+      expect(change.lamport).toBe(42)
+      expect(change.authorDID).toBe(testDID)
     })
   })
 })

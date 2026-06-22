@@ -22,7 +22,7 @@ function makeChange(lamport: number): NodeChange {
     authorDID: 'did:key:z6MkAuthor' as DID,
     signature: new Uint8Array([1, 2, 3]),
     wallTime: 1710000000000 + lamport,
-    lamport: { time: lamport, author: 'did:key:z6MkAuthor' as DID }
+    lamport: lamport
   }
 }
 

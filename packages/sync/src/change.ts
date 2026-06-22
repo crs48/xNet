@@ -6,7 +6,6 @@
  * with a single, generic type.
  */
 
-import type { LamportTimestamp } from './clock'
 import type { DID, ContentId } from '@xnetjs/core'
 import { hashHex, sign, verify } from '@xnetjs/crypto'
 
@@ -70,8 +69,11 @@ export interface Change<T = unknown> {
   /** Wall clock timestamp (milliseconds) - for display, not ordering */
   wallTime: number
 
-  /** Lamport timestamp for ordering */
-  lamport: LamportTimestamp
+  /**
+   * Lamport logical time for ordering (a plain integer). The author tiebreak
+   * for LWW comes from `authorDID`; this field is just the clock value.
+   */
+  lamport: number
 
   // === Transaction Batch Support (optional) ===
 
@@ -107,7 +109,7 @@ export interface UnsignedChange<T = unknown> {
   parentHash: ContentId | null
   authorDID: DID
   wallTime: number
-  lamport: LamportTimestamp
+  lamport: number
 
   // Batch fields (optional)
   batchId?: string
@@ -124,7 +126,7 @@ export interface CreateChangeOptions<T> {
   payload: T
   parentHash: ContentId | null
   authorDID: DID
-  lamport: LamportTimestamp
+  lamport: number
   wallTime?: number
 
   // Batch fields (optional) - for transaction support

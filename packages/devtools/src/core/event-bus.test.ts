@@ -10,7 +10,7 @@ describe('DevToolsEventBus', () => {
       nodeId: 'n1',
       schemaId: 's1',
       properties: {},
-      lamport: { time: 1, author: 'did:key:test' },
+      lamport: 1,
       duration: 0
     })
 
@@ -31,7 +31,7 @@ describe('DevToolsEventBus', () => {
       nodeId: 'n1',
       schemaId: 's1',
       properties: {},
-      lamport: { time: 1, author: 'did:key:z6MkTest' },
+      lamport: 1,
       duration: 0
     })
     bus.emit({
@@ -39,7 +39,7 @@ describe('DevToolsEventBus', () => {
       nodeId: 'n2',
       schemaId: 's1',
       properties: {},
-      lamport: { time: 2, author: 'did:key:z6MkTest' },
+      lamport: 2,
       duration: 0
     })
     bus.emit({
@@ -47,7 +47,7 @@ describe('DevToolsEventBus', () => {
       nodeId: 'n3',
       schemaId: 's1',
       properties: {},
-      lamport: { time: 3, author: 'did:key:z6MkTest' },
+      lamport: 3,
       duration: 0
     })
     bus.emit({
@@ -55,7 +55,7 @@ describe('DevToolsEventBus', () => {
       nodeId: 'n4',
       schemaId: 's1',
       properties: {},
-      lamport: { time: 4, author: 'did:key:z6MkTest' },
+      lamport: 4,
       duration: 0
     })
 
@@ -143,7 +143,7 @@ describe('DevToolsEventBus', () => {
       nodeId: 'n1',
       schemaId: 's1',
       properties: {},
-      lamport: { time: 1, author: 'did:key:z6MkTest' },
+      lamport: 1,
       duration: 0
     })
     bus.emit({ type: 'store:delete', nodeId: 'n2', duration: 0 })
@@ -166,21 +166,21 @@ describe('DevToolsEventBus', () => {
       nodeId: 'abc',
       schemaId: 's1',
       properties: {},
-      lamport: { time: 1, author: 'did:key:z6MkTest' },
+      lamport: 1,
       duration: 0
     })
     bus.emit({
       type: 'store:update',
       nodeId: 'xyz',
       properties: { x: 1 },
-      lamport: { time: 2, author: 'did:key:z6MkTest' },
+      lamport: 2,
       duration: 0
     })
     bus.emit({
       type: 'store:update',
       nodeId: 'abc',
       properties: { y: 2 },
-      lamport: { time: 3, author: 'did:key:z6MkTest' },
+      lamport: 3,
       duration: 0
     })
 

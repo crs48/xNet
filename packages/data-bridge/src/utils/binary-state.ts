@@ -136,9 +136,9 @@ export class NodeStateEncoder {
   }
 
   private writeTimestamp(ts: PropertyTimestamp): void {
-    // LamportTimestamp has time (number) and author (DID)
-    this.writeUint32(ts.lamport.time)
-    this.writeString(ts.lamport.author)
+    // PropertyTimestamp has lamport (number), author (DID), wallTime (number)
+    this.writeUint32(ts.lamport)
+    this.writeString(ts.author)
     this.writeFloat64(ts.wallTime)
   }
 
@@ -329,11 +329,12 @@ export class NodeStateDecoder {
   }
 
   private readTimestamp(): PropertyTimestamp {
-    const time = this.readUint32()
+    const lamport = this.readUint32()
     const author = this.readString() as DID
     const wallTime = this.readFloat64()
     return {
-      lamport: { time, author },
+      lamport,
+      author,
       wallTime
     }
   }

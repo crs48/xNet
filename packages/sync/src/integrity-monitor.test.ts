@@ -25,7 +25,7 @@ function createTestChange(id: string, parentHash: ContentId | null = null): Chan
     authorDID: author,
     signature: new Uint8Array([1, 2, 3, 4]),
     wallTime: Date.now(),
-    lamport: { time: 1, author }
+    lamport: 1
   }
 }
 

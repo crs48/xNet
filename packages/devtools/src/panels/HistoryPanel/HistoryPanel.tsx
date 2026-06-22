@@ -231,7 +231,7 @@ function TimelineRow({
       }`}
     >
       <span className="text-[10px] text-ink-3 w-16 font-mono">{formatTime(entry.wallTime)}</span>
-      <span className="text-[10px] text-ink-3 w-8 text-right">L:{entry.lamport?.time ?? '?'}</span>
+      <span className="text-[10px] text-ink-3 w-8 text-right">L:{entry.lamport ?? '?'}</span>
       <span className={`w-2 h-2 rounded-full ${getOperationColor(entry.operation)}`} />
       <span className="text-[10px] text-ink-2 w-14">{entry.operation}</span>
       <span className="text-[10px] text-ink-3 truncate flex-1">{entry.properties.join(', ')}</span>

@@ -18,7 +18,7 @@ import type { LensRegistry } from '../schema/lens'
 import type { SchemaIRI } from '../schema/node'
 import type { AuthAction, AuthDecision, DID, ContentId, PolicyEvaluator } from '@xnetjs/core'
 import type { SQLiteOperationStats } from '@xnetjs/sqlite'
-import type { Change, ChangeSigner, LamportTimestamp } from '@xnetjs/sync'
+import type { Change, ChangeSigner } from '@xnetjs/sync'
 
 // ============================================================================
 // Node ID Types
@@ -66,8 +66,10 @@ export type NodeChange = Change<NodePayload>
  * Timestamp metadata for a property value (for LWW resolution).
  */
 export interface PropertyTimestamp {
-  /** The Lamport timestamp when this value was set */
-  lamport: LamportTimestamp
+  /** The Lamport logical time when this value was set */
+  lamport: number
+  /** Author DID for LWW tiebreak */
+  author: DID
   /** Wall clock time (for display) */
   wallTime: number
 }

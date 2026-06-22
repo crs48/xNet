@@ -92,8 +92,8 @@ describe('useQuery', () => {
       schemaId: TaskSchema._schemaId,
       properties: { title, status },
       timestamps: {
-        title: { lamport: { time: 1, author: did }, wallTime: now },
-        status: { lamport: { time: 1, author: did }, wallTime: now }
+        title: { lamport: 1, author: did, wallTime: now },
+        status: { lamport: 1, author: did, wallTime: now }
       },
       createdAt: now,
       createdBy: did,

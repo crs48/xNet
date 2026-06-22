@@ -91,10 +91,8 @@ interface SerializedNodeChange {
     properties: Record<string, unknown>
     deleted?: boolean
   }
-  lamport: {
-    time: number
-    author: string
-  }
+  /** Lamport logical time (plain integer); author carried via authorDID. */
+  lamport: number
   wallTime: number
   authorDID: string
   parentHash: string | null
@@ -105,7 +103,8 @@ interface SerializedNodeChange {
 }
 
 interface SerializedPropertyTimestamp {
-  lamport: { time: number; author: string }
+  lamport: number
+  author: string
   wallTime: number
 }
 
@@ -420,7 +419,7 @@ async function syncScalarRowsForNode(
         scalar.valueBoolean,
         scalar.valueHash,
         timestamp.wallTime,
-        timestamp.lamport.time
+        timestamp.lamport
       ]
     )
   }
@@ -1394,8 +1393,8 @@ export function createDataService(config: DataServiceConfig): DataService {
           change.hash,
           change.payload.nodeId,
           JSON.stringify(change.payload),
-          change.lamport.time,
-          change.lamport.author,
+          change.lamport,
+          change.authorDID,
           change.wallTime,
           change.authorDID,
           change.parentHash,
@@ -1407,7 +1406,7 @@ export function createDataService(config: DataServiceConfig): DataService {
       // Update sync state with latest Lamport time
       await adapter.run(
         `INSERT OR REPLACE INTO sync_state (key, value) VALUES ('lastLamportTime', ?)`,
-        [String(Math.max(change.lamport.time, await this.getLastLamportTime()))]
+        [String(Math.max(change.lamport, await this.getLastLamportTime()))]
       )
 
       // Emit change event for real-time sync to other windows
@@ -1540,7 +1539,8 @@ export function createDataService(config: DataServiceConfig): DataService {
       for (const prop of propRows) {
         properties[prop.property_key] = prop.value ? JSON.parse(prop.value) : null
         timestamps[prop.property_key] = {
-          lamport: { time: prop.lamport_time, author: prop.updated_by },
+          lamport: prop.lamport_time,
+          author: prop.updated_by,
           wallTime: prop.updated_at
         }
       }
@@ -1558,7 +1558,7 @@ export function createDataService(config: DataServiceConfig): DataService {
         timestamps,
         deleted: row.deleted_at !== null,
         deletedAt: row.deleted_at
-          ? { lamport: { time: 0, author: row.created_by }, wallTime: row.deleted_at }
+          ? { lamport: 0, author: row.created_by, wallTime: row.deleted_at }
           : undefined,
         createdAt: row.created_at,
         createdBy: row.created_by,
@@ -1624,8 +1624,8 @@ export function createDataService(config: DataServiceConfig): DataService {
             node.id,
             key,
             value !== undefined ? JSON.stringify(value) : null,
-            ts?.lamport.time ?? 0,
-            ts?.lamport.author ?? node.createdBy,
+            ts?.lamport ?? 0,
+            ts?.author ?? node.createdBy,
             ts?.wallTime ?? node.updatedAt
           ]
         )
@@ -1818,10 +1818,7 @@ function serializeNodeChange(change: NodeChange): SerializedNodeChange {
       properties: change.payload.properties,
       deleted: change.payload.deleted
     },
-    lamport: {
-      time: change.lamport.time,
-      author: change.lamport.author
-    },
+    lamport: change.lamport,
     wallTime: change.wallTime,
     authorDID: change.authorDID,
     parentHash: change.parentHash,
@@ -1856,10 +1853,7 @@ function rowToSerializedChange(row: {
     type: 'node-change',
     hash: row.hash,
     payload,
-    lamport: {
-      time: row.lamport_time,
-      author: row.lamport_peer
-    },
+    lamport: row.lamport_time,
     wallTime: row.wall_time,
     authorDID: row.author,
     parentHash: row.parent_hash,

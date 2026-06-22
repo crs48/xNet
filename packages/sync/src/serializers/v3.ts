@@ -76,8 +76,8 @@ export interface V3WireFormat {
   /** Wall clock time (ms since epoch) */
   w: number
 
-  /** Lamport timestamp { time, author } */
-  l: { t: number; a: string }
+  /** Lamport logical clock value */
+  l: number
 
   /** Batch ID for grouped changes (optional) */
   bi?: string
@@ -158,7 +158,7 @@ export class V3Serializer implements ChangeSerializer {
       a: change.authorDID,
       sig,
       w: change.wallTime,
-      l: { t: change.lamport.time, a: change.lamport.author }
+      l: change.lamport
     }
 
     // Include batch fields if present
@@ -210,7 +210,7 @@ export class V3Serializer implements ChangeSerializer {
       }
 
       // Validate lamport timestamp
-      if (!wire.l || typeof wire.l.t !== 'number' || !wire.l.a) {
+      if (typeof wire.l !== 'number') {
         return {
           success: false,
           error: 'Invalid or missing lamport timestamp',
@@ -232,10 +232,7 @@ export class V3Serializer implements ChangeSerializer {
         authorDID: wire.a as Change<T>['authorDID'],
         signature: signature as unknown as Uint8Array, // Type cast for compatibility
         wallTime: wire.w,
-        lamport: {
-          time: wire.l.t,
-          author: wire.l.a as Change<T>['lamport']['author']
-        }
+        lamport: wire.l
       }
 
       // Include batch fields if present

@@ -149,7 +149,7 @@ export class NodeRelayService {
       authorDID: serialized.authorDid as DID,
       signature: base64ToBytes(serialized.signatureB64),
       wallTime: serialized.wallTime,
-      lamport: { time: serialized.lamportTime, author: serialized.lamportAuthor as DID },
+      lamport: serialized.lamportTime,
       payload,
       protocolVersion: serialized.protocolVersion,
       batchId: serialized.batchId,

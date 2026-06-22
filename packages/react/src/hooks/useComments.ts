@@ -438,10 +438,9 @@ export function useComments({ nodeId, anchorType }: UseCommentsOptions): UseComm
  */
 function nodeToComment(node: NodeState): CommentNode {
   // Get Lamport time from the most recent property timestamp
-  // NodeState stores timestamps per property (PropertyTimestamp has { lamport: LamportTimestamp, wallTime })
-  // LamportTimestamp is { time: number, author: DID }
+  // NodeState stores timestamps per property (PropertyTimestamp is { lamport: number, author: DID, wallTime })
   const firstTimestamp = Object.values(node.timestamps)[0]
-  const lamportTime = firstTimestamp?.lamport?.time ?? 0
+  const lamportTime = firstTimestamp?.lamport ?? 0
   const wallTime = firstTimestamp?.wallTime ?? node.createdAt
 
   return {

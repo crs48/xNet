@@ -53,13 +53,11 @@ import {
   createLamportClock,
   tick,
   receive,
-  compareLamportTimestamps,
   signChange,
   createUnsignedChange,
   createBatchId,
   type ChangeSigner,
   type LamportClock,
-  type LamportTimestamp,
   type UnsignedChange
 } from '@xnetjs/sync'
 import { verifyChange, verifyChangeHash } from '@xnetjs/sync'
@@ -262,8 +260,9 @@ export class NodeStore {
       const now = Date.now()
 
       // Tick the clock
-      const [newClock, lamport] = tick(this.clock)
+      const [newClock, ts] = tick(this.clock)
       this.clock = newClock
+      const lamport = ts.time
 
       // Create the change
       const payload: NodePayload = {
@@ -467,8 +466,9 @@ export class NodeStore {
       const now = Date.now()
 
       // Tick the clock
-      const [newClock, lamport] = tick(this.clock)
+      const [newClock, ts] = tick(this.clock)
       this.clock = newClock
+      const lamport = ts.time
 
       // Create the change with sparse properties
       const payload: NodePayload = {
@@ -566,8 +566,9 @@ export class NodeStore {
       const now = Date.now()
 
       // Tick the clock
-      const [newClock, lamport] = tick(this.clock)
+      const [newClock, ts] = tick(this.clock)
       this.clock = newClock
+      const lamport = ts.time
 
       // Create the delete change
       const payload: NodePayload = {
@@ -643,8 +644,9 @@ export class NodeStore {
     const now = Date.now()
 
     // Tick the clock
-    const [newClock, lamport] = tick(this.clock)
+    const [newClock, ts] = tick(this.clock)
     this.clock = newClock
+    const lamport = ts.time
 
     // Create the restore change
     const payload: NodePayload = {
@@ -909,8 +911,9 @@ export class NodeStore {
     const previousClock = this.clock
 
     // Tick the clock once for the entire batch
-    const [newClock, lamport] = tick(this.clock)
+    const [newClock, ts] = tick(this.clock)
     this.clock = newClock
+    const lamport = ts.time
 
     try {
       const result = await this.runTransactionOperationsBatch({
@@ -940,7 +943,7 @@ export class NodeStore {
    */
   private async runTransactionOperationsBatch(input: {
     operations: TransactionOperation[]
-    lamport: LamportTimestamp
+    lamport: number
     now: number
     batchId: string
     batchSize: number
@@ -1077,8 +1080,9 @@ export class NodeStore {
     const batchSize = resolvedOps.length
     const now = Date.now()
     const previousClock = this.clock
-    const [newClock, lamport] = tick(this.clock)
+    const [newClock, ts] = tick(this.clock)
     this.clock = newClock
+    const lamport = ts.time
 
     try {
       const applyStartedAt = Date.now()
@@ -1184,8 +1188,9 @@ export class NodeStore {
     const previousClock = this.clock
     const indexMode = this.resolveDeterministicImportIndexMode(options)
 
-    const [newClock, lamport] = tick(this.clock)
+    const [newClock, ts] = tick(this.clock)
     this.clock = newClock
+    const lamport = ts.time
 
     try {
       let result: DeterministicNodeImportAppliedPlan
@@ -1336,7 +1341,7 @@ export class NodeStore {
   private async planDeterministicNodeImport(input: {
     drafts: readonly DeterministicNodeImportDraft[]
     storage: NodeStorageAdapter
-    lamport: LamportTimestamp
+    lamport: number
     now: number
     batchId: string
     batchSize: number
@@ -1421,7 +1426,7 @@ export class NodeStore {
   private async executeDeterministicNodeImport(input: {
     drafts: readonly DeterministicNodeImportDraft[]
     storage: NodeStorageAdapter
-    lamport: LamportTimestamp
+    lamport: number
     now: number
     batchId: string
     batchSize: number
@@ -1585,7 +1590,7 @@ export class NodeStore {
   private async executeTransactionOperations(input: {
     operations: TransactionOperation[]
     storage: NodeStorageAdapter
-    lamport: LamportTimestamp
+    lamport: number
     now: number
     batchId: string
     batchSize: number
@@ -1726,7 +1731,7 @@ export class NodeStore {
    */
   private async executeTransactionOperationsFast(input: {
     operations: TransactionOperation[]
-    lamport: LamportTimestamp
+    lamport: number
     now: number
     batchId: string
     batchSize: number
@@ -1875,7 +1880,7 @@ export class NodeStore {
       }
 
       // Update our clock to be at least as recent as the remote
-      this.clock = receive(this.clock, change.lamport.time)
+      this.clock = receive(this.clock, change.lamport)
       await this.storage.setLastLamportTime(this.clock.time)
 
       // Apply the change
@@ -1907,7 +1912,9 @@ export class NodeStore {
    */
   async applyRemoteChanges(changes: NodeChange[]): Promise<void> {
     // Sort by Lamport timestamp for causal ordering
-    const sorted = [...changes].sort((a, b) => compareLamportTimestamps(a.lamport, b.lamport))
+    const sorted = [...changes].sort(
+      (a, b) => a.lamport - b.lamport || a.authorDID.localeCompare(b.authorDID)
+    )
 
     for (const change of sorted) {
       try {
@@ -2102,7 +2109,7 @@ export class NodeStore {
   private async createChange(
     type: string,
     payload: NodePayload,
-    lamport: LamportTimestamp,
+    lamport: number,
     wallTime: number
   ): Promise<NodeChange> {
     // Get parent hash (last change for this node)
@@ -2138,7 +2145,7 @@ export class NodeStore {
   private async createBatchedChange(
     type: string,
     payload: NodePayload,
-    lamport: LamportTimestamp,
+    lamport: number,
     wallTime: number,
     batchId: string,
     batchIndex: number,
@@ -2165,7 +2172,7 @@ export class NodeStore {
     type: string,
     payload: NodePayload,
     parentHash: ContentId | null,
-    lamport: LamportTimestamp,
+    lamport: number,
     wallTime: number,
     batchId: string,
     batchIndex: number,
@@ -2257,8 +2264,9 @@ export class NodeStore {
 
     const now = Date.now()
     const previousClock = this.clock
-    const [newClock, lamport] = tick(this.clock)
+    const [newClock, ts] = tick(this.clock)
     this.clock = newClock
+    const lamport = ts.time
 
     try {
       const parentHash = preflight.lastChangesByNodeId.get(input.nodeId)?.hash ?? null
@@ -2356,6 +2364,7 @@ export class NodeStore {
     if (deleted !== undefined) {
       const deletedTs: PropertyTimestamp = {
         lamport: change.lamport,
+        author: change.authorDID,
         wallTime: change.wallTime
       }
 
@@ -2388,6 +2397,7 @@ export class NodeStore {
     const existingTs = node.timestamps[key]
     const newTs: PropertyTimestamp = {
       lamport: change.lamport,
+      author: change.authorDID,
       wallTime: change.wallTime
     }
     const incomingWins = !existingTs || this.shouldReplace(existingTs, newTs)
@@ -2423,7 +2433,9 @@ export class NodeStore {
    * Determine if newTs should replace existingTs (LWW).
    */
   private shouldReplace(existing: PropertyTimestamp, incoming: PropertyTimestamp): boolean {
-    return compareLamportTimestamps(incoming.lamport, existing.lamport) > 0
+    if (incoming.lamport !== existing.lamport) return incoming.lamport > existing.lamport
+    if (incoming.wallTime !== existing.wallTime) return incoming.wallTime > existing.wallTime
+    return incoming.author.localeCompare(existing.author) > 0
   }
 
   /**
