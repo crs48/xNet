@@ -7,6 +7,7 @@ const skipThresholds = process.env.CI === 'true'
 const workspaceAliases = {
   '@xnetjs/abuse': new URL('./packages/abuse/src/index.ts', import.meta.url).pathname,
   '@xnetjs/billing': new URL('./packages/billing/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/brain': new URL('./packages/brain/src/index.ts', import.meta.url).pathname,
   '@xnetjs/canvas': new URL('./packages/canvas/src/index.ts', import.meta.url).pathname,
   '@xnetjs/canvas-core': new URL('./packages/canvas-core/src/index.ts', import.meta.url).pathname,
   '@xnetjs/cli': new URL('./packages/cli/src/index.ts', import.meta.url).pathname,
@@ -105,8 +106,8 @@ export default defineConfig({
           pool: 'threads',
           isolate: false,
           include: [
-            'packages/{abuse,billing,canvas-core,cli,cloud,crm,dictation,entitlements,comms,crypto,core,data,experiments,formula,history,identity,ledger,licenses,network,query,slack-compat,sqlite,storage,sync,telemetry,trust,vectors}/src/**/*.test.ts',
-            'packages/{abuse,billing,canvas-core,cli,cloud,crm,dictation,entitlements,comms,crypto,core,data,experiments,formula,history,identity,ledger,licenses,network,query,slack-compat,sqlite,storage,sync,telemetry,trust,vectors}/test/**/*.test.ts',
+            'packages/{abuse,billing,brain,canvas-core,cli,cloud,crm,dictation,entitlements,comms,crypto,core,data,experiments,formula,history,identity,ledger,licenses,network,query,slack-compat,sqlite,storage,sync,telemetry,trust,vectors}/src/**/*.test.ts',
+            'packages/{abuse,billing,brain,canvas-core,cli,cloud,crm,dictation,entitlements,comms,crypto,core,data,experiments,formula,history,identity,ledger,licenses,network,query,slack-compat,sqlite,storage,sync,telemetry,trust,vectors}/test/**/*.test.ts',
             // Control-plane app logic (xNet Cloud — managed-hosting explorations 0174/0175)
             'apps/cloud/src/**/*.test.ts',
             // Social matching layer — pure connect modules only; the
