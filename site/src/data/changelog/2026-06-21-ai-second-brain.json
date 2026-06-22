@@ -8,5 +8,14 @@
     "A strict token/hop budget keeps answers focused; extra matches stay one click away (just-in-time)",
     "First-class, private-by-default memory that's auditable back to its source notes"
   ],
-  "tags": ["ai", "platform"]
+  "tags": [
+    "ai",
+    "platform"
+  ],
+  "pr": 228,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
