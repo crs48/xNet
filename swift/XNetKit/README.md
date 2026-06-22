@@ -81,16 +81,22 @@ let conn = HubConnection(url: URL(string: "wss://hub.xnet.app")!, did: identity.
 try await conn.connect()
 store.onLocalChange = { change in Task { try await conn.publish(change, room: docId) } }
 
-// later, catch up:
+// catch up on what we missed:
 for change in try await conn.syncRequest(room: docId, sinceLamport: 0) {
     store.apply(change)   // verifies hash + signature before applying
 }
+
+// then stream peers' changes in real time:
+conn.onRemoteChange = { change in store.apply(change) }
+try await conn.subscribe(room: docId)
+conn.startStreaming()
 ```
 
 This is **proven against the real TypeScript hub**: `xnet-sync-demo` has a Swift
-client sign a change, publish it to the hub (which verifies the hash + Ed25519
-signature and stores it), and a second Swift client catch it up and materialize
-the node — a true cross-language round-trip.
+client sign a change and publish it to the hub (which verifies the hash + Ed25519
+signature and stores it), a second Swift client catch it up and materialize the
+node, and that second client then receive a **live relayed update** the moment
+the writer publishes it — a true cross-language, real-time round-trip.
 
 ## Run it
 
@@ -106,7 +112,8 @@ swift run xnet-sync-demo ws://localhost:31999 my-room
 
 `swift run xnet-demo` prints identity → schema → signed writes → query →
 reactive renders → LWW convergence. `xnet-sync-demo` prints a live Swift↔hub
-round-trip. Verified with Swift 6.3 on macOS against the reference hub.
+catch-up **and** a real-time streamed update. Verified with Swift 6.3 on macOS
+against the reference hub.
 
 ## Architecture
 
@@ -126,12 +133,13 @@ round-trip. Verified with Swift 6.3 on macOS against the reference hub.
 ## Scope & status
 
 This is **Phase 1** of exploration 0210 — it proves the authoring experience
-the exploration recommends, now with **live hub sync** demonstrated end-to-end
-against the reference TypeScript hub. It deliberately does **not** yet include:
+the exploration recommends, now with **live hub sync** (catch-up *and* real-time
+streaming) demonstrated end-to-end against the reference TypeScript hub. It
+deliberately does **not** yet include:
 
-- **Continuous/streaming sync & presence.** `HubConnection` does publish +
-  catch-up (`node-sync-request`); it does not yet keep a long-lived subscription
-  that streams inbound `node-change` relays in real time, nor awareness/presence.
+- **Awareness / presence.** `HubConnection` streams relayed `node-change`s in
+  real time (`subscribe` + `startStreaming`), but does not yet handle
+  awareness/presence (cursors, online status) or the Yjs document-body codec.
 - **Collaborative document bodies (Yjs).** Node properties only; rich-text CRDT
   bodies are out of scope for this slice (and intentionally opaque in the
   protocol — see [L1 §8](../../docs/specs/protocol/02-data-model.md)).

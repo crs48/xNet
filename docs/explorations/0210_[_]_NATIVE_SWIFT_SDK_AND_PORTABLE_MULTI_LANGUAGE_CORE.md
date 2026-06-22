@@ -668,11 +668,12 @@ is still open.
       `packages/sqlite/src/schema.ts` (incl. FTS5) — in‑memory today.
 - [x] Live sync: `URLSessionWebSocketTask` transport to the hub
       (`HubConnection` + `WireCodec`, `swift/XNetKit/Sources/XNetKit/HubConnection.swift`)
-      — **proven end‑to‑end against the reference TS hub** (`xnet-sync-demo`): a
-      Swift‑signed change is verified/stored by the hub and caught up by a second
-      Swift client. *(Required the integer‑lamport protocol fix, PR #229. Still
-      pending: a long‑lived streaming subscription for real‑time inbound relays,
-      and a SwiftUI sample app.)*
+      — **proven end‑to‑end against the reference TS hub** (`xnet-sync-demo`),
+      both **catch‑up** (`node-sync-request`) and **real‑time streaming**
+      (`subscribe` + `startStreaming` → a second Swift client receives a relayed
+      update the moment the writer publishes it). *(Required the integer‑lamport
+      fix, PR #229. Still pending: awareness/presence, the Yjs document codec, and
+      a SwiftUI sample app.)*
 - [ ] *(Alternative engine path)* JSC‑embedded `@xnetjs/runtime` for 100% TS
       parity (bundle + `JSContext` host + native adapters) — deferred; weigh
       against the native runtime once live sync lands.

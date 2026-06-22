@@ -1,0 +1,18 @@
+{
+  "id": "2026-06-22-swift-realtime-sync",
+  "date": "June 22, 2026",
+  "title": "Native Swift now syncs in real time — live changes stream straight to a Swift client",
+  "summary": "XNetKit's hub connection gained real-time streaming: a Swift client subscribes to a room and receives relayed changes the moment a peer publishes them — not just on-demand catch-up. Proven end-to-end against the reference TypeScript hub: one Swift client publishes a change and a second Swift client sees the live update arrive instantly. Full bidirectional, real-time native-Swift ↔ hub sync.",
+  "highlights": [
+    "`HubConnection.subscribe(room:)` + `startStreaming()` run a read loop that delivers relayed `node-change`s to `onRemoteChange` live (each verified before apply)",
+    "`xnet-sync-demo` now proves both phases against the real hub: catch-up via `node-sync-request`, then a real-time streamed update between two Swift clients",
+    "Complements the existing publish + catch-up path — a native app can now stay continuously in sync, not just reconcile on demand"
+  ],
+  "tags": ["swift", "sync", "protocol"],
+  "pr": 234,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}
