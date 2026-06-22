@@ -19,7 +19,10 @@ small, ranked, citation-carrying slice of the graph instead of being overwhelmed
 | `pack.ts` | Token estimation + greedy budget packing — the "don't overwhelm" mechanism. Dropped nodes become just-in-time `expandable` refs. |
 | `indexer.ts` | Incremental embedding pipeline: subscribes to store changes, debounced, (re)embeds node text into the vector index. Wakes the dormant `@xnetjs/vectors` engine. |
 | `memory.ts` | Mem0-style consolidation (`ADD`/`UPDATE`/`DELETE`/`NOOP`) + recency-decayed memory ranking. Pure. |
+| `memory-apply.ts` | Applies consolidation decisions as governed `MemoryItem` node mutations (`applyMemoryOp` / `rememberFact`). |
 | `locality.ts` | Working-set scoring + a locality planner that promotes the dormant `QuerySource` hint in `@xnetjs/data-bridge` into a real local-vs-hub policy. |
+| `schema.ts` | Derives the `relationFieldsOf` resolver from compiled schemas, so graph-walk works with the built-in registry without a hand-written map. |
+| `persist.ts` | Save/restore the vector tier through a blob store (`@xnetjs/storage`); a cold/corrupt tier reports `false` so the caller rebuilds lazily. |
 | `index.ts` | `createBrain()` — wires all of the above into one adoptable object. |
 
 ## Usage

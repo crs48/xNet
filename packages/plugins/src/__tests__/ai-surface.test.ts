@@ -691,6 +691,56 @@ describe('AI surface contract', () => {
     })
   })
 
+  describe('context retriever (exploration 0211)', () => {
+    const pages = [
+      {
+        id: 'p1',
+        schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+        properties: { title: 'Acme overview' },
+        deleted: false,
+        createdAt: 1,
+        updatedAt: 1
+      },
+      {
+        id: 'p2',
+        schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+        properties: { title: 'unrelated thing' },
+        deleted: false,
+        createdAt: 1,
+        updatedAt: 1
+      }
+    ]
+
+    it('uses the injected retriever for the query path instead of keyword search', async () => {
+      const store = createMockStore(pages)
+      // Keyword search for "acme" would surface p1; the retriever returns only p2.
+      const retrieveContext = vi.fn(async () => [{ nodeId: 'p2', pathLabel: 'Acme → p2' }])
+      const service = createAiSurfaceService({
+        store,
+        schemas: createMockSchemas(),
+        retrieveContext
+      })
+
+      const pack = await service.createContextPack({ query: 'acme' })
+
+      expect(retrieveContext).toHaveBeenCalledWith('acme', { limit: expect.any(Number) })
+      const ids = pack.resources.map((r) => r.citation?.id)
+      expect(ids).toContain('p2')
+      expect(ids).not.toContain('p1')
+    })
+
+    it('falls back to keyword search when no retriever is configured', async () => {
+      const store = createMockStore(pages)
+      const service = createAiSurfaceService({ store, schemas: createMockSchemas() })
+
+      const pack = await service.createContextPack({ query: 'acme' })
+
+      const ids = pack.resources.map((r) => r.citation?.id)
+      expect(ids).toContain('p1') // keyword match on "Acme overview"
+      expect(ids).not.toContain('p2')
+    })
+  })
+
   describe('database mutation apply', () => {
     it('applies row bulk updates and schema/view metadata without corrupting row data', async () => {
       const store = createMockStore([
