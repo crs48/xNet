@@ -9,7 +9,7 @@
     "Complements the existing publish + catch-up path — a native app can now stay continuously in sync, not just reconcile on demand"
   ],
   "tags": ["swift", "sync", "protocol"],
-  "pr": 233,
+  "pr": 234,
   "authors": [
     {
       "login": "crs48"
