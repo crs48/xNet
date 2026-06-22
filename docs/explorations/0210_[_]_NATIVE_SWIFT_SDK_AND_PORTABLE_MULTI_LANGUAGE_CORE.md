@@ -664,8 +664,11 @@ is still open.
       X25519 key‑wrap (E2E) not yet (no encrypted content in this slice).
 - [ ] Wire Keychain/Secure Enclave identity storage (`did:key`) — identity is
       seed/random today; Keychain custody is a follow‑up.
-- [ ] Persistent storage: a GRDB‑backed `SQLiteAdapter` matching
-      `packages/sqlite/src/schema.ts` (incl. FTS5) — in‑memory today.
+- [x] Persistent storage: `SQLiteChangeLog` (system SQLite, no extra dep) — a
+      durable change log the `NodeStore` replays on open, so state survives
+      restarts (`swift/XNetKit/Sources/XNetKit/Persistence.swift`; verified by
+      `PersistenceTests` survive‑reopen + LWW‑preserved). *(A materialized/FTS5
+      table matching `packages/sqlite/src/schema.ts` is a further optimization.)*
 - [x] Live sync: `URLSessionWebSocketTask` transport to the hub
       (`HubConnection` + `WireCodec`, `swift/XNetKit/Sources/XNetKit/HubConnection.swift`)
       — **proven end‑to‑end against the reference TS hub** (`xnet-sync-demo`),
