@@ -741,6 +741,84 @@ describe('AI surface contract', () => {
     })
   })
 
+  describe('xnet_graph_expand (exploration 0211)', () => {
+    const schemas: SchemaRegistryAPI = {
+      getAllIRIs: () => ['Deal', 'Contact'],
+      get: async (iri) =>
+        iri === 'Deal'
+          ? {
+              iri,
+              name: 'Deal',
+              properties: {
+                name: { type: 'text' },
+                contact: { type: 'relation' },
+                items: { type: 'relation' }
+              }
+            }
+          : iri === 'Contact'
+            ? { iri, name: 'Contact', properties: { name: { type: 'text' } } }
+            : null
+    }
+    const nodes = [
+      {
+        id: 'deal1',
+        schemaId: 'Deal',
+        properties: { name: 'Big deal', contact: 'c1', items: ['li1'] },
+        deleted: false,
+        createdAt: 1,
+        updatedAt: 1
+      },
+      {
+        id: 'c1',
+        schemaId: 'Contact',
+        properties: { name: 'Jane Doe' },
+        deleted: false,
+        createdAt: 1,
+        updatedAt: 1
+      },
+      {
+        id: 'li1',
+        schemaId: 'LineItem',
+        properties: { name: 'Widget' },
+        deleted: false,
+        createdAt: 1,
+        updatedAt: 1
+      }
+    ]
+
+    it('walks outbound relation edges to a node’s neighbors', async () => {
+      const service = createAiSurfaceService({ store: createMockStore(nodes), schemas })
+      const result = (await service.callTool('xnet_graph_expand', { nodeId: 'deal1' })) as {
+        found: boolean
+        neighbors: Array<{ nodeId: string; relation: string; title: string }>
+      }
+      expect(result.found).toBe(true)
+      expect(result.neighbors.map((n) => n.nodeId).sort()).toEqual(['c1', 'li1'])
+      expect(result.neighbors.find((n) => n.nodeId === 'c1')?.relation).toBe('contact')
+      expect(result.neighbors.find((n) => n.nodeId === 'c1')?.title).toBe('Jane Doe')
+    })
+
+    it('reports not-found for a missing node', async () => {
+      const service = createAiSurfaceService({ store: createMockStore(nodes), schemas })
+      const result = await service.callTool('xnet_graph_expand', { nodeId: 'nope' })
+      expect(result).toMatchObject({ found: false, neighbors: [] })
+    })
+
+    it('respects the neighbor limit', async () => {
+      const service = createAiSurfaceService({ store: createMockStore(nodes), schemas })
+      const result = (await service.callTool('xnet_graph_expand', {
+        nodeId: 'deal1',
+        limit: 1
+      })) as { neighbors: unknown[] }
+      expect(result.neighbors).toHaveLength(1)
+    })
+
+    it('exposes the tool in the tool list', () => {
+      const service = createAiSurfaceService({ store: createMockStore([]), schemas })
+      expect(service.getTools().map((t) => t.name)).toContain('xnet_graph_expand')
+    })
+  })
+
   describe('database mutation apply', () => {
     it('applies row bulk updates and schema/view metadata without corrupting row data', async () => {
       const store = createMockStore([
