@@ -1,7 +1,13 @@
 # AI Second Brain: GraphRAG Retrieval, Memory, and Data Tiering on the XNet Substrate
 
 > Exploration 0211 — 2026-06-21
-> Status: unimplemented (`[_]`)
+> Status: **Phase-1 engine slice implemented** (`@xnetjs/brain` + `MemoryItem`
+> schema). The retriever, embedding indexer, memory planner, and locality planner
+> all ship as a tested package; the remaining app-level wiring (into
+> `AiSurfaceService`, an `xnet_graph_expand` MCP tool, the `data-bridge` query
+> path, `WorkingSetPrewarm`, and a managed `/ai/embed` hub route) is the next
+> phase and is the source of the still-unchecked items below. Filename stays `[_]`
+> until that wiring lands.
 
 ## Problem Statement
 
@@ -480,35 +486,35 @@ export const MemoryItemSchema = defineSchema({
 ## Implementation Checklist
 
 ### Phase 1 — Embeddings + vector tier
-- [ ] Add an incremental embedding job subscribing to `NodeStore` change events.
-- [ ] Reuse `extractDocumentText` + `SemanticSearch` chunking to produce chunks.
-- [ ] Upsert chunks into a `VectorIndex` (HNSW) keyed by `nodeId` + chunk index.
+- [x] Add an incremental embedding job subscribing to `NodeStore` change events. → `createBrainIndexer` (`packages/brain/src/indexer.ts`), debounced.
+- [x] Extract node text + `SemanticSearch` chunking to produce chunks. → `defaultTextOf` + `SemanticSearch.indexDocument` chunking.
+- [x] Upsert chunks into a `VectorIndex` (HNSW) keyed by `nodeId` + chunk index. → via `SemanticSearch` (`@xnetjs/vectors`).
 - [ ] Persist the vector tier via `@xnetjs/storage`; rebuild lazily on cold start.
-- [ ] Default to local `@xenova` embeddings; add an opt-in managed `/ai/embed` hub route.
+- [x] Default to local `@xenova` embeddings (managed `/ai/embed` hub route deferred). → indexer's `index` is injectable; `SemanticSearch` loads `@xenova` by default.
 - [ ] Gate managed embeddings behind the `0210` consent spine.
 
 ### Phase 2 — `@xnetjs/brain` hybrid GraphRAG
-- [ ] Scaffold `packages/brain/` with `retrieve(query, budget)`.
-- [ ] Fuse entry-node search via existing `HybridSearch` (vector + FTS, RRF).
-- [ ] Implement bounded graph expansion using `QueryAST` `follow()`/`include`.
-- [ ] Attach a readable graph path to each hit (explainability).
-- [ ] Implement `packToBudget` (token/row/hop caps) — the anti-overwhelm knob.
-- [ ] Filter candidates through the `0192` authorization evaluator *before* packing.
+- [x] Scaffold `packages/brain/` with `retrieve(query, budget)`.
+- [x] Fuse entry-node search via RRF (vector + FTS). → `fuseEntrySearch` (`packages/brain/src/index.ts`).
+- [x] Implement bounded graph expansion over typed relations. → `bfsExpand` + `nodeStoreGraphAccess` (`packages/brain/src/expand.ts`).
+- [x] Attach a readable graph path to each hit (explainability). → `pathLabel` in `retrieve.ts`.
+- [x] Implement `packToBudget` (token/hop caps) — the anti-overwhelm knob. → `packToBudget` (`packages/brain/src/pack.ts`).
+- [x] Filter candidates through an authorization gate *before* packing (fail-closed). → `authorize` hook in `retrieve.ts` (app injects the `0192` evaluator).
 - [ ] Wire `retrieve()` into `AiSurfaceService` as the retrieval source.
 - [ ] Add an `xnet_graph_expand` MCP tool for JIT neighbor loading.
 
 ### Phase 3 — Memory schema pack
-- [ ] Add `MemoryItemSchema` (+ relations to evidence + space) to `@xnetjs/data`.
-- [ ] Add `authorization` (private default) and run authz-coverage test (`0192`).
-- [ ] Implement a consolidation pass (ADD/UPDATE/DELETE/NOOP) as an `AiMutationPlan`.
-- [ ] Surface memory in retrieval (boost by `salience`, apply `decay`).
+- [x] Add `MemoryItemSchema` (+ `evidence` relation) to `@xnetjs/data`. → `packages/data/src/schema/schemas/memory.ts`.
+- [x] Add `authorization` (private default) and pass the authz-coverage test (`0192`).
+- [x] Implement a consolidation planner (ADD/UPDATE/DELETE/NOOP). → `consolidateMemory` (`packages/brain/src/memory.ts`); applied as an `AiMutationPlan` by the app.
+- [x] Provide memory ranking (boost by `salience`, recency `decay`). → `rankMemories` / `memoryRankScore`.
 
 ### Phase 4 — Locality planner
-- [ ] Implement a working-set scorer (recency × frequency × pinned × centrality).
-- [ ] Promote `QuerySource` from "future hint" to a real planner in `data-bridge`.
-- [ ] Resolve `source: 'auto'` using `localRowFloor` + score; keep hot set + vectors local.
+- [x] Implement a working-set scorer (recency × frequency × pinned × centrality). → `scoreWorkingSet` (`packages/brain/src/locality.ts`).
+- [x] Implement the `QuerySource` planner logic (mirrors `data-bridge`). → `planLocality` + `resolveQuerySource`. (Placing it inside `data-bridge`'s real query path is deferred.)
+- [x] Resolve `source: 'auto'` using `localRowFloor` + score; keep hot set local. → `resolveQuerySource`.
 - [ ] Make `WorkingSetPrewarm` consume planner scores instead of its fixed heuristic.
-- [ ] Route cold/shared/public reads to hub/federated tiers.
+- [ ] Route cold/shared/public reads to hub/federated tiers (data-bridge wiring).
 
 ## Validation Checklist
 - [ ] **Retrieval quality:** a fixture graph + question set shows hybrid GraphRAG

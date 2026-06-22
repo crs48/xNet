@@ -142,6 +142,18 @@ export interface Brain {
 }
 
 const SNIPPET_MAX = 600
+const RRF_K = 60
+
+/** RRF contribution of a single ranked list (0 when the id wasn't in that list). */
+function rrfContribution(rank: number | undefined, weight: number): number {
+  return rank === undefined ? 0 : weight / (RRF_K + rank)
+}
+
+/** Which retrieval modes contributed to a fused hit. */
+function classifyHybridSource(hasVector: boolean, hasKeyword: boolean): EntryHit['source'] {
+  if (hasVector && hasKeyword) return 'hybrid'
+  return hasVector ? 'vector' : 'keyword'
+}
 
 /** Reciprocal-rank-fusion of vector + keyword hits into one ranked entry list. */
 async function fuseEntrySearch(
@@ -151,7 +163,6 @@ async function fuseEntrySearch(
   keyword: KeywordProvider | undefined,
   vectorWeight: number
 ): Promise<EntryHit[]> {
-  const rrfK = 60
   const keywordWeight = 1 - vectorWeight
   const [vectorHits, keywordHits] = await Promise.all([
     semantic.search(query, { maxResults: k * 2 }),
@@ -159,24 +170,26 @@ async function fuseEntrySearch(
   ])
 
   const ranks = new Map<string, { v?: number; kw?: number }>()
-  vectorHits.forEach((hit, i) => ranks.set(hit.id, { ...ranks.get(hit.id), v: i + 1 }))
-  keywordHits.forEach((hit, i) => ranks.set(hit.id, { ...ranks.get(hit.id), kw: i + 1 }))
+  vectorHits.forEach((hit, i) => {
+    ranks.set(hit.id, { ...ranks.get(hit.id), v: i + 1 })
+  })
+  keywordHits.forEach((hit, i) => {
+    ranks.set(hit.id, { ...ranks.get(hit.id), kw: i + 1 })
+  })
 
-  const fused: EntryHit[] = []
-  for (const [nodeId, rank] of ranks.entries()) {
-    let score = 0
-    if (rank.v !== undefined) score += vectorWeight / (rrfK + rank.v)
-    if (rank.kw !== undefined) score += keywordWeight / (rrfK + rank.kw)
-    const source: EntryHit['source'] =
-      rank.v !== undefined && rank.kw !== undefined
-        ? 'hybrid'
-        : rank.v !== undefined
-          ? 'vector'
-          : 'keyword'
-    fused.push({ nodeId, score, source })
-  }
+  const fused: EntryHit[] = [...ranks.entries()].map(([nodeId, rank]) => ({
+    nodeId,
+    score: rrfContribution(rank.v, vectorWeight) + rrfContribution(rank.kw, keywordWeight),
+    source: classifyHybridSource(rank.v !== undefined, rank.kw !== undefined)
+  }))
   fused.sort((a, b) => b.score - a.score)
   return fused.slice(0, k)
+}
+
+/** First non-empty line, capped, falling back to `fallback`. */
+function deriveTitle(full: string, fallback: string): string {
+  const firstLine = full.split('\n')[0]?.trim() ?? ''
+  return firstLine.length > 0 ? firstLine.slice(0, 200) : fallback
 }
 
 /** Default text loader: title from the first text-bearing prop, snippet from all. */
@@ -189,10 +202,11 @@ function makeDefaultLoadText(store: NodeReader): TextLoader {
       schemaId: node.schemaId,
       properties: node.properties
     })
-    const firstLine = full.split('\n')[0]?.trim() ?? ''
-    const title = firstLine.length > 0 ? firstLine.slice(0, 200) : nodeId
-    const snippet = full.replace(/\s+/g, ' ').trim().slice(0, SNIPPET_MAX)
-    return { title, snippet, schemaId: node.schemaId }
+    return {
+      title: deriveTitle(full, nodeId),
+      snippet: full.replace(/\s+/g, ' ').trim().slice(0, SNIPPET_MAX),
+      schemaId: node.schemaId
+    }
   }
 }
 
