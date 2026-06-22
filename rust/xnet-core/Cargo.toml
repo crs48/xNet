@@ -1,0 +1,22 @@
+[package]
+name = "xnet-core"
+version = "0.1.0"
+edition = "2021"
+description = "Portable Rust implementation of the XNet interop kernel (L0-L1 + L2/L3 decision core)."
+license = "MIT"
+
+[lib]
+crate-type = ["lib"]
+
+[dependencies]
+# Ed25519 is implemented on curve25519-dalek + sha2 (RFC 8032) so the only
+# crypto deps are the well-audited group-math and hash primitives; base58 and
+# the canonical JSON are implemented inline. blake3 is the change-hash digest.
+curve25519-dalek = "4.1"
+sha2 = "0.10"
+blake3 = "1"
+serde_json = "1"
+
+[dev-dependencies]
+base64 = "0.22"
+hex = "0.4"

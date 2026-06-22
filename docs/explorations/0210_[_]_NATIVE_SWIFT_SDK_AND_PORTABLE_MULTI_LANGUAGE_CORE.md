@@ -681,13 +681,23 @@ is still open.
       parity (bundle + `JSContext` host + native adapters) — deferred; weigh
       against the native runtime once live sync lands.
 
-**Phase 2 — `xnet-core` (Rust) + UniFFI**
-- [ ] Create the `xnet-core` crate: identity, canonical change, hash,
-      sign/verify, LWW, auth eval, UCAN, E2E envelope.
-- [ ] Pass the *entire* conformance corpus from Rust.
-- [ ] Generate Swift + Kotlin bindings (UniFFI) and a C ABI header for .NET.
-- [ ] Strangler‑fig `XNetKit`'s kernel calls from JSC → `xnet-core`; keep
-      vectors green throughout.
+**Phase 2 — `xnet-core` (Rust) + UniFFI** — *core landed (`rust/xnet-core/`); bindings scaffolded + documented*
+- [x] Create the `xnet-core` crate: identity (`did:key`), canonical change +
+      BLAKE3 hash, Ed25519 sign/verify (deterministic RFC‑8032 on
+      `curve25519-dalek` + `sha2`; base58 + canonical JSON inline), LWW,
+      version negotiation, and authorization expression eval. *(UCAN + the E2E
+      envelope are the remaining kernel pieces — not yet ported.)*
+- [x] Pass the conformance corpus from Rust — `cargo test` reproduces
+      identity, change (incl. **byte‑for‑byte re‑sign**, which Swift/CryptoKit
+      can't), lww, replication (negotiate + catch‑up), and authz.
+- [~] Bindings: the FFI‑friendly surface (`String`/`Vec<u8>`/`bool`) is built and
+      tested in `src/ffi.rs`; the **UniFFI codegen itself is deferred** — the
+      `uniffi` toolchain was unavailable in the offline build (crates.io
+      unreachable). The README documents the exact wiring (annotate → generate
+      Swift/Kotlin → C ABI for .NET).
+- [ ] Strangler‑fig `XNetKit`'s native kernel calls over to `xnet-core` via the
+      generated bindings (gated on the codegen above; vectors keep both honest —
+      they already pass the *same* corpus independently).
 - [ ] Link `yrs` for Yjs document bodies (optional, behind a flag).
 
 **Phase 3 — Fan out**

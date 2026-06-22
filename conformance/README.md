@@ -57,9 +57,15 @@ python conformance/reference/python/verify_vectors.py
 | Implementation | Language | L0 identity | L1 change | L1 lww | L2 | L3 |
 |---|---|:--:|:--:|:--:|:--:|:--:|
 | [`xNet`](..) (reference) | TypeScript | ✅ | ✅ | ✅ | ✅ | ✅ |
+| [`xnet-core`](../rust/xnet-core) | Rust | ✅ | ✅ | ✅ | ✅ | ✅ |
 | [`reference/python`](reference/python) | Python | ✅ | ✅ | — | — | — |
 | [`reference/swift`](reference/swift) | Swift | ✅ | ✅ | — | — | — |
 | _add yours_ | | | | | | |
+
+`rust/xnet-core` is the **portable kernel** (not just a verifier): it passes
+every suite — and, with deterministic RFC-8032 Ed25519, **re-signs** changes
+byte-for-byte — making it a candidate to back the Swift/Kotlin/.NET SDKs via
+UniFFI (exploration 0210, Phase 2).
 
 `xnet/1.0`'s corpus began with the **interop kernel** (L0 + L1) — the minimum
 that lets an independent implementation create, sign, verify, and converge nodes.
