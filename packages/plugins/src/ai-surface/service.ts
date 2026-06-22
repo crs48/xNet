@@ -145,6 +145,26 @@ type AiPageMarkdownRollbackSnapshot = {
   previousMarkdown: string
 }
 
+/** A node surfaced by an external retriever, with optional provenance. */
+export type AiRetrievedNode = {
+  nodeId: string
+  /** Human-readable graph path back to an entry node (for citation/provenance). */
+  pathLabel?: string
+}
+
+/**
+ * Optional graph-aware retriever (exploration 0211). When provided, the `query`
+ * path of `createContextPack` uses it instead of the built-in linear keyword
+ * scan — i.e. hybrid vector + keyword entry search plus bounded graph expansion,
+ * budgeted. The app injects `@xnetjs/brain`'s `retrieve` here (mapping its items
+ * to `{ nodeId, pathLabel }`); absent it, context packs fall back to `search()`
+ * with no behavior change.
+ */
+export type AiContextRetriever = (
+  query: string,
+  options: { limit: number }
+) => Promise<AiRetrievedNode[]>
+
 export type AiSurfaceServiceConfig = {
   store: NodeStoreAPI
   schemas: SchemaRegistryAPI
@@ -159,6 +179,12 @@ export type AiSurfaceServiceConfig = {
    * over a colliding extra tool.
    */
   extraTools?: AiExtraTool[]
+  /**
+   * Optional graph-aware context retriever (exploration 0211). Drives the
+   * `query` path of `createContextPack` when present; falls back to the built-in
+   * keyword `search()` otherwise.
+   */
+  retrieveContext?: AiContextRetriever
 }
 
 const DEFAULT_LIMITS: AiSurfaceLimits = {
@@ -1181,6 +1207,26 @@ export class AiSurfaceService {
     }
   }
 
+  /**
+   * Candidate node ids for a context-pack query: the injected graph-aware
+   * retriever (exploration 0211) when configured, else the built-in keyword
+   * `search()`. Order is preserved (best-first).
+   */
+  private async candidateNodeIdsForQuery(query: string, limit: number): Promise<string[]> {
+    if (limit <= 0) return []
+    if (this.config.retrieveContext) {
+      const retrieved = await this.config.retrieveContext(query, { limit })
+      return retrieved.map((r) => r.nodeId).slice(0, limit)
+    }
+    const search = await this.search({ query, limit })
+    const results = Array.isArray(search.results) ? search.results : []
+    const ids: string[] = []
+    for (const result of results) {
+      if (isRecord(result) && typeof result.id === 'string') ids.push(result.id)
+    }
+    return ids
+  }
+
   async createContextPack(options: {
     query?: string
     seeds?: AiContextSeed[]
@@ -1196,15 +1242,13 @@ export class AiSurfaceService {
     }
 
     if (options.query && resources.length < maxResources) {
-      const search = await this.search({
-        query: options.query,
-        limit: maxResources - resources.length
-      })
-      const results = Array.isArray(search.results) ? search.results : []
-      for (const result of results) {
+      const ids = await this.candidateNodeIdsForQuery(
+        options.query,
+        maxResources - resources.length
+      )
+      for (const id of ids) {
         if (resources.length >= maxResources) break
-        if (!isRecord(result) || typeof result.id !== 'string') continue
-        const resource = await this.contextResourceForSeed({ kind: 'node', id: result.id })
+        const resource = await this.contextResourceForSeed({ kind: 'node', id })
         if (resource) resources.push(resource)
       }
     }

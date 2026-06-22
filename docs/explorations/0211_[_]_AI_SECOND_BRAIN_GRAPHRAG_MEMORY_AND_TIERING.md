@@ -1,13 +1,17 @@
 # AI Second Brain: GraphRAG Retrieval, Memory, and Data Tiering on the XNet Substrate
 
 > Exploration 0211 — 2026-06-21
-> Status: **Phase-1 engine slice implemented** (`@xnetjs/brain` + `MemoryItem`
-> schema). The retriever, embedding indexer, memory planner, and locality planner
-> all ship as a tested package; the remaining app-level wiring (into
-> `AiSurfaceService`, an `xnet_graph_expand` MCP tool, the `data-bridge` query
-> path, `WorkingSetPrewarm`, and a managed `/ai/embed` hub route) is the next
-> phase and is the source of the still-unchecked items below. Filename stays `[_]`
-> until that wiring lands.
+> Status: **Phases 1–2 implemented** (PR #228 + follow-up). The engine
+> (`@xnetjs/brain`: retriever, embedding indexer, memory planner + apply,
+> locality planner, schema/persistence helpers) and the `MemoryItem` schema all
+> ship as tested packages, and `AiSurfaceService` now has an injected
+> `retrieveContext` seam that drives its context-pack query path. Remaining and
+> still-unchecked below: the **live injection in `apps/web`** (wiring a
+> `SemanticSearch` + `@xnetjs/brain` into the AI surface, with embedding backfill
+> + tier persistence on boot — deserves its own perf-aware PR per [0204]), an
+> `xnet_graph_expand` MCP tool, the `data-bridge` query-path placement of the
+> locality planner, `WorkingSetPrewarm` consumption, and a managed `/ai/embed`
+> hub route. Filename stays `[_]` until the live app wiring lands.
 
 ## Problem Statement
 
@@ -489,7 +493,7 @@ export const MemoryItemSchema = defineSchema({
 - [x] Add an incremental embedding job subscribing to `NodeStore` change events. → `createBrainIndexer` (`packages/brain/src/indexer.ts`), debounced.
 - [x] Extract node text + `SemanticSearch` chunking to produce chunks. → `defaultTextOf` + `SemanticSearch.indexDocument` chunking.
 - [x] Upsert chunks into a `VectorIndex` (HNSW) keyed by `nodeId` + chunk index. → via `SemanticSearch` (`@xnetjs/vectors`).
-- [ ] Persist the vector tier via `@xnetjs/storage`; rebuild lazily on cold start.
+- [x] Persist the vector tier via `@xnetjs/storage`; rebuild lazily on cold start. → `saveVectorTier` / `loadVectorTier` (`packages/brain/src/persist.ts`); cold tier returns `false` → caller backfills via `reindexAll`.
 - [x] Default to local `@xenova` embeddings (managed `/ai/embed` hub route deferred). → indexer's `index` is injectable; `SemanticSearch` loads `@xenova` by default.
 - [ ] Gate managed embeddings behind the `0210` consent spine.
 
@@ -500,7 +504,7 @@ export const MemoryItemSchema = defineSchema({
 - [x] Attach a readable graph path to each hit (explainability). → `pathLabel` in `retrieve.ts`.
 - [x] Implement `packToBudget` (token/hop caps) — the anti-overwhelm knob. → `packToBudget` (`packages/brain/src/pack.ts`).
 - [x] Filter candidates through an authorization gate *before* packing (fail-closed). → `authorize` hook in `retrieve.ts` (app injects the `0192` evaluator).
-- [ ] Wire `retrieve()` into `AiSurfaceService` as the retrieval source.
+- [x] Wire `retrieve()` into `AiSurfaceService` as the retrieval source. → optional injected `retrieveContext` on `AiSurfaceServiceConfig`, driving the `createContextPack` query path (`packages/plugins/src/ai-surface/service.ts`); the app injects `@xnetjs/brain`'s `retrieve`. (Live injection in `apps/web` is the remaining step.)
 - [ ] Add an `xnet_graph_expand` MCP tool for JIT neighbor loading.
 
 ### Phase 3 — Memory schema pack
