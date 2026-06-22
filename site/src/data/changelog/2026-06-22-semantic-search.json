@@ -8,5 +8,14 @@
     "Runs on-device — the model loads only when you opt in, and never leaves your machine",
     "Always safe: falls back to keyword search instantly, so it can only help, never slow you down"
   ],
-  "tags": ["ai", "app"]
+  "tags": [
+    "ai",
+    "app"
+  ],
+  "pr": 236,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
