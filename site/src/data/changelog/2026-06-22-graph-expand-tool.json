@@ -8,5 +8,14 @@
     "Returns each neighbor with the relation it came through, for traceable answers",
     "Auto-available to MCP and CLI agents — no extra setup"
   ],
-  "tags": ["ai", "plugins"]
+  "tags": [
+    "ai",
+    "plugins"
+  ],
+  "pr": 233,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
