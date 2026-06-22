@@ -337,6 +337,15 @@ export {
   type GameAsset
 } from './game'
 
+// Memory schema pack (exploration 0211)
+export {
+  MEMORY_ITEM_SCHEMA_IRI,
+  MEMORY_KINDS,
+  MemoryItemSchema,
+  type MemoryItem,
+  type MemoryKind
+} from './memory'
+
 // Comment anchor types
 export {
   type AnchorType,
@@ -496,6 +505,8 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/GameEconomyEntry@1.0.0': () =>
     import('./game').then((m) => m.GameEconomyEntrySchema),
   'xnet://xnet.fyi/GameAsset@1.0.0': () => import('./game').then((m) => m.GameAssetSchema),
+  // Memory schema pack (exploration 0211)
+  'xnet://xnet.fyi/MemoryItem@1.0.0': () => import('./memory').then((m) => m.MemoryItemSchema),
 
   // Legacy unversioned IRIs (aliases for the current version)
   'xnet://xnet.fyi/Page': () => import('./page').then((m) => m.PageSchema),
@@ -584,7 +595,9 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Achievement': () => import('./game').then((m) => m.AchievementSchema),
   'xnet://xnet.fyi/MatchSession': () => import('./game').then((m) => m.MatchSessionSchema),
   'xnet://xnet.fyi/GameEconomyEntry': () => import('./game').then((m) => m.GameEconomyEntrySchema),
-  'xnet://xnet.fyi/GameAsset': () => import('./game').then((m) => m.GameAssetSchema)
+  'xnet://xnet.fyi/GameAsset': () => import('./game').then((m) => m.GameAssetSchema),
+  // Memory schema pack (exploration 0211)
+  'xnet://xnet.fyi/MemoryItem': () => import('./memory').then((m) => m.MemoryItemSchema)
 } as const
 
 /**

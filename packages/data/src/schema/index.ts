@@ -338,6 +338,13 @@ export {
   type GameAsset
 } from './schemas'
 export {
+  MEMORY_ITEM_SCHEMA_IRI,
+  MEMORY_KINDS,
+  MemoryItemSchema,
+  type MemoryItem,
+  type MemoryKind
+} from './schemas'
+export {
   TranscriptionSchema,
   TRANSCRIPTION_SCHEMA_IRI,
   type Transcription,
