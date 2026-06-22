@@ -1,0 +1,18 @@
+{
+  "id": "2026-06-21-lamport-integer",
+  "date": "June 21, 2026",
+  "title": "Protocol fix: a change's Lamport clock is now a plain integer",
+  "summary": "While building the native Swift SDK we found that the runtime hashed a change's `lamport` field as an object `{time, author}`, but the protocol spec, the conformance golden vectors, and the reference kernels all treat it as a plain integer — so real changes didn't match the vectors and a spec-conformant client would be rejected by the hub. The runtime is now aligned to the spec: `lamport` is an integer, the author tiebreak comes from `authorDID`, and the conformance corpus finally represents reality. A breaking change (no migration; not live yet).",
+  "highlights": [
+    "`Change.lamport` is now a `number` (the logical clock); the materialized per-property timestamp carries `author` separately for the LWW tiebreak",
+    "Cross-language interop unblocked: a change created by the TypeScript runtime now hashes identically to one from the Python/Swift kernels and XNetKit",
+    "Swept across sync, data, hub, history, runtime, react, data-bridge, devtools, cli, and the Electron IPC layer — 88/88 typecheck tasks and all suites green"
+  ],
+  "tags": ["protocol", "sync", "breaking"],
+  "pr": 229,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}
