@@ -87,10 +87,11 @@ export function compareLamportTimestamps(a: LamportTimestamp, b: LamportTimestam
   if (a.time < b.time) return -1
   if (a.time > b.time) return 1
 
-  // Tie-break by author DID (deterministic string comparison)
-  const authorCmp = a.author.localeCompare(b.author)
-  if (authorCmp < 0) return -1
-  if (authorCmp > 0) return 1
+  // Tie-break by author DID using UTF-16 code-unit order (`<`/`>`), NOT
+  // localeCompare: locale/ICU-dependent ordering would make CRDT convergence
+  // non-deterministic across peers. Matches spec §7 + the conformance vectors.
+  if (a.author < b.author) return -1
+  if (a.author > b.author) return 1
 
   return 0
 }

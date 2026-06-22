@@ -1,0 +1,35 @@
+{
+  "description": "author tiebreak is by UTF-16 code unit (uppercase < lowercase), not locale",
+  "input": {
+    "changes": [
+      {
+        "authorDID": "did:key:zAAA",
+        "lamport": 1,
+        "wallTime": 1,
+        "properties": {
+          "title": "from-upper"
+        }
+      },
+      {
+        "authorDID": "did:key:zaaa",
+        "lamport": 1,
+        "wallTime": 1,
+        "properties": {
+          "title": "from-lower"
+        }
+      }
+    ]
+  },
+  "expected": {
+    "properties": {
+      "title": "from-lower"
+    },
+    "timestamps": {
+      "title": {
+        "lamport": 1,
+        "wallTime": 1,
+        "author": "did:key:zaaa"
+      }
+    }
+  }
+}
