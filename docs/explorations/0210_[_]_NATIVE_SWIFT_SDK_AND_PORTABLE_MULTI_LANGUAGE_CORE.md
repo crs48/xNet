@@ -666,8 +666,13 @@ is still open.
       seed/random today; Keychain custody is a follow‑up.
 - [ ] Persistent storage: a GRDB‑backed `SQLiteAdapter` matching
       `packages/sqlite/src/schema.ts` (incl. FTS5) — in‑memory today.
-- [ ] Live sync: `URLSessionWebSocketTask` transport to the hub (JSON frames) +
-      a SwiftUI sample app verified syncing with the web app against a shared hub.
+- [x] Live sync: `URLSessionWebSocketTask` transport to the hub
+      (`HubConnection` + `WireCodec`, `swift/XNetKit/Sources/XNetKit/HubConnection.swift`)
+      — **proven end‑to‑end against the reference TS hub** (`xnet-sync-demo`): a
+      Swift‑signed change is verified/stored by the hub and caught up by a second
+      Swift client. *(Required the integer‑lamport protocol fix, PR #229. Still
+      pending: a long‑lived streaming subscription for real‑time inbound relays,
+      and a SwiftUI sample app.)*
 - [ ] *(Alternative engine path)* JSC‑embedded `@xnetjs/runtime` for 100% TS
       parity (bundle + `JSContext` host + native adapters) — deferred; weigh
       against the native runtime once live sync lands.
@@ -695,11 +700,15 @@ is still open.
       checks). *(Signature byte‑for‑byte re‑sign and LWW convergence excluded:
       CryptoKit Ed25519 is randomized, and the Swift kernel is L0+L1 like the
       Python one.)*
-- [x] A change **signed in TypeScript** verifies in Swift (the interop‑critical
-      direction). *(Full bidirectional round‑trip — TS verifying a Swift
-      signature — is Phase 1, gated on a deterministic signer.)*
-- [ ] A Swift app and the web app, on the same hub, **converge on identical
-      node state** after concurrent edits (LWW correctness end‑to‑end). *(Phase 1.)*
+- [x] A change **signed in TypeScript** verifies in Swift, **and a Swift‑signed
+      change is verified (hash + Ed25519) and stored by the TypeScript hub** —
+      bidirectional interop, proven live via `xnet-sync-demo` against the
+      reference hub. (CryptoKit's randomized signature still verifies; only
+      byte‑for‑byte *re‑sign* is impossible.)
+- [x] Two Swift clients **converge through the real TS hub**: one publishes a
+      signed change, a second (different identity) catches it up via
+      `node-sync-request` and materializes the node (`xnet-sync-demo`). *(The web
+      app on the same hub + concurrent‑edit LWW across clients is the next step.)*
 - [ ] A signed Yjs envelope produced by the web app is **relayed and signature‑
       verified by the Swift client without a Yjs library** (opaque‑body proof).
       *(Envelope sign/verify byte contract pinned by a vector; live relay is Phase 1.)*

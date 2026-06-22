@@ -31,6 +31,11 @@ public final class NodeStore {
     private var lamportClock: Int64 = 0
     private var listeners: [UUID: () -> Void] = [:]
 
+    /// Fired for each change authored locally (via create/update/delete), e.g. so
+    /// a `HubConnection` can publish it. NOT fired for changes applied via `apply`
+    /// (which carries remote/peer changes), avoiding echo loops.
+    public var onLocalChange: ((Change) -> Void)?
+
     public init(identity: Identity, now: @escaping () -> Int64 = NodeStore.wallClock) {
         self.identity = identity
         self.now = now
@@ -51,15 +56,14 @@ public final class NodeStore {
         _ schema: Schema, id: String = NodeStore.newId(), _ properties: [String: JSONValue]
     ) -> NodeState {
         register(schema)
-        let change = Change.create(
+        applyLocal(Change.create(
             id: NodeStore.newId(),
             payload: NodePayload(nodeId: id, schemaId: schema.id, properties: properties),
             parentHash: lastHash(of: id),
             wallTime: now(),
             lamport: nextLamport(),
             by: identity
-        )
-        apply(change)
+        ))
         return states[id]!
     }
 
@@ -67,7 +71,7 @@ public final class NodeStore {
     @discardableResult
     public func update(_ nodeId: String, _ properties: [String: JSONValue]) -> NodeState? {
         guard states[nodeId] != nil else { return nil }
-        apply(Change.create(
+        applyLocal(Change.create(
             id: NodeStore.newId(),
             payload: NodePayload(nodeId: nodeId, properties: properties),
             parentHash: lastHash(of: nodeId),
@@ -82,7 +86,7 @@ public final class NodeStore {
     @discardableResult
     public func delete(_ nodeId: String) -> NodeState? {
         guard states[nodeId] != nil else { return nil }
-        apply(Change.create(
+        applyLocal(Change.create(
             id: NodeStore.newId(),
             payload: NodePayload(nodeId: nodeId, properties: [:], deleted: true),
             parentHash: lastHash(of: nodeId),
@@ -91,6 +95,12 @@ public final class NodeStore {
             by: identity
         ))
         return states[nodeId]
+    }
+
+    /// Apply a locally-authored change and notify `onLocalChange` (for sync).
+    private func applyLocal(_ change: Change) {
+        apply(change)
+        onLocalChange?(change)
     }
 
     /// Apply a signed change from any author (local or, in future, a peer).

@@ -68,16 +68,45 @@ Headless, the same reactivity is the framework-agnostic `LiveQuery`
 (`subscribe(_:)` fires immediately and on every change — a 1:1 port of
 `packages/runtime/src/live-query.ts`).
 
+### Live sync with an XNet hub
+
+`HubConnection` speaks the L2 replication wire protocol
+([`03-replication.md`](../../docs/specs/protocol/03-replication.md)) over a
+WebSocket: version handshake, room subscribe, `node-change` publish, and
+`node-sync-request`/`-response` catch-up. Point a store's `onLocalChange` at it
+to publish writes, and apply caught-up changes back into the store:
+
+```swift
+let conn = HubConnection(url: URL(string: "wss://hub.xnet.app")!, did: identity.did)
+try await conn.connect()
+store.onLocalChange = { change in Task { try await conn.publish(change, room: docId) } }
+
+// later, catch up:
+for change in try await conn.syncRequest(room: docId, sinceLamport: 0) {
+    store.apply(change)   // verifies hash + signature before applying
+}
+```
+
+This is **proven against the real TypeScript hub**: `xnet-sync-demo` has a Swift
+client sign a change, publish it to the hub (which verifies the hash + Ed25519
+signature and stores it), and a second Swift client catch it up and materialize
+the node — a true cross-language round-trip.
+
 ## Run it
 
 ```bash
 cd swift/XNetKit
-swift run xnet-demo     # a headless end-to-end walkthrough
-swift test              # 11 tests incl. the shared golden vectors
+swift run xnet-demo     # headless walkthrough: schema → writes → query → reactive loop
+swift test              # 16 tests incl. the shared golden vectors + wire codec
+
+# live interop against a local hub (from the repo root, in another shell):
+#   node packages/hub/dist/cli.js --no-auth --port 31999
+swift run xnet-sync-demo ws://localhost:31999 my-room
 ```
 
 `swift run xnet-demo` prints identity → schema → signed writes → query →
-reactive renders → LWW convergence. Verified with Swift 6.3 on macOS.
+reactive renders → LWW convergence. `xnet-sync-demo` prints a live Swift↔hub
+round-trip. Verified with Swift 6.3 on macOS against the reference hub.
 
 ## Architecture
 
@@ -91,18 +120,18 @@ reactive renders → LWW convergence. Verified with Swift 6.3 on macOS.
 | Schema DSL | `Schema.swift` | `Schema { … }` result builder → the same `SchemaIRI` + property set as TS `defineSchema` |
 | Store | `NodeStore.swift` | Local store: sign writes, materialize via LWW, query, subscribe |
 | Query | `Query.swift` | `Sendable` `Predicate` enum + fluent `Query` |
-| Reactivity | `LiveQuery.swift` | `LiveQuery` (subscribe/unsubscribe + `AsyncStream`) and `@Observable LiveQueryModel` |
+| Reactivity | `LiveQuery.swift` | `LiveQuery` (subscribe/unsubscribe) and `@Observable LiveQueryModel` |
+| Sync | `HubConnection.swift` | `URLSessionWebSocketTask` L2 client + `WireCodec` (Change ↔ the hub's `SerializedNodeChange`) — proven against the TS hub |
 
 ## Scope & status
 
-This is **Phase 1 (native slice)** of exploration 0210 — it proves the
-authoring experience the exploration recommends. It deliberately does **not**
-yet include:
+This is **Phase 1** of exploration 0210 — it proves the authoring experience
+the exploration recommends, now with **live hub sync** demonstrated end-to-end
+against the reference TypeScript hub. It deliberately does **not** yet include:
 
-- **Live hub sync.** The store is local-first and single-writer (the owning
-  identity); it applies peer changes correctly (see the LWW tests) but is not
-  yet wired to a hub transport (`URLSessionWebSocketTask`). That is the next
-  step.
+- **Continuous/streaming sync & presence.** `HubConnection` does publish +
+  catch-up (`node-sync-request`); it does not yet keep a long-lived subscription
+  that streams inbound `node-change` relays in real time, nor awareness/presence.
 - **Collaborative document bodies (Yjs).** Node properties only; rich-text CRDT
   bodies are out of scope for this slice (and intentionally opaque in the
   protocol — see [L1 §8](../../docs/specs/protocol/02-data-model.md)).
