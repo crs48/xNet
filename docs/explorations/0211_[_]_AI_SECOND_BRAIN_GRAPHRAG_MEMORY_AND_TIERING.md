@@ -9,11 +9,12 @@
 > drives the chat's context pack with keyword entry search + bounded graph-walk +
 > budgeting + readable provenance paths (`apps/web/src/workbench/views/ai-graph-retriever.ts`,
 > verified in-browser). It is deliberately **model-free** (keyword entry search,
-> no embedding download) to keep cold-start untouched per [0204]. Remaining
-> enhancements (still `[_]`): swap the **vector tier** in behind the same seam
-> (wake `@xnetjs/vectors` in the app + backfill/persist), an `xnet_graph_expand`
-> MCP tool, the `data-bridge` query-path placement of the locality planner,
-> `WorkingSetPrewarm` consumption, and a managed `/ai/embed` hub route.
+> no embedding download) to keep cold-start untouched per [0204]. The
+> `xnet_graph_expand` JIT tool ships too (auto-surfaced to MCP/CLI agents).
+> Remaining enhancements (still `[_]`): swap the **vector tier** in behind the
+> same seam (wake `@xnetjs/vectors` in the app + backfill/persist), the
+> `data-bridge` query-path placement of the locality planner, `WorkingSetPrewarm`
+> consumption, and a managed `/ai/embed` hub route.
 
 ## Problem Statement
 
@@ -507,7 +508,7 @@ export const MemoryItemSchema = defineSchema({
 - [x] Implement `packToBudget` (token/hop caps) — the anti-overwhelm knob. → `packToBudget` (`packages/brain/src/pack.ts`).
 - [x] Filter candidates through an authorization gate *before* packing (fail-closed). → `authorize` hook in `retrieve.ts` (app injects the `0192` evaluator).
 - [x] Wire `retrieve()` into `AiSurfaceService` as the retrieval source. → optional injected `retrieveContext` on `AiSurfaceServiceConfig`, driving the `createContextPack` query path (`packages/plugins/src/ai-surface/service.ts`); the app injects `@xnetjs/brain`'s `retrieve`. (Live injection in `apps/web` is the remaining step.)
-- [ ] Add an `xnet_graph_expand` MCP tool for JIT neighbor loading.
+- [x] Add an `xnet_graph_expand` MCP tool for JIT neighbor loading. → built-in `AiSurfaceService` tool walking typed relations from a node (`packages/plugins/src/ai-surface/service.ts`); auto-surfaced to MCP/CLI agents as a deferred (JIT-discovered) tool.
 
 ### Phase 3 — Memory schema pack
 - [x] Add `MemoryItemSchema` (+ `evidence` relation) to `@xnetjs/data`. → `packages/data/src/schema/schemas/memory.ts`.

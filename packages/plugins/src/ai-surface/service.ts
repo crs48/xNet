@@ -17,7 +17,7 @@ import type {
   AiTargetKind,
   AiToolDefinition
 } from './types'
-import type { NodeData, NodeStoreAPI, SchemaRegistryAPI } from '../services/local-api'
+import type { NodeData, NodeStoreAPI, SchemaData, SchemaRegistryAPI } from '../services/local-api'
 import type {
   NodeQueryDescriptor,
   NodeQueryMaterializedViewOptions,
@@ -368,6 +368,26 @@ export class AiSurfaceService {
             offset: { type: 'number', description: 'Result offset for pagination.' }
           },
           required: ['query']
+        }
+      },
+      {
+        name: 'xnet_graph_expand',
+        title: 'Expand a node along its relations',
+        description:
+          'Walk typed relation edges out from a node to its connected neighbors (bounded by hops and a result limit). Use for just-in-time expansion: fetch a specific node’s connections only when you need them, instead of pulling the whole graph into context.',
+        risk: 'low',
+        requiredScopes: ['workspace.read'],
+        inputSchema: {
+          type: 'object',
+          properties: {
+            nodeId: { type: 'string', description: 'The node to expand from.' },
+            hops: {
+              type: 'number',
+              description: 'How many relation hops to walk (1–2, default 1).'
+            },
+            limit: { type: 'number', description: 'Maximum neighbors to return.' }
+          },
+          required: ['nodeId']
         }
       },
       {
@@ -827,6 +847,13 @@ export class AiSurfaceService {
           offset: readOptionalNumber(args, 'offset')
         })
 
+      case 'xnet_graph_expand':
+        return await this.expandGraph({
+          nodeId: readRequiredString(args, 'nodeId'),
+          hops: readOptionalNumber(args, 'hops'),
+          limit: readOptionalNumber(args, 'limit')
+        })
+
       case 'xnet_create_context_pack':
         return await this.createContextPack({
           query: readOptionalString(args, 'query'),
@@ -1263,6 +1290,82 @@ export class AiSurfaceService {
         maxResources,
         maxCharactersPerResource: this.limits.maxCharactersPerResource
       }
+    }
+  }
+
+  /**
+   * Walk typed relation edges out from a node to its connected neighbors, bounded
+   * by `hops` (1–2) and a result `limit`. This is the just-in-time companion to
+   * `createContextPack` (exploration 0211): retrieval hands the agent a budgeted
+   * slice plus expandable node ids, and this lets it pull a specific node's
+   * connections on demand instead of over-fetching the whole graph up front.
+   */
+  private async expandGraph(options: {
+    nodeId: string
+    hops?: number
+    limit?: number
+  }): Promise<Record<string, unknown>> {
+    const maxHops = Math.min(Math.max(1, Math.floor(options.hops ?? 1)), 2)
+    const limit = clampLimit(options.limit, this.limits.maxContextResources)
+    const root = await this.config.store.get(options.nodeId)
+    if (!root || root.deleted) {
+      return { nodeId: options.nodeId, found: false, neighbors: [] }
+    }
+
+    const relationCache = new Map<string, string[]>()
+    const relationFieldsFor = async (schemaId: string): Promise<string[]> => {
+      const cached = relationCache.get(schemaId)
+      if (cached) return cached
+      const fields = relationFieldNames(await this.config.schemas.get(schemaId))
+      relationCache.set(schemaId, fields)
+      return fields
+    }
+
+    const visited = new Set<string>([root.id])
+    const neighbors: Array<Record<string, unknown>> = []
+    let frontier: NodeData[] = [root]
+
+    for (let hop = 1; hop <= maxHops && frontier.length > 0; hop++) {
+      const next: NodeData[] = []
+      for (const current of frontier) {
+        const fields = await relationFieldsFor(current.schemaId)
+        for (const { nodeId, relation } of outboundRelationTargets(current.properties, fields)) {
+          if (visited.has(nodeId)) continue
+          visited.add(nodeId)
+          const node = await this.config.store.get(nodeId)
+          if (!node || node.deleted) continue
+          neighbors.push({
+            nodeId: node.id,
+            schemaId: node.schemaId,
+            title: nodeTitle(node),
+            relation,
+            direction: 'outbound',
+            hops: hop
+          })
+          next.push(node)
+          if (neighbors.length >= limit) {
+            return this.graphExpansion(root, maxHops, neighbors)
+          }
+        }
+      }
+      frontier = next
+    }
+
+    return this.graphExpansion(root, maxHops, neighbors)
+  }
+
+  private graphExpansion(
+    root: NodeData,
+    hops: number,
+    neighbors: Array<Record<string, unknown>>
+  ): Record<string, unknown> {
+    return {
+      nodeId: root.id,
+      found: true,
+      title: nodeTitle(root),
+      hops,
+      count: neighbors.length,
+      neighbors
     }
   }
 
@@ -2829,6 +2932,34 @@ function createSnippet(text: string, index: number, queryLength: number): string
 
 function nodeTitle(node: NodeData): string {
   return readStringProperty(node, 'title') ?? readStringProperty(node, 'name') ?? node.id
+}
+
+/** The relation-valued property names declared by a schema (exploration 0211). */
+function relationFieldNames(schema: SchemaData | null): string[] {
+  if (!schema) return []
+  const fields: string[] = []
+  for (const [name, definition] of Object.entries(schema.properties)) {
+    if (isRecord(definition) && definition.type === 'relation') fields.push(name)
+  }
+  return fields
+}
+
+/** Outbound relation edges (target node id + relation) from a node's properties. */
+function outboundRelationTargets(
+  properties: Record<string, unknown>,
+  fields: readonly string[]
+): Array<{ nodeId: string; relation: string }> {
+  const targets: Array<{ nodeId: string; relation: string }> = []
+  for (const field of fields) {
+    const value = properties[field]
+    const values = Array.isArray(value) ? value : [value]
+    for (const candidate of values) {
+      if (typeof candidate === 'string' && candidate.length > 0) {
+        targets.push({ nodeId: candidate, relation: field })
+      }
+    }
+  }
+  return targets
 }
 
 function revisionForNode(node: NodeData): string {

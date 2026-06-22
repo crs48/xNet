@@ -1,0 +1,21 @@
+{
+  "id": "2026-06-22-graph-expand-tool",
+  "date": "June 2026",
+  "title": "Agents can now follow a node's connections on demand",
+  "summary": "A new xnet_graph_expand tool lets a connected agent (via MCP, or the CLI) walk the typed links out from any node to its neighbors — fetching just the connections it needs for a question instead of loading the whole workspace.",
+  "highlights": [
+    "Just-in-time graph expansion: pull a node's related items only when needed",
+    "Returns each neighbor with the relation it came through, for traceable answers",
+    "Auto-available to MCP and CLI agents — no extra setup"
+  ],
+  "tags": [
+    "ai",
+    "plugins"
+  ],
+  "pr": 233,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}
