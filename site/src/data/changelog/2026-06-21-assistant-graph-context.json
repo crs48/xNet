@@ -8,5 +8,14 @@
     "A token budget keeps it focused instead of dumping the whole workspace in",
     "Runs entirely on-device — no embedding model download, no added startup cost"
   ],
-  "tags": ["ai", "app"]
+  "tags": [
+    "ai",
+    "app"
+  ],
+  "pr": 232,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
