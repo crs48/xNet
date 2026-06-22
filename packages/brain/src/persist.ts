@@ -18,6 +18,14 @@ export interface BlobStore {
 export interface SerializableIndex<S = unknown> {
   serialize(): S
   restore(data: S): void
+  /**
+   * Reset to an empty index. Used to guarantee the "false ⇒ cold" contract: a
+   * non-atomic `restore()` (e.g. `SemanticSearch` sets its index then its
+   * documents) can leave a half-populated index when the blob is partial, which
+   * the caller would then pollute by backfilling on top. Clearing on failure
+   * yields a true clean slate. Optional for back-compat.
+   */
+  clear?(): void
 }
 
 /** Default storage key for the brain's vector tier. */
@@ -26,9 +34,19 @@ export const VECTOR_TIER_BLOB_KEY = 'xnet:brain:vector-tier'
 const textEncoder = new TextEncoder()
 const textDecoder = new TextDecoder()
 
+/**
+ * Realm-robust `Uint8Array` check. A plain `instanceof` is unreliable across
+ * module/realm boundaries (e.g. a `Uint8Array` produced inside a dynamically
+ * imported `@xnetjs/vectors` vs the host realm), which silently mangles the
+ * persisted bytes; the `Symbol.toStringTag` brand holds across realms.
+ */
+function isUint8Array(value: unknown): value is Uint8Array {
+  return Object.prototype.toString.call(value) === '[object Uint8Array]'
+}
+
 /** Make the serialized form JSON-safe (any `Uint8Array` → tagged number array). */
 function toJsonSafe(value: unknown): unknown {
-  if (value instanceof Uint8Array) {
+  if (isUint8Array(value)) {
     return { __u8: Array.from(value) }
   }
   if (Array.isArray(value)) {
@@ -82,7 +100,10 @@ export async function loadVectorTier(
     index.restore(fromJsonSafe(parsed) as never)
     return true
   } catch {
-    // Corrupt/incompatible snapshot — treat as cold so the caller rebuilds.
+    // Corrupt/incompatible/partial snapshot — `restore()` may be non-atomic and
+    // leave a half-populated index, so clear it to honor the "false ⇒ cold"
+    // contract; the caller then backfills onto a true clean slate.
+    index.clear?.()
     return false
   }
 }

@@ -53,8 +53,10 @@ import {
   type ManagedModel
 } from './ai-chat-connector'
 import { AI_SYSTEM_PROMPT, formatContextMessages } from './ai-context'
-import { createGraphContextRetriever } from './ai-graph-retriever'
+import { createGraphContextRetriever, keywordEntrySearch } from './ai-graph-retriever'
 import { schemaRegistryApi } from './ai-schemas'
+import { createVectorEntrySearch } from './ai-vector-search'
+import { createVectorBlobStore } from './ai-vector-storage'
 
 /** Electron preload control channel for the local agent bridge (absent on web). */
 interface AgentBridgeControl {
@@ -118,20 +120,39 @@ export function AiChatPanel() {
   // satisfy the AiSurfaceService contract, so the assistant can search the
   // user's own pages/databases/nodes for context (exploration 0192, Phase 1).
   const { store } = useNodeStore()
-  const surface = useMemo<AiSurfaceService | null>(
-    () =>
-      store
-        ? createAiSurfaceService({
-            store,
-            schemas: schemaRegistryApi(),
-            // Graph-aware, budgeted context retrieval (exploration 0211): the
-            // context pack now walks typed relations instead of a flat keyword
-            // scan. Keyword entry search keeps it model-free (no boot cost).
-            retrieveContext: createGraphContextRetriever(store)
-          })
-        : null,
-    [store]
+  // Opt-in: on-device semantic (vector) entry search (exploration 0211). Off by
+  // default — the heavy embedding model loads lazily, only on the first search
+  // after opt-in, and falls back to keyword while warming / on failure.
+  const [semanticSearch, setSemanticSearch] = useState(
+    () => readSetting(AI_CHAT_STORAGE_KEYS.semanticSearch) === 'on'
   )
+  // The flag is read live (via a ref) inside the entry-search closure, so toggling
+  // it does NOT change `surface`'s identity — which would otherwise rebuild the
+  // runtime and reset the active thread mid-conversation.
+  const semanticRef = useRef(semanticSearch)
+  useEffect(() => {
+    semanticRef.current = semanticSearch
+  }, [semanticSearch])
+
+  const surface = useMemo<AiSurfaceService | null>(() => {
+    if (!store) return null
+    // Graph-aware, budgeted context retrieval (exploration 0211): the context
+    // pack walks typed relations instead of a flat keyword scan. Both entry
+    // searches are built once (constructing the vector tier is cheap — the model
+    // loads lazily only when a search actually routes to it); the live flag picks
+    // which one each query uses, persisted across sessions via IndexedDB.
+    const keyword = keywordEntrySearch(store)
+    const vector = createVectorEntrySearch({ store, storage: createVectorBlobStore() })
+    const entrySearch = (query: string, k: number) =>
+      semanticRef.current ? vector.search(query, k) : keyword(query, k)
+    const retrieveContext = createGraphContextRetriever(store, { entrySearch })
+    return createAiSurfaceService({ store, schemas: schemaRegistryApi(), retrieveContext })
+  }, [store])
+
+  const toggleSemanticSearch = useCallback((next: boolean) => {
+    setSemanticSearch(next)
+    writeSetting(AI_CHAT_STORAGE_KEYS.semanticSearch, next ? 'on' : '')
+  }, [])
 
   const handlers = useMemo(
     () => ({
@@ -324,6 +345,7 @@ export function AiChatPanel() {
 
       <ChatBody messages={messages} streaming={streaming} />
       {error && <p className="px-3 py-1 text-[11px] text-rose-500">{error}</p>}
+      <SemanticSearchToggle enabled={semanticSearch} onToggle={toggleSemanticSearch} />
       <ChatComposer
         value={input}
         ready={ready}
@@ -332,6 +354,29 @@ export function AiChatPanel() {
         onSend={() => void send()}
       />
     </div>
+  )
+}
+
+function SemanticSearchToggle({
+  enabled,
+  onToggle
+}: {
+  enabled: boolean
+  onToggle: (next: boolean) => void
+}) {
+  return (
+    <label className="flex cursor-pointer items-center gap-2 border-t border-hairline px-3 py-1.5 text-[11px] text-ink-3">
+      <input
+        type="checkbox"
+        checked={enabled}
+        onChange={(event) => onToggle(event.target.checked)}
+        className="h-3 w-3 accent-current"
+      />
+      <span>
+        Semantic search <span className="text-ink-4">(beta)</span> — find context by meaning, on
+        device
+      </span>
+    </label>
   )
 }
 

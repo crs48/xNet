@@ -26,7 +26,11 @@ export default defineConfig({
     rollupOptions: {
       external: [
         'mermaid', // Optional peer dependency - dynamically imported in @xnetjs/canvas
-        'web-worker' // Optional peer dependency of elkjs
+        'web-worker', // Optional peer dependency of elkjs
+        // Native Node HNSW addon (imports node:fs / node-gyp-build) — not bundleable
+        // for the browser. @xnetjs/vectors dynamically imports it and falls back to a
+        // pure-JS LinearVectorIndex when it's absent, which is what runs in the browser.
+        'usearch'
       ]
     }
   },

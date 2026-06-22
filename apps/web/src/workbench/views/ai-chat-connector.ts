@@ -31,7 +31,9 @@ export const AI_CHAT_STORAGE_KEYS = {
   model: 'xnet:ai-model',
   localBaseUrl: 'xnet:ai-local-base-url',
   /** The connector tier the user last selected (survives reload). */
-  tier: 'xnet:ai-tier'
+  tier: 'xnet:ai-tier',
+  /** Opt-in: use on-device semantic (vector) entry search (exploration 0211). */
+  semanticSearch: 'xnet:ai-semantic-search'
 } as const
 
 /** Connector tiers that resolve to a `createAIProvider` config (vs. in-tab). */

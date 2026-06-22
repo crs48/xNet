@@ -47,6 +47,11 @@ export interface GraphContextRetrieverOptions {
   relationFieldsOf?: RelationFieldsLookup
   /** Override the retrieval budget. */
   budget?: Partial<RetrievalBudget>
+  /**
+   * Override the entry search (the seam the semantic/vector tier swaps in behind,
+   * exploration 0211). Defaults to keyword search over the local store.
+   */
+  entrySearch?: (query: string, k: number) => Promise<EntryHit[]>
 }
 
 const TEXT_KEYS = [
@@ -97,7 +102,7 @@ function registryRelationFields(): RelationFieldsLookup {
 }
 
 /** Keyword entry search: title-boosted substring match over the local store. */
-function keywordEntrySearch(
+export function keywordEntrySearch(
   store: GraphRetrieverStore
 ): (query: string, k: number) => Promise<EntryHit[]> {
   return async (query, k) => {
@@ -171,7 +176,7 @@ export function createGraphContextRetriever(
   const relationFieldsOf = options.relationFieldsOf ?? registryRelationFields()
   const graph = schemaGraphAccess(store, relationFieldsOf)
   const loadText = nodeTextLoader(store)
-  const entrySearch = keywordEntrySearch(store)
+  const entrySearch = options.entrySearch ?? keywordEntrySearch(store)
 
   return async (query, { limit }) => {
     const budget: RetrievalBudget = {

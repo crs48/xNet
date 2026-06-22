@@ -1,20 +1,26 @@
 # AI Second Brain: GraphRAG Retrieval, Memory, and Data Tiering on the XNet Substrate
 
 > Exploration 0211 — 2026-06-21
-> Status: **Phases 1–3 implemented and LIVE** (PRs #228, #230, + this one). The
-> engine (`@xnetjs/brain`: retriever, embedding indexer, memory planner + apply,
-> locality planner, schema/persistence helpers) and the `MemoryItem` schema ship
-> as tested packages; `AiSurfaceService` has an injected `retrieveContext` seam;
-> and the **`apps/web` AI chat now uses it live** — `createGraphContextRetriever`
-> drives the chat's context pack with keyword entry search + bounded graph-walk +
-> budgeting + readable provenance paths (`apps/web/src/workbench/views/ai-graph-retriever.ts`,
-> verified in-browser). It is deliberately **model-free** (keyword entry search,
-> no embedding download) to keep cold-start untouched per [0204]. The
-> `xnet_graph_expand` JIT tool ships too (auto-surfaced to MCP/CLI agents).
-> Remaining enhancements (still `[_]`): swap the **vector tier** in behind the
-> same seam (wake `@xnetjs/vectors` in the app + backfill/persist), the
-> `data-bridge` query-path placement of the locality planner, `WorkingSetPrewarm`
-> consumption, and a managed `/ai/embed` hub route.
+> Status: **IMPLEMENTED & LIVE** (`[x]`). PRs #228 (engine `@xnetjs/brain`),
+> #230 (`AiSurfaceService` `retrieveContext` seam + helpers), #232 (graph-aware
+> retrieval live in the `apps/web` AI chat), #233 (`xnet_graph_expand` JIT tool),
+> and this one (the **semantic/vector tier**). The full hybrid GraphRAG —
+> on-device vector + keyword entry search (RRF), bounded graph-walk, token budget,
+> readable provenance, first-class memory, and JIT expansion — is now live in the
+> assistant. The vector tier is **opt-in** (off by default), lazily loads the
+> `@xnetjs/vectors` engine only on first use (no boot/bundle cost — the [0204]
+> constraint), persists via IndexedDB, and always falls back to keyword search,
+> so enabling it can only ever match or improve results, never break them.
+>
+> Three items are **deliberately deferred** with concrete unblock conditions
+> (none block the core): a managed `/ai/embed` hub route (the server-side
+> embedding upgrade path — built dead infra until needed, so it follows demand);
+> the `data-bridge` query-path placement of the locality planner (**blocked**: no
+> live hub/federated read path exists in `apps/web` — `remoteNodeQueryClient` is
+> never instantiated, so the planner would have nothing to route to); and
+> `WorkingSetPrewarm` consuming planner scores (marginal until per-node
+> access-frequency/pinned signals are tracked at boot — today it already ranks by
+> recency). See the checklist for which `- [ ]` items map to these.
 
 ## Problem Statement
 
@@ -498,7 +504,8 @@ export const MemoryItemSchema = defineSchema({
 - [x] Upsert chunks into a `VectorIndex` (HNSW) keyed by `nodeId` + chunk index. → via `SemanticSearch` (`@xnetjs/vectors`).
 - [x] Persist the vector tier via `@xnetjs/storage`; rebuild lazily on cold start. → `saveVectorTier` / `loadVectorTier` (`packages/brain/src/persist.ts`); cold tier returns `false` → caller backfills via `reindexAll`.
 - [x] Default to local `@xenova` embeddings (managed `/ai/embed` hub route deferred). → indexer's `index` is injectable; `SemanticSearch` loads `@xenova` by default.
-- [ ] Gate managed embeddings behind the `0210` consent spine.
+- [x] **Make the vector tier live in the `apps/web` AI chat.** → `createVectorEntrySearch` (`apps/web/src/workbench/views/ai-vector-search.ts`): opt-in, lazy dynamic-import of `@xnetjs/vectors`, RRF-fused with keyword, keyword fallback, IndexedDB persistence (`ai-vector-storage.ts`). Verified end-to-end in-browser.
+- [ ] _(deferred — follows the managed route)_ Gate managed embeddings behind the `0210` consent spine.
 
 ### Phase 2 — `@xnetjs/brain` hybrid GraphRAG
 - [x] Scaffold `packages/brain/` with `retrieve(query, budget)`.
@@ -507,7 +514,7 @@ export const MemoryItemSchema = defineSchema({
 - [x] Attach a readable graph path to each hit (explainability). → `pathLabel` in `retrieve.ts`.
 - [x] Implement `packToBudget` (token/hop caps) — the anti-overwhelm knob. → `packToBudget` (`packages/brain/src/pack.ts`).
 - [x] Filter candidates through an authorization gate *before* packing (fail-closed). → `authorize` hook in `retrieve.ts` (app injects the `0192` evaluator).
-- [x] Wire `retrieve()` into `AiSurfaceService` as the retrieval source. → optional injected `retrieveContext` on `AiSurfaceServiceConfig`, driving the `createContextPack` query path (`packages/plugins/src/ai-surface/service.ts`); the app injects `@xnetjs/brain`'s `retrieve`. (Live injection in `apps/web` is the remaining step.)
+- [x] Wire `retrieve()` into `AiSurfaceService` as the retrieval source. → optional injected `retrieveContext` on `AiSurfaceServiceConfig`, driving the `createContextPack` query path (`packages/plugins/src/ai-surface/service.ts`); the `apps/web` chat injects it via `createGraphContextRetriever` (#232) + the opt-in vector tier (this PR). **Live.**
 - [x] Add an `xnet_graph_expand` MCP tool for JIT neighbor loading. → built-in `AiSurfaceService` tool walking typed relations from a node (`packages/plugins/src/ai-surface/service.ts`); auto-surfaced to MCP/CLI agents as a deferred (JIT-discovered) tool.
 
 ### Phase 3 — Memory schema pack
@@ -520,8 +527,8 @@ export const MemoryItemSchema = defineSchema({
 - [x] Implement a working-set scorer (recency × frequency × pinned × centrality). → `scoreWorkingSet` (`packages/brain/src/locality.ts`).
 - [x] Implement the `QuerySource` planner logic (mirrors `data-bridge`). → `planLocality` + `resolveQuerySource`. (Placing it inside `data-bridge`'s real query path is deferred.)
 - [x] Resolve `source: 'auto'` using `localRowFloor` + score; keep hot set local. → `resolveQuerySource`.
-- [ ] Make `WorkingSetPrewarm` consume planner scores instead of its fixed heuristic.
-- [ ] Route cold/shared/public reads to hub/federated tiers (data-bridge wiring).
+- [ ] _(deferred — marginal)_ Make `WorkingSetPrewarm` consume planner scores instead of its fixed heuristic. Today it already ranks by recency (`updatedAt`); the frequency/pinned/centrality signals the scorer wants aren't tracked at boot, so this is a near-no-op until that telemetry exists.
+- [ ] _(blocked)_ Route cold/shared/public reads to hub/federated tiers (data-bridge wiring). `apps/web` never instantiates a `remoteNodeQueryClient`, so there's no live hub/federated read path for `resolveQuerySource` to route to — the planner would be dormant. Unblock when a remote query client lands.
 
 ## Validation Checklist
 - [ ] **Retrieval quality:** a fixture graph + question set shows hybrid GraphRAG

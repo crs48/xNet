@@ -78,4 +78,26 @@ describe('vector-tier persistence', () => {
     const target = fakeIndex()
     expect(await loadVectorTier(target, store, 'custom:key')).toBe(true)
   })
+
+  it('clears a half-populated index when a non-atomic restore fails (false ⇒ cold)', async () => {
+    const store = fakeBlobStore()
+    await store.setBlob(VECTOR_TIER_BLOB_KEY, new TextEncoder().encode('{"valid":"json"}'))
+    let cleared = false
+    // An index whose restore mutates, then throws — and tracks clear().
+    const partial = {
+      polluted: false,
+      serialize: () => ({}),
+      restore() {
+        this.polluted = true // half-restore mutation before the throw
+        throw new Error('partial blob: documents not iterable')
+      },
+      clear() {
+        this.polluted = false
+        cleared = true
+      }
+    }
+    expect(await loadVectorTier(partial, store)).toBe(false)
+    expect(cleared).toBe(true)
+    expect(partial.polluted).toBe(false) // truly cold, safe to backfill onto
+  })
 })
