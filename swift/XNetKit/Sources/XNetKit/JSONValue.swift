@@ -97,6 +97,19 @@ public extension JSONValue {
         }
     }
     var boolValue: Bool? { if case .bool(let b) = self { return b }; return nil }
+    /// Convert to a Foundation JSON value (for `JSONSerialization`).
+    func toFoundation() -> Any {
+        switch self {
+        case .null: return NSNull()
+        case .bool(let b): return b
+        case .int(let i): return i
+        case .double(let d): return d
+        case .string(let s): return s
+        case .array(let a): return a.map { $0.toFoundation() }
+        case .object(let o): return o.mapValues { $0.toFoundation() }
+        }
+    }
+
     /// A numeric projection used for ordering/range comparisons (int or double).
     var numberValue: Double? {
         switch self {

@@ -14,7 +14,8 @@ let package = Package(
     platforms: [.macOS(.v14), .iOS(.v17), .visionOS(.v1)],
     products: [
         .library(name: "XNetKit", targets: ["XNetKit"]),
-        .executable(name: "xnet-demo", targets: ["xnet-demo"])
+        .executable(name: "xnet-demo", targets: ["xnet-demo"]),
+        .executable(name: "xnet-sync-demo", targets: ["xnet-sync-demo"])
     ],
     dependencies: [
         // Pure-Swift BLAKE3 (CryptoKit has none) — same dependency the
@@ -27,6 +28,7 @@ let package = Package(
             dependencies: [.product(name: "BLAKE3", package: "blake3-swift")]
         ),
         .executableTarget(name: "xnet-demo", dependencies: ["XNetKit"]),
+        .executableTarget(name: "xnet-sync-demo", dependencies: ["XNetKit"]),
         .testTarget(name: "XNetKitTests", dependencies: ["XNetKit"])
     ]
 )
