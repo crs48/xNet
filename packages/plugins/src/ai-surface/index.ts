@@ -48,6 +48,7 @@ export { AiSurfaceService, createAiSurfaceService } from './service'
 export { XNET_AGENT_SKILL_MD } from './skill'
 export { flattenRowForTsv, toTsv } from './format'
 export type {
+  AiContextRetriever,
   AiDatabaseMutationApplyResult,
   AiPageMarkdownApplyAdapter,
   AiPageMarkdownApplyAdapterInput,
@@ -55,6 +56,7 @@ export type {
   AiPageMarkdownApplyResult,
   AiPageMarkdownRollbackResult,
   AiResourceContent,
+  AiRetrievedNode,
   AiSearchOptions,
   AiSearchResult,
   AiSurfaceLimits,

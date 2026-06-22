@@ -17,6 +17,7 @@
     "@tanstack/react-router": "^1.57.0",
     "@tanstack/react-virtual": "^3.14.2",
     "@xnetjs/abuse": "workspace:*",
+    "@xnetjs/brain": "workspace:*",
     "@xnetjs/canvas": "workspace:*",
     "@xnetjs/charts": "workspace:*",
     "@xnetjs/comms": "workspace:*",

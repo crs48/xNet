@@ -1,0 +1,12 @@
+{
+  "id": "2026-06-21-assistant-graph-context",
+  "date": "June 2026",
+  "title": "The assistant now follows your connections",
+  "summary": "When you chat with the assistant about your workspace, it now pulls in related items by walking the links between them — not just keyword matches — so multi-step questions get the connected context they need.",
+  "highlights": [
+    "Context now walks typed relations from the best matches (graph-aware retrieval)",
+    "A token budget keeps it focused instead of dumping the whole workspace in",
+    "Runs entirely on-device — no embedding model download, no added startup cost"
+  ],
+  "tags": ["ai", "app"]
+}
