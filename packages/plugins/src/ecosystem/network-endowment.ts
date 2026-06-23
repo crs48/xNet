@@ -40,9 +40,13 @@ export function guardedFetch(
   fetchImpl: FetchLike = globalThis.fetch as unknown as FetchLike
 ): FetchLike {
   // `async` so a capability violation surfaces as a rejected promise (matching
-  // real `fetch` semantics) rather than a synchronous throw.
+  // real `fetch` semantics) rather than a synchronous throw. We forward the
+  // *resolved URL string* (not the `{ url }` object form some callers pass) —
+  // the real `fetch`/`Request` reject a bare `{ url }` object, so normalizing
+  // here lets a connector author write `fetch({ url })` and still work in prod.
   return async (input, init) => {
-    assertNetwork(caps, urlOf(input), pluginId)
-    return fetchImpl(input, init)
+    const url = urlOf(input)
+    assertNetwork(caps, url, pluginId)
+    return fetchImpl(url, init)
   }
 }

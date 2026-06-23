@@ -370,6 +370,15 @@ export { ReactionSchema, type Reaction } from './schemas'
 export { ProfileSchema, type Profile } from './schemas'
 export { ChannelSchema, CHANNEL_KINDS, type Channel, type ChannelKind } from './schemas'
 export { ChatMessageSchema, type ChatMessage } from './schemas'
+// Integration schema pack (exploration 0213)
+export { FeedSchema, FEED_SCHEMA_IRI, type Feed } from './schemas'
+export { FeedItemSchema, FEED_ITEM_SCHEMA_IRI, type FeedItem } from './schemas'
+export {
+  ExternalItemSchema,
+  EXTERNAL_ITEM_SCHEMA_IRI,
+  EXTERNAL_ITEM_SOURCES,
+  type ExternalItem
+} from './schemas'
 export {
   InboxStateSchema,
   inboxStateNodeId,

@@ -178,7 +178,18 @@ export {
   buildSlackConnector,
   SLACK_CONNECTOR_ID,
   CHANNEL_SCHEMA,
-  CHAT_MESSAGE_SCHEMA
+  CHAT_MESSAGE_SCHEMA,
+  buildRssConnector,
+  parseFeed,
+  RSS_CONNECTOR_ID,
+  FEED_ITEM_SCHEMA,
+  buildGithubConnector,
+  buildNotionConnector,
+  buildAirtableConnector,
+  EXTERNAL_ITEM_SCHEMA,
+  GITHUB_CONNECTOR_ID,
+  NOTION_CONNECTOR_ID,
+  AIRTABLE_CONNECTOR_ID
 } from './connectors'
 export type {
   ConnectorDefinition,
@@ -195,8 +206,42 @@ export type {
   ConnectorToolDescriptor,
   ConnectorInstallGate,
   WrapCliConnectorOptions,
-  SlackConnectorOptions
+  SlackConnectorOptions,
+  RssConnectorOptions,
+  FeedEntry,
+  GithubConnectorOptions,
+  NotionConnectorOptions,
+  AirtableConnectorOptions
 } from './connectors'
+
+// Outbound Actions (exploration 0213) — the reverse of a Connector: when
+// something happens in xNet, reach out (Discord/Slack/Telegram/email/webhook).
+export {
+  defineAction,
+  shouldDispatch,
+  ActionDefinitionError,
+  runAction,
+  guardedActionFetch,
+  ActionDispatchError,
+  assertPublicUrl,
+  ActionSsrfError,
+  renderEvent,
+  buildDiscordAction,
+  buildSlackWebhookAction,
+  buildTelegramAction,
+  buildEmailAction,
+  buildWebhookOutAction
+} from './actions'
+export type {
+  ActionDefinition,
+  DefinedAction,
+  ActionTrigger,
+  ActionEvent,
+  ActionContext,
+  RunActionPorts,
+  EmailActionOptions,
+  WebhookOutOptions
+} from './actions'
 
 // Middleware
 export type { PendingChange, NodeChangeEvent, NodeStoreMiddleware } from './middleware'

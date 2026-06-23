@@ -26,6 +26,7 @@ import { measureDataUsage, type DataUsage } from './data-usage'
 import { aiForwarderFeature } from './features/ai-forwarder'
 import { diagnosticsSharingFeature } from './features/diagnostics-sharing'
 import { billingFeature, tasksFeature, unfurlFeature } from './features/first-party'
+import { pagerdutyFeature, sentryFeature, stripeFeature } from './features/webhook-integrations'
 import { mountFeatures } from './features/registry'
 import { Metrics, HUB_METRICS } from './middleware/metrics'
 import { RateLimiter } from './middleware/rate-limit'
@@ -834,7 +835,16 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
       // Opt-in diagnostics sharing (0210): off by default. When the owner sets
       // XNET_DIAGNOSTICS_URL/SECRET, forwards scrubbed, content-free crash
       // reports upstream so we can help debug their hub.
-      diagnosticsSharingFeature()
+      diagnosticsSharingFeature(),
+      // Signed integration webhooks (exploration 0213): Stripe/Sentry/PagerDuty.
+      // Each is secret-gated (503 until its *_WEBHOOK_SECRET is set), verifies the
+      // provider HMAC, and normalizes deliveries into ExternalItem-shaped actions.
+      // Mounted WITHOUT an apply callback for the same reason as the GitHub
+      // webhook above — server-authoritative node writes are deferred — so actions
+      // are reported (`{ ok, actions }`) but not yet materialized.
+      stripeFeature(),
+      sentryFeature(),
+      pagerdutyFeature()
     ],
     {
       app,
