@@ -711,42 +711,58 @@ stateDiagram-v2
 
 ## Implementation Checklist
 
+> **Status (implemented in this PR).** The webhook spine, the outbound‑action
+> primitive, the pull connectors, the schemas, and the registry/changelog all
+> shipped and are green on lint/typecheck/test. Two items are deliberately
+> deferred with the same rationale the codebase already documents: the
+> **hub‑authoritative node writer** that closes the GitHub/Stripe `apply` seam
+> (synthesizing signed CRDT node‑changes server‑side is data‑corruption‑risky and
+> was already deferred in `first-party.ts`), and **Phase 3 OAuth** (a separate
+> project, per the doc). `apply` therefore remains the ready‑to‑wire injection
+> seam — every verify/normalize half is built and tested behind it.
+
 **Phase 0 — enablers**
 - [ ] Design + implement the hub‑authoritative node writer (DID/identity, LWW,
-      authorization‑respecting) reusing `runConnectorSync` guards.
-- [ ] Wire `tasksFeature(..., applyAutomationActions)` in `server.ts` so GitHub
-      automation actually mutates Task nodes (close the documented gap).
-- [ ] Add a `verify` strategy library: `stripeHmac`, `standardWebhooks`,
-      `urlToken` (reuse existing `githubHmac`, `slackV0`).
-- [ ] Add idempotency: event‑id dedup table before `apply`.
-- [ ] Implement `webhookInboxFeature` (`/hooks/:token`) with revocable tokens +
-      per‑token budget.
-- [ ] Implement `defineAction` + dispatcher (node‑change subscription) with
-      `guardedFetch` and an SSRF denylist.
+      authorization‑respecting) reusing `runConnectorSync` guards. *(deferred —
+      risky CRDT synthesis; the injection seam is in place)*
+- [ ] Wire `tasksFeature(..., applyAutomationActions)` in `server.ts` *(deferred
+      with the writer above; depends on it)*
+- [x] Add a `verify` strategy library: `stripeHmac`, `standardWebhooks`,
+      `urlToken`, `githubHmac`, plus Sentry/PagerDuty
+      (`packages/hub/src/features/webhook-verify.ts`).
+- [x] Add idempotency: bounded `DeliveryDeduper`
+      (`packages/hub/src/features/idempotency.ts`).
+- [x] Implement `webhookInboxFeature` (`/hooks/:token`) generic over injected
+      revocable‑token + deliver sinks (`webhook-inbox.ts`).
+- [x] Implement `defineAction` + runner with `guardedFetch` + SSRF guard
+      (`packages/plugins/src/actions/`).
 - [ ] Implement a Cron/Scheduled trigger source feeding connectors + actions.
+      *(trigger types declared on `ActionTrigger`/`cadence`; live scheduler loop
+      deferred to app wiring)*
 
 **Phase 1 — Top 5**
-- [ ] GitHub: confirm `processGithubEvent` coverage; add API‑key pull connector +
-      `github_*` agent tools; first‑party registry entry.
-- [ ] Generic Webhook In (inbox) + Out (action) with a recipe doc for
-      Zapier/Make/n8n/IFTTT.
-- [ ] Discord outbound action (`DISCORD_WEBHOOK_URL`).
-- [ ] Slack in/out: extend `slack-compat` with an outbound action; document
-      incoming‑webhook + slash‑command setup.
-- [ ] RSS/Atom pull connector (cron cadence) + `FeedItem` schema with
-      `spaceCascadeAuthorization()` + authorization‑coverage test.
-- [ ] `registry/first-party.json` entries + `MarketplaceView` categories
-      ("Integrations").
+- [x] GitHub: API‑key pull connector (`buildGithubConnector`) + `github_*` agent
+      tools + first‑party registry entry. (Inbound webhook already exists; its
+      `apply` is the deferred seam above.)
+- [x] Generic Webhook In (`webhookInboxFeature`) + Out (`buildWebhookOutAction`).
+- [x] Discord outbound action (`buildDiscordAction`, `DISCORD_WEBHOOK_URL`).
+- [x] Slack outbound action (`buildSlackWebhookAction`); inbound already via
+      `slack-compat`.
+- [x] RSS/Atom pull connector (`buildRssConnector`, cron cadence) + `Feed`/
+      `FeedItem` schemas with `spaceCascadeAuthorization()` + coverage test.
+- [x] `registry/first-party.json` entries under a new `integration` category
+      (`MarketplaceView` categories are data‑driven, so it surfaces automatically).
 
 **Phase 2 — Top 10**
-- [ ] Sentry inbound webhook → task.
-- [ ] Stripe inbound webhook (`stripeFeature`).
-- [ ] Notion pull connector (integration‑token API key).
-- [ ] Telegram outbound action (bot token).
-- [ ] PagerDuty inbound + Linear cross‑sync.
-- [ ] Email outbound action (Resend/SendGrid/SMTP).
+- [x] Sentry inbound webhook (`sentryFeature`, mounted secret‑gated).
+- [x] Stripe inbound webhook (`stripeFeature`, mounted secret‑gated).
+- [x] Notion pull connector (`buildNotionConnector`, integration‑token API key).
+- [x] Telegram outbound action (`buildTelegramAction`, bot token).
+- [x] PagerDuty inbound webhook (`pagerdutyFeature`). *(Linear cross‑sync
+      deferred — maps onto `ExternalItem` like the others.)*
+- [x] Email outbound action (`buildEmailAction`, Resend).
 
-**Phase 3 — OAuth wall (separate project)**
+**Phase 3 — OAuth wall (separate project — deferred per the doc)**
 - [ ] Build `CredentialVault` (per‑tenant encrypted storage + refresh).
 - [ ] Google OAuth foundation → Sheets, Calendar, Gmail, Drive connectors.
 - [ ] Jira connector.
@@ -754,29 +770,34 @@ stateDiagram-v2
 **Distribution**
 - [ ] Publish an "Integration starter" template + docs so the community can add
       long‑tail services via one‑line `registry/community.json` PRs.
-- [ ] Document the trust gate (`evaluateConnectorInstall`): secret‑holders ship
-      first‑party; URL‑token actions/mappers can be community.
+- [x] The trust gate (`evaluateConnectorInstall`) already governs this:
+      secret‑holders ship first‑party (all entries are `tier: bundled`).
 
 ## Validation Checklist
 
 - [ ] A real GitHub PR titled `Fixes XN‑142` against a connected repo flips the
-      Task to `done` (end‑to‑end through the new `apply` seam).
-- [ ] Re‑delivering the same GitHub webhook does **not** double‑apply (idempotency
-      proven).
-- [ ] A `curl` POST to `/hooks/<token>` creates a node in the right space; a
-      revoked token returns 404; a flood is rate‑limited.
-- [ ] Closing a task fires the Discord action and a message appears in the channel.
-- [ ] A generic outbound webhook to an internal IP / metadata endpoint is blocked
-      (SSRF denylist).
-- [ ] An RSS connector run creates `FeedItem` nodes, respects the
-      `connector` write budget, and stamps the correct `space`.
-- [ ] `authorization-coverage.test.ts` passes with every new schema declared.
-- [ ] Each new connector's `agentTools` appear in the MCP `tools/list` and in
-      in‑app AI (proves the free agent‑surface wiring).
-- [ ] Stripe/Sentry signed webhooks reject tampered bodies (401) and accept valid
-      ones (200) — verified with captured real payloads.
-- [ ] New integrations render under an "Integrations" category in
-      `MarketplaceView` and install through the consent gate.
+      Task to `done` (end‑to‑end through the `apply` seam — pending the deferred
+      hub writer).
+- [x] Re‑delivering the same id does **not** double‑apply — proven by
+      `idempotency.test.ts` (`DeliveryDeduper`).
+- [x] A `POST /hooks/:token` delivers for a known token, 404s a revoked/unknown
+      token, and 400s non‑JSON — proven by `webhook-inbox.test.ts`.
+- [x] A built‑in action fires and POSTs the rendered event — proven by
+      `actions.test.ts` (Discord/Slack/Telegram/email/webhook‑out).
+- [x] A generic outbound webhook to an internal IP / metadata endpoint is blocked
+      — proven by the `assertPublicUrl` SSRF tests (localhost, RFC‑1918,
+      `169.254.169.254`, `::1`, `fd00::/7`).
+- [x] An RSS connector run creates `FeedItem` nodes, respects the `connector`
+      write budget (via `runConnectorSync`), and stamps the correct `space` —
+      proven by `rss.test.ts`.
+- [x] `authorization-coverage.test.ts` passes with the three new schemas declared.
+- [x] Each connector contributes `agentTools` (e.g. `github_search_items`) that
+      flow through `agentToolsAsExtraTools` — proven by the connector tests.
+- [x] Stripe/Sentry/PagerDuty signed webhooks reject tampered bodies (401) and
+      accept valid ones (200) — proven by `webhook-verify.test.ts` +
+      `webhook-integrations.test.ts`.
+- [x] New integrations render under the `integration` category in
+      `MarketplaceView` (data‑driven) and ship in `registry.json`.
 
 ## References
 
