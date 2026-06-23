@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   buildAirtableConnector,
   buildGithubConnector,
+  buildLinearConnector,
   buildNotionConnector,
   EXTERNAL_ITEM_SCHEMA
 } from './api-connectors'
@@ -168,6 +169,89 @@ describe('buildNotionConnector', () => {
     expect(h.requests).toHaveLength(2)
     // second request carries the cursor
     expect((h.requests[1].init as { body: string }).body).toContain('cur2')
+  })
+})
+
+describe('buildLinearConnector', () => {
+  it('imports issues via GraphQL with the API key sent verbatim (no Bearer)', async () => {
+    const h = harness(() => ({
+      data: {
+        issues: {
+          nodes: [
+            {
+              id: 'uuid-1',
+              identifier: 'XN-12',
+              title: 'Fix the grid',
+              url: 'https://linear.app/x/issue/XN-12',
+              description: 'desc',
+              updatedAt: '2024-05-06T07:08:09Z',
+              state: { name: 'In Progress' }
+            }
+          ],
+          pageInfo: { hasNextPage: false, endCursor: null }
+        }
+      }
+    }))
+    const result = await runConnectorSync(buildLinearConnector().definition, {
+      env: { LINEAR_API_KEY: 'lin_api_abc' },
+      fetch: h.fetch,
+      store: h.store,
+      space: 'space-1'
+    })
+    expect(result.written).toBe(1)
+    expect(h.created[0].properties).toMatchObject({
+      source: 'linear',
+      kind: 'issue',
+      externalId: 'XN-12',
+      title: 'Fix the grid',
+      url: 'https://linear.app/x/issue/XN-12',
+      status: 'In Progress',
+      space: 'space-1'
+    })
+    const init = h.requests[0].init as { method: string; headers: Record<string, string> }
+    expect(init.method).toBe('POST')
+    expect(init.headers.Authorization).toBe('lin_api_abc') // no "Bearer " prefix
+  })
+
+  it('throws when LINEAR_API_KEY is missing', async () => {
+    const h = harness(() => ({ data: { issues: { nodes: [] } } }))
+    await expect(
+      runConnectorSync(buildLinearConnector().definition, {
+        env: {},
+        fetch: h.fetch,
+        store: h.store,
+        space: 'space-1'
+      })
+    ).rejects.toThrow(ConnectorSyncError)
+  })
+
+  it('follows the GraphQL pageInfo cursor', async () => {
+    const h = sequenceHarness([
+      {
+        data: {
+          issues: {
+            nodes: [{ identifier: 'XN-1', title: 'one' }],
+            pageInfo: { hasNextPage: true, endCursor: 'cur-2' }
+          }
+        }
+      },
+      {
+        data: {
+          issues: {
+            nodes: [{ identifier: 'XN-2', title: 'two' }],
+            pageInfo: { hasNextPage: false, endCursor: null }
+          }
+        }
+      }
+    ])
+    const result = await runConnectorSync(buildLinearConnector().definition, {
+      env: { LINEAR_API_KEY: 'k' },
+      fetch: h.fetch,
+      store: h.store,
+      space: 'space-1'
+    })
+    expect(result.written).toBe(2)
+    expect((h.requests[1].init as { body: string }).body).toContain('cur-2')
   })
 })
 

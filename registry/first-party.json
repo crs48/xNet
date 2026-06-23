@@ -120,6 +120,21 @@
     "homepage": "https://github.com/crs48/xNet/tree/main/packages/plugins/src/connectors/api-connectors.ts"
   },
   {
+    "id": "fyi.xnet.linear",
+    "name": "Linear",
+    "description": "Import Linear issues into governed ExternalItem nodes via the Linear GraphQL API.",
+    "version": "1.0.0",
+    "author": "xNet",
+    "category": "integration",
+    "keywords": ["linear", "issues", "tasks", "project-management", "connector", "developer"],
+    "tier": "bundled",
+    "license": "MIT",
+    "platforms": ["web", "electron"],
+    "autoInstalled": false,
+    "contributes": ["agentTools"],
+    "homepage": "https://github.com/crs48/xNet/tree/main/packages/plugins/src/connectors/api-connectors.ts"
+  },
+  {
     "id": "fyi.xnet.webhook-inbox",
     "name": "Incoming Webhooks",
     "description": "Give anyone a URL to POST a webhook into xNet (POST /hooks/:token) — the escape hatch that bridges Zapier, Make, n8n, and IFTTT.",

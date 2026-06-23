@@ -186,10 +186,12 @@ export {
   buildGithubConnector,
   buildNotionConnector,
   buildAirtableConnector,
+  buildLinearConnector,
   EXTERNAL_ITEM_SCHEMA,
   GITHUB_CONNECTOR_ID,
   NOTION_CONNECTOR_ID,
-  AIRTABLE_CONNECTOR_ID
+  AIRTABLE_CONNECTOR_ID,
+  LINEAR_CONNECTOR_ID
 } from './connectors'
 export type {
   ConnectorDefinition,
@@ -211,7 +213,8 @@ export type {
   FeedEntry,
   GithubConnectorOptions,
   NotionConnectorOptions,
-  AirtableConnectorOptions
+  AirtableConnectorOptions,
+  LinearConnectorOptions
 } from './connectors'
 
 // Outbound Actions (exploration 0213) — the reverse of a Connector: when
