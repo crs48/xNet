@@ -64,8 +64,11 @@ describe('shouldDispatch', () => {
 })
 
 describe('assertPublicUrl (SSRF guard)', () => {
-  it('allows public https hosts', () => {
+  it('allows public https hosts (incl. domains that look like IPv6 prefixes)', () => {
     expect(() => assertPublicUrl('https://discord.com/api/webhooks/1/abc')).not.toThrow()
+    // not an IPv6 literal — must not be mistaken for fc00::/7 or fe80::/10
+    expect(() => assertPublicUrl('https://fd-startup.com/x')).not.toThrow()
+    expect(() => assertPublicUrl('https://fe80-labs.com/x')).not.toThrow()
   })
   it('blocks loopback, private, link-local, metadata, and non-http', () => {
     for (const bad of [
@@ -79,7 +82,14 @@ describe('assertPublicUrl (SSRF guard)', () => {
       'http://[::1]/x',
       'http://box.local/x',
       'file:///etc/passwd',
-      'https://[fd00::1]/x'
+      'https://[fd00::1]/x',
+      'http://localhost./x', // trailing-dot FQDN root
+      'http://10.0.0.1./x', // trailing dot defeats the IPv4-literal check
+      'http://[::ffff:127.0.0.1]/x', // IPv4-mapped IPv6 loopback
+      'http://[::ffff:7f00:1]/x', // ...in the parser's hex-normalized form
+      'http://2130706433/x', // decimal-int encoding of 127.0.0.1 (URL-normalized)
+      'http://[fe81::1]/x', // fe80::/10 link-local — the fe81-fe8f gap
+      'http://[fe8f::1]/x'
     ]) {
       expect(() => assertPublicUrl(bad), bad).toThrow(ActionSsrfError)
     }

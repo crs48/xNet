@@ -55,6 +55,16 @@ describe('ExternalItem schema', () => {
     expect(ExternalItemSchema._schemaId).toBe(EXTERNAL_ITEM_SCHEMA_IRI)
   })
 
+  it('accepts the webhook-provider sources (stripe/sentry/pagerduty)', () => {
+    for (const source of ['stripe', 'sentry', 'pagerduty'] as const) {
+      const node = ExternalItemSchema.create(
+        { source, kind: 'event', externalId: `${source}-1`, title: 'evt' },
+        { createdBy: AUTHOR }
+      )
+      expect(ExternalItemSchema.validate(node).valid, source).toBe(true)
+    }
+  })
+
   it('rejects an unknown source', () => {
     const node = ExternalItemSchema.create(
       { source: 'pidgeon', kind: 'note', externalId: 'x', title: 'y' } as never,

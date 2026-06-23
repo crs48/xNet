@@ -17,12 +17,20 @@ import { spaceCascadeAuthorization } from './space-authorization'
 
 export const EXTERNAL_ITEM_SCHEMA_IRI = 'xnet://xnet.fyi/ExternalItem@1.0.0'
 
-/** The services that materialize ExternalItem nodes. */
+/**
+ * The services that materialize ExternalItem nodes. Includes both the pull
+ * connectors (GitHub/Notion/Airtable/Linear) and the inbound signed-webhook
+ * providers (Stripe/Sentry/PagerDuty) so a future apply seam can persist a
+ * normalized `IntegrationWebhookAction` here without failing select validation.
+ */
 export const EXTERNAL_ITEM_SOURCES = [
   { id: 'github', name: 'GitHub' },
   { id: 'notion', name: 'Notion' },
   { id: 'airtable', name: 'Airtable' },
   { id: 'linear', name: 'Linear' },
+  { id: 'stripe', name: 'Stripe' },
+  { id: 'sentry', name: 'Sentry' },
+  { id: 'pagerduty', name: 'PagerDuty' },
   { id: 'other', name: 'Other' }
 ] as const
 

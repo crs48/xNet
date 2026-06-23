@@ -57,16 +57,19 @@ function isPrivateIpv4(host: string): boolean {
   )
 }
 
+/** Block private/loopback/link-local IPv6. `host` is a bracketed literal. */
 function isBlockedIpv6(host: string): boolean {
-  // URL hostnames keep IPv6 in brackets; strip them.
   const h = host.replace(/^\[|\]$/g, '').toLowerCase()
   if (h === '::1' || h === '::') return true // loopback / unspecified
-  if (h.startsWith('fe80') || h.startsWith('fe9') || h.startsWith('fea') || h.startsWith('feb'))
-    return true // link-local fe80::/10
   if (h.startsWith('fc') || h.startsWith('fd')) return true // unique-local fc00::/7
-  // IPv4-mapped (::ffff:a.b.c.d) — pull the embedded IPv4 and re-check.
-  const mapped = h.match(/::ffff:(\d+\.\d+\.\d+\.\d+)$/)
-  if (mapped && isPrivateIpv4(mapped[1])) return true
+  // IPv4-mapped (::ffff:a.b.c.d / ::ffff:7f00:1) and NAT64 (64:ff9b::a.b.c.d)
+  // can smuggle an internal IPv4 — the WHATWG parser normalizes the mapped form
+  // to hex, so block the whole mapped class rather than try to decode it.
+  if (h.startsWith('::ffff:') || h.startsWith('64:ff9b::')) return true
+  // Link-local fe80::/10 spans fe80::–febf:: — match the /10 numerically rather
+  // than enumerating nibble prefixes (which missed fe81::–fe8f::).
+  const firstHextet = parseInt(h.split(':')[0] || '0', 16)
+  if (Number.isFinite(firstHextet) && (firstHextet & 0xffc0) === 0xfe80) return true
   return false
 }
 
@@ -90,14 +93,17 @@ export function assertPublicUrl(rawUrl: string): void {
     throw new ActionSsrfError(`outbound action URL must be http(s): ${rawUrl}`, rawUrl)
   }
 
-  const host = url.hostname.toLowerCase()
+  // Strip a single trailing dot (the FQDN root, e.g. `localhost.` or `10.0.0.1.`)
+  // — it resolves to the same host but defeats suffix and IPv4-literal checks.
+  const host = url.hostname.toLowerCase().replace(/\.$/, '')
+  // A WHATWG IPv6 literal keeps its brackets; gate the v6 logic on that so a
+  // legitimate domain like `fd-startup.com` isn't mistaken for an fc00::/7 host.
   const blocked =
     BLOCKED_HOSTNAMES.has(host) ||
     host.endsWith('.localhost') ||
     host.endsWith('.local') ||
     host.endsWith('.internal') ||
-    isPrivateIpv4(host) ||
-    isBlockedIpv6(host)
+    (host.startsWith('[') ? isBlockedIpv6(host) : isPrivateIpv4(host))
 
   if (blocked) {
     throw new ActionSsrfError(`outbound action URL targets a non-public host: ${host}`, rawUrl)
