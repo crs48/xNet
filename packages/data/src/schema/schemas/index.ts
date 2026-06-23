@@ -203,6 +203,15 @@ export { ReactionSchema, type Reaction } from './reaction'
 export { ProfileSchema, type Profile } from './profile'
 export { ChannelSchema, CHANNEL_KINDS, type Channel, type ChannelKind } from './channel'
 export { ChatMessageSchema, type ChatMessage } from './chat-message'
+// Integration schema pack (exploration 0213)
+export { FeedSchema, FEED_SCHEMA_IRI, type Feed } from './feed'
+export { FeedItemSchema, FEED_ITEM_SCHEMA_IRI, type FeedItem } from './feed-item'
+export {
+  ExternalItemSchema,
+  EXTERNAL_ITEM_SCHEMA_IRI,
+  EXTERNAL_ITEM_SOURCES,
+  type ExternalItem
+} from './external-item'
 export {
   InboxStateSchema,
   inboxStateNodeId,
@@ -463,6 +472,11 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Channel@1.0.0': () => import('./channel').then((m) => m.ChannelSchema),
   'xnet://xnet.fyi/ChatMessage@1.0.0': () =>
     import('./chat-message').then((m) => m.ChatMessageSchema),
+  // Integration schema pack (exploration 0213)
+  'xnet://xnet.fyi/Feed@1.0.0': () => import('./feed').then((m) => m.FeedSchema),
+  'xnet://xnet.fyi/FeedItem@1.0.0': () => import('./feed-item').then((m) => m.FeedItemSchema),
+  'xnet://xnet.fyi/ExternalItem@1.0.0': () =>
+    import('./external-item').then((m) => m.ExternalItemSchema),
   'xnet://xnet.fyi/InboxState@1.0.0': () => import('./inbox-state').then((m) => m.InboxStateSchema),
   'xnet://xnet.fyi/Grant@1.0.0': () => import('./grant').then((m) => m.GrantSchema),
   'xnet://xnet.fyi/SavedView@1.0.0': () => import('./saved-view').then((m) => m.SavedViewSchema),
@@ -560,6 +574,9 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Profile': () => import('./profile').then((m) => m.ProfileSchema),
   'xnet://xnet.fyi/Channel': () => import('./channel').then((m) => m.ChannelSchema),
   'xnet://xnet.fyi/ChatMessage': () => import('./chat-message').then((m) => m.ChatMessageSchema),
+  'xnet://xnet.fyi/Feed': () => import('./feed').then((m) => m.FeedSchema),
+  'xnet://xnet.fyi/FeedItem': () => import('./feed-item').then((m) => m.FeedItemSchema),
+  'xnet://xnet.fyi/ExternalItem': () => import('./external-item').then((m) => m.ExternalItemSchema),
   'xnet://xnet.fyi/InboxState': () => import('./inbox-state').then((m) => m.InboxStateSchema),
   'xnet://xnet.fyi/Grant': () => import('./grant').then((m) => m.GrantSchema),
   'xnet://xnet.fyi/SavedView': () => import('./saved-view').then((m) => m.SavedViewSchema),
