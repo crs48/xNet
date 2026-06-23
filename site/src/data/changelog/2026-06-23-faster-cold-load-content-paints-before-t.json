@@ -11,5 +11,10 @@
     "performance",
     "sync"
   ],
-  "pr": 239
+  "pr": 239,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
