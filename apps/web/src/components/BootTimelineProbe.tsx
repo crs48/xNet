@@ -10,10 +10,17 @@
  */
 import { useXNet } from '@xnetjs/react'
 import { useEffect } from 'react'
-import { bootMark, logBootTimeline } from '../lib/boot-timeline'
+import { bootMark, logBootTimeline, observeSyncFirstMark } from '../lib/boot-timeline'
 
 export function BootTimelineProbe(): null {
   const { nodeStoreReady, hubStatus } = useXNet()
+
+  // Start observing the runtime's first-remote-apply mark as early as possible
+  // so the `sync:first` boot phase is captured even though the sync layer can't
+  // import the boot timeline directly (exploration 0212).
+  useEffect(() => {
+    observeSyncFirstMark()
+  }, [])
 
   useEffect(() => {
     if (nodeStoreReady) bootMark('store:ready')

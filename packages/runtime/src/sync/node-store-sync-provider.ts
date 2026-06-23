@@ -84,10 +84,30 @@ export class NodeStoreSyncProvider {
   // Request-sync-first: resolver for the in-flight node-sync-response wait.
   private syncResponseResolver: (() => void) | null = null
 
+  // One-shot: emit a performance mark the first time a remote change is applied
+  // to the local store, so read↔write contention on the cold-start path is
+  // visible on the boot timeline and in DevTools (exploration 0212).
+  private firstRemoteApplyMarked = false
+
   constructor(
     private store: NodeStore,
     private room: string
   ) {}
+
+  /**
+   * Mark the first remote apply once. Platform-agnostic and defensive: a
+   * missing `performance` global, or a throw, is a no-op — instrumentation
+   * must never break sync.
+   */
+  private markFirstRemoteApply(): void {
+    if (this.firstRemoteApplyMarked) return
+    this.firstRemoteApplyMarked = true
+    try {
+      performance?.mark?.('xnet:sync:first-remote-apply')
+    } catch {
+      // no-op
+    }
+  }
 
   /**
    * Subscribe to unknown change type events.
@@ -266,6 +286,7 @@ export class NodeStoreSyncProvider {
     }
 
     try {
+      this.markFirstRemoteApply()
       await this.store.applyRemoteChange(change)
     } catch (err) {
       // One bad relayed change must not become an unhandled rejection (0206).
@@ -299,6 +320,7 @@ export class NodeStoreSyncProvider {
       }
 
       if (knownChanges.length > 0) {
+        this.markFirstRemoteApply()
         await this.store.applyRemoteChanges(knownChanges)
       }
     }

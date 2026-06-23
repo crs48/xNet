@@ -51,6 +51,7 @@ import {
 import { isWorkerRuntimeEnabled } from './lib/data-runtime'
 import { defaultHubUrl, persistedHubUrl } from './lib/hub-url'
 import { identityManager } from './lib/identity'
+import { logStoreContents } from './lib/read-path-probe'
 import { detectBrowserFamily, getStorageBanner } from './lib/storage-banner'
 import { recordDurabilityTransition, subscribeStorageStatus } from './lib/storage-durability'
 import { looksEvicted, probeStoreColdStart, recordColdStartProbe } from './lib/store-cold-start'
@@ -415,6 +416,12 @@ export function App(): JSX.Element {
               'storage to keep data across sessions.'
           )
         }
+
+        // Read-path diagnostic (exploration 0212): when boot debug is on, log
+        // the durable count matrix (nodes / changes / cursors) so the next
+        // capture can tell a populated-but-slow read path apart from a genuinely
+        // empty cache. Fire-and-forget — never blocks boot, never throws.
+        void logStoreContents(sqliteAdapter)
 
         const nodeStorage = new SQLiteNodeStorageAdapter(sqliteAdapter)
         const storageAdapter = new SQLiteStorageAdapter(sqliteAdapter)
