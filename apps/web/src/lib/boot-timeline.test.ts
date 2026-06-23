@@ -1,10 +1,12 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   __resetBootTimeline,
   bootMark,
   bootMarkAt,
   bootMeasure,
-  getBootTimeline
+  getBootTimeline,
+  logBootTimeline,
+  observeSyncFirstMark
 } from './boot-timeline'
 
 afterEach(() => {
@@ -54,5 +56,93 @@ describe('boot-timeline', () => {
     expect(timeline.wasm).toBeTypeOf('number')
     expect(timeline.connect).toBeUndefined()
     expect(timeline.firstPaint).toBeUndefined()
+  })
+})
+
+type ObserverCb = (list: { getEntries: () => Array<{ name: string }> }) => void
+
+// Cast once through a typed view so the per-test assignments don't start with
+// `(` (which forces the ASI-safety leading `;` that eslint then rejects).
+const glob = globalThis as unknown as {
+  PerformanceObserver?: unknown
+  performance: { getEntriesByName?: unknown }
+}
+
+describe('observeSyncFirstMark (0212)', () => {
+  // Save/restore the globals the function probes so tests don't leak into the
+  // rest of the file (jsdom may or may not provide either of these).
+  const realPO = glob.PerformanceObserver
+  const realGetEntries = glob.performance?.getEntriesByName
+
+  afterEach(() => {
+    glob.PerformanceObserver = realPO
+    if (glob.performance) glob.performance.getEntriesByName = realGetEntries
+  })
+
+  it('marks sync:first immediately when the mark already fired (buffer hit)', () => {
+    glob.performance.getEntriesByName = () => [{ name: 'xnet:sync:first-remote-apply' }]
+    let observed = false
+    glob.PerformanceObserver = class {
+      observe() {
+        observed = true
+      }
+      disconnect() {}
+    }
+    observeSyncFirstMark()
+    expect(bootMarkAt('sync:first')).toBeTypeOf('number')
+    expect(observed).toBe(false) // returned before creating a live observer
+  })
+
+  it('marks sync:first when the live observer sees the mark, then disconnects', () => {
+    glob.performance.getEntriesByName = () => []
+    let captured: ObserverCb | null = null
+    let observed = false
+    let disconnected = false
+    glob.PerformanceObserver = class {
+      constructor(cb: ObserverCb) {
+        captured = cb
+      }
+      observe() {
+        observed = true
+      }
+      disconnect() {
+        disconnected = true
+      }
+    }
+    observeSyncFirstMark()
+    expect(observed).toBe(true)
+    expect(bootMarkAt('sync:first')).toBeUndefined()
+
+    // The runtime emits the mark on the first remote apply.
+    const fire = captured as ObserverCb | null
+    fire?.({
+      getEntries: () => [{ name: 'unrelated' }, { name: 'xnet:sync:first-remote-apply' }]
+    })
+    expect(bootMarkAt('sync:first')).toBeTypeOf('number')
+    expect(disconnected).toBe(true)
+  })
+
+  it('is a no-op when PerformanceObserver is unavailable', () => {
+    glob.PerformanceObserver = undefined
+    observeSyncFirstMark()
+    expect(bootMarkAt('sync:first')).toBeUndefined()
+  })
+})
+
+describe('logBootTimeline (0204)', () => {
+  it('logs the timeline once when debug is enabled, then latches', () => {
+    localStorage.setItem('xnet:boot:debug', 'true')
+    const spy = vi.spyOn(console, 'info').mockImplementation(() => {})
+    try {
+      bootMark('init:start')
+      bootMark('sqlite:open')
+      logBootTimeline('hub:connected')
+      logBootTimeline('hub:connected') // one-shot latch: must not log twice
+      expect(spy).toHaveBeenCalledTimes(1)
+      expect(String(spy.mock.calls[0]?.[0])).toContain('boot timeline')
+    } finally {
+      spy.mockRestore()
+      localStorage.removeItem('xnet:boot:debug')
+    }
   })
 })

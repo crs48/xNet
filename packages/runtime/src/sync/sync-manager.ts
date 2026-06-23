@@ -364,6 +364,67 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
     storage: createRegistryStorageAdapter(config.storage),
     trackTTL: config.trackTTL
   })
+
+  // Registry persistence (exploration 0212). The registry used to be saved only
+  // on a graceful stop(), which does NOT run on a hard reload or tab close — so
+  // `tracked nodes` was ~always 0 on cold boot even after heavy use, and no
+  // previously-open document was pre-synced in the background after a reload.
+  // Persist on a short debounce after every track/touch, and flush best-effort
+  // when the page is hidden/unloaded, so the tracked set survives a reload.
+  const REGISTRY_SAVE_DEBOUNCE_MS = 2000
+  let registrySaveTimer: ReturnType<typeof setTimeout> | null = null
+
+  function scheduleRegistrySave(): void {
+    // Never (re-)arm after teardown: a late acquire/track from an in-flight
+    // bridge call could otherwise resurrect a one-shot timer that fires
+    // registry.save() on a stopped instance.
+    if (lifecycleInput.stopped) return
+    if (registrySaveTimer) return
+    registrySaveTimer = setTimeout(() => {
+      registrySaveTimer = null
+      void registry.save()
+    }, REGISTRY_SAVE_DEBOUNCE_MS)
+  }
+
+  function flushRegistrySave(): void {
+    if (registrySaveTimer) {
+      clearTimeout(registrySaveTimer)
+      registrySaveTimer = null
+    }
+    if (lifecycleInput.stopped) return
+    void registry.save()
+  }
+
+  // Lifecycle flushes, attached only in a DOM context (the `typeof document`
+  // guard) — the SyncManager runs on the main thread; Node/SSR/test and the
+  // data worker (no `document`) just rely on the debounce.
+  const handleVisibilityChange = (): void => {
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+      flushRegistrySave()
+    }
+  }
+  const handlePageHide = (): void => {
+    flushRegistrySave()
+  }
+  let persistenceListenersAttached = false
+  function attachPersistenceListeners(): void {
+    if (persistenceListenersAttached) return
+    if (typeof document === 'undefined' || typeof addEventListener !== 'function') return
+    persistenceListenersAttached = true
+    addEventListener('visibilitychange', handleVisibilityChange)
+    addEventListener('pagehide', handlePageHide)
+  }
+  function detachPersistenceListeners(): void {
+    if (!persistenceListenersAttached) return
+    persistenceListenersAttached = false
+    try {
+      removeEventListener('visibilitychange', handleVisibilityChange)
+      removeEventListener('pagehide', handlePageHide)
+    } catch {
+      // ignore — best-effort teardown
+    }
+  }
+
   const signalingUrls = resolveSignalingUrls(config.signalingUrl, config.signalingUrls)
   const connection =
     signalingUrls.length > 1
@@ -960,7 +1021,14 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
         replaying: false
       })
       await registry.load()
+      // stop() can interleave during the await above (the provider fires
+      // start() un-awaited then runs cleanup→stop() on a StrictMode remount or
+      // any effect-dep change). If we were stopped meanwhile, bail BEFORE
+      // attaching global listeners — otherwise they'd attach after stop()'s
+      // detach already ran (a no-op then) and leak for the page lifetime.
+      if (lifecycleInput.stopped) return
       log('Registry loaded, tracked nodes:', registry.getTracked().length)
+      attachPersistenceListeners()
       await offlineQueue.load()
       log('Offline queue loaded, size:', offlineQueue.size)
       updateLifecycle({ localReady: true })
@@ -1002,6 +1070,11 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
         leaveNodeRoom(nodeId)
       }
 
+      detachPersistenceListeners()
+      if (registrySaveTimer) {
+        clearTimeout(registrySaveTimer)
+        registrySaveTimer = null
+      }
       connection.disconnect()
       await pool.flushAll()
       registry.prune()
@@ -1012,6 +1085,7 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
 
     track(nodeId, schemaId) {
       registry.track(nodeId, schemaId)
+      scheduleRegistrySave()
       // Fire-and-forget join - sync will happen when ready
       joinNodeRoom(nodeId).catch((err) => {
         log('Error joining room for track:', err)
@@ -1020,12 +1094,14 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
 
     untrack(nodeId) {
       registry.untrack(nodeId)
+      scheduleRegistrySave()
       leaveNodeRoom(nodeId)
     },
 
     async acquire(nodeId) {
       log('Acquiring doc for node:', nodeId)
       registry.touch(nodeId)
+      scheduleRegistrySave()
 
       const doc = await pool.acquire(nodeId)
       log('Doc acquired from pool, guid:', doc.guid, 'meta keys:', doc.getMap('meta').size)

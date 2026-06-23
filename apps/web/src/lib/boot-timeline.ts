@@ -133,6 +133,61 @@ function debugEnabled(): boolean {
   }
 }
 
+/**
+ * Whether boot/read-path diagnostics should emit: always in dev, or whenever
+ * the `xnet:boot:debug` flag is set in any build (so a production cold-start
+ * regression can be captured in the field without a rebuild). Shared by the
+ * read-path probe (exploration 0212) so all boot instrumentation toggles
+ * together off one flag.
+ */
+export function isBootDebugEnabled(): boolean {
+  const isDev = typeof import.meta !== 'undefined' && Boolean(import.meta.env?.DEV)
+  return isDev || debugEnabled()
+}
+
+/**
+ * Wire the runtime's `xnet:sync:first-remote-apply` performance mark — emitted
+ * the first time a remote change is applied to the local store — into the boot
+ * timeline's `sync:first` phase (exploration 0212). The runtime sync layer is
+ * platform-agnostic and can't import this module, so it emits a `performance`
+ * mark and we observe it here. Idempotent and defensive: a missing
+ * PerformanceObserver, or an environment without `performance`, is a no-op and
+ * never throws — instrumentation must not break boot.
+ */
+let syncFirstObserver: PerformanceObserver | null = null
+export function observeSyncFirstMark(): void {
+  if (syncFirstObserver) return
+  if (typeof PerformanceObserver === 'undefined') return
+  // If the mark already fired before this ran, pick it up from the buffer.
+  try {
+    if (
+      typeof performance !== 'undefined' &&
+      typeof performance.getEntriesByName === 'function' &&
+      performance.getEntriesByName('xnet:sync:first-remote-apply', 'mark').length > 0
+    ) {
+      bootMark('sync:first')
+      return
+    }
+  } catch {
+    // ignore — fall through to the live observer
+  }
+  try {
+    syncFirstObserver = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        if (entry.name === 'xnet:sync:first-remote-apply') {
+          bootMark('sync:first')
+          syncFirstObserver?.disconnect()
+          syncFirstObserver = null
+          return
+        }
+      }
+    })
+    syncFirstObserver.observe({ entryTypes: ['mark'] })
+  } catch {
+    syncFirstObserver = null
+  }
+}
+
 let logged = false
 
 /**
@@ -153,4 +208,10 @@ export function logBootTimeline(reason = 'hub:connected'): void {
 export function __resetBootTimeline(): void {
   marks.clear()
   logged = false
+  try {
+    syncFirstObserver?.disconnect()
+  } catch {
+    // ignore
+  }
+  syncFirstObserver = null
 }

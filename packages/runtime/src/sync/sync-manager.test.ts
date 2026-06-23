@@ -218,6 +218,62 @@ describe('createSyncManager', () => {
     expect(manager.lifecycle.phase).toBe('stopped')
   })
 
+  it('persists the registry on a debounce after track, not only on stop (0212)', async () => {
+    vi.useFakeTimers()
+    try {
+      const manager = createSyncManager({
+        nodeStore: {} as NodeStore,
+        storage: {} as NodeStorageAdapter,
+        signalingUrl: 'ws://localhost:4444'
+      })
+      await manager.start()
+      mockRegistry.save.mockClear()
+
+      manager.track('node-1', 'xnet://xnet.fyi/Page@1.0.0')
+      expect(mockRegistry.track).toHaveBeenCalledWith('node-1', 'xnet://xnet.fyi/Page@1.0.0')
+      // The save is debounced — not synchronous with track().
+      expect(mockRegistry.save).not.toHaveBeenCalled()
+
+      vi.advanceTimersByTime(2000)
+      expect(mockRegistry.save).toHaveBeenCalledTimes(1)
+
+      // A burst of tracks within the window coalesces into a single save.
+      mockRegistry.save.mockClear()
+      manager.track('node-2', 'xnet://xnet.fyi/Page@1.0.0')
+      manager.track('node-3', 'xnet://xnet.fyi/Page@1.0.0')
+      vi.advanceTimersByTime(2000)
+      expect(mockRegistry.save).toHaveBeenCalledTimes(1)
+
+      await manager.stop()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('does not attach (leak) lifecycle listeners if stop() interleaves during start() (0212)', async () => {
+    const addSpy = vi.spyOn(globalThis, 'addEventListener')
+    // Hold registry.load() open so we can stop() while start() is suspended on it.
+    const loadGate = createDeferred<void>()
+    mockRegistry.load.mockImplementationOnce(() => loadGate.promise)
+    try {
+      const manager = createSyncManager({
+        nodeStore: {} as NodeStore,
+        storage: {} as NodeStorageAdapter,
+        signalingUrl: 'ws://localhost:4444'
+      })
+
+      const startPromise = manager.start() // suspends on registry.load()
+      await manager.stop() // interleaves: sets stopped=true; detach is a no-op (nothing attached yet)
+      loadGate.resolve() // start() resumes past the await…
+      await startPromise // …and must bail before attaching listeners
+
+      const attachedVisibility = addSpy.mock.calls.some(([type]) => type === 'visibilitychange')
+      expect(attachedVisibility).toBe(false)
+    } finally {
+      addSpy.mockRestore()
+    }
+  })
+
   it('uses multi-hub orchestration when multiple signaling URLs are configured', () => {
     createSyncManager({
       nodeStore: {} as NodeStore,
