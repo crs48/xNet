@@ -574,54 +574,106 @@ if (typeof document !== 'undefined') {
   surface, the home-route forensics above are for the wrong view; the
   probe should also time whichever route `startupTab` redirects to.
 
+## Implementation Status
+
+Shipped (branch `claude/local-cache-read-path-0212`): the measurement-first
+core (A) plus the two safe, high-value fixes the doc recommended alongside it
+(B, E, F). The read-path probe + `useQueryTimer` are the deliverable the user
+asked for — they turn the next capture into a verdict (R0–R5). All changes are
+gated behind the existing `xnet:boot:debug` flag (no production noise),
+typecheck clean, and covered by unit tests. A 14-agent adversarial review of
+the diff confirmed 7 findings (1 medium listener-leak race, 1 low prewarm-
+descriptor mismatch, 5 nits); **all 7 are fixed** in this PR.
+
+Two items are **deferred by the doc's own sequencing**, not skipped:
+
+- **C (read-before-write yield)** is gated on the probe showing real
+  contention — premature to ship the behavioral yield before a capture
+  confirms it (and it carries fake-timer test-fragility risk). The
+  instrumentation needed to make that decision — the `xnet:sync:first-remote-
+  apply` mark + per-query timings — **did** ship, so the next capture decides C.
+- **D (decouple connect from `nodeStoreReady`)** is the risky follow-up 0204
+  also deferred (must buffer the first `sync-step2`/`node-sync-response` or
+  drop it). Out of scope for this PR.
+
+The "ask the user for a fresh capture" step is inherently a user action,
+enabled by the shipped probe.
+
 ## Implementation Checklist
 
-- [ ] Add `apps/web/src/lib/read-path-probe.ts` (`logStoreContents` +
-      `useTimedQuery`); call `logStoreContents` right after
-      `bootMark('store:ready')`; gate behind `xnet:debug` defaulted on
-      for the next capture.
-- [ ] Print the four-count matrix (`nodes`, `node_properties`,
-      `changes`, persisted cursor) and a verdict string at `store:ready`.
-- [ ] Wrap the three landing queries (and `WorkingSetPrewarm`) with
-      fire→resolve→rowcount→elapsed logging.
-- [ ] Add a "first remote write applied" mark in
-      `node-store-sync-provider.ts` and a "first local rows painted"
-      mark so contention is visible on the timeline.
-- [ ] **Ask the user for a fresh capture with `xnet:debug` enabled** and
-      branch on the matrix (R1–R5) before further code.
-- [ ] B: split the home `loading` gate into per-section paint; empty-
-      state only when all resolved with 0 rows and not restoring
-      (`apps/web/src/routes/index.tsx`).
-- [ ] B: also time/paint the `startupTab` redirect target, not just `/`.
+- [x] Add `apps/web/src/lib/read-path-probe.ts` (`logStoreContents` +
+      `useQueryTimer`); call `logStoreContents` in App boot right after the
+      cold-start probe (`sqlite:schema`); gate behind `xnet:boot:debug`/dev
+      via the shared `isBootDebugEnabled()`. *(Used `useQueryTimer(label,
+      loading, rows)` instead of a `useTimedQuery` wrapper — `useQuery` is
+      heavily overloaded, so wrapping it risked typing breakage; the helper
+      is type-safe and used in the home route + prewarm.)*
+- [x] Print the four-count matrix (`nodes`, `node_properties`, `changes`,
+      persisted sync cursors + `lastLamportTime`) and a verdict string
+      (R0–R5) — `probeStoreContents`/`classifyStoreContents`, unit-tested.
+- [x] Wrap the three landing queries **and** `WorkingSetPrewarm` with
+      fire→resolve→rowcount→elapsed logging (`useQueryTimer`).
+- [x] Add a "first remote write applied" mark
+      (`xnet:sync:first-remote-apply` in `node-store-sync-provider.ts`,
+      observed into the boot timeline's `sync:first` via
+      `observeSyncFirstMark`) and keep the "first local rows painted" mark
+      (`query:first-rows`, re-anchored to the first definitive paint).
+- [ ] **Ask the user for a fresh capture with `xnet:boot:debug` enabled** and
+      branch on the matrix (R0–R5) before further code. *(User action;
+      enabled by the shipped probe.)*
+- [x] B: split the home `loading` gate into per-section paint; empty-state
+      only when all resolved with 0 rows and not restoring; shell + resolved
+      sections paint immediately (`apps/web/src/routes/index.tsx`).
+- [x] B: render nothing while a `startupTab` redirect is pending so the home
+      chrome doesn't flash. *(Per-target route timing of arbitrary
+      `startupTab` destinations remains a follow-up; the home route + prewarm
+      are timed.)*
 - [ ] C (gated on probe showing contention): defer/yield the first
-      `applyRemoteChanges` so the boot read isn't starved.
-- [ ] D (follow-up): decouple `connection.connect()` from
-      `nodeStoreReady`; buffer inbound sync until the store attaches.
-- [ ] E: broaden `WorkingSetPrewarm` to the configured startup surface +
-      primary non-doc schemas.
-- [ ] F: `acquire→track(schemaId)`; debounced `registry.save()` after
-      track; flush on `pagehide`/`visibilitychange`.
-- [ ] Investigate the double "Creating SyncManager" (stabilize effect
-      deps) if the probe shows it doubles cold-start cost.
+      `applyRemoteChanges` so the boot read isn't starved. **Deferred** — the
+      mark that measures the contention shipped; the behavioral yield waits on
+      a capture confirming it.
+- [ ] D (follow-up): decouple `connection.connect()` from `nodeStoreReady`;
+      buffer inbound sync until the store attaches. **Deferred** (risky;
+      0204 deferred it too).
+- [x] E: broaden `WorkingSetPrewarm` to Channels + Tasks, using the **exact**
+      descriptors those surfaces read (`useChannels`/`useTasks`) so the
+      prewarm dedupes instead of warming a dead cache key.
+- [x] F: persist the registry on a debounced save after track/touch + flush
+      on `pagehide`/`visibilitychange` (was save-on-`stop()`-only, which
+      doesn't run on reload). Guarded against a start()/stop() race and a
+      post-teardown orphan timer.
+- [~] Investigate the double "Creating SyncManager". The related
+      consequence — a listener leak when the provider effect re-runs (StrictMode
+      / dep change) — was found by review and **fixed** (start() bails after
+      its await when stopped). Root-causing the double-create itself (effect
+      dep churn) remains a follow-up.
 
 ## Validation Checklist
 
-- [ ] With `xnet:debug` on, a cold reload prints the count matrix and
-      every landing query's timing + row count.
-- [ ] The matrix verdict classifies the load as R1–R5; if R4 (cursor>0,
-      data=0), treat as a release-blocking data-loss bug and fix
-      cursor/data atomicity first.
+- [x] `probeStoreContents`/`classifyStoreContents` matrix is unit-tested,
+      including R0 (failed count never misreported as empty) and R4
+      (cursor-without-data → under-fetch/data-loss flag)
+      (`read-path-probe.test.ts`).
+- [x] Registry persists on a debounce after `track`, not only on `stop()`,
+      and coalesces a burst into one save; a `stop()` interleaving `start()`'s
+      `registry.load()` attaches **no** leaked listeners (`sync-manager.test.ts`).
+- [ ] With `xnet:boot:debug` on, a cold reload prints the count matrix and
+      every landing query's timing + row count. *(Live-runtime; enabled.)*
+- [ ] The matrix verdict classifies the load as R0–R5; if R4 (cursor>0,
+      data=0), treat as a release-blocking data-loss bug and fix cursor/data
+      atomicity first. *(Live-runtime.)*
 - [ ] On a populated cache, "first local rows painted" precedes
-      `hub:connected` (data **before** green) in the timeline.
-- [ ] Per-section paint: a slow single query no longer blanks the whole
-      home view; resolved sections render immediately.
-- [ ] If C ships: the boot read's resolve time no longer moves with the
-      size of the post-connect write burst.
-- [ ] Registry: after opening a doc then reloading, `tracked nodes > 0`
-      and the doc's room is pre-joined before navigation.
-- [ ] Repro validated against a **prod-like** build (no COOP/COEP), where
-      the benign OPFS error prints but storage stays `opfs`/durable.
+      `hub:connected` (data **before** green) in the timeline. *(Live-runtime.)*
+- [ ] Per-section paint: a slow single query no longer blanks the whole home
+      view; resolved sections render immediately. *(Live-runtime; logic
+      typecheck-verified.)*
+- [ ] Registry: after opening a doc then reloading, `tracked nodes > 0` and
+      the doc's room is pre-joined before navigation. *(Live-runtime.)*
+- [ ] Repro validated against a **prod-like** build (no COOP/COEP), where the
+      benign OPFS error prints but storage stays `opfs`/durable.
+      *(Live-runtime.)*
 - [ ] No multi-tab regression under the OPFS-SAHPool exclusive lock.
+      *(Live-runtime.)*
 
 ## References
 
