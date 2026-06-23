@@ -14,6 +14,7 @@ import {
   type CreatableDocType,
   type NavigateLike
 } from '../lib/doc-creation'
+import { useQueryTimer } from '../lib/read-path-probe'
 import { useRestoringFromHub } from '../lib/use-restoring'
 import { navigateToNode } from '../workbench/navigation'
 import { useWorkbench } from '../workbench/state'
@@ -58,22 +59,32 @@ function HomePage() {
     limit: 50
   })
 
-  const loading = pagesLoading || databasesLoading || canvasesLoading
+  // Read-path timing (exploration 0212): each section's fire→resolve latency
+  // and row count, gated behind `xnet:boot:debug`.
+  useQueryTimer('home:pages', pagesLoading, pages?.length ?? 0)
+  useQueryTimer('home:databases', databasesLoading, databases?.length ?? 0)
+  useQueryTimer('home:canvases', canvasesLoading, canvases?.length ?? 0)
+
   const restoring = useRestoringFromHub()
 
-  // Mark the boot timeline the first time the landing surface has rows to
-  // paint — this anchors `firstPaint` (init:start → query:first-rows), the
-  // wall-clock a returning user actually feels (exploration 0204).
-  useEffect(() => {
-    if (!loading) bootMark('query:first-rows')
-  }, [loading])
-
-  // Combine and sort all documents
+  // Combine and sort whatever has resolved so far. Each query returns [] while
+  // loading and fills in independently, so the list grows as sections resolve
+  // instead of blocking the whole page on the slowest one (exploration 0212).
   const allDocs: DocInfo[] = [
     ...(pages || []).map((p) => ({ ...p, type: 'page' as const })),
     ...(databases || []).map((d) => ({ ...d, type: 'database' as const })),
     ...(canvases || []).map((c) => ({ ...c, type: 'canvas' as const }))
   ].sort((a, b) => b.updatedAt - a.updatedAt)
+
+  const allLoaded = !pagesLoading && !databasesLoading && !canvasesLoading
+  const anyRows = allDocs.length > 0
+
+  // Mark the boot timeline the first time the landing surface has something
+  // definitive to paint — rows, OR a confirmed empty/restoring state — so one
+  // slow section no longer delays the felt first paint (explorations 0204, 0212).
+  useEffect(() => {
+    if (anyRows || allLoaded) bootMark('query:first-rows')
+  }, [anyRows, allLoaded])
 
   const handleCreate = (type: CreatableDocType) => {
     setShowCreateMenu(false)
@@ -100,15 +111,6 @@ function HomePage() {
       case 'canvas':
         return { to: '/canvas/$canvasId' as const, params: { canvasId: doc.id } }
     }
-  }
-
-  if (loading) {
-    if (restoring) return <RestoringNotice />
-    return (
-      <div className="flex items-center justify-center h-full text-muted-foreground">
-        Loading...
-      </div>
-    )
   }
 
   return (
@@ -169,7 +171,7 @@ function HomePage() {
         </span>
       </Link>
 
-      {allDocs.length === 0 ? (
+      {allLoaded && !anyRows ? (
         restoring ? (
           <RestoringNotice />
         ) : (
@@ -178,29 +180,53 @@ function HomePage() {
           </div>
         )
       ) : (
-        <ul className="list-none">
-          {allDocs.map((doc) => {
-            const Icon = getIcon(doc.type)
-            const route = getRoute(doc)
+        <>
+          {anyRows && (
+            <ul className="list-none">
+              {allDocs.map((doc) => {
+                const Icon = getIcon(doc.type)
+                const route = getRoute(doc)
 
-            return (
-              <li key={`${doc.type}-${doc.id}`} className="border-b border-border last:border-b-0">
-                <Link
-                  to={route.to}
-                  params={route.params}
-                  className="flex items-center gap-3 py-4 text-foreground no-underline hover:no-underline hover:bg-accent/30 -mx-2 px-2 rounded-md transition-colors"
-                >
-                  <Icon size={18} className="text-muted-foreground flex-shrink-0" />
-                  <span className="font-medium flex-1">{doc.title || 'Untitled'}</span>
-                  <span className="text-xs text-muted-foreground capitalize">{doc.type}</span>
-                  <span className="text-xs text-muted-foreground">
-                    {new Date(doc.updatedAt).toLocaleDateString()}
-                  </span>
-                </Link>
-              </li>
-            )
-          })}
-        </ul>
+                return (
+                  <li
+                    key={`${doc.type}-${doc.id}`}
+                    className="border-b border-border last:border-b-0"
+                  >
+                    <Link
+                      to={route.to}
+                      params={route.params}
+                      className="flex items-center gap-3 py-4 text-foreground no-underline hover:no-underline hover:bg-accent/30 -mx-2 px-2 rounded-md transition-colors"
+                    >
+                      <Icon size={18} className="text-muted-foreground flex-shrink-0" />
+                      <span className="font-medium flex-1">{doc.title || 'Untitled'}</span>
+                      <span className="text-xs text-muted-foreground capitalize">{doc.type}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(doc.updatedAt).toLocaleDateString()}
+                      </span>
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+          {/* Still resolving some sections — paint what we have, fill in the
+              rest. A subtle row when rows already show; the centered restore/
+              spinner only on a still-empty first paint (exploration 0212). */}
+          {!allLoaded &&
+            (restoring && !anyRows ? (
+              <RestoringNotice />
+            ) : (
+              <div
+                className={
+                  anyRows
+                    ? 'py-4 text-center text-sm text-muted-foreground'
+                    : 'flex items-center justify-center h-full text-muted-foreground'
+                }
+              >
+                Loading...
+              </div>
+            ))}
+        </>
       )}
     </div>
   )
