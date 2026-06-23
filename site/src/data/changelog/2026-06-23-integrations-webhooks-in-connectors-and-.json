@@ -1,0 +1,16 @@
+{
+  "id": "2026-06-23-integrations-webhooks-in-connectors-and-",
+  "date": "June 23, 2026",
+  "title": "Integrations: webhooks in, connectors and notifications out",
+  "summary": "xNet now speaks to the services developers and hobbyists actually use — GitHub, RSS, Stripe, Sentry, Discord, and a generic webhook in both directions.",
+  "highlights": [
+    "Receive signed webhooks from GitHub, Stripe, Sentry, and PagerDuty (HMAC-verified, replay-protected)",
+    "A generic POST /hooks/:token inbox bridges Zapier, Make, n8n, and IFTTT",
+    "Pull connectors for RSS/Atom, GitHub issues+PRs, Notion, and Airtable into governed nodes",
+    "Outbound actions post to Discord, Slack, Telegram, email, or any webhook when something changes"
+  ],
+  "tags": [
+    "plugins",
+    "platform"
+  ]
+}
