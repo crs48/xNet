@@ -12,5 +12,11 @@
   "tags": [
     "plugins",
     "platform"
+  ],
+  "pr": 240,
+  "authors": [
+    {
+      "login": "crs48"
+    }
   ]
 }
