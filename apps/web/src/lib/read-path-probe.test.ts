@@ -50,6 +50,13 @@ describe('classifyStoreContents (R1–R5 matrix)', () => {
     // A healthy returning user has all three; the projection is what matters.
     expect(classifyStoreContents(10, 500, 262282)).toMatch(/projection populated/i)
   })
+
+  it('R0: a failed count (-1) is never misreported as empty', () => {
+    // nodes count threw but changes has rows — must NOT claim "projection empty".
+    expect(classifyStoreContents(-1, 500, 0)).toMatch(/verdict unreliable/i)
+    expect(classifyStoreContents(-1, 500, 0)).not.toMatch(/PROJECTION EMPTY/i)
+    expect(classifyStoreContents(0, -1, 262282)).toMatch(/verdict unreliable/i)
+  })
 })
 
 describe('probeStoreContents', () => {

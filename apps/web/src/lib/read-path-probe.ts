@@ -61,6 +61,11 @@ export interface StoreContentsProbe {
  * — that needs the per-query timing — so it points at the query timer.
  */
 export function classifyStoreContents(nodes: number, changes: number, maxCursor: number): string {
+  if (nodes < 0 || changes < 0) {
+    // A COUNT query threw (e.g. a missing table). Don't infer "empty" from a
+    // failed measurement — say so and let the raw counts in the probe speak.
+    return 'count query failed (-1) — verdict unreliable; inspect the raw counts (R0)'
+  }
   if (nodes > 0) {
     return 'projection populated — local read path should paint before sync; compare landing-query timings (R1 fast vs R2 starved/mismatched)'
   }

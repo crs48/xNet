@@ -84,9 +84,11 @@ export class NodeStoreSyncProvider {
   // Request-sync-first: resolver for the in-flight node-sync-response wait.
   private syncResponseResolver: (() => void) | null = null
 
-  // One-shot: emit a performance mark the first time a remote change is applied
-  // to the local store, so read↔write contention on the cold-start path is
-  // visible on the boot timeline and in DevTools (exploration 0212).
+  // One-shot: emit a performance mark when the first remote change BEGINS
+  // applying to the local store (marked just before the awaited write, so it
+  // captures when the inbound write burst starts contending with reads on the
+  // single SQLite worker). Makes that contention visible on the boot timeline
+  // and in DevTools (exploration 0212).
   private firstRemoteApplyMarked = false
 
   constructor(

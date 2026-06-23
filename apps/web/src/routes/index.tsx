@@ -113,6 +113,11 @@ function HomePage() {
     }
   }
 
+  // A configured startup surface (0166) redirects away from '/' in the effect
+  // above, which runs after paint. Render nothing meanwhile so the user does
+  // not see the full document-list chrome flash before navigation lands (0212).
+  if (startupTab) return null
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">

@@ -250,6 +250,30 @@ describe('createSyncManager', () => {
     }
   })
 
+  it('does not attach (leak) lifecycle listeners if stop() interleaves during start() (0212)', async () => {
+    const addSpy = vi.spyOn(globalThis, 'addEventListener')
+    // Hold registry.load() open so we can stop() while start() is suspended on it.
+    const loadGate = createDeferred<void>()
+    mockRegistry.load.mockImplementationOnce(() => loadGate.promise)
+    try {
+      const manager = createSyncManager({
+        nodeStore: {} as NodeStore,
+        storage: {} as NodeStorageAdapter,
+        signalingUrl: 'ws://localhost:4444'
+      })
+
+      const startPromise = manager.start() // suspends on registry.load()
+      await manager.stop() // interleaves: sets stopped=true; detach is a no-op (nothing attached yet)
+      loadGate.resolve() // start() resumes past the await…
+      await startPromise // …and must bail before attaching listeners
+
+      const attachedVisibility = addSpy.mock.calls.some(([type]) => type === 'visibilitychange')
+      expect(attachedVisibility).toBe(false)
+    } finally {
+      addSpy.mockRestore()
+    }
+  })
+
   it('uses multi-hub orchestration when multiple signaling URLs are configured', () => {
     createSyncManager({
       nodeStore: {} as NodeStore,

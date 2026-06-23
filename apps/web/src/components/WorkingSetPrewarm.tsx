@@ -8,27 +8,32 @@
  *  2. Holding a live subscription keeps the cache entries from being evicted
  *     when a route unmounts, so switching tabs back to a list is instant.
  *
- * The bridge dedupes by query descriptor, so sharing the exact descriptor a
- * route uses means no double fetch. Renders nothing.
+ * The bridge dedupes by query descriptor, so each prewarm query MUST use the
+ * exact descriptor its real surface uses — otherwise it warms a cache key no
+ * view reads (pure over-fetch) and the real query still misses on arrival.
+ * Renders nothing.
  *
- * 0212 broadened the set beyond docs (Page/Database/Canvas) to the other
- * primary list surfaces a user commonly lands on — Channels (chat) and Tasks —
- * since `startupTab` can open those and the original prewarm left them cold.
- * `updatedAt` is a node-system field, so ordering by it is valid for any
- * schema.
+ * 0212 broadened the set beyond docs to the other primary list surfaces:
+ *  - Page/Database/Canvas → the home route (`{orderBy:{updatedAt:'desc'},limit:50}`).
+ *  - Channel → the channel sidebar `useChannels()` (`{orderBy:{createdAt:'asc'}}`).
+ *  - Task → the `/tasks` route via `useTasks()` (`{}`).
  */
 import { CanvasSchema, ChannelSchema, DatabaseSchema, PageSchema, TaskSchema } from '@xnetjs/data'
 import { useQuery } from '@xnetjs/react'
 import { useQueryTimer } from '../lib/read-path-probe'
 
+// Each descriptor mirrors the matching surface exactly so the bridge dedupes
+// (see the route/hook cited above) — do not "tidy" these into one shape.
 const RECENT = { orderBy: { updatedAt: 'desc' as const }, limit: 50 }
+const CHANNELS = { orderBy: { createdAt: 'asc' as const } }
+const TASKS = {}
 
 export function WorkingSetPrewarm(): null {
   const pages = useQuery(PageSchema, RECENT)
   const databases = useQuery(DatabaseSchema, RECENT)
   const canvases = useQuery(CanvasSchema, RECENT)
-  const channels = useQuery(ChannelSchema, RECENT)
-  const tasks = useQuery(TaskSchema, RECENT)
+  const channels = useQuery(ChannelSchema, CHANNELS)
+  const tasks = useQuery(TaskSchema, TASKS)
 
   // Read-path timing for the prewarmed surfaces (gated behind xnet:boot:debug).
   useQueryTimer('prewarm:pages', pages.loading, pages.data?.length ?? 0)

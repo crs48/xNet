@@ -375,6 +375,10 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
   let registrySaveTimer: ReturnType<typeof setTimeout> | null = null
 
   function scheduleRegistrySave(): void {
+    // Never (re-)arm after teardown: a late acquire/track from an in-flight
+    // bridge call could otherwise resurrect a one-shot timer that fires
+    // registry.save() on a stopped instance.
+    if (lifecycleInput.stopped) return
     if (registrySaveTimer) return
     registrySaveTimer = setTimeout(() => {
       registrySaveTimer = null
@@ -387,11 +391,13 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
       clearTimeout(registrySaveTimer)
       registrySaveTimer = null
     }
+    if (lifecycleInput.stopped) return
     void registry.save()
   }
 
-  // Window-only lifecycle flushes. Guarded so the worker-resident runtime and
-  // node/test contexts (no `document`) just rely on the debounce.
+  // Lifecycle flushes, attached only in a DOM context (the `typeof document`
+  // guard) — the SyncManager runs on the main thread; Node/SSR/test and the
+  // data worker (no `document`) just rely on the debounce.
   const handleVisibilityChange = (): void => {
     if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
       flushRegistrySave()
@@ -1015,6 +1021,12 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
         replaying: false
       })
       await registry.load()
+      // stop() can interleave during the await above (the provider fires
+      // start() un-awaited then runs cleanup→stop() on a StrictMode remount or
+      // any effect-dep change). If we were stopped meanwhile, bail BEFORE
+      // attaching global listeners — otherwise they'd attach after stop()'s
+      // detach already ran (a no-op then) and leak for the page lifetime.
+      if (lifecycleInput.stopped) return
       log('Registry loaded, tracked nodes:', registry.getTracked().length)
       attachPersistenceListeners()
       await offlineQueue.load()
