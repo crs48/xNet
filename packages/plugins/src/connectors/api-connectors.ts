@@ -371,3 +371,96 @@ function firstStringField(fields: Record<string, unknown>): string | undefined {
   }
   return undefined
 }
+
+// ─── Linear ──────────────────────────────────────────────────────────────────
+
+export const LINEAR_CONNECTOR_ID = 'dev.xnet.connector.linear'
+
+const LINEAR_ISSUES_QUERY = `query($after: String) {
+  issues(first: 100, after: $after) {
+    nodes { id identifier title url description updatedAt state { name } }
+    pageInfo { hasNextPage endCursor }
+  }
+}`
+
+interface LinearIssue {
+  identifier?: string
+  title?: string
+  url?: string
+  description?: string
+  updatedAt?: string
+  state?: { name?: string }
+}
+
+export type LinearConnectorOptions = ApiConnectorBaseOptions
+
+/**
+ * Build the Linear connector. Imports issues via Linear's GraphQL API (following
+ * the `pageInfo` cursor) into `ExternalItem` nodes (`LINEAR_API_KEY`). Personal
+ * API keys go in the `Authorization` header verbatim (no `Bearer` prefix).
+ */
+export function buildLinearConnector(options: LinearConnectorOptions = {}): DefinedConnector {
+  const id = options.id ?? LINEAR_CONNECTOR_ID
+  const tools = options.search
+    ? [searchTool(id, 'linear_search_issues', 'Search imported Linear issues.', options.search)]
+    : []
+  return defineConnector({
+    id,
+    name: 'Linear',
+    description: 'Import Linear issues into xNet.',
+    capabilities: {
+      secrets: ['LINEAR_API_KEY'],
+      schemaWrite: [EXTERNAL_ITEM_SCHEMA],
+      network: ['api.linear.app']
+    },
+    sync: {
+      schemas: [EXTERNAL_ITEM_SCHEMA],
+      cadence: 'hourly',
+      async pull(ctx) {
+        const key = requireSecret(ctx.env, 'LINEAR_API_KEY', id)
+        const headers = { Authorization: key, 'content-type': 'application/json' }
+        let written = 0
+        let cursor: string | undefined
+        for (let page = 0; page < MAX_PAGES; page++) {
+          const body = await fetchJson<{
+            data?: {
+              issues?: {
+                nodes?: LinearIssue[]
+                pageInfo?: { hasNextPage?: boolean; endCursor?: string }
+              }
+            }
+          }>(
+            ctx.fetch,
+            'https://api.linear.app/graphql',
+            headers,
+            JSON.stringify({ query: LINEAR_ISSUES_QUERY, variables: { after: cursor ?? null } })
+          )
+          const issues = body.data?.issues
+          for (const issue of issues?.nodes ?? []) {
+            const identifier = str(issue.identifier)
+            const title = str(issue.title)
+            if (!identifier || !title) continue
+            await ctx.store.create({
+              schemaId: EXTERNAL_ITEM_SCHEMA,
+              properties: {
+                source: 'linear',
+                kind: 'issue',
+                externalId: identifier,
+                title,
+                ...(str(issue.url) ? { url: str(issue.url) } : {}),
+                ...(str(issue.description) ? { body: str(issue.description) } : {}),
+                ...(str(issue.state?.name) ? { status: str(issue.state?.name) } : {}),
+                ...(parseDate(issue.updatedAt) ? { updatedAt: parseDate(issue.updatedAt) } : {})
+              }
+            })
+            written++
+          }
+          if (!issues?.pageInfo?.hasNextPage || !issues.pageInfo.endCursor) break
+          cursor = issues.pageInfo.endCursor
+        }
+        return { written }
+      }
+    },
+    agentTools: tools
+  })
+}

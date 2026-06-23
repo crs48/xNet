@@ -50,13 +50,16 @@ export {
   buildGithubConnector,
   buildNotionConnector,
   buildAirtableConnector,
+  buildLinearConnector,
   EXTERNAL_ITEM_SCHEMA,
   GITHUB_CONNECTOR_ID,
   NOTION_CONNECTOR_ID,
-  AIRTABLE_CONNECTOR_ID
+  AIRTABLE_CONNECTOR_ID,
+  LINEAR_CONNECTOR_ID
 } from './api-connectors'
 export type {
   GithubConnectorOptions,
   NotionConnectorOptions,
-  AirtableConnectorOptions
+  AirtableConnectorOptions,
+  LinearConnectorOptions
 } from './api-connectors'

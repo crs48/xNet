@@ -1,0 +1,14 @@
+{
+  "id": "2026-06-23-linear-connector-joins-the-integration-c",
+  "date": "June 23, 2026",
+  "title": "Linear connector joins the integration catalog",
+  "summary": "Import your Linear issues into xNet as governed nodes, alongside GitHub, Notion, and Airtable.",
+  "highlights": [
+    "Pulls Linear issues via the GraphQL API into governed ExternalItem nodes",
+    "Follows pagination so large workspaces import in full"
+  ],
+  "tags": [
+    "plugins",
+    "tasks"
+  ]
+}
