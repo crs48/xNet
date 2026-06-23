@@ -24,20 +24,70 @@ export interface FeedEntry {
   publishedAt?: number
 }
 
-const ENTITIES: Record<string, string> = {
-  '&amp;': '&',
-  '&lt;': '<',
-  '&gt;': '>',
-  '&quot;': '"',
-  '&#39;': "'",
-  '&apos;': "'"
+/** Cap the parsed body so a hostile/huge feed can't pin the event loop. */
+export const MAX_FEED_BYTES = 4 * 1024 * 1024
+/** Cap entries materialized per poll. */
+const MAX_ENTRIES = 1000
+
+const NAMED_ENTITIES: Record<string, string> = {
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  nbsp: ' ',
+  copy: '©',
+  reg: '®',
+  trade: '™',
+  mdash: '—',
+  ndash: '–',
+  hellip: '…',
+  lsquo: '‘',
+  rsquo: '’',
+  ldquo: '“',
+  rdquo: '”'
 }
 
-function decode(text: string): string {
-  return text
-    .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
-    .replace(/&(amp|lt|gt|quot|#39|apos);/g, (m) => ENTITIES[m] ?? m)
-    .trim()
+function fromCodePoint(code: number): string | undefined {
+  if (!Number.isFinite(code) || code <= 0 || code > 0x10ffff) return undefined
+  try {
+    return String.fromCodePoint(code)
+  } catch {
+    return undefined
+  }
+}
+
+/** Decode named + numeric (decimal/hex) entities in a non-CDATA text span. */
+function decodeEntities(text: string): string {
+  return text.replace(/&(#x[0-9a-fA-F]+|#\d+|[a-zA-Z][a-zA-Z0-9]*);/g, (m, body: string) => {
+    if (body[0] === '#') {
+      const code =
+        body[1] === 'x' || body[1] === 'X'
+          ? parseInt(body.slice(2), 16)
+          : parseInt(body.slice(1), 10)
+      return fromCodePoint(code) ?? m
+    }
+    return NAMED_ENTITIES[body] ?? m
+  })
+}
+
+/**
+ * Decode an extracted field. CDATA sections are emitted verbatim (XML treats
+ * their content as raw text, so `&amp;` inside CDATA stays literal); only the
+ * non-CDATA spans are entity-decoded.
+ */
+function decode(raw: string): string {
+  const re = /<!\[CDATA\[([\s\S]*?)\]\]>/g
+  let out = ''
+  let last = 0
+  let m: RegExpExecArray | null
+  while ((m = re.exec(raw))) {
+    out += decodeEntities(raw.slice(last, m.index))
+    out += m[1]
+    last = re.lastIndex
+  }
+  out += decodeEntities(raw.slice(last))
+  return out.trim()
 }
 
 /** Extract the inner text of the first `<name>...</name>` in `block`. */
@@ -62,11 +112,65 @@ function dateOf(block: string): number | undefined {
 }
 
 /**
+ * Find each `<item>…</item>` / `<entry>…</entry>` block by a linear, CDATA-aware
+ * scan. A backtracking regex (`<(item|entry)\b[\s\S]*?<\/\1>`) is O(n²) on a feed
+ * full of unclosed tags — a trivial event-loop DoS — and stops at a `</item>`
+ * sitting inside a `<![CDATA[…]]>` section. indexOf-walking is linear and skips
+ * CDATA when locating the close tag.
+ */
+function findBlocks(xml: string, tag: string, out: string[]): void {
+  const lower = xml.toLowerCase()
+  const open = `<${tag}`
+  const close = `</${tag}>`
+  let pos = 0
+  while (out.length < MAX_ENTRIES) {
+    const start = lower.indexOf(open, pos)
+    if (start === -1) return
+    const after = lower[start + open.length]
+    // Require a tag boundary (`<item>`, `<item …>`, `<item/>`) — not `<items>`.
+    if (
+      after !== '>' &&
+      after !== '/' &&
+      after !== ' ' &&
+      after !== '\t' &&
+      after !== '\n' &&
+      after !== '\r'
+    ) {
+      pos = start + open.length
+      continue
+    }
+    const openEnd = xml.indexOf('>', start)
+    if (openEnd === -1) return
+    let scan = openEnd + 1
+    let closeAt = -1
+    while (scan <= xml.length) {
+      const cdata = lower.indexOf('<![cdata[', scan)
+      const closeIdx = lower.indexOf(close, scan)
+      if (closeIdx === -1) return // unclosed → stop (don't scan forever)
+      if (cdata !== -1 && cdata < closeIdx) {
+        const cdataEnd = xml.indexOf(']]>', cdata + 9)
+        scan = cdataEnd === -1 ? xml.length + 1 : cdataEnd + 3
+        continue
+      }
+      closeAt = closeIdx
+      break
+    }
+    if (closeAt === -1) return
+    out.push(xml.slice(start, closeAt + close.length))
+    pos = closeAt + close.length
+  }
+}
+
+/**
  * Parse an RSS or Atom document into normalized entries. Defensive by design:
- * malformed or unknown markup yields fewer entries rather than throwing.
+ * malformed or unknown markup yields fewer entries rather than throwing, and the
+ * scan is linear so a hostile feed cannot pin the event loop.
  */
 export function parseFeed(xml: string): FeedEntry[] {
-  const blocks = xml.match(/<(item|entry)\b[\s\S]*?<\/\1>/gi) ?? []
+  const input = xml.length > MAX_FEED_BYTES ? xml.slice(0, MAX_FEED_BYTES) : xml
+  const blocks: string[] = []
+  findBlocks(input, 'item', blocks)
+  findBlocks(input, 'entry', blocks)
   const entries: FeedEntry[] = []
   for (const block of blocks) {
     const title = tagText(block, 'title')
@@ -88,10 +192,12 @@ export function parseFeed(xml: string): FeedEntry[] {
 
 /** Read a value that may be a `fetch` Response or an already-resolved string. */
 async function asText(value: unknown): Promise<string> {
-  if (value && typeof (value as { text?: unknown }).text === 'function') {
-    return (await (value as { text: () => Promise<string> }).text()) as string
-  }
-  return String(value ?? '')
+  const text =
+    value && typeof (value as { text?: unknown }).text === 'function'
+      ? await (value as { text: () => Promise<string> }).text()
+      : String(value ?? '')
+  // Bound the work the parser does, regardless of how large the feed is.
+  return text.length > MAX_FEED_BYTES ? text.slice(0, MAX_FEED_BYTES) : text
 }
 
 export interface RssConnectorOptions {

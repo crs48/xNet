@@ -26,6 +26,13 @@ describe('verifyGithubSignature', () => {
     expect(verifyGithubSignature(secret, body, undefined)).toBe(false)
     expect(verifyGithubSignature(secret, body, 'md5=deadbeef')).toBe(false)
   })
+  it('returns false (not throws) for a multibyte signature matching code-unit length', () => {
+    // 63 ASCII + 1 multibyte char = 64 UTF-16 code units (== hex digest length)
+    // but 65 UTF-8 bytes — must not throw RangeError in timingSafeEqual.
+    const crafted = `sha256=${'a'.repeat(63)}é`
+    expect(() => verifyGithubSignature(secret, body, crafted)).not.toThrow()
+    expect(verifyGithubSignature(secret, body, crafted)).toBe(false)
+  })
 })
 
 describe('verifyStripeSignature', () => {

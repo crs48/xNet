@@ -19,10 +19,18 @@ import { createHmac, timingSafeEqual } from 'node:crypto'
 /** Default replay window: reject deliveries whose timestamp is older than this. */
 export const DEFAULT_TOLERANCE_SECONDS = 300
 
-/** Constant-time compare of two equal-length strings (utf8). false on mismatch. */
+/**
+ * Constant-time compare of two strings, false on mismatch. Guards on UTF-8
+ * **byte** length (not JS code-unit length) — a crafted multibyte signature can
+ * match `a.length` yet differ in byte length, and `timingSafeEqual` throws a
+ * RangeError on unequal Buffer lengths. Comparing byte lengths first keeps a
+ * bad signature a clean `false` (→ 401) instead of an uncaught 500.
+ */
 export function safeEqualStrings(a: string, b: string): boolean {
-  if (a.length !== b.length) return false
-  return timingSafeEqual(Buffer.from(a, 'utf8'), Buffer.from(b, 'utf8'))
+  const ba = Buffer.from(a, 'utf8')
+  const bb = Buffer.from(b, 'utf8')
+  if (ba.length !== bb.length) return false
+  return timingSafeEqual(ba, bb)
 }
 
 function hmacHex(secret: string, message: string): string {

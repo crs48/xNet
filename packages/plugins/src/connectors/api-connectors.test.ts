@@ -5,7 +5,7 @@ import {
   buildNotionConnector,
   EXTERNAL_ITEM_SCHEMA
 } from './api-connectors'
-import { runConnectorSync } from './sync-runner'
+import { ConnectorSyncError, runConnectorSync } from './sync-runner'
 
 interface Created {
   schemaId: string
@@ -34,6 +34,12 @@ function harness(responseByUrl: (url: string) => unknown) {
     }
   }
   return { created, requests, fetch, store }
+}
+
+/** A harness that returns a different response on each successive fetch call. */
+function sequenceHarness(responses: unknown[]) {
+  let i = 0
+  return harness(() => responses[Math.min(i++, responses.length - 1)])
 }
 
 describe('buildGithubConnector', () => {
@@ -65,6 +71,51 @@ describe('buildGithubConnector', () => {
     })
     const headers = (h.requests[0].init as { headers: Record<string, string> }).headers
     expect(headers.Authorization).toBe('Bearer ghtok')
+  })
+
+  it('throws a loud error when the required secret is missing', async () => {
+    const h = harness(() => [])
+    await expect(
+      runConnectorSync(buildGithubConnector({ owner: 'o', repo: 'r' }).definition, {
+        env: {},
+        fetch: h.fetch,
+        store: h.store,
+        space: 'space-1'
+      })
+    ).rejects.toThrow(ConnectorSyncError)
+  })
+
+  it('throws on a non-2xx response instead of silently writing nothing', async () => {
+    const h = harness(() => ({ ok: false, status: 404, json: async () => ({}) }))
+    await expect(
+      runConnectorSync(buildGithubConnector({ owner: 'o', repo: 'r' }).definition, {
+        env: { GITHUB_TOKEN: 't' },
+        fetch: h.fetch,
+        store: h.store,
+        space: 'space-1'
+      })
+    ).rejects.toThrow(ConnectorSyncError)
+  })
+
+  it('follows pagination across pages', async () => {
+    const fullPage = Array.from({ length: 100 }, (_, i) => ({
+      number: i + 1,
+      title: `#${i + 1}`,
+      state: 'open'
+    }))
+    const lastPage = [{ number: 101, title: '#101', state: 'open' }]
+    const h = sequenceHarness([fullPage, lastPage])
+    const result = await runConnectorSync(
+      buildGithubConnector({ owner: 'o', repo: 'r' }).definition,
+      {
+        env: { GITHUB_TOKEN: 't' },
+        fetch: h.fetch,
+        store: h.store,
+        space: 'space-1'
+      }
+    )
+    expect(result.written).toBe(101)
+    expect(h.requests).toHaveLength(2) // page 1 full → fetch page 2 → short → stop
   })
 })
 
@@ -100,6 +151,23 @@ describe('buildNotionConnector', () => {
     const init = h.requests[0].init as { method: string; headers: Record<string, string> }
     expect(init.method).toBe('POST')
     expect(init.headers['Notion-Version']).toBeTruthy()
+  })
+
+  it('follows the has_more / next_cursor pagination', async () => {
+    const h = sequenceHarness([
+      { results: [{ id: 'p1', properties: {} }], has_more: true, next_cursor: 'cur2' },
+      { results: [{ id: 'p2', properties: {} }], has_more: false, next_cursor: null }
+    ])
+    const result = await runConnectorSync(buildNotionConnector().definition, {
+      env: { NOTION_TOKEN: 't' },
+      fetch: h.fetch,
+      store: h.store,
+      space: 'space-1'
+    })
+    expect(result.written).toBe(2)
+    expect(h.requests).toHaveLength(2)
+    // second request carries the cursor
+    expect((h.requests[1].init as { body: string }).body).toContain('cur2')
   })
 })
 

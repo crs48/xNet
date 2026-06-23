@@ -58,6 +58,46 @@ describe('parseFeed', () => {
   it('returns [] for non-feed markup', () => {
     expect(parseFeed('<html><body>no feed here</body></html>')).toEqual([])
   })
+
+  it('is not fooled by a </item> inside a CDATA section', () => {
+    const xml =
+      '<rss><channel><item>' +
+      '<description><![CDATA[a closing </item> hides here]]></description>' +
+      '<title>RealTitle</title>' +
+      '</item></channel></rss>'
+    const entries = parseFeed(xml)
+    expect(entries).toHaveLength(1)
+    expect(entries[0].title).toBe('RealTitle')
+  })
+
+  it('decodes numeric (decimal/hex) and extra named entities', () => {
+    const xml =
+      '<rss><channel><item><title>Foo&#8217;s &amp; Bar&#x2026; &nbsp;end</title></item></channel></rss>'
+    // &nbsp; → U+00A0 (a real non-breaking space, not an ASCII space)
+    expect(parseFeed(xml)[0].title).toBe('Foo’s & Bar…  end')
+  })
+
+  it('preserves literal entities inside CDATA (does not double-unescape)', () => {
+    const xml =
+      '<rss><channel><item><title><![CDATA[Tom &amp; Jerry]]></title></item></channel></rss>'
+    expect(parseFeed(xml)[0].title).toBe('Tom &amp; Jerry')
+  })
+
+  it('handles a hostile unclosed-tag body in linear time (no ReDoS)', () => {
+    const hostile = '<item>'.repeat(200_000) // 1.2MB of unclosed tags
+    const start = process.hrtime.bigint()
+    const entries = parseFeed(hostile)
+    const ms = Number(process.hrtime.bigint() - start) / 1e6
+    expect(entries).toEqual([]) // no closing tags → nothing parsed
+    expect(ms).toBeLessThan(1000) // the old O(n^2) regex took ~34s here
+  })
+
+  it('caps the number of entries materialized per poll', () => {
+    const item = '<item><title>x</title></item>'
+    expect(
+      parseFeed(`<rss><channel>${item.repeat(5000)}</channel></rss>`).length
+    ).toBeLessThanOrEqual(1000)
+  })
 })
 
 describe('buildRssConnector', () => {
