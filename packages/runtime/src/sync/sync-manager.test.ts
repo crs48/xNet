@@ -218,6 +218,38 @@ describe('createSyncManager', () => {
     expect(manager.lifecycle.phase).toBe('stopped')
   })
 
+  it('persists the registry on a debounce after track, not only on stop (0212)', async () => {
+    vi.useFakeTimers()
+    try {
+      const manager = createSyncManager({
+        nodeStore: {} as NodeStore,
+        storage: {} as NodeStorageAdapter,
+        signalingUrl: 'ws://localhost:4444'
+      })
+      await manager.start()
+      mockRegistry.save.mockClear()
+
+      manager.track('node-1', 'xnet://xnet.fyi/Page@1.0.0')
+      expect(mockRegistry.track).toHaveBeenCalledWith('node-1', 'xnet://xnet.fyi/Page@1.0.0')
+      // The save is debounced — not synchronous with track().
+      expect(mockRegistry.save).not.toHaveBeenCalled()
+
+      vi.advanceTimersByTime(2000)
+      expect(mockRegistry.save).toHaveBeenCalledTimes(1)
+
+      // A burst of tracks within the window coalesces into a single save.
+      mockRegistry.save.mockClear()
+      manager.track('node-2', 'xnet://xnet.fyi/Page@1.0.0')
+      manager.track('node-3', 'xnet://xnet.fyi/Page@1.0.0')
+      vi.advanceTimersByTime(2000)
+      expect(mockRegistry.save).toHaveBeenCalledTimes(1)
+
+      await manager.stop()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('uses multi-hub orchestration when multiple signaling URLs are configured', () => {
     createSyncManager({
       nodeStore: {} as NodeStore,

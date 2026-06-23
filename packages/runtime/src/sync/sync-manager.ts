@@ -364,6 +364,61 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
     storage: createRegistryStorageAdapter(config.storage),
     trackTTL: config.trackTTL
   })
+
+  // Registry persistence (exploration 0212). The registry used to be saved only
+  // on a graceful stop(), which does NOT run on a hard reload or tab close — so
+  // `tracked nodes` was ~always 0 on cold boot even after heavy use, and no
+  // previously-open document was pre-synced in the background after a reload.
+  // Persist on a short debounce after every track/touch, and flush best-effort
+  // when the page is hidden/unloaded, so the tracked set survives a reload.
+  const REGISTRY_SAVE_DEBOUNCE_MS = 2000
+  let registrySaveTimer: ReturnType<typeof setTimeout> | null = null
+
+  function scheduleRegistrySave(): void {
+    if (registrySaveTimer) return
+    registrySaveTimer = setTimeout(() => {
+      registrySaveTimer = null
+      void registry.save()
+    }, REGISTRY_SAVE_DEBOUNCE_MS)
+  }
+
+  function flushRegistrySave(): void {
+    if (registrySaveTimer) {
+      clearTimeout(registrySaveTimer)
+      registrySaveTimer = null
+    }
+    void registry.save()
+  }
+
+  // Window-only lifecycle flushes. Guarded so the worker-resident runtime and
+  // node/test contexts (no `document`) just rely on the debounce.
+  const handleVisibilityChange = (): void => {
+    if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
+      flushRegistrySave()
+    }
+  }
+  const handlePageHide = (): void => {
+    flushRegistrySave()
+  }
+  let persistenceListenersAttached = false
+  function attachPersistenceListeners(): void {
+    if (persistenceListenersAttached) return
+    if (typeof document === 'undefined' || typeof addEventListener !== 'function') return
+    persistenceListenersAttached = true
+    addEventListener('visibilitychange', handleVisibilityChange)
+    addEventListener('pagehide', handlePageHide)
+  }
+  function detachPersistenceListeners(): void {
+    if (!persistenceListenersAttached) return
+    persistenceListenersAttached = false
+    try {
+      removeEventListener('visibilitychange', handleVisibilityChange)
+      removeEventListener('pagehide', handlePageHide)
+    } catch {
+      // ignore — best-effort teardown
+    }
+  }
+
   const signalingUrls = resolveSignalingUrls(config.signalingUrl, config.signalingUrls)
   const connection =
     signalingUrls.length > 1
@@ -961,6 +1016,7 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
       })
       await registry.load()
       log('Registry loaded, tracked nodes:', registry.getTracked().length)
+      attachPersistenceListeners()
       await offlineQueue.load()
       log('Offline queue loaded, size:', offlineQueue.size)
       updateLifecycle({ localReady: true })
@@ -1002,6 +1058,11 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
         leaveNodeRoom(nodeId)
       }
 
+      detachPersistenceListeners()
+      if (registrySaveTimer) {
+        clearTimeout(registrySaveTimer)
+        registrySaveTimer = null
+      }
       connection.disconnect()
       await pool.flushAll()
       registry.prune()
@@ -1012,6 +1073,7 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
 
     track(nodeId, schemaId) {
       registry.track(nodeId, schemaId)
+      scheduleRegistrySave()
       // Fire-and-forget join - sync will happen when ready
       joinNodeRoom(nodeId).catch((err) => {
         log('Error joining room for track:', err)
@@ -1020,12 +1082,14 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
 
     untrack(nodeId) {
       registry.untrack(nodeId)
+      scheduleRegistrySave()
       leaveNodeRoom(nodeId)
     },
 
     async acquire(nodeId) {
       log('Acquiring doc for node:', nodeId)
       registry.touch(nodeId)
+      scheduleRegistrySave()
 
       const doc = await pool.acquire(nodeId)
       log('Doc acquired from pool, guid:', doc.guid, 'meta keys:', doc.getMap('meta').size)
