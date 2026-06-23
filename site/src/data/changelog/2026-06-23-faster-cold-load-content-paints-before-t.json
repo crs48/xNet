@@ -1,0 +1,15 @@
+{
+  "id": "2026-06-23-faster-cold-load-content-paints-before-t",
+  "date": "June 23, 2026",
+  "title": "Faster cold load: content paints before the hub syncs",
+  "summary": "The home page now renders each list as soon as it loads instead of blocking on the slowest query, and your recently-opened documents are restored more reliably after a reload.",
+  "highlights": [
+    "Document list paints per-section instead of all-or-nothing",
+    "Open documents are pre-synced after a reload (tracked-node registry now persists)"
+  ],
+  "tags": [
+    "performance",
+    "sync"
+  ],
+  "pr": 239
+}
