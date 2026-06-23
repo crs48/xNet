@@ -28,6 +28,9 @@ const RECENT = { orderBy: { updatedAt: 'desc' as const }, limit: 50 }
 const CHANNELS = { orderBy: { createdAt: 'asc' as const } }
 const TASKS = {}
 
+/** Row count of a query result (the `?.`/`??` lives here, not inline ×5). */
+const rowCount = (q: { data?: { length: number } | null }): number => q.data?.length ?? 0
+
 export function WorkingSetPrewarm(): null {
   const pages = useQuery(PageSchema, RECENT)
   const databases = useQuery(DatabaseSchema, RECENT)
@@ -36,11 +39,11 @@ export function WorkingSetPrewarm(): null {
   const tasks = useQuery(TaskSchema, TASKS)
 
   // Read-path timing for the prewarmed surfaces (gated behind xnet:boot:debug).
-  useQueryTimer('prewarm:pages', pages.loading, pages.data?.length ?? 0)
-  useQueryTimer('prewarm:databases', databases.loading, databases.data?.length ?? 0)
-  useQueryTimer('prewarm:canvases', canvases.loading, canvases.data?.length ?? 0)
-  useQueryTimer('prewarm:channels', channels.loading, channels.data?.length ?? 0)
-  useQueryTimer('prewarm:tasks', tasks.loading, tasks.data?.length ?? 0)
+  useQueryTimer('prewarm:pages', pages.loading, rowCount(pages))
+  useQueryTimer('prewarm:databases', databases.loading, rowCount(databases))
+  useQueryTimer('prewarm:canvases', canvases.loading, rowCount(canvases))
+  useQueryTimer('prewarm:channels', channels.loading, rowCount(channels))
+  useQueryTimer('prewarm:tasks', tasks.loading, rowCount(tasks))
 
   return null
 }
