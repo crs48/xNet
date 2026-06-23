@@ -42,3 +42,21 @@ export {
   CHAT_MESSAGE_SCHEMA
 } from './slack-migration'
 export type { SlackConnectorOptions } from './slack-migration'
+
+// Integration connectors (exploration 0213)
+export { buildRssConnector, parseFeed, RSS_CONNECTOR_ID, FEED_ITEM_SCHEMA } from './rss'
+export type { RssConnectorOptions, FeedEntry } from './rss'
+export {
+  buildGithubConnector,
+  buildNotionConnector,
+  buildAirtableConnector,
+  EXTERNAL_ITEM_SCHEMA,
+  GITHUB_CONNECTOR_ID,
+  NOTION_CONNECTOR_ID,
+  AIRTABLE_CONNECTOR_ID
+} from './api-connectors'
+export type {
+  GithubConnectorOptions,
+  NotionConnectorOptions,
+  AirtableConnectorOptions
+} from './api-connectors'
