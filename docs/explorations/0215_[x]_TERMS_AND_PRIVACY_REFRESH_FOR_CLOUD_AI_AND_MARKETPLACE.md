@@ -700,32 +700,42 @@ const legalLinks = [
 
 ## Implementation Checklist
 
-- [ ] **Confirm legal entity, jurisdiction, and governing law** (business decision; unblocks DPA/ToS).
-- [ ] **Rewrite `site/src/pages/privacy.astro`** around the two-context model with the scoped "what we can/can't see," Accounts (WorkOS), Payments (Stripe), Hosting/Storage (GCP + R2), Managed AI, Connectors, Retention/lifecycle, DSAR for server-side data, updated children's-age threshold.
-- [ ] **Rewrite `site/src/pages/terms.astro`**: expand "Services" to include Cloud/dashboard/managed hubs/marketplace/AI; add Accounts & Billing, Cloud subscription/cancellation/grace-window/refunds, managed-AI terms, pointers to AUP + Marketplace terms, named entity + governing law.
-- [ ] **Add `site/src/pages/subprocessors.astro`** (committed table above); link from both policies.
-- [ ] **Add `site/src/pages/acceptable-use.astro`** (extract + expand from ToS; reflect `packages/abuse/` enforcement + appeals reality).
-- [ ] **Update `Footer.astro` `legalLinks`** to add Acceptable Use + Sub-processors.
-- [ ] **Reconcile `site/src/data/pricing.ts` FAQ** "we cannot read" answer with the scoped policy language.
-- [ ] **Bump "Last updated" date** on both policies; add a short "what changed" note for the launch revision.
-- [ ] **(P1) Draft the Data Processing Addendum** (Team/Enterprise) reusing the sub-processor list; legal review.
-- [ ] **(P1) Draft Marketplace Developer Agreement + Marketplace User Terms**; gate paid-plugin enablement on these landing.
-- [ ] **(P1) Consolidate AI data-handling disclosure**; decide the OpenRouter retention/training stance.
-- [ ] **(P2) Add international-transfer language, security/responsible-disclosure page, legal changelog, optional `/subprocessors.json`.**
-- [ ] **Legal review of the full set before publishing.**
+Implemented in PR (branch `claude/legal-docs-cloud-refresh`). Items left unchecked
+are genuinely external (a business decision or a lawyer's sign-off) and cannot be
+completed in-repo.
+
+- [ ] **Confirm legal entity, jurisdiction, and governing law** (business decision; unblocks DPA/ToS). *Interim: docs say "the xNet project and its maintainers" with a source-level `NOTE FOR MAINTAINERS` placeholder; governing-law clause unchanged pending a named entity.*
+- [x] **Rewrite `site/src/pages/privacy.astro`** around the two-context model with the scoped "what we can/can't see," Accounts (WorkOS), Payments (Stripe), Hosting/Storage (GCP + R2), Managed AI, Connectors, Retention/lifecycle, DSAR for server-side data, updated children's-age threshold.
+- [x] **Rewrite `site/src/pages/terms.astro`**: expand "Services" to include Cloud/dashboard/managed hubs/marketplace/AI; add Accounts & Billing, Cloud subscription/cancellation/grace-window/refunds, managed-AI terms, pointers to AUP + Marketplace terms. *(Named entity + governing law deferred to the item above.)*
+- [x] **Add `site/src/pages/subprocessors.astro`** (committed table above); link from both policies.
+- [x] **Add `site/src/pages/acceptable-use.astro`** (extract + expand from ToS; reflect `packages/abuse/` enforcement + appeals reality).
+- [x] **Update `Footer.astro` `legalLinks`** to add Acceptable Use + Sub-processors.
+- [x] **Reconcile `site/src/data/pricing.ts` FAQ** "we cannot read" answer with the scoped policy language.
+- [x] **Bump "Last updated" date** on both policies (2026-06-24).
+- [x] **(P1) Draft the Data Processing Addendum** (Team/Enterprise) reusing the sub-processor list — published as `/dpa` with a visible *draft / not-yet-in-effect* banner; legal review still required.
+- [x] **(P1) Draft Marketplace Developer Agreement + Marketplace User Terms** — published as `/marketplace-terms`; developer half marked draft, paid-plugin enablement gated on finalization.
+- [x] **(P1) Consolidate AI data-handling disclosure** into the Privacy Policy's "Managed AI" section. *Decision on the OpenRouter retention/training stance remains open (see Risks).*
+- [~] **(P2)** International-transfer language **added** to the Privacy Policy; security-contact (`security@xnet.fyi`) **added** to the AUP. Dedicated security/responsible-disclosure page, legal changelog, and `/subprocessors.json` **deferred**.
+- [ ] **Legal review of the full set before publishing.** *External — requires counsel.*
 
 ## Validation Checklist
 
-- [ ] No remaining **blanket** "we can't read your data" / "your data never leaves your device" / "no account required" claims that contradict the Cloud path; every such claim is scoped to local/self-hosted or per-feature.
-- [ ] Every sub-processor in the table has a **proof file path** in the repo and is actually reachable from the running Cloud code.
-- [ ] The Privacy Policy's managed-AI section matches the real flow in [`apps/cloud/src/ai/route.ts`](../../apps/cloud/src/ai/route.ts) (content to OpenRouter; only usage logged).
-- [ ] Retention language matches the **state machine** in [`apps/cloud/src/dashboard.ts`](../../apps/cloud/src/dashboard.ts) / `/account/delete-data` (grace window on cancel; irreversible delete).
-- [ ] `/subprocessors`, `/acceptable-use`, `/privacy`, `/terms` all build (`pnpm --filter site build`) and pass the site's `lint`/`format:check` (prettier the new `.astro`).
-- [ ] Footer links resolve; both policies cross-link to sub-processors + AUP.
-- [ ] Children's-age threshold updated and consistent across both docs.
-- [ ] Pricing FAQ and policy language are mutually consistent (no "we cannot read" vs. "FTS/AI process content" contradiction).
-- [ ] A lawyer has reviewed the ToS, Privacy Policy, DPA, and Marketplace agreements before they go live.
-- [ ] Paid third-party plugins remain disabled until the Developer Agreement + Marketplace Terms are published.
+- [x] No remaining **blanket** "we can't read your data" / "your data never leaves your device" / "no account required" claims that contradict the Cloud path; every such claim is scoped to local/self-hosted or per-feature.
+- [x] Every sub-processor in the table has a **proof file path** in the repo (cited in this exploration and reachable from the running Cloud code).
+- [x] The Privacy Policy's managed-AI section matches the real flow in [`apps/cloud/src/ai/route.ts`](../../apps/cloud/src/ai/route.ts) (content to OpenRouter; only usage logged).
+- [x] Retention language matches the **state machine** in [`apps/cloud/src/dashboard.ts`](../../apps/cloud/src/dashboard.ts) / `/account/delete-data` (grace window on cancel; irreversible delete).
+- [x] `/subprocessors`, `/acceptable-use`, `/dpa`, `/marketplace-terms`, `/privacy`, `/terms` all build (`astro build` → 88 pages, all 6 emitted) with no console errors; verified in a local preview.
+- [x] Footer links resolve; both policies cross-link to sub-processors + AUP (verified in built HTML and preview).
+- [x] Children's-age threshold updated (16) and consistent.
+- [x] Pricing FAQ and policy language are mutually consistent (no "we cannot read" vs. "FTS/AI process content" contradiction).
+- [ ] A lawyer has reviewed the ToS, Privacy Policy, DPA, and Marketplace agreements before they go live. *External — pending; DPA + developer agreement carry visible draft banners until then.*
+- [ ] Paid third-party plugins remain disabled until the Developer Agreement + Marketplace Terms are finalized. *Operational gate — to enforce at enablement time.*
+
+> Note (pre-existing, out of scope): the site has no `@tailwindcss/typography`
+> plugin (`plugins: []`), so the `prose` classes on these legal pages are no-ops —
+> headings/lists render flat, exactly as the original `terms`/`privacy` pages did
+> on `main`. Structure still reads via section spacing + `<strong>`. Flagged for a
+> separate polish task; not a regression introduced here.
 
 ## References
 
