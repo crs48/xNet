@@ -8,7 +8,13 @@ import type { ContentId, DID } from '@xnetjs/core'
 import { base64ToBytes } from '@xnetjs/crypto'
 import { isSystemNamespaceResource, isSystemSchemaIri, isValidMentions } from '@xnetjs/data'
 import { parseDID } from '@xnetjs/identity'
-import { verifyChange, verifyChangeHash, type Change } from '@xnetjs/sync'
+import {
+  CURRENT_PROTOCOL_VERSION,
+  recomputeChangeHash,
+  verifyChange,
+  verifyChangeHash,
+  type Change
+} from '@xnetjs/sync'
 import { reportUnauthorizedRemoteWrite } from './remote-mutation-telemetry'
 
 type NodePayload = SerializedNodeChange['payload']
@@ -86,7 +92,19 @@ export class NodeRelayService {
     }
 
     if (!verifyChangeHash(change)) {
-      throw new NodeRelayError('INVALID_HASH', 'Change hash is invalid')
+      // A mismatch here is almost never tampering — far more often it's a
+      // protocol/build skew: the change is internally valid for the *client's*
+      // @xnetjs/sync, but this hub recomputes a different hash (e.g. an older
+      // build that hashes a field differently). The opaque "hash is invalid"
+      // used to send operators chasing data corruption; spell out both hashes
+      // and protocol versions so the real fix — upgrading one side — is obvious.
+      const expected = recomputeChangeHash(change)
+      throw new NodeRelayError(
+        'INVALID_HASH',
+        `Change hash mismatch: client sent ${change.hash}, hub recomputed ${expected} ` +
+          `(change protocol v${change.protocolVersion ?? 0}, hub protocol v${CURRENT_PROTOCOL_VERSION}). ` +
+          `This usually means the hub and client are on incompatible @xnetjs/sync builds.`
+      )
     }
 
     let publicKey: Uint8Array

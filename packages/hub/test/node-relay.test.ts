@@ -320,6 +320,27 @@ describe('Node Sync Relay', () => {
     await expectRejectedChange(room, change, 'INVALID_HASH')
   })
 
+  it('reports a diagnostic hash mismatch (both hashes + protocol versions) on INVALID_HASH', async () => {
+    // A hash mismatch is almost always a protocol/build skew, not corruption.
+    // The error must name the client hash, the hub-recomputed hash, and both
+    // protocol versions so operators fix the skew instead of chasing ghosts.
+    const room = 'workspace-invalid-hash-detail'
+    const sent = 'cid:blake3:0000000000000000000000000000000000000000000000000000000000000000'
+    const change = makeSerializedChange({ room, hash: sent })
+    const ws = await connect(PORT)
+    ws.send(
+      JSON.stringify({ type: 'publish', topic: room, data: { type: 'node-change', room, change } })
+    )
+
+    const error = (await waitForMessage(ws)) as { type: string; code?: string; error?: string }
+    expect(error.code).toBe('INVALID_HASH')
+    expect(error.error).toContain(`client sent ${sent}`)
+    expect(error.error).toContain('hub recomputed cid:blake3:')
+    expect(error.error).toMatch(/hub protocol v\d+/)
+
+    ws.close()
+  })
+
   it('rejects duplicate system namespace changes as replay attempts', async () => {
     const room = 'workspace-system-replay'
     const ws = await connect(PORT)
