@@ -57,7 +57,9 @@ describe('dashboard header — Open web app', () => {
   it('keeps the header button available once a hub is connected', () => {
     const html = renderDashboard(baseView({ tenant: connectedTenant() }))
     expect(html).toContain('class="btn header-btn"')
-    expect(html).toContain('href="https://app.example/app"')
+    // The link now pins the tenant's personal hub (connectedTenant hubUrl is
+    // https://hub.example → dialed over WebSocket as wss://hub.example).
+    expect(html).toContain('href="https://app.example/app?hub=wss%3A%2F%2Fhub.example"')
     // Connected card still carries its own contextual link too.
     expect(html).toContain('Open the app')
   })
@@ -254,5 +256,47 @@ describe('dashboard — help links', () => {
     )
     expect(html).toContain('href="https://xnet.fyi/cloud/pricing#faq"')
     expect(html).not.toContain('cloud//pricing')
+  })
+})
+
+describe('dashboard — "Open web app" pins the personal hub', () => {
+  it('appends the tenant hub (https→wss) to the header + connect links', () => {
+    const html = renderDashboard(
+      baseView({ tenant: { ...connectedTenant(), hubUrl: 'https://t-abc.hub.xnet.fyi' } })
+    )
+    // The header "Open web app" button carries the personal hub as a wss param.
+    expect(html).toContain('href="https://app.example/app?hub=wss%3A%2F%2Ft-abc.hub.xnet.fyi"')
+  })
+
+  it('pins the hub on the connect-card "Open the web app" link for an unconnected tenant', () => {
+    const html = renderDashboard(
+      baseView({ tenant: { ...unconnectedTenant(), hubUrl: 'https://t-xyz.hub.xnet.fyi' } })
+    )
+    expect(html).toContain('?hub=wss%3A%2F%2Ft-xyz.hub.xnet.fyi')
+    // both the header button and the in-card "Open the web app ↗" link carry it
+    expect(
+      (html.match(/\?hub=wss%3A%2F%2Ft-xyz\.hub\.xnet\.fyi/g) || []).length
+    ).toBeGreaterThanOrEqual(2)
+  })
+
+  it('passes a wss hubUrl through unchanged', () => {
+    const html = renderDashboard(
+      baseView({ tenant: { ...connectedTenant(), hubUrl: 'wss://already.example' } })
+    )
+    expect(html).toContain('?hub=wss%3A%2F%2Falready.example')
+  })
+
+  it('uses the bare app URL when the hub is suspended/sleeping (no hubUrl)', () => {
+    const html = renderDashboard(
+      baseView({ tenant: { ...connectedTenant(), dataTier: 'cold', hubUrl: '' } })
+    )
+    expect(html).toContain('href="https://app.example/app"')
+    expect(html).not.toContain('?hub=')
+  })
+
+  it('does not add a hub param on the tenantless welcome screen', () => {
+    const html = renderDashboard(baseView({ tenant: null }))
+    expect(html).toContain('href="https://app.example/app"')
+    expect(html).not.toContain('?hub=')
   })
 })

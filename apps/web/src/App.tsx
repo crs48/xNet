@@ -50,7 +50,7 @@ import {
   subscribeXNetStorageCorruption
 } from './lib/browser-storage-reset'
 import { isWorkerRuntimeEnabled } from './lib/data-runtime'
-import { defaultHubUrl, persistedHubUrl } from './lib/hub-url'
+import { defaultHubUrl, normalizeHubUrl, persistedHubUrl, setPersistedHubUrl } from './lib/hub-url'
 import { identityManager } from './lib/identity'
 import { logStoreContents } from './lib/read-path-probe'
 import { detectBrowserFamily, getStorageBanner } from './lib/storage-banner'
@@ -137,6 +137,16 @@ function resolveHubSessionFromLocation(): { hubUrl: string; authToken: string | 
       hashParams.has('handle')
     ) {
       stripParams('payload', 'handle')
+    }
+    // A `hub` param pins a hub for this browser — the xNet Cloud dashboard's "Open
+    // web app" link passes the user's *personal* hub here so the app dials it
+    // instead of the shared default. Persist it (so it sticks across reloads) and
+    // strip it from the URL; an invalid value is ignored, never persisted.
+    const hubParam = parsed.searchParams.get('hub') ?? hashParams.get('hub')
+    if (hubParam) {
+      const normalized = normalizeHubUrl(hubParam)
+      if (normalized) setPersistedHubUrl(normalized)
+      stripParams('hub')
     }
     if (!shareSession) {
       return { hubUrl: resolveConfiguredHubUrl(), authToken: null }

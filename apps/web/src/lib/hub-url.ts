@@ -36,6 +36,29 @@ export function persistedHubUrl(fallback: string): string {
   }
 }
 
+/**
+ * Normalize a hub URL handed to the app from outside (the xNet Cloud dashboard's
+ * "Open web app" link passes the user's personal hub as `?hub=`). The control plane
+ * stores a hub's reachable endpoint as `https://…`, but the client dials it over a
+ * WebSocket, so convert http(s)→ws(s); pass ws(s) through unchanged. Requires a
+ * ws/wss result with a host and strips a trailing slash, returning `null` for
+ * anything else — so a malformed or hostile param can never be persisted or dialed.
+ */
+export function normalizeHubUrl(raw: string): string | null {
+  const trimmed = raw.trim()
+  let ws: string
+  if (/^https:\/\//i.test(trimmed)) ws = `wss://${trimmed.slice(8)}`
+  else if (/^http:\/\//i.test(trimmed)) ws = `ws://${trimmed.slice(7)}`
+  else if (/^wss?:\/\//i.test(trimmed)) ws = trimmed
+  else return null
+  try {
+    if (!new URL(ws).host) return null
+  } catch {
+    return null
+  }
+  return ws.replace(/\/$/, '')
+}
+
 /** Persist (or clear, when empty) the hub URL the client should dial. */
 export function setPersistedHubUrl(url: string): void {
   try {
