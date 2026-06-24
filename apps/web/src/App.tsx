@@ -45,6 +45,7 @@ import { bootMark } from './lib/boot-timeline'
 import {
   clearXNetBrowserStorage,
   clearXNetBrowserStorageResetRequest,
+  requestXNetBrowserStorageReset,
   shouldResetXNetBrowserStorageOnLoad,
   subscribeXNetStorageCorruption
 } from './lib/browser-storage-reset'
@@ -888,6 +889,7 @@ export function App(): JSX.Element {
             defaultOpen={false}
             storageDurability={appState.storageStatus ?? null}
             traceCollector={traceCollector}
+            onResetLocalData={requestXNetBrowserStorageReset}
           >
             <BlobProvider blobService={storage.blobService}>
               <OfflineIndicator />

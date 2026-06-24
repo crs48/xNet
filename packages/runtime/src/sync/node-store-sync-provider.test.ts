@@ -140,6 +140,50 @@ describe('NodeStoreSyncProvider', () => {
     })
   })
 
+  describe('clearRoom (reset my data)', () => {
+    it('sends node-clear, resolves with the hub count, and resets the cursor', async () => {
+      const { store, setSyncCursor } = makeStore({ cursor: 318063 })
+      const { conn, injectMessage } = makeConnection('connected')
+      const provider = new NodeStoreSyncProvider(store, 'did:key:z6MkAuthor')
+      provider.attach(conn)
+
+      const cleared = provider.clearRoom()
+      expect(conn.sendRaw).toHaveBeenCalledWith({
+        type: 'node-clear',
+        room: 'did:key:z6MkAuthor'
+      })
+
+      // The hub acknowledges with a count.
+      injectMessage({ type: 'node-cleared', room: 'did:key:z6MkAuthor', cleared: 42 })
+      await expect(cleared).resolves.toBe(42)
+
+      // The local cursor is reset so a later sync re-pulls from scratch.
+      expect(setSyncCursor).toHaveBeenCalledWith('did:key:z6MkAuthor', 0)
+    })
+
+    it('ignores node-cleared for a different room', async () => {
+      const { store } = makeStore()
+      const { conn, injectMessage } = makeConnection('connected')
+      const provider = new NodeStoreSyncProvider(store, 'room-mine')
+      provider.attach(conn)
+
+      const cleared = provider.clearRoom()
+      injectMessage({ type: 'node-cleared', room: 'someone-elses-room', cleared: 99 })
+      // Still pending — only our room's ack resolves it; the timeout falls back to 0.
+      await vi.advanceTimersByTimeAsync(SYNC_RESPONSE_TIMEOUT_MS)
+      await expect(cleared).resolves.toBe(0)
+    })
+
+    it('returns 0 immediately when offline (nothing to clear)', async () => {
+      const { store } = makeStore()
+      const { conn } = makeConnection('disconnected')
+      const provider = new NodeStoreSyncProvider(store, 'room-1')
+      provider.attach(conn)
+      await expect(provider.clearRoom()).resolves.toBe(0)
+      expect(conn.sendRaw).not.toHaveBeenCalled()
+    })
+  })
+
   describe('request-sync-first + persisted cursor (0206)', () => {
     it('loads the persisted cursor and requests sync from it before pushing', async () => {
       const { store, getChangesSince } = makeStore({ changes: [makeChange(5)], cursor: 3 })

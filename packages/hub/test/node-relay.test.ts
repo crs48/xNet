@@ -151,6 +151,44 @@ describe('Node Sync Relay', () => {
     wsB.close()
   })
 
+  it('node-clear wipes a room and returns the count, then sync is empty', async () => {
+    const room = 'workspace-clear-1'
+    const ws = await connect(PORT)
+
+    const change = makeSerializedChange({ room })
+    ws.send(
+      JSON.stringify({ type: 'publish', topic: room, data: { type: 'node-change', room, change } })
+    )
+    await new Promise((resolve) => setTimeout(resolve, 50))
+
+    // Clear the room.
+    ws.send(JSON.stringify({ type: 'node-clear', room }))
+    const cleared = (await waitForMessage(ws)) as { type: string; room: string; cleared: number }
+    expect(cleared.type).toBe('node-cleared')
+    expect(cleared.room).toBe(room)
+    expect(cleared.cleared).toBe(1)
+
+    // The room is now empty.
+    ws.send(JSON.stringify({ type: 'node-sync-request', room, sinceLamport: 0 }))
+    const response = (await waitForMessage(ws)) as {
+      type: string
+      changes?: SerializedNodeChange[]
+    }
+    expect(response.type).toBe('node-sync-response')
+    expect(response.changes?.length).toBe(0)
+
+    // After a clear the same change can be re-appended (dedup map was cleared).
+    ws.send(
+      JSON.stringify({ type: 'publish', topic: room, data: { type: 'node-change', room, change } })
+    )
+    await new Promise((resolve) => setTimeout(resolve, 50))
+    ws.send(JSON.stringify({ type: 'node-sync-request', room, sinceLamport: 0 }))
+    const reAdded = (await waitForMessage(ws)) as { type: string; changes?: SerializedNodeChange[] }
+    expect(reAdded.changes?.length).toBe(1)
+
+    ws.close()
+  })
+
   it('deduplicates identical changes by hash', async () => {
     const ws = await connect(PORT)
 

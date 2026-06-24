@@ -32,6 +32,17 @@ export type NodeSyncResponse = {
   highWaterMark: number
 }
 
+export type NodeClearRequest = {
+  type: 'node-clear'
+  room: string
+}
+
+export type NodeClearedResponse = {
+  type: 'node-cleared'
+  room: string
+  cleared: number
+}
+
 export class NodeRelayError extends Error {
   constructor(
     public code:
@@ -114,6 +125,21 @@ export class NodeRelayService {
     })
 
     return true
+  }
+
+  /**
+   * Wipe every stored node-change for a room ("reset my data" dev tool).
+   * Gated on `hub/relay` for the room — you can only clear rooms you can write
+   * to (a user's own author room, their own document rooms). Returns how many
+   * changes were removed so the caller can confirm the reset.
+   */
+  async handleClear(msg: NodeClearRequest, auth: AuthContext): Promise<NodeClearedResponse> {
+    if (!auth.can('hub/relay', msg.room)) {
+      throw new NodeRelayError('UNAUTHORIZED', 'Insufficient capabilities for node relay')
+    }
+
+    const cleared = await this.storage.clearNodeChanges(msg.room)
+    return { type: 'node-cleared', room: msg.room, cleared }
   }
 
   async handleSyncRequest(msg: NodeSyncRequest, auth: AuthContext): Promise<NodeSyncResponse> {

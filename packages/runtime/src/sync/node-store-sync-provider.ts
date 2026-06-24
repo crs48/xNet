@@ -84,6 +84,9 @@ export class NodeStoreSyncProvider {
   // Request-sync-first: resolver for the in-flight node-sync-response wait.
   private syncResponseResolver: (() => void) | null = null
 
+  // Resolver for an in-flight node-clear ("reset my data") round-trip.
+  private clearResolver: ((cleared: number) => void) | null = null
+
   // One-shot: emit a performance mark when the first remote change BEGINS
   // applying to the local store (marked just before the awaited write, so it
   // captures when the inbound write burst starts contending with reads on the
@@ -177,6 +180,7 @@ export class NodeStoreSyncProvider {
     this.connection = null
     this.clearSendQueue()
     this.resolveSyncResponse()
+    this.resolveClear(0)
   }
 
   // ─── Connect lifecycle ──────────────────────────────────────────────────
@@ -229,6 +233,40 @@ export class NodeStoreSyncProvider {
     resolve?.()
   }
 
+  /**
+   * Ask the hub to wipe every stored change for this room ("reset my data"),
+   * then reset the local sync cursor so a later sync re-pulls from scratch.
+   * Resolves with the number of changes the hub removed (0 on timeout or when
+   * offline). Pairs with a local wipe + reload for a full reset.
+   */
+  async clearRoom(): Promise<number> {
+    if (!this.connection || this.connection.status !== 'connected') return 0
+
+    const cleared = await new Promise<number>((resolve) => {
+      this.clearResolver = resolve
+      this.connection?.sendRaw({ type: 'node-clear', room: this.room })
+      setTimeout(() => this.resolveClear(0), SYNC_RESPONSE_TIMEOUT_MS)
+    })
+
+    // Forget our place: the room is empty, so the next sync starts from 0.
+    this.lastSyncedLamport = 0
+    this.pushedThrough = 0
+    this.cursorLoaded = true
+    try {
+      await this.store.setSyncCursor(this.room, 0)
+    } catch {
+      // Cursor persistence is best-effort; a local wipe clears it anyway.
+    }
+
+    return cleared
+  }
+
+  private resolveClear(cleared: number): void {
+    const resolve = this.clearResolver
+    this.clearResolver = null
+    resolve?.(cleared)
+  }
+
   // ─── Inbound ────────────────────────────────────────────────────────────
 
   private handleRoomMessage(data: Record<string, unknown>): void {
@@ -239,6 +277,12 @@ export class NodeStoreSyncProvider {
   }
 
   private handleDirectMessage(message: Record<string, unknown>): void {
+    if (message.type === 'node-cleared') {
+      if (message.room === this.room) {
+        this.resolveClear(typeof message.cleared === 'number' ? message.cleared : 0)
+      }
+      return
+    }
     if (message.type === 'node-error') {
       // The hub rejected a change (invalid/unauthorized/duplicate). Log it and
       // move on — don't treat it as a reason to resend and re-flood (0206).

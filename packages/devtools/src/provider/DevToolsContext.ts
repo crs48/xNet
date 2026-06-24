@@ -26,6 +26,7 @@ export type PanelId =
   | 'history'
   | 'security'
   | 'sqlite'
+  | 'reset'
 
 export type PanelPosition = 'bottom' | 'right' | 'floating'
 
@@ -108,6 +109,18 @@ export interface DevToolsContextValue {
   syncDiagnostics: SyncDiagnostics
   /** Current storage durability status, if the host app provides it */
   storageDurability: StorageDurabilityInfo | null
+
+  /**
+   * Host-provided "wipe the local database" action (OPFS SQLite + IndexedDB +
+   * localStorage, then reload). Null when the host app didn't wire one — the
+   * Reset panel then falls back to a best-effort inline clear.
+   */
+  onResetLocalData: (() => void | Promise<void>) | null
+  /**
+   * Host-provided "wipe my data on the hub" action. Resolves with the number
+   * of changes the hub removed. Null when not wired (e.g. no sync manager).
+   */
+  onResetHub: (() => Promise<number>) | null
 }
 
 export const DevToolsContext = createContext<DevToolsContextValue | null>(null)

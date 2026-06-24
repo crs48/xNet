@@ -43,6 +43,7 @@ function createSyncManagerStub(): SyncManager {
       skippedNodeIds: [],
       at: 0
     })),
+    clearHubData: vi.fn(async () => 0),
     status: 'connected',
     lifecycle: CONNECTED_LIFECYCLE,
     poolSize: 0,

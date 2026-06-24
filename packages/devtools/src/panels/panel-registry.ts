@@ -17,5 +17,6 @@ export const DEVTOOLS_PANELS: Array<{ id: PanelId; label: string }> = [
   { id: 'version', label: 'Version' },
   { id: 'migration', label: 'Migrate' },
   { id: 'seed', label: 'Seed' },
-  { id: 'history', label: 'History' }
+  { id: 'history', label: 'History' },
+  { id: 'reset', label: 'Reset' }
 ]

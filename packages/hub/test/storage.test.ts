@@ -86,6 +86,47 @@ describe.each(storageFactories)('HubStorage ($name)', ({ create }: StorageFactor
     })
   })
 
+  describe('node changes', () => {
+    const makeChange = (room: string, hash: string, lamport: number) => ({
+      id: `change-${hash}`,
+      type: 'node-change',
+      hash,
+      room,
+      nodeId: 'node-1',
+      schemaId: 'xnet://xnet.dev/Task',
+      lamportTime: lamport,
+      lamportAuthor: 'did:key:zAuthor',
+      authorDid: 'did:key:zAuthor',
+      wallTime: 1,
+      parentHash: null,
+      payload: { nodeId: 'node-1', properties: { title: 't' } },
+      signatureB64: 'AA=='
+    })
+
+    it('clearNodeChanges wipes a room, returns the count, and frees the hashes', async () => {
+      await storage.appendNodeChange('room-a', makeChange('room-a', 'h1', 1))
+      await storage.appendNodeChange('room-a', makeChange('room-a', 'h2', 2))
+      await storage.appendNodeChange('room-b', makeChange('room-b', 'h3', 1))
+
+      const cleared = await storage.clearNodeChanges('room-a')
+      expect(cleared).toBe(2)
+
+      // room-a is empty; room-b is untouched.
+      expect(await storage.getNodeChangesSince('room-a', 0)).toHaveLength(0)
+      expect(await storage.getNodeChangesSince('room-b', 0)).toHaveLength(1)
+      expect(await storage.getHighWaterMark('room-a')).toBe(0)
+
+      // The dedup map was cleared, so the same change can be re-appended.
+      expect(await storage.hasNodeChange('h1')).toBe(false)
+      await storage.appendNodeChange('room-a', makeChange('room-a', 'h1', 1))
+      expect(await storage.getNodeChangesSince('room-a', 0)).toHaveLength(1)
+    })
+
+    it('clearNodeChanges on an unknown room is a no-op returning 0', async () => {
+      expect(await storage.clearNodeChanges('nope')).toBe(0)
+    })
+  })
+
   describe('doc meta', () => {
     const meta: DocMeta = {
       docId: 'doc-1',

@@ -466,6 +466,12 @@ export type HubStorage = {
   getNodeChangesSince: (room: string, sinceLamport: number) => Promise<SerializedNodeChange[]>
   getNodeChangesForNode: (room: string, nodeId: string) => Promise<SerializedNodeChange[]>
   getHighWaterMark: (room: string) => Promise<number>
+  /**
+   * Delete every stored node-change for a room and return how many were
+   * removed. Used by the "reset my data" dev tool — clearing a room is gated
+   * on `hub/relay` for that room (you can only wipe rooms you can write to).
+   */
+  clearNodeChanges: (room: string) => Promise<number>
 
   // Database row operations
   insertDatabaseRow: (row: DatabaseRowRecord) => Promise<void>
