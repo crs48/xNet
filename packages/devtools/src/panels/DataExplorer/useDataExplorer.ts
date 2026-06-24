@@ -11,17 +11,14 @@ import type { NodeQueryResult, NodeState, Schema, SchemaIRI } from '@xnetjs/data
 import { schemaRegistry } from '@xnetjs/data'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useDevTools } from '../../provider/useDevTools'
-import { schemaLabel } from './grid-adapter'
+import { buildSchemaOptions, type SchemaOption } from './grid-adapter'
+
+export type { SchemaOption }
 
 const DEFAULT_LIMIT = 200
 const LIVE_DEBOUNCE_MS = 250
 
 type PlanMeta = NonNullable<NodeQueryResult['plan']>
-
-export interface SchemaOption {
-  iri: string
-  label: string
-}
 
 interface QueryState {
   nodes: NodeState[]
@@ -137,17 +134,13 @@ export function useDataExplorer() {
     }
   }, [store, runQuery])
 
-  // Schema dropdown options: registered ∪ observed-in-results.
-  const schemaOptions = useMemo<SchemaOption[]>(() => {
-    const map = new Map<string, string>()
-    for (const iri of registryIris) map.set(iri, schemaLabel(iri))
-    for (const node of state.nodes) {
-      if (!map.has(node.schemaId)) map.set(node.schemaId, schemaLabel(node.schemaId))
-    }
-    return Array.from(map, ([iri, label]) => ({ iri, label })).sort((a, b) =>
-      a.label.localeCompare(b.label)
-    )
-  }, [registryIris, state.nodes])
+  // Schema dropdown options: registered ∪ observed-in-results, deduped per
+  // schema (the registry lists each schema under both a versioned IRI and a
+  // bare alias, which would otherwise show every schema twice).
+  const schemaOptions = useMemo<SchemaOption[]>(
+    () => buildSchemaOptions([...registryIris, ...state.nodes.map((n) => n.schemaId)]),
+    [registryIris, state.nodes]
+  )
 
   // Client-side free-text search over the loaded page.
   const filteredNodes = useMemo(() => {

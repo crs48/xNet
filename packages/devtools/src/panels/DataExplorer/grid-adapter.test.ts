@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 import {
   SYSTEM_FIELD,
   buildGridFields,
+  buildSchemaOptions,
   coerceCellValue,
   coerceCellValueForType,
   formatPlanRows,
@@ -51,6 +52,35 @@ function makeNode(props: Record<string, unknown>): NodeState {
 describe('schemaLabel', () => {
   it('strips namespace and version', () => {
     expect(schemaLabel('xnet://xnet.fyi/Task@1.0.0')).toBe('Task')
+  })
+})
+
+describe('buildSchemaOptions', () => {
+  it('collapses a versioned IRI and its bare alias into one option (the duplicate-schema bug)', () => {
+    const opts = buildSchemaOptions([
+      'xnet://xnet.fyi/Task@1.0.0',
+      'xnet://xnet.fyi/Task',
+      'xnet://xnet.fyi/Account',
+      'xnet://xnet.fyi/Account@1.0.0'
+    ])
+    expect(opts.map((o) => o.label)).toEqual(['Account', 'Task'])
+    // queries the versioned IRI (nodes store versioned schemaIds)
+    expect(opts.find((o) => o.label === 'Task')?.iri).toBe('xnet://xnet.fyi/Task@1.0.0')
+  })
+
+  it('keeps genuinely-distinct versions, disambiguated by a version suffix', () => {
+    const opts = buildSchemaOptions(['xnet://xnet.fyi/Task@1.0.0', 'xnet://xnet.fyi/Task@2.0.0'])
+    expect(opts.map((o) => o.label).sort()).toEqual(['Task @1.0.0', 'Task @2.0.0'])
+  })
+
+  it('handles a bare-only IRI and dedupes repeats', () => {
+    const opts = buildSchemaOptions([
+      'xnet://xnet.fyi/Note',
+      'xnet://xnet.fyi/Note',
+      'xnet://xnet.fyi/Zeta@1.0.0'
+    ])
+    expect(opts.map((o) => o.label)).toEqual(['Note', 'Zeta'])
+    expect(opts[0].iri).toBe('xnet://xnet.fyi/Note')
   })
 })
 

@@ -236,6 +236,57 @@ export function schemaLabel(iri: string): string {
   return tail.split('@')[0] || tail
 }
 
+/** Split a schema IRI into its base (no version) and version, if any. */
+function splitSchemaIri(iri: string): { base: string; version: string | null } {
+  const at = iri.lastIndexOf('@')
+  return at > -1
+    ? { base: iri.slice(0, at), version: iri.slice(at + 1) }
+    : { base: iri, version: null }
+}
+
+export interface SchemaOption {
+  iri: string
+  label: string
+}
+
+/**
+ * Build the schema-picker options from a set of IRIs.
+ *
+ * The schema registry exposes each schema under TWO keys — a versioned IRI
+ * (`…/Task@1.0.0`) and a bare alias (`…/Task`) — so a naive list shows every
+ * schema twice. Group by base IRI and emit one option per schema, preferring
+ * the versioned IRI to query with (nodes store versioned schemaIds). Only when
+ * a schema genuinely has multiple distinct versions do we keep them separate,
+ * disambiguated by a version suffix.
+ */
+export function buildSchemaOptions(iris: Iterable<string>): SchemaOption[] {
+  const groups = new Map<string, { versions: Map<string, string>; bare: string | null }>()
+  for (const iri of iris) {
+    const { base, version } = splitSchemaIri(iri)
+    let group = groups.get(base)
+    if (!group) {
+      group = { versions: new Map(), bare: null }
+      groups.set(base, group)
+    }
+    if (version) group.versions.set(version, iri)
+    else group.bare = iri
+  }
+
+  const options: SchemaOption[] = []
+  for (const [base, group] of groups) {
+    const label = schemaLabel(base)
+    const versions = [...group.versions.entries()]
+    if (versions.length === 0) {
+      options.push({ iri: group.bare ?? base, label })
+    } else if (versions.length === 1) {
+      options.push({ iri: versions[0][1], label })
+    } else {
+      for (const [version, iri] of versions) options.push({ iri, label: `${label} @${version}` })
+    }
+  }
+  return options.sort((a, b) => a.label.localeCompare(b.label))
+}
+
 export type PlanMeta = NonNullable<NodeQueryResult['plan']>
 
 export interface PlanRow {
