@@ -10,5 +10,11 @@
   "tags": [
     "devtools",
     "platform"
+  ],
+  "pr": 243,
+  "authors": [
+    {
+      "login": "crs48"
+    }
   ]
 }
