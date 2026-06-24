@@ -177,6 +177,31 @@ describe('dashboard — per-platform connect (guided)', () => {
     expect(html).not.toContain('<script>alert(1)')
     expect(html).toContain('&lt;script&gt;')
   })
+
+  it('offers an "Open in desktop app" deep link for an allowlisted xNet hub', () => {
+    const t = { ...unconnectedTenant(), hubUrl: 'https://t-abc.xnet.app' }
+    const html = renderDashboard(baseView({ tenant: t }))
+    expect(html).toContain('Open in desktop app')
+    // https is normalized to wss and URL-encoded into the xnet://connect link.
+    expect(html).toContain('href="xnet://connect?hub=wss%3A%2F%2Ft-abc.xnet.app"')
+    // The copy-paste fallback is still present alongside the one-click button.
+    expect(html).toContain('Signaling server')
+    expect(html).toContain('data-copy="hub-url"')
+  })
+
+  it('omits the deep link for a hub off the xNet allowlist (copy-paste only)', () => {
+    // The default unconnectedTenant hub (t-abc.hub.example) is not an xNet host.
+    const html = renderDashboard(baseView({ tenant: unconnectedTenant() }))
+    expect(html).not.toContain('Open in desktop app')
+    expect(html).not.toContain('xnet://connect')
+    // …but the manual desktop steps still render.
+    expect(html).toContain('Settings → Network')
+  })
+
+  it('never offers the deep link once connected (no connect tabs at all)', () => {
+    const html = renderDashboard(baseView({ tenant: connectedTenant() }))
+    expect(html).not.toContain('xnet://connect')
+  })
 })
 
 describe('dashboard — getting-started checklist', () => {

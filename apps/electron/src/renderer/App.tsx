@@ -18,6 +18,7 @@ import {
   type CanvasViewCommandState,
   type CanvasViewHandle
 } from './components/CanvasView'
+import { ConnectHubDialog, type ConnectHubRequest } from './components/ConnectHubDialog'
 import { DatabaseView } from './components/DatabaseView'
 import { DataWorkspaceView, type SavedViewCanvasFrameInput } from './components/DataWorkspaceView'
 import { PageView } from './components/PageView'
@@ -25,6 +26,7 @@ import { SettingsView } from './components/SettingsView'
 import { SocialImportView } from './components/SocialImportView'
 import { StorybookView } from './components/StorybookView'
 import { SystemMenu } from './components/SystemMenu'
+import { setPersistedHubUrl } from './lib/hub-url'
 
 type DocType = 'page' | 'database' | 'canvas'
 
@@ -85,6 +87,7 @@ export function App(): React.ReactElement {
   )
   const [showAddSharedDialog, setShowAddSharedDialog] = useState(false)
   const [prefilledShareValue, setPrefilledShareValue] = useState('')
+  const [connectRequest, setConnectRequest] = useState<ConnectHubRequest | null>(null)
   const { setActiveNodeId } = useDevTools()
   const { create } = useMutate()
   const { open: paletteOpen, setOpen: setPaletteOpen, show: showPalette } = useCommandPalette()
@@ -144,6 +147,24 @@ export function App(): React.ReactElement {
       setShowAddSharedDialog(true)
     })
     return cleanup
+  }, [])
+
+  // xNet Cloud "Open in desktop app" (xnet://connect). The hub is already
+  // hard-validated in the main process; surface a confirmation and never connect
+  // without the user's explicit OK.
+  useEffect(() => {
+    const cleanup = window.xnet.onCloudConnect((data) => {
+      setConnectRequest(data)
+    })
+    return cleanup
+  }, [])
+
+  const handleCloudConnect = useCallback(async (request: ConnectHubRequest) => {
+    // Persist the hub so it survives restarts (mirrors the web setPersistedHubUrl),
+    // then apply it live so sync re-points without a relaunch. The passkey +
+    // device-claim is completed by the user in their dashboard.
+    setPersistedHubUrl(request.hub)
+    await window.__xnetIpcSyncManager?.configureShareSession({ signalingUrl: request.hub })
   }, [])
 
   useEffect(() => {
@@ -1156,6 +1177,12 @@ export function App(): React.ReactElement {
         }}
         onAdd={handleAddShared}
         initialValue={prefilledShareValue}
+      />
+
+      <ConnectHubDialog
+        request={connectRequest}
+        onCancel={() => setConnectRequest(null)}
+        onConfirm={handleCloudConnect}
       />
 
       <CommandPalette commands={paletteCommands} open={paletteOpen} onOpenChange={setPaletteOpen} />

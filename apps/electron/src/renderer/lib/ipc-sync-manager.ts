@@ -27,6 +27,7 @@ import {
   removeAwarenessStates
 } from 'y-protocols/awareness'
 import * as Y from 'yjs'
+import { configuredHubUrl } from './hub-url'
 
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error'
 type StatusHandler = (status: ConnectionStatus) => void
@@ -106,7 +107,9 @@ export function createIPCSyncManager(): IPCSyncManager {
     transport?: 'ws' | 'webrtc' | 'auto'
     iceServers?: Array<{ urls: string[]; username?: string; credential?: string }>
   } = {
-    signalingUrl: import.meta.env.VITE_HUB_URL || 'ws://localhost:4444',
+    // A persisted override (Settings → Network, or a confirmed Cloud connect deep
+    // link) wins over the build-time VITE_HUB_URL default so it survives restarts.
+    signalingUrl: configuredHubUrl(),
     transport:
       (import.meta.env.VITE_XNET_SYNC_TRANSPORT as 'ws' | 'webrtc' | 'auto' | undefined) ?? 'auto'
   }

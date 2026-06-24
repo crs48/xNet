@@ -6,6 +6,7 @@
 
 import { Settings, Palette, Puzzle, Database, Wifi, ChevronRight } from 'lucide-react'
 import React, { useState } from 'react'
+import { persistedHubUrl, setPersistedHubUrl } from '../lib/hub-url'
 import { PluginManager } from './PluginManager'
 
 type SettingsSection = 'general' | 'appearance' | 'plugins' | 'data' | 'network'
@@ -219,6 +220,22 @@ function DataSettings() {
 // ─── Network Settings ─────────────────────────────────────────────────────────
 
 function NetworkSettings() {
+  // Read the persisted hub URL (a manual entry, or a confirmed xNet Cloud connect
+  // deep link) so the field reflects what the sync manager actually dials.
+  const [hubUrl, setHubUrl] = useState(() => persistedHubUrl())
+  const [saved, setSaved] = useState(false)
+
+  const applyHubUrl = () => {
+    const next = hubUrl.trim()
+    setPersistedHubUrl(next)
+    // Apply live so the change takes effect without a restart.
+    void window.__xnetIpcSyncManager?.configureShareSession({
+      signalingUrl: next || import.meta.env.VITE_HUB_URL || 'ws://localhost:4444'
+    })
+    setSaved(true)
+    window.setTimeout(() => setSaved(false), 1500)
+  }
+
   return (
     <div className="space-y-6">
       <div>
@@ -231,12 +248,29 @@ function NetworkSettings() {
           <ToggleSwitch defaultChecked />
         </SettingRow>
 
-        <SettingRow label="Signaling server" description="WebRTC signaling server URL">
-          <input
-            type="text"
-            defaultValue={import.meta.env.VITE_HUB_URL || 'ws://localhost:4444'}
-            className="bg-secondary border border-border rounded-md px-3 py-1.5 text-sm w-[200px]"
-          />
+        <SettingRow
+          label="Signaling server"
+          description="Hub / WebRTC signaling URL. xNet Cloud can fill this in for you."
+        >
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={hubUrl}
+              onChange={(e) => setHubUrl(e.target.value)}
+              onBlur={applyHubUrl}
+              placeholder="wss://hub.xnet.fyi"
+              spellCheck={false}
+              autoComplete="off"
+              className="bg-secondary border border-border rounded-md px-3 py-1.5 text-sm w-[220px] font-mono"
+            />
+            <button
+              type="button"
+              onClick={applyHubUrl}
+              className="bg-secondary hover:bg-accent border border-border px-3 py-1.5 rounded-md text-sm transition-colors"
+            >
+              {saved ? 'Saved ✓' : 'Save'}
+            </button>
+          </div>
         </SettingRow>
 
         <SettingRow label="Local API" description="HTTP API for external integrations">

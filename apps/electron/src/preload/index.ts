@@ -1,6 +1,7 @@
 /**
  * Preload script - exposes xNet API to renderer
  */
+import type { CloudConnectPayload } from '../main/deep-link'
 import type {
   SocialImportArchivePreview,
   SocialImportCommitJobRequest,
@@ -35,6 +36,16 @@ contextBridge.exposeInMainWorld('xnet', {
     ipcRenderer.on('xnet:share-payload', handler as (...args: unknown[]) => void)
     return () =>
       ipcRenderer.removeListener('xnet:share-payload', handler as (...args: unknown[]) => void)
+  },
+
+  // xNet Cloud "Open in desktop app" deep link (xnet://connect). The payload is
+  // already hard-validated in the main process; the renderer confirms with the
+  // user before applying the hub.
+  onCloudConnect: (callback: (data: CloudConnectPayload) => void) => {
+    const handler = (_: unknown, data: CloudConnectPayload) => callback(data)
+    ipcRenderer.on('xnet:cloud-connect', handler as (...args: unknown[]) => void)
+    return () =>
+      ipcRenderer.removeListener('xnet:cloud-connect', handler as (...args: unknown[]) => void)
   }
 })
 
@@ -427,6 +438,7 @@ export interface XNetAPI {
   onNewPage(callback: () => void): () => void
   onDevToolsToggle(callback: () => void): () => void
   onSharePayload(callback: (payload: string) => void): () => void
+  onCloudConnect(callback: (data: CloudConnectPayload) => void): () => void
 }
 
 export interface XNetSocialImportAPI {
