@@ -10,6 +10,14 @@
     "Performance panel: cold-start boot timeline, live frame budget and memory, storage stats, and recent traces in one place",
     "Jump to any panel by name with the ⌘⇧P command palette"
   ],
-  "tags": ["devtools", "platform"],
-  "authors": [{ "login": "crs48" }]
+  "tags": [
+    "devtools",
+    "platform"
+  ],
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ],
+  "pr": 252
 }
