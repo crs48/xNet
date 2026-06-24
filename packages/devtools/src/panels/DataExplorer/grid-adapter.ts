@@ -133,21 +133,56 @@ export function buildGridFields(
   return fields
 }
 
-/** Coerce an arbitrary node property value into a CellValue the grid renders. */
-export function coerceCellValue(value: unknown): CellValue {
-  if (value == null) return null
-  const t = typeof value
-  if (t === 'string' || t === 'number' || t === 'boolean') return value as CellValue
-  if (Array.isArray(value) && value.every((v) => typeof v === 'string')) return value as string[]
+function safeStringify(value: unknown): string {
+  if (typeof value === 'string') return value
   try {
-    return JSON.stringify(value)
+    return JSON.stringify(value) ?? String(value)
   } catch {
     return String(value)
   }
 }
 
-/** Map a node to a grid row with system + property cells (keyed by field id). */
-export function nodeToGridRow(node: NodeState): GridRowData {
+/**
+ * Coerce an arbitrary node property value into the CellValue shape the grid's
+ * renderer for `type` expects. CRITICAL: text-family cell renderers call string
+ * methods (e.g. `.replace`), so anything not number/checkbox/multiSelect must
+ * arrive as a string — otherwise the grid throws on real-world node data.
+ */
+export function coerceCellValueForType(value: unknown, type: FieldType): CellValue {
+  if (value == null) return null
+  if (type === 'number') {
+    if (typeof value === 'number') return value
+    const n = Number(value)
+    return value !== '' && Number.isFinite(n) ? n : null
+  }
+  if (type === 'checkbox') {
+    return typeof value === 'boolean' ? value : Boolean(value)
+  }
+  if (type === 'multiSelect') {
+    return Array.isArray(value) ? value.map(String) : [safeStringify(value)]
+  }
+  // Every other field type (text/url/email/phone/select/date/relation/…) renders
+  // from a string; stringify so a string method never lands on a non-string.
+  return safeStringify(value)
+}
+
+/** Generic coercion (no field type) — kept for callers that just need a CellValue. */
+export function coerceCellValue(value: unknown): CellValue {
+  if (value == null) return null
+  const t = typeof value
+  if (t === 'string' || t === 'number' || t === 'boolean') return value as CellValue
+  if (Array.isArray(value) && value.every((v) => typeof v === 'string')) return value as string[]
+  return safeStringify(value)
+}
+
+/**
+ * Map a node to a grid row with system + property cells (keyed by field id).
+ * `fieldTypeById` lets each property cell be coerced to its column's type.
+ */
+export function nodeToGridRow(
+  node: NodeState,
+  fieldTypeById: ReadonlyMap<string, FieldType> = new Map()
+): GridRowData {
   const cells: Record<string, CellValue> = {
     [SYSTEM_FIELD.id]: node.id,
     [SYSTEM_FIELD.schema]: node.schemaId.split('/').pop() ?? node.schemaId,
@@ -155,7 +190,7 @@ export function nodeToGridRow(node: NodeState): GridRowData {
     [SYSTEM_FIELD.author]: truncateDID(node.createdBy)
   }
   for (const [key, value] of Object.entries(node.properties)) {
-    cells[key] = coerceCellValue(value)
+    cells[key] = coerceCellValueForType(value, fieldTypeById.get(key) ?? 'text')
   }
   return { id: node.id, cells }
 }

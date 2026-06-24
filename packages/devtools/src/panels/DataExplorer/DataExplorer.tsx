@@ -46,7 +46,11 @@ export function DataExplorer() {
     () => buildGridFields(definedSchema, observedPropertyKeys(nodes), showSchemaColumn),
     [definedSchema, nodes, showSchemaColumn]
   )
-  const rows: GridRowData[] = useMemo(() => nodes.map(nodeToGridRow), [nodes])
+  const fieldTypeById = useMemo(() => new Map(fields.map((f) => [f.id, f.type])), [fields])
+  const rows: GridRowData[] = useMemo(
+    () => nodes.map((n) => nodeToGridRow(n, fieldTypeById)),
+    [nodes, fieldTypeById]
+  )
   const getNodesData = useCallback(() => nodes, [nodes])
 
   return (

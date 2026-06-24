@@ -1,9 +1,11 @@
 import type { NodeState, Schema } from '@xnetjs/data'
 import { describe, expect, it } from 'vitest'
+import type { FieldType } from '@xnetjs/data'
 import {
   SYSTEM_FIELD,
   buildGridFields,
   coerceCellValue,
+  coerceCellValueForType,
   formatPlanRows,
   nodeToGridRow,
   observedPropertyKeys,
@@ -107,15 +109,47 @@ describe('coerceCellValue', () => {
   })
 })
 
+describe('coerceCellValueForType', () => {
+  it('stringifies non-strings for text-family fields (the str.replace crash fix)', () => {
+    expect(coerceCellValueForType(3, 'text')).toBe('3')
+    expect(coerceCellValueForType(true, 'text')).toBe('true')
+    expect(coerceCellValueForType({ a: 1 }, 'text')).toBe('{"a":1}')
+    expect(coerceCellValueForType(42, 'url')).toBe('42')
+  })
+  it('keeps numbers for number fields and coerces numeric strings', () => {
+    expect(coerceCellValueForType(3, 'number')).toBe(3)
+    expect(coerceCellValueForType('7', 'number')).toBe(7)
+    expect(coerceCellValueForType('nope', 'number')).toBeNull()
+  })
+  it('coerces checkbox + multiSelect shapes', () => {
+    expect(coerceCellValueForType(1, 'checkbox')).toBe(true)
+    expect(coerceCellValueForType(['a', 'b'], 'multiSelect')).toEqual(['a', 'b'])
+    expect(coerceCellValueForType('solo', 'multiSelect')).toEqual(['solo'])
+  })
+  it('returns null for nullish', () => {
+    expect(coerceCellValueForType(null, 'text')).toBeNull()
+    expect(coerceCellValueForType(undefined, 'number')).toBeNull()
+  })
+})
+
 describe('nodeToGridRow', () => {
-  it('builds system cells plus property cells keyed by field id', () => {
-    const row = nodeToGridRow(makeNode({ title: 'Hello', count: 3 }))
+  it('builds system cells plus property cells keyed by field id, coerced by type', () => {
+    const types = new Map<string, FieldType>([
+      ['title', 'text'],
+      ['count', 'number']
+    ])
+    const row = nodeToGridRow(makeNode({ title: 'Hello', count: 3 }), types)
     expect(row.id).toBe('node-1')
     expect(row.cells[SYSTEM_FIELD.id]).toBe('node-1')
     expect(row.cells[SYSTEM_FIELD.schema]).toBe('Task@1.0.0')
     expect(row.cells.title).toBe('Hello')
     expect(row.cells.count).toBe(3)
     expect(typeof row.cells[SYSTEM_FIELD.author]).toBe('string')
+  })
+
+  it('defaults unknown property columns to text (stringifying numbers)', () => {
+    const row = nodeToGridRow(makeNode({ score: 9 }))
+    expect(row.cells.score).toBe('9')
   })
 })
 
