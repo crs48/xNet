@@ -50,7 +50,7 @@ import {
   subscribeXNetStorageCorruption
 } from './lib/browser-storage-reset'
 import { isWorkerRuntimeEnabled } from './lib/data-runtime'
-import { defaultHubUrl, normalizeHubUrl, persistedHubUrl, setPersistedHubUrl } from './lib/hub-url'
+import { defaultHubUrl, persistedHubUrl, readHubParam, setPersistedHubUrl } from './lib/hub-url'
 import { identityManager } from './lib/identity'
 import { logStoreContents } from './lib/read-path-probe'
 import { detectBrowserFamily, getStorageBanner } from './lib/storage-banner'
@@ -142,10 +142,9 @@ function resolveHubSessionFromLocation(): { hubUrl: string; authToken: string | 
     // web app" link passes the user's *personal* hub here so the app dials it
     // instead of the shared default. Persist it (so it sticks across reloads) and
     // strip it from the URL; an invalid value is ignored, never persisted.
-    const hubParam = parsed.searchParams.get('hub') ?? hashParams.get('hub')
-    if (hubParam) {
-      const normalized = normalizeHubUrl(hubParam)
-      if (normalized) setPersistedHubUrl(normalized)
+    const hubParam = readHubParam(parsed.search, parsed.hash)
+    if (hubParam.present) {
+      if (hubParam.hub) setPersistedHubUrl(hubParam.hub)
       stripParams('hub')
     }
     if (!shareSession) {

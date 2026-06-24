@@ -59,6 +59,23 @@ export function normalizeHubUrl(raw: string): string | null {
   return ws.replace(/\/$/, '')
 }
 
+/**
+ * Read a `hub` override from a location's query string and hash-query (hash-router
+ * routes carry their query inside the fragment). `present` reports whether the param
+ * was there at all — so the caller strips it from the URL even when the value was
+ * invalid — while `hub` is the normalized ws(s) URL to persist, or `null` when the
+ * param is absent or fails `normalizeHubUrl`. Pure, so it's unit-tested directly.
+ */
+export function readHubParam(
+  search: string,
+  hash: string
+): { present: boolean; hub: string | null } {
+  const hashQuery = hash.includes('?') ? hash.slice(hash.indexOf('?') + 1) : ''
+  const raw = new URLSearchParams(search).get('hub') ?? new URLSearchParams(hashQuery).get('hub')
+  if (raw == null) return { present: false, hub: null }
+  return { present: true, hub: normalizeHubUrl(raw) }
+}
+
 /** Persist (or clear, when empty) the hub URL the client should dial. */
 export function setPersistedHubUrl(url: string): void {
   try {
