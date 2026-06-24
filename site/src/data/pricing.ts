@@ -169,7 +169,7 @@ export const FAQS: CloudFaq[] = [
   },
   {
     q: 'Who can read my data?',
-    a: 'Your data identity is a passkey-backed key that lives on your devices, separate from your billing account. We hold encrypted bytes we cannot read — the same reason "delete my data" is irreversible even for us.'
+    a: 'Your data identity is a passkey-backed key that lives on your devices, separate from your billing account, and your private keys never reach us. Content at rest is stored as encrypted blobs keyed to you — which is why "delete my data" is irreversible even for us. The exceptions are features you turn on: server-side search and managed AI process your content in readable form to do their job. Our privacy policy is specific about exactly what we can and can\'t see.'
   },
   {
     q: 'What happens if I cancel?',

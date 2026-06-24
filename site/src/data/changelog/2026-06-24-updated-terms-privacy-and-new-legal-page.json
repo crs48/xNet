@@ -1,0 +1,18 @@
+{
+  "id": "2026-06-24-updated-terms-privacy-and-new-legal-page",
+  "date": "June 24, 2026",
+  "title": "Updated Terms, Privacy, and new legal pages for xNet Cloud",
+  "summary": "Ahead of xNet Cloud going live, the Terms and Privacy Policy now reflect accounts, billing, managed hosting, managed AI, and the marketplace — clearly separating the local-first path (we see ~nothing) from Cloud (exactly what we process). New Sub-processors and Acceptable Use pages, plus draft Data Processing Addendum and Marketplace Terms.",
+  "highlights": [
+    "Privacy Policy rewritten around two contexts: your own device/hub vs xNet Cloud",
+    "Honest, per-feature scope of what we can and can't see (server-side search and managed AI process content)",
+    "New /subprocessors and /acceptable-use pages; draft /dpa and /marketplace-terms",
+    "Terms now cover accounts, billing, cancellation, managed AI, and the marketplace"
+  ],
+  "tags": [
+    "platform",
+    "plugins",
+    "ai"
+  ],
+  "pr": 246
+}
