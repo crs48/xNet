@@ -31,6 +31,7 @@ import { instrumentChangeFeed, instrumentStore } from '../instrumentation/store'
 import { instrumentTelemetry } from '../instrumentation/telemetry'
 import { instrumentTracing, type TraceCollectorLike } from '../instrumentation/tracing'
 import { instrumentYDoc } from '../instrumentation/yjs'
+import { migratePanelId } from '../panels/panel-registry'
 import { DevToolsPanel } from '../panels/Shell'
 import {
   DevToolsContext,
@@ -275,6 +276,7 @@ declare global {
 const STORAGE_KEY_OPEN = 'xnet:devtools:open'
 const STORAGE_KEY_PANEL = 'xnet:devtools:panel'
 const STORAGE_KEY_POSITION = 'xnet:devtools:position'
+const STORAGE_KEY_HEIGHT = 'xnet:devtools:height'
 
 function loadStoredOpen(defaultOpen: boolean): boolean {
   if (typeof localStorage === 'undefined') return defaultOpen
@@ -287,46 +289,30 @@ function loadStoredOpen(defaultOpen: boolean): boolean {
 function loadStoredPanel(defaultPanel: PanelId): PanelId {
   if (typeof localStorage === 'undefined') return defaultPanel
   const stored = localStorage.getItem(STORAGE_KEY_PANEL)
-  if (
-    stored &&
-    [
-      'nodes',
-      'changes',
-      'sync',
-      'yjs',
-      'authz',
-      'abuse',
-      'queries',
-      'traces',
-      'telemetry',
-      'schemas',
-      'schema-history',
-      'version',
-      'migration',
-      'seed',
-      'history',
-      'security',
-      'sqlite'
-    ].includes(stored)
-  ) {
-    return stored as PanelId
-  }
-  return defaultPanel
+  // Validate against the live registry (no stale hardcoded allowlist) and
+  // migrate renamed ids (e.g. the old `nodes` panel -> `data`).
+  return (stored && migratePanelId(stored)) || defaultPanel
 }
 
 function loadStoredPosition(defaultPosition: PanelPosition): PanelPosition {
   if (typeof localStorage === 'undefined') return defaultPosition
   const stored = localStorage.getItem(STORAGE_KEY_POSITION)
-  if (stored === 'bottom' || stored === 'right') {
+  if (stored === 'bottom' || stored === 'right' || stored === 'floating') {
     return stored
   }
   return defaultPosition
 }
 
+function loadStoredHeight(defaultHeight: number): number {
+  if (typeof localStorage === 'undefined') return defaultHeight
+  const stored = Number(localStorage.getItem(STORAGE_KEY_HEIGHT))
+  return Number.isFinite(stored) && stored >= DEFAULTS.PANEL_MIN_HEIGHT ? stored : defaultHeight
+}
+
 export function XNetDevToolsProvider({
   children,
   defaultOpen = false,
-  defaultPanel = 'nodes',
+  defaultPanel = 'data',
   position: initialPosition = 'bottom',
   height: initialHeight = DEFAULTS.PANEL_HEIGHT,
   maxEvents = DEFAULTS.MAX_EVENTS,
@@ -344,7 +330,7 @@ export function XNetDevToolsProvider({
   const [position, setPositionState] = useState<PanelPosition>(() =>
     loadStoredPosition(initialPosition)
   )
-  const [height, setHeight] = useState(initialHeight)
+  const [height, setHeightState] = useState(() => loadStoredHeight(initialHeight))
   const [activeNodeId, setActiveNodeId] = useState<string | null>(null)
   const [syncDiagnostics, setSyncDiagnostics] = useState<SyncDiagnostics>(() =>
     createSyncDiagnostics(syncManager)
@@ -374,6 +360,14 @@ export function XNetDevToolsProvider({
     setPositionState(pos)
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(STORAGE_KEY_POSITION, pos)
+    }
+  }
+
+  // Persist panel height (so a resized dock survives reload)
+  const setHeight = (h: number) => {
+    setHeightState(h)
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(STORAGE_KEY_HEIGHT, String(Math.round(h)))
     }
   }
 

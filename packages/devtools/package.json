@@ -31,7 +31,8 @@
     "@xnetjs/history": "workspace:*",
     "@xnetjs/sqlite": "workspace:*",
     "@xnetjs/ui": "workspace:*",
-    "@xnetjs/views": "workspace:*"
+    "@xnetjs/views": "workspace:*",
+    "lucide-react": "^0.400.0"
   },
   "devDependencies": {
     "@types/react": "^18.2.0",

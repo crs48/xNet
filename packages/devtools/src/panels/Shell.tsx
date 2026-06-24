@@ -1,22 +1,26 @@
 /**
- * DevToolsPanel Shell - Tab container, resize handle, status bar
+ * DevToolsPanel Shell - tab container, resize handle, status bar.
  *
- * Styled with the workspace monochrome tokens (surface/ink/hairline),
- * so it follows the app's light/dark theme.
+ * The bottom strip is intentionally cozy: four hero panels live in the primary
+ * row, every other panel is tucked into a grouped "More" menu, and the command
+ * palette (⌘/Ctrl+Shift+P) reaches any panel by name. Styled with the workspace
+ * monochrome tokens (surface/ink/hairline) so it follows the app theme.
  */
 
 import type { PanelId, PanelPosition } from '../provider/DevToolsContext'
-import { Tooltip } from '@xnetjs/ui'
-import { useState, type MouseEvent as ReactMouseEvent, type CSSProperties } from 'react'
+import { Popover, Tooltip } from '@xnetjs/ui'
+import { useEffect, useState, type MouseEvent as ReactMouseEvent, type CSSProperties } from 'react'
 import { DEFAULTS } from '../core/constants'
 import { useDevTools } from '../provider/useDevTools'
 import { AbusePanel } from './AbusePanel/AbusePanel'
 import { AuthZPanel } from './AuthZPanel/AuthZPanel'
 import { ChangeTimeline } from './ChangeTimeline/ChangeTimeline'
+import { DevToolsPalette } from './CommandPalette/DevToolsPalette'
+import { DataExplorer } from './DataExplorer/DataExplorer'
 import { HistoryPanel } from './HistoryPanel/HistoryPanel'
+import { LogsPanel } from './LogsPanel/LogsPanel'
 import { MigrationWizard } from './MigrationWizard/MigrationWizard'
-import { NodeExplorer } from './NodeExplorer/NodeExplorer'
-import { DEVTOOLS_PANELS } from './panel-registry'
+import { PerformancePanel } from './PerformancePanel/PerformancePanel'
 import { QueryDebugger } from './QueryDebugger/QueryDebugger'
 import { Reset } from './Reset/Reset'
 import { SchemaHistoryPanel } from './SchemaHistoryPanel/SchemaHistoryPanel'
@@ -30,12 +34,45 @@ import { TelemetryPanel } from './TelemetryPanel/TelemetryPanel'
 import { TracesPanel } from './TracesPanel/TracesPanel'
 import { VersionPanel } from './VersionPanel/VersionPanel'
 import { YjsInspector } from './YjsInspector/YjsInspector'
+import { PANEL_GROUP_LABELS, getPanel, heroPanels, secondaryPanelsByGroup } from './panel-registry'
 
 export function DevToolsPanel() {
-  const { position, height, activePanel, setActivePanel, setHeight, toggle, eventBus, store } =
-    useDevTools()
+  const {
+    position,
+    height,
+    activePanel,
+    setActivePanel,
+    setHeight,
+    toggle,
+    eventBus,
+    store,
+    syncDiagnostics
+  } = useDevTools()
   const sqliteStatus = useSQLiteStatus(store)
   const sqliteDotClass = getSQLiteHealthDotClass(sqliteStatus.health)
+  const [moreOpen, setMoreOpen] = useState(false)
+  const [paletteOpen, setPaletteOpen] = useState(false)
+
+  const heroes = heroPanels()
+  const activeIsHero = heroes.some((p) => p.id === activePanel)
+  const activeDef = getPanel(activePanel)
+
+  // ⌘/Ctrl+Shift+P opens the panel palette (only while devtools is mounted).
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'p') {
+        e.preventDefault()
+        setPaletteOpen((v) => !v)
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
+
+  const selectPanel = (id: PanelId) => {
+    setActivePanel(id)
+    setMoreOpen(false)
+  }
 
   return (
     <div
@@ -44,44 +81,94 @@ export function DevToolsPanel() {
       role="complementary"
       aria-label="xNet DevTools"
     >
-      {/* Resize Handle */}
       <ResizeHandle position={position} height={height} setHeight={setHeight} />
 
       {/* Tab Bar */}
-      <div className="flex items-center border-b border-hairline shrink-0 overflow-x-auto">
-        <span className="text-xs font-bold text-ink-2 ml-2 mr-3 select-none shrink-0">xNet</span>
+      <div className="flex items-center border-b border-hairline shrink-0">
+        <span className="text-xs font-bold text-ink-2 ml-2 mr-2 select-none shrink-0">xNet</span>
 
+        {/* Hero panels */}
         <div className="flex items-center shrink-0">
-          {DEVTOOLS_PANELS.map((panel) => (
-            <button
-              key={panel.id}
-              onClick={() => setActivePanel(panel.id)}
-              className={`
-                px-3 py-1.5 text-xs font-medium border-b-2 transition-colors whitespace-nowrap
-                ${
-                  activePanel === panel.id
+          {heroes.map((panel) => {
+            const Icon = panel.icon
+            const active = activePanel === panel.id
+            return (
+              <button
+                key={panel.id}
+                onClick={() => setActivePanel(panel.id)}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
+                  active
                     ? 'border-accent-ink text-ink-1'
                     : 'border-transparent text-ink-2 hover:text-ink-1'
-                }
-              `}
-            >
-              {panel.id === 'sqlite' ? (
-                <Tooltip content={sqliteStatus.tooltip} side="bottom" sideOffset={6}>
-                  <span className="inline-flex items-center gap-1.5">
-                    <span className={`w-1.5 h-1.5 rounded-full ${sqliteDotClass}`} />
-                    <span>{panel.label}</span>
-                  </span>
-                </Tooltip>
-              ) : (
-                panel.label
-              )}
-            </button>
-          ))}
+                }`}
+              >
+                <Icon size={13} className={active ? 'text-ink-1' : 'text-ink-3'} />
+                {panel.label}
+              </button>
+            )
+          })}
+
+          {/* More menu */}
+          <Popover
+            open={moreOpen}
+            onOpenChange={setMoreOpen}
+            align="start"
+            trigger={
+              <button
+                className={`inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
+                  !activeIsHero
+                    ? 'border-accent-ink text-ink-1'
+                    : 'border-transparent text-ink-2 hover:text-ink-1'
+                }`}
+              >
+                {!activeIsHero && activeDef ? activeDef.label : 'More'}
+                <span className="text-ink-3 text-[9px]">▾</span>
+              </button>
+            }
+          >
+            <div className="w-56 max-h-[50vh] overflow-y-auto py-1">
+              {secondaryPanelsByGroup().map(({ group, panels }) => (
+                <div key={group} className="py-1">
+                  <div className="px-3 py-0.5 text-[9px] font-bold uppercase tracking-wide text-ink-3">
+                    {PANEL_GROUP_LABELS[group]}
+                  </div>
+                  {panels.map((panel) => {
+                    const Icon = panel.icon
+                    const active = activePanel === panel.id
+                    return (
+                      <button
+                        key={panel.id}
+                        onClick={() => selectPanel(panel.id)}
+                        className={`flex items-center gap-2 w-full px-3 py-1 text-xs text-left ${
+                          active ? 'bg-surface-2 text-ink-1' : 'text-ink-2 hover:bg-surface-2'
+                        }`}
+                      >
+                        <Icon size={13} className="text-ink-3 shrink-0" />
+                        <span className="flex-1">{panel.label}</span>
+                        {panel.id === 'sqlite' && (
+                          <span className={`w-1.5 h-1.5 rounded-full ${sqliteDotClass}`} />
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              ))}
+            </div>
+          </Popover>
         </div>
 
         {/* Right-side controls */}
         <div className="ml-auto flex items-center gap-2 shrink-0 px-2">
-          <EventCounter count={eventBus.size} capacity={eventBus.capacity} />
+          <Tooltip content="Jump to panel (⌘⇧P)" side="bottom" sideOffset={6}>
+            <button
+              onClick={() => setPaletteOpen(true)}
+              className="text-ink-3 hover:text-ink-1 text-xs px-1"
+              aria-label="Jump to panel"
+            >
+              ⌘⇧P
+            </button>
+          </Tooltip>
+          <EventCounter count={eventBus.size} />
           <PauseButton
             isPaused={eventBus.isPaused}
             onPause={() => eventBus.pause()}
@@ -105,15 +192,24 @@ export function DevToolsPanel() {
 
       {/* Status Bar */}
       <div className="flex items-center px-3 py-1 border-t border-hairline bg-surface-2 text-[10px] text-ink-3 shrink-0">
-        <span>
-          Events: {eventBus.size}/{eventBus.capacity}
+        <span>Events: {eventBus.size}</span>
+        <span className="mx-2">|</span>
+        <span className="inline-flex items-center gap-1">
+          <span className={`w-1.5 h-1.5 rounded-full ${sqliteDotClass}`} />
+          Store: {store ? 'connected' : 'disconnected'}
         </span>
         <span className="mx-2">|</span>
-        <span>Store: {store ? 'connected' : 'disconnected'}</span>
+        <span>Sync: {syncDiagnostics.status}</span>
         <span className="mx-2">|</span>
-        <ClearDataButton store={store} />
-        <span className="ml-auto">Ctrl+Shift+D to toggle</span>
+        <ClearDataButton />
+        <span className="ml-auto">⌘⇧P panels · Ctrl+Shift+D toggle</span>
       </div>
+
+      <DevToolsPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        onSelect={selectPanel}
+      />
     </div>
   )
 }
@@ -133,10 +229,14 @@ function getSQLiteHealthDotClass(health: 'working' | 'degraded' | 'inactive'): s
 
 function ActivePanelContent({ panel }: { panel: PanelId }) {
   switch (panel) {
-    case 'nodes':
-      return <NodeExplorer />
+    case 'data':
+      return <DataExplorer />
     case 'changes':
       return <ChangeTimeline />
+    case 'logs':
+      return <LogsPanel />
+    case 'performance':
+      return <PerformancePanel />
     case 'sync':
       return <SyncMonitor />
     case 'yjs':
@@ -172,7 +272,7 @@ function ActivePanelContent({ panel }: { panel: PanelId }) {
   }
 }
 
-function EventCounter({ count }: { count: number; capacity?: number }) {
+function EventCounter({ count }: { count: number }) {
   return <span className="text-[10px] text-ink-3">{count}</span>
 }
 
@@ -208,23 +308,21 @@ function ClearButton({ onClear }: { onClear: () => void }) {
   )
 }
 
-function ClearDataButton({ store }: { store: ReturnType<typeof useDevTools>['store'] }) {
-  const { onResetLocalData } = useDevTools()
+function ClearDataButton() {
+  const { onResetLocalData, store } = useDevTools()
   const [confirming, setConfirming] = useState(false)
 
   const handleClick = async () => {
     if (!confirming) {
       setConfirming(true)
-      // Auto-cancel after 3 seconds
       setTimeout(() => setConfirming(false), 3000)
       return
     }
 
     try {
       // Prefer the host's OPFS-aware reset (wipes the SAH-pool SQLite that holds
-      // the real data, then reloads). The old inline path below only touched
-      // IndexedDB + an adapter.clear() that the SQLite adapter doesn't implement,
-      // so it silently left the database intact (0212 follow-up).
+      // the real data, then reloads). The inline fallback below only touches
+      // IndexedDB + adapter.clear() which the SQLite adapter doesn't implement.
       if (onResetLocalData) {
         await onResetLocalData()
         return
@@ -247,7 +345,6 @@ function ClearDataButton({ store }: { store: ReturnType<typeof useDevTools>['sto
         }
       }
 
-      // Reload the page to reset state
       window.location.reload()
     } catch (err) {
       console.error('[DevTools] Failed to clear data:', err)
@@ -312,7 +409,6 @@ function ResizeHandle({
         position: 'relative'
       }}
     >
-      {/* Wider invisible hit area */}
       <div
         style={{
           position: 'absolute',

@@ -1,0 +1,144 @@
+import type { NodeState, Schema } from '@xnetjs/data'
+import { describe, expect, it } from 'vitest'
+import {
+  SYSTEM_FIELD,
+  buildGridFields,
+  coerceCellValue,
+  formatPlanRows,
+  nodeToGridRow,
+  observedPropertyKeys,
+  propertyTypeToFieldType,
+  schemaLabel
+} from './grid-adapter'
+
+function makeSchema(): Schema {
+  return {
+    '@id': 'xnet://xnet.fyi/Task@1.0.0',
+    '@type': 'xnet://xnet.fyi/Schema',
+    name: 'Task',
+    namespace: 'xnet://xnet.fyi/',
+    version: '1.0.0',
+    properties: [
+      { '@id': 'xnet://xnet.fyi/Task#title', name: 'title', type: 'text', required: true },
+      { '@id': 'xnet://xnet.fyi/Task#count', name: 'count', type: 'number', required: false },
+      { '@id': 'xnet://xnet.fyi/Task#meta', name: 'meta', type: 'json', required: false },
+      { '@id': 'xnet://xnet.fyi/Task#status', name: 'status', type: 'select', required: false },
+      {
+        '@id': 'xnet://xnet.fyi/Task#updatedAt',
+        name: 'updatedAt',
+        type: 'updated',
+        required: false
+      }
+    ]
+  } as Schema
+}
+
+function makeNode(props: Record<string, unknown>): NodeState {
+  return {
+    id: 'node-1',
+    schemaId: 'xnet://xnet.fyi/Task@1.0.0',
+    properties: props,
+    timestamps: {},
+    deleted: false,
+    createdAt: 1_700_000_000_000,
+    createdBy: 'did:key:zABCDEFGHIJKLMNOP',
+    updatedAt: 1_700_000_500_000,
+    updatedBy: 'did:key:zABCDEFGHIJKLMNOP'
+  } as NodeState
+}
+
+describe('schemaLabel', () => {
+  it('strips namespace and version', () => {
+    expect(schemaLabel('xnet://xnet.fyi/Task@1.0.0')).toBe('Task')
+  })
+})
+
+describe('propertyTypeToFieldType', () => {
+  it('maps json to text', () => {
+    expect(propertyTypeToFieldType('json')).toBe('text')
+  })
+  it('passes other types through', () => {
+    expect(propertyTypeToFieldType('number')).toBe('number')
+  })
+})
+
+describe('buildGridFields', () => {
+  it('starts with the id column and ends with system columns', () => {
+    const fields = buildGridFields(makeSchema(), [], false)
+    expect(fields[0].id).toBe(SYSTEM_FIELD.id)
+    expect(fields.at(-2)?.id).toBe(SYSTEM_FIELD.updated)
+    expect(fields.at(-1)?.id).toBe(SYSTEM_FIELD.author)
+  })
+
+  it('skips auto property types (rendered as system columns)', () => {
+    const ids = buildGridFields(makeSchema(), [], false).map((f) => f.id)
+    expect(ids).not.toContain('updatedAt') // the schema "updated" prop is omitted
+    expect(ids).toContain('title')
+  })
+
+  it('downgrades an option-less select to a text column (never crash a select cell)', () => {
+    const status = buildGridFields(makeSchema(), [], false).find((f) => f.id === 'status')
+    expect(status?.type).toBe('text')
+  })
+
+  it('synthesizes text columns from observed keys when no schema is known', () => {
+    const fields = buildGridFields(null, ['foo', 'bar'], true)
+    const ids = fields.map((f) => f.id)
+    expect(ids).toContain(SYSTEM_FIELD.schema)
+    expect(ids).toContain('foo')
+    expect(fields.find((f) => f.id === 'foo')?.type).toBe('text')
+  })
+})
+
+describe('coerceCellValue', () => {
+  it('passes primitives through', () => {
+    expect(coerceCellValue('x')).toBe('x')
+    expect(coerceCellValue(5)).toBe(5)
+    expect(coerceCellValue(true)).toBe(true)
+    expect(coerceCellValue(null)).toBeNull()
+    expect(coerceCellValue(undefined)).toBeNull()
+  })
+  it('keeps a string array', () => {
+    expect(coerceCellValue(['a', 'b'])).toEqual(['a', 'b'])
+  })
+  it('stringifies objects and mixed arrays', () => {
+    expect(coerceCellValue({ a: 1 })).toBe('{"a":1}')
+    expect(coerceCellValue([1, 2])).toBe('[1,2]')
+  })
+})
+
+describe('nodeToGridRow', () => {
+  it('builds system cells plus property cells keyed by field id', () => {
+    const row = nodeToGridRow(makeNode({ title: 'Hello', count: 3 }))
+    expect(row.id).toBe('node-1')
+    expect(row.cells[SYSTEM_FIELD.id]).toBe('node-1')
+    expect(row.cells[SYSTEM_FIELD.schema]).toBe('Task@1.0.0')
+    expect(row.cells.title).toBe('Hello')
+    expect(row.cells.count).toBe(3)
+    expect(typeof row.cells[SYSTEM_FIELD.author]).toBe('string')
+  })
+})
+
+describe('observedPropertyKeys', () => {
+  it('collects the union of keys and caps the count', () => {
+    const nodes = [makeNode({ a: 1, b: 2 }), makeNode({ b: 3, c: 4 })]
+    expect(observedPropertyKeys(nodes).sort()).toEqual(['a', 'b', 'c'])
+    expect(observedPropertyKeys(nodes, 2).length).toBe(2)
+  })
+})
+
+describe('formatPlanRows', () => {
+  it('renders the core plan metrics', () => {
+    const rows = formatPlanRows({
+      strategy: 'storage-query',
+      candidateNodeCount: 12,
+      hydratedNodeCount: 10,
+      returnedNodeCount: 10,
+      durationMs: 4.2
+    })
+    const map = Object.fromEntries(rows.map((r) => [r.label, r.value]))
+    expect(map.Strategy).toBe('storage-query')
+    expect(map.Returned).toBe('10')
+    expect(map.Duration).toBe('4.2ms')
+  })
+})

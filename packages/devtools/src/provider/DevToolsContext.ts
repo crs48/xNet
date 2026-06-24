@@ -9,8 +9,12 @@ import type * as Y from 'yjs'
 import { createContext } from 'react'
 
 export type PanelId =
-  | 'nodes'
+  // Hero panels (always-visible primary row)
+  | 'data'
   | 'changes'
+  | 'logs'
+  | 'performance'
+  // Secondary panels (grouped in the "More" menu + command palette)
   | 'sync'
   | 'yjs'
   | 'authz'
