@@ -176,19 +176,32 @@ should land on `/dashboard?plan=demo`.
 
 ---
 
-## Optional — turn on push-to-deploy (CI via Workload Identity Federation)
+## Push-to-deploy is LIVE (CI via Workload Identity Federation)
 
-The manual `gcloud run deploy` already works. To make a push to `main` that touches
-`apps/cloud/**` redeploy automatically:
+**As of 2026-06-24 this is on** (exploration
+[0214](../explorations/0214_%5B_%5D_CONTINUOUS_DEPLOYMENT_FOR_CLOUD_STAGING.md)). A push
+to `main` that touches the control plane's build closure — `apps/cloud/**`,
+`packages/{cloud,core,crypto,entitlements,sqlite,storage}/**`, or
+`.github/workflows/deploy-cloud.yml` — now redeploys staging automatically via
+[`deploy-cloud.yml`](../../.github/workflows/deploy-cloud.yml): CI authenticates to GCP
+keylessly (WIF), builds + pushes the control-plane image, `gcloud run deploy`s it, and
+gates on `scripts/cloud-smoke.mjs`. A smoke failure rolls traffic back to the previous
+revision. Deploys are unattended (the `cloud-staging` GitHub environment is restricted
+to `main` with no required reviewer).
 
-```bash
-REPO=crs48/xNet bash scripts/cloud-staging-enable-ci.sh
-```
+What's wired (for rotation / disaster recovery):
 
-It sets up the WIF pool/provider and prints the exact `gh secret`/`gh variable`
-commands. **Order matters:** set the two repo secrets first, then set
-`CLOUD_DEPLOY_ENABLED=true` last — flipping the variable before the secrets exist
-would fail the deploy job and red `main`.
+- WIF pool/provider on `xnet-cloud-staging-0`, created by
+  `REPO=crs48/xNet bash scripts/cloud-staging-enable-ci.sh` (idempotent — re-run to
+  recreate).
+- Repo secrets `WIF_PROVIDER`, `DEPLOYER_SA`; repo variable `CLOUD_DEPLOY_ENABLED=true`.
+- The `cloud-staging` environment (branch policy: `main` only).
+
+**To disable** push-to-deploy without touching the workflow: set
+`CLOUD_DEPLOY_ENABLED=false` (or delete it) — the job goes back to skipping (green).
+**Order matters if re-enabling from scratch:** set the two secrets first, then
+`CLOUD_DEPLOY_ENABLED=true` last — flipping the variable before the secrets exist would
+fail the deploy job and red `main`.
 
 ---
 

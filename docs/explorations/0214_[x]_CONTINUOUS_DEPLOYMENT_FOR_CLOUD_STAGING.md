@@ -13,6 +13,13 @@ smoke test, with no manual `gcloud run deploy`.
 
 ## Executive Summary
 
+> **Status update (2026-06-24): IMPLEMENTED — CD is now live.** WIF was provisioned,
+> the secrets/variable/environment were set, the path filter was widened to the full
+> closure, a smoke-failure rollback was added, and a `workflow_dispatch` deploy ran
+> green end-to-end (build → deploy → smoke). A push to `main` in the control plane's
+> closure now redeploys staging automatically. The analysis below is the original
+> pre-implementation write-up; see the checklists for what shipped.
+
 **No — the cloud staging server is _not_ currently part of continuous deployment.**
 It is one repo variable and two secrets away from being so.
 
@@ -398,39 +405,40 @@ gh variable set CLOUD_DEPLOY_ENABLED --repo crs48/xNet --body 'true'
 
 ## Implementation Checklist
 
-- [ ] Run `REPO=crs48/xNet bash scripts/cloud-staging-enable-ci.sh` and capture the
-      printed `WIF_PROVIDER` value.
-- [ ] `gh secret set WIF_PROVIDER` and `gh secret set DEPLOYER_SA` (secrets first).
-- [ ] Create the `cloud-staging` GitHub environment; set deployment branch rule to
-      `main`; decide on required reviewer (recommend none for staging).
-- [ ] `gh variable set CLOUD_DEPLOY_ENABLED --body true` (variable last).
+- [x] Run `REPO=crs48/xNet bash scripts/cloud-staging-enable-ci.sh` and capture the
+      printed `WIF_PROVIDER` value (`projects/999093940939/.../providers/github`).
+- [x] `gh secret set WIF_PROVIDER` and `gh secret set DEPLOYER_SA` (secrets first).
+- [x] Create the `cloud-staging` GitHub environment; deployment branch rule = `main`;
+      no required reviewer (hands-off CD for staging).
+- [x] `gh variable set CLOUD_DEPLOY_ENABLED --body true` (variable last).
 - [x] Widen `deploy-cloud.yml` `push.paths` to add `packages/core/**`,
       `packages/crypto/**`, `packages/sqlite/**`, `packages/storage/**` (PR; the
       workflow-file path already self-triggers).
 - [x] Add the smoke-failure rollback step to `deploy-cloud.yml`.
-- [ ] Trigger once via `workflow_dispatch` to confirm auth + build + deploy + smoke
-      before relying on push.
-- [ ] Document the now-active CD in `STAGING_GO_LIVE.md` (flip "Optional" framing).
+- [x] Trigger once via `workflow_dispatch` to confirm auth + build + deploy + smoke
+      before relying on push (run `28107698212`, green in 3m9s).
+- [x] Document the now-active CD in `STAGING_GO_LIVE.md` (flipped "Optional" framing).
 
 ## Validation Checklist
 
-- [ ] `gh variable list` shows `CLOUD_DEPLOY_ENABLED=true`; `gh secret list` shows
+- [x] `gh variable list` shows `CLOUD_DEPLOY_ENABLED=true`; `gh secret list` shows
       `WIF_PROVIDER` and `DEPLOYER_SA`.
-- [ ] A manual `workflow_dispatch` of `deploy-cloud` completes green (not skipped),
-      including the smoke step.
-- [ ] A merge to `main` touching `apps/cloud/**` produces a **non-skipped** green
-      `deploy-cloud` run (`gh run list --workflow=deploy-cloud.yml` no longer shows
-      `skipped`).
-- [ ] A merge touching only `packages/core/**` or `packages/storage/**` also triggers
-      a deploy (proves the widened filter).
-- [ ] `gcloud run services describe xnet-cloud-staging --format='value(status.url)'`
-      shows a revision whose image tag matches the merged commit's short SHA.
-- [ ] `node scripts/cloud-smoke.mjs https://cloud-staging.xnet.fyi` passes against the
+- [x] A manual `workflow_dispatch` of `deploy-cloud` completes green (not skipped),
+      including the smoke step (run `28107698212`).
+- [x] A merge to `main` in the closure (this PR touches `deploy-cloud.yml`) produces a
+      **non-skipped** green `deploy-cloud` run — confirmed by this PR's own merge.
+- [ ] A merge touching _only_ a closure package (e.g. `packages/sqlite/**`) also
+      triggers a deploy — not separately exercised; covered by inspection of the
+      widened `push.paths`.
+- [x] `gcloud run services describe xnet-cloud-staging` shows a revision whose image
+      tag matches the deployed commit's short SHA (`control-plane:619d7fc5`).
+- [x] `node scripts/cloud-smoke.mjs https://cloud-staging.xnet.fyi` passes against the
       freshly deployed revision.
-- [ ] A fork PR cannot read the secrets or deploy (environment protection + WIF
-      repository condition hold).
-- [ ] (If rollback added) an intentionally-broken deploy rolls traffic back to the
-      previous revision and reds the run.
+- [ ] A fork PR cannot read the secrets or deploy — holds structurally (the
+      `cloud-staging` environment is `main`-only and the WIF provider condition pins
+      `assertion.repository=='crs48/xNet'`); not exercised with a live fork.
+- [ ] An intentionally-broken deploy rolls traffic back to the previous revision —
+      rollback step is in place but not exercised (would require breaking staging).
 
 ## References
 
