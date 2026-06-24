@@ -160,6 +160,11 @@ const isNodeSyncRequest = (
   )
 }
 
+const isNodeClearRequest = (value: unknown): value is { type: 'node-clear'; room: string } => {
+  if (!isRecord(value)) return false
+  return value.type === 'node-clear' && typeof value.room === 'string'
+}
+
 const isNodeChangePayload = (
   value: unknown
 ): value is { type: 'node-change'; room: string; change: SerializedNodeChange } => {
@@ -1350,6 +1355,52 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
 
               try {
                 const response = await nodeRelay.handleSyncRequest(payload, authContext)
+                ws.send(JSON.stringify(response))
+                metrics.increment(HUB_METRICS.WS_MESSAGES_SENT)
+              } catch (err) {
+                if (err instanceof NodeRelayError) {
+                  ws.send(
+                    JSON.stringify({
+                      type: 'node-error',
+                      code: err.code,
+                      error: err.message,
+                      action: err.action,
+                      resource: err.resource
+                    })
+                  )
+                  metrics.increment(HUB_METRICS.WS_MESSAGES_SENT)
+                  return
+                }
+                throw err
+              }
+              return
+            }
+
+            if (isNodeClearRequest(payload)) {
+              const roomDecision = await authorizeRoomAction({
+                storage,
+                session,
+                action: 'hub/relay',
+                topic: payload.room,
+                shareAccess
+              })
+              if (!roomDecision.allowed) {
+                reportUnauthorizedRemoteWrite(remoteMutationTelemetry, session.did)
+                ws.send(
+                  JSON.stringify({
+                    type: 'node-error',
+                    code: roomDecision.code ?? 'UNAUTHORIZED',
+                    error: roomDecision.message ?? 'Unauthorized',
+                    action: 'hub/relay',
+                    resource: topicToResource(payload.room)
+                  })
+                )
+                metrics.increment(HUB_METRICS.WS_MESSAGES_SENT)
+                return
+              }
+
+              try {
+                const response = await nodeRelay.handleClear(payload, authContext)
                 ws.send(JSON.stringify(response))
                 metrics.increment(HUB_METRICS.WS_MESSAGES_SENT)
               } catch (err) {

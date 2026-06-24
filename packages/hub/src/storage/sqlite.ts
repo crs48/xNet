@@ -1160,6 +1160,9 @@ export const createSQLiteStorage = (
     getHighWaterMark: db.prepare(`
       SELECT MAX(lamport_time) as hwm FROM node_changes WHERE room = ?
     `),
+    clearNodeChanges: db.prepare(`
+      DELETE FROM node_changes WHERE room = ?
+    `),
     // Database row statements
     insertDatabaseRow: db.prepare(`
       INSERT INTO database_rows
@@ -2127,6 +2130,11 @@ export const createSQLiteStorage = (
     return row?.hwm ?? 0
   }
 
+  const clearNodeChanges = async (room: string): Promise<number> => {
+    const info = stmts.clearNodeChanges.run(room)
+    return info.changes
+  }
+
   const close = async (): Promise<void> => {
     db.close()
   }
@@ -2510,6 +2518,7 @@ export const createSQLiteStorage = (
     getNodeChangesSince,
     getNodeChangesForNode,
     getHighWaterMark,
+    clearNodeChanges,
     updateSearchBody: async (docId: string, text: string): Promise<void> => {
       const updateFn = db.transaction(() => {
         stmts.updateSearchBody.run(docId)

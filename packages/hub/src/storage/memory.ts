@@ -673,6 +673,15 @@ export const createMemoryStorage = (): HubStorage => {
     return changes.reduce((max, change) => Math.max(max, change.lamportTime), 0)
   }
 
+  const clearNodeChanges = async (room: string): Promise<number> => {
+    const changes = nodeChangesByRoom.get(room) ?? []
+    // Drop the per-hash dedup entries too, otherwise re-adding the same change
+    // after a clear would be silently ignored and the map would leak.
+    for (const change of changes) nodeChangesByHash.delete(change.hash)
+    nodeChangesByRoom.delete(room)
+    return changes.length
+  }
+
   // ─── Database Row Operations ─────────────────────────────────────────────────
 
   const insertDatabaseRow = async (row: DatabaseRowRecord): Promise<void> => {
@@ -969,6 +978,7 @@ export const createMemoryStorage = (): HubStorage => {
     getNodeChangesSince,
     getNodeChangesForNode,
     getHighWaterMark,
+    clearNodeChanges,
     insertDatabaseRow,
     updateDatabaseRow,
     deleteDatabaseRow,
