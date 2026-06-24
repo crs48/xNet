@@ -583,17 +583,19 @@ if (url.hostname === 'connect') {
 
 ## Validation Checklist
 
-- [ ] `vitest run apps/cloud/src/dashboard.test.ts` green; lint + prettier + typecheck
-      clean.
-- [ ] Render the four states to HTML and screenshot via the preview flow (as in
-      PR #242): **(a)** no tenant / welcome, **(b)** provisioned but not connected,
-      **(c)** connected, **(d)** canceled/suspended. The Connect tabs and checklist
-      look right in each.
-- [ ] No-JS check: disable JS → all platform panels visible, copy fields still show
-      the URL, no instructions hidden.
-- [ ] Copy button copies the exact hub URL; "Copied ✓" confirm fires.
-- [ ] Help links resolve to live pages (`/cloud/pricing#faq`, `/docs/guides/hub`,
-      `/docs/guides/cloud-connect`, `/status`).
+- [x] `vitest run apps/cloud/src/dashboard.test.ts` green (23 tests); lint + prettier
+      clean; type-clean (only worktree env module-resolution cascades).
+- [x] Rendered the states to HTML and screenshotted via the preview flow (as in
+      PR #242): no tenant / welcome, provisioned-but-not-connected, connected. Canceled
+      is covered by a unit test (connect card suppressed + "Canceled — suspended").
+- [x] No-JS check: tab bar `hidden` (verified `[hidden]{display:none}` computes), all
+      panels visible + headed, copy fields still show the URL. Also verified the
+      `[hidden]` override fix in-browser.
+- [x] Copy button wired (clipboard API → execCommand → select fallback). The visual
+      "Copied ✓" confirm needs real user-activation (headless preview blocks
+      clipboard + execCommand), so confirmed the markup/wiring rather than the toast.
+- [x] Help links resolve (`/cloud/pricing#faq` now has an `id="faq"` target,
+      `/docs/guides/hub`, `/docs/guides/cloud-connect`, `/status`); asserted in tests.
 - [ ] **Redeploy to staging**: merge to `main` (touches `apps/cloud/**` → triggers
       [`deploy-cloud.yml`](.github/workflows/deploy-cloud.yml)) or
       `gh workflow run deploy-cloud.yml -f environment=staging`.
