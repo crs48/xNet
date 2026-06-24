@@ -537,7 +537,11 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     maxQuotaBytes: config.defaultQuota,
     maxBlobSize: config.maxBlobSize
   })
-  const files = new FileService(storage)
+  // Files count against the same plan quota as backups (the hub's `defaultQuota`,
+  // resolved from the signed HUB_PLAN entitlement). Without this, uploads fall back
+  // to FileService's hardcoded 5 GiB default and silently diverge from the plan
+  // quota the dashboard meter shows (exploration 0216).
+  const files = new FileService(storage, { maxStoragePerUser: config.defaultQuota })
   const keyRegistry = new KeyRegistryService()
   const taskIdentifiers = new TaskIdentifierService()
   const query = new QueryService(storage)

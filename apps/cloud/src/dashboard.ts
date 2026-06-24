@@ -161,7 +161,7 @@ function planChangeCard(view: DashboardView, tenant: TenantRecord): string {
   return `
     <div class="card">
       <h2>Change plan</h2>
-      <p class="muted">You're on <strong>${esc(tenant.plan)}</strong>. Switching within the same tier applies instantly; a bigger change may move your data.</p>
+      <p class="muted">You're on <strong>${esc(tenant.plan)}</strong>. Upgrading applies instantly — your data just gets more room. Switching to a smaller plan needs your data to fit; if it doesn't, we'll show you how to free space or start fresh.</p>
       <div class="plans">${options}</div>
     </div>`
 }
@@ -229,6 +229,7 @@ function hubCard(tenant: TenantRecord): string {
         <div class="budget-bar"><div class="budget-fill" id="storage-fill"></div></div>
         <span class="muted" id="storage-lbl"></span>
       </div>
+      <p class="overquota-note" id="overquota-note" hidden></p>
       <p class="muted" id="backup-lbl" style="margin:0 0 4px">Backups: continuous → R2 object storage</p>
       <div class="budget" id="budget-wrap" hidden>
         <div class="budget-bar"><div class="budget-fill" id="budget-fill"></div></div>
@@ -296,6 +297,11 @@ function liveScript(): string {
       f.style.width = d.storagePct + '%';
       f.style.background = d.storagePct >= 90 ? '#ef4444' : d.storagePct >= 70 ? '#fbbf24' : '#4f46e5';
       set('storage-lbl', 'storage ' + fmtBytes(d.storageUsedBytes) + ' / ' + fmtBytes(d.storageQuotaBytes) + ' (' + d.storagePct + '%)');
+    }
+    var oq = document.getElementById('overquota-note');
+    if (oq) {
+      oq.hidden = !d.overQuota;
+      if (d.overQuota) oq.textContent = "You're over your plan's storage. Your data is safe, but new writes are paused until you free up space or upgrade.";
     }
     var bl = document.getElementById('backup-lbl');
     if (bl && d.backup) {
@@ -639,6 +645,7 @@ const STYLE = `
   .budget { margin-bottom: 16px; }
   .budget-bar { height: 8px; background: #1c1c24; border-radius: 999px; overflow: hidden; margin-bottom: 6px; }
   .budget-fill { height: 100%; border-radius: 999px; transition: width 0.3s ease; }
+  .overquota-note { color: #fca5a5; font-size: 13px; font-weight: 500; margin: 0 0 8px; padding: 8px 12px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 9px; }
   h3 { font-size: 14px; margin: 0; }
   .btn-sm { padding: 5px 11px; font-size: 13px; }
   .copy { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; vertical-align: middle; }
@@ -755,6 +762,64 @@ export function renderPlanChangeNotice(opts: { who: string; from: PlanId; to: Pl
        infrastructure rather than flipping it live. We'll email you to schedule it with
        zero data loss; nothing has changed yet.</p>
        <a class="btn" href="/dashboard">Back to dashboard</a>
+     </div>`
+  )
+}
+
+/**
+ * Shown when a downgrade would shrink the storage quota below the data already
+ * stored (or when current usage couldn't be measured). Nothing has changed; the
+ * user picks a path: free up space and retry, or wipe & start fresh at the smaller
+ * plan. We never silently shrink the quota or delete data (exploration 0216).
+ */
+export function renderOverQuotaNotice(opts: {
+  who: string
+  from: PlanId
+  to: PlanId
+  usedBytes: number | null
+  targetQuotaBytes: number
+  reclaimBytes: number | null
+  appUrl?: string
+}): string {
+  const target = fmtBytes(opts.targetQuotaBytes)
+  const measured = opts.usedBytes !== null
+  const headline = measured
+    ? `Your data doesn't fit on the ${esc(opts.to)} plan yet`
+    : `We couldn't confirm your current usage`
+  const detail = measured
+    ? `<p class="muted">You're storing <strong>${fmtBytes(opts.usedBytes as number)}</strong>, but
+       the <strong>${esc(opts.to)}</strong> plan includes <strong>${target}</strong>. Free up at
+       least <strong>${fmtBytes(opts.reclaimBytes as number)}</strong> and try again, or wipe and
+       start fresh below. Nothing has changed — you're still on <strong>${esc(opts.from)}</strong>.</p>`
+    : `<p class="muted">Your hub appears to be asleep, so we can't safely confirm your data fits in
+       the <strong>${esc(opts.to)}</strong> plan's <strong>${target}</strong>. Open the app to wake
+       it, then try the switch again — or wipe and start fresh below. Nothing has changed yet.</p>`
+  const openApp = opts.appUrl
+    ? `<a class="btn btn-sm" href="${esc(opts.appUrl)}" target="_blank" rel="noopener">Open the app to free space ↗</a>`
+    : ''
+  return page(
+    'xNet Cloud — Plan change',
+    opts.who,
+    `<h1>Plan change</h1>
+     <div class="card">
+       <h2>${headline}</h2>
+       ${detail}
+       <p class="muted"><strong>Free up space (recommended).</strong> Delete data you no longer need,
+       empty the trash, then come back and switch — your data and history stay intact.</p>
+       ${openApp}
+       <a class="btn ghost" href="/dashboard">Back to dashboard</a>
+     </div>
+     <div class="card danger">
+       <h2>Or wipe &amp; start fresh</h2>
+       <p class="muted">Permanently erase this hub's data and start over on the
+       <strong>${esc(opts.to)}</strong> plan. This destroys all your data and cannot be undone — not
+       even we can recover it.</p>
+       <form method="post" action="/account/plan/wipe"
+             onsubmit="return confirm('Permanently erase ALL data on your hub and start fresh on the ${esc(opts.to)} plan? This cannot be undone.')">
+         <input type="hidden" name="plan" value="${esc(opts.to)}" />
+         <input type="hidden" name="confirm" value="wipe" />
+         <button type="submit" class="destructive">Wipe data &amp; switch to ${esc(opts.to)}</button>
+       </form>
      </div>`
   )
 }

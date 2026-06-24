@@ -24,7 +24,7 @@ import { FakeTenantBillingGateway, type TenantBillingGateway } from './billing-g
 import { ControlPlane } from './control-plane'
 import { HealthSampleStore, httpHealthProbe, probeFleet } from './observability/health'
 import { cloudRunProvisionerFromEnv } from './provisioner/google-cloud-run-client'
-import { MemoryTenantStore, type TenantStore } from './registry'
+import { MemoryTenantStore, type TenantRecord, type TenantStore } from './registry'
 import { createControlPlaneApp } from './server'
 import { firestoreStoresFromEnv } from './stores/firestore'
 import { usageLedgerFromEnv } from './stores/usage-ledger'
@@ -190,6 +190,8 @@ export interface BuildControlPlaneOptions {
   bindings?: BindingStore
   /** Managed-AI virtual-key manager; defaults to LiteLLM when configured (0200). */
   aiKeys?: VirtualKeyManager
+  /** Override the over-quota usage reader (exploration 0216); defaults to a hub /health read. */
+  readUsageBytes?: (record: TenantRecord) => Promise<number | null>
   env?: NodeJS.ProcessEnv
 }
 
@@ -224,7 +226,8 @@ export function buildControlPlane(options: BuildControlPlaneOptions = {}): {
     planSecret: env.XNET_PLAN_SECRET ?? 'dev-insecure-plan-secret',
     defaultTargetVersion: env.HUB_IMAGE_TAG ?? 'xnet-hub@0.0.1',
     ...(aiKeys ? { aiKeys } : {}),
-    ...(managedAi ? { managedAi } : {})
+    ...(managedAi ? { managedAi } : {}),
+    ...(options.readUsageBytes ? { readUsageBytes: options.readUsageBytes } : {})
   })
   return { controlPlane, billing }
 }

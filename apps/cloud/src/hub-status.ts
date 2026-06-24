@@ -43,6 +43,13 @@ export interface DashboardLive {
   storageUsedBytes: number | null
   storageQuotaBytes: number | null
   storagePct: number | null
+  /**
+   * True when stored data exceeds the plan quota — the hub is read-only for new
+   * writes (it 507s). `storagePct` saturates at 100, so this is the only signal
+   * that distinguishes "exactly full" from "over". Null when usage is unknown
+   * (exploration 0216).
+   */
+  overQuota: boolean | null
   /** Backup state: replicating to R2, and "data as of" (≈ last backed up). */
   backup: { replicating: boolean; lastWriteMs: number | null } | null
   /** Rolling availability over the plan's SLO window, as a percentage. */
@@ -99,6 +106,9 @@ const storagePct = (used: number | null, quota: number | null): number | null =>
     ? Number(Math.min(100, (used / quota) * 100).toFixed(1))
     : null
 
+const overQuota = (used: number | null, quota: number | null): boolean | null =>
+  used != null && quota != null && quota > 0 ? used > quota : null
+
 /** Pure composer: join the live hub health with the SLI window + AI spend. */
 export function composeDashboardLive(input: {
   health: HubHealth | null
@@ -140,6 +150,7 @@ export function composeDashboardLive(input: {
     storageUsedBytes: h?.storage ? num(h.storage.usedBytes) : null,
     storageQuotaBytes: num(input.quotaBytes),
     storagePct: storagePct(h?.storage ? num(h.storage.usedBytes) : null, num(input.quotaBytes)),
+    overQuota: overQuota(h?.storage ? num(h.storage.usedBytes) : null, num(input.quotaBytes)),
     backup: h?.backup
       ? {
           replicating: Boolean(h.backup.replicating),

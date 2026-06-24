@@ -1,0 +1,15 @@
+{
+  "id": "2026-06-24-clearer-safer-cloud-plan-upgrades-and-do",
+  "date": "June 24, 2026",
+  "title": "Clearer, safer cloud plan upgrades and downgrades",
+  "summary": "Upgrading your managed hub is seamless — your data just gets more room, applied instantly. Downgrading is now guarded: if your data is larger than the smaller plan allows, we tell you up front and offer two clear paths — free up space and try again, or wipe and start fresh — instead of silently shrinking your quota. File uploads now count against the same plan quota as backups.",
+  "highlights": [
+    "Upgrades apply instantly with no migration prompt for 'just more space'",
+    "Downgrades that wouldn't fit your data are blocked with a clear over-quota notice",
+    "Honest choices: free up space and retry, or wipe and start fresh on the smaller plan",
+    "Your data is never auto-deleted; an over-quota hub goes read-only until you free space or upgrade"
+  ],
+  "tags": [
+    "platform"
+  ]
+}

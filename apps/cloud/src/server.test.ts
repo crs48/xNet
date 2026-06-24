@@ -188,6 +188,62 @@ describe('control-plane HTTP API', () => {
     expect(res.status).toBe(401)
   })
 
+  it('shows an over-quota notice (no flip) when a downgrade would not fit (0216)', async () => {
+    const billing = new MemoryBillingIdentityProvider('https://auth.test/authorize')
+    const GiB = 1024 * 1024 * 1024
+    const { controlPlane } = buildControlPlane({
+      billing,
+      readUsageBytes: async () => 200 * GiB // family-sized data
+    })
+    const tenant = await controlPlane.provisionForBilling({
+      plan: 'family',
+      billingUserId: 'user_a'
+    })
+    const a = createControlPlaneApp({ controlPlane, billing, sessionSecret: SESSION_SECRET })
+    const cookie = `${SESSION_COOKIE}=${sealSession(SESSION_SECRET, { billingUserId: 'user_a', issuedAtMs: Date.now() })}`
+
+    // family (250 GiB) → personal (25 GiB) with 200 GiB stored → over-quota notice.
+    const res = await a.request('/account/plan', {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded', cookie },
+      body: 'plan=personal'
+    })
+    expect(res.status).toBe(200)
+    const html = await res.text()
+    expect(html).toContain("doesn't fit")
+    expect(html).toContain('/account/plan/wipe')
+    expect((await controlPlane.getTenant(tenant.tenantId))?.plan).toBe('family') // unchanged
+  })
+
+  it('wipes data and switches plan only with an explicit confirm (0216)', async () => {
+    const billing = new MemoryBillingIdentityProvider('https://auth.test/authorize')
+    const { controlPlane } = buildControlPlane({ billing, readUsageBytes: async () => null })
+    const tenant = await controlPlane.provisionForBilling({
+      plan: 'family',
+      billingUserId: 'user_a'
+    })
+    const a = createControlPlaneApp({ controlPlane, billing, sessionSecret: SESSION_SECRET })
+    const cookie = `${SESSION_COOKIE}=${sealSession(SESSION_SECRET, { billingUserId: 'user_a', issuedAtMs: Date.now() })}`
+
+    // Without the confirm field → refused, nothing changes.
+    const noConfirm = await a.request('/account/plan/wipe', {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded', cookie },
+      body: 'plan=personal'
+    })
+    expect(noConfirm.status).toBe(400)
+    expect((await controlPlane.getTenant(tenant.tenantId))?.plan).toBe('family')
+
+    // With confirm=wipe → fresh empty hub on the smaller plan.
+    const wiped = await a.request('/account/plan/wipe', {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded', cookie },
+      body: 'plan=personal&confirm=wipe'
+    })
+    expect(wiped.status).toBe(302)
+    expect((await controlPlane.getTenant(tenant.tenantId))?.plan).toBe('personal')
+  })
+
   it('mounts POST /ai/chat only when AI deps are configured', async () => {
     const billing = new MemoryBillingIdentityProvider('https://auth.test/authorize')
     const { controlPlane } = buildControlPlane({ billing })

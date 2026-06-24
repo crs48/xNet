@@ -80,6 +80,28 @@ describe('composeDashboardLive', () => {
     expect(noStorage.backup).toBeNull()
   })
 
+  it('flags overQuota when stored data exceeds the plan quota (pct saturates at 100)', () => {
+    const over = composeDashboardLive({
+      health: { status: 'ok', storage: { usedBytes: 30 * 1024 * 1024 } },
+      sli: null,
+      aiUsedUsd: null,
+      quotaBytes: 25 * 1024 * 1024,
+      dataTier: 'hot'
+    })
+    expect(over.overQuota).toBe(true)
+    expect(over.storagePct).toBe(100) // saturated, so it can't distinguish "over"
+    const under = composeDashboardLive({
+      health: { status: 'ok', storage: { usedBytes: 10 * 1024 * 1024 } },
+      sli: null,
+      aiUsedUsd: null,
+      quotaBytes: 25 * 1024 * 1024,
+      dataTier: 'hot'
+    })
+    expect(under.overQuota).toBe(false)
+    // Unknown usage (no quota or no storage) → null, not a misleading false.
+    expect(composeDashboardLive({ health: null, sli: null, aiUsedUsd: null }).overQuota).toBeNull()
+  })
+
   it('reports sleeping when the hub is unreachable (no health)', () => {
     const out = composeDashboardLive({ health: null, sli: null, aiUsedUsd: null, dataTier: 'cold' })
     expect(out.reachable).toBe(false)

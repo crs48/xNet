@@ -25,6 +25,7 @@ import {
   renderClaimForm,
   renderClaimResult,
   renderDashboard,
+  renderOverQuotaNotice,
   renderPlanChangeNotice
 } from './dashboard'
 import { MemoryDeviceGrantStore, isExpired, type DeviceGrantStore } from './device-grant'
@@ -309,7 +310,9 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
 
   // Self-serve plan change for the signed-in tenant. An in-tier change applies
   // live (entitlement flip); a tier crossing returns a migration-required notice
-  // rather than silently moving data. (Exploration 0200, slice B.)
+  // rather than silently moving data. A downgrade whose data won't fit the smaller
+  // plan returns an over-quota notice (free space / wipe) rather than silently
+  // shrinking the quota. (Explorations 0200 slice B, 0216.)
   app.post('/account/plan', async (c) => {
     const s = session(c)
     if (!s) return c.json({ error: 'unauthorized' }, 401)
@@ -318,16 +321,40 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
     const body = await c.req.parseBody()
     const plan = String(body.plan ?? '')
     if (!CHECKOUT_PLANS.some((p) => p.id === plan)) return c.json({ error: 'bad_plan' }, 400)
+    const who = s.email ?? s.billingUserId
     const result = await deps.controlPlane.changePlan(tenant.tenantId, plan as PlanId)
     if (result.kind === 'migration-required') {
+      return c.html(renderPlanChangeNotice({ who, from: result.from.plan, to: result.to.plan }))
+    }
+    if (result.kind === 'over-quota') {
       return c.html(
-        renderPlanChangeNotice({
-          who: s.email ?? s.billingUserId,
+        renderOverQuotaNotice({
+          who,
           from: result.from.plan,
-          to: result.to.plan
+          to: result.to.plan,
+          usedBytes: result.usedBytes,
+          targetQuotaBytes: result.targetQuotaBytes,
+          reclaimBytes: result.reclaimBytes,
+          ...(deps.appUrl ? { appUrl: deps.appUrl } : {})
         })
       )
     }
+    return c.redirect('/dashboard')
+  })
+
+  // Confirmed "wipe & start fresh" downgrade: only reachable from the over-quota
+  // notice, requires an explicit confirm field, and destroys all data to boot an
+  // empty hub at the smaller plan. The dashboard double-confirms before posting.
+  app.post('/account/plan/wipe', async (c) => {
+    const s = session(c)
+    if (!s) return c.json({ error: 'unauthorized' }, 401)
+    const tenant = await deps.controlPlane.getTenantForBilling(s.billingUserId)
+    if (!tenant) return c.redirect('/dashboard')
+    const body = await c.req.parseBody()
+    const plan = String(body.plan ?? '')
+    if (String(body.confirm ?? '') !== 'wipe') return c.json({ error: 'confirm_required' }, 400)
+    if (!CHECKOUT_PLANS.some((p) => p.id === plan)) return c.json({ error: 'bad_plan' }, 400)
+    await deps.controlPlane.wipeAndChangePlan(tenant.tenantId, plan as PlanId)
     return c.redirect('/dashboard')
   })
 

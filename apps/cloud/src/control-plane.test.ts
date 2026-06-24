@@ -11,6 +11,7 @@ function build(
   opts: {
     aiKeys?: FakeVirtualKeyManager
     managedAi?: { cloudUrl: string; internalSecret: string }
+    readUsageBytes?: (record: { tenantId: string }) => Promise<number | null>
   } = {}
 ) {
   let clock = 1000
@@ -18,6 +19,7 @@ function build(
     sharding: { projectPrefix: 'test', servicesPerProject: 800 }
   })
   const provision = vi.spyOn(provisioner, 'provision')
+  const destroy = vi.spyOn(provisioner, 'destroy')
   const cp = new ControlPlane({
     tenants: new MemoryTenantStore(),
     bindings: new MemoryBindingStore(),
@@ -27,10 +29,13 @@ function build(
     defaultTargetVersion: 'xnet-hub@1.0.0',
     ...(opts.aiKeys ? { aiKeys: opts.aiKeys } : {}),
     ...(opts.managedAi ? { managedAi: opts.managedAi } : {}),
+    ...(opts.readUsageBytes ? { readUsageBytes: opts.readUsageBytes } : {}),
     nowMs: () => clock
   })
-  return { cp, provision, tick: (n: number) => (clock += n) }
+  return { cp, provision, destroy, tick: (n: number) => (clock += n) }
 }
+
+const GiB = 1024 * 1024 * 1024
 
 describe('ControlPlane.provisionTenant', () => {
   it('binds identities, provisions a hub, and records the tenant', async () => {
@@ -137,6 +142,112 @@ describe('ControlPlane.changePlan', () => {
   it('treats an in-tier storage add-on as a flip', async () => {
     const result = await cp.changePlan('acme', 'personal', { quotaBytes: 100 * 1024 * 1024 * 1024 })
     expect(result.kind).toBe('flipped')
+  })
+})
+
+describe('ControlPlane.changePlan over-quota downgrade guard (0216)', () => {
+  // family (250 GiB) → personal (25 GiB): in-tier (both dedicated-sleep), so the
+  // only thing standing between a tenant and a silent 10× quota cut is this guard.
+  async function familyTenant(
+    readUsageBytes?: (r: { tenantId: string }) => Promise<number | null>
+  ) {
+    const h = build(readUsageBytes ? { readUsageBytes } : {})
+    await h.cp.provisionTenant({
+      tenantId: 'acme',
+      plan: 'family',
+      billingUserId: 'user_a',
+      challenge: challenge('did:key:alice')
+    })
+    return h
+  }
+
+  it('blocks a downgrade when stored data exceeds the target quota', async () => {
+    const { cp } = await familyTenant(async () => 200 * GiB)
+    const result = await cp.changePlan('acme', 'personal')
+    expect(result.kind).toBe('over-quota')
+    if (result.kind === 'over-quota') {
+      expect(result.usedBytes).toBe(200 * GiB)
+      expect(result.targetQuotaBytes).toBe(25 * GiB)
+      expect(result.reclaimBytes).toBe(200 * GiB - 25 * GiB)
+    }
+    // Nothing changed: the tenant is still on family.
+    expect((await cp.getTenant('acme'))?.plan).toBe('family')
+  })
+
+  it('allows a downgrade that fits under the target quota', async () => {
+    const { cp } = await familyTenant(async () => 10 * GiB)
+    const result = await cp.changePlan('acme', 'personal')
+    expect(result.kind).toBe('flipped')
+    expect((await cp.getTenant('acme'))?.plan).toBe('personal')
+  })
+
+  it('blocks (conservatively) when current usage cannot be measured', async () => {
+    const { cp } = await familyTenant(async () => null) // cold/asleep hub
+    const result = await cp.changePlan('acme', 'personal')
+    expect(result.kind).toBe('over-quota')
+    if (result.kind === 'over-quota') {
+      expect(result.usedBytes).toBeNull()
+      expect(result.reclaimBytes).toBeNull()
+    }
+    expect((await cp.getTenant('acme'))?.plan).toBe('family')
+  })
+
+  it('never reads usage for an upgrade (more space is always a clean flip)', async () => {
+    // Even an absurd usage report must not block an UPGRADE — it is not a shrink.
+    const readUsageBytes = vi.fn(async () => 999 * GiB)
+    const h = build({ readUsageBytes })
+    await h.cp.provisionTenant({
+      tenantId: 'acme',
+      plan: 'personal',
+      billingUserId: 'user_a',
+      challenge: challenge('did:key:alice')
+    })
+    const result = await h.cp.changePlan('acme', 'family') // 25 GiB → 250 GiB
+    expect(result.kind).toBe('flipped')
+    expect(readUsageBytes).not.toHaveBeenCalled()
+  })
+})
+
+describe('ControlPlane.wipeAndChangePlan (0216)', () => {
+  it('destroys the old hub and boots an empty one at the smaller plan', async () => {
+    const { cp, provision, destroy } = build()
+    await cp.provisionTenant({
+      tenantId: 'acme',
+      plan: 'family',
+      billingUserId: 'user_a',
+      challenge: challenge('did:key:alice')
+    })
+    const before = await cp.getTenant('acme')
+    provision.mockClear()
+
+    const wiped = await cp.wipeAndChangePlan('acme', 'personal')
+
+    expect(destroy).toHaveBeenCalledWith(before?.substrateRef)
+    // A fresh provision with NO restoreFromR2 → empty hub.
+    expect(provision).toHaveBeenCalledTimes(1)
+    expect(provision.mock.calls[0]?.[0]?.restoreFromR2).toBeUndefined()
+    // New plan applied; billing + data identity preserved; live again.
+    expect(wiped.plan).toBe('personal')
+    expect(wiped.entitlements.quotaBytes).toBe(25 * GiB)
+    expect(wiped.did).toBe('did:key:alice')
+    expect(wiped.billingUserId).toBe('user_a')
+    expect(wiped.dataTier).toBe('hot')
+    expect(wiped.hubUrl).toBeTruthy()
+  })
+
+  it('handles a cross-tier wipe-downgrade without a migration (fresh provision)', async () => {
+    // team (dedicated-warm) → personal (dedicated-sleep) would need a migration to
+    // move data; wiping sidesteps that — there is no data to move.
+    const { cp } = build()
+    await cp.provisionTenant({
+      tenantId: 'acme',
+      plan: 'team',
+      billingUserId: 'user_a',
+      challenge: challenge('did:key:alice')
+    })
+    const wiped = await cp.wipeAndChangePlan('acme', 'personal')
+    expect(wiped.plan).toBe('personal')
+    expect(wiped.entitlements.isolation).toBe('dedicated-sleep')
   })
 })
 

@@ -27,6 +27,7 @@ import {
   type PlanEntitlements,
   type PlanId
 } from '@xnetjs/entitlements'
+import { fetchHubHealth } from './hub-status'
 import { type TenantRecord, type TenantStore } from './registry'
 
 export interface ControlPlaneDeps {
@@ -52,6 +53,14 @@ export interface ControlPlaneDeps {
    * per-hub configuration (exploration 0208). Omit to leave hubs without managed AI.
    */
   managedAi?: { cloudUrl: string; internalSecret: string }
+  /**
+   * Reads a tenant hub's current on-disk usage in bytes (fresh, uncached), or
+   * `null` when the hub can't be reached (cold/asleep/unreachable). Used by
+   * {@link ControlPlane.changePlan} to refuse a downgrade that would shrink the
+   * quota below the data already stored (exploration 0216). Defaults to a fresh
+   * `GET /health` read of `record.hubUrl`; injectable for deterministic tests.
+   */
+  readUsageBytes?: (record: TenantRecord) => Promise<number | null>
   /** Injectable clock for deterministic tests. */
   nowMs?: () => number
 }
@@ -74,10 +83,29 @@ export interface ProvisionTenantArgs {
   region?: string
 }
 
-/** Result of a plan change: either an in-place flip or a required migration. */
+/**
+ * Result of a plan change:
+ *  - `flipped` — applied live (in-tier entitlement flip), no data moved.
+ *  - `migration-required` — crosses an isolation/region boundary; the migration
+ *    engine moves the data (no live flip).
+ *  - `over-quota` — a downgrade that would shrink the quota below what the tenant
+ *    already stores (or whose usage couldn't be measured). Nothing changed; the
+ *    caller must free space and retry, or wipe & start fresh (exploration 0216).
+ */
 export type PlanChangeResult =
   | { kind: 'flipped'; tenant: TenantRecord }
   | { kind: 'migration-required'; from: PlanEntitlements; to: PlanEntitlements }
+  | {
+      kind: 'over-quota'
+      from: PlanEntitlements
+      to: PlanEntitlements
+      /** Measured on-disk usage in bytes, or `null` when the hub couldn't be reached. */
+      usedBytes: number | null
+      /** The target plan's storage quota in bytes. */
+      targetQuotaBytes: number
+      /** Bytes that must be freed to fit (`usedBytes - targetQuotaBytes`); `null` when usage is unknown. */
+      reclaimBytes: number | null
+    }
 
 /** Deterministic tenant id for a billing identity (so a replayed webhook is idempotent). */
 export function tenantIdForBilling(billingUserId: string): string {
@@ -344,6 +372,25 @@ export class ControlPlane {
       return { kind: 'migration-required', from: record.entitlements, to: next }
     }
 
+    // Guard a capacity REDUCTION against what's already stored. An upgrade (more
+    // space) is always a clean flip; a downgrade must never silently shrink the
+    // quota under live data. Block when we can confirm they're over — or when we
+    // can't measure at all (cold/asleep hub) — so the caller can free space and
+    // retry, or wipe & start fresh (exploration 0216).
+    if (next.quotaBytes < record.entitlements.quotaBytes) {
+      const usedBytes = await this.currentUsageBytes(record)
+      if (usedBytes === null || usedBytes > next.quotaBytes) {
+        return {
+          kind: 'over-quota',
+          from: record.entitlements,
+          to: next,
+          usedBytes,
+          targetQuotaBytes: next.quotaBytes,
+          reclaimBytes: usedBytes === null ? null : usedBytes - next.quotaBytes
+        }
+      }
+    }
+
     const handle = await this.deps.provisioner.setEnv(
       record.substrateRef,
       this.hubEnv(record.tenantId, next)
@@ -360,6 +407,63 @@ export class ControlPlane {
     }
     await this.deps.tenants.put(updated)
     return { kind: 'flipped', tenant: updated }
+  }
+
+  /**
+   * Read a tenant hub's current on-disk usage in bytes, or `null` when it can't
+   * be measured (no live hub, or the probe fails/times out). Prefers the injected
+   * `readUsageBytes` (tests); otherwise a fresh, uncached `GET /health` read of
+   * the hub. A cold/suspended tenant (no `hubUrl`) reads as `null`.
+   */
+  private async currentUsageBytes(record: TenantRecord): Promise<number | null> {
+    if (this.deps.readUsageBytes) return this.deps.readUsageBytes(record)
+    if (!record.hubUrl || record.dataTier !== 'hot') return null
+    const health = await fetchHubHealth(record.hubUrl)
+    const used = health?.storage?.usedBytes
+    return typeof used === 'number' && Number.isFinite(used) ? used : null
+  }
+
+  /**
+   * Wipe a tenant's data and re-provision an EMPTY hub at `plan` — the "delete my
+   * database and start fresh" escape hatch for a downgrade whose data exceeds the
+   * smaller plan's quota (the alternative to freeing space). Destroys the live hub
+   * and boots a brand-new one that does NOT restore from R2, so it comes up empty.
+   * The billing + data identities are preserved; the old encrypted data is gone.
+   * Irreversible — gate it behind an explicit user confirmation (exploration 0216).
+   */
+  async wipeAndChangePlan(
+    tenantId: string,
+    plan: PlanId,
+    overrides: Partial<Omit<PlanEntitlements, 'plan'>> = {}
+  ): Promise<TenantRecord> {
+    const record = await this.deps.tenants.get(tenantId)
+    if (!record) throw new Error(`Unknown tenant: ${tenantId}`)
+    const next = resolveEntitlements(plan, overrides)
+
+    if (record.substrateRef) await this.deps.provisioner.destroy(record.substrateRef)
+    const handle = await this.deps.provisioner.provision({
+      tenantId,
+      entitlements: next,
+      targetVersion: record.targetVersion,
+      region: record.region,
+      env: this.hubEnv(tenantId, next)
+      // No `restoreFromR2` → the new hub boots EMPTY (this is the wipe).
+    })
+    const aiPatch = await this.reconcileAiKey(record, next)
+    const updated: TenantRecord = {
+      ...record,
+      plan,
+      entitlements: next,
+      hubUrl: handle.hubUrl,
+      substrateRef: handle.substrateRef,
+      region: handle.region,
+      targetVersion: handle.targetVersion,
+      dataTier: 'hot',
+      lastActiveMs: this.now(),
+      ...(aiPatch ?? {})
+    }
+    await this.deps.tenants.put(updated)
+    return updated
   }
 
   /**
