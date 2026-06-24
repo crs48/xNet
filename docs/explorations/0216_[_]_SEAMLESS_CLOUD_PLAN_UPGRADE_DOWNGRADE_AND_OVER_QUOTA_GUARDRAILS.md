@@ -506,33 +506,34 @@ const files = new FileService(storage, { maxStoragePerUser: config.defaultQuota 
 
 ## Implementation Checklist
 
-- [ ] Add `over-quota` variant to `PlanChangeResult` ([`control-plane.ts:78`](../../apps/cloud/src/control-plane.ts)).
-- [ ] Add `currentUsageBytes(record)` helper using `fetchHubHealth` (fresh read) in the control plane.
-- [ ] Gate quota **reductions** in `changePlan`; leave upgrades as a pure flip ([`control-plane.ts:334`](../../apps/cloud/src/control-plane.ts)).
-- [ ] Conservative fallback when usage is `null` (cold hub): require explicit confirmation, never silently shrink.
-- [ ] Handle `over-quota` in `POST /account/plan`; add `renderOverQuotaNotice` (clone `renderPlanChangeNotice`) ([`dashboard.ts:679`](../../apps/cloud/src/dashboard.ts)).
-- [ ] Over‑quota notice copy: current usage, target quota, "remove ≥ N", **Free up space** and **Wipe & start fresh** (double‑confirm) actions.
-- [ ] Fix `FileService` to use the plan quota ([`server.ts:540`](../../packages/hub/src/server.ts)).
-- [ ] Implement **Wipe & start fresh** (D2): double‑confirmed `destroy` + re‑provision at the lower tier; export reminder first.
-- [ ] Graceful over‑quota state (Layer 2): dashboard banner (reuse `StorageWarningBanner` pattern) + grace‑window policy; ensure cancellation lands here, not in an error.
-- [ ] Schedule downgrades end‑of‑period via Stripe subscription schedule (`proration_behavior: none`); drive the entitlement flip from the period‑end webhook.
-- [ ] Upgrade‑side polish: confirm in‑tier upgrades flip instantly and copy reads as "more space, now"; cross‑tier upgrades read as scheduled, zero‑loss growth.
+- [x] Add `over-quota` variant to `PlanChangeResult` ([`control-plane.ts`](../../apps/cloud/src/control-plane.ts)).
+- [x] Add `currentUsageBytes(record)` helper using `fetchHubHealth` (fresh read) in the control plane; injectable `readUsageBytes` dep for tests.
+- [x] Gate quota **reductions** in `changePlan`; leave upgrades as a pure flip ([`control-plane.ts`](../../apps/cloud/src/control-plane.ts)).
+- [x] Conservative fallback when usage is `null` (cold hub): block (over-quota notice), never silently shrink.
+- [x] Handle `over-quota` in `POST /account/plan`; add `renderOverQuotaNotice` ([`dashboard.ts`](../../apps/cloud/src/dashboard.ts)).
+- [x] Over‑quota notice copy: current usage, target quota, "free ≥ N", **Free up space** and **Wipe & start fresh** (double‑confirm) actions.
+- [x] Fix `FileService` to use the plan quota ([`server.ts`](../../packages/hub/src/server.ts)).
+- [x] Implement **Wipe & start fresh** (D2): `wipeAndChangePlan` (`destroy` + re‑provision empty at the target plan), behind the confirmed `POST /account/plan/wipe` route.
+- [x] Graceful over‑quota signal (Layer 2): `DashboardLive.overQuota` + read‑only banner on the hub card. (Cancellation already routes to `suspendTenant`, which retains the R2 replica — no data loss.)
+- [ ] _(Deferred)_ Schedule downgrades end‑of‑period via Stripe subscription schedule (`proration_behavior: none`); needs subscription-schedule wiring in the Stripe gateway. Tracked as a follow-up.
+- [x] Upgrade‑side polish: in‑tier upgrades flip instantly (no usage read on the happy path) and the plan-change copy now reads as "more space, now".
 - [ ] _(Fast follow)_ Reclaimable‑bytes estimate + on‑demand SQLite compaction (D1).
-- [ ] _(Tracking)_ Apply the same usage guard to the cross‑tier migration path.
+- [ ] _(Tracking)_ Apply the same usage guard to the cross‑tier migration path. (`wipeAndChangePlan` already covers the cross-tier wipe-downgrade.)
 
 ## Validation Checklist
 
-- [ ] `family → personal` with usage > 25 GiB returns `over-quota`; quota is **not** flipped; tenant record unchanged.
-- [ ] `family → personal` with usage < 25 GiB flips live and redirects to dashboard.
-- [ ] `personal → family` (upgrade) still flips instantly with **no** usage read on the happy path.
-- [ ] Cold/sleeping hub (usage `null`) on a downgrade → confirm‑required, never a silent shrink.
-- [ ] `FileService` rejects an upload that would exceed `config.defaultQuota` (not the old 5 GiB) with 507.
-- [ ] Over‑quota notice shows accurate `usedBytes`, `targetQuotaBytes`, and `reclaimBytes`.
-- [ ] **Wipe & start fresh** requires an explicit confirm and results in an empty hub at the lower tier; no data deleted without confirmation.
-- [ ] Cancellation → demo tier lands in graceful read‑only (reads work, writes 507), banner shown, no auto‑deletion.
-- [ ] Scheduled end‑of‑period downgrade: quota stays at the higher tier until the period‑end webhook, then flips.
-- [ ] The dashboard meter percentage and the enforced 507 threshold reference the same byte count.
-- [ ] Existing `control-plane.test.ts` flip/migration cases still pass; new tests cover `over-quota`.
+- [x] `family → personal` with usage > 25 GiB returns `over-quota`; quota is **not** flipped; tenant record unchanged. (`control-plane.test.ts`, `server.test.ts`)
+- [x] `family → personal` with usage < 25 GiB flips live and redirects to dashboard. (`control-plane.test.ts`)
+- [x] `personal → family` (upgrade) still flips instantly with **no** usage read on the happy path. (asserted via a `readUsageBytes` spy that must not be called.)
+- [x] Cold/sleeping hub (usage `null`) on a downgrade → blocked (over-quota notice), never a silent shrink.
+- [x] `FileService` rejects an upload that would exceed the configured quota (`files.quota.test.ts`); the route maps `QUOTA_EXCEEDED → 507`.
+- [x] Over‑quota notice shows accurate `usedBytes`, `targetQuotaBytes`, and `reclaimBytes`.
+- [x] **Wipe & start fresh** requires an explicit confirm (`POST /account/plan/wipe`, `confirm=wipe`) and results in an empty hub at the lower tier; no data deleted without confirmation.
+- [x] `overQuota` signal is `true` only when usage > quota (pct saturates at 100), `false` when under, `null` when unknown (`hub-status.test.ts`).
+- [ ] _(Deferred)_ Cancellation → demo tier graceful read‑only with a formal grace window. (Today cancellation suspends the hub and retains the R2 replica — no data loss; a formal grace timer is a follow-up.)
+- [ ] _(Deferred)_ Scheduled end‑of‑period downgrade: quota stays at the higher tier until the period‑end webhook, then flips.
+- [x] The dashboard meter and the enforced 507 reference the same byte count (`FileService` now enforces `config.defaultQuota`, the same quota the meter reads).
+- [x] Existing `control-plane.test.ts` flip/migration cases still pass; new tests cover `over-quota` and `wipeAndChangePlan`.
 
 ## References
 
