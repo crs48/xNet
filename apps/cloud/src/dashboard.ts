@@ -692,13 +692,40 @@ function page(title: string, who: string, inner: string, appUrl?: string): strin
 </div></body></html>`
 }
 
+/** The tenant's hub endpoint as the WebSocket URL the web client dials. */
+function toWssHub(hubUrl: string): string {
+  if (hubUrl.startsWith('https://')) return `wss://${hubUrl.slice('https://'.length)}`
+  if (hubUrl.startsWith('http://')) return `ws://${hubUrl.slice('http://'.length)}`
+  return hubUrl
+}
+
+/**
+ * The "Open web app" target, carrying the tenant's personal hub as `?hub=` so the
+ * web app dials *their* hub instead of the shared default. The web app reads,
+ * normalizes, and persists this param on boot. Falls back to the bare app URL when
+ * no hub is reachable (suspended/sleeping → empty `hubUrl`) or the app URL is
+ * malformed.
+ */
+function appUrlWithHub(appUrl: string, tenant: TenantRecord | null): string {
+  if (!tenant?.hubUrl) return appUrl
+  try {
+    const u = new URL(appUrl)
+    u.searchParams.set('hub', toWssHub(tenant.hubUrl))
+    return u.toString()
+  } catch {
+    return appUrl
+  }
+}
+
 /** Render the full dashboard HTML document. */
 export function renderDashboard(view: DashboardView): string {
   const who = view.email ?? view.billingUserId
   const appUrl = view.appUrl ?? 'https://xnet.fyi/app'
+  // The hub-pinned app URL used by every "Open the (web) app" link on the page.
+  const webAppUrl = appUrlWithHub(appUrl, view.tenant)
   const links = helpLinks(view.marketingUrl ?? 'https://xnet.fyi/cloud')
   const body = view.tenant
-    ? `${gettingStarted(view)}${hubCard(view.tenant)}${aiUsageCard(view, view.tenant)}${connectCard(view.tenant, appUrl, links)}${planChangeCard(view, view.tenant)}${billingCard(view, view.tenant)}${dangerZone()}${liveScript()}`
+    ? `${gettingStarted(view)}${hubCard(view.tenant)}${aiUsageCard(view, view.tenant)}${connectCard(view.tenant, webAppUrl, links)}${planChangeCard(view, view.tenant)}${billingCard(view, view.tenant)}${dangerZone()}${liveScript()}`
     : `<div class="card">
          <h2>Welcome to xNet Cloud</h2>
          <p class="muted">Pick a plan to spin up your dedicated hub. You can change or cancel any time.</p>
@@ -712,7 +739,7 @@ export function renderDashboard(view: DashboardView): string {
      ${body}
      ${helpFooter(links)}
      ${dashScript()}`,
-    appUrl
+    webAppUrl
   )
 }
 

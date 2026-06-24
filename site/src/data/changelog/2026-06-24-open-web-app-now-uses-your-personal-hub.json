@@ -1,0 +1,12 @@
+{
+  "id": "2026-06-24-open-web-app-now-uses-your-personal-hub",
+  "date": "June 24, 2026",
+  "title": "Open web app now uses your personal hub",
+  "summary": "Clicking \"Open web app\" from the xNet Cloud dashboard now points the web app at your own managed hub instead of the shared default.",
+  "highlights": [
+    "The dashboard hands the web app your personal hub URL"
+  ],
+  "tags": [
+    "platform"
+  ]
+}
