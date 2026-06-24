@@ -9,10 +9,12 @@
 import type { NodeState } from '@xnetjs/data'
 import { ROW_HEIGHT_PX, filterRows, sortRows } from '@xnetjs/data'
 import { GridSurface, GridToolbar, type GridField } from '@xnetjs/views'
-import { useMemo, useState, useCallback } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CopyButton } from '../../components/CopyButton'
 import { PanelErrorBoundary } from '../../components/PanelErrorBoundary'
+import { useDevTools } from '../../provider/useDevTools'
 import { truncateDID } from '../../utils/formatters'
+import { AuthTraceView, type AuthTrace } from '../AuthZPanel/AuthTraceView'
 import {
   buildGridFields,
   formatPlanRows,
@@ -22,6 +24,7 @@ import {
   type DataGridRow,
   type PlanMeta
 } from './grid-adapter'
+import { useCellPermissions } from './useCellPermissions'
 import { useDataExplorer } from './useDataExplorer'
 
 export function DataExplorer() {
@@ -81,6 +84,19 @@ export function DataExplorer() {
     () => fields.filter((f) => !hiddenFieldIds.includes(f.id)),
     [fields, hiddenFieldIds]
   )
+
+  // Per-cell authorization: which editable cells the current identity may write.
+  const editableFieldIds = useMemo(
+    () => fields.filter((f) => !f.readonly && !f.id.startsWith('@@')).map((f) => f.id),
+    [fields]
+  )
+  const { cellLockReasons, authzEnabled } = useCellPermissions({
+    nodes,
+    schema: definedSchema,
+    editing: editable,
+    editableFieldIds
+  })
+
   // Copy the raw node window (full fidelity for debugging), not the grid cells.
   const getCopyData = useCallback(() => nodes, [nodes])
 
@@ -172,6 +188,12 @@ export function DataExplorer() {
           </div>
         )}
 
+        {editable && !authzEnabled && (
+          <div className="px-3 py-0.5 text-[10px] text-ink-3 border-b border-hairline bg-surface-2/40">
+            Authorization is not enforced in this store — every cell is editable here.
+          </div>
+        )}
+
         {truncated && (
           <div className="px-3 py-0.5 text-[10px] text-ink-3 border-b border-hairline bg-surface-2/40">
             Sorting/filtering the {loadedCount} loaded rows
@@ -206,6 +228,7 @@ export function DataExplorer() {
                 sorts={sorts}
                 onToggleSort={toggleSort}
                 readOnly={!editable}
+                cellLockReasons={editable ? cellLockReasons : undefined}
                 rowHeight={ROW_HEIGHT_PX[rowHeight]}
                 onOpenRow={(rowId) => setSelectedNodeId(rowId)}
                 onUpdateCell={
@@ -282,6 +305,65 @@ function NodeDetail({ node, onClose }: { node: NodeState; onClose: () => void })
           {JSON.stringify(node.properties, null, 2)}
         </pre>
       </div>
+      <NodePermissions nodeId={node.id} />
+    </div>
+  )
+}
+
+/** Read + write authorization for a node, with the full derivation (roles,
+ *  grants, deny reasons, evaluation steps) — the "how is this derived" view. */
+function NodePermissions({ nodeId }: { nodeId: string }) {
+  const { store } = useDevTools()
+  const authz = store?.auth ?? null
+  const [traces, setTraces] = useState<{ read: AuthTrace; write: AuthTrace } | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!authz) {
+      setTraces(null)
+      return
+    }
+    let alive = true
+    setError(null)
+    Promise.all([
+      authz.explain({ action: 'read', nodeId }),
+      authz.explain({ action: 'write', nodeId })
+    ])
+      .then(([read, write]) => {
+        if (alive) setTraces({ read, write })
+      })
+      .catch((e) => {
+        if (alive) {
+          setError(e instanceof Error ? e.message : String(e))
+          setTraces(null)
+        }
+      })
+    return () => {
+      alive = false
+    }
+  }, [authz, nodeId])
+
+  return (
+    <div>
+      <h4 className="text-[10px] font-bold text-ink-2 mb-1">Permissions</h4>
+      {!authz ? (
+        <div className="text-[10px] text-ink-3">Authorization is not enforced in this store.</div>
+      ) : error ? (
+        <div className="text-[10px] text-destructive">{error}</div>
+      ) : !traces ? (
+        <div className="text-[10px] text-ink-3">Evaluating…</div>
+      ) : (
+        <div className="space-y-2">
+          <div>
+            <div className="text-[10px] text-ink-3 mb-0.5">Read</div>
+            <AuthTraceView trace={traces.read} />
+          </div>
+          <div>
+            <div className="text-[10px] text-ink-3 mb-0.5">Write</div>
+            <AuthTraceView trace={traces.write} />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

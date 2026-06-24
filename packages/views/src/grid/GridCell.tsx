@@ -7,7 +7,7 @@ import type { CellPresence } from '../types.js'
 import type { GridField } from './model.js'
 import type { CellValue } from '@xnetjs/data'
 import { cn } from '@xnetjs/ui'
-import { MessageSquare } from 'lucide-react'
+import { Lock, MessageSquare } from 'lucide-react'
 import React, { memo, useCallback, useMemo, useRef, useState } from 'react'
 import { getPropertyHandler } from '../properties/index.js'
 
@@ -30,6 +30,9 @@ export interface GridCellProps {
   presences?: CellPresence[]
   /** Comment thread count */
   commentCount?: number
+  /** When set, this cell is edit-locked (e.g. by authorization); the reason is
+   *  shown on hover and a lock glyph is rendered. */
+  lockReason?: string
   width: number
   readOnly?: boolean
 
@@ -82,6 +85,7 @@ function GridCellInner({
   editSeed,
   presences,
   commentCount = 0,
+  lockReason,
   width,
   readOnly,
   onMouseDown,
@@ -179,6 +183,7 @@ function GridCellInner({
       data-col-index={colIndex}
       data-row-id={rowId}
       data-field-id={field.id}
+      title={lockReason}
       style={{
         width,
         minWidth: width,
@@ -236,6 +241,17 @@ function GridCellInner({
         <div className="flex-1" />
       ) : (
         <div className="flex-1 truncate">{handler.render(value ?? null, editorConfig)}</div>
+      )}
+
+      {/* Edit-lock glyph (e.g. authorization). Top-left to avoid the comment
+          badge (top-right); the reason shows via the cell's title tooltip. */}
+      {lockReason && !editing && (
+        <span
+          className="absolute top-0.5 left-0.5 text-gray-400 dark:text-gray-500 pointer-events-none"
+          aria-label="locked"
+        >
+          <Lock className="w-2.5 h-2.5" />
+        </span>
       )}
 
       {/* Remote presence name flag */}

@@ -62,6 +62,13 @@ export interface GridSurfaceProps extends GridCallbacks {
   presences?: CellPresence[]
   /** "rowId:fieldId" -> thread count */
   cellCommentCounts?: Map<string, number>
+  /**
+   * Per-cell edit lock keyed "rowId:fieldId" -> short reason. A present entry
+   * makes that cell non-editable (beyond the global `readOnly` / column
+   * `field.readonly`) and surfaces the reason on hover. Used e.g. to reflect
+   * authorization per cell.
+   */
+  cellLockReasons?: ReadonlyMap<string, string>
   rowHeight?: number
   readOnly?: boolean
   className?: string
@@ -73,6 +80,7 @@ export function GridSurface({
   sorts,
   presences,
   cellCommentCounts,
+  cellLockReasons,
   rowHeight = DEFAULT_ROW_HEIGHT,
   readOnly,
   className,
@@ -347,6 +355,8 @@ export function GridSurface({
           const target = state.cursor ? cellAt(state.cursor) : null
           // Structurally locked columns are never editable.
           if (target?.field.readonly) break
+          // Per-cell lock (e.g. authorization) — never editable.
+          if (target && cellLockReasons?.has(`${target.row.id}:${target.field.id}`)) break
           // Computed/auto fields have no editor
           if (
             target &&
@@ -444,6 +454,7 @@ export function GridSurface({
     },
     [
       readOnly,
+      cellLockReasons,
       rows,
       state.cursor,
       state.selection,
@@ -524,6 +535,8 @@ export function GridSurface({
       const cell = cellAt({ row: rowIndex, col: colIndex })
       // Structurally locked columns are never editable.
       if (cell?.field.readonly) return
+      // Per-cell lock (e.g. authorization) — never editable.
+      if (cell && cellLockReasons?.has(`${cell.row.id}:${cell.field.id}`)) return
       // Checkboxes toggle in place — no edit session (Sheets/Notion behavior)
       if (cell?.field.type === 'checkbox') {
         onUpdateCell?.(cell.row.id, cell.field.id, cell.row.cells[cell.field.id] !== true)
@@ -531,7 +544,7 @@ export function GridSurface({
       }
       dispatch({ type: 'startEdit', mode: 'edit' })
     },
-    [readOnly, cellAt, onUpdateCell]
+    [readOnly, cellLockReasons, cellAt, onUpdateCell]
   )
 
   // ─── Editing callbacks (from GridCell) ─────────────────────────────────────
@@ -638,6 +651,7 @@ export function GridSurface({
                       state={state}
                       presences={presences}
                       cellCommentCounts={cellCommentCounts}
+                      cellLockReasons={cellLockReasons}
                       readOnly={readOnly}
                       draftRef={draftRef}
                       onMouseDownCell={handleCellMouseDown}
@@ -696,6 +710,7 @@ interface GridRowProps {
   state: GridState
   presences?: CellPresence[]
   cellCommentCounts?: Map<string, number>
+  cellLockReasons?: ReadonlyMap<string, string>
   readOnly?: boolean
   draftRef: React.MutableRefObject<CellValue>
   onMouseDownCell: (rowIndex: number, colIndex: number, shiftKey: boolean) => void
@@ -725,6 +740,7 @@ function GridRow({
   state,
   presences,
   cellCommentCounts,
+  cellLockReasons,
   readOnly,
   draftRef,
   onMouseDownCell,
@@ -853,6 +869,7 @@ function GridRow({
             editSeed={editing ? state.editing?.seed : undefined}
             presences={cellPresences}
             commentCount={cellCommentCounts?.get(`${row.id}:${field.id}`) ?? 0}
+            lockReason={cellLockReasons?.get(`${row.id}:${field.id}`)}
             width={field.width}
             readOnly={readOnly}
             onMouseDown={onMouseDownCell}
