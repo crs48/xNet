@@ -1,0 +1,14 @@
+{
+  "id": "2026-06-24-cozier-dev-tool-with-a-real-data-browser",
+  "date": "June 24, 2026",
+  "title": "A cozier dev tool with a real data browser",
+  "summary": "The in-app dev tools (Ctrl/Cmd+Shift+D) are reorganized around four high-signal panels — Data, Changes, Logs, and Performance — with everything else tucked into a grouped \"More\" menu and a ⌘⇧P command palette, so the bottom strip is no longer a wall of tabs.",
+  "highlights": [
+    "Data panel: query and browse every node in the real database grid, with schema-aware columns, live updates, and a query-plan inspector",
+    "Logs panel: flip the sync/SQLite/query/boot/trace debug channels and read captured output in-app",
+    "Performance panel: cold-start boot timeline, live frame budget and memory, storage stats, and recent traces in one place",
+    "Jump to any panel by name with the ⌘⇧P command palette"
+  ],
+  "tags": ["devtools", "platform"],
+  "authors": [{ "login": "crs48" }]
+}
