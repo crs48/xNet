@@ -321,4 +321,88 @@ describe('NodeStoreSyncProvider', () => {
       warn.mockRestore()
     })
   })
+
+  describe('protocol-skew circuit breaker', () => {
+    const MAX_STRUCTURAL_REJECTIONS = 5
+
+    it('halts outbound sync after repeated structural rejections, then resumes on reconnect', async () => {
+      const { store, emit } = makeStore()
+      const { conn, setStatus, injectMessage } = makeConnection('connected')
+      new NodeStoreSyncProvider(store, 'room-1').attach(conn)
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      // A protocol/build skew rejects every change with INVALID_HASH. After
+      // MAX_STRUCTURAL_REJECTIONS in a row the breaker trips with ONE loud error.
+      for (let i = 0; i < MAX_STRUCTURAL_REJECTIONS; i++) {
+        injectMessage({ type: 'node-error', code: 'INVALID_HASH', error: 'hash mismatch' })
+      }
+      expect(error).toHaveBeenCalledTimes(1)
+
+      // A fresh local change must NOT be published while halted.
+      emit({ change: makeChange(1), isRemote: false })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(conn.publish).not.toHaveBeenCalled()
+
+      // Reconnect clears the breaker; subsequent local changes flow again.
+      setStatus('disconnected')
+      setStatus('connected')
+      await vi.advanceTimersByTimeAsync(0)
+      injectMessage({ type: 'node-sync-response', room: 'room-1', changes: [], highWaterMark: 0 })
+      await vi.advanceTimersByTimeAsync(0)
+      emit({ change: makeChange(2), isRemote: false })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(conn.publish).toHaveBeenCalledTimes(1)
+
+      error.mockRestore()
+      warn.mockRestore()
+    })
+
+    it('does not halt on non-structural rejections (e.g. UNAUTHORIZED)', async () => {
+      const { store, emit } = makeStore()
+      const { conn, injectMessage } = makeConnection('connected')
+      new NodeStoreSyncProvider(store, 'room-1').attach(conn)
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      for (let i = 0; i < MAX_STRUCTURAL_REJECTIONS * 2; i++) {
+        injectMessage({ type: 'node-error', code: 'UNAUTHORIZED', error: 'nope' })
+      }
+      expect(error).not.toHaveBeenCalled()
+
+      emit({ change: makeChange(1), isRemote: false })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(conn.publish).toHaveBeenCalledTimes(1)
+
+      error.mockRestore()
+      warn.mockRestore()
+    })
+
+    it('resets the counter on forward progress so sparse rejections never trip', async () => {
+      const { store, emit } = makeStore()
+      const { conn, injectMessage } = makeConnection('connected')
+      new NodeStoreSyncProvider(store, 'room-1').attach(conn)
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      // Four rejections (one short of the trip), then forward progress, then
+      // four more: the counter reset means the breaker never trips.
+      for (let i = 0; i < MAX_STRUCTURAL_REJECTIONS - 1; i++) {
+        injectMessage({ type: 'node-error', code: 'INVALID_HASH', error: 'mismatch' })
+      }
+      injectMessage({ type: 'node-sync-response', room: 'room-1', changes: [], highWaterMark: 7 })
+      await vi.advanceTimersByTimeAsync(0)
+      for (let i = 0; i < MAX_STRUCTURAL_REJECTIONS - 1; i++) {
+        injectMessage({ type: 'node-error', code: 'INVALID_HASH', error: 'mismatch' })
+      }
+      expect(error).not.toHaveBeenCalled()
+
+      emit({ change: makeChange(9), isRemote: false })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(conn.publish).toHaveBeenCalledTimes(1)
+
+      error.mockRestore()
+      warn.mockRestore()
+    })
+  })
 })

@@ -19,6 +19,7 @@ export {
   CURRENT_PROTOCOL_VERSION,
   createUnsignedChange,
   computeChangeHash,
+  recomputeChangeHash,
   signChange,
   createWebCryptoChangeSigner,
   verifyChange,

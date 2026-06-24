@@ -329,12 +329,15 @@ export function verifyChange<T>(change: Change<T>, publicKey: Uint8Array): boole
 }
 
 /**
- * Verify that a change's hash is correct (not tampered).
- * This re-computes the hash from the change data and compares.
+ * Recompute the content hash of a signed change from its own fields.
  *
- * Handles both legacy (no protocolVersion) and versioned changes.
+ * Reconstructs the unsigned form (the exact field set that goes into the hash)
+ * and runs {@link computeChangeHash}. This is the single source of truth for
+ * "which fields are hashed" — {@link verifyChangeHash} is defined in terms of
+ * it, and callers that need to *report* a mismatch (not just detect one) can
+ * use it to surface the hash this build expects.
  */
-export function verifyChangeHash<T>(change: Change<T>): boolean {
+export function recomputeChangeHash<T>(change: Change<T>): ContentId {
   // Reconstruct the unsigned change with only the fields that should be hashed
   const unsigned: UnsignedChange<T> = {
     id: change.id,
@@ -358,8 +361,17 @@ export function verifyChangeHash<T>(change: Change<T>): boolean {
     unsigned.batchSize = change.batchSize
   }
 
-  const computedHash = computeChangeHash(unsigned)
-  return computedHash === change.hash
+  return computeChangeHash(unsigned)
+}
+
+/**
+ * Verify that a change's hash is correct (not tampered).
+ * This re-computes the hash from the change data and compares.
+ *
+ * Handles both legacy (no protocolVersion) and versioned changes.
+ */
+export function verifyChangeHash<T>(change: Change<T>): boolean {
+  return recomputeChangeHash(change) === change.hash
 }
 
 /**

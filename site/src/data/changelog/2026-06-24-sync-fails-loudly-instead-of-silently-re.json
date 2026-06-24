@@ -1,0 +1,12 @@
+{
+  "id": "2026-06-24-sync-fails-loudly-instead-of-silently-re",
+  "date": "June 24, 2026",
+  "title": "Sync fails loudly instead of silently retrying forever",
+  "summary": "When the app and your hub are on incompatible versions, every change can be rejected with an opaque 'invalid hash' error. Before, the app retried forever — flooding the hub and silently never syncing. Now the hub explains exactly what mismatched (it names both hashes and protocol versions), and the app stops pushing after a few rejections, logs one clear, actionable message, and automatically resumes the next time it reconnects to a compatible hub.",
+  "highlights": [
+    "The hub's rejection now names the client hash, the hub's recomputed hash, and both protocol versions — a version skew is obvious instead of looking like data corruption",
+    "The app trips a circuit breaker after repeated structural rejections, so it no longer floods the hub with changes that can never be accepted",
+    "Outbound sync resumes automatically on the next reconnect, once the hub and app are back in sync"
+  ],
+  "tags": ["sync"]
+}

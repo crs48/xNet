@@ -4,6 +4,7 @@ import { describe, it, expect } from 'vitest'
 import {
   createUnsignedChange,
   computeChangeHash,
+  recomputeChangeHash,
   signChange,
   createWebCryptoChangeSigner,
   verifyChange,
@@ -242,6 +243,48 @@ describe('Change', () => {
       const signed = signChange(unsigned, keyPair.privateKey)
       const tampered = { ...signed, payload: { value: 'tampered' } }
 
+      expect(verifyChangeHash(tampered)).toBe(false)
+    })
+  })
+
+  describe('recomputeChangeHash', () => {
+    it('reproduces the signed hash and equals verifyChangeHash', () => {
+      const keyPair = generateSigningKeyPair()
+      const signed = signChange(
+        createUnsignedChange({
+          id: 'test-recompute',
+          type: 'test',
+          payload: { value: 42 },
+          parentHash: null,
+          authorDID: testDID,
+          lamport: testLamport,
+          wallTime: 1000
+        }),
+        keyPair.privateKey
+      )
+
+      expect(recomputeChangeHash(signed)).toBe(signed.hash)
+      expect(verifyChangeHash(signed)).toBe(true)
+    })
+
+    it('surfaces the expected hash for a tampered change (the value verifyChangeHash compares against)', () => {
+      const keyPair = generateSigningKeyPair()
+      const signed = signChange(
+        createUnsignedChange({
+          id: 'test-recompute-mismatch',
+          type: 'test',
+          payload: { value: 'original' },
+          parentHash: null,
+          authorDID: testDID,
+          lamport: testLamport,
+          wallTime: 1000
+        }),
+        keyPair.privateKey
+      )
+      const tampered = { ...signed, payload: { value: 'tampered' } }
+
+      const expected = recomputeChangeHash(tampered)
+      expect(expected).not.toBe(tampered.hash)
       expect(verifyChangeHash(tampered)).toBe(false)
     })
   })

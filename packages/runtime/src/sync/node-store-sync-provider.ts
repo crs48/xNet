@@ -29,6 +29,15 @@ const SEND_WINDOW_MS = 1000
 // changes anyway (request-sync-first, with a fallback so we never hang).
 const SYNC_RESPONSE_TIMEOUT_MS = 4000
 
+// Protocol-skew circuit breaker. These rejection codes are *structural*: the
+// hub is saying the change is fundamentally unacceptable (bad hash, bad
+// signature, malformed). Re-sending the same change — or, when it's a
+// protocol/build skew, ANY local change — will be rejected identically, so
+// retrying just floods the hub forever (the symptom this guards against). After
+// MAX_STRUCTURAL_REJECTIONS in a row we stop pushing until the next reconnect.
+const STRUCTURAL_REJECTION_CODES = new Set(['INVALID_HASH', 'INVALID_SIGNATURE', 'INVALID_CHANGE'])
+const MAX_STRUCTURAL_REJECTIONS = 5
+
 export type SerializedNodeChange = {
   id: string
   type: string
@@ -83,6 +92,12 @@ export class NodeStoreSyncProvider {
 
   // Request-sync-first: resolver for the in-flight node-sync-response wait.
   private syncResponseResolver: (() => void) | null = null
+
+  // Protocol-skew circuit breaker state. `structuralRejections` counts
+  // consecutive structural node-errors (reset on forward progress); once it
+  // trips, `outboundHalted` stops all pushes until the next reconnect.
+  private structuralRejections = 0
+  private outboundHalted = false
 
   // Resolver for an in-flight node-clear ("reset my data") round-trip.
   private clearResolver: ((cleared: number) => void) | null = null
@@ -192,6 +207,11 @@ export class NodeStoreSyncProvider {
    * nothing (exploration 0206).
    */
   private async onConnected(): Promise<void> {
+    // A reconnect is a fresh start: clear any tripped breaker so an upgraded (or
+    // simply different) hub gets a chance to accept our changes again.
+    this.outboundHalted = false
+    this.structuralRejections = 0
+
     await this.ensureCursorLoaded()
     if (!this.connection || this.connection.status !== 'connected') return
 
@@ -286,17 +306,48 @@ export class NodeStoreSyncProvider {
     if (message.type === 'node-error') {
       // The hub rejected a change (invalid/unauthorized/duplicate). Log it and
       // move on — don't treat it as a reason to resend and re-flood (0206).
+      const code = typeof message.code === 'string' ? message.code : 'UNKNOWN'
       console.warn(
         '[NodeStoreSync] hub rejected a node change:',
-        message.code ?? 'UNKNOWN',
+        code,
         message.error ?? message.message ?? ''
       )
+      if (STRUCTURAL_REJECTION_CODES.has(code)) {
+        this.recordStructuralRejection(code, message)
+      }
       return
     }
     if (message.type !== 'node-sync-response') return
     const response = message as NodeSyncResponse
     if (response.room !== this.room) return
     void this.handleSyncResponse(response)
+  }
+
+  /**
+   * Trip the circuit breaker after enough consecutive structural rejections.
+   *
+   * Structural rejections (bad hash/signature/shape) are not transient: the
+   * same change re-sent is rejected again, and — when it's a protocol/build
+   * skew — so is every other local change. Rather than re-flood the hub forever
+   * (the symptom that motivated this), we stop pushing, drop the queue, and log
+   * ONE actionable error. A reconnect clears the breaker (the hub may have been
+   * upgraded) via {@link onConnected}, and any forward progress resets the
+   * counter so sparse one-off rejections never accumulate to a false trip.
+   */
+  private recordStructuralRejection(code: string, message: Record<string, unknown>): void {
+    this.structuralRejections += 1
+    if (this.outboundHalted || this.structuralRejections < MAX_STRUCTURAL_REJECTIONS) return
+
+    this.outboundHalted = true
+    this.clearSendQueue()
+    console.error(
+      `[NodeStoreSync] Pausing outbound sync after ${this.structuralRejections} consecutive ` +
+        `"${code}" rejections. Local changes are valid but the hub keeps rejecting them — this ` +
+        `usually means the hub is on an incompatible @xnetjs/sync build (protocol/hash skew). ` +
+        `Outbound sync resumes on reconnect. Hub said: ${
+          message.error ?? message.message ?? '(no detail)'
+        }`
+    )
   }
 
   private requestSync(): void {
@@ -378,6 +429,10 @@ export class NodeStoreSyncProvider {
     if (response.highWaterMark > this.lastSyncedLamport) {
       this.lastSyncedLamport = response.highWaterMark
       this.pushedThrough = Math.max(this.pushedThrough, this.lastSyncedLamport)
+      // Forward progress from the hub: clear any accumulated structural-rejection
+      // count so a stray one-off rejection in a healthy session never trips the
+      // breaker. (A tripped breaker only clears on reconnect.)
+      this.structuralRejections = 0
       try {
         await this.store.setSyncCursor(this.room, this.lastSyncedLamport)
       } catch (err) {
@@ -392,6 +447,7 @@ export class NodeStoreSyncProvider {
 
   /** Enqueue every local change since the last confirmed send, then drain. */
   private async syncLocalChanges(): Promise<void> {
+    if (this.outboundHalted) return
     if (!this.connection || this.connection.status !== 'connected') return
 
     const changes = await this.store.getChangesSince(this.pushedThrough)
@@ -405,6 +461,7 @@ export class NodeStoreSyncProvider {
 
   /** Queue a change for throttled broadcast (deduped by hash). */
   private enqueueChange(change: NodeChange): void {
+    if (this.outboundHalted) return
     if (change.lamport <= this.pushedThrough) return
     if (this.queuedHashes.has(change.hash)) return
     this.queuedHashes.add(change.hash)
@@ -421,6 +478,7 @@ export class NodeStoreSyncProvider {
   }
 
   private drain(): void {
+    if (this.outboundHalted) return
     if (!this.connection || this.connection.status !== 'connected') return
 
     this.sentInWindow = 0
