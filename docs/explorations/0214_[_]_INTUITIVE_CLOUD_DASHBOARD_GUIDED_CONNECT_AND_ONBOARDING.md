@@ -568,9 +568,10 @@ if (url.hostname === 'connect') {
 - [ ] Write `/docs/guides/cloud-connect` (`site/src/content/docs/docs/guides/…`):
       web/desktop/mobile connect, with the device-code flow explained; link it from
       the docs index and footer.
-- [ ] Unit tests in `apps/cloud/src/dashboard.test.ts`: tabs render for all platforms;
+- [x] Unit tests in `apps/cloud/src/dashboard.test.ts`: tabs render for all platforms;
       copyable hub URL present; checklist shows when unconnected and vanishes when
       `did` set; help links present; URLs escaped (extend the PR #242 test file).
+      **18 tests total.**
 - [ ] (Fast-follow PR) `xnet://connect` handler in Electron main + a desktop-side
       confirm UI; dashboard "Open in desktop app" link (D2).
 - [ ] (Fast-follow) Desktop renderer cloud-claim parity (D3).
