@@ -8,5 +8,13 @@
     "The app trips a circuit breaker after repeated structural rejections, so it no longer floods the hub with changes that can never be accepted",
     "Outbound sync resumes automatically on the next reconnect, once the hub and app are back in sync"
   ],
-  "tags": ["sync"]
+  "tags": [
+    "sync"
+  ],
+  "pr": 253,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
