@@ -345,6 +345,8 @@ export function GridSurface({
         case 'startEdit': {
           if (readOnly) break
           const target = state.cursor ? cellAt(state.cursor) : null
+          // Structurally locked columns are never editable.
+          if (target?.field.readonly) break
           // Computed/auto fields have no editor
           if (
             target &&
@@ -520,6 +522,8 @@ export function GridSurface({
       if (readOnly) return
       dispatch({ type: 'focusCell', pos: { row: rowIndex, col: colIndex } })
       const cell = cellAt({ row: rowIndex, col: colIndex })
+      // Structurally locked columns are never editable.
+      if (cell?.field.readonly) return
       // Checkboxes toggle in place — no edit session (Sheets/Notion behavior)
       if (cell?.field.type === 'checkbox') {
         onUpdateCell?.(cell.row.id, cell.field.id, cell.row.cells[cell.field.id] !== true)
