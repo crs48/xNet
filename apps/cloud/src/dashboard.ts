@@ -22,8 +22,59 @@ export interface DashboardView {
   billingEnabled: boolean
   /** Base URL of the hosted web app ("Open the app"). */
   appUrl?: string
+  /** Marketing/docs base ("https://xnet.fyi/cloud") — drives the help + FAQ links. */
+  marketingUrl?: string
   /** Managed-AI spend for the current billing period (from the usage ledger). */
   aiUsage?: { usedUsd: number; includedUsd: number; budgetUsd: number }
+  /** When true, the user has dismissed the getting-started checklist (a cookie). */
+  gettingStartedHidden?: boolean
+}
+
+/** Help/FAQ/doc destinations derived from the marketing base URL. */
+interface HelpLinks {
+  cloud: string
+  faq: string
+  connect: string
+  selfhost: string
+  status: string
+}
+
+/**
+ * Derive the help links from the configured marketing URL (default
+ * `https://xnet.fyi/cloud`). The FAQ lives under the cloud path; the guides and
+ * status live at the site origin. Falls back to the public site if the URL is
+ * misconfigured (e.g. a bare `/`), so links never render relative/broken.
+ */
+function helpLinks(marketingUrl: string): HelpLinks {
+  let base: URL | null = null
+  try {
+    base = new URL(marketingUrl)
+  } catch {
+    base = null
+  }
+  const origin = base ? base.origin : 'https://xnet.fyi'
+  const cloud = base ? base.href.replace(/\/$/, '') : `${origin}/cloud`
+  return {
+    cloud,
+    faq: `${cloud}/pricing#faq`,
+    connect: `${origin}/docs/guides/cloud-connect`,
+    selfhost: `${origin}/docs/guides/hub`,
+    status: `${origin}/status`
+  }
+}
+
+/** A titled card shell — used by the newer guided-connect/checklist sections. */
+function card(title: string, inner: string, extraClass = ''): string {
+  return `
+    <div class="card${extraClass ? ` ${extraClass}` : ''}">
+      <h2>${esc(title)}</h2>
+      ${inner}
+    </div>`
+}
+
+/** A copyable inline value: `<code>` + a Copy button wired by `dashScript()`. */
+function copyField(id: string, value: string): string {
+  return `<span class="copy"><code id="${esc(id)}">${esc(value)}</code><button type="button" class="ghost btn-sm" data-copy="${esc(id)}">Copy</button></span>`
 }
 
 const usd = (n: number): string => `$${n.toFixed(2)}`
@@ -119,7 +170,7 @@ function hubCard(tenant: TenantRecord): string {
         ? `<span class="badge badge-warn">Sleeping</span>`
         : `<span class="badge badge-ok">Active</span>`
   const reach = tenant.hubUrl
-    ? `<code>${esc(tenant.hubUrl)}</code>`
+    ? copyField('endpoint-url', tenant.hubUrl)
     : `<span class="muted">suspended — re-subscribe to wake it</span>`
   const e = tenant.entitlements
   // Live tiles are hydrated by pollLive() from /dashboard/live.json; the server
@@ -266,25 +317,204 @@ function liveScript(): string {
 </script>`
 }
 
-function connectCard(tenant: TenantRecord, appUrl: string): string {
+/**
+ * Per-platform "connect your apps" guidance. The connect machinery (device-grant
+ * claim) is identical across platforms, but *where you start it* differs — so we
+ * tab Web / Desktop / Mobile and tailor the steps. Progressive enhancement: the tab
+ * bar is `hidden` until `dashScript()` reveals it, and the panels render unhidden,
+ * so with JS off all three stacked panels (each with its own heading) stay readable.
+ */
+function connectCard(tenant: TenantRecord, appUrl: string, links: HelpLinks): string {
+  // A canceled tenant's hub is torn down — the hub + billing cards already explain
+  // the suspension, so we don't show connect guidance (it would contradict them).
+  if (tenant.subscriptionStatus === 'canceled') return ''
+  // Once a device is bound, the app is connected; the hub may be asleep (cold), in
+  // which case opening the app wakes it rather than "picking up" from a live endpoint.
   if (tenant.did) {
-    return `
-      <div class="card">
-        <h2>Connected</h2>
-        <p class="muted">Your app is connected to this hub. Open xNet on any device and sign in with your passkey.</p>
-        <a class="btn" href="${esc(appUrl)}" target="_blank" rel="noopener">Open the app</a>
-      </div>`
+    const sleeping = !tenant.hubUrl || tenant.dataTier !== 'hot'
+    const blurb = sleeping
+      ? 'Your hub is asleep. Open xNet on any device and it wakes automatically to pick up your data.'
+      : 'Your app is connected to this hub. Open xNet on any device and sign in with your passkey to pick up your data.'
+    return card(
+      'Connected',
+      `<p class="muted">${blurb}</p>
+       <a class="btn" href="${esc(appUrl)}" target="_blank" rel="noopener">Open the app ↗</a>`
+    )
   }
+  const hubField = tenant.hubUrl
+    ? copyField('hub-url', tenant.hubUrl)
+    : `<span class="muted">your hub URL appears here once it finishes provisioning</span>`
+  return card(
+    'Connect your apps',
+    `<p class="muted">Link a device to start syncing. Pick where you're connecting from:</p>
+     <div class="tabs" data-tabs role="tablist" hidden>
+       <button type="button" id="tab-web" class="tab" data-tab="web" role="tab" aria-controls="panel-web" aria-selected="true">🌐 Web</button>
+       <button type="button" id="tab-desktop" class="tab" data-tab="desktop" role="tab" aria-controls="panel-desktop" aria-selected="false">🖥️ Desktop</button>
+       <button type="button" id="tab-mobile" class="tab" data-tab="mobile" role="tab" aria-controls="panel-mobile" aria-selected="false">📱 Mobile</button>
+     </div>
+     <section class="tabpanel" id="panel-web" data-panel="web" role="tabpanel" aria-labelledby="tab-web" tabindex="0">
+       <h3 class="panel-h">On the web</h3>
+       <ol>
+         <li><a class="btn btn-sm" href="${esc(appUrl)}" target="_blank" rel="noopener">Open the web app ↗</a></li>
+         <li>Create your passkey when prompted — your data identity, which never leaves your device.</li>
+         <li>Choose <strong>Connect xNet Cloud hub</strong>; the app shows a short code.</li>
+         <li><a class="btn btn-sm ghost" href="/claim">Enter that code here →</a></li>
+       </ol>
+     </section>
+     <section class="tabpanel" id="panel-desktop" data-panel="desktop" role="tabpanel" aria-labelledby="tab-desktop" tabindex="0">
+       <h3 class="panel-h">On desktop</h3>
+       <ol>
+         <li>Open the xNet desktop app and go to <strong>Settings → Network</strong>.</li>
+         <li>Paste this hub URL into the <strong>Signaling server</strong> field: ${hubField}</li>
+         <li>Restart the app, then create your passkey and approve the code: <a class="btn btn-sm ghost" href="/claim">Enter a code →</a></li>
+       </ol>
+       <p class="muted note">One-click desktop connect (an <code>xnet://</code> link) is coming soon.</p>
+     </section>
+     <section class="tabpanel" id="panel-mobile" data-panel="mobile" role="tabpanel" aria-labelledby="tab-mobile" tabindex="0">
+       <h3 class="panel-h">On mobile</h3>
+       <ol>
+         <li>Install xNet on your phone and open it.</li>
+         <li>Create your passkey, then choose <strong>Connect xNet Cloud hub</strong>.</li>
+         <li>Approve the code it shows here: <a class="btn btn-sm ghost" href="/claim">Enter a code →</a></li>
+       </ol>
+     </section>
+     <p class="muted help-row">Stuck? <a href="${esc(links.connect)}" target="_blank" rel="noopener">How to connect</a> · <a href="${esc(links.faq)}" target="_blank" rel="noopener">FAQ</a></p>`
+  )
+}
+
+/**
+ * A getting-started checklist for the just-subscribed tenant — Vercel-style
+ * activation. Steps are *derived from tenant state*, so the list self-completes and
+ * vanishes once a device is connected; a cookie also lets the user hide it early
+ * (handy for desktop "paste-URL" users whose binding we may not have observed yet).
+ */
+function gettingStarted(view: DashboardView): string {
+  const t = view.tenant
+  if (!t || view.gettingStartedHidden) return ''
+  // Activation is a one-way funnel. Once a device is bound (`did`), onboarding is
+  // done for good — don't resurrect the checklist if the hub later sleeps or the
+  // sub is canceled (when `hubUrl`/`dataTier` flip but `did` stays set). And a
+  // canceled tenant isn't onboarding at all; the hub + billing cards cover that.
+  if (t.did || t.subscriptionStatus === 'canceled') return ''
+  const steps = [
+    { done: true, label: 'Plan chosen', hint: 'Your dedicated hub is provisioned.' },
+    {
+      done: Boolean(t.hubUrl) && t.dataTier === 'hot',
+      label: 'Hub running',
+      hint: 'A reachable sync endpoint is live.'
+    },
+    { done: false, label: 'Connect a device', hint: 'Approve an app with a passkey and code.' }
+  ]
+  const items = steps
+    .map(
+      (s) => `
+      <li class="${s.done ? 'done' : ''}">
+        <span class="check" aria-hidden="true">${s.done ? '✓' : ''}</span>
+        <span class="step-txt"><strong>${esc(s.label)}</strong><span class="muted"> — ${esc(s.hint)}</span></span>
+      </li>`
+    )
+    .join('')
   return `
-    <div class="card">
-      <h2>Connect your app</h2>
-      <ol>
-        <li>Open xNet on web, desktop, or mobile.</li>
-        <li>Create your passkey (this is your data identity — it never leaves your device).</li>
-        <li>Choose <strong>Connect xNet Cloud hub</strong> and approve the code here.</li>
-      </ol>
-      <a class="btn" href="/claim">Approve a device</a>
+    <div class="card getting-started" id="getting-started">
+      <div class="gs-head">
+        <h2>Get started</h2>
+        <button type="button" class="ghost btn-sm" data-hide-gs hidden>Hide</button>
+      </div>
+      <ol class="checklist">${items}</ol>
     </div>`
+}
+
+/** A small footer of help destinations, shown on every dashboard state. */
+function helpFooter(links: HelpLinks): string {
+  return `
+    <footer class="help-footer">
+      <a href="${esc(links.connect)}" target="_blank" rel="noopener">Connect guide</a>
+      <a href="${esc(links.faq)}" target="_blank" rel="noopener">FAQ</a>
+      <a href="${esc(links.status)}" target="_blank" rel="noopener">Status</a>
+      <a href="${esc(links.selfhost)}" target="_blank" rel="noopener">Self-host</a>
+      <a href="${esc(links.cloud)}" target="_blank" rel="noopener">About Cloud</a>
+    </footer>`
+}
+
+/**
+ * Vanilla-JS hydration for the guided-connect bits: tab switching, copy buttons,
+ * and the getting-started "Hide". Always included (unlike `liveScript()`, which
+ * early-returns when there are no live tiles) because these elements appear exactly
+ * on the unconnected/cold dashboard where the live tiles are absent. No-op if none
+ * of the elements are present.
+ */
+function dashScript(): string {
+  return `<script>
+(function(){
+  // Tabs — reveal the (no-JS-hidden) tab bar and show only the active panel.
+  document.querySelectorAll('[data-tabs]').forEach(function(bar){
+    var host = bar.parentNode, panels = {};
+    host.querySelectorAll('[data-panel]').forEach(function(p){ panels[p.getAttribute('data-panel')] = p; });
+    var tabs = [].slice.call(bar.querySelectorAll('[data-tab]'));
+    function activate(name, focus){
+      tabs.forEach(function(t){
+        var on = t.getAttribute('data-tab') === name;
+        t.setAttribute('aria-selected', on ? 'true' : 'false');
+        t.setAttribute('tabindex', on ? '0' : '-1'); // roving tabindex: one Tab stop
+        t.classList.toggle('active', on);
+        if (on && focus) t.focus();
+      });
+      Object.keys(panels).forEach(function(k){ panels[k].hidden = (k !== name); });
+    }
+    bar.hidden = false;
+    bar.addEventListener('click', function(e){
+      var t = e.target.closest('[data-tab]'); if (t) activate(t.getAttribute('data-tab'));
+    });
+    bar.addEventListener('keydown', function(e){
+      var i = tabs.indexOf(document.activeElement); if (i < 0) return;
+      var n = -1;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') n = (i + 1) % tabs.length;
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') n = (i - 1 + tabs.length) % tabs.length;
+      else if (e.key === 'Home') n = 0;
+      else if (e.key === 'End') n = tabs.length - 1;
+      if (n < 0) return;
+      e.preventDefault();
+      activate(tabs[n].getAttribute('data-tab'), true);
+    });
+    var first = bar.querySelector('[data-tab]'); if (first) activate(first.getAttribute('data-tab'));
+  });
+  // Copy buttons — clipboard API first, execCommand fallback (locked-down webviews),
+  // and a text-selection last resort so the value is always at least grab-able.
+  function legacyCopy(text){
+    try {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', '');
+      ta.style.position = 'fixed'; ta.style.left = '-9999px';
+      document.body.appendChild(ta); ta.select();
+      var ok = document.execCommand('copy'); document.body.removeChild(ta); return ok;
+    } catch (e) { return false; }
+  }
+  function selectText(node){
+    try { var r = document.createRange(); r.selectNodeContents(node);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); } catch (e) {}
+  }
+  document.addEventListener('click', function(e){
+    var b = e.target.closest('[data-copy]'); if (!b) return;
+    var el = document.getElementById(b.getAttribute('data-copy')); if (!el) return;
+    var text = el.textContent.trim();
+    var done = function(){ if (!b.getAttribute('data-label')) b.setAttribute('data-label', b.textContent);
+      b.textContent = 'Copied \\u2713'; setTimeout(function(){ b.textContent = b.getAttribute('data-label'); }, 1200); };
+    var fallback = function(){ if (legacyCopy(text)) done(); else selectText(el); };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(fallback);
+    } else { fallback(); }
+  });
+  // Hide the getting-started checklist (cookie remembers across reloads).
+  var hideBtn = document.querySelector('[data-hide-gs]');
+  if (hideBtn) {
+    hideBtn.hidden = false;
+    hideBtn.addEventListener('click', function(){
+      document.cookie = 'xnet_gs_hidden=1; path=/; max-age=31536000; samesite=lax';
+      var gs = document.getElementById('getting-started'); if (gs) gs.remove();
+    });
+  }
+})();
+</script>`
 }
 
 function billingCard(view: DashboardView, tenant: TenantRecord): string {
@@ -322,6 +552,9 @@ function dangerZone(): string {
 const STYLE = `
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
+  /* Author display rules (.tabs, button) otherwise beat the UA [hidden] rule, so the
+     no-JS tab bar / Hide button would show before dashScript() arms them. */
+  [hidden] { display: none !important; }
   body { margin: 0; background: #0a0a0f; color: #e5e7eb; font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
   .wrap { max-width: 880px; margin: 0 auto; padding: 32px 24px 80px; }
   header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 28px; }
@@ -366,6 +599,29 @@ const STYLE = `
   .budget { margin-bottom: 16px; }
   .budget-bar { height: 8px; background: #1c1c24; border-radius: 999px; overflow: hidden; margin-bottom: 6px; }
   .budget-fill { height: 100%; border-radius: 999px; transition: width 0.3s ease; }
+  h3 { font-size: 14px; margin: 0; }
+  .btn-sm { padding: 5px 11px; font-size: 13px; }
+  .copy { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; vertical-align: middle; }
+  .tabs { display: flex; gap: 6px; margin: 14px 0 16px; flex-wrap: wrap; }
+  .tab { background: #0d0d12; border: 1px solid #23232b; color: #9ca3af; border-radius: 9px; padding: 7px 13px; font-size: 13px; font-weight: 500; cursor: pointer; }
+  .tab:hover { color: #e5e7eb; }
+  .tab.active { background: #1c1c24; color: #fff; border-color: #3a3a44; }
+  .tabpanel { padding-top: 4px; }
+  .tabpanel + .tabpanel { margin-top: 16px; }
+  .panel-h { font-size: 12px; font-weight: 600; margin: 0 0 8px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; }
+  .note { font-size: 13px; margin: 8px 0 0; }
+  .help-row { margin: 16px 0 0; font-size: 13px; }
+  .help-row a, .help-footer a { color: #818cf8; text-decoration: none; }
+  .help-row a:hover, .help-footer a:hover { text-decoration: underline; }
+  .getting-started { border-color: #2e2e63; background: linear-gradient(180deg, #15152e, #121218); }
+  .gs-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+  .gs-head h2 { margin: 0; }
+  .checklist { list-style: none; padding: 0; margin: 14px 0 0; display: grid; gap: 10px; }
+  .checklist li { display: flex; align-items: flex-start; gap: 10px; }
+  .checklist .check { flex: 0 0 20px; height: 20px; width: 20px; border-radius: 999px; border: 1px solid #3a3a44; color: #34d399; font-size: 12px; display: inline-flex; align-items: center; justify-content: center; margin-top: 1px; }
+  .checklist li.done .check { background: rgba(16,185,129,0.15); border-color: rgba(16,185,129,0.4); }
+  .checklist li.done .step-txt strong { color: #9ca3af; }
+  .help-footer { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 28px; padding-top: 18px; border-top: 1px solid #1f1f27; font-size: 13px; }
 `
 
 /**
@@ -400,8 +656,9 @@ function page(title: string, who: string, inner: string, appUrl?: string): strin
 export function renderDashboard(view: DashboardView): string {
   const who = view.email ?? view.billingUserId
   const appUrl = view.appUrl ?? 'https://xnet.fyi/app'
+  const links = helpLinks(view.marketingUrl ?? 'https://xnet.fyi/cloud')
   const body = view.tenant
-    ? `${hubCard(view.tenant)}${aiUsageCard(view, view.tenant)}${connectCard(view.tenant, appUrl)}${planChangeCard(view, view.tenant)}${billingCard(view, view.tenant)}${dangerZone()}${liveScript()}`
+    ? `${gettingStarted(view)}${hubCard(view.tenant)}${aiUsageCard(view, view.tenant)}${connectCard(view.tenant, appUrl, links)}${planChangeCard(view, view.tenant)}${billingCard(view, view.tenant)}${dangerZone()}${liveScript()}`
     : `<div class="card">
          <h2>Welcome to xNet Cloud</h2>
          <p class="muted">Pick a plan to spin up your dedicated hub. You can change or cancel any time.</p>
@@ -412,7 +669,9 @@ export function renderDashboard(view: DashboardView): string {
     who,
     `<h1>Dashboard</h1>
      <p class="lead">Manage your managed hub, billing, and data.</p>
-     ${body}`,
+     ${body}
+     ${helpFooter(links)}
+     ${dashScript()}`,
     appUrl
   )
 }
