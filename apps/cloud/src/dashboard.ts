@@ -324,9 +324,11 @@ const STYLE = `
   * { box-sizing: border-box; }
   body { margin: 0; background: #0a0a0f; color: #e5e7eb; font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
   .wrap { max-width: 880px; margin: 0 auto; padding: 32px 24px 80px; }
-  header { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 28px; }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 28px; }
   header .brand { font-weight: 700; font-size: 20px; letter-spacing: -0.02em; }
+  header .header-right { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; justify-content: flex-end; }
   header .who { color: #9ca3af; font-size: 13px; }
+  .header-btn { padding: 7px 14px; font-size: 13px; }
   h1 { font-size: 26px; margin: 0 0 6px; }
   h2 { font-size: 16px; margin: 0 0 14px; }
   .lead { color: #9ca3af; margin: 0 0 28px; }
@@ -366,8 +368,16 @@ const STYLE = `
   .budget-fill { height: 100%; border-radius: 999px; transition: width 0.3s ease; }
 `
 
-/** Wrap inner HTML in the shared dark-themed document chrome. */
-function page(title: string, who: string, inner: string): string {
+/**
+ * Wrap inner HTML in the shared dark-themed document chrome. When `appUrl` is
+ * given, the header carries a persistent "Open web app" button so the workspace
+ * is one click away from anywhere in the control plane — independent of whether a
+ * hub is connected yet (the connect card's own link only shows once connected).
+ */
+function page(title: string, who: string, inner: string, appUrl?: string): string {
+  const openApp = appUrl
+    ? `<a class="btn header-btn" href="${esc(appUrl)}" target="_blank" rel="noopener">Open web app ↗</a>`
+    : ''
   return `<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8" />
@@ -377,7 +387,10 @@ function page(title: string, who: string, inner: string): string {
 </head><body><div class="wrap">
   <header>
     <span class="brand">xNet Cloud</span>
-    <span class="who">${esc(who)} · <a href="/logout" style="color:#9ca3af">Sign out</a></span>
+    <span class="header-right">
+      ${openApp}
+      <span class="who">${esc(who)} · <a href="/logout" style="color:#9ca3af">Sign out</a></span>
+    </span>
   </header>
   ${inner}
 </div></body></html>`
@@ -399,7 +412,8 @@ export function renderDashboard(view: DashboardView): string {
     who,
     `<h1>Dashboard</h1>
      <p class="lead">Manage your managed hub, billing, and data.</p>
-     ${body}`
+     ${body}`,
+    appUrl
   )
 }
 

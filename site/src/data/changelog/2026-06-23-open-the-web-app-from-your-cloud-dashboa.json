@@ -1,0 +1,12 @@
+{
+  "id": "2026-06-23-open-the-web-app-from-your-cloud-dashboa",
+  "date": "June 23, 2026",
+  "title": "Open the web app from your cloud dashboard",
+  "summary": "The xNet Cloud dashboard now has a persistent \"Open web app\" button in the header, so you can jump to your workspace from anywhere in the control plane — including before a hub is connected.",
+  "highlights": [
+    "Always-available header button to the web UI"
+  ],
+  "tags": [
+    "platform"
+  ]
+}
