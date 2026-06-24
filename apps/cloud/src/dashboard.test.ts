@@ -92,14 +92,30 @@ describe('dashboard — per-platform connect (guided)', () => {
   it('no-JS fallback: tab bar is hidden but the panels are not', () => {
     const html = renderDashboard(baseView({ tenant: unconnectedTenant() }))
     // Tab bar carries `hidden` (revealed by JS); panels render without `hidden`
-    // so all three stay visible when scripting is off.
+    // so all three stay visible + readable when scripting is off.
     expect(html).toMatch(/<div class="tabs"[^>]*\shidden>/)
-    expect(html).toContain('<section class="tabpanel" data-panel="web">')
-    expect(html).toContain('<section class="tabpanel" data-panel="desktop">')
+    for (const p of ['web', 'desktop', 'mobile']) {
+      expect(html).toMatch(
+        new RegExp(
+          `<section class="tabpanel" id="panel-${p}" data-panel="${p}" role="tabpanel"[^>]*>`
+        )
+      )
+    }
+    // no panel carries `hidden` in the server HTML (JS hides the inactive ones)
+    expect(html).not.toMatch(/data-panel="[a-z]+"[^>]*\shidden/)
     // each panel has its own heading so the stacked no-JS view reads cleanly
     expect(html).toContain('On the web')
     expect(html).toContain('On desktop')
     expect(html).toContain('On mobile')
+  })
+
+  it('wires the WAI-ARIA tab pattern (tab ↔ tabpanel)', () => {
+    const html = renderDashboard(baseView({ tenant: unconnectedTenant() }))
+    expect(html).toContain('role="tablist"')
+    expect(html).toContain('id="tab-web"')
+    expect(html).toContain('aria-controls="panel-web"')
+    expect(html).toContain('aria-labelledby="tab-web"')
+    expect(html).toMatch(/id="panel-web"[^>]*role="tabpanel"/)
   })
 
   it('names the exact desktop Settings path and shows a copyable hub URL', () => {
@@ -119,11 +135,39 @@ describe('dashboard — per-platform connect (guided)', () => {
     expect(html.match(/id="endpoint-url"/g)).toHaveLength(1)
   })
 
-  it('shows the connected confirmation (not tabs) once a device is bound', () => {
+  it('shows the connected confirmation (not tabs) once a device is bound, with the help footer', () => {
     const html = renderDashboard(baseView({ tenant: connectedTenant() }))
     expect(html).toContain('>Connected<')
     expect(html).toContain('Open the app')
     expect(html).not.toContain('data-tab="desktop"')
+    // The help footer is pinned on the populated (connected) dashboard, not just the
+    // tenantless one.
+    expect(html).toContain('class="help-footer"')
+    expect(html).toContain('href="https://xnet.fyi/docs/guides/cloud-connect"')
+  })
+
+  it('shows a sleeping (not "pick up your data") message when the hub is cold', () => {
+    const html = renderDashboard(
+      baseView({ tenant: { ...connectedTenant(), dataTier: 'cold', hubUrl: '' } })
+    )
+    expect(html).toContain('>Connected<')
+    expect(html).toContain('asleep')
+  })
+
+  it('suppresses the connect guidance for a canceled tenant (hub + billing cards cover it)', () => {
+    const canceled: TenantRecord = {
+      ...connectedTenant(),
+      subscriptionStatus: 'canceled',
+      dataTier: 'cold',
+      hubUrl: '',
+      did: ''
+    }
+    const html = renderDashboard(baseView({ tenant: canceled, billingEnabled: true }))
+    expect(html).toContain('Canceled — suspended')
+    expect(html).not.toContain('Connect your apps')
+    expect(html).not.toContain('data-tab="desktop"')
+    expect(html).not.toContain('Get started')
+    expect(html).not.toContain('id="live-tiles"')
   })
 
   it('escapes a hostile hub URL in the copyable field', () => {
@@ -136,21 +180,38 @@ describe('dashboard — per-platform connect (guided)', () => {
 })
 
 describe('dashboard — getting-started checklist', () => {
-  it('shows the checklist with a pending "Connect a device" step when unconnected', () => {
+  it('shows the checklist with the done-state derived from tenant fields when unconnected', () => {
     const html = renderDashboard(baseView({ tenant: unconnectedTenant() }))
     expect(html).toContain('Get started')
-    expect(html).toContain('Plan chosen')
-    expect(html).toContain('Hub running')
-    expect(html).toContain('Connect a device')
+    // Pin the per-step derivation, not just the labels: a hot+provisioned hub marks
+    // "Hub running" done, while a did-less tenant leaves "Connect a device" pending.
+    expect(html).toMatch(/<li class="done">[\s\S]*?Hub running/)
+    expect(html).toMatch(/<li class="">[\s\S]*?Connect a device/)
   })
 
-  it('vanishes once every step is satisfied (a device is connected)', () => {
+  it('marks "Hub running" pending for a cold (sleeping) hub', () => {
+    // hubUrl is kept non-empty so this isolates the `&& dataTier === 'hot'` guard.
+    const html = renderDashboard(baseView({ tenant: { ...unconnectedTenant(), dataTier: 'cold' } }))
+    expect(html).toContain('Get started')
+    expect(html).toMatch(/<li class="">[\s\S]*?Hub running/)
+    // …and the hub card reflects the sleeping state.
+    expect(html).toContain('Sleeping')
+  })
+
+  it('vanishes once a device is connected (even if the hub later sleeps)', () => {
     const html = renderDashboard(baseView({ tenant: connectedTenant() }))
     expect(html).not.toContain('Get started')
+    // A connected tenant whose hub went cold must NOT resurrect the checklist.
+    const slept = renderDashboard(
+      baseView({ tenant: { ...connectedTenant(), dataTier: 'cold', hubUrl: '' } })
+    )
+    expect(slept).not.toContain('Get started')
   })
 
   it('is suppressed when the user has dismissed it via cookie', () => {
-    const html = renderDashboard(baseView({ tenant: unconnectedTenant(), gettingStartedHidden: true }))
+    const html = renderDashboard(
+      baseView({ tenant: unconnectedTenant(), gettingStartedHidden: true })
+    )
     expect(html).not.toContain('Get started')
     // …but the connect guidance is still there.
     expect(html).toContain('Connect your apps')
@@ -180,8 +241,18 @@ describe('dashboard — help links', () => {
   })
 
   it('derives FAQ/guide links from a custom marketing origin', () => {
-    const html = renderDashboard(baseView({ tenant: null, marketingUrl: 'https://staging.example/cloud' }))
+    const html = renderDashboard(
+      baseView({ tenant: null, marketingUrl: 'https://staging.example/cloud' })
+    )
     expect(html).toContain('href="https://staging.example/cloud/pricing#faq"')
     expect(html).toContain('href="https://staging.example/docs/guides/cloud-connect"')
+  })
+
+  it('strips a trailing slash so links never double up', () => {
+    const html = renderDashboard(
+      baseView({ tenant: null, marketingUrl: 'https://xnet.fyi/cloud/' })
+    )
+    expect(html).toContain('href="https://xnet.fyi/cloud/pricing#faq"')
+    expect(html).not.toContain('cloud//pricing')
   })
 })

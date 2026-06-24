@@ -325,10 +325,19 @@ function liveScript(): string {
  * so with JS off all three stacked panels (each with its own heading) stay readable.
  */
 function connectCard(tenant: TenantRecord, appUrl: string, links: HelpLinks): string {
+  // A canceled tenant's hub is torn down — the hub + billing cards already explain
+  // the suspension, so we don't show connect guidance (it would contradict them).
+  if (tenant.subscriptionStatus === 'canceled') return ''
+  // Once a device is bound, the app is connected; the hub may be asleep (cold), in
+  // which case opening the app wakes it rather than "picking up" from a live endpoint.
   if (tenant.did) {
+    const sleeping = !tenant.hubUrl || tenant.dataTier !== 'hot'
+    const blurb = sleeping
+      ? 'Your hub is asleep. Open xNet on any device and it wakes automatically to pick up your data.'
+      : 'Your app is connected to this hub. Open xNet on any device and sign in with your passkey to pick up your data.'
     return card(
       'Connected',
-      `<p class="muted">Your app is connected to this hub. Open xNet on any device and sign in with your passkey to pick up your data.</p>
+      `<p class="muted">${blurb}</p>
        <a class="btn" href="${esc(appUrl)}" target="_blank" rel="noopener">Open the app ↗</a>`
     )
   }
@@ -339,11 +348,11 @@ function connectCard(tenant: TenantRecord, appUrl: string, links: HelpLinks): st
     'Connect your apps',
     `<p class="muted">Link a device to start syncing. Pick where you're connecting from:</p>
      <div class="tabs" data-tabs role="tablist" hidden>
-       <button type="button" class="tab" data-tab="web" role="tab" aria-selected="true">🌐 Web</button>
-       <button type="button" class="tab" data-tab="desktop" role="tab" aria-selected="false">🖥️ Desktop</button>
-       <button type="button" class="tab" data-tab="mobile" role="tab" aria-selected="false">📱 Mobile</button>
+       <button type="button" id="tab-web" class="tab" data-tab="web" role="tab" aria-controls="panel-web" aria-selected="true">🌐 Web</button>
+       <button type="button" id="tab-desktop" class="tab" data-tab="desktop" role="tab" aria-controls="panel-desktop" aria-selected="false">🖥️ Desktop</button>
+       <button type="button" id="tab-mobile" class="tab" data-tab="mobile" role="tab" aria-controls="panel-mobile" aria-selected="false">📱 Mobile</button>
      </div>
-     <section class="tabpanel" data-panel="web">
+     <section class="tabpanel" id="panel-web" data-panel="web" role="tabpanel" aria-labelledby="tab-web" tabindex="0">
        <h3 class="panel-h">On the web</h3>
        <ol>
          <li><a class="btn btn-sm" href="${esc(appUrl)}" target="_blank" rel="noopener">Open the web app ↗</a></li>
@@ -352,7 +361,7 @@ function connectCard(tenant: TenantRecord, appUrl: string, links: HelpLinks): st
          <li><a class="btn btn-sm ghost" href="/claim">Enter that code here →</a></li>
        </ol>
      </section>
-     <section class="tabpanel" data-panel="desktop">
+     <section class="tabpanel" id="panel-desktop" data-panel="desktop" role="tabpanel" aria-labelledby="tab-desktop" tabindex="0">
        <h3 class="panel-h">On desktop</h3>
        <ol>
          <li>Open the xNet desktop app and go to <strong>Settings → Network</strong>.</li>
@@ -361,7 +370,7 @@ function connectCard(tenant: TenantRecord, appUrl: string, links: HelpLinks): st
        </ol>
        <p class="muted note">One-click desktop connect (an <code>xnet://</code> link) is coming soon.</p>
      </section>
-     <section class="tabpanel" data-panel="mobile">
+     <section class="tabpanel" id="panel-mobile" data-panel="mobile" role="tabpanel" aria-labelledby="tab-mobile" tabindex="0">
        <h3 class="panel-h">On mobile</h3>
        <ol>
          <li>Install xNet on your phone and open it.</li>
@@ -382,6 +391,11 @@ function connectCard(tenant: TenantRecord, appUrl: string, links: HelpLinks): st
 function gettingStarted(view: DashboardView): string {
   const t = view.tenant
   if (!t || view.gettingStartedHidden) return ''
+  // Activation is a one-way funnel. Once a device is bound (`did`), onboarding is
+  // done for good — don't resurrect the checklist if the hub later sleeps or the
+  // sub is canceled (when `hubUrl`/`dataTier` flip but `did` stays set). And a
+  // canceled tenant isn't onboarding at all; the hub + billing cards cover that.
+  if (t.did || t.subscriptionStatus === 'canceled') return ''
   const steps = [
     { done: true, label: 'Plan chosen', hint: 'Your dedicated hub is provisioned.' },
     {
@@ -389,9 +403,8 @@ function gettingStarted(view: DashboardView): string {
       label: 'Hub running',
       hint: 'A reachable sync endpoint is live.'
     },
-    { done: Boolean(t.did), label: 'Connect a device', hint: 'Approve an app with a passkey and code.' }
+    { done: false, label: 'Connect a device', hint: 'Approve an app with a passkey and code.' }
   ]
-  if (steps.every((s) => s.done)) return ''
   const items = steps
     .map(
       (s) => `
@@ -437,17 +450,31 @@ function dashScript(): string {
   document.querySelectorAll('[data-tabs]').forEach(function(bar){
     var host = bar.parentNode, panels = {};
     host.querySelectorAll('[data-panel]').forEach(function(p){ panels[p.getAttribute('data-panel')] = p; });
-    function activate(name){
-      bar.querySelectorAll('[data-tab]').forEach(function(t){
+    var tabs = [].slice.call(bar.querySelectorAll('[data-tab]'));
+    function activate(name, focus){
+      tabs.forEach(function(t){
         var on = t.getAttribute('data-tab') === name;
         t.setAttribute('aria-selected', on ? 'true' : 'false');
+        t.setAttribute('tabindex', on ? '0' : '-1'); // roving tabindex: one Tab stop
         t.classList.toggle('active', on);
+        if (on && focus) t.focus();
       });
       Object.keys(panels).forEach(function(k){ panels[k].hidden = (k !== name); });
     }
     bar.hidden = false;
     bar.addEventListener('click', function(e){
       var t = e.target.closest('[data-tab]'); if (t) activate(t.getAttribute('data-tab'));
+    });
+    bar.addEventListener('keydown', function(e){
+      var i = tabs.indexOf(document.activeElement); if (i < 0) return;
+      var n = -1;
+      if (e.key === 'ArrowRight' || e.key === 'ArrowDown') n = (i + 1) % tabs.length;
+      else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') n = (i - 1 + tabs.length) % tabs.length;
+      else if (e.key === 'Home') n = 0;
+      else if (e.key === 'End') n = tabs.length - 1;
+      if (n < 0) return;
+      e.preventDefault();
+      activate(tabs[n].getAttribute('data-tab'), true);
     });
     var first = bar.querySelector('[data-tab]'); if (first) activate(first.getAttribute('data-tab'));
   });
@@ -525,6 +552,9 @@ function dangerZone(): string {
 const STYLE = `
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
+  /* Author display rules (.tabs, button) otherwise beat the UA [hidden] rule, so the
+     no-JS tab bar / Hide button would show before dashScript() arms them. */
+  [hidden] { display: none !important; }
   body { margin: 0; background: #0a0a0f; color: #e5e7eb; font: 15px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
   .wrap { max-width: 880px; margin: 0 auto; padding: 32px 24px 80px; }
   header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 28px; }
