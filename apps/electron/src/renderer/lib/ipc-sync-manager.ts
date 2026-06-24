@@ -581,6 +581,12 @@ export function createIPCSyncManager(): IPCSyncManager {
       return lastReconciliationReport
     },
 
+    async clearHubData() {
+      // The Electron BSM runs in the main process; a hub-clear IPC bridge is a
+      // follow-up. The renderer "reset" path wipes the local SQLite directly.
+      return 0
+    },
+
     get status() {
       return currentStatus
     },

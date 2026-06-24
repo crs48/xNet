@@ -134,6 +134,13 @@ export interface SyncManager {
   /** Explicitly drain queued updates and re-request state for tracked rooms. */
   reconcile(options?: SyncReconciliationOptions): Promise<SyncReconciliationReport>
 
+  /**
+   * Wipe this client's node-change data on the hub ("reset my data") and reset
+   * the local sync cursor. Returns how many changes the hub removed (0 if there
+   * is no node-sync room or we're offline). Pair with a local wipe + reload.
+   */
+  clearHubData(): Promise<number>
+
   /** Connection status */
   readonly status: SyncStatus
   /** Canonical background-sync lifecycle */
@@ -1140,6 +1147,14 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
     release(nodeId) {
       pool.release(nodeId)
       // Note: don't leave the room — keep syncing in background
+    },
+
+    async clearHubData() {
+      // Wipe the author room's change-log on the hub ("reset my data"). Pairs
+      // with a local wipe + reload for a full reset. Returns how many changes
+      // the hub removed, or 0 if there's no node-sync room / we're offline.
+      if (!nodeSyncProvider) return 0
+      return nodeSyncProvider.clearRoom()
     },
 
     getAwareness(nodeId) {
