@@ -7,6 +7,7 @@ import {
   coerceCellValue,
   coerceCellValueForType,
   formatPlanRows,
+  gridFieldsToColumnDefinitions,
   nodeToGridRow,
   observedPropertyKeys,
   propertyTypeToFieldType,
@@ -216,9 +217,27 @@ describe('nodeToGridRow', () => {
     expect(typeof row.cells[SYSTEM_FIELD.author]).toBe('string')
   })
 
+  it('stores Updated as an epoch number (sortable) and carries a stable sortKey', () => {
+    const row = nodeToGridRow(makeNode({ title: 'x' }))
+    // makeNode sets updatedAt: 1_700_000_500_000
+    expect(row.cells[SYSTEM_FIELD.updated]).toBe(1_700_000_500_000)
+    expect(row.sortKey).toBe('node-1')
+  })
+
   it('defaults unknown property columns to text (stringifying numbers)', () => {
     const row = nodeToGridRow(makeNode({ score: 9 }))
     expect(row.cells.score).toBe('9')
+  })
+})
+
+describe('gridFieldsToColumnDefinitions', () => {
+  it('maps grid fields to column definitions (id/name/type/config preserved)', () => {
+    const cols = gridFieldsToColumnDefinitions(buildGridFields(makeSchema(), [], false))
+    const updated = cols.find((c) => c.id === SYSTEM_FIELD.updated)
+    expect(updated?.type).toBe('updated') // sortable Updated column (no broken `equals`)
+    const title = cols.find((c) => c.id === 'title')
+    expect(title?.type).toBe('text')
+    expect(cols.find((c) => c.id === SYSTEM_FIELD.id)?.isTitle).toBe(true)
   })
 })
 

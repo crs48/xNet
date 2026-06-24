@@ -1,0 +1,13 @@
+{
+  "id": "2026-06-24-sort-and-filter-the-dev-tool-data-table",
+  "date": "June 24, 2026",
+  "title": "Sort and filter in the dev tool's data table",
+  "summary": "The Data panel in the dev tools (Ctrl/Cmd+Shift+D) now has the same rich table toolbar as the database UI — click a column to sort, build filter conditions with real operators, change row density, and show or hide columns.",
+  "highlights": [
+    "Click any column header to sort (or use the sort chip); the Updated column now sorts chronologically",
+    "Build AND/OR filter conditions with typed operators (contains, greater than, between, is empty, …)",
+    "Adjust row density and show/hide columns; your view settings are remembered per schema"
+  ],
+  "tags": ["devtools", "platform"],
+  "authors": [{ "login": "crs48" }]
+}

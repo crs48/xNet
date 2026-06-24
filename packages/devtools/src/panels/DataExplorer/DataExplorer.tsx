@@ -7,7 +7,8 @@
  */
 
 import type { NodeState } from '@xnetjs/data'
-import { GridSurface, type GridField, type GridRowData } from '@xnetjs/views'
+import { ROW_HEIGHT_PX, filterRows, sortRows } from '@xnetjs/data'
+import { GridSurface, GridToolbar, type GridField } from '@xnetjs/views'
 import { useMemo, useState, useCallback } from 'react'
 import { CopyButton } from '../../components/CopyButton'
 import { PanelErrorBoundary } from '../../components/PanelErrorBoundary'
@@ -15,8 +16,10 @@ import { truncateDID } from '../../utils/formatters'
 import {
   buildGridFields,
   formatPlanRows,
+  gridFieldsToColumnDefinitions,
   nodeToGridRow,
   observedPropertyKeys,
+  type DataGridRow,
   type PlanMeta
 } from './grid-adapter'
 import { useDataExplorer } from './useDataExplorer'
@@ -33,6 +36,8 @@ export function DataExplorer() {
     setIncludeDeleted,
     nodes,
     totalCount,
+    loadedCount,
+    truncated,
     plan,
     error,
     loading,
@@ -42,7 +47,16 @@ export function DataExplorer() {
     editing,
     setEditing,
     editError,
-    updateCell
+    updateCell,
+    sorts,
+    filters,
+    rowHeight,
+    hiddenFieldIds,
+    toggleSort,
+    clearSorts,
+    setFilters,
+    setRowHeight,
+    toggleFieldVisible
   } = useDataExplorer()
 
   const showSchemaColumn = !selectedSchema
@@ -54,28 +68,31 @@ export function DataExplorer() {
     [definedSchema, nodes, showSchemaColumn, editable]
   )
   const fieldTypeById = useMemo(() => new Map(fields.map((f) => [f.id, f.type])), [fields])
-  const rows: GridRowData[] = useMemo(
-    () => nodes.map((n) => nodeToGridRow(n, fieldTypeById)),
-    [nodes, fieldTypeById]
+  const columns = useMemo(() => gridFieldsToColumnDefinitions(fields), [fields])
+
+  // Map nodes → rows, then apply the database filter/sort engines client-side
+  // over the loaded window (the main database UI slices the same way).
+  const displayRows: DataGridRow[] = useMemo(() => {
+    const base = nodes.map((n) => nodeToGridRow(n, fieldTypeById))
+    return sortRows(filterRows(base, columns, filters), columns, sorts)
+  }, [nodes, fieldTypeById, columns, filters, sorts])
+
+  const visibleFields = useMemo(
+    () => fields.filter((f) => !hiddenFieldIds.includes(f.id)),
+    [fields, hiddenFieldIds]
   )
-  const getNodesData = useCallback(() => nodes, [nodes])
+  // Copy the raw node window (full fidelity for debugging), not the grid cells.
+  const getCopyData = useCallback(() => nodes, [nodes])
 
   return (
     <div className="flex h-full">
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Toolbar */}
+        {/* Control row: schema picker, deleted, edit, refresh, copy, count */}
         <div className="flex items-center gap-2 px-3 py-1.5 border-b border-hairline">
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search loaded rows..."
-            className="flex-1 bg-surface-2 border border-hairline rounded px-2 py-0.5 text-xs text-ink-1 placeholder:text-ink-3 focus:outline-none focus:border-ring"
-          />
           <select
             value={selectedSchema ?? ''}
             onChange={(e) => setSelectedSchema(e.target.value || null)}
-            className="bg-surface-2 border border-hairline rounded px-2 py-0.5 text-xs text-ink-1 max-w-[180px]"
+            className="bg-surface-2 border border-hairline rounded px-2 py-0.5 text-xs text-ink-1 max-w-[200px]"
             title="Filter by schema"
           >
             <option value="">All schemas ({schemaOptions.length})</option>
@@ -94,10 +111,6 @@ export function DataExplorer() {
             />
             Deleted
           </label>
-          <span className="text-[10px] text-ink-3 whitespace-nowrap">
-            {nodes.length}
-            {totalCount != null && totalCount !== nodes.length ? ` / ${totalCount}` : ''} rows
-          </span>
           {selectedSchema && (
             <button
               onClick={() => setEditing(!editing)}
@@ -122,12 +135,48 @@ export function DataExplorer() {
           >
             ↻
           </button>
-          <CopyButton getData={getNodesData} label="Copy" />
+          <CopyButton getData={getCopyData} label="Copy" />
+          <span className="ml-auto text-[10px] text-ink-3 whitespace-nowrap">
+            {displayRows.length} shown · {loadedCount} loaded
+            {totalCount != null && totalCount !== loadedCount ? ` of ${totalCount}` : ''}
+          </span>
+        </div>
+
+        {/* Rich toolbar: sort chips · filter builder · density · columns · search.
+            GridToolbar opens its popovers downward (top-full) with no internal
+            scroll — fine in a tall page, but they'd be clipped in the short
+            bottom dock. Cap + scroll them (the popovers carry `z-30`) so they
+            stay reachable at any dock size. */}
+        <div className="[&_.z-30]:max-h-[220px] [&_.z-30]:overflow-y-auto">
+          <GridToolbar
+            views={[]}
+            fields={fields}
+            sorts={sorts}
+            onToggleSort={toggleSort}
+            onClearSorts={clearSorts}
+            filters={filters}
+            onChangeFilters={setFilters}
+            rowHeight={rowHeight}
+            onChangeRowHeight={setRowHeight}
+            hiddenFieldIds={hiddenFieldIds}
+            onToggleFieldVisible={toggleFieldVisible}
+            search={search}
+            onSearchChange={setSearch}
+            rowCount={displayRows.length}
+          />
         </div>
 
         {editError && (
           <div className="px-3 py-1 border-b border-hairline text-[10px] text-destructive bg-destructive/5">
             Edit failed: {editError}
+          </div>
+        )}
+
+        {truncated && (
+          <div className="px-3 py-0.5 text-[10px] text-ink-3 border-b border-hairline bg-surface-2/40">
+            Sorting/filtering the {loadedCount} loaded rows
+            {totalCount != null ? ` (of ${totalCount})` : ' (window capped)'}. Pick a schema or
+            refine search to load fewer, more relevant rows.
           </div>
         )}
 
@@ -145,17 +194,19 @@ export function DataExplorer() {
               <span className="text-destructive">Query failed</span>
               <span className="text-ink-3">{error}</span>
             </div>
-          ) : nodes.length === 0 ? (
+          ) : displayRows.length === 0 ? (
             <div className="flex items-center justify-center h-full text-ink-3 text-xs">
-              No nodes found
+              {nodes.length === 0 ? 'No nodes found' : 'No rows match the active filters'}
             </div>
           ) : (
             <PanelErrorBoundary label="Data grid">
               <GridSurface
-                fields={fields}
-                rows={rows}
+                fields={visibleFields}
+                rows={displayRows}
+                sorts={sorts}
+                onToggleSort={toggleSort}
                 readOnly={!editable}
-                rowHeight={32}
+                rowHeight={ROW_HEIGHT_PX[rowHeight]}
                 onOpenRow={(rowId) => setSelectedNodeId(rowId)}
                 onUpdateCell={
                   editable
