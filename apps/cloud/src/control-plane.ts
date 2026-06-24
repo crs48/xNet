@@ -27,8 +27,8 @@ import {
   type PlanEntitlements,
   type PlanId
 } from '@xnetjs/entitlements'
-import { type TenantRecord, type TenantStore } from './registry'
 import { fetchHubHealth } from './hub-status'
+import { type TenantRecord, type TenantStore } from './registry'
 
 export interface ControlPlaneDeps {
   tenants: TenantStore

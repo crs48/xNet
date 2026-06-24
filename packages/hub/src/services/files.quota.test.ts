@@ -1,6 +1,6 @@
+import type { HubStorage } from '../storage/interface'
 import { describe, expect, it } from 'vitest'
 import { FileService } from './files'
-import type { HubStorage } from '../storage/interface'
 
 /**
  * The hub wires `FileService` with the plan's `defaultQuota` (exploration 0216) so

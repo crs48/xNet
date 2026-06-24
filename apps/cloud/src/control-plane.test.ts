@@ -148,7 +148,9 @@ describe('ControlPlane.changePlan', () => {
 describe('ControlPlane.changePlan over-quota downgrade guard (0216)', () => {
   // family (250 GiB) → personal (25 GiB): in-tier (both dedicated-sleep), so the
   // only thing standing between a tenant and a silent 10× quota cut is this guard.
-  async function familyTenant(readUsageBytes?: (r: { tenantId: string }) => Promise<number | null>) {
+  async function familyTenant(
+    readUsageBytes?: (r: { tenantId: string }) => Promise<number | null>
+  ) {
     const h = build(readUsageBytes ? { readUsageBytes } : {})
     await h.cp.provisionTenant({
       tenantId: 'acme',

@@ -195,7 +195,10 @@ describe('control-plane HTTP API', () => {
       billing,
       readUsageBytes: async () => 200 * GiB // family-sized data
     })
-    const tenant = await controlPlane.provisionForBilling({ plan: 'family', billingUserId: 'user_a' })
+    const tenant = await controlPlane.provisionForBilling({
+      plan: 'family',
+      billingUserId: 'user_a'
+    })
     const a = createControlPlaneApp({ controlPlane, billing, sessionSecret: SESSION_SECRET })
     const cookie = `${SESSION_COOKIE}=${sealSession(SESSION_SECRET, { billingUserId: 'user_a', issuedAtMs: Date.now() })}`
 
@@ -215,7 +218,10 @@ describe('control-plane HTTP API', () => {
   it('wipes data and switches plan only with an explicit confirm (0216)', async () => {
     const billing = new MemoryBillingIdentityProvider('https://auth.test/authorize')
     const { controlPlane } = buildControlPlane({ billing, readUsageBytes: async () => null })
-    const tenant = await controlPlane.provisionForBilling({ plan: 'family', billingUserId: 'user_a' })
+    const tenant = await controlPlane.provisionForBilling({
+      plan: 'family',
+      billingUserId: 'user_a'
+    })
     const a = createControlPlaneApp({ controlPlane, billing, sessionSecret: SESSION_SECRET })
     const cookie = `${SESSION_COOKIE}=${sealSession(SESSION_SECRET, { billingUserId: 'user_a', issuedAtMs: Date.now() })}`
 
