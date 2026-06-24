@@ -26,6 +26,18 @@ export const DEFAULT_VIEW_PREFS: DataViewPrefs = {
 
 const KEY_PREFIX = 'xnet:devtools:data:'
 
+/** A minimal shape guard so a corrupt/forward-incompatible stored filter can't
+ *  reach filterRows (which dereferences `.conditions.length`) and crash the
+ *  panel. We only check the top level — the engine tolerates odd conditions. */
+function isValidFilterGroup(value: unknown): value is FilterGroup {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'operator' in value &&
+    Array.isArray((value as { conditions?: unknown }).conditions)
+  )
+}
+
 function keyFor(schema: string | null): string {
   return `${KEY_PREFIX}${schema ?? '@@all'}`
 }
@@ -39,7 +51,7 @@ export function loadViewPrefs(schema: string | null): DataViewPrefs {
     const parsed = JSON.parse(raw) as Partial<DataViewPrefs>
     return {
       sorts: Array.isArray(parsed.sorts) ? parsed.sorts : DEFAULT_VIEW_PREFS.sorts,
-      filters: parsed.filters ?? null,
+      filters: isValidFilterGroup(parsed.filters) ? parsed.filters : null,
       rowHeight:
         typeof parsed.rowHeight === 'string' && ROW_HEIGHTS.includes(parsed.rowHeight)
           ? parsed.rowHeight

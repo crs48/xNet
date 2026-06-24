@@ -138,7 +138,16 @@ export function useDataExplorer() {
           limit: DEFAULT_LIMIT,
           orderBy: { updatedAt: 'desc' }
         })
-        setState({ nodes, totalCount: nodes.length, plan: null, error: null, loading: false })
+        // store.list gives no total — if we hit the limit the window is capped
+        // and the true total is unknown (null), which the truncation flag uses.
+        const capped = nodes.length >= DEFAULT_LIMIT
+        setState({
+          nodes,
+          totalCount: capped ? null : nodes.length,
+          plan: null,
+          error: null,
+          loading: false
+        })
       }
     } catch (e) {
       setState((prev) => ({
@@ -268,6 +277,12 @@ export function useDataExplorer() {
     nodes: filteredNodes,
     totalCount: state.totalCount,
     loadedCount: state.nodes.length,
+    // Window was capped: either an exact total exceeds what we loaded, or the
+    // All-schemas list hit the limit (unknown total → totalCount null).
+    truncated:
+      state.totalCount != null
+        ? state.totalCount > state.nodes.length
+        : state.nodes.length >= DEFAULT_LIMIT,
     plan: state.plan,
     error: state.error,
     loading: state.loading,

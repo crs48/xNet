@@ -234,7 +234,7 @@ describe('gridFieldsToColumnDefinitions', () => {
   it('maps grid fields to column definitions (id/name/type/config preserved)', () => {
     const cols = gridFieldsToColumnDefinitions(buildGridFields(makeSchema(), [], false))
     const updated = cols.find((c) => c.id === SYSTEM_FIELD.updated)
-    expect(updated?.type).toBe('date') // sortable Updated column
+    expect(updated?.type).toBe('updated') // sortable Updated column (no broken `equals`)
     const title = cols.find((c) => c.id === 'title')
     expect(title?.type).toBe('text')
     expect(cols.find((c) => c.id === SYSTEM_FIELD.id)?.isTitle).toBe(true)

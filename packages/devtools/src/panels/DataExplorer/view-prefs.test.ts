@@ -63,4 +63,21 @@ describe('view prefs persistence', () => {
     localStorage.setItem('xnet:devtools:data:@@all', JSON.stringify({ rowHeight: 'huge' }))
     expect(loadViewPrefs(null).rowHeight).toBe(DEFAULT_VIEW_PREFS.rowHeight)
   })
+
+  it('drops a malformed filter (missing conditions) so it can never crash filterRows', () => {
+    localStorage.setItem(
+      'xnet:devtools:data:xnet://x/Task@1.0.0',
+      JSON.stringify({ filters: { operator: 'and' } }) // no conditions[]
+    )
+    expect(loadViewPrefs('xnet://x/Task@1.0.0').filters).toBeNull()
+  })
+
+  it('keeps a well-formed filter', () => {
+    const filters = {
+      operator: 'and',
+      conditions: [{ columnId: 'x', operator: 'equals', value: 1 }]
+    }
+    localStorage.setItem('xnet:devtools:data:xnet://x/Task@1.0.0', JSON.stringify({ filters }))
+    expect(loadViewPrefs('xnet://x/Task@1.0.0').filters).toEqual(filters)
+  })
 })

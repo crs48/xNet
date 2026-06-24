@@ -142,11 +142,14 @@ export function buildGridFields(
   }
 
   fields.push({
-    // A `date` column (cell = epoch ms) so it sorts/filters chronologically —
-    // a text locale string would sort lexicographically (wrong).
+    // An `updated` column (cell = epoch ms) so it sorts/filters chronologically
+    // (a text locale string would sort lexicographically). `updated` over `date`
+    // because its operator set is before/after/between — `date` would also offer
+    // `equals`, which compares the epoch number against the picker's date string
+    // and silently matches nothing.
     id: SYSTEM_FIELD.updated,
     name: 'Updated',
-    type: 'date',
+    type: 'updated',
     config: {},
     width: 170,
     readonly: true
