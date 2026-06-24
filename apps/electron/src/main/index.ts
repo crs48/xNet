@@ -12,6 +12,7 @@ import {
   setupDataProcessIPC,
   setupWindowChannel
 } from './data-process-manager'
+import { parseConnectDeepLink, type CloudConnectPayload } from './deep-link'
 import { setupIPC, getOrCreateStorage } from './ipc'
 import { startLocalAPI, stopLocalAPI, setupLocalAPIIPC } from './local-api'
 import { createMenu } from './menu'
@@ -34,6 +35,7 @@ const __dirname = dirname(__filename)
 
 let mainWindow: BrowserWindow | null = null
 let pendingSharePayload: string | null = null
+let pendingCloudConnect: CloudConnectPayload | null = null
 let cleanupTunnelIPC: (() => void) | null = null
 
 const DEEP_LINK_PROTOCOL = 'xnet'
@@ -107,12 +109,34 @@ function deliverSharePayload(payload: string): void {
   pendingSharePayload = payload
 }
 
-function handleDeepLink(rawUrl: string): void {
-  const payload = parseSharePayloadFromDeepLink(rawUrl)
-  if (!payload) {
+/**
+ * Route a validated `xnet://connect` payload to the renderer, which shows a
+ * confirmation before applying the hub (never auto-connect). If the window isn't
+ * ready yet (cold launch from the deep link), stash it for `did-finish-load`.
+ */
+function deliverCloudConnect(payload: CloudConnectPayload): void {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('xnet:cloud-connect', payload)
     return
   }
-  deliverSharePayload(payload)
+
+  pendingCloudConnect = payload
+}
+
+function handleDeepLink(rawUrl: string): void {
+  // Legacy share links: xnet://share?... (parsed + validated inline below).
+  const payload = parseSharePayloadFromDeepLink(rawUrl)
+  if (payload) {
+    deliverSharePayload(payload)
+    return
+  }
+  // xNet Cloud "Open in desktop app": xnet://connect?hub=<wss>&code=<short>.
+  // parseConnectDeepLink hard-validates the hub (wss + host allowlist); the
+  // renderer still requires explicit user confirmation before connecting.
+  const connect = parseConnectDeepLink(rawUrl)
+  if (connect) {
+    deliverCloudConnect(connect)
+  }
 }
 
 const hasSingleInstanceLock = app.requestSingleInstanceLock()
@@ -178,11 +202,14 @@ async function createWindow() {
   })
 
   mainWindow.webContents.on('did-finish-load', () => {
-    if (!pendingSharePayload) {
-      return
+    if (pendingSharePayload) {
+      mainWindow?.webContents.send('xnet:share-payload', { payload: pendingSharePayload })
+      pendingSharePayload = null
     }
-    mainWindow?.webContents.send('xnet:share-payload', { payload: pendingSharePayload })
-    pendingSharePayload = null
+    if (pendingCloudConnect) {
+      mainWindow?.webContents.send('xnet:cloud-connect', pendingCloudConnect)
+      pendingCloudConnect = null
+    }
   })
 }
 

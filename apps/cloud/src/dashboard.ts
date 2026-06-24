@@ -77,6 +77,38 @@ function copyField(id: string, value: string): string {
   return `<span class="copy"><code id="${esc(id)}">${esc(value)}</code><button type="button" class="ghost btn-sm" data-copy="${esc(id)}">Copy</button></span>`
 }
 
+/** xNet-owned hosts a managed hub lives on — matches the desktop app's allowlist. */
+const DEEP_LINK_HUB_HOSTS = ['xnet.fyi', 'xnet.app']
+
+/**
+ * Build the `xnet://connect` deep link for the desktop "Open in desktop app"
+ * button, or null when the hub can't be one-click-connected. We only emit a link
+ * the desktop app will actually accept: it requires `wss://` on an allowlisted
+ * xNet host, so we normalize the stored (https) hub URL to wss and gate on the
+ * same allowlist. A hub off those domains (e.g. a staging `*.run.app`) returns
+ * null, so the dashboard falls back to the copy-paste steps instead of offering a
+ * button that the desktop app would silently reject.
+ */
+function desktopConnectHref(hubUrl: string): string | null {
+  // Normalize the stored (https) hub to a secure WebSocket URL and drop any lone
+  // trailing slash so the link matches the canonical `wss://host` form.
+  const candidate = hubUrl
+    .replace(/^https:/i, 'wss:')
+    .replace(/^http:/i, 'ws:')
+    .replace(/\/+$/, '')
+  let u: URL
+  try {
+    u = new URL(candidate)
+  } catch {
+    return null
+  }
+  if (u.protocol !== 'wss:' || u.username || u.password) return null
+  const host = u.hostname.toLowerCase()
+  const allowed = DEEP_LINK_HUB_HOSTS.some((h) => host === h || host.endsWith(`.${h}`))
+  if (!allowed) return null
+  return `xnet://connect?hub=${encodeURIComponent(candidate)}`
+}
+
 const usd = (n: number): string => `$${n.toFixed(2)}`
 
 /** A meter showing AI spend vs the included amount and the hard cap. */
@@ -344,6 +376,14 @@ function connectCard(tenant: TenantRecord, appUrl: string, links: HelpLinks): st
   const hubField = tenant.hubUrl
     ? copyField('hub-url', tenant.hubUrl)
     : `<span class="muted">your hub URL appears here once it finishes provisioning</span>`
+  // One-click desktop handoff (xnet://connect): only when the hub is on an
+  // allowlisted xNet host the desktop app will accept; otherwise the copy-paste
+  // steps below are the path.
+  const deepLink = tenant.hubUrl ? desktopConnectHref(tenant.hubUrl) : null
+  const oneClick = deepLink
+    ? `<p><a class="btn btn-sm" href="${esc(deepLink)}">Open in desktop app</a></p>
+       <p class="muted note">We'll ask you to confirm in the app before connecting — it never repoints itself silently. Don't have the desktop app yet? Set it manually:</p>`
+    : ''
   return card(
     'Connect your apps',
     `<p class="muted">Link a device to start syncing. Pick where you're connecting from:</p>
@@ -363,12 +403,12 @@ function connectCard(tenant: TenantRecord, appUrl: string, links: HelpLinks): st
      </section>
      <section class="tabpanel" id="panel-desktop" data-panel="desktop" role="tabpanel" aria-labelledby="tab-desktop" tabindex="0">
        <h3 class="panel-h">On desktop</h3>
+       ${oneClick}
        <ol>
          <li>Open the xNet desktop app and go to <strong>Settings → Network</strong>.</li>
          <li>Paste this hub URL into the <strong>Signaling server</strong> field: ${hubField}</li>
          <li>Restart the app, then create your passkey and approve the code: <a class="btn btn-sm ghost" href="/claim">Enter a code →</a></li>
        </ol>
-       <p class="muted note">One-click desktop connect (an <code>xnet://</code> link) is coming soon.</p>
      </section>
      <section class="tabpanel" id="panel-mobile" data-panel="mobile" role="tabpanel" aria-labelledby="tab-mobile" tabindex="0">
        <h3 class="panel-h">On mobile</h3>

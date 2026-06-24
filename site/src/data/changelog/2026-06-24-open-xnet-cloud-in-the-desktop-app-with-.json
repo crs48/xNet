@@ -1,0 +1,15 @@
+{
+  "id": "2026-06-24-open-xnet-cloud-in-the-desktop-app-with-",
+  "date": "June 24, 2026",
+  "title": "Open xNet Cloud in the desktop app with one click",
+  "summary": "Your Cloud dashboard's Desktop tab now offers an \"Open in desktop app\" button that hands your hub to the installed app over an xnet://connect link. The app asks you to confirm before pointing itself at the hub — it never repoints silently, and only xNet-hosted wss hubs are accepted.",
+  "highlights": [
+    "One-click desktop connect via xnet://connect (hub handoff)",
+    "Explicit in-app confirmation — never auto-connects",
+    "Hard hub validation: wss-only + xNet host allowlist"
+  ],
+  "tags": [
+    "platform",
+    "app"
+  ]
+}

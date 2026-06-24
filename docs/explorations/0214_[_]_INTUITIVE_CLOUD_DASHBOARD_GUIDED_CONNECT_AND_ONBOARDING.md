@@ -573,9 +573,20 @@ if (url.hostname === 'connect') {
       copyable hub URL present; checklist shows when unconnected and vanishes when
       `did` set; help links present; URLs escaped (extend the PR #242 test file).
       **18 tests total.**
-- [ ] (Fast-follow PR) `xnet://connect` handler in Electron main + a desktop-side
-      confirm UI; dashboard "Open in desktop app" link (D2).
-- [ ] (Fast-follow) Desktop renderer cloud-claim parity (D3).
+- [x] (Fast-follow PR) `xnet://connect` handler in Electron main + a desktop-side
+      confirm UI; dashboard "Open in desktop app" link (D2). Pure
+      [`apps/electron/src/main/deep-link.ts`](apps/electron/src/main/deep-link.ts)
+      (`parseConnectDeepLink` + `isAllowedHubUrl`: wss-only, xNet-host allowlist,
+      reject credentials, length-bounded) → `xnet:cloud-connect` IPC →
+      `ConnectHubDialog` confirm (never auto-connect) → persist via the new
+      [`apps/electron/src/renderer/lib/hub-url.ts`](apps/electron/src/renderer/lib/hub-url.ts)
+      (mirrors the web `setPersistedHubUrl`, also read on boot + in Settings →
+      Network) + `configureShareSession`. Dashboard emits the link only for an
+      allowlisted hub (https→wss normalized). Unit-tested: `deep-link.test.ts`
+      (11), `hub-url.test.ts` (4), `dashboard.test.ts` (+3).
+- [ ] (Fast-follow) Desktop renderer cloud-claim parity (D3) — full in-app
+      device-code claim UI (the confirm + persist + reconnect lands now; the
+      dual-proof binding still finishes in the dashboard).
 - [x] Add a changelog fragment (`scripts/changelog/new.mjs --tags platform`).
 - [x] Register the new guide in `site/src/sidebar.mjs` + regenerate
       `site/public/llms-full.txt` (the site build enforces both — caught locally
@@ -604,8 +615,12 @@ if (url.hostname === 'connect') {
 - [ ] Manually sign into `cloud-staging.xnet.fyi`, walk the empty-state checklist, copy
       the hub URL, follow the desktop steps, and confirm the doc links work — i.e.
       actually dial it in on staging.
-- [ ] (When D2 lands) `xnet://connect?hub=…` opens the desktop app, shows a confirm,
-      and rejects a non-allowlisted hub.
+- [x] (D2) `xnet://connect?hub=…` validation + confirm path proven by unit tests:
+      `parseConnectDeepLink`/`isAllowedHubUrl` reject a non-wss or non-allowlisted
+      hub and credentials-in-URL (`deep-link.test.ts`); the renderer shows a
+      `ConnectHubDialog` and only persists/reconnects on confirm (never
+      auto-connect). Remaining manual check: launch a packaged desktop build and
+      click the dashboard "Open in desktop app" button end-to-end.
 
 ## References
 
