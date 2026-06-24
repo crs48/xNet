@@ -259,6 +259,8 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
         checkoutPlans: CHECKOUT_PLANS,
         billingEnabled: Boolean(deps.payments),
         appUrl: deps.appUrl ?? 'https://xnet.fyi/app',
+        marketingUrl: deps.marketingUrl ?? 'https://xnet.fyi/cloud',
+        gettingStartedHidden: getCookie(c, 'xnet_gs_hidden') === '1',
         ...(aiUsage ? { aiUsage } : {})
       })
     )

@@ -546,24 +546,25 @@ if (url.hostname === 'connect') {
 
 ## Implementation Checklist
 
-- [ ] Thread `marketingUrl` through `DashboardView` and the `/dashboard` handler
+- [x] Thread `marketingUrl` through `DashboardView` and the `/dashboard` handler
       ([`dashboard.ts:15`](apps/cloud/src/dashboard.ts), [`server.ts`](apps/cloud/src/server.ts)).
-- [ ] Rewrite `connectCard()` as **per-platform tabs** (Web / Desktop / Mobile) with
+- [x] Rewrite `connectCard()` as **per-platform tabs** (Web / Desktop / Mobile) with
       tailored steps (A1); keep the connected-state confirmation.
-- [ ] Add `copyField()` + delegated copy-to-clipboard JS in `liveScript()`; use it for
-      the desktop hub URL **and** the hub card's `Endpoint` row.
-- [ ] Add **Desktop** tab copy that names `Settings → Network → Signaling server` and
+- [x] Add `copyField()` + delegated copy-to-clipboard JS in `dashScript()` (a new
+      always-run script, since `liveScript()` early-returns without live tiles); use it
+      for the desktop hub URL **and** the hub card's `Endpoint` row.
+- [x] Add **Desktop** tab copy that names `Settings → Network → Signaling server` and
       shows the copyable hub URL (D1).
-- [ ] Add `gettingStarted(view)` checklist, derived from `tenant`/`hubUrl`/`did`;
+- [x] Add `gettingStarted(view)` checklist, derived from `tenant`/`hubUrl`/`did`;
       render at the top, self-completing (B1).
-- [ ] Decide checklist dismissal (signed cookie vs `dismissedHints` on `TenantRecord`)
-      and implement the minimal version.
-- [ ] Add a dashboard **help footer** (FAQ, Docs, Status, Self-host) + a contextual
+- [x] Decide checklist dismissal — a client-set `xnet_gs_hidden` cookie read by the
+      server (no schema change); the checklist also self-completes from state.
+- [x] Add a dashboard **help footer** (FAQ, Docs, Status, Self-host) + a contextual
       "Need help connecting?" link near the connect card (C1).
-- [ ] Tab logic: tiny delegated JS **with no-JS fallback** (all panels visible if JS
-      off).
-- [ ] Visual cleanup (E): empty-state hero, copy micro-confirm, platform icons,
-      spacing, de-emphasised danger zone — all inline, 0-dep.
+- [x] Tab logic: tiny delegated JS **with no-JS fallback** (tab bar `hidden` until JS,
+      all panels visible + headed when JS off).
+- [x] Visual cleanup (E): getting-started hero card, copy micro-confirm, platform
+      icons on tabs, spacing, help footer — all inline, 0-dep.
 - [ ] Write `/docs/guides/cloud-connect` (`site/src/content/docs/docs/guides/…`):
       web/desktop/mobile connect, with the device-code flow explained; link it from
       the docs index and footer.
