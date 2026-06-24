@@ -5,6 +5,7 @@
   "summary": "The in-app dev tools (Ctrl/Cmd+Shift+D) are reorganized around four high-signal panels — Data, Changes, Logs, and Performance — with everything else tucked into a grouped \"More\" menu and a ⌘⇧P command palette, so the bottom strip is no longer a wall of tabs.",
   "highlights": [
     "Data panel: query and browse every node in the real database grid, with schema-aware columns, live updates, and a query-plan inspector",
+    "Edit data inline where it makes sense — toggle editing on a selected schema to change values directly in the grid (system and computed columns stay locked)",
     "Logs panel: flip the sync/SQLite/query/boot/trace debug channels and read captured output in-app",
     "Performance panel: cold-start boot timeline, live frame budget and memory, storage stats, and recent traces in one place",
     "Jump to any panel by name with the ⌘⇧P command palette"

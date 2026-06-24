@@ -7,11 +7,24 @@
  * view falls back to `store.list()` since `store.query` needs a schemaId.
  */
 
-import type { NodeQueryResult, NodeState, Schema, SchemaIRI } from '@xnetjs/data'
+import type {
+  CellValue,
+  FieldType,
+  NodeId,
+  NodeQueryResult,
+  NodeState,
+  Schema,
+  SchemaIRI
+} from '@xnetjs/data'
 import { schemaRegistry } from '@xnetjs/data'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useDevTools } from '../../provider/useDevTools'
-import { buildSchemaOptions, type SchemaOption } from './grid-adapter'
+import {
+  baseSchemaIri,
+  buildSchemaOptions,
+  coerceCellValueForType,
+  type SchemaOption
+} from './grid-adapter'
 
 export type { SchemaOption }
 
@@ -37,6 +50,8 @@ export function useDataExplorer() {
   const [search, setSearch] = useState('')
   const [includeDeleted, setIncludeDeleted] = useState(false)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
+  const [editing, setEditing] = useState(false)
+  const [editError, setEditError] = useState<string | null>(null)
   const [state, setState] = useState<QueryState>({
     nodes: [],
     totalCount: null,
@@ -54,21 +69,37 @@ export function useDataExplorer() {
     }
   }, [])
 
-  // Resolve the selected schema's definition (built-ins lazy-load via get()).
+  // Resolve the selected schema's definition. Built-ins are keyed by versioned
+  // IRI while some registered schemas live under the bare IRI, so try both the
+  // selected IRI and its version-stripped base (sync first, then lazy get()).
   useEffect(() => {
     let cancelled = false
     if (!selectedSchema) {
       setDefinedSchema(null)
       return
     }
-    schemaRegistry
-      .get(selectedSchema as SchemaIRI)
-      .then((defined) => {
-        if (!cancelled) setDefinedSchema(defined?.schema ?? null)
-      })
-      .catch(() => {
-        if (!cancelled) setDefinedSchema(null)
-      })
+    const candidates = Array.from(new Set([selectedSchema, baseSchemaIri(selectedSchema)]))
+    void (async () => {
+      for (const iri of candidates) {
+        const sync = schemaRegistry.getSync(iri as SchemaIRI)
+        if (sync) {
+          if (!cancelled) setDefinedSchema(sync.schema)
+          return
+        }
+      }
+      for (const iri of candidates) {
+        try {
+          const defined = await schemaRegistry.get(iri as SchemaIRI)
+          if (defined) {
+            if (!cancelled) setDefinedSchema(defined.schema)
+            return
+          }
+        } catch {
+          // try the next candidate
+        }
+      }
+      if (!cancelled) setDefinedSchema(null)
+    })()
     return () => {
       cancelled = true
     }
@@ -159,6 +190,23 @@ export function useDataExplorer() {
     [state.nodes, selectedNodeId]
   )
 
+  // Write a single edited cell back to the store. The live subscribe above
+  // refreshes the grid; system columns (@@…) are never editable.
+  const updateCell = useCallback(
+    async (rowId: string, fieldId: string, fieldType: FieldType, value: CellValue) => {
+      if (!store || fieldId.startsWith('@@')) return
+      setEditError(null)
+      try {
+        await store.update(rowId as NodeId, {
+          properties: { [fieldId]: coerceCellValueForType(value, fieldType) }
+        })
+      } catch (e) {
+        setEditError(e instanceof Error ? e.message : String(e))
+      }
+    },
+    [store]
+  )
+
   return {
     store,
     schemaOptions,
@@ -177,6 +225,10 @@ export function useDataExplorer() {
     refresh: runQuery,
     selectedNode,
     selectedNodeId,
-    setSelectedNodeId
+    setSelectedNodeId,
+    editing,
+    setEditing,
+    editError,
+    updateCell
   }
 }

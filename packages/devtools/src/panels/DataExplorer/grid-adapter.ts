@@ -29,6 +29,22 @@ export const SYSTEM_FIELD = {
 /** Schema property types that are surfaced as dedicated system columns. */
 const AUTO_PROPERTY_TYPES: ReadonlySet<PropertyType> = new Set(['created', 'updated', 'createdBy'])
 
+/** Property types with a safe inline grid editor. Relation/person/file need
+ *  pickers we don't provide, and json/rollup/formula are computed or structured —
+ *  so those stay read-only even in edit mode. */
+const INLINE_EDITABLE_TYPES: ReadonlySet<PropertyType> = new Set([
+  'text',
+  'number',
+  'checkbox',
+  'select',
+  'multiSelect',
+  'date',
+  'dateRange',
+  'url',
+  'email',
+  'phone'
+])
+
 /** Map a schema PropertyType onto a grid FieldType. The unions mostly overlap;
  *  `json` has no grid renderer, so it falls back to plain text. */
 export function propertyTypeToFieldType(type: PropertyType): FieldType {
@@ -59,11 +75,17 @@ function optionsFor(prop: PropertyDefinition): GridFieldOption[] | undefined {
  * Build the grid columns for a (possibly null) schema. With a known schema we
  * render real typed columns; without one (the "All schemas" view, or an
  * unregistered schema) we synthesize plain-text columns from observed keys.
+ *
+ * `editable` unlocks the inline-editable property columns (system columns and
+ * relation/person/file/computed columns stay locked). It only has an effect
+ * with a known schema — synthesized columns are never editable because we don't
+ * know their real type.
  */
 export function buildGridFields(
   schema: Schema | null,
   observedKeys: string[],
-  showSchemaColumn: boolean
+  showSchemaColumn: boolean,
+  editable = false
 ): GridField[] {
   const fields: GridField[] = [
     {
@@ -92,11 +114,15 @@ export function buildGridFields(
       if (AUTO_PROPERTY_TYPES.has(prop.type)) continue // shown as system columns below
       let type = propertyTypeToFieldType(prop.type)
       let options: GridFieldOption[] | undefined
+      let locked = !editable || !INLINE_EDITABLE_TYPES.has(prop.type)
       if (type === 'select' || type === 'multiSelect') {
         options = optionsFor(prop)
         // Never hand a select cell renderer a value with no options — render
-        // the raw value as text instead so the grid can't crash on dev data.
-        if (!options) type = 'text'
+        // the raw value as text instead, and lock it (we can't offer choices).
+        if (!options) {
+          type = 'text'
+          locked = true
+        }
       }
       fields.push({
         id: prop.name,
@@ -105,7 +131,7 @@ export function buildGridFields(
         config: prop.config ?? {},
         width: 170,
         options,
-        readonly: true
+        readonly: locked
       })
     }
   } else {
@@ -166,9 +192,15 @@ export function coerceCellValueForType(value: unknown, type: FieldType): CellVal
   if (value == null) return null
   switch (type) {
     case 'number':
-    case 'date':
-      // date cells render from an epoch number; numeric strings are parsed too.
       return toNumberOrNull(value)
+    case 'date': {
+      // date cells render from an epoch number; accept numbers, numeric strings,
+      // and ISO date strings (the inline editor may emit any of these).
+      const n = toNumberOrNull(value)
+      if (n != null) return n
+      const parsed = Date.parse(String(value))
+      return Number.isFinite(parsed) ? parsed : null
+    }
     case 'checkbox':
       return typeof value === 'boolean' ? value : Boolean(value)
     case 'dateRange':
@@ -242,6 +274,11 @@ function splitSchemaIri(iri: string): { base: string; version: string | null } {
   return at > -1
     ? { base: iri.slice(0, at), version: iri.slice(at + 1) }
     : { base: iri, version: null }
+}
+
+/** The version-stripped base of a schema IRI (`…/Task@1.0.0` -> `…/Task`). */
+export function baseSchemaIri(iri: string): string {
+  return splitSchemaIri(iri).base
 }
 
 export interface SchemaOption {

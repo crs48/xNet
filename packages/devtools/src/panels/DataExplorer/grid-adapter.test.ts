@@ -119,6 +119,28 @@ describe('buildGridFields', () => {
     expect(ids).toContain('foo')
     expect(fields.find((f) => f.id === 'foo')?.type).toBe('text')
   })
+
+  it('locks every column by default (read-only browser)', () => {
+    for (const f of buildGridFields(makeSchema(), [], false)) {
+      expect(f.readonly).toBe(true)
+    }
+  })
+
+  it('unlocks only inline-editable property columns when editable', () => {
+    const byId = Object.fromEntries(
+      buildGridFields(makeSchema(), [], false, true).map((f) => [f.id, f])
+    )
+    expect(byId[SYSTEM_FIELD.id].readonly).toBe(true) // system column stays locked
+    expect(byId.title.readonly).toBe(false) // text -> editable
+    expect(byId.count.readonly).toBe(false) // number -> editable
+    expect(byId.meta.readonly).toBe(true) // json -> locked
+    expect(byId.status.readonly).toBe(true) // option-less select -> locked
+  })
+
+  it('keeps synthesized columns read-only even in edit mode', () => {
+    const foo = buildGridFields(null, ['foo'], true, true).find((f) => f.id === 'foo')
+    expect(foo?.readonly).toBe(true)
+  })
 })
 
 describe('coerceCellValue', () => {
@@ -159,6 +181,8 @@ describe('coerceCellValueForType', () => {
     // date renderers want an epoch NUMBER, not a stringified one (Invalid Date).
     expect(coerceCellValueForType(1_700_000_000_000, 'date')).toBe(1_700_000_000_000)
     expect(coerceCellValueForType('1700000000000', 'date')).toBe(1_700_000_000_000)
+    // an ISO string from the inline editor round-trips to an epoch.
+    expect(coerceCellValueForType('2026-01-15', 'date')).toBe(Date.parse('2026-01-15'))
     // dateRange wants a {start,end} object.
     const range = { start: '2026-01-01', end: '2026-01-31' }
     expect(coerceCellValueForType(range, 'dateRange')).toEqual(range)

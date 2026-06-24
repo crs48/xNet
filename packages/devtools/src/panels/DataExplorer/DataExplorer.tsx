@@ -38,13 +38,20 @@ export function DataExplorer() {
     loading,
     refresh,
     selectedNode,
-    setSelectedNodeId
+    setSelectedNodeId,
+    editing,
+    setEditing,
+    editError,
+    updateCell
   } = useDataExplorer()
 
   const showSchemaColumn = !selectedSchema
+  // Editing only makes sense with a known schema (real typed columns) — the
+  // "All schemas" view synthesizes columns and stays read-only.
+  const editable = editing && Boolean(selectedSchema) && Boolean(definedSchema)
   const fields: GridField[] = useMemo(
-    () => buildGridFields(definedSchema, observedPropertyKeys(nodes), showSchemaColumn),
-    [definedSchema, nodes, showSchemaColumn]
+    () => buildGridFields(definedSchema, observedPropertyKeys(nodes), showSchemaColumn, editable),
+    [definedSchema, nodes, showSchemaColumn, editable]
   )
   const fieldTypeById = useMemo(() => new Map(fields.map((f) => [f.id, f.type])), [fields])
   const rows: GridRowData[] = useMemo(
@@ -91,6 +98,23 @@ export function DataExplorer() {
             {nodes.length}
             {totalCount != null && totalCount !== nodes.length ? ` / ${totalCount}` : ''} rows
           </span>
+          {selectedSchema && (
+            <button
+              onClick={() => setEditing(!editing)}
+              className={`text-[10px] px-1.5 py-0.5 rounded border whitespace-nowrap ${
+                editing
+                  ? 'border-accent-ink text-ink-1'
+                  : 'border-hairline text-ink-3 hover:text-ink-1'
+              }`}
+              title={
+                editing
+                  ? 'Editing on — changes write to the store and sync'
+                  : 'Edit cells (writes to the store)'
+              }
+            >
+              {editing ? 'editing' : 'edit'}
+            </button>
+          )}
           <button
             onClick={() => refresh()}
             className="text-[10px] text-ink-2 hover:text-ink-1 px-1"
@@ -100,6 +124,12 @@ export function DataExplorer() {
           </button>
           <CopyButton getData={getNodesData} label="Copy" />
         </div>
+
+        {editError && (
+          <div className="px-3 py-1 border-b border-hairline text-[10px] text-destructive bg-destructive/5">
+            Edit failed: {editError}
+          </div>
+        )}
 
         {/* Query plan inspector */}
         {plan && <PlanInspector plan={plan} />}
@@ -124,9 +154,15 @@ export function DataExplorer() {
               <GridSurface
                 fields={fields}
                 rows={rows}
-                readOnly
+                readOnly={!editable}
                 rowHeight={32}
                 onOpenRow={(rowId) => setSelectedNodeId(rowId)}
+                onUpdateCell={
+                  editable
+                    ? (rowId, fieldId, value) =>
+                        updateCell(rowId, fieldId, fieldTypeById.get(fieldId) ?? 'text', value)
+                    : undefined
+                }
                 className="text-[11px]"
               />
             </PanelErrorBoundary>

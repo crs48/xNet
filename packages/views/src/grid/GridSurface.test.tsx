@@ -370,6 +370,42 @@ describe('GridSurface', () => {
     expect(cell(0, 0).querySelector('input, textarea')).toBeNull()
   })
 
+  it('a structurally readonly column is not editable, but sibling columns are', () => {
+    const onUpdateCell = vi.fn()
+    const lockedFields: GridField[] = [
+      {
+        id: 'name',
+        name: 'Name',
+        type: 'text',
+        config: {},
+        width: 200,
+        isTitle: true,
+        readonly: true
+      },
+      { id: 'done', name: 'Done', type: 'checkbox', config: {}, width: 80, readonly: true },
+      { id: 'count', name: 'Count', type: 'number', config: {}, width: 100 }
+    ]
+    const lockedRows: GridRowData[] = [
+      { id: 'r1', cells: { name: 'Alpha', done: false, count: 1 } }
+    ]
+    render(<GridSurface fields={lockedFields} rows={lockedRows} onUpdateCell={onUpdateCell} />)
+
+    // Locked text column: Enter does not open an editor.
+    fireEvent.mouseDown(cell(0, 0))
+    fireEvent.keyDown(gridEl(), { key: 'Enter' })
+    expect(cell(0, 0).querySelector('input, textarea')).toBeNull()
+
+    // Locked checkbox column: Enter does not toggle it.
+    fireEvent.mouseDown(cell(0, 1))
+    fireEvent.keyDown(gridEl(), { key: 'Enter' })
+    expect(onUpdateCell).not.toHaveBeenCalled()
+
+    // An unlocked sibling column still edits.
+    fireEvent.mouseDown(cell(0, 2))
+    fireEvent.keyDown(gridEl(), { key: 'Enter' })
+    expect(cell(0, 2).querySelector('input, textarea')).toBeTruthy()
+  })
+
   it('broadcasts cell focus for presence', () => {
     const onCellFocus = vi.fn()
     render(<GridSurface fields={fields} rows={rows} onCellFocus={onCellFocus} />)
