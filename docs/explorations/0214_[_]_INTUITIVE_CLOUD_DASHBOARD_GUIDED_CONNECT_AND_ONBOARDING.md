@@ -576,7 +576,10 @@ if (url.hostname === 'connect') {
 - [ ] (Fast-follow PR) `xnet://connect` handler in Electron main + a desktop-side
       confirm UI; dashboard "Open in desktop app" link (D2).
 - [ ] (Fast-follow) Desktop renderer cloud-claim parity (D3).
-- [ ] Add a changelog fragment (`scripts/changelog/new.mjs --tags platform`).
+- [x] Add a changelog fragment (`scripts/changelog/new.mjs --tags platform`).
+- [x] Register the new guide in `site/src/sidebar.mjs` + regenerate
+      `site/public/llms-full.txt` (the site build enforces both — caught locally
+      since PR CI does not build the site).
 
 ## Validation Checklist
 

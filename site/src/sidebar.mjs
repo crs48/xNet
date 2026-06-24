@@ -77,6 +77,7 @@ export const sidebar = [
       { slug: 'docs/guides/plugins' },
       { slug: 'docs/guides/agent-interfaces' },
       { slug: 'docs/guides/hub' },
+      { slug: 'docs/guides/cloud-connect' },
       { slug: 'docs/guides/electron' },
       { slug: 'docs/guides/testing' }
     ]
