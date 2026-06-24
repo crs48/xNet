@@ -84,13 +84,17 @@ function writeFlag(ch: DebugChannel, on: boolean): void {
   else localStorage.removeItem(ch.flag)
 }
 
-/** Best-effort channel tag from a log message's content. */
+/** Best-effort channel tag from a log message's content. Ordered so the real
+ *  emitters bucket correctly: the query-plan line comes from the SQLite adapter
+ *  (`[SQLiteNodeStorageAdapter] query plan`), so match "query" before "sqlite";
+ *  the WS provider logs `[WSSyncProvider:…]`, which contains "sync". */
 export function classifyChannel(message: string): LogChannel {
   const m = message.toLowerCase()
+  if (m.includes('query plan') || m.includes('[query') || m.includes('query:')) return 'query'
   if (m.includes('opfs') || m.includes('sqlite')) return 'sqlite'
-  if (m.includes('[sync') || m.includes('connectionmanager') || m.includes('websocket'))
+  if (m.includes('sync') || m.includes('connectionmanager') || m.includes('websocket')) {
     return 'sync'
-  if (m.includes('[query') || m.includes('query:')) return 'query'
+  }
   if (m.includes('boot')) return 'boot'
   if (m.includes('trace')) return 'trace'
   return 'general'

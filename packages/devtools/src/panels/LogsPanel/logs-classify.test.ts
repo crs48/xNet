@@ -13,6 +13,12 @@ describe('classifyChannel', () => {
   it('tags query output', () => {
     expect(classifyChannel('[Query] plan: storage-query')).toBe('query')
   })
+  it('tags the real query-plan line under query, not sqlite', () => {
+    expect(classifyChannel('[SQLiteNodeStorageAdapter] query plan for Task')).toBe('query')
+  })
+  it('tags the real WS sync provider prefix under sync', () => {
+    expect(classifyChannel('[WSSyncProvider:room-1] connected')).toBe('sync')
+  })
   it('tags boot + trace output', () => {
     expect(classifyChannel('boot timeline ready')).toBe('boot')
     expect(classifyChannel('trace flushed')).toBe('trace')

@@ -86,7 +86,9 @@ export function useDataExplorer() {
           includeDeleted,
           limit: DEFAULT_LIMIT,
           orderBy: { updatedAt: 'desc' },
-          count: 'estimate'
+          // 'exact' is what actually populates totalCount under storage pushdown;
+          // 'estimate'/'none' leave it undefined, so the "/ Y" total never shows.
+          count: 'exact'
         })
         setState({
           nodes: result.nodes,
@@ -114,7 +116,12 @@ export function useDataExplorer() {
 
   // Initial load + live refresh (debounced) — no polling.
   useEffect(() => {
-    if (!store) return
+    if (!store) {
+      // No store yet (disconnected / pre-init): land on a terminal empty state
+      // rather than a perpetual loading spinner.
+      setState({ nodes: [], totalCount: null, plan: null, error: null, loading: false })
+      return
+    }
     runQuery()
     let timer: ReturnType<typeof setTimeout> | null = null
     const unsub = store.subscribe(() => {

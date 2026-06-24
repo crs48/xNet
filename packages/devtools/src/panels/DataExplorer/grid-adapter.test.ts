@@ -1,6 +1,5 @@
-import type { NodeState, Schema } from '@xnetjs/data'
+import type { FieldType, NodeState, Schema } from '@xnetjs/data'
 import { describe, expect, it } from 'vitest'
-import type { FieldType } from '@xnetjs/data'
 import {
   SYSTEM_FIELD,
   buildGridFields,
@@ -125,6 +124,22 @@ describe('coerceCellValueForType', () => {
     expect(coerceCellValueForType(1, 'checkbox')).toBe(true)
     expect(coerceCellValueForType(['a', 'b'], 'multiSelect')).toEqual(['a', 'b'])
     expect(coerceCellValueForType('solo', 'multiSelect')).toEqual(['solo'])
+  })
+  it('passes native shapes through for date/dateRange/relation/person/file renderers', () => {
+    // date renderers want an epoch NUMBER, not a stringified one (Invalid Date).
+    expect(coerceCellValueForType(1_700_000_000_000, 'date')).toBe(1_700_000_000_000)
+    expect(coerceCellValueForType('1700000000000', 'date')).toBe(1_700_000_000_000)
+    // dateRange wants a {start,end} object.
+    const range = { start: '2026-01-01', end: '2026-01-31' }
+    expect(coerceCellValueForType(range, 'dateRange')).toEqual(range)
+    expect(coerceCellValueForType('not-a-range', 'dateRange')).toBeNull()
+    // relation/person want an array.
+    expect(coerceCellValueForType(['n1', 'n2'], 'relation')).toEqual(['n1', 'n2'])
+    expect(coerceCellValueForType('n1', 'relation')).toEqual(['n1'])
+    // file wants a FileRef object (with a cid).
+    const fileRef = { cid: 'abc', name: 'f.png', mimeType: 'image/png', size: 10 }
+    expect(coerceCellValueForType(fileRef, 'file')).toEqual(fileRef)
+    expect(coerceCellValueForType('garbage', 'file')).toBeNull()
   })
   it('returns null for nullish', () => {
     expect(coerceCellValueForType(null, 'text')).toBeNull()

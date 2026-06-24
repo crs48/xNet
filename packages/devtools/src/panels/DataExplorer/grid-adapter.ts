@@ -142,28 +142,51 @@ function safeStringify(value: unknown): string {
   }
 }
 
+function isObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function toNumberOrNull(value: unknown): number | null {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null
+  const n = Number(value)
+  return value !== '' && Number.isFinite(n) ? n : null
+}
+
 /**
  * Coerce an arbitrary node property value into the CellValue shape the grid's
- * renderer for `type` expects. CRITICAL: text-family cell renderers call string
- * methods (e.g. `.replace`), so anything not number/checkbox/multiSelect must
- * arrive as a string — otherwise the grid throws on real-world node data.
+ * renderer for `type` expects. Each built-in renderer wants a specific shape:
+ * number/date renderers want a number, checkbox a boolean, dateRange a
+ * `{start,end}` object, relation/person/multiSelect a string[], file a FileRef
+ * object — and the text-family renderers call string methods (e.g. `.replace`),
+ * so those must receive a string. Feeding the wrong shape renders broken cells
+ * ("Invalid Date", "Empty", raw JSON), so coerce per type rather than blanket
+ * stringifying.
  */
 export function coerceCellValueForType(value: unknown, type: FieldType): CellValue {
   if (value == null) return null
-  if (type === 'number') {
-    if (typeof value === 'number') return value
-    const n = Number(value)
-    return value !== '' && Number.isFinite(n) ? n : null
+  switch (type) {
+    case 'number':
+    case 'date':
+      // date cells render from an epoch number; numeric strings are parsed too.
+      return toNumberOrNull(value)
+    case 'checkbox':
+      return typeof value === 'boolean' ? value : Boolean(value)
+    case 'dateRange':
+      return isObject(value) && 'start' in value && 'end' in value
+        ? (value as unknown as CellValue)
+        : null
+    case 'file':
+      return isObject(value) && 'cid' in value ? (value as unknown as CellValue) : null
+    case 'multiSelect':
+    case 'relation':
+    case 'person':
+      // These renderers expect an array; wrap a lone value so it still shows.
+      return Array.isArray(value) ? value.map(String) : [safeStringify(value)]
+    default:
+      // text-family (text/url/email/phone/select/createdBy/json/…) renders from
+      // a string; stringify so a string method never lands on a non-string.
+      return safeStringify(value)
   }
-  if (type === 'checkbox') {
-    return typeof value === 'boolean' ? value : Boolean(value)
-  }
-  if (type === 'multiSelect') {
-    return Array.isArray(value) ? value.map(String) : [safeStringify(value)]
-  }
-  // Every other field type (text/url/email/phone/select/date/relation/…) renders
-  // from a string; stringify so a string method never lands on a non-string.
-  return safeStringify(value)
 }
 
 /** Generic coercion (no field type) — kept for callers that just need a CellValue. */
