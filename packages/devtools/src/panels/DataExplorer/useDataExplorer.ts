@@ -10,9 +10,11 @@
 import type {
   CellValue,
   FieldType,
+  FilterGroup,
   NodeId,
   NodeQueryResult,
   NodeState,
+  RowHeight,
   Schema,
   SchemaIRI
 } from '@xnetjs/data'
@@ -25,10 +27,13 @@ import {
   coerceCellValueForType,
   type SchemaOption
 } from './grid-adapter'
+import { cycleSort, loadViewPrefs, saveViewPrefs, type DataViewPrefs } from './view-prefs'
 
 export type { SchemaOption }
 
-const DEFAULT_LIMIT = 200
+// A generous window so client-side filter/sort over the loaded page is
+// meaningful (we slice in memory like the main database UI does).
+const DEFAULT_LIMIT = 500
 const LIVE_DEBOUNCE_MS = 250
 
 type PlanMeta = NonNullable<NodeQueryResult['plan']>
@@ -52,6 +57,8 @@ export function useDataExplorer() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
   const [editing, setEditing] = useState(false)
   const [editError, setEditError] = useState<string | null>(null)
+  // View prefs (sorts/filters/density/hidden columns), persisted per schema.
+  const [prefs, setPrefs] = useState<DataViewPrefs>(() => loadViewPrefs(null))
   const [state, setState] = useState<QueryState>({
     nodes: [],
     totalCount: null,
@@ -190,6 +197,47 @@ export function useDataExplorer() {
     [state.nodes, selectedNodeId]
   )
 
+  // Re-hydrate view prefs whenever the selected schema changes (per-schema).
+  useEffect(() => {
+    setPrefs(loadViewPrefs(selectedSchema))
+  }, [selectedSchema])
+
+  // Mutate + persist prefs in one place so every change survives reload.
+  const mutatePrefs = useCallback(
+    (next: (prev: DataViewPrefs) => DataViewPrefs) => {
+      setPrefs((prev) => {
+        const merged = next(prev)
+        saveViewPrefs(selectedSchema, merged)
+        return merged
+      })
+    },
+    [selectedSchema]
+  )
+
+  const toggleSort = useCallback(
+    (columnId: string) => mutatePrefs((p) => ({ ...p, sorts: cycleSort(p.sorts, columnId) })),
+    [mutatePrefs]
+  )
+  const clearSorts = useCallback(() => mutatePrefs((p) => ({ ...p, sorts: [] })), [mutatePrefs])
+  const setFilters = useCallback(
+    (filters: FilterGroup | null) => mutatePrefs((p) => ({ ...p, filters })),
+    [mutatePrefs]
+  )
+  const setRowHeight = useCallback(
+    (rowHeight: RowHeight) => mutatePrefs((p) => ({ ...p, rowHeight })),
+    [mutatePrefs]
+  )
+  const toggleFieldVisible = useCallback(
+    (fieldId: string, hidden: boolean) =>
+      mutatePrefs((p) => ({
+        ...p,
+        hiddenFieldIds: hidden
+          ? [...p.hiddenFieldIds, fieldId]
+          : p.hiddenFieldIds.filter((id) => id !== fieldId)
+      })),
+    [mutatePrefs]
+  )
+
   // Write a single edited cell back to the store. The live subscribe above
   // refreshes the grid; system columns (@@…) are never editable.
   const updateCell = useCallback(
@@ -219,6 +267,7 @@ export function useDataExplorer() {
     setIncludeDeleted,
     nodes: filteredNodes,
     totalCount: state.totalCount,
+    loadedCount: state.nodes.length,
     plan: state.plan,
     error: state.error,
     loading: state.loading,
@@ -229,6 +278,16 @@ export function useDataExplorer() {
     editing,
     setEditing,
     editError,
-    updateCell
+    updateCell,
+    // View prefs + handlers (sorts/filters/density/hidden columns)
+    sorts: prefs.sorts,
+    filters: prefs.filters,
+    rowHeight: prefs.rowHeight,
+    hiddenFieldIds: prefs.hiddenFieldIds,
+    toggleSort,
+    clearSorts,
+    setFilters,
+    setRowHeight,
+    toggleFieldVisible
   }
 }

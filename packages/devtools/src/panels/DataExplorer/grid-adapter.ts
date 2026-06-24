@@ -7,6 +7,7 @@
 
 import type {
   CellValue,
+  ColumnDefinition,
   FieldType,
   NodeQueryResult,
   NodeState,
@@ -141,11 +142,13 @@ export function buildGridFields(
   }
 
   fields.push({
+    // A `date` column (cell = epoch ms) so it sorts/filters chronologically —
+    // a text locale string would sort lexicographically (wrong).
     id: SYSTEM_FIELD.updated,
     name: 'Updated',
-    type: 'text',
+    type: 'date',
     config: {},
-    width: 160,
+    width: 170,
     readonly: true
   })
   fields.push({
@@ -230,24 +233,46 @@ export function coerceCellValue(value: unknown): CellValue {
   return safeStringify(value)
 }
 
+/** A grid row that also carries the `sortKey` the sort engine needs. */
+export type DataGridRow = GridRowData & { sortKey: string }
+
 /**
  * Map a node to a grid row with system + property cells (keyed by field id).
  * `fieldTypeById` lets each property cell be coerced to its column's type.
+ * Carries `sortKey` (the node id) so the sort engine has a stable tiebreak.
  */
 export function nodeToGridRow(
   node: NodeState,
   fieldTypeById: ReadonlyMap<string, FieldType> = new Map()
-): GridRowData {
+): DataGridRow {
   const cells: Record<string, CellValue> = {
     [SYSTEM_FIELD.id]: node.id,
     [SYSTEM_FIELD.schema]: node.schemaId.split('/').pop() ?? node.schemaId,
-    [SYSTEM_FIELD.updated]: new Date(node.updatedAt).toLocaleString(),
+    // Epoch ms so the `date` column sorts/filters chronologically; the grid's
+    // date renderer formats it for display.
+    [SYSTEM_FIELD.updated]: node.updatedAt,
     [SYSTEM_FIELD.author]: truncateDID(node.createdBy)
   }
   for (const [key, value] of Object.entries(node.properties)) {
     cells[key] = coerceCellValueForType(value, fieldTypeById.get(key) ?? 'text')
   }
-  return { id: node.id, cells }
+  return { id: node.id, cells, sortKey: node.id }
+}
+
+/**
+ * Map grid fields to the `ColumnDefinition[]` the filter/sort engines expect.
+ * (The app's equivalent helper is private to useGridDatabase, so we reimplement
+ * the small mapping here — FieldType and ColumnType are the same union.)
+ */
+export function gridFieldsToColumnDefinitions(fields: GridField[]): ColumnDefinition[] {
+  return fields.map((f) => ({
+    id: f.id,
+    name: f.name,
+    type: f.type,
+    config: f.config as ColumnDefinition['config'],
+    width: f.width,
+    isTitle: f.isTitle
+  }))
 }
 
 /** Union of property keys across nodes (for the All/unknown-schema view). */
