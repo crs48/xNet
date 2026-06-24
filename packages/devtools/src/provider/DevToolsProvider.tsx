@@ -241,6 +241,14 @@ export interface XNetDevToolsProviderProps {
   storageDurability?: StorageDurabilityInfo | null
   /** Floating action button offset from the bottom-right corner */
   fabInitialOffset?: { x: number; y: number }
+  /**
+   * "Wipe local database" action wired by the host (OPFS SQLite + IndexedDB +
+   * localStorage, then reload). The Reset panel and the status-bar button use
+   * this when provided; otherwise they fall back to a best-effort inline clear.
+   */
+  onResetLocalData?: () => void | Promise<void>
+  /** "Wipe my data on the hub" action; resolves with the count removed. */
+  onResetHub?: () => Promise<number>
 }
 
 declare global {
@@ -326,7 +334,9 @@ export function XNetDevToolsProvider({
   consentManager,
   traceCollector,
   storageDurability = null,
-  fabInitialOffset = { x: 16, y: 16 }
+  fabInitialOffset = { x: 16, y: 16 },
+  onResetLocalData,
+  onResetHub
 }: XNetDevToolsProviderProps) {
   const { runtimeStatus, syncManager } = useXNet()
   const [isOpen, setIsOpenState] = useState(() => loadStoredOpen(defaultOpen))
@@ -526,7 +536,11 @@ export function XNetDevToolsProvider({
       documentHistory: documentHistoryRef.current,
       runtimeStatus: runtimeStatus as RuntimeDiagnostics,
       syncDiagnostics,
-      storageDurability
+      storageDurability,
+      onResetLocalData: onResetLocalData ?? null,
+      // Default the hub reset to the live SyncManager so it works without the
+      // host wiring anything; a prop override still wins.
+      onResetHub: onResetHub ?? (syncManager ? () => syncManager.clearHubData() : null)
     }),
     [
       isOpen,
@@ -540,7 +554,10 @@ export function XNetDevToolsProvider({
       activeNodeId,
       runtimeStatus,
       syncDiagnostics,
-      storageDurability
+      storageDurability,
+      onResetLocalData,
+      onResetHub,
+      syncManager
     ]
   )
 

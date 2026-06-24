@@ -18,6 +18,7 @@ import { MigrationWizard } from './MigrationWizard/MigrationWizard'
 import { NodeExplorer } from './NodeExplorer/NodeExplorer'
 import { DEVTOOLS_PANELS } from './panel-registry'
 import { QueryDebugger } from './QueryDebugger/QueryDebugger'
+import { Reset } from './Reset/Reset'
 import { SchemaHistoryPanel } from './SchemaHistoryPanel/SchemaHistoryPanel'
 import { SchemaRegistry } from './SchemaRegistry/SchemaRegistry'
 import { SecurityPanel } from './SecurityPanel/SecurityPanel'
@@ -166,6 +167,8 @@ function ActivePanelContent({ panel }: { panel: PanelId }) {
       return <Seed />
     case 'history':
       return <HistoryPanel />
+    case 'reset':
+      return <Reset />
   }
 }
 
@@ -206,6 +209,7 @@ function ClearButton({ onClear }: { onClear: () => void }) {
 }
 
 function ClearDataButton({ store }: { store: ReturnType<typeof useDevTools>['store'] }) {
+  const { onResetLocalData } = useDevTools()
   const [confirming, setConfirming] = useState(false)
 
   const handleClick = async () => {
@@ -217,6 +221,15 @@ function ClearDataButton({ store }: { store: ReturnType<typeof useDevTools>['sto
     }
 
     try {
+      // Prefer the host's OPFS-aware reset (wipes the SAH-pool SQLite that holds
+      // the real data, then reloads). The old inline path below only touched
+      // IndexedDB + an adapter.clear() that the SQLite adapter doesn't implement,
+      // so it silently left the database intact (0212 follow-up).
+      if (onResetLocalData) {
+        await onResetLocalData()
+        return
+      }
+
       const storageAdapter = store?.getStorageAdapter() as {
         clear?: () => Promise<void>
       } | null
