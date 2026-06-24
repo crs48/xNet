@@ -14,5 +14,10 @@
     "plugins",
     "ai"
   ],
-  "pr": 246
+  "pr": 246,
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
