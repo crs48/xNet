@@ -1,0 +1,14 @@
+{
+  "id": "2026-06-23-reset-the-database-from-the-dev-tools",
+  "date": "June 23, 2026",
+  "title": "Reset the database from the dev tools",
+  "summary": "A new Reset panel in the dev tools (Ctrl/Cmd+Shift+D) clears the local database, the hub, or both for a clean slate — useful for pre-release resets.",
+  "highlights": [
+    "Clear local data, hub data, or everything in two clicks",
+    "The local clear now actually wipes the OPFS SQLite database (it previously left it intact)"
+  ],
+  "tags": [
+    "devtools",
+    "platform"
+  ]
+}
