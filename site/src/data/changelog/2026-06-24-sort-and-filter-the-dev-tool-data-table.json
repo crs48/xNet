@@ -8,6 +8,14 @@
     "Build AND/OR filter conditions with typed operators (contains, greater than, between, is empty, …)",
     "Adjust row density and show/hide columns; your view settings are remembered per schema"
   ],
-  "tags": ["devtools", "platform"],
-  "authors": [{ "login": "crs48" }]
+  "tags": [
+    "devtools",
+    "platform"
+  ],
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ],
+  "pr": 255
 }
