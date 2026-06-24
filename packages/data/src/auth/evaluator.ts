@@ -451,7 +451,12 @@ export class DefaultPolicyEvaluator implements PolicyEvaluator {
       return decision
     }
 
-    const cached = this.cache.get(input.subject, input.action, input.nodeId)
+    // Field-level checks (a `patch` is supplied) must NOT share the decision
+    // cache, which is keyed only by (subject, action, nodeId). Reading it would
+    // return the node-level decision (which skips field rules); writing it would
+    // poison that key for later checks. So bypass the cache when `patch` is set.
+    const useCache = !input.patch
+    const cached = useCache ? this.cache.get(input.subject, input.action, input.nodeId) : undefined
     if (cached) {
       const decision = {
         ...cached,
@@ -486,7 +491,7 @@ export class DefaultPolicyEvaluator implements PolicyEvaluator {
       // Owner is always allowed.
       if (node.createdBy === input.subject) {
         const decision = this.decision(input, true, ['owner'], start)
-        this.cache.set(input.subject, input.action, input.nodeId, decision)
+        if (useCache) this.cache.set(input.subject, input.action, input.nodeId, decision)
         this.emitDecision(decision)
         return decision
       }
@@ -500,7 +505,7 @@ export class DefaultPolicyEvaluator implements PolicyEvaluator {
       )
       if (grant) {
         const decision = this.decision(input, true, [], start, [grant.id])
-        this.cache.set(input.subject, input.action, input.nodeId, decision)
+        if (useCache) this.cache.set(input.subject, input.action, input.nodeId, decision)
         this.emitDecision(decision)
         return decision
       }
@@ -535,7 +540,7 @@ export class DefaultPolicyEvaluator implements PolicyEvaluator {
     const allowedByRole = evaluateExpression(actionExpr, roles, true)
     if (allowedByRole) {
       const decision = this.decision(input, true, [...roles], start)
-      this.cache.set(input.subject, input.action, input.nodeId, decision)
+      if (useCache) this.cache.set(input.subject, input.action, input.nodeId, decision)
       this.emitDecision(decision)
       return decision
     }
@@ -546,7 +551,7 @@ export class DefaultPolicyEvaluator implements PolicyEvaluator {
     )
     if (grant) {
       const decision = this.decision(input, true, [...roles], start, [grant.id])
-      this.cache.set(input.subject, input.action, input.nodeId, decision)
+      if (useCache) this.cache.set(input.subject, input.action, input.nodeId, decision)
       this.emitDecision(decision)
       return decision
     }

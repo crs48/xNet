@@ -314,6 +314,69 @@ describe('DefaultPolicyEvaluator', () => {
     grantIndex.dispose()
   })
 
+  it('does not let a cached node-level decision mask a field rule', async () => {
+    // A node-level write check (no patch) is cacheable; a field-scoped check
+    // (with a patch) must not read or write that cache, or the field rule
+    // would be silently bypassed for the rest of the TTL.
+    const alice = createIdentity()
+    const bob = createIdentity()
+    const store = await createStore(alice)
+
+    const project = await store.create({
+      schemaId: ProjectSchema.schema['@id'],
+      properties: {
+        title: 'Project',
+        admins: [bob.did]
+      }
+    })
+
+    const task = await store.create({
+      schemaId: TaskSchema.schema['@id'],
+      properties: {
+        title: 'Task',
+        project: project.id
+      }
+    })
+
+    const schemaRegistry = new SchemaRegistry()
+    schemaRegistry.register(ProjectSchema)
+    schemaRegistry.register(TaskSchema)
+
+    const grantIndex = new GrantIndex(store)
+    await grantIndex.initialize()
+
+    const evaluator = new DefaultPolicyEvaluator({
+      store,
+      schemaRegistry,
+      grantIndex
+    })
+
+    // Prime the cache with the node-level decision: bob is a project admin,
+    // so he can write the node in general.
+    const nodeLevel = await evaluator.can({
+      subject: bob.did,
+      action: 'write',
+      nodeId: task.id
+    })
+    expect(nodeLevel.allowed).toBe(true)
+
+    // The field-scoped check must still consult the `title` field rule
+    // (owner-only) rather than returning the cached node-level grant.
+    const fieldLevel = await evaluator.can({
+      subject: bob.did,
+      action: 'write',
+      nodeId: task.id,
+      patch: {
+        title: 'Changed'
+      }
+    })
+    expect(fieldLevel.allowed).toBe(false)
+    expect(fieldLevel.cached).not.toBe(true)
+    expect(fieldLevel.reasons).toContain('DENY_FIELD_RESTRICTED')
+
+    grantIndex.dispose()
+  })
+
   it('uses grants when role-based access denies', async () => {
     const alice = createIdentity()
     const bob = createIdentity()

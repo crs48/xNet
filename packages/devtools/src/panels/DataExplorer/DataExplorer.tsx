@@ -325,6 +325,9 @@ function NodePermissions({ nodeId }: { nodeId: string }) {
     }
     let alive = true
     setError(null)
+    // Clear the previous node's traces so we show "Evaluating…" rather than
+    // briefly attributing the old node's permissions to the newly selected one.
+    setTraces(null)
     Promise.all([
       authz.explain({ action: 'read', nodeId }),
       authz.explain({ action: 'write', nodeId })
