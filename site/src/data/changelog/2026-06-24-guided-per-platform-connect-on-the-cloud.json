@@ -10,5 +10,11 @@
   ],
   "tags": [
     "platform"
+  ],
+  "pr": 247,
+  "authors": [
+    {
+      "login": "crs48"
+    }
   ]
 }
