@@ -23,10 +23,21 @@ on:
         default: staging
   push:
     branches: [main]
+    # These must cover the control plane's full build closure — the image bundles
+    # every @xnetjs/* package in xnet-cloud's dependency graph (Dockerfile builds
+    # with `--filter xnet-cloud...`). The authoritative closure (workspace packages)
+    # is: cloud, core, crypto, entitlements, sqlite, storage. A change to any of
+    # them rebuilds the image, so each must trigger a redeploy or staging silently
+    # drifts behind main. Re-derive with `pnpm --filter xnet-cloud... ls --only-projects`
+    # if @xnetjs/cloud's dependencies change.
     paths:
       - 'apps/cloud/**'
       - 'packages/cloud/**'
+      - 'packages/core/**'
+      - 'packages/crypto/**'
       - 'packages/entitlements/**'
+      - 'packages/sqlite/**'
+      - 'packages/storage/**'
       - '.github/workflows/deploy-cloud.yml'
 
 permissions:
@@ -83,4 +94,25 @@ jobs:
             --set-secrets "XNET_PLAN_SECRET=xnet-plan-secret:latest,XNET_CLOUD_SESSION_SECRET=session-secret:latest,XNET_CLOUD_INTERNAL_SECRET=internal-secret:latest,WORKOS_CLIENT_ID=workos-client-id:latest,WORKOS_API_KEY=workos-api-key:latest,WORKOS_REDIRECT_URI=workos-redirect-uri:latest,STRIPE_SECRET_KEY=stripe-secret:latest,STRIPE_WEBHOOK_SECRET=stripe-webhook:latest,STRIPE_PRICE_PERSONAL=stripe-price-personal:latest,STRIPE_PRICE_FAMILY=stripe-price-family:latest,STRIPE_PRICE_TEAM=stripe-price-team:latest,R2_ACCOUNT_ID=r2-account-id:latest,R2_ENDPOINT=r2-endpoint:latest,R2_ACCESS_KEY_ID=r2-key-id:latest,R2_SECRET_ACCESS_KEY=r2-secret:latest,GCP_ARTIFACT_REGISTRY=gcp-artifact-registry:latest"
 
       - name: Smoke test the deploy
+        id: smoke
         run: node scripts/cloud-smoke.mjs "$BASE_URL"
+
+      # If the smoke test failed, the new revision is live and broken — roll 100% of
+      # traffic back to the previous revision so a bad deploy can't sit serving. The
+      # job still ends red (the smoke failure isn't swallowed), but the URL recovers.
+      # Only fires when the smoke step itself failed (deploy succeeded, traffic shifted);
+      # a no-op-safe guard skips it when there's no prior revision to fall back to.
+      - name: Roll back on smoke failure
+        if: ${{ failure() && steps.smoke.outcome == 'failure' }}
+        run: |
+          PREV="$(gcloud run revisions list --service "$SERVICE" \
+            --project "$PROJECT" --region "$REGION" \
+            --format='value(metadata.name)' --sort-by='~metadata.creationTimestamp' \
+            | sed -n 2p)"
+          if [ -z "$PREV" ]; then
+            echo "::warning::no previous revision to roll back to — leaving current revision live"
+            exit 0
+          fi
+          echo "Rolling $SERVICE back to $PREV"
+          gcloud run services update-traffic "$SERVICE" \
+            --project "$PROJECT" --region "$REGION" --to-revisions "$PREV=100"

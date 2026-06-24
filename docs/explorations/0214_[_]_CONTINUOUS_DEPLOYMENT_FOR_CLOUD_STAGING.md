@@ -161,18 +161,27 @@ flowchart TD
   pcloud --> pcore["@xnetjs/core"]
   pcloud --> pent
   pcloud --> pstor["@xnetjs/storage"]
+  pstor --> pcore
+  pstor --> pcrypto["@xnetjs/crypto"]
+  pstor --> psqlite["@xnetjs/sqlite"]
+  pcrypto --> pcore
 
   classDef covered fill:#1b5e20,stroke:#66bb6a,color:#fff;
   classDef missing fill:#7f1d1d,stroke:#ef4444,color:#fff;
   class cloudapp,pcloud,pent covered;
-  class pcore,pstor missing;
+  class pcore,pstor,pcrypto,psqlite missing;
 ```
 
 The `push.paths` filter only watches `apps/cloud/**`, `packages/cloud/**`,
-`packages/entitlements/**`. **A change to `packages/core/**` or `packages/storage/**`
-— both compiled into the running image — would not trigger a redeploy.** So even once
-the gate is flipped, "deploys whenever it's on main" would silently miss part of the
-control plane's own code.
+`packages/entitlements/**`. **A change to `packages/core/**`, `packages/crypto/**`,
+`packages/sqlite/**`, or `packages/storage/**` — all compiled into the running image —
+would not trigger a redeploy.** So even once the gate is flipped, "deploys whenever
+it's on main" would silently miss part of the control plane's own code. The full
+workspace closure, resolved authoritatively with
+`pnpm --filter xnet-cloud... ls --only-projects`, is
+`cloud, core, crypto, entitlements, sqlite, storage` — `crypto` and `sqlite` enter
+transitively through `@xnetjs/storage`, which a one-level read of `apps/cloud`'s
+manifest misses.
 
 ## External Research
 
@@ -219,9 +228,10 @@ control plane's own code.
 4. **There is a secret-ordering footgun.** Setting `CLOUD_DEPLOY_ENABLED=true` before
    the `WIF_PROVIDER`/`DEPLOYER_SA` secrets exist makes the next qualifying push fail
    the auth step and **red `main`**. Order matters: secrets first, variable last.
-5. **The trigger paths are narrower than the build closure.** `packages/core/**` and
-   `packages/storage/**` are compiled into the image but not in `push.paths`, so some
-   control-plane changes wouldn't auto-deploy even after the gate is on.
+5. **The trigger paths are narrower than the build closure.** `packages/core/**`,
+   `packages/crypto/**`, `packages/sqlite/**`, and `packages/storage/**` are compiled
+   into the image but not in `push.paths`, so some control-plane changes wouldn't
+   auto-deploy even after the gate is on.
 6. **No automatic rollback.** A smoke-test failure reds the run but leaves the new
    (possibly broken) revision serving 100% of traffic.
 7. **Staging only.** This is single-environment by design (no prod control plane
@@ -241,8 +251,8 @@ control plane's own code.
 
 | Option | `push.paths` | Behavior |
 | ------ | ------------ | -------- |
-| **Status quo** | `apps/cloud`, `packages/cloud`, `packages/entitlements` | Misses `core`/`storage` edits — incomplete |
-| **Precise closure** (recommended) | add `packages/core/**`, `packages/storage/**` | Deploys on any change that actually rebuilds the image; minimal waste |
+| **Status quo** | `apps/cloud`, `packages/cloud`, `packages/entitlements` | Misses `core`/`crypto`/`sqlite`/`storage` edits — incomplete |
+| **Precise closure** (recommended) | add `core`, `crypto`, `sqlite`, `storage` | Deploys on any change that actually rebuilds the image; minimal waste |
 | **No filter** | drop `paths` entirely | "Deploys on every main push," dead simple, but rebuilds/redeploys on totally unrelated changes (editor, maps, …) — wasteful CI minutes |
 
 The precise-closure option best matches the user's intent ("deployed with the rest of
@@ -291,8 +301,9 @@ sequenceDiagram
 2. **Set the secrets first, the variable last** (the footgun): `WIF_PROVIDER` and
    `DEPLOYER_SA`, then create the `cloud-staging` environment (branch rule = `main`,
    no required reviewer), then `CLOUD_DEPLOY_ENABLED=true`.
-3. **Widen `push.paths`** in `deploy-cloud.yml` to include `packages/core/**` and
-   `packages/storage/**` so the full image closure triggers a redeploy.
+3. **Widen `push.paths`** in `deploy-cloud.yml` to include `packages/core/**`,
+   `packages/crypto/**`, `packages/sqlite/**`, and `packages/storage/**` so the full
+   image closure triggers a redeploy.
 4. **Prove it** by merging a trivial control-plane change and watching the run go
    green through build → deploy → smoke, then confirming the new revision serves.
 5. **Follow-up (not blocking):** add smoke-fail auto-rollback (`update-traffic
@@ -334,8 +345,10 @@ gh variable set CLOUD_DEPLOY_ENABLED --repo crs48/xNet --body 'true'
      paths:
        - 'apps/cloud/**'
        - 'packages/cloud/**'
-       - 'packages/entitlements/**'
 +      - 'packages/core/**'
++      - 'packages/crypto/**'
+       - 'packages/entitlements/**'
++      - 'packages/sqlite/**'
 +      - 'packages/storage/**'
        - '.github/workflows/deploy-cloud.yml'
 ```
@@ -391,9 +404,10 @@ gh variable set CLOUD_DEPLOY_ENABLED --repo crs48/xNet --body 'true'
 - [ ] Create the `cloud-staging` GitHub environment; set deployment branch rule to
       `main`; decide on required reviewer (recommend none for staging).
 - [ ] `gh variable set CLOUD_DEPLOY_ENABLED --body true` (variable last).
-- [ ] Widen `deploy-cloud.yml` `push.paths` to add `packages/core/**` and
-      `packages/storage/**` (PR; the workflow-file path already self-triggers).
-- [ ] (Optional) Add the smoke-failure rollback step to `deploy-cloud.yml`.
+- [x] Widen `deploy-cloud.yml` `push.paths` to add `packages/core/**`,
+      `packages/crypto/**`, `packages/sqlite/**`, `packages/storage/**` (PR; the
+      workflow-file path already self-triggers).
+- [x] Add the smoke-failure rollback step to `deploy-cloud.yml`.
 - [ ] Trigger once via `workflow_dispatch` to confirm auth + build + deploy + smoke
       before relying on push.
 - [ ] Document the now-active CD in `STAGING_GO_LIVE.md` (flip "Optional" framing).
