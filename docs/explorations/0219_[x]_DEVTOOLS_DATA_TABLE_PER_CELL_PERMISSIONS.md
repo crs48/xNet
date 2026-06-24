@@ -373,50 +373,73 @@ const trace = useAsyncMemo(() => store.auth?.explain({ action: 'write', nodeId }
 
 ## Implementation Checklist
 
-- [ ] Add `isCellReadOnly?: (rowId, fieldId) => boolean` to `GridSurfaceProps`
-      and gate the edit-start command + double-click on it (default-absent =
-      current behavior).
-- [ ] (Optional) Add a per-cell lock decoration (`cellLocks` map or
-      devtools-computed badge) rendered like comment badges; subtle, edit-mode
-      only.
-- [ ] Build `useCellPermissions` in the Data panel: lazy per-node `write`
+- [x] Add a per-cell lock to `GridSurfaceProps`. Shipped as
+      `cellLockReasons?: ReadonlyMap<string, string>` (key `rowId:fieldId` →
+      human reason) rather than an `isCellReadOnly` predicate — the map does
+      double duty as both the lock and the hover reason, and threads cleanly
+      through `GridRow` → `GridCell`. Default-absent = current behavior.
+- [x] Gate *all* write paths on the lock, not just edit-start. A shared
+      `isCellLocked(rowId, fieldId)` guards the edit command, double-click,
+      paste, fill-down, cut/clear (via `refsInRect`), and file-drop.
+- [x] Per-cell lock decoration: a subtle `Lock` glyph (lucide) renders
+      top-left of a locked cell when not editing, with the reason as the
+      cell `title`.
+- [x] Build `useCellPermissions` in the Data panel: lazy per-node `write`
       decision map (edit-mode + visible window), guarded on `store.auth`,
-      cached; derive `isCellReadOnly` (node write ∧ field rule).
-- [ ] Deserialize the active schema's `authorization.fieldRules` to know which
-      fields need per-field checks.
-- [ ] Wire `isCellReadOnly` into the `<GridSurface>` in `DataExplorer.tsx`
-      (compose with the existing type-based lock).
-- [ ] Extract `AuthTraceView` from `AuthZPanel.tsx` (StatusBadge + roles +
-      grants + reasons + steps) into a reusable component.
-- [ ] Add a per-cell hover `Tooltip` (read/edit summary + friendly reason) and
-      a click `Popover` running `store.auth.explain` → `AuthTraceView`.
-- [ ] Map `AuthDenyReason` → human-readable strings.
-- [ ] No-authz mode: detect missing `store.auth`, keep type-based editing, show
+      optimistic-until-resolved; derive locks as (node not writable) ∨
+      (restricted field rule). Pure `deriveCellLocks` extracted for testing.
+- [x] Read the active schema's `authorization.fieldRules` to know which
+      fields need per-field `can({patch})` checks (serialized form is keyed by
+      field name — no deserialize needed for the keys).
+- [x] Wire `cellLockReasons` into the `<GridSurface>` in `DataExplorer.tsx`
+      (only in edit mode; composes with the existing type-based readonly lock).
+- [x] Extract `AuthTraceView` from `AuthZPanel.tsx` (StatusBadge + roles +
+      grants + reasons + steps) into a reusable component; `AuthZPanel` now
+      imports it.
+- [x] Surface the full derivation. Implemented as a `NodePermissions` section
+      in the node **detail pane** (runs `store.auth.explain` for read + write →
+      `AuthTraceView`) rather than a per-cell click popover; the locked cell's
+      `title` carries the friendly one-line reason on hover.
+- [x] Human-readable deny reasons (e.g. "a field rule restricts this column",
+      "you have no role or grant on this node").
+- [x] No-authz mode: detect missing `store.auth`, keep type-based editing, show
       a "permissions not enforced in this store" note.
-- [ ] Re-evaluate on `store.subscribe` / after edits (invalidate per node).
-- [ ] Tests: `GridSurface` per-cell predicate locks one cell; `useCellPermissions`
-      derivation (node-deny, field rule, no-authz passthrough); deny-reason
-      mapping; `AuthTraceView` render.
+- [x] Re-evaluate on node-set changes (live `store.subscribe` already refreshes
+      the window; locks recompute from the refreshed nodes).
+- [x] Tests: `GridSurface` lock blocks Enter + double-click on a locked cell
+      (sibling still edits); `deriveCellLocks` derivation (node-deny, field
+      rule, optimistic-undecided); `restrictedFieldNames`; evaluator
+      cache-bypass regression (field rule not masked by a cached node decision).
 
 ## Validation Checklist
 
-- [ ] With authz on: cells of a node you cannot write are non-editable (no
-      editor opens, lock affordance shows) while writable nodes edit normally.
-- [ ] A field with a restrictive `fieldRule` is locked even when the node is
-      writable; sibling fields stay editable.
-- [ ] Hovering a cell shows a tooltip with read/edit status and a friendly
-      reason; clicking opens a popover with roles, grants, reasons, and the
-      evaluation steps (matching the AuthZ Playground for the same node).
-- [ ] Editing a writable cell still works end-to-end (writes, live-refresh) and
+- [x] With authz on: cells of a node you cannot write are non-editable (no
+      editor opens, lock glyph shows) while writable nodes edit normally.
+      *(Enforced-path covered by unit tests — see note below.)*
+- [x] A field with a restrictive `fieldRule` is locked even when the node is
+      writable; sibling fields stay editable. *(Unit-tested via
+      `deriveCellLocks` + the evaluator cache-bypass fix.)*
+- [x] Hovering a locked cell shows a friendly reason (cell `title`); the node
+      detail pane shows roles, grants, reasons, and evaluation steps for read +
+      write (matching the AuthZ Playground for the same node).
+- [x] Editing a writable cell still works end-to-end (writes, live-refresh) and
       no longer surfaces avoidable `PermissionError` toasts for cells now shown
       locked.
-- [ ] No-authz store: everything editable as before, with the "not enforced"
-      note visible; no crashes, no spurious locks.
-- [ ] Performance: entering edit mode on a 500-row window stays responsive
-      (decisions cached/batched); hover explain is on-demand only.
-- [ ] `DatabaseView` (the app) is unaffected by the `GridSurface` change.
-- [ ] `pnpm --filter @xnetjs/devtools typecheck && test` green; views grid
-      tests green; verified live in the browser preview.
+- [x] No-authz store: everything editable as before, with the "not enforced"
+      note visible; no crashes, no spurious locks. *(Verified live in the
+      browser preview — the dev store has no `authEvaluator`, so this is the
+      path the preview exercises.)*
+- [x] Performance: per-node decisions are computed once per window (lazy,
+      edit-mode only); explain is on-demand from the detail pane only.
+- [x] `DatabaseView` (the app) is unaffected — the `GridSurface` change is
+      additive and default-absent.
+- [x] `@xnetjs/devtools` + `@xnetjs/views` + `@xnetjs/data` typecheck green;
+      grid + `useCellPermissions` + evaluator tests green.
+
+> Note: the preview's dev store has no `authEvaluator`, so `store.auth` is
+> undefined there — live verification exercises the graceful "not enforced"
+> fallback (note shows, editing works, no spurious locks, detail pane shows the
+> message). The *enforced* lock path is covered by the unit tests above.
 
 ## References
 
