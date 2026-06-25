@@ -1,0 +1,96 @@
+---
+// A small, dependency-free tabbed code block for marketing pages.
+// Tabs in the same `group` stay in sync and persist via localStorage; without
+// JS the first tab renders (no-JS fallback). Code is pre-highlighted HTML using
+// the same tok-* spans as CodeBlock.
+interface Tab {
+  label: string
+  filename?: string
+  code: string
+}
+interface Props {
+  tabs: Tab[]
+  group?: string
+}
+const { tabs, group = 'default' } = Astro.props
+const uid = `ct-${Math.random().toString(36).slice(2, 9)}`
+---
+
+<div class="code-tabs min-w-0 overflow-hidden rounded-xl border border-border bg-code-bg" data-group={group} data-uid={uid}>
+  <div class="flex items-center gap-1 border-b border-border bg-surface/50 px-2 py-1.5" role="tablist">
+    {tabs.map((tab, i) => (
+      <button
+        type="button"
+        role="tab"
+        data-tab={i}
+        aria-selected={i === 0 ? 'true' : 'false'}
+        class="code-tab rounded-md px-3 py-1 text-xs font-medium text-gray-500 transition-colors hover:text-gray-700 dark:hover:text-gray-300 aria-selected:bg-surface aria-selected:text-gray-900 dark:aria-selected:text-white"
+      >
+        {tab.label}
+      </button>
+    ))}
+  </div>
+  {tabs.map((tab, i) => (
+    <div class="code-panel group relative" data-panel={i} hidden={i !== 0}>
+      {tab.filename && (
+        <div class="border-b border-border px-4 py-2 text-xs font-mono text-gray-500">{tab.filename}</div>
+      )}
+      <pre class="lp-code overflow-x-auto p-5 font-mono text-sm leading-relaxed"><code set:html={tab.code} /></pre>
+      <button
+        class="copy-btn absolute right-3 top-3 rounded-md border border-border bg-surface px-2 py-1 text-xs text-gray-500 opacity-0 transition-opacity hover:text-gray-700 dark:hover:text-gray-300 group-hover:opacity-100"
+        aria-label="Copy code"
+      >
+        Copy
+      </button>
+    </div>
+  ))}
+</div>
+
+<script>
+  function initCodeTabs() {
+    const groups = new Map<string, HTMLElement[]>()
+    document.querySelectorAll<HTMLElement>('.code-tabs').forEach((el) => {
+      const g = el.dataset.group || 'default'
+      if (!groups.has(g)) groups.set(g, [])
+      groups.get(g)!.push(el)
+    })
+
+    groups.forEach((els, g) => {
+      const storageKey = `xnet:codetabs:${g}`
+      const select = (index: number, persist: boolean) => {
+        els.forEach((el) => {
+          const tabs = el.querySelectorAll<HTMLElement>('.code-tab')
+          const panels = el.querySelectorAll<HTMLElement>('.code-panel')
+          if (index >= tabs.length) return
+          tabs.forEach((t, i) => t.setAttribute('aria-selected', i === index ? 'true' : 'false'))
+          panels.forEach((p, i) => (p.hidden = i !== index))
+        })
+        if (persist && g !== 'default') {
+          try {
+            localStorage.setItem(storageKey, String(index))
+          } catch {
+            /* ignore */
+          }
+        }
+      }
+
+      els.forEach((el) => {
+        el.querySelectorAll<HTMLElement>('.code-tab').forEach((tab) => {
+          tab.addEventListener('click', () => select(Number(tab.dataset.tab), true))
+        })
+      })
+
+      if (g !== 'default') {
+        try {
+          const saved = localStorage.getItem(storageKey)
+          if (saved !== null) select(Number(saved), false)
+        } catch {
+          /* ignore */
+        }
+      }
+    })
+  }
+
+  if (document.readyState !== 'loading') initCodeTabs()
+  else document.addEventListener('DOMContentLoaded', initCodeTabs)
+</script>

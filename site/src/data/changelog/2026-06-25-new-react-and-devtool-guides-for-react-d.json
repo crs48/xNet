@@ -1,0 +1,17 @@
+{
+  "id": "2026-06-25-new-react-and-devtool-guides-for-react-d",
+  "date": "June 25, 2026",
+  "title": "New /react and /devtool guides for React developers",
+  "summary": "A single-page walkthrough of XNet React — the hooks, then a choice between a managed Hub or your own @xnetjs/server backend — plus a DevTools showcase and docs for running your own server.",
+  "highlights": [],
+  "tags": [
+    "platform"
+  ],
+  "pr": 271,
+  "mergedAt": "2026-06-25T19:41:35Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}
