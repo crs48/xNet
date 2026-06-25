@@ -406,6 +406,33 @@ describe('GridSurface', () => {
     expect(cell(0, 2).querySelector('input, textarea')).toBeTruthy()
   })
 
+  it('a per-cell lock (cellLockReasons) blocks editing that one cell and shows its reason', () => {
+    const onUpdateCell = vi.fn()
+    const locks = new Map<string, string>([['r1:name', "You can't edit this node"]])
+    render(
+      <GridSurface
+        fields={fields}
+        rows={rows}
+        onUpdateCell={onUpdateCell}
+        cellLockReasons={locks}
+      />
+    )
+
+    // Locked cell: Enter and double-click do not open an editor.
+    fireEvent.mouseDown(cell(0, 0))
+    fireEvent.keyDown(gridEl(), { key: 'Enter' })
+    expect(cell(0, 0).querySelector('input, textarea')).toBeNull()
+    fireEvent.doubleClick(cell(0, 0))
+    expect(cell(0, 0).querySelector('input, textarea')).toBeNull()
+    // The reason is exposed (title) on the cell.
+    expect(cell(0, 0).getAttribute('title')).toBe("You can't edit this node")
+
+    // The same column on an unlocked row still edits.
+    fireEvent.mouseDown(cell(1, 0))
+    fireEvent.keyDown(gridEl(), { key: 'Enter' })
+    expect(cell(1, 0).querySelector('input, textarea')).toBeTruthy()
+  })
+
   it('broadcasts cell focus for presence', () => {
     const onCellFocus = vi.fn()
     render(<GridSurface fields={fields} rows={rows} onCellFocus={onCellFocus} />)

@@ -1,0 +1,13 @@
+{
+  "id": "2026-06-24-per-cell-permissions-in-the-dev-data-table",
+  "date": "June 24, 2026",
+  "title": "Per-cell permissions in the dev tool's data table",
+  "summary": "The Data panel in the dev tools (Ctrl/Cmd+Shift+D) now reflects your real authorization per cell — cells you can't edit are locked instead of failing when you try, and a row's detail pane shows exactly how your read and write permissions are derived.",
+  "highlights": [
+    "Cells you're not allowed to edit are locked (with a lock glyph and a hover reason) rather than failing on save",
+    "A node's detail pane shows your read/write decision with the full derivation — roles, grants, and evaluation steps",
+    "Falls back gracefully when authorization isn't enforced in the store"
+  ],
+  "tags": ["devtools", "platform"],
+  "authors": [{ "login": "crs48" }]
+}

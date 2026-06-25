@@ -62,6 +62,13 @@ export interface GridSurfaceProps extends GridCallbacks {
   presences?: CellPresence[]
   /** "rowId:fieldId" -> thread count */
   cellCommentCounts?: Map<string, number>
+  /**
+   * Per-cell edit lock keyed "rowId:fieldId" -> short reason. A present entry
+   * makes that cell non-editable (beyond the global `readOnly` / column
+   * `field.readonly`) and surfaces the reason on hover. Used e.g. to reflect
+   * authorization per cell.
+   */
+  cellLockReasons?: ReadonlyMap<string, string>
   rowHeight?: number
   readOnly?: boolean
   className?: string
@@ -73,6 +80,7 @@ export function GridSurface({
   sorts,
   presences,
   cellCommentCounts,
+  cellLockReasons,
   rowHeight = DEFAULT_ROW_HEIGHT,
   readOnly,
   className,
@@ -181,18 +189,29 @@ export function GridSurface({
     return selectionRect(state.selection, rowCount, colCount)
   }, [state.selection, rowCount, colCount])
 
+  // Single source of truth for the per-cell lock — consulted by every write
+  // path (edit session, paste, fill-down, cut/clear, file-drop) so a locked
+  // cell can't be mutated by any of them.
+  const isCellLocked = useCallback(
+    (rowId: string, fieldId: string) => cellLockReasons?.has(`${rowId}:${fieldId}`) ?? false,
+    [cellLockReasons]
+  )
+
   const refsInRect = useCallback(
     (rect: { top: number; left: number; bottom: number; right: number }): CellRef[] => {
       const refs: CellRef[] = []
       for (let r = rect.top; r <= rect.bottom; r++) {
         for (let c = rect.left; c <= rect.right; c++) {
           const cell = cellAt({ row: r, col: c })
-          if (cell) refs.push({ rowId: cell.row.id, fieldId: cell.field.id })
+          // refsInRect feeds onClearCells (cut + clear), both writes — omit locked cells.
+          if (cell && !isCellLocked(cell.row.id, cell.field.id)) {
+            refs.push({ rowId: cell.row.id, fieldId: cell.field.id })
+          }
         }
       }
       return refs
     },
-    [cellAt]
+    [cellAt, isCellLocked]
   )
 
   // Drag-a-file-onto-a-cell → upload + write the FileRef directly
@@ -201,11 +220,12 @@ export function GridSurface({
       if (!onUploadFile) return
       const cell = cellAt({ row: rowIndex, col: colIndex })
       if (!cell || cell.field.type !== 'file') return
+      if (isCellLocked(cell.row.id, cell.field.id)) return
       void onUploadFile(file).then((ref) => {
         if (ref) onUpdateCell?.(cell.row.id, cell.field.id, ref as unknown as CellValue)
       })
     },
-    [onUploadFile, cellAt, onUpdateCell]
+    [onUploadFile, cellAt, onUpdateCell, isCellLocked]
   )
 
   /** Persist a value at a position — real cell, ghost row, or ghost column. */
@@ -285,6 +305,7 @@ export function GridSurface({
         const pos = { row: origin.row + r, col: origin.col + c }
         const cell = cellAt(pos)
         if (!cell) continue
+        if (isCellLocked(cell.row.id, cell.field.id)) continue
         const pasteField: PasteField = {
           id: cell.field.id,
           type: cell.field.type,
@@ -314,7 +335,7 @@ export function GridSurface({
         }
       }
     }
-  }, [readOnly, state.cursor, cellAt, onCreateOption, onUpdateCell])
+  }, [readOnly, state.cursor, cellAt, onCreateOption, onUpdateCell, isCellLocked])
 
   const fillDown = useCallback(() => {
     if (readOnly) return
@@ -326,10 +347,12 @@ export function GridSurface({
       const value = source.row.cells[source.field.id] ?? null
       for (let r = rect.top + 1; r <= rect.bottom; r++) {
         const target = cellAt({ row: r, col: c })
-        if (target) onUpdateCell?.(target.row.id, target.field.id, value)
+        if (target && !isCellLocked(target.row.id, target.field.id)) {
+          onUpdateCell?.(target.row.id, target.field.id, value)
+        }
       }
     }
-  }, [readOnly, selectedRect, cellAt, onUpdateCell])
+  }, [readOnly, selectedRect, cellAt, onUpdateCell, isCellLocked])
 
   // ─── Command execution ─────────────────────────────────────────────────────
 
@@ -347,6 +370,8 @@ export function GridSurface({
           const target = state.cursor ? cellAt(state.cursor) : null
           // Structurally locked columns are never editable.
           if (target?.field.readonly) break
+          // Per-cell lock (e.g. authorization) — never editable.
+          if (target && isCellLocked(target.row.id, target.field.id)) break
           // Computed/auto fields have no editor
           if (
             target &&
@@ -444,6 +469,7 @@ export function GridSurface({
     },
     [
       readOnly,
+      isCellLocked,
       rows,
       state.cursor,
       state.selection,
@@ -524,6 +550,8 @@ export function GridSurface({
       const cell = cellAt({ row: rowIndex, col: colIndex })
       // Structurally locked columns are never editable.
       if (cell?.field.readonly) return
+      // Per-cell lock (e.g. authorization) — never editable.
+      if (cell && isCellLocked(cell.row.id, cell.field.id)) return
       // Checkboxes toggle in place — no edit session (Sheets/Notion behavior)
       if (cell?.field.type === 'checkbox') {
         onUpdateCell?.(cell.row.id, cell.field.id, cell.row.cells[cell.field.id] !== true)
@@ -531,7 +559,7 @@ export function GridSurface({
       }
       dispatch({ type: 'startEdit', mode: 'edit' })
     },
-    [readOnly, cellAt, onUpdateCell]
+    [readOnly, isCellLocked, cellAt, onUpdateCell]
   )
 
   // ─── Editing callbacks (from GridCell) ─────────────────────────────────────
@@ -638,6 +666,7 @@ export function GridSurface({
                       state={state}
                       presences={presences}
                       cellCommentCounts={cellCommentCounts}
+                      cellLockReasons={cellLockReasons}
                       readOnly={readOnly}
                       draftRef={draftRef}
                       onMouseDownCell={handleCellMouseDown}
@@ -696,6 +725,7 @@ interface GridRowProps {
   state: GridState
   presences?: CellPresence[]
   cellCommentCounts?: Map<string, number>
+  cellLockReasons?: ReadonlyMap<string, string>
   readOnly?: boolean
   draftRef: React.MutableRefObject<CellValue>
   onMouseDownCell: (rowIndex: number, colIndex: number, shiftKey: boolean) => void
@@ -725,6 +755,7 @@ function GridRow({
   state,
   presences,
   cellCommentCounts,
+  cellLockReasons,
   readOnly,
   draftRef,
   onMouseDownCell,
@@ -853,6 +884,7 @@ function GridRow({
             editSeed={editing ? state.editing?.seed : undefined}
             presences={cellPresences}
             commentCount={cellCommentCounts?.get(`${row.id}:${field.id}`) ?? 0}
+            lockReason={cellLockReasons?.get(`${row.id}:${field.id}`)}
             width={field.width}
             readOnly={readOnly}
             onMouseDown={onMouseDownCell}
