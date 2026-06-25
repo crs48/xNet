@@ -17,6 +17,7 @@
  */
 import { useCallback, useState } from 'react'
 import { useDevTools } from '../../provider/useDevTools'
+import { runSeed } from '../../seed'
 import {
   actionLabel,
   createResetActions,
@@ -28,16 +29,69 @@ import {
 } from './reset-actions'
 
 export function Reset() {
-  const { onResetLocalData, onResetHub } = useDevTools()
+  const { onResetLocalData, onResetHub, store, yDocRegistry, documentHistory } = useDevTools()
   const [message, setMessage] = useState<string | null>(null)
   const actions = createResetActions({ onResetLocalData, onResetHub })
+
+  const seed = useCallback(
+    async (mode: 'converge' | 'reseed'): Promise<string> => {
+      if (!store) throw new Error('No store connected.')
+      const report = await runSeed({
+        store,
+        mode,
+        scale: 'medium',
+        yDocRegistry,
+        documentHistory: documentHistory ?? null
+      })
+      return `${mode}: ${report.created} created, ${report.updated} updated. See the Seed panel for full controls.`
+    },
+    [store, yDocRegistry, documentHistory]
+  )
 
   return (
     <div className="h-full overflow-auto p-3 text-xs text-ink-2">
       <p className="mb-3 text-ink-3">
-        Destructive. Pre-release only — no migration is performed. Each action asks for a second
-        click to confirm.
+        Seed or wipe the local database. Seeding is idempotent — re-running adds only what is
+        missing. The destructive actions ask for a second click to confirm.
       </p>
+
+      <div className="mb-3 flex flex-col gap-2 max-w-md">
+        <div className="rounded border border-hairline bg-surface-1 p-2">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <div className="font-medium text-ink-1">Seed everything</div>
+              <div className="text-ink-3">
+                Populate a demo workspace covering every content type. Idempotent — no duplicates.
+              </div>
+            </div>
+            <button
+              type="button"
+              disabled={!store}
+              onClick={() => {
+                void seed('converge')
+                  .then(setMessage)
+                  .catch((err) => setMessage(formatError('Seed everything', err)))
+              }}
+              className={
+                store
+                  ? 'shrink-0 rounded bg-surface-2 px-2 py-1 text-xs font-medium text-ink-1 hover:bg-surface-3'
+                  : 'shrink-0 cursor-not-allowed rounded bg-surface-2 px-2 py-1 text-xs font-medium text-ink-3'
+              }
+            >
+              Seed
+            </button>
+          </div>
+        </div>
+        <ResetAction
+          label="Reseed (clear seed + rebuild)"
+          description="Delete the seeded demo set, then rebuild it clean."
+          danger
+          disabled={!store}
+          disabledHint="No store is connected."
+          run={() => seed('reseed')}
+          onMessage={setMessage}
+        />
+      </div>
 
       <div className="flex flex-col gap-2 max-w-md">
         <ResetAction
