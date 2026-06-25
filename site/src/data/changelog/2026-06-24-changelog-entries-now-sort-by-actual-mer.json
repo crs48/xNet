@@ -1,0 +1,15 @@
+{
+  "id": "2026-06-24-changelog-entries-now-sort-by-actual-mer",
+  "date": "June 24, 2026",
+  "title": "Changelog entries now sort by actual merge time",
+  "summary": "The What's New / changelog list is now ordered strictly by when each change actually merged — down to the time of day — so several updates that shipped on the same day appear in the true order they landed, newest first, instead of being shuffled by entry name.",
+  "highlights": [
+    "Entries sort by the PR's real merge timestamp (time-of-day precision), not just the calendar day",
+    "Same-day updates no longer appear out of order",
+    "Merge time is recorded automatically when a PR merges, with a deploy-time backfill as a safety net"
+  ],
+  "tags": [
+    "platform",
+    "ci"
+  ]
+}
