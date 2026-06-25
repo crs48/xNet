@@ -11,5 +11,12 @@
   "tags": [
     "platform",
     "ci"
+  ],
+  "pr": 259,
+  "mergedAt": "2026-06-25T02:22:28Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
   ]
 }
