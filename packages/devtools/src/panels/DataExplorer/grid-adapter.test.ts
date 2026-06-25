@@ -7,6 +7,7 @@ import {
   coerceCellValue,
   coerceCellValueForType,
   formatPlanRows,
+  formatSchemaOptionLabel,
   gridFieldsToColumnDefinitions,
   nodeToGridRow,
   observedPropertyKeys,
@@ -82,6 +83,25 @@ describe('buildSchemaOptions', () => {
     ])
     expect(opts.map((o) => o.label)).toEqual(['Note', 'Zeta'])
     expect(opts[0].iri).toBe('xnet://xnet.fyi/Note')
+  })
+})
+
+describe('formatSchemaOptionLabel', () => {
+  it('appends the entity count in parentheses', () => {
+    expect(formatSchemaOptionLabel('Task', 12)).toBe('Task (12)')
+  })
+
+  it('shows (0) for an empty schema so it is obvious where there is no data', () => {
+    expect(formatSchemaOptionLabel('Person', 0)).toBe('Person (0)')
+  })
+
+  it('groups large counts deterministically (en-US)', () => {
+    expect(formatSchemaOptionLabel('Event', 1234567)).toBe('Event (1,234,567)')
+  })
+
+  it('returns just the label when the count is not yet known', () => {
+    expect(formatSchemaOptionLabel('Task', null)).toBe('Task')
+    expect(formatSchemaOptionLabel('Task', undefined)).toBe('Task')
   })
 })
 

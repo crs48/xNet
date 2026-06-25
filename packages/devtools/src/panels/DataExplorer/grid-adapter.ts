@@ -352,6 +352,18 @@ export function buildSchemaOptions(iris: Iterable<string>): SchemaOption[] {
   return options.sort((a, b) => a.label.localeCompare(b.label))
 }
 
+/**
+ * Render a schema-picker label with its entity count, e.g. `Task (12)` or
+ * `Person (0)`, so it's obvious at a glance where the data lives. A null /
+ * undefined count (still loading, or uncountable) yields just the label so the
+ * dropdown degrades gracefully rather than showing `Task ()`. Grouping is
+ * pinned to `en-US` so large counts read as `1,234` deterministically
+ * regardless of the runtime locale.
+ */
+export function formatSchemaOptionLabel(label: string, count: number | null | undefined): string {
+  return typeof count === 'number' ? `${label} (${count.toLocaleString('en-US')})` : label
+}
+
 export type PlanMeta = NonNullable<NodeQueryResult['plan']>
 
 export interface PlanRow {

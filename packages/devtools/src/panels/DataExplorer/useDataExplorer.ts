@@ -59,6 +59,11 @@ export function useDataExplorer() {
   const [editError, setEditError] = useState<string | null>(null)
   // View prefs (sorts/filters/density/hidden columns), persisted per schema.
   const [prefs, setPrefs] = useState<DataViewPrefs>(() => loadViewPrefs(null))
+  // Per-schema entity counts for the picker (keyed by option IRI). Empty until
+  // the first count pass resolves. `dataVersion` bumps on each (debounced) live
+  // change so the counts track creates/deletes without polling.
+  const [schemaCounts, setSchemaCounts] = useState<ReadonlyMap<string, number>>(new Map())
+  const [dataVersion, setDataVersion] = useState(0)
   const [state, setState] = useState<QueryState>({
     nodes: [],
     totalCount: null,
@@ -173,6 +178,8 @@ export function useDataExplorer() {
       timer = setTimeout(() => {
         timer = null
         runQuery()
+        // Counts can change on create/delete — nudge the count effect to re-run.
+        setDataVersion((v) => v + 1)
       }, LIVE_DEBOUNCE_MS)
     })
     return () => {
@@ -188,6 +195,65 @@ export function useDataExplorer() {
     () => buildSchemaOptions([...registryIris, ...state.nodes.map((n) => n.schemaId)]),
     [registryIris, state.nodes]
   )
+
+  // Stable key of the IRIs we need counts for. Joining into one newline-
+  // separated string (schema IRIs never contain newlines) keeps the count
+  // effect from re-running when `schemaOptions` is rebuilt with the same set of
+  // schemas — its identity changes on every query as `state.nodes` updates.
+  const countableIrisKey = useMemo(
+    () => Array.from(new Set(schemaOptions.map((o) => o.iri))).join('\n'),
+    [schemaOptions]
+  )
+
+  // Per-schema entity counts. We read each schema's exact total via
+  // `store.query({ count: 'exact' })` — the same authorization-respecting path
+  // the grid uses — so the picker counts match the rows the viewer can actually
+  // see (the raw `countNodes` adapter would also count unreadable nodes). Runs
+  // on mount, when the schema set or `includeDeleted` changes, and on each
+  // debounced live change. Cost is one COUNT per schema; fine for a dev tool.
+  useEffect(() => {
+    if (!store || !countableIrisKey) {
+      setSchemaCounts(new Map())
+      return
+    }
+    let alive = true
+    const iris = countableIrisKey.split('\n')
+    void (async () => {
+      const entries = await Promise.all(
+        iris.map(async (iri): Promise<readonly [string, number] | null> => {
+          try {
+            const result = await store.query({
+              schemaId: iri as SchemaIRI,
+              includeDeleted,
+              limit: 1,
+              count: 'exact'
+            })
+            return [iri, result.totalCount ?? result.nodes.length]
+          } catch {
+            // A single schema's count failing shouldn't blank the others.
+            return null
+          }
+        })
+      )
+      if (!alive) return
+      const next = new Map<string, number>()
+      for (const entry of entries) if (entry) next.set(entry[0], entry[1])
+      setSchemaCounts(next)
+    })()
+    return () => {
+      alive = false
+    }
+  }, [store, countableIrisKey, includeDeleted, dataVersion])
+
+  // "All schemas" total = sum of the per-schema counts (i.e. across pickable
+  // schemas). Null until the first count pass resolves, so the picker shows a
+  // bare "All schemas" rather than a misleading 0 while counts load.
+  const allCount = useMemo(() => {
+    if (schemaCounts.size === 0) return null
+    let sum = 0
+    for (const n of schemaCounts.values()) sum += n
+    return sum
+  }, [schemaCounts])
 
   // Client-side free-text search over the loaded page.
   const filteredNodes = useMemo(() => {
@@ -267,6 +333,8 @@ export function useDataExplorer() {
   return {
     store,
     schemaOptions,
+    schemaCounts,
+    allCount,
     selectedSchema,
     setSelectedSchema,
     definedSchema,

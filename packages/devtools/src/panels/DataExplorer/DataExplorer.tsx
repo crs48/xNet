@@ -18,6 +18,7 @@ import { AuthTraceView, type AuthTrace } from '../AuthZPanel/AuthTraceView'
 import {
   buildGridFields,
   formatPlanRows,
+  formatSchemaOptionLabel,
   gridFieldsToColumnDefinitions,
   nodeToGridRow,
   observedPropertyKeys,
@@ -30,6 +31,8 @@ import { useDataExplorer } from './useDataExplorer'
 export function DataExplorer() {
   const {
     schemaOptions,
+    schemaCounts,
+    allCount,
     selectedSchema,
     setSelectedSchema,
     definedSchema,
@@ -111,10 +114,10 @@ export function DataExplorer() {
             className="bg-surface-2 border border-hairline rounded px-2 py-0.5 text-xs text-ink-1 max-w-[200px]"
             title="Filter by schema"
           >
-            <option value="">All schemas ({schemaOptions.length})</option>
+            <option value="">{formatSchemaOptionLabel('All schemas', allCount)}</option>
             {schemaOptions.map((s) => (
               <option key={s.iri} value={s.iri}>
-                {s.label}
+                {formatSchemaOptionLabel(s.label, schemaCounts.get(s.iri))}
               </option>
             ))}
           </select>
