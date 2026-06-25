@@ -8,7 +8,6 @@
  * view.saved, list.tasks, links.pages, heatmap.streak).
  */
 
-import { ObservationSchema, PageSchema, TaskSchema } from '@xnetjs/data'
 import type {
   DashboardLayoutItem,
   DashboardLayouts,
@@ -17,6 +16,7 @@ import type {
   QueryASTNodeQuery,
   SavedViewDescriptor
 } from '@xnetjs/data'
+import { ObservationSchema, PageSchema, TaskSchema } from '@xnetjs/data'
 import { seedId } from '../seed-ids'
 
 const TASK = TaskSchema._schemaId

@@ -339,9 +339,9 @@ interface FieldSpec { /* + */ kind adds: 'dateRange'|'file'|'rollup'|'formula'|'
 - [x] Rewrite `viz.ts` dashboards: seed `analytics` (Metrics + timeRange) and `team-hub` (Tasks/Pages/Databases) bound to already-seeded node ids.
 
 ### Phase 2 — Page blocks + inline (keystone)
-- [ ] Extend `RichBlock` with `image|file|embed|databaseEmbed|taskViewEmbed|richLink|toggle|mermaid|hr` (+ `callout caution`), building each `Y.XmlElement` with exact attrs.
-- [ ] Add the inline model (`TextRun`/`InlinePill`) + a `paragraph(runs)` builder applying marks via `Y.XmlText.format` and inserting inline atom elements.
-- [ ] Enrich the seeded pages (`docs.ts`) to use the full vocabulary; wire `databaseEmbed`/`taskViewEmbed` to seeded DB/task ids and inline pills to seeded nodes.
+- [x] Extend `RichBlock` with `image|file|embed|databaseEmbed|taskViewEmbed|richLink|toggle|mermaid|hr` (+ `callout caution`), building each `Y.XmlElement` with exact attrs.
+- [x] Add the inline model (`TextRun`/`InlinePill`) + a `paragraph(runs)` builder applying marks via `Y.XmlText.format` and inserting inline atom elements.
+- [x] Enrich the seeded pages (`docs.ts`) to use the full vocabulary; wire `databaseEmbed`/`taskViewEmbed` to seeded DB/task ids and inline pills to seeded nodes.
 
 ### Phase 3 — Database views & advanced fields
 - [ ] Extend `DatabaseSpec`/`ViewSpec`/`FieldSpec` in `database-drafts.ts`: `list/gallery/timeline` views; `filters`/`sorts`/`columnSummaries`/`fieldOrder`/`fieldWidths`/`hiddenFields`/`rowHeight`/`coverField`; `dateRange`/`file`/`rollup`/`formula`/`created*` field types.
@@ -357,7 +357,7 @@ interface FieldSpec { /* + */ kind adds: 'dateRange'|'file'|'rollup'|'formula'|'
 - [ ] Assess `Map` (`map.ts`) content model; seed minimal real content or record a deferral rationale.
 
 ### Cross-cutting
-- [ ] Add `seed-render.test.ts`: load every seeded `SeedDoc` through the editor's ProseMirror schema (and decode each canvas/dashboard) — fail on any rejected/blank doc.
+- [x] Add `seed-render.test.ts`: load every seeded `SeedDoc` through the editor's ProseMirror schema (and decode each canvas/dashboard) — fail on any rejected/blank doc.
 - [ ] Keep `seed-coverage.test.ts` + `seed-integrity.test.ts` green; update the Seed panel/README/CLAUDE.md if surfaces change.
 - [ ] `@xnetjs/devtools` is private → no changeset; add a `changelog-section` fragment.
 
