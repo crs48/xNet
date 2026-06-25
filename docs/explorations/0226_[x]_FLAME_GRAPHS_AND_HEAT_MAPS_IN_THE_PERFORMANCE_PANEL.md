@@ -448,18 +448,18 @@ A flame node renders with the same `<rect>` + `colourForStage` recipe as
 
 ## Validation Checklist
 
-- [ ] `pnpm --filter @xnetjs/devtools test` green, including new jsdom SVG
+- [x] `pnpm --filter @xnetjs/devtools test` green, including new jsdom SVG
       assertions (cells/rects present, counts in `<title>`).
-- [ ] Latency heat map renders with seeded traces (use the dev-tools Seed panel +
+- [x] Latency heat map renders with seeded traces (use the dev-tools Seed panel +
       run several queries) and shows distinct rows for cache-hit vs slow traces.
-- [ ] Aggregated flame graph widths sum to the ring's total time and sort
+- [x] Aggregated flame graph widths sum to the ring's total time and sort
       widest-left; degrades to a flat bar list when spans are shallow.
-- [ ] Per-trace flame chart shows correct nesting on a synthetic multi-span trace
+- [x] Per-trace flame chart shows correct nesting on a synthetic multi-span trace
       and matches `Waterfall` totals.
-- [ ] Empty states render (no traces / no canvas) without throwing under jsdom.
-- [ ] Theme check: legible in both dark and light dev-tools themes; tooltips expose
+- [x] Empty states render (no traces / no canvas) without throwing under jsdom.
+- [x] Theme check: legible in both dark and light dev-tools themes; tooltips expose
       raw counts/ms.
-- [ ] No prod bundle impact (dev-tools tree-shaken); no new runtime dependency added.
+- [x] No prod bundle impact (dev-tools tree-shaken); no new runtime dependency added.
 
 ## References
 
