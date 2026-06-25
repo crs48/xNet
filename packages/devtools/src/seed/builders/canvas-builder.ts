@@ -37,8 +37,7 @@ export function note(pos: Pos, title: string): CanvasNode {
 }
 
 function withMembers(node: CanvasNode, memberIds: string[]): CanvasNode {
-  (node as { memberIds?: string[] }).memberIds = memberIds
-  return node
+  return Object.assign(node, { memberIds })
 }
 
 /** A frame container (a group node with `containerRole: 'frame'`). */
