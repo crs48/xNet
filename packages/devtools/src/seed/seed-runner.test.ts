@@ -9,12 +9,14 @@ import { generateSigningKeyPair } from '@xnetjs/crypto'
 import {
   MemoryNodeStorageAdapter,
   NodeStore,
+  PageSchema,
   ProjectSchema,
   TaskSchema,
   SpaceSchema
 } from '@xnetjs/data'
 import { createDID } from '@xnetjs/identity'
 import { describe, it, expect } from 'vitest'
+import * as Y from 'yjs'
 import { runSeed } from './seed-runner'
 
 function makeStore(): NodeStore {
@@ -52,6 +54,50 @@ describe('runSeed — converge (idempotent)', () => {
     expect(tasks2).toBe(tasks1)
     expect(projects2).toBe(projects1)
     expect(spaces2).toBe(spaces1)
+  })
+})
+
+describe('runSeed — relationships + documents', () => {
+  it('tasks resolve to a real project + space, scoped into the demo space', async () => {
+    const store = makeStore()
+    await runSeed({ store, scale: 'small' })
+
+    const tasks = await store.query({
+      schemaId: TaskSchema._schemaId,
+      includeDeleted: false,
+      count: 'none'
+    })
+    expect(tasks.nodes.length).toBeGreaterThan(0)
+    for (const task of tasks.nodes) {
+      const projectRef = task.properties.project as string
+      expect(projectRef, `task ${task.id} has no project`).toBeTruthy()
+      const project = await store.get(projectRef)
+      expect(project, `dangling project ref ${projectRef}`).not.toBeNull()
+      expect(project!.schemaId).toContain('Project')
+      expect(task.properties.space).toBe('seed/space/demo')
+    }
+  })
+
+  it('applies a Yjs document to the flagship page (decodable, has blocks)', async () => {
+    const store = makeStore()
+    await runSeed({ store, scale: 'small' })
+
+    const pages = await store.query({
+      schemaId: PageSchema._schemaId,
+      includeDeleted: false,
+      count: 'none'
+    })
+    const sample = pages.nodes.find((p) => p.id === 'seed/page/sample')
+    expect(sample, 'flagship sample page missing').toBeTruthy()
+
+    const content = await store.getDocumentContent(sample!.id)
+    expect(content, 'sample page has no document content').toBeTruthy()
+
+    const doc = new Y.Doc()
+    Y.applyUpdate(doc, content!)
+    const fragment = doc.getXmlFragment('content')
+    expect(fragment.length).toBeGreaterThan(5) // many block types
+    expect(doc.getMap('meta').get('title')).toBe('Sample Page - All Block Types')
   })
 })
 
