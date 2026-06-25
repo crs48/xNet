@@ -8,6 +8,14 @@
     "Schemas that aren't in the registry now say so, instead of a dead edit toggle that did nothing",
     "The edit toggle only appears once a schema's typed definition is loaded, with clearer wording"
   ],
-  "tags": ["devtools", "platform"],
-  "authors": [{ "login": "crs48" }]
+  "tags": [
+    "devtools",
+    "platform"
+  ],
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ],
+  "pr": 258
 }
