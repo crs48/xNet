@@ -2,8 +2,16 @@
 
 Everything you need to configure **npm** and **GitHub** so that `@xnetjs/*`
 packages publish automatically, securely, and reproducibly when changes merge to
-`main`. Follow the parts in order — **Part 1 (bootstrap) is the one blocking
-publishing right now.**
+`main`.
+
+> **Status:** initial setup is **complete** (2026-06-25) — all 18 `@xnetjs/*`
+> packages are published and OIDC trusted publishing is live. This guide is kept
+> as the reference for the system and for the steps you repeat:
+> **Part 1–2** (bootstrap + trusted publisher) are the one-time steps already done
+> for the current packages — you only revisit them when **adding a brand-new
+> package** (which needs the same one-time bootstrap, because OIDC can't
+> first-publish a new name). **Part 3** (hardening) and **Part 6** (steady-state
+> releasing) are the ongoing parts.
 
 > Companion docs: [`npm-release-quickstart.md`](npm-release-quickstart.md) (the
 > short checklist) and [`npm-release-runbook.md`](npm-release-runbook.md) (how to
@@ -53,14 +61,20 @@ PR ──(changeset added by /changeset, the agent Stop hook, or the
 
 ---
 
-## Part 1 — One-time npm bootstrap (DO THIS FIRST)
+## Part 1 — One-time npm bootstrap (per new package)
 
 **Why:** npm OIDC trusted publishing **cannot create a brand-new package** — the
 package must already exist on the registry before OIDC can publish to it. The
-first publish of any new package must use a **token**. The original packages
-(`core`, `crypto`, `react`, …) were bootstrapped this way, then switched to OIDC.
+first publish of any new package must use a **token**. Every published package
+was bootstrapped this way once, then switched to OIDC.
 
-**These 6 packages have never been published** and are blocking the release:
+> **Already done** for the current 18 packages. You repeat this section only when
+> you add a **new** publishable package. It's documented here because it's the
+> single non-obvious step, and getting it wrong produces an un-installable
+> package (publishing one that references an unpublished dependency).
+
+The first bootstrap (2026-06-25) covered the 6 packages that were added to the
+release set after the original publish:
 
 | Package | Why it must publish |
 | --- | --- |
@@ -71,9 +85,12 @@ first publish of any new package must use a **token**. The original packages
 | `@xnetjs/abuse` | member of the `fixed` core (added after the first bootstrap) |
 | `@xnetjs/runtime` | dep of `react`/`cli` (added after the first bootstrap) |
 
-> ⚠️ **Until these exist on npm, do not merge the pending Version PR** — it would
-> publish `@xnetjs/plugins@0.0.3` referencing `@xnetjs/trust@0.0.2` (which would
-> fail), producing an **un-installable** package. Bootstrap first.
+> ⚠️ **Bootstrap a new package before any release that would reference it.**
+> Otherwise the release publishes e.g. `@xnetjs/plugins` referencing an
+> unpublished dependency, producing an **un-installable** package. The CI guard
+> `pnpm check:publish-closure` catches the dependency side of this; the bootstrap
+> covers the new package itself. Substitute the new package name(s) for the 6
+> below.
 
 ### 1a. Create an npm token
 
@@ -293,14 +310,21 @@ approval. Optional — the Version-PR merge already gates releases.
 
 ---
 
-## Part 5 — Finish the currently-pending release
+## Part 5 — Bringing a release home (the order of operations)
 
-1. Complete **Part 1** (bootstrap the 6 packages).
-2. Complete **Part 2** (trusted publishers for those 6).
-3. **Merge the open Version PR** `chore(release): version packages`. The release
-   publishes: fixed core → `0.0.3`, independent leaves → `0.0.2`/`0.0.3`, all with
-   provenance.
-4. Do **Part 3** (revoke token, disallow token publishing).
+When a release involves a **new** package, the sequence is:
+
+1. **Part 1** — bootstrap the new package(s) with a token.
+2. **Part 2** — configure their trusted publishers.
+3. **Merge the Version PR** `chore(release): version packages`. It publishes the
+   bumps via OIDC with provenance.
+4. **Part 3** — revoke the bootstrap token / disallow token publishing.
+
+> The first release (2026-06-25) followed exactly this: bootstrapped the 6, set
+> their trusted publishers, merged the Version PR → fixed core + `cli` → `0.0.3`,
+> independent leaves + `runtime` → `0.0.2`, all with provenance.
+
+For a release with **no** new packages (the common case), it's just Part 6.
 
 ---
 
