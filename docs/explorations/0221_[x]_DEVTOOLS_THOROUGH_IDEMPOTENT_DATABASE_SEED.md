@@ -788,32 +788,32 @@ describe('seed coverage', () => {
 
 ## Validation Checklist
 
-- [ ] **Idempotency:** run "Seed everything" twice; the Data panel shows the
+- [x] **Idempotency:** run "Seed everything" twice; the Data panel shows the
       *same* per-schema counts after the second run (created=0, updated≥0,
       no duplicates). Verified both via the runner's report and `store.query({
       schemaId, count: 'exact' })`.
-- [ ] **Convergence of new fixtures:** add a new fixture to a seeder, re-run;
+- [x] **Convergence of new fixtures:** add a new fixture to a seeder, re-run;
       only the new node appears; existing nodes untouched.
-- [ ] **Coverage:** `seed-coverage.test.ts` is green; temporarily register a
+- [x] **Coverage:** `seed-coverage.test.ts` is green; temporarily register a
       throwaway schema with no seeder and confirm the test **fails** with a
       helpful message, then remove it.
-- [ ] **Relationships resolve:** in the app, open the demo Space; a Project
+- [x] **Relationships resolve:** in the app, open the demo Space; a Project
       shows its Tasks; a Task links to its spec Page/Canvas; a Channel shows
       threaded messages; Comments appear anchored on pages/db cells/tasks;
       Dashboard widgets reference Metrics with Observations.
-- [ ] **Yjs surfaces render** (pages with all block types, canvases,
+- [x] **Yjs surfaces render** (pages with all block types, canvases,
       databases with views/rows) and re-seeding does **not** duplicate blocks
       or history entries.
-- [ ] **Authz:** all writes succeed as the seeding author (owner of the demo
+- [x] **Authz:** all writes succeed as the seeding author (owner of the demo
       Space); no `PermissionError` in the console.
-- [ ] **Accrete mode** grows volume on each run; **Reseed mode** clears and
+- [x] **Accrete mode** grows volume on each run; **Reseed mode** clears and
       rebuilds to a clean converged state.
-- [ ] **Scale:** L-scale seed completes within an acceptable time using
+- [x] **Scale:** L-scale seed completes within an acceptable time using
       `defer-schema` + rebuild; cold reload of the seeded DB stays within the
       boot watchdog budget (cf. 0184/0204).
-- [ ] **Prod bundle:** the `seed/` module does not appear in the production
+- [x] **Prod bundle:** the `seed/` module does not appear in the production
       web bundle (devtools no-op).
-- [ ] **Lint/format/typecheck/tests** green; `prettier --check` passes for new
+- [x] **Lint/format/typecheck/tests** green; `prettier --check` passes for new
       TSX; generated JSON (if any snapshot) is `.prettierignore`d.
 
 ## References
