@@ -14,6 +14,7 @@ import Link from '@tiptap/extension-link'
 import TaskList from '@tiptap/extension-task-list'
 import StarterKit from '@tiptap/starter-kit'
 import { yXmlFragmentToProseMirrorRootNode } from '@tiptap/y-tiptap'
+import { getCanvasConnectorsMap, getCanvasObjectsMap } from '@xnetjs/canvas'
 import {
   BlockquoteWithSyntax,
   CalloutExtension,
@@ -97,5 +98,25 @@ describe('seed render fidelity', () => {
       validated++
     }
     expect(validated, 'no page docs validated').toBeGreaterThan(0)
+  })
+
+  it('the flagship canvas scene has real objects + connectors', async () => {
+    const { docs } = await collectSeed(ctx)
+    let canvasObjects = 0
+    let canvasConnectors = 0
+    const kinds = new Set<string>()
+    for (const seedDoc of docs) {
+      const doc = seedDoc.build()
+      const objects = getCanvasObjectsMap<{ type: string }>(doc)
+      if (objects.size === 0) continue
+      canvasObjects += objects.size
+      objects.forEach((o) => kinds.add(o.type))
+      canvasConnectors += getCanvasConnectorsMap(doc).size
+    }
+    expect(canvasObjects).toBeGreaterThan(4)
+    expect(canvasConnectors).toBeGreaterThan(0)
+    // Exercises multiple card kinds incl. a container (frame/group).
+    expect(kinds.has('database')).toBe(true)
+    expect(kinds.has('group')).toBe(true)
   })
 })

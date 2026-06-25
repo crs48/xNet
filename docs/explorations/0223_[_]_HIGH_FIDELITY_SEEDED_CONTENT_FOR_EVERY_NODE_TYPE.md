@@ -348,8 +348,8 @@ interface FieldSpec { /* + */ kind adds: 'dateRange'|'file'|'rollup'|'formula'|'
 - [x] Add one flagship database (e.g. Products+Suppliers or extend Tasks Tracker) exercising every view type + every field type + filters/sorts/summaries.
 
 ### Phase 4 — Canvas frames, groups & card kinds
-- [ ] Add `builders/canvas-builder.ts`: constructors for `database`/`dashboard`/`external-reference`/`media`/`widget` cards, a `frame(variant, memberIds)` helper, a `group(memberIds)` helper, and a `styledEdge(relationshipKind, style)` helper (all 8 kinds, curved/dashed/markers).
-- [ ] Rebuild the flagship canvas scene to embed seeded DB/dashboard/media nodes, ≥1 frame + group, and styled connectors.
+- [x] Add `builders/canvas-builder.ts`: constructors for `database`/`dashboard`/`external-reference`/`media`/`widget` cards, a `frame(variant, memberIds)` helper, a `group(memberIds)` helper, and a `styledEdge(relationshipKind, style)` helper (all 8 kinds, curved/dashed/markers).
+- [x] Rebuild the flagship canvas scene to embed seeded DB/dashboard/media nodes, ≥1 frame + group, and styled connectors.
 
 ### Phase 5 — Domain `.document` narratives
 - [ ] Add `docs/page-builders.ts` (task description, project brief, milestone notes, CRM org/contact/deal notes, experiment protocol) on the Phase-2 vocabulary.
