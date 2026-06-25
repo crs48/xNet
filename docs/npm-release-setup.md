@@ -137,8 +137,14 @@ pnpm turbo run build \
 export NODE_AUTH_TOKEN="npm_xxxxxxxx"
 npm config set //registry.npmjs.org/:_authToken "$NODE_AUTH_TOKEN"
 
-# pnpm publish rewrites workspace:* deps to real versions (npm publish does NOT)
-pnpm --filter "@xnetjs/trust" --filter "@xnetjs/slack-compat" \
+# pnpm publish rewrites workspace:* deps to real versions (npm publish does NOT).
+# NPM_CONFIG_PROVENANCE=false: every package sets publishConfig.provenance:true,
+# but provenance can only be generated in CI via OIDC — from a laptop it errors
+# `Automatic provenance generation not supported for provider: null`. This
+# bootstrap just creates the package NAMES; the OIDC release that follows (when
+# you merge the Version PR) attaches provenance to the real versions.
+NPM_CONFIG_PROVENANCE=false pnpm \
+     --filter "@xnetjs/trust" --filter "@xnetjs/slack-compat" \
      --filter "@xnetjs/billing" --filter "@xnetjs/devkit" \
      --filter "@xnetjs/abuse" --filter "@xnetjs/runtime" \
      publish --access public --no-git-checks
@@ -357,6 +363,7 @@ node -e "require('@xnetjs/plugins'); console.log('ok')"
 | Symptom | Cause | Fix |
 | --- | --- | --- |
 | `E404 ... PUT .../@xnetjs/<name>` on publish | OIDC can't first-publish a brand-new package | Bootstrap it with a token (Part 1) |
+| `EUSAGE Automatic provenance generation not supported for provider: null` | publishing **locally** with `provenance:true` — provenance needs CI/OIDC | Prefix the local bootstrap with `NPM_CONFIG_PROVENANCE=false`; provenance attaches on the next OIDC release |
 | `Failed to parse data from GitHub … Premature close` during `version` | transient GitHub GraphQL hiccup in `@changesets/changelog-github` | Re-run the failed `npm Release` run (`gh run rerun --failed`) |
 | Version PR never opens | Actions can't create PRs | Enable "Allow GitHub Actions to create and approve pull requests" (Part 4a) |
 | `No changesets found … publishing unpublished packages` then `E404` | a package is config-publishable but unpublished and no changeset exists | Bootstrap the package, or add a changeset; don't leave config-publishable packages unpublished |
