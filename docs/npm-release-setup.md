@@ -122,9 +122,16 @@ provenance path).**
 ```bash
 git checkout main && git pull
 pnpm install
-pnpm --filter "@xnetjs/trust" --filter "@xnetjs/slack-compat" \
-     --filter "@xnetjs/billing" --filter "@xnetjs/devkit" \
-     --filter "@xnetjs/abuse" --filter "@xnetjs/runtime" run build
+
+# Build the 6 packages AND their dependency closures. Use turbo (not
+# `pnpm --filter ... run build`): some of these import other @xnetjs packages
+# (e.g. runtime → plugins), and the .d.ts build fails unless those deps are
+# built first. turbo's `build` task `dependsOn: ["^build"]`, so it orders them.
+pnpm turbo run build \
+  --filter=@xnetjs/trust --filter=@xnetjs/slack-compat \
+  --filter=@xnetjs/billing --filter=@xnetjs/devkit \
+  --filter=@xnetjs/abuse --filter=@xnetjs/runtime
+# (or simply `pnpm build` to build the whole workspace — foolproof)
 
 # authenticate this shell with the token
 export NODE_AUTH_TOKEN="npm_xxxxxxxx"
