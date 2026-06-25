@@ -19,6 +19,17 @@ export function absoluteImage(src: string): string {
   return src.startsWith('http') ? src : `${SITE_URL}${src}`
 }
 
+/**
+ * The instant a feed entry is timestamped at: the PR's real merge time
+ * (`mergedAt`, time-of-day precision) when known, else midnight UTC of the `id`
+ * date prefix. Slicing to the 10-char date prefix is also what keeps the
+ * fallback well-formed for a slugged id — `2026-06-24-foo` →
+ * `2026-06-24T00:00:00Z`, not the malformed `2026-06-24-fooT00:00:00Z`.
+ */
+export function entryInstant(entry: ChangelogEntry): string {
+  return entry.mergedAt ?? `${entry.id.slice(0, 10)}T00:00:00Z`
+}
+
 function contentText(entry: ChangelogEntry): string {
   return [entry.summary, '', ...entry.highlights.map((h) => `• ${h}`)].join('\n')
 }
@@ -36,7 +47,7 @@ export function buildJsonFeed(entries: ChangelogEntry[]): object {
       url: entryUrl(entry),
       title: entry.title,
       content_text: contentText(entry),
-      date_published: `${entry.id}T00:00:00Z`,
+      date_published: entryInstant(entry),
       tags: entry.tags,
       ...(entry.hero ? { image: absoluteImage(entry.hero.src) } : {}),
       // xNet extension: structured fields the in-app surfaces read directly.
@@ -44,6 +55,7 @@ export function buildJsonFeed(entries: ChangelogEntry[]): object {
         date: entry.date,
         summary: entry.summary,
         highlights: entry.highlights,
+        ...(entry.mergedAt ? { mergedAt: entry.mergedAt } : {}),
         ...(entry.pr ? { pr: entry.pr } : {}),
         ...(() => {
           // Everyone who contributed; fall back to the legacy single author.
@@ -87,7 +99,7 @@ function rssItem(entry: ChangelogEntry): string {
     `      <title>${xmlEscape(entry.title)}</title>`,
     `      <link>${xmlEscape(entryUrl(entry))}</link>`,
     `      <guid isPermaLink="false">${xmlEscape(entry.id)}</guid>`,
-    `      <pubDate>${new Date(`${entry.id}T00:00:00Z`).toUTCString()}</pubDate>`,
+    `      <pubDate>${new Date(entryInstant(entry)).toUTCString()}</pubDate>`,
     `      <description>${xmlEscape(description)}</description>`,
     '    </item>'
   ].join('\n')

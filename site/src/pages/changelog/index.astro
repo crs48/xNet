@@ -9,6 +9,18 @@ import { loadPrGallery } from '../../lib/changelog-gallery'
 const repo = 'https://github.com/crs48/xNet'
 const editUrl = `${repo}/blob/main/site/src/data/changelog.ts`
 
+// Time-of-day label for an entry's merge instant, in UTC so the rendered string
+// is deterministic across build environments (the page is statically built).
+// Returns null when the entry has no resolved merge time (renders date-only).
+function mergeTimeUTC(iso?: string): string | null {
+  if (!iso) return null
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return null
+  const hh = String(d.getUTCHours()).padStart(2, '0')
+  const mm = String(d.getUTCMinutes()).padStart(2, '0')
+  return `${hh}:${mm} UTC`
+}
+
 const tagColor: Record<string, string> = {
   app: 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-300',
   crm: 'bg-sky-500/15 text-sky-700 dark:text-sky-300',
@@ -63,13 +75,14 @@ const view = entries.map((entry, i) => {
   const galleryLink =
     gallery && entry.pr ? { prUrl: gallery.prUrl, count: gallery.count, pr: entry.pr } : undefined
   const dataText = [entry.title, entry.summary, ...entry.highlights].join(' ').toLowerCase()
+  const mergeTime = mergeTimeUTC(entry.mergedAt)
   // Everyone who contributed; fall back to the legacy single author.
   const contributors = entry.authors?.length
     ? entry.authors
     : entry.author
       ? [entry.author]
       : []
-  return { entry, items, video, galleryLink, dataText, contributors }
+  return { entry, items, video, galleryLink, dataText, contributors, mergeTime }
 })
 ---
 
@@ -119,7 +132,7 @@ const view = entries.map((entry, i) => {
         <div class="absolute left-2 top-2 bottom-2 w-px bg-gradient-to-b from-emerald-500/40 via-indigo-500/25 to-transparent"></div>
 
         <div class="space-y-12">
-          {view.map(({ entry, items, video, galleryLink, dataText, contributors }, i) => (
+          {view.map(({ entry, items, video, galleryLink, dataText, contributors, mergeTime }, i) => (
             <article
               id={entry.id}
               class="cl-entry relative pl-10 scroll-mt-24"
@@ -129,7 +142,11 @@ const view = entries.map((entry, i) => {
               <div class="absolute left-0 top-1.5 h-[17px] w-[17px] rounded-full bg-indigo-400 ring-4 ring-white dark:ring-[#0a0a0f]"></div>
 
               <div class="mb-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-                <time class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500">{entry.date}</time>
+                <time
+                  datetime={entry.mergedAt}
+                  title={entry.mergedAt ? `Merged ${entry.mergedAt}` : undefined}
+                  class="text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-gray-500"
+                >{entry.date}{mergeTime && <span class="text-gray-300 dark:text-gray-600"> · {mergeTime}</span>}</time>
                 {entry.pr && (
                   <a
                     href={`${repo}/pull/${entry.pr}`}
