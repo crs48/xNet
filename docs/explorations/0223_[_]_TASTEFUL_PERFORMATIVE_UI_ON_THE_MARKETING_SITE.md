@@ -525,7 +525,7 @@ const { filename = 'terminal' } = Astro.props
 - [x] Add a shared reduced‑motion helper + decision note (a short
       `site/src/components/ui/README.md` documenting the five‑gate test) so the
       taste rules are enforced, not vibes.
-- [ ] **Wave 1a:** Build `ui/StatCounter.astro` (IntersectionObserver count‑up,
+- [x] **Wave 1a:** Build `ui/StatCounter.astro` (IntersectionObserver count‑up,
       reduced‑motion static fallback, `tabular-nums`).
 - [ ] Wire `StatCounter` into `sections/Community.astro` for the countable
       "what's working now" facts (tests, packages, property types, panels).
