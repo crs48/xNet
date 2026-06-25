@@ -557,24 +557,24 @@ const { filename = 'terminal' } = Astro.props
 ## Validation Checklist
 
 - [x] `pnpm --filter site build` passes locally (PR CI may not build the site).
-- [ ] Toggle OS "Reduce motion": every effect renders a sensible static state
+- [x] Toggle OS "Reduce motion": every effect renders a sensible static state
       (counters show final number, node graph shows one frame, word‑roll shows
       the first noun, no autoplay).
-- [ ] Light **and** dark themes both look intentional (opacities tuned per
+- [x] Light **and** dark themes both look intentional (opacities tuned per
       theme; palette stays indigo/purple/emerald/amber/pink).
-- [ ] Lighthouse/perf: no measurable regression in LCP/CLS on the landing page;
+- [x] Lighthouse/perf: no measurable regression in LCP/CLS on the landing page;
       canvas section CPU drops to ~0 when scrolled offscreen (verify
       `cancelAnimationFrame`).
-- [ ] Keyboard + screen reader: `BeforeAfter` range is operable and labelled;
+- [x] Keyboard + screen reader: `BeforeAfter` range is operable and labelled;
       decorative canvases are `aria-hidden`; counters expose the real final
       value in the DOM.
 - [x] Numbers shown are **true and current** (cross‑check against `metrics.json`,
       `status.json`, and the actual package/test counts).
-- [ ] Mobile (~380px) and desktop: no overflow from node graph/aurora; hero
+- [x] Mobile (~380px) and desktop: no overflow from node graph/aurora; hero
       word‑roll doesn't reflow layout (fixed line height).
-- [ ] "Squint test": no section stacks more than one focal animation; the page
+- [x] "Squint test": no section stacks more than one focal animation; the page
       reads as *polished*, not as an AI‑startup parody.
-- [ ] Visual capture / screenshots attached to the PR for the hero, the
+- [x] Visual capture / screenshots attached to the PR for the hero, the
       protocol mesh, and the count‑up moment.
 
 ## References
