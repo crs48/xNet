@@ -1,0 +1,10 @@
+{
+  "id": "2026-06-25-hardened-the-bring-your-own-backend-serv",
+  "date": "June 25, 2026",
+  "title": "Hardened the bring-your-own-backend server kit",
+  "summary": "Adversarial review of @xnetjs/server closed authorization, identity, and conflict-resolution gaps (cross-tenant write/delete, create clobber, signed-change spoofing, custodial clock drift) before the kit is exercised in production.",
+  "highlights": [],
+  "tags": [
+    "platform"
+  ]
+}
