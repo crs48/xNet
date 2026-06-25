@@ -438,7 +438,7 @@ A flame node renders with the same `<rect>` + `colourForStage` recipe as
       tokens) + a `<LatencyHeatmapSection>` reading `useTracesPanel()`.
 - [x] Add `FlameGraph.tsx` (aggregated left-heavy tree from `aggregateFlame`,
       reuse `colourForStage`) + an `<AggregateFlameSection>`.
-- [ ] Wire both sections into `PerformancePanel.tsx` between live metrics and
+- [x] Wire both sections into `PerformancePanel.tsx` between live metrics and
       recent traces.
 - [x] Phase 2: refactor `Waterfall` → depth layout by `parentSpanId` (or sibling
       `FlameChart`) with self-time; add a flame/waterfall toggle in `TracesPanel`.

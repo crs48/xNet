@@ -16,9 +16,13 @@ import {
   type BootMarks,
   type BootSegment
 } from './boot-timeline'
+import { FlameGraph } from './FlameGraph'
+import { FrameHeatmap } from './FrameHeatmap'
+import { LatencyHeatmap } from './LatencyHeatmap'
 import {
   useActiveQueries,
   useFrameRate,
+  useFrameRing,
   useHeap,
   useStorageStats,
   type ActiveQuery
@@ -29,8 +33,11 @@ export function PerformancePanel() {
     <div className="flex flex-col h-full overflow-y-auto divide-y divide-hairline">
       <BootTimelineSection />
       <LiveMetricsSection />
+      <FrameTimelineSection />
       <StorageSection />
       <ActiveQueriesSection />
+      <TimeBreakdownSection />
+      <LatencyDistributionSection />
       <RecentTracesSection />
     </div>
   )
@@ -121,6 +128,57 @@ function LiveMetricsSection() {
           <span className="text-[10px] text-ink-3">JS heap unavailable (Chromium only)</span>
         )}
       </div>
+    </Section>
+  )
+}
+
+function FrameTimelineSection() {
+  const samples = useFrameRing()
+  return (
+    <Section title="Frame timeline">
+      {samples.length === 0 ? (
+        <p className="text-[10px] text-ink-3">
+          Sampling frames… interact with the app to surface jank.
+        </p>
+      ) : (
+        <div className="overflow-x-auto">
+          <FrameHeatmap samples={samples} />
+        </div>
+      )}
+    </Section>
+  )
+}
+
+function TimeBreakdownSection() {
+  const { traces } = useTracesPanel()
+  return (
+    <Section title="Where time goes">
+      {traces.length === 0 ? (
+        <p className="text-[10px] text-ink-3">
+          No traces captured. Enable the Trace channel in Logs, then run a query.
+        </p>
+      ) : (
+        <div className="overflow-x-auto">
+          <FlameGraph traces={traces} />
+        </div>
+      )}
+    </Section>
+  )
+}
+
+function LatencyDistributionSection() {
+  const { traces } = useTracesPanel()
+  return (
+    <Section title="Latency distribution">
+      {traces.length === 0 ? (
+        <p className="text-[10px] text-ink-3">
+          No traces captured yet. Latency clusters and outliers appear here.
+        </p>
+      ) : (
+        <div className="overflow-x-auto">
+          <LatencyHeatmap traces={traces} />
+        </div>
+      )}
     </Section>
   )
 }
