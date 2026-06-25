@@ -1,15 +1,18 @@
 /**
- * Docs seeder — Pages. Creates one flagship "all block types" Page with a
- * deterministic Yjs document and anchored Comments, plus a spec Page per project
- * (linked from the Work seeder's first task of each project).
+ * Docs seeder — multiple distinct rich Pages that cross-link:
+ *  - a flagship "all block types" page (with anchored comments),
+ *  - a Wiki Home that embeds the others,
+ *  - meeting notes + an RFC,
+ *  - a rich spec page per project (linked from the Work seeder's first task).
+ * Pages are filed into nested folders, tagged, and use inline #tags / [[wikilinks]].
  */
 
 import type { SeedDoc, SeederModule } from '../types'
 import type { DeterministicNodeImportDraft } from '@xnetjs/data'
 import { CommentSchema, PageSchema } from '@xnetjs/data'
+import { buildRichPageDoc, type RichBlock } from '../docs/rich-pages'
 import { buildSamplePageDoc, buildTextAnchor } from '../docs/sample-page'
 import { PROJECT_NAMES, seedId } from '../seed-ids'
-import { folderId, tagId } from './spaces'
 
 /** Stable page node id. `pageId('spec', 'API Migration')` → spec page for that project. */
 export const pageId = (kind: string, name?: string): string =>
@@ -22,37 +25,31 @@ export const docsSeeder: SeederModule = {
   domain: 'docs',
   label: 'Pages & comments',
   schemaIds: [PageSchema._schemaId, CommentSchema._schemaId],
-  seed: ({ space, scale }) => {
+  seed: ({ fixtures, scale }) => {
     const drafts: DeterministicNodeImportDraft[] = []
     const docs: SeedDoc[] = []
+    const page = (
+      id: string,
+      title: string,
+      icon: string,
+      space: string,
+      folderPath: string,
+      tags: string[]
+    ) =>
+      drafts.push({
+        id,
+        schemaId: PageSchema._schemaId,
+        properties: { title, icon, space, folder: fixtures.folder(folderPath), tags }
+      })
 
-    // ─── Flagship sample page with rich Yjs content ──────────────────────
+    // ─── Flagship sample page with rich Yjs content + anchored comments ──
     const sampleId = pageId('sample')
-    drafts.push({
-      id: sampleId,
-      schemaId: PageSchema._schemaId,
-      properties: {
-        title: SAMPLE_TITLE,
-        icon: SAMPLE_ICON,
-        space,
-        folder: folderId('notes'),
-        tags: [tagId('docs')]
-      }
-    })
-
-    // Build the doc ONCE; reuse the same instance for anchors + persistence so
-    // the comment RelativePositions resolve against the persisted state.
+    page(sampleId, SAMPLE_TITLE, SAMPLE_ICON, fixtures.spaces.org, 'notes', [fixtures.tag('docs')])
     const sampleDoc = buildSamplePageDoc(sampleId, PageSchema._schemaId, SAMPLE_TITLE, SAMPLE_ICON)
     docs.push({ nodeId: sampleId, build: () => sampleDoc })
 
     const fragment = sampleDoc.getXmlFragment('content')
-    const commentTargets: Array<{
-      slug: string
-      search: string
-      content: string
-      resolved?: boolean
-      reply?: string
-    }> = [
+    const commentTargets = [
       {
         slug: 'intro',
         search: 'all supported block types',
@@ -70,7 +67,7 @@ export const docsSeeder: SeederModule = {
         content: 'Typo fixed in the warning callout text.',
         resolved: true
       }
-    ]
+    ] as const
 
     for (const c of commentTargets) {
       const anchor = buildTextAnchor(fragment, c.search)
@@ -85,10 +82,10 @@ export const docsSeeder: SeederModule = {
           anchorType: 'text',
           anchorData: anchor,
           content: c.content,
-          resolved: Boolean(c.resolved)
+          resolved: 'resolved' in c ? c.resolved : false
         }
       })
-      if (c.reply) {
+      if ('reply' in c && c.reply) {
         drafts.push({
           id: seedId('comment', 'sample', c.slug, 'reply'),
           schemaId: CommentSchema._schemaId,
@@ -105,20 +102,106 @@ export const docsSeeder: SeederModule = {
       }
     }
 
-    // ─── Per-project spec pages (linked from Work tasks) ─────────────────
-    for (const name of PROJECT_NAMES.slice(0, scale.projects)) {
-      drafts.push({
-        id: pageId('spec', name),
-        schemaId: PageSchema._schemaId,
-        properties: {
-          title: `${name} — Spec`,
-          icon: '📝',
-          space,
-          folder: folderId('work'),
-          tags: [tagId('docs')]
+    // ─── Per-project rich spec pages (linked from Work tasks) ────────────
+    const specPages = PROJECT_NAMES.slice(0, scale.projects).map((name) => ({
+      id: pageId('spec', name),
+      name
+    }))
+    for (const spec of specPages) {
+      page(spec.id, `${spec.name} — Spec`, '📝', fixtures.spaces.engineering, 'work/engineering', [
+        fixtures.tag('docs'),
+        fixtures.tag('roadmap')
+      ])
+      const blocks: RichBlock[] = [
+        { kind: 'h', level: 1, text: `${spec.name} — Technical Spec` },
+        {
+          kind: 'p',
+          text: `Design doc for ${spec.name}. Tags: #docs #roadmap. See [[Wiki Home]].`
+        },
+        { kind: 'callout', type: 'info', text: 'Status: in review. Owner: Engineering.' },
+        { kind: 'h', level: 2, text: 'Goals' },
+        { kind: 'bullets', items: ['Ship v1', 'Keep p95 latency low', 'No regressions'] },
+        { kind: 'h', level: 2, text: 'Open questions' },
+        {
+          kind: 'tasks',
+          items: [
+            { text: 'Decide on rollout plan', checked: false },
+            { text: 'Write migration', checked: true }
+          ]
+        },
+        {
+          kind: 'code',
+          lang: 'typescript',
+          text: `export const ${spec.name.replace(/[^A-Za-z]/g, '')} = true`
         }
+      ]
+      docs.push({
+        nodeId: spec.id,
+        build: () =>
+          buildRichPageDoc(spec.id, PageSchema._schemaId, `${spec.name} — Spec`, '📝', blocks)
       })
     }
+
+    // ─── Wiki Home — embeds the sample page + every spec page ────────────
+    const wikiId = pageId('wiki', 'home')
+    page(wikiId, 'Wiki Home', '🏠', fixtures.spaces.org, 'notes', [fixtures.tag('docs')])
+    docs.push({
+      nodeId: wikiId,
+      build: () =>
+        buildRichPageDoc(wikiId, PageSchema._schemaId, 'Wiki Home', '🏠', [
+          { kind: 'h', level: 1, text: 'Team Wiki' },
+          { kind: 'p', text: 'Start here. Use #docs to find documentation.' },
+          { kind: 'h', level: 2, text: 'Reference' },
+          { kind: 'pageEmbed', pageId: sampleId, title: SAMPLE_TITLE, icon: SAMPLE_ICON },
+          { kind: 'h', level: 2, text: 'Specs' },
+          ...specPages.map(
+            (s): RichBlock => ({
+              kind: 'pageEmbed',
+              pageId: s.id,
+              title: `${s.name} — Spec`,
+              icon: '📝'
+            })
+          )
+        ])
+    })
+
+    // ─── Meeting notes + an RFC (design space) ──────────────────────────
+    const meetingId = pageId('meeting', 'weekly')
+    page(meetingId, 'Weekly Sync — Notes', '🗓️', fixtures.spaces.org, 'notes', [
+      fixtures.tag('docs')
+    ])
+    docs.push({
+      nodeId: meetingId,
+      build: () =>
+        buildRichPageDoc(meetingId, PageSchema._schemaId, 'Weekly Sync — Notes', '🗓️', [
+          { kind: 'h', level: 1, text: 'Weekly Sync' },
+          { kind: 'quote', text: 'Attendees: the whole team.' },
+          { kind: 'h', level: 2, text: 'Action items' },
+          {
+            kind: 'tasks',
+            items: [
+              { text: 'Follow up on #roadmap', checked: false },
+              { text: 'Review the [[API Migration — Spec]]', checked: false }
+            ]
+          }
+        ])
+    })
+
+    const rfcId = pageId('rfc', 'design-system')
+    page(rfcId, 'RFC: Design System', '🎨', fixtures.spaces.design, 'work/design', [
+      fixtures.tag('design'),
+      fixtures.tag('docs')
+    ])
+    docs.push({
+      nodeId: rfcId,
+      build: () =>
+        buildRichPageDoc(rfcId, PageSchema._schemaId, 'RFC: Design System', '🎨', [
+          { kind: 'h', level: 1, text: 'RFC: Design System' },
+          { kind: 'callout', type: 'warning', text: 'Draft — feedback welcome.' },
+          { kind: 'p', text: 'Proposal for tokens, components and theming. #design' },
+          { kind: 'bullets', items: ['Color tokens', 'Spacing scale', 'Component API'] }
+        ])
+    })
 
     return { drafts, docs }
   }

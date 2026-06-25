@@ -20,9 +20,12 @@ import {
   SyncPolicySchema,
   schemaRegistry
 } from '@xnetjs/data'
+import { accountingSeeder } from './seeders/accounting'
 import { commsSeeder } from './seeders/comms'
+import { crmSeeder } from './seeders/crm'
 import { databaseSeeder } from './seeders/database'
 import { docsSeeder } from './seeders/docs'
+import { integrationSeeder } from './seeders/integration'
 import { metricsSeeder } from './seeders/metrics'
 import { spacesSeeder } from './seeders/spaces'
 import { vizSeeder } from './seeders/viz'
@@ -36,7 +39,10 @@ export const SEEDERS: readonly SeederModule[] = [
   databaseSeeder,
   vizSeeder,
   commsSeeder,
-  metricsSeeder
+  metricsSeeder,
+  crmSeeder,
+  accountingSeeder,
+  integrationSeeder
 ]
 
 /** Schemas a Tier-1 seeder is responsible for (canonical `_schemaId`s). */

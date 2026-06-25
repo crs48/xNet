@@ -6,7 +6,8 @@
 
 import type { SeedScale } from './types'
 import * as Y from 'yjs'
-import { makeRng, DEMO_PEOPLE, seedId } from './seed-ids'
+import { buildFixtures, ORG_SPACE_ID } from './fixtures'
+import { makeRng, DEMO_PEOPLE } from './seed-ids'
 import { collectSeed, SCALES } from './seed-runner'
 
 export interface SeedSnapshot {
@@ -33,9 +34,10 @@ export async function buildSnapshot(
 ): Promise<SeedSnapshot> {
   const scale = opts.scale ?? 'small'
   const ctx = {
-    space: seedId('space', 'demo'),
+    space: ORG_SPACE_ID,
     authorDID: opts.authorDID ?? 'did:key:zSeedSnapshotAuthor',
     people: DEMO_PEOPLE,
+    fixtures: buildFixtures(),
     scale: SCALES[scale],
     rng: makeRng(0xc0ffee)
   }

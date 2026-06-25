@@ -1,0 +1,10 @@
+{
+  "id": "2026-06-25-dev-seed-now-builds-a-deep-interrelated-",
+  "date": "June 25, 2026",
+  "title": "Dev seed now builds a deep, interrelated workspace",
+  "summary": "The dev-tools seed now fills out databases (columns, rows, views), a full CRM and ledger, nested folders and team workspaces, multiple rich linked documents, and canvas scenes — so it exercises every relationship in the app.",
+  "highlights": [],
+  "tags": [
+    "devtools"
+  ]
+}

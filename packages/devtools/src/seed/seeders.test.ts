@@ -6,14 +6,16 @@
 import type { SeedContext } from './types'
 import { describe, it, expect } from 'vitest'
 import { autoValue } from './auto-generator'
+import { buildFixtures, ORG_SPACE_ID } from './fixtures'
 import { isSeedId, makeRng, seedId, DEMO_PEOPLE } from './seed-ids'
 import { SEEDERS } from './seed-manifest'
 import { SCALES } from './seed-runner'
 
 const ctx: SeedContext = {
-  space: seedId('space', 'demo'),
+  space: ORG_SPACE_ID,
   authorDID: 'did:key:zTestAuthor',
   people: DEMO_PEOPLE,
+  fixtures: buildFixtures(),
   scale: SCALES.small,
   rng: makeRng(1)
 }

@@ -18,9 +18,12 @@ await runSeed({ store, scale: 'medium' }) // converge — idempotent
 Two tiers, behind a space-first runner:
 
 - **Tier 1 — curated seeders** (`seeders/*.ts`): one pure function per domain
-  (`spaces`, `work`, `docs`, `database`, `viz`, `comms`, `metrics`) returning
-  `DeterministicNodeImportDraft[]` (+ optional Yjs doc builders). These produce
-  the coherent, richly cross-linked demo graph.
+  (`spaces`, `work`, `docs`, `database`, `viz`, `comms`, `metrics`, `crm`,
+  `accounting`, `integration`) returning `DeterministicNodeImportDraft[]`
+  (+ optional Yjs doc builders). These produce the coherent, deeply
+  cross-linked demo graph. Cross-link handles (the space tree, nested folders,
+  tag palette, people) live in `fixtures.ts` and are passed via
+  `SeedContext.fixtures`.
 - **Tier 2 — auto-generator** (`auto-generator.ts`): for every _other_
   registered schema, synthesize one representative node from its field
   definitions. New schemas get sample data automatically.
@@ -61,10 +64,31 @@ content schema therefore can't ship without seed data:
 - if it's system/meta infrastructure, add it to `SEED_EXCLUDED_SCHEMA_IDS` in
   `seed-manifest.ts`.
 
+## Relational depth
+
+The seed is built to exercise **every relationship kind** in the app:
+
+- **Databases are filled out** — `database-drafts.ts` emits `DatabaseField`,
+  `DatabaseSelectOption`, `DatabaseRow` (cells as `cell_<fieldId>`) and
+  `DatabaseView` nodes, including a cross-database `relation` cell. Because these
+  are nodes (not Yjs), they **converge and update on re-run**.
+- **Nested folders + multi-space** — an org workspace with team sub-spaces + a
+  personal space (`fixtures.ts`), and a folder tree ≥3 deep.
+- **Deep CRM / ledger** — Org→Contact→Deal→Stage/LineItem/Product, DealContactRole
+  junctions, Activities; a chart-of-accounts tree with **balanced** double-entry
+  postings linked to deals.
+- **Tasks** with subtasks (`parent`), multiple assignees, and links to spec
+  pages + canvases; **canvases** with embedded node cards + connectors; multiple
+  **rich pages** that embed/mention each other.
+
+`seed-integrity.test.ts` asserts the graph is sound: no dangling references,
+every ledger transaction balances, folder depth ≥3, ≥3 spaces + subtasks, and
+every database cell reference resolves.
+
 ## Adding a Tier-1 seeder
 
 1. Write `seeders/<domain>.ts` exporting a `SeederModule` (`domain`, `label`,
-   `schemaIds`, `seed(ctx)`), using `seedId(...)` for stable IDs and `ctx.rng`
-   for any randomness.
+   `schemaIds`, `seed(ctx)`), using `seedId(...)` / `ctx.fixtures` for stable
+   cross-links and `ctx.rng` for any randomness.
 2. Register it in the ordered `SEEDERS` array in `seed-manifest.ts`.
 3. Add a unit test in `seeders.test.ts`.
