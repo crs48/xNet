@@ -1,0 +1,12 @@
+{
+  "id": "2026-06-25-see-the-real-devtools-on-the-devtool-pag",
+  "date": "June 25, 2026",
+  "title": "See the real DevTools on the /devtool page",
+  "summary": "The DevTools landing page now shows real screenshots of the in-app debugger instead of stylized mockups.",
+  "highlights": [
+    "Real Data grid with the live query-plan inspector",
+    "Changes timeline, Performance boot waterfall, Logs, and Seed panels"
+  ],
+  "tags": ["devtools"],
+  "pr": 273
+}
