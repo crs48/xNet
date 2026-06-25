@@ -57,7 +57,12 @@ that remain.
    links.
 3. **The `fixed` lockstep group is a strong, unrevisited default.** Every one
    of the 12 packages bumps to the _same_ version on every release, even when
-   untouched. That may not be what we want long-term.
+   untouched — so a breaking change to `core` majors all of them. For xNet's
+   tightly-coupled _protocol core_ that is actually the right call (it's the
+   Angular/Babel pattern), but it should **not** be applied blanket-wide to
+   loosely-coupled feature packages. See
+   [Decision C](#decision-c--versioning-topology-for-interdependent-packages)
+   for the full best-practice treatment and a two-tier model.
 4. **Config/reality drift bugs.** `@xnetjs/abuse` is in the `fixed` group but
    is stuck at `0.0.1` with no tag (never published); `@xnetjs/cli` _is_
    published but is **not** in the `fixed` group. The next release will try to
@@ -314,10 +319,17 @@ The official changesets docs explicitly bless this composition in
 3. **Release notes are functional but plain.** `@changesets/changelog-github`
    is a one-line config + token change that directly satisfies "good release
    notes with each release."
-4. **`fixed` lockstep is a real product decision, not an accident.** It keeps
-   versions aligned (easy mental model, like React's monorepo) at the cost of
-   noisy version churn (a `core` patch republishes all 12). Worth an explicit
-   yes/no now, before more consumers pin versions.
+4. **Versioning topology should be two-tier, and is the most consequential
+   decision.** Best practice for interdependent packages is _not_ "sync all
+   versions" nor "everything independent" — it's **lockstep for the genuinely
+   coupled compatibility set, independent for the loosely-coupled periphery**
+   (Angular/Babel lockstep their cores; Nx/Lerna keep libraries independent).
+   For xNet that means: keep the protocol core (`core`→`react` chain) in the
+   `fixed` group (a `core` breaking change majoring them all is correct there),
+   but version `cli` and future feature packages (`charts`, `maps`, `crm`, …)
+   independently so they don't inherit unrelated majors. The current config is
+   accidentally close to this; make it principled. Full analysis in
+   [Decision C](#decision-c--versioning-topology-for-interdependent-packages).
 5. **Two drift bugs will bite the next release.** `@xnetjs/abuse` (in `fixed`,
    at `0.0.1`, never published) will be force-bumped to the group version and a
    **first-ever publish** attempted — which fails unless an OIDC trusted
@@ -380,27 +392,145 @@ flowchart LR
 - **B3 — Custom generator.** Could fold per-package notes into the product
   changelog. Overkill; keep the two changelog systems separate.
 
-### Decision C — Versioning topology
+### Decision C — Versioning topology for interdependent packages
+
+This is the most consequential decision, and the one worth getting right
+deliberately: **when packages depend on each other, do you keep all their
+version numbers in sync, or let each move on its own?** The instinct "we
+changed `core`, so bump everything" is intuitive but is, by itself, an
+anti-pattern (version inflation). The nuanced best practice is below.
+
+#### The precise mechanics (Changesets terms)
+
+There are three distinct topologies, and the difference between the first two
+is subtle but decides everything:
+
+| Topology | When a member changes | Untouched members | Version numbers |
+|---|---|---|---|
+| **`fixed`** (current) | All members bump **and republish** | **Republished too** (no-op diffs) | Always **identical** across the set |
+| **`linked`** | Only changed members + their dependents bump | **Left alone** (not republished) | Snap to the **highest** in the set _when they do move_ — so they can **drift apart** over time |
+| **independent** | Only the changed package + dependents bump | Left alone | Each is **its own** number; unrelated |
+
+The trap people fall into: assuming `linked` means "always the same number." It
+doesn't. `linked` only aligns the packages that happen to release together;
+untouched ones stay behind, so a `linked` set ends up with _mixed_ numbers
+(`core@3.2.1`, `data@3.2.1`, `charts@3.0.0`). If your goal is the strong "every
+package in this set carries the identical version → guaranteed compatible"
+guarantee, only **`fixed`** delivers it.
+([fixed-packages.md](https://github.com/changesets/changesets/blob/main/docs/fixed-packages.md),
+[linked-packages.md](https://github.com/changesets/changesets/blob/main/docs/linked-packages.md))
+
+#### Does a breaking change to one package bump them all? — the direct answer
 
 ```mermaid
 flowchart TD
-    F["fixed / lockstep (current)"] -->|"core patch"| FA["all 12 → same new version"]
-    I["independent"] -->|"core patch"| IA["only core + its dependents bump"]
-    L["linked"] -->|"hybrid"| LA["chosen set shares a line, others independent"]
+    BC["BREAKING change to @xnetjs/core"] --> Q{Is the dependent in<br/>core's lockstep set?}
+    Q -- "Yes (fixed)" --> Y["Dependent gets a MAJOR too<br/>and republishes — even if its<br/>own API is unchanged"]
+    Q -- "No (independent)" --> Z{Does core's change leak<br/>through the dependent's<br/>PUBLIC API?}
+    Z -- "Yes" --> ZA["Dependent gets a MAJOR<br/>(real breaking change for its consumers)"]
+    Z -- "No" --> ZB["Dependent gets the MINIMUM bump:<br/>usually a PATCH via<br/>updateInternalDependencies"]
+    style Y fill:#fef3c7,stroke:#d97706
+    style ZA fill:#fee2e2,stroke:#dc2626
+    style ZB fill:#dcfce7,stroke:#16a34a
 ```
 
-- **C1 — Keep `fixed` lockstep.** Simple "everything is `0.x.y` together"
-  story; great while pre-1.0 and APIs co-evolve. Cost: version churn and
-  misleading diffs (a package republished with no real change).
-- **C2 — Independent versioning.** Each package moves only when it (or a
-  dependency) changes — accurate semver per package. Cost: consumers juggle
-  divergent versions; more moving parts. Best _after_ 1.0 when packages
-  stabilize at different rates.
-- **C3 — `linked` (hybrid).** Keep a tight core (`core`/`crypto`/`data`…)
-  linked, let leaf packages float. A reasonable middle path.
+- **Under `fixed` (lockstep):** **Yes — every package majors and republishes**,
+  including ones whose own code and API never changed. That's the deal you're
+  buying: a uniform version line in exchange for honest per-package semver.
+- **Under independent:** **No.** Changesets cascades the _minimum_ bump each
+  dependent actually needs. A dependent that merely re-points its `workspace:*`
+  range at the new `core` gets a **patch** (governed by
+  `updateInternalDependencies`, currently `"patch"`). It only majors if the
+  breaking change genuinely surfaces in _its own_ public API. This is "honest
+  semver": a version bump on `@xnetjs/charts` means _charts_ changed.
 
-**Pre-1.0 recommendation: stay `fixed` now, revisit at 1.0.** But fix the
-membership (add `abuse` correctly or remove it; decide `cli` in/out).
+#### Prior art — who does what, and why
+
+| Project | Strategy | Why it fits them |
+|---|---|---|
+| **Angular** (`@angular/*`) | Lockstep `fixed` | One framework split into packages; "use the v18 line together." Compatibility legibility > per-package precision. |
+| **Babel** (`@babel/*`) | Lockstep `fixed` | ~150 tightly-coupled plugins/helpers around one compiler core; always released together. |
+| **Jest**, **Apollo**, **Storybook (core)** | Lockstep `fixed` | Coordinated release trains; a "Jest 30" is a set. |
+| **React** (`react` + `react-dom`) | Lockstep for the _pair_ | Reconciler and renderer must match exactly. |
+| **Nx libraries**, most Lerna-independent repos, smaller monorepos | **Independent** | Loosely-coupled libraries on different cadences; lockstep would inflate versions for no reason. Nx explicitly calls "lockstep is mandatory in a monorepo" a [myth](https://nx.dev/blog/monorepo-myths-debunked). |
+
+The pattern: **lockstep is right for a genuinely coupled _compatibility set_;
+independent is right for loosely-coupled libraries on their own cadence.** The
+mistake is applying _either_ blanket-wide.
+
+#### The best practice for xNet: a two-tier model
+
+xNet is not one homogeneous set — it has a **tightly-coupled protocol core** and
+a **loosely-coupled periphery**, so the right answer is _both_, partitioned:
+
+```mermaid
+flowchart TB
+    subgraph CORE["fixed / lockstep — the protocol compatibility set"]
+      direction LR
+      core["@xnetjs/core"] --> crypto["@xnetjs/crypto"]
+      crypto --> identity["@xnetjs/identity"]
+      identity --> sync["@xnetjs/sync"]
+      sync --> data["@xnetjs/data"]
+      data --> react["@xnetjs/react"]
+      data --> plugins["@xnetjs/plugins"]
+    end
+    subgraph EDGE["independent — feature & tool packages"]
+      direction LR
+      cli["@xnetjs/cli"]
+      charts["@xnetjs/charts*"]
+      maps["@xnetjs/maps*"]
+      crm["@xnetjs/crm*"]
+    end
+    EDGE -. "depends on a published core range" .-> CORE
+```
+
+- **Tier 1 — the core/runtime chain → keep `fixed` (lockstep).** `core`,
+  `crypto`, `identity`, `sync`, `sqlite`, `storage`, `data`, `data-bridge`,
+  `history`, `plugins`, `react` implement **one wire protocol** (signed,
+  hash-chained, LWW change log over schema nodes) and share schemas. They
+  genuinely co-evolve — the repo's own history shows breaking protocol changes
+  rippling across them in lockstep (e.g. the lamport-integer refactor touched
+  56 files across packages). For a set like this, the "all the same number =
+  trivially compatible" guarantee is worth more than per-package semver
+  precision, and the churn cost is low because they almost always release
+  together anyway. This is the Angular/Babel situation, and `fixed` is the
+  correct tool — **not** `linked` (which would let the core's numbers drift and
+  defeat the compatibility guarantee).
+- **Tier 2 — leaf/feature/tool packages → independent.** `@xnetjs/cli` (already
+  outside the group) and future feature packages (`charts`, `maps`, `crm`,
+  `social`, `comms`, …) should **not** inherit the core's majors. They depend on
+  a _published range_ of the core (e.g. `"@xnetjs/core": "^3"`) and version on
+  their own cadence. A `core` major shouldn't drag `@xnetjs/charts` to a new
+  major when charts' own API is unchanged.
+
+So the answer to "should we keep _all_ our version numbers in sync?" is:
+**only the ones that are actually coupled.** Sync the protocol core; let the
+periphery float. The current config is _accidentally_ close to this (cli is
+already independent) — the work is to make it **principled and explicit**, and
+to stop pulling loosely-coupled packages into the lockstep group as the
+catalog grows.
+
+#### Escape valve: a compatibility-anchor meta-package
+
+If Tier 1 ever moves to independent (e.g. post-1.0), the standard way to keep
+consumers sane is an **umbrella meta-package** that pins a tested set of exact
+versions — and `@xnetjs/sdk` already exists (currently `private`/ignored) and is
+the natural home. `npm i @xnetjs/sdk@3.4.0` would transitively pin a known-good
+core combination, giving you independent per-package semver _and_ a one-install
+compatibility guarantee. This is how you get "the best of both" without
+lockstep churn. Worth keeping in the back pocket; not needed pre-1.0.
+
+#### When to revisit
+
+Pre-1.0 (today), lockstep churn is cheap and the core's APIs co-move, so Tier 1
+`fixed` is clearly right. The trigger to reconsider is **1.0 + diverging
+cadence**: once individual core packages stabilize and start changing at very
+different rates, re-evaluate Tier 1 → independent-plus-`@xnetjs/sdk`-anchor.
+Record the trigger; don't pre-optimize for it now.
+
+**Recommendation: `fixed` for the coupled core, independent for the periphery;
+fix the membership (`abuse` in or out; `cli` explicitly independent); revisit
+Tier 1 at 1.0.**
 
 ### Decision D — Auth posture
 
@@ -419,9 +549,15 @@ and correct.** Concretely:
    with the bot as a backstop and manual `pnpm changeset` retained for nuanced
    release notes.
 2. **B2** — switch the changelog generator to `@changesets/changelog-github`.
-3. **C1 (for now)** — stay lockstep pre-1.0, but **fix the drift**: get
-   `@xnetjs/abuse` either correctly bootstrapped+OIDC-configured or removed from
-   `fixed`; declare `@xnetjs/cli` intentionally independent and document it.
+3. **C — two-tier versioning**: keep the protocol core in the `fixed` lockstep
+   group (a `core` breaking change correctly majors the whole compatibility
+   set), and version the periphery independently (`cli` today; `charts`,
+   `maps`, `crm`, … as they're added — they depend on a published _range_ of the
+   core, not a lockstep version). **Fix the drift**: get `@xnetjs/abuse` either
+   correctly bootstrapped + OIDC-configured _or_ removed from `fixed`; declare
+   `@xnetjs/cli` intentionally independent and document it. Keep `@xnetjs/sdk`
+   in mind as a future compatibility-anchor meta-package. Revisit Tier 1
+   (lockstep core) at 1.0 if cadences diverge.
 4. **D1** — OIDC only, plus a documented manual-publish runbook entry for
    outages, and pin `npm@latest` in the release job.
 5. **Harden** with an optional protected GitHub **Environment** on the publish
@@ -587,11 +723,51 @@ joins the set when it:
 }
 ```
 
-…is removed from `ignore` (and added to `fixed` only if it should version in
-lockstep), has an OIDC trusted publisher configured on npm, and passes
-`pnpm publish --dry-run`.
+…is removed from `ignore`, has an OIDC trusted publisher configured on npm, and
+passes `pnpm publish --dry-run`. **Then decide its tier** (next example): add it
+to `fixed` _only_ if it's part of the protocol compatibility set; otherwise
+leave it out and let it version independently.
 
-### 5. Fixing the `abuse` drift
+### 5. Two-tier versioning config — `.changeset/config.json`
+
+The key principle: `fixed` lists **only** the coupled protocol core. Everything
+else publishable is simply _not_ in `fixed` (and not in `ignore`) → it versions
+independently and bumps only when it (or a dependency) actually changes.
+
+```jsonc
+{
+  "changelog": ["@changesets/changelog-github", { "repo": "crs48/xNet" }],
+  "commit": false,
+
+  // TIER 1 — coupled protocol core: always share one identical version.
+  // A breaking change to any member majors and republishes the whole set.
+  "fixed": [[
+    "@xnetjs/core", "@xnetjs/crypto", "@xnetjs/identity",
+    "@xnetjs/sync", "@xnetjs/sqlite", "@xnetjs/storage",
+    "@xnetjs/data", "@xnetjs/data-bridge", "@xnetjs/history",
+    "@xnetjs/plugins", "@xnetjs/react"
+    // NOTE: @xnetjs/abuse intentionally NOT here until bootstrapped (see #6)
+  ]],
+
+  // TIER 2 — independent: publishable, but NOT in `fixed`. Versions on its own
+  // cadence; a core major does NOT drag it along. (@xnetjs/cli today; future
+  // feature pkgs like charts/maps/crm go here, not in `fixed`.)
+  // → nothing to configure: just keep them out of both `fixed` and `ignore`.
+
+  "linked": [],
+  "access": "public",
+  "baseBranch": "main",
+  "updateInternalDependencies": "patch",  // Tier-2 deps on core → patch cascade
+  "ignore": [ /* unpublished pkgs only: canvas, devtools, editor, … */ ]
+}
+```
+
+The single most important rule for the catalog going forward: **as you add
+feature packages, default them to Tier 2 (independent).** Only add a package to
+`fixed` if it is genuinely part of the protocol compatibility set and will
+always release with the core.
+
+### 6. Fixing the `abuse` drift
 
 ```bash
 # Verify what npm thinks exists
@@ -638,6 +814,18 @@ npm view @xnetjs/abuse version    # → 404 today (never published)
 - **Open question:** 0.x semver. Pre-1.0, a "breaking" change is technically a
   minor under semver's 0.x rule. Decide whether `BREAKING CHANGE` should bump
   minor (spec-correct for 0.x) or major (clearer signal) while we're pre-1.0.
+  Note this interacts with lockstep: in the `fixed` core, whichever rule you
+  pick applies to **all** core packages at once.
+- **Open question:** lockstep churn vs. legibility. `fixed` republishes
+  untouched core packages on every release (lots of "Updated dependencies"
+  no-op changelog entries). Accepted pre-1.0 for the compatibility guarantee —
+  but if the noise becomes a problem, the path is independent + an
+  `@xnetjs/sdk` compatibility-anchor meta-package, **not** `linked` (which would
+  let core versions silently drift apart and defeat the guarantee).
+- **Open question:** Tier-1 revisit trigger at 1.0. Decide now what signal
+  flips the core from lockstep to independent (e.g. "two consecutive releases
+  where ≥half the core had no real change"), so the decision isn't perpetually
+  deferred.
 
 ## Implementation Checklist
 
@@ -652,10 +840,17 @@ npm view @xnetjs/abuse version    # → 404 today (never published)
 - [ ] Pin `npm install -g npm@latest` in the release job (OIDC ≥ 11.5.1).
 - [ ] Install the [Changeset bot](https://github.com/apps/changeset-bot) on
       `crs48/xNet`.
+- [ ] **Adopt the two-tier topology explicitly**: confirm `fixed` lists _only_
+      the coupled protocol core; ensure feature/tool packages stay out of both
+      `fixed` and `ignore` (independent). Document the rule "new feature
+      packages default to independent" in the runbook.
 - [ ] Resolve `@xnetjs/abuse`: either configure its npm OIDC trusted publisher
-      and let it first-publish, or remove it from `fixed` → `ignore`.
+      and let it first-publish into the core group, or remove it from `fixed`
+      (and from `ignore`) so it versions independently / stays unpublished.
 - [ ] Declare `@xnetjs/cli` topology explicitly (independent) and note it in
       [`docs/npm-release-runbook.md`](docs/npm-release-runbook.md).
+- [ ] Record the Tier-1-revisit-at-1.0 trigger and the `@xnetjs/sdk`
+      compatibility-anchor escape valve in the runbook.
 - [ ] (Optional) Add a protected GitHub Environment to the publish job and bind
       trusted-publisher configs to that environment name.
 - [ ] Update [`docs/npm-release-runbook.md`](docs/npm-release-runbook.md) and
@@ -670,6 +865,10 @@ npm view @xnetjs/abuse version    # → 404 today (never published)
       `patch` changeset; a `feat:` generates `minor`; a `feat!:` /
       `BREAKING CHANGE` generates `major`.
 - [ ] `pnpm changeset status` lists the expected bumps locally.
+- [ ] **Topology check:** a changeset touching only `@xnetjs/core` bumps the
+      _entire fixed core_ (lockstep working) but does **not** bump `@xnetjs/cli`
+      to a new major (independent tier working — cli gets at most a patch
+      dependency bump if it consumes core).
 - [ ] `pnpm -r --filter "@xnetjs/*" publish --dry-run --access public
       --report-summary --no-git-checks` packs all 12 packages with correct
       `dist/` contents and no `workspace:*` leakage.
@@ -696,5 +895,6 @@ npm view @xnetjs/abuse version    # → 404 today (never published)
 - [changesets/changesets](https://github.com/changesets/changesets) · [automating-changesets.md](https://github.com/changesets/changesets/blob/main/docs/automating-changesets.md) · [changesets/action](https://github.com/changesets/action) · [changesets/bot](https://github.com/changesets/bot)
 - [changeset-conventional-commits](https://github.com/iamchathu/changeset-conventional-commits) · [@bob-obringer/conventional-changesets](https://www.npmjs.com/package/@bob-obringer/conventional-changesets)
 - [The Ultimate Guide to NPM Release Automation (Changesets vs release-please vs semantic-release)](https://oleksiipopov.com/blog/npm-release-automation/)
+- Versioning topology: [changesets fixed-packages](https://github.com/changesets/changesets/blob/main/docs/fixed-packages.md) · [changesets linked-packages](https://github.com/changesets/changesets/blob/main/docs/linked-packages.md) · [Nx — "10 Monorepo Myths Debunked" (lockstep is a choice)](https://nx.dev/blog/monorepo-myths-debunked) · [Microsoft ISE — monorepo with independent release cycles](https://devblogs.microsoft.com/ise/streamlining-development-through-monorepo-with-independent-release-cycles/)
 - [Changesets vs Semantic Release — Brian Schiller](https://brianschiller.com/blog/2023/09/18/changesets-vs-semantic-release/)
 - [Automated Releases with Conventional Commits and release-please](https://devopsil.com/articles/2026-03-21-semantic-versioning-automated-releases)
