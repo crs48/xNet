@@ -159,19 +159,30 @@ export async function createXNetServer(options: CreateXNetServerOptions): Promis
 
     const pending = pendingWriteFromInput(input, ctx, existing)
 
-    // A by-id mutation must actually find its target.
+    // Authorize FIRST — before any existence-dependent response — so a denied
+    // principal cannot use NOT_FOUND / ALREADY_EXISTS as a node-existence oracle.
+    if (options.authorizeWrite) {
+      const decision = await options.authorizeWrite(ctx, pending)
+      if (!decision.ok) {
+        return { ok: false, code: 'WRITE_DENIED', reason: decision.reason ?? 'write denied' }
+      }
+    }
+
+    // A create must not silently overwrite an existing node — NodeStore.create
+    // LWW-merges onto any node with the same id, so the kit enforces the
+    // create-vs-existing distinction itself. An update/delete must have a target.
+    if (pending.op === 'create' && existing) {
+      return {
+        ok: false,
+        code: 'ALREADY_EXISTS',
+        reason: `node ${pending.nodeId ?? '(unknown)'} already exists`
+      }
+    }
     if ((pending.op === 'update' || pending.op === 'delete') && !existing) {
       return {
         ok: false,
         code: 'NOT_FOUND',
         reason: `node ${pending.nodeId ?? '(unknown)'} not found`
-      }
-    }
-
-    if (options.authorizeWrite) {
-      const decision = await options.authorizeWrite(ctx, pending)
-      if (!decision.ok) {
-        return { ok: false, code: 'WRITE_DENIED', reason: decision.reason ?? 'write denied' }
       }
     }
 
@@ -251,7 +262,9 @@ function pendingWriteFromInput(
     return {
       op,
       nodeId: payload.nodeId,
-      schemaId: (payload.schemaId as SchemaIRI | undefined) ?? existing?.schemaId ?? input.schemaId,
+      // The stored node's schema wins for update/delete (schema allow-lists must
+      // see the real target); the change's schema only governs a fresh create.
+      schemaId: existing?.schemaId ?? (payload.schemaId as SchemaIRI | undefined) ?? input.schemaId,
       subject: ctx.subject,
       payload: {
         properties: payload.properties ?? {},
@@ -268,7 +281,9 @@ function pendingWriteFromInput(
         schemaId: input.schemaId,
         subject: ctx.subject,
         payload: { properties: input.data, deleted: false },
-        existing: null
+        // Surfaced so a create that targets an already-existing id is visible
+        // to authorizeWrite (the mutate path also hard-rejects it).
+        existing: existingSnapshot(existing)
       }
     case 'update':
       return {

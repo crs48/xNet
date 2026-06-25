@@ -143,6 +143,7 @@ export type MutationErrorCode =
   | 'SIGNATURE_INVALID'
   | 'IDENTITY_MISMATCH'
   | 'NOT_FOUND'
+  | 'ALREADY_EXISTS'
   | 'WRITE_FAILED'
 
 export type MutationResult =
