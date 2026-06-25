@@ -546,12 +546,12 @@ const { filename = 'terminal' } = Astro.props
 - [x] **Wave 3:** Build `ui/BeforeAfter.astro` (range input + clip‑path) and
       place on `/compare` ("Cloud lock‑in ⟷ Local‑first").
 - [x] Add recommended‑tier glow to `/cloud/pricing` (`PricingCard` treatment).
-- [ ] Wire an honest `StatusDot` to `data/status.json` in the nav/status page.
-- [ ] Add a "Built on open standards" `LogoRow` (Yjs, SQLite, libsodium,
+- [x] Wire an honest `StatusDot` to `data/status.json` in the nav/status page.
+- [x] Add a "Built on open standards" `LogoRow` (Yjs, SQLite, libsodium,
       ML‑DSA, TypeScript, React).
-- [ ] Light atom pass: one `Sparkle` accent + one or two extra `GradientText`
+- [x] Light atom pass: one `Sparkle` accent + one or two extra `GradientText`
       eyebrows (resist the urge to do more).
-- [ ] Add MIT attribution comment to any component closely derived from
+- [x] Add MIT attribution comment to any component closely derived from
       performative‑ui.
 
 ## Validation Checklist

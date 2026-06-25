@@ -1,6 +1,8 @@
 ---
 import SectionHeader from '../ui/SectionHeader.astro'
 import MockIDE from '../ui/MockIDE.astro'
+import Sparkle from '../ui/Sparkle.astro'
+import GradientText from '../ui/GradientText.astro'
 
 const cm = (s: string) => `<span class="tok-comment">${s}</span>`
 
@@ -43,6 +45,10 @@ const points = [
 
 <section id="agents" class="border-y border-border/50 bg-surface/10 dark:bg-surface/20 py-24 lg:py-32">
   <div class="mx-auto max-w-6xl px-6">
+    <p class="mb-3 flex items-center justify-center gap-1.5 text-xs font-semibold uppercase tracking-wider">
+      <Sparkle class="text-indigo-400" />
+      <GradientText>AI-native</GradientText>
+    </p>
     <SectionHeader
       title="Built for agents"
       subtitle="AI agents are first-class users of your workspace — through the filesystem they already know, not a wall of tool definitions."
