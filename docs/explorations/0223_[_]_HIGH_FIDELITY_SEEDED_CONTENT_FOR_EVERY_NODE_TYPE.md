@@ -358,8 +358,8 @@ interface FieldSpec { /* + */ kind adds: 'dateRange'|'file'|'rollup'|'formula'|'
 
 ### Cross-cutting
 - [x] Add `seed-render.test.ts`: load every seeded `SeedDoc` through the editor's ProseMirror schema (and decode each canvas/dashboard) — fail on any rejected/blank doc.
-- [ ] Keep `seed-coverage.test.ts` + `seed-integrity.test.ts` green; update the Seed panel/README/CLAUDE.md if surfaces change.
-- [ ] `@xnetjs/devtools` is private → no changeset; add a `changelog-section` fragment.
+- [x] Keep `seed-coverage.test.ts` + `seed-integrity.test.ts` green; update the Seed panel/README/CLAUDE.md if surfaces change.
+- [x] `@xnetjs/devtools` is private → no changeset; add a `changelog-section` fragment.
 
 ## Validation Checklist
 
