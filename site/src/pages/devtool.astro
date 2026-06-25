@@ -1,0 +1,285 @@
+---
+import Base from '../layouts/Base.astro'
+import Nav from '../components/sections/Nav.astro'
+import Footer from '../components/sections/Footer.astro'
+import SectionHeader from '../components/ui/SectionHeader.astro'
+import CodeBlock from '../components/ui/CodeBlock.astro'
+
+const kw = (s: string) => `<span class="tok-keyword">${s}</span>`
+const fn = (s: string) => `<span class="tok-function">${s}</span>`
+const str = (s: string) => `<span class="tok-string">${s}</span>`
+
+const enableCode = [
+  `${kw('import')} { XNetDevToolsProvider } ${kw('from')} ${str("'@xnetjs/devtools'")}`,
+  ``,
+  `<${fn('XNetDevToolsProvider')}>`,
+  `  <${fn('App')} />`,
+  `</${fn('XNetDevToolsProvider')}>`,
+  ``,
+  `${'<span class="tok-comment">// Press ⌘⇧D (Ctrl+Shift+D) to open. Tree-shakes to zero in production.</span>'}`
+].join('\n')
+
+// Panels shown in the switcher (hero panels first, then the rest grouped).
+const panels = [
+  {
+    id: 'data',
+    label: 'Data',
+    blurb: 'Query and browse every node in the store on the same grid your app ships with.',
+    bullets: ['Live query-plan inspector', 'Inline editing with per-cell permissions', 'Sort, filter, hide columns per schema']
+  },
+  {
+    id: 'changes',
+    label: 'Changes',
+    blurb: 'A live, Lamport-ordered feed of the CRDT change log — every create, update, and delete.',
+    bullets: ['Filter by change type or node', 'Inspect the full change payload', 'Follow remote changes as they sync']
+  },
+  {
+    id: 'performance',
+    label: 'Performance',
+    blurb: 'Cold-start boot timeline, live FPS and heap, storage status, and active query counts.',
+    bullets: ['Boot waterfall by phase', 'Frame budget + heap sampling', 'Active useQuery / useMutate subscriptions']
+  },
+  {
+    id: 'logs',
+    label: 'Logs',
+    blurb: 'Toggle debug channels (sync, sqlite, query, boot) and search the captured console buffer.',
+    bullets: ['Per-channel on/off, persisted', 'Level filter + full-text search', 'Pause, clear, copy']
+  },
+  {
+    id: 'seed',
+    label: 'Seed',
+    blurb: 'Populate a realistic demo workspace across every content type — idempotent and scalable.',
+    bullets: ['Converge / accrete / reseed modes', 'Small → large volume knob', 'Per-domain toggles (CRM, docs, …)']
+  }
+]
+
+const moreGroups = [
+  { group: 'Hero', items: ['Data', 'Changes', 'Logs', 'Performance'] },
+  { group: 'Data', items: ['Schemas', 'Schema History'] },
+  { group: 'Activity', items: ['Sync', 'Queries', 'Traces', 'Telemetry'] },
+  { group: 'Protocol', items: ['Yjs', 'AuthZ', 'Abuse', 'Security', 'Version', 'Migrate'] },
+  { group: 'Tools', items: ['Seed', 'History', 'SQLite', 'Reset'] }
+]
+---
+
+<Base
+  title="xNet DevTools — see your whole local-first app"
+  description="A 20-panel in-browser debug suite for xNet apps: browse the database, watch the CRDT change log, inspect query plans, profile boot, and seed demo data. Built on the same React hooks; zero bytes in production."
+>
+  <Nav />
+  <main>
+    <!-- Hero -->
+    <section class="border-b border-border/50 py-20 lg:py-28">
+      <div class="mx-auto max-w-4xl px-6 text-center">
+        <h1 class="text-4xl font-bold tracking-tight sm:text-5xl">
+          <span class="bg-gradient-to-br from-gray-900 to-gray-500 dark:from-white dark:to-gray-400 bg-clip-text text-transparent">
+            DevTools
+          </span>
+        </h1>
+        <p class="mx-auto mt-4 max-w-2xl text-lg text-gray-500 dark:text-gray-400">
+          See your whole database, watch every change, inspect query plans, and profile boot —
+          in the browser. Built on the same hooks your app uses, and it tree-shakes to
+          <strong class="text-gray-700 dark:text-gray-200">zero bytes</strong> in production.
+        </p>
+        <div class="mt-6 flex flex-wrap justify-center gap-3 text-xs text-gray-500 dark:text-gray-400">
+          <span class="rounded-full border border-border bg-surface/30 px-3 py-1">⌘⇧D to toggle</span>
+          <span class="rounded-full border border-border bg-surface/30 px-3 py-1">⌘⇧P command palette</span>
+          <span class="rounded-full border border-border bg-surface/30 px-3 py-1">20 panels</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Panel switcher -->
+    <section class="py-20 lg:py-28">
+      <div class="mx-auto max-w-5xl px-6">
+        <SectionHeader title="Every panel, one keystroke away" align="center" />
+
+        <!-- Tab bar -->
+        <div id="dt-tabs" class="mt-10 flex flex-wrap justify-center gap-2" role="tablist">
+          {panels.map((p, i) => (
+            <button
+              type="button"
+              role="tab"
+              data-dttab={i}
+              aria-selected={i === 0 ? 'true' : 'false'}
+              class="dt-tab rounded-lg border border-border px-4 py-1.5 text-sm text-gray-500 transition-colors hover:text-gray-800 dark:hover:text-gray-200 aria-selected:border-indigo-500/50 aria-selected:bg-indigo-500/10 aria-selected:text-indigo-600 dark:aria-selected:text-indigo-300"
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+
+        <!-- Panels -->
+        <div class="mt-8">
+          {panels.map((p, i) => (
+            <div class="dt-panel grid items-center gap-8 lg:grid-cols-2" data-dtpanel={i} hidden={i !== 0}>
+              <!-- Stylized DevTools window (representation, not a screenshot) -->
+              <div class="overflow-hidden rounded-xl border border-border bg-[#12121a] shadow-xl">
+                <div class="flex items-center gap-2 border-b border-white/10 bg-white/5 px-3 py-2">
+                  <span class="h-2.5 w-2.5 rounded-full bg-[#ff5f57]"></span>
+                  <span class="h-2.5 w-2.5 rounded-full bg-[#febc2e]"></span>
+                  <span class="h-2.5 w-2.5 rounded-full bg-[#28c840]"></span>
+                  <span class="ml-2 font-mono text-[11px] text-gray-400">xNet DevTools — {p.label}</span>
+                </div>
+                <div class="p-4 font-mono text-[11px] leading-relaxed text-gray-300">
+                  {p.id === 'data' && (
+                    <div>
+                      <div class="grid grid-cols-3 gap-2 border-b border-white/10 pb-1 text-gray-500">
+                        <span>title</span><span>done</span><span>assignee</span>
+                      </div>
+                      {['Ship 0224 page · ✓ · @chris', 'Capture screenshots · — · @chris', 'Review server kit · ✓ · @ada', 'Wire footer links · — · @ada'].map((row) => (
+                        <div class="grid grid-cols-3 gap-2 border-b border-white/5 py-1">
+                          {row.split(' · ').map((c) => <span class="truncate">{c}</span>)}
+                        </div>
+                      ))}
+                      <div class="mt-2 text-[10px] text-indigo-300/80">plan: pushdown · 4 returned / 4 candidates</div>
+                    </div>
+                  )}
+                  {p.id === 'changes' && (
+                    <div class="space-y-1">
+                      {[['create', 'Task#a1f3', 'lamport 41'], ['update', 'Task#a1f3', 'lamport 42'], ['create', 'Page#9c0', 'lamport 43'], ['delete', 'Task#7be', 'lamport 44']].map((c) => (
+                        <div class="flex items-center gap-2 border-b border-white/5 py-1">
+                          <span class={`rounded px-1.5 py-0.5 text-[10px] ${c[0] === 'delete' ? 'bg-red-500/15 text-red-300' : c[0] === 'update' ? 'bg-amber-500/15 text-amber-300' : 'bg-emerald-500/15 text-emerald-300'}`}>{c[0]}</span>
+                          <span class="text-gray-300">{c[1]}</span>
+                          <span class="ml-auto text-gray-500">{c[2]}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {p.id === 'performance' && (
+                    <div class="space-y-1.5">
+                      {[['identity', 38], ['sqlite open', 64], ['store init', 52], ['restore cache', 120], ['first paint', 86]].map((b) => (
+                        <div class="flex items-center gap-2">
+                          <span class="w-24 text-gray-400">{b[0]}</span>
+                          <span class="h-2 rounded bg-indigo-500/60" style={`width:${b[1]}px`}></span>
+                          <span class="text-gray-500">{b[1]}ms</span>
+                        </div>
+                      ))}
+                      <div class="mt-2 text-[10px] text-gray-500">60 fps · heap 42 MB · 3 active queries</div>
+                    </div>
+                  )}
+                  {p.id === 'logs' && (
+                    <div class="space-y-0.5">
+                      <div class="mb-2 flex gap-1.5 text-[10px]">
+                        {['sync', 'sqlite', 'query', 'boot'].map((c) => <span class="rounded bg-white/10 px-1.5 py-0.5 text-gray-300">{c}</span>)}
+                      </div>
+                      {['[sync] connected to hub.xnet.fyi', '[query] Task where done=false → 4', '[sqlite] OPFS persisted (12 ms)', '[boot] ready in 360 ms'].map((l) => (
+                        <div class="text-gray-400">{l}</div>
+                      ))}
+                    </div>
+                  )}
+                  {p.id === 'seed' && (
+                    <div>
+                      <div class="mb-2 flex gap-1.5 text-[10px]">
+                        {['converge', 'accrete', 'reseed'].map((m, mi) => (
+                          <span class={`rounded px-1.5 py-0.5 ${mi === 0 ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white/10 text-gray-400'}`}>{m}</span>
+                        ))}
+                      </div>
+                      <div class="grid grid-cols-2 gap-1 text-[10px] text-gray-400">
+                        {['CRM · 8 deals', 'Docs · 12 pages', 'Tasks · 24', 'Comms · 6 channels', 'Accounting · 18', 'Database · 60 rows'].map((d) => (
+                          <span class="rounded border border-white/10 px-2 py-1">{d}</span>
+                        ))}
+                      </div>
+                      <div class="mt-2 text-[10px] text-emerald-300/80">✓ converged · 0 duplicates · 312 ms</div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <!-- Copy -->
+              <div>
+                <h3 class="text-xl font-semibold">{p.label}</h3>
+                <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">{p.blurb}</p>
+                <ul class="mt-4 space-y-2">
+                  {p.bullets.map((b) => (
+                    <li class="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-300">
+                      <svg class="mt-0.5 h-4 w-4 shrink-0 text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" /></svg>
+                      {b}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          ))}
+        </div>
+        <p class="mt-6 text-center text-[11px] text-gray-400 dark:text-gray-500">
+          Panels shown as stylized representations.
+        </p>
+      </div>
+    </section>
+
+    <!-- Built on the same hooks -->
+    <section class="border-y border-border/50 py-16">
+      <div class="mx-auto max-w-3xl px-6 text-center">
+        <p class="text-lg text-gray-600 dark:text-gray-300">
+          The Data panel is the same <code class="font-mono text-sm">GridSurface</code> +
+          <code class="font-mono text-sm">useQuery</code> your app ships with — so what you debug
+          is exactly what you build.
+        </p>
+      </div>
+    </section>
+
+    <!-- Enable -->
+    <section class="py-20 lg:py-28">
+      <div class="mx-auto max-w-2xl px-6">
+        <SectionHeader title="Turn it on" subtitle="One provider. Dev-only by default." align="center" />
+        <div class="mt-8">
+          <CodeBlock filename="main.tsx" code={enableCode} />
+        </div>
+      </div>
+    </section>
+
+    <!-- All panels -->
+    <section class="border-t border-border/50 py-20 lg:py-28">
+      <div class="mx-auto max-w-5xl px-6">
+        <SectionHeader title="Twenty panels" subtitle="Hero panels stay visible; the rest are a fuzzy ⌘⇧P palette away." align="center" />
+        <div class="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-5">
+          {moreGroups.map((g) => (
+            <div class="rounded-xl border border-border bg-surface/30 p-5 dark:bg-surface/50">
+              <h3 class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">{g.group}</h3>
+              <ul class="mt-3 space-y-1.5">
+                {g.items.map((i) => <li class="text-sm text-gray-600 dark:text-gray-300">{i}</li>)}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="border-t border-border/50 py-20 lg:py-28">
+      <div class="mx-auto max-w-3xl px-6 text-center">
+        <h2 class="text-2xl font-bold tracking-tight sm:text-3xl">Build with confidence</h2>
+        <p class="mx-auto mt-3 max-w-xl text-gray-500 dark:text-gray-400">
+          DevTools ships with xNet React. Start with the hooks and open it with ⌘⇧D.
+        </p>
+        <div class="mt-6 flex flex-wrap justify-center gap-4">
+          <a href="/react" class="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-indigo-500 transition-colors">
+            xNet for React →
+          </a>
+          <a href="/docs/guides/devtools/" class="rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-200 hover:border-indigo-500/50 hover:bg-surface transition-all">
+            DevTools guide
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+  <Footer />
+</Base>
+
+<script>
+  function initDevtoolTabs() {
+    const tabs = Array.from(document.querySelectorAll<HTMLElement>('.dt-tab'))
+    const panels = Array.from(document.querySelectorAll<HTMLElement>('.dt-panel'))
+    if (!tabs.length) return
+    tabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        const idx = Number(tab.dataset.dttab)
+        tabs.forEach((t, i) => t.setAttribute('aria-selected', i === idx ? 'true' : 'false'))
+        panels.forEach((p, i) => (p.hidden = i !== idx))
+      })
+    })
+  }
+  if (document.readyState !== 'loading') initDevtoolTabs()
+  else document.addEventListener('DOMContentLoaded', initDevtoolTabs)
+</script>
