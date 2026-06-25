@@ -62,8 +62,10 @@ async function main() {
     if (p.name && p.private !== true && !ignore.has(p.name)) dirToName[d] = p.name
   }
 
-  // Changed files: committed since merge-base with main + uncommitted.
-  const base = sh('git merge-base HEAD main').trim() || 'main'
+  // Changed files: committed since merge-base with the base ref + uncommitted.
+  // CHANGESET_BASE lets CI point at origin/<base> (no local `main` ref there).
+  const baseRef = process.env.CHANGESET_BASE || 'main'
+  const base = sh(`git merge-base HEAD ${baseRef}`).trim() || baseRef
   const files = new Set(
     [
       ...sh(`git diff --name-only ${base}...HEAD`).split('\n'),

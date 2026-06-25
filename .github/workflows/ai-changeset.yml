@@ -61,9 +61,27 @@ jobs:
       # Lean install — this job needs the changeset tooling, not the native build.
       - run: pnpm install --frozen-lockfile --ignore-scripts
 
+      # 0) Idempotency gate: if every changed publishable package is ALREADY
+      #    covered by a changeset (the author ran /changeset, or a prior run of
+      #    this job added one), skip generation entirely. Without this, the
+      #    content-based dedup in changeset-conventional would re-add a floor
+      #    changeset on every push once AI enrichment has altered the summary.
+      - name: Skip if already covered
+        id: gate
+        env:
+          CHANGESET_BASE: origin/${{ github.event.pull_request.base.ref }}
+        run: |
+          if echo '{}' | node scripts/changeset/assert-coverage.mjs; then
+            echo "covered=true" >> "$GITHUB_OUTPUT"
+            echo "Affected publishable packages already have a changeset — nothing to do."
+          else
+            echo "covered=false" >> "$GITHUB_OUTPUT"
+          fi
+
       # 1) Deterministic floor FIRST (authoritative; AI can only RAISE). Writes
       #    .changeset/*.md from the conventional-commit prefixes of this PR.
       - name: Deterministic floor (conventional commits)
+        if: steps.gate.outputs.covered != 'true'
         run: pnpm changeset:from-commits
         env:
           # changeset-conventional reads commits since baseBranch; ensure it sees
@@ -73,6 +91,7 @@ jobs:
       # 2) AI enrichment: read the diff SCOPED to publishable packages, raise the
       #    bump if the diff is breaking, and rewrite the note. Fail-open.
       - name: AI enrichment (advisory)
+        if: steps.gate.outputs.covered != 'true'
         continue-on-error: true
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -84,7 +103,7 @@ jobs:
       # 3) Commit the changeset(s) back to the PR HEAD branch (internal PRs only —
       #    a fork's branch isn't writable from a pull_request token).
       - name: Commit changeset to PR branch
-        if: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+        if: ${{ steps.gate.outputs.covered != 'true' && github.event.pull_request.head.repo.full_name == github.repository }}
         run: |
           if [ -z "$(git status --porcelain .changeset)" ]; then
             echo "No new changeset to add — already covered."
@@ -106,7 +125,7 @@ jobs:
 
       # For fork PRs (cannot push) surface the suggestion as a comment instead.
       - name: Suggest changeset on fork PRs
-        if: ${{ github.event.pull_request.head.repo.full_name != github.repository }}
+        if: ${{ steps.gate.outputs.covered != 'true' && github.event.pull_request.head.repo.full_name != github.repository }}
         uses: actions/github-script@v7
         with:
           script: |
