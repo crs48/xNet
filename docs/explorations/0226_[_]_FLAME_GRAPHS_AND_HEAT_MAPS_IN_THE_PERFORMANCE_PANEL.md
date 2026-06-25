@@ -444,7 +444,7 @@ A flame node renders with the same `<rect>` + `colourForStage` recipe as
       `FlameChart`) with self-time; add a flame/waterfall toggle in `TracesPanel`.
 - [x] Phase 3: `useFrameRing()` hook + `FrameHeatmap.tsx`; defer stage×schema matrix
       behind 0190 Phase-2 instrumentation.
-- [ ] Add a changelog fragment (dev-tools is `private` → no changeset, per CLAUDE.md).
+- [x] Add a changelog fragment (dev-tools is `private` → no changeset, per CLAUDE.md).
 
 ## Validation Checklist
 
