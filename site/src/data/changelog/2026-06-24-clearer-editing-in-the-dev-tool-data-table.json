@@ -1,0 +1,13 @@
+{
+  "id": "2026-06-24-clearer-editing-in-the-dev-tool-data-table",
+  "date": "June 24, 2026",
+  "title": "Clearer editing in the dev tool's data table",
+  "summary": "The Data panel in the dev tools (Ctrl/Cmd+Shift+D) now makes editing legible: read-only cells show a lock with a hover reason, editable cells don't, and the panel explains when a schema can't be edited — instead of silently refusing.",
+  "highlights": [
+    "Read-only cells show a lock glyph and a hover tooltip saying why (system field, non-editable type, schema not loaded)",
+    "Schemas that aren't in the registry now say so, instead of a dead edit toggle that did nothing",
+    "The edit toggle only appears once a schema's typed definition is loaded, with clearer wording"
+  ],
+  "tags": ["devtools", "platform"],
+  "authors": [{ "login": "crs48" }]
+}

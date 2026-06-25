@@ -172,6 +172,18 @@ function GridCellInner({
 
   const remotePresence = presences && presences.length > 0 ? presences[0] : undefined
 
+  // Why this cell can't be edited, shown on hover. Per-cell authorization locks
+  // (`lockReason`) take precedence; otherwise a column may carry an opt-in
+  // `readonlyReason` (e.g. the dev tools labeling system/non-editable columns).
+  const columnReadOnlyReason = field.readonly ? field.readonlyReason : undefined
+  const hoverReason = lockReason ?? columnReadOnlyReason
+  // Mark non-editable cells with a small lock glyph: authorization locks always,
+  // and opt-in read-only columns only while the grid itself is editable (so the
+  // glyph distinguishes locked columns from editable ones during editing,
+  // without cluttering a fully read-only grid).
+  const showLockGlyph =
+    !editing && (lockReason != null || (columnReadOnlyReason != null && !readOnly))
+
   return (
     <div
       ref={cellRef}
@@ -183,7 +195,7 @@ function GridCellInner({
       data-col-index={colIndex}
       data-row-id={rowId}
       data-field-id={field.id}
-      title={lockReason}
+      title={hoverReason}
       style={{
         width,
         minWidth: width,
@@ -243,12 +255,13 @@ function GridCellInner({
         <div className="flex-1 truncate">{handler.render(value ?? null, editorConfig)}</div>
       )}
 
-      {/* Edit-lock glyph (e.g. authorization). Top-left to avoid the comment
-          badge (top-right); the reason shows via the cell's title tooltip. */}
-      {lockReason && !editing && (
+      {/* Edit-lock glyph (authorization or an opt-in read-only column). Top-left
+          to avoid the comment badge (top-right); the reason shows via the cell's
+          title tooltip. */}
+      {showLockGlyph && (
         <span
           className="absolute top-0.5 left-0.5 text-gray-400 dark:text-gray-500 pointer-events-none"
-          aria-label="locked"
+          aria-label="read-only"
         >
           <Lock className="w-2.5 h-2.5" />
         </span>

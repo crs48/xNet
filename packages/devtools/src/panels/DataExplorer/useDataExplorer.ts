@@ -67,6 +67,12 @@ export function useDataExplorer() {
   const [registryIris, setRegistryIris] = useState<string[]>([])
   const [selectedSchema, setSelectedSchema] = useState<string | null>(null) // null = All schemas
   const [definedSchema, setDefinedSchema] = useState<Schema | null>(null)
+  // Whether the selected schema's typed definition resolved. Drives the panel's
+  // editability messaging: 'unresolved' means the schema isn't in the registry
+  // (e.g. a plugin/app schema observed only as node data), so it stays read-only.
+  const [schemaStatus, setSchemaStatus] = useState<'none' | 'loading' | 'ready' | 'unresolved'>(
+    'none'
+  )
   const [search, setSearch] = useState('')
   const [includeDeleted, setIncludeDeleted] = useState(false)
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null)
@@ -103,14 +109,19 @@ export function useDataExplorer() {
     let cancelled = false
     if (!selectedSchema) {
       setDefinedSchema(null)
+      setSchemaStatus('none')
       return
     }
     const candidates = Array.from(new Set([selectedSchema, baseSchemaIri(selectedSchema)]))
+    setSchemaStatus('loading')
     void (async () => {
       for (const iri of candidates) {
         const sync = schemaRegistry.getSync(iri as SchemaIRI)
         if (sync) {
-          if (!cancelled) setDefinedSchema(sync.schema)
+          if (!cancelled) {
+            setDefinedSchema(sync.schema)
+            setSchemaStatus('ready')
+          }
           return
         }
       }
@@ -118,14 +129,22 @@ export function useDataExplorer() {
         try {
           const defined = await schemaRegistry.get(iri as SchemaIRI)
           if (defined) {
-            if (!cancelled) setDefinedSchema(defined.schema)
+            if (!cancelled) {
+              setDefinedSchema(defined.schema)
+              setSchemaStatus('ready')
+            }
             return
           }
         } catch {
           // try the next candidate
         }
       }
-      if (!cancelled) setDefinedSchema(null)
+      // Not in the registry — keep showing the (read-only, synthesized) columns
+      // but let the panel explain why editing is unavailable.
+      if (!cancelled) {
+        setDefinedSchema(null)
+        setSchemaStatus('unresolved')
+      }
     })()
     return () => {
       cancelled = true
@@ -362,6 +381,7 @@ export function useDataExplorer() {
     selectedSchema,
     setSelectedSchema,
     definedSchema,
+    schemaStatus,
     search,
     setSearch,
     includeDeleted,

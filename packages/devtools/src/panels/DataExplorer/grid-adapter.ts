@@ -82,6 +82,9 @@ function optionsFor(prop: PropertyDefinition): GridFieldOption[] | undefined {
  * with a known schema — synthesized columns are never editable because we don't
  * know their real type.
  */
+/** Hover reason for the always-read-only system columns (id/schema/updated/…). */
+const SYSTEM_READONLY_REASON = 'System field — read-only'
+
 export function buildGridFields(
   schema: Schema | null,
   observedKeys: string[],
@@ -96,6 +99,7 @@ export function buildGridFields(
       config: {},
       width: 130,
       readonly: true,
+      readonlyReason: SYSTEM_READONLY_REASON,
       isTitle: true
     }
   ]
@@ -106,24 +110,39 @@ export function buildGridFields(
       type: 'text',
       config: {},
       width: 150,
-      readonly: true
+      readonly: true,
+      readonlyReason: SYSTEM_READONLY_REASON
     })
   }
 
   if (schema) {
     for (const prop of schema.properties) {
       if (AUTO_PROPERTY_TYPES.has(prop.type)) continue // shown as system columns below
+      const typeInlineEditable = INLINE_EDITABLE_TYPES.has(prop.type)
       let type = propertyTypeToFieldType(prop.type)
       let options: GridFieldOption[] | undefined
-      let locked = !editable || !INLINE_EDITABLE_TYPES.has(prop.type)
+      let missingOptions = false
       if (type === 'select' || type === 'multiSelect') {
         options = optionsFor(prop)
         // Never hand a select cell renderer a value with no options — render
         // the raw value as text instead, and lock it (we can't offer choices).
         if (!options) {
           type = 'text'
-          locked = true
+          missingOptions = true
         }
+      }
+      // Resolve the lock + a hover reason that explains *why* it's read-only,
+      // so editability is legible even when authorization isn't enforced.
+      let readonly = true
+      let readonlyReason: string | undefined
+      if (!typeInlineEditable) {
+        readonlyReason = `${prop.type} fields can't be edited inline here`
+      } else if (missingOptions) {
+        readonlyReason = `This ${prop.type} field has no options to choose from`
+      } else if (!editable) {
+        readonlyReason = 'Turn on editing (top toolbar) to modify this field'
+      } else {
+        readonly = false
       }
       fields.push({
         id: prop.name,
@@ -132,12 +151,21 @@ export function buildGridFields(
         config: prop.config ?? {},
         width: 170,
         options,
-        readonly: locked
+        readonly,
+        readonlyReason
       })
     }
   } else {
     for (const key of observedKeys) {
-      fields.push({ id: key, name: key, type: 'text', config: {}, width: 170, readonly: true })
+      fields.push({
+        id: key,
+        name: key,
+        type: 'text',
+        config: {},
+        width: 170,
+        readonly: true,
+        readonlyReason: "This schema isn't loaded, so its columns are read-only here"
+      })
     }
   }
 
@@ -152,7 +180,8 @@ export function buildGridFields(
     type: 'updated',
     config: {},
     width: 170,
-    readonly: true
+    readonly: true,
+    readonlyReason: SYSTEM_READONLY_REASON
   })
   fields.push({
     id: SYSTEM_FIELD.author,
@@ -160,7 +189,8 @@ export function buildGridFields(
     type: 'text',
     config: {},
     width: 130,
-    readonly: true
+    readonly: true,
+    readonlyReason: SYSTEM_READONLY_REASON
   })
   return fields
 }

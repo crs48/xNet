@@ -36,6 +36,7 @@ export function DataExplorer() {
     selectedSchema,
     setSelectedSchema,
     definedSchema,
+    schemaStatus,
     search,
     setSearch,
     includeDeleted,
@@ -130,7 +131,10 @@ export function DataExplorer() {
             />
             Deleted
           </label>
-          {selectedSchema && (
+          {/* Editing needs a resolved, typed schema. Without one (the All-schemas
+              view or an unregistered schema) we can't type cells, so the toggle
+              is hidden and a note below explains why. */}
+          {selectedSchema && definedSchema && (
             <button
               onClick={() => setEditing(!editing)}
               className={`text-[10px] px-1.5 py-0.5 rounded border whitespace-nowrap ${
@@ -140,8 +144,8 @@ export function DataExplorer() {
               }`}
               title={
                 editing
-                  ? 'Editing on — changes write to the store and sync'
-                  : 'Edit cells (writes to the store)'
+                  ? 'Editing on — double-click an unlocked cell to edit; locked cells show a lock (hover for why). Changes write to the store and sync.'
+                  : 'Enable editing — then double-click a cell to modify it (writes to the store)'
               }
             >
               {editing ? 'editing' : 'edit'}
@@ -191,9 +195,26 @@ export function DataExplorer() {
           </div>
         )}
 
+        {/* Explain why editing isn't available, so a read-only grid never looks
+            broken. Order matters: unresolved schema first, then the All-schemas
+            hint, then the enforcement note once editing is actually on. */}
+        {selectedSchema && schemaStatus === 'unresolved' && (
+          <div className="px-3 py-0.5 text-[10px] text-ink-3 border-b border-hairline bg-surface-2/40">
+            This schema isn&apos;t in the registry, so its columns can&apos;t be typed — cells are
+            read-only here. (Hover a cell for details.)
+          </div>
+        )}
+
+        {!selectedSchema && nodes.length > 0 && (
+          <div className="px-3 py-0.5 text-[10px] text-ink-3 border-b border-hairline bg-surface-2/40">
+            Pick a specific schema above to edit its rows — the All-schemas view is read-only.
+          </div>
+        )}
+
         {editable && !authzEnabled && (
           <div className="px-3 py-0.5 text-[10px] text-ink-3 border-b border-hairline bg-surface-2/40">
-            Authorization is not enforced in this store — every cell is editable here.
+            Editing on — authorization isn&apos;t enforced in this store, so every typed cell is
+            editable. Read-only columns show a lock; hover for why.
           </div>
         )}
 
