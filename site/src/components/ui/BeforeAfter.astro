@@ -1,0 +1,88 @@
+---
+/**
+ * BeforeAfter — a draggable split slider comparing two stacked panels. The
+ * `before` slot is clipped from the left; drag (or arrow-key) the handle to
+ * reveal more of it over the `after` baseline. Keyboard-operable and labelled.
+ *
+ * No-JS: the handle sits at 50% and both panels are partly visible (still
+ * legible). Adapted from performative-ui's BeforeAfter (MIT) —
+ * github.com/vorpus/performativeUI. See src/components/ui/README.md.
+ */
+interface Props {
+  /** Accessible description of what the slider compares. */
+  label: string
+  /** Initial handle position, 0–100. */
+  start?: number
+  class?: string
+}
+const { label, start = 50, class: cls = '' } = Astro.props
+---
+
+<div class={`ba relative select-none overflow-hidden rounded-2xl border border-border bg-surface ${cls}`}>
+  <div class="ba-after">
+    <slot name="after" />
+  </div>
+  <div class="ba-before absolute inset-0 overflow-hidden" style={`clip-path: inset(0 ${100 - start}% 0 0)`}>
+    <slot name="before" />
+  </div>
+
+  <div class="ba-divider pointer-events-none absolute inset-y-0 z-20" style={`left:${start}%`} aria-hidden="true">
+    <div class="absolute inset-y-0 -ml-px w-0.5 bg-white/70 dark:bg-white/40"></div>
+    <div
+      class="absolute top-1/2 flex h-8 w-8 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-white/70 bg-gray-900/80 text-white shadow-lg backdrop-blur"
+    >
+      <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8 7l-4 5 4 5M16 7l4 5-4 5" />
+      </svg>
+    </div>
+  </div>
+
+  <input
+    class="ba-range absolute inset-0 z-30 h-full w-full cursor-ew-resize opacity-0"
+    type="range"
+    min="0"
+    max="100"
+    value={start}
+    aria-label={label}
+  />
+</div>
+
+<style>
+  .ba-range {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    margin: 0;
+  }
+  .ba-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 44px;
+    height: 100%;
+  }
+  .ba-range::-moz-range-thumb {
+    width: 44px;
+    height: 100%;
+    border: 0;
+    background: transparent;
+  }
+  .ba-range:focus-visible {
+    outline: 2px solid rgb(99 102 241);
+    outline-offset: 2px;
+  }
+</style>
+
+<script>
+  document.querySelectorAll<HTMLElement>('.ba').forEach((ba) => {
+    const range = ba.querySelector<HTMLInputElement>('.ba-range')
+    const before = ba.querySelector<HTMLElement>('.ba-before')
+    const divider = ba.querySelector<HTMLElement>('.ba-divider')
+    if (!range || !before) return
+    const update = () => {
+      const v = Number(range.value)
+      before.style.clipPath = `inset(0 ${100 - v}% 0 0)`
+      if (divider) divider.style.left = `${v}%`
+    }
+    range.addEventListener('input', update)
+  })
+</script>

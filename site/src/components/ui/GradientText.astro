@@ -1,0 +1,18 @@
+---
+/**
+ * GradientText — gradient-clipped inline text. Use sparingly (eyebrows, a single
+ * emphasis word); the hero headline and SectionHeader already gradient their own
+ * titles. Adapted from performative-ui's GradientText (MIT) —
+ * github.com/vorpus/performativeUI. See src/components/ui/README.md.
+ */
+interface Props {
+  class?: string
+}
+const { class: cls = '' } = Astro.props
+---
+
+<span
+  class={`bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-500 bg-clip-text text-transparent ${cls}`}
+>
+  <slot />
+</span>

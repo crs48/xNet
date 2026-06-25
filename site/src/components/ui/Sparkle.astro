@@ -1,0 +1,33 @@
+---
+/**
+ * Sparkle — a single ✦ that gently twinkles. Decorative (aria-hidden); static
+ * under prefers-reduced-motion. Use it once, on one eyebrow — not everywhere.
+ * Adapted from performative-ui's Sparkle (MIT) — github.com/vorpus/performativeUI.
+ * See src/components/ui/README.md.
+ */
+interface Props {
+  class?: string
+}
+const { class: cls = '' } = Astro.props
+---
+
+<span class={`sparkle inline-block ${cls}`} aria-hidden="true">&#10022;</span>
+
+<style>
+  @media (prefers-reduced-motion: no-preference) {
+    .sparkle {
+      animation: sparkle-twinkle 2.4s ease-in-out infinite;
+    }
+  }
+  @keyframes sparkle-twinkle {
+    0%,
+    100% {
+      opacity: 0.6;
+      transform: scale(0.9) rotate(0deg);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.15) rotate(15deg);
+    }
+  }
+</style>
