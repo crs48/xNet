@@ -430,9 +430,9 @@ A flame node renders with the same `<rect>` + `colourForStage` recipe as
 
 ## Implementation Checklist
 
-- [ ] Add `panels/PerformancePanel/aggregate.ts` with `latencyHeatmap()` and
+- [x] Add `panels/PerformancePanel/aggregate.ts` with `latencyHeatmap()` and
       `aggregateFlame()` as pure functions.
-- [ ] Unit-test `aggregate.ts`: bucket boundaries, empty ring, single trace, cyclic
+- [x] Unit-test `aggregate.ts`: bucket boundaries, empty ring, single trace, cyclic
       `parentSpanId` guard, left-heavy sort order.
 - [ ] Add `LatencyHeatmap.tsx` (SVG grid, `data-testid`, `<title>` per cell, theme
       tokens) + a `<LatencyHeatmapSection>` reading `useTracesPanel()`.
