@@ -16,7 +16,7 @@ const BAR_AREA_WIDTH = 360
 const PADDING = 8
 
 /** Stable colour per stage family, derived from the name prefix. */
-function colourForStage(name: string): string {
+export function colourForStage(name: string): string {
   if (name.includes('sqlite')) return '#e8590c' // storage — hot
   if (name.includes('rpc')) return '#1c7ed6' // worker hop
   if (name.includes('hydrate') || name.includes('auth')) return '#7048e8'
