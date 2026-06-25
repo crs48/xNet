@@ -522,7 +522,7 @@ const { filename = 'terminal' } = Astro.props
 
 ## Implementation Checklist
 
-- [ ] Add a shared reduced‑motion helper + decision note (a short
+- [x] Add a shared reduced‑motion helper + decision note (a short
       `site/src/components/ui/README.md` documenting the five‑gate test) so the
       taste rules are enforced, not vibes.
 - [ ] **Wave 1a:** Build `ui/StatCounter.astro` (IntersectionObserver count‑up,
