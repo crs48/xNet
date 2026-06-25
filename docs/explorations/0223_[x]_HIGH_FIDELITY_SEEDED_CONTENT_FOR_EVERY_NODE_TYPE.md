@@ -363,14 +363,14 @@ interface FieldSpec { /* + */ kind adds: 'dateRange'|'file'|'rollup'|'formula'|'
 
 ## Validation Checklist
 
-- [ ] **Dashboards render** — open `analytics` and `team-hub`: metric counters show numbers, charts show axes/series, the saved-view widget shows rows, layouts adapt across breakpoints; changing the time-range re-renders.
-- [ ] **Pages render every block** — a flagship page shows image/file/embed cards, a live `databaseEmbed` and `taskViewEmbed` bound to seeded data, toggle/mermaid/hr/callouts, and inline bold/italic/link + hashtag/taskMention/wikilink pills that navigate.
-- [ ] **Databases exercise all views** — table/board/list/gallery/calendar/timeline all render with data; a view shows an active filter, a multi-column sort, and a column-summary footer; rollup/formula cells compute.
-- [ ] **Canvas exercises all kinds** — the flagship canvas shows page/database/dashboard/media/external-reference cards, a frame containing grouped nodes, and curved/dashed styled connectors.
-- [ ] **Domain docs render** — opening a Task/Project/CRM Deal/Experiment shows a formatted `.document` (not blank).
-- [ ] **Render smoke test green** — `seed-render.test.ts` confirms the editor schema accepts every seeded doc.
-- [ ] **No blank nodes** — sweep the seeded workspace; every node type shows real content.
-- [ ] **Idempotency/coverage/integrity** suites green; medium seed completes within budget; lint/format/typecheck/tests green; live-verified via the Seed panel (fresh seed).
+- [x] **Dashboards render** — open `analytics` and `team-hub`: metric counters show numbers, charts show axes/series, the saved-view widget shows rows, layouts adapt across breakpoints; changing the time-range re-renders.
+- [x] **Pages render every block** — a flagship page shows image/file/embed cards, a live `databaseEmbed` and `taskViewEmbed` bound to seeded data, toggle/mermaid/hr/callouts, and inline bold/italic/link + hashtag/taskMention/wikilink pills that navigate.
+- [x] **Databases exercise all views** — table/board/list/gallery/calendar/timeline all render with data; a view shows an active filter, a multi-column sort, and a column-summary footer; rollup/formula cells compute.
+- [x] **Canvas exercises all kinds** — the flagship canvas shows page/database/dashboard/media/external-reference cards, a frame containing grouped nodes, and curved/dashed styled connectors.
+- [x] **Domain docs render** — opening a Task/Project/CRM Deal/Experiment shows a formatted `.document` (not blank).
+- [x] **Render smoke test green** — `seed-render.test.ts` confirms the editor schema accepts every seeded doc.
+- [x] **No blank nodes** — sweep the seeded workspace; every node type shows real content.
+- [x] **Idempotency/coverage/integrity** suites green; medium seed completes within budget; lint/format/typecheck/tests green; live-verified via the Seed panel (fresh seed).
 
 ## References
 
