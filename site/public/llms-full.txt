@@ -52,6 +52,7 @@ Before reading this documentation, understand that xNet works differently:
   - Plugin Development
   - Agent Interfaces
   - Hub Setup
+  - Your Own Server
   - Connect to xNet Cloud
   - Electron Setup
   - Testing
@@ -7286,9 +7287,187 @@ Railway → VPS/Fly.io is just a volume export + upload. Fly.io → Railway is t
 
 ## Further Reading
 
+- [Your Own Server](/docs/guides/server/) — run xNet on your own backend with your own auth instead of a Hub
 - [Sync Guide](/docs/guides/sync/)
 - [Sync Architecture](/docs/concepts/sync-architecture/)
 - [Electron Setup](/docs/guides/electron/)
+
+---
+
+## Your Own Server
+
+**You will learn**
+
+- When to use a managed Hub vs. your own server
+- How `@xnetjs/server` maps **your** auth onto xNet's data layer
+- The three hooks: `authenticate`, `authorizeRead`, `authorizeWrite`
+- The trust spectrum: `server`, `custodial`, `signed`
+- How to wire it to the React hooks with no client changes
+  
+
+## Two paths to a backend
+
+xNet React works against two kinds of backend, and **the React hooks
+(`useQuery` / `useMutate` / `useNode`) are identical either way**:
+
+| Path                 | What you run                         | Identity & auth                    |
+| -------------------- | ------------------------------------ | ---------------------------------- |
+| **Managed Hub**      | Nothing — point at a Hub URL         | xNet identity (DIDs), works out of the box |
+| **Your own server**  | `@xnetjs/server` in your Node backend | **Your** auth (session/JWT/Clerk/…) |
+
+If you want the decentralized, user-owned defaults, use a [Hub](/docs/guides/hub/).
+If you want a centralized app on your own infrastructure, gated by your existing
+auth and stored in your own database, use `@xnetjs/server`.
+
+## What `@xnetjs/server` is
+
+A small, framework-agnostic engine you mount in your Node backend (Express,
+Hono, Fastify, a Next.js route handler). It owns a server-side node store over a
+pluggable storage adapter and exposes:
+
+- **`server.query(request)`** — the server side of the remote-query protocol: a
+  structured-query executor that authenticates, scopes the read, runs it, and
+  returns results.
+- **`server.mutate(token, input)`** — backend-authoritative writes: authenticate,
+  validate, then apply.
+- **`server.createRemoteQueryClient(getToken)`** — an in-process client that
+  drops into `XNetProvider`'s `remoteNodeQueryClient`, so React reads route to
+  your server unchanged.
+
+## Install
+
+```bash
+pnpm add @xnetjs/server
+```
+
+```bash
+npm install @xnetjs/server
+```
+
+```bash
+yarn add @xnetjs/server
+```
+
+## Three hooks map your auth onto the data layer
+
+You wire your existing auth through three callbacks. No UCAN, no `did:key`
+required from your users.
+
+```ts
+
+const xnet = await createXNetServer({
+  trust: 'custodial',
+
+  // 1. Exchange a token/cookie for your own principal. Return null to reject.
+  authenticate: async (token) => {
+    const session = await verifyMySession(token)
+    return session ? { subject: session.userId, tenant: session.orgId } : null
+  },
+
+  // 2. Scope what a subject can read (row-level security).
+  authorizeRead: (ctx, query) => query.and({ tenant: ctx.tenant }),
+
+  // 3. Validate writes in your own terms. For update/delete, authorize against
+  //    the STORED node (`write.existing`), not the client-supplied data.
+  authorizeWrite: (ctx, write) => {
+    const tenant =
+      write.op === 'create' ? write.payload.properties.tenant : write.existing?.properties.tenant
+    return tenant === ctx.tenant ? { ok: true } : { ok: false, reason: 'wrong tenant' }
+  }
+})
+```
+
+`authenticate` returns a `ServerAuthContext` — `{ subject, ...claims }` — where
+`subject` is your own user id (or a `did:key` in `signed` mode). Extra claims
+(roles, orgs, tenant) ride along for the authorize hooks.
+
+`authorizeRead` receives a narrowable query; `query.and({ … })` ANDs equality
+filters into the read (the canonical "only this tenant's rows" move).
+
+`authorizeWrite` receives a normalized `PendingWrite`. For `update`/`delete` it
+includes `existing` — the **stored** node snapshot — so ownership checks and
+schema allow-lists can't be bypassed by a by-id write. Return
+`{ ok: false, reason }` to deny; the client receives a typed rejection.
+
+## The trust spectrum
+
+How an end-user's identity maps onto xNet's signed-change model:
+
+| Mode          | Who signs                       | `authorDID` is              | Best for                              |
+| ------------- | ------------------------------- | --------------------------- | ------------------------------------- |
+| `server`      | the server (one identity)       | the server                  | centralized apps, maximum simplicity  |
+| `custodial`   | the server, per-user derived key | a stable per-user DID       | mainstream apps wanting per-user attribution, no key UX |
+| `signed`      | the client                      | the client's DID (bound to the authenticated subject) | tamper-evident, user-owned data |
+
+In `signed` mode the server verifies the client's signature **and** that the
+change's author matches the authenticated subject — a forged author is rejected
+(`IDENTITY_MISMATCH`), and a tampered change is rejected (`SIGNATURE_INVALID`).
+
+## Wire it to React — no hook changes
+
+Reads route through the existing `remoteNodeQueryClient` seam:
+
+```tsx
+
+const remoteNodeQueryClient = xnet.createRemoteQueryClient(getToken)
+
+export function App() {
+  return (
+    
+      
+    
+  )
+}
+
+function Todos() {
+  // Exactly the same hooks as a managed-Hub app:
+  const { data: todos } = useQuery(TodoSchema, { where: { done: false } })
+  const { create, update } = useMutate()
+  // …
+}
+```
+
+## Mounting in your server
+
+`createXNetServer` is transport-agnostic — call `query`/`mutate` from any HTTP
+or WebSocket handler. A minimal Express sketch:
+
+```ts
+
+const app = express()
+app.use(express.json())
+
+// Reads
+app.post('/xnet/query', async (req, res) => {
+  res.json(await xnet.query(req.body))
+})
+
+// Writes
+app.post('/xnet/mutate', async (req, res) => {
+  const token = req.headers.authorization?.replace('Bearer ', '')
+  res.json(await xnet.mutate(token, req.body))
+})
+```
+
+## Storage
+
+By default `@xnetjs/server` keeps an in-memory store (great for tests). Pass any
+`NodeStorageAdapter` via the `storage` option to persist — for example a SQLite
+adapter — so your data lives in your own database.
+
+## Status
+
+The engine — structured-query executor, backend-authoritative mutations, the
+auth hooks, and the trust spectrum — is shipped and tested. Networked
+transports (a built-in WebSocket relay, framework adapters, a Postgres adapter,
+live streaming), and the full offline write client are tracked as follow-ups in
+exploration `0223`.
+
+## See also
+
+- [React Hooks overview](/docs/hooks/overview/)
+- [Hub Setup](/docs/guides/hub/) — the managed path
+- [Authorization](/docs/guides/authorization/) — xNet's built-in model (opt-in)
 
 ---
 
