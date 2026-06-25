@@ -10,8 +10,9 @@
  *   read via {@link AuthorizeReadHook}, runs it against the store, and returns a
  *   protocol `RemoteNodeQueryResponse`.
  * - `mutate(token, input)` is the backend-authoritative write path: it
- *   authenticates, validates via {@link AuthorizeWriteHook}, then applies the
- *   write according to the {@link TrustMode}.
+ *   authenticates, loads the target node, validates via {@link AuthorizeWriteHook}
+ *   against the node's *actual* state, then applies the write per the
+ *   {@link TrustMode}.
  *
  * `createRemoteQueryClient()` returns an in-process `RemoteNodeQueryClient` that
  * drops straight into `XNetProvider`'s `remoteNodeQueryClient` config, so React
@@ -24,7 +25,8 @@ import type {
   PendingWrite,
   ServerAuthContext,
   ServerMutationInput,
-  TrustMode
+  TrustMode,
+  WriteOp
 } from './types'
 import type { NodeState, NodeStorageAdapter, SchemaIRI } from '@xnetjs/data'
 import type {
@@ -36,9 +38,9 @@ import type {
   RemoteNodeQueryResponse
 } from '@xnetjs/data-bridge'
 import type { DID } from '@xnetjs/identity'
-import { generateSigningKeyPair, randomBytes } from '@xnetjs/crypto'
+import { getSigningPublicKeyFromPrivate } from '@xnetjs/crypto'
 import { MemoryNodeStorageAdapter, NodeStore } from '@xnetjs/data'
-import { generateIdentity } from '@xnetjs/identity'
+import { createDID, generateIdentity } from '@xnetjs/identity'
 import { deriveCustodialIdentity } from './identity'
 import { scopedQuery, toDescriptor } from './read'
 import { createInProcessRemoteQueryClient } from './remote-client'
@@ -70,7 +72,7 @@ export async function createXNetServer(options: CreateXNetServerOptions): Promis
   const storage: NodeStorageAdapter = options.storage ?? new MemoryNodeStorageAdapter()
 
   const server = resolveServerIdentity(options)
-  const custodialSecret = options.custodialSecret ?? randomBytes(32)
+  const custodialSecret = options.custodialSecret ?? generateIdentity().privateKey
 
   const store = new NodeStore({
     storage,
@@ -79,22 +81,28 @@ export async function createXNetServer(options: CreateXNetServerOptions): Promis
   })
   await store.initialize()
 
-  // Per-subject author stores for `custodial` mode, all over the shared
-  // storage adapter. Cached by derived DID; coherent because NodeStore reads
-  // current node + last-change state from storage on every write.
+  // Per-subject author stores for `custodial` mode, all over the shared storage
+  // adapter. Cached by derived DID; the clock is reconciled before each write
+  // (see custodialStore) so interleaved per-subject writes converge under LWW.
   const custodialStores = new Map<DID, NodeStore>()
 
   async function custodialStore(subject: string): Promise<NodeStore> {
     const identity = deriveCustodialIdentity(custodialSecret, subject)
-    const existing = custodialStores.get(identity.did)
-    if (existing) return existing
-    const authored = new NodeStore({
-      storage,
-      authorDID: identity.did,
-      signingKey: identity.signingKey
-    })
+    let authored = custodialStores.get(identity.did)
+    if (!authored) {
+      authored = new NodeStore({
+        storage,
+        authorDID: identity.did,
+        signingKey: identity.signingKey
+      })
+      custodialStores.set(identity.did, authored)
+    }
+    // Reconcile the Lamport clock with the persisted high-water-mark before
+    // writing. `initialize()` reads the stored last-lamport (every write path
+    // persists it via setLastLamportTime), so a cached per-subject store sees
+    // writes other subjects made since its last use — preventing clock drift
+    // that would corrupt LWW ordering on shared nodes.
     await authored.initialize()
-    custodialStores.set(identity.did, authored)
     return authored
   }
 
@@ -114,8 +122,20 @@ export async function createXNetServer(options: CreateXNetServerOptions): Promis
       ? toDescriptor(await options.authorizeRead(ctx, scopedQuery(request.descriptor)))
       : request.descriptor
 
-    const result = await store.query(scoped)
-    return buildSuccessResponse(request, scoped, result.nodes, result.totalCount, trust)
+    // Overfetch by one so `hasMore` reflects whether another page exists,
+    // rather than false-positiving whenever a page exactly fills the limit.
+    const limit = scoped.limit
+    const execDescriptor: QueryDescriptor = limit != null ? { ...scoped, limit: limit + 1 } : scoped
+    const result = await store.query(execDescriptor)
+
+    let nodes = result.nodes
+    let hasMore = false
+    if (limit != null && nodes.length > limit) {
+      nodes = nodes.slice(0, limit)
+      hasMore = true
+    }
+
+    return buildSuccessResponse(request, scoped, nodes, hasMore, result.totalCount, trust)
   }
 
   async function mutate(
@@ -127,7 +147,26 @@ export async function createXNetServer(options: CreateXNetServerOptions): Promis
       return { ok: false, code: 'UNAUTHENTICATED', reason: 'authentication failed' }
     }
 
-    const pending = pendingWriteFromInput(input, ctx)
+    // Resolve the target node and load its CURRENT stored state, so the write is
+    // authorized against what is actually being mutated — not the client's
+    // claimed schemaId/data. For signed changes the target is the change's node.
+    const targetNodeId = input.signedChange
+      ? input.signedChange.payload.nodeId
+      : input.op === 'create'
+        ? (input.id ?? null)
+        : input.nodeId
+    const existing = targetNodeId ? await store.get(targetNodeId) : null
+
+    const pending = pendingWriteFromInput(input, ctx, existing)
+
+    // A by-id mutation must actually find its target.
+    if ((pending.op === 'update' || pending.op === 'delete') && !existing) {
+      return {
+        ok: false,
+        code: 'NOT_FOUND',
+        reason: `node ${pending.nodeId ?? '(unknown)'} not found`
+      }
+    }
 
     if (options.authorizeWrite) {
       const decision = await options.authorizeWrite(ctx, pending)
@@ -159,37 +198,66 @@ export async function createXNetServer(options: CreateXNetServerOptions): Promis
   }
 }
 
+/**
+ * Resolve the server's signing identity. The DID and signing key MUST be a
+ * matching pair (the relay verifies every change's signature against the DID's
+ * public key), so we never fabricate one half:
+ * - both provided → verify they match, else throw.
+ * - only the key → derive the DID from it.
+ * - only the DID → throw (no key to sign with).
+ * - neither → generate a fresh pair.
+ */
 function resolveServerIdentity(options: CreateXNetServerOptions): {
   did: DID
   signingKey: Uint8Array
 } {
-  if (options.serverDID && options.serverSigningKey) {
-    return { did: options.serverDID, signingKey: options.serverSigningKey }
-  }
-  if (options.serverDID || options.serverSigningKey) {
-    // Both halves are required together — derive a consistent pair otherwise.
-    const pair = generateSigningKeyPair()
-    return {
-      did: options.serverDID ?? generateIdentity().identity.did,
-      signingKey: pair.privateKey
+  const { serverDID, serverSigningKey } = options
+  if (serverSigningKey) {
+    const derived = createDID(getSigningPublicKeyFromPrivate(serverSigningKey))
+    if (serverDID && serverDID !== derived) {
+      throw new Error(
+        `@xnetjs/server: serverDID (${serverDID}) does not match the public key of ` +
+          `serverSigningKey (${derived}); changes would fail signature verification`
+      )
     }
+    return { did: derived, signingKey: serverSigningKey }
+  }
+  if (serverDID) {
+    throw new Error(
+      '@xnetjs/server: serverDID was provided without serverSigningKey; the server cannot sign changes'
+    )
   }
   const generated = generateIdentity()
   return { did: generated.identity.did, signingKey: generated.privateKey }
 }
 
-function pendingWriteFromInput(input: ServerMutationInput, ctx: ServerAuthContext): PendingWrite {
+function existingSnapshot(node: NodeState | null): PendingWrite['existing'] {
+  return node
+    ? { schemaId: node.schemaId, properties: node.properties, createdBy: node.createdBy }
+    : null
+}
+
+function pendingWriteFromInput(
+  input: ServerMutationInput,
+  ctx: ServerAuthContext,
+  existing: NodeState | null
+): PendingWrite {
+  // Signed changes are self-describing: derive the op, target, schema, and
+  // payload from the verified change — never from caller-supplied input — so
+  // the operation shown to authorizeWrite is the one actually applied.
   if (input.signedChange) {
     const payload = input.signedChange.payload
+    const op: WriteOp = payload.deleted ? 'delete' : existing ? 'update' : 'create'
     return {
-      op: input.op,
+      op,
       nodeId: payload.nodeId,
-      schemaId: (payload.schemaId as SchemaIRI | undefined) ?? input.schemaId,
+      schemaId: (payload.schemaId as SchemaIRI | undefined) ?? existing?.schemaId ?? input.schemaId,
       subject: ctx.subject,
       payload: {
         properties: payload.properties ?? {},
-        deleted: payload.deleted ?? input.op === 'delete'
-      }
+        deleted: payload.deleted ?? false
+      },
+      existing: existingSnapshot(existing)
     }
   }
   switch (input.op) {
@@ -199,23 +267,27 @@ function pendingWriteFromInput(input: ServerMutationInput, ctx: ServerAuthContex
         nodeId: input.id ?? null,
         schemaId: input.schemaId,
         subject: ctx.subject,
-        payload: { properties: input.data, deleted: false }
+        payload: { properties: input.data, deleted: false },
+        existing: null
       }
     case 'update':
       return {
         op: 'update',
         nodeId: input.nodeId,
-        schemaId: input.schemaId,
+        // The effective schema is the stored node's, not the client's claim.
+        schemaId: existing?.schemaId ?? input.schemaId,
         subject: ctx.subject,
-        payload: { properties: input.data, deleted: false }
+        payload: { properties: input.data, deleted: false },
+        existing: existingSnapshot(existing)
       }
     case 'delete':
       return {
         op: 'delete',
         nodeId: input.nodeId,
-        schemaId: input.schemaId,
+        schemaId: existing?.schemaId ?? input.schemaId,
         subject: ctx.subject,
-        payload: { properties: {}, deleted: true }
+        payload: { properties: {}, deleted: true },
+        existing: existingSnapshot(existing)
       }
   }
 }
@@ -244,7 +316,7 @@ async function applyServerMutation(
       }
     }
   } catch (err) {
-    return { ok: false, code: 'NOT_FOUND', reason: errorMessage(err) }
+    return { ok: false, code: 'WRITE_FAILED', reason: errorMessage(err) }
   }
 }
 
@@ -281,16 +353,16 @@ function buildSuccessResponse(
   request: RemoteNodeQueryRequest,
   descriptor: QueryDescriptor,
   nodes: NodeState[],
+  hasMore: boolean,
   totalCount: number | undefined,
   trust: TrustMode
 ): RemoteNodeQueryResponse {
-  const limit = descriptor.limit
   const pageInfo: QueryPageInfo = {
     totalCount: totalCount ?? null,
     countMode: totalCount != null ? 'exact' : 'none',
-    hasMore: limit != null && nodes.length >= limit,
-    hasNextPage: limit != null && nodes.length >= limit,
-    hasPreviousPage: (descriptor.offset ?? 0) > 0,
+    hasMore,
+    hasNextPage: hasMore,
+    hasPreviousPage: (descriptor.offset ?? 0) > 0 || descriptor.after !== undefined,
     loadedCount: nodes.length
   }
   const metadata: QueryMetadata = {

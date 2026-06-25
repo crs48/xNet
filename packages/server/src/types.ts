@@ -73,6 +73,13 @@ export type WriteOp = 'create' | 'update' | 'delete'
  * A normalized, backend-authoritative view of a pending write, handed to
  * {@link AuthorizeWriteHook}. For `create`/`update`, `payload.properties` is the
  * data being written; for `delete`, `payload.deleted` is `true`.
+ *
+ * `schemaId` and `existing` describe the **actual target**, loaded server-side
+ * — not the client's claim. For `update`/`delete`, `schemaId` is the stored
+ * node's real schema and `existing` is its current snapshot, so ownership
+ * checks (e.g. `existing?.properties.tenant === ctx.tenant`) and schema
+ * allow-lists can't be bypassed by a by-id write. `existing` is `null` for a
+ * `create`.
  */
 export interface PendingWrite {
   op: WriteOp
@@ -84,6 +91,8 @@ export interface PendingWrite {
     properties: Record<string, unknown>
     deleted: boolean
   }
+  /** The stored node being mutated (update/delete), or `null` for create / not-found. */
+  existing: { schemaId: SchemaIRI; properties: Record<string, unknown>; createdBy: string } | null
 }
 
 export interface WriteDecision {
@@ -134,6 +143,7 @@ export type MutationErrorCode =
   | 'SIGNATURE_INVALID'
   | 'IDENTITY_MISMATCH'
   | 'NOT_FOUND'
+  | 'WRITE_FAILED'
 
 export type MutationResult =
   | { ok: true; node: NodeState | null }

@@ -11,10 +11,14 @@
  *   trust: 'custodial',
  *   authenticate: async (token) => verifyMySession(token),
  *   authorizeRead: (ctx, query) => query.and({ tenant: ctx.tenant }),
- *   authorizeWrite: (ctx, write) =>
- *     ctx.tenant === write.payload.properties.tenant
- *       ? { ok: true }
- *       : { ok: false, reason: 'wrong tenant' }
+ *   authorizeWrite: (ctx, write) => {
+ *     // For update/delete, authorize against the STORED node (write.existing),
+ *     // not the client-supplied data — otherwise a by-id write could target
+ *     // another tenant's node.
+ *     const tenant =
+ *       write.op === 'create' ? write.payload.properties.tenant : write.existing?.properties.tenant
+ *     return tenant === ctx.tenant ? { ok: true } : { ok: false, reason: 'wrong tenant' }
+ *   }
  * })
  *
  * // Reads route through the existing client seam — no React changes:
