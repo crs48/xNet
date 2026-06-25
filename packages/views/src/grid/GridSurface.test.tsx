@@ -433,6 +433,50 @@ describe('GridSurface', () => {
     expect(cell(1, 0).querySelector('input, textarea')).toBeTruthy()
   })
 
+  it('shows a read-only reason tooltip + lock glyph for opt-in read-only columns while editing', () => {
+    const fieldsWithReason: GridField[] = [
+      { id: 'name', name: 'Name', type: 'text', config: {}, width: 200, isTitle: true },
+      {
+        id: 'sys',
+        name: 'System',
+        type: 'text',
+        config: {},
+        width: 120,
+        readonly: true,
+        readonlyReason: 'System field — read-only'
+      }
+    ]
+    render(<GridSurface fields={fieldsWithReason} rows={rows} onUpdateCell={vi.fn()} />)
+
+    // The read-only column carries its reason as a hover tooltip...
+    expect(cell(0, 1).getAttribute('title')).toBe('System field — read-only')
+    // ...and a lock glyph marks it while the grid is editable.
+    expect(cell(0, 1).querySelector('[aria-label="read-only"]')).toBeTruthy()
+    // The editable column has neither.
+    expect(cell(0, 0).getAttribute('title')).toBeNull()
+    expect(cell(0, 0).querySelector('[aria-label="read-only"]')).toBeNull()
+  })
+
+  it('does not clutter a fully read-only grid with lock glyphs', () => {
+    const fieldsWithReason: GridField[] = [
+      {
+        id: 'sys',
+        name: 'System',
+        type: 'text',
+        config: {},
+        width: 120,
+        isTitle: true,
+        readonly: true,
+        readonlyReason: 'System field — read-only'
+      }
+    ]
+    // Whole grid read-only (editing off): the reason still shows on hover, but
+    // no glyph (every cell would otherwise be marked).
+    render(<GridSurface fields={fieldsWithReason} rows={rows} readOnly />)
+    expect(cell(0, 0).getAttribute('title')).toBe('System field — read-only')
+    expect(cell(0, 0).querySelector('[aria-label="read-only"]')).toBeNull()
+  })
+
   it('broadcasts cell focus for presence', () => {
     const onCellFocus = vi.fn()
     render(<GridSurface fields={fields} rows={rows} onCellFocus={onCellFocus} />)

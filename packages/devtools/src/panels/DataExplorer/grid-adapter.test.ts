@@ -162,6 +162,33 @@ describe('buildGridFields', () => {
     const foo = buildGridFields(null, ['foo'], true, true).find((f) => f.id === 'foo')
     expect(foo?.readonly).toBe(true)
   })
+
+  it('labels every read-only column with a reason explaining why', () => {
+    const byId = Object.fromEntries(
+      buildGridFields(makeSchema(), [], true, true).map((f) => [f.id, f])
+    )
+    // System columns: a generic system-field reason.
+    expect(byId[SYSTEM_FIELD.id].readonlyReason).toMatch(/system field/i)
+    expect(byId[SYSTEM_FIELD.updated].readonlyReason).toMatch(/system field/i)
+    // Non-editable type (json) names the type.
+    expect(byId.meta.readonlyReason).toMatch(/json/i)
+    // Option-less select explains the missing options.
+    expect(byId.status.readonlyReason).toMatch(/options/i)
+    // Editable columns carry no reason.
+    expect(byId.title.readonly).toBe(false)
+    expect(byId.title.readonlyReason).toBeUndefined()
+  })
+
+  it('tells you to turn on editing when a typed column is locked only by edit mode', () => {
+    const title = buildGridFields(makeSchema(), [], false, false).find((f) => f.id === 'title')
+    expect(title?.readonly).toBe(true)
+    expect(title?.readonlyReason).toMatch(/editing/i)
+  })
+
+  it('explains that an unloaded schema makes synthesized columns read-only', () => {
+    const foo = buildGridFields(null, ['foo'], true, true).find((f) => f.id === 'foo')
+    expect(foo?.readonlyReason).toMatch(/isn't loaded|read-only/i)
+  })
 })
 
 describe('coerceCellValue', () => {

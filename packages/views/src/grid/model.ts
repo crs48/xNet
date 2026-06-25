@@ -32,6 +32,14 @@ export interface GridField {
    * extension columns are never locked. See `buildEffectiveSchema`.
    */
   readonly?: boolean
+  /**
+   * Optional human explanation of why this column's cells are read-only, shown
+   * on hover (and, in edit mode, alongside a small lock glyph). Purely
+   * informational and opt-in: callers that leave it unset keep the prior
+   * behavior (no tooltip, no glyph). Used by the dev tools to make editability
+   * legible — e.g. "System field", "json fields aren't editable here".
+   */
+  readonlyReason?: string
 }
 
 export interface GridRowData {
