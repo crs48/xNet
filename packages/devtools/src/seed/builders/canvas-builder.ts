@@ -1,26 +1,20 @@
 /**
  * Canvas scene builder — wraps the real `@xnetjs/canvas` constructors so a seed
- * can build a scene exercising every card kind (page/database/dashboard/media/
- * external-reference/task/shape/note), frames + groups, and styled connectors
- * across the relationship-kind vocabulary.
+ * can build a scene exercising the card kinds (page/database/media/task/
+ * external-reference), frames + groups (group nodes with a `containerRole`), and
+ * styled connectors across the relationship-kind vocabulary.
  *
  * Canvas docs are applied created-only, so the constructors' internal random ids
  * are fine (the scene is never re-applied).
  */
 
-import {
-  createCanvasFrameVariantNode,
-  createEdge,
-  createNode,
-  type CanvasEdge,
-  type CanvasNode
-} from '@xnetjs/canvas'
+import { createEdge, createNode, type CanvasEdge, type CanvasNode } from '@xnetjs/canvas'
 
 type Pos = { x: number; y: number; width?: number; height?: number }
 
-/** A card embedding a seeded node (page/database/dashboard/media/task/external-reference). */
+/** A card embedding a seeded node (page/database/media/task/external-reference). */
 export function card(
-  kind: 'page' | 'database' | 'dashboard' | 'media' | 'task' | 'external-reference',
+  kind: 'page' | 'database' | 'media' | 'task' | 'external-reference',
   pos: Pos,
   properties: Record<string, unknown>,
   source?: { nodeId: string; schemaId: string }
@@ -33,31 +27,31 @@ export function card(
   return node
 }
 
-/** A plain shape (rectangle/ellipse/diamond/…) or sticky note. */
+/** A plain shape (rectangle/ellipse/diamond/…). */
 export function shape(pos: Pos, title: string, shapeType: string): CanvasNode {
   return createNode('shape', pos, { title, shapeType })
 }
+/** A sticky note. */
 export function note(pos: Pos, title: string): CanvasNode {
   return createNode('note', pos, { title })
 }
 
-/** A frame (presentation/standard/swimlane/…) grouping member nodes. */
-export function frame(
-  variant: 'standard' | 'presentation' | 'swimlane' | 'kanban',
-  canvasPoint: { x: number; y: number },
-  title: string,
-  memberIds: string[]
-): CanvasNode {
-  const node = createCanvasFrameVariantNode({ variant, canvasPoint, title })
-  node.memberIds = memberIds
+function withMembers(node: CanvasNode, memberIds: string[]): CanvasNode {
+  (node as { memberIds?: string[] }).memberIds = memberIds
   return node
+}
+
+/** A frame container (a group node with `containerRole: 'frame'`). */
+export function frame(pos: Pos, title: string, variant: string, memberIds: string[]): CanvasNode {
+  return withMembers(
+    createNode('group', pos, { title, containerRole: 'frame', frameVariant: variant }),
+    memberIds
+  )
 }
 
 /** A non-frame group container. */
 export function group(pos: Pos, title: string, memberIds: string[]): CanvasNode {
-  const node = createNode('group', pos, { title, containerRole: 'group' })
-  node.memberIds = memberIds
-  return node
+  return withMembers(createNode('group', pos, { title, containerRole: 'group' }), memberIds)
 }
 
 /** A connector with a semantic relationship + optional visual style. */

@@ -83,11 +83,14 @@ function buildCanvasDoc(id: string, title: string): ReturnType<typeof createCanv
     { title: 'Tasks Tracker' },
     { nodeId: databaseId('tracker'), schemaId: DatabaseSchema._schemaId }
   )
-  const dashCard = card(
-    'dashboard',
-    { x: 760, y: 80, width: 280, height: 180 },
-    { title: 'Team Overview' },
-    { nodeId: dashboardId('overview'), schemaId: DashboardSchema._schemaId }
+  const refCard = card(
+    'external-reference',
+    { x: 760, y: 80, width: 280, height: 160 },
+    {
+      title: 'Team Overview dashboard',
+      subtitle: 'Live metrics',
+      url: 'xnet://dashboard/overview'
+    }
   )
   const mediaCard = card(
     'media',
@@ -103,10 +106,12 @@ function buildCanvasDoc(id: string, title: string): ReturnType<typeof createCanv
   )
 
   // A presentation frame grouping the page + task; a group around media + note.
-  const presentationFrame = frame('presentation', { x: 40, y: 40 }, 'Spec review', [
-    pageCard.id,
-    taskCard.id
-  ])
+  const presentationFrame = frame(
+    { x: 40, y: 40, width: 360, height: 380 },
+    'Spec review',
+    'presentation',
+    [pageCard.id, taskCard.id]
+  )
   const mediaGroup = group({ x: 720, y: 290, width: 280, height: 200 }, 'Assets', [
     mediaCard.id,
     stickyNote.id
@@ -118,7 +123,7 @@ function buildCanvasDoc(id: string, title: string): ReturnType<typeof createCanv
     pageCard,
     taskCard,
     dbCard,
-    dashCard,
+    refCard,
     mediaCard,
     stickyNote,
     milestoneShape
@@ -135,7 +140,7 @@ function buildCanvasDoc(id: string, title: string): ReturnType<typeof createCanv
       { strokeDasharray: '6 4', markerEnd: 'arrow' },
       'tracked in'
     ),
-    styledEdge(dbCard.id, dashCard.id, 'references', { curved: true, markerEnd: 'arrow' }, 'feeds'),
+    styledEdge(dbCard.id, refCard.id, 'references', { curved: true, markerEnd: 'arrow' }, 'feeds'),
     styledEdge(taskCard.id, milestoneShape.id, 'blocks', { stroke: '#ef4444', markerEnd: 'arrow' })
   ]
   for (const edge of edges) connectors.set(edge.id, edge)
