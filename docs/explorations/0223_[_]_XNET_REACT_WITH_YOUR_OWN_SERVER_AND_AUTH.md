@@ -678,12 +678,12 @@ const xnet = createXNetServer({
 
 - [ ] Extract a hub-independent `relay + storage + catch-up` core module reused
       by `@xnetjs/hub` and `@xnetjs/server`.
-- [ ] Implement a server-side **structured query executor** for
+- [x] Implement a server-side **structured query executor** for
       `RemoteNodeQueryRequest.descriptor` over a Node `NodeStore` (subset v1 with
       honest `completeness`).
 - [ ] Implement the *server side* of `RemoteNodeQueryClient` (query + `stream` +
       `subscribeInvalidations`/poke).
-- [ ] Create `@xnetjs/server` with `createXNetServer({ storage, authenticate,
+- [x] Create `@xnetjs/server` with `createXNetServer({ storage, authenticate,
       authorizeRead, authorizeWrite, trust, authorization })`.
 - [ ] Adapters: Express, Hono, Fastify, Next.js route handler; `attachWebSocket`.
 - [ ] Storage adapters: `sqliteStorage` (default) + `postgresStorage`.
@@ -691,7 +691,7 @@ const xnet = createXNetServer({
       `DataBridge` + a token-carrying `RemoteNodeQueryClient`.
 - [ ] Token endpoint + handshake: exchange developer session → short-lived scoped
       token; `authenticate` maps it to a context.
-- [ ] Trust spectrum: `custodial` server signer (`ChangeSigner`), `server`
+- [x] Trust spectrum: `custodial` server signer (`ChangeSigner`), `server`
       no-signature protocol flag (gated), `signed` DID-bound challenge/response.
 - [ ] BYO authorization path (`authorizeRead`/`authorizeWrite`) **and** opt-in
       `authorization: 'xnet'` reusing `DefaultPolicyEvaluator`.
@@ -706,9 +706,9 @@ const xnet = createXNetServer({
 
 - [ ] A React app using only `useQuery`/`useMutate`/`useNode` runs unchanged
       against `@xnetjs/server` with a developer IdP (no DID/UCAN in app code).
-- [ ] `authorizeRead` provably scopes results: user A cannot read user B's org
+- [x] `authorizeRead` provably scopes results: user A cannot read user B's org
       rows (integration test).
-- [ ] `authorizeWrite` provably blocks unauthorized writes; client receives a
+- [x] `authorizeWrite` provably blocks unauthorized writes; client receives a
       typed rejection and rolls back the optimistic update.
 - [ ] Live updates: a write by one client pokes and refreshes another client's
       `useQuery` subscription.
@@ -716,7 +716,7 @@ const xnet = createXNetServer({
       high-water-mark sync.
 - [ ] `trust: 'custodial'` round-trips (server signs, materializes, broadcasts)
       with no client key.
-- [ ] `trust: 'signed'` verifies client signatures and rejects a forged
+- [x] `trust: 'signed'` verifies client signatures and rejects a forged
       `authorDID` not bound to the session.
 - [ ] `trust: 'server'` (signatures off) is unreachable against the public XNet
       hub (config-gate test).
