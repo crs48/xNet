@@ -778,11 +778,11 @@ describe('seed coverage', () => {
 - [x] Add unit tests for each seeder (pure functions → assert draft shapes,
       stable IDs) and a runner test on a `MemoryNodeStorageAdapter` proving
       **two runs = same node count** (idempotency) and **Accrete grows**.
-- [ ] Document the seed in package README / `docs/` and note the "new schema ⇒
+- [x] Document the seed in package README / `docs/` and note the "new schema ⇒
       add a seeder" rule in `CLAUDE.md` conventions.
 - [x] (Optional) Add a `seed --snapshot` export to emit a `seed.json`
       golden for fast deterministic E2E fixtures.
-- [ ] Changeset: `@xnetjs/devtools` is dev tooling — confirm publishable status
+- [x] Changeset: `@xnetjs/devtools` is dev tooling — confirm publishable status
       via `node scripts/changeset/publishable-pathspec.mjs`; add a changeset (or
       `--empty`) accordingly.
 

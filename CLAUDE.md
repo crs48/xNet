@@ -24,3 +24,21 @@ Every change to a **publishable** `packages/*` library MUST produce a
 
 Conventional Commits are enforced (commitlint). `feat:` → minor, `fix:`/`perf:` →
 patch, `feat!:` / `BREAKING CHANGE:` → major.
+
+## Dev-tools seed (new content types)
+
+The dev-tools **Seed** panel populates a demo workspace covering every content
+type (`packages/devtools/src/seed/`). It's **idempotent** (deterministic IDs →
+LWW upsert; re-running adds only what's missing) and guarded by
+`seed-coverage.test.ts`, which asserts every registered, non-excluded schema
+gets ≥1 seeded node.
+
+When you add a **new schema**, the Tier-2 auto-generator covers it automatically.
+To make the coverage test happy you only act when it's special:
+
+- Rich, linked sample data → add a Tier-1 seeder under `seed/seeders/` and
+  register it in `seed-manifest.ts`.
+- System/meta infrastructure (not user-facing) → add it to
+  `SEED_EXCLUDED_SCHEMA_IDS` in `seed-manifest.ts`.
+
+See `packages/devtools/src/seed/README.md`.
