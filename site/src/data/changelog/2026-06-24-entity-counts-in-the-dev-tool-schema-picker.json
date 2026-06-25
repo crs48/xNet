@@ -1,0 +1,13 @@
+{
+  "id": "2026-06-24-entity-counts-in-the-dev-tool-schema-picker",
+  "date": "June 24, 2026",
+  "title": "Entity counts in the dev tool's schema picker",
+  "summary": "The schema dropdown in the dev tools' Data panel (Ctrl/Cmd+Shift+D) now shows how many entities each schema holds — e.g. Task (12), Person (0) — so it's obvious at a glance where the data lives. The counts respect your read permissions and update live as nodes are created or deleted.",
+  "highlights": [
+    "Each schema shows its entity count, e.g. Task (12) or Person (0)",
+    "\"All schemas\" shows the total across schemas",
+    "Counts respect read authorization and refresh live without polling"
+  ],
+  "tags": ["devtools", "platform"],
+  "authors": [{ "login": "crs48" }]
+}
