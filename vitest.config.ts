@@ -58,6 +58,7 @@ const workspaceAliases = {
   '@xnetjs/react': new URL('./packages/react/src/index.ts', import.meta.url).pathname,
   '@xnetjs/runtime': new URL('./packages/runtime/src/index.ts', import.meta.url).pathname,
   '@xnetjs/sdk': new URL('./packages/sdk/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/server': new URL('./packages/server/src/index.ts', import.meta.url).pathname,
   '@xnetjs/slack-compat': new URL('./packages/slack-compat/src/index.ts', import.meta.url).pathname,
   '@xnetjs/sqlite/memory': new URL('./packages/sqlite/src/adapters/memory.ts', import.meta.url)
     .pathname,
@@ -153,8 +154,8 @@ export default defineConfig({
           isolate: true,
           testTimeout: 15000,
           include: [
-            'packages/{hub,plugins,sdk,devkit,unreal}/src/**/*.test.ts',
-            'packages/{hub,plugins,sdk,devkit,unreal}/test/**/*.test.ts'
+            'packages/{hub,plugins,sdk,devkit,unreal,server}/src/**/*.test.ts',
+            'packages/{hub,plugins,sdk,devkit,unreal,server}/test/**/*.test.ts'
           ],
           server: {
             deps: {
