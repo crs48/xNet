@@ -504,18 +504,18 @@ const spaceDrafts = [
 
 ## Validation Checklist
 
-- [ ] **Databases render filled**: open a seeded database in the app — columns of every type, many rows with real cell values, multiple views (table/board/calendar), and a relation column resolving to rows in another database.
-- [ ] **Idempotency holds**: run twice → second run `0 created` (all `updated`); node counts unchanged; new fields added to a spec appear on re-run (converge), no duplicates.
-- [ ] **No dangling relations**: a test walks every seeded node's relation/`cell_*`/person fields and asserts each target id exists (or is a demo DID).
-- [ ] **Double-entry balances**: a test asserts every seeded Transaction's Postings net to zero per currency.
-- [ ] **Hierarchy depth**: folder tree depth ≥3; ≥3 nested Spaces with memberships; tasks with subtasks; account tree with sub-accounts.
-- [ ] **CRM graph resolves in-app**: an Organization shows its Contacts; a Deal shows Stage + primary Contact + LineItems + contact roles + activities.
-- [ ] **Canvases non-empty**: a seeded canvas shows shapes, notes, connectors, and embedded task/page cards.
-- [ ] **Tagging is dense**: a tag page shows backlinks across multiple schemas (tasks, pages, deals, …).
-- [ ] **Pages cross-link**: rich pages embed/mention other pages, tasks, and databases that navigate correctly.
-- [ ] **Coverage guard green**: every non-excluded schema still gets ≥1 node; DB child schemas attributed to Tier-1.
-- [ ] **Scale/perf**: medium completes ≤ ~2s and renders; large stays within the cold-load budget (cf. 0184/0204). `log()` total node count.
-- [ ] **Lint/format/typecheck/tests** green; live-verify in the app via the Seed panel.
+- [x] **Databases render filled**: open a seeded database in the app — columns of every type, many rows with real cell values, multiple views (table/board/calendar), and a relation column resolving to rows in another database.
+- [x] **Idempotency holds**: run twice → second run `0 created` (all `updated`); node counts unchanged; new fields added to a spec appear on re-run (converge), no duplicates.
+- [x] **No dangling relations**: a test walks every seeded node's relation/`cell_*`/person fields and asserts each target id exists (or is a demo DID).
+- [x] **Double-entry balances**: a test asserts every seeded Transaction's Postings net to zero per currency.
+- [x] **Hierarchy depth**: folder tree depth ≥3; ≥3 nested Spaces with memberships; tasks with subtasks; account tree with sub-accounts.
+- [x] **CRM graph resolves in-app**: an Organization shows its Contacts; a Deal shows Stage + primary Contact + LineItems + contact roles + activities.
+- [x] **Canvases non-empty**: a seeded canvas shows shapes, notes, connectors, and embedded task/page cards.
+- [x] **Tagging is dense**: a tag page shows backlinks across multiple schemas (tasks, pages, deals, …).
+- [x] **Pages cross-link**: rich pages embed/mention other pages, tasks, and databases that navigate correctly.
+- [x] **Coverage guard green**: every non-excluded schema still gets ≥1 node; DB child schemas attributed to Tier-1.
+- [x] **Scale/perf**: medium completes ≤ ~2s and renders; large stays within the cold-load budget (cf. 0184/0204). `log()` total node count.
+- [x] **Lint/format/typecheck/tests** green; live-verify in the app via the Seed panel.
 
 ## References
 
