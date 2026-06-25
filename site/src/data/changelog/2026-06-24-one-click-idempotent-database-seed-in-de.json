@@ -1,0 +1,10 @@
+{
+  "id": "2026-06-24-one-click-idempotent-database-seed-in-de",
+  "date": "June 24, 2026",
+  "title": "One-click idempotent database seed in dev tools",
+  "summary": "The dev tools can now seed a full demo workspace — projects, tasks, pages, canvases, dashboards, channels, comments and metrics, plus the relationships between them — from one button. Re-running converges instead of duplicating, and every new content type is covered automatically.",
+  "highlights": [],
+  "tags": [
+    "devtools"
+  ]
+}
