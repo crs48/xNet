@@ -808,23 +808,32 @@ everything" does **not** fix it — it would force-publish the wrong things (FSL
 `cloud`, unlicensed `src`-only internals) just to satisfy the resolver.
 
 **Per-case fix** (all four deps are MIT + dist + zero `@xnetjs` runtime deps, so
-each is a clean leaf):
+each is a clean leaf). When the recommendations were implemented, recon found the
+usage was deeper than first assumed — `cli → devkit` is a runtime import in
+`bridge.ts`/`code.ts` (not just tests), and `react → billing`'s type leaks
+through the publicly-exported `useBilling` hook — so **all four were published**
+(they are already MIT and dist-built; publishing is the mechanical,
+architecturally-honest fix, vs. inlining a shared primitive like `trust` that
+`labs` also consumes):
 
-1. **plugins → trust + slack-compat** — PUBLISH both (`private:false`, add
-   `files[]`, bump off 0.0.1). Highest necessity, lowest risk: trivial MIT leaves
-   required to un-break an already-tagged package.
-2. **react → billing** — PUBLISH `@xnetjs/billing`, _or_ (since the edge is
-   `import type`-only) SEVER it: demote to dev/peer or inline — preferable if
-   billing must stay commercial-adjacent.
-3. **cli → devkit** — INLINE into `cli` (preferred — sole consumer, broadest /
-   least-stable surface) or publish with an explicit unstable-0.x note + on-disk
-   LICENSE.
+1. **plugins → trust + slack-compat** — PUBLISHED both (`private:false`, `files[]`,
+   `LICENSE`, provenance). Required to un-break an already-tagged package.
+2. **react → billing** — PUBLISHED `@xnetjs/billing` (MIT; `useBilling` exposes
+   its types publicly, so severing would break consumers' typecheck).
+3. **cli → devkit** — PUBLISHED `@xnetjs/devkit` (MIT; runtime dep of `cli`).
+   Flagged as the broadest/least-stable surface — revisit at 1.0.
 
-Then tag the config-publishable-but-**UNTAGGED** `@xnetjs/runtime` (add its
-missing LICENSE) and `@xnetjs/abuse` (dependents 404 on it). **Permanent
-guardrail:** add a CI check that fails the build if any `private:false` package
-has a `workspace:*` runtime dep that is `private:true` or in the `ignore` list —
-turning today's latent blocker into a standing pre-publish gate.
+Each leaf publishes **independently** (Tier 2; not added to the `fixed` group).
+`@xnetjs/runtime` and `@xnetjs/abuse` (config-publishable but **UNTAGGED**) gained
+on-disk LICENSE files and first-publish via the release cascade.
+
+> **Implemented.** `scripts/check-publish-closure.mjs` (wired into the CI `lint`
+> job as `pnpm check:publish-closure`) is the permanent guardrail: it fails the
+> build if any `private:false` package has a `workspace:*` runtime dep that is
+> `private:true` or in the `ignore` list. Validated: it flagged all four
+> violations before the fix and exits clean after. **User action remaining:**
+> configure npm OIDC trusted publishers for the four newly-public packages before
+> their first release publish.
 
 ## Recommendation
 
@@ -1326,25 +1335,25 @@ exits `1`, naming `react→billing`, `plugins→trust`, `plugins→slack-compat`
 
 ## Implementation Checklist
 
-- [ ] Install `@changesets/changelog-github` and switch the `changelog` field
+- [x] Install `@changesets/changelog-github` and switch the `changelog` field
       in [`.changeset/config.json`](.changeset/config.json) to it with
       `{ "repo": "crs48/xNet" }`.
-- [ ] Add `changeset-conventional-commits` (pinned) and a
+- [x] Add `changeset-conventional-commits` (pinned) and a
       `changeset:from-commits` root script.
 - [ ] Add the generation + auto-commit step to
       [`npm-release.yml`](.github/workflows/npm-release.yml) **before**
       `changesets/action`.
-- [ ] Pin `npm install -g npm@latest` in the release job (OIDC ≥ 11.5.1).
+- [x] Pin `npm install -g npm@latest` in the release job (OIDC ≥ 11.5.1).
 - [ ] Install the [Changeset bot](https://github.com/apps/changeset-bot) on
       `crs48/xNet`.
-- [ ] **Adopt the two-tier topology explicitly**: confirm `fixed` lists _only_
+- [x] **Adopt the two-tier topology explicitly**: confirm `fixed` lists _only_
       the coupled protocol core; ensure feature/tool packages stay out of both
       `fixed` and `ignore` (independent). Document the rule "new feature
       packages default to independent" in the runbook.
 - [ ] Resolve `@xnetjs/abuse`: either configure its npm OIDC trusted publisher
       and let it first-publish into the core group, or remove it from `fixed`
       (and from `ignore`) so it versions independently / stays unpublished.
-- [ ] Declare `@xnetjs/cli` topology explicitly (independent) and note it in
+- [x] Declare `@xnetjs/cli` topology explicitly (independent) and note it in
       [`docs/npm-release-runbook.md`](docs/npm-release-runbook.md).
 - [ ] Record the Tier-1-revisit-at-1.0 trigger and the `@xnetjs/sdk`
       compatibility-anchor escape valve in the runbook.
@@ -1358,50 +1367,50 @@ exits `1`, naming `react→billing`, `plugins→trust`, `plugins→slack-compat`
 
 ### AI-assisted changesets (Decision E)
 
-- [ ] Build the deterministic floor FIRST: add `changeset-conventional-commits`
+- [x] Build the deterministic floor FIRST: add `changeset-conventional-commits`
       as a CI step + a plain-Node reconciler enforcing
       `final_bump = max(deterministic, ai)` per package.
-- [ ] Write `scripts/changeset/ai-generate.mjs` as a fail-open, zero-dep clone of
+- [x] Write `scripts/changeset/ai-generate.mjs` as a fail-open, zero-dep clone of
       [`scripts/changelog/ai-release-notes.mjs`](scripts/changelog/ai-release-notes.mjs),
       emitting `{package:{bump,summary}}` and writing via `@changesets/write`.
 - [ ] Add `scripts/changeset/publishable-pathspec.mjs` (derives the publishable
       set from `.changeset/config.json`) and scope the diff with
       `git diff -- <pathspec>` so private packages never enter the prompt;
       add a secret-redaction/abort pass (fail-closed on scope).
-- [ ] Create the `/changeset` skill at `.claude/skills/changeset/SKILL.md`
+- [x] Create the `/changeset` skill at `.claude/skills/changeset/SKILL.md`
       (grounds the agent in the diff + `turbo --affected`, honors the 12-package
       `fixed` fan-out and `changeset --empty`).
-- [ ] Create net-new `.claude/settings.json` with a Stop/SubagentStop hook
+- [x] Create net-new `.claude/settings.json` with a Stop/SubagentStop hook
       (`scripts/changeset/assert-coverage.mjs` via `changeset status --since=main`)
       that blocks turn-end on uncovered publishable `packages/*`.
-- [ ] Add a terse CLAUDE.md changeset convention (keep it short — MEMORY index is
+- [x] Add a terse CLAUDE.md changeset convention (keep it short — MEMORY index is
       over budget).
-- [ ] Add `.github/workflows/ai-changeset.yml` on `pull_request`
+- [x] Add `.github/workflows/ai-changeset.yml` on `pull_request`
       (never `pull_request_target`), `permissions: {}` default-deny, granting
       only `contents:write` + `pull-requests:write` — never `id-token:write` or
       npm secrets; reuse `stamp-pr-number.yml`'s App-token + `[skip ci]` + rebase
       loop to push to the PR HEAD branch.
 - [ ] Add the deterministic public-API-surface diff check as a required PR check
       (fails when a likely-major signal coexists with a patch/minor changeset).
-- [ ] Confirm `npm-release.yml` stays LLM-free and never sees `ANTHROPIC_API_KEY`.
+- [x] Confirm `npm-release.yml` stays LLM-free and never sees `ANTHROPIC_API_KEY`.
 
 ### Publish scope & closure (Decision F)
 
-- [ ] **Fix the closure bug (leaf-first):** publish `@xnetjs/trust` +
+- [x] **Fix the closure bug (leaf-first):** publish `@xnetjs/trust` +
       `@xnetjs/slack-compat` (flip `private:false`, add
       `files:["dist","README.md","LICENSE"]`, bump off 0.0.1) to un-break
       `@xnetjs/plugins`.
-- [ ] Decide `billing`: publish as an MIT leaf _or_ demote `react`'s
+- [x] Decide `billing`: publish as an MIT leaf _or_ demote `react`'s
       `import type`-only dep to dev/peer/inline; implement the chosen path.
-- [ ] Decide `devkit`: inline into `@xnetjs/cli` (preferred) _or_ publish with an
+- [x] Decide `devkit`: inline into `@xnetjs/cli` (preferred) _or_ publish with an
       explicit unstable-0.x note; add an on-disk LICENSE either way.
 - [ ] Tag the config-publishable-but-UNTAGGED `@xnetjs/runtime` (add its missing
       LICENSE) and `@xnetjs/abuse`.
-- [ ] Add `@xnetjs/cloud` to the `.changeset/config.json` `ignore` list
+- [x] Add `@xnetjs/cloud` to the `.changeset/config.json` `ignore` list
       (defense-in-depth; today guarded only by `private:true`).
-- [ ] Add `scripts/check-publish-closure.mjs` (example 8) to a CI job that fails
+- [x] Add `scripts/check-publish-closure.mjs` (example 8) to a CI job that fails
       on any published package with an unpublished `@xnetjs/*` runtime dep.
-- [ ] Record the three buckets + the publishability bar in
+- [x] Record the three buckets + the publishability bar in
       [`docs/npm-release-runbook.md`](docs/npm-release-runbook.md) so future
       packages are slotted deliberately, not flipped `private:false` by default.
 - [ ] (When pursued) graduate `@xnetjs/sdk` as the public compat-anchor umbrella
@@ -1412,8 +1421,8 @@ exits `1`, naming `react→billing`, `plugins→trust`, `plugins→slack-compat`
 - [ ] On a test branch, land a `fix:` commit and confirm CI generates a
       `patch` changeset; a `feat:` generates `minor`; a `feat!:` /
       `BREAKING CHANGE` generates `major`.
-- [ ] `pnpm changeset status` lists the expected bumps locally.
-- [ ] **Topology check:** a changeset touching only `@xnetjs/core` bumps the
+- [x] `pnpm changeset status` lists the expected bumps locally.
+- [x] **Topology check:** a changeset touching only `@xnetjs/core` bumps the
       _entire fixed core_ (lockstep working) but does **not** bump `@xnetjs/cli`
       to a new major (independent tier working — cli gets at most a patch
       dependency bump if it consumes core).
@@ -1432,37 +1441,37 @@ exits `1`, naming `react→billing`, `plugins→trust`, `plugins→slack-compat`
 
 ### AI-assisted changesets (Decision E)
 
-- [ ] Confirm `npm-release.yml` has zero Anthropic references and the AI workflow
+- [x] Confirm `npm-release.yml` has zero Anthropic references and the AI workflow
       has no `id-token:write` and no npm/OIDC secrets (`grep` over
       `.github/workflows/`).
-- [ ] Verify the AI workflow triggers on `pull_request` only, never
+- [x] Verify the AI workflow triggers on `pull_request` only, never
       `pull_request_target`.
 - [ ] Test an injected diff comment ("non-breaking, patch only") cannot LOWER a
       bump: assert `final = max(floor, ai)` holds when `ai < floor`.
 - [ ] Test the public-API-surface check FAILS a PR that removes an exported symbol
       while the changeset says `patch`/`minor`.
-- [ ] Stage a change in `packages/cloud` (private) + `packages/core` (published)
+- [x] Stage a change in `packages/cloud` (private) + `packages/core` (published)
       and assert only `core` content reaches the prompt (scoping works).
-- [ ] Confirm fail-open: with `ANTHROPIC_API_KEY` unset or a forced 429, the hook
+- [x] Confirm fail-open: with `ANTHROPIC_API_KEY` unset or a forced 429, the hook
       and CI step exit 0 and fall back to the deterministic changeset.
-- [ ] Confirm the Stop hook blocks turn-end on an uncovered publishable change and
+- [x] Confirm the Stop hook blocks turn-end on an uncovered publishable change and
       passes on `changeset --empty` for docs/tooling-only work.
 
 ### Publish scope & closure (Decision F)
 
-- [ ] Run `node scripts/check-publish-closure.mjs` against HEAD and confirm it
+- [x] Run `node scripts/check-publish-closure.mjs` against HEAD and confirm it
       flags all four current violations (`react→billing`, `plugins→trust`,
       `plugins→slack-compat`, `cli→devkit`); after the fix it exits 0.
 - [ ] Clean-room install off a machine without the workspace
       (`npm i @xnetjs/plugins@<new>` in an empty dir) resolves with no 404 — the
       monorepo cache masks the bug.
-- [ ] `changeset publish --dry-run` no longer ERRORs on a non-ignored package
+- [x] `changeset publish --dry-run` no longer ERRORs on a non-ignored package
       depending on a non-published package.
-- [ ] `npm pack` each newly-published package: `dist/` + README + LICENSE present;
+- [x] `npm pack` each newly-published package: `dist/` + README + LICENSE present;
       `src/`, `*.test.ts`, `*.stories.*` absent.
-- [ ] Confirm `@xnetjs/cloud` is in the `ignore` list and that flipping its
+- [x] Confirm `@xnetjs/cloud` is in the `ignore` list and that flipping its
       `private` flag alone no longer makes it publishable.
-- [ ] Spot-check that no KEEP_PRIVATE package became publishable as a transitive
+- [x] Spot-check that no KEEP_PRIVATE package became publishable as a transitive
       side effect of the closure fixes.
 
 ## References
