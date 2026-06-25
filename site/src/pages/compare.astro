@@ -151,7 +151,8 @@ const tradeoffs = [
           Drag to compare the two architectures these projects are choosing between.
         </p>
         <BeforeAfter label="Drag to compare: cloud SaaS on the left, local-first on the right">
-          <div slot="before" class="bg-gray-500/[0.06] p-7 sm:p-9">
+          <!-- before: opaque, anchored left -->
+          <div slot="before" class="h-full bg-surface p-7 sm:p-9">
             <div class="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Cloud SaaS</div>
             <ul class="space-y-2.5 text-sm text-gray-600 dark:text-gray-300">
               <li class="flex items-start gap-2"><span class="mt-1 text-gray-400">&#9744;</span> The vendor holds your data</li>
@@ -161,14 +162,15 @@ const tradeoffs = [
               <li class="flex items-start gap-2"><span class="mt-1 text-gray-400">&#9744;</span> Trust the server with plaintext</li>
             </ul>
           </div>
-          <div slot="after" class="bg-indigo-500/[0.06] p-7 sm:p-9">
+          <!-- after: tinted, anchored right -->
+          <div slot="after" class="bg-indigo-500/[0.05] p-7 text-right sm:p-9">
             <div class="mb-3 text-xs font-semibold uppercase tracking-wide text-indigo-500 dark:text-indigo-400">Local-first (xNet)</div>
             <ul class="space-y-2.5 text-sm text-gray-700 dark:text-gray-200">
-              <li class="flex items-start gap-2"><span class="mt-1 text-emerald-500">&#10003;</span> Data lives on your device</li>
-              <li class="flex items-start gap-2"><span class="mt-1 text-emerald-500">&#10003;</span> Offline is the default</li>
-              <li class="flex items-start gap-2"><span class="mt-1 text-emerald-500">&#10003;</span> Devices sync peer-to-peer</li>
-              <li class="flex items-start gap-2"><span class="mt-1 text-emerald-500">&#10003;</span> Export everything, anytime</li>
-              <li class="flex items-start gap-2"><span class="mt-1 text-emerald-500">&#10003;</span> You hold the keys</li>
+              <li class="flex flex-row-reverse items-start gap-2"><span class="mt-1 text-emerald-500">&#10003;</span> Data lives on your device</li>
+              <li class="flex flex-row-reverse items-start gap-2"><span class="mt-1 text-emerald-500">&#10003;</span> Offline is the default</li>
+              <li class="flex flex-row-reverse items-start gap-2"><span class="mt-1 text-emerald-500">&#10003;</span> Devices sync peer-to-peer</li>
+              <li class="flex flex-row-reverse items-start gap-2"><span class="mt-1 text-emerald-500">&#10003;</span> Export everything, anytime</li>
+              <li class="flex flex-row-reverse items-start gap-2"><span class="mt-1 text-emerald-500">&#10003;</span> You hold the keys</li>
             </ul>
           </div>
         </BeforeAfter>

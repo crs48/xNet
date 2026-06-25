@@ -19,10 +19,17 @@ const cycle = Math.max(1, words.length) * hold
 ---
 
 <span class={`word-roll ${cls}`} style={`--wr-cycle:${cycle}s`}>
-  <span class="sr-only">{words[0]}</span>
-  {words.map((w, i) => (
-    <span class="word-roll__item" style={`animation-delay:${i * hold}s`} aria-hidden="true">{w}</span>
-  ))}
+  {
+    words.map((w, i) => (
+      <span
+        class="word-roll__item"
+        style={`animation-delay:${i * hold}s`}
+        aria-hidden={i === 0 ? undefined : 'true'}
+      >
+        {w}
+      </span>
+    ))
+  }
 </span>
 
 <style>

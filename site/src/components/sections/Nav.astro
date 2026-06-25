@@ -1,7 +1,7 @@
 ---
 import ThemeToggle from '../ui/ThemeToggle.astro'
 import StatusDot from '../ui/StatusDot.astro'
-import { fallback, STATUS_URL } from '../../data/status'
+import { fallback } from '../../data/status'
 
 const links = [
   { href: '/#app', label: 'App' },
@@ -28,9 +28,9 @@ const links = [
       <a
         href="/status"
         class="hidden lg:inline-flex text-xs text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"
-        title="xNet Cloud status"
+        title="xNet Cloud status — last published snapshot; click for live status"
       >
-        <StatusDot status={fallback.overall} liveUrl={STATUS_URL} />
+        <StatusDot status={fallback.overall} />
       </a>
       <a href="/docs/introduction/" class="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:border-indigo-500/50 hover:bg-surface transition-all">
         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">

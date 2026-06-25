@@ -18,11 +18,11 @@ interface Props {
 const { label, start = 50, class: cls = '' } = Astro.props
 ---
 
-<div class={`ba relative select-none overflow-hidden rounded-2xl border border-border ${cls}`}>
+<div class={`ba relative select-none overflow-hidden rounded-2xl border border-border bg-surface ${cls}`}>
   <div class="ba-after">
     <slot name="after" />
   </div>
-  <div class="ba-before absolute inset-0" style={`clip-path: inset(0 ${100 - start}% 0 0)`}>
+  <div class="ba-before absolute inset-0 overflow-hidden" style={`clip-path: inset(0 ${100 - start}% 0 0)`}>
     <slot name="before" />
   </div>
 

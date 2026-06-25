@@ -556,7 +556,7 @@ const { filename = 'terminal' } = Astro.props
 
 ## Validation Checklist
 
-- [ ] `pnpm --filter site build` passes locally (PR CI may not build the site).
+- [x] `pnpm --filter site build` passes locally (PR CI may not build the site).
 - [ ] Toggle OS "Reduce motion": every effect renders a sensible static state
       (counters show final number, node graph shows one frame, word‑roll shows
       the first noun, no autoplay).
@@ -568,7 +568,7 @@ const { filename = 'terminal' } = Astro.props
 - [ ] Keyboard + screen reader: `BeforeAfter` range is operable and labelled;
       decorative canvases are `aria-hidden`; counters expose the real final
       value in the DOM.
-- [ ] Numbers shown are **true and current** (cross‑check against `metrics.json`,
+- [x] Numbers shown are **true and current** (cross‑check against `metrics.json`,
       `status.json`, and the actual package/test counts).
 - [ ] Mobile (~380px) and desktop: no overflow from node graph/aurora; hero
       word‑roll doesn't reflow layout (fixed line height).
