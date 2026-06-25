@@ -756,7 +756,7 @@ describe('seed coverage', () => {
       (channels + threaded messages), `viz` (canvases + dashboards), `metrics`
       (metrics + observations + experiment), `crm`, `accounting`,
       `integration`, `game`, `moderation`, `memory`.
-- [ ] Port the existing `createSamplePage` / `createSampleDatabase` /
+- [x] Port the existing `createSamplePage` / `createSampleDatabase` /
       `createRelatedDatabases` content into the `docs`/`database`/`work`
       seeders (deterministic IDs, deterministic Yjs builders, recomputed
       comment anchors).
@@ -766,10 +766,10 @@ describe('seed coverage', () => {
       `SEED_EXCLUDED_SCHEMA_IDS` (system/meta), required-relation handling.
 - [x] Add modes: Converge (default), Accrete (random-id volume via seeded
       PRNG), Reseed (clear seed-scoped nodes → converge).
-- [ ] Rewrite `Seed.tsx` to drive the runner: "Seed everything" + scale (S/M/L)
+- [x] Rewrite `Seed.tsx` to drive the runner: "Seed everything" + scale (S/M/L)
       + per-domain toggles + mode selector + live progress/result summary;
       retain the 3 legacy quick-presets.
-- [ ] Add a compact **Seed everything / Reseed** action to the Reset panel
+- [x] Add a compact **Seed everything / Reseed** action to the Reset panel
       (reuse `reset-actions.ts` two-step-confirm state machine) so it sits next
       to **Clear**.
 - [x] Add `seed-coverage.test.ts` (walks `getAllIRIs()`, dedup, subtract
