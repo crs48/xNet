@@ -40,11 +40,14 @@ const xnet = await createXNetServer({
   authenticate: async (token) => verifyMySession(token), // → { subject, ...claims } | null
   // 2. Scope what a subject can read (row-level security).
   authorizeRead: (ctx, query) => query.and({ tenant: ctx.tenant }),
-  // 3. Validate writes in your own terms.
-  authorizeWrite: (ctx, write) =>
-    write.payload.properties.tenant === ctx.tenant
-      ? { ok: true }
-      : { ok: false, reason: 'wrong tenant' }
+  // 3. Validate writes in your own terms. For update/delete, authorize against
+  //    the STORED node (`write.existing`) — not the client-supplied data — so a
+  //    by-id write can't target another tenant's node.
+  authorizeWrite: (ctx, write) => {
+    const tenant =
+      write.op === 'create' ? write.payload.properties.tenant : write.existing?.properties.tenant
+    return tenant === ctx.tenant ? { ok: true } : { ok: false, reason: 'wrong tenant' }
+  }
 })
 ```
 
