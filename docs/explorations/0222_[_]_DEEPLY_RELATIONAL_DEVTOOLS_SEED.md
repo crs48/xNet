@@ -485,21 +485,21 @@ const spaceDrafts = [
 
 ## Implementation Checklist
 
-- [ ] Extend `SeedContext` with a `SeedFixtures` registry (spaces map, `folder(path)`, `tag(slug)`, `person(i)`); update `types.ts` and all seeders.
-- [ ] Runner: resolve the **space tree** (org + team sub-spaces + personal) and owner memberships before content; build `fixtures`; keep author-DID read-back.
-- [ ] Add `seeders/database-drafts.ts` builder (field/option/row/view drafts; `cell_<fieldId>` encoding; ISO date cells; `sortKey`).
-- [ ] Rewrite `seeders/database.ts` to emit two fully-populated databases (Tasks tracker with all field types; CRM accounts) incl. a cross-database `relation` cell; register `DatabaseField`/`DatabaseSelectOption`/`DatabaseRow`/`DatabaseView` in its `schemaIds`.
-- [ ] Add `seeders/crm.ts`: Pipelines→Stages, Orgs (hub+tail)→Contacts→Deals→LineItems→Products, DealContactRole junction, Activities, Relationships; tagged + filed + scoped to the Sales space.
-- [ ] Add `seeders/accounting.ts`: chart-of-accounts tree, balanced Transactions+Postings, Budgets, ImportBatch; link some Transactions to Deals.
-- [ ] Add `seeders/integration.ts`: Feeds→FeedItems, ExternalItems, MediaAssets.
-- [ ] Enrich `seeders/spaces.ts`: nested folder tree (depth ≥3), full tag palette, profiles per demo person.
+- [x] Extend `SeedContext` with a `SeedFixtures` registry (spaces map, `folder(path)`, `tag(slug)`, `person(i)`); update `types.ts` and all seeders.
+- [x] Runner: resolve the **space tree** (org + team sub-spaces + personal) and owner memberships before content; build `fixtures`; keep author-DID read-back.
+- [x] Add `seeders/database-drafts.ts` builder (field/option/row/view drafts; `cell_<fieldId>` encoding; ISO date cells; `sortKey`).
+- [x] Rewrite `seeders/database.ts` to emit two fully-populated databases (Tasks tracker with all field types; CRM accounts) incl. a cross-database `relation` cell; register `DatabaseField`/`DatabaseSelectOption`/`DatabaseRow`/`DatabaseView` in its `schemaIds`.
+- [x] Add `seeders/crm.ts`: Pipelines→Stages, Orgs (hub+tail)→Contacts→Deals→LineItems→Products, DealContactRole junction, Activities, Relationships; tagged + filed + scoped to the Sales space.
+- [x] Add `seeders/accounting.ts`: chart-of-accounts tree, balanced Transactions+Postings, Budgets, ImportBatch; link some Transactions to Deals.
+- [x] Add `seeders/integration.ts`: Feeds→FeedItems, ExternalItems, MediaAssets.
+- [x] Enrich `seeders/spaces.ts`: nested folder tree (depth ≥3), full tag palette, profiles per demo person.
 - [ ] Enrich `seeders/work.ts`: subtasks (`parent`), multiple assignees, task dependencies, links to spec pages + canvases, tags.
 - [ ] Enrich `seeders/docs.ts`: 4–6 distinct rich pages with varied blocks + `pageEmbed`/`wikilink`/`taskMention`/`hashtag` cross-links; file into nested folders.
 - [ ] Enrich `seeders/viz.ts`: build canvas scenes (shapes, notes, connectors, embedded node cards via `@xnetjs/canvas`); dashboards with metric-referencing widgets.
 - [ ] Enrich `seeders/comms.ts`: reply threads (`inReplyTo`), DMs between people, reactions, threaded comments.
 - [ ] Add `@xnetjs/canvas` (and any needed schema exports) to `@xnetjs/devtools` devDependencies; update vitest aliases if required.
-- [ ] Update `SCALES` with new dials (dbRows, contacts, deals, activities, postings, pages, canvasObjects) keeping medium ≤ ~2s.
-- [ ] Update `seed-manifest.ts` (register new seeders; move DB child schemas to Tier-1; prune Tier-2 reach).
+- [x] Update `SCALES` with new dials (dbRows, contacts, deals, activities, postings, pages, canvasObjects) keeping medium ≤ ~2s.
+- [x] Update `seed-manifest.ts` (register new seeders; move DB child schemas to Tier-1; prune Tier-2 reach).
 - [ ] Update the Seed panel domain toggles + README + `CLAUDE.md` seed section.
 
 ## Validation Checklist

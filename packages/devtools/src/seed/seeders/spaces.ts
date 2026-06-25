@@ -1,7 +1,11 @@
 /**
- * Spaces seeder — the foundation. Emits the demo Space (owned by the real
- * author so cascade authz grants access), per-person memberships, a couple of
- * Folders, a Tag palette, and Profiles for the demo people.
+ * Spaces seeder — the foundation. Builds the workspace tree (an org Space with
+ * nested team sub-spaces + a personal Space), per-space memberships (author is
+ * owner everywhere; demo people get varied roles), a NESTED folder tree, the
+ * shared tag palette, and Profiles for the demo people.
+ *
+ * Local writes aren't authz-gated (the hub is the enforcement point), so nodes
+ * can reference any space/folder regardless of import order.
  */
 
 import type { SeederModule } from '../types'
@@ -13,20 +17,11 @@ import {
   SpaceSchema,
   TagSchema
 } from '@xnetjs/data'
+import { FOLDER_TREE, SPACE_IDS, TAG_PALETTE, TEAM_SPACES, folderPath, tagId } from '../fixtures'
 import { seedId } from '../seed-ids'
 
-export const TAG_PALETTE = [
-  { slug: 'backend', name: 'backend', color: 'blue' },
-  { slug: 'frontend', name: 'frontend', color: 'green' },
-  { slug: 'urgent', name: 'urgent', color: 'red' },
-  { slug: 'design', name: 'design', color: 'purple' },
-  { slug: 'docs', name: 'docs', color: 'gray' }
-] as const
-
-export const FOLDERS = [
-  { slug: 'work', name: 'Work', icon: '💼' },
-  { slug: 'notes', name: 'Notes', icon: '🗒️' }
-] as const
+const folderParent = (path: string): string | undefined =>
+  path.includes('/') ? folderPath(path.slice(0, path.lastIndexOf('/'))) : undefined
 
 export const spacesSeeder: SeederModule = {
   domain: 'spaces',
@@ -38,36 +33,74 @@ export const spacesSeeder: SeederModule = {
     TagSchema._schemaId,
     ProfileSchema._schemaId
   ],
-  seed: ({ space, authorDID, people }) => {
-    const drafts: DeterministicNodeImportDraft[] = [
-      {
-        id: space,
+  seed: ({ authorDID, people }) => {
+    const drafts: DeterministicNodeImportDraft[] = []
+
+    // ─── Space tree: org → teams, plus a personal space ──────────────────
+    drafts.push({
+      id: SPACE_IDS.org,
+      schemaId: SpaceSchema._schemaId,
+      properties: {
+        name: 'Acme Inc',
+        kind: 'organization',
+        visibility: 'private',
+        owners: [authorDID],
+        description: 'Seeded demo workspace — every content type, deeply interrelated.',
+        icon: '🏢',
+        color: 'blue'
+      }
+    })
+    for (const team of TEAM_SPACES) {
+      drafts.push({
+        id: team.id,
         schemaId: SpaceSchema._schemaId,
         properties: {
-          name: 'Demo Workspace',
-          kind: 'workspace',
+          name: team.name,
+          kind: 'team',
           visibility: 'private',
           owners: [authorDID],
-          description: 'Seeded demo data — projects, docs, channels, metrics and more.',
-          icon: '🚀',
-          color: 'blue'
+          parent: SPACE_IDS.org,
+          icon: team.icon
         }
-      },
-      // Author owns the space (this is what grants in-app authz).
-      {
-        id: seedId('membership', authorDID),
-        schemaId: SpaceMembershipSchema._schemaId,
-        properties: { space, member: authorDID, role: 'owner' }
+      })
+    }
+    drafts.push({
+      id: SPACE_IDS.personal,
+      schemaId: SpaceSchema._schemaId,
+      properties: {
+        name: 'Personal',
+        kind: 'personal',
+        visibility: 'private',
+        owners: [authorDID],
+        icon: '🏠'
       }
-    ]
+    })
 
-    // Demo people as members (display only — they have no real keys).
+    const allSpaceIds = [SPACE_IDS.org, ...TEAM_SPACES.map((t) => t.id), SPACE_IDS.personal]
+
+    // ─── Memberships: author owns every space ────────────────────────────
+    for (const spaceId of allSpaceIds) {
+      drafts.push({
+        id: seedId('membership', spaceId, authorDID),
+        schemaId: SpaceMembershipSchema._schemaId,
+        properties: { space: spaceId, member: authorDID, role: 'owner' }
+      })
+    }
+
+    // ─── Demo people: members of the org (+ some teams) + profiles ───────
     const roles = ['admin', 'member', 'commenter', 'viewer'] as const
     people.forEach((person, i) => {
       drafts.push({
-        id: seedId('membership', person.did),
+        id: seedId('membership', SPACE_IDS.org, person.did),
         schemaId: SpaceMembershipSchema._schemaId,
-        properties: { space, member: person.did, role: roles[i % roles.length] }
+        properties: { space: SPACE_IDS.org, member: person.did, role: roles[i % roles.length] }
+      })
+      // Spread people across team spaces too, for cross-space membership.
+      const team = TEAM_SPACES[i % TEAM_SPACES.length]
+      drafts.push({
+        id: seedId('membership', team.id, person.did),
+        schemaId: SpaceMembershipSchema._schemaId,
+        properties: { space: team.id, member: person.did, role: 'member' }
       })
       drafts.push({
         id: seedId('profile', person.did),
@@ -84,17 +117,19 @@ export const spacesSeeder: SeederModule = {
       })
     })
 
-    for (const folder of FOLDERS) {
+    // ─── Nested folder tree (depth ≥3) ──────────────────────────────────
+    for (const folder of FOLDER_TREE) {
       drafts.push({
-        id: seedId('folder', folder.slug),
+        id: folderPath(folder.path),
         schemaId: FolderSchema._schemaId,
-        properties: { name: folder.name, icon: folder.icon }
+        properties: { name: folder.name, icon: folder.icon, parent: folderParent(folder.path) }
       })
     }
 
+    // ─── Shared tag palette ─────────────────────────────────────────────
     for (const tag of TAG_PALETTE) {
       drafts.push({
-        id: seedId('tag', tag.slug),
+        id: tagId(tag.slug),
         schemaId: TagSchema._schemaId,
         properties: { name: tag.name, color: tag.color }
       })
@@ -104,7 +139,6 @@ export const spacesSeeder: SeederModule = {
   }
 }
 
-/** Tag node IDs other seeders reference. */
-export const tagId = (slug: string): string => seedId('tag', slug)
-/** Folder node IDs other seeders reference. */
-export const folderId = (slug: string): string => seedId('folder', slug)
+// Back-compat re-exports for sibling seeders.
+export { tagId } from '../fixtures'
+export { folderPath as folderId } from '../fixtures'

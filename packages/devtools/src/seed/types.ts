@@ -31,18 +31,54 @@ export interface SeedScaleConfig {
   channels: number
   messagesPerChannel: number
   observationsPerMetric: number
+  /** Rows per seeded database. */
+  dbRows: number
+  /** Organizations in the CRM. */
+  orgs: number
+  /** Contacts per organization. */
+  contactsPerOrg: number
+  /** Deals across the CRM. */
+  deals: number
+  /** Ledger transactions (each with balanced postings). */
+  transactions: number
+  /** Items per RSS feed. */
+  feedItems: number
   /** Extra random-ID nodes per volume schema when mode === 'accrete'. */
   accretePerSchema: number
 }
 
+/**
+ * Deterministic, resolved handles seeders use to cross-link without re-deriving
+ * ids. Spaces/folders/tags are created by the `spaces` seeder; these are the
+ * stable ids the rest of the seeders reference.
+ */
+export interface SeedFixtures {
+  /** The workspace tree: an org space, nested team spaces, and a personal space. */
+  spaces: {
+    org: NodeId
+    engineering: NodeId
+    design: NodeId
+    sales: NodeId
+    personal: NodeId
+  }
+  /** Folder id for a nested path, e.g. `folder('work/engineering')`. */
+  folder: (path: string) => NodeId
+  /** Tag id for a palette slug. */
+  tag: (slug: string) => NodeId
+  /** Stable demo DID by index (wraps). */
+  person: (i: number) => string
+}
+
 /** Everything a seeder needs; all randomness flows from `rng`. */
 export interface SeedContext {
-  /** The demo Space node ID every content node is scoped into. */
+  /** The org Space node ID (default scope); sub-spaces live in `fixtures.spaces`. */
   space: NodeId
-  /** The real signing author (owner of the demo Space → cascade authz). */
+  /** The real signing author (owner of every demo Space). */
   authorDID: string
   /** Stable demo DIDs for assignees / members / reactors. */
   people: ReadonlyArray<{ did: string; name: string; emoji: string }>
+  /** Resolved spaces / folders / tags / people handles for cross-linking. */
+  fixtures: SeedFixtures
   /** Resolved volume counts. */
   scale: SeedScaleConfig
   /** Deterministic PRNG (seeded). */

@@ -24,6 +24,7 @@ import type { DeterministicNodeImportDraft, NodeStore } from '@xnetjs/data'
 import { SpaceSchema } from '@xnetjs/data'
 import * as Y from 'yjs'
 import { autoDraft } from './auto-generator'
+import { buildFixtures, ORG_SPACE_ID } from './fixtures'
 import { DEMO_PEOPLE, makeRng, pick, SEED_ACCRETE_PREFIX, seedId } from './seed-ids'
 import { getAutoSchemas, SEEDERS } from './seed-manifest'
 
@@ -32,30 +33,48 @@ export const SCALES: Record<SeedScale, SeedScaleConfig> = {
     scale: 'small',
     projects: 2,
     tasksPerProject: 3,
-    pages: 2,
+    pages: 3,
     channels: 2,
     messagesPerChannel: 5,
     observationsPerMetric: 7,
+    dbRows: 6,
+    orgs: 3,
+    contactsPerOrg: 2,
+    deals: 3,
+    transactions: 4,
+    feedItems: 4,
     accretePerSchema: 5
   },
   medium: {
     scale: 'medium',
     projects: 4,
     tasksPerProject: 6,
-    pages: 4,
+    pages: 5,
     channels: 4,
     messagesPerChannel: 15,
     observationsPerMetric: 30,
+    dbRows: 18,
+    orgs: 6,
+    contactsPerOrg: 3,
+    deals: 8,
+    transactions: 10,
+    feedItems: 10,
     accretePerSchema: 25
   },
   large: {
     scale: 'large',
     projects: 6,
     tasksPerProject: 12,
-    pages: 6,
+    pages: 8,
     channels: 6,
     messagesPerChannel: 40,
     observationsPerMetric: 90,
+    dbRows: 60,
+    orgs: 12,
+    contactsPerOrg: 5,
+    deals: 24,
+    transactions: 40,
+    feedItems: 30,
     accretePerSchema: 100
   }
 }
@@ -63,7 +82,8 @@ export const SCALES: Record<SeedScale, SeedScaleConfig> = {
 /** Fixed PRNG seed so converge runs are reproducible. */
 const DEFAULT_RNG_SEED = 0xc0ffee
 
-const DEMO_SPACE_ID = seedId('space', 'demo')
+/** The org space id (kept stable so prior seeds converge). */
+const DEMO_SPACE_ID = ORG_SPACE_ID
 
 export interface RunSeedOptions {
   store: NodeStore
@@ -142,6 +162,7 @@ export async function runSeed(opts: RunSeedOptions): Promise<SeedReport> {
     space: DEMO_SPACE_ID,
     authorDID,
     people: DEMO_PEOPLE,
+    fixtures: buildFixtures(),
     scale,
     rng
   }
