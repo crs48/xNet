@@ -11,6 +11,7 @@ import type {
   CellValue,
   FieldType,
   FilterGroup,
+  NodeChangeEvent,
   NodeId,
   NodeQueryResult,
   NodeState,
@@ -44,6 +45,20 @@ interface QueryState {
   plan: PlanMeta | null
   error: string | null
   loading: boolean
+}
+
+/**
+ * Whether a change can move a schema's entity count. Counts only shift when a
+ * node appears/disappears (create / hard-delete) or its `deleted` flag flips
+ * (soft-delete / restore). Plain property updates — the bulk of live traffic,
+ * including every inline cell edit — leave every count untouched, so they must
+ * NOT trigger the (per-schema) recount fan-out.
+ */
+export function changeAffectsCount(event: NodeChangeEvent): boolean {
+  const existedBefore = event.previousNode != null
+  const existsAfter = event.node != null
+  if (existedBefore !== existsAfter) return true
+  return (event.previousNode?.deleted ?? false) !== (event.node?.deleted ?? false)
 }
 
 export function useDataExplorer() {
@@ -173,13 +188,20 @@ export function useDataExplorer() {
     }
     runQuery()
     let timer: ReturnType<typeof setTimeout> | null = null
-    const unsub = store.subscribe(() => {
+    // Tracks whether any change in the current debounce window could move a
+    // count, so we only re-run the (N-schema) count fan-out on create/delete —
+    // not on the far more frequent property updates.
+    let countsDirty = false
+    const unsub = store.subscribe((event) => {
+      if (changeAffectsCount(event)) countsDirty = true
       if (timer) return
       timer = setTimeout(() => {
         timer = null
         runQuery()
-        // Counts can change on create/delete — nudge the count effect to re-run.
-        setDataVersion((v) => v + 1)
+        if (countsDirty) {
+          countsDirty = false
+          setDataVersion((v) => v + 1)
+        }
       }, LIVE_DEBOUNCE_MS)
     })
     return () => {
@@ -208,9 +230,11 @@ export function useDataExplorer() {
   // Per-schema entity counts. We read each schema's exact total via
   // `store.query({ count: 'exact' })` — the same authorization-respecting path
   // the grid uses — so the picker counts match the rows the viewer can actually
-  // see (the raw `countNodes` adapter would also count unreadable nodes). Runs
-  // on mount, when the schema set or `includeDeleted` changes, and on each
-  // debounced live change. Cost is one COUNT per schema; fine for a dev tool.
+  // see (the raw `countNodes` adapter would also count unreadable nodes). This
+  // fans out to one COUNT per registered schema (dozens), so it runs only when
+  // it can matter: on mount, when the schema set or `includeDeleted` changes,
+  // and on a debounced *structural* change (create/delete — see `dataVersion`),
+  // never on plain edits.
   useEffect(() => {
     if (!store || !countableIrisKey) {
       setSchemaCounts(new Map())
