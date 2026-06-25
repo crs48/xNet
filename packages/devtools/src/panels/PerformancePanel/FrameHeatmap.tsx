@@ -14,6 +14,10 @@ const CELL = 10
 const GAP = 1
 const LABEL_W = 30
 const PAD = 4
+// Hex literals (not CSS vars): theme tokens are raw HSL channels, invalid as a
+// direct `fill`. Fast frames read calm-blue; jank rows read warning-orange.
+const FAST_FILL = '#1c7ed6'
+const JANK_FILL = '#e8590c'
 
 export interface FrameHeatmapProps {
   samples: readonly TimedSample[]
@@ -62,7 +66,7 @@ export function FrameHeatmap({
                 width={CELL}
                 height={CELL}
                 rx={1}
-                fill={slow ? 'var(--warning, #e8590c)' : 'var(--accent-ink, #1c7ed6)'}
+                fill={slow ? JANK_FILL : FAST_FILL}
                 opacity={count === 0 ? 0.06 : 0.2 + 0.8 * (count / Math.max(data.max, 1))}
               >
                 <title>{`${FRAME_ROW_LABELS[r]} ms · ${count} frame${count === 1 ? '' : 's'}`}</title>

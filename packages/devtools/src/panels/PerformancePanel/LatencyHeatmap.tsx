@@ -16,6 +16,9 @@ const CELL = 10
 const GAP = 1
 const LABEL_W = 30
 const PAD = 4
+// Hex literal (not a CSS var) to match the Waterfall in this panel: the theme
+// tokens are raw HSL channels, so `var(--accent-ink)` is not a valid fill.
+const HEAT_FILL = '#1c7ed6'
 
 export interface LatencyHeatmapProps {
   traces: readonly DevToolsTrace[]
@@ -65,7 +68,7 @@ export function LatencyHeatmap({
                 width={CELL}
                 height={CELL}
                 rx={1}
-                fill="var(--accent-ink, #e8590c)"
+                fill={HEAT_FILL}
                 opacity={count === 0 ? 0.06 : 0.2 + 0.8 * (count / Math.max(data.max, 1))}
               >
                 <title>{`${LATENCY_ROW_LABELS[r]} ms · ${count} trace${count === 1 ? '' : 's'}`}</title>
