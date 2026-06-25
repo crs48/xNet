@@ -543,9 +543,9 @@ const { filename = 'terminal' } = Astro.props
       `CodeBlock` in `ForDevelopers` and `BuiltForAgents`.
 - [x] Add `TokenStream` "type‑in once on scroll" to the agent CLI block (tie to
       the real agent narrative only; reduced‑motion shows full text).
-- [ ] **Wave 3:** Build `ui/BeforeAfter.astro` (range input + clip‑path) and
+- [x] **Wave 3:** Build `ui/BeforeAfter.astro` (range input + clip‑path) and
       place on `/compare` ("Cloud lock‑in ⟷ Local‑first").
-- [ ] Add recommended‑tier glow to `/cloud/pricing` (`PricingCard` treatment).
+- [x] Add recommended‑tier glow to `/cloud/pricing` (`PricingCard` treatment).
 - [ ] Wire an honest `StatusDot` to `data/status.json` in the nav/status page.
 - [ ] Add a "Built on open standards" `LogoRow` (Yjs, SQLite, libsodium,
       ML‑DSA, TypeScript, React).
