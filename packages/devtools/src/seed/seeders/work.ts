@@ -5,9 +5,10 @@
  * Scoped into the Engineering team space and filed under work/engineering.
  */
 
-import type { SeederModule } from '../types'
+import type { SeedDoc, SeederModule } from '../types'
 import type { DeterministicNodeImportDraft } from '@xnetjs/data'
 import { MilestoneSchema, ProjectSchema, TaskSchema } from '@xnetjs/data'
+import { milestoneNotesDoc, projectBriefDoc, taskDescriptionDoc } from '../docs/page-builders'
 import { pick, PROJECT_NAMES, seedId, TASK_VERBS } from '../seed-ids'
 import { pageId } from './docs'
 import { canvasId } from './viz'
@@ -33,6 +34,7 @@ export const workSeeder: SeederModule = {
   schemaIds: [ProjectSchema._schemaId, MilestoneSchema._schemaId, TaskSchema._schemaId],
   seed: ({ fixtures, people, scale, rng }) => {
     const drafts: DeterministicNodeImportDraft[] = []
+    const docs: SeedDoc[] = []
     const names = PROJECT_NAMES.slice(0, scale.projects)
     const space = fixtures.spaces.engineering
     const folder = fixtures.folder('work/engineering')
@@ -52,6 +54,10 @@ export const workSeeder: SeederModule = {
           tags: [fixtures.tag('roadmap'), fixtures.tag('urgent')]
         }
       })
+      docs.push({
+        nodeId: project,
+        build: () => projectBriefDoc(project, ProjectSchema._schemaId, name)
+      })
 
       const milestone = seedId('milestone', name, 'v1')
       drafts.push({
@@ -64,6 +70,10 @@ export const workSeeder: SeederModule = {
           project,
           space
         }
+      })
+      docs.push({
+        nodeId: milestone,
+        build: () => milestoneNotesDoc(milestone, MilestoneSchema._schemaId, `${name} — v1`)
       })
 
       for (let i = 0; i < scale.tasksPerProject; i++) {
@@ -89,6 +99,13 @@ export const workSeeder: SeederModule = {
             tags: [fixtures.tag(i % 2 === 0 ? 'backend' : 'frontend')]
           }
         })
+        if (i === 0) {
+          docs.push({
+            nodeId: taskId(name, 0),
+            build: () =>
+              taskDescriptionDoc(taskId(name, 0), TaskSchema._schemaId, `${verb} — ${name}`)
+          })
+        }
       }
 
       // Subtasks under the first task of each project (parent → self-ref tree).
@@ -112,6 +129,6 @@ export const workSeeder: SeederModule = {
       }
     })
 
-    return { drafts }
+    return { drafts, docs }
   }
 }

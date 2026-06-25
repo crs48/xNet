@@ -15,6 +15,7 @@ import {
   CanvasSchema,
   DashboardSchema,
   DatabaseSchema,
+  MapSchema,
   MediaAssetSchema,
   MetricSchema,
   ObservationSchema,
@@ -37,6 +38,13 @@ import { pageId } from './docs'
 
 export const canvasId = (slug: string): string => seedId('canvas', slug)
 export const dashboardId = (slug: string): string => seedId('dashboard', slug)
+export const mapId = (slug: string): string => seedId('map', slug)
+
+const POINT = (lng: number, lat: number, name: string) => ({
+  type: 'Feature' as const,
+  geometry: { type: 'Point' as const, coordinates: [lng, lat] },
+  properties: { name }
+})
 
 const CANVASES = [
   { slug: 'roadmap', title: 'Roadmap', icon: '🗺️' },
@@ -138,7 +146,7 @@ function buildCanvasDoc(id: string, title: string): ReturnType<typeof createCanv
 export const vizSeeder: SeederModule = {
   domain: 'viz',
   label: 'Canvases & dashboards',
-  schemaIds: [CanvasSchema._schemaId, DashboardSchema._schemaId],
+  schemaIds: [CanvasSchema._schemaId, DashboardSchema._schemaId, MapSchema._schemaId],
   seed: ({ fixtures }) => {
     const drafts: DeterministicNodeImportDraft[] = []
     const docs: SeedDoc[] = []
@@ -212,6 +220,40 @@ export const vizSeeder: SeederModule = {
         space: fixtures.spaces.org,
         tags: [fixtures.tag('roadmap')],
         ...teamHub
+      }
+    })
+
+    // ─── Map populated with a real basemap, viewport + a markers layer ───
+    drafts.push({
+      id: mapId('offices'),
+      schemaId: MapSchema._schemaId,
+      properties: {
+        title: 'Office Locations',
+        icon: '🗺️',
+        basemap: 'protomaps-light',
+        viewport: { longitude: -98, latitude: 39.5, zoom: 3 },
+        layers: [
+          {
+            id: 'offices',
+            name: 'Offices',
+            source: {
+              kind: 'geojson',
+              data: {
+                type: 'FeatureCollection',
+                features: [
+                  POINT(-122.42, 37.77, 'San Francisco'),
+                  POINT(-73.99, 40.73, 'New York'),
+                  POINT(-0.13, 51.5, 'London')
+                ]
+              }
+            },
+            style: { geometry: 'point', color: '#2f7ed8', size: 7 },
+            visible: true,
+            popupProperties: ['name']
+          }
+        ],
+        space: fixtures.spaces.org,
+        tags: [fixtures.tag('roadmap')]
       }
     })
 

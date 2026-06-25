@@ -352,9 +352,9 @@ interface FieldSpec { /* + */ kind adds: 'dateRange'|'file'|'rollup'|'formula'|'
 - [x] Rebuild the flagship canvas scene to embed seeded DB/dashboard/media nodes, ≥1 frame + group, and styled connectors.
 
 ### Phase 5 — Domain `.document` narratives
-- [ ] Add `docs/page-builders.ts` (task description, project brief, milestone notes, CRM org/contact/deal notes, experiment protocol) on the Phase-2 vocabulary.
-- [ ] Wire into `work.ts`/`crm.ts`/`metrics.ts` so first task/project/milestone/org/contact/deal/experiment carries a `SeedDoc`.
-- [ ] Assess `Map` (`map.ts`) content model; seed minimal real content or record a deferral rationale.
+- [x] Add `docs/page-builders.ts` (task description, project brief, milestone notes, CRM org/contact/deal notes, experiment protocol) on the Phase-2 vocabulary.
+- [x] Wire into `work.ts`/`crm.ts`/`metrics.ts` so first task/project/milestone/org/contact/deal/experiment carries a `SeedDoc`.
+- [x] Assess `Map` (`map.ts`) content model; seed minimal real content or record a deferral rationale.
 
 ### Cross-cutting
 - [x] Add `seed-render.test.ts`: load every seeded `SeedDoc` through the editor's ProseMirror schema (and decode each canvas/dashboard) — fail on any rejected/blank doc.

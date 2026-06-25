@@ -6,7 +6,7 @@
  * Scoped to the Sales space, tagged, and filed under work/sales.
  */
 
-import type { SeederModule } from '../types'
+import type { SeedDoc, SeederModule } from '../types'
 import type { DeterministicNodeImportDraft } from '@xnetjs/data'
 import {
   ActivitySchema,
@@ -20,6 +20,7 @@ import {
   RelationshipSchema,
   StageSchema
 } from '@xnetjs/data'
+import { accountNotesDoc, contactNotesDoc, dealNotesDoc } from '../docs/page-builders'
 import { int, pick, seedId } from '../seed-ids'
 
 const DAY = 86_400_000
@@ -79,6 +80,7 @@ export const crmSeeder: SeederModule = {
   ],
   seed: ({ fixtures, scale, rng }) => {
     const drafts: DeterministicNodeImportDraft[] = []
+    const docs: SeedDoc[] = []
     const space = fixtures.spaces.sales
     const folder = fixtures.folder('work/sales')
     const salesTag = [fixtures.tag('sales')]
@@ -259,6 +261,20 @@ export const crmSeeder: SeederModule = {
       }
     }
 
-    return { drafts }
+    // Rich `.document` notes on the first org / contact / deal.
+    docs.push({
+      nodeId: orgId(0),
+      build: () => accountNotesDoc(orgId(0), OrganizationSchema._schemaId, 'Account')
+    })
+    docs.push({
+      nodeId: contactId(0, 0),
+      build: () => contactNotesDoc(contactId(0, 0), ContactSchema._schemaId, 'Contact')
+    })
+    docs.push({
+      nodeId: crmDealId(0),
+      build: () => dealNotesDoc(crmDealId(0), DealSchema._schemaId, 'Deal')
+    })
+
+    return { drafts, docs }
   }
 }
