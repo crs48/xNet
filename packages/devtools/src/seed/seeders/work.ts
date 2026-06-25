@@ -1,7 +1,8 @@
 /**
- * Work seeder — Projects, Milestones and Tasks, richly cross-linked. Tasks link
- * to their project + milestone, take deterministic-but-varied status/priority,
- * and (for the first task of each project) link to the seeded spec Page.
+ * Work seeder — Projects, Milestones and Tasks, richly cross-linked: tasks link
+ * to project + milestone, carry multiple assignees, and the first task of each
+ * project gets SUBTASKS (parent) plus links to its spec Page and a Canvas.
+ * Scoped into the Engineering team space and filed under work/engineering.
  */
 
 import type { SeederModule } from '../types'
@@ -9,7 +10,7 @@ import type { DeterministicNodeImportDraft } from '@xnetjs/data'
 import { MilestoneSchema, ProjectSchema, TaskSchema } from '@xnetjs/data'
 import { pick, PROJECT_NAMES, seedId, TASK_VERBS } from '../seed-ids'
 import { pageId } from './docs'
-import { tagId } from './spaces'
+import { canvasId } from './viz'
 
 const PROJECT_STATUS = ['planned', 'in-progress', 'paused', 'completed'] as const
 const PROJECT_ICONS = ['🚀', '🛠️', '📱', '💳', '🔎', '✨'] as const
@@ -30,9 +31,11 @@ export const workSeeder: SeederModule = {
   domain: 'work',
   label: 'Projects & tasks',
   schemaIds: [ProjectSchema._schemaId, MilestoneSchema._schemaId, TaskSchema._schemaId],
-  seed: ({ space, people, scale, rng }) => {
+  seed: ({ fixtures, people, scale, rng }) => {
     const drafts: DeterministicNodeImportDraft[] = []
     const names = PROJECT_NAMES.slice(0, scale.projects)
+    const space = fixtures.spaces.engineering
+    const folder = fixtures.folder('work/engineering')
 
     names.forEach((name, pIndex) => {
       const project = projectId(name)
@@ -43,10 +46,10 @@ export const workSeeder: SeederModule = {
           name,
           icon: PROJECT_ICONS[pIndex % PROJECT_ICONS.length],
           status: PROJECT_STATUS[pIndex % PROJECT_STATUS.length],
-          lead: pick(rng, people).did,
+          lead: people[pIndex % people.length].did,
           targetDate: BASE_TS + (pIndex + 4) * 7 * DAY,
           space,
-          tags: [tagId('backend'), tagId('urgent')]
+          tags: [fixtures.tag('roadmap'), fixtures.tag('urgent')]
         }
       })
 
@@ -75,13 +78,35 @@ export const workSeeder: SeederModule = {
             completed: status === 'done',
             priority: pick(rng, TASK_PRIORITY),
             dueDate: BASE_TS + (i + 1) * 2 * DAY,
-            assignee: pick(rng, people).did,
+            assignee: people[i % people.length].did,
+            assignees: [people[i % people.length].did, people[(i + 1) % people.length].did],
             project,
             milestone,
-            // Link the first task of each project to its spec page.
-            ...(i === 0 ? { page: pageId('spec', name) } : {}),
+            folder,
+            // First task of each project links to its spec page + a canvas.
+            ...(i === 0 ? { page: pageId('spec', name), canvas: canvasId('roadmap') } : {}),
             space,
-            tags: [tagId(i % 2 === 0 ? 'backend' : 'frontend')]
+            tags: [fixtures.tag(i % 2 === 0 ? 'backend' : 'frontend')]
+          }
+        })
+      }
+
+      // Subtasks under the first task of each project (parent → self-ref tree).
+      const parentTask = taskId(name, 0)
+      for (let s = 0; s < 2; s++) {
+        drafts.push({
+          id: seedId('task', name, 0, 'sub', s),
+          schemaId: TaskSchema._schemaId,
+          properties: {
+            title: `Subtask ${s + 1} — ${name}`,
+            status: pick(rng, TASK_STATUS),
+            priority: pick(rng, TASK_PRIORITY),
+            parent: parentTask,
+            project,
+            assignee: people[(pIndex + s) % people.length].did,
+            space,
+            folder,
+            tags: [fixtures.tag('backend')]
           }
         })
       }

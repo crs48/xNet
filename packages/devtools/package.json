@@ -28,6 +28,7 @@
     "@xnetjs/react": "workspace:*"
   },
   "dependencies": {
+    "@xnetjs/canvas": "workspace:*",
     "@xnetjs/history": "workspace:*",
     "@xnetjs/sqlite": "workspace:*",
     "@xnetjs/ui": "workspace:*",

@@ -493,14 +493,14 @@ const spaceDrafts = [
 - [x] Add `seeders/accounting.ts`: chart-of-accounts tree, balanced Transactions+Postings, Budgets, ImportBatch; link some Transactions to Deals.
 - [x] Add `seeders/integration.ts`: Feeds→FeedItems, ExternalItems, MediaAssets.
 - [x] Enrich `seeders/spaces.ts`: nested folder tree (depth ≥3), full tag palette, profiles per demo person.
-- [ ] Enrich `seeders/work.ts`: subtasks (`parent`), multiple assignees, task dependencies, links to spec pages + canvases, tags.
-- [ ] Enrich `seeders/docs.ts`: 4–6 distinct rich pages with varied blocks + `pageEmbed`/`wikilink`/`taskMention`/`hashtag` cross-links; file into nested folders.
-- [ ] Enrich `seeders/viz.ts`: build canvas scenes (shapes, notes, connectors, embedded node cards via `@xnetjs/canvas`); dashboards with metric-referencing widgets.
-- [ ] Enrich `seeders/comms.ts`: reply threads (`inReplyTo`), DMs between people, reactions, threaded comments.
-- [ ] Add `@xnetjs/canvas` (and any needed schema exports) to `@xnetjs/devtools` devDependencies; update vitest aliases if required.
+- [x] Enrich `seeders/work.ts`: subtasks (`parent`), multiple assignees, task dependencies, links to spec pages + canvases, tags.
+- [x] Enrich `seeders/docs.ts`: 4–6 distinct rich pages with varied blocks + `pageEmbed`/`wikilink`/`taskMention`/`hashtag` cross-links; file into nested folders.
+- [x] Enrich `seeders/viz.ts`: build canvas scenes (shapes, notes, connectors, embedded node cards via `@xnetjs/canvas`); dashboards with metric-referencing widgets.
+- [x] Enrich `seeders/comms.ts`: reply threads (`inReplyTo`), DMs between people, reactions, threaded comments.
+- [x] Add `@xnetjs/canvas` (and any needed schema exports) to `@xnetjs/devtools` devDependencies; update vitest aliases if required.
 - [x] Update `SCALES` with new dials (dbRows, contacts, deals, activities, postings, pages, canvasObjects) keeping medium ≤ ~2s.
 - [x] Update `seed-manifest.ts` (register new seeders; move DB child schemas to Tier-1; prune Tier-2 reach).
-- [ ] Update the Seed panel domain toggles + README + `CLAUDE.md` seed section.
+- [x] Update the Seed panel domain toggles + README + `CLAUDE.md` seed section.
 
 ## Validation Checklist
 

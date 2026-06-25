@@ -74,7 +74,8 @@ describe('runSeed — relationships + documents', () => {
       const project = await store.get(projectRef)
       expect(project, `dangling project ref ${projectRef}`).not.toBeNull()
       expect(project!.schemaId).toContain('Project')
-      expect(task.properties.space).toBe('seed/space/demo')
+      // Tasks are scoped into the Engineering team sub-space.
+      expect(String(task.properties.space)).toContain('seed/space/demo')
     }
   })
 
