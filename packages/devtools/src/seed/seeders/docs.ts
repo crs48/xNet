@@ -13,6 +13,7 @@ import { CommentSchema, PageSchema } from '@xnetjs/data'
 import { buildRichPageDoc, type RichBlock } from '../docs/rich-pages'
 import { buildSamplePageDoc, buildTextAnchor } from '../docs/sample-page'
 import { PROJECT_NAMES, seedId } from '../seed-ids'
+import { databaseId } from './database-drafts'
 
 /** Stable page node id. `pageId('spec', 'API Migration')` → spec page for that project. */
 export const pageId = (kind: string, name?: string): string =>
@@ -200,6 +201,90 @@ export const docsSeeder: SeederModule = {
           { kind: 'callout', type: 'warning', text: 'Draft — feedback welcome.' },
           { kind: 'p', text: 'Proposal for tokens, components and theming. #design' },
           { kind: 'bullets', items: ['Color tokens', 'Spacing scale', 'Component API'] }
+        ])
+    })
+
+    // ─── Feature Showcase — exercises every block + inline pattern ────────
+    const showcaseId = pageId('showcase')
+    page(showcaseId, 'Feature Showcase', '✨', fixtures.spaces.org, 'notes', [fixtures.tag('docs')])
+    const trackerDb = databaseId('tracker')
+    docs.push({
+      nodeId: showcaseId,
+      build: () =>
+        buildRichPageDoc(showcaseId, PageSchema._schemaId, 'Feature Showcase', '✨', [
+          { kind: 'h', level: 1, text: 'Feature Showcase' },
+          {
+            kind: 'p',
+            text: [
+              { text: 'This page exercises ' },
+              { text: 'every', marks: ['bold'] },
+              { text: ' editor feature — ' },
+              { text: 'inline code', marks: ['code'] },
+              { text: ', ' },
+              { text: 'a strikethrough', marks: ['strike'] },
+              { text: ', ' },
+              { text: 'a link', link: 'https://xnet.fyi' },
+              { text: ', a ' },
+              { pill: 'hashtag', id: fixtures.tag('docs'), name: 'docs' },
+              { text: ' tag, a mention ' },
+              { pill: 'taskMention', id: fixtures.person(0), label: 'Ada' },
+              { text: ', and a ' },
+              {
+                pill: 'databaseReference',
+                databaseId: trackerDb,
+                title: 'Tasks Tracker',
+                icon: '✅'
+              },
+              { text: '.' }
+            ]
+          },
+          { kind: 'callout', type: 'caution', text: 'Caution callouts work too.' },
+          {
+            kind: 'toggle',
+            summary: 'Expand for nested content',
+            open: true,
+            children: [
+              { kind: 'p', text: 'Toggles can hold any blocks:' },
+              { kind: 'bullets', items: ['nested bullet one', 'nested bullet two'] }
+            ]
+          },
+          {
+            kind: 'image',
+            src: 'https://placehold.co/600x300/png',
+            alt: 'Placeholder',
+            alignment: 'center'
+          },
+          {
+            kind: 'file',
+            cid: 'bafyseedshowcasefile',
+            name: 'spec.pdf',
+            mimeType: 'application/pdf',
+            size: 204800
+          },
+          {
+            kind: 'embed',
+            url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+            provider: 'youtube',
+            embedUrl: 'https://www.youtube.com/embed/dQw4w9WgXcQ',
+            title: 'Demo video'
+          },
+          {
+            kind: 'richLink',
+            url: 'https://github.com/xnetjs/xnet',
+            title: 'xNet on GitHub',
+            subtitle: 'Local-first workspace',
+            icon: '🐙'
+          },
+          {
+            kind: 'mermaid',
+            code: 'graph TD; A[Idea] --> B[Spec]; B --> C[Ship];',
+            theme: 'default'
+          },
+          { kind: 'hr' },
+          { kind: 'h', level: 2, text: 'Live database (board view)' },
+          { kind: 'databaseEmbed', databaseId: trackerDb, viewType: 'board' },
+          { kind: 'h', level: 2, text: 'My open tasks' },
+          { kind: 'taskViewEmbed', scope: 'all', status: 'open' }
         ])
     })
 

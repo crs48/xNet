@@ -10,19 +10,41 @@
 
 import type { SeedDoc, SeederModule } from '../types'
 import type { DeterministicNodeImportDraft } from '@xnetjs/data'
+import { createCanvasDoc, getCanvasConnectorsMap, getCanvasObjectsMap } from '@xnetjs/canvas'
 import {
-  createCanvasDoc,
-  createEdge,
-  createNode,
-  getCanvasConnectorsMap,
-  getCanvasObjectsMap
-} from '@xnetjs/canvas'
-import { CanvasSchema, DashboardSchema, PageSchema, TaskSchema } from '@xnetjs/data'
+  CanvasSchema,
+  DashboardSchema,
+  DatabaseSchema,
+  MapSchema,
+  MediaAssetSchema,
+  MetricSchema,
+  ObservationSchema,
+  PageSchema,
+  TaskSchema
+} from '@xnetjs/data'
+import { card, frame, group, note, shape, styledEdge } from '../builders/canvas-builder'
+import {
+  buildDashboard,
+  chart,
+  metricCount,
+  pageLinks,
+  savedView,
+  streakHeatmap,
+  taskList
+} from '../builders/dashboard-builder'
 import { PROJECT_NAMES, seedId } from '../seed-ids'
+import { databaseId } from './database-drafts'
 import { pageId } from './docs'
 
 export const canvasId = (slug: string): string => seedId('canvas', slug)
 export const dashboardId = (slug: string): string => seedId('dashboard', slug)
+export const mapId = (slug: string): string => seedId('map', slug)
+
+const POINT = (lng: number, lat: number, name: string) => ({
+  type: 'Feature' as const,
+  geometry: { type: 'Point' as const, coordinates: [lng, lat] },
+  properties: { name }
+})
 
 const CANVASES = [
   { slug: 'roadmap', title: 'Roadmap', icon: '🗺️' },
@@ -30,57 +52,98 @@ const CANVASES = [
   { slug: 'brainstorm', title: 'Brainstorm', icon: '💡' }
 ] as const
 
-const DASHBOARDS = [
-  { slug: 'overview', title: 'Team Overview', icon: '📊' },
-  { slug: 'reliability', title: 'Reliability', icon: '📈' }
-] as const
-
-/** Build a canvas scene with embedded cards, a shape, a note, and connectors. */
+/**
+ * Build a canvas scene exercising every card kind (page/database/dashboard/
+ * media/task), a frame + a group, and styled connectors across relationship
+ * kinds, all embedding seeded nodes.
+ */
 function buildCanvasDoc(id: string, title: string): ReturnType<typeof createCanvasDoc> {
   const doc = createCanvasDoc(id, title)
   const objects = getCanvasObjectsMap(doc)
   const connectors = getCanvasConnectorsMap(doc)
 
-  // Embedded page card → the flagship sample page.
-  const pageCard = createNode(
+  const pageCard = card(
     'page',
     { x: 80, y: 80, width: 240, height: 140 },
-    { title: 'Sample Page' }
+    { title: 'Sample Page' },
+    {
+      nodeId: pageId('sample'),
+      schemaId: PageSchema._schemaId
+    }
   )
-  pageCard.sourceNodeId = pageId('sample')
-  pageCard.sourceSchemaId = PageSchema._schemaId
-
-  // Embedded task card → first task of the first project.
-  const taskCard = createNode(
+  const taskCard = card(
     'task',
-    { x: 420, y: 80, width: 220, height: 120 },
-    { title: 'Spec task', renderMode: 'card' }
+    { x: 80, y: 280, width: 220, height: 120 },
+    { title: 'Spec task', renderMode: 'card' },
+    { nodeId: seedId('task', PROJECT_NAMES[0], 0), schemaId: TaskSchema._schemaId }
   )
-  taskCard.sourceNodeId = seedId('task', PROJECT_NAMES[0], 0)
-  taskCard.sourceSchemaId = TaskSchema._schemaId
-
-  const shape = createNode(
-    'shape',
-    { x: 240, y: 320, width: 200, height: 100 },
-    { title: 'Milestone v1', shapeType: 'rounded-rectangle' }
+  const dbCard = card(
+    'database',
+    { x: 420, y: 80, width: 280, height: 180 },
+    { title: 'Tasks Tracker' },
+    { nodeId: databaseId('tracker'), schemaId: DatabaseSchema._schemaId }
   )
-  const note = createNode(
-    'note',
-    { x: 520, y: 320, width: 200, height: 120 },
-    { title: 'Remember to test relationships!' }
+  const refCard = card(
+    'external-reference',
+    { x: 760, y: 80, width: 280, height: 160 },
+    {
+      title: 'Team Overview dashboard',
+      subtitle: 'Live metrics',
+      url: 'xnet://dashboard/overview'
+    }
+  )
+  const mediaCard = card(
+    'media',
+    { x: 760, y: 320, width: 200, height: 150 },
+    { title: 'Sample image', kind: 'image' },
+    { nodeId: seedId('media', 0), schemaId: MediaAssetSchema._schemaId }
+  )
+  const stickyNote = note({ x: 420, y: 320, width: 220, height: 120 }, 'Everything connects here!')
+  const milestoneShape = shape(
+    { x: 420, y: 500, width: 200, height: 90 },
+    'Milestone v1',
+    'rounded-rectangle'
   )
 
-  for (const node of [pageCard, taskCard, shape, note]) objects.set(node.id, node)
+  // A presentation frame grouping the page + task; a group around media + note.
+  const presentationFrame = frame(
+    { x: 40, y: 40, width: 360, height: 380 },
+    'Spec review',
+    'presentation',
+    [pageCard.id, taskCard.id]
+  )
+  const mediaGroup = group({ x: 720, y: 290, width: 280, height: 200 }, 'Assets', [
+    mediaCard.id,
+    stickyNote.id
+  ])
 
-  const e1 = createEdge(pageCard.id, taskCard.id, {
-    relationship: { kind: 'relates-to', direction: 'directed' },
-    label: 'spec'
-  })
-  const e2 = createEdge(taskCard.id, shape.id, {
-    relationship: { kind: 'depends-on', direction: 'directed' },
-    label: 'targets'
-  })
-  for (const edge of [e1, e2]) connectors.set(edge.id, edge)
+  for (const node of [
+    presentationFrame,
+    mediaGroup,
+    pageCard,
+    taskCard,
+    dbCard,
+    refCard,
+    mediaCard,
+    stickyNote,
+    milestoneShape
+  ]) {
+    objects.set(node.id, node)
+  }
+
+  const edges = [
+    styledEdge(pageCard.id, taskCard.id, 'relates-to', undefined, 'spec'),
+    styledEdge(
+      taskCard.id,
+      dbCard.id,
+      'depends-on',
+      { strokeDasharray: '6 4', markerEnd: 'arrow' },
+      'tracked in'
+    ),
+    styledEdge(dbCard.id, refCard.id, 'references', { curved: true, markerEnd: 'arrow' }, 'feeds'),
+    styledEdge(taskCard.id, milestoneShape.id, 'blocks', { stroke: '#ef4444', markerEnd: 'arrow' })
+  ]
+  for (const edge of edges) connectors.set(edge.id, edge)
 
   return doc
 }
@@ -88,7 +151,7 @@ function buildCanvasDoc(id: string, title: string): ReturnType<typeof createCanv
 export const vizSeeder: SeederModule = {
   domain: 'viz',
   label: 'Canvases & dashboards',
-  schemaIds: [CanvasSchema._schemaId, DashboardSchema._schemaId],
+  schemaIds: [CanvasSchema._schemaId, DashboardSchema._schemaId, MapSchema._schemaId],
   seed: ({ fixtures }) => {
     const drafts: DeterministicNodeImportDraft[] = []
     const docs: SeedDoc[] = []
@@ -112,21 +175,94 @@ export const vizSeeder: SeederModule = {
       }
     })
 
-    for (const d of DASHBOARDS) {
-      drafts.push({
-        id: dashboardId(d.slug),
-        schemaId: DashboardSchema._schemaId,
-        properties: {
-          title: d.title,
-          icon: d.icon,
-          space: fixtures.spaces.org,
-          tags: [fixtures.tag('roadmap')],
-          variables: {},
-          widgets: [],
-          layouts: {}
-        }
-      })
-    }
+    // ─── Dashboards populated with real, runtime-bound widgets ───────────
+    const analytics = buildDashboard(
+      [
+        metricCount('tasks-total', 'Tasks', TaskSchema._schemaId),
+        metricCount('pages-total', 'Pages', PageSchema._schemaId),
+        metricCount('metrics-total', 'Metrics', MetricSchema._schemaId),
+        chart('bar', 'tasks-by-status', 'Tasks by status', TaskSchema._schemaId, 'status'),
+        chart(
+          'line',
+          'obs-over-time',
+          'Observations over time',
+          ObservationSchema._schemaId,
+          'day',
+          {
+            timeField: 'day'
+          }
+        ),
+        streakHeatmap('activity-streak', 'Daily activity')
+      ],
+      // 'all' so the time-bound charts show the seeded observations (which are
+      // anchored to a fixed past instant for determinism).
+      { timeRange: { kind: 'preset', preset: 'all' }, custom: { team: 'Engineering' } }
+    )
+    drafts.push({
+      id: dashboardId('overview'),
+      schemaId: DashboardSchema._schemaId,
+      properties: {
+        title: 'Team Overview',
+        icon: '📊',
+        space: fixtures.spaces.org,
+        tags: [fixtures.tag('roadmap')],
+        ...analytics
+      }
+    })
+
+    const teamHub = buildDashboard(
+      [
+        taskList('recent-tasks', 'Recent tasks'),
+        pageLinks('recent-pages', 'Recent pages'),
+        savedView('task-board', 'Task board', TaskSchema._schemaId)
+      ],
+      { timeRange: { kind: 'preset', preset: '7d' } }
+    )
+    drafts.push({
+      id: dashboardId('reliability'),
+      schemaId: DashboardSchema._schemaId,
+      properties: {
+        title: 'Reliability',
+        icon: '📈',
+        space: fixtures.spaces.org,
+        tags: [fixtures.tag('roadmap')],
+        ...teamHub
+      }
+    })
+
+    // ─── Map populated with a real basemap, viewport + a markers layer ───
+    drafts.push({
+      id: mapId('offices'),
+      schemaId: MapSchema._schemaId,
+      properties: {
+        title: 'Office Locations',
+        icon: '🗺️',
+        basemap: 'protomaps-light',
+        viewport: { longitude: -98, latitude: 39.5, zoom: 3 },
+        layers: [
+          {
+            id: 'offices',
+            name: 'Offices',
+            source: {
+              kind: 'geojson',
+              data: {
+                type: 'FeatureCollection',
+                features: [
+                  POINT(-122.42, 37.77, 'San Francisco'),
+                  POINT(-73.99, 40.73, 'New York'),
+                  POINT(-0.13, 51.5, 'London')
+                ]
+              }
+            },
+            style: { geometry: 'point', color: '#2f7ed8', size: 7 },
+            visible: true,
+            popupProperties: ['name']
+          }
+        ],
+        space: fixtures.spaces.org,
+        tags: [fixtures.tag('roadmap')]
+      }
+    })
 
     return { drafts, docs }
   }

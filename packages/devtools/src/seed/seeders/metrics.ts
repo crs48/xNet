@@ -3,9 +3,10 @@
  * linking a primary Metric. Observation volume scales with the scale knob.
  */
 
-import type { SeederModule } from '../types'
+import type { SeedDoc, SeederModule } from '../types'
 import type { DeterministicNodeImportDraft } from '@xnetjs/data'
 import { ExperimentSchema, MetricSchema, ObservationSchema } from '@xnetjs/data'
+import { experimentProtocolDoc } from '../docs/page-builders'
 import { int, METRIC_DEFS, seedId } from '../seed-ids'
 
 const DAY = 86_400_000
@@ -19,6 +20,7 @@ export const metricsSeeder: SeederModule = {
   schemaIds: [MetricSchema._schemaId, ObservationSchema._schemaId, ExperimentSchema._schemaId],
   seed: ({ space, scale, rng }) => {
     const drafts: DeterministicNodeImportDraft[] = []
+    const docs: SeedDoc[] = []
 
     METRIC_DEFS.forEach((m) => {
       const slug = m.name
@@ -61,9 +63,10 @@ export const metricsSeeder: SeederModule = {
       }
     })
 
-    // One experiment referencing the first metric.
+    // One experiment referencing the first metric, with a protocol document.
+    const experimentId = seedId('experiment', 'latency')
     drafts.push({
-      id: seedId('experiment', 'latency'),
+      id: experimentId,
       schemaId: ExperimentSchema._schemaId,
       properties: {
         title: 'Reduce p95 latency',
@@ -75,7 +78,12 @@ export const metricsSeeder: SeederModule = {
         space
       }
     })
+    docs.push({
+      nodeId: experimentId,
+      build: () =>
+        experimentProtocolDoc(experimentId, ExperimentSchema._schemaId, 'Reduce p95 latency')
+    })
 
-    return { drafts }
+    return { drafts, docs }
   }
 }

@@ -85,6 +85,37 @@ The seed is built to exercise **every relationship kind** in the app:
 every ledger transaction balances, folder depth ≥3, ≥3 spaces + subtasks, and
 every database cell reference resolves.
 
+## Content fidelity
+
+Beyond relationships, each node is filled with **real content exercising its
+surface's UI patterns** (exploration 0223):
+
+- **Pages** (`docs/rich-pages.ts`) — the full editor vocabulary: headings, lists,
+  task lists, quote, code, callouts (all 5), toggle, mermaid, divider, image,
+  file, embed, richLink, `pageEmbed`/`databaseEmbed`/`taskViewEmbed`, plus inline
+  marks (bold/italic/code/strike/link/wikilink) and inline pills (hashtag,
+  taskMention, databaseReference). The "Feature Showcase" page uses every one.
+- **Dashboards** (`builders/dashboard-builder.ts`) — populated with real
+  runtime-bound widgets (metric/chart/list/saved-view/links/heatmap), each a
+  `SavedViewDescriptor` query over seeded schemas, with responsive layouts +
+  time-range/custom variables.
+- **Databases** — all six view types (table/board/list/gallery/calendar/
+  timeline) with filters/sorts/column-summaries, and `dateRange`/`file`/`rollup`/
+  `formula`/auto fields.
+- **Canvases** (`builders/canvas-builder.ts`) — page/database/media/task/
+  external-reference cards, a presentation frame + a group, and styled
+  (dashed/curved/colored) connectors across relationship kinds.
+- **Domain docs** (`docs/page-builders.ts`) — Task descriptions, Project briefs,
+  Milestone notes, CRM org/contact/deal notes, and an Experiment protocol on the
+  same Yjs document model.
+- **Map** — a basemap, viewport and a GeoJSON markers layer.
+
+> **Render gate:** `seed-render.test.ts` builds the real editor ProseMirror
+> schema and parses every seeded page/doc through `yXmlFragmentToProseMirrorRootNode`,
+> and decodes the canvas scene — a malformed fragment fails CI instead of
+> rendering blank. When adding a new block/inline kind, mirror the editor
+> extension's exact node/mark name + attrs.
+
 ## Adding a Tier-1 seeder
 
 1. Write `seeders/<domain>.ts` exporting a `SeederModule` (`domain`, `label`,

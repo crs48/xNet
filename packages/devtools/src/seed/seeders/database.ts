@@ -10,6 +10,7 @@ import { int, pick } from '../seed-ids'
 import {
   DATABASE_SCHEMA_IDS,
   databaseDrafts,
+  dbFieldId,
   dbRowId,
   type DatabaseSpec,
   type FieldSpec
@@ -55,10 +56,21 @@ const TASK_FIELDS: FieldSpec[] = [
     ]
   },
   { key: 'assignee', name: 'Assignee', type: 'person' },
+  { key: 'start', name: 'Start', type: 'date' },
   { key: 'due', name: 'Due', type: 'date' },
+  { key: 'span', name: 'Sprint window', type: 'dateRange' },
   { key: 'estimate', name: 'Estimate (h)', type: 'number' },
+  {
+    key: 'effort2x',
+    name: 'Effort ×2',
+    type: 'formula',
+    config: { expression: `{{${dbFieldId('tracker', 'estimate')}}} * 2`, resultType: 'number' }
+  },
   { key: 'done', name: 'Done', type: 'checkbox' },
-  { key: 'link', name: 'Link', type: 'url' }
+  { key: 'link', name: 'Link', type: 'url' },
+  { key: 'cover', name: 'Cover', type: 'file' },
+  { key: 'createdAt', name: 'Created', type: 'created' },
+  { key: 'createdBy', name: 'Created by', type: 'createdBy' }
 ]
 
 const CRM_FIELDS = (tasksDbId: string): FieldSpec[] => [
@@ -86,6 +98,17 @@ const CRM_FIELDS = (tasksDbId: string): FieldSpec[] => [
     name: 'Lead task',
     type: 'relation',
     config: { targetDatabase: tasksDbId, allowMultiple: true }
+  },
+  // Rollup over the relation → count of linked tracker rows.
+  {
+    key: 'taskCount',
+    name: 'Linked tasks',
+    type: 'rollup',
+    config: {
+      relationColumn: dbFieldId('accounts', 'leadTask'),
+      targetColumn: dbFieldId('tracker', 'estimate'),
+      aggregation: 'count'
+    }
   }
 ]
 
@@ -106,10 +129,18 @@ export const databaseSeeder: SeederModule = {
         priority: pick(rng, ['low', 'med', 'high']),
         labels: i % 3 === 0 ? ['bug', 'chore'] : ['feat'],
         assignee: person(i),
+        start: iso(BASE_TS + i * DAY),
         due: iso(BASE_TS + (i + 1) * 2 * DAY),
+        span: { start: iso(BASE_TS + i * DAY), end: iso(BASE_TS + (i + 3) * DAY) },
         estimate: int(rng, 1, 16),
         done: status === 'done',
-        link: 'https://example.com/task/' + (i + 1)
+        link: 'https://example.com/task/' + (i + 1),
+        cover: {
+          cid: `bafycover${i}`,
+          name: `cover-${i + 1}.png`,
+          mimeType: 'image/png',
+          size: 50_000 + i * 100
+        }
       }
     })
     const tasksSpec: DatabaseSpec = {
@@ -123,9 +154,32 @@ export const databaseSeeder: SeederModule = {
       fields: TASK_FIELDS,
       rows: taskRows,
       views: [
-        { slug: 'table', name: 'All tasks', type: 'table' },
+        {
+          slug: 'table',
+          name: 'All tasks',
+          type: 'table',
+          filters: [{ key: 'status', operator: 'isNotEmpty' }],
+          sorts: [{ key: 'due', direction: 'asc' }],
+          summaries: { estimate: 'sum', done: 'checked' },
+          rowHeight: 'medium'
+        },
         { slug: 'board', name: 'By status', type: 'board', groupByKey: 'status' },
-        { slug: 'cal', name: 'Calendar', type: 'calendar', dateKey: 'due' }
+        { slug: 'list', name: 'List', type: 'list' },
+        {
+          slug: 'gallery',
+          name: 'Gallery',
+          type: 'gallery',
+          coverKey: 'cover',
+          cardSize: 'medium'
+        },
+        { slug: 'cal', name: 'Calendar', type: 'calendar', dateKey: 'due' },
+        {
+          slug: 'timeline',
+          name: 'Timeline',
+          type: 'timeline',
+          dateKey: 'start',
+          endDateKey: 'due'
+        }
       ]
     }
     const tasksDbId = `seed/database/${TASKS_SLUG}`
