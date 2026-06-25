@@ -6,5 +6,12 @@
   "highlights": [],
   "tags": [
     "platform"
+  ],
+  "pr": 270,
+  "mergedAt": "2026-06-25T19:14:30Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
   ]
 }
