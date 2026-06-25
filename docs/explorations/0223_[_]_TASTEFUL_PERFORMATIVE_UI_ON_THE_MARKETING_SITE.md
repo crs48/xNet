@@ -531,10 +531,10 @@ const { filename = 'terminal' } = Astro.props
       "what's working now" facts (tests, packages, property types, panels).
 - [x] Wire `StatCounter` into `sections/OpenMetrics.astro` headline + usage
       cards (only the real values from `metrics.json`).
-- [ ] **Wave 1b:** Build `ui/NodeGraphBackground.astro` (canvas, capped
+- [x] **Wave 1b:** Build `ui/NodeGraphBackground.astro` (canvas, capped
       nodes/DPR, pause offscreen, static frame under reduced‑motion,
       `aria-hidden`).
-- [ ] Mount `NodeGraphBackground` behind `OpenProtocol`/`Hubs`/`TheVision`
+- [x] Mount `NodeGraphBackground` behind `OpenProtocol`/`Hubs`/`TheVision`
       (make those sections `relative`; place canvas at `-z-10`, low opacity).
 - [ ] **Wave 2a:** Add `WordRoll` to `sections/Hero.astro` subhead (one noun);
       upgrade the radial glow to a 2–3 blob `Aurora`; add a subtle glow to the

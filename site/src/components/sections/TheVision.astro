@@ -1,5 +1,6 @@
 ---
 import SectionHeader from '../ui/SectionHeader.astro'
+import NodeGraphBackground from '../ui/NodeGraphBackground.astro'
 
 const enables = [
   {
@@ -25,8 +26,9 @@ const enables = [
 ]
 ---
 
-<section id="vision" class="py-24 lg:py-32 border-t border-border/50">
-  <div class="mx-auto max-w-6xl px-6">
+<section id="vision" class="relative overflow-hidden py-24 lg:py-32 border-t border-border/50">
+  <NodeGraphBackground opacity={0.16} />
+  <div class="relative mx-auto max-w-6xl px-6">
     <div class="max-w-3xl mx-auto text-center mb-16">
       <h2 class="text-3xl font-bold text-gray-800 dark:text-white sm:text-4xl mb-6">
         The Vision

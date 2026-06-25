@@ -1,0 +1,108 @@
+---
+/**
+ * Ambient peer-to-peer mesh — a slow canvas field of nodes and proximity links.
+ * For xNet this isn't decoration: it depicts the decentralized data layer the
+ * surrounding copy describes. Sits behind content at low opacity.
+ *
+ * Perf-safe: caps node count + DPR, pauses its rAF loop when scrolled offscreen,
+ * and renders a single static frame under prefers-reduced-motion. Decorative, so
+ * aria-hidden. Adapted from performative-ui's NodeGraphBackground (MIT) —
+ * github.com/vorpus/performativeUI. See src/components/ui/README.md.
+ */
+interface Props {
+  /** Node count (capped at 40). */
+  nodes?: number
+  /** 0..1 overall opacity of the field. */
+  opacity?: number
+  class?: string
+}
+const { nodes = 26, opacity = 0.16, class: cls = '' } = Astro.props
+---
+
+<canvas
+  class={`node-graph pointer-events-none absolute inset-0 -z-10 h-full w-full ${cls}`}
+  style={`opacity:${opacity}`}
+  data-nodes={Math.min(40, nodes)}
+  aria-hidden="true"></canvas>
+
+<script>
+  import { prefersReducedMotion, observeVisibility } from '../../lib/motion'
+
+  const canvases = document.querySelectorAll<HTMLCanvasElement>('canvas.node-graph')
+  const reduce = prefersReducedMotion()
+
+  canvases.forEach((canvas) => {
+    const ctx = canvas.getContext('2d')
+    if (!ctx) return
+    const DPR = Math.min(2, window.devicePixelRatio || 1)
+    const LINK = 150
+    const N = Math.min(40, Number(canvas.dataset.nodes ?? 26))
+    let nodes: { x: number; y: number; vx: number; vy: number }[] = []
+    let raf = 0
+
+    const resize = () => {
+      const r = canvas.getBoundingClientRect()
+      canvas.width = Math.max(1, r.width * DPR)
+      canvas.height = Math.max(1, r.height * DPR)
+      ctx.setTransform(DPR, 0, 0, DPR, 0, 0)
+      if (!nodes.length) {
+        nodes = Array.from({ length: N }, () => ({
+          x: Math.random() * r.width,
+          y: Math.random() * r.height,
+          vx: (Math.random() - 0.5) * 0.25,
+          vy: (Math.random() - 0.5) * 0.25
+        }))
+      }
+    }
+
+    const draw = () => {
+      const r = canvas.getBoundingClientRect()
+      ctx.clearRect(0, 0, r.width, r.height)
+      if (!reduce) {
+        for (const n of nodes) {
+          n.x += n.vx
+          n.y += n.vy
+          if (n.x < 0 || n.x > r.width) n.vx *= -1
+          if (n.y < 0 || n.y > r.height) n.vy *= -1
+        }
+      }
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          const d = Math.hypot(nodes[i].x - nodes[j].x, nodes[i].y - nodes[j].y)
+          if (d < LINK) {
+            ctx.strokeStyle = `rgba(99,102,241,${(1 - d / LINK) * 0.5})`
+            ctx.beginPath()
+            ctx.moveTo(nodes[i].x, nodes[i].y)
+            ctx.lineTo(nodes[j].x, nodes[j].y)
+            ctx.stroke()
+          }
+        }
+      }
+      ctx.fillStyle = 'rgba(129,140,248,0.9)'
+      for (const n of nodes) {
+        ctx.beginPath()
+        ctx.arc(n.x, n.y, 1.6, 0, Math.PI * 2)
+        ctx.fill()
+      }
+      if (!reduce) raf = requestAnimationFrame(draw)
+    }
+
+    resize()
+    window.addEventListener('resize', resize)
+
+    if (reduce) {
+      draw() // one static frame
+    } else {
+      observeVisibility(
+        canvas,
+        () => {
+          if (!raf) raf = requestAnimationFrame(draw)
+        },
+        () => {
+          cancelAnimationFrame(raf)
+          raf = 0
+        }
+      )
+    }
+  })
+</script>

@@ -1,6 +1,7 @@
 ---
 import SectionHeader from '../ui/SectionHeader.astro'
 import CodeBlock from '../ui/CodeBlock.astro'
+import NodeGraphBackground from '../ui/NodeGraphBackground.astro'
 
 const cm = (s: string) => `<span class="tok-comment">${s}</span>`
 
@@ -65,8 +66,9 @@ const features = [
 ]
 ---
 
-<section id="hubs" class="py-24 lg:py-32">
-  <div class="mx-auto max-w-6xl px-6">
+<section id="hubs" class="relative overflow-hidden py-24 lg:py-32">
+  <NodeGraphBackground opacity={0.1} />
+  <div class="relative mx-auto max-w-6xl px-6">
     <SectionHeader
       title="For Teams: Hubs"
       subtitle="xNet works without any servers — your devices sync directly. But when you want always-on availability, backups, and team access, add a Hub."
