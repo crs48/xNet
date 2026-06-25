@@ -40,13 +40,44 @@ export interface FieldSpec {
   config?: Record<string, unknown>
 }
 
+/** A filter condition referencing a field by its local key. */
+export interface FilterSpec {
+  key: string
+  operator:
+    | 'equals'
+    | 'notEquals'
+    | 'contains'
+    | 'isEmpty'
+    | 'isNotEmpty'
+    | 'greaterThan'
+    | 'lessThan'
+    | 'before'
+    | 'after'
+  value?: unknown
+}
+
 export interface ViewSpec {
   slug: string
   name: string
   type: 'table' | 'board' | 'list' | 'gallery' | 'calendar' | 'timeline'
-  /** Field key to group by (board) or date field (calendar). */
+  /** Field key to group by (board). */
   groupByKey?: string
+  /** Date field key (calendar/timeline). */
   dateKey?: string
+  /** End-date field key (timeline). */
+  endDateKey?: string
+  /** Cover image field key (gallery). */
+  coverKey?: string
+  cardSize?: 'small' | 'medium' | 'large'
+  rowHeight?: 'short' | 'medium' | 'tall'
+  /** AND-combined filter conditions (keys translated to field ids). */
+  filters?: FilterSpec[]
+  /** Sort by field key. */
+  sorts?: Array<{ key: string; direction: 'asc' | 'desc' }>
+  /** Field key → footer summary function. */
+  summaries?: Record<string, string>
+  /** Field keys hidden in this view. */
+  hiddenKeys?: string[]
 }
 
 export interface DatabaseSpec {
@@ -141,8 +172,23 @@ export function databaseDrafts(spec: DatabaseSpec): DeterministicNodeImportDraft
     drafts.push({ id: dbRowId(spec.slug, i), schemaId: DatabaseRowSchema._schemaId, properties })
   })
 
-  // Views.
+  // Views (field keys translated to field ids throughout).
   spec.views.forEach((view, i) => {
+    const filters =
+      view.filters && view.filters.length > 0
+        ? {
+            operator: 'and' as const,
+            conditions: view.filters.map((f) => ({
+              columnId: fieldId(f.key),
+              operator: f.operator,
+              ...(f.value !== undefined ? { value: f.value } : {})
+            }))
+          }
+        : undefined
+    const sorts = view.sorts?.map((s) => ({ columnId: fieldId(s.key), direction: s.direction }))
+    const columnSummaries = view.summaries
+      ? Object.fromEntries(Object.entries(view.summaries).map(([k, fn]) => [fieldId(k), fn]))
+      : undefined
     drafts.push({
       id: seedId('dbview', spec.slug, view.slug),
       schemaId: DatabaseViewSchema._schemaId,
@@ -152,7 +198,15 @@ export function databaseDrafts(spec: DatabaseSpec): DeterministicNodeImportDraft
         type: view.type,
         sortKey: sortKey(i),
         groupBy: view.groupByKey ? fieldId(view.groupByKey) : undefined,
-        dateField: view.dateKey ? fieldId(view.dateKey) : undefined
+        dateField: view.dateKey ? fieldId(view.dateKey) : undefined,
+        endDateField: view.endDateKey ? fieldId(view.endDateKey) : undefined,
+        coverField: view.coverKey ? fieldId(view.coverKey) : undefined,
+        cardSize: view.cardSize,
+        rowHeight: view.rowHeight,
+        hiddenFields: view.hiddenKeys?.map(fieldId),
+        filters,
+        sorts,
+        columnSummaries
       }
     })
   })

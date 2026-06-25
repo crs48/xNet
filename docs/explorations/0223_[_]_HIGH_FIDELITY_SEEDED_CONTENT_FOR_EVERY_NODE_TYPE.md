@@ -344,8 +344,8 @@ interface FieldSpec { /* + */ kind adds: 'dateRange'|'file'|'rollup'|'formula'|'
 - [x] Enrich the seeded pages (`docs.ts`) to use the full vocabulary; wire `databaseEmbed`/`taskViewEmbed` to seeded DB/task ids and inline pills to seeded nodes.
 
 ### Phase 3 — Database views & advanced fields
-- [ ] Extend `DatabaseSpec`/`ViewSpec`/`FieldSpec` in `database-drafts.ts`: `list/gallery/timeline` views; `filters`/`sorts`/`columnSummaries`/`fieldOrder`/`fieldWidths`/`hiddenFields`/`rowHeight`/`coverField`; `dateRange`/`file`/`rollup`/`formula`/`created*` field types.
-- [ ] Add one flagship database (e.g. Products+Suppliers or extend Tasks Tracker) exercising every view type + every field type + filters/sorts/summaries.
+- [x] Extend `DatabaseSpec`/`ViewSpec`/`FieldSpec` in `database-drafts.ts`: `list/gallery/timeline` views; `filters`/`sorts`/`columnSummaries`/`fieldOrder`/`fieldWidths`/`hiddenFields`/`rowHeight`/`coverField`; `dateRange`/`file`/`rollup`/`formula`/`created*` field types.
+- [x] Add one flagship database (e.g. Products+Suppliers or extend Tasks Tracker) exercising every view type + every field type + filters/sorts/summaries.
 
 ### Phase 4 — Canvas frames, groups & card kinds
 - [ ] Add `builders/canvas-builder.ts`: constructors for `database`/`dashboard`/`external-reference`/`media`/`widget` cards, a `frame(variant, memberIds)` helper, a `group(memberIds)` helper, and a `styledEdge(relationshipKind, style)` helper (all 8 kinds, curved/dashed/markers).
