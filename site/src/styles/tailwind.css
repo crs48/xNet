@@ -1,3 +1,41 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* ───────────────────────────────────────────────────────────────────────────
+ * Performative-UI accents (exploration 0223). Cross-component utilities live
+ * here (the global stylesheet) so they apply outside the component that defines
+ * them; self-contained accent components keep their own scoped <style>.
+ * Every animation is opt-out via prefers-reduced-motion.
+ * ─────────────────────────────────────────────────────────────────────────── */
+
+/* Soft pulsing glow ring for a primary CTA. Tint via `--glow: R G B`. */
+.cta-glow {
+  position: relative;
+}
+.cta-glow::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow:
+    0 0 0 1px rgb(var(--glow, 99 102 241) / 0.25),
+    0 0 26px -6px rgb(var(--glow, 99 102 241) / 0.55);
+  animation: cta-pulse 3.2s ease-in-out infinite;
+}
+@keyframes cta-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .cta-glow::after {
+    animation: none;
+    opacity: 0.6;
+  }
+}

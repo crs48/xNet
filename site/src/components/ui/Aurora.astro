@@ -1,0 +1,84 @@
+---
+/**
+ * Aurora — a few very-low-opacity gradient blobs that drift slowly behind a
+ * section. The richer cousin of the hero's single radial glow. Decorative, so
+ * aria-hidden; sits at -z-10 behind content. Static under prefers-reduced-motion.
+ *
+ * Adapted from performative-ui's Aurora (MIT) — github.com/vorpus/performativeUI.
+ * See src/components/ui/README.md.
+ */
+interface Props {
+  class?: string
+}
+const { class: cls = '' } = Astro.props
+---
+
+<div class={`aurora pointer-events-none absolute inset-0 -z-10 overflow-hidden ${cls}`} aria-hidden="true">
+  <span class="aurora__blob aurora__blob--1"></span>
+  <span class="aurora__blob aurora__blob--2"></span>
+  <span class="aurora__blob aurora__blob--3"></span>
+</div>
+
+<style>
+  .aurora__blob {
+    position: absolute;
+    border-radius: 9999px;
+    filter: blur(110px);
+  }
+  .aurora__blob--1 {
+    width: 460px;
+    height: 460px;
+    left: 8%;
+    top: -12%;
+    background: radial-gradient(circle, rgba(99, 102, 241, 0.35), transparent 70%);
+    animation: aurora-1 22s ease-in-out infinite;
+  }
+  .aurora__blob--2 {
+    width: 400px;
+    height: 400px;
+    right: 6%;
+    top: -4%;
+    background: radial-gradient(circle, rgba(168, 85, 247, 0.3), transparent 70%);
+    animation: aurora-2 27s ease-in-out infinite;
+  }
+  .aurora__blob--3 {
+    width: 520px;
+    height: 520px;
+    left: 34%;
+    bottom: -28%;
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.22), transparent 70%);
+    animation: aurora-3 31s ease-in-out infinite;
+  }
+  @keyframes aurora-1 {
+    0%,
+    100% {
+      transform: translate(0, 0);
+    }
+    50% {
+      transform: translate(38px, 28px);
+    }
+  }
+  @keyframes aurora-2 {
+    0%,
+    100% {
+      transform: translate(0, 0);
+    }
+    50% {
+      transform: translate(-30px, 36px);
+    }
+  }
+  @keyframes aurora-3 {
+    0%,
+    100% {
+      transform: translate(0, 0);
+    }
+    50% {
+      transform: translate(22px, -28px);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .aurora__blob {
+      animation: none;
+    }
+  }
+</style>

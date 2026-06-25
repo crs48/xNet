@@ -536,7 +536,7 @@ const { filename = 'terminal' } = Astro.props
       `aria-hidden`).
 - [x] Mount `NodeGraphBackground` behind `OpenProtocol`/`Hubs`/`TheVision`
       (make those sections `relative`; place canvas at `-z-10`, low opacity).
-- [ ] **Wave 2a:** Add `WordRoll` to `sections/Hero.astro` subhead (one noun);
+- [x] **Wave 2a:** Add `WordRoll` to `sections/Hero.astro` subhead (one noun);
       upgrade the radial glow to a 2–3 blob `Aurora`; add a subtle glow to the
       primary CTA only.
 - [ ] **Wave 2b:** Build `ui/MockIDE.astro` window chrome; wrap the terminal
