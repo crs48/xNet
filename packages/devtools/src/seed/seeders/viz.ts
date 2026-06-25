@@ -194,7 +194,9 @@ export const vizSeeder: SeederModule = {
         ),
         streakHeatmap('activity-streak', 'Daily activity')
       ],
-      { timeRange: { kind: 'preset', preset: '30d' }, custom: { team: 'Engineering' } }
+      // 'all' so the time-bound charts show the seeded observations (which are
+      // anchored to a fixed past instant for determinism).
+      { timeRange: { kind: 'preset', preset: 'all' }, custom: { team: 'Engineering' } }
     )
     drafts.push({
       id: dashboardId('overview'),
