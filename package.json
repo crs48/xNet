@@ -7,6 +7,7 @@
     "build": "turbo run build",
     "build:stories": "storybook build",
     "changeset": "changeset",
+    "changeset:from-commits": "changeset-conventional",
     "version-packages": "changeset version",
     "release": "pnpm build && changeset publish",
     "dev:stories": "storybook dev --ci --no-open --host 127.0.0.1 --port 6006",
@@ -14,6 +15,7 @@
     "check:cloud-boundary": "bash scripts/check-cloud-boundary.sh",
     "check:plugin-licenses": "node scripts/check-plugin-licenses.mjs",
     "check:motion-vocab": "node scripts/check-motion-vocab.mjs",
+    "check:publish-closure": "node scripts/check-publish-closure.mjs",
     "test:editor": "pnpm --filter @xnetjs/editor test",
     "test:stories": "storybook test --url http://127.0.0.1:6006",
     "test:watch": "vitest",
@@ -42,6 +44,7 @@
     "prepare": "husky"
   },
   "devDependencies": {
+    "@changesets/changelog-github": "^0.7.0",
     "@changesets/cli": "^2.29.7",
     "@commitlint/cli": "^20.4.1",
     "@commitlint/config-conventional": "^20.4.1",
@@ -58,6 +61,7 @@
     "@vitest/coverage-istanbul": "^4.0.18",
     "@vitest/coverage-v8": "^4.0.0",
     "autoprefixer": "^10.4.23",
+    "changeset-conventional-commits": "^1.0.4",
     "eslint": "^8.57.0",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-react-hooks": "^5.2.0",

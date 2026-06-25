@@ -25,5 +25,17 @@
     "typescript": "^5.4.0",
     "vitest": "^4.0.0"
   },
-  "private": true
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/crs48/xNet"
+  }
 }

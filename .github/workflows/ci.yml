@@ -50,6 +50,9 @@ jobs:
       - name: Motion vocabulary (0199)
         run: pnpm check:motion-vocab
 
+      - name: Publish closure (0220)
+        run: pnpm check:publish-closure
+
   # Validate changelog fragments and dry-run PR-number resolution on PRs, so a
   # malformed entry (which would otherwise fail only the production deploy and
   # freeze the whole changelog) or one that would ship numberless fails the PR
