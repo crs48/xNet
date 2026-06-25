@@ -113,78 +113,16 @@ const moreGroups = [
         <div class="mt-8">
           {panels.map((p, i) => (
             <div class="dt-panel grid items-center gap-8 lg:grid-cols-2" data-dtpanel={i} hidden={i !== 0}>
-              <!-- Stylized DevTools window (representation, not a screenshot) -->
-              <div class="overflow-hidden rounded-xl border border-border bg-[#12121a] shadow-xl">
-                <div class="flex items-center gap-2 border-b border-white/10 bg-white/5 px-3 py-2">
-                  <span class="h-2.5 w-2.5 rounded-full bg-[#ff5f57]"></span>
-                  <span class="h-2.5 w-2.5 rounded-full bg-[#febc2e]"></span>
-                  <span class="h-2.5 w-2.5 rounded-full bg-[#28c840]"></span>
-                  <span class="ml-2 font-mono text-[11px] text-gray-400">xNet DevTools — {p.label}</span>
-                </div>
-                <div class="p-4 font-mono text-[11px] leading-relaxed text-gray-300">
-                  {p.id === 'data' && (
-                    <div>
-                      <div class="grid grid-cols-3 gap-2 border-b border-white/10 pb-1 text-gray-500">
-                        <span>title</span><span>done</span><span>assignee</span>
-                      </div>
-                      {['Ship 0224 page · ✓ · @chris', 'Capture screenshots · — · @chris', 'Review server kit · ✓ · @ada', 'Wire footer links · — · @ada'].map((row) => (
-                        <div class="grid grid-cols-3 gap-2 border-b border-white/5 py-1">
-                          {row.split(' · ').map((c) => <span class="truncate">{c}</span>)}
-                        </div>
-                      ))}
-                      <div class="mt-2 text-[10px] text-indigo-300/80">plan: pushdown · 4 returned / 4 candidates</div>
-                    </div>
-                  )}
-                  {p.id === 'changes' && (
-                    <div class="space-y-1">
-                      {[['create', 'Task#a1f3', 'lamport 41'], ['update', 'Task#a1f3', 'lamport 42'], ['create', 'Page#9c0', 'lamport 43'], ['delete', 'Task#7be', 'lamport 44']].map((c) => (
-                        <div class="flex items-center gap-2 border-b border-white/5 py-1">
-                          <span class={`rounded px-1.5 py-0.5 text-[10px] ${c[0] === 'delete' ? 'bg-red-500/15 text-red-300' : c[0] === 'update' ? 'bg-amber-500/15 text-amber-300' : 'bg-emerald-500/15 text-emerald-300'}`}>{c[0]}</span>
-                          <span class="text-gray-300">{c[1]}</span>
-                          <span class="ml-auto text-gray-500">{c[2]}</span>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                  {p.id === 'performance' && (
-                    <div class="space-y-1.5">
-                      {[['identity', 38], ['sqlite open', 64], ['store init', 52], ['restore cache', 120], ['first paint', 86]].map((b) => (
-                        <div class="flex items-center gap-2">
-                          <span class="w-24 text-gray-400">{b[0]}</span>
-                          <span class="h-2 rounded bg-indigo-500/60" style={`width:${b[1]}px`}></span>
-                          <span class="text-gray-500">{b[1]}ms</span>
-                        </div>
-                      ))}
-                      <div class="mt-2 text-[10px] text-gray-500">60 fps · heap 42 MB · 3 active queries</div>
-                    </div>
-                  )}
-                  {p.id === 'logs' && (
-                    <div class="space-y-0.5">
-                      <div class="mb-2 flex gap-1.5 text-[10px]">
-                        {['sync', 'sqlite', 'query', 'boot'].map((c) => <span class="rounded bg-white/10 px-1.5 py-0.5 text-gray-300">{c}</span>)}
-                      </div>
-                      {['[sync] connected to hub.xnet.fyi', '[query] Task where done=false → 4', '[sqlite] OPFS persisted (12 ms)', '[boot] ready in 360 ms'].map((l) => (
-                        <div class="text-gray-400">{l}</div>
-                      ))}
-                    </div>
-                  )}
-                  {p.id === 'seed' && (
-                    <div>
-                      <div class="mb-2 flex gap-1.5 text-[10px]">
-                        {['converge', 'accrete', 'reseed'].map((m, mi) => (
-                          <span class={`rounded px-1.5 py-0.5 ${mi === 0 ? 'bg-indigo-500/20 text-indigo-300' : 'bg-white/10 text-gray-400'}`}>{m}</span>
-                        ))}
-                      </div>
-                      <div class="grid grid-cols-2 gap-1 text-[10px] text-gray-400">
-                        {['CRM · 8 deals', 'Docs · 12 pages', 'Tasks · 24', 'Comms · 6 channels', 'Accounting · 18', 'Database · 60 rows'].map((d) => (
-                          <span class="rounded border border-white/10 px-2 py-1">{d}</span>
-                        ))}
-                      </div>
-                      <div class="mt-2 text-[10px] text-emerald-300/80">✓ converged · 0 duplicates · 312 ms</div>
-                    </div>
-                  )}
-                </div>
-              </div>
+              <!-- Real screenshot of the actual DevTools panel (dark mode) -->
+              <img
+                src={`/images/devtools-${p.id}.png`}
+                alt={`xNet DevTools — ${p.label} panel`}
+                loading="lazy"
+                decoding="async"
+                width="1360"
+                height="680"
+                class="w-full rounded-xl border border-border shadow-xl"
+              />
 
               <!-- Copy -->
               <div>
@@ -202,9 +140,6 @@ const moreGroups = [
             </div>
           ))}
         </div>
-        <p class="mt-6 text-center text-[11px] text-gray-400 dark:text-gray-500">
-          Panels shown as stylized representations.
-        </p>
       </div>
     </section>
 
@@ -283,3 +218,12 @@ const moreGroups = [
   if (document.readyState !== 'loading') initDevtoolTabs()
   else document.addEventListener('DOMContentLoaded', initDevtoolTabs)
 </script>
+
+<style>
+  /* The panel uses `display: grid`, which overrides the `[hidden]` attribute's
+     default `display: none` — without this, the tab switcher's hide never takes
+     and every panel stacks. Restore it so only the selected panel shows. */
+  .dt-panel[hidden] {
+    display: none !important;
+  }
+</style>
