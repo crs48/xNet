@@ -74,22 +74,48 @@ A package should satisfy all of the following:
 
 ## Current release scope
 
-Release-managed set currently includes:
+The release set is **two-tier** (exploration 0220, Decision C). New feature/tool
+packages default to **independent** — add to the `fixed` group _only_ if a
+package is part of the coupled protocol core.
 
-- `@xnetjs/core`
-- `@xnetjs/crypto`
-- `@xnetjs/identity`
-- `@xnetjs/sync`
-- `@xnetjs/sqlite`
-- `@xnetjs/storage`
-- `@xnetjs/data`
-- `@xnetjs/data-bridge`
-- `@xnetjs/plugins`
-- `@xnetjs/cli`
-- `@xnetjs/history`
-- `@xnetjs/react`
+**Tier 1 — `fixed` lockstep protocol core** (one identical version; a breaking
+change to any one majors them all):
 
-Other packages remain intentionally ignored in Changesets until their packaging contracts are finalized.
+- `@xnetjs/core`, `@xnetjs/crypto`, `@xnetjs/identity`, `@xnetjs/sync`,
+  `@xnetjs/sqlite`, `@xnetjs/storage`, `@xnetjs/data`, `@xnetjs/data-bridge`,
+  `@xnetjs/history`, `@xnetjs/plugins`, `@xnetjs/react`, `@xnetjs/abuse`
+
+**Tier 2 — independent periphery** (each versions on its own cadence):
+
+- `@xnetjs/cli`, `@xnetjs/runtime`
+- `@xnetjs/trust`, `@xnetjs/slack-compat`, `@xnetjs/billing`, `@xnetjs/devkit`
+  — published in 0220 to close the dependency graph (they are runtime/public-API
+  deps of `plugins`/`react`/`cli`). **Each needs its own npm OIDC trusted
+  publisher configured before its first release publish** (see Quickstart §2).
+
+Other packages remain intentionally **ignored** (or `private`) in Changesets
+until their packaging contracts are finalized — `@xnetjs/cloud` is permanently
+ignored (FSL/commercial). Do not publish everything: see exploration 0220
+Decision F for the publishability bar and the three buckets.
+
+### Dependency-closure invariant (enforced)
+
+A published package's entire runtime-dependency closure must itself be published.
+`pnpm check:publish-closure` (CI `lint` job) fails if any `private:false` package
+has a `workspace:*` runtime dependency on a `private:true` or `ignore`-listed
+`@xnetjs/*` package. Fix by publishing the dependency, inlining it, or demoting
+it to `devDependencies`/`peerDependencies`.
+
+### Changeset generation
+
+- **Agents**: the `Stop` hook blocks turn-end until changed publishable packages
+  have a changeset; run `/changeset` (or `pnpm changeset`).
+- **Deterministic floor**: `pnpm changeset:from-commits` maps conventional-commit
+  prefixes to bumps (`feat`→minor, `fix`/`perf`→patch, `BREAKING`→major).
+- **CI backstop**: `.github/workflows/ai-changeset.yml` runs the floor + an
+  advisory AI pass on PRs and commits the changeset to the PR branch. The AI is
+  suggest-only, never holds publish credentials, and enforces `final = max(floor,
+  ai)` — it can only raise a bump, never lower it.
 
 ## Troubleshooting
 

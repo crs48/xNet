@@ -31,6 +31,11 @@ jobs:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
 
+      # Trusted publishing (OIDC) requires npm CLI >= 11.5.1. Pin latest so the
+      # token-less publish + provenance path is always available. (Exploration 0220.)
+      - name: Ensure npm supports trusted publishing
+        run: npm install -g npm@latest
+
       - name: Create release PR or publish
         id: changesets
         uses: changesets/action@v1

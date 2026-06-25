@@ -1,0 +1,148 @@
+name: AI changeset (suggest)
+
+# Exploration 0220, Decision E — the SUGGEST-ONLY backstop for PRs that no agent
+# authored a changeset for (humans, Dependabot, web-UI edits). It runs the
+# DETERMINISTIC floor (changeset-conventional) first, then an advisory AI pass
+# that may RAISE a bump or rewrite a note from the real diff, and commits the
+# resulting .changeset/*.md back to the PR HEAD branch so it rides into the merge.
+#
+# Trust boundary (load-bearing): this job runs on `pull_request` (NEVER
+# `pull_request_target`), holds only `contents`/`pull-requests` write, and has NO
+# `id-token` and NO npm/OIDC secrets — the LLM never sits in the publish path.
+# The only secret it sees is ANTHROPIC_API_KEY (PR-tier). Actual publishing stays
+# in npm-release.yml behind two human gates (PR review + Version-PR merge).
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+# Default-deny; the job grants itself the minimum. Crucially NOT id-token:write.
+permissions: {}
+
+# One run per PR; cancel superseded runs to bound LLM cost on chatty PRs.
+concurrency:
+  group: ai-changeset-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  suggest:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push .changeset/*.md to the PR HEAD branch (internal PRs)
+      pull-requests: write # post the bump-rationale comment
+    steps:
+      # App token (when configured) so the push is a bypass-capable actor; for an
+      # internal PR the default token can also push the (unprotected) head branch.
+      - name: Mint a GitHub App token (when configured)
+        id: app-token
+        if: ${{ vars.CHANGELOG_APP_ID != '' }}
+        continue-on-error: true
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ vars.CHANGELOG_APP_ID }}
+          private-key: ${{ secrets.CHANGELOG_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token || secrets.CHANGELOG_BOT_TOKEN || github.token }}
+
+      - name: Ensure base ref is present
+        run: git fetch --no-tags origin ${{ github.event.pull_request.base.ref }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.30.3'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '23'
+          cache: 'pnpm'
+      # Lean install — this job needs the changeset tooling, not the native build.
+      - run: pnpm install --frozen-lockfile --ignore-scripts
+
+      # 0) Idempotency gate: if every changed publishable package is ALREADY
+      #    covered by a changeset (the author ran /changeset, or a prior run of
+      #    this job added one), skip generation entirely. Without this, the
+      #    content-based dedup in changeset-conventional would re-add a floor
+      #    changeset on every push once AI enrichment has altered the summary.
+      - name: Skip if already covered
+        id: gate
+        env:
+          CHANGESET_BASE: origin/${{ github.event.pull_request.base.ref }}
+        run: |
+          if echo '{}' | node scripts/changeset/assert-coverage.mjs; then
+            echo "covered=true" >> "$GITHUB_OUTPUT"
+            echo "Affected publishable packages already have a changeset — nothing to do."
+          else
+            echo "covered=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # 1) Deterministic floor FIRST (authoritative; AI can only RAISE). Writes
+      #    .changeset/*.md from the conventional-commit prefixes of this PR.
+      - name: Deterministic floor (conventional commits)
+        if: steps.gate.outputs.covered != 'true'
+        run: pnpm changeset:from-commits
+        env:
+          # changeset-conventional reads commits since baseBranch; ensure it sees
+          # this PR's base, not a stale local 'main'.
+          GIT_BASE: origin/${{ github.event.pull_request.base.ref }}
+
+      # 2) AI enrichment: read the diff SCOPED to publishable packages, raise the
+      #    bump if the diff is breaking, and rewrite the note. Fail-open.
+      - name: AI enrichment (advisory)
+        if: steps.gate.outputs.covered != 'true'
+        continue-on-error: true
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          BASE="origin/${{ github.event.pull_request.base.ref }}"
+          PATHSPEC="$(node scripts/changeset/publishable-pathspec.mjs)"
+          git diff "$BASE"...HEAD -- $PATHSPEC | node scripts/changeset/ai-generate.mjs
+
+      # 3) Commit the changeset(s) back to the PR HEAD branch (internal PRs only —
+      #    a fork's branch isn't writable from a pull_request token).
+      - name: Commit changeset to PR branch
+        if: ${{ steps.gate.outputs.covered != 'true' && github.event.pull_request.head.repo.full_name == github.repository }}
+        run: |
+          if [ -z "$(git status --porcelain .changeset)" ]; then
+            echo "No new changeset to add — already covered."
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .changeset
+          git commit -m "chore(changeset): add changeset from conventional commits [skip ci]"
+          for attempt in 1 2 3; do
+            if git push origin HEAD:${{ github.event.pull_request.head.ref }}; then
+              echo "Pushed changeset to PR branch."
+              exit 0
+            fi
+            echo "push rejected — rebasing (attempt ${attempt})…"
+            git pull --rebase origin ${{ github.event.pull_request.head.ref }} || break
+          done
+          echo "::warning title=ai-changeset::Could not push the changeset to the PR branch."
+
+      # For fork PRs (cannot push) surface the suggestion as a comment instead.
+      - name: Suggest changeset on fork PRs
+        if: ${{ steps.gate.outputs.covered != 'true' && github.event.pull_request.head.repo.full_name != github.repository }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('node:fs')
+            const path = require('node:path')
+            const dir = '.changeset'
+            const files = fs.existsSync(dir)
+              ? fs.readdirSync(dir).filter((f) => f.endsWith('.md') && f.toLowerCase() !== 'readme.md')
+              : []
+            if (files.length === 0) return
+            const body =
+              files.map((f) => `<details><summary>${f}</summary>\n\n\`\`\`md\n${fs.readFileSync(path.join(dir, f), 'utf8')}\n\`\`\`\n</details>`).join('\n')
+            const marker = '<!-- ai-changeset -->'
+            const { owner, repo } = context.repo
+            const pr = context.payload.pull_request.number
+            const comments = await github.paginate(github.rest.issues.listComments, { owner, repo, issue_number: pr })
+            const existing = comments.find((c) => c.body?.includes(marker))
+            const out = `${marker}\n**Suggested changeset** (commit it to your branch so this release is versioned):\n\n${body}`
+            if (existing) await github.rest.issues.updateComment({ owner, repo, comment_id: existing.id, body: out })
+            else await github.rest.issues.createComment({ owner, repo, issue_number: pr, body: out })
