@@ -1,6 +1,5 @@
 ---
 import SectionHeader from '../ui/SectionHeader.astro'
-import NodeGraphBackground from '../ui/NodeGraphBackground.astro'
 
 const layers = [
   {
@@ -26,9 +25,8 @@ const layers = [
 ]
 ---
 
-<section id="open-protocol" class="relative overflow-hidden py-24 lg:py-32">
-  <NodeGraphBackground opacity={0.16} />
-  <div class="relative mx-auto max-w-6xl px-6">
+<section id="open-protocol" class="py-24 lg:py-32">
+  <div class="mx-auto max-w-6xl px-6">
     <SectionHeader
       title="An open protocol, not just an app"
       subtitle="This repository is one implementation of xNet. xNet itself is a written standard — anyone can re-implement it in any language, over any database, and interoperate. Like Matrix or the AT Protocol, the spec is separate from any one codebase."

@@ -1,14 +1,12 @@
 ---
 import Badge from '../ui/Badge.astro'
-import Aurora from '../ui/Aurora.astro'
-import WordRoll from '../ui/WordRoll.astro'
 ---
 
 <section class="relative overflow-hidden">
   <!-- Grid background -->
   <div class="absolute inset-0 bg-[linear-gradient(rgba(79,70,229,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(79,70,229,0.03)_1px,transparent_1px)] bg-[size:64px_64px]"></div>
-  <!-- Drifting aurora glow -->
-  <Aurora />
+  <!-- Radial glow -->
+  <div class="absolute left-1/2 top-0 -translate-x-1/2 h-[600px] w-[800px] rounded-full bg-indigo-500/[0.07] blur-[120px]"></div>
 
   <div class="relative mx-auto max-w-6xl px-6 py-32 lg:py-40">
     <div class="text-center">
@@ -29,11 +27,7 @@ import WordRoll from '../ui/WordRoll.astro'
       </h1>
       <p class="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-gray-500 dark:text-gray-400 sm:text-xl">
         xNet is a local-first platform for apps that work offline,
-        sync peer-to-peer, and keep your data
-        <WordRoll
-          words={['yours.', 'private.', 'portable.']}
-          class="font-semibold text-indigo-500 dark:text-indigo-400"
-        />
+        sync peer-to-peer, and keep your data under your control.
       </p>
 
       <!-- Three-path CTAs -->
@@ -41,8 +35,7 @@ import WordRoll from '../ui/WordRoll.astro'
         <!-- Use the App -->
         <a
           href="/app"
-          style="--glow: 16 185 129"
-          class="cta-glow group rounded-xl border border-emerald-500/30 bg-emerald-500/[0.05] p-5 text-left transition-all hover:border-emerald-500/50 hover:bg-emerald-500/10"
+          class="group rounded-xl border border-emerald-500/30 bg-emerald-500/[0.05] p-5 text-left transition-all hover:border-emerald-500/50 hover:bg-emerald-500/10"
         >
           <div class="flex items-center gap-2 mb-2">
             <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">

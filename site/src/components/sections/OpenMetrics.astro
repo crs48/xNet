@@ -18,7 +18,6 @@ import {
   usage
 } from '../../data/metrics'
 import { monthlyOpexTotal } from '../../data/opex'
-import StatCounter from '../ui/StatCounter.astro'
 
 const W = 680
 const H = 200
@@ -68,20 +67,19 @@ const sign = (n: number) => (n >= 0 ? `+${n}` : `${n}`)
 // (48.2K docs, 4.2M tokens); only the cards we have data for are rendered.
 const compact = (n: number) =>
   new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 1 }).format(n)
+const fmtGb = (gb: number) => (gb >= 1024 ? `${(gb / 1024).toFixed(1)} TB` : `${compact(gb)} GB`)
 
-// Raw values + a StatCounter format, so the cards animate up to the true number
-// (exploration 0223) while keeping the existing compact/GB display.
-const usageCards: { label: string; value: number; format: 'compact' | 'gb'; sub: string }[] = usage
+const usageCards = usage
   ? [
-      { label: 'Workspaces hosted', value: usage.hubsHosted, format: 'compact', sub: `${usage.hubsHot} live now` },
-      { label: 'Documents synced', value: usage.documentsSynced, format: 'compact', sub: 'across live hubs' },
+      { label: 'Workspaces hosted', value: compact(usage.hubsHosted), sub: `${usage.hubsHot} live now` },
+      { label: 'Documents synced', value: compact(usage.documentsSynced), sub: 'across live hubs' },
       ...(usage.storageGb !== undefined
-        ? [{ label: 'Data under management', value: usage.storageGb, format: 'gb' as const, sub: 'measured in R2' }]
+        ? [{ label: 'Data under management', value: fmtGb(usage.storageGb), sub: 'measured in R2' }]
         : []),
       ...(usage.peopleOnPlatform !== undefined
-        ? [{ label: 'People on xNet', value: usage.peopleOnPlatform, format: 'compact' as const, sub: 'across all hubs' }]
+        ? [{ label: 'People on xNet', value: compact(usage.peopleOnPlatform), sub: 'across all hubs' }]
         : []),
-      { label: 'AI tokens metered', value: usage.aiTokensTotal, format: 'compact', sub: `${compact(usage.aiRequestsTotal)} requests` }
+      { label: 'AI tokens metered', value: compact(usage.aiTokensTotal), sub: `${compact(usage.aiRequestsTotal)} requests` }
     ]
   : []
 ---
@@ -103,17 +101,17 @@ const usageCards: { label: string; value: number; format: 'compact' | 'gb'; sub:
   <div class="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-3">
     <div class="rounded-xl border border-neutral-200 p-5 dark:border-neutral-800">
       <div class="text-sm text-neutral-500">Paying customers</div>
-      <div class="mt-1 text-3xl font-semibold tabular-nums"><StatCounter value={latest.customers} /></div>
+      <div class="mt-1 text-3xl font-semibold tabular-nums">{latest.customers}</div>
       <div class="mt-1 text-sm text-emerald-600 dark:text-emerald-400">{sign(customerWoW)}% week over week</div>
     </div>
     <div class="rounded-xl border border-neutral-200 p-5 dark:border-neutral-800">
       <div class="text-sm text-neutral-500">Monthly recurring revenue</div>
-      <div class="mt-1 text-3xl font-semibold tabular-nums"><StatCounter value={monthlyRevRunRate} format="usd" /></div>
+      <div class="mt-1 text-3xl font-semibold tabular-nums">{fmtUsd(monthlyRevRunRate)}</div>
       <div class="mt-1 text-sm text-emerald-600 dark:text-emerald-400">{sign(mrrWoW)}% week over week</div>
     </div>
     <div class="rounded-xl border border-neutral-200 p-5 dark:border-neutral-800">
       <div class="text-sm text-neutral-500">Monthly cost run-rate</div>
-      <div class="mt-1 text-3xl font-semibold tabular-nums"><StatCounter value={monthlyCostRunRate} format="usd" /></div>
+      <div class="mt-1 text-3xl font-semibold tabular-nums">{fmtUsd(monthlyCostRunRate)}</div>
       <div class="mt-1 text-sm text-neutral-500">incl. measured infra COGS</div>
     </div>
   </div>
@@ -127,7 +125,7 @@ const usageCards: { label: string; value: number; format: 'compact' | 'gb'; sub:
         {usageCards.map((c) => (
           <div class="rounded-xl border border-neutral-200 p-5 dark:border-neutral-800">
             <div class="text-sm text-neutral-500">{c.label}</div>
-            <div class="mt-1 text-2xl font-semibold tabular-nums"><StatCounter value={c.value} format={c.format} /></div>
+            <div class="mt-1 text-2xl font-semibold tabular-nums">{c.value}</div>
             <div class="mt-1 text-xs text-neutral-500">{c.sub}</div>
           </div>
         ))}

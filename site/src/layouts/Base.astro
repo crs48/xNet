@@ -100,9 +100,6 @@ const analyticsSrc = import.meta.env.PUBLIC_ANALYTICS_SRC || 'https://plausible.
     <!-- Inline script to prevent flash: read localStorage, fallback to system preference -->
     <script is:inline>
       (function() {
-        // Mark JS as available before paint, so progressive-enhancement CSS
-        // (e.g. MockIDE's type-in) never hides content from no-JS visitors.
-        document.documentElement.classList.add('js')
         var storedTheme = localStorage.getItem('xnet-lp-theme')
         var theme = storedTheme || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
         if (theme === 'light') {
