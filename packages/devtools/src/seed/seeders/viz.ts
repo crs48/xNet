@@ -17,7 +17,23 @@ import {
   getCanvasConnectorsMap,
   getCanvasObjectsMap
 } from '@xnetjs/canvas'
-import { CanvasSchema, DashboardSchema, PageSchema, TaskSchema } from '@xnetjs/data'
+import {
+  CanvasSchema,
+  DashboardSchema,
+  MetricSchema,
+  ObservationSchema,
+  PageSchema,
+  TaskSchema
+} from '@xnetjs/data'
+import {
+  buildDashboard,
+  chart,
+  metricCount,
+  pageLinks,
+  savedView,
+  streakHeatmap,
+  taskList
+} from '../builders/dashboard-builder'
 import { PROJECT_NAMES, seedId } from '../seed-ids'
 import { pageId } from './docs'
 
@@ -28,11 +44,6 @@ const CANVASES = [
   { slug: 'roadmap', title: 'Roadmap', icon: '🗺️' },
   { slug: 'architecture', title: 'Architecture', icon: '🏗️' },
   { slug: 'brainstorm', title: 'Brainstorm', icon: '💡' }
-] as const
-
-const DASHBOARDS = [
-  { slug: 'overview', title: 'Team Overview', icon: '📊' },
-  { slug: 'reliability', title: 'Reliability', icon: '📈' }
 ] as const
 
 /** Build a canvas scene with embedded cards, a shape, a note, and connectors. */
@@ -112,21 +123,58 @@ export const vizSeeder: SeederModule = {
       }
     })
 
-    for (const d of DASHBOARDS) {
-      drafts.push({
-        id: dashboardId(d.slug),
-        schemaId: DashboardSchema._schemaId,
-        properties: {
-          title: d.title,
-          icon: d.icon,
-          space: fixtures.spaces.org,
-          tags: [fixtures.tag('roadmap')],
-          variables: {},
-          widgets: [],
-          layouts: {}
-        }
-      })
-    }
+    // ─── Dashboards populated with real, runtime-bound widgets ───────────
+    const analytics = buildDashboard(
+      [
+        metricCount('tasks-total', 'Tasks', TaskSchema._schemaId),
+        metricCount('pages-total', 'Pages', PageSchema._schemaId),
+        metricCount('metrics-total', 'Metrics', MetricSchema._schemaId),
+        chart('bar', 'tasks-by-status', 'Tasks by status', TaskSchema._schemaId, 'status'),
+        chart(
+          'line',
+          'obs-over-time',
+          'Observations over time',
+          ObservationSchema._schemaId,
+          'day',
+          {
+            timeField: 'day'
+          }
+        ),
+        streakHeatmap('activity-streak', 'Daily activity')
+      ],
+      { timeRange: { kind: 'preset', preset: '30d' }, custom: { team: 'Engineering' } }
+    )
+    drafts.push({
+      id: dashboardId('overview'),
+      schemaId: DashboardSchema._schemaId,
+      properties: {
+        title: 'Team Overview',
+        icon: '📊',
+        space: fixtures.spaces.org,
+        tags: [fixtures.tag('roadmap')],
+        ...analytics
+      }
+    })
+
+    const teamHub = buildDashboard(
+      [
+        taskList('recent-tasks', 'Recent tasks'),
+        pageLinks('recent-pages', 'Recent pages'),
+        savedView('task-board', 'Task board', TaskSchema._schemaId)
+      ],
+      { timeRange: { kind: 'preset', preset: '7d' } }
+    )
+    drafts.push({
+      id: dashboardId('reliability'),
+      schemaId: DashboardSchema._schemaId,
+      properties: {
+        title: 'Reliability',
+        icon: '📈',
+        space: fixtures.spaces.org,
+        tags: [fixtures.tag('roadmap')],
+        ...teamHub
+      }
+    })
 
     return { drafts, docs }
   }

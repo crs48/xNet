@@ -334,9 +334,9 @@ interface FieldSpec { /* + */ kind adds: 'dateRange'|'file'|'rollup'|'formula'|'
 ## Implementation Checklist
 
 ### Phase 1 — Dashboards (empty → populated)
-- [ ] Read `packages/dashboard/src/{types.ts,registry.ts,variables.ts}` + `DashboardSurface.stories.tsx`; capture exact `DashboardWidgetInstance` / `SavedViewDescriptor` (QueryAST) / `DashboardLayouts` / `DashboardVariablesState` shapes.
-- [ ] Add `builders/dashboard-builder.ts` with typed per-widget factories (`metric.count`, `chart.bar/line/area/pie`, `list.tasks`, `view.saved`, `links.pages`, `heatmap.streak`) + a `placeGrid()` layout helper (lg/md/sm/xs) + variables.
-- [ ] Rewrite `viz.ts` dashboards: seed `analytics` (Metrics + timeRange) and `team-hub` (Tasks/Pages/Databases) bound to already-seeded node ids.
+- [x] Read `packages/dashboard/src/{types.ts,registry.ts,variables.ts}` + `DashboardSurface.stories.tsx`; capture exact `DashboardWidgetInstance` / `SavedViewDescriptor` (QueryAST) / `DashboardLayouts` / `DashboardVariablesState` shapes.
+- [x] Add `builders/dashboard-builder.ts` with typed per-widget factories (`metric.count`, `chart.bar/line/area/pie`, `list.tasks`, `view.saved`, `links.pages`, `heatmap.streak`) + a `placeGrid()` layout helper (lg/md/sm/xs) + variables.
+- [x] Rewrite `viz.ts` dashboards: seed `analytics` (Metrics + timeRange) and `team-hub` (Tasks/Pages/Databases) bound to already-seeded node ids.
 
 ### Phase 2 — Page blocks + inline (keystone)
 - [ ] Extend `RichBlock` with `image|file|embed|databaseEmbed|taskViewEmbed|richLink|toggle|mermaid|hr` (+ `callout caution`), building each `Y.XmlElement` with exact attrs.
