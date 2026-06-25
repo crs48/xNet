@@ -527,9 +527,9 @@ const { filename = 'terminal' } = Astro.props
       taste rules are enforced, not vibes.
 - [x] **Wave 1a:** Build `ui/StatCounter.astro` (IntersectionObserver count‑up,
       reduced‑motion static fallback, `tabular-nums`).
-- [ ] Wire `StatCounter` into `sections/Community.astro` for the countable
+- [x] Wire `StatCounter` into `sections/Community.astro` for the countable
       "what's working now" facts (tests, packages, property types, panels).
-- [ ] Wire `StatCounter` into `sections/OpenMetrics.astro` headline + usage
+- [x] Wire `StatCounter` into `sections/OpenMetrics.astro` headline + usage
       cards (only the real values from `metrics.json`).
 - [ ] **Wave 1b:** Build `ui/NodeGraphBackground.astro` (canvas, capped
       nodes/DPR, pause offscreen, static frame under reduced‑motion,

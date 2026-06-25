@@ -1,5 +1,15 @@
 ---
 import SectionHeader from '../ui/SectionHeader.astro'
+import StatCounter from '../ui/StatCounter.astro'
+
+// Countable receipts — every number here is true and traceable to the list
+// below (exploration 0223: count up real numbers, never invented ones).
+const stats = [
+  { value: 6000, suffix: '+', label: 'tests passing' },
+  { value: 30, label: 'packages' },
+  { value: 15, label: 'schema property types' },
+  { value: 10, label: 'devtools panels' },
+]
 
 const working = [
   '6,000+ tests passing across 30 packages',
@@ -23,8 +33,20 @@ const working = [
       align="center"
     />
 
+    <!-- Receipts: real numbers that count up on scroll -->
+    <div class="mx-auto mt-12 grid max-w-3xl grid-cols-2 gap-4 sm:grid-cols-4">
+      {stats.map((s) => (
+        <div class="animate-on-scroll rounded-xl border border-border bg-surface p-5 text-center">
+          <div class="text-3xl font-semibold text-gray-800 dark:text-white">
+            <StatCounter value={s.value} suffix={s.suffix} />
+          </div>
+          <div class="mt-1 text-xs text-gray-500 dark:text-gray-400">{s.label}</div>
+        </div>
+      ))}
+    </div>
+
     <!-- What's working now -->
-    <div class="mx-auto mt-16 max-w-3xl">
+    <div class="mx-auto mt-8 max-w-3xl">
       <div class="animate-on-scroll rounded-xl border border-emerald-500/20 bg-emerald-500/[0.03] p-6 sm:p-8">
         <h3 class="font-semibold text-emerald-400 mb-4">What's working now</h3>
         <div class="grid gap-3 sm:grid-cols-2">
