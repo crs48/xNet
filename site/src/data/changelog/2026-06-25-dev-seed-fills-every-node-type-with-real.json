@@ -1,0 +1,10 @@
+{
+  "id": "2026-06-25-dev-seed-fills-every-node-type-with-real",
+  "date": "June 25, 2026",
+  "title": "Dev seed fills every node type with real content",
+  "summary": "The dev-tools seed now bakes contextually-rich content into every node type — populated dashboards (charts, metrics, time ranges), pages exercising the full editor block + inline vocabulary, databases with all six views and advanced fields, canvas scenes with framed/grouped cards, and rich Task/Project/CRM/Experiment documents.",
+  "highlights": [],
+  "tags": [
+    "devtools"
+  ]
+}
