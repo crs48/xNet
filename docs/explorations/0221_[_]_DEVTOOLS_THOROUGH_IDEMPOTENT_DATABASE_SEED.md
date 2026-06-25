@@ -742,16 +742,16 @@ describe('seed coverage', () => {
 
 ## Implementation Checklist
 
-- [ ] Create `packages/devtools/src/seed/` with `seed-ids.ts` (id scheme +
+- [x] Create `packages/devtools/src/seed/` with `seed-ids.ts` (id scheme +
       mulberry32 PRNG + content pools) and `types.ts` (`Seeder`, `SeedContext`,
       `SeedDoc`, `SeedReport`).
-- [ ] Implement `seed-runner.ts`: space-first ordering, batched
+- [x] Implement `seed-runner.ts`: space-first ordering, batched
       `importDeterministicNodes` (`indexMode: 'defer-schema'`),
       created-vs-updated tracking, created-only Yjs doc writes,
       `rebuildIndexesForSchemas` + `analyze`, structured `SeedReport`.
-- [ ] Mint stable demo DIDs (deterministic key pairs) for people/members/
+- [x] Mint stable demo DIDs (deterministic key pairs) for people/members/
       assignees/reactors.
-- [ ] Write Tier-1 domain seeders: `spaces`, `work`, `docs` (incl. rich Yjs
+- [x] Write Tier-1 domain seeders: `spaces`, `work`, `docs` (incl. rich Yjs
       pages), `database` (Notion-style: fields/views/rows), `comms`
       (channels + threaded messages), `viz` (canvases + dashboards), `metrics`
       (metrics + observations + experiment), `crm`, `accounting`,
@@ -760,11 +760,11 @@ describe('seed coverage', () => {
       `createRelatedDatabases` content into the `docs`/`database`/`work`
       seeders (deterministic IDs, deterministic Yjs builders, recomputed
       comment anchors).
-- [ ] Implement Tier-2 `auto-generator.ts` (one node per uncovered schema from
+- [x] Implement Tier-2 `auto-generator.ts` (one node per uncovered schema from
       field types) + `TIER2_GENERATABLE`.
-- [ ] Write `seed-manifest.ts`: ordered Tier-1 seeder list, `TIER1_SCHEMA_IDS`,
+- [x] Write `seed-manifest.ts`: ordered Tier-1 seeder list, `TIER1_SCHEMA_IDS`,
       `SEED_EXCLUDED_SCHEMA_IDS` (system/meta), required-relation handling.
-- [ ] Add modes: Converge (default), Accrete (random-id volume via seeded
+- [x] Add modes: Converge (default), Accrete (random-id volume via seeded
       PRNG), Reseed (clear seed-scoped nodes → converge).
 - [ ] Rewrite `Seed.tsx` to drive the runner: "Seed everything" + scale (S/M/L)
       + per-domain toggles + mode selector + live progress/result summary;
@@ -772,15 +772,15 @@ describe('seed coverage', () => {
 - [ ] Add a compact **Seed everything / Reseed** action to the Reset panel
       (reuse `reset-actions.ts` two-step-confirm state machine) so it sits next
       to **Clear**.
-- [ ] Add `seed-coverage.test.ts` (walks `getAllIRIs()`, dedup, subtract
+- [x] Add `seed-coverage.test.ts` (walks `getAllIRIs()`, dedup, subtract
       allowlist, require Tier-1 or Tier-2) and wire into the package's vitest
       project.
-- [ ] Add unit tests for each seeder (pure functions → assert draft shapes,
+- [x] Add unit tests for each seeder (pure functions → assert draft shapes,
       stable IDs) and a runner test on a `MemoryNodeStorageAdapter` proving
       **two runs = same node count** (idempotency) and **Accrete grows**.
 - [ ] Document the seed in package README / `docs/` and note the "new schema ⇒
       add a seeder" rule in `CLAUDE.md` conventions.
-- [ ] (Optional) Add a `seed --snapshot` export to emit a `seed.json`
+- [x] (Optional) Add a `seed --snapshot` export to emit a `seed.json`
       golden for fast deterministic E2E fixtures.
 - [ ] Changeset: `@xnetjs/devtools` is dev tooling — confirm publishable status
       via `node scripts/changeset/publishable-pathspec.mjs`; add a changeset (or

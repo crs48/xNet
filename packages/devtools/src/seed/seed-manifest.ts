@@ -1,0 +1,82 @@
+/**
+ * The ordered registry of Tier-1 domain seeders, the exclusion allowlist for
+ * system/meta schemas, and helpers to resolve the Tier-2 auto-coverage set.
+ *
+ * Coverage rule (enforced by `seed-coverage.test.ts`): every registered schema
+ * is either covered by a Tier-1 seeder, handled by the Tier-2 auto-generator, or
+ * explicitly excluded here.
+ */
+
+import {
+  ExtensionFieldSchema,
+  GrantSchema,
+  InboxStateSchema,
+  PresenceSummarySchema,
+  SchemaCompatibilitySchema,
+  SchemaDefinitionSchema,
+  SchemaExtensionSchema,
+  SyncPolicySchema,
+  schemaRegistry
+} from '@xnetjs/data'
+import type { DefinedSchema, SchemaIRI } from '@xnetjs/data'
+import type { SeederModule } from './types'
+import { spacesSeeder } from './seeders/spaces'
+import { workSeeder } from './seeders/work'
+import { docsSeeder } from './seeders/docs'
+import { databaseSeeder } from './seeders/database'
+import { vizSeeder } from './seeders/viz'
+import { commsSeeder } from './seeders/comms'
+import { metricsSeeder } from './seeders/metrics'
+
+/** Ordered Tier-1 seeders. Spaces first; the rest only cross-link by id. */
+export const SEEDERS: readonly SeederModule[] = [
+  spacesSeeder,
+  workSeeder,
+  docsSeeder,
+  databaseSeeder,
+  vizSeeder,
+  commsSeeder,
+  metricsSeeder
+]
+
+/** Schemas a Tier-1 seeder is responsible for (canonical `_schemaId`s). */
+export const TIER1_SCHEMA_IDS: ReadonlySet<string> = new Set(
+  SEEDERS.flatMap((s) => s.schemaIds)
+)
+
+/**
+ * System / meta schemas intentionally left unseeded — infrastructure, not
+ * user-facing content. Adding a new schema of this kind means adding it here.
+ */
+export const SEED_EXCLUDED_SCHEMA_IDS: ReadonlySet<string> = new Set([
+  SchemaDefinitionSchema._schemaId,
+  SchemaExtensionSchema._schemaId,
+  ExtensionFieldSchema._schemaId,
+  SchemaCompatibilitySchema._schemaId,
+  SyncPolicySchema._schemaId,
+  GrantSchema._schemaId,
+  InboxStateSchema._schemaId,
+  PresenceSummarySchema._schemaId
+])
+
+/**
+ * Resolve every registered schema to its canonical DefinedSchema, de-duplicating
+ * the versioned (`@1.0.0`) and bare IRIs that the registry exposes for each.
+ */
+export async function resolveAllSchemas(): Promise<DefinedSchema[]> {
+  const iris = schemaRegistry.getAllIRIs() as SchemaIRI[]
+  const byCanonical = new Map<string, DefinedSchema>()
+  for (const iri of iris) {
+    const schema = await schemaRegistry.get(iri)
+    if (schema) byCanonical.set(schema._schemaId, schema)
+  }
+  return [...byCanonical.values()]
+}
+
+/** Schemas the Tier-2 auto-generator is responsible for (registered − Tier-1 − excluded). */
+export async function getAutoSchemas(): Promise<DefinedSchema[]> {
+  const all = await resolveAllSchemas()
+  return all.filter(
+    (s) => !TIER1_SCHEMA_IDS.has(s._schemaId) && !SEED_EXCLUDED_SCHEMA_IDS.has(s._schemaId)
+  )
+}
