@@ -22,6 +22,8 @@ export interface ChangelogFeedItem {
   title: string
   /** Human-facing date label (from the feed's xNet extension, falls back to id). */
   date: string
+  /** ISO-8601 UTC instant the PR merged (time-of-day precision), when known. */
+  mergedAt?: string
   summary: string
   highlights: string[]
   tags: string[]
@@ -40,6 +42,7 @@ interface RawFeedItem {
   tags?: unknown
   _xnet?: {
     date?: unknown
+    mergedAt?: unknown
     summary?: unknown
     highlights?: unknown
     pr?: unknown
@@ -75,6 +78,7 @@ function toItem(raw: RawFeedItem): ChangelogFeedItem | null {
     url: asString(raw.url, CHANGELOG_PAGE_URL),
     title,
     date: asString(ext.date, id),
+    ...(typeof ext.mergedAt === 'string' ? { mergedAt: ext.mergedAt } : {}),
     summary: asString(ext.summary, asString(raw.content_text)),
     highlights: asStringArray(ext.highlights),
     tags: asStringArray(raw.tags),

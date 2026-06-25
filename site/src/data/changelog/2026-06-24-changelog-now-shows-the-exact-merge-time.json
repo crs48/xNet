@@ -1,0 +1,15 @@
+{
+  "id": "2026-06-24-changelog-now-shows-the-exact-merge-time",
+  "date": "June 24, 2026",
+  "title": "Changelog now shows the exact merge time",
+  "summary": "Each entry on the What's New page now shows the precise time of day it shipped (in UTC) next to its date, and the RSS and JSON feeds carry the exact merge timestamp — so feed readers and the in-app What's New order and date entries correctly, down to the minute.",
+  "highlights": [
+    "Every changelog entry shows its merge time-of-day (UTC) beside the date",
+    "RSS pubDate and JSON Feed date_published now use the real merge instant (fixes a previously malformed timestamp for slugged entries)",
+    "The in-app What's New feed exposes the precise merge time"
+  ],
+  "tags": [
+    "platform",
+    "ci"
+  ]
+}

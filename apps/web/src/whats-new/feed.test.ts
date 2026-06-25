@@ -13,6 +13,7 @@ const SAMPLE = {
       tags: ['app', 'ci'],
       _xnet: {
         date: 'June 17, 2026',
+        mergedAt: '2026-06-17T16:41:38Z',
         summary: 'A real summary',
         highlights: ['a', 'b'],
         pr: 146,
@@ -36,12 +37,15 @@ describe('parseFeed', () => {
       id: '2026-06-17',
       title: 'Automated changelog',
       date: 'June 17, 2026',
+      mergedAt: '2026-06-17T16:41:38Z',
       summary: 'A real summary',
       highlights: ['a', 'b'],
       tags: ['app', 'ci'],
       image: 'https://xnet.fyi/images/workbench-dark.png',
       pr: 146
     })
+    // mergedAt is optional — absent when the extension omits it.
+    expect(items[1].mergedAt).toBeUndefined()
   })
 
   it('falls back to id/content_text when the extension is absent', () => {
