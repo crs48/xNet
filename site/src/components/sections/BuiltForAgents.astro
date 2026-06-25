@@ -1,6 +1,6 @@
 ---
 import SectionHeader from '../ui/SectionHeader.astro'
-import CodeBlock from '../ui/CodeBlock.astro'
+import MockIDE from '../ui/MockIDE.astro'
 
 const cm = (s: string) => `<span class="tok-comment">${s}</span>`
 
@@ -51,7 +51,7 @@ const points = [
 
     <div class="mt-16 grid items-start gap-10 lg:grid-cols-2">
       <div class="animate-on-scroll min-w-0">
-        <CodeBlock filename="terminal" code={agentCode} />
+        <MockIDE filename="terminal" code={agentCode} stream />
         <p class="mt-4 text-center text-xs text-gray-500">
           The same plan/validate/apply core sits behind files, the CLI, and MCP.
         </p>

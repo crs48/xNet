@@ -1,0 +1,68 @@
+---
+/**
+ * MockIDE — a window-chrome code surface with a soft drop-glow. A richer frame
+ * than CodeBlock for the two "hero" code moments (the SDK example and the agent
+ * CLI). With `stream`, the lines type in once when scrolled into view
+ * (TokenStream); under prefers-reduced-motion / no-JS the full code shows
+ * immediately (see the CSS guard in styles/tailwind.css).
+ *
+ * Adapted from performative-ui's MockIDE + TokenStream (MIT) —
+ * github.com/vorpus/performativeUI. See src/components/ui/README.md.
+ */
+interface Props {
+  filename?: string
+  code: string
+  stream?: boolean
+  class?: string
+}
+const { filename, code, stream = false, class: cls = '' } = Astro.props
+const lines = code.split('\n')
+// Plain-text for the copy button (strip the syntax-highlight spans + caret).
+const plain = code.replace(/<[^>]+>/g, '')
+---
+
+<div
+  class={`mock-ide group relative min-w-0 overflow-hidden rounded-xl border border-border bg-code-bg shadow-2xl shadow-indigo-500/10 ${stream ? 'mock-ide--stream' : ''} ${cls}`}
+>
+  {
+    filename && (
+      <div class="flex items-center border-b border-border bg-surface/50 px-4 py-2">
+        <div class="mr-3 flex items-center gap-1.5">
+          <span class="h-2.5 w-2.5 rounded-full bg-[#ff5f57]" />
+          <span class="h-2.5 w-2.5 rounded-full bg-[#febc2e]" />
+          <span class="h-2.5 w-2.5 rounded-full bg-[#28c840]" />
+        </div>
+        <span class="font-mono text-xs text-gray-500">{filename}</span>
+      </div>
+    )
+  }
+  <div class="relative">
+    <pre
+      class="lp-code overflow-x-auto p-5 font-mono text-sm leading-relaxed"><code>{lines.map((ln, i) => (<Fragment><span class="ts-line" set:html={ln} />{i < lines.length - 1 ? '\n' : ''}</Fragment>))}{stream && <span class="ide-caret" aria-hidden="true">▌</span>}</code></pre>
+    <button
+      class="copy-btn absolute right-3 top-3 rounded-md border border-border bg-surface px-2 py-1 text-xs text-gray-500 opacity-0 transition-opacity hover:text-gray-700 group-hover:opacity-100 dark:hover:text-gray-300"
+      data-copy={plain}
+      aria-label="Copy code"
+    >
+      Copy
+    </button>
+  </div>
+</div>
+
+<script>
+  import { prefersReducedMotion, observeOnce } from '../../lib/motion'
+
+  if (!prefersReducedMotion()) {
+    const blocks = document.querySelectorAll<HTMLElement>('.mock-ide--stream')
+    observeOnce(
+      blocks,
+      (node) => {
+        const lines = node.querySelectorAll<HTMLElement>('.ts-line')
+        lines.forEach((line, i) => {
+          window.setTimeout(() => line.classList.add('revealed'), i * 70)
+        })
+      },
+      { threshold: 0.3 }
+    )
+  }
+</script>
