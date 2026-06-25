@@ -8,6 +8,14 @@
     "A node's detail pane shows your read/write decision with the full derivation — roles, grants, and evaluation steps",
     "Falls back gracefully when authorization isn't enforced in the store"
   ],
-  "tags": ["devtools", "platform"],
-  "authors": [{ "login": "crs48" }]
+  "tags": [
+    "devtools",
+    "platform"
+  ],
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ],
+  "pr": 256
 }
