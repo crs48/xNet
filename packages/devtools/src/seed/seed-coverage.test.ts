@@ -7,12 +7,12 @@
  * system/meta schema must be added to SEED_EXCLUDED_SCHEMA_IDS.
  */
 
-import { describe, it, expect } from 'vitest'
-import { MemoryNodeStorageAdapter, NodeStore } from '@xnetjs/data'
 import { generateSigningKeyPair } from '@xnetjs/crypto'
+import { MemoryNodeStorageAdapter, NodeStore } from '@xnetjs/data'
 import { createDID } from '@xnetjs/identity'
-import { runSeed } from './seed-runner'
+import { describe, it, expect } from 'vitest'
 import { resolveAllSchemas, SEED_EXCLUDED_SCHEMA_IDS } from './seed-manifest'
+import { runSeed } from './seed-runner'
 
 function makeStore(): NodeStore {
   const kp = generateSigningKeyPair()

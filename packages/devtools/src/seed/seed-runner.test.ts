@@ -4,11 +4,17 @@
  * (reseed).
  */
 
-import { describe, it, expect } from 'vitest'
-import { MemoryNodeStorageAdapter, NodeStore, ProjectSchema, TaskSchema, SpaceSchema } from '@xnetjs/data'
 import type { SchemaIRI } from '@xnetjs/data'
 import { generateSigningKeyPair } from '@xnetjs/crypto'
+import {
+  MemoryNodeStorageAdapter,
+  NodeStore,
+  ProjectSchema,
+  TaskSchema,
+  SpaceSchema
+} from '@xnetjs/data'
 import { createDID } from '@xnetjs/identity'
+import { describe, it, expect } from 'vitest'
 import { runSeed } from './seed-runner'
 
 function makeStore(): NodeStore {

@@ -6,9 +6,9 @@
  * the current user as author; `members`/`reactor` use demo DIDs for variety.
  */
 
-import { ChannelSchema, ChatMessageSchema, CommentSchema, ReactionSchema } from '@xnetjs/data'
-import type { DeterministicNodeImportDraft } from '@xnetjs/data'
 import type { SeederModule } from '../types'
+import type { DeterministicNodeImportDraft } from '@xnetjs/data'
+import { ChannelSchema, ChatMessageSchema, CommentSchema, ReactionSchema } from '@xnetjs/data'
 import { CHANNEL_NAMES, CHAT_LINES, pick, PROJECT_NAMES, seedId } from '../seed-ids'
 import { taskId } from './work'
 

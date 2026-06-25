@@ -3,9 +3,9 @@
  * linking a primary Metric. Observation volume scales with the scale knob.
  */
 
-import { ExperimentSchema, MetricSchema, ObservationSchema } from '@xnetjs/data'
-import type { DeterministicNodeImportDraft } from '@xnetjs/data'
 import type { SeederModule } from '../types'
+import type { DeterministicNodeImportDraft } from '@xnetjs/data'
+import { ExperimentSchema, MetricSchema, ObservationSchema } from '@xnetjs/data'
 import { int, METRIC_DEFS, seedId } from '../seed-ids'
 
 const DAY = 86_400_000

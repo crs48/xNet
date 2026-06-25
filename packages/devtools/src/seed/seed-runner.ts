@@ -11,18 +11,6 @@
  *    before content so cascade authz grants the writes.
  */
 
-import * as Y from 'yjs'
-import { SpaceSchema } from '@xnetjs/data'
-import type { DeterministicNodeImportDraft, NodeStore } from '@xnetjs/data'
-import { autoDraft } from './auto-generator'
-import { getAutoSchemas, SEEDERS } from './seed-manifest'
-import {
-  DEMO_PEOPLE,
-  makeRng,
-  pick,
-  SEED_ACCRETE_PREFIX,
-  seedId
-} from './seed-ids'
 import type {
   SeedContext,
   SeedDoc,
@@ -32,6 +20,12 @@ import type {
   SeedScale,
   SeedScaleConfig
 } from './types'
+import type { DeterministicNodeImportDraft, NodeStore } from '@xnetjs/data'
+import { SpaceSchema } from '@xnetjs/data'
+import * as Y from 'yjs'
+import { autoDraft } from './auto-generator'
+import { DEMO_PEOPLE, makeRng, pick, SEED_ACCRETE_PREFIX, seedId } from './seed-ids'
+import { getAutoSchemas, SEEDERS } from './seed-manifest'
 
 export const SCALES: Record<SeedScale, SeedScaleConfig> = {
   small: {
@@ -96,9 +90,7 @@ export async function collectSeed(
   const drafts: DeterministicNodeImportDraft[] = []
   const docs: SeedDoc[] = []
 
-  const selected = opts.domains
-    ? SEEDERS.filter((s) => opts.domains!.includes(s.domain))
-    : SEEDERS
+  const selected = opts.domains ? SEEDERS.filter((s) => opts.domains!.includes(s.domain)) : SEEDERS
   for (const seeder of selected) {
     const result = seeder.seed(ctx)
     drafts.push(...result.drafts)
@@ -239,8 +231,12 @@ export async function runSeed(opts: RunSeedOptions): Promise<SeedReport> {
  * each run appends a fresh batch (keyed by a per-run nonce) onto existing
  * projects / channels / metrics.
  */
-function buildAccreteDrafts(ctx: SeedContext, nonceOverride?: string): DeterministicNodeImportDraft[] {
-  const nonce = nonceOverride ?? `${Date.now().toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`
+function buildAccreteDrafts(
+  ctx: SeedContext,
+  nonceOverride?: string
+): DeterministicNodeImportDraft[] {
+  const nonce =
+    nonceOverride ?? `${Date.now().toString(36)}${Math.floor(Math.random() * 1e6).toString(36)}`
   const drafts: DeterministicNodeImportDraft[] = []
   const TASK = 'xnet://xnet.fyi/Task@1.0.0'
   const project = seedId('project', 'Website Redesign')

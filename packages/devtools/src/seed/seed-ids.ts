@@ -68,10 +68,26 @@ export function int(rng: () => number, min: number, max: number): number {
  * avoid pulling `@xnetjs/crypto`/`identity` into the devtools bundle.
  */
 export const DEMO_PEOPLE: ReadonlyArray<{ did: string; name: string; emoji: string }> = [
-  { did: 'did:key:z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH', name: 'Ada Lovelace', emoji: '👩‍💻' },
-  { did: 'did:key:z6MkjchhfUsD6mmvni8mCdXHw216Xrm9bQe2mBH1P5RDjVJG', name: 'Alan Turing', emoji: '🧮' },
-  { did: 'did:key:z6MktiSzqF9kqwdU8VkdBKx56EYzXfpgnNPUAGznmkuzdrqv', name: 'Grace Hopper', emoji: '⚓️' },
-  { did: 'did:key:z6Mkf5rGMoatrSj1f4CyvuHBeXJ2GpwQ58gw4uMvPRy4Vqfu', name: 'Katherine Johnson', emoji: '🚀' }
+  {
+    did: 'did:key:z6MkpTHR8VNsBxYAAWHut2Geadd9jSwuBV8xRoAnwWsdvktH',
+    name: 'Ada Lovelace',
+    emoji: '👩‍💻'
+  },
+  {
+    did: 'did:key:z6MkjchhfUsD6mmvni8mCdXHw216Xrm9bQe2mBH1P5RDjVJG',
+    name: 'Alan Turing',
+    emoji: '🧮'
+  },
+  {
+    did: 'did:key:z6MktiSzqF9kqwdU8VkdBKx56EYzXfpgnNPUAGznmkuzdrqv',
+    name: 'Grace Hopper',
+    emoji: '⚓️'
+  },
+  {
+    did: 'did:key:z6Mkf5rGMoatrSj1f4CyvuHBeXJ2GpwQ58gw4uMvPRy4Vqfu',
+    name: 'Katherine Johnson',
+    emoji: '🚀'
+  }
 ]
 
 export const PROJECT_NAMES = [

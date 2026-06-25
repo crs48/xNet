@@ -4,11 +4,10 @@
  * Yjs documents are encoded as base64 updates.
  */
 
-import * as Y from 'yjs'
-import { collectSeed } from './seed-runner'
-import { makeRng, DEMO_PEOPLE, seedId } from './seed-ids'
-import { SCALES } from './seed-runner'
 import type { SeedScale } from './types'
+import * as Y from 'yjs'
+import { makeRng, DEMO_PEOPLE, seedId } from './seed-ids'
+import { collectSeed, SCALES } from './seed-runner'
 
 export interface SeedSnapshot {
   version: 1
@@ -25,11 +24,13 @@ function encodeUpdate(doc: Y.Doc): string {
 }
 
 /** Build a JSON snapshot of the curated seed graph (no store required). */
-export async function buildSnapshot(opts: {
-  authorDID?: string
-  scale?: SeedScale
-  includeAuto?: boolean
-} = {}): Promise<SeedSnapshot> {
+export async function buildSnapshot(
+  opts: {
+    authorDID?: string
+    scale?: SeedScale
+    includeAuto?: boolean
+  } = {}
+): Promise<SeedSnapshot> {
   const scale = opts.scale ?? 'small'
   const ctx = {
     space: seedId('space', 'demo'),

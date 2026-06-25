@@ -8,11 +8,22 @@
  */
 
 import { useMemo, useState } from 'react'
-import { runSeed, SEEDERS, type SeedMode, type SeedProgress, type SeedReport, type SeedScale } from '../../seed'
 import { useDevTools } from '../../provider/useDevTools'
+import {
+  runSeed,
+  SEEDERS,
+  type SeedMode,
+  type SeedProgress,
+  type SeedReport,
+  type SeedScale
+} from '../../seed'
 
 const MODES: Array<{ id: SeedMode; label: string; hint: string }> = [
-  { id: 'converge', label: 'Converge', hint: 'Fill in what is missing — idempotent, no duplicates.' },
+  {
+    id: 'converge',
+    label: 'Converge',
+    hint: 'Fill in what is missing — idempotent, no duplicates.'
+  },
   { id: 'accrete', label: 'Accrete', hint: 'Append extra random-id volume nodes each run.' },
   { id: 'reseed', label: 'Reseed', hint: 'Clear the managed set, then rebuild clean.' }
 ]
@@ -103,7 +114,9 @@ export function Seed() {
               onClick={() => setMode(m.id)}
               title={m.hint}
               className={`rounded px-2 py-1 text-xs ${
-                mode === m.id ? 'bg-primary text-primary-foreground' : 'bg-surface-2 text-ink-2 hover:bg-surface-3'
+                mode === m.id
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-surface-2 text-ink-2 hover:bg-surface-3'
               }`}
             >
               {m.label}
@@ -123,7 +136,9 @@ export function Seed() {
               type="button"
               onClick={() => setScale(s.id)}
               className={`rounded px-2 py-1 text-xs ${
-                scale === s.id ? 'bg-primary text-primary-foreground' : 'bg-surface-2 text-ink-2 hover:bg-surface-3'
+                scale === s.id
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-surface-2 text-ink-2 hover:bg-surface-3'
               }`}
             >
               {s.label}
@@ -194,7 +209,8 @@ export function Seed() {
       {report && (
         <div className="rounded border border-hairline bg-surface-1 p-2 text-xs text-ink-2">
           <div className="mb-1 font-medium text-ink-1">
-            {report.mode} · scale {report.scale} · {report.created} created · {report.updated} updated
+            {report.mode} · scale {report.scale} · {report.created} created · {report.updated}{' '}
+            updated
             {report.docsApplied > 0 ? ` · ${report.docsApplied} docs` : ''} ·{' '}
             {Math.round(report.durationMs)}ms
           </div>

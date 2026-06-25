@@ -5,9 +5,9 @@
  * from the Tier-2 auto-generator).
  */
 
-import { DatabaseSchema } from '@xnetjs/data'
-import type { DeterministicNodeImportDraft } from '@xnetjs/data'
 import type { SeederModule } from '../types'
+import type { DeterministicNodeImportDraft } from '@xnetjs/data'
+import { DatabaseSchema } from '@xnetjs/data'
 import { seedId } from '../seed-ids'
 import { folderId, tagId } from './spaces'
 

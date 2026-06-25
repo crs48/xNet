@@ -7,6 +7,8 @@
  * explicitly excluded here.
  */
 
+import type { SeederModule } from './types'
+import type { DefinedSchema, SchemaIRI } from '@xnetjs/data'
 import {
   ExtensionFieldSchema,
   GrantSchema,
@@ -18,15 +20,13 @@ import {
   SyncPolicySchema,
   schemaRegistry
 } from '@xnetjs/data'
-import type { DefinedSchema, SchemaIRI } from '@xnetjs/data'
-import type { SeederModule } from './types'
-import { spacesSeeder } from './seeders/spaces'
-import { workSeeder } from './seeders/work'
-import { docsSeeder } from './seeders/docs'
-import { databaseSeeder } from './seeders/database'
-import { vizSeeder } from './seeders/viz'
 import { commsSeeder } from './seeders/comms'
+import { databaseSeeder } from './seeders/database'
+import { docsSeeder } from './seeders/docs'
 import { metricsSeeder } from './seeders/metrics'
+import { spacesSeeder } from './seeders/spaces'
+import { vizSeeder } from './seeders/viz'
+import { workSeeder } from './seeders/work'
 
 /** Ordered Tier-1 seeders. Spaces first; the rest only cross-link by id. */
 export const SEEDERS: readonly SeederModule[] = [
@@ -40,9 +40,7 @@ export const SEEDERS: readonly SeederModule[] = [
 ]
 
 /** Schemas a Tier-1 seeder is responsible for (canonical `_schemaId`s). */
-export const TIER1_SCHEMA_IDS: ReadonlySet<string> = new Set(
-  SEEDERS.flatMap((s) => s.schemaIds)
-)
+export const TIER1_SCHEMA_IDS: ReadonlySet<string> = new Set(SEEDERS.flatMap((s) => s.schemaIds))
 
 /**
  * System / meta schemas intentionally left unseeded — infrastructure, not

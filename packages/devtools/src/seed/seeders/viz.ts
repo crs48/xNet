@@ -4,9 +4,9 @@
  * to exercise the surfaces and their relationships, not to author rich scenes.
  */
 
-import { CanvasSchema, DashboardSchema } from '@xnetjs/data'
-import type { DeterministicNodeImportDraft } from '@xnetjs/data'
 import type { SeederModule } from '../types'
+import type { DeterministicNodeImportDraft } from '@xnetjs/data'
+import { CanvasSchema, DashboardSchema } from '@xnetjs/data'
 import { seedId } from '../seed-ids'
 import { folderId, tagId } from './spaces'
 

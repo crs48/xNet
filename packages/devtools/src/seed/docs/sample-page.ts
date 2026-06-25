@@ -9,8 +9,8 @@
  * state the runner persists.
  */
 
-import * as Y from 'yjs'
 import type { SchemaIRI } from '@xnetjs/data'
+import * as Y from 'yjs'
 
 function uint8ArrayToBase64(arr: Uint8Array): string {
   let s = ''
@@ -53,7 +53,11 @@ export function buildTextAnchor(
   const result = findTextNode(fragment)
   if (!result) return null
 
-  const startRelPos = Y.createRelativePositionFromTypeIndex(result.textNode, result.offsetInNode, -1)
+  const startRelPos = Y.createRelativePositionFromTypeIndex(
+    result.textNode,
+    result.offsetInNode,
+    -1
+  )
   const endRelPos = Y.createRelativePositionFromTypeIndex(
     result.textNode,
     result.offsetInNode + searchText.length,

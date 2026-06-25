@@ -9,7 +9,13 @@ import type { DefinedSchema, DeterministicNodeImportDraft, PropertyDefinition } 
 import { seedId } from './seed-ids'
 
 /** Auto-populated / computed field types we never write. */
-const SKIP_TYPES = new Set<PropertyDefinition['type']>(['created', 'updated', 'createdBy', 'rollup', 'formula'])
+const SKIP_TYPES = new Set<PropertyDefinition['type']>([
+  'created',
+  'updated',
+  'createdBy',
+  'rollup',
+  'formula'
+])
 
 const BASE_TS = 1_750_000_000_000
 

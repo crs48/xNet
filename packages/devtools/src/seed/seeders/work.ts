@@ -4,9 +4,9 @@
  * and (for the first task of each project) link to the seeded spec Page.
  */
 
-import { MilestoneSchema, ProjectSchema, TaskSchema } from '@xnetjs/data'
-import type { DeterministicNodeImportDraft } from '@xnetjs/data'
 import type { SeederModule } from '../types'
+import type { DeterministicNodeImportDraft } from '@xnetjs/data'
+import { MilestoneSchema, ProjectSchema, TaskSchema } from '@xnetjs/data'
 import { pick, PROJECT_NAMES, seedId, TASK_VERBS } from '../seed-ids'
 import { pageId } from './docs'
 import { tagId } from './spaces'

@@ -21,7 +21,7 @@ Two tiers, behind a space-first runner:
   (`spaces`, `work`, `docs`, `database`, `viz`, `comms`, `metrics`) returning
   `DeterministicNodeImportDraft[]` (+ optional Yjs doc builders). These produce
   the coherent, richly cross-linked demo graph.
-- **Tier 2 — auto-generator** (`auto-generator.ts`): for every *other*
+- **Tier 2 — auto-generator** (`auto-generator.ts`): for every _other_
   registered schema, synthesize one representative node from its field
   definitions. New schemas get sample data automatically.
 
@@ -40,11 +40,11 @@ The **runner** (`seed-runner.ts`):
 Every managed node ID is deterministic (`seed/<domain>/<slug>`), so re-running
 **converges** — it never duplicates. Modes:
 
-| Mode | Behaviour |
-|------|-----------|
-| `converge` (default) | Upsert managed fixtures; fill in what is missing. |
-| `accrete` | Converge, then append random-ID volume nodes (scale/perf testing). |
-| `reseed` | Delete the managed set, then converge to a clean state. |
+| Mode                 | Behaviour                                                          |
+| -------------------- | ------------------------------------------------------------------ |
+| `converge` (default) | Upsert managed fixtures; fill in what is missing.                  |
+| `accrete`            | Converge, then append random-ID volume nodes (scale/perf testing). |
+| `reseed`             | Delete the managed set, then converge to a clean state.            |
 
 > Yjs document **content** is written once (on create) and not rewritten on
 > re-run, so re-seeding never duplicates blocks. To refresh document content,

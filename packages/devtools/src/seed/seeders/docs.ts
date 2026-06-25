@@ -4,11 +4,11 @@
  * (linked from the Work seeder's first task of each project).
  */
 
-import { CommentSchema, PageSchema } from '@xnetjs/data'
-import type { DeterministicNodeImportDraft } from '@xnetjs/data'
 import type { SeedDoc, SeederModule } from '../types'
-import { PROJECT_NAMES, seedId } from '../seed-ids'
+import type { DeterministicNodeImportDraft } from '@xnetjs/data'
+import { CommentSchema, PageSchema } from '@xnetjs/data'
 import { buildSamplePageDoc, buildTextAnchor } from '../docs/sample-page'
+import { PROJECT_NAMES, seedId } from '../seed-ids'
 import { folderId, tagId } from './spaces'
 
 /** Stable page node id. `pageId('spec', 'API Migration')` → spec page for that project. */

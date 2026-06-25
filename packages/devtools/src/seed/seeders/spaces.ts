@@ -4,9 +4,15 @@
  * Folders, a Tag palette, and Profiles for the demo people.
  */
 
-import { FolderSchema, ProfileSchema, SpaceMembershipSchema, SpaceSchema, TagSchema } from '@xnetjs/data'
-import type { DeterministicNodeImportDraft } from '@xnetjs/data'
 import type { SeederModule } from '../types'
+import type { DeterministicNodeImportDraft } from '@xnetjs/data'
+import {
+  FolderSchema,
+  ProfileSchema,
+  SpaceMembershipSchema,
+  SpaceSchema,
+  TagSchema
+} from '@xnetjs/data'
 import { seedId } from '../seed-ids'
 
 export const TAG_PALETTE = [
@@ -69,7 +75,10 @@ export const spacesSeeder: SeederModule = {
         properties: {
           did: person.did,
           displayName: person.name,
-          handle: person.name.toLowerCase().replace(/[^a-z]+/g, '').slice(0, 16),
+          handle: person.name
+            .toLowerCase()
+            .replace(/[^a-z]+/g, '')
+            .slice(0, 16),
           statusEmoji: person.emoji
         }
       })

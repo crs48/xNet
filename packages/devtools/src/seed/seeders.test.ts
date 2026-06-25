@@ -3,12 +3,12 @@
  * draft shapes so the curated graph stays well-formed as schemas evolve.
  */
 
+import type { SeedContext } from './types'
 import { describe, it, expect } from 'vitest'
 import { autoValue } from './auto-generator'
 import { isSeedId, makeRng, seedId, DEMO_PEOPLE } from './seed-ids'
-import { SCALES } from './seed-runner'
 import { SEEDERS } from './seed-manifest'
-import type { SeedContext } from './types'
+import { SCALES } from './seed-runner'
 
 const ctx: SeedContext = {
   space: seedId('space', 'demo'),
@@ -85,9 +85,9 @@ describe('auto-generator value synthesis', () => {
     expect(
       autoValue({ '@id': '#a', name: 'createdAt', type: 'created', required: false }, auto)
     ).toBeUndefined()
-    expect(
-      autoValue({ '@id': '#a', name: 'space', type: 'relation', required: false }, auto)
-    ).toBe('seed/space/demo')
+    expect(autoValue({ '@id': '#a', name: 'space', type: 'relation', required: false }, auto)).toBe(
+      'seed/space/demo'
+    )
     expect(
       autoValue(
         { '@id': '#a', name: 'amt', type: 'json', required: false, config: { format: 'money' } },
