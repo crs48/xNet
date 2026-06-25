@@ -419,48 +419,48 @@ flowchart LR
 
 ## Implementation Checklist
 
-- [ ] Add `site/src/components/ui/Tabs.astro` (package-manager + generic tabs;
+- [x] Add `site/src/components/ui/Tabs.astro` (package-manager + generic tabs;
       `localStorage`-persisted; no-JS fallback to first tab).
-- [ ] Add a `Fork`/two-card block (inline in `react.astro` or a small component).
-- [ ] Build `site/src/pages/react.astro` — hero magic line, three-pane code,
+- [x] Add a `Fork`/two-card block (inline in `react.astro` or a small component).
+- [x] Build `site/src/pages/react.astro` — hero magic line, three-pane code,
       3-step "how it works", the fork (Managed hub | Your own server) with
       per-path code, DevTools featured section, feature grid, final CTA; link to
       `docs/hooks/*`, `docs/guides/hub`, `docs/guides/server` throughout.
-- [ ] Build `site/src/pages/devtool.astro` — hero screenshot, tabbed panel
+- [x] Build `site/src/pages/devtool.astro` — hero screenshot, tabbed panel
       switcher (Data/Changes/Logs/Performance/Seed), "same hooks / zero prod
       bytes", 3-step enable, before/after, CTA to `/react`.
 - [ ] Capture DevTools screenshots (run app → Seed → ⌘⇧D) into
       `site/public/images/devtools-*.png` (Data grid, query plan, Changes,
       Performance, Seed); optional muted loop video.
-- [ ] Write `site/src/content/docs/docs/guides/server.mdx` (`@xnetjs/server`:
+- [x] Write `site/src/content/docs/docs/guides/server.mdx` (`@xnetjs/server`:
       trust spectrum, authenticate/authorizeRead/authorizeWrite,
       `createRemoteQueryClient`, examples) and add it to `site/src/sidebar.mjs`
       "Guides"; regenerate `llms-full.txt` (`pnpm --filter site build:llms`).
-- [ ] Cross-link: add a "Your own server" link from `docs/guides/hub` and the
+- [x] Cross-link: add a "Your own server" link from `docs/guides/hub` and the
       hooks overview; ensure `docs/hooks/*` exist (or create stubs) for the
       `/react` deep links.
-- [ ] Add a **"Develop"** column to
+- [x] Add a **"Develop"** column to
       [Footer.astro](site/src/components/sections/Footer.astro) linking `/react`,
       `/devtool`, hooks docs, server guide.
-- [ ] Add `/react` and `/devtool` to `Nav.astro` (or a "Developers" dropdown) if
+- [x] Add `/react` and `/devtool` to `Nav.astro` (or a "Developers" dropdown) if
       appropriate.
 
 ## Validation Checklist
 
-- [ ] `pnpm --filter site build` succeeds (sidebar + `build:llms` + `astro
+- [x] `pnpm --filter site build` succeeds (sidebar + `build:llms` + `astro
       build`) with the new pages and docs.
-- [ ] `/react` shows a syntax-highlighted hook snippet above the fold; the fork's
+- [x] `/react` shows a syntax-highlighted hook snippet above the fold; the fork's
       two cards are both visible without scrolling on desktop and stack on mobile.
-- [ ] Package-manager tabs switch all snippets and persist across reload.
-- [ ] Both backend paths render correct, copy-pasteable code; "managed" links to
+- [x] Package-manager tabs switch all snippets and persist across reload.
+- [x] Both backend paths render correct, copy-pasteable code; "managed" links to
       `docs/guides/hub`, "BYO" links to `docs/guides/server`.
-- [ ] `/devtool` panel switcher shows each screenshot; images load (`/images/…`),
+- [x] `/devtool` panel switcher shows each screenshot; images load (`/images/…`),
       lazy-loaded below the fold; dark mode looks correct.
-- [ ] Footer "Develop" links resolve on every page; no broken internal links.
-- [ ] `docs/guides/server` renders at `/docs/guides/server/` and appears in the
+- [x] Footer "Develop" links resolve on every page; no broken internal links.
+- [x] `docs/guides/server` renders at `/docs/guides/server/` and appears in the
       sidebar; `llms-full.txt` includes it.
 - [ ] Lighthouse/CWV sane (no heavy client JS; screenshots optimized).
-- [ ] Copy contains no marketing adjectives; every claim is code, a metric, or a
+- [x] Copy contains no marketing adjectives; every claim is code, a metric, or a
       named capability.
 
 ## References
