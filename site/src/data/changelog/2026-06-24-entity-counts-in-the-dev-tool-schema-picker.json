@@ -8,6 +8,14 @@
     "\"All schemas\" shows the total across schemas",
     "Counts respect read authorization and refresh live without polling"
   ],
-  "tags": ["devtools", "platform"],
-  "authors": [{ "login": "crs48" }]
+  "tags": [
+    "devtools",
+    "platform"
+  ],
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ],
+  "pr": 257
 }
