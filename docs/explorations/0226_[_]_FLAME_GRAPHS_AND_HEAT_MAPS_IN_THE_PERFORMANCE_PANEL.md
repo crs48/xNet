@@ -434,7 +434,7 @@ A flame node renders with the same `<rect>` + `colourForStage` recipe as
       `aggregateFlame()` as pure functions.
 - [x] Unit-test `aggregate.ts`: bucket boundaries, empty ring, single trace, cyclic
       `parentSpanId` guard, left-heavy sort order.
-- [ ] Add `LatencyHeatmap.tsx` (SVG grid, `data-testid`, `<title>` per cell, theme
+- [x] Add `LatencyHeatmap.tsx` (SVG grid, `data-testid`, `<title>` per cell, theme
       tokens) + a `<LatencyHeatmapSection>` reading `useTracesPanel()`.
 - [ ] Add `FlameGraph.tsx` (aggregated left-heavy tree from `aggregateFlame`,
       reuse `colourForStage`) + an `<AggregateFlameSection>`.
@@ -442,7 +442,7 @@ A flame node renders with the same `<rect>` + `colourForStage` recipe as
       recent traces.
 - [ ] Phase 2: refactor `Waterfall` → depth layout by `parentSpanId` (or sibling
       `FlameChart`) with self-time; add a flame/waterfall toggle in `TracesPanel`.
-- [ ] Phase 3: `useFrameRing()` hook + `FrameHeatmap.tsx`; defer stage×schema matrix
+- [x] Phase 3: `useFrameRing()` hook + `FrameHeatmap.tsx`; defer stage×schema matrix
       behind 0190 Phase-2 instrumentation.
 - [ ] Add a changelog fragment (dev-tools is `private` → no changeset, per CLAUDE.md).
 

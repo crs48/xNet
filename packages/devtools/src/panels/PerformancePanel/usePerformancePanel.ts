@@ -43,6 +43,39 @@ export function useFrameRate(): FrameStats {
   return stats
 }
 
+/**
+ * Rolling ring of recent per-frame durations with wall-clock timestamps, for the
+ * frame-time (jank) heat map. The frame-rate hook keeps no history; this one does.
+ * rAF only ticks while the tab/panel is foregrounded, so the ring naturally
+ * reflects the active session (gaps when backgrounded are expected).
+ */
+export function useFrameRing(capacity = 600): { t: number; v: number }[] {
+  const [samples, setSamples] = useState<{ t: number; v: number }[]>([])
+  const ring = useRef<{ t: number; v: number }[]>([])
+  useEffect(() => {
+    if (typeof requestAnimationFrame !== 'function') return
+    let raf = 0
+    let last = performance.now()
+    let sinceFlush = 0
+    const tick = (now: number) => {
+      const dt = now - last
+      last = now
+      ring.current.push({ t: Date.now(), v: Number(dt.toFixed(1)) })
+      if (ring.current.length > capacity) ring.current.shift()
+      // Flush to React ~3x/sec; per-frame setState would itself cause jank.
+      sinceFlush += dt
+      if (sinceFlush >= 333) {
+        sinceFlush = 0
+        setSamples(ring.current.slice())
+      }
+      raf = requestAnimationFrame(tick)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [capacity])
+  return samples
+}
+
 export interface HeapStats {
   usedBytes: number
   limitBytes: number
