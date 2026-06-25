@@ -108,6 +108,13 @@ jobs:
                 entry.pr = pr // (--pr auto may already have baked it)
                 touched = true
               }
+              // The exact merge instant (time-of-day precision) straight from the
+              // merge event — this is what the changelog sorts by, so same-day PRs
+              // appear in true reverse-chronological order.
+              if (!entry.mergedAt && prObj.merged_at) {
+                entry.mergedAt = prObj.merged_at
+                touched = true
+              }
               if (!entry.authors && authors.length) {
                 entry.authors = authors
                 delete entry.author // migrate the legacy single author
@@ -117,7 +124,7 @@ jobs:
               fs.writeFileSync(file, JSON.stringify(entry, null, 2) + '\n')
               changed++
               const who = authors.length ? ` (${authors.map((a) => '@' + a.login).join(', ')})` : ''
-              core.notice(`Stamped ${path.basename(file)} → PR #${entry.pr}${who}`)
+              core.notice(`Stamped ${path.basename(file)} → PR #${entry.pr} @ ${entry.mergedAt ?? '?'}${who}`)
             }
             if (changed === 0) core.info('Nothing to stamp — fragments already complete.')
 

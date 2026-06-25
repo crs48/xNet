@@ -140,6 +140,12 @@ async function contributorsFromApi(pr) {
   return out.length ? out : null
 }
 
+/** The PR's merge instant (ISO-8601 UTC, time-of-day precision), or null. */
+async function mergedAtFromApi(pr) {
+  const mergedAt = (await ghJson(`/pulls/${pr}`))?.merged_at
+  return typeof mergedAt === 'string' ? mergedAt : null
+}
+
 /** Was `addSha` introduced by this PR (i.e. not already reachable from base)? */
 function isNewVsBase(addSha) {
   if (!BASE_REF || !addSha) return false
@@ -196,9 +202,10 @@ if (CHECK) {
   )
   if (unresolvedNew.length) process.exit(1)
 } else {
-  // ── Deploy: write resolved numbers + contributors into the workspace. ──────
+  // ── Deploy: write resolved numbers + contributors + merge times. ───────────
   let prFilled = 0
   let authorsFilled = 0
+  let mergedAtFilled = 0
   const unresolved = []
   for (const file of files) {
     const path = join(DIR, file)
@@ -229,6 +236,19 @@ if (CHECK) {
       }
     }
 
+    // Fill the merge instant (time-of-day precision) so the changelog sorts in
+    // true reverse-chronological order, not just by day. Safety net for the
+    // stamp workflow, which writes it straight from the merge event.
+    if (entry.pr && !entry.mergedAt) {
+      const mergedAt = await mergedAtFromApi(entry.pr)
+      if (mergedAt) {
+        entry.mergedAt = mergedAt
+        mergedAtFilled++
+        changed = true
+        console.log(`merged-at ${file} → ${mergedAt}`)
+      }
+    }
+
     if (changed) writeFileSync(path, JSON.stringify(entry, null, 2) + '\n')
   }
   // Fail-loud: surface unresolved fragments as warnings (GitHub annotates these),
@@ -239,7 +259,8 @@ if (CHECK) {
     )
   }
   console.log(
-    `resolve-prs: filled ${prFilled} PR number(s), ${authorsFilled} contributor list(s)` +
+    `resolve-prs: filled ${prFilled} PR number(s), ${authorsFilled} contributor list(s), ` +
+      `${mergedAtFilled} merge time(s)` +
       (unresolved.length ? `, ${unresolved.length} unresolved: ${unresolved.join(', ')}` : '')
   )
 }

@@ -25,6 +25,11 @@ const entries: ChangelogEntry[] = readdirSync(fragmentDir)
 // legacy `-pr147`) to disambiguate same-day entries.
 const ENTRY_ID = /^\d{4}-\d{2}-\d{2}(-[a-z0-9-]+)?$/
 
+// ISO-8601 UTC instant (what GitHub's `merged_at` returns), e.g.
+// `2026-06-17T16:41:38Z`. This is the changelog's sort key, so a malformed
+// value would silently misorder an entry — fail the build instead.
+const MERGED_AT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/
+
 const errors: string[] = []
 
 function err(id: string, msg: string): void {
@@ -48,6 +53,9 @@ function checkRequired(e: ChangelogEntry): void {
     if (!e.video.src.startsWith('/') && !e.video.src.startsWith('https://')) {
       err(id, `video.src must be an absolute path or https URL (${e.video.src})`)
     }
+  }
+  if (e.mergedAt !== undefined && (typeof e.mergedAt !== 'string' || !MERGED_AT.test(e.mergedAt))) {
+    err(id, `mergedAt must be an ISO-8601 UTC instant (e.g. 2026-06-17T16:41:38Z)`)
   }
   if (e.author && !e.author.login) err(id, 'author is missing a login')
   for (const [i, a] of (e.authors ?? []).entries()) {

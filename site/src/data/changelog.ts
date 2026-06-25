@@ -14,7 +14,9 @@
  *
  * Conventions (enforced by site/scripts/validate-changelog.ts):
  *   - `id` is `YYYY-MM-DD` (optionally `-pr<N>` to disambiguate same-day PRs),
- *     unique across fragments. The loader sorts newest-first by id.
+ *     unique across fragments. The loader sorts newest-first by `mergedAt` (the
+ *     PR's actual merge instant, time-of-day precision), so same-day PRs land in
+ *     true reverse-chronological order; `id` is only a fallback/tiebreak.
  *   - Every entry maps to real shipped work (a merged PR where applicable).
  *   - `summary` leads with the user benefit; `highlights` are user-visible.
  *   - `hero.src`/`images[].src` is an absolute path (/images/…) or https URL.
@@ -74,6 +76,17 @@ export interface ChangelogEntry {
   author?: ChangelogContributor
   /** Originating pull request number, when applicable. */
   pr?: number
+  /**
+   * ISO-8601 UTC instant the originating PR was merged into `main`
+   * (e.g. `"2026-06-17T16:41:38Z"`). This is what entries are ordered by —
+   * reverse-chronological with time-of-day precision, so several PRs merged on
+   * the same day still appear in the order they actually landed. It's stamped at
+   * merge from the merge event by `.github/workflows/stamp-pr-number.yml` and
+   * backfilled from the GitHub API at deploy by `scripts/changelog/resolve-prs.mjs`
+   * (the safety net). Absent only for an unresolved/legacy fragment, which then
+   * falls back to its `id` date prefix for ordering.
+   */
+  mergedAt?: string
 }
 
 /** A GitHub contributor shown on an entry (avatar + link, label is name||login). */
@@ -90,9 +103,22 @@ const fragments = import.meta.glob<ChangelogEntry>('./changelog/*.json', {
   import: 'default'
 })
 
-/** Newest-first by id (date prefix, then any `-pr<N>` suffix). */
-export const entries: ChangelogEntry[] = Object.values(fragments).sort((a, b) =>
-  a.id < b.id ? 1 : a.id > b.id ? -1 : 0
+/**
+ * Ordering key in epoch ms: the PR's merge instant (time-of-day precision), so
+ * entries land in true reverse-chronological order even when several PRs merged
+ * on the same calendar day. When `mergedAt` is absent (a legacy fragment or one
+ * whose PR couldn't be resolved), fall back to midnight UTC of the `id` date
+ * prefix so it still sorts to roughly the right day.
+ */
+function mergeOrder(e: ChangelogEntry): number {
+  const iso = e.mergedAt ?? `${e.id.slice(0, 10)}T00:00:00Z`
+  const t = Date.parse(iso)
+  return Number.isNaN(t) ? 0 : t
+}
+
+/** Newest-first by merge time; `id` (descending) is a stable tiebreak. */
+export const entries: ChangelogEntry[] = Object.values(fragments).sort(
+  (a, b) => mergeOrder(b) - mergeOrder(a) || (a.id < b.id ? 1 : a.id > b.id ? -1 : 0)
 )
 
 /** The most recent entry's date label, shown in the page footer. */
