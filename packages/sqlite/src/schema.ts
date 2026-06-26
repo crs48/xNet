@@ -6,7 +6,7 @@
  * Current schema version.
  * Increment this when making schema changes.
  */
-export const SCHEMA_VERSION = 6
+export const SCHEMA_VERSION = 7
 
 /**
  * Core SQLite schema for xNet (without FTS5).
@@ -101,7 +101,12 @@ CREATE TABLE IF NOT EXISTS node_query_materializations (
     descriptor_json TEXT NOT NULL,
     generated_at INTEGER NOT NULL,
     invalidated_at INTEGER,
-    row_count INTEGER NOT NULL
+    row_count INTEGER NOT NULL,
+    -- Authorization fingerprint the view was materialized under (exploration
+    -- 0226). NULL when authz is off; a mismatch forces an 'authz-changed'
+    -- refresh so a cached id list can never serve rows the viewer can no
+    -- longer read.
+    auth_fingerprint TEXT
 );
 
 CREATE TABLE IF NOT EXISTS node_query_materialized_ids (
@@ -415,6 +420,11 @@ CREATE INDEX IF NOT EXISTS idx_prop_scalars_node
     ON node_property_scalars(node_id);
 CREATE INDEX IF NOT EXISTS idx_changes_node_lamport
     ON changes(node_id, lamport_time DESC, hash);
+`,
+
+  7: `
+ALTER TABLE node_query_materializations
+    ADD COLUMN auth_fingerprint TEXT;
 `
 }
 

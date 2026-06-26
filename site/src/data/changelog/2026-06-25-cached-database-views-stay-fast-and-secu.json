@@ -1,0 +1,11 @@
+{
+  "id": "2026-06-25-cached-database-views-stay-fast-and-secu",
+  "date": "June 25, 2026",
+  "title": "Cached database views stay fast and secure under access control",
+  "summary": "Database views can now reuse their cached results across reloads even when per-row permissions are in effect — authorized once when the view is built, and automatically rebuilt the moment access changes, so a revoked viewer never sees stale rows.",
+  "highlights": [],
+  "tags": [
+    "performance",
+    "identity"
+  ]
+}

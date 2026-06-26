@@ -19,7 +19,10 @@ import type { SchemaIRI } from '../schema/node'
 import type { AuthCheckInput, AuthDecision, DID, PolicyEvaluator } from '@xnetjs/core'
 import { generateSigningKeyPair } from '@xnetjs/crypto'
 import { createDID } from '@xnetjs/identity'
+import { createMemorySQLiteAdapter } from '@xnetjs/sqlite/memory'
 import { describe, it, expect, vi } from 'vitest'
+import { SQLiteNodeStorageAdapter } from './sqlite-adapter'
+import { SYSTEM_SCHEMA_BASE_IRIS } from '../schema/schemas/system'
 import {
   LensRegistry,
   SchemaDefinitionSchema,
@@ -2379,5 +2382,119 @@ describe('getWithMigration (Schema Migration Support)', () => {
     expect(result).not.toBeNull()
     expect(result!._migrationInfo).toBeUndefined()
     expect(result!.properties.complete).toBe(true)
+  })
+})
+
+describe('NodeStore — authorized materialized views (0226)', () => {
+  function taskNode(id: string, status: string, updatedAt: number, did: DID): NodeState {
+    return {
+      id,
+      schemaId: TEST_SCHEMA,
+      properties: { title: id, status },
+      timestamps: {
+        title: { lamport: 1, author: did, wallTime: updatedAt },
+        status: { lamport: 2, author: did, wallTime: updatedAt }
+      },
+      deleted: false,
+      createdAt: updatedAt,
+      createdBy: did,
+      updatedAt,
+      updatedBy: did
+    }
+  }
+
+  async function createSQLiteAuthStore(canRead: (input: AuthCheckInput) => boolean) {
+    const keyPair = generateSigningKeyPair()
+    const did = createDID(keyPair.publicKey) as DID
+    const db = await createMemorySQLiteAdapter()
+    const adapter = new SQLiteNodeStorageAdapter(db)
+    const evaluator = createAuthEvaluator(canRead)
+    const store = new NodeStore({
+      storage: adapter,
+      authorDID: did,
+      signingKey: keyPair.privateKey,
+      authEvaluator: evaluator
+    })
+    await store.initialize()
+    return { store, adapter, db, did }
+  }
+
+  it('persists a materialized view under authz and re-materializes when a grant is revoked', async () => {
+    let readableLow = true
+    const { store, adapter, db, did } = await createSQLiteAuthStore((input) => {
+      if (input.action !== 'read') return true
+      if (input.nodeId === 'task-low') return readableLow
+      return true
+    })
+
+    // Seed directly to bypass write-authz; the read path is what we exercise.
+    await adapter.importNodes([
+      taskNode('task-high', 'open', 2000, did),
+      taskNode('task-low', 'open', 1000, did)
+    ])
+
+    const descriptor: NodeQueryDescriptor = {
+      schemaId: TEST_SCHEMA,
+      includeDeleted: false,
+      where: { status: 'open' },
+      orderBy: { updatedAt: 'desc' },
+      materializedView: { viewId: 'db:tasks:view:open' }
+    }
+
+    // First read materializes the authorized id list (both rows readable).
+    const first = await store.query(descriptor)
+    expect(first.nodes.map((node) => node.id)).toEqual(['task-high', 'task-low'])
+    expect(first.plan.materializedViewId).toBe('db:tasks:view:open')
+    expect(first.plan.materializedCacheHit).toBe(false)
+
+    // Second read with no change → cache hit (the reload-reuse win).
+    const second = await store.query(descriptor)
+    expect(second.plan.materializedCacheHit).toBe(true)
+    expect(second.nodes.map((node) => node.id)).toEqual(['task-high', 'task-low'])
+
+    // Revoke read on task-low AND record a grant change so the fingerprint moves.
+    readableLow = false
+    await adapter.importNodes([
+      {
+        ...taskNode('grant-1', 'active', 3000, did),
+        schemaId: SYSTEM_SCHEMA_BASE_IRIS.Grant as SchemaIRI
+      }
+    ])
+
+    // The critical assertion: the cached view must NOT serve the now-unreadable row.
+    const third = await store.query(descriptor)
+    expect(third.plan.materializedCacheHit).toBe(false)
+    expect(third.plan.materializedRefreshReason).toBe('authz-changed')
+    expect(third.nodes.map((node) => node.id)).toEqual(['task-high'])
+
+    await db.close()
+  })
+
+  it('falls back to authorize-then-paginate when storage cannot fingerprint authz', async () => {
+    // MemoryNodeStorageAdapter implements neither seam, so a materialized view
+    // request under authz must NOT cache — it degrades to the safe path.
+    const keyPair = generateSigningKeyPair()
+    const did = createDID(keyPair.publicKey) as DID
+    const adapter = new MemoryNodeStorageAdapter()
+    const store = new NodeStore({
+      storage: adapter,
+      authorDID: did,
+      signingKey: keyPair.privateKey,
+      authEvaluator: createAuthEvaluator((input) =>
+        input.action !== 'read' ? true : input.nodeId !== 'hidden'
+      )
+    })
+    await store.initialize()
+    await store.create({ id: 'visible', schemaId: TEST_SCHEMA, properties: { status: 'open' } })
+
+    const result = await store.query({
+      schemaId: TEST_SCHEMA,
+      includeDeleted: false,
+      where: { status: 'open' },
+      materializedView: { viewId: 'db:tasks:view:open' }
+    })
+
+    expect(result.nodes.map((node) => node.id)).toEqual(['visible'])
+    expect(result.plan.materializedViewId).toBeUndefined()
   })
 })
