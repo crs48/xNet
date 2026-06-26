@@ -320,7 +320,7 @@ export function GlobalSearch() {
       <div className="w-full max-w-xl" onMouseDown={(event) => event.stopPropagation()}>
         <Command
           shouldFilter={false}
-          className="overflow-hidden rounded-lg border border-hairline bg-popover"
+          className="glass-surface overflow-hidden rounded-lg border border-hairline bg-popover shadow-soft"
         >
           <CommandInput
             autoFocus
