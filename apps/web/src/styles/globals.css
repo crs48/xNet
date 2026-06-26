@@ -91,12 +91,23 @@
 .page-prose .ProseMirror > * + * {
   margin-top: var(--prose-flow);
 }
-/* Headings bind to the text they introduce: more space above than below. */
-.page-prose .ProseMirror > * + :is(h1, h2, h3, h4, h5, h6) {
+/* Headings bind to the text they introduce: more space above than below.
+   Headings render as React node views wrapped in `div.react-renderer`, so the
+   `:is(h…)` direct-child selectors only match unwrapped headings (other
+   surfaces). The `:has()` variants match "a child that *contains* a heading",
+   piercing the wrapper, and the final rule neutralises the node view's own
+   legacy Tailwind margins so the rhythm — applied to the wrapper — is the one
+   source of heading spacing (uniform across levels). */
+.page-prose .ProseMirror > * + :is(h1, h2, h3, h4, h5, h6),
+.page-prose .ProseMirror > * + *:has(> :is(h1, h2, h3, h4, h5, h6)) {
   margin-top: var(--prose-h-before);
 }
-.page-prose .ProseMirror :is(h1, h2, h3, h4, h5, h6) + * {
+.page-prose .ProseMirror :is(h1, h2, h3, h4, h5, h6) + *,
+.page-prose .ProseMirror > *:has(> :is(h1, h2, h3, h4, h5, h6)) + * {
   margin-top: var(--prose-h-after);
+}
+.page-prose .ProseMirror :is(h1, h2, h3, h4, h5, h6) {
+  margin: 0;
 }
 
 /* Lists: one indent step per level; markers hang in the indent gutter. */
@@ -128,15 +139,17 @@
   gap: calc(var(--prose-indent) - var(--prose-check));
 }
 .page-prose .ProseMirror ul[data-type='taskList'] li > label {
-  margin-top: 0.35em; /* fallback for browsers without the lh unit */
-  /* Centre the box on the first line. The small nudge accounts for the
-     checkbox border + the text's optical centre sitting below the line
-     box centre, measured to land the box centre on the text centre. */
-  margin-top: calc((1lh - var(--prose-check)) / 2 + 0.2em);
+  margin-top: 0.5em; /* fallback for browsers without the lh unit */
+  /* Centre the box on the first line. The nudge lands the box centre on the
+     text's optical centre; measured against the cap-height centre, 0.26em
+     lands within ~1px (0.2em sat ~1px high, larger values dropped it low). */
+  margin-top: calc((1lh - var(--prose-check)) / 2 + 0.26em);
 }
 .page-prose .ProseMirror ul[data-type='taskList'] li > label input[type='checkbox'] {
   width: var(--prose-check);
   height: var(--prose-check);
+  /* Rounded square, not a near-circle — reads as a checkbox, not a radio/dot. */
+  border-radius: 5px;
 }
 
 /* Inline code + code fences keep the monochrome muted background. */
