@@ -403,7 +403,7 @@ this.execSync('PRAGMA mmap_size = 268435456') // try 256 MB; measure under SAH V
 
 ## Implementation Checklist
 
-- [ ] **A:** add the worker op tracer (queueMs/execMs per op) + one-shot DB
+- [x] **A:** add the worker op tracer (queueMs/execMs per op) + one-shot DB
       stats (file size, page_count, freelist_count, storage mode, hot-journal
       detection) behind `xnet:boot:debug` in
       [`web-worker.ts`](../../packages/sqlite/src/adapters/web-worker.ts) /

@@ -41,7 +41,7 @@ import { ConsentBanner } from './components/ConsentBanner'
 import { StorageWarningBanner } from './components/StorageWarningBanner'
 import { WorkingSetPrewarm } from './components/WorkingSetPrewarm'
 import { type BootFailure, reportBootFailure } from './lib/boot-diagnostics'
-import { bootMark } from './lib/boot-timeline'
+import { bootMark, isBootDebugEnabled } from './lib/boot-timeline'
 import {
   clearXNetBrowserStorage,
   clearXNetBrowserStorageResetRequest,
@@ -398,7 +398,9 @@ export function App(): JSX.Element {
           return
         }
 
-        await sqliteAdapter.open({ path: '/xnet.db' })
+        // bootDebug lets the worker emit per-op queue/exec timing + DB stats
+        // (exploration 0229) — workers can't read the xnet:boot:debug flag.
+        await sqliteAdapter.open({ path: '/xnet.db', bootDebug: isBootDebugEnabled() })
         bootMark('sqlite:open')
 
         if (cancelled) {

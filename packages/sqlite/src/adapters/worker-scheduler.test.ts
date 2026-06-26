@@ -95,6 +95,32 @@ describe('WorkerScheduler (0228)', () => {
     await expect(ok).resolves.toBe('ok')
   })
 
+  it('reports per-op timing to the onOp reporter with lane + label (0229)', async () => {
+    const reports: Array<{ lane: string; label?: string; queueMs: number; execMs: number }> = []
+    const sched = new WorkerScheduler((r) => reports.push(r))
+    await sched.schedule('interactive', async () => 1, undefined, 'query')
+    await sched.schedule('write', async () => 2, undefined, 'run')
+    expect(reports).toHaveLength(2)
+    expect(reports[0]).toMatchObject({ lane: 'interactive', label: 'query' })
+    expect(reports[1]).toMatchObject({ lane: 'write', label: 'run' })
+    for (const r of reports) {
+      expect(r.queueMs).toBeGreaterThanOrEqual(0)
+      expect(r.execMs).toBeGreaterThanOrEqual(0)
+    }
+  })
+
+  it('does not report coalesced duplicate reads twice (0229)', async () => {
+    const reports: unknown[] = []
+    const sched = new WorkerScheduler((r) => reports.push(r))
+    const fn = vi.fn(async () => 'v')
+    await Promise.all([
+      sched.schedule('interactive', fn, 'k', 'query'),
+      sched.schedule('interactive', fn, 'k', 'query')
+    ])
+    expect(fn).toHaveBeenCalledTimes(1)
+    expect(reports).toHaveLength(1)
+  })
+
   it('reports queue depth via snapshot', async () => {
     const sched = new WorkerScheduler()
     const gate = deferred<void>()

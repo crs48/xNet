@@ -26,10 +26,20 @@ export type SchedulerLane = 'interactive' | 'bulk' | 'write'
 /** Drain order — earlier lanes are served to exhaustion before later ones. */
 const LANE_ORDER: readonly SchedulerLane[] = ['interactive', 'bulk', 'write']
 
+/** Monotonic clock, falling back to `Date.now` where `performance` is absent. */
+function nowMs(): number {
+  return typeof performance !== 'undefined' && typeof performance.now === 'function'
+    ? performance.now()
+    : Date.now()
+}
+
 interface QueuedJob {
   run: () => Promise<unknown>
   resolve: (value: unknown) => void
   reject: (reason: unknown) => void
+  lane: SchedulerLane
+  label?: string
+  enqueuedAt: number
 }
 
 /** Point-in-time view of scheduler depth (for diagnostics / the perf panel). */
@@ -39,6 +49,16 @@ export interface SchedulerSnapshot {
   write: number
   /** Whether a job is currently executing. */
   inFlight: boolean
+}
+
+/** Per-operation timing emitted to {@link WorkerScheduler}'s reporter. */
+export interface SchedulerOpReport {
+  lane: SchedulerLane
+  label?: string
+  /** Time the op waited behind other ops before starting (head-of-line). */
+  queueMs: number
+  /** Time the op spent executing (SQL + OPFS I/O), excluding queue wait. */
+  execMs: number
 }
 
 export class WorkerScheduler {
@@ -52,6 +72,11 @@ export class WorkerScheduler {
   private running = false
 
   /**
+   * @param onOp optional per-operation timing reporter (boot diagnostics, 0229).
+   */
+  constructor(private readonly onOp?: (report: SchedulerOpReport) => void) {}
+
+  /**
    * Enqueue `fn` on `lane`. Returns a promise that settles with `fn`'s result.
    *
    * When `coalesceKey` is provided (reads only — they're idempotent), an
@@ -59,7 +84,12 @@ export class WorkerScheduler {
    * instead of enqueuing a second execution. The key is dropped once that
    * execution settles, so a later identical read re-runs against fresh data.
    */
-  schedule<T>(lane: SchedulerLane, fn: () => Promise<T>, coalesceKey?: string): Promise<T> {
+  schedule<T>(
+    lane: SchedulerLane,
+    fn: () => Promise<T>,
+    coalesceKey?: string,
+    label?: string
+  ): Promise<T> {
     if (coalesceKey !== undefined) {
       const inflight = this.coalesced.get(coalesceKey)
       if (inflight) return inflight as Promise<T>
@@ -69,7 +99,10 @@ export class WorkerScheduler {
       this.queues[lane].push({
         run: fn as () => Promise<unknown>,
         resolve: resolve as (value: unknown) => void,
-        reject
+        reject,
+        lane,
+        label,
+        enqueuedAt: nowMs()
       })
     })
 
@@ -111,10 +144,21 @@ export class WorkerScheduler {
     try {
       let job: QueuedJob | undefined
       while ((job = this.next())) {
+        const startedAt = nowMs()
         try {
           job.resolve(await job.run())
         } catch (err) {
           job.reject(err)
+        } finally {
+          if (this.onOp) {
+            const endedAt = nowMs()
+            this.onOp({
+              lane: job.lane,
+              label: job.label,
+              queueMs: startedAt - job.enqueuedAt,
+              execMs: endedAt - startedAt
+            })
+          }
         }
       }
     } finally {
