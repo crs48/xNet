@@ -18,6 +18,18 @@ intuitions onto code that already exists, and recommends how to make
 materialized views *both* durable across reloads *and* safe under xNet's
 local-first, end-to-end-encrypted threat model.
 
+> **Implementation status (shipped part 1).** The core recommendation — the
+> **auth-fingerprint mechanism** that lets materialized views coexist with
+> read authorization (recommendation parts 1 + 2, checklist items 1–5, 8) —
+> is implemented and tested in `@xnetjs/data`/`@xnetjs/sqlite` (the critical
+> authz-revocation test included). **Part 3 (at-rest encryption of the local
+> store via `nodeContentCipher` + a Settings toggle, checklist items 6–7)** is
+> deliberately deferred to a follow-up: it is a larger, security-sensitive
+> feature spanning identity → app → worker → store with a data-migration
+> dimension and needs real browser/passkey/OPFS verification. The exploration
+> stays `[_]` until that lands. This matches the "ship part 1 first" staging
+> in the Recommendation.
+
 ## Executive Summary
 
 - **There are two distinct caches, and they behave differently across a
@@ -528,15 +540,15 @@ this.bumpAuthEpoch()   // NEW: monotonic; folded into authFingerprint()
 
 ## Validation Checklist
 
-- [ ] Reload test: with the grid open, reload → first paint serves a
+- [x] Reload test: with the grid open, reload → first paint serves a
       `materializedCacheHit: true` plan (no full recompute).
-- [ ] Invalidation test: write a row → next read shows
+- [x] Invalidation test: write a row → next read shows
       `materializedRefreshReason: 'invalidated'` then a fresh hit.
-- [ ] **Authz-revocation test (the critical one):** materialize a view as a
+- [x] **Authz-revocation test (the critical one):** materialize a view as a
       viewer who can read row X; revoke the grant; reload → row X must
       **not** appear, and the plan shows `'authz-changed'`. Proves no stale
       leak.
-- [ ] Fingerprint coverage test: each authz input (grant, group, room-key
+- [x] Fingerprint coverage test: each authz input (grant, group, room-key
       version, visibility) independently flips the fingerprint and forces a
       refresh.
 - [ ] At-rest test: with encryption on, inspect OPFS bytes for the
