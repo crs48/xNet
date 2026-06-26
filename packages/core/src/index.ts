@@ -112,6 +112,9 @@ export type {
 } from './auth-types'
 export { AUTH_ACTIONS } from './auth-types'
 
+// Shared utility helpers (dependency-free)
+export { clamp, clamp01, formatBytes } from './utils'
+
 // Core types
 export type DID = `did:key:${string}`
 export type DocumentPath = `xnet://${DID}/workspace/${string}/doc/${string}`

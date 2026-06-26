@@ -472,9 +472,9 @@ Phase 0 — mechanical
       `Canvas.stories.tsx` + `canvas-navigation-shell.test.tsx` at `CanvasV3`
       (or remove the legacy-only story).
 - [ ] Run Knip; triage and delete the dead-export tail it finds.
-- [ ] Create `packages/core/src/utils/` (`format`, `math`, `timing`,
+- [x] Create `packages/core/src/utils/` (`format`, `math`, `timing`,
       `relative-time`) exported via a `@xnetjs/core/utils` subpath.
-- [ ] Pick the canonical impl per helper (most-correct wins); write unit tests.
+- [x] Pick the canonical impl per helper (most-correct wins); write unit tests.
 - [ ] Codemod (`ts-morph`) the 9 `formatBytes`/`formatFileSize`, 29 `clamp`, 7
       relative-time, 6 `debounce` call sites to import from core; delete locals.
 - [ ] Add `jscpd` + `knip` to CI in report-only mode; commit baselines; then
