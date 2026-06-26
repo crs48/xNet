@@ -20,7 +20,7 @@ import {
 import { ProfileSchema, type NodeChangeEvent } from '@xnetjs/data'
 import { useQuery, useXNet } from '@xnetjs/react'
 import { useDataBridge } from '@xnetjs/react/internal'
-import { createContext, useContext, useEffect, useMemo, type ReactNode } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { tabFromPathname } from '../workbench/tabs'
 import { userCardFrom } from './comms-utils'
 import { useDesktopNotificationDelivery } from './desktop-notifications'
@@ -63,6 +63,35 @@ function useMe(): UserCard {
   return useMemo(() => userCardFrom(did, profile), [did, profile])
 }
 
+/**
+ * Defer the workspace presence join until the main thread is idle (i.e. after
+ * first paint). Presence acquisition warms a Y.Doc through the single SQLite
+ * worker; running it during the initial landing-query burst let it head-of-line
+ * block every read (exploration 0227). Presence is republished continuously, so
+ * a one-tick delay is imperceptible. Falls back to a timer where
+ * `requestIdleCallback` is unavailable.
+ */
+function useWorkspacePresenceReady(): boolean {
+  const [ready, setReady] = useState(false)
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      setReady(true)
+      return
+    }
+    const win = window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number
+      cancelIdleCallback?: (handle: number) => void
+    }
+    if (typeof win.requestIdleCallback === 'function') {
+      const handle = win.requestIdleCallback(() => setReady(true), { timeout: 2000 })
+      return () => win.cancelIdleCallback?.(handle)
+    }
+    const timer = setTimeout(() => setReady(true), 0)
+    return () => clearTimeout(timer)
+  }, [])
+  return ready
+}
+
 /** Broadcast which node the user is viewing (drives "2 here" chips). */
 function useViewingBroadcast(session: RoomSession | null): void {
   const pathname = useRouterState({ select: (s) => s.location.pathname })
@@ -97,9 +126,12 @@ export function CommsProvider({ children }: { children: ReactNode }) {
 
   const notifier = useMemo(() => createNotifier({ me: authorDID ?? '' }), [authorDID])
 
+  // Join workspace presence only after first paint (exploration 0227): passing
+  // null until idle is a no-op join, so landing reads paint first.
+  const presenceReady = useWorkspacePresenceReady()
   const { session: workspaceSession, peers: workspacePeers } = useRoomSession(
     roomManager,
-    workspacePresenceRoomId(WORKSPACE_ID)
+    presenceReady ? workspacePresenceRoomId(WORKSPACE_ID) : null
   )
   useViewingBroadcast(workspaceSession)
   useNotifierFeed(notifier)

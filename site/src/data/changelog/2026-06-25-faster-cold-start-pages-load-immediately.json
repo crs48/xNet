@@ -1,0 +1,11 @@
+{
+  "id": "2026-06-25-faster-cold-start-pages-load-immediately",
+  "date": "June 25, 2026",
+  "title": "Faster cold start: pages load immediately, not after a long pause",
+  "summary": "Returning users no longer wait through a long blank-screen pause before their workspace appears — local data now paints right away instead of queuing behind presence/document warming. Also fixes a background error that stopped your tracked-node list from saving.",
+  "highlights": [],
+  "tags": [
+    "performance",
+    "sync"
+  ]
+}

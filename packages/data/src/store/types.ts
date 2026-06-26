@@ -251,6 +251,17 @@ export interface NodeStorageAdapter {
   getSyncCursor?(room: string): Promise<number>
   setSyncCursor?(room: string, lamport: number): Promise<void>
 
+  /**
+   * Generic app-state key/value, stored in an FK-free table. Used for blobs
+   * that are *not* node documents (e.g. the sync registry's tracked-node set):
+   * writing those through {@link setDocumentContent} hits `yjs_state`'s
+   * `node_id → nodes(id)` foreign key and fails with SQLITE_CONSTRAINT_FOREIGNKEY
+   * (exploration 0227). Optional: callers fall back to document content when an
+   * adapter doesn't implement it.
+   */
+  getAppState?(key: string): Promise<string | null>
+  setAppState?(key: string, value: string): Promise<void>
+
   // Document content operations (for nodes with CRDT document)
   getDocumentContent(nodeId: NodeId): Promise<Uint8Array | null>
   setDocumentContent(nodeId: NodeId, content: Uint8Array): Promise<void>

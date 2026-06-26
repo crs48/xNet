@@ -10,7 +10,12 @@
  */
 import { useXNet } from '@xnetjs/react'
 import { useEffect } from 'react'
-import { bootMark, logBootTimeline, observeSyncFirstMark } from '../lib/boot-timeline'
+import {
+  bootMark,
+  logBootTimeline,
+  observeDocWarmMark,
+  observeSyncFirstMark
+} from '../lib/boot-timeline'
 
 export function BootTimelineProbe(): null {
   const { nodeStoreReady, hubStatus } = useXNet()
@@ -20,6 +25,9 @@ export function BootTimelineProbe(): null {
   // import the boot timeline directly (exploration 0212).
   useEffect(() => {
     observeSyncFirstMark()
+    // Also observe the first doc-warm so the storage contention that hid in the
+    // `connect` window gets its own `docwarm` phase (exploration 0227).
+    observeDocWarmMark()
   }, [])
 
   useEffect(() => {

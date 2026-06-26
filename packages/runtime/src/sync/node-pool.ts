@@ -39,6 +39,21 @@ export interface NodePoolConfig {
   onDocUpdate?: (nodeId: string, doc: Y.Doc) => void
   /** Optional callback before a doc is evicted */
   onDocEvict?: (nodeId: string, doc: Y.Doc) => void
+  /**
+   * Predicate marking a node's Y.Doc as **ephemeral** — never persisted to
+   * `yjs_state` and never cold-loaded from it. Workspace presence is the
+   * canonical case: it is republished continuously and has no value across
+   * reloads, yet (as a `gc:false` doc, written on every awareness tick) its
+   * persisted blob grows unboundedly and its cold read at boot head-of-line
+   * blocked every landing query on the single SQLite worker (exploration 0227).
+   * Defaults to the `presence-` id prefix.
+   */
+  isEphemeral?: (nodeId: string) => boolean
+  /**
+   * Warn (once per load) when a `yjs_state` blob read or persisted exceeds this
+   * many bytes — a tripwire for unbounded `gc:false` growth. Default 5 MiB.
+   */
+  largeDocWarnBytes?: number
 }
 
 export interface NodePool {
@@ -58,25 +73,92 @@ export interface NodePool {
   destroy(): Promise<void>
 }
 
+const DEFAULT_LARGE_DOC_WARN_BYTES = 5 * 1024 * 1024 // 5 MiB
+
+/** Ephemeral-by-default: the workspace presence rooms (`presence-<workspace>`). */
+function defaultIsEphemeral(nodeId: string): boolean {
+  return nodeId.startsWith('presence-')
+}
+
+/** Monotonic clock, falling back to `Date.now` where `performance` is absent. */
+function nowMs(): number {
+  return typeof performance !== 'undefined' && typeof performance.now === 'function'
+    ? performance.now()
+    : Date.now()
+}
+
+/** Boot-debug gate shared with the read-path probe / boot timeline (0212/0227). */
+function bootDebugEnabled(): boolean {
+  try {
+    return typeof localStorage !== 'undefined' && localStorage.getItem('xnet:boot:debug') === 'true'
+  } catch {
+    return false
+  }
+}
+
 export function createNodePool(config: NodePoolConfig): NodePool {
   const entries = new Map<string, PoolEntry>()
   const persistTimers = new Map<string, ReturnType<typeof setTimeout>>()
   const maxWarm = config.maxWarm ?? 50
   const persistDelay = config.persistDelay ?? 2000
+  const isEphemeral = config.isEphemeral ?? defaultIsEphemeral
+  const largeDocWarnBytes = config.largeDocWarnBytes ?? DEFAULT_LARGE_DOC_WARN_BYTES
+  let firstAcquireMarked = false
+
+  /**
+   * One-shot performance mark when the first doc-acquire completes. That first
+   * doc-warm is what contends with the landing read queries on the single
+   * SQLite worker at boot; the web boot timeline observes this mark to attribute
+   * the `store:ready → hub:connected` window correctly (exploration 0227).
+   * Platform-agnostic and defensive — a missing `performance` is a no-op.
+   */
+  function markFirstAcquire(): void {
+    if (firstAcquireMarked) return
+    firstAcquireMarked = true
+    try {
+      performance?.mark?.('xnet:docpool:first-acquire')
+    } catch {
+      // no-op: instrumentation must never break acquire
+    }
+  }
 
   async function loadDoc(nodeId: string): Promise<Y.Doc> {
     const doc = new Y.Doc({ guid: nodeId, gc: false })
 
+    // Ephemeral docs (workspace presence) are in-memory only: skip the cold
+    // `yjs_state` read entirely so presence-doc acquisition never sits at the
+    // head of the boot queue on the single SQLite worker (exploration 0227).
+    if (isEphemeral(nodeId)) return doc
+
     // Load stored content
+    const t0 = nowMs()
     const content = await config.storage.getDocumentContent(nodeId)
+    const tRead = nowMs()
     if (content && content.length > 0) {
       Y.applyUpdate(doc, content)
+      const tApply = nowMs()
+      if (content.length >= largeDocWarnBytes) {
+        console.warn(
+          `[NodePool] large yjs_state blob for ${nodeId}: ${content.length} bytes — ` +
+            'consider compacting (gc:false retains tombstones)'
+        )
+      }
+      if (bootDebugEnabled()) {
+        // eslint-disable-next-line no-console
+        console.info('[xNet] loadDoc', nodeId, {
+          bytes: content.length,
+          readMs: Math.round(tRead - t0),
+          applyMs: Math.round(tApply - tRead)
+        })
+      }
     }
 
     return doc
   }
 
   function schedulePersist(nodeId: string): void {
+    // Ephemeral docs are never written back — nothing to persist or cold-load.
+    if (isEphemeral(nodeId)) return
     const existing = persistTimers.get(nodeId)
     if (existing) clearTimeout(existing)
 
@@ -119,9 +201,18 @@ export function createNodePool(config: NodePoolConfig): NodePool {
     await Promise.all(
       toEvict.map(async ([id, entry]) => {
         try {
-          // Persist before evicting - await to ensure data is saved
-          const content = Y.encodeStateAsUpdate(entry.doc)
-          await config.storage.setDocumentContent(id, content)
+          // Persist before evicting - await to ensure data is saved.
+          // Ephemeral docs (presence) are intentionally not persisted.
+          if (!isEphemeral(id)) {
+            const content = Y.encodeStateAsUpdate(entry.doc)
+            if (content.length >= largeDocWarnBytes) {
+              console.warn(
+                `[NodePool] large yjs_state blob for ${id}: ${content.length} bytes — ` +
+                  'consider compacting (gc:false retains tombstones)'
+              )
+            }
+            await config.storage.setDocumentContent(id, content)
+          }
         } catch (err) {
           // Log error but continue eviction to prevent memory leak
           console.error(`[NodePool] Failed to persist document ${id} during eviction:`, err)
@@ -150,11 +241,13 @@ export function createNodePool(config: NodePoolConfig): NodePool {
         entry.refCount++
         entry.state = 'active'
         entry.lastAccess = Date.now()
+        markFirstAcquire()
         return entry.doc
       }
 
       // Load from storage
       const doc = await loadDoc(nodeId)
+      markFirstAcquire()
 
       // Listen for updates to schedule persistence
       doc.on('update', () => {
@@ -217,10 +310,10 @@ export function createNodePool(config: NodePoolConfig): NodePool {
       }
       persistTimers.clear()
 
-      // Persist all dirty docs
+      // Persist all dirty docs (ephemeral docs are never persisted)
       const promises: Promise<void>[] = []
       for (const [id, entry] of entries) {
-        if (entry.dirty) {
+        if (entry.dirty && !isEphemeral(id)) {
           const content = Y.encodeStateAsUpdate(entry.doc)
           promises.push(
             config.storage.setDocumentContent(id, content).then(() => {
