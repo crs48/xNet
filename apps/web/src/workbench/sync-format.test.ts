@@ -2,15 +2,7 @@
  * Tests for the status bar sync-cluster decision/format logic (0233).
  */
 import { describe, expect, it } from 'vitest'
-import {
-  STORAGE_CRITICAL_RATIO,
-  STORAGE_WARN_RATIO,
-  coarseSyncState,
-  formatBytes,
-  isIntegrityAlert,
-  relativeTime,
-  storageTone
-} from './sync-format'
+import { coarseSyncState, isIntegrityAlert, relativeTime } from './sync-format'
 
 describe('coarseSyncState', () => {
   it('reports offline when the browser is offline regardless of hub', () => {
@@ -56,20 +48,6 @@ describe('isIntegrityAlert', () => {
   })
 })
 
-describe('storageTone', () => {
-  it('stays hidden below the warn threshold (calm baseline)', () => {
-    expect(storageTone(null)).toBeNull()
-    expect(storageTone(0.5)).toBeNull()
-    expect(storageTone(STORAGE_WARN_RATIO - 0.01)).toBeNull()
-  })
-
-  it('warns between warn and critical, escalates past critical', () => {
-    expect(storageTone(STORAGE_WARN_RATIO)).toBe('text-warning')
-    expect(storageTone(STORAGE_CRITICAL_RATIO)).toBe('text-destructive')
-    expect(storageTone(0.99)).toBe('text-destructive')
-  })
-})
-
 describe('relativeTime', () => {
   it('renders an em dash for missing timestamps', () => {
     expect(relativeTime(null)).toBe('—')
@@ -85,14 +63,5 @@ describe('relativeTime', () => {
   it('never goes negative for a future timestamp', () => {
     const now = 1_000
     expect(relativeTime(now + 5_000, now)).toBe('0s ago')
-  })
-})
-
-describe('formatBytes', () => {
-  it('formats across unit boundaries', () => {
-    expect(formatBytes(512)).toBe('512 B')
-    expect(formatBytes(1536)).toBe('1.5 KB')
-    expect(formatBytes(5 * 1024 * 1024)).toBe('5.0 MB')
-    expect(formatBytes(2 * 1024 * 1024 * 1024)).toBe('2.0 GB')
   })
 })

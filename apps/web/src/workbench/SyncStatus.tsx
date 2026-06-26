@@ -2,20 +2,22 @@
  * SyncStatus — the status bar's connection cluster (exploration 0233).
  *
  * Tier A: an always-on connection chip (dot + terse label). Tier B: chips that
- * appear only when something is off-nominal — `⇡ N pending`, an integrity `⚠`,
- * and a storage `◐ N%`. Tier C: a click-through popover anchored above the bar
- * that carries the deep detail (last transition, lifecycle phase, tracked/pool
- * counts, runtime mode, storage breakdown, last verification failure) plus a
- * Reconcile action. Diagnostics like lamport/security level/billing plan stay
- * out — this is ambient status, not a dashboard.
+ * appear only when something is off-nominal — `⇡ N pending` and an integrity
+ * `⚠`. Tier C: a click-through popover anchored above the bar that carries the
+ * deep detail (last transition, lifecycle phase, tracked/pool counts, runtime
+ * mode, storage breakdown, last verification failure) plus a Reconcile action.
+ * Diagnostics like lamport/security level/billing plan stay out — this is
+ * ambient status, not a dashboard. (Durable-storage usage has its own always-on
+ * indicator in the bar — 0172/0287; the popover only echoes the breakdown.)
  */
 import { useSyncManager, useXNet } from '@xnetjs/react'
 import { Sheet, SheetContent } from '@xnetjs/ui'
-import { AlertTriangle, Database } from 'lucide-react'
+import { AlertTriangle } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useStorageStatus } from '../hooks/useStorageStatus'
 import { getDataRuntime } from '../lib/data-runtime'
-import { formatBytes, relativeTime, storageTone, type SyncCoarseState } from './sync-format'
-import { useStorageEstimate, type StorageEstimate } from './useStorageEstimate'
+import { formatBytes } from '../lib/format-bytes'
+import { relativeTime, type SyncCoarseState } from './sync-format'
 import { useSyncVitals, type SyncVitals } from './useSyncVitals'
 
 const CHIP: Record<SyncCoarseState, { label: string; tone: string }> = {
@@ -37,21 +39,22 @@ function DetailRow({ label, value }: { label: string; value: string }) {
 
 /**
  * The deep detail panel shared by the desktop popover and the mobile sheet.
- * Pure presentation over the vitals + storage estimate, plus a Reconcile button.
+ * Presentation over the sync vitals + durable-storage status, plus Reconcile.
  */
-export function SystemInfoDetails({
-  vitals,
-  estimate
-}: {
-  vitals: SyncVitals
-  estimate: StorageEstimate | null
-}) {
+export function SystemInfoDetails({ vitals }: { vitals: SyncVitals }) {
   const syncManager = useSyncManager()
   const { runtimeStatus } = useXNet()
+  const storage = useStorageStatus()
   const [reconciling, setReconciling] = useState(false)
 
   const chip = CHIP[vitals.state]
   const runtimeMode = runtimeStatus.activeMode ?? runtimeStatus.requestedMode ?? getDataRuntime()
+  const storageValue =
+    storage && typeof storage.usageBytes === 'number'
+      ? typeof storage.quotaBytes === 'number'
+        ? `${formatBytes(storage.usageBytes)} / ${formatBytes(storage.quotaBytes)}`
+        : formatBytes(storage.usageBytes)
+      : null
 
   const reconcile = useCallback(async () => {
     if (!syncManager) return
@@ -83,14 +86,7 @@ export function SystemInfoDetails({
           label="runtime"
           value={runtimeStatus.usedFallback ? `${runtimeMode} (fallback)` : runtimeMode}
         />
-        {estimate && (
-          <DetailRow
-            label="storage"
-            value={`${formatBytes(estimate.usage)} / ${formatBytes(estimate.quota)} (${Math.round(
-              estimate.ratio * 100
-            )}%)`}
-          />
-        )}
+        {storageValue && <DetailRow label="storage" value={storageValue} />}
       </div>
 
       {vitals.integrityAlert && vitals.verificationFailure && (
@@ -123,7 +119,6 @@ export function SystemInfoDetails({
  */
 export function SyncStatus() {
   const vitals = useSyncVitals()
-  const estimate = useStorageEstimate()
   const [open, setOpen] = useState(false)
   const containerRef = useRef<HTMLDivElement | null>(null)
 
@@ -147,7 +142,6 @@ export function SyncStatus() {
 
   const chip = CHIP[vitals.state]
   const toggle = () => setOpen((value) => !value)
-  const storageColor = storageTone(estimate?.ratio ?? null)
 
   return (
     <div ref={containerRef} className="relative flex items-center gap-4">
@@ -186,25 +180,13 @@ export function SyncStatus() {
         </button>
       )}
 
-      {storageColor && estimate && (
-        <button
-          type="button"
-          onClick={toggle}
-          title={`Local storage ${Math.round(estimate.ratio * 100)}% full — click for detail`}
-          className={`flex cursor-pointer items-center gap-1 border-none bg-transparent p-0 font-mono text-[11px] ${storageColor} hover:opacity-80`}
-        >
-          <Database size={11} strokeWidth={1.5} />
-          {Math.round(estimate.ratio * 100)}%
-        </button>
-      )}
-
       {open && (
         <div
           role="dialog"
           aria-label="Sync status"
           className="absolute bottom-full left-0 z-50 mb-1.5 overflow-hidden rounded-lg border border-hairline bg-surface shadow-xl"
         >
-          <SystemInfoDetails vitals={vitals} estimate={estimate} />
+          <SystemInfoDetails vitals={vitals} />
         </div>
       )}
     </div>
@@ -218,7 +200,6 @@ export function SyncStatus() {
  */
 export function MobileSyncGlyph() {
   const vitals = useSyncVitals()
-  const estimate = useStorageEstimate()
   const [open, setOpen] = useState(false)
   const chip = CHIP[vitals.state]
 
@@ -238,7 +219,7 @@ export function MobileSyncGlyph() {
           side="bottom"
           className="gap-0 rounded-t-2xl border-hairline bg-surface-1 p-0 safe-area-inset-bottom"
         >
-          <SystemInfoDetails vitals={vitals} estimate={estimate} />
+          <SystemInfoDetails vitals={vitals} />
         </SheetContent>
       </Sheet>
     </>

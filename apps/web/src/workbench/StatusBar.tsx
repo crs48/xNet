@@ -2,15 +2,18 @@
  * Status Bar — 24px, mono type (exploration 0166).
  *
  * Left = workspace scope: the sync connection cluster (chip + conditional
- * pending/integrity/storage chips + a click-through detail popover, 0233),
- * background jobs. Right = view scope: items published by the active view via
- * useStatusBarItem, then the theme toggle. Ambient, glanceable, never modal.
+ * pending/integrity chips + a click-through detail popover, 0233), the
+ * durable-storage indicator (0172/0287), background jobs. Right = view scope:
+ * items published by the active view via useStatusBarItem, then the theme
+ * toggle. Ambient, glanceable, never modal.
  */
 import { useNavigate } from '@tanstack/react-router'
 import { getCommandRegistry } from '@xnetjs/plugins'
 import { useTheme } from '@xnetjs/ui'
-import { Moon, Sun, Users } from 'lucide-react'
+import { HardDrive, Moon, Sun, Users } from 'lucide-react'
 import { useSpaces } from '../hooks/useSpaces'
+import { useStorageStatus } from '../hooks/useStorageStatus'
+import { formatBytes } from '../lib/format-bytes'
 import { WhatsNewButton } from '../whats-new/WhatsNewButton'
 import { statusContributionText, useWorkbenchContributions } from './contributions'
 import { navigateToNode } from './navigation'
@@ -79,6 +82,32 @@ function ScopeStatus() {
   )
 }
 
+/**
+ * Ambient durable-storage indicator (explorations 0172 + 0232).
+ *
+ * Replaces the green "Durable local storage enabled" top banner that used to
+ * re-appear on every page load. Glanceable usage when storage is working; a
+ * warning-toned reminder (alongside the actionable top banner) when it isn't.
+ */
+function StorageStatus() {
+  const status = useStorageStatus()
+  if (!status || status.state === 'unsupported' || typeof status.usageBytes !== 'number') {
+    return null
+  }
+  const granted = status.state === 'granted'
+  const usage = formatBytes(status.usageBytes)
+  const quota = typeof status.quotaBytes === 'number' ? formatBytes(status.quotaBytes) : null
+  const tooltip = granted
+    ? `Durable local storage enabled — ${quota ? `${usage} of ${quota} used` : `${usage} used`}`
+    : status.message
+  return (
+    <span className={`flex items-center gap-1 ${granted ? '' : 'text-warning'}`} title={tooltip}>
+      <HardDrive size={11} strokeWidth={1.5} />
+      {usage}
+    </span>
+  )
+}
+
 export function StatusBar() {
   const items = useWorkbenchStatus((state) => state.items)
   const jobs = useWorkbenchStatus((state) => state.jobs)
@@ -106,6 +135,7 @@ export function StatusBar() {
     <footer className="flex h-6 shrink-0 items-center gap-4 border-t border-hairline bg-surface-2 px-3 font-mono text-[11px] text-ink-2">
       {/* Workspace scope */}
       <SyncStatus />
+      <StorageStatus />
       <ScopeStatus />
       {jobList.map((job) => (
         <span key={job.id} className="text-ink-2" title={job.label}>
