@@ -112,9 +112,7 @@ export function MapView({ mapId }: MapViewProps) {
 
   useEffect(() => {
     if (!store || !bounds) return
-    const queryLayers = layersRef.current.filter(
-      (l) => l.visible && l.source.kind === 'query'
-    )
+    const queryLayers = layersRef.current.filter((l) => l.visible && l.source.kind === 'query')
     if (queryLayers.length === 0) {
       setQueryData((prev) => (Object.keys(prev).length ? {} : prev))
       return

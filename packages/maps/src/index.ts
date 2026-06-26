@@ -48,12 +48,7 @@ export {
 } from './style'
 
 // Pure: geohash spatial index helpers (exploration 0230)
-export {
-  type GeoBox,
-  geohashEncode,
-  geohashBounds,
-  geohashCellsForBounds
-} from './geohash'
+export { type GeoBox, geohashEncode, geohashBounds, geohashCellsForBounds } from './geohash'
 
 // Pure: live query-layer materialization (exploration 0230)
 export {
