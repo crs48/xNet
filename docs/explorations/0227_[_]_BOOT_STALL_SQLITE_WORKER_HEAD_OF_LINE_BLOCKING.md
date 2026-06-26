@@ -401,14 +401,14 @@ function schedulePersist(nodeId: string): void {
 
 ## Implementation Checklist
 
-- [ ] **E:** add `[xNet] loadDoc` timing+byte-length log behind `xnet:boot:debug`
+- [x] **E:** add `[xNet] loadDoc` timing+byte-length log behind `xnet:boot:debug`
       in [`node-pool.ts`](../../packages/runtime/src/sync/node-pool.ts); capture
       one boot to record `readMs` / `applyMs` / `bytes` for `presence-main`.
 - [ ] **A:** defer `acquire('presence-main')` (and other sync-doc warming) until
       after first paint via `requestIdleCallback`/`setTimeout(0)` in
       `SyncManager.start()` / `XNetProvider`; ensure landing-query prewarm fires
       first.
-- [ ] **B:** stop persisting (or `gc`-compact) ephemeral presence docs in
+- [x] **B:** stop persisting (or `gc`-compact) ephemeral presence docs in
       `NodePool` so the `yjs_state` BLOB stays bounded.
 - [ ] **Boot timeline:** add a `storage`/`docwarm` phase between `store:ready`
       and `hub:connected` so the stall is attributed correctly
@@ -420,7 +420,7 @@ function schedulePersist(nodeId: string): void {
       ([`registry.ts:134`](../../packages/runtime/src/sync/registry.ts)).
 - [ ] *(Follow-up exploration)* **C:** evaluate a dedicated read worker / priority
       lane so background doc I/O can never block user-facing reads.
-- [ ] Add a guardrail log when any `yjs_state` row exceeds, say, 5 MB.
+- [x] Add a guardrail log when any `yjs_state` row exceeds, say, 5 MB.
 
 ## Validation Checklist
 
