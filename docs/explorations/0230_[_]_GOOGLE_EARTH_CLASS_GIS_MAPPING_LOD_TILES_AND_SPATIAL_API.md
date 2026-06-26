@@ -628,11 +628,11 @@ erDiagram
       hint in `packages/data/src/store/query.ts`.
 - [x] Implement `geohashEncode` / `geohashCellsForBounds` (pure, unit-tested) in
       `packages/maps`.
-- [ ] Implement `materializeQueryLayer()` reusing `NodeQuerySpatialWindow` +
+- [x] Implement `materializeQueryLayer()` reusing `NodeQuerySpatialWindow` +
       `matchesSpatialFilter`; respect node authz via the store.
-- [ ] Render `query` and `raster` sources in `MapCanvas.tsx` (raster source +
+- [x] Render `query` and `raster` sources in `MapCanvas.tsx` (raster source +
       `setData` for query layers on `moveend`).
-- [ ] Register `/Map` in `NODE_OPEN_TARGETS` (`DashboardView.tsx`) so map nodes
+- [x] Register `/Map` in `NODE_OPEN_TARGETS` (`DashboardView.tsx`) so map nodes
       route from dashboards.
 - [x] Extend the basemap registry with a satellite/raster preset.
 

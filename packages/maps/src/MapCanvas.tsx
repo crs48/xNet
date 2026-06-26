@@ -32,6 +32,8 @@ export interface MapCanvasProps {
   pmtilesUrl?: string
   /** Fired (debounced via moveend) when the user pans/zooms. */
   onViewportChange?: (viewport: MapViewport) => void
+  /** Fired with the visible `[west, south, east, north]` bounds on move/load. */
+  onBoundsChange?: (bounds: [number, number, number, number]) => void
   /** Fired when a feature is clicked, with its layer id. */
   onFeatureClick?: (feature: Record<string, unknown>, layerId: string) => void
   className?: string
@@ -129,6 +131,12 @@ function readViewport(map: MlMap): MapViewport {
   }
 }
 
+/** Read the visible extent as `[west, south, east, north]`. */
+function readBounds(map: MlMap): [number, number, number, number] {
+  const b = map.getBounds()
+  return [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()]
+}
+
 /** Show a popup for the topmost clicked feature and notify the caller. */
 function showFeaturePopup(
   map: MlMap,
@@ -153,6 +161,7 @@ export function MapCanvas({
   layers,
   pmtilesUrl,
   onViewportChange,
+  onBoundsChange,
   onFeatureClick,
   className
 }: MapCanvasProps) {
@@ -166,6 +175,8 @@ export function MapCanvas({
   layersRef.current = layers
   const onViewportRef = useRef(onViewportChange)
   onViewportRef.current = onViewportChange
+  const onBoundsRef = useRef(onBoundsChange)
+  onBoundsRef.current = onBoundsChange
   const onFeatureRef = useRef(onFeatureClick)
   onFeatureRef.current = onFeatureClick
 
@@ -186,10 +197,13 @@ export function MapCanvas({
         map.on('load', () => {
           if (cancelled || !map) return
           syncDataLayers(map, layersRef.current)
+          onBoundsRef.current?.(readBounds(map))
           setReady(true)
         })
         map.on('moveend', () => {
-          if (map) onViewportRef.current?.(readViewport(map))
+          if (!map) return
+          onViewportRef.current?.(readViewport(map))
+          onBoundsRef.current?.(readBounds(map))
         })
         map.on('click', (e) => {
           if (map) showFeaturePopup(map, maplibregl, e, onFeatureRef.current)
