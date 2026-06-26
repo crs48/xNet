@@ -17,6 +17,7 @@ import type {
   SQLiteNodeBatchApplyResult
 } from '../types'
 import * as Comlink from 'comlink'
+import { readBootLogArgs } from './boot-log-bridge'
 
 function isDebugEnabled(): boolean {
   return typeof localStorage !== 'undefined' && localStorage.getItem('xnet:sqlite:debug') === 'true'
@@ -96,6 +97,18 @@ export class WebSQLiteProxy implements SQLiteAdapter {
     this.worker.onmessageerror = (event) => {
       console.error('[WebSQLiteProxy] Worker message error:', event)
     }
+
+    // Re-emit boot-debug lines the worker forwards (per-op timing + DB stats)
+    // on the main-thread console, so the in-app Logs panel — which only taps the
+    // main thread — captures them. Non-boot-log messages (Comlink RPC) are left
+    // untouched for Comlink to handle (exploration 0229).
+    this.worker.addEventListener('message', (event: MessageEvent) => {
+      const bootLogArgs = readBootLogArgs(event.data)
+      if (bootLogArgs) {
+        // eslint-disable-next-line no-console
+        console.info(...bootLogArgs)
+      }
+    })
 
     log('[WebSQLiteProxy] Worker created, wrapping with Comlink...')
 
