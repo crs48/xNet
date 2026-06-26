@@ -14,6 +14,7 @@ import type {
 import type { ContentFingerprint, DuplicateContentOptions } from '@xnetjs/abuse'
 import { randomUUID } from 'node:crypto'
 import { assessDuplicateContent, createContentFingerprint } from '@xnetjs/abuse'
+import { clamp } from '@xnetjs/core'
 import { validateExternalUrl } from '../utils/url'
 
 export interface CrawlTask {
@@ -543,8 +544,4 @@ function clamp01(value: number | undefined): number {
 
 function normalizeReputation(value: number): number {
   return value > 1 ? clamp(value / 100, 0, 1) : clamp(value, 0, 1)
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value))
 }

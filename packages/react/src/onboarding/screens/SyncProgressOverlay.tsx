@@ -2,17 +2,12 @@
  * Sync progress overlay — shown during initial sync on a new device.
  */
 import type { SyncProgress } from '@xnetjs/runtime'
+import { formatBytes } from '@xnetjs/core'
 import { useEffect } from 'react'
 
 export interface SyncProgressOverlayProps {
   progress: SyncProgress
   onComplete: () => void
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
 export function SyncProgressOverlay({

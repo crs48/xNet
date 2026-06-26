@@ -2,6 +2,8 @@
  * Search moderation scoring from labels and quality signals.
  */
 
+import { clamp } from '@xnetjs/core'
+
 export type SearchModerationLabel = {
   value: string
   confidence: number
@@ -137,8 +139,4 @@ function maxLabelConfidence(labels: readonly SearchModerationLabel[], value: str
   return labels
     .filter((label) => label.value === value)
     .reduce((confidence, label) => Math.max(confidence, label.confidence), 0)
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value))
 }

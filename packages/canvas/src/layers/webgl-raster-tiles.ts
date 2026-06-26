@@ -4,6 +4,7 @@
 
 import type { RasterTileRef, Rect } from '@xnetjs/canvas-core'
 import { DEFAULT_CANVAS_TILE_SIZE, getTileBounds, parseTileId } from '@xnetjs/canvas-core'
+import { clamp } from '@xnetjs/core'
 
 export type WebGLRasterTileViewport = {
   x: number
@@ -149,10 +150,6 @@ const DEFAULT_RASTER_TILE_CONFIG: WebGLRasterTileConfig = {
   maxTextureBytes: 64 * 1024 * 1024,
   staleOpacity: 0.58,
   tileSize: DEFAULT_CANVAS_TILE_SIZE
-}
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value))
 }
 
 function getCrossfadeProgress(nowMs: number, startedAtMs: number, crossfadeMs: number): number {
