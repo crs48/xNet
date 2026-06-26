@@ -1,0 +1,14 @@
+{
+  "id": "2026-06-26-durable-storage-status-lives-in-the-stat",
+  "date": "June 26, 2026",
+  "title": "Durable-storage status lives in the status bar",
+  "summary": "Durable local storage now shows as an ambient indicator in the bottom status bar instead of a banner that reappeared on every page load.",
+  "highlights": [
+    "When storage is working, the persistent top banner is gone — its usage shows quietly in the status bar with the other system info",
+    "When storage isn't durable yet, you still get the actionable banner plus a warning-toned reminder in the status bar"
+  ],
+  "tags": [
+    "app"
+  ],
+  "pr": 287
+}
