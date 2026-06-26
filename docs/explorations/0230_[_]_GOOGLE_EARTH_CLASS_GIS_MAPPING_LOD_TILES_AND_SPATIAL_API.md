@@ -676,7 +676,7 @@ erDiagram
 
 ### Cross-cutting
 - [x] Seed: grow `viz.ts` with a `query`-layer map and a raster map.
-- [ ] No publishable-package changeset needed for docs; `@xnetjs/maps`/`data`
+- [x] No publishable-package changeset needed for docs; `@xnetjs/maps`/`data`
       changes need a changeset (`/changeset`) per CLAUDE.md.
 
 ## Validation Checklist
