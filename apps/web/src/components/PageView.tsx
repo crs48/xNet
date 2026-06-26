@@ -877,7 +877,12 @@ export function PageView({ docId }: { docId: string }) {
         {/* `grow` (not min-h-full): a flex child only stretches into
             definite space, so the column must flex from the scroller
             for the editor to fill the page height. */}
-        <div data-page-margin className="mx-auto flex w-full max-w-3xl grow flex-col px-6 pt-10">
+        {/* max-w-[44rem]: with the px-6 + prose gutters this lands the reading
+            measure near ~70ch (max-w-3xl read ~78ch, a touch wide). */}
+        <div
+          data-page-margin
+          className="mx-auto flex w-full max-w-[44rem] grow flex-col px-6 pt-10"
+        >
           <input
             ref={titleInputRef}
             type="text"

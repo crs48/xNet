@@ -59,30 +59,35 @@
   color: rgb(var(--editor-foreground));
 }
 
-/* ─── Typography: Headings ─── */
+/* ─── Typography: Headings ───
+   Single source of truth for the heading scale (size, weight, line-height,
+   margins). The HeadingView node view no longer carries its own size/leading
+   classes, so these tag rules style headings on every surface. On the page
+   surface the rhythm system (globals.css) neutralises these margins and owns
+   vertical spacing; the size/weight/leading still apply. */
 
 .ProseMirror h1 {
-  @apply text-3xl font-bold mt-8 mb-3;
+  @apply text-3xl font-bold leading-tight mt-8 mb-3;
 }
 
 .ProseMirror h2 {
-  @apply text-2xl font-semibold mt-6 mb-2;
+  @apply text-2xl font-semibold leading-snug mt-6 mb-2;
 }
 
 .ProseMirror h3 {
-  @apply text-xl font-semibold mt-5 mb-2;
+  @apply text-xl font-semibold leading-snug mt-5 mb-2;
 }
 
 .ProseMirror h4 {
-  @apply text-lg font-medium mt-4 mb-1;
+  @apply text-lg font-medium leading-snug mt-4 mb-1;
 }
 
 .ProseMirror h5 {
-  @apply text-base font-medium mt-3 mb-1;
+  @apply text-base font-medium leading-normal mt-3 mb-1;
 }
 
 .ProseMirror h6 {
-  @apply text-sm font-medium mt-3 mb-1 uppercase tracking-wide text-muted-foreground;
+  @apply text-sm font-medium leading-normal mt-3 mb-1 uppercase tracking-wide text-muted-foreground;
 }
 
 /* ─── Typography: Lists ─── */
@@ -180,12 +185,15 @@
          transition-colors duration-150;
 }
 
-.ProseMirror ul[data-type='taskList'] li > label input[type='checkbox']:checked {
+/* Fill + checkmark key off the authoritative node state on the <li>
+   (data-checked), NOT the input's :checked DOM property — that property can
+   desync from the node and render unchecked tasks as filled. */
+.ProseMirror ul[data-type='taskList'] li[data-checked='true'] > label input[type='checkbox'] {
   background-color: rgb(var(--editor-primary));
   border-color: rgb(var(--editor-primary));
 }
 
-.ProseMirror ul[data-type='taskList'] li > label input[type='checkbox']:checked::after {
+.ProseMirror ul[data-type='taskList'] li[data-checked='true'] > label input[type='checkbox']::after {
   content: '';
   @apply block w-full h-full;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3E%3C/svg%3E");
@@ -433,8 +441,10 @@
 
 .xnet-drag-handle {
   display: flex;
-  align-items: flex-start;
-  padding-top: 0.25rem;
+  /* The handle box is sized to the block's first line (see DragHandle.ts);
+     centring the button within it lands the grip on the first-line centre at
+     any block size, instead of a fixed top offset that only matched one. */
+  align-items: center;
 }
 
 .xnet-drag-handle-button {

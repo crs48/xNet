@@ -7,15 +7,6 @@ interface HeadingAttrs {
   level: 1 | 2 | 3 | 4 | 5 | 6
 }
 
-const HEADING_STYLES: Record<number, string> = {
-  1: 'text-3xl font-bold mt-8 mb-4 leading-tight',
-  2: 'text-2xl font-semibold mt-6 mb-3 leading-snug',
-  3: 'text-xl font-medium mt-5 mb-2 leading-snug',
-  4: 'text-lg font-medium mt-4 mb-2',
-  5: 'text-base font-medium mt-3 mb-1',
-  6: 'text-sm font-medium mt-3 mb-1 text-muted-foreground'
-}
-
 function getHeadingPrefix(level: number): string {
   return '#'.repeat(level) + ' '
 }
@@ -35,7 +26,10 @@ export const HeadingView = memo(function HeadingView({ node, editor, getPos }: N
   return (
     <NodeViewWrapper
       as={Tag}
-      className={cn('heading-line group relative', HEADING_STYLES[level] || HEADING_STYLES[3])}
+      // Size/weight/line-height/margins come from the `.ProseMirror h1..h6`
+      // tag rules in editor.css (single source of truth); the node view only
+      // adds the markdown-prefix affordance.
+      className={cn('heading-line group relative')}
       data-level={level}
       data-focused={isFocused}
     >

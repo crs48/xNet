@@ -68,15 +68,44 @@ export const DragHandle = Extension.create<DragHandleOptions>({
       const parentEl = editor.view.dom.parentElement
       if (!parentEl) return
 
+      const editorDom = editor.view.dom as HTMLElement
       const parentRect = parentEl.getBoundingClientRect()
       const blockRect = block.getBoundingClientRect()
+      const blockStyle = getComputedStyle(block)
 
-      // Position relative to the parent element (where handle is appended)
-      const top = blockRect.top - parentRect.top + parentEl.scrollTop
-      // Position handle immediately to the left of the block's content
-      const blockLeft = blockRect.left - parentRect.left
-      const handleWidth = 24 // Width of handle + small gap
-      const left = blockLeft - handleWidth
+      // Vertical: give the handle a box the height of the block's FIRST line
+      // and let the button centre within it (CSS align-items: center), so it
+      // tracks line-height at any block size instead of a fixed offset. A Range
+      // over the content finds the real first line box — this stays correct for
+      // list items whose inner paragraph carries its own top margin (a plain
+      // block-box top would sit above the text by that margin).
+      let firstLineTop = blockRect.top
+      let firstLineHeight = parseFloat(blockStyle.lineHeight)
+      if (Number.isNaN(firstLineHeight)) {
+        firstLineHeight = (parseFloat(blockStyle.fontSize) || 16) * 1.2
+      }
+      try {
+        const range = block.ownerDocument.createRange()
+        range.selectNodeContents(block)
+        const rects = range.getClientRects()
+        if (rects.length > 0) {
+          firstLineTop = rects[0].top
+          firstLineHeight = rects[0].height
+        }
+      } catch {
+        // No selectable content (e.g. an <hr>) — keep the block-box fallback.
+      }
+      const top = firstLineTop - parentRect.top + parentEl.scrollTop
+
+      // Horizontal: anchor to the editor's content-left (the constant prose
+      // gutter), NOT the matched block's left edge. Indented list content used
+      // to drag the handle right onto the bullets/checkboxes; pinning it to the
+      // gutter keeps it left of every block type.
+      const editorStyle = getComputedStyle(editorDom)
+      const contentLeft =
+        editorDom.getBoundingClientRect().left + (parseFloat(editorStyle.paddingLeft) || 0)
+      const handleWidth = 24 // handle width + small gap to the content
+      const left = contentLeft - parentRect.left - handleWidth
 
       // Store position for drag operations - get position BEFORE the block node
       let pos: number
@@ -93,9 +122,9 @@ export const DragHandle = Extension.create<DragHandleOptions>({
       let blockPos = pos
       try {
         const $pos = editor.state.doc.resolve(pos)
-        // Get the position before the block at depth 1 (top-level)
-        const depth = Math.max(1, $pos.depth)
-        blockPos = $pos.before(depth)
+        // Position before the TOP-LEVEL block (depth 1), so a list drags as a
+        // whole rather than the inner paragraph of the hovered item.
+        blockPos = $pos.depth >= 1 ? $pos.before(1) : pos
       } catch {
         // Fallback to resolved position
         blockPos = pos
@@ -103,7 +132,7 @@ export const DragHandle = Extension.create<DragHandleOptions>({
 
       dragHandleElement.style.top = `${top}px`
       dragHandleElement.style.left = `${left}px`
-      dragHandleElement.style.height = `${blockRect.height}px`
+      dragHandleElement.style.height = `${firstLineHeight}px`
       dragHandleElement.style.opacity = '1'
       dragHandleElement.style.pointerEvents = 'auto'
       dragHandleElement.setAttribute('data-drag-pos', String(blockPos))
