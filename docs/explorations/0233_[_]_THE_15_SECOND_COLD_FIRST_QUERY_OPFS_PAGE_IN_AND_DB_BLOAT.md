@@ -379,7 +379,7 @@ void adapter.query(`SELECT count(*) FROM node_property_scalars`)
       first-query `execMs`.
 - [ ] **C2**: defer the `WorkingSetPrewarm` fan-out one tick behind the active
       route's query ([`WorkingSetPrewarm.tsx`](../../apps/web/src/components/WorkingSetPrewarm.tsx) / [`App.tsx`](../../apps/web/src/App.tsx)).
-- [ ] **A3**: idle-scheduled one-time `VACUUM` gated by a localStorage flag.
+- [x] **A3**: idle-scheduled one-time `VACUUM` gated by a localStorage flag.
 - [ ] Instrument the ~4.4 s secondary gap (bridge result handling + data-worker
       `PortSQLiteAdapter` first op).
 - [ ] **C1**: design + build the instant-shell snapshot (write-through; paint <1 s).
