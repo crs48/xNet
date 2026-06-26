@@ -1,0 +1,8 @@
+{
+  "id": "2026-06-26-sync-status-bar-shows-what-s-pending-and",
+  "date": "June 26, 2026",
+  "title": "Sync status bar shows what's pending and unsafe at a glance",
+  "summary": "The bottom status bar's connection indicator is now a click-through cluster: a calm chip when synced, plus on-demand chips for unsynced changes, integrity warnings, and storage pressure — with a detail popover and a Reconcile action. Mobile gets a matching sync glyph.",
+  "highlights": [],
+  "tags": ["sync"]
+}
