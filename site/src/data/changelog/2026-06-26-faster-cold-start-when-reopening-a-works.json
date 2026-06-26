@@ -8,5 +8,12 @@
   ],
   "tags": [
     "performance"
+  ],
+  "pr": 290,
+  "mergedAt": "2026-06-26T22:15:25Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
   ]
 }
