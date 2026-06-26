@@ -50,6 +50,7 @@ import {
   subscribeXNetStorageCorruption
 } from './lib/browser-storage-reset'
 import { isWorkerRuntimeEnabled } from './lib/data-runtime'
+import { scheduleOneTimeVacuum } from './lib/db-vacuum'
 import { defaultHubUrl, persistedHubUrl, readHubParam, setPersistedHubUrl } from './lib/hub-url'
 import { identityManager } from './lib/identity'
 import { scheduleStalePresenceCleanup } from './lib/presence-blob-cleanup'
@@ -440,6 +441,12 @@ export function App(): JSX.Element {
         // that still bloats the OPFS DB file (exploration 0229). No-ops after
         // the first run; the heavy VACUUM never touches the boot critical path.
         scheduleStalePresenceCleanup(sqliteAdapter)
+
+        // One-time, idle-scheduled VACUUM that defragments the OPFS file so the
+        // first cold landing query faults a smaller, denser working set — the
+        // ~15.8 s cold-read stall caught in exploration 0233. No-ops after the
+        // first run; logs file size before/after (the `db stats` measurement).
+        scheduleOneTimeVacuum(sqliteAdapter)
 
         const nodeStorage = new SQLiteNodeStorageAdapter(sqliteAdapter)
         const storageAdapter = new SQLiteStorageAdapter(sqliteAdapter)
