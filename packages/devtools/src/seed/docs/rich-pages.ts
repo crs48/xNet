@@ -132,7 +132,9 @@ function renderBlock(block: RichBlock): Y.XmlElement {
         0,
         block.items.map((item) => {
           const task = new Y.XmlElement('taskItem')
-          task.setAttribute('checked', String(item.checked))
+          // Only set when true: a literal "false" string reads as truthy and
+          // renders an unchecked task as checked (absent ⇒ boolean false).
+          if (item.checked) task.setAttribute('checked', 'true')
           task.insert(0, [paragraph(item.text)])
           return task
         })

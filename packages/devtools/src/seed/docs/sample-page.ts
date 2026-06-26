@@ -136,7 +136,10 @@ export function buildSamplePageDoc(
       { text: 'Completed task', checked: true }
     ]) {
       const task = new Y.XmlElement('taskItem')
-      task.setAttribute('checked', String(checked))
+      // Yjs attrs are strings, and the editor reads any non-empty string as
+      // truthy — a literal "false" renders an unchecked task as checked. Only
+      // set it when true; absent means the schema's boolean `false` default.
+      if (checked) task.setAttribute('checked', 'true')
       const p = new Y.XmlElement('paragraph')
       p.insert(0, [new Y.XmlText(text)])
       task.insert(0, [p])
