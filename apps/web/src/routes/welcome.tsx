@@ -57,7 +57,7 @@ function WelcomePage() {
     <div className="mx-auto flex min-h-full max-w-md flex-col justify-center gap-6 p-8">
       {step === 0 && (
         <section className="space-y-4">
-          <h1 className="text-xl font-semibold">Welcome to xNet</h1>
+          <h1 className="cozy-heading text-xl font-semibold">Welcome to xNet</h1>
           <p className="text-sm text-muted-foreground">
             A couple of quick choices about what you see and who can find you. You can change
             everything later in Settings.

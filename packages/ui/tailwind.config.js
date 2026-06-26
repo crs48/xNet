@@ -162,7 +162,9 @@ export default {
           '"Liberation Mono"',
           '"Courier New"',
           'monospace'
-        ]
+        ],
+        // Warm editorial serif for cozy headings (0232) — see --font-display.
+        display: ['var(--font-display)']
       },
 
       fontSize: {

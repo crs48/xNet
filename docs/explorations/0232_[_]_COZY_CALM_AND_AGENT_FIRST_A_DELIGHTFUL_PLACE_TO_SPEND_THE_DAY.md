@@ -589,7 +589,7 @@ export type Density = 'compact' | 'comfortable'
       [`TabBar.tsx`](apps/web/src/workbench/TabBar.tsx),
       [`StatusBar.tsx`](apps/web/src/workbench/StatusBar.tsx)).
 - [x] Soften shell radii (panels, cards, popovers, Companion) to `--radius-lg/xl`.
-- [ ] Add the `--font-display` face + `.cozy-heading`; apply to H1/H2 + home + assistant name.
+- [x] Add the `--font-display` face + `.cozy-heading`; apply to H1/H2 + home + assistant name.
 - [ ] Add an opt-in translucent material utility for floating layers; honor
       `prefers-reduced-transparency`.
 - [ ] Settings → Appearance: variant + density + true-black/linear/cozy pickers.
