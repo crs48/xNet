@@ -265,6 +265,18 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
     // working set of a 1 GB+ database, so cold reads thrashed OPFS. This is the
     // single biggest documented OPFS speedup.
     this.execSync('PRAGMA cache_size = -262144')
+    // Memory-map reads so the FIRST cold query faults pages via the OS rather
+    // than thousands of synchronous 8 KiB `xRead` calls on the single worker —
+    // the boot trace in exploration 0233 caught one cold landing query taking
+    // 15.8 s of pure execution while every later (warm) query was 0 ms; the
+    // page cache only helps re-reads, so mmap is the lever for the first read.
+    // May be a no-op under the `opfs-sahpool` VFS — guard it, and the
+    // `xnet:boot:debug` per-op `execMs` tells us whether it actually helped.
+    try {
+      this.execSync('PRAGMA mmap_size = 268435456') // 256 MB
+    } catch (err) {
+      log('[WebSQLiteAdapter] mmap_size pragma not applied:', err)
+    }
     this.execSync('PRAGMA temp_store = MEMORY')
     // TRUNCATE journaling is the fastest durable mode on OPFS per wa-sqlite
     // benchmarks (faster than both DELETE and WAL). Guard it: some OPFS VFS
