@@ -38,6 +38,7 @@ import { EditorArea } from './EditorArea'
 import { useFocusRing } from './focus'
 import { PanelViewHost } from './PanelViewHost'
 import { selectActiveTab, useWorkbench, type PanelSide } from './state'
+import { MobileSyncGlyph } from './SyncStatus'
 
 /** Below the storage banner, filling the rest of the viewport as a column. */
 const MOBILE_FRAME =
@@ -95,6 +96,8 @@ function MobileTopBar({
     <header className="safe-area-inset-top flex h-12 shrink-0 items-center gap-1 border-b border-hairline bg-surface-1 px-1">
       <TopBarButton label="Open navigation" icon={Menu} onClick={onMenu} />
       <span className="min-w-0 flex-1 truncate px-1 text-sm font-medium text-ink-1">{title}</span>
+      {/* Mobile has no status bar — the sync health glyph is its only home. */}
+      <MobileSyncGlyph />
       {hasContext && (
         <TopBarButton
           label="Details"

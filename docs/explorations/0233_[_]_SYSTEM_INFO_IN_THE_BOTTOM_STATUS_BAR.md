@@ -534,23 +534,23 @@ const tone = TONE[v.state]          // reuse HUB_LABEL-style table
       add AF/throttle coalescing for replay storms.
 - [x] Add `useStorageEstimate()` hook (`navigator.storage.estimate` +
       `persisted()`), threshold-gated.
-- [ ] Build a small `<StatusPopover>` primitive anchored above the bar
+- [x] Build a small `<StatusPopover>` primitive anchored above the bar
       (reuse the existing popover/menu primitive if one exists in
       [`packages/ui`](packages/ui/src)).
-- [ ] Replace the static hub dot in
+- [x] Replace the static hub dot in
       [`StatusBar.tsx`](apps/web/src/workbench/StatusBar.tsx) with
       `<ConnectionChip>` (terse label + dot, click → popover).
-- [ ] Populate the popover with tier-C detail: last-synced, lifecycle
+- [x] Populate the popover with tier-C detail: last-synced, lifecycle
       phase, tracked/pool counts, runtime mode + fallback, storage
       breakdown, last verification failure, last reconciliation + a
       **Retry / Reconcile** action.
-- [ ] Add conditional tier-B chips: `⇡ N pending` (`queueSize > 0`),
+- [x] Add conditional tier-B chips: `⇡ N pending` (`queueSize > 0`),
       integrity `⚠` (recent verification failure), storage `◐ N%`
       (>85%). Each opens the popover.
-- [ ] Add a single health glyph to `MobileTopBar`
+- [x] Add a single health glyph to `MobileTopBar`
       ([`MobileShell.tsx`](apps/web/src/workbench/MobileShell.tsx)) →
       opens a Sheet mirroring the popover.
-- [ ] Keep diagnostics (lamport, security level, billing plan) **out**
+- [x] Keep diagnostics (lamport, security level, billing plan) **out**
       of the always-on row; link to DevTools where relevant.
 - [ ] If any edited file is a publishable `packages/*` lib, run
       `/changeset` (most work here is in `apps/web`, which needs none).

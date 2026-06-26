@@ -1,35 +1,23 @@
 /**
  * Status Bar — 24px, mono type (exploration 0166).
  *
- * Left = workspace scope: sync/hub state, background jobs, runtime
- * flag. Right = view scope: items published by the active view via
- * useStatusBarItem, then the theme toggle. Ambient, glanceable,
- * never modal.
+ * Left = workspace scope: the sync connection cluster (chip + conditional
+ * pending/integrity/storage chips + a click-through detail popover, 0233),
+ * background jobs. Right = view scope: items published by the active view via
+ * useStatusBarItem, then the theme toggle. Ambient, glanceable, never modal.
  */
 import { useNavigate } from '@tanstack/react-router'
 import { getCommandRegistry } from '@xnetjs/plugins'
-import { useHubStatus } from '@xnetjs/react'
 import { useTheme } from '@xnetjs/ui'
 import { Moon, Sun, Users } from 'lucide-react'
 import { useSpaces } from '../hooks/useSpaces'
-import { getDataRuntime } from '../lib/data-runtime'
 import { WhatsNewButton } from '../whats-new/WhatsNewButton'
 import { statusContributionText, useWorkbenchContributions } from './contributions'
 import { navigateToNode } from './navigation'
 import { useWorkbench } from './state'
 import { useWorkbenchStatus, type StatusBarItem } from './status'
+import { SyncStatus } from './SyncStatus'
 import { NO_SPACE, isRealSpace } from './views/explorer-scope'
-
-const HUB_LABEL: Record<string, { label: string; tone: string }> = {
-  disconnected: { label: 'offline', tone: 'bg-ink-3' },
-  connecting: { label: 'connecting…', tone: 'bg-warning' },
-  connected: { label: 'synced', tone: 'bg-success' },
-  error: { label: 'sync error', tone: 'bg-destructive' }
-}
-
-function runtimeMode(): string {
-  return getDataRuntime()
-}
 
 function StatusEntry({ item }: { item: StatusBarItem }) {
   const content = (
@@ -92,13 +80,11 @@ function ScopeStatus() {
 }
 
 export function StatusBar() {
-  const hubStatus = useHubStatus()
   const items = useWorkbenchStatus((state) => state.items)
   const jobs = useWorkbenchStatus((state) => state.jobs)
   const { resolvedTheme, toggleTheme } = useTheme()
   const { statusItems } = useWorkbenchContributions()
 
-  const hub = HUB_LABEL[hubStatus] ?? HUB_LABEL.disconnected
   const contributed = statusItems
     .slice()
     .sort((a, b) => (a.priority ?? 0) - (b.priority ?? 0))
@@ -119,11 +105,7 @@ export function StatusBar() {
   return (
     <footer className="flex h-6 shrink-0 items-center gap-4 border-t border-hairline bg-surface-2 px-3 font-mono text-[11px] text-ink-2">
       {/* Workspace scope */}
-      <span className="flex items-center gap-1.5" title={`Hub: ${hubStatus}`}>
-        <span className={`inline-block h-1.5 w-1.5 rounded-full ${hub.tone}`} />
-        {hub.label}
-      </span>
-      <span title="Data runtime (xnet:runtime)">{runtimeMode()}</span>
+      <SyncStatus />
       <ScopeStatus />
       {jobList.map((job) => (
         <span key={job.id} className="text-ink-2" title={job.label}>
