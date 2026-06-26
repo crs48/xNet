@@ -27,20 +27,41 @@ export {
   type MapStyle,
   type MapStyleLayer,
   type DataLayerPlan,
+  type RasterLayerPlan,
   PROTOMAPS_DEMO_PMTILES,
+  ESRI_WORLD_IMAGERY,
+  ESRI_WORLD_IMAGERY_ATTRIBUTION,
   DEFAULT_VIEWPORT,
   LAYER_PALETTE,
   BASEMAP_PRESETS,
   paletteColor,
   buildBasemapStyle,
+  buildRasterBasemapStyle,
   buildDataLayers,
   dataSourceId,
   ownedLayerIds,
   ownedSourceIds,
   planDataLayers,
+  planRasterLayers,
   layerSpecIdFromMapLayerId,
   popupTableHtml
 } from './style'
+
+// Pure: geohash spatial index helpers (exploration 0230)
+export { type GeoBox, geohashEncode, geohashBounds, geohashCellsForBounds } from './geohash'
+
+// Pure: live query-layer materialization (exploration 0230)
+export {
+  type QuerySource,
+  type QueryLayerNode,
+  type QueryBounds,
+  type QueryLayerRequest,
+  type QueryLayerRunner,
+  querySourceFields,
+  buildQueryRequest,
+  featureFromNode,
+  materializeQueryLayer
+} from './query-layer'
 
 // Registry: basemaps as an extension seam (0205)
 export {
@@ -49,6 +70,7 @@ export {
   basemapPresets,
   basemapUsesPmtiles,
   ensureBuiltinBasemaps,
+  registerXyzBasemap,
   hasBasemap,
   resolveBasemapStyle,
   type BasemapDefinition,

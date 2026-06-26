@@ -1,0 +1,17 @@
+{
+  "id": "2026-06-26-hardened-ssrf-protection-and-shared-core",
+  "date": "June 26, 2026",
+  "title": "Hardened SSRF protection and shared core utilities",
+  "summary": "Server-side URL fetching (link unfurling, federation, crawling) now uses a single strict SSRF guard that blocks private network ranges earlier blocked inconsistently, and several duplicated helper functions were consolidated.",
+  "highlights": [],
+  "tags": [
+    "platform"
+  ],
+  "pr": 284,
+  "mergedAt": "2026-06-26T16:06:10Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

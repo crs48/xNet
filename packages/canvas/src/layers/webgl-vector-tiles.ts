@@ -3,6 +3,7 @@
  */
 
 import type { CanvasObjectKind, CanvasTileSummary, VectorTilePayload } from '@xnetjs/canvas-core'
+import { clamp } from '@xnetjs/core'
 
 export type WebGLVectorTileViewport = {
   x: number
@@ -82,10 +83,6 @@ const KIND_COLORS: Record<CanvasObjectKind, readonly [number, number, number]> =
 }
 
 export const VECTOR_TILE_INSTANCE_FLOATS = 8
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value))
-}
 
 function getTileDominantKind(summary: CanvasTileSummary): CanvasObjectKind {
   return (

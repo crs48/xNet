@@ -25,7 +25,12 @@ export interface MapDocState {
   title: string
 }
 
-const BASEMAPS: readonly MapBasemapId[] = ['protomaps-light', 'protomaps-dark', 'blank']
+const BASEMAPS: readonly MapBasemapId[] = [
+  'protomaps-light',
+  'protomaps-dark',
+  'satellite',
+  'blank'
+]
 
 function asBasemap(value: string | undefined): MapBasemapId {
   return BASEMAPS.includes(value as MapBasemapId) ? (value as MapBasemapId) : 'protomaps-light'

@@ -1,0 +1,18 @@
+{
+  "id": "2026-06-26-maps-live-database-query-layers-satellit",
+  "date": "June 26, 2026",
+  "title": "Maps: live database query layers, satellite imagery, and raster overlays",
+  "summary": "Map layers can now bind to a database by lat/lon and render live in the viewport, switch to a satellite basemap, or overlay aerial imagery — backed by new query, raster, and pmtiles layer sources and pure geohash spatial helpers.",
+  "highlights": [],
+  "tags": [
+    "app",
+    "platform"
+  ],
+  "pr": 283,
+  "mergedAt": "2026-06-26T16:05:24Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

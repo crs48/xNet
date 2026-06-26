@@ -8,7 +8,7 @@
  */
 
 import type { MapBasemapId } from '@xnetjs/data'
-import { BASEMAP_PRESETS, buildBasemapStyle, type MapStyle } from './style'
+import { BASEMAP_PRESETS, buildBasemapStyle, buildRasterBasemapStyle, type MapStyle } from './style'
 
 export interface Disposable {
   dispose(): void
@@ -97,10 +97,37 @@ export function ensureBuiltinBasemaps(): void {
     basemapRegistry.register({
       id: preset.id,
       label: preset.label,
-      usesPmtiles: preset.id !== 'blank',
+      // Only the Protomaps vector basemaps need the pmtiles:// protocol; the
+      // raster `satellite` and offline `blank` basemaps do not.
+      usesPmtiles: preset.id === 'protomaps-light' || preset.id === 'protomaps-dark',
       buildStyle: (opts) => buildBasemapStyle(preset.id as MapBasemapId, opts)
     })
   }
+}
+
+/**
+ * Register a plugin XYZ raster basemap (imagery/topo) by tile URL — the
+ * extension path for satellite/terrain basemaps without touching core maps
+ * code (exploration 0205/0230).
+ */
+export function registerXyzBasemap(def: {
+  id: string
+  label: string
+  tiles: string
+  tileSize?: number
+  attribution?: string
+}): Disposable {
+  ensureBuiltinBasemaps()
+  return basemapRegistry.register({
+    id: def.id,
+    label: def.label,
+    usesPmtiles: false,
+    buildStyle: () =>
+      buildRasterBasemapStyle(def.tiles, {
+        ...(def.tileSize ? { tileSize: def.tileSize } : {}),
+        ...(def.attribution ? { attribution: def.attribution } : {})
+      })
+  })
 }
 
 /** All basemaps for the picker (built-ins + plugin-contributed). */

@@ -20,6 +20,7 @@ import {
   ownedLayerIds,
   ownedSourceIds,
   planDataLayers,
+  planRasterLayers,
   popupTableHtml
 } from './style'
 
@@ -31,6 +32,8 @@ export interface MapCanvasProps {
   pmtilesUrl?: string
   /** Fired (debounced via moveend) when the user pans/zooms. */
   onViewportChange?: (viewport: MapViewport) => void
+  /** Fired with the visible `[west, south, east, north]` bounds on move/load. */
+  onBoundsChange?: (bounds: [number, number, number, number]) => void
   /** Fired when a feature is clicked, with its layer id. */
   onFeatureClick?: (feature: Record<string, unknown>, layerId: string) => void
   className?: string
@@ -63,10 +66,25 @@ function addPlan(map: MlMap, plan: ReturnType<typeof planDataLayers>[number]): v
   for (const layer of plan.layers) map.addLayer(layer as any)
 }
 
+/** Add one raster-tile plan (raster source + raster paint layer). */
+function addRasterPlan(map: MlMap, plan: ReturnType<typeof planRasterLayers>[number]): void {
+  if (!map.getSource(plan.sourceId)) {
+    map.addSource(plan.sourceId, {
+      type: 'raster',
+      tiles: [plan.tileUrl],
+      tileSize: plan.tileSize,
+      ...(plan.attribution ? { attribution: plan.attribution } : {})
+    })
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  map.addLayer(plan.layer as any)
+}
+
 /** Replace all `xnet-` data sources & layers from the current spec list. */
 function syncDataLayers(map: MlMap, layers: MapLayerSpec[]): void {
   clearOwnedLayers(map)
   clearOwnedSources(map)
+  for (const plan of planRasterLayers(layers)) addRasterPlan(map, plan)
   for (const plan of planDataLayers(layers)) addPlan(map, plan)
 }
 
@@ -113,6 +131,12 @@ function readViewport(map: MlMap): MapViewport {
   }
 }
 
+/** Read the visible extent as `[west, south, east, north]`. */
+function readBounds(map: MlMap): [number, number, number, number] {
+  const b = map.getBounds()
+  return [b.getWest(), b.getSouth(), b.getEast(), b.getNorth()]
+}
+
 /** Show a popup for the topmost clicked feature and notify the caller. */
 function showFeaturePopup(
   map: MlMap,
@@ -137,6 +161,7 @@ export function MapCanvas({
   layers,
   pmtilesUrl,
   onViewportChange,
+  onBoundsChange,
   onFeatureClick,
   className
 }: MapCanvasProps) {
@@ -150,6 +175,8 @@ export function MapCanvas({
   layersRef.current = layers
   const onViewportRef = useRef(onViewportChange)
   onViewportRef.current = onViewportChange
+  const onBoundsRef = useRef(onBoundsChange)
+  onBoundsRef.current = onBoundsChange
   const onFeatureRef = useRef(onFeatureClick)
   onFeatureRef.current = onFeatureClick
 
@@ -170,10 +197,13 @@ export function MapCanvas({
         map.on('load', () => {
           if (cancelled || !map) return
           syncDataLayers(map, layersRef.current)
+          onBoundsRef.current?.(readBounds(map))
           setReady(true)
         })
         map.on('moveend', () => {
-          if (map) onViewportRef.current?.(readViewport(map))
+          if (!map) return
+          onViewportRef.current?.(readViewport(map))
+          onBoundsRef.current?.(readBounds(map))
         })
         map.on('click', (e) => {
           if (map) showFeaturePopup(map, maplibregl, e, onFeatureRef.current)

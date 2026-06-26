@@ -264,6 +264,95 @@ export const vizSeeder: SeederModule = {
       }
     })
 
+    // ─── Satellite basemap: open imagery (exploration 0230) ───
+    drafts.push({
+      id: mapId('satellite'),
+      schemaId: MapSchema._schemaId,
+      properties: {
+        title: 'Satellite View',
+        icon: '🛰️',
+        basemap: 'satellite',
+        viewport: { longitude: -122.42, latitude: 37.77, zoom: 11 },
+        layers: [
+          {
+            id: 'offices',
+            name: 'Offices',
+            source: {
+              kind: 'geojson',
+              data: { type: 'FeatureCollection', features: [POINT(-122.42, 37.77, 'HQ')] }
+            },
+            style: { geometry: 'point', color: '#ffffff', size: 7 },
+            visible: true,
+            popupProperties: ['name']
+          }
+        ],
+        space: fixtures.spaces.org,
+        tags: [fixtures.tag('roadmap')]
+      }
+    })
+
+    // ─── Raster overlay layer: aerial imagery over the streets basemap ───
+    drafts.push({
+      id: mapId('imagery-overlay'),
+      schemaId: MapSchema._schemaId,
+      properties: {
+        title: 'Imagery Overlay',
+        icon: '🗺️',
+        basemap: 'protomaps-light',
+        viewport: { longitude: -0.13, latitude: 51.5, zoom: 10 },
+        layers: [
+          {
+            id: 'imagery',
+            name: 'Aerial imagery',
+            source: {
+              kind: 'raster',
+              tileUrl:
+                'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+              tileSize: 256,
+              attribution: 'Imagery © Esri'
+            },
+            style: { geometry: 'fill', color: '#000000', opacity: 0.55 },
+            visible: true
+          }
+        ],
+        space: fixtures.spaces.org,
+        tags: [fixtures.tag('roadmap')]
+      }
+    })
+
+    // ─── Live query layer: binds a layer to a database schema by lat/lon. Rows
+    // in the viewport are queried through the (authz'd) store and materialized
+    // to points on the fly (exploration 0230). Persisted here to exercise the
+    // `query` source kind; renders once the bound schema's rows carry
+    // coordinate properties. ───
+    drafts.push({
+      id: mapId('live-query'),
+      schemaId: MapSchema._schemaId,
+      properties: {
+        title: 'Live Query Layer',
+        icon: '📍',
+        basemap: 'protomaps-dark',
+        viewport: { longitude: 0, latitude: 20, zoom: 2 },
+        layers: [
+          {
+            id: 'live',
+            name: 'Observations',
+            source: {
+              kind: 'query',
+              schemaId: ObservationSchema._schemaId,
+              latProperty: 'lat',
+              lonProperty: 'lon',
+              tooltip: ['value']
+            },
+            style: { geometry: 'point', color: '#e8743b', size: 6 },
+            visible: true
+          }
+        ],
+        space: fixtures.spaces.org,
+        tags: [fixtures.tag('roadmap')]
+      }
+    })
+
     return { drafts, docs }
   }
 }

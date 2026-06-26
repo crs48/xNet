@@ -38,6 +38,7 @@ const NODE_OPEN_TARGETS: ReadonlyArray<{ match: string; to: string; paramKey?: s
   { match: '/Page', to: '/doc/$docId', paramKey: 'docId' },
   { match: '/Database', to: '/db/$dbId', paramKey: 'dbId' },
   { match: '/Canvas', to: '/canvas/$canvasId', paramKey: 'canvasId' },
+  { match: '/Map', to: '/map/$mapId', paramKey: 'mapId' },
   { match: '/Task', to: '/tasks' }
 ]
 
