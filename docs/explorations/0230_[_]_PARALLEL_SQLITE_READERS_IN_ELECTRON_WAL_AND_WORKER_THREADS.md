@@ -1,5 +1,16 @@
 # Parallel SQLite Readers In Electron: WAL, Worker Threads, And Why The OPFS Wall Doesn't Apply
 
+> **Implementation status.** Phases 0, 0.5, and 1 are implemented and unit/
+> integration-tested: the priority scheduler now fronts the Electron
+> `better-sqlite3` writer, a read-only secondary connection and an auto-sized
+> read-only `worker_threads` reader pool serve reads, `applyNodeBatch` yields
+> cooperatively between chunks, and a `sqlite:diagnostics` IPC surfaces scheduler
+> / pool / WAL stats. Real parallelism is proven in a `worker_threads` integration
+> test (two heavy reads complete in ≈ max, not sum). Three validation items remain
+> gated on a **signed/packaged** desktop build and a long-running soak — the
+> reader pool is **best-effort**, so if a worker can't boot in a packaged build
+> reads transparently fall back to the inline connection.
+
 ## Problem Statement
 
 Exploration [0228](0228_[_]_PARALLEL_SQLITE_READS_WORKER_POOL_AND_DISPATCHER.md)
@@ -476,20 +487,20 @@ export class ReaderPool {
 
 **Phase 0 — Electron scheduler (do now)**
 
-- [ ] Add a benchmark to the perf harness: fire a heavy read (FTS / large
+- [x] Add a benchmark to the perf harness: fire a heavy read (FTS / large
       aggregate) concurrently with a write/import burst inside the data process;
       record interactive-read p50/p95 and sync-handler latency.
-- [ ] Wrap `ElectronSQLiteAdapter` reads/writes in the shared
+- [x] Wrap `ElectronSQLiteAdapter` reads/writes in the shared
       `WorkerScheduler` (`interactive | bulk | write` lanes), preserving existing
       transaction semantics.
-- [ ] Add cooperative `setImmediate` yielding between chunks of `applyNodeBatch` /
+- [x] Add cooperative `setImmediate` yielding between chunks of `applyNodeBatch` /
       bulk import so an interactive read can interleave.
-- [ ] Surface scheduler depth in the desktop diagnostics (mirror the web perf
+- [x] Surface scheduler depth in the desktop diagnostics (mirror the web perf
       panel's lane view).
 
 **Phase 0.5 — read/write connection split (optional, low-risk isolation)**
 
-- [ ] Open a second `{ readonly: true }` connection on the data-process thread for
+- [x] Open a second `{ readonly: true }` connection on the data-process thread for
       reads, keeping the writer separate. (No parallelism, but isolates read
       snapshots from in-flight write locks.)
 
@@ -497,37 +508,37 @@ export class ReaderPool {
 
 - [ ] Confirm `better-sqlite3` loads in a `worker_threads` worker in a **packaged**
       Electron build (ABI, asarUnpack, vite alias inside the worker bundle).
-- [ ] Implement `reader-thread.ts`: per-thread `{ readonly: true }` WAL connection
+- [x] Implement `reader-thread.ts`: per-thread `{ readonly: true }` WAL connection
       + per-connection statement cache.
-- [ ] Implement `ReaderPool` dispatcher: least-busy routing, K=2 initial,
+- [x] Implement `ReaderPool` dispatcher: least-busy routing, K=2 initial,
       `isHeavy(sql)` classification, request/response correlation, error
       propagation.
-- [ ] Wire the adapter read path: heavy + non-transactional + no-pending-write →
+- [x] Wire the adapter read path: heavy + non-transactional + no-pending-write →
       pool; everything else → inline writer connection.
-- [ ] Implement read-your-writes routing (post-write window → writer connection or
+- [x] Implement read-your-writes routing (post-write window → writer connection or
       writer-commit-marker gate).
-- [ ] Monitor WAL size / checkpoint lag with readers active; ensure short reader
+- [x] Monitor WAL size / checkpoint lag with readers active; ensure short reader
       transactions.
-- [ ] Make K adaptive to `os.availableParallelism()` if the benchmark shows linear
+- [x] Make K adaptive to `os.availableParallelism()` if the benchmark shows linear
       scaling.
 
 ## Validation Checklist
 
-- [ ] **Phase 0:** under a sustained write/import burst, an interactive read's p95
+- [x] **Phase 0:** under a sustained write/import burst, an interactive read's p95
       stays low (no head-of-line stall) inside the data process.
-- [ ] **Phase 0:** a single slow read no longer delays sync handling or other
+- [x] **Phase 0:** a single slow read no longer delays sync handling or other
       interactive reads beyond its own execution.
-- [ ] **Phase 1:** two concurrent heavy reads complete in ≈ max(t1, t2), not
+- [x] **Phase 1:** two concurrent heavy reads complete in ≈ max(t1, t2), not
       t1 + t2, on a multi-core machine (proves genuine parallelism).
-- [ ] **Phase 1:** offloading a *small* read is **not** slower than the inline path
+- [x] **Phase 1:** offloading a *small* read is **not** slower than the inline path
       (the heuristic correctly keeps cheap reads inline).
-- [ ] **Phase 1:** read-your-writes holds — a write immediately followed by a read
+- [x] **Phase 1:** read-your-writes holds — a write immediately followed by a read
       never returns stale data.
 - [ ] **Phase 1:** WAL file size stays bounded with K readers active over a long
       session (no checkpoint starvation).
 - [ ] **Packaging:** the reader pool works in a signed/packaged desktop build, not
       just `electron-vite dev`.
-- [ ] **Regression:** web path unchanged; the shared scheduler still passes
+- [x] **Regression:** web path unchanged; the shared scheduler still passes
       `worker-scheduler.test.ts`.
 
 ## References
