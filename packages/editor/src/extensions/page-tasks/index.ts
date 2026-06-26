@@ -182,13 +182,22 @@ function collectPageTasksFromNode(
       const path = [...parentPath, taskIndex]
       taskIndex += 1
 
-      if (taskId !== child.attrs.taskId || blockId !== child.attrs.blockId) {
+      // `checked` can arrive as a string (e.g. "false" from raw Yjs/HTML); a
+      // non-empty string is truthy, so an unchecked task would read as done and
+      // its checkbox render filled. Coerce to a real boolean and normalise the
+      // node so the checkbox and completion state stay in sync.
+      const rawChecked = child.attrs.checked
+      const checked = rawChecked === true || rawChecked === 'true'
+      const checkedNeedsFix = typeof rawChecked !== 'boolean'
+
+      if (taskId !== child.attrs.taskId || blockId !== child.attrs.blockId || checkedNeedsFix) {
         attrUpdates.push({
           pos: childPos,
           attrs: {
             ...child.attrs,
             taskId,
-            blockId
+            blockId,
+            checked
           }
         })
       }
@@ -199,7 +208,7 @@ function collectPageTasksFromNode(
         taskId,
         blockId,
         title,
-        completed: Boolean(child.attrs.checked),
+        completed: checked,
         parentTaskId,
         sortKey: buildSortKey(path),
         assignees,
