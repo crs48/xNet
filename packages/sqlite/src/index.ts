@@ -17,7 +17,8 @@ export type {
   SQLiteNodeBatchScalarIndexRow,
   SQLiteNodeBatchFtsRow,
   SQLiteNodeBatchApplyInput,
-  SQLiteNodeBatchApplyResult
+  SQLiteNodeBatchApplyResult,
+  ElectronSQLiteDiagnostics
 } from './types'
 
 // Interface
