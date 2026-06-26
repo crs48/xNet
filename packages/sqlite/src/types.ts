@@ -34,6 +34,13 @@ export interface SQLiteConfig {
   foreignKeys?: boolean
   /** Busy timeout in milliseconds (default: 5000) */
   busyTimeout?: number
+  /**
+   * Emit boot diagnostics from the worker: a per-operation queue/exec timing
+   * trace and a one-shot DB-stats line at open (exploration 0229). Set by the
+   * main thread, which can read the `xnet:boot:debug` flag — the worker can't
+   * (`localStorage` is unavailable in workers).
+   */
+  bootDebug?: boolean
 }
 
 /**

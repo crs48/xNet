@@ -1,0 +1,11 @@
+{
+  "id": "2026-06-25-faster-sync-on-startup-and-better-boot-d",
+  "date": "June 25, 2026",
+  "title": "Faster sync on startup, and better boot diagnostics",
+  "summary": "Your workspace now starts syncing with the server immediately on load instead of waiting for local startup work to finish, so changes appear sooner. We also added detailed boot diagnostics and a one-time cleanup that reclaims disk space from old presence data.",
+  "highlights": [],
+  "tags": [
+    "performance",
+    "sync"
+  ]
+}

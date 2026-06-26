@@ -7,7 +7,7 @@ import { useQuery } from '@xnetjs/react'
 import { FileText, Database, Layout, Plus, ChevronDown, Network, Compass } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { RestoringNotice } from '../components/RestoringNotice'
-import { bootMark } from '../lib/boot-timeline'
+import { bootMark, logBootTimeline } from '../lib/boot-timeline'
 import {
   CreateDocMenuItems,
   navigateToNewDoc,
@@ -83,7 +83,13 @@ function HomePage() {
   // definitive to paint — rows, OR a confirmed empty/restoring state — so one
   // slow section no longer delays the felt first paint (explorations 0204, 0212).
   useEffect(() => {
-    if (anyRows || allLoaded) bootMark('query:first-rows')
+    if (anyRows || allLoaded) {
+      bootMark('query:first-rows')
+      // Log again at first paint so the capture includes `firstPaint` — the hub
+      // now connects early, so a log only at hub:connected would miss the
+      // residual time-to-paint (exploration 0229).
+      logBootTimeline('query:first-rows')
+    }
   }, [anyRows, allLoaded])
 
   const handleCreate = (type: CreatableDocType) => {

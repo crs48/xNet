@@ -41,7 +41,7 @@ import { ConsentBanner } from './components/ConsentBanner'
 import { StorageWarningBanner } from './components/StorageWarningBanner'
 import { WorkingSetPrewarm } from './components/WorkingSetPrewarm'
 import { type BootFailure, reportBootFailure } from './lib/boot-diagnostics'
-import { bootMark } from './lib/boot-timeline'
+import { bootMark, isBootDebugEnabled } from './lib/boot-timeline'
 import {
   clearXNetBrowserStorage,
   clearXNetBrowserStorageResetRequest,
@@ -52,6 +52,7 @@ import {
 import { isWorkerRuntimeEnabled } from './lib/data-runtime'
 import { defaultHubUrl, persistedHubUrl, readHubParam, setPersistedHubUrl } from './lib/hub-url'
 import { identityManager } from './lib/identity'
+import { scheduleStalePresenceCleanup } from './lib/presence-blob-cleanup'
 import { logStoreContents } from './lib/read-path-probe'
 import { detectBrowserFamily, getStorageBanner } from './lib/storage-banner'
 import { recordDurabilityTransition, subscribeStorageStatus } from './lib/storage-durability'
@@ -398,7 +399,9 @@ export function App(): JSX.Element {
           return
         }
 
-        await sqliteAdapter.open({ path: '/xnet.db' })
+        // bootDebug lets the worker emit per-op queue/exec timing + DB stats
+        // (exploration 0229) — workers can't read the xnet:boot:debug flag.
+        await sqliteAdapter.open({ path: '/xnet.db', bootDebug: isBootDebugEnabled() })
         bootMark('sqlite:open')
 
         if (cancelled) {
@@ -432,6 +435,11 @@ export function App(): JSX.Element {
         // capture can tell a populated-but-slow read path apart from a genuinely
         // empty cache. Fire-and-forget — never blocks boot, never throws.
         void logStoreContents(sqliteAdapter)
+
+        // One-time, idle-scheduled cleanup of the stale pre-0227 presence blob
+        // that still bloats the OPFS DB file (exploration 0229). No-ops after
+        // the first run; the heavy VACUUM never touches the boot critical path.
+        scheduleStalePresenceCleanup(sqliteAdapter)
 
         const nodeStorage = new SQLiteNodeStorageAdapter(sqliteAdapter)
         const storageAdapter = new SQLiteStorageAdapter(sqliteAdapter)

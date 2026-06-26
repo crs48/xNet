@@ -186,4 +186,21 @@ describe('logBootTimeline (0204)', () => {
       localStorage.removeItem('xnet:boot:debug')
     }
   })
+
+  it('logs once per distinct reason so first-paint is captured too (0229)', () => {
+    localStorage.setItem('xnet:boot:debug', 'true')
+    const spy = vi.spyOn(console, 'info').mockImplementation(() => {})
+    try {
+      bootMark('init:start')
+      logBootTimeline('hub:connected')
+      logBootTimeline('hub:connected') // same reason: latched
+      logBootTimeline('query:first-rows') // different reason: logs again
+      logBootTimeline('query:first-rows') // latched
+      expect(spy).toHaveBeenCalledTimes(2)
+      expect(String(spy.mock.calls[1]?.[0])).toContain('query:first-rows')
+    } finally {
+      spy.mockRestore()
+      localStorage.removeItem('xnet:boot:debug')
+    }
+  })
 })

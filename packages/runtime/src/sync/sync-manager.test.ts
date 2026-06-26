@@ -218,6 +218,37 @@ describe('createSyncManager', () => {
     expect(manager.lifecycle.phase).toBe('stopped')
   })
 
+  it('drains the offline queue when the background load finishes after connect (0229)', async () => {
+    // The hub is now dialed before the offline-queue load completes. If the
+    // load is still in flight when the connection comes up (the SQLite worker
+    // was stalled), the connect-time drain sees an empty queue — so the load
+    // must re-drain once entries are available.
+    const loadDeferred = createDeferred<void>()
+    mockOfflineQueue.load.mockReturnValueOnce(loadDeferred.promise)
+    mockOfflineQueueSize = 1
+    drainDeferred = createDeferred<number>()
+
+    const manager = createSyncManager({
+      nodeStore: {} as NodeStore,
+      storage: {} as NodeStorageAdapter,
+      signalingUrl: 'ws://localhost:4444'
+    })
+    await manager.start()
+    expect(mockConnection.connect).toHaveBeenCalled() // dialed without awaiting load
+
+    emitConnectionStatus('connected')
+    mockOfflineQueue.drain.mockClear()
+
+    // The (stalled) load now resolves with entries present.
+    loadDeferred.resolve()
+    await Promise.resolve()
+    await Promise.resolve()
+    expect(mockOfflineQueue.drain).toHaveBeenCalled()
+
+    drainDeferred.resolve(1)
+    await manager.stop()
+  })
+
   it('persists the registry on a debounce after track, not only on stop (0212)', async () => {
     vi.useFakeTimers()
     try {

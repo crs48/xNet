@@ -238,16 +238,21 @@ export function observeDocWarmMark(): void {
   }
 }
 
-let logged = false
+const loggedReasons = new Set<string>()
 
 /**
- * Log the boot timeline once. Emits in dev builds, or whenever the
- * `xnet:boot:debug` flag is set in any build, so production cold-start
+ * Log the boot timeline once **per reason**. Emits in dev builds, or whenever
+ * the `xnet:boot:debug` flag is set in any build, so production cold-start
  * regressions can be diagnosed in the field without a rebuild.
+ *
+ * Logging at more than one reason matters since 0229: the hub now connects
+ * early (it's no longer serialized behind local storage), so a log only at
+ * `hub:connected` would miss the residual time-to-first-paint. Logging again at
+ * `query:first-rows` keeps the real felt-latency (`firstPaint`) in the capture.
  */
 export function logBootTimeline(reason = 'hub:connected'): void {
-  if (logged) return
-  logged = true
+  if (loggedReasons.has(reason)) return
+  loggedReasons.add(reason)
   const isDev = typeof import.meta !== 'undefined' && Boolean(import.meta.env?.DEV)
   if (!isDev && !debugEnabled()) return
   // eslint-disable-next-line no-console
@@ -257,7 +262,7 @@ export function logBootTimeline(reason = 'hub:connected'): void {
 /** Test-only: clear all recorded marks and the one-shot log latch. */
 export function __resetBootTimeline(): void {
   marks.clear()
-  logged = false
+  loggedReasons.clear()
   try {
     syncFirstObserver?.disconnect()
     docWarmObserver?.disconnect()
