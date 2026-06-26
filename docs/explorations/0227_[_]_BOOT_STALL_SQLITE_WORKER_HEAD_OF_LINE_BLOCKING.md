@@ -404,7 +404,7 @@ function schedulePersist(nodeId: string): void {
 - [x] **E:** add `[xNet] loadDoc` timing+byte-length log behind `xnet:boot:debug`
       in [`node-pool.ts`](../../packages/runtime/src/sync/node-pool.ts); capture
       one boot to record `readMs` / `applyMs` / `bytes` for `presence-main`.
-- [ ] **A:** defer `acquire('presence-main')` (and other sync-doc warming) until
+- [x] **A:** defer `acquire('presence-main')` (and other sync-doc warming) until
       after first paint via `requestIdleCallback`/`setTimeout(0)` in
       `SyncManager.start()` / `XNetProvider`; ensure landing-query prewarm fires
       first.
