@@ -7,5 +7,12 @@
   "tags": [
     "devtools",
     "performance"
+  ],
+  "pr": 276,
+  "mergedAt": "2026-06-26T00:05:31Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
   ]
 }
