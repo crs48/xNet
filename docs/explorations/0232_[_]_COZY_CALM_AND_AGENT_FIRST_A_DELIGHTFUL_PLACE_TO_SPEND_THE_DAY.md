@@ -619,12 +619,12 @@ export type Density = 'compact' | 'comfortable'
 
 ## Validation Checklist
 
-- [ ] A first-time user can switch to `cozy` + `comfortable` in Settings and *feel*
+- [x] A first-time user can switch to `cozy` + `comfortable` in Settings and *feel*
       the difference (cream surfaces, warm accent, more air) without any layout breakage.
-- [ ] APCA contrast on cozy light + dark meets the 0166 targets (Lc ≥90 / ≥60 / ≥30).
-- [ ] `prefers-reduced-motion` and `prefers-reduced-transparency` fully collapse
+- [x] APCA contrast on cozy light + dark meets the 0166 targets (Lc ≥90 / ≥60 / ≥30).
+- [x] `prefers-reduced-motion` and `prefers-reduced-transparency` fully collapse
       the new material/motion.
-- [ ] The motion-vocab guard ([`check-motion-vocab.mjs`](scripts/check-motion-vocab.mjs))
+- [x] The motion-vocab guard ([`check-motion-vocab.mjs`](scripts/check-motion-vocab.mjs))
       still passes (no `transition-all`, raw durations, or ad-hoc animations added).
 - [ ] The home greets and suggests; no user ever sees a bare "No documents yet."
 - [ ] Opening the Companion is an obvious, delightful, first-class action — not a
@@ -634,7 +634,7 @@ export type Density = 'compact' | 'comfortable'
 - [ ] The autonomy dial defaults to *suggest*; `auto`/`full` are explicit opt-ins.
 - [ ] Mobile degrades gracefully (Companion stacks; comfortable density still fits).
 - [ ] Variant × density × light/dark renders correctly across a Storybook/Ladle matrix.
-- [ ] No regression for users who keep `default` + `compact` — today's experience is intact.
+- [x] No regression for users who keep `default` + `compact` — today's experience is intact.
 
 ## References
 
