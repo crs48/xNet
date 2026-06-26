@@ -27,6 +27,7 @@ import {
   worldPointToAnchorLocal,
   worldToScreenPoint
 } from '@xnetjs/canvas-core'
+import { clamp } from '@xnetjs/core'
 import React, {
   forwardRef,
   useCallback,
@@ -545,10 +546,6 @@ const CANVAS_OBJECT_HIT_TARGET_PADDING = 8
 const CANVAS_OBJECT_MIN_HIT_TARGET_SIZE = 36
 const CANVAS_DRAG_START_THRESHOLD_PX = 3
 const SMART_GUIDE_SCREEN_THRESHOLD = 8
-
-function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(max, value))
-}
 
 function snapCanvasValue(value: number, gridSize: number): number {
   return Math.round(value / gridSize) * gridSize

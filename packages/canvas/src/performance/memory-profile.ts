@@ -4,6 +4,11 @@
  * Utilities for measuring memory usage.
  */
 
+import { formatBytes } from '@xnetjs/core'
+
+// Re-exported for backwards compatibility — canvas consumers import it from here.
+export { formatBytes }
+
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
 /**
@@ -34,16 +39,6 @@ export function getMemoryUsage(): MemorySnapshot | null {
     }
   }
   return null
-}
-
-/**
- * Format bytes to human-readable string.
- */
-export function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(1)} GB`
 }
 
 /**

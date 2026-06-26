@@ -5,20 +5,13 @@
  * Colors change at warning (80%) and critical (95%) thresholds.
  */
 
+import { formatBytes } from '@xnetjs/core'
+
 export interface DemoQuotaIndicatorProps {
   /** Bytes currently used */
   usedBytes: number
   /** Total quota limit in bytes */
   limitBytes: number
-}
-
-/**
- * Format bytes into human-readable string (B, KB, MB)
- */
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
 /**

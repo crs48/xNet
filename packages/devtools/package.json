@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "@xnetjs/canvas": "workspace:*",
+    "@xnetjs/core": "workspace:*",
     "@xnetjs/history": "workspace:*",
     "@xnetjs/sqlite": "workspace:*",
     "@xnetjs/ui": "workspace:*",
