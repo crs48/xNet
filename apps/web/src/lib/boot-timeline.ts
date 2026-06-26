@@ -19,6 +19,7 @@ export type BootPhase =
   | 'sqlite:schema'
   | 'identity:ready'
   | 'store:ready'
+  | 'docwarm:ready'
   | 'hub:connected'
   | 'sync:first'
   | 'query:first-rows'
@@ -62,6 +63,7 @@ const BOOT_PHASE_ORDER: readonly BootPhase[] = [
   'sqlite:schema',
   'identity:ready',
   'store:ready',
+  'docwarm:ready',
   'hub:connected',
   'sync:first',
   'query:first-rows'
@@ -103,6 +105,12 @@ export interface BootTimeline {
   identity?: number
   /** NodeStore init + data-bridge creation. */
   store?: number
+  /**
+   * First Y.Doc warm (store-ready → first doc acquired). Surfaces document
+   * I/O that contends with landing reads on the single SQLite worker, so the
+   * boot stall is no longer hidden inside `connect` (exploration 0227).
+   */
+  docwarm?: number
   /** Hub WebSocket handshake (store-ready → connected). */
   connect?: number
   /** First sync round-trip after connect. */
@@ -118,6 +126,7 @@ export function getBootTimeline(): BootTimeline {
     schema: bootMeasure('sqlite:open', 'sqlite:schema'),
     identity: bootMeasure('sqlite:schema', 'identity:ready'),
     store: bootMeasure('identity:ready', 'store:ready'),
+    docwarm: bootMeasure('store:ready', 'docwarm:ready'),
     connect: bootMeasure('store:ready', 'hub:connected'),
     firstSync: bootMeasure('hub:connected', 'sync:first'),
     firstPaint: bootMeasure('init:start', 'query:first-rows')
@@ -188,6 +197,47 @@ export function observeSyncFirstMark(): void {
   }
 }
 
+/**
+ * Wire the runtime's `xnet:docpool:first-acquire` mark — emitted when the first
+ * Y.Doc acquire completes — into the boot timeline's `docwarm:ready` phase. That
+ * first doc-warm is the document I/O that contended with landing reads on the
+ * single SQLite worker (exploration 0227). Same observe-a-mark pattern as
+ * {@link observeSyncFirstMark}: the runtime can't import this module, so it
+ * emits a `performance` mark we observe here. Idempotent and defensive.
+ */
+let docWarmObserver: PerformanceObserver | null = null
+export function observeDocWarmMark(): void {
+  if (docWarmObserver) return
+  if (typeof PerformanceObserver === 'undefined') return
+  try {
+    if (
+      typeof performance !== 'undefined' &&
+      typeof performance.getEntriesByName === 'function' &&
+      performance.getEntriesByName('xnet:docpool:first-acquire', 'mark').length > 0
+    ) {
+      bootMark('docwarm:ready')
+      return
+    }
+  } catch {
+    // ignore — fall through to the live observer
+  }
+  try {
+    docWarmObserver = new PerformanceObserver((list) => {
+      for (const entry of list.getEntries()) {
+        if (entry.name === 'xnet:docpool:first-acquire') {
+          bootMark('docwarm:ready')
+          docWarmObserver?.disconnect()
+          docWarmObserver = null
+          return
+        }
+      }
+    })
+    docWarmObserver.observe({ entryTypes: ['mark'] })
+  } catch {
+    docWarmObserver = null
+  }
+}
+
 let logged = false
 
 /**
@@ -210,8 +260,10 @@ export function __resetBootTimeline(): void {
   logged = false
   try {
     syncFirstObserver?.disconnect()
+    docWarmObserver?.disconnect()
   } catch {
     // ignore
   }
   syncFirstObserver = null
+  docWarmObserver = null
 }

@@ -410,7 +410,7 @@ function schedulePersist(nodeId: string): void {
       first.
 - [x] **B:** stop persisting (or `gc`-compact) ephemeral presence docs in
       `NodePool` so the `yjs_state` BLOB stays bounded.
-- [ ] **Boot timeline:** add a `storage`/`docwarm` phase between `store:ready`
+- [x] **Boot timeline:** add a `storage`/`docwarm` phase between `store:ready`
       and `hub:connected` so the stall is attributed correctly
       ([`boot-timeline.ts`](../../apps/web/src/lib/boot-timeline.ts)).
 - [ ] **Hub:** redeploy the tenant hub on the current `@xnetjs/sync` to clear the

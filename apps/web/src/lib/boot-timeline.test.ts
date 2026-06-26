@@ -6,6 +6,7 @@ import {
   bootMeasure,
   getBootTimeline,
   logBootTimeline,
+  observeDocWarmMark,
   observeSyncFirstMark
 } from './boot-timeline'
 
@@ -126,6 +127,46 @@ describe('observeSyncFirstMark (0212)', () => {
     glob.PerformanceObserver = undefined
     observeSyncFirstMark()
     expect(bootMarkAt('sync:first')).toBeUndefined()
+  })
+})
+
+describe('observeDocWarmMark (0227)', () => {
+  const realPO = glob.PerformanceObserver
+  const realGetEntries = glob.performance?.getEntriesByName
+
+  afterEach(() => {
+    glob.PerformanceObserver = realPO
+    if (glob.performance) glob.performance.getEntriesByName = realGetEntries
+  })
+
+  it('marks docwarm:ready and surfaces a docwarm segment when the mark fires', () => {
+    glob.performance.getEntriesByName = () => []
+    let captured: ObserverCb | null = null
+    glob.PerformanceObserver = class {
+      constructor(cb: ObserverCb) {
+        captured = cb
+      }
+      observe() {}
+      disconnect() {}
+    }
+    bootMark('store:ready')
+    observeDocWarmMark()
+    expect(bootMarkAt('docwarm:ready')).toBeUndefined()
+
+    const fire = captured as ObserverCb | null
+    fire?.({ getEntries: () => [{ name: 'xnet:docpool:first-acquire' }] })
+    expect(bootMarkAt('docwarm:ready')).toBeTypeOf('number')
+    expect(getBootTimeline().docwarm).toBeTypeOf('number')
+  })
+
+  it('marks docwarm:ready immediately on a buffer hit', () => {
+    glob.performance.getEntriesByName = () => [{ name: 'xnet:docpool:first-acquire' }]
+    glob.PerformanceObserver = class {
+      observe() {}
+      disconnect() {}
+    }
+    observeDocWarmMark()
+    expect(bootMarkAt('docwarm:ready')).toBeTypeOf('number')
   })
 })
 
