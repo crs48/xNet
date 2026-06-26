@@ -4,5 +4,14 @@
   "title": "Sync status bar shows what's pending and unsafe at a glance",
   "summary": "The bottom status bar's connection indicator is now a click-through cluster: a calm chip when synced, plus on-demand chips for unsynced changes, integrity warnings, and storage pressure — with a detail popover and a Reconcile action. Mobile gets a matching sync glyph.",
   "highlights": [],
-  "tags": ["sync"]
+  "tags": [
+    "sync"
+  ],
+  "pr": 289,
+  "mergedAt": "2026-06-26T21:40:43Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
