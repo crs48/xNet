@@ -415,8 +415,16 @@ export function formatPlanRows(plan: PlanMeta): PlanRow[] {
   if (plan.fullTableScan) {
     rows.push({ label: 'Scan', value: 'full table' })
   }
+  if (plan.materializedViewId) {
+    rows.push({ label: 'Mat. view', value: plan.materializedViewId })
+  }
   if (plan.materializedCacheHit != null) {
     rows.push({ label: 'Mat. cache', value: plan.materializedCacheHit ? 'hit' : 'miss' })
+  }
+  // On a miss, the refresh reason (incl. 'authz-changed' from exploration 0226)
+  // explains why the cached view was rebuilt.
+  if (plan.materializedCacheHit === false && plan.materializedRefreshReason) {
+    rows.push({ label: 'Mat. refresh', value: plan.materializedRefreshReason })
   }
   return rows
 }

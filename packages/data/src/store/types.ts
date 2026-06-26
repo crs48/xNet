@@ -139,6 +139,23 @@ export interface NodeState {
  * Implementations can use SQLite or memory.
  * The adapter stores Changes and materialized NodeState.
  */
+/**
+ * Filters a candidate node set down to the rows the current viewer may read.
+ * Only ever removes rows. Used by adapters to authorize a materialized view's
+ * id list once, at refresh time (exploration 0226).
+ */
+export type NodeReadAuthorizer = (nodes: NodeState[]) => Promise<NodeState[]>
+
+/**
+ * A reload-stable version of the authorization-relevant control-plane state.
+ * `count` and `maxUpdatedAt` over grants and `/sys/authz/` resources change
+ * whenever any grant is added, modified, or removed.
+ */
+export interface AuthorizationStateVersion {
+  count: number
+  maxUpdatedAt: number
+}
+
 export interface NodeStorageAdapter {
   // Lifecycle (optional - for adapters that need initialization)
   /** Open/initialize the storage connection */
@@ -199,6 +216,23 @@ export interface NodeStorageAdapter {
   listNodes(options?: ListNodesOptions): Promise<NodeState[]>
   countNodes(options?: CountNodesOptions): Promise<number>
   queryNodes?(descriptor: NodeQueryDescriptor): Promise<NodeQueryResult>
+  /**
+   * Inject the read-authorization filter the adapter applies before persisting
+   * a materialized view's id list (exploration 0226). `NodeStore` wires this to
+   * its `filterReadableNodes` so a materialization is authorized exactly once,
+   * at refresh time, and cache hits can be served without per-row re-checks.
+   * Pass `undefined` to clear it. Optional: adapters that don't implement it
+   * simply never materialize under authorization (the store falls back to the
+   * authorize-then-paginate path).
+   */
+  setNodeReadAuthorizer?(authorizer: NodeReadAuthorizer | undefined): void
+  /**
+   * A cheap, reload-stable version stamp of the authorization-relevant state
+   * (grants + `/sys/authz/` resources). Folded into the materialized view's
+   * auth fingerprint so any grant change invalidates cached views across
+   * reloads. Optional; when absent the store will not materialize under authz.
+   */
+  getAuthorizationStateVersion?(): Promise<AuthorizationStateVersion>
   /** Optional runtime operation counters for import diagnostics. */
   getOperationStats?(): Promise<SQLiteOperationStats | null> | SQLiteOperationStats | null
   /** Reset optional runtime operation counters before a focused measurement. */

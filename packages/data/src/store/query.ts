@@ -108,6 +108,15 @@ export interface NodeQueryDescriptor {
   spatial?: NodeQuerySpatialFilter
   search?: NodeQuerySearchFilter
   materializedView?: NodeQueryMaterializedViewOptions
+  /**
+   * Authorization fingerprint stamped by `NodeStore` when a materialized view
+   * is read under an active read-authorization evaluator (exploration 0226).
+   * It is NOT part of the descriptor hash (it is stripped by
+   * `withoutNodeQueryMaterializedView`) — a change is reported as a distinct
+   * `'authz-changed'` refresh reason rather than `'descriptor-changed'`. Set
+   * internally by the store, never by callers.
+   */
+  authFingerprint?: string
 }
 
 export interface NodeQueryPlanMetadata {
@@ -137,6 +146,7 @@ export interface NodeQueryPlanMetadata {
   materializedRefreshReason?:
     | 'missing'
     | 'descriptor-changed'
+    | 'authz-changed'
     | 'invalidated'
     | 'expired'
     | 'force-refresh'
@@ -726,5 +736,9 @@ export function withoutNodeQueryMaterializedView(
 ): NodeQueryDescriptor {
   const next = { ...descriptor }
   delete next.materializedView
+  // The auth fingerprint is part of the materialized-view request, not the
+  // query shape — exclude it from the descriptor hash so an authorization
+  // change surfaces as 'authz-changed', never 'descriptor-changed'.
+  delete next.authFingerprint
   return next
 }

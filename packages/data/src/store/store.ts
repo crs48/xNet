@@ -181,6 +181,13 @@ export class NodeStore {
     this.onUnauthorizedRemoteChange = options.onUnauthorizedRemoteChange
     this.auth = options.auth
     this.telemetry = options.telemetry
+
+    // Let storage authorize a materialized view's id list exactly once, at
+    // refresh time, so cache hits can be served without per-row re-checks
+    // (exploration 0226). Only meaningful when read authorization is active.
+    if (this.authEvaluator && this.storage.setNodeReadAuthorizer) {
+      this.storage.setNodeReadAuthorizer((nodes) => this.filterReadableNodes(nodes))
+    }
   }
 
   /**
@@ -723,6 +730,33 @@ export class NodeStore {
     try {
       if (this.storage.queryNodes && !this.nodeContentCipher && !this.authEvaluator) {
         const result = await this.storage.queryNodes(descriptor)
+        return {
+          nodes: result.nodes,
+          totalCount: result.totalCount,
+          plan: {
+            ...result.plan,
+            durationMs: Date.now() - start
+          }
+        }
+      }
+
+      // Authorized materialized views (exploration 0226): a materialized view
+      // can coexist with read authorization when storage authorizes the id
+      // list once at refresh time and we fingerprint the authorization state.
+      // We stamp the viewer's auth fingerprint onto the descriptor; storage
+      // serves a cache hit only when it still matches, otherwise it
+      // re-materializes through the injected authorizer. The persisted id list
+      // therefore only ever holds rows this viewer may read.
+      if (
+        this.storage.queryNodes &&
+        !this.nodeContentCipher &&
+        this.authEvaluator &&
+        !descriptor.nodeId &&
+        descriptor.materializedView !== undefined &&
+        this.materializedAuthSupported()
+      ) {
+        const authFingerprint = await this.authFingerprint()
+        const result = await this.storage.queryNodes({ ...descriptor, authFingerprint })
         return {
           nodes: result.nodes,
           totalCount: result.totalCount,
@@ -2507,6 +2541,34 @@ export class NodeStore {
 
     const decisions = await Promise.all(nodes.map((node) => this.canReadNode(node)))
     return nodes.filter((_, index) => decisions[index])
+  }
+
+  /**
+   * Whether storage can safely materialize a view under read authorization
+   * (exploration 0226): it must both accept the read authorizer (to authorize
+   * the id list at refresh) and expose a reload-stable authorization-state
+   * version (to fingerprint cache validity). When either is missing the store
+   * falls back to the authorize-then-paginate path, which never caches.
+   */
+  private materializedAuthSupported(): boolean {
+    return Boolean(this.storage.setNodeReadAuthorizer && this.storage.getAuthorizationStateVersion)
+  }
+
+  /**
+   * A reload-stable fingerprint of the viewer's authorization context, folded
+   * from the subject DID and the control-plane (grant) state version. Stamped
+   * onto a materialized view so any grant change forces an `'authz-changed'`
+   * refresh — the cache can never serve rows a revoked viewer may no longer
+   * read. Returns `undefined` when authorization is off (materialized views run
+   * untouched, as in the trusted single-user case).
+   */
+  private async authFingerprint(): Promise<string | undefined> {
+    if (!this.authEvaluator || !this.storage.getAuthorizationStateVersion) {
+      return undefined
+    }
+
+    const version = await this.storage.getAuthorizationStateVersion()
+    return `v1:${this.authorDID}:${version.count}:${version.maxUpdatedAt}`
   }
 
   private applyListPagination(nodes: NodeState[], options?: ListNodesOptions): NodeState[] {
