@@ -18,7 +18,7 @@ import type {
 /** A minimal MapLibre style-layer shape (structurally compatible). */
 export interface MapStyleLayer {
   id: string
-  type: 'background' | 'fill' | 'line' | 'circle' | 'heatmap' | 'symbol'
+  type: 'background' | 'fill' | 'line' | 'circle' | 'heatmap' | 'symbol' | 'raster'
   source?: string
   'source-layer'?: string
   filter?: unknown
@@ -290,9 +290,45 @@ export function planDataLayers(layers: MapLayerSpec[]): DataLayerPlan[] {
     }))
 }
 
+/** A render plan for one raster (imagery/topo) tile layer. */
+export interface RasterLayerPlan {
+  sourceId: string
+  tileUrl: string
+  tileSize: number
+  attribution?: string
+  layer: MapStyleLayer
+}
+
+/**
+ * Compute the source+layer to add for the visible raster (XYZ tile) layers.
+ *
+ * A raster layer becomes a MapLibre `raster` source (`tiles: [url]`) plus a
+ * `raster` paint layer honoring the layer's opacity. Drawn above the basemap
+ * in layer order, like the geometry layers.
+ */
+export function planRasterLayers(layers: MapLayerSpec[]): RasterLayerPlan[] {
+  return layers
+    .filter((l) => l.visible && l.source.kind === 'raster')
+    .map((l) => {
+      const source = l.source as Extract<MapLayerSource, { kind: 'raster' }>
+      return {
+        sourceId: dataSourceId(l),
+        tileUrl: source.tileUrl,
+        tileSize: source.tileSize ?? 256,
+        ...(source.attribution ? { attribution: source.attribution } : {}),
+        layer: {
+          id: `xnet-${l.id}-raster`,
+          type: 'raster',
+          source: dataSourceId(l),
+          paint: { 'raster-opacity': l.style.opacity ?? 1 }
+        }
+      }
+    })
+}
+
 /** Recover a layer-spec id from a clicked MapLibre layer id. */
 export function layerSpecIdFromMapLayerId(id: string): string {
-  return id.replace(/^xnet-/, '').replace(/-(point|line|fill|outline|heatmap)$/, '')
+  return id.replace(/^xnet-/, '').replace(/-(point|line|fill|outline|heatmap|raster)$/, '')
 }
 
 const HTML_ESCAPES: Record<string, string> = {

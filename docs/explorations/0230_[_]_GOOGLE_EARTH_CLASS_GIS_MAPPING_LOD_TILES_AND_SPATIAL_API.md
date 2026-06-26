@@ -626,7 +626,7 @@ erDiagram
 - [ ] Add a `geohash` (or H3) derivation + two indexed scalar properties when a
       geo-tagged node is written; expose a `spatialIndexKey: 'geohash'` planner
       hint in `packages/data/src/store/query.ts`.
-- [ ] Implement `geohashEncode` / `geohashCellsForBounds` (pure, unit-tested) in
+- [x] Implement `geohashEncode` / `geohashCellsForBounds` (pure, unit-tested) in
       `packages/maps`.
 - [ ] Implement `materializeQueryLayer()` reusing `NodeQuerySpatialWindow` +
       `matchesSpatialFilter`; respect node authz via the store.

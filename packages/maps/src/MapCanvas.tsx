@@ -20,6 +20,7 @@ import {
   ownedLayerIds,
   ownedSourceIds,
   planDataLayers,
+  planRasterLayers,
   popupTableHtml
 } from './style'
 
@@ -63,10 +64,25 @@ function addPlan(map: MlMap, plan: ReturnType<typeof planDataLayers>[number]): v
   for (const layer of plan.layers) map.addLayer(layer as any)
 }
 
+/** Add one raster-tile plan (raster source + raster paint layer). */
+function addRasterPlan(map: MlMap, plan: ReturnType<typeof planRasterLayers>[number]): void {
+  if (!map.getSource(plan.sourceId)) {
+    map.addSource(plan.sourceId, {
+      type: 'raster',
+      tiles: [plan.tileUrl],
+      tileSize: plan.tileSize,
+      ...(plan.attribution ? { attribution: plan.attribution } : {})
+    })
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  map.addLayer(plan.layer as any)
+}
+
 /** Replace all `xnet-` data sources & layers from the current spec list. */
 function syncDataLayers(map: MlMap, layers: MapLayerSpec[]): void {
   clearOwnedLayers(map)
   clearOwnedSources(map)
+  for (const plan of planRasterLayers(layers)) addRasterPlan(map, plan)
   for (const plan of planDataLayers(layers)) addPlan(map, plan)
 }
 
