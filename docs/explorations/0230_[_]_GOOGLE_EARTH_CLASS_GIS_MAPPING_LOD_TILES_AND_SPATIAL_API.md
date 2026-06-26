@@ -698,7 +698,7 @@ erDiagram
 - [ ] Bundle: maplibre/deck.gl/cesium are absent from the initial chunk
       (verified in the prod vite build) and load only when a map/large-layer/3D
       surface is opened.
-- [ ] `pnpm --filter @xnetjs/maps test` and `typecheck` green; web build green;
+- [x] `pnpm --filter @xnetjs/maps test` and `typecheck` green; web build green;
       seed-render/seed-coverage tests pass.
 
 ## References
