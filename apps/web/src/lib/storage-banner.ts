@@ -206,13 +206,12 @@ export function getStorageBanner(input: {
 
   switch (storageStatus.state) {
     case 'granted':
-      return {
-        tone: 'success',
-        title: 'Durable local storage enabled',
-        message: storageStatus.message,
-        usageBytes: storageStatus.usageBytes,
-        quotaBytes: storageStatus.quotaBytes
-      }
+      // The working state is ambient, not a top banner. A green "enabled"
+      // bar re-appeared on every page load and crowded the shell despite
+      // having no action to take; the StatusBar surfaces durable storage as
+      // glanceable system info instead (see StorageStatus). Only the
+      // not-working states below still warrant an actionable banner.
+      return null
     case 'not-granted':
       return notGrantedBanner(storageStatus, context)
     case 'unsupported':

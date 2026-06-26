@@ -63,10 +63,9 @@ describe('getStorageBanner', () => {
     expect(getStorageBanner({ ...context() })).toBeNull()
   })
 
-  it('celebrates granted storage', () => {
+  it('shows no banner once granted — the StatusBar carries the working state', () => {
     const banner = getStorageBanner({ storageStatus: status({ state: 'granted' }), ...context() })
-    expect(banner).toMatchObject({ tone: 'success', title: 'Durable local storage enabled' })
-    expect(banner?.actionLabel).toBeUndefined()
+    expect(banner).toBeNull()
   })
 
   it('treats a Chromium denial as informational and pending', () => {
