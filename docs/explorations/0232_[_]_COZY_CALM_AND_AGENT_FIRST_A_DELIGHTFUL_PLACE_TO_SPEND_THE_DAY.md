@@ -579,16 +579,16 @@ export type Density = 'compact' | 'comfortable'
 ## Implementation Checklist
 
 ### Phase 1 — Warmth (lowest risk, highest felt-per-effort)
-- [ ] Add `cozy` to `ThemeVariant` and `data-density` to `ThemeProvider`
+- [x] Add `cozy` to `ThemeVariant` and `data-density` to `ThemeProvider`
       ([`ThemeProvider.tsx`](packages/ui/src/theme/ThemeProvider.tsx)); persist to
       `localStorage` like the existing theme/variant keys.
-- [ ] Add the `cozy` variant block + warm shadow tokens to
+- [x] Add the `cozy` variant block + warm shadow tokens to
       [`tokens.css`](packages/ui/src/theme/tokens.css); APCA-tune to 0166 targets.
 - [ ] Add `comfortable` density tokens; reference them from rail/panel/row paddings
       instead of hard-coded sizes (start with [`Rail.tsx`](apps/web/src/workbench/Rail.tsx),
       [`TabBar.tsx`](apps/web/src/workbench/TabBar.tsx),
       [`StatusBar.tsx`](apps/web/src/workbench/StatusBar.tsx)).
-- [ ] Soften shell radii (panels, cards, popovers, Companion) to `--radius-lg/xl`.
+- [x] Soften shell radii (panels, cards, popovers, Companion) to `--radius-lg/xl`.
 - [ ] Add the `--font-display` face + `.cozy-heading`; apply to H1/H2 + home + assistant name.
 - [ ] Add an opt-in translucent material utility for floating layers; honor
       `prefers-reduced-transparency`.

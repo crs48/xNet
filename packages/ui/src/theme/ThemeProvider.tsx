@@ -5,8 +5,17 @@ export type Theme = 'light' | 'dark' | 'system'
 /**
  * 'true-black' collapses dark surfaces to #000 for OLED (0166).
  * 'linear' adds Linear's opt-in violet accent over the monochrome ramp (0198).
+ * 'cozy' warms surfaces + ink with a paper canvas and a terracotta accent — an
+ * opt-in relaxation of the 0166 "chrome has no hue" default (0232).
  */
-export type ThemeVariant = 'default' | 'true-black' | 'linear'
+export type ThemeVariant = 'default' | 'true-black' | 'linear' | 'cozy'
+
+/**
+ * Density is an axis orthogonal to the colour variant (0232). 'compact' is the
+ * historical 13px IDE feel (the default — no regression); 'comfortable' opens
+ * up type and chrome for a calmer, roomier day.
+ */
+export type Density = 'compact' | 'comfortable'
 
 interface ThemeContextValue {
   theme: Theme
@@ -15,6 +24,8 @@ interface ThemeContextValue {
   toggleTheme: () => void
   variant: ThemeVariant
   setVariant: (variant: ThemeVariant) => void
+  density: Density
+  setDensity: (density: Density) => void
 }
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined)
@@ -57,6 +68,15 @@ export function ThemeProvider({
     }
   })
 
+  const [density, setDensityState] = useState<Density>(() => {
+    if (typeof window === 'undefined') return 'compact'
+    try {
+      return (localStorage.getItem(`${storageKey}-density`) as Density) || 'compact'
+    } catch {
+      return 'compact'
+    }
+  })
+
   // Listen for system theme changes
   useEffect(() => {
     if (!enableSystem) return
@@ -89,7 +109,15 @@ export function ThemeProvider({
     } else {
       root.dataset.variant = variant
     }
-  }, [resolvedTheme, attribute, variant])
+
+    // 'compact' is the base ramp's default, so the attribute is only set for
+    // the opt-in 'comfortable' density (mirrors the variant handling above).
+    if (density === 'compact') {
+      delete root.dataset.density
+    } else {
+      root.dataset.density = density
+    }
+  }, [resolvedTheme, attribute, variant, density])
 
   // Persist theme choice
   const setTheme = useCallback(
@@ -120,9 +148,30 @@ export function ThemeProvider({
     [storageKey]
   )
 
+  const setDensity = useCallback(
+    (newDensity: Density) => {
+      setDensityState(newDensity)
+      try {
+        localStorage.setItem(`${storageKey}-density`, newDensity)
+      } catch {
+        // Silent fail (incognito, etc.)
+      }
+    },
+    [storageKey]
+  )
+
   return (
     <ThemeContext.Provider
-      value={{ theme, resolvedTheme, setTheme, toggleTheme, variant, setVariant }}
+      value={{
+        theme,
+        resolvedTheme,
+        setTheme,
+        toggleTheme,
+        variant,
+        setVariant,
+        density,
+        setDensity
+      }}
     >
       {children}
     </ThemeContext.Provider>
