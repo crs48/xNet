@@ -5,7 +5,8 @@ import {
   buildBasemapStyle,
   buildDataLayers,
   dataSourceId,
-  paletteColor
+  paletteColor,
+  planRasterLayers
 } from './style'
 
 const layer = (style: MapLayerSpec['style']): MapLayerSpec => ({
@@ -87,5 +88,41 @@ describe('paletteColor', () => {
   it('wraps around the palette', () => {
     expect(paletteColor(0)).toBe(paletteColor(8))
     expect(paletteColor(0)).not.toBe(paletteColor(1))
+  })
+})
+
+describe('planRasterLayers', () => {
+  const raster = (over: Partial<MapLayerSpec> = {}): MapLayerSpec => ({
+    id: 'sat',
+    name: 'Satellite',
+    source: { kind: 'raster', tileUrl: 'https://x/{z}/{x}/{y}.png', tileSize: 512 },
+    style: { geometry: 'fill', color: '#000', opacity: 0.6 },
+    visible: true,
+    ...over
+  })
+
+  it('plans a raster source + raster paint layer honoring opacity', () => {
+    const [plan] = planRasterLayers([raster()])
+    expect(plan.sourceId).toBe(dataSourceId(raster()))
+    expect(plan.tileUrl).toBe('https://x/{z}/{x}/{y}.png')
+    expect(plan.tileSize).toBe(512)
+    expect(plan.layer.type).toBe('raster')
+    expect(plan.layer.paint?.['raster-opacity']).toBe(0.6)
+  })
+
+  it('defaults tileSize to 256 and skips hidden / non-raster layers', () => {
+    const plans = planRasterLayers([
+      raster({ source: { kind: 'raster', tileUrl: 'u' } }),
+      raster({ id: 'hidden', visible: false }),
+      {
+        id: 'geo',
+        name: 'Geo',
+        source: { kind: 'geojson', data: { type: 'FeatureCollection', features: [] } },
+        style: { geometry: 'point', color: '#000' },
+        visible: true
+      }
+    ])
+    expect(plans).toHaveLength(1)
+    expect(plans[0].tileSize).toBe(256)
   })
 })
