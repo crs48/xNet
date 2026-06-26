@@ -2,11 +2,6 @@
  * Display formatting utilities for DevTools panels
  */
 
-import { formatBytes } from '@xnetjs/core'
-
-/** Format bytes to human-readable size — re-exported from the canonical helper. */
-export { formatBytes }
-
 /** Truncate a DID for display: did:key:z6Mk... -> did:key:z6M...xyz */
 export function truncateDID(did: string, maxLen = 20): string {
   if (did.length <= maxLen) return did
@@ -41,6 +36,13 @@ export function formatTime(wallTime: number): string {
   const s = d.getSeconds().toString().padStart(2, '0')
   const ms = d.getMilliseconds().toString().padStart(3, '0')
   return `${h}:${m}:${s}.${ms}`
+}
+
+/** Format bytes to human-readable size */
+export function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
 /** Format duration in ms */
