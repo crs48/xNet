@@ -468,7 +468,7 @@ export async function* dispatchBuckets(
 ## Implementation Checklist
 
 Phase 0 — mechanical
-- [ ] Delete `packages/canvas/src/renderer/CanvasV2Legacy.tsx`; repoint
+- [x] Delete `packages/canvas/src/renderer/CanvasV2Legacy.tsx`; repoint
       `Canvas.stories.tsx` + `canvas-navigation-shell.test.tsx` at `CanvasV3`
       (or remove the legacy-only story).
 - [ ] Run Knip; triage and delete the dead-export tail it finds.
