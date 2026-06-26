@@ -552,29 +552,29 @@ const tone = TONE[v.state]          // reuse HUB_LABEL-style table
       opens a Sheet mirroring the popover.
 - [x] Keep diagnostics (lamport, security level, billing plan) **out**
       of the always-on row; link to DevTools where relevant.
-- [ ] If any edited file is a publishable `packages/*` lib, run
+- [x] If any edited file is a publishable `packages/*` lib, run
       `/changeset` (most work here is in `apps/web`, which needs none).
 
 ## Validation Checklist
 
-- [ ] With the hub disconnected, the chip reads "offline" and a mutation
+- [x] With the hub disconnected, the chip reads "offline" and a mutation
       bumps `⇡ N pending`; reconnecting drains the queue and the chip
       returns to "synced" with no leftover pending chip.
-- [ ] Forcing a hash-verification failure surfaces the `⚠` chip and the
+- [x] Forcing a hash-verification failure surfaces the `⚠` chip and the
       popover shows the failing `nodeId` + reason + a working Retry.
-- [ ] Nominal/healthy state shows **only** the connection chip + scope —
+- [x] Nominal/healthy state shows **only** the connection chip + scope —
       no tier-B chips (calm baseline holds).
-- [ ] Storage chip appears only past the threshold; Safari's
+- [x] Storage chip appears only past the threshold; Safari's
       under-reporting doesn't false-trigger.
-- [ ] The bar stays one line at 24px with all chips active and a long
+- [x] The bar stays one line at 24px with all chips active and a long
       workspace name (truncation verified).
-- [ ] Mobile top-bar glyph reflects the same coarse state and opens the
+- [x] Mobile top-bar glyph reflects the same coarse state and opens the
       Sheet with matching content.
-- [ ] No measurable render regression during a large replay (chip
+- [x] No measurable render regression during a large replay (chip
       updates coalesced).
-- [ ] A11y: chips are buttons with `title`/`aria-label`; popover is
+- [x] A11y: chips are buttons with `title`/`aria-label`; popover is
       keyboard-dismissible and focus-trapped.
-- [ ] Lint passes (eslint **and** prettier) and the `Stop` changeset
+- [x] Lint passes (eslint **and** prettier) and the `Stop` changeset
       gate is satisfied.
 
 ## References
