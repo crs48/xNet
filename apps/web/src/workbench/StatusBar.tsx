@@ -10,9 +10,11 @@ import { useNavigate } from '@tanstack/react-router'
 import { getCommandRegistry } from '@xnetjs/plugins'
 import { useHubStatus } from '@xnetjs/react'
 import { useTheme } from '@xnetjs/ui'
-import { Moon, Sun, Users } from 'lucide-react'
+import { HardDrive, Moon, Sun, Users } from 'lucide-react'
 import { useSpaces } from '../hooks/useSpaces'
+import { useStorageStatus } from '../hooks/useStorageStatus'
 import { getDataRuntime } from '../lib/data-runtime'
+import { formatBytes } from '../lib/format-bytes'
 import { WhatsNewButton } from '../whats-new/WhatsNewButton'
 import { statusContributionText, useWorkbenchContributions } from './contributions'
 import { navigateToNode } from './navigation'
@@ -91,6 +93,32 @@ function ScopeStatus() {
   )
 }
 
+/**
+ * Ambient durable-storage indicator (explorations 0172 + 0232).
+ *
+ * Replaces the green "Durable local storage enabled" top banner that used to
+ * re-appear on every page load. Glanceable usage when storage is working; a
+ * warning-toned reminder (alongside the actionable top banner) when it isn't.
+ */
+function StorageStatus() {
+  const status = useStorageStatus()
+  if (!status || status.state === 'unsupported' || typeof status.usageBytes !== 'number') {
+    return null
+  }
+  const granted = status.state === 'granted'
+  const usage = formatBytes(status.usageBytes)
+  const quota = typeof status.quotaBytes === 'number' ? formatBytes(status.quotaBytes) : null
+  const tooltip = granted
+    ? `Durable local storage enabled — ${quota ? `${usage} of ${quota} used` : `${usage} used`}`
+    : status.message
+  return (
+    <span className={`flex items-center gap-1 ${granted ? '' : 'text-warning'}`} title={tooltip}>
+      <HardDrive size={11} strokeWidth={1.5} />
+      {usage}
+    </span>
+  )
+}
+
 export function StatusBar() {
   const hubStatus = useHubStatus()
   const items = useWorkbenchStatus((state) => state.items)
@@ -124,6 +152,7 @@ export function StatusBar() {
         {hub.label}
       </span>
       <span title="Data runtime (xnet:runtime)">{runtimeMode()}</span>
+      <StorageStatus />
       <ScopeStatus />
       {jobList.map((job) => (
         <span key={job.id} className="text-ink-2" title={job.label}>

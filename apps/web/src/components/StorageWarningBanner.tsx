@@ -1,6 +1,7 @@
 import { Presence } from '@xnetjs/ui'
 import { AlertTriangle, CheckCircle2, Info, ShieldCheck, X } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { formatBytes } from '../lib/format-bytes'
 
 interface StorageWarningBannerProps {
   tone: 'success' | 'warning' | 'info'
@@ -17,23 +18,6 @@ interface StorageWarningBannerProps {
   secondaryActionPending?: boolean
   onSecondaryAction?: () => void
   detailItems?: string[]
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) {
-    return `${bytes} B`
-  }
-
-  const units = ['KB', 'MB', 'GB', 'TB']
-  let value = bytes
-  let unitIndex = -1
-
-  while (value >= 1024 && unitIndex < units.length - 1) {
-    value /= 1024
-    unitIndex += 1
-  }
-
-  return `${value.toFixed(value >= 10 ? 0 : 1)} ${units[unitIndex]}`
 }
 
 function getToneClasses(tone: StorageWarningBannerProps['tone']): {
