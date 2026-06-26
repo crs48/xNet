@@ -1,5 +1,14 @@
 # Google-Earth-Class GIS Mapping: LOD Tiles, A SQLite Spatial Index, And A Layered Map API/UX
 
+> **Implementation status — Phase 1 shipped.** The keystone phase is built and
+> tested: the `MapLayerSource` model gained `query`/`raster`/`pmtiles` kinds, a
+> key-less `satellite` basemap, pure geohash spatial helpers
+> (`geohashEncode`/`geohashCellsForBounds`), the live query-layer materializer
+> (`materializeQueryLayer`), raster rendering in `MapCanvas`, `/Map` dashboard
+> routing, and seeded demo maps. Phases 2–5 (the `GeoTileProvider` worker LOD,
+> deck.gl/Cesium/3D, draw/measure/geocode UX, and the server tile pipeline)
+> remain deferred — their checklist items are still unchecked below.
+
 ## Problem Statement
 
 xNet already ships a small but real mapping surface — `@xnetjs/maps`
