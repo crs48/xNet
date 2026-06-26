@@ -1,0 +1,10 @@
+{
+  "id": "2026-06-25-the-app-stays-responsive-during-sync-and",
+  "date": "June 25, 2026",
+  "title": "The app stays responsive during sync and imports",
+  "summary": "Interactive reads now take priority over background writes, so opening pages and searching stay snappy even while a large sync or import is running. Repeated identical reads are also collapsed into one.",
+  "highlights": [],
+  "tags": [
+    "performance"
+  ]
+}
