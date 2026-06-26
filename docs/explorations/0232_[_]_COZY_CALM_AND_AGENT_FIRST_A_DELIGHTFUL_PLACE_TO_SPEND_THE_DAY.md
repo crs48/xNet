@@ -584,7 +584,7 @@ export type Density = 'compact' | 'comfortable'
       `localStorage` like the existing theme/variant keys.
 - [x] Add the `cozy` variant block + warm shadow tokens to
       [`tokens.css`](packages/ui/src/theme/tokens.css); APCA-tune to 0166 targets.
-- [ ] Add `comfortable` density tokens; reference them from rail/panel/row paddings
+- [x] Add `comfortable` density tokens; reference them from rail/panel/row paddings
       instead of hard-coded sizes (start with [`Rail.tsx`](apps/web/src/workbench/Rail.tsx),
       [`TabBar.tsx`](apps/web/src/workbench/TabBar.tsx),
       [`StatusBar.tsx`](apps/web/src/workbench/StatusBar.tsx)).

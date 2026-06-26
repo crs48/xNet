@@ -90,7 +90,7 @@ export function Rail() {
   const requestCount = useRequestCount()
 
   return (
-    <nav className="flex w-11 shrink-0 flex-col items-center border-r border-hairline bg-surface-1 py-1">
+    <nav className="flex w-[var(--rail-width)] shrink-0 flex-col items-center border-r border-hairline bg-surface-1 py-1">
       <RailButton
         label="Search (⌘K)"
         icon={Search}
