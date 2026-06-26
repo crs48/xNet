@@ -518,7 +518,7 @@ this.bumpAuthEpoch()   // NEW: monotonic; folded into authFingerprint()
       `materializedRefreshReason: 'authz-changed'`.
 - [x] Allow path (2) in `store.ts` to use materialized views *with* an
       evaluator (refresh authorizes once; reads compare fingerprint).
-- [ ] Surface `materializedCacheHit` / refresh reason in the devtools
+- [x] Surface `materializedCacheHit` / refresh reason in the devtools
       Data panel plan inspector for observability.
 - [ ] Wire optional `nodeContentCipher` in `apps/web`, key derived from the
       passkey/session unlock; ensure materialization tables are covered.

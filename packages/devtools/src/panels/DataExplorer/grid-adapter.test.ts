@@ -310,4 +310,36 @@ describe('formatPlanRows', () => {
     expect(map.Returned).toBe('10')
     expect(map.Duration).toBe('4.2ms')
   })
+
+  it('surfaces the materialized view id, cache outcome, and refresh reason (0226)', () => {
+    const rows = formatPlanRows({
+      strategy: 'storage-query',
+      candidateNodeCount: 3,
+      hydratedNodeCount: 3,
+      returnedNodeCount: 3,
+      durationMs: 1.1,
+      materializedViewId: 'db:tasks:view:open',
+      materializedCacheHit: false,
+      materializedRefreshReason: 'authz-changed'
+    })
+    const map = Object.fromEntries(rows.map((r) => [r.label, r.value]))
+    expect(map['Mat. view']).toBe('db:tasks:view:open')
+    expect(map['Mat. cache']).toBe('miss')
+    expect(map['Mat. refresh']).toBe('authz-changed')
+  })
+
+  it('omits the refresh reason on a cache hit', () => {
+    const rows = formatPlanRows({
+      strategy: 'storage-query',
+      candidateNodeCount: 3,
+      hydratedNodeCount: 3,
+      returnedNodeCount: 3,
+      durationMs: 0.4,
+      materializedViewId: 'db:tasks:view:open',
+      materializedCacheHit: true
+    })
+    const map = Object.fromEntries(rows.map((r) => [r.label, r.value]))
+    expect(map['Mat. cache']).toBe('hit')
+    expect(map['Mat. refresh']).toBeUndefined()
+  })
 })
