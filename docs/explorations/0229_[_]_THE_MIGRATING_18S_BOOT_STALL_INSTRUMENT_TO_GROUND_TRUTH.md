@@ -413,7 +413,7 @@ this.execSync('PRAGMA mmap_size = 268435456') // try 256 MB; measure under SAH V
 - [x] **B:** reorder `SyncManager.start()` so `connection.connect()` runs before
       `await offlineQueue.load()`; load/drain the queue without blocking the dial
       ([`sync-manager.ts`](../../packages/runtime/src/sync/sync-manager.ts)).
-- [ ] **C:** add a one-shot, idle-scheduled cleanup that deletes `presence-%`
+- [x] **C:** add a one-shot, idle-scheduled cleanup that deletes `presence-%`
       `yjs_state` rows and `VACUUM`s, gated by a localStorage flag.
 - [ ] **D (after A):** set `cache_size` (and trial `mmap_size`) in `web.ts` open.
 - [ ] **E (if needed):** background-prewarm the landing queries after open.
