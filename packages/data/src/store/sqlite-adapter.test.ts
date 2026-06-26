@@ -16,6 +16,7 @@ import { createMemorySQLiteAdapter } from '@xnetjs/sqlite/memory'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { encodeNodeQueryCursor } from './query'
 import { SQLiteNodeStorageAdapter } from './sqlite-adapter'
+import { SYSTEM_SCHEMA_BASE_IRIS } from '../schema/schemas/system'
 
 function getTestDbPath(): string {
   return join(tmpdir(), `xnet-data-spatial-${randomUUID()}.db`)
@@ -1545,6 +1546,98 @@ describe('SQLiteNodeStorageAdapter', () => {
         valid: true,
         expectedNodeCount: 1
       })
+    })
+
+    it('authorizes the id list once and re-materializes when the auth fingerprint shifts (0226)', async () => {
+      let allowLow = true
+      const authorize = vi.fn(async (nodes: NodeState[]) =>
+        nodes.filter((node) => allowLow || node.id !== 'task-open-low')
+      )
+      adapter.setNodeReadAuthorizer(authorize)
+
+      const base = {
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' },
+        orderBy: { updatedAt: 'desc' as const },
+        materializedView: { viewId: 'authz-view' }
+      }
+
+      // Materialize under fingerprint A: both open rows are readable.
+      const first = await adapter.queryNodes({ ...base, authFingerprint: 'authz:A' })
+      expect(first.nodes.map((node) => node.id)).toEqual(['task-open-high', 'task-open-low'])
+      expect(first.plan.materializedCacheHit).toBe(false)
+      expect(first.plan.materializedRefreshReason).toBe('missing')
+      expect(first.plan.materializedRowCount).toBe(2)
+      expect(authorize).toHaveBeenCalledTimes(1)
+
+      // Same fingerprint → cache hit served from the persisted id list, with NO
+      // per-row re-authorization (the performance win).
+      const second = await adapter.queryNodes({ ...base, authFingerprint: 'authz:A' })
+      expect(second.nodes.map((node) => node.id)).toEqual(['task-open-high', 'task-open-low'])
+      expect(second.plan.materializedCacheHit).toBe(true)
+      expect(authorize).toHaveBeenCalledTimes(1)
+
+      // Revoke read on task-open-low and shift the fingerprint: the cache must
+      // NOT serve the now-unreadable row.
+      allowLow = false
+      const third = await adapter.queryNodes({ ...base, authFingerprint: 'authz:B' })
+      expect(third.plan.materializedCacheHit).toBe(false)
+      expect(third.plan.materializedRefreshReason).toBe('authz-changed')
+      expect(third.nodes.map((node) => node.id)).toEqual(['task-open-high'])
+      expect(third.plan.materializedRowCount).toBe(1)
+      expect(authorize).toHaveBeenCalledTimes(2)
+
+      // The persisted fingerprint now matches B → cache hit again, still excluded.
+      const fourth = await adapter.queryNodes({ ...base, authFingerprint: 'authz:B' })
+      expect(fourth.nodes.map((node) => node.id)).toEqual(['task-open-high'])
+      expect(fourth.plan.materializedCacheHit).toBe(true)
+      expect(authorize).toHaveBeenCalledTimes(2)
+
+      // Authorized materializations skip the JS parity audit (it is authz-blind).
+      expect(third.plan.parityCheck).toMatchObject({
+        strategy: 'skipped',
+        reason: 'authorized-materialization'
+      })
+    })
+
+    it('versions authorization state from grants and /sys/authz, not ordinary writes (0226)', async () => {
+      const initial = await adapter.getAuthorizationStateVersion()
+
+      // An ordinary data write leaves the authorization-state version untouched.
+      await adapter.setNode(
+        createTestNode({
+          id: 'task-extra',
+          schemaId: taskSchemaId,
+          properties: { title: 'Extra', status: 'open', done: false },
+          updatedAt: Date.now() + 50_000
+        })
+      )
+      expect(await adapter.getAuthorizationStateVersion()).toEqual(initial)
+
+      // A grant write bumps the count.
+      await adapter.setNode(
+        createTestNode({
+          id: 'grant-1',
+          schemaId: SYSTEM_SCHEMA_BASE_IRIS.Grant as SchemaIRI,
+          properties: { role: 'viewer' },
+          updatedAt: Date.now() + 60_000
+        })
+      )
+      const afterGrant = await adapter.getAuthorizationStateVersion()
+      expect(afterGrant.count).toBe(initial.count + 1)
+      expect(afterGrant.maxUpdatedAt).toBeGreaterThan(initial.maxUpdatedAt)
+
+      // A /sys/authz namespace resource bumps it too.
+      await adapter.setNode(
+        createTestNode({
+          id: 'xnet://did:key:z6MkAuthzSubject/sys/authz/role-1',
+          schemaId: taskSchemaId,
+          properties: { title: 'authz', done: false },
+          updatedAt: Date.now() + 70_000
+        })
+      )
+      expect((await adapter.getAuthorizationStateVersion()).count).toBe(initial.count + 2)
     })
 
     it('coalesces touched batch materialized-view invalidation to once per schema', async () => {

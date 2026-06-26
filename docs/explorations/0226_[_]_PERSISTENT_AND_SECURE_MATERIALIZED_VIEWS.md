@@ -508,15 +508,15 @@ this.bumpAuthEpoch()   // NEW: monotonic; folded into authFingerprint()
 
 ## Implementation Checklist
 
-- [ ] Add `auth_fingerprint TEXT` to `node_query_materializations`
+- [x] Add `auth_fingerprint TEXT` to `node_query_materializations`
       (migrate `packages/sqlite/src/schema.ts`, bump schema version).
-- [ ] Implement `NodeStore.authFingerprint()` from the `PolicyEvaluator`
+- [x] Implement `NodeStore.authFingerprint()` from the `PolicyEvaluator`
       state + a monotonic authz epoch bumped in the existing
       `authEvaluator?.invalidate(...)` hooks.
-- [ ] Thread `authFingerprint` through `queryNodes` / `NodeQueryDescriptor`
+- [x] Thread `authFingerprint` through `queryNodes` / `NodeQueryDescriptor`
       and into `queryMaterializedView`'s `canUseCache` predicate; add
       `materializedRefreshReason: 'authz-changed'`.
-- [ ] Allow path (2) in `store.ts` to use materialized views *with* an
+- [x] Allow path (2) in `store.ts` to use materialized views *with* an
       evaluator (refresh authorizes once; reads compare fingerprint).
 - [ ] Surface `materializedCacheHit` / refresh reason in the devtools
       Data panel plan inspector for observability.

@@ -11,6 +11,8 @@ import type {
   NodePayload,
   NodeState,
   NodeStorageAdapter,
+  NodeReadAuthorizer,
+  AuthorizationStateVersion,
   ListNodesOptions,
   CountNodesOptions,
   PropertyTimestamp,
@@ -22,6 +24,7 @@ import type {
   NodeBatchPreflightResult
 } from './types'
 import type { SchemaIRI } from '../schema/node'
+import { SYSTEM_SCHEMA_BASE_IRIS } from '../schema/schemas/system'
 import type { ContentId, DID } from '@xnetjs/core'
 import type {
   SQLiteAdapter,
@@ -239,6 +242,7 @@ interface MaterializedQueryRow {
   generated_at: number
   invalidated_at: number | null
   row_count: number
+  auth_fingerprint: string | null
   [key: string]: SQLValue
 }
 
@@ -265,6 +269,7 @@ interface CompiledQueryDiagnostics {
 type MaterializedQueryRefreshReason =
   | 'missing'
   | 'descriptor-changed'
+  | 'authz-changed'
   | 'invalidated'
   | 'expired'
   | 'force-refresh'
@@ -305,6 +310,7 @@ const SQLITE_HYDRATE_NODE_BATCH_SIZE = Math.floor(SQLITE_BIND_PARAMETER_BATCH_SI
 function getMaterializedQueryRefreshReason(input: {
   cached: MaterializedQueryRow | null
   descriptorHash: string
+  authFingerprint: string | null
   cacheExpired: boolean
   forceRefresh: boolean
 }): MaterializedQueryRefreshReason | undefined {
@@ -318,6 +324,10 @@ function getMaterializedQueryRefreshReason(input: {
 
   if (input.cached.descriptor_hash !== input.descriptorHash) {
     return 'descriptor-changed'
+  }
+
+  if ((input.cached.auth_fingerprint ?? null) !== input.authFingerprint) {
+    return 'authz-changed'
   }
 
   if (input.cached.invalidated_at !== null) {
@@ -380,6 +390,17 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   private fullTextSearchTablesState: FullTextSearchTablesState = 'unknown'
 
   private writeQueue: Promise<unknown> = Promise.resolve()
+
+  /**
+   * Read-authorization filter applied before persisting a materialized view's
+   * id list (exploration 0226). Wired by `NodeStore` when an auth evaluator is
+   * present; `undefined` means materialized views are computed unauthorized
+   * (the trusted single-user case).
+   */
+  private nodeReadAuthorizer?: NodeReadAuthorizer
+
+  /** One-time guard: ensure the `auth_fingerprint` column exists on upgraded DBs. */
+  private materializationColumnsReady = false
 
   constructor(
     private db: SQLiteAdapter,
@@ -2055,6 +2076,9 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       throw new Error('Materialized view query requires descriptor.materializedView')
     }
 
+    await this.ensureMaterializationColumns()
+
+    const authFingerprint = descriptor.authFingerprint ?? null
     const baseDescriptor = withoutNodeQueryMaterializedView(withoutNodeQueryPagination(descriptor))
     const descriptorJson = this.stringifyStable(baseDescriptor)
     const descriptorHash = this.hashScalarValue(descriptorJson)
@@ -2066,12 +2090,14 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     const refreshReason = getMaterializedQueryRefreshReason({
       cached,
       descriptorHash,
+      authFingerprint,
       cacheExpired,
       forceRefresh: materializedView.forceRefresh ?? false
     })
     const canUseCache =
       cached !== null &&
       cached.descriptor_hash === descriptorHash &&
+      (cached.auth_fingerprint ?? null) === authFingerprint &&
       cached.invalidated_at === null &&
       !cacheExpired &&
       !materializedView.forceRefresh
@@ -2089,6 +2115,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
           descriptor: baseDescriptor,
           descriptorHash,
           descriptorJson,
+          authFingerprint,
           refreshReason: refreshReason ?? 'missing',
           invalidatedAt: cached?.invalidated_at ?? null
         })
@@ -2108,11 +2135,62 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
          descriptor_json,
          generated_at,
          invalidated_at,
-         row_count
+         row_count,
+         auth_fingerprint
        FROM node_query_materializations
        WHERE view_id = ?`,
       [viewId]
     )
+  }
+
+  /**
+   * Ensure the `auth_fingerprint` column exists. Fresh databases get it from
+   * the DDL; databases upgraded in place (the runtime applies the full DDL with
+   * `CREATE TABLE IF NOT EXISTS`, which cannot add a column) need this guard.
+   * Idempotent and memoized (exploration 0226).
+   */
+  private async ensureMaterializationColumns(): Promise<void> {
+    if (this.materializationColumnsReady) return
+    try {
+      const columns = await this.db.query<{ name: string }>(
+        `PRAGMA table_info(node_query_materializations)`
+      )
+      const hasColumn = columns.some((column) => column.name === 'auth_fingerprint')
+      if (!hasColumn) {
+        await this.db.run('ALTER TABLE node_query_materializations ADD COLUMN auth_fingerprint TEXT')
+      }
+    } catch {
+      // A concurrent ALTER (duplicate column) or absent table is non-fatal:
+      // a missing column surfaces as a refresh, never a leak.
+    }
+    this.materializationColumnsReady = true
+  }
+
+  setNodeReadAuthorizer(authorizer: NodeReadAuthorizer | undefined): void {
+    this.nodeReadAuthorizer = authorizer
+  }
+
+  /**
+   * Reload-stable version of the authorization-relevant control-plane state:
+   * grants (`Grant` schema) and per-subject `/sys/authz/` resources. Ordinary
+   * data writes do not touch these, so a database's materialized views survive
+   * reloads and edits, but any grant change shifts `count`/`maxUpdatedAt` and
+   * forces an `'authz-changed'` refresh (exploration 0226).
+   */
+  async getAuthorizationStateVersion(): Promise<AuthorizationStateVersion> {
+    const grantIri = SYSTEM_SCHEMA_BASE_IRIS.Grant
+    const row = await this.db.queryOne<{ count: number; max_updated_at: number }>(
+      `SELECT COUNT(*) AS count, COALESCE(MAX(updated_at), 0) AS max_updated_at
+       FROM nodes
+       WHERE schema_id = ?
+          OR schema_id LIKE ?
+          OR id LIKE 'xnet://%/sys/authz/%'`,
+      [grantIri, `${grantIri}@%`]
+    )
+    return {
+      count: row?.count ?? 0,
+      maxUpdatedAt: row?.max_updated_at ?? 0
+    }
   }
 
   private async refreshMaterializedView(input: {
@@ -2120,10 +2198,18 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     descriptor: NodeQueryDescriptor
     descriptorHash: string
     descriptorJson: string
+    authFingerprint: string | null
     refreshReason: MaterializedQueryRefreshReason
     invalidatedAt: number | null
   }): Promise<MaterializedQueryReadPlan> {
     const refreshed = await this.queryNodes(input.descriptor)
+    // Authorize the result ONCE, at materialization time, so cache hits can be
+    // served from the persisted id list without per-row re-checks. The
+    // fingerprint forces a re-materialization when grants change
+    // (exploration 0226). Authorization only ever removes rows.
+    const authorizedNodes = this.nodeReadAuthorizer
+      ? await this.nodeReadAuthorizer(refreshed.nodes)
+      : refreshed.nodes
     const generatedAt = Date.now()
 
     await this.enqueueWrite(async () => {
@@ -2141,27 +2227,30 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
               descriptor_json,
               generated_at,
               invalidated_at,
-              row_count
+              row_count,
+              auth_fingerprint
             )
-           VALUES (?, ?, ?, ?, ?, NULL, ?)
+           VALUES (?, ?, ?, ?, ?, NULL, ?, ?)
            ON CONFLICT(view_id) DO UPDATE SET
              descriptor_hash = excluded.descriptor_hash,
              schema_id = excluded.schema_id,
              descriptor_json = excluded.descriptor_json,
              generated_at = excluded.generated_at,
              invalidated_at = NULL,
-             row_count = excluded.row_count`,
+             row_count = excluded.row_count,
+             auth_fingerprint = excluded.auth_fingerprint`,
           [
             input.viewId,
             input.descriptorHash,
             input.descriptor.schemaId,
             input.descriptorJson,
             generatedAt,
-            refreshed.nodes.length
+            authorizedNodes.length,
+            input.authFingerprint
           ]
         )
 
-        for (const [ordinal, node] of refreshed.nodes.entries()) {
+        for (const [ordinal, node] of authorizedNodes.entries()) {
           await this.db.run(
             `INSERT INTO node_query_materialized_ids (view_id, ordinal, node_id)
              VALUES (?, ?, ?)`,
@@ -2181,7 +2270,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       descriptorHash: input.descriptorHash,
       generatedAt,
       invalidatedAt: input.invalidatedAt,
-      rowCount: refreshed.nodes.length,
+      rowCount: authorizedNodes.length,
       cacheHit: false,
       refreshReason: input.refreshReason
     }
@@ -2981,6 +3070,12 @@ CREATE INDEX IF NOT EXISTS idx_node_spatial_ids_schema
   ): Promise<NodeQueryParityCheckMetadata> {
     if (!this.queryVerification.enabled) {
       return { strategy: 'skipped', reason: 'disabled' }
+    }
+
+    // The parity re-run is authorization-unaware; comparing it against an
+    // authorized materialization would always mismatch (exploration 0226).
+    if (this.nodeReadAuthorizer) {
+      return { strategy: 'skipped', reason: 'authorized-materialization' }
     }
 
     const candidateScopeCount = descriptor.nodeId
