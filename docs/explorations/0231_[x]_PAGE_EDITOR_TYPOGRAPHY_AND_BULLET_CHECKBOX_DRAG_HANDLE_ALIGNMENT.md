@@ -425,58 +425,58 @@ dragHandleElement.style.height = `${lineH}px`   // button is align-items:center 
 
 ## Implementation Checklist
 
-- [ ] **A-i** Anchor the drag handle X to the editor content-left (fixed
+- [x] **A-i** Anchor the drag handle X to the editor content-left (fixed
   gutter) in `packages/editor/src/extensions/drag-handle/DragHandle.ts`;
   remove the per-block `blockLeft − 24` dependence on the matched element.
-- [ ] **A2** Center the handle button on the block's first line (height =
+- [x] **A2** Center the handle button on the block's first line (height =
   `1lh`, `align-items: center`); drop the fixed `padding-top: 0.25rem` in
   `packages/editor/src/styles/editor.css`.
-- [ ] **A (lists)** Ensure `closest`/selector resolves the **top-level** block
+- [x] **A (lists)** Ensure `closest`/selector resolves the **top-level** block
   for list items (don't anchor to the inner `<p>`); confirm nested lists.
-- [ ] **A (H1)** Make the handle resolve wrapped node-view headings so it
+- [x] **A (H1)** Make the handle resolve wrapped node-view headings so it
   shows and aligns on `<h1>`.
-- [ ] **B-i** Style the checkbox fill/checkmark from
+- [x] **B-i** Style the checkbox fill/checkmark from
   `li[data-checked="true"]` rather than `input:checked` (scoped to
   `.page-prose`, and/or base `editor.css`).
-- [ ] **B-ii** Trace and stop the code that forces `input.checked = true`;
+- [x] **B-ii** Trace and stop the code that forces `input.checked = true`;
   verify unchecked tasks have `input.checked === false`.
-- [ ] **B2/B3** Reduce checkbox radius to ~5px and trim the optical nudge from
+- [x] **B2/B3** Reduce checkbox radius to ~5px and trim the optical nudge from
   `+0.2em` to ~`0.06em` in `apps/web/src/styles/globals.css`.
-- [ ] **C-i** Rewrite the heading rhythm rules in `globals.css` to pierce
+- [x] **C-i** Rewrite the heading rhythm rules in `globals.css` to pierce
   `.react-renderer` wrappers via `:has()`; verify space-before is uniform
   (one flow unit) with the heading "space precedes" exception applied.
-- [ ] **C2** Consolidate heading sizes/weights/line-heights/margins into one
+- [x] **C2** Consolidate heading sizes/weights/line-heights/margins into one
   source of truth (reconcile `nodeviews/HeadingView.tsx` `HEADING_STYLES` and
   `editor.css` `.ProseMirror h1..h6`); cover levels 1–6 with `leading-*`.
-- [ ] **D1 (optional)** Tune the measure toward ~66–72ch.
-- [ ] Add a `changeset` for `@xnetjs/editor` (drag-handle + checkbox state are
+- [x] **D1 (optional)** Tune the measure toward ~66–72ch.
+- [x] Add a `changeset` for `@xnetjs/editor` (drag-handle + checkbox state are
   consumer-visible); app-only CSS needs none.
-- [ ] Re-run the seed sample page and re-measure (see Validation).
+- [x] Re-run the seed sample page and re-measure (see Validation).
 
 ## Validation Checklist
 
 Re-run against the seeded **"Sample Page – All Block Types"**
 (`devtools → Seed → Seed everything`, then `/doc/seed%2Fpage%2Fsample`):
 
-- [ ] On a **list/task** block, the drag handle button's right edge is ≥4px
+- [x] On a **list/task** block, the drag handle button's right edge is ≥4px
   **left** of the bullet disc / checkbox (no overlap; `gapButtonToBlock > 0`).
-- [ ] On **paragraph, H1, H2, H3, list, blockquote, code**, the handle button
+- [x] On **paragraph, H1, H2, H3, list, blockquote, code**, the handle button
   center is within **±1px** of the block's first-line center.
-- [ ] The **handle X is identical** for a paragraph and a list item (both in
+- [x] The **handle X is identical** for a paragraph and a list item (both in
   the gutter).
-- [ ] An **unchecked** task shows an **empty** box (`input.checked === false`,
+- [x] An **unchecked** task shows an **empty** box (`input.checked === false`,
   `li[data-checked="false"]`, no blue fill); a **checked** task shows the
   fill + strikethrough.
-- [ ] Checkbox center within **±1px** of the first line's cap/x-height optical
+- [x] Checkbox center within **±1px** of the first line's cap/x-height optical
   center across font sizes (toggle a larger heading-in-task if applicable).
-- [ ] **Space-before** is one flow unit for body blocks and the heading
+- [x] **Space-before** is one flow unit for body blocks and the heading
   exception for headings, **uniform across levels** (no 24-vs-20 drift); a
   heading binds visually to the text below it (more space above than below).
-- [ ] Bullet/numbered/to-do text still share one left edge (regression guard
+- [x] Bullet/numbered/to-do text still share one left edge (regression guard
   on the already-good horizontal alignment).
-- [ ] Canvas/compact editor surfaces are visually unchanged (page-scoped
+- [x] Canvas/compact editor surfaces are visually unchanged (page-scoped
   fixes didn't leak).
-- [ ] Dark mode + `prefers-reduced-motion` unaffected.
+- [x] Dark mode + `prefers-reduced-motion` unaffected.
 
 ## References
 
