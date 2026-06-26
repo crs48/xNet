@@ -2170,7 +2170,9 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       )
       const hasColumn = columns.some((column) => column.name === 'auth_fingerprint')
       if (!hasColumn) {
-        await this.db.run('ALTER TABLE node_query_materializations ADD COLUMN auth_fingerprint TEXT')
+        await this.db.run(
+          'ALTER TABLE node_query_materializations ADD COLUMN auth_fingerprint TEXT'
+        )
       }
     } catch {
       // A concurrent ALTER (duplicate column) or absent table is non-fatal:
