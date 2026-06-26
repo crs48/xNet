@@ -2067,6 +2067,19 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     return this.hydrateJoinedRows(rows)
   }
 
+  /**
+   * Read (or refresh) a materialized view.
+   *
+   * A materialized view is a purely LOCAL, DERIVED cache: an ordered list of
+   * node ids (membership + order) plus bookkeeping. It is NEVER part of the
+   * change log and is NEVER synced — peers each derive their own. It therefore
+   * carries no authority and can be rebuilt or dropped at any time (a wiped
+   * cache only costs a recompute, never data). Content is re-hydrated from the
+   * live `nodes`/`node_properties` tables on every read, so the cache exposes
+   * nothing the underlying tables don't already, and a write to the schema
+   * (`invalidated_at`) or a grant change (`auth_fingerprint`) forces a
+   * re-materialization. See exploration 0226.
+   */
   private async queryMaterializedView(
     descriptor: NodeQueryDescriptor,
     start: number

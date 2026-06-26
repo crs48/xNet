@@ -524,7 +524,7 @@ this.bumpAuthEpoch()   // NEW: monotonic; folded into authFingerprint()
       passkey/session unlock; ensure materialization tables are covered.
 - [ ] Add a Settings toggle: "Encrypt local data at rest" with a clear
       perf/UX note (slower cold queries; crypto-erase on logout).
-- [ ] Document the local-derived, never-synced nature of materializations.
+- [x] Document the local-derived, never-synced nature of materializations.
 
 ## Validation Checklist
 

@@ -1548,6 +1548,31 @@ describe('SQLiteNodeStorageAdapter', () => {
       })
     })
 
+    it('serves a materialized view from persisted SQLite after a reload (0226)', async () => {
+      const base = {
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' },
+        orderBy: { updatedAt: 'desc' as const },
+        materializedView: { viewId: 'reload-view' }
+      }
+
+      const first = await adapter.queryNodes(base)
+      expect(first.plan.materializedCacheHit).toBe(false)
+      expect(first.nodes.map((node) => node.id)).toEqual(['task-open-high', 'task-open-low'])
+
+      // A fresh adapter on the SAME database holds no in-memory state — a cache
+      // hit proves the materialization was read back from persisted SQLite,
+      // exactly as it would be after a page reload.
+      const reloaded = new SQLiteNodeStorageAdapter(db, {
+        queryVerification: { enabled: true },
+        queryDiagnostics: true
+      })
+      const afterReload = await reloaded.queryNodes(base)
+      expect(afterReload.plan.materializedCacheHit).toBe(true)
+      expect(afterReload.nodes.map((node) => node.id)).toEqual(['task-open-high', 'task-open-low'])
+    })
+
     it('authorizes the id list once and re-materializes when the auth fingerprint shifts (0226)', async () => {
       let allowLow = true
       const authorize = vi.fn(async (nodes: NodeState[]) =>
