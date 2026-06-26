@@ -418,7 +418,7 @@ this.execSync('PRAGMA mmap_size = 268435456') // try 256 MB; measure under SAH V
 - [ ] **D (after A):** set `cache_size` (and trial `mmap_size`) in `web.ts` open.
 - [ ] **E (if needed):** background-prewarm the landing queries after open.
 - [ ] **Hub:** redeploy the tenant hub to clear `INVALID_HASH` (0224).
-- [ ] Split the boot-timeline `connect` phase into `local-finish` vs real WS
+- [x] Split the boot-timeline `connect` phase into `local-finish` vs real WS
       handshake so a future stall can't hide in `connect` again.
 
 ## Validation Checklist
