@@ -415,7 +415,7 @@ function schedulePersist(nodeId: string): void {
       ([`boot-timeline.ts`](../../apps/web/src/lib/boot-timeline.ts)).
 - [ ] **Hub:** redeploy the tenant hub on the current `@xnetjs/sync` to clear the
       `INVALID_HASH` protocol skew (ops action; see exploration 0224 / PR #253).
-- [ ] **Registry FK:** fix `registry.save()` 787 — determine the offending FK and
+- [x] **Registry FK:** fix `registry.save()` 787 — determine the offending FK and
       defer/upsert/drop as appropriate
       ([`registry.ts:134`](../../packages/runtime/src/sync/registry.ts)).
 - [ ] *(Follow-up exploration)* **C:** evaluate a dedicated read worker / priority

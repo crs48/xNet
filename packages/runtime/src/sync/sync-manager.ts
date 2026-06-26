@@ -195,7 +195,14 @@ export type AwarenessSnapshotUser = {
 
 /**
  * Adapt a NodeStorageAdapter to the RegistryStorage interface.
- * Stores the tracked-node set as a JSON-encoded document content blob.
+ *
+ * Prefers the FK-free app-state K/V (`getAppState`/`setAppState`). The registry
+ * key is a synthetic id (`_xnet_tracked_nodes`), not a real node, so the old
+ * `setDocumentContent` path wrote it to `yjs_state` and failed its
+ * `node_id → nodes(id)` foreign key with SQLITE_CONSTRAINT_FOREIGNKEY — the
+ * registry then silently never persisted (exploration 0227). The
+ * document-content path is kept only as a fallback for adapters that don't
+ * implement app-state (e.g. the in-memory adapter, which has no FK).
  */
 function createRegistryStorageAdapter(storage: NodeStorageAdapter): RegistryStorage {
   const encoder = new TextEncoder()
@@ -204,18 +211,24 @@ function createRegistryStorageAdapter(storage: NodeStorageAdapter): RegistryStor
   return {
     async get(key) {
       try {
+        if (storage.getAppState) {
+          const json = await storage.getAppState(key)
+          return json ? JSON.parse(json) : null
+        }
         const content = await storage.getDocumentContent(key)
         if (!content || content.length === 0) return null
-        const json = decoder.decode(content)
-        return JSON.parse(json)
+        return JSON.parse(decoder.decode(content))
       } catch {
         return null
       }
     },
     async set(key, entries) {
       const json = JSON.stringify(entries)
-      const bytes = encoder.encode(json)
-      await storage.setDocumentContent(key, bytes)
+      if (storage.setAppState) {
+        await storage.setAppState(key, json)
+        return
+      }
+      await storage.setDocumentContent(key, encoder.encode(json))
     }
   }
 }

@@ -174,6 +174,33 @@ describe('SQLiteNodeStorageAdapter', () => {
     })
   })
 
+  describe('app state (0227)', () => {
+    it('returns null for an unknown key', async () => {
+      expect(await adapter.getAppState('_xnet_tracked_nodes')).toBeNull()
+    })
+
+    it('round-trips a value under a synthetic (non-node) key without an FK error', async () => {
+      // The sync registry persists under `_xnet_tracked_nodes`, which is not a
+      // real node — the old setDocumentContent path failed yjs_state's FK.
+      const json = JSON.stringify([{ nodeId: 'n1', schemaId: 's', pinned: false }])
+      await adapter.setAppState('_xnet_tracked_nodes', json)
+      expect(await adapter.getAppState('_xnet_tracked_nodes')).toBe(json)
+    })
+
+    it('overwrites on repeated set', async () => {
+      await adapter.setAppState('k', 'first')
+      await adapter.setAppState('k', 'second')
+      expect(await adapter.getAppState('k')).toBe('second')
+    })
+
+    it('does not collide with sync cursors using a similar key', async () => {
+      await adapter.setSyncCursor('k', 99)
+      await adapter.setAppState('k', 'value')
+      expect(await adapter.getAppState('k')).toBe('value')
+      expect(await adapter.getSyncCursor('k')).toBe(99)
+    })
+  })
+
   // ─── Node CRUD Operations ────────────────────────────────────────────────────
 
   describe('Node CRUD', () => {

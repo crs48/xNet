@@ -1072,6 +1072,31 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     })
   }
 
+  // ─── App State (generic K/V, FK-free) ─────────────────────────────────────
+
+  /** Namespace app-state keys so they can't collide with sync cursors. */
+  private appStateKey(key: string): string {
+    return `app:${key}`
+  }
+
+  async getAppState(key: string): Promise<string | null> {
+    const row = await this.db.queryOne<{ value: string }>(
+      `SELECT value FROM sync_state WHERE key = ?`,
+      [this.appStateKey(key)]
+    )
+    return row ? row.value : null
+  }
+
+  async setAppState(key: string, value: string): Promise<void> {
+    await this.enqueueWrite(async () => {
+      await this.db.run(
+        `INSERT INTO sync_state (key, value) VALUES (?, ?)
+         ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+        [this.appStateKey(key), value]
+      )
+    })
+  }
+
   // ─── Document Content (Yjs) ───────────────────────────────────────────────
 
   async getDocumentContent(nodeId: NodeId): Promise<Uint8Array | null> {
