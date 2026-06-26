@@ -464,6 +464,10 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
   const offlineQueue = createOfflineQueue({
     storage: config.storage
   })
+  // The offline-queue load is started in the background during start() so the
+  // hub dial is never serialized behind local storage (exploration 0229). Any
+  // path that reads the queue (drain on connect) awaits this first.
+  let offlineQueueReady: Promise<void> = Promise.resolve()
   const nodeSyncProvider = config.nodeSyncRoom
     ? new NodeStoreSyncProvider(config.nodeStore, config.nodeSyncRoom)
     : null
@@ -1049,9 +1053,28 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
       if (lifecycleInput.stopped) return
       log('Registry loaded, tracked nodes:', registry.getTracked().length)
       attachPersistenceListeners()
-      await offlineQueue.load()
-      log('Offline queue loaded, size:', offlineQueue.size)
-      updateLifecycle({ localReady: true })
+      // Dial the hub immediately. The WebSocket handshake is independent of
+      // local storage, but it used to be serialized behind `await
+      // offlineQueue.load()` — and when the single SQLite worker is monopolised
+      // at boot, that load can take ~18s, delaying sync by the same amount even
+      // though the hub itself answers in ~200ms (exploration 0229). Load the
+      // queue in the background; anything that drains it awaits `offlineQueueReady`.
+      offlineQueueReady = offlineQueue
+        .load()
+        .then(() => {
+          log('Offline queue loaded, size:', offlineQueue.size)
+          updateLifecycle({ localReady: true })
+          // If the hub connected before the load finished (the worker was
+          // stalled), that earlier drain saw an empty queue — drain again now
+          // that entries are loaded (exploration 0229).
+          if (connection.status === 'connected') {
+            void drainOfflineQueue()
+          }
+        })
+        .catch((err) => {
+          log('Offline queue load failed:', err)
+          updateLifecycle({ localReady: true })
+        })
       log('Connecting to signaling server...')
       connection.connect()
 
@@ -1099,6 +1122,10 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
       await pool.flushAll()
       registry.prune()
       await registry.save()
+      // Wait for the background load (exploration 0229) before saving, so a
+      // stop() that races startup can't clobber persisted entries with the
+      // empty in-memory queue.
+      await offlineQueueReady.catch(() => undefined)
       await offlineQueue.save()
       await pool.destroy()
     },

@@ -410,7 +410,7 @@ this.execSync('PRAGMA mmap_size = 268435456') // try 256 MB; measure under SAH V
       [`web.ts`](../../packages/sqlite/src/adapters/web.ts).
 - [ ] **A:** capture one cold boot and record which op shows the ~18.7 s `execMs`
       (or `queueMs`) — attach to this doc.
-- [ ] **B:** reorder `SyncManager.start()` so `connection.connect()` runs before
+- [x] **B:** reorder `SyncManager.start()` so `connection.connect()` runs before
       `await offlineQueue.load()`; load/drain the queue without blocking the dial
       ([`sync-manager.ts`](../../packages/runtime/src/sync/sync-manager.ts)).
 - [ ] **C:** add a one-shot, idle-scheduled cleanup that deletes `presence-%`
