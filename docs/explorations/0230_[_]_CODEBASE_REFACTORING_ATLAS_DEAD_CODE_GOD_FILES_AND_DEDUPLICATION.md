@@ -530,7 +530,7 @@ Tooling/DX (any time)
 - [ ] Knip reports **0** new unused exports/files vs. baseline on every PR.
 - [ ] jscpd duplication % is monotonically non-increasing; threshold tightened at
       least once after Phase 0.
-- [ ] SSRF: the bypass-vector test table passes against the unified guard;
+- [x] SSRF: the bypass-vector test table passes against the unified guard;
       `unfurl`/`crawl`/`federation` reject all private targets.
 - [ ] Schema SSoT: adding a throwaway test schema requires editing exactly **one**
       file; the generated-barrel CI check fails if it's stale.
@@ -540,7 +540,7 @@ Tooling/DX (any time)
 - [ ] God-file splits: characterization tests written *before* the split still
       pass after; public package exports unchanged (verify with a typed import
       smoke test).
-- [ ] Changesets present for every touched publishable package; bumps justified
+- [x] Changesets present for every touched publishable package; bumps justified
       from the diff (Stop hook green).
 
 ## References
