@@ -8,7 +8,7 @@
  */
 import { createFileRoute } from '@tanstack/react-router'
 import { useIdentity } from '@xnetjs/react'
-import { SettingRow, SettingsGroup, SettingsPanel, SettingToggle } from '@xnetjs/ui'
+import { SettingRow, SettingsGroup, SettingsPanel, SettingToggle, useTheme } from '@xnetjs/ui'
 import {
   Palette,
   Database,
@@ -157,47 +157,15 @@ function SettingsPage() {
 
 // ─── Appearance Settings ──────────────────────────────────────────────────────
 
-type Theme = 'light' | 'dark' | 'system'
-
-/** Accent variants (exploration 0198). 'linear' overlays a violet accent. */
-type Accent = 'default' | 'linear'
-
+/**
+ * Theme, colour style (variant), and density all flow through the shared
+ * ThemeProvider (exploration 0232), so a choice here persists under the
+ * provider's storage key and stays in sync with the status-bar toggle. The
+ * style row exposes the opt-in variants (monochrome default, Linear's violet,
+ * the warm Cozy room, OLED true-black); density is an orthogonal axis.
+ */
 function AppearanceSettings() {
-  const [theme, setTheme] = useState<Theme>(() => {
-    if (typeof window === 'undefined') return 'system'
-    return (localStorage.getItem('xnet:theme') as Theme) || 'system'
-  })
-
-  const [accent, setAccent] = useState<Accent>(() => {
-    if (typeof window === 'undefined') return 'default'
-    return (localStorage.getItem('xnet-theme-variant') as Accent) || 'default'
-  })
-
-  const handleThemeChange = useCallback((newTheme: Theme) => {
-    setTheme(newTheme)
-    localStorage.setItem('xnet:theme', newTheme)
-
-    // Apply theme to document
-    const root = document.documentElement
-    if (newTheme === 'system') {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-      root.classList.toggle('dark', prefersDark)
-    } else {
-      root.classList.toggle('dark', newTheme === 'dark')
-    }
-  }, [])
-
-  // Shares the ThemeProvider's storage key so the choice survives reloads.
-  const handleAccentChange = useCallback((next: Accent) => {
-    setAccent(next)
-    localStorage.setItem('xnet-theme-variant', next)
-    const root = document.documentElement
-    if (next === 'default') {
-      delete root.dataset.variant
-    } else {
-      root.dataset.variant = next
-    }
-  }, [])
+  const { theme, setTheme, variant, setVariant, density, setDensity } = useTheme()
 
   return (
     <SettingsPanel title="Appearance" description="Customize how xNet looks">
@@ -208,32 +176,32 @@ function AppearanceSettings() {
               icon={<Sun size={14} strokeWidth={1.5} />}
               label="Light"
               active={theme === 'light'}
-              onClick={() => handleThemeChange('light')}
+              onClick={() => setTheme('light')}
             />
             <ThemeButton
               icon={<Moon size={14} strokeWidth={1.5} />}
               label="Dark"
               active={theme === 'dark'}
-              onClick={() => handleThemeChange('dark')}
+              onClick={() => setTheme('dark')}
             />
             <ThemeButton
               icon={<Monitor size={14} strokeWidth={1.5} />}
               label="System"
               active={theme === 'system'}
-              onClick={() => handleThemeChange('system')}
+              onClick={() => setTheme('system')}
             />
           </div>
         </SettingRow>
         <SettingRow
-          label="Accent"
-          description="Monochrome chrome, or Linear's signature violet accent"
+          label="Style"
+          description="Monochrome chrome, Linear's violet accent, or a cozy paper-and-terracotta room"
         >
-          <div className="flex gap-1.5">
+          <div className="flex flex-wrap gap-1.5">
             <ThemeButton
               icon={<span className="h-3.5 w-3.5 rounded-full bg-ink-1" />}
               label="Monochrome"
-              active={accent === 'default'}
-              onClick={() => handleAccentChange('default')}
+              active={variant === 'default'}
+              onClick={() => setVariant('default')}
             />
             <ThemeButton
               icon={
@@ -243,8 +211,44 @@ function AppearanceSettings() {
                 />
               }
               label="Linear"
-              active={accent === 'linear'}
-              onClick={() => handleAccentChange('linear')}
+              active={variant === 'linear'}
+              onClick={() => setVariant('linear')}
+            />
+            <ThemeButton
+              icon={
+                <span
+                  className="h-3.5 w-3.5 rounded-full"
+                  style={{ background: 'hsl(18 58% 52%)' }}
+                />
+              }
+              label="Cozy"
+              active={variant === 'cozy'}
+              onClick={() => setVariant('cozy')}
+            />
+            <ThemeButton
+              icon={<span className="h-3.5 w-3.5 rounded-full border border-hairline bg-black" />}
+              label="True black"
+              active={variant === 'true-black'}
+              onClick={() => setVariant('true-black')}
+            />
+          </div>
+        </SettingRow>
+        <SettingRow
+          label="Density"
+          description="Compact keeps the tight IDE feel; comfortable opens up type and spacing"
+        >
+          <div className="flex gap-1.5">
+            <ThemeButton
+              icon={<span className="h-2.5 w-3.5 rounded-[3px] border border-current" />}
+              label="Compact"
+              active={density === 'compact'}
+              onClick={() => setDensity('compact')}
+            />
+            <ThemeButton
+              icon={<span className="h-3.5 w-3.5 rounded-[4px] border border-current" />}
+              label="Comfortable"
+              active={density === 'comfortable'}
+              onClick={() => setDensity('comfortable')}
             />
           </div>
         </SettingRow>

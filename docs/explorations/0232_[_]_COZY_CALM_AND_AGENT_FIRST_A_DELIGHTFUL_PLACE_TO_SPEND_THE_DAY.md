@@ -592,7 +592,7 @@ export type Density = 'compact' | 'comfortable'
 - [x] Add the `--font-display` face + `.cozy-heading`; apply to H1/H2 + home + assistant name.
 - [x] Add an opt-in translucent material utility for floating layers; honor
       `prefers-reduced-transparency`.
-- [ ] Settings → Appearance: variant + density + true-black/linear/cozy pickers.
+- [x] Settings → Appearance: variant + density + true-black/linear/cozy pickers.
 
 ### Phase 2 — Calm
 - [ ] Replace the cold home with a "good morning" greeting + recents + suggestion
