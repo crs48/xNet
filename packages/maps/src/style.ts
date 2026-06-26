@@ -37,6 +37,14 @@ export interface MapStyle {
 /** The Protomaps public demo basemap (open data, no API key). */
 export const PROTOMAPS_DEMO_PMTILES = 'https://demo-bucket.protomaps.com/v4.pmtiles'
 
+/** Open Esri World Imagery XYZ tiles (note the `{z}/{y}/{x}` order). */
+export const ESRI_WORLD_IMAGERY =
+  'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+
+/** Attribution for the Esri World Imagery basemap. */
+export const ESRI_WORLD_IMAGERY_ATTRIBUTION =
+  'Imagery © Esri, Maxar, Earthstar Geographics, and the GIS User Community'
+
 /** A sensible whole-world starting viewport. */
 export const DEFAULT_VIEWPORT: MapViewport = {
   longitude: 0,
@@ -67,6 +75,7 @@ export function paletteColor(index: number): string {
 export const BASEMAP_PRESETS: Array<{ id: MapBasemapId; label: string }> = [
   { id: 'protomaps-light', label: 'Streets (light)' },
   { id: 'protomaps-dark', label: 'Streets (dark)' },
+  { id: 'satellite', label: 'Satellite' },
   { id: 'blank', label: 'Blank' }
 ]
 
@@ -108,6 +117,32 @@ const DARK: BasemapColors = {
  *   (default: the open demo bucket). No glyphs/sprite are referenced, so no
  *   label fonts need hosting — geometry only, but a recognizable world map.
  */
+/**
+ * Build a raster (XYZ tile) basemap style: a single raster source drawn over a
+ * neutral background. Used by the `satellite` basemap and by plugin-contributed
+ * imagery/topo basemaps registered through the basemap registry.
+ */
+export function buildRasterBasemapStyle(
+  tiles: string,
+  opts: { tileSize?: number; attribution?: string } = {}
+): MapStyle {
+  return {
+    version: 8,
+    sources: {
+      'raster-basemap': {
+        type: 'raster',
+        tiles: [tiles],
+        tileSize: opts.tileSize ?? 256,
+        ...(opts.attribution ? { attribution: opts.attribution } : {})
+      }
+    },
+    layers: [
+      { id: 'background', type: 'background', paint: { 'background-color': DARK.earth } },
+      { id: 'raster-basemap', type: 'raster', source: 'raster-basemap' }
+    ]
+  }
+}
+
 export function buildBasemapStyle(
   basemap: MapBasemapId,
   opts: { pmtilesUrl?: string } = {}
@@ -118,6 +153,12 @@ export function buildBasemapStyle(
       sources: {},
       layers: [{ id: 'background', type: 'background', paint: { 'background-color': LIGHT.earth } }]
     }
+  }
+
+  if (basemap === 'satellite') {
+    return buildRasterBasemapStyle(ESRI_WORLD_IMAGERY, {
+      attribution: ESRI_WORLD_IMAGERY_ATTRIBUTION
+    })
   }
 
   const colors = basemap === 'protomaps-dark' ? DARK : LIGHT

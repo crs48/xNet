@@ -634,7 +634,7 @@ erDiagram
       `setData` for query layers on `moveend`).
 - [ ] Register `/Map` in `NODE_OPEN_TARGETS` (`DashboardView.tsx`) so map nodes
       route from dashboards.
-- [ ] Extend the basemap registry with a satellite/raster preset.
+- [x] Extend the basemap registry with a satellite/raster preset.
 
 ### Phase 2 — GeoTileProvider (LOD + worker)
 - [ ] Define `GeoTileProvider` + `GeoInterest` + `GeoFeatureLod` in

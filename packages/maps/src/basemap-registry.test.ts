@@ -5,24 +5,53 @@ import {
   basemapUsesPmtiles,
   ensureBuiltinBasemaps,
   hasBasemap,
+  registerXyzBasemap,
   resolveBasemapStyle,
   type BasemapDefinition
 } from './basemap-registry'
 
 describe('basemapRegistry', () => {
-  it('exposes the three built-in basemaps', () => {
+  it('exposes the built-in basemaps (streets, satellite, blank)', () => {
     ensureBuiltinBasemaps()
     expect(hasBasemap('protomaps-light')).toBe(true)
     expect(hasBasemap('protomaps-dark')).toBe(true)
+    expect(hasBasemap('satellite')).toBe(true)
     expect(hasBasemap('blank')).toBe(true)
     const ids = basemapPresets().map((p) => p.id)
-    expect(ids).toEqual(expect.arrayContaining(['protomaps-light', 'protomaps-dark', 'blank']))
+    expect(ids).toEqual(
+      expect.arrayContaining(['protomaps-light', 'protomaps-dark', 'satellite', 'blank'])
+    )
   })
 
-  it('marks pmtiles usage per basemap', () => {
+  it('marks pmtiles usage per basemap (vector basemaps only)', () => {
     expect(basemapUsesPmtiles('protomaps-light')).toBe(true)
+    expect(basemapUsesPmtiles('satellite')).toBe(false)
     expect(basemapUsesPmtiles('blank')).toBe(false)
     expect(basemapUsesPmtiles('does-not-exist')).toBe(false)
+  })
+
+  it('resolves the satellite basemap to a raster source + layer', () => {
+    const style = resolveBasemapStyle('satellite')
+    expect(style.sources).toHaveProperty('raster-basemap')
+    expect(style.layers.some((l) => l.type === 'raster')).toBe(true)
+  })
+
+  it('registers a plugin XYZ raster basemap via registerXyzBasemap', () => {
+    const disposable = registerXyzBasemap({
+      id: 'topo-custom',
+      label: 'Topo',
+      tiles: 'https://topo/{z}/{x}/{y}.png',
+      attribution: 'Topo'
+    })
+    try {
+      expect(hasBasemap('topo-custom')).toBe(true)
+      expect(basemapUsesPmtiles('topo-custom')).toBe(false)
+      const style = resolveBasemapStyle('topo-custom')
+      expect(style.sources).toHaveProperty('raster-basemap')
+    } finally {
+      disposable.dispose()
+    }
+    expect(hasBasemap('topo-custom')).toBe(false)
   })
 
   it('repopulates built-ins after a clear (no permanent loss)', () => {
@@ -44,9 +73,9 @@ describe('basemapRegistry', () => {
   })
 
   it('lets a plugin register a new basemap with no core change', () => {
-    const satellite: BasemapDefinition = {
-      id: 'satellite',
-      label: 'Satellite',
+    const custom: BasemapDefinition = {
+      id: 'mystery',
+      label: 'Mystery',
       usesPmtiles: false,
       buildStyle: () => ({
         version: 8,
@@ -54,15 +83,15 @@ describe('basemapRegistry', () => {
         layers: [{ id: 'sat', type: 'background' }]
       })
     }
-    const disposable = basemapRegistry.register(satellite)
+    const disposable = basemapRegistry.register(custom)
     try {
-      expect(hasBasemap('satellite')).toBe(true)
-      expect(basemapPresets().map((p) => p.id)).toContain('satellite')
-      const style = resolveBasemapStyle('satellite')
+      expect(hasBasemap('mystery')).toBe(true)
+      expect(basemapPresets().map((p) => p.id)).toContain('mystery')
+      const style = resolveBasemapStyle('mystery')
       expect(style.sources).toHaveProperty('sat')
     } finally {
       disposable.dispose()
     }
-    expect(hasBasemap('satellite')).toBe(false)
+    expect(hasBasemap('mystery')).toBe(false)
   })
 })

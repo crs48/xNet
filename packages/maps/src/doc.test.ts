@@ -23,7 +23,11 @@ describe('mapDocState', () => {
     expect(state.title).toBe('Logistics')
   })
 
+  it('passes through the satellite basemap', () => {
+    expect(mapDocState({ basemap: 'satellite' }).basemap).toBe('satellite')
+  })
+
   it('falls back to protomaps-light for an unknown basemap', () => {
-    expect(mapDocState({ basemap: 'satellite' }).basemap).toBe('protomaps-light')
+    expect(mapDocState({ basemap: 'terrain-3d' }).basemap).toBe('protomaps-light')
   })
 })

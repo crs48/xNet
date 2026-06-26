@@ -56,8 +56,11 @@ export interface GeoFeatureCollection {
 
 // ─── Persisted map document state ────────────────────────────────────────────
 
-/** Built-in basemap identifiers (open, key-less). `blank` renders no tiles. */
-export type MapBasemapId = 'protomaps-light' | 'protomaps-dark' | 'blank'
+/**
+ * Built-in basemap identifiers (open, key-less). `blank` renders no tiles;
+ * `satellite` renders open XYZ imagery (exploration 0230).
+ */
+export type MapBasemapId = 'protomaps-light' | 'protomaps-dark' | 'satellite' | 'blank'
 
 /** Camera position for the map. longitude/latitude in degrees. */
 export interface MapViewport {
