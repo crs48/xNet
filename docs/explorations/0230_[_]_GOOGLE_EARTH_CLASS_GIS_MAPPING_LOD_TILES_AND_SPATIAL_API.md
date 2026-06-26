@@ -620,7 +620,7 @@ erDiagram
 ## Implementation Checklist
 
 ### Phase 1 — Source model + live query layers
-- [ ] Extend `MapLayerSource` in `packages/data/src/schema/schemas/map.ts` with
+- [x] Extend `MapLayerSource` in `packages/data/src/schema/schemas/map.ts` with
       `query` (lat/lon + filter + tooltip), `raster`, and `pmtiles` kinds;
       bump the persisted-shape tests.
 - [ ] Add a `geohash` (or H3) derivation + two indexed scalar properties when a

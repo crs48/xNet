@@ -59,4 +59,45 @@ describe('MapSchema', () => {
     expect(map.layers?.[0]?.source.kind).toBe('geojson')
     expect(map.layers?.[0]?.style.color).toBe('#2f7ed8')
   })
+
+  it('supports query, raster, and pmtiles layer sources (exploration 0230)', () => {
+    const layers: MapLayerSpec[] = [
+      {
+        id: 'q',
+        name: 'Accounts',
+        source: {
+          kind: 'query',
+          schemaId: 'xnet://xnet.fyi/Account@1.0.0',
+          latProperty: 'lat',
+          lonProperty: 'lon',
+          where: { status: 'active' },
+          tooltip: ['name', 'status']
+        },
+        style: { geometry: 'point', color: '#19a979', size: 6 },
+        visible: true
+      },
+      {
+        id: 'r',
+        name: 'Satellite',
+        source: { kind: 'raster', tileUrl: 'https://x/{z}/{x}/{y}.png', tileSize: 256 },
+        style: { geometry: 'fill', color: '#000000', opacity: 1 },
+        visible: true
+      },
+      {
+        id: 'p',
+        name: 'Parcels',
+        source: { kind: 'pmtiles', artifactCid: 'bafy123', sourceLayer: 'parcels' },
+        style: { geometry: 'fill', color: '#945ecf', opacity: 0.4 },
+        visible: false
+      }
+    ]
+
+    const map = MapSchema.create(
+      { title: 'Layers', basemap: 'protomaps-dark', layers },
+      { createdBy: testDID }
+    )
+
+    expect(map.layers).toHaveLength(3)
+    expect(map.layers?.map((l) => l.source.kind)).toEqual(['query', 'raster', 'pmtiles'])
+  })
 })

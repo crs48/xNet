@@ -85,8 +85,15 @@ export interface MapLayerStyle {
 /**
  * Where a layer's features come from.
  * - `geojson`: inline imported FeatureCollection (the v1 path — fully local).
+ * - `query`:   live binding to a database's rows by lat/lon. Rows are queried by
+ *   the current viewport bounds and materialized to point features on the fly
+ *   (exploration 0230). `latProperty`/`lonProperty` name the numeric coordinate
+ *   properties; `where` is an optional equality filter; `tooltip` selects the
+ *   property keys surfaced in the click popup.
+ * - `raster`: an XYZ raster tile overlay (imagery/topo) drawn above the basemap.
+ * - `pmtiles`: a self-hosted vector tileset stored as a BlobStore artifact
+ *   (reserved — tiered bulk vector, read by content id over range requests).
  * - `dataset`: reference to a GeoDataset artifact node (reserved — tiered bulk).
- * - `query`:   live binding to a database's rows by lat/lon (reserved).
  */
 export type MapLayerSource =
   | { kind: 'geojson'; data: GeoFeatureCollection }
@@ -97,6 +104,26 @@ export type MapLayerSource =
       geoProperty?: string
       latProperty?: string
       lonProperty?: string
+      /** Optional equality where-filter applied to the queried schema. */
+      where?: Record<string, unknown>
+      /** Property keys surfaced in the click popup / inspector (defaults to all). */
+      tooltip?: string[]
+    }
+  | {
+      kind: 'raster'
+      /** XYZ raster tile URL template, e.g. `https://…/{z}/{x}/{y}.png`. */
+      tileUrl: string
+      /** Tile edge length in px (256 or 512). Defaults to 256. */
+      tileSize?: 256 | 512
+      /** Attribution string shown in the map's attribution control. */
+      attribution?: string
+    }
+  | {
+      kind: 'pmtiles'
+      /** Content id of a self-hosted `.pmtiles` artifact in BlobStore. */
+      artifactCid: string
+      /** Source-layer name to draw from inside the vector tileset. */
+      sourceLayer: string
     }
 
 /** One layer on a map. */
