@@ -59,8 +59,9 @@
        Only surfaced under the `cozy` variant (see .cozy-heading); the default
        monochrome chrome stays on the sans ramp. A system-serif stack keeps it
        dependency-free; swap in a bespoke face (Fraunces/Newsreader) later. */
-    --font-display: 'Newsreader', 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia,
-      'Times New Roman', serif;
+    --font-display:
+      'Newsreader', 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman',
+      serif;
 
     /* ─── Legacy aliases → ramp ─────────────────────────────────── */
     --background: var(--surface-0);
