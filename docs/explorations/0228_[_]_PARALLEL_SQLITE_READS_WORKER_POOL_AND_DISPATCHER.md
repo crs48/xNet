@@ -415,12 +415,12 @@ class ReaderDispatcher {
 
 - [ ] Add a benchmark harness: fire N concurrent reads while a write/import burst
       runs; record interactive-read p50/p95 (extend the 0227 boot probe).
-- [ ] Implement the lane scheduler (interactive / bulkRead / write) around the
+- [x] Implement the lane scheduler (interactive / bulkRead / write) around the
       worker proxy (or inside `SQLiteWorkerHandler`), preserving the existing
       `writeQueue` semantics.
 - [ ] Tag callers: landing/interactive reads → `interactive`; seed/import/sync
       apply → `write`/`bulkRead`. Default unknown reads to `interactive`.
-- [ ] Add in-flight **read de-duplication** (collapse identical concurrent
+- [x] Add in-flight **read de-duplication** (collapse identical concurrent
       `descriptorHash` reads to one worker round-trip).
 - [ ] Cooperatively **yield** inside long bulk ops (chunk `applyNodeBatch`/import)
       so an interactive read can interleave.
