@@ -326,14 +326,15 @@
     --border-muted: 28 8% 14%;
     --border-emphasis: 28 8% 26%;
     --foreground-faint: 30 8% 34%;
-    /* Brighter terracotta reads on charcoal; dark text keeps button legible */
-    --accent-ink: 20 68% 62%; /* #E08A5E */
-    --primary: 20 64% 58%; /* #D87E50 */
-    --primary-hover: 20 70% 64%;
-    --primary-active: 20 64% 50%;
-    --primary-muted: 22 30% 20%;
-    --primary-foreground: 28 30% 11%; /* warm near-black, ~5:1 on terracotta */
-    --ring: 20 68% 62%;
+    /* Brighter terracotta-amber reads on charcoal; warm near-black text keeps
+       the primary button legible (APCA Lc ~59 — see val checklist). */
+    --accent-ink: 24 74% 64%;
+    --primary: 24 76% 66%; /* ~#E8995E  bright terracotta-amber */
+    --primary-hover: 24 80% 72%;
+    --primary-active: 24 72% 58%;
+    --primary-muted: 24 32% 20%;
+    --primary-foreground: 26 35% 9%; /* warm near-black */
+    --ring: 24 74% 64%;
     --secondary: 28 8% 15%;
     --muted: 28 8% 15%;
     --muted-foreground: 36 14% 71%;
