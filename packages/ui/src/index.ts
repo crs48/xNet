@@ -293,7 +293,13 @@ export {
 } from './composed/comments'
 
 // ─── Theme ────────────────────────────────────────────────────────
-export { ThemeProvider, useTheme, type Theme, type ThemeVariant } from './theme/ThemeProvider'
+export {
+  ThemeProvider,
+  useTheme,
+  type Theme,
+  type ThemeVariant,
+  type Density
+} from './theme/ThemeProvider'
 
 // ─── Motion (exploration 0199) ─────────────────────────────────────
 // The canonical motion vocabulary's React surface. CSS tokens/keyframes
