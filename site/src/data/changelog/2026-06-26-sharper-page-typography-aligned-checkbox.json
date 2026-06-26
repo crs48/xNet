@@ -4,5 +4,14 @@
   "title": "Sharper page typography: aligned checkboxes, bullets, and drag handles",
   "summary": "To-do checkboxes now show their real checked state and line up with their text, the block drag handle sits in the margin instead of overlapping bullets and checkboxes, and headings use a consistent vertical rhythm.",
   "highlights": [],
-  "tags": ["editor"]
+  "tags": [
+    "editor"
+  ],
+  "pr": 285,
+  "mergedAt": "2026-06-26T17:35:06Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
