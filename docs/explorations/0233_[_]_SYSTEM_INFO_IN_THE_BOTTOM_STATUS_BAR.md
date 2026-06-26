@@ -87,10 +87,10 @@ label table:
 
 ```tsx
 const HUB_LABEL = {
-  disconnected: { label: 'offline',     tone: 'bg-ink-3' },
-  connecting:   { label: 'connecting…', tone: 'bg-warning' },
-  connected:    { label: 'synced',      tone: 'bg-success' },
-  error:        { label: 'sync error',  tone: 'bg-destructive' },
+  disconnected: { label: 'offline', tone: 'bg-ink-3' },
+  connecting: { label: 'connecting…', tone: 'bg-warning' },
+  connected: { label: 'synced', tone: 'bg-success' },
+  error: { label: 'sync error', tone: 'bg-destructive' }
 }
 ```
 
@@ -132,22 +132,22 @@ is an ephemeral Zustand store with two surfaces:
 
 The runtime exposes far more than the bar shows. Highlights:
 
-| Domain | Signal | Source |
-| --- | --- | --- |
-| Sync | `useHubStatus()` → `disconnected\|connecting\|connected\|error` | [`packages/react/src/hooks/useHubStatus.ts`](packages/react/src/hooks/useHubStatus.ts) |
-| Sync | browser offline (`useIsOffline()`) | [`packages/react/src/components/OfflineIndicator.tsx`](packages/react/src/components/OfflineIndicator.tsx) |
-| Sync | lifecycle phase `idle\|connecting\|healthy\|degraded\|replaying\|…` | [`packages/runtime/src/sync/sync-manager.ts`](packages/runtime/src/sync/sync-manager.ts) |
-| Sync | `queueSize` (offline pending), `trackedCount`, `poolSize`, `pendingBlobCount` | `sync-manager.ts` (readonly props + events) |
-| Integrity | `lastVerificationFailure` `{ nodeId, sender, reason, at }` | `sync-manager.ts` (`on('verification-failure')`) |
-| Integrity | `lastReconciliationReport` `{ reason, replayedOfflineChanges, repaired…, at }` | `sync-manager.ts` (`on('reconciliation')`) |
-| Presence | `onAwarenessSnapshot(nodeId, …)` → online users | `sync-manager.ts`; surfaced via `useComms()` |
-| Storage | demo mode `{ limits, usage }` (`useDemoMode()`) | [`packages/react/src/hooks/useDemoMode.ts`](packages/react/src/hooks/useDemoMode.ts) |
-| Storage | OPFS estimate — **not yet surfaced** (`navigator.storage.estimate()`) | n/a |
-| Identity | `useIdentity()` `{ did, isAuthenticated }`; `useSecurity()` `{ level, hasPQKeys }` | [`packages/react/src/hooks/useIdentity.ts`](packages/react/src/hooks/useIdentity.ts) |
-| Runtime | `runtimeStatus` `{ requestedMode, activeMode, usedFallback, phase }` | [`packages/react/src/runtime.ts`](packages/react/src/runtime.ts) |
-| Billing | `useBilling()` `{ plan, status, isActive }` | [`packages/react/src/hooks/useBilling.ts`](packages/react/src/hooks/useBilling.ts) |
-| Progress | `useFileUpload().progress`, `useBackup().uploading`, `useVerification().progress` | `packages/react/src/hooks/*` |
-| Data | `useQuery(...).pageInfo.totalCount`, `nodeStoreReady` | [`packages/react/src/hooks/useQuery.ts`](packages/react/src/hooks/useQuery.ts) |
+| Domain    | Signal                                                                             | Source                                                                                                     |
+| --------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Sync      | `useHubStatus()` → `disconnected\|connecting\|connected\|error`                    | [`packages/react/src/hooks/useHubStatus.ts`](packages/react/src/hooks/useHubStatus.ts)                     |
+| Sync      | browser offline (`useIsOffline()`)                                                 | [`packages/react/src/components/OfflineIndicator.tsx`](packages/react/src/components/OfflineIndicator.tsx) |
+| Sync      | lifecycle phase `idle\|connecting\|healthy\|degraded\|replaying\|…`                | [`packages/runtime/src/sync/sync-manager.ts`](packages/runtime/src/sync/sync-manager.ts)                   |
+| Sync      | `queueSize` (offline pending), `trackedCount`, `poolSize`, `pendingBlobCount`      | `sync-manager.ts` (readonly props + events)                                                                |
+| Integrity | `lastVerificationFailure` `{ nodeId, sender, reason, at }`                         | `sync-manager.ts` (`on('verification-failure')`)                                                           |
+| Integrity | `lastReconciliationReport` `{ reason, replayedOfflineChanges, repaired…, at }`     | `sync-manager.ts` (`on('reconciliation')`)                                                                 |
+| Presence  | `onAwarenessSnapshot(nodeId, …)` → online users                                    | `sync-manager.ts`; surfaced via `useComms()`                                                               |
+| Storage   | demo mode `{ limits, usage }` (`useDemoMode()`)                                    | [`packages/react/src/hooks/useDemoMode.ts`](packages/react/src/hooks/useDemoMode.ts)                       |
+| Storage   | OPFS estimate — **not yet surfaced** (`navigator.storage.estimate()`)              | n/a                                                                                                        |
+| Identity  | `useIdentity()` `{ did, isAuthenticated }`; `useSecurity()` `{ level, hasPQKeys }` | [`packages/react/src/hooks/useIdentity.ts`](packages/react/src/hooks/useIdentity.ts)                       |
+| Runtime   | `runtimeStatus` `{ requestedMode, activeMode, usedFallback, phase }`               | [`packages/react/src/runtime.ts`](packages/react/src/runtime.ts)                                           |
+| Billing   | `useBilling()` `{ plan, status, isActive }`                                        | [`packages/react/src/hooks/useBilling.ts`](packages/react/src/hooks/useBilling.ts)                         |
+| Progress  | `useFileUpload().progress`, `useBackup().uploading`, `useVerification().progress`  | `packages/react/src/hooks/*`                                                                               |
+| Data      | `useQuery(...).pageInfo.totalCount`, `nodeStoreReady`                              | [`packages/react/src/hooks/useQuery.ts`](packages/react/src/hooks/useQuery.ts)                             |
 
 ## External Research
 
@@ -172,7 +172,7 @@ a status strip can carry — mode, diagnostics (error/warning counts),
 cursor position, selection count, file encoding, line endings, git
 branch, LSP spinner — arranged in left/center/right sections
 ([Helix docs](https://docs.helix-editor.com/master/editor.html)). The
-relevant lesson is *sectioning + configurability*, not copying the
+relevant lesson is _sectioning + configurability_, not copying the
 file-centric items.
 
 **Local-first / offline-first sync UX** consistently recommends:
@@ -274,17 +274,17 @@ Put all of it in a context-panel section instead. **Pro:** unlimited
 room; good for deep DevTools-style data. **Con:** not glanceable —
 defeats the "ambient" purpose for the critical few (offline, pending,
 integrity). **Verdict:** complementary, not a substitute — tier C's
-*overflow* can deep-link into such a panel (or reuse DevTools), but the
+_overflow_ can deep-link into such a panel (or reuse DevTools), but the
 chips + popover remain the front door.
 
 ### Comparison
 
-| | Always-on noise | Depth reachable | Calm-UI fit | New plumbing |
-| --- | --- | --- | --- | --- |
-| 1 status quo | minimal | none | ✅ | none |
-| 2 flat expansion | high | n/a | ❌ | low |
-| 3 layered (rec.) | minimal | high | ✅ | small |
-| 4 panel only | minimal | high | ⚠ not glanceable | medium |
+|                  | Always-on noise | Depth reachable | Calm-UI fit      | New plumbing |
+| ---------------- | --------------- | --------------- | ---------------- | ------------ |
+| 1 status quo     | minimal         | none            | ✅               | none         |
+| 2 flat expansion | high            | n/a             | ❌               | low          |
+| 3 layered (rec.) | minimal         | high            | ✅               | small        |
+| 4 panel only     | minimal         | high            | ⚠ not glanceable | medium       |
 
 ## Recommendation
 
@@ -302,7 +302,8 @@ reconciliation path. Derive **"last synced N ago"** from
 `lifecycle.lastTransitionAt`.
 
 **Phase 2 — Conditional safety chips.** Add tier-B chips that render
-*only* when non-nominal:
+_only_ when non-nominal:
+
 - `⇡ N pending` when `queueSize > 0` (the local-first "pending changes"
   norm) — clicking opens the same popover.
 - `⚠` integrity when `lastVerificationFailure` is recent.
@@ -404,7 +405,7 @@ export function useSyncVitals(): SyncVitals {
       syncManager.on('lifecycle', bump),
       syncManager.on('status', bump),
       syncManager.on('verification-failure', bump),
-      syncManager.on('reconciliation', bump),
+      syncManager.on('reconciliation', bump)
     ]
     return () => offs.forEach((off) => off?.())
   }, [syncManager])
@@ -432,7 +433,7 @@ export function useSyncVitals(): SyncVitals {
     poolSize: syncManager?.poolSize ?? 0,
     lifecyclePhase: lifecycle?.phase ?? 'idle',
     lastSyncedAt: lifecycle?.lastTransitionAt ?? null,
-    verificationFailure: failure,
+    verificationFailure: failure
   }
 }
 
@@ -467,7 +468,10 @@ export function useStorageEstimate(pollMs = 30_000): StorageEstimate | null {
     }
     void read()
     const id = setInterval(read, pollMs)
-    return () => { alive = false; clearInterval(id) }
+    return () => {
+      alive = false
+      clearInterval(id)
+    }
   }, [pollMs])
   return est
 }
@@ -495,7 +499,7 @@ const tone = TONE[v.state]          // reuse HUB_LABEL-style table
 
 - **`syncManager` event API surface.** Confirm `on(...)` returns an
   unsubscribe and that all of `lifecycle / status / verification-failure
-  / reconciliation` are emitted (the inventory says yes; verify against
+/ reconciliation` are emitted (the inventory says yes; verify against
   [`sync-manager.ts`](packages/runtime/src/sync/sync-manager.ts) before
   building). If props aren't event-backed, a short poll is an acceptable
   fallback.
@@ -504,9 +508,9 @@ const tone = TONE[v.state]          // reuse HUB_LABEL-style table
   11px text, so visual update rate can be low.
 - **`navigator.storage.estimate()` accuracy.** Browsers report coarse,
   padded numbers and Safari under-reports; treat the storage chip as a
-  *pressure hint*, not an accountant. Only show it past a threshold.
+  _pressure hint_, not an accountant. Only show it past a threshold.
 - **Overload creep.** Each new chip invites the next. Enforce the tiers
-  in review: tier B chips must be *conditional*; anything always-on
+  in review: tier B chips must be _conditional_; anything always-on
   needs an explicit justification against the VS Code "limit items"
   rule.
 - **Mobile real estate.** `MobileTopBar` is 12px and already has three
@@ -514,7 +518,7 @@ const tone = TONE[v.state]          // reuse HUB_LABEL-style table
   pattern is the right detail surface vs. a dedicated route.
 - **Overlap with DevTools.** Several tier-C signals already live in the
   DevTools panels ([exploration 0217](docs/explorations/0217_[x]_DEVTOOLS_OVERHAUL_HERO_PANELS_DATA_BROWSER_AND_PROFILING.md)).
-  Decide: does the popover *reimplement* a mini-view or *deep-link* into
+  Decide: does the popover _reimplement_ a mini-view or _deep-link_ into
   DevTools? (Recommend: popover shows the calm summary + a "Open in
   DevTools" link to avoid duplication.)
 - **i18n / width.** "connecting…", "N workspaces", "N pending" must
@@ -522,13 +526,13 @@ const tone = TONE[v.state]          // reuse HUB_LABEL-style table
 
 ## Implementation Checklist
 
-- [ ] Add `useSyncVitals()` aggregator hook in
+- [x] Add `useSyncVitals()` aggregator hook in
       `apps/web/src/workbench/` over `useHubStatus`, `useIsOffline`, and
       `syncManager` events/props.
-- [ ] Verify `syncManager.on(...)` unsubscribe semantics and event names
+- [x] Verify `syncManager.on(...)` unsubscribe semantics and event names
       against [`sync-manager.ts`](packages/runtime/src/sync/sync-manager.ts);
       add AF/throttle coalescing for replay storms.
-- [ ] Add `useStorageEstimate()` hook (`navigator.storage.estimate` +
+- [x] Add `useStorageEstimate()` hook (`navigator.storage.estimate` +
       `persisted()`), threshold-gated.
 - [ ] Build a small `<StatusPopover>` primitive anchored above the bar
       (reuse the existing popover/menu primitive if one exists in
