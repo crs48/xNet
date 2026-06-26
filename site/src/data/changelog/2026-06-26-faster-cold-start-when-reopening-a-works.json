@@ -1,0 +1,12 @@
+{
+  "id": "2026-06-26-faster-cold-start-when-reopening-a-works",
+  "date": "June 26, 2026",
+  "title": "Faster cold start when reopening a workspace",
+  "summary": "Reopening a populated workspace paints sooner: the first database read after a reload is now memory-mapped and the local file is defragmented in the background, cutting the cold-start stall.",
+  "highlights": [
+    "First read after reload is memory-mapped instead of thousands of synchronous reads"
+  ],
+  "tags": [
+    "performance"
+  ]
+}
