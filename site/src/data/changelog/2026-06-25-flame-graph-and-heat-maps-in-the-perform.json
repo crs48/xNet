@@ -1,0 +1,11 @@
+{
+  "id": "2026-06-25-flame-graph-and-heat-maps-in-the-perform",
+  "date": "June 25, 2026",
+  "title": "Flame graph and heat maps in the Performance dev tool",
+  "summary": "The dev-tools Performance panel now shows a latency heat map (trace latency distribution over time), a frame-time/jank heat map, and an aggregated flame graph of where time goes across recent operations; the Traces panel adds a Waterfall/Flame view toggle for per-trace call nesting and self-time.",
+  "highlights": [],
+  "tags": [
+    "devtools",
+    "performance"
+  ]
+}

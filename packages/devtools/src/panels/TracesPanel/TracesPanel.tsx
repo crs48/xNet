@@ -8,12 +8,16 @@
 
 import type { DevToolsTrace } from '../../core/types'
 import { useState } from 'react'
+import { FlameChart } from './FlameChart'
 import { useTracesPanel } from './useTracesPanel'
 import { Waterfall } from './Waterfall'
+
+type TraceView = 'waterfall' | 'flame'
 
 export function TracesPanel() {
   const { traces } = useTracesPanel()
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [view, setView] = useState<TraceView>('waterfall')
 
   if (traces.length === 0) {
     return (
@@ -28,11 +32,28 @@ export function TracesPanel() {
 
   return (
     <div className="flex flex-col h-full overflow-auto">
+      <div className="flex items-center gap-1 px-3 py-1.5 border-b border-hairline">
+        <span className="text-[10px] text-ink-3 mr-1">View</span>
+        {(['waterfall', 'flame'] as const).map((mode) => (
+          <button
+            key={mode}
+            type="button"
+            onClick={() => setView(mode)}
+            aria-pressed={view === mode}
+            className={`text-[10px] px-1.5 py-0.5 rounded ${
+              view === mode ? 'bg-surface-2 text-ink-1 font-medium' : 'text-ink-3'
+            }`}
+          >
+            {mode === 'waterfall' ? 'Waterfall' : 'Flame'}
+          </button>
+        ))}
+      </div>
       <ul className="divide-y divide-hairline">
         {traces.map((trace) => (
           <TraceRow
             key={trace.traceId}
             trace={trace}
+            view={view}
             expanded={expanded === trace.traceId}
             onToggle={() => setExpanded((id) => (id === trace.traceId ? null : trace.traceId))}
           />
@@ -44,10 +65,12 @@ export function TracesPanel() {
 
 function TraceRow({
   trace,
+  view,
   expanded,
   onToggle
 }: {
   trace: DevToolsTrace
+  view: TraceView
   expanded: boolean
   onToggle: () => void
 }) {
@@ -67,7 +90,7 @@ function TraceRow({
       </button>
       {expanded && (
         <div className="mt-1 overflow-x-auto">
-          <Waterfall trace={trace} />
+          {view === 'flame' ? <FlameChart trace={trace} /> : <Waterfall trace={trace} />}
         </div>
       )}
     </li>
