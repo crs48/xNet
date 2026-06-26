@@ -41,6 +41,73 @@ export interface SQLiteConfig {
    * (`localStorage` is unavailable in workers).
    */
   bootDebug?: boolean
+
+  // ─── Electron / better-sqlite3 only (exploration 0230) ───────────────────
+
+  /**
+   * Front every storage operation with the priority scheduler so a queued write
+   * burst can't head-of-line block an interactive read, and a manual transaction
+   * holds the connection exclusively (`BEGIN`…`COMMIT` can't be interleaved).
+   * Default: `true`. Has no effect on the WASM/web adapters, which schedule in
+   * their worker host instead.
+   */
+  scheduler?: boolean
+
+  /**
+   * Open a second, **read-only** `better-sqlite3` connection so plain reads use
+   * a different connection than the writer (no contention with write locks).
+   * Ignored for `:memory:` databases (each connection would be a separate DB).
+   * Default: `false`.
+   */
+  readonlyReadConnection?: boolean
+
+  /**
+   * Spawn a pool of read-only `better-sqlite3` reader threads so **heavy** reads
+   * (FTS, large aggregates, big scans) run in parallel on other cores instead of
+   * blocking the data-process thread. `'auto'` sizes the pool to the host's core
+   * count (capped). `0` / `undefined` disables it. Ignored for `:memory:`.
+   * Default: disabled.
+   */
+  readerPoolSize?: number | 'auto'
+
+  /**
+   * Reads issued within this many milliseconds of the most recent commit route
+   * to the writer connection (read-your-writes safety) instead of the read-only
+   * connection / reader pool. WAL already makes committed writes visible across
+   * in-process connections, so the default `0` trusts WAL; raise it only if a
+   * platform shows stale cross-connection reads.
+   */
+  readYourWritesWindowMs?: number
+}
+
+/**
+ * Point-in-time diagnostics for the Electron SQLite adapter (exploration 0230):
+ * scheduler queue depth, reader-pool occupancy, and WAL growth. Surfaced to the
+ * desktop diagnostics seam.
+ */
+export interface ElectronSQLiteDiagnostics {
+  /** Scheduler lane depths + in-flight flag, or null when the scheduler is off. */
+  scheduler: {
+    interactive: number
+    bulk: number
+    write: number
+    inFlight: boolean
+  } | null
+  /** Reader-thread pool occupancy, or null when no pool is configured. */
+  readerPool: {
+    size: number
+    healthy: number
+    inFlight: number
+    dispatched: number
+    failures: number
+  } | null
+  /** WAL file growth, or null when unavailable / not in WAL mode. */
+  wal: {
+    walBytes: number
+    pageCount: number
+  } | null
+  /** Whether a read-only secondary connection is open. */
+  readonlyConnection: boolean
 }
 
 /**

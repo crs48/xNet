@@ -491,6 +491,15 @@ process.parentPort?.on('message', async (event) => {
         break
       }
 
+      // ─── Diagnostics ─────────────────────────────────────────────────────
+
+      case 'sqlite:diagnostics': {
+        // Scheduler depth, reader-pool occupancy, WAL growth (exploration 0230).
+        const diagnostics = dataService ? await dataService.getSqliteDiagnostics() : null
+        sendResponse(requestId, { diagnostics })
+        break
+      }
+
       default:
         log('Unknown message type:', type)
         sendResponse(requestId, { error: `Unknown message type: ${type}` })

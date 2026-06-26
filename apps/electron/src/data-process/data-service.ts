@@ -21,6 +21,7 @@ import type {
   NodeBatchWriteTimings,
   NodeChange
 } from '@xnetjs/data'
+import type { ElectronSQLiteDiagnostics } from '@xnetjs/sqlite'
 import { existsSync, unlinkSync } from 'fs'
 import { hashContent, createContentId } from '@xnetjs/core'
 import { NodeStore, SQLiteNodeStorageAdapter } from '@xnetjs/data'
@@ -201,6 +202,13 @@ export interface DataService {
   setLastLamportTime(time: number): Promise<void>
   getDocumentContent(nodeId: string): Promise<number[] | null>
   setDocumentContent(nodeId: string, content: number[]): Promise<void>
+
+  /**
+   * Point-in-time SQLite diagnostics — scheduler lane depths, reader-pool
+   * occupancy, and WAL growth (exploration 0230). Surfaced to the renderer /
+   * devtools so the desktop build can mirror the web Performance panel's view.
+   */
+  getSqliteDiagnostics(): Promise<ElectronSQLiteDiagnostics | null>
 }
 
 // ─── Debug Logging ──────────────────────────────────────────────────────────
@@ -1143,12 +1151,22 @@ export function createDataService(config: DataServiceConfig): DataService {
         }
       }
 
-      // Create adapter with unified schema
+      // Create adapter with unified schema.
+      //
+      // exploration 0230: front the writer connection with the priority
+      // scheduler (default on), serve plain reads from a read-only secondary
+      // connection, and offload heavy reads (FTS / aggregates / big scans) to a
+      // small pool of read-only `worker_threads` so they run in parallel on
+      // other cores instead of blocking this single data-process thread. All of
+      // this is best-effort inside the adapter — if a reader thread can't boot,
+      // reads transparently fall back to the inline connection.
       adapter = await createElectronSQLiteAdapter({
         path: config.dbPath,
         walMode: true,
         foreignKeys: true,
-        busyTimeout: 5000
+        busyTimeout: 5000,
+        readonlyReadConnection: true,
+        readerPoolSize: 'auto'
       })
 
       log('Database initialized with schema version:', await adapter.getSchemaVersion())
@@ -1800,6 +1818,11 @@ export function createDataService(config: DataServiceConfig): DataService {
       )
 
       log('setDocumentContent:', nodeId, 'size:', content.length)
+    },
+
+    async getSqliteDiagnostics(): Promise<ElectronSQLiteDiagnostics | null> {
+      if (!adapter) return null
+      return adapter.getDiagnostics()
     }
   }
 }

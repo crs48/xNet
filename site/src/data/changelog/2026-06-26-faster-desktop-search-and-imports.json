@@ -1,0 +1,10 @@
+{
+  "id": "2026-06-26-faster-desktop-search-and-imports",
+  "date": "June 26, 2026",
+  "title": "Faster desktop search and imports",
+  "summary": "The desktop app now runs heavy database reads (search, large lists) in parallel on multiple cores and keeps the UI responsive during big imports.",
+  "highlights": [],
+  "tags": [
+    "performance"
+  ]
+}

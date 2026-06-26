@@ -4,6 +4,7 @@ export default defineConfig({
   entry: {
     index: 'src/index.ts',
     'adapters/electron': 'src/adapters/electron.ts',
+    'adapters/reader-thread': 'src/adapters/reader-thread.ts',
     'adapters/web': 'src/adapters/web.ts',
     'adapters/web-worker': 'src/adapters/web-worker.ts',
     'adapters/web-proxy': 'src/adapters/web-proxy.ts',
