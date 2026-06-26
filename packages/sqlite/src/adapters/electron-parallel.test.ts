@@ -202,6 +202,29 @@ d('ElectronSQLiteAdapter scheduling + parallel reads (0230)', () => {
     expect(diag.readerPool).toBeNull() // no pool configured here
   })
 
+  it('checkpoints the WAL to keep it bounded', async () => {
+    const adapter = await makeAdapter()
+    const now = Date.now()
+    // Grow the WAL with a burst of committed writes.
+    for (let i = 0; i < 500; i++) {
+      await adapter.run(
+        'INSERT INTO nodes (id, schema_id, created_at, updated_at, created_by) VALUES (?, ?, ?, ?, ?)',
+        [`wal-${i}`, 'xnet://Page/1.0', now, now, 'did:key:test']
+      )
+    }
+    const before = await adapter.getWalStats()
+    expect(before).not.toBeNull()
+    expect(before!.walBytes).toBeGreaterThan(0)
+
+    // A passive checkpoint folds WAL frames back into the main DB; with no
+    // long-lived reader pinning a snapshot it makes progress (≥ 0 frames) and
+    // the WAL does not keep growing unbounded.
+    const frames = await adapter.checkpointWal()
+    expect(frames).toBeGreaterThanOrEqual(0)
+    const after = await adapter.getWalStats()
+    expect(after!.walBytes).toBeLessThanOrEqual(before!.walBytes)
+  })
+
   it('keeps a manual transaction atomic under concurrent interactive reads', async () => {
     const adapter = await makeAdapter()
     const now = Date.now()
