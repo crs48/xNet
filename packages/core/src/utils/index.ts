@@ -6,3 +6,4 @@
  */
 export { clamp, clamp01 } from './math'
 export { formatBytes } from './format'
+export { SsrfError, assertPublicUrl, validateExternalUrl } from './ssrf'

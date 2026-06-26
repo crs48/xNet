@@ -481,10 +481,10 @@ Phase 0 — mechanical
       flip to fail-on-new.
 
 Phase 1 — security
-- [ ] Export the strict SSRF guard from `@xnetjs/core` (or `@xnetjs/security`).
-- [ ] Switch `packages/hub/src/utils/url.ts` consumers (`unfurl`, `federation`,
+- [x] Export the strict SSRF guard from `@xnetjs/core` (or `@xnetjs/security`).
+- [x] Switch `packages/hub/src/utils/url.ts` consumers (`unfurl`, `federation`,
       `crawl`) to it; delete the regex guard.
-- [ ] Add a bypass-vector test table.
+- [x] Add a bypass-vector test table.
 
 Phase 2 — single source of truth
 - [ ] Introduce `SCHEMA_METADATA`; generate `builtInSchemas` + both barrels from

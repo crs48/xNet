@@ -114,6 +114,7 @@ export { AUTH_ACTIONS } from './auth-types'
 
 // Shared utility helpers (dependency-free)
 export { clamp, clamp01, formatBytes } from './utils'
+export { SsrfError, assertPublicUrl, validateExternalUrl } from './utils'
 
 // Core types
 export type DID = `did:key:${string}`
