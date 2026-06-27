@@ -25,7 +25,7 @@ different answers today:
    build, without a human driving a mouse?
 
 The short version of the findings: **the protocol/sync foundation is shared and
-solid, but the Electron *renderer* is a hand-forked subset of the web app with
+solid, but the Electron _renderer_ is a hand-forked subset of the web app with
 no parity enforcement, and none of the existing Electron or cross-client e2e
 tests actually run in CI.** The packaged app is built by
 [`electron-release.yml`](../../.github/workflows/electron-release.yml) and shipped
@@ -33,14 +33,14 @@ to GitHub Releases without ever being launched in a test.
 
 ## Executive Summary
 
-| Dimension | State today | Confidence we'd catch a regression in CI |
-| --- | --- | --- |
-| Shared protocol kernel (`@xnetjs/sync`, identity, hash/sign) | Genuinely shared, golden-vector conformance suite exists | **High** (vectors run in `runtime` project) |
-| Electron ↔ hub ↔ web convergence | Works in principle (same kernel); one web↔web e2e exists | **None** — `doc-sync.spec.ts` is not in CI |
-| Electron renderer ↔ web feature parity | Forked subset (8-state shell vs 26 routes), drift unguarded | **None** — no parity test exists |
-| Electron app correctness (launch, IPC, SQLite, deep links) | Decent unit tests; one CDP canvas e2e | **Low** — unit suite is not wired into root CI; e2e not in CI |
-| Packaged-app smoke (the thing users download) | Built and released untested | **None** |
-| Peer-to-peer (WebRTC direct sync) | Implemented, flag-gated (`VITE_XNET_ENABLE_WEBRTC`) | **None** in Electron path |
+| Dimension                                                    | State today                                                 | Confidence we'd catch a regression in CI                      |
+| ------------------------------------------------------------ | ----------------------------------------------------------- | ------------------------------------------------------------- |
+| Shared protocol kernel (`@xnetjs/sync`, identity, hash/sign) | Genuinely shared, golden-vector conformance suite exists    | **High** (vectors run in `runtime` project)                   |
+| Electron ↔ hub ↔ web convergence                             | Works in principle (same kernel); one web↔web e2e exists    | **None** — `doc-sync.spec.ts` is not in CI                    |
+| Electron renderer ↔ web feature parity                       | Forked subset (8-state shell vs 26 routes), drift unguarded | **None** — no parity test exists                              |
+| Electron app correctness (launch, IPC, SQLite, deep links)   | Decent unit tests; one CDP canvas e2e                       | **Low** — unit suite is not wired into root CI; e2e not in CI |
+| Packaged-app smoke (the thing users download)                | Built and released untested                                 | **None**                                                      |
+| Peer-to-peer (WebRTC direct sync)                            | Implemented, flag-gated (`VITE_XNET_ENABLE_WEBRTC`)         | **None** in Electron path                                     |
 
 **Recommendation (detailed below):** stand up a six-layer automated pyramid and
 a cheap parity guard, reusing infrastructure that already exists:
@@ -196,14 +196,14 @@ automated harness that can flip the transport flag.
 The Electron renderer is **not** the web app loaded in a window — it is a
 separate, hand-maintained React app:
 
-| | Web (`apps/web/src`) | Electron (`apps/electron/src/renderer`) |
-| --- | --- | --- |
-| Source files (non-test) | ~280 | ~39 |
-| Components | ~84 + `routes/` + `workbench/` | ~28 |
-| Navigation | TanStack Router, ~26 routes (`routeTree.gen.ts`) | hardcoded 8-state `ShellState` machine in `App.tsx` |
-| Comms / chat | `apps/web/src/comms/` (~40 files) | **absent** |
-| Coachmarks, what's-new, workbench shell | present | **absent** |
-| CRM / finance / analytics / dashboard / map / person / discover routes | present | **absent** |
+|                                                                        | Web (`apps/web/src`)                             | Electron (`apps/electron/src/renderer`)             |
+| ---------------------------------------------------------------------- | ------------------------------------------------ | --------------------------------------------------- |
+| Source files (non-test)                                                | ~280                                             | ~39                                                 |
+| Components                                                             | ~84 + `routes/` + `workbench/`                   | ~28                                                 |
+| Navigation                                                             | TanStack Router, ~26 routes (`routeTree.gen.ts`) | hardcoded 8-state `ShellState` machine in `App.tsx` |
+| Comms / chat                                                           | `apps/web/src/comms/` (~40 files)                | **absent**                                          |
+| Coachmarks, what's-new, workbench shell                                | present                                          | **absent**                                          |
+| CRM / finance / analytics / dashboard / map / person / discover routes | present                                          | **absent**                                          |
 
 Three tiers of sharing, with increasing drift risk:
 
@@ -320,26 +320,26 @@ harnesses on `window.__xnetCanvasTestHarness`, and an SSIM visual pipeline.
 
 ### A. Electron driver for e2e
 
-| Option | Pros | Cons | Verdict |
-| --- | --- | --- | --- |
-| **Keep bespoke CDP spawn** (`electron-canvas.spec.ts` pattern) | Already written; works against `electron-vite dev` | Fragile (port polling, process trees, manual teardown); only tests dev mode, never the packaged app | Retire for new work |
-| **Playwright `_electron.launch()`** | First-class API; drives main+renderer; same Playwright we already use; can launch the **built** app | "Experimental" label; Linux needs xvfb | **Recommended** |
-| **WebdriverIO Electron Service** | Auto Chromedriver, auto-xvfb, Forge/Builder aware | Adds a second framework + config surface; overlaps Playwright | Only if we outgrow Playwright |
+| Option                                                         | Pros                                                                                                | Cons                                                                                                | Verdict                       |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------- |
+| **Keep bespoke CDP spawn** (`electron-canvas.spec.ts` pattern) | Already written; works against `electron-vite dev`                                                  | Fragile (port polling, process trees, manual teardown); only tests dev mode, never the packaged app | Retire for new work           |
+| **Playwright `_electron.launch()`**                            | First-class API; drives main+renderer; same Playwright we already use; can launch the **built** app | "Experimental" label; Linux needs xvfb                                                              | **Recommended**               |
+| **WebdriverIO Electron Service**                               | Auto Chromedriver, auto-xvfb, Forge/Builder aware                                                   | Adds a second framework + config surface; overlaps Playwright                                       | Only if we outgrow Playwright |
 
 ### B. Parity strategy
 
-| Option | Pros | Cons | Verdict |
-| --- | --- | --- | --- |
-| **Manual (status quo)** | Zero cost | Drift is invisible; the user's exact concern | No |
-| **Static parity guard** (`check:electron-parity`) | Cheap, fast, runs in `lint`; catches "web added a view Electron lacks" + "forked component's shared imports drifted" | Doesn't prove runtime behavior | **Recommended now** |
-| **Converge architectures** (Electron renders the web shell / shared route table) | Eliminates the fork class entirely; one UI to test | Large refactor; loses some desktop-tailored UX; risks regressions | **Recommended as the north star**, phased |
+| Option                                                                           | Pros                                                                                                                 | Cons                                                              | Verdict                                   |
+| -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- | ----------------------------------------- |
+| **Manual (status quo)**                                                          | Zero cost                                                                                                            | Drift is invisible; the user's exact concern                      | No                                        |
+| **Static parity guard** (`check:electron-parity`)                                | Cheap, fast, runs in `lint`; catches "web added a view Electron lacks" + "forked component's shared imports drifted" | Doesn't prove runtime behavior                                    | **Recommended now**                       |
+| **Converge architectures** (Electron renders the web shell / shared route table) | Eliminates the fork class entirely; one UI to test                                                                   | Large refactor; loses some desktop-tailored UX; risks regressions | **Recommended as the north star**, phased |
 
 ### C. Sync/interop coverage
 
-| Option | Pros | Cons | Verdict |
-| --- | --- | --- | --- |
-| **Property-based convergence** (in-process replicas) | Fast, exhaustive on the algebra; no GUI | Doesn't exercise IPC/SQLite/transport | Add as L1.5 |
-| **Full-stack convergence matrix** (hub + real clients) | Proves the real seams incl. Electron IPC + WebRTC | Slower, heavier in CI | **Recommended** for the headline guarantee |
+| Option                                                 | Pros                                              | Cons                                  | Verdict                                    |
+| ------------------------------------------------------ | ------------------------------------------------- | ------------------------------------- | ------------------------------------------ |
+| **Property-based convergence** (in-process replicas)   | Fast, exhaustive on the algebra; no GUI           | Doesn't exercise IPC/SQLite/transport | Add as L1.5                                |
+| **Full-stack convergence matrix** (hub + real clients) | Proves the real seams incl. Electron IPC + WebRTC | Slower, heavier in CI                 | **Recommended** for the headline guarantee |
 
 ## Recommendation
 
@@ -401,7 +401,9 @@ if (missing.length) {
   )
   process.exit(1)
 }
-console.log(`electron-parity OK · ${webViews.length} web views checked, ${ELECTRON_WAIVED.size} waived`)
+console.log(
+  `electron-parity OK · ${webViews.length} web views checked, ${ELECTRON_WAIVED.size} waived`
+)
 ```
 
 Wire into [`ci.yml`](../../.github/workflows/ci.yml) `lint` job alongside the
@@ -472,7 +474,10 @@ test('Electron app launches, loads renderer, and persists to SQLite', async () =
   await win.evaluate(() => window.xnetNodes.setNode(/* … */))
   await app.close()
 
-  const app2 = await electron.launch({ args: ['apps/electron'], env: { XNET_PROFILE: 'e2e-smoke' } })
+  const app2 = await electron.launch({
+    args: ['apps/electron'],
+    env: { XNET_PROFILE: 'e2e-smoke' }
+  })
   const win2 = await app2.firstWindow()
   await expect.poll(() => win2.evaluate(() => window.xnetNodes.countNodes())).toBeGreaterThan(0)
   await app2.close()
@@ -482,13 +487,13 @@ test('Electron app launches, loads renderer, and persists to SQLite', async () =
 ### L4 — packaged-app smoke step in `electron-release.yml`
 
 ```yaml
-  - name: Smoke-test packaged app
-    run: |
-      # Linux example; macOS/Windows resolve the binary inside the artifact.
-      xvfb-run --auto-servernum pnpm --filter @xnetjs/e2e-tests exec \
-        playwright test src/packaged-smoke.spec.ts --project=electron
-    env:
-      XNET_PACKAGED_BINARY: ${{ steps.build.outputs.binary-path }}
+- name: Smoke-test packaged app
+  run: |
+    # Linux example; macOS/Windows resolve the binary inside the artifact.
+    xvfb-run --auto-servernum pnpm --filter @xnetjs/e2e-tests exec \
+      playwright test src/packaged-smoke.spec.ts --project=electron
+  env:
+    XNET_PACKAGED_BINARY: ${{ steps.build.outputs.binary-path }}
 ```
 
 The spec points `electron.launch({ executablePath: process.env.XNET_PACKAGED_BINARY })`
@@ -514,7 +519,7 @@ exits non-zero on failure — blocking the publish step.
   a focused canvas/page/database desktop tool (in which case codify the waiver
   list), or a full peer of the web app (in which case prioritize shell
   convergence)? This determines whether L0's waiver list or the north-star
-  refactor is the real deliverable. *(Recommend deciding before building L0.)*
+  refactor is the real deliverable. _(Recommend deciding before building L0.)_
 
   **Decision (recorded during implementation):** Electron ships as a **focused
   canvas / page / database desktop tool**, not a full peer of the web app today.
@@ -523,7 +528,7 @@ exits non-zero on failure — blocking the publish step.
   desktop for now. The L0 parity guard
   ([`scripts/check-electron-parity.mjs`](../../scripts/check-electron-parity.mjs))
   therefore encodes a `WAIVED` list of intentionally-omitted views plus a
-  `COVERED` list of views the desktop ships; a *new* web route that lands in
+  `COVERED` list of views the desktop ships; a _new_ web route that lands in
   neither list fails CI, forcing a conscious "implement it on desktop or waive
   it" decision. Full shell convergence remains the north-star follow-up but is
   out of scope for this first PR.
@@ -539,6 +544,7 @@ capture) — are deferred to a dedicated follow-up because they require Electron
 native-module rebuild caching plus a headless-GUI (`xvfb`) CI job whose flake
 profile warrants its own review. Their checklist boxes are intentionally left
 unchecked, so this exploration stays `[_]` until that follow-up lands.
+
 - **Native/Swift client in the matrix.** The Swift/Rust kernel proves L0/L1
   conformance today but isn't a GUI client; including it in L2 means a headless
   CLI client harness, not a window. Scope it as a follow-up.
@@ -550,15 +556,15 @@ unchecked, so this exploration stays `[_]` until that follow-up lands.
 
 - [x] **Decide the product intent** (focused subset vs full peer) and record it
       in this doc; it gates L0's waiver list vs the convergence refactor.
-- [ ] **L0:** add `scripts/check-electron-parity.mjs` + `check:electron-parity`
+- [x] **L0:** add `scripts/check-electron-parity.mjs` + `check:electron-parity`
       npm script; wire into `ci.yml` `lint` job; seed the waiver list with the
       currently-omitted views and a one-line reason each.
-- [ ] **L0b:** extend the guard to diff shared-package imports of Tier-2 forked
+- [x] **L0b:** extend the guard to diff shared-package imports of Tier-2 forked
       components (`PageView`, `DatabaseView`) and warn on divergence.
 - [ ] **CI plumbing:** add `apps/electron/src/**/*.test.{ts,tsx}` to a root
       vitest project (or a dedicated `electron` project) so the existing Electron
       unit suite runs in CI; cache the Electron native-module rebuild.
-- [ ] **L1:** add an assertion that the Electron-bundled `@xnetjs/sync` resolves
+- [x] **L1:** add an assertion that the Electron-bundled `@xnetjs/sync` resolves
       to the same version that passes `conformance.test.ts` (guard against a
       stale bundled kernel).
 - [ ] **L1.5:** add a property-based convergence test (N in-process replicas,
@@ -603,6 +609,7 @@ unchecked, so this exploration stays `[_]` until that follow-up lands.
 ## References
 
 ### In-repo
+
 - Electron app: [`apps/electron/`](../../apps/electron) — `main/index.ts`,
   `preload/index.ts`, `renderer/`, `data-process/`, `electron.vite.config.ts`,
   `electron-builder.json5`.
@@ -632,6 +639,7 @@ unchecked, so this exploration stays `[_]` until that follow-up lands.
 - Root test config: [`vitest.config.ts`](../../vitest.config.ts).
 
 ### External
+
 - [Playwright — Electron class (`_electron.launch`)](https://playwright.dev/docs/api/class-electron)
 - [Playwright — ElectronApplication](https://playwright.dev/docs/api/class-electronapplication)
 - [Electron — Automated Testing](https://www.electronjs.org/docs/latest/tutorial/automated-testing)
