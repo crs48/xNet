@@ -4,5 +4,14 @@
   "title": "xNet now listed as a protocol on the compare page",
   "summary": "The Compare page's Protocols layer now includes xNet alongside AT Protocol and Matrix, and the sync-engines section's framing was corrected so it no longer contradicts the own-store tools (Turso, Ditto) it lists.",
   "highlights": [],
-  "tags": ["app"]
+  "tags": [
+    "app"
+  ],
+  "pr": 299,
+  "mergedAt": "2026-06-27T19:36:21Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
