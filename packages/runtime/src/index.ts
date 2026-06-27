@@ -27,6 +27,17 @@ export {
 
 export { liveQuery, type LiveQuery, type LiveQueryValue } from './live-query'
 
+// The executable "use xNet from any framework" contract (exploration 0237).
+// Behaviour is validated once here, framework-agnostically; each adapter adds
+// only a tiny render-harness test on top.
+export {
+  runAdapterConformance,
+  AdapterConformanceError,
+  type ConformanceClientFactory,
+  type AdapterConformanceCheck,
+  type AdapterConformanceResult
+} from './adapter-conformance'
+
 // =============================================================================
 // Sync orchestration (relocated from @xnetjs/react — these never imported React)
 // =============================================================================

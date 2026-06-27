@@ -1,0 +1,8 @@
+{
+  "id": "2026-06-27-use-xnet-from-any-framework-validated",
+  "date": "June 27, 2026",
+  "title": "Use xNet from any framework, validated",
+  "summary": "The headless runtime is now the official 'use xNet from any framework' surface: a documented Vue/Svelte/Solid/vanilla binding over createXNetClient + liveQuery, plus runAdapterConformance — a shared, framework-agnostic suite that proves a binding's live-query, mutate, auth, and lifecycle behaviour in one call.",
+  "highlights": [],
+  "tags": ["platform"]
+}
