@@ -4,5 +4,14 @@
   "title": "Use xNet from any framework, validated",
   "summary": "The headless runtime is now the official 'use xNet from any framework' surface: a documented Vue/Svelte/Solid/vanilla binding over createXNetClient + liveQuery, plus runAdapterConformance — a shared, framework-agnostic suite that proves a binding's live-query, mutate, auth, and lifecycle behaviour in one call.",
   "highlights": [],
-  "tags": ["platform"]
+  "tags": [
+    "platform"
+  ],
+  "pr": 302,
+  "mergedAt": "2026-06-27T22:09:32Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
