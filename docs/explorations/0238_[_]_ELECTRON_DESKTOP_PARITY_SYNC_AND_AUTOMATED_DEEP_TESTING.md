@@ -515,6 +515,30 @@ exits non-zero on failure — blocking the publish step.
   list), or a full peer of the web app (in which case prioritize shell
   convergence)? This determines whether L0's waiver list or the north-star
   refactor is the real deliverable. *(Recommend deciding before building L0.)*
+
+  **Decision (recorded during implementation):** Electron ships as a **focused
+  canvas / page / database desktop tool**, not a full peer of the web app today.
+  Comms, CRM, finance, analytics, dashboards, discover/person/space/tag, labs,
+  maps, and the standalone tasks/requests surfaces are **deliberately waived** on
+  desktop for now. The L0 parity guard
+  ([`scripts/check-electron-parity.mjs`](../../scripts/check-electron-parity.mjs))
+  therefore encodes a `WAIVED` list of intentionally-omitted views plus a
+  `COVERED` list of views the desktop ships; a *new* web route that lands in
+  neither list fails CI, forcing a conscious "implement it on desktop or waive
+  it" decision. Full shell convergence remains the north-star follow-up but is
+  out of scope for this first PR.
+
+### Implementation note — what this PR actually shipped
+
+This first PR implements the cheap, high-value, **verifiable-in-CI** layers
+(L0 + L0b parity guard, L1 shared-kernel pin, L1.5 property-based convergence,
+and the CI plumbing that runs the Electron unit suite). The heavy
+GUI/full-stack layers — **L2** (electron↔web e2e matrix), **L3** (`_electron`
+launch smoke), **L4** (packaged-app smoke gate), and **L5** (Electron visual
+capture) — are deferred to a dedicated follow-up because they require Electron
+native-module rebuild caching plus a headless-GUI (`xvfb`) CI job whose flake
+profile warrants its own review. Their checklist boxes are intentionally left
+unchecked, so this exploration stays `[_]` until that follow-up lands.
 - **Native/Swift client in the matrix.** The Swift/Rust kernel proves L0/L1
   conformance today but isn't a GUI client; including it in L2 means a headless
   CLI client harness, not a window. Scope it as a follow-up.
@@ -524,7 +548,7 @@ exits non-zero on failure — blocking the publish step.
 
 ## Implementation Checklist
 
-- [ ] **Decide the product intent** (focused subset vs full peer) and record it
+- [x] **Decide the product intent** (focused subset vs full peer) and record it
       in this doc; it gates L0's waiver list vs the convergence refactor.
 - [ ] **L0:** add `scripts/check-electron-parity.mjs` + `check:electron-parity`
       npm script; wire into `ci.yml` `lint` job; seed the waiver list with the
