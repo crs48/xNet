@@ -78,6 +78,7 @@ export const sidebar = [
       { slug: 'docs/guides/agent-interfaces' },
       { slug: 'docs/guides/hub' },
       { slug: 'docs/guides/server' },
+      { slug: 'docs/guides/frameworks' },
       { slug: 'docs/guides/cloud-connect' },
       { slug: 'docs/guides/electron' },
       { slug: 'docs/guides/testing' }
@@ -131,7 +132,5 @@ export const sidebar = [
  * skipped. This drives the section order of llms-full.txt.
  */
 export const orderedDocSlugs = sidebar.flatMap((group) =>
-  group.items.flatMap((item) =>
-    typeof item === 'object' && 'slug' in item ? [item.slug] : []
-  )
+  group.items.flatMap((item) => (typeof item === 'object' && 'slug' in item ? [item.slug] : []))
 )

@@ -53,6 +53,7 @@ Before reading this documentation, understand that xNet works differently:
   - Agent Interfaces
   - Hub Setup
   - Your Own Server
+  - Use xNet From Any Framework
   - Connect to xNet Cloud
   - Electron Setup
   - Testing
@@ -7468,6 +7469,163 @@ exploration `0223`.
 - [React Hooks overview](/docs/hooks/overview/)
 - [Hub Setup](/docs/guides/hub/) — the managed path
 - [Authorization](/docs/guides/authorization/) — xNet's built-in model (opt-in)
+
+---
+
+## Use xNet From Any Framework
+
+**You will learn**
+
+- That the full xNet data model runs **outside React** as a plain object
+- How `client.query()` and `liveQuery()` bind to Vue, Svelte, Solid, or vanilla JS
+- What each framework "support tier" actually promises
+- How to validate a binding with `runAdapterConformance`
+  
+
+## The data model is framework-agnostic
+
+The React hooks (`useQuery` / `useMutate` / `useNode`) are a thin binding over a
+headless runtime, not the only way in. [`@xnetjs/runtime`](/docs/architecture/package-graph/)'s
+`createXNetClient()` constructs and owns the entire data model — authorization,
+validation, signing, encryption, SQLite-backed storage, and the live
+query/mutate/subscribe loop — and imports React **nowhere**:
+
+```ts
+
+const { identity, privateKey } = generateIdentity()
+
+const client = await createXNetClient({
+  nodeStorage: new MemoryNodeStorageAdapter(), // or a SQLite adapter
+  authorDID: identity.did,
+  signingKey: privateKey
+})
+```
+
+`client.query(schema, options)` returns the universal **`{ getSnapshot, subscribe }`**
+contract — the exact pair that React's `useSyncExternalStore`, a Svelte store, a
+Vue `shallowRef`, a Solid signal, and Angular's `toSignal` all consume.
+`liveQuery()` wraps that pair as a **Svelte store** (`subscribe(run) =>
+unsubscribe`, called immediately and on every change), which every other
+framework can adapt in a few lines.
+
+## Bind it to your framework
+
+```ts
+
+export function useQuery(client, schema, options) {
+  const lq = liveQuery(client, schema, options)
+  const data = shallowRef(lq.get())
+  const stop = lq.subscribe((v) => (data.value = v))
+  onScopeDispose(() => {
+    stop()
+    lq.destroy()
+  })
+  return data // Ref
+}
+
+export function useMutate(client) {
+  return client.mutate // { create, update, delete, restore, transaction }
+}
+```
+
+`liveQuery` already **is** a Svelte store, so `$`-auto-subscription works with no
+adapter at all:
+
+```svelte
+<script>
+  import { liveQuery } from '@xnetjs/runtime'
+  export let client
+  const tasks = liveQuery(client, TaskSchema, { where: { status: 'todo' } })
+</script>
+
+{#each $tasks ?? [] as task}
+  <li>{task.properties.title}</li>
+{/each}
+```
+
+In Svelte 5 you can wrap the same store in a rune for idiomatic `$state` ergonomics.
+
+```ts
+
+export function createQuery(client, schema, options) {
+  const lq = liveQuery(client, schema, options)
+  return from((set) => {
+    const stop = lq.subscribe(set)
+    return () => {
+      stop()
+      lq.destroy()
+    }
+  })
+}
+```
+
+No framework, no adapter package — subscribe directly:
+
+```ts
+
+const tasks = liveQuery(client, TaskSchema, { where: { status: 'todo' } })
+const stop = tasks.subscribe((rows) => render(rows ?? []))
+
+await client.mutate.create(TaskSchema, { title: 'Ship it' }) // re-renders
+
+// later
+stop()
+tasks.destroy()
+await client.destroy()
+```
+
+## Validate a binding once, everywhere
+
+The expensive part of multi-framework support isn't *writing* a binding — it's
+proving every binding behaves identically, forever. So the behaviour is tested
+**once**, framework-agnostically. `runAdapterConformance(makeClient)` runs the
+reactive data contract against any client factory and **throws on the first
+failed check**:
+
+```ts
+
+await runAdapterConformance((overrides) =>
+  createXNetClient({
+    nodeStorage: new MemoryNodeStorageAdapter(),
+    authorDID,
+    signingKey,
+    ...overrides
+  })
+)
+```
+
+It asserts that:
+
+- a live query delivers an **immediate** snapshot, then **updates on `mutate`**
+- it **stops delivering after unsubscribe**
+- a one-shot `fetch` **round-trips** a write
+- the **authorization surface is reachable and denial surfaces**
+- **`destroy()` is idempotent**
+
+A framework adapter reuses this suite and adds only a tiny render-harness test
+("the ref/store/signal reflects the snapshot and re-renders") — it never
+re-tests xNet's semantics.
+
+## What "supported" means
+
+Binding the data layer is cheap; carrying a full per-framework **component**
+library is not. So support is layered, and the layers promise different things:
+
+| Tier | Surface | What you get |
+| ---- | ------- | ------------ |
+| **Tier 0** | `@xnetjs/runtime` — `createXNetClient` + `liveQuery` | Works with **every** framework, headless and conformance-gated. This page. |
+| **Tier 1** | `@xnetjs/react` — hooks **and** components | First-class: the full hook + component toolkit the app itself uses. |
+| **Tier 2** | thin Vue / Svelte data-binding adapters | `useQuery` / `useMutate` only — **data binding, not components** — published on demand. |
+| **—** | components in non-React frameworks | **Not offered.** The component kit is React by design. |
+
+tip
+Building UI in Vue or Svelte? You get the **data** — live queries, mutations,
+auth, sync — through the runtime. You build (or bring) your own components. The
+React app's components are not portable, and that's intentional: it keeps one
+component ecosystem honest rather than three half-maintained ones.
+
+See [`docs/explorations/0237`](https://github.com/crs48/xNet/tree/main/docs/explorations)
+for the full cost/benefit analysis behind this policy.
 
 ---
 
