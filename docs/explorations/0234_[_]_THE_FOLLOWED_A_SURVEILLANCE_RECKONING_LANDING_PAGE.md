@@ -639,16 +639,16 @@ import { CLAIMS } from '../data/surveillance.ts'
       carrying `source` + `sourceUrl` and accuracy `caveat`s where flagged.
 - [x] Add `site/scripts/validate-surveillance.ts` and wire `validate:surveillance`
       into `site/package.json`'s gated `build` script (before `astro build`).
-- [ ] Create `site/src/components/followed/` section components: `FollowedHero`,
+- [x] Create `site/src/components/followed/` section components: `FollowedHero`,
       `PhysicalAct` (Act I scrolly, `.animate-on-scroll`), `RevealHinge`,
       `MechanismGrid` (Act II, renders `CLAIMS`), `TheTurn` (Act III, emerald),
       `HonestyBox`, `SelfAudit`.
-- [ ] Add `site/src/pages/why.astro` composing the above with `Base`/`Nav`/`Footer`.
-- [ ] Copy pass in the calm C2 voice; physical‑world beats and online annotations
+- [x] Add `site/src/pages/why.astro` composing the above with `Base`/`Nav`/`Footer`.
+- [x] Copy pass in the calm C2 voice; physical‑world beats and online annotations
       paired 1:1 with the data module.
-- [ ] Honesty box renders the ⚠️ "is / isn't" rows in XNet's own voice, linking
+- [x] Honesty box renders the ⚠️ "is / isn't" rows in XNet's own voice, linking
       to source files / `privacy.astro` / `compare.astro`.
-- [ ] Self‑audit section + runtime warning; keep amber→red (alarm) / emerald
+- [x] Self‑audit section + runtime warning; keep amber→red (alarm) / emerald
       (XNet) accents consistent with existing token semantics.
 - [ ] Link in from `Footer.astro` (Product or Resources column) and a homepage
       entry point; **defer** Nav promotion pending reception.

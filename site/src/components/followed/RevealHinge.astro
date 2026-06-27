@@ -1,0 +1,23 @@
+---
+import { COMPANIES_PER_USER } from '../../data/surveillance'
+
+const formatted = COMPANIES_PER_USER.toLocaleString('en-US')
+---
+
+<section class="relative overflow-hidden border-y border-border/50 bg-surface/20 dark:bg-surface/30">
+  <div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[400px] w-[700px] rounded-full bg-red-500/[0.06] blur-[120px]"></div>
+  <div class="relative mx-auto max-w-3xl px-6 py-28 text-center lg:py-36">
+    <p class="font-mono text-xs uppercase tracking-[0.2em] text-red-500/80">The reveal</p>
+    <h2 class="mt-6 text-4xl font-extrabold leading-[1.15] tracking-tight sm:text-5xl">
+      <span class="bg-gradient-to-br from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent">
+        You’d call that dystopian.<br />You did it today — online —<br />about
+        <span class="text-red-500">{formatted}</span> times.
+      </span>
+    </h2>
+    <p class="mx-auto mt-8 max-w-xl text-lg text-gray-500 dark:text-gray-400">
+      None of it felt like anything, because software is invisible and costs
+      almost nothing to deploy everywhere at once. Here is the same afternoon,
+      with the set removed.
+    </p>
+  </div>
+</section>

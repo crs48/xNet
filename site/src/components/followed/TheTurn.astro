@@ -1,0 +1,81 @@
+---
+import SectionHeader from '../ui/SectionHeader.astro'
+
+// Each point is something the codebase actually supports (exploration 0234's
+// "claims you CAN make" table). No subtractive "block the trackers" framing —
+// the data is yours by construction, so there's nothing to traffic.
+const points = [
+  {
+    title: 'Your data lives on your device',
+    body: 'Documents, databases, the whole workspace persist locally first — SQLite in the browser, native on desktop and mobile. No server is required for any of it.',
+  },
+  {
+    title: 'You hold the keys',
+    body: 'Your identity is a cryptographic key on your device (a did:key, backed by a passkey) — not an account on someone’s server. Nobody else holds your credentials.',
+  },
+  {
+    title: 'Every change is signed by you',
+    body: 'Edits are signed with your key and hash-chained, so authorship and integrity are provable. The data is yours by construction, not by promise.',
+  },
+  {
+    title: 'No pixel. No broker. No ads.',
+    body: 'xNet isn’t funded by advertising, so there is no tracking SDK to embed and no profile to sell. The business model simply doesn’t need your behavior.',
+  },
+  {
+    title: 'Tracking is off by default',
+    body: 'There’s one consent switch for anything that could leave your device, and it starts off. Optional diagnostics are scrubbed and opt-in — never the price of entry.',
+  },
+  {
+    title: 'Open, and verifiable',
+    body: 'The SDK and protocol are MIT-licensed, with a written spec and golden test vectors reproduced in Rust, Python and Swift. You don’t have to trust us — you can check.',
+  },
+]
+---
+
+<section class="relative overflow-hidden border-t border-border/50 bg-surface/10 dark:bg-surface/20 py-24 lg:py-32">
+  <div class="absolute left-1/2 top-0 -translate-x-1/2 h-[500px] w-[800px] rounded-full bg-emerald-500/[0.06] blur-[120px]"></div>
+
+  <div class="relative mx-auto max-w-5xl px-6">
+    <div class="text-center">
+      <p class="font-mono text-xs uppercase tracking-[0.2em] text-emerald-500/80">The turn</p>
+      <div class="mt-6">
+        <SectionHeader
+          title="It doesn’t have to be built this way"
+          subtitle="xNet is a local-first workspace where the data starts on your device and stays under your control. Not a tracker blocker — a different foundation, where there’s nothing to traffic in the first place."
+          align="center"
+        />
+      </div>
+    </div>
+
+    <div class="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      {
+        points.map((point) => (
+          <div class="animate-on-scroll rounded-xl border border-emerald-500/20 bg-emerald-500/[0.04] p-6">
+            <div class="mb-3 flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-500">
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h3 class="mb-2 text-base font-semibold text-gray-800 dark:text-white">{point.title}</h3>
+            <p class="text-sm leading-relaxed text-gray-500 dark:text-gray-400">{point.body}</p>
+          </div>
+        ))
+      }
+    </div>
+
+    <div class="mt-12 flex flex-col items-center justify-center gap-4 sm:flex-row">
+      <a
+        href="/app"
+        class="rounded-lg bg-emerald-600 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-emerald-500"
+      >
+        Use the app — free, offline, private
+      </a>
+      <a
+        href="/compare"
+        class="rounded-lg border border-border px-6 py-3 text-sm font-medium text-gray-600 transition-all hover:border-emerald-500/50 hover:bg-surface dark:text-gray-300"
+      >
+        See how it compares
+      </a>
+    </div>
+  </div>
+</section>

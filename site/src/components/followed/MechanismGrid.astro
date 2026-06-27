@@ -1,0 +1,89 @@
+---
+import SectionHeader from '../ui/SectionHeader.astro'
+import type { Claim } from '../../data/surveillance'
+import { updated } from '../../data/surveillance'
+
+interface Props {
+  claims: Claim[]
+}
+
+const { claims } = Astro.props
+
+const toneMap = {
+  alarm: {
+    border: 'border-amber-500/20',
+    bg: 'bg-amber-500/[0.03]',
+    accent: 'text-amber-600 dark:text-amber-400',
+    chipBg: 'bg-amber-500/10',
+    label: 'How it really works',
+  },
+  hope: {
+    border: 'border-emerald-500/20',
+    bg: 'bg-emerald-500/[0.03]',
+    accent: 'text-emerald-600 dark:text-emerald-400',
+    chipBg: 'bg-emerald-500/10',
+    label: 'It’s not invincible',
+  },
+}
+---
+
+<section class="py-20 lg:py-28">
+  <div class="mx-auto max-w-4xl px-6">
+    <SectionHeader
+      title="This is the internet, right now"
+      subtitle="Each moment from the story is a real mechanism. Every number below is cited — accuracy is the whole point."
+      align="center"
+    />
+
+    <div class="mt-12 space-y-5">
+      {
+        claims.map((claim) => {
+          const t = toneMap[claim.tone]
+          return (
+            <article class={`animate-on-scroll rounded-xl border ${t.border} ${t.bg} p-6`}>
+              <div class="mb-3 flex flex-wrap items-center gap-3">
+                <span class={`rounded-md ${t.chipBg} px-2 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-wider ${t.accent}`}>
+                  {t.label}
+                </span>
+                <span class="font-mono text-xs text-gray-400 dark:text-gray-500">{claim.moment}</span>
+              </div>
+
+              <p class="text-base leading-relaxed text-gray-700 dark:text-gray-200">{claim.digital}</p>
+
+              <p class={`mt-4 text-lg font-semibold ${t.accent}`}>{claim.stat}</p>
+
+              <div class="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+                <span>Source:</span>
+                <a
+                  href={claim.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class={`underline decoration-dotted underline-offset-2 hover:${t.accent}`}
+                >
+                  {claim.source}
+                </a>
+              </div>
+
+              {claim.caveat && (
+                <p class="mt-3 border-l-2 border-gray-300 pl-3 text-xs italic leading-relaxed text-gray-400 dark:border-gray-700 dark:text-gray-500">
+                  {claim.caveat}
+                </p>
+              )}
+            </article>
+          )
+        })
+      }
+    </div>
+
+    <p class="mt-8 text-center text-xs text-gray-400 dark:text-gray-500">
+      Figures verified {updated}. The whole list lives in one cited data file —
+      <a
+        href="https://github.com/crs48/xNet/blob/main/site/src/data/surveillance.ts"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="underline decoration-dotted underline-offset-2 hover:text-gray-600 dark:hover:text-gray-300"
+        >check our sources</a
+      >.
+    </p>
+  </div>
+</section>

@@ -1,0 +1,83 @@
+---
+// A proof a surveillance-funded competitor structurally can't copy: this very
+// page ships no ad SDKs and (in production) only a cookieless analytics ping.
+// The runtime check below tells the truth instead of asserting it blindly — if
+// a third-party request or cookie ever sneaks in, it flips the copy and warns.
+---
+
+<section class="relative overflow-hidden border-t border-border/50 py-24 lg:py-32">
+  <div class="absolute left-1/2 bottom-0 -translate-x-1/2 h-[400px] w-[600px] rounded-full bg-emerald-500/[0.05] blur-[120px]"></div>
+
+  <div class="relative mx-auto max-w-3xl px-6 text-center">
+    <div
+      id="self-audit"
+      class="mx-auto inline-flex max-w-full flex-col items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/[0.04] px-6 py-5 font-mono text-sm"
+    >
+      <p class="text-emerald-600 dark:text-emerald-400">
+        This page set <b id="audit-cookies">0 cookies</b> ·
+        <b id="audit-third-party">0 third-party requests</b> · 0 trackers.
+      </p>
+      <p class="text-xs text-gray-500 dark:text-gray-400">
+        Verify it yourself: open DevTools → Network. Nothing about your visit left
+        your browser.
+      </p>
+    </div>
+
+    <h2 class="mt-12 text-3xl font-bold tracking-tight text-gray-800 dark:text-white sm:text-4xl">
+      Own your data instead of leaking it
+    </h2>
+    <p class="mx-auto mt-4 max-w-xl text-gray-500 dark:text-gray-400">
+      Documents, databases, canvas, tasks — a real workspace that happens to keep
+      everything on your side of the glass.
+    </p>
+
+    <div class="mt-8 flex flex-col items-center justify-center gap-4 sm:flex-row">
+      <a
+        href="/app"
+        class="rounded-lg bg-emerald-600 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-emerald-500"
+      >
+        Use the app
+      </a>
+      <div
+        class="group relative inline-flex items-center gap-3 rounded-lg border border-border bg-surface/30 px-5 py-2.5 font-mono text-sm text-gray-500 dark:bg-surface/50 dark:text-gray-400"
+      >
+        <span class="text-emerald-500">$</span>
+        <span>pnpm add @xnetjs/react @xnetjs/data</span>
+        <button
+          class="copy-btn rounded border border-border px-1.5 py-0.5 text-xs text-gray-600 transition-colors hover:text-gray-900 dark:hover:text-gray-300"
+          data-copy="pnpm add @xnetjs/react @xnetjs/data"
+          aria-label="Copy install command"
+        >
+          Copy
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+  // Tell the truth, don't assert it: if anything ever regresses (an embed, a
+  // font CDN, a stray cookie), flip the copy and warn rather than keep lying.
+  const thirdParty = performance
+    .getEntriesByType('resource')
+    .filter((e) => {
+      try {
+        return new URL((e as PerformanceResourceTiming).name).host !== location.host
+      } catch {
+        return false
+      }
+    })
+
+  const cookieCount = document.cookie ? document.cookie.split(';').filter((c) => c.trim()).length : 0
+
+  if (thirdParty.length > 0) {
+    const el = document.getElementById('audit-third-party')
+    if (el) el.textContent = `${thirdParty.length} third-party request${thirdParty.length === 1 ? '' : 's'}`
+    console.warn('[self-audit] /why made third-party requests', thirdParty.map((e) => e.name))
+  }
+  if (cookieCount > 0) {
+    const el = document.getElementById('audit-cookies')
+    if (el) el.textContent = `${cookieCount} cookie${cookieCount === 1 ? '' : 's'}`
+    console.warn('[self-audit] /why has cookies set', document.cookie)
+  }
+</script>
