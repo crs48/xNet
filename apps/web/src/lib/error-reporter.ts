@@ -30,6 +30,15 @@ function getCollector(): TelemetryCollector {
   return collector
 }
 
+/**
+ * The app's single local telemetry collector — the one place anything is
+ * buffered about the user. Exposed so the "what we know about you" mirror
+ * (Charter §Consent, exploration 0234) can enumerate and purge it.
+ */
+export function getTelemetryCollector(): TelemetryCollector {
+  return getCollector()
+}
+
 function toError(failure: BootFailure, error?: unknown): Error {
   if (error instanceof Error) return error
   const e = new Error(failure.message)
