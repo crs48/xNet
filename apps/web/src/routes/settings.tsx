@@ -7,6 +7,7 @@
  * the design-system <Switch>; data atoms (DID, version, hub URL) read mono.
  */
 import { createFileRoute } from '@tanstack/react-router'
+import { deleteDay, leaveWithEverything } from '@xnetjs/plugins'
 import { useIdentity } from '@xnetjs/react'
 import { SettingRow, SettingsGroup, SettingsPanel, SettingToggle, useTheme } from '@xnetjs/ui'
 import {
@@ -38,8 +39,10 @@ import { SafetyCenterSettings } from '../components/SafetyCenterSettings'
 import { isAnalyticsConfigured } from '../lib/analytics'
 import { requestXNetBrowserStorageReset } from '../lib/browser-storage-reset'
 import { useDerivedData } from '../lib/data-dignity'
+import { getTelemetryCollector } from '../lib/error-reporter'
 import { persistedHubUrl, setPersistedHubUrl } from '../lib/hub-url'
 import { logout } from '../lib/identity'
+import { createLeavePorts, downloadLeaveBundle, type LeaveDeps } from '../lib/leave'
 import { isSentryConfigured } from '../lib/sentry'
 import { useConsent } from '../lib/use-consent'
 import { WINDDOWN_DURATION_CHOICES, useWinddownPreferences } from '../lib/winddown'
@@ -79,6 +82,14 @@ const QUIET_BUTTON =
   'flex items-center gap-2 rounded-md border border-hairline bg-surface-0 px-3 py-1.5 text-xs text-ink-1 transition-colors hover:bg-surface-2 disabled:cursor-default disabled:opacity-50'
 
 const ICON_PROPS = { size: 16, strokeWidth: 1.5 } as const
+
+/** Browser capabilities for the Right-to-Leave service (Charter §Exit, 0234). */
+const LEAVE_DEPS: LeaveDeps = {
+  destroyLocal: requestXNetBrowserStorageReset,
+  recordLeft: () => {
+    getTelemetryCollector().reportUsage('account.left', 1)
+  }
+}
 
 const SECTIONS: SectionConfig[] = [
   { id: 'profile', label: 'Profile', icon: <UserRound {...ICON_PROPS} /> },
@@ -327,10 +338,32 @@ function ThemeButton({
 // ─── Data Settings ────────────────────────────────────────────────────────────
 
 function DataSettings() {
+  const { identity } = useIdentity()
   const [clearing, setClearing] = useState(false)
   const [cleared, setCleared] = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [leaving, setLeaving] = useState(false)
+
+  // Charter §Exit: take everything and go — workspace + portable identity +
+  // a re-import README, bundled by the tested @xnetjs/plugins leave service.
+  const handleLeaveWithEverything = useCallback(async () => {
+    setLeaving(true)
+    try {
+      const now = new Date().toISOString()
+      const bundle = await leaveWithEverything(
+        createLeavePorts({ did: identity?.did }, now, LEAVE_DEPS),
+        {
+          now
+        }
+      )
+      downloadLeaveBundle(bundle)
+    } catch (err) {
+      console.error('Failed to export everything:', err)
+    } finally {
+      setLeaving(false)
+    }
+  }, [identity?.did])
 
   const handleExportData = useCallback(async () => {
     setExporting(true)
@@ -398,14 +431,20 @@ function DataSettings() {
 
     setClearing(true)
     try {
-      requestXNetBrowserStorageReset()
+      // Honest Delete Day via the tested leave service: wipe the local master
+      // and emit only an anonymous account.left signal — no guilt, no nagging.
+      const now = new Date().toISOString()
+      await deleteDay(createLeavePorts({ did: identity?.did }, now, LEAVE_DEPS), {
+        keepLocal: false,
+        now
+      })
       setCleared(true)
       setConfirmClear(false)
     } catch (err) {
       console.error('Failed to clear data:', err)
       setClearing(false)
     }
-  }, [confirmClear])
+  }, [confirmClear, identity?.did])
 
   const handleCancelClear = useCallback(() => {
     setConfirmClear(false)
@@ -418,10 +457,29 @@ function DataSettings() {
           <span className="font-mono text-xs text-ink-3">SQLite OPFS</span>
         </SettingRow>
 
+        <SettingRow
+          label="Where your data lives"
+          description="The local copy is the master; a hub is an optional convenience you control"
+        >
+          <span className="font-mono text-xs text-ink-3">
+            {persistedHubUrl('') ? `This device + ${persistedHubUrl('')}` : 'This device only'}
+          </span>
+        </SettingRow>
+
         <SettingRow label="Export data" description="Download a backup of all your documents">
           <button onClick={handleExportData} disabled={exporting} className={QUIET_BUTTON}>
             <Download size={14} strokeWidth={1.5} />
             {exporting ? 'Exporting…' : 'Export'}
+          </button>
+        </SettingRow>
+
+        <SettingRow
+          label="Leave with everything"
+          description="Your whole workspace, your portable identity, and how to re-import — nothing held back. You don't need our permission to leave."
+        >
+          <button onClick={handleLeaveWithEverything} disabled={leaving} className={QUIET_BUTTON}>
+            <Download size={14} strokeWidth={1.5} />
+            {leaving ? 'Preparing…' : 'Export all'}
           </button>
         </SettingRow>
 
