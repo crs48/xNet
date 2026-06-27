@@ -641,7 +641,11 @@ export {
   // Client (Renderer process)
   createServiceClient,
   isServiceClientAvailable,
-  SERVICE_IPC_CHANNELS
+  SERVICE_IPC_CHANNELS,
+  // Right to Leave (exploration 0234, Charter §Exit)
+  LEAVE_README,
+  leaveWithEverything,
+  deleteDay
 } from './services'
 export type {
   // Service definition
@@ -680,5 +684,10 @@ export type {
   MCPResource,
   MCPRequest,
   MCPResponse,
-  MCPServerConfig
+  MCPServerConfig,
+  // Right to Leave types (exploration 0234)
+  RightToLeavePorts,
+  LeaveBundle,
+  DeleteDayOptions,
+  DeleteDayResult
 } from './services'
