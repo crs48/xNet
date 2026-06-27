@@ -49,7 +49,8 @@ const layers = [
         bytes — so a second implementation never has to port a CRDT. The core is a signed,
         hash-chained, last-write-wins change log, proven by a language-agnostic conformance
         corpus that ships <em>with</em> the spec. A ~100-line Python kernel already reproduces
-        the same DIDs and verifies TypeScript-signed changes byte-for-byte.
+        the same DIDs and verifies TypeScript-signed changes byte-for-byte — and a native
+        Swift core goes further, holding a live, bidirectional sync session with the hub.
       </p>
     </div>
 
