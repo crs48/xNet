@@ -37,10 +37,10 @@ export const siteMetrics: SiteMetrics = {
 
 const nf = new Intl.NumberFormat('en-US')
 
-/** "9,600+ tests" */
-export const testsLabel = `${nf.format(siteMetrics.tests)}+ tests`
-/** "47 packages" */
-export const packagesLabel = `${siteMetrics.packages} packages`
+/** "9,600+ tests" — internal, composed into testsAcrossPackages. */
+const testsLabel = `${nf.format(siteMetrics.tests)}+ tests`
+/** "47 packages" — internal, composed into testsAcrossPackages. */
+const packagesLabel = `${siteMetrics.packages} packages`
 /** "21-panel devtools suite" */
 export const devtoolsLabel = `${siteMetrics.devtoolsPanels}-panel devtools suite`
 /** "9,600+ tests across 47 packages" */

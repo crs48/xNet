@@ -9,7 +9,7 @@
  * tests / 10-panel devtools" from ever happening again.
  */
 
-import { readdirSync, readFileSync, statSync } from 'node:fs'
+import { readdirSync, readFileSync, statSync, type Dirent } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { siteMetrics } from '../src/data/siteMetrics'
@@ -28,20 +28,27 @@ function countSubdirs(dir: string): number {
   }
 }
 
+/** Files + directories under `dir` ([] if it does not exist). */
+function readDir(dir: string): Dirent[] {
+  try {
+    return readdirSync(dir, { withFileTypes: true }).filter((e) => e.isDirectory() || e.isFile())
+  } catch {
+    return []
+  }
+}
+
+/** True for hidden or ignored directory names we never descend into. */
+function isSkipped(name: string): boolean {
+  return IGNORE_DIRS.has(name) || (name.startsWith('.') && name !== '.changeset')
+}
+
 /** Walk `dir`, invoking `onFile` for every file path (skipping IGNORE_DIRS). */
 function walk(dir: string, onFile: (path: string) => void): void {
-  let entries: ReturnType<typeof readdirSync>
-  try {
-    entries = readdirSync(dir, { withFileTypes: true })
-  } catch {
-    return
-  }
-  for (const entry of entries) {
-    if (entry.name.startsWith('.') && entry.name !== '.changeset') continue
-    if (IGNORE_DIRS.has(entry.name)) continue
+  for (const entry of readDir(dir)) {
+    if (isSkipped(entry.name)) continue
     const full = join(dir, entry.name)
     if (entry.isDirectory()) walk(full, onFile)
-    else if (entry.isFile()) onFile(full)
+    else onFile(full)
   }
 }
 
