@@ -39,6 +39,7 @@ import { persistedHubUrl, setPersistedHubUrl } from '../lib/hub-url'
 import { logout } from '../lib/identity'
 import { isSentryConfigured } from '../lib/sentry'
 import { useConsent } from '../lib/use-consent'
+import { WINDDOWN_DURATION_CHOICES, useWinddownPreferences } from '../lib/winddown'
 import { useWorkbench } from '../workbench/state'
 
 /** Marketing + dashboard origins for xNet Cloud (managed hub hosting). */
@@ -166,6 +167,7 @@ function SettingsPage() {
  */
 function AppearanceSettings() {
   const { theme, setTheme, variant, setVariant, density, setDensity } = useTheme()
+  const winddown = useWinddownPreferences()
 
   return (
     <SettingsPanel title="Appearance" description="Customize how xNet looks">
@@ -253,8 +255,39 @@ function AppearanceSettings() {
           </div>
         </SettingRow>
       </SettingsGroup>
+      <SettingsGroup
+        label="Wellbeing"
+        description="xNet competes for your wellbeing, not your time. Off by default."
+      >
+        <SettingToggle
+          label="Time-well-spent reminder"
+          description="After a long session, a calm nudge invites you to step away. Never a streak."
+          checked={winddown.preferences.enabled}
+          onChange={winddown.setEnabled}
+        />
+        <SettingRow
+          label="Remind me after"
+          description="How long a continuous session runs before the nudge appears"
+        >
+          <div className="flex flex-wrap gap-1.5">
+            {WINDDOWN_DURATION_CHOICES.map((minutes) => (
+              <ThemeButton
+                key={minutes}
+                icon={null}
+                label={formatDurationLabel(minutes)}
+                active={winddown.preferences.sessionMinutes === minutes}
+                onClick={() => winddown.setSessionMinutes(minutes)}
+              />
+            ))}
+          </div>
+        </SettingRow>
+      </SettingsGroup>
     </SettingsPanel>
   )
+}
+
+function formatDurationLabel(minutes: number): string {
+  return minutes < 60 ? `${minutes}m` : `${minutes / 60}h`
 }
 
 function ThemeButton({

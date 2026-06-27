@@ -13,6 +13,7 @@ import { Group, Panel, useDefaultLayout } from 'react-resizable-panels'
 import { CoachmarkLayer } from '../coachmarks'
 import { GlobalSearch } from '../components/GlobalSearch'
 import { UndoToastProvider } from '../components/UndoToast'
+import { WinddownOverlay } from '../components/WinddownOverlay'
 import { WorkspaceCommands } from '../components/WorkspaceCommands'
 import { useWorkbenchCommands, useZenEscape } from './commands'
 import { ContextPanel } from './ContextPanel'
@@ -120,6 +121,8 @@ export function Workbench({ children }: { children: ReactNode }) {
       )}
       {/* First-run coachmarks (0206) — portals to <body>, so position here is moot. */}
       <CoachmarkLayer />
+      {/* Opt-in "time well spent" wind-down (Charter §Calm, 0234); off by default. */}
+      <WinddownOverlay />
     </>
   )
 }
