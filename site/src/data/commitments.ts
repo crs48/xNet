@@ -1,0 +1,82 @@
+/**
+ * The six commitments of the xNet Humane Internet Charter, for the
+ * /commitments page (exploration 0234). Single source of truth: the page
+ * renders entirely from this array.
+ *
+ * Mirrors docs/CHARTER.md — keep the two in sync when a commitment changes.
+ * Each commitment names how it is kept: `enforced` (a CI gate fails the build
+ * on regression), `architectural` (a property of how the code is built), or
+ * `building` (real but not fully shipped — honesty about the gap is itself a
+ * commitment). Deliberately understated: the goal is honest software, not a
+ * rebellion to sell back.
+ */
+
+export type Backing = 'enforced' | 'architectural' | 'building'
+
+export interface Commitment {
+  /** One-word name — also the anchor id. */
+  name: string
+  /** The promise, in plain language. */
+  promise: string
+  /** A sentence or two of detail. */
+  detail: string
+  /** What keeps it honest. */
+  backing: Backing
+  /** Short label for the backing badge. */
+  backingLabel: string
+}
+
+export const charterUrl = 'https://github.com/crs48/xNet/blob/main/docs/CHARTER.md'
+
+export const updated = 'June 2026'
+
+export const commitments: Commitment[] = [
+  {
+    name: 'Own',
+    promise: 'You hold the master copy.',
+    detail:
+      'Your data lives on your device first. xNet keeps no behavioral surplus and has no third-party customer to sell it to. There is no ad model; you are not the product.',
+    backing: 'enforced',
+    backingLabel: 'Enforced — no third-party ad/analytics SDKs can be added'
+  },
+  {
+    name: 'Exit',
+    promise: 'Leaving is your right, and it loses nothing.',
+    detail:
+      'You can take everything and go. Identity is a portable did:key that works on any hub; the wire format is an open, signed, hash-chained change log, not a vendor blob; the client works fully offline.',
+    backing: 'architectural',
+    backingLabel: 'Architectural — portable protocol + portable identity'
+  },
+  {
+    name: 'Calm',
+    promise: 'We compete for your wellbeing, not your time.',
+    detail:
+      'No infinite scroll. No engagement ranking. No streaks engineered around loss aversion. Feeds are chronological; notifications are rule-based. An opt-in reminder even helps you step away.',
+    backing: 'enforced',
+    backingLabel: 'Enforced — a CI gate bans dark-pattern primitives'
+  },
+  {
+    name: 'Consent',
+    promise: 'Nothing leaves without permission.',
+    detail:
+      'Telemetry is off by default. What is sent is PII-scrubbed and k-anonymized. A "what we know about you" panel shows every artifact xNet has derived — usually nothing — and lets you purge it.',
+    backing: 'enforced',
+    backingLabel: 'Enforced — consent-gated, tested off-by-default'
+  },
+  {
+    name: 'Agency',
+    promise: 'AI makes you more capable, not less.',
+    detail:
+      'The assistant scaffolds by default — it proposes and cites, you write and own — rather than silently doing your thinking. Anything the model authored is marked as AI-generated.',
+    backing: 'architectural',
+    backingLabel: 'Architectural — scaffold-by-default, provenance-tagged'
+  },
+  {
+    name: 'Commons',
+    promise: 'You own your audience and your space.',
+    detail:
+      'Your social graph belongs to you, not to a platform that rents it back. Hubs are user-ownable and federated; a subscriber is a signed edge in your own graph, exportable with everything else.',
+    backing: 'building',
+    backingLabel: 'Building — BYO hub today; owned-audience publishing in design'
+  }
+]
