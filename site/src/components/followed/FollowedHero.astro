@@ -1,0 +1,39 @@
+---
+import Badge from '../ui/Badge.astro'
+---
+
+<section class="relative overflow-hidden">
+  <!-- Grid background -->
+  <div class="absolute inset-0 bg-[linear-gradient(rgba(220,38,38,0.04)_1px,transparent_1px),linear-gradient(90deg,rgba(220,38,38,0.04)_1px,transparent_1px)] bg-[size:64px_64px]"></div>
+  <!-- Radial glow (amber → red, the surveillance act) -->
+  <div class="absolute left-1/2 top-0 -translate-x-1/2 h-[600px] w-[800px] rounded-full bg-amber-500/[0.07] blur-[120px]"></div>
+
+  <div class="relative mx-auto max-w-4xl px-6 py-32 lg:py-40">
+    <div class="text-center">
+      <div class="flex justify-center mb-8">
+        <Badge variant="warning">
+          <span class="relative flex h-2 w-2">
+            <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"></span>
+            <span class="relative inline-flex h-2 w-2 rounded-full bg-amber-500"></span>
+          </span>
+          A thought experiment about being followed
+        </Badge>
+      </div>
+
+      <h1 class="text-5xl font-extrabold leading-[1.1] tracking-tight sm:text-6xl lg:text-7xl">
+        <span class="bg-gradient-to-br from-gray-900 via-gray-700 to-amber-600 dark:from-white dark:via-gray-100 dark:to-amber-400 bg-clip-text text-transparent">
+          You’d never allow this<br />in the real world.
+        </span>
+      </h1>
+      <p class="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-gray-500 dark:text-gray-400 sm:text-xl">
+        Picture the tracking you accept online — happening to you physically, all
+        day, by people you can see. It would feel like a dystopia. Online, we call
+        it Tuesday.
+      </p>
+
+      <p class="mx-auto mt-8 max-w-xl text-sm text-gray-400 dark:text-gray-500">
+        Walk through an ordinary afternoon ↓
+      </p>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,62 @@
+---
+// The credibility engine of the page: the things we deliberately DON'T overclaim
+// (exploration 0234's "claims to avoid" table), in xNet's own voice.
+const rows = [
+  {
+    isnt: 'We won’t say everything is end-to-end encrypted.',
+    is: 'Encryption is yours to switch on. Some data is public by design — you decide what’s private.',
+  },
+  {
+    isnt: 'We won’t say there are no servers.',
+    is: 'No server is required, but a hub — yours to self-host or our managed one — is useful for sync and backup. When you use one, it only ever holds encrypted data.',
+  },
+  {
+    isnt: 'We won’t say you’re anonymous.',
+    is: 'Your identity is a pseudonymous key you control, not a name we hold. If you opt into diagnostics, they’re scrubbed first.',
+  },
+]
+---
+
+<section class="py-20 lg:py-28">
+  <div class="mx-auto max-w-3xl px-6">
+    <div class="rounded-2xl border border-border bg-surface/30 p-8 dark:bg-surface/40 lg:p-10">
+      <h2 class="text-2xl font-bold tracking-tight text-gray-800 dark:text-white">What xNet is — and isn’t</h2>
+      <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+        A privacy pitch that overclaims is just more marketing. So here’s the honest
+        version, and the source code to check it against.
+      </p>
+
+      <ul class="mt-8 space-y-5">
+        {
+          rows.map((row) => (
+            <li class="grid gap-3 sm:grid-cols-[1fr_1fr] sm:gap-5">
+              <div class="flex gap-2.5">
+                <span class="select-none text-gray-400 dark:text-gray-600">✕</span>
+                <p class="text-sm leading-relaxed text-gray-500 dark:text-gray-400">{row.isnt}</p>
+              </div>
+              <div class="flex gap-2.5">
+                <span class="select-none text-emerald-500">✓</span>
+                <p class="text-sm leading-relaxed text-gray-700 dark:text-gray-200">{row.is}</p>
+              </div>
+            </li>
+          ))
+        }
+      </ul>
+
+      <div class="mt-8 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+        <a
+          href="/privacy"
+          class="text-emerald-600 underline decoration-dotted underline-offset-2 hover:text-emerald-500 dark:text-emerald-400"
+          >Read the privacy policy</a
+        >
+        <a
+          href="https://github.com/crs48/xNet"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="text-emerald-600 underline decoration-dotted underline-offset-2 hover:text-emerald-500 dark:text-emerald-400"
+          >Go check the source</a
+        >
+      </div>
+    </div>
+  </div>
+</section>

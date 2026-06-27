@@ -1,0 +1,76 @@
+---
+import type { Claim } from '../../data/surveillance'
+
+interface Props {
+  claims: Claim[]
+}
+
+const { claims } = Astro.props
+---
+
+<section class="relative border-t border-border/50 py-20 lg:py-28">
+  <div class="mx-auto max-w-3xl px-6">
+    <!-- Sticky tracker counter — the visceral device -->
+    <div class="sticky top-20 z-10 mb-12 flex justify-center">
+      <div
+        class="inline-flex items-center gap-3 rounded-full border border-amber-500/30 bg-white/80 px-5 py-2 font-mono text-sm shadow-sm backdrop-blur dark:bg-[#0a0a0f]/80"
+      >
+        <span class="relative flex h-2.5 w-2.5">
+          <span class="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-60"></span>
+          <span class="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500"></span>
+        </span>
+        <span class="text-gray-500 dark:text-gray-400">Trackers on you:</span>
+        <span id="tracker-count" class="font-bold tabular-nums text-red-500" data-total={claims.length}>0</span>
+      </div>
+    </div>
+
+    <ol class="space-y-6">
+      {
+        claims.map((claim, i) => (
+          <li class="animate-on-scroll" data-beat>
+            <div class="rounded-xl border border-amber-500/20 bg-amber-500/[0.03] p-6">
+              <div class="mb-3 flex items-center gap-3">
+                <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 font-mono text-xs font-bold text-amber-500">
+                  {i + 1}
+                </span>
+                <span class="font-mono text-xs uppercase tracking-wider text-amber-600/80 dark:text-amber-400/80">
+                  {claim.moment}
+                </span>
+              </div>
+              <p class="text-lg leading-relaxed text-gray-700 dark:text-gray-200">{claim.physical}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ol>
+
+    <p class="mt-12 text-center text-sm text-gray-400 dark:text-gray-500">
+      By the end of the day you’re carrying a small forest of tags — and none of
+      them are yours.
+    </p>
+  </div>
+</section>
+
+<script>
+  // Tick the "Trackers on you" counter up as each beat scrolls into view.
+  // Pure enhancement: with JS off, the beats still read as static content and
+  // the counter simply stays at 0 (see <noscript>-friendly markup above).
+  const counter = document.getElementById('tracker-count')
+  const beats = Array.from(document.querySelectorAll('[data-beat]'))
+  if (counter && beats.length > 0) {
+    let seen = 0
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            seen += 1
+            counter.textContent = String(seen)
+            observer.unobserve(entry.target)
+          }
+        }
+      },
+      { threshold: 0.6 },
+    )
+    for (const beat of beats) observer.observe(beat)
+  }
+</script>

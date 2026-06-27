@@ -1,0 +1,43 @@
+---
+import Base from '../layouts/Base.astro'
+import Nav from '../components/sections/Nav.astro'
+import Footer from '../components/sections/Footer.astro'
+import FollowedHero from '../components/followed/FollowedHero.astro'
+import PhysicalAct from '../components/followed/PhysicalAct.astro'
+import RevealHinge from '../components/followed/RevealHinge.astro'
+import MechanismGrid from '../components/followed/MechanismGrid.astro'
+import TheTurn from '../components/followed/TheTurn.astro'
+import HonestyBox from '../components/followed/HonestyBox.astro'
+import SelfAudit from '../components/followed/SelfAudit.astro'
+import { CLAIMS, alarmClaims } from '../data/surveillance'
+---
+
+<Base
+  title="Why xNet — you’d never allow this in the real world"
+  description="The tracking we accept online would feel dystopian if it were physical. Here is exactly how it works, every claim cited — and how xNet is built so there’s nothing to traffic."
+>
+  <!-- Without JS the IntersectionObserver never adds .visible, so reveal-on-scroll
+       content would stay at opacity:0. Keep the page fully readable with JS off. -->
+  <noscript>
+    <style>
+      .animate-on-scroll {
+        opacity: 1 !important;
+        transform: none !important;
+      }
+    </style>
+  </noscript>
+
+  <Nav />
+
+  <main>
+    <FollowedHero />
+    <PhysicalAct claims={alarmClaims} />
+    <RevealHinge />
+    <MechanismGrid claims={CLAIMS} />
+    <TheTurn />
+    <HonestyBox />
+    <SelfAudit />
+  </main>
+
+  <Footer />
+</Base>
