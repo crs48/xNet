@@ -650,7 +650,7 @@ import { CLAIMS } from '../data/surveillance.ts'
       to source files / `privacy.astro` / `compare.astro`.
 - [x] Self‑audit section + runtime warning; keep amber→red (alarm) / emerald
       (XNet) accents consistent with existing token semantics.
-- [ ] Link in from `Footer.astro` (Product or Resources column) and a homepage
+- [x] Link in from `Footer.astro` (Product or Resources column) and a homepage
       entry point; **defer** Nav promotion pending reception.
 - [ ] Confirm all motion uses the approved `.animate-on-scroll` primitive
       (passes `check-motion-vocab.mjs`).
