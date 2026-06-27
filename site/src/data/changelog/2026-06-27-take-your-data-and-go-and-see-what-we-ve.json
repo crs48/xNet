@@ -4,5 +4,14 @@
   "title": "Take your data and go, and see what we've derived",
   "summary": "New Right to Leave flow bundles your whole workspace and portable identity into one archive (with an honest Delete Day, no confirmshaming), and a 'what we know about you' mirror enumerates every derived artifact — telemetry, embeddings, AI memory — so you can purge any of it.",
   "highlights": [],
-  "tags": ["platform"]
+  "tags": [
+    "platform"
+  ],
+  "pr": 293,
+  "mergedAt": "2026-06-27T17:49:01Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
