@@ -567,7 +567,7 @@ unchecked, so this exploration stays `[_]` until that follow-up lands.
 - [x] **L1:** add an assertion that the Electron-bundled `@xnetjs/sync` resolves
       to the same version that passes `conformance.test.ts` (guard against a
       stale bundled kernel).
-- [ ] **L1.5:** add a property-based convergence test (N in-process replicas,
+- [x] **L1.5:** add a property-based convergence test (N in-process replicas,
       shuffled merge order, assert identical state) under `packages/sync` or
       `packages/runtime`.
 - [ ] **L2:** generalize `doc-sync.spec.ts` into `sync-matrix.spec.ts` with the
