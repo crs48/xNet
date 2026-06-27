@@ -12,8 +12,8 @@ callout added **2026‑06‑17**. Since then, roughly two weeks of merged work h
 shipped entire **new product surfaces** that the homepage body never mentions, and
 the numbers it does cite have drifted out of date.
 
-The homepage today tells a 2026‑06‑17 story: *"local‑first productivity app + 3 React
-hooks + open protocol."* The repository today is materially larger:
+The homepage today tells a 2026‑06‑17 story: _"local‑first productivity app + 3 React
+hooks + open protocol."_ The repository today is materially larger:
 
 - **47 packages** (homepage says "30 packages"), **~9,600 test cases** (homepage says
   "6,000+"), a **27‑panel devtools suite** (homepage/Community says "10‑panel").
@@ -27,7 +27,7 @@ hooks + open protocol."* The repository today is materially larger:
 - An **integrations/connectors** layer (`defineConnector`, RSS/GitHub/Notion/
   Airtable/Linear, Slack‑compat, Unreal) — no section at all.
 - A **Humane Internet Charter** brand pillar (Commitments, Right‑to‑Leave, "what we
-  know", the *Why / The Followed* page) that exists as standalone pages but is only
+  know", the _Why / The Followed_ page) that exists as standalone pages but is only
   reachable from the nav, never argued in the homepage narrative.
 
 The newer dedicated pages — `/react`, `/devtool`, `/cloud`, `/commitments`, `/why` —
@@ -76,22 +76,22 @@ All new claims must follow the repo's existing citation discipline (see
 
 `site/src/pages/index.astro` renders these sections in order:
 
-| # | Section component | Theme | Staleness signal |
-|---|---|---|---|
-| 1 | `Hero.astro` | "Your data. Your devices. Your rules." 3 CTAs + `pnpm add @xnetjs/react @xnetjs/data` | "3 hooks" copy; React‑only |
-| 2 | `WhatIsXNet.astro` | 3 layers: App / SDK / Protocol | OK, but "SDK Layer = React hooks" |
-| 3 | `TheApp.astro` | 8‑tool grid + workbench screenshot | Missing CRM/finance/experiments/labs/maps/spaces/social |
-| 4 | `ForDevelopers.astro` | "Build with 3 React hooks", "Zero backend" | Contradicts `@xnetjs/runtime` + `@xnetjs/server` |
-| 5 | `BuiltForAgents.astro` | Files‑first, SKILL.md, ~9× cheaper than MCP | Solid; could link connectors |
-| 6 | `UnderTheHood.astro` | Sync / Security / Identity / Storage pillars | Mostly current |
-| 7 | `OpenProtocol.astro` | L0–L3 + Python kernel conformance | Missing the **native Swift** impl + live sync |
-| 8 | `Hubs.astro` | Team hub features (9 cards) | Current |
-| 9 | `TheVision.astro` | Tesla Warp / mycelium metaphor | Evergreen |
-| 10 | `Landscape.astro` | "Why local‑first" + compare table | Current (data‑driven via `compare.ts`) |
-| 11 | `Roadmap.astro` | Timeline from `roadmap.ts` | Counts + phase assignment stale |
-| 12 | `Community.astro` | "What's working now" (10 bullets) | "30 packages / 6,000 tests / 10‑panel devtools" |
-| 13 | `GetStarted.astro` | 3 paths | "React app" framing |
-| 14 | `Footer.astro` | Link columns | Already links /cloud, /react, /devtool, /why, /commitments |
+| #   | Section component      | Theme                                                                                 | Staleness signal                                           |
+| --- | ---------------------- | ------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
+| 1   | `Hero.astro`           | "Your data. Your devices. Your rules." 3 CTAs + `pnpm add @xnetjs/react @xnetjs/data` | "3 hooks" copy; React‑only                                 |
+| 2   | `WhatIsXNet.astro`     | 3 layers: App / SDK / Protocol                                                        | OK, but "SDK Layer = React hooks"                          |
+| 3   | `TheApp.astro`         | 8‑tool grid + workbench screenshot                                                    | Missing CRM/finance/experiments/labs/maps/spaces/social    |
+| 4   | `ForDevelopers.astro`  | "Build with 3 React hooks", "Zero backend"                                            | Contradicts `@xnetjs/runtime` + `@xnetjs/server`           |
+| 5   | `BuiltForAgents.astro` | Files‑first, SKILL.md, ~9× cheaper than MCP                                           | Solid; could link connectors                               |
+| 6   | `UnderTheHood.astro`   | Sync / Security / Identity / Storage pillars                                          | Mostly current                                             |
+| 7   | `OpenProtocol.astro`   | L0–L3 + Python kernel conformance                                                     | Missing the **native Swift** impl + live sync              |
+| 8   | `Hubs.astro`           | Team hub features (9 cards)                                                           | Current                                                    |
+| 9   | `TheVision.astro`      | Tesla Warp / mycelium metaphor                                                        | Evergreen                                                  |
+| 10  | `Landscape.astro`      | "Why local‑first" + compare table                                                     | Current (data‑driven via `compare.ts`)                     |
+| 11  | `Roadmap.astro`        | Timeline from `roadmap.ts`                                                            | Counts + phase assignment stale                            |
+| 12  | `Community.astro`      | "What's working now" (10 bullets)                                                     | "30 packages / 6,000 tests / 10‑panel devtools"            |
+| 13  | `GetStarted.astro`     | 3 paths                                                                               | "React app" framing                                        |
+| 14  | `Footer.astro`         | Link columns                                                                          | Already links /cloud, /react, /devtool, /why, /commitments |
 
 `OpenMetrics.astro` **exists in the sections folder but is not imported by
 `index.astro`** — it currently only feeds `/open`. It's a ready‑made honest‑numbers
@@ -133,7 +133,7 @@ Humane/values:
 - `site/src/pages/commitments.astro` + `site/src/data/commitments.ts`
   (pillars: **Own, Exit, Calm, Consent, Agency, Commons**).
 - `site/src/pages/why.astro` ("Why xNet — you'd never allow this in the real world",
-  *The Followed*), data in `site/src/data/surveillance.ts` (build‑time validated).
+  _The Followed_), data in `site/src/data/surveillance.ts` (build‑time validated).
 
 Recent changelog fragments (`site/src/data/changelog/`) corroborate the deltas:
 `use-xnet-from-any-framework-validated`, `xnet-now-listed-as-a-protocol-on-the-com`,
@@ -143,18 +143,18 @@ Recent changelog fragments (`site/src/data/changelog/`) corroborate the deltas:
 
 ### Verified numbers (2026‑06‑27)
 
-| Metric | Homepage today | Actual |
-|---|---|---|
-| Packages | "30 packages" | **47** (`ls -d packages/*/`) |
-| Publishable libs | — | **18** (`scripts/changeset/publishable-pathspec.mjs`) |
-| Test cases | "6,000+" | **~9,612** (`grep -roE '\b(it\|test)\(' **/*.test.ts*`) |
-| Devtools panels | "10‑panel" / README "15‑panel" | **27** panel dirs (`packages/devtools/src/panels`) |
-| Hooks | "3 hooks" (Hero) vs 4 shown (ForDevelopers) | 4 keystone + `useInfiniteQuery/useComments/useHistory/useUndo` |
+| Metric           | Homepage today                              | Actual                                                         |
+| ---------------- | ------------------------------------------- | -------------------------------------------------------------- |
+| Packages         | "30 packages"                               | **47** (`ls -d packages/*/`)                                   |
+| Publishable libs | —                                           | **18** (`scripts/changeset/publishable-pathspec.mjs`)          |
+| Test cases       | "6,000+"                                    | **~9,612** (`grep -roE '\b(it\|test)\(' **/*.test.ts*`)        |
+| Devtools panels  | "10‑panel" / README "15‑panel"              | **27** panel dirs (`packages/devtools/src/panels`)             |
+| Hooks            | "3 hooks" (Hero) vs 4 shown (ForDevelopers) | 4 keystone + `useInfiniteQuery/useComments/useHistory/useUndo` |
 
 ## External Research
 
 **2026 hero conventions.** High‑performing developer landing pages keep the H1 under
-~8 words, lead with the visitor's pain in the first line, and *show* the product within
+~8 words, lead with the visitor's pain in the first line, and _show_ the product within
 3–5 seconds (Notion/Linear/Framer use product‑workflow visuals over prose). A single,
 repeated CTA beats a wall of equal‑weight buttons. xNet's hero already does the
 3‑word H1 ("Your data. Your devices. Your rules.") and a workbench screenshot — the
@@ -165,20 +165,20 @@ problem is **completeness below the fold**, not the hero itself.
 - **Zero (Rocicorp)** — "Instant Queries By Default"; query‑driven sync; just hit 1.0
   (2026‑06). Single sharp value prop.
 - **Jazz.tools** — "The database that syncs", "batteries‑included local‑first" — an
-  *integrated* stack rather than a sync layer in front of Postgres.
+  _integrated_ stack rather than a sync layer in front of Postgres.
 - **ElectricSQL / PowerSync** — explicitly sync layers in front of an existing
   database ("shapes").
 
 xNet's differentiated wedge versus all of these is breadth + values: it is
 simultaneously (a) a finished productivity app you can live in, (b) a framework‑agnostic
 local‑first runtime, (c) a re‑implementable open protocol, and (d) an explicitly
-*humane / no‑surveillance* product. No single competitor occupies all four corners —
+_humane / no‑surveillance_ product. No single competitor occupies all four corners —
 but the homepage currently only argues (a)+(b‑React)+(c). The refresh should make the
 **AI‑native** and **humane** corners legible, because those are the hardest to copy.
 
 **Honesty as conversion.** xNet already practices sourced‑claim discipline
-(`surveillance.ts`, `compare.ts` validate every claim at build). Carrying *visibly
-real* numbers ("9,612 tests across 47 packages, see /open") is on‑brand and more
+(`surveillance.ts`, `compare.ts` validate every claim at build). Carrying _visibly
+real_ numbers ("9,612 tests across 47 packages, see /open") is on‑brand and more
 persuasive than round marketing figures — lean into it rather than inflating.
 
 ## Key Findings
@@ -210,20 +210,21 @@ mindmap
 
 1. **Numbers rot is the highest‑confidence, lowest‑risk fix** and currently makes the
    project look ~40% smaller than it is.
-2. **The single biggest *narrative* gap is AI.** The page's own eyebrow was changed to
+2. **The single biggest _narrative_ gap is AI.** The page's own eyebrow was changed to
    "AI‑native" (commit `fe584524f`) but the body never substantiates it.
 3. **The framework story is actively wrong now.** "P2P sync with no server code" and
-   "React" are presented as the *only* path; both `@xnetjs/runtime` (any framework) and
+   "React" are presented as the _only_ path; both `@xnetjs/runtime` (any framework) and
    `@xnetjs/server` (your backend) are first‑class shipped paths.
 4. **`TheApp` undersells the app by ~half.** Eight tools shown; ~15 real surfaces exist.
 5. **The humane positioning is a moat the homepage hides.** It's the corner competitors
    can't trivially match, yet it's nav‑only.
 6. **Most target pages already exist** (`/react`, `/devtool`, `/cloud`, `/commitments`,
-   `/why`) — this is mostly a *wiring + summarizing* job, not net‑new page building.
+   `/why`) — this is mostly a _wiring + summarizing_ job, not net‑new page building.
 
 ## Options And Tradeoffs
 
 ### Option A — Minimal fact‑fix
+
 Update only the stale numbers and roadmap items; touch no structure.
 
 - ✅ ~1 hour, near‑zero risk, unblocks the worst inaccuracies.
@@ -231,6 +232,7 @@ Update only the stale numbers and roadmap items; touch no structure.
   tells a June‑17 story.
 
 ### Option B — Targeted refresh (recommended)
+
 Fact‑fix **plus** add ~3–4 grounded sections, expand `TheApp`, single‑source metrics,
 and wire the body to the existing `/react`, `/cloud`, `/why` pages. Keep the section
 order and visual language; reuse `SectionHeader`/`CodeBlock`/card patterns.
@@ -242,6 +244,7 @@ order and visual language; reuse `SectionHeader`/`CodeBlock`/card patterns.
 - ⚠️ Page gets longer — must watch information density and keep one primary CTA per band.
 
 ### Option C — Full IA redesign
+
 Re‑think the homepage as a hub that dispatches to audience pages (build / use / believe),
 restructure the scroll, possibly new hero.
 
@@ -251,6 +254,7 @@ restructure the scroll, possibly new hero.
   Not warranted just to reflect current state.
 
 ### Sub‑decision: one long page vs. hub‑and‑spoke
+
 The dedicated pages already exist, so prefer **summarize‑and‑link**: each new homepage
 band is a tight teaser (2–4 cards + one CTA) that hands off to the deep page (`/react`,
 `/cloud`, `/why`, `/plugins`, `/devtool`). This caps homepage growth while still closing
@@ -299,11 +303,11 @@ surface area.
  * scripts (see Validation Checklist). Bump when a milestone crosses a round number.
  */
 export const siteMetrics = {
-  packages: 47,          // ls -d packages/*/ | wc -l
-  publishableLibs: 18,   // node scripts/changeset/publishable-pathspec.mjs
-  tests: 9600,           // grep -roE '\b(it|test)\(' **/*.test.ts* | wc -l  (round down)
-  devtoolsPanels: 27,    // packages/devtools/src/panels
-  platforms: ['Web (PWA)', 'Desktop (Electron)', 'Mobile (Expo, soon)'],
+  packages: 47, // ls -d packages/*/ | wc -l
+  publishableLibs: 18, // node scripts/changeset/publishable-pathspec.mjs
+  tests: 9600, // grep -roE '\b(it|test)\(' **/*.test.ts* | wc -l  (round down)
+  devtoolsPanels: 27, // packages/devtools/src/panels
+  platforms: ['Web (PWA)', 'Desktop (Electron)', 'Mobile (Expo, soon)']
 } as const
 
 export const testsLabel = `${siteMetrics.tests.toLocaleString()}+ tests`
@@ -367,7 +371,7 @@ A new pair of cards under the React example (links the page that already exists)
 </div>
 ```
 
-> Keep the existing "Zero backend" P2P pitch — just present it as *one* of three
+> Keep the existing "Zero backend" P2P pitch — just present it as _one_ of three
 > backends (P2P · managed Hub · your server), not the only one.
 
 ### 4. New `BuiltWithAI.astro` band (sketch)
@@ -436,7 +440,7 @@ flowchart TD
 ## Risks And Open Questions
 
 - **Claim accuracy / overreach.** Every new number and capability claim must be true
-  *today* and ideally citable. Follow the `surveillance.ts` precedent: where a claim is
+  _today_ and ideally citable. Follow the `surveillance.ts` precedent: where a claim is
   load‑bearing, source it; where it could be read as over‑promising (e.g. Vue/Svelte
   "support"), hedge to match exploration 0237's Tier‑0/1/2 reality (runtime is
   cross‑framework; full React components are React‑only; Vue/Svelte bindings are
@@ -458,12 +462,12 @@ flowchart TD
   styles, avoid new motion.
 - **Open question:** should the homepage de‑emphasize the long‑horizon "decentralized
   data layer" vision in favor of what ships today (app + AI + framework + humane), given
-  competitors win on a single sharp prop? Leaning yes on *prominence* (lead with real,
+  competitors win on a single sharp prop? Leaning yes on _prominence_ (lead with real,
   keep vision lower) but not on removal.
 
 ## Implementation Checklist
 
-- [ ] Add `site/src/data/siteMetrics.ts` (or generate via `site/scripts/collect-metrics.mjs` in `prebuild`).
+- [x] Add `site/src/data/siteMetrics.ts` (or generate via `site/scripts/collect-metrics.mjs` in `prebuild`).
 - [ ] Replace stale literals: `30 packages`→47, `6,000+ tests`→~9,600, `10‑panel`→27 in `Community.astro` and `roadmap.ts`.
 - [ ] Reconcile "3 hooks" (Hero) with the 4 keystone hooks shown elsewhere.
 - [ ] Expand `TheApp.astro` `tools[]` with AI assistant, CRM, Finance, Experiments, Maps, Labs (and add the matching inline SVG icons). Update the section subtitle.
@@ -492,6 +496,7 @@ flowchart TD
 ## References
 
 ### In‑repo
+
 - `site/src/pages/index.astro` — homepage composition.
 - `site/src/components/sections/*.astro` — all section components (incl. unused `OpenMetrics.astro`).
 - `site/src/data/{roadmap,compare,commitments,surveillance,metrics,status}.ts` — data modules + citation discipline.
@@ -503,6 +508,7 @@ flowchart TD
 - `scripts/changeset/publishable-pathspec.mjs` — publishable set (18 libs).
 
 ### Explorations
+
 - `0237_[x]_VUE_SVELTE_AND_OTHER_FRAMEWORKS_…` — Tier‑0/1/2 framework policy (don't over‑promise).
 - `0223_[_]_XNET_REACT_WITH_YOUR_OWN_SERVER_AND_AUTH.md` — BYO‑server kit.
 - `0224_[_]_REACT_LANDING_PAGE_DEVTOOLS_SHOWCASE_AND_SERVER_DOCS.md` — the /react + /devtool pages.
@@ -511,6 +517,7 @@ flowchart TD
 - `0210` — native Swift core + live sync; `0200` — portable protocol spec / Python kernel.
 
 ### External
+
 - Zero (Rocicorp) — https://zero.rocicorp.dev/ (single sharp "Instant Queries By Default"; 1.0, 2026‑06).
 - Jazz — https://jazz.tools/ ("the database that syncs"; batteries‑included local‑first).
 - ElectricSQL vs PowerSync vs Zero (2026) — https://trybuildpilot.com/648-electric-sql-vs-powersync-vs-zero-2026.
