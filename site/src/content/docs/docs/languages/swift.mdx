@@ -1,0 +1,146 @@
+---
+title: 'Swift — XNetKit'
+draft: false
+description: 'XNetKit is a native Swift SDK for xNet: define schemas in Swift, query a local-first store, bind results into a SwiftUI re-render loop, and sync live with an xNet hub — no JavaScript, no React.'
+sidebar:
+  order: 3
+  label: 'Swift'
+---
+
+import { Aside, LinkCard, Badge, Steps } from '@astrojs/starlight/components'
+
+<p>
+  <Badge text="Native SDK · beta" variant="note" />
+  <Badge text="passes the golden vectors" variant="tip" />
+</p>
+
+[**XNetKit**](https://github.com/crs48/xNet/tree/main/swift/XNetKit) is a native
+Swift SDK for xNet's local-first graph database. Define schemas in Swift, write
+and query the database in Swift, and bind results into a SwiftUI re-rendering
+loop — no JavaScript, no React. It's built directly on the conformance-pinned
+[protocol kernel](/docs/protocol/overview/), so it interoperates with the
+TypeScript reference **byte-for-byte** where it matters: identity, canonical
+change hashes, and LWW convergence.
+
+## Quick look
+
+```swift
+import XNetKit
+
+// Identity — an Ed25519 did:key (would live in the Keychain in a real app).
+let me = Identity()
+
+// Define a schema in Swift (the analogue of TS `defineSchema`).
+let Task = Schema(name: "Task", namespace: "xnet://xnet.fyi/",
+                  authorization: .spaceCascade(relation: "space")) {
+    text("title", required: true, maxLength: 200)
+    select("status", options: ["todo", "doing", "done"], default: "todo")
+    relation("space", target: "xnet://xnet.fyi/Space@1.0.0")
+    money("bounty", currency: "USD")
+}
+Task.id   // "xnet://xnet.fyi/Task@1.0.0"
+
+// A local store owned by `me`. Every write signs a Change and folds it via LWW.
+// Pass a SQLiteChangeLog to persist — state replays from it on next launch.
+let store = NodeStore(identity: me, persistence: SQLiteChangeLog(path: dbPath))
+let task = store.create(Task, ["title": "Ship the Swift SDK", "status": "todo"])
+store.update(task.id, ["status": "doing"])
+
+// Query the database in Swift.
+let todo = store.query(Query(Task, where: .equals("status", "todo")).ordered(by: "title"))
+```
+
+## The native re-render loop (SwiftUI)
+
+`LiveQueryModel` is an `@Observable` analogue of React's `useQuery`: a SwiftUI
+view reads `model.rows` and re-renders automatically whenever the result
+changes — no hooks, no manual subscriptions.
+
+```swift
+import SwiftUI
+import XNetKit
+
+struct TaskListView: View {
+    @State private var model: LiveQueryModel
+
+    init(store: NodeStore, schema: Schema) {
+        _model = State(initialValue: LiveQueryModel(
+            store, Query(schema, where: .equals("status", "todo")).ordered(by: "title")))
+    }
+
+    var body: some View {
+        List(model.rows) { node in
+            Text(node["title"]?.stringValue ?? "")
+        }
+    }
+}
+```
+
+Headless, the same reactivity is the framework-agnostic `LiveQuery` —
+`subscribe(_:)` fires immediately and on every change, a 1:1 port of
+[`packages/runtime/src/live-query.ts`](https://github.com/crs48/xNet/blob/main/packages/runtime/src/live-query.ts).
+
+## Live sync with an xNet hub
+
+`HubConnection` speaks the L2 [replication wire protocol](/docs/protocol/replication/)
+over a WebSocket — and it's proven against the **real TypeScript hub**. The
+`xnet-sync-demo` target has a Swift client sign a change, publish it to the hub
+(which verifies the hash + Ed25519 signature), a second Swift client catch up and
+materialize the node, then receive a **live relayed update** the moment the
+writer publishes — a true cross-language, real-time round-trip.
+
+```swift
+let conn = HubConnection(url: URL(string: "wss://hub.xnet.app")!, did: identity.did)
+try await conn.connect()
+store.onLocalChange = { change in Task { try await conn.publish(change, room: docId) } }
+conn.onRemoteChange = { change in store.apply(change) } // verifies hash + signature
+try await conn.subscribe(room: docId)
+conn.startStreaming()
+```
+
+## Install
+
+XNetKit is a SwiftPM package that lives **in the repository** (not yet on a
+public index). Platforms: macOS 14, iOS 17, visionOS 1.
+
+<Steps>
+
+1. Add it as a local or git package dependency in your `Package.swift`:
+
+   ```swift
+   dependencies: [
+     .package(url: "https://github.com/crs48/xNet.git", branch: "main")
+     // then reference the "XNetKit" product from swift/XNetKit
+   ]
+   ```
+
+2. Build and run the bundled demos:
+
+   ```bash
+   cd swift/XNetKit
+   swift run xnet-demo     # schema → signed writes → query → reactive loop
+   swift test              # 18 tests incl. golden vectors, wire codec, persistence
+   ```
+
+</Steps>
+
+## Scope & status
+
+<Aside type="caution" title="What this slice does and doesn't cover">
+  XNetKit covers identity, schemas, signed-change + LWW store, query, the SwiftUI live binding,
+  SQLite persistence, and **live node-change hub sync**. The collaborative **Yjs rich-text document
+  body** is the remaining piece — it travels the wire as opaque bytes, so a Swift node can relay and
+  store it, but in-Swift CRDT editing is future work. See [exploration
+  0210](https://github.com/crs48/xNet/blob/main/docs/explorations/0210_%5B_%5D_NATIVE_SWIFT_SDK_AND_PORTABLE_MULTI_LANGUAGE_CORE.md).
+</Aside>
+
+<LinkCard
+  title="XNetKit source & tests →"
+  href="https://github.com/crs48/xNet/tree/main/swift/XNetKit"
+  description="The full package: Sources, Tests, and the xnet-demo / xnet-sync-demo executables."
+/>
+<LinkCard
+  title="Conformance vectors →"
+  href="/docs/protocol/conformance/"
+  description="The golden corpus XNetKit reproduces byte-for-byte."
+/>

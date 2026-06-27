@@ -1,0 +1,88 @@
+---
+title: 'Rust — xnet-core'
+draft: false
+description: 'xnet-core is a portable Rust implementation of the xNet interop kernel: did:key identity, the canonical-JSON BLAKE3 change hash, deterministic Ed25519, LWW convergence, and the L2/L3 decision functions — with a C/UniFFI binding surface to back native SDKs.'
+sidebar:
+  order: 4
+  label: 'Rust'
+---
+
+import { Aside, LinkCard, Badge } from '@astrojs/starlight/components'
+
+<p>
+  <Badge text="Core · beta" variant="note" />
+  <Badge text="regenerates the golden vectors" variant="tip" />
+</p>
+
+[**xnet-core**](https://github.com/crs48/xNet/tree/main/rust/xnet-core) is a
+portable Rust implementation of the xNet **interop kernel** — the byte-exact core
+of the [protocol](/docs/protocol/overview/): `did:key` identity, the canonical-JSON
+change hash, Ed25519 sign/verify, per-property LWW convergence, and the pure
+L2/L3 decision functions (version negotiation, authorization expression
+evaluation).
+
+Unlike a full app SDK, `xnet-core` is the **kernel + a binding surface**. It's
+Phase 2 of [exploration 0210](https://github.com/crs48/xNet/blob/main/docs/explorations/0210_%5B_%5D_NATIVE_SWIFT_SDK_AND_PORTABLE_MULTI_LANGUAGE_CORE.md):
+one portable core that can back the Swift, Kotlin, and .NET SDKs via UniFFI / a C
+ABI, instead of each language re-implementing the kernel.
+
+## Conformance
+
+`cargo test` runs the **shared golden-vector corpus** ([`conformance/vectors/`](/docs/protocol/conformance/))
+— the same vectors the TypeScript reference and the Python/Swift kernels pass:
+
+```text
+test l0_identity ... ok      # did:key derivation + round-trip
+test l1_change ... ok        # canonical JSON, BLAKE3 hash, verify, AND re-sign
+test l1_lww ... ok           # per-property LWW convergence
+test l2_replication ... ok   # version-handshake negotiation + catch-up filter
+test l3_authz ... ok         # authorization expression-AST evaluation
+```
+
+<Aside type="tip" title="Re-sign, byte-for-byte">
+  `xnet-core` reproduces a TypeScript-produced signature **exactly** — Ed25519 here is the
+  deterministic RFC-8032 construction on `curve25519-dalek` + `sha2`, so the only crypto
+  dependencies are audited group-math and hash primitives (base58btc and canonical JSON are inline).
+  That makes Rust a candidate for **regenerating** the golden vectors, not just verifying them.
+</Aside>
+
+```bash
+cd rust/xnet-core
+cargo test          # 5 conformance suites + 1 FFI round-trip
+```
+
+## The binding surface
+
+[`src/ffi.rs`](https://github.com/crs48/xNet/blob/main/rust/xnet-core/src/ffi.rs)
+exposes the kernel across a `String` / `Vec<u8>` / `bool` boundary — the shape a
+UniFFI or C-ABI consumer wants — so a native SDK (Swift, Kotlin, .NET) can call
+the verified kernel instead of porting it. The crate is dependency-light by
+design:
+
+```toml
+[dependencies]
+curve25519-dalek = "4.1"   # RFC-8032 Ed25519 (deterministic)
+sha2 = "0.10"
+blake3 = "1"               # the change-hash digest
+serde_json = "1"
+```
+
+## Scope & status
+
+<Aside type="caution" title="Kernel, not a full app SDK">
+  xnet-core is the **L0/L1 + L2/L3 decision core** — identity, change hashing, LWW, and the pure
+  decision functions. It is not (yet) an application SDK with storage, a live-sync transport, or a
+  query engine; those live in the native SDKs it's meant to back. The crate lives **in the
+  repository** (not yet on crates.io).
+</Aside>
+
+<LinkCard
+  title="xnet-core source & tests →"
+  href="https://github.com/crs48/xNet/tree/main/rust/xnet-core"
+  description="The kernel (src/lib.rs), the FFI surface (src/ffi.rs), and the conformance tests."
+/>
+<LinkCard
+  title="Implement xNet in your language →"
+  href="/docs/protocol/implement-in-your-language/"
+  description="The same path xnet-core followed — kernel, vectors, conformance."
+/>
