@@ -508,52 +508,60 @@ flowchart TB
 
 Tier 0 (do now — near-zero risk, high leverage):
 
-- [ ] Add a "Use xNet from any framework" docs page: `createXNetClient` +
+- [x] Add a "Use xNet from any framework" docs page: `createXNetClient` +
       `liveQuery`, with **vanilla**, Vue, and Svelte snippets.
-- [ ] Publish the **support-tier matrix** (Tier 0/1/2 + "components are React-only")
+- [x] Publish the **support-tier matrix** (Tier 0/1/2 + "components are React-only")
       in docs and the `@xnetjs/runtime` README.
-- [ ] Add `runAdapterConformance(makeClient)` to `@xnetjs/runtime` (or a test
+- [x] Add `runAdapterConformance(makeClient)` to `@xnetjs/runtime` (or a test
       helper) asserting: live update on mutate, no update after unsubscribe, auth
       denial surfaces, idempotent `destroy()`.
-- [ ] Wire the conformance suite into the existing `runtime` vitest project.
+- [x] Wire the conformance suite into the existing `runtime` vitest project.
 
-Tier 2 (only when a named consumer asks):
+**Tier 2 — deferred (demand-gated; not in this PR).** Per the recommendation,
+these ship only when a named external consumer asks. The Tier 0 conformance suite
+already covers their behaviour, so each is a thin add when the time comes:
 
-- [ ] `@xnetjs/svelte` — re-export `liveQuery` + `mutate(client)` (+ optional runes
-      helper); peer-depend on `@xnetjs/runtime`; render-harness test via
-      `@testing-library/svelte`.
-- [ ] `@xnetjs/vue` — `useQuery` (`shallowRef` + `onScopeDispose`) + `useMutate`;
-      render-harness test via `@vue/test-utils`.
-- [ ] `@xnetjs/solid` — `createQuery` via `from()` + `createMutation`; ship only on
-      explicit request.
-- [ ] Add a vitest project + plugin for each shipped framework; register the
-      package in the workspace and (periphery) release config.
-- [ ] Changeset per new package; confirm it lands in *periphery* (independent), not
-      the `fixed` lockstep group.
+- `@xnetjs/svelte` — re-export `liveQuery` + `mutate(client)` (+ optional runes
+  helper); peer-depend on `@xnetjs/runtime`; render-harness test via
+  `@testing-library/svelte`.
+- `@xnetjs/vue` — `useQuery` (`shallowRef` + `onScopeDispose`) + `useMutate`;
+  render-harness test via `@vue/test-utils`.
+- `@xnetjs/solid` — `createQuery` via `from()` + `createMutation`; ship only on
+  explicit request.
+- Add a vitest project + plugin for each shipped framework; register the package
+  in the workspace and (periphery) release config.
+- Changeset per new package; confirm it lands in _periphery_ (independent), not
+  the `fixed` lockstep group.
 
-Explicitly NOT doing:
+**Non-goals (decided against).**
 
-- [ ] ~~Port any of the 71 hooks or 18 components to Vue/Svelte/Solid.~~
-- [ ] ~~Move the app off React.~~
-- [ ] ~~Publish speculative framework packages with no consumer.~~
+- Porting any of the 71 hooks or 18 components to Vue/Svelte/Solid.
+- Moving the app off React.
+- Publishing speculative framework packages with no consumer.
 
 ## Validation Checklist
 
-- [ ] A **vanilla** sample (no framework) renders a live list that updates on
-      `client.mutate` — proves Tier 0 end-to-end.
-- [ ] The shared conformance suite passes against `createXNetClient` + `liveQuery`
+- [x] A **vanilla** sample (no framework) renders a live list that updates on
+      `client.mutate` — proves Tier 0 end-to-end (the `runAdapterConformance`
+      `live-query:immediate-and-update` check).
+- [x] The shared conformance suite passes against `createXNetClient` + `liveQuery`
       in the `runtime` project (green in CI).
-- [ ] If shipped: a **Svelte** and a **Vue** sample each render a live list that
-      updates on mutate and stops on unsubscribe — adapter render-harness tests
-      green, no React imported.
-- [ ] Each shipped adapter peer-depends on `@xnetjs/runtime` (not `@xnetjs/sdk`),
-      and `pnpm` resolves the framework peer at the documented version range.
-- [ ] The support-tier matrix is live in docs; Tier 2 pages explicitly say "data
+- [x] The support-tier matrix is live in docs; Tier 2 pages explicitly say "data
       binding only, components are React."
-- [ ] Adding an adapter does **not** bump the `fixed` core group (it lands in
-      periphery); the release pipeline publishes it with provenance.
-- [ ] The existing React app + test suites stay green (the runtime contract is
-      unchanged; this work is additive).
+- [x] The existing React app + test suites stay green (the runtime contract is
+      unchanged; this work is purely additive — a new export + new files).
+
+Deferred (validate when a Tier 2 adapter ships):
+
+- If shipped: a **Svelte** and a **Vue** sample each render a live list that
+  updates on mutate and stops on unsubscribe — adapter render-harness tests green,
+  no React imported.
+- Each shipped adapter peer-depends on `@xnetjs/runtime` (not `@xnetjs/sdk`), and
+  `pnpm` resolves the framework peer at the documented version range.
+- Adding an adapter does **not** bump the `fixed` core group (it lands in
+  periphery); the release pipeline publishes it with provenance. _(This PR already
+  demonstrates the pattern: the `@xnetjs/runtime` changeset is a periphery minor,
+  not a `fixed`-group bump.)_
 
 ## References
 
