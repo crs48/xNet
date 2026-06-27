@@ -80,6 +80,13 @@ const RULES = [
 const HUMANE_OK = /\/\*\s*humane-ok:\s*(.*?)\s*\*\//
 const HUMANE_OK_BARE = /\/\*\s*humane-ok\s*\*\//
 
+/** Whether a filename is an in-scope source file (right extension, not a test). */
+function isScannableFile(name, full) {
+  const dot = name.lastIndexOf('.')
+  if (dot === -1 || !EXT.has(name.slice(dot))) return false
+  return !SKIP_FILE.test(full)
+}
+
 /** Recursively collect in-scope .ts/.tsx files under a directory. */
 function collect(dir, out) {
   let entries
@@ -91,12 +98,8 @@ function collect(dir, out) {
   for (const e of entries) {
     const full = join(dir, e.name)
     if (e.isDirectory()) {
-      if (SKIP_DIRS.has(e.name)) continue
-      collect(full, out)
-    } else if (e.isFile()) {
-      const dot = e.name.lastIndexOf('.')
-      if (dot === -1 || !EXT.has(e.name.slice(dot))) continue
-      if (SKIP_FILE.test(full)) continue
+      if (!SKIP_DIRS.has(e.name)) collect(full, out)
+    } else if (e.isFile() && isScannableFile(e.name, full)) {
       out.push(full)
     }
   }
@@ -104,6 +107,34 @@ function collect(dir, out) {
 
 function isDarkScope(file) {
   return DARK_DIR_MARKERS.some((marker) => file.includes(marker))
+}
+
+/** A bare `humane-ok` (no reason) is itself a violation — exceptions must be justified. */
+function isBareOk(line) {
+  return HUMANE_OK_BARE.test(line) && !HUMANE_OK.test(line)
+}
+
+/** A reasoned humane-ok on the line or the one above suppresses a match. */
+function isSuppressed(line, prevLine) {
+  return hasReasonedOk(line) || hasReasonedOk(prevLine)
+}
+
+/** Violations for a single line (no line numbers; the caller stamps those). */
+function scanLine(line, prevLine, dark) {
+  const out = []
+  if (isBareOk(line)) {
+    out.push({
+      rule: 'humane-ok without a reason',
+      fix: 'add a reason: /* humane-ok: why this is honest */',
+      text: line.trim()
+    })
+  }
+  if (isSuppressed(line, prevLine)) return out
+  for (const rule of RULES) {
+    if (rule.group === 'dark-pattern' && !dark) continue
+    if (rule.re.test(line)) out.push({ rule: rule.name, fix: rule.fix, text: line.trim() })
+  }
+  return out
 }
 
 /**
@@ -114,23 +145,8 @@ export function scanText(content, { dark }) {
   const lines = content.split('\n')
   const violations = []
   lines.forEach((line, i) => {
-    // A bare `humane-ok` (no reason) is itself a violation — exceptions must
-    // be justified.
-    if (HUMANE_OK_BARE.test(line) && !HUMANE_OK.test(line)) {
-      violations.push({
-        line: i + 1,
-        rule: 'humane-ok without a reason',
-        fix: 'add a reason: /* humane-ok: why this is honest */',
-        text: line.trim()
-      })
-    }
-    const suppressed =
-      hasReasonedOk(lines[i]) || (i > 0 && hasReasonedOk(lines[i - 1]))
-    for (const rule of RULES) {
-      if (rule.group === 'dark-pattern' && !dark) continue
-      if (!rule.re.test(line)) continue
-      if (suppressed) continue
-      violations.push({ line: i + 1, rule: rule.name, fix: rule.fix, text: line.trim() })
+    for (const v of scanLine(line, i > 0 ? lines[i - 1] : '', dark)) {
+      violations.push({ line: i + 1, ...v })
     }
   })
   return violations
@@ -142,14 +158,30 @@ function hasReasonedOk(line) {
   return Boolean(match && match[1] && match[1].trim().length > 0)
 }
 
-function runScan(extraPaths) {
+/** A resolved path that exists, is a file, and isn't already collected. */
+function isNewFile(p, files) {
+  return existsSync(p) && statSync(p).isFile() && !files.includes(p)
+}
+
+/** All in-scope files plus any extra paths passed on the CLI. */
+function collectFiles(extraPaths) {
   const files = []
   for (const dir of SURPLUS_ROOTS) collect(dir, files)
   for (const arg of extraPaths) {
     const p = resolve(arg)
-    if (existsSync(p) && statSync(p).isFile() && !files.includes(p)) files.push(p)
+    if (isNewFile(p, files)) files.push(p)
   }
+  return files
+}
 
+function printViolation(file, v) {
+  console.error(`✗ ${relative(root, file)}:${v.line}  ${v.rule}`)
+  console.error(`    ${v.text}`)
+  console.error(`    → ${v.fix}`)
+}
+
+function runScan(extraPaths) {
+  const files = collectFiles(extraPaths)
   let violations = 0
   for (const file of files) {
     let content
@@ -158,12 +190,9 @@ function runScan(extraPaths) {
     } catch {
       continue
     }
-    const found = scanText(content, { dark: isDarkScope(file) })
-    for (const v of found) {
+    for (const v of scanText(content, { dark: isDarkScope(file) })) {
       violations++
-      console.error(`✗ ${relative(root, file)}:${v.line}  ${v.rule}`)
-      console.error(`    ${v.text}`)
-      console.error(`    → ${v.fix}`)
+      printViolation(file, v)
     }
   }
 
