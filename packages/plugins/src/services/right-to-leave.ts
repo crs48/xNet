@@ -82,6 +82,13 @@ export async function leaveWithEverything(
   return { files, exportedAt: opts.now }
 }
 
+/** Run an optional port if present; report whether it ran. */
+async function ran(fn?: () => void | Promise<void>): Promise<boolean> {
+  if (!fn) return false
+  await fn()
+  return true
+}
+
 /**
  * Delete Day: stop feeding the system, for real. Tombstones remote copies on
  * every hub and (unless `keepLocal`) wipes the local master too. The only signal
@@ -91,21 +98,9 @@ export async function deleteDay(
   ports: RightToLeavePorts,
   opts: DeleteDayOptions
 ): Promise<DeleteDayResult> {
-  let remotePurged = false
-  let localWiped = false
-  let recordedLeft = false
-
-  if (ports.purgeRemoteCopies) {
-    await ports.purgeRemoteCopies()
-    remotePurged = true
+  return {
+    remotePurged: await ran(ports.purgeRemoteCopies),
+    localWiped: opts.keepLocal ? false : await ran(ports.destroyLocal),
+    recordedLeft: await ran(ports.recordLeft)
   }
-  if (!opts.keepLocal && ports.destroyLocal) {
-    await ports.destroyLocal()
-    localWiped = true
-  }
-  if (ports.recordLeft) {
-    ports.recordLeft()
-    recordedLeft = true
-  }
-  return { remotePurged, localWiped, recordedLeft }
 }
