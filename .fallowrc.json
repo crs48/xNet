@@ -52,6 +52,7 @@
     "maxCrap": 30.0,
     "ignore": [
       "scripts/visuals/**",
+      "scripts/check-humane-patterns.mjs",
       "apps/web/src/components/CanvasView.tsx",
       "apps/web/src/components/DatabaseView.tsx",
       "apps/web/src/components/PageView.tsx",

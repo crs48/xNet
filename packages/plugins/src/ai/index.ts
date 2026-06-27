@@ -55,7 +55,11 @@ export type { AIScriptResponse, ScriptGeneratorOptions } from './generator'
 // Agent runtime
 export {
   AiAgentRuntime,
+  AI_GENERATED_PROVENANCE,
+  SCAFFOLD_SYSTEM_GUARD,
+  assistTurnProvenance,
   classifyAiAgentDisplayState,
+  composeAssistSystemPrompt,
   createAiAgentRuntime,
   createMemoryAiAgentRuntimeStorage,
   renderSelectionPrompt
@@ -92,6 +96,7 @@ export type {
   AiAgentApprovalRequestInput,
   AiAgentApprovalResolveInput,
   AiAgentApprovalStatus,
+  AiAssistMode,
   AiAgentBackgroundJob,
   AiAgentBackgroundJobInput,
   AiAgentBackgroundJobRunner,

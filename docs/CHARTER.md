@@ -1,0 +1,143 @@
+# The xNet Humane Internet Charter
+
+> _Software that serves instead of extracts._
+
+This charter states, in plain language, the commitments xNet makes to the people
+who use it — and, where possible, points at the **code or test that backs each
+one**, so the promise is verifiable rather than rhetorical. It is the operational
+expression of [`docs/VISION.md`](./VISION.md) and grew out of
+[exploration 0234](./explorations/0234_[_]_MITIGATING_INTERNET_HARMS_A_NEO_LUDDITE_AUDIT_OF_XNET.md),
+a "neo‑Luddite audit" of the project against the harms catalogued in the wider
+critique of big tech (surveillance capitalism, attention extraction, platform
+lock‑in, deskilling).
+
+The test we hold ourselves to is the historical Luddites' own definition: we
+refuse to ship _"machinery hurtful to commonality"_ — technology deployed to
+deskill, surveil, or concentrate power. Good, honest, well‑built software passes;
+extraction fails.
+
+A commitment with no receipt is just marketing. Where a commitment is **enforced**
+(a CI gate or a test), it says so. Where it is **architectural** (a property of
+how the code is built), it links to that code. Where it is **aspirational** (not
+yet fully built), it says that too — honesty about the gap is itself a
+commitment.
+
+---
+
+## 1. Own — you hold the master copy
+
+Your data lives on your device first. xNet keeps no behavioral surplus and has no
+third‑party customer to sell it to. There is no ad model; you are not the product.
+
+- **Architectural:** the local store is the primary copy — event‑sourced LWW over
+  OPFS‑backed SQLite ([`packages/data/src/store/store.ts`](../packages/data/src/store/store.ts),
+  [`packages/sqlite/src/adapters/web.ts`](../packages/sqlite/src/adapters/web.ts)).
+- **Enforced:** the humane‑patterns CI gate bans third‑party analytics/ad SDKs
+  anywhere in `packages/`/`apps/`
+  ([`scripts/check-humane-patterns.mjs`](../scripts/check-humane-patterns.mjs),
+  `surplus` rules) — there is no behavioral‑surplus pipeline to add by accident.
+
+## 2. Exit — leaving is your right, and it loses nothing
+
+You can take everything and go. Identity is a portable `did:key` that works on any
+hub; the wire format is an open, signed, hash‑chained change log, not a vendor
+blob; the client works fully offline with no hub at all.
+
+- **Architectural:** portable protocol
+  ([`packages/sync/src/change.ts`](../packages/sync/src/change.ts)), portable
+  identity ([`packages/identity/src/keys.ts`](../packages/identity/src/keys.ts)),
+  offline‑first ([`packages/runtime/src/sync/offline-queue.ts`](../packages/runtime/src/sync/offline-queue.ts)),
+  workspace export
+  ([`packages/plugins/src/services/ai-workspace-exporter.ts`](../packages/plugins/src/services/ai-workspace-exporter.ts),
+  [`packages/data/src/database/export/json-export.ts`](../packages/data/src/database/export/json-export.ts)).
+- **Aspirational:** a single, legible "export everything and go" / Delete‑Day flow
+  that composes these pieces — tracked in exploration 0234 (Wave 1).
+
+## 3. Calm — we compete for your wellbeing, not your time
+
+We do not build the machinery of compulsion. No infinite scroll. No engagement
+ranking. No streaks engineered around loss aversion. No manufactured red‑dot
+anxiety. Feeds are chronological; notifications are rule‑based with an explicit
+priority order, a watermark + snooze model, and a hard cap.
+
+- **Enforced:** the motion vocabulary bans manipulative animation
+  ([`scripts/check-motion-vocab.mjs`](../scripts/check-motion-vocab.mjs),
+  exploration 0199) and the humane‑patterns gate bans dark‑pattern primitives —
+  infinite scroll, streak counters, confirmshaming
+  ([`scripts/check-humane-patterns.mjs`](../scripts/check-humane-patterns.mjs),
+  `dark-pattern` rules).
+- **Architectural:** chronological feeds
+  ([`packages/social/src/feeds/defaults.ts`](../packages/social/src/feeds/defaults.ts)),
+  rule‑based notifications
+  ([`packages/comms/src/notify/rules.ts`](../packages/comms/src/notify/rules.ts)).
+
+## 4. Consent — nothing leaves without permission
+
+Telemetry is **off by default**. Nothing is sent until you choose a tier, and what
+is sent is PII‑scrubbed and k‑anonymity bucketed so a single user can't be
+fingerprinted.
+
+- **Architectural / tested:** the consent spine
+  ([`packages/telemetry/src/consent/manager.ts`](../packages/telemetry/src/consent/manager.ts)),
+  scrubbing ([`packages/telemetry/src/collection/scrubbing.ts`](../packages/telemetry/src/collection/scrubbing.ts)),
+  bucketing ([`packages/telemetry/src/collection/bucketing.ts`](../packages/telemetry/src/collection/bucketing.ts)),
+  governed outbound fetch
+  ([`packages/core/src/utils/ssrf.ts`](../packages/core/src/utils/ssrf.ts)),
+  exploration 0210.
+- **Aspirational:** a "what we know about you" mirror that enumerates every derived
+  artifact (vectors, AI memory, telemetry buffer) and lets you purge any of it —
+  tracked in exploration 0234 (Wave 2).
+
+## 5. Agency — AI makes you more capable, not less
+
+AI is bring‑your‑own and local‑capable; the second brain cites its sources and
+respects authorization. By default the assistant **scaffolds** — it proposes and
+cites, you write and own — rather than silently doing your thinking for you (a
+direct answer to the MIT "cognitive debt" finding on LLM deskilling). Anything the
+model authored is marked as `ai-generated` provenance.
+
+- **Architectural / tested:** governed GraphRAG retrieval
+  ([`packages/brain/src/retrieve.ts`](../packages/brain/src/retrieve.ts)),
+  provenance tiers ([`packages/trust/src/index.ts`](../packages/trust/src/index.ts)),
+  the runtime's default `scaffold` assist mode + `ai-generated` turn provenance
+  ([`packages/plugins/src/ai/runtime.ts`](../packages/plugins/src/ai/runtime.ts)).
+- **Aspirational:** surfacing citations + an `ai-generated` badge in the editor UI
+  — tracked in exploration 0234 (Wave 2).
+
+## 6. Commons — you own your audience and your space
+
+Your social graph and your audience belong to you, not to a platform that rents
+them back. Hubs are user‑ownable and federated; sharing is durable links you
+control.
+
+- **Architectural:** BYO hub ([`packages/hub/src/cli.ts`](../packages/hub/src/cli.ts)),
+  the BYO‑backend server kit (`@xnetjs/server`), durable share links.
+- **Aspirational:** "own your audience" publishing — publish from your graph to an
+  owned page with a portable, DID‑based subscriber list — tracked in
+  exploration 0234 (Wave 3).
+
+---
+
+## The `humane-ok` escape hatch
+
+The humane‑patterns gate is a guard, not a straitjacket. Occasionally a banned
+token appears for a legitimate reason (a test fixture, a comment explaining why we
+_avoid_ a pattern, an unavoidable third‑party constraint). To allow it, put a
+justification comment **in the same file**:
+
+```ts
+/* humane-ok: virtualized list, not engagement-driven infinite scroll — see 0234 */
+```
+
+The reason is required: the comment must explain _why_ the exception is honest.
+Allowing an exception without a written reason is itself a violation. Reviewers
+should treat every `humane-ok` as a small design decision worth a second look.
+
+## How this charter stays honest
+
+- Every **Enforced** claim maps to a CI gate that fails the build on regression.
+- Every **Architectural** claim links to the code that makes it true.
+- Every **Aspirational** claim names where the gap is tracked, so the charter
+  never over‑promises.
+- New work that would weaken a commitment should update this charter in the same
+  change — and explain itself.

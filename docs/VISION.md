@@ -34,6 +34,10 @@ xNet is not another productivity app. It's not just another local-first SDK.
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
+The operational expression of this stance — what we commit to and refuse, with a
+receipt for each promise — is the [Humane Internet Charter](./CHARTER.md):
+**Own, Exit, Calm, Consent, Agency, Commons.**
+
 ---
 
 ## The Micro-to-Macro Continuum
