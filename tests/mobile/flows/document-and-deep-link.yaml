@@ -1,0 +1,27 @@
+# Document surface edits persist, and a deep link opens the right document via
+# the hash route wired in apps/web/src/native/chrome.ts (exploration 0238).
+appId: io.xnet.app
+---
+- launchApp:
+    clearState: true
+
+# Create a page and type into the webview editor.
+- tapOn: 'New'
+- tapOn: 'Page'
+- tapOn:
+    text: 'Title|Untitled'
+- inputText: 'Field notes'
+- tapOn:
+    text: 'Start writing'
+    optional: true
+- inputText: 'Captured on mobile.'
+
+# Relaunch: the edit persisted to OPFS.
+- stopApp
+- launchApp
+- assertVisible: 'Field notes'
+- assertVisible: 'Captured on mobile.'
+
+# Deep link routes to a document (xnet://doc/<id> → #/doc/<id>).
+- openLink: 'xnet://doc/field-notes'
+- assertVisible: 'Field notes'

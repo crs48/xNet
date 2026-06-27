@@ -556,11 +556,11 @@ appId: io.xnet.app
 
 - [ ] CI: macOS runner (iOS simulator) + ubuntu+KVM (Android emulator); or EAS
       Build / Fastlane producing `.ipa`/`.apk` from the shared web build.
-- [ ] Maestro flows for each surface (doc, db, canvas, dashboard) + offline +
+- [x] Maestro flows for each surface (doc, db, canvas, dashboard) + offline +
       relaunch-persistence + sync; run in CI (optionally Maestro Cloud).
 - [ ] Extend Playwright `mobile-webkit`/`mobile-chromium` coverage to all four
       surfaces (fast layer-1 gate on every PR).
-- [ ] Add a mobile target to `runAdapterConformance` for the in-webview client.
+- [x] Add a mobile target to `runAdapterConformance` for the in-webview client.
 
 ## Validation Checklist
 
@@ -581,7 +581,7 @@ appId: io.xnet.app
 - [ ] Maestro suite green in CI on both platforms; Playwright mobile projects green.
 - [ ] App Store/Play internal-track build accepted (4.2 minimum-functionality
       smoke: native push/biometric/share present).
-- [ ] No new duplicate UI: mobile ships the `apps/web` build, not a forked renderer.
+- [x] No new duplicate UI: mobile ships the `apps/web` build, not a forked renderer.
 
 ## References
 
