@@ -581,16 +581,16 @@ unchecked, so this exploration stays `[_]` until that follow-up lands.
       `electron-release.yml` that launches the built binary before publish.
 - [ ] **L5:** add Electron routes/screens to the visual-capture set so Electron
       screenshots flow through the existing SSIM diff + sticky PR comment.
-- [ ] **Changeset:** none required (tests/CI/docs only) unless a publishable
+- [x] **Changeset:** none required (tests/CI/docs only) unless a publishable
       `packages/*` is modified (e.g. adding a convergence test helper export).
 
 ## Validation Checklist
 
-- [ ] `pnpm check:electron-parity` passes locally and in CI; deliberately adding
+- [x] `pnpm check:electron-parity` passes locally and in CI; deliberately adding
       a web route without coverage makes it fail.
-- [ ] The Electron unit suite (`apps/electron/src/**`) shows up in a CI test job
+- [x] The Electron unit suite (`apps/electron/src/**`) shows up in a CI test job
       summary (not just locally).
-- [ ] `conformance.test.ts` passes with the kernel version Electron actually
+- [x] `conformance.test.ts` passes with the kernel version Electron actually
       bundles (`pnpm why @xnetjs/sync` inside `apps/electron` matches).
 - [ ] `sync-matrix.spec.ts` is green for all cells: web↔web, electron↔web,
       electron↔electron, each over ws and (best-effort) webrtc, including the
