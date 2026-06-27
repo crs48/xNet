@@ -42,6 +42,12 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "site", "dev"],
       "port": 4321
+    },
+    {
+      "name": "site-preview (astro 4388)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "site", "dev", "--port", "4388", "--strictPort"],
+      "port": 4388
     }
   ]
 }
