@@ -105,3 +105,12 @@ export {
   stripXNetPageFrontmatter,
   validateXNetPageMarkdown
 } from '../ai-surface'
+
+// Right to Leave — export-and-go / Delete Day (exploration 0234, Charter §Exit)
+export type {
+  RightToLeavePorts,
+  LeaveBundle,
+  DeleteDayOptions,
+  DeleteDayResult
+} from './right-to-leave'
+export { LEAVE_README, leaveWithEverything, deleteDay } from './right-to-leave'
