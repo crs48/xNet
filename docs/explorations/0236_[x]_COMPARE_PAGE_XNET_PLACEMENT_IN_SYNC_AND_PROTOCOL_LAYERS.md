@@ -432,46 +432,46 @@ sequenceDiagram
 
 ## Implementation Checklist
 
-- [ ] Add the `xNet` row to the `protocols` layer in
+- [x] Add the `xNet` row to the `protocols` layer in
       [`compare.ts`](site/src/data/compare.ts) with all four `dims` keys
       (`scope`, `dataModel`, `sync`, `identity`) + `bestFor`.
-- [ ] Add the `xnet-kernel` footnote with a `sourceUrl` to the normative spec
+- [x] Add the `xnet-kernel` footnote with a `sourceUrl` to the normative spec
       ([`docs/specs/protocol/`](docs/specs/protocol)) and reference it from the
       row (`footnotes: ['xnet-kernel']`).
-- [ ] Replace the `protocols` `xnetNote` with the consumer-**and**-provider
+- [x] Replace the `protocols` `xnetNote` with the consumer-**and**-provider
       wording.
-- [ ] Rewrite the `sync` layer `intro` so "own-store" projects (Turso, Ditto)
+- [x] Rewrite the `sync` layer `intro` so "own-store" projects (Turso, Ditto)
       no longer contradict the xNet note; make the exclusion criterion
       "drop-in under an existing app," not "brings its own store."
-- [ ] Confirm the row's `license` string and `maturity` match reality and the
+- [x] Confirm the row's `license` string and `maturity` match reality and the
       roadmap (`pre-release`; claim protocol/sync, not federation).
-- [ ] Decide highlight vs reference row for the Protocols entry (default:
+- [x] Decide highlight vs reference row for the Protocols entry (default:
       `highlight: true`).
-- [ ] Leave Substrates unchanged; note the decision in the PR description.
-- [ ] (Optional) Re-check the "Need a primitive → Federated social" guide card
+- [x] Leave Substrates unchanged; note the decision in the PR description.
+- [x] (Optional) Re-check the "Need a primitive → Federated social" guide card
       and the "Where xNet fits" tradeoffs in
       [`compare.astro`](site/src/pages/compare.astro) for consistency with the
       new protocols framing.
 
 ## Validation Checklist
 
-- [ ] `pnpm --filter site build` succeeds and
+- [x] `pnpm --filter site build` succeeds and
       [`validate-compare.ts`](site/scripts/validate-compare.ts) prints the
       updated `compare.ts OK: 5 layers, N rows, M chips` (N increments by 1).
-- [ ] No validation errors for missing `dims`, dangling/unused footnotes, or
+- [x] No validation errors for missing `dims`, dangling/unused footnotes, or
       duplicate names within the Protocols layer.
-- [ ] The Protocols table renders the xNet row with the indigo highlight, the
+- [x] The Protocols table renders the xNet row with the indigo highlight, the
       maturity badge, and a working footnote superscript → source link
       (desktop table + mobile card + extended-dimensions view all correct).
-- [ ] Visual check: xNet row sits naturally among AT Protocol / Matrix; the
+- [x] Visual check: xNet row sits naturally among AT Protocol / Matrix; the
       upgraded note reads as candid, not boastful.
-- [ ] Cross-page consistency: the compare Protocols layer no longer contradicts
+- [x] Cross-page consistency: the compare Protocols layer no longer contradicts
       [`OpenProtocol.astro`](site/src/components/sections/OpenProtocol.astro)
       (both now treat xNet as a protocol peer to Matrix / AT Protocol).
-- [ ] The sync-layer note no longer contradicts the presence of Ditto/Turso.
-- [ ] Every claim in the new row/footnote maps to a **Built** roadmap item or is
+- [x] The sync-layer note no longer contradicts the presence of Ditto/Turso.
+- [x] Every claim in the new row/footnote maps to a **Built** roadmap item or is
       explicitly marked as roadmap (federation).
-- [ ] `rowCount` (derived) and the hero "Projects compared" stat update
+- [x] `rowCount` (derived) and the hero "Projects compared" stat update
       automatically and read correctly.
 
 ## References
