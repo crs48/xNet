@@ -8,6 +8,8 @@
  * not aspirations.
  */
 
+import { testsAcrossPackages } from './siteMetrics'
+
 export interface RoadmapPhase {
   status: 'done' | 'now' | 'next' | 'future' | 'vision'
   label: string
@@ -39,7 +41,7 @@ export const phases: RoadmapPhase[] = [
       'Notification inbox with mentions & triage',
       'Agent surface — xnet CLI, SKILL.md, files-first checkout',
       'Hub — encrypted backup, relay & full-text search',
-      '6,000+ tests across 30 packages'
+      testsAcrossPackages
     ]
   },
   {

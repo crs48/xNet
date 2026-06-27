@@ -468,7 +468,7 @@ flowchart TD
 ## Implementation Checklist
 
 - [x] Add `site/src/data/siteMetrics.ts` (or generate via `site/scripts/collect-metrics.mjs` in `prebuild`).
-- [ ] Replace stale literals: `30 packages`→47, `6,000+ tests`→~9,600, `10‑panel`→27 in `Community.astro` and `roadmap.ts`.
+- [x] Replace stale literals: `30 packages`→47, `6,000+ tests`→~9,600, `10‑panel`→27 in `Community.astro` and `roadmap.ts`.
 - [ ] Reconcile "3 hooks" (Hero) with the 4 keystone hooks shown elsewhere.
 - [ ] Expand `TheApp.astro` `tools[]` with AI assistant, CRM, Finance, Experiments, Maps, Labs (and add the matching inline SVG icons). Update the section subtitle.
 - [ ] Reframe `ForDevelopers.astro`: lead = "any framework, your backend"; add runtime + BYO‑server cards linking `/react`; keep P2P as one of three backends.

@@ -1,17 +1,19 @@
 ---
 import SectionHeader from '../ui/SectionHeader.astro'
+import { testsAcrossPackages, devtoolsLabel } from '../../data/siteMetrics'
 
 const working = [
-  '6,000+ tests passing across 30 packages',
+  `${testsAcrossPackages} passing`,
   'Web + Electron apps with full P2P sync',
   'Workbench shell with tabs & command palette',
   'Schema system with 15 property types',
   'Real-time collaboration via Yjs',
   'Chat, presence & peer-to-peer calls',
   'Dashboards with sandboxed custom widgets',
+  'A built-in AI assistant grounded in your graph',
   'Cryptographic identity with passkey sign-in',
   'Agent surface: xnet CLI, SKILL.md & MCP',
-  '10-panel devtools suite',
+  devtoolsLabel,
 ]
 ---
 
