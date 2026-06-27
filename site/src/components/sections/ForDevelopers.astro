@@ -72,7 +72,7 @@ const whatYouSkip = [
   <div class="mx-auto max-w-6xl px-6">
     <SectionHeader
       title="For Developers"
-      subtitle="Build local-first apps with three React hooks. Everything else — storage, crypto, networking — is handled for you."
+      subtitle="Build local-first apps with three React hooks — storage, crypto, and networking handled for you. Sync peer-to-peer, through a managed Hub, or against your own backend."
       align="center"
     />
 
@@ -183,6 +183,43 @@ const whatYouSkip = [
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- Backends: same hooks, three ways to sync -->
+    <div class="mt-16 max-w-4xl mx-auto">
+      <h3 class="text-center text-sm font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 mb-8">
+        One client. Pick your backend.
+      </h3>
+      <div class="grid gap-5 sm:grid-cols-3">
+        <div class="animate-on-scroll rounded-xl border border-emerald-500/20 bg-emerald-500/[0.03] p-5">
+          <h4 class="font-semibold text-emerald-400 mb-1.5">Peer-to-peer</h4>
+          <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+            No server at all — devices sync directly. The zero-backend default.
+          </p>
+        </div>
+        <div class="animate-on-scroll rounded-xl border border-amber-500/20 bg-amber-500/[0.03] p-5">
+          <h4 class="font-semibold text-amber-400 mb-1.5">Managed Hub</h4>
+          <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+            Point <code class="font-mono text-xs">XNetProvider</code> at a Hub URL for
+            always-on sync, presence, and encrypted backup.
+          </p>
+        </div>
+        <div class="animate-on-scroll rounded-xl border border-indigo-500/20 bg-indigo-500/[0.03] p-5">
+          <h4 class="font-semibold text-indigo-400 mb-1.5">Your own server</h4>
+          <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
+            <code class="font-mono text-xs">@xnetjs/server</code> maps your auth and
+            database onto the data layer — server, custodial, or signed trust.
+          </p>
+        </div>
+      </div>
+      <p class="mt-6 text-center text-sm text-gray-500 dark:text-gray-400">
+        Prefer a different framework? <code class="font-mono text-xs">@xnetjs/runtime</code>
+        drives the same client from any framework, a worker, or a Node service — React
+        ships first-class, with Vue/Svelte adapters a small port when you need them.
+        <a href="/react" class="text-indigo-600 dark:text-indigo-400 underline decoration-dotted underline-offset-2 hover:text-indigo-500">
+          See xNet for React →
+        </a>
+      </p>
     </div>
 
     <!-- CTAs -->
