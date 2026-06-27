@@ -4,5 +4,14 @@
   "title": "See exactly what we know about you",
   "summary": "A new Settings → 'What we know about you' panel enumerates everything xNet has derived about you — buffered diagnostics, and (as they arrive) embeddings and AI memory — and lets you purge any of it. Because xNet keeps no behavioral surplus, the usual answer is simply: nothing.",
   "highlights": [],
-  "tags": ["app"]
+  "tags": [
+    "app"
+  ],
+  "pr": 296,
+  "mergedAt": "2026-06-27T19:00:46Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
