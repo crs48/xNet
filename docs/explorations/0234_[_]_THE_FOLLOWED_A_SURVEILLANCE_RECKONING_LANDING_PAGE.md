@@ -652,9 +652,9 @@ import { CLAIMS } from '../data/surveillance.ts'
       (XNet) accents consistent with existing token semantics.
 - [x] Link in from `Footer.astro` (Product or Resources column) and a homepage
       entry point; **defer** Nav promotion pending reception.
-- [ ] Confirm all motion uses the approved `.animate-on-scroll` primitive
+- [x] Confirm all motion uses the approved `.animate-on-scroll` primitive
       (passes `check-motion-vocab.mjs`).
-- [ ] Run `/changeset` if any publishable `packages/*` changed — likely **none**
+- [x] Run `/changeset` if any publishable `packages/*` changed — likely **none**
       (site‑only), so no changeset expected.
 
 ## Validation Checklist
