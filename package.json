@@ -17,6 +17,7 @@
     "check:motion-vocab": "node scripts/check-motion-vocab.mjs",
     "check:humane-patterns": "node scripts/check-humane-patterns.mjs",
     "check:publish-closure": "node scripts/check-publish-closure.mjs",
+    "check:electron-parity": "node scripts/check-electron-parity.mjs",
     "test:editor": "pnpm --filter @xnetjs/editor test",
     "test:stories": "storybook test --url http://127.0.0.1:6006",
     "test:watch": "vitest",
