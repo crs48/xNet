@@ -122,7 +122,13 @@ describe('previewAiTransform / acceptAiTransform (the approval gate)', () => {
 
   it('marks the inserted span AI-generated — scaffold by default, no citations', () => {
     const { editor, calls } = fakeEditor('draft')
-    acceptAiTransform(editor, { intent: 'rewrite', from: 0, to: 5, before: 'draft', after: 'final' })
+    acceptAiTransform(editor, {
+      intent: 'rewrite',
+      from: 0,
+      to: 5,
+      before: 'draft',
+      after: 'final'
+    })
     expect(calls).toContainEqual({
       method: 'setAiGeneratedRange',
       args: [0, 5, { assistMode: 'scaffold', citations: null }]

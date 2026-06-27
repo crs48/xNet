@@ -588,7 +588,7 @@ sequenceDiagram
 - [x] Build `describeWhatWeKnow` + a **Settings → "What we know about you"** mirror over vectors, brain memory, and the telemetry buffer, each item purgeable. _(engine + registry + completeness test + Settings panel + telemetry source landed and verified in-app; the framework covers all three kinds — live vectors/brain adapters plug into `derivedDataSources()` when those subsystems are active in-app.)_
 - [x] Add a registry assertion: every derived‑data producer (vectors/brain/telemetry) must surface in the mirror (test‑enforced).
 - [x] Add `mode: 'scaffold' | 'draft'` to `AiAgentRuntime`; default `scaffold`; require explicit opt‑in for `draft`.
-- [ ] Surface AI source citations in the assistant UI; render an `ai-generated` provenance badge in the editor using `packages/trust` tiers.
+- [x] Surface AI source citations in the assistant UI; render an `ai-generated` provenance badge in the editor using `packages/trust` tiers.
 
 **Wave 3 — Commons**
 - [x] Design **own‑your‑audience** publishing: publish from the graph to an owned page (`@xnetjs/server` / share‑links) with a portable, DID‑based subscriber list.
@@ -606,7 +606,7 @@ sequenceDiagram
 - [ ] **Delete‑Day is real:** after `deleteDay({keepLocal:false})`, OPFS is empty and the hub returns tombstones for the DID; the only telemetry emitted is an anonymous, non‑identifying `account.left`.
 - [x] **Mirror is complete:** a test enumerates all derived‑data producers and asserts each appears in `describeWhatWeKnow`; purging an item actually deletes it from its store.
 - [x] **Consent default holds:** with telemetry tier `off`, a network spy asserts **zero** outbound analytics across a full session (extends `0210` consent tests).
-- [ ] **AI discloses:** generating in `scaffold` mode yields citations + an `ai-generated` provenance badge; `draft` mode is unreachable without explicit opt‑in (test).
+- [x] **AI discloses:** generating in `scaffold` mode yields citations + an `ai-generated` provenance badge; `draft` mode is unreachable without explicit opt‑in (test).
 - [x] **No surplus exists:** a grep/test confirms there is no third‑party analytics/ad SDK and no un‑scrubbed PII path off device.
 - [x] **Charter honesty audit:** every claim in `docs/CHARTER.md` links to either a passing test or a user‑visible surface — no unbacked promises.
 - [x] **Calm regression:** feeds remain chronological and notifications rule‑based (snapshot/contract tests on `packages/social/src/feeds/defaults.ts` and `packages/comms/src/notify/rules.ts`).
