@@ -591,9 +591,9 @@ sequenceDiagram
 - [ ] Surface AI source citations in the assistant UI; render an `ai-generated` provenance badge in the editor using `packages/trust` tiers.
 
 **Wave 3 — Commons**
-- [ ] Design **own‑your‑audience** publishing: publish from the graph to an owned page (`@xnetjs/server` / share‑links) with a portable, DID‑based subscriber list.
-- [ ] Document the "leave Meta, keep your audience" migration path; provide an importer for an existing follower/email list.
-- [ ] Evaluate an interop export target (ATProto PDS or ActivityPub actor) for the Right‑to‑Leave bundle.
+- [x] Design **own‑your‑audience** publishing: publish from the graph to an owned page (`@xnetjs/server` / share‑links) with a portable, DID‑based subscriber list.
+- [x] Document the "leave Meta, keep your audience" migration path; provide an importer for an existing follower/email list.
+- [x] Evaluate an interop export target (ATProto PDS or ActivityPub actor) for the Right‑to‑Leave bundle.
 
 **Cross‑cutting**
 - [x] Add a changeset for any publishable `packages/*` touched (per repo policy).
@@ -610,6 +610,122 @@ sequenceDiagram
 - [x] **No surplus exists:** a grep/test confirms there is no third‑party analytics/ad SDK and no un‑scrubbed PII path off device.
 - [x] **Charter honesty audit:** every claim in `docs/CHARTER.md` links to either a passing test or a user‑visible surface — no unbacked promises.
 - [x] **Calm regression:** feeds remain chronological and notifications rule‑based (snapshot/contract tests on `packages/social/src/feeds/defaults.ts` and `packages/comms/src/notify/rules.ts`).
+
+## Appendix: Wave 3 Design — Commons (own your audience, migration, exit interop)
+
+Wave 3 of the Implementation Checklist is **design/evaluation**, not a build: it
+asks how xNet would let a creator _own their audience_ (the video's
+collective‑action ask — _"move to my personal website where there's a mailing
+list… if those people take a stand and get off meta, then culture will
+follow"_). This appendix is that design, grounded in the seams that already
+exist, so a later implementation wave can start from a plan rather than a blank
+page.
+
+### The thesis: a subscriber is an edge you own, not a number a platform rents you
+
+On Meta, your audience is a count in someone else's database; you can't export
+the _graph_, only a CSV they choose to give you. In xNet a subscriber is a
+**signed `did:key → did:key` edge in your own graph** — portable by the same
+mechanics as everything else (Charter §Exit). Nothing about "audience" needs a
+new trust model; it's the existing connection edge pointed at a creator.
+
+```mermaid
+flowchart LR
+    subgraph Creator["Creator's graph (local-first, owned)"]
+      P["Profile (did:key + handle)"]
+      C["SocialContent nodes\n(visibility: public)"]
+      SUB["Subscriber edges\nConnectionWave fromDid→creator"]
+    end
+    P --> PUB["Publish: saved-view over\npublic SocialContent"]
+    PUB --> PAGE["Owned page\n/creator/:did (server kit)"]
+    SUB --> LIST["Portable subscriber list\n(exportable, share-linkable)"]
+    IMPORT["Meta/email import\n(defineConnector)"] -->|"materialize edges"| SUB
+    PAGE -->|"read-only, visibility-gated"| WORLD((readers))
+    LIST -.->|"Right to Leave bundle"| EXIT["leave with everything"]
+```
+
+### 1. Own‑your‑audience publishing (design)
+
+Compose four seams that already exist; no new kernel:
+
+- **Publish surface — owned page.** A creator page is a public, visibility‑gated
+  render of a saved view over their own `SocialContentSchema`
+  ([`packages/social/src/schemas/content.ts`](../../packages/social/src/schemas/content.ts),
+  [`packages/social/src/feeds/defaults.ts`](../../packages/social/src/feeds/defaults.ts)).
+  Serve it with the BYO‑backend kit in `custodial`/`signed` trust mode and an
+  `AuthorizeReadHook` that only emits `visibility: 'public'` nodes to anonymous
+  readers ([`packages/server/src/index.ts`](../../packages/server/src/index.ts),
+  `packages/server/src/read.ts`). For a fully static "personal website," the
+  data‑module pattern the marketing site already uses
+  ([`site/src/data/changelog.ts`](../../site/src/data/changelog.ts) — single
+  source → page + JSON Feed + RSS) renders the same view without a live server.
+- **Identity — the page is yours.** The page is keyed by the creator's portable
+  `did:key` ([`packages/identity/src/did.ts`](../../packages/identity/src/did.ts)),
+  resolvable via [`packages/network/src/resolution/did.ts`](../../packages/network/src/resolution/did.ts)
+  (`/dids/{did}`). A greenfield `GET /creator/:did` route (the public profile
+  route doesn't exist yet) is the only new endpoint.
+- **Subscriber list — a portable edge set.** Reuse `ConnectionWaveSchema`
+  (`fromDid → toDid`, status) from
+  [`packages/social/src/connect/schemas.ts`](../../packages/social/src/connect/schemas.ts)
+  as the subscribe edge (subscriber's DID → creator's DID). The list is just a
+  query over those edges — exportable in the Right‑to‑Leave bundle and shareable
+  read‑only via a UCAN share link
+  ([`packages/identity/src/sharing/create-share.ts`](../../packages/identity/src/sharing/create-share.ts)).
+- **Anti‑commodification guardrail.** The video warns the "aesthetic of revolt
+  gets sold back." So: no "verified creator" upsell, no follower‑count vanity
+  surface (that's a §Calm dark pattern — the humane lint already bans engagement
+  counters), and the subscriber list is the creator's data, never xNet's.
+
+### 2. "Leave Meta, keep your audience" — migration (design)
+
+The hard part of leaving a platform is the audience you'd abandon. Make import a
+first‑class `defineConnector`
+([`packages/plugins/src/connectors/define-connector.ts`](../../packages/plugins/src/connectors/define-connector.ts)),
+mirroring the existing platform importers
+([`packages/social/src/importers/instagram.ts`](../../packages/social/src/importers/instagram.ts),
+shared helpers in [`packages/social/src/import/core.ts`](../../packages/social/src/import/core.ts)):
+
+- **`MetaFollowerImporter`** — read a Meta data export's `followers`/`following`
+  buckets → one `SocialActor`
+  ([`packages/social/src/schemas/actor.ts`](../../packages/social/src/schemas/actor.ts))
+  per follower + a `ConnectionWave` edge into the creator's space. Handles
+  normalize via `normalizeHandle()`; ids are deterministic (`createSocialNodeId`)
+  so re‑import is idempotent (LWW upsert).
+- **`EmailListImporter`** — a CSV of emails → pending subscriber edges with an
+  `email` claim, so the creator can later send a one‑time "I've moved to my own
+  page" message off‑platform. Emails are PII → stored local‑first, never synced
+  to a shared hub by default, and excluded from any export that leaves the
+  device unless the creator opts in.
+- **Honest framing.** Imported followers are _leads, not consent_: a `pending`
+  edge until the subscriber re‑opts‑in on the new page (mirrors the double‑opt‑in
+  `ConnectionWave` flow). No silent re‑subscription — that would be the exact
+  manipulation the charter refuses.
+
+### 3. Exit interop target — evaluation (decision)
+
+Should the Right‑to‑Leave bundle (Wave 2) target an external protocol so a
+departing user lands somewhere live, not just a zip?
+
+| Target | Fit for "leave with your audience" | Cost | Verdict |
+| --- | --- | --- | --- |
+| **AT Protocol (PDS)** | Strong: portable DID + account migration + a real `app.bsky.graph.follow` analog for the subscriber edge; a PDS is the closest thing to "your own hub with a public profile." | Medium: map `did:key` ↔ `did:plc`/`did:web`, emit a CAR/records export. | **Recommended first target.** |
+| **ActivityPub (Fediverse)** | Good for reach (mature, federated), but identity is server‑bound (`@user@host`) — moving servers needs `Move` activity and loses portability xNet already has. | Medium‑high: actor + outbox generation. | Second; better as a _publishing_ bridge than an identity export. |
+| **Nostr** | Identity model is a near‑match (key = account), censorship‑resistant relays ≈ multi‑hub. | Low‑medium: events are simple. | Good lightweight option; weaker structured‑content story. |
+| **Solid (pods)** | Philosophically aligned (your data in your pod) but thin adoption and no native social‑graph semantics. | High relative to payoff. | Not now. |
+
+**Decision:** target **AT Protocol** for the first interop export — it's the only
+option that carries _both_ the content and the portable subscriber graph, and its
+DID/account‑migration model maps cleanly onto xNet's existing `did:key`. Ship it
+as an optional exporter behind the Right‑to‑Leave bundle (`@xnetjs/plugins`),
+keeping ActivityPub/Nostr as future publishing bridges. Round‑trip parity (export
+→ import into a vanilla PDS) becomes the "Exit round‑trips" validation gate.
+
+### Why this is design, not build
+
+These three items deliberately stop at a grounded plan: each names the real seams,
+the one greenfield piece (`GET /creator/:did`), and an explicit decision (ATProto).
+Building them is a future wave — but the path no longer requires discovery, and the
+anti‑commodification guardrails are written down before any code exists.
 
 ## References
 
