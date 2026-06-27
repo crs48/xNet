@@ -525,8 +525,8 @@ appId: io.xnet.app
 
 ### Phase 1 — Canonical mobile build
 
-- [ ] Add `apps/web` `build:mobile` profile (hash router, `dist-mobile`).
-- [ ] Add `apps/web/src/lib/platform.ts` (Capacitor detection).
+- [x] Add `apps/web` `build:mobile` profile (hash router, `dist-mobile`).
+- [x] Add `apps/web/src/lib/platform.ts` (Capacitor detection).
 - [x] Add async-OPFS capability detection + fallback path for iOS <16.4.
 
 ### Phase 2 — Capacitor shell (`apps/mobile`)
@@ -539,7 +539,7 @@ appId: io.xnet.app
 
 ### Phase 3 — Native chrome layer
 
-- [ ] `apps/web/src/native/chrome.ts`: deep links, background flush, haptics.
+- [x] `apps/web/src/native/chrome.ts`: deep links, background flush, haptics.
 - [ ] Secure storage plugin → real `@xnetjs/identity` DID in keychain/keystore.
 - [ ] Biometric unlock gate before identity load.
 - [ ] Push notifications registration + token → hub; foreground replay on tap.
