@@ -9,5 +9,11 @@
   "tags": [
     "platform"
   ],
-  "pr": 303
+  "pr": 303,
+  "mergedAt": "2026-06-27T22:49:09Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
