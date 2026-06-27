@@ -47,14 +47,17 @@ function storageKey(): string {
   return scope ? `xnet:winddown-prefs:${scope}` : 'xnet:winddown-prefs'
 }
 
+function clampMinutes(value: unknown): number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return DEFAULT_WINDDOWN_PREFERENCES.sessionMinutes
+  }
+  return Math.min(600, Math.max(1, Math.round(value)))
+}
+
 function sanitize(parsed: unknown): WinddownPreferences {
   if (typeof parsed !== 'object' || parsed === null) return { ...DEFAULT_WINDDOWN_PREFERENCES }
   const raw = parsed as Partial<WinddownPreferences>
-  const minutes =
-    typeof raw.sessionMinutes === 'number' && Number.isFinite(raw.sessionMinutes)
-      ? Math.min(600, Math.max(1, Math.round(raw.sessionMinutes)))
-      : DEFAULT_WINDDOWN_PREFERENCES.sessionMinutes
-  return { enabled: raw.enabled === true, sessionMinutes: minutes }
+  return { enabled: raw.enabled === true, sessionMinutes: clampMinutes(raw.sessionMinutes) }
 }
 
 export function loadWinddownPreferences(): WinddownPreferences {
