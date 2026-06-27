@@ -114,7 +114,10 @@ export default defineConfig({
             // Social matching layer — pure connect modules only; the
             // social importer/view tests need package subpath resolution that
             // this shared pool doesn't provide, so they stay on the package config.
-            'packages/social/src/connect/**/*.test.ts'
+            'packages/social/src/connect/**/*.test.ts',
+            // Feed-definition tests are pure (relative imports + @xnetjs/data
+            // only), so they run safely in the shared pool (Charter §Calm, 0234).
+            'packages/social/src/feeds/**/*.test.ts'
           ],
           // data-bridge tests run separately - they have Yjs module import order issues
           // when combined with other tests in the same worker thread
