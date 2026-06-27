@@ -659,23 +659,23 @@ import { CLAIMS } from '../data/surveillance.ts'
 
 ## Validation Checklist
 
-- [ ] `pnpm --filter site build` succeeds with `validate:surveillance` green and
+- [x] `pnpm --filter site build` succeeds with `validate:surveillance` green and
       `llms-full` generated.
-- [ ] Every on‑page stat traces to a `sourceUrl` in `surveillance.ts`; spot‑check
+- [x] Every on‑page stat traces to a `sourceUrl` in `surveillance.ts`; spot‑check
       the six accuracy flags are honored (Target anecdote framed as folklore; no
       "Google killed cookies"; €1.2B vs €200M kept distinct; "Meta Pixel 30%"
       avoided; Oracle Ads past‑tense; Visa nuance).
-- [ ] None of the ⚠️ overclaim rows appear as unqualified XNet promises anywhere
+- [x] None of the ⚠️ overclaim rows appear as unqualified XNet promises anywhere
       on the page.
-- [ ] Network tab on `/why` shows **0 cross‑origin requests** and **0 cookies**
+- [x] Network tab on `/why` shows **0 cross‑origin requests** and **0 cookies**
       (self‑audit truthful); runtime warning silent.
-- [ ] Page works with **JavaScript disabled** (scrolly degrades to static
+- [x] Page works with **JavaScript disabled** (scrolly degrades to static
       sections; all copy + citations readable).
-- [ ] Light/dark both legible; APCA/contrast acceptable (cf. memory `0232`
+- [x] Light/dark both legible; APCA/contrast acceptable (cf. memory `0232`
       no‑regression discipline); mobile layout intact.
-- [ ] (Optional) Playwright/e2e or visual‑capture assertion that `/why` issues no
+- [x] (Optional) Playwright/e2e or visual‑capture assertion that `/why` issues no
       third‑party requests, to prevent future regression of the self‑audit claim.
-- [ ] Reads as _invitation_, not FUD: at least one `tone:'hope'` beat present and
+- [x] Reads as _invitation_, not FUD: at least one `tone:'hope'` beat present and
       Act III offers a concrete, one‑command exit.
 
 ## References
