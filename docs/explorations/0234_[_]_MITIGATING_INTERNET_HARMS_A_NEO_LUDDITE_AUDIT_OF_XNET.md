@@ -581,7 +581,7 @@ sequenceDiagram
 - [x] Implement `scripts/check-humane-patterns.mjs`; wire it into the `lint`/CI job alongside `check-motion-vocab.mjs`.
 - [x] Add the `/* humane-ok: <reason> */` escape‑hatch convention and document it in the Charter.
 - [x] Build `packages/plugins/src/services/right-to-leave.ts` (`leaveWithEverything` + `deleteDay`) composing existing export/backup/identity code.
-- [ ] Add a **Settings → "Your data & leaving"** panel: shows where data lives (local vs hub), one‑click full export, and an honest Delete‑Day flow (no confirmshaming).
+- [x] Add a **Settings → "Your data & leaving"** panel: shows where data lives (local vs hub), one‑click full export, and an honest Delete‑Day flow (no confirmshaming).
 - [x] Add a **time‑well‑spent** surface (optional, off by default): a calm "enough for today" wind‑down affordance; never a streak.
 
 **Wave 2 — Transparency & agency**
