@@ -473,7 +473,7 @@ flowchart TD
 - [x] Expand `TheApp.astro` `tools[]` with AI assistant, CRM, Finance, Experiments, Maps, Labs (and add the matching inline SVG icons). Update the section subtitle.
 - [x] Reframe `ForDevelopers.astro`: lead = "any framework, your backend"; add runtime + BYO‑server cards linking `/react`; keep P2P as one of three backends.
 - [x] Add `BuiltWithAI.astro`; import it into `index.astro` after `TheApp`.
-- [ ] Add `Integrations.astro` teaser (defineConnector, RSS/GitHub/Notion/Airtable/Linear, Slack, Unreal) linking `/plugins`; or extend `BuiltForAgents` with a connectors card.
+- [x] Add `Integrations.astro` teaser (defineConnector, RSS/GitHub/Notion/Airtable/Linear, Slack, Unreal) linking `/plugins`; or extend `BuiltForAgents` with a connectors card.
 - [ ] Add "Humane by design" callout linking `/commitments` and `/why`; name the six pillars.
 - [ ] Extend `OpenProtocol.astro` to mention the native Swift implementation + live Swift↔hub sync alongside the Python kernel.
 - [ ] Refresh `roadmap.ts`: bump `updated`, promote now‑built items (agents surface, dashboards, Cloud staging), re‑balance Now/Next.
