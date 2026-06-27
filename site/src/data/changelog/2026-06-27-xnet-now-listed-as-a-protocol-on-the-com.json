@@ -1,0 +1,8 @@
+{
+  "id": "2026-06-27-xnet-now-listed-as-a-protocol-on-the-com",
+  "date": "June 27, 2026",
+  "title": "xNet now listed as a protocol on the compare page",
+  "summary": "The Compare page's Protocols layer now includes xNet alongside AT Protocol and Matrix, and the sync-engines section's framing was corrected so it no longer contradicts the own-store tools (Turso, Ditto) it lists.",
+  "highlights": [],
+  "tags": ["app"]
+}

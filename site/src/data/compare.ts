@@ -693,7 +693,7 @@ export const layers: CompareLayer[] = [
     title: 'Sync engines & embedded databases',
     shortTitle: 'Sync engines',
     intro:
-      "Engines that sync an existing database or backend into clients. xNet doesn't compete here — it brings its own store — but if you already have Postgres or SQLite, these are the tools to evaluate.",
+      'Engines and embedded databases that move data between clients and a backend. Some sync onto an existing Postgres/SQLite (Zero, Electric, PowerSync); others bring their own store (Turso, Ditto). xNet ships its own sync engine and store too — but you adopt it as a framework (above), not as a drop-in sync layer under an existing app. If you already have a database, these are the tools to evaluate.',
     lastVerified: 'June 2026',
     columns: [
       { key: 'license', label: 'License' },
@@ -1020,7 +1020,7 @@ export const layers: CompareLayer[] = [
     intro:
       'Identity, transport, and federation primitives — the broader decentralized-data ecosystem. These are potential transports, identity systems, and federation peers rather than competitors.',
     xnetNote:
-      'xNet sits at the application layer: WebRTC for transport and DID:key + UCAN for identity.',
+      'xNet both consumes and provides at this layer: it builds on WebRTC, DID:key and UCAN as primitives, and is itself a written, conformance-tested protocol (data model · replication · authorization) that anyone can re-implement — like AT Protocol or Matrix.',
     lastVerified: 'June 2026',
     columns: [
       { key: 'scope', label: 'Scope' },
@@ -1030,6 +1030,21 @@ export const layers: CompareLayer[] = [
       { key: 'bestFor', label: 'Best for' }
     ],
     projects: [
+      {
+        name: 'xNet',
+        url: 'https://github.com/crs48/xNet',
+        highlight: true,
+        maturity: 'pre-release',
+        license: 'MIT',
+        bestFor: 'Owning a typed knowledge graph — protocol separate from any one app',
+        dims: {
+          scope: 'App + data protocol',
+          dataModel: { v: 'Signed, hash-chained LWW change log', fn: 'xnet-kernel' },
+          sync: 'WebRTC / WebSocket; libp2p-capable; optional Hub relay',
+          identity: 'DID:key + UCAN'
+        },
+        footnotes: ['xnet-kernel']
+      },
       {
         name: 'AT Protocol',
         url: 'https://atproto.com',
@@ -1185,6 +1200,11 @@ export const layers: CompareLayer[] = [
       { name: 'Farcaster', url: 'https://www.farcaster.xyz', note: 'Crypto-native social protocol' }
     ],
     footnotes: [
+      {
+        id: 'xnet-kernel',
+        text: "xNet's interop kernel is a signed, hash-chained, last-write-wins change log over schema-typed nodes (not Yjs, which travels as an opaque document body). A normative spec ships with a language-agnostic conformance corpus and a reference Python kernel. Hub-to-hub federation is on the roadmap, not yet shipped.",
+        sourceUrl: 'https://github.com/crs48/xNet/tree/main/docs/specs/protocol'
+      },
       {
         id: 'iroh-1-0',
         text: '1.0 release candidates published; the final 1.0 was not yet confirmed at the time of writing.',
