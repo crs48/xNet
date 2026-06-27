@@ -39,7 +39,12 @@ export const phases: RoadmapPhase[] = [
       'Dashboards with pluggable, sandboxed widgets & charts',
       'Real-time chat, presence & peer-to-peer calls',
       'Notification inbox with mentions & triage',
+      'AI assistant — GraphRAG retrieval, on-device vectors & model switching',
+      'Domain apps — CRM, finance ledger, experiments, maps & labs',
+      'Framework-agnostic runtime + bring-your-own-server kit',
+      'Connectors — GitHub, Notion, Airtable, Linear, Slack & RSS',
       'Agent surface — xnet CLI, SKILL.md, files-first checkout',
+      'Humane charter — Right-to-Leave, consent panel & calm defaults',
       'Hub — encrypted backup, relay & full-text search',
       testsAcrossPackages
     ]
@@ -54,7 +59,7 @@ export const phases: RoadmapPhase[] = [
       'Polished desktop experience',
       'Workspace invites & sharing flows',
       'Sharing UI (useCan / useGrants in app)',
-      'Managed hub hosting — xNet Cloud (signup, pricing, connect-your-hub)',
+      'Managed hub hosting — xNet Cloud (live in staging; signup, pricing, connect-your-hub)',
       'Push notification delivery (Web Push, Electron, mobile)',
       'Query API improvements'
     ]
