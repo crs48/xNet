@@ -1,0 +1,17 @@
+{
+  "id": "2026-06-27-docs-a-hub-for-building-xnet-in-any-lang",
+  "date": "June 27, 2026",
+  "title": "Docs & a hub for building xNet in any language",
+  "summary": "New Languages & SDKs docs (Swift's XNetKit, Rust's xnet-core, and a maturity matrix), a /build-with marketing hub, a footer link, and cross-links across the site — so the native Swift/Rust implementations and the Vue/Svelte/Solid adapters are finally discoverable, each with an honest maturity badge.",
+  "highlights": [],
+  "tags": [
+    "platform"
+  ],
+  "pr": 304,
+  "mergedAt": "2026-06-27T23:14:28Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

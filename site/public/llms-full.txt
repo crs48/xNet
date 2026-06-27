@@ -23,6 +23,9 @@ Before reading this documentation, understand that xNet works differently:
   - useNode
   - useIdentity
   - Hook Patterns
+- Languages & SDKs
+- Swift — XNetKit
+- Rust — xnet-core
   - Schemas Overview
   - defineSchema
   - Property Types
@@ -1552,6 +1555,251 @@ function SyncIndicator({ id }: { id: string }) {
 
 ---
 
+## Languages & SDKs
+
+xNet is a **protocol** first and an app second. The same signed, hash-chained,
+last-write-wins data model can be implemented — and **proven byte-for-byte** —
+in more than one language, and the JavaScript runtime binds to more than one UI
+framework. This page is the honest map of what exists today and how mature it is.
+
+  Every implementation below passes the **same [golden vectors](/docs/protocol/conformance/)**:
+  identity (`did:key`), the canonical-JSON BLAKE3 change hash, signing, and LWW convergence. That
+  shared corpus is the difference between "supported" and "verifiably interoperable."
+
+## The two axes
+
+There are two different "multi-X" stories, and they mean different things:
+
+- **Languages** implement the [protocol](/docs/protocol/overview/) (identity,
+  change hashing, replication, authorization) and interoperate over the wire.
+- **JavaScript UI frameworks** bind the same JS [runtime](/docs/architecture/package-graph/)
+  (`createXNetClient` + `liveQuery`) into React, Vue, Svelte, or Solid.
+
+## Maturity matrix
+
+What the badges mean:  the canonical
+implementation the vectors are generated from · 
+first-class and app-ready ·  real and
+conformance-pinned, still evolving · 
+a thin binding published when asked for · 
+a verifier / teaching implementation.
+
+### Languages
+
+| Language         | What you get                                                     | Maturity                                            | Where                                                      |
+| ---------------- | ---------------------------------------------------------------- | --------------------------------------------------- | ---------------------------------------------------------- |
+| **TypeScript**   | The full runtime + React SDK, published to npm                   |             | [Quickstart](/docs/quickstart/)                            |
+| **Swift**        | Native SDK — schemas, store, query, SwiftUI live binding, SQLite |    | [Swift](/docs/languages/swift/)                            |
+| **Rust**         | Portable interop kernel + C/UniFFI binding surface               |          | [Rust](/docs/languages/rust/)                              |
+| **Python**       | ~100-line reference kernel + vector verifier                     |  | [Implement it](/docs/protocol/implement-in-your-language/) |
+| **Any language** | Build a conforming impl from the spec + vectors                  |               | [Implement it](/docs/protocol/implement-in-your-language/) |
+
+### JavaScript UI frameworks
+
+| Framework                   | What you get                                               | Maturity                                               | Where                                  |
+| --------------------------- | ---------------------------------------------------------- | ------------------------------------------------------ | -------------------------------------- |
+| **React**                   | Hooks **and** components — the toolkit the app itself uses |           | [React hooks](/docs/hooks/overview/)   |
+| **Vue**                     | `useQuery` / `useMutate` data binding (no components)      |  | [Frameworks](/docs/guides/frameworks/) |
+| **Svelte**                  | `liveQuery` is already a Svelte store                      |  | [Frameworks](/docs/guides/frameworks/) |
+| **Solid**                   | `createQuery` via `from()`                                 |  | [Frameworks](/docs/guides/frameworks/) |
+| **Vanilla / Lit / Angular** | Subscribe to `liveQuery` directly                          |              | [Frameworks](/docs/guides/frameworks/) |
+
+  Only **React** ships UI components; the component kit is React by design (see the [framework
+  support policy](/docs/guides/frameworks/)). The Swift and Rust packages live **in the repo**
+  (SwiftPM / Cargo), not on a public registry yet — the per-language pages show how to depend on
+  them today.
+
+## Pick your path
+
+---
+
+## Swift — XNetKit
+
+<p>
+  
+  
+</p>
+
+[**XNetKit**](https://github.com/crs48/xNet/tree/main/swift/XNetKit) is a native
+Swift SDK for xNet's local-first graph database. Define schemas in Swift, write
+and query the database in Swift, and bind results into a SwiftUI re-rendering
+loop — no JavaScript, no React. It's built directly on the conformance-pinned
+[protocol kernel](/docs/protocol/overview/), so it interoperates with the
+TypeScript reference **byte-for-byte** where it matters: identity, canonical
+change hashes, and LWW convergence.
+
+## Quick look
+
+```swift
+
+// Identity — an Ed25519 did:key (would live in the Keychain in a real app).
+let me = Identity()
+
+// Define a schema in Swift (the analogue of TS `defineSchema`).
+let Task = Schema(name: "Task", namespace: "xnet://xnet.fyi/",
+                  authorization: .spaceCascade(relation: "space")) {
+    text("title", required: true, maxLength: 200)
+    select("status", options: ["todo", "doing", "done"], default: "todo")
+    relation("space", target: "xnet://xnet.fyi/Space@1.0.0")
+    money("bounty", currency: "USD")
+}
+Task.id   // "xnet://xnet.fyi/Task@1.0.0"
+
+// A local store owned by `me`. Every write signs a Change and folds it via LWW.
+// Pass a SQLiteChangeLog to persist — state replays from it on next launch.
+let store = NodeStore(identity: me, persistence: SQLiteChangeLog(path: dbPath))
+let task = store.create(Task, ["title": "Ship the Swift SDK", "status": "todo"])
+store.update(task.id, ["status": "doing"])
+
+// Query the database in Swift.
+let todo = store.query(Query(Task, where: .equals("status", "todo")).ordered(by: "title"))
+```
+
+## The native re-render loop (SwiftUI)
+
+`LiveQueryModel` is an `@Observable` analogue of React's `useQuery`: a SwiftUI
+view reads `model.rows` and re-renders automatically whenever the result
+changes — no hooks, no manual subscriptions.
+
+```swift
+
+struct TaskListView: View {
+    @State private var model: LiveQueryModel
+
+    init(store: NodeStore, schema: Schema) {
+        _model = State(initialValue: LiveQueryModel(
+            store, Query(schema, where: .equals("status", "todo")).ordered(by: "title")))
+    }
+
+    var body: some View {
+        List(model.rows) { node in
+            Text(node["title"]?.stringValue ?? "")
+        }
+    }
+}
+```
+
+Headless, the same reactivity is the framework-agnostic `LiveQuery` —
+`subscribe(_:)` fires immediately and on every change, a 1:1 port of
+[`packages/runtime/src/live-query.ts`](https://github.com/crs48/xNet/blob/main/packages/runtime/src/live-query.ts).
+
+## Live sync with an xNet hub
+
+`HubConnection` speaks the L2 [replication wire protocol](/docs/protocol/replication/)
+over a WebSocket — and it's proven against the **real TypeScript hub**. The
+`xnet-sync-demo` target has a Swift client sign a change, publish it to the hub
+(which verifies the hash + Ed25519 signature), a second Swift client catch up and
+materialize the node, then receive a **live relayed update** the moment the
+writer publishes — a true cross-language, real-time round-trip.
+
+```swift
+let conn = HubConnection(url: URL(string: "wss://hub.xnet.app")!, did: identity.did)
+try await conn.connect()
+store.onLocalChange = { change in Task { try await conn.publish(change, room: docId) } }
+conn.onRemoteChange = { change in store.apply(change) } // verifies hash + signature
+try await conn.subscribe(room: docId)
+conn.startStreaming()
+```
+
+## Install
+
+XNetKit is a SwiftPM package that lives **in the repository** (not yet on a
+public index). Platforms: macOS 14, iOS 17, visionOS 1.
+
+1. Add it as a local or git package dependency in your `Package.swift`:
+
+   ```swift
+   dependencies: [
+     .package(url: "https://github.com/crs48/xNet.git", branch: "main")
+     // then reference the "XNetKit" product from swift/XNetKit
+   ]
+   ```
+
+2. Build and run the bundled demos:
+
+   ```bash
+   cd swift/XNetKit
+   swift run xnet-demo     # schema → signed writes → query → reactive loop
+   swift test              # 18 tests incl. golden vectors, wire codec, persistence
+   ```
+
+## Scope & status
+
+  XNetKit covers identity, schemas, signed-change + LWW store, query, the SwiftUI live binding,
+  SQLite persistence, and **live node-change hub sync**. The collaborative **Yjs rich-text document
+  body** is the remaining piece — it travels the wire as opaque bytes, so a Swift node can relay and
+  store it, but in-Swift CRDT editing is future work. See [exploration
+  0210](https://github.com/crs48/xNet/blob/main/docs/explorations/0210_%5B_%5D_NATIVE_SWIFT_SDK_AND_PORTABLE_MULTI_LANGUAGE_CORE.md).
+
+---
+
+## Rust — xnet-core
+
+<p>
+  
+  
+</p>
+
+[**xnet-core**](https://github.com/crs48/xNet/tree/main/rust/xnet-core) is a
+portable Rust implementation of the xNet **interop kernel** — the byte-exact core
+of the [protocol](/docs/protocol/overview/): `did:key` identity, the canonical-JSON
+change hash, Ed25519 sign/verify, per-property LWW convergence, and the pure
+L2/L3 decision functions (version negotiation, authorization expression
+evaluation).
+
+Unlike a full app SDK, `xnet-core` is the **kernel + a binding surface**. It's
+Phase 2 of [exploration 0210](https://github.com/crs48/xNet/blob/main/docs/explorations/0210_%5B_%5D_NATIVE_SWIFT_SDK_AND_PORTABLE_MULTI_LANGUAGE_CORE.md):
+one portable core that can back the Swift, Kotlin, and .NET SDKs via UniFFI / a C
+ABI, instead of each language re-implementing the kernel.
+
+## Conformance
+
+`cargo test` runs the **shared golden-vector corpus** ([`conformance/vectors/`](/docs/protocol/conformance/))
+— the same vectors the TypeScript reference and the Python/Swift kernels pass:
+
+```text
+test l0_identity ... ok      # did:key derivation + round-trip
+test l1_change ... ok        # canonical JSON, BLAKE3 hash, verify, AND re-sign
+test l1_lww ... ok           # per-property LWW convergence
+test l2_replication ... ok   # version-handshake negotiation + catch-up filter
+test l3_authz ... ok         # authorization expression-AST evaluation
+```
+
+  `xnet-core` reproduces a TypeScript-produced signature **exactly** — Ed25519 here is the
+  deterministic RFC-8032 construction on `curve25519-dalek` + `sha2`, so the only crypto
+  dependencies are audited group-math and hash primitives (base58btc and canonical JSON are inline).
+  That makes Rust a candidate for **regenerating** the golden vectors, not just verifying them.
+
+```bash
+cd rust/xnet-core
+cargo test          # 5 conformance suites + 1 FFI round-trip
+```
+
+## The binding surface
+
+[`src/ffi.rs`](https://github.com/crs48/xNet/blob/main/rust/xnet-core/src/ffi.rs)
+exposes the kernel across a `String` / `Vec<u8>` / `bool` boundary — the shape a
+UniFFI or C-ABI consumer wants — so a native SDK (Swift, Kotlin, .NET) can call
+the verified kernel instead of porting it. The crate is dependency-light by
+design:
+
+```toml
+[dependencies]
+curve25519-dalek = "4.1"   # RFC-8032 Ed25519 (deterministic)
+sha2 = "0.10"
+blake3 = "1"               # the change-hash digest
+serde_json = "1"
+```
+
+## Scope & status
+
+  xnet-core is the **L0/L1 + L2/L3 decision core** — identity, change hashing, LWW, and the pure
+  decision functions. It is not (yet) an application SDK with storage, a live-sync transport, or a
+  query engine; those live in the native SDKs it's meant to back. The crate lives **in the
+  repository** (not yet on crates.io).
+
+---
+
 ## Schemas Overview
 
 **In this article**
@@ -2460,8 +2708,8 @@ Matrix, the AT Protocol, or ActivityPub, the standard is separate from any one
 codebase.
 
   This page is the friendly tour. The **normative source of truth** is
-  [`docs/specs/protocol/`](https://github.com/crs48/xNet/tree/main/docs/specs/protocol)
-  — versioned with the code, backed by a machine‑checked conformance corpus.
+  [`docs/specs/protocol/`](https://github.com/crs48/xNet/tree/main/docs/specs/protocol) — versioned
+  with the code, backed by a machine‑checked conformance corpus.
 
 ## The boundary in one sentence
 
@@ -2501,7 +2749,7 @@ graph:
    canonical bytes and BLAKE3 hash are specified exactly.
 4. **Last‑Write‑Wins** per‑property conflict resolution on the Lamport clock.
 
-## Yjs is *not* the protocol
+## Yjs is _not_ the protocol
 
 A common misconception: "XNet is built on Yjs, so I'd have to port a CRDT." Not
 so. Yjs is used only for the optional rich‑text **document body** of certain
@@ -2513,14 +2761,14 @@ interop kernel. (See [data model](/docs/protocol/data-model/).)
 ## One umbrella version
 
 Peers negotiate a single named bundle — `xnet/1.0` — exactly as Matrix bundles
-breaking changes into *room versions*. It expands to the per‑subsystem versions
+breaking changes into _room versions_. It expands to the per‑subsystem versions
 (change record, sync envelope, awareness, schema, crypto level). The
 machine‑readable constant is `XNET_PROTOCOL_VERSION`, exported by `@xnetjs/sdk`.
 
 ## Prove it, don't just read it
 
 Every claim in the spec is backed by a **language‑agnostic golden‑vector
-corpus** shipped *with* the spec and re‑checked in CI — so the prose can't drift
+corpus** shipped _with_ the spec and re‑checked in CI — so the prose can't drift
 from reality. A ~100‑line Python kernel reproduces the same DIDs and verifies
 TypeScript‑signed changes. Want to build your own implementation?
 
@@ -7626,6 +7874,10 @@ component ecosystem honest rather than three half-maintained ones.
 
 See [`docs/explorations/0237`](https://github.com/crs48/xNet/tree/main/docs/explorations)
 for the full cost/benefit analysis behind this policy.
+
+**Not using JavaScript at all?** xNet also has native **Swift** and **Rust**
+implementations of the protocol. See [Languages & SDKs](/docs/languages/overview/)
+for the full picture.
 
 ---
 

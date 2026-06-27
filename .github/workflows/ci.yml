@@ -56,6 +56,9 @@ jobs:
       - name: Publish closure (0220)
         run: pnpm check:publish-closure
 
+      - name: Electron parity (0238)
+        run: pnpm check:electron-parity
+
   # Validate changelog fragments and dry-run PR-number resolution on PRs, so a
   # malformed entry (which would otherwise fail only the production deploy and
   # freeze the whole changelog) or one that would ship numberless fails the PR

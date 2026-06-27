@@ -28,6 +28,15 @@ export const sidebar = [
     ]
   },
   {
+    label: 'Languages & SDKs',
+    collapsed: true,
+    items: [
+      { slug: 'docs/languages/overview' },
+      { slug: 'docs/languages/swift' },
+      { slug: 'docs/languages/rust' }
+    ]
+  },
+  {
     label: 'Schemas & Data',
     items: [
       { slug: 'docs/schemas/overview' },
