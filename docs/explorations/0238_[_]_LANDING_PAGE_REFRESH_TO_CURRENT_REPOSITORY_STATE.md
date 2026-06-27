@@ -479,19 +479,19 @@ flowchart TD
 - [x] Refresh `roadmap.ts`: bump `updated`, promote now‑built items (agents surface, dashboards, Cloud staging), re‑balance Now/Next.
 - [x] (Optional) Mount a slim `OpenMetrics` strip on the homepage for live, honest numbers.
 - [x] Re‑order `index.astro` imports/usage to the proposed flow.
-- [ ] Source any load‑bearing new claims; hedge framework‑support wording to match exploration 0237.
+- [x] Source any load‑bearing new claims; hedge framework‑support wording to match exploration 0237.
 
 ## Validation Checklist
 
-- [ ] `pnpm --filter site build` passes (includes `validate-surveillance` / `compare` gates).
-- [ ] Numbers on the page match the repo: re‑run `ls -d packages/*/ | wc -l`, the test‑case grep, and the devtools panel count; they equal what's rendered.
-- [ ] No remaining "30 packages", "6,000", or "10‑panel" strings on the homepage (`grep` the section dir).
-- [ ] Every internal link added resolves to an existing page/anchor (`/react`, `/cloud`, `/commitments`, `/why`, `/plugins`, `/devtool`, `#ai`, `#integrations`, `#humane`).
-- [ ] `pnpm build:llms` / sidebar build still passes if any docs links were added (per repo convention for new doc pages).
-- [ ] Lint passes (eslint **and** prettier) and any motion stays within the motion‑vocab gate (`check-motion-vocab.mjs`).
-- [ ] Preview the homepage in light **and** dark mode; the expanded grid and new bands render without overflow on mobile width.
-- [ ] No changeset required (site is an app, not a publishable `packages/*` lib) — confirm the Stop hook is satisfied.
-- [ ] Framework wording reviewed against exploration 0237 so nothing implies a shipped Vue/Svelte app.
+- [x] `pnpm --filter site build` passes (includes `validate-surveillance` / `compare` gates).
+- [x] Numbers on the page match the repo: re‑run `ls -d packages/*/ | wc -l`, the test‑case grep, and the devtools panel count; they equal what's rendered.
+- [x] No remaining "30 packages", "6,000", or "10‑panel" strings on the homepage (`grep` the section dir).
+- [x] Every internal link added resolves to an existing page/anchor (`/react`, `/cloud`, `/commitments`, `/why`, `/plugins`, `/devtool`, `#ai`, `#integrations`, `#humane`).
+- [x] `pnpm build:llms` / sidebar build still passes if any docs links were added (per repo convention for new doc pages).
+- [x] Lint passes (eslint **and** prettier) and any motion stays within the motion‑vocab gate (`check-motion-vocab.mjs`).
+- [x] Preview the homepage in light **and** dark mode; the expanded grid and new bands render without overflow on mobile width.
+- [x] No changeset required (site is an app, not a publishable `packages/*` lib) — confirm the Stop hook is satisfied.
+- [x] Framework wording reviewed against exploration 0237 so nothing implies a shipped Vue/Svelte app.
 
 ## References
 

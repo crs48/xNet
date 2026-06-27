@@ -7576,7 +7576,7 @@ await client.destroy()
 
 ## Validate a binding once, everywhere
 
-The expensive part of multi-framework support isn't *writing* a binding — it's
+The expensive part of multi-framework support isn't _writing_ a binding — it's
 proving every binding behaves identically, forever. So the behaviour is tested
 **once**, framework-agnostically. `runAdapterConformance(makeClient)` runs the
 reactive data contract against any client factory and **throws on the first
@@ -7611,12 +7611,12 @@ re-tests xNet's semantics.
 Binding the data layer is cheap; carrying a full per-framework **component**
 library is not. So support is layered, and the layers promise different things:
 
-| Tier | Surface | What you get |
-| ---- | ------- | ------------ |
-| **Tier 0** | `@xnetjs/runtime` — `createXNetClient` + `liveQuery` | Works with **every** framework, headless and conformance-gated. This page. |
-| **Tier 1** | `@xnetjs/react` — hooks **and** components | First-class: the full hook + component toolkit the app itself uses. |
-| **Tier 2** | thin Vue / Svelte data-binding adapters | `useQuery` / `useMutate` only — **data binding, not components** — published on demand. |
-| **—** | components in non-React frameworks | **Not offered.** The component kit is React by design. |
+| Tier       | Surface                                              | What you get                                                                            |
+| ---------- | ---------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| **Tier 0** | `@xnetjs/runtime` — `createXNetClient` + `liveQuery` | Works with **every** framework, headless and conformance-gated. This page.              |
+| **Tier 1** | `@xnetjs/react` — hooks **and** components           | First-class: the full hook + component toolkit the app itself uses.                     |
+| **Tier 2** | thin Vue / Svelte data-binding adapters              | `useQuery` / `useMutate` only — **data binding, not components** — published on demand. |
+| **—**      | components in non-React frameworks                   | **Not offered.** The component kit is React by design.                                  |
 
 tip
 Building UI in Vue or Svelte? You get the **data** — live queries, mutations,
