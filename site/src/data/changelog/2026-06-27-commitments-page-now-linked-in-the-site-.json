@@ -1,0 +1,13 @@
+{
+  "id": "2026-06-27-commitments-page-now-linked-in-the-site-",
+  "date": "June 27, 2026",
+  "title": "Commitments page now linked in the site footer",
+  "summary": "You can reach our Commitments page from the footer of every page, not just the top nav.",
+  "highlights": [
+    "Added under the footer's Resources column"
+  ],
+  "tags": [
+    "platform"
+  ],
+  "pr": 303
+}
