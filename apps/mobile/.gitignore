@@ -1,0 +1,9 @@
+# Capacitor-generated native projects (created by `pnpm add:ios` / `pnpm add:android`).
+# These are regenerated from capacitor.config.json + the apps/web build, so they
+# are not checked in for the scaffold. A productionized app would commit them.
+/ios/
+/android/
+
+# Capacitor copies the web build here on `cap sync`.
+/dist/
+node_modules/

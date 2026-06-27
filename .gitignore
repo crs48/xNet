@@ -12,6 +12,7 @@
 
 # Build artifacts
 dist/
+dist-mobile/
 storybook-static/
 *.tsbuildinfo
 .turbo/

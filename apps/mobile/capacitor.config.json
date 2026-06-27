@@ -1,0 +1,24 @@
+{
+  "appId": "io.xnet.app",
+  "appName": "xNet",
+  "webDir": "../web/dist-mobile",
+  "server": {
+    "androidScheme": "https",
+    "iosScheme": "capacitor",
+    "responseHeaders": {
+      "Cross-Origin-Opener-Policy": "same-origin",
+      "Cross-Origin-Embedder-Policy": "require-corp"
+    }
+  },
+  "ios": {
+    "contentInset": "always"
+  },
+  "android": {
+    "captureInput": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": true
+    }
+  }
+}

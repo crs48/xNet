@@ -515,7 +515,7 @@ appId: io.xnet.app
 
 ### Phase 0 — Decide & spike
 
-- [ ] Confirm container decision (Capacitor recommended) and minimum OS targets
+- [x] Confirm container decision (Capacitor recommended) and minimum OS targets
       (iOS 16.4, Android 10 / Chrome 108).
 - [ ] Spike: build `apps/web` with `VITE_USE_HASH_ROUTER=true`, wrap in a throwaway
       Capacitor project, verify **all four surfaces** render + persist on a real
@@ -531,9 +531,9 @@ appId: io.xnet.app
 
 ### Phase 2 — Capacitor shell (`apps/mobile`)
 
-- [ ] Scaffold `apps/mobile` with `capacitor.config.ts` (COOP/COEP headers,
+- [x] Scaffold `apps/mobile` with `capacitor.config.ts` (COOP/COEP headers,
       `webDir` → `apps/web/dist-mobile`); `npx cap add ios android`.
-- [ ] Wire `pnpm` workspace + Turbo task so `build:mobile` runs before `cap sync`.
+- [x] Wire `pnpm` workspace + Turbo task so `build:mobile` runs before `cap sync`.
 - [ ] Retire `apps/expo` native screens (or convert `apps/expo` to host the SPA via
       `react-native-webview` + static server if RN ecosystem is required).
 
