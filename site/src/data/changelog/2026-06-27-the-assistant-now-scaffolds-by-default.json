@@ -1,0 +1,8 @@
+{
+  "id": "2026-06-27-the-assistant-now-scaffolds-by-default",
+  "date": "June 27, 2026",
+  "title": "The assistant now scaffolds by default",
+  "summary": "The in-app AI assistant defaults to a 'scaffold' mode — it proposes and cites while you stay the author — and marks anything it writes as AI-generated, a guard against AI deskilling. Backed by a new Humane Internet Charter and a CI gate that keeps dark patterns and third-party tracking SDKs out of the codebase.",
+  "highlights": [],
+  "tags": ["ai"]
+}
