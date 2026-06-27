@@ -1,0 +1,42 @@
+---
+import { commitments } from '../../data/commitments'
+---
+
+<section id="humane" class="py-24 lg:py-32">
+  <div class="mx-auto max-w-4xl px-6">
+    <div class="animate-on-scroll rounded-2xl border border-border bg-surface/30 dark:bg-surface/50 p-8 sm:p-10 text-center">
+      <h2 class="text-2xl font-bold text-gray-900 dark:text-white sm:text-3xl">Built to be left.</h2>
+      <p class="mx-auto mt-3 max-w-2xl text-gray-500 dark:text-gray-400">
+        xNet keeps no behavioral surplus and has no ad model — you are not the product.
+        Six commitments hold us to it, several enforced by a CI gate that fails the build
+        on regression.
+      </p>
+
+      <ul class="mx-auto mt-8 grid max-w-2xl gap-x-8 gap-y-3 text-left sm:grid-cols-2">
+        {
+          commitments.map((c) => (
+            <li class="flex items-baseline gap-2.5 text-sm">
+              <span class="font-semibold text-indigo-600 dark:text-indigo-400">{c.name}</span>
+              <span class="text-gray-500 dark:text-gray-400">{c.promise}</span>
+            </li>
+          ))
+        }
+      </ul>
+
+      <div class="mt-9 flex flex-wrap justify-center gap-4">
+        <a
+          href="/commitments"
+          class="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-indigo-500"
+        >
+          Our commitments
+        </a>
+        <a
+          href="/why"
+          class="rounded-lg border border-border px-5 py-2.5 text-sm font-medium text-gray-700 transition-all hover:border-indigo-500/50 hover:bg-surface dark:text-gray-200"
+        >
+          Why this matters
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
