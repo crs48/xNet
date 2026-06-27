@@ -582,7 +582,7 @@ sequenceDiagram
 - [x] Add the `/* humane-ok: <reason> */` escape‑hatch convention and document it in the Charter.
 - [x] Build `packages/plugins/src/services/right-to-leave.ts` (`leaveWithEverything` + `deleteDay`) composing existing export/backup/identity code.
 - [ ] Add a **Settings → "Your data & leaving"** panel: shows where data lives (local vs hub), one‑click full export, and an honest Delete‑Day flow (no confirmshaming).
-- [ ] Add a **time‑well‑spent** surface (optional, off by default): a calm "enough for today" wind‑down affordance; never a streak.
+- [x] Add a **time‑well‑spent** surface (optional, off by default): a calm "enough for today" wind‑down affordance; never a streak.
 
 **Wave 2 — Transparency & agency**
 - [ ] Build `describeWhatWeKnow` + a **Settings → "What we know about you"** mirror over vectors, brain memory, and the telemetry buffer, each item purgeable. _(engine + registry + telemetry source + completeness test landed; Settings UI and vectors/brain adapters deferred.)_
