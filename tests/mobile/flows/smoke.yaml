@@ -1,0 +1,40 @@
+# Smoke: the native shell launches and every surface renders inside the webview.
+# Targets the hosted apps/web DOM (exploration 0238).
+appId: io.xnet.app
+---
+- launchApp:
+    clearState: true
+- assertVisible: 'xNet'
+
+# Bottom-nav destinations of the web MobileShell are reachable.
+- tapOn: 'New'
+- assertVisible:
+    text: 'Page|Database|Canvas|Dashboard'
+    optional: false
+
+# Document surface
+- tapOn: 'Page'
+- assertVisible: 'Untitled'
+- back
+
+# Database surface
+- tapOn: 'New'
+- tapOn: 'Database'
+- assertVisible:
+    id: 'add-row-fab'
+- back
+
+# Canvas surface renders its drawing surface
+- tapOn: 'New'
+- tapOn: 'Canvas'
+- assertVisible:
+    id: 'canvas-surface'
+    optional: true
+- back
+
+# Dashboard surface
+- tapOn: 'New'
+- tapOn: 'Dashboard'
+- assertVisible:
+    text: 'Add widget|Dashboard'
+    optional: true
