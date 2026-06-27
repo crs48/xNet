@@ -561,7 +561,7 @@ unchecked, so this exploration stays `[_]` until that follow-up lands.
       currently-omitted views and a one-line reason each.
 - [x] **L0b:** extend the guard to diff shared-package imports of Tier-2 forked
       components (`PageView`, `DatabaseView`) and warn on divergence.
-- [ ] **CI plumbing:** add `apps/electron/src/**/*.test.{ts,tsx}` to a root
+- [x] **CI plumbing:** add `apps/electron/src/**/*.test.{ts,tsx}` to a root
       vitest project (or a dedicated `electron` project) so the existing Electron
       unit suite runs in CI; cache the Electron native-module rebuild.
 - [x] **L1:** add an assertion that the Electron-bundled `@xnetjs/sync` resolves
