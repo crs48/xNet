@@ -1,6 +1,13 @@
 ---
 import SectionHeader from '../ui/SectionHeader.astro'
-import { testsAcrossPackages, devtoolsLabel } from '../../data/siteMetrics'
+import { siteMetrics, testsAcrossPackages, devtoolsLabel } from '../../data/siteMetrics'
+
+const stats = [
+  { value: `${siteMetrics.packages}`, label: 'packages' },
+  { value: `${siteMetrics.tests.toLocaleString('en-US')}+`, label: 'tests' },
+  { value: `${siteMetrics.devtoolsPanels}`, label: 'devtools panels' },
+  { value: 'MIT', label: 'open source' },
+]
 
 const working = [
   `${testsAcrossPackages} passing`,
@@ -24,6 +31,23 @@ const working = [
       subtitle="xNet is pre-release software. The APIs will change. There are rough edges. But the foundation is solid — and your contributions will shape what it becomes."
       align="center"
     />
+
+    <!-- By the numbers — honest, build-verified scale (see /open) -->
+    <div class="mx-auto mt-12 max-w-3xl">
+      <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        {stats.map((s) => (
+          <div class="animate-on-scroll rounded-xl border border-border bg-surface/30 dark:bg-surface/50 px-4 py-5 text-center">
+            <div class="text-2xl font-bold text-gray-900 dark:text-white sm:text-3xl">{s.value}</div>
+            <div class="mt-1 text-xs uppercase tracking-wider text-gray-500 dark:text-gray-400">{s.label}</div>
+          </div>
+        ))}
+      </div>
+      <p class="mt-4 text-center text-sm">
+        <a href="/open" class="text-indigo-600 dark:text-indigo-400 underline decoration-dotted underline-offset-2 hover:text-indigo-500">
+          See the open metrics →
+        </a>
+      </p>
+    </div>
 
     <!-- What's working now -->
     <div class="mx-auto mt-16 max-w-3xl">

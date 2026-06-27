@@ -477,7 +477,7 @@ flowchart TD
 - [x] Add "Humane by design" callout linking `/commitments` and `/why`; name the six pillars.
 - [x] Extend `OpenProtocol.astro` to mention the native Swift implementation + live Swift↔hub sync alongside the Python kernel.
 - [x] Refresh `roadmap.ts`: bump `updated`, promote now‑built items (agents surface, dashboards, Cloud staging), re‑balance Now/Next.
-- [ ] (Optional) Mount a slim `OpenMetrics` strip on the homepage for live, honest numbers.
+- [x] (Optional) Mount a slim `OpenMetrics` strip on the homepage for live, honest numbers.
 - [ ] Re‑order `index.astro` imports/usage to the proposed flow.
 - [ ] Source any load‑bearing new claims; hedge framework‑support wording to match exploration 0237.
 
