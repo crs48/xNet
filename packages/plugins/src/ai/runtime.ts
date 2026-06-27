@@ -18,6 +18,16 @@ import type { AiMutationPlan, AiRiskLevel, AiScope } from '../ai-surface'
 
 export type AiAgentOrchestratorMode = 'custom' | 'codex-app-server' | 'hybrid'
 
+/**
+ * How the assistant relates to the user's work (xNet Humane Internet Charter
+ * §Agency). `scaffold` — the default — keeps the human as the author: the model
+ * proposes and cites, the user writes and owns. It is a guard against the
+ * cognitive-debt / deskilling effect of LLM-authored work (MIT Media Lab,
+ * arXiv:2506.08872). `draft`, where the model produces finished prose, must be
+ * opted into explicitly. Either way the resulting turn is tagged `ai-generated`.
+ */
+export type AiAssistMode = 'scaffold' | 'draft'
+
 export type AiAgentThreadStatus = 'idle' | 'running' | 'waiting-approval' | 'cancelled' | 'failed'
 
 export type AiAgentTurnRole = 'system' | 'user' | 'assistant' | 'tool'
@@ -160,6 +170,13 @@ export type AiAgentRuntimeConfig = {
   systemPrompt?: string
   /** Optional hook injecting grounding context messages before the history. */
   contextProvider?: AiAgentContextProvider
+  /**
+   * Assist mode (default `scaffold`). Tags every assistant turn's provenance and
+   * is exposed via {@link AiAgentRuntime.getAssistMode}; apps compose the
+   * scaffold guard into their system prompt with {@link composeAssistSystemPrompt}.
+   * `draft` is never the default — it must be set explicitly.
+   */
+  assistMode?: AiAssistMode
 }
 
 export type AiAgentThreadCreateInput = {
@@ -259,6 +276,7 @@ export class AiAgentRuntime {
   private readonly storage: AiAgentRuntimeStorage
   private readonly clock: () => Date
   private readonly mode: AiAgentOrchestratorMode
+  private readonly assistMode: AiAssistMode
   private readonly maxEvents: number
   private sequence = 0
   private loaded = false
@@ -270,7 +288,13 @@ export class AiAgentRuntime {
     this.storage = config.storage ?? createMemoryAiAgentRuntimeStorage()
     this.clock = config.clock ?? (() => new Date())
     this.mode = config.mode ?? 'hybrid'
+    this.assistMode = config.assistMode ?? 'scaffold'
     this.maxEvents = config.maxEvents ?? DEFAULT_MAX_EVENTS
+  }
+
+  /** The active assist mode (`scaffold` by default; `draft` is opt-in only). */
+  getAssistMode(): AiAssistMode {
+    return this.assistMode
   }
 
   async load(): Promise<AiAgentRuntimeSnapshot> {
@@ -334,7 +358,10 @@ export class AiAgentRuntime {
       content: '',
       createdAt: now,
       updatedAt: now,
-      metadata: { runId }
+      // Provenance is always legible: every assistant turn is marked
+      // ai-generated and carries the assist mode it was produced under, so a
+      // surface can show an `ai-generated` badge (Charter §Agency).
+      metadata: { runId, ...assistTurnProvenance(this.assistMode) }
     })
 
     this.activeRuns.set(runId, controller)
@@ -914,6 +941,42 @@ export function createMemoryAiAgentRuntimeStorage(
 }
 
 // ─── Pure Helpers ───────────────────────────────────────────────────────────
+
+/** Provenance tag stamped on every assistant turn (xNet trust tiers). */
+export const AI_GENERATED_PROVENANCE = 'ai-generated' as const
+
+/**
+ * The cognitive-debt guard appended to the system prompt in scaffold mode. It
+ * asks the model to help the user think rather than think for them — an answer
+ * to the deskilling effect of LLM-authored work (MIT, arXiv:2506.08872).
+ */
+export const SCAFFOLD_SYSTEM_GUARD =
+  'Work in scaffold mode: help the user think, do not think for them. Prefer an ' +
+  'outline, options, and cited sources over finished prose, and leave the ' +
+  'writing — and the authorship — to the user. Mark anything you author as ' +
+  'AI-generated.'
+
+/**
+ * Compose the system prompt for an assist mode. In `scaffold` mode the guard is
+ * appended so the assistant scaffolds rather than substitutes; in `draft` mode
+ * the base prompt passes through unchanged. Returned to apps so the runtime's
+ * own message composition stays backward-compatible.
+ */
+export function composeAssistSystemPrompt(
+  base: string | undefined,
+  mode: AiAssistMode
+): string | undefined {
+  if (mode !== 'scaffold') return base
+  return base ? `${base}\n\n${SCAFFOLD_SYSTEM_GUARD}` : SCAFFOLD_SYSTEM_GUARD
+}
+
+/** Metadata stamped on an assistant turn so its provenance is always legible. */
+export function assistTurnProvenance(mode: AiAssistMode): {
+  provenance: typeof AI_GENERATED_PROVENANCE
+  assistMode: AiAssistMode
+} {
+  return { provenance: AI_GENERATED_PROVENANCE, assistMode: mode }
+}
 
 export function renderSelectionPrompt(
   instruction: string,
