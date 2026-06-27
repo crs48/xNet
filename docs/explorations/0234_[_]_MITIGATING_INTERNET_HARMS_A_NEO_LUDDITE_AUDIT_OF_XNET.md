@@ -576,10 +576,10 @@ sequenceDiagram
 ## Implementation Checklist
 
 **Wave 1 — Foundation & quick proofs**
-- [ ] Write `docs/CHARTER.md` — the six commitments (Own, Exit, Calm, Consent, Agency, Commons), each linking to the code that backs it.
+- [x] Write `docs/CHARTER.md` — the six commitments (Own, Exit, Calm, Consent, Agency, Commons), each linking to the code that backs it.
 - [ ] Add a "Why xNet / Our commitments" page to the marketing site, single‑sourced (remember `sidebar.mjs` + `build:llms` for new docs).
-- [ ] Implement `scripts/check-humane-patterns.mjs`; wire it into the `lint`/CI job alongside `check-motion-vocab.mjs`.
-- [ ] Add the `/* humane-ok: <reason> */` escape‑hatch convention and document it in the Charter.
+- [x] Implement `scripts/check-humane-patterns.mjs`; wire it into the `lint`/CI job alongside `check-motion-vocab.mjs`.
+- [x] Add the `/* humane-ok: <reason> */` escape‑hatch convention and document it in the Charter.
 - [ ] Build `packages/plugins/src/services/right-to-leave.ts` (`leaveWithEverything` + `deleteDay`) composing existing export/backup/identity code.
 - [ ] Add a **Settings → "Your data & leaving"** panel: shows where data lives (local vs hub), one‑click full export, and an honest Delete‑Day flow (no confirmshaming).
 - [ ] Add a **time‑well‑spent** surface (optional, off by default): a calm "enough for today" wind‑down affordance; never a streak.
@@ -587,7 +587,7 @@ sequenceDiagram
 **Wave 2 — Transparency & agency**
 - [ ] Build `describeWhatWeKnow` + a **Settings → "What we know about you"** mirror over vectors, brain memory, and the telemetry buffer, each item purgeable.
 - [ ] Add a registry assertion: every derived‑data producer (vectors/brain/telemetry) must surface in the mirror (test‑enforced).
-- [ ] Add `mode: 'scaffold' | 'draft'` to `AiAgentRuntime`; default `scaffold`; require explicit opt‑in for `draft`.
+- [x] Add `mode: 'scaffold' | 'draft'` to `AiAgentRuntime`; default `scaffold`; require explicit opt‑in for `draft`.
 - [ ] Surface AI source citations in the assistant UI; render an `ai-generated` provenance badge in the editor using `packages/trust` tiers.
 
 **Wave 3 — Commons**
@@ -596,19 +596,19 @@ sequenceDiagram
 - [ ] Evaluate an interop export target (ATProto PDS or ActivityPub actor) for the Right‑to‑Leave bundle.
 
 **Cross‑cutting**
-- [ ] Add a changeset for any publishable `packages/*` touched (per repo policy).
-- [ ] Update `docs/VISION.md` to reference the Charter as the operational expression of its principles.
+- [x] Add a changeset for any publishable `packages/*` touched (per repo policy).
+- [x] Update `docs/VISION.md` to reference the Charter as the operational expression of its principles.
 
 ## Validation Checklist
 
-- [ ] **Lint proves Calm:** `check-humane-patterns.mjs` fails a deliberately‑planted infinite‑scroll/streak PR, and passes `main`.
+- [x] **Lint proves Calm:** `check-humane-patterns.mjs` fails a deliberately‑planted infinite‑scroll/streak PR, and passes `main`.
 - [ ] **Exit round‑trips:** a CI test exports a seeded workspace via `leaveWithEverything`, re‑imports it into a fresh `xnet-hub`, and asserts node/blob/identity parity.
 - [ ] **Delete‑Day is real:** after `deleteDay({keepLocal:false})`, OPFS is empty and the hub returns tombstones for the DID; the only telemetry emitted is an anonymous, non‑identifying `account.left`.
 - [ ] **Mirror is complete:** a test enumerates all derived‑data producers and asserts each appears in `describeWhatWeKnow`; purging an item actually deletes it from its store.
-- [ ] **Consent default holds:** with telemetry tier `off`, a network spy asserts **zero** outbound analytics across a full session (extends `0210` consent tests).
+- [x] **Consent default holds:** with telemetry tier `off`, a network spy asserts **zero** outbound analytics across a full session (extends `0210` consent tests).
 - [ ] **AI discloses:** generating in `scaffold` mode yields citations + an `ai-generated` provenance badge; `draft` mode is unreachable without explicit opt‑in (test).
-- [ ] **No surplus exists:** a grep/test confirms there is no third‑party analytics/ad SDK and no un‑scrubbed PII path off device.
-- [ ] **Charter honesty audit:** every claim in `docs/CHARTER.md` links to either a passing test or a user‑visible surface — no unbacked promises.
+- [x] **No surplus exists:** a grep/test confirms there is no third‑party analytics/ad SDK and no un‑scrubbed PII path off device.
+- [x] **Charter honesty audit:** every claim in `docs/CHARTER.md` links to either a passing test or a user‑visible surface — no unbacked promises.
 - [ ] **Calm regression:** feeds remain chronological and notifications rule‑based (snapshot/contract tests on `packages/social/src/feeds/defaults.ts` and `packages/comms/src/notify/rules.ts`).
 
 ## References
