@@ -577,7 +577,7 @@ sequenceDiagram
 
 **Wave 1 — Foundation & quick proofs**
 - [x] Write `docs/CHARTER.md` — the six commitments (Own, Exit, Calm, Consent, Agency, Commons), each linking to the code that backs it.
-- [ ] Add a "Why xNet / Our commitments" page to the marketing site, single‑sourced (remember `sidebar.mjs` + `build:llms` for new docs).
+- [x] Add a "Why xNet / Our commitments" page to the marketing site, single‑sourced (remember `sidebar.mjs` + `build:llms` for new docs).
 - [x] Implement `scripts/check-humane-patterns.mjs`; wire it into the `lint`/CI job alongside `check-motion-vocab.mjs`.
 - [x] Add the `/* humane-ok: <reason> */` escape‑hatch convention and document it in the Charter.
 - [x] Build `packages/plugins/src/services/right-to-leave.ts` (`leaveWithEverything` + `deleteDay`) composing existing export/backup/identity code.
