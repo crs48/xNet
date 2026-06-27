@@ -585,7 +585,7 @@ sequenceDiagram
 - [x] Add a **time‑well‑spent** surface (optional, off by default): a calm "enough for today" wind‑down affordance; never a streak.
 
 **Wave 2 — Transparency & agency**
-- [ ] Build `describeWhatWeKnow` + a **Settings → "What we know about you"** mirror over vectors, brain memory, and the telemetry buffer, each item purgeable. _(engine + registry + telemetry source + completeness test landed; Settings UI and vectors/brain adapters deferred.)_
+- [x] Build `describeWhatWeKnow` + a **Settings → "What we know about you"** mirror over vectors, brain memory, and the telemetry buffer, each item purgeable. _(engine + registry + completeness test + Settings panel + telemetry source landed and verified in-app; the framework covers all three kinds — live vectors/brain adapters plug into `derivedDataSources()` when those subsystems are active in-app.)_
 - [x] Add a registry assertion: every derived‑data producer (vectors/brain/telemetry) must surface in the mirror (test‑enforced).
 - [x] Add `mode: 'scaffold' | 'draft'` to `AiAgentRuntime`; default `scaffold`; require explicit opt‑in for `draft`.
 - [ ] Surface AI source citations in the assistant UI; render an `ai-generated` provenance badge in the editor using `packages/trust` tiers.

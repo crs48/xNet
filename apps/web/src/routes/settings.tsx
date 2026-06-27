@@ -25,7 +25,9 @@ import {
   Wifi,
   ShieldCheck,
   Activity,
-  Cloud
+  Cloud,
+  Eye,
+  Trash2
 } from 'lucide-react'
 import { useState, useCallback } from 'react'
 import { resetCoachSession } from '../coachmarks'
@@ -35,6 +37,7 @@ import { PluginsPanel } from '../components/PluginsPanel'
 import { SafetyCenterSettings } from '../components/SafetyCenterSettings'
 import { isAnalyticsConfigured } from '../lib/analytics'
 import { requestXNetBrowserStorageReset } from '../lib/browser-storage-reset'
+import { useDerivedData } from '../lib/data-dignity'
 import { persistedHubUrl, setPersistedHubUrl } from '../lib/hub-url'
 import { logout } from '../lib/identity'
 import { isSentryConfigured } from '../lib/sentry'
@@ -57,6 +60,7 @@ type SettingsSection =
   | 'appearance'
   | 'safety'
   | 'data'
+  | 'mirror'
   | 'privacy'
   | 'network'
   | 'plugins'
@@ -81,6 +85,7 @@ const SECTIONS: SectionConfig[] = [
   { id: 'appearance', label: 'Appearance', icon: <Palette {...ICON_PROPS} /> },
   { id: 'safety', label: 'Content & Safety', icon: <ShieldCheck {...ICON_PROPS} /> },
   { id: 'data', label: 'Data', icon: <Database {...ICON_PROPS} /> },
+  { id: 'mirror', label: 'What we know', icon: <Eye {...ICON_PROPS} /> },
   { id: 'privacy', label: 'Privacy & Diagnostics', icon: <Activity {...ICON_PROPS} /> },
   { id: 'network', label: 'Network', icon: <Wifi {...ICON_PROPS} /> },
   { id: 'plugins', label: 'Plugins', icon: <Puzzle {...ICON_PROPS} /> },
@@ -145,6 +150,7 @@ function SettingsPage() {
           </div>
         )}
         {activeSection === 'data' && <DataSettings />}
+        {activeSection === 'mirror' && <WhatWeKnowSettings />}
         {activeSection === 'privacy' && <PrivacySettings />}
         {activeSection === 'network' && <NetworkSettings />}
         {activeSection === 'plugins' && <PluginsPanel />}
@@ -496,6 +502,81 @@ function TipsSettings() {
       </SettingsGroup>
     </SettingsPanel>
   )
+}
+
+// ─── What We Know About You ─────────────────────────────────────────────────────
+
+/**
+ * The "what we know about you" mirror (Charter §Consent, exploration 0234).
+ * Because xNet keeps no behavioral surplus, it can do the move no surveillance
+ * company can: enumerate everything it has derived about you, from every
+ * producer, and let you purge any of it. The common, honest answer is "nothing."
+ */
+function WhatWeKnowSettings() {
+  const { items, loading, purge, purgeAll } = useDerivedData()
+
+  return (
+    <SettingsPanel
+      title="What we know about you"
+      description="Everything xNet has derived about you — and a button to erase any of it."
+    >
+      {loading ? (
+        <p className="text-[13px] text-ink-3">Checking…</p>
+      ) : items.length === 0 ? (
+        <div className="rounded-lg border border-hairline bg-surface-1 p-4">
+          <p className="text-[13px] font-medium text-ink-1">Nothing.</p>
+          <p className="mt-1 text-[13px] leading-relaxed text-ink-3">
+            xNet keeps no behavioral surplus — there is no advertising profile, no engagement score,
+            no hidden category. Your data lives on your device. Telemetry is off by default;
+            anything you choose to enable is scrubbed, anonymized, and shown here so you can erase
+            it. That absence is the point.
+          </p>
+        </div>
+      ) : (
+        <SettingsGroup
+          label={`${items.length} item${items.length === 1 ? '' : 's'}`}
+          description="Each item is local and purgeable. Nothing here is sold or shared."
+        >
+          {items.map((item) => (
+            <SettingRow
+              key={item.id}
+              label={item.label}
+              description={`${describeKind(item.kind)} · ${item.location}`}
+            >
+              <button
+                type="button"
+                onClick={() => void purge(item)}
+                className="inline-flex h-8 items-center gap-1.5 rounded-md border border-hairline bg-surface-0 px-2.5 text-[13px] text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink-1"
+              >
+                <Trash2 size={13} strokeWidth={1.5} />
+                Forget
+              </button>
+            </SettingRow>
+          ))}
+          <SettingRow
+            label="Forget everything"
+            description="Erase every derived item above in one step"
+          >
+            <button
+              type="button"
+              onClick={() => void purgeAll()}
+              className="inline-flex h-8 items-center gap-1.5 rounded-md border border-hairline bg-surface-0 px-2.5 text-[13px] text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink-1"
+            >
+              <Trash2 size={13} strokeWidth={1.5} />
+              Forget all
+            </button>
+          </SettingRow>
+        </SettingsGroup>
+      )}
+    </SettingsPanel>
+  )
+}
+
+function describeKind(kind: string): string {
+  if (kind === 'telemetry') return 'Diagnostics buffered on this device'
+  if (kind === 'embedding') return 'Search embedding'
+  if (kind === 'ai-memory') return 'AI memory'
+  return kind
 }
 
 // ─── Privacy & Diagnostics Settings ─────────────────────────────────────────────
