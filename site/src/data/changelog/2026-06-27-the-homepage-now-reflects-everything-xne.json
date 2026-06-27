@@ -4,5 +4,15 @@
   "title": "The homepage now reflects everything xNet can do",
   "summary": "The landing page got a thorough refresh — an AI-native section, an integrations gallery, the full app surface (CRM, finance, maps, labs), our six commitments, and an honest by-the-numbers strip whose counts are verified against the repo at build time.",
   "highlights": [],
-  "tags": ["platform", "ai"]
+  "tags": [
+    "platform",
+    "ai"
+  ],
+  "pr": 305,
+  "mergedAt": "2026-06-27T23:52:56Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
