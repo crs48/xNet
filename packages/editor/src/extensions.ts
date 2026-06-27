@@ -831,6 +831,15 @@ export type {
   UseOrphanReattachmentResult
 } from './extensions/comment'
 
+// AI provenance badge (exploration 0234, Charter §Agency)
+export { AiGeneratedMark, aiGeneratedTitle } from './extensions/ai-generated'
+export type {
+  AiGeneratedMarkOptions,
+  AiGeneratedAttrs,
+  AiProvenanceMode,
+  AiCitation
+} from './extensions/ai-generated'
+
 // Image upload service
 export {
   uploadImage,

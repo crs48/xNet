@@ -12,6 +12,7 @@
  * slash-menu items, decoupled from any particular AI provider.
  */
 
+import type { AiCitation, AiProvenanceMode } from '../ai-generated'
 import type { SlashCommandItem } from '../slash-command/items'
 
 /** The supported text transforms. */
@@ -23,8 +24,25 @@ export interface AiTransformRequest {
   selectedText: string
 }
 
+/**
+ * What the transform produced. A bare string is the text (scaffold mode, no
+ * citations); the object form carries provenance so the inserted span can
+ * disclose how it was made and what it drew on (Charter §Agency).
+ */
+export interface AiTransformOutput {
+  text: string
+  assistMode?: AiProvenanceMode
+  citations?: AiCitation[]
+}
+
+export type AiTransformResult = string | AiTransformOutput
+
 /** The injected AI call — provider-agnostic, returns the transformed text. */
-export type AiTransformFn = (request: AiTransformRequest) => Promise<string>
+export type AiTransformFn = (request: AiTransformRequest) => Promise<AiTransformResult>
+
+function normalizeOutput(result: AiTransformResult): AiTransformOutput {
+  return typeof result === 'string' ? { text: result } : result
+}
 
 export interface AiCommandDeps {
   /** Runs the transform (wire to AiSurfaceService / BYO-model providers). */
@@ -70,6 +88,15 @@ export interface AiEditorChain {
   focus: () => AiEditorChain
   insertContentAt: (range: { from: number; to: number }, content: string) => AiEditorChain
   deleteRange: (range: { from: number; to: number }) => AiEditorChain
+  /**
+   * Mark a range as AI-generated (provided by AiGeneratedMark). Editors that run
+   * AI transforms must register that mark so inserted text discloses itself.
+   */
+  setAiGeneratedRange: (
+    from: number,
+    to: number,
+    attrs: { assistMode: AiProvenanceMode; citations: AiCitation[] | null }
+  ) => AiEditorChain
   run: () => boolean
 }
 export interface AiEditorLike {
@@ -105,6 +132,10 @@ export interface AiTransformPreview {
   before: string
   /** The AI-proposed replacement. */
   after: string
+  /** How the model produced it (defaults to scaffold on accept). */
+  assistMode?: AiProvenanceMode
+  /** Sources the model cited, surfaced in the provenance badge. */
+  citations?: AiCitation[]
 }
 
 /**
@@ -123,20 +154,45 @@ export async function previewAiTransform(
   const before = editor.state.doc.textBetween(from, to, ' ')
   if (!before.trim()) return null
   try {
-    const after = await deps.transform({ intent, selectedText: before })
-    return { intent, from, to, before, after }
+    const out = normalizeOutput(await deps.transform({ intent, selectedText: before }))
+    return buildPreview(intent, { from, to, before }, out)
   } catch (error) {
     reportError(deps, error)
     return null
   }
 }
 
-/** Apply an approved {@link AiTransformPreview} — replace the range with `after`. */
+function buildPreview(
+  intent: AiIntent,
+  range: { from: number; to: number; before: string },
+  out: AiTransformOutput
+): AiTransformPreview {
+  return {
+    intent,
+    from: range.from,
+    to: range.to,
+    before: range.before,
+    after: out.text,
+    ...(out.assistMode ? { assistMode: out.assistMode } : {}),
+    ...(out.citations ? { citations: out.citations } : {})
+  }
+}
+
+/**
+ * Apply an approved {@link AiTransformPreview} — replace the range with `after`
+ * and mark the inserted span as AI-generated, so it discloses its provenance and
+ * any cited sources (Charter §Agency). All transform output is AI-authored, so
+ * the mark is always applied; `assistMode` defaults to scaffold.
+ */
 export function acceptAiTransform(editor: AiEditorLike, preview: AiTransformPreview): void {
   editor
     .chain()
     .focus()
     .insertContentAt({ from: preview.from, to: preview.to }, preview.after)
+    .setAiGeneratedRange(preview.from, preview.from + preview.after.length, {
+      assistMode: preview.assistMode ?? 'scaffold',
+      citations: preview.citations ?? null
+    })
     .run()
 }
 

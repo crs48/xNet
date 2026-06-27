@@ -23,6 +23,10 @@ function fakeEditor(text: string, from = 0, to = text.length) {
       chain
     ),
     deleteRange: (...args: unknown[]) => (calls.push({ method: 'deleteRange', args }), chain),
+    setAiGeneratedRange: (...args: unknown[]) => (
+      calls.push({ method: 'setAiGeneratedRange', args }),
+      chain
+    ),
     run: () => true
   }
   const editor: AiEditorLike = {
@@ -114,6 +118,48 @@ describe('previewAiTransform / acceptAiTransform (the approval gate)', () => {
       method: 'insertContentAt',
       args: [{ from: 0, to: 5 }, 'final']
     })
+  })
+
+  it('marks the inserted span AI-generated — scaffold by default, no citations', () => {
+    const { editor, calls } = fakeEditor('draft')
+    acceptAiTransform(editor, {
+      intent: 'rewrite',
+      from: 0,
+      to: 5,
+      before: 'draft',
+      after: 'final'
+    })
+    expect(calls).toContainEqual({
+      method: 'setAiGeneratedRange',
+      args: [0, 5, { assistMode: 'scaffold', citations: null }]
+    })
+  })
+
+  it('discloses draft mode + cited sources when the preview carries them', () => {
+    const citations = [{ nodeId: 'n1', title: 'Roadmap' }]
+    const { editor, calls } = fakeEditor('draft')
+    acceptAiTransform(editor, {
+      intent: 'expand',
+      from: 2,
+      to: 7,
+      before: 'draft',
+      after: 'longer',
+      assistMode: 'draft',
+      citations
+    })
+    expect(calls).toContainEqual({
+      method: 'setAiGeneratedRange',
+      args: [2, 2 + 'longer'.length, { assistMode: 'draft', citations }]
+    })
+  })
+
+  it('preview threads provenance from an object transform result (citations + mode)', async () => {
+    const { editor } = fakeEditor('the cat sat')
+    const citations = [{ nodeId: 'n1', title: 'Cats' }]
+    const preview = await previewAiTransform(editor, 'improve', {
+      transform: vi.fn().mockResolvedValue({ text: 'THE CAT SAT', assistMode: 'draft', citations })
+    })
+    expect(preview).toMatchObject({ after: 'THE CAT SAT', assistMode: 'draft', citations })
   })
 
   it('preview returns null for an empty selection or a failed transform', async () => {
