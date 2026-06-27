@@ -80,3 +80,18 @@ export type { TelemetryBatch, TelemetryBatchRecord, AggregatorResponse } from '.
 export { TELEMETRY_PROTOCOL } from './sync'
 export type { HttpTransportOptions, TelemetryTransport } from './sync'
 export { createHttpTransport } from './sync'
+
+// Data dignity — "what we know about you" mirror (exploration 0234)
+export type {
+  DerivedDataKind,
+  DerivedDataLocation,
+  DerivedItem,
+  DerivedDataSource,
+  TelemetryMirrorPort
+} from './dignity'
+export {
+  DERIVED_DATA_KINDS,
+  describeWhatWeKnow,
+  missingDerivedKinds,
+  telemetryDerivedSource
+} from './dignity'
