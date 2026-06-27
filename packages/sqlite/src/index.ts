@@ -94,5 +94,19 @@ export type {
 // Error helpers
 export { isSQLiteCorruptionError } from './errors'
 
+// OPFS capability detection (exploration 0238) — pick/explain the durable
+// backend a context (esp. a mobile webview) can support before opening.
+export {
+  detectOpfsCapability,
+  supportsOpfs,
+  supportsSyncAccessHandle,
+  isCrossOriginIsolated
+} from './adapters/opfs-capability'
+export type {
+  OpfsCapability,
+  OpfsCapabilityScope,
+  OpfsPersistenceMode
+} from './adapters/opfs-capability'
+
 // Re-export adapters for convenience (tree-shakeable)
 // Users should prefer importing from subpaths for smaller bundles
