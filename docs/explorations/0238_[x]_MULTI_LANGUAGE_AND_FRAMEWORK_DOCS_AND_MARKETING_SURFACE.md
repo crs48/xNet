@@ -404,27 +404,27 @@ let open = store.query(Query(Task, where: .equals("status","todo")))
 
 Docs:
 
-- [ ] Add a **"Languages & SDKs"** group to `site/src/sidebar.mjs` (overview,
+- [x] Add a **"Languages & SDKs"** group to `site/src/sidebar.mjs` (overview,
       frameworks*, swift, rust, implement-it*, conformance* — `*` = existing).
-- [ ] `docs/languages/overview.mdx` — the maturity matrix (Axis A + Axis B), each
+- [x] `docs/languages/overview.mdx` — the maturity matrix (Axis A + Axis B), each
       row linking out; lead with golden-vector verifiability.
-- [ ] `docs/languages/swift.mdx` — XNetKit quick-look + SwiftPM install + scope box
+- [x] `docs/languages/swift.mdx` — XNetKit quick-look + SwiftPM install + scope box
       + link to [`swift/XNetKit`](../../swift/XNetKit).
-- [ ] `docs/languages/rust.mdx` — xnet-core kernel + FFI + `cargo test` conformance
+- [x] `docs/languages/rust.mdx` — xnet-core kernel + FFI + `cargo test` conformance
       + "backs native SDKs" + link to [`rust/xnet-core`](../../rust/xnet-core).
-- [ ] Add a maturity-badge legend (shared snippet/section) and apply it on each page.
-- [ ] Cross-link `protocol/overview` and `guides/frameworks` to the new overview.
-- [ ] Run `pnpm --filter site build:llms` — passes with the new pages listed.
+- [x] Add a maturity-badge legend (shared snippet/section) and apply it on each page.
+- [x] Cross-link `protocol/overview` and `guides/frameworks` to the new overview.
+- [x] Run `pnpm --filter site build:llms` — passes with the new pages listed.
 
 Marketing:
 
-- [ ] `site/src/pages/build-with.astro` — hub mirroring `react.astro` (matrix +
+- [x] `site/src/pages/build-with.astro` — hub mirroring `react.astro` (matrix +
       per-language cards + TS/Swift/Rust code tabs + verifiability note).
-- [ ] Footer: add "Build with any language" (+ "Swift SDK", "Rust core") to
+- [x] Footer: add "Build with any language" (+ "Swift SDK", "Rust core") to
       `developLinks`.
-- [ ] Cross-links: homepage strip; `react.astro` "Not React? →"; `compare.astro`
+- [x] Cross-links: homepage strip; `react.astro` "Not React? →"; `compare.astro`
       verifiability row; wire `TheTurn.astro` Rust/Python/Swift sentence to `/build-with`.
-- [ ] Add `/build-with` to the marketing nav if appropriate (or leave footer-only).
+- [x] Add `/build-with` to the marketing nav if appropriate (or leave footer-only).
 
 Out of scope (demand-gated / separate decisions):
 
@@ -434,20 +434,20 @@ Out of scope (demand-gated / separate decisions):
 
 ## Validation Checklist
 
-- [ ] `pnpm --filter site build:llms` succeeds (no "content not listed" error) and
+- [x] `pnpm --filter site build:llms` succeeds (no "content not listed" error) and
       the new pages appear in `llms-full.txt`.
-- [ ] `pnpm --filter site build` (astro build) succeeds; `/build-with` renders.
-- [ ] Every language/framework row shows a **maturity badge**; no cell is labeled
+- [x] `pnpm --filter site build` (astro build) succeeds; `/build-with` renders.
+- [x] Every language/framework row shows a **maturity badge**; no cell is labeled
       "supported" without qualification.
-- [ ] Each per-language page links to the **real** package (`swift/XNetKit`,
+- [x] Each per-language page links to the **real** package (`swift/XNetKit`,
       `rust/xnet-core`) and to the **conformance** page.
-- [ ] The footer "Build with any language" link resolves to `/build-with`.
-- [ ] Cross-links resolve (homepage, react, compare, protocol overview, TheTurn).
-- [ ] The Swift and Rust code snippets in docs match the real APIs (compile/`cargo
+- [x] The footer "Build with any language" link resolves to `/build-with`.
+- [x] Cross-links resolve (homepage, react, compare, protocol overview, TheTurn).
+- [x] The Swift and Rust code snippets in docs match the real APIs (compile/`cargo
       test` / `swift build` as a spot check, or are copied from passing tests).
-- [ ] No claim contradicts a package's stated scope (e.g., Swift Yjs/live-sync
+- [x] No claim contradicts a package's stated scope (e.g., Swift Yjs/live-sync
       caveat preserved).
-- [ ] Internal link check / existing site link validation passes in CI.
+- [x] Internal link check / existing site link validation passes in CI.
 
 ## References
 
