@@ -193,7 +193,11 @@
   border-color: rgb(var(--editor-primary));
 }
 
-.ProseMirror ul[data-type='taskList'] li[data-checked='true'] > label input[type='checkbox']::after {
+.ProseMirror
+  ul[data-type='taskList']
+  li[data-checked='true']
+  > label
+  input[type='checkbox']::after {
   content: '';
   @apply block w-full h-full;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3E%3C/svg%3E");
@@ -741,6 +745,27 @@
 .xnet-comment-mark + .xnet-comment-mark,
 .xnet-comment-mark.has-overlap {
   background-color: rgb(251 191 36 / 0.5);
+}
+
+/* ─── AI-generated provenance badge (exploration 0234, Charter §Agency) ─── */
+
+/* Subtle, legible disclosure: AI-authored text gets a dashed underline in the
+   editor's primary colour and a help cursor; the hover tooltip (title attr)
+   names the assist mode and any cited sources. */
+.xnet-ai-generated-mark {
+  background-color: rgb(var(--editor-primary) / 0.08);
+  border-bottom: 1px dashed rgb(var(--editor-primary) / 0.7);
+  cursor: help;
+  transition: background-color 0.15s ease;
+}
+
+.xnet-ai-generated-mark:hover {
+  background-color: rgb(var(--editor-primary) / 0.16);
+}
+
+.dark .xnet-ai-generated-mark {
+  background-color: rgb(var(--editor-primary) / 0.16);
+  border-bottom-color: rgb(var(--editor-primary) / 0.85);
 }
 
 /* ─── Database Cell Comment Hover Highlight ─── */
