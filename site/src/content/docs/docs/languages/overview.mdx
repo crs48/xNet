@@ -1,0 +1,89 @@
+---
+title: 'Languages & SDKs'
+draft: false
+description: 'Build xNet apps in TypeScript, React, Swift, Rust, Vue, Svelte, or any language. One protocol, verified by the same golden vectors — at honest, labeled maturity levels.'
+sidebar:
+  order: 0
+  label: 'Overview & matrix'
+---
+
+import { Badge, LinkCard, Aside } from '@astrojs/starlight/components'
+
+xNet is a **protocol** first and an app second. The same signed, hash-chained,
+last-write-wins data model can be implemented — and **proven byte-for-byte** —
+in more than one language, and the JavaScript runtime binds to more than one UI
+framework. This page is the honest map of what exists today and how mature it is.
+
+<Aside type="tip" title="You don't have to trust us — you can check">
+  Every implementation below passes the **same [golden vectors](/docs/protocol/conformance/)**:
+  identity (`did:key`), the canonical-JSON BLAKE3 change hash, signing, and LWW convergence. That
+  shared corpus is the difference between "supported" and "verifiably interoperable."
+</Aside>
+
+## The two axes
+
+There are two different "multi-X" stories, and they mean different things:
+
+- **Languages** implement the [protocol](/docs/protocol/overview/) (identity,
+  change hashing, replication, authorization) and interoperate over the wire.
+- **JavaScript UI frameworks** bind the same JS [runtime](/docs/architecture/package-graph/)
+  (`createXNetClient` + `liveQuery`) into React, Vue, Svelte, or Solid.
+
+## Maturity matrix
+
+What the badges mean: <Badge text="Reference" variant="tip" /> the canonical
+implementation the vectors are generated from · <Badge text="Stable SDK" variant="success" />
+first-class and app-ready · <Badge text="Beta" variant="note" /> real and
+conformance-pinned, still evolving · <Badge text="On demand" variant="caution" />
+a thin binding published when asked for · <Badge text="Reference kernel" variant="default" />
+a verifier / teaching implementation.
+
+### Languages
+
+| Language         | What you get                                                     | Maturity                                            | Where                                                      |
+| ---------------- | ---------------------------------------------------------------- | --------------------------------------------------- | ---------------------------------------------------------- |
+| **TypeScript**   | The full runtime + React SDK, published to npm                   | <Badge text="Reference" variant="tip" />            | [Quickstart](/docs/quickstart/)                            |
+| **Swift**        | Native SDK — schemas, store, query, SwiftUI live binding, SQLite | <Badge text="Native SDK · beta" variant="note" />   | [Swift](/docs/languages/swift/)                            |
+| **Rust**         | Portable interop kernel + C/UniFFI binding surface               | <Badge text="Core · beta" variant="note" />         | [Rust](/docs/languages/rust/)                              |
+| **Python**       | ~100-line reference kernel + vector verifier                     | <Badge text="Reference kernel" variant="default" /> | [Implement it](/docs/protocol/implement-in-your-language/) |
+| **Any language** | Build a conforming impl from the spec + vectors                  | <Badge text="DIY" variant="default" />              | [Implement it](/docs/protocol/implement-in-your-language/) |
+
+### JavaScript UI frameworks
+
+| Framework                   | What you get                                               | Maturity                                               | Where                                  |
+| --------------------------- | ---------------------------------------------------------- | ------------------------------------------------------ | -------------------------------------- |
+| **React**                   | Hooks **and** components — the toolkit the app itself uses | <Badge text="Stable SDK" variant="success" />          | [React hooks](/docs/hooks/overview/)   |
+| **Vue**                     | `useQuery` / `useMutate` data binding (no components)      | <Badge text="Adapter · on demand" variant="caution" /> | [Frameworks](/docs/guides/frameworks/) |
+| **Svelte**                  | `liveQuery` is already a Svelte store                      | <Badge text="Adapter · on demand" variant="caution" /> | [Frameworks](/docs/guides/frameworks/) |
+| **Solid**                   | `createQuery` via `from()`                                 | <Badge text="Adapter · on demand" variant="caution" /> | [Frameworks](/docs/guides/frameworks/) |
+| **Vanilla / Lit / Angular** | Subscribe to `liveQuery` directly                          | <Badge text="Pattern" variant="default" />             | [Frameworks](/docs/guides/frameworks/) |
+
+<Aside type="note" title="Honest scope">
+  Only **React** ships UI components; the component kit is React by design (see the [framework
+  support policy](/docs/guides/frameworks/)). The Swift and Rust packages live **in the repo**
+  (SwiftPM / Cargo), not on a public registry yet — the per-language pages show how to depend on
+  them today.
+</Aside>
+
+## Pick your path
+
+<LinkCard
+  title="JavaScript frameworks →"
+  href="/docs/guides/frameworks/"
+  description="React, Vue, Svelte, Solid, or vanilla — bind the runtime in ~40 lines."
+/>
+<LinkCard
+  title="Swift — XNetKit →"
+  href="/docs/languages/swift/"
+  description="Define schemas in Swift and bind queries into a SwiftUI re-render loop."
+/>
+<LinkCard
+  title="Rust — xnet-core →"
+  href="/docs/languages/rust/"
+  description="The portable interop kernel that backs native SDKs, with C/UniFFI bindings."
+/>
+<LinkCard
+  title="Implement it in any language →"
+  href="/docs/protocol/implement-in-your-language/"
+  description="The kernel, the golden vectors, and how to claim conformance."
+/>
