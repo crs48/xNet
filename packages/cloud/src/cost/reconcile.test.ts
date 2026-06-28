@@ -31,8 +31,14 @@ describe('measuredCogs', () => {
   it('charges flat warm compute + AI provider cost + SSO when present', () => {
     const c = measuredCogs(usage({ warm: true, warmUnits: 2, aiProviderCostUsd: 3, ssoScim: true }))
     expect(c.computeUsd).toBeCloseTo(12, 4) // 2 × $6
-    expect(c.aiUsd).toBe(3)
+    // $3 provider cost × 1.055 credit-purchase fee = $3.165 (exploration 0244)
+    expect(c.aiUsd).toBeCloseTo(3.165, 4)
     expect(c.identityUsd).toBe(250)
+  })
+
+  it('lets the AI COGS multiplier be overridden (e.g. crypto top-up at 5%)', () => {
+    const c = measuredCogs(usage({ aiProviderCostUsd: 10 }), 1.05)
+    expect(c.aiUsd).toBeCloseTo(10.5, 4)
   })
 
   it('uses real Stripe fees when provided, else models them', () => {

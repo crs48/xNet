@@ -669,7 +669,7 @@ erDiagram
       color by `budgetState`; disable send + show reset time on `AiBudgetError`.
 - [ ] Add a dashboard cap control (`apps/cloud/src/dashboard.ts`) → amount +
       window selector → `setAiBudget`.
-- [ ] Margin: add `EFFECTIVE_COGS_MULTIPLIER` (default `1.055`) to
+- [x] Margin: add `EFFECTIVE_COGS_MULTIPLIER` (default `1.055`) to
       `cost/reconcile.ts`; add a **floor‑margin CI test** over every plan ×
       priciest allowed model × full included allotment; exclude `:free` /
       `inUsdPerM:null` from the managed catalog.
@@ -691,7 +691,7 @@ erDiagram
       boundary, year wrap), and rolling‑N across UTC midnight.
 - [ ] Unit: `computeChargeFromCostUsd` never undercharges (round‑up) and rejects
       `markup < 1` (already true — keep covered).
-- [ ] Unit/property: floor‑margin test fails if any plan’s worst case
+- [x] Unit/property: floor‑margin test fails if any plan’s worst case
       (`includedAiUsd` of its priciest allowed model at COGS×1.055) yields
       margin ≤ 0.
 - [ ] Integration: a chat under cap returns text + `budgetState`; a chat at cap

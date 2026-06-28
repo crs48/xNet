@@ -61,7 +61,22 @@ export interface FetchModelCatalogConfig {
   fetchImpl?: typeof fetch
 }
 
-/** Fetch + normalize the full OpenRouter catalog. Throws on a non-2xx upstream. */
+/**
+ * Models we will NOT serve via the managed gateway (exploration 0244):
+ *  - `:free` variants — carry data-training + rate-limit caveats, unfit for a paid
+ *    managed tier;
+ *  - price-unknown models (`inUsdPerM === null`) — no retail price to display and
+ *    they'd slip past the margin math (we'd be billing blind).
+ */
+export function isManagedModel(card: ModelCard): boolean {
+  if (card.id.endsWith(':free')) return false
+  return card.inUsdPerM !== null
+}
+
+/**
+ * Fetch + normalize the OpenRouter catalog, keeping only models the managed tier
+ * serves (see {@link isManagedModel}). Throws on a non-2xx upstream.
+ */
 export async function fetchModelCatalog(
   config: FetchModelCatalogConfig = {}
 ): Promise<ModelCard[]> {
@@ -70,7 +85,10 @@ export async function fetchModelCatalog(
   const res = await fetchImpl(`${baseUrl}/models`, { method: 'GET' })
   if (!res.ok) throw new Error(`openrouter /models → ${res.status}`)
   const data = (await res.json()) as { data?: OpenRouterModel[] }
-  return (data.data ?? []).map(toModelCard).filter((m): m is ModelCard => m !== null)
+  return (data.data ?? [])
+    .map(toModelCard)
+    .filter((m): m is ModelCard => m !== null)
+    .filter(isManagedModel)
 }
 
 export interface ModelCatalogCacheConfig extends FetchModelCatalogConfig {
