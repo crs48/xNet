@@ -223,6 +223,13 @@ jobs:
           cd apps/electron
           CSC_IDENTITY_AUTO_DISCOVERY=false pnpm exec electron-builder --linux dir --x64
 
+      # The packaged app carries its OWN Electron-ABI native modules; restore the
+      # shared workspace copy to the Node ABI in case electron-builder's
+      # npm-rebuild touched the hoisted pnpm store — the in-process hub runs under
+      # plain Node and must be able to load better-sqlite3. No-op if untouched.
+      - name: Restore Node-ABI native modules for the hub
+        run: pnpm --filter xnet-desktop run deps:node
+
       - name: Resolve Electron binary
         id: binary
         run: |
