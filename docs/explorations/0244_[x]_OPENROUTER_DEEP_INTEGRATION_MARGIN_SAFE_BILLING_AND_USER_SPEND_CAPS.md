@@ -682,7 +682,7 @@ erDiagram
       ops doc on bulk credit top‑up.
 - [x] Reconcile job: compare ledger window total vs `GET /api/v1/key`
       `usage`/`limit_remaining`; alert on drift > tolerance.
-- [ ] Changeset(s) for the publishable packages touched (`@xnetjs/cloud`,
+- [x] Changeset(s) for the publishable packages touched (`@xnetjs/cloud`,
       `@xnetjs/entitlements`, `@xnetjs/plugins`) per repo policy.
 
 ## Validation Checklist
