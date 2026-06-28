@@ -623,22 +623,22 @@ twin of the pirate sea-lanes.
 
 ## Validation Checklist
 
-- [ ] `pnpm --filter site build` succeeds; `/blog` lists post #2 newest-first and
+- [x] `pnpm --filter site build` succeeds; `/blog` lists post #2 newest-first and
       `/blog/data-should-work-like-soil` renders.
-- [ ] `/blog/rss.xml` stays well-formed and includes the new item (title, link,
+- [x] `/blog/rss.xml` stays well-formed and includes the new item (title, link,
       pubDate, description).
-- [ ] Self-audit parity with post #1: the page ships **0 third-party trackers / 0 ad
+- [x] Self-audit parity with post #1: the page ships **0 third-party trackers / 0 ad
       SDKs** (the [`check-humane-patterns.mjs`](../../scripts/check-humane-patterns.mjs)
       gate enforces this repo-wide); hero art is inline SVG, no external requests.
-- [ ] Every factual claim is sourced; the honesty box about the contested "Wood
+- [x] Every factual claim is sourced; the honesty box about the contested "Wood
       Wide Web" is present and not cut.
-- [ ] A reader who knows nothing about mycology (or One Piece) still follows and is
+- [x] A reader who knows nothing about mycology (or One Piece) still follows and is
       moved — the nervous-system spine carries it.
-- [ ] Mobile + dark-mode pass (existing responsive checks); `prose`/`not-prose`
+- [x] Mobile + dark-mode pass (existing responsive checks); `prose`/`not-prose`
       boundaries render correctly as in post #1.
-- [ ] Lint/format: remember `site/` is **not** covered by the root eslint/prettier
+- [x] Lint/format: remember `site/` is **not** covered by the root eslint/prettier
       ([memory: multi-language docs gotcha]); run the site's own checks.
-- [ ] The forestry-ERP material is framed as research/plans, not a shipped feature.
+- [x] The forestry-ERP material is framed as research/plans, not a shipped feature.
 
 ## References
 
