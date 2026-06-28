@@ -1,0 +1,75 @@
+---
+// The structural heart of post #3 (exploration 0241): a star and an attention
+// feed are the same machine wired two opposite ways. A star runs on NEGATIVE
+// feedback — a self-correcting governor that pushes back toward balance — so it
+// neither explodes nor goes cold. An engagement feed runs on POSITIVE feedback —
+// a loop with the governor removed — so it runs hot until it burns out. Mirrors
+// the ThreeNervousSystems / ArticlesMap card idiom (not-prose, bordered surface)
+// so the three posts read as one publication.
+const systems = [
+  {
+    name: 'A star',
+    loop: 'Negative feedback (a thermostat)',
+    behaviour:
+      'Squeeze the core and it heats, fusion speeds up, and pressure pushes back out. Let it expand and it cools, fusion slows, and gravity pulls it back in. Any nudge is self-corrected — so it neither explodes nor freezes.',
+    tone: 'good'
+  },
+  {
+    name: 'An attention feed',
+    loop: 'Positive feedback (no governor)',
+    behaviour:
+      'Engagement is rewarded with more engagement: refresh, alert, streak, repeat. Nothing pushes back toward rest, so the system runs hotter and hotter — the stellar equivalent of a giant that burns blindingly bright and then burns out.',
+    tone: 'bad'
+  }
+]
+---
+
+<section class="not-prose my-12">
+  <div class="rounded-2xl border border-border bg-surface/30 p-6 dark:bg-surface/40 lg:p-8">
+    <h3 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+      Two ways to wire the same machine
+    </h3>
+    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+      A star stays whole because it has a governor. An attention feed stays
+      profitable because it doesn't.
+    </p>
+
+    <ul class="mt-6 space-y-5">
+      {
+        systems.map((s) => (
+          <li class="grid gap-2 sm:grid-cols-[1fr_1.6fr] sm:gap-6 sm:items-baseline">
+            <div>
+              <p
+                class:list={[
+                  'font-mono font-semibold',
+                  s.tone === 'good'
+                    ? 'text-amber-600 dark:text-amber-400'
+                    : 'text-gray-500 dark:text-gray-400'
+                ]}
+              >
+                {s.name}
+              </p>
+              <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{s.loop}</p>
+            </div>
+            <p class="text-sm leading-relaxed text-gray-700 dark:text-gray-200">{s.behaviour}</p>
+          </li>
+        ))
+      }
+    </ul>
+
+    <p
+      class="mt-6 border-t border-border pt-4 text-sm leading-relaxed text-gray-600 dark:text-gray-300"
+    >
+      <span class="font-semibold text-gray-900 dark:text-white">The same axis</span>
+      decides which one you get:
+      <span class="text-amber-600 dark:text-amber-400">
+        self-regulating · bounded · long-lived
+      </span>
+      on one end,
+      <span class="text-gray-500 dark:text-gray-400">
+        runaway · maximal · burns out
+      </span>
+      on the other.
+    </p>
+  </div>
+</section>

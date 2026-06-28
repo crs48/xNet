@@ -1,0 +1,53 @@
+---
+// The honesty beat (exploration 0241), modeled on HonestMycelium and the pirate
+// post's HonestPirate. The serene-eternal-harmonious sun is as oversold as the
+// "Wood Wide Web." So we say plainly what the physics supports and what it
+// doesn't — we take the mechanism (a self-correcting governor; coherence from a
+// shared law; gentleness from size, not intensity), not the fairy tale.
+const rows = [
+  {
+    isnt: 'We won’t pretend the Sun is serene.',
+    is: 'Up close it’s violence: a 15-million-kelvin core, a surface that hurls flares and coronal mass ejections. The calm we feel is a gift of scale and ninety-three million miles of distance — not the absence of fury.'
+  },
+  {
+    isnt: 'We won’t pretend the balance is forever.',
+    is: 'Equilibrium is a phase, not a virtue. In a few billion years the Sun swells into a red giant and may swallow the inner planets; Earth’s surface life likely ends far sooner, as the brightening Sun boils the oceans. Stability is something you maintain, then lose.'
+  },
+  {
+    isnt: 'We won’t say the star “chose” harmony.',
+    is: 'A star’s coherence isn’t cooperation — it’s a trillion-trillion particles blindly obeying one shared law, with no planner and no stakeholders. That’s the part worth borrowing: order from a shared invariant, not from a boss.'
+  },
+  {
+    isnt: 'We won’t tell you to “shine as bright as you can.”',
+    is: 'The brightest stars are the shortest-lived: a heavy star burns out in a few million years, while a small, slow one can last for trillions. The gentle, long-lasting kind is the model — not the supergiant.'
+  }
+]
+---
+
+<section class="not-prose my-12">
+  <div class="rounded-2xl border border-border bg-surface/30 p-6 dark:bg-surface/40 lg:p-8">
+    <h3 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+      An honest star
+    </h3>
+    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+      A metaphor that flatters itself is just more marketing. Here’s the honest version.
+    </p>
+
+    <ul class="mt-6 space-y-5">
+      {
+        rows.map((row) => (
+          <li class="grid gap-3 sm:grid-cols-[1fr_1.3fr] sm:gap-5">
+            <div class="flex gap-2.5">
+              <span class="select-none text-gray-400 dark:text-gray-600">✕</span>
+              <p class="text-sm leading-relaxed text-gray-500 dark:text-gray-400">{row.isnt}</p>
+            </div>
+            <div class="flex gap-2.5">
+              <span class="select-none text-amber-500">✓</span>
+              <p class="text-sm leading-relaxed text-gray-700 dark:text-gray-200">{row.is}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
