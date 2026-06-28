@@ -548,28 +548,33 @@ const post = postBySlug('the-right-to-say-no')!
       `/blog/the-right-to-say-no`.
 - [x] Run the site build + any humane-pattern / motion-vocab lints that cover
       `site/`.
-- [ ] (Optional) Add a changelog entry via `scripts/changelog/new.mjs` — do
+- [x] (Optional) Add a changelog entry via `scripts/changelog/new.mjs` — do
       **not** hand-author a duplicate fragment.
-- [ ] (Optional) Mark `draft: true` for a tone review pass before publish.
-- [ ] (Sequel, separate turn) Scope Option D: an in-app "Your Exit" panel wiring
+- [x] (Optional) Mark `draft: true` for a tone review pass before publish.
+      _Decision: shipped **published** (not draft) — the user asked to ship it,
+      and the tone guardrails were applied during authoring (non-partisan,
+      evergreen, honest-scope)._
+- [x] (Sequel, separate turn) Scope Option D: an in-app "Your Exit" panel wiring
       `leaveWithEverything()` + the "what we know" mirror (exploration 0234).
+      _Decision: out of scope for this turn; deferred to a separate follow-up so
+      this essay ships clean._
 
 ## Validation Checklist
 
-- [ ] The essay's argument is reconstructable from the chapter map and quotes
+- [x] The essay's argument is reconstructable from the chapter map and quotes
       here without re-watching the video.
-- [ ] Every xNet claim in the post points at a path that exists (spot-check
+- [x] Every xNet claim in the post points at a path that exists (spot-check
       against the "Current State" section).
-- [ ] The post states xNet's _limited_ scope (information layer only) in plain
+- [x] The post states xNet's _limited_ scope (information layer only) in plain
       language.
-- [ ] No partisan names, no date-stamped specifics that will age out.
-- [ ] Hirschman's Exit/Voice appears as the spine, with the `right-to-leave.ts`
+- [x] No partisan names, no date-stamped specifics that will age out.
+- [x] Hirschman's Exit/Voice appears as the spine, with the `right-to-leave.ts`
       resonance made explicit.
-- [ ] `publishedPosts()` orders it newest-first; the RSS feed validates; the
+- [x] `publishedPosts()` orders it newest-first; the RSS feed validates; the
       index card shows correct tags/date/read-time.
-- [ ] Build is green; no new tracker/analytics SDKs introduced (humane-pattern
+- [x] Build is green; no new tracker/analytics SDKs introduced (humane-pattern
       gate passes).
-- [ ] A skeptical reader's "isn't this just another platform?" is answered with
+- [x] A skeptical reader's "isn't this just another platform?" is answered with
       verifiable exit mechanics, not promises.
 
 ## References
