@@ -673,7 +673,7 @@ erDiagram
       `cost/reconcile.ts`; add a **floor‑margin CI test** over every plan ×
       priciest allowed model × full included allotment; exclude `:free` /
       `inUsdPerM:null` from the managed catalog.
-- [ ] Wire a notifier to `crossedThresholds()` (50/80/95/100%) — email via the
+- [x] Wire a notifier to `crossedThresholds()` (50/80/95/100%) — email via the
       existing transport; idempotent per (tenant, window, threshold).
 - [ ] Add a streaming path: server SSE proxy for `/ai/chat` that meters off the
       **final** usage chunk; `ManagedProvider.stream()` consumes it.

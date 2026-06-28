@@ -39,3 +39,14 @@ export {
   type StripeBilling,
   type MeterEvent
 } from './billing'
+
+export {
+  BudgetAlertNotifier,
+  MemorySentThresholdStore,
+  RecordingAlertTransport,
+  type AlertTransport,
+  type SentThresholdStore,
+  type BudgetAlert,
+  type BudgetAlertNotifierDeps,
+  type NotifyArgs
+} from './notifier'
