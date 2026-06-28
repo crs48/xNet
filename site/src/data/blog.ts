@@ -52,6 +52,16 @@ export interface BlogPost {
 
 export const posts: BlogPost[] = [
   {
+    slug: 'the-forest-and-the-field',
+    title: 'The Forest and the Field',
+    description:
+      'Industrial farming strips the soil to exhaustion and trucks fertility back in by the ton. Surveillance capitalism does the same to the web. Permaculture is the discipline for growing land that feeds itself — and its principles are, almost furrow for furrow, how you regenerate a digital commons instead of strip-mining one.',
+    pubDate: '2026-06-30T15:00:00Z',
+    author: 'xNet',
+    tags: ['essay', 'philosophy', 'nature'],
+    readingMinutes: 14
+  },
+  {
     slug: 'the-desert-that-feeds-the-forest',
     title: 'The Desert That Feeds the Forest',
     description:

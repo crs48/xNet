@@ -1,0 +1,147 @@
+---
+// The signature diagram for post #6 (exploration 0246) — the "one diagram" slot
+// (cf. HydrostaticBalance, ThreeNervousSystems, DustBridge). David Holmgren's
+// twelve permaculture principles are traditionally drawn as a spiral of petals;
+// here a twelve-spoke wheel with the cosmic-X at the hub, and then a row-by-row
+// mapping that groups the twelve into the essay's four "movements" and cashes
+// each one out in an xNet commitment. Mirrors the DustBridge idiom (a small
+// inline-SVG schematic over a mapping list, not-prose on a bordered surface) so
+// the posts read as one publication. Inline SVG only — no external assets.
+
+// Twelve nodes evenly around the hub, numbered the way Holmgren numbers them.
+const cx = 240
+const cy = 150
+const R = 112
+const wheel = Array.from({ length: 12 }, (_, i) => {
+  const a = ((-90 + i * 30) * Math.PI) / 180
+  return { n: i + 1, x: cx + R * Math.cos(a), y: cy + R * Math.sin(a) }
+})
+
+// The four movements, three principles each, with the xNet receipt for each.
+const movements = [
+  {
+    title: 'Store what you grow',
+    rows: [
+      { p: 'Catch & store energy', x: 'Your device holds the master copy — your harvest, in your barn, working offline' },
+      { p: 'Produce no waste', x: 'No behavioral surplus to harvest; nothing stranded when you export and leave' },
+      { p: 'Use renewable resources', x: 'Open standards over proprietary lock-in: a did:key you mint, a signed open log' }
+    ]
+  },
+  {
+    title: 'Let it regulate itself',
+    rows: [
+      { p: 'Observe & interact', x: 'Telemetry off by default — observed only with consent, scrubbed so it can’t fingerprint' },
+      { p: 'Self-regulation & feedback', x: 'No infinite scroll or engagement ranking; a build check fails on dark patterns' },
+      { p: 'Small & slow solutions', x: 'Local-first, run-it-yourself hubs, a calm motion vocabulary — the small web' }
+    ]
+  },
+  {
+    title: 'Plant a polyculture',
+    rows: [
+      { p: 'Use & value diversity', x: 'Any framework, many languages — and the freedom to fork; only the name is protected' },
+      { p: 'Integrate, don’t segregate', x: 'Federation and interop by shared rules, not a wall around the commons' },
+      { p: 'Patterns before details', x: 'One open protocol is the pattern; every app and feature is a detail grown on top' }
+    ]
+  },
+  {
+    title: 'Tend the edges, design for change',
+    rows: [
+      { p: 'Use edges & the marginal', x: 'The edge is your device — that’s where the data and the compute live' },
+      { p: 'Respond to change', x: 'The right to leave: when a platform turns, you walk out with everything intact' },
+      { p: 'Obtain a yield', x: 'Not a manifesto — working software today; the yield is your own audience and space' }
+    ]
+  }
+]
+---
+
+<section class="not-prose my-12">
+  <div class="rounded-2xl border border-border bg-surface/30 p-6 dark:bg-surface/40 lg:p-8">
+    <h3 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+      Twelve principles, one design
+    </h3>
+    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+      Holmgren's twelve permaculture principles, grouped into four movements — and
+      what each one becomes when you build a web instead of a garden.
+    </p>
+
+    <div class="mt-6 grid items-center gap-6 md:grid-cols-[300px_1fr]">
+      <!-- the wheel: twelve numbered nodes spoked to the cosmic-X hub -->
+      <svg
+        class="mx-auto w-full max-w-[300px]"
+        viewBox="0 0 480 300"
+        role="img"
+        aria-label="A twelve-spoke wheel: the twelve permaculture principles arranged around a central cosmic-X hub."
+      >
+        <defs>
+          <radialGradient id="pwhub" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#fde68a" stop-opacity="0.9" />
+            <stop offset="55%" stop-color="#34d399" stop-opacity="0.18" />
+            <stop offset="100%" stop-color="#34d399" stop-opacity="0" />
+          </radialGradient>
+          <linearGradient id="pwx" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#fde68a" />
+            <stop offset="100%" stop-color="#34d399" />
+          </linearGradient>
+        </defs>
+
+        <g stroke="#34d399" stroke-width="1.2" opacity="0.35">
+          {wheel.map((w) => <line x1={cx} y1={cy} x2={w.x} y2={w.y} />)}
+        </g>
+        <circle cx={cx} cy={cy} r={R} fill="none" stroke="#34d399" stroke-width="1" opacity="0.25" />
+
+        {
+          wheel.map((w) => (
+            <g>
+              <circle
+                cx={w.x}
+                cy={w.y}
+                r="16"
+                class="fill-emerald-50 dark:fill-[#0e1f15]"
+                stroke="#34d399"
+                stroke-width="1.6"
+              />
+              <text
+                x={w.x}
+                y={w.y + 4.5}
+                text-anchor="middle"
+                font-size="13"
+                font-weight="700"
+                class="fill-emerald-700 dark:fill-emerald-300"
+              >
+                {w.n}
+              </text>
+            </g>
+          ))
+        }
+
+        <!-- the cosmic-X hub: the brightest node -->
+        <circle cx={cx} cy={cy} r="40" fill="url(#pwhub)" />
+        <g stroke="url(#pwx)" stroke-width="5" stroke-linecap="round" transform={`translate(${cx - 11} ${cy - 13})`}>
+          <line x1="0" y1="0" x2="22" y2="26" />
+          <line x1="22" y1="0" x2="0" y2="26" />
+        </g>
+      </svg>
+
+      <!-- the mapping: four movements, three principles each -->
+      <div class="space-y-5">
+        {
+          movements.map((m) => (
+            <div>
+              <h4 class="text-sm font-semibold tracking-tight text-emerald-700 dark:text-emerald-300">
+                {m.title}
+              </h4>
+              <ul class="mt-2 space-y-2">
+                {m.rows.map((row) => (
+                  <li class="grid gap-1 sm:grid-cols-[1fr_1.5fr] sm:gap-4 sm:items-baseline">
+                    <p class="text-sm font-medium leading-snug text-gray-900 dark:text-white">{row.p}</p>
+                    <p class="text-sm leading-snug text-gray-600 dark:text-gray-300">{row.x}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  </div>
+</section>
