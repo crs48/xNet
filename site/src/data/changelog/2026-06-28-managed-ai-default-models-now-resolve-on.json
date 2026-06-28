@@ -1,0 +1,10 @@
+{
+  "id": "2026-06-28-managed-ai-default-models-now-resolve-on",
+  "date": "June 28, 2026",
+  "title": "Managed AI default models now resolve on OpenRouter",
+  "summary": "Fixed the plan default models (Claude Haiku/Sonnet/Opus) to OpenRouter's real catalog IDs, so managed AI works out of the box instead of failing with model-not-found.",
+  "highlights": [],
+  "tags": [
+    "ai"
+  ]
+}
