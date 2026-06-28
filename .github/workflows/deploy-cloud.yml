@@ -90,11 +90,14 @@ jobs:
           # Managed AI (OpenRouter, exploration 0244) is wired only when its
           # Provisioning-key secret exists, so a not-yet-pushed key never fails the
           # deploy — push `openrouter-management-key` and the next deploy lights it up.
+          # Existence probe via `versions access` (not `describe`): the deployer SA
+          # has roles/secretmanager.secretAccessor (versions.access) but NOT
+          # secrets.get, so `describe` would falsely fail and skip managed AI.
           AI_SECRET=""
-          if gcloud secrets describe openrouter-management-key --project "$PROJECT" >/dev/null 2>&1; then
+          if gcloud secrets versions access latest --secret=openrouter-management-key --project "$PROJECT" >/dev/null 2>&1; then
             AI_SECRET=",OPENROUTER_MANAGEMENT_KEY=openrouter-management-key:latest"
           else
-            echo "::notice::openrouter-management-key not found — deploying without managed AI (managed:false)"
+            echo "::notice::openrouter-management-key not accessible — deploying without managed AI (managed:false)"
           fi
           gcloud run deploy "$SERVICE" \
             --project "$PROJECT" --region "$REGION" \
