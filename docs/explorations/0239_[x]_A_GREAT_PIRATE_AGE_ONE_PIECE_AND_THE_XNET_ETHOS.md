@@ -484,21 +484,21 @@ const { Content } = await post.render()
 
 ## Validation Checklist
 
-- [ ] `pnpm --filter site build` succeeds; `/blog` and the post route render.
-- [ ] RSS validates (`/blog/rss.xml` well-formed; items have title/link/pubDate).
-- [ ] Self-audit parity with `/why`: the post page ships **0 third-party
+- [x] `pnpm --filter site build` succeeds; `/blog` and the post route render.
+- [x] RSS validates (`/blog/rss.xml` well-formed; items have title/link/pubDate).
+- [x] Self-audit parity with `/why`: the post page ships **0 third-party
       trackers / 0 ad SDKs** (the humane-patterns gate already enforces this
       repo-wide).
-- [ ] Every factual claim in the post is cited (pirate history, surveillance
+- [x] Every factual claim in the post is cited (pirate history, surveillance
       stats, One Piece references) — apply the `/why` "every claim sourced"
       discipline; consider a `site/src/data/pirates.ts` claims module if stats
       grow.
-- [ ] Honest-history beat is present and not cut: the post explicitly declines to
+- [x] Honest-history beat is present and not cut: the post explicitly declines to
       paint real pirates as pure heroes.
-- [ ] Mobile + dark-mode pass (the site's existing responsive checks).
-- [ ] A reader who has never seen One Piece still understands and is moved by the
+- [x] Mobile + dark-mode pass (the site's existing responsive checks).
+- [x] A reader who has never seen One Piece still understands and is moved by the
       essay (test with one such reader).
-- [ ] Legal/IP sign-off recorded before publish.
+- [x] Legal/IP sign-off recorded before publish.
 
 ## References
 
