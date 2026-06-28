@@ -31,9 +31,23 @@ export function persistedHubUrl(fallback: string = defaultHubUrl()): string {
   }
 }
 
-/** The hub URL the client should dial: a user/Cloud override, else the build default. */
+/**
+ * A boot-time hub override forwarded by the main process as `#hub=<url>` (set
+ * from `XNET_HUB_URL`). Read on the very first sync start so e2e tests can pin
+ * the renderer at a test hub without a post-boot reconfigure race.
+ */
+function bootHubOverride(): string | null {
+  try {
+    const hub = new URLSearchParams(location.hash.replace(/^#/, '')).get('hub')
+    return hub && hub.length > 0 ? hub : null
+  } catch {
+    return null
+  }
+}
+
+/** The hub URL the client should dial: a boot override, then a user/Cloud override, else the build default. */
 export function configuredHubUrl(): string {
-  return persistedHubUrl(defaultHubUrl())
+  return bootHubOverride() ?? persistedHubUrl(defaultHubUrl())
 }
 
 /** Persist (or clear, when empty) the hub URL the client should dial. */

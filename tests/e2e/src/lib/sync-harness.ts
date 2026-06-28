@@ -412,7 +412,12 @@ async function openElectronClient(opts: OpenClientOptions): Promise<ElectronSync
   const { app, window: win } = await launchElectronApp({
     // Distinct profile → distinct identity + data dir + single-instance lock.
     profile: `e2e-sync-${opts.user}-${opts.docId.slice(-6)}`,
-    env: { VITE_XNET_ENABLE_WEBRTC: opts.transport === 'webrtc' ? 'true' : 'false' }
+    env: {
+      VITE_XNET_ENABLE_WEBRTC: opts.transport === 'webrtc' ? 'true' : 'false',
+      // Pin the renderer at the test hub from boot (forwarded as a #hub= hash),
+      // so the data-process dials it on its FIRST connect — no reconfigure race.
+      XNET_HUB_URL: opts.hubWs
+    }
   })
   if (process.env.E2E_DEBUG) {
     win.on('console', (msg) =>
@@ -427,20 +432,6 @@ async function openElectronClient(opts: OpenClientOptions): Promise<ElectronSync
     undefined,
     { timeout: 90_000 }
   )
-  // Repoint the running data-process at the test hub. `configureShareSession`
-  // issues a reconfigure (stop+start) that overrides the boot-time default;
-  // persisting to localStorage means a later reconnect dials the test hub too.
-  await win.evaluate(async (hub) => {
-    try {
-      localStorage.setItem('xnet:hub-url', hub)
-    } catch {
-      /* non-persistent contexts fall back to the reconfigure below */
-    }
-    await (window as unknown as SyncHarnessWindow).__xnetIpcSyncManager!.configureShareSession({
-      signalingUrl: hub,
-      transport: 'auto'
-    })
-  }, opts.hubWs)
   await win.evaluate(
     (id) => (window as unknown as SyncHarnessWindow).__xnetSyncTestHarness!.acquire(id),
     opts.docId
