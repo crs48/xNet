@@ -261,9 +261,6 @@ jobs:
         env:
           CI: 'true'
           XNET_ELECTRON_NO_SANDBOX: '1'
-          # Temporary: forward Electron/web console + hub logs to diagnose
-          # electron↔web convergence. Remove once the matrix is green.
-          E2E_DEBUG: '1'
 
       - name: Upload Electron e2e artifacts
         if: failure()

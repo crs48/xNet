@@ -219,13 +219,6 @@ declare global {
 
 window.__xnetIpcSyncManager = ipcSyncManager
 
-// E2E diagnostic (0238): confirm whether a boot-time hub override reached the
-// renderer. Harmless one-liner; only surfaced when the e2e harness forwards the
-// renderer console (E2E_DEBUG).
-console.log(
-  `[e2e] boot hub=${configuredHubUrl()} search=${location.search} hash=${location.hash}`
-)
-
 function createCanvasTestHarness(syncManager: IPCSyncManager): CanvasTestHarness {
   const liveDocs = new Map<string, Y.Doc>()
   const liveAwareness = new Map<string, Awareness>()
