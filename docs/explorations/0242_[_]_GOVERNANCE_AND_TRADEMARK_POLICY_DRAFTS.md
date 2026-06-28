@@ -22,15 +22,15 @@ obvious follow-up: **what would those documents actually say?**
 The constraints make this non-obvious:
 
 - xNet is a **solo, single-copyright-holder** project today. A governance doc that pretends a
-  committee exists would be theater — but having *no* written governance is its own kind of
+  committee exists would be theater — but having _no_ written governance is its own kind of
   illegibility ("who decides? can I become a maintainer? what happens if you get hit by a bus?").
-- The README says xNet is **"one product, one brand,"** *and* that **"this repository is one
+- The README says xNet is **"one product, one brand,"** _and_ that **"this repository is one
   implementation of xNet… an open protocol you can re-implement in any language… and
   interoperate."** Those two sentences are in productive tension: the **code** must be forkable and
   re-implementable, but the **name** must stay legible so users aren't confused about what's
   official. That is precisely the problem a trademark policy exists to solve.
 - The values are explicit ([`docs/CHARTER.md`](../CHARTER.md): Own, Exit, Calm, Consent, Agency,
-  Commons). The governance and trademark docs must *embody* those values, not contradict them — a
+  Commons). The governance and trademark docs must _embody_ those values, not contradict them — a
   project whose Charter promises "Exit" cannot have a trademark policy that pulls a Mozilla/IceWeasel
   on its own downstreams.
 
@@ -45,21 +45,21 @@ templates to adapt.** Full drafts are in [Example Code](#example-code--the-actua
 
 - **`GOVERNANCE.md` — honest BDFL with a ladder and triggers.** State plainly that the founder is the
   **BDFL today** (the legitimate model for this stage — Vue, early Python, Linux all ran this way),
-  define a **contributor → maintainer → steering** role ladder that is *mostly aspirational now*,
+  define a **contributor → maintainer → steering** role ladder that is _mostly aspirational now_,
   specify **lazy consensus → consensus-seeking → BDFL tiebreak** decision-making, and name the
   **trigger points** (lifted from 0241) at which governance graduates to shared and then
   foundation-stewarded control. Crucially: name a **succession/bus-factor** plan. This makes the
   solo reality legible without inventing fake committees.
 
 - **`TRADEMARK.md` — liberal, MTG-based, with a conformance carve-out.** Build on the **Model
-  Trademark Guidelines** (CC-BY, copy-and-adapt). The spine: *the code is free to fork; the **name**
-  is protected only to prevent user confusion.* Allow truthful **"compatible with xNet" / "for
+  Trademark Guidelines** (CC-BY, copy-and-adapt). The spine: _the code is free to fork; the **name**
+  is protected only to prevent user confusion._ Allow truthful **"compatible with xNet" / "for
   xNet"** references and downstream packaging that keeps the name (the anti-Mozilla/IceWeasel rule);
   reserve the `@xnetjs` npm scope and the official logo; require permission for product names, modified
   builds under the name, domains, and merchandise. The keystone: an **"xNet-compatible / xNet
   Certified"** program modeled on **CNCF's Certified Kubernetes** — independent implementations that
-  **pass the existing `conformance/` corpus** may use the compatibility mark. xNet *already has the
-  conformance suite*, so this is buildable, not hypothetical.
+  **pass the existing `conformance/` corpus** may use the compatibility mark. xNet _already has the
+  conformance suite_, so this is buildable, not hypothetical.
 
 - **Adopt the DCO, not a CLA.** A `Signed-off-by` Developer Certificate of Origin is the
   zero-friction, good-faith default while the founder is the sole copyright holder; defer any
@@ -85,21 +85,21 @@ flowchart LR
 
 ## Current State In The Repository
 
-| Surface | State today | Implication |
-| ------- | ----------- | ----------- |
-| `GOVERNANCE.md` | **Absent** | No legible answer to "who decides / how do I become a maintainer / bus factor." |
-| `TRADEMARK.md` | **Absent** | The name "xNet" + `@xnetjs` scope are undefended and the "compatible" path is undefined. |
-| `CODE_OF_CONDUCT.md` | **Absent** | Governance docs conventionally point at a CoC; none exists to point to. |
-| [`CONTRIBUTING.md`](../../CONTRIBUTING.md) | Exists, **purely technical** (setup, code style, Conventional Commits, PR flow) | No DCO/CLA, no roles, no decision process — room to add a DCO line. |
-| [`LICENSE`](../../LICENSE) | **MIT**, `Copyright (c) 2026 Chris Smothers` | Single copyright holder → relicensing/transfer is trivial *now*; DCO keeps it clean. |
-| [`packages/cloud/LICENSE`](../../packages/cloud/LICENSE) | **FSL-1.1-Apache-2.0** | Commercial moat already drawn; governance/trademark must respect the commons/commercial split. |
-| Protocol spec + conformance | `docs/specs/protocol/` (normative, `xnet/1.0`) + [`conformance/`](../../conformance) (golden vectors + second-language kernel), per [`README.md`](../../README.md) | **The single most important asset for a trademark "compatible" program already exists.** |
-| Brand assets | `@xnetjs` npm scope; `xnet.fyi`; cosmic-X favicon (`apps/web/public/favicon.svg`, `site/public/favicon.svg`, brand-icon work in PR #70) | Concrete marks a `TRADEMARK.md` would enumerate. |
-| README positioning | "one product, one brand" **and** "this repository is one implementation… re-implement in any language… interoperate" | The exact code-free/name-protected tension a trademark policy resolves. |
-| Values | [`docs/CHARTER.md`](../CHARTER.md), [`docs/VISION.md`](../VISION.md) | The substance both docs must embody (esp. "Exit," "Commons"). |
+| Surface                                                  | State today                                                                                                                                                        | Implication                                                                                    |
+| -------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- |
+| `GOVERNANCE.md`                                          | **Absent**                                                                                                                                                         | No legible answer to "who decides / how do I become a maintainer / bus factor."                |
+| `TRADEMARK.md`                                           | **Absent**                                                                                                                                                         | The name "xNet" + `@xnetjs` scope are undefended and the "compatible" path is undefined.       |
+| `CODE_OF_CONDUCT.md`                                     | **Absent**                                                                                                                                                         | Governance docs conventionally point at a CoC; none exists to point to.                        |
+| [`CONTRIBUTING.md`](../../CONTRIBUTING.md)               | Exists, **purely technical** (setup, code style, Conventional Commits, PR flow)                                                                                    | No DCO/CLA, no roles, no decision process — room to add a DCO line.                            |
+| [`LICENSE`](../../LICENSE)                               | **MIT**, `Copyright (c) 2026 Chris Smothers`                                                                                                                       | Single copyright holder → relicensing/transfer is trivial _now_; DCO keeps it clean.           |
+| [`packages/cloud/LICENSE`](../../packages/cloud/LICENSE) | **FSL-1.1-Apache-2.0**                                                                                                                                             | Commercial moat already drawn; governance/trademark must respect the commons/commercial split. |
+| Protocol spec + conformance                              | `docs/specs/protocol/` (normative, `xnet/1.0`) + [`conformance/`](../../conformance) (golden vectors + second-language kernel), per [`README.md`](../../README.md) | **The single most important asset for a trademark "compatible" program already exists.**       |
+| Brand assets                                             | `@xnetjs` npm scope; `xnet.fyi`; cosmic-X favicon (`apps/web/public/favicon.svg`, `site/public/favicon.svg`, brand-icon work in PR #70)                            | Concrete marks a `TRADEMARK.md` would enumerate.                                               |
+| README positioning                                       | "one product, one brand" **and** "this repository is one implementation… re-implement in any language… interoperate"                                               | The exact code-free/name-protected tension a trademark policy resolves.                        |
+| Values                                                   | [`docs/CHARTER.md`](../CHARTER.md), [`docs/VISION.md`](../VISION.md)                                                                                               | The substance both docs must embody (esp. "Exit," "Commons").                                  |
 
-**Net:** xNet has written down its *values* (Charter) and its *protocol* (spec + conformance), but
-not its *governance* or its *brand rules*. The two missing docs sit exactly between those.
+**Net:** xNet has written down its _values_ (Charter) and its _protocol_ (spec + conformance), but
+not its _governance_ or its _brand rules_. The two missing docs sit exactly between those.
 
 ## External Research
 
@@ -110,8 +110,8 @@ not its *governance* or its *brand rules*. The two missing docs sit exactly betw
 **The recurring `GOVERNANCE.md` anatomy** (seven sections): roles/membership tiers; decision-making
 process; adding/removing maintainers; a Code-of-Conduct pointer; conflict resolution; an amendment
 process; and the relationship to any parent org/foundation. GitHub's **Minimal Viable Governance
-(MVG)** template is the cleanest embodiment (*Roles; Decisions; How We Work; Trademarks;
-Amendments*), and it deliberately splits **org-level** docs (CHARTER, STEERING-COMMITTEE,
+(MVG)** template is the cleanest embodiment (_Roles; Decisions; How We Work; Trademarks;
+Amendments_), and it deliberately splits **org-level** docs (CHARTER, STEERING-COMMITTEE,
 TRADEMARKS) from **project-level** docs (GOVERNANCE, MAINTAINERS, CONTRIBUTING, LICENSE) — you write
 the project-level ones now and defer the org-level ones to incorporation.
 
@@ -119,19 +119,19 @@ the project-level ones now and defer the org-level ones to incorporation.
 
 - **BDFL / founder-led** — Vue adopted the "Benevolent Dictator Governance Model" verbatim ("the
   general strategic line is drawn by the project lead… they have the last word," tempered by "the
-  community always has the ability to fork"). Early Python and Linux were BDFL *by practice, not
-  document.* The cautionary note: Guido stepped down in 2018 after the PEP 572 fight, naming no
+  community always has the ability to fork"). Early Python and Linux were BDFL _by practice, not
+  document._ The cautionary note: Guido stepped down in 2018 after the PEP 572 fight, naming no
   successor — a single-point-of-failure lesson that argues for writing down **succession** even at
   the BDFL stage.
 - **Meritocracy / "the Apache Way"** — user → contributor → committer → PMC; lazy consensus
   ("silence gives assent"); votes −1…+1 with a justified **−1 as a binding veto** on code changes.
 - **Council / steering committee** — Python's 5-person Steering Council (PEP 13), Rust's Leadership
-  Council (RFC 3392, 2023, formed *after* the 2021 moderation-team mass resignation), Node.js TSC.
+  Council (RFC 3392, 2023, formed _after_ the 2021 moderation-team mass resignation), Node.js TSC.
 - **Foundation-stewarded** — CNCF/OpenJS hold IP and trademarks vendor-neutrally; the mark is
   transferred to the foundation at that stage.
 
 **The honest minimum** (opensource.guide): "there is no right time to write down your project's
-governance… start writing down what you can," specifically *how someone becomes a maintainer.* So:
+governance… start writing down what you can," specifically _how someone becomes a maintainer._ So:
 write a short BDFL `GOVERNANCE.md` now (Roles, Decisions, Maintainer add/remove, Amendments,
 Succession), point to a CoC, and **state the trigger for moving to shared governance** — defer the
 org-level charter/steering/antitrust docs to incorporation.
@@ -141,9 +141,9 @@ org-level charter/steering/antitrust docs to incorporation.
 - **Lazy consensus** (Apache): announce intent publicly; proceed in **72 hours unless someone
   objects**; be ready to roll back.
 - **Consensus-seeking** (Node.js): moderator asks "any objections?"; **only if consensus fails do
-  voting members vote** (simple majority). IETF RFC 7282 frames this as *rough consensus* —
+  voting members vote** (simple majority). IETF RFC 7282 frames this as _rough consensus_ —
   "not majority rule and not unanimity."
-- **Two-maintainer approval** (Kubernetes): a change needs an approver *in addition* to the
+- **Two-maintainer approval** (Kubernetes): a change needs an approver _in addition_ to the
   reviewer; new members need **2 sponsors from different employers**.
 - **Tie-break**: under a BDFL/council, that body is the final authority; councils otherwise keep an
   **odd number** or give the chair a casting vote.
@@ -170,23 +170,23 @@ uses that need **no** permission (incl. unmodified redistribution + nominative r
 that **require** permission; (5) uses **never** allowed; (6) logo usage; (7) domain/trade names
 (treated restrictively); (8) how to request permission.
 
-**The core doctrine — "code is free, the name is protected."** A FOSS license frees the *code*; the
-*trademark* is a separate right that prevents confusion about what's official. **Nominative fair
+**The core doctrine — "code is free, the name is protected."** A FOSS license frees the _code_; the
+_trademark_ is a separate right that prevents confusion about what's official. **Nominative fair
 use** lets anyone refer to the project by its true name but not imply endorsement (Linux Foundation:
 fair use "does not permit you to state or imply that the owner of a mark produces, endorses, or
 supports your… products").
 
 **Models to copy:**
 
-- **Python (PSF)** — the *liberal* exemplar: "stating accurately that software… is compatible with
+- **Python (PSF)** — the _liberal_ exemplar: "stating accurately that software… is compatible with
   the Python programming language… is always allowed… for non-commercial and commercial uses,"
   even with unaltered logos; permission needed for product/company names, modified logos,
   merchandise.
 - **CNCF / Certified Kubernetes** — the keystone for xNet: the trademark is tied to a **conformance
   test suite**; only implementations that **pass** may use the "Certified Kubernetes" logo and
   combine the mark with a product name (e.g. "XYZ Kubernetes Engine"), with ® and an attribution
-  line required. *This is the gold standard for "use the mark only if you actually conform" — and
-  xNet already has the conformance corpus.*
+  line required. _This is the gold standard for "use the mark only if you actually conform" — and
+  xNet already has the conformance corpus._
 - **Linux** — Torvalds owns the mark; the Linux Mark Institute grants a **free, perpetual, worldwide
   sublicense** in exchange for attribution and not challenging ownership. Shows a permissive
   enforcement posture.
@@ -215,9 +215,9 @@ scope reservation enforceable rather than aspirational.
 
 1. **The solo stage is not a reason to skip these docs — it's a reason to write them honestly.** A
    BDFL `GOVERNANCE.md` that says "the founder decides, here's the ladder when others arrive, here's
-   the bus-factor plan" is *more* credible than silence, and far more credible than a fake committee.
+   the bus-factor plan" is _more_ credible than silence, and far more credible than a fake committee.
 2. **xNet's biggest trademark asset already exists.** The `conformance/` corpus + `xnet/1.0` spec
-   make a CNCF-style **"xNet-compatible"** program buildable today — the conformance suite *is* the
+   make a CNCF-style **"xNet-compatible"** program buildable today — the conformance suite _is_ the
    objective test that gates the mark. This turns "one product, one brand" + "re-implement the
    protocol" from a contradiction into a **certification pipeline.**
 3. **The two documents are values instruments, not just legal ones.** "Exit" (Charter §2) forbids an
@@ -228,7 +228,7 @@ scope reservation enforceable rather than aspirational.
    "certified" lane.
 5. **DCO now, CLA never (or only at foundation transfer).** With one copyright holder, DCO is pure
    upside; a CLA would import contributor-hostile friction for a relicensing power xNet's FSL/MIT
-   split is explicitly designed *not* to need.
+   split is explicitly designed _not_ to need.
 6. **Write once, scale by substitution.** Both drafts are authored so that "the founder (BDFL)"
    becomes "the Steering Committee" and "the maintainers hold the mark" becomes "the xNet Foundation
    holds the mark" by editing a few nouns — no rewrite when 0241's triggers fire.
@@ -240,29 +240,29 @@ scope reservation enforceable rather than aspirational.
 
 ### Governance document
 
-| Option | Pros | Cons | Verdict |
-| ------ | ---- | ---- | ------- |
-| **A. No doc (implicit BDFL)** | Zero effort; matches reality | Illegible; no maintainer path; no bus factor; weak trust signal | The status quo; insufficient per 0241 Phase 0 |
-| **B. Honest BDFL doc + ladder + triggers** | Legible, credible, scales by substitution, names succession | Must resist the temptation to over-formalize | **Recommended** |
-| **C. Council/steering now** | Looks mature | Theater — no community to seat; premature-governance failure mode (0145/0241) | Defer to trigger |
+| Option                                     | Pros                                                        | Cons                                                                          | Verdict                                       |
+| ------------------------------------------ | ----------------------------------------------------------- | ----------------------------------------------------------------------------- | --------------------------------------------- |
+| **A. No doc (implicit BDFL)**              | Zero effort; matches reality                                | Illegible; no maintainer path; no bus factor; weak trust signal               | The status quo; insufficient per 0241 Phase 0 |
+| **B. Honest BDFL doc + ladder + triggers** | Legible, credible, scales by substitution, names succession | Must resist the temptation to over-formalize                                  | **Recommended**                               |
+| **C. Council/steering now**                | Looks mature                                                | Theater — no community to seat; premature-governance failure mode (0145/0241) | Defer to trigger                              |
 
 ### Trademark document
 
-| Option | Pros | Cons | Verdict |
-| ------ | ---- | ---- | ------- |
-| **A. No policy** | Nothing to write | Name + scope undefended; "compatible" undefined; npm unenforceable | Insufficient |
-| **B. MTG-based liberal + conformance carve-out** | Proven template; values-aligned; turns the conformance corpus into a brand asset; foundation-ready | Needs counsel + registration to enforce | **Recommended** |
-| **C. Restrictive (control-first)** | Maximal brand control | Recreates Rust 2023 / IceWeasel; violates "Exit"/"Commons"; community backlash | Anti-pattern — avoid |
+| Option                                           | Pros                                                                                               | Cons                                                                           | Verdict              |
+| ------------------------------------------------ | -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------ | -------------------- |
+| **A. No policy**                                 | Nothing to write                                                                                   | Name + scope undefended; "compatible" undefined; npm unenforceable             | Insufficient         |
+| **B. MTG-based liberal + conformance carve-out** | Proven template; values-aligned; turns the conformance corpus into a brand asset; foundation-ready | Needs counsel + registration to enforce                                        | **Recommended**      |
+| **C. Restrictive (control-first)**               | Maximal brand control                                                                              | Recreates Rust 2023 / IceWeasel; violates "Exit"/"Commons"; community backlash | Anti-pattern — avoid |
 
 ### Contribution IP: DCO vs CLA
 
-| | DCO (`Signed-off-by`) | CLA |
-| --- | --- | --- |
-| Friction | Near-zero | High (sign before contributing) |
-| Grants relicensing power | No | Yes |
-| Fits sole-copyright-holder today | ✅ | Overkill |
-| Industry trend | ✅ (Linux, Docker, GitLab, OpenInfra 2025) | Declining for community projects |
-| **Verdict** | **Recommended now** | Only via foundation transfer, if ever |
+|                                  | DCO (`Signed-off-by`)                      | CLA                                   |
+| -------------------------------- | ------------------------------------------ | ------------------------------------- |
+| Friction                         | Near-zero                                  | High (sign before contributing)       |
+| Grants relicensing power         | No                                         | Yes                                   |
+| Fits sole-copyright-holder today | ✅                                         | Overkill                              |
+| Industry trend                   | ✅ (Linux, Docker, GitLab, OpenInfra 2025) | Declining for community projects      |
+| **Verdict**                      | **Recommended now**                        | Only via foundation transfer, if ever |
 
 ### How the docs interrelate and evolve
 
@@ -317,7 +317,7 @@ Concretely, in priority order:
 
 ### Draft `GOVERNANCE.md`
 
-````markdown
+```markdown
 # xNet Governance
 
 > How decisions get made, who makes them, and how that changes as xNet grows.
@@ -346,12 +346,12 @@ Two things keep BDFL legitimate here:
 These tiers exist so the path is legible. Most are aspirational at xNet's current
 size — they describe how you climb the ladder as the project grows.
 
-| Role | Can | Becomes this by |
-| ---- | --- | --------------- |
-| **User** | File issues, ask questions, propose ideas | Using xNet |
-| **Contributor** | Open PRs, review, discuss | Landing a PR |
-| **Maintainer** | Merge PRs in their area, triage, release | Sustained, high-quality contribution + invitation by existing maintainers (2 maintainers, or the BDFL while there is one) |
-| **Steering** *(future)* | Set cross-cutting direction | Created on Trigger 2 below |
+| Role                    | Can                                       | Becomes this by                                                                                                           |
+| ----------------------- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| **User**                | File issues, ask questions, propose ideas | Using xNet                                                                                                                |
+| **Contributor**         | Open PRs, review, discuss                 | Landing a PR                                                                                                              |
+| **Maintainer**          | Merge PRs in their area, triage, release  | Sustained, high-quality contribution + invitation by existing maintainers (2 maintainers, or the BDFL while there is one) |
+| **Steering** _(future)_ | Set cross-cutting direction               | Created on Trigger 2 below                                                                                                |
 
 Maintainers are listed in [`MAINTAINERS.md`](./MAINTAINERS.md). A maintainer who is
 inactive for **12 months** moves to **Emeritus** (a fast path back on return).
@@ -399,35 +399,35 @@ If the founder becomes unavailable, maintainership and control of the `@xnetjs`
 npm scope, the `xnet.fyi` domain, and the trademark pass to the active maintainers
 listed in `MAINTAINERS.md`, who may continue the project and/or accelerate the
 foundation transfer below. Access credentials are documented for at least one
-trusted second party. *(Until there is a second maintainer, this is the founder's
+trusted second party. _(Until there is a second maintainer, this is the founder's
 explicit intent on record; it becomes operational as soon as `MAINTAINERS.md` has
-a second name.)*
+a second name.)_
 
 ## How governance grows (triggers)
 
-Lifted from exploration 0241. We commit to *acting* on these, not just listing them:
+Lifted from exploration 0241. We commit to _acting_ on these, not just listing them:
 
-| Trigger | Change |
-| ------- | ------ |
-| **3+ recurring non-founder maintainers** | Add `MAINTAINERS.md` with areas; adopt the two-maintainer-approval rule; BDFL steps back from routine merges |
-| **External hub operators / org adoption** | Stand up a **Steering** group; formalize the protocol-RFC process |
-| **Ecosystem maturity** (0241 Phase 4) | Transfer trademark + protocol spec + conformance suite to an independent **xNet Foundation**; this document's "BDFL" becomes "Steering Committee" and "maintainers hold the mark" becomes "the Foundation holds the mark" |
+| Trigger                                   | Change                                                                                                                                                                                                                    |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **3+ recurring non-founder maintainers**  | Add `MAINTAINERS.md` with areas; adopt the two-maintainer-approval rule; BDFL steps back from routine merges                                                                                                              |
+| **External hub operators / org adoption** | Stand up a **Steering** group; formalize the protocol-RFC process                                                                                                                                                         |
+| **Ecosystem maturity** (0241 Phase 4)     | Transfer trademark + protocol spec + conformance suite to an independent **xNet Foundation**; this document's "BDFL" becomes "Steering Committee" and "maintainers hold the mark" becomes "the Foundation holds the mark" |
 
 ## Changing this document
 
 Changes to `GOVERNANCE.md` follow the same decision process above and must be made
 in a PR that explains itself. While xNet has a BDFL, the BDFL approves governance
 changes; afterward, the Steering body does.
-````
+```
 
 ### Draft `TRADEMARK.md`
 
-````markdown
+```markdown
 # xNet Trademark & Brand Usage Policy
 
 > **The code is free. The name keeps things honest.**
 > xNet's software is open source (MIT for the core) and the xNet protocol is open
-> for anyone to re-implement. This policy is *not* about restricting that — it
+> for anyone to re-implement. This policy is _not_ about restricting that — it
 > exists so people can tell what is **official xNet** and what is independent, so
 > the name stays trustworthy. Adapted from the
 > [Model Trademark Guidelines](https://modeltrademarkguidelines.org/) (CC-BY).
@@ -460,7 +460,7 @@ your own hub, or re-implementing the protocol (Charter §2 "Exit", §6 "Commons"
 - **Redistribute unmodified official builds** under the name xNet.
 - **Community.** Run user groups, meetups, tutorials, courses, and conferences
   about xNet, including using "xNet" in the event or group name (e.g. "Berlin xNet
-  Meetup"). We will *not* restrict this.
+  Meetup"). We will _not_ restrict this.
 - **Downstream packaging.** Distribute xNet through a package manager or OS distro,
   including with the patches normally needed to build/integrate, and **keep the
   name xNet.** (We will never pull a "rename it or remove our patches" — see the
@@ -474,7 +474,7 @@ Email **trademark@xnet.fyi** for:
 
 - A **product or company name** that contains "xNet" (e.g. naming your company
   "xNet Inc." or your product "xNet Pro").
-- A **modified/forked build distributed *under the xNet name*** (forks are welcome —
+- A **modified/forked build distributed _under the xNet name_** (forks are welcome —
   just give a materially modified distribution its own name, then say it's
   "compatible with xNet").
 - **Domain names or social handles** that contain the mark in a way that could look
@@ -488,7 +488,7 @@ Independent implementations of the xNet protocol may describe themselves as
 **"xNet-compatible"** — and use the **xNet Certified** mark — if they **pass the
 published conformance suite** ([`conformance/`](./conformance), spec
 `docs/specs/protocol/`, `xnet/1.0`). This is how "one protocol, many
-implementations" stays trustworthy: the mark means *it actually interoperates.*
+implementations" stays trustworthy: the mark means _it actually interoperates._
 
 When using the certified mark, on first prominent use include the ® once registered
 and the line:
@@ -496,19 +496,19 @@ and the line:
 > "xNet is a trademark of the xNet project, used pursuant to the xNet trademark
 > policy."
 
-*(Modeled on CNCF's Certified Kubernetes program.)*
+_(Modeled on CNCF's Certified Kubernetes program.)_
 
 ## Logo usage
 
 Use the logo **unaltered** — no recoloring, distortion, stretching, or adding
 elements. Don't use it as your own app/product icon. Brand assets and clear-space
-rules: `xnet.fyi/brand` *(to be published)*.
+rules: `xnet.fyi/brand` _(to be published)_.
 
 ## npm scope
 
 The **`@xnetjs`** scope is reserved for official packages. Publish forks and
 community packages under your own scope (you may use an `xnet`/`-xnet` suffix in the
-*package name* to indicate compatibility). Scope disputes are handled per npm's
+_package name_ to indicate compatibility). Scope disputes are handled per npm's
 trademark policy.
 
 ## Questions / requests
@@ -519,9 +519,9 @@ protects users from confusion, not the community from participating.
 ## Changes
 
 This policy may evolve (e.g. when the mark transfers to the xNet Foundation). Changes
-follow `GOVERNANCE.md`. We will not make it *more* restrictive without a strong,
+follow `GOVERNANCE.md`. We will not make it _more_ restrictive without a strong,
 stated reason.
-````
+```
 
 ### `CONTRIBUTING.md` — DCO addition
 
@@ -573,10 +573,10 @@ sequenceDiagram
 1. **Registration is the real prerequisite.** Until the "xNet" word mark is
    registered, both the `@xnetjs` reservation and the certified program are
    honor-system; npm/GitHub act on scope disputes only with a registered mark.
-   *Action: counsel + filing; meanwhile label `TRADEMARK.md` as "policy of intent."*
+   _Action: counsel + filing; meanwhile label `TRADEMARK.md` as "policy of intent."_
 2. **Name availability.** "xNet" / "X-Net" is a short, common-ish string; a
-   clearance search may turn up conflicts that constrain registration. *Open
-   question for counsel.*
+   clearance search may turn up conflicts that constrain registration. _Open
+   question for counsel._
 3. **Over-restriction backlash (Rust 2023).** Keep the policy liberal; resist
    adding control clauses. Every "needs permission" item is a place the community
    can feel policed — keep that list short and obviously about confusion.
@@ -585,14 +585,14 @@ sequenceDiagram
    policy itself becomes the enclosure risk it warns about. Ties to 0241 Phase 4.
 5. **Conformance program is real work.** "xNet-compatible" is only meaningful if the
    conformance suite is comprehensive and maintained; a weak suite makes the mark
-   meaningless. *Scope the program before advertising it.*
+   meaningless. _Scope the program before advertising it._
 6. **BDFL succession is currently a promise, not a mechanism.** It only becomes
-   operational with a second maintainer + documented credential handoff. *Don't
-   over-claim it.*
+   operational with a second maintainer + documented credential handoff. _Don't
+   over-claim it._
 7. **CoC enforcement needs a human.** Adopting Contributor Covenant is easy; staffing
-   reports is the real commitment at solo stage. *State the contact honestly.*
+   reports is the real commitment at solo stage. _State the contact honestly._
 8. **Single contact email + brand page are referenced but not yet real**
-   (`trademark@xnet.fyi`, `xnet.fyi/brand`). *Create them or mark as TODO.*
+   (`trademark@xnet.fyi`, `xnet.fyi/brand`). _Create them or mark as TODO._
 
 ## Implementation Checklist
 
@@ -600,11 +600,10 @@ sequenceDiagram
 - [x] Add `TRADEMARK.md` (MTG-based draft above) marked **"policy of intent"** until
       registration; link from `README.md` + `site/` footer.
 - [x] Add `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1) with a real contact.
-- [ ] Add the **DCO** section to `CONTRIBUTING.md`; document `git commit -s`.
-- [ ] (Optional) Add a lightweight **DCO check** (GitHub Action or `commit-msg` hook)
+- [x] Add the **DCO** section to `CONTRIBUTING.md`; document `git commit -s`.
+- [x] (Optional) Add a lightweight **DCO check** (GitHub Action or `commit-msg` hook)
       and/or a `MAINTAINERS.md` stub.
-- [ ] Add the **Project** footer block to `README.md` (governance/trademark/CoC links
-      + "xNet-compatible" line).
+- [ ] Add the **Project** footer block to `README.md` (governance/trademark/CoC links + "xNet-compatible" line).
 - [x] Create `trademark@xnet.fyi` (alias) and a stub `xnet.fyi/brand` page (or mark
       as TODO in the docs).
 - [x] Stub an **"xNet-compatible / conformance"** page pointing at `conformance/`.
@@ -615,8 +614,8 @@ sequenceDiagram
 
 ## Validation Checklist
 
-- [ ] A newcomer can answer, from `GOVERNANCE.md` alone: *who decides, how do I
-      become a maintainer, what happens if the founder disappears.*
+- [ ] A newcomer can answer, from `GOVERNANCE.md` alone: _who decides, how do I
+      become a maintainer, what happens if the founder disappears._
 - [ ] A would-be forker can tell from `TRADEMARK.md` exactly what they may do
       **without asking** (fork, re-implement, say "compatible with xNet," package
       downstream keeping the name).
@@ -637,6 +636,7 @@ sequenceDiagram
 ## References
 
 ### Internal
+
 - [0241 — Legal & Funding Structure](./0241_[_]_OPEN_COLLECTIVE_FOUNDATION_OR_COMPANY_LEGAL_AND_FUNDING_STRUCTURE.md)
   (Phase 0 calls for these docs; Phase 4 moves the mark to a foundation).
 - [0145 — Foundation & Legal Organizing Structures](./0145_[_]_FOUNDATION_MODELS_LEGAL_ORGANIZING_STRUCTURES_FOR_XNET_MISSION_ALIGNED_GOVERNANCE.md)
@@ -647,6 +647,7 @@ sequenceDiagram
   [`conformance/`](../../conformance) · `docs/specs/protocol/`.
 
 ### Governance
+
 - GitHub Minimal Viable Governance: https://github.com/github/MVG
 - opensource.guide — Leadership & Governance: https://opensource.guide/leadership-and-governance/
 - Vue "Benevolent Dictator" charter: https://github.com/vuejs/governance/blob/master/Team-Charter.md
@@ -664,6 +665,7 @@ sequenceDiagram
   OpenInfra CLA→DCO (2025): https://openinfra.org/dco/
 
 ### Trademark
+
 - Model Trademark Guidelines (CC-BY): https://modeltrademarkguidelines.org/index.php/Model_Trademark_Guidelines
 - SFC on trademarks & Rust history: https://sfconservancy.org/blog/2023/jul/27/trademark-history-and-rust/
 - Linux Foundation trademark usage: https://www.linuxfoundation.org/legal/trademark-usage ·

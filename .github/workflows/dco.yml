@@ -1,0 +1,47 @@
+name: DCO
+
+# Lightweight Developer Certificate of Origin check: every commit in a PR must
+# carry a `Signed-off-by:` trailer (add one with `git commit -s`). See
+# CONTRIBUTING.md and GOVERNANCE.md. This is informational — xNet uses DCO, not a
+# CLA. Bot-authored commits (e.g. dependabot) are skipped.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+
+jobs:
+  dco:
+    name: Signed-off-by on every commit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Verify sign-off
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          missing=0
+          for sha in $(git rev-list --no-merges "$BASE..$HEAD"); do
+            name="$(git show -s --format='%an' "$sha")"
+            case "$name" in
+              *'[bot]') echo "· skip bot commit $sha ($name)"; continue;;
+            esac
+            if git show -s --format='%B' "$sha" | grep -qiE '^Signed-off-by: .+ <.+@.+>'; then
+              echo "✓ $sha"
+            else
+              echo "::error::Commit $sha is missing a Signed-off-by line (author: $name)"
+              missing=1
+            fi
+          done
+          if [ "$missing" -ne 0 ]; then
+            echo "DCO check failed — sign your commits with 'git commit -s'. See CONTRIBUTING.md."
+            exit 1
+          fi
+          echo "All commits carry a Signed-off-by line. ✓"
