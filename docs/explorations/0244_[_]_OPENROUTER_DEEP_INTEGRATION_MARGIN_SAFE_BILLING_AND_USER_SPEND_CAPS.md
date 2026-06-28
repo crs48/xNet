@@ -655,10 +655,10 @@ erDiagram
 - [x] New `packages/cloud/src/billing/window.ts`: `BudgetWindow`,
       `windowStartMs()`, `keyResetFor()`; exhaustive unit tests (month/week/rolling,
       UTC + DST‑free boundaries).
-- [ ] Replace `currentPeriodStartMs` usage and `setAiCap` with
+- [x] Replace `currentPeriodStartMs` usage and `setAiCap` with
       `setAiBudget({capUsd, window})` on `control-plane.ts`; persist
       `aiBudget` on `TenantRecord`; keep clamp `≤ aiMonthlyBudgetUsd`.
-- [ ] Feed `windowStartMs(window, now)` into `MeteredGateway.periodStartMsFor`
+- [x] Feed `windowStartMs(window, now)` into `MeteredGateway.periodStartMsFor`
       via the route; `budgetUsd = min(userCap, planCap)`.
 - [x] Parameterize `OpenRouterKeyManager.create/update` with
       `limitReset` (default `monthly`); set `limit = planCap` at provision and
@@ -697,7 +697,7 @@ erDiagram
 - [ ] Integration: a chat under cap returns text + `budgetState`; a chat at cap
       returns `402 ai_budget_exceeded` with **no** OpenRouter call (assert the
       fake gateway was not invoked).
-- [ ] Integration: setting a **$5 weekly** cap stops the 6th $1 call within the
+- [x] Integration: setting a **$5 weekly** cap stops the 6th $1 call within the
       week and resets the following Monday (fake clock).
 - [ ] Integration: streaming call meters the same retail charge as the unary
       path for identical `usage.cost`.

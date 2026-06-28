@@ -70,6 +70,7 @@ export interface VirtualKeyManager {
 /** In-memory manager for dev + tests: deterministic keys, no proxy required. */
 export class FakeVirtualKeyManager implements VirtualKeyManager {
   private readonly byKey = new Map<string, VirtualKey>()
+  private lastResetSeen: LimitReset | undefined
 
   async create(input: CreateVirtualKeyInput): Promise<VirtualKey> {
     const key = `sk-fake-${input.alias}`
@@ -80,11 +81,16 @@ export class FakeVirtualKeyManager implements VirtualKeyManager {
       maxBudgetUsd: input.maxBudgetUsd
     }
     this.byKey.set(vk.key, vk)
+    if (input.limitReset) this.lastResetSeen = input.limitReset
     return vk
   }
-  async update(key: string, patch: { maxBudgetUsd?: number }): Promise<void> {
+  async update(
+    key: string,
+    patch: { maxBudgetUsd?: number; limitReset?: LimitReset }
+  ): Promise<void> {
     const vk = this.byKey.get(key)
     if (vk && patch.maxBudgetUsd !== undefined) vk.maxBudgetUsd = patch.maxBudgetUsd
+    if (patch.limitReset) this.lastResetSeen = patch.limitReset
   }
   async remove(key: string): Promise<void> {
     this.byKey.delete(key)
@@ -92,6 +98,10 @@ export class FakeVirtualKeyManager implements VirtualKeyManager {
   /** Test/inspection helper — the keys this fake currently holds. */
   list(): VirtualKey[] {
     return [...this.byKey.values()]
+  }
+  /** Test/inspection helper — the last `limitReset` pushed via create/update. */
+  lastReset(): LimitReset | undefined {
+    return this.lastResetSeen
   }
 }
 

@@ -15,19 +15,20 @@ import type { ControlPlane } from '../control-plane'
 import type { AiChatDeps, AiTenantContext } from './route'
 import type { Context } from 'hono'
 import {
+  DEFAULT_BUDGET_WINDOW,
   FakeStripeBilling,
   GatewayClient,
   LiteLLMKeyManager,
   OpenRouterGatewayClient,
   OpenRouterKeyManager,
   StripeBillingAdapter,
+  windowStartMs,
   type ChatGateway,
   type StripeBilling,
   type UsageLedger,
   type VirtualKeyManager
 } from '@xnetjs/cloud'
 import Stripe from 'stripe'
-import { currentPeriodStartMs } from '../control-plane'
 import { createModelCatalog } from './models'
 import { pricingFromEnv } from './pricing'
 
@@ -106,17 +107,19 @@ function tenantResolver(
     if (!tenantId) return null
     const record = await controlPlane.getTenant(tenantId)
     if (!record || !record.aiKeyRef || !record.entitlements.aiEnabled) return null
+    // The self-set cap: prefer the windowed `aiBudget`, fall back to the legacy
+    // monthly `aiCapUsd` for tenants provisioned before exploration 0244.
+    const userCap = record.aiBudget?.capUsd ?? record.aiCapUsd ?? Number.POSITIVE_INFINITY
+    const window = record.aiBudget?.window ?? DEFAULT_BUDGET_WINDOW
     return {
       tenantId: record.tenantId,
       virtualKey: record.aiKeyRef,
       customerId: record.stripeCustomerId ?? record.billingUserId,
       // Enforce the lower of the plan's hard cap and the tenant's self-set cap.
-      budgetUsd: Math.min(
-        record.aiCapUsd ?? Number.POSITIVE_INFINITY,
-        record.entitlements.aiMonthlyBudgetUsd
-      ),
+      budgetUsd: Math.min(userCap, record.entitlements.aiMonthlyBudgetUsd),
       includedUsd: record.entitlements.includedAiUsd,
-      periodStartMs: currentPeriodStartMs(nowMs()),
+      // Scope the budget to the tenant's window (resets weekly/monthly/rolling).
+      periodStartMs: windowStartMs(window, nowMs()),
       // Plan-driven model switching: which models this tenant may pick + the default.
       ...(record.entitlements.aiModels !== undefined
         ? { aiModels: record.entitlements.aiModels }

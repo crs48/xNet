@@ -11,8 +11,14 @@
  * Customer-Portal plan change drives (changePlan), per explorations 0174/0175.
  */
 
-import type { VirtualKey, VirtualKeyManager } from '@xnetjs/cloud'
 import type { Provisioner } from '@xnetjs/cloud/provisioner'
+import {
+  DEFAULT_BUDGET_WINDOW,
+  keyResetFor,
+  type BudgetWindow,
+  type VirtualKey,
+  type VirtualKeyManager
+} from '@xnetjs/cloud'
 import {
   bindIdentities,
   recoverPaidAccount,
@@ -494,22 +500,54 @@ export class ControlPlane {
   }
 
   /**
-   * Set a tenant's self-serve AI spend cap (USD/month), clamped to ≤ the plan's
-   * `aiMonthlyBudgetUsd`. `undefined` clears it (back to the full plan cap). The
-   * metered gateway enforces the lower of cap and plan budget (exploration 0201).
+   * Set a tenant's self-serve AI budget: a hard cap (USD), clamped to ≤ the plan's
+   * `aiMonthlyBudgetUsd`, enforced over a window (calendar month / week / rolling N
+   * days). `undefined` clears it (back to the full plan cap on the calendar month).
+   *
+   * The ledger window is the precise, instant control; we also best-effort align
+   * the OpenRouter key's `limit_reset` to the window so the provider-side backstop
+   * stays consistent — its `limit` stays at the plan cap, never the tighter user
+   * cap, so the seatbelt protects xNet without surprising the user (exploration 0244).
    */
-  async setAiCap(tenantId: string, capUsd: number | undefined): Promise<TenantRecord> {
+  async setAiBudget(
+    tenantId: string,
+    budget: { capUsd: number; window: BudgetWindow } | undefined
+  ): Promise<TenantRecord> {
     const record = await this.deps.tenants.get(tenantId)
     if (!record) throw new Error(`Unknown tenant: ${tenantId}`)
     const planCap = record.entitlements.aiMonthlyBudgetUsd
-    let aiCapUsd: number | undefined
-    if (capUsd !== undefined) {
-      if (!Number.isFinite(capUsd) || capUsd < 0) throw new Error(`Invalid AI cap: ${capUsd}`)
-      aiCapUsd = Math.min(capUsd, planCap)
+
+    let aiBudget: TenantRecord['aiBudget']
+    if (budget !== undefined) {
+      if (!Number.isFinite(budget.capUsd) || budget.capUsd < 0) {
+        throw new Error(`Invalid AI cap: ${budget.capUsd}`)
+      }
+      aiBudget = { capUsd: Math.min(budget.capUsd, planCap), window: budget.window }
     }
-    const updated: TenantRecord = { ...record, aiCapUsd }
+
+    // Clearing aiBudget also clears the legacy aiCapUsd so the two never disagree.
+    const updated: TenantRecord = { ...record, aiBudget, aiCapUsd: undefined }
     await this.deps.tenants.put(updated)
+
+    // Align the provider-side reset cadence (cap stays at the plan ceiling).
+    const handle = this.aiManageHandle(record)
+    if (budget !== undefined && this.deps.aiKeys && handle) {
+      await this.deps.aiKeys.update(handle, {
+        maxBudgetUsd: planCap,
+        limitReset: keyResetFor(budget.window)
+      })
+    }
     return updated
+  }
+
+  /**
+   * @deprecated Back-compat shim for {@link setAiBudget}: sets a monthly-window cap.
+   */
+  async setAiCap(tenantId: string, capUsd: number | undefined): Promise<TenantRecord> {
+    return this.setAiBudget(
+      tenantId,
+      capUsd === undefined ? undefined : { capUsd, window: DEFAULT_BUDGET_WINDOW }
+    )
   }
 
   /**

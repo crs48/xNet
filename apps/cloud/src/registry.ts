@@ -6,6 +6,7 @@
  * swap `MemoryTenantStore` for a durable store later.
  */
 
+import type { BudgetWindow } from '@xnetjs/cloud'
 import type { PlanEntitlements, PlanId } from '@xnetjs/entitlements'
 
 export interface TenantRecord {
@@ -50,8 +51,20 @@ export interface TenantRecord {
    * Per-tenant hard AI spend cap (USD/month) the customer set for themselves. Always
    * clamped to ≤ the plan's `aiMonthlyBudgetUsd`; the metered gateway stops at the
    * lower of the two. Unset = the full plan cap (exploration 0201).
+   *
+   * @deprecated Superseded by {@link aiBudget} (exploration 0244), which adds a
+   * window. Still read as a fallback for tenants provisioned before the migration.
    */
   aiCapUsd?: number
+  /**
+   * The tenant's self-serve AI budget: a hard cap (USD, clamped ≤ the plan's
+   * `aiMonthlyBudgetUsd`) over a window (calendar month / week / rolling N days).
+   * The metered gateway sums ledger spend since the window start and stops at the
+   * cap; the OpenRouter key `limit_reset` is aligned to the window as a coarse
+   * provider-side backstop. Unset = the full plan cap on the calendar month
+   * (exploration 0244).
+   */
+  aiBudget?: { capUsd: number; window: BudgetWindow }
   /**
    * Stripe customer id (`cus_…`) captured at checkout, needed to bill metered AI
    * overage. Falls back to `billingUserId` for the meter event when unset.
