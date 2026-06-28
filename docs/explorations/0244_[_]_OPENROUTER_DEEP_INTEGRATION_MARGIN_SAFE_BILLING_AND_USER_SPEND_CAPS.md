@@ -660,7 +660,7 @@ erDiagram
       `aiBudget` on `TenantRecord`; keep clamp `≤ aiMonthlyBudgetUsd`.
 - [ ] Feed `windowStartMs(window, now)` into `MeteredGateway.periodStartMsFor`
       via the route; `budgetUsd = min(userCap, planCap)`.
-- [ ] Parameterize `OpenRouterKeyManager.create/update` with
+- [x] Parameterize `OpenRouterKeyManager.create/update` with
       `limitReset` (default `monthly`); set `limit = planCap` at provision and
       `limit_reset = keyResetFor(window)` on budget change.
 - [ ] Build `ModelPicker` UI fed by `GET /ai/models`, showing **retail** $/Mtok,

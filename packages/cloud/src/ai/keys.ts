@@ -12,6 +12,13 @@
  * `fetch` — validated against a live proxy at deploy time.
  */
 
+/**
+ * How the provider's per-key spend limit resets. Mirrors OpenRouter's
+ * `limit_reset` (`daily` / `weekly` / `monthly`); LiteLLM maps it to an
+ * equivalent `budget_duration` (exploration 0244).
+ */
+export type LimitReset = 'daily' | 'weekly' | 'monthly'
+
 export interface CreateVirtualKeyInput {
   /** Stable alias (we use the `tenantId`) so re-provision is idempotent. */
   alias: string
@@ -21,6 +28,19 @@ export interface CreateVirtualKeyInput {
   models?: string[]
   /** Budget reset window, e.g. `'30d'` (LiteLLM resets accrued spend each window). */
   budgetDuration?: string
+  /**
+   * Provider-enforced reset cadence (default `monthly`). The control plane sets
+   * this to `weekly` when a tenant picks a calendar-week budget window so the
+   * provider backstop stays aligned with the ledger window.
+   */
+  limitReset?: LimitReset
+}
+
+/** LiteLLM `budget_duration` for a {@link LimitReset}. */
+const BUDGET_DURATION_FOR: Record<LimitReset, string> = {
+  daily: '1d',
+  weekly: '7d',
+  monthly: '30d'
 }
 
 export interface VirtualKey {
@@ -40,7 +60,10 @@ export interface VirtualKey {
 export interface VirtualKeyManager {
   create(input: CreateVirtualKeyInput): Promise<VirtualKey>
   /** `manageId` is {@link VirtualKey.manageId} (= `key` for LiteLLM, the hash for OpenRouter). */
-  update(manageId: string, patch: { maxBudgetUsd?: number; models?: string[] }): Promise<void>
+  update(
+    manageId: string,
+    patch: { maxBudgetUsd?: number; models?: string[]; limitReset?: LimitReset }
+  ): Promise<void>
   remove(manageId: string): Promise<void>
 }
 
@@ -116,11 +139,13 @@ export class LiteLLMKeyManager implements VirtualKeyManager {
   }
 
   async create(input: CreateVirtualKeyInput): Promise<VirtualKey> {
+    const budgetDuration =
+      input.budgetDuration ?? (input.limitReset ? BUDGET_DURATION_FOR[input.limitReset] : undefined)
     const data = (await this.call('/key/generate', {
       key_alias: input.alias,
       max_budget: input.maxBudgetUsd,
       ...(input.models ? { models: input.models } : {}),
-      ...(input.budgetDuration ? { budget_duration: input.budgetDuration } : {})
+      ...(budgetDuration ? { budget_duration: budgetDuration } : {})
     })) as { key?: string }
     if (!data.key) throw new VirtualKeyError('litellm /key/generate returned no key', 502)
     // LiteLLM addresses keys by the key value itself, so manageId === key.
@@ -132,11 +157,15 @@ export class LiteLLMKeyManager implements VirtualKeyManager {
     }
   }
 
-  async update(key: string, patch: { maxBudgetUsd?: number; models?: string[] }): Promise<void> {
+  async update(
+    key: string,
+    patch: { maxBudgetUsd?: number; models?: string[]; limitReset?: LimitReset }
+  ): Promise<void> {
     await this.call('/key/update', {
       key,
       ...(patch.maxBudgetUsd !== undefined ? { max_budget: patch.maxBudgetUsd } : {}),
-      ...(patch.models ? { models: patch.models } : {})
+      ...(patch.models ? { models: patch.models } : {}),
+      ...(patch.limitReset ? { budget_duration: BUDGET_DURATION_FOR[patch.limitReset] } : {})
     })
   }
 

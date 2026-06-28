@@ -28,6 +28,7 @@ export {
   type VirtualKeyManager,
   type VirtualKey,
   type CreateVirtualKeyInput,
+  type LimitReset,
   type LiteLLMKeyManagerConfig
 } from './keys'
 

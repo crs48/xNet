@@ -13,7 +13,7 @@
  * Thin + `fetch`-injectable; validated against a live account at deploy.
  */
 
-import type { CreateVirtualKeyInput, VirtualKey, VirtualKeyManager } from './keys'
+import type { CreateVirtualKeyInput, LimitReset, VirtualKey, VirtualKeyManager } from './keys'
 import { VirtualKeyError } from './keys'
 
 export interface OpenRouterKeyManagerConfig {
@@ -50,7 +50,7 @@ export class OpenRouterKeyManager implements VirtualKeyManager {
     const data = (await this.call('POST', '/keys', {
       name: input.alias,
       limit: input.maxBudgetUsd,
-      limit_reset: 'monthly'
+      limit_reset: input.limitReset ?? 'monthly'
     })) as CreateKeyResponse
     const key = data.key
     const hash = data.data?.hash
@@ -60,10 +60,14 @@ export class OpenRouterKeyManager implements VirtualKeyManager {
     return { key, manageId: hash, alias: input.alias, maxBudgetUsd: input.maxBudgetUsd }
   }
 
-  async update(manageId: string, patch: { maxBudgetUsd?: number }): Promise<void> {
-    if (patch.maxBudgetUsd === undefined) return
+  async update(
+    manageId: string,
+    patch: { maxBudgetUsd?: number; limitReset?: LimitReset }
+  ): Promise<void> {
+    if (patch.maxBudgetUsd === undefined && patch.limitReset === undefined) return
     await this.call('PATCH', `/keys/${encodeURIComponent(manageId)}`, {
-      limit: patch.maxBudgetUsd
+      ...(patch.maxBudgetUsd !== undefined ? { limit: patch.maxBudgetUsd } : {}),
+      ...(patch.limitReset ? { limit_reset: patch.limitReset } : {})
     })
   }
 
