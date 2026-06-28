@@ -433,14 +433,11 @@ async function openElectronClient(opts: OpenClientOptions): Promise<ElectronSync
     undefined,
     { timeout: 90_000 }
   )
-  await win.evaluate(
-    (id) => (window as unknown as SyncHarnessWindow).__xnetSyncTestHarness!.acquire(id),
-    opts.docId
-  )
-  // Wait until the data-process WebSocket has actually (re)connected to the test
-  // hub before the caller edits — otherwise the first updates are produced while
-  // disconnected and the peer never sees them. A timeout here means the repoint
-  // itself failed (a far clearer signal than an empty convergence read).
+  // Wait until the data-process WebSocket is actually connected to the test hub
+  // BEFORE acquiring the doc — `joinRoom` only sends the room `subscribe` when
+  // connected, so acquiring while still disconnected leaves the doc room
+  // unsubscribed and the peer never sees the edits. A timeout here means the
+  // hub repoint itself failed (a far clearer signal than an empty read).
   await win.waitForFunction(
     async () => {
       const bsm = (window as unknown as { xnetBSM?: { getStatus(): Promise<{ status: string }> } })
@@ -451,6 +448,10 @@ async function openElectronClient(opts: OpenClientOptions): Promise<ElectronSync
     },
     undefined,
     { timeout: 60_000 }
+  )
+  await win.evaluate(
+    (id) => (window as unknown as SyncHarnessWindow).__xnetSyncTestHarness!.acquire(id),
+    opts.docId
   )
   return {
     kind: 'electron',
