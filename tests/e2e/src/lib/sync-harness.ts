@@ -201,6 +201,7 @@ export async function startInProcessHub(): Promise<InProcessHub> {
   // share the one Electron-ABI copy. Otherwise (local dev, Node-ABI binding) run
   // the hub the normal way via tsx.
   const cliArgs = ['--port', String(port), '--no-auth', '--storage', 'memory']
+  if (process.env.E2E_DEBUG) cliArgs.push('--log-level', 'debug')
   const electronBin = process.env.XNET_HUB_ELECTRON_BIN
   const proc = electronBin
     ? await spawnAndWait(
