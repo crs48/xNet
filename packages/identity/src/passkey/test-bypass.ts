@@ -9,6 +9,11 @@
  */
 import type { HybridKeyBundle } from '../types'
 import { createKeyBundle } from '../key-bundle'
+import {
+  createRecoverableIdentity,
+  recoveryPhraseToBundle,
+  validateRecoveryPhrase
+} from '../recoverable'
 
 const TEST_BYPASS_IDENTITY_MARKER = 'xnet:test:identity-created'
 const TEST_BYPASS_SESSION_MARKER = 'xnet:test:session-active'
@@ -124,6 +129,7 @@ export function createTestIdentityManager() {
 
   let cachedKeyBundle: HybridKeyBundle | null = null
   let storedInMemory = false
+  let recoverablePhrase: string | null = null
 
   return {
     async preflight(): Promise<void> {
@@ -141,6 +147,45 @@ export function createTestIdentityManager() {
       writeTestIdentityMarker(true)
       writeMarker(TEST_BYPASS_SESSION_MARKER, true)
       return keyBundle
+    },
+
+    async createRecoverable(options?: { words?: number }): Promise<{
+      keyBundle: HybridKeyBundle
+      phrase: string
+    }> {
+      const { phrase, bundle } = createRecoverableIdentity(
+        options?.words ? { words: options.words } : {}
+      )
+      recoverablePhrase = phrase
+      cachedKeyBundle = bundle
+      storedInMemory = true
+      writeTestIdentityMarker(true)
+      writeMarker(TEST_BYPASS_SESSION_MARKER, true)
+      return { keyBundle: bundle, phrase }
+    },
+
+    async importRecoveryPhrase(phrase: string): Promise<{
+      keyBundle: HybridKeyBundle
+      phrase: string
+    }> {
+      const validation = validateRecoveryPhrase(phrase)
+      if (!validation.ok) throw new Error('That recovery phrase is not valid')
+      const normalized = validation.words.join(' ')
+      const keyBundle = recoveryPhraseToBundle(normalized)
+      recoverablePhrase = normalized
+      cachedKeyBundle = keyBundle
+      storedInMemory = true
+      writeTestIdentityMarker(true)
+      writeMarker(TEST_BYPASS_SESSION_MARKER, true)
+      return { keyBundle, phrase: normalized }
+    },
+
+    async exportRecoveryPhrase(): Promise<string | null> {
+      return recoverablePhrase
+    },
+
+    async isRecoverable(): Promise<boolean> {
+      return recoverablePhrase !== null
     },
 
     async unlock(): Promise<HybridKeyBundle> {
@@ -188,6 +233,7 @@ export function createTestIdentityManager() {
     async clear(): Promise<void> {
       cachedKeyBundle = null
       storedInMemory = false
+      recoverablePhrase = null
       writeTestIdentityMarker(false)
       writeMarker(TEST_BYPASS_SESSION_MARKER, false)
     }

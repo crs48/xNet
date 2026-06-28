@@ -9,13 +9,35 @@
  */
 import type { HybridKeyBundle } from '../types'
 import type { PasskeyIdentity, PasskeyCreateOptions, FallbackStorage } from './types'
+import {
+  createRecoverableIdentity,
+  openRecoveryPhrase,
+  recoveryPhraseToBundle,
+  validateRecoveryPhrase
+} from '../recoverable'
 import { createPasskeyIdentity } from './create'
 import { createFallbackIdentity, unlockFallbackIdentity } from './fallback'
+import { enrollRecoverableIdentity } from './recoverable'
 import { persistSession, loadSession, clearSession } from './session'
 import { getStoredIdentity, storeIdentity, clearStoredIdentity } from './storage'
 import { detectPasskeySupport } from './support'
 import { isTestBypassEnabled, createTestIdentityManager } from './test-bypass'
 import { unlockPasskeyIdentity } from './unlock'
+
+/** Options for creating/importing a recoverable identity (exploration 0243). */
+export type RecoverableCreateOptions = {
+  /** Words in the generated phrase (default 24). */
+  words?: number
+  /** Relying party ID for the gating passkey (default: current hostname). */
+  rpId?: string
+}
+
+/** Result of creating or importing a recoverable identity: the keys plus the phrase. */
+export type RecoverableResult = {
+  keyBundle: HybridKeyBundle
+  /** The recovery phrase — show it once, then never again unless re-exported. */
+  phrase: string
+}
 
 // ─── Public Types ────────────────────────────────────────────
 
@@ -32,6 +54,7 @@ export { detectPasskeySupport } from './support'
 export { createPasskeyIdentity } from './create'
 export { unlockPasskeyIdentity } from './unlock'
 export { createFallbackIdentity, unlockFallbackIdentity } from './fallback'
+export { enrollRecoverableIdentity, type RecoverableEnrollment } from './recoverable'
 export { getStoredIdentity, storeIdentity, clearStoredIdentity } from './storage'
 export { deriveKeySeed } from './derive'
 export {
@@ -56,6 +79,33 @@ export type IdentityManager = {
 
   /** Create a new identity (prompts for biometric) */
   create(options?: PasskeyCreateOptions): Promise<HybridKeyBundle>
+
+  /**
+   * Create a new *recoverable* identity (exploration 0243): born from a fresh recovery
+   * phrase, gated by a passkey, and stored so the phrase can recover it on any device.
+   * Returns the phrase — show it once and prompt the user to save it. Opt-in: ordinary
+   * `create()` stays the stronger non-recoverable default.
+   */
+  createRecoverable(options?: RecoverableCreateOptions): Promise<RecoverableResult>
+
+  /**
+   * Adopt an identity from a recovery phrase on this device (lost passkey / new
+   * device), enrolling a local passkey to gate it. Throws on an invalid phrase.
+   */
+  importRecoveryPhrase(
+    phrase: string,
+    options?: RecoverableCreateOptions
+  ): Promise<RecoverableResult>
+
+  /**
+   * Reveal the recovery phrase for a recoverable identity (Settings "view phrase").
+   * Prompts for the passkey, then returns the phrase, or null if this identity isn't
+   * recoverable.
+   */
+  exportRecoveryPhrase(): Promise<string | null>
+
+  /** Whether the stored identity was created recoverable (has a saved phrase). */
+  isRecoverable(): Promise<boolean>
 
   /** Unlock the existing identity (prompts for biometric) */
   unlock(): Promise<HybridKeyBundle>
@@ -113,7 +163,7 @@ export function createIdentityManager(): IdentityManager {
   let cachedKeyBundle: HybridKeyBundle | null = null
   let prfSupported: boolean | null = null
 
-  return {
+  const manager: IdentityManager = {
     async preflight(): Promise<void> {
       const support = await detectPasskeySupport()
       prfSupported = support.prf
@@ -169,6 +219,46 @@ export function createIdentityManager(): IdentityManager {
       return keyBundle
     },
 
+    async createRecoverable(options?: RecoverableCreateOptions): Promise<RecoverableResult> {
+      const { phrase, bundle } = createRecoverableIdentity(
+        options?.words ? { words: options.words } : {}
+      )
+      const enrolled = await enrollRecoverableIdentity(bundle, phrase, options?.rpId)
+      await storeIdentity(enrolled.passkey, enrolled.fallback, enrolled.recovery)
+      cachedKeyBundle = enrolled.keyBundle
+      await persistCurrentSession(enrolled.keyBundle)
+      return { keyBundle: enrolled.keyBundle, phrase }
+    },
+
+    async importRecoveryPhrase(
+      phrase: string,
+      options?: RecoverableCreateOptions
+    ): Promise<RecoverableResult> {
+      const validation = validateRecoveryPhrase(phrase)
+      if (!validation.ok) {
+        throw new Error('That recovery phrase is not valid')
+      }
+      const normalized = validation.words.join(' ')
+      const bundle = recoveryPhraseToBundle(normalized)
+      const enrolled = await enrollRecoverableIdentity(bundle, normalized, options?.rpId)
+      await storeIdentity(enrolled.passkey, enrolled.fallback, enrolled.recovery)
+      cachedKeyBundle = enrolled.keyBundle
+      await persistCurrentSession(enrolled.keyBundle)
+      return { keyBundle: enrolled.keyBundle, phrase: normalized }
+    },
+
+    async exportRecoveryPhrase(): Promise<string | null> {
+      await manager.unlock() // passkey gate before revealing the phrase
+      const stored = await getStoredIdentity()
+      if (!stored?.recovery || !stored.fallback) return null
+      return openRecoveryPhrase(stored.recovery, stored.fallback.encKey)
+    },
+
+    async isRecoverable(): Promise<boolean> {
+      const stored = await getStoredIdentity()
+      return Boolean(stored?.recovery)
+    },
+
     async unlock(): Promise<HybridKeyBundle> {
       if (cachedKeyBundle) {
         return cachedKeyBundle
@@ -222,6 +312,8 @@ export function createIdentityManager(): IdentityManager {
       cachedKeyBundle = null
     }
   }
+
+  return manager
 }
 
 /** Session persistence is best-effort: never fail an unlock over it. */
