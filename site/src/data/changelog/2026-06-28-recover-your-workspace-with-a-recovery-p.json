@@ -4,5 +4,14 @@
   "title": "Recover your workspace with a recovery phrase",
   "summary": "You can now opt into a recovery phrase at sign-up and use it to restore your identity and encrypted data on a new device if you lose your passkey.",
   "highlights": [],
-  "tags": ["identity"]
+  "tags": [
+    "identity"
+  ],
+  "pr": 324,
+  "mergedAt": "2026-06-28T22:17:16Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
