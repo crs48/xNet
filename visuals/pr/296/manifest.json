@@ -1,0 +1,13 @@
+{
+  "stories": [],
+  "routes": [
+    {
+      "id": "settings",
+      "label": "Settings",
+      "file": "routes/settings.png"
+    }
+  ],
+  "flows": [],
+  "fallbackUsed": false,
+  "unmappedFiles": []
+}

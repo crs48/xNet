@@ -1,0 +1,20 @@
+{
+  "threshold": 0.998,
+  "baseline": "https://xnet.fyi/visuals-baseline",
+  "fallbackUsed": true,
+  "unmappedFiles": [
+    "apps/web/src/main.tsx"
+  ],
+  "stories": [],
+  "routes": [
+    {
+      "id": "home",
+      "label": "Home",
+      "file": "routes/home.png",
+      "status": "unchanged",
+      "ssim": 0.999062
+    }
+  ],
+  "flows": [],
+  "changedCount": 0
+}

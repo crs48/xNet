@@ -1,0 +1,62 @@
+{
+  "stories": [
+    {
+      "id": "core-database-grid-v2--comment-badges",
+      "title": "Core/Database/Grid V2",
+      "name": "Comment Badges",
+      "file": "stories/core-database-grid-v2--comment-badges.png"
+    },
+    {
+      "id": "core-database-grid-v2--files-and-images",
+      "title": "Core/Database/Grid V2",
+      "name": "Files And Images",
+      "file": "stories/core-database-grid-v2--files-and-images.png"
+    },
+    {
+      "id": "core-database-grid-v2--loading-skeleton",
+      "title": "Core/Database/Grid V2",
+      "name": "Loading Skeleton",
+      "file": "stories/core-database-grid-v2--loading-skeleton.png"
+    },
+    {
+      "id": "core-database-grid-v2--playground",
+      "title": "Core/Database/Grid V2",
+      "name": "Playground",
+      "file": "stories/core-database-grid-v2--playground.png"
+    },
+    {
+      "id": "core-database-grid-v2--presence",
+      "title": "Core/Database/Grid V2",
+      "name": "Presence",
+      "file": "stories/core-database-grid-v2--presence.png"
+    },
+    {
+      "id": "core-database-grid-v2--read-only",
+      "title": "Core/Database/Grid V2",
+      "name": "Read Only",
+      "file": "stories/core-database-grid-v2--read-only.png"
+    },
+    {
+      "id": "core-database-grid-v2--spreadsheet-ghost-cells",
+      "title": "Core/Database/Grid V2",
+      "name": "Spreadsheet Ghost Cells",
+      "file": "stories/core-database-grid-v2--spreadsheet-ghost-cells.png"
+    },
+    {
+      "id": "core-database-grid-v2--typeahead-tags",
+      "title": "Core/Database/Grid V2",
+      "name": "Typeahead Tags",
+      "file": "stories/core-database-grid-v2--typeahead-tags.png"
+    }
+  ],
+  "routes": [
+    {
+      "id": "data",
+      "label": "Data",
+      "file": "routes/data.png"
+    }
+  ],
+  "flows": [],
+  "fallbackUsed": false,
+  "unmappedFiles": []
+}

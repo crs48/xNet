@@ -1,0 +1,33 @@
+{
+  "threshold": 0.998,
+  "baseline": "https://xnet.fyi/visuals-baseline",
+  "stories": [
+    {
+      "id": "electron-systemmenu--default",
+      "title": "Electron/SystemMenu",
+      "name": "Default",
+      "file": "stories/electron-systemmenu--default.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "electron-systemmenu--empty-recent",
+      "title": "Electron/SystemMenu",
+      "name": "Empty Recent",
+      "file": "stories/electron-systemmenu--empty-recent.png",
+      "status": "unchanged",
+      "ssim": 1
+    }
+  ],
+  "routes": [
+    {
+      "id": "home",
+      "label": "Home",
+      "file": "routes/home.png",
+      "status": "unchanged",
+      "ssim": 0.998919
+    }
+  ],
+  "flows": [],
+  "changedCount": 0
+}

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>xNet Blog</title>
+    <link>https://xnet.fyi/blog</link>
+    <atom:link href="https://xnet.fyi/blog/rss.xml" rel="self" type="application/rss+xml" />
+    <description>Essays on local-first software, data ownership, and the open web.</description>
+    <language>en-us</language>
+    <lastBuildDate>Sun, 28 Jun 2026 02:27:04 GMT</lastBuildDate>
+    <item>
+      <title>The Gentlest Furnace</title>
+      <link>https://xnet.fyi/blog/the-gentlest-furnace</link>
+      <guid isPermaLink="true">https://xnet.fyi/blog/the-gentlest-furnace</guid>
+      <description>A star carries the energy of a billion bombs and still feels calm from here. What hydrostatic equilibrium — the thermostat that keeps a star from exploding or going cold — teaches us about information, attention, and building technology that burns long instead of burning out.</description>
+      <author>xNet</author>
+      <pubDate>Sun, 28 Jun 2026 02:27:04 GMT</pubDate>
+      <category>essay</category>
+      <category>philosophy</category>
+      <category>cosmos</category>
+    </item>
+    <item>
+      <title>Data Should Work Like Soil</title>
+      <link>https://xnet.fyi/blog/data-should-work-like-soil</link>
+      <guid isPermaLink="true">https://xnet.fyi/blog/data-should-work-like-soil</guid>
+      <description>Beneath every forest runs a fungal network — the original internet. What mycelium, the human nervous system, and Tesla’s Warp teach us about building one worth living in, and how to heal one that’s gone sick.</description>
+      <author>xNet</author>
+      <pubDate>Sun, 28 Jun 2026 01:23:39 GMT</pubDate>
+      <category>essay</category>
+      <category>philosophy</category>
+      <category>nature</category>
+    </item>
+    <item>
+      <title>A Great Pirate Age for the Internet</title>
+      <link>https://xnet.fyi/blog/a-great-pirate-age</link>
+      <guid isPermaLink="true">https://xnet.fyi/blog/a-great-pirate-age</guid>
+      <description>What pirates — the real ones, and the ones in One Piece — can teach us about owning your data. An essay on freedom, self-governance, and why you are the cargo.</description>
+      <author>xNet</author>
+      <pubDate>Sun, 28 Jun 2026 00:28:34 GMT</pubDate>
+      <category>essay</category>
+      <category>philosophy</category>
+      <category>decentralization</category>
+    </item>
+  </channel>
+</rss>

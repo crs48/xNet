@@ -1,0 +1,22 @@
+{
+  "stories": [
+    {
+      "id": "ui-comments-catalog--overview",
+      "title": "UI/Comments/Catalog",
+      "name": "Overview",
+      "file": "stories/ui-comments-catalog--overview.png"
+    }
+  ],
+  "routes": [],
+  "flows": [
+    {
+      "id": "canvas",
+      "label": "Open a canvas",
+      "gif": "flows/canvas.gif",
+      "mp4": "flows/canvas.mp4",
+      "poster": "flows/canvas.poster.png"
+    }
+  ],
+  "fallbackUsed": false,
+  "unmappedFiles": []
+}

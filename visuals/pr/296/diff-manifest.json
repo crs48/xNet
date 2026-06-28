@@ -1,0 +1,21 @@
+{
+  "threshold": 0.998,
+  "baseline": "https://xnet.fyi/visuals-baseline",
+  "fallbackUsed": false,
+  "unmappedFiles": [],
+  "stories": [],
+  "routes": [
+    {
+      "id": "settings",
+      "label": "Settings",
+      "file": "routes/settings.png",
+      "status": "changed",
+      "ssim": 0.85065,
+      "before": "before/routes/settings.png",
+      "after": "routes/settings.png",
+      "diff": "diff/routes/settings.png"
+    }
+  ],
+  "flows": [],
+  "changedCount": 1
+}

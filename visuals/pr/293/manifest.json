@@ -1,0 +1,13 @@
+{
+  "stories": [],
+  "routes": [
+    {
+      "id": "discover",
+      "label": "Discover",
+      "file": "routes/discover.png"
+    }
+  ],
+  "flows": [],
+  "fallbackUsed": false,
+  "unmappedFiles": []
+}

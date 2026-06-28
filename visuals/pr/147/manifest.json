@@ -1,0 +1,24 @@
+{
+  "stories": [
+    {
+      "id": "electron-systemmenu--default",
+      "title": "Electron/SystemMenu",
+      "name": "Default",
+      "file": "stories/electron-systemmenu--default.png"
+    },
+    {
+      "id": "electron-systemmenu--empty-recent",
+      "title": "Electron/SystemMenu",
+      "name": "Empty Recent",
+      "file": "stories/electron-systemmenu--empty-recent.png"
+    }
+  ],
+  "routes": [
+    {
+      "id": "home",
+      "label": "Home",
+      "file": "routes/home.png"
+    }
+  ],
+  "flows": []
+}
