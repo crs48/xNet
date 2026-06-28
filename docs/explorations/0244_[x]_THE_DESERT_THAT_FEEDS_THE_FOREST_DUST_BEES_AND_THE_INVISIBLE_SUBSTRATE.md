@@ -490,54 +490,54 @@ const { title, deck, date, readingMinutes, tags } = Astro.props
 
 ## Implementation Checklist
 
-- [ ] Add the `BlogPost` entry to [`site/src/data/blog.ts`](../../site/src/data/blog.ts)
+- [x] Add the `BlogPost` entry to [`site/src/data/blog.ts`](../../site/src/data/blog.ts)
       (slug `the-desert-that-feeds-the-forest`, tags `['essay','philosophy','nature']`).
-- [ ] Create `site/src/components/blog/DustHero.astro` (inline SVG; dust plume
+- [x] Create `site/src/components/blog/DustHero.astro` (inline SVG; dust plume
       arcing **across** an ocean; cosmic-X as a mid-Atlantic mote; mirror
       `MycelialHero`'s prop contract).
-- [ ] Create `site/src/components/blog/DustBridge.astro` (the signature diagram:
+- [x] Create `site/src/components/blog/DustBridge.astro` (the signature diagram:
       Bodélé → Atlantic → Amazon → runoff → balance, with web labels paralleled).
-- [ ] Create `site/src/components/blog/HonestDesert.astro` (self-audit panel:
+- [x] Create `site/src/components/blog/HonestDesert.astro` (self-audit panel:
       the balance is approximate; the video is fiction; "save the bees" ≠ the
       keystone bee).
-- [ ] Write `site/src/pages/blog/the-desert-that-feeds-the-forest.astro` following
+- [x] Write `site/src/pages/blog/the-desert-that-feeds-the-forest.astro` following
       Structure D, weaving in Charter receipts (§Own/§Exit/§Calm) and real file
       paths.
-- [ ] Continue the recurring opener ("…up at the sea, down at the soil, up at the
+- [x] Continue the recurring opener ("…up at the sea, down at the soil, up at the
       star — now look **across**, at the wind").
-- [ ] Keep all art **inline SVG** — no third-party assets (Self-Audit parity).
-- [ ] Add a short "Sources" coda (NASA Goddard / Yu et al. 2015; Eghbal, *Roads
+- [x] Keep all art **inline SVG** — no third-party assets (Self-Audit parity).
+- [x] Add a short "Sources" coda (NASA Goddard / Yu et al. 2015; Eghbal, *Roads
       and Bridges*) since the post uses hard figures.
-- [ ] Generate a changelog fragment via `node scripts/changelog/new.mjs`
+- [x] Generate a changelog fragment via `node scripts/changelog/new.mjs`
       (do **not** hand-author the JSON).
-- [ ] Confirm whether `site/` needs a separate lint/format pass (it is outside the
+- [x] Confirm whether `site/` needs a separate lint/format pass (it is outside the
       root eslint/prettier config — see prior blog posts).
-- [ ] No `docs/sidebar.mjs` / `build:llms` changes — the blog is not part of the
+- [x] No `docs/sidebar.mjs` / `build:llms` changes — the blog is not part of the
       docs sidebar.
-- [ ] **No changeset required** — `site/` is not a publishable `packages/*`
+- [x] **No changeset required** — `site/` is not a publishable `packages/*`
       library (per `CLAUDE.md`).
 
 ## Validation Checklist
 
-- [ ] `pnpm --filter site dev` (or the repo's site dev script): `/blog/the-desert-that-feeds-the-forest`
+- [x] `pnpm --filter site dev` (or the repo's site dev script): `/blog/the-desert-that-feeds-the-forest`
       renders; hero, `DustBridge`, and `HonestDesert` display correctly in light
       and dark mode.
-- [ ] `/blog` index lists the new card newest-first with the right date, reading
+- [x] `/blog` index lists the new card newest-first with the right date, reading
       time, and tags.
-- [ ] `/blog/rss.xml` includes the new post (title, description, link, pubDate)
+- [x] `/blog/rss.xml` includes the new post (title, description, link, pubDate)
       and validates as well-formed RSS.
-- [ ] Build passes: `pnpm --filter site build` with no broken imports or type
+- [x] Build passes: `pnpm --filter site build` with no broken imports or type
       errors (`postBySlug('the-desert-that-feeds-the-forest')` resolves).
-- [ ] No external network assets requested by the page (DevTools Network tab clean
+- [x] No external network assets requested by the page (DevTools Network tab clean
       — Self-Audit parity holds).
-- [ ] Social/OG: `Base` title/description populate; no hero image required (text
+- [x] Social/OG: `Base` title/description populate; no hero image required (text
       OG is fine, matching #3).
-- [ ] Read-through proof: capture a screenshot of the hero + one body section for
+- [x] Read-through proof: capture a screenshot of the hero + one body section for
       the PR (per the repo's visual-capture convention).
-- [ ] Prose check: the post never implies the "frozen bees" experiment was real;
+- [x] Prose check: the post never implies the "frozen bees" experiment was real;
       scientific claims are hedged ("close to," "roughly"); the `HonestDesert`
       panel discloses simplifications.
-- [ ] Reading time in `blog.ts` matches the finished length (±1 min).
+- [x] Reading time in `blog.ts` matches the finished length (±1 min).
 
 ## References
 
