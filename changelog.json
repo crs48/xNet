@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-06-28-recover-your-xnet-cloud-account-if-you-l",
+      "url": "https://xnet.fyi/changelog#2026-06-28-recover-your-xnet-cloud-account-if-you-l",
+      "title": "Recover your xNet Cloud account if you lose your passkey",
+      "content_text": "xNet Cloud now verifies the passkey that claims a hub with a real signature over a single-use server nonce, and the dashboard can recover your paid account and hub from your billing login if you lose the passkey (your encrypted data still needs a saved recovery phrase).\n",
+      "date_published": "2026-06-28T21:05:11Z",
+      "tags": [
+        "identity"
+      ],
+      "_xnet": {
+        "date": "June 28, 2026",
+        "summary": "xNet Cloud now verifies the passkey that claims a hub with a real signature over a single-use server nonce, and the dashboard can recover your paid account and hub from your billing login if you lose the passkey (your encrypted data still needs a saved recovery phrase).",
+        "highlights": [],
+        "mergedAt": "2026-06-28T21:05:11Z",
+        "pr": 318,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-06-28-managed-ai-default-models-now-resolve-on",
       "url": "https://xnet.fyi/changelog#2026-06-28-managed-ai-default-models-now-resolve-on",
       "title": "Managed AI default models now resolve on OpenRouter",
