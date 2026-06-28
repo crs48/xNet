@@ -100,6 +100,23 @@ Examples:
 
 Do not bypass hooks during normal contribution flow. If a hook fails, fix the underlying issue and re-run.
 
+## Developer Certificate of Origin (DCO)
+
+xNet uses the [Developer Certificate of Origin](https://developercertificate.org/).
+By adding a `Signed-off-by` line to each commit, you certify you wrote the patch or
+otherwise have the right to submit it under the project's licenses (MIT for the core,
+FSL for `@xnetjs/cloud`). There is **no CLA** and no copyright assignment — see
+[`GOVERNANCE.md`](./GOVERNANCE.md).
+
+Sign off automatically with:
+
+```bash
+git commit -s -m "feat(scope): your change"
+```
+
+The `Signed-off-by: Your Name <you@example.com>` line must match your commit author.
+A CI check (`.github/workflows/dco.yml`) verifies every commit in a PR is signed off.
+
 ## Pull request guidelines
 
 Open small, focused PRs with enough context to review quickly.

@@ -389,6 +389,14 @@ See [`docs/ROADMAP.md`](./docs/ROADMAP.md) for the detailed execution plan.
 - [Tradeoffs](./docs/TRADEOFFS.md) -- Why hybrid sync (Yjs + event sourcing)
 - [Roadmap](./docs/ROADMAP.md) -- current 6-month execution plan (Mar-Sep 2026)
 
+## Project
+
+- [Governance](./GOVERNANCE.md) · [Trademark & Brand](./TRADEMARK.md) · [Code of Conduct](./CODE_OF_CONDUCT.md) · [Charter](./docs/CHARTER.md) · [Maintainers](./MAINTAINERS.md)
+- Contributions use the [DCO](https://developercertificate.org/) (`git commit -s`) — no CLA. See [CONTRIBUTING.md](./CONTRIBUTING.md).
+- The code is MIT (core) / FSL (`@xnetjs/cloud`). The **xNet** name and logo are trademarks — see the [trademark policy](./TRADEMARK.md). Independent implementations that pass the [conformance suite](./conformance) may call themselves **"xNet-compatible"** ([how](./docs/COMPATIBILITY.md)).
+
 ## License
 
-MIT
+MIT — see [`LICENSE`](./LICENSE). The `@xnetjs/cloud` package is source-available under
+[FSL-1.1-Apache-2.0](./packages/cloud/LICENSE) (converts to Apache-2.0 two years after
+each release).
