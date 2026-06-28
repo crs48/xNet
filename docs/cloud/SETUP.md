@@ -179,7 +179,7 @@ exact per-call cost (`usage.cost`), and managed per-tenant budgets.
    AI_GATEWAY_BASE_URL=https://openrouter.ai/api/v1
    OPENROUTER_MANAGEMENT_KEY=sk-or-mgmt-...   # mints per-tenant keys (Provisioning API)
    AI_MARKUP=1.3                              # absorbs OpenRouter's ~5.5% buy-in + Stripe fees
-   AI_ALLOWED_MODELS=anthropic/claude-sonnet-4-6,openai/gpt-4o-mini   # optional allow-list
+   AI_ALLOWED_MODELS=anthropic/claude-sonnet-4.6,openai/gpt-4o-mini   # optional allow-list
    ```
    At provision time the control plane mints each `aiEnabled` tenant an OpenRouter
    key with a monthly USD `limit`; inference uses the secret, update/delete address
@@ -216,7 +216,6 @@ deployed.
 
 > **Full walkthrough + preflight script:** [MANAGED_AI_SETUP.md](MANAGED_AI_SETUP.md)
 > (`node scripts/cloud-openrouter-setup.mjs --probe-mint`).
-
 
 The control plane also serves `GET /ai/models` (the OpenRouter catalog, cached,
 intersected with the tenant's plan policy) so the app can show a **model picker**.
@@ -298,7 +297,7 @@ STRIPE_WEBHOOK_SECRET=whsec_...        # the value `stripe listen` prints (below
 
 - **WorkOS sign-in.** WorkOS only redirects to a URI you've registered, so add
   `http://localhost:4455/auth/callback` to the **redirect URIs** of your WorkOS
-  *staging* app (it allows several), then set the override above. Without it, sign-in
+  _staging_ app (it allows several), then set the override above. Without it, sign-in
   bounces back to `cloud-staging.xnet.fyi` and your local server never sees the code.
 - **Stripe webhooks.** Forward live test-mode events to your laptop with the
   [Stripe CLI](https://stripe.com/docs/stripe-cli) — no public tunnel needed:

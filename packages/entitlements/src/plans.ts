@@ -92,14 +92,14 @@ export interface PlanEntitlements {
  */
 export const CHEAP_AI_MODELS: readonly string[] = [
   'openrouter/auto',
-  'anthropic/claude-haiku-4-5',
+  'anthropic/claude-haiku-4.5',
   'openai/gpt-4o-mini',
   'google/gemini-2.5-flash'
 ]
 
 export const STANDARD_AI_MODELS: readonly string[] = [
   ...CHEAP_AI_MODELS,
-  'anthropic/claude-sonnet-4-6',
+  'anthropic/claude-sonnet-4.6',
   'openai/gpt-4o',
   'google/gemini-2.5-pro'
 ]
@@ -135,7 +135,7 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     includedAiUsd: 2,
     aiMonthlyBudgetUsd: 25,
     aiModels: CHEAP_AI_MODELS,
-    aiDefaultModel: 'anthropic/claude-haiku-4-5',
+    aiDefaultModel: 'anthropic/claude-haiku-4.5',
     sla: 'best-effort'
   },
   family: {
@@ -149,7 +149,7 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     includedAiUsd: 5,
     aiMonthlyBudgetUsd: 60,
     aiModels: STANDARD_AI_MODELS,
-    aiDefaultModel: 'anthropic/claude-sonnet-4-6',
+    aiDefaultModel: 'anthropic/claude-sonnet-4.6',
     sla: 'best-effort'
   },
   team: {
@@ -163,7 +163,7 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     includedAiUsd: 8,
     aiMonthlyBudgetUsd: 200,
     aiModels: 'all',
-    aiDefaultModel: 'anthropic/claude-sonnet-4-6',
+    aiDefaultModel: 'anthropic/claude-sonnet-4.6',
     sla: 'best-effort'
   },
   community: {
@@ -177,7 +177,7 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     includedAiUsd: 10,
     aiMonthlyBudgetUsd: 300,
     aiModels: 'all',
-    aiDefaultModel: 'anthropic/claude-sonnet-4-6',
+    aiDefaultModel: 'anthropic/claude-sonnet-4.6',
     sla: '99.9'
   },
   company: {
@@ -191,7 +191,7 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     includedAiUsd: 15,
     aiMonthlyBudgetUsd: 500,
     aiModels: 'all',
-    aiDefaultModel: 'anthropic/claude-sonnet-4-6',
+    aiDefaultModel: 'anthropic/claude-sonnet-4.6',
     sla: '99.9'
   },
   enterprise: {
@@ -205,7 +205,7 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     includedAiUsd: 25,
     aiMonthlyBudgetUsd: 2000,
     aiModels: 'all',
-    aiDefaultModel: 'anthropic/claude-opus-4-8',
+    aiDefaultModel: 'anthropic/claude-opus-4.8',
     sla: 'custom'
   }
 }
