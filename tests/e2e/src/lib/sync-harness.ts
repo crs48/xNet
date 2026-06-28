@@ -445,6 +445,21 @@ async function openElectronClient(opts: OpenClientOptions): Promise<ElectronSync
     (id) => (window as unknown as SyncHarnessWindow).__xnetSyncTestHarness!.acquire(id),
     opts.docId
   )
+  // Wait until the data-process WebSocket has actually (re)connected to the test
+  // hub before the caller edits — otherwise the first updates are produced while
+  // disconnected and the peer never sees them. A timeout here means the repoint
+  // itself failed (a far clearer signal than an empty convergence read).
+  await win.waitForFunction(
+    async () => {
+      const bsm = (window as unknown as { xnetBSM?: { getStatus(): Promise<{ status: string }> } })
+        .xnetBSM
+      if (!bsm) return false
+      const status = await bsm.getStatus()
+      return status.status === 'connected'
+    },
+    undefined,
+    { timeout: 60_000 }
+  )
   return {
     kind: 'electron',
     app,
