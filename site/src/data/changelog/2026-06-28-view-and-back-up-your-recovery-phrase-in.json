@@ -1,0 +1,10 @@
+{
+  "id": "2026-06-28-view-and-back-up-your-recovery-phrase-in",
+  "date": "June 28, 2026",
+  "title": "View and back up your recovery phrase in Settings",
+  "summary": "Settings now shows your recovery phrase (behind a passkey prompt) for recoverable identities, so you can save it any time — and back it up to the system keychain in the desktop app.",
+  "highlights": [],
+  "tags": [
+    "identity"
+  ]
+}

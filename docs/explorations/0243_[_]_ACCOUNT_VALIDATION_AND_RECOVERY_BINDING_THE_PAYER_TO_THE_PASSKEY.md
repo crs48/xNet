@@ -505,7 +505,7 @@ async function admitDevice(account: AccountLedger, existing: KeyBundle, newDevic
       step (currently only `POST /internal/account/recover`).
 - [x] **P1.1** Wire `seed-recovery.ts` through onboarding `recovery-phrase` / `qr-scan`
       and `ImportIdentityScreen`.
-- [ ] **P1.2** Add Settings → Security "Save / view recovery phrase" with consent copy
+- [x] **P1.2** Add Settings → Security "Save / view recovery phrase" with consent copy
       distinguishing account vs. data recovery; Electron uses `secure-seed`.
 - [x] **P1.3** On enroll, derive the local passkey bundle so it wraps the
       recovery-phrase-derived key (passkey unlock and phrase recovery yield the _same_ DID).

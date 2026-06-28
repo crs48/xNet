@@ -28,9 +28,10 @@ import {
   Activity,
   Cloud,
   Eye,
+  EyeOff,
   Trash2
 } from 'lucide-react'
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { resetCoachSession } from '../coachmarks'
 import { ProfileSettings } from '../comms/ProfileSettings'
 import { ContentSafetySettings } from '../components/ContentSafetySettings'
@@ -41,7 +42,7 @@ import { requestXNetBrowserStorageReset } from '../lib/browser-storage-reset'
 import { useDerivedData } from '../lib/data-dignity'
 import { getTelemetryCollector } from '../lib/error-reporter'
 import { persistedHubUrl, setPersistedHubUrl } from '../lib/hub-url'
-import { logout } from '../lib/identity'
+import { identityManager, logout } from '../lib/identity'
 import { createLeavePorts, downloadLeaveBundle, type LeaveDeps } from '../lib/leave'
 import { isSentryConfigured } from '../lib/sentry'
 import { useConsent } from '../lib/use-consent'
@@ -826,6 +827,91 @@ function NetworkSettings() {
 
 // ─── Account Settings ─────────────────────────────────────────────────────────
 
+/**
+ * Reveal-on-demand recovery phrase (exploration 0243). Only recoverable identities
+ * have a phrase; for a plain passkey identity we say so plainly. Revealing prompts the
+ * passkey (via `exportRecoveryPhrase` → unlock) and we never persist it in the clear.
+ */
+/** The Electron preload exposes a keychain-backed seed store (apps/electron secure-seed). */
+type SeedKeychain = { setSeedPhrase(mnemonic: string): Promise<unknown> }
+const seedKeychain = (globalThis as { xnet?: SeedKeychain }).xnet
+
+function RecoveryPhraseRow() {
+  const [recoverable, setRecoverable] = useState<boolean | null>(null)
+  const [phrase, setPhrase] = useState<string | null>(null)
+  const [busy, setBusy] = useState(false)
+  const [savedToKeychain, setSavedToKeychain] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    void identityManager.isRecoverable().then((r) => {
+      if (active) setRecoverable(r)
+    })
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const reveal = useCallback(async () => {
+    setBusy(true)
+    try {
+      setPhrase(await identityManager.exportRecoveryPhrase())
+    } catch (err) {
+      console.error('Failed to reveal recovery phrase:', err)
+    } finally {
+      setBusy(false)
+    }
+  }, [])
+
+  if (recoverable === false) {
+    return (
+      <SettingRow
+        label="Recovery phrase"
+        description="This identity has no recovery phrase, so losing your passkey means losing access. Set one up by creating a recoverable identity."
+      >
+        <span className="text-[11px] text-ink-3">Not enabled</span>
+      </SettingRow>
+    )
+  }
+
+  return (
+    <SettingRow
+      label="Recovery phrase"
+      description="Restores your identity and encrypted data on a new device if you lose your passkey. We can't recover it for you — keep it somewhere safe."
+    >
+      {phrase ? (
+        <div className="flex max-w-[280px] flex-col items-end gap-1">
+          <span className="break-words text-right font-mono text-[10px] text-ink-2">{phrase}</span>
+          <div className="flex gap-3">
+            {seedKeychain && (
+              <button
+                onClick={() => {
+                  void seedKeychain.setSeedPhrase(phrase).then(
+                    () => setSavedToKeychain(true),
+                    () => setSavedToKeychain(false)
+                  )
+                }}
+                className={QUIET_BUTTON}
+              >
+                {savedToKeychain ? 'Saved to keychain ✓' : 'Back up to this device'}
+              </button>
+            )}
+            <button onClick={() => setPhrase(null)} className={QUIET_BUTTON}>
+              <EyeOff size={14} strokeWidth={1.5} />
+              Hide
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button onClick={reveal} disabled={busy || recoverable === null} className={QUIET_BUTTON}>
+          <Eye size={14} strokeWidth={1.5} />
+          {busy ? 'Unlocking…' : 'View phrase'}
+        </button>
+      )}
+    </SettingRow>
+  )
+}
+
 function AccountSettings() {
   const { identity } = useIdentity()
   const [loggingOut, setLoggingOut] = useState(false)
@@ -848,6 +934,8 @@ function AccountSettings() {
             {identity?.did || 'Not initialized'}
           </span>
         </SettingRow>
+
+        <RecoveryPhraseRow />
 
         <SettingRow
           label="Log out"
