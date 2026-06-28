@@ -677,10 +677,10 @@ erDiagram
       existing transport; idempotent per (tenant, window, threshold).
 - [ ] Add a streaming path: server SSE proxy for `/ai/chat` that meters off the
       **final** usage chunk; `ManagedProvider.stream()` consumes it.
-- [ ] Add `OPENROUTER_MANAGEMENT_KEY` to `.env.staging`/`.env.production`
+- [x] Add `OPENROUTER_MANAGEMENT_KEY` to `.env.staging`/`.env.production`
       templates + deploy secret store; low‑balance alert via `GET /api/v1/credits`;
       ops doc on bulk credit top‑up.
-- [ ] Reconcile job: compare ledger window total vs `GET /api/v1/key`
+- [x] Reconcile job: compare ledger window total vs `GET /api/v1/key`
       `usage`/`limit_remaining`; alert on drift > tolerance.
 - [ ] Changeset(s) for the publishable packages touched (`@xnetjs/cloud`,
       `@xnetjs/entitlements`, `@xnetjs/plugins`) per repo policy.
@@ -706,7 +706,7 @@ erDiagram
 - [x] E2E (web): model picker lists only plan‑allowed models with retail prices;
       switching models persists and re‑bills correctly; gauge turns amber at 80%
       and red + disabled at 100%.
-- [ ] Ops: low‑balance alert fires before the master OpenRouter balance hits 0;
+- [x] Ops: low‑balance alert fires before the master OpenRouter balance hits 0;
       reconcile job shows ledger vs OpenRouter `usage` within tolerance.
 - [x] Margin reconciliation dashboard shows positive measured margin for a
       simulated heavy‑AI tenant.

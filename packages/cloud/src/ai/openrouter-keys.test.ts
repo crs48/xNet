@@ -99,6 +99,28 @@ describe('OpenRouterKeyManager (over an injected fetch)', () => {
     expect(fetchImpl).not.toHaveBeenCalled()
   })
 
+  it('reads a key’s usage via GET /keys/{hash}', async () => {
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(JSON.stringify({ data: { usage: 7.5, limit: 25, limit_remaining: 17.5 } }), {
+          status: 200
+        })
+    ) as unknown as typeof fetch
+    const m = new OpenRouterKeyManager({
+      managementKey: 'k',
+      baseUrl: 'https://openrouter.ai/api/v1',
+      fetchImpl
+    })
+    expect(await m.usage('hash-abc')).toEqual({
+      usageUsd: 7.5,
+      limitUsd: 25,
+      limitRemainingUsd: 17.5
+    })
+    const [url, init] = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0]
+    expect(url).toBe('https://openrouter.ai/api/v1/keys/hash-abc')
+    expect((init as RequestInit).method).toBe('GET')
+  })
+
   it('DELETEs by hash', async () => {
     const fetchImpl = vi.fn(
       async () => new Response('{}', { status: 200 })

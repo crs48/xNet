@@ -122,6 +122,41 @@ export interface FleetMargin {
   negativeTenants: string[]
 }
 
+/** Drift between our ledger and OpenRouter's own per-key counter (exploration 0244). */
+export interface KeyUsageReconciliation {
+  /** What our ledger recorded as provider cost for the key's window (USD). */
+  ledgerProviderCostUsd: number
+  /** What OpenRouter reports the key spent (USD). */
+  openrouterUsageUsd: number
+  /** Signed difference (openrouter − ledger); >0 = OpenRouter billed more than we logged. */
+  driftUsd: number
+  /** |drift| as a fraction of the OpenRouter figure (0 when it's 0). */
+  driftPct: number
+  /** False when |drift| exceeds the tolerance — a metering bug or missed call to investigate. */
+  withinTolerance: boolean
+}
+
+/**
+ * Reconcile our ledger's provider-cost total for a key's window against
+ * OpenRouter's own `usage` counter. A persistent drift beyond `toleranceUsd`
+ * (default $0.01) means we're mis-metering — alert and investigate.
+ */
+export function reconcileKeyUsage(
+  ledgerProviderCostUsd: number,
+  openrouterUsageUsd: number,
+  toleranceUsd = 0.01
+): KeyUsageReconciliation {
+  const driftUsd = round(openrouterUsageUsd - ledgerProviderCostUsd)
+  const driftPct = openrouterUsageUsd > 0 ? round(Math.abs(driftUsd) / openrouterUsageUsd) : 0
+  return {
+    ledgerProviderCostUsd: round(ledgerProviderCostUsd),
+    openrouterUsageUsd: round(openrouterUsageUsd),
+    driftUsd,
+    driftPct,
+    withinTolerance: Math.abs(driftUsd) <= toleranceUsd
+  }
+}
+
 /** Aggregate per-tenant margins into a fleet P&L (the dashboard's headline). */
 export function aggregateMargin(margins: TenantMargin[]): FleetMargin {
   const revenue = margins.reduce((s, m) => s + m.revenueUsd, 0)

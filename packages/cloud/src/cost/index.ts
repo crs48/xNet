@@ -19,9 +19,11 @@ export {
 export {
   measuredCogs,
   reconcileTenantMargin,
+  reconcileKeyUsage,
   aggregateMargin,
   type TenantUsageMeasurement,
   type TenantCostBreakdown,
   type TenantMargin,
-  type FleetMargin
+  type FleetMargin,
+  type KeyUsageReconciliation
 } from './reconcile'

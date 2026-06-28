@@ -30,6 +30,20 @@ interface CreateKeyResponse {
   data?: { hash?: string }
 }
 
+/** A key's provider-side spend, read from `GET /keys/{hash}`. */
+export interface KeyUsage {
+  /** USD OpenRouter has billed this key (its own counter). */
+  usageUsd: number
+  /** The key's hard limit (USD), or null if unlimited. */
+  limitUsd: number | null
+  /** Remaining headroom (USD), or null if unlimited. */
+  limitRemainingUsd: number | null
+}
+
+interface KeyUsageResponse {
+  data?: { usage?: number; limit?: number | null; limit_remaining?: number | null }
+}
+
 /**
  * Real manager over OpenRouter's Provisioning API (`POST/PATCH/DELETE /keys`).
  * `limit` is the hard USD cap OpenRouter enforces; `limit_reset: 'monthly'` mirrors
@@ -73,6 +87,24 @@ export class OpenRouterKeyManager implements VirtualKeyManager {
 
   async remove(manageId: string): Promise<void> {
     await this.call('DELETE', `/keys/${encodeURIComponent(manageId)}`, undefined)
+  }
+
+  /**
+   * Read a key's provider-side spend from OpenRouter (`GET /keys/{hash}`), for
+   * reconciling against our own ledger (exploration 0244). `usageUsd` is what
+   * OpenRouter has billed this key; `limitRemainingUsd` is the headroom left.
+   */
+  async usage(manageId: string): Promise<KeyUsage> {
+    const data = (await this.call(
+      'GET',
+      `/keys/${encodeURIComponent(manageId)}`,
+      undefined
+    )) as KeyUsageResponse
+    return {
+      usageUsd: data.data?.usage ?? 0,
+      limitUsd: data.data?.limit ?? null,
+      limitRemainingUsd: data.data?.limit_remaining ?? null
+    }
   }
 
   private async call(method: string, path: string, body: unknown): Promise<unknown> {

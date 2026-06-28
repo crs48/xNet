@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   aggregateMargin,
   measuredCogs,
+  reconcileKeyUsage,
   reconcileTenantMargin,
   type TenantUsageMeasurement
 } from './reconcile'
@@ -74,5 +75,25 @@ describe('aggregateMargin', () => {
     expect(fleet.revenueUsd).toBeCloseTo(15.01, 4)
     expect(fleet.negativeTenants).toEqual(['b'])
     expect(fleet.marginUsd).toBeCloseTo(a.marginUsd + b.marginUsd, 4)
+  })
+})
+
+describe('reconcileKeyUsage (ledger vs OpenRouter key counter, 0244)', () => {
+  it('passes when the two agree within tolerance', () => {
+    const r = reconcileKeyUsage(12.34, 12.345, 0.01)
+    expect(r.withinTolerance).toBe(true)
+    expect(r.driftUsd).toBeCloseTo(0.005, 4)
+  })
+
+  it('flags drift beyond tolerance (OpenRouter billed more than we logged)', () => {
+    const r = reconcileKeyUsage(10, 11, 0.01)
+    expect(r.withinTolerance).toBe(false)
+    expect(r.driftUsd).toBe(1)
+    expect(r.driftPct).toBeCloseTo(1 / 11, 4)
+  })
+
+  it('tolerates a zero OpenRouter figure', () => {
+    expect(reconcileKeyUsage(0, 0).withinTolerance).toBe(true)
+    expect(reconcileKeyUsage(0, 0).driftPct).toBe(0)
   })
 })

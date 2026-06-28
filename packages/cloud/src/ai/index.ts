@@ -32,7 +32,18 @@ export {
   type LiteLLMKeyManagerConfig
 } from './keys'
 
-export { OpenRouterKeyManager, type OpenRouterKeyManagerConfig } from './openrouter-keys'
+export {
+  OpenRouterKeyManager,
+  type OpenRouterKeyManagerConfig,
+  type KeyUsage
+} from './openrouter-keys'
+
+export {
+  OpenRouterCreditsClient,
+  isLowBalance,
+  type CreditBalance,
+  type OpenRouterCreditsConfig
+} from './credits'
 
 export {
   MeteredGateway,

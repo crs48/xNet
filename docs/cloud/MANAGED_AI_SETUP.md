@@ -75,11 +75,11 @@ AI_MARKUP=1.3                              # retail markup over provider cost (�
 
 Already present from base control-plane setup, and **reused** for managed AI:
 
-| Var | Why managed AI needs it |
-|---|---|
-| `XNET_CLOUD_BASE_URL` | The URL hubs call back to (`/ai/chat`). Injected into hubs as `XNET_CLOUD_URL`. |
-| `XNET_CLOUD_INTERNAL_SECRET` | The hub↔control-plane shared secret. Injected into AI hubs. |
-| `STRIPE_SECRET_KEY` | Real metered billing (omit ⇒ keyless fake; no charges). |
+| Var                          | Why managed AI needs it                                                         |
+| ---------------------------- | ------------------------------------------------------------------------------- |
+| `XNET_CLOUD_BASE_URL`        | The URL hubs call back to (`/ai/chat`). Injected into hubs as `XNET_CLOUD_URL`. |
+| `XNET_CLOUD_INTERNAL_SECRET` | The hub↔control-plane shared secret. Injected into AI hubs.                     |
+| `STRIPE_SECRET_KEY`          | Real metered billing (omit ⇒ keyless fake; no charges).                         |
 
 The env doctor knows these vars — validate with:
 
@@ -107,13 +107,13 @@ Per-plan AI lives in the entitlements catalog
 ([`packages/entitlements/src/plans.ts`](../../packages/entitlements/src/plans.ts))
 and rides the signed `HUB_PLAN` token — no env needed. Defaults ship sensibly:
 
-| Plan | AI | Included / cap (USD) | Models (`aiModels`) | Default |
-|---|---|---|---|---|
-| demo | off | — | — | — |
-| personal | on | $2 / $25 | cheap subset | `anthropic/claude-haiku-4-5` |
-| family | on | $5 / $60 | standard subset | `anthropic/claude-sonnet-4-6` |
-| team / community / company | on | $8–15 / $200–500 | **all** | `anthropic/claude-sonnet-4-6` |
-| enterprise | on | $25 / $2000 | **all** | `anthropic/claude-opus-4-8` |
+| Plan                       | AI  | Included / cap (USD) | Models (`aiModels`) | Default                       |
+| -------------------------- | --- | -------------------- | ------------------- | ----------------------------- |
+| demo                       | off | —                    | —                   | —                             |
+| personal                   | on  | $2 / $25             | cheap subset        | `anthropic/claude-haiku-4-5`  |
+| family                     | on  | $5 / $60             | standard subset     | `anthropic/claude-sonnet-4-6` |
+| team / community / company | on  | $8–15 / $200–500     | **all**             | `anthropic/claude-sonnet-4-6` |
+| enterprise                 | on  | $25 / $2000          | **all**             | `anthropic/claude-opus-4-8`   |
 
 To change them, edit `PLAN_CATALOG` (or use `withAiModels` / `withAiBudget` for
 per-tenant overrides). `CHEAP_AI_MODELS` / `STANDARD_AI_MODELS` are the curated
@@ -156,6 +156,53 @@ metered)**, show a model picker (grouped, with price/context badges) and a
 - `AI_MARKUP=1.3` (~30%) absorbs OpenRouter's credit-purchase fee + Stripe fees.
   Tune via the measured margin reconciliation.
 
+## User-set spend caps (weekly / monthly / rolling)
+
+Beyond the plan's hard cap, each tenant can set **their own** AI spend limit from
+the dashboard ("Managed AI" card → _Your spend cap_), enforced over a window
+(exploration [0244](../explorations/0244_[_]_OPENROUTER_DEEP_INTEGRATION_MARGIN_SAFE_BILLING_AND_USER_SPEND_CAPS.md)):
+
+- **monthly** (calendar month — the default, aligned to the Stripe invoice),
+- **weekly** (Mon–Sun UTC — aligned to OpenRouter's native weekly key reset), or
+- **rolling N days** ("at most $X in the last N days").
+
+The cap is always clamped to ≤ the plan's `aiMonthlyBudgetUsd`; the metered
+gateway sums ledger spend since the window start and `402`s at the cap. The
+OpenRouter key's `limit_reset` is aligned to the window as a coarse provider-side
+backstop (its `limit` stays at the plan cap, never the tighter user cap). Note:
+the cap governs **access**; the **invoice** is still the calendar month.
+
+## Keep the account funded (low-balance alert)
+
+Managed AI draws on **one** OpenRouter account — if its balance hits zero, _every_
+tenant `402`s. Two safeguards:
+
+- **Buy credits in bulk.** OpenRouter's ~5.5% credit-purchase fee has an **$0.80
+  minimum**, so many small top-ups bleed margin; top up in larger increments. The
+  margin model already prices the 5.5% in (`EFFECTIVE_COGS_MULTIPLIER = 1.055`).
+- **Alert before zero.** Poll the balance with `OpenRouterCreditsClient`
+  (`GET /api/v1/credits`) and alert when `isLowBalance(balance, threshold)` — wire
+  it to your monitoring / a cron, ideally with auto-top-up:
+
+  ```ts
+  import { OpenRouterCreditsClient, isLowBalance } from '@xnetjs/cloud/ai'
+  const credits = new OpenRouterCreditsClient({ apiKey: process.env.OPENROUTER_API_KEY! })
+  const balance = await credits.getBalance()
+  if (isLowBalance(balance, 50)) alertOps(`OpenRouter balance low: $${balance.remainingUsd}`)
+  ```
+
+## Reconcile metering against OpenRouter
+
+To catch a metering bug (or a missed meter call), periodically compare our ledger's
+provider-cost total for a tenant against OpenRouter's own per-key counter:
+
+```ts
+import { reconcileKeyUsage } from '@xnetjs/cloud/cost'
+const { usageUsd } = await keyManager.usage(tenant.aiKeyManageRef!) // GET /keys/{hash}
+const r = reconcileKeyUsage(ledgerProviderCostUsd, usageUsd) // tolerance default $0.01
+if (!r.withinTolerance) alertOps(`AI metering drift for ${tenant.tenantId}: $${r.driftUsd}`)
+```
+
 ## Self-host / no control plane
 
 Managed AI is Cloud-only. With no control plane (or the vars unset), hubs report
@@ -165,17 +212,17 @@ bridge). No hard failure — the anti-lock-in invariant holds.
 
 ## Env var reference
 
-| Var | Side | Required | Purpose |
-|---|---|---|---|
-| `AI_GATEWAY_PROVIDER` | control plane | rec. | `openrouter` (or `litellm`) |
-| `AI_GATEWAY_BASE_URL` | control plane | yes | `https://openrouter.ai/api/v1` |
-| `OPENROUTER_MANAGEMENT_KEY` | control plane | yes | Provisioning API key (mints per-tenant keys) |
-| `AI_MARKUP` | control plane | no (def 1.3) | retail markup over provider cost (≥ 1) |
-| `AI_ALLOWED_MODELS` | control plane | no | global allow-list (per-plan gating is separate) |
-| `XNET_CLOUD_BASE_URL` | control plane | yes* | hubs call this for `/ai/chat` (*already set) |
-| `XNET_CLOUD_INTERNAL_SECRET` | control plane | yes* | hub↔control-plane secret (*already set) |
-| `STRIPE_SECRET_KEY` | control plane | for billing | real metering (else no-op fake) |
-| `XNET_CLOUD_URL` / `XNET_CLOUD_INTERNAL_SECRET` / `XNET_TENANT_ID` | hub | **auto** | injected by the control plane — do not set by hand |
+| Var                                                                | Side          | Required     | Purpose                                            |
+| ------------------------------------------------------------------ | ------------- | ------------ | -------------------------------------------------- |
+| `AI_GATEWAY_PROVIDER`                                              | control plane | rec.         | `openrouter` (or `litellm`)                        |
+| `AI_GATEWAY_BASE_URL`                                              | control plane | yes          | `https://openrouter.ai/api/v1`                     |
+| `OPENROUTER_MANAGEMENT_KEY`                                        | control plane | yes          | Provisioning API key (mints per-tenant keys)       |
+| `AI_MARKUP`                                                        | control plane | no (def 1.3) | retail markup over provider cost (≥ 1)             |
+| `AI_ALLOWED_MODELS`                                                | control plane | no           | global allow-list (per-plan gating is separate)    |
+| `XNET_CLOUD_BASE_URL`                                              | control plane | yes\*        | hubs call this for `/ai/chat` (\*already set)      |
+| `XNET_CLOUD_INTERNAL_SECRET`                                       | control plane | yes\*        | hub↔control-plane secret (\*already set)           |
+| `STRIPE_SECRET_KEY`                                                | control plane | for billing  | real metering (else no-op fake)                    |
+| `XNET_CLOUD_URL` / `XNET_CLOUD_INTERNAL_SECRET` / `XNET_TENANT_ID` | hub           | **auto**     | injected by the control plane — do not set by hand |
 
 ## Troubleshooting
 
