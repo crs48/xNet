@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Recover your workspace with a recovery phrase</title>
+      <link>https://xnet.fyi/changelog#2026-06-28-recover-your-workspace-with-a-recovery-p</link>
+      <guid isPermaLink="false">2026-06-28-recover-your-workspace-with-a-recovery-p</guid>
+      <pubDate>Sun, 28 Jun 2026 22:17:16 GMT</pubDate>
+      <description>You can now opt into a recovery phrase at sign-up and use it to restore your identity and encrypted data on a new device if you lose your passkey.</description>
+    </item>
+    <item>
       <title>New essay: The Right to Say No</title>
       <link>https://xnet.fyi/changelog#2026-06-28-new-essay-the-right-to-say-no</link>
       <guid isPermaLink="false">2026-06-28-new-essay-the-right-to-say-no</guid>
