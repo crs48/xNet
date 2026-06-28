@@ -26,8 +26,22 @@ import { resolve } from 'node:path'
 
 const [fileArg, projectArg, ...rest] = process.argv.slice(2)
 const dryRun = rest.includes('--dry-run')
+// `--only A,B` (or `--only=A,B`) restricts the push to those env-var keys, so you
+// can land a single new secret (e.g. OPENROUTER_MANAGEMENT_KEY) without rotating
+// every other secret to whatever the local .env currently holds (exploration 0244).
+const onlyArg = rest.find((a) => a === '--only' || a.startsWith('--only='))
+const onlyKeys = onlyArg
+  ? new Set(
+      (onlyArg.includes('=') ? onlyArg.split('=')[1] : rest[rest.indexOf(onlyArg) + 1] || '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean)
+    )
+  : null
 if (!fileArg || !projectArg) {
-  console.error('Usage: node scripts/cloud-secrets-push.mjs <path-to-.env> <gcp-project> [--dry-run]')
+  console.error(
+    'Usage: node scripts/cloud-secrets-push.mjs <path-to-.env> <gcp-project> [--dry-run] [--only VAR1,VAR2]'
+  )
   process.exit(2)
 }
 const path = resolve(fileArg)
@@ -56,7 +70,10 @@ const SECRET_NAMES = {
   R2_ENDPOINT: 'r2-endpoint',
   R2_ACCESS_KEY_ID: 'r2-key-id',
   R2_SECRET_ACCESS_KEY: 'r2-secret',
-  GCP_ARTIFACT_REGISTRY: 'gcp-artifact-registry'
+  GCP_ARTIFACT_REGISTRY: 'gcp-artifact-registry',
+  // Managed AI (OpenRouter): the Provisioning API key that mints each tenant's
+  // budgeted key. Optional — skipped when unset/CHANGEME (exploration 0244).
+  OPENROUTER_MANAGEMENT_KEY: 'openrouter-management-key'
   // Note: SENTRY_DSN is NOT a Secret Manager secret — a Sentry DSN is a
   // write-only ingestion key (public in client builds), so it rides as a plain
   // env var from the `CLOUD_SENTRY_DSN` repo variable in deploy-cloud.yml. That
@@ -90,6 +107,7 @@ const gcloud = (args, input) =>
 let pushed = 0
 let skipped = 0
 for (const [key, secret] of Object.entries(SECRET_NAMES)) {
+  if (onlyKeys && !onlyKeys.has(key)) continue
   const value = env[key]
   if (!isFilled(value)) {
     console.warn(`– skip ${secret} (no usable ${key})`)

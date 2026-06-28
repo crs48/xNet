@@ -86,12 +86,22 @@ jobs:
           # secretAccessor + datastore.user + run.admin), set explicitly so secret
           # resolution doesn't fall to the default compute SA. The secret *names*
           # below must exist in the project — push them with scripts/cloud-secrets-push.mjs.
+          #
+          # Managed AI (OpenRouter, exploration 0244) is wired only when its
+          # Provisioning-key secret exists, so a not-yet-pushed key never fails the
+          # deploy — push `openrouter-management-key` and the next deploy lights it up.
+          AI_SECRET=""
+          if gcloud secrets describe openrouter-management-key --project "$PROJECT" >/dev/null 2>&1; then
+            AI_SECRET=",OPENROUTER_MANAGEMENT_KEY=openrouter-management-key:latest"
+          else
+            echo "::notice::openrouter-management-key not found — deploying without managed AI (managed:false)"
+          fi
           gcloud run deploy "$SERVICE" \
             --project "$PROJECT" --region "$REGION" \
             --image "$IMAGE" --allow-unauthenticated --min-instances=1 \
             --service-account "${{ secrets.DEPLOYER_SA }}" \
-            --set-env-vars "NODE_ENV=production,XNET_CLOUD_BASE_URL=${BASE_URL},XNET_CLOUD_MARKETING_URL=https://xnet.fyi/cloud,GCP_PROJECT_PREFIX=xnet-cloud-staging,GCP_REGION=${REGION},GCP_FIRESTORE_DATABASE=(default),R2_BUCKET=xnet-hub-data-staging,HUB_IMAGE_TAG=${HUB_IMAGE_TAG},AI_MARKUP=1.25,SENTRY_DSN=${{ vars.CLOUD_SENTRY_DSN }}" \
-            --set-secrets "XNET_PLAN_SECRET=xnet-plan-secret:latest,XNET_CLOUD_SESSION_SECRET=session-secret:latest,XNET_CLOUD_INTERNAL_SECRET=internal-secret:latest,WORKOS_CLIENT_ID=workos-client-id:latest,WORKOS_API_KEY=workos-api-key:latest,WORKOS_REDIRECT_URI=workos-redirect-uri:latest,STRIPE_SECRET_KEY=stripe-secret:latest,STRIPE_WEBHOOK_SECRET=stripe-webhook:latest,STRIPE_PRICE_PERSONAL=stripe-price-personal:latest,STRIPE_PRICE_FAMILY=stripe-price-family:latest,STRIPE_PRICE_TEAM=stripe-price-team:latest,R2_ACCOUNT_ID=r2-account-id:latest,R2_ENDPOINT=r2-endpoint:latest,R2_ACCESS_KEY_ID=r2-key-id:latest,R2_SECRET_ACCESS_KEY=r2-secret:latest,GCP_ARTIFACT_REGISTRY=gcp-artifact-registry:latest"
+            --set-env-vars "NODE_ENV=production,XNET_CLOUD_BASE_URL=${BASE_URL},XNET_CLOUD_MARKETING_URL=https://xnet.fyi/cloud,GCP_PROJECT_PREFIX=xnet-cloud-staging,GCP_REGION=${REGION},GCP_FIRESTORE_DATABASE=(default),R2_BUCKET=xnet-hub-data-staging,HUB_IMAGE_TAG=${HUB_IMAGE_TAG},AI_GATEWAY_PROVIDER=openrouter,AI_GATEWAY_BASE_URL=https://openrouter.ai/api/v1,AI_MARKUP=1.25,SENTRY_DSN=${{ vars.CLOUD_SENTRY_DSN }}" \
+            --set-secrets "XNET_PLAN_SECRET=xnet-plan-secret:latest,XNET_CLOUD_SESSION_SECRET=session-secret:latest,XNET_CLOUD_INTERNAL_SECRET=internal-secret:latest,WORKOS_CLIENT_ID=workos-client-id:latest,WORKOS_API_KEY=workos-api-key:latest,WORKOS_REDIRECT_URI=workos-redirect-uri:latest,STRIPE_SECRET_KEY=stripe-secret:latest,STRIPE_WEBHOOK_SECRET=stripe-webhook:latest,STRIPE_PRICE_PERSONAL=stripe-price-personal:latest,STRIPE_PRICE_FAMILY=stripe-price-family:latest,STRIPE_PRICE_TEAM=stripe-price-team:latest,R2_ACCOUNT_ID=r2-account-id:latest,R2_ENDPOINT=r2-endpoint:latest,R2_ACCESS_KEY_ID=r2-key-id:latest,R2_SECRET_ACCESS_KEY=r2-secret:latest,GCP_ARTIFACT_REGISTRY=gcp-artifact-registry:latest${AI_SECRET}"
 
       - name: Smoke test the deploy
         id: smoke
