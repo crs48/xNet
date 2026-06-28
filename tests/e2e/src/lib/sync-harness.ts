@@ -125,6 +125,7 @@ function spawnAndWait(
       detached: true
     })
     let stdout = ''
+    let stderr = ''
     // Strip ANSI colour codes (e.g. from Vite output) before substring-
     // matching the ready text. The pattern is built from a computed string so
     // the ESC byte is not a control char in a regex literal (no-control-regex).
@@ -140,6 +141,7 @@ function spawnAndWait(
       }
     })
     proc.stderr?.on('data', (chunk: Buffer) => {
+      stderr += chunk.toString()
       if (process.env.E2E_DEBUG) process.stderr.write(`[${opts.label}:err] ${chunk.toString()}`)
     })
     proc.on('error', (err) => {
@@ -149,7 +151,11 @@ function spawnAndWait(
     proc.on('exit', (code) => {
       if (code !== null && code !== 0) {
         clearTimeout(timer)
-        reject(new Error(`${opts.label}: exited with code ${code}\n${stdout}`))
+        // Include stderr — native-module load failures (the most likely cause of
+        // a hub that won't start) report the dlopen error there, not on stdout.
+        reject(
+          new Error(`${opts.label}: exited with code ${code}\n--- stdout ---\n${stdout}\n--- stderr ---\n${stderr}`)
+        )
       }
     })
   })
@@ -187,27 +193,33 @@ export interface InProcessHub {
 /** Boot the shared hub (`--no-auth --storage memory`) on a free port. */
 export async function startInProcessHub(): Promise<InProcessHub> {
   const port = await getFreePort()
-  // The hub runs under plain Node and loads better-sqlite3 (telemetry store), so
-  // the shared native binding must stay at the Node ABI. The Electron app it
-  // syncs with is launched from a binary that bundles its OWN Electron-ABI copy
-  // (see `launchElectronApp` + the `electron-e2e` CI job), so the two never
-  // clash over one rebuilt module.
-  const proc = await spawnAndWait(
-    'pnpm',
-    [
-      '--filter',
-      '@xnetjs/hub',
-      'exec',
-      'tsx',
-      'src/cli.ts',
-      '--port',
-      String(port),
-      '--no-auth',
-      '--storage',
-      'memory'
-    ],
-    { cwd: ROOT, readyText: `listening on port ${port}`, label: 'hub', timeoutMs: 30_000 }
-  )
+  // The hub loads better-sqlite3 (telemetry store). When the electron-e2e job has
+  // rebuilt the shared native binding for Electron's ABI (`deps:electron`, so the
+  // unpacked Electron app can load it), plain Node can no longer load it — so run
+  // the hub under Electron's own Node runtime (ELECTRON_RUN_AS_NODE) by pointing
+  // XNET_HUB_ELECTRON_BIN at the electron binary. Both the hub and the app then
+  // share the one Electron-ABI copy. Otherwise (local dev, Node-ABI binding) run
+  // the hub the normal way via tsx.
+  const cliArgs = ['--port', String(port), '--no-auth', '--storage', 'memory']
+  const electronBin = process.env.XNET_HUB_ELECTRON_BIN
+  const proc = electronBin
+    ? await spawnAndWait(
+        electronBin,
+        ['--import', 'tsx', join(ROOT, 'packages/hub/src/cli.ts'), ...cliArgs],
+        {
+          cwd: ROOT,
+          env: { ELECTRON_RUN_AS_NODE: '1' },
+          readyText: `listening on port ${port}`,
+          label: 'hub',
+          timeoutMs: 30_000
+        }
+      )
+    : await spawnAndWait('pnpm', ['--filter', '@xnetjs/hub', 'exec', 'tsx', 'src/cli.ts', ...cliArgs], {
+        cwd: ROOT,
+        readyText: `listening on port ${port}`,
+        label: 'hub',
+        timeoutMs: 30_000
+      })
   return {
     port,
     wsUrl: `ws://localhost:${port}`,
