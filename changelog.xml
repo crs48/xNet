@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>View and back up your recovery phrase in Settings</title>
+      <link>https://xnet.fyi/changelog#2026-06-28-view-and-back-up-your-recovery-phrase-in</link>
+      <guid isPermaLink="false">2026-06-28-view-and-back-up-your-recovery-phrase-in</guid>
+      <pubDate>Sun, 28 Jun 2026 23:35:39 GMT</pubDate>
+      <description>Settings now shows your recovery phrase (behind a passkey prompt) for recoverable identities, so you can save it any time — and back it up to the system keychain in the desktop app.</description>
+    </item>
+    <item>
       <title>Recover your workspace with a recovery phrase</title>
       <link>https://xnet.fyi/changelog#2026-06-28-recover-your-workspace-with-a-recovery-p</link>
       <guid isPermaLink="false">2026-06-28-recover-your-workspace-with-a-recovery-p</guid>
