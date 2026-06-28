@@ -52,8 +52,23 @@ export {
   recoverFromBackup,
   createKeyBundleFromSeed,
   createRecoveryShares,
-  recoverFromShares
+  recoverFromShares,
+  RECOVERY_WORDLIST
 } from './seed-recovery'
+
+// Recoverable identities (phrase-born DID; same DID on any device) — exploration 0243
+export type { RecoveryPhraseValidation, SealedRecoveryPhrase } from './recoverable'
+export {
+  MIN_RECOVERY_PHRASE_WORDS,
+  DEFAULT_RECOVERY_PHRASE_WORDS,
+  generateRecoveryPhrase,
+  validateRecoveryPhrase,
+  didForRecoveryPhrase,
+  recoveryPhraseToBundle,
+  createRecoverableIdentity,
+  sealRecoveryPhrase,
+  openRecoveryPhrase
+} from './recoverable'
 
 // Key bundle serialization (new)
 export type { SerializedKeyBundle } from './key-bundle-storage'
