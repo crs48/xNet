@@ -4,5 +4,14 @@
   "title": "New essay: The Forest and the Field",
   "summary": "A new essay on applying permaculture's design principles to the open web — regenerating the digital commons instead of strip-mining it.",
   "highlights": [],
-  "tags": ["platform"]
+  "tags": [
+    "platform"
+  ],
+  "pr": 326,
+  "mergedAt": "2026-06-28T23:39:38Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
