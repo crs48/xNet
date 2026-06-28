@@ -9,7 +9,7 @@ const SESSION_SECRET = 'session-secret-xyz'
 
 function app() {
   const billing = new MemoryBillingIdentityProvider('https://auth.test/authorize')
-  const { controlPlane } = buildControlPlane({ billing })
+  const { controlPlane } = buildControlPlane({ billing, verifyDid: async () => true })
   return createControlPlaneApp({ controlPlane, billing, internalSecret: INTERNAL })
 }
 
@@ -86,7 +86,7 @@ describe('control-plane HTTP API', () => {
 
   it('serves an aggregate-only usage snapshot for the /open dashboard', async () => {
     const billing = new MemoryBillingIdentityProvider('https://auth.test/authorize')
-    const { controlPlane } = buildControlPlane({ billing })
+    const { controlPlane } = buildControlPlane({ billing, verifyDid: async () => true })
     await controlPlane.provisionForBilling({ plan: 'personal', billingUserId: 'user_a' })
     const a = createControlPlaneApp({
       controlPlane,
@@ -148,7 +148,7 @@ describe('control-plane HTTP API', () => {
 
   it('changes plan for the signed-in tenant (flip) and reports migration for a tier cross', async () => {
     const billing = new MemoryBillingIdentityProvider('https://auth.test/authorize')
-    const { controlPlane } = buildControlPlane({ billing })
+    const { controlPlane } = buildControlPlane({ billing, verifyDid: async () => true })
     const tenant = await controlPlane.provisionForBilling({
       plan: 'personal',
       billingUserId: 'user_a'
@@ -178,7 +178,7 @@ describe('control-plane HTTP API', () => {
 
   it('sets a self-serve AI spend cap + window (0244)', async () => {
     const billing = new MemoryBillingIdentityProvider('https://auth.test/authorize')
-    const { controlPlane } = buildControlPlane({ billing })
+    const { controlPlane } = buildControlPlane({ billing, verifyDid: async () => true })
     const tenant = await controlPlane.provisionForBilling({
       plan: 'personal',
       billingUserId: 'user_a'
@@ -217,7 +217,7 @@ describe('control-plane HTTP API', () => {
 
   it('rejects an unauthenticated plan change', async () => {
     const billing = new MemoryBillingIdentityProvider('https://auth.test/authorize')
-    const { controlPlane } = buildControlPlane({ billing })
+    const { controlPlane } = buildControlPlane({ billing, verifyDid: async () => true })
     const a = createControlPlaneApp({ controlPlane, billing, sessionSecret: SESSION_SECRET })
     const res = await a.request('/account/plan', {
       method: 'POST',
@@ -285,7 +285,7 @@ describe('control-plane HTTP API', () => {
 
   it('mounts POST /ai/chat only when AI deps are configured', async () => {
     const billing = new MemoryBillingIdentityProvider('https://auth.test/authorize')
-    const { controlPlane } = buildControlPlane({ billing })
+    const { controlPlane } = buildControlPlane({ billing, verifyDid: async () => true })
 
     // Without `ai`, the route is absent (404).
     const without = createControlPlaneApp({ controlPlane, billing })

@@ -11,17 +11,17 @@
 xNet Cloud has **two different identities for the same human**, and they are
 authenticated in two different places:
 
-- **Billing identity** — you *sign up and pay* through **WorkOS AuthKit** (email /
+- **Billing identity** — you _sign up and pay_ through **WorkOS AuthKit** (email /
   SSO). This is custodial and recoverable: WorkOS can always get you back into your
   billing account.
-- **Data identity** — you *log into your workspace* with a **passkey** that derives a
+- **Data identity** — you _log into your workspace_ with a **passkey** that derives a
   self-sovereign `did:key`. This is non-custodial: it owns the encrypted data, and by
   design nobody can recover it for you.
 
 That split raises three concrete questions the prompt asks us to answer:
 
 1. **Validation.** When someone unlocks an xNet workspace with a passkey, how do we
-   know they are the same person who is *paying* for it through WorkOS?
+   know they are the same person who is _paying_ for it through WorkOS?
 2. **Linking.** How do we durably connect the WorkOS billing identity to the passkey
    DID, such that neither half can be moved by an attacker holding only one?
 3. **Recovery & multi-device.** How does a paying user get their workspace back if
@@ -40,7 +40,7 @@ partially wired. `@xnetjs/cloud/identity`
 expose this via an **RFC 8628 device-grant "claim your hub" flow**
 ([`apps/web/src/lib/cloud-claim.ts`](../../apps/web/src/lib/cloud-claim.ts),
 [`apps/cloud/src/server.ts`](../../apps/cloud/src/server.ts) `/device/*`, `/claim`).
-That flow *is* the validation handshake: a WorkOS-authenticated dashboard session
+That flow _is_ the validation handshake: a WorkOS-authenticated dashboard session
 approves a short code shown by the passkey app, and the control plane stamps the DID
 onto the tenant.
 
@@ -48,13 +48,13 @@ The gaps are specific and fixable:
 
 - **The DID-challenge verifier is a stub.** `devDidVerifier` in
   [`apps/cloud/src/index.ts:182`](../../apps/cloud/src/index.ts) only checks the
-  challenge is *well-formed* — it never verifies the signature, and the nonce is
+  challenge is _well-formed_ — it never verifies the signature, and the nonce is
   **client-supplied** (replayable). `TODO(0175)` is right there in the code.
 - **`completeRebind` is exported but never wired.** The post-recovery rebind
   currently re-uses `bindDataIdentity` → `bindIdentities`, bypassing the
   `rebindPending` guard.
-- **There is no *data-side* recovery in the app.** `recoverPaidAccount` gets your
-  *hub and subscription* back, but **not your encrypted data** — that was sealed to
+- **There is no _data-side_ recovery in the app.** `recoverPaidAccount` gets your
+  _hub and subscription_ back, but **not your encrypted data** — that was sealed to
   the old DID. The native data-recovery primitives **already exist** in
   [`packages/identity/src/seed-recovery.ts`](../../packages/identity/src/seed-recovery.ts)
   (mnemonic, Shamir social recovery, encrypted backup) and the onboarding state
@@ -64,7 +64,7 @@ The gaps are specific and fixable:
 - **The binding pins to a single device DID, not to an account.** The unbuilt
   data-plane **account/device ledger** from
   [`0149`](./0149_[_]_IDENTITY_AND_ACCOUNT_RECOVERY.md) is the missing native
-  primitive that makes "add a device" and "lost passkey" *ledger operations* instead
+  primitive that makes "add a device" and "lost passkey" _ledger operations_ instead
   of full re-binds.
 
 **Recommendation:** harden the validation handshake (real signature + server nonce),
@@ -103,7 +103,7 @@ export interface TenantBinding {
 }
 ```
 
-Creation requires **dual proof** — a proven WorkOS session *and* a verifying DID
+Creation requires **dual proof** — a proven WorkOS session _and_ a verifying DID
 challenge (`binding.ts:89`):
 
 ```ts
@@ -128,19 +128,19 @@ is **injected** so the cloud package stays free of crypto deps
 Because the app never embeds WorkOS, validation runs through an RFC 8628-shaped device
 grant ([`apps/web/src/lib/cloud-claim.ts`](../../apps/web/src/lib/cloud-claim.ts)):
 
-| Step | Code | What proves what |
-| --- | --- | --- |
-| App creates passkey DID locally, calls `POST /device/start` with the DID | `cloud-claim.ts:35`, `server.ts:436` | nothing yet — just registers a `deviceCode`/`userCode` |
-| User opens the signed-in cloud dashboard and approves the `userCode` | `server.ts:476` `/claim` (gated by `session(c)`) | **billing proof** — only the WorkOS-authenticated payer can approve |
-| App polls `POST /device/token` with a signed `DidChallenge` | `cloud-claim.ts:50`, `server.ts:450` | **data proof** — the app controls the DID's private key |
-| Control plane binds the DID to the approver's `billingUserId` | `server.ts:464` → `controlPlane.bindDataIdentity` (`control-plane.ts:305`) → `bindIdentities` | both proofs verified together → `TenantBinding` written |
+| Step                                                                     | Code                                                                                          | What proves what                                                    |
+| ------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| App creates passkey DID locally, calls `POST /device/start` with the DID | `cloud-claim.ts:35`, `server.ts:436`                                                          | nothing yet — just registers a `deviceCode`/`userCode`              |
+| User opens the signed-in cloud dashboard and approves the `userCode`     | `server.ts:476` `/claim` (gated by `session(c)`)                                              | **billing proof** — only the WorkOS-authenticated payer can approve |
+| App polls `POST /device/token` with a signed `DidChallenge`              | `cloud-claim.ts:50`, `server.ts:450`                                                          | **data proof** — the app controls the DID's private key             |
+| Control plane binds the DID to the approver's `billingUserId`            | `server.ts:464` → `controlPlane.bindDataIdentity` (`control-plane.ts:305`) → `bindIdentities` | both proofs verified together → `TenantBinding` written             |
 
 The control plane stamps the DID onto the `TenantRecord` (`control-plane.ts:317`),
 and from then on the **hub** authenticates the DID via UCAN sessions keyed by DID
 ([`packages/hub/src/auth/ucan.ts`](../../packages/hub/src/auth/ucan.ts)). So the
-runtime answer to "is this passkey-holder the payer?" is: *they were, at claim time,
+runtime answer to "is this passkey-holder the payer?" is: _they were, at claim time,
 cryptographically tied to a WorkOS-authenticated approval, and that link lives in the
-binding store.*
+binding store._
 
 ### Account recovery today: built on the billing side, absent on the data side
 
@@ -155,8 +155,8 @@ async recoverAccount(billingUserId: string): Promise<{ tenant: TenantRecord }> {
 
 exposed at `POST /internal/account/recover` (`server.ts:577`). `recoverPaidAccount`
 clears `did`, sets `rebindPending: true`, and leaves the subscription and hub intact
-(`binding.ts:120`). **But its own docstring is the catch:** *"Billing recovery never
-recovers the old encrypted data — that needs a data-side recovery method."*
+(`binding.ts:120`). **But its own docstring is the catch:** _"Billing recovery never
+recovers the old encrypted data — that needs a data-side recovery method."_
 
 ### The data-side primitives exist but are not wired
 
@@ -178,7 +178,7 @@ passkey (iCloud Keychain / Google Password Manager), yields the **same PRF → s
 The onboarding machine already routes to these
 ([`machine.ts:9`](../../packages/react/src/onboarding/machine.ts)):
 `welcome → import-identity → qr-scan / recovery-phrase → connecting-hub`, with an
-`ImportIdentityScreen`. What's missing is the *end-to-end wiring*: a "save your
+`ImportIdentityScreen`. What's missing is the _end-to-end wiring_: a "save your
 recovery phrase" moment, an export/import that survives passkey loss, and Electron
 parity ([`apps/electron/src/main/secure-seed.ts`](../../apps/electron/src/main/secure-seed.ts)
 already stores a seed in the OS keychain).
@@ -192,9 +192,9 @@ resolves which DIDs may decrypt a node (creator + role members + grantees), and 
 ([`auth-migrator.ts:9`](../../packages/data/src/auth/auth-migrator.ts)) seals node
 properties to those recipient keys. The hub relays opaque Yjs updates
 ([`relay.ts`](../../packages/hub/src/services/relay.ts)) — it is a sync substrate, not
-a plaintext store. **Consequence:** a *new* DID minted after a passkey loss is not a
-recipient of the *old* data, so it cannot read it. Recovering data means recovering the
-*key*, not the account — which is exactly why the data-side primitives matter.
+a plaintext store. **Consequence:** a _new_ DID minted after a passkey loss is not a
+recipient of the _old_ data, so it cannot read it. Recovering data means recovering the
+_key_, not the account — which is exactly why the data-side primitives matter.
 
 ```mermaid
 flowchart LR
@@ -223,19 +223,19 @@ flowchart LR
 - **WebAuthn / passkeys & PRF.** Passkeys are scoped to a relying-party ID. Synced
   passkeys (iCloud Keychain, Google Password Manager, Windows Hello, 1Password) can
   carry a credential — and, where supported, a **PRF** output — across a user's own
-  devices, which is what makes "same passkey → same DID" work *within one ecosystem*.
+  devices, which is what makes "same passkey → same DID" work _within one ecosystem_.
   PRF-on-synced-credentials is now broadly available (Apple platforms since iOS 18 /
   macOS 15, Chrome/Google Password Manager), but it is **not guaranteed cross-ecosystem**
   (Apple → Windows), and enterprise policy can force device-bound credentials. This is
-  the same conclusion 0149 reached: *a synced passkey is a great onboarding path, not a
-  durable account model.*
+  the same conclusion 0149 reached: _a synced passkey is a great onboarding path, not a
+  durable account model._
 - **Account vs. data recovery is a known split.** The pattern "custodial, recoverable
   account that owns the subscription, bound to a non-custodial key that owns the
   encrypted data" appears across the industry: **Signal's PIN/registration lock + SVR**
   (account recoverable, message history is not), **Apple iCloud account vs. Advanced
   Data Protection recovery key/contact**, **Web3Auth / passkey-wallets** (social-login
   account, MPC-shared keys), and **1Password's account password + Secret Key + Emergency
-  Kit**. The recurring lesson: keep the two recoveries *separate and clearly labelled*,
+  Kit**. The recurring lesson: keep the two recoveries _separate and clearly labelled_,
   and never let "I recovered my login" silently imply "I recovered my data."
 - **RFC 8628 (OAuth Device Authorization Grant).** The exact shape the claim flow
   borrows: a device with no browser shows a short user code; a second, fully
@@ -258,11 +258,11 @@ flowchart LR
    supplies `challenge.nonce` itself at poll time (`cloud-claim.ts:50`). Without a
    server-minted, single-use nonce bound to the device code, a captured challenge is
    replayable. This must be fixed alongside real signature verification.
-3. **Two recoveries, often conflated, must stay distinct:** *account/hub recovery*
-   (custodial, billing-side, built) and *data/identity recovery* (non-custodial,
+3. **Two recoveries, often conflated, must stay distinct:** _account/hub recovery_
+   (custodial, billing-side, built) and _data/identity recovery_ (non-custodial,
    data-side, primitives exist but unwired).
 4. **The binding's biggest limitation is that it pins to one device DID.** Lose that
-   passkey and you must *rebind* (a fresh DID) and *lose data access*. If WorkOS instead
+   passkey and you must _rebind_ (a fresh DID) and _lose data access_. If WorkOS instead
    bound to a **stable account root** (0149) that admits/revokes per-device DIDs, then
    "add a device" and "lost passkey" become ledger edits under the identity the payment
    already references.
@@ -274,15 +274,15 @@ flowchart LR
 
 ## Options And Tradeoffs
 
-### Axis A — How a returning/new device regains the *data identity*
+### Axis A — How a returning/new device regains the _data identity_
 
-| Option | Native primitive | UX | Cross-ecosystem | Privacy | New code |
-| --- | --- | --- | --- | --- | --- |
-| **A1. Passkey sync** | `discoverExistingPasskey` / PRF | Seamless (Touch ID) | ❌ Apple↔Windows gap | Full (key never leaves device set) | ~none |
-| **A2. Recovery phrase (mnemonic)** | `deriveKeysFromSeed` | User must store 12 words | ✅ works anywhere | Full | low (wiring) |
-| **A3. Social recovery (Shamir)** | `createRecoveryShares` / `recoverFromShares` | k-of-n guardians | ✅ | Full | medium |
-| **A4. Device-link via account ledger** | 0149 ledger + key-wrapping (`computeRecipients` sealed box) | Approve on old device | ✅ | Full (no escrow) | high (build 0149) |
-| **A5. Custodial key escrow** | wrap recovery key to cloud KMS gated by WorkOS | "just works" recovery | ✅ | **Trades privacy** | medium |
+| Option                                 | Native primitive                                            | UX                       | Cross-ecosystem      | Privacy                            | New code          |
+| -------------------------------------- | ----------------------------------------------------------- | ------------------------ | -------------------- | ---------------------------------- | ----------------- |
+| **A1. Passkey sync**                   | `discoverExistingPasskey` / PRF                             | Seamless (Touch ID)      | ❌ Apple↔Windows gap | Full (key never leaves device set) | ~none             |
+| **A2. Recovery phrase (mnemonic)**     | `deriveKeysFromSeed`                                        | User must store 12 words | ✅ works anywhere    | Full                               | low (wiring)      |
+| **A3. Social recovery (Shamir)**       | `createRecoveryShares` / `recoverFromShares`                | k-of-n guardians         | ✅                   | Full                               | medium            |
+| **A4. Device-link via account ledger** | 0149 ledger + key-wrapping (`computeRecipients` sealed box) | Approve on old device    | ✅                   | Full (no escrow)                   | high (build 0149) |
+| **A5. Custodial key escrow**           | wrap recovery key to cloud KMS gated by WorkOS              | "just works" recovery    | ✅                   | **Trades privacy**                 | medium            |
 
 A1+A2 are the pragmatic floor (and A1 already exists). A4 is the principled long-term
 answer. A5 is the only path that gives WorkOS-style "the vendor can restore your data"
@@ -291,10 +291,10 @@ guarantee that is the whole point of the data identity.
 
 ### Axis B — What WorkOS binds to
 
-| Option | What `TenantBinding.did` references | "Add device" | "Lost passkey" | Effort |
-| --- | --- | --- | --- | --- |
-| **B1. Single device DID (today)** | one passkey DID | full rebind, data lost | full rebind, data lost | shipped |
-| **B2. Account root (0149)** | stable `xnet:account:*` / account DID doc | ledger admits new device DID; data re-wrapped | revoke lost device, admit new one; data survives if any key/phrase remains | build 0149 |
+| Option                            | What `TenantBinding.did` references       | "Add device"                                  | "Lost passkey"                                                             | Effort     |
+| --------------------------------- | ----------------------------------------- | --------------------------------------------- | -------------------------------------------------------------------------- | ---------- |
+| **B1. Single device DID (today)** | one passkey DID                           | full rebind, data lost                        | full rebind, data lost                                                     | shipped    |
+| **B2. Account root (0149)**       | stable `xnet:account:*` / account DID doc | ledger admits new device DID; data re-wrapped | revoke lost device, admit new one; data survives if any key/phrase remains | build 0149 |
 
 B2 is strictly better for the user's questions but depends on building the 0149
 account/device ledger. B1 → B2 is a clean migration: the binding type barely changes
@@ -306,7 +306,7 @@ account/device ledger. B1 → B2 is a clean migration: the binding type barely c
   `@xnetjs/identity` to verify the Ed25519 signature against the `did:key` public key
   (`parseDID` + `verifyWithBundle`/`verifyUCAN`).
 - **C2. Server-issued nonce:** `/device/start` mints a single-use nonce bound to the
-  `deviceCode`; `/device/token` requires the signature to be over *that* nonce.
+  `deviceCode`; `/device/token` requires the signature to be over _that_ nonce.
 - **C3. Bind audience:** sign the challenge over `{ nonce, did, tenantId, cloudOrigin }`
   so a signature captured for one tenant/origin can't be replayed at another.
 
@@ -331,14 +331,14 @@ flowchart TD
 `recoverAccount` in the signed-in dashboard (not just `/internal`). Decide
 `completeRebind`: route post-recovery binds through it so the `rebindPending` guard is
 enforced, and have `/device/token` choose `bindDataIdentity` vs `completeRebind` based
-on the binding state. This makes "the passkey-holder is the payer" a *verified*
+on the binding state. This makes "the passkey-holder is the payer" a _verified_
 cryptographic fact, not a well-formedness check.
 
 **Phase 1 — Recovery phrase as the minimum data recovery (answers Q3 minimally).**
 Wire `seed-recovery.ts` through the onboarding `recovery-phrase` path and add a
 Settings → Security "Save your recovery phrase" moment (Electron uses `secure-seed`).
-Surface a blunt, consented statement: *"xNet Cloud can always restore your account and
-hub. It cannot restore your encrypted data unless you save this recovery phrase."* This
+Surface a blunt, consented statement: _"xNet Cloud can always restore your account and
+hub. It cannot restore your encrypted data unless you save this recovery phrase."_ This
 is the smallest honest answer to "I lost my passkey."
 
 **Phase 2 — Bind WorkOS to an account root, not a device (answers Q2 + Q3 natively).**
@@ -372,7 +372,7 @@ import { verify as ed25519Verify } from '@noble/ed25519'
 import type { DidChallenge, DidChallengeVerifier } from '@xnetjs/cloud/identity'
 
 export interface NonceStore {
-  issue(deviceCode: string): Promise<string>            // single-use, TTL-bound
+  issue(deviceCode: string): Promise<string> // single-use, TTL-bound
   consume(nonce: string): Promise<{ deviceCode: string } | null>
 }
 
@@ -382,9 +382,9 @@ export function makeDidVerifier(
   audience: { tenantId?: string; cloudOrigin: string }
 ): DidChallengeVerifier {
   return async (challenge: DidChallenge): Promise<boolean> => {
-    const claim = await nonces.consume(challenge.nonce)     // single-use → no replay
+    const claim = await nonces.consume(challenge.nonce) // single-use → no replay
     if (!claim) return false
-    const publicKey = parseDID(challenge.did)               // did:key → Ed25519 pubkey
+    const publicKey = parseDID(challenge.did) // did:key → Ed25519 pubkey
     if (!publicKey) return false
     // Sign over a bound message, not the bare nonce.
     const msg = new TextEncoder().encode(
@@ -402,11 +402,11 @@ app.post('/device/start', async (c) => {
   const { did } = await c.req.json()
   if (!did) return c.json({ error: 'missing_did' }, 400)
   const grant = devices.start(did, now())
-  const nonce = await nonces.issue(grant.deviceCode)   // ← server-issued, single-use
+  const nonce = await nonces.issue(grant.deviceCode) // ← server-issued, single-use
   return c.json({
     deviceCode: grant.deviceCode,
     userCode: grant.userCode,
-    nonce,                                              // ← app signs THIS
+    nonce, // ← app signs THIS
     verificationUri: `${base}/claim`,
     intervalSec: 2,
     expiresInSec: 600
@@ -451,9 +451,9 @@ const { did, signingKey, encryptionKey } = deriveKeysFromSeed(userTyped12Words)
 // TenantBinding pins to a stable account subject; devices hang off the 0149 ledger.
 export interface TenantBinding {
   tenantId: string
-  billingUserId: string        // WorkOS — custodial
-  account: string              // xnet:account:* / account DID doc — stable
-  rebindPending: boolean       // now means "account needs re-attestation", rare
+  billingUserId: string // WorkOS — custodial
+  account: string // xnet:account:* / account DID doc — stable
+  rebindPending: boolean // now means "account needs re-attestation", rare
   createdAt: number
   verifiedAt: number
 }
@@ -462,8 +462,8 @@ export interface TenantBinding {
 // workspace content key to the new device's X25519 key (existing recipient primitive).
 async function admitDevice(account: AccountLedger, existing: KeyBundle, newDeviceDid: DID) {
   const record = account.signDeviceAdmission(existing, { did: newDeviceDid, role: 'device' })
-  await account.append(record)                 // synced, signed, revocable
-  await rewrapContentKeysTo(newDeviceDid)       // computeRecipients / sealed box
+  await account.append(record) // synced, signed, revocable
+  await rewrapContentKeysTo(newDeviceDid) // computeRecipients / sealed box
 }
 ```
 
@@ -471,7 +471,7 @@ async function admitDevice(account: AccountLedger, existing: KeyBundle, newDevic
 
 - **Is managed-hub data truly E2E-encrypted to the DID, or hub-readable?** The repo
   leans E2E (`computeRecipients` + `EncryptionLayer`, opaque relay). If a future
-  managed tier instead holds hub-readable plaintext, then re-binding a new DID *keeps*
+  managed tier instead holds hub-readable plaintext, then re-binding a new DID _keeps_
   data and most of Axis A collapses — but the privacy guarantee changes materially.
   **This fork should be decided explicitly and documented**, because it dictates whether
   data recovery is even a problem.
@@ -494,52 +494,52 @@ async function admitDevice(account: AccountLedger, existing: KeyBundle, newDevic
 
 ## Implementation Checklist
 
-- [ ] **P0.1** Replace `devDidVerifier` (`apps/cloud/src/index.ts:182`) with a real
-  Ed25519 verifier via `@xnetjs/identity` (`parseDID` + signature check).
-- [ ] **P0.2** Add a server-issued, single-use, TTL-bound nonce to `/device/start`;
-  require the signature to be over `{ nonce, did, tenantId, cloudOrigin }`.
-- [ ] **P0.3** Add a Firestore-backed `NonceStore`; wire it through `buildControlPlane`.
-- [ ] **P0.4** Route post-recovery binds through `completeRebind` (or delete it);
-  `/device/token` selects bind vs. rebind from `rebindPending`.
-- [ ] **P0.5** Expose `recoverAccount` in the signed-in dashboard with a confirmation
-  step (currently only `POST /internal/account/recover`).
+- [x] **P0.1** Replace `devDidVerifier` (`apps/cloud/src/index.ts:182`) with a real
+      Ed25519 verifier via `@xnetjs/identity` (`parseDID` + signature check).
+- [x] **P0.2** Add a server-issued, single-use, TTL-bound nonce to `/device/start`;
+      require the signature to be over `{ nonce, did, tenantId, cloudOrigin }`.
+- [x] **P0.3** Add a Firestore-backed `NonceStore`; wire it through `buildControlPlane`.
+- [x] **P0.4** Route post-recovery binds through `completeRebind` (or delete it);
+      `/device/token` selects bind vs. rebind from `rebindPending`.
+- [x] **P0.5** Expose `recoverAccount` in the signed-in dashboard with a confirmation
+      step (currently only `POST /internal/account/recover`).
 - [ ] **P1.1** Wire `seed-recovery.ts` through onboarding `recovery-phrase` / `qr-scan`
-  and `ImportIdentityScreen`.
+      and `ImportIdentityScreen`.
 - [ ] **P1.2** Add Settings → Security "Save / view recovery phrase" with consent copy
-  distinguishing account vs. data recovery; Electron uses `secure-seed`.
+      distinguishing account vs. data recovery; Electron uses `secure-seed`.
 - [ ] **P1.3** On enroll, derive the local passkey bundle so it wraps the
-  recovery-phrase-derived key (passkey unlock and phrase recovery yield the *same* DID).
+      recovery-phrase-derived key (passkey unlock and phrase recovery yield the _same_ DID).
 - [ ] **P1.4** Surface passkey-sync recovery (A1) explicitly in the import flow using
-  `discoverExistingPasskey` / `unlockDiscoveredPasskey`.
+      `discoverExistingPasskey` / `unlockDiscoveredPasskey`.
 - [ ] **P2.1** Build the 0149 `Account` / `Device` / `RecoveryMethod` schemas
-  (schema-native, signed, synced) with revocation + epochs.
+      (schema-native, signed, synced) with revocation + epochs.
 - [ ] **P2.2** Migrate `TenantBinding.did` → `TenantBinding.account`; keep a back-compat
-  read path for single-DID bindings.
+      read path for single-DID bindings.
 - [ ] **P2.3** Implement `admitDevice` / `revokeDevice` with content-key re-wrap via
-  `computeRecipients` / sealed box.
+      `computeRecipients` / sealed box.
 - [ ] **P3.1** (Opt-in) Implement WorkOS-gated KMS key-escrow for the account recovery
-  key; default off; full consent + audit logging.
+      key; default off; full consent + audit logging.
 
 ## Validation Checklist
 
-- [ ] A forged/replayed `DidChallenge` (reused nonce, wrong key, swapped tenant) is
-  **rejected** by the new verifier (unit + contract tests beside
-  `workos.contract.test.ts`).
-- [ ] A signature over a *different* tenant's nonce fails (`tenantId` binding works).
-- [ ] End-to-end: passkey app → `/device/start` → dashboard approve → `/device/token`
-  binds the DID and returns the hub URL (extend `control-plane.test.ts`).
-- [ ] After `recoverAccount`, the tenant/hub/subscription survive, `did` is cleared,
-  `rebindPending` is true, and a new device can `completeRebind` while a stale challenge
-  cannot.
+- [x] A forged/replayed `DidChallenge` (reused nonce, wrong key, swapped tenant) is
+      **rejected** by the new verifier (unit + contract tests beside
+      `workos.contract.test.ts`).
+- [x] A signature over a _different_ tenant's nonce fails (`tenantId` binding works).
+- [x] End-to-end: passkey app → `/device/start` → dashboard approve → `/device/token`
+      binds the DID and returns the hub URL (extend `control-plane.test.ts`).
+- [x] After `recoverAccount`, the tenant/hub/subscription survive, `did` is cleared,
+      `rebindPending` is true, and a new device can `completeRebind` while a stale challenge
+      cannot.
 - [ ] Recovery phrase round-trips: `deriveKeysFromSeed(export())` reproduces the **same
-  DID**, and that DID can decrypt previously-sealed nodes.
-- [ ] A *fresh, unrelated* DID **cannot** decrypt old nodes (privacy guarantee holds).
+      DID**, and that DID can decrypt previously-sealed nodes.
+- [ ] A _fresh, unrelated_ DID **cannot** decrypt old nodes (privacy guarantee holds).
 - [ ] Synced-passkey path (A1) on the same ecosystem returns the same DID without a
-  phrase.
+      phrase.
 - [ ] (P2) Admitting a new device grants data access via re-wrap; revoking a device
-  removes future access; the ledger is signed and tamper-evident.
+      removes future access; the ledger is signed and tamper-evident.
 - [ ] (P3) Escrow is unreachable without a verified WorkOS session and is absent unless
-  explicitly enabled; every use is logged.
+      explicitly enabled; every use is logged.
 
 ## References
 
@@ -567,4 +567,7 @@ async function admitDevice(account: AccountLedger, existing: KeyBundle, newDevic
   PRF extension; Shamir Secret Sharing; Signal SVR (secure value recovery); Apple
   Advanced Data Protection (recovery key / recovery contact); 1Password Secret Key +
   Emergency Kit; Web3Auth passkey wallets.
+
+```
+
 ```

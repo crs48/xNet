@@ -609,12 +609,15 @@ function dangerZone(): string {
     <div class="card danger">
       <h2>Danger zone</h2>
       <p class="muted">
+        <strong>Recover account</strong> restores your subscription and hub if you lost
+        the passkey for your workspace (it can't restore the encrypted data itself).
         <strong>Cancel subscription</strong> stops billing and suspends your hub; your
         encrypted backup is retained so you can re-subscribe or export.
         <strong>Delete my data</strong> destroys the hub and its backup — this is
         irreversible, and not even we can recover it (we only ever hold encrypted bytes).
       </p>
       <div class="danger-actions">
+        <a class="btn ghost" href="/account/recover">Recover account</a>
         <form method="post" action="/portal"><button type="submit" class="ghost">Cancel subscription</button></form>
         <form method="post" action="/account/delete-data" onsubmit="return confirm('Permanently delete your hub and all its data? This cannot be undone.')">
           <button type="submit" class="destructive">Delete my data</button>
@@ -870,6 +873,50 @@ export function renderClaimForm(opts: { who: string; prefill?: string; error?: s
        </form>
      </div>`
   )
+}
+
+/**
+ * Confirmation page for billing-only account recovery (exploration 0243). It is blunt
+ * about the split: recovery restores the paid account and hub, but NOT the encrypted
+ * data, which was sealed to the passkey DID the user is replacing.
+ */
+export function renderRecoverConfirm(opts: { who: string }): string {
+  return page(
+    'xNet Cloud — Recover account',
+    opts.who,
+    `<h1>Recover your account</h1>
+     <p class="lead">Use this if you lost the passkey for your workspace.</p>
+     <div class="card">
+       <h2>What recovery does <span class="badge">Billing identity</span></h2>
+       <p class="muted">Your subscription and hub stay exactly as they are. We clear the
+         lost passkey identity so you can connect a fresh device to this hub.</p>
+       <p style="color:#fbbf24">It does <strong>not</strong> restore your existing
+         encrypted data — that was sealed to the passkey you lost. If you saved a recovery
+         phrase, import it on the new device instead to keep your data.</p>
+       <form method="post" action="/account/recover">
+         <button type="submit">Recover my account</button>
+       </form>
+       <a class="btn" href="/dashboard" style="margin-top:10px;display:inline-block">Cancel</a>
+     </div>`
+  )
+}
+
+/** Render the result after a recovery attempt. */
+export function renderRecoverResult(opts: { who: string; ok: boolean }): string {
+  const inner = opts.ok
+    ? `<div class="card">
+         <h2>Account recovered <span class="badge badge-ok">Done</span></h2>
+         <p class="muted">Open xNet on a new device and connect it — it will create a fresh
+           passkey and claim this hub. Your subscription is unchanged.</p>
+         <a class="btn" href="/claim">Connect a device</a>
+       </div>`
+    : `<div class="card">
+         <h2>Nothing to recover</h2>
+         <p class="muted">We couldn't find a hub bound to this account. If you just signed
+           up, finish checkout first.</p>
+         <a class="btn" href="/dashboard">Back to dashboard</a>
+       </div>`
+  return page('xNet Cloud — Recover account', opts.who, `<h1>Recover your account</h1>${inner}`)
 }
 
 /** Render the result after approving (or failing to find) a device code. */

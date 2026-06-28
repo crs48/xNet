@@ -21,6 +21,7 @@ import {
 } from '@xnetjs/cloud'
 import {
   bindIdentities,
+  completeRebind,
   recoverPaidAccount,
   type BindingStore,
   type DidChallenge,
@@ -307,6 +308,10 @@ export class ControlPlane {
    * device-grant "claim your hub" flow (exploration 0192). Dual proof: the
    * billing session was proven when the user approved the device code; the DID is
    * proven now by the signed challenge. Stamps the DID onto the tenant record.
+   *
+   * When the binding is awaiting a rebind after `recoverAccount` (exploration 0243),
+   * we route through `completeRebind` so its `rebindPending` guard is honored rather
+   * than silently overwriting via the ordinary bind path.
    */
   async bindDataIdentity(args: {
     billingUserId: string
@@ -314,7 +319,9 @@ export class ControlPlane {
   }): Promise<TenantRecord> {
     const tenant = await this.getTenantForBilling(args.billingUserId)
     if (!tenant) throw new Error(`No tenant for billing user: ${args.billingUserId}`)
-    await bindIdentities(this.deps.bindings, this.deps.verifyDid, {
+    const existing = await this.deps.bindings.get(tenant.tenantId)
+    const bind = existing?.rebindPending ? completeRebind : bindIdentities
+    await bind(this.deps.bindings, this.deps.verifyDid, {
       tenantId: tenant.tenantId,
       billingUserId: args.billingUserId,
       challenge: args.challenge,

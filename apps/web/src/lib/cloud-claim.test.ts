@@ -16,6 +16,7 @@ describe('cloud-claim client', () => {
       jsonResponse({
         deviceCode: 'dc',
         userCode: 'ABCD-7K2P',
+        nonce: 'srv-issued-nonce',
         verificationUri: 'https://cloud.xnet.fyi/claim',
         intervalSec: 2,
         expiresInSec: 600
@@ -23,6 +24,7 @@ describe('cloud-claim client', () => {
     )
     const start = await startDeviceClaim('https://cloud.xnet.fyi', 'did:key:alice', fetchImpl)
     expect(start.userCode).toBe('ABCD-7K2P')
+    expect(start.nonce).toBe('srv-issued-nonce')
     expect(fetchImpl).toHaveBeenCalledWith(
       'https://cloud.xnet.fyi/device/start',
       expect.objectContaining({ method: 'POST' })

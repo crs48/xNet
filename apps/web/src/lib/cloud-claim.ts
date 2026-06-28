@@ -2,10 +2,12 @@
  * xNet Cloud — the app side of the device-grant "claim your hub" flow (RFC 8628).
  *
  * The app creates its passkey DID locally, then:
- *   1. `startDeviceClaim` → gets a short `userCode` to show + a `deviceCode` to poll.
+ *   1. `startDeviceClaim` → gets a short `userCode` to show, a `deviceCode` to poll, and
+ *      a server-issued `nonce` to sign with the DID key (exploration 0243).
  *   2. The user approves the `userCode` in the signed-in cloud dashboard.
- *   3. `pollDeviceClaim` → once approved, the control plane binds the DID (dual proof)
- *      and returns the hub URL, which the caller persists via `setPersistedHubUrl`.
+ *   3. `pollDeviceClaim` → once approved, the control plane verifies the signed challenge
+ *      and binds the DID (dual proof), returning the hub URL the caller persists via
+ *      `setPersistedHubUrl`.
  *
  * The app never embeds WorkOS — it only ever talks to the control plane's device
  * endpoints (exploration 0192). `signChallenge` is injected so this stays pure and
@@ -15,6 +17,8 @@
 export interface DeviceClaimStart {
   deviceCode: string
   userCode: string
+  /** Server-issued, single-use nonce the app signs with its DID key (exploration 0243). */
+  nonce: string
   verificationUri: string
   intervalSec: number
   expiresInSec: number
