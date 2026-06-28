@@ -53,6 +53,51 @@ const ROUTES = [
 
 const FLOWS = [{ id: 'create-page', label: 'Create a page', globs: ['packages/editor/**'] }]
 
+const ELECTRON = [
+  {
+    id: 'electron-canvas-home',
+    label: 'Desktop · Canvas home',
+    screen: 'canvas-home',
+    globs: ['apps/electron/src/renderer/**', 'packages/canvas/**']
+  }
+]
+
+test('electron screens map by glob (0238 L5)', () => {
+  const hit = computeCaptureSet({
+    changedFiles: ['apps/electron/src/renderer/CanvasView.tsx'],
+    storyEntries: [],
+    routeManifest: ROUTES,
+    flowManifest: FLOWS,
+    electronManifest: ELECTRON
+  })
+  assert.deepEqual(
+    hit.electron.map((e) => e.id),
+    ['electron-canvas-home']
+  )
+  assert.equal(hit.electron[0].screen, 'canvas-home')
+  assert.equal(captureSetIsEmpty(hit), false)
+
+  const miss = computeCaptureSet({
+    changedFiles: ['apps/web/src/routes/data.tsx'],
+    storyEntries: [],
+    routeManifest: ROUTES,
+    flowManifest: FLOWS,
+    electronManifest: ELECTRON
+  })
+  assert.deepEqual(miss.electron, [])
+})
+
+test('captureSetIsEmpty is true only when stories, routes, flows AND electron are empty', () => {
+  const onlyElectron = computeCaptureSet({
+    changedFiles: ['apps/electron/src/renderer/App.tsx'],
+    storyEntries: [],
+    routeManifest: [],
+    flowManifest: [],
+    electronManifest: ELECTRON
+  })
+  assert.equal(captureSetIsEmpty(onlyElectron), false)
+})
+
 test('a story is captured when its own file changed', () => {
   const set = computeCaptureSet({
     changedFiles: ['packages/ui/src/primitives/Button.stories.tsx'],

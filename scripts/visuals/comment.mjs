@@ -54,9 +54,10 @@ function flow(entry, baseUrl) {
 export function buildBody(manifest, { baseUrl, runUrl } = {}) {
   const stories = manifest.stories ?? []
   const routes = manifest.routes ?? []
+  const electron = manifest.electron ?? [] // Electron desktop screens (0238 L5)
   const flows = manifest.flows ?? []
 
-  const changedStills = [...stories, ...routes].filter(
+  const changedStills = [...stories, ...routes, ...electron].filter(
     (e) => e.status === 'changed' || e.status === 'new'
   )
   const total = changedStills.length + flows.length
@@ -99,7 +100,8 @@ export function buildBody(manifest, { baseUrl, runUrl } = {}) {
 
   const sections = [
     ['Components', stories.filter((e) => e.status === 'changed' || e.status === 'new')],
-    ['Screens', routes.filter((e) => e.status === 'changed' || e.status === 'new')]
+    ['Screens', routes.filter((e) => e.status === 'changed' || e.status === 'new')],
+    ['Desktop (Electron)', electron.filter((e) => e.status === 'changed' || e.status === 'new')]
   ]
   for (const [heading, items] of sections) {
     if (!items.length) continue

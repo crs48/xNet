@@ -112,5 +112,26 @@
       "_comment": "Chat only renders at the parameterized /channel/$channelId route (needs a channel id + seed messages), so a static route shot can't reach it -- this flow seeds a channel and drives the redesigned feed into a GIF. Mapping apps/web/src/comms/** here is what keeps a chat-only PR (e.g. #174) from falling through to the silent home fallback (exploration 0200).",
       "globs": ["apps/web/src/comms/**", "apps/web/src/routes/channel.$channelId.tsx"]
     }
+  ],
+
+  "_electron_comment": "Electron desktop screens captured via _electron.launch() and fed through the same SSIM diff + sticky comment (exploration 0238 L5). `screen` selects the routine in capture.mjs (captureElectron). Only run when the desktop renderer (a forked subset of the web app) or a shared canvas/ui package changes.",
+  "electron": [
+    {
+      "id": "electron-canvas-home",
+      "label": "Desktop · Canvas home",
+      "screen": "canvas-home",
+      "globs": [
+        "apps/electron/src/renderer/**",
+        "packages/canvas/**",
+        "packages/canvas-core/**",
+        "packages/ui/**"
+      ]
+    },
+    {
+      "id": "electron-canvas-objects",
+      "label": "Desktop · Canvas with objects",
+      "screen": "canvas-objects",
+      "globs": ["apps/electron/src/renderer/**", "packages/canvas/**", "packages/canvas-core/**"]
+    }
   ]
 }

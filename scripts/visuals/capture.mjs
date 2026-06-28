@@ -15,7 +15,7 @@
  * Every target is isolated in try/catch: this job is informational, so one bad
  * target must never sink the rest. Produces <out>/manifest.json.
  */
-import { chromium } from '@playwright/test'
+import { chromium, _electron as electron } from '@playwright/test'
 import { mkdirSync, readFileSync, writeFileSync, existsSync, readdirSync, rmSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { serveStatic } from './lib/static-server.mjs'
@@ -31,6 +31,10 @@ const setPath = arg('set', 'capture-set.json')
 const outDir = arg('out', 'tmp/visuals')
 const sbStatic = arg('storybook-static', 'storybook-static')
 const webUrl = arg('web-url', process.env.WEB_BASE_URL || '')
+// 0238 L5: the Electron binary to drive (the `electron` package's exe for the
+// unpacked app, or a packaged binary), and the unpacked app dir to load.
+const electronBinary = arg('electron-binary', process.env.XNET_ELECTRON_BINARY || '')
+const electronApp = arg('electron-app', process.env.XNET_ELECTRON_APP || '')
 
 const set = JSON.parse(readFileSync(setPath, 'utf8'))
 const VIEWPORT = { width: 1280, height: 800 }
@@ -45,6 +49,7 @@ const manifest = {
   stories: [],
   routes: [],
   flows: [],
+  electron: [],
   fallbackUsed: set.fallbackUsed ?? false,
   unmappedFiles: set.unmappedFiles ?? []
 }
@@ -231,6 +236,80 @@ async function captureFlows(browser) {
   }
 }
 
+// --- Electron desktop screens (0238 L5) -----------------------------------
+// Launch the real desktop app via _electron.launch() and screenshot the core
+// canvas surfaces, so desktop UI flows through the same SSIM diff + comment as
+// web routes/stories. Like every other target, fully isolated in try/catch:
+// one bad screen never sinks the rest of this informational job.
+async function captureElectron() {
+  if (!set.electron?.length || !electronBinary) return
+  const sandboxArgs = process.env.XNET_ELECTRON_NO_SANDBOX === '1' ? ['--no-sandbox'] : []
+  const dir = join(outDir, 'electron')
+  mkdirSync(dir, { recursive: true })
+
+  const app = await electron.launch({
+    executablePath: electronBinary,
+    args: electronApp ? [electronApp, ...sandboxArgs] : sandboxArgs,
+    env: {
+      ...process.env,
+      NODE_ENV: 'production',
+      XNET_TEST_BYPASS: 'true',
+      XNET_PROFILE: 'visuals-electron'
+    }
+  })
+
+  try {
+    const win = await app.firstWindow()
+    await win.waitForFunction(() => Boolean(document.querySelector('#root')), undefined, {
+      timeout: 60_000
+    })
+    // Advance any first-run onboarding to reach the canvas shell.
+    for (let i = 0; i < 4; i++) {
+      const getStarted = win.getByRole('button', { name: /Get started with/i })
+      const createFirst = win.getByRole('button', { name: /Create your first page/i })
+      if ((await getStarted.count()) > 0 && (await getStarted.first().isVisible())) {
+        await getStarted.first().click()
+        await win.waitForTimeout(700)
+        continue
+      }
+      if ((await createFirst.count()) > 0 && (await createFirst.first().isVisible())) {
+        await createFirst.first().click()
+        await win.waitForTimeout(700)
+        continue
+      }
+      break
+    }
+    await win
+      .locator('[data-action-dock="canvas-home"] [data-action-dock-button="page"]')
+      .waitFor({ state: 'visible', timeout: 30_000 })
+      .catch(() => {})
+
+    const dockButton = (kind) =>
+      win.locator(`[data-action-dock="canvas-home"] [data-action-dock-button="${kind}"]`)
+
+    for (const target of set.electron) {
+      try {
+        if (target.screen === 'canvas-objects') {
+          for (const kind of ['page', 'database', 'note']) {
+            await dockButton(kind).click({ force: true }).catch(() => {})
+            await win.waitForTimeout(300)
+          }
+        }
+        await settle(win)
+        await win.waitForTimeout(400)
+        const file = join(dir, `${target.id}.png`)
+        await win.screenshot({ path: file })
+        manifest.electron.push({ id: target.id, label: target.label, file: relative(outDir, file) })
+        console.error(`[capture] electron ${target.id} (${target.screen})`)
+      } catch (err) {
+        console.error(`[capture] electron ${target.id} FAILED: ${err.message}`)
+      }
+    }
+  } finally {
+    await app.close()
+  }
+}
+
 const browser = await chromium.launch()
 try {
   await captureStories(browser)
@@ -239,8 +318,14 @@ try {
 } finally {
   await browser.close()
 }
+try {
+  await captureElectron()
+} catch (err) {
+  console.error(`[capture] electron capture FAILED: ${err.message}`)
+}
 
 writeFileSync(join(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2))
 console.error(
-  `[capture] done: ${manifest.stories.length} stories, ${manifest.routes.length} routes, ${manifest.flows.length} flows`
+  `[capture] done: ${manifest.stories.length} stories, ${manifest.routes.length} routes, ` +
+    `${manifest.flows.length} flows, ${manifest.electron.length} electron`
 )

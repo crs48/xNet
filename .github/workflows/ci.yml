@@ -189,3 +189,86 @@ jobs:
             tmp/playwright/**/*.png
           if-no-files-found: ignore
           retention-days: 14
+
+  # Electron desktop e2e (exploration 0238, L2 + L3): the cross-client
+  # convergence matrix (web↔web · electron↔web · electron↔electron, over ws and
+  # best-effort webrtc, incl. offline→reconnect) and the `_electron.launch()` app
+  # smoke (launch, no-console-errors, SQLite persist across restart, xnet://
+  # deep-link routing, core canvas flow). Headless under xvfb.
+  #
+  # Native-module ABI: `deps:electron` rebuilds the shared better-sqlite3 for
+  # Electron's ABI so the unpacked app can load it — which means plain Node can't.
+  # The in-process hub therefore runs under Electron's OWN Node runtime
+  # (ELECTRON_RUN_AS_NODE via XNET_HUB_ELECTRON_BIN), so the hub and the app share
+  # the one Electron-ABI copy. `electron-cache: 'true'` caches ~/.cache/electron so
+  # the rebuild is paid once. `--fail-on-flaky-tests` quarantines flakes.
+  electron-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+        with:
+          electron-cache: 'true'
+
+      - name: Build packages + Electron renderer/main
+        run: pnpm turbo run build --filter=xnet-desktop --filter=@xnetjs/hub
+
+      - name: Rebuild native modules for Electron (unpacked app)
+        run: pnpm --filter xnet-desktop run deps:electron
+
+      - name: Install xvfb
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+
+      - name: Cache Playwright browser
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-1.58.1-chromium
+
+      - name: Install Playwright Chromium (cache miss)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm --filter @xnetjs/e2e-tests exec playwright install --with-deps chromium
+
+      - name: Install Playwright system deps (cache hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm --filter @xnetjs/e2e-tests exec playwright install-deps chromium
+
+      # Resolve the Electron binary and expose it as the hub's Node runtime, then
+      # smoke the two ABI-sensitive paths before the full run: better-sqlite3 must
+      # load under Electron's ABI, and the hub must start under ELECTRON_RUN_AS_NODE.
+      - name: Probe Electron launch (diagnostic)
+        run: |
+          ELECTRON_BIN=$(cd apps/electron && node -e "process.stdout.write(require('electron'))")
+          echo "electron binary: $ELECTRON_BIN"
+          echo "XNET_HUB_ELECTRON_BIN=$ELECTRON_BIN" >> "$GITHUB_ENV"
+          echo "--- better-sqlite3 under Electron ABI ---"
+          (cd apps/electron && ELECTRON_RUN_AS_NODE=1 "$ELECTRON_BIN" -e "new (require('better-sqlite3'))(':memory:'); console.log('better-sqlite3 OK under Electron')") \
+            || echo "PROBE FAILED: better-sqlite3 cannot load under Electron"
+          echo "--- hub starts under ELECTRON_RUN_AS_NODE ---"
+          ELECTRON_RUN_AS_NODE=1 timeout 25 "$ELECTRON_BIN" --import tsx packages/hub/src/cli.ts \
+            --port 39997 --no-auth --storage memory 2>&1 | head -25 || true
+
+      - name: Run convergence matrix + Electron app smoke (xvfb)
+        run: |
+          xvfb-run --auto-servernum pnpm --filter @xnetjs/e2e-tests exec \
+            playwright test src/sync-matrix.spec.ts src/electron-smoke.spec.ts \
+            --project=chromium --project=electron --fail-on-flaky-tests
+        env:
+          CI: 'true'
+          XNET_ELECTRON_NO_SANDBOX: '1'
+
+      - name: Upload Electron e2e artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-e2e-artifacts
+          path: |
+            tests/e2e/test-results/**
+            tests/e2e/tmp/**
+          if-no-files-found: ignore
+          retention-days: 14

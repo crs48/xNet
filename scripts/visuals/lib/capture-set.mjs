@@ -43,15 +43,22 @@ function dirOf(p) {
  * @param {Array<{id,title,name,importPath}>} input.storyEntries  Storybook index entries (type === 'story')
  * @param {Array<{id,label,path,globs}>} input.routeManifest
  * @param {Array<{id,label,globs}>} input.flowManifest
+ * @param {Array<{id,label,screen,globs}>} [input.electronManifest]  Electron desktop screens (0238 L5)
  * @param {object} [opts]
  * @param {boolean} [opts.matchSiblingComponents=true]  capture a story when a file co-located with it changed
  * @param {string}  [opts.homeRouteId='home']           fallback route when web UI changed but no route matched
  * @param {RegExp}  [opts.webUiPattern]                 what counts as "a web UI change" for the fallback
  *   (app source + shared `packages/ui` source, since `home` no longer globs either directly)
- * @returns {{stories:Array, routes:Array, flows:Array}}
+ * @returns {{stories:Array, routes:Array, flows:Array, electron:Array}}
  */
 export function computeCaptureSet(input, opts = {}) {
-  const { changedFiles = [], storyEntries = [], routeManifest = [], flowManifest = [] } = input
+  const {
+    changedFiles = [],
+    storyEntries = [],
+    routeManifest = [],
+    flowManifest = [],
+    electronManifest = []
+  } = input
   const {
     matchSiblingComponents = true,
     homeRouteId = 'home',
@@ -90,6 +97,16 @@ export function computeCaptureSet(input, opts = {}) {
     .filter((flow) => changed.some((f) => matchesAny(f, flow.globs)))
     .map((flow) => ({ kind: 'flow', id: flow.id, label: flow.label }))
 
+  // --- Electron screens: any changed file matches the screen's globs (0238 L5).
+  const electron = electronManifest
+    .filter((screen) => changed.some((f) => matchesAny(f, screen.globs)))
+    .map((screen) => ({
+      kind: 'electron',
+      id: screen.id,
+      label: screen.label,
+      screen: screen.screen
+    }))
+
   // Fallback: web UI changed but NOTHING specific matched (no route, no story,
   // no flow) -> capture home so the reviewer still sees the shell the change
   // lives in, AND record why. Without this signal the home shot diffs clean
@@ -115,11 +132,17 @@ export function computeCaptureSet(input, opts = {}) {
     stories: stories.sort(byId),
     routes: routes.sort(byId),
     flows: flows.sort(byId),
+    electron: electron.sort(byId),
     fallbackUsed,
     unmappedFiles
   }
 }
 
 export function captureSetIsEmpty(set) {
-  return set.stories.length === 0 && set.routes.length === 0 && set.flows.length === 0
+  return (
+    set.stories.length === 0 &&
+    set.routes.length === 0 &&
+    set.flows.length === 0 &&
+    (set.electron?.length ?? 0) === 0
+  )
 }

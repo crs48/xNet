@@ -73,6 +73,14 @@ if (all) {
       path: r.path
     })),
     flows: [],
+    // Baseline every desktop screen too, so a PR's changed subset has something
+    // to diff against (0238 L5).
+    electron: (manifests.electron ?? []).map((e) => ({
+      kind: 'electron',
+      id: e.id,
+      label: e.label,
+      screen: e.screen
+    })),
     fallbackUsed: false,
     unmappedFiles: []
   }
@@ -87,7 +95,8 @@ if (all) {
     changedFiles,
     storyEntries,
     routeManifest: manifests.routes ?? [],
-    flowManifest: manifests.flows ?? []
+    flowManifest: manifests.flows ?? [],
+    electronManifest: manifests.electron ?? []
   })
 }
 
@@ -103,5 +112,6 @@ if (outDir && outDir !== '.') mkdirSync(outDir, { recursive: true })
 writeFileSync(out, JSON.stringify(result, null, 2))
 console.error(
   `[capture-set] ${changedFiles.length} changed file(s) -> ` +
-    `${set.stories.length} story, ${set.routes.length} route, ${set.flows.length} flow target(s) -> ${out}`
+    `${set.stories.length} story, ${set.routes.length} route, ${set.flows.length} flow, ` +
+    `${set.electron?.length ?? 0} electron target(s) -> ${out}`
 )
