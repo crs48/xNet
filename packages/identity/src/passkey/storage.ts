@@ -2,6 +2,7 @@
  * @xnetjs/identity/passkey - IndexedDB persistence for passkey identity records
  */
 import type { PasskeyIdentity, FallbackStorage, StoredPasskeyRecord } from './types'
+import type { SealedRecoveryPhrase } from '../recoverable'
 import type { DID } from '../types'
 
 const DB_BASE_NAME = 'xnet-identity'
@@ -95,6 +96,11 @@ export type SerializedRecord = {
     /** @deprecated Old field name — migrated to `encKey` on read */
     salt?: number[]
   }
+  /** Sealed recovery phrase for recoverable identities (exploration 0243). */
+  recovery?: {
+    ciphertext: number[]
+    nonce: number[]
+  }
 }
 
 /** @internal Exported for testing only */
@@ -114,6 +120,12 @@ export function serializeRecord(record: StoredPasskeyRecord): SerializedRecord {
       encryptedBundle: Array.from(record.fallback.encryptedBundle),
       nonce: Array.from(record.fallback.nonce),
       encKey: Array.from(record.fallback.encKey)
+    }
+  }
+  if (record.recovery) {
+    serialized.recovery = {
+      ciphertext: Array.from(record.recovery.ciphertext),
+      nonce: Array.from(record.recovery.nonce)
     }
   }
   return serialized
@@ -140,6 +152,12 @@ export function deserializeRecord(raw: SerializedRecord): StoredPasskeyRecord {
       encKey: keyData ? new Uint8Array(keyData) : new Uint8Array(0)
     }
   }
+  if (raw.recovery) {
+    record.recovery = {
+      ciphertext: new Uint8Array(raw.recovery.ciphertext),
+      nonce: new Uint8Array(raw.recovery.nonce)
+    }
+  }
   return record
 }
 
@@ -151,11 +169,12 @@ export function deserializeRecord(raw: SerializedRecord): StoredPasskeyRecord {
  */
 export async function storeIdentity(
   passkey: PasskeyIdentity,
-  fallback?: FallbackStorage
+  fallback?: FallbackStorage,
+  recovery?: SealedRecoveryPhrase
 ): Promise<void> {
   const db = await openDB()
   try {
-    const record: StoredPasskeyRecord = { passkey, fallback }
+    const record: StoredPasskeyRecord = { passkey, fallback, recovery }
     await dbPut(db, STORE_NAME, IDENTITY_KEY, serializeRecord(record))
   } finally {
     db.close()

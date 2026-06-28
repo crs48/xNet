@@ -1,6 +1,7 @@
 /**
  * @xnetjs/identity/passkey - WebAuthn passkey authentication types
  */
+import type { SealedRecoveryPhrase } from '../recoverable'
 import type { KeyBundle, HybridKeyBundle, DID } from '../types'
 
 // ─── Passkey Identity ────────────────────────────────────────
@@ -107,6 +108,12 @@ export type FallbackStorage = {
 export type StoredPasskeyRecord = {
   passkey: PasskeyIdentity
   fallback?: FallbackStorage
+  /**
+   * For *recoverable* identities (born from a recovery phrase, exploration 0243):
+   * the phrase sealed at rest so Settings can reveal it later behind a passkey gate.
+   * Absent on ordinary PRF/fallback identities, which have no phrase.
+   */
+  recovery?: SealedRecoveryPhrase
 }
 
 // ─── Support Detection ───────────────────────────────────────
