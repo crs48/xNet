@@ -62,7 +62,26 @@ export interface AiChatDeps {
   allowedModels?: string[]
   /** The OpenRouter model catalog (cached), powering `GET /ai/models`. Omit to disable the route. */
   modelCatalog?: () => Promise<ModelCard[]>
+  /**
+   * Retail markup applied to catalog prices in `GET /ai/models` so the picker shows
+   * what the *user* pays, never the provider list price or our COGS (exploration
+   * 0244). Defaults to 1 (pass-through). The markup multiplier itself is never sent.
+   */
+  retailMarkup?: number
   timestampMs?: () => number
+}
+
+/** Round a retail token price to 4 decimals (USD per 1M tokens) — display precision. */
+const roundRetail = (usdPerM: number): number => Math.round(usdPerM * 1e4) / 1e4
+
+/** Apply the retail markup to a card's (non-null) per-million prices. */
+function toRetailCard(card: ModelCard, markup: number): ModelCard {
+  if (markup === 1) return card
+  return {
+    ...card,
+    inUsdPerM: card.inUsdPerM === null ? null : roundRetail(card.inUsdPerM * markup),
+    outUsdPerM: card.outUsdPerM === null ? null : roundRetail(card.outUsdPerM * markup)
+  }
 }
 
 interface AiChatBody {
@@ -180,7 +199,12 @@ export function createAiRoute(deps: AiChatDeps): Hono {
           modality: null
         }))
     }
-    return c.json({ models, defaultModel: t.defaultModel ?? null })
+    // Show retail prices (what the user pays), never the provider list price.
+    const markup = deps.retailMarkup ?? 1
+    return c.json({
+      models: models.map((m) => toRetailCard(m, markup)),
+      defaultModel: t.defaultModel ?? null
+    })
   })
 
   return app

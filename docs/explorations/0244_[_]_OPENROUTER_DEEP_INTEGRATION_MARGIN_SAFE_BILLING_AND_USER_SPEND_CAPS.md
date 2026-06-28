@@ -649,7 +649,7 @@ erDiagram
 
 ## Implementation Checklist
 
-- [ ] Add `createAIProvider('managed', cfg)` branch in
+- [x] Add `createAIProvider('managed', cfg)` branch in
       `packages/plugins/src/ai/providers.ts` and call it from `AiChatPanel.tsx`
       (pass `onBudget`).
 - [x] New `packages/cloud/src/billing/window.ts`: `BudgetWindow`,
@@ -663,9 +663,9 @@ erDiagram
 - [x] Parameterize `OpenRouterKeyManager.create/update` with
       `limitReset` (default `monthly`); set `limit = planCap` at provision and
       `limit_reset = keyResetFor(window)` on budget change.
-- [ ] Build `ModelPicker` UI fed by `GET /ai/models`, showing **retail** $/Mtok,
+- [x] Build `ModelPicker` UI fed by `GET /ai/models`, showing **retail** $/Mtok,
       context, modality; persist `xnet:ai-model`; rebuild provider on change.
-- [ ] Build the live budget gauge in `AiChatPanel` from `ManagedBudgetSnapshot`;
+- [x] Build the live budget gauge in `AiChatPanel` from `ManagedBudgetSnapshot`;
       color by `budgetState`; disable send + show reset time on `AiBudgetError`.
 - [ ] Add a dashboard cap control (`apps/cloud/src/dashboard.ts`) → amount +
       window selector → `setAiBudget`.
@@ -703,7 +703,7 @@ erDiagram
       path for identical `usage.cost`.
 - [ ] Integration: idempotency — replaying the same `(session, request)` records
       once and emits one Stripe meter event.
-- [ ] E2E (web): model picker lists only plan‑allowed models with retail prices;
+- [x] E2E (web): model picker lists only plan‑allowed models with retail prices;
       switching models persists and re‑bills correctly; gauge turns amber at 80%
       and red + disabled at 100%.
 - [ ] Ops: low‑balance alert fires before the master OpenRouter balance hits 0;

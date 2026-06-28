@@ -1,3 +1,4 @@
+import type { ModelCard } from './models'
 import {
   FakeStripeBilling,
   MemoryUsageLedger,
@@ -7,7 +8,6 @@ import {
   type TokenPricing
 } from '@xnetjs/cloud'
 import { describe, expect, it } from 'vitest'
-import type { ModelCard } from './models'
 import { createAiRoute, type AiTenantContext } from './route'
 
 const pricing: TokenPricing = { inputUsdPerMillion: 3, outputUsdPerMillion: 15, markup: 1.25 }
@@ -42,6 +42,7 @@ function makeApp(
     resolve?: AiTenantContext | null
     allowedModels?: string[]
     modelCatalog?: () => Promise<ModelCard[]>
+    retailMarkup?: number
   } = {}
 ) {
   const ledger = new MemoryUsageLedger()
@@ -53,7 +54,8 @@ function makeApp(
     pricingFor: () => pricing,
     resolveTenant: async () => (opts.resolve === undefined ? tenant() : opts.resolve),
     ...(opts.allowedModels ? { allowedModels: opts.allowedModels } : {}),
-    ...(opts.modelCatalog ? { modelCatalog: opts.modelCatalog } : {})
+    ...(opts.modelCatalog ? { modelCatalog: opts.modelCatalog } : {}),
+    ...(opts.retailMarkup !== undefined ? { retailMarkup: opts.retailMarkup } : {})
   })
   return { app, ledger, billing }
 }
@@ -220,6 +222,18 @@ describe('GET /ai/models', () => {
     const { app } = makeApp({ modelCatalog: catalog, resolve: tenant({ aiModels: 'all' }) })
     const json = await (await get(app)).json()
     expect(json.models).toHaveLength(2)
+  })
+
+  it('applies the retail markup to catalog prices (user sees what they pay)', async () => {
+    const catalog = async () => [card('a/b')] // raw $3 / $15
+    const { app } = makeApp({
+      modelCatalog: catalog,
+      retailMarkup: 1.3,
+      resolve: tenant({ aiModels: 'all' })
+    })
+    const json = await (await get(app)).json()
+    expect(json.models[0].inUsdPerM).toBeCloseTo(3.9, 4) // 3 × 1.3
+    expect(json.models[0].outUsdPerM).toBeCloseTo(19.5, 4) // 15 × 1.3
   })
 
   it('falls back to id-only cards when the catalog is unavailable but the plan names models', async () => {

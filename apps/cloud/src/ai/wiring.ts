@@ -30,7 +30,7 @@ import {
 } from '@xnetjs/cloud'
 import Stripe from 'stripe'
 import { createModelCatalog } from './models'
-import { pricingFromEnv } from './pricing'
+import { markupFromEnv, pricingFromEnv } from './pricing'
 
 /**
  * Which gateway the managed-AI path talks to. Set `AI_GATEWAY_PROVIDER`
@@ -162,6 +162,9 @@ export function aiChatDepsFromEnv(
     billing: billingFromEnv(env),
     pricingFor: pricingFromEnv(env),
     resolveTenant: tenantResolver(env, controlPlane, nowMs),
+    // Picker prices are shown at retail (provider list × markup) so the user sees
+    // what they pay, not our COGS (exploration 0244).
+    retailMarkup: markupFromEnv(env),
     ...(allowedModels ? { allowedModels } : {}),
     ...(catalog ? { modelCatalog: () => catalog.get() } : {})
   }
