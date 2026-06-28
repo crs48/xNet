@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-06-28-managed-ai-default-models-now-resolve-on",
+      "url": "https://xnet.fyi/changelog#2026-06-28-managed-ai-default-models-now-resolve-on",
+      "title": "Managed AI default models now resolve on OpenRouter",
+      "content_text": "Fixed the plan default models (Claude Haiku/Sonnet/Opus) to OpenRouter's real catalog IDs, so managed AI works out of the box instead of failing with model-not-found.\n",
+      "date_published": "2026-06-28T21:03:23Z",
+      "tags": [
+        "ai"
+      ],
+      "_xnet": {
+        "date": "June 28, 2026",
+        "summary": "Fixed the plan default models (Claude Haiku/Sonnet/Opus) to OpenRouter's real catalog IDs, so managed AI works out of the box instead of failing with model-not-found.",
+        "highlights": [],
+        "mergedAt": "2026-06-28T21:03:23Z",
+        "pr": 319,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-06-28-set-your-own-ai-spend-cap-and-switch-mod",
       "url": "https://xnet.fyi/changelog#2026-06-28-set-your-own-ai-spend-cap-and-switch-mod",
       "title": "Set your own AI spend cap and switch models, with streaming",
