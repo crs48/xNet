@@ -503,11 +503,11 @@ async function admitDevice(account: AccountLedger, existing: KeyBundle, newDevic
       `/device/token` selects bind vs. rebind from `rebindPending`.
 - [x] **P0.5** Expose `recoverAccount` in the signed-in dashboard with a confirmation
       step (currently only `POST /internal/account/recover`).
-- [ ] **P1.1** Wire `seed-recovery.ts` through onboarding `recovery-phrase` / `qr-scan`
+- [x] **P1.1** Wire `seed-recovery.ts` through onboarding `recovery-phrase` / `qr-scan`
       and `ImportIdentityScreen`.
 - [ ] **P1.2** Add Settings → Security "Save / view recovery phrase" with consent copy
       distinguishing account vs. data recovery; Electron uses `secure-seed`.
-- [ ] **P1.3** On enroll, derive the local passkey bundle so it wraps the
+- [x] **P1.3** On enroll, derive the local passkey bundle so it wraps the
       recovery-phrase-derived key (passkey unlock and phrase recovery yield the _same_ DID).
 - [ ] **P1.4** Surface passkey-sync recovery (A1) explicitly in the import flow using
       `discoverExistingPasskey` / `unlockDiscoveredPasskey`.
@@ -531,7 +531,7 @@ async function admitDevice(account: AccountLedger, existing: KeyBundle, newDevic
 - [x] After `recoverAccount`, the tenant/hub/subscription survive, `did` is cleared,
       `rebindPending` is true, and a new device can `completeRebind` while a stale challenge
       cannot.
-- [ ] Recovery phrase round-trips: `deriveKeysFromSeed(export())` reproduces the **same
+- [x] Recovery phrase round-trips: `deriveKeysFromSeed(export())` reproduces the **same
       DID**, and that DID can decrypt previously-sealed nodes.
 - [ ] A _fresh, unrelated_ DID **cannot** decrypt old nodes (privacy guarantee holds).
 - [ ] Synced-passkey path (A1) on the same ecosystem returns the same DID without a

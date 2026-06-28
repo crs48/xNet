@@ -10,6 +10,8 @@ import { AuthErrorScreen } from './screens/AuthErrorScreen'
 import { HubConnectScreen, type HubConnectScreenProps } from './screens/HubConnectScreen'
 import { ImportIdentityScreen } from './screens/ImportIdentityScreen'
 import { ReadyScreen } from './screens/ReadyScreen'
+import { RecoveryPhraseScreen } from './screens/RecoveryPhraseScreen'
+import { ShowRecoveryPhraseScreen } from './screens/ShowRecoveryPhraseScreen'
 import { UnsupportedBrowserScreen } from './screens/UnsupportedBrowserScreen'
 import { WelcomeScreen } from './screens/WelcomeScreen'
 
@@ -53,13 +55,11 @@ export function OnboardingFlow({ connectToHub, children }: OnboardingFlowProps):
         </div>
       )
     case 'recovery-phrase':
-      // Placeholder — Phase 3 will implement recovery phrase entry
-      return (
-        <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-6">
-          <h1 className="text-2xl font-semibold mb-2">Recovery Phrase</h1>
-          <p className="text-muted-foreground">Coming soon — enter your recovery phrase.</p>
-        </div>
-      )
+      return <RecoveryPhraseScreen />
+    case 'creating-recoverable':
+      return <AuthenticatingScreen />
+    case 'show-recovery-phrase':
+      return <ShowRecoveryPhraseScreen />
     case 'connecting-hub':
       return <HubConnectScreen connectToHub={connectToHub} />
     case 'ready':

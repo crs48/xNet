@@ -68,9 +68,16 @@ export function WelcomeScreen(): JSX.Element {
         </span>
       </button>
 
-      <p className="text-xs text-muted-foreground/70 text-center max-w-xs mt-2 mb-8">
+      <p className="text-xs text-muted-foreground/70 text-center max-w-xs mt-2 mb-6">
         Creates a secure passkey on your device. No passwords needed.
       </p>
+
+      <button
+        className="text-sm text-muted-foreground hover:text-foreground transition-colors underline-offset-4 hover:underline mb-2"
+        onClick={() => send({ type: 'CREATE_RECOVERABLE' })}
+      >
+        Set up a recovery phrase too
+      </button>
 
       <button
         className="text-sm text-muted-foreground hover:text-foreground transition-colors underline-offset-4 hover:underline"

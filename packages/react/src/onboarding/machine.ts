@@ -20,6 +20,9 @@ export type OnboardingState =
   | 'import-identity'
   | 'qr-scan'
   | 'recovery-phrase'
+  // Creating a recoverable identity (exploration 0243): mint → show the phrase to save.
+  | 'creating-recoverable'
+  | 'show-recovery-phrase'
   | 'connecting-hub'
   | 'ready'
   | 'complete'
@@ -41,6 +44,12 @@ export type OnboardingEvent =
   | { type: 'HUB_CONNECTED' }
   | { type: 'HUB_FAILED'; error: Error }
   | { type: 'CREATE_FIRST_PAGE' }
+  // Recoverable-identity flow (exploration 0243)
+  | { type: 'CREATE_RECOVERABLE' }
+  | { type: 'SUBMIT_PHRASE'; phrase: string }
+  | { type: 'IMPORT_FAILED'; error: Error }
+  | { type: 'RECOVERABLE_CREATED'; identity: Identity; keyBundle: KeyBundle; phrase: string }
+  | { type: 'PHRASE_SAVED' }
 
 // ─── Context ─────────────────────────────────────────────────
 
@@ -50,6 +59,8 @@ export type OnboardingMachineContext = {
   hubUrl: string | null
   error: Error | null
   isDemo: boolean
+  /** The recovery phrase to show once, after creating a recoverable identity (0243). */
+  recoveryPhrase: string | null
 }
 
 // ─── Transition Table ────────────────────────────────────────
@@ -64,8 +75,17 @@ const TRANSITIONS: Partial<
   welcome: {
     AUTHENTICATE: 'authenticating',
     CREATE_NEW: 'authenticating',
+    CREATE_RECOVERABLE: 'creating-recoverable',
     IMPORT_EXISTING: 'import-identity',
     BROWSER_UNSUPPORTED: 'unsupported-browser'
+  },
+  'creating-recoverable': {
+    RECOVERABLE_CREATED: 'show-recovery-phrase',
+    PASSKEY_FAILED: 'auth-error',
+    BACK_TO_WELCOME: 'welcome'
+  },
+  'show-recovery-phrase': {
+    PHRASE_SAVED: 'connecting-hub'
   },
   authenticating: {
     PASSKEY_SUCCESS: 'connecting-hub',
@@ -86,6 +106,7 @@ const TRANSITIONS: Partial<
   },
   'recovery-phrase': {
     IDENTITY_IMPORTED: 'connecting-hub',
+    IMPORT_FAILED: 'recovery-phrase',
     BACK_TO_WELCOME: 'welcome'
   },
   'connecting-hub': {
@@ -137,6 +158,21 @@ export function onboardingReducer(
       nextContext.error = null
       break
 
+    case 'RECOVERABLE_CREATED':
+      nextContext.identity = event.identity
+      nextContext.keyBundle = event.keyBundle
+      nextContext.recoveryPhrase = event.phrase
+      nextContext.error = null
+      break
+
+    case 'IMPORT_FAILED':
+      nextContext.error = event.error
+      break
+
+    case 'CREATE_RECOVERABLE':
+      nextContext.error = null
+      break
+
     case 'HUB_FAILED':
       nextContext.error = event.error
       break
@@ -165,7 +201,8 @@ export function createInitialState(hubUrl?: string): OnboardingReducerState {
       keyBundle: null,
       hubUrl: hubUrl ?? null,
       error: null,
-      isDemo: false
+      isDemo: false,
+      recoveryPhrase: null
     }
   }
 }
