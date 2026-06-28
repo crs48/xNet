@@ -51,6 +51,16 @@ export interface BlogPost {
 
 export const posts: BlogPost[] = [
   {
+    slug: 'the-desert-that-feeds-the-forest',
+    title: 'The Desert That Feeds the Forest',
+    description:
+      'Every year a dead desert blows across an ocean and feeds the most alive place on Earth — replacing almost exactly what the rainforest loses. What Saharan dust, the bees nobody watches, and the maintainers nobody thanks teach us about the invisible substrate the open web runs on.',
+    pubDate: '2026-06-29T14:00:00Z',
+    author: 'xNet',
+    tags: ['essay', 'philosophy', 'nature'],
+    readingMinutes: 13
+  },
+  {
     slug: 'the-gentlest-furnace',
     title: 'The Gentlest Furnace',
     description:

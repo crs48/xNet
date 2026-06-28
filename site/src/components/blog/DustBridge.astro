@@ -1,0 +1,123 @@
+---
+// The structural heart of post #4 (exploration 0244): the Amazon is not
+// self-sufficient — it is subsidized, every year, by a desert that looks dead,
+// and it loses to rain almost exactly what the dust brings in. The open web is
+// the same machine: the visible part runs on an invisible substrate it doesn't
+// pay for and barely notices. A small inline-SVG schematic of the cycle, then a
+// row-by-row mapping — mirrors the ArticlesMap / ThreeNervousSystems idiom
+// (not-prose, bordered surface) so the four posts read as one publication.
+const rows = [
+  {
+    eco: 'A desert that looks dead',
+    web: 'Open protocols, RSS, email, DNS — and the maintainers nobody thanks. The boring, inert-looking substrate.'
+  },
+  {
+    eco: '~22,000 tons of phosphorus a year, lofted across an ocean',
+    web: 'Standards, specs, and unpaid labor flowing upward into everything that looks alive.'
+  },
+  {
+    eco: '≈ exactly what the forest loses to rain',
+    web: 'The commons silently replacing what the platforms strip-mine out of it.'
+  },
+  {
+    eco: 'Cut the dust and the forest starves — slowly, and far from the cause',
+    web: 'Enclose the commons and the web decays — quietly, years later, blamed on everything else.'
+  }
+]
+---
+
+<section class="not-prose my-12">
+  <div class="rounded-2xl border border-border bg-surface/30 p-6 dark:bg-surface/40 lg:p-8">
+    <h3 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+      The forest isn't self-sufficient. Neither is the web.
+    </h3>
+    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+      A dead lakebed in Chad fertilizes the most alive place on Earth — replacing
+      almost exactly what the rainforest loses. The visible web runs on the same
+      kind of subsidy, from a substrate it never pays for.
+    </p>
+
+    <!-- schematic: desert → wind → forest, with the runoff that closes the loop -->
+    <svg
+      class="mt-6 w-full"
+      viewBox="0 0 720 150"
+      role="img"
+      aria-label="Saharan dust lofts across the Atlantic and settles on the Amazon, replacing the phosphorus the rainforest loses to rain runoff."
+    >
+      <defs>
+        <marker id="db-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0 0 L10 5 L0 10 z" fill="#d9a441" />
+        </marker>
+        <marker id="db-loss" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0 0 L10 5 L0 10 z" fill="#94a3b8" />
+        </marker>
+      </defs>
+
+      <!-- the desert -->
+      <g>
+        <rect x="20" y="78" width="150" height="40" rx="6" fill="#c2842f" opacity="0.18" />
+        <text x="95" y="102" text-anchor="middle" class="fill-amber-700 dark:fill-amber-300" font-size="13" font-weight="600">
+          Bodélé dust
+        </text>
+        <text x="95" y="133" text-anchor="middle" class="fill-gray-500 dark:fill-gray-400" font-size="10.5">
+          fossil diatoms
+        </text>
+      </g>
+
+      <!-- the crossing -->
+      <path
+        d="M178 86 Q360 18 542 86"
+        fill="none"
+        stroke="#d9a441"
+        stroke-width="2"
+        stroke-dasharray="3 4"
+        marker-end="url(#db-arrow)"
+      />
+      <text x="360" y="34" text-anchor="middle" class="fill-gray-500 dark:fill-gray-400" font-size="10.5">
+        ~27.7M tons / year across the Atlantic
+      </text>
+
+      <!-- the forest -->
+      <g>
+        <rect x="550" y="78" width="150" height="40" rx="6" fill="#1f6b3f" opacity="0.18" />
+        <text x="625" y="102" text-anchor="middle" class="fill-emerald-700 dark:fill-emerald-300" font-size="13" font-weight="600">
+          Amazon canopy
+        </text>
+        <text x="625" y="133" text-anchor="middle" class="fill-gray-500 dark:fill-gray-400" font-size="10.5">
+          phosphorus-poor soil
+        </text>
+      </g>
+
+      <!-- the loss that closes the loop -->
+      <path
+        d="M625 118 q70 6 78 -34"
+        fill="none"
+        stroke="#94a3b8"
+        stroke-width="1.6"
+        stroke-dasharray="2 4"
+        marker-end="url(#db-loss)"
+        opacity="0.8"
+      />
+      <text x="712" y="78" text-anchor="end" class="fill-gray-400 dark:fill-gray-500" font-size="10">
+        lost to rain
+      </text>
+    </svg>
+
+    <ul class="mt-6 space-y-4 border-t border-border pt-6">
+      {
+        rows.map((row) => (
+          <li class="grid gap-2 sm:grid-cols-[1fr_1.4fr] sm:gap-6 sm:items-baseline">
+            <p class="text-sm font-medium leading-relaxed text-amber-700 dark:text-amber-300">{row.eco}</p>
+            <p class="text-sm leading-relaxed text-gray-700 dark:text-gray-200">{row.web}</p>
+          </li>
+        ))
+      }
+    </ul>
+
+    <p class="mt-6 border-t border-border pt-4 text-sm leading-relaxed text-gray-600 dark:text-gray-300">
+      <span class="font-semibold text-gray-900 dark:text-white">The forest can't see the desert</span>
+      that feeds it, so it's easy to mistake the canopy for the whole story. The web
+      makes the same mistake — and the substrate is depletable.
+    </p>
+  </div>
+</section>
