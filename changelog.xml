@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Set your own AI spend cap and switch models, with streaming</title>
+      <link>https://xnet.fyi/changelog#2026-06-28-set-your-own-ai-spend-cap-and-switch-mod</link>
+      <guid isPermaLink="false">2026-06-28-set-your-own-ai-spend-cap-and-switch-mod</guid>
+      <pubDate>Sun, 28 Jun 2026 20:02:36 GMT</pubDate>
+      <description>Managed AI now lets you pick any plan-allowed model and set a personal spend cap by week, month, or rolling window — we stop calls when you hit it. Replies stream in token-by-token, prices shown are what you pay, and billing stays provably above cost.</description>
+    </item>
+    <item>
       <title>New essay: The Gentlest Furnace</title>
       <link>https://xnet.fyi/changelog#2026-06-27-new-essay-the-gentlest-furnace</link>
       <guid isPermaLink="false">2026-06-27-new-essay-the-gentlest-furnace</guid>
