@@ -587,37 +587,37 @@ twin of the pirate sea-lanes.
 
 ## Implementation Checklist
 
-- [ ] Confirm title **"Data Should Work Like Soil"** + slug `data-should-work-like-soil`
+- [x] Confirm title **"Data Should Work Like Soil"** + slug `data-should-work-like-soil`
       (alt: "The Underground").
-- [ ] Add `'nature'` (and/or `'ecology'`) to the `BlogTag` union in
+- [x] Add `'nature'` (and/or `'ecology'`) to the `BlogTag` union in
       [`site/src/data/blog.ts`](../../site/src/data/blog.ts) and push the post #2
       metadata object onto `posts[]`.
-- [ ] Create `site/src/pages/blog/data-should-work-like-soil.astro` following the
+- [x] Create `site/src/pages/blog/data-should-work-like-soil.astro` following the
       seven-beat spine in [Recommendation](#recommendation), mirroring
       [`a-great-pirate-age.astro`](../../site/src/pages/blog/a-great-pirate-age.astro).
-- [ ] Build `site/src/components/blog/MycelialHero.astro` (original inline-SVG;
+- [x] Build `site/src/components/blog/MycelialHero.astro` (original inline-SVG;
       cosmic-X beneath a soil line, branching hyphae; no third-party assets).
-- [ ] Build `site/src/components/blog/ThreeNervousSystems.astro` (body · company ·
+- [x] Build `site/src/components/blog/ThreeNervousSystems.astro` (body · company ·
       forest → one shape), reusing the `not-prose` card idiom from
       [`ArticlesMap`](../../site/src/components/blog/ArticlesMap.astro).
-- [ ] Build `site/src/components/blog/HonestMycelium.astro` (what the science
+- [x] Build `site/src/components/blog/HonestMycelium.astro` (what the science
       actually says: take the architecture, leave the myth), mirroring
       [`HonestPirate`](../../site/src/components/blog/HonestPirate.astro).
-- [ ] Write the prose: real mycology + life cycle; the 2023 honesty beat; the
+- [x] Write the prose: real mycology + life cycle; the 2023 honesty beat; the
       three-nervous-systems unifier; the dysregulation/"you are the cargo" turn
       (link [`/why`](../../site/src/pages/why.astro)); the "data should work like
       soil" architecture beat; the regenerative ending.
-- [ ] Cross-link: [`/why`](../../site/src/pages/why.astro),
+- [x] Cross-link: [`/why`](../../site/src/pages/why.astro),
       [`/commitments`](../../site/src/pages/commitments.astro),
       [`/build-with`](../../site/src/pages/build-with.astro), the homepage
       _Vision_ section, and the pirate post (the inversion callback).
-- [ ] Cite every claim (mycology, nervous-system physiology, Tesla Warp, monoculture
+- [x] Cite every claim (mycology, nervous-system physiology, Tesla Warp, monoculture
       research); add the "Wood Wide Web is a contested popular term" note. Consider a
       `site/src/data/mycelium.ts` claims module if the stats grow (mirrors
       [`surveillance.ts`](../../site/src/data/surveillance.ts)).
-- [ ] Add the not-affiliated/independent-essay footer note (Tesla/Toei trademarks
+- [x] Add the not-affiliated/independent-essay footer note (Tesla/Toei trademarks
       referenced as commentary; original art only), per the post #1 pattern.
-- [ ] (Optional) Add a changelog entry mirroring
+- [x] (Optional) Add a changelog entry mirroring
       [`2026-06-27-the-xnet-blog-is-live.json`](../../site/src/data/changelog/2026-06-27-the-xnet-blog-is-live.json)
       announcing post #2.
 

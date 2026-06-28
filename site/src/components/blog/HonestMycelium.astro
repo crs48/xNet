@@ -1,0 +1,49 @@
+---
+// The honesty beat (exploration 0240), modeled on the pirate post's HonestPirate
+// box and the /why page's HonestyBox. The popular "Wood Wide Web" / "mother tree"
+// story has been seriously challenged since 2023 (positive citation bias; field
+// evidence weaker than the telling). So we say plainly what the science supports
+// and what it doesn't — we take the architecture, not the fairy tale.
+const rows = [
+  {
+    isnt: 'We won’t claim the forest is a conscious “internet of trees.”',
+    is: 'The romantic version — wise “mother trees” knowingly nursing their kin through fungal cables — outran the field evidence. A 2023 wave of papers showed the popular story was amplified by positive citation bias, and the debate is still live.',
+  },
+  {
+    isnt: 'We won’t personify the network.',
+    is: 'What’s real and well-established is the architecture: mycorrhizal symbiosis is nearly universal, the carbon-for-nutrients trade is textbook, and mycelium is one of the planet’s largest living carbon pools — a vast, redundant, decentralised exchange web.',
+  },
+  {
+    isnt: 'We won’t pretend a metaphor is a proof.',
+    is: 'A forest isn’t a database and xNet isn’t a fungus. We borrow the shape — reciprocal, decentralised, no single point of control — because the shape is what’s worth building, and decline the parts the evidence can’t carry.',
+  },
+]
+---
+
+<section class="not-prose my-12">
+  <div class="rounded-2xl border border-border bg-surface/30 p-6 dark:bg-surface/40 lg:p-8">
+    <h3 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+      What the science actually says about the “Wood Wide Web”
+    </h3>
+    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+      A metaphor that flatters itself is just more marketing. Here’s the honest version.
+    </p>
+
+    <ul class="mt-6 space-y-5">
+      {
+        rows.map((row) => (
+          <li class="grid gap-3 sm:grid-cols-[1fr_1.3fr] sm:gap-5">
+            <div class="flex gap-2.5">
+              <span class="select-none text-gray-400 dark:text-gray-600">✕</span>
+              <p class="text-sm leading-relaxed text-gray-500 dark:text-gray-400">{row.isnt}</p>
+            </div>
+            <div class="flex gap-2.5">
+              <span class="select-none text-emerald-500">✓</span>
+              <p class="text-sm leading-relaxed text-gray-700 dark:text-gray-200">{row.is}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
