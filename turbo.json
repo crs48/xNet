@@ -5,6 +5,10 @@
       "dependsOn": ["^build"],
       "outputs": ["dist/**", "out/**"]
     },
+    "build:mobile": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist-mobile/**"]
+    },
     "test": {
       "dependsOn": ["build"],
       "inputs": ["src/**", "test/**"]

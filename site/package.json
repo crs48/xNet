@@ -9,7 +9,8 @@
     "validate:changelog": "tsx scripts/validate-changelog.ts",
     "validate:plugins": "tsx scripts/validate-plugins.ts",
     "validate:surveillance": "tsx scripts/validate-surveillance.ts",
-    "build": "pnpm validate:compare && pnpm validate:changelog && pnpm validate:plugins && pnpm validate:surveillance && pnpm build:llms && astro build",
+    "validate:metrics": "tsx scripts/validate-metrics.ts",
+    "build": "pnpm validate:compare && pnpm validate:changelog && pnpm validate:plugins && pnpm validate:surveillance && pnpm validate:metrics && pnpm build:llms && astro build",
     "preview": "astro preview",
     "astro": "astro"
   },

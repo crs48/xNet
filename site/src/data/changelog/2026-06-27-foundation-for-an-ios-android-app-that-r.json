@@ -1,0 +1,17 @@
+{
+  "id": "2026-06-27-foundation-for-an-ios-android-app-that-r",
+  "date": "June 27, 2026",
+  "title": "Foundation for an iOS/Android app that reuses the web UI",
+  "summary": "Mobile is now wired to host the same xNet web app inside a native webview (Capacitor) rather than re-implementing documents, databases, canvas and dashboards — with OPFS storage capability detection so it picks the right backend per device.",
+  "highlights": [],
+  "tags": [
+    "platform"
+  ],
+  "pr": 307,
+  "mergedAt": "2026-06-27T23:46:44Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

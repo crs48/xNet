@@ -19,6 +19,7 @@ import { initAnalytics } from './lib/analytics'
 import { installBootDiagnostics, installBootFallback } from './lib/boot-diagnostics'
 import { initErrorReporter } from './lib/error-reporter'
 import { preconnectHub } from './lib/preconnect-hub'
+import { installNativeChrome } from './native/chrome'
 
 type WebCanvasNodeRecord = {
   id: string
@@ -426,6 +427,10 @@ initAnalytics()
 // Warm the hub's DNS/TCP/TLS during SQLite boot so the later dial is fast
 // (exploration 0204). Pure resource hint — issued before React mounts.
 preconnectHub()
+
+// Wire native OS capabilities (deep links, background flush, haptics) when the
+// SPA is hosted in a mobile webview. No-op on the plain web build (0238).
+installNativeChrome()
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

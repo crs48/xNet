@@ -1,0 +1,14 @@
+{
+  "name": "xnet-mobile-shell",
+  "version": "0.0.1",
+  "description": "xNet mobile shell — hosts the apps/web SPA in a native webview via Capacitor (exploration 0238).",
+  "private": true,
+  "scripts": {
+    "build:web": "pnpm --filter xnet-web build:mobile",
+    "add:ios": "npx --yes @capacitor/cli@latest add ios",
+    "add:android": "npx --yes @capacitor/cli@latest add android",
+    "sync": "pnpm build:web && npx --yes @capacitor/cli@latest sync",
+    "open:ios": "npx --yes @capacitor/cli@latest open ios",
+    "open:android": "npx --yes @capacitor/cli@latest open android"
+  }
+}

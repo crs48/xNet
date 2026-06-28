@@ -214,6 +214,37 @@ export default defineConfig({
           isolate: true,
           include: ['packages/labs/src/**/*.test.ts']
         }
+      },
+      {
+        // Electron desktop app (0238) — main / renderer / data-process unit tests.
+        // Runs under the root aliases above (which resolve every @xnetjs/* to its
+        // src entry), so it needs no package build — unlike apps/electron's own
+        // config, whose partial alias set fails to resolve @xnetjs/sync|crypto in
+        // an unbuilt worktree. The .test.tsx renderer tests opt into jsdom via a
+        // per-file `@vitest-environment` docblock. The native better-sqlite3 batch
+        // test stays on the app-local config (apps/electron/vitest.config.ts)
+        // because it needs an Electron-ABI rebuild that this Node-ABI runner lacks.
+        extends: true,
+        test: {
+          name: 'electron',
+          environment: 'node',
+          pool: 'forks',
+          isolate: true,
+          include: ['apps/electron/src/**/*.test.{ts,tsx}'],
+          exclude: ['apps/electron/src/__tests__/sqlite-batch.test.ts'],
+          server: {
+            deps: {
+              external: ['better-sqlite3', 'electron']
+            }
+          }
+        },
+        resolve: {
+          alias: {
+            // Match the dom project: stub mermaid (heavy optional peer) for canvas
+            // surfaces the renderer component tests pull in.
+            mermaid: new URL('./packages/canvas/src/__mocks__/mermaid.ts', import.meta.url).pathname
+          }
+        }
       }
     ]
   }
