@@ -127,6 +127,56 @@ export function OnboardingProvider({
           })
       }
 
+      // Create a recoverable identity (exploration 0243): mint, enroll a gating
+      // passkey, and surface the phrase so the user can save it.
+      if (event.type === 'CREATE_RECOVERABLE' && state === 'welcome') {
+        if (authInFlight.current) return
+        authInFlight.current = true
+        manager
+          .createRecoverable()
+          .then(({ keyBundle, phrase }) => {
+            dispatch({
+              type: 'RECOVERABLE_CREATED',
+              identity: keyBundle.identity,
+              keyBundle,
+              phrase
+            })
+          })
+          .catch((err: unknown) => {
+            dispatch({
+              type: 'PASSKEY_FAILED',
+              error: err instanceof Error ? err : new Error(String(err))
+            })
+          })
+          .finally(() => {
+            authInFlight.current = false
+          })
+      }
+
+      // Recover from a typed phrase: enroll a local passkey and adopt the identity.
+      if (event.type === 'SUBMIT_PHRASE' && state === 'recovery-phrase') {
+        if (authInFlight.current) return
+        authInFlight.current = true
+        manager
+          .importRecoveryPhrase(event.phrase)
+          .then(({ keyBundle }) => {
+            dispatch({
+              type: 'IDENTITY_IMPORTED',
+              identity: keyBundle.identity,
+              keyBundle
+            })
+          })
+          .catch((err: unknown) => {
+            dispatch({
+              type: 'IMPORT_FAILED',
+              error: err instanceof Error ? err : new Error(String(err))
+            })
+          })
+          .finally(() => {
+            authInFlight.current = false
+          })
+      }
+
       dispatch(event)
     },
     [state, manager]

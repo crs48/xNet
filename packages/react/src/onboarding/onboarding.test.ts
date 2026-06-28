@@ -145,6 +145,54 @@ describe('Onboarding State Machine', () => {
       s = send(s, { type: 'BACK_TO_WELCOME' })
       expect(s.state).toBe('welcome')
     })
+
+    it('surfaces an import failure without leaving the recovery-phrase screen', () => {
+      let s = createInitialState()
+      s = send(s, { type: 'IMPORT_EXISTING' })
+      s = send(s, { type: 'ENTER_PHRASE' })
+      expect(s.state).toBe('recovery-phrase')
+
+      const error = new Error('That recovery phrase is not valid')
+      s = send(s, { type: 'IMPORT_FAILED', error })
+      expect(s.state).toBe('recovery-phrase')
+      expect(s.context.error).toBe(error)
+
+      // Correcting it and importing advances to the hub.
+      const importEvent = makeImportEvent()
+      s = send(s, importEvent)
+      expect(s.state).toBe('connecting-hub')
+      expect(s.context.identity).toBe(importEvent.identity)
+    })
+  })
+
+  describe('recoverable identity path (0243)', () => {
+    it('welcome → creating-recoverable → show-recovery-phrase → connecting-hub', () => {
+      let s = createInitialState('wss://hub.xnet.fyi')
+
+      s = send(s, { type: 'CREATE_RECOVERABLE' })
+      expect(s.state).toBe('creating-recoverable')
+
+      const kb = generateKeyBundle()
+      s = send(s, {
+        type: 'RECOVERABLE_CREATED',
+        identity: kb.identity,
+        keyBundle: kb,
+        phrase: 'amber anchor apple arch arrow atlas autumn beacon birch bloom brave breeze'
+      })
+      expect(s.state).toBe('show-recovery-phrase')
+      expect(s.context.keyBundle).toBe(kb)
+      expect(s.context.recoveryPhrase).toContain('amber')
+
+      s = send(s, { type: 'PHRASE_SAVED' })
+      expect(s.state).toBe('connecting-hub')
+    })
+
+    it('falls back to auth-error if recoverable creation fails', () => {
+      let s = createInitialState()
+      s = send(s, { type: 'CREATE_RECOVERABLE' })
+      s = send(s, { type: 'PASSKEY_FAILED', error: new Error('cancelled') })
+      expect(s.state).toBe('auth-error')
+    })
   })
 
   describe('hub connection', () => {
