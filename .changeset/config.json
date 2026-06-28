@@ -41,6 +41,7 @@
     "site",
     "xnet-desktop",
     "xnet-mobile",
+    "xnet-mobile-shell",
     "xnet-web"
   ]
 }

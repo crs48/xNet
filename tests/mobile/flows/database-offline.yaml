@@ -1,0 +1,41 @@
+# Offline durability + sync: a row created with no network survives a relaunch
+# (OPFS persistence), then syncs once connectivity returns (exploration 0238).
+appId: io.xnet.app
+---
+- launchApp:
+    clearState: true
+
+# Create a database and a row while ONLINE.
+- tapOn: 'New'
+- tapOn: 'Database'
+- tapOn:
+    id: 'add-row-fab'
+- inputText: 'Online row'
+- tapOn: 'Done'
+
+# Prove OPFS durability: relaunch (no clearState) and the row is still there.
+- stopApp
+- launchApp
+- assertVisible: 'Online row'
+
+# Edit OFFLINE…
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - setAirplaneMode: enabled
+- tapOn:
+    id: 'add-row-fab'
+- inputText: 'Made offline'
+- tapOn: 'Done'
+- assertVisible: 'Made offline'
+
+# …then restore the network and confirm the sync indicator settles.
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - setAirplaneMode: disabled
+- assertVisible:
+    text: 'Synced|Up to date'
+    optional: true

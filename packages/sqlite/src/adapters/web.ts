@@ -16,6 +16,7 @@ import type {
 } from '../types'
 import { isSQLiteCorruptionError } from '../errors'
 import { SCHEMA_DDL, SCHEMA_VERSION } from '../schema'
+import { detectOpfsCapability } from './opfs-capability'
 import { isOpfsLockError, withOpfsLockRetry } from './opfs-retry'
 
 // We use 'any' types here because @sqlite.org/sqlite-wasm is a peer dependency
@@ -200,7 +201,17 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
     } catch (err) {
       // If OPFS-SAHPool fails, try OPFS direct database before in-memory fallback.
       // Safari can fail SAH pool setup but still support OPFS persistence.
-      console.warn('[WebSQLiteAdapter] OPFS-SAHPool not available, trying OPFS direct mode:', err)
+      //
+      // Distinguish *why* up front: on iOS 15.2–16.3 / older WebViews the sahpool
+      // path is unavailable because there are no sync access handles — the async
+      // OpfsDb path below is the expected, still-durable fallback rather than an
+      // error (exploration 0238). Genuine lock contention is a different story.
+      const capability = detectOpfsCapability()
+      if (capability.mode === 'async-opfs') {
+        console.info('[WebSQLiteAdapter] Sync access handles unavailable — ' + capability.reason)
+      } else {
+        console.warn('[WebSQLiteAdapter] OPFS-SAHPool not available, trying OPFS direct mode:', err)
+      }
 
       const dbPath = getDatabasePath(config)
       const opfsDbCtor = this.sqlite3?.oo1?.OpfsDb

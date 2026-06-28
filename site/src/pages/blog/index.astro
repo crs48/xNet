@@ -1,0 +1,89 @@
+---
+import Base from '../../layouts/Base.astro'
+import Nav from '../../components/sections/Nav.astro'
+import Footer from '../../components/sections/Footer.astro'
+import { publishedPosts, formatPostDate } from '../../data/blog'
+
+const posts = publishedPosts()
+---
+
+<Base
+  title="Blog — xNet"
+  description="Essays on local-first software, data ownership, and the open web."
+>
+  <Nav />
+
+  <main class="mx-auto max-w-3xl px-6 py-20 lg:py-28">
+    <header class="mb-12">
+      <div class="flex items-center justify-between gap-4">
+        <h1 class="text-4xl font-bold tracking-tight text-gray-900 dark:text-white lg:text-5xl">
+          Blog
+        </h1>
+        <a
+          href="/blog/rss.xml"
+          class="inline-flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm text-gray-500 hover:border-indigo-500/50 hover:text-gray-900 dark:hover:text-white transition-all"
+        >
+          <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M6.18 15.64a2.18 2.18 0 0 1 2.18 2.18C8.36 19 7.38 20 6.18 20S4 19 4 17.82a2.18 2.18 0 0 1 2.18-2.18M4 4.44A15.56 15.56 0 0 1 19.56 20h-2.83A12.73 12.73 0 0 0 4 7.27V4.44m0 4.95a10.61 10.61 0 0 1 10.61 10.61h-2.83A7.78 7.78 0 0 0 4 12.22V9.39Z" />
+          </svg>
+          RSS
+        </a>
+      </div>
+      <p class="mt-4 max-w-2xl text-lg text-gray-500 dark:text-gray-400 leading-relaxed">
+        Field notes from the open web — on owning your data, local-first software,
+        and the kind of internet worth building.
+      </p>
+    </header>
+
+    {
+      posts.length === 0 ? (
+        <p class="rounded-2xl border border-border bg-surface/30 p-8 text-gray-500 dark:bg-surface/40 dark:text-gray-400">
+          The log is being written. First dispatch soon.
+        </p>
+      ) : (
+        <ul class="space-y-4">
+          {posts.map((post) => (
+            <li>
+              <a
+                href={`/blog/${post.slug}`}
+                class="group block rounded-2xl border border-border bg-surface/20 p-6 transition-all hover:border-indigo-500/40 hover:bg-surface/40 lg:p-8"
+              >
+                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-400 dark:text-gray-500">
+                  <time datetime={post.pubDate}>{formatPostDate(post.pubDate)}</time>
+                  <span aria-hidden="true">·</span>
+                  <span>{post.readingMinutes} min read</span>
+                  {post.tags.map((tag) => (
+                    <span class="rounded-full border border-border px-2 py-0.5 font-mono lowercase">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+                <h2 class="mt-3 text-2xl font-bold tracking-tight text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                  {post.title}
+                </h2>
+                <p class="mt-2 text-gray-600 dark:text-gray-300 leading-relaxed">
+                  {post.description}
+                </p>
+                <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 dark:text-indigo-400">
+                  Read
+                  <svg
+                    class="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    stroke-width="2"
+                    aria-hidden="true"
+                  >
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                  </svg>
+                </span>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )
+    }
+  </main>
+
+  <Footer />
+</Base>

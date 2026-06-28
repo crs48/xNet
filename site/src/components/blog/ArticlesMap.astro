@@ -1,0 +1,69 @@
+---
+// The structural heart of the essay (exploration 0239): a pirate crew's written
+// "articles" map almost one-to-one onto xNet's Humane Charter commitments. Each
+// row links to the commitment so the claim is checkable, not rhetorical.
+const rows = [
+  {
+    article: 'Every member signs the articles.',
+    name: 'Own',
+    promise: 'You hold the master copy. Your data lives on your device first; there is no behavioral surplus to sell.',
+  },
+  {
+    article: 'A vote, and an equal share of the plunder.',
+    name: 'Commons',
+    promise: 'You own your audience and your graph — not a platform that rents them back to you.',
+  },
+  {
+    article: 'An elected captain, checked by an elected quartermaster.',
+    name: 'Consent',
+    promise: 'Nothing leaves without permission. Telemetry is off by default and scrubbed when you opt in.',
+  },
+  {
+    article: 'You can leave the crew and keep your share.',
+    name: 'Exit',
+    promise: 'Leaving loses nothing. A portable did:key works on any hub; the client runs fully offline.',
+  },
+  {
+    article: 'No flogging. No compulsion.',
+    name: 'Calm',
+    promise: 'No infinite scroll, no engagement ranking, no streaks engineered around loss aversion.',
+  },
+  {
+    article: 'Skill makes the crew — not the captain’s whim.',
+    name: 'Agency',
+    promise: 'AI scaffolds and cites; you write and own. It makes you more capable, not less.',
+  },
+]
+---
+
+<section class="not-prose my-12">
+  <div class="rounded-2xl border border-border bg-surface/30 p-6 dark:bg-surface/40 lg:p-8">
+    <h3 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+      A pirate ship ran on written articles. So does xNet.
+    </h3>
+    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+      The crew agreed to a short list of binding rules, and everyone signed. xNet’s
+      <a href="/commitments" class="text-emerald-600 underline decoration-dotted underline-offset-2 hover:text-emerald-500 dark:text-emerald-400">Humane Charter</a>
+      is the same idea — six commitments, each with a receipt in the source code.
+    </p>
+
+    <ul class="mt-6 space-y-4">
+      {
+        rows.map((row) => (
+          <li class="grid gap-2 sm:grid-cols-[1fr_1.4fr] sm:gap-6 sm:items-baseline">
+            <p class="text-sm italic leading-relaxed text-gray-500 dark:text-gray-400">
+              “{row.article}”
+            </p>
+            <p class="text-sm leading-relaxed text-gray-700 dark:text-gray-200">
+              <span class="font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+                {row.name}
+              </span>
+              <span class="mx-1.5 text-gray-300 dark:text-gray-600" aria-hidden="true">—</span>
+              {row.promise}
+            </p>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>

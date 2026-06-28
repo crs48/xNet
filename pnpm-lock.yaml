@@ -377,6 +377,8 @@ importers:
         specifier: ~5.3.0
         version: 5.3.3
 
+  apps/mobile: {}
+
   apps/web:
     dependencies:
       '@fontsource-variable/inter':

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:mobile": "tsc && VITE_USE_HASH_ROUTER=true vite build --outDir dist-mobile",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit"
   },
