@@ -98,7 +98,10 @@ describe('OpenRouterGatewayClient', () => {
       return new Response(sse, { status: 200, headers: { 'content-type': 'text/event-stream' } })
     }) as unknown as typeof fetch
 
-    const client = new OpenRouterGatewayClient({ baseUrl: 'https://openrouter.ai/api/v1', fetchImpl })
+    const client = new OpenRouterGatewayClient({
+      baseUrl: 'https://openrouter.ai/api/v1',
+      fetchImpl
+    })
     const deltas: string[] = []
     let final
     for await (const chunk of client.chatStream({

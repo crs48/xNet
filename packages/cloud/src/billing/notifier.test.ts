@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  BudgetAlertNotifier,
-  MemorySentThresholdStore,
-  RecordingAlertTransport
-} from './notifier'
+import { BudgetAlertNotifier, MemorySentThresholdStore, RecordingAlertTransport } from './notifier'
 
 const make = () => {
   const transport = new RecordingAlertTransport()
@@ -29,7 +25,13 @@ describe('BudgetAlertNotifier', () => {
 
   it('is idempotent: the same crossing never re-alerts within a window', async () => {
     const { transport, notifier } = make()
-    await notifier.notify({ tenantId: 't1', windowKey: 'w1', prevUsedUsd: 0, newUsedUsd: 6, capUsd: 10 })
+    await notifier.notify({
+      tenantId: 't1',
+      windowKey: 'w1',
+      prevUsedUsd: 0,
+      newUsedUsd: 6,
+      capUsd: 10
+    })
     // A second call re-derives the 50% crossing from 0 again, but it's already sent.
     const again = await notifier.notify({
       tenantId: 't1',
@@ -44,8 +46,20 @@ describe('BudgetAlertNotifier', () => {
 
   it('alerts afresh in a new window', async () => {
     const { transport, notifier } = make()
-    await notifier.notify({ tenantId: 't1', windowKey: 'w1', prevUsedUsd: 0, newUsedUsd: 6, capUsd: 10 })
-    await notifier.notify({ tenantId: 't1', windowKey: 'w2', prevUsedUsd: 0, newUsedUsd: 6, capUsd: 10 })
+    await notifier.notify({
+      tenantId: 't1',
+      windowKey: 'w1',
+      prevUsedUsd: 0,
+      newUsedUsd: 6,
+      capUsd: 10
+    })
+    await notifier.notify({
+      tenantId: 't1',
+      windowKey: 'w2',
+      prevUsedUsd: 0,
+      newUsedUsd: 6,
+      capUsd: 10
+    })
     expect(transport.sent.map((a) => a.windowKey)).toEqual(['w1', 'w2'])
   })
 
@@ -65,7 +79,13 @@ describe('BudgetAlertNotifier', () => {
   it('does nothing when no threshold is crossed', async () => {
     const { transport, notifier } = make()
     expect(
-      await notifier.notify({ tenantId: 't1', windowKey: 'w1', prevUsedUsd: 1, newUsedUsd: 2, capUsd: 100 })
+      await notifier.notify({
+        tenantId: 't1',
+        windowKey: 'w1',
+        prevUsedUsd: 1,
+        newUsedUsd: 2,
+        capUsd: 100
+      })
     ).toEqual([])
     expect(transport.sent).toHaveLength(0)
   })

@@ -9,12 +9,7 @@
  * (exploration 0201). Thin + `fetch`-injectable, so it's testable with no key.
  */
 
-import type {
-  ChatRequest,
-  ChatResult,
-  ChatStreamChunk,
-  StreamingChatGateway
-} from './gateway'
+import type { ChatRequest, ChatResult, ChatStreamChunk, StreamingChatGateway } from './gateway'
 import { GatewayError } from './gateway'
 import { parseSseJson } from './sse'
 

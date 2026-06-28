@@ -30,7 +30,12 @@ const fakeGateway = (tokens = { input: 1000, output: 500 }): ChatGateway => ({
 // A streaming-capable gateway: yields two deltas then a final result with cost.
 const fakeStreamingGateway = (): StreamingChatGateway => ({
   async chat(_req: ChatRequest): Promise<ChatResult> {
-    return { text: 'hello', model: 'claude-sonnet', usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 }, providerCostUsd: 0.0002 }
+    return {
+      text: 'hello',
+      model: 'claude-sonnet',
+      usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+      providerCostUsd: 0.0002
+    }
   },
   async *chatStream() {
     yield { delta: 'hel' }

@@ -1212,7 +1212,10 @@ export class ManagedProvider implements AIProvider {
         if (data.error === 'ai_budget_exceeded') {
           throw new AiBudgetError(data.spentUsd ?? 0, data.budgetUsd ?? 0)
         }
-        throw new AIGenerationError(`Managed AI stream error: ${data.error ?? ''}`.trim(), this.name)
+        throw new AIGenerationError(
+          `Managed AI stream error: ${data.error ?? ''}`.trim(),
+          this.name
+        )
       }
       return null
     }

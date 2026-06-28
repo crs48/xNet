@@ -1,9 +1,4 @@
-import type {
-  ChatGateway,
-  ChatRequest,
-  ChatResult,
-  StreamingChatGateway
-} from './gateway'
+import type { ChatGateway, ChatRequest, ChatResult, StreamingChatGateway } from './gateway'
 import { describe, expect, it } from 'vitest'
 import { FakeStripeBilling, MemoryUsageLedger, type TokenPricing } from '../billing'
 import { BudgetExceededError, MeteredGateway } from './metered-gateway'
@@ -224,9 +219,11 @@ describe('MeteredGateway streaming', () => {
 
   it('meters a streamed call identically to the unary path (same usage.cost)', async () => {
     // Unary baseline.
-    const unary = makeMetered(10, { async chat() {
-      return result
-    } })
+    const unary = makeMetered(10, {
+      async chat() {
+        return result
+      }
+    })
     await unary.mg.chat({ tenantId: 't1', key: 't1:s:u', request: req() })
     const unaryCharge = await unary.ledger.totalChargeUsd('t1')
 
