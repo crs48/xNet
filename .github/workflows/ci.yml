@@ -196,13 +196,13 @@ jobs:
   # smoke (launch, no-console-errors, SQLite persist across restart, xnet://
   # deep-link routing, core canvas flow). Headless under xvfb.
   #
-  # Native-module ABI: the in-process hub runs under plain Node and keeps the
-  # Node-ABI better-sqlite3 from the setup composite, while the Electron app is
-  # launched from an `electron-builder --dir` bundle whose native modules are
-  # rebuilt for Electron's ABI — so the two never clash over one rebuilt copy.
-  # `electron-cache: 'true'` caches ~/.cache/electron(-builder), so the native
-  # rebuild is paid once. `--fail-on-flaky-tests` quarantines flakes (it never
-  # retries to green).
+  # Native-module ABI: the in-process hub runs under plain Node, so it keeps a
+  # PINNED Node-ABI better-sqlite3 (copied into packages/hub/node_modules before
+  # the shared copy is rebuilt), while the unpacked Electron app uses the shared
+  # copy rebuilt for Electron's ABI (`deps:electron`). The two resolve different
+  # physical copies, so neither ABI clobbers the other. `electron-cache: 'true'`
+  # caches ~/.cache/electron so the rebuild is paid once. `--fail-on-flaky-tests`
+  # quarantines flakes (it never retries to green).
   electron-e2e:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -218,26 +218,20 @@ jobs:
       - name: Build packages + Electron renderer/main
         run: pnpm turbo run build --filter=xnet-desktop --filter=@xnetjs/hub
 
-      - name: Package Electron app (--dir, Electron-ABI native modules)
+      # Freeze a Node-ABI copy for the hub BEFORE deps:electron flips the shared
+      # better-sqlite3 to the Electron ABI. The hub resolves
+      # packages/hub/node_modules/better-sqlite3 (now a real Node-ABI dir); the
+      # Electron app resolves the shared (Electron-ABI) copy.
+      - name: Pin Node-ABI better-sqlite3 for the hub
         run: |
-          cd apps/electron
-          CSC_IDENTITY_AUTO_DISCOVERY=false pnpm exec electron-builder --linux dir --x64
+          HUB_BS3=packages/hub/node_modules/better-sqlite3
+          SHARED=$(ls -d node_modules/.pnpm/better-sqlite3@*/node_modules/better-sqlite3 | head -1)
+          rm -rf "$HUB_BS3"
+          cp -RL "$SHARED" "$HUB_BS3"
+          echo "Pinned Node-ABI better-sqlite3 for the hub from $SHARED"
 
-      # The packaged app carries its OWN Electron-ABI native modules; restore the
-      # shared workspace copy to the Node ABI in case electron-builder's
-      # npm-rebuild touched the hoisted pnpm store — the in-process hub runs under
-      # plain Node and must be able to load better-sqlite3. No-op if untouched.
-      - name: Restore Node-ABI native modules for the hub
-        run: pnpm --filter xnet-desktop run deps:node
-
-      - name: Resolve Electron binary
-        id: binary
-        run: |
-          BIN=$(find apps/electron/dist/linux-unpacked -maxdepth 1 -type f -executable \
-            ! -name 'chrome*' ! -name '*.so*' ! -name '*.bin' | head -1)
-          if [ -z "$BIN" ]; then echo "no Electron binary found"; ls -la apps/electron/dist/linux-unpacked; exit 1; fi
-          echo "Resolved Electron binary: $BIN"
-          echo "path=$(pwd)/$BIN" >> "$GITHUB_OUTPUT"
+      - name: Rebuild native modules for Electron (unpacked app)
+        run: pnpm --filter xnet-desktop run deps:electron
 
       - name: Install xvfb
         run: sudo apt-get update && sudo apt-get install -y xvfb
@@ -257,6 +251,21 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: pnpm --filter @xnetjs/e2e-tests exec playwright install-deps chromium
 
+      # Diagnose the launch path OUTSIDE Playwright (which swallows the Electron
+      # main-process stdio): assert better-sqlite3 loads under Electron's ABI and
+      # that the unpacked app reaches `app.whenReady`, surfacing any crash.
+      - name: Probe Electron launch (diagnostic)
+        run: |
+          set -x
+          ELECTRON_BIN=$(cd apps/electron && node -e "process.stdout.write(require('electron'))")
+          echo "electron binary: $ELECTRON_BIN"
+          echo "--- better-sqlite3 under Electron ABI ---"
+          (cd apps/electron && ELECTRON_RUN_AS_NODE=1 "$ELECTRON_BIN" -e "new (require('better-sqlite3'))(':memory:'); console.log('better-sqlite3 OK under Electron')") \
+            || echo "PROBE FAILED: better-sqlite3 cannot load under Electron"
+          echo "--- direct app launch (25s, capture main-process output) ---"
+          XNET_TEST_BYPASS=true NODE_ENV=production xvfb-run --auto-servernum \
+            timeout 25 "$ELECTRON_BIN" "$PWD/apps/electron" --no-sandbox --disable-gpu --disable-dev-shm-usage 2>&1 | head -80 || true
+
       - name: Run convergence matrix + Electron app smoke (xvfb)
         run: |
           xvfb-run --auto-servernum pnpm --filter @xnetjs/e2e-tests exec \
@@ -264,7 +273,6 @@ jobs:
             --project=chromium --project=electron --fail-on-flaky-tests
         env:
           CI: 'true'
-          XNET_ELECTRON_BINARY: ${{ steps.binary.outputs.path }}
           XNET_ELECTRON_NO_SANDBOX: '1'
 
       - name: Upload Electron e2e artifacts

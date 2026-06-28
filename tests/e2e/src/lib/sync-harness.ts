@@ -378,7 +378,8 @@ export async function launchElectronApp(
 
   let window: Page
   try {
-    window = await app.firstWindow()
+    // Cold Electron boot under xvfb in CI can be slow; allow more than the 30s default.
+    window = await app.firstWindow({ timeout: 60_000 })
   } catch (err) {
     const tail = output.join('').split('\n').slice(-50).join('\n')
     await app.close().catch(() => undefined)
