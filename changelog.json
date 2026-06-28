@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-06-28-new-essay-the-desert-that-feeds-the-fore",
+      "url": "https://xnet.fyi/changelog#2026-06-28-new-essay-the-desert-that-feeds-the-fore",
+      "title": "New essay: The Desert That Feeds the Forest",
+      "content_text": "A new blog post on Saharan dust, desert bees, and the invisible substrate the open web runs on — the fourth in the essay series.\n",
+      "date_published": "2026-06-28T21:46:46Z",
+      "tags": [
+        "platform"
+      ],
+      "_xnet": {
+        "date": "June 28, 2026",
+        "summary": "A new blog post on Saharan dust, desert bees, and the invisible substrate the open web runs on — the fourth in the essay series.",
+        "highlights": [],
+        "mergedAt": "2026-06-28T21:46:46Z",
+        "pr": 321,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-06-28-recover-your-xnet-cloud-account-if-you-l",
       "url": "https://xnet.fyi/changelog#2026-06-28-recover-your-xnet-cloud-account-if-you-l",
       "title": "Recover your xNet Cloud account if you lose your passkey",
@@ -3226,31 +3248,6 @@
         "authors": [
           {
             "login": "crs48"
-          }
-        ]
-      }
-    },
-    {
-      "id": "2026-06-28-new-essay-the-desert-that-feeds-the-fore",
-      "url": "https://xnet.fyi/changelog#2026-06-28-new-essay-the-desert-that-feeds-the-fore",
-      "title": "New essay: The Desert That Feeds the Forest",
-      "content_text": "A new blog post on Saharan dust, desert bees, and the invisible substrate the open web runs on — the fourth in the essay series.\n",
-      "date_published": "2026-03-06T07:06:33Z",
-      "tags": [
-        "platform"
-      ],
-      "_xnet": {
-        "date": "June 28, 2026",
-        "summary": "A new blog post on Saharan dust, desert bees, and the invisible substrate the open web runs on — the fourth in the essay series.",
-        "highlights": [],
-        "mergedAt": "2026-03-06T07:06:33Z",
-        "pr": 4,
-        "authors": [
-          {
-            "login": "crs48"
-          },
-          {
-            "login": "crs"
           }
         ]
       }

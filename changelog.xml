@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>New essay: The Desert That Feeds the Forest</title>
+      <link>https://xnet.fyi/changelog#2026-06-28-new-essay-the-desert-that-feeds-the-fore</link>
+      <guid isPermaLink="false">2026-06-28-new-essay-the-desert-that-feeds-the-fore</guid>
+      <pubDate>Sun, 28 Jun 2026 21:46:46 GMT</pubDate>
+      <description>A new blog post on Saharan dust, desert bees, and the invisible substrate the open web runs on — the fourth in the essay series.</description>
+    </item>
+    <item>
       <title>Recover your xNet Cloud account if you lose your passkey</title>
       <link>https://xnet.fyi/changelog#2026-06-28-recover-your-xnet-cloud-account-if-you-l</link>
       <guid isPermaLink="false">2026-06-28-recover-your-xnet-cloud-account-if-you-l</guid>
@@ -1142,13 +1149,6 @@
 - Metrics, observations and experiments as first-class data
 - Streak heatmaps and correlation widgets
 - A &quot;Today&quot; panel for quick logging</description>
-    </item>
-    <item>
-      <title>New essay: The Desert That Feeds the Forest</title>
-      <link>https://xnet.fyi/changelog#2026-06-28-new-essay-the-desert-that-feeds-the-fore</link>
-      <guid isPermaLink="false">2026-06-28-new-essay-the-desert-that-feeds-the-fore</guid>
-      <pubDate>Fri, 06 Mar 2026 07:06:33 GMT</pubDate>
-      <description>A new blog post on Saharan dust, desert bees, and the invisible substrate the open web runs on — the fourth in the essay series.</description>
     </item>
   </channel>
 </rss>
