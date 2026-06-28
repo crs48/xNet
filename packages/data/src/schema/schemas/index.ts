@@ -230,6 +230,30 @@ export {
   type MessageMentions
 } from './mentions'
 export { GrantSchema, type Grant } from './grant'
+// Account/device ledger (explorations 0149 + 0243)
+export {
+  AccountRecordSchema,
+  DeviceRecordSchema,
+  RecoveryRecordSchema,
+  RevocationRecordSchema,
+  ACCOUNT_RECORD_SCHEMA_IRI,
+  DEVICE_RECORD_SCHEMA_IRI,
+  RECOVERY_RECORD_SCHEMA_IRI,
+  REVOCATION_RECORD_SCHEMA_IRI,
+  accountRecordId,
+  deviceRecordId,
+  recoveryRecordId,
+  revocationRecordId,
+  revokedSubjects,
+  resolveActiveDevices,
+  isDeviceAuthorized,
+  type AccountRecord,
+  type DeviceRecord,
+  type RecoveryRecord,
+  type RevocationRecord,
+  type DeviceLike,
+  type RevocationLike
+} from './account-ledger'
 export { SavedViewSchema, type SavedView } from './saved-view'
 export {
   UserWidgetSchema,
@@ -479,6 +503,14 @@ export const builtInSchemas = {
     import('./external-item').then((m) => m.ExternalItemSchema),
   'xnet://xnet.fyi/InboxState@1.0.0': () => import('./inbox-state').then((m) => m.InboxStateSchema),
   'xnet://xnet.fyi/Grant@1.0.0': () => import('./grant').then((m) => m.GrantSchema),
+  'xnet://xnet.fyi/AccountRecord@1.0.0': () =>
+    import('./account-ledger').then((m) => m.AccountRecordSchema),
+  'xnet://xnet.fyi/DeviceRecord@1.0.0': () =>
+    import('./account-ledger').then((m) => m.DeviceRecordSchema),
+  'xnet://xnet.fyi/RecoveryRecord@1.0.0': () =>
+    import('./account-ledger').then((m) => m.RecoveryRecordSchema),
+  'xnet://xnet.fyi/RevocationRecord@1.0.0': () =>
+    import('./account-ledger').then((m) => m.RevocationRecordSchema),
   'xnet://xnet.fyi/SavedView@1.0.0': () => import('./saved-view').then((m) => m.SavedViewSchema),
   'xnet://xnet.fyi/Dashboard@1.0.0': () => import('./dashboard').then((m) => m.DashboardSchema),
   'xnet://xnet.fyi/UserWidget@1.0.0': () => import('./user-widget').then((m) => m.UserWidgetSchema),
@@ -579,6 +611,14 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/ExternalItem': () => import('./external-item').then((m) => m.ExternalItemSchema),
   'xnet://xnet.fyi/InboxState': () => import('./inbox-state').then((m) => m.InboxStateSchema),
   'xnet://xnet.fyi/Grant': () => import('./grant').then((m) => m.GrantSchema),
+  'xnet://xnet.fyi/AccountRecord': () =>
+    import('./account-ledger').then((m) => m.AccountRecordSchema),
+  'xnet://xnet.fyi/DeviceRecord': () =>
+    import('./account-ledger').then((m) => m.DeviceRecordSchema),
+  'xnet://xnet.fyi/RecoveryRecord': () =>
+    import('./account-ledger').then((m) => m.RecoveryRecordSchema),
+  'xnet://xnet.fyi/RevocationRecord': () =>
+    import('./account-ledger').then((m) => m.RevocationRecordSchema),
   'xnet://xnet.fyi/SavedView': () => import('./saved-view').then((m) => m.SavedViewSchema),
   'xnet://xnet.fyi/Dashboard': () => import('./dashboard').then((m) => m.DashboardSchema),
   'xnet://xnet.fyi/UserWidget': () => import('./user-widget').then((m) => m.UserWidgetSchema),

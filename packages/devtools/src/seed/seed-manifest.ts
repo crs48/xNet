@@ -10,10 +10,14 @@
 import type { SeederModule } from './types'
 import type { DefinedSchema, SchemaIRI } from '@xnetjs/data'
 import {
+  AccountRecordSchema,
+  DeviceRecordSchema,
   ExtensionFieldSchema,
   GrantSchema,
   InboxStateSchema,
   PresenceSummarySchema,
+  RecoveryRecordSchema,
+  RevocationRecordSchema,
   SchemaCompatibilitySchema,
   SchemaDefinitionSchema,
   SchemaExtensionSchema,
@@ -60,7 +64,12 @@ export const SEED_EXCLUDED_SCHEMA_IDS: ReadonlySet<string> = new Set([
   SyncPolicySchema._schemaId,
   GrantSchema._schemaId,
   InboxStateSchema._schemaId,
-  PresenceSummarySchema._schemaId
+  PresenceSummarySchema._schemaId,
+  // Account/device ledger (0149/0243) — identity infrastructure, not seeded content.
+  AccountRecordSchema._schemaId,
+  DeviceRecordSchema._schemaId,
+  RecoveryRecordSchema._schemaId,
+  RevocationRecordSchema._schemaId
 ])
 
 /**
