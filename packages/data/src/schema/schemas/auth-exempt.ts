@@ -20,6 +20,11 @@
  *   authority resolution path, not per-node roles.
  * - `PresenceSummary` — ephemeral presence aggregate; visibility is handled by
  *   the presence pipeline.
+ * - `AccountRecord` / `DeviceRecord` / `RecoveryRecord` / `RevocationRecord` — the
+ *   account/device ledger (explorations 0149/0243). Write access is "is the signer an
+ *   active controller of this account at the current epoch", enforced by the
+ *   signed-ledger / hub layer, not a per-node role cascade. Reads mirror across a
+ *   user's own devices and hubs.
  *
  * This is the single source of truth: `defineSchema` reads it to suppress the
  * dev-time legacy warning, and the coverage test reads it to allow these IRIs.
@@ -40,7 +45,16 @@ export const AUTH_EXEMPT_SCHEMA_IRIS: ReadonlySet<string> = new Set<string>([
   'xnet://xnet.fyi/SyncPolicy@1.0.0',
   'xnet://xnet.fyi/SyncPolicy',
   'xnet://xnet.fyi/PresenceSummary@1.0.0',
-  'xnet://xnet.fyi/PresenceSummary'
+  'xnet://xnet.fyi/PresenceSummary',
+  // Account/device ledger (0149/0243) — controller-signed + epoch-gated, hub-enforced.
+  'xnet://xnet.fyi/AccountRecord@1.0.0',
+  'xnet://xnet.fyi/AccountRecord',
+  'xnet://xnet.fyi/DeviceRecord@1.0.0',
+  'xnet://xnet.fyi/DeviceRecord',
+  'xnet://xnet.fyi/RecoveryRecord@1.0.0',
+  'xnet://xnet.fyi/RecoveryRecord',
+  'xnet://xnet.fyi/RevocationRecord@1.0.0',
+  'xnet://xnet.fyi/RevocationRecord'
 ])
 
 /** Whether a schema id is on the intentional authorization-exempt allowlist. */

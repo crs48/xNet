@@ -511,7 +511,7 @@ async function admitDevice(account: AccountLedger, existing: KeyBundle, newDevic
       recovery-phrase-derived key (passkey unlock and phrase recovery yield the _same_ DID).
 - [ ] **P1.4** Surface passkey-sync recovery (A1) explicitly in the import flow using
       `discoverExistingPasskey` / `unlockDiscoveredPasskey`.
-- [ ] **P2.1** Build the 0149 `Account` / `Device` / `RecoveryMethod` schemas
+- [x] **P2.1** Build the 0149 `Account` / `Device` / `RecoveryMethod` schemas
       (schema-native, signed, synced) with revocation + epochs.
 - [ ] **P2.2** Migrate `TenantBinding.did` → `TenantBinding.account`; keep a back-compat
       read path for single-DID bindings.

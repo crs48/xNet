@@ -398,6 +398,29 @@ export {
 } from './schemas'
 export { extractMentions, getMentionedUsers, type Mention } from './schemas'
 export { GrantSchema, type Grant } from './schemas'
+export {
+  AccountRecordSchema,
+  DeviceRecordSchema,
+  RecoveryRecordSchema,
+  RevocationRecordSchema,
+  ACCOUNT_RECORD_SCHEMA_IRI,
+  DEVICE_RECORD_SCHEMA_IRI,
+  RECOVERY_RECORD_SCHEMA_IRI,
+  REVOCATION_RECORD_SCHEMA_IRI,
+  accountRecordId,
+  deviceRecordId,
+  recoveryRecordId,
+  revocationRecordId,
+  revokedSubjects,
+  resolveActiveDevices,
+  isDeviceAuthorized,
+  type AccountRecord,
+  type DeviceRecord,
+  type RecoveryRecord,
+  type RevocationRecord,
+  type DeviceLike,
+  type RevocationLike
+} from './schemas'
 export { SavedViewSchema, type SavedView } from './schemas'
 export {
   UserWidgetSchema,
