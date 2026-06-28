@@ -341,9 +341,13 @@ export async function launchElectronApp(
 ): Promise<{ app: ElectronApplication; window: Page }> {
   const binary = opts.executablePath ?? process.env.XNET_ELECTRON_BINARY
   // Headless Linux CI runs Electron under xvfb as root, where the chrome-sandbox
-  // isn't setuid — `--no-sandbox` (set by the electron-e2e job) is required.
-  const sandboxArgs = process.env.XNET_ELECTRON_NO_SANDBOX === '1' ? ['--no-sandbox'] : []
-  const extra = [...(opts.extraArgs ?? []), ...sandboxArgs]
+  // isn't setuid (`--no-sandbox`) and there's no GPU / large /dev/shm. Set by the
+  // electron-e2e job via XNET_ELECTRON_NO_SANDBOX.
+  const ciArgs =
+    process.env.XNET_ELECTRON_NO_SANDBOX === '1'
+      ? ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--disable-software-rasterizer']
+      : []
+  const extra = [...(opts.extraArgs ?? []), ...ciArgs]
   const app = await electron.launch({
     executablePath: binary ?? ELECTRON_EXECUTABLE,
     // For the unpacked app, the first arg is the app dir Electron resolves
@@ -358,7 +362,31 @@ export async function launchElectronApp(
       ...opts.env
     }
   })
-  const window = await app.firstWindow()
+
+  // Capture the main-process stdout/stderr so a launch failure (e.g. a native
+  // module that won't load in the packaged app, leaving the window never
+  // created) surfaces the real cause instead of a bare firstWindow timeout.
+  const output: string[] = []
+  const proc = app.process()
+  const collect = (chunk: Buffer): void => {
+    const text = chunk.toString()
+    output.push(text)
+    if (process.env.E2E_DEBUG) process.stderr.write(`[electron] ${text}`)
+  }
+  proc.stdout?.on('data', collect)
+  proc.stderr?.on('data', collect)
+
+  let window: Page
+  try {
+    window = await app.firstWindow()
+  } catch (err) {
+    const tail = output.join('').split('\n').slice(-50).join('\n')
+    await app.close().catch(() => undefined)
+    throw new Error(
+      `Electron window never opened (${(err as Error).message}).\n` +
+        `--- electron process output (tail) ---\n${tail || '<no output captured>'}`
+    )
+  }
   return { app, window }
 }
 
