@@ -686,66 +686,66 @@ const post = postBySlug('the-gentlest-furnace')!
 
 ## Implementation Checklist
 
-- [ ] Confirm title **"The Gentlest Furnace"** + slug `the-gentlest-furnace`
+- [x] Confirm title **"The Gentlest Furnace"** + slug `the-gentlest-furnace`
       (alt: "How to Burn Without Burning Out" / `burn-without-burning-out`).
-- [ ] Add `'cosmos'` (and/or `'physics'`) to the `BlogTag` union in
+- [x] Add `'cosmos'` (and/or `'physics'`) to the `BlogTag` union in
       [`site/src/data/blog.ts`](../../site/src/data/blog.ts) and push the post #3
       metadata object onto `posts[]` (pubDate newest).
-- [ ] Create `site/src/pages/blog/the-gentlest-furnace.astro` following the
+- [x] Create `site/src/pages/blog/the-gentlest-furnace.astro` following the
       seven-beat spine in [Recommendation](#recommendation), mirroring
       [`data-should-work-like-soil.astro`](../../site/src/pages/blog/data-should-work-like-soil.astro).
-- [ ] Build `site/src/components/blog/StarHero.astro` (original inline SVG; the
+- [x] Build `site/src/components/blog/StarHero.astro` (original inline SVG; the
       cosmic-X as a star in hydrostatic balance, gravity-in/radiation-out arrows,
       starfield; no third-party assets).
-- [ ] Build `site/src/components/blog/HydrostaticBalance.astro` (the star's
+- [x] Build `site/src/components/blog/HydrostaticBalance.astro` (the star's
       governor vs. the attention economy's runaway loop → one axis), reusing the
       `not-prose` card idiom from
       [`ThreeNervousSystems`](../../site/src/components/blog/ThreeNervousSystems.astro).
-- [ ] Build `site/src/components/blog/HonestStar.astro` (violent · temporary ·
+- [x] Build `site/src/components/blog/HonestStar.astro` (violent · temporary ·
       blind · size-specific — keep the mechanism, leave the myth), mirroring
       [`HonestMycelium`](../../site/src/components/blog/HonestMycelium.astro).
-- [ ] Write the prose: the 276 W/m³ gentleness paradox; hydrostatic equilibrium as
+- [x] Write the prose: the 276 W/m³ gentleness paradox; hydrostatic equilibrium as
       a thermostat; atoms→electrons→photons + Landauer; the runaway-loop /
       "you are the fuel" turn (link [`/why`](../../site/src/pages/why.astro)); the
       honesty beat; coherence-from-a-shared-law + the architecture mapping; the
       "find equilibrium / build for the supernova" close.
-- [ ] Cross-link: [`/why`](../../site/src/pages/why.astro),
+- [x] Cross-link: [`/why`](../../site/src/pages/why.astro),
       [`/commitments`](../../site/src/pages/commitments.astro),
       [`/build-with`](../../site/src/pages/build-with.astro), the homepage
       _Vision_ section, and **both** prior posts (the trilogy callback).
-- [ ] Cite every claim (276 W/m³ / compost heap; hydrostatic equilibrium;
+- [x] Cite every claim (276 W/m³ / compost heap; hydrostatic equilibrium;
       Landauer; fiber >99%; nebula→supernova→nucleosynthesis; red giant ~5 Gyr /
       surface life ~1 Gyr; mass³–⁴ + red-dwarf 10-Tyr lifetimes; Tesla Warp).
       Consider a `site/src/data/cosmos.ts` claims module if stats grow (mirrors
       [`surveillance.ts`](../../site/src/data/surveillance.ts)).
-- [ ] Add the not-affiliated / independent-essay footer note (Tesla referenced as
+- [x] Add the not-affiliated / independent-essay footer note (Tesla referenced as
       commentary; "serene eternal sun" is a popular gloss; original art only), per
       the #1/#2 pattern.
-- [ ] (Optional) Announce via the changelog — use **either**
+- [x] (Optional) Announce via the changelog — use **either**
       `node scripts/changelog/new.mjs` **or** a single hand-authored file in
       `site/src/data/changelog/`, **not both** ([memory: 0240 dup-card gotcha]).
 
 ## Validation Checklist
 
-- [ ] `pnpm --filter site build` succeeds; `/blog` lists post #3 newest-first and
+- [x] `pnpm --filter site build` succeeds; `/blog` lists post #3 newest-first and
       `/blog/the-gentlest-furnace` renders.
-- [ ] `/blog/rss.xml` stays well-formed and includes the new item (title, link,
+- [x] `/blog/rss.xml` stays well-formed and includes the new item (title, link,
       pubDate, description).
-- [ ] Self-audit parity with #1/#2: the page ships **0 third-party trackers / 0 ad
+- [x] Self-audit parity with #1/#2: the page ships **0 third-party trackers / 0 ad
       SDKs** (the [`check-humane-patterns.mjs`](../../scripts/check-humane-patterns.mjs)
       gate enforces this repo-wide); hero art is inline SVG, no external requests.
-- [ ] Every factual claim is sourced; the honesty box about the
+- [x] Every factual claim is sourced; the honesty box about the
       violent/temporary/blind/size-specific star is present and not cut.
-- [ ] A reader who knows no astrophysics still follows and is moved — the
+- [x] A reader who knows no astrophysics still follows and is moved — the
       thermostat spine carries it; jargon (hydrostatic equilibrium, nucleosynthesis,
       Landauer) is defined in plain words on first use.
-- [ ] Mobile + dark-mode pass; `prose`/`not-prose` boundaries render correctly as
+- [x] Mobile + dark-mode pass; `prose`/`not-prose` boundaries render correctly as
       in #1/#2; amber accent reads in both themes.
-- [ ] Lint/format: `site/` is **not** covered by root eslint/prettier
+- [x] Lint/format: `site/` is **not** covered by root eslint/prettier
       ([memory: multi-language docs gotcha]); run the site's own checks.
-- [ ] All architecture mappings are framed as analogy onto the **shipped**
+- [x] All architecture mappings are framed as analogy onto the **shipped**
       substrate — no implication that xNet has energy/fusion features.
-- [ ] Trilogy callbacks to posts #1/#2 resolve (links live; "sea / soil / sky"
+- [x] Trilogy callbacks to posts #1/#2 resolve (links live; "sea / soil / sky"
       framing coherent).
 
 ## References
