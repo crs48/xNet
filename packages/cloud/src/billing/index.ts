@@ -16,6 +16,14 @@ export {
 export { MemoryUsageLedger, inScope, type UsageLedger, type UsageEntry } from './ledger'
 
 export {
+  windowStartMs,
+  keyResetFor,
+  isBudgetWindow,
+  DEFAULT_BUDGET_WINDOW,
+  type BudgetWindow
+} from './window'
+
+export {
   aiBudgetStatus,
   crossedThresholds,
   DEFAULT_BUDGET_THRESHOLDS,
