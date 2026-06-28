@@ -689,7 +689,7 @@ erDiagram
 
 - [x] Unit: `windowStartMs` correct for calendar‑month, calendar‑week (Mon
       boundary, year wrap), and rolling‑N across UTC midnight.
-- [ ] Unit: `computeChargeFromCostUsd` never undercharges (round‑up) and rejects
+- [x] Unit: `computeChargeFromCostUsd` never undercharges (round‑up) and rejects
       `markup < 1` (already true — keep covered).
 - [x] Unit/property: floor‑margin test fails if any plan’s worst case
       (`includedAiUsd` of its priciest allowed model at COGS×1.055) yields
