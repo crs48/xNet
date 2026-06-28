@@ -620,7 +620,7 @@ function ManagedControls({
         // No catalog (e.g. an 'all' plan on a non-OpenRouter gateway) → free text.
         <input
           value={model}
-          placeholder="Model (e.g. anthropic/claude-sonnet-4-6 · blank = auto)"
+          placeholder="Model (e.g. anthropic/claude-sonnet-4.6 · blank = auto)"
           aria-label="Managed AI model"
           onChange={(event) => onModel(event.target.value)}
           className="min-w-0 rounded-md border border-hairline bg-surface-0 px-2 py-1 text-[11px] text-ink-1 outline-none placeholder:text-ink-3"
