@@ -89,6 +89,12 @@ const SEED_WORDS = [
   'zenith'
 ] as const
 
+/**
+ * The recovery-phrase vocabulary (64 words). Exposed so the recovery-phrase UI can
+ * offer autocomplete and so {@link validateRecoveryPhrase} can flag typo'd words.
+ */
+export const RECOVERY_WORDLIST: readonly string[] = SEED_WORDS
+
 function normalizeMnemonic(mnemonic: string): string {
   return mnemonic.trim().replace(/\s+/g, ' ')
 }
