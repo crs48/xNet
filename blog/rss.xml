@@ -6,7 +6,18 @@
     <atom:link href="https://xnet.fyi/blog/rss.xml" rel="self" type="application/rss+xml" />
     <description>Essays on local-first software, data ownership, and the open web.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 29 Jun 2026 14:00:00 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 30 Jun 2026 15:00:00 GMT</lastBuildDate>
+    <item>
+      <title>The Forest and the Field</title>
+      <link>https://xnet.fyi/blog/the-forest-and-the-field</link>
+      <guid isPermaLink="true">https://xnet.fyi/blog/the-forest-and-the-field</guid>
+      <description>Industrial farming strips the soil to exhaustion and trucks fertility back in by the ton. Surveillance capitalism does the same to the web. Permaculture is the discipline for growing land that feeds itself — and its principles are, almost furrow for furrow, how you regenerate a digital commons instead of strip-mining one.</description>
+      <author>xNet</author>
+      <pubDate>Tue, 30 Jun 2026 15:00:00 GMT</pubDate>
+      <category>essay</category>
+      <category>philosophy</category>
+      <category>nature</category>
+    </item>
     <item>
       <title>The Desert That Feeds the Forest</title>
       <link>https://xnet.fyi/blog/the-desert-that-feeds-the-forest</link>

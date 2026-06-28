@@ -3317,6 +3317,31 @@
           }
         ]
       }
+    },
+    {
+      "id": "2026-06-28-new-essay-the-forest-and-the-field",
+      "url": "https://xnet.fyi/changelog#2026-06-28-new-essay-the-forest-and-the-field",
+      "title": "New essay: The Forest and the Field",
+      "content_text": "A new essay on applying permaculture's design principles to the open web — regenerating the digital commons instead of strip-mining it.\n",
+      "date_published": "2026-03-06T21:08:58Z",
+      "tags": [
+        "platform"
+      ],
+      "_xnet": {
+        "date": "June 28, 2026",
+        "summary": "A new essay on applying permaculture's design principles to the open web — regenerating the digital commons instead of strip-mining it.",
+        "highlights": [],
+        "mergedAt": "2026-03-06T21:08:58Z",
+        "pr": 6,
+        "authors": [
+          {
+            "login": "crs48"
+          },
+          {
+            "login": "crs"
+          }
+        ]
+      }
     }
   ]
 }
