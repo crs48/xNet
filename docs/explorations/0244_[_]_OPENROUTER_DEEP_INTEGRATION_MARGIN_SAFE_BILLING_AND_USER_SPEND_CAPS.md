@@ -694,14 +694,14 @@ erDiagram
 - [x] Unit/property: floor‑margin test fails if any plan’s worst case
       (`includedAiUsd` of its priciest allowed model at COGS×1.055) yields
       margin ≤ 0.
-- [ ] Integration: a chat under cap returns text + `budgetState`; a chat at cap
+- [x] Integration: a chat under cap returns text + `budgetState`; a chat at cap
       returns `402 ai_budget_exceeded` with **no** OpenRouter call (assert the
       fake gateway was not invoked).
 - [x] Integration: setting a **$5 weekly** cap stops the 6th $1 call within the
       week and resets the following Monday (fake clock).
 - [ ] Integration: streaming call meters the same retail charge as the unary
       path for identical `usage.cost`.
-- [ ] Integration: idempotency — replaying the same `(session, request)` records
+- [x] Integration: idempotency — replaying the same `(session, request)` records
       once and emits one Stripe meter event.
 - [x] E2E (web): model picker lists only plan‑allowed models with retail prices;
       switching models persists and re‑bills correctly; gauge turns amber at 80%
