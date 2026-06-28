@@ -22,6 +22,7 @@ on:
       - 'packages/social/**'
       - 'packages/abuse/**'
       - 'apps/web/src/**'
+      - 'apps/electron/src/renderer/**'
       - 'scripts/visuals/**'
       - '.storybook/**'
       - '.github/workflows/visual-capture.yml'
@@ -38,6 +39,7 @@ on:
       - 'packages/social/**'
       - 'packages/abuse/**'
       - 'apps/web/src/**'
+      - 'apps/electron/src/renderer/**'
       - 'scripts/visuals/**'
       - '.storybook/**'
       - '.github/workflows/visual-capture.yml'
@@ -116,12 +118,34 @@ jobs:
             --storybook-index storybook-static/index.json \
             --out tmp/capture-set.json
           echo "empty=$(node -p "require('./tmp/capture-set.json').empty")" >> "$GITHUB_OUTPUT"
+          echo "electron=$(node -p "require('./tmp/capture-set.json').electron?.length || 0")" >> "$GITHUB_OUTPUT"
+
+      # Desktop screens (0238 L5): only build + rebuild Electron native modules
+      # when the PR touched the desktop renderer (or a shared canvas/ui package),
+      # so web-only PRs don't pay for it. xvfb is installed unconditionally below
+      # because the Capture step always runs under it.
+      - name: Build Electron app (desktop captures)
+        if: steps.set.outputs.empty != 'true' && steps.set.outputs.electron != '0'
+        run: |
+          pnpm turbo run build --filter=xnet-desktop
+          pnpm --filter xnet-desktop run deps:electron
+          ELECTRON_BIN=$(cd apps/electron && node -e "process.stdout.write(require('electron'))")
+          echo "XNET_ELECTRON_BINARY=$ELECTRON_BIN" >> "$GITHUB_ENV"
+          echo "XNET_ELECTRON_APP=$PWD/apps/electron" >> "$GITHUB_ENV"
+          echo "XNET_ELECTRON_NO_SANDBOX=1" >> "$GITHUB_ENV"
+
+      - name: Install xvfb
+        if: steps.set.outputs.empty != 'true'
+        run: sudo apt-get update && sudo apt-get install -y xvfb
 
       - name: Capture
         if: steps.set.outputs.empty != 'true'
         continue-on-error: true
+        # xvfb gives the (optional) Electron launch a display; Chromium captures
+        # run headless and are unaffected. Electron is captured only when
+        # XNET_ELECTRON_BINARY is set (the build step above ran).
         run: |
-          node scripts/visuals/capture.mjs \
+          xvfb-run --auto-servernum node scripts/visuals/capture.mjs \
             --set tmp/capture-set.json \
             --out tmp/visuals \
             --storybook-static storybook-static \
@@ -253,10 +277,23 @@ jobs:
             --storybook-index storybook-static/index.json \
             --out tmp/capture-set.json
 
+      # The `--all` baseline includes every desktop screen, so the Electron app
+      # is always built here (0238 L5) — PRs need a desktop baseline to diff
+      # against. xvfb gives the launch a display.
+      - name: Build Electron app (desktop captures)
+        run: |
+          pnpm turbo run build --filter=xnet-desktop
+          pnpm --filter xnet-desktop run deps:electron
+          sudo apt-get update && sudo apt-get install -y xvfb
+          ELECTRON_BIN=$(cd apps/electron && node -e "process.stdout.write(require('electron'))")
+          echo "XNET_ELECTRON_BINARY=$ELECTRON_BIN" >> "$GITHUB_ENV"
+          echo "XNET_ELECTRON_APP=$PWD/apps/electron" >> "$GITHUB_ENV"
+          echo "XNET_ELECTRON_NO_SANDBOX=1" >> "$GITHUB_ENV"
+
       - name: Capture baseline
         continue-on-error: true
         run: |
-          node scripts/visuals/capture.mjs \
+          xvfb-run --auto-servernum node scripts/visuals/capture.mjs \
             --set tmp/capture-set.json \
             --out tmp/visuals \
             --storybook-static storybook-static \

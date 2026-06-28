@@ -87,6 +87,8 @@ const stories = []
 for (const s of manifest.stories ?? []) stories.push(await classifyStill(s))
 const routes = []
 for (const r of manifest.routes ?? []) routes.push(await classifyStill(r))
+const electron = []
+for (const e of manifest.electron ?? []) electron.push(await classifyStill(e))
 
 const result = {
   threshold,
@@ -96,10 +98,12 @@ const result = {
   unmappedFiles: manifest.unmappedFiles ?? [],
   stories,
   routes,
+  electron, // Electron desktop screens (0238 L5)
   flows: manifest.flows ?? [], // videos always pass through
   changedCount:
     stories.filter((s) => s.status !== 'unchanged').length +
     routes.filter((r) => r.status !== 'unchanged').length +
+    electron.filter((e) => e.status !== 'unchanged').length +
     (manifest.flows?.length ?? 0)
 }
 
@@ -110,5 +114,6 @@ const tally = (arr) => {
   return `${c.changed} changed, ${c.new} new, ${c.unchanged} unchanged`
 }
 console.error(
-  `[diff] stories: ${tally(stories)} | routes: ${tally(routes)} | flows: ${result.flows.length}`
+  `[diff] stories: ${tally(stories)} | routes: ${tally(routes)} | ` +
+    `electron: ${tally(electron)} | flows: ${result.flows.length}`
 )
