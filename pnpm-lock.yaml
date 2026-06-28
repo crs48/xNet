@@ -2213,6 +2213,9 @@ importers:
       '@xnetjs/react':
         specifier: workspace:*
         version: link:../../packages/react
+      electron:
+        specifier: ^33.0.0
+        version: 33.4.11
       react:
         specifier: ^18.0.0
         version: 18.3.1
