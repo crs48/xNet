@@ -38,8 +38,10 @@ export function persistedHubUrl(fallback: string = defaultHubUrl()): string {
  */
 function bootHubOverride(): string | null {
   try {
-    const hub = new URLSearchParams(location.hash.replace(/^#/, '')).get('hub')
-    return hub && hub.length > 0 ? hub : null
+    const fromSearch = new URLSearchParams(location.search).get('hub')
+    if (fromSearch && fromSearch.length > 0) return fromSearch
+    const fromHash = new URLSearchParams(location.hash.replace(/^#/, '')).get('hub')
+    return fromHash && fromHash.length > 0 ? fromHash : null
   } catch {
     return null
   }

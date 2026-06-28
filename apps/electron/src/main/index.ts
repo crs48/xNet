@@ -187,20 +187,23 @@ async function createWindow() {
   })
 
   // E2E: a test can pin the renderer's hub at boot (avoiding a post-boot
-  // repoint race) by setting XNET_HUB_URL; it's forwarded as a URL hash the
+  // repoint race) by setting XNET_HUB_URL; it's forwarded as a `?hub=` query the
   // renderer reads in `configuredHubUrl()`.
   const hubOverride = process.env.XNET_HUB_URL
-  const hubHash = hubOverride ? `hub=${encodeURIComponent(hubOverride)}` : ''
 
   // Load the app
   if (process.env.NODE_ENV === 'development') {
     const port = process.env.VITE_PORT || '5177'
-    mainWindow.loadURL(`http://localhost:${port}${hubHash ? `#${hubHash}` : ''}`)
+    const query = hubOverride ? `?hub=${encodeURIComponent(hubOverride)}` : ''
+    mainWindow.loadURL(`http://localhost:${port}/${query}`)
     if (process.env.XNET_TEST_BYPASS !== 'true') {
       mainWindow.webContents.openDevTools()
     }
   } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'), hubHash ? { hash: hubHash } : {})
+    mainWindow.loadFile(
+      join(__dirname, '../renderer/index.html'),
+      hubOverride ? { query: { hub: hubOverride } } : {}
+    )
   }
 
   mainWindow.on('closed', () => {
