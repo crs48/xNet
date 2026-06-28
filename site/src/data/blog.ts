@@ -28,6 +28,7 @@ export type BlogTag =
   | 'protocol'
   | 'nature'
   | 'cosmos'
+  | 'economics'
 
 export interface BlogPost {
   /** URL slug; matches `site/src/pages/blog/<slug>.astro`. */
@@ -58,6 +59,16 @@ export const posts: BlogPost[] = [
     pubDate: '2026-06-29T14:00:00Z',
     author: 'xNet',
     tags: ['essay', 'philosophy', 'nature'],
+    readingMinutes: 13
+  },
+  {
+    slug: 'the-right-to-say-no',
+    title: 'The Right to Say No',
+    description:
+      "A musician on YouTube argues the economy quietly changed from growth to extraction, and the real prize isn't your money — it's your ability to refuse. He's mostly right. Here's the part software can actually give back.",
+    pubDate: '2026-06-28T19:30:00Z',
+    author: 'xNet',
+    tags: ['essay', 'philosophy', 'economics'],
     readingMinutes: 13
   },
   {
