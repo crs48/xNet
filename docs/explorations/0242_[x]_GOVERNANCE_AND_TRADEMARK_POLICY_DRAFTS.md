@@ -607,30 +607,33 @@ sequenceDiagram
 - [x] Create `trademark@xnet.fyi` (alias) and a stub `xnet.fyi/brand` page (or mark
       as TODO in the docs).
 - [x] Stub an **"xNet-compatible / conformance"** page pointing at `conformance/`.
-- [ ] Engage counsel: **clearance search + word-mark registration** for "xNet";
-      decide jurisdiction(s).
+- **Deferred — requires counsel, not an in-repo change:** clearance search +
+      word-mark registration for "xNet"; decide jurisdiction(s). Tracked as a
+      separate human/legal follow-up; `TRADEMARK.md` is published as a **"policy of
+      intent"** and the npm-scope / "xNet Certified" enforcement remain
+      honor-system until the mark is registered.
 - [x] Cross-link these from `docs/CHARTER.md` (governance/brand are how Exit + Commons
       are enforced).
 
 ## Validation Checklist
 
-- [ ] A newcomer can answer, from `GOVERNANCE.md` alone: _who decides, how do I
+- [x] A newcomer can answer, from `GOVERNANCE.md` alone: _who decides, how do I
       become a maintainer, what happens if the founder disappears._
-- [ ] A would-be forker can tell from `TRADEMARK.md` exactly what they may do
+- [x] A would-be forker can tell from `TRADEMARK.md` exactly what they may do
       **without asking** (fork, re-implement, say "compatible with xNet," package
       downstream keeping the name).
-- [ ] No clause in `TRADEMARK.md` would have triggered the Rust-2023 or
+- [x] No clause in `TRADEMARK.md` would have triggered the Rust-2023 or
       Mozilla/IceWeasel backlash (no banned suffixes, meetups, honest references, or
       downstream renames).
-- [ ] The "xNet-compatible" claim is objectively testable (it maps to a real
+- [x] The "xNet-compatible" claim is objectively testable (it maps to a real
       `conformance/` pass), not a subjective grant.
-- [ ] Both docs scale by **noun substitution** (founder→committee, maintainers→
+- [x] Both docs scale by **noun substitution** (founder→committee, maintainers→
       Foundation) without a rewrite when 0241's triggers fire.
-- [ ] DCO sign-off is documented and (optionally) checked; no CLA friction is
+- [x] DCO sign-off is documented and (optionally) checked; no CLA friction is
       introduced.
-- [ ] The trademark policy's "will move to a Foundation, non-discriminatory
+- [x] The trademark policy's "will move to a Foundation, non-discriminatory
       licensing" pledge is consistent with 0241 Phase 4 and `docs/CHARTER.md`.
-- [ ] `GOVERNANCE.md`, `TRADEMARK.md`, `CODE_OF_CONDUCT.md` are all linked from
+- [x] `GOVERNANCE.md`, `TRADEMARK.md`, `CODE_OF_CONDUCT.md` are all linked from
       `README.md`.
 
 ## References
