@@ -6,7 +6,18 @@
     <atom:link href="https://xnet.fyi/blog/rss.xml" rel="self" type="application/rss+xml" />
     <description>Essays on local-first software, data ownership, and the open web.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 28 Jun 2026 02:27:04 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 29 Jun 2026 14:00:00 GMT</lastBuildDate>
+    <item>
+      <title>The Desert That Feeds the Forest</title>
+      <link>https://xnet.fyi/blog/the-desert-that-feeds-the-forest</link>
+      <guid isPermaLink="true">https://xnet.fyi/blog/the-desert-that-feeds-the-forest</guid>
+      <description>Every year a dead desert blows across an ocean and feeds the most alive place on Earth — replacing almost exactly what the rainforest loses. What Saharan dust, the bees nobody watches, and the maintainers nobody thanks teach us about the invisible substrate the open web runs on.</description>
+      <author>xNet</author>
+      <pubDate>Mon, 29 Jun 2026 14:00:00 GMT</pubDate>
+      <category>essay</category>
+      <category>philosophy</category>
+      <category>nature</category>
+    </item>
     <item>
       <title>The Gentlest Furnace</title>
       <link>https://xnet.fyi/blog/the-gentlest-furnace</link>
