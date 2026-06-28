@@ -597,7 +597,7 @@ sequenceDiagram
 ## Implementation Checklist
 
 - [x] Add `GOVERNANCE.md` (BDFL-honest draft above); link from `README.md`.
-- [ ] Add `TRADEMARK.md` (MTG-based draft above) marked **"policy of intent"** until
+- [x] Add `TRADEMARK.md` (MTG-based draft above) marked **"policy of intent"** until
       registration; link from `README.md` + `site/` footer.
 - [ ] Add `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1) with a real contact.
 - [ ] Add the **DCO** section to `CONTRIBUTING.md`; document `git commit -s`.
@@ -605,9 +605,9 @@ sequenceDiagram
       and/or a `MAINTAINERS.md` stub.
 - [ ] Add the **Project** footer block to `README.md` (governance/trademark/CoC links
       + "xNet-compatible" line).
-- [ ] Create `trademark@xnet.fyi` (alias) and a stub `xnet.fyi/brand` page (or mark
+- [x] Create `trademark@xnet.fyi` (alias) and a stub `xnet.fyi/brand` page (or mark
       as TODO in the docs).
-- [ ] Stub an **"xNet-compatible / conformance"** page pointing at `conformance/`.
+- [x] Stub an **"xNet-compatible / conformance"** page pointing at `conformance/`.
 - [ ] Engage counsel: **clearance search + word-mark registration** for "xNet";
       decide jurisdiction(s).
 - [ ] Cross-link these from `docs/CHARTER.md` (governance/brand are how Exit + Commons
