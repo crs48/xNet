@@ -36,10 +36,42 @@ const nodeStorage = new MemoryNodeStorageAdapter()
 
 // ─── App ──────────────────────────────────────────────────────────────
 
+// Cross-client convergence harness (exploration 0238, L2). Mirrors the Electron
+// renderer's `window.__xnetSyncTestHarness` so `sync-matrix.spec.ts` can drive a
+// web client through the same `Y.Text('e2e')` field that the Electron side edits,
+// over the same hub. Offline is simulated at the Playwright layer
+// (`context.setOffline()`), so only acquire/type/read are exposed here.
+declare global {
+  interface Window {
+    __xnetSyncTestHarness?: {
+      acquire: (docId: string) => Promise<void>
+      type: (docId: string, text: string) => Promise<void>
+      read: (docId: string) => Promise<string>
+    }
+  }
+}
+
+const SYNC_FIELD = 'e2e'
+
 function DocEditor() {
   const { doc, loading, error, syncStatus, awareness } = useNode(PageSchema, docId, {
     createIfMissing: { title: `User ${userNum}'s doc` }
   })
+
+  React.useEffect(() => {
+    if (!doc) return
+    window.__xnetSyncTestHarness = {
+      acquire: async () => {},
+      type: async (_docId, text) => {
+        const yText = doc.getText(SYNC_FIELD)
+        doc.transact(() => yText.insert(yText.length, text))
+      },
+      read: async () => doc.getText(SYNC_FIELD).toString()
+    }
+    return () => {
+      window.__xnetSyncTestHarness = undefined
+    }
+  }, [doc])
 
   return (
     <div>

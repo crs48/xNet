@@ -7,7 +7,7 @@ import {
   type CanvasHandle,
   type FrameStats
 } from '@xnetjs/canvas'
-import { BlobService, CanvasSchema } from '@xnetjs/data'
+import { BlobService, CanvasSchema, PageSchema } from '@xnetjs/data'
 import { XNetDevToolsProvider, useDevTools } from '@xnetjs/devtools'
 import { BlobProvider } from '@xnetjs/editor/react'
 import { identityFromPrivateKey } from '@xnetjs/identity'
@@ -25,6 +25,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 import { App } from './App'
+import { configuredHubUrl } from './lib/hub-url'
 import { createIPCBlobStore } from './lib/ipc-blob-store'
 import { IPCNodeStorageAdapter } from './lib/ipc-node-storage'
 import { createIPCSyncManager, type IPCSyncManager } from './lib/ipc-sync-manager'
@@ -137,6 +138,27 @@ type CanvasTestHarness = {
   duplicateCanvasNodeReference: (input: { nodeId: string; alias?: string }) => Promise<string>
 }
 
+/**
+ * Cross-client convergence harness (exploration 0238, L2). Drives the *real*
+ * Electron sync path — renderer Y.Doc mirror → IPC → data-process BSM → hub
+ * relay — programmatically, so `sync-matrix.spec.ts` can assert that an Electron
+ * client converges with a web (or another Electron) client over the shared hub.
+ *
+ * It edits a plain `Y.Text('e2e')` field on a doc id, NOT the page editor, so the
+ * web and Electron sides operate on the same CRDT field with the same encoding.
+ * `goOffline` / `goOnline` stop+restart the utility-process WebSocket (which
+ * re-subscribes rooms and re-syncs pooled docs on reconnect), exercising the
+ * offline → reconnect catch-up path. Always attached (like the canvas harness);
+ * it adds no capability the app doesn't already expose.
+ */
+type SyncTestHarness = {
+  acquire: (docId: string) => Promise<void>
+  type: (docId: string, text: string) => Promise<void>
+  read: (docId: string) => Promise<string>
+  goOffline: () => Promise<void>
+  goOnline: () => Promise<void>
+}
+
 // TODO: In production, load identity from secure storage via IPC
 // For dev/testing, use a deterministic test identity derived from a fixed seed
 // This ensures the DID and signing key are cryptographically matched
@@ -183,6 +205,13 @@ declare global {
   interface Window {
     __xnetIpcSyncManager?: IPCSyncManager
     __xnetCanvasTestHarness?: CanvasTestHarness | null
+    __xnetSyncTestHarness?: SyncTestHarness | null
+    // E2E hooks (exploration 0238, L3): schema ids for store-backed assertions,
+    // and the most recent `xnet://` deep link routed from the main process.
+    __xnetSchemaIds?: Record<string, string>
+    __xnetLastSharePayload?: string
+    __xnetLastCloudConnect?: unknown
+    __xnetDeepLinkObserverInstalled?: boolean
     __xnetRoot?: Root
     __xnetDevToolsToggleCleanup?: (() => void) | null
   }
@@ -628,6 +657,60 @@ function createCanvasTestHarness(syncManager: IPCSyncManager): CanvasTestHarness
   }
 }
 
+function createSyncTestHarness(syncManager: IPCSyncManager): SyncTestHarness {
+  // A single neutral CRDT field shared with the web harness (see
+  // tests/e2e/harness/main.tsx) so both sides edit identical state.
+  const FIELD = 'e2e'
+  const acquired = new Map<string, Y.Doc>()
+
+  async function ensure(docId: string): Promise<Y.Doc> {
+    const existing = acquired.get(docId)
+    if (existing) return existing
+    // Tracking + acquiring joins the hub room keyed on the doc id (no
+    // materialized node required) and wires the renderer mirror to the data
+    // process via the MessagePort.
+    syncManager.track(docId, PageSchema._schemaId)
+    const doc = await syncManager.acquire(docId)
+    acquired.set(docId, doc)
+    return doc
+  }
+
+  return {
+    async acquire(docId) {
+      await ensure(docId)
+    },
+    async type(docId, text) {
+      const doc = await ensure(docId)
+      const yText = doc.getText(FIELD)
+      // Local origin (undefined) → the IPC sync manager forwards it to the data
+      // process, which signs/relays it to the hub room.
+      doc.transact(() => yText.insert(yText.length, text))
+    },
+    async read(docId) {
+      const doc = await ensure(docId)
+      return doc.getText(FIELD).toString()
+    },
+    async goOffline() {
+      // Stops the utility-process WebSocket; the data service + SQLite + pooled
+      // docs stay alive, so edits made while offline queue locally.
+      await window.xnetBSM.stop()
+    },
+    async goOnline() {
+      await window.xnetBSM.start({
+        signalingUrl: configuredHubUrl(),
+        authorDID: AUTHOR_DID,
+        signingKey: Array.from(SIGNING_KEY),
+        transport: 'auto'
+      })
+      // Re-join the rooms we were tracking; the reconnect handler re-subscribes
+      // and re-syncs every pooled doc, draining the offline edits.
+      for (const docId of acquired.keys()) {
+        syncManager.track(docId, PageSchema._schemaId)
+      }
+    }
+  }
+}
+
 /**
  * Component that instruments the sync manager with devtools.
  * Must be rendered inside XNetDevToolsProvider to access the event bus.
@@ -773,6 +856,21 @@ async function init() {
     window.dispatchEvent(new CustomEvent('xnet-devtools-toggle'))
   })
   window.__xnetCanvasTestHarness = createCanvasTestHarness(ipcSyncManager)
+  window.__xnetSyncTestHarness = createSyncTestHarness(ipcSyncManager)
+  window.__xnetSchemaIds = { page: PageSchema._schemaId, canvas: CanvasSchema._schemaId }
+
+  // E2E deep-link observer (exploration 0238, L3): record the latest payload the
+  // main process routes over `xnet://`, so `electron-smoke.spec.ts` can assert
+  // deep-link routing end-to-end. Install once (survives HMR reloads).
+  if (!window.__xnetDeepLinkObserverInstalled) {
+    window.__xnetDeepLinkObserverInstalled = true
+    window.xnet.onSharePayload((payload) => {
+      window.__xnetLastSharePayload = payload
+    })
+    window.xnet.onCloudConnect((data) => {
+      window.__xnetLastCloudConnect = data
+    })
+  }
 
   const container = document.getElementById('root')
   if (!container) {
@@ -829,6 +927,7 @@ init()
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
     window.__xnetCanvasTestHarness = null
+    window.__xnetSyncTestHarness = null
     window.__xnetDevToolsToggleCleanup?.()
     window.__xnetDevToolsToggleCleanup = null
   })
