@@ -596,7 +596,7 @@ sequenceDiagram
 
 ## Implementation Checklist
 
-- [ ] Add `GOVERNANCE.md` (BDFL-honest draft above); link from `README.md`.
+- [x] Add `GOVERNANCE.md` (BDFL-honest draft above); link from `README.md`.
 - [ ] Add `TRADEMARK.md` (MTG-based draft above) marked **"policy of intent"** until
       registration; link from `README.md` + `site/` footer.
 - [ ] Add `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1) with a real contact.
