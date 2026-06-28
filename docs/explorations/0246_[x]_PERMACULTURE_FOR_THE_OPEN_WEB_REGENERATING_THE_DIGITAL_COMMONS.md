@@ -553,57 +553,57 @@ const principles = [
 
 ## Implementation Checklist
 
-- [ ] Add the `BlogPost` entry to [`site/src/data/blog.ts`](../../site/src/data/blog.ts)
+- [x] Add the `BlogPost` entry to [`site/src/data/blog.ts`](../../site/src/data/blog.ts)
       (slug `the-forest-and-the-field`, tags `['essay','philosophy','nature']`).
-- [ ] Create `site/src/components/blog/ForestHero.astro` (inline SVG; monocrop
+- [x] Create `site/src/components/blog/ForestHero.astro` (inline SVG; monocrop
       row vs. layered food forest; cosmic-X as the sun; mirror `DustHero`'s prop
       contract).
-- [ ] Create `site/src/components/blog/PrincipleWheel.astro` (the signature
+- [x] Create `site/src/components/blog/PrincipleWheel.astro` (the signature
       diagram: 12-segment wheel, each principle annotated with its xNet receipt).
-- [ ] Create `site/src/components/blog/HonestGarden.astro` (self-audit: code isn't
+- [x] Create `site/src/components/blog/HonestGarden.astro` (self-audit: code isn't
       scarce; ecosystems don't self-heal — left-pad/XZ/Log4Shell; metaphors
       naturalize power; permaculture's evidence base is contested).
-- [ ] Write `site/src/pages/blog/the-forest-and-the-field.astro` following
+- [x] Write `site/src/pages/blog/the-forest-and-the-field.astro` following
       Structure A, with the four-movements middle and Charter receipts (real file
       paths + §§).
-- [ ] **Soften the opener** — one glancing nod to the series, not the enumerated
+- [x] **Soften the opener** — one glancing nod to the series, not the enumerated
       recap; keep the post standing on its own (per the brief).
-- [ ] Keep all art **inline SVG** — no third-party assets (Self-Audit parity);
+- [x] Keep all art **inline SVG** — no third-party assets (Self-Audit parity);
       cosmic-X recurs as the bright node.
-- [ ] Add a short "Sources" coda (Holmgren 2002; Ostrom 1990; Rose 1986; Eghbal;
+- [x] Add a short "Sources" coda (Holmgren 2002; Ostrom 1990; Rose 1986; Eghbal;
       permacomputing.net / Hundred Rabbits) since the post credits named thinkers.
-- [ ] Generate a changelog fragment via
+- [x] Generate a changelog fragment via
       `node scripts/changelog/new.mjs --title "New essay: The Forest and the Field" --tags site`
       (do **not** hand-author the JSON).
-- [ ] `site/` is outside the root eslint/prettier config — format within the site
+- [x] `site/` is outside the root eslint/prettier config — format within the site
       workspace if needed.
-- [ ] No `docs/sidebar.mjs` / `build:llms` changes — the blog is not in the docs
+- [x] No `docs/sidebar.mjs` / `build:llms` changes — the blog is not in the docs
       sidebar.
-- [ ] **No changeset required** — `site/` is not a publishable `packages/*`
+- [x] **No changeset required** — `site/` is not a publishable `packages/*`
       library (per `CLAUDE.md`).
 
 ## Validation Checklist
 
-- [ ] Site dev server: `/blog/the-forest-and-the-field` renders; hero,
+- [x] Site dev server: `/blog/the-forest-and-the-field` renders; hero,
       `PrincipleWheel`, and `HonestGarden` display correctly in light and dark
       mode.
-- [ ] `/blog` index lists the new card newest-first with the right date, reading
+- [x] `/blog` index lists the new card newest-first with the right date, reading
       time, and tags.
-- [ ] `/blog/rss.xml` includes the new post (title, description, link, pubDate)
+- [x] `/blog/rss.xml` includes the new post (title, description, link, pubDate)
       and validates as well-formed RSS.
-- [ ] Build passes: `pnpm --filter site build` with no broken imports or type
+- [x] Build passes: `pnpm --filter site build` with no broken imports or type
       errors (`postBySlug('the-forest-and-the-field')` resolves).
-- [ ] No external network assets requested by the page (DevTools Network clean —
+- [x] No external network assets requested by the page (DevTools Network clean —
       Self-Audit parity holds).
-- [ ] Social/OG: `Base` title/description populate; text OG is fine (matching the
+- [x] Social/OG: `Base` title/description populate; text OG is fine (matching the
       prior posts; no hero image required).
-- [ ] Every code/charter receipt cited in the body resolves to a real path/section
+- [x] Every code/charter receipt cited in the body resolves to a real path/section
       (spot-check the file links in the mapping table).
-- [ ] Prose check: the post never claims permaculture as settled science; the
+- [x] Prose check: the post never claims permaculture as settled science; the
       analogy's strains are disclosed in `HonestGarden`; the references to prior
       posts are subtle (no enumerated recap).
-- [ ] Reading time in `blog.ts` matches the finished length (±1 min).
-- [ ] Read-through proof: capture a screenshot of the hero + the principle wheel
+- [x] Reading time in `blog.ts` matches the finished length (±1 min).
+- [x] Read-through proof: capture a screenshot of the hero + the principle wheel
       for the PR (per the repo's visual-capture convention).
 
 ## References
