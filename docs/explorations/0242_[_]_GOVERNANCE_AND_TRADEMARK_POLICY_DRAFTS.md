@@ -603,7 +603,7 @@ sequenceDiagram
 - [x] Add the **DCO** section to `CONTRIBUTING.md`; document `git commit -s`.
 - [x] (Optional) Add a lightweight **DCO check** (GitHub Action or `commit-msg` hook)
       and/or a `MAINTAINERS.md` stub.
-- [ ] Add the **Project** footer block to `README.md` (governance/trademark/CoC links + "xNet-compatible" line).
+- [x] Add the **Project** footer block to `README.md` (governance/trademark/CoC links + "xNet-compatible" line).
 - [x] Create `trademark@xnet.fyi` (alias) and a stub `xnet.fyi/brand` page (or mark
       as TODO in the docs).
 - [x] Stub an **"xNet-compatible / conformance"** page pointing at `conformance/`.
