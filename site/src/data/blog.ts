@@ -20,7 +20,14 @@
  *     during authoring). Production never lists drafts.
  */
 
-export type BlogTag = 'essay' | 'philosophy' | 'privacy' | 'decentralization' | 'protocol'
+export type BlogTag =
+  | 'essay'
+  | 'philosophy'
+  | 'privacy'
+  | 'decentralization'
+  | 'protocol'
+  | 'nature'
+  | 'cosmos'
 
 export interface BlogPost {
   /** URL slug; matches `site/src/pages/blog/<slug>.astro`. */
@@ -43,6 +50,26 @@ export interface BlogPost {
 }
 
 export const posts: BlogPost[] = [
+  {
+    slug: 'the-gentlest-furnace',
+    title: 'The Gentlest Furnace',
+    description:
+      'A star carries the energy of a billion bombs and still feels calm from here. What hydrostatic equilibrium — the thermostat that keeps a star from exploding or going cold — teaches us about information, attention, and building technology that burns long instead of burning out.',
+    pubDate: '2026-07-11T15:00:00Z',
+    author: 'xNet',
+    tags: ['essay', 'philosophy', 'cosmos'],
+    readingMinutes: 13
+  },
+  {
+    slug: 'data-should-work-like-soil',
+    title: 'Data Should Work Like Soil',
+    description:
+      'Beneath every forest runs a fungal network — the original internet. What mycelium, the human nervous system, and Tesla’s Warp teach us about building one worth living in, and how to heal one that’s gone sick.',
+    pubDate: '2026-06-28T15:00:00Z',
+    author: 'xNet',
+    tags: ['essay', 'philosophy', 'nature'],
+    readingMinutes: 12
+  },
   {
     slug: 'a-great-pirate-age',
     title: 'A Great Pirate Age for the Internet',

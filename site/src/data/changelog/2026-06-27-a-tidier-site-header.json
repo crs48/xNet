@@ -1,0 +1,17 @@
+{
+  "id": "2026-06-27-a-tidier-site-header",
+  "date": "June 27, 2026",
+  "title": "A tidier site header",
+  "summary": "The top navigation is shorter and better organized: home-page sections (App, Teams, Vision) come first, then key pages (Why, Build, Blog). Cloud, Plugins, React, Commitments, and the changelog moved to the footer.",
+  "highlights": [],
+  "tags": [
+    "platform"
+  ],
+  "pr": 310,
+  "mergedAt": "2026-06-28T00:50:43Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}
