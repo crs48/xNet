@@ -254,6 +254,15 @@ export {
   type DeviceLike,
   type RevocationLike
 } from './account-ledger'
+export {
+  createAccountRecord,
+  admitDeviceRecord,
+  revokeSubjectRecord,
+  revokeDeviceRecord,
+  accountState,
+  nextEpoch,
+  type LedgerNodeIntent
+} from './account-ledger-ops'
 export { SavedViewSchema, type SavedView } from './saved-view'
 export {
   UserWidgetSchema,
