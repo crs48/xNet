@@ -11,6 +11,7 @@
 import type { TenantRecord, TenantStore } from '../registry'
 import type { BindingStore, TenantBinding } from '@xnetjs/cloud/identity'
 import { Firestore, type CollectionReference, type DocumentData } from '@google-cloud/firestore'
+import { nonceStoreFromDocs, type NonceRecord, type NonceStore } from '../nonce'
 import { bindingStoreFromDocs, tenantStoreFromDocs, type DocStore } from './durable'
 
 export class FirestoreDocStore<T> implements DocStore<T> {
@@ -35,6 +36,8 @@ export class FirestoreDocStore<T> implements DocStore<T> {
 export interface DurableStores {
   tenants: TenantStore
   bindings: BindingStore
+  /** Single-use device-claim nonces (0243), durable so they survive a restart mid-claim. */
+  nonces: NonceStore
 }
 
 /**
@@ -65,6 +68,9 @@ export function firestoreStoresFromEnv(env: NodeJS.ProcessEnv = process.env): Du
     ),
     bindings: bindingStoreFromDocs(
       new FirestoreDocStore<TenantBinding>(firestore.collection('bindings'))
+    ),
+    nonces: nonceStoreFromDocs(
+      new FirestoreDocStore<NonceRecord>(firestore.collection('claim_nonces'))
     )
   }
 }

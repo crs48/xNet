@@ -1,0 +1,10 @@
+{
+  "id": "2026-06-28-recover-your-xnet-cloud-account-if-you-l",
+  "date": "June 28, 2026",
+  "title": "Recover your xNet Cloud account if you lose your passkey",
+  "summary": "xNet Cloud now verifies the passkey that claims a hub with a real signature over a single-use server nonce, and the dashboard can recover your paid account and hub from your billing login if you lose the passkey (your encrypted data still needs a saved recovery phrase).",
+  "highlights": [],
+  "tags": [
+    "identity"
+  ]
+}

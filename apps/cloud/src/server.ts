@@ -27,7 +27,9 @@ import {
   renderClaimResult,
   renderDashboard,
   renderOverQuotaNotice,
-  renderPlanChangeNotice
+  renderPlanChangeNotice,
+  renderRecoverConfirm,
+  renderRecoverResult
 } from './dashboard'
 import { MemoryDeviceGrantStore, isExpired, type DeviceGrantStore } from './device-grant'
 import { composeDashboardLive, fetchHubHealth } from './hub-status'
@@ -38,6 +40,7 @@ import {
   type HubUsageProbe,
   type StorageUsageReader
 } from './metrics/usage'
+import { MemoryNonceStore, type NonceStore } from './nonce'
 import { fleetSummary, tenantSli, type HealthSampleStore } from './observability/health'
 import { publicStatus } from './observability/status'
 import { reportToSentry } from './sentry'
@@ -50,6 +53,8 @@ export interface ControlPlaneAppDeps {
   payments?: TenantBillingGateway
   /** Device-grant store for the "claim your hub" flow. Defaults to in-memory. */
   deviceGrants?: DeviceGrantStore
+  /** Single-use challenge nonces for the device-claim flow (0243). Defaults to in-memory. */
+  nonces?: NonceStore
   /** Fleet health samples (Phase 1 observability). If set, exposes /internal/fleet/health. */
   health?: HealthSampleStore
   /** Whether per-hub backups (Litestream→R2) are configured; surfaced on /status.json. */
@@ -116,6 +121,7 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
   const now = (): number => (deps.nowMs ? deps.nowMs() : Date.now())
   const base = deps.baseUrl ?? ''
   const devices = deps.deviceGrants ?? new MemoryDeviceGrantStore()
+  const nonces = deps.nonces ?? new MemoryNonceStore()
   const log = deps.logger ?? createLogger({ base: { service: 'xnet-cloud' } })
 
   // One structured line per request (method/path/status/ms), logged in a
@@ -445,6 +451,27 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
     return c.redirect('/dashboard')
   })
 
+  // Account recovery off the billing identity alone (exploration 0243). The signed-in
+  // WorkOS session IS the proof; recovery keeps the subscription + hub, clears the bound
+  // DID, and marks the binding for rebind. It does NOT recover the old encrypted data —
+  // the confirmation page says so before the user commits.
+  app.get('/account/recover', (c) => {
+    const s = session(c)
+    if (!s) return c.redirect('/auth/start')
+    return c.html(renderRecoverConfirm({ who: s.email ?? s.billingUserId }))
+  })
+
+  app.post('/account/recover', async (c) => {
+    const s = session(c)
+    if (!s) return c.redirect('/auth/start')
+    try {
+      await deps.controlPlane.recoverAccount(s.billingUserId)
+      return c.html(renderRecoverResult({ who: s.email ?? s.billingUserId, ok: true }))
+    } catch {
+      return c.html(renderRecoverResult({ who: s.email ?? s.billingUserId, ok: false }))
+    }
+  })
+
   // ── Device-grant "claim your hub" flow (RFC 8628 shaped) ─────────────────────
 
   // The app (no WorkOS) starts a grant with its locally-created DID, then polls.
@@ -452,9 +479,12 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
     const body = (await c.req.json().catch(() => ({}))) as { did?: string }
     if (!body.did) return c.json({ error: 'missing_did' }, 400)
     const grant = devices.start(body.did, now())
+    // Mint a single-use nonce bound to this flow; the app signs it with its DID key.
+    const issued = await nonces.issue(grant.deviceCode, now())
     return c.json({
       deviceCode: grant.deviceCode,
       userCode: grant.userCode,
+      nonce: issued.nonce,
       verificationUri: `${base}/claim`,
       intervalSec: 2,
       expiresInSec: 600
@@ -473,8 +503,14 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
     if (isExpired(grant, now())) return c.json({ error: 'expired_token' }, 400)
     // The polled DID must be the one the grant was started with (and was shown).
     if (body.challenge.did !== grant.did) return c.json({ error: 'did_mismatch' }, 400)
-    if (grant.status === 'pending') return c.json({ status: 'pending' })
-    if (!grant.approvedBy) return c.json({ status: 'pending' })
+    // Don't consume the nonce while pending — the app polls repeatedly with the same
+    // signed challenge until the user approves the code.
+    if (grant.status === 'pending' || !grant.approvedBy) return c.json({ status: 'pending' })
+    // Single-use: the nonce must be unconsumed, unexpired, and bound to THIS flow.
+    const claim = await nonces.consume(body.challenge.nonce, now())
+    if (!claim || claim.deviceCode !== grant.deviceCode) {
+      return c.json({ error: 'invalid_nonce' }, 400)
+    }
     try {
       const tenant = await deps.controlPlane.bindDataIdentity({
         billingUserId: grant.approvedBy,

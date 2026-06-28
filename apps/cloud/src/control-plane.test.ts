@@ -438,6 +438,35 @@ describe('ControlPlane.upgradeTenant + recoverAccount', () => {
     expect(tenant.did).toBe('') // data identity cleared, awaiting rebind
     expect(tenant.hubUrl).toContain('acme')
   })
+
+  it('completes a rebind after recovery via completeRebind, clearing rebindPending', async () => {
+    const bindings = new MemoryBindingStore()
+    const cp = new ControlPlane({
+      tenants: new MemoryTenantStore(),
+      bindings,
+      provisioner: new MemoryProvisioner({
+        sharding: { projectPrefix: 'test', servicesPerProject: 800 }
+      }),
+      verifyDid: async (c) => Boolean(c.did && c.signature),
+      planSecret: 'test-secret',
+      defaultTargetVersion: 'xnet-hub@1.0.0'
+    })
+    const t = await cp.provisionForBilling({ plan: 'personal', billingUserId: 'user_a' })
+    await cp.bindDataIdentity({ billingUserId: 'user_a', challenge: challenge('did:key:alice') })
+    expect((await bindings.get(t.tenantId))?.did).toBe('did:key:alice')
+
+    await cp.recoverAccount('user_a')
+    const recovered = await bindings.get(t.tenantId)
+    expect(recovered?.rebindPending).toBe(true)
+    expect(recovered?.did).toBe('')
+
+    // A fresh device rebinds; routing through completeRebind clears rebindPending.
+    await cp.bindDataIdentity({ billingUserId: 'user_a', challenge: challenge('did:key:bob') })
+    const rebound = await bindings.get(t.tenantId)
+    expect(rebound?.did).toBe('did:key:bob')
+    expect(rebound?.rebindPending).toBe(false)
+    expect((await cp.getTenant(t.tenantId))?.did).toBe('did:key:bob')
+  })
 })
 
 describe('ControlPlane cold-tiering (0178)', () => {

@@ -28,6 +28,7 @@ import { MemoryTenantStore, type TenantRecord, type TenantStore } from './regist
 import { createControlPlaneApp } from './server'
 import { firestoreStoresFromEnv } from './stores/firestore'
 import { usageLedgerFromEnv } from './stores/usage-ledger'
+import { makeDidChallengeVerifier } from './verify-did'
 
 export { ControlPlane } from './control-plane'
 export { MemoryTenantStore, type TenantRecord, type TenantStore } from './registry'
@@ -48,6 +49,14 @@ export {
   type DeviceGrantStore,
   type CodeGenerator
 } from './device-grant'
+export { makeDidChallengeVerifier } from './verify-did'
+export {
+  MemoryNonceStore,
+  nonceStoreFromDocs,
+  NONCE_TTL_MS,
+  type NonceStore,
+  type NonceRecord
+} from './nonce'
 export {
   availability,
   errorRate,
@@ -177,11 +186,6 @@ export function resolveBillingProvider(
   return new MemoryBillingIdentityProvider()
 }
 
-// TODO(0175): wire to @xnetjs/identity to verify a real passkey-DID challenge.
-// The dev verifier only checks the challenge is well-formed.
-const devDidVerifier: DidChallengeVerifier = async (challenge) =>
-  Boolean(challenge.did && challenge.signature && challenge.nonce)
-
 export interface BuildControlPlaneOptions {
   provisioner?: Provisioner
   billing?: BillingIdentityProvider
@@ -222,7 +226,7 @@ export function buildControlPlane(options: BuildControlPlaneOptions = {}): {
     tenants: options.tenants ?? stores?.tenants ?? new MemoryTenantStore(),
     bindings: options.bindings ?? stores?.bindings ?? new MemoryBindingStore(),
     provisioner: options.provisioner ?? cloudRunProvisionerFromEnv(env) ?? new MemoryProvisioner(),
-    verifyDid: options.verifyDid ?? devDidVerifier,
+    verifyDid: options.verifyDid ?? makeDidChallengeVerifier(),
     planSecret: env.XNET_PLAN_SECRET ?? 'dev-insecure-plan-secret',
     defaultTargetVersion: env.HUB_IMAGE_TAG ?? 'xnet-hub@0.0.1',
     ...(aiKeys ? { aiKeys } : {}),
@@ -245,6 +249,8 @@ function start(): void {
   const env = process.env
   const { controlPlane, billing } = buildControlPlane()
   const payments = resolveBillingGateway(env)
+  // Durable device-claim nonces when Firestore is configured, else in-memory (default).
+  const durable = firestoreStoresFromEnv(env)
   // One usage ledger, shared by the metered route and the dashboard's spend view.
   const usage = usageLedgerFromEnv(env)
   const ai = aiChatDepsFromEnv(controlPlane, usage, env)
@@ -274,6 +280,7 @@ function start(): void {
     appUrl: env.XNET_CLOUD_APP_URL ?? 'https://xnet.fyi/app',
     ...(env.XNET_CLOUD_INTERNAL_SECRET ? { internalSecret: env.XNET_CLOUD_INTERNAL_SECRET } : {}),
     ...(env.SENTRY_DSN ? { sentryDsn: env.SENTRY_DSN } : {}),
+    ...(durable ? { nonces: durable.nonces } : {}),
     ...(ai ? { ai } : {})
   })
   const port = Number(env.PORT ?? 4455)
