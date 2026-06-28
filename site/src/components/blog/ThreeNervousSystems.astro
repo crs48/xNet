@@ -1,0 +1,69 @@
+---
+// The structural heart of post #2 (exploration 0240): a body, a company, and a
+// forest run on the same thing — a decentralised connective substrate that lets a
+// whole sense, share, and adapt. Mirrors the ArticlesMap / HonestPirate card idiom
+// (not-prose, bordered surface card) so the two posts feel like one publication.
+const systems = [
+  {
+    scale: 'A body',
+    substrate: 'Neurons + the vagus nerve',
+    healthy:
+      'Senses, signals, and regulates — then rests and recovers. Health shows up as steady vagal tone and the ability to return to calm.',
+  },
+  {
+    scale: 'A company',
+    substrate: 'One owned data backbone (Tesla’s Warp ERP)',
+    healthy:
+      'Every bolt, person, and decision connected on a backbone the company owns and can adapt — instead of renting it from a vendor who also harvests it.',
+  },
+  {
+    scale: 'A forest',
+    substrate: 'The mycorrhizal network',
+    healthy:
+      'Water, carbon, and minerals traded root-to-root along fungal threads — redundant paths, no single point of failure, no central nursery in charge.',
+  },
+]
+---
+
+<section class="not-prose my-12">
+  <div class="rounded-2xl border border-border bg-surface/30 p-6 dark:bg-surface/40 lg:p-8">
+    <h3 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+      Three nervous systems, one shape
+    </h3>
+    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+      A body, a company, and a forest all run on the same idea: a decentralised
+      connective substrate — sense, share, adapt, with no dictator in the middle.
+    </p>
+
+    <ul class="mt-6 space-y-5">
+      {
+        systems.map((s) => (
+          <li class="grid gap-2 sm:grid-cols-[1fr_1.6fr] sm:gap-6 sm:items-baseline">
+            <div>
+              <p class="font-mono font-semibold text-emerald-600 dark:text-emerald-400">
+                {s.scale}
+              </p>
+              <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{s.substrate}</p>
+            </div>
+            <p class="text-sm leading-relaxed text-gray-700 dark:text-gray-200">{s.healthy}</p>
+          </li>
+        ))
+      }
+    </ul>
+
+    <p
+      class="mt-6 border-t border-border pt-4 text-sm leading-relaxed text-gray-600 dark:text-gray-300"
+    >
+      <span class="font-semibold text-gray-900 dark:text-white">The same axis</span>
+      decides whether any of the three is well or sick:
+      <span class="text-emerald-600 dark:text-emerald-400">
+        biodiverse · decentralised · reciprocal · regulated · regenerative
+      </span>
+      on one end,
+      <span class="text-gray-500 dark:text-gray-400">
+        monoculture · centralised · extractive · dysregulated · brittle
+      </span>
+      on the other.
+    </p>
+  </div>
+</section>

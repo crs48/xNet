@@ -20,7 +20,13 @@
  *     during authoring). Production never lists drafts.
  */
 
-export type BlogTag = 'essay' | 'philosophy' | 'privacy' | 'decentralization' | 'protocol'
+export type BlogTag =
+  | 'essay'
+  | 'philosophy'
+  | 'privacy'
+  | 'decentralization'
+  | 'protocol'
+  | 'nature'
 
 export interface BlogPost {
   /** URL slug; matches `site/src/pages/blog/<slug>.astro`. */
@@ -43,6 +49,16 @@ export interface BlogPost {
 }
 
 export const posts: BlogPost[] = [
+  {
+    slug: 'data-should-work-like-soil',
+    title: 'Data Should Work Like Soil',
+    description:
+      'Beneath every forest runs a fungal network — the original internet. What mycelium, the human nervous system, and Tesla’s Warp teach us about building one worth living in, and how to heal one that’s gone sick.',
+    pubDate: '2026-06-28T15:00:00Z',
+    author: 'xNet',
+    tags: ['essay', 'philosophy', 'nature'],
+    readingMinutes: 12
+  },
   {
     slug: 'a-great-pirate-age',
     title: 'A Great Pirate Age for the Internet',
