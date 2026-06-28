@@ -125,15 +125,15 @@ own articles, and here's the proof."
 From the protocol spec ([`docs/specs/protocol/`](../../docs/specs/protocol/)) and
 the package graph:
 
-| Pirate primitive | xNet reality | Code |
-| --- | --- | --- |
-| Your own flag (Jolly Roger) | A self-generated `did:key` (Ed25519); no registry, no central authority issues it | [`packages/identity/src/keys.ts`](../../packages/identity/src/keys.ts) |
-| Signing the ship's log with your mark | Every `Change<T>` is an Ed25519 signature over a BLAKE3 hash, chained to its parent | [`packages/sync/src/change.ts`](../../packages/sync/src/change.ts) |
-| A log that can't be quietly rewritten | Hash-chained, append-only; old entries stay cryptographically verifiable even after you leave | `packages/sync` |
-| Sailing alone, no home port required | Local-first SQLite over OPFS is the _primary_ copy; works fully offline | [`packages/data/src/store/store.ts`](../../packages/data/src/store/store.ts) |
-| Choosing which port to dock at | BYO sync hub — self-host, managed, or none | [`packages/hub/src/cli.ts`](../../packages/hub/src/cli.ts) |
-| A shared sea-language between crews | One normative protocol + a language-agnostic **golden-vector** conformance corpus (TS, Rust, Swift, Python kernels) | [`conformance/`](../../conformance/), [`docs/specs/protocol/90-conformance.md`](../../docs/specs/protocol/90-conformance.md) |
-| Letters of marque / shared treasure maps | UCAN capability grants — you sign permission for another island to see specific cargo | `packages/identity` (UCAN) |
+| Pirate primitive                         | xNet reality                                                                                                        | Code                                                                                                                         |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Your own flag (Jolly Roger)              | A self-generated `did:key` (Ed25519); no registry, no central authority issues it                                   | [`packages/identity/src/keys.ts`](../../packages/identity/src/keys.ts)                                                       |
+| Signing the ship's log with your mark    | Every `Change<T>` is an Ed25519 signature over a BLAKE3 hash, chained to its parent                                 | [`packages/sync/src/change.ts`](../../packages/sync/src/change.ts)                                                           |
+| A log that can't be quietly rewritten    | Hash-chained, append-only; old entries stay cryptographically verifiable even after you leave                       | `packages/sync`                                                                                                              |
+| Sailing alone, no home port required     | Local-first SQLite over OPFS is the _primary_ copy; works fully offline                                             | [`packages/data/src/store/store.ts`](../../packages/data/src/store/store.ts)                                                 |
+| Choosing which port to dock at           | BYO sync hub — self-host, managed, or none                                                                          | [`packages/hub/src/cli.ts`](../../packages/hub/src/cli.ts)                                                                   |
+| A shared sea-language between crews      | One normative protocol + a language-agnostic **golden-vector** conformance corpus (TS, Rust, Swift, Python kernels) | [`conformance/`](../../conformance/), [`docs/specs/protocol/90-conformance.md`](../../docs/specs/protocol/90-conformance.md) |
+| Letters of marque / shared treasure maps | UCAN capability grants — you sign permission for another island to see specific cargo                               | `packages/identity` (UCAN)                                                                                                   |
 
 The VISION's own metaphors are already in this register — the mycelial-network /
 "data should work like soil" passage in
@@ -282,12 +282,12 @@ flowchart TD
 
 ### Naming / framing options
 
-| Title direction | Vibe | Note |
-| --- | --- | --- |
-| "A Great Pirate Age for the Internet" | Confident, generic | Safest re: IP; reads as essay |
-| "You Are the Cargo" | Sharp, `/why`-aligned | Strong, ties to surveillance thesis |
-| "Raise Your Own Flag" | CTA-ish, ownership | Good section/CTA header |
-| "Why We Sail" | Warm, manifesto | Pairs with the Charter |
+| Title direction                       | Vibe                  | Note                                |
+| ------------------------------------- | --------------------- | ----------------------------------- |
+| "A Great Pirate Age for the Internet" | Confident, generic    | Safest re: IP; reads as essay       |
+| "You Are the Cargo"                   | Sharp, `/why`-aligned | Strong, ties to surveillance thesis |
+| "Raise Your Own Flag"                 | CTA-ish, ownership    | Good section/CTA header             |
+| "Why We Sail"                         | Warm, manifesto       | Pairs with the Charter              |
 
 ## Recommendation
 
@@ -401,8 +401,8 @@ const blog = defineCollection({
     pubDate: z.coerce.date(),
     tags: z.array(z.string()).default([]),
     hero: z.string().optional(), // path to original art in /public
-    draft: z.boolean().default(false),
-  }),
+    draft: z.boolean().default(false)
+  })
 })
 
 export const collections = { /* …existing docs…, */ blog }
@@ -462,14 +462,14 @@ const { Content } = await post.render()
 - [ ] Decide vessel with the user: confirm **Option C** (blog + flagship post)
       vs. A (one-off landing page).
 - [ ] Confirm the IP framing and get a quick legal skim sign-off before publish.
-- [ ] Add a `blog` content collection to
+- [x] Add a `blog` content collection to
       [`site/src/content.config.ts`](../../site/src/content.config.ts) (schema
       above).
-- [ ] Create `site/src/pages/blog/index.astro` (card list, newest first) and
+- [x] Create `site/src/pages/blog/index.astro` (card list, newest first) and
       `site/src/pages/blog/[...slug].astro` (post layout).
-- [ ] Add `site/src/pages/blog/rss.xml.ts` (reuse the changelog RSS pattern in
+- [x] Add `site/src/pages/blog/rss.xml.ts` (reuse the changelog RSS pattern in
       [`site/src/pages/changelog.xml.ts`](../../site/src/pages/changelog.xml.ts)).
-- [ ] Add a **Blog** link to the footer/nav
+- [x] Add a **Blog** link to the footer/nav
       ([`site/src/components/sections/Footer.astro`](../../site/src/components/sections/Footer.astro)).
 - [ ] Write the flagship MDX post following the seven-beat spine in
       [Recommendation](#recommendation).
