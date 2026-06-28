@@ -50,6 +50,20 @@ describe('fetchModelCatalog', () => {
   it('throws on a non-2xx upstream', async () => {
     await expect(fetchModelCatalog({ fetchImpl: jsonFetch({}, 500) })).rejects.toThrow(/500/)
   })
+
+  it('excludes :free variants and price-unknown models from the managed catalog', async () => {
+    const withJunk = {
+      data: [
+        ...RAW.data,
+        // a :free variant — dropped even though it has an id
+        { id: 'meta-llama/llama-3-8b:free', name: 'Llama 3 8B (free)', pricing: { prompt: '0' } },
+        // a priced-but-no-input-price model — dropped (can't show retail / meter)
+        { id: 'mystery/model', name: 'Mystery', pricing: { completion: '0.00001' } }
+      ]
+    }
+    const cards = await fetchModelCatalog({ fetchImpl: jsonFetch(withJunk) })
+    expect(cards.map((c) => c.id)).toEqual(['anthropic/claude-sonnet-4-6', 'openai/gpt-4o-mini'])
+  })
 })
 
 describe('createModelCatalog (TTL cache)', () => {

@@ -18,6 +18,7 @@ import {
   aiBudgetStatus,
   BudgetExceededError,
   GatewayError,
+  isStreamingGateway,
   MeteredGateway,
   type ChatGateway,
   type ChatMessage,
@@ -27,6 +28,7 @@ import {
 } from '@xnetjs/cloud'
 import { aiModelAllowed } from '@xnetjs/entitlements'
 import { Hono } from 'hono'
+import { streamSSE } from 'hono/streaming'
 
 /** Everything the route needs to know about the calling tenant. */
 export interface AiTenantContext {
@@ -62,7 +64,26 @@ export interface AiChatDeps {
   allowedModels?: string[]
   /** The OpenRouter model catalog (cached), powering `GET /ai/models`. Omit to disable the route. */
   modelCatalog?: () => Promise<ModelCard[]>
+  /**
+   * Retail markup applied to catalog prices in `GET /ai/models` so the picker shows
+   * what the *user* pays, never the provider list price or our COGS (exploration
+   * 0244). Defaults to 1 (pass-through). The markup multiplier itself is never sent.
+   */
+  retailMarkup?: number
   timestampMs?: () => number
+}
+
+/** Round a retail token price to 4 decimals (USD per 1M tokens) — display precision. */
+const roundRetail = (usdPerM: number): number => Math.round(usdPerM * 1e4) / 1e4
+
+/** Apply the retail markup to a card's (non-null) per-million prices. */
+function toRetailCard(card: ModelCard, markup: number): ModelCard {
+  if (markup === 1) return card
+  return {
+    ...card,
+    inUsdPerM: card.inUsdPerM === null ? null : roundRetail(card.inUsdPerM * markup),
+    outUsdPerM: card.outUsdPerM === null ? null : roundRetail(card.outUsdPerM * markup)
+  }
 }
 
 interface AiChatBody {
@@ -153,6 +174,96 @@ export function createAiRoute(deps: AiChatDeps): Hono {
     }
   })
 
+  // Streaming variant of /ai/chat (SSE). Same auth + model gating + budget cap as
+  // the unary path; deltas arrive as `event: delta`, then a single `event: done`
+  // with the budget snapshot. Metering happens off the final chunk's usage.cost,
+  // so a streamed call bills identically to the unary one (exploration 0244).
+  app.post('/ai/chat/stream', async (c) => {
+    const t = await deps.resolveTenant(c)
+    if (!t) return c.json({ error: 'unauthorized' }, 401)
+    if (!isStreamingGateway(deps.gateway)) {
+      return c.json({ error: 'streaming_unsupported' }, 501)
+    }
+
+    const body = (await c.req.json().catch(() => ({}))) as AiChatBody
+    const model = body.model ?? t.defaultModel
+    if (!model || !Array.isArray(body.messages) || body.messages.length === 0) {
+      return c.json({ error: 'bad_request' }, 400)
+    }
+    if (deps.allowedModels && !deps.allowedModels.includes(model)) {
+      return c.json({ error: 'model_not_allowed', model }, 400)
+    }
+    if (!aiModelAllowed(t.aiModels, model)) {
+      return c.json({ error: 'model_not_allowed', model }, 400)
+    }
+    // Pre-flight the budget so an over-cap tenant gets a clean 402 instead of a
+    // half-open SSE stream (status can't change once streaming has begun).
+    const spentBefore = await deps.ledger.totalChargeUsd(t.tenantId, t.periodStartMs)
+    if (spentBefore >= t.budgetUsd) {
+      return c.json(
+        { error: 'ai_budget_exceeded', spentUsd: spentBefore, budgetUsd: t.budgetUsd },
+        402
+      )
+    }
+
+    const gateway = new MeteredGateway({
+      gateway: deps.gateway,
+      ledger: deps.ledger,
+      billing: deps.billing,
+      pricingFor: deps.pricingFor,
+      budgetUsdFor: async () => t.budgetUsd,
+      customerIdFor: () => t.customerId,
+      periodStartMsFor: async () => t.periodStartMs,
+      ...(deps.timestampMs ? { timestampMs: deps.timestampMs } : {})
+    })
+    const key = `${t.tenantId}:${body.sessionId ?? 'na'}:${body.requestId ?? 'na'}`
+
+    return streamSSE(c, async (stream) => {
+      try {
+        for await (const chunk of gateway.chatStream({
+          tenantId: t.tenantId,
+          key,
+          request: {
+            virtualKey: t.virtualKey,
+            model,
+            messages: body.messages as ChatMessage[],
+            ...(body.fallbackModels?.length
+              ? { fallbackModels: body.fallbackModels.filter((m) => aiModelAllowed(t.aiModels, m)) }
+              : {}),
+            ...(body.maxTokens ? { maxTokens: body.maxTokens } : {}),
+            ...(body.mockResponse !== undefined ? { mockResponse: body.mockResponse } : {})
+          }
+        })) {
+          if (chunk.delta) {
+            await stream.writeSSE({ event: 'delta', data: JSON.stringify({ text: chunk.delta }) })
+          }
+          if (chunk.result) {
+            const spent = await deps.ledger.totalChargeUsd(t.tenantId, t.periodStartMs)
+            await stream.writeSSE({
+              event: 'done',
+              data: JSON.stringify({
+                model: chunk.result.model,
+                usage: chunk.result.usage,
+                spendThisPeriodUsd: spent,
+                includedUsd: t.includedUsd,
+                budgetUsd: t.budgetUsd,
+                budgetState: aiBudgetStatus(spent, t.includedUsd, t.budgetUsd).state
+              })
+            })
+          }
+        }
+      } catch (err) {
+        const payload =
+          err instanceof BudgetExceededError
+            ? { error: 'ai_budget_exceeded', spentUsd: err.spentUsd, budgetUsd: err.budgetUsd }
+            : err instanceof GatewayError
+              ? { error: 'gateway_error', status: err.status }
+              : { error: 'stream_error' }
+        await stream.writeSSE({ event: 'error', data: JSON.stringify(payload) })
+      }
+    })
+  })
+
   // The plan-gated model catalog that drives the client's model picker. The cards
   // are the cached OpenRouter catalog intersected with the tenant's `aiModels`
   // policy; when the catalog is unavailable but the plan names models, we still
@@ -180,7 +291,12 @@ export function createAiRoute(deps: AiChatDeps): Hono {
           modality: null
         }))
     }
-    return c.json({ models, defaultModel: t.defaultModel ?? null })
+    // Show retail prices (what the user pays), never the provider list price.
+    const markup = deps.retailMarkup ?? 1
+    return c.json({
+      models: models.map((m) => toRetailCard(m, markup)),
+      defaultModel: t.defaultModel ?? null
+    })
   })
 
   return app

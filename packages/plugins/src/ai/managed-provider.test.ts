@@ -87,4 +87,41 @@ describe('ManagedProvider', () => {
     })
     await expect(provider.generate('hi')).rejects.toBeInstanceOf(AIGenerationError)
   })
+
+  it('advertises streaming capability', () => {
+    expect(createManagedProvider().getCapabilities().streaming).toBe(true)
+  })
+
+  it('streams text deltas and reports the budget from the done event', async () => {
+    const sse =
+      'event: delta\ndata: {"text":"hel"}\n\n' +
+      'event: delta\ndata: {"text":"lo"}\n\n' +
+      'event: done\ndata: {"model":"anthropic/claude-sonnet-4-6","usage":{"inputTokens":12,"outputTokens":8,"totalTokens":20},"spendThisPeriodUsd":0.5,"includedUsd":2,"budgetUsd":25,"budgetState":"included"}\n\n'
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(sse, { status: 200, headers: { 'content-type': 'text/event-stream' } })
+    ) as unknown as typeof fetch
+    const snapshots: ManagedBudgetSnapshot[] = []
+    const provider = createManagedProvider({ fetchImpl, onBudget: (s) => snapshots.push(s) })
+
+    const texts: string[] = []
+    for await (const chunk of provider.stream!({ prompt: 'hi' })) {
+      if (chunk.type === 'text') texts.push(chunk.text)
+    }
+    expect(texts.join('')).toBe('hello')
+    expect(snapshots).toEqual([
+      { spendThisPeriodUsd: 0.5, includedUsd: 2, budgetUsd: 25, budgetState: 'included' }
+    ])
+    const [url] = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0]
+    expect(String(url)).toContain('/ai/chat/stream')
+  })
+
+  it('streams a budget error as a typed AiBudgetError (pre-stream 402)', async () => {
+    const provider = createManagedProvider({
+      fetchImpl: stubFetch(402, { error: 'ai_budget_exceeded', spentUsd: 25.1, budgetUsd: 25 })
+    })
+    await expect(async () => {
+      for await (const _ of provider.stream!({ prompt: 'hi' })) void _
+    }).rejects.toBeInstanceOf(AiBudgetError)
+  })
 })

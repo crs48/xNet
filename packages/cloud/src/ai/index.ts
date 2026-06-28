@@ -9,13 +9,18 @@
 export {
   GatewayClient,
   GatewayError,
+  isStreamingGateway,
   type ChatGateway,
+  type StreamingChatGateway,
+  type ChatStreamChunk,
   type GatewayClientConfig,
   type ChatRequest,
   type ChatResult,
   type ChatMessage,
   type TokenUsage
 } from './gateway'
+
+export { parseSseJson } from './sse'
 
 export { OpenRouterGatewayClient, type OpenRouterGatewayConfig } from './openrouter-gateway'
 
@@ -28,10 +33,22 @@ export {
   type VirtualKeyManager,
   type VirtualKey,
   type CreateVirtualKeyInput,
+  type LimitReset,
   type LiteLLMKeyManagerConfig
 } from './keys'
 
-export { OpenRouterKeyManager, type OpenRouterKeyManagerConfig } from './openrouter-keys'
+export {
+  OpenRouterKeyManager,
+  type OpenRouterKeyManagerConfig,
+  type KeyUsage
+} from './openrouter-keys'
+
+export {
+  OpenRouterCreditsClient,
+  isLowBalance,
+  type CreditBalance,
+  type OpenRouterCreditsConfig
+} from './credits'
 
 export {
   MeteredGateway,

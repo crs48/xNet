@@ -176,6 +176,45 @@ describe('control-plane HTTP API', () => {
     expect((await controlPlane.getTenant(tenant.tenantId))?.plan).toBe('family') // unchanged
   })
 
+  it('sets a self-serve AI spend cap + window (0244)', async () => {
+    const billing = new MemoryBillingIdentityProvider('https://auth.test/authorize')
+    const { controlPlane } = buildControlPlane({ billing })
+    const tenant = await controlPlane.provisionForBilling({
+      plan: 'personal',
+      billingUserId: 'user_a'
+    })
+    const a = createControlPlaneApp({ controlPlane, billing, sessionSecret: SESSION_SECRET })
+    const cookie = `${SESSION_COOKIE}=${sealSession(SESSION_SECRET, { billingUserId: 'user_a', issuedAtMs: Date.now() })}`
+
+    const set = await a.request('/account/ai-budget', {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded', cookie },
+      body: 'cap=5&window=calendar-week'
+    })
+    expect(set.status).toBe(302)
+    expect((await controlPlane.getTenant(tenant.tenantId))?.aiBudget).toEqual({
+      capUsd: 5,
+      window: { kind: 'calendar-week' }
+    })
+
+    // Clearing the cap returns to the full plan budget.
+    const clear = await a.request('/account/ai-budget', {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded', cookie },
+      body: 'cap='
+    })
+    expect(clear.status).toBe(302)
+    expect((await controlPlane.getTenant(tenant.tenantId))?.aiBudget).toBeUndefined()
+
+    // A malformed cap is rejected (400).
+    const bad = await a.request('/account/ai-budget', {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded', cookie },
+      body: 'cap=-3'
+    })
+    expect(bad.status).toBe(400)
+  })
+
   it('rejects an unauthenticated plan change', async () => {
     const billing = new MemoryBillingIdentityProvider('https://auth.test/authorize')
     const { controlPlane } = buildControlPlane({ billing })

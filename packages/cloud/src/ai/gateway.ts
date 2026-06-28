@@ -49,9 +49,27 @@ export interface ChatResult {
   providerCostUsd?: number
 }
 
+/** One chunk of a streamed chat: an incremental `delta`, then a single final `result`. */
+export interface ChatStreamChunk {
+  /** A text delta as it arrives (token-by-token). */
+  delta?: string
+  /** The assembled result (text + usage + cost) — emitted exactly once, at the end. */
+  result?: ChatResult
+}
+
 /** The gateway surface the metered layer depends on (real client or a fake). */
 export interface ChatGateway {
   chat(req: ChatRequest): Promise<ChatResult>
+}
+
+/** A gateway that can also stream (OpenRouter SSE). `result` carries the final usage/cost. */
+export interface StreamingChatGateway extends ChatGateway {
+  chatStream(req: ChatRequest): AsyncIterable<ChatStreamChunk>
+}
+
+/** Whether a gateway supports streaming (has a `chatStream`). */
+export function isStreamingGateway(gateway: ChatGateway): gateway is StreamingChatGateway {
+  return typeof (gateway as StreamingChatGateway).chatStream === 'function'
 }
 
 export interface GatewayClientConfig {

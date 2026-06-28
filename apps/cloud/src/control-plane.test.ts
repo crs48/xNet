@@ -343,7 +343,7 @@ describe('ControlPlane managed-AI key provisioning (0200)', () => {
   })
 })
 
-describe('ControlPlane.setAiCap (self-serve spend cap, 0201)', () => {
+describe('ControlPlane.setAiBudget (self-serve spend cap + window, 0244)', () => {
   it('clamps the cap to the plan budget and clears it with undefined', async () => {
     const { cp } = build()
     await cp.provisionTenant({
@@ -353,11 +353,39 @@ describe('ControlPlane.setAiCap (self-serve spend cap, 0201)', () => {
       challenge: challenge('did:key:alice')
     })
     // A cap below the plan budget is kept verbatim.
-    expect((await cp.setAiCap('acme', 10)).aiCapUsd).toBe(10)
+    const below = await cp.setAiBudget('acme', { capUsd: 10, window: { kind: 'calendar-week' } })
+    expect(below.aiBudget).toEqual({ capUsd: 10, window: { kind: 'calendar-week' } })
     // A cap above the plan budget is clamped down to the plan cap.
-    expect((await cp.setAiCap('acme', 1000)).aiCapUsd).toBe(25)
+    const above = await cp.setAiBudget('acme', { capUsd: 1000, window: { kind: 'calendar-month' } })
+    expect(above.aiBudget?.capUsd).toBe(25)
     // undefined clears it (back to the full plan cap).
-    expect((await cp.setAiCap('acme', undefined)).aiCapUsd).toBeUndefined()
+    expect((await cp.setAiBudget('acme', undefined)).aiBudget).toBeUndefined()
+  })
+
+  it('aligns the OpenRouter key reset to the window (weekly cap → weekly reset)', async () => {
+    const aiKeys = new FakeVirtualKeyManager()
+    const { cp } = build({ aiKeys })
+    await cp.provisionTenant({
+      tenantId: 'acme',
+      plan: 'personal',
+      billingUserId: 'user_a',
+      challenge: challenge('did:key:alice')
+    })
+    await cp.setAiBudget('acme', { capUsd: 5, window: { kind: 'calendar-week' } })
+    // The fake records the last reset cadence pushed to the provider backstop.
+    expect(aiKeys.lastReset()).toBe('weekly')
+  })
+
+  it('setAiCap is a monthly-window shim that still clamps', async () => {
+    const { cp } = build()
+    await cp.provisionTenant({
+      tenantId: 'acme',
+      plan: 'personal',
+      billingUserId: 'user_a',
+      challenge: challenge('did:key:alice')
+    })
+    const r = await cp.setAiCap('acme', 1000)
+    expect(r.aiBudget).toEqual({ capUsd: 25, window: { kind: 'calendar-month' } })
   })
 
   it('rejects a negative cap and an unknown tenant', async () => {
@@ -368,8 +396,12 @@ describe('ControlPlane.setAiCap (self-serve spend cap, 0201)', () => {
       billingUserId: 'user_a',
       challenge: challenge('did:key:alice')
     })
-    await expect(cp.setAiCap('acme', -5)).rejects.toThrow(/Invalid AI cap/)
-    await expect(cp.setAiCap('ghost', 5)).rejects.toThrow(/Unknown tenant/)
+    await expect(
+      cp.setAiBudget('acme', { capUsd: -5, window: { kind: 'calendar-month' } })
+    ).rejects.toThrow(/Invalid AI cap/)
+    await expect(
+      cp.setAiBudget('ghost', { capUsd: 5, window: { kind: 'calendar-month' } })
+    ).rejects.toThrow(/Unknown tenant/)
   })
 })
 

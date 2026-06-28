@@ -1108,7 +1108,7 @@ export class ManagedProvider implements AIProvider {
     return createCapabilities({
       tools: true,
       structuredOutputs: true,
-      streaming: false,
+      streaming: true,
       contextWindow: 200000,
       local: false,
       privacy: 'proxy',
@@ -1160,6 +1160,89 @@ export class ManagedProvider implements AIProvider {
           }
         : {})
     }
+  }
+
+  /**
+   * Stream the managed completion over SSE (`/ai/chat/stream`). Yields a `text`
+   * chunk per delta, then `usage` + `done`; emits the live budget from the terminal
+   * `done` event. A `402` (pre-stream) or an `ai_budget_exceeded` error event
+   * becomes an {@link AiBudgetError} (exploration 0244).
+   */
+  async *stream(request: AIGenerateRequest): AsyncIterable<AIStreamChunk> {
+    const reqModel = this.model ?? 'openrouter/auto'
+    const res = await this.fetchImpl(`${this.baseUrl}/ai/chat/stream`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', accept: 'text/event-stream' },
+      credentials: 'include',
+      body: JSON.stringify({ model: reqModel, messages: requestToMessages(request) })
+    })
+    if (res.status === 402) {
+      const data = (await res.json().catch(() => ({}))) as ManagedChatResponse
+      throw new AiBudgetError(data.spentUsd ?? 0, data.budgetUsd ?? 0)
+    }
+    if (!res.ok || !res.body) {
+      const data = (await res.json().catch(() => ({}))) as ManagedChatResponse
+      throw new AIGenerationError(
+        `Managed AI stream error: ${res.status} ${data.error ?? ''}`.trim(),
+        this.name
+      )
+    }
+
+    const reader = res.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    let event = 'message'
+    let model = reqModel
+
+    const handle = (
+      ev: string,
+      payload: string
+    ): { chunk?: AIStreamChunk; done?: boolean } | null => {
+      if (!payload) return null
+      const data = JSON.parse(payload) as ManagedChatResponse & { text?: string }
+      if (ev === 'delta' && typeof data.text === 'string') {
+        return { chunk: { type: 'text', text: data.text, provider: this.name, model } }
+      }
+      if (ev === 'done') {
+        model = data.model ?? model
+        this.emitBudget(data)
+        return { done: true }
+      }
+      if (ev === 'error') {
+        if (data.error === 'ai_budget_exceeded') {
+          throw new AiBudgetError(data.spentUsd ?? 0, data.budgetUsd ?? 0)
+        }
+        throw new AIGenerationError(
+          `Managed AI stream error: ${data.error ?? ''}`.trim(),
+          this.name
+        )
+      }
+      return null
+    }
+
+    for (;;) {
+      const { value, done } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      let nl: number
+      while ((nl = buffer.indexOf('\n')) !== -1) {
+        const line = buffer.slice(0, nl).trimEnd()
+        buffer = buffer.slice(nl + 1)
+        if (line === '') {
+          event = 'message'
+          continue
+        }
+        if (line.startsWith('event:')) {
+          event = line.slice(6).trim()
+          continue
+        }
+        if (line.startsWith('data:')) {
+          const out = handle(event, line.slice(5).trim())
+          if (out?.chunk) yield out.chunk
+        }
+      }
+    }
+    yield { type: 'done', provider: this.name, model }
   }
 
   private emitBudget(data: ManagedChatResponse): void {

@@ -1,0 +1,8 @@
+{
+  "id": "2026-06-28-set-your-own-ai-spend-cap-and-switch-mod",
+  "date": "June 28, 2026",
+  "title": "Set your own AI spend cap and switch models, with streaming",
+  "summary": "Managed AI now lets you pick any plan-allowed model and set a personal spend cap by week, month, or rolling window — we stop calls when you hit it. Replies stream in token-by-token, prices shown are what you pay, and billing stays provably above cost.",
+  "highlights": [],
+  "tags": ["ai"]
+}

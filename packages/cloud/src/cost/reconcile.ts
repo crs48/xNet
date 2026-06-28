@@ -10,10 +10,12 @@
  *
  * Note: AI is metered separately (its retail charge already carries margin via the
  * token markup), so here we count only the AI *provider cost* as COGS — the
- * marked-up AI revenue is reconciled on the revenue side, not double-counted.
+ * marked-up AI revenue is reconciled on the revenue side, not double-counted. The
+ * provider cost is scaled by {@link EFFECTIVE_COGS_MULTIPLIER} to include
+ * OpenRouter's credit-purchase fee (exploration 0244).
  */
 
-import { UNIT_COSTS } from './pricing'
+import { EFFECTIVE_COGS_MULTIPLIER, UNIT_COSTS } from './pricing'
 
 const GiB = 1024 * 1024 * 1024
 const round = (n: number): number => Math.round(n * 1e4) / 1e4
@@ -61,8 +63,15 @@ export interface TenantMargin {
   healthy: boolean
 }
 
-/** Compute measured COGS for one tenant from what it actually used. */
-export function measuredCogs(m: TenantUsageMeasurement): TenantCostBreakdown {
+/**
+ * Compute measured COGS for one tenant from what it actually used. `aiMultiplier`
+ * scales the raw provider cost to include OpenRouter's credit-purchase fee
+ * (defaults to {@link EFFECTIVE_COGS_MULTIPLIER}).
+ */
+export function measuredCogs(
+  m: TenantUsageMeasurement,
+  aiMultiplier: number = EFFECTIVE_COGS_MULTIPLIER
+): TenantCostBreakdown {
   const compute = m.warm
     ? UNIT_COSTS.warmComputePerMonth * (m.warmUnits ?? 1)
     : m.activeHours * UNIT_COSTS.activeComputePerHour
@@ -74,7 +83,7 @@ export function measuredCogs(m: TenantUsageMeasurement): TenantCostBreakdown {
     ((m.hotDbBytes ?? 0) / GiB) * volumeRate
 
   const identity = m.ssoScim ? UNIT_COSTS.workosSsoScimPerMonth : 0
-  const ai = Math.max(0, m.aiProviderCostUsd)
+  const ai = Math.max(0, m.aiProviderCostUsd) * aiMultiplier
   const stripe =
     m.stripeFeesUsd ?? m.revenueUsd * UNIT_COSTS.stripePercent + UNIT_COSTS.stripeFixedPerCharge
 
@@ -111,6 +120,41 @@ export interface FleetMargin {
   tenantCount: number
   /** Tenants we currently lose money on (margin < 0). */
   negativeTenants: string[]
+}
+
+/** Drift between our ledger and OpenRouter's own per-key counter (exploration 0244). */
+export interface KeyUsageReconciliation {
+  /** What our ledger recorded as provider cost for the key's window (USD). */
+  ledgerProviderCostUsd: number
+  /** What OpenRouter reports the key spent (USD). */
+  openrouterUsageUsd: number
+  /** Signed difference (openrouter − ledger); >0 = OpenRouter billed more than we logged. */
+  driftUsd: number
+  /** |drift| as a fraction of the OpenRouter figure (0 when it's 0). */
+  driftPct: number
+  /** False when |drift| exceeds the tolerance — a metering bug or missed call to investigate. */
+  withinTolerance: boolean
+}
+
+/**
+ * Reconcile our ledger's provider-cost total for a key's window against
+ * OpenRouter's own `usage` counter. A persistent drift beyond `toleranceUsd`
+ * (default $0.01) means we're mis-metering — alert and investigate.
+ */
+export function reconcileKeyUsage(
+  ledgerProviderCostUsd: number,
+  openrouterUsageUsd: number,
+  toleranceUsd = 0.01
+): KeyUsageReconciliation {
+  const driftUsd = round(openrouterUsageUsd - ledgerProviderCostUsd)
+  const driftPct = openrouterUsageUsd > 0 ? round(Math.abs(driftUsd) / openrouterUsageUsd) : 0
+  return {
+    ledgerProviderCostUsd: round(ledgerProviderCostUsd),
+    openrouterUsageUsd: round(openrouterUsageUsd),
+    driftUsd,
+    driftPct,
+    withinTolerance: Math.abs(driftUsd) <= toleranceUsd
+  }
 }
 
 /** Aggregate per-tenant margins into a fleet P&L (the dashboard's headline). */

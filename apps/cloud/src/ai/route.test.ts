@@ -1,13 +1,14 @@
+import type { ModelCard } from './models'
 import {
   FakeStripeBilling,
   MemoryUsageLedger,
   type ChatGateway,
   type ChatRequest,
   type ChatResult,
+  type StreamingChatGateway,
   type TokenPricing
 } from '@xnetjs/cloud'
 import { describe, expect, it } from 'vitest'
-import type { ModelCard } from './models'
 import { createAiRoute, type AiTenantContext } from './route'
 
 const pricing: TokenPricing = { inputUsdPerMillion: 3, outputUsdPerMillion: 15, markup: 1.25 }
@@ -21,6 +22,30 @@ const fakeGateway = (tokens = { input: 1000, output: 500 }): ChatGateway => ({
         inputTokens: tokens.input,
         outputTokens: tokens.output,
         totalTokens: tokens.input + tokens.output
+      }
+    }
+  }
+})
+
+// A streaming-capable gateway: yields two deltas then a final result with cost.
+const fakeStreamingGateway = (): StreamingChatGateway => ({
+  async chat(_req: ChatRequest): Promise<ChatResult> {
+    return {
+      text: 'hello',
+      model: 'claude-sonnet',
+      usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+      providerCostUsd: 0.0002
+    }
+  },
+  async *chatStream() {
+    yield { delta: 'hel' }
+    yield { delta: 'lo' }
+    yield {
+      result: {
+        text: 'hello',
+        model: 'claude-sonnet',
+        usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+        providerCostUsd: 0.0002
       }
     }
   }
@@ -42,6 +67,7 @@ function makeApp(
     resolve?: AiTenantContext | null
     allowedModels?: string[]
     modelCatalog?: () => Promise<ModelCard[]>
+    retailMarkup?: number
   } = {}
 ) {
   const ledger = new MemoryUsageLedger()
@@ -53,7 +79,8 @@ function makeApp(
     pricingFor: () => pricing,
     resolveTenant: async () => (opts.resolve === undefined ? tenant() : opts.resolve),
     ...(opts.allowedModels ? { allowedModels: opts.allowedModels } : {}),
-    ...(opts.modelCatalog ? { modelCatalog: opts.modelCatalog } : {})
+    ...(opts.modelCatalog ? { modelCatalog: opts.modelCatalog } : {}),
+    ...(opts.retailMarkup !== undefined ? { retailMarkup: opts.retailMarkup } : {})
   })
   return { app, ledger, billing }
 }
@@ -181,6 +208,50 @@ describe('POST /ai/chat', () => {
   })
 })
 
+describe('POST /ai/chat/stream', () => {
+  const stream = (app: ReturnType<typeof makeApp>['app'], body: unknown) =>
+    app.request('/ai/chat/stream', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body)
+    })
+
+  it('streams deltas then a done event, and meters off the final chunk', async () => {
+    const { app, ledger, billing } = makeApp({ gateway: fakeStreamingGateway() })
+    const res = await stream(app, chatBody())
+    expect(res.status).toBe(200)
+    expect(res.headers.get('content-type')).toContain('text/event-stream')
+    const text = await res.text()
+    // two text deltas arrived
+    expect(text).toContain('event: delta')
+    expect(text).toContain('"text":"hel"')
+    expect(text).toContain('"text":"lo"')
+    // a terminal done event with the budget snapshot
+    expect(text).toContain('event: done')
+    expect(text).toContain('"budgetState"')
+    // metered exactly once, off the final usage.cost (0.0002 × markup)
+    expect(await ledger.totalChargeUsd('t1')).toBeCloseTo(Math.ceil(0.0002 * 1.25 * 1e8) / 1e8, 8)
+    expect(billing.events()).toHaveLength(1)
+  })
+
+  it('501s when the configured gateway cannot stream', async () => {
+    const { app } = makeApp() // default fakeGateway has no chatStream
+    const res = await stream(app, chatBody())
+    expect(res.status).toBe(501)
+    expect((await res.json()).error).toBe('streaming_unsupported')
+  })
+
+  it('402s before opening the stream when already over budget', async () => {
+    const { app } = makeApp({
+      gateway: fakeStreamingGateway(),
+      resolve: tenant({ budgetUsd: 0 })
+    })
+    const res = await stream(app, chatBody())
+    expect(res.status).toBe(402)
+    expect((await res.json()).error).toBe('ai_budget_exceeded')
+  })
+})
+
 describe('GET /ai/models', () => {
   const get = (app: ReturnType<typeof makeApp>['app']) => app.request('/ai/models')
   const card = (id: string): ModelCard => ({
@@ -220,6 +291,18 @@ describe('GET /ai/models', () => {
     const { app } = makeApp({ modelCatalog: catalog, resolve: tenant({ aiModels: 'all' }) })
     const json = await (await get(app)).json()
     expect(json.models).toHaveLength(2)
+  })
+
+  it('applies the retail markup to catalog prices (user sees what they pay)', async () => {
+    const catalog = async () => [card('a/b')] // raw $3 / $15
+    const { app } = makeApp({
+      modelCatalog: catalog,
+      retailMarkup: 1.3,
+      resolve: tenant({ aiModels: 'all' })
+    })
+    const json = await (await get(app)).json()
+    expect(json.models[0].inUsdPerM).toBeCloseTo(3.9, 4) // 3 × 1.3
+    expect(json.models[0].outUsdPerM).toBeCloseTo(19.5, 4) // 15 × 1.3
   })
 
   it('falls back to id-only cards when the catalog is unavailable but the plan names models', async () => {

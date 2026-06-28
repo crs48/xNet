@@ -13,7 +13,7 @@
  * Thin + `fetch`-injectable; validated against a live account at deploy.
  */
 
-import type { CreateVirtualKeyInput, VirtualKey, VirtualKeyManager } from './keys'
+import type { CreateVirtualKeyInput, LimitReset, VirtualKey, VirtualKeyManager } from './keys'
 import { VirtualKeyError } from './keys'
 
 export interface OpenRouterKeyManagerConfig {
@@ -28,6 +28,20 @@ interface CreateKeyResponse {
   /** The secret key string — returned only once, at create. */
   key?: string
   data?: { hash?: string }
+}
+
+/** A key's provider-side spend, read from `GET /keys/{hash}`. */
+export interface KeyUsage {
+  /** USD OpenRouter has billed this key (its own counter). */
+  usageUsd: number
+  /** The key's hard limit (USD), or null if unlimited. */
+  limitUsd: number | null
+  /** Remaining headroom (USD), or null if unlimited. */
+  limitRemainingUsd: number | null
+}
+
+interface KeyUsageResponse {
+  data?: { usage?: number; limit?: number | null; limit_remaining?: number | null }
 }
 
 /**
@@ -50,7 +64,7 @@ export class OpenRouterKeyManager implements VirtualKeyManager {
     const data = (await this.call('POST', '/keys', {
       name: input.alias,
       limit: input.maxBudgetUsd,
-      limit_reset: 'monthly'
+      limit_reset: input.limitReset ?? 'monthly'
     })) as CreateKeyResponse
     const key = data.key
     const hash = data.data?.hash
@@ -60,15 +74,37 @@ export class OpenRouterKeyManager implements VirtualKeyManager {
     return { key, manageId: hash, alias: input.alias, maxBudgetUsd: input.maxBudgetUsd }
   }
 
-  async update(manageId: string, patch: { maxBudgetUsd?: number }): Promise<void> {
-    if (patch.maxBudgetUsd === undefined) return
+  async update(
+    manageId: string,
+    patch: { maxBudgetUsd?: number; limitReset?: LimitReset }
+  ): Promise<void> {
+    if (patch.maxBudgetUsd === undefined && patch.limitReset === undefined) return
     await this.call('PATCH', `/keys/${encodeURIComponent(manageId)}`, {
-      limit: patch.maxBudgetUsd
+      ...(patch.maxBudgetUsd !== undefined ? { limit: patch.maxBudgetUsd } : {}),
+      ...(patch.limitReset ? { limit_reset: patch.limitReset } : {})
     })
   }
 
   async remove(manageId: string): Promise<void> {
     await this.call('DELETE', `/keys/${encodeURIComponent(manageId)}`, undefined)
+  }
+
+  /**
+   * Read a key's provider-side spend from OpenRouter (`GET /keys/{hash}`), for
+   * reconciling against our own ledger (exploration 0244). `usageUsd` is what
+   * OpenRouter has billed this key; `limitRemainingUsd` is the headroom left.
+   */
+  async usage(manageId: string): Promise<KeyUsage> {
+    const data = (await this.call(
+      'GET',
+      `/keys/${encodeURIComponent(manageId)}`,
+      undefined
+    )) as KeyUsageResponse
+    return {
+      usageUsd: data.data?.usage ?? 0,
+      limitUsd: data.data?.limit ?? null,
+      limitRemainingUsd: data.data?.limit_remaining ?? null
+    }
   }
 
   private async call(method: string, path: string, body: unknown): Promise<unknown> {

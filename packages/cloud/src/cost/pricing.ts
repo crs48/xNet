@@ -30,6 +30,17 @@ export const UNIT_COSTS = {
   stripeFixedPerCharge: 0.3
 } as const
 
+/**
+ * Multiplier that turns an OpenRouter `usage.cost` dollar into xNet's *true* COGS.
+ *
+ * OpenRouter passes model tokens through at 0% markup but charges a **5.5% fee on
+ * credit top-ups** (its actual business model — exploration 0244). So every $1 of
+ * `usage.cost` cost us ~$1.055 in purchased credits. Margin reconciliation and the
+ * plan floor-margin check both apply this so AI COGS is never understated.
+ * Overridable via `AI_EFFECTIVE_COGS_MULTIPLIER` at the app layer.
+ */
+export const EFFECTIVE_COGS_MULTIPLIER = 1.055
+
 export interface PlanCostInputs {
   /** Typical bulk storage actually used (GB) — billed at the R2 rate. */
   storageGbTypical: number

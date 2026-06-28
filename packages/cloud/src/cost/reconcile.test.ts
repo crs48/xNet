@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   aggregateMargin,
   measuredCogs,
+  reconcileKeyUsage,
   reconcileTenantMargin,
   type TenantUsageMeasurement
 } from './reconcile'
@@ -31,8 +32,14 @@ describe('measuredCogs', () => {
   it('charges flat warm compute + AI provider cost + SSO when present', () => {
     const c = measuredCogs(usage({ warm: true, warmUnits: 2, aiProviderCostUsd: 3, ssoScim: true }))
     expect(c.computeUsd).toBeCloseTo(12, 4) // 2 × $6
-    expect(c.aiUsd).toBe(3)
+    // $3 provider cost × 1.055 credit-purchase fee = $3.165 (exploration 0244)
+    expect(c.aiUsd).toBeCloseTo(3.165, 4)
     expect(c.identityUsd).toBe(250)
+  })
+
+  it('lets the AI COGS multiplier be overridden (e.g. crypto top-up at 5%)', () => {
+    const c = measuredCogs(usage({ aiProviderCostUsd: 10 }), 1.05)
+    expect(c.aiUsd).toBeCloseTo(10.5, 4)
   })
 
   it('uses real Stripe fees when provided, else models them', () => {
@@ -68,5 +75,25 @@ describe('aggregateMargin', () => {
     expect(fleet.revenueUsd).toBeCloseTo(15.01, 4)
     expect(fleet.negativeTenants).toEqual(['b'])
     expect(fleet.marginUsd).toBeCloseTo(a.marginUsd + b.marginUsd, 4)
+  })
+})
+
+describe('reconcileKeyUsage (ledger vs OpenRouter key counter, 0244)', () => {
+  it('passes when the two agree within tolerance', () => {
+    const r = reconcileKeyUsage(12.34, 12.345, 0.01)
+    expect(r.withinTolerance).toBe(true)
+    expect(r.driftUsd).toBeCloseTo(0.005, 4)
+  })
+
+  it('flags drift beyond tolerance (OpenRouter billed more than we logged)', () => {
+    const r = reconcileKeyUsage(10, 11, 0.01)
+    expect(r.withinTolerance).toBe(false)
+    expect(r.driftUsd).toBe(1)
+    expect(r.driftPct).toBeCloseTo(1 / 11, 4)
+  })
+
+  it('tolerates a zero OpenRouter figure', () => {
+    expect(reconcileKeyUsage(0, 0).withinTolerance).toBe(true)
+    expect(reconcileKeyUsage(0, 0).driftPct).toBe(0)
   })
 })

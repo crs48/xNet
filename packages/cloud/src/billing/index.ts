@@ -16,6 +16,14 @@ export {
 export { MemoryUsageLedger, inScope, type UsageLedger, type UsageEntry } from './ledger'
 
 export {
+  windowStartMs,
+  keyResetFor,
+  isBudgetWindow,
+  DEFAULT_BUDGET_WINDOW,
+  type BudgetWindow
+} from './window'
+
+export {
   aiBudgetStatus,
   crossedThresholds,
   DEFAULT_BUDGET_THRESHOLDS,
@@ -31,3 +39,14 @@ export {
   type StripeBilling,
   type MeterEvent
 } from './billing'
+
+export {
+  BudgetAlertNotifier,
+  MemorySentThresholdStore,
+  RecordingAlertTransport,
+  type AlertTransport,
+  type SentThresholdStore,
+  type BudgetAlert,
+  type BudgetAlertNotifierDeps,
+  type NotifyArgs
+} from './notifier'
