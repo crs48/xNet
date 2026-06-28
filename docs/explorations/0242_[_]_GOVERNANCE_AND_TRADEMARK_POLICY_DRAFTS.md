@@ -599,7 +599,7 @@ sequenceDiagram
 - [x] Add `GOVERNANCE.md` (BDFL-honest draft above); link from `README.md`.
 - [x] Add `TRADEMARK.md` (MTG-based draft above) marked **"policy of intent"** until
       registration; link from `README.md` + `site/` footer.
-- [ ] Add `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1) with a real contact.
+- [x] Add `CODE_OF_CONDUCT.md` (Contributor Covenant 2.1) with a real contact.
 - [ ] Add the **DCO** section to `CONTRIBUTING.md`; document `git commit -s`.
 - [ ] (Optional) Add a lightweight **DCO check** (GitHub Action or `commit-msg` hook)
       and/or a `MAINTAINERS.md` stub.
