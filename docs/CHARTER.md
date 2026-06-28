@@ -141,3 +141,8 @@ should treat every `humane-ok` as a small design decision worth a second look.
   never over‑promises.
 - New work that would weaken a commitment should update this charter in the same
   change — and explain itself.
+- The charter is also backed by how xNet is **run** and **named**:
+  [`GOVERNANCE.md`](../GOVERNANCE.md) keeps decision-making legible and commits to
+  shared governance over time, and [`TRADEMARK.md`](../TRADEMARK.md) is how "Exit"
+  (§2) and "Commons" (§6) become brand rules — the code is free to fork and
+  re‑implement; the name only protects users from confusion, never from leaving.

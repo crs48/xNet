@@ -609,7 +609,7 @@ sequenceDiagram
 - [x] Stub an **"xNet-compatible / conformance"** page pointing at `conformance/`.
 - [ ] Engage counsel: **clearance search + word-mark registration** for "xNet";
       decide jurisdiction(s).
-- [ ] Cross-link these from `docs/CHARTER.md` (governance/brand are how Exit + Commons
+- [x] Cross-link these from `docs/CHARTER.md` (governance/brand are how Exit + Commons
       are enforced).
 
 ## Validation Checklist
