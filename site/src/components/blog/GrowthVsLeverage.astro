@@ -1,0 +1,70 @@
+---
+// The structural heart of post #5 (exploration 0245): two ways to get rich from
+// the same economy. GROWTH makes a bigger pie and takes a slice — so more people,
+// more makers, more customers is good for you. LEVERAGE controls a chokepoint and
+// drains a fixed pie — so an empowered population is friction, and manufactured
+// scarcity is the product. The inversion (people as asset → people as obstacle)
+// is what makes the rest of the essay cohere. Mirrors the HydrostaticBalance /
+// HonestStar card idiom (not-prose, bordered surface) so the posts read as one
+// publication.
+const modes = [
+  {
+    name: 'Growth',
+    sub: 'Make a bigger pie, take a slice',
+    behaviour:
+      'Value comes from building something more people want. More makers and more customers grow the pie, so a larger, freer, better-paid population is good for you. Your win and theirs point the same way.',
+    tone: 'good'
+  },
+  {
+    name: 'Leverage',
+    sub: 'Control a chokepoint, drain a fixed pie',
+    behaviour:
+      'Value comes from owning a thing everyone must pass through — housing, a platform, a feed — and from manufactured scarcity, debt, and rent. Here a population that can say no is friction. The prize stops being your money and becomes your compliance.',
+    tone: 'bad'
+  }
+]
+---
+
+<section class="not-prose my-12">
+  <div class="rounded-2xl border border-border bg-surface/30 p-6 dark:bg-surface/40 lg:p-8">
+    <h3 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+      Two ways to get rich from the same economy
+    </h3>
+    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+      One needs you healthy and free. The other needs you stuck. They are
+      pulling in opposite directions.
+    </p>
+
+    <ul class="mt-6 space-y-5">
+      {
+        modes.map((m) => (
+          <li class="grid gap-2 sm:grid-cols-[1fr_1.6fr] sm:gap-6 sm:items-baseline">
+            <div>
+              <p
+                class:list={[
+                  'font-mono font-semibold',
+                  m.tone === 'good'
+                    ? 'text-rose-600 dark:text-rose-400'
+                    : 'text-gray-500 dark:text-gray-400'
+                ]}
+              >
+                {m.name}
+              </p>
+              <p class="mt-0.5 text-sm text-gray-500 dark:text-gray-400">{m.sub}</p>
+            </div>
+            <p class="text-sm leading-relaxed text-gray-700 dark:text-gray-200">{m.behaviour}</p>
+          </li>
+        ))
+      }
+    </ul>
+
+    <p class="mt-6 border-t border-border pt-4 text-sm leading-relaxed text-gray-600 dark:text-gray-300">
+      <span class="font-semibold text-gray-900 dark:text-white">The tell</span>
+      is the inversion: under growth, more empowered people is the
+      <span class="text-rose-600 dark:text-rose-400">asset</span>; under leverage,
+      it becomes the <span class="text-gray-500 dark:text-gray-400">obstacle</span>.
+      Once you see which one you're inside, a lot of confusing news stops being
+      confusing.
+    </p>
+  </div>
+</section>

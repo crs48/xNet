@@ -534,19 +534,19 @@ const post = postBySlug('the-right-to-say-no')!
 
 ## Implementation Checklist
 
-- [ ] Save/transcribe the source for the record (done: full transcript retrieved
+- [x] Save/transcribe the source for the record (done: full transcript retrieved
       via the YouTube transcript panel; key quotes captured in this doc).
-- [ ] Decide deliverable scope with the user: blog post #5 now (Option A) vs.
+- [x] Decide deliverable scope with the user: blog post #5 now (Option A) vs.
       exploration-only (Option B).
-- [ ] (If A) Add the `the-right-to-say-no` entry to `site/src/data/blog.ts`
+- [x] (If A) Add the `the-right-to-say-no` entry to `site/src/data/blog.ts`
       (optionally extend `BlogTag` with `'economics'`).
-- [ ] Draft `site/src/pages/blog/the-right-to-say-no.astro` in the house voice,
+- [x] Draft `site/src/pages/blog/the-right-to-say-no.astro` in the house voice,
       following the §1–§7 outline; credit + link the video.
-- [ ] Build 2–3 art-directed comps under `site/src/components/blog/`
+- [x] Build 2–3 art-directed comps under `site/src/components/blog/`
       (`LeverHero`, `GrowthVsSiphon`, `TheExitDoor`).
-- [ ] Verify the post renders on `/blog` (index card), in `rss.xml`, and at
+- [x] Verify the post renders on `/blog` (index card), in `rss.xml`, and at
       `/blog/the-right-to-say-no`.
-- [ ] Run the site build + any humane-pattern / motion-vocab lints that cover
+- [x] Run the site build + any humane-pattern / motion-vocab lints that cover
       `site/`.
 - [ ] (Optional) Add a changelog entry via `scripts/changelog/new.mjs` — do
       **not** hand-author a duplicate fragment.
