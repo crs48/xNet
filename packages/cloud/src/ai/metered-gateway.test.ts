@@ -1,4 +1,9 @@
-import type { ChatGateway, ChatRequest, ChatResult } from './gateway'
+import type {
+  ChatGateway,
+  ChatRequest,
+  ChatResult,
+  StreamingChatGateway
+} from './gateway'
 import { describe, expect, it } from 'vitest'
 import { FakeStripeBilling, MemoryUsageLedger, type TokenPricing } from '../billing'
 import { BudgetExceededError, MeteredGateway } from './metered-gateway'
@@ -197,5 +202,91 @@ describe('MeteredGateway budget hard-stop', () => {
       mg2.chat({ tenantId: 't1', key: 't1:s:2', request: req() })
     ).rejects.toBeInstanceOf(BudgetExceededError)
     expect(calls).toBe(0) // never reached the provider
+  })
+})
+
+describe('MeteredGateway streaming', () => {
+  const result: ChatResult = {
+    text: 'hi there',
+    model: 'anthropic/claude-sonnet-4-6',
+    usage: { inputTokens: 30, outputTokens: 12, totalTokens: 42 },
+    providerCostUsd: 0.000123
+  }
+  const streamingGateway = (deltas: string[]): StreamingChatGateway => ({
+    async chat() {
+      return result
+    },
+    async *chatStream() {
+      for (const d of deltas) yield { delta: d }
+      yield { result }
+    }
+  })
+
+  it('meters a streamed call identically to the unary path (same usage.cost)', async () => {
+    // Unary baseline.
+    const unary = makeMetered(10, { async chat() {
+      return result
+    } })
+    await unary.mg.chat({ tenantId: 't1', key: 't1:s:u', request: req() })
+    const unaryCharge = await unary.ledger.totalChargeUsd('t1')
+
+    // Streaming path over the same result.
+    const stream = makeMetered(10, streamingGateway(['hi', ' there']))
+    const deltas: string[] = []
+    let final: ChatResult | undefined
+    for await (const chunk of stream.mg.chatStream({
+      tenantId: 't1',
+      key: 't1:s:strm',
+      request: req()
+    })) {
+      if (chunk.delta) deltas.push(chunk.delta)
+      if (chunk.result) final = chunk.result
+    }
+    expect(deltas).toEqual(['hi', ' there'])
+    expect(final?.text).toBe('hi there')
+    const streamCharge = await stream.ledger.totalChargeUsd('t1')
+    expect(streamCharge).toBeGreaterThan(0)
+    expect(streamCharge).toBeCloseTo(unaryCharge, 10)
+    expect(stream.billing.events()).toHaveLength(1)
+  })
+
+  it('hard-stops a streamed call when already over budget (no provider stream)', async () => {
+    const ledger = new MemoryUsageLedger()
+    await meterUsage({
+      tenantId: 't1',
+      customerId: 'cus_t1',
+      key: 'seed',
+      model: 'gpt-4o',
+      usage: { inputTokens: 10_000_000, outputTokens: 5_000_000, totalTokens: 15_000_000 },
+      pricing,
+      ledger,
+      billing: new FakeStripeBilling()
+    })
+    let started = false
+    const gw: StreamingChatGateway = {
+      async chat() {
+        return result
+      },
+      async *chatStream() {
+        started = true
+        yield { result }
+      }
+    }
+    const mg = new MeteredGateway({
+      gateway: gw,
+      ledger,
+      billing: new FakeStripeBilling(),
+      pricingFor: () => pricing,
+      budgetUsdFor: async () => 0.001,
+      customerIdFor: (t) => `cus_${t}`
+    })
+    await expect(
+      (async () => {
+        for await (const _ of mg.chatStream({ tenantId: 't1', key: 't1:s:x', request: req() })) {
+          void _
+        }
+      })()
+    ).rejects.toBeInstanceOf(BudgetExceededError)
+    expect(started).toBe(false) // the provider stream never started
   })
 })

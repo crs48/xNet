@@ -675,7 +675,7 @@ erDiagram
       `inUsdPerM:null` from the managed catalog.
 - [x] Wire a notifier to `crossedThresholds()` (50/80/95/100%) — email via the
       existing transport; idempotent per (tenant, window, threshold).
-- [ ] Add a streaming path: server SSE proxy for `/ai/chat` that meters off the
+- [x] Add a streaming path: server SSE proxy for `/ai/chat` that meters off the
       **final** usage chunk; `ManagedProvider.stream()` consumes it.
 - [x] Add `OPENROUTER_MANAGEMENT_KEY` to `.env.staging`/`.env.production`
       templates + deploy secret store; low‑balance alert via `GET /api/v1/credits`;
@@ -699,7 +699,7 @@ erDiagram
       fake gateway was not invoked).
 - [x] Integration: setting a **$5 weekly** cap stops the 6th $1 call within the
       week and resets the following Monday (fake clock).
-- [ ] Integration: streaming call meters the same retail charge as the unary
+- [x] Integration: streaming call meters the same retail charge as the unary
       path for identical `usage.cost`.
 - [x] Integration: idempotency — replaying the same `(session, request)` records
       once and emits one Stripe meter event.

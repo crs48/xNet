@@ -84,6 +84,38 @@ describe('OpenRouterGatewayClient', () => {
     expect(res.providerCostUsd).toBeUndefined()
   })
 
+  it('streams deltas and emits a final result with usage.cost', async () => {
+    const sse = [
+      'data: {"choices":[{"delta":{"content":"hi"}}],"model":"anthropic/claude-sonnet-4-6"}\n\n',
+      'data: {"choices":[{"delta":{"content":" there"}}]}\n\n',
+      // OpenRouter puts usage (incl. cost) in the last message before [DONE].
+      'data: {"choices":[{"delta":{}}],"usage":{"prompt_tokens":30,"completion_tokens":12,"total_tokens":42,"cost":0.000123}}\n\n',
+      'data: [DONE]\n\n'
+    ].join('')
+    let sentBody: Record<string, unknown> = {}
+    const fetchImpl = vi.fn(async (_url: string | URL | Request, init?: RequestInit) => {
+      sentBody = JSON.parse(String(init?.body))
+      return new Response(sse, { status: 200, headers: { 'content-type': 'text/event-stream' } })
+    }) as unknown as typeof fetch
+
+    const client = new OpenRouterGatewayClient({ baseUrl: 'https://openrouter.ai/api/v1', fetchImpl })
+    const deltas: string[] = []
+    let final
+    for await (const chunk of client.chatStream({
+      virtualKey: 'k',
+      model: 'anthropic/claude-sonnet-4-6',
+      messages: [{ role: 'user', content: 'hi' }]
+    })) {
+      if (chunk.delta) deltas.push(chunk.delta)
+      if (chunk.result) final = chunk.result
+    }
+    expect(sentBody.stream).toBe(true)
+    expect(deltas).toEqual(['hi', ' there'])
+    expect(final?.text).toBe('hi there')
+    expect(final?.usage).toEqual({ inputTokens: 30, outputTokens: 12, totalTokens: 42 })
+    expect(final?.providerCostUsd).toBeCloseTo(0.000123, 8)
+  })
+
   it('throws a GatewayError with the status when a key is over its spend limit', async () => {
     const fetchImpl = vi.fn(
       async () => new Response('insufficient credits', { status: 402 })

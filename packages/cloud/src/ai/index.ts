@@ -9,13 +9,18 @@
 export {
   GatewayClient,
   GatewayError,
+  isStreamingGateway,
   type ChatGateway,
+  type StreamingChatGateway,
+  type ChatStreamChunk,
   type GatewayClientConfig,
   type ChatRequest,
   type ChatResult,
   type ChatMessage,
   type TokenUsage
 } from './gateway'
+
+export { parseSseJson } from './sse'
 
 export { OpenRouterGatewayClient, type OpenRouterGatewayConfig } from './openrouter-gateway'
 

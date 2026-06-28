@@ -5,6 +5,7 @@ import {
   type ChatGateway,
   type ChatRequest,
   type ChatResult,
+  type StreamingChatGateway,
   type TokenPricing
 } from '@xnetjs/cloud'
 import { describe, expect, it } from 'vitest'
@@ -21,6 +22,25 @@ const fakeGateway = (tokens = { input: 1000, output: 500 }): ChatGateway => ({
         inputTokens: tokens.input,
         outputTokens: tokens.output,
         totalTokens: tokens.input + tokens.output
+      }
+    }
+  }
+})
+
+// A streaming-capable gateway: yields two deltas then a final result with cost.
+const fakeStreamingGateway = (): StreamingChatGateway => ({
+  async chat(_req: ChatRequest): Promise<ChatResult> {
+    return { text: 'hello', model: 'claude-sonnet', usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 }, providerCostUsd: 0.0002 }
+  },
+  async *chatStream() {
+    yield { delta: 'hel' }
+    yield { delta: 'lo' }
+    yield {
+      result: {
+        text: 'hello',
+        model: 'claude-sonnet',
+        usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+        providerCostUsd: 0.0002
       }
     }
   }
@@ -180,6 +200,50 @@ describe('POST /ai/chat', () => {
     )
     expect(res.status).toBe(200)
     expect(seen).toEqual(['openai/gpt-4o'])
+  })
+})
+
+describe('POST /ai/chat/stream', () => {
+  const stream = (app: ReturnType<typeof makeApp>['app'], body: unknown) =>
+    app.request('/ai/chat/stream', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body)
+    })
+
+  it('streams deltas then a done event, and meters off the final chunk', async () => {
+    const { app, ledger, billing } = makeApp({ gateway: fakeStreamingGateway() })
+    const res = await stream(app, chatBody())
+    expect(res.status).toBe(200)
+    expect(res.headers.get('content-type')).toContain('text/event-stream')
+    const text = await res.text()
+    // two text deltas arrived
+    expect(text).toContain('event: delta')
+    expect(text).toContain('"text":"hel"')
+    expect(text).toContain('"text":"lo"')
+    // a terminal done event with the budget snapshot
+    expect(text).toContain('event: done')
+    expect(text).toContain('"budgetState"')
+    // metered exactly once, off the final usage.cost (0.0002 × markup)
+    expect(await ledger.totalChargeUsd('t1')).toBeCloseTo(Math.ceil(0.0002 * 1.25 * 1e8) / 1e8, 8)
+    expect(billing.events()).toHaveLength(1)
+  })
+
+  it('501s when the configured gateway cannot stream', async () => {
+    const { app } = makeApp() // default fakeGateway has no chatStream
+    const res = await stream(app, chatBody())
+    expect(res.status).toBe(501)
+    expect((await res.json()).error).toBe('streaming_unsupported')
+  })
+
+  it('402s before opening the stream when already over budget', async () => {
+    const { app } = makeApp({
+      gateway: fakeStreamingGateway(),
+      resolve: tenant({ budgetUsd: 0 })
+    })
+    const res = await stream(app, chatBody())
+    expect(res.status).toBe(402)
+    expect((await res.json()).error).toBe('ai_budget_exceeded')
   })
 })
 

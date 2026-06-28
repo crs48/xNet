@@ -9,8 +9,14 @@
  * (exploration 0201). Thin + `fetch`-injectable, so it's testable with no key.
  */
 
-import type { ChatGateway, ChatRequest, ChatResult } from './gateway'
+import type {
+  ChatRequest,
+  ChatResult,
+  ChatStreamChunk,
+  StreamingChatGateway
+} from './gateway'
 import { GatewayError } from './gateway'
+import { parseSseJson } from './sse'
 
 export interface OpenRouterGatewayConfig {
   /** OpenRouter API base, e.g. `https://openrouter.ai/api/v1`. */
@@ -22,19 +28,28 @@ export interface OpenRouterGatewayConfig {
   title?: string
 }
 
+interface OpenRouterUsage {
+  prompt_tokens?: number
+  completion_tokens?: number
+  total_tokens?: number
+  /** USD charged to our OpenRouter credit balance for this generation. */
+  cost?: number
+}
+
 interface OpenRouterChatResponse {
   choices?: Array<{ message?: { content?: string | null } }>
   model?: string
-  usage?: {
-    prompt_tokens?: number
-    completion_tokens?: number
-    total_tokens?: number
-    /** USD charged to our OpenRouter credit balance for this generation. */
-    cost?: number
-  }
+  usage?: OpenRouterUsage
 }
 
-export class OpenRouterGatewayClient implements ChatGateway {
+/** One streamed SSE chunk: `choices[0].delta.content` plus the final `usage`. */
+interface OpenRouterStreamChunk {
+  choices?: Array<{ delta?: { content?: string | null } }>
+  model?: string
+  usage?: OpenRouterUsage
+}
+
+export class OpenRouterGatewayClient implements StreamingChatGateway {
   private readonly baseUrl: string
   private readonly fetchImpl: typeof fetch
   private readonly referer?: string
@@ -84,6 +99,65 @@ export class OpenRouterGatewayClient implements ChatGateway {
         totalTokens: data.usage?.total_tokens ?? inputTokens + outputTokens
       },
       ...(typeof data.usage?.cost === 'number' ? { providerCostUsd: data.usage.cost } : {})
+    }
+  }
+
+  /**
+   * Stream the completion (SSE). Yields a `{ delta }` per token, then a single
+   * `{ result }` carrying the assembled text + usage. OpenRouter puts `usage`
+   * (incl. `cost`) in the **last** SSE message, so the metered layer still bills
+   * off ground truth — identical to the unary path (exploration 0244).
+   */
+  async *chatStream(req: ChatRequest): AsyncIterable<ChatStreamChunk> {
+    const res = await this.fetchImpl(`${this.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        accept: 'text/event-stream',
+        authorization: `Bearer ${req.virtualKey}`,
+        ...(this.referer ? { 'http-referer': this.referer } : {}),
+        ...(this.title ? { 'x-title': this.title } : {})
+      },
+      body: JSON.stringify({
+        model: req.model,
+        stream: true,
+        ...(req.fallbackModels?.length ? { models: [req.model, ...req.fallbackModels] } : {}),
+        messages: req.messages,
+        ...(req.maxTokens ? { max_tokens: req.maxTokens } : {}),
+        ...(req.mockResponse !== undefined ? { mock_response: req.mockResponse } : {})
+      })
+    })
+    if (!res.ok || !res.body) {
+      throw new GatewayError(`openrouter error ${res.status}: ${await safeText(res)}`, res.status)
+    }
+
+    let text = ''
+    let model = req.model
+    let usage: OpenRouterUsage | undefined
+    for await (const raw of parseSseJson(res.body)) {
+      const chunk = raw as OpenRouterStreamChunk
+      if (chunk.model) model = chunk.model
+      if (chunk.usage) usage = chunk.usage
+      const delta = chunk.choices?.[0]?.delta?.content
+      if (delta) {
+        text += delta
+        yield { delta }
+      }
+    }
+
+    const inputTokens = usage?.prompt_tokens ?? 0
+    const outputTokens = usage?.completion_tokens ?? 0
+    yield {
+      result: {
+        text,
+        model,
+        usage: {
+          inputTokens,
+          outputTokens,
+          totalTokens: usage?.total_tokens ?? inputTokens + outputTokens
+        },
+        ...(typeof usage?.cost === 'number' ? { providerCostUsd: usage.cost } : {})
+      }
     }
   }
 }
