@@ -104,6 +104,12 @@ test.describe('Cross-client convergence matrix (0238 L2)', () => {
 
           // ── 1 → 2 ────────────────────────────────────────────────────────
           await c1.type('hello from one')
+          if (process.env.E2E_DEBUG) {
+            // eslint-disable-next-line no-console
+            console.log(
+              `[matrix] ${a}→${b} after type: c1=${JSON.stringify(await c1.text())} c2=${JSON.stringify(await c2.text())}`
+            )
+          }
           await expect
             .poll(() => c2.text(), { timeout: 30_000, message: `${a}→${b} forward sync` })
             .toContain('hello from one')
