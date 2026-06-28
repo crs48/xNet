@@ -139,7 +139,35 @@ function aiUsageCard(view: DashboardView, tenant: TenantRecord): string {
         <span class="muted">included ${usd(u.includedUsd)} · cap ${usd(u.budgetUsd)}</span>
       </div>
       ${overageNote}
+      ${aiBudgetForm(tenant)}
     </div>`
+}
+
+/** Self-serve spend-cap control: amount + window, posted to `/account/ai-budget` (0244). */
+function aiBudgetForm(tenant: TenantRecord): string {
+  const planCap = tenant.entitlements.aiMonthlyBudgetUsd
+  const cap = tenant.aiBudget?.capUsd
+  const win = tenant.aiBudget?.window
+  const kind = win?.kind ?? 'calendar-month'
+  const rollingDays = win?.kind === 'rolling' ? win.days : 7
+  const opt = (value: string, label: string): string =>
+    `<option value="${value}"${kind === value ? ' selected' : ''}>${label}</option>`
+  return `
+      <form method="post" action="/account/ai-budget" class="ai-budget">
+        <label>Your spend cap (USD)
+          <input type="number" name="cap" min="0" step="0.01" value="${cap ?? ''}" placeholder="up to ${usd(planCap)}" />
+        </label>
+        <label>resets
+          <select name="window">
+            ${opt('calendar-month', 'monthly')}
+            ${opt('calendar-week', 'weekly')}
+            ${opt('rolling', 'rolling days')}
+          </select>
+        </label>
+        <input type="number" name="rollingDays" min="1" step="1" value="${rollingDays}" aria-label="rolling window length in days" />
+        <button type="submit" class="ghost">Save cap</button>
+      </form>
+      <p class="muted">Set your own limit (≤ the ${usd(planCap)} plan cap); we stop calls when you reach it and it resets each window. Leave blank to use the full plan cap.</p>`
 }
 
 /** Let an existing tenant switch plans (an in-tier flip applies live; a tier change migrates). */

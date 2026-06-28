@@ -18,6 +18,7 @@ import type { PlanId } from '@xnetjs/entitlements'
 import type { Context } from 'hono'
 import { Hono } from 'hono'
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie'
+import { parseAiBudgetForm } from './ai/budget-form'
 import { createAiRoute, type AiChatDeps } from './ai/route'
 import { WebhookSignatureError, type TenantBillingGateway } from './billing-gateway'
 import { currentPeriodStartMs } from './control-plane'
@@ -339,6 +340,20 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
         })
       )
     }
+    return c.redirect('/dashboard')
+  })
+
+  // Self-serve managed-AI spend cap: the user sets how much they're willing to
+  // spend per week / month / rolling-N-days; the metered gateway stops calls at
+  // that limit (exploration 0244). Clamped server-side to ≤ the plan cap.
+  app.post('/account/ai-budget', async (c) => {
+    const s = session(c)
+    if (!s) return c.json({ error: 'unauthorized' }, 401)
+    const tenant = await deps.controlPlane.getTenantForBilling(s.billingUserId)
+    if (!tenant) return c.redirect('/dashboard')
+    const parsed = parseAiBudgetForm(await c.req.parseBody())
+    if (!parsed.ok) return c.json({ error: parsed.error }, 400)
+    await deps.controlPlane.setAiBudget(tenant.tenantId, parsed.budget)
     return c.redirect('/dashboard')
   })
 

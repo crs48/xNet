@@ -667,7 +667,7 @@ erDiagram
       context, modality; persist `xnet:ai-model`; rebuild provider on change.
 - [x] Build the live budget gauge in `AiChatPanel` from `ManagedBudgetSnapshot`;
       color by `budgetState`; disable send + show reset time on `AiBudgetError`.
-- [ ] Add a dashboard cap control (`apps/cloud/src/dashboard.ts`) → amount +
+- [x] Add a dashboard cap control (`apps/cloud/src/dashboard.ts`) → amount +
       window selector → `setAiBudget`.
 - [x] Margin: add `EFFECTIVE_COGS_MULTIPLIER` (default `1.055`) to
       `cost/reconcile.ts`; add a **floor‑margin CI test** over every plan ×
@@ -708,7 +708,7 @@ erDiagram
       and red + disabled at 100%.
 - [ ] Ops: low‑balance alert fires before the master OpenRouter balance hits 0;
       reconcile job shows ledger vs OpenRouter `usage` within tolerance.
-- [ ] Margin reconciliation dashboard shows positive measured margin for a
+- [x] Margin reconciliation dashboard shows positive measured margin for a
       simulated heavy‑AI tenant.
 
 ## References
