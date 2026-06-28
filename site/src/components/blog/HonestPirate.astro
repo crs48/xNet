@@ -1,0 +1,47 @@
+---
+// The honesty beat (exploration 0239), modeled on the /why page's HonestyBox.
+// Romanticizing real pirates would undercut the whole point, so we say plainly
+// what we take from the story and what we refuse.
+const rows = [
+  {
+    isnt: 'We won’t pretend pirates were heroes.',
+    is: 'Many crews still trafficked and sold enslaved people. The black flag was not innocence — it was defiance, and the two are not the same.',
+  },
+  {
+    isnt: 'We won’t romanticize the plunder.',
+    is: 'What’s worth honoring is the self-governance: elected captains, written articles, near-equal shares — built by sailors fleeing a deadlier order.',
+  },
+  {
+    isnt: 'We won’t claim leaving the system makes you good.',
+    is: 'Decentralization frees dissidents and bad actors alike. So xNet hands you the tools to choose your own waters — labelers, provenance, your own moderation — not a new authority to decide for you.',
+  },
+]
+---
+
+<section class="not-prose my-12">
+  <div class="rounded-2xl border border-border bg-surface/30 p-6 dark:bg-surface/40 lg:p-8">
+    <h3 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+      What we take from the pirate story — and what we leave
+    </h3>
+    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+      A metaphor that flatters itself is just more marketing. Here’s the honest version.
+    </p>
+
+    <ul class="mt-6 space-y-5">
+      {
+        rows.map((row) => (
+          <li class="grid gap-3 sm:grid-cols-[1fr_1.3fr] sm:gap-5">
+            <div class="flex gap-2.5">
+              <span class="select-none text-gray-400 dark:text-gray-600">✕</span>
+              <p class="text-sm leading-relaxed text-gray-500 dark:text-gray-400">{row.isnt}</p>
+            </div>
+            <div class="flex gap-2.5">
+              <span class="select-none text-emerald-500">✓</span>
+              <p class="text-sm leading-relaxed text-gray-700 dark:text-gray-200">{row.is}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>

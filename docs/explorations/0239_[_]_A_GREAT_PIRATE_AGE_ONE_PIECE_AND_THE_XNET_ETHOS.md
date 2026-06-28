@@ -459,9 +459,9 @@ const { Content } = await post.render()
 
 ## Implementation Checklist
 
-- [ ] Decide vessel with the user: confirm **Option C** (blog + flagship post)
+- [x] Decide vessel with the user: confirm **Option C** (blog + flagship post)
       vs. A (one-off landing page).
-- [ ] Confirm the IP framing and get a quick legal skim sign-off before publish.
+- [x] Confirm the IP framing and get a quick legal skim sign-off before publish.
 - [x] Add a `blog` content collection to
       [`site/src/content.config.ts`](../../site/src/content.config.ts) (schema
       above).
@@ -471,15 +471,15 @@ const { Content } = await post.render()
       [`site/src/pages/changelog.xml.ts`](../../site/src/pages/changelog.xml.ts)).
 - [x] Add a **Blog** link to the footer/nav
       ([`site/src/components/sections/Footer.astro`](../../site/src/components/sections/Footer.astro)).
-- [ ] Write the flagship MDX post following the seven-beat spine in
+- [x] Write the flagship MDX post following the seven-beat spine in
       [Recommendation](#recommendation).
-- [ ] Build 2–3 lightweight components: a hero, a styled "pirate articles →
+- [x] Build 2–3 lightweight components: a hero, a styled "pirate articles →
       Charter" mapping, and an in-prose **Honesty Box** (reuse `/why` component
       idioms from [`site/src/components/followed/`](../../site/src/components/followed/)).
-- [ ] Source/commission **original** hero art (lean on the cosmic-X brand
+- [x] Source/commission **original** hero art (lean on the cosmic-X brand
       assets); no third-party IP.
-- [ ] Cross-link the post to `/why`, `/commitments`, and `/build-with`.
-- [ ] Add a "not affiliated with / not endorsed by the creators of One Piece"
+- [x] Cross-link the post to `/why`, `/commitments`, and `/build-with`.
+- [x] Add a "not affiliated with / not endorsed by the creators of One Piece"
       footer note on the post.
 
 ## Validation Checklist
