@@ -168,6 +168,19 @@ jobs:
           codesign --verify --deep --strict --verbose=2 "$APP_PATH"
           codesign -dvv "$APP_PATH"
 
+      # Gate the release on a launchable binary (exploration 0238, L4). The
+      # macOS runner is arm64, so only the arm64 app runs natively here; the x64
+      # app is published unverified-by-launch (Rosetta is unreliable in CI). A
+      # window that won't reach a healthy state fails here, blocking `release`.
+      - name: Smoke-test packaged app
+        if: matrix.arch == 'arm64'
+        run: |
+          BIN="$PWD/apps/electron/dist/mac-arm64/xNet.app/Contents/MacOS/xNet"
+          if [ ! -x "$BIN" ]; then echo "no Electron binary at $BIN"; ls -la apps/electron/dist; exit 1; fi
+          echo "Smoke-testing $BIN"
+          XNET_PACKAGED_BINARY="$BIN" pnpm --filter @xnetjs/e2e-tests exec \
+            playwright test src/packaged-smoke.spec.ts --project=electron --fail-on-flaky-tests
+
       - name: Notarize app
         if: steps.signing.outputs.mode == 'apple'
         env:
@@ -259,6 +272,22 @@ jobs:
         run: |
           cd apps/electron
           pnpm electron-builder --linux --${{ matrix.arch }} --publish never
+
+      # Gate the release on a launchable binary (exploration 0238, L4). Only the
+      # native arch can actually run on this x64 runner; cross-built arm64 is
+      # smoke-tested on its own platform / skipped. A dead artifact fails here, so
+      # the dependent `release` job never publishes it.
+      - name: Smoke-test packaged app
+        if: matrix.arch == 'x64'
+        run: |
+          sudo apt-get update && sudo apt-get install -y xvfb
+          BIN=$(find "$PWD/apps/electron/dist/linux-unpacked" -maxdepth 1 -type f -executable \
+            ! -name 'chrome*' ! -name '*.so*' ! -name '*.bin' | head -1)
+          if [ -z "$BIN" ]; then echo "no Electron binary found"; ls -la apps/electron/dist/linux-unpacked; exit 1; fi
+          echo "Smoke-testing $BIN"
+          XNET_PACKAGED_BINARY="$BIN" XNET_ELECTRON_NO_SANDBOX=1 \
+            xvfb-run --auto-servernum pnpm --filter @xnetjs/e2e-tests exec \
+            playwright test src/packaged-smoke.spec.ts --project=electron --fail-on-flaky-tests
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
