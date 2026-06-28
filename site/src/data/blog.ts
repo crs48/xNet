@@ -55,7 +55,7 @@ export const posts: BlogPost[] = [
     title: 'The Gentlest Furnace',
     description:
       'A star carries the energy of a billion bombs and still feels calm from here. What hydrostatic equilibrium — the thermostat that keeps a star from exploding or going cold — teaches us about information, attention, and building technology that burns long instead of burning out.',
-    pubDate: '2026-07-11T15:00:00Z',
+    pubDate: '2026-06-28T02:27:04Z',
     author: 'xNet',
     tags: ['essay', 'philosophy', 'cosmos'],
     readingMinutes: 13
@@ -65,7 +65,7 @@ export const posts: BlogPost[] = [
     title: 'Data Should Work Like Soil',
     description:
       'Beneath every forest runs a fungal network — the original internet. What mycelium, the human nervous system, and Tesla’s Warp teach us about building one worth living in, and how to heal one that’s gone sick.',
-    pubDate: '2026-06-28T15:00:00Z',
+    pubDate: '2026-06-28T01:23:39Z',
     author: 'xNet',
     tags: ['essay', 'philosophy', 'nature'],
     readingMinutes: 12
@@ -75,7 +75,7 @@ export const posts: BlogPost[] = [
     title: 'A Great Pirate Age for the Internet',
     description:
       'What pirates — the real ones, and the ones in One Piece — can teach us about owning your data. An essay on freedom, self-governance, and why you are the cargo.',
-    pubDate: '2026-06-27T16:00:00Z',
+    pubDate: '2026-06-28T00:28:34Z',
     author: 'xNet',
     tags: ['essay', 'philosophy', 'decentralization'],
     readingMinutes: 11
