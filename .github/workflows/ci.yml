@@ -189,3 +189,84 @@ jobs:
             tmp/playwright/**/*.png
           if-no-files-found: ignore
           retention-days: 14
+
+  # Electron desktop e2e (exploration 0238, L2 + L3): the cross-client
+  # convergence matrix (web↔web · electron↔web · electron↔electron, over ws and
+  # best-effort webrtc, incl. offline→reconnect) and the `_electron.launch()` app
+  # smoke (launch, no-console-errors, SQLite persist across restart, xnet://
+  # deep-link routing, core canvas flow). Headless under xvfb.
+  #
+  # Native-module ABI: the in-process hub runs under plain Node and keeps the
+  # Node-ABI better-sqlite3 from the setup composite, while the Electron app is
+  # launched from an `electron-builder --dir` bundle whose native modules are
+  # rebuilt for Electron's ABI — so the two never clash over one rebuilt copy.
+  # `electron-cache: 'true'` caches ~/.cache/electron(-builder), so the native
+  # rebuild is paid once. `--fail-on-flaky-tests` quarantines flakes (it never
+  # retries to green).
+  electron-e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/setup
+        with:
+          electron-cache: 'true'
+
+      - name: Build packages + Electron renderer/main
+        run: pnpm turbo run build --filter=xnet-desktop --filter=@xnetjs/hub
+
+      - name: Package Electron app (--dir, Electron-ABI native modules)
+        run: |
+          cd apps/electron
+          CSC_IDENTITY_AUTO_DISCOVERY=false pnpm exec electron-builder --linux dir --x64
+
+      - name: Resolve Electron binary
+        id: binary
+        run: |
+          BIN=$(find apps/electron/dist/linux-unpacked -maxdepth 1 -type f -executable \
+            ! -name 'chrome*' ! -name '*.so*' ! -name '*.bin' | head -1)
+          if [ -z "$BIN" ]; then echo "no Electron binary found"; ls -la apps/electron/dist/linux-unpacked; exit 1; fi
+          echo "Resolved Electron binary: $BIN"
+          echo "path=$(pwd)/$BIN" >> "$GITHUB_OUTPUT"
+
+      - name: Install xvfb
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+
+      - name: Cache Playwright browser
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-1.58.1-chromium
+
+      - name: Install Playwright Chromium (cache miss)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm --filter @xnetjs/e2e-tests exec playwright install --with-deps chromium
+
+      - name: Install Playwright system deps (cache hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm --filter @xnetjs/e2e-tests exec playwright install-deps chromium
+
+      - name: Run convergence matrix + Electron app smoke (xvfb)
+        run: |
+          xvfb-run --auto-servernum pnpm --filter @xnetjs/e2e-tests exec \
+            playwright test src/sync-matrix.spec.ts src/electron-smoke.spec.ts \
+            --project=chromium --project=electron --fail-on-flaky-tests
+        env:
+          CI: 'true'
+          XNET_ELECTRON_BINARY: ${{ steps.binary.outputs.path }}
+          XNET_ELECTRON_NO_SANDBOX: '1'
+
+      - name: Upload Electron e2e artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-e2e-artifacts
+          path: |
+            tests/e2e/test-results/**
+            tests/e2e/tmp/**
+          if-no-files-found: ignore
+          retention-days: 14
