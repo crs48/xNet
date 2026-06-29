@@ -6,6 +6,29 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-06-29-pages-load-instantly-on-return-even-on-a",
+      "url": "https://xnet.fyi/changelog#2026-06-29-pages-load-instantly-on-return-even-on-a",
+      "title": "Pages load instantly on return, even on a cold cache",
+      "content_text": "Returning to xNet now paints your recent pages, databases and canvases from a local snapshot in well under a second, instead of waiting on the first cold database read.\n",
+      "date_published": "2026-06-29T15:50:50Z",
+      "tags": [
+        "performance",
+        "app"
+      ],
+      "_xnet": {
+        "date": "June 29, 2026",
+        "summary": "Returning to xNet now paints your recent pages, databases and canvases from a local snapshot in well under a second, instead of waiting on the first cold database read.",
+        "highlights": [],
+        "mergedAt": "2026-06-29T15:50:50Z",
+        "pr": 345,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-06-29-change-a-task-s-status-from-its-status-i",
       "url": "https://xnet.fyi/changelog#2026-06-29-change-a-task-s-status-from-its-status-i",
       "title": "Change a task's status from its status icon",
