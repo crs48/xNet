@@ -15,6 +15,12 @@ import {
   recoveryPhraseToBundle,
   validateRecoveryPhrase
 } from '../recoverable'
+import {
+  createRecoveryShares,
+  recoverFromShares,
+  type RecoveryShare,
+  type SocialRecoveryConfig
+} from '../seed-recovery'
 import { createPasskeyIdentity } from './create'
 import { discoverExistingPasskey, unlockDiscoveredPasskey } from './discovery'
 import { createFallbackIdentity, unlockFallbackIdentity } from './fallback'
@@ -115,6 +121,26 @@ export type IdentityManager = {
    * or null when no synced passkey is available (the caller falls back to the phrase).
    */
   recoverViaSyncedPasskey(rpId?: string): Promise<HybridKeyBundle | null>
+
+  /**
+   * Social recovery (exploration 0243) — the Apple-ADP "recovery contacts" analogue.
+   * Split this recoverable identity's phrase into `totalShares` guardian shares of
+   * which any `threshold` reconstruct it (Shamir). Prompts for the passkey (it reads
+   * the phrase), then returns the shares to hand to trusted guardians out of band.
+   * The cloud is never involved — recovery stays zero-knowledge. Throws if the identity
+   * has no recovery phrase.
+   */
+  createGuardianShares(config: SocialRecoveryConfig): Promise<RecoveryShare[]>
+
+  /**
+   * Recover an identity from `threshold` guardian shares on a new device: reconstruct
+   * the phrase, reproduce the same DID, and enroll a local passkey. Throws if too few
+   * shares are supplied or they don't belong to one group.
+   */
+  recoverFromGuardianShares(
+    shares: RecoveryShare[],
+    options?: RecoverableCreateOptions
+  ): Promise<RecoverableResult>
 
   /** Unlock the existing identity (prompts for biometric) */
   unlock(): Promise<HybridKeyBundle>
@@ -276,6 +302,22 @@ export function createIdentityManager(): IdentityManager {
       cachedKeyBundle = keyBundle
       await persistCurrentSession(keyBundle)
       return keyBundle
+    },
+
+    async createGuardianShares(config: SocialRecoveryConfig): Promise<RecoveryShare[]> {
+      const phrase = await manager.exportRecoveryPhrase()
+      if (!phrase) {
+        throw new Error('This identity has no recovery phrase to split into guardian shares')
+      }
+      return createRecoveryShares(phrase, config)
+    },
+
+    async recoverFromGuardianShares(
+      shares: RecoveryShare[],
+      options?: RecoverableCreateOptions
+    ): Promise<RecoverableResult> {
+      const phrase = recoverFromShares(shares) // throws if too few / mixed groups
+      return manager.importRecoveryPhrase(phrase, options)
     },
 
     async unlock(): Promise<HybridKeyBundle> {

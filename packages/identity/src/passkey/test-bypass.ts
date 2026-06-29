@@ -14,6 +14,12 @@ import {
   recoveryPhraseToBundle,
   validateRecoveryPhrase
 } from '../recoverable'
+import {
+  createRecoveryShares,
+  recoverFromShares,
+  type RecoveryShare,
+  type SocialRecoveryConfig
+} from '../seed-recovery'
 
 const TEST_BYPASS_IDENTITY_MARKER = 'xnet:test:identity-created'
 const TEST_BYPASS_SESSION_MARKER = 'xnet:test:session-active'
@@ -191,6 +197,29 @@ export function createTestIdentityManager() {
     async recoverViaSyncedPasskey(): Promise<HybridKeyBundle | null> {
       // No real WebAuthn in test mode — no synced passkey to discover.
       return null
+    },
+
+    async createGuardianShares(config: SocialRecoveryConfig): Promise<RecoveryShare[]> {
+      if (!recoverablePhrase) {
+        throw new Error('This identity has no recovery phrase to split into guardian shares')
+      }
+      return createRecoveryShares(recoverablePhrase, config)
+    },
+
+    async recoverFromGuardianShares(
+      shares: RecoveryShare[]
+    ): Promise<{ keyBundle: HybridKeyBundle; phrase: string }> {
+      const phrase = recoverFromShares(shares)
+      const validation = validateRecoveryPhrase(phrase)
+      if (!validation.ok) throw new Error('Recovered phrase is not valid')
+      const normalized = validation.words.join(' ')
+      const keyBundle = recoveryPhraseToBundle(normalized)
+      recoverablePhrase = normalized
+      cachedKeyBundle = keyBundle
+      storedInMemory = true
+      writeTestIdentityMarker(true)
+      writeMarker(TEST_BYPASS_SESSION_MARKER, true)
+      return { keyBundle, phrase: normalized }
     },
 
     async unlock(): Promise<HybridKeyBundle> {

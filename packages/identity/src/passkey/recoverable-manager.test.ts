@@ -92,6 +92,44 @@ describe('recoverable identities (IdentityManager)', () => {
     expect(await manager.hasIdentity()).toBe(false)
   })
 
+  it('social recovery: 2-of-3 guardian shares reproduce the same DID on a fresh device', async () => {
+    const { createIdentityManager } = await import('./index')
+    const deviceA = createIdentityManager()
+    const { keyBundle } = await deviceA.createRecoverable({ rpId: 'localhost' })
+
+    const shares = await deviceA.createGuardianShares({ totalShares: 3, threshold: 2 })
+    expect(shares).toHaveLength(3)
+
+    // New device with no stored identity; recover from any 2 of the 3 shares.
+    await deleteDatabase()
+    const deviceB = createIdentityManager()
+    const recovered = await deviceB.recoverFromGuardianShares([shares[0], shares[2]], {
+      rpId: 'localhost'
+    })
+    expect(recovered.keyBundle.identity.did).toBe(keyBundle.identity.did)
+    expect(await deviceB.isRecoverable()).toBe(true)
+  })
+
+  it('social recovery: too few shares cannot recover', async () => {
+    const { createIdentityManager } = await import('./index')
+    const manager = createIdentityManager()
+    await manager.createRecoverable({ rpId: 'localhost' })
+    const shares = await manager.createGuardianShares({ totalShares: 3, threshold: 2 })
+    await expect(manager.recoverFromGuardianShares([shares[0]])).rejects.toThrow()
+  })
+
+  it('createGuardianShares throws for a non-recoverable identity', async () => {
+    const { createIdentityManager } = await import('./index')
+    const manager = createIdentityManager()
+    vi.spyOn(navigator.credentials, 'create').mockResolvedValue(
+      mockCredential(new Uint8Array(32).fill(0xcd))
+    )
+    await manager.create({ rpId: 'localhost' }) // plain PRF identity, no phrase
+    await expect(manager.createGuardianShares({ totalShares: 3, threshold: 2 })).rejects.toThrow(
+      /no recovery phrase/
+    )
+  })
+
   it('recoverViaSyncedPasskey returns null when no synced passkey is discoverable', async () => {
     // The harness mocks PublicKeyCredential without isConditionalMediationAvailable,
     // so discovery finds nothing and recovery cleanly reports "no synced passkey".
