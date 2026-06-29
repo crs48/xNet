@@ -19,6 +19,9 @@ export const BOOT_PHASES = [
   'identity:ready',
   'store:ready',
   'hub:connected',
+  // First live landing result across the bridge — brackets the cold-read cost
+  // even when the instant shell paints from a snapshot first (0249).
+  'bridge:first-result',
   'sync:first',
   'query:first-rows'
 ] as const
@@ -45,6 +48,7 @@ const SEGMENT_DEFS: Array<{ label: string; from: BootPhase; to: BootPhase }> = [
   { label: 'Identity unlock', from: 'identity:checked', to: 'identity:ready' },
   { label: 'Store', from: 'identity:ready', to: 'store:ready' },
   { label: 'Connect', from: 'store:ready', to: 'hub:connected' },
+  { label: 'Bridge first', from: 'store:ready', to: 'bridge:first-result' },
   { label: 'First sync', from: 'hub:connected', to: 'sync:first' }
 ]
 

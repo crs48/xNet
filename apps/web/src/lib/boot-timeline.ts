@@ -28,6 +28,11 @@ export type BootPhase =
   | 'store:ready'
   | 'docwarm:ready'
   | 'hub:connected'
+  // First time a landing query's LIVE result crosses the bridge to a surface.
+  // Distinct from query:first-rows (which the instant-shell can satisfy from a
+  // localStorage snapshot in <1s): this brackets the real cold-read latency and
+  // localizes the previously-untraced ~5s secondary gap (exploration 0249).
+  | 'bridge:first-result'
   | 'sync:first'
   | 'query:first-rows'
 
@@ -75,6 +80,7 @@ const BOOT_PHASE_ORDER: readonly BootPhase[] = [
   'store:ready',
   'docwarm:ready',
   'hub:connected',
+  'bridge:first-result',
   'sync:first',
   'query:first-rows'
 ]
@@ -135,6 +141,13 @@ export interface BootTimeline {
   docwarm?: number
   /** Hub WebSocket handshake (store-ready → connected). */
   connect?: number
+  /**
+   * Store-ready → first LIVE landing result across the bridge (exploration
+   * 0249). With the instant-shell paint satisfied from a snapshot, this is the
+   * number that still carries the real cold-read cost + the ~5s secondary gap,
+   * so it stays visible even though `firstPaint` no longer does.
+   */
+  bridgeFirst?: number
   /** First sync round-trip after connect. */
   firstSync?: number
   /** Wall-clock from boot start to first rows painted. */
@@ -154,6 +167,7 @@ export function getBootTimeline(): BootTimeline {
     store: bootMeasure('identity:ready', 'store:ready'),
     docwarm: bootMeasure('store:ready', 'docwarm:ready'),
     connect: bootMeasure('store:ready', 'hub:connected'),
+    bridgeFirst: bootMeasure('store:ready', 'bridge:first-result'),
     firstSync: bootMeasure('hub:connected', 'sync:first'),
     firstPaint: bootMeasure('init:start', 'query:first-rows')
   }
@@ -283,6 +297,15 @@ export function logBootTimeline(reason = 'hub:connected'): void {
   if (!isDev && !debugEnabled()) return
   // eslint-disable-next-line no-console
   console.info(`[xNet] boot timeline (ms) @ ${reason}:`, getBootTimeline())
+}
+
+/**
+ * Record that the first LIVE landing result has crossed the bridge to a surface
+ * (exploration 0249). Idempotent via `bootMark`'s first-write-wins, so the
+ * caller can fire it from every landing query's resolution without guarding.
+ */
+export function markBridgeFirstResult(): void {
+  bootMark('bridge:first-result')
 }
 
 /** Test-only: clear all recorded marks and the one-shot log latch. */
