@@ -6,6 +6,30 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-06-28-blog-index-cards-now-show-each-post-s-he",
+      "url": "https://xnet.fyi/changelog#2026-06-28-blog-index-cards-now-show-each-post-s-he",
+      "title": "Blog index cards now show each post's header art",
+      "content_text": "The blog listing shows each essay's hero illustration as a colourful card banner, so posts are easier to tell apart at a glance.\n\n• Every blog preview card now leads with its post's hero artwork",
+      "date_published": "2026-06-29T02:51:50Z",
+      "tags": [
+        "platform"
+      ],
+      "_xnet": {
+        "date": "June 28, 2026",
+        "summary": "The blog listing shows each essay's hero illustration as a colourful card banner, so posts are easier to tell apart at a glance.",
+        "highlights": [
+          "Every blog preview card now leads with its post's hero artwork"
+        ],
+        "mergedAt": "2026-06-29T02:51:50Z",
+        "pr": 338,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-06-28-new-essay-the-loom-you-can-read",
       "url": "https://xnet.fyi/changelog#2026-06-28-new-essay-the-loom-you-can-read",
       "title": "New essay: The Loom You Can Read",

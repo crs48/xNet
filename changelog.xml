@@ -6,6 +6,14 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Blog index cards now show each post's header art</title>
+      <link>https://xnet.fyi/changelog#2026-06-28-blog-index-cards-now-show-each-post-s-he</link>
+      <guid isPermaLink="false">2026-06-28-blog-index-cards-now-show-each-post-s-he</guid>
+      <pubDate>Mon, 29 Jun 2026 02:51:50 GMT</pubDate>
+      <description>The blog listing shows each essay's hero illustration as a colourful card banner, so posts are easier to tell apart at a glance.
+- Every blog preview card now leads with its post's hero artwork</description>
+    </item>
+    <item>
       <title>New essay: The Loom You Can Read</title>
       <link>https://xnet.fyi/changelog#2026-06-28-new-essay-the-loom-you-can-read</link>
       <guid isPermaLink="false">2026-06-28-new-essay-the-loom-you-can-read</guid>
