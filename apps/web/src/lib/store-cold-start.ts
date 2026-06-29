@@ -65,17 +65,33 @@ export function shouldOfferRestore(probe: ColdStartProbe): boolean {
 
 let lastProbe: ColdStartProbe | null = null
 
+// Subscribers (e.g. useRestoringFromHub via useSyncExternalStore). The probe is
+// now recorded asynchronously — exploration 0249 moved it off the awaited boot
+// path — so consumers must re-render when it lands rather than reading a value
+// that was guaranteed-ready before first render.
+const listeners = new Set<() => void>()
+
+/** Subscribe to probe changes; returns an unsubscribe. */
+export function subscribeColdStartProbe(listener: () => void): () => void {
+  listeners.add(listener)
+  return () => {
+    listeners.delete(listener)
+  }
+}
+
 /** Record the boot probe so views can read it without prop-threading. */
 export function recordColdStartProbe(probe: ColdStartProbe): void {
   lastProbe = probe
+  for (const listener of listeners) listener()
 }
 
-/** The most recent boot probe, or null before the boot probe has run. */
+/** The most recent boot probe, or null before the boot probe has resolved. */
 export function getColdStartProbe(): ColdStartProbe | null {
   return lastProbe
 }
 
-/** Test-only: clear the recorded probe. */
+/** Test-only: clear the recorded probe and any subscribers. */
 export function __resetColdStartProbe(): void {
   lastProbe = null
+  listeners.clear()
 }
