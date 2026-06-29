@@ -601,21 +601,21 @@ function Canvas({ focus }: { focus: boolean }) {
 
 ## Validation Checklist
 
-- [ ] **Parity:** every one of the 26 routes is reachable and renders correctly
+- [x] **Parity:** every one of the 26 routes is reachable and renders correctly
   in `calm` (deep links, back/forward, share links intact).
-- [ ] **Toggle:** switching `calm ↔ workbench` is lossless (same active content,
+- [x] **Toggle:** switching `calm ↔ workbench` is lossless (same active content,
   no data loss, persisted per identity).
 - [ ] **Responsive:** the same three modes + grammar verified at 1440 / 900 /
   390px via Playwright + `preview_resize`; no separate-shell regressions; canvas
   sheet has no backdrop tap-through.
 - [ ] **Agent flow:** "draft a page / make tasks" opens the artifact in the
   canvas; `focus` goes full-bleed and restores; plan→approve→apply works.
-- [ ] **Humane gates:** `check-humane-patterns.mjs` and `check-motion-vocab.mjs`
+- [x] **Humane gates:** `check-humane-patterns.mjs` and `check-motion-vocab.mjs`
   pass on all `calm/` files; Network feed is chronological/capped; wind-down
   honored; no badge-count anxiety on primary modes.
-- [ ] **A11y:** one `<main>` landmark; full keyboard nav (mode switch, list,
+- [x] **A11y:** one `<main>` landmark; full keyboard nav (mode switch, list,
   surface, canvas) and focus ring; `prefers-reduced-motion` respected.
-- [ ] **Theme:** `calm` shell looks right under default + `cozy` variant + dark +
+- [x] **Theme:** `calm` shell looks right under default + `cozy` variant + dark +
   `true-black` + `comfortable` density; uses `surface/ink` tokens only.
 - [ ] **Perf:** no boot-timeline regression (0204/0212); canvas mount is lazy;
   conversation streaming stays smooth.
