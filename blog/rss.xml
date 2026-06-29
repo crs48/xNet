@@ -6,7 +6,18 @@
     <atom:link href="https://xnet.fyi/blog/rss.xml" rel="self" type="application/rss+xml" />
     <description>Essays on local-first software, data ownership, and the open web.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 29 Jun 2026 01:09:07 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 29 Jun 2026 17:30:00 GMT</lastBuildDate>
+    <item>
+      <title>The Tip of the Hook</title>
+      <link>https://xnet.fyi/blog/the-tip-of-the-hook</link>
+      <guid isPermaLink="true">https://xnet.fyi/blog/the-tip-of-the-hook</guid>
+      <description>You write useQuery(TaskSchema) and get a live, local, cryptographically-authorised, syncing database — with no API endpoint, no auth middleware, and no cache to invalidate. A developer&apos;s tour of xNet&apos;s React hooks on the surface, then a dive beneath the waterline to the SQLite database running in a worker, the priority scheduler, and the signed change log that make “just trust the client” safe. The tip is small on purpose; the iceberg is yours to open.</description>
+      <author>xNet</author>
+      <pubDate>Mon, 29 Jun 2026 17:30:00 GMT</pubDate>
+      <category>essay</category>
+      <category>protocol</category>
+      <category>decentralization</category>
+    </item>
     <item>
       <title>The Loom You Can Read</title>
       <link>https://xnet.fyi/blog/the-loom-you-can-read</link>

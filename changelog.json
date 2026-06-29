@@ -3519,6 +3519,31 @@
           }
         ]
       }
+    },
+    {
+      "id": "2026-06-29-new-essay-the-tip-of-the-hook",
+      "url": "https://xnet.fyi/changelog#2026-06-29-new-essay-the-tip-of-the-hook",
+      "title": "New essay: The Tip of the Hook",
+      "content_text": "A developer-facing deep-dive on xNet's React hooks: how useQuery and useMutate let you specify your whole API in the client — including authorisation — and trust it, with a dive beneath the surface to the SQLite-in-a-worker, the priority scheduler, and the signed change log that make it safe.\n",
+      "date_published": "2026-03-07T16:37:28Z",
+      "tags": [
+        "platform"
+      ],
+      "_xnet": {
+        "date": "June 29, 2026",
+        "summary": "A developer-facing deep-dive on xNet's React hooks: how useQuery and useMutate let you specify your whole API in the client — including authorisation — and trust it, with a dive beneath the surface to the SQLite-in-a-worker, the priority scheduler, and the signed change log that make it safe.",
+        "highlights": [],
+        "mergedAt": "2026-03-07T16:37:28Z",
+        "pr": 8,
+        "authors": [
+          {
+            "login": "crs48"
+          },
+          {
+            "login": "crs"
+          }
+        ]
+      }
     }
   ]
 }

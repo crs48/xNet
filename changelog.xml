@@ -1235,5 +1235,12 @@
 - Streak heatmaps and correlation widgets
 - A &quot;Today&quot; panel for quick logging</description>
     </item>
+    <item>
+      <title>New essay: The Tip of the Hook</title>
+      <link>https://xnet.fyi/changelog#2026-06-29-new-essay-the-tip-of-the-hook</link>
+      <guid isPermaLink="false">2026-06-29-new-essay-the-tip-of-the-hook</guid>
+      <pubDate>Sat, 07 Mar 2026 16:37:28 GMT</pubDate>
+      <description>A developer-facing deep-dive on xNet's React hooks: how useQuery and useMutate let you specify your whole API in the client — including authorisation — and trust it, with a dive beneath the surface to the SQLite-in-a-worker, the priority scheduler, and the signed change log that make it safe.</description>
+    </item>
   </channel>
 </rss>
