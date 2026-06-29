@@ -20,6 +20,10 @@
       "import": "./dist/identity/index.js",
       "types": "./dist/identity/index.d.ts"
     },
+    "./escrow": {
+      "import": "./dist/escrow/index.js",
+      "types": "./dist/escrow/index.d.ts"
+    },
     "./billing": {
       "import": "./dist/billing/index.js",
       "types": "./dist/billing/index.d.ts"
