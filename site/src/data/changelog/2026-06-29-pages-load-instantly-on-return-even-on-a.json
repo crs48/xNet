@@ -4,5 +4,15 @@
   "title": "Pages load instantly on return, even on a cold cache",
   "summary": "Returning to xNet now paints your recent pages, databases and canvases from a local snapshot in well under a second, instead of waiting on the first cold database read.",
   "highlights": [],
-  "tags": ["performance", "app"]
+  "tags": [
+    "performance",
+    "app"
+  ],
+  "pr": 345,
+  "mergedAt": "2026-06-29T15:50:50Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
