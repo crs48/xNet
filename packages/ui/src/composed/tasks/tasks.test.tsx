@@ -1,9 +1,10 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import React from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { TaskCard } from './TaskCard'
 import { TaskChip } from './TaskChip'
 import { TaskRow } from './TaskRow'
+import { TaskStatusMenu } from './TaskStatusMenu'
 import { formatDueDate, getTaskStatusMeta, isCompletedStatus } from './types'
 
 const baseTask = {
@@ -76,6 +77,68 @@ describe('TaskRow', () => {
 
     fireEvent.click(row)
     expect(onOpen).toHaveBeenCalledWith('task_1')
+  })
+
+  it('toggles completion from the glyph when only onToggleCompleted is wired', () => {
+    const onToggleCompleted = vi.fn()
+    render(<TaskRow task={baseTask} onToggleCompleted={onToggleCompleted} />)
+
+    fireEvent.click(screen.getByLabelText('Mark complete'))
+    expect(onToggleCompleted).toHaveBeenCalledWith('task_1', true)
+    expect(screen.queryByLabelText('Change status')).toBeNull()
+  })
+
+  it('opens a status dropdown from the glyph instead of toggling completion', () => {
+    const onStatusChange = vi.fn()
+    const onOpen = vi.fn()
+    const onToggleCompleted = vi.fn()
+    render(
+      <TaskRow
+        task={baseTask}
+        onStatusChange={onStatusChange}
+        onOpen={onOpen}
+        onToggleCompleted={onToggleCompleted}
+      />
+    )
+
+    // With status editing wired the glyph is a picker, not a complete toggle.
+    expect(screen.queryByLabelText('Mark complete')).toBeNull()
+
+    fireEvent.click(screen.getByLabelText('Change status'))
+    const panel = screen.getByTestId('task-status-menu-panel')
+    expect(panel.textContent).toContain('To Do')
+    expect(panel.textContent).toContain('In Review')
+    expect(panel.textContent).toContain('Cancelled')
+
+    fireEvent.click(within(panel).getByText('In Review'))
+    expect(onStatusChange).toHaveBeenCalledWith('task_1', 'in-review', false)
+    // Opening the menu or picking a status never opens or toggles the task.
+    expect(onOpen).not.toHaveBeenCalled()
+    expect(onToggleCompleted).not.toHaveBeenCalled()
+  })
+})
+
+describe('TaskStatusMenu', () => {
+  it('derives completion from the chosen status category', () => {
+    const onPick = vi.fn()
+    render(<TaskStatusMenu status="todo" onPick={onPick} />)
+
+    fireEvent.click(screen.getByLabelText('Change status'))
+    const panel = screen.getByTestId('task-status-menu-panel')
+    fireEvent.click(within(panel).getByText('Done'))
+    expect(onPick).toHaveBeenCalledWith('done', true)
+  })
+
+  it('closes after a pick and reflects the current status', () => {
+    const onPick = vi.fn()
+    render(<TaskStatusMenu status="in-progress" onPick={onPick} />)
+
+    fireEvent.click(screen.getByLabelText('Change status'))
+    expect(screen.getByTestId('task-status-menu-panel')).toBeTruthy()
+    fireEvent.click(within(screen.getByTestId('task-status-menu-panel')).getByText('Cancelled'))
+
+    expect(onPick).toHaveBeenCalledWith('cancelled', true)
+    expect(screen.queryByTestId('task-status-menu-panel')).toBeNull()
   })
 })
 

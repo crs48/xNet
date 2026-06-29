@@ -505,6 +505,15 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
     })
   }
 
+  // List-row status-glyph dropdown: change a task's workflow status in place
+  // (the glyph opens a status picker instead of toggling completion).
+  const handleRowStatusChange = (taskId: string, status: string, completed: boolean) => {
+    void update(TaskSchema, taskId, {
+      status: status as TaskStatusId,
+      completed
+    })
+  }
+
   const handleEditTask = (taskId: string) => {
     setFocusedTaskId(taskId)
     setEditingTaskId((current) => (current === taskId ? null : taskId))
@@ -912,6 +921,7 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
               onStatusChange={handleStatusChange}
               onOpenTask={handleEditTask}
               onToggleCompleted={handleToggleCompleted}
+              onCardStatusChange={handleRowStatusChange}
             />
           ) : (
             <TaskListGrouped
@@ -926,6 +936,7 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
               onCreateInGroup={(group) => void handleCreateInGroup(group)}
               onOpenTask={handleEditTask}
               onToggleCompleted={handleToggleCompleted}
+              onStatusChange={handleRowStatusChange}
             />
           )}
         </div>

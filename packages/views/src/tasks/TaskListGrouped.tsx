@@ -55,6 +55,9 @@ export interface TaskListGroupedProps {
   onCreateInGroup?: (group: TaskGroupRef) => void
   onOpenTask?: (taskId: string) => void
   onToggleCompleted?: (taskId: string, completed: boolean) => void
+  /** Change a row's status via the status-glyph dropdown (supersedes the
+   * click-to-toggle behaviour of the glyph when wired). */
+  onStatusChange?: (taskId: string, status: string, completed: boolean) => void
 }
 
 const DEFAULT_STATUSES: TaskStatusId[] = TASK_WORKFLOW_ORDER
@@ -105,7 +108,8 @@ export function TaskListGrouped({
   onSelectTask,
   onCreateInGroup,
   onOpenTask,
-  onToggleCompleted
+  onToggleCompleted,
+  onStatusChange
 }: TaskListGroupedProps) {
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
 
@@ -181,6 +185,7 @@ export function TaskListGrouped({
                       onSelect={onSelectTask}
                       onOpen={onOpenTask}
                       onToggleCompleted={onToggleCompleted}
+                      onStatusChange={onStatusChange}
                     />
                   </React.Fragment>
                 ))}
