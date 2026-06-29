@@ -3,7 +3,17 @@
   "date": "June 28, 2026",
   "title": "Blog index cards now show each post's header art",
   "summary": "The blog listing shows each essay's hero illustration as a colourful card banner, so posts are easier to tell apart at a glance.",
-  "highlights": ["Every blog preview card now leads with its post's hero artwork"],
-  "tags": ["platform"],
-  "pr": 338
+  "highlights": [
+    "Every blog preview card now leads with its post's hero artwork"
+  ],
+  "tags": [
+    "platform"
+  ],
+  "pr": 338,
+  "mergedAt": "2026-06-29T02:51:50Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
