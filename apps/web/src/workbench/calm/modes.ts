@@ -33,14 +33,7 @@ export const CALM_MODES: CalmModeDef[] = [
 ]
 
 /** Path prefixes owned by the Network mode (people + social surfaces). */
-const NETWORK_PREFIXES = [
-  '/discover',
-  '/requests',
-  '/crm',
-  '/person',
-  '/channel',
-  '/social-import'
-]
+const NETWORK_PREFIXES = ['/discover', '/requests', '/crm', '/person', '/channel', '/social-import']
 
 /** Path prefixes owned by the Companion mode. */
 const COMPANION_PREFIXES = ['/companion']
@@ -52,9 +45,7 @@ const COMPANION_PREFIXES = ['/companion']
 const MODELESS_PREFIXES = ['/settings', '/analytics', '/welcome', '/share']
 
 function matches(pathname: string, prefixes: string[]): boolean {
-  return prefixes.some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
-  )
+  return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`))
 }
 
 /**

@@ -34,7 +34,9 @@ export function NetworkList() {
         Network
       </h2>
       {DESTINATIONS.map((dest) => {
-        const active = pathname === dest.to || pathname.startsWith(`${dest.to.split('/').slice(0, 2).join('/')}/`)
+        const active =
+          pathname === dest.to ||
+          pathname.startsWith(`${dest.to.split('/').slice(0, 2).join('/')}/`)
         const badge = dest.to === '/requests' ? requestCount : 0
         return (
           <Link
