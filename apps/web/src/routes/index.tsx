@@ -15,6 +15,7 @@ import {
   type NavigateLike
 } from '../lib/doc-creation'
 import { useQueryTimer } from '../lib/read-path-probe'
+import { useInstantRows } from '../lib/use-instant-rows'
 import { useRestoringFromHub } from '../lib/use-restoring'
 import { navigateToNode } from '../workbench/navigation'
 import { useWorkbench } from '../workbench/state'
@@ -46,37 +47,46 @@ function HomePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const { data: pages, loading: pagesLoading } = useQuery(PageSchema, {
+  const pagesQuery = useQuery(PageSchema, {
     orderBy: { updatedAt: 'desc' },
     limit: 50
   })
-  const { data: databases, loading: databasesLoading } = useQuery(DatabaseSchema, {
+  const databasesQuery = useQuery(DatabaseSchema, {
     orderBy: { updatedAt: 'desc' },
     limit: 50
   })
-  const { data: canvases, loading: canvasesLoading } = useQuery(CanvasSchema, {
+  const canvasesQuery = useQuery(CanvasSchema, {
     orderBy: { updatedAt: 'desc' },
     limit: 50
   })
 
+  // Instant-shell overlay (exploration 0249, F2): paint from the previous
+  // session's localStorage snapshot in <1s while the single SQLite worker pays
+  // its first cold OPFS read, then switch to live data and write the snapshot
+  // through. localStorage is read on the main thread, not behind the cold worker.
+  const pages = useInstantRows('page', pagesQuery)
+  const databases = useInstantRows('database', databasesQuery)
+  const canvases = useInstantRows('canvas', canvasesQuery)
+
   // Read-path timing (exploration 0212): each section's fire→resolve latency
-  // and row count, gated behind `xnet:boot:debug`.
-  useQueryTimer('home:pages', pagesLoading, pages?.length ?? 0)
-  useQueryTimer('home:databases', databasesLoading, databases?.length ?? 0)
-  useQueryTimer('home:canvases', canvasesLoading, canvases?.length ?? 0)
+  // and row count, gated behind `xnet:boot:debug`. Track the LIVE query so the
+  // numbers still reflect the real cold read, not the instant snapshot paint.
+  useQueryTimer('home:pages', pagesQuery.loading, pagesQuery.data?.length ?? 0)
+  useQueryTimer('home:databases', databasesQuery.loading, databasesQuery.data?.length ?? 0)
+  useQueryTimer('home:canvases', canvasesQuery.loading, canvasesQuery.data?.length ?? 0)
 
   const restoring = useRestoringFromHub()
 
-  // Combine and sort whatever has resolved so far. Each query returns [] while
-  // loading and fills in independently, so the list grows as sections resolve
-  // instead of blocking the whole page on the slowest one (exploration 0212).
+  // Combine and sort whatever the overlay has (snapshot first, then live). Each
+  // section fills in independently, so the list grows as sections resolve
+  // instead of blocking the whole page on the slowest one (explorations 0212, 0249).
   const allDocs: DocInfo[] = [
-    ...(pages || []).map((p) => ({ ...p, type: 'page' as const })),
-    ...(databases || []).map((d) => ({ ...d, type: 'database' as const })),
-    ...(canvases || []).map((c) => ({ ...c, type: 'canvas' as const }))
+    ...pages.rows.map((p) => ({ ...p, type: 'page' as const })),
+    ...databases.rows.map((d) => ({ ...d, type: 'database' as const })),
+    ...canvases.rows.map((c) => ({ ...c, type: 'canvas' as const }))
   ].sort((a, b) => b.updatedAt - a.updatedAt)
 
-  const allLoaded = !pagesLoading && !databasesLoading && !canvasesLoading
+  const allLoaded = !pagesQuery.loading && !databasesQuery.loading && !canvasesQuery.loading
   const anyRows = allDocs.length > 0
 
   // Mark the boot timeline the first time the landing surface has something
