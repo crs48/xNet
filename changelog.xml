@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Recover your account with trusted guardians</title>
+      <link>https://xnet.fyi/changelog#2026-06-28-recover-your-account-with-trusted-guardi</link>
+      <guid isPermaLink="false">2026-06-28-recover-your-account-with-trusted-guardi</guid>
+      <pubDate>Mon, 29 Jun 2026 03:01:57 GMT</pubDate>
+      <description>You can now split your recovery across trusted people (any 2 of 3 can help you back in) and recover on a new device by collecting their share codes — no recovery phrase to memorize, and the cloud is never involved.</description>
+    </item>
+    <item>
       <title>Blog index cards now show each post's header art</title>
       <link>https://xnet.fyi/changelog#2026-06-28-blog-index-cards-now-show-each-post-s-he</link>
       <guid isPermaLink="false">2026-06-28-blog-index-cards-now-show-each-post-s-he</guid>
