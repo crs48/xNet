@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>New essay: The Loom You Can Read</title>
+      <link>https://xnet.fyi/changelog#2026-06-28-new-essay-the-loom-you-can-read</link>
+      <guid isPermaLink="false">2026-06-28-new-essay-the-loom-you-can-read</guid>
+      <pubDate>Mon, 29 Jun 2026 01:09:07 GMT</pubDate>
+      <description>A deep-dive essay that follows one note all the way through xNet's internals — local-first storage, the signed change log, the keys you mint, and the no-referee merge — framed as the Luddite argument for a machine you're allowed to open.</description>
+    </item>
+    <item>
       <title>Recover with a passkey synced from another device</title>
       <link>https://xnet.fyi/changelog#2026-06-28-recover-with-a-passkey-synced-from-anoth</link>
       <guid isPermaLink="false">2026-06-28-recover-with-a-passkey-synced-from-anoth</guid>
@@ -95,13 +102,6 @@
       <guid isPermaLink="false">2026-06-27-the-xnet-blog-is-live</guid>
       <pubDate>Sun, 28 Jun 2026 00:28:34 GMT</pubDate>
       <description>A new blog at /blog opens with an essay — A Great Pirate Age for the Internet — on data ownership, self-governance, and why you are the cargo. Subscribe via RSS at /blog/rss.xml.</description>
-    </item>
-    <item>
-      <title>New essay: The Loom You Can Read</title>
-      <link>https://xnet.fyi/changelog#2026-06-28-new-essay-the-loom-you-can-read</link>
-      <guid isPermaLink="false">2026-06-28-new-essay-the-loom-you-can-read</guid>
-      <pubDate>Sun, 28 Jun 2026 00:00:00 GMT</pubDate>
-      <description>A deep-dive essay that follows one note all the way through xNet's internals — local-first storage, the signed change log, the keys you mint, and the no-referee merge — framed as the Luddite argument for a machine you're allowed to open.</description>
     </item>
     <item>
       <title>The homepage now reflects everything xNet can do</title>
