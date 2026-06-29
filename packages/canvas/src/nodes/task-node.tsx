@@ -11,7 +11,7 @@
  */
 
 import type { CanvasTaskNode } from '../types'
-import { TaskSchema } from '@xnetjs/data'
+import { TaskSchema, type TaskStatusId } from '@xnetjs/data'
 import { useMutate, useNode } from '@xnetjs/react'
 import { TaskCard, type TaskDisplayData } from '@xnetjs/ui'
 import { memo, useCallback, useMemo } from 'react'
@@ -64,6 +64,13 @@ export const TaskNodeComponent = memo(function TaskNodeComponent({
     [updateTask]
   )
 
+  const handleStatusChange = useCallback(
+    (_id: string, status: string, completed: boolean) => {
+      void updateTask({ status: status as TaskStatusId, completed })
+    },
+    [updateTask]
+  )
+
   const handleRestore = useCallback(
     (id: string) => {
       void restore(id)
@@ -84,6 +91,7 @@ export const TaskNodeComponent = memo(function TaskNodeComponent({
       task={task}
       mode={node.properties.renderMode === 'mini' ? 'mini' : 'card'}
       onToggleCompleted={handleToggleCompleted}
+      onStatusChange={handleStatusChange}
       onOpen={onOpenTask}
       onRestore={handleRestore}
       className="h-full w-full"

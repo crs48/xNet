@@ -13,6 +13,7 @@ import { DIDAvatar } from '../../components/DIDAvatar'
 import { cn } from '../../utils'
 import { TaskGithubBadges } from './TaskGithubBadges'
 import { TaskPriorityIcon, TaskStatusIcon } from './TaskStatusIcon'
+import { TaskStatusMenu } from './TaskStatusMenu'
 import {
   DUE_DATE_URGENCY_CLASS,
   formatDueDate,
@@ -53,6 +54,7 @@ export function TaskRow({
   density = 'comfortable',
   depth = 0,
   onToggleCompleted,
+  onStatusChange,
   onOpen,
   className
 }: TaskRowProps) {
@@ -79,7 +81,9 @@ export function TaskRow({
       tabIndex={0}
       onClick={() => onOpen?.(task.id)}
       onKeyDown={(event) => {
-        if (event.key === 'Enter') {
+        // Only the row itself opens on Enter — let nested controls (status
+        // menu, select checkbox) handle their own keys.
+        if (event.key === 'Enter' && event.target === event.currentTarget) {
           event.preventDefault()
           onOpen?.(task.id)
         }
@@ -107,18 +111,26 @@ export function TaskRow({
         </button>
       )}
 
-      <button
-        type="button"
-        className="inline-flex shrink-0 items-center rounded-full"
-        aria-label={task.completed ? 'Mark incomplete' : 'Mark complete'}
-        disabled={!onToggleCompleted}
-        onClick={(event: MouseEvent) => {
-          event.stopPropagation()
-          onToggleCompleted?.(task.id, !task.completed)
-        }}
-      >
-        <TaskStatusIcon status={task.completed ? 'done' : task.status} />
-      </button>
+      {onStatusChange ? (
+        <TaskStatusMenu
+          status={task.status}
+          completed={task.completed}
+          onPick={(status, completed) => onStatusChange(task.id, status, completed)}
+        />
+      ) : (
+        <button
+          type="button"
+          className="inline-flex shrink-0 items-center rounded-full"
+          aria-label={task.completed ? 'Mark incomplete' : 'Mark complete'}
+          disabled={!onToggleCompleted}
+          onClick={(event: MouseEvent) => {
+            event.stopPropagation()
+            onToggleCompleted?.(task.id, !task.completed)
+          }}
+        >
+          <TaskStatusIcon status={task.completed ? 'done' : task.status} />
+        </button>
+      )}
 
       <TaskPriorityIcon priority={task.priority} />
 

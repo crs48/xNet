@@ -107,6 +107,15 @@ export function githubStateFromReferences(
 export interface TaskIntentHandlers {
   /** Toggle completion. Absent = read-only checkbox. */
   onToggleCompleted?: (taskId: string, completed: boolean) => void
+  /**
+   * Change the task's workflow status. When wired, the status glyph becomes a
+   * dropdown of every status (rather than a complete/incomplete toggle), so a
+   * task's status is editable in place wherever it renders. The chosen status
+   * carries its derived `completed` flag so hosts stay one mutation call —
+   * matching TaskDetailForm's status picker. Takes precedence over
+   * `onToggleCompleted` for the status glyph when both are supplied.
+   */
+  onStatusChange?: (taskId: string, status: string, completed: boolean) => void
   /** Open the full task (peek/detail). The "open original" affordance. */
   onOpen?: (taskId: string) => void
   /** Restore an archived task from its tombstone. */

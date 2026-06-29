@@ -7,6 +7,7 @@ export {
   type TaskStatusIconProps,
   type TaskPriorityIconProps
 } from './TaskStatusIcon'
+export { TaskStatusMenu, type TaskStatusMenuProps } from './TaskStatusMenu'
 export { TaskGithubBadges, type TaskGithubBadgesProps } from './TaskGithubBadges'
 export { TaskDetailForm, type TaskDetailFormProps, type TaskTagOption } from './TaskDetailForm'
 export {

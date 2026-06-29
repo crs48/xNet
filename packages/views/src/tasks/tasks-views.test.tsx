@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, within } from '@testing-library/react'
 import React from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { TaskBoard } from './TaskBoard'
@@ -67,6 +67,29 @@ describe('TaskListGrouped', () => {
     // Groups render in workflow order: the todo group (task_b) precedes in-progress
     fireEvent.click(screen.getAllByLabelText('Mark complete')[0])
     expect(onToggleCompleted).toHaveBeenCalledWith('task_b', true)
+  })
+
+  it('opens a status dropdown from the row glyph and emits onStatusChange', () => {
+    const onStatusChange = vi.fn()
+    const onToggleCompleted = vi.fn()
+    render(
+      <TaskListGrouped
+        tasks={tasks}
+        onStatusChange={onStatusChange}
+        onToggleCompleted={onToggleCompleted}
+      />
+    )
+
+    // The glyph is a status picker, not a complete/incomplete toggle.
+    expect(screen.queryByLabelText('Mark complete')).toBeNull()
+
+    // The todo group (task_b) renders first in workflow order.
+    fireEvent.click(screen.getAllByLabelText('Change status')[0])
+    const panel = screen.getByTestId('task-status-menu-panel')
+    fireEvent.click(within(panel).getByText('In Progress'))
+
+    expect(onStatusChange).toHaveBeenCalledWith('task_b', 'in-progress', false)
+    expect(onToggleCompleted).not.toHaveBeenCalled()
   })
 
   it('renders an empty state', () => {
