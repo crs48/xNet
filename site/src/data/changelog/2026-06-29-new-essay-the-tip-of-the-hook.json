@@ -1,0 +1,8 @@
+{
+  "id": "2026-06-29-new-essay-the-tip-of-the-hook",
+  "date": "June 29, 2026",
+  "title": "New essay: The Tip of the Hook",
+  "summary": "A developer-facing deep-dive on xNet's React hooks: how useQuery and useMutate let you specify your whole API in the client — including authorisation — and trust it, with a dive beneath the surface to the SQLite-in-a-worker, the priority scheduler, and the signed change log that make it safe.",
+  "highlights": [],
+  "tags": ["platform"]
+}
