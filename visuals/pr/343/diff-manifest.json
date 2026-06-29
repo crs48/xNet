@@ -51,7 +51,7 @@
       "label": "Data",
       "file": "routes/data.png",
       "status": "unchanged",
-      "ssim": 0.99879
+      "ssim": 0.9983
     }
   ],
   "electron": [
