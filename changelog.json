@@ -6,6 +6,29 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-06-29-a-calmer-conversation-first-workspace-la",
+      "url": "https://xnet.fyi/changelog#2026-06-29-a-calmer-conversation-first-workspace-la",
+      "title": "A calmer, conversation-first workspace layout",
+      "content_text": "New 'Calm' layout (now the default) reorganises the app into three modes — Companion, Workspace, and Network — with a conversation surface and a contextual canvas. Switch back to the multi-pane Workbench anytime in Settings → Appearance or via 'View: Switch layout'.\n",
+      "date_published": "2026-06-29T15:52:19Z",
+      "tags": [
+        "app",
+        "ai"
+      ],
+      "_xnet": {
+        "date": "June 29, 2026",
+        "summary": "New 'Calm' layout (now the default) reorganises the app into three modes — Companion, Workspace, and Network — with a conversation surface and a contextual canvas. Switch back to the multi-pane Workbench anytime in Settings → Appearance or via 'View: Switch layout'.",
+        "highlights": [],
+        "mergedAt": "2026-06-29T15:52:19Z",
+        "pr": 344,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-06-29-pages-load-instantly-on-return-even-on-a",
       "url": "https://xnet.fyi/changelog#2026-06-29-pages-load-instantly-on-return-even-on-a",
       "title": "Pages load instantly on return, even on a cold cache",

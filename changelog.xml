@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>A calmer, conversation-first workspace layout</title>
+      <link>https://xnet.fyi/changelog#2026-06-29-a-calmer-conversation-first-workspace-la</link>
+      <guid isPermaLink="false">2026-06-29-a-calmer-conversation-first-workspace-la</guid>
+      <pubDate>Mon, 29 Jun 2026 15:52:19 GMT</pubDate>
+      <description>New 'Calm' layout (now the default) reorganises the app into three modes — Companion, Workspace, and Network — with a conversation surface and a contextual canvas. Switch back to the multi-pane Workbench anytime in Settings → Appearance or via 'View: Switch layout'.</description>
+    </item>
+    <item>
       <title>Pages load instantly on return, even on a cold cache</title>
       <link>https://xnet.fyi/changelog#2026-06-29-pages-load-instantly-on-return-even-on-a</link>
       <guid isPermaLink="false">2026-06-29-pages-load-instantly-on-return-even-on-a</guid>
