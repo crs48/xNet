@@ -6,14 +6,14 @@
     <atom:link href="https://xnet.fyi/blog/rss.xml" rel="self" type="application/rss+xml" />
     <description>Essays on local-first software, data ownership, and the open web.</description>
     <language>en-us</language>
-    <lastBuildDate>Wed, 01 Jul 2026 15:00:00 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 29 Jun 2026 01:09:07 GMT</lastBuildDate>
     <item>
       <title>The Loom You Can Read</title>
       <link>https://xnet.fyi/blog/the-loom-you-can-read</link>
       <guid isPermaLink="true">https://xnet.fyi/blog/the-loom-you-can-read</guid>
       <description>The Luddites didn&apos;t fear machines — they refused looms they weren&apos;t allowed to open. Follow one note, “Buy milk,” all the way through xNet&apos;s internals: a file on your own disk, a signed change log, a name you mint instead of an account, and a three-line merge that settles conflicts with no server in the middle. A guided tour of a machine you&apos;re allowed to open — written for developers and everyone else at once.</description>
       <author>xNet</author>
-      <pubDate>Wed, 01 Jul 2026 15:00:00 GMT</pubDate>
+      <pubDate>Mon, 29 Jun 2026 01:09:07 GMT</pubDate>
       <category>essay</category>
       <category>protocol</category>
       <category>decentralization</category>
@@ -24,18 +24,7 @@
       <guid isPermaLink="true">https://xnet.fyi/blog/the-forest-and-the-field</guid>
       <description>Industrial farming strips the soil to exhaustion and trucks fertility back in by the ton. Surveillance capitalism does the same to the web. Permaculture is the discipline for growing land that feeds itself — and its principles are, almost furrow for furrow, how you regenerate a digital commons instead of strip-mining one.</description>
       <author>xNet</author>
-      <pubDate>Tue, 30 Jun 2026 15:00:00 GMT</pubDate>
-      <category>essay</category>
-      <category>philosophy</category>
-      <category>nature</category>
-    </item>
-    <item>
-      <title>The Desert That Feeds the Forest</title>
-      <link>https://xnet.fyi/blog/the-desert-that-feeds-the-forest</link>
-      <guid isPermaLink="true">https://xnet.fyi/blog/the-desert-that-feeds-the-forest</guid>
-      <description>Every year a dead desert blows across an ocean and feeds the most alive place on Earth — replacing almost exactly what the rainforest loses. What Saharan dust, the bees nobody watches, and the maintainers nobody thanks teach us about the invisible substrate the open web runs on.</description>
-      <author>xNet</author>
-      <pubDate>Mon, 29 Jun 2026 14:00:00 GMT</pubDate>
+      <pubDate>Sun, 28 Jun 2026 23:39:38 GMT</pubDate>
       <category>essay</category>
       <category>philosophy</category>
       <category>nature</category>
@@ -46,10 +35,21 @@
       <guid isPermaLink="true">https://xnet.fyi/blog/the-right-to-say-no</guid>
       <description>A musician on YouTube argues the economy quietly changed from growth to extraction, and the real prize isn&apos;t your money — it&apos;s your ability to refuse. He&apos;s mostly right. Here&apos;s the part software can actually give back.</description>
       <author>xNet</author>
-      <pubDate>Sun, 28 Jun 2026 19:30:00 GMT</pubDate>
+      <pubDate>Sun, 28 Jun 2026 22:10:50 GMT</pubDate>
       <category>essay</category>
       <category>philosophy</category>
       <category>economics</category>
+    </item>
+    <item>
+      <title>The Desert That Feeds the Forest</title>
+      <link>https://xnet.fyi/blog/the-desert-that-feeds-the-forest</link>
+      <guid isPermaLink="true">https://xnet.fyi/blog/the-desert-that-feeds-the-forest</guid>
+      <description>Every year a dead desert blows across an ocean and feeds the most alive place on Earth — replacing almost exactly what the rainforest loses. What Saharan dust, the bees nobody watches, and the maintainers nobody thanks teach us about the invisible substrate the open web runs on.</description>
+      <author>xNet</author>
+      <pubDate>Sun, 28 Jun 2026 21:46:46 GMT</pubDate>
+      <category>essay</category>
+      <category>philosophy</category>
+      <category>nature</category>
     </item>
     <item>
       <title>The Gentlest Furnace</title>
