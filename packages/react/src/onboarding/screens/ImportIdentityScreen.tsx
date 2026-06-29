@@ -29,10 +29,17 @@ export function ImportIdentityScreen(): JSX.Element {
       </button>
 
       <button
-        className="text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
+        className="text-sm text-muted-foreground hover:text-foreground transition-colors mb-2"
         onClick={() => send({ type: 'ENTER_PHRASE' })}
       >
         Enter recovery phrase
+      </button>
+
+      <button
+        className="text-sm text-muted-foreground hover:text-foreground transition-colors mb-6"
+        onClick={() => send({ type: 'ENTER_GUARDIAN_SHARES' })}
+      >
+        Recover with guardian shares
       </button>
 
       <button
