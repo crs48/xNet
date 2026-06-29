@@ -40,6 +40,9 @@ export interface TaskBoardProps {
   onStatusChange: (change: TaskBoardStatusChange) => void
   onOpenTask?: (taskId: string) => void
   onToggleCompleted?: (taskId: string, completed: boolean) => void
+  /** Pick a status from a card's status glyph (re-buckets the card to that
+   * column). Distinct from drag-to-column, which also restitches sortKey. */
+  onCardStatusChange?: (taskId: string, status: string, completed: boolean) => void
 }
 
 const DEFAULT_STATUSES: TaskStatusId[] = TASK_WORKFLOW_ORDER
@@ -123,7 +126,8 @@ export function TaskBoard({
   statuses = DEFAULT_STATUSES,
   onStatusChange,
   onOpenTask,
-  onToggleCompleted
+  onToggleCompleted,
+  onCardStatusChange
 }: TaskBoardProps) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null)
@@ -141,10 +145,15 @@ export function TaskBoard({
     setActiveTaskId(String(event.active.id))
   }
 
-  // Move a task to a column's end — shared by drag-to-column and the card's
-  // status-glyph dropdown so both land the card identically.
-  const moveToColumn = (taskId: string, status: TaskStatusId) => {
+  const handleDragEnd = (event: DragEndEvent) => {
+    setActiveTaskId(null)
+    const overId = event.over?.id
+    if (typeof overId !== 'string' || !overId.startsWith('column:')) return
+
+    const status = overId.slice('column:'.length) as TaskStatusId
     if (!statuses.includes(status)) return
+
+    const taskId = String(event.active.id)
     const task = tasks.find((candidate) => candidate.id === taskId)
     if (!task || task.status === status) return
 
@@ -159,13 +168,6 @@ export function TaskBoard({
     })
   }
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    setActiveTaskId(null)
-    const overId = event.over?.id
-    if (typeof overId !== 'string' || !overId.startsWith('column:')) return
-    moveToColumn(String(event.active.id), overId.slice('column:'.length) as TaskStatusId)
-  }
-
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="flex h-full gap-3 overflow-x-auto p-3" data-testid="task-board">
@@ -176,7 +178,7 @@ export function TaskBoard({
             tasks={column.tasks}
             onOpenTask={onOpenTask}
             onToggleCompleted={onToggleCompleted}
-            onCardStatusChange={(taskId, status) => moveToColumn(taskId, status as TaskStatusId)}
+            onCardStatusChange={onCardStatusChange}
           />
         ))}
       </div>

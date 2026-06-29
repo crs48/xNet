@@ -921,6 +921,7 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
               onStatusChange={handleStatusChange}
               onOpenTask={handleEditTask}
               onToggleCompleted={handleToggleCompleted}
+              onCardStatusChange={handleRowStatusChange}
             />
           ) : (
             <TaskListGrouped
