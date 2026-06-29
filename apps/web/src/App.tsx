@@ -423,6 +423,10 @@ export function App(): JSX.Element {
           Boolean(hubUrl)
         )
         recordColdStartProbe(coldStart)
+        // Splits the old opaque "identity" boot bucket: this marks the end of
+        // the awaited cold COUNT(*) probe, the first real read on the cold DB
+        // (exploration 0249). If `probe` dominates, the fix is to stop awaiting it.
+        bootMark('sqlite:probe')
         if (looksEvicted(coldStart)) {
           console.warn(
             '[xNet] Local cache is empty and this origin is not persisted — the ' +
@@ -451,6 +455,9 @@ export function App(): JSX.Element {
         const nodeStorage = new SQLiteNodeStorageAdapter(sqliteAdapter)
         const storageAdapter = new SQLiteStorageAdapter(sqliteAdapter)
         await storageAdapter.open()
+        // Boot-phase split (0249): storage adapter is open; what follows up to
+        // identity:ready is blob services + the data-worker port + identity.
+        bootMark('storage:open')
         cleanupStorageAdapter = storageAdapter
 
         const blobStore = new BlobStore(storageAdapter)
@@ -477,6 +484,10 @@ export function App(): JSX.Element {
 
         // Check for existing identity
         const hasIdentity = await identityManager.hasIdentity()
+        // Boot-phase split (0249): everything after this mark up to
+        // identity:ready is the session unlock/resume crypto — so a slow
+        // `identityResume` segment isolates a KDF/unwrap cost from storage I/O.
+        bootMark('identity:checked')
         if (cancelled) {
           await sqliteAdapter.close()
           return

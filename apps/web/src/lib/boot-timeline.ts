@@ -17,6 +17,13 @@ export type BootPhase =
   | 'init:start'
   | 'sqlite:open'
   | 'sqlite:schema'
+  // The span sqlite:schema → identity:ready used to be one opaque "identity"
+  // bucket (9.1 s in the 0249 capture) that actually wraps a cold COUNT(*)
+  // probe, the storage-adapter open, and only then identity unlock. These three
+  // marks split it so the dominant sub-phase is attributable (exploration 0249).
+  | 'sqlite:probe'
+  | 'storage:open'
+  | 'identity:checked'
   | 'identity:ready'
   | 'store:ready'
   | 'docwarm:ready'
@@ -61,6 +68,9 @@ const BOOT_PHASE_ORDER: readonly BootPhase[] = [
   'init:start',
   'sqlite:open',
   'sqlite:schema',
+  'sqlite:probe',
+  'storage:open',
+  'identity:checked',
   'identity:ready',
   'store:ready',
   'docwarm:ready',
@@ -101,8 +111,20 @@ export interface BootTimeline {
   wasm?: number
   /** Schema apply / migration. */
   schema?: number
-  /** Identity check + unlock/resume. */
+  /**
+   * Identity check + unlock/resume — the FULL sqlite:schema → identity:ready
+   * span, kept for back-compat. The 0249 split below attributes it: the bucket
+   * was a 9.1 s catch-all that also held a cold COUNT(*) probe and storage open.
+   */
   identity?: number
+  /** Cold-start `SELECT COUNT(*) FROM nodes` probe (sqlite:schema → sqlite:probe). */
+  probe?: number
+  /** Storage-adapter open + node-storage construction (sqlite:probe → storage:open). */
+  storageOpen?: number
+  /** Blob services + data-worker port + hasIdentity() (storage:open → identity:checked). */
+  identityCheck?: number
+  /** Session unlock/resume crypto (identity:checked → identity:ready). */
+  identityResume?: number
   /** NodeStore init + data-bridge creation. */
   store?: number
   /**
@@ -125,6 +147,10 @@ export function getBootTimeline(): BootTimeline {
     wasm: bootMeasure('init:start', 'sqlite:open'),
     schema: bootMeasure('sqlite:open', 'sqlite:schema'),
     identity: bootMeasure('sqlite:schema', 'identity:ready'),
+    probe: bootMeasure('sqlite:schema', 'sqlite:probe'),
+    storageOpen: bootMeasure('sqlite:probe', 'storage:open'),
+    identityCheck: bootMeasure('storage:open', 'identity:checked'),
+    identityResume: bootMeasure('identity:checked', 'identity:ready'),
     store: bootMeasure('identity:ready', 'store:ready'),
     docwarm: bootMeasure('store:ready', 'docwarm:ready'),
     connect: bootMeasure('store:ready', 'hub:connected'),

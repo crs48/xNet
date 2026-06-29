@@ -11,6 +11,11 @@ export const BOOT_PHASES = [
   'init:start',
   'sqlite:open',
   'sqlite:schema',
+  // The old single "Identity" segment was a 9 s catch-all; these marks split it
+  // into the cold COUNT(*) probe, storage open, and identity unlock (0249).
+  'sqlite:probe',
+  'storage:open',
+  'identity:checked',
   'identity:ready',
   'store:ready',
   'hub:connected',
@@ -32,7 +37,12 @@ export interface BootSegment {
 const SEGMENT_DEFS: Array<{ label: string; from: BootPhase; to: BootPhase }> = [
   { label: 'WASM init', from: 'init:start', to: 'sqlite:open' },
   { label: 'Schema', from: 'sqlite:open', to: 'sqlite:schema' },
-  { label: 'Identity', from: 'sqlite:schema', to: 'identity:ready' },
+  // Split of the former single "Identity" segment (0249). A boot from before
+  // the split lacks the intermediate marks, so these are simply omitted then.
+  { label: 'Cold probe', from: 'sqlite:schema', to: 'sqlite:probe' },
+  { label: 'Storage open', from: 'sqlite:probe', to: 'storage:open' },
+  { label: 'Identity check', from: 'storage:open', to: 'identity:checked' },
+  { label: 'Identity unlock', from: 'identity:checked', to: 'identity:ready' },
   { label: 'Store', from: 'identity:ready', to: 'store:ready' },
   { label: 'Connect', from: 'store:ready', to: 'hub:connected' },
   { label: 'First sync', from: 'hub:connected', to: 'sync:first' }

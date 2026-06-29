@@ -109,6 +109,20 @@ describe('WorkerScheduler (0228)', () => {
     }
   })
 
+  it('forwards the op detail (SQL text) to the reporter (0249)', async () => {
+    const reports: Array<{ detail?: string }> = []
+    const sched = new WorkerScheduler((r) => reports.push(r))
+    await sched.schedule(
+      'interactive',
+      async () => 1,
+      undefined,
+      'query',
+      'SELECT n.id FROM nodes n'
+    )
+    expect(reports).toHaveLength(1)
+    expect(reports[0].detail).toBe('SELECT n.id FROM nodes n')
+  })
+
   it('does not report coalesced duplicate reads twice (0229)', async () => {
     const reports: unknown[] = []
     const sched = new WorkerScheduler((r) => reports.push(r))
