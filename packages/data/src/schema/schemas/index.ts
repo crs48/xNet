@@ -247,6 +247,7 @@ export {
   revokedSubjects,
   resolveActiveDevices,
   isDeviceAuthorized,
+  deviceRecipientExpander,
   type AccountRecord,
   type DeviceRecord,
   type RecoveryRecord,

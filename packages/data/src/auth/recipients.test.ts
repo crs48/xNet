@@ -2,7 +2,7 @@ import type { Schema } from '../schema/types'
 import type { NodeState } from '../store'
 import type { DID } from '@xnetjs/core'
 import { describe, expect, it, vi } from 'vitest'
-import { defineSchema } from '../schema'
+import { defineSchema, deviceRecipientExpander } from '../schema'
 import { person, relation, text } from '../schema/properties'
 import { allow, role } from './builders'
 import { serializeAuthorization } from './serialize'
@@ -193,6 +193,53 @@ describe('computeRecipients', () => {
     })
 
     expect(new Set(recipients)).toEqual(new Set([OWNER_DID, EDITOR_DID]))
+  })
+})
+
+describe('computeRecipients — account/device re-wrap (0243 P2.3)', () => {
+  const PHONE_DID = 'did:key:z6Mkphone1234567890' as DID
+  const UNRELATED_DID = 'did:key:z6Mkstranger123456' as DID
+  const ACCOUNT = 'xnet:account:alice'
+  const devices = [
+    { account: ACCOUNT, deviceDid: OWNER_DID, status: 'active' },
+    { account: ACCOUNT, deviceDid: PHONE_DID, status: 'active' }
+  ]
+
+  it('expands a creator to every active device of its account (admit grants access)', async () => {
+    const recipients = await computeRecipients(legacySchema(), createNodeState(), {
+      getNode: async () => null,
+      expandDeviceRecipients: deviceRecipientExpander(devices, [])
+    })
+    expect(new Set(recipients)).toEqual(new Set([OWNER_DID, PHONE_DID]))
+  })
+
+  it('drops a revoked device from the re-wrap (revoke removes future access)', async () => {
+    const recipients = await computeRecipients(legacySchema(), createNodeState(), {
+      getNode: async () => null,
+      expandDeviceRecipients: deviceRecipientExpander(devices, [
+        { subject: PHONE_DID, subjectKind: 'device' }
+      ])
+    })
+    expect(new Set(recipients)).toEqual(new Set([OWNER_DID]))
+  })
+
+  it('never leaks across accounts: an unrelated creator expands to itself only', async () => {
+    const recipients = await computeRecipients(
+      legacySchema(),
+      createNodeState({ createdBy: UNRELATED_DID }),
+      {
+        getNode: async () => null,
+        expandDeviceRecipients: deviceRecipientExpander(devices, [])
+      }
+    )
+    expect(recipients).toEqual([UNRELATED_DID])
+  })
+
+  it('is a no-op when no re-wrap function is supplied', async () => {
+    const recipients = await computeRecipients(legacySchema(), createNodeState(), {
+      getNode: async () => null
+    })
+    expect(recipients).toEqual([OWNER_DID])
   })
 })
 
