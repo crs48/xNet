@@ -7,6 +7,7 @@
  * the design-system <Switch>; data atoms (DID, version, hub URL) read mono.
  */
 import { createFileRoute } from '@tanstack/react-router'
+import { serializeShare } from '@xnetjs/identity'
 import { deleteDay, leaveWithEverything } from '@xnetjs/plugins'
 import { useIdentity } from '@xnetjs/react'
 import { SettingRow, SettingsGroup, SettingsPanel, SettingToggle, useTheme } from '@xnetjs/ui'
@@ -912,6 +913,74 @@ function RecoveryPhraseRow() {
   )
 }
 
+/**
+ * Trusted guardians (social recovery, exploration 0243) — the Apple recovery-contact
+ * analogue. Splits the recovery phrase into 3 share codes, any 2 of which recover the
+ * identity, to hand to trusted people. Entirely user-to-user; the cloud never sees them.
+ */
+function GuardianSetupRow() {
+  const [recoverable, setRecoverable] = useState<boolean | null>(null)
+  const [shares, setShares] = useState<string[] | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  useEffect(() => {
+    let active = true
+    void identityManager.isRecoverable().then((r) => {
+      if (active) setRecoverable(r)
+    })
+    return () => {
+      active = false
+    }
+  }, [])
+
+  const generate = useCallback(async () => {
+    setBusy(true)
+    try {
+      const raw = await identityManager.createGuardianShares({ totalShares: 3, threshold: 2 })
+      setShares(raw.map(serializeShare))
+    } catch (err) {
+      console.error('Failed to create guardian shares:', err)
+    } finally {
+      setBusy(false)
+    }
+  }, [])
+
+  // Only meaningful for recoverable identities; the RecoveryPhraseRow already explains
+  // the non-recoverable case, so we stay quiet there.
+  if (recoverable !== true) return null
+
+  return (
+    <SettingRow
+      label="Trusted guardians"
+      description="Split recovery across 3 people; any 2 can help you recover — like Apple's recovery contacts. We never see the shares."
+    >
+      {shares ? (
+        <div className="flex max-w-[300px] flex-col items-end gap-2">
+          <p className="text-right text-[11px] text-ink-3">
+            Give one code to each guardian. Any 2 together can restore your account.
+          </p>
+          {shares.map((code, i) => (
+            <div key={code} className="flex w-full items-center justify-end gap-2">
+              <span className="font-mono text-[10px] text-ink-3">#{i + 1}</span>
+              <button
+                onClick={() => void navigator.clipboard?.writeText(code)}
+                className={QUIET_BUTTON}
+                title={code}
+              >
+                Copy code
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <button onClick={generate} disabled={busy} className={QUIET_BUTTON}>
+          {busy ? 'Generating…' : 'Generate guardian shares'}
+        </button>
+      )}
+    </SettingRow>
+  )
+}
+
 function AccountSettings() {
   const { identity } = useIdentity()
   const [loggingOut, setLoggingOut] = useState(false)
@@ -936,6 +1005,8 @@ function AccountSettings() {
         </SettingRow>
 
         <RecoveryPhraseRow />
+
+        <GuardianSetupRow />
 
         <SettingRow
           label="Log out"

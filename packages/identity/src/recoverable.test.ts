@@ -7,11 +7,13 @@ import {
   didForRecoveryPhrase,
   generateRecoveryPhrase,
   openRecoveryPhrase,
+  parseShare,
   recoveryPhraseToBundle,
   sealRecoveryPhrase,
+  serializeShare,
   validateRecoveryPhrase
 } from './recoverable'
-import { RECOVERY_WORDLIST } from './seed-recovery'
+import { RECOVERY_WORDLIST, createRecoveryShares } from './seed-recovery'
 
 describe('generateRecoveryPhrase', () => {
   it('generates a 24-word phrase from the wordlist by default', () => {
@@ -107,5 +109,21 @@ describe('sealRecoveryPhrase / openRecoveryPhrase', () => {
     const sealed = sealRecoveryPhrase(generateRecoveryPhrase(), key)
     const wrong = new Uint8Array(32).fill(9)
     expect(() => openRecoveryPhrase(sealed, wrong)).toThrow()
+  })
+})
+
+describe('guardian share codes', () => {
+  it('round-trips a share through a copy-pasteable code', () => {
+    const shares = createRecoveryShares(generateRecoveryPhrase(), { totalShares: 3, threshold: 2 })
+    const code = serializeShare(shares[0])
+    expect(code.startsWith('xnet-share:')).toBe(true)
+    expect(parseShare(code)).toEqual(shares[0])
+    // Tolerates surrounding whitespace from copy/paste.
+    expect(parseShare(`  ${code}\n`)).toEqual(shares[0])
+  })
+
+  it('rejects a non-share / malformed code', () => {
+    expect(() => parseShare('hello world')).toThrow()
+    expect(() => parseShare('xnet-share:!!notbase64!!')).toThrow()
   })
 })

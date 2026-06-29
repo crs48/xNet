@@ -77,7 +77,9 @@ export {
   recoveryPhraseToBundle,
   createRecoverableIdentity,
   sealRecoveryPhrase,
-  openRecoveryPhrase
+  openRecoveryPhrase,
+  serializeShare,
+  parseShare
 } from './recoverable'
 
 // Key bundle serialization (new)

@@ -7,6 +7,7 @@
 import { useOnboarding } from './OnboardingProvider'
 import { AuthenticatingScreen } from './screens/AuthenticatingScreen'
 import { AuthErrorScreen } from './screens/AuthErrorScreen'
+import { GuardianRecoveryScreen } from './screens/GuardianRecoveryScreen'
 import { HubConnectScreen, type HubConnectScreenProps } from './screens/HubConnectScreen'
 import { ImportIdentityScreen } from './screens/ImportIdentityScreen'
 import { ReadyScreen } from './screens/ReadyScreen'
@@ -56,6 +57,8 @@ export function OnboardingFlow({ connectToHub, children }: OnboardingFlowProps):
       )
     case 'recovery-phrase':
       return <RecoveryPhraseScreen />
+    case 'guardian-recovery':
+      return <GuardianRecoveryScreen />
     case 'creating-recoverable':
       return <AuthenticatingScreen />
     case 'show-recovery-phrase':

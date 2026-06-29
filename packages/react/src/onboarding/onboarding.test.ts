@@ -213,6 +213,25 @@ describe('Onboarding State Machine', () => {
       s = send(s, { type: 'PASSKEY_FAILED', error: new Error('No synced passkey found') })
       expect(s.state).toBe('auth-error')
     })
+
+    it('guardian recovery: import-identity → guardian-recovery → connecting-hub', () => {
+      let s = createInitialState()
+      s = send(s, { type: 'IMPORT_EXISTING' })
+      s = send(s, { type: 'ENTER_GUARDIAN_SHARES' })
+      expect(s.state).toBe('guardian-recovery')
+
+      // A bad set of shares keeps us on the screen with an error...
+      const error = new Error('Need at least 2 shares')
+      s = send(s, { type: 'IMPORT_FAILED', error })
+      expect(s.state).toBe('guardian-recovery')
+      expect(s.context.error).toBe(error)
+
+      // ...then enough shares reconstruct the identity and advance.
+      const importEvent = makeImportEvent()
+      s = send(s, importEvent)
+      expect(s.state).toBe('connecting-hub')
+      expect(s.context.identity).toBe(importEvent.identity)
+    })
   })
 
   describe('hub connection', () => {

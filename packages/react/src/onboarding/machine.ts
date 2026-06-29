@@ -20,6 +20,7 @@ export type OnboardingState =
   | 'import-identity'
   | 'qr-scan'
   | 'recovery-phrase'
+  | 'guardian-recovery'
   // Creating a recoverable identity (exploration 0243): mint → show the phrase to save.
   | 'creating-recoverable'
   | 'show-recovery-phrase'
@@ -47,6 +48,8 @@ export type OnboardingEvent =
   // Recoverable-identity flow (exploration 0243)
   | { type: 'CREATE_RECOVERABLE' }
   | { type: 'USE_SYNCED_PASSKEY' }
+  | { type: 'ENTER_GUARDIAN_SHARES' }
+  | { type: 'SUBMIT_GUARDIAN_SHARES'; codes: string[] }
   | { type: 'SUBMIT_PHRASE'; phrase: string }
   | { type: 'IMPORT_FAILED'; error: Error }
   | { type: 'RECOVERABLE_CREATED'; identity: Identity; keyBundle: KeyBundle; phrase: string }
@@ -99,7 +102,13 @@ const TRANSITIONS: Partial<
   'import-identity': {
     SCAN_QR: 'qr-scan',
     ENTER_PHRASE: 'recovery-phrase',
+    ENTER_GUARDIAN_SHARES: 'guardian-recovery',
     USE_SYNCED_PASSKEY: 'authenticating',
+    BACK_TO_WELCOME: 'welcome'
+  },
+  'guardian-recovery': {
+    IDENTITY_IMPORTED: 'connecting-hub',
+    IMPORT_FAILED: 'guardian-recovery',
     BACK_TO_WELCOME: 'welcome'
   },
   'qr-scan': {

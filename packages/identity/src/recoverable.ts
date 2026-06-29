@@ -16,7 +16,12 @@
  */
 import type { DID, HybridKeyBundle } from './types'
 import { decryptWithNonce, encryptWithNonce, randomBytes } from '@xnetjs/crypto'
-import { RECOVERY_WORDLIST, createKeyBundleFromSeed, deriveKeysFromSeed } from './seed-recovery'
+import {
+  RECOVERY_WORDLIST,
+  createKeyBundleFromSeed,
+  deriveKeysFromSeed,
+  type RecoveryShare
+} from './seed-recovery'
 
 /** Minimum words a recovery phrase may have (matches `deriveKeysFromSeed`). */
 export const MIN_RECOVERY_PHRASE_WORDS = 12
@@ -121,4 +126,53 @@ export function sealRecoveryPhrase(phrase: string, key: Uint8Array): SealedRecov
 /** Open a sealed phrase. Throws if the key is wrong or the data was tampered with. */
 export function openRecoveryPhrase(sealed: SealedRecoveryPhrase, key: Uint8Array): string {
   return new TextDecoder().decode(decryptWithNonce(sealed.ciphertext, key, sealed.nonce))
+}
+
+// ─── Guardian share codes (social recovery — exploration 0243) ────────────────
+
+const SHARE_PREFIX = 'xnet-share:'
+
+function base64UrlEncode(text: string): string {
+  const bytes = new TextEncoder().encode(text)
+  let binary = ''
+  for (const b of bytes) binary += String.fromCharCode(b)
+  const base64 =
+    typeof btoa === 'function' ? btoa(binary) : Buffer.from(binary, 'binary').toString('base64')
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+
+function base64UrlDecode(code: string): string {
+  const base64 = code.replace(/-/g, '+').replace(/_/g, '/')
+  const binary =
+    typeof atob === 'function' ? atob(base64) : Buffer.from(base64, 'base64').toString('binary')
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  return new TextDecoder().decode(bytes)
+}
+
+/**
+ * Encode a guardian share as a single copy-pasteable code (`xnet-share:<base64url>`),
+ * so a guardian can hold one opaque token rather than a JSON blob.
+ */
+export function serializeShare(share: RecoveryShare): string {
+  return SHARE_PREFIX + base64UrlEncode(JSON.stringify(share))
+}
+
+/** Parse a guardian share code back into a {@link RecoveryShare}. Throws if malformed. */
+export function parseShare(code: string): RecoveryShare {
+  const trimmed = code.trim()
+  if (!trimmed.startsWith(SHARE_PREFIX)) {
+    throw new Error('Not a valid guardian share code')
+  }
+  const parsed = JSON.parse(base64UrlDecode(trimmed.slice(SHARE_PREFIX.length))) as RecoveryShare
+  if (
+    typeof parsed.index !== 'number' ||
+    typeof parsed.share !== 'string' ||
+    typeof parsed.threshold !== 'number' ||
+    typeof parsed.totalShares !== 'number' ||
+    typeof parsed.groupId !== 'string'
+  ) {
+    throw new Error('Malformed guardian share code')
+  }
+  return parsed
 }

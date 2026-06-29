@@ -2,7 +2,12 @@
  * @xnetjs/react/onboarding - React context provider for the onboarding flow
  */
 import type { Identity, KeyBundle } from '@xnetjs/identity'
-import { detectPasskeySupport, createIdentityManager, isTestBypassEnabled } from '@xnetjs/identity'
+import {
+  detectPasskeySupport,
+  createIdentityManager,
+  isTestBypassEnabled,
+  parseShare
+} from '@xnetjs/identity'
 import {
   createContext,
   useContext,
@@ -172,6 +177,30 @@ export function OnboardingProvider({
           .catch((err: unknown) => {
             dispatch({
               type: 'PASSKEY_FAILED',
+              error: err instanceof Error ? err : new Error(String(err))
+            })
+          })
+          .finally(() => {
+            authInFlight.current = false
+          })
+      }
+
+      // Recover from guardian shares (social recovery): reconstruct the phrase from
+      // k-of-n shares, reproduce the same identity, and enroll a local passkey.
+      if (event.type === 'SUBMIT_GUARDIAN_SHARES' && state === 'guardian-recovery') {
+        if (authInFlight.current) return
+        authInFlight.current = true
+        Promise.resolve()
+          .then(() => {
+            const shares = event.codes.map((code) => parseShare(code))
+            return manager.recoverFromGuardianShares(shares)
+          })
+          .then(({ keyBundle }) => {
+            dispatch({ type: 'IDENTITY_IMPORTED', identity: keyBundle.identity, keyBundle })
+          })
+          .catch((err: unknown) => {
+            dispatch({
+              type: 'IMPORT_FAILED',
               error: err instanceof Error ? err : new Error(String(err))
             })
           })
