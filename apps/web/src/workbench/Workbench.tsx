@@ -15,6 +15,7 @@ import { GlobalSearch } from '../components/GlobalSearch'
 import { UndoToastProvider } from '../components/UndoToast'
 import { WinddownOverlay } from '../components/WinddownOverlay'
 import { WorkspaceCommands } from '../components/WorkspaceCommands'
+import { CalmMobile } from './calm/CalmMobile'
 import { CalmShell } from './calm/CalmShell'
 import { useWorkbenchCommands, useZenEscape } from './commands'
 import { ContextPanel } from './ContextPanel'
@@ -117,10 +118,11 @@ export function Workbench({ children }: { children: ReactNode }) {
   return (
     <>
       {layout === 'calm' ? (
-        // Everyperson shell (0250). Compact widths keep MobileShell until the
-        // calm responsive reflow lands (Phase 4); medium/expanded get CalmShell.
+        // Everyperson shell (0250): the same three-mode grammar at every width —
+        // CalmMobile reflows it to a bottom-tab phone layout (Phase 4), CalmShell
+        // is the desktop/tablet composition.
         compact ? (
-          <MobileShell>{children}</MobileShell>
+          <CalmMobile>{children}</CalmMobile>
         ) : (
           <CalmShell>{children}</CalmShell>
         )

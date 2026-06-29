@@ -84,7 +84,11 @@ export function CalmShell({ children }: { children: ReactNode }) {
           <ModeSwitch />
           {listOpen && <ListPane mode={activeMode} />}
           <CalmSurface>{children}</CalmSurface>
-          {canvasOpen && <Canvas />}
+          {canvasOpen && (
+            <div className="h-full min-h-0 w-[var(--canvas-width,24rem)] shrink-0 border-l border-hairline">
+              <Canvas />
+            </div>
+          )}
         </div>
       </div>
     </UndoToastProvider>

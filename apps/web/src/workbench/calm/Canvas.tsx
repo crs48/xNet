@@ -66,10 +66,12 @@ function CanvasContent() {
 }
 
 export function Canvas() {
-  // A plain sizing container: the inner content (ContextPanel inspector or the
-  // content aside) owns the `right` region landmark, so it is never doubled.
+  // Fills its container — the desktop CalmShell wraps this in a fixed-width,
+  // left-bordered column; the mobile bottom Sheet gives it the full width. The
+  // inner content (ContextPanel inspector or the content aside) owns the `right`
+  // region landmark, so it is never doubled.
   return (
-    <div className="flex h-full min-h-0 w-[var(--canvas-width,24rem)] shrink-0 flex-col border-l border-hairline bg-surface-1">
+    <div className="flex h-full min-h-0 w-full flex-col bg-surface-1">
       <CanvasContent />
     </div>
   )
