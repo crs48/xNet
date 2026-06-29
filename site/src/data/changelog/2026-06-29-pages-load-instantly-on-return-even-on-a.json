@@ -1,0 +1,8 @@
+{
+  "id": "2026-06-29-pages-load-instantly-on-return-even-on-a",
+  "date": "June 29, 2026",
+  "title": "Pages load instantly on return, even on a cold cache",
+  "summary": "Returning to xNet now paints your recent pages, databases and canvases from a local snapshot in well under a second, instead of waiting on the first cold database read.",
+  "highlights": [],
+  "tags": ["performance", "app"]
+}
