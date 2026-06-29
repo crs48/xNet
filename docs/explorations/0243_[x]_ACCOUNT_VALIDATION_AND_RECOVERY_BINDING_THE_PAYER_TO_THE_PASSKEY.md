@@ -517,11 +517,18 @@ async function admitDevice(account: AccountLedger, existing: KeyBundle, newDevic
       read path for single-DID bindings.
 - [x] **P2.3** Implement `admitDevice` / `revokeDevice` with content-key re-wrap via
       `computeRecipients` / sealed box.
-- [ ] **P3.1** (Opt-in) Implement WorkOS-gated KMS key-escrow for the account recovery
-      key; default off; full consent + audit logging. **Design note (decide before
-      building):** [`docs/plans/0243-p3-escrow-design.md`](../plans/0243-p3-escrow-design.md)
-      — threat model, key custody, blast radius if WorkOS is compromised, mitigations
-      (A+C+D+E floor, B offered), and the go/no-go open questions.
+- [x] **P3.1 — DECISION: custodial escrow evaluated and _declined_.** A WorkOS-gated KMS
+      escrow that lets the cloud recover from a login alone would make xNet _coercible_
+      (a subpoena or a compromised WorkOS account reaches the data) — the opposite of this
+      exploration's guarantee. Following the Apple model
+      ([design note](../plans/0243-p3-escrow-design.md): ADP holds no key, recovery via a
+      user-held key + recovery _contacts_), we shipped the non-coercible alternative
+      instead — **social recovery / trusted guardians** (Shamir; PRs #337/#339/#341),
+      where recovery is entirely user-to-user and the cloud is never involved. A
+      privacy-preserving escrow _engine_ (PR #335, `@xnetjs/identity` `escrow.ts` +
+      `@xnetjs/cloud/escrow`) is in place for a future _Apple-grade_ design (ZK-PIN +
+      rate-limiting HSM) should a concrete managed/enterprise need ever arise; the naive
+      custodial variant is intentionally **not** built.
 
 ## Validation Checklist
 
@@ -543,6 +550,27 @@ async function admitDevice(account: AccountLedger, existing: KeyBundle, newDevic
       removes future access; the ledger is signed and tamper-evident.
 - [x] (P3) Escrow is unreachable without a verified WorkOS session and is absent unless
       explicitly enabled; every use is logged.
+
+## Resolution (what shipped)
+
+Delivered across 17 PRs (#318, #320, #322, #324, #327, #328, #329, #330, #331, #333,
+#334, #335, #336, #337, #339, #341):
+
+- **Validation & linking** — a real Ed25519 DID-challenge verifier over a single-use,
+  server-issued nonce; `completeRebind` routing; dashboard account recovery; and the
+  tenant binding pinned to a **stable account root** instead of one device DID.
+- **Data-side recovery** — the user's actual ask, made real and non-custodial: a
+  **recovery phrase**, **synced-passkey** recovery, configurable **trusted-guardian
+  social recovery** (Shamir), and Settings to view/save them.
+- **Account/device ledger (0149)** — `AccountRecord` / `DeviceRecord` / `RecoveryRecord`
+  / `RevocationRecord` schemas + operations, and **content-key re-wrap** so admitting a
+  device grants data access and revoking removes it.
+- **Escrow** — a privacy-preserving _engine_ (cloud can't read alone) plus a design note
+  that, following Apple's model, **declines custodial escrow** in favour of the
+  non-coercible social recovery above. xNet holds no key it could be compelled to use.
+
+The one item this exploration consciously did **not** build is the naive custodial
+escrow; that is the intended outcome, recorded under P3.1, not an omission.
 
 ## References
 
