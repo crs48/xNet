@@ -557,56 +557,56 @@ Comparison table (post-ready fallback / inclusion):
 
 ## Implementation Checklist
 
-- [ ] Confirm slug `the-tip-of-the-hook`, title "The Tip of the Hook", tags
+- [x] Confirm slug `the-tip-of-the-hook`, title "The Tip of the Hook", tags
       `['essay','protocol','decentralization']` with maintainer; pick a
       `pubDate` just after #7 so it sorts newest-first.
-- [ ] Add `site/src/components/blog/HookArt.astro` — full-bleed inline SVG in
+- [x] Add `site/src/components/blog/HookArt.astro` — full-bleed inline SVG in
       the iceberg motif (small lit tip above a waterline, a large faceted mass
       below with faint "machinery" strata, the cosmic-X as the brightest
       element in the deep). Mirror `LoomArt.astro`'s `class` prop + gradients.
-- [ ] Add `site/src/components/blog/HookHero.astro` — layers
+- [x] Add `site/src/components/blog/HookHero.astro` — layers
       title/deck/date/tags over `HookArt` (clone `LoomHero.astro`).
-- [ ] Author `site/src/pages/blog/the-tip-of-the-hook.astro` following the
+- [x] Author `site/src/pages/blog/the-tip-of-the-hook.astro` following the
       8-beat spine, with `kw/ty/fn/st/cm` helpers, ≈6 `CodeFigure` panels
       inside `Peek`, and the 4 `Mermaid` diagrams above.
-- [ ] Verify every code excerpt against its source file at author time and
+- [x] Verify every code excerpt against its source file at author time and
       keep each ≤ ~12 lines (hooks, `defineSchema`, `QuerySubscription`,
       pragmas, scheduler).
-- [ ] Add the `BlogPost` entry to `site/src/data/blog.ts` (slug, title,
+- [x] Add the `BlogPost` entry to `site/src/data/blog.ts` (slug, title,
       description/deck, pubDate, author `'xNet'`, tags, `readingMinutes`).
-- [ ] Register `HookArt` for the slug in the `heroArt` map in
+- [x] Register `HookArt` for the slug in the `heroArt` map in
       `site/src/pages/blog/index.astro`.
-- [ ] Add a "Sources" list (Ink & Switch local-first; Replicache/Zero;
+- [x] Add a "Sources" list (Ink & Switch local-first; Replicache/Zero;
       Convex/Instant; ElectricSQL/PowerSync; WatermelonDB; React
       `useSyncExternalStore`; SQLite-WASM/OPFS; Comlink) + companion-essay
       link to `/blog/the-loom-you-can-read` and `/build-with`, `/app`,
       `/docs/*`.
-- [ ] Add an explicit honesty note on `live`/`stream` modes being
+- [x] Add an explicit honesty note on `live`/`stream` modes being
       scaffolded-not-active and "live" meaning local-store-driven.
-- [ ] Confirm no changeset is needed (site content, not a publishable
+- [x] Confirm no changeset is needed (site content, not a publishable
       `packages/*`) via `scripts/changeset/publishable-pathspec.mjs`.
 
 ## Validation Checklist
 
-- [ ] `pnpm --filter site build` succeeds (runs `validate:*` + `astro build`);
+- [x] `pnpm --filter site build` succeeds (runs `validate:*` + `astro build`);
       the page, the index card, and the RSS item all render.
-- [ ] The post appears in `publishedPosts()` ordering (newest-first, on top)
+- [x] The post appears in `publishedPosts()` ordering (newest-first, on top)
       and in `/blog/rss.xml`.
-- [ ] All four Mermaid diagrams render in **both** light and dark mode with no
+- [x] All four Mermaid diagrams render in **both** light and dark mode with no
       contrast failures and no layout shift; if `quadrantChart` misrenders,
       the comparison table is used instead.
-- [ ] Code panels are syntax-highlighted, horizontally scroll on mobile, and
+- [x] Code panels are syntax-highlighted, horizontally scroll on mobile, and
       every `Peek` is collapsible — reading the spine with all panels closed
       yields a coherent piece.
-- [ ] A developer finds the `useQuery`/`useMutate` usage, the `defineSchema`
+- [x] A developer finds the `useQuery`/`useMutate` usage, the `defineSchema`
       authz block, the `QuerySubscription` contract, the OPFS/pragma lines, and
       the scheduler lanes accurate to current source.
-- [ ] No overclaim: liveness is described as local-store-driven; `live`/
+- [x] No overclaim: liveness is described as local-store-driven; `live`/
       `stream` hub-push is stated as not-yet-active; the kernel is an LWW
       signed change log (not a CRDT).
-- [ ] Internal links (`/app`, `/build-with`, `/blog/the-loom-you-can-read`,
+- [x] Internal links (`/app`, `/build-with`, `/blog/the-loom-you-can-read`,
       `/docs/*`) resolve; the External-Research comparison is fair and current.
-- [ ] en-GB spelling throughout; `readingMinutes` matches the final draft.
+- [x] en-GB spelling throughout; `readingMinutes` matches the final draft.
 
 ## References
 
