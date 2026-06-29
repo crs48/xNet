@@ -419,7 +419,14 @@ export {
   type RecoveryRecord,
   type RevocationRecord,
   type DeviceLike,
-  type RevocationLike
+  type RevocationLike,
+  createAccountRecord,
+  admitDeviceRecord,
+  revokeSubjectRecord,
+  revokeDeviceRecord,
+  accountState,
+  nextEpoch,
+  type LedgerNodeIntent
 } from './schemas'
 export { SavedViewSchema, type SavedView } from './schemas'
 export {
