@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
   MemoryBindingStore,
+  accountSubjectForDid,
   bindIdentities,
+  bindingAccount,
   completeRebind,
   recoverPaidAccount,
   type DidChallenge
@@ -91,6 +93,44 @@ describe('recoverPaidAccount + completeRebind', () => {
     const store = new MemoryBindingStore()
     await expect(recoverPaidAccount(store, { billingUserId: 'nobody' })).rejects.toThrow(
       /No tenant bound/
+    )
+  })
+
+  it('pins a stable account root that survives recovery + rebind (0243 Phase 2)', async () => {
+    const store = new MemoryBindingStore()
+    const bound = await bindIdentities(store, accept, {
+      tenantId: 't1',
+      billingUserId: 'user_a',
+      challenge: challenge('did:key:old')
+    })
+    const account = accountSubjectForDid('did:key:old')
+    expect(bound.account).toBe(account)
+
+    await recoverPaidAccount(store, { billingUserId: 'user_a' })
+    const cleared = await store.get('t1')
+    // The DID is gone but the account root is pinned for the rebind.
+    expect(cleared?.did).toBe('')
+    expect(cleared?.account).toBe(account)
+
+    const rebound = await completeRebind(store, accept, {
+      tenantId: 't1',
+      billingUserId: 'user_a',
+      challenge: challenge('did:key:new')
+    })
+    // The device DID changed; the account root did NOT.
+    expect(rebound.did).toBe('did:key:new')
+    expect(rebound.account).toBe(account)
+    expect(rebound.account).not.toBe(accountSubjectForDid('did:key:new'))
+  })
+
+  it('bindingAccount derives the account for legacy bindings without the field', () => {
+    expect(accountSubjectForDid('did:key:z6Mkabc')).toBe('xnet:account:z6Mkabc')
+    // A binding written before the `account` field existed still resolves.
+    expect(bindingAccount({ account: undefined, did: 'did:key:z6Mkabc' })).toBe(
+      'xnet:account:z6Mkabc'
+    )
+    expect(bindingAccount({ account: 'xnet:account:custom', did: 'did:key:other' })).toBe(
+      'xnet:account:custom'
     )
   })
 

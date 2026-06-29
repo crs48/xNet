@@ -34,13 +34,36 @@ export interface TenantBinding {
   tenantId: string
   /** WorkOS user id (custodial billing identity). */
   billingUserId: string
-  /** Bound data identity; empty string while a rebind is pending after recovery. */
+  /**
+   * Stable account subject (`xnet:account:…`) that owns the data — the 0149 account
+   * root. Unlike {@link did} it survives a recovery/rebind, so the billing identity
+   * pins to the *account*, not a single device key (exploration 0243, Phase 2).
+   * Optional only for back-compat with bindings written before this field existed;
+   * use {@link bindingAccount} to read it (it falls back to deriving from `did`).
+   */
+  account?: string
+  /** Currently-bound device DID; empty string while a rebind is pending after recovery. */
   did: string
   createdAt: number
   /** Last time BOTH proofs were verified together. */
   verifiedAt: number
   /** True after `recoverPaidAccount` until a new DID is bound via `completeRebind`. */
   rebindPending: boolean
+}
+
+/**
+ * Derive a stable account subject from a device DID. Computed once at first bind and
+ * then persisted on the binding, so it stays fixed even as the bound `did` changes
+ * across a recovery/rebind. (A future ledger-backed account can reconcile to this id.)
+ */
+export function accountSubjectForDid(did: string): string {
+  const key = did.startsWith('did:key:') ? did.slice('did:key:'.length) : did
+  return `xnet:account:${key}`
+}
+
+/** The binding's account subject, deriving it from `did` for legacy bindings. */
+export function bindingAccount(binding: Pick<TenantBinding, 'account' | 'did'>): string {
+  return binding.account || accountSubjectForDid(binding.did)
 }
 
 export interface BindingStore {
@@ -102,6 +125,8 @@ export async function bindIdentities(
   const binding: TenantBinding = {
     tenantId: args.tenantId,
     billingUserId: args.billingUserId,
+    // Stable across future rebinds: keep an existing account, else derive from this DID.
+    account: existing?.account ?? accountSubjectForDid(args.challenge.did),
     did: args.challenge.did,
     createdAt: existing?.createdAt ?? ts,
     verifiedAt: ts,
@@ -125,6 +150,8 @@ export async function recoverPaidAccount(
   if (!binding) throw new Error('No tenant bound to this billing account')
   const recovered: TenantBinding = {
     ...binding,
+    // Pin the account before clearing the DID so the rebind keeps the same root.
+    account: bindingAccount(binding),
     did: '',
     rebindPending: true,
     verifiedAt: now(args.nowMs)
@@ -155,6 +182,8 @@ export async function completeRebind(
   }
   const rebound: TenantBinding = {
     ...binding,
+    // Keep the stable account (set at first bind / recovery); only the device DID changes.
+    account: binding.account ?? accountSubjectForDid(args.challenge.did),
     did: args.challenge.did,
     rebindPending: false,
     verifiedAt: now(args.nowMs)

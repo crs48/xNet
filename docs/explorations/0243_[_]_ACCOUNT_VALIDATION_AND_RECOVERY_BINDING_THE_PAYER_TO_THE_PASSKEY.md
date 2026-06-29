@@ -513,7 +513,7 @@ async function admitDevice(account: AccountLedger, existing: KeyBundle, newDevic
       `discoverExistingPasskey` / `unlockDiscoveredPasskey`.
 - [x] **P2.1** Build the 0149 `Account` / `Device` / `RecoveryMethod` schemas
       (schema-native, signed, synced) with revocation + epochs.
-- [ ] **P2.2** Migrate `TenantBinding.did` → `TenantBinding.account`; keep a back-compat
+- [x] **P2.2** Migrate `TenantBinding.did` → `TenantBinding.account`; keep a back-compat
       read path for single-DID bindings.
 - [ ] **P2.3** Implement `admitDevice` / `revokeDevice` with content-key re-wrap via
       `computeRecipients` / sealed box.

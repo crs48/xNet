@@ -11,6 +11,8 @@ export {
   bindIdentities,
   recoverPaidAccount,
   completeRebind,
+  accountSubjectForDid,
+  bindingAccount,
   type TenantBinding,
   type BindingStore,
   type BindArgs,
