@@ -47,17 +47,20 @@ const SIGNED_BLOCKLIST_FIXTURE = JSON.stringify({
   }
 })
 
-/** Click through the passkey-bypass onboarding into the workbench. */
+/** Click through the passkey-bypass onboarding into the shell. */
 async function advanceOnboarding(page: Page): Promise<void> {
-  const rail = page.locator('nav button[aria-label="Discover people"]')
+  // Shell-neutral readiness signal: the home surface's "All Documents" heading
+  // renders in both the workbench and the calm shell (0250), so this works
+  // regardless of the active layout default.
+  const ready = page.getByRole('heading', { name: /all documents/i })
   for (let i = 0; i < 10; i++) {
-    if ((await rail.count()) > 0) return
+    if ((await ready.count()) > 0) return
     const start = page.getByRole('button', { name: /Get started/i })
     if ((await start.count()) > 0 && (await start.first().isVisible())) {
       await start.first().click()
       await page.waitForTimeout(1500)
       // The sqlite worker often times out on first headless load; one reload
-      // settles it into the authenticated workbench (see worktree render recipe).
+      // settles it into the authenticated shell (see worktree render recipe).
       await page.reload({ waitUntil: 'domcontentloaded' })
     } else {
       await page.waitForTimeout(800)
@@ -65,16 +68,41 @@ async function advanceOnboarding(page: Page): Promise<void> {
   }
 }
 
+/**
+ * Open a people/social surface from whichever primary nav the active shell
+ * shows: the workbench Rail (a direct icon) or the calm shell's ModeSwitch →
+ * Network mode, then the Network list entry (0250). Keeps this spec green under
+ * either layout default.
+ */
+async function openSocialSurface(
+  page: Page,
+  r:
+    | { railLabel: 'Discover people'; calmHome: true }
+    | { railLabel: 'Requests'; calmHome: false; calmLink: RegExp }
+): Promise<void> {
+  const railButton = page.locator(`nav button[aria-label="${r.railLabel}"]`)
+  if ((await railButton.count()) > 0) {
+    await railButton.first().click()
+    return
+  }
+  // Calm shell: enter Network mode (lands on Discover), then click the list
+  // entry if a deeper surface was requested.
+  await page.locator('nav button[aria-label="Network"]').first().click()
+  if (!r.calmHome) {
+    await page.getByRole('link', { name: r.calmLink }).first().click()
+  }
+}
+
 test.describe('Discovery + safety UI (0176)', () => {
   test.skip(({ browserName, isMobile }) => browserName === 'webkit' || isMobile)
 
-  test('Discover is reachable from the Rail and renders the matching surface', async ({ page }) => {
+  test('Discover is reachable from the primary nav and renders the matching surface', async ({
+    page
+  }) => {
     await setupTestAuth(page)
     await advanceOnboarding(page)
 
-    const discover = page.locator('nav button[aria-label="Discover people"]')
-    await expect(discover).toBeVisible()
-    await discover.click()
+    await openSocialSurface(page, { railLabel: 'Discover people', calmHome: true })
 
     await expect(page.getByRole('heading', { name: /Discover people/i })).toBeVisible()
     await expect(page.getByRole('heading', { name: /Your matching profile/i })).toBeVisible()
@@ -132,13 +160,15 @@ test.describe('Discovery + safety UI (0176)', () => {
     await expect(page.getByRole('button', { name: 'Remove' })).toBeVisible()
   })
 
-  test('the Requests inbox is reachable from the Rail (first-contact)', async ({ page }) => {
+  test('the Requests inbox is reachable from the primary nav (first-contact)', async ({ page }) => {
     await setupTestAuth(page)
     await advanceOnboarding(page)
 
-    const requests = page.locator('nav button[aria-label="Requests"]')
-    await expect(requests).toBeVisible()
-    await requests.click()
+    await openSocialSurface(page, {
+      railLabel: 'Requests',
+      calmHome: false,
+      calmLink: /Requests/i
+    })
     await expect(page.getByRole('heading', { name: /Message requests/i })).toBeVisible()
   })
 

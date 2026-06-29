@@ -58,6 +58,10 @@ const COVERED = new Set([
 // reason (or the comment) should be a conscious act, reviewed alongside the code.
 const WAIVED = new Map([
   ['analytics', 'usage analytics is a web/cloud surface, not a desktop workflow'],
+  [
+    'companion',
+    'companion agent surface is part of the web calm shell (0250); not yet wired into the desktop renderer'
+  ],
   ['channel', 'chat/comms not yet ported to desktop (no apps/electron comms layer)'],
   ['crm', 'CRM is a web-first business surface; desktop stays canvas/page/db focused'],
   ['dashboard', 'dashboard builder is web-first; deferred on desktop'],

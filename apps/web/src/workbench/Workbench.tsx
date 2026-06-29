@@ -15,6 +15,7 @@ import { GlobalSearch } from '../components/GlobalSearch'
 import { UndoToastProvider } from '../components/UndoToast'
 import { WinddownOverlay } from '../components/WinddownOverlay'
 import { WorkspaceCommands } from '../components/WorkspaceCommands'
+import { CalmShell } from './calm/CalmShell'
 import { useWorkbenchCommands, useZenEscape } from './commands'
 import { ContextPanel } from './ContextPanel'
 import { EditorArea } from './EditorArea'
@@ -112,9 +113,18 @@ function WorkbenchDemoBanner() {
  */
 export function Workbench({ children }: { children: ReactNode }) {
   const compact = useIsCompact()
+  const layout = useWorkbench((state) => state.layout)
   return (
     <>
-      {compact ? (
+      {layout === 'calm' ? (
+        // Everyperson shell (0250). Compact widths keep MobileShell until the
+        // calm responsive reflow lands (Phase 4); medium/expanded get CalmShell.
+        compact ? (
+          <MobileShell>{children}</MobileShell>
+        ) : (
+          <CalmShell>{children}</CalmShell>
+        )
+      ) : compact ? (
         <MobileShell>{children}</MobileShell>
       ) : (
         <DesktopWorkbench>{children}</DesktopWorkbench>

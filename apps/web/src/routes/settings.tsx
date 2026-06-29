@@ -15,6 +15,8 @@ import {
   Palette,
   Database,
   Info,
+  LayoutGrid,
+  MessageSquare,
   Sun,
   Moon,
   Monitor,
@@ -187,10 +189,31 @@ function SettingsPage() {
 function AppearanceSettings() {
   const { theme, setTheme, variant, setVariant, density, setDensity } = useTheme()
   const winddown = useWinddownPreferences()
+  const layout = useWorkbench((state) => state.layout)
+  const setLayout = useWorkbench((state) => state.setLayout)
 
   return (
     <SettingsPanel title="Appearance" description="Customize how xNet looks">
       <SettingsGroup>
+        <SettingRow
+          label="Layout"
+          description="Calm puts a conversation, a list and a contextual canvas up front; Workbench is the multi-pane editor grid"
+        >
+          <div className="flex gap-1.5">
+            <ThemeButton
+              icon={<MessageSquare size={14} strokeWidth={1.5} />}
+              label="Calm"
+              active={layout === 'calm'}
+              onClick={() => setLayout('calm')}
+            />
+            <ThemeButton
+              icon={<LayoutGrid size={14} strokeWidth={1.5} />}
+              label="Workbench"
+              active={layout === 'workbench'}
+              onClick={() => setLayout('workbench')}
+            />
+          </div>
+        </SettingRow>
         <SettingRow label="Theme" description="Choose your preferred color scheme">
           <div className="flex gap-1.5">
             <ThemeButton

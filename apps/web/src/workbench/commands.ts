@@ -45,6 +45,11 @@ export function useWorkbenchCommands(): void {
         run: () => wb().toggleZen()
       }),
       registry.register({
+        id: 'workbench.switchLayout',
+        title: 'View: Switch layout (Calm ↔ Workbench)',
+        run: () => wb().toggleLayout()
+      }),
+      registry.register({
         id: 'workbench.showExplorer',
         title: 'Show explorer',
         run: () => wb().showPanelView('left', 'explorer')
