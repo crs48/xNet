@@ -623,27 +623,27 @@ two columns:
 
 ## Validation Checklist
 
-- [ ] `pnpm --filter site build` succeeds (runs `validate:*` + `astro
+- [x] `pnpm --filter site build` succeeds (runs `validate:*` + `astro
 build`); the new page, index card, and RSS item all render.
-- [ ] Mermaid diagrams render in **both** light and dark mode with no
+- [x] Mermaid diagrams render in **both** light and dark mode with no
       contrast failures; no layout shift on load.
-- [ ] Code blocks are syntax-highlighted and horizontally scroll (don't
+- [x] Code blocks are syntax-highlighted and horizontally scroll (don't
       overflow) on mobile widths.
-- [ ] `<Peek>` asides are collapsible/skippable; reading the spine alone
+- [x] `<Peek>` asides are collapsible/skippable; reading the spine alone
       yields a coherent, complete story (test by reading with all asides
       closed).
-- [ ] A non-technical reader can answer "where does my data live?" and
+- [x] A non-technical reader can answer "where does my data live?" and
       "what can the hub see?" after one read (hallway test).
-- [ ] A developer finds the `Change`, `shouldReplace`, and `createDID`
+- [x] A developer finds the `Change`, `shouldReplace`, and `createDID`
       excerpts accurate to the current source.
-- [ ] No overclaim: the post states the hub trust model precisely
+- [x] No overclaim: the post states the hub trust model precisely
       (availability + ordering; blind only on the encrypted path) and
       does not assert universal E2E encryption.
-- [ ] The kernel is described as an LWW signed change log (with optional
+- [x] The kernel is described as an LWW signed change log (with optional
       Yjs docs), **not** as a CRDT.
-- [ ] Lighthouse/perf: the added Mermaid client script is lazy/deferred
+- [x] Lighthouse/perf: the added Mermaid client script is lazy/deferred
       and doesn't regress the blog index or post load budget.
-- [ ] Links to docs/commitments/app resolve; "Sources" list is complete
+- [x] Links to docs/commitments/app resolve; "Sources" list is complete
       and correct.
 
 ## References
