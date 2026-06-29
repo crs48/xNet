@@ -52,6 +52,16 @@ export interface BlogPost {
 
 export const posts: BlogPost[] = [
   {
+    slug: 'the-loom-you-can-read',
+    title: 'The Loom You Can Read',
+    description:
+      "The Luddites didn't fear machines — they refused looms they weren't allowed to open. Follow one note, “Buy milk,” all the way through xNet's internals: a file on your own disk, a signed change log, a name you mint instead of an account, and a three-line merge that settles conflicts with no server in the middle. A guided tour of a machine you're allowed to open — written for developers and everyone else at once.",
+    pubDate: '2026-07-01T15:00:00Z',
+    author: 'xNet',
+    tags: ['essay', 'protocol', 'decentralization'],
+    readingMinutes: 15
+  },
+  {
     slug: 'the-forest-and-the-field',
     title: 'The Forest and the Field',
     description:

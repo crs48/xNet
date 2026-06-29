@@ -1,0 +1,50 @@
+---
+// A skippable "open the panel" disclosure for the deep-dive post (exploration
+// 0248). The post is two-track: a plain-language spine everyone reads, and
+// optional asides carrying the code and protocol detail. Wrapping each aside in
+// a native <details> means a non-technical reader skims past a closed panel
+// while a developer expands it — no JavaScript, fully collapsible, and the spine
+// stays coherent with every panel closed. Put a <CodeFigure> (or any detail)
+// inside the slot.
+interface Props {
+  /** Summary label. */
+  label?: string
+  /** Open by default (rare — keep the spine clean and let readers opt in). */
+  open?: boolean
+}
+const { label = 'Open the panel — for the curious', open = false } = Astro.props
+---
+
+<details
+  class="peek not-prose group my-7 overflow-hidden rounded-xl border border-indigo-500/25 bg-indigo-500/[0.04] dark:bg-indigo-500/[0.06]"
+  open={open}
+>
+  <summary
+    class="flex cursor-pointer select-none items-center gap-2 px-5 py-3 text-sm font-medium text-indigo-600 transition-colors hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300"
+  >
+    <svg
+      class="h-4 w-4 shrink-0 transition-transform duration-200 group-open:rotate-90"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      aria-hidden="true"
+    >
+      <path stroke-linecap="round" stroke-linejoin="round" d="M9 6l6 6-6 6"></path>
+    </svg>
+    <span>{label}</span>
+  </summary>
+  <div class="px-5 pb-5 pt-1">
+    <slot />
+  </div>
+</details>
+
+<style>
+  /* Hide the native disclosure triangle; we draw our own chevron. */
+  .peek > summary {
+    list-style: none;
+  }
+  .peek > summary::-webkit-details-marker {
+    display: none;
+  }
+</style>
