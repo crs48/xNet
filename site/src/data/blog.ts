@@ -52,6 +52,16 @@ export interface BlogPost {
 
 export const posts: BlogPost[] = [
   {
+    slug: 'the-tip-of-the-hook',
+    title: 'The Tip of the Hook',
+    description:
+      "You write useQuery(TaskSchema) and get a live, local, cryptographically-authorised, syncing database — with no API endpoint, no auth middleware, and no cache to invalidate. A developer's tour of xNet's React hooks on the surface, then a dive beneath the waterline to the SQLite database running in a worker, the priority scheduler, and the signed change log that make “just trust the client” safe. The tip is small on purpose; the iceberg is yours to open.",
+    pubDate: '2026-06-29T17:30:00Z',
+    author: 'xNet',
+    tags: ['essay', 'protocol', 'decentralization'],
+    readingMinutes: 14
+  },
+  {
     slug: 'the-loom-you-can-read',
     title: 'The Loom You Can Read',
     description:
