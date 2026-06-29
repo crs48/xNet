@@ -56,7 +56,7 @@ export const posts: BlogPost[] = [
     title: 'The Loom You Can Read',
     description:
       "The Luddites didn't fear machines — they refused looms they weren't allowed to open. Follow one note, “Buy milk,” all the way through xNet's internals: a file on your own disk, a signed change log, a name you mint instead of an account, and a three-line merge that settles conflicts with no server in the middle. A guided tour of a machine you're allowed to open — written for developers and everyone else at once.",
-    pubDate: '2026-07-01T15:00:00Z',
+    pubDate: '2026-06-29T01:09:07Z',
     author: 'xNet',
     tags: ['essay', 'protocol', 'decentralization'],
     readingMinutes: 15
@@ -66,29 +66,29 @@ export const posts: BlogPost[] = [
     title: 'The Forest and the Field',
     description:
       'Industrial farming strips the soil to exhaustion and trucks fertility back in by the ton. Surveillance capitalism does the same to the web. Permaculture is the discipline for growing land that feeds itself — and its principles are, almost furrow for furrow, how you regenerate a digital commons instead of strip-mining one.',
-    pubDate: '2026-06-30T15:00:00Z',
+    pubDate: '2026-06-28T23:39:38Z',
     author: 'xNet',
     tags: ['essay', 'philosophy', 'nature'],
     readingMinutes: 14
-  },
-  {
-    slug: 'the-desert-that-feeds-the-forest',
-    title: 'The Desert That Feeds the Forest',
-    description:
-      'Every year a dead desert blows across an ocean and feeds the most alive place on Earth — replacing almost exactly what the rainforest loses. What Saharan dust, the bees nobody watches, and the maintainers nobody thanks teach us about the invisible substrate the open web runs on.',
-    pubDate: '2026-06-29T14:00:00Z',
-    author: 'xNet',
-    tags: ['essay', 'philosophy', 'nature'],
-    readingMinutes: 13
   },
   {
     slug: 'the-right-to-say-no',
     title: 'The Right to Say No',
     description:
       "A musician on YouTube argues the economy quietly changed from growth to extraction, and the real prize isn't your money — it's your ability to refuse. He's mostly right. Here's the part software can actually give back.",
-    pubDate: '2026-06-28T19:30:00Z',
+    pubDate: '2026-06-28T22:10:50Z',
     author: 'xNet',
     tags: ['essay', 'philosophy', 'economics'],
+    readingMinutes: 13
+  },
+  {
+    slug: 'the-desert-that-feeds-the-forest',
+    title: 'The Desert That Feeds the Forest',
+    description:
+      'Every year a dead desert blows across an ocean and feeds the most alive place on Earth — replacing almost exactly what the rainforest loses. What Saharan dust, the bees nobody watches, and the maintainers nobody thanks teach us about the invisible substrate the open web runs on.',
+    pubDate: '2026-06-28T21:46:46Z',
+    author: 'xNet',
+    tags: ['essay', 'philosophy', 'nature'],
     readingMinutes: 13
   },
   {
