@@ -21,6 +21,7 @@ function CanvasContent() {
   const closeCanvas = useWorkbench((state) => state.closeCanvas)
   const toggleZen = useWorkbench((state) => state.toggleZen)
 
+  // Inspector face: ContextPanel already renders the `right` region landmark.
   if (!target) return <ContextPanel />
 
   const tab: WorkbenchTab = {
@@ -33,7 +34,7 @@ function CanvasContent() {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-surface-0">
+    <aside data-wb-region="right" className="flex h-full min-h-0 flex-col bg-surface-0">
       <header className="flex h-8 shrink-0 items-center gap-2 border-b border-hairline px-3">
         <span className="min-w-0 flex-1 truncate text-[11px] font-medium uppercase tracking-wider text-ink-2">
           {target.title?.trim() || 'Artifact'}
@@ -60,17 +61,16 @@ function CanvasContent() {
       <div className="min-h-0 flex-1">
         <ViewHost tab={tab} />
       </div>
-    </div>
+    </aside>
   )
 }
 
 export function Canvas() {
+  // A plain sizing container: the inner content (ContextPanel inspector or the
+  // content aside) owns the `right` region landmark, so it is never doubled.
   return (
-    <aside
-      data-wb-region="right"
-      className="flex h-full min-h-0 w-[var(--canvas-width,24rem)] shrink-0 flex-col border-l border-hairline bg-surface-1"
-    >
+    <div className="flex h-full min-h-0 w-[var(--canvas-width,24rem)] shrink-0 flex-col border-l border-hairline bg-surface-1">
       <CanvasContent />
-    </aside>
+    </div>
   )
 }

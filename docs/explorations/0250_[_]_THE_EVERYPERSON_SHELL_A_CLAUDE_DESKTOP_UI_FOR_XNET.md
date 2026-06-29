@@ -579,9 +579,9 @@ function Canvas({ focus }: { focus: boolean }) {
 - [x] **Phase 0:** Scaffold `workbench/calm/Shell.tsx`, `ModeSwitch.tsx`,
   `ListPane.tsx`, `Surface.tsx`, `Canvas.tsx`; branch in
   [`Workbench.tsx`](apps/web/src/workbench/Workbench.tsx).
-- [ ] **Phase 1:** Promote `AiChatPanel` → full Companion surface (threads list,
+- [x] **Phase 1:** Promote `AiChatPanel` → full Companion surface (threads list,
   composer, streaming "thinking" microcopy); reuse `AiAgentRuntime`.
-- [ ] **Phase 1:** `openCanvas(target)` hosts content views via the existing
+- [x] **Phase 1:** `openCanvas(target)` hosts content views via the existing
   `ContextPanel`/`ViewHost` `HOSTED_VIEWS` map; `focus` reuses `zen`.
 - [ ] **Phase 2:** Workspace list (doc/space tree from `Explorer` parts);
   route content views into the surface; metadata → canvas **Inspector** tab.

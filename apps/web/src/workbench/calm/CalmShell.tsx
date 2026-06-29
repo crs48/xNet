@@ -12,7 +12,9 @@
  * and every existing view renders unchanged in the Surface.
  */
 import type { ReactNode } from 'react'
+import { useLocation } from '@tanstack/react-router'
 import { DemoBanner, useDemoMode } from '@xnetjs/react'
+import { useEffect } from 'react'
 import { GlobalSearch } from '../../components/GlobalSearch'
 import { UndoToastProvider } from '../../components/UndoToast'
 import { WorkspaceCommands } from '../../components/WorkspaceCommands'
@@ -22,6 +24,7 @@ import { useWorkbench } from '../state'
 import { CalmSurface } from './CalmSurface'
 import { Canvas } from './Canvas'
 import { ListPane } from './ListPane'
+import { modeForPath } from './modes'
 import { ModeSwitch } from './ModeSwitch'
 
 const CALM_FRAME =
@@ -38,10 +41,21 @@ export function CalmShell({ children }: { children: ReactNode }) {
   useZenEscape()
   useFocusRing()
 
+  const { pathname } = useLocation()
   const mode = useWorkbench((state) => state.mode)
-  const calmMode = useWorkbench((state) => state.calmMode)
+  const storedMode = useWorkbench((state) => state.calmMode)
+  const setCalmMode = useWorkbench((state) => state.setCalmMode)
   const listOpen = useWorkbench((state) => state.left.open)
   const canvasOpen = useWorkbench((state) => state.right.open)
+
+  // The route is authoritative for the active mode (so deep links + back/forward
+  // keep the List and ModeSwitch honest); modeless surfaces (settings) fall back
+  // to the last real mode. Persist that fallback so it survives navigation.
+  const routeMode = modeForPath(pathname)
+  const activeMode = routeMode ?? storedMode
+  useEffect(() => {
+    if (routeMode && routeMode !== storedMode) setCalmMode(routeMode)
+  }, [routeMode, storedMode, setCalmMode])
 
   // Focus (zen): chrome hidden, just the surface — same affordance as the
   // workbench, restored on exit.
@@ -68,7 +82,7 @@ export function CalmShell({ children }: { children: ReactNode }) {
 
         <div className="flex min-h-0 flex-1">
           <ModeSwitch />
-          {listOpen && <ListPane mode={calmMode} />}
+          {listOpen && <ListPane mode={activeMode} />}
           <CalmSurface>{children}</CalmSurface>
           {canvasOpen && <Canvas />}
         </div>
