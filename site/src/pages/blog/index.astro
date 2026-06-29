@@ -2,9 +2,28 @@
 import Base from '../../layouts/Base.astro'
 import Nav from '../../components/sections/Nav.astro'
 import Footer from '../../components/sections/Footer.astro'
+import PirateArt from '../../components/blog/PirateArt.astro'
+import MycelialArt from '../../components/blog/MycelialArt.astro'
+import StarArt from '../../components/blog/StarArt.astro'
+import LeverArt from '../../components/blog/LeverArt.astro'
+import DustArt from '../../components/blog/DustArt.astro'
+import ForestArt from '../../components/blog/ForestArt.astro'
+import LoomArt from '../../components/blog/LoomArt.astro'
 import { publishedPosts, formatPostDate } from '../../data/blog'
 
 const posts = publishedPosts()
+
+// Each post's art-directed hero art doubles as its preview-card header image, so
+// the same inline SVG is single-sourced from the hero's *Art.astro component.
+const heroArt: Record<string, typeof PirateArt> = {
+  'a-great-pirate-age': PirateArt,
+  'data-should-work-like-soil': MycelialArt,
+  'the-gentlest-furnace': StarArt,
+  'the-right-to-say-no': LeverArt,
+  'the-desert-that-feeds-the-forest': DustArt,
+  'the-forest-and-the-field': ForestArt,
+  'the-loom-you-can-read': LoomArt
+}
 ---
 
 <Base
@@ -42,44 +61,54 @@ const posts = publishedPosts()
         </p>
       ) : (
         <ul class="space-y-4">
-          {posts.map((post) => (
-            <li>
-              <a
-                href={`/blog/${post.slug}`}
-                class="group block rounded-2xl border border-border bg-surface/20 p-6 transition-all hover:border-indigo-500/40 hover:bg-surface/40 lg:p-8"
-              >
-                <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-400 dark:text-gray-500">
-                  <time datetime={post.pubDate}>{formatPostDate(post.pubDate)}</time>
-                  <span aria-hidden="true">·</span>
-                  <span>{post.readingMinutes} min read</span>
-                  {post.tags.map((tag) => (
-                    <span class="rounded-full border border-border px-2 py-0.5 font-mono lowercase">
-                      {tag}
+          {posts.map((post) => {
+            const Art = heroArt[post.slug]
+            return (
+              <li>
+                <a
+                  href={`/blog/${post.slug}`}
+                  class="group block overflow-hidden rounded-2xl border border-border bg-surface/20 transition-all hover:border-indigo-500/40 hover:bg-surface/40"
+                >
+                  {Art && (
+                    <div class="relative h-40 w-full overflow-hidden border-b border-border sm:h-48">
+                      <Art class="block h-full w-full transition-transform duration-500 ease-out group-hover:scale-[1.04]" />
+                    </div>
+                  )}
+                  <div class="p-6 lg:p-8">
+                    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-gray-400 dark:text-gray-500">
+                      <time datetime={post.pubDate}>{formatPostDate(post.pubDate)}</time>
+                      <span aria-hidden="true">·</span>
+                      <span>{post.readingMinutes} min read</span>
+                      {post.tags.map((tag) => (
+                        <span class="rounded-full border border-border px-2 py-0.5 font-mono lowercase">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                    <h2 class="mt-3 text-2xl font-bold tracking-tight text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                      {post.title}
+                    </h2>
+                    <p class="mt-2 text-gray-600 dark:text-gray-300 leading-relaxed">
+                      {post.description}
+                    </p>
+                    <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 dark:text-indigo-400">
+                      Read
+                      <svg
+                        class="h-4 w-4 transition-transform group-hover:translate-x-0.5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        stroke-width="2"
+                        aria-hidden="true"
+                      >
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
+                      </svg>
                     </span>
-                  ))}
-                </div>
-                <h2 class="mt-3 text-2xl font-bold tracking-tight text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                  {post.title}
-                </h2>
-                <p class="mt-2 text-gray-600 dark:text-gray-300 leading-relaxed">
-                  {post.description}
-                </p>
-                <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 dark:text-indigo-400">
-                  Read
-                  <svg
-                    class="h-4 w-4 transition-transform group-hover:translate-x-0.5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    stroke-width="2"
-                    aria-hidden="true"
-                  >
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
-                  </svg>
-                </span>
-              </a>
-            </li>
-          ))}
+                  </div>
+                </a>
+              </li>
+            )
+          })}
         </ul>
       )
     }

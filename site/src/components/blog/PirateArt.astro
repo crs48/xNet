@@ -1,0 +1,109 @@
+---
+// Decorative art for the flagship essay (exploration 0239), extracted from
+// PirateHero so the same inline SVG backs both the post hero and the blog-index
+// preview card (no external assets — Self-Audit parity). An xNet "cosmic-X" flag
+// flown over a sea of scattered islands joined by dotted sea-lanes.
+interface Props {
+  /** Override the wrapper classes; defaults to full-bleed for hero use. */
+  class?: string
+}
+const { class: className = 'pointer-events-none absolute inset-0 h-full w-full' } =
+  Astro.props
+
+// A few islands + the sea-lanes that connect a subset of them. Hand-placed so the
+// composition reads as "most islands never connect; some choose to."
+const islands = [
+  { x: 120, y: 250, r: 10 },
+  { x: 250, y: 215, r: 7 },
+  { x: 400, y: 260, r: 13 },
+  { x: 545, y: 225, r: 8 },
+  { x: 680, y: 255, r: 11 },
+  { x: 815, y: 220, r: 7 },
+  { x: 930, y: 250, r: 12 },
+]
+const lanes = [
+  [0, 2],
+  [2, 4],
+  [4, 6],
+  [2, 3],
+]
+---
+
+<svg
+  class={className}
+  viewBox="0 0 1040 340"
+  preserveAspectRatio="xMidYMid slice"
+  aria-hidden="true"
+>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a0a18" />
+      <stop offset="60%" stop-color="#0d1124" />
+      <stop offset="100%" stop-color="#0b1a1f" />
+    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#6366f1" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#6366f1" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="xflag" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#818cf8" />
+      <stop offset="100%" stop-color="#34d399" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1040" height="340" fill="url(#sky)" />
+
+  <!-- starfield -->
+  <g fill="#c7d2fe" opacity="0.7">
+    <circle cx="90" cy="55" r="1.1" />
+    <circle cx="190" cy="95" r="0.9" />
+    <circle cx="300" cy="45" r="1.3" />
+    <circle cx="430" cy="80" r="0.8" />
+    <circle cx="560" cy="50" r="1.1" />
+    <circle cx="700" cy="90" r="0.9" />
+    <circle cx="820" cy="40" r="1.2" />
+    <circle cx="950" cy="75" r="1" />
+    <circle cx="640" cy="120" r="0.7" />
+    <circle cx="370" cy="130" r="0.7" />
+  </g>
+
+  <!-- sea-lanes between a subset of islands -->
+  <g stroke="#475569" stroke-width="1.5" stroke-dasharray="3 6" fill="none" opacity="0.8">
+    {
+      lanes.map(([a, b]) => (
+        <line x1={islands[a].x} y1={islands[a].y} x2={islands[b].x} y2={islands[b].y} />
+      ))
+    }
+  </g>
+
+  <!-- islands -->
+  <g>
+    {
+      islands.map((i) => (
+        <g>
+          <ellipse cx={i.x} cy={i.y + i.r * 0.6} rx={i.r * 1.6} ry={i.r * 0.5} fill="#0f172a" />
+          <path
+            d={`M ${i.x - i.r * 1.5} ${i.y + i.r * 0.6} Q ${i.x} ${i.y - i.r} ${i.x + i.r * 1.5} ${i.y + i.r * 0.6} Z`}
+            fill="#1e293b"
+          />
+        </g>
+      ))
+    }
+  </g>
+
+  <!-- horizon sea -->
+  <rect x="0" y="290" width="1040" height="50" fill="#0b1a1f" />
+  <line x1="0" y1="290" x2="1040" y2="290" stroke="#1e3a3a" stroke-width="1" />
+
+  <!-- foreground: a flagpole flying the cosmic-X -->
+  <g transform="translate(150 150)">
+    <circle cx="40" cy="20" r="70" fill="url(#glow)" opacity="0.5" />
+    <rect x="-2" y="-30" width="4" height="200" fill="#334155" />
+    <path d="M 2 -28 L 96 0 L 2 56 Z" fill="#0f172a" stroke="#1e293b" stroke-width="1" />
+    <!-- the X mark on the flag -->
+    <g transform="translate(30 -6)" stroke="url(#xflag)" stroke-width="6" stroke-linecap="round">
+      <line x1="0" y1="0" x2="28" y2="34" />
+      <line x1="28" y1="0" x2="0" y2="34" />
+    </g>
+  </g>
+</svg>
