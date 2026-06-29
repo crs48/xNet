@@ -1,0 +1,543 @@
+---
+import Base from '../../layouts/Base.astro'
+import Nav from '../../components/sections/Nav.astro'
+import Footer from '../../components/sections/Footer.astro'
+import LoomHero from '../../components/blog/LoomHero.astro'
+import Mermaid from '../../components/blog/Mermaid.astro'
+import CodeFigure from '../../components/blog/CodeFigure.astro'
+import Peek from '../../components/blog/Peek.astro'
+import TrustBoundary from '../../components/blog/TrustBoundary.astro'
+import HonestMachine from '../../components/blog/HonestMachine.astro'
+import { postBySlug, formatPostDate } from '../../data/blog'
+
+const post = postBySlug('the-loom-you-can-read')!
+
+// --- syntax highlighting helpers (same tok-* idiom as the landing page's
+//     CodeBlock; coloured by the CSS variables in Base.astro). Literal `<`, `>`
+//     and `&` in code are written as entities so set:html renders them safely.
+const kw = (s: string) => `<span class="tok-keyword">${s}</span>`
+const ty = (s: string) => `<span class="tok-type">${s}</span>`
+const fn = (s: string) => `<span class="tok-function">${s}</span>`
+const st = (s: string) => `<span class="tok-string">${s}</span>`
+const cm = (s: string) => `<span class="tok-comment">${s}</span>`
+
+// §2 — the atom. Trimmed from packages/sync/src/change.ts
+const changeCode = [
+  `${kw('export')} ${kw('interface')} ${ty('Change')}&lt;${ty('T')} = ${ty('unknown')}&gt; {`,
+  `  id: ${ty('string')}  ${cm('// a unique id for this edit')}`,
+  `  payload: ${ty('T')}  ${cm('// just the fields that changed')}`,
+  `  hash: ${ty('ContentId')}  ${cm('// &quot;cid:blake3:…&quot; — this edit&rsquo;s fingerprint')}`,
+  `  parentHash: ${ty('ContentId')} | ${ty('null')}  ${cm('// the previous edit&rsquo;s fingerprint')}`,
+  `  authorDID: ${ty('DID')}  ${cm('// who made it')}`,
+  `  signature: ${ty('Uint8Array')}  ${cm('// Ed25519 — proof it was them')}`,
+  `  lamport: ${ty('number')}  ${cm('// a logical clock, for ordering')}`,
+  `}`
+].join('\n')
+
+// §2 — sealing the receipt. From signChange() in packages/sync/src/change.ts
+const signCode = [
+  `${kw('const')} hash = ${fn('computeChangeHash')}(unsigned)  ${cm('// canonical JSON → BLAKE3')}`,
+  `${kw('const')} signature = ${fn('sign')}(${fn('toBytes')}(hash), signingKey)  ${cm('// Ed25519, deterministic')}`,
+  `${kw('return')} { ...unsigned, hash, signature }`
+].join('\n')
+
+// §3 — minting a name. From createDID() in packages/identity/src/did.ts
+const didCode = [
+  `${kw('const')} ED25519_PREFIX = ${kw('new')} ${ty('Uint8Array')}([0xed, 0x01])`,
+  ``,
+  `${kw('export')} ${kw('function')} ${fn('createDID')}(publicKey: ${ty('Uint8Array')}): ${ty('DID')} {`,
+  `  ${kw('const')} bytes = ${kw('new')} ${ty('Uint8Array')}([...ED25519_PREFIX, ...publicKey])`,
+  `  ${kw('return')} (${st("'did:key:'")} + ${fn('base58btc.encode')}(bytes)) ${kw('as')} ${ty('DID')}  ${cm('// did:key:z6Mk…')}`,
+  `}`
+].join('\n')
+
+// §4 — the rule that decides, with no referee. packages/data/src/store/store.ts
+const lwwCode = [
+  `${fn('shouldReplace')}(existing, incoming): ${ty('boolean')} {`,
+  `  ${kw('if')} (incoming.lamport  !== existing.lamport)  ${kw('return')} incoming.lamport  &gt; existing.lamport`,
+  `  ${kw('if')} (incoming.wallTime !== existing.wallTime) ${kw('return')} incoming.wallTime &gt; existing.wallTime`,
+  `  ${kw('return')} incoming.author &gt; existing.author  ${cm('// last resort: compare the keys themselves')}`,
+  `}`
+].join('\n')
+
+// §6 — a golden vector every implementation must reproduce, byte for byte.
+const vectorCode = [
+  `{`,
+  `  ${ty('"description"')}: ${st('"first change for a Page node"')},`,
+  `  ${ty('"expected"')}: {`,
+  `    ${ty('"hash"')}: ${st('"cid:blake3:76fdfa20…626cb980"')},`,
+  `    ${ty('"signatureBase64"')}: ${st('"UcVsz+shSANm…5yE2AQ=="')}`,
+  `  }`,
+  `}`
+].join('\n')
+
+// --- mermaid diagram sources (rendered client-side by <Mermaid>) ---
+const cloudVsLocal = `flowchart LR
+  subgraph CLOUD["The usual way — cloud-first"]
+    direction TB
+    U1["You type"] -->|"round-trip"| S["A company server<br/>(the real copy)"]
+    S -->|"if online"| V1["Your screen"]
+    S --> K["They keep a copy<br/>they can read and lock"]
+  end
+  subgraph LOCAL["xNet — local-first"]
+    direction TB
+    U2["You type"] --> DB["SQLite on your disk<br/>(the real copy)"]
+    DB --> V2["Your screen — instant, offline"]
+    DB -.->|"later, optional"| H["A hub<br/>(may not even be able to read it)"]
+  end`
+
+const hashChain = `flowchart LR
+  C1["Edit #1<br/>hash a1b2<br/>parent: none"] --> C2["Edit #2<br/>hash c3d4<br/>parent a1b2"]
+  C2 --> C3["Edit #3<br/>hash e5f6<br/>parent c3d4"]
+  C3 -.-> N["Change any past edit and its hash changes,<br/>so every later edit&rsquo;s parent link breaks.<br/>Tampering is obvious."]`
+
+const mergeSeq = `sequenceDiagram
+  participant L as Laptop (offline)
+  participant H as Hub (relay)
+  participant P as Phone (offline)
+  L->>L: rename note to "Groceries" (lamport 7)
+  P->>P: rename note to "Shopping" (lamport 7)
+  Note over L,P: both come back online
+  L->>H: signed change — title = "Groceries"
+  P->>H: signed change — title = "Shopping"
+  H-->>P: deliver the laptop's change
+  H-->>L: deliver the phone's change
+  Note over L,P: the same 3-line rule runs on BOTH devices —<br/>lamport ties, wallTime ties, higher key wins —<br/>both land on the same title, with no server vote`
+---
+
+<Base title={`${post.title} — xNet`} description={post.description}>
+  <Nav />
+
+  <main>
+    <LoomHero
+      title={post.title}
+      deck={post.description}
+      date={formatPostDate(post.pubDate)}
+      readingMinutes={post.readingMinutes}
+      tags={post.tags}
+    />
+
+    <article
+      class="prose prose-lg mx-auto max-w-3xl px-6 py-16 dark:prose-invert prose-headings:tracking-tight prose-a:text-indigo-600 dark:prose-a:text-indigo-400"
+    >
+      <p>
+        The Luddites have a bad reputation they didn&rsquo;t earn. We use their
+        name for anyone who&rsquo;s afraid of technology, but the real weavers of
+        1811 weren&rsquo;t afraid of machines — they owned and ran complicated
+        ones every day. What they refused was a <em>particular</em> machine: the
+        power loom installed by a factory owner, in a building they couldn&rsquo;t
+        enter, running rules they weren&rsquo;t allowed to see, built to make their
+        own skill worthless. Their fight was never <em>machine versus human</em>.
+        It was about <em>who the machine is for, and whether the worker is allowed
+        to open it.</em>
+      </p>
+      <p>
+        Two hundred years later you are the weaver, and almost every app you touch
+        is that sealed loom. You can feed it and you can watch it run, but you may
+        not open the cabinet, read the mechanism, or take the cloth and leave. This
+        essay is about a loom built the other way — one you&rsquo;re allowed to
+        open. To show you it&rsquo;s real, we&rsquo;re going to follow a single,
+        boring thing all the way through the machine: you sit down at your laptop
+        and type a note that says <strong>Buy milk</strong>. By the end you&rsquo;ll
+        have seen every place that note lives, and every place an ordinary app
+        would quietly betray it. There&rsquo;s a little code along the way — you can
+        skip every grey panel and the story still holds — but it&rsquo;s there
+        because <em>being able to show you the machine is the whole argument.</em>
+      </p>
+
+      <h2>One: it&rsquo;s already on your disk</h2>
+      <p>
+        The instant you finish typing <strong>Buy milk</strong>, where does it
+        live? In a normal cloud app, the honest answer is: <em>somewhere else.</em>
+        Your keystrokes are sent off to a company&rsquo;s server, which holds the
+        real copy and lends you a view of it. &ldquo;The cloud&rdquo; is just
+        someone else&rsquo;s computer, and on that computer your note is a guest
+        that can be read, ranked, monetised, or locked out — and if the network
+        drops, so does your note.
+      </p>
+      <p>
+        xNet starts at the opposite end. Your note is written first to a small
+        database — SQLite, the same engine inside your phone — that lives in a
+        private corner of your own browser called the Origin Private File System.
+        No server is consulted. No round-trip happens. The note is <em>yours,
+        locally and completely,</em> before the internet is even part of the
+        story. The screen updates instantly because it&rsquo;s reading from a file
+        a few millimetres away, not a data centre an ocean away. Turn off your
+        Wi-Fi and nothing changes; the app was never really talking to the network
+        to begin with.
+      </p>
+
+      <Mermaid
+        code={cloudVsLocal}
+        caption="Same keystroke, two architectures. Cloud-first makes the server the source of truth and you the guest. Local-first makes your disk the source of truth and the network optional."
+      />
+
+      <p>
+        This one inversion — <em>your device holds the master copy</em> — is the
+        foundation everything else is bolted to. It&rsquo;s the difference between
+        renting a seat in someone&rsquo;s building and owning the loom in your own
+        front room. But a loom in your front room raises an obvious question: if
+        the real copy is on <em>your</em> laptop, and another real copy is on
+        <em>your</em> phone, how on earth do the two ever agree? To answer that, we
+        need to look at what a single edit actually <em>is.</em>
+      </p>
+
+      <h2>Two: every edit is a little signed receipt</h2>
+      <p>
+        Here is the first idea worth slowing down for. xNet never stores your note
+        as a note. It stores the <em>history of edits</em> that produced it — and
+        each edit is a tiny, self-contained record called a <strong>change</strong>.
+        If you&rsquo;ve ever used the version-control tool <code>git</code>, you
+        already have the mental model: nothing is ever overwritten in place;
+        instead every change is a sealed receipt that says <em>what changed, who
+        changed it, and which receipt came right before it.</em> Your note is just
+        the sum of its receipts, replayed in order.
+      </p>
+      <p>
+        What&rsquo;s actually inside one of these receipts is short enough to read
+        in one sitting.
+      </p>
+
+      <Peek label="Open the panel — what a single edit looks like">
+        <CodeFigure
+          code={changeCode}
+          filename="packages/sync/src/change.ts"
+          caption="Every edit points at the one before it by fingerprint, and is signed by its author. So the whole history is a tamper-evident chain — exactly like git's commits, but for everything you make."
+        />
+      </Peek>
+
+      <p>
+        Two of those fields are doing quiet, heavy work. The <strong>hash</strong>
+        is a fingerprint of the edit&rsquo;s contents, produced by a fast modern
+        hash function (BLAKE3). Change a single character and the fingerprint
+        changes completely. And because each edit also records the
+        <strong>fingerprint of the one before it</strong>, the receipts form a
+        chain: tampering with any past edit changes its fingerprint, which breaks
+        the link in every edit that followed. You can&rsquo;t quietly rewrite
+        history; the seams show.
+      </p>
+
+      <Mermaid
+        code={hashChain}
+        caption="Each edit names its parent by fingerprint. That single link is what makes the past tamper-evident — and it's the same trick that secures a git repository or a blockchain."
+      />
+
+      <p>
+        The other field is the <strong>signature</strong>. Before an edit is
+        stored, it&rsquo;s signed with a private key only you hold (using Ed25519,
+        the same kind of signature that secures SSH and modern messaging apps).
+        Anyone, anywhere, can later check that signature and know the edit really
+        came from you and wasn&rsquo;t altered in transit — without ever needing to
+        ask a server &ldquo;is this person who they say they are?&rdquo; The proof
+        travels <em>with the data.</em>
+      </p>
+
+      <Peek label="Open the panel — sealing the receipt">
+        <CodeFigure
+          code={signCode}
+          filename="signChange() — packages/sync/src/change.ts"
+          caption="Hash the contents, then sign the hash. Because the signature scheme is deterministic, the same edit produces byte-identical bytes on any device, in any language — which is what makes the next two sections possible."
+        />
+      </Peek>
+
+      <h2>Three: your name is a key, not an account</h2>
+      <p>
+        That signature only means something if &ldquo;you&rdquo; means something.
+        On the normal web, your identity is an <em>account</em> — a row in a
+        company&rsquo;s database that they create, control, and can delete. Your
+        name on their loom is theirs to switch off.
+      </p>
+      <p>
+        xNet has no accounts. Your identity is a cryptographic key pair you
+        generate on your own device, and your public name — your
+        <strong>DID</strong>, or decentralised identifier — is literally your
+        public key, written out as text. Nobody issues it. There&rsquo;s no
+        registrar, no username server, nothing to revoke. It looks like
+        <code>did:key:z6Mk…</code> and the recipe that produces it is small enough
+        to print.
+      </p>
+
+      <Peek label="Open the panel — minting a name nobody can revoke">
+        <CodeFigure
+          code={didCode}
+          filename="createDID() — packages/identity/src/did.ts"
+          caption="Your public key, tagged and text-encoded. That's the whole identity. Because it's self-certifying, any device can verify your signatures with nothing but the name itself — no central directory to phone home to."
+        />
+      </Peek>
+
+      <p>
+        This is the hinge the whole &ldquo;you can leave&rdquo; promise turns on. An
+        account lives on the platform; lose the platform and you lose the name. A
+        key lives with <em>you</em>; it works on any hub, on any device, with any
+        app that speaks the protocol. Your name is something you carry, not
+        something you&rsquo;re lent.
+      </p>
+
+      <h2>Four: two devices, no referee</h2>
+      <p>
+        Now we can answer the question from the start. Your laptop and your phone
+        each hold a real copy of your note. Suppose you&rsquo;re on a train with no
+        signal, and on your laptop you rename the note to
+        <strong>Groceries</strong> — while, in your pocket, your phone (also
+        offline) had already renamed the very same note to <strong>Shopping</strong>.
+        Two edits, same field, no connection between them. When you get home and
+        both reconnect, who wins?
+      </p>
+      <p>
+        In a cloud app the server decides, because the server is the boss. xNet has
+        no boss. Instead, every device runs the <em>exact same rule</em> to pick a
+        winner — and because the rule is simple and deterministic, they all reach
+        the same answer without anyone refereeing.
+      </p>
+
+      <Mermaid
+        code={mergeSeq}
+        caption="No central tie-breaker. Each device receives the other's signed change and runs the identical rule, so both converge on the same result on their own."
+      />
+
+      <p>
+        The rule is called last-write-wins, and it&rsquo;s genuinely three lines.
+        Compare the two edits&rsquo; logical clocks (a counter that captures
+        cause-and-effect); if those tie, compare wall-clock time; and if
+        <em>those</em> somehow tie too, fall back to comparing the authors&rsquo;
+        keys themselves. That last line looks almost silly, but it&rsquo;s the
+        point: there is always a deterministic answer, so every device — yours,
+        mine, one written in a different programming language entirely — lands on
+        the same winner.
+      </p>
+
+      <Peek label="Open the panel — the rule that decides, in full">
+        <CodeFigure
+          code={lwwCode}
+          filename="packages/data/src/store/store.ts"
+          caption="Three comparisons, no network, no authority. Because it's pure and total, running it anywhere gives the same result — that's the whole meaning of 'no referee'. (The loser isn't lost, either: it's still in the history, just not the current value.)"
+        />
+      </Peek>
+
+      <p>
+        Sit with how strange and good that is. The most contentious moment in any
+        shared system — <em>two people changed the same thing at once</em> — is
+        resolved here by a rule you can read in ten seconds, running independently
+        on every device, owned by no one. There is no server in the middle adding
+        its thumb to the scale. That&rsquo;s not a missing feature. It&rsquo;s the
+        feature.
+      </p>
+
+      <h2>Five: the hub is a post office, not a landlord</h2>
+      <p>
+        &ldquo;But wait,&rdquo; you might say, &ldquo;my laptop and my phone
+        clearly <em>did</em> talk to something to swap those edits.&rdquo; They did.
+        It&rsquo;s called a hub, and the most important thing about it is how little
+        it&rsquo;s trusted. A hub takes signed changes, puts them in order, and
+        forwards them to your other devices and anyone you&rsquo;re collaborating
+        with. It&rsquo;s a post office: it routes the mail and keeps things moving.
+        It is emphatically <em>not</em> the landlord that owns your data.
+      </p>
+      <p>
+        The difference is enforced by the machinery we&rsquo;ve already walked
+        through. The hub can&rsquo;t forge an edit, because it can&rsquo;t produce
+        your signature. It can&rsquo;t secretly rewrite your history, because the
+        fingerprint chain would break and every device would notice. And on the
+        encrypted path, it can&rsquo;t even <em>read</em> your content, because the
+        key to unlock it is wrapped individually for each recipient and the hub
+        isn&rsquo;t one of them. Here&rsquo;s the exact line between what it can see
+        and what it can never do.
+      </p>
+
+      <TrustBoundary />
+
+      <p>
+        We&rsquo;re going to be honest below about where that line sits today — the
+        default path still relays values the hub can read, and only the encrypted
+        path makes it fully blind. But the structure is the point: a hub is
+        <em>replaceable.</em> Don&rsquo;t like yours? Move to another, or run your
+        own on a cheap box. Your identity and your data don&rsquo;t change, because
+        they were never the hub&rsquo;s to hold.
+      </p>
+
+      <h2>Six: proof you can actually leave</h2>
+      <p>
+        Every platform says &ldquo;you can export your data.&rdquo; What they mean
+        is they&rsquo;ll hand you a box of stuff in a format only they fully
+        understand, and wish you luck. &ldquo;Exit&rdquo; on those terms is a
+        courtesy they can withdraw. On xNet, exit isn&rsquo;t a feature that was
+        added — it&rsquo;s a property of the format itself, and you can prove it.
+      </p>
+      <p>
+        Because every step we&rsquo;ve described — the canonical fingerprint, the
+        deterministic signature, the three-line merge — is specified down to the
+        byte, the protocol ships with <strong>golden vectors</strong>: frozen
+        test cases that pin down the exact expected output. A given edit must
+        produce this exact fingerprint and this exact signature, full stop.
+      </p>
+
+      <Peek label="Open the panel — a fact you can re-derive">
+        <CodeFigure
+          code={vectorCode}
+          filename="conformance/vectors/change/0001-create-page.json"
+          caption="This exact case passes against xNet's implementations in TypeScript, Rust, Swift, and Python. The format isn't a vendor's blob you have to trust — it's a specification anyone can re-implement from the test vectors."
+        />
+      </Peek>
+
+      <p>
+        That&rsquo;s why there are already working versions of the core in four
+        languages, and why you could write a fifth. It&rsquo;s why you can fork the
+        whole project and your data still reads. The right to leave isn&rsquo;t a
+        promise printed on the box; it&rsquo;s a consequence of the box being made
+        of glass. <em>That</em> is what the weavers were never given: a machine
+        whose workings were open enough that no owner could trap them inside it.
+      </p>
+
+      <h2>How this compares to the other escape routes</h2>
+      <p>
+        xNet isn&rsquo;t the only project trying to pry the web back open, and
+        it&rsquo;s worth being clear about how it differs — because mostly,
+        it&rsquo;s solving a different problem. The well-known decentralised
+        networks (Mastodon, Bluesky, Nostr) are about one shared <em>social
+        graph</em>: how servers pass public posts around. xNet is about
+        <em>storage for everything you make</em> — notes, tasks, a CRM, a wiki —
+        with the master copy on your own device. They can happily coexist; they
+        just answer different questions.
+      </p>
+      <div class="overflow-x-auto">
+        <table>
+          <thead>
+            <tr>
+              <th>System</th>
+              <th>Your identity is…</th>
+              <th>Your data lives…</th>
+              <th>Works fully offline?</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>Big-tech cloud</td>
+              <td>an account they issue</td>
+              <td>on their servers</td>
+              <td>No</td>
+            </tr>
+            <tr>
+              <td>Mastodon (ActivityPub)</td>
+              <td>tied to your home server</td>
+              <td>on your home server</td>
+              <td>No</td>
+            </tr>
+            <tr>
+              <td>Bluesky (AT Protocol)</td>
+              <td>a portable DID</td>
+              <td>on a host you pick</td>
+              <td>No</td>
+            </tr>
+            <tr>
+              <td>Nostr</td>
+              <td>a raw key pair</td>
+              <td>on relays you pick</td>
+              <td>No</td>
+            </tr>
+            <tr>
+              <td><strong>xNet</strong></td>
+              <td><strong>a did:key you mint</strong></td>
+              <td><strong>on your device first</strong></td>
+              <td><strong>Yes</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        The family resemblance is real — Nostr&rsquo;s raw key pair is a cousin of
+        xNet&rsquo;s <code>did:key</code>, and Bluesky&rsquo;s portable DID shares
+        the instinct. The thing that&rsquo;s distinctly xNet&rsquo;s is the corner
+        you&rsquo;ve been standing in this whole essay: the real copy is on the
+        edge device, in your hand, and the network is a convenience layered on top
+        — not the place your life is kept.
+      </p>
+
+      <HonestMachine />
+
+      <h2>The loom you can read</h2>
+      <p>
+        Come back to the weavers. The histories now agree that they weren&rsquo;t
+        wrong about machines and right about nothing — they were making a precise
+        argument about power. A tool that the people using it can understand, own,
+        and walk away from leaves them free. A tool that&rsquo;s sealed, rented,
+        and built to make them dependent leaves them owned, however shiny it looks
+        on the showroom floor. The weavers lost that argument to the factory, and
+        we&rsquo;ve been living in the factory&rsquo;s logic online ever since —
+        feeding sealed looms our attention and our words and calling the cloth they
+        sell back to us &ldquo;our&rdquo; feed.
+      </p>
+      <p>
+        None of what you just read is exotic. Hashes, signatures, a tiny merge
+        rule, a key for a name, a file on your own disk. It&rsquo;s plain
+        engineering, chosen specifically so that the machine can be opened and
+        understood — by a developer reading the source, and by you, reading this.
+        That openness <em>is</em> the politics. You can&rsquo;t be quietly trapped
+        inside a loom whose every thread you&rsquo;re allowed to follow.
+      </p>
+      <p>
+        So follow them. <a href="/app">Use the app</a> — it&rsquo;s free, offline,
+        and private — and your &ldquo;Buy milk&rdquo; really will take the path you
+        just traced. <a href="/build-with">Build something of your own</a> on the
+        open protocol, or read <a href="/commitments">the commitments</a> that say,
+        in writing and with the receipts to back them, what this loom will and
+        won&rsquo;t do. The weavers only ever wanted a machine that was theirs to
+        understand and theirs to keep. Two centuries late, here is one.
+      </p>
+
+      <hr />
+
+      <h3 id="sources">Sources</h3>
+      <ul class="text-base">
+        <li>
+          The real Luddites — skilled, pro-tool, and making an argument about
+          autonomy, not machinery:
+          <a
+            href="https://thereader.mitpress.mit.edu/the-future-encyclopedia-of-luddism/"
+            rel="noopener noreferrer">The Future Encyclopedia of Luddism</a
+          > (MIT Press Reader), and Brian Merchant, <em>Blood in the Machine</em>
+          (2023), after E.&nbsp;P. Thompson&rsquo;s &ldquo;moral economy.&rdquo;
+        </li>
+        <li>
+          The local-first tradition this is built in:
+          <a href="https://www.inkandswitch.com/essay/local-first/" rel="noopener noreferrer"
+            >Kleppmann et&nbsp;al., &ldquo;Local-first software: you own your data,
+            in spite of the cloud&rdquo;</a
+          > (Ink &amp; Switch, 2019).
+        </li>
+        <li>
+          How the other decentralised networks differ:
+          <a href="https://soapbox.pub/blog/comparing-protocols" rel="noopener noreferrer"
+            >Nostr vs. Fediverse vs. Bluesky</a
+          > and the <a href="https://en.wikipedia.org/wiki/AT_Protocol" rel="noopener noreferrer">AT
+          Protocol</a> overview.
+        </li>
+        <li>
+          The machine itself, in full: the
+          <a href="/docs/protocol/overview">protocol spec</a>,
+          <a href="/docs/concepts/sync-architecture">sync architecture</a>, and
+          <a href="/docs/guides/identity">identity</a> docs — every claim above
+          links back to real, readable source.
+        </li>
+        <li>
+          The promises and the receipts behind them:
+          <a href="/commitments">the Humane Charter</a> and
+          <a href="/why">xNet — Why</a>. Companion essays:
+          <a href="/blog/a-great-pirate-age">A Great Pirate Age</a> and
+          <a href="/blog/the-forest-and-the-field">The Forest and the Field</a>.
+        </li>
+      </ul>
+
+      <p class="text-sm text-gray-400 dark:text-gray-500">
+        <em
+          >Code excerpts are trimmed and lightly simplified for reading; the file
+          paths point at the real, unabridged source. The Luddite history is used
+          as argument, not decoration — the claim that they were pro-tool and
+          anti-enclosure is the mainstream historical reading, not a rhetorical
+          flourish. All artwork here is original.</em
+        >
+      </p>
+    </article>
+  </main>
+
+  <Footer />
+</Base>

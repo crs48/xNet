@@ -587,7 +587,7 @@ two columns:
 
 ## Implementation Checklist
 
-- [ ] Decide slug + title with maintainer (`the-loom-you-can-read` vs
+- [x] Decide slug + title with maintainer (`the-loom-you-can-read` vs
       `how-xnet-works`).
 - [x] Add `<Mermaid>` blog component (`site/src/components/blog/Mermaid.astro`)
       that renders a `<pre class="mermaid">` + a client init script,
@@ -597,7 +597,7 @@ two columns:
       one-light/one-dark-pro to match docs `expressiveCode`).
 - [x] Add `<Peek>` disclosure/aside component (visually distinct "open the
       panel for developers" affordance) so non-devs can skip code.
-- [ ] Author `site/src/pages/blog/<slug>.astro` following the spine
+- [x] Author `site/src/pages/blog/<slug>.astro` following the spine
       outline (§1–§6 + hook + close).
 - [x] Build the bespoke `TrustBoundary.astro` card (idiom of
       `ThreeNervousSystems.astro`).
@@ -606,25 +606,25 @@ two columns:
 - [x] Add an `Honest*` self-critique card (e.g. `HonestMachine.astro`):
       the hub-sees-plaintext caveat, "not a CRDT", "not a federation
       competitor".
-- [ ] Add the `BlogPost` entry to `site/src/data/blog.ts` (slug, title,
+- [x] Add the `BlogPost` entry to `site/src/data/blog.ts` (slug, title,
       description, pubDate, `tags: ['essay','protocol','decentralization']`,
       `readingMinutes`).
-- [ ] Verify it appears in `blog/index.astro` and `blog/rss.xml.ts`.
-- [ ] Cross-link to `/commitments`, `/app`, `/build-with`, and the
+- [x] Verify it appears in `blog/index.astro` and `blog/rss.xml.ts`.
+- [x] Cross-link to `/commitments`, `/app`, `/build-with`, and the
       protocol/sync docs; add a "Sources" list (Ink & Switch, Thompson on
       the Luddites, the protocol comparisons).
-- [ ] Confirm every code excerpt against its source file path at author
+- [x] Confirm every code excerpt against its source file path at author
       time; keep each ≤12 lines.
-- [ ] (If the series convention applies) add the companion-essays link
+- [x] (If the series convention applies) add the companion-essays link
       block at the foot, like `the-forest-and-the-field.astro:349`.
-- [ ] No changeset needed (site/blog content is not a publishable
+- [x] No changeset needed (site/blog content is not a publishable
       `packages/*` library) — confirm against
       `scripts/changeset/publishable-pathspec.mjs`.
 
 ## Validation Checklist
 
 - [ ] `pnpm --filter site build` succeeds (runs `validate:*` + `astro
-  build`); the new page, index card, and RSS item all render.
+build`); the new page, index card, and RSS item all render.
 - [ ] Mermaid diagrams render in **both** light and dark mode with no
       contrast failures; no layout shift on load.
 - [ ] Code blocks are syntax-highlighted and horizontally scroll (don't
