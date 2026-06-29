@@ -39,6 +39,8 @@ interface QueuedJob {
   reject: (reason: unknown) => void
   lane: SchedulerLane
   label?: string
+  /** Truncated, param-free op description (e.g. the SQL) for boot diagnostics. */
+  detail?: string
   enqueuedAt: number
 }
 
@@ -55,6 +57,13 @@ export interface SchedulerSnapshot {
 export interface SchedulerOpReport {
   lane: SchedulerLane
   label?: string
+  /**
+   * Truncated, param-free op description (e.g. the SQL text). Without it the
+   * boot log shows only the generic label ('query'), so a slow op can't be told
+   * apart from any other read — the missing field that kept the cold-open stall
+   * unidentified across explorations 0227–0233/0249.
+   */
+  detail?: string
   /** Time the op waited behind other ops before starting (head-of-line). */
   queueMs: number
   /** Time the op spent executing (SQL + OPFS I/O), excluding queue wait. */
@@ -88,7 +97,8 @@ export class WorkerScheduler {
     lane: SchedulerLane,
     fn: () => Promise<T>,
     coalesceKey?: string,
-    label?: string
+    label?: string,
+    detail?: string
   ): Promise<T> {
     if (coalesceKey !== undefined) {
       const inflight = this.coalesced.get(coalesceKey)
@@ -102,6 +112,7 @@ export class WorkerScheduler {
         reject,
         lane,
         label,
+        detail,
         enqueuedAt: nowMs()
       })
     })
@@ -155,6 +166,7 @@ export class WorkerScheduler {
             this.onOp({
               lane: job.lane,
               label: job.label,
+              detail: job.detail,
               queueMs: startedAt - job.enqueuedAt,
               execMs: endedAt - startedAt
             })

@@ -417,19 +417,28 @@ export function App(): JSX.Element {
         // Probe whether the local cache is cold/evicted so views can show a
         // "restoring from hub" affordance instead of a blank screen, and so a
         // silent OPFS eviction is diagnosable (exploration 0204).
-        const coldStart = await probeStoreColdStart(
-          sqliteAdapter,
-          storageStatus.persisted,
-          Boolean(hubUrl)
+        //
+        // F1 (exploration 0249): do NOT await this. The probe is a cold
+        // `SELECT COUNT(*) FROM nodes` — the first read on the cold OPFS DB — and
+        // awaiting it serialized it ahead of identity/store/connect for nothing
+        // but a UI affordance with a safe default. Fire-and-forget; the affordance
+        // is now reactive (`useRestoringFromHub` subscribes), so it still appears
+        // when the probe resolves. The `sqlite:probe` mark fires immediately, so
+        // the boot timeline's `probe` segment ≈ 0 — proving the cold read is no
+        // longer on the critical path.
+        bootMark('sqlite:probe')
+        void probeStoreColdStart(sqliteAdapter, storageStatus.persisted, Boolean(hubUrl)).then(
+          (coldStart) => {
+            recordColdStartProbe(coldStart)
+            if (looksEvicted(coldStart)) {
+              console.warn(
+                '[xNet] Local cache is empty and this origin is not persisted — the ' +
+                  'browser may have evicted it. Re-syncing from the hub; enable persistent ' +
+                  'storage to keep data across sessions.'
+              )
+            }
+          }
         )
-        recordColdStartProbe(coldStart)
-        if (looksEvicted(coldStart)) {
-          console.warn(
-            '[xNet] Local cache is empty and this origin is not persisted — the ' +
-              'browser may have evicted it. Re-syncing from the hub; enable persistent ' +
-              'storage to keep data across sessions.'
-          )
-        }
 
         // Read-path diagnostic (exploration 0212): when boot debug is on, log
         // the durable count matrix (nodes / changes / cursors) so the next
@@ -451,6 +460,9 @@ export function App(): JSX.Element {
         const nodeStorage = new SQLiteNodeStorageAdapter(sqliteAdapter)
         const storageAdapter = new SQLiteStorageAdapter(sqliteAdapter)
         await storageAdapter.open()
+        // Boot-phase split (0249): storage adapter is open; what follows up to
+        // identity:ready is blob services + the data-worker port + identity.
+        bootMark('storage:open')
         cleanupStorageAdapter = storageAdapter
 
         const blobStore = new BlobStore(storageAdapter)
@@ -477,6 +489,10 @@ export function App(): JSX.Element {
 
         // Check for existing identity
         const hasIdentity = await identityManager.hasIdentity()
+        // Boot-phase split (0249): everything after this mark up to
+        // identity:ready is the session unlock/resume crypto — so a slow
+        // `identityResume` segment isolates a KDF/unwrap cost from storage I/O.
+        bootMark('identity:checked')
         if (cancelled) {
           await sqliteAdapter.close()
           return

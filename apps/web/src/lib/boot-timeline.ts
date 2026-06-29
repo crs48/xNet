@@ -17,10 +17,22 @@ export type BootPhase =
   | 'init:start'
   | 'sqlite:open'
   | 'sqlite:schema'
+  // The span sqlite:schema → identity:ready used to be one opaque "identity"
+  // bucket (9.1 s in the 0249 capture) that actually wraps a cold COUNT(*)
+  // probe, the storage-adapter open, and only then identity unlock. These three
+  // marks split it so the dominant sub-phase is attributable (exploration 0249).
+  | 'sqlite:probe'
+  | 'storage:open'
+  | 'identity:checked'
   | 'identity:ready'
   | 'store:ready'
   | 'docwarm:ready'
   | 'hub:connected'
+  // First time a landing query's LIVE result crosses the bridge to a surface.
+  // Distinct from query:first-rows (which the instant-shell can satisfy from a
+  // localStorage snapshot in <1s): this brackets the real cold-read latency and
+  // localizes the previously-untraced ~5s secondary gap (exploration 0249).
+  | 'bridge:first-result'
   | 'sync:first'
   | 'query:first-rows'
 
@@ -61,10 +73,14 @@ const BOOT_PHASE_ORDER: readonly BootPhase[] = [
   'init:start',
   'sqlite:open',
   'sqlite:schema',
+  'sqlite:probe',
+  'storage:open',
+  'identity:checked',
   'identity:ready',
   'store:ready',
   'docwarm:ready',
   'hub:connected',
+  'bridge:first-result',
   'sync:first',
   'query:first-rows'
 ]
@@ -101,8 +117,20 @@ export interface BootTimeline {
   wasm?: number
   /** Schema apply / migration. */
   schema?: number
-  /** Identity check + unlock/resume. */
+  /**
+   * Identity check + unlock/resume — the FULL sqlite:schema → identity:ready
+   * span, kept for back-compat. The 0249 split below attributes it: the bucket
+   * was a 9.1 s catch-all that also held a cold COUNT(*) probe and storage open.
+   */
   identity?: number
+  /** Cold-start `SELECT COUNT(*) FROM nodes` probe (sqlite:schema → sqlite:probe). */
+  probe?: number
+  /** Storage-adapter open + node-storage construction (sqlite:probe → storage:open). */
+  storageOpen?: number
+  /** Blob services + data-worker port + hasIdentity() (storage:open → identity:checked). */
+  identityCheck?: number
+  /** Session unlock/resume crypto (identity:checked → identity:ready). */
+  identityResume?: number
   /** NodeStore init + data-bridge creation. */
   store?: number
   /**
@@ -113,6 +141,13 @@ export interface BootTimeline {
   docwarm?: number
   /** Hub WebSocket handshake (store-ready → connected). */
   connect?: number
+  /**
+   * Store-ready → first LIVE landing result across the bridge (exploration
+   * 0249). With the instant-shell paint satisfied from a snapshot, this is the
+   * number that still carries the real cold-read cost + the ~5s secondary gap,
+   * so it stays visible even though `firstPaint` no longer does.
+   */
+  bridgeFirst?: number
   /** First sync round-trip after connect. */
   firstSync?: number
   /** Wall-clock from boot start to first rows painted. */
@@ -125,9 +160,14 @@ export function getBootTimeline(): BootTimeline {
     wasm: bootMeasure('init:start', 'sqlite:open'),
     schema: bootMeasure('sqlite:open', 'sqlite:schema'),
     identity: bootMeasure('sqlite:schema', 'identity:ready'),
+    probe: bootMeasure('sqlite:schema', 'sqlite:probe'),
+    storageOpen: bootMeasure('sqlite:probe', 'storage:open'),
+    identityCheck: bootMeasure('storage:open', 'identity:checked'),
+    identityResume: bootMeasure('identity:checked', 'identity:ready'),
     store: bootMeasure('identity:ready', 'store:ready'),
     docwarm: bootMeasure('store:ready', 'docwarm:ready'),
     connect: bootMeasure('store:ready', 'hub:connected'),
+    bridgeFirst: bootMeasure('store:ready', 'bridge:first-result'),
     firstSync: bootMeasure('hub:connected', 'sync:first'),
     firstPaint: bootMeasure('init:start', 'query:first-rows')
   }
@@ -257,6 +297,15 @@ export function logBootTimeline(reason = 'hub:connected'): void {
   if (!isDev && !debugEnabled()) return
   // eslint-disable-next-line no-console
   console.info(`[xNet] boot timeline (ms) @ ${reason}:`, getBootTimeline())
+}
+
+/**
+ * Record that the first LIVE landing result has crossed the bridge to a surface
+ * (exploration 0249). Idempotent via `bootMark`'s first-write-wins, so the
+ * caller can fire it from every landing query's resolution without guarding.
+ */
+export function markBridgeFirstResult(): void {
+  bootMark('bridge:first-result')
 }
 
 /** Test-only: clear all recorded marks and the one-shot log latch. */
