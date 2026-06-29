@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Recover with a passkey synced from another device</title>
+      <link>https://xnet.fyi/changelog#2026-06-28-recover-with-a-passkey-synced-from-anoth</link>
+      <guid isPermaLink="false">2026-06-28-recover-with-a-passkey-synced-from-anoth</guid>
+      <pubDate>Mon, 29 Jun 2026 00:38:24 GMT</pubDate>
+      <description>If your xNet passkey syncs via iCloud Keychain or Google Password Manager, you can now recover your workspace on a new device with one tap — no recovery phrase needed.</description>
+    </item>
+    <item>
       <title>New essay: The Forest and the Field</title>
       <link>https://xnet.fyi/changelog#2026-06-28-new-essay-the-forest-and-the-field</link>
       <guid isPermaLink="false">2026-06-28-new-essay-the-forest-and-the-field</guid>
