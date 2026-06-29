@@ -518,7 +518,10 @@ async function admitDevice(account: AccountLedger, existing: KeyBundle, newDevic
 - [x] **P2.3** Implement `admitDevice` / `revokeDevice` with content-key re-wrap via
       `computeRecipients` / sealed box.
 - [ ] **P3.1** (Opt-in) Implement WorkOS-gated KMS key-escrow for the account recovery
-      key; default off; full consent + audit logging.
+      key; default off; full consent + audit logging. **Design note (decide before
+      building):** [`docs/plans/0243-p3-escrow-design.md`](../plans/0243-p3-escrow-design.md)
+      — threat model, key custody, blast radius if WorkOS is compromised, mitigations
+      (A+C+D+E floor, B offered), and the go/no-go open questions.
 
 ## Validation Checklist
 
