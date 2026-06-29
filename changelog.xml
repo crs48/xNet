@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Change a task's status from its status icon</title>
+      <link>https://xnet.fyi/changelog#2026-06-29-change-a-task-s-status-from-its-status-i</link>
+      <guid isPermaLink="false">2026-06-29-change-a-task-s-status-from-its-status-i</guid>
+      <pubDate>Mon, 29 Jun 2026 15:40:08 GMT</pubDate>
+      <description>Click the status icon on any task — in the task list, on board cards, or inline — to open a dropdown and pick any workflow status (Triage, Backlog, To Do, In Progress, In Review, Done, Cancelled). It no longer just toggles the task complete.</description>
+    </item>
+    <item>
       <title>Recover your account with trusted guardians</title>
       <link>https://xnet.fyi/changelog#2026-06-28-recover-your-account-with-trusted-guardi</link>
       <guid isPermaLink="false">2026-06-28-recover-your-account-with-trusted-guardi</guid>

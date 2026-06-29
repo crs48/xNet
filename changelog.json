@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-06-29-change-a-task-s-status-from-its-status-i",
+      "url": "https://xnet.fyi/changelog#2026-06-29-change-a-task-s-status-from-its-status-i",
+      "title": "Change a task's status from its status icon",
+      "content_text": "Click the status icon on any task — in the task list, on board cards, or inline — to open a dropdown and pick any workflow status (Triage, Backlog, To Do, In Progress, In Review, Done, Cancelled). It no longer just toggles the task complete.\n",
+      "date_published": "2026-06-29T15:40:08Z",
+      "tags": [
+        "tasks"
+      ],
+      "_xnet": {
+        "date": "June 29, 2026",
+        "summary": "Click the status icon on any task — in the task list, on board cards, or inline — to open a dropdown and pick any workflow status (Triage, Backlog, To Do, In Progress, In Review, Done, Cancelled). It no longer just toggles the task complete.",
+        "highlights": [],
+        "mergedAt": "2026-06-29T15:40:08Z",
+        "pr": 343,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-06-28-recover-your-account-with-trusted-guardi",
       "url": "https://xnet.fyi/changelog#2026-06-28-recover-your-account-with-trusted-guardi",
       "title": "Recover your account with trusted guardians",
