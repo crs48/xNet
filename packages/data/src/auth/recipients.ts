@@ -26,9 +26,32 @@ export interface RecipientDependencies {
   listNodes?: (schemaId: string) => Promise<NodeState[]>
   grantIndex?: GrantIndexReader
   maxDepth?: number
+  /**
+   * Account/device re-wrap (exploration 0243, P2.3). When set, each DID recipient is
+   * expanded to every active device of the account it belongs to, so a user's content
+   * is decryptable on all their devices. Build it with `deviceRecipientExpander` from
+   * the ledger records. Omitted → recipients are exactly the resolved DIDs (no change).
+   */
+  expandDeviceRecipients?: (did: DID) => readonly string[]
 }
 
 const MAX_CONTAINER_DEPTH = 32
+
+/** Expand DID recipients to the account's active devices when a re-wrap fn is supplied. */
+function finalizeRecipients(
+  recipients: Set<Recipient>,
+  dependencies: RecipientDependencies
+): Recipient[] {
+  const expand = dependencies.expandDeviceRecipients
+  if (!expand) return [...recipients]
+  const out = new Set<Recipient>(recipients)
+  for (const recipient of recipients) {
+    if (recipient === PUBLIC_RECIPIENT) continue
+    // The ledger stores device DIDs as `did:key:` strings; safe to treat as DID.
+    for (const did of expand(recipient)) out.add(did as DID)
+  }
+  return [...out]
+}
 
 export async function computeRecipients(
   schema: Schema,
@@ -57,7 +80,7 @@ export async function computeRecipients(
 
   if (!schema.authorization) {
     addGrantRecipients()
-    return [...recipients]
+    return finalizeRecipients(recipients, dependencies)
   }
 
   const auth = deserializeAuthorization(schema.authorization)
@@ -65,7 +88,7 @@ export async function computeRecipients(
 
   if (!readExpr) {
     addGrantRecipients()
-    return [...recipients]
+    return finalizeRecipients(recipients, dependencies)
   }
 
   if (hasPublicAccess(readExpr)) {
@@ -85,7 +108,7 @@ export async function computeRecipients(
 
   addGrantRecipients()
 
-  return [...recipients]
+  return finalizeRecipients(recipients, dependencies)
 }
 
 async function resolveRoleMembers(

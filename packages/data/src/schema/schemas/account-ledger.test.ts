@@ -8,6 +8,7 @@ import {
   type DeviceLike,
   type RevocationLike,
   accountRecordId,
+  deviceRecipientExpander,
   deviceRecordId,
   isDeviceAuthorized,
   resolveActiveDevices,
@@ -84,5 +85,33 @@ describe('isDeviceAuthorized', () => {
     expect(set.has(LAPTOP)).toBe(true)
     expect(set.has(PHONE)).toBe(true)
     expect(set.size).toBe(2)
+  })
+})
+
+describe('deviceRecipientExpander (content-key re-wrap)', () => {
+  const devices: DeviceLike[] = [
+    { account: ACCOUNT, deviceDid: LAPTOP, status: 'active' },
+    { account: ACCOUNT, deviceDid: PHONE, status: 'active' }
+  ]
+
+  it('expands a device to all active devices of its account', () => {
+    const expand = deviceRecipientExpander(devices, [])
+    expect(new Set(expand(LAPTOP))).toEqual(new Set([LAPTOP, PHONE]))
+  })
+
+  it('excludes a revoked sibling from the expansion', () => {
+    const expand = deviceRecipientExpander(devices, [{ subject: PHONE, subjectKind: 'device' }])
+    expect(expand(LAPTOP)).toEqual([LAPTOP])
+  })
+
+  it('expands an unknown / unrelated DID to just itself (no cross-account leak)', () => {
+    const expand = deviceRecipientExpander(devices, [])
+    expect(expand('did:key:zStranger')).toEqual(['did:key:zStranger'])
+  })
+
+  it('keeps a revoked device able to read its own content (union with self)', () => {
+    const expand = deviceRecipientExpander(devices, [{ subject: PHONE, subjectKind: 'device' }])
+    // PHONE itself still maps to its account but its only active sibling is LAPTOP.
+    expect(new Set(expand(PHONE))).toEqual(new Set([PHONE, LAPTOP]))
   })
 })

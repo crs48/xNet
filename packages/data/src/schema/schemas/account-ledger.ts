@@ -204,3 +204,36 @@ export function isDeviceAuthorized(
     (d) => d.account === accountId && d.deviceDid === deviceDid && d.status !== 'revoked'
   )
 }
+
+/**
+ * Build the content-key re-wrap function for `computeRecipients` (exploration 0243,
+ * P2.3): given a device DID that is a legitimate recipient, return every device DID
+ * the content should be (re-)encrypted to — i.e. all of that account's *currently
+ * active* devices. This is what makes admitting a device grant it access to existing
+ * data (it appears on the next recipient recompute) and revoking a device remove it
+ * from future re-wraps. A DID with no device record expands to just itself, so an
+ * unrelated identity never gains access to another account's data.
+ */
+export function deviceRecipientExpander(
+  devices: readonly DeviceLike[],
+  revocations: readonly RevocationLike[]
+): (did: string) => string[] {
+  const active = resolveActiveDevices(devices, revocations)
+  const activeByAccount = new Map<string, string[]>()
+  for (const d of active) {
+    const list = activeByAccount.get(d.account)
+    if (list) list.push(d.deviceDid)
+    else activeByAccount.set(d.account, [d.deviceDid])
+  }
+  const accountOf = new Map<string, string>()
+  for (const d of devices) accountOf.set(d.deviceDid, d.account)
+
+  return (did: string): string[] => {
+    const account = accountOf.get(did)
+    if (!account) return [did]
+    const siblings = activeByAccount.get(account)
+    // Union with `did` so a recipient is never dropped by expansion (e.g. a device
+    // present in the recipient set but already revoked still reads its own content).
+    return siblings && siblings.length > 0 ? [...new Set([did, ...siblings])] : [did]
+  }
+}

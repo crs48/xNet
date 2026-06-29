@@ -515,7 +515,7 @@ async function admitDevice(account: AccountLedger, existing: KeyBundle, newDevic
       (schema-native, signed, synced) with revocation + epochs.
 - [x] **P2.2** Migrate `TenantBinding.did` → `TenantBinding.account`; keep a back-compat
       read path for single-DID bindings.
-- [ ] **P2.3** Implement `admitDevice` / `revokeDevice` with content-key re-wrap via
+- [x] **P2.3** Implement `admitDevice` / `revokeDevice` with content-key re-wrap via
       `computeRecipients` / sealed box.
 - [ ] **P3.1** (Opt-in) Implement WorkOS-gated KMS key-escrow for the account recovery
       key; default off; full consent + audit logging.
@@ -533,10 +533,10 @@ async function admitDevice(account: AccountLedger, existing: KeyBundle, newDevic
       cannot.
 - [x] Recovery phrase round-trips: `deriveKeysFromSeed(export())` reproduces the **same
       DID**, and that DID can decrypt previously-sealed nodes.
-- [ ] A _fresh, unrelated_ DID **cannot** decrypt old nodes (privacy guarantee holds).
+- [x] A _fresh, unrelated_ DID **cannot** decrypt old nodes (privacy guarantee holds).
 - [ ] Synced-passkey path (A1) on the same ecosystem returns the same DID without a
       phrase.
-- [ ] (P2) Admitting a new device grants data access via re-wrap; revoking a device
+- [x] (P2) Admitting a new device grants data access via re-wrap; revoking a device
       removes future access; the ledger is signed and tamper-evident.
 - [ ] (P3) Escrow is unreachable without a verified WorkOS session and is absent unless
       explicitly enabled; every use is logged.
