@@ -256,10 +256,11 @@ function freshGroups(): EditorGroup[] {
 export const useWorkbench = create<WorkbenchState>()(
   persist(
     (set, get) => ({
-      // Calm shell ships opt-in first (0250); the Phase-2 step flips this
-      // default to 'calm' for new identities once the shell is proven. Existing
-      // users keep whatever they persisted; the other shell is one toggle away.
-      layout: 'workbench',
+      // New identities land in the calm everyperson shell (0250); existing users
+      // keep whatever they persisted (zustand merges the stored `layout` over
+      // this default), and the workbench grid is one toggle away in Settings →
+      // Appearance, or via the "View: Switch layout" command.
+      layout: 'calm',
       calmMode: 'companion',
       canvasTarget: null,
       mode: 'default',

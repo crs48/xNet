@@ -574,7 +574,7 @@ function Canvas({ focus }: { focus: boolean }) {
 - [x] **Phase 0:** Add `layout: 'calm' | 'workbench'`, `mode`, `listOpen`,
   `canvas` to [`state.ts`](apps/web/src/workbench/state.ts) (persist v2; migrate
   v1).
-- [ ] **Phase 0:** `View: Switch layout` command + Settings toggle; default
+- [x] **Phase 0:** `View: Switch layout` command + Settings toggle; default
   `calm` for identities with no persisted layout.
 - [x] **Phase 0:** Scaffold `workbench/calm/Shell.tsx`, `ModeSwitch.tsx`,
   `ListPane.tsx`, `Surface.tsx`, `Canvas.tsx`; branch in
@@ -583,11 +583,11 @@ function Canvas({ focus }: { focus: boolean }) {
   composer, streaming "thinking" microcopy); reuse `AiAgentRuntime`.
 - [x] **Phase 1:** `openCanvas(target)` hosts content views via the existing
   `ContextPanel`/`ViewHost` `HOSTED_VIEWS` map; `focus` reuses `zen`.
-- [ ] **Phase 2:** Workspace list (doc/space tree from `Explorer` parts);
+- [x] **Phase 2:** Workspace list (doc/space tree from `Explorer` parts);
   route content views into the surface; metadata → canvas **Inspector** tab.
-- [ ] **Phase 2:** Make `calm` the default for new identities; keep `workbench`
+- [x] **Phase 2:** Make `calm` the default for new identities; keep `workbench`
   reachable.
-- [ ] **Phase 2:** Define + implement the **route→mode** table for all 26 routes
+- [x] **Phase 2:** Define + implement the **route→mode** table for all 26 routes
   (incl. modeless surfaces).
 - [ ] **Phase 3:** Network mode (discover/requests/person/crm/channel) with a
   chronological, humane feed.
