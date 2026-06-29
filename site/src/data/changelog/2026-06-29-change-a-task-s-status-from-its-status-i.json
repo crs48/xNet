@@ -4,6 +4,14 @@
   "title": "Change a task's status from its status icon",
   "summary": "Click the status icon on any task — in the task list, on board cards, or inline — to open a dropdown and pick any workflow status (Triage, Backlog, To Do, In Progress, In Review, Done, Cancelled). It no longer just toggles the task complete.",
   "highlights": [],
-  "tags": ["tasks"],
-  "pr": 343
+  "tags": [
+    "tasks"
+  ],
+  "pr": 343,
+  "mergedAt": "2026-06-29T15:40:08Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
