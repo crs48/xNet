@@ -541,7 +541,7 @@ async function admitDevice(account: AccountLedger, existing: KeyBundle, newDevic
       phrase.
 - [x] (P2) Admitting a new device grants data access via re-wrap; revoking a device
       removes future access; the ledger is signed and tamper-evident.
-- [ ] (P3) Escrow is unreachable without a verified WorkOS session and is absent unless
+- [x] (P3) Escrow is unreachable without a verified WorkOS session and is absent unless
       explicitly enabled; every use is logged.
 
 ## References

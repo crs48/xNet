@@ -56,6 +56,16 @@ export {
   RECOVERY_WORDLIST
 } from './seed-recovery'
 
+// Recovery escrow (privacy-preserving PIN factor) — exploration 0243 P3.1
+export type { EscrowEnvelope } from './escrow'
+export {
+  MIN_ESCROW_PIN_LENGTH,
+  sealEscrow,
+  openEscrow,
+  serializeEscrow,
+  deserializeEscrow
+} from './escrow'
+
 // Recoverable identities (phrase-born DID; same DID on any device) — exploration 0243
 export type { RecoveryPhraseValidation, SealedRecoveryPhrase } from './recoverable'
 export {

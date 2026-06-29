@@ -9,6 +9,7 @@ export default defineConfig({
     'src/index.ts',
     'src/provisioner/index.ts',
     'src/identity/index.ts',
+    'src/escrow/index.ts',
     'src/billing/index.ts',
     'src/ai/index.ts',
     'src/storage/index.ts',
