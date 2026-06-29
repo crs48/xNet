@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-06-29-calm-layout-now-reflows-to-a-mobile-shel",
+      "url": "https://xnet.fyi/changelog#2026-06-29-calm-layout-now-reflows-to-a-mobile-shel",
+      "title": "Calm layout now reflows to a mobile shell",
+      "content_text": "On phones the calm layout shares the same three modes as desktop — Companion, Workspace, and Network drop to a bottom tab bar, with the list and contextual canvas as sheets.\n",
+      "date_published": "2026-06-29T16:34:28Z",
+      "tags": [
+        "app"
+      ],
+      "_xnet": {
+        "date": "June 29, 2026",
+        "summary": "On phones the calm layout shares the same three modes as desktop — Companion, Workspace, and Network drop to a bottom tab bar, with the list and contextual canvas as sheets.",
+        "highlights": [],
+        "mergedAt": "2026-06-29T16:34:28Z",
+        "pr": 347,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-06-29-a-calmer-conversation-first-workspace-la",
       "url": "https://xnet.fyi/changelog#2026-06-29-a-calmer-conversation-first-workspace-la",
       "title": "A calmer, conversation-first workspace layout",

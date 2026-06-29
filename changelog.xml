@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Calm layout now reflows to a mobile shell</title>
+      <link>https://xnet.fyi/changelog#2026-06-29-calm-layout-now-reflows-to-a-mobile-shel</link>
+      <guid isPermaLink="false">2026-06-29-calm-layout-now-reflows-to-a-mobile-shel</guid>
+      <pubDate>Mon, 29 Jun 2026 16:34:28 GMT</pubDate>
+      <description>On phones the calm layout shares the same three modes as desktop — Companion, Workspace, and Network drop to a bottom tab bar, with the list and contextual canvas as sheets.</description>
+    </item>
+    <item>
       <title>A calmer, conversation-first workspace layout</title>
       <link>https://xnet.fyi/changelog#2026-06-29-a-calmer-conversation-first-workspace-la</link>
       <guid isPermaLink="false">2026-06-29-a-calmer-conversation-first-workspace-la</guid>
