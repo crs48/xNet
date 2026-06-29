@@ -591,7 +591,7 @@ function Canvas({ focus }: { focus: boolean }) {
   (incl. modeless surfaces).
 - [x] **Phase 3:** Network mode (discover/requests/person/crm/channel) with a
   chronological, humane feed.
-- [ ] **Phase 4:** Responsive reflow → bottom-tab phone layout; **retire
+- [x] **Phase 4:** Responsive reflow → bottom-tab phone layout; **retire
   `MobileShell`** behind a flag once parity passes.
 - [ ] **Phase 4:** Align expo `AppNavigator` to the three modes.
 - [ ] **Phase 5:** Surface `AiMutationPlan` plan→approve→apply as a Companion
@@ -605,7 +605,7 @@ function Canvas({ focus }: { focus: boolean }) {
   in `calm` (deep links, back/forward, share links intact).
 - [x] **Toggle:** switching `calm ↔ workbench` is lossless (same active content,
   no data loss, persisted per identity).
-- [ ] **Responsive:** the same three modes + grammar verified at 1440 / 900 /
+- [x] **Responsive:** the same three modes + grammar verified at 1440 / 900 /
   390px via Playwright + `preview_resize`; no separate-shell regressions; canvas
   sheet has no backdrop tap-through.
 - [ ] **Agent flow:** "draft a page / make tasks" opens the artifact in the
