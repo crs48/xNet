@@ -47,11 +47,13 @@ const DEFAULT_STATUSES: TaskStatusId[] = TASK_WORKFLOW_ORDER
 function DraggableTaskCard({
   task,
   onOpenTask,
-  onToggleCompleted
+  onToggleCompleted,
+  onCardStatusChange
 }: {
   task: TaskBoardItem
   onOpenTask?: (taskId: string) => void
   onToggleCompleted?: (taskId: string, completed: boolean) => void
+  onCardStatusChange?: (taskId: string, status: string, completed: boolean) => void
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: task.id })
 
@@ -62,7 +64,12 @@ function DraggableTaskCard({
       {...listeners}
       className={isDragging ? 'opacity-40' : undefined}
     >
-      <TaskCard task={task} onOpen={onOpenTask} onToggleCompleted={onToggleCompleted} />
+      <TaskCard
+        task={task}
+        onOpen={onOpenTask}
+        onToggleCompleted={onToggleCompleted}
+        onStatusChange={onCardStatusChange}
+      />
     </div>
   )
 }
@@ -71,12 +78,14 @@ function BoardColumn({
   status,
   tasks,
   onOpenTask,
-  onToggleCompleted
+  onToggleCompleted,
+  onCardStatusChange
 }: {
   status: TaskStatusId
   tasks: TaskBoardItem[]
   onOpenTask?: (taskId: string) => void
   onToggleCompleted?: (taskId: string, completed: boolean) => void
+  onCardStatusChange?: (taskId: string, status: string, completed: boolean) => void
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: `column:${status}` })
   const meta = getTaskStatusMeta(status)
@@ -101,6 +110,7 @@ function BoardColumn({
             task={task}
             onOpenTask={onOpenTask}
             onToggleCompleted={onToggleCompleted}
+            onCardStatusChange={onCardStatusChange}
           />
         ))}
       </div>
@@ -131,15 +141,10 @@ export function TaskBoard({
     setActiveTaskId(String(event.active.id))
   }
 
-  const handleDragEnd = (event: DragEndEvent) => {
-    setActiveTaskId(null)
-    const overId = event.over?.id
-    if (typeof overId !== 'string' || !overId.startsWith('column:')) return
-
-    const status = overId.slice('column:'.length) as TaskStatusId
+  // Move a task to a column's end — shared by drag-to-column and the card's
+  // status-glyph dropdown so both land the card identically.
+  const moveToColumn = (taskId: string, status: TaskStatusId) => {
     if (!statuses.includes(status)) return
-
-    const taskId = String(event.active.id)
     const task = tasks.find((candidate) => candidate.id === taskId)
     if (!task || task.status === status) return
 
@@ -154,6 +159,13 @@ export function TaskBoard({
     })
   }
 
+  const handleDragEnd = (event: DragEndEvent) => {
+    setActiveTaskId(null)
+    const overId = event.over?.id
+    if (typeof overId !== 'string' || !overId.startsWith('column:')) return
+    moveToColumn(String(event.active.id), overId.slice('column:'.length) as TaskStatusId)
+  }
+
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="flex h-full gap-3 overflow-x-auto p-3" data-testid="task-board">
@@ -164,6 +176,7 @@ export function TaskBoard({
             tasks={column.tasks}
             onOpenTask={onOpenTask}
             onToggleCompleted={onToggleCompleted}
+            onCardStatusChange={(taskId, status) => moveToColumn(taskId, status as TaskStatusId)}
           />
         ))}
       </div>
