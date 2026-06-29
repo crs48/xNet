@@ -1,0 +1,57 @@
+---
+// The honesty beat for the internals post (exploration 0248), modeled on
+// HonestExit / HonestStar. A post that opens the machine up has to be just as
+// precise about what the machine does NOT do, or the deep-dive becomes a sales
+// pitch in a lab coat. These four are the exact overclaims this topic invites.
+const rows = [
+  {
+    isnt: 'It isn’t a magic privacy box — the hub can see plaintext on the default path.',
+    is: 'The unencrypted path relays property values the hub can read. The encrypted, per-recipient envelope path exists (X25519-wrapped keys) and makes it blind — but it is not yet the universal default. We won’t call the whole thing end-to-end encrypted, because today it isn’t.'
+  },
+  {
+    isnt: 'The kernel isn’t a CRDT in the Automerge sense.',
+    is: 'It’s a signed, hash-chained, last-write-wins change log. Rich-text documents layer Yjs (a real CRDT) on top, optionally. LWW is portable, deterministic, and trivially auditable across languages — at the cost of the fine-grained text-merge magic a sequence CRDT gives you. That’s a deliberate trade, not an accident.'
+  },
+  {
+    isnt: 'It isn’t trying to beat Mastodon, Bluesky, or Nostr at federation.',
+    is: 'Those are server-to-server, online-first systems for one shared social graph. xNet is local-first storage for everything you make — notes, tasks, a CRM, a wiki — with the master copy on your device. Different problem; they can coexist.'
+  },
+  {
+    isnt: 'Owning the format doesn’t make leaving effortless in real life.',
+    is: 'We can only make the part we control cheap to leave: your identity is a portable did:key, your history is an open log, the app works offline. Your friends, your habits, and your muscle memory are still switching costs we can’t wave away. The format just makes sure the door is never locked.'
+  }
+]
+---
+
+<section class="not-prose my-12">
+  <div class="rounded-2xl border border-border bg-surface/30 p-6 dark:bg-surface/40 lg:p-8">
+    <h3 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+      What this isn’t
+    </h3>
+    <p class="mt-2 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+      Opening the hood only counts if you’re honest about the parts that aren’t
+      shiny. Four things this post is <em>not</em> claiming.
+    </p>
+
+    <ul class="mt-6 space-y-5">
+      {
+        rows.map((row) => (
+          <li class="grid gap-3 sm:grid-cols-[1fr_1.3fr] sm:gap-5">
+            <div class="flex gap-2.5">
+              <span class="select-none text-gray-400 dark:text-gray-600" aria-hidden="true">
+                ✕
+              </span>
+              <p class="text-sm leading-relaxed text-gray-500 dark:text-gray-400">{row.isnt}</p>
+            </div>
+            <div class="flex gap-2.5">
+              <span class="select-none text-emerald-500" aria-hidden="true">
+                ✓
+              </span>
+              <p class="text-sm leading-relaxed text-gray-700 dark:text-gray-200">{row.is}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>

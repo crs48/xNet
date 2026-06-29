@@ -1,0 +1,80 @@
+---
+// The trust-boundary figure for the deep-dive post (exploration 0248), modeled
+// on the not-prose bordered-card idiom (ThreeNervousSystems / HonestExit). The
+// §5 claim of the post is "the hub is a post office, not a landlord": trusted to
+// deliver and order, not to be honest or private. This card draws that line
+// precisely so the post never overclaims end-to-end encryption — the default
+// path relays property values the hub can read; the encrypted path makes it
+// blind. See packages/hub and packages/crypto/src/envelope.ts.
+const canSee = [
+  'The order of changes, and the rooms they belong to — it has to, to relay them.',
+  'Who authored each change (their public did:key) and when.',
+  'On the default, unencrypted path: the property values it forwards.'
+]
+const cannot = [
+  'Forge your signature. Every change is Ed25519-signed; a tampered one fails verification on every device.',
+  'Rewrite history. Each change names its parent by hash, so silently editing the past breaks the chain for everyone.',
+  'Read content on the encrypted path. There, the content key is wrapped per-recipient (X25519), so the hub stores ciphertext it has no key for.'
+]
+---
+
+<section class="not-prose my-12">
+  <div class="rounded-2xl border border-border bg-surface/30 p-6 dark:bg-surface/40 lg:p-8">
+    <h3 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+      Where the trust line falls
+    </h3>
+    <p class="mt-2 text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+      The hub is trusted for <span class="font-medium text-gray-700 dark:text-gray-200"
+        >delivery and ordering</span
+      > — not for truth, and not for privacy. Here is exactly what that means.
+    </p>
+
+    <div class="mt-6 grid gap-6 sm:grid-cols-2">
+      <div>
+        <p class="font-mono text-sm font-semibold text-amber-600 dark:text-amber-400">
+          What the hub can see
+        </p>
+        <ul class="mt-3 space-y-2.5">
+          {
+            canSee.map((row) => (
+              <li class="flex gap-2.5 text-sm leading-relaxed text-gray-600 dark:text-gray-300">
+                <span class="select-none text-amber-500/80" aria-hidden="true">
+                  ●
+                </span>
+                <span>{row}</span>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+      <div>
+        <p class="font-mono text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+          What the hub can never do
+        </p>
+        <ul class="mt-3 space-y-2.5">
+          {
+            cannot.map((row) => (
+              <li class="flex gap-2.5 text-sm leading-relaxed text-gray-700 dark:text-gray-200">
+                <span class="select-none text-emerald-500" aria-hidden="true">
+                  ✓
+                </span>
+                <span>{row}</span>
+              </li>
+            ))
+          }
+        </ul>
+      </div>
+    </div>
+
+    <p
+      class="mt-6 border-t border-border pt-4 text-sm leading-relaxed text-gray-600 dark:text-gray-300"
+    >
+      Swap the hub for another one — or
+      <a
+        href="/build-with"
+        class="font-medium text-indigo-600 dark:text-indigo-400">run your own</a
+      > — and nothing about your data changes. That is the difference between a
+      relay and a landlord.
+    </p>
+  </div>
+</section>

@@ -599,11 +599,11 @@ two columns:
       panel for developers" affordance) so non-devs can skip code.
 - [ ] Author `site/src/pages/blog/<slug>.astro` following the spine
       outline (§1–§6 + hook + close).
-- [ ] Build the bespoke `TrustBoundary.astro` card (idiom of
+- [x] Build the bespoke `TrustBoundary.astro` card (idiom of
       `ThreeNervousSystems.astro`).
-- [ ] Build a per-post hero (idiom of `ForestHero.astro` /
+- [x] Build a per-post hero (idiom of `ForestHero.astro` /
       `MycelialHero.astro`) — loom/frame visual motif.
-- [ ] Add an `Honest*` self-critique card (e.g. `HonestMachine.astro`):
+- [x] Add an `Honest*` self-critique card (e.g. `HonestMachine.astro`):
       the hub-sees-plaintext caveat, "not a CRDT", "not a federation
       competitor".
 - [ ] Add the `BlogPost` entry to `site/src/data/blog.ts` (slug, title,
@@ -624,7 +624,7 @@ two columns:
 ## Validation Checklist
 
 - [ ] `pnpm --filter site build` succeeds (runs `validate:*` + `astro
-    build`); the new page, index card, and RSS item all render.
+  build`); the new page, index card, and RSS item all render.
 - [ ] Mermaid diagrams render in **both** light and dark mode with no
       contrast failures; no layout shift on load.
 - [ ] Code blocks are syntax-highlighted and horizontally scroll (don't
