@@ -40,6 +40,9 @@ export interface TaskBoardProps {
   onStatusChange: (change: TaskBoardStatusChange) => void
   onOpenTask?: (taskId: string) => void
   onToggleCompleted?: (taskId: string, completed: boolean) => void
+  /** Pick a status from a card's status glyph (re-buckets the card to that
+   * column). Distinct from drag-to-column, which also restitches sortKey. */
+  onCardStatusChange?: (taskId: string, status: string, completed: boolean) => void
 }
 
 const DEFAULT_STATUSES: TaskStatusId[] = TASK_WORKFLOW_ORDER
@@ -47,11 +50,13 @@ const DEFAULT_STATUSES: TaskStatusId[] = TASK_WORKFLOW_ORDER
 function DraggableTaskCard({
   task,
   onOpenTask,
-  onToggleCompleted
+  onToggleCompleted,
+  onCardStatusChange
 }: {
   task: TaskBoardItem
   onOpenTask?: (taskId: string) => void
   onToggleCompleted?: (taskId: string, completed: boolean) => void
+  onCardStatusChange?: (taskId: string, status: string, completed: boolean) => void
 }) {
   const { attributes, listeners, setNodeRef, isDragging } = useDraggable({ id: task.id })
 
@@ -62,7 +67,12 @@ function DraggableTaskCard({
       {...listeners}
       className={isDragging ? 'opacity-40' : undefined}
     >
-      <TaskCard task={task} onOpen={onOpenTask} onToggleCompleted={onToggleCompleted} />
+      <TaskCard
+        task={task}
+        onOpen={onOpenTask}
+        onToggleCompleted={onToggleCompleted}
+        onStatusChange={onCardStatusChange}
+      />
     </div>
   )
 }
@@ -71,12 +81,14 @@ function BoardColumn({
   status,
   tasks,
   onOpenTask,
-  onToggleCompleted
+  onToggleCompleted,
+  onCardStatusChange
 }: {
   status: TaskStatusId
   tasks: TaskBoardItem[]
   onOpenTask?: (taskId: string) => void
   onToggleCompleted?: (taskId: string, completed: boolean) => void
+  onCardStatusChange?: (taskId: string, status: string, completed: boolean) => void
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: `column:${status}` })
   const meta = getTaskStatusMeta(status)
@@ -101,6 +113,7 @@ function BoardColumn({
             task={task}
             onOpenTask={onOpenTask}
             onToggleCompleted={onToggleCompleted}
+            onCardStatusChange={onCardStatusChange}
           />
         ))}
       </div>
@@ -113,7 +126,8 @@ export function TaskBoard({
   statuses = DEFAULT_STATUSES,
   onStatusChange,
   onOpenTask,
-  onToggleCompleted
+  onToggleCompleted,
+  onCardStatusChange
 }: TaskBoardProps) {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 4 } }))
   const [activeTaskId, setActiveTaskId] = useState<string | null>(null)
@@ -164,6 +178,7 @@ export function TaskBoard({
             tasks={column.tasks}
             onOpenTask={onOpenTask}
             onToggleCompleted={onToggleCompleted}
+            onCardStatusChange={onCardStatusChange}
           />
         ))}
       </div>

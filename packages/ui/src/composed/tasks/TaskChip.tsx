@@ -10,6 +10,7 @@ import type { MouseEvent } from 'react'
 import { RotateCcw, Trash2 } from 'lucide-react'
 import { cn } from '../../utils'
 import { TaskStatusIcon } from './TaskStatusIcon'
+import { TaskStatusMenu } from './TaskStatusMenu'
 import {
   DUE_DATE_URGENCY_CLASS,
   formatDueDate,
@@ -28,6 +29,7 @@ export function TaskChip({
   task,
   missingLabel = 'Task removed',
   onToggleCompleted,
+  onStatusChange,
   onOpen,
   onRestore,
   className
@@ -81,21 +83,30 @@ export function TaskChip({
         }
       }}
     >
-      <button
-        type="button"
-        className={cn(
-          'inline-flex items-center rounded-full',
-          onToggleCompleted ? 'cursor-pointer' : 'cursor-default'
-        )}
-        aria-label={task.completed ? 'Mark incomplete' : 'Mark complete'}
-        disabled={!onToggleCompleted}
-        onClick={(event: MouseEvent) => {
-          event.stopPropagation()
-          onToggleCompleted?.(task.id, !task.completed)
-        }}
-      >
-        <TaskStatusIcon status={task.completed ? 'done' : task.status} size={12} />
-      </button>
+      {onStatusChange ? (
+        <TaskStatusMenu
+          status={task.status}
+          completed={task.completed}
+          size={12}
+          onPick={(status, completed) => onStatusChange(task.id, status, completed)}
+        />
+      ) : (
+        <button
+          type="button"
+          className={cn(
+            'inline-flex items-center rounded-full',
+            onToggleCompleted ? 'cursor-pointer' : 'cursor-default'
+          )}
+          aria-label={task.completed ? 'Mark incomplete' : 'Mark complete'}
+          disabled={!onToggleCompleted}
+          onClick={(event: MouseEvent) => {
+            event.stopPropagation()
+            onToggleCompleted?.(task.id, !task.completed)
+          }}
+        >
+          <TaskStatusIcon status={task.completed ? 'done' : task.status} size={12} />
+        </button>
+      )}
       {task.shortId && (
         <span className="shrink-0 font-mono text-[10px] text-foreground-muted">{task.shortId}</span>
       )}

@@ -12,6 +12,7 @@ import { DIDAvatar } from '../../components/DIDAvatar'
 import { cn } from '../../utils'
 import { TaskGithubBadges } from './TaskGithubBadges'
 import { TaskPriorityIcon, TaskStatusIcon } from './TaskStatusIcon'
+import { TaskStatusMenu } from './TaskStatusMenu'
 import {
   DUE_DATE_URGENCY_CLASS,
   formatDueDate,
@@ -37,6 +38,7 @@ export function TaskCard({
   focused = false,
   missingLabel = 'Task removed',
   onToggleCompleted,
+  onStatusChange,
   onOpen,
   onRestore,
   className
@@ -128,18 +130,27 @@ export function TaskCard({
       </div>
 
       <div className="flex items-start gap-2">
-        <button
-          type="button"
-          className="mt-0.5 inline-flex shrink-0 items-center rounded-full"
-          aria-label={task.completed ? 'Mark incomplete' : 'Mark complete'}
-          disabled={!onToggleCompleted}
-          onClick={(event: MouseEvent) => {
-            event.stopPropagation()
-            onToggleCompleted?.(task.id, !task.completed)
-          }}
-        >
-          <TaskStatusIcon status={task.completed ? 'done' : task.status} />
-        </button>
+        {onStatusChange ? (
+          <TaskStatusMenu
+            status={task.status}
+            completed={task.completed}
+            className="mt-0.5"
+            onPick={(status, completed) => onStatusChange(task.id, status, completed)}
+          />
+        ) : (
+          <button
+            type="button"
+            className="mt-0.5 inline-flex shrink-0 items-center rounded-full"
+            aria-label={task.completed ? 'Mark incomplete' : 'Mark complete'}
+            disabled={!onToggleCompleted}
+            onClick={(event: MouseEvent) => {
+              event.stopPropagation()
+              onToggleCompleted?.(task.id, !task.completed)
+            }}
+          >
+            <TaskStatusIcon status={task.completed ? 'done' : task.status} />
+          </button>
+        )}
         <span
           className={cn(
             'min-w-0 flex-1 text-sm font-medium leading-snug text-foreground',
