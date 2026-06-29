@@ -571,12 +571,12 @@ function Canvas({ focus }: { focus: boolean }) {
 
 ## Implementation Checklist
 
-- [ ] **Phase 0:** Add `layout: 'calm' | 'workbench'`, `mode`, `listOpen`,
+- [x] **Phase 0:** Add `layout: 'calm' | 'workbench'`, `mode`, `listOpen`,
   `canvas` to [`state.ts`](apps/web/src/workbench/state.ts) (persist v2; migrate
   v1).
 - [ ] **Phase 0:** `View: Switch layout` command + Settings toggle; default
   `calm` for identities with no persisted layout.
-- [ ] **Phase 0:** Scaffold `workbench/calm/Shell.tsx`, `ModeSwitch.tsx`,
+- [x] **Phase 0:** Scaffold `workbench/calm/Shell.tsx`, `ModeSwitch.tsx`,
   `ListPane.tsx`, `Surface.tsx`, `Canvas.tsx`; branch in
   [`Workbench.tsx`](apps/web/src/workbench/Workbench.tsx).
 - [ ] **Phase 1:** Promote `AiChatPanel` → full Companion surface (threads list,

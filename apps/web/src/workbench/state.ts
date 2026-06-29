@@ -17,6 +17,21 @@ import { persist } from 'zustand/middleware'
 export type WorkbenchMode = 'default' | 'zen'
 export type PanelSide = 'left' | 'right' | 'bottom'
 
+/**
+ * Shell composition (exploration 0250). `workbench` is the original VS-Code
+ * multi-pane grid (0166); `calm` is the Claude-desktop "mode · list · surface ·
+ * contextual canvas" shell. Both reuse the same views, routes and panel state —
+ * only the arrangement differs — so the choice is a single persisted flag.
+ */
+export type ShellLayout = 'workbench' | 'calm'
+
+/**
+ * The three primary modes of the calm shell — xNet's analog of Claude
+ * desktop's Chat / Cowork / Code. Companion = talk to your agent; Workspace =
+ * your pages/databases/canvases/tasks; Network = people, channels, discover.
+ */
+export type CalmMode = 'companion' | 'workspace' | 'network'
+
 export type TabNodeType =
   | 'page'
   | 'database'
@@ -101,6 +116,21 @@ function createTab(input: {
 }
 
 interface WorkbenchState {
+  /**
+   * Active shell composition (0250). Defaults to `calm` for new identities;
+   * the original `workbench` grid stays one toggle away. Reuses the same
+   * `left`/`right` panels (as the calm List/Canvas) and `mode` (as focus).
+   */
+  layout: ShellLayout
+  /** Active primary mode of the calm shell (0250). */
+  calmMode: CalmMode
+  /**
+   * Contextual-canvas target (0250). When set, the calm shell's right Canvas
+   * hosts the full content view for this node (the Claude "artifact opens on
+   * the right" move — e.g. the agent drafts a page). When null the Canvas falls
+   * back to the inspector (properties/comments/backlinks) for the active view.
+   */
+  canvasTarget: { nodeType: TabNodeType; nodeId: string; title?: string } | null
   mode: WorkbenchMode
   zenSnapshot: ZenSnapshot | null
   left: PanelState
@@ -148,6 +178,17 @@ interface WorkbenchState {
   setExplorerSort: (sort: ExplorerSort) => void
   /** Set the primary scope and the multi-filter together, atomically. */
   applyScopeSelection: (scope: string | null, filter: string[]) => void
+
+  // ─── Shell layout (0250) ───────────────────────────────────────
+  setLayout: (layout: ShellLayout) => void
+  /** Flip between the calm shell and the workbench grid. */
+  toggleLayout: () => void
+  /** Switch the calm shell's active primary mode. */
+  setCalmMode: (mode: CalmMode) => void
+  /** Open the contextual Canvas hosting a node's full content view. */
+  openCanvas: (target: { nodeType: TabNodeType; nodeId: string; title?: string }) => void
+  /** Close the Canvas and clear its content target (back to the inspector). */
+  closeCanvas: () => void
 
   // ─── Panels ────────────────────────────────────────────────────
   setPanelOpen: (side: PanelSide, open: boolean) => void
@@ -215,6 +256,12 @@ function freshGroups(): EditorGroup[] {
 export const useWorkbench = create<WorkbenchState>()(
   persist(
     (set, get) => ({
+      // Calm shell ships opt-in first (0250); the Phase-2 step flips this
+      // default to 'calm' for new identities once the shell is proven. Existing
+      // users keep whatever they persisted; the other shell is one toggle away.
+      layout: 'workbench',
+      calmMode: 'companion',
+      canvasTarget: null,
       mode: 'default',
       zenSnapshot: null,
       left: { open: true, activeViewId: 'explorer' },
@@ -239,6 +286,19 @@ export const useWorkbench = create<WorkbenchState>()(
       setSpaceFilter: (ids) => set({ spaceFilter: ids }),
       setExplorerSort: (sort) => set({ explorerSort: sort }),
       applyScopeSelection: (scope, filter) => set({ currentSpaceId: scope, spaceFilter: filter }),
+
+      setLayout: (layout) => set({ layout }),
+
+      toggleLayout: () =>
+        set((state) => ({ layout: state.layout === 'calm' ? 'workbench' : 'calm' })),
+
+      setCalmMode: (calmMode) => set({ calmMode }),
+
+      openCanvas: (target) =>
+        set((state) => ({ canvasTarget: target, right: { ...state.right, open: true } })),
+
+      closeCanvas: () =>
+        set((state) => ({ canvasTarget: null, right: { ...state.right, open: false } })),
 
       setPanelOpen: (side, open) => set((state) => ({ [side]: { ...state[side], open } })),
 
