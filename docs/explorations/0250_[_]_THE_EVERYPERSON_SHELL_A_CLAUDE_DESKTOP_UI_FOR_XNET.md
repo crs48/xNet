@@ -589,7 +589,7 @@ function Canvas({ focus }: { focus: boolean }) {
   reachable.
 - [x] **Phase 2:** Define + implement the **route→mode** table for all 26 routes
   (incl. modeless surfaces).
-- [ ] **Phase 3:** Network mode (discover/requests/person/crm/channel) with a
+- [x] **Phase 3:** Network mode (discover/requests/person/crm/channel) with a
   chronological, humane feed.
 - [ ] **Phase 4:** Responsive reflow → bottom-tab phone layout; **retire
   `MobileShell`** behind a flag once parity passes.
