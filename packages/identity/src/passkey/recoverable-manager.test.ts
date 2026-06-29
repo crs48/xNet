@@ -92,6 +92,14 @@ describe('recoverable identities (IdentityManager)', () => {
     expect(await manager.hasIdentity()).toBe(false)
   })
 
+  it('recoverViaSyncedPasskey returns null when no synced passkey is discoverable', async () => {
+    // The harness mocks PublicKeyCredential without isConditionalMediationAvailable,
+    // so discovery finds nothing and recovery cleanly reports "no synced passkey".
+    const { createIdentityManager } = await import('./index')
+    const manager = createIdentityManager()
+    expect(await manager.recoverViaSyncedPasskey('localhost')).toBeNull()
+  })
+
   it('an ordinary PRF identity is NOT recoverable and reveals no phrase (opt-in)', async () => {
     const { createIdentityManager } = await import('./index')
     const manager = createIdentityManager()

@@ -16,6 +16,13 @@ export function ImportIdentityScreen(): JSX.Element {
 
       <button
         className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors mb-3 w-64"
+        onClick={() => send({ type: 'USE_SYNCED_PASSKEY' })}
+      >
+        Use a synced passkey
+      </button>
+
+      <button
+        className="text-sm text-muted-foreground hover:text-foreground transition-colors mb-2"
         onClick={() => send({ type: 'SCAN_QR' })}
       >
         Scan from another device

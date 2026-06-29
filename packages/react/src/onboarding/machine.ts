@@ -46,6 +46,7 @@ export type OnboardingEvent =
   | { type: 'CREATE_FIRST_PAGE' }
   // Recoverable-identity flow (exploration 0243)
   | { type: 'CREATE_RECOVERABLE' }
+  | { type: 'USE_SYNCED_PASSKEY' }
   | { type: 'SUBMIT_PHRASE'; phrase: string }
   | { type: 'IMPORT_FAILED'; error: Error }
   | { type: 'RECOVERABLE_CREATED'; identity: Identity; keyBundle: KeyBundle; phrase: string }
@@ -98,6 +99,7 @@ const TRANSITIONS: Partial<
   'import-identity': {
     SCAN_QR: 'qr-scan',
     ENTER_PHRASE: 'recovery-phrase',
+    USE_SYNCED_PASSKEY: 'authenticating',
     BACK_TO_WELCOME: 'welcome'
   },
   'qr-scan': {

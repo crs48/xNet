@@ -153,6 +153,33 @@ export function OnboardingProvider({
           })
       }
 
+      // Recover via a passkey synced from another device (iCloud / Google).
+      if (event.type === 'USE_SYNCED_PASSKEY' && state === 'import-identity') {
+        if (authInFlight.current) return
+        authInFlight.current = true
+        manager
+          .recoverViaSyncedPasskey()
+          .then((keyBundle) => {
+            if (keyBundle) {
+              dispatch({ type: 'PASSKEY_SUCCESS', identity: keyBundle.identity, keyBundle })
+            } else {
+              dispatch({
+                type: 'PASSKEY_FAILED',
+                error: new Error('No synced passkey found on this device')
+              })
+            }
+          })
+          .catch((err: unknown) => {
+            dispatch({
+              type: 'PASSKEY_FAILED',
+              error: err instanceof Error ? err : new Error(String(err))
+            })
+          })
+          .finally(() => {
+            authInFlight.current = false
+          })
+      }
+
       // Recover from a typed phrase: enroll a local passkey and adopt the identity.
       if (event.type === 'SUBMIT_PHRASE' && state === 'recovery-phrase') {
         if (authInFlight.current) return
