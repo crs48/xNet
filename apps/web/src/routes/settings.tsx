@@ -918,10 +918,41 @@ function RecoveryPhraseRow() {
  * analogue. Splits the recovery phrase into 3 share codes, any 2 of which recover the
  * identity, to hand to trusted people. Entirely user-to-user; the cloud never sees them.
  */
+/** Small inline number picker for the guardian counts. */
+function CountSelect({
+  value,
+  min,
+  max,
+  onChange
+}: {
+  value: number
+  min: number
+  max: number
+  onChange: (n: number) => void
+}) {
+  const options = []
+  for (let n = min; n <= max; n++) options.push(n)
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(Number(e.target.value))}
+      className="rounded-md border border-hairline bg-surface-0 px-2 py-1 text-xs text-ink-1"
+    >
+      {options.map((n) => (
+        <option key={n} value={n}>
+          {n}
+        </option>
+      ))}
+    </select>
+  )
+}
+
 function GuardianSetupRow() {
   const [recoverable, setRecoverable] = useState<boolean | null>(null)
   const [shares, setShares] = useState<string[] | null>(null)
   const [busy, setBusy] = useState(false)
+  const [total, setTotal] = useState(3)
+  const [threshold, setThreshold] = useState(2)
 
   useEffect(() => {
     let active = true
@@ -933,17 +964,23 @@ function GuardianSetupRow() {
     }
   }, [])
 
+  // Threshold can never exceed the number of guardians (and Shamir needs ≥ 2).
+  const effectiveThreshold = Math.min(threshold, total)
+
   const generate = useCallback(async () => {
     setBusy(true)
     try {
-      const raw = await identityManager.createGuardianShares({ totalShares: 3, threshold: 2 })
+      const raw = await identityManager.createGuardianShares({
+        totalShares: total,
+        threshold: effectiveThreshold
+      })
       setShares(raw.map(serializeShare))
     } catch (err) {
       console.error('Failed to create guardian shares:', err)
     } finally {
       setBusy(false)
     }
-  }, [])
+  }, [total, effectiveThreshold])
 
   // Only meaningful for recoverable identities; the RecoveryPhraseRow already explains
   // the non-recoverable case, so we stay quiet there.
@@ -952,12 +989,13 @@ function GuardianSetupRow() {
   return (
     <SettingRow
       label="Trusted guardians"
-      description="Split recovery across 3 people; any 2 can help you recover — like Apple's recovery contacts. We never see the shares."
+      description="Split recovery across people you trust — like Apple's recovery contacts. Any threshold of them can help you recover, and we never see the shares."
     >
       {shares ? (
         <div className="flex max-w-[300px] flex-col items-end gap-2">
           <p className="text-right text-[11px] text-ink-3">
-            Give one code to each guardian. Any 2 together can restore your account.
+            Give one code to each guardian. Any {effectiveThreshold} together can restore your
+            account.
           </p>
           {shares.map((code, i) => (
             <div key={code} className="flex w-full items-center justify-end gap-2">
@@ -971,11 +1009,22 @@ function GuardianSetupRow() {
               </button>
             </div>
           ))}
+          <button onClick={() => setShares(null)} className={QUIET_BUTTON}>
+            Done
+          </button>
         </div>
       ) : (
-        <button onClick={generate} disabled={busy} className={QUIET_BUTTON}>
-          {busy ? 'Generating…' : 'Generate guardian shares'}
-        </button>
+        <div className="flex flex-col items-end gap-2">
+          <div className="flex items-center gap-1.5 text-xs text-ink-3">
+            <CountSelect value={total} min={2} max={7} onChange={setTotal} />
+            <span>guardians,</span>
+            <CountSelect value={effectiveThreshold} min={2} max={total} onChange={setThreshold} />
+            <span>needed</span>
+          </div>
+          <button onClick={generate} disabled={busy} className={QUIET_BUTTON}>
+            {busy ? 'Generating…' : 'Generate guardian shares'}
+          </button>
+        </div>
       )}
     </SettingRow>
   )

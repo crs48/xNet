@@ -1,9 +1,11 @@
 /**
  * Guardian (social) recovery — recover an identity by collecting enough guardian share
- * codes (exploration 0243). The provider reconstructs the phrase from the shares,
- * reproduces the same DID, and enrolls a local passkey. Entirely user-to-user; the
- * cloud is never involved.
+ * codes (exploration 0243). It reads the required threshold from the shares themselves,
+ * so the user just pastes codes until "enough" is reached. The provider reconstructs the
+ * phrase, reproduces the same DID, and enrolls a local passkey. Entirely user-to-user;
+ * the cloud is never involved.
  */
+import { parseShare } from '@xnetjs/identity'
 import { useMemo, useState } from 'react'
 import { useOnboarding } from '../OnboardingProvider'
 
@@ -11,21 +13,43 @@ export function GuardianRecoveryScreen(): JSX.Element {
   const { send, context } = useOnboarding()
   const [text, setText] = useState('')
 
-  const codes = useMemo(
-    () =>
-      text
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .filter((line) => line.length > 0),
-    [text]
-  )
+  const { validCodes, invalidCount, threshold } = useMemo(() => {
+    const lines = text
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+    const valid: string[] = []
+    let invalid = 0
+    let need: number | null = null
+    for (const line of lines) {
+      try {
+        const share = parseShare(line)
+        valid.push(line)
+        need ??= share.threshold
+      } catch {
+        invalid += 1
+      }
+    }
+    return { validCodes: valid, invalidCount: invalid, threshold: need }
+  }, [text])
+
+  const canRecover = threshold !== null && validCodes.length >= threshold
+
+  const hint = ((): string => {
+    if (context.error) return context.error.message
+    if (text.trim().length === 0) return 'Paste one share code per line'
+    if (invalidCount > 0)
+      return `${invalidCount} code${invalidCount === 1 ? '' : 's'} not recognized`
+    if (threshold !== null) return `${validCodes.length} of ${threshold} needed`
+    return `${validCodes.length} share${validCodes.length === 1 ? '' : 's'} pasted`
+  })()
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-background p-6 text-foreground">
       <h1 className="mb-2 text-2xl font-semibold">Recover with your guardians</h1>
       <p className="mb-6 max-w-md text-center text-muted-foreground">
-        Paste the share codes your guardians gave you — one per line. You need enough of them (the
-        threshold you chose when you set this up) to restore your identity.
+        Paste the share codes your guardians gave you — one per line. You need enough of them to
+        restore your identity; we&rsquo;ll tell you when you have enough.
       </p>
 
       <textarea
@@ -41,19 +65,19 @@ export function GuardianRecoveryScreen(): JSX.Element {
       />
 
       <div className="mb-4 h-5 text-xs">
-        {context.error ? (
-          <span className="text-destructive">{context.error.message}</span>
-        ) : (
-          <span className="text-muted-foreground">
-            {codes.length} share{codes.length === 1 ? '' : 's'} pasted
-          </span>
-        )}
+        <span
+          className={
+            context.error || invalidCount > 0 ? 'text-destructive' : 'text-muted-foreground'
+          }
+        >
+          {hint}
+        </span>
       </div>
 
       <button
-        disabled={codes.length < 2}
+        disabled={!canRecover}
         className="mb-3 w-64 rounded-lg bg-primary px-6 py-3 font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
-        onClick={() => codes.length >= 2 && send({ type: 'SUBMIT_GUARDIAN_SHARES', codes })}
+        onClick={() => canRecover && send({ type: 'SUBMIT_GUARDIAN_SHARES', codes: validCodes })}
       >
         Recover my identity
       </button>
