@@ -1,0 +1,10 @@
+{
+  "id": "2026-06-28-recover-with-a-passkey-synced-from-anoth",
+  "date": "June 28, 2026",
+  "title": "Recover with a passkey synced from another device",
+  "summary": "If your xNet passkey syncs via iCloud Keychain or Google Password Manager, you can now recover your workspace on a new device with one tap — no recovery phrase needed.",
+  "highlights": [],
+  "tags": [
+    "identity"
+  ]
+}

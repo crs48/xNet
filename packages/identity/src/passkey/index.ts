@@ -16,6 +16,7 @@ import {
   validateRecoveryPhrase
 } from '../recoverable'
 import { createPasskeyIdentity } from './create'
+import { discoverExistingPasskey, unlockDiscoveredPasskey } from './discovery'
 import { createFallbackIdentity, unlockFallbackIdentity } from './fallback'
 import { enrollRecoverableIdentity } from './recoverable'
 import { persistSession, loadSession, clearSession } from './session'
@@ -106,6 +107,14 @@ export type IdentityManager = {
 
   /** Whether the stored identity was created recoverable (has a saved phrase). */
   isRecoverable(): Promise<boolean>
+
+  /**
+   * Recover via a passkey synced from another device (iCloud Keychain / Google
+   * Password Manager) — exploration 0243, P1.4. Discovers an existing xNet passkey,
+   * unlocks it (same PRF → same DID), and stores it locally. Returns the key bundle,
+   * or null when no synced passkey is available (the caller falls back to the phrase).
+   */
+  recoverViaSyncedPasskey(rpId?: string): Promise<HybridKeyBundle | null>
 
   /** Unlock the existing identity (prompts for biometric) */
   unlock(): Promise<HybridKeyBundle>
@@ -257,6 +266,16 @@ export function createIdentityManager(): IdentityManager {
     async isRecoverable(): Promise<boolean> {
       const stored = await getStoredIdentity()
       return Boolean(stored?.recovery)
+    },
+
+    async recoverViaSyncedPasskey(rpId?: string): Promise<HybridKeyBundle | null> {
+      const discovered = await discoverExistingPasskey(rpId)
+      if (!discovered) return null
+      const { keyBundle, passkey } = await unlockDiscoveredPasskey(discovered)
+      await storeIdentity(passkey)
+      cachedKeyBundle = keyBundle
+      await persistCurrentSession(keyBundle)
+      return keyBundle
     },
 
     async unlock(): Promise<HybridKeyBundle> {

@@ -509,7 +509,7 @@ async function admitDevice(account: AccountLedger, existing: KeyBundle, newDevic
       distinguishing account vs. data recovery; Electron uses `secure-seed`.
 - [x] **P1.3** On enroll, derive the local passkey bundle so it wraps the
       recovery-phrase-derived key (passkey unlock and phrase recovery yield the _same_ DID).
-- [ ] **P1.4** Surface passkey-sync recovery (A1) explicitly in the import flow using
+- [x] **P1.4** Surface passkey-sync recovery (A1) explicitly in the import flow using
       `discoverExistingPasskey` / `unlockDiscoveredPasskey`.
 - [x] **P2.1** Build the 0149 `Account` / `Device` / `RecoveryMethod` schemas
       (schema-native, signed, synced) with revocation + epochs.
@@ -534,7 +534,7 @@ async function admitDevice(account: AccountLedger, existing: KeyBundle, newDevic
 - [x] Recovery phrase round-trips: `deriveKeysFromSeed(export())` reproduces the **same
       DID**, and that DID can decrypt previously-sealed nodes.
 - [x] A _fresh, unrelated_ DID **cannot** decrypt old nodes (privacy guarantee holds).
-- [ ] Synced-passkey path (A1) on the same ecosystem returns the same DID without a
+- [x] Synced-passkey path (A1) on the same ecosystem returns the same DID without a
       phrase.
 - [x] (P2) Admitting a new device grants data access via re-wrap; revoking a device
       removes future access; the ledger is signed and tamper-evident.

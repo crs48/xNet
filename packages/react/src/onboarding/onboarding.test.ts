@@ -193,6 +193,26 @@ describe('Onboarding State Machine', () => {
       s = send(s, { type: 'PASSKEY_FAILED', error: new Error('cancelled') })
       expect(s.state).toBe('auth-error')
     })
+
+    it('uses a synced passkey: import-identity → authenticating → connecting-hub', () => {
+      let s = createInitialState()
+      s = send(s, { type: 'IMPORT_EXISTING' })
+      s = send(s, { type: 'USE_SYNCED_PASSKEY' })
+      expect(s.state).toBe('authenticating')
+
+      const ok = makeIdentityEvent()
+      s = send(s, ok)
+      expect(s.state).toBe('connecting-hub')
+      expect(s.context.keyBundle).toBe(ok.keyBundle)
+    })
+
+    it('surfaces "no synced passkey" as an auth-error the user can retry', () => {
+      let s = createInitialState()
+      s = send(s, { type: 'IMPORT_EXISTING' })
+      s = send(s, { type: 'USE_SYNCED_PASSKEY' })
+      s = send(s, { type: 'PASSKEY_FAILED', error: new Error('No synced passkey found') })
+      expect(s.state).toBe('auth-error')
+    })
   })
 
   describe('hub connection', () => {

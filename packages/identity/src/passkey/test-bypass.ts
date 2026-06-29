@@ -188,6 +188,11 @@ export function createTestIdentityManager() {
       return recoverablePhrase !== null
     },
 
+    async recoverViaSyncedPasskey(): Promise<HybridKeyBundle | null> {
+      // No real WebAuthn in test mode — no synced passkey to discover.
+      return null
+    },
+
     async unlock(): Promise<HybridKeyBundle> {
       if (cachedKeyBundle) {
         return cachedKeyBundle
