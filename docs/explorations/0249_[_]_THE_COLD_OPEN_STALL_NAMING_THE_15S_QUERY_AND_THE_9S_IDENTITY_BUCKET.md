@@ -414,12 +414,12 @@ void probeStoreColdStart(sqliteAdapter, storageStatus.persisted, Boolean(hubUrl)
 
 ## Implementation Checklist
 
-- [ ] **I1**: add `detail?` to `SchedulerOpReport`/`schedule()`/`QueuedJob`
+- [x] **I1**: add `detail?` to `SchedulerOpReport`/`schedule()`/`QueuedJob`
       ([`worker-scheduler.ts`](../../packages/sqlite/src/adapters/worker-scheduler.ts));
       pass redacted, truncated SQL from `query`/`queryOne`/`run`/`exec`
       ([`web-worker.ts`](../../packages/sqlite/src/adapters/web-worker.ts)); emit
       it in the `sqlite op` log. Add a changeset for `@xnetjs/sqlite`.
-- [ ] **I2**: add `sqlite:probe`/`storage:open`/`identity:checked` marks +
+- [x] **I2**: add `sqlite:probe`/`storage:open`/`identity:checked` marks +
       `probe`/`storageOpen`/`identityCheck`/`identityResume` segments
       ([`boot-timeline.ts`](../../apps/web/src/lib/boot-timeline.ts),
       [`App.tsx`](../../apps/web/src/App.tsx)); reflect the split in the perf
@@ -427,10 +427,10 @@ void probeStoreColdStart(sqliteAdapter, storageStatus.persisted, Boolean(hubUrl)
 - [ ] **I3**: re-capture a cold boot with `xnet:boot:debug=true` set *before*
       reload; record `db stats @ open` (`bytes`/`pageCount`/`freelistCount`) and
       the named 15 s op.
-- [ ] **F1**: move `probeStoreColdStart` off the `await` boot path; verify the
+- [x] **F1**: move `probeStoreColdStart` off the `await` boot path; verify the
       cold-start affordance still behaves.
-- [ ] Trace the ~5 s secondary gap (bridge result handler + data-worker first op).
-- [ ] **F2**: design + build the instant-shell snapshot (write-through; <1 s paint).
+- [x] Trace the ~5 s secondary gap (bridge result handler + data-worker first op).
+- [x] **F2**: design + build the instant-shell snapshot (write-through; <1 s paint).
 - [ ] **F3** *(if `changes`-bound)*: spec + implement change-log compaction.
 - [ ] **F4** *(if `identityResume`-bound)*: move identity crypto off the boot path.
 - [ ] Redeploy the tenant hub to clear `INVALID_HASH` (0224); reconcile with 0233.
