@@ -1,15 +1,15 @@
 # A Deep-Dive Blog Post: How xNet Actually Works Under the Hood
 
 > Working title: **"The Loom You're Allowed to Open"**
-> (alternates: *"Follow One Keystroke Home"*, *"No Black Boxes"*, *"A Machine You Can Read"*)
+> (alternates: _"Follow One Keystroke Home"_, _"No Black Boxes"_, _"A Machine You Can Read"_)
 
 ## Problem Statement
 
 The xNet blog has six published essays, and every one of them is an
-*analogy* — pirates, mycelium, a star's thermostat, Saharan dust, a
+_analogy_ — pirates, mycelium, a star's thermostat, Saharan dust, a
 musician's "leveragism", a food forest (see `site/src/data/blog.ts`).
-They are beautiful and they are doing the philosophical work: *why* the
-extractive web is bad and *why* an owned, local-first web is worth
+They are beautiful and they are doing the philosophical work: _why_ the
+extractive web is bad and _why_ an owned, local-first web is worth
 wanting. None of them ever shows you the machine.
 
 That is a gap. A real, sceptical reader — especially a developer —
@@ -30,20 +30,20 @@ This document designs that post: its spine, its audience strategy, the
 exact internals it should cover (with verified file paths), the
 diagrams and snippets it should carry, the comparison to the rest of
 the decentralisation landscape, and — critically — the **rendering
-work** needed, because the blog's current `.astro` pipeline does *not*
+work** needed, because the blog's current `.astro` pipeline does _not_
 render mermaid or syntax-highlighted code the way the post needs.
 
 ## Executive Summary
 
 - **Recommended shape: a "two-track" essay** with a single concrete
-  spine — *follow one edit, one note, from a keystroke to a second
-  device* — narrated in plain language, with optional "Open the panel"
+  spine — _follow one edit, one note, from a keystroke to a second
+  device_ — narrated in plain language, with optional "Open the panel"
   asides carrying the code and the protocol detail. A normal user reads
   the spine and gets a true mental model; a developer reads the asides
   and gets the real types. Nobody is bored and nobody is lost.
 
 - **The machine is genuinely good copy.** Each internal layer has a
-  one-sentence human hook *and* a real artifact behind it:
+  one-sentence human hook _and_ a real artifact behind it:
   - Local-first → your note is a row in a SQLite file **on your disk**,
     written before any network exists (`packages/sqlite`, OPFS).
   - The atom → an edit is a **signed, hashed, parent-linked `Change`**,
@@ -60,7 +60,7 @@ render mermaid or syntax-highlighted code the way the post needs.
 - **Rendering is the real implementation cost, not the prose.** Blog
   posts are hand-authored `.astro` pages; mermaid only renders today in
   the MDX **docs** (via `rehypeMermaidPre` in `site/astro.config.mjs` +
-  client Mermaid.js). The post wants both diagrams *and* code. The
+  client Mermaid.js). The post wants both diagrams _and_ code. The
   recommendation is a small, reusable trio of blog components —
   `<Mermaid>`, `<CodeFigure>`, and an "`<Aside>`/`<Peek>`" disclosure —
   rather than converting the blog to MDX (which would break the
@@ -72,13 +72,13 @@ render mermaid or syntax-highlighted code the way the post needs.
   with their own mermaid. The blog post earns the reader's trust and
   then hands them off with "the full spec lives here" links.
 
-- **Differentiator to make explicit:** xNet is *not* another federation
+- **Differentiator to make explicit:** xNet is _not_ another federation
   protocol fighting ActivityPub/AT-Proto/Nostr for the social graph.
   Its kernel is a **local-first, signed change log** — closer to
   "git + CRDT + did:key" than to "Mastodon but ours". That framing is
   the post's most defensible claim and its clearest tie to the Luddite
-  thesis: *a machine the worker is allowed to open, understand, and
-  keep.*
+  thesis: _a machine the worker is allowed to open, understand, and
+  keep._
 
 ## Current State In The Repository
 
@@ -121,16 +121,16 @@ trust-boundary card).
 
 ### What the blog pipeline can and can't render today
 
-| Capability | Docs (MDX) | Blog (`.astro`) | Needed by this post |
-| --- | --- | --- | --- |
-| Mermaid diagrams | ✅ `rehypeMermaidPre` + client Mermaid.js (`site/astro.config.mjs`) | ❌ not wired | ✅ several |
-| Syntax-highlighted code | ✅ Starlight `expressiveCode` (one-light/one-dark-pro) | ⚠️ only the `CodeTabs.astro` / `<Code>` primitive, not used in blog | ✅ 4–6 short snippets |
-| Bespoke SVG/HTML figures | n/a | ✅ established idiom | ✅ 1–2 |
+| Capability               | Docs (MDX)                                                          | Blog (`.astro`)                                                     | Needed by this post   |
+| ------------------------ | ------------------------------------------------------------------- | ------------------------------------------------------------------- | --------------------- |
+| Mermaid diagrams         | ✅ `rehypeMermaidPre` + client Mermaid.js (`site/astro.config.mjs`) | ❌ not wired                                                        | ✅ several            |
+| Syntax-highlighted code  | ✅ Starlight `expressiveCode` (one-light/one-dark-pro)              | ⚠️ only the `CodeTabs.astro` / `<Code>` primitive, not used in blog | ✅ 4–6 short snippets |
+| Bespoke SVG/HTML figures | n/a                                                                 | ✅ established idiom                                                | ✅ 1–2                |
 
 `site/astro.config.mjs` already contains the lightweight
-`rehypeMermaidPre` plugin (it rewrites ```` ```mermaid ```` fences to
-`<pre class="mermaid">` for a client renderer, *"Replaces rehype-mermaid
-(which drags in playwright as a transitive dep)"*). That client renderer
+`rehypeMermaidPre` plugin (it rewrites ` ```mermaid ` fences to
+`<pre class="mermaid">` for a client renderer, _"Replaces rehype-mermaid
+(which drags in playwright as a transitive dep)"_). That client renderer
 is wired for the **docs** route, not the blog. Re-using the same
 approach in a small `<Mermaid>` blog component is the cheap path.
 
@@ -140,16 +140,16 @@ approach in a small `<Mermaid>` blog component is the cheap path.
 
 ```ts
 export interface Change<T = unknown> {
-  protocolVersion?: number   // 3 = hybrid Ed25519 + ML-DSA (post-quantum)
-  id: string                 // nanoid
-  type: string               // "node-change"
-  payload: T                 // only the properties that changed (sparse)
-  hash: ContentId            // "cid:blake3:<hex>"
-  parentHash: ContentId | null  // the link in the chain
-  authorDID: DID             // did:key of whoever made it
-  signature: Uint8Array      // Ed25519 over the hash
-  wallTime: number           // display clock (not used for ordering)
-  lamport: number            // logical clock (used for ordering)
+  protocolVersion?: number // 3 = hybrid Ed25519 + ML-DSA (post-quantum)
+  id: string // nanoid
+  type: string // "node-change"
+  payload: T // only the properties that changed (sparse)
+  hash: ContentId // "cid:blake3:<hex>"
+  parentHash: ContentId | null // the link in the chain
+  authorDID: DID // did:key of whoever made it
+  signature: Uint8Array // Ed25519 over the hash
+  wallTime: number // display clock (not used for ordering)
+  lamport: number // logical clock (used for ordering)
 }
 ```
 
@@ -162,15 +162,15 @@ across implementations:
 
 ```ts
 export function signChange<T>(unsigned, signingKey) {
-  const hash = computeChangeHash(unsigned)              // canonical JSON → BLAKE3
+  const hash = computeChangeHash(unsigned) // canonical JSON → BLAKE3
   const signature = sign(new TextEncoder().encode(hash), signingKey) // Ed25519
   return { ...unsigned, hash, signature }
 }
 ```
 
 **3. The merge — last-write-wins, no referee.**
-`packages/data/src/store/store.ts:2472`. Conflict resolution is *per
-property* and is three deterministic lines:
+`packages/data/src/store/store.ts:2472`. Conflict resolution is _per
+property_ and is three deterministic lines:
 
 ```ts
 private shouldReplace(existing, incoming): boolean {
@@ -187,21 +187,21 @@ pick the same winner. (See the memory
 `conformance/vectors/lww/0003-tie-author-breaks.json`.)
 
 **4. Identity you mint.** `packages/identity/src/did.ts:14`. A user's id
-*is* their public key, base58-encoded with a 2-byte Ed25519 multicodec
+_is_ their public key, base58-encoded with a 2-byte Ed25519 multicodec
 prefix — no registrar, nothing to revoke:
 
 ```ts
 const ED25519_PREFIX = new Uint8Array([0xed, 0x01])
 export function createDID(publicKey: Uint8Array): DID {
   const prefixed = new Uint8Array([...ED25519_PREFIX, ...publicKey])
-  return `did:key:${base58btc.encode(prefixed)}` as DID   // did:key:z6Mk…
+  return `did:key:${base58btc.encode(prefixed)}` as DID // did:key:z6Mk…
 }
 ```
 
 **5. Local storage first.** `packages/sqlite/src/adapters/opfs-capability.ts`
 (`detectOpfsCapability`), `apps/web/src/App.tsx` boot sequence. Data is
 written to a single `/xnet.db` SQLite file in the browser's **Origin
-Private File System** *before* any hub exists, and the first paint does
+Private File System** _before_ any hub exists, and the first paint does
 **not** wait on the hub (memory: `local-first-doc-load`,
 exploration 0188 — `acquire()` is fire-and-forget).
 
@@ -232,22 +232,22 @@ concrete.
   diagram, peer scoring, batching), `concepts/network.mdx`
 - `site/src/content/docs/docs/guides/{identity,sync,hub,versioning}.mdx`
 
-The blog post is the *trailhead*; these are the *map*.
+The blog post is the _trailhead_; these are the _map_.
 
 ## External Research
 
 ### The local-first canon (the post's intellectual home)
 
-The Ink & Switch essay *"Local-first software: you own your data, in
-spite of the cloud"* (Kleppmann et al., 2019) defines **seven ideals**:
-*fast, multi-device, offline, collaboration, longevity, privacy, user
-control*. xNet is an almost line-for-line implementation of that
+The Ink & Switch essay _"Local-first software: you own your data, in
+spite of the cloud"_ (Kleppmann et al., 2019) defines **seven ideals**:
+_fast, multi-device, offline, collaboration, longevity, privacy, user
+control_. xNet is an almost line-for-line implementation of that
 manifesto, which the post should name explicitly — it gives the work a
 lineage and a sceptical reader a citation. CRDTs (and the
 Automerge/Yjs line of work) are the merge technology that makes ideals
 3–4 possible without a central referee.
 
-A useful honesty point for the post: xNet's **kernel** is *not* a CRDT in
+A useful honesty point for the post: xNet's **kernel** is _not_ a CRDT in
 the Automerge sense — it's a **signed, hash-chained, last-write-wins
 change log** (Yjs is layered on top, optionally, for rich-text
 documents). That's a deliberate design choice — LWW is portable,
@@ -261,13 +261,13 @@ The user asked for comparison to "other systems out there". The cleanest
 framing is that xNet is solving a **different problem** than the social
 protocols, and the comparison table makes that legible:
 
-| System | Where your **identity** lives | Where your **data** lives | The kernel | Works fully **offline**? |
-| --- | --- | --- | --- | --- |
-| Big-tech cloud | An account the platform issues | The platform's servers | Proprietary | No |
-| **ActivityPub / Mastodon** | On your home **server** (move = new account, mostly) | On your home server | Message-passing between servers | No |
-| **AT Protocol / Bluesky** | A portable DID, but resolution leans on infra | Your PDS (a host you pick) | Repos + relays + app-views | No |
-| **Nostr** | A raw keypair (very portable) | Whatever **relays** keep | Signed events to relays | No (relay-dependent) |
-| **xNet** | A `did:key` you mint locally | **Your device first** (OPFS/SQLite) | Signed, hash-chained **LWW change log** | **Yes** |
+| System                     | Where your **identity** lives                        | Where your **data** lives           | The kernel                              | Works fully **offline**? |
+| -------------------------- | ---------------------------------------------------- | ----------------------------------- | --------------------------------------- | ------------------------ |
+| Big-tech cloud             | An account the platform issues                       | The platform's servers              | Proprietary                             | No                       |
+| **ActivityPub / Mastodon** | On your home **server** (move = new account, mostly) | On your home server                 | Message-passing between servers         | No                       |
+| **AT Protocol / Bluesky**  | A portable DID, but resolution leans on infra        | Your PDS (a host you pick)          | Repos + relays + app-views              | No                       |
+| **Nostr**                  | A raw keypair (very portable)                        | Whatever **relays** keep            | Signed events to relays                 | No (relay-dependent)     |
+| **xNet**                   | A `did:key` you mint locally                         | **Your device first** (OPFS/SQLite) | Signed, hash-chained **LWW change log** | **Yes**                  |
 
 Findings worth citing: ActivityPub/AT-Proto typically anchor identity to
 a **server/host**, which is the thing that breaks when the host changes
@@ -280,17 +280,17 @@ server-to-server, online-first systems. (Sources below.)
 
 ### The Luddites (the thematic spine)
 
-The popular meaning of "Luddite" — *anti-technology* — is historically
+The popular meaning of "Luddite" — _anti-technology_ — is historically
 wrong, and that wrongness is the post's best closing move. The Luddites
 were skilled artisans who **welcomed tools that helped them** and broke
-only the frames being used to *degrade their autonomy and wages* (E.P.
+only the frames being used to _degrade their autonomy and wages_ (E.P.
 Thompson's "moral economy"). They targeted specific owners, often with
 warning. Their fight wasn't machine-vs-human; it was **who the machine
 is for, and whether the worker is allowed to understand and own it.**
 
 That is exactly xNet's thesis stated in iron: a black-box platform is the
 power loom the worker isn't allowed to open; xNet is **a loom you can
-open, read, repair, and keep.** The deep-dive *is* the politics — being
+open, read, repair, and keep.** The deep-dive _is_ the politics — being
 able to show you the whole machine, line by line, is the argument.
 
 ## Key Findings
@@ -299,13 +299,13 @@ able to show you the whole machine, line by line, is the argument.
    a one-line human metaphor that's also literally true: "git for your
    notes" (the change log), "your id is your key, not your account"
    (did:key), "no server decides who wins" (LWW), "the hub is a post
-   office, not a landlord" (relay). The post mostly needs to *get out of
-   the way* of the machine.
+   office, not a landlord" (relay). The post mostly needs to _get out of
+   the way_ of the machine.
 
 2. **A single running example beats six separate explanations.** Follow
-   one edit — *you rename a note "Groceries" while offline; your phone,
-   also offline, had renamed it "Shopping"* — through storage → change →
-   sync → merge. The conflict is the payoff: the post can *show* the
+   one edit — _you rename a note "Groceries" while offline; your phone,
+   also offline, had renamed it "Shopping"_ — through storage → change →
+   sync → merge. The conflict is the payoff: the post can _show_ the
    three-line rule pick a deterministic winner with no server involved.
 
 3. **Two-track structure solves the dual-audience problem.** Plain-spoken
@@ -345,23 +345,23 @@ flowchart TD
   end
 ```
 
-| Option | Strength | Weakness |
-| --- | --- | --- |
-| **A. Spine + asides** | One story; both audiences served continuously; the conflict-resolution payoff lands for everyone | Needs the disclosure/aside component; careful pacing |
-| B. Two halves | Easy to write; clean audience split | Non-devs bounce at the seam; devs skim the first half; "two posts stapled together" |
-| C. Layered teardown | Maximally complete; mirrors the docs | Reads like documentation; loses the human; the docs already do this |
+| Option                | Strength                                                                                         | Weakness                                                                            |
+| --------------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------- |
+| **A. Spine + asides** | One story; both audiences served continuously; the conflict-resolution payoff lands for everyone | Needs the disclosure/aside component; careful pacing                                |
+| B. Two halves         | Easy to write; clean audience split                                                              | Non-devs bounce at the seam; devs skim the first half; "two posts stapled together" |
+| C. Layered teardown   | Maximally complete; mirrors the docs                                                             | Reads like documentation; loses the human; the docs already do this                 |
 
 **Choose A.** It's the only one that honours the user's actual ask —
-"compelling for a developer *and* a normal user … small amounts of code
+"compelling for a developer _and_ a normal user … small amounts of code
 … not so overwhelming it feels just for developers."
 
 ### B. How to render code + diagrams
 
-| Option | What it is | Trade |
-| --- | --- | --- |
-| **B1. Add 3 blog components (RECOMMENDED)** | `<Mermaid>` (reuse `rehypeMermaidPre`'s client approach), `<CodeFigure>` (Astro `<Code>`/Shiki), `<Peek>` (disclosure aside) | A little component work; keeps the art-directed `.astro` grain; fully reusable by future technical posts |
-| B2. Convert this one post to MDX | Get docs-style mermaid + expressiveCode for free | Forks the blog's authoring model; two pipelines to maintain; loses the bespoke hero/honest-card idiom |
-| B3. Bespoke hand-drawn SVG only (no mermaid) | Matches existing blog figures perfectly | Slow to author; the user explicitly asked for mermaid; sequence diagrams are painful by hand |
+| Option                                       | What it is                                                                                                                   | Trade                                                                                                    |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| **B1. Add 3 blog components (RECOMMENDED)**  | `<Mermaid>` (reuse `rehypeMermaidPre`'s client approach), `<CodeFigure>` (Astro `<Code>`/Shiki), `<Peek>` (disclosure aside) | A little component work; keeps the art-directed `.astro` grain; fully reusable by future technical posts |
+| B2. Convert this one post to MDX             | Get docs-style mermaid + expressiveCode for free                                                                             | Forks the blog's authoring model; two pipelines to maintain; loses the bespoke hero/honest-card idiom    |
+| B3. Bespoke hand-drawn SVG only (no mermaid) | Matches existing blog figures perfectly                                                                                      | Slow to author; the user explicitly asked for mermaid; sequence diagrams are painful by hand             |
 
 **Choose B1**, with **one or two** bespoke cards (B3) reserved for the
 trust-boundary "what the hub sees" figure where art direction earns its
@@ -412,25 +412,25 @@ flowchart TD
 
 1. **Hook (everyone).** "The cloud is just someone else's computer." Set
    up the one note we'll follow. Promise: by the end you'll have seen
-   *every* place your data lives and *every* place a normal app would
+   _every_ place your data lives and _every_ place a normal app would
    quietly betray you.
 2. **§1 It's already on your disk.** OPFS/SQLite; first paint doesn't wait
-   on a server. *Diagram: cloud-first vs local-first.* Human line: "Your
+   on a server. _Diagram: cloud-first vs local-first._ Human line: "Your
    note exists before the internet does."
 3. **§2 The atom.** The `Change` — signed, hashed, `parentHash`-linked.
-   "It's git, for everything you make." *Peek: the `Change` interface +
-   `signChange`. Diagram: the hash chain.*
+   "It's git, for everything you make." _Peek: the `Change` interface +
+   `signChange`. Diagram: the hash chain._
 4. **§3 Your name is a key.** `did:key`; minted, not issued; nothing to
-   revoke. *Peek: `createDID`.* Compare to account-on-a-server.
+   revoke. _Peek: `createDID`._ Compare to account-on-a-server.
 5. **§4 Two devices, no referee.** The offline-rename conflict. Walk the
-   three-line rule; show it's deterministic everywhere. *Peek:
-   `shouldReplace`. Diagram: sequence diagram of the merge.* This is the
+   three-line rule; show it's deterministic everywhere. _Peek:
+   `shouldReplace`. Diagram: sequence diagram of the merge._ This is the
    emotional/intellectual climax — ownership made mechanical.
 6. **§5 The hub is a post office.** Relay, not landlord; verifies
    signatures, orders, forwards; the encrypted path means it can be blind.
-   *Bespoke card: the trust boundary — what the hub sees vs can't.*
+   _Bespoke card: the trust boundary — what the hub sees vs can't._
 7. **§6 Proof you can leave.** Golden vectors; Rust/Swift/Python kernels;
-   fork the repo. *Peek: a 6-line conformance vector JSON.* "Exit isn't a
+   fork the repo. _Peek: a 6-line conformance vector JSON._ "Exit isn't a
    feature we added; it's a property of the format."
 8. **Close (everyone).** The real Luddites — pro-autonomy, anti-black-box.
    xNet is the loom you can open. Links to `/commitments`, `/app`,
@@ -463,17 +463,18 @@ flowchart LR
 ```ts
 export interface Change<T = unknown> {
   id: string
-  payload: T               // just the fields that changed
-  hash: ContentId          // "cid:blake3:…" — fingerprint of this change
-  parentHash: ContentId | null   // the previous change's fingerprint
-  authorDID: DID           // who made it
-  signature: Uint8Array    // Ed25519 — proves it was them, unforgeably
-  lamport: number          // a logical clock for ordering
+  payload: T // just the fields that changed
+  hash: ContentId // "cid:blake3:…" — fingerprint of this change
+  parentHash: ContentId | null // the previous change's fingerprint
+  authorDID: DID // who made it
+  signature: Uint8Array // Ed25519 — proves it was them, unforgeably
+  lamport: number // a logical clock for ordering
 }
 ```
-> One sentence under it: *Every change points at the one before it by its
+
+> One sentence under it: _Every change points at the one before it by its
 > fingerprint, and is signed by its author — so the whole history is a
-> tamper-evident chain, exactly like git's commits.*
+> tamper-evident chain, exactly like git's commits._
 
 ### Diagram: the hash chain (§2)
 
@@ -511,9 +512,10 @@ private shouldReplace(existing, incoming): boolean {
   return incoming.author > existing.author   // last resort: compare the keys themselves
 }
 ```
-> *Three lines. No server. Because it's pure and deterministic, every
+
+> _Three lines. No server. Because it's pure and deterministic, every
 > device runs it and lands on the same answer — that's what "no referee"
-> means.*
+> means._
 
 ### Bespoke card: the trust boundary (§5)
 
@@ -526,8 +528,8 @@ two columns:
 - **What the hub can never do:** forge your signature, silently reorder
   history (the chain breaks), or read content on the **encrypted path**
   (per-recipient X25519-wrapped content keys —
-  `packages/crypto/src/envelope.ts:126`). It's trusted for *delivery*,
-  not for *truth* or *privacy*.
+  `packages/crypto/src/envelope.ts:126`). It's trusted for _delivery_,
+  not for _truth_ or _privacy_.
 
 ### Peek: proof of exit (§6) — a conformance vector
 
@@ -540,9 +542,10 @@ two columns:
   }
 }
 ```
-> *This exact test passes against the TypeScript, Rust, Swift, and Python
+
+> _This exact test passes against the TypeScript, Rust, Swift, and Python
 > implementations. The format isn't ours; it's a fact you can re-derive.
-> That's why leaving can't be taken away.*
+> That's why leaving can't be taken away._
 
 ## Risks And Open Questions
 
@@ -560,39 +563,39 @@ two columns:
   exploration 0243 and the envelope work). Mitigation: cite file paths,
   keep snippets minimal, and add the post to whatever the fact-check pass
   covers (memory: `0247-blog-fact-check`).
-- **The hub-can-see-plaintext caveat.** Be honest: the *current* default
+- **The hub-can-see-plaintext caveat.** Be honest: the _current_ default
   path relays property values the hub can read; the encrypted-envelope
   path exists but isn't the universal default yet. The post must not
   overclaim end-to-end encryption. State the trust model precisely:
-  trusted for availability and ordering, and *blind on the encrypted
-  path*, with the plaintext path called out plainly. (This is itself
+  trusted for availability and ordering, and _blind on the encrypted
+  path_, with the plaintext path called out plainly. (This is itself
   on-brand — the `Honest*` self-critique card idiom.)
 - **"CRDT" precision.** Don't call the kernel a CRDT; it's an LWW change
   log with optional Yjs documents on top. Getting this wrong loses the
   exact audience the post is courting.
 - **Length.** Six internals + comparison + Luddite close could sprawl past
   18 minutes. The spine + asides structure lets a normal reader skip the
-  asides, but the *prose* spine still has to stay tight.
+  asides, but the _prose_ spine still has to stay tight.
 - **Open question: slug/title.** `the-loom-you-can-read` (thematic, fits
   the series) vs `how-xnet-works` (SEO/discoverability). Possibly ship the
   evocative title with the plain one as the `<h1>` deck. Decide with the
   maintainer.
 - **Open question: post vs docs primacy.** Should this live in the blog
   (narrative, art-directed) or become a flagship `concepts/how-it-works`
-  doc? Recommendation: blog, because the audience is the *undecided*
+  doc? Recommendation: blog, because the audience is the _undecided_
   reader, not the implementer — but cross-link hard.
 
 ## Implementation Checklist
 
 - [ ] Decide slug + title with maintainer (`the-loom-you-can-read` vs
       `how-xnet-works`).
-- [ ] Add `<Mermaid>` blog component (`site/src/components/blog/Mermaid.astro`)
+- [x] Add `<Mermaid>` blog component (`site/src/components/blog/Mermaid.astro`)
       that renders a `<pre class="mermaid">` + a client init script,
       reusing the docs' Mermaid.js approach; theme it to the blog's
       tokens incl. dark mode.
-- [ ] Add `<CodeFigure>` blog component wrapping Astro `<Code>` (Shiki,
+- [x] Add `<CodeFigure>` blog component wrapping Astro `<Code>` (Shiki,
       one-light/one-dark-pro to match docs `expressiveCode`).
-- [ ] Add `<Peek>` disclosure/aside component (visually distinct "open the
+- [x] Add `<Peek>` disclosure/aside component (visually distinct "open the
       panel for developers" affordance) so non-devs can skip code.
 - [ ] Author `site/src/pages/blog/<slug>.astro` following the spine
       outline (§1–§6 + hook + close).
@@ -621,7 +624,7 @@ two columns:
 ## Validation Checklist
 
 - [ ] `pnpm --filter site build` succeeds (runs `validate:*` + `astro
-      build`); the new page, index card, and RSS item all render.
+    build`); the new page, index card, and RSS item all render.
 - [ ] Mermaid diagrams render in **both** light and dark mode with no
       contrast failures; no layout shift on load.
 - [ ] Code blocks are syntax-highlighted and horizontally scroll (don't
@@ -669,19 +672,22 @@ two columns:
 
 ### External
 
-- Kleppmann, Wiggins, van Hardenberg, McGranaghan — *Local-first
-  software: you own your data, in spite of the cloud*, Ink & Switch (2019)
+- Kleppmann, Wiggins, van Hardenberg, McGranaghan — _Local-first
+  software: you own your data, in spite of the cloud_, Ink & Switch (2019)
   — https://www.inkandswitch.com/essay/local-first/
-- *Comparing local-first frameworks and approaches* (CRDT/Automerge/Yjs
+- _Comparing local-first frameworks and approaches_ (CRDT/Automerge/Yjs
   landscape) — https://neon.com/blog/comparing-local-first-frameworks-and-approaches
-- *Nostr vs. Fediverse vs. Bluesky: A Comparison of Decentralized Social
-  Protocols* — https://soapbox.pub/blog/comparing-protocols
+- _Nostr vs. Fediverse vs. Bluesky: A Comparison of Decentralized Social
+  Protocols_ — https://soapbox.pub/blog/comparing-protocols
 - AT Protocol — https://en.wikipedia.org/wiki/AT_Protocol
-- E.P. Thompson, *The Making of the English Working Class* (the Luddites'
-  "moral economy"); *The Future Encyclopedia of Luddism*, MIT Press Reader
+- E.P. Thompson, _The Making of the English Working Class_ (the Luddites'
+  "moral economy"); _The Future Encyclopedia of Luddism_, MIT Press Reader
   — https://thereader.mitpress.mit.edu/the-future-encyclopedia-of-luddism/
-- B. Merchant, *Blood in the Machine* (the real Luddite history) — summary
+- B. Merchant, _Blood in the Machine_ (the real Luddite history) — summary
   via TIME — https://time.com/6317437/luddites-ai-blood-in-the-machine-merchant/
 - BLAKE3 — https://github.com/BLAKE3-team/BLAKE3 ; Ed25519 / RFC 8032 ;
   `did:key` method — https://w3c-ccg.github.io/did-method-key/
+
+```
+
 ```

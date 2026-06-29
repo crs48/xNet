@@ -1,0 +1,124 @@
+---
+// Client-rendered Mermaid diagram for the (non-MDX, hand-authored) blog
+// (exploration 0248). The docs route renders mermaid via the Starlight Head
+// override (src/components/docs/Head.astro); blog posts use Base.astro, which
+// has no such hook, so this component carries its own loader. The diagram source
+// is passed as a `code` string and printed with `set:text` so literal `-->`,
+// `{}` and `<br/>` survive into the <pre> as text content — exactly what
+// Mermaid.js parses. The loader is a bundled module script (Astro includes it
+// once per page no matter how many diagrams use it) and is deferred, so it never
+// blocks first paint. Theme tracks Base.astro's class-based dark mode.
+interface Props {
+  /** Raw mermaid diagram source. */
+  code: string
+  /** Optional caption shown under the figure. */
+  caption?: string
+}
+const { code, caption } = Astro.props
+---
+
+<figure class="not-prose my-10">
+  <div
+    class="overflow-x-auto rounded-2xl border border-border bg-surface/30 p-4 dark:bg-surface/40 lg:p-6"
+  >
+    <pre class="mermaid" set:text={code}></pre>
+  </div>
+  {
+    caption && (
+      <figcaption class="mt-3 text-center text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+        {caption}
+      </figcaption>
+    )
+  }
+</figure>
+
+<style is:global>
+  /* Until the script swaps in the SVG, hide the raw source so readers never see
+     a flash of diagram markup. Mermaid removes this class via data-processed. */
+  pre.mermaid:not([data-processed]) {
+    color: transparent;
+    min-height: 2rem;
+  }
+  pre.mermaid {
+    text-align: center;
+    background: transparent;
+    margin: 0;
+  }
+  pre.mermaid svg {
+    margin: 0 auto;
+    display: block;
+    height: auto;
+    max-width: 100%;
+  }
+</style>
+
+<script>
+  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'
+
+  // Themed to the blog's palette (indigo accents, slate lines) for both modes.
+  const darkVars = {
+    primaryColor: '#1e1b3a',
+    primaryTextColor: '#e5e7eb',
+    primaryBorderColor: '#6366f1',
+    lineColor: '#818cf8',
+    secondaryColor: '#0f172a',
+    tertiaryColor: '#111827',
+    fontFamily: 'ui-sans-serif, system-ui, sans-serif'
+  }
+  const lightVars = {
+    primaryColor: '#eef2ff',
+    primaryTextColor: '#1e1b3a',
+    primaryBorderColor: '#6366f1',
+    lineColor: '#4f46e5',
+    secondaryColor: '#f1f5f9',
+    tertiaryColor: '#f8fafc',
+    fontFamily: 'ui-sans-serif, system-ui, sans-serif'
+  }
+
+  const isDark = () => document.documentElement.classList.contains('dark')
+  const nodes = () =>
+    document.querySelectorAll<HTMLElement>('pre.mermaid')
+
+  // Stash each diagram's source before Mermaid replaces it with an <svg>, so a
+  // theme toggle can re-render from the original markup.
+  nodes().forEach((el) => {
+    if (el.textContent && !el.dataset.source) el.dataset.source = el.textContent
+  })
+
+  let drawing = false
+  async function draw() {
+    if (drawing) return
+    drawing = true
+    try {
+      mermaid.initialize({
+        startOnLoad: false,
+        securityLevel: 'strict',
+        theme: isDark() ? 'dark' : 'default',
+        themeVariables: isDark() ? darkVars : lightVars,
+        flowchart: { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
+        sequence: { useMaxWidth: true }
+      })
+      for (const el of nodes()) {
+        if (el.dataset.source) {
+          el.removeAttribute('data-processed')
+          el.innerHTML = el.dataset.source
+        }
+      }
+      await mermaid.run({ nodes: nodes() })
+    } finally {
+      drawing = false
+    }
+  }
+
+  draw()
+
+  // Re-render when Base.astro's ThemeToggle flips the `dark` class on <html>.
+  let timer: ReturnType<typeof setTimeout> | undefined
+  new MutationObserver(() => {
+    clearTimeout(timer)
+    timer = setTimeout(draw, 50)
+  }).observe(document.documentElement, {
+    attributes: true,
+    attributeFilter: ['class']
+  })
+</script>
