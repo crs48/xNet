@@ -19,12 +19,14 @@ const fixture = vi.hoisted(() => ({
       toolCalling: 'reliable',
       preference: 3
     }
-  ] as ConnectorDetection[]
+  ] as ConnectorDetection[],
+  nanoState: 'available' as 'unavailable' | 'downloadable' | 'downloading' | 'available'
 }))
 
 vi.mock('@xnetjs/plugins', () => ({
   detectConnectors: async () => fixture.detections,
   createAIProvider: () => ({ name: 'mock', generate: async () => '' }),
+  createManagedProvider: () => ({ name: 'managed', generate: async () => '' }),
   createAiAgentRuntime: () => ({
     load: async () => undefined,
     subscribe: () => () => undefined,
@@ -32,7 +34,16 @@ vi.mock('@xnetjs/plugins', () => ({
     runTurn: async () => ({})
   }),
   createAiSurfaceService: () => ({ createContextPack: async () => ({ resources: [] }) }),
-  createPromptApiProvider: async () => null
+  createPromptApiProvider: async () => null,
+  // In-tab tiers: the panel probes Nano availability and offers a download.
+  promptApiAvailability: async () => fixture.nanoState,
+  downloadPromptApiModel: async () => true
+}))
+
+// The WebLLM engine module pulls in @mlc-ai/web-llm lazily; stub it so the test
+// never touches the heavy import (the "run" gesture isn't exercised here).
+vi.mock('./ai-webllm-engine', () => ({
+  buildWebLLMProvider: async () => ({ name: 'webllm', generate: async () => '' })
 }))
 
 // The panel reads the workspace store + schema registry to ground replies.
@@ -48,6 +59,7 @@ const DEFAULT_DETECTIONS = fixture.detections
 
 afterEach(() => {
   fixture.detections = DEFAULT_DETECTIONS
+  fixture.nanoState = 'available'
   if (typeof window !== 'undefined') window.localStorage.clear()
   vi.unstubAllGlobals()
 })
@@ -96,5 +108,41 @@ describe('AiChatPanel', () => {
     )
     render(<AiChatPanel />)
     await waitFor(() => expect(screen.getByText(/Running claude/)).toBeTruthy())
+  })
+
+  it('gates the in-tab WebLLM download behind a "run" gesture instead of disabling silently', async () => {
+    fixture.detections = [
+      {
+        tier: 'webllm',
+        label: 'In-browser model (WebLLM, WebGPU)',
+        available: true,
+        toolCalling: 'weak',
+        preference: 4
+      }
+    ]
+    window.localStorage.setItem('xnet:ai-tier', 'webllm')
+    render(<AiChatPanel />)
+    // The tier is available, but nothing downloads until the user opts in.
+    await waitFor(() => expect(screen.getByText(/Run the in-browser model/)).toBeTruthy())
+    const box = screen.getByRole('textbox') as HTMLTextAreaElement
+    expect(box.disabled).toBe(true)
+    expect(box.placeholder).toMatch(/load the model/i)
+  })
+
+  it('offers a download gesture when Gemini Nano is downloadable, not just "unavailable"', async () => {
+    fixture.detections = [
+      {
+        tier: 'prompt-api',
+        label: 'Chrome built-in AI (Gemini Nano)',
+        available: false,
+        setupHint: 'Chrome built-in AI not detected.',
+        toolCalling: 'none',
+        preference: 5
+      }
+    ]
+    fixture.nanoState = 'downloadable'
+    window.localStorage.setItem('xnet:ai-tier', 'prompt-api')
+    render(<AiChatPanel />)
+    await waitFor(() => expect(screen.getByText(/Download Gemini Nano/)).toBeTruthy())
   })
 })

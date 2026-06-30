@@ -29,10 +29,7 @@ export type PromptApiAvailability = 'unavailable' | 'downloadable' | 'downloadin
 
 /** A download-progress monitor passed to `create({ monitor })`. */
 export interface LanguageModelMonitor {
-  addEventListener(
-    type: 'downloadprogress',
-    listener: (event: { loaded: number }) => void
-  ): void
+  addEventListener(type: 'downloadprogress', listener: (event: { loaded: number }) => void): void
 }
 
 /** Minimal shape of the global `LanguageModel` factory. */

@@ -598,17 +598,17 @@ placeholder={ready ? 'Message…' : selected ? 'Preparing model…' : 'Select a 
 - [x] **A/robustness:** Add a `.catch` to the build-effect promise chain so a
       failed `resolveProvider`/`runtime.load()` sets `error` instead of failing
       silently.
-- [ ] **B:** Add `@mlc-ai/web-llm` to `apps/web` (web-only, lazy-imported) and
+- [x] **B:** Add `@mlc-ai/web-llm` to `apps/web` (web-only, lazy-imported) and
       create `ai-webllm-engine.ts` (`buildWebLLMProvider` + progress callback).
-- [ ] **B:** Add a `webllm` branch to `resolveProvider` and pass
+- [x] **B:** Add a `webllm` branch to `resolveProvider` and pass
       `hasWebLLMEngine: () => true` into `detectConnectors`.
-- [ ] **B:** Surface WebLLM init/download progress in the panel (reuse the
+- [x] **B:** Surface WebLLM init/download progress in the panel (reuse the
       budget-gauge slot or add a progress bar).
-- [ ] **B:** Update CSP `connect-src`/`worker-src` to allow the WebLLM weight CDN
+- [x] **B:** Update CSP `connect-src`/`worker-src` to allow the WebLLM weight CDN
       and WASM worker.
-- [ ] **C (optional):** Add a "Download Gemini Nano" gesture that calls
+- [x] **C (optional):** Add a "Download Gemini Nano" gesture that calls
       `create({ monitor })` with progress and `.catch` into the error state.
-- [ ] Update `USABLE_TIERS` to include `webllm` once B lands (it can then be
+- [x] Update `USABLE_TIERS` to include `webllm` once B lands (it can then be
       auto-selected safely).
 - [x] Refresh `detect.test.ts` so "WebGPU present but no engine ⇒ unavailable"
       and "engine present ⇒ available" are both asserted.
