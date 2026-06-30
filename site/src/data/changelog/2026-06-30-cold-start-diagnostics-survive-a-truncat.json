@@ -4,5 +4,14 @@
   "title": "Cold-start diagnostics survive a truncated log",
   "summary": "Boot-phase timings are now persisted to localStorage (xnet:boot:last) so a slow cold start can be diagnosed from a single value even when the console log is truncated.",
   "highlights": [],
-  "tags": ["performance"]
+  "tags": [
+    "performance"
+  ],
+  "pr": 352,
+  "mergedAt": "2026-06-30T19:36:20Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
