@@ -24,11 +24,24 @@ export interface LanguageModelSessionLike {
   promptStreaming(input: string): AsyncIterable<string>
 }
 
+/** The four states Chrome's `LanguageModel.availability()` can report. */
+export type PromptApiAvailability = 'unavailable' | 'downloadable' | 'downloading' | 'available'
+
+/** A download-progress monitor passed to `create({ monitor })`. */
+export interface LanguageModelMonitor {
+  addEventListener(
+    type: 'downloadprogress',
+    listener: (event: { loaded: number }) => void
+  ): void
+}
+
 /** Minimal shape of the global `LanguageModel` factory. */
 export interface LanguageModelLike {
-  availability(): Promise<'unavailable' | 'downloadable' | 'downloading' | 'available'>
+  availability(): Promise<PromptApiAvailability>
   create(options?: {
     initialPrompts?: Array<{ role: string; content: string }>
+    /** Observe the on-device model download (fires `downloadprogress`). */
+    monitor?: (monitor: LanguageModelMonitor) => void
   }): Promise<LanguageModelSessionLike>
 }
 
@@ -86,6 +99,45 @@ export async function createPromptApiProvider(
   if (availability === 'unavailable') return null
   const session = await lm.create()
   return new PromptApiProvider({ session })
+}
+
+/**
+ * Raw availability of the on-device model, or `'unavailable'` when the API is
+ * absent (not Chrome) or the probe throws. Unlike `createPromptApiProvider`,
+ * this distinguishes `'downloadable'`/`'downloading'` from `'available'` so the
+ * UI can offer a download gesture instead of silently reporting "unavailable".
+ */
+export async function promptApiAvailability(
+  factory?: LanguageModelLike
+): Promise<PromptApiAvailability> {
+  const lm = factory ?? getGlobalLanguageModel()
+  if (!lm) return 'unavailable'
+  try {
+    return await lm.availability()
+  } catch {
+    return 'unavailable'
+  }
+}
+
+/**
+ * Trigger the on-device model download from a **user gesture**, reporting
+ * progress as a fraction in [0, 1]. Chrome gates the download behind a user
+ * activation, so this must be called from a click handler — not an effect.
+ * Resolves `true` once a session is creatable; the runtime rebuilds its own
+ * session once detection re-flips to `'available'`. Returns `false` when the
+ * API is absent; throws (for the caller to `.catch`) if `create()` rejects.
+ */
+export async function downloadPromptApiModel(
+  onProgress?: (fraction: number) => void,
+  factory?: LanguageModelLike
+): Promise<boolean> {
+  const lm = factory ?? getGlobalLanguageModel()
+  if (!lm) return false
+  await lm.create({
+    monitor: (monitor) =>
+      monitor.addEventListener('downloadprogress', (event) => onProgress?.(event.loaded))
+  })
+  return true
 }
 
 function getGlobalLanguageModel(): LanguageModelLike | null {

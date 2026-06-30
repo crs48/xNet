@@ -22,9 +22,16 @@ export {
 } from './detect'
 export { WebLLMProvider, createWebLLMProvider } from './webllm-provider'
 export type { WebLLMEngineLike, WebLLMProviderOptions } from './webllm-provider'
-export { PromptApiProvider, createPromptApiProvider } from './prompt-api-provider'
+export {
+  PromptApiProvider,
+  createPromptApiProvider,
+  promptApiAvailability,
+  downloadPromptApiModel
+} from './prompt-api-provider'
 export type {
   LanguageModelLike,
   LanguageModelSessionLike,
+  LanguageModelMonitor,
+  PromptApiAvailability,
   PromptApiProviderOptions
 } from './prompt-api-provider'

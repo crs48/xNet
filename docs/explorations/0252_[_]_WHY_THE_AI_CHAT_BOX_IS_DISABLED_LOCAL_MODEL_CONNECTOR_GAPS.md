@@ -583,12 +583,12 @@ placeholder={ready ? 'Message…' : selected ? 'Preparing model…' : 'Select a 
 
 ## Implementation Checklist
 
-- [ ] **A:** Add `hasWebLLMEngine?` to `ConnectorEnv`
+- [x] **A:** Add `hasWebLLMEngine?` to `ConnectorEnv`
       ([`types.ts`](packages/plugins/src/ai/connectors/types.ts)) and gate
       `webllm.available` on it in
       [`detect.ts`](packages/plugins/src/ai/connectors/detect.ts) (default
       `false` ⇒ tier shows a hint, never a silent dead box).
-- [ ] **A:** Deepen `defaultHasPromptApi` to call `availability()` and only
+- [x] **A:** Deepen `defaultHasPromptApi` to call `availability()` and only
       report `available` for `'available'`.
 - [ ] **D:** Render a disabled-reason for *every* selected-but-not-ready tier in
       [`AiChatPanel.tsx`](apps/web/src/workbench/views/AiChatPanel.tsx) (not just
@@ -610,7 +610,7 @@ placeholder={ready ? 'Message…' : selected ? 'Preparing model…' : 'Select a 
       `create({ monitor })` with progress and `.catch` into the error state.
 - [ ] Update `USABLE_TIERS` to include `webllm` once B lands (it can then be
       auto-selected safely).
-- [ ] Refresh `detect.test.ts` so "WebGPU present but no engine ⇒ unavailable"
+- [x] Refresh `detect.test.ts` so "WebGPU present but no engine ⇒ unavailable"
       and "engine present ⇒ available" are both asserted.
 - [ ] Changeset for `@xnetjs/plugins` (new `ConnectorEnv` field, changed Nano
       probe semantics → at least **minor**; if any exported signature changes,
