@@ -68,6 +68,47 @@ export interface SchedulerOpReport {
   queueMs: number
   /** Time the op spent executing (SQL + OPFS I/O), excluding queue wait. */
   execMs: number
+  /**
+   * Monotonic clock value (same base as `performance.now()` in the worker) when
+   * the op was enqueued via {@link WorkerScheduler.schedule}. Lets a consumer
+   * relate the FIRST op back to when `open()` finished — the gap that is invisible
+   * to `queueMs`/`execMs` because both start only once an op exists, which kept the
+   * 7th cold-open migration (the stall that moved off `execMs` entirely) unpinned
+   * (exploration 0253).
+   */
+  enqueuedAt: number
+  /** Monotonic clock value when the op actually began executing (dequeued). */
+  startedAt: number
+}
+
+/**
+ * The extra fields the worker host stamps on the FIRST op after `open()` to
+ * localize a cold-open stall that has left `execMs`/`queueMs` (exploration 0253).
+ * Both gaps are measured against when `open()` finished, which `queueMs`/`execMs`
+ * structurally cannot see — they only span an op that already exists.
+ */
+export interface FirstOpGapFields {
+  firstOpAfterOpen: true
+  /** open done → first op ENQUEUED. The upstream/transport wait (≈0 ⇒ the wait was the open itself). */
+  idleBeforeFirstOpMs: number
+  /** open done → first op EXECUTED (idle + any in-worker queue/exec of earlier non-reported work). */
+  sinceOpenMs: number
+}
+
+/**
+ * Compute {@link FirstOpGapFields} for the first scheduled op. Pure so it is
+ * unit-testable without a Worker/WASM — the worker host (`web-worker.ts`) self-
+ * exposes Comlink at import, so the testable logic lives here instead.
+ */
+export function firstOpGapFields(
+  report: Pick<SchedulerOpReport, 'enqueuedAt' | 'startedAt'>,
+  openedAtMs: number
+): FirstOpGapFields {
+  return {
+    firstOpAfterOpen: true,
+    idleBeforeFirstOpMs: Math.round(report.enqueuedAt - openedAtMs),
+    sinceOpenMs: Math.round(report.startedAt - openedAtMs)
+  }
 }
 
 export class WorkerScheduler {
@@ -168,7 +209,9 @@ export class WorkerScheduler {
               label: job.label,
               detail: job.detail,
               queueMs: startedAt - job.enqueuedAt,
-              execMs: endedAt - startedAt
+              execMs: endedAt - startedAt,
+              enqueuedAt: job.enqueuedAt,
+              startedAt
             })
           }
         }

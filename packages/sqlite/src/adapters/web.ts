@@ -49,6 +49,38 @@ function log(...args: unknown[]): void {
   }
 }
 
+/** Monotonic clock for open-phase timing; falls back where `performance` is absent. */
+function nowMs(): number {
+  return typeof performance !== 'undefined' && typeof performance.now === 'function'
+    ? performance.now()
+    : Date.now()
+}
+
+/**
+ * Per-phase timing of {@link WebSQLiteAdapter.open}. Every prior cold-open
+ * exploration (0204→0249) timed the layer the stall was *in*, so the cost kept
+ * hopping to the next un-timed layer; by the 0253 capture both `queueMs` and
+ * `execMs` read 0 and the ~17 s lived entirely in this `open()` window, which no
+ * timer bracketed. These fields split it so the dominant sub-phase is named in
+ * one boot-log line. All durations are milliseconds, rounded.
+ */
+export interface OpenPhaseTimings {
+  /** Dynamic `import('@sqlite.org/sqlite-wasm')` (bundle parse/download). */
+  wasmImportMs: number
+  /** `sqlite3InitModule()` — WASM instantiate. */
+  wasmInitMs: number
+  /** `installOpfsSAHPoolVfs()` — acquires the pool's sync access handles; INCLUDES any lock-retry backoff. */
+  vfsInstallMs: number
+  /** `reserveMinimumCapacity()` — may acquire more handles / grow the pool. */
+  reserveCapacityMs: number
+  /** `new OpfsSAHPoolDb()` — open the database file in the pool. */
+  dbOpenMs: number
+  /** All post-open `PRAGMA` settings (page_size/cache/mmap/journal/…). */
+  pragmasMs: number
+  /** Whole `open()` span (import → last pragma). */
+  totalOpenMs: number
+}
+
 function getDatabasePath(config: SQLiteConfig): string {
   return config.path.startsWith('/') ? config.path : `/${config.path}`
 }
@@ -134,6 +166,21 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
   private _config: SQLiteConfig | null = null
   private inTransaction = false
   private storageMode: 'opfs' | 'memory' = 'memory'
+  /**
+   * Per-phase timing of the last {@link open} call, or null until it runs.
+   * Read by the worker host to emit `[xNet] sqlite open phases` (exploration
+   * 0253). Diagnostic only — never affects behaviour.
+   */
+  private openPhaseTimings: OpenPhaseTimings | null = null
+  /** ms spent in `applySchema()` during {@link createWebSQLiteAdapter}, for the open-phases line. */
+  schemaApplyMs = 0
+  /** How many times the OPFS lock-retry backoff fired during the last {@link open} (0 = first try). */
+  openRetryAttempts = 0
+
+  /** Per-phase timing of the last {@link open}, or null if it hasn't run. */
+  getOpenPhaseTimings(): OpenPhaseTimings | null {
+    return this.openPhaseTimings ? { ...this.openPhaseTimings } : null
+  }
 
   async open(config: SQLiteConfig): Promise<void> {
     if (this.db !== null) {
@@ -141,16 +188,26 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
     }
 
     log('[WebSQLiteAdapter] Starting open()...')
+    // Open-phase stopwatches (exploration 0253). Defaulted to the start so a
+    // fallback path (in-memory) still yields coherent, non-negative segments.
+    const openStartedAt = nowMs()
+    let afterImport = openStartedAt
+    let afterInit = openStartedAt
+    let afterVfsInstall = openStartedAt
+    let afterReserveCapacity = openStartedAt
+    let afterDbOpen = openStartedAt
 
     // Dynamically import sqlite-wasm
     log('[WebSQLiteAdapter] Importing sqlite-wasm...')
     const sqlite3InitModule = (await import('@sqlite.org/sqlite-wasm')).default
     log('[WebSQLiteAdapter] sqlite-wasm imported')
+    afterImport = nowMs()
 
     // Initialize the module
     log('[WebSQLiteAdapter] Initializing sqlite3 module...')
     this.sqlite3 = await sqlite3InitModule()
     log('[WebSQLiteAdapter] sqlite3 module initialized')
+    afterInit = nowMs()
 
     // Install OPFS SAH Pool VFS
     // This is the recommended VFS for single-connection apps.
@@ -172,11 +229,13 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
             clearOnInit: false
           })
           log('[WebSQLiteAdapter] OPFS-SAHPool VFS installed')
+          afterVfsInstall = nowMs()
 
           // Ensure we have enough capacity
           log('[WebSQLiteAdapter] Reserving capacity...')
           await this.poolUtil.reserveMinimumCapacity(10)
           log('[WebSQLiteAdapter] Capacity reserved')
+          afterReserveCapacity = nowMs()
 
           // Path must be absolute for opfs-sahpool
           const dbPath = getDatabasePath(config)
@@ -186,9 +245,11 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
           this.db = new this.poolUtil.OpfsSAHPoolDb(dbPath, 'c')
           this.storageMode = 'opfs'
           log('[WebSQLiteAdapter] Database opened with OPFS-SAHPool')
+          afterDbOpen = nowMs()
         },
         {
           onRetry: (attempt, retryErr) => {
+            this.openRetryAttempts = attempt
             console.warn(
               `[WebSQLiteAdapter] OPFS access handles are busy (attempt ${attempt}) — a ` +
                 'previous tab/worker is likely still releasing them; retrying before any ' +
@@ -250,6 +311,8 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
 
     this._config = config
 
+    const beforePragmas = nowMs()
+
     // Apply pragmas
     if (config.foreignKeys !== false) {
       this.execSync('PRAGMA foreign_keys = ON')
@@ -296,6 +359,21 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
       this.execSync('PRAGMA journal_mode = TRUNCATE')
     } catch (err) {
       log('[WebSQLiteAdapter] journal_mode pragma not applied:', err)
+    }
+
+    // Record the open-phase split (exploration 0253). The worker host reads this
+    // to emit one `[xNet] sqlite open phases` line, finally bracketing the window
+    // that every per-op timer starts *after* — where the 17 s now hides.
+    const afterPragmas = nowMs()
+    const round = (a: number, b: number): number => Math.round(b - a)
+    this.openPhaseTimings = {
+      wasmImportMs: round(openStartedAt, afterImport),
+      wasmInitMs: round(afterImport, afterInit),
+      vfsInstallMs: round(afterInit, afterVfsInstall),
+      reserveCapacityMs: round(afterVfsInstall, afterReserveCapacity),
+      dbOpenMs: round(afterReserveCapacity, afterDbOpen),
+      pragmasMs: round(beforePragmas, afterPragmas),
+      totalOpenMs: round(openStartedAt, afterPragmas)
     }
   }
 
@@ -657,6 +735,12 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
 export async function createWebSQLiteAdapter(config: SQLiteConfig): Promise<WebSQLiteAdapter> {
   const adapter = new WebSQLiteAdapter()
   await adapter.open(config)
+  // Schema apply / migration is its own cold-boot cost (CREATE INDEX on a large
+  // table can dominate) and runs inside the worker's `open()` RPC — time it so it
+  // shows up alongside the open phases rather than hiding in the opaque
+  // `init:start → sqlite:open` boot bucket (exploration 0253).
+  const schemaStartedAt = nowMs()
   await adapter.applySchema(SCHEMA_VERSION, SCHEMA_DDL)
+  adapter.schemaApplyMs = Math.round(nowMs() - schemaStartedAt)
   return adapter
 }

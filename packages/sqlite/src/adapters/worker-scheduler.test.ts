@@ -6,7 +6,7 @@
  * writes, and that identical concurrent reads collapse to one execution.
  */
 import { describe, it, expect, vi } from 'vitest'
-import { WorkerScheduler } from './worker-scheduler'
+import { WorkerScheduler, firstOpGapFields, type SchedulerOpReport } from './worker-scheduler'
 
 /** A promise plus its resolver, so a test can release a job on demand. */
 function deferred<T>(): { promise: Promise<T>; resolve: (v: T) => void } {
@@ -150,5 +150,39 @@ describe('WorkerScheduler (0228)', () => {
     expect(snap.write).toBe(1)
     gate.resolve()
     await running
+  })
+
+  it('stamps each op report with enqueuedAt + startedAt on one clock (0253)', async () => {
+    const reports: SchedulerOpReport[] = []
+    const sched = new WorkerScheduler((r) => reports.push(r))
+    await sched.schedule('interactive', async () => 1, undefined, 'query')
+    expect(reports).toHaveLength(1)
+    const r = reports[0]
+    expect(typeof r.enqueuedAt).toBe('number')
+    expect(typeof r.startedAt).toBe('number')
+    // started no earlier than enqueued; queueMs is exactly their difference.
+    expect(r.startedAt).toBeGreaterThanOrEqual(r.enqueuedAt)
+    expect(Math.round(r.queueMs)).toBe(Math.round(r.startedAt - r.enqueuedAt))
+  })
+})
+
+describe('firstOpGapFields (0253)', () => {
+  it('measures idle (open→enqueue) and sinceOpen (open→exec) against open time', () => {
+    // open() finished at t=100; the first op was enqueued at 117_000 and ran at 117_005.
+    const fields = firstOpGapFields({ enqueuedAt: 117_000, startedAt: 117_005 }, 100)
+    expect(fields).toEqual({
+      firstOpAfterOpen: true,
+      idleBeforeFirstOpMs: 116_900, // 17s the worker sat idle after open → wait is upstream
+      sinceOpenMs: 116_905
+    })
+  })
+
+  it('reports ≈0 when the first op was already enqueued the instant open finished', () => {
+    // idle≈0 ⇒ the op was waiting to be scheduled the moment open finished, so
+    // the ~17s wait WAS the open itself (read `[xNet] sqlite open phases`).
+    const fields = firstOpGapFields({ enqueuedAt: 1000.4, startedAt: 1000.6 }, 1000)
+    expect(fields.idleBeforeFirstOpMs).toBe(0)
+    expect(fields.sinceOpenMs).toBe(1)
+    expect(fields.firstOpAfterOpen).toBe(true)
   })
 })
