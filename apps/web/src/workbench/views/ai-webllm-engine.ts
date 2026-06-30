@@ -58,9 +58,20 @@ export async function buildWebLLMProvider(
 ): Promise<WebLLMProvider> {
   const model = options.model ?? DEFAULT_WEBLLM_MODEL
   const { CreateMLCEngine } = await getWebLLM()
-  const engine = await CreateMLCEngine(model, {
-    initProgressCallback: (report: { progress: number; text: string }) =>
-      options.onProgress?.({ fraction: report.progress, text: report.text })
-  })
+  let engine: WebLLMEngineLike
+  try {
+    engine = await CreateMLCEngine(model, {
+      initProgressCallback: (report: { progress: number; text: string }) =>
+        options.onProgress?.({ fraction: report.progress, text: report.text })
+    })
+  } catch (cause) {
+    // The generic "Failed to fetch" from a blocked/aborted weight download would
+    // otherwise be rewritten as a cloud-key CORS hint by `errorMessage` — wrong
+    // for an in-tab model. Give a WebLLM-specific message the panel shows as-is.
+    throw new Error(
+      `Couldn't load the in-browser model (${model}). Check your connection — the model weights download from the Hugging Face CDN on first run.`,
+      { cause }
+    )
+  }
   return createWebLLMProvider({ engine, model })
 }

@@ -1,0 +1,10 @@
+{
+  "id": "2026-06-30-in-browser-ai-model-now-downloads-and-ru",
+  "date": "June 30, 2026",
+  "title": "In-browser AI model now downloads and runs",
+  "summary": "Fixed a content-security-policy gap that blocked the WebLLM in-browser model from downloading its weights, so the on-device assistant now loads and replies.",
+  "highlights": [],
+  "tags": [
+    "ai"
+  ]
+}

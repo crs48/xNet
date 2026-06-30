@@ -621,14 +621,15 @@ placeholder={ready ? 'Message…' : selected ? 'Preparing model…' : 'Select a 
 - [x] In plain Chrome with no key/server/bridge: WebLLM tier shows **either** a
       working chat (after B) **or** an honest "unavailable + hint" (after A) —
       **never** a silently disabled box.
-- [ ] After B: selecting WebLLM downloads the model with visible progress, then
+- [x] After B: selecting WebLLM downloads the model with visible progress, then
       the textarea **enables** and a round-trip chat streams a reply, fully
-      offline-capable on reload (weights cached). _Needs a live WebGPU smoke on
-      real hardware — left unchecked. Verified here as far as a headless,
-      GPU-less CI can: the production build succeeds, `@mlc-ai/web-llm`
-      code-splits into a **lazy** chunk (`import(...)`, fetched only on the "run"
-      gesture), the gesture + progress UI are unit-tested, and
-      `WebLLMProvider.stream` has its own streaming test._
+      offline-capable on reload (weights cached). _Verified live in a WebGPU
+      browser: the gesture armed the download, weights streamed from the HF Xet
+      CDN with the progress bar climbing 0→100%, the composer enabled, and the
+      in-tab model replied ("A local-first app … stores its data locally on the
+      device."). The live smoke also caught a real CSP gap — weights load from
+      `us.aws.cdn.hf.co` (a `*.hf.co` host the first CSP pass missed) — fixed by
+      adding `https://*.hf.co` to `connect-src`._
 - [x] Gemini Nano tier reports `available` only when `availability()==='available'`;
       otherwise it shows a setup hint (and, with C, a download button).
 - [x] Selecting any tier whose provider fails to construct surfaces a visible
