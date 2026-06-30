@@ -1,0 +1,8 @@
+{
+  "id": "2026-06-30-cold-start-diagnostics-now-capture-the-s",
+  "date": "June 30, 2026",
+  "title": "Cold-start diagnostics now capture the slow boot, not just the fast one",
+  "summary": "The persisted boot timeline now re-captures itself after a stall settles, so a slow cold start is recorded in localStorage even when it happens after the app reports connected.",
+  "highlights": [],
+  "tags": ["performance"]
+}
