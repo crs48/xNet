@@ -1,17 +1,24 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   __resetBootTimeline,
+  BOOT_TIMELINE_HISTORY_KEY,
+  BOOT_TIMELINE_STORAGE_KEY,
   bootMark,
   bootMarkAt,
+  bootMarksDump,
   bootMeasure,
   getBootTimeline,
   logBootTimeline,
   observeDocWarmMark,
-  observeSyncFirstMark
+  observeSyncFirstMark,
+  persistBootTimeline
 } from './boot-timeline'
 
 afterEach(() => {
   __resetBootTimeline()
+  localStorage.removeItem(BOOT_TIMELINE_STORAGE_KEY)
+  localStorage.removeItem(BOOT_TIMELINE_HISTORY_KEY)
+  localStorage.removeItem('xnet:boot:debug')
 })
 
 describe('boot-timeline', () => {
@@ -200,7 +207,50 @@ describe('logBootTimeline (0204)', () => {
       expect(String(spy.mock.calls[1]?.[0])).toContain('query:first-rows')
     } finally {
       spy.mockRestore()
-      localStorage.removeItem('xnet:boot:debug')
     }
+  })
+})
+
+describe('bootMarksDump (0253)', () => {
+  it('reports each reached phase as a ms offset from init:start', () => {
+    bootMark('init:start')
+    bootMark('identity:ready')
+    bootMark('store:ready')
+    const dump = bootMarksDump()
+    expect(dump['init:start']).toBe(0)
+    expect(dump['identity:ready']).toBeTypeOf('number')
+    expect(dump['store:ready']).toBeTypeOf('number')
+    expect(dump['identity:ready'] as number).toBeGreaterThanOrEqual(0)
+    // A dominant gap is visible as the offset jump between two adjacent phases.
+    expect(dump['store:ready'] as number).toBeGreaterThanOrEqual(dump['identity:ready'] as number)
+    expect(dump['hub:connected']).toBeUndefined() // not reached → omitted
+  })
+})
+
+describe('persistBootTimeline (0253) — truncation-proof boot diagnostics', () => {
+  it('writes the timeline + offsets to localStorage where a truncated log cannot hide it', () => {
+    localStorage.setItem('xnet:boot:debug', 'true')
+    bootMark('init:start')
+    bootMark('identity:ready')
+    bootMark('store:ready')
+    persistBootTimeline('query:first-rows')
+
+    const raw = localStorage.getItem(BOOT_TIMELINE_STORAGE_KEY)
+    expect(raw).toBeTypeOf('string')
+    const entry = JSON.parse(raw as string)
+    expect(entry.reason).toBe('query:first-rows')
+    expect(entry.timeline).toBeTypeOf('object')
+    expect(entry.offsetsMs['store:ready']).toBeTypeOf('number')
+    expect(entry.furthest).toBe('store:ready')
+  })
+
+  it('keeps a bounded ring of the last 5 boots', () => {
+    localStorage.setItem('xnet:boot:debug', 'true')
+    bootMark('init:start')
+    for (let i = 0; i < 7; i++) persistBootTimeline(`boot-${i}`)
+    const history = JSON.parse(localStorage.getItem(BOOT_TIMELINE_HISTORY_KEY) as string)
+    expect(Array.isArray(history)).toBe(true)
+    expect(history).toHaveLength(5)
+    expect(history[history.length - 1].reason).toBe('boot-6')
   })
 })
