@@ -1,0 +1,8 @@
+{
+  "id": "2026-06-30-cold-start-diagnostics-survive-a-truncat",
+  "date": "June 30, 2026",
+  "title": "Cold-start diagnostics survive a truncated log",
+  "summary": "Boot-phase timings are now persisted to localStorage (xnet:boot:last) so a slow cold start can be diagnosed from a single value even when the console log is truncated.",
+  "highlights": [],
+  "tags": ["performance"]
+}
