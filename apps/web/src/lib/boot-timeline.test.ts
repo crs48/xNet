@@ -253,4 +253,26 @@ describe('persistBootTimeline (0253) — truncation-proof boot diagnostics', () 
     expect(history).toHaveLength(5)
     expect(history[history.length - 1].reason).toBe('boot-6')
   })
+
+  it('self-schedules a delayed "settled" re-capture so a stalled boot is recorded', () => {
+    vi.useFakeTimers()
+    try {
+      localStorage.setItem('xnet:boot:debug', 'true')
+      bootMark('init:start')
+      // First persist fires early (e.g. at hub:connected, before any stall).
+      persistBootTimeline('hub:connected')
+      expect(JSON.parse(localStorage.getItem(BOOT_TIMELINE_STORAGE_KEY) as string).reason).toBe(
+        'hub:connected'
+      )
+      // The stall happens; later a furthest phase is reached. The delayed timer
+      // re-captures the now-settled timeline regardless of route.
+      bootMark('store:ready')
+      vi.advanceTimersByTime(20000)
+      const last = JSON.parse(localStorage.getItem(BOOT_TIMELINE_STORAGE_KEY) as string)
+      expect(last.reason).toBe('settled')
+      expect(last.offsetsMs['store:ready']).toBeTypeOf('number')
+    } finally {
+      vi.useRealTimers()
+    }
+  })
 })

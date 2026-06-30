@@ -340,9 +340,24 @@ export const BOOT_TIMELINE_HISTORY_KEY = 'xnet:boot:history'
  * last 5 boots in a ring. Gated behind the same dev/`xnet:boot:debug` flag as the
  * console log; tiny, best-effort, never throws.
  */
+let settledPersistScheduled = false
+let settledPersistTimer: ReturnType<typeof setTimeout> | null = null
+
 export function persistBootTimeline(reason = 'hub:connected'): void {
   const isDev = typeof import.meta !== 'undefined' && Boolean(import.meta.env?.DEV)
   if (!isDev && !debugEnabled()) return
+  // The first persist usually fires at `hub:connected` (~0.6 s) — BEFORE a stall
+  // that lives in the post-connect landing-read/first-paint tail, and on a doc
+  // route no later phase marks, so the snapshot would look fast even on an 18 s
+  // open. Schedule ONE delayed re-capture so the *settled* timeline (whatever the
+  // furthest phase is once the stall clears) always lands in localStorage — even
+  // a synchronous main-thread block only delays this timer, it can't cancel it
+  // (exploration 0253 follow-up: the captured boots were all fast; the stalled
+  // one was never recorded because nothing re-persisted after the stall).
+  if (!settledPersistScheduled && reason !== 'settled' && typeof setTimeout === 'function') {
+    settledPersistScheduled = true
+    settledPersistTimer = setTimeout(() => persistBootTimeline('settled'), 20000)
+  }
   try {
     if (typeof localStorage === 'undefined') return
     const entry = {
@@ -390,4 +405,13 @@ export function __resetBootTimeline(): void {
   }
   syncFirstObserver = null
   docWarmObserver = null
+  if (settledPersistTimer != null) {
+    try {
+      clearTimeout(settledPersistTimer)
+    } catch {
+      // ignore
+    }
+  }
+  settledPersistTimer = null
+  settledPersistScheduled = false
 }
