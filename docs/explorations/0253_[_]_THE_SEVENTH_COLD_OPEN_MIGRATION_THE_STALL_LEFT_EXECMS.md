@@ -76,6 +76,63 @@ sub‑phase **with no un‑timed window left between boot start and first op don
 > _before_ reload and export the **whole** log — the answer may already be one
 > existing line away, and the two new lines close the rest.
 
+## Update — Eighth Capture: It Is **Not** The SQLite Open; It Is Main‑Thread Bring‑Up
+
+A fresh `xnet:boot:debug` capture (still pre‑#351, still truncated — this time at
+`id 146`) plus a four‑angle adversarial investigation **overturns this doc's own
+leading hypothesis.** The ~18 s is **not** inside the SQLite worker's
+`open()`/VFS/schema/vacuum at all. The proof is a constraint that was in the code
+the whole time:
+
+- **`WebSQLiteProxy.open()` races the worker open against a 15 s timeout that
+  _terminates the worker_ on expiry**
+  ([`web-proxy.ts:131‑157`](../../packages/sqlite/src/adapters/web-proxy.ts)). In
+  the capture the worker is **alive past 17.9 s** and serves the reads
+  (`loadDoc readMs:17923`, `prewarm:pages 18379ms`). If `open()` had cost ~18 s the
+  race would have fired at 15 s and killed the worker → boot would fail. It
+  didn't. **So `open()` finished in < 15 s and the ~18 s is downstream of it.**
+- **`NodeStore.initialize()` is trivial** (only `getLastLamportTime()` —
+  [`store.ts:197`](../../packages/data/src/store/store.ts)), so the data layer
+  does no heavy boot CPU work.
+- **This build uses `MainThreadBridge`** (the capture's `[MainThreadBridge] query`
+  lines), i.e. the store runs **on the main thread** — there is no data‑worker
+  spawn to blame. So `loadDoc readMs:17923` on a worker‑idle, 1‑ms read means the
+  **main thread itself** could not process the (instant) result for ~17.9 s: the
+  main thread was busy/serial for ~18 s **before the first read was even
+  dispatched**, while the SQLite worker sat idle (every `queueMs:0`+`execMs:0`,
+  first scheduled op only at the _end_ of the window).
+
+So the stall lives in the **main‑thread boot bring‑up** — the
+`identity:ready → store:ready` (provider/`initializeNodeStore`) region and its
+neighbours — which the existing boot timeline **already brackets into 9
+segments**. The reason seven explorations never saw it is mundane and
+infuriating: **every pasted capture starts mid‑stream** (id 109, then 146), so the
+`[xNet] boot timeline (ms)` line — emitted once near `hub:connected`/`query:first-rows`,
+i.e. _before_ the pasted window — keeps scrolling out of the buffer. The
+measurement exists; the line gets truncated off.
+
+**Fix shipped in the follow‑up (this change):** make the boot timeline
+**truncation‑proof** — `persistBootTimeline()` writes the 9 segment durations
+**and** a `bootMarksDump()` of absolute offsets to
+`localStorage['xnet:boot:last']` (+ a 5‑boot ring at `xnet:boot:history`), wired
+into `logBootTimeline()`
+([`apps/web/src/lib/boot-timeline.ts`](../../apps/web/src/lib/boot-timeline.ts)).
+After any stall the answer is one assignment away, regardless of the log window:
+
+```js
+JSON.parse(localStorage.getItem('xnet:boot:last'))
+// → { reason, furthest, timeline:{wasm,schema,probe,storageOpen,identityCheck,
+//     identityResume,store,connect,bridgeFirst,firstSync,firstPaint},
+//     offsetsMs:{ 'init:start':0, …, 'identity:ready':2500, 'store:ready':20500, … } }
+```
+
+The dominant gap names the segment directly (expectation: the `store` segment —
+`identity:ready → store:ready` — or an earlier one, **not** `wasm`). Once #351 is
+deployed its `idleBeforeFirstOpMs` will read **≈ 18000** (worker‑idle, confirming
+upstream) and its `sqlite open phases` will read **≈ 0** (confirming the open is
+innocent). **Do not touch `open()`/VFS/schema/vacuum** — they are measured and
+reasoned out and cannot move the stall.
+
 ## Current State In The Repository
 
 ### The boot path, and the window nobody times

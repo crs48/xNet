@@ -154,6 +154,25 @@ export interface BootTimeline {
   firstPaint?: number
 }
 
+/**
+ * Absolute offset (ms from `init:start`) of every phase reached so far. Unlike
+ * {@link getBootTimeline}'s segment durations, this shows the raw sequence, so a
+ * single dominant gap is obvious at a glance (e.g. `identity:ready:2500,
+ * store:ready:20500` localizes ~18 s to the bring-up segment). Phases not yet
+ * reached are omitted. (exploration 0253 follow-up — the stall kept hopping into
+ * whichever segment wasn't yet split; the offset dump makes the live one visible
+ * without needing to pre-guess which segment to instrument.)
+ */
+export function bootMarksDump(): Partial<Record<BootPhase, number>> {
+  const base = marks.get('init:start')
+  const out: Partial<Record<BootPhase, number>> = {}
+  for (const phase of BOOT_PHASE_ORDER) {
+    const at = marks.get(phase)
+    if (at != null) out[phase] = base != null ? Math.round(at - base) : 0
+  }
+  return out
+}
+
 /** Derive all segment durations from whatever phases have been marked. */
 export function getBootTimeline(): BootTimeline {
   return {
@@ -297,6 +316,57 @@ export function logBootTimeline(reason = 'hub:connected'): void {
   if (!isDev && !debugEnabled()) return
   // eslint-disable-next-line no-console
   console.info(`[xNet] boot timeline (ms) @ ${reason}:`, getBootTimeline())
+  // Also persist it where a truncated log can't hide it (see persistBootTimeline).
+  persistBootTimeline(reason)
+}
+
+/** localStorage key holding the most recent boot timeline (read it after a stall). */
+export const BOOT_TIMELINE_STORAGE_KEY = 'xnet:boot:last'
+/** localStorage key holding a short ring of recent boot timelines. */
+export const BOOT_TIMELINE_HISTORY_KEY = 'xnet:boot:history'
+
+/**
+ * Persist the boot timeline to `localStorage` so it survives a truncated console
+ * capture. Every cold-open capture the user pasted started mid-stream (id ~109+),
+ * which dropped exactly the `[xNet] boot timeline` line that names the slow
+ * segment — so the stall went unlocalized across explorations 0204→0253 not for
+ * lack of the measurement but because the line scrolled out of the buffer. With
+ * this, the answer is one assignment away regardless of the log window:
+ *
+ *   JSON.parse(localStorage.getItem('xnet:boot:last'))
+ *
+ * Stores both the segment durations ({@link getBootTimeline}) and the absolute
+ * offsets ({@link bootMarksDump}) so a single dominant gap is obvious. Keeps the
+ * last 5 boots in a ring. Gated behind the same dev/`xnet:boot:debug` flag as the
+ * console log; tiny, best-effort, never throws.
+ */
+export function persistBootTimeline(reason = 'hub:connected'): void {
+  const isDev = typeof import.meta !== 'undefined' && Boolean(import.meta.env?.DEV)
+  if (!isDev && !debugEnabled()) return
+  try {
+    if (typeof localStorage === 'undefined') return
+    const entry = {
+      reason,
+      furthest: lastBootPhase(),
+      timeline: getBootTimeline(),
+      offsetsMs: bootMarksDump()
+    }
+    const json = JSON.stringify(entry)
+    localStorage.setItem(BOOT_TIMELINE_STORAGE_KEY, json)
+    let history: unknown[] = []
+    try {
+      const raw = localStorage.getItem(BOOT_TIMELINE_HISTORY_KEY)
+      if (raw) history = JSON.parse(raw) as unknown[]
+    } catch {
+      history = []
+    }
+    if (!Array.isArray(history)) history = []
+    history.push(entry)
+    // Keep only the last 5 boots so the key stays small.
+    localStorage.setItem(BOOT_TIMELINE_HISTORY_KEY, JSON.stringify(history.slice(-5)))
+  } catch {
+    // instrumentation must never break boot
+  }
 }
 
 /**
