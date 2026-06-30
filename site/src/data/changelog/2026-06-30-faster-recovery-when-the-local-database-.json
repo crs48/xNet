@@ -4,5 +4,14 @@
   "title": "Faster recovery when the local database is slow to open",
   "summary": "A timed-out database open now releases its storage handles immediately instead of holding them while still initializing, so a retry no longer compounds the delay. Adds cold-start boot diagnostics that pinpoint where startup time goes.",
   "highlights": [],
-  "tags": ["performance"]
+  "tags": [
+    "performance"
+  ],
+  "pr": 351,
+  "mergedAt": "2026-06-30T16:13:12Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
