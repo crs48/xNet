@@ -618,22 +618,31 @@ placeholder={ready ? 'Message…' : selected ? 'Preparing model…' : 'Select a 
 
 ## Validation Checklist
 
-- [ ] In plain Chrome with no key/server/bridge: WebLLM tier shows **either** a
+- [x] In plain Chrome with no key/server/bridge: WebLLM tier shows **either** a
       working chat (after B) **or** an honest "unavailable + hint" (after A) —
       **never** a silently disabled box.
 - [ ] After B: selecting WebLLM downloads the model with visible progress, then
       the textarea **enables** and a round-trip chat streams a reply, fully
-      offline-capable on reload (weights cached).
-- [ ] Gemini Nano tier reports `available` only when `availability()==='available'`;
+      offline-capable on reload (weights cached). _Needs a live WebGPU smoke on
+      real hardware — left unchecked. Verified here as far as a headless,
+      GPU-less CI can: the production build succeeds, `@mlc-ai/web-llm`
+      code-splits into a **lazy** chunk (`import(...)`, fetched only on the "run"
+      gesture), the gesture + progress UI are unit-tested, and
+      `WebLLMProvider.stream` has its own streaming test._
+- [x] Gemini Nano tier reports `available` only when `availability()==='available'`;
       otherwise it shows a setup hint (and, with C, a download button).
-- [ ] Selecting any tier whose provider fails to construct surfaces a visible
+- [x] Selecting any tier whose provider fails to construct surfaces a visible
       error, not a dead box.
-- [ ] Placeholder text never says "select a model" while a model is selected.
-- [ ] Cloud-key / managed / local-server / bridge tiers still enable correctly
+- [x] Placeholder text never says "select a model" while a model is selected.
+- [x] Cloud-key / managed / local-server / bridge tiers still enable correctly
       when configured (no regression).
 - [ ] Dia browser: behaves identically to Chrome for WebLLM; Nano shows
-      unavailable (expected) rather than a silent dead box.
-- [ ] `detect.test.ts`, `ai-chat-connector.test.ts`, and `AiChatPanel.test.tsx`
+      unavailable (expected) rather than a silent dead box. _Needs a smoke in
+      Dia — left unchecked. Verified by construction: detection is driven purely
+      by browser-API presence (`navigator.gpu`, `LanguageModel`) with no
+      Chrome-specific branch, and Dia is Chromium, so the WebLLM path is
+      identical and Nano (absent global) reports unavailable._
+- [x] `detect.test.ts`, `ai-chat-connector.test.ts`, and `AiChatPanel.test.tsx`
       pass; new assertions cover the engine-gated availability.
 
 ## References
