@@ -612,7 +612,7 @@ placeholder={ready ? 'Message…' : selected ? 'Preparing model…' : 'Select a 
       auto-selected safely).
 - [x] Refresh `detect.test.ts` so "WebGPU present but no engine ⇒ unavailable"
       and "engine present ⇒ available" are both asserted.
-- [ ] Changeset for `@xnetjs/plugins` (new `ConnectorEnv` field, changed Nano
+- [x] Changeset for `@xnetjs/plugins` (new `ConnectorEnv` field, changed Nano
       probe semantics → at least **minor**; if any exported signature changes,
       **major**).
 
