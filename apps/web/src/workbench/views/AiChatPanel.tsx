@@ -24,12 +24,15 @@ import {
   createManagedProvider,
   createPromptApiProvider,
   detectConnectors,
+  downloadPromptApiModel,
+  promptApiAvailability,
   type AiAgentRuntime,
   type AiSurfaceService,
   type AIProvider,
   type ConnectorDetection,
   type ConnectorTier,
-  type ManagedBudgetSnapshot
+  type ManagedBudgetSnapshot,
+  type PromptApiAvailability
 } from '@xnetjs/plugins'
 import { useNodeStore } from '@xnetjs/react/internal'
 import { Bot, Loader2, Send } from 'lucide-react'
@@ -57,6 +60,7 @@ import { createGraphContextRetriever, keywordEntrySearch } from './ai-graph-retr
 import { schemaRegistryApi } from './ai-schemas'
 import { createVectorEntrySearch } from './ai-vector-search'
 import { createVectorBlobStore } from './ai-vector-storage'
+import { buildWebLLMProvider, type WebLLMProgress } from './ai-webllm-engine'
 
 /** Electron preload control channel for the local agent bridge (absent on web). */
 interface AgentBridgeControl {
@@ -102,6 +106,17 @@ export function AiChatPanel() {
   const [model, setModel] = useState(() => readSetting(AI_CHAT_STORAGE_KEYS.model))
   const [budget, setBudget] = useState<ManagedBudgetSnapshot | null>(null)
   const [managedModels, setManagedModels] = useState<ManagedModel[]>([])
+  // In-tab model activation (exploration 0252). Both in-tab tiers gate their
+  // heavy first-run download behind an explicit gesture so picking the tier
+  // doesn't surprise-download a model: `webllmArmed` is the WebLLM "load"
+  // click; `nanoState`/`nanoProgress` drive the Gemini Nano download button.
+  const [webllmArmed, setWebllmArmed] = useState(false)
+  const [webllmProgress, setWebllmProgress] = useState<WebLLMProgress | null>(null)
+  const [nanoState, setNanoState] = useState<PromptApiAvailability | null>(null)
+  const [nanoProgress, setNanoProgress] = useState<number | null>(null)
+  // Bumped after a successful in-tab download to re-run detection so the tier
+  // flips from "downloadable" to "available".
+  const [detectNonce, setDetectNonce] = useState(0)
 
   const runtimeRef = useRef<AiAgentRuntime | null>(null)
   const threadIdRef = useRef<string | null>(null)
@@ -174,7 +189,14 @@ export function AiChatPanel() {
   // a previously chosen tier is kept as-is.
   useEffect(() => {
     let cancelled = false
-    void detectConnectors({ hasCloudKey: () => apiKey.length > 0 }).then((result) => {
+    // The web app *can* build an in-tab WebLLM engine (the lazy import in
+    // ai-webllm-engine.ts), so advertise the tier as usable — without this the
+    // `webllm` tier would (correctly) report unavailable, since detection no
+    // longer trusts `navigator.gpu` alone.
+    void detectConnectors({
+      hasCloudKey: () => apiKey.length > 0,
+      hasWebLLMEngine: () => true
+    }).then((result) => {
       if (cancelled) return
       setDetections(result)
       setSelectedTier((current) => current ?? pickUsableConnector(result)?.tier ?? null)
@@ -182,9 +204,33 @@ export function AiChatPanel() {
     return () => {
       cancelled = true
     }
-  }, [apiKey])
+  }, [apiKey, detectNonce])
 
   const selected = detections.find((d) => d.tier === selectedTier) ?? null
+
+  // Switching tiers disarms any pending in-tab load, so a stale "load" gesture
+  // or progress bar doesn't bleed across a tier change.
+  useEffect(() => {
+    setWebllmArmed(false)
+    setWebllmProgress(null)
+  }, [selectedTier])
+
+  // When Gemini Nano is selected but not yet "available", probe the raw state so
+  // the panel can offer a *download* gesture for 'downloadable'/'downloading'
+  // (rather than just claiming it's unavailable). 'available' flips via detection.
+  useEffect(() => {
+    if (selected?.tier !== 'prompt-api' || selected.available) {
+      setNanoState(null)
+      return
+    }
+    let cancelled = false
+    void promptApiAvailability().then((state) => {
+      if (!cancelled) setNanoState(state)
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [selected, detectNonce])
 
   // Surface which agent the local bridge is driving (from its /health), so the
   // user can see + (in Electron) switch the running agent (exploration 0194).
@@ -246,37 +292,97 @@ export function AiChatPanel() {
     runtimeRef.current = null
     threadIdRef.current = null
     setReady(false)
+    setError(null)
     if (!selected?.available) return
+    // In-tab WebLLM downloads weights on build, so wait for the explicit "load"
+    // gesture before doing so — even when the tier is auto-selected.
+    if (selected.tier === 'webllm' && !webllmArmed) return
     let cancelled = false
-    void resolveProvider(selected, settings, onBudget).then((provider) => {
-      if (cancelled || !provider) return
-      const runtime = createAiAgentRuntime({
-        provider,
-        systemPrompt: AI_SYSTEM_PROMPT,
-        ...(surface
-          ? {
-              contextProvider: async ({ content }) => {
-                const pack = await surface.createContextPack({ query: content, limit: 6 })
-                return formatContextMessages(pack)
+    void resolveProvider(selected, settings, onBudget, setWebllmProgress)
+      .then((provider) => {
+        if (cancelled || !provider) return
+        const runtime = createAiAgentRuntime({
+          provider,
+          systemPrompt: AI_SYSTEM_PROMPT,
+          ...(surface
+            ? {
+                contextProvider: async ({ content }) => {
+                  const pack = await surface.createContextPack({ query: content, limit: 6 })
+                  return formatContextMessages(pack)
+                }
               }
-            }
-          : {})
+            : {})
+        })
+        cleanupRef.current = runtime.subscribe((event) =>
+          applyRuntimeEvent(event, threadIdRef.current, handlers)
+        )
+        return runtime.load().then(() => {
+          if (cancelled) return
+          runtimeRef.current = runtime
+          setReady(true)
+        })
       })
-      void runtime.load().then(() => {
-        if (cancelled) return
-        runtimeRef.current = runtime
-        setReady(true)
+      .catch((err) => {
+        // A provider that fails to construct or load (a WebLLM weight-download
+        // error, a Nano session that won't open, a runtime load that throws)
+        // used to be swallowed here, leaving the composer permanently disabled
+        // with no explanation. Surface it instead.
+        if (!cancelled) setError(errorMessage(err))
       })
-      cleanupRef.current = runtime.subscribe((event) =>
-        applyRuntimeEvent(event, threadIdRef.current, handlers)
-      )
-    })
     return () => {
       cancelled = true
       cleanupRef.current?.()
       cleanupRef.current = null
     }
-  }, [selected, settings, handlers, surface, onBudget])
+  }, [selected, settings, handlers, surface, onBudget, webllmArmed])
+
+  // True while we're waiting for the user to kick off an in-tab model's
+  // download — the activation block (button) explains itself, so the generic
+  // "preparing"/"unavailable" reason should defer to it.
+  const nanoNeedsDownload = nanoState === 'downloadable' || nanoState === 'downloading'
+  const awaitingInTabGesture =
+    (selected?.tier === 'webllm' && selected.available && !webllmArmed && !ready) ||
+    (selected?.tier === 'prompt-api' && nanoNeedsDownload)
+
+  // Why the composer is disabled right now, so a not-ready box is never silent
+  // (the old failure mode: a selected-but-unbuildable tier showed nothing).
+  const notReadyReason =
+    ready || error || awaitingInTabGesture
+      ? null
+      : !selected
+        ? null // the empty-state ChatBody already invites picking a model
+        : !selected.available
+          ? (selected.setupHint ?? 'This model isn’t available in this browser.')
+          : 'Preparing this model…'
+
+  // Never tell the user to "select a model" once one is selected.
+  const composerPlaceholder = ready
+    ? 'Message…'
+    : !selected
+      ? 'Select a model above'
+      : awaitingInTabGesture
+        ? 'Load the model above'
+        : selected.available
+          ? 'Preparing model…'
+          : 'Configure the model above'
+
+  // Kick off the in-tab WebLLM download (the build effect proceeds once armed).
+  const runWebllm = useCallback(() => setWebllmArmed(true), [])
+
+  // Trigger the Gemini Nano on-device download from this click (Chrome gates the
+  // download behind a user gesture), then re-detect so the tier flips available.
+  const downloadNano = useCallback(async () => {
+    setError(null)
+    setNanoProgress(0)
+    try {
+      await downloadPromptApiModel((fraction) => setNanoProgress(fraction))
+      setNanoProgress(null)
+      setDetectNonce((nonce) => nonce + 1)
+    } catch (err) {
+      setNanoProgress(null)
+      setError(errorMessage(err))
+    }
+  }, [])
 
   const send = useCallback(async () => {
     const content = input.trim()
@@ -337,9 +443,15 @@ export function AiChatPanel() {
           }}
         />
       )}
-      {selected && !selected.available && (
+      {selected?.tier === 'webllm' && selected.available && !ready && (
+        <WebLLMActivation armed={webllmArmed} progress={webllmProgress} onRun={runWebllm} />
+      )}
+      {selected?.tier === 'prompt-api' && nanoNeedsDownload && (
+        <NanoDownload progress={nanoProgress} onDownload={() => void downloadNano()} />
+      )}
+      {notReadyReason && (
         <p className="border-b border-hairline px-3 py-2 text-[11px] text-ink-3">
-          {selected.setupHint}
+          {notReadyReason}
         </p>
       )}
 
@@ -350,6 +462,7 @@ export function AiChatPanel() {
         value={input}
         ready={ready}
         streaming={streaming}
+        placeholder={composerPlaceholder}
         onChange={setInput}
         onSend={() => void send()}
       />
@@ -377,6 +490,96 @@ function SemanticSearchToggle({
         device
       </span>
     </label>
+  )
+}
+
+/** A thin determinate progress bar (0–1) for in-tab model downloads. */
+function DownloadBar({ fraction, label }: { fraction: number; label: string }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-2">
+        <div
+          className="h-full bg-emerald-500"
+          style={{ width: `${Math.round(Math.min(1, Math.max(0, fraction)) * 100)}%` }}
+          aria-hidden
+        />
+      </div>
+      <p className="truncate text-[10px] text-ink-3">{label}</p>
+    </div>
+  )
+}
+
+/**
+ * In-tab WebLLM activation: a "run" gesture that arms the heavy first-run model
+ * download (so picking the tier doesn't surprise-download), then a progress bar
+ * while it loads. Cached afterwards; nothing leaves the device.
+ */
+function WebLLMActivation({
+  armed,
+  progress,
+  onRun
+}: {
+  armed: boolean
+  progress: WebLLMProgress | null
+  onRun: () => void
+}) {
+  return (
+    <div className="flex flex-col gap-1.5 border-b border-hairline px-3 py-2">
+      {armed ? (
+        <DownloadBar
+          fraction={progress?.fraction ?? 0}
+          label={progress?.text ?? 'Loading model…'}
+        />
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={onRun}
+            className="self-start rounded-md border border-hairline bg-surface-0 px-2 py-1 text-[11px] text-ink-1 hover:border-border-emphasis"
+          >
+            Run the in-browser model
+          </button>
+          <p className="text-[10px] text-ink-3">
+            Downloads a small model to this browser on first run (cached afterwards). Runs entirely
+            on your device — nothing leaves it.
+          </p>
+        </>
+      )}
+    </div>
+  )
+}
+
+/**
+ * Gemini Nano download gesture: when the on-device model is `downloadable` /
+ * `downloading`, offer a button that triggers the Chrome download from a user
+ * gesture (required) and shows progress; detection re-runs once it completes.
+ */
+function NanoDownload({
+  progress,
+  onDownload
+}: {
+  progress: number | null
+  onDownload: () => void
+}) {
+  return (
+    <div className="flex flex-col gap-1.5 border-b border-hairline px-3 py-2">
+      {progress !== null ? (
+        <DownloadBar fraction={progress} label="Downloading Gemini Nano…" />
+      ) : (
+        <>
+          <button
+            type="button"
+            onClick={onDownload}
+            className="self-start rounded-md border border-hairline bg-surface-0 px-2 py-1 text-[11px] text-ink-1 hover:border-border-emphasis"
+          >
+            Download Gemini Nano
+          </button>
+          <p className="text-[10px] text-ink-3">
+            Chrome downloads the on-device model once, then it runs locally — no key, no server.
+          </p>
+        </>
+      )}
+    </div>
   )
 }
 
@@ -421,12 +624,14 @@ function ChatComposer({
   value,
   ready,
   streaming,
+  placeholder,
   onChange,
   onSend
 }: {
   value: string
   ready: boolean
   streaming: boolean
+  placeholder: string
   onChange: (value: string) => void
   onSend: () => void
 }) {
@@ -435,7 +640,7 @@ function ChatComposer({
       <textarea
         value={value}
         rows={2}
-        placeholder={ready ? 'Message…' : 'Select and configure a model above'}
+        placeholder={placeholder}
         disabled={!ready}
         onChange={(event) => onChange(event.target.value)}
         onKeyDown={(event) => {
@@ -671,8 +876,17 @@ function appendToAssistant(messages: ChatMessage[], text: string): ChatMessage[]
 async function resolveProvider(
   detection: ConnectorDetection,
   settings: AiChatSettings,
-  onBudget: (snapshot: ManagedBudgetSnapshot) => void
+  onBudget: (snapshot: ManagedBudgetSnapshot) => void,
+  onWebllmProgress: (progress: WebLLMProgress | null) => void
 ): Promise<AIProvider | null> {
+  // In-tab WebLLM: build a real @mlc-ai/web-llm engine, downloading the model on
+  // first run with a progress callback. Clear the gauge once it settles (success
+  // or — after the caller's .catch — failure).
+  if (detection.tier === 'webllm') {
+    return buildWebLLMProvider({ onProgress: onWebllmProgress }).finally(() =>
+      onWebllmProgress(null)
+    )
+  }
   if (detection.tier === 'prompt-api') return createPromptApiProvider()
   // Managed is built directly (like prompt-api) so we can attach the budget
   // callback the pure config mapper can't carry.

@@ -76,7 +76,9 @@ export {
   WebLLMProvider,
   createWebLLMProvider,
   PromptApiProvider,
-  createPromptApiProvider
+  createPromptApiProvider,
+  promptApiAvailability,
+  downloadPromptApiModel
 } from './connectors'
 export type {
   ConnectorTier,
@@ -89,6 +91,8 @@ export type {
   WebLLMProviderOptions,
   LanguageModelLike,
   LanguageModelSessionLike,
+  LanguageModelMonitor,
+  PromptApiAvailability,
   PromptApiProviderOptions
 } from './connectors'
 export type {

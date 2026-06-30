@@ -11,6 +11,7 @@ import { writeModeFor, type ConnectorEnv } from './types'
 /** An env where nothing is available, to toggle one tier at a time. */
 const NOTHING: ConnectorEnv = {
   hasWebGpu: () => false,
+  hasWebLLMEngine: () => false,
   hasPromptApi: () => false,
   localServerProbes: [],
   hasCloudKey: () => false,
@@ -55,11 +56,44 @@ describe('detectConnectors', () => {
     expect(managed?.setupHint).toMatch(/XNet Cloud/)
   })
 
-  it('detects WebGPU for the in-tab tier', async () => {
+  it('reports the in-tab tier unavailable when WebGPU is present but no engine is wired', async () => {
+    // The "webllm trap": WebGPU alone must not advertise a tier the host can't
+    // instantiate — that left the composer permanently disabled with no hint.
     const result = await detectConnectors({ ...NOTHING, hasWebGpu: () => true })
+    const webllm = result.find((d) => d.tier === 'webllm')
+    expect(webllm?.available).toBe(false)
+    expect(webllm?.setupHint).toMatch(/not enabled in this build/i)
+  })
+
+  it('reports the in-tab tier available only when WebGPU AND an engine are present', async () => {
+    const result = await detectConnectors({
+      ...NOTHING,
+      hasWebGpu: () => true,
+      hasWebLLMEngine: () => true
+    })
     const webllm = result.find((d) => d.tier === 'webllm')
     expect(webllm?.available).toBe(true)
     expect(webllm?.toolCalling).toBe('weak')
+  })
+
+  it('keeps the in-tab tier unavailable when an engine is wired but WebGPU is absent', async () => {
+    const result = await detectConnectors({ ...NOTHING, hasWebLLMEngine: () => true })
+    const webllm = result.find((d) => d.tier === 'webllm')
+    expect(webllm?.available).toBe(false)
+    expect(webllm?.setupHint).toMatch(/WebGPU unavailable/i)
+  })
+
+  it('reports the prompt-api tier available only when the model is fully downloaded', async () => {
+    // Presence of the API isn't enough — 'downloadable' still can't create a
+    // session without a user-gesture download, so it must read as unavailable.
+    const downloadable = await detectConnectors({
+      ...NOTHING,
+      hasPromptApi: () => false // default probe maps non-'available' states to false
+    })
+    expect(downloadable.find((d) => d.tier === 'prompt-api')?.available).toBe(false)
+
+    const ready = await detectConnectors({ ...NOTHING, hasPromptApi: () => true })
+    expect(ready.find((d) => d.tier === 'prompt-api')?.available).toBe(true)
   })
 
   it('detects a reachable local server and reports which one', async () => {

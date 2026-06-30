@@ -483,7 +483,9 @@ export {
   WebLLMProvider,
   createWebLLMProvider,
   PromptApiProvider,
-  createPromptApiProvider
+  createPromptApiProvider,
+  promptApiAvailability,
+  downloadPromptApiModel
 } from './ai'
 export type {
   // Prompt types
@@ -559,6 +561,8 @@ export type {
   WebLLMProviderOptions,
   LanguageModelLike,
   LanguageModelSessionLike,
+  LanguageModelMonitor,
+  PromptApiAvailability,
   PromptApiProviderOptions
 } from './ai'
 

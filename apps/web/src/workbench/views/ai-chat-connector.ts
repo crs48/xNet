@@ -45,13 +45,18 @@ export const PROVIDER_CONFIG_TIERS: readonly ConnectorTier[] = [
 ]
 
 /**
- * Tiers the panel can actually instantiate a provider for today: the
- * config-backed tiers plus `prompt-api` (built from an injected session). The
- * `webllm` tier is detectable (WebGPU present) but has no engine-injection path
- * yet, so it must never be *auto*-selected — it would leave the composer
- * permanently disabled. It stays selectable in the dropdown for when it's wired.
+ * Tiers the panel can actually instantiate a provider for: the config-backed
+ * tiers plus the in-tab tiers `prompt-api` (built from an injected session) and
+ * `webllm` (built from a host-supplied `@mlc-ai/web-llm` engine, see
+ * `ai-webllm-engine.ts`). `webllm` is now safe to auto-select because the heavy
+ * model download is gated behind an explicit "load" gesture in the panel rather
+ * than firing the moment the tier is chosen.
  */
-export const USABLE_TIERS: readonly ConnectorTier[] = [...PROVIDER_CONFIG_TIERS, 'prompt-api']
+export const USABLE_TIERS: readonly ConnectorTier[] = [
+  ...PROVIDER_CONFIG_TIERS,
+  'prompt-api',
+  'webllm'
+]
 
 /** Whether the panel can build a working provider for this tier right now. */
 export function isUsableTier(tier: ConnectorTier): boolean {

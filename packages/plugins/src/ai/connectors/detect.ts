@@ -15,6 +15,7 @@ import type {
   ToolCallingFidelity
 } from './types'
 import { isOllamaAvailable } from '../providers'
+import { promptApiAvailability } from './prompt-api-provider'
 
 interface ConnectorMeta {
   label: string
@@ -127,14 +128,21 @@ export async function detectConnectors(env: ConnectorEnv = {}): Promise<Connecto
   const managedUrl = env.managedUrl ?? ''
   const probeManaged = env.probeManaged ?? defaultProbeManaged
 
-  const [webgpu, promptApi, localServer, cloudKey, bridge, managed] = await Promise.all([
-    resolveBool(env.hasWebGpu, defaultHasWebGpu),
-    resolveBool(env.hasPromptApi, defaultHasPromptApi),
-    detectLocalServer(localServerProbes),
-    resolveBool(env.hasCloudKey, () => false),
-    probeBridge(bridgeUrl),
-    probeManaged(managedUrl).catch(() => false)
-  ])
+  const [webgpu, webllmEngine, promptApi, localServer, cloudKey, bridge, managed] =
+    await Promise.all([
+      resolveBool(env.hasWebGpu, defaultHasWebGpu),
+      resolveBool(env.hasWebLLMEngine, () => false),
+      resolveBool(env.hasPromptApi, defaultHasPromptApi),
+      detectLocalServer(localServerProbes),
+      resolveBool(env.hasCloudKey, () => false),
+      probeBridge(bridgeUrl),
+      probeManaged(managedUrl).catch(() => false)
+    ])
+
+  // The in-tab tier is usable only when WebGPU is present AND the host wired an
+  // engine factory. WebGPU alone advertised a tier the panel couldn't build —
+  // the "webllm trap" that left the composer permanently disabled with no hint.
+  const webllm = webgpu && webllmEngine
 
   const base: Array<Pick<ConnectorDetection, 'tier' | 'available' | 'detail' | 'setupHint'>> = [
     {
@@ -168,8 +176,14 @@ export async function detectConnectors(env: ConnectorEnv = {}): Promise<Connecto
     },
     {
       tier: 'webllm',
-      available: webgpu,
-      ...(webgpu ? {} : { setupHint: 'WebGPU unavailable; use a Chromium browser or Safari 26+.' })
+      available: webllm,
+      ...(webllm
+        ? {}
+        : {
+            setupHint: webgpu
+              ? 'In-browser model not enabled in this build yet.'
+              : 'WebGPU unavailable; use a Chromium browser or Safari 26+.'
+          })
     },
     {
       tier: 'prompt-api',
@@ -225,6 +239,12 @@ function defaultHasWebGpu(): boolean {
   return typeof navigator !== 'undefined' && 'gpu' in navigator
 }
 
-function defaultHasPromptApi(): boolean {
-  return typeof globalThis !== 'undefined' && 'LanguageModel' in globalThis
+/**
+ * Ready only when the on-device model is fully `'available'`. Presence of the
+ * `LanguageModel` global isn't enough — when the model is still `'downloadable'`
+ * / `'downloading'`, `create()` can't produce a session without a user-gesture
+ * download first, so reporting it "available" would disable the composer.
+ */
+async function defaultHasPromptApi(): Promise<boolean> {
+  return (await promptApiAvailability()) === 'available'
 }

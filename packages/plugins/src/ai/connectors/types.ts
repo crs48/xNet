@@ -43,7 +43,20 @@ export interface ConnectorEnv {
   managedUrl?: string
   /** WebGPU present (enables in-tab models). Default: `navigator.gpu` check. */
   hasWebGpu?: () => boolean | Promise<boolean>
-  /** Chrome built-in `LanguageModel` present. Default: global check. */
+  /**
+   * Whether the host can actually build an in-tab WebLLM engine (the heavy
+   * `@mlc-ai/web-llm` import is host-supplied, see the panel). The `webllm` tier
+   * is reported available only when this AND {@link hasWebGpu} are true —
+   * detecting WebGPU alone would advertise a tier the host can't instantiate,
+   * leaving the composer silently disabled. Default: `false` (no engine wired).
+   */
+  hasWebLLMEngine?: () => boolean | Promise<boolean>
+  /**
+   * Chrome built-in `LanguageModel` is present *and the model is ready to use*.
+   * Default: probes `LanguageModel.availability()` and reports ready only for
+   * `'available'` — mere API presence (`'downloadable'`) means a session can't
+   * be created without a user-gesture download first (see the panel's gesture).
+   */
   hasPromptApi?: () => boolean | Promise<boolean>
   /** Local model endpoints to probe, in priority order. Default: Ollama, LM Studio. */
   localServerProbes?: readonly LocalServerProbe[]
