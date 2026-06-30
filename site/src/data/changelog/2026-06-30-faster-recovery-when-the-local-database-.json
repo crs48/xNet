@@ -1,0 +1,8 @@
+{
+  "id": "2026-06-30-faster-recovery-when-the-local-database-",
+  "date": "June 30, 2026",
+  "title": "Faster recovery when the local database is slow to open",
+  "summary": "A timed-out database open now releases its storage handles immediately instead of holding them while still initializing, so a retry no longer compounds the delay. Adds cold-start boot diagnostics that pinpoint where startup time goes.",
+  "highlights": [],
+  "tags": ["performance"]
+}
