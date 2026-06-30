@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Cold-start diagnostics now capture the slow boot, not just the fast one</title>
+      <link>https://xnet.fyi/changelog#2026-06-30-cold-start-diagnostics-now-capture-the-s</link>
+      <guid isPermaLink="false">2026-06-30-cold-start-diagnostics-now-capture-the-s</guid>
+      <pubDate>Tue, 30 Jun 2026 20:29:50 GMT</pubDate>
+      <description>The persisted boot timeline now re-captures itself after a stall settles, so a slow cold start is recorded in localStorage even when it happens after the app reports connected.</description>
+    </item>
+    <item>
       <title>Cold-start diagnostics survive a truncated log</title>
       <link>https://xnet.fyi/changelog#2026-06-30-cold-start-diagnostics-survive-a-truncat</link>
       <guid isPermaLink="false">2026-06-30-cold-start-diagnostics-survive-a-truncat</guid>
