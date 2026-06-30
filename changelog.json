@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-06-30-in-browser-ai-model-now-downloads-and-ru",
+      "url": "https://xnet.fyi/changelog#2026-06-30-in-browser-ai-model-now-downloads-and-ru",
+      "title": "In-browser AI model now downloads and runs",
+      "content_text": "Fixed a content-security-policy gap that blocked the WebLLM in-browser model from downloading its weights, so the on-device assistant now loads and replies.\n",
+      "date_published": "2026-06-30T15:41:58Z",
+      "tags": [
+        "ai"
+      ],
+      "_xnet": {
+        "date": "June 30, 2026",
+        "summary": "Fixed a content-security-policy gap that blocked the WebLLM in-browser model from downloading its weights, so the on-device assistant now loads and replies.",
+        "highlights": [],
+        "mergedAt": "2026-06-30T15:41:58Z",
+        "pr": 350,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-06-30-local-ai-models-now-actually-chat-in-bro",
       "url": "https://xnet.fyi/changelog#2026-06-30-local-ai-models-now-actually-chat-in-bro",
       "title": "Local AI models now actually chat (in-browser WebLLM + Gemini Nano)",
