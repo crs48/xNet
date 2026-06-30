@@ -4,5 +4,14 @@
   "title": "Cold-start diagnostics now capture the slow boot, not just the fast one",
   "summary": "The persisted boot timeline now re-captures itself after a stall settles, so a slow cold start is recorded in localStorage even when it happens after the app reports connected.",
   "highlights": [],
-  "tags": ["performance"]
+  "tags": [
+    "performance"
+  ],
+  "pr": 353,
+  "mergedAt": "2026-06-30T20:29:50Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
