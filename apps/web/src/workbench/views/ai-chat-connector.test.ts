@@ -243,22 +243,24 @@ describe('canSendMessage / errorMessage', () => {
 })
 
 describe('isUsableTier / pickUsableConnector', () => {
-  it('treats config tiers and prompt-api as usable, webllm as not', () => {
+  it('treats config tiers and the in-tab tiers (prompt-api, webllm) as usable', () => {
     expect(isUsableTier('cloud-key')).toBe(true)
     expect(isUsableTier('local-server')).toBe(true)
     expect(isUsableTier('bridge')).toBe(true)
     expect(isUsableTier('prompt-api')).toBe(true)
-    expect(isUsableTier('webllm')).toBe(false)
+    // webllm is now wired (host-supplied engine + gesture-gated download), so it
+    // is selectable; the panel only builds it after an explicit "run" click.
+    expect(isUsableTier('webllm')).toBe(true)
   })
 
-  it('skips webllm even when it is the most-preferred available tier', () => {
+  it('falls back to webllm when it is the only available usable tier', () => {
     const detections = [
       det({ tier: 'cloud-key', available: false, preference: 2 }),
       det({ tier: 'local-server', available: false, preference: 3 }),
       det({ tier: 'webllm', available: true, preference: 4 }),
       det({ tier: 'prompt-api', available: false, preference: 5 })
     ]
-    expect(pickUsableConnector(detections)).toBeNull()
+    expect(pickUsableConnector(detections)?.tier).toBe('webllm')
   })
 
   it('picks the first available usable tier in preference order', () => {
