@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-06-30-cold-start-diagnostics-survive-a-truncat",
+      "url": "https://xnet.fyi/changelog#2026-06-30-cold-start-diagnostics-survive-a-truncat",
+      "title": "Cold-start diagnostics survive a truncated log",
+      "content_text": "Boot-phase timings are now persisted to localStorage (xnet:boot:last) so a slow cold start can be diagnosed from a single value even when the console log is truncated.\n",
+      "date_published": "2026-06-30T19:36:20Z",
+      "tags": [
+        "performance"
+      ],
+      "_xnet": {
+        "date": "June 30, 2026",
+        "summary": "Boot-phase timings are now persisted to localStorage (xnet:boot:last) so a slow cold start can be diagnosed from a single value even when the console log is truncated.",
+        "highlights": [],
+        "mergedAt": "2026-06-30T19:36:20Z",
+        "pr": 352,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-06-30-faster-recovery-when-the-local-database-",
       "url": "https://xnet.fyi/changelog#2026-06-30-faster-recovery-when-the-local-database-",
       "title": "Faster recovery when the local database is slow to open",
