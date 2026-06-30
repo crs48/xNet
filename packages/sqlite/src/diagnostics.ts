@@ -48,9 +48,37 @@ export interface SQLiteRuntimeCapabilities {
 // ─── Index Analysis ──────────────────────────────────────────────────────────
 
 /**
- * Get information about all indexes in the database.
+ * Per-adapter cache of {@link getIndexInfo}, invalidated by `PRAGMA schema_version`
+ * (which SQLite bumps on every DDL, including CREATE/DROP INDEX). Before this,
+ * `collectCompiledQueryDiagnostics` re-ran `sqlite_master` + one `PRAGMA
+ * index_info` *per index* on every cold query — ~870 serial worker round-trips in
+ * the 0253 capture, flooding the boot log and obscuring the real stall. The index
+ * set is stable between schema changes, so one build per `schema_version` suffices.
+ */
+const indexInfoCache = new WeakMap<SQLiteAdapter, { schemaVersion: number; indexes: IndexInfo[] }>()
+
+async function readSchemaVersion(db: SQLiteAdapter): Promise<number> {
+  try {
+    const row = await db.queryOne<{ schema_version: number }>('PRAGMA schema_version')
+    return Number(row?.schema_version ?? 0)
+  } catch {
+    return 0
+  }
+}
+
+/**
+ * Get information about all indexes in the database. Cached per adapter and keyed
+ * on `PRAGMA schema_version`, so repeated calls between DDL changes pay one cheap
+ * version probe instead of `sqlite_master` + N `PRAGMA index_info` round-trips
+ * (exploration 0253).
  */
 export async function getIndexInfo(db: SQLiteAdapter): Promise<IndexInfo[]> {
+  const schemaVersion = await readSchemaVersion(db)
+  const cached = indexInfoCache.get(db)
+  if (cached && cached.schemaVersion === schemaVersion) {
+    return cached.indexes
+  }
+
   interface IndexRow {
     name: string
     tbl_name: string
@@ -81,6 +109,7 @@ export async function getIndexInfo(db: SQLiteAdapter): Promise<IndexInfo[]> {
     })
   }
 
+  indexInfoCache.set(db, { schemaVersion, indexes: result })
   return result
 }
 

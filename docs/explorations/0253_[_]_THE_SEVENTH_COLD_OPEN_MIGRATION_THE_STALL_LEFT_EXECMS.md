@@ -390,7 +390,7 @@ flowchart TD
       export the **full** log (from `id 0`).
 - [ ] Read `open phases` + first‑op `idleBeforeFirstOpMs`; pick the branch.
 - [ ] Implement the named fix (F‑open sub‑phase, or F‑upstream).
-- [ ] Cache `getIndexInfo` per `schema_version` to drop the ~870‑line flood
+- [x] Cache `getIndexInfo` per `schema_version` to drop the ~870‑line flood
       ([`diagnostics.ts`](../../packages/sqlite/src/diagnostics.ts)).
 - [ ] Audit/repair the 15 s open timeout (R1).
 - [ ] Redeploy the tenant hub to clear `INVALID_HASH`.
