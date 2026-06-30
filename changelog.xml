@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Faster recovery when the local database is slow to open</title>
+      <link>https://xnet.fyi/changelog#2026-06-30-faster-recovery-when-the-local-database-</link>
+      <guid isPermaLink="false">2026-06-30-faster-recovery-when-the-local-database-</guid>
+      <pubDate>Tue, 30 Jun 2026 16:13:12 GMT</pubDate>
+      <description>A timed-out database open now releases its storage handles immediately instead of holding them while still initializing, so a retry no longer compounds the delay. Adds cold-start boot diagnostics that pinpoint where startup time goes.</description>
+    </item>
+    <item>
       <title>In-browser AI model now downloads and runs</title>
       <link>https://xnet.fyi/changelog#2026-06-30-in-browser-ai-model-now-downloads-and-ru</link>
       <guid isPermaLink="false">2026-06-30-in-browser-ai-model-now-downloads-and-ru</guid>

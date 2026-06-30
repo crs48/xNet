@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-06-30-faster-recovery-when-the-local-database-",
+      "url": "https://xnet.fyi/changelog#2026-06-30-faster-recovery-when-the-local-database-",
+      "title": "Faster recovery when the local database is slow to open",
+      "content_text": "A timed-out database open now releases its storage handles immediately instead of holding them while still initializing, so a retry no longer compounds the delay. Adds cold-start boot diagnostics that pinpoint where startup time goes.\n",
+      "date_published": "2026-06-30T16:13:12Z",
+      "tags": [
+        "performance"
+      ],
+      "_xnet": {
+        "date": "June 30, 2026",
+        "summary": "A timed-out database open now releases its storage handles immediately instead of holding them while still initializing, so a retry no longer compounds the delay. Adds cold-start boot diagnostics that pinpoint where startup time goes.",
+        "highlights": [],
+        "mergedAt": "2026-06-30T16:13:12Z",
+        "pr": 351,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-06-30-in-browser-ai-model-now-downloads-and-ru",
       "url": "https://xnet.fyi/changelog#2026-06-30-in-browser-ai-model-now-downloads-and-ru",
       "title": "In-browser AI model now downloads and runs",
