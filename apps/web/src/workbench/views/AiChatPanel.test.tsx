@@ -67,11 +67,15 @@ describe('AiChatPanel', () => {
     expect(screen.getByText('reads workspace')).toBeTruthy()
   })
 
-  it('disables the composer until a model is configured', async () => {
+  it('disables the composer until a model is ready, without telling a user with a tier selected to pick one', async () => {
     render(<AiChatPanel />)
-    await waitFor(() =>
-      expect(screen.getByPlaceholderText(/Select and configure a model/)).toBeTruthy()
-    )
+    // cloud-key is the selected tier (available in the fixture) but no key is
+    // entered, so the runtime never builds → the box stays disabled.
+    const box = await screen.findByRole('textbox')
+    expect((box as HTMLTextAreaElement).disabled).toBe(true)
+    // The old placeholder said "Select and configure a model" even with a tier
+    // already selected; it must not anymore.
+    expect((box as HTMLTextAreaElement).placeholder).not.toMatch(/select a model/i)
   })
 
   it('shows the local bridge agent + running status from /health', async () => {

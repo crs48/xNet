@@ -590,12 +590,12 @@ placeholder={ready ? 'Message…' : selected ? 'Preparing model…' : 'Select a 
       `false` ⇒ tier shows a hint, never a silent dead box).
 - [x] **A:** Deepen `defaultHasPromptApi` to call `availability()` and only
       report `available` for `'available'`.
-- [ ] **D:** Render a disabled-reason for *every* selected-but-not-ready tier in
+- [x] **D:** Render a disabled-reason for *every* selected-but-not-ready tier in
       [`AiChatPanel.tsx`](apps/web/src/workbench/views/AiChatPanel.tsx) (not just
       `available === false`).
-- [ ] **D:** Fix the composer placeholder to distinguish "no model selected"
+- [x] **D:** Fix the composer placeholder to distinguish "no model selected"
       from "model selected, preparing/unsupported".
-- [ ] **A/robustness:** Add a `.catch` to the build-effect promise chain so a
+- [x] **A/robustness:** Add a `.catch` to the build-effect promise chain so a
       failed `resolveProvider`/`runtime.load()` sets `error` instead of failing
       silently.
 - [ ] **B:** Add `@mlc-ai/web-llm` to `apps/web` (web-only, lazy-imported) and

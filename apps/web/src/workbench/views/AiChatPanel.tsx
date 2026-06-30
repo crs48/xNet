@@ -246,37 +246,66 @@ export function AiChatPanel() {
     runtimeRef.current = null
     threadIdRef.current = null
     setReady(false)
+    setError(null)
     if (!selected?.available) return
     let cancelled = false
-    void resolveProvider(selected, settings, onBudget).then((provider) => {
-      if (cancelled || !provider) return
-      const runtime = createAiAgentRuntime({
-        provider,
-        systemPrompt: AI_SYSTEM_PROMPT,
-        ...(surface
-          ? {
-              contextProvider: async ({ content }) => {
-                const pack = await surface.createContextPack({ query: content, limit: 6 })
-                return formatContextMessages(pack)
+    void resolveProvider(selected, settings, onBudget)
+      .then((provider) => {
+        if (cancelled || !provider) return
+        const runtime = createAiAgentRuntime({
+          provider,
+          systemPrompt: AI_SYSTEM_PROMPT,
+          ...(surface
+            ? {
+                contextProvider: async ({ content }) => {
+                  const pack = await surface.createContextPack({ query: content, limit: 6 })
+                  return formatContextMessages(pack)
+                }
               }
-            }
-          : {})
+            : {})
+        })
+        cleanupRef.current = runtime.subscribe((event) =>
+          applyRuntimeEvent(event, threadIdRef.current, handlers)
+        )
+        return runtime.load().then(() => {
+          if (cancelled) return
+          runtimeRef.current = runtime
+          setReady(true)
+        })
       })
-      void runtime.load().then(() => {
-        if (cancelled) return
-        runtimeRef.current = runtime
-        setReady(true)
+      .catch((err) => {
+        // A provider that fails to construct or load (a WebLLM weight-download
+        // error, a Nano session that won't open, a runtime load that throws)
+        // used to be swallowed here, leaving the composer permanently disabled
+        // with no explanation. Surface it instead.
+        if (!cancelled) setError(errorMessage(err))
       })
-      cleanupRef.current = runtime.subscribe((event) =>
-        applyRuntimeEvent(event, threadIdRef.current, handlers)
-      )
-    })
     return () => {
       cancelled = true
       cleanupRef.current?.()
       cleanupRef.current = null
     }
   }, [selected, settings, handlers, surface, onBudget])
+
+  // Why the composer is disabled right now, so a not-ready box is never silent
+  // (the old failure mode: a selected-but-unbuildable tier showed nothing).
+  const notReadyReason =
+    ready || error
+      ? null
+      : !selected
+        ? null // the empty-state ChatBody already invites picking a model
+        : !selected.available
+          ? (selected.setupHint ?? 'This model isn’t available in this browser.')
+          : 'Preparing this model…'
+
+  // Never tell the user to "select a model" once one is selected.
+  const composerPlaceholder = ready
+    ? 'Message…'
+    : !selected
+      ? 'Select a model above'
+      : selected.available
+        ? 'Preparing model…'
+        : 'Configure the model above'
 
   const send = useCallback(async () => {
     const content = input.trim()
@@ -337,9 +366,9 @@ export function AiChatPanel() {
           }}
         />
       )}
-      {selected && !selected.available && (
+      {notReadyReason && (
         <p className="border-b border-hairline px-3 py-2 text-[11px] text-ink-3">
-          {selected.setupHint}
+          {notReadyReason}
         </p>
       )}
 
@@ -350,6 +379,7 @@ export function AiChatPanel() {
         value={input}
         ready={ready}
         streaming={streaming}
+        placeholder={composerPlaceholder}
         onChange={setInput}
         onSend={() => void send()}
       />
@@ -421,12 +451,14 @@ function ChatComposer({
   value,
   ready,
   streaming,
+  placeholder,
   onChange,
   onSend
 }: {
   value: string
   ready: boolean
   streaming: boolean
+  placeholder: string
   onChange: (value: string) => void
   onSend: () => void
 }) {
@@ -435,7 +467,7 @@ function ChatComposer({
       <textarea
         value={value}
         rows={2}
-        placeholder={ready ? 'Message…' : 'Select and configure a model above'}
+        placeholder={placeholder}
         disabled={!ready}
         onChange={(event) => onChange(event.target.value)}
         onKeyDown={(event) => {
