@@ -132,7 +132,25 @@ export class WebSQLiteProxy implements SQLiteAdapter {
       setTimeout(() => reject(new Error('Worker initialization timeout after 15s')), 15000)
     )
 
-    await Promise.race([openPromise, timeoutPromise])
+    try {
+      await Promise.race([openPromise, timeoutPromise])
+    } catch (err) {
+      // The worker may still be stuck inside open() (the timeout's whole point),
+      // holding the OPFS-SAHPool sync access handles. A graceful close() here would
+      // `await proxy.close()` — a Comlink RPC that queues BEHIND that same stuck
+      // open and so wouldn't release the handles until it finally finishes (~the
+      // full stall); the NEXT worker's installOpfsSAHPoolVfs then hits
+      // NoModificationAllowedError and the lock-retry path, compounding the very
+      // stall we bailed on. Terminate hard so the handles free now; the caller's
+      // later close() no-ops on the nulled worker (exploration 0253, R1).
+      // (createWorkerProxy() set this.worker, but the top `if (this.worker) throw`
+      // guard left TS narrowing it to null here — re-widen the read.)
+      const worker = this.worker as Worker | null
+      worker?.terminate()
+      this.worker = null
+      this.proxy = null
+      throw err
+    }
     log('[WebSQLiteProxy] proxy.open() completed')
 
     this._config = config

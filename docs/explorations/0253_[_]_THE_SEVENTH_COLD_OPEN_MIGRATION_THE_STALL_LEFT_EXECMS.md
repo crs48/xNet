@@ -392,7 +392,7 @@ flowchart TD
 - [ ] Implement the named fix (F‑open sub‑phase, or F‑upstream).
 - [x] Cache `getIndexInfo` per `schema_version` to drop the ~870‑line flood
       ([`diagnostics.ts`](../../packages/sqlite/src/diagnostics.ts)).
-- [ ] Audit/repair the 15 s open timeout (R1).
+- [x] Audit/repair the 15 s open timeout (R1).
 - [ ] Redeploy the tenant hub to clear `INVALID_HASH`.
 - [x] Add a unit test asserting the first op's report carries
       `idleBeforeFirstOpMs`/`sinceOpenMs` and later ops don't.
