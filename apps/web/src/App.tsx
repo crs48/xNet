@@ -53,6 +53,7 @@ import { isWorkerRuntimeEnabled } from './lib/data-runtime'
 import { scheduleOneTimeVacuum } from './lib/db-vacuum'
 import { defaultHubUrl, persistedHubUrl, readHubParam, setPersistedHubUrl } from './lib/hub-url'
 import { identityManager } from './lib/identity'
+import { startMainThreadStallDetector } from './lib/main-thread-stall'
 import { scheduleStalePresenceCleanup } from './lib/presence-blob-cleanup'
 import { logStoreContents } from './lib/read-path-probe'
 import { detectBrowserFamily, getStorageBanner } from './lib/storage-banner'
@@ -363,6 +364,9 @@ export function App(): JSX.Element {
     async function initialize() {
       try {
         bootMark('init:start')
+        // Watch for a main-thread freeze (the ~18s cold-open stall lives in a
+        // post-hub:connected event-loop block no per-op timer can see; 0253).
+        startMainThreadStallDetector()
         if (shouldResetXNetBrowserStorageOnLoad()) {
           clearXNetBrowserStorageResetRequest()
           await clearXNetBrowserStorage()
