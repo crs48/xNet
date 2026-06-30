@@ -6,6 +6,50 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-06-30-local-ai-models-now-actually-chat-in-bro",
+      "url": "https://xnet.fyi/changelog#2026-06-30-local-ai-models-now-actually-chat-in-bro",
+      "title": "Local AI models now actually chat (in-browser WebLLM + Gemini Nano)",
+      "content_text": "The AI chat box no longer sits disabled with no explanation when you pick an in-browser model. WebLLM now runs a small model fully on-device after a one-tap download (with progress), Gemini Nano offers a download button when its model isn't ready yet, and every tier that can't run shows why instead of a silent dead box.\n",
+      "date_published": "2026-06-30T15:17:26Z",
+      "tags": [
+        "ai"
+      ],
+      "_xnet": {
+        "date": "June 30, 2026",
+        "summary": "The AI chat box no longer sits disabled with no explanation when you pick an in-browser model. WebLLM now runs a small model fully on-device after a one-tap download (with progress), Gemini Nano offers a download button when its model isn't ready yet, and every tier that can't run shows why instead of a silent dead box.",
+        "highlights": [],
+        "mergedAt": "2026-06-30T15:17:26Z",
+        "pr": 349,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-06-29-new-essay-the-tip-of-the-hook",
+      "url": "https://xnet.fyi/changelog#2026-06-29-new-essay-the-tip-of-the-hook",
+      "title": "New essay: The Tip of the Hook",
+      "content_text": "A developer-facing deep-dive on xNet's React hooks: how useQuery and useMutate let you specify your whole API in the client — including authorisation — and trust it, with a dive beneath the surface to the SQLite-in-a-worker, the priority scheduler, and the signed change log that make it safe.\n",
+      "date_published": "2026-06-29T17:04:03Z",
+      "tags": [
+        "platform"
+      ],
+      "_xnet": {
+        "date": "June 29, 2026",
+        "summary": "A developer-facing deep-dive on xNet's React hooks: how useQuery and useMutate let you specify your whole API in the client — including authorisation — and trust it, with a dive beneath the surface to the SQLite-in-a-worker, the priority scheduler, and the signed change log that make it safe.",
+        "highlights": [],
+        "mergedAt": "2026-06-29T17:04:03Z",
+        "pr": 346,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-06-29-calm-layout-now-reflows-to-a-mobile-shel",
       "url": "https://xnet.fyi/changelog#2026-06-29-calm-layout-now-reflows-to-a-mobile-shel",
       "title": "Calm layout now reflows to a mobile shell",
@@ -3516,31 +3560,6 @@
         "authors": [
           {
             "login": "crs48"
-          }
-        ]
-      }
-    },
-    {
-      "id": "2026-06-29-new-essay-the-tip-of-the-hook",
-      "url": "https://xnet.fyi/changelog#2026-06-29-new-essay-the-tip-of-the-hook",
-      "title": "New essay: The Tip of the Hook",
-      "content_text": "A developer-facing deep-dive on xNet's React hooks: how useQuery and useMutate let you specify your whole API in the client — including authorisation — and trust it, with a dive beneath the surface to the SQLite-in-a-worker, the priority scheduler, and the signed change log that make it safe.\n",
-      "date_published": "2026-03-07T16:37:28Z",
-      "tags": [
-        "platform"
-      ],
-      "_xnet": {
-        "date": "June 29, 2026",
-        "summary": "A developer-facing deep-dive on xNet's React hooks: how useQuery and useMutate let you specify your whole API in the client — including authorisation — and trust it, with a dive beneath the surface to the SQLite-in-a-worker, the priority scheduler, and the signed change log that make it safe.",
-        "highlights": [],
-        "mergedAt": "2026-03-07T16:37:28Z",
-        "pr": 8,
-        "authors": [
-          {
-            "login": "crs48"
-          },
-          {
-            "login": "crs"
           }
         ]
       }
