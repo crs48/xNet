@@ -1,0 +1,8 @@
+{
+  "id": "2026-07-01-the-app-no-longer-fails-to-open-on-a-slo",
+  "date": "July 1, 2026",
+  "title": "The app no longer fails to open on a slow cold start",
+  "summary": "A slow local-database open (which could intermittently exceed the startup timeout and show an initialization error) now retries automatically with a fresh worker instead of failing the whole boot.",
+  "highlights": [],
+  "tags": ["app"]
+}

@@ -42,6 +42,16 @@ export interface SQLiteConfig {
    */
   bootDebug?: boolean
 
+  /**
+   * Per-attempt timeout (ms) for the web worker's `open()` before the worker is
+   * terminated and retried with a fresh one (default: 15000). A cold
+   * `installOpfsSAHPoolVfs()` on a large DB file can intermittently exceed this —
+   * usually because a prior boot leaked a worker still holding the file's
+   * exclusive OPFS handle; terminating + retrying clears that contention rather
+   * than hard-failing the boot (exploration 0253). Web adapter only.
+   */
+  openTimeoutMs?: number
+
   // ─── Electron / better-sqlite3 only (exploration 0230) ───────────────────
 
   /**

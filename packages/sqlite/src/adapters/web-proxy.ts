@@ -18,6 +18,7 @@ import type {
 } from '../types'
 import * as Comlink from 'comlink'
 import { readBootLogArgs } from './boot-log-bridge'
+import { openWithTimeoutRetry } from './open-retry'
 
 function isDebugEnabled(): boolean {
   return typeof localStorage !== 'undefined' && localStorage.getItem('xnet:sqlite:debug') === 'true'
@@ -121,38 +122,47 @@ export class WebSQLiteProxy implements SQLiteAdapter {
       throw new Error('Already open. Call close() first.')
     }
 
-    const proxy = this.createWorkerProxy()
-
-    log('[WebSQLiteProxy] Calling proxy.open()...')
-
-    // Open database in worker with timeout
-    const openPromise = proxy.open(config)
-    this.operationStats.workerRequestCount += 1
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('Worker initialization timeout after 15s')), 15000)
+    // A cold `installOpfsSAHPoolVfs()` on a large DB file (the 318k-change body,
+    // exploration 0253) intermittently exceeds the per-attempt timeout — most
+    // often because a PRIOR boot's open timed out and *leaked* a worker still
+    // holding the file's exclusive OPFS handle, so this boot's
+    // `createSyncAccessHandle()` blocks on the contended handle. The old code
+    // hard-failed on the first timeout ("Initialization failed: Worker
+    // initialization timeout after 15s" → error screen). Instead retry with a
+    // FRESH worker after terminating the stuck one (which frees the handle), so the
+    // leaked-handle cascade recovers instead of failing (bounded — a genuinely
+    // broken OPFS still fails cleanly). See open-retry.ts.
+    await openWithTimeoutRetry(
+      () => {
+        const proxy = this.createWorkerProxy()
+        log('[WebSQLiteProxy] Calling proxy.open()...')
+        this.operationStats.workerRequestCount += 1
+        return {
+          open: proxy.open(config),
+          // (createWorkerProxy() set this.worker, but the top `if (this.worker)
+          // throw` guard narrowed it to null here — re-widen the read.)
+          abandon: () => {
+            const worker = this.worker as Worker | null
+            worker?.terminate()
+            this.worker = null
+            this.proxy = null
+          }
+        }
+      },
+      {
+        timeoutMs: config.openTimeoutMs ?? 15000,
+        onRetry: (attempt, err) => {
+          console.warn(
+            `[WebSQLiteProxy] SQLite worker open timed out (attempt ${attempt}); terminated the ` +
+              'stuck worker to release its OPFS handle and retrying with a fresh worker (this ' +
+              'usually clears handle contention left by a prior boot).',
+            err
+          )
+        }
+      }
     )
 
-    try {
-      await Promise.race([openPromise, timeoutPromise])
-    } catch (err) {
-      // The worker may still be stuck inside open() (the timeout's whole point),
-      // holding the OPFS-SAHPool sync access handles. A graceful close() here would
-      // `await proxy.close()` — a Comlink RPC that queues BEHIND that same stuck
-      // open and so wouldn't release the handles until it finally finishes (~the
-      // full stall); the NEXT worker's installOpfsSAHPoolVfs then hits
-      // NoModificationAllowedError and the lock-retry path, compounding the very
-      // stall we bailed on. Terminate hard so the handles free now; the caller's
-      // later close() no-ops on the nulled worker (exploration 0253, R1).
-      // (createWorkerProxy() set this.worker, but the top `if (this.worker) throw`
-      // guard left TS narrowing it to null here — re-widen the read.)
-      const worker = this.worker as Worker | null
-      worker?.terminate()
-      this.worker = null
-      this.proxy = null
-      throw err
-    }
     log('[WebSQLiteProxy] proxy.open() completed')
-
     this._config = config
   }
 

@@ -133,6 +133,68 @@ upstream) and its `sqlite open phases` will read **≈ 0** (confirming the open 
 innocent). **Do not touch `open()`/VFS/schema/vacuum** — they are measured and
 reasoned out and cannot move the stall.
 
+## Update — Ninth Signal: The Open **Does** Time Out (correcting the correction)
+
+The section above was wrong, and honestly so: its whole argument rested on "the
+15 s `proxy.open()` timeout never fires, so `open()` must be fast." A fresh
+capture **disproves that premise directly** —
+
+```
+[WebSQLiteProxy] Calling proxy.open()...
+[App] Initialization failed: Error: Worker initialization timeout after 15s
+```
+
+The timeout **fires**, and the boot **fails** to an error screen. So the open is
+not innocent — it is **intermittently slow**:
+
+- **usually fast** — the persisted `xnet:boot:last` boots show `sqlite:open` at
+  292 ms / 821 ms / 1676 ms;
+- **sometimes ~17 s but completing** — the earlier JSON captures (`readMs:17923`,
+  landing reads pending ~18 s, then a burst) are an open that finished just slowly
+  enough to squeak past;
+- **sometimes > 15 s** — this capture, where the timeout wins the race and the
+  boot dies.
+
+That intermittency — 292 ms one boot, > 15 s the next — is the fingerprint of
+**OPFS sync-access-handle contention**, not steady file‑size I/O. The most likely
+mechanism is self‑inflicted: a boot whose open times out **leaked its worker**
+(the pre‑#351 graceful `close()` queued behind the stuck open and never released
+the handle), so the _next_ boot's `createSyncAccessHandle()` on the large
+318k‑change DB‑body file blocks on the still‑held handle → also slow → also times
+out. A cascade seeded by the first slow open.
+
+**Why every prior take (including this doc's) got it wrong:** the fast localStorage
+boots were survivorship bias (they dodged the contention), and the "15 s timeout
+never fires" fact — cited as load‑bearing proof across the whole investigation —
+was simply never true; it just hadn't been captured firing until now. The
+`[MainThreadBridge]` reasoning about main‑thread bring‑up still holds _for the
+slow‑but‑succeeding boots_, but the **primary, user‑facing failure is the open
+timing out**, full stop.
+
+**Fix shipped in the follow‑up:**
+
+1. **Resilient open (the immediate fix).** `WebSQLiteProxy.open()` no longer
+   hard‑fails on the first timeout: it **terminates the stuck worker** (freeing the
+   OPFS handle — building on #351's R1) and **retries with a fresh worker** up to 3
+   attempts, via the new pure/tested `openWithTimeoutRetry`
+   ([`open-retry.ts`](../../packages/sqlite/src/adapters/open-retry.ts)). The
+   leaked‑handle cascade now _recovers_ instead of erroring; a genuinely broken
+   OPFS still fails cleanly after bounded attempts. Adds `SQLiteConfig.openTimeoutMs`
+   (default 15 s) to tune it.
+2. **Deploy #351** — its R1 terminate‑on‑timeout stops the leak that _seeds_ the
+   cascade; the user's failing build predates it.
+3. **Root cause (durable).** The DB‑body file is only large because the
+   append‑only `changes` table holds ~318k rows (constant across every capture).
+   **Compact the change log** (snapshot + truncate history, keep a recent tail) so
+   `createSyncAccessHandle()` is cheap and the open stops flirting with the timeout
+   at all. This is the fix 0233/0249 called "F3" and deferred — it is now the
+   clearly‑indicated root‑cause work.
+
+The stall detector (#354) and the persisted timeline (#352/#353) remain useful —
+they localize the _slow‑but‑succeeding_ boots — but the **open timeout is the
+thing that actually breaks the page**, and the resilient open + log compaction are
+what fix it.
+
 ## Current State In The Repository
 
 ### The boot path, and the window nobody times
