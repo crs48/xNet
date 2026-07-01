@@ -1,0 +1,8 @@
+{
+  "id": "2026-07-01-cold-open-no-longer-freezes-on-outbound-",
+  "date": "July 1, 2026",
+  "title": "Cold-open no longer freezes on outbound resync",
+  "summary": "A lagging sync cursor made the first outbound resync process the whole change-log slice synchronously — a multi-second main-thread freeze on cold open. It now sorts by code units (not locale) and yields to the event loop between batches.",
+  "highlights": [],
+  "tags": ["performance", "sync"]
+}

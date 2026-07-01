@@ -38,6 +38,29 @@ const SYNC_RESPONSE_TIMEOUT_MS = 4000
 const STRUCTURAL_REJECTION_CODES = new Set(['INVALID_HASH', 'INVALID_SIGNATURE', 'INVALID_CHANGE'])
 const MAX_STRUCTURAL_REJECTIONS = 5
 
+// How many changes the outbound resync enqueues between event-loop yields, so a
+// large first-sync slice can't monopolise a frame (exploration 0253). 1024 keeps
+// per-batch work well under a frame while the yield count stays tiny.
+const OUTBOUND_ENQUEUE_BATCH = 1024
+
+// A resync at/above either bound gets a one-line diagnostic warn (self-gating, so
+// steady-state sync stays silent). These name the residual cold-open main-thread
+// cost — the synchronous JSON.parse-per-row deserialize inside getChangesSince.
+const HEAVY_RESYNC_CHANGES = 5000
+const HEAVY_RESYNC_MS = 250
+
+/** Monotonic clock in ms, falling back to Date.now where performance is absent. */
+function nowMs(): number {
+  return typeof performance !== 'undefined' && typeof performance.now === 'function'
+    ? performance.now()
+    : Date.now()
+}
+
+/** Yield a macrotask so the browser can paint / handle input between batches. */
+function yieldToEventLoop(): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, 0))
+}
+
 export type SerializedNodeChange = {
   id: string
   type: string
@@ -450,12 +473,50 @@ export class NodeStoreSyncProvider {
     if (this.outboundHalted) return
     if (!this.connection || this.connection.status !== 'connected') return
 
+    // On a first/reconnect sync whose persisted cursor lags far behind the local
+    // log (e.g. the hub never confirmed the tail — INVALID_HASH skew, 0224), this
+    // slice can be tens of thousands of rows, and everything below runs on the main
+    // thread right after the sync-response resolves. That was the single ~5s
+    // uninterrupted `window` long task in the cold-open (exploration 0253):
+    //   - `getChangesSince` itself deserializes (JSON.parse per row) synchronously;
+    //     `fetchMs` below measures that residual block (bounded durably by
+    //     compacting the change log so the slice is small — F3).
+    //   - use CODE-UNIT order, not `localeCompare`, for the author tie-break — the
+    //     query already returns lamport-ASC order, so this only breaks ties, and
+    //     `localeCompare` over a large tie-heavy array is orders of magnitude slower
+    //     AND violates the repo's code-unit collation invariant (the inbound apply
+    //     path already orders by code units).
+    //   - yield to the event loop every N so the enqueue never monopolises a frame.
+    const t0 = nowMs()
     const changes = await this.store.getChangesSince(this.pushedThrough)
     if (changes.length === 0) return
+    const fetchMs = nowMs() - t0
 
-    changes.sort((a, b) => a.lamport - b.lamport || a.authorDID.localeCompare(b.authorDID))
-    for (const change of changes) {
-      this.enqueueChange(change)
+    changes.sort(
+      (a, b) =>
+        a.lamport - b.lamport ||
+        (a.authorDID < b.authorDID ? -1 : a.authorDID > b.authorDID ? 1 : 0)
+    )
+    const sortMs = nowMs() - t0 - fetchMs
+
+    for (let i = 0; i < changes.length; i++) {
+      this.enqueueChange(changes[i])
+      if ((i + 1) % OUTBOUND_ENQUEUE_BATCH === 0 && i + 1 < changes.length) {
+        // Bail if the connection dropped while we were yielding.
+        if (this.outboundHalted || this.connection?.status !== 'connected') return
+        await yieldToEventLoop()
+      }
+    }
+
+    // Self-gating: only speak up when the resync was actually heavy, so a cold
+    // capture names the residual main-thread cost (and confirms the fix landed)
+    // without adding steady-state noise. See exploration 0253 / F3 (compaction).
+    if (changes.length >= HEAVY_RESYNC_CHANGES || fetchMs + sortMs >= HEAVY_RESYNC_MS) {
+      console.warn(
+        `[NodeStoreSync] heavy outbound resync: ${changes.length} changes, ` +
+          `fetch+deserialize ${Math.round(fetchMs)}ms, sort ${Math.round(sortMs)}ms ` +
+          `(cursor ${this.pushedThrough})`
+      )
     }
   }
 
