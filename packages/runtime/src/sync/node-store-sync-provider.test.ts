@@ -272,6 +272,73 @@ describe('NodeStoreSyncProvider', () => {
     })
   })
 
+  describe('outbound resync batching (0253)', () => {
+    // A change with an explicit author + unique identity, so equal-lamport
+    // changes from different authors don't collide on hash (which would dedup).
+    function changeBy(lamport: number, author: string, tag: string): NodeChange {
+      return {
+        id: `change-${tag}`,
+        type: 'node-change',
+        payload: {
+          nodeId: `node-${tag}`,
+          schemaId: 'xnet://xnet.fyi/SchemaDefinition@1.0.0' as SchemaIRI,
+          properties: {}
+        },
+        hash: `cid:blake3:${tag}` as ContentId,
+        parentHash: null,
+        authorDID: author as DID,
+        signature: new Uint8Array([1, 2, 3]),
+        wallTime: 1710000000000 + lamport,
+        lamport
+      }
+    }
+
+    it('breaks equal-lamport ties by code-unit author order, not locale', async () => {
+      // 'B' (0x42) sorts BEFORE 'a' (0x61) by code unit, but AFTER it under
+      // locale collation (case-insensitive primary weight). Supplying them in
+      // the locale order proves the sort ran and used code units.
+      const upper = changeBy(1, 'did:key:zB', 'upper')
+      const lower = changeBy(1, 'did:key:za', 'lower')
+      const { store } = makeStore({ changes: [lower, upper], cursor: 0 })
+      const { conn, setStatus, injectMessage } = makeConnection('disconnected')
+      new NodeStoreSyncProvider(store, 'room-1').attach(conn)
+
+      setStatus('connected')
+      await vi.advanceTimersByTimeAsync(0)
+      injectMessage({ type: 'node-sync-response', room: 'room-1', changes: [], highWaterMark: 0 })
+      await vi.advanceTimersByTimeAsync(0) // getChangesSince → sort + enqueue
+      await vi.advanceTimersByTimeAsync(0) // drain
+
+      const order = (conn.publish as ReturnType<typeof vi.fn>).mock.calls.map(
+        (c) => (c[1] as { change: { nodeId: string } }).change.nodeId
+      )
+      expect(order).toEqual(['node-upper', 'node-lower'])
+    })
+
+    it('enqueues every change across the yield boundary on a large resync', async () => {
+      // > OUTBOUND_ENQUEUE_BATCH (1024) so the enqueue loop yields mid-way; every
+      // change must still be published exactly once (no drop/dupe at the seam).
+      const N = 1100
+      const changes = Array.from({ length: N }, (_, i) => makeChange(i + 1))
+      const { store } = makeStore({ changes, cursor: 0 })
+      const { conn, setStatus, injectMessage } = makeConnection('disconnected')
+      new NodeStoreSyncProvider(store, 'room-1').attach(conn)
+
+      setStatus('connected')
+      await vi.advanceTimersByTimeAsync(0)
+      injectMessage({ type: 'node-sync-response', room: 'room-1', changes: [], highWaterMark: 0 })
+      // Drain past the enqueue yield and every throttle window.
+      await vi.advanceTimersByTimeAsync(60 * SEND_WINDOW_MS)
+
+      const publish = conn.publish as ReturnType<typeof vi.fn>
+      expect(publish.mock.calls.length).toBe(N)
+      const nodeIds = new Set(
+        publish.mock.calls.map((c) => (c[1] as { change: { nodeId: string } }).change.nodeId)
+      )
+      expect(nodeIds.size).toBe(N)
+    })
+  })
+
   describe('resilience (0206)', () => {
     it('restores a missing payload schemaId from the top-level field on deserialize', async () => {
       const { store } = makeStore()
