@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Cold-open no longer freezes on outbound resync</title>
+      <link>https://xnet.fyi/changelog#2026-07-01-cold-open-no-longer-freezes-on-outbound-</link>
+      <guid isPermaLink="false">2026-07-01-cold-open-no-longer-freezes-on-outbound-</guid>
+      <pubDate>Wed, 01 Jul 2026 23:19:54 GMT</pubDate>
+      <description>A lagging sync cursor made the first outbound resync process the whole change-log slice synchronously — a multi-second main-thread freeze on cold open. It now sorts by code units (not locale) and yields to the event loop between batches.</description>
+    </item>
+    <item>
       <title>The app no longer fails to open on a slow cold start</title>
       <link>https://xnet.fyi/changelog#2026-07-01-the-app-no-longer-fails-to-open-on-a-slo</link>
       <guid isPermaLink="false">2026-07-01-the-app-no-longer-fails-to-open-on-a-slo</guid>
