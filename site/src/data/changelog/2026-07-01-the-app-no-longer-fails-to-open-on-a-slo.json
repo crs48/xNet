@@ -4,5 +4,14 @@
   "title": "The app no longer fails to open on a slow cold start",
   "summary": "A slow local-database open (which could intermittently exceed the startup timeout and show an initialization error) now retries automatically with a fresh worker instead of failing the whole boot.",
   "highlights": [],
-  "tags": ["app"]
+  "tags": [
+    "app"
+  ],
+  "pr": 355,
+  "mergedAt": "2026-07-01T15:01:10Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }

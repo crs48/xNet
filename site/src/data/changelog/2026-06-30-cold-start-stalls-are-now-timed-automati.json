@@ -4,5 +4,14 @@
   "title": "Cold-start stalls are now timed automatically",
   "summary": "A main-thread stall detector records how long the app freezes during a slow cold start and at which phase, so the cause can be pinpointed from one localStorage value.",
   "highlights": [],
-  "tags": ["performance"]
+  "tags": [
+    "performance"
+  ],
+  "pr": 354,
+  "mergedAt": "2026-07-01T14:43:27Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
