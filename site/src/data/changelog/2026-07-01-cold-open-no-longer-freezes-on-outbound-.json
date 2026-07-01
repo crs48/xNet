@@ -4,5 +4,15 @@
   "title": "Cold-open no longer freezes on outbound resync",
   "summary": "A lagging sync cursor made the first outbound resync process the whole change-log slice synchronously — a multi-second main-thread freeze on cold open. It now sorts by code units (not locale) and yields to the event loop between batches.",
   "highlights": [],
-  "tags": ["performance", "sync"]
+  "tags": [
+    "performance",
+    "sync"
+  ],
+  "pr": 356,
+  "mergedAt": "2026-07-01T23:19:54Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
