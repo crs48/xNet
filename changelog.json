@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-06-30-cold-start-stalls-are-now-timed-automati",
+      "url": "https://xnet.fyi/changelog#2026-06-30-cold-start-stalls-are-now-timed-automati",
+      "title": "Cold-start stalls are now timed automatically",
+      "content_text": "A main-thread stall detector records how long the app freezes during a slow cold start and at which phase, so the cause can be pinpointed from one localStorage value.\n",
+      "date_published": "2026-07-01T14:43:27Z",
+      "tags": [
+        "performance"
+      ],
+      "_xnet": {
+        "date": "June 30, 2026",
+        "summary": "A main-thread stall detector records how long the app freezes during a slow cold start and at which phase, so the cause can be pinpointed from one localStorage value.",
+        "highlights": [],
+        "mergedAt": "2026-07-01T14:43:27Z",
+        "pr": 354,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-06-30-cold-start-diagnostics-now-capture-the-s",
       "url": "https://xnet.fyi/changelog#2026-06-30-cold-start-diagnostics-now-capture-the-s",
       "title": "Cold-start diagnostics now capture the slow boot, not just the fast one",
