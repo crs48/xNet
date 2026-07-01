@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>The app no longer fails to open on a slow cold start</title>
+      <link>https://xnet.fyi/changelog#2026-07-01-the-app-no-longer-fails-to-open-on-a-slo</link>
+      <guid isPermaLink="false">2026-07-01-the-app-no-longer-fails-to-open-on-a-slo</guid>
+      <pubDate>Wed, 01 Jul 2026 15:01:10 GMT</pubDate>
+      <description>A slow local-database open (which could intermittently exceed the startup timeout and show an initialization error) now retries automatically with a fresh worker instead of failing the whole boot.</description>
+    </item>
+    <item>
       <title>Cold-start stalls are now timed automatically</title>
       <link>https://xnet.fyi/changelog#2026-06-30-cold-start-stalls-are-now-timed-automati</link>
       <guid isPermaLink="false">2026-06-30-cold-start-stalls-are-now-timed-automati</guid>
