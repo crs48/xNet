@@ -34,30 +34,30 @@ any two replicas that hold the same set of changes converge to the same state. *
 makes "sync the same data to N places" safe by construction.** You cannot corrupt state
 by backing up to two hubs; worst case you do redundant work.
 
-So the interesting work is **not** consistency. It is six things the kernel does *not*
+So the interesting work is **not** consistency. It is six things the kernel does _not_
 give us for free:
 
-1. **Routing / the manifest** — deciding *which* changes go to *which* destination.
+1. **Routing / the manifest** — deciding _which_ changes go to _which_ destination.
 2. **Client orchestration** — holding more than one connection and fanning writes out.
-3. **Anti-entropy / completeness** — knowing a replica actually has *everything* for a
+3. **Anti-entropy / completeness** — knowing a replica actually has _everything_ for a
    scope (not just "we exchanged some updates").
 4. **Device identity** — a stable per-device identity so hubs and peers can trust
    "this really is my phone."
 5. **Trust boundaries** — a community hub enforcing membership, and holding data it may
-   not be allowed to *read*.
+   not be allowed to _read_.
 6. **UX coherence** — presenting "your data lives in several places" without confusion.
 
 **Three different things get called "multi-hub." They must not be conflated:**
 
-| Axis | What it means | Repo status |
-| --- | --- | --- |
-| **(A) Operator scale-out** | Split *one logical hub* across many machines for scale | Substantial infra exists: `shard-router`, `shard-ingest`, `shard-rebalancer`, `index-shards`, plus **read-only** query federation (`services/federation.ts`) |
-| **(B) User multi-home replication** | The *same* data lives on my personal hub **and** a community hub **and** a backup — and I choose what goes where | **Policy model exists but is wired to nothing** (`replication-policy.ts`) |
-| **(C) Device-to-device P2P** | My devices sync directly, hub-optional | libp2p stack exists (`packages/network`) but is **detached from the app's actual sync path** |
+| Axis                                | What it means                                                                                                    | Repo status                                                                                                                                                  |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **(A) Operator scale-out**          | Split _one logical hub_ across many machines for scale                                                           | Substantial infra exists: `shard-router`, `shard-ingest`, `shard-rebalancer`, `index-shards`, plus **read-only** query federation (`services/federation.ts`) |
+| **(B) User multi-home replication** | The _same_ data lives on my personal hub **and** a community hub **and** a backup — and I choose what goes where | **Policy model exists but is wired to nothing** (`replication-policy.ts`)                                                                                    |
+| **(C) Device-to-device P2P**        | My devices sync directly, hub-optional                                                                           | libp2p stack exists (`packages/network`) but is **detached from the app's actual sync path**                                                                 |
 
 The user's question is mostly **axis (B)**, with (C) as the "multi-device" flavour.
 Our recommendation: **adopt "one logical dataset, many physical replicas."** Hubs and
-peers are *mirrors*, not shards of a single source of truth. Make the **Space the unit
+peers are _mirrors_, not shards of a single source of truth. Make the **Space the unit
 of replication** (it is already our security boundary), **wire up the dormant
 `planReplicationDestinations` planner**, store the **manifest as a synced node** so it
 travels with the data, and add the three missing runtime pieces (multi-connection
@@ -81,7 +81,7 @@ orchestrator, anti-entropy, device DID).
   detected and traceable, not silently lost.
 - Dedup by hash on ingest (`provider.ts:280`, `requestChangesFromAll`).
 
-Yjs is the CRDT *inside* a node; `YjsChange` (`yjs-change.ts:19`) wraps a Yjs binary
+Yjs is the CRDT _inside_ a node; `YjsChange` (`yjs-change.ts:19`) wraps a Yjs binary
 update inside the same signed `Change<T>` envelope. **Yjs is a payload type, not the
 transport.**
 
@@ -96,8 +96,8 @@ The client actually syncs through `WebSocketSyncProvider`
 
 ```ts
 const provider = new WebSocketSyncProvider(doc, {
-  url: signalingServers[0],          // <-- only ever the FIRST hub
-  room: `xnet-doc-${id}`,            // <-- one room per node
+  url: signalingServers[0], // <-- only ever the FIRST hub
+  room: `xnet-doc-${id}`, // <-- one room per node
   authorDID: syncAuthorDID ?? did ?? undefined,
   signingKey: syncSigningKey ?? undefined,
   replication: syncConfig
@@ -124,17 +124,19 @@ and entirely **unconsumed** — routing engine. It already models exactly the
 
 ```ts
 export type SyncFederationHub = {
-  id: string; url: string; priority?: number
-  kinds?: readonly ('system' | 'user')[]     // a hub can accept only some namespaces
+  id: string
+  url: string
+  priority?: number
+  kinds?: readonly ('system' | 'user')[] // a hub can accept only some namespaces
   disabled?: boolean
 }
 
 export type SyncFederationNamespacePolicy = {
-  namespace: string                 // exact | prefix | '*'
+  namespace: string // exact | prefix | '*'
   includeHubIds?: readonly string[] // route this namespace to these hubs
   excludeHubIds?: readonly string[] // …minus these
-  minHubs?: number                  // "I want at least N replicas"
-  maxHubs?: number                  // "…but no more than N"
+  minHubs?: number // "I want at least N replicas"
+  maxHubs?: number // "…but no more than N"
 }
 
 export type SyncFederationConfig = {
@@ -163,18 +165,18 @@ Spaces come in** (below).
 ### The hub layer: operator-scale federation exists; write-replication does not
 
 `packages/hub` is a Node WebSocket + HTTP (Hono) server with **one SQLite DB per hub**;
-a "room" is `xnet-doc-<docId>` and 1:1 with a node. What it *already* has that looks
+a "room" is `xnet-doc-<docId>` and 1:1 with a node. What it _already_ has that looks
 like federation is really **axis (A), operator scale-out**:
 
 - **Read-only query federation** — `services/federation.ts`, `federation-health.ts`,
-  `routes/federation.ts`. A hub can delegate a *search* to peer hubs
+  `routes/federation.ts`. A hub can delegate a _search_ to peer hubs
   (`FederationQueryRequest` → `FederatedResult`) under a signed UCAN, with a per-peer
   `trustLevel: 'full' | 'metadata'`. **This moves query results, not writes.** No hub
   pushes change-log data into another hub.
 - **Sharding** — `shard-router.ts`, `shard-ingest.ts`, `shard-rebalancer.ts`,
   `index-shards.ts`. A consistent-hash registry assigns `{ primaryHub, replicaHub }`
   per shard, but the actual data movement is **control-plane orchestrated**, and this is
-  about scaling *one logical namespace*, not a user choosing to mirror to a community
+  about scaling _one logical namespace_, not a user choosing to mirror to a community
   hub.
 - **Backup is Litestream → R2**, not hub-to-hub (see managed-fleet
   [`0175`](0175_[_]_MANAGED_HUB_FLEET_DEPLOYMENT_AND_AI_GATEWAY.md) and the cloud-HA
@@ -191,7 +193,7 @@ From `packages/identity`:
   (`did.ts:14`). **Stable and portable across hubs and devices** — the one identifier
   that already federates cleanly. Key bundle is hybrid (Ed25519 + X25519 + ML-DSA-65 +
   ML-KEM-768), so post-quantum recipients are already representable.
-- **Node / Space IDs** = random nanoids (hub-local, *not* content-addressed, *not*
+- **Node / Space IDs** = random nanoids (hub-local, _not_ content-addressed, _not_
   DID-scoped). Two hubs importing the "same" Space get different IDs unless federation
   metadata pins identity.
 - **Device / session identity** = an **ephemeral** 8-char peerId
@@ -204,7 +206,7 @@ organization, team, community, family}`. Every content node carries a single `sp
 relation ("its security home"); membership is a `SpaceMembership` edge with a
 **deterministic id** `spacemember:<spaceId>:<did>` (`space-membership.ts:60`); roles
 cascade to children (`space-authorization.ts`). A Space is exactly the object a user
-would point at and say "replicate *this* to the community hub."
+would point at and say "replicate _this_ to the community hub."
 
 ### The P2P stack exists but is off to the side
 
@@ -247,7 +249,7 @@ flowchart TB
 
 ## External Research
 
-- **Matrix federation.** A room is a **DAG of signed events**; *no server owns it*.
+- **Matrix federation.** A room is a **DAG of signed events**; _no server owns it_.
   Servers replicate with eventual consistency and resolve forks deterministically;
   joining replicates current state, then both sides exchange new events. This is almost
   exactly our change-DAG, and is the best mental model for a **community hub**: many
@@ -256,11 +258,11 @@ flowchart TB
   [Matrix Event Graph RDT analysis](https://arxiv.org/pdf/2011.06488))
 - **Willow protocol.** Data is addressed by a 4-D coordinate:
   `(namespace, subspace, path, timestamp)`. Peers replicate by selecting **areas / 3-D
-  ranges** — filter on *any* dimension and you get partial replication for free. This is
+  ranges** — filter on _any_ dimension and you get partial replication for free. This is
   a more expressive version of our `namespace` string, and argues for evolving our
   routing key from a flat string toward `(space, author, path)`.
   ([willowprotocol.org](https://willowprotocol.org/specs/data-model/index.html))
-- **Beelay / Keyhive (Ink & Switch).** Beelay syncs *collections* of Automerge docs by
+- **Beelay / Keyhive (Ink & Switch).** Beelay syncs _collections_ of Automerge docs by
   **set reconciliation** (Rateless Invertible Bloom Lookup Tables) so a server can hold
   and relay **encrypted** data it cannot read; Keyhive is the local-first access-control
   layer. This is the reference design for our two missing pieces: **anti-entropy** and
@@ -271,8 +273,8 @@ flowchart TB
   unstable/ephemeral links — a modular P2P toolkit proving the personal-hub-optional
   path is viable. ([p2panda.org](https://p2panda.org/))
 - **ElectricSQL Shapes & PowerSync Sync Rules.** The industrial pattern for "what syncs
-  where": the server defines **buckets** via a *parameter query* (which buckets a client
-  gets, from its JWT) + a *data query* (what's in a bucket). This is precisely the
+  where": the server defines **buckets** via a _parameter query_ (which buckets a client
+  gets, from its JWT) + a _data query_ (what's in a bucket). This is precisely the
   "manifest" concept — and a caution: both put the rules **on the server**, which we
   should resist doing exclusively, because it re-centralizes control.
   ([PowerSync sync rules](https://www.powersync.com/blog/sync-rules-from-first-principles-partial-replication-to-sqlite),
@@ -281,7 +283,7 @@ flowchart TB
 The convergent lesson across all five: **selective replication is a first-class,
 declarative object** — a coordinate range (Willow), a bucket (PowerSync), a room DAG
 (Matrix). We already have the routing object (`SyncFederationConfig`); we need to make
-it (a) *live data*, and (b) *actually consulted*.
+it (a) _live data_, and (b) _actually consulted_.
 
 ## Key Findings
 
@@ -291,11 +293,11 @@ it (a) *live data*, and (b) *actually consulted*.
 2. **The manifest is ~80% built and 0% wired.** `replication-policy.ts` already answers
    "back up all vs selectively," "min/max replicas," "which hub accepts what." Nothing
    calls it.
-3. **There is an addressing gap.** Policy speaks *namespaces*; the runtime speaks
-   *per-node rooms*. **Space is the missing bridge** — it is our only object that is a
+3. **There is an addressing gap.** Policy speaks _namespaces_; the runtime speaks
+   _per-node rooms_. **Space is the missing bridge** — it is our only object that is a
    security boundary, has deterministic membership, and contains content.
-4. **Read-federation ≠ write-replication.** The hub can already delegate *queries* to
-   peers; it cannot *replicate change data* to an independent hub. Community hubs need
+4. **Read-federation ≠ write-replication.** The hub can already delegate _queries_ to
+   peers; it cannot _replicate change data_ to an independent hub. Community hubs need
    the latter.
 5. **Device identity is missing.** User DIDs federate; devices are ephemeral. Multi-
    device trust and revocation need a stable device DID.
@@ -304,7 +306,7 @@ it (a) *live data*, and (b) *actually consulted*.
    ciphertext it can't read — but that collides with server-side search/query
    federation, forcing a **trusted vs zero-knowledge hub** distinction.
 7. **Two idle assets** (the routing planner and the libp2p stack) mean axis (B) and
-   axis (C) are mostly *integration* work, not greenfield.
+   axis (C) are mostly _integration_ work, not greenfield.
 
 ## Options And Tradeoffs
 
@@ -317,29 +319,29 @@ flowchart LR
   C["Option 3<br/>Server-side sync rules<br/>(Electric / PowerSync style)"] --> C1["+ powerful, dynamic<br/>- recentralizes control<br/>- against local-first ethos"]
 ```
 
-- **Option 1 — static `SyncFederationConfig`.** Already exists; ideal as the *default*
-  and *bootstrap*. Downsides: it is device-local config, not user data; it can't express
+- **Option 1 — static `SyncFederationConfig`.** Already exists; ideal as the _default_
+  and _bootstrap_. Downsides: it is device-local config, not user data; it can't express
   "this specific Space goes to the community hub."
 - **Option 2 — manifest as data (recommended core).** A `ReplicationPolicy` node
   attached to a Space, itself synced through the normal change log. It travels with the
-  data, is versioned and signed like everything else, and lets the *owner* declare
+  data, is versioned and signed like everything else, and lets the _owner_ declare
   intent. The one wrinkle is bootstrap (you must sync the manifest before you know where
   to sync) — solved by keeping a small **well-known system namespace** replicated to
   every configured hub by the static default.
 - **Option 3 — server-side rules.** Powerful for dynamic partial replication, but it
   moves the authority from the user to the hub. Keep it out of the core; a hub may
-  *offer* a bucket view for scale, but it must never be the source of the user's intent.
+  _offer_ a bucket view for scale, but it must never be the source of the user's intent.
 
 **Recommendation: hybrid — Option 2 for user intent, Option 1 as default/bootstrap,
 Space as the unit.**
 
 ### What is the unit of replication?
 
-| Unit | Pros | Cons |
-| --- | --- | --- |
-| **Per-node** | maximal granularity | manifest explosion; N-connection blowup; unusable UX |
-| **Per-Space** (recommended) | already a security boundary; deterministic membership; roles cascade; content has single `space` relation | needs a Space→namespace mapping (small, mechanical) |
-| **Per-namespace** (DID prefix) | matches the planner's current key | nanoid node IDs aren't namespaced, so you still need Space mapping |
+| Unit                           | Pros                                                                                                      | Cons                                                               |
+| ------------------------------ | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| **Per-node**                   | maximal granularity                                                                                       | manifest explosion; N-connection blowup; unusable UX               |
+| **Per-Space** (recommended)    | already a security boundary; deterministic membership; roles cascade; content has single `space` relation | needs a Space→namespace mapping (small, mechanical)                |
+| **Per-namespace** (DID prefix) | matches the planner's current key                                                                         | nanoid node IDs aren't namespaced, so you still need Space mapping |
 
 Spaces win: a Space is the object a human already reasons about ("my family space,"
 "the community space"), and it is the object the authz system already gates.
@@ -368,14 +370,14 @@ flowchart TB
   per hub** with today's per-doc rooms (see Risks — this needs a bulk channel).
 - **Hub gossip (do later, for public/community).** Write to one hub; hubs replicate the
   change log among themselves (Matrix-style). Fewer client connections, but needs a
-  hub-to-hub *write* protocol and inter-hub trust. Best reserved for **public** Spaces
+  hub-to-hub _write_ protocol and inter-hub trust. Best reserved for **public** Spaces
   where the community hub is authoritative-ish.
 
 ### Completeness / anti-entropy
 
-- **Have:** Yjs state-vector diffing *per document* (sync-step1/step2). Answers "are
-  these two copies of *this doc* equal?"
-- **Need:** cross-scope **set reconciliation** ("does hub B have *every* change for this
+- **Have:** Yjs state-vector diffing _per document_ (sync-step1/step2). Answers "are
+  these two copies of _this doc_ equal?"
+- **Need:** cross-scope **set reconciliation** ("does hub B have _every_ change for this
   Space?"). Without it, "is my backup complete?" is unanswerable. Beelay's RIBLT is the
   reference; a simpler first cut is a per-scope **change-set digest** (a rolling hash /
   Merkle-ish summary over change hashes) exchanged on connect.
@@ -393,8 +395,8 @@ flowchart TB
 
 Adopt one sentence as the north star: **"One logical dataset, many physical replicas."**
 Hubs and peers are mirrors of the user's change log, not owners of shards of it. The
-user thinks in terms of *"where does this Space live?"*, never *"which hub is
-authoritative?"*.
+user thinks in terms of _"where does this Space live?"_, never _"which hub is
+authoritative?"_.
 
 Concretely:
 
@@ -408,18 +410,18 @@ Concretely:
 4. **Add the missing runtime pieces:** a stable **device DID**, a per-scope
    **anti-entropy digest**, and a **trusted/zero-knowledge** flag per destination.
 5. **Later:** hub-to-hub gossip for public Spaces; light up the libp2p path (axis C) as
-   an *additional transport* gated by the *same* policy — so P2P is "just another
+   an _additional transport_ gated by the _same_ policy — so P2P is "just another
    destination," not a separate system.
 6. **UX coherence:** a per-Space **"Where this lives"** control with a safe default
    (everything → your personal hub + local device; public Spaces additionally → the
    community hub). Show replica health ("3/3 replicas up to date"), never make the user
-   pick a hub to *read* from (read from all, dedup), and surface the
+   pick a hub to _read_ from (read from all, dedup), and surface the
    `simulateSyncPolicyRevision` diff before any change.
 
 ### Answering the user's questions directly
 
-- **"Back up all data to both hubs?"** By *default* yes to your own personal hub(s) —
-  full mirror, safe by construction. For community/backup hubs, *selective* is the
+- **"Back up all data to both hubs?"** By _default_ yes to your own personal hub(s) —
+  full mirror, safe by construction. For community/backup hubs, _selective_ is the
   default (you don't dump your private life onto a shared machine).
 - **"Selectively back up to each hub?"** Yes — that is exactly
   `SyncFederationNamespacePolicy` (`includeHubIds`/`excludeHubIds`/`minHubs`/`maxHubs`),
@@ -456,11 +458,7 @@ export function systemNamespace(ownerDID: string): string {
 
 ```ts
 // packages/runtime/src/sync/MultiHubSyncManager.ts
-import {
-  planReplicationDestinations,
-  type SyncReplicationConfig,
-  type Change
-} from '@xnetjs/sync'
+import { planReplicationDestinations, type SyncReplicationConfig, type Change } from '@xnetjs/sync'
 import { WebSocketSyncProvider } from './WebSocketSyncProvider'
 import * as Y from 'yjs'
 
@@ -507,7 +505,7 @@ export class MultiHubSyncManager {
 // A manifest that is itself synced data (Option 2). One per Space.
 // schemaId: 'xnet://xnet.fyi/ReplicationPolicy@1.0.0'
 interface ReplicationPolicyNode {
-  space: string            // relation -> Space (the scope)
+  space: string // relation -> Space (the scope)
   destinations: Array<{
     hubId: string
     url: string
@@ -526,23 +524,23 @@ node schema.
 
 - **Compaction vs anti-entropy (real collision).** Change-log compaction
   ([`0254`](0254_[_]_COMPACT_THE_CHANGE_LOG_SNAPSHOT_THE_STATE_KEEP_THE_TAIL.md)) and
-  the Litestream VACUUM path in the cloud-HA work both *rewrite/prune* the log. Two
+  the Litestream VACUUM path in the cloud-HA work both _rewrite/prune_ the log. Two
   replicas that compacted differently will have **different raw change sets** for the
-  *same live state*. Anti-entropy must reconcile on **live-value lineage**, not raw log
+  _same live state_. Anti-entropy must reconcile on **live-value lineage**, not raw log
   equality, or a fully-synced backup will look "incomplete." This must be designed in
   from day one, not bolted on.
 - **Split-brain writes.** The same DID writing to two hubs while partitioned converges
-  (good) but LWW may *drop* a concurrent field write (expected LWW semantics). Yjs
+  (good) but LWW may _drop_ a concurrent field write (expected LWW semantics). Yjs
   fields merge; scalar LWW fields pick a winner. This is acceptable but must be
   **explained**, and "last write wins" losers should be recoverable from the fork
   history (`detectFork`).
-- **Omission / malicious hubs.** The hash chain detects *tampering* of content, not
-  *withholding*. A hostile community hub can silently drop changes. Mitigation:
+- **Omission / malicious hubs.** The hash chain detects _tampering_ of content, not
+  _withholding_. A hostile community hub can silently drop changes. Mitigation:
   multiple replicas + anti-entropy digests + the ability to cross-check a scope's digest
   against a hub you trust.
 - **Encrypted mirror ↔ search tension.** A zero-knowledge community hub cannot index or
   serve query federation over data it can't read. We must pick, per destination, whether
-  it is a *trusted* (plaintext, searchable) or *zero-knowledge* (ciphertext, relay-only)
+  it is a _trusted_ (plaintext, searchable) or _zero-knowledge_ (ciphertext, relay-only)
   replica, and reflect that in the manifest and the UI.
 - **Connection explosion.** One WebSocket **per node × per hub** is untenable at scale
   (a Space with 500 nodes × 3 hubs = 1,500 sockets). This forces a **hub-level bulk /
@@ -557,15 +555,15 @@ node schema.
   store which Space" becomes a real product question the manifest must encode.
 - **Manifest bootstrap.** Chicken-and-egg: you need the manifest to know where to sync,
   but the manifest is synced data. Resolved by the static-default system namespace, but
-  the handshake needs to fetch the manifest *first* on cold connect.
+  the handshake needs to fetch the manifest _first_ on cold connect.
 
 ## Implementation Checklist
 
-- [ ] Add `ReplicationScope` = Space; implement `spaceNamespace()` / `systemNamespace()`
+- [x] Add `ReplicationScope` = Space; implement `spaceNamespace()` / `systemNamespace()`
       mapping (`packages/runtime/src/sync/replication-scope.ts`).
 - [ ] Define the `ReplicationPolicy` node schema (`xnet://xnet.fyi/ReplicationPolicy@1.0.0`),
       attached to a Space; add to the schema registry + dev-tools seed coverage.
-- [ ] Build `MultiHubSyncManager` in `@xnetjs/runtime` that calls
+- [x] Build `MultiHubSyncManager` in `@xnetjs/runtime` that calls
       `planReplicationDestinations` and manages one provider per (hub × room).
 - [ ] Have `useNode` / `sync-manager` route through `MultiHubSyncManager` instead of a
       single `WebSocketSyncProvider` on `signalingServers[0]`.
@@ -583,7 +581,7 @@ node schema.
       replica-health indicator, `simulateSyncPolicyRevision` preview before apply.
 - [ ] (Later) Hub-to-hub **write gossip** for public Spaces, building on
       `services/federation.ts` + `discovery` + the shard registry.
-- [ ] (Later) Light up `packages/network` (libp2p) as an *additional* destination type
+- [ ] (Later) Light up `packages/network` (libp2p) as an _additional_ destination type
       behind the same policy, so P2P multi-device is "just another replica."
 
 ## Validation Checklist
@@ -591,7 +589,7 @@ node schema.
 - [ ] **Convergence:** three replicas (2 hubs + 1 device), random partitions and
       concurrent edits → all reach byte-identical state (extend
       `multi-level-integration.test.ts`).
-- [ ] **Selective routing:** a private Space routes only to the personal hub; a public
+- [x] **Selective routing:** a private Space routes only to the personal hub; a public
       Space routes to personal + community; assert the community hub never receives the
       private Space's changes.
 - [ ] **min/maxHubs honored:** `minReplicas: 2` with one hub down surfaces the
@@ -599,7 +597,7 @@ node schema.
 - [ ] **Idempotent multi-home:** the same change delivered via two hubs is applied once
       (dedup by `change.hash`); no duplicate nodes.
 - [ ] **Anti-entropy completeness:** after a hub is offline during writes, reconnect →
-      digest exchange pulls exactly the missing changes; a *compacted* replica still
+      digest exchange pulls exactly the missing changes; a _compacted_ replica still
       validates as complete (no false "missing").
 - [ ] **Zero-knowledge mirror:** a `zero-knowledge` community hub stores ciphertext,
       cannot answer a query-federation request over that Space, and a trusted replica
