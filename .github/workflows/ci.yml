@@ -272,3 +272,23 @@ jobs:
             tests/e2e/tmp/**
           if-no-files-found: ignore
           retention-days: 14
+
+  # Rust core conformance (exploration 0257): the portable kernel in
+  # rust/xnet-core must reproduce the shared golden vectors in conformance/vectors
+  # byte-for-byte — the same L0–L3 set the TypeScript core is gated on. Without
+  # this job a non-TS implementation can drift from the protocol undetected.
+  # cargo is preinstalled on ubuntu-latest runners, so no toolchain action needed.
+  conformance-rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cache cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            rust/xnet-core/target
+          key: cargo-${{ runner.os }}-${{ hashFiles('rust/xnet-core/Cargo.lock') }}
+      - name: Rust kernel conformance vectors
+        run: cargo test --manifest-path rust/xnet-core/Cargo.toml --locked

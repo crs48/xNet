@@ -74,8 +74,10 @@ priority order, a watermark + snooze model, and a hard cap.
 ## 4. Consent — nothing leaves without permission
 
 Telemetry is **off by default**. Nothing is sent until you choose a tier, and what
-is sent is PII‑scrubbed and k‑anonymity bucketed so a single user can't be
-fingerprinted.
+is sent is PII‑scrubbed and **bucketed into ranges** (counts, latencies and sizes
+become bands like `10-50ms`) so a value can't be tied back to a single user. This
+is range bucketing, not a formal differential‑privacy or minimum‑group‑size
+guarantee — the honest word is "bucketed," not "k‑anonymized" (exploration 0257).
 
 - **Architectural / tested:** the consent spine
   ([`packages/telemetry/src/consent/manager.ts`](../packages/telemetry/src/consent/manager.ts)),
@@ -115,6 +117,25 @@ control.
 - **Aspirational:** "own your audience" publishing — publish from your graph to an
   owned page with a portable, DID‑based subscriber list — tracked in
   exploration 0234 (Wave 3).
+
+---
+
+## Cryptographic posture (post‑quantum)
+
+The change protocol is versioned at `CURRENT_PROTOCOL_VERSION = 3`, which defines
+**hybrid** signatures (Ed25519 + ML‑DSA). That machinery is built and tested
+([`packages/crypto/src/hybrid-signing.ts`](../packages/crypto/src/hybrid-signing.ts)),
+so post‑quantum protection is available, not theoretical.
+
+The **shipped default is `DEFAULT_SECURITY_LEVEL = 0`** (classical Ed25519). This is
+a deliberate, documented choice, not an oversight: ML‑DSA signatures are large, and
+raising the default across every high‑volume change has a size/performance cost that
+warrants a benchmark before it becomes the norm. The likely first step is hybrid on
+long‑lived **identity** keys while high‑volume changes stay Ed25519. Flipping the
+default is a visible, reviewed change — the `pq-posture-declared` entry in the
+claims‑ledger (`packages/telemetry/test/charter-claims-ledger.test.ts`) fails the
+build if the default moves outside the intended range without an update here
+(exploration 0257).
 
 ---
 

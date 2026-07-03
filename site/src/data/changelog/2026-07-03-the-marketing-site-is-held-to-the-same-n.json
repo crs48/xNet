@@ -1,0 +1,10 @@
+{
+  "id": "2026-07-03-the-marketing-site-is-held-to-the-same-n",
+  "date": "July 3, 2026",
+  "title": "The marketing site is held to the same 'no dark patterns' bar as the app",
+  "summary": "The humane-pattern build check now scans the site too, and the telemetry commitment is worded honestly — 'scrubbed and bucketed', not 'k-anonymized' — to match what the code actually does.",
+  "highlights": [],
+  "tags": [
+    "platform"
+  ]
+}
