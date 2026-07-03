@@ -2,7 +2,7 @@
   "name": "xnet-mobile",
   "version": "0.0.1",
   "description": "xNet Mobile - Local-first data platform for iOS/Android",
-  "main": "expo-router/entry",
+  "main": "index.js",
   "scripts": {
     "start": "expo start",
     "ios": "expo run:ios",
