@@ -264,12 +264,12 @@ if (
 - [x] Reduce `pruneSupersededChanges` per‑pass `maxRows` to a few thousand; add
       per‑chunk `requestIdleCallback`/deadline yielding; bail on interaction/visibility.
 - [x] Stop clearing `xnet:db-vacuumed:v1` on prune; reclaim via `PRAGMA
-  incremental_vacuum` or a `bootSettled()`‑gated one‑shot VACUUM.
-- [ ] Rollback guard: skip re‑offer when `outboundHalted` or `highWaterMark === 0`; cap
+incremental_vacuum` or a `bootSettled()`‑gated one‑shot VACUUM.
+- [x] Rollback guard: skip re‑offer when `outboundHalted` or `highWaterMark === 0`; cap
       any re‑offer (no unbounded `getChangesSince(0)`).
 - [x] Consider gating `scheduleOneTimeVacuum` and `scheduleStalePresenceCleanup` behind
       `bootSettled()` too (same `requestIdleCallback` flaw).
-- [ ] `@xnetjs/data` / `@xnetjs/runtime` changesets for the adapter/provider changes.
+- [x] `@xnetjs/data` / `@xnetjs/runtime` changesets for the adapter/provider changes.
 
 ## Validation Checklist
 
