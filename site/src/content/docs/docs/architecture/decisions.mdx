@@ -6,7 +6,51 @@ sidebar:
   order: 3
 ---
 
+This is the canonical log of xNet's architectural decisions. It is the one place
+to answer "why is it built this way?" — superseding the older internal
+`docs/TRADEOFFS.md`.
+
+## How we keep this current
+
+These records follow the standard [ADR](https://adr.github.io/) discipline:
+
+- Every entry has a **Status**: `Proposed`, `Accepted`, `Deprecated`, or
+  `Superseded by ADR-NN`.
+- **Accepted ADRs are immutable.** We don't rewrite a decision when reality
+  changes — we add a _new_ ADR that supersedes the old one and set the old
+  entry's status to `Superseded by ADR-NN`. The truth of the architecture is the
+  whole chain, not the latest entry. (Typo and dead-link fixes are the only
+  in-place edits.)
+- **If an implemented change alters an architectural invariant, it adds or
+  supersedes an ADR in the same PR.** Most decisions are worked out first in
+  `docs/explorations/`; this page is the distilled outcome.
+
+<details>
+<summary>ADR template</summary>
+
+```markdown
+## ADR-NN: <Short decision title>
+
+**Status:** Proposed | Accepted | Deprecated | Superseded by ADR-MM
+**Context:** <the exploration(s) or forces that drove this, e.g. 0212>
+
+**Decision:** <one sentence>
+
+**Rationale:**
+
+- <driver 1>
+- <driver 2>
+
+**Tradeoff:** <what we gave up, and the mitigation>
+```
+
+</details>
+
+---
+
 ## ADR-1: Yjs over Automerge for rich text
+
+**Status:** Accepted (2026-02) · scope clarified by [ADR-11](#adr-11-xnet-is-a-protocol--the-interop-kernel-is-the-change-log-not-yjs)
 
 **Decision:** Use Yjs for rich text CRDT, not Automerge.
 
@@ -19,7 +63,15 @@ sidebar:
 
 **Tradeoff:** Yjs is a mutable data structure (not pure-functional like Automerge). We mitigate this with the MetaBridge pattern — Yjs never writes to the NodeStore directly.
 
+**Scope note:** Yjs is the **document codec** for the rich-text/canvas _body_ of
+certain nodes — it is _not_ the sync backbone. Structured node data syncs through
+the signed `Change<T>` log ([ADR-3](#adr-3-field-level-lww-for-structured-data)),
+and Yjs updates ride the wire as opaque bytes inside an XNet envelope. See
+[ADR-11](#adr-11-xnet-is-a-protocol--the-interop-kernel-is-the-change-log-not-yjs).
+
 ## ADR-2: DID:key for identity
+
+**Status:** Accepted (2026-02)
 
 **Decision:** Use `did:key` (Ed25519) as the identity format.
 
@@ -30,9 +82,11 @@ sidebar:
 - Small identifiers (~56 characters)
 - Ed25519 is widely supported and audited
 
-**Tradeoff:** DIDs are not human-readable. Display names are stored as profile metadata, not in the identifier itself. Key rotation requires creating a new DID (though UCAN delegation can bridge old and new identities).
+**Tradeoff:** DIDs are not human-readable. Display names are stored as profile metadata, not in the identifier itself. Key rotation requires creating a new DID (though UCAN delegation can bridge old and new identities). Account recovery is handled by social recovery — see [ADR-24](#adr-24-social-recovery-via-shamir-guardians).
 
 ## ADR-3: Field-level LWW for structured data
+
+**Status:** Accepted (2026-02) · this is normative protocol L1 — see [ADR-11](#adr-11-xnet-is-a-protocol--the-interop-kernel-is-the-change-log-not-yjs)
 
 **Decision:** Use Lamport clocks with field-level last-writer-wins for structured data, not a CRDT map.
 
@@ -47,6 +101,8 @@ sidebar:
 
 ## ADR-4: BLAKE3 over SHA-256
 
+**Status:** Accepted (2026-02) · post-quantum posture in [ADR-25](#adr-25-post-quantum-migration-posture)
+
 **Decision:** Use BLAKE3 as the primary hash function.
 
 **Rationale:**
@@ -60,6 +116,8 @@ sidebar:
 
 ## ADR-5: Named exports only
 
+**Status:** Accepted (2026-02)
+
 **Decision:** No default exports anywhere in the codebase.
 
 **Rationale:**
@@ -70,6 +128,8 @@ sidebar:
 - Easier to search for usages (grep for the exact name)
 
 ## ADR-6: Factory functions alongside classes
+
+**Status:** Accepted (2026-02)
 
 **Decision:** Export `createFoo()` factory functions alongside `class Foo`.
 
@@ -82,6 +142,8 @@ sidebar:
 
 ## ADR-7: Validation returns, not exceptions
 
+**Status:** Accepted (2026-02)
+
 **Decision:** Validation functions return `{ valid: boolean, errors: string[] }` instead of throwing.
 
 **Rationale:**
@@ -92,6 +154,8 @@ sidebar:
 - Exceptions are reserved for programmer errors (missing arguments, broken invariants)
 
 ## ADR-8: One-way MetaBridge
+
+**Status:** Accepted (2026-02) · MetaBridge now ships in `@xnetjs/runtime` — see [ADR-14](#adr-14-framework-agnostic-runtime-react-is-a-thin-binding)
 
 **Decision:** The MetaBridge syncs NodeStore → Y.Doc metadata, but not the reverse.
 
@@ -106,6 +170,8 @@ sidebar:
 
 ## ADR-9: Multiplexed WebSocket
 
+**Status:** Accepted (2026-02) · extended to multi-home routing in [ADR-20](#adr-20-namespace-scoped-multi-home-replication)
+
 **Decision:** Use a single WebSocket connection with room-based pub/sub, not one connection per document.
 
 **Rationale:**
@@ -119,6 +185,8 @@ sidebar:
 
 ## ADR-10: BSM in Electron main process
 
+**Status:** Accepted (2026-02)
+
 **Decision:** Run the sync engine in Electron's main process, not the renderer.
 
 **Rationale:**
@@ -128,4 +196,357 @@ sidebar:
 - Can sync in the background when no window is open
 - MessagePort provides zero-copy binary transfer between processes
 
-**Tradeoff:** IPC overhead for every document update. Mitigated by using `MessageChannelMain` for binary transfer and batching updates.
+**Tradeoff:** IPC overhead for every document update. Mitigated by using `MessageChannelMain` for binary transfer and batching updates. (A migration from Electron to a Deno-based desktop shell has been explored but not adopted.)
+
+---
+
+The decisions below were made after the initial ten were written, as the system
+grew from an app into a protocol with a managed cloud. They are recorded here so
+the log reflects the architecture as it actually stands.
+
+## ADR-11: XNet is a protocol — the interop kernel is the change log, not Yjs
+
+**Status:** Accepted (2026-06)
+**Context:** Exploration 0200. The normative spec lives in `docs/specs/protocol/`; see also [The Protocol](/docs/protocol/overview/).
+
+**Decision:** Treat XNet as a versioned, multi-implementation **protocol** whose
+normative surface is four layers — **L0** cryptographic primitives, **L1** data
+model, **L2** replication, **L3** authorization — with the application profile
+(**L4**) explicitly non-normative. The interop kernel is a **signed,
+hash-chained, per-property-LWW change log over schema-typed nodes**
+(`CURRENT_PROTOCOL_VERSION = 3` in `packages/sync/src/change.ts`). Yjs is a
+**pluggable document codec** for the rich-text/canvas body of certain nodes and
+travels the wire as opaque bytes inside an XNet envelope.
+
+**Rationale:**
+
+- A second implementation, in any language over any database, can forward and
+  store the Yjs blob as an octet string and still fully participate in the node
+  graph, identity, authorization, and replication — the hardest local-first
+  portability problem (porting a CRDT byte format across languages) is off the
+  critical path.
+- The boundaries already existed in the layered package graph; this decision
+  writes them down and freezes them behind a conformance corpus.
+
+**Tradeoff:** Two merge systems (the LWW log and the Yjs CRDT) instead of one.
+Accepted deliberately — they have different conflict semantics and scale
+profiles (see [ADR-1](#adr-1-yjs-over-automerge-for-rich-text) and
+[ADR-3](#adr-3-field-level-lww-for-structured-data)). This ADR clarifies ADR-1
+and elevates ADR-3 to normative status.
+
+## ADR-12: SQLite everywhere — better-sqlite3 + Litestream, not Turso/libSQL
+
+**Status:** Accepted (2026-06)
+**Context:** Explorations 0178 (hosting economics) and 0212 (engine merits).
+
+**Decision:** Keep SQLite as the durable storage substrate across all five
+runtimes behind one adapter (`@xnetjs/sqlite`). On the web, persist via
+**OPFS + SQLite WASM** in a single serial worker; on the hub, use
+**better-sqlite3 with Litestream** streaming replication to Cloudflare R2
+(`packages/hub/src/storage/litestream.ts`). Do **not** migrate to libSQL or
+Turso Database.
+
+**Rationale:**
+
+- xNet barely uses SQLite as a relational database — the schema is an append-only,
+  signed, hash-chained change log with a denormalized scalar index; graph walks
+  and CRDT merges happen in TypeScript/Rust, not SQL. Most of Turso's advances
+  (query planner, relational concurrency) are low-leverage here.
+- The two features that _would_ tempt us (embedded vector ANN, concurrent
+  writes) live in two different Turso products, neither production-ready together
+  today; migrating would cost five platform adapters and an FTS5 rewrite.
+- FTS5 and R-Tree/GIS (which we _do_ use) are battle-tested on SQLite.
+
+**Tradeoff:** Single-writer serialization and no built-in vector index. Documented
+re-evaluation triggers (a production-ready engine with both ANN and MVCC, or a
+vector workload SQLite can't serve) would reopen this. A bounded Turso pilot on
+the disposable `telemetry.db` is sanctioned as a probe.
+
+## ADR-13: Local-first — the hub is an accelerant, never a dependency
+
+**Status:** Accepted (2026-06)
+**Context:** Exploration 0188. See also [Local-first](/docs/concepts/local-first/).
+
+**Decision:** The local device holds the master copy. Nothing on a hub or the
+network may block a local read or first paint; hub work (relay, backup, search,
+signaling) is fire-and-forget and strictly additive.
+
+**Rationale:**
+
+- Local-first is the product's core promise (own your data, work offline, exit
+  freely) — it must be an enforced invariant, not an aspiration.
+- A regression where hub room-subscription blocked document load caused
+  10–30s stalls; the fix (decouple local load from hub acquisition) codified the
+  rule.
+
+**Tradeoff:** Some cross-device features are eventually-consistent rather than
+instantly authoritative. Accepted: correctness comes from the convergent LWW log,
+so "eventually" is safe.
+
+## ADR-14: Framework-agnostic runtime — React is a thin binding
+
+**Status:** Accepted (2026-06)
+**Context:** Explorations 0185 and 0237.
+
+**Decision:** The full client — store, MetaBridge, SyncManager, NodePool,
+Registry, OfflineQueue, ConnectionManager — lives in the React-free
+`@xnetjs/runtime` package. `createXNetClient()` and `liveQuery()` expose a
+universal `{ getSnapshot, subscribe }` contract. `@xnetjs/react` is a thin **T1**
+binding (`useQuery`/`useMutate`/…) that re-exports the runtime. Support tiers:
+**T0** any framework/vanilla (the runtime, ships today), **T1** React
+(first-party), **T2** Vue/Svelte/Solid (demand-gated, ~40-line adapters).
+
+**Rationale:**
+
+- The reactive seam is tiny — only two files in `@xnetjs/react` touch
+  `useSyncExternalStore`; everything else is business logic and JSX.
+- Decoupling lets the runtime power CLIs, servers, and non-React apps without a
+  React dependency.
+
+**Tradeoff:** "Support" for a framework means feature parity, not just a data
+binding — the ~30k LOC of `@xnetjs/react` is the real cost. So T2 adapters are
+published only on demand, and only the data hooks (not `@xnetjs/ui`) are in scope.
+
+## ADR-15: Open-core license split — MIT core, FSL cloud, MIT-private contract
+
+**Status:** Accepted (2026-06)
+**Context:** Exploration 0181.
+
+**Decision:** Publish the adoption engine (core packages) under **MIT**. License
+the managed control plane, `@xnetjs/cloud`, under **FSL-1.1** (source-available,
+converting to Apache-2.0 on its Change Date; `packages/cloud/LICENSE`). Keep the
+entitlement contract in a separate, permissively-licensed `@xnetjs/entitlements`
+(MIT, `private`) so the self-hostable MIT hub can verify a signed `HUB_PLAN`
+token without ever taking an FSL — or a Stripe/AWS — dependency.
+
+**Rationale:**
+
+- The hub must remain fully MIT and dependency-light; the cloud must be
+  protectable. The entitlement contract is the one seam both sides share.
+- FSL protects against a hyperscaler reselling the managed service while
+  guaranteeing eventual open-source (the Apache future license).
+
+**Tradeoff:** A three-package licensing story is more to explain than "all MIT" or
+"all FSL." The `@xnetjs/hub` package deliberately has zero dependency on
+`@xnetjs/cloud`; that separation is by convention (and verified by the absence of
+the import), not yet a lint rule.
+
+## ADR-16: Automated releases via Changesets + Conventional Commits
+
+**Status:** Accepted (2026-06)
+**Context:** Exploration 0220.
+
+**Decision:** Version and publish with [Changesets](https://github.com/changesets/changesets).
+A `fixed` group of 12 core packages (`core`, `crypto`, `identity`, `sync`,
+`data`, `storage`, `sqlite`, `data-bridge`, `abuse`, `plugins`, `history`,
+`react`) versions in lockstep; periphery versions independently. Conventional
+Commits are enforced by commitlint; publishing uses npm Trusted Publishing (OIDC)
+with provenance. Changeset coverage for publishable packages is enforced by a Stop
+hook (`scripts/changeset/assert-coverage.mjs`).
+
+**Rationale:**
+
+- The `fixed` core avoids a combinatorial version matrix across tightly-coupled
+  packages; independent periphery avoids forcing churn on loosely-coupled ones.
+- OIDC removes long-lived npm tokens from the repo.
+
+**Tradeoff:** The semver bump must be read from the _diff_, not the commit prefix
+(a removed export or changed wire contract is a major even under a `feat:`
+commit). This requires discipline the hook can prompt for but not fully decide.
+
+## ADR-17: Plugin trust and capability model
+
+**Status:** Accepted (2026-06)
+**Context:** Explorations 0189, 0192, 0194, 0196.
+
+**Decision:** Extensibility is governed by a shared trust fabric. `@xnetjs/trust`
+maps install **provenance** (`builtin` / `authored` / `ai-generated` / `imported`
+/ `marketplace` / `synced`) to a **trust tier** and a **sandbox kind**
+(`host` / `ses-worker` / `iframe`). Capability endowments are enforced at the
+seam — `guardStore` gates data access, `guardedFetch` gates the network
+(SSRF-guarded) in `@xnetjs/plugins`. Paid plugins carry Ed25519, DID-bound
+license tokens (`@xnetjs/licenses`) with a **fail-closed** install gate.
+
+**Rationale:**
+
+- "Everything is a plugin" only works if untrusted code is contained by
+  construction; provenance is the natural axis for how much to trust.
+- Fail-closed licensing means a missing or invalid license blocks install, never
+  silently downgrades.
+
+**Tradeoff:** More ceremony for plugin authors (declared capabilities, sandbox
+constraints) in exchange for a substrate that can safely run third-party and
+AI-generated code.
+
+## ADR-18: Managed AI via hub broker, plus bring-your-own local models
+
+**Status:** Accepted (2026-06)
+**Context:** Explorations 0201, 0208, 0244, 0252.
+
+**Decision:** For managed AI, the client uses a **keyless** `ManagedProvider`
+that POSTs to the hub's `/ai/chat` (+ `/ai/chat/stream` SSE); the hub injects
+tenant credentials, holds the OpenRouter key, and meters exact `usage.cost`
+server-side (`packages/hub/src/features/ai-forwarder.ts`). In parallel, a
+bring-your-own path runs models **locally** — WebLLM in-browser and Chrome's
+built-in "Nano" via an `availability()` probe (`packages/plugins/src/ai/`).
+
+**Rationale:**
+
+- Keyless managed AI means no provider key ever reaches the client; the hub is
+  the metering and margin-safety boundary.
+- Local models give a zero-cost, fully-private tier that needs no hub at all,
+  consistent with [ADR-13](#adr-13-local-first--the-hub-is-an-accelerant-never-a-dependency).
+
+**Tradeoff:** Two provider code paths to maintain, and local-model availability
+varies by browser/hardware. Detection is capability-probed, not assumed.
+
+## ADR-19: Plan-first AI mutations
+
+**Status:** Accepted (2026-06)
+**Context:** `docs/AI_SURFACE_CONTRACT.md`.
+
+**Decision:** AI never writes directly. The shared AI surface expresses writes as
+an `AiMutationPlan` that must move through **validate → preview → apply → audit**.
+Every tool declares `requiredScopes` and a risk level (`low`/`medium`/`high`/
+`critical`); plans are serializable JSON so they flow identically through MCP,
+the Local API, file projection, and audit logs.
+
+**Rationale:**
+
+- A plan-first pipeline makes AI writes reviewable and reversible, and keeps one
+  contract across every adapter.
+- Risk levels + scopes let the UI gate high-consequence actions
+  (`storage.recovery` requires `critical`).
+
+**Tradeoff:** More indirection than letting an agent call `mutate()` directly, in
+exchange for auditable, user-approvable, rollback-friendly AI edits.
+
+## ADR-20: Namespace-scoped multi-home replication
+
+**Status:** Accepted (2026-06) · extends [ADR-9](#adr-9-multiplexed-websocket)
+**Context:** Exploration 0258.
+
+**Decision:** Sync routes selectively per **namespace**. A multiplexed multi-hub
+connection manager (`packages/runtime/src/sync/connection-manager.ts`) maintains
+one connection per hub; a replication-policy planner
+(`packages/sync/src/replication-policy.ts`) decides which namespaces replicate to
+which hubs/peers, with per-namespace `minHubs`/`maxHubs` and signed-replication
+requirements. A user-facing **Space** maps to a namespace via `spaceNamespace()`,
+carrying a `ReplicaTrust` of `trusted` or `zero-knowledge`
+(`packages/runtime/src/sync/replication-scope.ts`).
+
+**Rationale:**
+
+- Different data belongs in different homes (system vs personal vs community vs
+  peer); routing by namespace is the smallest primitive that expresses that.
+- Correctness is free — the multi-master LWW log already converges regardless of
+  topology; this decision is about _where_ bytes go, not _whether_ they merge.
+
+**Tradeoff:** Only the routing slice is shipped; the manifest schema, device DID,
+anti-entropy, trust gating, and UI are deferred. The planner exists ahead of full
+consumption.
+
+## ADR-21: Append-only change log with off-boot compaction
+
+**Status:** Accepted (2026-06)
+**Context:** Explorations 0204, 0254, 0260.
+
+**Decision:** Never delete from the change log; append tombstones and materialize
+current state. Reclaim space with **compaction that runs off the boot path** —
+gated behind `runWhenBootSettled` (resolves at first-rows), using tiny
+loop-until-dry chunks that bail on a hidden tab
+(`apps/web/src/lib/change-log-compaction.ts`). The web runtime funnels all SQLite
+work through one serial worker with a priority scheduler.
+
+**Rationale:**
+
+- The append-only log makes sync trivial and gives a complete audit trail; but an
+  unbounded log inflates cold-start.
+- On a single serial SQLite worker, **no background work is free during boot** —
+  `requestIdleCallback` tracks main-thread idle, which is idle precisely while the
+  worker is saturated. Scheduling maintenance _after_ boot settles is the only
+  reliable fix; priority reorders work, it never parallelizes it.
+
+**Tradeoff:** Reclamation is deferred rather than immediate, and compaction is
+best-effort (bails on backgrounded tabs). Accepted: a responsive cold open
+outranks prompt disk reclaim. Compaction stays default-on, opt-out via
+`xnet:compact:changes='off'`.
+
+## ADR-22: Consent-gated observability
+
+**Status:** Accepted (2026-06)
+**Context:** Exploration 0210.
+
+**Decision:** Zero telemetry by default. Error monitoring (Sentry) and analytics
+(Plausible) initialize only when _both_ a build-time endpoint is configured
+(`VITE_SENTRY_DSN` / `VITE_ANALYTICS_DOMAIN`) _and_ the runtime consent tier
+allows it (`packages/telemetry/src/consent/manager.ts`;
+`apps/web/src/lib/{sentry,analytics,error-reporter}.ts`). Reports are scrubbed and
+values are P3A-bucketed.
+
+**Rationale:**
+
+- Decentralized, own-your-data software must not phone home without explicit,
+  granular consent; gating at both build and runtime makes "off" the safe default.
+
+**Tradeoff:** Far less diagnostic data (users rarely opt in), so we lean on
+reproducible boot timelines and local forensics instead of always-on telemetry.
+
+## ADR-23: Values-as-code CI gates
+
+**Status:** Accepted (2026-06)
+**Context:** Explorations 0199 (motion) and 0234 (humane charter).
+
+**Decision:** Encode the product's values as enforced lints, not just prose. A
+motion-vocabulary gate (`scripts/check-motion-vocab.mjs`) bans ad-hoc animation
+outside the approved vocabulary; a humane-patterns gate
+(`scripts/check-humane-patterns.mjs`) bans dark patterns (infinite scroll,
+streaks, engagement-maximizing nudges). Both sit alongside the Humane Internet
+Charter (`docs/CHARTER.md`) and a real "Right to Leave" export-everything panel.
+
+**Rationale:**
+
+- A stated value that CI can't defend drifts. Mechanizing "calm" and "no dark
+  patterns" makes them regression-proof and legible to skeptics.
+
+**Tradeoff:** Some legitimate UI needs a documented exception path around the
+gates. Accepted: the friction is the point — it forces the intent to be explicit.
+
+## ADR-24: Social recovery via Shamir guardians
+
+**Status:** Accepted (2026-06)
+**Context:** Exploration 0243.
+
+**Decision:** Recover an identity through **Shamir-split guardian shares**
+(`packages/identity/src/recoverable.ts`) — a threshold of trusted guardians
+reconstructs the key — alongside recovery phrases and synced passkeys. The cloud
+is never a custodian. Custodial escrow was explicitly **declined**.
+
+**Rationale:**
+
+- `did:key` has no built-in rotation ([ADR-2](#adr-2-didkey-for-identity)), so
+  recovery must live outside the key itself.
+- Custodial escrow is coercible (subpoena, insider, breach); social recovery
+  keeps trust distributed and cloud-free.
+
+**Tradeoff:** Recovery depends on the user having designated reachable guardians
+ahead of time. Accepted as the price of a non-coercible, self-sovereign model.
+
+## ADR-25: Post-quantum migration posture
+
+**Status:** Proposed
+**Context:** Exploration 0257; the future path for [ADR-4](#adr-4-blake3-over-sha-256) and [ADR-2](#adr-2-didkey-for-identity).
+
+**Decision (proposed):** Adopt a phased migration to post-quantum signatures —
+Phase 2 hybrid (Ed25519 + ML-DSA), Phase 3 ML-DSA primary with Ed25519 legacy —
+behind an algorithm-agility seam, rather than a flag-day switch.
+
+**Rationale:**
+
+- Ed25519 is broken by Shor's algorithm; a hash-chained, signed log needs a
+  credible PQ story before it's a compliance blocker.
+- Hybrid signatures preserve interop during the transition.
+
+**Tradeoff / open:** Larger signatures and a two-algorithm verification path. This
+is a documented _posture_, not shipped code — it stays `Proposed` until the seam
+and hybrid signing land, at which point it is superseded by an `Accepted` ADR.

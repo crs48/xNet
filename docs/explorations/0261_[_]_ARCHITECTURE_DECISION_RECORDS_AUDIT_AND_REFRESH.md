@@ -418,15 +418,15 @@ flowchart LR
 
 ## Implementation Checklist
 
-- [ ] Add the MADR template + a short "how we keep these current (immutable,
+- [x] Add the MADR template + a short "how we keep these current (immutable,
       supersede-don't-edit)" preface to `decisions.mdx`.
-- [ ] Add `Status: Accepted` + approx date to ADR-1…ADR-10; add the four
+- [x] Add `Status: Accepted` + approx date to ADR-1…ADR-10; add the four
       clarifying cross-links (ADR-1/3/8/9).
-- [ ] Draft and land **ADR-11** (protocol kernel) — the keystone.
-- [ ] Land **Foundational** batch: ADR-12 (SQLite/Turso), ADR-14 (runtime),
+- [x] Draft and land **ADR-11** (protocol kernel) — the keystone.
+- [x] Land **Foundational** batch: ADR-12 (SQLite/Turso), ADR-14 (runtime),
       ADR-15 (license split).
-- [ ] Land **Platform** batch: ADR-13, ADR-16, ADR-17, ADR-20, ADR-21.
-- [ ] Land **Values** batch: ADR-18, ADR-19, ADR-22, ADR-23, ADR-24; add
+- [x] Land **Platform** batch: ADR-13, ADR-16, ADR-17, ADR-20, ADR-21.
+- [x] Land **Values** batch: ADR-18, ADR-19, ADR-22, ADR-23, ADR-24; add
       ADR-25 as `Proposed`.
 - [ ] Fix `architecture/overview.mdx` **Sync path** mermaid + package attributions.
 - [ ] Add `@xnetjs/runtime` to `architecture/package-graph.mdx`; move
