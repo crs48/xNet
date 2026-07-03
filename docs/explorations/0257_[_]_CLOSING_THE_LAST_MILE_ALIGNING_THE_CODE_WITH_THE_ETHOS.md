@@ -501,9 +501,9 @@ async function prepareOutbound(change: Change, space: SpaceState) {
 
 - [ ] A change written into a `sealed` Space is stored at the hub as ciphertext; a hub-side read of `payload.properties` yields no plaintext (add a `node-relay` test asserting this).
 - [ ] Removing a recipient from a sealed Space provably prevents them decrypting subsequent changes (extend `envelope.test.ts` coverage to the sync path).
-- [ ] The claims-ledger test fails when `DEFAULT_CONSENT.tier` is flipped away from `off`, when a default feed gains an engagement `orderBy`, or when a `building` claim's `CLAIM_PENDING` marker is removed without wiring.
-- [ ] `check-humane-patterns` flags a deliberately-planted `infinite-scroll` string inside `site/src`.
-- [ ] The Rust conformance CI job passes the same `conformance/vectors` the TypeScript job does, and fails on an intentional kernel divergence.
+- [x] The claims-ledger test fails when `DEFAULT_CONSENT.tier` is flipped away from `off`, when a default feed gains an engagement `orderBy`, or when a `building` claim's `CLAIM_PENDING` marker is removed without wiring.
+- [x] `check-humane-patterns` flags a deliberately-planted `infinite-scroll` string inside `site/src`.
+- [x] The Rust conformance CI job passes the same `conformance/vectors` the TypeScript job does, and fails on an intentional kernel divergence.
 - [ ] With `webllm` selected, a prompt completes fully in-tab with no network egress (verify via devtools network trace).
 - [ ] An exported bundle re-imports into a clean profile and reproduces the original node set (round-trip test).
 - [ ] Every essay's present-tense capability sentence maps to either a passing claims-ledger entry or an explicit future-tense qualification.
