@@ -445,16 +445,24 @@ export class NodeStoreSyncProvider {
       }
     }
 
-    // Rollback guard (exploration 0254): a hub high-water mark BELOW our
-    // confirmed cursor means the hub lost history it once held (e.g. a
-    // Litestream/R2 point-in-time restore, or a fresh/empty hub the workspace was
-    // repointed at). Drop the in-memory push cursor to the hub's real mark and
-    // immediately re-offer the gap so the backfill happens now, in-session,
-    // before `ensureCursorLoaded` restores it on the next reconnect. The
-    // PERSISTED cursor is monotonic (anti-replay) and stays put; change-log
-    // compaction stays safe regardless because it retains every row backing a
-    // live value, so those rows remain available to re-push.
+    // Rollback guard (exploration 0254; scoped in 0260): a hub high-water mark
+    // BELOW our confirmed cursor can mean the hub lost history it once held (e.g. a
+    // Litestream/R2 point-in-time restore). For a genuine PARTIAL rollback we drop
+    // the in-memory push cursor to the hub's real mark and re-offer the gap now,
+    // in-session, before `ensureCursorLoaded` restores it on the next reconnect.
+    //
+    // But two cases must NOT trigger a re-offer, because it would re-push the whole
+    // log for nothing (exploration 0260 caught this flooding the cold-open):
+    //   - `highWaterMark === 0` — a fresh/empty/reset hub, not a recoverable
+    //     rollback; re-offering `getChangesSince(0)` dumps the entire 318k-row log.
+    //   - `outboundHalted` — the INVALID_HASH breaker has tripped (0224 protocol
+    //     skew), so every re-offered change is rejected identically; flooding is futile.
+    // The persisted cursor is monotonic (anti-replay) and stays put; change-log
+    // compaction stays safe regardless because it retains every row backing a live
+    // value, so those rows remain available to re-push if a real rollback occurs.
     if (
+      response.highWaterMark > 0 &&
+      !this.outboundHalted &&
       response.highWaterMark < this.lastSyncedLamport &&
       this.pushedThrough > response.highWaterMark
     ) {

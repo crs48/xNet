@@ -1,0 +1,10 @@
+{
+  "id": "2026-07-03-cold-open-no-longer-stalls-behind-backgr",
+  "date": "July 3, 2026",
+  "title": "Cold open no longer stalls behind background cleanup",
+  "summary": "Change-log compaction, database VACUUM, and presence cleanup now wait until the workspace has painted before touching the single SQLite worker, so opening a large workspace is no longer slowed by maintenance work. A reset or protocol-skewed hub no longer triggers a full change-log re-offer on connect.",
+  "highlights": [],
+  "tags": [
+    "performance"
+  ]
+}

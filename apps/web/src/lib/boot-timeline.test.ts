@@ -7,6 +7,7 @@ import {
   bootMarkAt,
   bootMarksDump,
   bootMeasure,
+  bootSettled,
   getBootTimeline,
   logBootTimeline,
   observeDocWarmMark,
@@ -274,5 +275,28 @@ describe('persistBootTimeline (0253) — truncation-proof boot diagnostics', () 
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  describe('bootSettled (0260)', () => {
+    it('stays pending until query:first-rows is marked, then resolves', async () => {
+      let resolved = false
+      void bootSettled().then(() => {
+        resolved = true
+      })
+      // Other phases must NOT release the gate.
+      bootMark('store:ready')
+      bootMark('hub:connected')
+      await Promise.resolve() // flush microtasks
+      expect(resolved).toBe(false)
+
+      bootMark('query:first-rows')
+      await bootSettled()
+      expect(resolved).toBe(true)
+    })
+
+    it('resolves for a late awaiter after query:first-rows is already marked', async () => {
+      bootMark('query:first-rows')
+      await expect(bootSettled()).resolves.toBeUndefined()
+    })
   })
 })

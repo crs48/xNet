@@ -54,6 +54,9 @@ function now(): number {
 export function bootMark(phase: BootPhase, options?: { override?: boolean }): void {
   if (marks.has(phase) && !options?.override) return
   marks.set(phase, now())
+  // The first landing data has rendered — release anyone waiting on bootSettled()
+  // so worker-bound background work can run OFF the cold-open path (exploration 0260).
+  if (phase === 'query:first-rows') resolveBootSettled()
   // performance.mark gives the phase a marker in the DevTools timeline /
   // PerformanceObserver too, but must never throw on unsupported engines.
   try {
@@ -61,6 +64,62 @@ export function bootMark(phase: BootPhase, options?: { override?: boolean }): vo
   } catch {
     // no-op: instrumentation must never break boot
   }
+}
+
+// ─── Boot-settled gate (exploration 0260) ────────────────────────────────────
+// The single SQLite worker serves reads and writes strictly serially, so any
+// heavy background work (compaction, VACUUM) scheduled during boot ADDS to the
+// cold-open wall-clock — it can never overlap the cold landing reads. And
+// `requestIdleCallback` is the wrong idle signal: it measures MAIN-thread idle,
+// which is idle exactly while the worker is saturated (a landing query is an
+// async round-trip), so it fires straight into the busy window. The fix is to
+// wait for first paint (`query:first-rows`) plus a real idle gap before starting.
+
+let resolveBootSettled: () => void = () => {}
+let bootSettledPromise = new Promise<void>((resolve) => {
+  resolveBootSettled = resolve
+})
+
+/**
+ * Resolves the moment `query:first-rows` is marked — i.e. the first landing data
+ * has rendered. Await this before scheduling worker-bound background work so it
+ * never competes with the cold-open read burst on the single SQLite worker.
+ */
+export function bootSettled(): Promise<void> {
+  return bootSettledPromise
+}
+
+/**
+ * Run `task` once the cold-open has settled AND the main thread is next idle —
+ * the correct gate for worker-bound background work (exploration 0260). Waits for
+ * `query:first-rows`, then a short post-paint delay (so the secondary prewarm wave
+ * drains), then a `requestIdleCallback` slot. Falls back to a timeout if
+ * `query:first-rows` never fires (e.g. an empty/error boot) so the work is never
+ * stranded, and never runs `task` twice. No-op outside the browser.
+ */
+export function runWhenBootSettled(
+  task: () => void,
+  opts?: { settleDelayMs?: number; fallbackMs?: number }
+): void {
+  if (typeof window === 'undefined') return
+  const settleDelayMs = opts?.settleDelayMs ?? 3000
+  const fallbackMs = opts?.fallbackMs ?? 45000
+  let started = false
+  const start = (): void => {
+    if (started) return
+    started = true
+    const win = window as Window & {
+      requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number
+    }
+    if (typeof win.requestIdleCallback === 'function') {
+      win.requestIdleCallback(() => task(), { timeout: 10000 })
+    } else {
+      setTimeout(task, 1000)
+    }
+  }
+  void bootSettledPromise.then(() => setTimeout(start, settleDelayMs))
+  // Safety net: run even if first paint never fires.
+  setTimeout(start, fallbackMs)
 }
 
 /** Raw timestamp for a phase, or undefined if it hasn't happened yet. */
@@ -397,6 +456,9 @@ export function markBridgeFirstResult(): void {
 export function __resetBootTimeline(): void {
   marks.clear()
   loggedReasons.clear()
+  bootSettledPromise = new Promise<void>((resolve) => {
+    resolveBootSettled = resolve
+  })
   try {
     syncFirstObserver?.disconnect()
     docWarmObserver?.disconnect()

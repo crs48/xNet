@@ -379,6 +379,57 @@ describe('NodeStoreSyncProvider', () => {
       await vi.advanceTimersByTimeAsync(0)
       expect(getChangesSince).not.toHaveBeenCalledWith(100)
     })
+
+    it('does not re-offer to a reset/empty hub (highWaterMark 0) — 0260', async () => {
+      const { store, getChangesSince } = makeStore({ changes: [], cursor: 0 })
+      const { conn, setStatus, injectMessage } = makeConnection('disconnected')
+      new NodeStoreSyncProvider(store, 'room-1').attach(conn)
+
+      setStatus('connected')
+      await vi.advanceTimersByTimeAsync(0)
+      injectMessage({
+        type: 'node-sync-response',
+        room: 'room-1',
+        changes: [],
+        highWaterMark: 318066
+      })
+      await vi.advanceTimersByTimeAsync(0)
+      getChangesSince.mockClear()
+
+      // A fresh/reset tenant hub reports 0 — NOT a recoverable partial rollback.
+      // Re-offering here would dump the entire log via getChangesSince(0).
+      injectMessage({ type: 'node-sync-response', room: 'room-1', changes: [], highWaterMark: 0 })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(getChangesSince).not.toHaveBeenCalled()
+    })
+
+    it('does not re-offer while the outbound breaker is halted (INVALID_HASH skew) — 0260', async () => {
+      const { store, getChangesSince } = makeStore({ changes: [], cursor: 0 })
+      const { conn, setStatus, injectMessage } = makeConnection('disconnected')
+      new NodeStoreSyncProvider(store, 'room-1').attach(conn)
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      setStatus('connected')
+      await vi.advanceTimersByTimeAsync(0)
+      injectMessage({ type: 'node-sync-response', room: 'room-1', changes: [], highWaterMark: 100 })
+      await vi.advanceTimersByTimeAsync(0)
+
+      // Trip the structural-rejection breaker (5 consecutive INVALID_HASH).
+      for (let i = 0; i < 5; i++) {
+        injectMessage({ type: 'node-error', code: 'INVALID_HASH', error: 'hash mismatch' })
+      }
+      getChangesSince.mockClear()
+
+      // A regressed mark arrives while halted — re-offering is futile (every change
+      // is rejected identically), so the guard must NOT flood.
+      injectMessage({ type: 'node-sync-response', room: 'room-1', changes: [], highWaterMark: 50 })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(getChangesSince).not.toHaveBeenCalledWith(50)
+
+      error.mockRestore()
+      warn.mockRestore()
+    })
   })
 
   describe('resilience (0206)', () => {
