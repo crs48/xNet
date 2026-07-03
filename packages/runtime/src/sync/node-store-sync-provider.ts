@@ -445,6 +445,28 @@ export class NodeStoreSyncProvider {
       }
     }
 
+    // Rollback guard (exploration 0254): a hub high-water mark BELOW our
+    // confirmed cursor means the hub lost history it once held (e.g. a
+    // Litestream/R2 point-in-time restore, or a fresh/empty hub the workspace was
+    // repointed at). Drop the in-memory push cursor to the hub's real mark and
+    // immediately re-offer the gap so the backfill happens now, in-session,
+    // before `ensureCursorLoaded` restores it on the next reconnect. The
+    // PERSISTED cursor is monotonic (anti-replay) and stays put; change-log
+    // compaction stays safe regardless because it retains every row backing a
+    // live value, so those rows remain available to re-push.
+    if (
+      response.highWaterMark < this.lastSyncedLamport &&
+      this.pushedThrough > response.highWaterMark
+    ) {
+      console.warn(
+        `[NodeStoreSync] hub high-water mark ${response.highWaterMark} is below ` +
+          `the confirmed cursor ${this.lastSyncedLamport} (hub rollback?); ` +
+          're-offering local changes'
+      )
+      this.pushedThrough = response.highWaterMark
+      void this.syncLocalChanges()
+    }
+
     // The hub's high-water mark is the only positive confirmation that the hub
     // durably holds changes up to this point. Advance and PERSIST the cursor
     // from it (not from local sends) so a reload never replays already-synced
