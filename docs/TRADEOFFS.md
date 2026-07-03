@@ -1,5 +1,11 @@
 # Architecture Tradeoffs
 
+> **Status: Historical (January 2026).** This file is preserved for its detailed
+> options-and-tradeoffs analysis, but the canonical, maintained decision log is
+> now the [Architecture Decisions](../site/src/content/docs/docs/architecture/decisions.mdx)
+> page (published at `/docs/architecture/decisions/`). Where the two disagree, the
+> ADR page wins. New decisions are recorded there, not here.
+
 Decisions made during development with rationale and future optimization paths.
 
 ---
@@ -440,7 +446,7 @@ const publicKey = extractPublicKey(did)
 
 ### Future: Decoupled Identity
 
-A migration path to decoupled identity (stable ID that references keys) is planned. This will enable key rotation, post-quantum migration, and enterprise features. See [IDENTITY_MIGRATION_PLAN.md](./IDENTITY_MIGRATION_PLAN.md) for details.
+A migration path to decoupled identity (stable ID that references keys) is planned. This will enable key rotation, post-quantum migration, and enterprise features. Account recovery today uses Shamir-guardian social recovery — see ADR-24 on the [Architecture Decisions](../site/src/content/docs/docs/architecture/decisions.mdx) page and exploration [0243](explorations/0243_%5Bx%5D_ACCOUNT_VALIDATION_AND_RECOVERY_BINDING_THE_PAYER_TO_THE_PASSKEY.md).
 
 ---
 
@@ -549,7 +555,7 @@ A phased migration to ML-DSA (Dilithium) is planned:
 1. Phase 2: Hybrid signatures (Ed25519 + ML-DSA)
 2. Phase 3: ML-DSA primary, Ed25519 legacy
 
-See [IDENTITY_MIGRATION_PLAN.md](./IDENTITY_MIGRATION_PLAN.md) for the full timeline and implementation details.
+This is a documented posture, not yet shipped — see ADR-25 (Proposed) on the [Architecture Decisions](../site/src/content/docs/docs/architecture/decisions.mdx) page and exploration [0257](explorations/0257_%5B_%5D_CLOSING_THE_LAST_MILE_ALIGNING_THE_CODE_WITH_THE_ETHOS.md).
 
 ---
 

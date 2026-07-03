@@ -431,10 +431,10 @@ flowchart LR
 - [x] Fix `architecture/overview.mdx` **Sync path** mermaid + package attributions.
 - [x] Add `@xnetjs/runtime` to `architecture/package-graph.mdx`; move
       SyncManager/NodePool/MetaBridge prose from react → runtime.
-- [ ] Reconcile `docs/TRADEOFFS.md`: fold entries into ADR numbering (or mark
+- [x] Reconcile `docs/TRADEOFFS.md`: fold entries into ADR numbering (or mark
       Historical) and **fix the dead `IDENTITY_MIGRATION_PLAN.md` link**.
-- [ ] Renumber/convert the `ADR-001/002/003` in `plan00Setup/15-enterprise-scale.md`.
-- [ ] Add the "changed an invariant? add/supersede an ADR" line to the
+- [x] Renumber/convert the `ADR-001/002/003` in `plan00Setup/15-enterprise-scale.md`.
+- [x] Add the "changed an invariant? add/supersede an ADR" line to the
       exploration/implement convention (and consider a soft CI reminder).
 
 ## Validation Checklist

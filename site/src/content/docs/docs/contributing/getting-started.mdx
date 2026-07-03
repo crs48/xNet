@@ -103,6 +103,12 @@ site/               # Documentation site (Astro + Starlight)
 5. Commit with a descriptive message following conventional commits
 6. Open a pull request
 
+If your change alters an **architectural invariant** — a protocol/wire contract,
+a package boundary, a security or trust rule, a storage or sync decision — add or
+supersede a record on the [Architecture Decisions](/docs/architecture/decisions/)
+page in the same PR. Decisions are usually worked out first as an exploration in
+`docs/explorations/`; the ADR page is the distilled, immutable outcome.
+
 ## Useful commands
 
 | Command                               | Description              |
