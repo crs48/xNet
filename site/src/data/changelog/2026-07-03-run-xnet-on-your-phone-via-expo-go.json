@@ -1,0 +1,8 @@
+{
+  "id": "2026-07-03-run-xnet-on-your-phone-via-expo-go",
+  "date": "July 3, 2026",
+  "title": "Run xNet on your phone via Expo Go",
+  "summary": "A new Run on Mobile page (linked in the footer) shows a QR code that launches the xNet demo inside Expo Go — no App Store, no sideloading — plus copy-paste steps to run it yourself.",
+  "highlights": [],
+  "tags": ["app"]
+}
