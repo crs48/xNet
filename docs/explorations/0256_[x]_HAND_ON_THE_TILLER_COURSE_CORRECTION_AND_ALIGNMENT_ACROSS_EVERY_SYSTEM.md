@@ -710,31 +710,31 @@ const layers = [
 
 ## Validation Checklist
 
-- [ ] Site dev server: `/blog/hand-on-the-tiller` renders; hero, `AlignmentStack`,
+- [x] Site dev server: `/blog/hand-on-the-tiller` renders; hero, `AlignmentStack`,
       and `HonestTiller` display correctly in light and dark mode.
-- [ ] `/blog` index lists the new card newest-first with the right date, reading
+- [x] `/blog` index lists the new card newest-first with the right date, reading
       time, and tags.
-- [ ] `/blog/rss.xml` includes the new post (title, description, link, pubDate)
+- [x] `/blog/rss.xml` includes the new post (title, description, link, pubDate)
       and validates as well-formed RSS.
-- [ ] Build passes: `pnpm --filter site build` with no broken imports or type
+- [x] Build passes: `pnpm --filter site build` with no broken imports or type
       errors (`postBySlug('hand-on-the-tiller')` resolves).
-- [ ] No external network assets requested by the page (DevTools Network clean —
+- [x] No external network assets requested by the page (DevTools Network clean —
       Self-Audit parity holds).
-- [ ] Social/OG: `Base` title/description populate; text OG is fine (matching the
+- [x] Social/OG: `Base` title/description populate; text OG is fine (matching the
       prior posts; no hero image required).
-- [ ] Every code/charter receipt cited in the body resolves to a real path/section
+- [x] Every code/charter receipt cited in the body resolves to a real path/section
       (spot-check `undo-manager.ts`, `consent/manager.ts`, `identity/keys.ts`,
       `check-humane-patterns.mjs`, `integrity.ts`,
       `node-store-sync-provider.ts`).
-- [ ] Fact check: the Wiener 1960 quote is verbatim; "six of nine planetary
+- [x] Fact check: the Wiener 1960 quote is verbatim; "six of nine planetary
       boundaries" is attributed to the 2023 update (note the 2025 seventh); the
       Apollo "90%" line appears only in `HonestTiller`, flagged as myth; the
       _kybernetes → governor → govern_ etymology is stated correctly.
-- [ ] Prose check: the essay grants AI alignment its due, then widens the frame;
+- [x] Prose check: the essay grants AI alignment its due, then widens the frame;
       it never claims to know the human utility function; the scope limit (one
       interface) is stated plainly; references to prior posts are glancing.
-- [ ] Reading time in `blog.ts` matches the finished length (±1 min).
-- [ ] Read-through proof: capture a screenshot of the hero + the alignment-stack
+- [x] Reading time in `blog.ts` matches the finished length (±1 min).
+- [x] Read-through proof: capture a screenshot of the hero + the alignment-stack
       diagram for the PR (per the repo's visual-capture convention).
 
 ## References
