@@ -255,13 +255,13 @@ if (
 
 ## Implementation Checklist
 
-- [ ] **Hotfix A**: invert `xnet:compact:changes` to opt‑in (default off) in
+- [x] **Hotfix A**: invert `xnet:compact:changes` to opt‑in (default off) in
       `change-log-compaction.ts`; ship as its own fast PR.
 - [x] Add `bootSettled(): Promise<void>` to `boot-timeline.ts`, resolved in
       `bootMark('query:first-rows')`.
-- [ ] Gate `scheduleChangeLogCompaction` behind `await bootSettled()` + a trailing idle
+- [x] Gate `scheduleChangeLogCompaction` behind `await bootSettled()` + a trailing idle
       delay; add a worker‑idle guard (skip if a heavy op is in flight).
-- [ ] Reduce `pruneSupersededChanges` per‑pass `maxRows` to a few thousand; add
+- [x] Reduce `pruneSupersededChanges` per‑pass `maxRows` to a few thousand; add
       per‑chunk `requestIdleCallback`/deadline yielding; bail on interaction/visibility.
 - [ ] Stop clearing `xnet:db-vacuumed:v1` on prune; reclaim via `PRAGMA
     incremental_vacuum` or a `bootSettled()`‑gated one‑shot VACUUM.

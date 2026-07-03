@@ -1,6 +1,6 @@
 /**
- * Idle change-log compaction (exploration 0254 / F3) — the durable fix for the
- * recurring cold-open stall.
+ * Change-log compaction (exploration 0254 / F3; scheduling fixed in 0260) — the
+ * durable fix for the recurring cold-open stall.
  *
  * The local `changes` table grows monotonically (every edit + every applied
  * remote change appends a row) and never shrinks, reaching ~424 k rows. That
@@ -14,27 +14,36 @@
  * that are neither a node's hash-chain tip nor the provenance of a currently-
  * winning property value (see `pruneSupersededChanges`). That keeps reads,
  * outbound sync, `parentHash` chaining, and convergence with peers that never
- * compacted all intact, while shrinking the file at the root.
+ * compacted all intact.
  *
- * Like the one-time VACUUM it mirrors, this runs only when the main thread is
- * idle, never on the boot critical path, never throws, and is gated behind a
- * kill switch (`localStorage['xnet:compact:changes'] = 'off'`).
+ * SCHEDULING (exploration 0260): the single SQLite worker is strictly serial, so
+ * compaction must run OFF the cold-open path or it *adds* to first-paint. #360
+ * used `requestIdleCallback` — which measures MAIN-thread idle (idle exactly
+ * while the worker is busy on the async landing read) — and a 250 k-row pass,
+ * which doubled the cold-open (31.5 s). This version instead waits for
+ * `bootSettled()` (first paint) + a real idle slot, then prunes in SMALL chunks
+ * with an idle yield between each, capped per session and looping-until-dry
+ * across boots. Never touches the boot critical path, never throws, gated behind
+ * a kill switch (`localStorage['xnet:compact:changes'] = 'off'`).
  */
 import type { SQLiteNodeStorageAdapter } from '@xnetjs/data'
 import type { SQLiteAdapter } from '@xnetjs/sqlite'
+import { runWhenBootSettled } from './boot-timeline'
 
 /** Set to the string `'off'` to disable compaction. */
 const KILL_SWITCH = 'xnet:compact:changes'
 /** Truncation-proof record of the last compaction pass (mirrors #352's boot log). */
 const DEBUG_KEY = 'xnet:compact:last'
-/** Shared with `db-vacuum.ts`: clearing it re-arms the one-time reclaiming VACUUM. */
-const VACUUM_FLAG = 'xnet:db-vacuumed:v1'
 /**
  * Keep a margin below the confirmed cursor so an in-flight `setSyncCursor`
  * racing the prune can't leave a just-below-floor row unprunable-then-pruned,
  * and so only settled history is ever touched.
  */
 const LAMPORT_MARGIN = 128
+/** Rows deleted per worker op — small so a single DELETE can't monopolise a frame. */
+const CHUNK = 2000
+/** Cap per session; the rest is reclaimed on later boots (loop-until-dry). */
+const MAX_CHUNKS_PER_SESSION = 25
 
 function killed(): boolean {
   try {
@@ -42,6 +51,34 @@ function killed(): boolean {
   } catch {
     return false
   }
+}
+
+/**
+ * Stop the pass early on the kill switch or when the tab is hidden. There is no
+ * priority scheduler on the web adapter (ops are FIFO to the single worker), so
+ * the only in-flight guard is small chunks + an idle yield between them; on top
+ * of that we bail when the tab is backgrounded — `requestIdleCallback` is heavily
+ * throttled there and the tab may be discarded mid-pass — and simply resume on
+ * the next boot (loop-until-dry).
+ */
+function shouldStop(): boolean {
+  if (killed()) return true
+  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return true
+  return false
+}
+
+/** Yield until the main thread is next idle, so interactive ops preempt between chunks. */
+function nextIdle(): Promise<void> {
+  return new Promise((resolve) => {
+    const win = window as Window & {
+      requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number
+    }
+    if (typeof win.requestIdleCallback === 'function') {
+      win.requestIdleCallback(() => resolve(), { timeout: 2000 })
+    } else {
+      setTimeout(resolve, 50)
+    }
+  })
 }
 
 async function runCompaction(
@@ -59,23 +96,33 @@ async function runCompaction(
     const wsafe = watermark - LAMPORT_MARGIN
     if (wsafe <= 0) return
 
-    const { deleted } = await nodeStorage.pruneSupersededChanges(wsafe)
+    // Prune one small chunk at a time, yielding the worker between chunks so a
+    // landing read or user interaction always preempts. Stop when a chunk comes
+    // back short (nothing left below the floor) or the per-session cap is hit.
+    let deleted = 0
+    for (let i = 0; i < MAX_CHUNKS_PER_SESSION; i++) {
+      if (shouldStop()) break
+      const { deleted: n } = await nodeStorage.pruneSupersededChanges(wsafe, {
+        chunk: CHUNK,
+        maxRows: CHUNK
+      })
+      deleted += n
+      if (n < CHUNK) break // dry — nothing more to prune this pass
+      await nextIdle()
+    }
 
     try {
       localStorage.setItem(DEBUG_KEY, JSON.stringify({ wsafe, deleted, at: Date.now() }))
     } catch {
       // best-effort instrumentation
     }
-
     if (deleted > 0) {
-      // journal_mode is TRUNCATE (no WAL), so the DELETE frees B-tree pages to
-      // the freelist but leaves the file size unchanged. Re-arm the idle VACUUM
-      // so the next boot rewrites the file compactly and the win is realised.
-      try {
-        localStorage.removeItem(VACUUM_FLAG)
-      } catch {
-        // ignore
-      }
+      // NOTE: journal_mode is TRUNCATE (no WAL), so the DELETE frees B-tree pages
+      // to the freelist but does not shrink the file yet — SQLite reuses those
+      // pages for future writes. We intentionally do NOT re-arm the one-time full
+      // VACUUM here (exploration 0260): clearing `xnet:db-vacuumed:v1` every prune
+      // made the *next* boot pay a whole-file rewrite. File reclaim is a separate,
+      // boot-settled concern.
       // eslint-disable-next-line no-console
       console.info('[xNet] change-log compaction', { wsafe, deleted })
     }
@@ -88,9 +135,10 @@ async function runCompaction(
 }
 
 /**
- * Schedule change-log compaction when the main thread is next idle. Safe to call
- * on every boot; a no-op when the kill switch is set or there is nothing to
- * prune. Never touches the boot critical path.
+ * Schedule change-log compaction to run once the cold-open has settled (first
+ * paint) and the main thread is idle. Safe to call on every boot; a no-op when
+ * the kill switch is set or there is nothing to prune. Never touches the boot
+ * critical path (exploration 0260).
  */
 export function scheduleChangeLogCompaction(
   nodeStorage: SQLiteNodeStorageAdapter,
@@ -98,16 +146,7 @@ export function scheduleChangeLogCompaction(
 ): void {
   if (typeof window === 'undefined') return
   if (killed()) return
-
-  const win = window as Window & {
-    requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number
-  }
-  const run = (): void => {
+  runWhenBootSettled(() => {
     void runCompaction(nodeStorage, sqliteAdapter)
-  }
-  if (typeof win.requestIdleCallback === 'function') {
-    win.requestIdleCallback(run, { timeout: 15000 })
-  } else {
-    setTimeout(run, 5000)
-  }
+  })
 }
