@@ -49,6 +49,7 @@ import {
   shouldResetXNetBrowserStorageOnLoad,
   subscribeXNetStorageCorruption
 } from './lib/browser-storage-reset'
+import { scheduleChangeLogCompaction } from './lib/change-log-compaction'
 import { isWorkerRuntimeEnabled } from './lib/data-runtime'
 import { scheduleOneTimeVacuum } from './lib/db-vacuum'
 import { defaultHubUrl, persistedHubUrl, readHubParam, setPersistedHubUrl } from './lib/hub-url'
@@ -462,6 +463,15 @@ export function App(): JSX.Element {
         scheduleOneTimeVacuum(sqliteAdapter)
 
         const nodeStorage = new SQLiteNodeStorageAdapter(sqliteAdapter)
+
+        // Idle-scheduled change-log compaction (exploration 0254 / F3): prune
+        // superseded history from the local `changes` log so the OPFS file — and
+        // the first outbound-resync slice — shrink at the root, the durable fix
+        // for the recurring cold-open stall. Convergence-safe (keeps every
+        // live-value backer + per-node tips) and behind the
+        // `xnet:compact:changes=off` kill switch.
+        scheduleChangeLogCompaction(nodeStorage, sqliteAdapter)
+
         const storageAdapter = new SQLiteStorageAdapter(sqliteAdapter)
         await storageAdapter.open()
         // Boot-phase split (0249): storage adapter is open; what follows up to
