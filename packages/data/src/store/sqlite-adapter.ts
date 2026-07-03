@@ -24,7 +24,6 @@ import type {
   NodeBatchPreflightResult
 } from './types'
 import type { SchemaIRI } from '../schema/node'
-import { SYSTEM_SCHEMA_BASE_IRIS } from '../schema/schemas/system'
 import type { ContentId, DID } from '@xnetjs/core'
 import type {
   SQLiteAdapter,
@@ -43,6 +42,7 @@ import {
   runAnalyze,
   timeQuery
 } from '@xnetjs/sqlite'
+import { SYSTEM_SCHEMA_BASE_IRIS } from '../schema/schemas/system'
 import {
   applyNodeQueryDescriptor,
   getNodeQuerySearchTokens,
@@ -600,6 +600,72 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     return rows.map((row) => this.deserializeChange(row))
   }
 
+  /**
+   * Compact the local change log (exploration 0254 / F3): delete only
+   * *superseded* history so the OPFS file shrinks (fast cold open) and the
+   * outbound-resync slice shrinks (cheap first sync), without affecting reads,
+   * outbound sync, hash-chain chaining, or convergence with peers that never
+   * compacted.
+   *
+   * A row is deleted iff ALL of:
+   *  - `lamport_time < wsafe` — below the confirmed-durable floor, so the hub
+   *    holds it and it is not part of the unconfirmed outbound tail (K1);
+   *  - it is NOT a node's hash-chain tip — we keep every row at a node's
+   *    `MAX(lamport_time)` (the whole tie group), so `getLastChange()` still
+   *    returns a real tip and the next write's `parentHash`/hash/signature are
+   *    byte-identical to an uncompacted peer's (K2);
+   *  - it backs NO currently-winning LWW value — its `(node_id, lamport_time,
+   *    author)` is not the provenance of any live `node_properties` row (K3).
+   *
+   * K3 is the load-bearing safety net: because every live projection value keeps
+   * its backing row, the retained log still materialises to — and can re-push —
+   * the exact current state, so a stranded/rolled-back peer never loses live
+   * data. Reads are unaffected (they read the materialized `nodes`/
+   * `node_properties`, never the log). Only rows are deleted, never rewritten
+   * (the hash + signature are immutable and unforgeable). Runs chunked inside
+   * the write lane, yields between chunks, and never throws.
+   */
+  async pruneSupersededChanges(
+    wsafe: number,
+    options: { chunk?: number; maxRows?: number } = {}
+  ): Promise<{ deleted: number }> {
+    const chunk = Math.max(1, Math.floor(options.chunk ?? 5_000))
+    const maxRows = Math.max(0, Math.floor(options.maxRows ?? 250_000))
+    if (!Number.isFinite(wsafe) || wsafe <= 0 || maxRows === 0) return { deleted: 0 }
+
+    let deleted = 0
+    for (;;) {
+      const remaining = maxRows - deleted
+      const limit = Math.min(chunk, remaining)
+      if (limit <= 0) break
+      const affected = await this.enqueueWrite(async () => {
+        const result = await this.db.run(
+          `DELETE FROM changes WHERE hash IN (
+             SELECT c.hash FROM changes c
+             WHERE c.lamport_time < ?
+               AND c.lamport_time < (
+                 SELECT MAX(t.lamport_time) FROM changes t WHERE t.node_id = c.node_id
+               )
+               AND NOT EXISTS (
+                 SELECT 1 FROM node_properties p
+                 WHERE p.node_id = c.node_id
+                   AND p.lamport_time = c.lamport_time
+                   AND p.updated_by = c.author
+               )
+             LIMIT ?
+           )`,
+          [wsafe, limit]
+        )
+        return result.changes ?? 0
+      })
+      deleted += affected
+      if (affected < limit) break
+      // Yield a macrotask so interactive ops interleave between chunks.
+      await new Promise((resolve) => setTimeout(resolve, 0))
+    }
+    return { deleted }
+  }
+
   async getChangeByHash(hash: ContentId): Promise<NodeChange | null> {
     const row = await this.db.queryOne<ChangeRow>(
       `SELECT hash, node_id, payload, lamport_time, 
@@ -1078,6 +1144,22 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       [this.syncCursorKey(room)]
     )
     return row ? parseInt(row.value, 10) || 0 : 0
+  }
+
+  /**
+   * The lowest confirmed-durable sync cursor across every node-change room
+   * (`MIN` over the persisted `nodeSync:hwm:*` marks), or `null` when no room has
+   * ever confirmed. This is the safe compaction floor (exploration 0254): the
+   * hub durably holds every change at or below it. Returns `null` — never 0 — so
+   * a workspace that has never synced is left untouched.
+   */
+  async getMinConfirmedSyncCursor(): Promise<number | null> {
+    const row = await this.db.queryOne<{ min_value: number | null }>(
+      `SELECT MIN(CAST(value AS INTEGER)) AS min_value
+         FROM sync_state WHERE key LIKE 'nodeSync:hwm:%'`
+    )
+    const value = row?.min_value
+    return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null
   }
 
   async setSyncCursor(room: string, lamport: number): Promise<void> {

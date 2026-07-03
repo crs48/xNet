@@ -394,20 +394,20 @@ export function scheduleChangeLogCompaction(deps: CompactionDeps): void {
 
 ## Implementation Checklist
 
-- [ ] `pruneSupersededChanges(wsafe, …)` on the SQLite node‑storage adapter —
+- [x] `pruneSupersededChanges(wsafe, …)` on the SQLite node‑storage adapter —
       chunked, inside `enqueueWrite`, tip tie‑break identical to `getLastChange`
       (`ORDER BY lamport_time DESC, hash ASC`), K3 `NOT EXISTS` lineage guard.
-- [ ] `scheduleChangeLogCompaction` in `apps/web` mirroring `db-vacuum.ts`; behind
+- [x] `scheduleChangeLogCompaction` in `apps/web` mirroring `db-vacuum.ts`; behind
       `xnet:compact:changes` kill‑switch; idle‑scheduled.
-- [ ] Session gates: every room cursor > 0, storage ≠ memory, outbound not halted,
+- [x] Session gates: every room cursor > 0, storage ≠ memory, outbound not halted,
       **no rollback** (`HWM ≥ cursor`), **stable hub identity** this session.
-- [ ] Rollback handling: on `node-sync-response` with `highWaterMark <
+- [x] Rollback handling: on `node-sync-response` with `highWaterMark <
       getSyncCursor(room)`, reset `pushedThrough → min(pushedThrough, HWM)` and
       re‑offer; never prune above the last‑seen HWM.
-- [ ] `PRAGMA wal_checkpoint(TRUNCATE)` after prune; re‑arm idle `VACUUM`.
-- [ ] Truncation‑proof debug: `localStorage['xnet:compact:last'] = { wsafe,
+- [x] `PRAGMA wal_checkpoint(TRUNCATE)` after prune; re‑arm idle `VACUUM`.
+- [x] Truncation‑proof debug: `localStorage['xnet:compact:last'] = { wsafe,
       deleted }` (same pattern as #352).
-- [ ] `@xnetjs/data` (+ `@xnetjs/runtime` if the provider exposes the watermark)
+- [x] `@xnetjs/data` (+ `@xnetjs/runtime` if the provider exposes the watermark)
       changeset — behaviour‑additive, `patch`.
 - [ ] **Follow‑up (separate):** hub‑assisted signed‑snapshot bootstrap (Design C).
 - [ ] **Follow‑up (separate):** fix the `pushedThrough` strand (real pushed cursor
@@ -415,17 +415,17 @@ export function scheduleChangeLogCompaction(deps: CompactionDeps): void {
 
 ## Validation Checklist
 
-- [ ] **Convergence conformance (currently would FAIL without K3):** author a local
+- [x] **Convergence conformance (currently would FAIL without K3):** author a local
       change *below* a concurrently‑received `highWaterMark`, run GC, bootstrap a
       fresh peer from the hub → assert projections byte‑identical.
-- [ ] **Live‑value retention:** property edited N times; after GC the winning row
+- [x] **Live‑value retention:** property edited N times; after GC the winning row
       survives and the projection value is unchanged; N−1 superseded rows gone.
-- [ ] **Tip/chain:** after GC, `getLastChange(nodeId)` returns the same hash as
+- [x] **Tip/chain:** after GC, `getLastChange(nodeId)` returns the same hash as
       pre‑GC for every node; a new write produces an identical `parentHash`/hash to
       an uncompacted peer (equal‑lamport same‑node seed exercises the tie‑break).
 - [ ] **Idempotent re‑delivery:** re‑applying a pruned change is a row‑level
       (`INSERT OR IGNORE`) and projection‑level (LWW) no‑op.
-- [ ] **Rollback:** hub `HWM` regresses below the cursor → GC no‑ops and the client
+- [x] **Rollback:** hub `HWM` regresses below the cursor → GC no‑ops and the client
       re‑offers; no divergence.
 - [ ] **BYO‑hub:** repoint at an empty hub → GC skips that session; current state is
       still fully re‑pushable from the retained (K1∪K2∪K3) rows.

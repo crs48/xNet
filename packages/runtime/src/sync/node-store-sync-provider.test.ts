@@ -339,6 +339,48 @@ describe('NodeStoreSyncProvider', () => {
     })
   })
 
+  describe('rollback guard (0254)', () => {
+    it('re-offers local changes when the hub high-water mark regresses below the cursor', async () => {
+      const { store, getChangesSince } = makeStore({ changes: [], cursor: 0 })
+      const { conn, setStatus, injectMessage } = makeConnection('disconnected')
+      new NodeStoreSyncProvider(store, 'room-1').attach(conn)
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+
+      // Connect and let the hub confirm up to 100.
+      setStatus('connected')
+      await vi.advanceTimersByTimeAsync(0)
+      injectMessage({ type: 'node-sync-response', room: 'room-1', changes: [], highWaterMark: 100 })
+      await vi.advanceTimersByTimeAsync(0)
+      getChangesSince.mockClear()
+
+      // The hub rolls back: a later response reports a LOWER mark. The guard
+      // drops the push cursor and re-offers the gap from the hub's real mark.
+      injectMessage({ type: 'node-sync-response', room: 'room-1', changes: [], highWaterMark: 50 })
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('hub rollback'))
+      expect(getChangesSince).toHaveBeenCalledWith(50)
+      warn.mockRestore()
+    })
+
+    it('does not re-offer on normal forward progress', async () => {
+      const { store, getChangesSince } = makeStore({ changes: [], cursor: 0 })
+      const { conn, setStatus, injectMessage } = makeConnection('disconnected')
+      new NodeStoreSyncProvider(store, 'room-1').attach(conn)
+
+      setStatus('connected')
+      await vi.advanceTimersByTimeAsync(0)
+      injectMessage({ type: 'node-sync-response', room: 'room-1', changes: [], highWaterMark: 100 })
+      await vi.advanceTimersByTimeAsync(0)
+      getChangesSince.mockClear()
+
+      // A higher mark is forward progress, never a rollback re-offer.
+      injectMessage({ type: 'node-sync-response', room: 'room-1', changes: [], highWaterMark: 140 })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(getChangesSince).not.toHaveBeenCalledWith(100)
+    })
+  })
+
   describe('resilience (0206)', () => {
     it('restores a missing payload schemaId from the top-level field on deserialize', async () => {
       const { store } = makeStore()

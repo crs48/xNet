@@ -14,9 +14,9 @@ import { join } from 'path'
 import { createElectronSQLiteAdapter } from '@xnetjs/sqlite/electron'
 import { createMemorySQLiteAdapter } from '@xnetjs/sqlite/memory'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
+import { SYSTEM_SCHEMA_BASE_IRIS } from '../schema/schemas/system'
 import { encodeNodeQueryCursor } from './query'
 import { SQLiteNodeStorageAdapter } from './sqlite-adapter'
-import { SYSTEM_SCHEMA_BASE_IRIS } from '../schema/schemas/system'
 
 function getTestDbPath(): string {
   return join(tmpdir(), `xnet-data-spatial-${randomUUID()}.db`)
@@ -199,6 +199,132 @@ describe('SQLiteNodeStorageAdapter', () => {
       await adapter.setAppState('k', 'value')
       expect(await adapter.getAppState('k')).toBe('value')
       expect(await adapter.getSyncCursor('k')).toBe(99)
+    })
+  })
+
+  describe('change-log compaction (0254)', () => {
+    // Materialize a node whose current LWW winners are the given per-property
+    // { value, lamport } pairs, so `node_properties` provenance is exact.
+    async function materialize(
+      id: string,
+      props: Record<string, { value: unknown; lamport: number }>
+    ): Promise<void> {
+      const now = Date.now()
+      await adapter.setNode({
+        id,
+        schemaId: testSchemaId,
+        properties: Object.fromEntries(Object.entries(props).map(([k, v]) => [k, v.value])),
+        timestamps: Object.fromEntries(
+          Object.entries(props).map(([k, v]) => [
+            k,
+            { lamport: v.lamport, author: testDID, wallTime: now }
+          ])
+        ),
+        deleted: false,
+        createdAt: now,
+        createdBy: testDID,
+        updatedAt: now,
+        updatedBy: testDID
+      })
+    }
+
+    async function appendHistory(
+      nodeId: string,
+      rows: Array<{ id: string; property: string; value: unknown; lamport: number }>
+    ): Promise<void> {
+      for (const r of rows) {
+        await adapter.appendChange(
+          createTestChange({
+            id: r.id,
+            nodeId,
+            properties: { [r.property]: r.value },
+            lamportTime: r.lamport,
+            batchId: 'compact'
+          })
+        )
+      }
+    }
+
+    it('prunes superseded history but keeps per-node tips and live-value backers', async () => {
+      const N = 'compact-N'
+      // Current winners: q@1 (a NON-tip winner) and p@3 (the tip).
+      await materialize(N, { q: { value: 'qv', lamport: 1 }, p: { value: 'p-final', lamport: 3 } })
+      await appendHistory(N, [
+        { id: 'cN-q1', property: 'q', value: 'qv', lamport: 1 }, // winner for q, non-tip
+        { id: 'cN-p2', property: 'p', value: 'p-old', lamport: 2 }, // superseded
+        { id: 'cN-p3', property: 'p', value: 'p-final', lamport: 3 } // winner for p, tip
+      ])
+
+      const { deleted } = await adapter.pruneSupersededChanges(100)
+
+      // Only the superseded p@2 goes; the still-winning non-tip q@1 stays (K3),
+      // and the tip p@3 stays (K2) — so reads and re-push remain intact.
+      expect(deleted).toBe(1)
+      const remaining = (await adapter.getChanges(N)).map((c) => c.hash)
+      expect(remaining).toEqual(['cid:blake3:cN-q1', 'cid:blake3:cN-p3'])
+      // The tip getLastChange returns is unchanged, so parentHash chaining holds.
+      expect((await adapter.getLastChange(N))?.hash).toBe('cid:blake3:cN-p3')
+    })
+
+    it('never drops the unconfirmed tail (rows at/above wsafe), even if superseded', async () => {
+      const T = 'compact-T'
+      await materialize(T, { p: { value: 'p12', lamport: 12 } })
+      await appendHistory(T, [
+        { id: 'cT-10', property: 'p', value: 'p10', lamport: 10 }, // superseded, below floor
+        { id: 'cT-11', property: 'p', value: 'p11', lamport: 11 }, // superseded, IN the tail
+        { id: 'cT-12', property: 'p', value: 'p12', lamport: 12 } // winner + tip
+      ])
+
+      const { deleted } = await adapter.pruneSupersededChanges(11)
+
+      // p@10 is superseded and below the floor → pruned. p@11 is superseded but
+      // >= wsafe → kept (outbound sync may still owe it). p@12 is the tip.
+      expect(deleted).toBe(1)
+      expect((await adapter.getChanges(T)).map((c) => c.hash)).toEqual([
+        'cid:blake3:cT-11',
+        'cid:blake3:cT-12'
+      ])
+    })
+
+    it('chunks a large delete and removes every superseded row', async () => {
+      const B = 'compact-B'
+      await materialize(B, { p: { value: 'p6', lamport: 6 } })
+      await appendHistory(B, [
+        { id: 'cB-1', property: 'p', value: 'p1', lamport: 1 },
+        { id: 'cB-2', property: 'p', value: 'p2', lamport: 2 },
+        { id: 'cB-3', property: 'p', value: 'p3', lamport: 3 },
+        { id: 'cB-4', property: 'p', value: 'p4', lamport: 4 },
+        { id: 'cB-5', property: 'p', value: 'p5', lamport: 5 },
+        { id: 'cB-6', property: 'p', value: 'p6', lamport: 6 } // winner + tip
+      ])
+
+      const { deleted } = await adapter.pruneSupersededChanges(100, { chunk: 2 })
+
+      expect(deleted).toBe(5) // 1..5 superseded, across 3 chunks
+      expect((await adapter.getChanges(B)).map((c) => c.hash)).toEqual(['cid:blake3:cB-6'])
+    })
+
+    it('respects maxRows and no-ops on a non-positive watermark', async () => {
+      const M = 'compact-M'
+      await materialize(M, { p: { value: 'p3', lamport: 3 } })
+      await appendHistory(M, [
+        { id: 'cM-1', property: 'p', value: 'p1', lamport: 1 },
+        { id: 'cM-2', property: 'p', value: 'p2', lamport: 2 },
+        { id: 'cM-3', property: 'p', value: 'p3', lamport: 3 }
+      ])
+
+      expect((await adapter.pruneSupersededChanges(0)).deleted).toBe(0)
+      expect((await adapter.pruneSupersededChanges(-5)).deleted).toBe(0)
+      // maxRows caps the pass even when more is prunable.
+      expect((await adapter.pruneSupersededChanges(100, { maxRows: 1 })).deleted).toBe(1)
+    })
+
+    it('getMinConfirmedSyncCursor is the MIN over rooms, null when none confirmed', async () => {
+      expect(await adapter.getMinConfirmedSyncCursor()).toBeNull()
+      await adapter.setSyncCursor('room-a', 100)
+      await adapter.setSyncCursor('room-b', 40)
+      await adapter.setAppState('k', 'v') // app-state keys must not be counted
+      expect(await adapter.getMinConfirmedSyncCursor()).toBe(40)
     })
   })
 

@@ -1,0 +1,11 @@
+{
+  "id": "2026-07-03-faster-cold-open-on-large-workspaces",
+  "date": "July 3, 2026",
+  "title": "Faster cold open on large workspaces",
+  "summary": "Workspaces with a long edit history now compact their local change log in the background, so the app opens faster after the first sync.",
+  "highlights": [],
+  "tags": [
+    "performance",
+    "sync"
+  ]
+}
