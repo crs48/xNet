@@ -1,0 +1,17 @@
+{
+  "id": "2026-07-03-foundation-for-graceful-handling-of-miss",
+  "date": "July 3, 2026",
+  "title": "Foundation for graceful handling of missed payments",
+  "summary": "A new dunning lifecycle decision powers grace, suspend, and retention so a failed payment degrades an account gracefully — and never deletes your local data — instead of an abrupt cutoff.",
+  "highlights": [],
+  "tags": [
+    "platform"
+  ],
+  "pr": 364,
+  "mergedAt": "2026-07-03T23:02:10Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

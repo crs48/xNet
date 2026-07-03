@@ -74,6 +74,29 @@ export {
   type ConnectionStatus
 } from './sync/connection-manager'
 
+// Multi-home sync: policy-driven selective routing over the multiplexed
+// per-hub transports (exploration 0258).
+export {
+  createMultiHubSyncManager,
+  type MultiHubSyncManager,
+  type MultiHubSyncManagerConfig,
+  type HubConnection,
+  type HubTransport,
+  type PlannedHub,
+  type ScopedRoomHandle
+} from './sync/MultiHubSyncManager'
+
+export {
+  spaceNamespace,
+  systemNamespace,
+  namespaceForNode,
+  replicationConfigFromPolicies,
+  type ReplicaTrust,
+  type ReplicationScopeNode,
+  type ReplicationDestinationSpec,
+  type SpaceReplicationPolicy
+} from './sync/replication-scope'
+
 export {
   NodeStoreSyncProvider,
   type SerializedNodeChange,
