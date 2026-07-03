@@ -4,5 +4,14 @@
   "title": "Missed payments now start a grace period instead of an abrupt cutoff",
   "summary": "xNet Cloud now recognizes Stripe payment-failure and recovery webhooks and tracks a per-account non-payment lifecycle, so a failed card opens a grace period (and recovers cleanly) rather than silently doing nothing until the subscription cancels.",
   "highlights": [],
-  "tags": ["platform"]
+  "tags": [
+    "platform"
+  ],
+  "pr": 367,
+  "mergedAt": "2026-07-03T23:57:45Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
