@@ -428,8 +428,8 @@ flowchart LR
 - [x] Land **Platform** batch: ADR-13, ADR-16, ADR-17, ADR-20, ADR-21.
 - [x] Land **Values** batch: ADR-18, ADR-19, ADR-22, ADR-23, ADR-24; add
       ADR-25 as `Proposed`.
-- [ ] Fix `architecture/overview.mdx` **Sync path** mermaid + package attributions.
-- [ ] Add `@xnetjs/runtime` to `architecture/package-graph.mdx`; move
+- [x] Fix `architecture/overview.mdx` **Sync path** mermaid + package attributions.
+- [x] Add `@xnetjs/runtime` to `architecture/package-graph.mdx`; move
       SyncManager/NodePool/MetaBridge prose from react → runtime.
 - [ ] Reconcile `docs/TRADEOFFS.md`: fold entries into ADR numbering (or mark
       Historical) and **fix the dead `IDENTITY_MIGRATION_PLAN.md` link**.

@@ -18,6 +18,7 @@ graph BT
   storage["@xnetjs/storage"]
   sync["@xnetjs/sync"]
   data["@xnetjs/data"]
+  runtime["@xnetjs/runtime"]
   react["@xnetjs/react"]
   network["@xnetjs/network"]
   plugins["@xnetjs/plugins"]
@@ -41,9 +42,10 @@ graph BT
   data --> crypto
   network --> sync
   network --> crypto
-  react --> data
-  react --> sync
-  react --> storage
+  runtime --> data
+  runtime --> sync
+  runtime --> storage
+  react --> runtime
   plugins --> data
   editor --> |Yjs| sync
   canvas --> data
@@ -67,6 +69,7 @@ graph BT
   style storage fill:#4f46e5,color:#fff,stroke:#6366f1
   style sync fill:#4f46e5,color:#fff,stroke:#6366f1
   style data fill:#4f46e5,color:#fff,stroke:#6366f1
+  style runtime fill:#4f46e5,color:#fff,stroke:#6366f1
   style react fill:#4f46e5,color:#fff,stroke:#6366f1
   style network fill:#6366f1,color:#fff,stroke:#818cf8
   style plugins fill:#6366f1,color:#fff,stroke:#818cf8
@@ -115,11 +118,17 @@ Core sync primitives: Lamport clocks, `Change<T>` type, hash chains, Yjs securit
 
 Schema system (`defineSchema`, 15 property types), NodeStore (CRUD + change tracking), type inference (`FlatNode`, `InferCreateProps`), validation and coercion.
 
+### @xnetjs/runtime
+
+**Dependencies:** `@xnetjs/data`, `@xnetjs/sync`, `@xnetjs/storage`
+
+The framework-agnostic client. `createXNetClient()` assembles the store, MetaBridge, SyncManager, NodePool, Registry, OfflineQueue, and the multi-hub ConnectionManager; `liveQuery()` exposes the universal `{ getSnapshot, subscribe }` store contract. No React dependency — it powers React, other frameworks, CLIs, and servers alike. See [ADR-14](/docs/architecture/decisions/#adr-14-framework-agnostic-runtime-react-is-a-thin-binding).
+
 ### @xnetjs/react
 
-**Dependencies:** `@xnetjs/data`, `@xnetjs/sync`, `@xnetjs/storage`, `react`
+**Dependencies:** `@xnetjs/runtime`, `react`
 
-React bindings: `useQuery`, `useMutate`, `useNode`, `useIdentity`, `XNetProvider`. Also contains the SyncManager, NodePool, Registry, OfflineQueue, ConnectionManager, MetaBridge, and plugin hooks.
+The thin React binding: `useQuery`, `useMutate`, `useNode`, `useIdentity`, `XNetProvider`, and the plugin hooks. The sync engine itself lives in `@xnetjs/runtime`; this package re-exports it and adapts it to React via `useSyncExternalStore`.
 
 ### @xnetjs/network
 

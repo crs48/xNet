@@ -14,9 +14,13 @@ xNet is organized as a layered stack where each package builds on the ones below
 ┌─────────────────────────────────────────┐
 │  apps/electron  ·  apps/web             │  Applications
 ├─────────────────────────────────────────┤
-│  @xnetjs/react                            │  React bindings
+│  @xnetjs/react                            │  React bindings (thin)
 │  useQuery · useMutate · useNode         │
 │  useIdentity · XNetProvider             │
+├─────────────────────────────────────────┤
+│  @xnetjs/runtime                          │  Framework-agnostic client
+│  createXNetClient · liveQuery           │
+│  SyncManager · NodePool · MetaBridge    │
 ├─────────────────────────────────────────┤
 │  @xnetjs/data                             │  Data layer
 │  defineSchema · NodeStore               │
@@ -89,17 +93,22 @@ flowchart LR
 
 ### Sync path
 
+The interop kernel is the signed `Change<T>` log — **not** Yjs. Structured node
+data replicates as signed changes; Yjs is a document codec whose updates ride the
+same wire as opaque, signed bytes. See
+[ADR-11](/docs/architecture/decisions/#adr-11-xnet-is-a-protocol--the-interop-kernel-is-the-change-log-not-yjs).
+
 ```mermaid
 flowchart LR
-  A["Y.Doc update"] --> B["YjsBatcher\n(2s window)"]
-  B --> C["signYjsUpdate()"]
-  C --> D["ConnectionManager\n.publish()"]
-  D --> E["WebSocket"]
-  E --> F["Signaling server"]
-  F --> G["Peer WebSocket"]
-  G --> H["Rate limit"]
-  H --> I["Verify signature"]
-  I --> J["Apply to Y.Doc"]
+  A["mutate()"] --> B["Change‹T› + Lamport"]
+  B --> C["BLAKE3 hash · Ed25519 sign · chain"]
+  C --> D["SyncManager\n(@xnetjs/runtime)"]
+  D --> E["Multi-hub\nConnectionManager"]
+  E --> F["Hub relay → peers"]
+  F --> G["Verify signature\n+ rate limit"]
+  G --> H["Apply to change log"]
+  A -. "rich-text / canvas nodes" .-> Y["Y.Doc → YjsBatcher\n→ signed envelope"]
+  Y -. "opaque bytes" .-> D
 ```
 
 ## Further reading
