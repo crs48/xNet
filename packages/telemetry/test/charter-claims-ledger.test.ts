@@ -20,12 +20,11 @@
  */
 import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
-import { describe, expect, it } from 'vitest'
-
 import { DEFAULT_SECURITY_LEVEL } from '@xnetjs/crypto'
 import { createDID, isValidDID } from '@xnetjs/identity'
 import { CURRENT_PROTOCOL_VERSION, verifyChange, verifyChangeHash } from '@xnetjs/sync'
 import { DEFAULT_CONSENT } from '@xnetjs/telemetry'
+import { describe, expect, it } from 'vitest'
 
 /** Repo root, derived from this file's location (tests/integration/src/x). */
 const repoRoot = fileURLToPath(new URL('../../../', import.meta.url))
@@ -85,7 +84,8 @@ const CLAIMS: Claim[] = [
   },
   {
     id: 'pq-posture-declared',
-    source: 'change.ts CURRENT_PROTOCOL_VERSION=3 — hybrid Ed25519+ML-DSA (code ahead of the essays)',
+    source:
+      'change.ts CURRENT_PROTOCOL_VERSION=3 — hybrid Ed25519+ML-DSA (code ahead of the essays)',
     backing: 'architectural',
     assert: () => {
       // The protocol declares the hybrid capability (v3); the shipped default
@@ -97,7 +97,8 @@ const CLAIMS: Claim[] = [
   },
   {
     id: 'calm-feeds-chronological',
-    source: 'the-gentlest-furnace · Charter §Calm — "feeds are chronological, no engagement ranking"',
+    source:
+      'the-gentlest-furnace · Charter §Calm — "feeds are chronological, no engagement ranking"',
     backing: 'enforced',
     enforcedBy: 'packages/social/src/feeds/charter-calm-feeds.test.ts'
   },
