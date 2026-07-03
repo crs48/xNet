@@ -1,0 +1,8 @@
+{
+  "id": "2026-07-03-multi-home-sync-routing-selective-backup",
+  "date": "July 3, 2026",
+  "title": "Multi-home sync routing (selective backup to multiple hubs)",
+  "summary": "New runtime primitives (createMultiHubSyncManager + replication-scope helpers) that route each Space to only the hubs its policy selects, wiring up selective multi-hub replication over the existing multiplexed transports.",
+  "highlights": [],
+  "tags": ["sync"]
+}
