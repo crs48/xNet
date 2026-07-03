@@ -486,7 +486,7 @@ async function prepareOutbound(change: Change, space: SpaceState) {
 - [ ] Wire `createEncryptedEnvelope` into `packages/runtime/src/sync/sync-manager.ts` behind a per-Space `sealed` flag.
 - [ ] Add a `sealed` toggle to Space settings UI and resolve recipients from existing grants.
 - [ ] Update the compare footnote (`site/src/data/compare.ts`) and the loom essay caveat from "roadmap" to "per-Space, available."
-- [ ] Add `packages/telemetry/test/charter-claims-ledger.test.ts` (or a dedicated `conformance/claims/` suite) tying each load-bearing present-tense claim to a code fact, with a `CLAIM_PENDING` allowance for `building` items.
+- [x] Add `packages/telemetry/test/charter-claims-ledger.test.ts` (or a dedicated `conformance/claims/` suite) tying each load-bearing present-tense claim to a code fact, with a `CLAIM_PENDING` allowance for `building` items.
 - [ ] Extend `scripts/check-humane-patterns.mjs` `SURPLUS_ROOTS`/`DARK_DIR_MARKERS` to include `site/src`.
 - [ ] Add a CI job that runs `conformance/vectors` against `rust/xnet-core`; wire it into the required checks.
 - [ ] Decide the post-quantum default; document it in `docs/CHARTER.md` and, if "on," raise `DEFAULT_SECURITY_LEVEL` with vector coverage.
