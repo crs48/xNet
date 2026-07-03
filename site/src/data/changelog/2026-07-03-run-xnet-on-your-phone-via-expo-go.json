@@ -4,5 +4,14 @@
   "title": "Run xNet on your phone via Expo Go",
   "summary": "A new Run on Mobile page (linked in the footer) shows a QR code that launches the xNet demo inside Expo Go — no App Store, no sideloading — plus copy-paste steps to run it yourself.",
   "highlights": [],
-  "tags": ["app"]
+  "tags": [
+    "app"
+  ],
+  "pr": 363,
+  "mergedAt": "2026-07-03T19:30:02Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
