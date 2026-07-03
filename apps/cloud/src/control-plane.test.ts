@@ -3,6 +3,7 @@ import { MemoryBindingStore } from '@xnetjs/cloud/identity'
 import { MemoryProvisioner } from '@xnetjs/cloud/provisioner'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ControlPlane, currentPeriodStartMs } from './control-plane'
+import { DUNNING_WINDOWS } from './reconcile/billing'
 import { MemoryTenantStore } from './registry'
 
 const challenge = (did: string) => ({ did, nonce: 'n', signature: 'sig' })
@@ -557,5 +558,37 @@ describe('ControlPlane cold-tiering (0178)', () => {
     expect(provisionSpy).toHaveBeenCalledWith(
       expect.objectContaining({ restoreFromR2: 't/acme/db' })
     )
+  })
+})
+
+describe('ControlPlane.recordBillingEvent (dunning, 0260)', () => {
+  it('opens grace on a failed payment and recovers on a paid invoice', async () => {
+    const { cp } = build() // clock starts at 1000
+    await cp.provisionForBilling({ plan: 'personal', billingUserId: 'user_a' })
+
+    const failed = await cp.recordBillingEvent('user_a', { kind: 'payment_failed' })
+    expect(failed?.billing).toEqual({
+      state: 'grace',
+      subscriptionStatus: 'past_due',
+      graceUntilMs: 1000 + DUNNING_WINDOWS.graceMs
+    })
+
+    const recovered = await cp.recordBillingEvent('user_a', { kind: 'payment_recovered' })
+    expect(recovered?.billing).toEqual({ state: 'active', subscriptionStatus: 'active' })
+  })
+
+  it('records the unpaid status so the reconciler can later suspend', async () => {
+    const { cp } = build()
+    await cp.provisionForBilling({ plan: 'personal', billingUserId: 'user_a' })
+    const updated = await cp.recordBillingEvent('user_a', {
+      kind: 'subscription_status',
+      status: 'unpaid'
+    })
+    expect(updated?.billing?.subscriptionStatus).toBe('unpaid')
+  })
+
+  it('returns null when no tenant owns the billing identity', async () => {
+    const { cp } = build()
+    expect(await cp.recordBillingEvent('nobody', { kind: 'payment_failed' })).toBeNull()
   })
 })

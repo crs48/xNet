@@ -35,6 +35,7 @@ import {
   type PlanId
 } from '@xnetjs/entitlements'
 import { fetchHubHealth } from './hub-status'
+import { applyBillingEvent, type BillingEvent } from './reconcile/billing'
 import { type TenantRecord, type TenantStore } from './registry'
 
 export interface ControlPlaneDeps {
@@ -301,6 +302,26 @@ export class ControlPlane {
   async getTenantForBilling(billingUserId: string): Promise<TenantRecord | null> {
     const all = await this.deps.tenants.list()
     return all.find((t) => t.billingUserId === billingUserId) ?? null
+  }
+
+  /**
+   * Fold a verified Stripe dunning event into the tenant's non-payment lifecycle
+   * state (exploration 0260): a failed payment opens grace, a paid invoice recovers,
+   * a status change annotates. The decision is the pure `applyBillingEvent`; here we
+   * load, apply, and persist. The timer-driven transitions (grace → read-only →
+   * suspended → deletion) are advanced separately by a reconcile driver over
+   * `reconcileBilling`. Returns null when no tenant owns that billing identity.
+   */
+  async recordBillingEvent(
+    billingUserId: string,
+    event: BillingEvent
+  ): Promise<TenantRecord | null> {
+    const tenant = await this.getTenantForBilling(billingUserId)
+    if (!tenant) return null
+    const billing = applyBillingEvent(tenant.billing, event, this.now())
+    const updated: TenantRecord = { ...tenant, billing }
+    await this.deps.tenants.put(updated)
+    return updated
   }
 
   /**

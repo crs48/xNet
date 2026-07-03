@@ -142,4 +142,63 @@ describe('StripeTenantBillingGateway', () => {
       WebhookSignatureError
     )
   })
+
+  it('maps invoice.payment_failed to a dunning payment_failed with the attempt count', async () => {
+    // Invoice events carry customerRef under subscription_details.metadata, not top-level.
+    const s = makeStripe({
+      event: {
+        type: 'invoice.payment_failed',
+        data: {
+          object: {
+            subscription_details: { metadata: { customerRef: 'user_a' } },
+            attempt_count: 2
+          }
+        }
+      }
+    })
+    expect(await gw(s.stripe).parseWebhook('{}', { 'stripe-signature': 'sig' })).toEqual({
+      type: 'payment_failed',
+      customerRef: 'user_a',
+      attemptCount: 2
+    })
+  })
+
+  it('maps invoice.paid to payment_recovered', async () => {
+    const s = makeStripe({
+      event: {
+        type: 'invoice.paid',
+        data: { object: { subscription_details: { metadata: { customerRef: 'user_a' } } } }
+      }
+    })
+    expect(await gw(s.stripe).parseWebhook('{}', { 'stripe-signature': 'sig' })).toEqual({
+      type: 'payment_recovered',
+      customerRef: 'user_a'
+    })
+  })
+
+  it('maps customer.subscription.updated to a subscription_status with the new status', async () => {
+    const s = makeStripe({
+      event: {
+        type: 'customer.subscription.updated',
+        data: { object: { metadata: { customerRef: 'user_a' }, status: 'past_due' } }
+      }
+    })
+    expect(await gw(s.stripe).parseWebhook('{}', { 'stripe-signature': 'sig' })).toEqual({
+      type: 'subscription_status',
+      customerRef: 'user_a',
+      status: 'past_due'
+    })
+  })
+
+  it('ignores a subscription update with an unrecognized status', async () => {
+    const s = makeStripe({
+      event: {
+        type: 'customer.subscription.updated',
+        data: { object: { metadata: { customerRef: 'user_a' }, status: 'trialing' } }
+      }
+    })
+    expect(await gw(s.stripe).parseWebhook('{}', { 'stripe-signature': 'sig' })).toEqual({
+      type: 'ignored'
+    })
+  })
 })

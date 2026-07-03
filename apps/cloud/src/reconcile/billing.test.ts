@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { reconcileBilling, DUNNING_WINDOWS, type BillingReconcileInput } from './billing'
+import {
+  reconcileBilling,
+  applyBillingEvent,
+  DUNNING_WINDOWS,
+  type BillingReconcileInput,
+  type DunningState
+} from './billing'
 
 const NOW = 1_000_000
 const base: BillingReconcileInput = {
@@ -154,5 +160,78 @@ describe('reconcileBilling', () => {
       retentionMs: 30 * DAY,
       finalNoticeMs: 7 * DAY
     })
+  })
+})
+
+describe('applyBillingEvent', () => {
+  it('opens grace with a deadline on the first payment failure of an active tenant', () => {
+    const s = applyBillingEvent(undefined, { kind: 'payment_failed' }, NOW)
+    expect(s).toEqual({
+      state: 'grace',
+      subscriptionStatus: 'past_due',
+      graceUntilMs: NOW + DUNNING_WINDOWS.graceMs
+    })
+  })
+
+  it('does not reset the grace deadline on a later failure (no clock reset)', () => {
+    const grace: DunningState = {
+      state: 'grace',
+      subscriptionStatus: 'past_due',
+      graceUntilMs: NOW + 100
+    }
+    const s = applyBillingEvent(grace, { kind: 'payment_failed' }, NOW + 5000)
+    expect(s.graceUntilMs).toBe(NOW + 100)
+    expect(s.state).toBe('grace')
+  })
+
+  it('returns to active and clears timers when payment recovers, from any funnel state', () => {
+    const suspended: DunningState = {
+      state: 'suspended',
+      subscriptionStatus: 'unpaid',
+      deleteAfterMs: NOW + 100
+    }
+    expect(applyBillingEvent(suspended, { kind: 'payment_recovered' }, NOW)).toEqual({
+      state: 'active',
+      subscriptionStatus: 'active'
+    })
+  })
+
+  it('a subscription flip to active is also a recovery', () => {
+    const readOnly: DunningState = { state: 'read_only', subscriptionStatus: 'past_due' }
+    expect(
+      applyBillingEvent(readOnly, { kind: 'subscription_status', status: 'active' }, NOW)
+    ).toEqual({ state: 'active', subscriptionStatus: 'active' })
+  })
+
+  it('a subscription flip to past_due on an active tenant opens grace', () => {
+    const s = applyBillingEvent(undefined, { kind: 'subscription_status', status: 'past_due' }, NOW)
+    expect(s.state).toBe('grace')
+    expect(s.graceUntilMs).toBe(NOW + DUNNING_WINDOWS.graceMs)
+  })
+
+  it('records unpaid/canceled status without advancing the lifecycle (timers do that)', () => {
+    const readOnly: DunningState = {
+      state: 'read_only',
+      subscriptionStatus: 'past_due',
+      graceUntilMs: NOW - 1
+    }
+    const s = applyBillingEvent(readOnly, { kind: 'subscription_status', status: 'unpaid' }, NOW)
+    expect(s).toEqual({ state: 'read_only', subscriptionStatus: 'unpaid', graceUntilMs: NOW - 1 })
+    // …and now reconcileBilling can move it to suspend_cold.
+    expect(
+      reconcileBilling({
+        billingState: s.state,
+        subscriptionStatus: s.subscriptionStatus,
+        nowMs: NOW
+      }).kind
+    ).toBe('suspend_cold')
+  })
+
+  it('never resurrects a deleted tenant', () => {
+    const deleted: DunningState = { state: 'deleted', subscriptionStatus: 'canceled' }
+    expect(applyBillingEvent(deleted, { kind: 'payment_recovered' }, NOW)).toEqual(deleted)
+    expect(
+      applyBillingEvent(deleted, { kind: 'subscription_status', status: 'active' }, NOW)
+    ).toEqual(deleted)
   })
 })

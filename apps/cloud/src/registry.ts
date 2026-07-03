@@ -6,6 +6,7 @@
  * swap `MemoryTenantStore` for a durable store later.
  */
 
+import type { DunningState } from './reconcile/billing'
 import type { BudgetWindow } from '@xnetjs/cloud'
 import type { PlanEntitlements, PlanId } from '@xnetjs/entitlements'
 
@@ -70,6 +71,13 @@ export interface TenantRecord {
    * overage. Falls back to `billingUserId` for the meter event when unset.
    */
   stripeCustomerId?: string
+  /**
+   * Non-payment (dunning) lifecycle state (exploration 0260). Undefined for a
+   * tenant that has never missed a payment (treated as healthy/`active`). Updated
+   * from Stripe webhooks via `recordBillingEvent`; the deadlines drive the
+   * grace → read-only → suspended → deletion transitions via `reconcileBilling`.
+   */
+  billing?: DunningState
 }
 
 export interface TenantStore {

@@ -435,6 +435,16 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
     } else if (event.type === 'subscription.canceled') {
       const tenant = await deps.controlPlane.getTenantForBilling(event.customerRef)
       if (tenant) await deps.controlPlane.suspendTenant(tenant.tenantId)
+    } else if (event.type === 'payment_failed') {
+      // Dunning begins (exploration 0260): open grace, keep serving while Stripe retries.
+      await deps.controlPlane.recordBillingEvent(event.customerRef, { kind: 'payment_failed' })
+    } else if (event.type === 'payment_recovered') {
+      await deps.controlPlane.recordBillingEvent(event.customerRef, { kind: 'payment_recovered' })
+    } else if (event.type === 'subscription_status') {
+      await deps.controlPlane.recordBillingEvent(event.customerRef, {
+        kind: 'subscription_status',
+        status: event.status
+      })
     }
     return c.json({ received: true })
   }

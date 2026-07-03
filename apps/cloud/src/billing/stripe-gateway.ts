@@ -19,6 +19,7 @@ import {
   type TenantBillingGateway,
   type WebhookResult
 } from '../billing-gateway'
+import { isSubscriptionStatus } from '../reconcile/billing'
 
 /** The slice of the Stripe SDK this gateway uses (mock it in tests). */
 export interface StripeClient {
@@ -119,8 +120,18 @@ export class StripeTenantBillingGateway implements TenantBillingGateway {
     } catch {
       throw new WebhookSignatureError()
     }
-    const obj = (event.data.object ?? {}) as { metadata?: Record<string, string> }
+    const obj = (event.data.object ?? {}) as {
+      metadata?: Record<string, string>
+      // Invoice events don't carry the checkout metadata; Stripe copies the
+      // subscription's metadata onto the invoice under `subscription_details`.
+      subscription_details?: { metadata?: Record<string, string> }
+      status?: string
+      attempt_count?: number
+    }
     const meta = obj.metadata ?? {}
+    // customerRef was stamped onto the customer + subscription metadata at checkout
+    // (exploration 0192); for invoice events read it from subscription_details.
+    const customerRef = meta.customerRef ?? obj.subscription_details?.metadata?.customerRef
     if (event.type === 'checkout.session.completed' && meta.customerRef && meta.plan) {
       return {
         type: 'checkout.completed',
@@ -130,6 +141,27 @@ export class StripeTenantBillingGateway implements TenantBillingGateway {
     }
     if (event.type === 'customer.subscription.deleted' && meta.customerRef) {
       return { type: 'subscription.canceled', customerRef: meta.customerRef }
+    }
+    // Dunning events (exploration 0260).
+    if (event.type === 'invoice.payment_failed' && customerRef) {
+      return {
+        type: 'payment_failed',
+        customerRef,
+        ...(typeof obj.attempt_count === 'number' ? { attemptCount: obj.attempt_count } : {})
+      }
+    }
+    if (
+      (event.type === 'invoice.paid' || event.type === 'invoice.payment_succeeded') &&
+      customerRef
+    ) {
+      return { type: 'payment_recovered', customerRef }
+    }
+    if (
+      event.type === 'customer.subscription.updated' &&
+      meta.customerRef &&
+      isSubscriptionStatus(obj.status)
+    ) {
+      return { type: 'subscription_status', customerRef: meta.customerRef, status: obj.status }
     }
     return { type: 'ignored' }
   }
