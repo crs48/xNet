@@ -8,14 +8,14 @@ A fresh capture with #360 deployed shows the opposite of the goal:
 
 > **The cold‑open got ~2× WORSE — the first landing query now takes 31.5 s (was ~15.8 s).**
 
-The compaction *logic* is correct — it computed the right watermark and deleted the
+The compaction _logic_ is correct — it computed the right watermark and deleted the
 right rows — but it runs **during the cold‑boot read burst** and **monopolises the
 single SQLite worker**, so the landing queries it was meant to speed up wait ~15.8 s
-in the worker queue *behind* the compaction before they even start their own ~15.4 s
+in the worker queue _behind_ the compaction before they even start their own ~15.4 s
 cold read. On top of that, the #360 rollback guard mis‑fired against a reset tenant
 hub and re‑offered the entire 318k‑row log twice.
 
-This is a regression, and it is a *scheduling/cost* problem, not a correctness one.
+This is a regression, and it is a _scheduling/cost_ problem, not a correctness one.
 The fix is to get compaction **off the boot critical path** and make each pass cheap.
 
 ## Executive Summary
@@ -23,25 +23,25 @@ The fix is to get compaction **off the boot critical path** and make each pass c
 The capture (build with #355/#356/#360) shows three compounding costs, all on the
 one SQLite worker, all during boot:
 
-| Signal (from the capture) | Value | Meaning |
-| --- | --- | --- |
-| `landing query prewarm:pages` | **31 504 ms** | first data paints ~31.5 s in (was ~15.8 s) |
-| query plan `durationMs` / `candidateQueryDurationMs` | **31 218 / 15 384 ms** | ~15.8 s **queue wait** + ~15.4 s cold read |
-| `change-log compaction {wsafe, deleted}` | **317938 / 250000** | correct watermark; hit the **250k `maxRows` cap** |
-| `DELETE FROM changes …` write ops | **~40+ chunks**, ~170–680 ms each | ~11 s of exclusive worker time, spanning ~23 s |
-| `SELECT … FROM changes` (getChangesSince(0)) | **execMs 3183 + 3078** | two full‑log deserializes from the rollback re‑offer |
-| `hub high-water mark 0 is below the confirmed cursor 318066 (hub rollback?)` | id 376 | rollback guard fired against an empty/reset hub |
-| `INVALID_HASH` rejections → breaker trips | ids 488–568 | the re‑offer flood is rejected wholesale (0224 skew) |
+| Signal (from the capture)                                                    | Value                             | Meaning                                              |
+| ---------------------------------------------------------------------------- | --------------------------------- | ---------------------------------------------------- |
+| `landing query prewarm:pages`                                                | **31 504 ms**                     | first data paints ~31.5 s in (was ~15.8 s)           |
+| query plan `durationMs` / `candidateQueryDurationMs`                         | **31 218 / 15 384 ms**            | ~15.8 s **queue wait** + ~15.4 s cold read           |
+| `change-log compaction {wsafe, deleted}`                                     | **317938 / 250000**               | correct watermark; hit the **250k `maxRows` cap**    |
+| `DELETE FROM changes …` write ops                                            | **~40+ chunks**, ~170–680 ms each | ~11 s of exclusive worker time, spanning ~23 s       |
+| `SELECT … FROM changes` (getChangesSince(0))                                 | **execMs 3183 + 3078**            | two full‑log deserializes from the rollback re‑offer |
+| `hub high-water mark 0 is below the confirmed cursor 318066 (hub rollback?)` | id 376                            | rollback guard fired against an empty/reset hub      |
+| `INVALID_HASH` rejections → breaker trips                                    | ids 488–568                       | the re‑offer flood is rejected wholesale (0224 skew) |
 
-The `candidateQueryDurationMs: 15384` is the *same* ~15.4 s cold OPFS page‑in as
+The `candidateQueryDurationMs: 15384` is the _same_ ~15.4 s cold OPFS page‑in as
 before — expected, because on the **first** compaction boot the file is still the big
 424k‑row file (the reclaiming `VACUUM` hasn't run yet). Compaction didn't remove that
 cost; it **added ~15.8 s of queue starvation on top of it.**
 
 Three root causes:
 
-1. **`requestIdleCallback` fires during the boot read burst.** It tracks *main‑thread*
-   idle, but the bottleneck is the *SQLite worker*. The main thread is idle (waiting on
+1. **`requestIdleCallback` fires during the boot read burst.** It tracks _main‑thread_
+   idle, but the bottleneck is the _SQLite worker_. The main thread is idle (waiting on
    worker round‑trips) exactly while the worker is saturated, so the idle callback runs
    the compaction right into the busiest window.
 2. **The pass is far too big for one boot.** `maxRows: 250000` + a per‑chunk correlated
@@ -58,10 +58,10 @@ Three root causes:
 ### What #360 shipped
 
 - **The prune** — `SQLiteNodeStorageAdapter.pruneSupersededChanges(wsafe, {chunk=5000,
-  maxRows=250000})` ([`sqlite-adapter.ts`](../../packages/data/src/store/sqlite-adapter.ts)):
+maxRows=250000})` ([`sqlite-adapter.ts`](../../packages/data/src/store/sqlite-adapter.ts)):
   a chunked `DELETE FROM changes WHERE hash IN (SELECT … WHERE lamport_time < ? AND
-  lamport_time < (SELECT MAX(...) …) AND NOT EXISTS (SELECT 1 FROM node_properties …)
-  LIMIT ?)`, looping until a chunk deletes `< limit` or `maxRows` is hit, `await`ing a
+lamport_time < (SELECT MAX(...) …) AND NOT EXISTS (SELECT 1 FROM node_properties …)
+LIMIT ?)`, looping until a chunk deletes `< limit` or `maxRows` is hit, `await`ing a
   `setTimeout(0)` between chunks.
 - **The scheduler** — `scheduleChangeLogCompaction(nodeStorage, sqliteAdapter)`
   ([`change-log-compaction.ts`](../../apps/web/src/lib/change-log-compaction.ts)):
@@ -72,8 +72,8 @@ Three root causes:
 - **The rollback guard** — `NodeStoreSyncProvider.handleSyncResponse`
   ([`node-store-sync-provider.ts`](../../packages/runtime/src/sync/node-store-sync-provider.ts)):
   `if (response.highWaterMark < this.lastSyncedLamport && this.pushedThrough >
-  response.highWaterMark) { …; this.pushedThrough = response.highWaterMark; void
-  this.syncLocalChanges() }`.
+response.highWaterMark) { …; this.pushedThrough = response.highWaterMark; void
+this.syncLocalChanges() }`.
 
 ### Where it's wired into boot
 
@@ -81,7 +81,7 @@ Three root causes:
 sequence in [`App.tsx`](../../apps/web/src/App.tsx), right after `nodeStorage` is
 constructed and alongside the one‑time `scheduleOneTimeVacuum` — i.e. **before** the
 landing/prewarm read burst has completed. `db-vacuum.ts`'s `VACUUM` is a whole‑file
-rewrite on the same worker, so re‑arming it means the *next* boot also pays a heavy
+rewrite on the same worker, so re‑arming it means the _next_ boot also pays a heavy
 worker cost.
 
 ### The mechanism, confirmed in code
@@ -92,20 +92,20 @@ serially with no preemption.** `WebSQLiteProxy` spawns a single `Worker`
 one `OpfsSAHPoolDb` ([`web.ts:186`](../../packages/sqlite/src/adapters/web.ts)); the
 scheduler's `pump()` loop runs one job to completion before dequeuing the next
 ([`worker-scheduler.ts:140`](../../packages/sqlite/src/adapters/worker-scheduler.ts),
-comment: *"jobs run strictly one-at-a-time (no preemption of an in-flight op)"*). The
+comment: _"jobs run strictly one-at-a-time (no preemption of an in-flight op)"_). The
 lanes (`interactive → bulk → write`) **reorder** but cannot **parallelize**:
 
 > On a single serial worker, any heavy background work during boot **adds directly to
-> cold‑open wall‑clock**. Priority scheduling stops a write *queue* from starving reads
+> cold‑open wall‑clock**. Priority scheduling stops a write _queue_ from starving reads
 > (cheap `PRAGMA` reads did interleave in the capture), but it cannot make the
 > compaction's ~11 s of `DELETE` and the re‑offer's ~6 s of full‑log scans overlap the
 > ~15.4 s cold read. Nothing overlaps — so the worker's boot workload roughly doubled,
 > and so did the wall clock.
 
-**`requestIdleCallback` fires *into* that busy window.** It measures **main‑thread**
+**`requestIdleCallback` fires _into_ that busy window.** It measures **main‑thread**
 idle, not **worker** idle — and the main thread goes idle the instant a landing query
 is dispatched to the worker (the query is an async round‑trip, so the main thread has
-nothing to do). So the callback runs *immediately*, well before its 15 s `timeout`,
+nothing to do). So the callback runs _immediately_, well before its 15 s `timeout`,
 right on top of the worker's cold read. `scheduleChangeLogCompaction`,
 `scheduleOneTimeVacuum`, and `scheduleStalePresenceCleanup` all share this flaw and are
 all called in `App.tsx`'s init effect **before** `WorkingSetPrewarm` even issues the
@@ -149,7 +149,7 @@ sequenceDiagram
    see the worker, and the main thread is idle exactly when the worker is busy.
 3. **A single serial worker means no background compaction can be "free" during boot** —
    it always adds to first‑paint. It must run only once the boot read burst has fully
-   drained *and* the worker is quiescent.
+   drained _and_ the worker is quiescent.
 4. **`maxRows: 250000` is far too large for one pass** — it guarantees ~11 s of serial
    `DELETE`. Reclaim must be tiny per pass and spread across many boots.
 5. **The rollback guard re‑offers the whole log into a hub that can't accept it** —
@@ -160,12 +160,12 @@ sequenceDiagram
 
 ## Options And Tradeoffs
 
-| Option | What | Pro | Con |
-| --- | --- | --- | --- |
-| **A. Kill‑switch default‑off** (mitigation) | Invert `xnet:compact:changes` so compaction is opt‑in | Instantly restores the #356 baseline; ~1‑line, no `packages/*` churn | Abandons the durable win until B lands |
-| **B. Gate + shrink + fix guard** (the real fix) | Run only after a new `bootSettled()` + worker‑idle probe; `maxRows` ≈ 2–5k, loop‑until‑dry across boots; per‑chunk idle yield with deadline; stop re‑arming full VACUUM; guard the re‑offer | Keeps the durable fix; off the boot path; bounded per‑pass cost | More work; full reclaim takes many boots |
-| **C. Parallel connection / data‑worker** | Run compaction on a second SQLite connection | True parallelism | **Impossible** — `opfs-sahpool` holds an *exclusive* sync access handle per file ([`web.ts`](../../packages/sqlite/src/adapters/web.ts)); a second connection to the same file can't open. Must time‑share the one worker. |
-| **D. Hub‑side / offline compaction** | Do it away from the interactive worker entirely | Zero client boot cost | Large; this is the 0254 follow‑up (signed‑snapshot bootstrap), not a quick fix |
+| Option                                          | What                                                                                                                                                                                        | Pro                                                                  | Con                                                                                                                                                                                                                        |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A. Kill‑switch default‑off** (mitigation)     | Invert `xnet:compact:changes` so compaction is opt‑in                                                                                                                                       | Instantly restores the #356 baseline; ~1‑line, no `packages/*` churn | Abandons the durable win until B lands                                                                                                                                                                                     |
+| **B. Gate + shrink + fix guard** (the real fix) | Run only after a new `bootSettled()` + worker‑idle probe; `maxRows` ≈ 2–5k, loop‑until‑dry across boots; per‑chunk idle yield with deadline; stop re‑arming full VACUUM; guard the re‑offer | Keeps the durable fix; off the boot path; bounded per‑pass cost      | More work; full reclaim takes many boots                                                                                                                                                                                   |
+| **C. Parallel connection / data‑worker**        | Run compaction on a second SQLite connection                                                                                                                                                | True parallelism                                                     | **Impossible** — `opfs-sahpool` holds an _exclusive_ sync access handle per file ([`web.ts`](../../packages/sqlite/src/adapters/web.ts)); a second connection to the same file can't open. Must time‑share the one worker. |
+| **D. Hub‑side / offline compaction**            | Do it away from the interactive worker entirely                                                                                                                                             | Zero client boot cost                                                | Large; this is the 0254 follow‑up (signed‑snapshot bootstrap), not a quick fix                                                                                                                                             |
 
 ## Recommendation
 
@@ -208,16 +208,17 @@ export function bootSettled(): Promise<void> {
 // apps/web/src/lib/change-log-compaction.ts — gate + shrink + yield
 export function scheduleChangeLogCompaction(nodeStorage, sqliteAdapter): void {
   if (typeof window === 'undefined') return
-  if (localStorage.getItem('xnet:compact:changes') !== 'on') return   // A: opt-in
+  if (localStorage.getItem('xnet:compact:changes') !== 'on') return // A: opt-in
   void (async () => {
-    await bootSettled()                    // never race the landing burst
-    await idle({ timeout: 30_000 })        // + a real idle gap after first paint
+    await bootSettled() // never race the landing burst
+    await idle({ timeout: 30_000 }) // + a real idle gap after first paint
     if (await notSafe(sqliteAdapter, nodeStorage)) return
-    const wsafe = (await nodeStorage.getMinConfirmedSyncCursor() ?? 0) - LAMPORT_MARGIN
+    const wsafe = ((await nodeStorage.getMinConfirmedSyncCursor()) ?? 0) - LAMPORT_MARGIN
     if (wsafe <= 0) return
     // small pass; loop-until-dry happens across boots, not in one shot
     const { deleted } = await nodeStorage.pruneSupersededChanges(wsafe, {
-      chunk: 1_000, maxRows: 4_000
+      chunk: 1_000,
+      maxRows: 4_000
     })
     persistDebug('xnet:compact:last', { wsafe, deleted })
     // do NOT clear the vacuum flag here; reclaim incrementally instead
@@ -228,8 +229,8 @@ export function scheduleChangeLogCompaction(nodeStorage, sqliteAdapter): void {
 ```ts
 // packages/runtime/src/sync/node-store-sync-provider.ts — don't flood on reset/halt
 if (
-  response.highWaterMark > 0 &&                       // 0 = empty/reset hub, not a rollback
-  !this.outboundHalted &&                              // breaker tripped ⇒ re-offering is futile
+  response.highWaterMark > 0 && // 0 = empty/reset hub, not a rollback
+  !this.outboundHalted && // breaker tripped ⇒ re-offering is futile
   response.highWaterMark < this.lastSyncedLamport &&
   this.pushedThrough > response.highWaterMark
 ) {
@@ -256,14 +257,14 @@ if (
 
 - [ ] **Hotfix A**: invert `xnet:compact:changes` to opt‑in (default off) in
       `change-log-compaction.ts`; ship as its own fast PR.
-- [ ] Add `bootSettled(): Promise<void>` to `boot-timeline.ts`, resolved in
+- [x] Add `bootSettled(): Promise<void>` to `boot-timeline.ts`, resolved in
       `bootMark('query:first-rows')`.
 - [ ] Gate `scheduleChangeLogCompaction` behind `await bootSettled()` + a trailing idle
       delay; add a worker‑idle guard (skip if a heavy op is in flight).
 - [ ] Reduce `pruneSupersededChanges` per‑pass `maxRows` to a few thousand; add
       per‑chunk `requestIdleCallback`/deadline yielding; bail on interaction/visibility.
 - [ ] Stop clearing `xnet:db-vacuumed:v1` on prune; reclaim via `PRAGMA
-      incremental_vacuum` or a `bootSettled()`‑gated one‑shot VACUUM.
+    incremental_vacuum` or a `bootSettled()`‑gated one‑shot VACUUM.
 - [ ] Rollback guard: skip re‑offer when `outboundHalted` or `highWaterMark === 0`; cap
       any re‑offer (no unbounded `getChangesSince(0)`).
 - [ ] Consider gating `scheduleOneTimeVacuum` and `scheduleStalePresenceCleanup` behind
