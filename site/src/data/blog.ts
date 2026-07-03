@@ -52,6 +52,22 @@ export interface BlogPost {
 
 export const posts: BlogPost[] = [
   {
+    slug: 'hand-on-the-tiller',
+    title: 'Hand on the Tiller',
+    description:
+      'Everyone is arguing about one alignment problem: will the AI want what we ' +
+      'want? But alignment is a stack — physics, planet, society, technology, AI — ' +
+      'and we are bolting an aligned machine onto a civilization that steers by the ' +
+      'wrong stars. The oldest word for the fix is the root of “cybernetics” and ' +
+      '“govern”: the steersman, correcting course a hundred times a minute. What it ' +
+      'takes to actually hold a course — and the small, real instruments a piece of ' +
+      'software can hand back.',
+    pubDate: '2026-07-03T15:00:00Z',
+    author: 'xNet',
+    tags: ['essay', 'philosophy', 'decentralization'],
+    readingMinutes: 15
+  },
+  {
     slug: 'the-tip-of-the-hook',
     title: 'The Tip of the Hook',
     description:
