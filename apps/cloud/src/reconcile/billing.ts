@@ -45,6 +45,18 @@ export type BillingState =
 /** Latest known subscription status from the billing provider (Stripe). */
 export type SubscriptionStatus = 'active' | 'past_due' | 'unpaid' | 'canceled'
 
+const SUBSCRIPTION_STATUSES: readonly SubscriptionStatus[] = [
+  'active',
+  'past_due',
+  'unpaid',
+  'canceled'
+]
+
+/** Narrow an arbitrary provider status string to a known {@link SubscriptionStatus}. */
+export function isSubscriptionStatus(value: unknown): value is SubscriptionStatus {
+  return typeof value === 'string' && (SUBSCRIPTION_STATUSES as readonly string[]).includes(value)
+}
+
 export interface BillingReconcileInput {
   /** The tenant's current lifecycle state. */
   billingState: BillingState
@@ -140,5 +152,86 @@ export function reconcileBilling(
 
     default:
       return { kind: 'none' }
+  }
+}
+
+/**
+ * The persisted dunning state for one tenant (rides on `TenantRecord.billing`).
+ * Together with the reconcile timers it is the whole state machine: this captures
+ * *where* the tenant is and *when* the next deadline fires; {@link reconcileBilling}
+ * reads it to decide the next action.
+ */
+export interface DunningState {
+  state: BillingState
+  subscriptionStatus: SubscriptionStatus
+  graceUntilMs?: number
+  deleteAfterMs?: number
+  finalNoticeUntilMs?: number
+}
+
+/**
+ * A dunning-relevant provider event, already reduced from a verified Stripe webhook
+ * (`invoice.payment_failed` → `payment_failed`, `invoice.paid` → `payment_recovered`,
+ * `customer.subscription.updated` → `subscription_status`).
+ */
+export type BillingEvent =
+  | { kind: 'payment_failed' }
+  | { kind: 'payment_recovered' }
+  | { kind: 'subscription_status'; status: SubscriptionStatus }
+
+const ACTIVE: DunningState = { state: 'active', subscriptionStatus: 'active' }
+
+/**
+ * The **event-driven** half of the state machine (the sibling of the timer-driven
+ * {@link reconcileBilling}). Fold a provider event into the tenant's dunning state:
+ *
+ *  - `payment_recovered` (or a status flip back to `active`) returns any un-deleted
+ *    tenant to `active` and clears the timers — recovery always wins.
+ *  - the first `payment_failed` (or a status flip to `past_due`) on an `active`
+ *    tenant opens `grace` with a `graceUntilMs` deadline; later failures don't reset
+ *    the clock.
+ *  - `unpaid`/`canceled` records the provider status so `reconcileBilling` can move a
+ *    `read_only` hub to `suspend_cold`; it never advances the lifecycle by itself
+ *    (the timers do that), keeping the two halves cleanly separated.
+ *
+ * Pure and idempotent-where-it-matters; `deleted` is terminal.
+ */
+export function applyBillingEvent(
+  prev: DunningState | undefined,
+  event: BillingEvent,
+  nowMs: number,
+  windows: DunningWindows = DUNNING_WINDOWS
+): DunningState {
+  const cur: DunningState = prev ?? { ...ACTIVE }
+  if (cur.state === 'deleted') return cur
+
+  const openGrace = (): DunningState => ({
+    state: 'grace',
+    subscriptionStatus: 'past_due',
+    graceUntilMs: nowMs + windows.graceMs
+  })
+
+  switch (event.kind) {
+    case 'payment_recovered':
+      return { ...ACTIVE }
+
+    case 'payment_failed':
+      if (cur.state === 'active') return openGrace()
+      // Already in the funnel — annotate the status, don't reset the deadline.
+      return {
+        ...cur,
+        subscriptionStatus:
+          cur.subscriptionStatus === 'active' ? 'past_due' : cur.subscriptionStatus
+      }
+
+    case 'subscription_status':
+      if (event.status === 'active') return { ...ACTIVE }
+      if (event.status === 'past_due' && cur.state === 'active') return openGrace()
+      // unpaid / canceled (or past_due while already in the funnel): record the
+      // status so the timer half can advance read_only → suspend_cold.
+      return { ...cur, subscriptionStatus: event.status }
+
+    default:
+      return cur
   }
 }

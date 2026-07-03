@@ -14,6 +14,7 @@
 
 import type { PlanId } from '@xnetjs/entitlements'
 import { createHmac, timingSafeEqual } from 'node:crypto'
+import { isSubscriptionStatus, type SubscriptionStatus } from './reconcile/billing'
 
 export interface CheckoutArgs {
   /** WorkOS billing user id this subscription belongs to (server-set from session). */
@@ -33,6 +34,12 @@ export interface PortalArgs {
 export type WebhookResult =
   | { type: 'checkout.completed'; customerRef: string; plan: PlanId }
   | { type: 'subscription.canceled'; customerRef: string }
+  /** An invoice payment attempt failed — dunning begins (exploration 0260). */
+  | { type: 'payment_failed'; customerRef: string; attemptCount?: number }
+  /** An invoice was paid — the subscription recovered. */
+  | { type: 'payment_recovered'; customerRef: string }
+  /** The subscription's status changed (`past_due` / `unpaid` / `active` / `canceled`). */
+  | { type: 'subscription_status'; customerRef: string; status: SubscriptionStatus }
   | { type: 'ignored' }
 
 /** Thrown when a webhook fails signature verification (route → 401). */
@@ -99,7 +106,13 @@ export class FakeTenantBillingGateway implements TenantBillingGateway {
         throw new WebhookSignatureError()
       }
     }
-    let body: { type?: string; customerRef?: string; plan?: string }
+    let body: {
+      type?: string
+      customerRef?: string
+      plan?: string
+      status?: string
+      attemptCount?: number
+    }
     try {
       body = JSON.parse(rawBody)
     } catch {
@@ -118,6 +131,27 @@ export class FakeTenantBillingGateway implements TenantBillingGateway {
     }
     if (body.type === 'customer.subscription.deleted' && body.customerRef) {
       return { type: 'subscription.canceled', customerRef: body.customerRef }
+    }
+    // Dunning events (exploration 0260).
+    if (body.type === 'invoice.payment_failed' && body.customerRef) {
+      return {
+        type: 'payment_failed',
+        customerRef: body.customerRef,
+        ...(typeof body.attemptCount === 'number' ? { attemptCount: body.attemptCount } : {})
+      }
+    }
+    if (
+      (body.type === 'invoice.paid' || body.type === 'invoice.payment_succeeded') &&
+      body.customerRef
+    ) {
+      return { type: 'payment_recovered', customerRef: body.customerRef }
+    }
+    if (
+      body.type === 'customer.subscription.updated' &&
+      body.customerRef &&
+      isSubscriptionStatus(body.status)
+    ) {
+      return { type: 'subscription_status', customerRef: body.customerRef, status: body.status }
     }
     return { type: 'ignored' }
   }
