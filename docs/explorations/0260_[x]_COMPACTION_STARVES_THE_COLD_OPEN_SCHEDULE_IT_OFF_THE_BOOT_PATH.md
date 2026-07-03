@@ -273,18 +273,18 @@ incremental_vacuum` or a `bootSettled()`‑gated one‑shot VACUUM.
 
 ## Validation Checklist
 
-- [ ] With the flag off, a cold boot shows **no** `DELETE FROM changes` before
+- [x] With the flag off, a cold boot shows **no** `DELETE FROM changes` before
       `query:first-rows`, and `landing query prewarm:*` returns to the ~15.8 s baseline.
-- [ ] With the flag on, all `DELETE FROM changes` ops timestamp **after**
+- [x] With the flag on, all `DELETE FROM changes` ops timestamp **after**
       `query:first-rows`; `xnet:boot:longblock` shows no new long block attributable to
       compaction.
-- [ ] Each compaction pass deletes ≤ the small `maxRows` and completes without a single
+- [x] Each compaction pass deletes ≤ the small `maxRows` and completes without a single
       `DELETE` chunk exceeding one frame.
-- [ ] Across N idle boots the `changes` row count monotonically shrinks (loop‑until‑dry);
+- [x] Across N idle boots the `changes` row count monotonically shrinks (loop‑until‑dry);
       no boot regresses cold‑open.
-- [ ] A `node-sync-response` with `highWaterMark 0` or a tripped breaker produces **no**
+- [x] A `node-sync-response` with `highWaterMark 0` or a tripped breaker produces **no**
       `getChangesSince(0)` re‑offer flood.
-- [ ] `xnet:db-vacuumed:v1` is not cleared every prune; the next boot does not run an
+- [x] `xnet:db-vacuumed:v1` is not cleared every prune; the next boot does not run an
       unexpected full VACUUM.
 
 ## References
