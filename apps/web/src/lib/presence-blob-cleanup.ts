@@ -10,10 +10,12 @@
  *
  * Runs once per origin (gated by a localStorage flag), only VACUUMs when a row
  * was actually removed (so machines without the stale blob pay nothing), and is
- * scheduled when the main thread is idle so the heavy `VACUUM` never lands on
- * the boot critical path. Never throws.
+ * gated behind `bootSettled()` (first paint) + a real idle slot so the heavy
+ * `DELETE`/`VACUUM` never lands on the single SQLite worker while the cold-open
+ * read burst is still draining it (exploration 0260). Never throws.
  */
 import type { SQLiteAdapter } from '@xnetjs/sqlite'
+import { runWhenBootSettled } from './boot-timeline'
 
 const CLEANUP_FLAG = 'xnet:presence-blob-vacuumed:v1'
 
@@ -45,8 +47,10 @@ async function runCleanup(adapter: SQLiteAdapter): Promise<void> {
 }
 
 /**
- * Schedule the one-time stale-presence cleanup when the main thread is idle.
- * Safe to call on every boot — it no-ops once the flag is set.
+ * Schedule the one-time stale-presence cleanup once the cold-open has settled
+ * (first paint) and the main thread is idle. Safe to call on every boot — it
+ * no-ops once the flag is set, and never competes with the boot read burst for
+ * the single SQLite worker (exploration 0260).
  */
 export function scheduleStalePresenceCleanup(adapter: SQLiteAdapter): void {
   if (typeof window === 'undefined') return
@@ -55,15 +59,7 @@ export function scheduleStalePresenceCleanup(adapter: SQLiteAdapter): void {
   } catch {
     return
   }
-  const win = window as Window & {
-    requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number
-  }
-  const run = (): void => {
+  runWhenBootSettled(() => {
     void runCleanup(adapter)
-  }
-  if (typeof win.requestIdleCallback === 'function') {
-    win.requestIdleCallback(run, { timeout: 10000 })
-  } else {
-    setTimeout(run, 3000)
-  }
+  })
 }

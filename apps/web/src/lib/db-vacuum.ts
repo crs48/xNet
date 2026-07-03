@@ -16,6 +16,7 @@
  * Never throws.
  */
 import type { SQLiteAdapter } from '@xnetjs/sqlite'
+import { runWhenBootSettled } from './boot-timeline'
 
 const VACUUM_FLAG = 'xnet:db-vacuumed:v1'
 
@@ -58,15 +59,11 @@ export function scheduleOneTimeVacuum(adapter: SQLiteAdapter): void {
   } catch {
     return
   }
-  const win = window as Window & {
-    requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number
-  }
-  const run = (): void => {
+  // VACUUM is a whole-file rewrite on the single serial SQLite worker, so it must
+  // run OFF the cold-open path. `requestIdleCallback` alone fired it INTO the boot
+  // read burst (it tracks main-thread idle, which is idle while the worker is busy
+  // — exploration 0260); gate on first paint + idle instead.
+  runWhenBootSettled(() => {
     void runVacuum(adapter)
-  }
-  if (typeof win.requestIdleCallback === 'function') {
-    win.requestIdleCallback(run, { timeout: 15000 })
-  } else {
-    setTimeout(run, 5000)
-  }
+  })
 }
