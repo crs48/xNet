@@ -4,5 +4,14 @@
   "title": "New essay: Hand on the Tiller",
   "summary": "A new blog essay reframes alignment as continuous course correction across a nested stack of systems — physics, planet, society, technology, AI — and shows the instruments xNet hands back: undo, exit, consent, and a machine you can read.",
   "highlights": [],
-  "tags": ["platform"]
+  "tags": [
+    "platform"
+  ],
+  "pr": 358,
+  "mergedAt": "2026-07-03T16:21:41Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
