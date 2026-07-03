@@ -487,15 +487,15 @@ async function prepareOutbound(change: Change, space: SpaceState) {
 - [ ] Add a `sealed` toggle to Space settings UI and resolve recipients from existing grants.
 - [ ] Update the compare footnote (`site/src/data/compare.ts`) and the loom essay caveat from "roadmap" to "per-Space, available."
 - [x] Add `packages/telemetry/test/charter-claims-ledger.test.ts` (or a dedicated `conformance/claims/` suite) tying each load-bearing present-tense claim to a code fact, with a `CLAIM_PENDING` allowance for `building` items.
-- [ ] Extend `scripts/check-humane-patterns.mjs` `SURPLUS_ROOTS`/`DARK_DIR_MARKERS` to include `site/src`.
+- [x] Extend `scripts/check-humane-patterns.mjs` `SURPLUS_ROOTS`/`DARK_DIR_MARKERS` to include `site/src`.
 - [ ] Add a CI job that runs `conformance/vectors` against `rust/xnet-core`; wire it into the required checks.
-- [ ] Decide the post-quantum default; document it in `docs/CHARTER.md` and, if "on," raise `DEFAULT_SECURITY_LEVEL` with vector coverage.
+- [x] Decide the post-quantum default; document it in `docs/CHARTER.md` and, if "on," raise `DEFAULT_SECURITY_LEVEL` with vector coverage.
 - [ ] Finish the WebLLM engine-injection path so `webllm` enters `USABLE_TIERS` (ref exploration 0252).
 - [ ] Build a re-import UI that loads an export bundle back into a fresh workspace.
 - [ ] Replace the deterministic dev identity seed with OS secure-storage in Electron (`apps/electron/src/renderer/main.tsx:162`) and mobile.
 - [ ] Design owned-audience publishing (subscriber = signed edge) atop `packages/hub/src/services/federation.ts`; write it up as its own exploration.
 - [ ] Wire approval-gated AI writes in `AiChatPanel.tsx`; verify citations render in the UI.
-- [ ] Change the Charter's "k-anonymized" wording to "scrubbed and bucketed" unless a formal group-size guarantee is added.
+- [x] Change the Charter's "k-anonymized" wording to "scrubbed and bucketed" unless a formal group-size guarantee is added.
 
 ## Validation Checklist
 

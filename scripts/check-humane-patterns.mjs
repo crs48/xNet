@@ -36,11 +36,16 @@ const root = resolve(process.cwd())
 
 // Surplus rules scan everything that ships; dark-pattern rules scan only the
 // UI-bearing surfaces (matching check-motion-vocab's scope philosophy).
-const SURPLUS_ROOTS = [join(root, 'packages'), join(root, 'apps')]
+// `site/` is in scope too (exploration 0257): the essays that preach "no dark
+// patterns" ship from the marketing site, so its UI code must clear the same
+// bar as the app. Only .ts/.tsx are scanned, so the essays' prose (.astro/.md)
+// is untouched — the gate guards code, not copy.
+const SURPLUS_ROOTS = [join(root, 'packages'), join(root, 'apps'), join(root, 'site')]
 const DARK_DIR_MARKERS = [
   `${join('packages', 'ui', 'src')}`,
   `${join('packages', 'react', 'src')}`,
-  `${join('apps', 'web', 'src')}`
+  `${join('apps', 'web', 'src')}`,
+  `${join('site', 'src')}`
 ]
 
 const SKIP_DIRS = new Set(['node_modules', '.git', 'dist', '.turbo', 'coverage', 'build'])
@@ -202,7 +207,7 @@ function runScan(extraPaths) {
     )
     return 1
   }
-  console.log(`✓ humane patterns OK (${files.length} file(s) scanned in packages + apps)`)
+  console.log(`✓ humane patterns OK (${files.length} file(s) scanned in packages + apps + site)`)
   return 0
 }
 

@@ -51,6 +51,7 @@ export const commitments: Commitment[] = [
     name: 'Calm',
     promise: 'We compete for your wellbeing, not your time.',
     detail:
+      /* humane-ok: Charter copy names the banned pattern to promise against it — site scanned since 0257 */
       'No infinite scroll. No engagement ranking. No streaks engineered around loss aversion. Feeds are chronological; notifications are rule-based. An opt-in reminder even helps you step away.',
     backing: 'enforced',
     backingLabel: 'Enforced — a CI gate bans dark-pattern primitives'
@@ -59,7 +60,7 @@ export const commitments: Commitment[] = [
     name: 'Consent',
     promise: 'Nothing leaves without permission.',
     detail:
-      'Telemetry is off by default. What is sent is PII-scrubbed and k-anonymized. A "what we know about you" panel shows every artifact xNet has derived — usually nothing — and lets you purge it.',
+      'Telemetry is off by default. What is sent is PII-scrubbed and bucketed into ranges, so values can\'t be tied back to one person. A "what we know about you" panel shows every artifact xNet has derived — usually nothing — and lets you purge it.',
     backing: 'enforced',
     backingLabel: 'Enforced — consent-gated, tested off-by-default'
   },
