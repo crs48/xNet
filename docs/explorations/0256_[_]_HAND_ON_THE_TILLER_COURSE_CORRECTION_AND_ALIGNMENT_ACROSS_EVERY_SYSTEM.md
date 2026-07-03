@@ -3,7 +3,7 @@
 > Exploration for blog post **#9** in the xNet essay series. The prior essays
 > borrowed a living system as a lens — a pirate sea, forest soil, a star, a
 > desert, a food forest. This one steps back from the metaphors to the idea
-> underneath all of them: every system worth keeping is *steered*, not set. It's
+> underneath all of them: every system worth keeping is _steered_, not set. It's
 > the series' first piece to take on the word of the age — **alignment** — head
 > on, and to argue that the version everyone is arguing about (AI) is the
 > narrowest slice of a much older problem.
@@ -12,26 +12,26 @@
 
 Write an essay on **course correction and alignment** that refuses to stay in the
 lane where the word currently lives. In 2026, "alignment" means one thing in the
-public conversation: *how do we make AI do what humans want?* That is a real and
+public conversation: _how do we make AI do what humans want?_ That is a real and
 urgent question. But it is the **top layer of a stack**, and we are trying to
 bolt an aligned machine onto a civilization that is, by its own instruments,
 badly out of alignment with itself and with the planet it runs on.
 
-The brief, in the user's words: *we talk about AI alignment, but we don't talk
+The brief, in the user's words: _we talk about AI alignment, but we don't talk
 about **human** alignment, or technology's alignment with humanity in general —
 what it means for technology to be aligned with humans, and what it means for
 humans to be aligned with the planet they live on. Not just AI, not just humans,
 not just the planet, not just physics. What does it actually take to be aligned,
 and how do we course-correct? How can xNet help — because things are moving very
 fast, often out of public view, and what could everybody be doing if they were
-more conscious of how technology interacts with them?*
+more conscious of how technology interacts with them?_
 
 The trap to avoid: a vague "everything is connected" sermon, or a doom essay that
 diagnoses misalignment at five scales and offers nothing you can hold. The essay
 has to do three hard things at once — (1) reframe alignment as a property of a
 **nested stack** of systems, not a single AI problem; (2) name precisely **what
-breaks** at each interface (and show it's the *same* break every time); and (3)
-land on something concrete a person and a piece of software can actually *do* —
+breaks** at each interface (and show it's the _same_ break every time); and (3)
+land on something concrete a person and a piece of software can actually _do_ —
 without overselling a notes app as a cure for the biosphere. As always, every
 "technology should serve people" claim has to have a **file behind it**, and the
 essay has to be honest about where its own metaphor thins out.
@@ -40,23 +40,23 @@ essay has to be honest about where its own metaphor thins out.
 
 **Recommendation: write it, as essay #9, titled _"Hand on the Tiller."_** The
 spine is hiding in the etymology, and it reframes the whole debate: the science
-of **feedback and control** is called *cybernetics*, from the Greek
-**κυβερνήτης — *kybernḗtēs*, the steersman**. The same root gives us *governor*
-(via the Latin *gubernator*) and *govern*. Norbert Wiener named the field in 1948
+of **feedback and control** is called _cybernetics_, from the Greek
+**κυβερνήτης — _kybernḗtēs_, the steersman**. The same root gives us _governor_
+(via the Latin _gubernator_) and _govern_. Norbert Wiener named the field in 1948
 after the oldest, best-developed feedback device he knew: the hand on a ship's
 tiller, correcting the course a hundred times a minute. **The word for keeping a
 course and the word for governing are the same word.** That is the essay's
 argument in one line: alignment is not a state you reach and lock; it is a
-*course you hold* by continuous correction. We picked the static word
+_course you hold_ by continuous correction. We picked the static word
 ("alignment" — two arrows pointing the same way) for a dynamic act ("steering" —
-never arriving, always correcting). The brief's own phrase, *course correction,*
+never arriving, always correcting). The brief's own phrase, _course correction,_
 is the more honest term.
 
 - **The reframe: the alignment stack.** Alignment is a relationship at an
-  *interface* between two systems, and the systems are **nested**: physics ⊃ the
+  _interface_ between two systems, and the systems are **nested**: physics ⊃ the
   planet ⊃ human society ⊃ our technology ⊃ AI. AI alignment is the innermost,
   newest, loudest interface. But an aligned AI bolted onto a technology layer
-  that is aligned to *extraction*, running on a society aligned to *GDP*, sitting
+  that is aligned to _extraction_, running on a society aligned to _GDP_, sitting
   on a planet whose limits that society is overshooting, doesn't save us — it
   makes a misaligned stack **faster and more powerful**. You cannot align the top
   of a stack while the bottom is drifting.
@@ -64,11 +64,11 @@ is the more honest term.
   one recurring cause: a **proxy captures the goal, and the feedback loop is
   severed.** Engagement replaces wellbeing (Goodhart's Law); GDP replaces
   flourishing; a fixed objective replaces "what the human actually wants" (Stuart
-  Russell's *King Midas problem*). And in every case the correction loop is cut:
-  you can't *see* what the system is doing to you, can't *leave* it, can't *say
-  no*, can't *undo*. Open loop → drift.
+  Russell's _King Midas problem_). And in every case the correction loop is cut:
+  you can't _see_ what the system is doing to you, can't _leave_ it, can't _say
+  no_, can't _undo_. Open loop → drift.
 - **It is non-fiction about xNet.** xNet can't align the planet or solve AI
-  safety, and the essay says so plainly. What it *can* do is repair **one
+  safety, and the essay says so plainly. What it _can_ do is repair **one
   interface — technology ↔ human** — and it does it the honest way: not by
   promising good intentions, but by handing the individual back the
   **instruments of course correction.** Undo (reverse a step:
@@ -84,9 +84,9 @@ is the more honest term.
   Own the master copy (the paradigm change — the highest-leverage move there is:
   [`docs/CHARTER.md`](../CHARTER.md) §1).
 - **The code already steers.** The essay's cleanest surprise is that xNet's
-  internals are *literally* feedback loops. The change log is hash-chained so
-  corruption is **detectable**, and the integrity checker returns *repair
-  actions* ([`packages/sync/src/integrity.ts`](../../packages/sync/src/integrity.ts)).
+  internals are _literally_ feedback loops. The change log is hash-chained so
+  corruption is **detectable**, and the integrity checker returns _repair
+  actions_ ([`packages/sync/src/integrity.ts`](../../packages/sync/src/integrity.ts)).
   The sync provider **watches its own error rate** and halts after five
   structural rejections rather than flooding the hub — a circuit breaker, a
   governor
@@ -94,10 +94,10 @@ is the more honest term.
   The CI gates fail the build when a dark pattern creeps in
   ([`scripts/check-humane-patterns.mjs`](../../scripts/check-humane-patterns.mjs),
   [`scripts/check-motion-vocab.mjs`](../../scripts/check-motion-vocab.mjs)). These
-  aren't metaphors for feedback; they *are* feedback.
+  aren't metaphors for feedback; they _are_ feedback.
 - **Honest about the strain.** The romantic "a rocket is off-course 90% of the
   time" line is a **myth** — real Apollo was precise and needed only one to four
-  midcourse corrections. "Alignment" begs the question *aligned to whose values?*
+  midcourse corrections. "Alignment" begs the question _aligned to whose values?_
   — and the essay's whole point is that we should be suspicious of anyone who
   claims to know the human utility function. And feedback is necessary but not
   sufficient: a person with a perfect tiller can still hold a bad course
@@ -139,7 +139,7 @@ Verified today:
   `posts[]` array (currently **8** published), `publishedPosts()` (newest-first,
   drops drafts), `postBySlug()`, `formatPostDate()`. `BlogTag` is a closed union:
   `'essay' | 'philosophy' | 'privacy' | 'decentralization' | 'protocol' |
-  'nature' | 'cosmos' | 'economics'`. This post reuses existing tags — **no union
+'nature' | 'cosmos' | 'economics'`. This post reuses existing tags — **no union
   change**.
 - **The pages** — [`site/src/pages/blog/`](../../site/src/pages/blog/):
   `index.astro`, `rss.xml.ts`, one `.astro` per post. Canonical shape:
@@ -165,36 +165,36 @@ Verified today:
 
 ### The thesis is already the project's stance — with unusually literal receipts
 
-This essay is non-fiction. Its claim — *aligned technology hands you the controls
-back* — is the operational content of the Charter, and, more surprisingly, of the
+This essay is non-fiction. Its claim — _aligned technology hands you the controls
+back_ — is the operational content of the Charter, and, more surprisingly, of the
 sync internals.
 
 **The compass (`docs/CHARTER.md`).** [`docs/CHARTER.md`](../CHARTER.md) —
-*"Software that serves instead of extracts."* Six commitments, each with a
+_"Software that serves instead of extracts."_ Six commitments, each with a
 code/CI receipt: **Own**, **Exit**, **Calm**, **Consent**, **Agency**,
-**Commons**. It grew out of a *neo-Luddite audit*
+**Commons**. It grew out of a _neo-Luddite audit_
 ([`0234`](./0234_[_]_MITIGATING_INTERNET_HARMS_A_NEO_LUDDITE_AUDIT_OF_XNET.md)) and
-holds itself to the historical Luddites' own test: refuse *"machinery hurtful to
-commonality."* [`docs/VISION.md`](../VISION.md) frames the scale — "from personal
+holds itself to the historical Luddites' own test: refuse _"machinery hurtful to
+commonality."_ [`docs/VISION.md`](../VISION.md) frames the scale — "from personal
 notes to planetary-scale infrastructure" — which is exactly the stack this essay
 climbs.
 
 **The instruments of course correction (verified files).**
 
-| Instrument (essay term) | What it is | Where it lives |
-| --- | --- | --- |
-| **Undo** — reverse a step | Per-node undo/redo via compensating changes; a global stack with `undoLatest()` / `redoLatest()` for cross-node app-wide undo | [`packages/history/src/undo-manager.ts`](../../packages/history/src/undo-manager.ts); hooks [`useGlobalUndo.ts`](../../packages/react/src/hooks/useGlobalUndo.ts), [`useUndoScope.ts`](../../packages/react/src/hooks/useUndoScope.ts); exploration [`0179`](./0179_[x]_UNIVERSAL_APP_WIDE_UNDO.md) |
-| **Exit** — leave, losing nothing | Portable `did:key` derived from a master seed (HKDF); works on any hub; whole-workspace JSON export | [`packages/identity/src/keys.ts`](../../packages/identity/src/keys.ts), [`packages/data/src/database/export/json-export.ts`](../../packages/data/src/database/export/json-export.ts) (Charter §2) |
-| **Consent** — steer what leaves | Telemetry **off by default** (`DEFAULT_CONSENT.tier = 'off'`), progressive opt-in tiers, scrubbed + bucketed | [`packages/telemetry/src/consent/manager.ts`](../../packages/telemetry/src/consent/manager.ts) (Charter §4, exploration 0210) |
-| **Calm** — refuse the engagement proxy | No infinite scroll, streaks, engagement ranking; chronological feeds; rule-based notifications, first-match priority, own changes never notify | [`scripts/check-humane-patterns.mjs`](../../scripts/check-humane-patterns.mjs), [`packages/comms/src/notify/rules.ts`](../../packages/comms/src/notify/rules.ts) (Charter §3) |
-| **Read the machine** — restore observability | An open, signed, hash-chained change log you're allowed to open and audit | [`packages/sync/src/change.ts`](../../packages/sync/src/change.ts); essay [`the-loom-you-can-read`](../../site/src/pages/blog/the-loom-you-can-read.astro) |
-| **Own the master copy** — change the paradigm | Local store is the primary copy (event-sourced LWW over OPFS-backed SQLite); the hub is a convenience, not a landlord | [`packages/data/src/store/store.ts`](../../packages/data/src/store/store.ts) (Charter §1) |
+| Instrument (essay term)                       | What it is                                                                                                                                     | Where it lives                                                                                                                                                                                                                                                                                      |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Undo** — reverse a step                     | Per-node undo/redo via compensating changes; a global stack with `undoLatest()` / `redoLatest()` for cross-node app-wide undo                  | [`packages/history/src/undo-manager.ts`](../../packages/history/src/undo-manager.ts); hooks [`useGlobalUndo.ts`](../../packages/react/src/hooks/useGlobalUndo.ts), [`useUndoScope.ts`](../../packages/react/src/hooks/useUndoScope.ts); exploration [`0179`](./0179_[x]_UNIVERSAL_APP_WIDE_UNDO.md) |
+| **Exit** — leave, losing nothing              | Portable `did:key` derived from a master seed (HKDF); works on any hub; whole-workspace JSON export                                            | [`packages/identity/src/keys.ts`](../../packages/identity/src/keys.ts), [`packages/data/src/database/export/json-export.ts`](../../packages/data/src/database/export/json-export.ts) (Charter §2)                                                                                                   |
+| **Consent** — steer what leaves               | Telemetry **off by default** (`DEFAULT_CONSENT.tier = 'off'`), progressive opt-in tiers, scrubbed + bucketed                                   | [`packages/telemetry/src/consent/manager.ts`](../../packages/telemetry/src/consent/manager.ts) (Charter §4, exploration 0210)                                                                                                                                                                       |
+| **Calm** — refuse the engagement proxy        | No infinite scroll, streaks, engagement ranking; chronological feeds; rule-based notifications, first-match priority, own changes never notify | [`scripts/check-humane-patterns.mjs`](../../scripts/check-humane-patterns.mjs), [`packages/comms/src/notify/rules.ts`](../../packages/comms/src/notify/rules.ts) (Charter §3)                                                                                                                       |
+| **Read the machine** — restore observability  | An open, signed, hash-chained change log you're allowed to open and audit                                                                      | [`packages/sync/src/change.ts`](../../packages/sync/src/change.ts); essay [`the-loom-you-can-read`](../../site/src/pages/blog/the-loom-you-can-read.astro)                                                                                                                                          |
+| **Own the master copy** — change the paradigm | Local store is the primary copy (event-sourced LWW over OPFS-backed SQLite); the hub is a convenience, not a landlord                          | [`packages/data/src/store/store.ts`](../../packages/data/src/store/store.ts) (Charter §1)                                                                                                                                                                                                           |
 
 **The code that is literally a feedback loop (the essay's best surprise).**
 
 - **Detect-and-repair.** [`packages/sync/src/integrity.ts`](../../packages/sync/src/integrity.ts)
   verifies each change's hash and signature, detects chain breaks / missing
-  parents / duplicates / impossible timestamps, and returns *repair actions*
+  parents / duplicates / impossible timestamps, and returns _repair actions_
   (`recompute-hash`, `request-from-peers`, `remove-duplicate`, `mark-orphan`).
   The system senses its own error and prescribes the correction.
   [`packages/sync/src/change.ts`](../../packages/sync/src/change.ts) exposes
@@ -214,7 +214,7 @@ climbs.
   reason-required `humane-ok` escape hatch.
   [`scripts/check-motion-vocab.mjs`](../../scripts/check-motion-vocab.mjs) bans
   `transition-all`, raw duration literals, and retired easings. These are
-  *negative feedback on the project's own drift.*
+  _negative feedback on the project's own drift._
 
 ```mermaid
 flowchart LR
@@ -237,55 +237,55 @@ the founding problem of a science named in 1948.
 
 ### Cybernetics: the science of steering (the spine)
 
-- **Etymology.** *Cybernetics* < Greek **κυβερνήτης (*kybernḗtēs*)**, "helmsman,
-  steersman." The Latin corruption *gubernator* gives English **govern** and
-  **governor**. Plato used *kybernetes* in *Alcibiades I* for the *governance of
-  people*; Ampère in the 1830s used *cybernétique* for the science of civil
+- **Etymology.** _Cybernetics_ < Greek **κυβερνήτης (_kybernḗtēs_)**, "helmsman,
+  steersman." The Latin corruption _gubernator_ gives English **govern** and
+  **governor**. Plato used _kybernetes_ in _Alcibiades I_ for the _governance of
+  people_; Ampère in the 1830s used _cybernétique_ for the science of civil
   government. **Steering a ship, governing a machine, and governing people are,
-  at the root, one word.** (Verified: Wiktionary; Wikipedia, *Cybernetics*.)
-- **Wiener names the field (1948).** Norbert Wiener, *Cybernetics, or Control and
-  Communication in the Animal and the Machine* — chose the name to honor James
-  Clerk Maxwell's 1868 paper *On Governors* (the analysis of the centrifugal
+  at the root, one word.** (Verified: Wiktionary; Wikipedia, _Cybernetics_.)
+- **Wiener names the field (1948).** Norbert Wiener, _Cybernetics, or Control and
+  Communication in the Animal and the Machine_ — chose the name to honor James
+  Clerk Maxwell's 1868 paper _On Governors_ (the analysis of the centrifugal
   **flyball governor**, the canonical negative-feedback device), calling the
   ship's steering engine "one of the earliest and best-developed forms of
-  feedback mechanism." Feedback = using the *gap between where you are and where
-  you meant to be* to drive the next correction.
-- **Wiener states the AI alignment problem — in 1960.** *Some Moral and Technical
-  Consequences of Automation* (Science, 131:1355): *"If we use, to achieve our
+  feedback mechanism." Feedback = using the _gap between where you are and where
+  you meant to be_ to drive the next correction.
+- **Wiener states the AI alignment problem — in 1960.** _Some Moral and Technical
+  Consequences of Automation_ (Science, 131:1355): _"If we use, to achieve our
   purposes, a mechanical agency with whose operation we cannot interfere once we
   have started it… then we had better be quite sure that the purpose put into the
   machine is the purpose which we really desire and not merely a colourful
-  imitation of it."* This is the King Midas problem, 59 years before Russell
+  imitation of it."_ This is the King Midas problem, 59 years before Russell
   named it — and it also names the brief's **speed** worry directly: the danger is
   agency "so fast and irrevocable that we have not the data to intervene before
   the action is complete."
 
 ### Alignment, in the narrow (AI) sense — the top of the stack
 
-- **Stuart Russell, *Human Compatible* (2019).** The "standard model" of AI —
+- **Stuart Russell, _Human Compatible_ (2019).** The "standard model" of AI —
   humans specify a fixed objective, the machine optimizes it — is the flaw. Fixed
   objectives + capable optimizers = the **King Midas problem**: you get exactly
   what you asked for, including the parts you didn't mean. Russell's fix is
-  **corrigibility**: build machines that are *uncertain* about human preferences,
-  learn them from behavior, and therefore have a positive incentive to *let
-  themselves be switched off.* Read as systems design, that's: **keep the human in
+  **corrigibility**: build machines that are _uncertain_ about human preferences,
+  learn them from behavior, and therefore have a positive incentive to _let
+  themselves be switched off._ Read as systems design, that's: **keep the human in
   the loop and the off-switch reachable** — keep the loop closed.
 - **Goodhart's Law.** "When a measure becomes a target, it ceases to be a good
   measure" (Charles Goodhart, 1975; Marilyn Strathern's crisp phrasing). Its AI
   form is **reward hacking** — the boat-race agent that spins in circles farming
   bonus points instead of finishing. Its social form is **engagement**: optimize
   a proxy for "this was good for you" and you eventually get the opposite. This is
-  the single mechanism of misalignment that recurs at *every* layer of the stack.
+  the single mechanism of misalignment that recurs at _every_ layer of the stack.
 
 ### The middle of the stack: technology ↔ human, human ↔ planet
 
-- **Donella Meadows, *Leverage Points: Places to Intervene in a System* (1997/99).**
+- **Donella Meadows, _Leverage Points: Places to Intervene in a System_ (1997/99).**
   Twelve places to push, ranked. The **lowest** leverage (and where we spend
-  almost all our attention) is *parameters* — numbers, subsidies, a knob on an
+  almost all our attention) is _parameters_ — numbers, subsidies, a knob on an
   algorithm. The **highest** leverage is the **goal of the system** (#2) and the
   **paradigm** the system arises from (#1) — the shared, unstated assumptions.
-  Corollary the essay leans on hard: *you cannot fix a misaligned system by tuning
-  its parameters; you have to change its goal, or the mindset underneath it.*
+  Corollary the essay leans on hard: _you cannot fix a misaligned system by tuning
+  its parameters; you have to change its goal, or the mindset underneath it._
   xNet's "you hold the master copy / leaving loses nothing" is a paradigm move,
   not a feature — which is why it's more powerful than any feature.
 - **Planetary boundaries (Rockström, Steffen et al., 2009; updated 2023–2025).**
@@ -299,20 +299,20 @@ the founding problem of a science named in 1948.
   A controller must have at least as many possible responses as the system it
   regulates has states — or it loses control. Implication for alignment: **you
   cannot steer what you cannot match with feedback.** Sever the feedback (you
-  can't see, can't leave, can't say no) and control is *arithmetically*
+  can't see, can't leave, can't say no) and control is _arithmetically_
   impossible, not just hard. Restoring feedback isn't a nicety; it's the
   precondition for steering at all.
 
 ### Adjacent framings (a subtle nod, not the spine)
 
-- **Albert O. Hirschman, *Exit, Voice, and Loyalty* (1970)** — already the spine
+- **Albert O. Hirschman, _Exit, Voice, and Loyalty_ (1970)** — already the spine
   of essay #5. Voice has teeth only when Exit is credible. In this essay's terms,
-  Exit is *the feedback channel of last resort*; removing it opens the loop.
-- **Yanis Varoufakis, *Technofeudalism* (2023)** and **Shoshana Zuboff,
-  *Surveillance Capitalism* (2019)** — where the technology↔human interface
+  Exit is _the feedback channel of last resort_; removing it opens the loop.
+- **Yanis Varoufakis, _Technofeudalism_ (2023)** and **Shoshana Zuboff,
+  _Surveillance Capitalism_ (2019)** — where the technology↔human interface
   actually broke, and why.
 - **Stafford Beer's Viable System Model / W. Ross Ashby's homeostat** — the
-  cybernetic tradition that treats *any* durable system (a cell, a firm, a state)
+  cybernetic tradition that treats _any_ durable system (a cell, a firm, a state)
   as a nest of feedback loops. Cited lightly to establish that "nested steering"
   is a real discipline, not a poetic flourish.
 
@@ -321,15 +321,15 @@ the founding problem of a science named in 1948.
 1. **"Alignment" is the wrong word for a right idea; "steering" is the honest
    one.** Alignment is static (two arrows, one direction, done). Real systems
    drift — thermodynamically, economically, socially. The thing that keeps a
-   course is *continuous correction against feedback*, which is why the brief's
-   pairing — *course correction* **and** *alignment* — is more accurate than the
+   course is _continuous correction against feedback_, which is why the brief's
+   pairing — _course correction_ **and** _alignment_ — is more accurate than the
    headlines. Cybernetics has said this since 1948; we forgot and re-imported the
    idea under a stiffer name.
 2. **Alignment is a stack, and we're arguing about the top floor.** Physics ⊃
    planet ⊃ society ⊃ technology ⊃ AI. The public debate is almost entirely
    about the AI↔human interface. But an aligned AI on a technology layer aligned
    to extraction, on a society aligned to GDP, on an overshot planet, is a
-   *faster misalignment*, not a fix. This is the essay's central, load-bearing
+   _faster misalignment_, not a fix. This is the essay's central, load-bearing
    claim.
 3. **The break is identical at every interface: proxy capture + severed
    feedback.** Engagement-for-wellbeing, GDP-for-flourishing, fixed-objective-for-
@@ -337,14 +337,14 @@ the founding problem of a science named in 1948.
    cut. This is what makes the essay a single argument instead of five complaints.
 4. **The highest-leverage correction is the paradigm, not the parameter
    (Meadows).** Regulating one AI model, or adding one privacy setting, is a
-   parameter tweak. Changing *who holds the master copy* and *whether leaving
-   costs anything* changes the system's goal. xNet is a paradigm intervention
+   parameter tweak. Changing _who holds the master copy_ and _whether leaving
+   costs anything_ changes the system's goal. xNet is a paradigm intervention
    disguised as an app.
 5. **xNet's contribution is small, real, and honest: it repairs one interface by
-   returning the instruments of course correction.** Not "trust us"; *here is the
+   returning the instruments of course correction.** Not "trust us"; _here is the
    undo, here is the exit, here is the consent switch, here is the source you can
-   read.* And — the surprise — those instruments are the same negative-feedback
-   loops the codebase already uses to keep *itself* on course (`integrity.ts`, the
+   read._ And — the surprise — those instruments are the same negative-feedback
+   loops the codebase already uses to keep _itself_ on course (`integrity.ts`, the
    sync circuit breaker, the CI gates).
 6. **Zero new infrastructure.** Reuses the page + data + RSS pattern, existing
    tags, and the inline-SVG / Self-Audit convention. New code = one page + three
@@ -356,13 +356,13 @@ Each layer, the proxy that captured its goal, the feedback that got severed, and
 the correction that would re-close the loop. The technology↔human row is the only
 one xNet touches — and it touches it with real files.
 
-| Interface | Proxy that captured the goal | Feedback that got severed | The correction (and, for tech↔human, the xNet receipt) |
-| --- | --- | --- | --- |
-| **AI ↔ human** | A fixed objective stands in for "what the human wants" (King Midas) | The off-switch; the human in the loop; the model's uncertainty about us | Corrigibility — keep the human able to interrupt, override, and switch off (Russell) |
-| **Technology ↔ human** | *Engagement* stands in for *wellbeing* (Goodhart) | You can't see what's taken, can't leave, can't say no, can't undo | **Restore the instruments:** Consent ([`consent/manager.ts`](../../packages/telemetry/src/consent/manager.ts)), Exit ([`identity/keys.ts`](../../packages/identity/src/keys.ts)), Calm/no-engagement-ranking ([`check-humane-patterns.mjs`](../../scripts/check-humane-patterns.mjs)), Undo ([`history/undo-manager.ts`](../../packages/history/src/undo-manager.ts)), Read-the-machine ([`sync/change.ts`](../../packages/sync/src/change.ts)) |
-| **Human ↔ planet** | *GDP / growth* stands in for *flourishing within limits* | Prices don't carry ecological cost; the overshoot is invisible until late | Put the limit back in the loop — planetary boundaries as the setpoint (Rockström); Meadows' paradigm shift |
-| **Society ↔ itself** | *Metrics / quarterly targets* stand in for *the mission* (Goodhart, org edition) | Exit and Voice removed by lock-in and chokepoints (Hirschman) | Keep exit credible so voice has teeth; nested, legible governance |
-| **Everything ↔ physics** | (No proxy — physics is the one setpoint you can't Goodhart) | — | The boundary condition: entropy always votes; every other layer must correct *against* it, forever |
+| Interface                | Proxy that captured the goal                                                     | Feedback that got severed                                                 | The correction (and, for tech↔human, the xNet receipt)                                                                                                                                                                                                                                                                                                                                                                                          |
+| ------------------------ | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **AI ↔ human**           | A fixed objective stands in for "what the human wants" (King Midas)              | The off-switch; the human in the loop; the model's uncertainty about us   | Corrigibility — keep the human able to interrupt, override, and switch off (Russell)                                                                                                                                                                                                                                                                                                                                                            |
+| **Technology ↔ human**   | _Engagement_ stands in for _wellbeing_ (Goodhart)                                | You can't see what's taken, can't leave, can't say no, can't undo         | **Restore the instruments:** Consent ([`consent/manager.ts`](../../packages/telemetry/src/consent/manager.ts)), Exit ([`identity/keys.ts`](../../packages/identity/src/keys.ts)), Calm/no-engagement-ranking ([`check-humane-patterns.mjs`](../../scripts/check-humane-patterns.mjs)), Undo ([`history/undo-manager.ts`](../../packages/history/src/undo-manager.ts)), Read-the-machine ([`sync/change.ts`](../../packages/sync/src/change.ts)) |
+| **Human ↔ planet**       | _GDP / growth_ stands in for _flourishing within limits_                         | Prices don't carry ecological cost; the overshoot is invisible until late | Put the limit back in the loop — planetary boundaries as the setpoint (Rockström); Meadows' paradigm shift                                                                                                                                                                                                                                                                                                                                      |
+| **Society ↔ itself**     | _Metrics / quarterly targets_ stand in for _the mission_ (Goodhart, org edition) | Exit and Voice removed by lock-in and chokepoints (Hirschman)             | Keep exit credible so voice has teeth; nested, legible governance                                                                                                                                                                                                                                                                                                                                                                               |
+| **Everything ↔ physics** | (No proxy — physics is the one setpoint you can't Goodhart)                      | —                                                                         | The boundary condition: entropy always votes; every other layer must correct _against_ it, forever                                                                                                                                                                                                                                                                                                                                              |
 
 ```mermaid
 flowchart TB
@@ -387,12 +387,12 @@ flowchart TB
 
 ### Framing options (which spine carries it)
 
-| Option | Spine | Pros | Cons |
-| --- | --- | --- | --- |
-| **A. Hand on the tiller / cybernetics** (recommended) | Alignment = steering; *kybernetes* → governor → govern; the nested stack; the loop that closes or opens | Etymology *is* the argument; unifies AI, tech, humans, planet under one mechanism; "course correction" becomes literal, not motivational-poster | Must resist the cute-etymology trap — earn it with the stack + real feedback code |
-| **B. The alignment stack** | Lead with the nested-systems diagram; walk each interface | Crisp, teachable, matches the brief's "all the systems" ask | Risks feeling like a lecture; needs the tiller image to stay warm |
-| **C. "The other alignment problem"** | Direct rebuttal to AI-only alignment discourse | Punchy, of-the-moment, names the reframe outright | More reactive/argumentative than the series' contemplative texture; dates faster |
-| **D. Goodhart all the way down** | One mechanism (proxy captures goal) at five scales | Intellectually tight; very quotable | Narrower; better as a *section* than the whole spine |
+| Option                                                | Spine                                                                                                   | Pros                                                                                                                                            | Cons                                                                              |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| **A. Hand on the tiller / cybernetics** (recommended) | Alignment = steering; _kybernetes_ → governor → govern; the nested stack; the loop that closes or opens | Etymology _is_ the argument; unifies AI, tech, humans, planet under one mechanism; "course correction" becomes literal, not motivational-poster | Must resist the cute-etymology trap — earn it with the stack + real feedback code |
+| **B. The alignment stack**                            | Lead with the nested-systems diagram; walk each interface                                               | Crisp, teachable, matches the brief's "all the systems" ask                                                                                     | Risks feeling like a lecture; needs the tiller image to stay warm                 |
+| **C. "The other alignment problem"**                  | Direct rebuttal to AI-only alignment discourse                                                          | Punchy, of-the-moment, names the reframe outright                                                                                               | More reactive/argumentative than the series' contemplative texture; dates faster  |
+| **D. Goodhart all the way down**                      | One mechanism (proxy captures goal) at five scales                                                      | Intellectually tight; very quotable                                                                                                             | Narrower; better as a _section_ than the whole spine                              |
 
 **Recommendation: A, with B as the structural middle and D as the recurring
 motif.** Open on the steersman and the etymology (steering = governing = the same
@@ -405,32 +405,32 @@ in the open, not the frame.
 Four movements, each closing one loop:
 
 1. **The word we mislaid.** Alignment vs. steering; Wiener, the governor, and the
-   1960 quote that is the AI-alignment problem verbatim. Establish: *you never
-   arrive at aligned; you hold a course.*
+   1960 quote that is the AI-alignment problem verbatim. Establish: _you never
+   arrive at aligned; you hold a course._
 2. **The stack.** Physics → planet → society → technology → AI. Show the same
    break (Goodhart + severed feedback) at each interface. Name the trap: aligning
    the top floor while the basement drifts.
-3. **How a loop closes.** The four parts of any correction — *sense, compare to a
-   goal, act, and keep the goal honest* — and what severs each in modern tech
+3. **How a loop closes.** The four parts of any correction — _sense, compare to a
+   goal, act, and keep the goal honest_ — and what severs each in modern tech
    (you can't see / compare / act / and the goal's been swapped for a proxy).
    Meadows: the paradigm is the high-leverage point.
 4. **What one honest tool can do.** xNet repairs the technology↔human interface by
    returning the instruments — with the receipts — and, quietly, the reveal that
    those instruments are the same feedback loops the code uses on itself. Then the
-   "everybody" turn: alignment at civilization scale is the *sum of billions of
-   small course corrections* by people who kept a hand on the tiller — prefer
+   "everybody" turn: alignment at civilization scale is the _sum of billions of
+   small course corrections_ by people who kept a hand on the tiller — prefer
    tools you can see into, leave, undo, and switch off.
 
 ### Title options
 
-| Title | Read |
-| --- | --- |
+| Title                                | Read                                                                                                                                           |
+| ------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Hand on the Tiller** (recommended) | Series-consistent evocative noun phrase; carries the whole cybernetics spine (steersman = governor = govern); "course correction" made literal |
-| The Other Alignment Problem | Names the reframe head-on; punchy but more reactive/argumentative than the series voice |
-| The Steersman | Clean single noun; the *kybernetes*; a touch bare without the deck |
-| Course Correction | Matches the brief exactly; plainer, less evocative |
-| The Long Correction | Echoes "The Long Now"; foregrounds *continuous*; slightly abstract |
-| Aligned to What? | Foregrounds the "whose values?" honesty beat; good subhead, thin as a title |
+| The Other Alignment Problem          | Names the reframe head-on; punchy but more reactive/argumentative than the series voice                                                        |
+| The Steersman                        | Clean single noun; the _kybernetes_; a touch bare without the deck                                                                             |
+| Course Correction                    | Matches the brief exactly; plainer, less evocative                                                                                             |
+| The Long Correction                  | Echoes "The Long Now"; foregrounds _continuous_; slightly abstract                                                                             |
+| Aligned to What?                     | Foregrounds the "whose values?" honesty beat; good subhead, thin as a title                                                                    |
 
 ### Tag options
 
@@ -457,12 +457,12 @@ Four movements, each closing one loop:
 - **`AlignmentStack`** (recommended signature diagram) — the series' "one diagram"
   slot. Concentric shells, physics (outer) → planet → society → technology → AI
   (inner), with a bracket/annotation showing the public debate clustered on the
-  innermost interface while the outer interfaces are drawn *misaligned* (offset
+  innermost interface while the outer interfaces are drawn _misaligned_ (offset
   shells). The single visual that makes the whole thesis legible at a glance.
 - **`HonestTiller`** (recommended self-audit, modeled on `HonestExit`) — the
   honest beats in a two-column "what it isn't / what it is" table: (1) the "off
   course 90% of the time" line is a **myth** — Apollo was precise (one to four
-  corrections); (2) "alignment" begs *aligned to whose values?* — we don't claim
+  corrections); (2) "alignment" begs _aligned to whose values?_ — we don't claim
   to know the human utility function, and distrust anyone who does; (3) xNet
   repairs **one** interface — not the planet, not AI safety (cf. `HonestExit`'s
   "we can't fix your rent"); (4) feedback is necessary, not sufficient — a steady
@@ -480,11 +480,11 @@ Narrative arc:
 1. **Cold open — the steersman.** A helmsman doesn't set the wheel and walk away;
    the sea, the wind, and the current push the boat off-line every second, and he
    answers with a hundred small corrections a minute. The word for what he does —
-   *kybernetes* — is the word Wiener chose for the science of feedback, and it's
-   the same root as *governor* and *govern*. One glancing line ties back to the
+   _kybernetes_ — is the word Wiener chose for the science of feedback, and it's
+   the same root as _governor_ and _govern_. One glancing line ties back to the
    series (sea, soil, sky, forest — we've been aboard this boat before), then
    moves on. Land the reframe: we imported an old idea under a stiff new name.
-   *Alignment* sounds like a destination. *Steering* tells the truth — you never
+   _Alignment_ sounds like a destination. _Steering_ tells the truth — you never
    arrive; you hold a course.
 2. **The stack.** Everyone's arguing about one interface: will the AI want what we
    want? Fair — but zoom out. Alignment is a relationship at a seam between two
@@ -495,14 +495,14 @@ Narrative arc:
    **feedback gets cut**. Name the trap plainly: an aligned AI bolted to a
    technology layer that runs on extraction, on a society that steers by GDP, on a
    planet past six of nine limits, isn't salvation — it's a faster wrong turn.
-3. **How a loop closes.** Any correction has four parts: *sense* where you are,
-   *compare* it to where you meant to be, *act* on the gap, and — the part we
-   forget — keep the goal *honest* so you're not steering toward a proxy. Modern
+3. **How a loop closes.** Any correction has four parts: _sense_ where you are,
+   _compare_ it to where you meant to be, _act_ on the gap, and — the part we
+   forget — keep the goal _honest_ so you're not steering toward a proxy. Modern
    tech severs all four: you can't see what it takes (no sensing), can't tell
    good-for-you from good-for-them (the goal's been swapped), can't leave or undo
    (no acting). Meadows' punchline: we obsess over the lowest-leverage point
    (tune a parameter, regulate one model) and flinch from the highest — the
-   *paradigm*. Change who holds the master copy and you've changed the goal of the
+   _paradigm_. Change who holds the master copy and you've changed the goal of the
    whole system.
 4. **What one honest tool can do.** Be honest about scope first (the panel). Then:
    there's exactly one interface a small open-source project can repair —
@@ -512,7 +512,7 @@ Narrative arc:
    optimize the engagement proxy, and the build fails if someone tries). Read the
    machine (it's open; you can audit the loop). Own the master copy (the paradigm
    move). The quiet reveal: these are the same negative-feedback loops the code
-   runs on *itself* — the integrity checker that senses corruption and prescribes
+   runs on _itself_ — the integrity checker that senses corruption and prescribes
    a repair, the sync governor that halts before it floods the hub, the CI gate
    that fails on the project's own drift. Close on the "everybody": alignment at
    the scale of a civilization isn't one heroic fix. It's the sum of billions of
@@ -641,33 +641,33 @@ const layers = [
 ## Risks And Open Questions
 
 - **The cute-etymology trap.** "It all comes from one Greek word!" can feel glib.
-  **Mitigation:** the etymology *opens* the essay but the *stack* + the real
+  **Mitigation:** the etymology _opens_ the essay but the _stack_ + the real
   feedback code carry the weight; the word is a key, not the whole argument.
 - **Grandiosity / the "everything is connected" sermon.** Five scales of
   misalignment can read as a TED talk with no floor. **Mitigation:** the essay
-  narrows hard in §4 to the *one* interface xNet touches, with files; the honesty
+  narrows hard in §4 to the _one_ interface xNet touches, with files; the honesty
   panel states the scope limit bluntly (cf. `HonestExit`).
 - **The Apollo myth.** The romantic "off course 90% of the time, constantly
   correcting" line is **factually wrong** (Apollo needed ~1–4 midcourse
   corrections and was quite precise). **Mitigation:** don't use it as fact; put it
-  in `HonestTiller` as a myth, and make the *real* point with cybernetics
+  in `HonestTiller` as a myth, and make the _real_ point with cybernetics
   (negative feedback / homeostasis), which doesn't need the exaggeration.
 - **"Aligned to whose values?"** The strongest objection to the whole alignment
   frame is that it smuggles in a fixed human utility function. **Mitigation:**
   make this a feature, not a bug — the essay's thesis is precisely that you
-  *can't* freeze the goal, which is why you need *steering* (corrigibility,
+  _can't_ freeze the goal, which is why you need _steering_ (corrigibility,
   reversibility, exit) rather than a one-time solve. Name it in the panel.
 - **AI-alignment audience friction.** Readers deep in AI safety may feel the essay
   waves at their field. **Mitigation:** grant the AI interface its due (Russell,
-  corrigibility, Wiener 1960), and be explicit that the move is to *widen* the
+  corrigibility, Wiener 1960), and be explicit that the move is to _widen_ the
   frame, not dismiss it.
 - **Determinism / doomer read on planetary boundaries.** Citing "six of nine
   transgressed" can tip into fatalism. **Mitigation:** pair every diagnosis with a
-  *correction* (Meadows' leverage points; the loop can be re-closed); the essay's
-  mood is *steerable*, not doomed.
+  _correction_ (Meadows' leverage points; the loop can be re-closed); the essay's
+  mood is _steerable_, not doomed.
 - **Overlap with siblings.** Exit/Voice (essay #5) and the extraction critique
   recur. **Mitigation:** cite them glancingly; this essay's distinct contribution
-  is the *cybernetic/steering* lens and the *nested stack*, which none of the
+  is the _cybernetic/steering_ lens and the _nested stack_, which none of the
   others use.
 - **Open question — cadence.** Space #9 a few days after #8 so it isn't buried;
   set `pubDate` accordingly (draft shows 2026-07-05).
@@ -677,34 +677,35 @@ const layers = [
 
 ## Implementation Checklist
 
-- [ ] Add the `BlogPost` entry to [`site/src/data/blog.ts`](../../site/src/data/blog.ts)
+- [x] Add the `BlogPost` entry to [`site/src/data/blog.ts`](../../site/src/data/blog.ts)
       (slug `hand-on-the-tiller`, tags `['essay','philosophy','decentralization']`).
-- [ ] Create `site/src/components/blog/TillerHero.astro` (inline SVG; boat holding
+- [x] Create `site/src/components/blog/TillerHero.astro` (inline SVG; boat holding
       a course, dotted correcting wake, cosmic-X as the guiding star; mirror an
       existing hero's prop contract).
-- [ ] Create `site/src/components/blog/AlignmentStack.astro` (the signature
+- [x] Create `site/src/components/blog/AlignmentStack.astro` (the signature
       diagram: concentric physics→planet→society→technology→AI shells, outer
       shells drawn misaligned, debate bracketed on the inner interface).
-- [ ] Create `site/src/components/blog/HonestTiller.astro` (self-audit: Apollo "90%
+- [x] Create `site/src/components/blog/HonestTiller.astro` (self-audit: Apollo "90%
       off course" is a myth; "aligned to whose values?"; xNet repairs one
       interface only; feedback is necessary not sufficient).
-- [ ] Write `site/src/pages/blog/hand-on-the-tiller.astro` following Framing A, the
+- [x] Write `site/src/pages/blog/hand-on-the-tiller.astro` following Framing A, the
       four-movement body, and Charter/file receipts (real paths + §§).
-- [ ] Keep the opener glancing — one line of series continuity, no enumerated
+- [x] Keep the opener glancing — one line of series continuity, no enumerated
       recap; link prior essays in the Sources coda, not the body.
-- [ ] Keep all art **inline SVG** — no third-party assets (Self-Audit parity);
+- [x] Keep all art **inline SVG** — no third-party assets (Self-Audit parity);
       cosmic-X recurs as the bright node.
-- [ ] Add a "Sources" coda (Wiener 1948 & 1960; Russell 2019; Goodhart 1975 /
+- [x] Add a "Sources" coda (Wiener 1948 & 1960; Russell 2019; Goodhart 1975 /
       Strathern; Meadows 1997/99; Rockström et al. 2009/2023; Ashby 1956;
       Hirschman 1970) + prior-essay links.
-- [ ] Generate a changelog fragment via
-      `node scripts/changelog/new.mjs --title "New essay: Hand on the Tiller" --tags site`
-      (do **not** hand-author the JSON).
-- [ ] `site/` is outside the root eslint/prettier config — format within the site
+- [x] Generate a changelog fragment via
+      `node scripts/changelog/new.mjs --title "New essay: Hand on the Tiller" --tags platform`
+      (do **not** hand-author the JSON; `platform` is the tag prior essays use —
+      the script has no `site` tag).
+- [x] `site/` is outside the root eslint/prettier config — format within the site
       workspace if needed.
-- [ ] No `docs/sidebar.mjs` / `build:llms` changes — the blog is not in the docs
+- [x] No `docs/sidebar.mjs` / `build:llms` changes — the blog is not in the docs
       sidebar.
-- [ ] **No changeset required** — `site/` is not a publishable `packages/*`
+- [x] **No changeset required** — `site/` is not a publishable `packages/*`
       library (per `CLAUDE.md`).
 
 ## Validation Checklist
@@ -728,7 +729,7 @@ const layers = [
 - [ ] Fact check: the Wiener 1960 quote is verbatim; "six of nine planetary
       boundaries" is attributed to the 2023 update (note the 2025 seventh); the
       Apollo "90%" line appears only in `HonestTiller`, flagged as myth; the
-      *kybernetes → governor → govern* etymology is stated correctly.
+      _kybernetes → governor → govern_ etymology is stated correctly.
 - [ ] Prose check: the essay grants AI alignment its due, then widens the frame;
       it never claims to know the human utility function; the scope limit (one
       interface) is stated plainly; references to prior posts are glancing.
@@ -750,19 +751,19 @@ const layers = [
 
 ### Cybernetics & systems (the spine)
 
-- Norbert Wiener, *Cybernetics, or Control and Communication in the Animal and the Machine* (MIT Press, 1948) — names the field after *kybernetes* / Maxwell's governor.
-- Norbert Wiener, *Some Moral and Technical Consequences of Automation*, **Science** 131 (1960): 1355–1358 — "the purpose put into the machine… the purpose which we really desire."
-- Donella H. Meadows, *Leverage Points: Places to Intervene in a System* (The Sustainability Institute, 1999): <https://donellameadows.org/archives/leverage-points-places-to-intervene-in-a-system/>
-- W. Ross Ashby, *An Introduction to Cybernetics* (Chapman & Hall, 1956) — the Law of Requisite Variety.
-- Etymology of *cybernetics* / *governor*: <https://en.wikipedia.org/wiki/Cybernetics>, <https://en.wiktionary.org/wiki/cybernetics>
+- Norbert Wiener, _Cybernetics, or Control and Communication in the Animal and the Machine_ (MIT Press, 1948) — names the field after _kybernetes_ / Maxwell's governor.
+- Norbert Wiener, _Some Moral and Technical Consequences of Automation_, **Science** 131 (1960): 1355–1358 — "the purpose put into the machine… the purpose which we really desire."
+- Donella H. Meadows, _Leverage Points: Places to Intervene in a System_ (The Sustainability Institute, 1999): <https://donellameadows.org/archives/leverage-points-places-to-intervene-in-a-system/>
+- W. Ross Ashby, _An Introduction to Cybernetics_ (Chapman & Hall, 1956) — the Law of Requisite Variety.
+- Etymology of _cybernetics_ / _governor_: <https://en.wikipedia.org/wiki/Cybernetics>, <https://en.wiktionary.org/wiki/cybernetics>
 
 ### AI alignment (the top of the stack)
 
-- Stuart Russell, *Human Compatible: Artificial Intelligence and the Problem of Control* (Viking, 2019) — the standard model, the King Midas problem, corrigibility. FLI summary: <https://futureoflife.org/ai/artificial-intelligence-king-midas-problem/>
+- Stuart Russell, _Human Compatible: Artificial Intelligence and the Problem of Control_ (Viking, 2019) — the standard model, the King Midas problem, corrigibility. FLI summary: <https://futureoflife.org/ai/artificial-intelligence-king-midas-problem/>
 - Charles Goodhart (1975); Marilyn Strathern's phrasing (1997) — "when a measure becomes a target…"; AI form: reward hacking.
 
 ### Planet & society (the middle of the stack)
 
-- Johan Rockström, Will Steffen et al., *Planetary Boundaries* (2009; update: Richardson et al., **Science Advances**, 2023) — six of nine transgressed; 2025 Planetary Health Check names ocean acidification the seventh: <https://www.stockholmresilience.org/research/planetary-boundaries.html>
-- Albert O. Hirschman, *Exit, Voice, and Loyalty* (Harvard University Press, 1970) — exit as the feedback channel that gives voice its teeth.
-- Yanis Varoufakis, *Technofeudalism* (2023); Shoshana Zuboff, *The Age of Surveillance Capitalism* (2019) — where the technology↔human interface broke.
+- Johan Rockström, Will Steffen et al., _Planetary Boundaries_ (2009; update: Richardson et al., **Science Advances**, 2023) — six of nine transgressed; 2025 Planetary Health Check names ocean acidification the seventh: <https://www.stockholmresilience.org/research/planetary-boundaries.html>
+- Albert O. Hirschman, _Exit, Voice, and Loyalty_ (Harvard University Press, 1970) — exit as the feedback channel that gives voice its teeth.
+- Yanis Varoufakis, _Technofeudalism_ (2023); Shoshana Zuboff, _The Age of Surveillance Capitalism_ (2019) — where the technology↔human interface broke.

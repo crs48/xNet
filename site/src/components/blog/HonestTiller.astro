@@ -1,0 +1,54 @@
+---
+// The honesty beat for post #9 (exploration 0256), modeled on HonestExit /
+// HonestStar / HonestGarden. An essay that reaches from AI safety to the
+// biosphere has to be loud about where its own metaphor thins and where a notes
+// app stops being able to help — or it's just another cure-all. So we say plainly
+// what "steering" does and doesn't buy.
+const rows = [
+  {
+    isnt: 'The romantic “off course 90% of the time” line is a myth.',
+    is: 'A rocket to the Moon isn’t flailing and constantly saving itself — real Apollo was precise, and needed only one to a handful of midcourse corrections. The honest idea underneath is quieter: negative feedback. Sense the gap, close a little of it, repeat. You don’t need the exaggeration.'
+  },
+  {
+    isnt: 'We won’t pretend to know what everything should be aligned to.',
+    is: 'The whole point is that you can’t freeze “what humans want” into a fixed target and optimize it — that’s the King Midas trap. Be suspicious of anyone who claims the human utility function, us included. Steering keeps the goal open to revision; that’s the feature, not a gap.'
+  },
+  {
+    isnt: 'We won’t pretend software realigns the planet.',
+    is: 'xNet touches exactly one seam — technology ↔ human. It does nothing about carbon, GDP, or AI safety writ large. What it can do is hand one person back the instruments of course correction over their own information: undo, exit, consent, a machine they can read.'
+  },
+  {
+    isnt: 'We won’t pretend a good tiller picks the destination.',
+    is: 'Feedback is necessary, not sufficient. A steady hand can hold a bad course. Undo, exit, and consent make correction possible; they don’t choose where you’re going. That part is still yours — which is the only place it should live.'
+  }
+]
+---
+
+<section class="not-prose my-12">
+  <div class="rounded-2xl border border-border bg-surface/30 p-6 dark:bg-surface/40 lg:p-8">
+    <h3 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+      An honest heading
+    </h3>
+    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+      A metaphor that oversells itself is just more marketing. Here’s where this
+      one thins out.
+    </p>
+
+    <ul class="mt-6 space-y-5">
+      {
+        rows.map((row) => (
+          <li class="grid gap-3 sm:grid-cols-[1fr_1.3fr] sm:gap-5">
+            <div class="flex gap-2.5">
+              <span class="select-none text-gray-400 dark:text-gray-600">✕</span>
+              <p class="text-sm leading-relaxed text-gray-500 dark:text-gray-400">{row.isnt}</p>
+            </div>
+            <div class="flex gap-2.5">
+              <span class="select-none text-sky-500">✓</span>
+              <p class="text-sm leading-relaxed text-gray-700 dark:text-gray-200">{row.is}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>

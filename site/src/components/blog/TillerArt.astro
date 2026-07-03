@@ -1,0 +1,129 @@
+---
+// Decorative art for blog post #9 (exploration 0256), extracted from TillerHero so
+// the same inline SVG backs both the post hero and the blog-index preview card
+// (no external assets — Self-Audit parity). A small boat holds a line across open
+// water toward a fixed guiding star: the cosmic-X, glowing sky-blue. The dotted
+// wake behind it zig-zags — constant small course corrections — and the swings
+// shrink as the boat settles onto the bearing. Steering, drawn literally: you
+// never arrive at "aligned"; you hold a course.
+interface Props {
+  /** Override the wrapper classes; defaults to full-bleed for hero use. */
+  class?: string
+}
+const { class: className = 'pointer-events-none absolute inset-0 h-full w-full' } =
+  Astro.props
+
+// The guiding star (cosmic-X) and the boat; the bearing line runs between them.
+const star = { x: 838, y: 92 }
+const boat = { x: 300, y: 236 }
+
+// The wake: the course already sailed, oscillating around the bearing and
+// converging on it as it nears the boat (amplitude decays left→right).
+const wake = [
+  [64, 250],
+  [98, 231],
+  [131, 251],
+  [165, 233],
+  [199, 248],
+  [232, 234],
+  [265, 245],
+  [298, 237]
+]
+  .map(([x, y]) => `${x},${y}`)
+  .join(' ')
+---
+
+<svg
+  class={className}
+  viewBox="0 0 1040 340"
+  preserveAspectRatio="xMidYMid slice"
+  aria-hidden="true"
+>
+  <defs>
+    <linearGradient id="tillerbg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#071a28" />
+      <stop offset="52%" stop-color="#0a2233" />
+      <stop offset="62%" stop-color="#08202f" />
+      <stop offset="100%" stop-color="#050f18" />
+    </linearGradient>
+    <radialGradient id="starglow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#7dd3fc" stop-opacity="0.95" />
+      <stop offset="45%" stop-color="#38bdf8" stop-opacity="0.4" />
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="starx" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#e0f2fe" />
+      <stop offset="100%" stop-color="#38bdf8" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1040" height="340" fill="url(#tillerbg)" />
+
+  <!-- a scatter of faint stars in the night sky -->
+  <g fill="#7dd3fc" opacity="0.5">
+    <circle cx="140" cy="60" r="1.4" />
+    <circle cx="360" cy="42" r="1.1" />
+    <circle cx="520" cy="80" r="1.5" />
+    <circle cx="690" cy="52" r="1.2" />
+    <circle cx="930" cy="150" r="1.3" />
+    <circle cx="255" cy="110" r="1" />
+    <circle cx="612" cy="150" r="1" />
+  </g>
+
+  <!-- the sea: horizon and a few settling swells -->
+  <g stroke="#1e5068" stroke-width="1.4" opacity="0.55" fill="none" stroke-linecap="round">
+    <line x1="0" y1="212" x2="1040" y2="212" opacity="0.7" />
+    <path d="M0 250 Q 130 242 260 250 T 520 250 T 780 250 T 1040 250" opacity="0.5" />
+    <path d="M0 288 Q 150 279 300 288 T 600 288 T 900 288 T 1040 288" opacity="0.35" />
+  </g>
+
+  <!-- the intended course: a faint bearing line from the boat to the guiding star -->
+  <line
+    x1={boat.x}
+    y1={boat.y - 6}
+    x2={star.x}
+    y2={star.y + 18}
+    stroke="#38bdf8"
+    stroke-width="1.4"
+    stroke-dasharray="2 7"
+    opacity="0.5"
+  />
+
+  <!-- the wake: the course already sailed — constant small corrections, converging -->
+  <polyline
+    points={wake}
+    fill="none"
+    stroke="#7dd3fc"
+    stroke-width="2"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    stroke-dasharray="1 6"
+    opacity="0.75"
+  />
+
+  <!-- the boat, heeled slightly to the wind, holding its line -->
+  <g transform={`translate(${boat.x} ${boat.y}) rotate(-6)`}>
+    <!-- hull -->
+    <path
+      d="M -34 0 Q -20 15 0 15 Q 20 15 34 0 Z"
+      fill="#0f2f42"
+      stroke="#7dd3fc"
+      stroke-width="1.6"
+    />
+    <!-- mast -->
+    <line x1="-2" y1="0" x2="-2" y2="-44" stroke="#cbd5e1" stroke-width="2" stroke-linecap="round" />
+    <!-- sail, filled by the wind -->
+    <path d="M -2 -42 Q 22 -28 16 -4 L -2 -4 Z" fill="#1e5068" stroke="#7dd3fc" stroke-width="1.2" opacity="0.9" />
+    <!-- tiller: a short bar at the stern, the hand's small correction -->
+    <line x1="-34" y1="2" x2="-52" y2="-4" stroke="#38bdf8" stroke-width="2.2" stroke-linecap="round" />
+  </g>
+
+  <!-- the guiding star: the cosmic-X, glowing sky-blue, fixed high in the sky -->
+  <g transform={`translate(${star.x} ${star.y})`}>
+    <circle cx="0" cy="0" r="40" fill="url(#starglow)" />
+    <g stroke="url(#starx)" stroke-width="5.5" stroke-linecap="round" transform="translate(-11 -11)">
+      <line x1="0" y1="0" x2="22" y2="22" />
+      <line x1="22" y1="0" x2="0" y2="22" />
+    </g>
+  </g>
+</svg>

@@ -1,0 +1,158 @@
+---
+// The "one diagram" slot for post #9 (exploration 0256), mirroring the
+// HydrostaticBalance / DustBridge / GrowthVsLeverage card idiom (not-prose,
+// bordered surface) so the posts read as one publication. Alignment isn't a
+// single AI problem; it's a property of a NESTED stack of systems. Concentric
+// shells — physics (outer) → planet → society → technology → AI (inner). The
+// public debate clusters on the innermost seam (AI ↔ human) while the inner
+// shells have drifted off the true axis. The cosmic-X burns at the core. All
+// inline SVG; ships nothing third-party (Self-Audit parity).
+
+// Ring centres drift rightward and up as they go inner — the "aligned" axis is
+// the dashed plumb line at trueX; the inner shells have wandered off it.
+const trueX = 352
+const rings = [
+  { name: 'Physics', cx: 352, cy: 230, r: 198, op: 0.32 },
+  { name: 'Planet', cx: 357, cy: 228, r: 158, op: 0.42 },
+  { name: 'Society', cx: 363, cy: 226, r: 119, op: 0.52 },
+  { name: 'Technology', cx: 372, cy: 224, r: 81, op: 0.68 },
+  { name: 'AI', cx: 382, cy: 222, r: 44, op: 0.9 }
+]
+const core = rings[rings.length - 1]
+
+// Each layer, and the proxy that captured its goal. The technology↔human seam is
+// the only one a small open-source project can actually repair.
+const legend = [
+  { name: 'Physics', note: 'the one setpoint you can’t game — entropy always votes', xnet: false },
+  { name: 'Planet', note: 'steered by GDP; six of nine planetary boundaries crossed', xnet: false },
+  { name: 'Society', note: 'steered by metrics and quarterly targets (Goodhart, org edition)', xnet: false },
+  { name: 'Technology', note: 'steered by engagement, not wellbeing — the seam xNet repairs', xnet: true },
+  { name: 'AI', note: 'steered by a fixed objective standing in for what we actually want', xnet: false }
+]
+---
+
+<section class="not-prose my-12">
+  <div class="rounded-2xl border border-border bg-surface/30 p-6 dark:bg-surface/40 lg:p-8">
+    <h3 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+      The alignment stack
+    </h3>
+    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+      Alignment is a relationship at a seam between two systems — and the systems
+      nest. We argue about the innermost seam while the outer ones drift.
+    </p>
+
+    <div class="mt-6 overflow-x-auto">
+      <svg
+        viewBox="0 0 720 452"
+        class="mx-auto block h-auto w-full max-w-xl"
+        role="img"
+        aria-label="Concentric shells from physics on the outside to AI at the core; the inner shells have drifted off the true axis, and the public debate clusters on the innermost AI seam."
+      >
+        <defs>
+          <radialGradient id="coreglow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#7dd3fc" stop-opacity="0.95" />
+            <stop offset="45%" stop-color="#38bdf8" stop-opacity="0.4" />
+            <stop offset="100%" stop-color="#38bdf8" stop-opacity="0" />
+          </radialGradient>
+          <linearGradient id="corex" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#e0f2fe" />
+            <stop offset="100%" stop-color="#38bdf8" />
+          </linearGradient>
+        </defs>
+
+        <!-- the true axis: "aligned" is the plumb line the inner shells drift from -->
+        <line
+          x1={trueX}
+          y1="26"
+          x2={trueX}
+          y2="426"
+          stroke="#38bdf8"
+          stroke-width="1.2"
+          stroke-dasharray="2 7"
+          opacity="0.4"
+        />
+
+        <!-- the nested shells -->
+        {
+          rings.map((ring) => (
+            <g>
+              <circle
+                cx={ring.cx}
+                cy={ring.cy}
+                r={ring.r}
+                fill="none"
+                stroke="#38bdf8"
+                stroke-width="1.6"
+                opacity={ring.op}
+              />
+              <text
+                x={ring.cx}
+                y={ring.cy - ring.r - 8}
+                text-anchor="middle"
+                font-family="ui-sans-serif, system-ui, sans-serif"
+                font-size="14"
+                font-weight="600"
+                fill="#7dd3fc"
+              >
+                {ring.name}
+              </text>
+            </g>
+          ))
+        }
+
+        <!-- the core: the cosmic-X, burning at the AI seam -->
+        <g transform={`translate(${core.cx} ${core.cy})`}>
+          <circle cx="0" cy="0" r="40" fill="url(#coreglow)" />
+          <g stroke="url(#corex)" stroke-width="5" stroke-linecap="round" transform="translate(-10 -10)">
+            <line x1="0" y1="0" x2="20" y2="20" />
+            <line x1="20" y1="0" x2="0" y2="20" />
+          </g>
+        </g>
+
+        <!-- annotation: the public debate lives on the innermost seam -->
+        <g font-family="ui-sans-serif, system-ui, sans-serif">
+          <line
+            x1={core.cx + core.r + 4}
+            y1={core.cy}
+            x2="560"
+            y2="150"
+            stroke="#94a3b8"
+            stroke-width="1.2"
+            opacity="0.7"
+          />
+          <text x="566" y="140" font-size="13" font-weight="600" fill="#cbd5e1">
+            the public debate
+          </text>
+          <text x="566" y="158" font-size="13" fill="#94a3b8">
+            lives here
+          </text>
+        </g>
+      </svg>
+    </div>
+
+    <ul class="mt-6 space-y-2.5 border-t border-border pt-5">
+      {
+        legend.map((row) => (
+          <li class="grid gap-1.5 sm:grid-cols-[8rem_1fr] sm:gap-4 sm:items-baseline">
+            <span
+              class:list={[
+                'font-mono text-sm font-semibold',
+                row.xnet ? 'text-sky-600 dark:text-sky-400' : 'text-gray-500 dark:text-gray-400'
+              ]}
+            >
+              {row.name}
+            </span>
+            <span class="text-sm leading-relaxed text-gray-700 dark:text-gray-200">{row.note}</span>
+          </li>
+        ))
+      }
+    </ul>
+
+    <p class="mt-5 border-t border-border pt-4 text-sm leading-relaxed text-gray-600 dark:text-gray-300">
+      Bolt an aligned AI onto a technology layer that runs on extraction, on a
+      society that steers by GDP, on a planet past six of nine limits, and you
+      haven’t fixed the course — you’ve built a
+      <span class="font-semibold text-gray-900 dark:text-white">faster way to hold the wrong one</span>.
+    </p>
+  </div>
+</section>
