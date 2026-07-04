@@ -154,6 +154,32 @@ export function publishedPosts(): BlogPost[] {
   return posts.filter((p) => !p.draft).sort((a, b) => b.pubDate.localeCompare(a.pubDate))
 }
 
+/**
+ * Published posts in reading (series) order: oldest first. The blog is written
+ * as a running series, so the natural way to read it is front-to-back — the
+ * reverse of the index's newest-first listing.
+ */
+export function seriesOrder(): BlogPost[] {
+  return publishedPosts().reverse()
+}
+
+/**
+ * Neighbours of a post within the published series, in reading order.
+ * `previous` is the older post published just before this one; `next` is the
+ * newer post published just after it — so following `next` walks the series
+ * front-to-back. Either is `undefined` at the ends of the series, and both are
+ * `undefined` for a draft or unknown slug (drafts aren't part of the series).
+ */
+export function seriesNeighbors(slug: string): { previous?: BlogPost; next?: BlogPost } {
+  const order = seriesOrder()
+  const i = order.findIndex((p) => p.slug === slug)
+  if (i === -1) return {}
+  return {
+    previous: i > 0 ? order[i - 1] : undefined,
+    next: i < order.length - 1 ? order[i + 1] : undefined
+  }
+}
+
 /** Look up a single post by slug (drafts included, so authoring URLs resolve). */
 export function postBySlug(slug: string): BlogPost | undefined {
   return posts.find((p) => p.slug === slug)

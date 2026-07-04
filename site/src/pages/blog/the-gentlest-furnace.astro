@@ -2,6 +2,7 @@
 import Base from '../../layouts/Base.astro'
 import Nav from '../../components/sections/Nav.astro'
 import Footer from '../../components/sections/Footer.astro'
+import SeriesNav from '../../components/blog/SeriesNav.astro'
 import StarHero from '../../components/blog/StarHero.astro'
 import HydrostaticBalance from '../../components/blog/HydrostaticBalance.astro'
 import HonestStar from '../../components/blog/HonestStar.astro'
@@ -422,6 +423,8 @@ const post = postBySlug('the-gentlest-furnace')!
         >
       </p>
     </article>
+
+    <SeriesNav slug="the-gentlest-furnace" />
   </main>
 
   <Footer />
