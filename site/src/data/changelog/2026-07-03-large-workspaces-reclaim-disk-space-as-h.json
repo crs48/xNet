@@ -4,5 +4,14 @@
   "title": "Large workspaces reclaim disk space as history is pruned",
   "summary": "Local databases now return freed space to the filesystem when old change-log history is compacted, so the file that determines cold-open speed shrinks over time instead of staying large. This steadily speeds up opening large, long-lived workspaces.",
   "highlights": [],
-  "tags": ["performance"]
+  "tags": [
+    "performance"
+  ],
+  "pr": 369,
+  "mergedAt": "2026-07-04T00:28:12Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
