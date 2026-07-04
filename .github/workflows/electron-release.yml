@@ -305,6 +305,17 @@ jobs:
           echo "=== boot trace (${XNET_BOOT_TRACE}) ==="
           cat "$XNET_BOOT_TRACE" 2>/dev/null || echo "(no boot-trace file — main never reached its first top-level statement)"
           echo "=== end boot trace (exit rc=$rc) ==="
+          if [ "$rc" -ne 0 ]; then
+            # Boot fails loading better_sqlite3.node ('cannot open shared object
+            # file'). Show whether the .node exists at the resolved path in THIS
+            # build and what the loader actually needs, in the real x64 artifact.
+            echo "=== better-sqlite3 native diagnostics ==="
+            BSQ_DIR="$PWD/apps/electron/dist/linux-unpacked/resources/app.asar.unpacked/node_modules/better-sqlite3/build/Release"
+            echo "-- ls $BSQ_DIR"; ls -la "$BSQ_DIR" 2>&1 || echo "(unpacked Release dir MISSING)"
+            echo "-- find any better_sqlite3.node under resources"
+            find "$PWD/apps/electron/dist/linux-unpacked/resources" -name 'better_sqlite3.node' 2>/dev/null || true
+            echo "-- ldd on the resolved .node"; ldd "$BSQ_DIR/better_sqlite3.node" 2>&1 || echo "(ldd failed / file absent)"
+          fi
           exit $rc
 
       - name: Upload artifacts

@@ -17,16 +17,11 @@
     "gatekeeperAssess": false,
     "entitlements": "build/entitlements.mac.plist",
     "entitlementsInherit": "build/entitlements.mac.plist",
-    "target": [
-      {
-        "target": "dmg",
-        "arch": ["x64", "arm64"]
-      },
-      {
-        "target": "zip",
-        "arch": ["x64", "arm64"]
-      }
-    ]
+    // Arch is driven by the CI `--mac --<arch>` flag (one arch per matrix job).
+    // Hardcoding both here made a single job build both arches in one invocation,
+    // where @electron/rebuild cross-contaminates the native modules — landing the
+    // wrong-arch better_sqlite3.node in a package (see the Linux x64 boot crash).
+    "target": ["dmg", "zip"]
   },
 
   "dmg": {
@@ -64,16 +59,10 @@
   "linux": {
     "icon": "build/icon.png",
     "category": "Office",
-    "target": [
-      {
-        "target": "AppImage",
-        "arch": ["x64", "arm64"]
-      },
-      {
-        "target": "deb",
-        "arch": ["x64", "arm64"]
-      }
-    ]
+    // Arch driven by the CI `--linux --<arch>` flag (one arch per matrix job) so a
+    // single invocation never rebuilds native modules for two arches and packs the
+    // wrong-arch better_sqlite3.node (root cause of the packaged x64 boot crash).
+    "target": ["AppImage", "deb"]
   },
 
   "publish": {
