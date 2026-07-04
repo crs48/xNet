@@ -290,12 +290,22 @@ jobs:
             ! -name 'chrome*' ! -name '*.so*' ! -name '*.bin' | head -1)
           if [ -z "$BIN" ]; then echo "no Electron binary found"; ls -la apps/electron/dist/linux-unpacked; exit 1; fi
           echo "Smoke-testing $BIN"
-          # XNET_DEBUG surfaces the data-process boot trace; E2E_DEBUG streams the
-          # packaged app's stdout/stderr live, so a boot stall shows its real cause
-          # instead of a bare firstWindow timeout.
+          # XNET_DEBUG surfaces the data-process trace; E2E_DEBUG streams the app's
+          # stdout/stderr; XNET_BOOT_TRACE has the main process append boot-phase
+          # markers to a file we cat afterwards — a backstop that survives any
+          # stderr-capture quirk, so a boot stall shows exactly how far it got.
+          export XNET_BOOT_TRACE=/tmp/xnet-boot.log
+          rm -f "$XNET_BOOT_TRACE"
+          set +e
           XNET_PACKAGED_BINARY="$BIN" XNET_ELECTRON_NO_SANDBOX=1 XNET_DEBUG=1 E2E_DEBUG=1 \
             xvfb-run --auto-servernum pnpm --filter @xnetjs/e2e-tests exec \
             playwright test src/packaged-smoke.spec.ts --project=electron --fail-on-flaky-tests
+          rc=$?
+          set -e
+          echo "=== boot trace (${XNET_BOOT_TRACE}) ==="
+          cat "$XNET_BOOT_TRACE" 2>/dev/null || echo "(no boot-trace file — main never reached its first top-level statement)"
+          echo "=== end boot trace (exit rc=$rc) ==="
+          exit $rc
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

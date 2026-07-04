@@ -3,6 +3,7 @@
  */
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
+import { appendFileSync } from 'fs'
 import { app, BrowserWindow } from 'electron'
 import { setupAgentBridgeIPC, startAgentBridge, stopAgentBridge } from './agent-bridge-manager'
 import { setupCloudflareTunnelIPC, stopCloudflareTunnel } from './cloudflare-tunnel-ipc'
@@ -227,14 +228,25 @@ async function createWindow() {
 // is never created and the app looks dead with no clue why — the whenReady chain
 // below has no catch. Surface such failures loudly on stderr so the packaged-smoke
 // gate and users' logs show the real cause instead of a silent hang.
-// Write straight to fd 2 (not console, which downstream code may reassign) so a
-// boot stall / rejection is always visible in packaged logs and the CI smoke gate.
+// Boot trace: write to fd 2 (not console, which downstream code may reassign) and,
+// when XNET_BOOT_TRACE names a file, append there too — a backstop that survives
+// stderr-capture quirks so the CI smoke gate can read exactly how far boot got.
+const bootTraceFile = process.env.XNET_BOOT_TRACE
 const bootTrace = (msg: string): void => {
-  if (process.env.XNET_DEBUG === '1') process.stderr.write(`[boot] ${msg}\n`)
+  const line = `[boot] ${msg}\n`
+  process.stderr.write(line)
+  if (bootTraceFile) {
+    try {
+      appendFileSync(bootTraceFile, line)
+    } catch {
+      // tracing must never break boot
+    }
+  }
 }
 process.on('unhandledRejection', (reason) => {
-  process.stderr.write(`[boot] unhandled rejection during startup: ${String(reason)}\n`)
+  bootTrace(`unhandled rejection during startup: ${String(reason)}`)
 })
+bootTrace('main module loaded')
 
 app.whenReady().then(async () => {
   bootTrace('whenReady fired')
