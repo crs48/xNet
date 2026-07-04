@@ -209,7 +209,12 @@ jobs:
   build-windows:
     needs: [version, build-js]
     if: needs.version.outputs.should_release == 'true'
-    runs-on: windows-latest
+    # Pin to the VS 2022 image: `windows-latest` now ships Visual Studio 2026,
+    # which the node-gyp (9.4.1) bundled by @electron/rebuild can't detect
+    # ("Could not find any Visual Studio installation to use"), breaking the
+    # from-source rebuild of native deps without an Electron prebuild (usearch,
+    # sharp). better-sqlite3 is unaffected — it ships an Electron prebuild.
+    runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup
@@ -285,7 +290,10 @@ jobs:
             ! -name 'chrome*' ! -name '*.so*' ! -name '*.bin' | head -1)
           if [ -z "$BIN" ]; then echo "no Electron binary found"; ls -la apps/electron/dist/linux-unpacked; exit 1; fi
           echo "Smoke-testing $BIN"
-          XNET_PACKAGED_BINARY="$BIN" XNET_ELECTRON_NO_SANDBOX=1 \
+          # XNET_DEBUG surfaces the data-process boot trace; E2E_DEBUG streams the
+          # packaged app's stdout/stderr live, so a boot stall shows its real cause
+          # instead of a bare firstWindow timeout.
+          XNET_PACKAGED_BINARY="$BIN" XNET_ELECTRON_NO_SANDBOX=1 XNET_DEBUG=1 E2E_DEBUG=1 \
             xvfb-run --auto-servernum pnpm --filter @xnetjs/e2e-tests exec \
             playwright test src/packaged-smoke.spec.ts --project=electron --fail-on-flaky-tests
 
