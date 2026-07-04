@@ -30,9 +30,14 @@ function makeNodeStorage(totalRows: number, watermark: number | null = 320_000) 
 }
 
 function makeSqlite(mode: 'opfs' | 'memory' = 'opfs') {
+  const exec = vi.fn(async (_sql: string) => undefined)
   return {
-    getStorageMode: vi.fn(async () => mode)
-  } as unknown as SQLiteAdapter
+    sqlite: {
+      getStorageMode: vi.fn(async () => mode),
+      exec
+    } as unknown as SQLiteAdapter,
+    exec
+  }
 }
 
 describe('scheduleChangeLogCompaction (0254; boot-gated in 0260)', () => {
@@ -68,7 +73,8 @@ describe('scheduleChangeLogCompaction (0254; boot-gated in 0260)', () => {
 
   it('does not prune before first paint, then prunes in small chunks until dry', async () => {
     const { storage, prune } = makeNodeStorage(4500) // 2000 + 2000 + 500
-    scheduleChangeLogCompaction(storage, makeSqlite('opfs'))
+    const { sqlite } = makeSqlite('opfs')
+    scheduleChangeLogCompaction(storage, sqlite)
 
     // Nothing touches the worker before the boot-settled gate is released.
     await vi.advanceTimersByTimeAsync(0)
@@ -81,24 +87,44 @@ describe('scheduleChangeLogCompaction (0254; boot-gated in 0260)', () => {
     expect(prune).toHaveBeenLastCalledWith(expect.any(Number), { chunk: CHUNK, maxRows: CHUNK })
   })
 
+  it('reclaims freed pages via PRAGMA incremental_vacuum after pruning', async () => {
+    const { storage } = makeNodeStorage(4500)
+    const { sqlite, exec } = makeSqlite('opfs')
+    scheduleChangeLogCompaction(storage, sqlite)
+    await releaseBootGate()
+    expect(exec).toHaveBeenCalledWith('PRAGMA incremental_vacuum')
+  })
+
+  it('does not run incremental_vacuum when nothing was pruned (dry log)', async () => {
+    const { storage } = makeNodeStorage(0) // already fully compacted
+    const { sqlite, exec } = makeSqlite('opfs')
+    scheduleChangeLogCompaction(storage, sqlite)
+    await releaseBootGate()
+    expect(exec).not.toHaveBeenCalled()
+  })
+
   it('is a no-op when the kill switch is set to off', async () => {
     localStorage.setItem(KILL_SWITCH, 'off')
     const { storage, prune } = makeNodeStorage(4500)
-    scheduleChangeLogCompaction(storage, makeSqlite('opfs'))
+    const { sqlite, exec } = makeSqlite('opfs')
+    scheduleChangeLogCompaction(storage, sqlite)
     await releaseBootGate()
     expect(prune).not.toHaveBeenCalled()
+    expect(exec).not.toHaveBeenCalled()
   })
 
   it('prunes nothing when the workspace has never confirmed a sync (no safe floor)', async () => {
     const { storage, prune } = makeNodeStorage(4500, null)
-    scheduleChangeLogCompaction(storage, makeSqlite('opfs'))
+    const { sqlite } = makeSqlite('opfs')
+    scheduleChangeLogCompaction(storage, sqlite)
     await releaseBootGate()
     expect(prune).not.toHaveBeenCalled()
   })
 
   it('skips an in-memory database (no durable file to shrink)', async () => {
     const { storage, prune } = makeNodeStorage(4500)
-    scheduleChangeLogCompaction(storage, makeSqlite('memory'))
+    const { sqlite } = makeSqlite('memory')
+    scheduleChangeLogCompaction(storage, sqlite)
     await releaseBootGate()
     expect(prune).not.toHaveBeenCalled()
   })
@@ -109,7 +135,8 @@ describe('scheduleChangeLogCompaction (0254; boot-gated in 0260)', () => {
       get: () => 'hidden'
     })
     const { storage, prune } = makeNodeStorage(4500)
-    scheduleChangeLogCompaction(storage, makeSqlite('opfs'))
+    const { sqlite } = makeSqlite('opfs')
+    scheduleChangeLogCompaction(storage, sqlite)
     await releaseBootGate()
     expect(prune).not.toHaveBeenCalled()
   })

@@ -334,6 +334,21 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
     } catch (err) {
       log('[WebSQLiteAdapter] page_size pragma not applied:', err)
     }
+    // Incremental auto-vacuum so deleted pages can be returned to the OS instead
+    // of lingering forever on the freelist (exploration 0260). The `changes`-log
+    // compaction (0254) DELETEs superseded history, but under the default
+    // `auto_vacuum=NONE` those pages only re-enter the freelist — the OPFS file
+    // never shrinks, so the cold read that gates boot stays bloat-priced. In
+    // INCREMENTAL mode each compaction pass can call `PRAGMA incremental_vacuum`
+    // to hand the freed pages back to the filesystem per boot. Like `page_size`,
+    // the mode only *converts* on a fresh database or at the next `VACUUM`; the
+    // one-time boot-settled VACUUM (`db-vacuum.ts`) performs that conversion for
+    // pre-existing NONE databases, after which every boot reclaims incrementally.
+    try {
+      this.execSync('PRAGMA auto_vacuum = INCREMENTAL')
+    } catch (err) {
+      log('[WebSQLiteAdapter] auto_vacuum pragma not applied:', err)
+    }
     this.execSync('PRAGMA synchronous = NORMAL')
     // 256 MB page cache (negative = KiB). The previous 64 MB could not hold the
     // working set of a 1 GB+ database, so cold reads thrashed OPFS. This is the
