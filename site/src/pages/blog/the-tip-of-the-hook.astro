@@ -202,8 +202,8 @@ const trustFlow = `sequenceDiagram
         This essay is a tour of the hooks on the surface and a dive into
         everything that one <code>useQuery</code> quietly stands on — a signed
         change log, a real SQL database running in a background thread, a
-        scheduler, a sync engine. It&rsquo;s the tip of an iceberg, and the point
-        of the tour is that you&rsquo;re allowed to look under the waterline.
+        scheduler, a sync engine. It&rsquo;s the tip of an iceberg, and the whole
+        point of the tour is that you&rsquo;re allowed to look under the waterline.
         There&rsquo;s code along the way; every grey panel is skippable and the
         story still holds — but being able to show you the machine is half the
         argument.
@@ -251,8 +251,8 @@ const trustFlow = `sequenceDiagram
         <code>remove</code>, or several at once in a single atomic
         <code>mutate</code>. The change lands in your local database first, so
         the UI updates on the same tick; the network catches up afterwards, if
-        it&rsquo;s there at all. <code>useNode</code> is for editing one thing
-        deeply: it hands you the node <em>and</em> a collaborative document with
+        it&rsquo;s there at all. <code>useNode</code> is for editing one thing in
+        depth: it hands you the node <em>and</em> a collaborative document with
         live cursors and presence, for when two people are in the same paragraph.
         And <code>useInfiniteQuery</code> grows a window rather than freezing
         pages — load more and the earlier rows stay live instead of going stale.
@@ -284,7 +284,7 @@ const trustFlow = `sequenceDiagram
 
       <p>
         This is worth dwelling on, because it&rsquo;s where most systems quietly
-        split in two. Normally your client has an <em>opinion</em> about
+        split in two. Usually your client has an <em>opinion</em> about
         permissions — it greys out a button — and the server holds the
         <em>truth</em>, re-checking everything because the client can&rsquo;t be
         trusted. Two implementations of the same rules, forever drifting apart.
@@ -333,9 +333,10 @@ const trustFlow = `sequenceDiagram
 
       <p>
         So &ldquo;specify your whole API in the client&rdquo; isn&rsquo;t a
-        shortcut that trades away safety. The authority moved from a privileged
-        place in the network to a property of the data. A rule attached to a
-        signed, verifiable object is enforceable anywhere that object travels.
+        shortcut that trades away safety. The authority has moved from a
+        privileged place in the network to a property of the data itself. A rule
+        attached to a signed, verifiable object is enforceable anywhere that
+        object travels.
       </p>
 
       <h2>Five: how a view materialises</h2>
@@ -404,7 +405,7 @@ const trustFlow = `sequenceDiagram
         There are actually two workers, and they talk to each other directly
         rather than bouncing every message through your UI thread: one owns the
         store and the live subscriptions, the other owns SQLite. Signing and
-        verifying happen out here too, so the cryptography never janks a scroll.
+        verifying happen out here too, so the cryptography never stutters a scroll.
         A single database connection can only do one thing at a time, so a small
         <strong>scheduler</strong> decides the order — and it always lets an
         interactive read jump ahead of a background import.
