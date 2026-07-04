@@ -34,8 +34,11 @@ function getNodeModulesPath(): string {
   return join(appPath, 'node_modules')
 }
 
-// Debug logging
-let debugEnabled = false
+// Debug logging. Off by default, toggled at runtime via the `xnet:bsm:set-debug`
+// IPC — but that needs a renderer, which never exists if boot stalls before the
+// window opens. Honor XNET_DEBUG=1 at startup so a packaged app can surface its
+// data-process boot trace (e.g. the CI packaged-smoke gate) without a window.
+let debugEnabled = process.env.XNET_DEBUG === '1'
 function log(...args: unknown[]): void {
   if (debugEnabled) {
     console.log('[DataProcessManager]', ...args)
