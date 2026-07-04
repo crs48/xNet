@@ -67,7 +67,18 @@ runs:
 
           if [ -n "$SOURCE" ]; then
             # .git must survive --delete: in a worktree it is a file, not a directory.
-            args=(-a --delete --exclude .git)
+            #
+            # --checksum: decide "changed?" by CONTENT, not rsync's default
+            # size+mtime quick check. Both sides of this sync are freshly
+            # generated (cp'd build output vs a just-checked-out worktree), so
+            # mtimes are all "now" and carry no signal — and a rebuild swaps
+            # 8-char content hashes for 8-char content hashes, so index.html /
+            # 404.html / sw.js keep the EXACT same byte size across builds.
+            # When the prepare-copy and the worktree checkout landed in the
+            # same second, the quick check silently skipped exactly those
+            # files, publishing new assets with a stale index.html pointing at
+            # deleted chunks (deploy e99fa1de, 2026-07-04).
+            args=(-a --checksum --delete --exclude .git)
             while IFS= read -r pattern; do
               [ -n "$pattern" ] && args+=(--exclude "$pattern")
             done <<< "$EXCLUDE"
