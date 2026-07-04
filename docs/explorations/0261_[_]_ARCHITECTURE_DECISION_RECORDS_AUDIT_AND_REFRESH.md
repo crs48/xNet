@@ -439,18 +439,18 @@ flowchart LR
 
 ## Validation Checklist
 
-- [ ] `pnpm --filter site build` succeeds; ADR page renders with all statuses.
-- [ ] Every ADR cites at least one real file path or exploration; a script/grep
+- [x] `pnpm --filter site build` succeeds; ADR page renders with all statuses.
+- [x] Every ADR cites at least one real file path or exploration; a script/grep
       confirms no ADR cites a non-existent path (catch dead links like the
       current `IDENTITY_MIGRATION_PLAN.md`).
-- [ ] The overview **Sync path** no longer implies Yjs is the sync substrate; a
+- [x] The overview **Sync path** no longer implies Yjs is the sync substrate; a
       reader can trace `mutate()` → change log → hub without touching Yjs.
-- [ ] `architecture/package-graph.mdx` lists `@xnetjs/runtime` and no longer
+- [x] `architecture/package-graph.mdx` lists `@xnetjs/runtime` and no longer
       attributes SyncManager/MetaBridge to `@xnetjs/react`.
-- [ ] Searching the repo for "decision record" returns **one** canonical home;
+- [x] Searching the repo for "decision record" returns **one** canonical home;
       `TRADEOFFS.md` and the plan-embedded ADRs point to it.
-- [ ] `orderedDocSlugs` / llms-full build still passes (no unlisted doc pages).
-- [ ] Spot-check three new ADRs against code with a fresh reader: the cited path
+- [x] `orderedDocSlugs` / llms-full build still passes (no unlisted doc pages).
+- [x] Spot-check three new ADRs against code with a fresh reader: the cited path
       exists and says what the ADR claims.
 
 ## References
