@@ -1,0 +1,12 @@
+{
+  "id": "2026-07-04-download-page-now-links-to-the-real-desk",
+  "date": "July 4, 2026",
+  "title": "Download page now links to the real desktop app",
+  "summary": "The download page pulls the actual Electron desktop release (macOS, Windows, Linux) instead of the most recent npm package release, so every platform button points at a working installer. Desktop builds now also publish automatically alongside each core release.",
+  "highlights": [],
+  "tags": [
+    "app",
+    "platform"
+  ],
+  "pr": 373
+}

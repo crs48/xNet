@@ -8,7 +8,7 @@
     "build:stories": "storybook build",
     "changeset": "changeset",
     "changeset:from-commits": "changeset-conventional",
-    "version-packages": "changeset version",
+    "version-packages": "changeset version && node scripts/changeset/sync-electron-version.mjs",
     "release": "pnpm build && changeset publish",
     "dev:stories": "storybook dev --ci --no-open --host 127.0.0.1 --port 6006",
     "test": "pnpm --filter xnet-desktop run deps:node && vitest run",
