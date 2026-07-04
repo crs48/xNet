@@ -7,6 +7,7 @@ import Footer from '../components/sections/Footer.astro'
 const REPO = 'crs48/xNet'
 const releasesUrl = `https://github.com/${REPO}/releases`
 let version = '0.0.1'
+let releaseTag: string | null = null
 let assets: { name: string; browser_download_url: string }[] = []
 
 try {
@@ -26,7 +27,8 @@ try {
         )
       : undefined
     if (desktop) {
-      version = (desktop.tag_name ?? 'v0.0.1').replace(/^v/, '')
+      releaseTag = desktop.tag_name ?? null
+      version = (releaseTag ?? 'v0.0.1').replace(/^v/, '')
       assets = desktop.assets ?? []
     }
   }
@@ -40,6 +42,10 @@ function assetUrl(match: (name: string) => boolean): string {
   const asset = assets.find((a) => match(a.name))
   return asset?.browser_download_url ?? releasesUrl
 }
+
+// Deep-link to the specific desktop release so "release assets and checksums"
+// lands on the build being offered, not the mixed npm/desktop releases index.
+const releasePageUrl = releaseTag ? `${releasesUrl}/tag/${releaseTag}` : releasesUrl
 
 const macArm64 = assetUrl((n) => n.endsWith('arm64.dmg'))
 const macX64 = assetUrl((n) => n.endsWith('.dmg') && !n.includes('arm64'))
@@ -233,7 +239,7 @@ const linuxDeb = assetUrl((n) => n.endsWith('.deb') && !n.includes('arm64'))
           <p class="text-sm font-medium text-blue-900 dark:text-blue-100">Secure & Open Source</p>
           <p class="mt-1 text-sm text-blue-700 dark:text-blue-300">
             xNet is open source and all releases are built via GitHub Actions. 
-            <a href="https://github.com/crs48/xNet/releases" class="underline hover:no-underline">View release assets and checksums</a>.
+            <a href={releasePageUrl} class="underline hover:no-underline">View release assets and checksums</a>.
           </p>
         </div>
       </div>
