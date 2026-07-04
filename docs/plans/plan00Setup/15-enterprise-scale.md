@@ -687,7 +687,12 @@ This is 10-100x cheaper than building custom, and uses xNet for the collaboratio
 
 ## Architecture Decision Records
 
-### ADR-001: CRDTs for Collaboration, Events for Telemetry
+> These are **enterprise-scale plan-local** records (`ES-ADR-*`), scoped to this
+> exploratory plan. They are numbered separately to avoid colliding with the
+> canonical [Architecture Decisions](../../../site/src/content/docs/docs/architecture/decisions.mdx)
+> log (`ADR-1`, `ADR-2`, …), which is the source of truth for shipped decisions.
+
+### ES-ADR-1: CRDTs for Collaboration, Events for Telemetry
 
 **Context:** CRDTs don't scale to millions of events/second.
 
@@ -699,7 +704,7 @@ This is 10-100x cheaper than building custom, and uses xNet for the collaboratio
 - Clear separation of concerns
 - Each optimized for its use case
 
-### ADR-002: Tiered Architecture
+### ES-ADR-2: Tiered Architecture
 
 **Context:** Can't have millions of devices in a P2P mesh.
 
@@ -711,7 +716,7 @@ This is 10-100x cheaper than building custom, and uses xNet for the collaboratio
 - Clear scalability path
 - Geographic compliance possible
 
-### ADR-003: xNet as Collaboration Layer
+### ES-ADR-3: xNet as Collaboration Layer
 
 **Context:** xNet can't replace Kafka/Snowflake for industrial data.
 
