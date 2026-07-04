@@ -25,6 +25,13 @@
  * with an idle yield between each, capped per session and looping-until-dry
  * across boots. Never touches the boot critical path, never throws, gated behind
  * a kill switch (`localStorage['xnet:compact:changes'] = 'off'`).
+ *
+ * FILE RECLAIM (exploration 0260): a DELETE only frees pages to the freelist, so
+ * on its own compaction shrinks the row count but not the OPFS *file* that the
+ * cold read faults. With `auto_vacuum=INCREMENTAL` (web.ts) each pass follows its
+ * deletes with `PRAGMA incremental_vacuum`, returning the freed pages to the OS —
+ * so the file shrinks a little every idle boot until the log is drained, rather
+ * than only on the single one-time VACUUM.
  */
 import type { SQLiteNodeStorageAdapter } from '@xnetjs/data'
 import type { SQLiteAdapter } from '@xnetjs/sqlite'
@@ -111,20 +118,34 @@ async function runCompaction(
       await nextIdle()
     }
 
+    let reclaimed = false
+    if (deleted > 0) {
+      // A DELETE only returns pages to the freelist; the OPFS file (whose size
+      // gates the cold-open read) does not shrink until those pages are handed
+      // back to the filesystem. Under `auto_vacuum=INCREMENTAL` (web.ts;
+      // converted for pre-existing databases by the one-time boot VACUUM)
+      // `incremental_vacuum` does exactly that, per pass — so the file shrinks a
+      // little every idle boot as the log drains, instead of only on the single
+      // one-time VACUUM. A harmless no-op on a database still in `auto_vacuum=NONE`
+      // (not yet converted); we deliberately do NOT re-arm the full VACUUM here
+      // (exploration 0260) — clearing `xnet:db-vacuumed:v1` every prune made the
+      // *next* boot pay a whole-file rewrite.
+      try {
+        await sqliteAdapter.exec('PRAGMA incremental_vacuum')
+        reclaimed = true
+      } catch (err) {
+        // Reclaim is best-effort; the freed pages simply wait for a later pass.
+        // eslint-disable-next-line no-console
+        console.warn('[xNet] incremental_vacuum after compaction failed:', err)
+      }
+      // eslint-disable-next-line no-console
+      console.info('[xNet] change-log compaction', { wsafe, deleted, reclaimed })
+    }
+
     try {
-      localStorage.setItem(DEBUG_KEY, JSON.stringify({ wsafe, deleted, at: Date.now() }))
+      localStorage.setItem(DEBUG_KEY, JSON.stringify({ wsafe, deleted, reclaimed, at: Date.now() }))
     } catch {
       // best-effort instrumentation
-    }
-    if (deleted > 0) {
-      // NOTE: journal_mode is TRUNCATE (no WAL), so the DELETE frees B-tree pages
-      // to the freelist but does not shrink the file yet — SQLite reuses those
-      // pages for future writes. We intentionally do NOT re-arm the one-time full
-      // VACUUM here (exploration 0260): clearing `xnet:db-vacuumed:v1` every prune
-      // made the *next* boot pay a whole-file rewrite. File reclaim is a separate,
-      // boot-settled concern.
-      // eslint-disable-next-line no-console
-      console.info('[xNet] change-log compaction', { wsafe, deleted })
     }
   } catch (err) {
     // Compaction is a best-effort space/perf optimisation; it must never break

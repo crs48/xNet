@@ -1,0 +1,8 @@
+{
+  "id": "2026-07-03-large-workspaces-reclaim-disk-space-as-h",
+  "date": "July 3, 2026",
+  "title": "Large workspaces reclaim disk space as history is pruned",
+  "summary": "Local databases now return freed space to the filesystem when old change-log history is compacted, so the file that determines cold-open speed shrinks over time instead of staying large. This steadily speeds up opening large, long-lived workspaces.",
+  "highlights": [],
+  "tags": ["performance"]
+}

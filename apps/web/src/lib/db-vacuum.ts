@@ -14,6 +14,13 @@
  * touches the boot critical path. It also logs the file size before/after —
  * which doubles as the `db stats` measurement exploration 0233 asked for.
  * Never throws.
+ *
+ * SECOND ROLE (exploration 0260): this one-time VACUUM also *converts*
+ * pre-existing `auto_vacuum=NONE` databases to `INCREMENTAL` (the mode set at
+ * open in web.ts only takes effect on a fresh database or at a VACUUM). After
+ * this single conversion, change-log compaction reclaims freed pages per boot
+ * via `PRAGMA incremental_vacuum` — so the file keeps shrinking without ever
+ * paying another whole-file rewrite.
  */
 import type { SQLiteAdapter } from '@xnetjs/sqlite'
 import { runWhenBootSettled } from './boot-timeline'
