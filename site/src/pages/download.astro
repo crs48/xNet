@@ -5,26 +5,47 @@ import Footer from '../components/sections/Footer.astro'
 
 // GitHub repo for release lookups (build-time fetch)
 const REPO = 'crs48/xNet'
+const releasesUrl = `https://github.com/${REPO}/releases`
 let version = '0.0.1'
 let assets: { name: string; browser_download_url: string }[] = []
 
 try {
-  const res = await fetch(`https://api.github.com/repos/${REPO}/releases/latest`, {
+  // The desktop app is published under `v*` tags by electron-release.yml. We must
+  // NOT use `releases/latest`: that returns whichever release was published most
+  // recently across ALL tags, which is usually an npm package release
+  // (e.g. `@xnetjs/trust@x.y.z`) carrying no desktop assets. Fetch the list and
+  // pick the newest non-draft release whose tag looks like `v<number>`.
+  const res = await fetch(`https://api.github.com/repos/${REPO}/releases?per_page=100`, {
     headers: { Accept: 'application/vnd.github.v3+json' }
   })
   if (res.ok) {
-    const release = await res.json()
-    version = (release.tag_name ?? 'v0.0.1').replace(/^v/, '')
-    assets = release.assets ?? []
+    const releases = await res.json()
+    const desktop = Array.isArray(releases)
+      ? releases.find(
+          (r) => !r.draft && !r.prerelease && /^v\d/.test(r.tag_name ?? '')
+        )
+      : undefined
+    if (desktop) {
+      version = (desktop.tag_name ?? 'v0.0.1').replace(/^v/, '')
+      assets = desktop.assets ?? []
+    }
   }
 } catch {
   // Build continues with defaults if GitHub API is unavailable
 }
 
-function downloadUrl(pattern: string): string {
-  const asset = assets.find((a) => a.name.includes(pattern))
-  return asset?.browser_download_url ?? `https://github.com/${REPO}/releases/latest`
+// electron-builder names the default-arch (x64) macOS/Linux artifacts without an
+// arch suffix and only tags arm64, so the Intel/x64 matchers exclude `arm64`.
+function assetUrl(match: (name: string) => boolean): string {
+  const asset = assets.find((a) => match(a.name))
+  return asset?.browser_download_url ?? releasesUrl
 }
+
+const macArm64 = assetUrl((n) => n.endsWith('arm64.dmg'))
+const macX64 = assetUrl((n) => n.endsWith('.dmg') && !n.includes('arm64'))
+const winSetup = assetUrl((n) => n.endsWith('.exe'))
+const linuxAppImage = assetUrl((n) => n.endsWith('.AppImage') && !n.includes('arm64'))
+const linuxDeb = assetUrl((n) => n.endsWith('.deb') && !n.includes('arm64'))
 ---
 
 <Base
@@ -67,7 +88,7 @@ function downloadUrl(pattern: string): string {
           <h3 class="mb-5 text-xl font-semibold text-gray-900 dark:text-white">macOS</h3>
           <div class="flex w-full flex-col gap-3">
             <a
-              href={downloadUrl('arm64.dmg')}
+              href={macArm64}
               class="inline-flex items-center justify-center gap-2 rounded-xl bg-gray-900 dark:bg-white px-5 py-3 text-sm font-medium text-white dark:text-gray-900 transition-all hover:bg-gray-800 dark:hover:bg-gray-100 hover:scale-[1.02] active:scale-[0.98]"
             >
               <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -76,7 +97,7 @@ function downloadUrl(pattern: string): string {
               Apple Silicon
             </a>
             <a
-              href={downloadUrl('x64.dmg')}
+              href={macX64}
               class="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-5 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 transition-all hover:border-gray-400 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 hover:scale-[1.02] active:scale-[0.98]"
             >
               Intel
@@ -99,7 +120,7 @@ function downloadUrl(pattern: string): string {
           <h3 class="mb-5 text-xl font-semibold text-gray-900 dark:text-white">Windows</h3>
           <div class="flex w-full flex-col gap-3">
             <a
-              href={downloadUrl('Setup.exe')}
+              href={winSetup}
               class="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-3 text-sm font-medium text-white transition-all hover:bg-blue-700 hover:scale-[1.02] active:scale-[0.98]"
             >
               <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -125,7 +146,7 @@ function downloadUrl(pattern: string): string {
           <h3 class="mb-5 text-xl font-semibold text-gray-900 dark:text-white">Linux</h3>
           <div class="flex w-full flex-col gap-3">
             <a
-              href={downloadUrl('.AppImage')}
+              href={linuxAppImage}
               class="inline-flex items-center justify-center gap-2 rounded-xl bg-orange-600 px-5 py-3 text-sm font-medium text-white transition-all hover:bg-orange-700 hover:scale-[1.02] active:scale-[0.98]"
             >
               <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -134,7 +155,7 @@ function downloadUrl(pattern: string): string {
               AppImage
             </a>
             <a
-              href={downloadUrl('.deb')}
+              href={linuxDeb}
               class="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-5 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 transition-all hover:border-gray-400 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 hover:scale-[1.02] active:scale-[0.98]"
             >
               .deb (Debian/Ubuntu)
