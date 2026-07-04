@@ -222,6 +222,15 @@ async function createWindow() {
   })
 }
 
+// Boot creates the window only after awaiting storage + the data process. If any
+// of that rejects (e.g. the data utility process never signals ready), the window
+// is never created and the app looks dead with no clue why — the whenReady chain
+// below has no catch. Surface such failures loudly on stderr so the packaged-smoke
+// gate and users' logs show the real cause instead of a silent hang.
+process.on('unhandledRejection', (reason) => {
+  console.error('[main] unhandled rejection during startup:', reason)
+})
+
 app.whenReady().then(async () => {
   app.setAsDefaultProtocolClient(DEEP_LINK_PROTOCOL)
 
@@ -293,12 +302,6 @@ app.whenReady().then(async () => {
       }
     }
   })
-}).catch((err) => {
-  // Boot creates the window only after awaiting storage + the data process. If any
-  // of that rejects (e.g. the data utility process never signals ready), the window
-  // is never created and the app looks dead with no clue why. Make the failure loud
-  // on stderr so the packaged-smoke gate and users' logs show the real cause.
-  console.error('[main] startup failed before window creation:', err)
 })
 
 app.on('window-all-closed', () => {
