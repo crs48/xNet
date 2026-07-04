@@ -227,11 +227,17 @@ async function createWindow() {
 // is never created and the app looks dead with no clue why — the whenReady chain
 // below has no catch. Surface such failures loudly on stderr so the packaged-smoke
 // gate and users' logs show the real cause instead of a silent hang.
+// Write straight to fd 2 (not console, which downstream code may reassign) so a
+// boot stall / rejection is always visible in packaged logs and the CI smoke gate.
+const bootTrace = (msg: string): void => {
+  if (process.env.XNET_DEBUG === '1') process.stderr.write(`[boot] ${msg}\n`)
+}
 process.on('unhandledRejection', (reason) => {
-  console.error('[main] unhandled rejection during startup:', reason)
+  process.stderr.write(`[boot] unhandled rejection during startup: ${String(reason)}\n`)
 })
 
 app.whenReady().then(async () => {
+  bootTrace('whenReady fired')
   app.setAsDefaultProtocolClient(DEEP_LINK_PROTOCOL)
 
   for (const arg of process.argv) {
@@ -243,11 +249,14 @@ app.whenReady().then(async () => {
 
   // Create storage early so IPC can use it
   const storage = getOrCreateStorage()
+  bootTrace('opening storage')
   await storage.open()
 
   // Spawn the data utility process (SQLite, Yjs, WebSocket sync)
   // This runs data operations off the main thread
+  bootTrace('spawning data process')
   await spawnDataProcess(dbPath)
+  bootTrace('data process ready')
 
   // Setup IPC handlers for main process operations
   setupIPC()
@@ -276,6 +285,7 @@ app.whenReady().then(async () => {
   }
 
   // Start Local API server (for external integrations)
+  bootTrace('starting local API')
   await startLocalAPI()
 
   // Start the agent bridge daemon (no-op if the agent CLI isn't installed).
@@ -286,7 +296,9 @@ app.whenReady().then(async () => {
   createMenu()
 
   // Create window
+  bootTrace('creating window')
   await createWindow()
+  bootTrace('window created')
 
   // Setup MessagePort channel between renderer and data process
   if (mainWindow) {

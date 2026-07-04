@@ -109,8 +109,16 @@ export async function spawnDataProcess(dbPath: string): Promise<void> {
 
       dataProcess = utilityProcess.fork(scriptPath, [], {
         serviceName: 'xnet-data',
-        env
+        env,
+        // Pipe the child's stdio so a native-module load failure (which would
+        // otherwise be an invisible early exit) is forwarded to the main process
+        // stderr and captured by the packaged-smoke gate.
+        stdio: debugEnabled ? ['ignore', 'pipe', 'pipe'] : 'inherit'
       })
+      if (debugEnabled) {
+        dataProcess.stdout?.on('data', (c: Buffer) => process.stderr.write(`[data] ${c}`))
+        dataProcess.stderr?.on('data', (c: Buffer) => process.stderr.write(`[data] ${c}`))
+      }
 
       // Handle messages from utility process
       dataProcess.on('message', (msg) => {
@@ -120,6 +128,7 @@ export async function spawnDataProcess(dbPath: string): Promise<void> {
       // Handle process exit
       dataProcess.on('exit', (code) => {
         log('Data process exited with code:', code)
+        if (debugEnabled) process.stderr.write(`[data] process exited code=${code}\n`)
         isReady = false
         dataProcess = null
 
