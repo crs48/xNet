@@ -34,7 +34,7 @@ shape, with two deliberate deviations:
    (`authors: ['crs48', 'claude']`), so the byline is single-sourced across the
    index page, the post heroes, the RSS feed, and (new) JSON-LD.
 2. **Vendored, first-party avatars — not GitHub hotlinks.** Two published
-   essays state *"this page loads nothing third-party"*
+   essays state _"this page loads nothing third-party"_
    (`site/src/pages/blog/hand-on-the-tiller.astro:377`,
    `site/src/pages/blog/the-right-to-say-no.astro:363`). Hotlinking
    `github.com/crs48.png` (as the changelog does) would silently falsify that
@@ -68,7 +68,7 @@ so no changeset is required.
 
 - **RSS only**: `site/src/lib/blog-feed.ts:42` emits
   `<author>xNet</author>`. (Strictly, RSS 2.0's `<author>` is defined as an
-  *email address* — the current value is already non-conforming; the fix below
+  _email address_ — the current value is already non-conforming; the fix below
   moves to `dc:creator`, which is what every major feed does for names.)
 - **Not** on the index cards (`site/src/pages/blog/index.astro:84-93` shows
   date · read-time · tags only).
@@ -117,9 +117,9 @@ transition, render `authors?.length ? authors : [legacy]`.
 
 Blog essays make explicit first-party-only claims:
 
-- `hand-on-the-tiller.astro:377` — *"All artwork here is original, and this
-  page loads nothing third-party."*
-- `the-right-to-say-no.astro:363` — *"…this page loads nothing third-party."*
+- `hand-on-the-tiller.astro:377` — _"All artwork here is original, and this
+  page loads nothing third-party."_
+- `the-right-to-say-no.astro:363` — _"…this page loads nothing third-party."_
 
 (Exploration 0267 already tripped over this once, with the Mermaid CDN.) So on
 **blog pages** the avatar `<img>` must be served from `xnet.fyi` itself. The
@@ -133,14 +133,14 @@ changelog page makes no such claim, so its hotlinks can stay.
   byline" precedent ([Benjamin Lannon](https://lannonbr.com/blog/co-authored-by-claude/),
   [DeployHQ guide](https://www.deployhq.com/blog/how-to-use-git-with-claude-code-understanding-the-co-authored-by-attribution)).
   Some argue `Co-authored-by` overstates the machine's role and prefer a
-  footer like *"Written in collaboration with Claude"*
+  footer like _"Written in collaboration with Claude"_
   ([Bence Ferdinandy](https://bence.ferdinandy.com/2025/12/29/dont-abuse-co-authored-by-for-marking-ai-assistance/),
   [fabiorehm.com](https://fabiorehm.com/blog/2026/03/02/our-coding-agent-commits-deserve-better-than-co-authored-by/)).
   The byline label below ("with Claude" rather than an undifferentiated peer
   listing) threads that needle: full disclosure, honest framing.
 - **Disclosure is trending mandatory.** Platform labels ("Made with AI") and
   the EU AI Act's transparency obligations (August 2026) push toward visible
-  AI-assistance labels on published content. A byline that names Claude *is*
+  AI-assistance labels on published content. A byline that names Claude _is_
   the disclosure, integrated rather than bolted on.
 - **Authorship semantics.** The US Copyright Office's position is that AI
   output is not independently copyrightable and an AI is not a legal author;
@@ -155,7 +155,7 @@ changelog page makes no such claim, so its hotlinks can stay.
   article structured-data docs explicitly recommend `author.url` pointing at a
   profile page (a GitHub profile qualifies).
 - **GitHub avatar endpoints.** `https://github.com/<login>.png?size=N` is a
-  stable redirect to `avatars.githubusercontent.com` — fine to *fetch once*
+  stable redirect to `avatars.githubusercontent.com` — fine to _fetch once_
   and commit; hotlinking is what the third-party claim forbids on blog pages.
 - **RSS.** RSS 2.0 `<author>` is specified as an email address; the
   conventional fix for names (and the only sane multi-author story) is
@@ -196,7 +196,7 @@ changelog page makes no such claim, so its hotlinks can stay.
 - ✅ Smallest diff; perfectly consistent with the changelog page.
 - ❌ **Violates the published "nothing third-party" claim** on blog pages.
 - ❌ Claude has no GitHub user avatar we control; `claude[bot]`'s app avatar
-  is still a third-party hotlink *and* Anthropic's mark.
+  is still a third-party hotlink _and_ Anthropic's mark.
 - Verdict: **rejected** — correctness of the site's own claims wins.
 
 ### Option B — Author registry + vendored first-party avatars (recommended)
@@ -226,11 +226,11 @@ Model authors in `content.config.ts`, posts as content entries.
 
 ### Sub-decision — Claude's avatar & link
 
-| Choice | Avatar | Link | Notes |
-|---|---|---|---|
-| Anthropic logomark | ❌ trademark; breaks "artwork original" | — | rejected |
-| `claude[bot]` GitHub app avatar hotlink | ❌ third-party request | github.com/apps/claude | rejected |
-| **Original SVG glyph (recommended)** | ✅ ours, first-party | `https://claude.com/claude-code` | a small spark/starburst in the blog palette; honest, distinctive, legally clean |
+| Choice                                  | Avatar                                  | Link                             | Notes                                                                           |
+| --------------------------------------- | --------------------------------------- | -------------------------------- | ------------------------------------------------------------------------------- |
+| Anthropic logomark                      | ❌ trademark; breaks "artwork original" | —                                | rejected                                                                        |
+| `claude[bot]` GitHub app avatar hotlink | ❌ third-party request                  | github.com/apps/claude           | rejected                                                                        |
+| **Original SVG glyph (recommended)**    | ✅ ours, first-party                    | `https://claude.com/claude-code` | a small spark/starburst in the blog palette; honest, distinctive, legally clean |
 
 ### Sub-decision — byline phrasing
 
@@ -396,7 +396,7 @@ JSON-LD on each post page (new tiny component or a slot in `Byline.astro`):
   stakes; revisit if rich-result linting complains.
 - **Hero contrast.** The byline sits below dark art-directed hero bands on
   some posts and light surfaces on others; the component uses neutral
-  body-surface colours (it lives *below* the band, not on it), so one style
+  body-surface colours (it lives _below_ the band, not on it), so one style
   should fit all ten pages — verify visually on 2–3 posts.
 - **Changelog divergence.** After this, the changelog hotlinks GitHub avatars
   while the blog vendors them. Acceptable (different claims on different
@@ -408,7 +408,7 @@ JSON-LD on each post page (new tiny component or a slot in `Byline.astro`):
 
 ## Implementation Checklist
 
-- [ ] Add `BlogAuthorId`, `BlogAuthor`, `AUTHORS`, `postAuthors()` to
+- [x] Add `BlogAuthorId`, `BlogAuthor`, `AUTHORS`, `postAuthors()` to
       `site/src/data/blog.ts`; replace `author: string` with
       `authors: BlogAuthorId[]` on `BlogPost` and set
       `authors: ['crs48', 'claude']` on all ten posts.
