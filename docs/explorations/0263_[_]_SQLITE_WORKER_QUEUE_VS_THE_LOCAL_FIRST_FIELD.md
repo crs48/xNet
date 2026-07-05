@@ -433,7 +433,7 @@ navigator.locks.request('xnet-db-leader', { mode: 'exclusive' }, async () => {
 - [x] Collapse `getNode()` into one joined query (kill the 2-RPC N+1).
 - [x] Micro-benchmark: p50/p95 per-query worker time and per-screen total RPC
       count, before/after (extend the `SchedulerOpReport` pipeline).
-- [ ] Verify via boot-timeline that WASM import/init never blocks first paint.
+- [x] Verify via boot-timeline that WASM import/init never blocks first paint.
 
 **P2 — multi-tab leadership (next)**
 
