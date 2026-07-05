@@ -164,6 +164,13 @@ export interface SQLiteNodeStorageAdapterOptions {
    * the hydration test suite in both modes.
    */
   aggregatedHydration?: boolean
+  /**
+   * Defer maintenance work (adaptive index creation) to an idle scheduler
+   * instead of running it inline on the query path. The web app passes a
+   * bootSettled-gated scheduler — no background work is free on the single
+   * serial SQLite worker (exploration 0260/0264). Default: run inline.
+   */
+  scheduleMaintenance?: (task: () => Promise<void> | void) => void
 }
 
 interface AdaptiveIndexHint {
@@ -411,6 +418,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   private queryDiagnostics: boolean
   /** Hydrate one row per node via json_group_object (0264 Wave 2 flag). */
   private aggregatedHydration: boolean
+  /** Idle scheduler for maintenance work (adaptive index creation, 0264). */
+  private scheduleMaintenance?: (task: () => Promise<void> | void) => void
 
   private pendingQueryTelemetry = new Map<string, PendingQueryTelemetry>()
 
@@ -451,6 +460,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     }
     this.queryDiagnostics = options.queryDiagnostics ?? false
     this.aggregatedHydration = options.aggregatedHydration ?? true
+    this.scheduleMaintenance = options.scheduleMaintenance
   }
 
   getSQLiteAdapter(): SQLiteAdapter {
@@ -3170,6 +3180,29 @@ CREATE INDEX IF NOT EXISTS idx_node_spatial_ids_schema
       return { descriptorHash, adaptiveIndexNames: [] }
     }
 
+    // Index creation is real write work on the single serial worker — when an
+    // idle scheduler is provided (the web app passes bootSettled-gated
+    // scheduling), defer it off the query path (exploration 0264). The names
+    // simply don't appear in THIS query's plan metadata; the index serves the
+    // next one.
+    if (this.scheduleMaintenance) {
+      const input = {
+        descriptorHash,
+        schemaId: descriptor.schemaId,
+        hints: adaptiveIndexHints,
+        now
+      }
+      this.scheduleMaintenance(() =>
+        this.ensureAdaptiveIndexes(input).then(
+          () => undefined,
+          (err) => {
+            console.warn('[SQLiteNodeStorageAdapter] deferred adaptive index skipped:', err)
+          }
+        )
+      )
+      return { descriptorHash, adaptiveIndexNames: [] }
+    }
+
     const adaptiveIndexNames = await this.ensureAdaptiveIndexes({
       descriptorHash,
       schemaId: descriptor.schemaId,
@@ -3872,6 +3905,11 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
     const hasPropertySort = Object.keys(descriptor.orderBy ?? {}).some(
       (key) => key !== 'createdAt' && key !== 'updatedAt'
     )
+    // Property-sort pushdown (exploration 0264, Wave 2; gated behind the
+    // adaptive-indexing flag with the typed scalar indexes that serve it):
+    // a SINGLE custom-property sort orders via a LEFT JOIN on the scalar
+    // index instead of falling back to a full schema scan + JS sort.
+    const propertySort = this.resolvePropertySortPushdown(descriptor, hasPropertySort)
     const hasSqlCandidateBenefit =
       scalarWhere.length > 0 ||
       spatialPlan !== null ||
@@ -3879,16 +3917,41 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
       !descriptor.spatial ||
       this.hasOnlySystemOrdering(descriptor.orderBy)
 
-    if (!hasSqlCandidateBenefit) {
+    if (!hasSqlCandidateBenefit && !propertySort) {
       return null
     }
 
     return this.compileSqlQuery(descriptor, {
       whereEntries: scalarWhere as Array<{ key: string; scalar: ScalarIndexValue }>,
-      canUseSqlPagination: !hasPropertySort && !descriptor.spatial && !descriptor.search,
+      canUseSqlPagination:
+        (!hasPropertySort || propertySort !== null) && !descriptor.spatial && !descriptor.search,
       spatialPlan,
-      fullTextSearchPlan
+      fullTextSearchPlan,
+      propertySort
     })
+  }
+
+  /**
+   * A custom-property sort can push down when it is the descriptor's ONLY
+   * order key and no cursor/spatial/search accelerator is in play. Gated on
+   * the adaptive-indexing flag: the typed partial indexes on
+   * `node_property_scalars` make the join+order cheap, and the flag keeps
+   * the behavioural change opt-in while it soaks (exploration 0264).
+   */
+  private resolvePropertySortPushdown(
+    descriptor: NodeQueryDescriptor,
+    hasPropertySort: boolean
+  ): { key: string; direction: SortDirection } | null {
+    if (!hasPropertySort || !this.adaptiveIndexing.enabled) return null
+    if (descriptor.spatial || descriptor.search || descriptor.after !== undefined) return null
+
+    const entries = Object.entries(descriptor.orderBy ?? {}).filter(
+      (entry): entry is [string, SortDirection] => entry[1] === 'asc' || entry[1] === 'desc'
+    )
+    if (entries.length !== 1) return null
+    const [key, direction] = entries[0]
+    if (key === 'createdAt' || key === 'updatedAt') return null
+    return { key, direction }
   }
 
   private compileSqlQuery(
@@ -3898,6 +3961,7 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
       canUseSqlPagination: boolean
       spatialPlan?: SpatialQueryPlan | null
       fullTextSearchPlan?: FullTextSearchQueryPlan | null
+      propertySort?: { key: string; direction: SortDirection } | null
     }
   ): CompiledNodeQuery {
     const joins: string[] = []
@@ -3959,7 +4023,25 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
       )
     }
 
-    const orderBy = this.buildSqlOrderBy(descriptor.orderBy)
+    // Property-sort pushdown (0264): LEFT JOIN the scalar row for the sort
+    // key (nodes without the property must still appear) and order by the
+    // typed value columns — for a homogeneous key exactly one column varies,
+    // the others stay constant-NULL and are inert. Null placement mirrors the
+    // JS comparator: nulls LAST ascending, FIRST descending.
+    if (options.propertySort) {
+      const schemaId = this.quoteSqlLiteral(descriptor.schemaId)
+      const propertyKey = this.quoteSqlLiteral(options.propertySort.key)
+      joins.push(
+        `LEFT JOIN node_property_scalars sortp
+          ON sortp.node_id = n.id
+         AND sortp.schema_id = ${schemaId}
+         AND sortp.property_key = ${propertyKey}`
+      )
+    }
+
+    const orderBy = options.propertySort
+      ? this.buildPropertySortOrderBy(options.propertySort.direction)
+      : this.buildSqlOrderBy(descriptor.orderBy)
     const useSqlPagination =
       options.canUseSqlPagination &&
       descriptor.after === undefined &&
@@ -4101,6 +4183,23 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
       case 'null':
         return
     }
+  }
+
+  /**
+   * ORDER BY for a pushed-down custom-property sort (0264). Mirrors the JS
+   * comparator in `applyNodeQueryDescriptor`: missing properties sort last
+   * ascending / first descending; typed value columns carry the order (for a
+   * homogeneous property exactly one is non-NULL). `n.id` breaks ties so the
+   * page boundary is a total order.
+   */
+  private buildPropertySortOrderBy(direction: SortDirection): string {
+    const dir = direction.toUpperCase()
+    const nullsDir = direction === 'asc' ? 'ASC' : 'DESC'
+    return (
+      `(sortp.node_id IS NULL) ${nullsDir}, ` +
+      `sortp.value_number ${dir}, sortp.value_boolean ${dir}, sortp.value_text ${dir}, ` +
+      'n.id ASC'
+    )
   }
 
   private buildSqlOrderBy(orderBy?: Partial<Record<string, SortDirection>>): string {

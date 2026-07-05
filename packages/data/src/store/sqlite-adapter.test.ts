@@ -3045,6 +3045,152 @@ describe('SQLiteNodeStorageAdapter', () => {
     })
   })
 
+  // ─── Property-sort pushdown + deferred adaptive indexes (0264 W2) ────────────
+
+  describe('property-sort pushdown (0264)', () => {
+    beforeEach(async () => {
+      const now = Date.now()
+      await adapter.importNodes([
+        createTestNode({
+          id: 'sort-high',
+          schemaId: taskSchemaId,
+          properties: { title: 'High', priority: 10, done: false },
+          updatedAt: now
+        }),
+        createTestNode({
+          id: 'sort-low',
+          schemaId: taskSchemaId,
+          properties: { title: 'Low', priority: 1, done: false },
+          updatedAt: now + 1
+        }),
+        createTestNode({
+          id: 'sort-mid',
+          schemaId: taskSchemaId,
+          properties: { title: 'Mid', priority: 5, done: false },
+          updatedAt: now + 2
+        }),
+        createTestNode({
+          id: 'sort-none',
+          schemaId: taskSchemaId,
+          properties: { title: 'No priority', done: false },
+          updatedAt: now + 3
+        })
+      ])
+    })
+
+    function pushdownAdapter(): SQLiteNodeStorageAdapter {
+      return new SQLiteNodeStorageAdapter(db, {
+        adaptiveIndexing: { enabled: true, minHits: 999_999 },
+        queryVerification: { enabled: true }
+      })
+    }
+
+    it('pushes a single custom-property sort down to SQL pagination', async () => {
+      const result = await pushdownAdapter().queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        orderBy: { priority: 'desc' },
+        limit: 2
+      })
+
+      expect(result.plan.strategy).toBe('storage-query')
+      expect(result.plan.postFilterReason).toBe('pagination-pushed-down')
+      // JS comparator semantics: missing properties sort FIRST descending.
+      expect(result.nodes.map((n) => n.id)).toEqual(['sort-none', 'sort-high'])
+      // Only the page was hydrated — the pre-0264 shape hydrated ALL rows.
+      expect(result.plan.candidateNodeCount).toBe(2)
+    })
+
+    it('places missing properties last ascending, first descending (JS parity)', async () => {
+      const asc = await pushdownAdapter().queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        orderBy: { priority: 'asc' },
+        limit: 4
+      })
+      expect(asc.nodes.map((n) => n.id)).toEqual(['sort-low', 'sort-mid', 'sort-high', 'sort-none'])
+
+      const desc = await pushdownAdapter().queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        orderBy: { priority: 'desc' },
+        limit: 4
+      })
+      expect(desc.nodes.map((n) => n.id)).toEqual([
+        'sort-none',
+        'sort-high',
+        'sort-mid',
+        'sort-low'
+      ])
+    })
+
+    it('without the flag, property sorts hydrate everything and sort in JS', async () => {
+      const result = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        orderBy: { priority: 'desc' },
+        limit: 2
+      })
+      // Same rows, but the whole schema was hydrated to sort a page of 2.
+      expect(result.nodes.map((n) => n.id)).toEqual(['sort-none', 'sort-high'])
+      expect(result.plan.postFilterReason).not.toBe('pagination-pushed-down')
+      expect(result.plan.candidateNodeCount).toBe(4)
+    })
+
+    it('multi-key property sorts keep the JS-sorted shape (unsupported for pushdown)', async () => {
+      const result = await pushdownAdapter().queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        orderBy: { priority: 'desc', title: 'asc' },
+        limit: 2
+      })
+      expect(result.plan.postFilterReason).not.toBe('pagination-pushed-down')
+      expect(result.plan.candidateNodeCount).toBe(4)
+    })
+  })
+
+  describe('deferred adaptive-index creation (0264)', () => {
+    it('routes index creation through the maintenance scheduler', async () => {
+      const scheduled: Array<() => Promise<void> | void> = []
+      const deferredAdapter = new SQLiteNodeStorageAdapter(db, {
+        adaptiveIndexing: { enabled: true, minHits: 1, minDurationMs: 0, minCandidates: 0 },
+        scheduleMaintenance: (task) => {
+          scheduled.push(task)
+        }
+      })
+      await deferredAdapter.importNodes([
+        createTestNode({
+          id: 'defer-open',
+          schemaId: taskSchemaId,
+          properties: { status: 'open' }
+        })
+      ])
+
+      const result = await deferredAdapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' }
+      })
+
+      // Not created inline: the query's plan carries no names yet…
+      expect(result.plan.adaptiveIndexNames).toBeUndefined()
+      const before = await db.query<{ name: string }>(
+        `SELECT name FROM sqlite_master WHERE type = 'index' AND name LIKE 'idx_auto_prop_%'`
+      )
+      expect(before).toHaveLength(0)
+      expect(scheduled.length).toBeGreaterThan(0)
+
+      // …the idle task creates it.
+      for (const task of scheduled) {
+        await task()
+      }
+      const after = await db.query<{ name: string }>(
+        `SELECT name FROM sqlite_master WHERE type = 'index' AND name LIKE 'idx_auto_prop_%'`
+      )
+      expect(after).toHaveLength(1)
+    })
+  })
+
   // ─── Fused single-RPC queries (exploration 0264) ─────────────────────────────
 
   describe('fused single-RPC queries (0264)', () => {

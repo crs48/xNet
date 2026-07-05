@@ -42,7 +42,7 @@ import { ConsentBanner } from './components/ConsentBanner'
 import { StorageWarningBanner } from './components/StorageWarningBanner'
 import { WorkingSetPrewarm } from './components/WorkingSetPrewarm'
 import { type BootFailure, reportBootFailure } from './lib/boot-diagnostics'
-import { bootMark, isBootDebugEnabled } from './lib/boot-timeline'
+import { bootMark, isBootDebugEnabled, runWhenBootSettled } from './lib/boot-timeline'
 import {
   clearXNetBrowserStorage,
   clearXNetBrowserStorageResetRequest,
@@ -490,7 +490,20 @@ export function App(): JSX.Element {
         scheduleOneTimeVacuum(sqliteAdapter)
         schedulePeriodicOptimize(sqliteAdapter)
 
-        const nodeStorage = new SQLiteNodeStorageAdapter(sqliteAdapter)
+        // Adaptive indexes + property-sort pushdown (exploration 0264, Wave 2)
+        // soak behind a local flag before any default flip; index creation
+        // rides the bootSettled idle cadence — no background work is free on
+        // the single serial SQLite worker (0260).
+        let adaptiveIndexingEnabled = false
+        try {
+          adaptiveIndexingEnabled = localStorage.getItem('xnet:adaptive-indexes') === 'true'
+        } catch {
+          // localStorage unavailable — keep the default off.
+        }
+        const nodeStorage = new SQLiteNodeStorageAdapter(sqliteAdapter, {
+          adaptiveIndexing: { enabled: adaptiveIndexingEnabled },
+          scheduleMaintenance: (task) => runWhenBootSettled(() => void task())
+        })
 
         // Idle-scheduled change-log compaction (exploration 0254 / F3): prune
         // superseded history from the local `changes` log so the OPFS file — and
