@@ -52,6 +52,22 @@ export interface BlogPost {
 
 export const posts: BlogPost[] = [
   {
+    slug: 'the-workshop-and-the-walled-garden',
+    title: 'The Workshop and the Walled Garden',
+    description:
+      'DotA was a custom map. Counter-Strike was a mod. The battle royale came ' +
+      'from a photographer tinkering with a military sim. Modding built half of ' +
+      'modern gaming — then the modern app welded its doors shut, with reasons ' +
+      'that are half sincere and half convenient. On what the walled garden ' +
+      'actually costs, why the fix is scoping authority rather than banning ' +
+      'code, and what software looks like when the application is just a view ' +
+      'over data you own — especially now that anyone can cook.',
+    pubDate: '2026-07-05T23:00:00Z',
+    author: 'xNet',
+    tags: ['essay', 'philosophy', 'decentralization'],
+    readingMinutes: 14
+  },
+  {
     slug: 'hand-on-the-tiller',
     title: 'Hand on the Tiller',
     description:
