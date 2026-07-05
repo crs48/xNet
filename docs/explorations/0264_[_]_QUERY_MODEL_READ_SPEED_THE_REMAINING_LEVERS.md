@@ -411,7 +411,7 @@ function padIds(ids: string[]): (string | null)[] {
 - [x] Enable adaptive indexes behind a flag; verify index creation rides
       bootSettled idle; extend compiler to push custom-property sorts down
       when a matching index exists.
-- [ ] Add the input-latency telemetry the worker-runtime flip is waiting on;
+- [x] Add the input-latency telemetry the worker-runtime flip is waiting on;
       flip `DEFAULT_DATA_RUNTIME` to `'worker'` if clean.
 
 **Wave 3 — structural (gated on Wave 2 numbers)**

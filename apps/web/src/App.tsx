@@ -51,7 +51,7 @@ import {
   subscribeXNetStorageCorruption
 } from './lib/browser-storage-reset'
 import { scheduleChangeLogCompaction } from './lib/change-log-compaction'
-import { isWorkerRuntimeEnabled } from './lib/data-runtime'
+import { getDataRuntime, isWorkerRuntimeEnabled } from './lib/data-runtime'
 import { schedulePeriodicOptimize } from './lib/db-optimize'
 import { scheduleOneTimeVacuum } from './lib/db-vacuum'
 import { defaultHubUrl, persistedHubUrl, readHubParam, setPersistedHubUrl } from './lib/hub-url'
@@ -59,6 +59,7 @@ import { identityManager } from './lib/identity'
 import { startMainThreadStallDetector } from './lib/main-thread-stall'
 import { scheduleStalePresenceCleanup } from './lib/presence-blob-cleanup'
 import { logStoreContents } from './lib/read-path-probe'
+import { startRuntimeLatencyTelemetry } from './lib/runtime-latency-telemetry'
 import { detectBrowserFamily, getStorageBanner } from './lib/storage-banner'
 import { recordDurabilityTransition, subscribeStorageStatus } from './lib/storage-durability'
 import { looksEvicted, probeStoreColdStart, recordColdStartProbe } from './lib/store-cold-start'
@@ -370,6 +371,10 @@ export function App(): JSX.Element {
         // Watch for a main-thread freeze (the ~18s cold-open stall lives in a
         // post-hub:connected event-loop block no per-op timer can see; 0253).
         startMainThreadStallDetector()
+        // Input-latency telemetry per data runtime (exploration 0264): the
+        // measurement the worker-runtime default flip waits on. Compare via
+        // the `[xNet] runtime input latency` boot log across sessions.
+        startRuntimeLatencyTelemetry(getDataRuntime())
         if (shouldResetXNetBrowserStorageOnLoad()) {
           clearXNetBrowserStorageResetRequest()
           await clearXNetBrowserStorage()
