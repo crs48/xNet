@@ -25,6 +25,8 @@ export default defineConfig({
     }
   },
   optimizeDeps: {
-    exclude: ['elkjs']
+    // sqlite-wasm needs special handling (it locates its .wasm next to the
+    // module URL — pre-bundling would break that path), same as apps/web.
+    exclude: ['elkjs', '@sqlite.org/sqlite-wasm']
   }
 })
