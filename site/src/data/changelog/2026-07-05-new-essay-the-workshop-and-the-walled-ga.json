@@ -4,5 +4,14 @@
   "title": "New essay: The Workshop and the Walled Garden",
   "summary": "Blog post #10: how game modding built genres, why the walled-garden era locked that creativity out, and how capability-scoped views over data you own bring it back safely.",
   "highlights": [],
-  "tags": ["platform"]
+  "tags": [
+    "platform"
+  ],
+  "pr": 387,
+  "mergedAt": "2026-07-05T23:30:04Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
