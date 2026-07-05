@@ -421,11 +421,11 @@ JSON-LD on each post page (new tiny component or a slot in `Byline.astro`):
       below the hero band / at the top of the article container.
 - [x] Add the byline (compact variant) to the index cards in
       `site/src/pages/blog/index.astro`.
-- [ ] Update `site/src/lib/blog-feed.ts`: add `xmlns:dc` to `<rss>`, replace
+- [x] Update `site/src/lib/blog-feed.ts`: add `xmlns:dc` to `<rss>`, replace
       `<author>` with per-author `<dc:creator>`.
 - [x] Emit `Article` JSON-LD with the author array on each post page (via
       `Byline.astro` or a sibling `ArticleJsonLd.astro`).
-- [ ] Sweep for any remaining `post.author` references (`tsc` will catch
+- [x] Sweep for any remaining `post.author` references (`tsc` will catch
       them once the field is renamed).
 - [ ] Commit (`feat(site): add author bylines with avatars to blog posts`) —
       site-only, so an empty changeset if the Stop hook demands one.
