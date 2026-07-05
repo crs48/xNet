@@ -1,0 +1,55 @@
+---
+// The honesty beat for post #10 (exploration 0267), modeled on HonestTiller /
+// HonestMachine / HonestGarden. An essay that argues for reopening software to
+// end-user modification has to be louder than usual about the two things its
+// opponents are right about — mod ecosystems have shipped real malware, and
+// bespoke software really does have to be maintained — or it's just nostalgia
+// with a logo. So we say plainly what the workshop does and doesn't promise.
+const rows = [
+  {
+    isnt: 'We won’t pretend mod ecosystems are safe by default.',
+    is: 'In 2023 the fractureiser malware rode compromised accounts into popular Minecraft mods — packs with millions of downloads — and stole credentials from the people who trusted them. Distribution trust alone is not enough. That’s exactly why the answer here is capability scoping at runtime, not “it’s open, so it’s fine.”'
+  },
+  {
+    isnt: 'We won’t pretend the platforms locked down out of malice.',
+    is: 'A reviewed app store and a narrow extension API genuinely shrink the attack surface; that’s a real engineering argument, not a smokescreen. Our claim is narrower: it’s a false trade. You can bound what code can touch instead of banning what code can exist.'
+  },
+  {
+    isnt: 'We won’t pretend bespoke software is free.',
+    is: 'A view you build is a view you keep. AI collapses the cost of writing and much of the cost of maintaining it, but not to zero — “as bespoke as possible” comes with “within reason” attached. The substrate’s job is to make the reasonable region as large as it can honestly be.'
+  },
+  {
+    isnt: 'We won’t pretend our workshop is crowded yet.',
+    is: 'What exists today is the architecture — the manifest, the guards, the trust ladder, the licence layer — and the first-party views built on it. The bustling mod scene this essay wants is an invitation, not an inventory. We’re describing the door, and it is genuinely open.'
+  }
+]
+---
+
+<section class="not-prose my-12">
+  <div class="rounded-2xl border border-border bg-surface/30 p-6 dark:bg-surface/40 lg:p-8">
+    <h3 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+      An honest workshop
+    </h3>
+    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+      An argument for opening things up has to be straight about why they were
+      closed. Here’s where the romance stops.
+    </p>
+
+    <ul class="mt-6 space-y-5">
+      {
+        rows.map((row) => (
+          <li class="grid gap-3 sm:grid-cols-[1fr_1.3fr] sm:gap-5">
+            <div class="flex gap-2.5">
+              <span class="select-none text-gray-400 dark:text-gray-600">✕</span>
+              <p class="text-sm leading-relaxed text-gray-500 dark:text-gray-400">{row.isnt}</p>
+            </div>
+            <div class="flex gap-2.5">
+              <span class="select-none text-sky-500">✓</span>
+              <p class="text-sm leading-relaxed text-gray-700 dark:text-gray-200">{row.is}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
