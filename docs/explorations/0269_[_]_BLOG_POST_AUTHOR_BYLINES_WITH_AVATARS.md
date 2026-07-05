@@ -415,7 +415,7 @@ JSON-LD on each post page (new tiny component or a slot in `Byline.astro`):
 - [x] Vendor avatars: download `https://github.com/crs48.png?size=96` →
       `site/public/blog/authors/crs48.jpg`; design an original Claude glyph →
       `site/public/blog/authors/claude.svg`.
-- [ ] Create `site/src/components/blog/Byline.astro` (avatar stack + linked
+- [x] Create `site/src/components/blog/Byline.astro` (avatar stack + linked
       names, "with" separator before AI authors).
 - [ ] Insert `<Byline post={post} />` in each of the ten post pages, directly
       below the hero band / at the top of the article container.
@@ -423,7 +423,7 @@ JSON-LD on each post page (new tiny component or a slot in `Byline.astro`):
       `site/src/pages/blog/index.astro`.
 - [ ] Update `site/src/lib/blog-feed.ts`: add `xmlns:dc` to `<rss>`, replace
       `<author>` with per-author `<dc:creator>`.
-- [ ] Emit `Article` JSON-LD with the author array on each post page (via
+- [x] Emit `Article` JSON-LD with the author array on each post page (via
       `Byline.astro` or a sibling `ArticleJsonLd.astro`).
 - [ ] Sweep for any remaining `post.author` references (`tsc` will catch
       them once the field is renamed).
