@@ -48,3 +48,35 @@ jobs:
           commit: 'chore(release): version packages'
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+
+      # A red run here means the Version Packages PR is no longer being
+      # updated and nothing can publish — but as a push-triggered workflow
+      # nobody watches, failures are silent (12 in a row went unnoticed;
+      # exploration 0265). Keep exactly one open issue as the alarm bell:
+      # comment on it while the failure persists, file it when it first rings.
+      - name: Raise the alarm on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          title="npm Release pipeline is failing on main"
+          existing=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open \
+            --search "in:title \"$title\"" --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" \
+              --body "Still failing at \`$COMMIT_SHA\`: $RUN_URL"
+          else
+            body=$(printf '%s\n' \
+              "Automated alert: the **npm Release** workflow failed at \`$COMMIT_SHA\`." \
+              "" \
+              "Run: $RUN_URL" \
+              "" \
+              "Until this workflow is green again, the Version Packages release PR is not" \
+              "being refreshed with new changesets and no npm packages can publish. See" \
+              "\`docs/explorations/0265_*.md\` for the previously diagnosed failure mode." \
+              "" \
+              "Close this issue once a run succeeds.")
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$body"
+          fi
