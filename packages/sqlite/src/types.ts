@@ -13,6 +13,15 @@ export type SQLValue = string | number | bigint | Uint8Array | null
 export type SQLRow = Record<string, SQLValue>
 
 /**
+ * One read of a {@link SQLiteAdapter.queryBatch} call: a SELECT plus its
+ * bound parameters. Results come back positionally, one row array per read.
+ */
+export interface SQLBatchRead {
+  sql: string
+  params?: SQLValue[]
+}
+
+/**
  * Result of a mutation query (INSERT, UPDATE, DELETE).
  */
 export interface RunResult {
@@ -51,6 +60,16 @@ export interface SQLiteConfig {
    * than hard-failing the boot (exploration 0253). Web adapter only.
    */
   openTimeoutMs?: number
+
+  /**
+   * Multi-tab leadership routing (exploration 0263). When Web Locks and
+   * SharedWorker are available, tabs elect a leader that owns the SQLite
+   * worker; other tabs route their storage RPCs to it instead of losing the
+   * OPFS handle race and silently falling back to a non-durable `:memory:`
+   * database (exploration 0204). Default: `true` where supported — set `false`
+   * to force the previous per-tab behaviour. Web proxy only.
+   */
+  multiTab?: boolean
 
   // ─── Electron / better-sqlite3 only (exploration 0230) ───────────────────
 

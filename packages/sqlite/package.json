@@ -31,6 +31,10 @@
       "import": "./dist/adapters/web-worker.js",
       "types": "./dist/adapters/web-worker.d.ts"
     },
+    "./web-router-worker": {
+      "import": "./dist/adapters/web-router-worker.js",
+      "types": "./dist/adapters/web-router-worker.d.ts"
+    },
     "./browser-support": {
       "import": "./dist/browser-support.js",
       "types": "./dist/browser-support.d.ts"

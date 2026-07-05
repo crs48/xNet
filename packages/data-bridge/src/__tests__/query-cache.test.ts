@@ -309,6 +309,100 @@ describe('QueryCache', () => {
     })
   })
 
+  describe('read-tier stats + staleness (0262/0263)', () => {
+    it('counts hits and misses and reports hit rate', () => {
+      cache.set('warm', [createMockNode('1', 'A')], TEST_SCHEMA_ID, {})
+      cache.resetStats()
+
+      cache.get('warm') // hit
+      cache.get('warm') // hit
+      cache.get('cold') // miss (absent)
+      cache.initEntry('loading', TEST_SCHEMA_ID, {})
+      cache.get('loading') // miss (entry exists, data null)
+
+      const stats = cache.getStats()
+      expect(stats.hits).toBe(2)
+      expect(stats.misses).toBe(2)
+      expect(stats.hitRate).toBe(0.5)
+      // 'warm' + 'loading' — a miss on an absent id creates no entry.
+      expect(stats.entries).toBe(2)
+      expect(stats.totalWeightRows).toBe(1)
+    })
+
+    it('markStale keeps serving data and set() clears it', () => {
+      cache.set('q', [createMockNode('1', 'A')], TEST_SCHEMA_ID, {})
+      expect(cache.isStale('q')).toBe(false)
+
+      cache.markStale('q')
+      expect(cache.isStale('q')).toBe(true)
+      // Stale-while-revalidate: the rows are still served.
+      expect(cache.get('q')).toHaveLength(1)
+
+      cache.set('q', [createMockNode('1', 'A'), createMockNode('2', 'B')], TEST_SCHEMA_ID, {})
+      expect(cache.isStale('q')).toBe(false)
+    })
+
+    it('markStale is a no-op for unloaded entries', () => {
+      cache.initEntry('empty', TEST_SCHEMA_ID, {})
+      cache.markStale('empty')
+      expect(cache.isStale('empty')).toBe(false)
+    })
+
+    it('hasEntriesForSchema reports the cached read set', () => {
+      expect(cache.hasEntriesForSchema(TEST_SCHEMA_ID)).toBe(false)
+      cache.initEntry('q', TEST_SCHEMA_ID, {})
+      expect(cache.hasEntriesForSchema(TEST_SCHEMA_ID)).toBe(true)
+      expect(cache.hasEntriesForSchema('xnet://test/Other' as SchemaIRI)).toBe(false)
+    })
+  })
+
+  describe('weight-based eviction (0262/0263)', () => {
+    it('evicts unsubscribed entries LRU-first when total rows exceed the budget', () => {
+      const weighted = new QueryCache({ enableWeakRefCleanup: false, maxWeightRows: 10 })
+      try {
+        const rows = (n: number, prefix: string) =>
+          Array.from({ length: n }, (_, i) => createMockNode(`${prefix}-${i}`, prefix))
+
+        weighted.set('old', rows(6, 'old'), TEST_SCHEMA_ID, {})
+        weighted.get('old')
+        weighted.set('newer', rows(5, 'newer'), TEST_SCHEMA_ID, {})
+
+        // 11 rows > 10 budget → the LRU entry ('old') evicts; the entry just
+        // written is protected.
+        expect(weighted.has('newer')).toBe(true)
+        expect(weighted.has('old')).toBe(false)
+        expect(weighted.getStats().evictions).toBe(1)
+        expect(weighted.totalWeightRows).toBe(5)
+      } finally {
+        weighted.destroy()
+      }
+    })
+
+    it('never evicts entries with active subscribers', () => {
+      const weighted = new QueryCache({ enableWeakRefCleanup: false, maxWeightRows: 10 })
+      try {
+        const rows = (n: number, prefix: string) =>
+          Array.from({ length: n }, (_, i) => createMockNode(`${prefix}-${i}`, prefix))
+
+        weighted.set('watched', rows(8, 'watched'), TEST_SCHEMA_ID, {})
+        const unsubscribe = weighted.subscribe('watched', () => {})
+        weighted.set('burst', rows(8, 'burst'), TEST_SCHEMA_ID, {})
+
+        // Over budget, but 'watched' is subscribed and 'burst' is protected as
+        // the current write — nothing evictable, so both stay.
+        expect(weighted.has('watched')).toBe(true)
+        expect(weighted.has('burst')).toBe(true)
+
+        unsubscribe()
+        weighted.set('third', rows(2, 'third'), TEST_SCHEMA_ID, {})
+        // 'watched' is now unsubscribed and LRU → it pays the excess.
+        expect(weighted.has('watched')).toBe(false)
+      } finally {
+        weighted.destroy()
+      }
+    })
+  })
+
   describe('filtering and sorting', () => {
     it('should filter nodes by where clause', () => {
       const nodes = [

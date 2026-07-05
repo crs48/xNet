@@ -176,6 +176,11 @@ export class MainThreadBridge implements DataBridge {
     this._syncManager = syncManager
   }
 
+  /** Read-tier effectiveness counters (hit rate, weight, evictions; 0263). */
+  getQueryCacheStats(): ReturnType<QueryCache['getStats']> {
+    return this.cache.getStats()
+  }
+
   // ─── Queries ────────────────────────────────────────────
 
   query<P extends Record<string, PropertyBuilder>>(
@@ -188,8 +193,10 @@ export class MainThreadBridge implements DataBridge {
     // Initialize cache entry if not exists
     this.cache.initEntry(queryId, descriptor)
 
-    // Start loading data if not cached
-    if (this.cache.get(queryId) === null) {
+    // Load when uncached; revalidate when a bulk change landed while nobody
+    // subscribed (stale-while-revalidate — the stale rows keep rendering
+    // until the re-query resolves, exploration 0263).
+    if (this.cache.get(queryId) === null || this.cache.isStale(queryId)) {
       void this.loadInitialQuery(queryId, descriptor)
     }
 
@@ -893,12 +900,23 @@ export class MainThreadBridge implements DataBridge {
       return
     }
 
-    if (!this.isBulkStoreChangeSet(events) && events.length === 1) {
-      this.handleStoreChange(events[0])
+    // Read-set scoping (exploration 0263): drop events for schemas no cached
+    // query observes before any grouping/delta work. A write burst to a
+    // schema without live queries costs the bridge nothing.
+    const observed = events.filter((event) => {
+      const schemaId = event.node?.schemaId ?? event.change.payload.schemaId
+      return schemaId !== undefined && this.cache.hasEntriesForSchema(schemaId)
+    })
+    if (observed.length === 0) {
       return
     }
 
-    this.handleStoreChangeSet(events)
+    if (!this.isBulkStoreChangeSet(observed) && observed.length === 1) {
+      this.handleStoreChange(observed[0])
+      return
+    }
+
+    this.handleStoreChangeSet(observed)
   }
 
   private isBulkStoreChangeSet(events: readonly NodeChangeEvent[]): boolean {
@@ -922,13 +940,28 @@ export class MainThreadBridge implements DataBridge {
         if (entry.descriptor.mode === 'remote') continue
 
         if (entry.data === null || shouldReload) {
-          void this.loadInitialQuery(entry.queryId, entry.descriptor)
+          this.reloadOrMarkStale(entry.queryId, entry.descriptor)
           continue
         }
 
         this.applyChangesToEntry(entry, changes)
       }
     }
+  }
+
+  /**
+   * Bulk-change revalidation, scoped by subscribers (exploration 0263): only
+   * entries someone is actually watching re-query immediately; unwatched
+   * entries keep their rows but are flagged stale and revalidate on the next
+   * subscription. This replaces the old cliff where >250 changes re-queried
+   * EVERY cached entry of the schema, subscribed or not.
+   */
+  private reloadOrMarkStale(queryId: string, descriptor: QueryDescriptor): void {
+    if (this.cache.getSubscriberCount(queryId) > 0 || this.cache.get(queryId) === null) {
+      void this.loadInitialQuery(queryId, descriptor)
+      return
+    }
+    this.cache.markStale(queryId)
   }
 
   private handleStoreBatchChange(event: NodeBatchChangeEvent): void {
@@ -942,16 +975,26 @@ export class MainThreadBridge implements DataBridge {
 
     void this.applyStoreBatchChangeDeltas(event).catch((err) => {
       console.error('[MainThreadBridge] Failed to apply batch change deltas:', err)
-      this.reloadEntriesForSchemas(event.schemaIds)
+      this.reloadEntriesForSchemas(event.schemaIds, { force: true })
     })
   }
 
-  private reloadEntriesForSchemas(schemaIds: readonly SchemaIRI[]): void {
+  private reloadEntriesForSchemas(
+    schemaIds: readonly SchemaIRI[],
+    options?: { force?: boolean }
+  ): void {
     for (const schemaId of schemaIds) {
       for (const entry of this.cache.getEntriesForSchema(schemaId)) {
         if (entry.descriptor.mode === 'remote') continue
 
-        void this.loadInitialQuery(entry.queryId, entry.descriptor)
+        if (options?.force) {
+          // Correctness reloads (optimistic-revert, failed delta application)
+          // must restore authoritative state even for unwatched entries —
+          // stale-marking is only for freshness, never for correctness.
+          void this.loadInitialQuery(entry.queryId, entry.descriptor)
+          continue
+        }
+        this.reloadOrMarkStale(entry.queryId, entry.descriptor)
       }
     }
   }
@@ -1067,7 +1110,7 @@ export class MainThreadBridge implements DataBridge {
     }
 
     return () => {
-      this.reloadEntriesForSchemas([current.schemaId])
+      this.reloadEntriesForSchemas([current.schemaId], { force: true })
     }
   }
 

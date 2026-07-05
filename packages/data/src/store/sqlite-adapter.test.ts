@@ -3045,6 +3045,74 @@ describe('SQLiteNodeStorageAdapter', () => {
     })
   })
 
+  // ─── Hydrate batching (exploration 0263) ─────────────────────────────────────
+
+  describe('hydrate batching (0263)', () => {
+    it('sends a multi-chunk hydrate as ONE queryBatch call', async () => {
+      // 460 nodes > SQLITE_HYDRATE_NODE_BATCH_SIZE (450) → exactly 2 chunks.
+      const bulkNodes = Array.from({ length: 460 }, (_, i) =>
+        createTestNode({
+          id: `bulk-${String(i).padStart(3, '0')}`,
+          properties: { title: `Bulk ${i}` }
+        })
+      )
+      await adapter.importNodes(bulkNodes)
+
+      let queryBatchCalls = 0
+      let batchedReadCount = 0
+      const countingDb = new Proxy(db, {
+        get(target, property, receiver) {
+          if (property === 'queryBatch') {
+            return async (reads: Array<{ sql: string; params?: unknown[] }>) => {
+              queryBatchCalls += 1
+              batchedReadCount += reads.length
+              return target.queryBatch!(reads as never)
+            }
+          }
+          const value = Reflect.get(target, property, receiver)
+          return typeof value === 'function' ? value.bind(target) : value
+        }
+      }) as SQLiteAdapter
+      const batchAdapter = new SQLiteNodeStorageAdapter(countingDb)
+
+      const result = await batchAdapter.queryNodes({
+        schemaId: testSchemaId,
+        includeDeleted: false
+      })
+
+      expect(result.nodes).toHaveLength(460)
+      expect(queryBatchCalls).toBe(1)
+      expect(batchedReadCount).toBe(2)
+    })
+
+    it('keeps single-chunk hydrates on query() so read coalescing still applies', async () => {
+      await adapter.importNodes([createTestNode({ id: 'solo-1', properties: { title: 'Solo' } })])
+
+      let queryBatchCalls = 0
+      const countingDb = new Proxy(db, {
+        get(target, property, receiver) {
+          if (property === 'queryBatch') {
+            return async (reads: Array<{ sql: string; params?: unknown[] }>) => {
+              queryBatchCalls += 1
+              return target.queryBatch!(reads as never)
+            }
+          }
+          const value = Reflect.get(target, property, receiver)
+          return typeof value === 'function' ? value.bind(target) : value
+        }
+      }) as SQLiteAdapter
+      const soloAdapter = new SQLiteNodeStorageAdapter(countingDb)
+
+      const result = await soloAdapter.queryNodes({
+        schemaId: testSchemaId,
+        includeDeleted: false
+      })
+
+      expect(result.nodes.length).toBeGreaterThan(0)
+      expect(queryBatchCalls).toBe(0)
+    })
+  })
+
   // ─── Lifecycle ───────────────────────────────────────────────────────────────
 
   describe('Lifecycle', () => {

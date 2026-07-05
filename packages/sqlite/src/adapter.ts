@@ -8,6 +8,7 @@ import type {
   RunResult,
   SQLiteConfig,
   SQLiteOperationStats,
+  SQLBatchRead,
   SQLiteNodeBatchApplyInput,
   SQLiteNodeBatchApplyResult
 } from './types'
@@ -85,6 +86,15 @@ export interface SQLiteAdapter {
    * @param sql - SQL statements (may be multiple, separated by semicolons)
    */
   exec(sql: string): Promise<void>
+
+  /**
+   * Execute several reads in one call, returning one row array per read
+   * (positionally). For worker/port-backed adapters this crosses the RPC
+   * boundary ONCE for the whole batch instead of once per query — the
+   * amortization matters for multi-query screens and chunked hydrates
+   * (exploration 0263). In-process adapters may simply loop.
+   */
+  queryBatch?(reads: SQLBatchRead[]): Promise<SQLRow[][]>
 
   // ─── Transactions ──────────────────────────────────────────────────────
 

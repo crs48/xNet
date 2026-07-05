@@ -435,3 +435,34 @@ function escapeHtml(text: string): string {
   div.textContent = text
   return div.innerHTML
 }
+
+// ─── Memory-fallback telemetry (exploration 0263) ───────────────────────────
+
+const MEMORY_FALLBACK_COUNT_KEY = 'xnet:sqlite:memory-fallback-count'
+
+/**
+ * Record that this session opened on the non-durable `:memory:` fallback
+ * (another tab/worker held the OPFS handles, or OPFS is unavailable).
+ * Multi-tab leadership routing (0263) should drive this count to ~zero —
+ * the counter is how we verify that in the field. Returns the new total.
+ */
+export function recordMemoryFallbackSession(): number {
+  try {
+    const count = getMemoryFallbackSessionCount() + 1
+    localStorage.setItem(MEMORY_FALLBACK_COUNT_KEY, String(count))
+    return count
+  } catch {
+    return 0
+  }
+}
+
+/** Total sessions on this device that fell back to `:memory:` storage. */
+export function getMemoryFallbackSessionCount(): number {
+  try {
+    const raw = localStorage.getItem(MEMORY_FALLBACK_COUNT_KEY)
+    const parsed = raw === null ? 0 : Number.parseInt(raw, 10)
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0
+  } catch {
+    return 0
+  }
+}

@@ -8,6 +8,7 @@ export type {
   SQLRow,
   RunResult,
   SQLiteConfig,
+  SQLBatchRead,
   SchemaVersion,
   SQLiteOperationStats,
   SQLiteNodeBatchIndexMode,
@@ -80,6 +81,8 @@ export type {
 export {
   checkBrowserSupport,
   checkPersistentStorage,
+  getMemoryFallbackSessionCount,
+  recordMemoryFallbackSession,
   isSilentPersistRequestSafe,
   requestPersistentStorage,
   showUnsupportedBrowserMessage,

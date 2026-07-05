@@ -229,6 +229,18 @@ export class ElectronSQLiteAdapter implements SQLiteAdapter {
     return this.queryRaw<T>(conn.db, conn.cache, sql, params)
   }
 
+  async queryBatch(reads: Array<{ sql: string; params?: SQLValue[] }>): Promise<SQLRow[][]> {
+    // Route each member through query() so per-read semantics (reader pool for
+    // heavy reads, scheduler lanes, read-your-writes in transactions) hold.
+    // There is no RPC boundary here to amortize — this exists for interface
+    // parity with the worker-backed adapters (exploration 0263).
+    const results: SQLRow[][] = []
+    for (const read of reads) {
+      results.push(await this.query(read.sql, read.params))
+    }
+    return results
+  }
+
   async queryOne<T extends SQLRow = SQLRow>(sql: string, params?: SQLValue[]): Promise<T | null> {
     this.ensureOpen()
 

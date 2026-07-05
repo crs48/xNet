@@ -15,7 +15,6 @@ import type {
   AuthorizationStateVersion,
   ListNodesOptions,
   CountNodesOptions,
-  PropertyTimestamp,
   SetNodeOptions,
   ImportNodesOptions,
   RebuildNodeIndexesOptions,
@@ -57,28 +56,6 @@ import {
 } from './query'
 
 // ─── Row Types ──────────────────────────────────────────────────────────────
-
-interface NodeRow {
-  id: string
-  schema_id: string
-  created_at: number
-  updated_at: number
-  created_by: string
-  deleted_at: number | null
-  // Index signature for SQLRow compatibility
-  [key: string]: SQLValue
-}
-
-interface PropertyRow {
-  node_id: string
-  property_key: string
-  value: Uint8Array | null
-  lamport_time: number
-  updated_by: string
-  updated_at: number
-  // Index signature for SQLRow compatibility
-  [key: string]: SQLValue
-}
 
 interface ChangeRow {
   hash: string
@@ -729,60 +706,21 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   // ─── Materialized State Operations ────────────────────────────────────────
 
   async getNode(id: NodeId): Promise<NodeState | null> {
-    // Get node metadata
-    const nodeRow = await this.db.queryOne<NodeRow>(`SELECT * FROM nodes WHERE id = ?`, [id])
-
-    if (!nodeRow) return null
-
-    // Get properties
-    const propRows = await this.db.query<PropertyRow>(
-      `SELECT * FROM node_properties WHERE node_id = ?`,
-      [id]
-    )
-
-    // Build NodeState
-    const properties: Record<string, unknown> = {}
-    const timestamps: Record<string, PropertyTimestamp> = {}
-    let updatedBy: DID = nodeRow.created_by as DID
-
-    for (const prop of propRows) {
-      properties[prop.property_key] = this.deserializeValue(prop.value)
-      timestamps[prop.property_key] = {
-        lamport: prop.lamport_time,
-        author: prop.updated_by as DID,
-        wallTime: prop.updated_at
-      }
-      // Track the most recent updater
-      if (prop.updated_at >= nodeRow.updated_at) {
-        updatedBy = prop.updated_by as DID
-      }
-    }
-
-    return {
-      id: nodeRow.id,
-      schemaId: nodeRow.schema_id as SchemaIRI,
-      properties,
-      timestamps,
-      deleted: nodeRow.deleted_at !== null,
-      deletedAt: nodeRow.deleted_at
-        ? { lamport: 0, author: '' as DID, wallTime: nodeRow.deleted_at }
-        : undefined,
-      createdAt: nodeRow.created_at,
-      createdBy: nodeRow.created_by as DID,
-      updatedAt: nodeRow.updated_at,
-      updatedBy
-    }
+    // One joined read via the shared hydrate path. The previous shape — a
+    // node-metadata queryOne followed by a properties query — cost a
+    // worker-backed adapter two RPC round-trips per node (exploration 0263).
+    const nodes = await this.hydrateNodesByIds([id])
+    return nodes[0] ?? null
   }
 
   async getNodes(ids: readonly NodeId[]): Promise<NodeState[]> {
     const uniqueIds = Array.from(new Set(ids))
     if (uniqueIds.length === 0) return []
 
-    const nodes: NodeState[] = []
-    for (const batch of chunkItems(uniqueIds, SQLITE_HYDRATE_NODE_BATCH_SIZE)) {
-      nodes.push(...(await this.hydrateNodesByIds(batch)))
-    }
-    return nodes
+    // hydrateNodesByIds chunks internally and batches multi-chunk reads into
+    // one queryBatch RPC (exploration 0263) — don't pre-chunk here or every
+    // chunk pays its own worker round-trip again.
+    return this.hydrateNodesByIds(uniqueIds)
   }
 
   async getExistingNodeIds(ids: readonly NodeId[]): Promise<NodeId[]> {
@@ -2132,19 +2070,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     return Array.from(nodeMap.values())
   }
 
-  private async hydrateNodesByIds(ids: string[]): Promise<NodeState[]> {
-    if (ids.length === 0) {
-      return []
-    }
-
-    if (ids.length > SQLITE_HYDRATE_NODE_BATCH_SIZE) {
-      const nodes: NodeState[] = []
-      for (const batch of chunkItems(ids, SQLITE_HYDRATE_NODE_BATCH_SIZE)) {
-        nodes.push(...(await this.hydrateNodesByIds(batch)))
-      }
-      return nodes
-    }
-
+  private buildHydrateChunkQuery(ids: string[]): { sql: string; params: SQLValue[] } {
     const values = ids.map(() => '(?, ?)').join(', ')
     const params: SQLValue[] = ids.flatMap((id, ordinal) => [id, ordinal])
     const sql = `
@@ -2169,9 +2095,38 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       LEFT JOIN node_properties p ON p.node_id = n.id
       ORDER BY wanted.ordinal ASC, p.property_key ASC
     `
+    return { sql, params }
+  }
 
-    const rows = await this.db.query<JoinedNodePropertyRow>(sql, params)
-    return this.hydrateJoinedRows(rows)
+  private async hydrateNodesByIds(ids: string[]): Promise<NodeState[]> {
+    if (ids.length === 0) {
+      return []
+    }
+
+    const chunks =
+      ids.length > SQLITE_HYDRATE_NODE_BATCH_SIZE
+        ? chunkItems(ids, SQLITE_HYDRATE_NODE_BATCH_SIZE)
+        : [ids]
+    const reads = chunks.map((chunk) => this.buildHydrateChunkQuery(chunk))
+
+    // Multi-chunk hydrates previously paid one worker round-trip per chunk;
+    // queryBatch sends the whole hydrate as ONE RPC and one scheduler slot
+    // (exploration 0263). Single chunks keep query()'s coalescing.
+    if (reads.length > 1 && typeof this.db.queryBatch === 'function') {
+      const results = await this.db.queryBatch(reads)
+      const nodes: NodeState[] = []
+      for (const rows of results) {
+        nodes.push(...this.hydrateJoinedRows(rows as JoinedNodePropertyRow[]))
+      }
+      return nodes
+    }
+
+    const nodes: NodeState[] = []
+    for (const read of reads) {
+      const rows = await this.db.query<JoinedNodePropertyRow>(read.sql, read.params)
+      nodes.push(...this.hydrateJoinedRows(rows))
+    }
+    return nodes
   }
 
   /**

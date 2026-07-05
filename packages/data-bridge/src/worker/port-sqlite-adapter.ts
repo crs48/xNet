@@ -21,6 +21,7 @@ import type {
   SQLValue,
   SQLRow,
   RunResult,
+  SQLBatchRead,
   SQLiteNodeBatchApplyInput,
   SQLiteNodeBatchApplyResult
 } from '@xnetjs/sqlite'
@@ -75,6 +76,11 @@ export class PortSQLiteAdapter implements SQLiteAdapter {
   async queryOne<T extends SQLRow = SQLRow>(sql: string, params?: SQLValue[]): Promise<T | null> {
     const result = await this.requireProxy().queryOne(sql, params)
     return result as T | null
+  }
+
+  async queryBatch(reads: SQLBatchRead[]): Promise<SQLRow[][]> {
+    if (reads.length === 0) return []
+    return this.requireProxy().queryBatch(reads)
   }
 
   async run(sql: string, params?: SQLValue[]): Promise<RunResult> {
