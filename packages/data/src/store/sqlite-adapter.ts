@@ -15,6 +15,7 @@ import type {
   AuthorizationStateVersion,
   ListNodesOptions,
   CountNodesOptions,
+  PropertyTimestamp,
   SetNodeOptions,
   ImportNodesOptions,
   RebuildNodeIndexesOptions,
@@ -88,6 +89,20 @@ interface JoinedNodePropertyRow {
   [key: string]: SQLValue
 }
 
+/** One-row-per-node aggregated hydrate result (exploration 0264, Wave 2). */
+interface AggregatedNodeRow {
+  id: string
+  schema_id: string
+  created_at: number
+  updated_at: number
+  created_by: string
+  deleted_at: number | null
+  ordinal: number | null
+  props_json: string | null
+  meta_json: string | null
+  [key: string]: SQLValue
+}
+
 type ScalarValueType = 'text' | 'number' | 'boolean' | 'null'
 
 interface ScalarIndexValue {
@@ -141,6 +156,14 @@ export interface SQLiteNodeStorageAdapterOptions {
    * `xnet:query:debug` localStorage flag is set.
    */
   queryDiagnostics?: boolean
+  /**
+   * Hydrate via SQL-side `json_group_object` aggregation — ONE row per node
+   * instead of one row per (node × property) — collapsing the boundary
+   * payload before it leaves SQLite (exploration 0264, Wave 2). Off by
+   * default while the mode is benchmarked; correctness is verified equal by
+   * the hydration test suite in both modes.
+   */
+  aggregatedHydration?: boolean
 }
 
 interface AdaptiveIndexHint {
@@ -386,6 +409,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   private queryVerification: QueryVerificationConfig
 
   private queryDiagnostics: boolean
+  /** Hydrate one row per node via json_group_object (0264 Wave 2 flag). */
+  private aggregatedHydration: boolean
 
   private pendingQueryTelemetry = new Map<string, PendingQueryTelemetry>()
 
@@ -425,6 +450,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       ...options.queryVerification
     }
     this.queryDiagnostics = options.queryDiagnostics ?? false
+    this.aggregatedHydration = options.aggregatedHydration ?? true
   }
 
   getSQLiteAdapter(): SQLiteAdapter {
@@ -1035,8 +1061,10 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     let candidateCount: number
     let fusedExactCount: number | undefined
     if (compiled.fused) {
-      const rows = mainQuery.result as JoinedNodePropertyRow[]
-      candidates = this.hydrateJoinedRows(rows)
+      const rows = mainQuery.result as Array<JoinedNodePropertyRow | AggregatedNodeRow>
+      candidates = this.aggregatedHydration
+        ? this.hydrateAggregatedRows(rows as AggregatedNodeRow[])
+        : this.hydrateJoinedRows(rows as JoinedNodePropertyRow[])
       candidateCount = candidates.length
       if (compiled.fused.includesExactCount && rows.length > 0) {
         fusedExactCount = Number(rows[0].total_count ?? 0)
@@ -2166,11 +2194,18 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       return []
     }
 
+    const aggregated = this.aggregatedHydration
     const chunks =
       ids.length > SQLITE_HYDRATE_NODE_BATCH_SIZE
         ? chunkItems(ids, SQLITE_HYDRATE_NODE_BATCH_SIZE)
         : [ids]
-    const reads = chunks.map((chunk) => this.buildHydrateChunkQuery(chunk))
+    const reads = chunks.map((chunk) =>
+      aggregated ? this.buildAggregatedHydrateChunkQuery(chunk) : this.buildHydrateChunkQuery(chunk)
+    )
+    const parse = (rows: unknown[]): NodeState[] =>
+      aggregated
+        ? this.hydrateAggregatedRows(rows as AggregatedNodeRow[])
+        : this.hydrateJoinedRows(rows as JoinedNodePropertyRow[])
 
     // Multi-chunk hydrates previously paid one worker round-trip per chunk;
     // queryBatch sends the whole hydrate as ONE RPC and one scheduler slot
@@ -2179,15 +2214,95 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       const results = await this.db.queryBatch(reads)
       const nodes: NodeState[] = []
       for (const rows of results) {
-        nodes.push(...this.hydrateJoinedRows(rows as JoinedNodePropertyRow[]))
+        nodes.push(...parse(rows))
       }
       return nodes
     }
 
     const nodes: NodeState[] = []
     for (const read of reads) {
-      const rows = await this.db.query<JoinedNodePropertyRow>(read.sql, read.params)
-      nodes.push(...this.hydrateJoinedRows(rows))
+      const rows = await this.db.query(read.sql, read.params)
+      nodes.push(...parse(rows))
+    }
+    return nodes
+  }
+
+  /**
+   * Aggregated hydrate (exploration 0264, Wave 2): collapse the EAV rows to
+   * ONE row per node inside SQL via `json_group_object`, so the boundary
+   * ships N rows instead of N × properties. `value` is stored as JSON text
+   * in a BLOB — `json(CAST(… AS TEXT))` re-emits it as real JSON inside the
+   * aggregate (without the cast/wrap it would double-encode as a string).
+   */
+  private buildAggregatedHydrateChunkQuery(ids: string[]): { sql: string; params: SQLValue[] } {
+    const padded = padToArityBucket(ids, SQL_HYDRATE_ARITY_BUCKETS)
+    const values = padded.map(() => '(?, ?)').join(', ')
+    const params: SQLValue[] = padded.flatMap((id, ordinal) => [id, ordinal])
+    const sql = `
+      WITH wanted(id, ordinal) AS (
+        VALUES ${values}
+      )
+      SELECT
+        n.id,
+        n.schema_id,
+        n.created_at,
+        n.updated_at,
+        n.created_by,
+        n.deleted_at,
+        wanted.ordinal,
+        json_group_object(p.property_key, json(CAST(p.value AS TEXT)))
+          FILTER (WHERE p.property_key IS NOT NULL) AS props_json,
+        json_group_object(
+          p.property_key,
+          json_object('l', p.lamport_time, 'b', p.updated_by, 'w', p.updated_at)
+        ) FILTER (WHERE p.property_key IS NOT NULL) AS meta_json
+      FROM wanted
+      JOIN nodes n ON n.id = wanted.id
+      LEFT JOIN node_properties p ON p.node_id = n.id
+      GROUP BY n.id
+      ORDER BY wanted.ordinal ASC
+    `
+    return { sql, params }
+  }
+
+  /** Parse one-row-per-node aggregated hydrate results into NodeStates. */
+  private hydrateAggregatedRows(rows: AggregatedNodeRow[]): NodeState[] {
+    const nodes: NodeState[] = []
+    for (const row of rows) {
+      const properties = row.props_json
+        ? (JSON.parse(row.props_json) as Record<string, unknown>)
+        : {}
+      const meta = row.meta_json
+        ? (JSON.parse(row.meta_json) as Record<string, { l: number; b: string; w: number }>)
+        : {}
+
+      const timestamps: Record<string, PropertyTimestamp> = {}
+      let updatedBy: DID = row.created_by as DID
+      for (const [key, entry] of Object.entries(meta)) {
+        timestamps[key] = {
+          lamport: entry.l ?? 0,
+          author: (entry.b ?? '') as DID,
+          wallTime: entry.w ?? 0
+        }
+        if ((entry.w ?? 0) >= row.updated_at) {
+          updatedBy = (entry.b ?? row.created_by) as DID
+        }
+      }
+
+      nodes.push({
+        id: row.id,
+        schemaId: row.schema_id as SchemaIRI,
+        properties,
+        timestamps,
+        deleted: row.deleted_at !== null,
+        deletedAt: row.deleted_at
+          ? { lamport: 0, author: '' as DID, wallTime: row.deleted_at }
+          : undefined,
+        createdAt: row.created_at,
+        createdBy: row.created_by as DID,
+        updatedAt: row.updated_at,
+        updatedBy
+      })
     }
     return nodes
   }
@@ -3872,8 +3987,7 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
       const includesExactCount = descriptor.count === 'exact'
       const countColumn = includesExactCount ? ',\n          COUNT(*) OVER () AS total_count' : ''
       const countSelect = includesExactCount ? 'c.total_count,' : ''
-      fused = {
-        sql: `
+      const candidatesCte = `
       WITH candidates AS (
         SELECT
           n.id, n.schema_id, n.created_at, n.updated_at, n.created_by, n.deleted_at,
@@ -3883,7 +3997,27 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
         WHERE ${where.join(' AND ')}
         ORDER BY ${orderBy}
         LIMIT ? OFFSET ?
-      )
+      )`
+      // Aggregated fusion ships ONE row per node (0264 Wave 2 benchmark:
+      // ~5× faster SQL + ~10× cheaper boundary clone than row-multiplied).
+      const fusedSql = this.aggregatedHydration
+        ? `${candidatesCte}
+      SELECT
+        c.id, c.schema_id, c.created_at, c.updated_at, c.created_by, c.deleted_at,
+        ${countSelect}
+        c.ordinal,
+        json_group_object(p.property_key, json(CAST(p.value AS TEXT)))
+          FILTER (WHERE p.property_key IS NOT NULL) AS props_json,
+        json_group_object(
+          p.property_key,
+          json_object('l', p.lamport_time, 'b', p.updated_by, 'w', p.updated_at)
+        ) FILTER (WHERE p.property_key IS NOT NULL) AS meta_json
+      FROM candidates c
+      LEFT JOIN node_properties p ON p.node_id = c.id
+      GROUP BY c.id
+      ORDER BY c.ordinal ASC
+    `
+        : `${candidatesCte}
       SELECT
         c.id, c.schema_id, c.created_at, c.updated_at, c.created_by, c.deleted_at,
         ${countSelect}
@@ -3892,7 +4026,9 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
       FROM candidates c
       LEFT JOIN node_properties p ON p.node_id = c.id
       ORDER BY c.ordinal ASC, p.property_key ASC
-    `,
+    `
+      fused = {
+        sql: fusedSql,
         params: [...whereParams],
         includesExactCount
       }

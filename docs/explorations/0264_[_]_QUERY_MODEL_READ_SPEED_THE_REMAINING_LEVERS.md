@@ -406,7 +406,7 @@ function padIds(ids: string[]): (string | null)[] {
 
 **Wave 2 — measure**
 
-- [ ] `json_group_object` hydration behind a flag; benchmark rows-shipped /
+- [x] `json_group_object` hydration behind a flag; benchmark rows-shipped /
       hydrate-ms / query p50-p95 vs the row-multiplied JOIN at seed scale.
 - [ ] Enable adaptive indexes behind a flag; verify index creation rides
       bootSettled idle; extend compiler to push custom-property sorts down
