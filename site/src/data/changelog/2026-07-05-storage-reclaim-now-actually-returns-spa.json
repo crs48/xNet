@@ -4,5 +4,14 @@
   "title": "Storage reclaim now actually returns space to disk",
   "summary": "Freed pages from change-log compaction were returned to the filesystem one page at a time due to a WASM binding quirk, so the storage file plateaued instead of shrinking. Reclaim now drains the whole freelist per pass, and a pass that finds a stranded backlog returns it even when there is nothing left to prune.",
   "highlights": [],
-  "tags": ["performance"]
+  "tags": [
+    "performance"
+  ],
+  "pr": 381,
+  "mergedAt": "2026-07-05T17:29:55Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
