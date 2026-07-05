@@ -26,8 +26,21 @@ import {
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
-/** Default maximum number of queries to cache */
-const DEFAULT_MAX_SIZE = 100
+/**
+ * Default maximum number of queries to cache. Raised from 100 with the move
+ * to size-aware accounting (exploration 0262/0263): entry COUNT no longer
+ * bounds memory — total cached ROWS does — so more small queries can stay
+ * warm without risking a few huge ones blowing the budget.
+ */
+const DEFAULT_MAX_SIZE = 200
+
+/**
+ * Default maximum total cached rows (data + working-set buffers) across all
+ * entries. Rows are the honest weight proxy for NodeState results; when the
+ * budget is exceeded, unsubscribed entries evict LRU-first regardless of the
+ * entry count.
+ */
+const DEFAULT_MAX_WEIGHT_ROWS = 50_000
 
 /** Minimum time (ms) before an entry can be evicted */
 const MIN_AGE_FOR_EVICTION = 30_000 // 30 seconds
@@ -60,6 +73,35 @@ interface CacheEntry {
   lastUpdated: number
   /** Last access timestamp (for LRU) */
   lastAccessed: number
+  /**
+   * Data is present but known-outdated (a bulk change happened while nobody
+   * subscribed, exploration 0263). Served stale-while-revalidate: getSnapshot
+   * keeps returning it, and the bridge re-queries on the next subscription.
+   */
+  stale: boolean
+}
+
+/** Row-count weight of an entry: visible data plus the overfetch buffer. */
+function entryWeight(entry: Pick<CacheEntry, 'data' | 'workingSet'>): number {
+  return (entry.data?.length ?? 0) + (entry.workingSet?.nodes.length ?? 0)
+}
+
+/** Cumulative cache effectiveness counters (exploration 0262/0263). */
+export interface QueryCacheStats {
+  /** Entries currently cached. */
+  entries: number
+  /** Total cached rows across data + working-set buffers. */
+  totalWeightRows: number
+  /** get() calls that returned data. */
+  hits: number
+  /** get() calls that returned null (absent entry or unloaded data). */
+  misses: number
+  /** hits / (hits + misses), 0 when nothing was read yet. */
+  hitRate: number
+  /** Entries evicted since construction/reset. */
+  evictions: number
+  maxSize: number
+  maxWeightRows: number
 }
 
 function isSameNodeData(previous: NodeState[] | null, next: NodeState[] | null): boolean {
@@ -133,8 +175,10 @@ function isQueryMetadataEquivalent(
 }
 
 export interface QueryCacheOptions {
-  /** Maximum number of queries to cache (default: 100) */
+  /** Maximum number of queries to cache (default: 200) */
   maxSize?: number
+  /** Maximum total cached rows across all entries (default: 50 000) */
+  maxWeightRows?: number
   /** Enable weak reference cleanup interval (default: true in browser, false in tests) */
   enableWeakRefCleanup?: boolean
 }
@@ -147,10 +191,15 @@ export interface QueryCacheOptions {
 export class QueryCache {
   private cache = new Map<string, CacheEntry>()
   private maxSize: number
+  private maxWeightRows: number
   private cleanupInterval: ReturnType<typeof setInterval> | null = null
+  private hits = 0
+  private misses = 0
+  private evictions = 0
 
   constructor(options?: QueryCacheOptions) {
     this.maxSize = options?.maxSize ?? DEFAULT_MAX_SIZE
+    this.maxWeightRows = options?.maxWeightRows ?? DEFAULT_MAX_WEIGHT_ROWS
 
     // Start weak reference cleanup interval (only in browser environment)
     const enableCleanup = options?.enableWeakRefCleanup ?? typeof window !== 'undefined'
@@ -229,7 +278,10 @@ export class QueryCache {
     if (entry) {
       entry.lastAccessed = Date.now()
     }
-    return entry?.data ?? null
+    const data = entry?.data ?? null
+    if (data === null) this.misses += 1
+    else this.hits += 1
+    return data
   }
 
   /**
@@ -281,6 +333,9 @@ export class QueryCache {
       }
       entry.lastUpdated = now
       entry.lastAccessed = now
+      // Fresh data supersedes any pending staleness.
+      entry.stale = false
+      this.evictIfOverWeight(queryId)
 
       // A write that changed nothing observable (e.g. a reload that came
       // back identical, or a buffered-row change outside the visible
@@ -308,8 +363,10 @@ export class QueryCache {
         options: queryDescriptorToOptions(descriptor),
         metadata: metadata ?? null,
         lastUpdated: now,
-        lastAccessed: now
+        lastAccessed: now,
+        stale: false
       })
+      this.evictIfOverWeight(queryId)
     }
   }
 
@@ -338,9 +395,36 @@ export class QueryCache {
         options: queryDescriptorToOptions(descriptor),
         metadata: null,
         lastUpdated: 0,
-        lastAccessed: now
+        lastAccessed: now,
+        stale: false
       })
     }
+  }
+
+  /**
+   * Flag an entry's data as outdated WITHOUT dropping it (exploration 0263).
+   * getSnapshot keeps serving the stale rows (no loading flash); the bridge
+   * re-queries on the next subscription — stale-while-revalidate for entries
+   * nobody was watching when a bulk change landed.
+   */
+  markStale(queryId: string): void {
+    const entry = this.cache.get(queryId)
+    if (entry && entry.data !== null) {
+      entry.stale = true
+    }
+  }
+
+  /** Whether the entry's data is flagged outdated (see {@link markStale}). */
+  isStale(queryId: string): boolean {
+    return this.cache.get(queryId)?.stale ?? false
+  }
+
+  /** True when at least one cached query observes `schemaId` (read-set test). */
+  hasEntriesForSchema(schemaId: SchemaIRI): boolean {
+    for (const entry of this.cache.values()) {
+      if (entry.descriptor.schemaId === schemaId) return true
+    }
+    return false
   }
 
   /**
@@ -586,6 +670,37 @@ export class QueryCache {
     return this.maxSize
   }
 
+  /** Total cached rows across all entries (data + working-set buffers). */
+  get totalWeightRows(): number {
+    let total = 0
+    for (const entry of this.cache.values()) {
+      total += entryWeight(entry)
+    }
+    return total
+  }
+
+  /** Cumulative hit/miss/eviction counters + current occupancy (0262/0263). */
+  getStats(): QueryCacheStats {
+    const reads = this.hits + this.misses
+    return {
+      entries: this.cache.size,
+      totalWeightRows: this.totalWeightRows,
+      hits: this.hits,
+      misses: this.misses,
+      hitRate: reads === 0 ? 0 : this.hits / reads,
+      evictions: this.evictions,
+      maxSize: this.maxSize,
+      maxWeightRows: this.maxWeightRows
+    }
+  }
+
+  /** Zero the hit/miss/eviction counters for a focused measurement. */
+  resetStats(): void {
+    this.hits = 0
+    this.misses = 0
+    this.evictions = 0
+  }
+
   // ─── LRU Eviction ──────────────────────────────────────────────────────────
 
   /**
@@ -630,6 +745,37 @@ export class QueryCache {
 
     for (let i = 0; i < Math.min(toEvict, candidates.length); i++) {
       this.cache.delete(candidates[i].queryId)
+      this.evictions += 1
+    }
+  }
+
+  /**
+   * Size-aware eviction (exploration 0262/0263): when total cached ROWS
+   * exceed the budget, drop unsubscribed entries LRU-first — heaviest data
+   * evicts by recency, not by entry count, so 200 small lists can stay warm
+   * while one abandoned 20k-row scan can't pin the memory forever. Unlike
+   * count eviction there is no MIN_AGE grace: weight pressure is real memory.
+   */
+  private evictIfOverWeight(protectedQueryId?: string): void {
+    if (this.totalWeightRows <= this.maxWeightRows) return
+
+    const candidates: Array<{ queryId: string; lastAccessed: number; weight: number }> = []
+    for (const [queryId, entry] of this.cache) {
+      // Never evict the entry currently being written — its caller reads it
+      // back immediately, and evicting it would loop reload → evict → reload.
+      if (queryId === protectedQueryId) continue
+      if (!this.hasActiveSubscribers(entry)) {
+        candidates.push({ queryId, lastAccessed: entry.lastAccessed, weight: entryWeight(entry) })
+      }
+    }
+    candidates.sort((a, b) => a.lastAccessed - b.lastAccessed)
+
+    let excess = this.totalWeightRows - this.maxWeightRows
+    for (const candidate of candidates) {
+      if (excess <= 0) break
+      this.cache.delete(candidate.queryId)
+      this.evictions += 1
+      excess -= candidate.weight
     }
   }
 

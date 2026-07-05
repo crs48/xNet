@@ -1511,4 +1511,80 @@ describe('MainThreadBridge', () => {
       expect(subscription.getSnapshot()).toBeNull()
     })
   })
+
+  describe('read-tier upgrades (0263)', () => {
+    it('skips store changes for schemas no cached query observes', async () => {
+      const subscription = bridge.query(TestTaskSchema)
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()).not.toBeNull()
+      })
+
+      const querySpy = vi.spyOn(store, 'query')
+
+      // A write to a schema with NO cached queries must cost the bridge
+      // nothing: no re-query, no delta application.
+      await bridge.create(TestSpatialCardSchema, { title: 'Card', x: 0, y: 0 })
+      // Let the microtask flush run.
+      await new Promise((resolve) => setTimeout(resolve, 0))
+
+      expect(querySpy).not.toHaveBeenCalled()
+      querySpy.mockRestore()
+    })
+
+    it('marks unsubscribed entries stale on bulk changes and revalidates on resubscribe', async () => {
+      const subscription = bridge.query(TestTaskSchema)
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()).not.toBeNull()
+      })
+      // No component ever subscribed — the entry is cached but unwatched.
+
+      const querySpy = vi.spyOn(store, 'query')
+
+      // A bulk transaction (> the 250-change threshold; every change carries
+      // the batch size) used to re-query EVERY cached entry of the schema
+      // immediately; now unwatched entries are flagged stale instead.
+      await bridge.transaction(
+        Array.from({ length: 260 }, (_, i) => ({
+          type: 'create' as const,
+          options: {
+            schemaId: TestTaskSchema._schemaId,
+            properties: { title: `Bulk ${i}`, done: false }
+          }
+        }))
+      )
+      await new Promise((resolve) => setTimeout(resolve, 0))
+      expect(querySpy).not.toHaveBeenCalled()
+
+      // The stale snapshot still renders (stale-while-revalidate)…
+      expect(subscription.getSnapshot()).toEqual([])
+
+      // …and the next query() call revalidates against storage (the exact row
+      // count depends on the store's own query limits — revalidation is
+      // proven by the re-query firing and rows appearing).
+      const resubscribed = bridge.query(TestTaskSchema)
+      await vi.waitFor(
+        () => {
+          expect(querySpy).toHaveBeenCalled()
+          const snapshot = resubscribed.getSnapshot()
+          if (!snapshot || snapshot.length === 0) {
+            throw new Error('Waiting for revalidated snapshot')
+          }
+        },
+        { timeout: 5_000 }
+      )
+      querySpy.mockRestore()
+    })
+
+    it('exposes cache hit-rate stats', async () => {
+      const subscription = bridge.query(TestTaskSchema)
+      await vi.waitFor(() => {
+        expect(subscription.getSnapshot()).not.toBeNull()
+      })
+
+      const stats = bridge.getQueryCacheStats()
+      expect(stats.entries).toBeGreaterThan(0)
+      expect(stats.hits + stats.misses).toBeGreaterThan(0)
+      expect(stats.maxWeightRows).toBeGreaterThan(0)
+    })
+  })
 })

@@ -98,6 +98,7 @@ export {
 // ─── Utilities ───────────────────────────────────────────────────────────────
 
 export { QueryCache } from './query-cache'
+export type { QueryCacheStats } from './query-cache'
 export {
   createQueryDescriptor,
   encodeQueryCursor,

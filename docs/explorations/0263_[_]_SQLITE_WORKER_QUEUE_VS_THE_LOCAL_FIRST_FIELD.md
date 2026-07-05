@@ -452,9 +452,9 @@ navigator.locks.request('xnet-db-leader', { mode: 'exclusive' }, async () => {
 
 **P3 — read tier (ongoing, tracked in 0262)**
 
-- [ ] Read-set-scoped delta routing in the bridge (skip deltas for schemas a
+- [x] Read-set-scoped delta routing in the bridge (skip deltas for schemas a
       cached query can't observe).
-- [ ] Carry over 0262 Phase C items (capacity, partial reload, prewarm
+- [x] Carry over 0262 Phase C items (capacity, partial reload, prewarm
       hydration, hit-rate telemetry).
 
 ## Validation Checklist
