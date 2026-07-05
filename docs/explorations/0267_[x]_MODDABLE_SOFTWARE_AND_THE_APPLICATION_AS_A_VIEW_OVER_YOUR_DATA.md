@@ -437,20 +437,20 @@ export default defineFeatureModule({
       `--tags platform`; do not hand-write the fragment).
 - [x] `pnpm` site build + preview screenshot; humane-patterns lint
       (`scripts/check-humane-patterns.mjs`) stays green.
-- [ ] Open PR; after merge, check this exploration off
+- [x] Open PR; after merge, check this exploration off
       (`docs(exploration): check off moddable software blog (0267)`).
 
 ## Validation Checklist
 
-- [ ] Site builds clean; post renders at `/blog/the-workshop-and-the-walled-garden`
+- [x] Site builds clean; post renders at `/blog/the-workshop-and-the-walled-garden`
       and appears in the blog index and RSS feed.
-- [ ] Every historical claim in the published essay traces to a source in this
+- [x] Every historical claim in the published essay traces to a source in this
       doc's References; every xNet claim traces to a real file path.
-- [ ] All external links resolve; internal links to posts #7/#8 resolve.
-- [ ] En-GB spelling audit (the 0247 standard) passes.
-- [ ] The essay concedes the security rationale and the maintenance burden in
+- [x] All external links resolve; internal links to posts #7/#8 resolve.
+- [x] En-GB spelling audit (the 0247 standard) passes.
+- [x] The essay concedes the security rationale and the maintenance burden in
       its own text (grep the draft for "fractureiser" and "maintain").
-- [ ] Manifest CodeFigure compiles conceptually against
+- [x] Manifest CodeFigure compiles conceptually against
       `packages/plugins/src/feature-module.ts` (field names match reality).
 
 ## References
