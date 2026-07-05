@@ -281,7 +281,7 @@ writeFileSync(changelogPath, [title.trimEnd(), entry, ...rest].join('\n\n'))
       `failure()` in `npm-release.yml` (Option H).
 - [x] Document the release cadence: who merges the Version Packages PR, and
       when (Option F) — add to `CLAUDE.md` or `docs/` runbook.
-- [ ] Merge the fix to main; watch the next `npm Release` run go green and
+- [x] Merge the fix to main; watch the next `npm Release` run go green and
       refresh PR #281 with the 0263/0264 changesets.
 - [x] Review the staged version bumps (major audit per changeset policy),
       then merge PR #281.
@@ -291,14 +291,14 @@ writeFileSync(changelogPath, [title.trimEnd(), entry, ...rest].join('\n\n'))
 - [x] Local repro: on a scratch branch with pending changesets, run
       `pnpm version-packages` and confirm `apps/electron/CHANGELOG.md` gains
       a `## <version>` entry matching `packages/core/package.json`.
-- [ ] Next push to main: `npm Release` run completes; step "Create release
+- [x] Next push to main: `npm Release` run completes; step "Create release
       PR or publish" green; PR #281 updated with a fresh timestamp and the
       0263/0264 release notes, including the electron version+changelog bump.
-- [ ] After merging #281: `npm view @xnetjs/core version` → `0.1.0` (and
+- [x] After merging #281: `npm view @xnetjs/core version` → `0.1.0` (and
       data/data-bridge/react in lockstep), with provenance.
-- [ ] `electron-release.yml` cuts a `v0.1.0` desktop release on the
+- [x] `electron-release.yml` cuts a `v0.1.0` desktop release on the
       post-merge push (the #373 train end-to-end).
-- [ ] `.changeset/` on main contains only `README.md` + `config.json`
+- [x] `.changeset/` on main contains only `README.md` + `config.json`
       (all intent consumed).
 
 ## References
