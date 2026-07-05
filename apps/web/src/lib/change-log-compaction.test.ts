@@ -29,15 +29,20 @@ function makeNodeStorage(totalRows: number, watermark: number | null = 320_000) 
   }
 }
 
-function makeSqlite(mode: 'opfs' | 'memory' = 'opfs') {
+function makeSqlite(
+  mode: 'opfs' | 'memory' = 'opfs',
+  { withIncrementalVacuum = true, freelistPages = 0 } = {}
+) {
   const exec = vi.fn(async (_sql: string) => undefined)
-  return {
-    sqlite: {
-      getStorageMode: vi.fn(async () => mode),
-      exec
-    } as unknown as SQLiteAdapter,
-    exec
-  }
+  const incrementalVacuum = vi.fn(async () => freelistPages)
+  const queryOne = vi.fn(async (_sql: string) => ({ freelist_count: freelistPages }))
+  const sqlite = {
+    getStorageMode: vi.fn(async () => mode),
+    exec,
+    queryOne,
+    ...(withIncrementalVacuum ? { incrementalVacuum } : {})
+  } as unknown as SQLiteAdapter
+  return { sqlite, exec, incrementalVacuum, queryOne }
 }
 
 describe('scheduleChangeLogCompaction (0254; boot-gated in 0260)', () => {
@@ -87,30 +92,53 @@ describe('scheduleChangeLogCompaction (0254; boot-gated in 0260)', () => {
     expect(prune).toHaveBeenLastCalledWith(expect.any(Number), { chunk: CHUNK, maxRows: CHUNK })
   })
 
-  it('reclaims freed pages via PRAGMA incremental_vacuum after pruning', async () => {
+  it('reclaims freed pages via the stepping incrementalVacuum after pruning', async () => {
     const { storage } = makeNodeStorage(4500)
-    const { sqlite, exec } = makeSqlite('opfs')
+    const { sqlite, exec, incrementalVacuum } = makeSqlite('opfs')
+    scheduleChangeLogCompaction(storage, sqlite)
+    await releaseBootGate()
+    // The adapter method steps the pragma to completion; a bare exec of
+    // `PRAGMA incremental_vacuum` frees only ONE page per call on WASM.
+    expect(incrementalVacuum).toHaveBeenCalled()
+    expect(exec).not.toHaveBeenCalledWith('PRAGMA incremental_vacuum')
+  })
+
+  it('falls back to exec on adapters without incrementalVacuum', async () => {
+    const { storage } = makeNodeStorage(4500)
+    const { sqlite, exec } = makeSqlite('opfs', { withIncrementalVacuum: false })
     scheduleChangeLogCompaction(storage, sqlite)
     await releaseBootGate()
     expect(exec).toHaveBeenCalledWith('PRAGMA incremental_vacuum')
   })
 
-  it('does not run incremental_vacuum when nothing was pruned (dry log)', async () => {
+  it('does not reclaim on a dry pass with a small freelist', async () => {
     const { storage } = makeNodeStorage(0) // already fully compacted
-    const { sqlite, exec } = makeSqlite('opfs')
+    const { sqlite, exec, incrementalVacuum } = makeSqlite('opfs', { freelistPages: 12 })
     scheduleChangeLogCompaction(storage, sqlite)
     await releaseBootGate()
+    expect(incrementalVacuum).not.toHaveBeenCalled()
     expect(exec).not.toHaveBeenCalled()
+  })
+
+  it('reclaims a stranded freelist backlog even when the pass deleted nothing', async () => {
+    // Earlier passes could leave freed pages behind (hidden-tab bail, or the
+    // one-page-per-exec reclaim bug) — a dry pass must still return them.
+    const { storage } = makeNodeStorage(0)
+    const { sqlite, incrementalVacuum } = makeSqlite('opfs', { freelistPages: 9000 })
+    scheduleChangeLogCompaction(storage, sqlite)
+    await releaseBootGate()
+    expect(incrementalVacuum).toHaveBeenCalled()
   })
 
   it('is a no-op when the kill switch is set to off', async () => {
     localStorage.setItem(KILL_SWITCH, 'off')
     const { storage, prune } = makeNodeStorage(4500)
-    const { sqlite, exec } = makeSqlite('opfs')
+    const { sqlite, exec, incrementalVacuum } = makeSqlite('opfs')
     scheduleChangeLogCompaction(storage, sqlite)
     await releaseBootGate()
     expect(prune).not.toHaveBeenCalled()
     expect(exec).not.toHaveBeenCalled()
+    expect(incrementalVacuum).not.toHaveBeenCalled()
   })
 
   it('prunes nothing when the workspace has never confirmed a sync (no safe floor)', async () => {

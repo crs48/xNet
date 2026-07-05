@@ -549,6 +549,12 @@ export class WebSQLiteProxy implements SQLiteAdapter {
     return this.rpc(false, (proxy) => proxy.vacuum())
   }
 
+  async incrementalVacuum(maxPages?: number): Promise<number> {
+    if (!this.proxy) throw new Error('Database not open')
+    this.operationStats.workerRequestCount += 1
+    return this.proxy.incrementalVacuum(maxPages)
+  }
+
   async checkpoint(): Promise<number> {
     // opfs-sahpool handles checkpointing internally
     return 0
