@@ -141,7 +141,17 @@ describe('statement-cache micro-benchmark (0263)', () => {
         await db.run('INSERT INTO bench (name) VALUES (?)', [`row-${i}`])
       }
 
-      const sql = 'SELECT id, name FROM bench WHERE id > ? ORDER BY id LIMIT 20'
+      // A hydrate-shaped statement (wide VALUES join, many binds) — the SQL
+      // class where per-call parsing actually costs; trivial SELECTs parse
+      // too fast to measure.
+      const wanted = Array.from({ length: 100 }, () => '(?, ?)').join(', ')
+      const sql = `
+        WITH wanted(id, ordinal) AS (VALUES ${wanted})
+        SELECT b.id, b.name, wanted.ordinal
+        FROM wanted JOIN bench b ON b.id = wanted.id
+        ORDER BY wanted.ordinal ASC`
+      const benchParams = (offset: number): unknown[] =>
+        Array.from({ length: 100 }, (_, i) => [((offset + i) % 500) + 1, i]).flat()
       const iterations = 300
 
       // Baseline: the pre-0263 hot path — db.exec() re-parses per call.
@@ -153,7 +163,7 @@ describe('statement-cache micro-benchmark (0263)', () => {
         const rows: unknown[] = []
         raw.exec({
           sql,
-          bind: [i % 100],
+          bind: benchParams(i),
           rowMode: 'object',
           callback: (row: unknown) => rows.push(row)
         })
@@ -161,10 +171,10 @@ describe('statement-cache micro-benchmark (0263)', () => {
       const execMs = performance.now() - execStart
 
       // Cached-statement path (one warm-up call populates the cache).
-      await db.query(sql, [0])
+      await db.query(sql, benchParams(0) as never)
       const preparedStart = performance.now()
       for (let i = 0; i < iterations; i++) {
-        await db.query(sql, [i % 100])
+        await db.query(sql, benchParams(i) as never)
       }
       const preparedMs = performance.now() - preparedStart
 

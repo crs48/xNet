@@ -1586,5 +1586,27 @@ describe('MainThreadBridge', () => {
       expect(stats.hits + stats.misses).toBeGreaterThan(0)
       expect(stats.maxWeightRows).toBeGreaterThan(0)
     })
+
+    it('serves warm snapshots at high hit rate with sub-ms reads (0263 validation)', async () => {
+      await bridge.create(TestTaskSchema, { title: 'Warm task' })
+      const subscription = bridge.query(TestTaskSchema)
+      await vi.waitFor(() => {
+        const snapshot = subscription.getSnapshot()
+        if (!snapshot || snapshot.length === 0) throw new Error('warming')
+      })
+
+      // Repeat-read pattern (a render loop): everything after the initial
+      // load is a synchronous memory hit.
+      const reads = 100
+      const start = performance.now()
+      for (let i = 0; i < reads; i++) {
+        expect(subscription.getSnapshot()).not.toBeNull()
+      }
+      const elapsed = performance.now() - start
+
+      expect(elapsed / reads).toBeLessThan(1) // ≤1ms per warm getSnapshot
+      const stats = bridge.getQueryCacheStats()
+      expect(stats.hitRate).toBeGreaterThan(0.8)
+    })
   })
 })
