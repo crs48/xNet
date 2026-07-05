@@ -254,6 +254,46 @@ describeNativeSQLite('ElectronSQLiteAdapter', () => {
     })
   })
 
+  describe('Incremental vacuum', () => {
+    async function growFreelist(): Promise<number> {
+      // Convert to INCREMENTAL (a VACUUM applies the pending mode), then create
+      // a freelist by inserting and deleting a bulky table.
+      await adapter.exec('PRAGMA auto_vacuum = INCREMENTAL')
+      await adapter.vacuum()
+      await adapter.exec('CREATE TABLE IF NOT EXISTS bulk (id INTEGER PRIMARY KEY, blob BLOB)')
+      await adapter.transaction(async () => {
+        for (let i = 0; i < 400; i++) {
+          await adapter.run('INSERT INTO bulk (blob) VALUES (?)', [new Uint8Array(4096).fill(7)])
+        }
+      })
+      await adapter.exec('DELETE FROM bulk')
+      const row = await adapter.queryOne<{ freelist_count: number }>('PRAGMA freelist_count')
+      return row?.freelist_count ?? 0
+    }
+
+    it('drains the whole freelist and reports pages freed', async () => {
+      const before = await growFreelist()
+      expect(before).toBeGreaterThan(100)
+
+      const freed = await adapter.incrementalVacuum()
+
+      expect(freed).toBe(before)
+      const after = await adapter.queryOne<{ freelist_count: number }>('PRAGMA freelist_count')
+      expect(after?.freelist_count).toBe(0)
+    })
+
+    it('honours the maxPages cap', async () => {
+      const before = await growFreelist()
+      expect(before).toBeGreaterThan(100)
+
+      const freed = await adapter.incrementalVacuum(50)
+
+      expect(freed).toBe(50)
+      const after = await adapter.queryOne<{ freelist_count: number }>('PRAGMA freelist_count')
+      expect(after?.freelist_count).toBe(before - 50)
+    })
+  })
+
   describe('FTS5 Full-Text Search', () => {
     it('creates FTS5 virtual table', async () => {
       const tables = await adapter.query<{ name: string }>(

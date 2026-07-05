@@ -732,6 +732,11 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
     await this.exec('VACUUM')
   }
 
+  async incrementalVacuum(maxPages?: number): Promise<number> {
+    this.ensureOpen()
+    return stepIncrementalVacuumToCompletion(this.db, maxPages)
+  }
+
   async checkpoint(): Promise<number> {
     // opfs-sahpool handles this internally
     return 0
@@ -742,6 +747,31 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
       throw new Error('Database not open. Call open() first.')
     }
   }
+}
+
+/**
+ * Step `PRAGMA incremental_vacuum` to completion (or `maxPages`), returning
+ * the number of pages freed. SQLite frees ONE page per `sqlite3_step` of this
+ * pragma; the oo1 `exec` path steps a statement only once when it collects no
+ * rows, so `exec('PRAGMA incremental_vacuum')` silently freed a single page
+ * per call — the compaction reclaim was a near-no-op (caught by the local
+ * bloat-seed validation, 2026-07-05). Exported for the engine-level test.
+ */
+export function stepIncrementalVacuumToCompletion(
+  db: { prepare(sql: string): { step(): boolean; finalize(): unknown } },
+  maxPages?: number
+): number {
+  const limit = maxPages !== undefined && maxPages > 0 ? Math.floor(maxPages) : Infinity
+  const stmt = db.prepare('PRAGMA incremental_vacuum')
+  let freed = 0
+  try {
+    while (freed < limit && stmt.step()) {
+      freed++
+    }
+  } finally {
+    stmt.finalize()
+  }
+  return freed
 }
 
 /**
