@@ -40,6 +40,7 @@ import { BootTimelineProbe } from './components/BootTimelineProbe'
 import { BundledPluginInstaller } from './components/BundledPluginInstaller'
 import { ConsentBanner } from './components/ConsentBanner'
 import { StorageWarningBanner } from './components/StorageWarningBanner'
+import { WarmStartSnapshots } from './components/WarmStartSnapshots'
 import { WorkingSetPrewarm } from './components/WorkingSetPrewarm'
 import { type BootFailure, reportBootFailure } from './lib/boot-diagnostics'
 import { bootMark, isBootDebugEnabled, runWhenBootSettled } from './lib/boot-timeline'
@@ -982,6 +983,7 @@ export function App(): JSX.Element {
           }}
         >
           <BootTimelineProbe />
+          <WarmStartSnapshots did={identity.did} />
           <WorkingSetPrewarm />
           <BundledPluginInstaller />
           <XNetDevToolsProvider

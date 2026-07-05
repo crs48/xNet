@@ -416,11 +416,19 @@ function padIds(ids: string[]): (string | null)[] {
 
 **Wave 3 — structural (gated on Wave 2 numbers)**
 
-- [ ] `nodes.props` JSONB column: dual-write in `applyNodeBatch`, idle
-      backfill migration, flagged read path, rebuild-from-EAV repair.
-- [ ] Cut hydrate to `SELECT …, json(props)` one-row-per-node; re-run the
-      Wave 2 benchmark.
-- [ ] Persisted warm-start snapshots for the prewarm descriptors: keyed by
+- [x] `nodes.props` JSONB column — **GATE RESOLVED: not warranted.** The
+      Wave 2 benchmark (450 nodes × 8 props, real WASM build) showed SQL-side
+      aggregation already captures the structural win: 450 vs 3600 boundary
+      rows, 4.9× faster query (11.0ms vs 55.5ms/chunk), ~10× cheaper
+      structured clone, 4.5× faster end-to-end — the per-row WASM→JS
+      extraction dominated, not the EAV b-tree walk. A dual-write migration
+      buys only the residual ~11ms EAV walk; revisit if profiling ever shows
+      it mattering at much larger property counts.
+- [x] Cut hydrate to one row per node — **done via SQL aggregation instead
+      of a schema change**: `aggregatedHydration` is the storage adapter
+      DEFAULT (chunked and fused paths both aggregate), benchmark re-run
+      confirms 8× fewer rows shipped with identical NodeStates.
+- [x] Persisted warm-start snapshots for the prewarm descriptors: keyed by
       (descriptor hash, schema version, auth fingerprint, lamport HWM,
       `data_version`); stale-render + race vs live query; idle write-back.
 
