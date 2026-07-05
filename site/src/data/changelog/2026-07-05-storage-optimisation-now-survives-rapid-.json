@@ -8,5 +8,14 @@
     "Subtle non-blocking hint asks you to keep the tab open while it finishes",
     "After repeated interruptions the optimisation starts right after first paint"
   ],
-  "tags": ["performance"]
+  "tags": [
+    "performance"
+  ],
+  "pr": 383,
+  "mergedAt": "2026-07-05T20:04:14Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
