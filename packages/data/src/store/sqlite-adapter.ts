@@ -15,7 +15,6 @@ import type {
   AuthorizationStateVersion,
   ListNodesOptions,
   CountNodesOptions,
-  PropertyTimestamp,
   SetNodeOptions,
   ImportNodesOptions,
   RebuildNodeIndexesOptions,
@@ -57,28 +56,6 @@ import {
 } from './query'
 
 // ─── Row Types ──────────────────────────────────────────────────────────────
-
-interface NodeRow {
-  id: string
-  schema_id: string
-  created_at: number
-  updated_at: number
-  created_by: string
-  deleted_at: number | null
-  // Index signature for SQLRow compatibility
-  [key: string]: SQLValue
-}
-
-interface PropertyRow {
-  node_id: string
-  property_key: string
-  value: Uint8Array | null
-  lamport_time: number
-  updated_by: string
-  updated_at: number
-  // Index signature for SQLRow compatibility
-  [key: string]: SQLValue
-}
 
 interface ChangeRow {
   hash: string
@@ -729,49 +706,11 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   // ─── Materialized State Operations ────────────────────────────────────────
 
   async getNode(id: NodeId): Promise<NodeState | null> {
-    // Get node metadata
-    const nodeRow = await this.db.queryOne<NodeRow>(`SELECT * FROM nodes WHERE id = ?`, [id])
-
-    if (!nodeRow) return null
-
-    // Get properties
-    const propRows = await this.db.query<PropertyRow>(
-      `SELECT * FROM node_properties WHERE node_id = ?`,
-      [id]
-    )
-
-    // Build NodeState
-    const properties: Record<string, unknown> = {}
-    const timestamps: Record<string, PropertyTimestamp> = {}
-    let updatedBy: DID = nodeRow.created_by as DID
-
-    for (const prop of propRows) {
-      properties[prop.property_key] = this.deserializeValue(prop.value)
-      timestamps[prop.property_key] = {
-        lamport: prop.lamport_time,
-        author: prop.updated_by as DID,
-        wallTime: prop.updated_at
-      }
-      // Track the most recent updater
-      if (prop.updated_at >= nodeRow.updated_at) {
-        updatedBy = prop.updated_by as DID
-      }
-    }
-
-    return {
-      id: nodeRow.id,
-      schemaId: nodeRow.schema_id as SchemaIRI,
-      properties,
-      timestamps,
-      deleted: nodeRow.deleted_at !== null,
-      deletedAt: nodeRow.deleted_at
-        ? { lamport: 0, author: '' as DID, wallTime: nodeRow.deleted_at }
-        : undefined,
-      createdAt: nodeRow.created_at,
-      createdBy: nodeRow.created_by as DID,
-      updatedAt: nodeRow.updated_at,
-      updatedBy
-    }
+    // One joined read via the shared hydrate path. The previous shape — a
+    // node-metadata queryOne followed by a properties query — cost a
+    // worker-backed adapter two RPC round-trips per node (exploration 0263).
+    const nodes = await this.hydrateNodesByIds([id])
+    return nodes[0] ?? null
   }
 
   async getNodes(ids: readonly NodeId[]): Promise<NodeState[]> {

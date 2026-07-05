@@ -430,7 +430,7 @@ navigator.locks.request('xnet-db-leader', { mode: 'exclusive' }, async () => {
 - [x] Add `queryBatch(reads[])` to `SQLiteWorkerHandler`, proxy, and
       `PortSQLiteAdapter`; route multi-query screens (dashboard fan-out,
       `WorkingSetPrewarm`) through it.
-- [ ] Collapse `getNode()` into one joined query (kill the 2-RPC N+1).
+- [x] Collapse `getNode()` into one joined query (kill the 2-RPC N+1).
 - [ ] Micro-benchmark: p50/p95 per-query worker time and per-screen total RPC
       count, before/after (extend the `SchedulerOpReport` pipeline).
 - [ ] Verify via boot-timeline that WASM import/init never blocks first paint.
