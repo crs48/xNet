@@ -1,0 +1,18 @@
+{
+  "id": "2026-07-05-npm-releases-flow-again",
+  "date": "July 5, 2026",
+  "title": "npm releases flow again",
+  "summary": "Fixed the release pipeline stall: the desktop app's version sync now maintains its own changelog (the missing file crashed every release run since July 4), and a failing npm Release workflow now raises a loud alarm issue instead of failing silently.",
+  "highlights": [],
+  "tags": [
+    "ci",
+    "platform"
+  ],
+  "pr": 385,
+  "mergedAt": "2026-07-05T22:32:37Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}
