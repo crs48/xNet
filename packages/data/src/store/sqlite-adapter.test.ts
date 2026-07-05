@@ -3045,6 +3045,129 @@ describe('SQLiteNodeStorageAdapter', () => {
     })
   })
 
+  // ─── Fused single-RPC queries (exploration 0264) ─────────────────────────────
+
+  describe('fused single-RPC queries (0264)', () => {
+    beforeEach(async () => {
+      const now = Date.now()
+      await adapter.importNodes(
+        Array.from({ length: 5 }, (_, i) =>
+          createTestNode({
+            id: `fused-${i}`,
+            schemaId: taskSchemaId,
+            properties: { title: `Fused ${i}`, status: i % 2 === 0 ? 'open' : 'done', done: false },
+            createdAt: now + i,
+            updatedAt: now + i * 1000
+          })
+        )
+      )
+    })
+
+    function countingAdapter(): { db: SQLiteAdapter; queries: string[] } {
+      const queries: string[] = []
+      const counting = new Proxy(db, {
+        get(target, property, receiver) {
+          if (property === 'query') {
+            return async (sql: string, params?: unknown[]) => {
+              queries.push(sql)
+              return target.query(sql, params as never)
+            }
+          }
+          const value = Reflect.get(target, property, receiver)
+          return typeof value === 'function' ? value.bind(target) : value
+        }
+      }) as SQLiteAdapter
+      return { db: counting, queries }
+    }
+
+    it('answers a pushed-down descriptor in ONE query RPC', async () => {
+      const { db: counting, queries } = countingAdapter()
+      const fusedAdapter = new SQLiteNodeStorageAdapter(counting)
+
+      const result = await fusedAdapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        orderBy: { updatedAt: 'desc' },
+        limit: 3
+      })
+
+      expect(result.nodes).toHaveLength(3)
+      expect(result.nodes[0].properties.title).toBe('Fused 4')
+      expect(result.plan.postFilterReason).toBe('pagination-pushed-down')
+      // ONE round-trip: the candidate CTE feeds the hydrate join directly.
+      expect(queries).toHaveLength(1)
+      expect(queries[0]).toContain('WITH candidates')
+    })
+
+    it('folds count:exact into the same single RPC via COUNT(*) OVER ()', async () => {
+      const { db: counting, queries } = countingAdapter()
+      const fusedAdapter = new SQLiteNodeStorageAdapter(counting)
+
+      const result = await fusedAdapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        orderBy: { updatedAt: 'desc' },
+        limit: 2,
+        count: 'exact'
+      })
+
+      expect(result.nodes).toHaveLength(2)
+      expect(result.totalCount).toBe(5)
+      expect(queries).toHaveLength(1)
+      expect(queries[0]).toContain('COUNT(*) OVER ()')
+    })
+
+    it('scalar-where descriptors fuse too, with correct membership', async () => {
+      const { db: counting, queries } = countingAdapter()
+      const fusedAdapter = new SQLiteNodeStorageAdapter(counting)
+
+      const result = await fusedAdapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' },
+        orderBy: { updatedAt: 'desc' },
+        limit: 10,
+        count: 'exact'
+      })
+
+      expect(result.nodes.map((n) => n.id).sort()).toEqual(['fused-0', 'fused-2', 'fused-4'])
+      expect(result.totalCount).toBe(3)
+      expect(queries).toHaveLength(1)
+    })
+
+    it('an empty page at offset 0 reports totalCount 0 without a count RPC', async () => {
+      const { db: counting, queries } = countingAdapter()
+      const fusedAdapter = new SQLiteNodeStorageAdapter(counting)
+
+      const result = await fusedAdapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'missing-status' },
+        orderBy: { updatedAt: 'desc' },
+        limit: 5,
+        count: 'exact'
+      })
+
+      expect(result.nodes).toHaveLength(0)
+      expect(result.totalCount).toBe(0)
+      expect(queries).toHaveLength(1)
+    })
+
+    it('a zero-row page at a deep offset falls back to a real count', async () => {
+      const result = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        orderBy: { updatedAt: 'desc' },
+        limit: 2,
+        offset: 50,
+        count: 'exact'
+      })
+
+      expect(result.nodes).toHaveLength(0)
+      expect(result.totalCount).toBe(5)
+    })
+  })
+
   // ─── Hydrate batching (exploration 0263) ─────────────────────────────────────
 
   describe('hydrate batching (0263)', () => {

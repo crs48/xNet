@@ -157,6 +157,19 @@ interface CompiledNodeQuery {
   adaptiveIndexHints: AdaptiveIndexHint[]
   spatialIndexKey?: string
   fullTextSearchQuery?: string
+  /**
+   * Single-statement candidate+hydrate query (exploration 0264, Wave 1).
+   * Present only for fully-pushed-down descriptors (`sqlPagination`): the
+   * candidate select becomes a CTE feeding the property hydrate join, so a
+   * cold query costs ONE worker round-trip instead of id-select + hydrate.
+   * When the descriptor asks for `count: 'exact'`, a `COUNT(*) OVER ()`
+   * window inside the CTE folds the total in (no separate COUNT RPC).
+   */
+  fused?: {
+    sql: string
+    params: SQLValue[]
+    includesExactCount: boolean
+  }
 }
 
 interface QueryTelemetry {
@@ -981,26 +994,47 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       return result
     }
 
-    const [queryDiagnostics, idQuery] = await Promise.all([
+    // Fused single-RPC path (exploration 0264): candidate CTE + hydrate join
+    // in one statement. The two-step id-select → hydrate remains for
+    // JS-verified paths (FTS/spatial/property-sort), which need the id detour.
+    const [queryDiagnostics, mainQuery] = await Promise.all([
       this.isQueryDiagnosticsEnabled()
         ? this.collectCompiledQueryDiagnostics(compiled)
         : Promise.resolve<CompiledQueryDiagnostics>({}),
-      timeQuery<{ id: string }>(this.db, compiled.sql, compiled.params)
+      compiled.fused
+        ? timeQuery<JoinedNodePropertyRow>(this.db, compiled.fused.sql, compiled.fused.params)
+        : timeQuery<{ id: string }>(this.db, compiled.sql, compiled.params)
     ])
-    const idRows = idQuery.result
-    const ids = idRows.map((row) => row.id)
-    const candidates = await this.hydrateNodesByIds(ids)
+
+    let candidates: NodeState[]
+    let candidateCount: number
+    let fusedExactCount: number | undefined
+    if (compiled.fused) {
+      const rows = mainQuery.result as JoinedNodePropertyRow[]
+      candidates = this.hydrateJoinedRows(rows)
+      candidateCount = candidates.length
+      if (compiled.fused.includesExactCount && rows.length > 0) {
+        fusedExactCount = Number(rows[0].total_count ?? 0)
+      }
+    } else {
+      const ids = (mainQuery.result as Array<{ id: string }>).map((row) => row.id)
+      candidates = await this.hydrateNodesByIds(ids)
+      candidateCount = ids.length
+    }
     const nodes = applyNodeQueryDescriptor(candidates, compiled.postFilterDescriptor)
-    // Only pay the separate `COUNT(*)` when the caller explicitly asks for an
-    // exact total. Default/`none`/`estimate` reads leave `totalCount` undefined
-    // and the bridge derives a cheap value (candidate count / overfetch). This
-    // removes a per-list index-wide scan that grows with the schema and is
-    // never shown by list surfaces like the sidebar (exploration 0184). When
-    // the query isn't SQL-paginated every matching row is already in memory, so
+    // Only pay a separate `COUNT(*)` when the caller explicitly asks for an
+    // exact total AND the fused window couldn't provide it (zero-row page —
+    // the window needs at least one row to ride on). Default/`none`/
+    // `estimate` reads leave `totalCount` undefined and the bridge derives a
+    // cheap value (candidate count / overfetch; exploration 0184). When the
+    // query isn't SQL-paginated every matching row is already in memory, so
     // its count is free and exact regardless of mode.
     const totalCount = compiled.sqlPagination
       ? descriptor.count === 'exact'
-        ? await this.countCompiledNodeQuery(descriptor, spatialPlan, fullTextSearchPlan)
+        ? (fusedExactCount ??
+          (candidateCount === 0 && (descriptor.offset ?? 0) === 0
+            ? 0
+            : await this.countCompiledNodeQuery(descriptor, spatialPlan, fullTextSearchPlan)))
         : undefined
       : applyNodeQueryDescriptor(
           candidates,
@@ -1015,14 +1049,14 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       totalCount,
       plan: {
         strategy: 'storage-query',
-        candidateNodeCount: ids.length,
+        candidateNodeCount: candidateCount,
         hydratedNodeCount: candidates.length,
         returnedNodeCount: nodes.length,
         durationMs: Date.now() - start,
-        sql: compiled.sql,
-        params: compiled.params,
+        sql: compiled.fused ? compiled.fused.sql : compiled.sql,
+        params: compiled.fused ? compiled.fused.params : compiled.params,
         postFilterReason: compiled.postFilterReason,
-        candidateQueryDurationMs: idQuery.durationMs,
+        candidateQueryDurationMs: mainQuery.durationMs,
         ...(candidateAccelerators.length > 0
           ? {
               candidateAccelerators
@@ -3795,14 +3829,50 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
       ORDER BY ${orderBy}
     `
 
+    let fused: CompiledNodeQuery['fused']
     if (useSqlPagination) {
       sql += '\nLIMIT ? OFFSET ?'
       whereParams.push(descriptor.limit ?? -1, descriptor.offset ?? 0)
+
+      // One-RPC fusion (exploration 0264): candidate select as a CTE feeding
+      // the hydrate join. ROW_NUMBER preserves candidate order through the
+      // property join; the optional COUNT window folds `count: 'exact'` in
+      // (window functions evaluate before LIMIT, so it sees the full match
+      // set). Only built for pushed-down descriptors — JS-verified FTS/
+      // spatial paths keep the two-step shape.
+      const includesExactCount = descriptor.count === 'exact'
+      const countColumn = includesExactCount ? ',\n          COUNT(*) OVER () AS total_count' : ''
+      const countSelect = includesExactCount ? 'c.total_count,' : ''
+      fused = {
+        sql: `
+      WITH candidates AS (
+        SELECT
+          n.id, n.schema_id, n.created_at, n.updated_at, n.created_by, n.deleted_at,
+          ROW_NUMBER() OVER (ORDER BY ${orderBy}) AS ordinal${countColumn}
+        FROM nodes n
+        ${joins.join('\n')}
+        WHERE ${where.join(' AND ')}
+        ORDER BY ${orderBy}
+        LIMIT ? OFFSET ?
+      )
+      SELECT
+        c.id, c.schema_id, c.created_at, c.updated_at, c.created_by, c.deleted_at,
+        ${countSelect}
+        p.property_key, p.value, p.lamport_time, p.updated_by, p.updated_at AS prop_updated_at,
+        c.ordinal
+      FROM candidates c
+      LEFT JOIN node_properties p ON p.node_id = c.id
+      ORDER BY c.ordinal ASC, p.property_key ASC
+    `,
+        params: [...whereParams],
+        includesExactCount
+      }
     }
 
     return {
       sql,
       params: whereParams,
+      fused,
       postFilterDescriptor: useSqlPagination ? withoutNodeQueryPagination(descriptor) : descriptor,
       postFilterReason: this.getCompiledPostFilterReason({
         useSqlPagination,
