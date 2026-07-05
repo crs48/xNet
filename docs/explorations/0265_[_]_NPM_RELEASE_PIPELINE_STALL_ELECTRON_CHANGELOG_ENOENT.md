@@ -279,7 +279,7 @@ writeFileSync(changelogPath, [title.trimEnd(), entry, ...rest].join('\n\n'))
       fixture, assert package.json + CHANGELOG.md both updated).
 - [x] Make `npm Release` failures loud — e.g. a notification step on
       `failure()` in `npm-release.yml` (Option H).
-- [ ] Document the release cadence: who merges the Version Packages PR, and
+- [x] Document the release cadence: who merges the Version Packages PR, and
       when (Option F) — add to `CLAUDE.md` or `docs/` runbook.
 - [ ] Merge the fix to main; watch the next `npm Release` run go green and
       refresh PR #281 with the 0263/0264 changesets.

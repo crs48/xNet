@@ -20,6 +20,19 @@ Every change to a **publishable** `packages/*` library MUST produce a
   periphery (`cli`, `trust`, `slack-compat`, …) versions independently. See
   `docs/explorations/0220_[_]_AUTOMATED_NPM_PACKAGE_PUBLISHING_AND_CONVENTIONAL_VERSIONING.md`.
 
+### Release cadence (merging the "Version Packages" PR)
+
+Changesets only **stages** releases — nothing publishes until the standing
+`chore(release): version packages` PR (branch `changeset-release/main`) is
+merged. That merge is deliberate and human-gated, but it must not rot
+(exploration 0265: 10 days of staged work sat unmerged):
+
+- **When an exploration's implementation lands on main, merge the release PR
+  once it has refreshed and its checks are green.** Review the staged bumps
+  first — audit any `major` against the actual diffs (policy above).
+- If `.changeset/` is piling up (dozens of files), releases have stalled —
+  check the `npm Release` workflow runs and the release PR before adding more.
+
 ## Commits
 
 Conventional Commits are enforced (commitlint). `feat:` → minor, `fix:`/`perf:` →
