@@ -1,0 +1,8 @@
+{
+  "id": "2026-07-05-query-debug-mode-no-longer-distorts-what",
+  "date": "July 5, 2026",
+  "title": "Query debug mode no longer distorts what it measures",
+  "summary": "With xnet:query:debug enabled, plan diagnostics issued hundreds of serial SQLite worker round-trips per boot (EXPLAIN + per-index PRAGMAs per query), delaying real query results by 18-20s. Index metadata is now fetched in one batched statement, shared across concurrent callers, and plan diagnostics are collected once per unique query shape per session.",
+  "highlights": [],
+  "tags": ["performance", "devtools"]
+}

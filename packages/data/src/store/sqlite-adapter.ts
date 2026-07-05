@@ -151,9 +151,13 @@ export interface SQLiteNodeStorageAdapterOptions {
   adaptiveIndexing?: SQLiteAdaptiveIndexingOptions
   queryVerification?: SQLiteQueryVerificationOptions
   /**
-   * Collect EXPLAIN QUERY PLAN + index inventory per query. Costs extra
-   * round trips per query, so it is off unless explicitly enabled or the
-   * `xnet:query:debug` localStorage flag is set.
+   * Collect EXPLAIN QUERY PLAN + index inventory for queries. Costs extra
+   * round trips, so it is off unless explicitly enabled or the
+   * `xnet:query:debug` localStorage flag is set. Diagnostics are collected
+   * once per unique compiled SQL shape per session (invalidated when the
+   * adapter itself runs DDL) — per-execution collection convoyed the serial
+   * worker and delayed the very queries being measured by 18-20s at boot
+   * (2026-07-05 capture).
    */
   queryDiagnostics?: boolean
   /**
@@ -316,6 +320,12 @@ const DEFAULT_QUERY_VERIFICATION: QueryVerificationConfig = {
 
 const QUERY_TELEMETRY_FLUSH_THRESHOLD = 50
 
+// Distinct compiled SQL shapes are usually few (dozens), but IN-list binds
+// mint one shape per list length, so a long debug session can keep growing.
+// Evict oldest-first past this — recomputing a plan later is cheap; holding
+// thousands of memo entries is not.
+const COMPILED_QUERY_DIAGNOSTICS_MEMO_LIMIT = 512
+
 interface PendingQueryTelemetry {
   schemaId: string
   descriptorJson: string
@@ -428,6 +438,15 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   private adaptiveIndexBudgetColumnsReady = false
 
   private storageCapabilitiesPromise?: Promise<NodeQueryStorageCapabilitiesMetadata>
+
+  /**
+   * Plan diagnostics memoized per compiled SQL shape (the string EXPLAINed),
+   * shared across executions AND concurrent callers. Cleared when this adapter
+   * creates/drops an adaptive index, since that changes plans. Debug mode must
+   * not distort what it measures: per-execution EXPLAIN + index-inventory
+   * round-trips convoyed the single serial worker at boot.
+   */
+  private compiledQueryDiagnosticsMemo = new Map<string, Promise<CompiledQueryDiagnostics>>()
 
   private spatialTablesState: SpatialTablesState = 'unknown'
 
@@ -3282,7 +3301,38 @@ CREATE INDEX IF NOT EXISTS idx_node_spatial_ids_schema
     return this.queryDiagnostics || this.isQueryDebugEnabled()
   }
 
-  private async collectCompiledQueryDiagnostics(
+  /**
+   * Throttled: one collection per unique compiled SQL shape per session.
+   * EXPLAIN plans depend on the statement, not the bound values, so keyset
+   * pages of the same query share one entry. Concurrent callers share the
+   * in-flight promise; failed collections are not memoized.
+   */
+  private collectCompiledQueryDiagnostics(
+    compiled: CompiledNodeQuery
+  ): Promise<CompiledQueryDiagnostics> {
+    const memoKey = compiled.sql
+    const memoized = this.compiledQueryDiagnosticsMemo.get(memoKey)
+    if (memoized) {
+      return memoized
+    }
+
+    const pending = this.computeCompiledQueryDiagnostics(compiled).then((diagnostics) => {
+      if (diagnostics.diagnosticsError) {
+        this.compiledQueryDiagnosticsMemo.delete(memoKey)
+      }
+      return diagnostics
+    })
+    if (this.compiledQueryDiagnosticsMemo.size >= COMPILED_QUERY_DIAGNOSTICS_MEMO_LIMIT) {
+      const oldest = this.compiledQueryDiagnosticsMemo.keys().next().value
+      if (oldest !== undefined) {
+        this.compiledQueryDiagnosticsMemo.delete(oldest)
+      }
+    }
+    this.compiledQueryDiagnosticsMemo.set(memoKey, pending)
+    return pending
+  }
+
+  private async computeCompiledQueryDiagnostics(
     compiled: CompiledNodeQuery
   ): Promise<CompiledQueryDiagnostics> {
     try {
@@ -3574,6 +3624,8 @@ CREATE INDEX IF NOT EXISTS idx_node_spatial_ids_schema
     if (createdIndex) {
       await runAnalyze(this.db, 'node_property_scalars')
       await this.db.exec('PRAGMA optimize')
+      // New index → plans may change; memoized diagnostics are stale.
+      this.compiledQueryDiagnosticsMemo.clear()
     }
 
     return touchedIndexNames
@@ -3786,6 +3838,8 @@ CREATE INDEX IF NOT EXISTS idx_node_spatial_ids_schema
   ): Promise<void> {
     await this.db.exec(`DROP INDEX IF EXISTS ${this.quoteSqlIdentifier(indexName)}`)
     await this.db.run('DELETE FROM query_index_candidates WHERE index_name = ?', [indexName])
+    // Dropped index → plans may change; memoized diagnostics are stale.
+    this.compiledQueryDiagnosticsMemo.clear()
     this.debugAdaptiveIndex('drop', { indexName, reason })
   }
 
