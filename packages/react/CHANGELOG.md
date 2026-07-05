@@ -1,5 +1,88 @@
 # @xnetjs/react
 
+## 0.1.0
+
+### Minor Changes
+
+- [#341](https://github.com/crs48/xNet/pull/341) [`1306265`](https://github.com/crs48/xNet/commit/1306265a33ca1028683eecd9932a1cdc999132a4) Thanks [@crs48](https://github.com/crs48)! - Make guardian (social) recovery configurable and threshold-aware (exploration 0243).
+  Settings lets you choose how many guardians (2–7) and how many are needed; the onboarding
+  recovery screen now reads the required threshold from the pasted share codes and only
+  enables recovery once you have enough (rather than assuming 2-of-3), flagging unrecognized
+  codes as you paste.
+
+- [#339](https://github.com/crs48/xNet/pull/339) [`4fb460a`](https://github.com/crs48/xNet/commit/4fb460a24061f818d3f99a166876d9cd1b3d7544) Thanks [@crs48](https://github.com/crs48)! - Wire social recovery ("trusted guardians") into the UI (exploration 0243) — xNet's
+  Apple-recovery-contacts analogue. Settings → Account can split a recoverable identity
+  into 3 guardian share codes (any 2 recover it), and onboarding gains a "Recover with
+  guardian shares" path that reconstructs the identity from enough codes on a new device.
+  `@xnetjs/identity` adds `serializeShare` / `parseShare` for the copy-pasteable
+  `xnet-share:…` codes. Recovery is entirely user-to-user; the cloud is never involved.
+
+- [#324](https://github.com/crs48/xNet/pull/324) [`a155c43`](https://github.com/crs48/xNet/commit/a155c433ad34e5d10380c479cd283feea9423249) Thanks [@crs48](https://github.com/crs48)! - Wire opt-in recovery phrases into onboarding (exploration 0243, Phase 1). The welcome
+  screen gains a "Set up a recovery phrase too" option that mints a recoverable identity
+  and shows the phrase once to save; the "Enter recovery phrase" path now validates the
+  phrase against the wordlist and recovers the same identity on a new device (enrolling a
+  local passkey to gate it). New machine states `creating-recoverable` /
+  `show-recovery-phrase` and events `CREATE_RECOVERABLE` / `SUBMIT_PHRASE` /
+  `RECOVERABLE_CREATED` / `PHRASE_SAVED` / `IMPORT_FAILED`.
+
+- [#333](https://github.com/crs48/xNet/pull/333) [`ddf47b9`](https://github.com/crs48/xNet/commit/ddf47b9cac403b6ff452f47e1a4a9065f393ac1c) Thanks [@crs48](https://github.com/crs48)! - Surface synced-passkey recovery in onboarding (exploration 0243, P1.4). The
+  `IdentityManager` gains `recoverViaSyncedPasskey()`, which discovers an xNet passkey
+  synced from another device (iCloud Keychain / Google Password Manager), unlocks it
+  (same PRF → same DID), and stores it locally — returning null when none is available so
+  the caller can fall back to the recovery phrase. The import screen now leads with a
+  "Use a synced passkey" option (new `USE_SYNCED_PASSKEY` onboarding event), giving
+  same-ecosystem users a phrase-free return path.
+
+### Patch Changes
+
+- [#384](https://github.com/crs48/xNet/pull/384) [`70b7e07`](https://github.com/crs48/xNet/commit/70b7e0778a7da2a74e2de637691ff71531e3faf2) Thanks [@crs48](https://github.com/crs48)! - Query-model read-speed upgrades (exploration 0264).
+
+  **@xnetjs/data** — hydration now aggregates in SQL (`json_group_object`,
+  one row per node instead of one per node×property; default ON,
+  `aggregatedHydration: false` opts out) — benchmarked on the real WASM build
+  at 8× fewer boundary rows, 4.9× faster hydrate SQL, and 4.5× faster
+  end-to-end; pushed-down queries fuse the candidate select and hydrate into
+  ONE statement (with `COUNT(*) OVER ()` folding `count: 'exact'` in);
+  id-list SQL pads to fixed arity buckets so the worker's prepared-statement
+  cache actually hits; adaptive indexing can defer index creation to an idle
+  `scheduleMaintenance` hook; and with adaptive indexing enabled, a single
+  custom-property sort now pushes down to SQL pagination (one page hydrated
+  instead of the whole schema).
+
+  **@xnetjs/data-bridge** — new warm-start snapshot seam on the main-thread
+  bridge: `exportQuerySnapshots()` / `seedQuerySnapshots()` persist and
+  re-seed loaded query results as stale entries that render instantly while
+  the live query revalidates.
+
+  **@xnetjs/sqlite** — query-planner statistics hygiene: `analysis_limit` +
+  `PRAGMA optimize=0x10002` at open (web and electron), enabling skip-scan
+  and informed index choice on long-lived connections.
+
+  **@xnetjs/react** — exports `useDataBridge`.
+
+- [#284](https://github.com/crs48/xNet/pull/284) [`d6d0470`](https://github.com/crs48/xNet/commit/d6d047022b8a77b7a3e7453869fb42cbeb73f4a4) Thanks [@crs48](https://github.com/crs48)! - Add shared dependency-free helpers to `@xnetjs/core` and unify the SSRF guard.
+
+  `@xnetjs/core` now exports `clamp`, `clamp01`, `formatBytes`, and the
+  literal-host SSRF guard (`assertPublicUrl`, `validateExternalUrl`, `SsrfError`),
+  replacing several behaviour-identical copies that had drifted across packages —
+  including byte formatters that silently capped at megabytes and a regex-based
+  URL guard that missed private ranges (CGNAT, IPv4-mapped IPv6, NAT64, the
+  `fe81::–fe8f::` link-local block, and the trailing-dot bypass).
+  `@xnetjs/plugins` now delegates its outbound-action SSRF check to the canonical
+  guard while keeping its `ActionSsrfError` contract; `@xnetjs/react` byte
+  displays no longer cap at megabytes.
+
+- Updated dependencies [[`f626e50`](https://github.com/crs48/xNet/commit/f626e50c003e196de8dee7b3a49c4fd98df85f35), [`df76bef`](https://github.com/crs48/xNet/commit/df76bef06bbd700998b29bf1bd25658d8ae759e3), [`acbf801`](https://github.com/crs48/xNet/commit/acbf801aeec7f958bd953a9f3d98cc355a0387db), [`4658b8f`](https://github.com/crs48/xNet/commit/4658b8f1ac27af01f89b883cf6c1e5d10d2c8161), [`985ac8f`](https://github.com/crs48/xNet/commit/985ac8f73ce3539e561cc03ab0c5d3b2a61d6029), [`4aec093`](https://github.com/crs48/xNet/commit/4aec093b53647d71214b8ab05a3004b5494479d7), [`8e43142`](https://github.com/crs48/xNet/commit/8e43142d3cf4d958d3c0f857905a59420c7ab538), [`37d4462`](https://github.com/crs48/xNet/commit/37d4462105cc87d6b9e2647ca0eaeba7442d2702), [`0f7e114`](https://github.com/crs48/xNet/commit/0f7e114c1471688f083c371ee39072eaf3596a19), [`e531d0d`](https://github.com/crs48/xNet/commit/e531d0dec9201d2649f9bcaf1392ab1a2186fe47), [`4fb460a`](https://github.com/crs48/xNet/commit/4fb460a24061f818d3f99a166876d9cd1b3d7544), [`1a44c5d`](https://github.com/crs48/xNet/commit/1a44c5decb087cfbf44e152d811a51f953893036), [`2a638ec`](https://github.com/crs48/xNet/commit/2a638ec81145eb89f156ca5275227412680df898), [`9e19545`](https://github.com/crs48/xNet/commit/9e19545318b1d48df7f6ef1b8bd7b472f12f1747), [`cae9734`](https://github.com/crs48/xNet/commit/cae973482bd336de1ad0be8e557e706f01e1462e), [`70b7e07`](https://github.com/crs48/xNet/commit/70b7e0778a7da2a74e2de637691ff71531e3faf2), [`d7a87da`](https://github.com/crs48/xNet/commit/d7a87daf84ea86d6d26eed3fd61314a60e1d7cbf), [`fc3aa1d`](https://github.com/crs48/xNet/commit/fc3aa1dba2cf40844ca38f7cc816cddc981d9022), [`5da8d92`](https://github.com/crs48/xNet/commit/5da8d9206797183c69dc7c4f3aae3e1d9cec2e5a), [`3c8a6a6`](https://github.com/crs48/xNet/commit/3c8a6a61c56eadc8f0b8657ce8a241981f7e7dc4), [`237a67c`](https://github.com/crs48/xNet/commit/237a67c0f2d583fca11795b76f83e75718285ee5), [`d6d0470`](https://github.com/crs48/xNet/commit/d6d047022b8a77b7a3e7453869fb42cbeb73f4a4), [`b327f99`](https://github.com/crs48/xNet/commit/b327f99a9448ce8724c09c66058e8e1daadd44bf), [`7d01fd6`](https://github.com/crs48/xNet/commit/7d01fd62ae7293eaf5d30f43bf24d0aa6648762b), [`ddf47b9`](https://github.com/crs48/xNet/commit/ddf47b9cac403b6ff452f47e1a4a9065f393ac1c)]:
+  - @xnetjs/data@0.1.0
+  - @xnetjs/plugins@0.1.0
+  - @xnetjs/runtime@0.1.0
+  - @xnetjs/identity@0.1.0
+  - @xnetjs/data-bridge@0.1.0
+  - @xnetjs/core@0.1.0
+  - @xnetjs/history@0.1.0
+  - @xnetjs/sync@0.1.0
+  - @xnetjs/crypto@0.1.0
+
 ## 0.0.3
 
 ### Patch Changes
