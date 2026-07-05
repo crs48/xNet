@@ -433,7 +433,7 @@ export default defineFeatureModule({
       the Aeon of Strife hedge).
 - [x] Art direction: 2–3 comps in the established style (suggestion: a workshop
       pegboard vs. a topiary wall).
-- [ ] Changelog fragment via `scripts/changelog/new.mjs` (essays use
+- [x] Changelog fragment via `scripts/changelog/new.mjs` (essays use
       `--tags platform`; do not hand-write the fragment).
 - [x] `pnpm` site build + preview screenshot; humane-patterns lint
       (`scripts/check-humane-patterns.mjs`) stays green.
