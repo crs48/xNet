@@ -4,5 +4,14 @@
   "title": "Lists load several times faster and reappear instantly after reload",
   "summary": "Reading your workspace got a structural speed-up: the database now returns each item as a single row instead of one row per field, list queries travel in one round-trip, and the query planner finally keeps statistics. On top of that, the app remembers your last-loaded lists and paints them immediately on the next visit while fresh data loads behind them.",
   "highlights": [],
-  "tags": ["performance"]
+  "tags": [
+    "performance"
+  ],
+  "pr": 384,
+  "mergedAt": "2026-07-05T20:47:17Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
