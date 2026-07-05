@@ -1,0 +1,12 @@
+{
+  "id": "2026-07-05-storage-optimisation-now-survives-rapid-",
+  "date": "July 5, 2026",
+  "title": "Storage optimisation now survives rapid reloads",
+  "summary": "The one-time database conversion that speeds up cold opens is atomic, so reloading mid-run used to cancel it with zero progress — and the slowness it fixes is exactly what makes people reload. xNet now remembers interrupted attempts: it shows a subtle \"keep this tab open\" hint while the optimisation is running again, and after repeated interruptions it starts the work right at first paint so the conversion finally lands.",
+  "highlights": [
+    "Interrupted storage-optimisation attempts are tracked and retried smarter",
+    "Subtle non-blocking hint asks you to keep the tab open while it finishes",
+    "After repeated interruptions the optimisation starts right after first paint"
+  ],
+  "tags": ["performance"]
+}

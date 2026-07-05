@@ -5,6 +5,12 @@
    insets, scrollbar + tap-highlight utilities. Declares an `@layer
    utilities` block, so it must run through the Tailwind pipeline here. */
 @import '@xnetjs/ui/responsive.css';
+/* Motion vocabulary (exploration 0199): keyframes + duration/easing tokens.
+   REQUIRED for <Presence> — its unmount waits on `animationend`, so without
+   these rules an exiting child (UndoToast, StorageOptimiseHint) never fires
+   the event and stays on screen forever. Only Storybook imported this before,
+   which is why Presence exits silently never ran in the app. */
+@import '@xnetjs/ui/motion.css';
 
 @tailwind base;
 @tailwind components;
