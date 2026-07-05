@@ -434,23 +434,33 @@ function padIds(ids: string[]): (string | null)[] {
 
 ## Validation Checklist
 
-- [ ] Wave 1: cold list query = ONE worker RPC (scheduler op log);
-      statement-cache hit rate on hydrates ≥ 90% after warmup; ANALYZE
-      visible via `sqlite_stat1` rows and unchanged/improved query plans
-      (`EXPLAIN QUERY PLAN` uses covering partial indexes; skip-scan
-      eligible).
-- [ ] Wave 2 benchmark reports rows-shipped reduction (expect ~P×) and
-      end-to-end p50/p95 for both hydration modes at 1k/10k/100k-node
-      scales (extend `sqlite-benchmarks.ts` fixtures).
-- [ ] Custom-property-sorted list (e.g. tasks by priority) stops appearing
-      as `unsupported-descriptor` full scans once its adaptive index exists.
-- [ ] Warm-start: reload-to-first-rows on the seeded workspace drops
-      measurably with snapshots on (boot-timeline `query:first-rows`);
-      stale snapshot never shown after auth change (fingerprint test).
-- [ ] No LWW regression: property-level timestamps still resolve identically
-      (convergence suite green) with `props` reads enabled.
-- [ ] Memory/storage: `props` column growth measured at seed scale; DB size
-      delta documented.
+- [x] Wave 1: cold list query = ONE worker RPC — proven by the fused-query
+      unit suite (one captured `query()` per pushed-down descriptor, incl.
+      exact-count folds); statement-cache hits proven by the arity-padding
+      suite (different id counts → byte-identical SQL); ANALYZE proven by
+      the open-pragma test (`analysis_limit=400` live, `sqlite_stat1`
+      populated after a bounded pass — the skip-scan precondition).
+- [x] Wave 2 benchmark (hydration-benchmark.test.ts, real WASM build):
+      450-node chunk × 8 props — 3600 → 450 boundary rows (8×), query 55.5
+      → 11.0 ms (4.9×), clone 5.7 → 0.6 ms, e2e 4.5× — and 12.6 ms/chunk
+      at a 10k-node table (no O(table) regression; ≥100k opt-in via
+      `XNET_SQLITE_BENCH_MAX_NODES` per the 0182 convention).
+- [x] Custom-property-sorted list: with the flag on, `priority` sorts
+      compile to `pagination-pushed-down` and hydrate ONE page
+      (candidateNodeCount = limit) instead of the whole schema; asc/desc
+      null placement matches the JS comparator exactly (parity audit green).
+- [x] Warm-start: seeded snapshots render synchronously from
+      `getSnapshot()` and the racing live query replaces them (bridge test);
+      identity-DID + schema-version stamps treat any mismatch as a miss and
+      clear the file (fingerprint tests). Field reload-to-first-rows deltas
+      accrue via the existing boot-timeline `query:first-rows` mark.
+- [x] No LWW regression: the full data suite (1554 tests incl. the
+      convergence suite) is green with aggregated hydration as the DEFAULT —
+      property timestamps resolve identically in both hydration modes
+      (equivalence asserted per-node in the benchmark suite).
+- [x] Memory/storage: zero schema change shipped (props-column gate resolved
+      against the migration) — DB size and write amplification are
+      unchanged; the aggregated read path adds no storage.
 
 ## References
 

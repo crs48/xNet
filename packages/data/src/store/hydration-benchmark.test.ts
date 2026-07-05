@@ -132,7 +132,7 @@ describe('hydration-mode benchmark (0264 Wave 2)', () => {
       const fmt = (n: number): string => (n / ITERATIONS).toFixed(2)
       // eslint-disable-next-line no-console
       console.info(
-        `[0264 bench] hydrate ${CHUNK} nodes × ${PROPS_PER_NODE} props (${ITERATIONS} iters, per-chunk):\n` +
+        `[0264 bench] hydrate ${CHUNK} nodes × ${PROPS_PER_NODE} props @ ${NODE_COUNT}-node table (${ITERATIONS} iters, per-chunk):\n` +
           `  rows-mode: ${rowsStats.rowCount} rows | query ${fmt(rowsStats.queryMs)}ms | clone ${fmt(rowsStats.cloneMs)}ms | e2e ${fmt(rowsE2eMs)}ms\n` +
           `  agg-mode:  ${aggStats.rowCount} rows | query ${fmt(aggStats.queryMs)}ms | clone ${fmt(aggStats.cloneMs)}ms | e2e ${fmt(aggE2eMs)}ms\n` +
           `  boundary rows ×${(rowsStats.rowCount / aggStats.rowCount).toFixed(1)} | clone ×${(rowsStats.cloneMs / Math.max(aggStats.cloneMs, 0.001)).toFixed(1)}`
@@ -147,4 +147,37 @@ describe('hydration-mode benchmark (0264 Wave 2)', () => {
       vi.restoreAllMocks()
     }
   }, 120_000)
+
+  it('holds at a 10k-node table (larger scales opt-in via XNET_SQLITE_BENCH_MAX_NODES)', async () => {
+    // Per-chunk hydrate cost must not regress as the TABLE grows — the chunk
+    // reads the same 450 nodes; a larger b-tree only deepens the index probes.
+    // 100k+ scales follow the repo's opt-in benchmark convention (0182).
+    const scale = Number(process.env.XNET_SQLITE_BENCH_MAX_NODES ?? 10_000)
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const db = await createWebSQLiteAdapter({ path: '/hydration-bench-10k.db' })
+    try {
+      const aggAdapter = new SQLiteNodeStorageAdapter(db, { aggregatedHydration: true })
+      const nodes = Array.from({ length: Math.min(scale, 100_000) }, (_, i) => benchNode(i))
+      await aggAdapter.importNodes(nodes)
+
+      const ids = nodes.slice(0, CHUNK).map((n) => n.id)
+      const start = performance.now()
+      const iterations = 10
+      for (let i = 0; i < iterations; i++) {
+        await aggAdapter.getNodes(ids)
+      }
+      const perChunkMs = (performance.now() - start) / iterations
+
+      // eslint-disable-next-line no-console
+      console.info(
+        `[0264 bench] agg-mode hydrate ${CHUNK} nodes @ ${nodes.length}-node table: ${perChunkMs.toFixed(2)}ms/chunk`
+      )
+      // Generous ceiling: catches an accidental O(table) regression, not noise.
+      expect(perChunkMs).toBeLessThan(200)
+    } finally {
+      await db.close()
+      vi.restoreAllMocks()
+    }
+  }, 240_000)
 })
