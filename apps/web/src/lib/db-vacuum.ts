@@ -20,12 +20,17 @@
  * open in web.ts only takes effect on a fresh database or at a VACUUM). After
  * this single conversion, change-log compaction reclaims freed pages per boot
  * via `PRAGMA incremental_vacuum` — so the file keeps shrinking without ever
- * paying another whole-file rewrite.
+ * paying another whole-file rewrite. Because long-lived profiles latched the
+ * localStorage flag back in 0233 (before incremental auto-vacuum existed), the
+ * "once" gate is the database's ACTUAL `PRAGMA auto_vacuum` mode, not the flag
+ * alone — a latched-but-unconverted database still gets its conversion VACUUM.
  */
 import type { SQLiteAdapter } from '@xnetjs/sqlite'
 import { runWhenBootSettled } from './boot-timeline'
 
 const VACUUM_FLAG = 'xnet:db-vacuumed:v1'
+/** `PRAGMA auto_vacuum` mode for INCREMENTAL (0 = NONE, 1 = FULL, 2 = INCREMENTAL). */
+const AUTO_VACUUM_INCREMENTAL = 2
 
 function debugLog(...args: unknown[]): void {
   // eslint-disable-next-line no-console
@@ -39,6 +44,24 @@ async function runVacuum(adapter: SQLiteAdapter): Promise<void> {
     // `getStorageMode` is async through the worker proxy, sync on the adapter.
     if ((await adapter.getStorageMode()) === 'memory') return
 
+    // The latch alone is not enough: long-lived profiles latched the flag back
+    // in 0233, BEFORE incremental auto-vacuum existed, so their database is
+    // still `auto_vacuum = NONE` and every per-prune `incremental_vacuum` is a
+    // no-op — the file could never shrink. Gate on the database's ACTUAL mode:
+    // only skip when it is already INCREMENTAL. The open path sets the pending
+    // mode (web.ts), and this VACUUM is what applies it to an existing file.
+    let flagged = false
+    try {
+      flagged = localStorage.getItem(VACUUM_FLAG) !== null
+    } catch {
+      // localStorage unavailable: fall through and let the pragma decide.
+    }
+    const row = await adapter
+      .queryOne<{ auto_vacuum: number }>('PRAGMA auto_vacuum')
+      .catch(() => null)
+    const mode = row?.auto_vacuum
+    if (flagged && mode === AUTO_VACUUM_INCREMENTAL) return
+
     const beforeBytes = await adapter.getDatabaseSize().catch(() => 0)
     await adapter.vacuum()
     const afterBytes = await adapter.getDatabaseSize().catch(() => 0)
@@ -47,7 +70,12 @@ async function runVacuum(adapter: SQLiteAdapter): Promise<void> {
     } catch {
       // ignore: persistence of the flag is best-effort
     }
-    debugLog('done', { beforeBytes, afterBytes, reclaimedBytes: beforeBytes - afterBytes })
+    debugLog('done', {
+      beforeBytes,
+      afterBytes,
+      reclaimedBytes: beforeBytes - afterBytes,
+      convertedAutoVacuumFrom: mode
+    })
   } catch (err) {
     // A failed VACUUM must never break the app; it retries next boot.
     // eslint-disable-next-line no-console
@@ -57,15 +85,11 @@ async function runVacuum(adapter: SQLiteAdapter): Promise<void> {
 
 /**
  * Schedule the one-time defragmenting VACUUM when the main thread is idle.
- * Safe to call on every boot — it no-ops once the flag is set.
+ * Safe to call on every boot — once the flag is latched AND the database is in
+ * incremental auto-vacuum mode, the pass reduces to one idle `PRAGMA` read.
  */
 export function scheduleOneTimeVacuum(adapter: SQLiteAdapter): void {
   if (typeof window === 'undefined') return
-  try {
-    if (localStorage.getItem(VACUUM_FLAG)) return
-  } catch {
-    return
-  }
   // VACUUM is a whole-file rewrite on the single serial SQLite worker, so it must
   // run OFF the cold-open path. `requestIdleCallback` alone fired it INTO the boot
   // read burst (it tracks main-thread idle, which is idle while the worker is busy
