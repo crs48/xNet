@@ -39,6 +39,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { BootTimelineProbe } from './components/BootTimelineProbe'
 import { BundledPluginInstaller } from './components/BundledPluginInstaller'
 import { ConsentBanner } from './components/ConsentBanner'
+import { StorageOptimiseHint } from './components/StorageOptimiseHint'
 import { StorageWarningBanner } from './components/StorageWarningBanner'
 import { WarmStartSnapshots } from './components/WarmStartSnapshots'
 import { WorkingSetPrewarm } from './components/WorkingSetPrewarm'
@@ -968,6 +969,9 @@ export function App(): JSX.Element {
         />
       )}
       <ConsentBanner />
+      {/* "Optimising storage" pill while the interrupted-retry conversion
+          VACUUM is in flight (lib/db-vacuum.ts) — reloading cancels it. */}
+      <StorageOptimiseHint />
       <ErrorBoundary>
         <XNetProvider
           config={{
