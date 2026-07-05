@@ -18,6 +18,7 @@ import { isSQLiteCorruptionError } from '../errors'
 import { SCHEMA_DDL, SCHEMA_VERSION } from '../schema'
 import { detectOpfsCapability } from './opfs-capability'
 import { isOpfsLockError, withOpfsLockRetry } from './opfs-retry'
+import { StmtCache, hasInteriorSemicolon } from './stmt-cache'
 
 // We use 'any' types here because @sqlite.org/sqlite-wasm is a peer dependency
 // that may not be installed at build time. The actual types are checked at runtime.
@@ -176,6 +177,14 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
   schemaApplyMs = 0
   /** How many times the OPFS lock-retry backoff fired during the last {@link open} (0 = first try). */
   openRetryAttempts = 0
+  /**
+   * Prepared-statement LRU for the hot query/run path (exploration 0263).
+   * `db.exec()` re-parses the SQL on every call; the hot path repeats a small
+   * statement set, so cached `oo1.Stmt` handles skip the parse+prepare cost.
+   * Cleared (finalizing all handles) on {@link exec} — the DDL/script path —
+   * and on {@link close}.
+   */
+  private stmts = new StmtCache<any>()
 
   /** Per-phase timing of the last {@link open}, or null if it hasn't run. */
   getOpenPhaseTimings(): OpenPhaseTimings | null {
@@ -393,6 +402,8 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
   }
 
   async close(): Promise<void> {
+    // Finalize cached statement handles before the connection goes away.
+    this.stmts.clear()
     if (this.db) {
       // Refresh query-planner statistics on the way out (SQLite-recommended:
       // run `PRAGMA optimize` before closing each connection). Cheap — it only
@@ -419,19 +430,55 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
     return this.storageMode
   }
 
+  /**
+   * Fetch (or prepare and cache) the statement for `sql`, or null when the SQL
+   * must bypass the cache: `db.prepare()` compiles only the FIRST statement of
+   * a multi-statement string, whereas `db.exec()` runs them all — serving such
+   * SQL from the cache would silently drop statements.
+   */
+  private getCachedStmt(sql: string): any | null {
+    if (hasInteriorSemicolon(sql)) {
+      return null
+    }
+    let stmt = this.stmts.get(sql)
+    if (stmt === undefined) {
+      stmt = this.db.prepare(sql)
+      this.stmts.set(sql, stmt)
+    }
+    return stmt
+  }
+
   async query<T extends SQLRow = SQLRow>(sql: string, params?: SQLValue[]): Promise<T[]> {
     this.ensureOpen()
 
     const rows: T[] = []
+    const stmt = this.getCachedStmt(sql)
 
-    this.db.exec({
-      sql,
-      bind: params as unknown[],
-      rowMode: 'object',
-      callback: (row: unknown) => {
-        rows.push(row as T)
+    if (stmt === null) {
+      this.db.exec({
+        sql,
+        bind: params as unknown[],
+        rowMode: 'object',
+        callback: (row: unknown) => {
+          rows.push(row as T)
+        }
+      })
+      return rows
+    }
+
+    try {
+      if (params && params.length > 0) {
+        stmt.bind(params as unknown[])
       }
-    })
+      while (stmt.step()) {
+        rows.push(stmt.get({}) as T)
+      }
+    } finally {
+      // Reset (not finalize) so the handle is reusable; clearBindings so stale
+      // params can never leak into the next execution of the same statement.
+      stmt.reset()
+      stmt.clearBindings()
+    }
 
     return rows
   }
@@ -444,10 +491,28 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
   async run(sql: string, params?: SQLValue[]): Promise<RunResult> {
     this.ensureOpen()
 
-    this.db.exec({
-      sql,
-      bind: params as unknown[]
-    })
+    const stmt = this.getCachedStmt(sql)
+
+    if (stmt === null) {
+      this.db.exec({
+        sql,
+        bind: params as unknown[]
+      })
+    } else {
+      try {
+        if (params && params.length > 0) {
+          stmt.bind(params as unknown[])
+        }
+        // Drain every row so statements like `INSERT ... RETURNING` fully
+        // execute; plain writes return done on the first step.
+        while (stmt.step()) {
+          // rows intentionally discarded — run() reports counts, not rows
+        }
+      } finally {
+        stmt.reset()
+        stmt.clearBindings()
+      }
+    }
 
     return {
       changes: this.sqlite3.capi.sqlite3_changes(this.db.pointer),
@@ -457,6 +522,9 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
 
   async exec(sql: string): Promise<void> {
     this.ensureOpen()
+    // exec() is the DDL/script path — a schema change can invalidate any cached
+    // statement (dropped table, changed columns), so finalize them all first.
+    this.stmts.clear()
     this.execSync(sql)
   }
 

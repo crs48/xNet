@@ -8,10 +8,10 @@ a priority-lane scheduler ([0227](0227_[_]_BOOT_STALL_SQLITE_WORKER_HEAD_OF_LINE
 [0262](0262_[_]_MAIN_THREAD_SQLITE_AND_THE_MULTIPLE_READER_QUESTION.md)). The
 question:
 
-> *Compare our SQLite worker queue / worker process implementation to other
+> _Compare our SQLite worker queue / worker process implementation to other
 > local-first SQLite implementations to see if we could improve in any way —
 > open-source projects, and products like Linear and Notion that get fast
-> performance out of their infrastructure.*
+> performance out of their infrastructure._
 
 This document puts our hot path side-by-side with the published mechanics of
 Notion's WASM SQLite, Linear's sync engine, LiveStore, PowerSync, SQLocal, the
@@ -21,12 +21,12 @@ then ranks the deltas by what they'd actually buy us.
 ## Executive Summary
 
 **Validation first: our topology is the industry-converged design.** A
-per-tab dedicated worker + Comlink RPC + `opfs-sahpool` is *exactly* what
+per-tab dedicated worker + Comlink RPC + `opfs-sahpool` is _exactly_ what
 Notion ships (they arrived there after real production corruption with the
 multi-connection `opfs` VFS), and what wa-sqlite's maintainer recommends. Our
 scheduler's **identical-read coalescing appears in no surveyed system** —
-competitors dedupe *emissions* (result diffs), not *executions*. We are not
-behind on the core; we're missing what the fast systems build *around* it.
+competitors dedupe _emissions_ (result diffs), not _executions_. We are not
+behind on the core; we're missing what the fast systems build _around_ it.
 
 Four findings, ranked by impact:
 
@@ -44,16 +44,16 @@ Four findings, ranked by impact:
 2. **Every system that feels instant serves hot reads from main-thread
    memory.** Linear doesn't even have a query layer — an in-memory MobX object
    pool is the truth, IndexedDB is just rehydration. Notion treats SQLite as a
-   *second-level cache* below an in-memory record cache. LiveStore runs a whole
+   _second-level cache_ below an in-memory record cache. LiveStore runs a whole
    in-memory SQLite mirror on the main thread; Replicache a versioned B-tree
    (<1 ms reads). Our data-bridge `QueryCache` with delta application is the
    same bet — 0262's "deepen the read tier" recommendation is independently
-   confirmed as *the* pattern, not one option among many.
+   confirmed as _the_ pattern, not one option among many.
 
 3. **Our per-op RPC leaves cheap throughput on the table.** The web adapter
    re-prepares every statement (`db.exec()` per call,
    [`web.ts:422-437`](../../packages/sqlite/src/adapters/web.ts)); the data
-   layer's `stmtCache` is dead code on web. There is no batched *read* RPC —
+   layer's `stmtCache` is dead code on web. There is no batched _read_ RPC —
    `transaction(ops)` and `applyNodeBatch` batch writes only — and no
    main-thread dedup before the message is posted. SQLocal demonstrates the
    fix shape: a `BatchMessage` that reuses prepared statements across
@@ -82,7 +82,7 @@ Established in 0227/0228/0262; new fine detail found for this comparison:
 - **Statement handling: re-prepare per call.** `query()`/`run()` use
   `db.exec({sql, bind, rowMode: 'object'})`
   ([`web.ts:422-456`](../../packages/sqlite/src/adapters/web.ts)) — full
-  parse+bind+execute each time. The adapter's `prepare()` is *simulated* (a
+  parse+bind+execute each time. The adapter's `prepare()` is _simulated_ (a
   closure re-issuing `query()`, [`web.ts:668-685`](../../packages/sqlite/src/adapters/web.ts));
   the data layer's `stmtCache`
   ([`sqlite-adapter.ts:372,452-459`](../../packages/data/src/store/sqlite-adapter.ts))
@@ -141,10 +141,10 @@ pure **router**; each tab holds an infinitely-open **Web Lock**, its release
 tells the SharedWorker the tab died and a new "active tab" worker is elected.
 All tabs' queries funnel to the single active worker. They adopted this after
 production **corruption** from multi-connection OPFS writes ("multiple rows
-with the same ID but different content"). SQLite is a persistent cache *below*
+with the same ID but different content"). SQLite is a persistent cache _below_
 an in-memory record cache — not the hot read path. Two tail lessons with
-numbers: loading WASM synchronously *regressed* initial load (fix: fully
-async, never block first paint), and slow-disk p95 devices got *slower* than
+numbers: loading WASM synchronously _regressed_ initial load (fix: fully
+async, never block first paint), and slow-disk p95 devices got _slower_ than
 the network (fix: **race SQLite vs the API**, take the first). Net win: 20 %
 faster navigation (28–33 % in AU/CN/IN).
 
@@ -156,8 +156,8 @@ purely a rehydration cache. Boot picks **full / partial / local bootstrap**;
 lazy collections hydrate from IDB first with "partial index" markers recording
 which subsets were already fetched. Writes mutate memory immediately, then a
 durable `_transaction` IDB queue batches GraphQL mutations; a globally
-monotonic `lastSyncId` reconciles delta packets. Lesson for us: *the fastest
-query layer is no query layer* — memory is truth, storage is hydration; and a
+monotonic `lastSyncId` reconciles delta packets. Lesson for us: _the fastest
+query layer is no query layer_ — memory is truth, storage is hydration; and a
 single monotonic version makes cache reconciliation trivial (our lamport/HWM
 plays this role).
 
@@ -242,7 +242,7 @@ track, not adopt now.
 
 ## Options And Tradeoffs
 
-### A. Statement cache + batched reads inside the current worker *(P1 — small, pure win)*
+### A. Statement cache + batched reads inside the current worker _(P1 — small, pure win)_
 
 Switch the web adapter's hot path from `db.exec()` to cached
 `sqlite3.oo1.Stmt` handles keyed by SQL (bounded LRU, finalized on close), and
@@ -256,7 +256,7 @@ repeated SQL. Fix `getNode()`'s 2-RPC N+1 with a single joined query.
 - ⚠️ Stmt lifecycle discipline (finalize on schema change/close); cache
   invalidation on `resetStorage`.
 
-### B. Web-Locks leader election + cross-tab routing *(P2 — the field-standard fix)*
+### B. Web-Locks leader election + cross-tab routing _(P2 — the field-standard fix)_
 
 Adopt the Notion/wa-sqlite-#81 pattern: each tab holds a Web Lock; a tiny
 SharedWorker (or BroadcastChannel + `navigator.locks` where SharedWorker is
@@ -275,14 +275,14 @@ promises on leader loss.
   release SAH pool → new leader opens), Android-Chrome fallback path.
 - ⚠️ Leader tab pays CPU for other tabs' queries (Notion accepts this).
 
-### C. Keep deepening the main-thread read tier *(P3 — continues 0262)*
+### C. Keep deepening the main-thread read tier _(P3 — continues 0262)_
 
 Unchanged from 0262 Phase C, now with survey-informed upgrades: track
 query **read sets** (schema + descriptor scope) to skip irrelevant deltas
 (Replicache), keep row-diff + reference preservation (we and PowerSync agree),
 and treat a LiveStore-style full in-memory mirror as the measured escalation.
 
-### D. Update-hook-based invalidation *(defer)*
+### D. Update-hook-based invalidation _(defer)_
 
 PowerSync's update-hook batching is elegant, but our invalidation source is
 the NodeStore event stream, which already carries schema/property semantics
@@ -290,27 +290,27 @@ the hook lacks — and cr-sqlite documents the footguns (pre-commit firing,
 `WITHOUT ROWID`). Only worth revisiting if a second writer (outside NodeStore)
 ever appears.
 
-### E. IVM / differential dataflow *(watch)*
+### E. IVM / differential dataflow _(watch)_
 
 Zero's ZQL and cr-sqlite's roadmap point where live queries are going. Our
 descriptor-scoped delta application is a coarse IVM already; jumping to true
 IVM is a research-scale project with no current pain to justify it. Revisit
 when live-query volume or write rates make re-hydration measurable.
 
-### F. Notion tail tactics *(opportunistic)*
+### F. Notion tail tactics _(opportunistic)_
 
 Verify WASM init never blocks first paint (boot-timeline should show
 `sqlite:open` off the critical path for first render); prototype racing
 hub-vs-local for first landing query on cold boots where local is cold anyway.
 
-| Option | Wins | Effort | Risk | When |
-|---|---|---|---|---|
-| A. Stmt cache + batch reads | per-op latency, screen fan-out | S | low | now |
-| B. Web-Locks leader + routing | multi-tab durability + shared cache | M | med | next |
-| C. Read-tier deepening (0262) | hot-read latency → ~0 | M | low | ongoing |
-| D. Update hooks | invalidation decoupling | M | med (footguns) | defer |
-| E. IVM | no re-query at all | XL | high | watch |
-| F. Tail tactics | p95 devices | S | low | opportunistic |
+| Option                        | Wins                                | Effort | Risk           | When          |
+| ----------------------------- | ----------------------------------- | ------ | -------------- | ------------- |
+| A. Stmt cache + batch reads   | per-op latency, screen fan-out      | S      | low            | now           |
+| B. Web-Locks leader + routing | multi-tab durability + shared cache | M      | med            | next          |
+| C. Read-tier deepening (0262) | hot-read latency → ~0               | M      | low            | ongoing       |
+| D. Update hooks               | invalidation decoupling             | M      | med (footguns) | defer         |
+| E. IVM                        | no re-query at all                  | XL     | high           | watch         |
+| F. Tail tactics               | p95 devices                         | S      | low            | opportunistic |
 
 ## Recommendation
 
@@ -392,9 +392,9 @@ async queryBatch(reads: { sql: string; params?: SQLValue[] }[]): Promise<SQLRow[
 
 ```ts
 navigator.locks.request('xnet-db-leader', { mode: 'exclusive' }, async () => {
-  await openSahPoolWorker()            // we are the leader now
-  announceLeadership(broadcast)        // router directs tabs to our port
-  await new Promise(() => {})          // hold until tab dies → lock releases
+  await openSahPoolWorker() // we are the leader now
+  announceLeadership(broadcast) // router directs tabs to our port
+  await new Promise(() => {}) // hold until tab dies → lock releases
 })
 // Followers: route RPCs via the router; on leader change, abort in-flight
 // promises (PowerSync) and re-issue against the new leader.
@@ -425,7 +425,7 @@ navigator.locks.request('xnet-db-leader', { mode: 'exclusive' }, async () => {
 
 **P1 — worker-internal efficiency (now)**
 
-- [ ] Replace `db.exec()` with a bounded prepared-`Stmt` cache in
+- [x] Replace `db.exec()` with a bounded prepared-`Stmt` cache in
       `WebSQLiteAdapter.query/queryOne/run`; finalize on close/reset/migration.
 - [ ] Add `queryBatch(reads[])` to `SQLiteWorkerHandler`, proxy, and
       `PortSQLiteAdapter`; route multi-query screens (dashboard fan-out,
