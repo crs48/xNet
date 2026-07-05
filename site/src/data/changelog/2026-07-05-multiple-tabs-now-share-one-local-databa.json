@@ -4,5 +4,15 @@
   "title": "Multiple tabs now share one local database",
   "summary": "Opening xNet in a second tab no longer loses local persistence: tabs elect a leader and share its database, and if the leading tab closes another takes over seamlessly. Queries also got faster — repeated statements skip re-parsing, multi-part reads travel in one message, and lists refresh more selectively after large syncs.",
   "highlights": [],
-  "tags": ["performance", "app"]
+  "tags": [
+    "performance",
+    "app"
+  ],
+  "pr": 382,
+  "mergedAt": "2026-07-05T18:11:44Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
