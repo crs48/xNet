@@ -114,6 +114,15 @@ export class ElectronSQLiteAdapter implements SQLiteAdapter {
     this.db.pragma('synchronous = NORMAL')
     this.db.pragma('cache_size = -64000') // 64MB cache
     this.db.pragma('temp_store = MEMORY')
+    // Query-planner statistics hygiene (exploration 0264): bound ANALYZE
+    // cost, then analyze missing/stale stats at open — same recipe as the
+    // web adapter, so the native planner gets sqlite_stat1 too.
+    try {
+      this.db.pragma('analysis_limit = 400')
+      this.db.pragma('optimize = 0x10002')
+    } catch {
+      // stats hygiene is best-effort; the planner just falls back to defaults
+    }
 
     // Priority scheduler (default on): orders interactive reads ahead of queued
     // writes and lets a manual transaction hold the connection exclusively.

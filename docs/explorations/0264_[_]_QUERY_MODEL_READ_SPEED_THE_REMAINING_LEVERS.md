@@ -8,7 +8,7 @@ thread placement and shipped the worker-queue upgrades (statement cache,
 `queryBatch`, multi-tab leadership, read-set-scoped stale-while-revalidate
 cache). The question now:
 
-> *Can anything else be done to make the query model faster — faster reads?*
+> _Can anything else be done to make the query model faster — faster reads?_
 
 This document dissects what remains inside the query model itself —
 descriptor → SQL compile → hydrate → post-filter → cache — and ranks the
@@ -52,7 +52,7 @@ Six levers remain, ranked:
 
 4. **Turn on the planner's brain.** `PRAGMA optimize=0x10002` at open +
    `analysis_limit=400` + periodic `PRAGMA optimize` (we only optimize on
-   *close* today). Without `sqlite_stat1`, skip-scan never fires and the
+   _close_ today). Without `sqlite_stat1`, skip-scan never fires and the
    planner guesses badly on skewed EAV key distributions. Related: the
    **adaptive-index machinery is fully built and disabled**
    (`enabled: false`) — custom-property sorts currently fall back to a full
@@ -109,7 +109,7 @@ flowchart LR
   indexes. **Disabled by default; prod never creates one.** Base indexes
   ([`schema.ts:216-272`](../../packages/sqlite/src/schema.ts)) already
   include partial covering triplets `(schema_id, property_key, value_*,
-  node_id) WHERE value_type=…` — good shape, planner just lacks stats.
+node_id) WHERE value_type=…` — good shape, planner just lacks stats.
 - **Materialized views (0226)** store id+ordinal only and **re-hydrate on
   every read** (2373) — the cache saves compilation/filtering, not hydrate.
   No hot surface opts in today.
@@ -160,7 +160,7 @@ Full citations in References.
    not the data" stayed exploratory; **Materialite is dormant and d2ts is
    alpha** — JS differential dataflow is not a foundation yet.
 6. **Warm-start snapshot patterns:** Notion races cache vs network (cache-
-   first *lost* on slow disks — 20-33% navigation win from racing);
+   first _lost_ on slow disks — 20-33% navigation win from racing);
    LiveStore treats its materialized state DB as a disposable snapshot
    (schema change → drop and rematerialize from the eventlog — exactly our
    change-log architecture); Lumafield's versioned OPFS cache got 3× project
@@ -172,7 +172,7 @@ Full citations in References.
    constant-time. Modern Chrome removed the old stringify-beats-clone cliff.
    Binary formats only pay once results are routinely hundreds of KB —
    viewport-sized results should stay structured clone.
-8. **Counts:** COUNT(*) always scans a b-tree; stat1 estimates are
+8. **Counts:** COUNT(\*) always scans a b-tree; stat1 estimates are
    whole-table; trigger/transaction-maintained counter tables are the
    exact-and-fast answer; the field UX answer is `LIMIT N+1` → "N+".
 
@@ -207,7 +207,7 @@ Full citations in References.
 
 ## Options And Tradeoffs
 
-### A. JSONB document column (`nodes.props`) — *the structural fix*
+### A. JSONB document column (`nodes.props`) — _the structural fix_
 
 Maintain `props` (JSONB) in `applyNodeBatch` alongside existing tables;
 hydrate becomes `SELECT id, schema_id, …, json(props) FROM nodes WHERE id IN
@@ -224,7 +224,7 @@ hydrate becomes `SELECT id, schema_id, …, json(props) FROM nodes WHERE id IN
   hydrate today — include them in the document (`{v, t}` per key) or accept
   a second cheap lookup for the rare consumers.
 
-### B. `json_group_object` aggregation — *the no-migration half-step*
+### B. `json_group_object` aggregation — _the no-migration half-step_
 
 Same read shape (one row per node) without a new column: collapse in SQL.
 
@@ -281,17 +281,17 @@ read-set scoping to (schema, property-key). I: fold `'exact'` counts into
 the candidate query via `COUNT(*) OVER ()`; counter tables only if a surface
 ever needs live totals.
 
-| Option | Attacks | Effort | Risk | Order |
-|---|---|---|---|---|
-| E. ANALYZE + adaptive indexes | worst asymptote (scans) | S-M | low (staged) | 1 |
-| C. Fused single-RPC query | per-query latency | S | low | 1 |
-| D. Statement-shape padding | stmt-cache hit rate | S | low | 1 |
-| B. json_group_object | boundary volume | S | low | 2 (measure) |
-| A. JSONB document column | row amplification (root) | M-L | migration | 3 (if B proves) |
-| F. Warm-start snapshots | cold-open p95 | M | med | 3 |
-| G. Worker runtime flip | main-thread contention | S (telemetry) | low | 2 |
-| H. Finer read-sets | re-query storms | M | med | 4 |
-| I. Count folding | exact-count RPC | S | low | opportunistic |
+| Option                        | Attacks                  | Effort        | Risk         | Order           |
+| ----------------------------- | ------------------------ | ------------- | ------------ | --------------- |
+| E. ANALYZE + adaptive indexes | worst asymptote (scans)  | S-M           | low (staged) | 1               |
+| C. Fused single-RPC query     | per-query latency        | S             | low          | 1               |
+| D. Statement-shape padding    | stmt-cache hit rate      | S             | low          | 1               |
+| B. json_group_object          | boundary volume          | S             | low          | 2 (measure)     |
+| A. JSONB document column      | row amplification (root) | M-L           | migration    | 3 (if B proves) |
+| F. Warm-start snapshots       | cold-open p95            | M             | med          | 3               |
+| G. Worker runtime flip        | main-thread contention   | S (telemetry) | low          | 2               |
+| H. Finer read-sets            | re-query storms          | M             | med          | 4               |
+| I. Count folding              | exact-count RPC          | S             | low          | opportunistic   |
 
 ## Recommendation
 
@@ -299,7 +299,7 @@ Three waves, each independently shippable:
 
 1. **Wave 1 — mechanical (S each, compounds with 0263):** ANALYZE hygiene +
    fused single-RPC compiled queries + statement-shape padding + `COUNT(*)
-   OVER ()` folding. No behavior change, pure latency.
+OVER ()` folding. No behavior change, pure latency.
 2. **Wave 2 — measure the boundary:** implement `json_group_object`
    hydration behind a flag, benchmark against the row-multiplied JOIN on
    seed-scale data (rows shipped, hydrate ms, end-to-end query p50/p95);
@@ -353,7 +353,9 @@ ORDER BY c.updated_at DESC
 this.execSync('PRAGMA analysis_limit = 400')
 try {
   this.execSync('PRAGMA optimize = 0x10002') // analyze missing/stale stats at open
-} catch { /* older builds: plain optimize */ }
+} catch {
+  /* older builds: plain optimize */
+}
 // …and hook a periodic `PRAGMA optimize` onto the bootSettled idle cadence.
 ```
 
@@ -392,7 +394,7 @@ function padIds(ids: string[]): (string | null)[] {
 
 **Wave 1 — mechanical**
 
-- [ ] ANALYZE hygiene: `analysis_limit=400` + `optimize=0x10002` at open in
+- [x] ANALYZE hygiene: `analysis_limit=400` + `optimize=0x10002` at open in
       `WebSQLiteAdapter.open()` (and electron), periodic `PRAGMA optimize`
       on the bootSettled cadence.
 - [ ] Fuse compiled id-query + hydrate into one statement for

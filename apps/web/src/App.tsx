@@ -52,6 +52,7 @@ import {
 } from './lib/browser-storage-reset'
 import { scheduleChangeLogCompaction } from './lib/change-log-compaction'
 import { isWorkerRuntimeEnabled } from './lib/data-runtime'
+import { schedulePeriodicOptimize } from './lib/db-optimize'
 import { scheduleOneTimeVacuum } from './lib/db-vacuum'
 import { defaultHubUrl, persistedHubUrl, readHubParam, setPersistedHubUrl } from './lib/hub-url'
 import { identityManager } from './lib/identity'
@@ -487,6 +488,7 @@ export function App(): JSX.Element {
         // ~15.8 s cold-read stall caught in exploration 0233. No-ops after the
         // first run; logs file size before/after (the `db stats` measurement).
         scheduleOneTimeVacuum(sqliteAdapter)
+        schedulePeriodicOptimize(sqliteAdapter)
 
         const nodeStorage = new SQLiteNodeStorageAdapter(sqliteAdapter)
 

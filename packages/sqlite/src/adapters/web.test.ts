@@ -34,6 +34,16 @@ describe('WebSQLiteAdapter (node / in-memory fallback)', () => {
     expect(db.getStorageMode()).toBe('memory')
   })
 
+  it('applies ANALYZE hygiene pragmas at open (0264)', async () => {
+    const row = await db.queryOne<{ analysis_limit: number }>('PRAGMA analysis_limit')
+    expect(row?.analysis_limit).toBe(400)
+    // A bounded optimize pass after data exists populates sqlite_stat1.
+    await db.run('INSERT INTO t (name) VALUES (?)', ['stats'])
+    await db.exec('ANALYZE')
+    const stats = await db.query('SELECT * FROM sqlite_stat1')
+    expect(stats.length).toBeGreaterThan(0)
+  })
+
   it('runs repeated statements through the cache with correct results', async () => {
     const insert = 'INSERT INTO t (name) VALUES (?)'
     for (let i = 0; i < 5; i++) {
