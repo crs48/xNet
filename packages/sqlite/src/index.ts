@@ -8,6 +8,7 @@ export type {
   SQLRow,
   RunResult,
   SQLiteConfig,
+  SQLBatchRead,
   SchemaVersion,
   SQLiteOperationStats,
   SQLiteNodeBatchIndexMode,

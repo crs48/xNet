@@ -107,6 +107,16 @@ export class ExpoSQLiteAdapter implements SQLiteAdapter {
     return result ?? null
   }
 
+  async queryBatch(reads: Array<{ sql: string; params?: SQLValue[] }>): Promise<SQLRow[][]> {
+    // In-process loop for interface parity with worker-backed adapters
+    // (exploration 0263) — expo-sqlite has no RPC boundary to amortize.
+    const results: SQLRow[][] = []
+    for (const read of reads) {
+      results.push(await this.query(read.sql, read.params))
+    }
+    return results
+  }
+
   async run(sql: string, params?: SQLValue[]): Promise<RunResult> {
     this.ensureOpen()
 

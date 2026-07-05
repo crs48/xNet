@@ -70,6 +70,16 @@ export class MemorySQLiteAdapter implements SQLiteAdapter {
     return rows[0] ?? null
   }
 
+  async queryBatch(reads: Array<{ sql: string; params?: SQLValue[] }>): Promise<SQLRow[][]> {
+    // In-process — the batch API exists for RPC amortization on worker-backed
+    // adapters; here it is a plain loop for interface parity (exploration 0263).
+    const results: SQLRow[][] = []
+    for (const read of reads) {
+      results.push(await this.query(read.sql, read.params))
+    }
+    return results
+  }
+
   async run(sql: string, params?: SQLValue[]): Promise<RunResult> {
     this.ensureOpen()
 

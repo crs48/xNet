@@ -11,6 +11,7 @@ import type {
   SQLRow,
   RunResult,
   SQLiteConfig,
+  SQLBatchRead,
   SQLiteNodeBatchApplyInput,
   SQLiteNodeBatchApplyResult
 } from '../types'
@@ -486,6 +487,17 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
   async queryOne<T extends SQLRow = SQLRow>(sql: string, params?: SQLValue[]): Promise<T | null> {
     const rows = await this.query<T>(sql, params)
     return rows[0] ?? null
+  }
+
+  async queryBatch(reads: SQLBatchRead[]): Promise<SQLRow[][]> {
+    // In-process the batch is just a loop — each read still benefits from the
+    // statement cache. The round-trip amortization happens at the worker RPC
+    // layer (SQLiteWorkerHandler.queryBatch schedules the whole batch as one job).
+    const results: SQLRow[][] = []
+    for (const read of reads) {
+      results.push(await this.query(read.sql, read.params))
+    }
+    return results
   }
 
   async run(sql: string, params?: SQLValue[]): Promise<RunResult> {

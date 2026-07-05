@@ -427,7 +427,7 @@ navigator.locks.request('xnet-db-leader', { mode: 'exclusive' }, async () => {
 
 - [x] Replace `db.exec()` with a bounded prepared-`Stmt` cache in
       `WebSQLiteAdapter.query/queryOne/run`; finalize on close/reset/migration.
-- [ ] Add `queryBatch(reads[])` to `SQLiteWorkerHandler`, proxy, and
+- [x] Add `queryBatch(reads[])` to `SQLiteWorkerHandler`, proxy, and
       `PortSQLiteAdapter`; route multi-query screens (dashboard fan-out,
       `WorkingSetPrewarm`) through it.
 - [ ] Collapse `getNode()` into one joined query (kill the 2-RPC N+1).

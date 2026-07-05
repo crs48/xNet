@@ -13,6 +13,7 @@ import type {
   SQLRow,
   RunResult,
   SQLiteOperationStats,
+  SQLBatchRead,
   SQLiteNodeBatchApplyInput,
   SQLiteNodeBatchApplyResult
 } from '../types'
@@ -219,6 +220,18 @@ export class WebSQLiteProxy implements SQLiteAdapter {
     this.operationStats.workerRequestCount += 1
     const result = await this.proxy.queryOne(sql, params)
     return result as T | null
+  }
+
+  /**
+   * Execute several reads in ONE worker round-trip. N queries previously cost
+   * N postMessage round-trips; a batch costs one (exploration 0263).
+   */
+  async queryBatch(reads: SQLBatchRead[]): Promise<SQLRow[][]> {
+    if (!this.proxy) throw new Error('Database not open')
+    if (reads.length === 0) return []
+    this.operationStats.queryCount += reads.length
+    this.operationStats.workerRequestCount += 1
+    return this.proxy.queryBatch(reads)
   }
 
   async run(sql: string, params?: SQLValue[]): Promise<RunResult> {

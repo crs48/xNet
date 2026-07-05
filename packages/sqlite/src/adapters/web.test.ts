@@ -63,6 +63,23 @@ describe('WebSQLiteAdapter (node / in-memory fallback)', () => {
     expect(rows.map((r) => r.name)).toEqual(['a', 'b'])
   })
 
+  it('queryBatch returns one row array per read, positionally', async () => {
+    await db.run('INSERT INTO t (name) VALUES (?)', ['a'])
+    await db.run('INSERT INTO t (name) VALUES (?)', ['b'])
+
+    const results = await db.queryBatch([
+      { sql: 'SELECT name FROM t ORDER BY name' },
+      { sql: 'SELECT name FROM t WHERE name = ?', params: ['b'] },
+      { sql: 'SELECT name FROM t WHERE name = ?', params: ['missing'] }
+    ])
+
+    expect(results).toEqual([[{ name: 'a' }, { name: 'b' }], [{ name: 'b' }], []])
+  })
+
+  it('queryBatch handles an empty batch', async () => {
+    expect(await db.queryBatch([])).toEqual([])
+  })
+
   it('queryOne returns first row or null', async () => {
     expect(await db.queryOne('SELECT id FROM t')).toBeNull()
     await db.run('INSERT INTO t (name) VALUES (?)', ['x'])
