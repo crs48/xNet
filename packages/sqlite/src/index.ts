@@ -81,6 +81,8 @@ export type {
 export {
   checkBrowserSupport,
   checkPersistentStorage,
+  getMemoryFallbackSessionCount,
+  recordMemoryFallbackSession,
   isSilentPersistRequestSafe,
   requestPersistentStorage,
   showUnsupportedBrowserMessage,

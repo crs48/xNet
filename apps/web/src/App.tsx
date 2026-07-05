@@ -26,6 +26,7 @@ import {
   checkPersistentStorage,
   isSilentPersistRequestSafe,
   isSQLiteCorruptionError,
+  recordMemoryFallbackSession,
   requestPersistentStorage,
   showUnsupportedBrowserMessage,
   watchPersistentStoragePermission,
@@ -409,6 +410,31 @@ export function App(): JSX.Element {
         // (exploration 0229) — workers can't read the xnet:boot:debug flag.
         await sqliteAdapter.open({ path: '/xnet.db', bootDebug: isBootDebugEnabled() })
         bootMark('sqlite:open')
+
+        // Memory-fallback telemetry (exploration 0263): multi-tab leadership
+        // routing should make non-durable sessions ~zero; count the ones that
+        // still happen so the win is measurable across sessions.
+        void sqliteAdapter
+          .getStorageMode()
+          .then((mode) => {
+            if (mode === 'memory') {
+              const count = recordMemoryFallbackSession()
+              console.warn('[xNet] sqlite memory-fallback session', {
+                count,
+                role: sqliteAdapter.getTabRole()
+              })
+            }
+          })
+          .catch(() => {})
+
+        // Graceful leadership handoff (0263): on a real page unload, close the
+        // worker so its OPFS handles release deterministically and the next
+        // tab promotes without waiting out the handle-contention backoff.
+        // `persisted` guards bfcache — a restorable page must keep its DB.
+        window.addEventListener('pagehide', (event: PageTransitionEvent) => {
+          if (event.persisted) return
+          void sqliteAdapter.close().catch(() => {})
+        })
 
         if (cancelled) {
           await sqliteAdapter.close()

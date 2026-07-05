@@ -167,6 +167,12 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
   private poolUtil: any = null
   private _config: SQLiteConfig | null = null
   private inTransaction = false
+  /**
+   * Monotonic time of the open transaction's last operation. Lets the worker
+   * host distinguish a LIVE manual transaction from one abandoned by a client
+   * that died between BEGIN and COMMIT (PowerSync-style lease recovery, 0263).
+   */
+  private lastTransactionActivityAt = 0
   private storageMode: 'opfs' | 'memory' = 'memory'
   /**
    * Per-phase timing of the last {@link open} call, or null until it runs.
@@ -431,6 +437,23 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
     return this.storageMode
   }
 
+  /** True while a manual BEGIN…COMMIT/ROLLBACK transaction is open. */
+  isInTransaction(): boolean {
+    return this.inTransaction
+  }
+
+  /** ms since the open transaction last executed an operation (0 when none). */
+  transactionIdleMs(): number {
+    return this.inTransaction ? nowMs() - this.lastTransactionActivityAt : 0
+  }
+
+  /** Stamp transaction liveness — called by ops that run inside one. */
+  private touchTransaction(): void {
+    if (this.inTransaction) {
+      this.lastTransactionActivityAt = nowMs()
+    }
+  }
+
   /**
    * Fetch (or prepare and cache) the statement for `sql`, or null when the SQL
    * must bypass the cache: `db.prepare()` compiles only the FIRST statement of
@@ -451,6 +474,7 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
 
   async query<T extends SQLRow = SQLRow>(sql: string, params?: SQLValue[]): Promise<T[]> {
     this.ensureOpen()
+    this.touchTransaction()
 
     const rows: T[] = []
     const stmt = this.getCachedStmt(sql)
@@ -502,6 +526,7 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
 
   async run(sql: string, params?: SQLValue[]): Promise<RunResult> {
     this.ensureOpen()
+    this.touchTransaction()
 
     const stmt = this.getCachedStmt(sql)
 
@@ -715,6 +740,7 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
 
     this.execSync('BEGIN IMMEDIATE')
     this.inTransaction = true
+    this.lastTransactionActivityAt = nowMs()
   }
 
   async commit(): Promise<void> {

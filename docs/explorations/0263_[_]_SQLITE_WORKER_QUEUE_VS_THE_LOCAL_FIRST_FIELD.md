@@ -437,17 +437,17 @@ navigator.locks.request('xnet-db-leader', { mode: 'exclusive' }, async () => {
 
 **P2 — multi-tab leadership (next)**
 
-- [ ] Leader election on `navigator.locks` (`xnet-db-leader`); leader owns the
+- [x] Leader election on `navigator.locks` (`xnet-db-leader`); leader owns the
       sahpool worker; followers route via SharedWorker (or
       BroadcastChannel+locks fallback on Android Chrome).
-- [ ] Cross-tab RPC routing with MessagePort transfer; abort outstanding
+- [x] Cross-tab RPC routing with MessagePort transfer; abort outstanding
       promises on leader loss; re-issue idempotent reads automatically.
-- [ ] PowerSync-grade hardening: auto-`ROLLBACK` on acquiring a
+- [x] PowerSync-grade hardening: auto-`ROLLBACK` on acquiring a
       mid-transaction connection; reclaim leases on tab death via lock
       release.
-- [ ] Leadership handoff: drain scheduler → close adapter → release handles →
+- [x] Leadership handoff: drain scheduler → close adapter → release handles →
       new leader opens (replaces the blind retry loop as the primary path).
-- [ ] Telemetry: count sessions that previously fell back to `:memory:`
+- [x] Telemetry: count sessions that previously fell back to `:memory:`
       (multi-tab) to size the win.
 
 **P3 — read tier (ongoing, tracked in 0262)**
