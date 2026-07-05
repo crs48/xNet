@@ -277,7 +277,7 @@ writeFileSync(changelogPath, [title.trimEnd(), entry, ...rest].join('\n\n'))
       (Option B; idempotent — skip when entry for the target version exists).
 - [x] Add a unit/smoke test or dry-run mode for the script (bump from a
       fixture, assert package.json + CHANGELOG.md both updated).
-- [ ] Make `npm Release` failures loud — e.g. a notification step on
+- [x] Make `npm Release` failures loud — e.g. a notification step on
       `failure()` in `npm-release.yml` (Option H).
 - [ ] Document the release cadence: who merges the Version Packages PR, and
       when (Option F) — add to `CLAUDE.md` or `docs/` runbook.
