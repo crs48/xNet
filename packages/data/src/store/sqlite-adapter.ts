@@ -15,6 +15,7 @@ import type {
   AuthorizationStateVersion,
   ListNodesOptions,
   CountNodesOptions,
+  PropertyTimestamp,
   SetNodeOptions,
   ImportNodesOptions,
   RebuildNodeIndexesOptions,
@@ -88,6 +89,20 @@ interface JoinedNodePropertyRow {
   [key: string]: SQLValue
 }
 
+/** One-row-per-node aggregated hydrate result (exploration 0264, Wave 2). */
+interface AggregatedNodeRow {
+  id: string
+  schema_id: string
+  created_at: number
+  updated_at: number
+  created_by: string
+  deleted_at: number | null
+  ordinal: number | null
+  props_json: string | null
+  meta_json: string | null
+  [key: string]: SQLValue
+}
+
 type ScalarValueType = 'text' | 'number' | 'boolean' | 'null'
 
 interface ScalarIndexValue {
@@ -141,6 +156,21 @@ export interface SQLiteNodeStorageAdapterOptions {
    * `xnet:query:debug` localStorage flag is set.
    */
   queryDiagnostics?: boolean
+  /**
+   * Hydrate via SQL-side `json_group_object` aggregation — ONE row per node
+   * instead of one row per (node × property) — collapsing the boundary
+   * payload before it leaves SQLite (exploration 0264, Wave 2). Off by
+   * default while the mode is benchmarked; correctness is verified equal by
+   * the hydration test suite in both modes.
+   */
+  aggregatedHydration?: boolean
+  /**
+   * Defer maintenance work (adaptive index creation) to an idle scheduler
+   * instead of running it inline on the query path. The web app passes a
+   * bootSettled-gated scheduler — no background work is free on the single
+   * serial SQLite worker (exploration 0260/0264). Default: run inline.
+   */
+  scheduleMaintenance?: (task: () => Promise<void> | void) => void
 }
 
 interface AdaptiveIndexHint {
@@ -157,6 +187,19 @@ interface CompiledNodeQuery {
   adaptiveIndexHints: AdaptiveIndexHint[]
   spatialIndexKey?: string
   fullTextSearchQuery?: string
+  /**
+   * Single-statement candidate+hydrate query (exploration 0264, Wave 1).
+   * Present only for fully-pushed-down descriptors (`sqlPagination`): the
+   * candidate select becomes a CTE feeding the property hydrate join, so a
+   * cold query costs ONE worker round-trip instead of id-select + hydrate.
+   * When the descriptor asks for `count: 'exact'`, a `COUNT(*) OVER ()`
+   * window inside the CTE folds the total in (no separate COUNT RPC).
+   */
+  fused?: {
+    sql: string
+    params: SQLValue[]
+    includesExactCount: boolean
+  }
 }
 
 interface QueryTelemetry {
@@ -284,6 +327,26 @@ interface PendingQueryTelemetry {
 const SQLITE_BIND_PARAMETER_BATCH_SIZE = 900
 const SQLITE_HYDRATE_NODE_BATCH_SIZE = Math.floor(SQLITE_BIND_PARAMETER_BATCH_SIZE / 2)
 
+/**
+ * Fixed arity buckets for id-list SQL (exploration 0264). Every distinct
+ * `VALUES (?,?),…`/`IN (?,…)` arity is a distinct SQL string — a guaranteed
+ * miss in the worker's prepared-statement cache (0263). Padding id lists up
+ * to the nearest bucket with NULLs (which never join/match) collapses the
+ * shape space to a handful of cacheable statements.
+ */
+const SQL_HYDRATE_ARITY_BUCKETS = [1, 10, 50, 150, SQLITE_HYDRATE_NODE_BATCH_SIZE] as const
+const SQL_IN_ARITY_BUCKETS = [10, 50, 300, SQLITE_BIND_PARAMETER_BATCH_SIZE] as const
+
+/** Pad `items` with NULLs up to the nearest arity bucket (see above). */
+function padToArityBucket<T>(
+  items: readonly T[],
+  buckets: readonly number[]
+): ReadonlyArray<T | null> {
+  const size = buckets.find((bucket) => bucket >= items.length) ?? items.length
+  if (size === items.length) return items
+  return [...items, ...Array<null>(size - items.length).fill(null)]
+}
+
 function getMaterializedQueryRefreshReason(input: {
   cached: MaterializedQueryRow | null
   descriptorHash: string
@@ -353,6 +416,10 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   private queryVerification: QueryVerificationConfig
 
   private queryDiagnostics: boolean
+  /** Hydrate one row per node via json_group_object (0264 Wave 2 flag). */
+  private aggregatedHydration: boolean
+  /** Idle scheduler for maintenance work (adaptive index creation, 0264). */
+  private scheduleMaintenance?: (task: () => Promise<void> | void) => void
 
   private pendingQueryTelemetry = new Map<string, PendingQueryTelemetry>()
 
@@ -392,6 +459,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       ...options.queryVerification
     }
     this.queryDiagnostics = options.queryDiagnostics ?? false
+    this.aggregatedHydration = options.aggregatedHydration ?? true
+    this.scheduleMaintenance = options.scheduleMaintenance
   }
 
   getSQLiteAdapter(): SQLiteAdapter {
@@ -673,7 +742,10 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     if (uniqueIds.length === 0) return changes
 
     for (const batch of chunkItems(uniqueIds, SQLITE_BIND_PARAMETER_BATCH_SIZE)) {
-      const placeholders = batch.map(() => '?').join(', ')
+      // NULL-padded to a fixed arity so the statement caches (0264); NULL
+      // never matches an IN list.
+      const padded = padToArityBucket(batch, SQL_IN_ARITY_BUCKETS)
+      const placeholders = padded.map(() => '?').join(', ')
       const rows = await this.db.query<ChangeRow>(
         `SELECT hash, node_id, payload, lamport_time,
                 lamport_peer as lamport_author, wall_time,
@@ -687,7 +759,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
              ORDER BY c2.lamport_time DESC
              LIMIT 1
            )`,
-        batch
+        padded as SQLValue[]
       )
 
       rows.forEach((row) => {
@@ -729,10 +801,12 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
 
     const existingIds = new Set<NodeId>()
     for (const batch of chunkItems(uniqueIds, SQLITE_BIND_PARAMETER_BATCH_SIZE)) {
-      const placeholders = batch.map(() => '?').join(', ')
+      // NULL-padded to a fixed arity so the statement caches (0264).
+      const padded = padToArityBucket(batch, SQL_IN_ARITY_BUCKETS)
+      const placeholders = padded.map(() => '?').join(', ')
       const rows = await this.db.query<{ id: string }>(
         `SELECT id FROM nodes WHERE id IN (${placeholders})`,
-        batch
+        padded as SQLValue[]
       )
       rows.forEach((row) => existingIds.add(row.id))
     }
@@ -981,26 +1055,49 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       return result
     }
 
-    const [queryDiagnostics, idQuery] = await Promise.all([
+    // Fused single-RPC path (exploration 0264): candidate CTE + hydrate join
+    // in one statement. The two-step id-select → hydrate remains for
+    // JS-verified paths (FTS/spatial/property-sort), which need the id detour.
+    const [queryDiagnostics, mainQuery] = await Promise.all([
       this.isQueryDiagnosticsEnabled()
         ? this.collectCompiledQueryDiagnostics(compiled)
         : Promise.resolve<CompiledQueryDiagnostics>({}),
-      timeQuery<{ id: string }>(this.db, compiled.sql, compiled.params)
+      compiled.fused
+        ? timeQuery<JoinedNodePropertyRow>(this.db, compiled.fused.sql, compiled.fused.params)
+        : timeQuery<{ id: string }>(this.db, compiled.sql, compiled.params)
     ])
-    const idRows = idQuery.result
-    const ids = idRows.map((row) => row.id)
-    const candidates = await this.hydrateNodesByIds(ids)
+
+    let candidates: NodeState[]
+    let candidateCount: number
+    let fusedExactCount: number | undefined
+    if (compiled.fused) {
+      const rows = mainQuery.result as Array<JoinedNodePropertyRow | AggregatedNodeRow>
+      candidates = this.aggregatedHydration
+        ? this.hydrateAggregatedRows(rows as AggregatedNodeRow[])
+        : this.hydrateJoinedRows(rows as JoinedNodePropertyRow[])
+      candidateCount = candidates.length
+      if (compiled.fused.includesExactCount && rows.length > 0) {
+        fusedExactCount = Number(rows[0].total_count ?? 0)
+      }
+    } else {
+      const ids = (mainQuery.result as Array<{ id: string }>).map((row) => row.id)
+      candidates = await this.hydrateNodesByIds(ids)
+      candidateCount = ids.length
+    }
     const nodes = applyNodeQueryDescriptor(candidates, compiled.postFilterDescriptor)
-    // Only pay the separate `COUNT(*)` when the caller explicitly asks for an
-    // exact total. Default/`none`/`estimate` reads leave `totalCount` undefined
-    // and the bridge derives a cheap value (candidate count / overfetch). This
-    // removes a per-list index-wide scan that grows with the schema and is
-    // never shown by list surfaces like the sidebar (exploration 0184). When
-    // the query isn't SQL-paginated every matching row is already in memory, so
+    // Only pay a separate `COUNT(*)` when the caller explicitly asks for an
+    // exact total AND the fused window couldn't provide it (zero-row page —
+    // the window needs at least one row to ride on). Default/`none`/
+    // `estimate` reads leave `totalCount` undefined and the bridge derives a
+    // cheap value (candidate count / overfetch; exploration 0184). When the
+    // query isn't SQL-paginated every matching row is already in memory, so
     // its count is free and exact regardless of mode.
     const totalCount = compiled.sqlPagination
       ? descriptor.count === 'exact'
-        ? await this.countCompiledNodeQuery(descriptor, spatialPlan, fullTextSearchPlan)
+        ? (fusedExactCount ??
+          (candidateCount === 0 && (descriptor.offset ?? 0) === 0
+            ? 0
+            : await this.countCompiledNodeQuery(descriptor, spatialPlan, fullTextSearchPlan)))
         : undefined
       : applyNodeQueryDescriptor(
           candidates,
@@ -1015,14 +1112,14 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       totalCount,
       plan: {
         strategy: 'storage-query',
-        candidateNodeCount: ids.length,
+        candidateNodeCount: candidateCount,
         hydratedNodeCount: candidates.length,
         returnedNodeCount: nodes.length,
         durationMs: Date.now() - start,
-        sql: compiled.sql,
-        params: compiled.params,
+        sql: compiled.fused ? compiled.fused.sql : compiled.sql,
+        params: compiled.fused ? compiled.fused.params : compiled.params,
         postFilterReason: compiled.postFilterReason,
-        candidateQueryDurationMs: idQuery.durationMs,
+        candidateQueryDurationMs: mainQuery.durationMs,
         ...(candidateAccelerators.length > 0
           ? {
               candidateAccelerators
@@ -2071,8 +2168,12 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   }
 
   private buildHydrateChunkQuery(ids: string[]): { sql: string; params: SQLValue[] } {
-    const values = ids.map(() => '(?, ?)').join(', ')
-    const params: SQLValue[] = ids.flatMap((id, ordinal) => [id, ordinal])
+    // Pad to a fixed arity bucket so repeated hydrates share ONE SQL string
+    // and hit the worker's prepared-statement cache (exploration 0264). NULL
+    // ids never satisfy the JOIN, so padding rows vanish from the result.
+    const padded = padToArityBucket(ids, SQL_HYDRATE_ARITY_BUCKETS)
+    const values = padded.map(() => '(?, ?)').join(', ')
+    const params: SQLValue[] = padded.flatMap((id, ordinal) => [id, ordinal])
     const sql = `
       WITH wanted(id, ordinal) AS (
         VALUES ${values}
@@ -2103,11 +2204,18 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       return []
     }
 
+    const aggregated = this.aggregatedHydration
     const chunks =
       ids.length > SQLITE_HYDRATE_NODE_BATCH_SIZE
         ? chunkItems(ids, SQLITE_HYDRATE_NODE_BATCH_SIZE)
         : [ids]
-    const reads = chunks.map((chunk) => this.buildHydrateChunkQuery(chunk))
+    const reads = chunks.map((chunk) =>
+      aggregated ? this.buildAggregatedHydrateChunkQuery(chunk) : this.buildHydrateChunkQuery(chunk)
+    )
+    const parse = (rows: unknown[]): NodeState[] =>
+      aggregated
+        ? this.hydrateAggregatedRows(rows as AggregatedNodeRow[])
+        : this.hydrateJoinedRows(rows as JoinedNodePropertyRow[])
 
     // Multi-chunk hydrates previously paid one worker round-trip per chunk;
     // queryBatch sends the whole hydrate as ONE RPC and one scheduler slot
@@ -2116,15 +2224,95 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       const results = await this.db.queryBatch(reads)
       const nodes: NodeState[] = []
       for (const rows of results) {
-        nodes.push(...this.hydrateJoinedRows(rows as JoinedNodePropertyRow[]))
+        nodes.push(...parse(rows))
       }
       return nodes
     }
 
     const nodes: NodeState[] = []
     for (const read of reads) {
-      const rows = await this.db.query<JoinedNodePropertyRow>(read.sql, read.params)
-      nodes.push(...this.hydrateJoinedRows(rows))
+      const rows = await this.db.query(read.sql, read.params)
+      nodes.push(...parse(rows))
+    }
+    return nodes
+  }
+
+  /**
+   * Aggregated hydrate (exploration 0264, Wave 2): collapse the EAV rows to
+   * ONE row per node inside SQL via `json_group_object`, so the boundary
+   * ships N rows instead of N × properties. `value` is stored as JSON text
+   * in a BLOB — `json(CAST(… AS TEXT))` re-emits it as real JSON inside the
+   * aggregate (without the cast/wrap it would double-encode as a string).
+   */
+  private buildAggregatedHydrateChunkQuery(ids: string[]): { sql: string; params: SQLValue[] } {
+    const padded = padToArityBucket(ids, SQL_HYDRATE_ARITY_BUCKETS)
+    const values = padded.map(() => '(?, ?)').join(', ')
+    const params: SQLValue[] = padded.flatMap((id, ordinal) => [id, ordinal])
+    const sql = `
+      WITH wanted(id, ordinal) AS (
+        VALUES ${values}
+      )
+      SELECT
+        n.id,
+        n.schema_id,
+        n.created_at,
+        n.updated_at,
+        n.created_by,
+        n.deleted_at,
+        wanted.ordinal,
+        json_group_object(p.property_key, json(CAST(p.value AS TEXT)))
+          FILTER (WHERE p.property_key IS NOT NULL) AS props_json,
+        json_group_object(
+          p.property_key,
+          json_object('l', p.lamport_time, 'b', p.updated_by, 'w', p.updated_at)
+        ) FILTER (WHERE p.property_key IS NOT NULL) AS meta_json
+      FROM wanted
+      JOIN nodes n ON n.id = wanted.id
+      LEFT JOIN node_properties p ON p.node_id = n.id
+      GROUP BY n.id
+      ORDER BY wanted.ordinal ASC
+    `
+    return { sql, params }
+  }
+
+  /** Parse one-row-per-node aggregated hydrate results into NodeStates. */
+  private hydrateAggregatedRows(rows: AggregatedNodeRow[]): NodeState[] {
+    const nodes: NodeState[] = []
+    for (const row of rows) {
+      const properties = row.props_json
+        ? (JSON.parse(row.props_json) as Record<string, unknown>)
+        : {}
+      const meta = row.meta_json
+        ? (JSON.parse(row.meta_json) as Record<string, { l: number; b: string; w: number }>)
+        : {}
+
+      const timestamps: Record<string, PropertyTimestamp> = {}
+      let updatedBy: DID = row.created_by as DID
+      for (const [key, entry] of Object.entries(meta)) {
+        timestamps[key] = {
+          lamport: entry.l ?? 0,
+          author: (entry.b ?? '') as DID,
+          wallTime: entry.w ?? 0
+        }
+        if ((entry.w ?? 0) >= row.updated_at) {
+          updatedBy = (entry.b ?? row.created_by) as DID
+        }
+      }
+
+      nodes.push({
+        id: row.id,
+        schemaId: row.schema_id as SchemaIRI,
+        properties,
+        timestamps,
+        deleted: row.deleted_at !== null,
+        deletedAt: row.deleted_at
+          ? { lamport: 0, author: '' as DID, wallTime: row.deleted_at }
+          : undefined,
+        createdAt: row.created_at,
+        createdBy: row.created_by as DID,
+        updatedAt: row.updated_at,
+        updatedBy
+      })
     }
     return nodes
   }
@@ -2992,6 +3180,29 @@ CREATE INDEX IF NOT EXISTS idx_node_spatial_ids_schema
       return { descriptorHash, adaptiveIndexNames: [] }
     }
 
+    // Index creation is real write work on the single serial worker — when an
+    // idle scheduler is provided (the web app passes bootSettled-gated
+    // scheduling), defer it off the query path (exploration 0264). The names
+    // simply don't appear in THIS query's plan metadata; the index serves the
+    // next one.
+    if (this.scheduleMaintenance) {
+      const input = {
+        descriptorHash,
+        schemaId: descriptor.schemaId,
+        hints: adaptiveIndexHints,
+        now
+      }
+      this.scheduleMaintenance(() =>
+        this.ensureAdaptiveIndexes(input).then(
+          () => undefined,
+          (err) => {
+            console.warn('[SQLiteNodeStorageAdapter] deferred adaptive index skipped:', err)
+          }
+        )
+      )
+      return { descriptorHash, adaptiveIndexNames: [] }
+    }
+
     const adaptiveIndexNames = await this.ensureAdaptiveIndexes({
       descriptorHash,
       schemaId: descriptor.schemaId,
@@ -3694,6 +3905,11 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
     const hasPropertySort = Object.keys(descriptor.orderBy ?? {}).some(
       (key) => key !== 'createdAt' && key !== 'updatedAt'
     )
+    // Property-sort pushdown (exploration 0264, Wave 2; gated behind the
+    // adaptive-indexing flag with the typed scalar indexes that serve it):
+    // a SINGLE custom-property sort orders via a LEFT JOIN on the scalar
+    // index instead of falling back to a full schema scan + JS sort.
+    const propertySort = this.resolvePropertySortPushdown(descriptor, hasPropertySort)
     const hasSqlCandidateBenefit =
       scalarWhere.length > 0 ||
       spatialPlan !== null ||
@@ -3701,16 +3917,41 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
       !descriptor.spatial ||
       this.hasOnlySystemOrdering(descriptor.orderBy)
 
-    if (!hasSqlCandidateBenefit) {
+    if (!hasSqlCandidateBenefit && !propertySort) {
       return null
     }
 
     return this.compileSqlQuery(descriptor, {
       whereEntries: scalarWhere as Array<{ key: string; scalar: ScalarIndexValue }>,
-      canUseSqlPagination: !hasPropertySort && !descriptor.spatial && !descriptor.search,
+      canUseSqlPagination:
+        (!hasPropertySort || propertySort !== null) && !descriptor.spatial && !descriptor.search,
       spatialPlan,
-      fullTextSearchPlan
+      fullTextSearchPlan,
+      propertySort
     })
+  }
+
+  /**
+   * A custom-property sort can push down when it is the descriptor's ONLY
+   * order key and no cursor/spatial/search accelerator is in play. Gated on
+   * the adaptive-indexing flag: the typed partial indexes on
+   * `node_property_scalars` make the join+order cheap, and the flag keeps
+   * the behavioural change opt-in while it soaks (exploration 0264).
+   */
+  private resolvePropertySortPushdown(
+    descriptor: NodeQueryDescriptor,
+    hasPropertySort: boolean
+  ): { key: string; direction: SortDirection } | null {
+    if (!hasPropertySort || !this.adaptiveIndexing.enabled) return null
+    if (descriptor.spatial || descriptor.search || descriptor.after !== undefined) return null
+
+    const entries = Object.entries(descriptor.orderBy ?? {}).filter(
+      (entry): entry is [string, SortDirection] => entry[1] === 'asc' || entry[1] === 'desc'
+    )
+    if (entries.length !== 1) return null
+    const [key, direction] = entries[0]
+    if (key === 'createdAt' || key === 'updatedAt') return null
+    return { key, direction }
   }
 
   private compileSqlQuery(
@@ -3720,6 +3961,7 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
       canUseSqlPagination: boolean
       spatialPlan?: SpatialQueryPlan | null
       fullTextSearchPlan?: FullTextSearchQueryPlan | null
+      propertySort?: { key: string; direction: SortDirection } | null
     }
   ): CompiledNodeQuery {
     const joins: string[] = []
@@ -3781,7 +4023,25 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
       )
     }
 
-    const orderBy = this.buildSqlOrderBy(descriptor.orderBy)
+    // Property-sort pushdown (0264): LEFT JOIN the scalar row for the sort
+    // key (nodes without the property must still appear) and order by the
+    // typed value columns — for a homogeneous key exactly one column varies,
+    // the others stay constant-NULL and are inert. Null placement mirrors the
+    // JS comparator: nulls LAST ascending, FIRST descending.
+    if (options.propertySort) {
+      const schemaId = this.quoteSqlLiteral(descriptor.schemaId)
+      const propertyKey = this.quoteSqlLiteral(options.propertySort.key)
+      joins.push(
+        `LEFT JOIN node_property_scalars sortp
+          ON sortp.node_id = n.id
+         AND sortp.schema_id = ${schemaId}
+         AND sortp.property_key = ${propertyKey}`
+      )
+    }
+
+    const orderBy = options.propertySort
+      ? this.buildPropertySortOrderBy(options.propertySort.direction)
+      : this.buildSqlOrderBy(descriptor.orderBy)
     const useSqlPagination =
       options.canUseSqlPagination &&
       descriptor.after === undefined &&
@@ -3795,14 +4055,71 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
       ORDER BY ${orderBy}
     `
 
+    let fused: CompiledNodeQuery['fused']
     if (useSqlPagination) {
       sql += '\nLIMIT ? OFFSET ?'
       whereParams.push(descriptor.limit ?? -1, descriptor.offset ?? 0)
+
+      // One-RPC fusion (exploration 0264): candidate select as a CTE feeding
+      // the hydrate join. ROW_NUMBER preserves candidate order through the
+      // property join; the optional COUNT window folds `count: 'exact'` in
+      // (window functions evaluate before LIMIT, so it sees the full match
+      // set). Only built for pushed-down descriptors — JS-verified FTS/
+      // spatial paths keep the two-step shape.
+      const includesExactCount = descriptor.count === 'exact'
+      const countColumn = includesExactCount ? ',\n          COUNT(*) OVER () AS total_count' : ''
+      const countSelect = includesExactCount ? 'c.total_count,' : ''
+      const candidatesCte = `
+      WITH candidates AS (
+        SELECT
+          n.id, n.schema_id, n.created_at, n.updated_at, n.created_by, n.deleted_at,
+          ROW_NUMBER() OVER (ORDER BY ${orderBy}) AS ordinal${countColumn}
+        FROM nodes n
+        ${joins.join('\n')}
+        WHERE ${where.join(' AND ')}
+        ORDER BY ${orderBy}
+        LIMIT ? OFFSET ?
+      )`
+      // Aggregated fusion ships ONE row per node (0264 Wave 2 benchmark:
+      // ~5× faster SQL + ~10× cheaper boundary clone than row-multiplied).
+      const fusedSql = this.aggregatedHydration
+        ? `${candidatesCte}
+      SELECT
+        c.id, c.schema_id, c.created_at, c.updated_at, c.created_by, c.deleted_at,
+        ${countSelect}
+        c.ordinal,
+        json_group_object(p.property_key, json(CAST(p.value AS TEXT)))
+          FILTER (WHERE p.property_key IS NOT NULL) AS props_json,
+        json_group_object(
+          p.property_key,
+          json_object('l', p.lamport_time, 'b', p.updated_by, 'w', p.updated_at)
+        ) FILTER (WHERE p.property_key IS NOT NULL) AS meta_json
+      FROM candidates c
+      LEFT JOIN node_properties p ON p.node_id = c.id
+      GROUP BY c.id
+      ORDER BY c.ordinal ASC
+    `
+        : `${candidatesCte}
+      SELECT
+        c.id, c.schema_id, c.created_at, c.updated_at, c.created_by, c.deleted_at,
+        ${countSelect}
+        p.property_key, p.value, p.lamport_time, p.updated_by, p.updated_at AS prop_updated_at,
+        c.ordinal
+      FROM candidates c
+      LEFT JOIN node_properties p ON p.node_id = c.id
+      ORDER BY c.ordinal ASC, p.property_key ASC
+    `
+      fused = {
+        sql: fusedSql,
+        params: [...whereParams],
+        includesExactCount
+      }
     }
 
     return {
       sql,
       params: whereParams,
+      fused,
       postFilterDescriptor: useSqlPagination ? withoutNodeQueryPagination(descriptor) : descriptor,
       postFilterReason: this.getCompiledPostFilterReason({
         useSqlPagination,
@@ -3866,6 +4183,23 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
       case 'null':
         return
     }
+  }
+
+  /**
+   * ORDER BY for a pushed-down custom-property sort (0264). Mirrors the JS
+   * comparator in `applyNodeQueryDescriptor`: missing properties sort last
+   * ascending / first descending; typed value columns carry the order (for a
+   * homogeneous property exactly one is non-NULL). `n.id` breaks ties so the
+   * page boundary is a total order.
+   */
+  private buildPropertySortOrderBy(direction: SortDirection): string {
+    const dir = direction.toUpperCase()
+    const nullsDir = direction === 'asc' ? 'ASC' : 'DESC'
+    return (
+      `(sortp.node_id IS NULL) ${nullsDir}, ` +
+      `sortp.value_number ${dir}, sortp.value_boolean ${dir}, sortp.value_text ${dir}, ` +
+      'n.id ASC'
+    )
   }
 
   private buildSqlOrderBy(orderBy?: Partial<Record<string, SortDirection>>): string {

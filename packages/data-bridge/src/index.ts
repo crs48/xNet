@@ -70,6 +70,7 @@ export {
   MainThreadBridge,
   createMainThreadBridge,
   type MainThreadBridgeOptions,
+  type WarmStartQuerySnapshot,
   type SyncManagerLike
 } from './main-thread-bridge'
 export { WorkerBridge, createWorkerBridge } from './worker-bridge'

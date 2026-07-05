@@ -41,9 +41,10 @@ import { BundledPluginInstaller } from './components/BundledPluginInstaller'
 import { ConsentBanner } from './components/ConsentBanner'
 import { StorageOptimiseHint } from './components/StorageOptimiseHint'
 import { StorageWarningBanner } from './components/StorageWarningBanner'
+import { WarmStartSnapshots } from './components/WarmStartSnapshots'
 import { WorkingSetPrewarm } from './components/WorkingSetPrewarm'
 import { type BootFailure, reportBootFailure } from './lib/boot-diagnostics'
-import { bootMark, isBootDebugEnabled } from './lib/boot-timeline'
+import { bootMark, isBootDebugEnabled, runWhenBootSettled } from './lib/boot-timeline'
 import {
   clearXNetBrowserStorage,
   clearXNetBrowserStorageResetRequest,
@@ -52,13 +53,15 @@ import {
   subscribeXNetStorageCorruption
 } from './lib/browser-storage-reset'
 import { scheduleChangeLogCompaction } from './lib/change-log-compaction'
-import { isWorkerRuntimeEnabled } from './lib/data-runtime'
+import { getDataRuntime, isWorkerRuntimeEnabled } from './lib/data-runtime'
+import { schedulePeriodicOptimize } from './lib/db-optimize'
 import { scheduleOneTimeVacuum } from './lib/db-vacuum'
 import { defaultHubUrl, persistedHubUrl, readHubParam, setPersistedHubUrl } from './lib/hub-url'
 import { identityManager } from './lib/identity'
 import { startMainThreadStallDetector } from './lib/main-thread-stall'
 import { scheduleStalePresenceCleanup } from './lib/presence-blob-cleanup'
 import { logStoreContents } from './lib/read-path-probe'
+import { startRuntimeLatencyTelemetry } from './lib/runtime-latency-telemetry'
 import { detectBrowserFamily, getStorageBanner } from './lib/storage-banner'
 import { recordDurabilityTransition, subscribeStorageStatus } from './lib/storage-durability'
 import { looksEvicted, probeStoreColdStart, recordColdStartProbe } from './lib/store-cold-start'
@@ -370,6 +373,10 @@ export function App(): JSX.Element {
         // Watch for a main-thread freeze (the ~18s cold-open stall lives in a
         // post-hub:connected event-loop block no per-op timer can see; 0253).
         startMainThreadStallDetector()
+        // Input-latency telemetry per data runtime (exploration 0264): the
+        // measurement the worker-runtime default flip waits on. Compare via
+        // the `[xNet] runtime input latency` boot log across sessions.
+        startRuntimeLatencyTelemetry(getDataRuntime())
         if (shouldResetXNetBrowserStorageOnLoad()) {
           clearXNetBrowserStorageResetRequest()
           await clearXNetBrowserStorage()
@@ -488,8 +495,22 @@ export function App(): JSX.Element {
         // ~15.8 s cold-read stall caught in exploration 0233. No-ops after the
         // first run; logs file size before/after (the `db stats` measurement).
         scheduleOneTimeVacuum(sqliteAdapter)
+        schedulePeriodicOptimize(sqliteAdapter)
 
-        const nodeStorage = new SQLiteNodeStorageAdapter(sqliteAdapter)
+        // Adaptive indexes + property-sort pushdown (exploration 0264, Wave 2)
+        // soak behind a local flag before any default flip; index creation
+        // rides the bootSettled idle cadence — no background work is free on
+        // the single serial SQLite worker (0260).
+        let adaptiveIndexingEnabled = false
+        try {
+          adaptiveIndexingEnabled = localStorage.getItem('xnet:adaptive-indexes') === 'true'
+        } catch {
+          // localStorage unavailable — keep the default off.
+        }
+        const nodeStorage = new SQLiteNodeStorageAdapter(sqliteAdapter, {
+          adaptiveIndexing: { enabled: adaptiveIndexingEnabled },
+          scheduleMaintenance: (task) => runWhenBootSettled(() => void task())
+        })
 
         // Idle-scheduled change-log compaction (exploration 0254 / F3): prune
         // superseded history from the local `changes` log so the OPFS file — and
@@ -966,6 +987,7 @@ export function App(): JSX.Element {
           }}
         >
           <BootTimelineProbe />
+          <WarmStartSnapshots did={identity.did} />
           <WorkingSetPrewarm />
           <BundledPluginInstaller />
           <XNetDevToolsProvider

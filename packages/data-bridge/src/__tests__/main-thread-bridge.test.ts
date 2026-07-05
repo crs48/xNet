@@ -1587,6 +1587,55 @@ describe('MainThreadBridge', () => {
       expect(stats.maxWeightRows).toBeGreaterThan(0)
     })
 
+    it('seeds warm-start snapshots stale and revalidates on the next query (0264)', async () => {
+      // A previous session's snapshot: one task the store does NOT contain.
+      const staleNode = createRemoteNode('warm-1', 'From last session')
+      const descriptor = { schemaId: TestTaskSchema._schemaId, includeDeleted: false }
+      const queryId = bridge['cache'].computeQueryId(TestTaskSchema._schemaId, {})
+
+      const seeded = bridge.seedQuerySnapshots([
+        { queryId, descriptor: descriptor as never, nodes: [staleNode] }
+      ])
+      expect(seeded).toBe(1)
+
+      // The seeded rows render synchronously…
+      const subscription = bridge.query(TestTaskSchema)
+      const immediate = subscription.getSnapshot()
+      expect(immediate?.map((n) => n.id)).toEqual(['warm-1'])
+
+      // …and the live query (already racing) replaces them with storage truth.
+      await vi.waitFor(() => {
+        const snapshot = subscription.getSnapshot()
+        if (snapshot?.some((n) => n.id === 'warm-1')) {
+          throw new Error('stale snapshot still showing')
+        }
+      })
+    })
+
+    it('never overwrites live data with a snapshot, and exports loaded entries', async () => {
+      await bridge.create(TestTaskSchema, { title: 'Live row' })
+      const subscription = bridge.query(TestTaskSchema)
+      await vi.waitFor(() => {
+        const snapshot = subscription.getSnapshot()
+        if (!snapshot || snapshot.length === 0) throw new Error('loading')
+      })
+
+      const queryId = bridge['cache'].computeQueryId(TestTaskSchema._schemaId, {})
+      const seeded = bridge.seedQuerySnapshots([
+        {
+          queryId,
+          descriptor: { schemaId: TestTaskSchema._schemaId } as never,
+          nodes: [createRemoteNode('stale-x', 'Stale')]
+        }
+      ])
+      expect(seeded).toBe(0)
+      expect(subscription.getSnapshot()?.[0]?.properties.title).toBe('Live row')
+
+      const exported = bridge.exportQuerySnapshots()
+      expect(exported.length).toBeGreaterThan(0)
+      expect(exported[0].nodes[0].properties.title).toBe('Live row')
+    })
+
     it('serves warm snapshots at high hit rate with sub-ms reads (0263 validation)', async () => {
       await bridge.create(TestTaskSchema, { title: 'Warm task' })
       const subscription = bridge.query(TestTaskSchema)

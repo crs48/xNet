@@ -115,6 +115,13 @@ export interface MainThreadBridgeOptions {
   remoteNodeQueryRouting?: Partial<NodeQueryRouterThresholds>
 }
 
+/** One persisted query result for warm-start seeding (exploration 0264). */
+export interface WarmStartQuerySnapshot {
+  queryId: string
+  descriptor: QueryDescriptor
+  nodes: NodeState[]
+}
+
 type RemoteStreamRuntime = {
   state: QueryStreamState
   unsubscribe: (() => void) | null
@@ -179,6 +186,60 @@ export class MainThreadBridge implements DataBridge {
   /** Read-tier effectiveness counters (hit rate, weight, evictions; 0263). */
   getQueryCacheStats(): ReturnType<QueryCache['getStats']> {
     return this.cache.getStats()
+  }
+
+  // ─── Warm-start snapshots (exploration 0264, Wave 3) ─────────────────────
+
+  /**
+   * Export the loaded local query entries for warm-start persistence: the
+   * app serializes these at idle and re-seeds them on the next boot so the
+   * first paint renders from yesterday's rows instead of a spinner.
+   */
+  exportQuerySnapshots(limit = 12): WarmStartQuerySnapshot[] {
+    return this.cache
+      .getEntries()
+      .filter(
+        (entry) =>
+          entry.data !== null && entry.data.length > 0 && entry.descriptor.mode !== 'remote'
+      )
+      .slice(0, limit)
+      .map((entry) => ({
+        queryId: entry.queryId,
+        descriptor: entry.descriptor,
+        nodes: entry.data as NodeState[]
+      }))
+  }
+
+  /**
+   * Seed persisted snapshots into the query cache as STALE entries —
+   * `getSnapshot()` serves them immediately while the next `query()` call
+   * revalidates against storage (0263 stale-while-revalidate). That IS the
+   * snapshot-vs-live race: the live query always runs; the snapshot only
+   * wins the paint. Entries that already hold live data are never
+   * overwritten. Returns how many entries were seeded.
+   */
+  seedQuerySnapshots(snapshots: readonly WarmStartQuerySnapshot[]): number {
+    let seeded = 0
+    for (const snapshot of snapshots) {
+      if (!snapshot?.queryId || !snapshot.descriptor || !Array.isArray(snapshot.nodes)) continue
+      if (this.cache.get(snapshot.queryId) !== null) continue
+
+      this.cache.initEntry(snapshot.queryId, snapshot.descriptor)
+      this.cache.set(
+        snapshot.queryId,
+        snapshot.nodes,
+        snapshot.descriptor,
+        undefined,
+        createQuerySnapshotMetadata({
+          descriptor: snapshot.descriptor,
+          nodes: snapshot.nodes,
+          source: 'local'
+        })
+      )
+      this.cache.markStale(snapshot.queryId)
+      seeded += 1
+    }
+    return seeded
   }
 
   // ─── Queries ────────────────────────────────────────────

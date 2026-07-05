@@ -64,6 +64,7 @@ const workspaceAliases = {
     .pathname,
   '@xnetjs/sqlite/electron': new URL('./packages/sqlite/src/adapters/electron.ts', import.meta.url)
     .pathname,
+  '@xnetjs/sqlite/web': new URL('./packages/sqlite/src/adapters/web.ts', import.meta.url).pathname,
   '@xnetjs/sqlite': new URL('./packages/sqlite/src/index.ts', import.meta.url).pathname,
   '@xnetjs/storage': new URL('./packages/storage/src/index.ts', import.meta.url).pathname,
   '@xnetjs/sync': new URL('./packages/sync/src/index.ts', import.meta.url).pathname,

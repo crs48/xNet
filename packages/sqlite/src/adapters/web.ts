@@ -391,6 +391,19 @@ export class WebSQLiteAdapter implements SQLiteAdapter {
     } catch (err) {
       log('[WebSQLiteAdapter] journal_mode pragma not applied:', err)
     }
+    // Query-planner statistics hygiene (exploration 0264). The official
+    // long-lived-connection recipe: bound ANALYZE cost, then analyze tables
+    // whose stats are missing or stale at open (mask 0x10002). Without
+    // sqlite_stat1 the planner can never skip-scan the EAV scalar indexes and
+    // mis-guesses join order on skewed property-key distributions. The
+    // periodic `PRAGMA optimize` lives on the bootSettled idle cadence
+    // (apps/web db-optimize.ts); the close-time optimize below remains.
+    try {
+      this.execSync('PRAGMA analysis_limit = 400')
+      this.execSync('PRAGMA optimize = 0x10002')
+    } catch (err) {
+      log('[WebSQLiteAdapter] open-time optimize not applied:', err)
+    }
 
     // Record the open-phase split (exploration 0253). The worker host reads this
     // to emit one `[xNet] sqlite open phases` line, finally bracketing the window

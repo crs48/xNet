@@ -3045,6 +3045,346 @@ describe('SQLiteNodeStorageAdapter', () => {
     })
   })
 
+  // ─── Property-sort pushdown + deferred adaptive indexes (0264 W2) ────────────
+
+  describe('property-sort pushdown (0264)', () => {
+    beforeEach(async () => {
+      const now = Date.now()
+      await adapter.importNodes([
+        createTestNode({
+          id: 'sort-high',
+          schemaId: taskSchemaId,
+          properties: { title: 'High', priority: 10, done: false },
+          updatedAt: now
+        }),
+        createTestNode({
+          id: 'sort-low',
+          schemaId: taskSchemaId,
+          properties: { title: 'Low', priority: 1, done: false },
+          updatedAt: now + 1
+        }),
+        createTestNode({
+          id: 'sort-mid',
+          schemaId: taskSchemaId,
+          properties: { title: 'Mid', priority: 5, done: false },
+          updatedAt: now + 2
+        }),
+        createTestNode({
+          id: 'sort-none',
+          schemaId: taskSchemaId,
+          properties: { title: 'No priority', done: false },
+          updatedAt: now + 3
+        })
+      ])
+    })
+
+    function pushdownAdapter(): SQLiteNodeStorageAdapter {
+      return new SQLiteNodeStorageAdapter(db, {
+        adaptiveIndexing: { enabled: true, minHits: 999_999 },
+        queryVerification: { enabled: true }
+      })
+    }
+
+    it('pushes a single custom-property sort down to SQL pagination', async () => {
+      const result = await pushdownAdapter().queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        orderBy: { priority: 'desc' },
+        limit: 2
+      })
+
+      expect(result.plan.strategy).toBe('storage-query')
+      expect(result.plan.postFilterReason).toBe('pagination-pushed-down')
+      // JS comparator semantics: missing properties sort FIRST descending.
+      expect(result.nodes.map((n) => n.id)).toEqual(['sort-none', 'sort-high'])
+      // Only the page was hydrated — the pre-0264 shape hydrated ALL rows.
+      expect(result.plan.candidateNodeCount).toBe(2)
+    })
+
+    it('places missing properties last ascending, first descending (JS parity)', async () => {
+      const asc = await pushdownAdapter().queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        orderBy: { priority: 'asc' },
+        limit: 4
+      })
+      expect(asc.nodes.map((n) => n.id)).toEqual(['sort-low', 'sort-mid', 'sort-high', 'sort-none'])
+
+      const desc = await pushdownAdapter().queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        orderBy: { priority: 'desc' },
+        limit: 4
+      })
+      expect(desc.nodes.map((n) => n.id)).toEqual([
+        'sort-none',
+        'sort-high',
+        'sort-mid',
+        'sort-low'
+      ])
+    })
+
+    it('without the flag, property sorts hydrate everything and sort in JS', async () => {
+      const result = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        orderBy: { priority: 'desc' },
+        limit: 2
+      })
+      // Same rows, but the whole schema was hydrated to sort a page of 2.
+      expect(result.nodes.map((n) => n.id)).toEqual(['sort-none', 'sort-high'])
+      expect(result.plan.postFilterReason).not.toBe('pagination-pushed-down')
+      expect(result.plan.candidateNodeCount).toBe(4)
+    })
+
+    it('multi-key property sorts keep the JS-sorted shape (unsupported for pushdown)', async () => {
+      const result = await pushdownAdapter().queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        orderBy: { priority: 'desc', title: 'asc' },
+        limit: 2
+      })
+      expect(result.plan.postFilterReason).not.toBe('pagination-pushed-down')
+      expect(result.plan.candidateNodeCount).toBe(4)
+    })
+  })
+
+  describe('deferred adaptive-index creation (0264)', () => {
+    it('routes index creation through the maintenance scheduler', async () => {
+      const scheduled: Array<() => Promise<void> | void> = []
+      const deferredAdapter = new SQLiteNodeStorageAdapter(db, {
+        adaptiveIndexing: { enabled: true, minHits: 1, minDurationMs: 0, minCandidates: 0 },
+        scheduleMaintenance: (task) => {
+          scheduled.push(task)
+        }
+      })
+      await deferredAdapter.importNodes([
+        createTestNode({
+          id: 'defer-open',
+          schemaId: taskSchemaId,
+          properties: { status: 'open' }
+        })
+      ])
+
+      const result = await deferredAdapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' }
+      })
+
+      // Not created inline: the query's plan carries no names yet…
+      expect(result.plan.adaptiveIndexNames).toBeUndefined()
+      const before = await db.query<{ name: string }>(
+        `SELECT name FROM sqlite_master WHERE type = 'index' AND name LIKE 'idx_auto_prop_%'`
+      )
+      expect(before).toHaveLength(0)
+      expect(scheduled.length).toBeGreaterThan(0)
+
+      // …the idle task creates it.
+      for (const task of scheduled) {
+        await task()
+      }
+      const after = await db.query<{ name: string }>(
+        `SELECT name FROM sqlite_master WHERE type = 'index' AND name LIKE 'idx_auto_prop_%'`
+      )
+      expect(after).toHaveLength(1)
+    })
+  })
+
+  // ─── Fused single-RPC queries (exploration 0264) ─────────────────────────────
+
+  describe('fused single-RPC queries (0264)', () => {
+    beforeEach(async () => {
+      const now = Date.now()
+      await adapter.importNodes(
+        Array.from({ length: 5 }, (_, i) =>
+          createTestNode({
+            id: `fused-${i}`,
+            schemaId: taskSchemaId,
+            properties: { title: `Fused ${i}`, status: i % 2 === 0 ? 'open' : 'done', done: false },
+            createdAt: now + i,
+            updatedAt: now + i * 1000
+          })
+        )
+      )
+    })
+
+    function countingAdapter(): { db: SQLiteAdapter; queries: string[] } {
+      const queries: string[] = []
+      const counting = new Proxy(db, {
+        get(target, property, receiver) {
+          if (property === 'query') {
+            return async (sql: string, params?: unknown[]) => {
+              queries.push(sql)
+              return target.query(sql, params as never)
+            }
+          }
+          const value = Reflect.get(target, property, receiver)
+          return typeof value === 'function' ? value.bind(target) : value
+        }
+      }) as SQLiteAdapter
+      return { db: counting, queries }
+    }
+
+    it('answers a pushed-down descriptor in ONE query RPC', async () => {
+      const { db: counting, queries } = countingAdapter()
+      const fusedAdapter = new SQLiteNodeStorageAdapter(counting)
+
+      const result = await fusedAdapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        orderBy: { updatedAt: 'desc' },
+        limit: 3
+      })
+
+      expect(result.nodes).toHaveLength(3)
+      expect(result.nodes[0].properties.title).toBe('Fused 4')
+      expect(result.plan.postFilterReason).toBe('pagination-pushed-down')
+      // ONE round-trip: the candidate CTE feeds the hydrate join directly.
+      expect(queries).toHaveLength(1)
+      expect(queries[0]).toContain('WITH candidates')
+    })
+
+    it('folds count:exact into the same single RPC via COUNT(*) OVER ()', async () => {
+      const { db: counting, queries } = countingAdapter()
+      const fusedAdapter = new SQLiteNodeStorageAdapter(counting)
+
+      const result = await fusedAdapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        orderBy: { updatedAt: 'desc' },
+        limit: 2,
+        count: 'exact'
+      })
+
+      expect(result.nodes).toHaveLength(2)
+      expect(result.totalCount).toBe(5)
+      expect(queries).toHaveLength(1)
+      expect(queries[0]).toContain('COUNT(*) OVER ()')
+    })
+
+    it('scalar-where descriptors fuse too, with correct membership', async () => {
+      const { db: counting, queries } = countingAdapter()
+      const fusedAdapter = new SQLiteNodeStorageAdapter(counting)
+
+      const result = await fusedAdapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' },
+        orderBy: { updatedAt: 'desc' },
+        limit: 10,
+        count: 'exact'
+      })
+
+      expect(result.nodes.map((n) => n.id).sort()).toEqual(['fused-0', 'fused-2', 'fused-4'])
+      expect(result.totalCount).toBe(3)
+      expect(queries).toHaveLength(1)
+    })
+
+    it('an empty page at offset 0 reports totalCount 0 without a count RPC', async () => {
+      const { db: counting, queries } = countingAdapter()
+      const fusedAdapter = new SQLiteNodeStorageAdapter(counting)
+
+      const result = await fusedAdapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'missing-status' },
+        orderBy: { updatedAt: 'desc' },
+        limit: 5,
+        count: 'exact'
+      })
+
+      expect(result.nodes).toHaveLength(0)
+      expect(result.totalCount).toBe(0)
+      expect(queries).toHaveLength(1)
+    })
+
+    it('a zero-row page at a deep offset falls back to a real count', async () => {
+      const result = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        orderBy: { updatedAt: 'desc' },
+        limit: 2,
+        offset: 50,
+        count: 'exact'
+      })
+
+      expect(result.nodes).toHaveLength(0)
+      expect(result.totalCount).toBe(5)
+    })
+  })
+
+  // ─── Arity padding (exploration 0264) ────────────────────────────────────────
+
+  describe('arity padding for statement-cache hits (0264)', () => {
+    beforeEach(async () => {
+      await adapter.importNodes(
+        Array.from({ length: 9 }, (_, i) =>
+          createTestNode({ id: `pad-${i}`, properties: { title: `Pad ${i}` } })
+        )
+      )
+    })
+
+    function capturingAdapter(): { db: SQLiteAdapter; queries: string[] } {
+      const queries: string[] = []
+      const capturing = new Proxy(db, {
+        get(target, property, receiver) {
+          if (property === 'query') {
+            return async (sql: string, params?: unknown[]) => {
+              queries.push(sql)
+              return target.query(sql, params as never)
+            }
+          }
+          const value = Reflect.get(target, property, receiver)
+          return typeof value === 'function' ? value.bind(target) : value
+        }
+      }) as SQLiteAdapter
+      return { db: capturing, queries }
+    }
+
+    it('different-sized hydrates share ONE SQL string (same bucket)', async () => {
+      const { db: capturing, queries } = capturingAdapter()
+      const padAdapter = new SQLiteNodeStorageAdapter(capturing)
+
+      const three = await padAdapter.getNodes(['pad-0', 'pad-1', 'pad-2'])
+      const seven = await padAdapter.getNodes([
+        'pad-0',
+        'pad-1',
+        'pad-2',
+        'pad-3',
+        'pad-4',
+        'pad-5',
+        'pad-6'
+      ])
+
+      expect(three).toHaveLength(3)
+      expect(seven).toHaveLength(7)
+      // Both sizes pad to the 10-bucket → identical SQL → stmt-cache hit.
+      expect(queries).toHaveLength(2)
+      expect(queries[0]).toBe(queries[1])
+    })
+
+    it('padding never fabricates rows', async () => {
+      const nodes = await adapter.getNodes(['pad-3', 'pad-8', 'ghost-id'])
+      expect(nodes.map((n) => n.id).sort()).toEqual(['pad-3', 'pad-8'])
+    })
+
+    it('getExistingNodeIds shares SQL across sizes and stays correct', async () => {
+      const { db: capturing, queries } = capturingAdapter()
+      const padAdapter = new SQLiteNodeStorageAdapter(capturing)
+
+      const two = await padAdapter.getExistingNodeIds(['pad-0', 'ghost'])
+      const nine = await padAdapter.getExistingNodeIds(
+        Array.from({ length: 9 }, (_, i) => `pad-${i}`)
+      )
+
+      expect(two).toEqual(['pad-0'])
+      expect(nine).toHaveLength(9)
+      expect(queries).toHaveLength(2)
+      expect(queries[0]).toBe(queries[1])
+    })
+  })
+
   // ─── Hydrate batching (exploration 0263) ─────────────────────────────────────
 
   describe('hydrate batching (0263)', () => {

@@ -721,6 +721,7 @@ export {
 export {
   XNetProvider,
   useXNet,
+  useDataBridge,
   type XNetConfig,
   type XNetContextValue,
   type XNetProviderProps
