@@ -6,7 +6,12 @@
  * writes, and that identical concurrent reads collapse to one execution.
  */
 import { describe, it, expect, vi } from 'vitest'
-import { WorkerScheduler, firstOpGapFields, type SchedulerOpReport } from './worker-scheduler'
+import {
+  WorkerScheduler,
+  firstOpGapFields,
+  percentileMs,
+  type SchedulerOpReport
+} from './worker-scheduler'
 
 /** A promise plus its resolver, so a test can release a job on demand. */
 function deferred<T>(): { promise: Promise<T>; resolve: (v: T) => void } {
@@ -163,6 +168,75 @@ describe('WorkerScheduler (0228)', () => {
     // started no earlier than enqueued; queueMs is exactly their difference.
     expect(r.startedAt).toBeGreaterThanOrEqual(r.enqueuedAt)
     expect(Math.round(r.queueMs)).toBe(Math.round(r.startedAt - r.enqueuedAt))
+  })
+})
+
+describe('percentileMs (0263)', () => {
+  it('returns 0 for an empty sample', () => {
+    expect(percentileMs([], 50)).toBe(0)
+    expect(percentileMs([], 95)).toBe(0)
+  })
+
+  it('computes nearest-rank percentiles without mutating the input', () => {
+    const samples = [50, 10, 40, 20, 30]
+    expect(percentileMs(samples, 50)).toBe(30)
+    expect(percentileMs(samples, 95)).toBe(50)
+    expect(percentileMs(samples, 100)).toBe(50)
+    expect(samples).toEqual([50, 10, 40, 20, 30])
+  })
+
+  it('handles a single sample', () => {
+    expect(percentileMs([7.4], 50)).toBe(7)
+    expect(percentileMs([7.4], 95)).toBe(7)
+  })
+})
+
+describe('WorkerScheduler op stats (0263)', () => {
+  it('aggregates per-lane op counts and latency percentiles', async () => {
+    const sched = new WorkerScheduler()
+    await sched.schedule('interactive', async () => 1, undefined, 'query')
+    await sched.schedule('interactive', async () => 2, undefined, 'query')
+    await sched.schedule('write', async () => 3, undefined, 'run')
+
+    const stats = sched.opStats()
+    expect(stats.ops).toBe(3)
+    expect(stats.lanes.interactive.ops).toBe(2)
+    expect(stats.lanes.write.ops).toBe(1)
+    expect(stats.lanes.bulk.ops).toBe(0)
+    expect(stats.lanes.interactive.execP95Ms).toBeGreaterThanOrEqual(0)
+    expect(stats.lanes.interactive.maxExecMs).toBeGreaterThanOrEqual(
+      stats.lanes.interactive.execP50Ms
+    )
+  })
+
+  it('counts coalesced duplicate reads as hits, not ops', async () => {
+    const sched = new WorkerScheduler()
+    const gate = deferred<void>()
+    const first = sched.schedule('interactive', () => gate.promise.then(() => 'x'), 'KEY')
+    const dupe = sched.schedule('interactive', async () => 'never-runs', 'KEY')
+    gate.resolve()
+    expect(await first).toBe('x')
+    expect(await dupe).toBe('x')
+
+    const stats = sched.opStats()
+    expect(stats.coalescedHits).toBe(1)
+    expect(stats.lanes.interactive.ops).toBe(1)
+  })
+
+  it('records failed ops too, and resetOpStats() zeroes everything', async () => {
+    const sched = new WorkerScheduler()
+    await expect(
+      sched.schedule('write', async () => {
+        throw new Error('boom')
+      })
+    ).rejects.toThrow('boom')
+    expect(sched.opStats().lanes.write.ops).toBe(1)
+
+    sched.resetOpStats()
+    const stats = sched.opStats()
+    expect(stats.ops).toBe(0)
+    expect(stats.coalescedHits).toBe(0)
+    expect(stats.lanes.write.maxExecMs).toBe(0)
   })
 })
 

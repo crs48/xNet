@@ -129,6 +129,62 @@ describe('WebSQLiteAdapter (node / in-memory fallback)', () => {
   })
 })
 
+describe('statement-cache micro-benchmark (0263)', () => {
+  it('repeated queries through the cache are not slower than per-call exec', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const db = new WebSQLiteAdapter()
+    await db.open({ path: '/bench.db' })
+    try {
+      await db.exec('CREATE TABLE bench (id INTEGER PRIMARY KEY, name TEXT)')
+      for (let i = 0; i < 500; i++) {
+        await db.run('INSERT INTO bench (name) VALUES (?)', [`row-${i}`])
+      }
+
+      const sql = 'SELECT id, name FROM bench WHERE id > ? ORDER BY id LIMIT 20'
+      const iterations = 300
+
+      // Baseline: the pre-0263 hot path — db.exec() re-parses per call.
+      // Reaching into the private handle is deliberate; the exec path is no
+      // longer reachable for single-statement SQL through the public API.
+      const raw = (db as unknown as { db: { exec: (opts: unknown) => void } }).db
+      const execStart = performance.now()
+      for (let i = 0; i < iterations; i++) {
+        const rows: unknown[] = []
+        raw.exec({
+          sql,
+          bind: [i % 100],
+          rowMode: 'object',
+          callback: (row: unknown) => rows.push(row)
+        })
+      }
+      const execMs = performance.now() - execStart
+
+      // Cached-statement path (one warm-up call populates the cache).
+      await db.query(sql, [0])
+      const preparedStart = performance.now()
+      for (let i = 0; i < iterations; i++) {
+        await db.query(sql, [i % 100])
+      }
+      const preparedMs = performance.now() - preparedStart
+
+      // eslint-disable-next-line no-console
+      console.info(
+        `[0263 bench] ${iterations}x repeated query — exec: ${execMs.toFixed(1)}ms, ` +
+          `cached-stmt: ${preparedMs.toFixed(1)}ms, ratio: ${(preparedMs / execMs).toFixed(2)}`
+      )
+
+      // Generous bound: the cached path includes per-call async overhead the
+      // raw sync loop doesn't pay, so assert "not dramatically slower" rather
+      // than a flaky "must be faster" — the logged ratio carries the signal.
+      expect(preparedMs).toBeLessThan(execMs * 3)
+    } finally {
+      await db.close()
+      vi.restoreAllMocks()
+    }
+  })
+})
+
 describe('createWebSQLiteAdapter (schema factory)', () => {
   it('applies the shared schema and supports applyNodeBatch', async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {})

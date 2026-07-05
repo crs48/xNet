@@ -17,6 +17,7 @@ import type {
   SQLiteNodeBatchApplyInput,
   SQLiteNodeBatchApplyResult
 } from '../types'
+import type { SchedulerOpStats } from './worker-scheduler'
 import * as Comlink from 'comlink'
 import { readBootLogArgs } from './boot-log-bridge'
 import { openWithTimeoutRetry } from './open-retry'
@@ -395,6 +396,23 @@ export class WebSQLiteProxy implements SQLiteAdapter {
     this.operationStats.workerRequestCount += 1
     await this.proxy.connectPort(Comlink.transfer(channel.port1, [channel.port1]))
     return channel.port2
+  }
+
+  /**
+   * Worker-side scheduler stats: per-lane p50/p95 queue+exec latency and
+   * coalesce hits (exploration 0263). Complements getOperationStats(), which
+   * counts main-thread RPCs — together they give "how many round-trips" and
+   * "how long each op spent in the worker".
+   */
+  async getSchedulerOpStats(): Promise<SchedulerOpStats> {
+    if (!this.proxy) throw new Error('Database not open')
+    return this.proxy.getSchedulerOpStats()
+  }
+
+  /** Zero the worker-side scheduler stats for a focused measurement. */
+  async resetSchedulerOpStats(): Promise<void> {
+    if (!this.proxy) throw new Error('Database not open')
+    return this.proxy.resetSchedulerOpStats()
   }
 
   getOperationStats(): SQLiteOperationStats {

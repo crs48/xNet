@@ -111,6 +111,89 @@ export function firstOpGapFields(
   }
 }
 
+/** Aggregated per-lane op latency (exploration 0263). All ms values rounded. */
+export interface SchedulerLaneOpStats {
+  /** Ops executed on this lane since open/reset. */
+  ops: number
+  queueP50Ms: number
+  queueP95Ms: number
+  execP50Ms: number
+  execP95Ms: number
+  /** Worst single execution — the head-of-line-blocking amplitude. */
+  maxExecMs: number
+}
+
+/**
+ * Cumulative scheduler statistics: how many ops ran, how many duplicate reads
+ * were served without executing (coalesced), and per-lane latency percentiles.
+ * This is the "p50/p95 per-query worker time" measurement of exploration 0263 —
+ * the number that says whether the statement cache / batch RPC actually moved
+ * anything, without wading through per-op boot-log lines.
+ */
+export interface SchedulerOpStats {
+  ops: number
+  coalescedHits: number
+  lanes: Record<SchedulerLane, SchedulerLaneOpStats>
+}
+
+/**
+ * Nearest-rank percentile over an UNSORTED sample array (sorts a copy).
+ * Returns 0 for an empty sample.
+ */
+export function percentileMs(samples: readonly number[], p: number): number {
+  if (samples.length === 0) return 0
+  const sorted = [...samples].sort((a, b) => a - b)
+  const rank = Math.min(sorted.length - 1, Math.max(0, Math.ceil((p / 100) * sorted.length) - 1))
+  return Math.round(sorted[rank])
+}
+
+/**
+ * Per-lane sample cap. Percentiles are computed over the most recent samples
+ * (ring buffer) so a long-lived worker reflects current behaviour, not boot.
+ */
+const SCHEDULER_STATS_SAMPLE_CAP = 512
+
+/** Ring-buffered queue/exec samples plus counters for one lane. */
+class LaneStatsAccumulator {
+  ops = 0
+  maxExecMs = 0
+  private readonly queueSamples: number[] = []
+  private readonly execSamples: number[] = []
+  private cursor = 0
+
+  record(queueMs: number, execMs: number): void {
+    this.ops += 1
+    if (execMs > this.maxExecMs) this.maxExecMs = execMs
+    if (this.queueSamples.length < SCHEDULER_STATS_SAMPLE_CAP) {
+      this.queueSamples.push(queueMs)
+      this.execSamples.push(execMs)
+    } else {
+      this.queueSamples[this.cursor] = queueMs
+      this.execSamples[this.cursor] = execMs
+      this.cursor = (this.cursor + 1) % SCHEDULER_STATS_SAMPLE_CAP
+    }
+  }
+
+  stats(): SchedulerLaneOpStats {
+    return {
+      ops: this.ops,
+      queueP50Ms: percentileMs(this.queueSamples, 50),
+      queueP95Ms: percentileMs(this.queueSamples, 95),
+      execP50Ms: percentileMs(this.execSamples, 50),
+      execP95Ms: percentileMs(this.execSamples, 95),
+      maxExecMs: Math.round(this.maxExecMs)
+    }
+  }
+
+  reset(): void {
+    this.ops = 0
+    this.maxExecMs = 0
+    this.queueSamples.length = 0
+    this.execSamples.length = 0
+    this.cursor = 0
+  }
+}
+
 export class WorkerScheduler {
   private readonly queues: Record<SchedulerLane, QueuedJob[]> = {
     interactive: [],
@@ -120,6 +203,13 @@ export class WorkerScheduler {
   /** In-flight + queued reads keyed by `coalesceKey`, to collapse duplicates. */
   private readonly coalesced = new Map<string, Promise<unknown>>()
   private running = false
+  /** Aggregated op timing per lane (exploration 0263). */
+  private readonly laneStats: Record<SchedulerLane, LaneStatsAccumulator> = {
+    interactive: new LaneStatsAccumulator(),
+    bulk: new LaneStatsAccumulator(),
+    write: new LaneStatsAccumulator()
+  }
+  private coalescedHits = 0
 
   /**
    * @param onOp optional per-operation timing reporter (boot diagnostics, 0229).
@@ -143,7 +233,10 @@ export class WorkerScheduler {
   ): Promise<T> {
     if (coalesceKey !== undefined) {
       const inflight = this.coalesced.get(coalesceKey)
-      if (inflight) return inflight as Promise<T>
+      if (inflight) {
+        this.coalescedHits += 1
+        return inflight as Promise<T>
+      }
     }
 
     const promise = new Promise<T>((resolve, reject) => {
@@ -180,6 +273,28 @@ export class WorkerScheduler {
     }
   }
 
+  /** Cumulative op counts, coalesce hits, and per-lane latency percentiles. */
+  opStats(): SchedulerOpStats {
+    const lanes = {
+      interactive: this.laneStats.interactive.stats(),
+      bulk: this.laneStats.bulk.stats(),
+      write: this.laneStats.write.stats()
+    }
+    return {
+      ops: lanes.interactive.ops + lanes.bulk.ops + lanes.write.ops,
+      coalescedHits: this.coalescedHits,
+      lanes
+    }
+  }
+
+  /** Zero the op-stats counters for a focused before/after measurement. */
+  resetOpStats(): void {
+    this.coalescedHits = 0
+    for (const lane of LANE_ORDER) {
+      this.laneStats[lane].reset()
+    }
+  }
+
   /** Pull the next job, highest-priority non-empty lane first (FIFO within a lane). */
   private next(): QueuedJob | undefined {
     for (const lane of LANE_ORDER) {
@@ -202,14 +317,19 @@ export class WorkerScheduler {
         } catch (err) {
           job.reject(err)
         } finally {
+          const endedAt = nowMs()
+          const queueMs = startedAt - job.enqueuedAt
+          const execMs = endedAt - startedAt
+          // Aggregation is always on (cheap ring-buffer write); the per-op
+          // reporter stays gated behind boot debug in the worker host.
+          this.laneStats[job.lane].record(queueMs, execMs)
           if (this.onOp) {
-            const endedAt = nowMs()
             this.onOp({
               lane: job.lane,
               label: job.label,
               detail: job.detail,
-              queueMs: startedAt - job.enqueuedAt,
-              execMs: endedAt - startedAt,
+              queueMs,
+              execMs,
               enqueuedAt: job.enqueuedAt,
               startedAt
             })
