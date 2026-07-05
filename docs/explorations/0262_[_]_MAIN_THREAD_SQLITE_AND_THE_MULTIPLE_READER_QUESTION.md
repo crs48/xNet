@@ -373,18 +373,18 @@ sequenceDiagram
       jump lanes).
 - [ ] Cooperative yielding inside long batch ops (`applyNodeBatch`, seed
       import) so interactive reads interleave mid-burst.
-- [ ] Add a `queryBatch(sql[])` RPC on `SQLiteWorkerHandler` + proxy, and use it
+- [x] Add a `queryBatch(sql[])` RPC on `SQLiteWorkerHandler` + proxy, and use it
       for multi-query screens (dashboard fan-out, prewarm).
 - [ ] Surface scheduler lane depth / op latency in the devtools perf panel
       (carried over from 0228).
 
 **Phase C — main-thread read tier (next)**
 
-- [ ] Add size-aware accounting to `QueryCache` (bytes, not entry count) and
+- [x] Add size-aware accounting to `QueryCache` (bytes, not entry count) and
       raise capacity accordingly; expose hit/miss counters.
-- [ ] Replace the >250-change full-reload cliff with keyed partial reload
+- [x] Replace the >250-change full-reload cliff with keyed partial reload
       (re-query only affected descriptors).
-- [ ] Hydrate the cache from `WorkingSetPrewarm` results so post-boot
+- [x] Hydrate the cache from `WorkingSetPrewarm` results so post-boot
       navigations hit warm entries.
 - [ ] Measure: cache hit-rate, `getSnapshot()` p95, worker round-trips per
       navigation — before/after.

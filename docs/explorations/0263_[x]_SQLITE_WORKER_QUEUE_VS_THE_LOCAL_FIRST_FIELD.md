@@ -459,20 +459,20 @@ navigator.locks.request('xnet-db-leader', { mode: 'exclusive' }, async () => {
 
 ## Validation Checklist
 
-- [ ] P1: warm per-query worker exec time drops measurably for repeated SQL
+- [x] P1: warm per-query worker exec time drops measurably for repeated SQL
       (statement reuse); no leaked Stmt handles across reset/migration tests.
-- [ ] P1: dashboard-class screen issues ≥ 50 % fewer worker round-trips via
+- [x] P1: dashboard-class screen issues ≥ 50 % fewer worker round-trips via
       `queryBatch` with identical results.
-- [ ] P2: two tabs both read/write durably; killing the leader tab migrates
+- [x] P2: two tabs both read/write durably; killing the leader tab migrates
       leadership < 1 s with zero lost writes and all follower promises
       settled (no livelock).
-- [ ] P2: reload no longer trips `NoModificationAllowedError` retries (lock
+- [x] P2: reload no longer trips `NoModificationAllowedError` retries (lock
       hand-off replaces backoff in the common case).
-- [ ] P2: `:memory:`-fallback session count → ~0 in telemetry.
-- [ ] Cross-browser: Safari (no `readwrite-unsafe`, SharedWorker ok) and
+- [x] P2: `:memory:`-fallback session count → ~0 in telemetry.
+- [x] Cross-browser: Safari (no `readwrite-unsafe`, SharedWorker ok) and
       Android Chrome (no SharedWorker) both pass the multi-tab suite in their
       degraded modes.
-- [ ] Scheduler invariants hold: lanes + coalescing unchanged under batch RPC
+- [x] Scheduler invariants hold: lanes + coalescing unchanged under batch RPC
       and cross-tab routing (existing `worker-scheduler.test.ts` extended).
 
 ## References
