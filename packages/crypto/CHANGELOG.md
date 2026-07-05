@@ -1,5 +1,12 @@
 # @xnetjs/crypto
 
+## 0.1.0
+
+### Patch Changes
+
+- Updated dependencies [[`d6d0470`](https://github.com/crs48/xNet/commit/d6d047022b8a77b7a3e7453869fb42cbeb73f4a4)]:
+  - @xnetjs/core@0.1.0
+
 ## 0.0.3
 
 ### Patch Changes

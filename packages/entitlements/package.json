@@ -1,6 +1,6 @@
 {
   "name": "@xnetjs/entitlements",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Plan catalog + signed HUB_PLAN entitlement tokens — the contract shared by the self-hostable hub and the xNet Cloud control plane.",
   "license": "MIT",
   "type": "module",
