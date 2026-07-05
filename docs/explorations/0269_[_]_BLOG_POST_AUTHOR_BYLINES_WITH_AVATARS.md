@@ -417,9 +417,9 @@ JSON-LD on each post page (new tiny component or a slot in `Byline.astro`):
       `site/public/blog/authors/claude.svg`.
 - [x] Create `site/src/components/blog/Byline.astro` (avatar stack + linked
       names, "with" separator before AI authors).
-- [ ] Insert `<Byline post={post} />` in each of the ten post pages, directly
+- [x] Insert `<Byline post={post} />` in each of the ten post pages, directly
       below the hero band / at the top of the article container.
-- [ ] Add the byline (compact variant) to the index cards in
+- [x] Add the byline (compact variant) to the index cards in
       `site/src/pages/blog/index.astro`.
 - [ ] Update `site/src/lib/blog-feed.ts`: add `xmlns:dc` to `<rss>`, replace
       `<author>` with per-author `<dc:creator>`.

@@ -4,6 +4,7 @@ import Nav from '../../components/sections/Nav.astro'
 import Footer from '../../components/sections/Footer.astro'
 import SeriesNav from '../../components/blog/SeriesNav.astro'
 import HookHero from '../../components/blog/HookHero.astro'
+import Byline from '../../components/blog/Byline.astro'
 import Mermaid from '../../components/blog/Mermaid.astro'
 import CodeFigure from '../../components/blog/CodeFigure.astro'
 import Peek from '../../components/blog/Peek.astro'
@@ -174,6 +175,8 @@ const trustFlow = `sequenceDiagram
     <article
       class="prose prose-lg mx-auto max-w-3xl px-6 py-16 dark:prose-invert prose-headings:tracking-tight prose-a:text-indigo-600 dark:prose-a:text-indigo-400"
     >
+      <Byline post={post} />
+
       <p>
         Sit down to build a task list the normal way and, before you write a
         line of UI, you owe the machine a small bureaucracy. An API endpoint to

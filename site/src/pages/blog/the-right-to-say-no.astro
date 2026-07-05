@@ -4,6 +4,7 @@ import Nav from '../../components/sections/Nav.astro'
 import Footer from '../../components/sections/Footer.astro'
 import SeriesNav from '../../components/blog/SeriesNav.astro'
 import LeverHero from '../../components/blog/LeverHero.astro'
+import Byline from '../../components/blog/Byline.astro'
 import WatchTheOriginal from '../../components/blog/WatchTheOriginal.astro'
 import GrowthVsLeverage from '../../components/blog/GrowthVsLeverage.astro'
 import HonestExit from '../../components/blog/HonestExit.astro'
@@ -27,6 +28,8 @@ const post = postBySlug('the-right-to-say-no')!
     <article
       class="prose prose-lg mx-auto max-w-3xl px-6 py-16 dark:prose-invert prose-headings:tracking-tight prose-a:text-rose-600 dark:prose-a:text-rose-400"
     >
+      <Byline post={post} />
+
       <p>
         The first time, we looked up — at an open sea of scattered islands, and the
         flags you might fly to stop being someone else’s cargo. The second time, we

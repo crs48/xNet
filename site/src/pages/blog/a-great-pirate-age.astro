@@ -4,6 +4,7 @@ import Nav from '../../components/sections/Nav.astro'
 import Footer from '../../components/sections/Footer.astro'
 import SeriesNav from '../../components/blog/SeriesNav.astro'
 import PirateHero from '../../components/blog/PirateHero.astro'
+import Byline from '../../components/blog/Byline.astro'
 import ArticlesMap from '../../components/blog/ArticlesMap.astro'
 import HonestPirate from '../../components/blog/HonestPirate.astro'
 import { postBySlug, formatPostDate } from '../../data/blog'
@@ -26,6 +27,8 @@ const post = postBySlug('a-great-pirate-age')!
     <article
       class="prose prose-lg mx-auto max-w-3xl px-6 py-16 dark:prose-invert prose-headings:tracking-tight prose-a:text-indigo-600 dark:prose-a:text-indigo-400"
     >
+      <Byline post={post} />
+
       <p>
         The most famous age of pirates began, in the story, with an execution. The
         World Government put the Pirate King to death in the public square to make
