@@ -400,7 +400,7 @@ function padIds(ids: string[]): (string | null)[] {
 - [x] Fuse compiled id-query + hydrate into one statement for
       `pagination-pushed-down` descriptors (keep two-step for JS-verified
       FTS/spatial paths); ride `queryBatch` where fusion is impossible.
-- [ ] Pad hydrate `VALUES` and IN-list arities to fixed buckets; verify
+- [x] Pad hydrate `VALUES` and IN-list arities to fixed buckets; verify
       statement-cache hit-rate via `getSchedulerOpStats` before/after.
 - [x] Fold `count: 'exact'` into the candidate query with `COUNT(*) OVER ()`.
 

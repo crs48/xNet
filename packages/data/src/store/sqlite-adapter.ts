@@ -297,6 +297,26 @@ interface PendingQueryTelemetry {
 const SQLITE_BIND_PARAMETER_BATCH_SIZE = 900
 const SQLITE_HYDRATE_NODE_BATCH_SIZE = Math.floor(SQLITE_BIND_PARAMETER_BATCH_SIZE / 2)
 
+/**
+ * Fixed arity buckets for id-list SQL (exploration 0264). Every distinct
+ * `VALUES (?,?),…`/`IN (?,…)` arity is a distinct SQL string — a guaranteed
+ * miss in the worker's prepared-statement cache (0263). Padding id lists up
+ * to the nearest bucket with NULLs (which never join/match) collapses the
+ * shape space to a handful of cacheable statements.
+ */
+const SQL_HYDRATE_ARITY_BUCKETS = [1, 10, 50, 150, SQLITE_HYDRATE_NODE_BATCH_SIZE] as const
+const SQL_IN_ARITY_BUCKETS = [10, 50, 300, SQLITE_BIND_PARAMETER_BATCH_SIZE] as const
+
+/** Pad `items` with NULLs up to the nearest arity bucket (see above). */
+function padToArityBucket<T>(
+  items: readonly T[],
+  buckets: readonly number[]
+): ReadonlyArray<T | null> {
+  const size = buckets.find((bucket) => bucket >= items.length) ?? items.length
+  if (size === items.length) return items
+  return [...items, ...Array<null>(size - items.length).fill(null)]
+}
+
 function getMaterializedQueryRefreshReason(input: {
   cached: MaterializedQueryRow | null
   descriptorHash: string
@@ -686,7 +706,10 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     if (uniqueIds.length === 0) return changes
 
     for (const batch of chunkItems(uniqueIds, SQLITE_BIND_PARAMETER_BATCH_SIZE)) {
-      const placeholders = batch.map(() => '?').join(', ')
+      // NULL-padded to a fixed arity so the statement caches (0264); NULL
+      // never matches an IN list.
+      const padded = padToArityBucket(batch, SQL_IN_ARITY_BUCKETS)
+      const placeholders = padded.map(() => '?').join(', ')
       const rows = await this.db.query<ChangeRow>(
         `SELECT hash, node_id, payload, lamport_time,
                 lamport_peer as lamport_author, wall_time,
@@ -700,7 +723,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
              ORDER BY c2.lamport_time DESC
              LIMIT 1
            )`,
-        batch
+        padded as SQLValue[]
       )
 
       rows.forEach((row) => {
@@ -742,10 +765,12 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
 
     const existingIds = new Set<NodeId>()
     for (const batch of chunkItems(uniqueIds, SQLITE_BIND_PARAMETER_BATCH_SIZE)) {
-      const placeholders = batch.map(() => '?').join(', ')
+      // NULL-padded to a fixed arity so the statement caches (0264).
+      const padded = padToArityBucket(batch, SQL_IN_ARITY_BUCKETS)
+      const placeholders = padded.map(() => '?').join(', ')
       const rows = await this.db.query<{ id: string }>(
         `SELECT id FROM nodes WHERE id IN (${placeholders})`,
-        batch
+        padded as SQLValue[]
       )
       rows.forEach((row) => existingIds.add(row.id))
     }
@@ -2105,8 +2130,12 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   }
 
   private buildHydrateChunkQuery(ids: string[]): { sql: string; params: SQLValue[] } {
-    const values = ids.map(() => '(?, ?)').join(', ')
-    const params: SQLValue[] = ids.flatMap((id, ordinal) => [id, ordinal])
+    // Pad to a fixed arity bucket so repeated hydrates share ONE SQL string
+    // and hit the worker's prepared-statement cache (exploration 0264). NULL
+    // ids never satisfy the JOIN, so padding rows vanish from the result.
+    const padded = padToArityBucket(ids, SQL_HYDRATE_ARITY_BUCKETS)
+    const values = padded.map(() => '(?, ?)').join(', ')
+    const params: SQLValue[] = padded.flatMap((id, ordinal) => [id, ordinal])
     const sql = `
       WITH wanted(id, ordinal) AS (
         VALUES ${values}

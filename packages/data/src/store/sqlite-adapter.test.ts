@@ -3168,6 +3168,77 @@ describe('SQLiteNodeStorageAdapter', () => {
     })
   })
 
+  // ─── Arity padding (exploration 0264) ────────────────────────────────────────
+
+  describe('arity padding for statement-cache hits (0264)', () => {
+    beforeEach(async () => {
+      await adapter.importNodes(
+        Array.from({ length: 9 }, (_, i) =>
+          createTestNode({ id: `pad-${i}`, properties: { title: `Pad ${i}` } })
+        )
+      )
+    })
+
+    function capturingAdapter(): { db: SQLiteAdapter; queries: string[] } {
+      const queries: string[] = []
+      const capturing = new Proxy(db, {
+        get(target, property, receiver) {
+          if (property === 'query') {
+            return async (sql: string, params?: unknown[]) => {
+              queries.push(sql)
+              return target.query(sql, params as never)
+            }
+          }
+          const value = Reflect.get(target, property, receiver)
+          return typeof value === 'function' ? value.bind(target) : value
+        }
+      }) as SQLiteAdapter
+      return { db: capturing, queries }
+    }
+
+    it('different-sized hydrates share ONE SQL string (same bucket)', async () => {
+      const { db: capturing, queries } = capturingAdapter()
+      const padAdapter = new SQLiteNodeStorageAdapter(capturing)
+
+      const three = await padAdapter.getNodes(['pad-0', 'pad-1', 'pad-2'])
+      const seven = await padAdapter.getNodes([
+        'pad-0',
+        'pad-1',
+        'pad-2',
+        'pad-3',
+        'pad-4',
+        'pad-5',
+        'pad-6'
+      ])
+
+      expect(three).toHaveLength(3)
+      expect(seven).toHaveLength(7)
+      // Both sizes pad to the 10-bucket → identical SQL → stmt-cache hit.
+      expect(queries).toHaveLength(2)
+      expect(queries[0]).toBe(queries[1])
+    })
+
+    it('padding never fabricates rows', async () => {
+      const nodes = await adapter.getNodes(['pad-3', 'pad-8', 'ghost-id'])
+      expect(nodes.map((n) => n.id).sort()).toEqual(['pad-3', 'pad-8'])
+    })
+
+    it('getExistingNodeIds shares SQL across sizes and stays correct', async () => {
+      const { db: capturing, queries } = capturingAdapter()
+      const padAdapter = new SQLiteNodeStorageAdapter(capturing)
+
+      const two = await padAdapter.getExistingNodeIds(['pad-0', 'ghost'])
+      const nine = await padAdapter.getExistingNodeIds(
+        Array.from({ length: 9 }, (_, i) => `pad-${i}`)
+      )
+
+      expect(two).toEqual(['pad-0'])
+      expect(nine).toHaveLength(9)
+      expect(queries).toHaveLength(2)
+      expect(queries[0]).toBe(queries[1])
+    })
+  })
+
   // ─── Hydrate batching (exploration 0263) ─────────────────────────────────────
 
   describe('hydrate batching (0263)', () => {
