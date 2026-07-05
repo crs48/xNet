@@ -412,7 +412,7 @@ JSON-LD on each post page (new tiny component or a slot in `Byline.astro`):
       `site/src/data/blog.ts`; replace `author: string` with
       `authors: BlogAuthorId[]` on `BlogPost` and set
       `authors: ['crs48', 'claude']` on all ten posts.
-- [ ] Vendor avatars: download `https://github.com/crs48.png?size=96` →
+- [x] Vendor avatars: download `https://github.com/crs48.png?size=96` →
       `site/public/blog/authors/crs48.jpg`; design an original Claude glyph →
       `site/public/blog/authors/claude.svg`.
 - [ ] Create `site/src/components/blog/Byline.astro` (avatar stack + linked

@@ -54,7 +54,7 @@ export const AUTHORS: Record<BlogAuthorId, BlogAuthor> = {
     id: 'crs48',
     name: 'crs48',
     href: 'https://github.com/crs48',
-    avatar: '/blog/authors/crs48.png'
+    avatar: '/blog/authors/crs48.jpg'
   },
   claude: {
     id: 'claude',
