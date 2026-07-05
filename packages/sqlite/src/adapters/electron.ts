@@ -502,6 +502,30 @@ export class ElectronSQLiteAdapter implements SQLiteAdapter {
     this.db!.exec('VACUUM')
   }
 
+  async incrementalVacuum(maxPages?: number): Promise<number> {
+    this.ensureOpen()
+    // better-sqlite3's pragma() steps the statement to completion, so unlike
+    // the WASM oo1 exec path this frees the whole freelist in one call. Report
+    // pages freed via the freelist delta.
+    const pragma =
+      maxPages !== undefined && maxPages > 0
+        ? `incremental_vacuum(${Math.floor(maxPages)})`
+        : 'incremental_vacuum'
+    const runIt = () => {
+      const before = this.db!.pragma('freelist_count', { simple: true }) as number
+      this.db!.pragma(pragma)
+      const after = this.db!.pragma('freelist_count', { simple: true }) as number
+      return Math.max(0, before - after)
+    }
+    if (this.inTransaction) {
+      return runIt()
+    }
+    if (this.scheduler) {
+      return this.scheduler.schedule('write', async () => runIt(), undefined, 'incremental_vacuum')
+    }
+    return runIt()
+  }
+
   async checkpoint(): Promise<number> {
     // better-sqlite3 handles WAL checkpointing automatically
     return 0

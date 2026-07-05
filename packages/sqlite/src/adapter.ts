@@ -184,6 +184,20 @@ export interface SQLiteAdapter {
   vacuum(): Promise<void>
 
   /**
+   * Return freelist pages to the filesystem under `auto_vacuum=INCREMENTAL`,
+   * optionally capped at `maxPages`. Returns the number of pages freed.
+   *
+   * This exists because `exec('PRAGMA incremental_vacuum')` is a silent
+   * near-no-op on the WASM build: SQLite frees ONE page per `sqlite3_step` of
+   * that pragma, and the oo1 `exec` path steps a statement only once when no
+   * rows are collected — so the freelist shrank by a single page per call.
+   * Implementations must step the pragma to completion. Optional: adapters
+   * for engines that step pragmas fully anyway (or that never run under
+   * incremental auto-vacuum) may omit it; callers fall back to `exec`.
+   */
+  incrementalVacuum?(maxPages?: number): Promise<number>
+
+  /**
    * Checkpoint WAL file (for WAL mode databases).
    * Returns the number of frames checkpointed.
    */
