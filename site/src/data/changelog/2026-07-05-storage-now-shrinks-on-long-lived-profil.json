@@ -4,5 +4,14 @@
   "title": "Storage now shrinks on long-lived profiles",
   "summary": "Databases created before incremental auto-vacuum existed were never converted, so reclaimed space never returned to disk. The one-time conversion now keys off the database's actual auto-vacuum mode instead of a latched flag, so existing profiles get converted and the storage file starts shrinking.",
   "highlights": [],
-  "tags": ["performance"]
+  "tags": [
+    "performance"
+  ],
+  "pr": 380,
+  "mergedAt": "2026-07-05T15:52:27Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
