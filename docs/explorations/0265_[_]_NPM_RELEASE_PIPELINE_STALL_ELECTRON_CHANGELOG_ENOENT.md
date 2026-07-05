@@ -283,7 +283,7 @@ writeFileSync(changelogPath, [title.trimEnd(), entry, ...rest].join('\n\n'))
       when (Option F) — add to `CLAUDE.md` or `docs/` runbook.
 - [ ] Merge the fix to main; watch the next `npm Release` run go green and
       refresh PR #281 with the 0263/0264 changesets.
-- [ ] Review the staged version bumps (major audit per changeset policy),
+- [x] Review the staged version bumps (major audit per changeset policy),
       then merge PR #281.
 
 ## Validation Checklist
