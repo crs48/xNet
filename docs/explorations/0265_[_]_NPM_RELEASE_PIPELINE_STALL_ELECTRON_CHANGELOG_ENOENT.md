@@ -187,21 +187,21 @@ stateDiagram-v2
 
 ## Options And Tradeoffs
 
-| Option | Change | Pros | Cons |
-| --- | --- | --- | --- |
-| **A. Seed a stub `apps/electron/CHANGELOG.md`** | One-time committed file (`# xnet-desktop`) | Smallest possible fix; unblocks today | Action slices the whole stub into the PR body as the "entry" (junk section); changelog stays permanently empty/wrong |
-| **B. Sync script maintains the changelog** | `sync-electron-version.mjs` creates/prepends a real `## <version>` entry ("Follows @xnetjs/core <version>", PR train context) when it bumps | Fixes ENOENT **and** gives the action a genuine entry to render; desktop gets a changelog for free; self-contained in the file that caused the problem | ~20 lines more script; entry text is boilerplate |
-| **C. Move the sync out of `version-packages`** | Separate workflow step after `changesets/action`, committing to the release branch | Action never sees the bump → no changelog read | Racy with `commitMode: github-api`; second commit path to the release PR; more moving parts than the bug deserves |
-| **D. Derive desktop version at build time** | Drop the file bump; `electron-release.yml` reads core's version when tagging | No version churn in-tree | Redesigns #373; loses the "version diff on main" trigger that makes desktop releases observable and idempotent |
-| **E. Wait for upstream fix / fork the action** | Patch `runVersion` to tolerate missing changelogs | Root-cause fix | Issue #256 has been open for years; forking a release-critical action is worse than the workaround |
+| Option                                          | Change                                                                                                                                      | Pros                                                                                                                                                   | Cons                                                                                                                 |
+| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------- |
+| **A. Seed a stub `apps/electron/CHANGELOG.md`** | One-time committed file (`# xnet-desktop`)                                                                                                  | Smallest possible fix; unblocks today                                                                                                                  | Action slices the whole stub into the PR body as the "entry" (junk section); changelog stays permanently empty/wrong |
+| **B. Sync script maintains the changelog**      | `sync-electron-version.mjs` creates/prepends a real `## <version>` entry ("Follows @xnetjs/core <version>", PR train context) when it bumps | Fixes ENOENT **and** gives the action a genuine entry to render; desktop gets a changelog for free; self-contained in the file that caused the problem | ~20 lines more script; entry text is boilerplate                                                                     |
+| **C. Move the sync out of `version-packages`**  | Separate workflow step after `changesets/action`, committing to the release branch                                                          | Action never sees the bump → no changelog read                                                                                                         | Racy with `commitMode: github-api`; second commit path to the release PR; more moving parts than the bug deserves    |
+| **D. Derive desktop version at build time**     | Drop the file bump; `electron-release.yml` reads core's version when tagging                                                                | No version churn in-tree                                                                                                                               | Redesigns #373; loses the "version diff on main" trigger that makes desktop releases observable and idempotent       |
+| **E. Wait for upstream fix / fork the action**  | Patch `runVersion` to tolerate missing changelogs                                                                                           | Root-cause fix                                                                                                                                         | Issue #256 has been open for years; forking a release-critical action is worse than the workaround                   |
 
-Orthogonal (the *other* half of the problem):
+Orthogonal (the _other_ half of the problem):
 
-| Option | Cadence fix | Notes |
-| --- | --- | --- |
-| **F. Explicit release cadence policy** | Merge the Version Packages PR at each milestone / weekly / on demand via a documented checklist | Zero automation risk; keeps human review of version diffs (majors!) |
-| **G. Auto-merge the release PR** | Label or scheduled auto-merge once checks pass | Maximally hands-off, but publishes majors without a human glance — bad fit given "bump from the diff, when unsure bump higher" policy |
-| **H. Failure alerting on npm-release.yml** | Notify on workflow failure (or a badge/scheduled check) | Would have converted 12 silent failures into 1 loud one |
+| Option                                     | Cadence fix                                                                                     | Notes                                                                                                                                 |
+| ------------------------------------------ | ----------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| **F. Explicit release cadence policy**     | Merge the Version Packages PR at each milestone / weekly / on demand via a documented checklist | Zero automation risk; keeps human review of version diffs (majors!)                                                                   |
+| **G. Auto-merge the release PR**           | Label or scheduled auto-merge once checks pass                                                  | Maximally hands-off, but publishes majors without a human glance — bad fit given "bump from the diff, when unsure bump higher" policy |
+| **H. Failure alerting on npm-release.yml** | Notify on workflow failure (or a badge/scheduled check)                                         | Would have converted 12 silent failures into 1 loud one                                                                               |
 
 ## Recommendation
 
@@ -272,10 +272,10 @@ writeFileSync(changelogPath, [title.trimEnd(), entry, ...rest].join('\n\n'))
 
 ## Implementation Checklist
 
-- [ ] Extend `scripts/changeset/sync-electron-version.mjs` to create/prepend
+- [x] Extend `scripts/changeset/sync-electron-version.mjs` to create/prepend
       an `apps/electron/CHANGELOG.md` entry whenever it bumps the version
       (Option B; idempotent — skip when entry for the target version exists).
-- [ ] Add a unit/smoke test or dry-run mode for the script (bump from a
+- [x] Add a unit/smoke test or dry-run mode for the script (bump from a
       fixture, assert package.json + CHANGELOG.md both updated).
 - [ ] Make `npm Release` failures loud — e.g. a notification step on
       `failure()` in `npm-release.yml` (Option H).
@@ -288,7 +288,7 @@ writeFileSync(changelogPath, [title.trimEnd(), entry, ...rest].join('\n\n'))
 
 ## Validation Checklist
 
-- [ ] Local repro: on a scratch branch with pending changesets, run
+- [x] Local repro: on a scratch branch with pending changesets, run
       `pnpm version-packages` and confirm `apps/electron/CHANGELOG.md` gains
       a `## <version>` entry matching `packages/core/package.json`.
 - [ ] Next push to main: `npm Release` run completes; step "Create release
