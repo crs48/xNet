@@ -480,13 +480,13 @@ expect(headHashes(restored)).toEqual(headHashes(db))
 - [x] Pillar 2: simulation invariant suite — replica convergence after drain, cursor monotonicity, dedup (no double-apply), determinism check (same seed twice → identical event trace)
 - [x] Pillar 3: crash-consistency harness under `tests/reliability/crash/` — child-process writer with prod pragmas (WAL, `synchronous = NORMAL`), parent SIGKILL at seeded offsets mid-write (progress-pipe guarded), reopen → `integrity_check` → LWW replay → equality with never-crashed reference; depth via `XNET_CRASH_ITERATIONS`
 - [x] Pillar 3: adapter fault-injection tests — wrap the SQLite adapter to fail at a chosen chunk of `applyNodeBatch`, assert partial state is valid and full re-apply converges (proves the idempotency safety net)
-- [ ] Pillar 3: browser durability e2e — `tests/e2e/src/durability.spec.ts`: write burst, reload mid-burst, reopen and assert no committed data lost and store converges after re-sync
+- [x] Pillar 3: browser durability e2e — `tests/e2e/src/durability.spec.ts`: write burst, reload mid-burst, reopen and assert no committed data lost and store converges after re-sync
 - [x] Pillar 4: restore drill — `scripts/reliability/restore-drill.mjs` (backup → restore to scratch → `integrity_check`/`quick_check` → high-water + head-hash + row-count comparison) plus a vitest wrapper that runs it against a seeded DB and a negative test on a corrupted copy
 - [x] Pillar 5: deterministic scale generator under `tests/reliability/scale/` — seeds N nodes / M change-log rows (PR tier ~5k/20k; env-scaled to 100k/318k) into a real SQLite store
 - [x] Pillar 5: scale regression assertions in counter currency — statement/round-trip counts for hot reads at scale (0271 pattern), plus generous wall-clock ceilings that only the soak lane enforces
 - [x] Pillar 5: hub load smoke — `scripts/reliability/hub-load.mjs`: in-process hub + M WebSocket clients pushing K changes (reconnect-storm shape), reporting throughput/p95 and asserting convergence; small vitest smoke in the reliability project
 - [ ] Soak workflow — `.github/workflows/soak.yml` (nightly cron + `workflow_dispatch`): deep sim seeds, deep crash iterations, 100k-node scale tier, hub load, restore drill; uploads artifacts; files/updates an alarm issue on failure (0265 pattern)
-- [ ] Ensure the reliability project runs in the PR `test` shards and stays under the time budget
+- [x] Ensure the reliability project runs in the PR `test` shards and stays under the time budget
 - [ ] `tests/reliability/README.md` — seeds, replay instructions, env knobs, lane structure
 - [ ] Changelog fragment (tags: `ci`) for the PR
 
