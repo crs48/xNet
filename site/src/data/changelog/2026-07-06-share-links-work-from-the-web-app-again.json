@@ -1,0 +1,9 @@
+{
+  "id": "2026-07-06-share-links-work-from-the-web-app-again",
+  "date": "July 6, 2026",
+  "title": "Share links work from the web app again",
+  "summary": "Fixed the Share dialog failing with 'Failed to fetch': the hub now answers browser CORS preflights on its HTTP APIs, so listing, creating, and managing share links works from apps hosted on a different origin than the hub.",
+  "highlights": ["Share dialog Links and People tabs now load and update against your hub"],
+  "tags": ["app"],
+  "pr": 398
+}
