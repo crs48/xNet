@@ -573,9 +573,9 @@ Theme 3 — stop cross-app drift
 
 Theme 4 — ergonomics (any time)
 
-- [ ] Adopt sub-barrel/namespace export policy for `react`, `data`, `plugins`
+- [x] Adopt sub-barrel/namespace export policy for `react`, `data`, `plugins`
       barrels; document in `CLAUDE.md`.
-- [ ] Decompose `XNetProvider` into init / bridge / sync / auth / backup
+- [x] Decompose `XNetProvider` into init / bridge / sync / auth / backup
       units with tests for failure paths.
 - [ ] Extract web `App.tsx` boot orchestrator (storage init + durability
       watchers + state machine) and electron `App.tsx` shell-state reducer.
