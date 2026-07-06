@@ -499,22 +499,22 @@ indicator.
 
 ## Validation Checklist
 
-- [ ] Repro the original bug on `main` (logs vanish on tab switch), then
+- [x] Repro the original bug on `main` (logs vanish on tab switch), then
       verify on the branch: emit logs, switch to Data panel, switch back —
       entries still present and capture continued while away.
-- [ ] Close the dock entirely, generate logs, reopen — entries present.
-- [ ] With Preserve log ON: reload the page — pre-reload entries render behind
+- [x] Close the dock entirely, generate logs, reopen — entries present.
+- [x] With Preserve log ON: reload the page — pre-reload entries render behind
       a session divider; close the tab, reopen the app — entries gone
       (sessionStorage cleared by the browser).
-- [ ] With Preserve log OFF (default): reload — buffer empty; sessionStorage
+- [x] With Preserve log OFF (default): reload — buffer empty; sessionStorage
       key absent.
-- [ ] Perf: with `xnet:query:debug` on and the app under load, main-thread
+- [x] Perf: with `xnet:query:debug` on and the app under load, main-thread
       profile shows no visible cost from the tap (< 1 ms/s aggregate), and no
       storage writes occur with the toggle off.
-- [ ] Snapshot of a token-bearing log line shows `[TOKEN]`/`[REDACTED]` in
+- [x] Snapshot of a token-bearing log line shows `[TOKEN]`/`[REDACTED]` in
       sessionStorage, raw text still visible in the live panel.
-- [ ] Reset panel wipe removes `xnet:devtools:logs:v1`.
-- [ ] Production build: `console.*` identity-equal to the originals (no tap).
+- [x] Reset panel wipe removes `xnet:devtools:logs:v1`.
+- [x] Production build: `console.*` identity-equal to the originals (no tap).
 
 ## References
 
