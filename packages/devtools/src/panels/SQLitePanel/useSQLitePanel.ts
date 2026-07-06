@@ -5,6 +5,7 @@
 import type { DevToolsEventBus } from '../../core/event-bus'
 import type { NodeStore } from '@xnetjs/data'
 import { useState, useEffect, useCallback } from 'react'
+import { useDevTools } from '../../provider/useDevTools'
 
 const DEBUG_KEY = 'xnet:sqlite:debug'
 
@@ -271,57 +272,44 @@ export function useSQLitePanel(_eventBus: DevToolsEventBus) {
     checkSupport()
   }, [])
 
-  // Intercept console.log/warn/error to capture SQLite debug logs
+  // Read SQLite-related lines from the provider's console capture instead of
+  // patching console.* a second time (the tap lives on ConsoleLogStore, 0275).
+  const { consoleLogs } = useDevTools()
   useEffect(() => {
     if (!debugEnabled) return
 
-    const originalLog = console.log
-    const originalWarn = console.warn
-    const originalError = console.error
+    const isSQLiteLine = (message: string) =>
+      message.includes('[WebSQLiteAdapter]') ||
+      message.includes('[SQLite]') ||
+      message.includes('OPFS')
 
-    const captureLog = (level: 'log' | 'warn' | 'error', args: unknown[]) => {
-      const message = args
-        .map((arg) => (typeof arg === 'string' ? arg : JSON.stringify(arg)))
-        .join(' ')
-
-      // Only capture SQLite-related logs
-      if (
-        message.includes('[WebSQLiteAdapter]') ||
-        message.includes('[SQLite]') ||
-        message.includes('OPFS')
-      ) {
-        setRecentLogs((prev) => [
-          ...prev.slice(-99), // Keep last 100 logs
-          {
-            timestamp: Date.now(),
-            level,
-            message
-          }
-        ])
-      }
+    let lastSeenId = -1
+    const collect = () => {
+      const fresh = consoleLogs
+        .getEntries()
+        .filter(
+          (e) =>
+            e.id > lastSeenId &&
+            (e.level === 'log' || e.level === 'warn' || e.level === 'error') &&
+            isSQLiteLine(e.message)
+        )
+      if (fresh.length === 0) return
+      lastSeenId = fresh[fresh.length - 1].id
+      setRecentLogs((prev) =>
+        [
+          ...prev,
+          ...fresh.map((e) => ({
+            timestamp: e.at,
+            level: e.level as 'log' | 'warn' | 'error',
+            message: e.message
+          }))
+        ].slice(-100)
+      )
     }
 
-    console.log = (...args: unknown[]) => {
-      captureLog('log', args)
-      originalLog(...args)
-    }
-
-    console.warn = (...args: unknown[]) => {
-      captureLog('warn', args)
-      originalWarn(...args)
-    }
-
-    console.error = (...args: unknown[]) => {
-      captureLog('error', args)
-      originalError(...args)
-    }
-
-    return () => {
-      console.log = originalLog
-      console.warn = originalWarn
-      console.error = originalError
-    }
-  }, [debugEnabled])
+    collect()
+    return consoleLogs.subscribe(collect)
+  }, [debugEnabled, consoleLogs])
 
   const clearLogs = useCallback(() => {
     setRecentLogs([])

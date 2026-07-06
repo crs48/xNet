@@ -20,6 +20,7 @@ import { DataExplorer } from './DataExplorer/DataExplorer'
 import { HistoryPanel } from './HistoryPanel/HistoryPanel'
 import { LogsPanel } from './LogsPanel/LogsPanel'
 import { MigrationWizard } from './MigrationWizard/MigrationWizard'
+import { PANEL_GROUP_LABELS, getPanel, heroPanels, secondaryPanelsByGroup } from './panel-registry'
 import { PerformancePanel } from './PerformancePanel/PerformancePanel'
 import { QueryDebugger } from './QueryDebugger/QueryDebugger'
 import { Reset } from './Reset/Reset'
@@ -34,7 +35,6 @@ import { TelemetryPanel } from './TelemetryPanel/TelemetryPanel'
 import { TracesPanel } from './TracesPanel/TracesPanel'
 import { VersionPanel } from './VersionPanel/VersionPanel'
 import { YjsInspector } from './YjsInspector/YjsInspector'
-import { PANEL_GROUP_LABELS, getPanel, heroPanels, secondaryPanelsByGroup } from './panel-registry'
 
 export function DevToolsPanel() {
   const {
@@ -309,7 +309,7 @@ function ClearButton({ onClear }: { onClear: () => void }) {
 }
 
 function ClearDataButton() {
-  const { onResetLocalData, store } = useDevTools()
+  const { onResetLocalData, store, consoleLogs } = useDevTools()
   const [confirming, setConfirming] = useState(false)
 
   const handleClick = async () => {
@@ -344,6 +344,10 @@ function ClearDataButton() {
           }
         }
       }
+
+      // Preserved logs live in sessionStorage, which survives the reload;
+      // turning preserve off also stops the dirty-flush re-writing the key.
+      consoleLogs.setPreserve(false)
 
       window.location.reload()
     } catch (err) {

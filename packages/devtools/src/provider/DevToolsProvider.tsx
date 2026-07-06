@@ -26,6 +26,8 @@ import {
 } from 'react'
 import { DEFAULTS } from '../core/constants'
 import { DevToolsEventBus } from '../core/event-bus'
+import { ConsoleLogStore } from '../core/log-store'
+import { instrumentConsole } from '../instrumentation/console'
 import { QueryTracker } from '../instrumentation/query'
 import { instrumentChangeFeed, instrumentStore } from '../instrumentation/store'
 import { instrumentTelemetry } from '../instrumentation/telemetry'
@@ -372,6 +374,7 @@ export function XNetDevToolsProvider({
   }
 
   const busRef = useRef<DevToolsEventBus>(new DevToolsEventBus({ maxEvents }))
+  const consoleLogsRef = useRef<ConsoleLogStore>(new ConsoleLogStore())
   const yDocRegistryRef = useRef(createYDocRegistry(busRef.current))
   const queryTrackerRef = useRef(new QueryTracker(busRef.current))
   const documentHistoryRef = useRef<DocumentHistoryEngine | null>(null)
@@ -417,11 +420,24 @@ export function XNetDevToolsProvider({
     }
   }, [syncManager])
 
+  // Console tap + session persistence — provider-lifetime so capture continues
+  // while the Logs tab (or the whole dock) is closed (exploration 0275).
+  useEffect(() => {
+    const restoreConsole = instrumentConsole(consoleLogsRef.current)
+    const detachPersistence = consoleLogsRef.current.attachSessionPersistence()
+    return () => {
+      restoreConsole()
+      detachPersistence()
+    }
+  }, [])
+
   // Set up telemetry instrumentation when collector and consent are available
   useEffect(() => {
     if (!telemetryCollector || !consentManager) return
 
-    const cleanup = instrumentTelemetry(telemetryCollector, consentManager, busRef.current)
+    const cleanup = instrumentTelemetry(telemetryCollector, consentManager, busRef.current, {
+      logStore: consoleLogsRef.current
+    })
     cleanupsRef.current.push(cleanup)
 
     return () => {
@@ -523,6 +539,7 @@ export function XNetDevToolsProvider({
       setPosition,
       setHeight,
       eventBus: busRef.current,
+      consoleLogs: consoleLogsRef.current,
       store,
       yDocRegistry: yDocRegistryRef.current,
       activeNodeId,
@@ -531,7 +548,17 @@ export function XNetDevToolsProvider({
       runtimeStatus: runtimeStatus as RuntimeDiagnostics,
       syncDiagnostics,
       storageDurability,
-      onResetLocalData: onResetLocalData ?? null,
+      // Wrap the host wipe so it also drops the preserved-log snapshot —
+      // sessionStorage survives the reload the wipe triggers, so a
+      // SQLite/IndexedDB/localStorage-only clear would miss it. setPreserve
+      // (not just clearing the key) so the periodic dirty-flush can't
+      // re-write the snapshot while the async OPFS wipe is still running.
+      onResetLocalData: onResetLocalData
+        ? async () => {
+            consoleLogsRef.current.setPreserve(false)
+            await onResetLocalData()
+          }
+        : null,
       // Default the hub reset to the live SyncManager so it works without the
       // host wiring anything; a prop override still wins.
       onResetHub: onResetHub ?? (syncManager ? () => syncManager.clearHubData() : null)
