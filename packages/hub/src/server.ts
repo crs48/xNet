@@ -12,6 +12,7 @@ import { serve } from '@hono/node-server'
 import { DatabaseSchema, PageSchema, TaskSchema } from '@xnetjs/data'
 import { generateIdentity } from '@xnetjs/identity'
 import { Hono } from 'hono'
+import { cors } from 'hono/cors'
 import { WebSocketServer } from 'ws'
 import { createHubAuthError } from './auth/errors'
 import {
@@ -24,8 +25,8 @@ import { measureDataUsage, type DataUsage } from './data-usage'
 import { aiForwarderFeature } from './features/ai-forwarder'
 import { diagnosticsSharingFeature } from './features/diagnostics-sharing'
 import { billingFeature, tasksFeature, unfurlFeature } from './features/first-party'
-import { pagerdutyFeature, sentryFeature, stripeFeature } from './features/webhook-integrations'
 import { mountFeatures } from './features/registry'
+import { pagerdutyFeature, sentryFeature, stripeFeature } from './features/webhook-integrations'
 import { Metrics, HUB_METRICS } from './middleware/metrics'
 import { RateLimiter } from './middleware/rate-limit'
 import { NodePool } from './pool/node-pool'
@@ -140,6 +141,12 @@ const endpointClaimFor = (endpoint: string, resource: string, exp: number): stri
 
 export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   const app = new Hono()
+  // Browser clients live on other origins than the hub (the deployed app on
+  // xnet.fyi, Electron/Capacitor shells, self-hosted apps) and call the hub's
+  // HTTP APIs with a Bearer UCAN token, which forces a CORS preflight. Auth is
+  // token-based — never cookies — so a wildcard origin grants nothing a
+  // malicious page could use without already holding a token.
+  app.use('*', cors())
   const signaling = createSignalingService()
   // The demo hub's data is disposable, so let it auto-reset a corrupt base DB
   // and boot rather than crash-loop (exploration 0206 follow-up). A real
