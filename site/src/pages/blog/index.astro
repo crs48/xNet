@@ -11,6 +11,8 @@ import ForestArt from '../../components/blog/ForestArt.astro'
 import LoomArt from '../../components/blog/LoomArt.astro'
 import HookArt from '../../components/blog/HookArt.astro'
 import TillerArt from '../../components/blog/TillerArt.astro'
+import WorkshopArt from '../../components/blog/WorkshopArt.astro'
+import Byline from '../../components/blog/Byline.astro'
 import { publishedPosts, formatPostDate } from '../../data/blog'
 
 const posts = publishedPosts()
@@ -18,6 +20,7 @@ const posts = publishedPosts()
 // Each post's art-directed hero art doubles as its preview-card header image, so
 // the same inline SVG is single-sourced from the hero's *Art.astro component.
 const heroArt: Record<string, typeof PirateArt> = {
+  'the-workshop-and-the-walled-garden': WorkshopArt,
   'hand-on-the-tiller': TillerArt,
   'the-tip-of-the-hook': HookArt,
   'a-great-pirate-age': PirateArt,
@@ -95,6 +98,9 @@ const heroArt: Record<string, typeof PirateArt> = {
                     <p class="mt-2 text-gray-600 dark:text-gray-300 leading-relaxed">
                       {post.description}
                     </p>
+                    <div class="mt-4 text-gray-500 dark:text-gray-400">
+                      <Byline post={post} compact />
+                    </div>
                     <span class="mt-4 inline-flex items-center gap-1 text-sm font-medium text-indigo-600 dark:text-indigo-400">
                       Read
                       <svg

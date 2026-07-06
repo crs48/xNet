@@ -4,7 +4,7 @@
  * wraps in a Response, so the feed and the page render from the same data module.
  */
 
-import type { BlogPost } from '../data/blog'
+import { postAuthors, type BlogPost } from '../data/blog'
 
 export const SITE_URL = 'https://xnet.fyi'
 export const BLOG_URL = `${SITE_URL}/blog`
@@ -33,13 +33,18 @@ export function buildBlogRss(posts: BlogPost[]): string {
       const categories = post.tags
         .map((t) => `      <category>${escapeXml(t)}</category>`)
         .join('\n')
+      // RSS 2.0's <author> is an email address, so names go in Dublin Core's
+      // <dc:creator> — one element per author, in byline order.
+      const creators = postAuthors(post)
+        .map((a) => `      <dc:creator>${escapeXml(a.name)}</dc:creator>`)
+        .join('\n')
       return [
         '    <item>',
         `      <title>${escapeXml(post.title)}</title>`,
         `      <link>${escapeXml(url)}</link>`,
         `      <guid isPermaLink="true">${escapeXml(url)}</guid>`,
         `      <description>${escapeXml(post.description)}</description>`,
-        `      <author>${escapeXml(post.author)}</author>`,
+        creators,
         `      <pubDate>${pubDate}</pubDate>`,
         categories,
         '    </item>'
@@ -53,7 +58,7 @@ export function buildBlogRss(posts: BlogPost[]): string {
     posts.length > 0 ? new Date(posts[0].pubDate).toUTCString() : new Date(0).toUTCString()
 
   return `<?xml version="1.0" encoding="UTF-8"?>
-<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/">
   <channel>
     <title>xNet Blog</title>
     <link>${BLOG_URL}</link>

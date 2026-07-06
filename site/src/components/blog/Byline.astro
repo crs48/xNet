@@ -1,0 +1,88 @@
+---
+// Author byline for blog posts (exploration 0269): avatar stack + names, with
+// AI co-authors introduced by "with" rather than listed as undifferentiated
+// peers. Avatars are first-party assets under site/public/blog/authors/ —
+// several essays promise "this page loads nothing third-party", so this
+// component must never hotlink an avatar host.
+//
+// Two variants:
+//   - full (default): linked names + an Article JSON-LD block, for post pages.
+//   - compact: smaller, link-free (index cards are wrapped in an <a>, and
+//     nested anchors are invalid HTML), no JSON-LD.
+import { postAuthors, type BlogPost } from '../../data/blog'
+import { postUrl } from '../../lib/blog-feed'
+
+interface Props {
+  post: BlogPost
+  compact?: boolean
+}
+const { post, compact = false } = Astro.props
+const authors = postAuthors(post)
+
+// schema.org Article with the full author list. An AI is arguably not a
+// schema.org Person, but Google's article guidance only recognises
+// Person/Organization for `author`; the clarifying `url` carries the nuance.
+const jsonLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Article',
+  headline: post.title,
+  description: post.description,
+  datePublished: post.pubDate,
+  url: postUrl(post),
+  author: authors.map((a) => ({
+    '@type': 'Person',
+    name: a.name,
+    ...(a.href ? { url: a.href } : {})
+  }))
+}
+
+const avatarSize = compact ? 18 : 24
+---
+
+<div
+  class:list={[
+    'not-prose flex flex-wrap items-center',
+    compact ? 'gap-1.5 text-xs' : 'gap-2 text-sm text-gray-500 dark:text-gray-400'
+  ]}
+>
+  <span class:list={['flex', compact ? '-space-x-1.5' : '-space-x-2']}>
+    {
+      authors.map((a) => (
+        <img
+          src={a.avatar}
+          alt={a.name}
+          width={avatarSize}
+          height={avatarSize}
+          loading="lazy"
+          class:list={[
+            'rounded-full',
+            compact
+              ? 'ring-1 ring-white dark:ring-gray-900'
+              : 'ring-2 ring-white dark:ring-gray-900'
+          ]}
+        />
+      ))
+    }
+  </span>
+  {
+    authors.map((a, i) => (
+      <>
+        {i > 0 && <span aria-hidden="true">{a.ai ? 'with' : '·'}</span>}
+        {compact || !a.href ? (
+          <span class="font-medium">{a.name}</span>
+        ) : (
+          <a
+            href={a.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="font-medium text-gray-600 transition-colors hover:text-indigo-500 dark:text-gray-300 dark:hover:text-indigo-400"
+          >
+            {a.name}
+          </a>
+        )}
+      </>
+    ))
+  }
+</div>
+
+{!compact && <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />}

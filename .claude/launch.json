@@ -48,6 +48,12 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "site", "dev", "--port", "4388", "--strictPort"],
       "port": 4388
+    },
+    {
+      "name": "site-dist (static 4389)",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "4389", "-d", "site/dist"],
+      "port": 4389
     }
   ]
 }
