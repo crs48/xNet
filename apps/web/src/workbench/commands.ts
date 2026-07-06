@@ -49,6 +49,20 @@ export function useWorkbenchCommands(): void {
         title: 'View: Switch layout (Calm ↔ Workbench)',
         run: () => wb().toggleLayout()
       }),
+      // Quiet-surface posture (0273): both directions get explicit palette
+      // entries so either posture is one ⌘K away from the other.
+      registry.register({
+        id: 'workbench.quietChrome',
+        title: 'View: Quiet chrome (surface first)',
+        when: () => useWorkbench.getState().chrome !== 'quiet',
+        run: () => wb().setChrome('quiet')
+      }),
+      registry.register({
+        id: 'workbench.pinnedChrome',
+        title: 'View: Pinned chrome',
+        when: () => useWorkbench.getState().chrome !== 'pinned',
+        run: () => wb().setChrome('pinned')
+      }),
       registry.register({
         id: 'workbench.showExplorer',
         title: 'Show explorer',

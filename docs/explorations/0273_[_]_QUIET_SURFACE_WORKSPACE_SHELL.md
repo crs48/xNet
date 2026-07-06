@@ -3,7 +3,7 @@
 ## Problem Statement
 
 The primary workspace UX should feel like a clean sheet of paper: the default
-screen is *almost nothing* — a document, or a bounded canvas — and the user
+screen is _almost nothing_ — a document, or a bounded canvas — and the user
 compiles pieces onto the work surface as they need them. Richness lives at the
 edges and corners: affordances that sit quietly (like the devtools widget in
 the bottom-right) and expand into deep capability on hover, tap, swipe, or
@@ -42,7 +42,7 @@ and without forking the view layer?**
 - **Bounded, not infinite.** Muse — the deepest research prior art — retreated
   from a truly infinite canvas to bounded "flex boards" for orientation. The
   Desk starts one screen big and grows on demand, with a zoom-to-fit home
-  anchor. Chrome is *summonable*, never *absent*.
+  anchor. Chrome is _summonable_, never _absent_.
 - **No tldraw.** Its SDK now requires a production license (~$6k/yr
   commercial, watermarked hobby tier). `@xnetjs/canvas` already does culled
   rendering of live React cards; it is the MIT-clean substrate.
@@ -53,11 +53,11 @@ and without forking the view layer?**
 
 `apps/web/src/workbench/Workbench.tsx` (199 lines) routes between:
 
-| Layer | File | Composition |
-| --- | --- | --- |
+| Layer            | File                                                                                                               | Composition                                                                                                                      |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
 | Workbench (grid) | `apps/web/src/workbench/` (`Rail.tsx`, `EditorArea.tsx`, `ContextPanel.tsx`, `PanelViewHost.tsx`, `StatusBar.tsx`) | 44px rail · left panel · tabbed/splittable center · right context panel · bottom tray · status bar, via `react-resizable-panels` |
-| Calm (default) | `apps/web/src/workbench/calm/CalmShell.tsx` | `ModeSwitch` (4rem) · `ListPane` (17rem) · `CalmSurface` (router outlet) · contextual `Canvas` (24rem right panel) |
-| Mobile | `apps/web/src/workbench/MobileShell.tsx`, `calm/CalmMobile.tsx` | top bar · full-bleed surface · bottom tabs; panels become edge/bottom `Sheet`s with the `armed` backdrop pattern |
+| Calm (default)   | `apps/web/src/workbench/calm/CalmShell.tsx`                                                                        | `ModeSwitch` (4rem) · `ListPane` (17rem) · `CalmSurface` (router outlet) · contextual `Canvas` (24rem right panel)               |
+| Mobile           | `apps/web/src/workbench/MobileShell.tsx`, `calm/CalmMobile.tsx`                                                    | top bar · full-bleed surface · bottom tabs; panels become edge/bottom `Sheet`s with the `armed` backdrop pattern                 |
 
 Load-bearing facts for this exploration:
 
@@ -84,7 +84,7 @@ exactly the target interaction, scoped to developers:
   Changes, Logs, Performance); ~12 `secondary` panels behind a "More" menu and
   a ⌘⇧P palette (`CommandPalette/DevToolsPalette.tsx`).
 - Registry metadata (`id`, `label`, `icon`, `tier`, `group`, `keywords`) makes
-  the disclosure *data-driven* — the shell renders whatever is registered.
+  the disclosure _data-driven_ — the shell renders whatever is registered.
 
 This is the pattern to lift to the app shell: registered, tiered, palette-
 searchable edge content.
@@ -128,13 +128,13 @@ searchable edge content.
 
 ### Prior art on minimal-chrome canvases
 
-- **Muse (Ink & Switch)** is the deepest study: *"No chrome. Avoid toolbars,
-  buttons, or other administrative debris."* Tools were selected by stylus
+- **Muse (Ink & Switch)** is the deepest study: _"No chrome. Avoid toolbars,
+  buttons, or other administrative debris."_ Tools were selected by stylus
   grip rather than toolbars; zoom replaced open/close. Two honest failures to
   learn from: gesture space exhausts as operations grow, and — critically —
   **Muse rejected the fully infinite canvas**, shipping bounded-but-growable
-  *flex boards* because "infinite is not fully desirable" for orientation
-  (memos: *Infinite canvas*, *Flex boards*).
+  _flex boards_ because "infinite is not fully desirable" for orientation
+  (memos: _Infinite canvas_, _Flex boards_).
 - **tldraw** moved its toolbar to the bottom edge (thumb-parity with mobile),
   turns the style panel into a modal on phones, and exposes a breakpoint hook
   so one UI degrades gracefully. Every UI zone is replaceable — but the SDK
@@ -143,7 +143,7 @@ searchable edge content.
 - **Excalidraw / Apple Freeform / FigJam**: one toolbar, contextual panels
   only on selection. Excalidraw's refusal of organizational chrome spawned a
   third-party extension ecosystem adding sidebars back — minimalism bites back
-  when orientation chrome is *absent* rather than *summonable*.
+  when orientation chrome is _absent_ rather than _summonable_.
 - **Scrintal** re-added a persistent "My Desk" home button; **Heptabase /
   Obsidian Canvas** make the card a real document so the canvas is optional
   arrangement, not the container. Obsidian Canvas cards are live, two-way
@@ -154,13 +154,13 @@ searchable edge content.
 
 - **Notion's ladder** is the canonical blank-document disclosure: empty page →
   hover gutter (`⋮⋮` + `+`) → `/` command catalog → selection toolbar → side
-  panel. On mobile the hover tier is *replaced* by a persistent toolbar above
+  panel. On mobile the hover tier is _replaced_ by a persistent toolbar above
   the keyboard — the clearest statement of the "declared touch twin" rule.
 - **Arc's auto-hiding sidebar**: ⌘S toggle + reveal on edge-hover. Lesson from
   user pushback: hidden chrome disorients unless the reveal affordance is
   discoverable and instant.
 - **Command palettes as primary navigation** (Arc, Superhuman, Raycast): one
-  keyboard entry point substitutes for persistent IA, and the palette *teaches*
+  keyboard entry point substitutes for persistent IA, and the palette _teaches_
   chords inline — xNet's `GlobalSearch` already does this.
 - **Marking/radial menus** (Kurtenbach & Buxton): novice sees a radial popup on
   long-press/press-and-hold; expert flicks blind — up to **3.5× faster** than
@@ -173,14 +173,14 @@ searchable edge content.
 
 ### Failure modes of "blank canvas" and their mitigations
 
-| Failure mode | Evidence | Mitigation adopted here |
-| --- | --- | --- |
-| Blank-canvas paralysis | Miro ships 2,500+ templates; FigJam ships facilitation frameworks | Desk seeds: gentle starter chips + template picker in the empty state |
-| Lost in space / navigation | Muse flex-boards memo; "1-D scrolling beats 2-D wandering" (HN, *Evolving the Infinite Canvas*) | Bounded-but-growable Desk, zoom-to-fit **home anchor**, minimap only if needed |
-| Ambiguous structure ("forty cards is just forty cards" — Coyier) | Canvases fail when the system doesn't understand items | Cards are *live xNet nodes* with schemas — the system can re-layout, filter, and query them |
-| Non-responsive spatial layouts | Spatial arrangements don't reflow to phones | Desk has a **list projection** on compact (cards in recency/pin order), spatial layout is a ≥768px enhancement |
-| Hidden chrome disorients | Arc HN feedback; Excalidraw extension ecosystem | Corner glyphs never fully disappear (dim, don't vanish); every edge is also a ⌘K command; first-run coachmark |
-| Screen-reader opacity | Unstructured canvases are inaccessible | List projection doubles as the accessible/semantic order |
+| Failure mode                                                     | Evidence                                                                                        | Mitigation adopted here                                                                                        |
+| ---------------------------------------------------------------- | ----------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Blank-canvas paralysis                                           | Miro ships 2,500+ templates; FigJam ships facilitation frameworks                               | Desk seeds: gentle starter chips + template picker in the empty state                                          |
+| Lost in space / navigation                                       | Muse flex-boards memo; "1-D scrolling beats 2-D wandering" (HN, _Evolving the Infinite Canvas_) | Bounded-but-growable Desk, zoom-to-fit **home anchor**, minimap only if needed                                 |
+| Ambiguous structure ("forty cards is just forty cards" — Coyier) | Canvases fail when the system doesn't understand items                                          | Cards are _live xNet nodes_ with schemas — the system can re-layout, filter, and query them                    |
+| Non-responsive spatial layouts                                   | Spatial arrangements don't reflow to phones                                                     | Desk has a **list projection** on compact (cards in recency/pin order), spatial layout is a ≥768px enhancement |
+| Hidden chrome disorients                                         | Arc HN feedback; Excalidraw extension ecosystem                                                 | Corner glyphs never fully disappear (dim, don't vanish); every edge is also a ⌘K command; first-run coachmark  |
+| Screen-reader opacity                                            | Unstructured canvases are inaccessible                                                          | List projection doubles as the accessible/semantic order                                                       |
 
 ### Library notes
 
@@ -198,10 +198,10 @@ searchable edge content.
    needs — canvas engine, live widget cards, slash-command documents, command
    palette, panel state, sheets, motion vocabulary, contribution registry —
    already exists. Nothing new needs to be invented at the data or view layer;
-   the shell needs a fourth *disclosure posture*, not a fourth shell.
+   the shell needs a fourth _disclosure posture_, not a fourth shell.
 2. **The devtools dock is the in-repo proof** that "quiet corner → rich
    surface" works: tiered registry + palette + collapsed strip. The app shell
-   should be *the same idea pointed at users*.
+   should be _the same idea pointed at users_.
 3. **`startupTab` makes "home is a node" a one-line policy change**, and a
    canvas node with `CanvasWidgetCard`s makes "compile pieces onto the
    surface" a seeding + drag-affordance job.
@@ -255,12 +255,12 @@ via `CanvasWidgetCard`, plus notes/shapes.
 User-composed tiled panels, VS-Code-like.
 
 - **Pros**: maximal composability.
-- **Cons**: contradicts the brief — docking chrome is the *opposite* of a
+- **Cons**: contradicts the brief — docking chrome is the _opposite_ of a
   blank sheet; duplicates the existing workbench grid; heaviest build.
   **Rejected.**
 
 **Resolution: A + C, with B as a supported choice.** Quiet chrome (A) is the
-posture; the Desk (C) is the default startup surface *within* it. Because home
+posture; the Desk (C) is the default startup surface _within_ it. Because home
 is just `startupTab`, a user who prefers a page as their home (B) sets it so —
 the shell doesn't care. D is rejected.
 
@@ -289,8 +289,8 @@ flowchart TB
     DOCK --> SURF
 ```
 
-Corners hold *glyphs* (dimmed at rest, never removed); edges hold *hot zones*
-(desktop hover) and *swipe targets* (mobile). Everything summoned is also a
+Corners hold _glyphs_ (dimmed at rest, never removed); edges hold _hot zones_
+(desktop hover) and _swipe targets_ (mobile). Everything summoned is also a
 ⌘K command and a keyboard chord — three roads to every drawer.
 
 ### The disclosure ladder
@@ -316,13 +316,13 @@ establishes.
 
 ### The touch-twin contract (hard rule, enforced in review)
 
-| Desktop affordance | Mobile twin | Keyboard road |
-| --- | --- | --- |
-| Left edge hover hot-zone → navigator overlay | Left edge-swipe → Sheet (exists in `CalmMobile`) | ⌘B / ⌘K "Navigator" |
-| Right edge hover → context canvas | Right edge-swipe → bottom Sheet | ⌘\ / ⌘K "Context" |
-| Bottom-right dock launcher (hover expands strip) | FAB, thumb-zone, opens bottom sheet dock | ⌘J / ⌘K "Dock: …" |
-| Hover a Desk card → card toolbar | Long-press card → radial/action sheet | Enter on focused card |
-| Top-left glyph cluster (modes) | Bottom tab bar, auto-hides on scroll, reveals on scroll-up | ⌘1/2/3 / ⌘K "Mode: …" |
+| Desktop affordance                               | Mobile twin                                                | Keyboard road         |
+| ------------------------------------------------ | ---------------------------------------------------------- | --------------------- |
+| Left edge hover hot-zone → navigator overlay     | Left edge-swipe → Sheet (exists in `CalmMobile`)           | ⌘B / ⌘K "Navigator"   |
+| Right edge hover → context canvas                | Right edge-swipe → bottom Sheet                            | ⌘\ / ⌘K "Context"     |
+| Bottom-right dock launcher (hover expands strip) | FAB, thumb-zone, opens bottom sheet dock                   | ⌘J / ⌘K "Dock: …"     |
+| Hover a Desk card → card toolbar                 | Long-press card → radial/action sheet                      | Enter on focused card |
+| Top-left glyph cluster (modes)                   | Bottom tab bar, auto-hides on scroll, reveals on scroll-up | ⌘1/2/3 / ⌘K "Mode: …" |
 
 ### The Desk
 
@@ -371,7 +371,7 @@ items live behind "More" + the palette. Initial residents: the existing tray
 views (Shelf, Capture, Notifications, Sync, Console) — moved, not rebuilt.
 Devtools keeps its own widget; visually they become siblings.
 
-### What quiet mode explicitly does *not* do
+### What quiet mode explicitly does _not_ do
 
 - No new routes, no new view components, no changes to `modes.ts`.
 - No tldraw or other new canvas dependency.
@@ -387,8 +387,8 @@ export type ChromePosture = 'pinned' | 'quiet'
 
 interface WorkbenchState {
   // …existing…
-  chrome: ChromePosture            // default 'pinned'; flips to 'quiet' after rollout
-  discloseLevel: 0 | 1 | 2         // L3 is represented by layout/mode, not here
+  chrome: ChromePosture // default 'pinned'; flips to 'quiet' after rollout
+  discloseLevel: 0 | 1 | 2 // L3 is represented by layout/mode, not here
   setChrome: (c: ChromePosture) => void
 }
 ```
@@ -403,7 +403,9 @@ function EdgeHotZone({ side, onSummon }: { side: 'left' | 'right'; onSummon: () 
     <div
       aria-hidden
       className={`fixed inset-y-0 ${side}-0 w-2 z-40`}
-      onPointerEnter={() => { timer.current = window.setTimeout(onSummon, 180) }}
+      onPointerEnter={() => {
+        timer.current = window.setTimeout(onSummon, 180)
+      }}
       onPointerLeave={() => window.clearTimeout(timer.current)}
     />
   )
@@ -419,21 +421,19 @@ export function QuietChrome({ children }: { children: ReactNode }) {
   return (
     <div className="relative h-full">
       <CalmSurface>{children}</CalmSurface>
-
       <EdgeHotZone side="left" onSummon={() => setPanelOpen('left', true)} />
       <EdgeHotZone side="right" onSummon={() => setPanelOpen('right', true)} />
-      <CornerGlyphs />                      {/* modes + identity, top-left */}
-      <SurfaceDockLauncher />               {/* bottom-right */}
-      <SyncGlyph />                         {/* bottom-left, reuses SyncStatus */}
-
+      <CornerGlyphs /> {/* modes + identity, top-left */}
+      <SurfaceDockLauncher /> {/* bottom-right */}
+      <SyncGlyph /> {/* bottom-left, reuses SyncStatus */}
       {left.open && (
         <Overlay side="left" motion="slide-right" onDismiss={() => setPanelOpen('left', false)}>
-          <ListPane mode={activeMode} />    {/* unchanged component */}
+          <ListPane mode={activeMode} /> {/* unchanged component */}
         </Overlay>
       )}
       {right.open && (
         <Overlay side="right" motion="slide-left" onDismiss={() => setPanelOpen('right', false)}>
-          <Canvas />                        {/* unchanged component */}
+          <Canvas /> {/* unchanged component */}
         </Overlay>
       )}
     </div>
@@ -458,7 +458,7 @@ async function ensureDesk(mutate: Mutate) {
   the palette lists every summonable. Measure: can a first-run user open the
   navigator within 30 seconds?
 - **Hover hot-zones vs canvas edge gestures**: on the Desk, pointer-near-edge
-  may mean "pan" not "summon." Rule: hot zones require pointer *dwell*
+  may mean "pan" not "summon." Rule: hot zones require pointer _dwell_
   (~180ms) and are suppressed while a canvas drag/pan is active.
 - **Live-card budget**: dozens of `CanvasWidgetCard`s = dozens of live
   queries. The canvas engine culls off-viewport cards, but query
@@ -466,7 +466,7 @@ async function ensureDesk(mutate: Mutate) {
   `DashboardRuntimeProvider`); cap initial widget count and measure against
   the 0266 read-speed budget.
 - **Does quiet become the default?** Proposal: land behind `View: Quiet
-  chrome`, dogfood, then flip default for *new* identities only (existing
+chrome`, dogfood, then flip default for _new_ identities only (existing
   users keep their persisted posture) — same conservative flip as 0250's
   calm default.
 - **Radial/marking menu** (long-press on cards): high ceiling (3.5× expert
@@ -482,14 +482,14 @@ async function ensureDesk(mutate: Mutate) {
 
 ### Phase 1 — Quiet posture (chrome axis)
 
-- [ ] Add `chrome: 'pinned' | 'quiet'` + `discloseLevel` to `apps/web/src/workbench/state.ts` (persisted; default `pinned`)
-- [ ] `QuietChrome` composition in `apps/web/src/workbench/calm/` rendering existing `CalmSurface`/`ListPane`/`Canvas` as overlays
-- [ ] `EdgeHotZone` (dwell-armed) + `Overlay` using motion vocabulary (`slide-*`, scrim, Esc/scrim dismissal walking the ladder)
-- [ ] `CornerGlyphs` — collapsed ModeSwitch (modes + identity + settings), L0 dim / L1 lit on pointer intent
-- [ ] `SyncGlyph` bottom-left reusing `SyncStatus` popover
-- [ ] Commands: `View: Quiet chrome`, `View: Pinned chrome` in the command registry; ⌘K entries for every summonable
-- [ ] Mobile: quiet posture in `CalmMobile` — bottom tab bar auto-hides on scroll-down, reveals on scroll-up; edge-swipes already summon sheets
-- [ ] Coachmark (one-time, `seenTips`) pointing at the corners
+- [x] Add `chrome: 'pinned' | 'quiet'` + `discloseLevel` to `apps/web/src/workbench/state.ts` (persisted; default `pinned`)
+- [x] `QuietChrome` composition in `apps/web/src/workbench/calm/` rendering existing `CalmSurface`/`ListPane`/`Canvas` as overlays
+- [x] `EdgeHotZone` (dwell-armed) + `Overlay` using motion vocabulary (`slide-*`, scrim, Esc/scrim dismissal walking the ladder)
+- [x] `CornerGlyphs` — collapsed ModeSwitch (modes + identity + settings), L0 dim / L1 lit on pointer intent
+- [x] `SyncGlyph` bottom-left reusing `SyncStatus` popover
+- [x] Commands: `View: Quiet chrome`, `View: Pinned chrome` in the command registry; ⌘K entries for every summonable
+- [x] Mobile: quiet posture in `CalmMobile` — bottom tab bar auto-hides on scroll-down, reveals on scroll-up; edge-swipes already summon sheets
+- [x] Coachmark (one-time, `seenTips`) pointing at the corners
 
 ### Phase 2 — The Desk
 
@@ -547,15 +547,15 @@ async function ensureDesk(mutate: Mutate) {
 
 **External**
 
-- Ink & Switch, *Muse: designing a studio for ideas* — <https://www.inkandswitch.com/muse/>
-- Muse memos: *Infinite canvas* — <https://museapp.com/memos/2020-12-infinite-canvas/>; *Flex boards* — <https://museapp.com/memos/2021-03-flex-boards/>
-- Ink & Switch, *Malleable software* (2025) — <https://www.inkandswitch.com/essay/malleable-software/>
+- Ink & Switch, _Muse: designing a studio for ideas_ — <https://www.inkandswitch.com/muse/>
+- Muse memos: _Infinite canvas_ — <https://museapp.com/memos/2020-12-infinite-canvas/>; _Flex boards_ — <https://museapp.com/memos/2021-03-flex-boards/>
+- Ink & Switch, _Malleable software_ (2025) — <https://www.inkandswitch.com/essay/malleable-software/>
 - tldraw UI + licensing — <https://tldraw.dev/docs/user-interface>, <https://tldraw.dev/community/license>, <https://tldraw.dev/pricing>
 - Notion editing basics / slash commands — <https://www.notion.com/help/writing-and-editing-basics>
-- NN/g, *Bottom sheets* — <https://www.nngroup.com/articles/bottom-sheet/>
+- NN/g, _Bottom sheets_ — <https://www.nngroup.com/articles/bottom-sheet/>
 - Kurtenbach & Buxton, marking menus — <https://www.microsoft.com/en-us/research/wp-content/uploads/2016/08/marking-menus-93.pdf>; Don Hopkins retrospective — <https://donhopkins.medium.com/pie-menus-936fed383ff1>
 - Arc sidebar design lessons — <https://blakecrosley.com/guides/design/arc>
-- Superhuman, *How to build a remarkable command palette* — <https://blog.superhuman.com/how-to-build-a-remarkable-command-palette/>
-- Chris Coyier, *Infinite Canvas* — <https://chriscoyier.net/2022/12/26/infinite-canvas/>
-- HN, *Evolving the Infinite Canvas* — <https://news.ycombinator.com/item?id=38773991>
+- Superhuman, _How to build a remarkable command palette_ — <https://blog.superhuman.com/how-to-build-a-remarkable-command-palette/>
+- Chris Coyier, _Infinite Canvas_ — <https://chriscoyier.net/2022/12/26/infinite-canvas/>
+- HN, _Evolving the Infinite Canvas_ — <https://news.ycombinator.com/item?id=38773991>
 - Obsidian Canvas live cards — <https://www.obsibrain.com/blog/obsidian-canvas-complete-guide>

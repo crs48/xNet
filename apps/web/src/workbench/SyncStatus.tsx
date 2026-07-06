@@ -20,7 +20,7 @@ import { formatBytes } from '../lib/format-bytes'
 import { relativeTime, type SyncCoarseState } from './sync-format'
 import { useSyncVitals, type SyncVitals } from './useSyncVitals'
 
-const CHIP: Record<SyncCoarseState, { label: string; tone: string }> = {
+export const CHIP: Record<SyncCoarseState, { label: string; tone: string }> = {
   offline: { label: 'offline', tone: 'bg-ink-3' },
   connecting: { label: 'connecting…', tone: 'bg-warning' },
   syncing: { label: 'syncing…', tone: 'bg-warning' },

@@ -223,3 +223,39 @@ describe('pins, recents, shelf, startup', () => {
     expect(useWorkbench.getState().startupTab).toBeNull()
   })
 })
+
+describe('chrome posture (0273)', () => {
+  it('defaults to pinned and toggles to quiet', () => {
+    useWorkbench.setState({ chrome: 'pinned', discloseLevel: 0 })
+    expect(useWorkbench.getState().chrome).toBe('pinned')
+
+    useWorkbench.getState().toggleChrome()
+    expect(useWorkbench.getState().chrome).toBe('quiet')
+    useWorkbench.getState().toggleChrome()
+    expect(useWorkbench.getState().chrome).toBe('pinned')
+  })
+
+  it('setChrome resets the disclosure ladder to L0', () => {
+    useWorkbench.setState({ chrome: 'quiet', discloseLevel: 2 })
+    useWorkbench.getState().setChrome('pinned')
+    expect(useWorkbench.getState().discloseLevel).toBe(0)
+  })
+
+  it('tracks the disclosure level', () => {
+    useWorkbench.setState({ discloseLevel: 0 })
+    useWorkbench.getState().setDiscloseLevel(2)
+    expect(useWorkbench.getState().discloseLevel).toBe(2)
+    useWorkbench.getState().setDiscloseLevel(0)
+    expect(useWorkbench.getState().discloseLevel).toBe(0)
+  })
+
+  it('excludes the disclosure level from persistence', () => {
+    useWorkbench.setState({ discloseLevel: 2 })
+    const persisted = useWorkbench.persist
+      .getOptions()
+      .partialize?.(useWorkbench.getState()) as unknown as Record<string, unknown>
+    expect(persisted).toBeDefined()
+    expect('discloseLevel' in persisted).toBe(false)
+    expect(persisted.chrome).toBeDefined()
+  })
+})

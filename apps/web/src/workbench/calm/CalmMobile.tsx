@@ -12,13 +12,13 @@
  * pattern so a persisted "open" panel can't leave a Base UI backdrop stuck over
  * the surface intercepting taps (see MobileShell for the full rationale).
  */
-import type { ReactNode } from 'react'
+import type { ReactNode, RefObject } from 'react'
 import { useLocation, useNavigate } from '@tanstack/react-router'
 import { getCommandRegistry } from '@xnetjs/plugins'
 import { DemoBanner, useDemoMode } from '@xnetjs/react'
 import { BottomNav, Sheet, SheetContent } from '@xnetjs/ui'
 import { Menu, PanelRightOpen, Search, Settings, type LucideIcon } from 'lucide-react'
-import { useLayoutEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { GlobalSearch } from '../../components/GlobalSearch'
 import { WorkspaceCommands } from '../../components/WorkspaceCommands'
 import { useWorkbenchCommands, useZenEscape } from '../commands'
@@ -65,6 +65,41 @@ function TopBarButton({
   )
 }
 
+/**
+ * Quiet posture on a phone (0273): the bottom tab bar auto-hides on a
+ * scroll-down (content first) and reveals on any scroll-up. Scroll events
+ * don't bubble, so listen in the capture phase on the surface wrapper —
+ * whichever nested container scrolls, we see it.
+ */
+function useAutoHideNav(surfaceRef: RefObject<HTMLDivElement | null>, enabled: boolean) {
+  const [hidden, setHidden] = useState(false)
+
+  useEffect(() => {
+    if (!enabled) {
+      setHidden(false)
+      return
+    }
+    const el = surfaceRef.current
+    if (!el) return
+
+    const lastTop = new WeakMap<EventTarget, number>()
+    const onScroll = (event: Event) => {
+      const target = event.target
+      if (!(target instanceof HTMLElement)) return
+      const prev = lastTop.get(target) ?? target.scrollTop
+      const delta = target.scrollTop - prev
+      lastTop.set(target, target.scrollTop)
+      if (delta > 8 && target.scrollTop > 48) setHidden(true)
+      else if (delta < -8) setHidden(false)
+    }
+
+    el.addEventListener('scroll', onScroll, { capture: true, passive: true })
+    return () => el.removeEventListener('scroll', onScroll, { capture: true })
+  }, [surfaceRef, enabled])
+
+  return hidden
+}
+
 export function CalmMobile({ children }: { children: ReactNode }) {
   useWorkbenchCommands()
   useZenEscape()
@@ -72,6 +107,7 @@ export function CalmMobile({ children }: { children: ReactNode }) {
 
   const left = useWorkbench((state) => state.left)
   const right = useWorkbench((state) => state.right)
+  const chrome = useWorkbench((state) => state.chrome)
   const setPanelOpen = useWorkbench((state) => state.setPanelOpen)
   const setCalmMode = useWorkbench((state) => state.setCalmMode)
   const storedMode = useWorkbench((state) => state.calmMode)
@@ -91,6 +127,9 @@ export function CalmMobile({ children }: { children: ReactNode }) {
     setPanelOpen('right', false)
     setArmed(true)
   }, [pathname, setPanelOpen])
+
+  const surfaceRef = useRef<HTMLDivElement>(null)
+  const navHidden = useAutoHideNav(surfaceRef, chrome === 'quiet')
 
   const openOnly = (side: PanelSide) => {
     setPanelOpen('left', side === 'left')
@@ -151,19 +190,28 @@ export function CalmMobile({ children }: { children: ReactNode }) {
       </header>
 
       {/* Plain div, not <main>: CalmSurface already renders the <main> landmark. */}
-      <div className="relative min-h-0 flex-1 overflow-hidden">
+      <div ref={surfaceRef} className="relative min-h-0 flex-1 overflow-hidden">
         <CalmSurface>{children}</CalmSurface>
       </div>
 
-      <BottomNav
-        className="static border-hairline bg-surface-1"
-        items={destinations.map((d) => ({
-          label: d.label,
-          active: d.active,
-          onClick: d.onClick,
-          icon: <d.icon size={20} strokeWidth={1.5} />
-        }))}
-      />
+      {/* Quiet posture (0273): reading scrolls the bar away; a flick up (or
+          reaching the top) brings it back. Collapse the space too, so the
+          surface gains the rows. */}
+      <div
+        className={`shrink-0 overflow-hidden transition-[max-height] duration-normal ease-out ${
+          navHidden ? 'max-h-0' : 'max-h-24'
+        }`}
+      >
+        <BottomNav
+          className="static border-hairline bg-surface-1"
+          items={destinations.map((d) => ({
+            label: d.label,
+            active: d.active,
+            onClick: d.onClick,
+            icon: <d.icon size={20} strokeWidth={1.5} />
+          }))}
+        />
+      </div>
 
       {/* The List → left Sheet (per-mode: conversations / Explorer / Network). */}
       <Sheet open={armed && left.open} onOpenChange={(open) => setPanelOpen('left', open)}>

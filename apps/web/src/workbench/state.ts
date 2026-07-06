@@ -32,6 +32,23 @@ export type ShellLayout = 'workbench' | 'calm'
  */
 export type CalmMode = 'companion' | 'workspace' | 'network'
 
+/**
+ * Chrome posture of the calm shell (exploration 0273). `pinned` is the 0250
+ * composition — ModeSwitch and List always on screen. `quiet` inverts it: the
+ * surface owns the whole viewport at rest, and the same chrome is summoned
+ * from corner glyphs, edge hot-zones/swipes, chords, or ⌘K. An orthogonal
+ * axis (like density vs color), not a third shell.
+ */
+export type ChromePosture = 'pinned' | 'quiet'
+
+/**
+ * The quiet shell's disclosure ladder (0273): 0 = bare surface (glyphs
+ * dimmed), 1 = affordances lit by pointer/touch intent, 2 = one overlay open.
+ * Level 3 (pinned chrome / workbench) is represented by `chrome`/`layout`,
+ * not here. Ephemeral — deliberately excluded from persistence.
+ */
+export type DiscloseLevel = 0 | 1 | 2
+
 export type TabNodeType =
   | 'page'
   | 'database'
@@ -125,6 +142,13 @@ interface WorkbenchState {
   /** Active primary mode of the calm shell (0250). */
   calmMode: CalmMode
   /**
+   * Chrome posture of the calm shell (0273). Persisted so an opted-in quiet
+   * posture survives reloads; existing users keep their stored `pinned`.
+   */
+  chrome: ChromePosture
+  /** Quiet shell disclosure level (0273). Ephemeral, not persisted. */
+  discloseLevel: DiscloseLevel
+  /**
    * Contextual-canvas target (0250). When set, the calm shell's right Canvas
    * hosts the full content view for this node (the Claude "artifact opens on
    * the right" move — e.g. the agent drafts a page). When null the Canvas falls
@@ -185,6 +209,12 @@ interface WorkbenchState {
   toggleLayout: () => void
   /** Switch the calm shell's active primary mode. */
   setCalmMode: (mode: CalmMode) => void
+  /** Set the calm shell's chrome posture (0273). */
+  setChrome: (chrome: ChromePosture) => void
+  /** Flip between pinned and quiet chrome (0273). */
+  toggleChrome: () => void
+  /** Update the quiet shell's disclosure level (0273). */
+  setDiscloseLevel: (level: DiscloseLevel) => void
   /** Open the contextual Canvas hosting a node's full content view. */
   openCanvas: (target: { nodeType: TabNodeType; nodeId: string; title?: string }) => void
   /** Close the Canvas and clear its content target (back to the inspector). */
@@ -262,6 +292,10 @@ export const useWorkbench = create<WorkbenchState>()(
       // Appearance, or via the "View: Switch layout" command.
       layout: 'calm',
       calmMode: 'companion',
+      // Pinned chrome stays the shipped default (0273); quiet is one command
+      // away (`View: Quiet chrome`) and flips for new identities post-dogfood.
+      chrome: 'pinned',
+      discloseLevel: 0,
       canvasTarget: null,
       mode: 'default',
       zenSnapshot: null,
@@ -294,6 +328,17 @@ export const useWorkbench = create<WorkbenchState>()(
         set((state) => ({ layout: state.layout === 'calm' ? 'workbench' : 'calm' })),
 
       setCalmMode: (calmMode) => set({ calmMode }),
+
+      setChrome: (chrome) => set({ chrome, discloseLevel: 0 }),
+
+      toggleChrome: () =>
+        set((state) => ({
+          chrome: state.chrome === 'quiet' ? 'pinned' : 'quiet',
+          discloseLevel: 0
+        })),
+
+      setDiscloseLevel: (discloseLevel) =>
+        set((state) => (state.discloseLevel === discloseLevel ? {} : { discloseLevel })),
 
       openCanvas: (target) =>
         set((state) => ({ canvasTarget: target, right: { ...state.right, open: true } })),
@@ -584,7 +629,13 @@ export const useWorkbench = create<WorkbenchState>()(
       resetTips: () => set({ seenTips: [] })
     }),
     {
-      name: 'xnet:workbench:v1'
+      name: 'xnet:workbench:v1',
+      // The disclosure level is a live interaction state (0273) — persisting
+      // it would resurrect a lit/overlaid shell on reload.
+      partialize: (state) =>
+        Object.fromEntries(
+          Object.entries(state).filter(([key]) => key !== 'discloseLevel')
+        ) as WorkbenchState
     }
   )
 )
