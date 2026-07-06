@@ -1,0 +1,11 @@
+{
+  "id": "2026-07-06-faster-safer-foundations-the-hottest-cod",
+  "date": "July 6, 2026",
+  "title": "Faster, safer foundations: the hottest code paths got a deep clean",
+  "summary": "The storage engine, sync server, and app shells were reorganized into smaller, independently tested modules — same behavior, one shared conflict-resolution rule everywhere, and page comments now share one implementation across web and desktop.",
+  "highlights": [],
+  "tags": [
+    "platform",
+    "performance"
+  ]
+}

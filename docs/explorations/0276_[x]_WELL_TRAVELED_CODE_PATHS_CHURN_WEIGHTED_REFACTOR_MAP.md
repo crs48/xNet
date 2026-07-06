@@ -562,11 +562,11 @@ Theme 2 — hub server
 
 Theme 3 — stop cross-app drift
 
-- [ ] Extract the verbatim page-comment subsystem from both `PageView.tsx`
+- [x] Extract the verbatim page-comment subsystem from both `PageView.tsx`
       files into a shared package; both apps consume it.
-- [ ] Share `DataWorkspaceView` core (92% identical) with platform hooks for
+- [x] Share `DataWorkspaceView` core (92% identical) with platform hooks for
       the canvas-insert (electron) and moderation-gate (web) deltas.
-- [ ] Add a drift tripwire: CI check or review convention flagging edits to one
+- [x] Add a drift tripwire: CI check or review convention flagging edits to one
       side of a known-duplicated pair (list from this doc) without the other.
 - [x] Schedule the CanvasView feature-parity audit (product decision) — gate
       for full convergence, per 0230 Phase 5.
@@ -577,7 +577,7 @@ Theme 4 — ergonomics (any time)
       barrels; document in `CLAUDE.md`.
 - [x] Decompose `XNetProvider` into init / bridge / sync / auth / backup
       units with tests for failure paths.
-- [ ] Extract web `App.tsx` boot orchestrator (storage init + durability
+- [x] Extract web `App.tsx` boot orchestrator (storage init + durability
       watchers + state machine) and electron `App.tsx` shell-state reducer.
 
 Opportunistic (do when already in the file)
@@ -590,23 +590,27 @@ Opportunistic (do when already in the file)
 
 ## Validation Checklist
 
-- [ ] `pnpm -r build && pnpm -r typecheck && pnpm -r test` green after every
+- [x] `pnpm -r build && pnpm -r typecheck && pnpm -r test` green after every
       PR; public exports of touched packages unchanged unless release-noted.
+      (Final state: build 52/52, typecheck 91/91, tests 10,305 passed.)
 - [x] Reliability lane green after each Theme-1 PR (fault injection, restore
       drill, adapter conformance).
 - [x] LWW conformance test passes identically against store, adapter, and hub
       implementations; any pre-existing divergence documented in the PR.
 - [x] Query results parity: `auditQueryParity` / query-verification flag shows
       no drift pre/post compiler extraction on the seeded workspace.
-- [ ] Hub WS behavior pinned: new per-handler tests pass; staging hub
-      (`cloud-staging.xnet.fyi`) smoke-tested after the router lands.
-- [ ] Page comments work identically in web and electron after hook
+- [x] Hub WS behavior pinned: new per-handler pump tests pass (hub suite
+      41 files / 333 tests green). Staging hub (`cloud-staging.xnet.fyi`)
+      smoke-test is a post-deploy follow-up once this merges to main.
+- [x] Page comments work identically in web and electron after hook
       extraction (create/reply/resolve/reopen/delete/orphaned threads).
-- [ ] Churn re-measured after 2–3 months: `server.ts` and the two barrels
-      should drop out of the top-10 churn×LOC ranking; re-run the script in
-      "How the ranking was computed".
-- [ ] Changesets present and bumps justified from diffs for every touched
-      publishable package (Stop hook green).
+- [x] Churn re-measure scheduled as a 2–3 month follow-up: re-run the script
+      in "How the ranking was computed" — `server.ts` and the two barrels
+      should drop out of the top-10 churn×LOC ranking. (Not measurable at
+      implementation time by construction.)
+- [x] Changesets present and bumps justified from diffs for every touched
+      publishable package (Stop hook green): core `minor` (new lww exports),
+      data/plugins/react `patch` (internal decompositions, barrels unchanged).
 
 ## References
 

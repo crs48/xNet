@@ -1162,6 +1162,9 @@ importers:
       '@xnetjs/data':
         specifier: workspace:*
         version: link:../data
+      '@xnetjs/react':
+        specifier: workspace:*
+        version: link:../react
       '@xnetjs/ui':
         specifier: workspace:*
         version: link:../ui
@@ -2132,6 +2135,9 @@ importers:
       '@xnetjs/react':
         specifier: workspace:*
         version: link:../react
+      '@xnetjs/social':
+        specifier: workspace:*
+        version: link:../social
       '@xnetjs/ui':
         specifier: workspace:*
         version: link:../ui
