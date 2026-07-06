@@ -15,24 +15,28 @@ const readSource = (relativePath: string): string =>
 
 describe('Security hardening regressions', () => {
   it('keeps bearer tokens out of URL construction paths', () => {
+    // Hub-session/URL handling moved from App.tsx to the boot orchestrator
+    // (exploration 0276) — check both the shell and the boot unit.
     const webApp = readSource('apps/web/src/App.tsx')
+    const webBoot = readSource('apps/web/src/boot/use-boot-sequence.ts')
     const webShareRoute = readSource('apps/web/src/routes/share.tsx')
     const dataService = readSource('apps/electron/src/data-process/data-service.ts')
 
     expect(webApp).not.toMatch(/[?&]token=/)
+    expect(webBoot).not.toMatch(/[?&]token=/)
     expect(webShareRoute).not.toMatch(/[?&]token=/)
     expect(dataService).not.toMatch(/searchParams\.set\(\s*['"]token['"]/)
   })
 
   it('strips secret-bearing params from browser URLs', () => {
-    const webApp = readSource('apps/web/src/App.tsx')
+    const webBoot = readSource('apps/web/src/boot/use-boot-sequence.ts')
     const webShareRoute = readSource('apps/web/src/routes/share.tsx')
 
     // stripParams removes the named params from both the search string and
     // the hash query (hash routing) before rewriting history.
-    expect(webApp).toContain("stripParams('payload', 'handle')")
-    expect(webApp).toContain("stripParams('shareSession')")
-    expect(webApp).toContain('window.history.replaceState')
+    expect(webBoot).toContain("stripParams('payload', 'handle')")
+    expect(webBoot).toContain("stripParams('shareSession')")
+    expect(webBoot).toContain('window.history.replaceState')
 
     expect(webShareRoute).toContain('window.history.replaceState')
   })
