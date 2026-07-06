@@ -543,7 +543,7 @@ Theme 1 — data layer decomposition
 - [x] Add `@xnetjs/core` LWW module; adopt in `store.ts` `applyChange`,
       adapter hydration, `packages/hub/src/storage/sqlite.ts`.
 - [x] Cross-implementation LWW conformance test using 0200 golden vectors.
-- [ ] Extract transaction/batch orchestration from `store.ts`
+- [x] Extract transaction/batch orchestration from `store.ts`
       (`transaction-executor.ts`, `batch-write-orchestrator.ts`); unify
       conflict tracking + listener dispatch between fast and slow paths.
 - [ ] Split the three index families out of the adapter behind an
@@ -552,13 +552,13 @@ Theme 1 — data layer decomposition
 
 Theme 2 — hub server
 
-- [ ] Introduce `MessageRouter`; migrate the 12+ WS message types one handler
+- [x] Introduce `MessageRouter`; migrate the 12+ WS message types one handler
       per commit; delete the if/else pump.
-- [ ] Unify `authorizeRoomAction` / `checkRoomAuth` / inline checks into one
+- [x] Unify `authorizeRoomAction` / `checkRoomAuth` / inline checks into one
       auth middleware with a single resolution path.
-- [ ] Standardize the WS error response shape; add per-message-type metrics in
+- [x] Standardize the WS error response shape; add per-message-type metrics in
       the router (replacing scattered `HUB_METRICS` calls).
-- [ ] Add pump-level tests per handler (previously untested end-to-end).
+- [x] Add pump-level tests per handler (previously untested end-to-end).
 
 Theme 3 — stop cross-app drift
 
@@ -585,7 +585,7 @@ Opportunistic (do when already in the file)
 - [ ] CanvasV3: extract pure viewport math + the three duplicate
       `applyXxxUpdates` into a mutation dispatcher; input-handler modules per
       tool mode.
-- [ ] ai-surface: tool registry + URI router; **add the missing test file
+- [x] ai-surface: tool registry + URI router; **add the missing test file
       first** (mutation/rollback/audit logic currently has zero tests).
 
 ## Validation Checklist
