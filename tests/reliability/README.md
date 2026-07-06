@@ -71,9 +71,9 @@ mask ordering bugs; identities derive from the seed for the same reason.
 ## Track record
 
 Building the simulation surfaced two shipped durability defects before the
-lane itself ever merged — the reload-resync INVALID*HASH strand (lossy
+lane itself ever merged — the reload-resync `INVALID_HASH` strand (lossy
 change-log round-trip) and arrival-order divergence on same-Lamport
 concurrent edits (lamport-only SQL guards). Both are fixed and regression-
-pinned in `packages/data/src/store/sqlite-adapter.test.ts` ('change-record
-envelope (0272)') and by the simulation's convergence invariant. Details in
-`docs/explorations/0272*\*\_DURABILITY_RELIABILITY_AND_SCALE_TESTING.md`.
+pinned in `packages/data/src/store/sqlite-adapter.test.ts` ("change-record
+envelope (0272)") and by the simulation's convergence invariant. Details in
+the 0272 exploration doc under `docs/explorations/`.
