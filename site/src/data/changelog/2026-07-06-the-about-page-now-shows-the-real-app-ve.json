@@ -9,5 +9,11 @@
   "tags": [
     "app"
   ],
-  "pr": 399
+  "pr": 399,
+  "mergedAt": "2026-07-06T22:31:34Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
