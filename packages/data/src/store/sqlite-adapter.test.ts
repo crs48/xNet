@@ -2052,6 +2052,55 @@ describe('SQLiteNodeStorageAdapter', () => {
       }
     })
 
+    it('throttles plan diagnostics to one collection per compiled SQL shape (2026-07-05 convoy)', async () => {
+      // Pre-fix, EVERY debug-mode execution issued EXPLAIN QUERY PLAN +
+      // PRAGMA schema_version + the index inventory as separate round-trips
+      // on the single serial worker — hundreds per boot, delaying the very
+      // queries being measured by 18-20s. Diagnostics must be collected once
+      // per unique compiled SQL shape and served from the session memo after.
+      const throttledAdapter = new SQLiteNodeStorageAdapter(db, { queryDiagnostics: true })
+      const querySpy = vi.spyOn(db, 'query')
+      const explainCount = () =>
+        querySpy.mock.calls.filter(([sql]) => String(sql).startsWith('EXPLAIN QUERY PLAN')).length
+
+      const descriptor = {
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        where: { status: 'open' }
+      }
+
+      const first = await throttledAdapter.queryNodes(descriptor)
+      expect(first.plan.usedIndexNames).toBeDefined()
+      expect(first.plan.availableIndexCount).toBeGreaterThan(0)
+      expect(explainCount()).toBe(1)
+
+      // Same shape again — and the same shape with different bound values
+      // (values are `?` params, so the compiled SQL is identical): both are
+      // served from the memo, with diagnostics still present on every plan.
+      const second = await throttledAdapter.queryNodes(descriptor)
+      const third = await throttledAdapter.queryNodes({
+        ...descriptor,
+        where: { status: 'done' }
+      })
+      expect(second.plan.usedIndexNames).toBeDefined()
+      expect(third.plan.usedIndexNames).toBeDefined()
+      expect(explainCount()).toBe(1)
+
+      // Concurrent cold executions (the boot pattern) share one in-flight
+      // collection instead of each enqueueing their own.
+      const coldAdapter = new SQLiteNodeStorageAdapter(db, { queryDiagnostics: true })
+      const before = explainCount()
+      const results = await Promise.all(
+        Array.from({ length: 8 }, () => coldAdapter.queryNodes(descriptor))
+      )
+      for (const result of results) {
+        expect(result.plan.usedIndexNames).toBeDefined()
+      }
+      expect(explainCount()).toBe(before + 1)
+
+      querySpy.mockRestore()
+    })
+
     it('skips plan diagnostics by default', async () => {
       const defaultAdapter = new SQLiteNodeStorageAdapter(db)
 
