@@ -470,12 +470,12 @@ expect(headHashes(restored)).toEqual(headHashes(db))
 
 ## Implementation Checklist
 
-- [ ] Add `fast-check` as a root devDependency
+- [x] Add `fast-check` as a root devDependency
 - [x] Create the `reliability` vitest project (node env, forks pool) in root `vitest.config.ts`, rooted at `tests/reliability/`
-- [ ] Pillar 1: property tests for deterministic ordering — `orderChanges` permutation invariance and comparator laws (`packages/sync/src/chain.property.test.ts`)
-- [ ] Pillar 1: property tests for hash/canonicalisation — key-order independence, `verifyChangeHash` round-trip, tamper detection (`packages/sync/src/change.property.test.ts`)
-- [ ] Pillar 1: property tests for chain validation and fork detection under generated histories including forks and missing parents
-- [ ] Pillar 1: LWW convergence property — N replicas, arbitrary permutation + duplication of a generated change set converge to identical state (`tests/reliability/lww-convergence.property.test.ts`)
+- [x] Pillar 1: property tests for deterministic ordering — `orderChanges` permutation invariance and comparator laws (`packages/sync/src/chain.property.test.ts`)
+- [x] Pillar 1: property tests for hash/canonicalisation — key-order independence, `verifyChangeHash` round-trip, tamper detection (`packages/sync/src/change.property.test.ts`)
+- [x] Pillar 1: property tests for chain validation and fork detection under generated histories including forks and missing parents
+- [x] Pillar 1: LWW convergence property — N replicas, arbitrary permutation + duplication of a generated change set converge to identical state (`tests/reliability/lww-convergence.property.test.ts`)
 - [x] Pillar 2: deterministic simulation harness under `tests/reliability/sim/` — seeded PRNG, virtual network (drop/dup/reorder/delay/partition), relay with verify-hash/dedup/high-water, client crash-restart with cursor persistence; failures print the seed; depth via `XNET_SIM_SEEDS`/`XNET_SIM_OPS`
 - [x] Pillar 2: simulation invariant suite — replica convergence after drain, cursor monotonicity, dedup (no double-apply), determinism check (same seed twice → identical event trace)
 - [x] Pillar 3: crash-consistency harness under `tests/reliability/crash/` — child-process writer with prod pragmas (WAL, `synchronous = NORMAL`), parent SIGKILL at seeded offsets mid-write (progress-pipe guarded), reopen → `integrity_check` → LWW replay → equality with never-crashed reference; depth via `XNET_CRASH_ITERATIONS`
