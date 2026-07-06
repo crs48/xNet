@@ -10,6 +10,32 @@
 
 import { spawn } from 'node:child_process'
 
+/**
+ * Repo-location env vars that `git` exports into hook subprocesses (e.g.
+ * `git commit` sets GIT_INDEX_FILE for pre-commit hooks). If a devkit process
+ * runs inside a hook and inherits these, every spawned `git` is silently
+ * redirected at the hook's repo instead of the `cwd` the caller asked for —
+ * temp-repo tests and agent worktrees break with errors like
+ * ".git/index: index file open failed: Not a directory". The runner drops them
+ * from the inherited env; a caller that really wants one can still set it
+ * explicitly via `options.env`.
+ */
+const GIT_REPO_LOCATION_VARS = [
+  'GIT_DIR',
+  'GIT_WORK_TREE',
+  'GIT_INDEX_FILE',
+  'GIT_OBJECT_DIRECTORY',
+  'GIT_ALTERNATE_OBJECT_DIRECTORIES',
+  'GIT_COMMON_DIR',
+  'GIT_PREFIX'
+] as const
+
+function sanitizedEnv(): NodeJS.ProcessEnv {
+  const env = { ...process.env }
+  for (const key of GIT_REPO_LOCATION_VARS) delete env[key]
+  return env
+}
+
 export interface CommandResult {
   /** `true` when the process exited 0. */
   ok: boolean
@@ -40,7 +66,7 @@ export class NodeCommandRunner implements CommandRunner {
     return new Promise((resolve) => {
       const child = spawn(command, args, {
         cwd: options.cwd,
-        env: { ...process.env, ...options.env },
+        env: { ...sanitizedEnv(), ...options.env },
         shell: false // never interpret the command through a shell
       })
       let stdout = ''
