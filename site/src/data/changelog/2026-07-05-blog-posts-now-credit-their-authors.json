@@ -4,5 +4,14 @@
   "title": "Blog posts now credit their authors",
   "summary": "Every essay on the blog carries a byline — the human author linked to their GitHub profile, and Claude credited as the AI co-author — with first-party avatar images, per-author RSS credits, and structured data for search engines.",
   "highlights": [],
-  "tags": ["platform"]
+  "tags": [
+    "platform"
+  ],
+  "pr": 390,
+  "mergedAt": "2026-07-06T00:51:00Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
