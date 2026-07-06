@@ -15,7 +15,6 @@ import type {
   AuthorizationStateVersion,
   ListNodesOptions,
   CountNodesOptions,
-  PropertyTimestamp,
   SetNodeOptions,
   ImportNodesOptions,
   RebuildNodeIndexesOptions,
@@ -34,8 +33,6 @@ import type {
   SQLiteNodeBatchApplyInput
 } from '@xnetjs/sqlite'
 import {
-  updateNodeFTS,
-  deleteNodeFTS,
   extractSearchableContent,
   analyzeQuery,
   detectSQLiteCapabilities,
@@ -46,13 +43,11 @@ import {
 import { SYSTEM_SCHEMA_BASE_IRIS } from '../schema/schemas/system'
 import {
   applyNodeQueryDescriptor,
-  getNodeQuerySearchTokens,
   withoutNodeQueryMaterializedView,
   withoutNodeQueryPagination,
   type NodeQueryDescriptor,
   type NodeQueryParityCheckMetadata,
   type NodeQueryResult,
-  type NodeQuerySpatialFilter,
   type NodeQueryStorageCapabilitiesMetadata
 } from './query'
 import {
@@ -79,9 +74,16 @@ import {
   type CompiledNodeQuery,
   type FullTextSearchQueryPlan,
   type ScalarValueType,
-  type SpatialBoundingBox,
   type SpatialQueryPlan
 } from './query-compiler'
+import {
+  FullTextIndexing,
+  ScalarIndexing,
+  SpatialIndexing,
+  createDeleteRemovedPropertiesOperation,
+  deleteRemovedProperties,
+  type IndexingContext
+} from './indexing'
 
 /**
  * The shared LWW upsert guard for `node_properties` (protocol §L1.7 via
@@ -197,19 +199,6 @@ interface AdaptiveIndexBudgetUsage {
   count: number
   estimatedBytes: number
   indexedRows: number
-}
-
-type SpatialTablesState = 'unknown' | 'absent' | 'ready'
-type FullTextSearchTablesState = 'unknown' | 'absent' | 'ready'
-
-interface SpatialIndexConfigRow {
-  spatial_key: string
-  schema_id: string
-  x_key: string
-  y_key: string
-  width_key: string | null
-  height_key: string | null
-  [key: string]: SQLValue
 }
 
 interface MaterializedQueryRow {
@@ -384,10 +373,6 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
    */
   private compiledQueryDiagnosticsMemo = new Map<string, Promise<CompiledQueryDiagnostics>>()
 
-  private spatialTablesState: SpatialTablesState = 'unknown'
-
-  private fullTextSearchTablesState: FullTextSearchTablesState = 'unknown'
-
   private writeQueue: Promise<unknown> = Promise.resolve()
 
   /**
@@ -411,6 +396,18 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     aggregatedHydration: this.aggregatedHydration
   }))
 
+  /**
+   * The three sidecar index families — scalar / full-text / spatial — live
+   * behind `IndexingStrategy` in ./indexing (exploration 0276). Each takes
+   * the narrow `IndexingContext` capability set; table-existence memos live
+   * inside the family instances.
+   */
+  private readonly scalarIndexing: ScalarIndexing
+
+  private readonly fullTextIndexing: FullTextIndexing
+
+  private readonly spatialIndexing: SpatialIndexing
+
   constructor(
     private db: SQLiteAdapter,
     options: SQLiteNodeStorageAdapterOptions = {}
@@ -426,6 +423,17 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     this.queryDiagnostics = options.queryDiagnostics ?? false
     this.aggregatedHydration = options.aggregatedHydration ?? true
     this.scheduleMaintenance = options.scheduleMaintenance
+
+    const indexingContext: IndexingContext = {
+      db,
+      getStorageCapabilities: () => this.getStorageCapabilities(),
+      enqueueWrite: (write) => this.enqueueWrite(write),
+      listNodesForSchema: (schemaId) => this.listNodesOptimized({ schemaId, includeDeleted: true }),
+      getNode: (id) => this.getNode(id)
+    }
+    this.scalarIndexing = new ScalarIndexing(indexingContext)
+    this.fullTextIndexing = new FullTextIndexing(indexingContext)
+    this.spatialIndexing = new SpatialIndexing(indexingContext)
   }
 
   getSQLiteAdapter(): SQLiteAdapter {
@@ -831,7 +839,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       ]
     )
 
-    await this.deleteRemovedProperties(node)
+    await deleteRemovedProperties(this.db, node)
 
     // Upsert properties
     for (const [key, value] of Object.entries(node.properties)) {
@@ -878,16 +886,14 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     const indexedNode = trustMaterializedState ? node : await this.getNode(node.id)
     if (indexedNode) {
       const indexProperties = options?.indexProperties ?? true
-      await this.syncScalarRowsForNode(indexedNode, indexProperties)
-      await this.syncSpatialRowsForNode(indexedNode, indexProperties)
+      await this.scalarIndexing.syncNode(indexedNode, indexProperties)
+      await this.spatialIndexing.syncNode(indexedNode, indexProperties)
     }
 
     // Update FTS index for searchable content
     // This is a no-op if FTS5 is not supported (e.g., sql.js)
     const searchableProperties = indexedNode?.properties ?? node.properties
-    const title = typeof searchableProperties.title === 'string' ? searchableProperties.title : null
-    const content = extractSearchableContent(searchableProperties)
-    await updateNodeFTS(this.db, node.id, title, content)
+    await this.fullTextIndexing.updateNode(node.id, searchableProperties)
 
     await this.invalidateMaterializedViewsForSchema(node.schemaId)
   }
@@ -899,8 +905,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   private async deleteNodeInternal(id: NodeId): Promise<void> {
     const existing = await this.getNode(id)
     // Delete from FTS index first (no-op if FTS5 is not supported)
-    await deleteNodeFTS(this.db, id)
-    await this.deleteSpatialRowsForNode(id)
+    await this.fullTextIndexing.deleteNode(id)
+    await this.spatialIndexing.deleteNode(id)
     // Delete node (cascades to properties via FK)
     await this.db.run(`DELETE FROM nodes WHERE id = ?`, [id])
     if (existing) {
@@ -994,8 +1000,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       return this.queryMaterializedView(descriptor, start)
     }
 
-    const spatialPlan = await this.prepareSpatialQueryPlan(descriptor)
-    const fullTextSearchPlan = await this.prepareFullTextSearchQueryPlan(descriptor)
+    const spatialPlan = await this.spatialIndexing.prepareQueryPlan(descriptor)
+    const fullTextSearchPlan = await this.fullTextIndexing.prepareQueryPlan(descriptor)
     const compiled = this.queryCompiler.compile(descriptor, spatialPlan, fullTextSearchPlan)
 
     if (!compiled) {
@@ -1379,7 +1385,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     // Spatial indexes still need their existing eager per-node path until they
     // get a touched-node batch writer. Social import schemas do not use spatial
     // indexes, so this preserves correctness without blocking the common path.
-    if (await this.hasSpatialTables()) {
+    if (await this.spatialIndexing.hasTables()) {
       return { ...input, indexMode: 'eager' }
     }
 
@@ -1391,7 +1397,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   ): Promise<boolean> {
     if (!this.db.transactionBatch) return false
     if (input.indexMode === 'eager') return false
-    if (await this.hasSpatialTables()) return false
+    if (await this.spatialIndexing.hasTables()) return false
     return true
   }
 
@@ -1400,7 +1406,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   ): Promise<boolean> {
     if (!this.db.applyNodeBatch) return false
     if (input.indexMode === 'eager') return false
-    if (await this.hasSpatialTables()) return false
+    if (await this.spatialIndexing.hasTables()) return false
     return true
   }
 
@@ -1419,7 +1425,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   ): Promise<SQLiteNodeBatchApplyInput> {
     const indexProperties = input.indexProperties ?? true
     const hasFullTextSearch =
-      input.indexMode !== 'defer-schema' && (await this.hasFullTextSearchTable())
+      input.indexMode !== 'defer-schema' && (await this.fullTextIndexing.hasTable())
     const scalarIndexRows: SQLiteNodeBatchApplyInput['scalarIndexRows'] = []
     const ftsNodeIds: string[] = []
     const ftsRows: SQLiteNodeBatchApplyInput['ftsRows'] = []
@@ -1521,7 +1527,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
 
     const indexProperties = input.indexProperties ?? true
     const operations: Array<{ sql: string; params?: SQLValue[] }> = []
-    const hasFullTextSearch = input.indexMode === 'touched' && (await this.hasFullTextSearchTable())
+    const hasFullTextSearch =
+      input.indexMode === 'touched' && (await this.fullTextIndexing.hasTable())
     const affectedSchemaIds = new Set(input.affectedSchemaIds)
     let scalarRowsWritten = 0
     let ftsRowsWritten = 0
@@ -1537,12 +1544,12 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
         )
       )
       if (input.indexMode === 'touched' && indexProperties) {
-        scalarRowsWritten += this.countScalarIndexRowsForNode(node)
+        scalarRowsWritten += this.scalarIndexing.countIndexRowsForNode(node)
       }
       if (
         input.indexMode === 'touched' &&
         hasFullTextSearch &&
-        this.hasSearchableNodeContent(node)
+        this.fullTextIndexing.hasSearchableContent(node)
       ) {
         ftsRowsWritten += 1
       }
@@ -1615,7 +1622,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     if (options?.trustMaterializedState !== true) return false
     if (options?.deferIndexes === true) return false
 
-    return !(await this.hasSpatialTables())
+    return !(await this.spatialIndexing.hasTables())
   }
 
   private async importNodesWithTransactionBatch(
@@ -1628,7 +1635,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
 
     const operations: Array<{ sql: string; params?: SQLValue[] }> = []
     const indexProperties = options?.indexProperties ?? true
-    const hasFullTextSearch = await this.hasFullTextSearchTable()
+    const hasFullTextSearch = await this.fullTextIndexing.hasTable()
     const affectedSchemaIds = new Set<SchemaIRI>()
 
     for (const node of nodes) {
@@ -1684,7 +1691,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
           node.deleted && node.deletedAt ? node.deletedAt.wallTime : null
         ]
       },
-      this.createDeleteRemovedPropertiesOperation(node)
+      createDeleteRemovedPropertiesOperation(node)
     ]
 
     for (const [key, value] of Object.entries(node.properties)) {
@@ -1720,10 +1727,10 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
         params: [node.id]
       })
       if (indexProperties) {
-        operations.push(...this.createScalarIndexOperations(node))
+        operations.push(...this.scalarIndexing.createNodeOperations(node))
       }
       if (hasFullTextSearch) {
-        operations.push(...this.createFullTextIndexOperations(node))
+        operations.push(...this.fullTextIndexing.createNodeOperations(node))
       }
     }
 
@@ -1770,126 +1777,16 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     }
   }
 
-  private createDeleteRemovedPropertiesOperation(node: NodeState): {
-    sql: string
-    params?: SQLValue[]
-  } {
-    const keys = Object.keys(node.properties)
-
-    if (keys.length === 0) {
-      return {
-        sql: 'DELETE FROM node_properties WHERE node_id = ?',
-        params: [node.id]
-      }
-    }
-
-    return {
-      sql: `DELETE FROM node_properties
-            WHERE node_id = ? AND property_key NOT IN (${keys.map(() => '?').join(', ')})`,
-      params: [node.id, ...keys]
-    }
-  }
-
-  private createScalarIndexOperations(
-    node: NodeState
-  ): Array<{ sql: string; params?: SQLValue[] }> {
-    return Object.entries(node.properties).flatMap(([key, value]) => {
-      const timestamp = node.timestamps[key]
-      const scalar = toScalarIndexValue(value)
-      if (!timestamp || !scalar) return []
-
-      return [
-        {
-          sql: `INSERT INTO node_property_scalars
-                  (
-                    node_id,
-                    schema_id,
-                    property_key,
-                    value_type,
-                    value_text,
-                    value_number,
-                    value_boolean,
-                    value_hash,
-                    updated_at,
-                    lamport_time
-                  )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          params: [
-            node.id,
-            node.schemaId,
-            key,
-            scalar.valueType,
-            scalar.valueText,
-            scalar.valueNumber,
-            scalar.valueBoolean,
-            scalar.valueHash,
-            timestamp.wallTime,
-            timestamp.lamport
-          ]
-        }
-      ]
-    })
-  }
-
-  private createFullTextIndexOperations(
-    node: NodeState
-  ): Array<{ sql: string; params?: SQLValue[] }> {
-    const title = typeof node.properties.title === 'string' ? node.properties.title : null
-    const content = extractSearchableContent(node.properties)
-    const operations: Array<{ sql: string; params?: SQLValue[] }> = [
-      {
-        sql: 'DELETE FROM nodes_fts WHERE node_id = ?',
-        params: [node.id]
-      }
-    ]
-
-    if (title || content) {
-      operations.push({
-        sql: 'INSERT INTO nodes_fts (node_id, title, content) VALUES (?, ?, ?)',
-        params: [node.id, title ?? '', content ?? '']
-      })
-    }
-
-    return operations
-  }
-
-  private countScalarIndexRowsForNode(node: NodeState): number {
-    return Object.values(node.properties).filter((value) => toScalarIndexValue(value) !== null)
-      .length
-  }
-
-  private hasSearchableNodeContent(node: NodeState): boolean {
-    const title = typeof node.properties.title === 'string' ? node.properties.title : null
-    const content = extractSearchableContent(node.properties)
-    return Boolean(title || content)
-  }
-
   private async syncTouchedIndexesForNodes(
     nodes: readonly NodeState[],
     indexProperties: boolean
   ): Promise<{ scalarRowsWritten: number; ftsRowsWritten: number }> {
     let scalarRowsWritten = 0
     let ftsRowsWritten = 0
-    const hasFullTextSearch = await this.hasFullTextSearchTable()
 
     for (const node of nodes) {
-      scalarRowsWritten += await this.syncScalarRowsForNode(node, indexProperties)
-
-      if (!hasFullTextSearch) {
-        continue
-      }
-
-      if (node.deleted) {
-        await deleteNodeFTS(this.db, node.id)
-        continue
-      }
-
-      const title = typeof node.properties.title === 'string' ? node.properties.title : null
-      const content = extractSearchableContent(node.properties)
-      await updateNodeFTS(this.db, node.id, title, content)
-      if (title || content) {
-        ftsRowsWritten += 1
-      }
+      scalarRowsWritten += await this.scalarIndexing.syncNode(node, indexProperties)
+      ftsRowsWritten += await this.fullTextIndexing.syncNode(node, indexProperties)
     }
 
     return { scalarRowsWritten, ftsRowsWritten }
@@ -1955,86 +1852,12 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     }
 
     const indexProperties = options?.indexProperties ?? true
-    await this.rebuildScalarIndexesForSchemas(uniqueSchemaIds, nodesBySchemaId, indexProperties)
-    await this.rebuildSpatialIndexesForSchemas(uniqueSchemaIds, nodesBySchemaId, indexProperties)
-    await this.rebuildFullTextIndexesForSchemas(uniqueSchemaIds, nodesBySchemaId)
+    await this.scalarIndexing.rebuildForSchemas(uniqueSchemaIds, nodesBySchemaId, indexProperties)
+    await this.spatialIndexing.rebuildForSchemas(uniqueSchemaIds, nodesBySchemaId, indexProperties)
+    await this.fullTextIndexing.rebuildForSchemas(uniqueSchemaIds, nodesBySchemaId, indexProperties)
 
     for (const schemaId of uniqueSchemaIds) {
       await this.invalidateMaterializedViewsForSchema(schemaId)
-    }
-  }
-
-  private async rebuildScalarIndexesForSchemas(
-    schemaIds: readonly SchemaIRI[],
-    nodesBySchemaId: ReadonlyMap<SchemaIRI, readonly NodeState[]>,
-    indexProperties: boolean
-  ): Promise<void> {
-    for (const schemaId of schemaIds) {
-      await this.db.run('DELETE FROM node_property_scalars WHERE schema_id = ?', [schemaId])
-
-      if (!indexProperties) {
-        continue
-      }
-
-      const nodes = nodesBySchemaId.get(schemaId) ?? []
-      for (const node of nodes) {
-        await this.syncScalarRowsForNode(node, true)
-      }
-    }
-  }
-
-  private async rebuildSpatialIndexesForSchemas(
-    schemaIds: readonly SchemaIRI[],
-    nodesBySchemaId: ReadonlyMap<SchemaIRI, readonly NodeState[]>,
-    indexProperties: boolean
-  ): Promise<void> {
-    if (!(await this.hasSpatialTables())) {
-      return
-    }
-
-    for (const schemaId of schemaIds) {
-      const configs = await this.db.query<SpatialIndexConfigRow>(
-        `SELECT spatial_key, schema_id, x_key, y_key, width_key, height_key
-         FROM node_spatial_indexes
-         WHERE schema_id = ?`,
-        [schemaId]
-      )
-
-      for (const config of configs) {
-        await this.clearSpatialRowsForConfig(config.spatial_key)
-
-        if (!indexProperties) {
-          continue
-        }
-
-        const nodes = nodesBySchemaId.get(schemaId) ?? []
-        for (const node of nodes) {
-          await this.replaceSpatialRowForConfig(node, config, true)
-        }
-      }
-    }
-  }
-
-  private async rebuildFullTextIndexesForSchemas(
-    schemaIds: readonly SchemaIRI[],
-    nodesBySchemaId: ReadonlyMap<SchemaIRI, readonly NodeState[]>
-  ): Promise<void> {
-    if (!(await this.hasFullTextSearchTable())) {
-      return
-    }
-
-    for (const schemaId of schemaIds) {
-      const nodes = nodesBySchemaId.get(schemaId) ?? []
-      for (const node of nodes) {
-        if (node.deleted) {
-          await deleteNodeFTS(this.db, node.id)
-          continue
-        }
-
-        const title = typeof node.properties.title === 'string' ? node.properties.title : null
-        const content = extractSearchableContent(node.properties)
-        await updateNodeFTS(this.db, node.id, title, content)
-      }
     }
   }
 
@@ -2045,22 +1868,9 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     return this.enqueueWrite(async () => {
       await this.db.beginTransaction()
       try {
-        await this.db.run('DELETE FROM node_property_scalars')
-        const rows = await this.db.query<{ id: string }>('SELECT id FROM nodes ORDER BY id ASC')
-        let scalarRowsWritten = 0
-
-        for (const row of rows) {
-          const node = await this.getNode(row.id)
-          if (!node) continue
-
-          scalarRowsWritten += await this.syncScalarRowsForNode(node, true)
-        }
-
+        const result = await this.scalarIndexing.rebuildAll()
         await this.db.commit()
-        return {
-          nodesScanned: rows.length,
-          scalarRowsWritten
-        }
+        return result
       } catch (err) {
         await this.db.rollback()
         throw err
@@ -2087,9 +1897,9 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
         await this.db.run('DELETE FROM yjs_updates')
         await this.db.run('DELETE FROM yjs_state')
         await this.db.run('DELETE FROM changes')
-        await this.clearSpatialRows()
+        await this.spatialIndexing.clear()
         await this.clearMaterializedViewRows()
-        await this.db.run('DELETE FROM node_property_scalars')
+        await this.scalarIndexing.clear()
         await this.db.run('DELETE FROM node_properties')
         await this.db.run('DELETE FROM nodes')
         await this.db.run("DELETE FROM sync_state WHERE key = 'lastLamportTime'")
@@ -2386,441 +2196,6 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   private async clearMaterializedViewRows(): Promise<void> {
     await this.db.run('DELETE FROM node_query_materialized_ids')
     await this.db.run('DELETE FROM node_query_materializations')
-  }
-
-  private async deleteRemovedProperties(node: NodeState): Promise<void> {
-    const keys = Object.keys(node.properties)
-
-    if (keys.length === 0) {
-      await this.db.run('DELETE FROM node_properties WHERE node_id = ?', [node.id])
-      return
-    }
-
-    const placeholders = keys.map(() => '?').join(', ')
-    await this.db.run(
-      `DELETE FROM node_properties WHERE node_id = ? AND property_key NOT IN (${placeholders})`,
-      [node.id, ...keys]
-    )
-  }
-
-  private async syncScalarRowsForNode(node: NodeState, indexProperties: boolean): Promise<number> {
-    await this.db.run('DELETE FROM node_property_scalars WHERE node_id = ?', [node.id])
-
-    if (!indexProperties) {
-      return 0
-    }
-
-    let rowsWritten = 0
-    for (const [key, value] of Object.entries(node.properties)) {
-      const timestamp = node.timestamps[key]
-      const scalar = toScalarIndexValue(value)
-      if (!timestamp || !scalar) continue
-
-      await this.db.run(
-        `INSERT INTO node_property_scalars
-          (
-            node_id,
-            schema_id,
-            property_key,
-            value_type,
-            value_text,
-            value_number,
-            value_boolean,
-            value_hash,
-            updated_at,
-            lamport_time
-          )
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          node.id,
-          node.schemaId,
-          key,
-          scalar.valueType,
-          scalar.valueText,
-          scalar.valueNumber,
-          scalar.valueBoolean,
-          scalar.valueHash,
-          timestamp.wallTime,
-          timestamp.lamport
-        ]
-      )
-      rowsWritten += 1
-    }
-
-    return rowsWritten
-  }
-
-  private async prepareFullTextSearchQueryPlan(
-    descriptor: NodeQueryDescriptor
-  ): Promise<FullTextSearchQueryPlan | null> {
-    if (!descriptor.search) {
-      return null
-    }
-
-    const tokens = getNodeQuerySearchTokens(descriptor.search)
-    if (tokens.length === 0) {
-      return null
-    }
-
-    const capabilities = await this.getStorageCapabilities()
-    if (!capabilities.fullTextSearch || !(await this.hasFullTextSearchTable())) {
-      return null
-    }
-
-    return {
-      matchExpression: tokens.map((token) => `${token}*`).join(' AND ')
-    }
-  }
-
-  private async hasFullTextSearchTable(): Promise<boolean> {
-    if (this.fullTextSearchTablesState === 'ready') {
-      return true
-    }
-
-    if (this.fullTextSearchTablesState === 'absent') {
-      return false
-    }
-
-    const table = await this.db.queryOne<{ name: string }>(
-      "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'nodes_fts'"
-    )
-
-    this.fullTextSearchTablesState = table ? 'ready' : 'absent'
-    return table !== null
-  }
-
-  private async prepareSpatialQueryPlan(
-    descriptor: NodeQueryDescriptor
-  ): Promise<SpatialQueryPlan | null> {
-    if (!descriptor.spatial) {
-      return null
-    }
-
-    const capabilities = await this.getStorageCapabilities()
-    if (!capabilities.rtree) {
-      return null
-    }
-
-    await this.ensureSpatialTables()
-    const spatialKey = this.buildSpatialIndexKey(descriptor.schemaId, descriptor.spatial)
-    const existing = await this.db.queryOne<SpatialIndexConfigRow>(
-      `SELECT spatial_key, schema_id, x_key, y_key, width_key, height_key
-       FROM node_spatial_indexes
-       WHERE spatial_key = ?`,
-      [spatialKey]
-    )
-
-    if (!existing) {
-      await this.createSpatialIndexConfig(descriptor.schemaId, descriptor.spatial, spatialKey)
-    }
-
-    return {
-      spatialKey,
-      bounds: this.getSpatialSearchBounds(descriptor.spatial)
-    }
-  }
-
-  private async ensureSpatialTables(): Promise<void> {
-    const capabilities = await this.getStorageCapabilities()
-    if (!capabilities.rtree) {
-      this.spatialTablesState = 'absent'
-      return
-    }
-
-    await this.db.exec(`
-CREATE TABLE IF NOT EXISTS node_spatial_indexes (
-  spatial_key TEXT PRIMARY KEY,
-  schema_id TEXT NOT NULL,
-  x_key TEXT NOT NULL,
-  y_key TEXT NOT NULL,
-  width_key TEXT,
-  height_key TEXT,
-  created_at INTEGER NOT NULL,
-  last_built_at INTEGER NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS node_spatial_ids (
-  spatial_id INTEGER PRIMARY KEY,
-  spatial_key TEXT NOT NULL,
-  node_id TEXT NOT NULL,
-  schema_id TEXT NOT NULL,
-  UNIQUE(spatial_key, node_id),
-  FOREIGN KEY (spatial_key) REFERENCES node_spatial_indexes(spatial_key) ON DELETE CASCADE,
-  FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE
-);
-
-CREATE VIRTUAL TABLE IF NOT EXISTS node_spatial_rtree USING rtree(
-  spatial_id,
-  min_x,
-  max_x,
-  min_y,
-  max_y
-);
-
-CREATE INDEX IF NOT EXISTS idx_node_spatial_ids_schema
-  ON node_spatial_ids(schema_id, spatial_key, node_id);
-`)
-    this.spatialTablesState = 'ready'
-  }
-
-  private async hasSpatialTables(): Promise<boolean> {
-    if (this.spatialTablesState === 'ready') {
-      return true
-    }
-
-    if (this.spatialTablesState === 'absent') {
-      return false
-    }
-
-    const table = await this.db.queryOne<{ count: number }>(
-      `SELECT COUNT(*) as count
-       FROM sqlite_master
-       WHERE type IN ('table', 'virtual table')
-         AND name IN ('node_spatial_ids', 'node_spatial_rtree')`
-    )
-    const ready = Number(table?.count ?? 0) === 2
-    this.spatialTablesState = ready ? 'ready' : 'absent'
-
-    return ready
-  }
-
-  private async createSpatialIndexConfig(
-    schemaId: SchemaIRI,
-    spatial: NodeQuerySpatialFilter,
-    spatialKey: string
-  ): Promise<void> {
-    const fields = this.getSpatialFieldConfig(spatial)
-    const now = Date.now()
-
-    await this.enqueueWrite(async () => {
-      await this.db.beginTransaction()
-      try {
-        await this.db.run(
-          `INSERT INTO node_spatial_indexes
-            (spatial_key, schema_id, x_key, y_key, width_key, height_key, created_at, last_built_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [
-            spatialKey,
-            schemaId,
-            fields.xKey,
-            fields.yKey,
-            fields.widthKey,
-            fields.heightKey,
-            now,
-            now
-          ]
-        )
-
-        const nodes = await this.listNodesOptimized({ schemaId, includeDeleted: true })
-        const config: SpatialIndexConfigRow = {
-          spatial_key: spatialKey,
-          schema_id: schemaId,
-          x_key: fields.xKey,
-          y_key: fields.yKey,
-          width_key: fields.widthKey,
-          height_key: fields.heightKey
-        }
-
-        for (const node of nodes) {
-          await this.replaceSpatialRowForConfig(node, config, true)
-        }
-
-        await this.db.commit()
-      } catch (err) {
-        await this.db.rollback()
-        throw err
-      }
-    })
-  }
-
-  private async syncSpatialRowsForNode(node: NodeState, indexProperties: boolean): Promise<void> {
-    if (!(await this.hasSpatialTables())) {
-      return
-    }
-
-    const configs = await this.db.query<SpatialIndexConfigRow>(
-      `SELECT spatial_key, schema_id, x_key, y_key, width_key, height_key
-       FROM node_spatial_indexes
-       WHERE schema_id = ?`,
-      [node.schemaId]
-    )
-
-    for (const config of configs) {
-      await this.replaceSpatialRowForConfig(node, config, indexProperties)
-    }
-  }
-
-  private async replaceSpatialRowForConfig(
-    node: NodeState,
-    config: SpatialIndexConfigRow,
-    indexProperties: boolean
-  ): Promise<void> {
-    await this.deleteSpatialRow(config.spatial_key, node.id)
-
-    if (!indexProperties) {
-      return
-    }
-
-    const bounds = this.getNodeSpatialBounds(node, config)
-    if (!bounds) {
-      return
-    }
-
-    const result = await this.db.run(
-      `INSERT INTO node_spatial_ids (spatial_key, node_id, schema_id)
-       VALUES (?, ?, ?)`,
-      [config.spatial_key, node.id, node.schemaId]
-    )
-    const spatialId = Number(result.lastInsertRowid)
-    await this.db.run(
-      `INSERT INTO node_spatial_rtree (spatial_id, min_x, max_x, min_y, max_y)
-       VALUES (?, ?, ?, ?, ?)`,
-      [spatialId, bounds.minX, bounds.maxX, bounds.minY, bounds.maxY]
-    )
-  }
-
-  private async deleteSpatialRowsForNode(nodeId: NodeId): Promise<void> {
-    if (!(await this.hasSpatialTables())) {
-      return
-    }
-
-    const rows = await this.db.query<{ spatial_key: string }>(
-      `SELECT spatial_key
-       FROM node_spatial_ids
-       WHERE node_id = ?`,
-      [nodeId]
-    )
-
-    for (const row of rows) {
-      await this.deleteSpatialRow(row.spatial_key, nodeId)
-    }
-  }
-
-  private async deleteSpatialRow(spatialKey: string, nodeId: NodeId): Promise<void> {
-    const existing = await this.db.queryOne<{ spatial_id: number }>(
-      `SELECT spatial_id
-       FROM node_spatial_ids
-       WHERE spatial_key = ? AND node_id = ?`,
-      [spatialKey, nodeId]
-    )
-
-    if (!existing) {
-      return
-    }
-
-    await this.db.run('DELETE FROM node_spatial_rtree WHERE spatial_id = ?', [existing.spatial_id])
-    await this.db.run('DELETE FROM node_spatial_ids WHERE spatial_id = ?', [existing.spatial_id])
-  }
-
-  private async clearSpatialRowsForConfig(spatialKey: string): Promise<void> {
-    const rows = await this.db.query<{ spatial_id: number }>(
-      `SELECT spatial_id
-       FROM node_spatial_ids
-       WHERE spatial_key = ?`,
-      [spatialKey]
-    )
-
-    for (const batch of chunkItems(rows, SQLITE_BIND_PARAMETER_BATCH_SIZE)) {
-      const placeholders = batch.map(() => '?').join(', ')
-      await this.db.run(`DELETE FROM node_spatial_rtree WHERE spatial_id IN (${placeholders})`, [
-        ...batch.map((row) => row.spatial_id)
-      ])
-    }
-
-    await this.db.run('DELETE FROM node_spatial_ids WHERE spatial_key = ?', [spatialKey])
-  }
-
-  private async clearSpatialRows(): Promise<void> {
-    if (!(await this.hasSpatialTables())) {
-      return
-    }
-
-    await this.db.run('DELETE FROM node_spatial_rtree')
-    await this.db.run('DELETE FROM node_spatial_ids')
-    await this.db.run('DELETE FROM node_spatial_indexes')
-  }
-
-  private buildSpatialIndexKey(schemaId: SchemaIRI, spatial: NodeQuerySpatialFilter): string {
-    const fields = this.getSpatialFieldConfig(spatial)
-    return hashScalarValue(
-      stringifyStable({
-        schemaId,
-        x: fields.xKey,
-        y: fields.yKey,
-        width: fields.widthKey,
-        height: fields.heightKey
-      })
-    )
-  }
-
-  private getSpatialFieldConfig(spatial: NodeQuerySpatialFilter): {
-    xKey: string
-    yKey: string
-    widthKey: string | null
-    heightKey: string | null
-  } {
-    return {
-      xKey: spatial.fields.x,
-      yKey: spatial.fields.y,
-      widthKey: spatial.kind === 'window' ? (spatial.fields.width ?? null) : null,
-      heightKey: spatial.kind === 'window' ? (spatial.fields.height ?? null) : null
-    }
-  }
-
-  private getSpatialSearchBounds(spatial: NodeQuerySpatialFilter): SpatialBoundingBox {
-    if (spatial.kind === 'radius') {
-      const radius = Math.abs(spatial.radius)
-      return {
-        minX: spatial.center.x - radius,
-        maxX: spatial.center.x + radius,
-        minY: spatial.center.y - radius,
-        maxY: spatial.center.y + radius
-      }
-    }
-
-    const overscan = spatial.overscan ?? 0
-    const left = spatial.rect.x - overscan
-    const right = spatial.rect.x + spatial.rect.width + overscan
-    const top = spatial.rect.y - overscan
-    const bottom = spatial.rect.y + spatial.rect.height + overscan
-
-    return {
-      minX: Math.min(left, right),
-      maxX: Math.max(left, right),
-      minY: Math.min(top, bottom),
-      maxY: Math.max(top, bottom)
-    }
-  }
-
-  private getNodeSpatialBounds(
-    node: NodeState,
-    config: SpatialIndexConfigRow
-  ): SpatialBoundingBox | null {
-    const x = this.getFiniteNumberProperty(node, config.x_key)
-    const y = this.getFiniteNumberProperty(node, config.y_key)
-
-    if (x === null || y === null) {
-      return null
-    }
-
-    const width = this.getFiniteNumberProperty(node, config.width_key) ?? 0
-    const height = this.getFiniteNumberProperty(node, config.height_key) ?? 0
-
-    return {
-      minX: Math.min(x, x + width),
-      maxX: Math.max(x, x + width),
-      minY: Math.min(y, y + height),
-      maxY: Math.max(y, y + height)
-    }
-  }
-
-  private getFiniteNumberProperty(node: NodeState, key: string | null): number | null {
-    if (!key) {
-      return null
-    }
-
-    const value = node.properties[key]
-    return typeof value === 'number' && Number.isFinite(value) ? value : null
   }
 
   private quoteSqlIdentifier(identifier: string): string {
