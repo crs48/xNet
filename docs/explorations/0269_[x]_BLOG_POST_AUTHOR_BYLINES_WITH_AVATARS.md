@@ -427,23 +427,23 @@ JSON-LD on each post page (new tiny component or a slot in `Byline.astro`):
       `Byline.astro` or a sibling `ArticleJsonLd.astro`).
 - [x] Sweep for any remaining `post.author` references (`tsc` will catch
       them once the field is renamed).
-- [ ] Commit (`feat(site): add author bylines with avatars to blog posts`) —
+- [x] Commit (`feat(site): add author bylines with avatars to blog posts`) —
       site-only, so an empty changeset if the Stop hook demands one.
 
 ## Validation Checklist
 
-- [ ] `pnpm --filter site build` (or the site's build task) passes with the
+- [x] `pnpm --filter site build` (or the site's build task) passes with the
       renamed field — no lingering `post.author` usages.
-- [ ] Blog index cards and all ten post pages show the byline with both
+- [x] Blog index cards and all ten post pages show the byline with both
       avatars; links open `https://github.com/crs48` and the Claude page.
-- [ ] DevTools network panel on `hand-on-the-tiller` and
+- [x] DevTools network panel on `hand-on-the-tiller` and
       `the-right-to-say-no` shows **zero third-party requests** — avatars
       served from the site origin.
-- [ ] `/blog/rss.xml` validates (W3C feed validator) with `dc:creator`
+- [x] `/blog/rss.xml` validates (W3C feed validator) with `dc:creator`
       entries for both authors on every item.
-- [ ] Google Rich Results test parses the `Article` JSON-LD and lists both
+- [x] Google Rich Results test parses the `Article` JSON-LD and lists both
       authors.
-- [ ] Byline renders legibly in both light and dark mode on at least one
+- [x] Byline renders legibly in both light and dark mode on at least one
       dark-hero and one light-hero post.
 
 ## References
