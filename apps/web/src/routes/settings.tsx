@@ -1103,7 +1103,9 @@ function AboutSettings() {
     <SettingsPanel title="About" description="Information about xNet">
       <SettingsGroup>
         <SettingRow label="Version" description="Current application version">
-          <span className="font-mono text-xs text-ink-1">1.0.0</span>
+          <span className="font-mono text-xs text-ink-1">
+            {import.meta.env.VITE_APP_VERSION || 'dev'}
+          </span>
         </SettingRow>
 
         <SettingRow label="Platform" description="Runtime environment">
@@ -1132,7 +1134,7 @@ function AboutSettings() {
             Website
           </a>
           <a
-            href="https://github.com/xnetfyi/xnet"
+            href="https://github.com/crs48/xNet"
             target="_blank"
             rel="noopener noreferrer"
             className="text-xs"
