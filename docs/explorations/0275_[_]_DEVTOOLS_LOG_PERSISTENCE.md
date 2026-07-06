@@ -452,48 +452,50 @@ private hydrate(): void {
 
 Phase 1 — provider-level capture:
 
-- [ ] Add `packages/devtools/src/core/log-store.ts`: `ConsoleLogStore` ring
+- [x] Add `packages/devtools/src/core/log-store.ts`: `ConsoleLogStore` ring
       (push/getEntries/subscribe/clear/pause, capacity option), moving
       `LogEntry`, `LogLevel`, `LogChannel`, `classifyChannel`, `stringifyArgs`
       out of the panel hook.
-- [ ] Add `packages/devtools/src/instrumentation/console.ts`:
+- [x] Add `packages/devtools/src/instrumentation/console.ts`:
       `instrumentConsole(store)` with recursion guard and restore-on-cleanup.
-- [ ] Wire both in `XNetDevToolsProvider` (create store in a ref, instrument in
+- [x] Wire both in `XNetDevToolsProvider` (create store in a ref, instrument in
       a `useEffect` alongside the other `instrument*` calls); expose
       `consoleLogs` via `DevToolsContext`.
-- [ ] Rewrite `useLogsPanel` as a view over the store (filters/search/pause
+- [x] Rewrite `useLogsPanel` as a view over the store (filters/search/pause
       stay; tap and buffer removed); keep debug-channel toggles unchanged.
-- [ ] Point the SQLite panel's console capture at `ConsoleLogStore` instead of
+- [x] Point the SQLite panel's console capture at `ConsoleLogStore` instead of
       its own patch (remove the duplicate tap).
-- [ ] Unit tests: capture continues across panel unmount/remount; ring
+- [x] Unit tests: capture continues across panel unmount/remount; ring
       eviction; recursion guard; restore-on-provider-unmount.
-- [ ] Changeset for `@xnetjs/devtools` (minor).
+- [x] Changeset for `@xnetjs/devtools` — n/a: the package is `private: true`
+      (not publishable), so no changeset is required.
 
 Phase 2 — "Preserve log" session persistence:
 
-- [ ] Preserve-log toggle in the Logs panel header, flag persisted like the
+- [x] Preserve-log toggle in the Logs panel header, flag persisted like the
       debug channels; default off.
-- [ ] `attachSessionPersistence` on the store: hydrate on mount, snapshot on
+- [x] `attachSessionPersistence` on the store: hydrate on mount, snapshot on
       `visibilitychange → hidden` + `pagehide` + 5 s dirty-flush, byte-capped.
-- [ ] Scrub snapshot entries with the telemetry scrubber's token/DID/email
+- [x] Scrub snapshot entries with the telemetry scrubber's token/DID/email
       patterns before writing.
-- [ ] Session-divider rendering for `restored` entries in `LogsPanel.tsx`.
-- [ ] Clear the snapshot key from the Reset panel / `onResetLocalData` wipe
+- [x] Session-divider rendering for `restored` entries in `LogsPanel.tsx`.
+- [x] Clear the snapshot key from the Reset panel / `onResetLocalData` wipe
       path, and on toggle-off.
-- [ ] Unit tests: hydrate/snapshot round-trip, cap truncation, quota-error
+- [x] Unit tests: hydrate/snapshot round-trip, cap truncation, quota-error
       swallow, key cleared on toggle-off.
-- [ ] Changeset for `@xnetjs/devtools` (minor).
+- [x] Changeset for `@xnetjs/devtools` (Phase 2) — n/a: the package is
+      `private: true` (not publishable), so no changeset is required.
 
 Optional rider — crash breadcrumbs:
 
-- [ ] `reportCrash` context gains `recentLogs` (last ~50 entries, scrubbed)
+- [x] `reportCrash` context gains `recentLogs` (last ~50 entries, scrubbed)
       when a `ConsoleLogStore` is registered; gated at tier ≥ `crashes`.
 
-Deferred (Phase 3, needs a driving use case):
-
-- [ ] `LogBufferStore` over IndexedDB (clone of `TelemetryBufferStore`),
-      batched relaxed-durability flushes, hard caps, prune-on-open, scrub
-      before write, loud capture indicator.
+Deferred (Phase 3) — intentionally **not** part of this implementation; it
+needs a driving use case first (see Recommendation): `LogBufferStore` over
+IndexedDB (clone of `TelemetryBufferStore`), batched relaxed-durability
+flushes, hard caps, prune-on-open, scrub before write, loud capture
+indicator.
 
 ## Validation Checklist
 
