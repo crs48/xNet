@@ -320,6 +320,11 @@ const DEFAULT_QUERY_VERIFICATION: QueryVerificationConfig = {
 
 const QUERY_TELEMETRY_FLUSH_THRESHOLD = 50
 
+// Marker key for the change-record envelope stored in the `changes.payload`
+// BLOB (exploration 0272). See serializeChangeRecord for why the envelope
+// exists and why it lives in the payload rather than in new columns.
+const CHANGE_ENVELOPE_KEY = '__xnetChangeEnvelopeV1'
+
 // Distinct compiled SQL shapes are usually few (dozens), but IN-list binds
 // mint one shape per list length, so a long debug session can keep growing.
 // Evict oldest-first past this — recomputing a plan later is cheap; holding
@@ -586,7 +591,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   }
 
   private async appendChangeInternal(change: NodeChange): Promise<void> {
-    const payload = this.serializePayload(change.payload)
+    const payload = this.serializeChangeRecord(change)
 
     // Note: The schema uses 'lamport_peer' and 'author' columns but we adapt here
     // to match Change<T> interface which uses a numeric lamport and authorDID
@@ -892,6 +897,15 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       const timestamp = node.timestamps[key]
       if (!timestamp) continue
 
+      // LWW guard must implement the FULL ordering triple (lamport →
+      // wallTime → author code-units), exactly like `shouldReplace` in
+      // ./store.ts. A lamport-only guard kept whichever concurrent edit
+      // arrived first, so replicas that received a same-lamport conflict in
+      // different orders permanently disagreed (found by the 0272 sync
+      // simulation; the in-memory adapter masked it in the 0238 convergence
+      // tests). `updated_at`/`updated_by` hold the winning timestamp's
+      // wallTime/author; DIDs are ASCII, so SQLite's BINARY collation agrees
+      // with the UTF-16 code-unit comparison used in TypeScript.
       await this.db.run(
         `INSERT INTO node_properties (node_id, property_key, value, lamport_time, updated_by, updated_at)
          VALUES (?, ?, ?, ?, ?, ?)
@@ -900,7 +914,11 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
            lamport_time = excluded.lamport_time,
            updated_by = excluded.updated_by,
            updated_at = excluded.updated_at
-         WHERE excluded.lamport_time > node_properties.lamport_time`,
+         WHERE excluded.lamport_time > node_properties.lamport_time
+            OR (excluded.lamport_time = node_properties.lamport_time
+                AND (excluded.updated_at > node_properties.updated_at
+                     OR (excluded.updated_at = node_properties.updated_at
+                         AND excluded.updated_by > node_properties.updated_by)))`,
         [
           node.id,
           key,
@@ -1539,7 +1557,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       changes: input.changes.map((change) => ({
         hash: change.hash,
         nodeId: change.payload.nodeId,
-        payload: this.serializePayload(change.payload),
+        payload: this.serializeChangeRecord(change),
         lamportTime: change.lamport,
         lamportPeer: change.authorDID,
         wallTime: change.wallTime,
@@ -1737,6 +1755,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       if (!timestamp) continue
 
       operations.push({
+        // Full LWW ordering triple — keep in lockstep with the setNode
+        // upsert above and `shouldReplace` in ./store.ts (0272).
         sql: `INSERT INTO node_properties
                 (node_id, property_key, value, lamport_time, updated_by, updated_at)
               VALUES (?, ?, ?, ?, ?, ?)
@@ -1745,7 +1765,11 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
                 lamport_time = excluded.lamport_time,
                 updated_by = excluded.updated_by,
                 updated_at = excluded.updated_at
-              WHERE excluded.lamport_time > node_properties.lamport_time`,
+              WHERE excluded.lamport_time > node_properties.lamport_time
+                 OR (excluded.lamport_time = node_properties.lamport_time
+                     AND (excluded.updated_at > node_properties.updated_at
+                          OR (excluded.updated_at = node_properties.updated_at
+                              AND excluded.updated_by > node_properties.updated_by)))`,
         params: [
           node.id,
           key,
@@ -1781,7 +1805,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       params: [
         change.hash,
         change.payload.nodeId,
-        this.serializePayload(change.payload),
+        this.serializeChangeRecord(change),
         change.lamport,
         change.authorDID,
         change.wallTime,
@@ -4282,8 +4306,28 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
     return new TextEncoder().encode(JSON.stringify(payload))
   }
 
-  private deserializePayload(data: Uint8Array): NodePayload {
-    return JSON.parse(new TextDecoder().decode(data))
+  /**
+   * Serialize a change for the `changes` table (exploration 0272).
+   *
+   * The table has no columns for `id`, `type`, `protocolVersion`,
+   * `batchIndex`, or `batchSize`, yet all of them are part of the signed
+   * content hash — a change re-read without them can never pass
+   * `verifyChangeHash`, so the reload-resync push (getChangesSince → hub)
+   * was structurally rejected as INVALID_HASH and tripped the 0224 breaker,
+   * stranding offline edits. The hub's own `node_changes` table persists
+   * every one of these fields; the client log now does too, by wrapping the
+   * payload BLOB in an envelope instead of a schema migration (applySchema
+   * re-runs idempotent DDL and never executes ALTERs, so new columns would
+   * not reach existing databases).
+   */
+  private serializeChangeRecord(change: NodeChange): Uint8Array {
+    const meta: Record<string, unknown> = { id: change.id, type: change.type }
+    if (change.protocolVersion !== undefined) meta.protocolVersion = change.protocolVersion
+    if (change.batchIndex !== undefined) meta.batchIndex = change.batchIndex
+    if (change.batchSize !== undefined) meta.batchSize = change.batchSize
+    return new TextEncoder().encode(
+      JSON.stringify({ [CHANGE_ENVELOPE_KEY]: meta, payload: change.payload })
+    )
   }
 
   private serializeValue(value: unknown): Uint8Array {
@@ -4296,14 +4340,26 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
   }
 
   private deserializeChange(row: ChangeRow): NodeChange {
-    // Note: Need to provide required fields for Change<T>
-    // The id, type, protocolVersion fields need to be included
-    const payload = this.deserializePayload(row.payload)
+    const parsed: unknown = JSON.parse(new TextDecoder().decode(row.payload))
+    const envelope =
+      parsed !== null && typeof parsed === 'object' && CHANGE_ENVELOPE_KEY in parsed
+        ? ((parsed as Record<string, unknown>)[CHANGE_ENVELOPE_KEY] as {
+            id: string
+            type: string
+            protocolVersion?: number
+            batchIndex?: number
+            batchSize?: number
+          })
+        : null
+    const payload = (envelope ? (parsed as Record<string, unknown>).payload : parsed) as NodePayload
 
-    return {
-      // Required Change<T> fields
-      id: row.hash, // Use hash as ID since we don't store separate id
-      type: 'node', // All node changes have type 'node'
+    const change: NodeChange = {
+      // Envelope rows (exploration 0272) round-trip the hashed identity
+      // fields exactly, so verifyChangeHash holds after a re-read. Legacy
+      // rows predate the envelope: their id/type/protocolVersion are gone
+      // for good, so we keep the historical fabricated values.
+      id: envelope?.id ?? row.hash,
+      type: envelope?.type ?? 'node',
       hash: row.hash as ContentId,
       payload,
       lamport: row.lamport_time,
@@ -4313,6 +4369,10 @@ WHERE schema_id = ${this.quoteSqlLiteral(schemaId)}
       batchId: row.batch_id ?? undefined,
       signature: row.signature
     }
+    if (envelope?.protocolVersion !== undefined) change.protocolVersion = envelope.protocolVersion
+    if (envelope?.batchIndex !== undefined) change.batchIndex = envelope.batchIndex
+    if (envelope?.batchSize !== undefined) change.batchSize = envelope.batchSize
+    return change
   }
 }
 
