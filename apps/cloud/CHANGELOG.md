@@ -1,5 +1,13 @@
 # xnet-cloud
 
+## 0.0.4
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/cloud@0.0.1
+  - @xnetjs/crypto@0.1.2
+
 ## 0.0.3
 
 ### Patch Changes

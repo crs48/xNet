@@ -1,5 +1,17 @@
 # @xnetjs/sqlite
 
+## 0.1.2
+
+### Patch Changes
+
+- [#392](https://github.com/crs48/xNet/pull/392) [`1a045b3`](https://github.com/crs48/xNet/commit/1a045b371b4d8fabe7cd32c5bc44d03efd6c31cc) Thanks [@crs48](https://github.com/crs48)! - SQL property upserts now enforce the full LWW ordering triple (Lamport →
+  wallTime → author code-units), matching the in-memory `shouldReplace`
+  comparator. The previous lamport-only guard let arrival order decide
+  same-Lamport concurrent edits, so two replicas that received the same
+  conflicting changes in different orders could permanently disagree on the
+  materialized value. Applies to the per-change upsert, the batched
+  `applyNodeBatch` path, and the native web/electron batch adapters.
+
 ## 0.1.1
 
 ### Patch Changes
