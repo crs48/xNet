@@ -1,0 +1,126 @@
+# Nightly reliability soak (exploration 0272).
+#
+# The PR lane runs the reliability suite at shallow depth (seconds). This
+# workflow runs the DEEP tiers nobody can afford per-PR: many simulation
+# seeds, many crash iterations, the 100k-node / 318k-change scale tier (the
+# 0249→0260 cold-open regression shape), a bigger hub load storm, the restore
+# drill, and the browser OPFS durability spec — plus the wall-clock ceilings
+# that only make sense off the PR critical path (XNET_SOAK=1).
+#
+# Scheduled workflows fail silently (nobody watches them — the 0265 lesson),
+# so a failure files/updates exactly one alarm issue.
+
+name: Soak
+
+on:
+  schedule:
+    - cron: '30 6 * * *' # nightly, 06:30 UTC
+  workflow_dispatch:
+    inputs:
+      sim_seeds:
+        description: 'Simulation seeds to run'
+        default: '25'
+      crash_iterations:
+        description: 'SIGKILL crash iterations'
+        default: '25'
+      scale_nodes:
+        description: 'Scale-tier node count'
+        default: '100000'
+      scale_changes:
+        description: 'Scale-tier change-log rows'
+        default: '318000'
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: soak
+  cancel-in-progress: false
+
+jobs:
+  reliability-soak:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      - name: Reliability suite at soak depth
+        run: pnpm exec vitest run --project reliability
+        env:
+          XNET_SOAK: '1'
+          XNET_SIM_SEEDS: ${{ github.event.inputs.sim_seeds || '25' }}
+          XNET_SIM_OPS: '400'
+          XNET_CRASH_ITERATIONS: ${{ github.event.inputs.crash_iterations || '25' }}
+          XNET_SCALE_NODES: ${{ github.event.inputs.scale_nodes || '100000' }}
+          XNET_SCALE_CHANGES: ${{ github.event.inputs.scale_changes || '318000' }}
+          XNET_HUB_CLIENTS: '24'
+          XNET_HUB_CHANGES: '50'
+
+      # The browser durability spec drives the BUILT @xnetjs/sqlite dist (the
+      # OPFS worker files only exist there).
+      - name: Build @xnetjs/sqlite for the OPFS harness
+        run: pnpm turbo build --filter=@xnetjs/sqlite
+
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-1.58.1-chromium
+
+      - name: Install Playwright browsers (cache miss)
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+        run: pnpm --filter @xnetjs/e2e-tests exec playwright install --with-deps chromium
+
+      - name: Install Playwright system deps (cache hit)
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm --filter @xnetjs/e2e-tests exec playwright install-deps chromium
+
+      - name: Browser OPFS durability (reload mid write-burst)
+        run: pnpm --filter @xnetjs/e2e-tests exec playwright test src/durability.spec.ts --project=chromium
+        env:
+          CI: 'true'
+
+      - name: Upload artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: soak-artifacts
+          path: |
+            tests/e2e/test-results/**
+            tests/e2e/tmp/**
+          if-no-files-found: ignore
+          retention-days: 14
+
+      # Keep exactly one open alarm issue while the soak is red (0265
+      # pattern): comment while the failure persists, file on the first ring.
+      - name: Raise the alarm on failure
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          title="Nightly reliability soak is failing"
+          existing=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open \
+            --search "in:title \"$title\"" --json number --jq '.[0].number // empty')
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --repo "$GITHUB_REPOSITORY" \
+              --body "Still failing at \`$COMMIT_SHA\`: $RUN_URL"
+          else
+            body=$(printf '%s\n' \
+              "Automated alert: the **Soak** workflow failed at \`$COMMIT_SHA\`." \
+              "" \
+              "Run: $RUN_URL" \
+              "" \
+              "This is the deep durability/reliability/scale lane (exploration 0272):" \
+              "deterministic sync simulation, SIGKILL crash harness, 100k-node scale" \
+              "rails, hub load, restore drill, and the browser OPFS durability spec." \
+              "A red run means a durability invariant regressed — failures print the" \
+              "reproducing seed; see tests/reliability/README.md for replay steps." \
+              "" \
+              "Close this issue once a run succeeds.")
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$title" --body "$body"
+          fi

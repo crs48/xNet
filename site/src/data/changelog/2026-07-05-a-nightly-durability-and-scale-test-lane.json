@@ -1,0 +1,8 @@
+{
+  "id": "2026-07-05-a-nightly-durability-and-scale-test-lane",
+  "date": "July 5, 2026",
+  "title": "A nightly durability and scale test lane now guards the sync engine",
+  "summary": "New reliability suite: deterministic sync simulation with seeded network chaos, SIGKILL crash-consistency testing, backup restore drills, 100k-node scale rails, and hub load smoke — run shallow on every PR and deep every night.",
+  "highlights": [],
+  "tags": ["ci"]
+}

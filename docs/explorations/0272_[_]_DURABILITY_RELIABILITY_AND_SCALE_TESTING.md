@@ -485,10 +485,10 @@ expect(headHashes(restored)).toEqual(headHashes(db))
 - [x] Pillar 5: deterministic scale generator under `tests/reliability/scale/` — seeds N nodes / M change-log rows (PR tier ~5k/20k; env-scaled to 100k/318k) into a real SQLite store
 - [x] Pillar 5: scale regression assertions in counter currency — statement/round-trip counts for hot reads at scale (0271 pattern), plus generous wall-clock ceilings that only the soak lane enforces
 - [x] Pillar 5: hub load smoke — `scripts/reliability/hub-load.mjs`: in-process hub + M WebSocket clients pushing K changes (reconnect-storm shape), reporting throughput/p95 and asserting convergence; small vitest smoke in the reliability project
-- [ ] Soak workflow — `.github/workflows/soak.yml` (nightly cron + `workflow_dispatch`): deep sim seeds, deep crash iterations, 100k-node scale tier, hub load, restore drill; uploads artifacts; files/updates an alarm issue on failure (0265 pattern)
+- [x] Soak workflow — `.github/workflows/soak.yml` (nightly cron + `workflow_dispatch`): deep sim seeds, deep crash iterations, 100k-node scale tier, hub load, restore drill; uploads artifacts; files/updates an alarm issue on failure (0265 pattern)
 - [x] Ensure the reliability project runs in the PR `test` shards and stays under the time budget
-- [ ] `tests/reliability/README.md` — seeds, replay instructions, env knobs, lane structure
-- [ ] Changelog fragment (tags: `ci`) for the PR
+- [x] `tests/reliability/README.md` — seeds, replay instructions, env knobs, lane structure
+- [x] Changelog fragment (tags: `ci`) for the PR
 
 ## Validation Checklist
 
