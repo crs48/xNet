@@ -8,12 +8,22 @@
  */
 import { useNavigate } from '@tanstack/react-router'
 import { getCommandRegistry, installCommandHandler } from '@xnetjs/plugins'
-import { useGlobalUndo } from '@xnetjs/react'
+import { useGlobalUndo, useIdentity } from '@xnetjs/react'
 import { useEffect, useRef, useState, type JSX } from 'react'
+import { deskIdFor } from '../lib/desk'
+import { navigateToNode } from '../workbench/navigation'
+import { selectActiveTab, useWorkbench } from '../workbench/state'
+import { SCHEMA_IDS, isExplorerNodeType } from '../workbench/views/explorer-items'
 
 export function WorkspaceCommands(): JSX.Element | null {
   const navigate = useNavigate()
   const [helpOpen, setHelpOpen] = useState(false)
+
+  // The Desk (0273): identity-derived id, held in a ref so the commands
+  // register once but always resolve the current identity.
+  const { identity } = useIdentity()
+  const didRef = useRef<string | null>(null)
+  didRef.current = identity?.did ?? null
 
   // App-wide undo/redo (0179). Held in a ref so the commands register once
   // but always call the current handlers. allowInInput is left off so the
@@ -86,6 +96,37 @@ export function WorkspaceCommands(): JSX.Element | null {
         id: 'safety.filters',
         title: 'Content filters & safety',
         run: () => void navigate({ to: '/settings' })
+      }),
+      // The Desk (0273): a per-identity home canvas. "Go to Desk" creates it
+      // on first visit (deterministic id + createIfMissing); "Pin to Desk"
+      // queues the active tab's node, drained next time the Desk is visible.
+      registry.register({
+        id: 'workbench.openDesk',
+        title: 'Go to Desk',
+        key: 'g k',
+        when: () => didRef.current != null,
+        run: () => {
+          const did = didRef.current
+          if (did) navigateToNode(navigate, 'canvas', deskIdFor(did))
+        }
+      }),
+      registry.register({
+        id: 'workbench.pinToDesk',
+        title: 'Pin to Desk',
+        when: () => {
+          const tab = selectActiveTab(useWorkbench.getState())
+          return didRef.current != null && tab != null && isExplorerNodeType(tab.nodeType)
+        },
+        run: () => {
+          const state = useWorkbench.getState()
+          const tab = selectActiveTab(state)
+          if (!tab || !isExplorerNodeType(tab.nodeType)) return
+          state.queueDeskPin({
+            nodeId: tab.nodeId,
+            schemaId: SCHEMA_IDS[tab.nodeType],
+            title: tab.title || 'Untitled'
+          })
+        }
       }),
       registry.register({
         id: 'help.shortcuts',

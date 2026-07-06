@@ -110,6 +110,17 @@ export interface ShelfEntry {
   schemaId?: string
 }
 
+/**
+ * A queued "Pin to Desk" (exploration 0273). Pins are queued here (persisted)
+ * and drained onto the Desk canvas through the normal ingestion path the next
+ * time it is on screen — no surface ever has to load the Desk's Y.Doc.
+ */
+export interface DeskPinEntry {
+  nodeId: string
+  schemaId: string
+  title: string
+}
+
 const MAX_RECENTS = 30
 
 export function tabIdFor(nodeType: TabNodeType, nodeId: string): string {
@@ -168,6 +179,8 @@ interface WorkbenchState {
   expandedFolderIds: string[]
   /** Muse-style shelf: nodes held in transit between contexts */
   shelf: ShelfEntry[]
+  /** Queued Desk pins, drained by the Desk canvas when visible (0273). */
+  deskPins: DeskPinEntry[]
   /** Tab opened when the workspace starts at '/' (configurable) */
   startupTab: { nodeType: TabNodeType; nodeId: string } | null
   /**
@@ -267,6 +280,12 @@ interface WorkbenchState {
   shelfRemove: (nodeId: string) => void
   shelfClear: () => void
 
+  // ─── Desk pins (0273) ──────────────────────────────────────────
+  /** Queue a node for pinning onto the Desk (deduped by nodeId). */
+  queueDeskPin: (entry: DeskPinEntry) => void
+  /** Remove drained pins from the queue. */
+  clearDeskPins: (nodeIds: string[]) => void
+
   setStartupTab: (tab: { nodeType: TabNodeType; nodeId: string } | null) => void
 
   // ─── What's New ────────────────────────────────────────────────
@@ -308,6 +327,7 @@ export const useWorkbench = create<WorkbenchState>()(
       recents: [],
       expandedFolderIds: [],
       shelf: [],
+      deskPins: [],
       startupTab: null,
       currentSpaceId: null,
       spaceFilter: [],
@@ -618,6 +638,16 @@ export const useWorkbench = create<WorkbenchState>()(
         set((state) => ({ shelf: state.shelf.filter((held) => held.nodeId !== nodeId) })),
 
       shelfClear: () => set({ shelf: [] }),
+
+      queueDeskPin: (entry) =>
+        set((state) => ({
+          deskPins: [...state.deskPins.filter((pin) => pin.nodeId !== entry.nodeId), entry]
+        })),
+
+      clearDeskPins: (nodeIds) =>
+        set((state) => ({
+          deskPins: state.deskPins.filter((pin) => !nodeIds.includes(pin.nodeId))
+        })),
 
       setStartupTab: (tab) => set({ startupTab: tab }),
 

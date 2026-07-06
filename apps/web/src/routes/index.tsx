@@ -3,11 +3,12 @@
  */
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { PageSchema, DatabaseSchema, CanvasSchema } from '@xnetjs/data'
-import { useQuery } from '@xnetjs/react'
+import { useIdentity, useQuery } from '@xnetjs/react'
 import { FileText, Database, Layout, Plus, ChevronDown, Network, Compass } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { RestoringNotice } from '../components/RestoringNotice'
 import { bootMark, logBootTimeline } from '../lib/boot-timeline'
+import { deskIdFor } from '../lib/desk'
 import {
   CreateDocMenuItems,
   navigateToNewDoc,
@@ -76,6 +77,8 @@ function HomePage() {
   useQueryTimer('home:canvases', canvasesQuery.loading, canvasesQuery.data?.length ?? 0)
 
   const restoring = useRestoringFromHub()
+  const { identity } = useIdentity()
+  const setStartupTab = useWorkbench((state) => state.setStartupTab)
 
   // Combine and sort whatever the overlay has (snapshot first, then live). Each
   // section fills in independently, so the list grows as sections resolve
@@ -92,6 +95,20 @@ function HomePage() {
   // Mark the boot timeline the first time the landing surface has something
   // definitive to paint — rows, OR a confirmed empty/restoring state — so one
   // slow section no longer delays the felt first paint (explorations 0204, 0212).
+  // A truly fresh identity — every section loaded, zero docs, not restoring
+  // from a hub — adopts the Desk (0273): a deterministic per-identity canvas
+  // becomes the startup surface and this navigation lands on it (the node
+  // itself is created on arrival via CanvasView's createIfMissing). Existing
+  // users always have rows (or a restore in flight), so they are never moved.
+  const freshIdentity = allLoaded && !anyRows && !restoring && !startupTab && identity?.did != null
+  useEffect(() => {
+    if (!freshIdentity || !identity?.did) return
+    const deskId = deskIdFor(identity.did)
+    setStartupTab({ nodeType: 'canvas', nodeId: deskId })
+    navigateToNode(navigate, 'canvas', deskId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [freshIdentity])
+
   useEffect(() => {
     if (anyRows || allLoaded) {
       bootMark('query:first-rows')

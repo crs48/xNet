@@ -65,8 +65,12 @@ import {
   Table2
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { DESK_TITLE, isDeskId } from '../lib/desk'
 import { useContextPanel, type ContextPanelSection } from '../workbench/context-panel'
+import { useWorkbench } from '../workbench/state'
+import { useIsCompact } from '../workbench/use-layout-mode'
 import { DASHBOARD_SCHEMA_REGISTRY } from './DashboardView'
+import { DeskListProjection } from './DeskListProjection'
 import { PresenceAvatars } from './PresenceAvatars'
 import { ShareButton } from './ShareButton'
 
@@ -528,6 +532,11 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
   const blobService = useBlobService()
   const did = identity?.did
 
+  // The Desk (0273) is an ordinary canvas with a deterministic id; visiting
+  // it the first time creates it, so provisioning needs no separate write.
+  const isDesk = isDeskId(docId)
+  const compact = useIsCompact()
+
   const {
     data: canvas,
     doc,
@@ -536,7 +545,7 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
     awareness,
     presence
   } = useNode(CanvasSchema, docId, {
-    createIfMissing: { title: 'Untitled Canvas' },
+    createIfMissing: { title: isDesk ? DESK_TITLE : 'Untitled Canvas' },
     did: did ?? undefined
   })
 
@@ -645,6 +654,25 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
     nodeId: docId,
     anchorType: 'canvas-object'
   })
+
+  // Drain queued "Pin to Desk" entries (0273) through the normal ingestion
+  // path — same card creation as a drag-drop, spread so a batch doesn't stack.
+  const deskPins = useWorkbench((state) => state.deskPins)
+  useEffect(() => {
+    if (!isDesk || !doc || deskPins.length === 0) return
+    const pins = deskPins
+    void Promise.all(
+      pins.map((pin, index) =>
+        ingestPayload(
+          {
+            kind: 'internal-node',
+            data: { nodeId: pin.nodeId, schemaId: pin.schemaId, title: pin.title }
+          },
+          { spreadIndex: index }
+        )
+      )
+    ).finally(() => useWorkbench.getState().clearDeskPins(pins.map((pin) => pin.nodeId)))
+  }, [isDesk, doc, deskPins, ingestPayload])
 
   const selectedCanvasNode = useMemo(() => {
     void sceneRevision
@@ -1277,6 +1305,12 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
     )
   }
 
+  // On phones the Desk renders as an ordered list, not a spatial canvas
+  // (0273): pins in reading order, which doubles as the screen-reader order.
+  if (isDesk && compact) {
+    return <DeskListProjection doc={doc} title={canvas?.title || DESK_TITLE} />
+  }
+
   if (!canvasReady) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -1677,19 +1711,54 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
         ) : null}
 
         {!hasNodes ? (
-          <div className="pointer-events-none absolute inset-x-0 bottom-24 z-20 flex justify-center px-6">
-            <div
-              className="max-w-xl rounded-[24px] border border-border/60 bg-background/78 px-5 py-4 text-center shadow-2xl shadow-black/5 backdrop-blur-xl"
-              data-web-canvas-empty-state="true"
-              data-canvas-theme={theme.mode}
-            >
-              <p className="text-sm font-medium text-foreground">Canvas-first workspace</p>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Drop a URL for a link card, drag in a page or database from the sidebar, or press
-                `R`, `F`, `N`, or `M` to build directly on the board.
-              </p>
+          isDesk ? (
+            // The Desk's starter chips (0273): three quiet ways in, gone the
+            // moment the first real content lands — paralysis mitigation
+            // without clutter.
+            <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center px-6">
+              <div
+                className="pointer-events-auto flex flex-wrap items-center justify-center gap-2"
+                data-web-desk-empty-state="true"
+                data-canvas-theme={theme.mode}
+              >
+                <button
+                  type="button"
+                  onClick={() => void handleCreatePage()}
+                  className="cursor-pointer rounded-full border border-border/60 bg-background/78 px-4 py-2 text-sm text-muted-foreground backdrop-blur-xl transition-colors hover:text-foreground"
+                >
+                  New page
+                </button>
+                <button
+                  type="button"
+                  onClick={() => useWorkbench.getState().setPanelOpen('left', true)}
+                  className="cursor-pointer rounded-full border border-border/60 bg-background/78 px-4 py-2 text-sm text-muted-foreground backdrop-blur-xl transition-colors hover:text-foreground"
+                >
+                  Pin something
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleCreateNote()}
+                  className="cursor-pointer rounded-full border border-border/60 bg-background/78 px-4 py-2 text-sm text-muted-foreground backdrop-blur-xl transition-colors hover:text-foreground"
+                >
+                  New note
+                </button>
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="pointer-events-none absolute inset-x-0 bottom-24 z-20 flex justify-center px-6">
+              <div
+                className="max-w-xl rounded-[24px] border border-border/60 bg-background/78 px-5 py-4 text-center shadow-2xl shadow-black/5 backdrop-blur-xl"
+                data-web-canvas-empty-state="true"
+                data-canvas-theme={theme.mode}
+              >
+                <p className="text-sm font-medium text-foreground">Canvas-first workspace</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Drop a URL for a link card, drag in a page or database from the sidebar, or press
+                  `R`, `F`, `N`, or `M` to build directly on the board.
+                </p>
+              </div>
+            </div>
+          )
         ) : null}
 
         <Canvas
@@ -1702,7 +1771,10 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
             showGrid: true,
             gridSize: 20,
             minZoom: 0.1,
-            maxZoom: 4
+            maxZoom: 4,
+            // The Desk is bounded-but-growable (0273): panning clamps to the
+            // content bounds, which grow as cards land outside them.
+            ...(isDesk ? { infinite: false } : {})
           }}
           showMinimap
           showNavigationTools

@@ -9,7 +9,7 @@
 import { useNavigate } from '@tanstack/react-router'
 import { CANVAS_INTERNAL_NODE_MIME, serializeCanvasInternalNodeDragData } from '@xnetjs/canvas'
 import { hasNodeTransfer, getNodeTransfer, setNodeTransfer, type NodeTransfer } from '@xnetjs/ui'
-import { FolderInput, Pin, Users } from 'lucide-react'
+import { FolderInput, LampDesk, Pin, Users } from 'lucide-react'
 import { useState } from 'react'
 import { useSpaces } from '../../hooks/useSpaces'
 import { navigateToNode } from '../navigation'
@@ -42,6 +42,28 @@ function ExplorerPinToggle({ nodeId, pinned }: { nodeId: string; pinned: boolean
       }`}
     >
       <Pin size={11} strokeWidth={1.5} className={pinned ? 'fill-current' : ''} />
+    </button>
+  )
+}
+
+/** Queue this node onto the Desk (0273); the Desk drains it when visible. */
+function PinToDeskButton({ item }: { item: ExplorerItem }) {
+  return (
+    <button
+      type="button"
+      title="Pin to Desk"
+      aria-label="Pin to Desk"
+      onClick={(event) => {
+        event.stopPropagation()
+        useWorkbench.getState().queueDeskPin({
+          nodeId: item.id,
+          schemaId: SCHEMA_IDS[item.type],
+          title: item.title || 'Untitled'
+        })
+      }}
+      className="invisible shrink-0 cursor-pointer border-none bg-transparent p-0 text-ink-3 hover:text-ink-1 group-hover:visible"
+    >
+      <LampDesk size={11} strokeWidth={1.5} />
     </button>
   )
 }
@@ -239,6 +261,7 @@ export function ExplorerRow({
     >
       <Icon size={13} strokeWidth={1.5} className="shrink-0 text-ink-3" />
       <span className="min-w-0 flex-1 truncate text-xs">{title}</span>
+      <PinToDeskButton item={item} />
       <MoveToSpaceButton item={item} />
       <MoveToFolderButton item={item} />
       <ExplorerPinToggle nodeId={item.id} pinned={pinned} />
