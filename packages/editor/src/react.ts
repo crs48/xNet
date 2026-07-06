@@ -195,3 +195,13 @@ export {
 // Re-export hooks from @tiptap/react for convenience
 export { useEditor, EditorContent } from '@tiptap/react'
 export type { Editor } from '@tiptap/react'
+
+// Shared page-comment subsystem (exploration 0276): the comment state
+// machine both the web and desktop PageViews consume.
+export { usePageComments } from './hooks/usePageComments'
+export type {
+  PageCommentPopoverState,
+  PageNewCommentState,
+  UsePageCommentsOptions,
+  UsePageCommentsResult
+} from './hooks/usePageComments'
