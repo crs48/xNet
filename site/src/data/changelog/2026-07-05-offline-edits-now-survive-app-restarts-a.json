@@ -4,5 +4,14 @@
   "title": "Offline edits now survive app restarts and concurrent edits converge",
   "summary": "Two durability fixes: edits made offline before an app restart no longer get stuck behind the sync circuit breaker, and two devices editing the same field at the same logical time now always agree on the winner instead of depending on delivery order.",
   "highlights": [],
-  "tags": ["sync"]
+  "tags": [
+    "sync"
+  ],
+  "pr": 392,
+  "mergedAt": "2026-07-06T17:03:52Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
