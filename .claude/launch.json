@@ -14,6 +14,15 @@
       "port": 5199
     },
     {
+      "name": "web-node23 (vite 5199)",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "cd apps/web && exec /Users/crs/.nvm/versions/node/v23.11.1/bin/node node_modules/vite/bin/vite.js --port 5199 --strictPort"
+      ],
+      "port": 5199
+    },
+    {
       "name": "hub (sync server)",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "@xnetjs/hub", "dev"],

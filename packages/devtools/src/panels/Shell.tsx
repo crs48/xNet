@@ -11,7 +11,6 @@ import type { PanelId, PanelPosition } from '../provider/DevToolsContext'
 import { Popover, Tooltip } from '@xnetjs/ui'
 import { useEffect, useState, type MouseEvent as ReactMouseEvent, type CSSProperties } from 'react'
 import { DEFAULTS } from '../core/constants'
-import { clearLogSnapshot } from '../core/log-store'
 import { useDevTools } from '../provider/useDevTools'
 import { AbusePanel } from './AbusePanel/AbusePanel'
 import { AuthZPanel } from './AuthZPanel/AuthZPanel'
@@ -310,7 +309,7 @@ function ClearButton({ onClear }: { onClear: () => void }) {
 }
 
 function ClearDataButton() {
-  const { onResetLocalData, store } = useDevTools()
+  const { onResetLocalData, store, consoleLogs } = useDevTools()
   const [confirming, setConfirming] = useState(false)
 
   const handleClick = async () => {
@@ -346,7 +345,9 @@ function ClearDataButton() {
         }
       }
 
-      clearLogSnapshot() // preserved logs live in sessionStorage, which survives the reload
+      // Preserved logs live in sessionStorage, which survives the reload;
+      // turning preserve off also stops the dirty-flush re-writing the key.
+      consoleLogs.setPreserve(false)
 
       window.location.reload()
     } catch (err) {

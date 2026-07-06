@@ -26,7 +26,7 @@ import {
 } from 'react'
 import { DEFAULTS } from '../core/constants'
 import { DevToolsEventBus } from '../core/event-bus'
-import { clearLogSnapshot, ConsoleLogStore } from '../core/log-store'
+import { ConsoleLogStore } from '../core/log-store'
 import { instrumentConsole } from '../instrumentation/console'
 import { QueryTracker } from '../instrumentation/query'
 import { instrumentChangeFeed, instrumentStore } from '../instrumentation/store'
@@ -550,10 +550,12 @@ export function XNetDevToolsProvider({
       storageDurability,
       // Wrap the host wipe so it also drops the preserved-log snapshot —
       // sessionStorage survives the reload the wipe triggers, so a
-      // SQLite/IndexedDB/localStorage-only clear would miss it.
+      // SQLite/IndexedDB/localStorage-only clear would miss it. setPreserve
+      // (not just clearing the key) so the periodic dirty-flush can't
+      // re-write the snapshot while the async OPFS wipe is still running.
       onResetLocalData: onResetLocalData
         ? async () => {
-            clearLogSnapshot()
+            consoleLogsRef.current.setPreserve(false)
             await onResetLocalData()
           }
         : null,
