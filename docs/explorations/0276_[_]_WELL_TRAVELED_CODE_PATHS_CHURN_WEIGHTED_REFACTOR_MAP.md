@@ -546,9 +546,9 @@ Theme 1 — data layer decomposition
 - [x] Extract transaction/batch orchestration from `store.ts`
       (`transaction-executor.ts`, `batch-write-orchestrator.ts`); unify
       conflict tracking + listener dispatch between fast and slow paths.
-- [ ] Split the three index families out of the adapter behind an
+- [x] Split the three index families out of the adapter behind an
       `IndexingStrategy` interface (scalar / FTS / spatial).
-- [ ] Run the full reliability lane (`tests/reliability/`) after each PR.
+- [x] Run the full reliability lane (`tests/reliability/`) after each PR.
 
 Theme 2 — hub server
 
@@ -568,7 +568,7 @@ Theme 3 — stop cross-app drift
       the canvas-insert (electron) and moderation-gate (web) deltas.
 - [ ] Add a drift tripwire: CI check or review convention flagging edits to one
       side of a known-duplicated pair (list from this doc) without the other.
-- [ ] Schedule the CanvasView feature-parity audit (product decision) — gate
+- [x] Schedule the CanvasView feature-parity audit (product decision) — gate
       for full convergence, per 0230 Phase 5.
 
 Theme 4 — ergonomics (any time)
@@ -582,7 +582,7 @@ Theme 4 — ergonomics (any time)
 
 Opportunistic (do when already in the file)
 
-- [ ] CanvasV3: extract pure viewport math + the three duplicate
+- [x] CanvasV3: extract pure viewport math + the three duplicate
       `applyXxxUpdates` into a mutation dispatcher; input-handler modules per
       tool mode.
 - [x] ai-surface: tool registry + URI router; **add the missing test file
@@ -592,11 +592,11 @@ Opportunistic (do when already in the file)
 
 - [ ] `pnpm -r build && pnpm -r typecheck && pnpm -r test` green after every
       PR; public exports of touched packages unchanged unless release-noted.
-- [ ] Reliability lane green after each Theme-1 PR (fault injection, restore
+- [x] Reliability lane green after each Theme-1 PR (fault injection, restore
       drill, adapter conformance).
-- [ ] LWW conformance test passes identically against store, adapter, and hub
+- [x] LWW conformance test passes identically against store, adapter, and hub
       implementations; any pre-existing divergence documented in the PR.
-- [ ] Query results parity: `auditQueryParity` / query-verification flag shows
+- [x] Query results parity: `auditQueryParity` / query-verification flag shows
       no drift pre/post compiler extraction on the seeded workspace.
 - [ ] Hub WS behavior pinned: new per-handler tests pass; staging hub
       (`cloud-staging.xnet.fyi`) smoke-tested after the router lands.
