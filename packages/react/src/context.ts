@@ -4,63 +4,42 @@
  * Provides NodeStore and optional identity to the React tree.
  * All data access happens through useQuery/useMutate/useNode hooks.
  */
-import type { XNetRuntimeConfig, XNetRuntimeStatus, XNetRuntimeMode } from './runtime'
-import type { BlobStoreForSync } from '@xnetjs/runtime'
-import type { ConnectionManager } from '@xnetjs/runtime'
+import type { XNetRuntimeConfig, XNetRuntimeStatus } from './runtime'
 import type { DID } from '@xnetjs/core'
 import type { SecurityLevel } from '@xnetjs/crypto'
-import type { NodeChangeEvent, NodeStorageAdapter } from '@xnetjs/data'
+import type { NodeStorageAdapter } from '@xnetjs/data'
 import type { Identity, PQKeyRegistry, HybridKeyBundle } from '@xnetjs/identity'
+import type {
+  BlobStoreForSync,
+  ConnectionManager,
+  SyncManager,
+  SyncStatus
+} from '@xnetjs/runtime'
 import type { SyncReplicationConfig } from '@xnetjs/sync'
 import type { ReactNode } from 'react'
-import { MemoryNodeStorageAdapter, NodeStore } from '@xnetjs/data'
+import { NodeStore } from '@xnetjs/data'
 import {
-  createDataBridge,
-  createMainThreadBridge,
-  MainThreadBridge,
-  WorkerBridge,
   type DataBridge,
-  type MainThreadBridgeOptions,
   type NodeQueryRouterThresholds,
-  type RemoteNodeQueryClient,
-  type SyncManagerLike
+  type RemoteNodeQueryClient
 } from '@xnetjs/data-bridge'
 import { UndoManager } from '@xnetjs/history'
-import { createUCAN } from '@xnetjs/identity'
 import { PluginRegistry, type Platform } from '@xnetjs/plugins'
-import React, {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from 'react'
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { SecurityProvider } from './context/security-context'
 import { TelemetryContext, type TelemetryReporter } from './context/telemetry-context'
 import { TracingContext, type TracingReporter } from './context/tracing-context'
 import { PluginRegistryContext } from './hooks/usePlugins'
-import { AutoBackup } from './hub/auto-backup'
-import { uploadBackup } from './hub/backup'
-import { createRuntimeStatus, resolveRuntimeConfig } from './runtime'
-import { createSyncManager, type SyncManager, type SyncStatus } from '@xnetjs/runtime'
-
-// Debug logging - enable via localStorage.setItem('xnet:sync:debug', 'true')
-function log(...args: unknown[]): void {
-  if (typeof localStorage !== 'undefined' && localStorage.getItem('xnet:sync:debug') === 'true') {
-    console.log('[XNetProvider]', ...args)
-  }
-}
-
-/** Run `fn` when the main thread is idle, falling back to a timer. */
-function scheduleIdle(fn: () => void): void {
-  if (typeof window === 'undefined') return
-  const ric = (window as Window & { requestIdleCallback?: (cb: () => void) => void })
-    .requestIdleCallback
-  if (typeof ric === 'function') ric(fn)
-  else setTimeout(fn, 1000)
-}
+import { log } from './provider/debug'
+import { useHubAuthToken } from './provider/use-hub-auth-token'
+import { useHubSearchIndex } from './provider/use-hub-search-index'
+import { useNodeStoreRuntime } from './provider/use-node-store-runtime'
+import {
+  useBridgeSyncWiring,
+  useHubStatus,
+  useSyncManagerLifecycle
+} from './provider/use-sync-manager'
+import { resolveRuntimeConfig } from './runtime'
 
 function resolveConfiguredSignalingUrls(
   hubUrl: string | null,
@@ -81,242 +60,6 @@ function resolveConfiguredSignalingUrls(
   // serving, producing ERR_CONNECTION_REFUSED console errors (exploration 0188);
   // a real signaling server is opted into via hubUrl / signalingServers.
   return urls
-}
-
-const HUB_CAPABILITIES = [
-  { with: '*', can: 'hub/*' },
-  { with: '*', can: 'backup/*' },
-  { with: '*', can: 'files/*' },
-  { with: '*', can: 'query/*' },
-  { with: '*', can: 'index/*' }
-] as const
-
-const HUB_TOKEN_TTL_SECONDS = 60 * 60 * 24
-const HUB_INDEX_DEBOUNCE_MS = 2000
-
-type RuntimeResolution = {
-  bridge: DataBridge | null
-  createdInternally: boolean
-  status: XNetRuntimeStatus
-}
-
-type SyncManagedBridge = DataBridge & {
-  setSyncManager?: (syncManager: SyncManagerLike | null) => void
-}
-
-function getRuntimeErrorMessage(err: unknown): string {
-  return err instanceof Error ? err.message : String(err)
-}
-
-function inferBridgeMode(bridge: DataBridge): XNetRuntimeMode | null {
-  if (bridge instanceof WorkerBridge) return 'worker'
-  if (bridge instanceof MainThreadBridge) return 'main-thread'
-  return null
-}
-
-function reportRuntimeStatus(
-  telemetry: TelemetryReporter | undefined,
-  status: XNetRuntimeStatus
-): void {
-  telemetry?.reportUsage(`react.runtime.request.${status.requestedMode}`, 1)
-
-  if (status.activeMode) {
-    telemetry?.reportUsage(`react.runtime.active.${status.activeMode}`, 1)
-  }
-
-  if (status.usedFallback && status.fallbackMode) {
-    telemetry?.reportUsage(`react.runtime.fallback.${status.fallbackMode}`, 1)
-  }
-}
-
-function logRuntimeStatus(runtime: XNetRuntimeConfig, status: XNetRuntimeStatus): void {
-  if (!runtime.diagnostics) return
-
-  if (status.phase === 'error') {
-    console.error('[XNetProvider] Runtime initialization failed:', status)
-    return
-  }
-
-  if (status.usedFallback) {
-    console.warn('[XNetProvider] Runtime fallback activated:', status)
-    return
-  }
-
-  console.info('[XNetProvider] Runtime ready:', status)
-}
-
-/**
- * "#design #perf" search text for a node's tag ids, so searching a tag
- * name finds tagged nodes (exploration 0169). Unresolvable ids are
- * skipped — an archived or not-yet-synced tag never blocks indexing.
- */
-async function resolveTagSearchText(
-  store: NodeStore,
-  tagIds: string[]
-): Promise<string | undefined> {
-  const names = await Promise.all(
-    tagIds.map(async (id) => {
-      const tag = await store.get(id).catch(() => null)
-      const name = tag?.properties?.name
-      return typeof name === 'string' && name ? `#${name}` : null
-    })
-  )
-  const present = names.filter((entry): entry is string => entry !== null)
-  return present.length > 0 ? present.join(' ') : undefined
-}
-
-function resolveRuntimeFailure(
-  runtime: XNetRuntimeConfig,
-  nodeStore: NodeStore,
-  reason: string,
-  bridgeOptions?: MainThreadBridgeOptions
-): RuntimeResolution {
-  if (runtime.fallback === 'main-thread') {
-    return {
-      bridge: createMainThreadBridge(nodeStore, bridgeOptions),
-      createdInternally: true,
-      status: createRuntimeStatus(runtime, {
-        activeMode: 'main-thread',
-        fallbackMode: 'main-thread',
-        usedFallback: true,
-        phase: 'ready',
-        reason
-      })
-    }
-  }
-
-  return {
-    bridge: null,
-    createdInternally: false,
-    status: createRuntimeStatus(runtime, {
-      phase: 'error',
-      reason
-    })
-  }
-}
-
-async function resolveRuntimeBridge(input: {
-  runtime: XNetRuntimeConfig
-  nodeStore: NodeStore
-  authorDID: DID
-  signingKey: Uint8Array
-  signalingUrl?: string
-  dataBridge?: DataBridge
-  remoteNodeQueryClient?: RemoteNodeQueryClient
-  remoteNodeQueryRouting?: Partial<NodeQueryRouterThresholds>
-  syncManager?: SyncManager
-}): Promise<RuntimeResolution> {
-  const {
-    runtime,
-    nodeStore,
-    authorDID,
-    signingKey,
-    signalingUrl,
-    dataBridge,
-    remoteNodeQueryClient,
-    remoteNodeQueryRouting,
-    syncManager
-  } = input
-
-  if (runtime.mode === 'ipc') {
-    if (!syncManager) {
-      return resolveRuntimeFailure(
-        runtime,
-        nodeStore,
-        'IPC runtime requires config.syncManager to be provided explicitly.',
-        { remoteNodeQueryClient, remoteNodeQueryRouting }
-      )
-    }
-
-    return {
-      bridge:
-        dataBridge ??
-        createMainThreadBridge(nodeStore, {
-          remoteNodeQueryClient,
-          remoteNodeQueryRouting
-        }),
-      createdInternally: !dataBridge,
-      status: createRuntimeStatus(runtime, {
-        activeMode: 'ipc',
-        phase: 'ready'
-      })
-    }
-  }
-
-  if (dataBridge) {
-    const activeMode = inferBridgeMode(dataBridge) ?? runtime.mode
-    const usedFallback = activeMode !== runtime.mode
-
-    return {
-      bridge: dataBridge,
-      createdInternally: false,
-      status: createRuntimeStatus(runtime, {
-        activeMode,
-        fallbackMode: usedFallback ? activeMode : null,
-        usedFallback,
-        phase: 'ready',
-        reason: usedFallback
-          ? `Configured runtime "${runtime.mode}" resolved to "${activeMode}" through the supplied dataBridge.`
-          : null
-      })
-    }
-  }
-
-  if (runtime.mode === 'worker') {
-    try {
-      const bridge = await createDataBridge({
-        nodeStore,
-        config: {
-          dbName: runtime.worker?.dbName,
-          authorDID,
-          signingKey,
-          signalingUrl: runtime.worker?.signalingUrl ?? signalingUrl,
-          storagePort: runtime.worker?.storagePort,
-          remoteNodeQueryClient,
-          remoteNodeQueryRouting
-        },
-        workerUrl: runtime.worker?.url,
-        mode: 'worker'
-      })
-
-      return {
-        bridge,
-        createdInternally: true,
-        status: createRuntimeStatus(runtime, {
-          activeMode: 'worker',
-          phase: 'ready'
-        })
-      }
-    } catch (err) {
-      return resolveRuntimeFailure(
-        runtime,
-        nodeStore,
-        `Worker runtime unavailable: ${getRuntimeErrorMessage(err)}`,
-        { remoteNodeQueryClient, remoteNodeQueryRouting }
-      )
-    }
-  }
-
-  const bridge = await createDataBridge({
-    nodeStore,
-    config: {
-      authorDID,
-      signingKey,
-      signalingUrl,
-      remoteNodeQueryClient,
-      remoteNodeQueryRouting
-    },
-    mode: 'main-thread'
-  })
-
-  return {
-    bridge,
-    createdInternally: true,
-    status: createRuntimeStatus(runtime, {
-      activeMode: 'main-thread',
-      phase: 'ready'
-    })
-  }
 }
 
 /**
@@ -572,14 +315,8 @@ export interface XNetProviderProps {
  * Initializes NodeStore and provides it to the React tree.
  */
 export function XNetProvider({ config, children }: XNetProviderProps): JSX.Element {
-  const [nodeStore, setNodeStore] = useState<NodeStore | null>(null)
-  const [nodeStoreReady, setNodeStoreReady] = useState(false)
   const [undoManager, setUndoManager] = useState<UndoManager | null>(null)
-  const [dataBridge, setDataBridge] = useState<DataBridge | null>(null)
-  const [syncManager, setSyncManager] = useState<SyncManager | null>(null)
-  const [hubStatus, setHubStatus] = useState<SyncStatus>('disconnected')
   const [pluginRegistry, setPluginRegistry] = useState<PluginRegistry | null>(null)
-  const nodeStorageRef = useRef<NodeStorageAdapter | null>(null)
 
   const platform = config.platform ?? 'web'
   const authorDID = config.authorDID ?? (config.identity?.did as string | undefined)
@@ -614,449 +351,55 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
       platform
     ]
   )
-  const [runtimeStatus, setRuntimeStatus] = useState<XNetRuntimeStatus>(() =>
-    createRuntimeStatus(runtimeConfig)
-  )
-
-  const getHubAuthToken = useCallback(async (): Promise<string> => {
-    if (staticHubAuthToken) return staticHubAuthToken
-    if (!hubUrl || !autoAuth) return ''
-    if (!authorDID || !config.signingKey) {
-      throw new Error('Missing authorDID/signingKey for hub auth')
-    }
-
-    return createUCAN({
-      issuer: authorDID,
-      issuerKey: config.signingKey,
-      audience: hubUrl,
-      capabilities: HUB_CAPABILITIES as unknown as Array<{ with: string; can: string }>,
-      expiration: Math.floor(Date.now() / 1000) + HUB_TOKEN_TTL_SECONDS
-    })
-  }, [authorDID, autoAuth, config.signingKey, hubUrl, staticHubAuthToken])
-
-  useEffect(() => {
-    const nodeStorageAdapter = config.nodeStorage ?? new MemoryNodeStorageAdapter()
-    nodeStorageRef.current = nodeStorageAdapter
-    const signingKey = config.signingKey
-    setRuntimeStatus(createRuntimeStatus(runtimeConfig))
-
-    // Skip NodeStore initialization if credentials not provided
-    if (!authorDID || !signingKey) {
-      console.warn(
-        'XNetProvider: authorDID and signingKey not provided. NodeStore will not be initialized. ' +
-          'Provide these via config.authorDID/config.signingKey or config.identity.'
-      )
-      setRuntimeStatus(
-        createRuntimeStatus(runtimeConfig, {
-          phase: 'error',
-          reason: 'authorDID and signingKey are required to initialize the runtime.'
-        })
-      )
-      return
-    }
-
-    // Track whether this effect instance is still active (handles StrictMode double-mount)
-    let cancelled = false
-
-    // Initialize the node storage adapter if it has an open() method
-    const initializeNodeStore = async () => {
-      if ('open' in nodeStorageAdapter && typeof nodeStorageAdapter.open === 'function') {
-        await nodeStorageAdapter.open()
-      }
-
-      // Check if effect was cleaned up while we were awaiting
-      if (cancelled) return
-
-      const ns = new NodeStore({
-        storage: nodeStorageAdapter,
-        authorDID: authorDID as DID,
-        signingKey
-      })
-
-      await ns.initialize()
-
-      // Check again after second await
-      if (cancelled) return
-
-      const resolvedRuntime = await resolveRuntimeBridge({
-        runtime: runtimeConfig,
-        nodeStore: ns,
-        authorDID: authorDID as DID,
-        signingKey,
-        signalingUrl: signalingUrls[0],
-        dataBridge: config.dataBridge,
-        remoteNodeQueryClient: config.remoteNodeQueryClient,
-        remoteNodeQueryRouting: config.remoteNodeQueryRouting,
-        syncManager: config.syncManager
-      })
-
-      if (cancelled) {
-        if (resolvedRuntime.createdInternally && resolvedRuntime.bridge) {
-          resolvedRuntime.bridge.destroy()
-        }
-        return
-      }
-
-      setRuntimeStatus(resolvedRuntime.status)
-      reportRuntimeStatus(config.telemetry, resolvedRuntime.status)
-      logRuntimeStatus(runtimeConfig, resolvedRuntime.status)
-
-      if (resolvedRuntime.status.phase !== 'ready' || !resolvedRuntime.bridge) {
-        config.telemetry?.reportCrash(
-          new Error(resolvedRuntime.status.reason ?? 'Runtime failed'),
-          {
-            codeNamespace: 'react.runtime.initialize',
-            requestedMode: resolvedRuntime.status.requestedMode
-          }
-        )
-        setNodeStore(null)
-        setNodeStoreReady(false)
-        setDataBridge(null)
-        bridgeRef = null
-        return
-      }
-
-      setNodeStore(ns)
-      setNodeStoreReady(true)
-      setDataBridge(resolvedRuntime.bridge)
-
-      // Store bridge ref for cleanup (only if we created it)
-      bridgeRef = resolvedRuntime.createdInternally ? resolvedRuntime.bridge : null
-
-      // Expose NodeStore to window for main process access (Electron Local API)
-      if (typeof window !== 'undefined') {
-        const win = window as Window & { __xnetNodeStore?: NodeStore }
-        win.__xnetNodeStore = ns
-      }
-
-      // Refresh query-planner statistics at idle, after first paint, so the
-      // planner stays in sync as the database grows (exploration 0184). Cheap
-      // (`PRAGMA optimize` only ANALYZEs drifted tables) and never blocks the
-      // initial render.
-      scheduleIdle(() => {
-        if (!cancelled) void ns.optimize()
-      })
-    }
-
-    let bridgeRef: DataBridge | null = null
-    initializeNodeStore()
-
-    return () => {
-      cancelled = true
-      // Clean up DataBridge first
-      if (bridgeRef) {
-        bridgeRef.destroy()
-      }
-      setDataBridge(null)
-      setNodeStore(null)
-      setNodeStoreReady(false)
-
-      // Clean up window reference
-      if (typeof window !== 'undefined') {
-        delete (window as Window & { __xnetNodeStore?: NodeStore }).__xnetNodeStore
-      }
-
-      if ('close' in nodeStorageAdapter && typeof nodeStorageAdapter.close === 'function') {
-        nodeStorageAdapter.close()
-      }
-    }
-  }, [
+  const getHubAuthToken = useHubAuthToken({
     authorDID,
-    config.nodeStorage,
-    config.signingKey,
-    config.dataBridge,
-    signalingUrls,
-    config.syncManager,
-    config.remoteNodeQueryClient,
-    config.remoteNodeQueryRouting,
-    config.telemetry,
+    signingKey: config.signingKey,
     hubUrl,
-    runtimeConfig,
-    runtimeWorkerUrlKey
-  ])
+    autoAuth,
+    staticHubAuthToken
+  })
 
-  // Create SyncManager when NodeStore is ready
-  useEffect(() => {
-    // If an external SyncManager is provided (e.g., IPC-based for Electron), use it directly
-    if (config.syncManager) {
-      // Set the syncManager immediately so components can subscribe to status updates
-      setSyncManager(config.syncManager)
-
-      // If the external SyncManager supports setIdentity (e.g., IPCSyncManager for Electron),
-      // set the identity before starting so updates can be signed
-      const sm = config.syncManager as SyncManager & {
-        setIdentity?: (authorDID: string, signingKey: Uint8Array) => void
-        configureReplication?: (config: SyncReplicationConfig | undefined) => void
-      }
-      if (sm.setIdentity && authorDID && config.signingKey) {
-        sm.setIdentity(authorDID, config.signingKey)
-      }
-      if (sm.configureReplication) {
-        sm.configureReplication(config.sync)
-      }
-
-      config.syncManager.start().catch((err) => {
-        console.warn('[XNetProvider] External SyncManager failed to start:', err)
-        // SyncManager is still usable for local-only operation
-      })
-
-      return () => {
-        config.syncManager!.stop().catch((err) => {
-          console.warn('[XNetProvider] External SyncManager failed to stop:', err)
-        })
-        setSyncManager(null)
-      }
-    }
-
-    if (!nodeStore || !nodeStoreReady || config.disableSyncManager) {
-      log('SyncManager disabled or NodeStore not ready', {
-        nodeStore: !!nodeStore,
-        nodeStoreReady,
-        disableSyncManager: config.disableSyncManager
-      })
-      setSyncManager(null)
-      return
-    }
-
-    const storage = nodeStorageRef.current
-    if (!storage) {
-      log('No storage adapter available')
-      return
-    }
-
-    // No hub and no signaling servers → empty URL. The connection manager treats
-    // that as "stay offline" (no socket, no browser connection error) instead of
-    // dialing a hardcoded localhost hub that nothing is serving (exploration
-    // 0188). A real hub is opted into via hubUrl / signalingServers.
-    const signalingUrl = signalingUrls[0] ?? ''
-
-    if (autoAuth && hubUrl && (!authorDID || !config.signingKey)) {
-      console.warn('[XNetProvider] Hub auth enabled but authorDID/signingKey missing')
-    }
-
-    if (autoBackup && (!hubUrl || !encryptionKey)) {
-      console.warn('[XNetProvider] Auto-backup requires hubUrl and encryptionKey')
-    }
-
-    console.log('[XNetProvider] Creating SyncManager with signalingUrls:', signalingUrls)
-    log('Creating SyncManager with signalingUrls:', signalingUrls)
-    let autoBackupManager: AutoBackup | null = null
-    const enableAutoBackup = Boolean(autoBackup && hubUrl && encryptionKey)
-
-    const sm = createSyncManager({
-      nodeStore,
-      storage,
-      signalingUrl,
-      signalingUrls,
+  // Initialization: storage → NodeStore → runtime bridge (provider/ unit, 0276)
+  const { nodeStore, nodeStoreReady, dataBridge, runtimeStatus, nodeStorageRef } =
+    useNodeStoreRuntime({
       authorDID,
       signingKey: config.signingKey,
-      replication: config.sync,
-      blobStore: config.blobStore,
-      nodeSyncRoom: hubUrl ? nodeSyncRoom : undefined,
-      getUCANToken: hubUrl ? getHubAuthToken : undefined,
-      onDocUpdate: enableAutoBackup
-        ? (nodeId, doc) => {
-            autoBackupManager?.handleDocUpdate(nodeId, doc)
-          }
-        : undefined,
-      onDocEvict: enableAutoBackup
-        ? (nodeId, doc) => {
-            autoBackupManager?.handleDocEvict(nodeId, doc)
-          }
-        : undefined
+      nodeStorage: config.nodeStorage,
+      dataBridge: config.dataBridge,
+      remoteNodeQueryClient: config.remoteNodeQueryClient,
+      remoteNodeQueryRouting: config.remoteNodeQueryRouting,
+      syncManager: config.syncManager,
+      telemetry: config.telemetry,
+      hubUrl,
+      signalingUrls,
+      runtimeConfig,
+      runtimeWorkerUrlKey
     })
 
-    if (enableAutoBackup && hubUrl && encryptionKey) {
-      autoBackupManager = new AutoBackup(
-        async (docId, plaintext) => {
-          await uploadBackup(
-            {
-              hubUrl,
-              encryptionKey,
-              getAuthToken: autoAuth ? getHubAuthToken : undefined
-            },
-            docId,
-            plaintext
-          )
-        },
-        {
-          debounceMs: backupDebounceMs,
-          isEnabled: () => sm.connection?.status === 'connected'
-        }
-      )
-    }
-
-    // Set SyncManager immediately so hooks can use it
-    // (it will connect in the background)
-    setSyncManager(sm)
-    console.log('[XNetProvider] SyncManager created and set in context')
-    log('SyncManager created, starting...')
-
-    sm.start()
-      .then(() => {
-        log('SyncManager started successfully')
-      })
-      .catch((err) => {
-        console.warn('[XNetProvider] SyncManager failed to start:', err)
-        log('SyncManager start failed:', err)
-      })
-
-    return () => {
-      sm.stop().catch((err) => {
-        console.warn('[XNetProvider] SyncManager failed to stop:', err)
-      })
-      autoBackupManager?.destroy()
-      setSyncManager(null)
-    }
-  }, [
+  // Sync + backup lifecycle, bridge wiring, hub status, search indexing
+  // (provider/ units, 0276)
+  const syncManager = useSyncManagerLifecycle({
     nodeStore,
     nodeStoreReady,
-    config.disableSyncManager,
-    config.syncManager,
+    nodeStorageRef,
+    externalSyncManager: config.syncManager,
+    disableSyncManager: config.disableSyncManager,
     signalingUrls,
-    config.blobStore,
-    config.sync,
     authorDID,
+    signingKey: config.signingKey,
+    sync: config.sync,
+    blobStore: config.blobStore,
+    hubUrl,
+    nodeSyncRoom,
     autoAuth,
     autoBackup,
     backupDebounceMs,
     encryptionKey,
-    getHubAuthToken,
-    hubUrl,
-    nodeSyncRoom
-  ])
-
-  // Connect SyncManager to DataBridge for Y.Doc acquisition
-  // This allows useNode to use bridge.acquireDoc() instead of direct SyncManager access
-  useEffect(() => {
-    if (!dataBridge || !syncManager) return
-
-    const bridge = dataBridge as SyncManagedBridge
-
-    if (typeof bridge.setSyncManager === 'function') {
-      bridge.setSyncManager(syncManager)
-      log('Connected SyncManager to DataBridge')
-    }
-
-    return () => {
-      if (typeof bridge.setSyncManager === 'function') {
-        bridge.setSyncManager(null)
-      }
-    }
-  }, [dataBridge, syncManager])
-
-  // Track hub connection status from SyncManager
-  useEffect(() => {
-    if (!syncManager) {
-      setHubStatus('disconnected')
-      return
-    }
-
-    setHubStatus(syncManager.status)
-    return syncManager.on('status', (status) => {
-      setHubStatus(status)
-    })
-  }, [syncManager])
-
-  // Hub search index updates (NodeStore -> hub index)
-  useEffect(() => {
-    if (!nodeStore || !syncManager || !hubUrl || !enableSearchIndex) return
-    const connection = syncManager.connection
-    if (!connection) return
-
-    const timers = new Map<string, ReturnType<typeof setTimeout>>()
-    const pending = new Map<
-      string,
-      | {
-          type: 'update'
-          meta: { schemaIri: string; title: string; properties: Record<string, unknown> }
-          /** Extra searchable text (e.g. resolved #tag names — 0169) */
-          text?: string
-        }
-      | { type: 'remove' }
-    >()
-
-    const schedule = (
-      docId: string,
-      payload:
-        | {
-            type: 'update'
-            meta: { schemaIri: string; title: string; properties: Record<string, unknown> }
-            text?: string
-          }
-        | { type: 'remove' }
-    ): void => {
-      pending.set(docId, payload)
-      const existing = timers.get(docId)
-      if (existing) clearTimeout(existing)
-
-      timers.set(
-        docId,
-        setTimeout(() => {
-          timers.delete(docId)
-          const next = pending.get(docId)
-          pending.delete(docId)
-          if (!next) return
-
-          if (connection.status !== 'connected') return
-
-          if (next.type === 'remove') {
-            connection.sendRaw({ type: 'index-remove', docId })
-            return
-          }
-
-          connection.sendRaw({
-            type: 'index-update',
-            docId,
-            meta: next.meta,
-            ...(next.text !== undefined ? { text: next.text } : {})
-          })
-        }, HUB_INDEX_DEBOUNCE_MS)
-      )
-    }
-
-    const handleChange = (event: NodeChangeEvent) => {
-      const node = event.node
-      if (!node || node.deleted) {
-        schedule(event.change.payload.nodeId, { type: 'remove' })
-        return
-      }
-
-      if (!node.schemaId) return
-
-      // `name`-titled nodes (Tag, Folder, Project, Channel) index their name.
-      const title =
-        typeof node.properties.title === 'string'
-          ? node.properties.title
-          : typeof node.properties.name === 'string'
-            ? node.properties.name
-            : ''
-      const meta = { schemaIri: node.schemaId, title, properties: node.properties }
-
-      // Resolve tag ids to names so searching "design" finds tagged nodes (0169).
-      const tagIds = Array.isArray(node.properties.tags)
-        ? node.properties.tags.filter((id): id is string => typeof id === 'string')
-        : []
-      if (tagIds.length === 0) {
-        schedule(node.id, { type: 'update', meta })
-        return
-      }
-      void resolveTagSearchText(nodeStore, tagIds).then((text) => {
-        schedule(node.id, { type: 'update', meta, ...(text ? { text } : {}) })
-      })
-    }
-
-    const unsubscribe = nodeStore.subscribe(handleChange)
-
-    return () => {
-      unsubscribe()
-      for (const timer of timers.values()) {
-        clearTimeout(timer)
-      }
-      timers.clear()
-      pending.clear()
-    }
-  }, [enableSearchIndex, hubUrl, nodeStore, syncManager])
+    getHubAuthToken
+  })
+  useBridgeSyncWiring(dataBridge, syncManager)
+  const hubStatus = useHubStatus(syncManager)
+  useHubSearchIndex({ nodeStore, syncManager, hubUrl, enableSearchIndex })
 
   // Create PluginRegistry when NodeStore is ready
   useEffect(() => {
