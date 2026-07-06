@@ -7,10 +7,7 @@
  * only when something actually changed.
  */
 
-import type {
-  CanvasLockUpdate,
-  CanvasPositionUpdate
-} from '../selection/scene-operations'
+import type { CanvasLockUpdate, CanvasPositionUpdate } from '../selection/scene-operations'
 import type { CanvasNode, CanvasNodeProperties } from '../types'
 import type * as Y from 'yjs'
 import { getCanvasObjectsMap } from '../scene/doc-layout'

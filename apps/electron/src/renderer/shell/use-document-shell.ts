@@ -6,7 +6,13 @@
  * transition-timer semantics (OVERLAY_OPEN_DELAY_MS). App.tsx composes this
  * hook and renders per shell state.
  */
-import type { DocType, DocumentItem, ShellAction, ShellState, ViewportSnapshot } from './shell-state'
+import type {
+  DocType,
+  DocumentItem,
+  ShellAction,
+  ShellState,
+  ViewportSnapshot
+} from './shell-state'
 import type { AddSharedInput } from '../components/AddSharedDialog'
 import type { CanvasViewCommandState, CanvasViewHandle } from '../components/CanvasView'
 import type { SavedViewCanvasFrameInput } from '../components/DataWorkspaceView'

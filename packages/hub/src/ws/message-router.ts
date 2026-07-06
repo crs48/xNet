@@ -64,7 +64,9 @@ export const createMessageRouter = (metrics: Metrics): MessageRouter => {
   const dispatch = async (payload: unknown, ctx: WsConnectionContext): Promise<void> => {
     metrics.increment(HUB_METRICS.WS_MESSAGES_RECEIVED)
     const rawType =
-      payload && typeof payload === 'object' && typeof (payload as { type?: unknown }).type === 'string'
+      payload &&
+      typeof payload === 'object' &&
+      typeof (payload as { type?: unknown }).type === 'string'
         ? (payload as { type: string }).type
         : 'unknown'
     metrics.increment(messageTypeMetric(knownTypes.has(rawType) ? rawType : 'unknown'))

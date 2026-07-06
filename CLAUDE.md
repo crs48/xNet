@@ -8,7 +8,7 @@ creates standing merge conflicts and degrades tree-shaking.
 
 - **New surface lands in a scoped sub-barrel**, not the root barrel: add (or
   extend) a feature-area file — e.g. `packages/react/src/hooks/index.ts`,
-  `packages/data/src/store/index.ts` — and re-export the *area* from the root
+  `packages/data/src/store/index.ts` — and re-export the _area_ from the root
   with ONE grouped block, so the root barrel gains at most one line per area,
   not five lines per feature.
 - **Never `export *` from the root barrel** — named re-exports only (keeps

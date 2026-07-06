@@ -113,7 +113,6 @@ interface ChangeRow {
   [key: string]: SQLValue
 }
 
-
 interface AdaptiveIndexingConfig {
   enabled: boolean
   minHits: number

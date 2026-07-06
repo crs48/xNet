@@ -85,7 +85,11 @@ describe('getScreenRectForCanvasRect', () => {
     const viewport: ViewportState = { x: 0, y: 0, zoom: 1 }
 
     expect(
-      getScreenRectForCanvasRect({ x: -50, y: -25, width: 100, height: 50 }, viewport, VIEWPORT_SIZE)
+      getScreenRectForCanvasRect(
+        { x: -50, y: -25, width: 100, height: 50 },
+        viewport,
+        VIEWPORT_SIZE
+      )
     ).toEqual({
       x: VIEWPORT_SIZE.width / 2 - 50,
       y: VIEWPORT_SIZE.height / 2 - 25,
@@ -197,7 +201,10 @@ describe('intersectsViewport', () => {
   it('rejects rects beyond the margin', () => {
     expect(intersectsViewport({ x: -420, y: 0, width: 50, height: 50 }, VIEWPORT_SIZE)).toBe(false)
     expect(
-      intersectsViewport({ x: VIEWPORT_SIZE.width + 321, y: 0, width: 50, height: 50 }, VIEWPORT_SIZE)
+      intersectsViewport(
+        { x: VIEWPORT_SIZE.width + 321, y: 0, width: 50, height: 50 },
+        VIEWPORT_SIZE
+      )
     ).toBe(false)
   })
 

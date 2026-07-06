@@ -5,11 +5,7 @@
  * and inserting saved lenses onto the canvas as frames.
  */
 import { upsertSocialImportJobProgress } from '@xnetjs/social/import/core'
-import {
-  useDataWorkspace,
-  DataWorkspaceBody,
-  type SavedViewCanvasFrameInput
-} from '@xnetjs/views'
+import { useDataWorkspace, DataWorkspaceBody, type SavedViewCanvasFrameInput } from '@xnetjs/views'
 import { Database, Import, Loader2, X } from 'lucide-react'
 import React, { useEffect } from 'react'
 

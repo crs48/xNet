@@ -480,10 +480,7 @@ export function useDataWorkspace({
     }
   }, [allSavedViews, selectedView, selectedViewId])
 
-  const refreshSocialImportJobs = useCallback(
-    () => setSocialImportJobs(listSocialImportJobs()),
-    []
-  )
+  const refreshSocialImportJobs = useCallback(() => setSocialImportJobs(listSocialImportJobs()), [])
 
   useEffect(() => subscribeSocialImportJobs(refreshSocialImportJobs), [refreshSocialImportJobs])
 

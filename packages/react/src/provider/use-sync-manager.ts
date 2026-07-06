@@ -220,7 +220,10 @@ export function useSyncManagerLifecycle(input: SyncManagerLifecycleInput): SyncM
  * Connect SyncManager to DataBridge for Y.Doc acquisition.
  * This allows useNode to use bridge.acquireDoc() instead of direct SyncManager access.
  */
-export function useBridgeSyncWiring(dataBridge: DataBridge | null, syncManager: SyncManager | null): void {
+export function useBridgeSyncWiring(
+  dataBridge: DataBridge | null,
+  syncManager: SyncManager | null
+): void {
   useEffect(() => {
     if (!dataBridge || !syncManager) return
 

@@ -9,12 +9,7 @@ import type { DID } from '@xnetjs/core'
 import type { SecurityLevel } from '@xnetjs/crypto'
 import type { NodeStorageAdapter } from '@xnetjs/data'
 import type { Identity, PQKeyRegistry, HybridKeyBundle } from '@xnetjs/identity'
-import type {
-  BlobStoreForSync,
-  ConnectionManager,
-  SyncManager,
-  SyncStatus
-} from '@xnetjs/runtime'
+import type { BlobStoreForSync, ConnectionManager, SyncManager, SyncStatus } from '@xnetjs/runtime'
 import type { SyncReplicationConfig } from '@xnetjs/sync'
 import type { ReactNode } from 'react'
 import { NodeStore } from '@xnetjs/data'

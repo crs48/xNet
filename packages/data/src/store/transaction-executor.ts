@@ -79,19 +79,13 @@ export interface WriteExecutionHost {
   applyChange(change: NodeChange, storage: NodeStorageAdapter): Promise<void>
   materializeNodeChange(change: NodeChange, currentNode: NodeState): NodeState
   createInitialNodeFromChange(change: NodeChange, schemaId: SchemaIRI): NodeState
-  persistEncryptedNodeSnapshot(
-    node: NodeState | null,
-    storage: NodeStorageAdapter
-  ): Promise<void>
+  persistEncryptedNodeSnapshot(node: NodeState | null, storage: NodeStorageAdapter): Promise<void>
   importMaterializedNodes(
     storage: NodeStorageAdapter,
     nodes: readonly NodeState[],
     options?: { deferIndexes?: boolean }
   ): Promise<void>
-  appendImportedChanges(
-    storage: NodeStorageAdapter,
-    changes: readonly NodeChange[]
-  ): Promise<void>
+  appendImportedChanges(storage: NodeStorageAdapter, changes: readonly NodeChange[]): Promise<void>
 }
 
 export type TransactionExecutionInput = {

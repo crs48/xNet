@@ -2058,15 +2058,55 @@ export class NodeStore {
       cloneNodeState: (node) => this.cloneNodeState(node),
       cloneNodeMap: (nodesById) => this.cloneNodeMap(nodesById),
       getBatchPreflight: (ids, storage) => this.getBatchPreflight(ids, storage),
-      createBatchedChange: (type, payload, lamport, wallTime, batchId, batchIndex, batchSize, storage) =>
-        this.createBatchedChange(type, payload, lamport, wallTime, batchId, batchIndex, batchSize, storage),
-      createBatchedChangeWithParentHash: (type, payload, parentHash, lamport, wallTime, batchId, batchIndex, batchSize) =>
-        this.createBatchedChangeWithParentHash(type, payload, parentHash, lamport, wallTime, batchId, batchIndex, batchSize),
+      createBatchedChange: (
+        type,
+        payload,
+        lamport,
+        wallTime,
+        batchId,
+        batchIndex,
+        batchSize,
+        storage
+      ) =>
+        this.createBatchedChange(
+          type,
+          payload,
+          lamport,
+          wallTime,
+          batchId,
+          batchIndex,
+          batchSize,
+          storage
+        ),
+      createBatchedChangeWithParentHash: (
+        type,
+        payload,
+        parentHash,
+        lamport,
+        wallTime,
+        batchId,
+        batchIndex,
+        batchSize
+      ) =>
+        this.createBatchedChangeWithParentHash(
+          type,
+          payload,
+          parentHash,
+          lamport,
+          wallTime,
+          batchId,
+          batchIndex,
+          batchSize
+        ),
       applyChange: (change, storage) => this.applyChange(change, storage),
-      materializeNodeChange: (change, currentNode) => this.materializeNodeChange(change, currentNode),
-      createInitialNodeFromChange: (change, schemaId) => this.createInitialNodeFromChange(change, schemaId),
-      persistEncryptedNodeSnapshot: (node, storage) => this.persistEncryptedNodeSnapshot(node, storage),
-      importMaterializedNodes: (storage, nodes, options) => this.importMaterializedNodes(storage, nodes, options),
+      materializeNodeChange: (change, currentNode) =>
+        this.materializeNodeChange(change, currentNode),
+      createInitialNodeFromChange: (change, schemaId) =>
+        this.createInitialNodeFromChange(change, schemaId),
+      persistEncryptedNodeSnapshot: (node, storage) =>
+        this.persistEncryptedNodeSnapshot(node, storage),
+      importMaterializedNodes: (storage, nodes, options) =>
+        this.importMaterializedNodes(storage, nodes, options),
       appendImportedChanges: (storage, changes) => this.appendImportedChanges(storage, changes)
     }
     return this.writeHost

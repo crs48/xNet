@@ -25,8 +25,7 @@ export function DataWorkspaceView(): JSX.Element {
 
   const workspace = useDataWorkspace({
     seedReady: Boolean(store && storeReady),
-    getExistingNode: (id) =>
-      store ? Promise.resolve(store.get(id)) : Promise.resolve(undefined)
+    getExistingNode: (id) => (store ? Promise.resolve(store.get(id)) : Promise.resolve(undefined))
   })
   const { seeding, seedReady, handleSeedWorkspace } = workspace
 
