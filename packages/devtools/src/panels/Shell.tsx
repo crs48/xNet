@@ -11,6 +11,7 @@ import type { PanelId, PanelPosition } from '../provider/DevToolsContext'
 import { Popover, Tooltip } from '@xnetjs/ui'
 import { useEffect, useState, type MouseEvent as ReactMouseEvent, type CSSProperties } from 'react'
 import { DEFAULTS } from '../core/constants'
+import { clearLogSnapshot } from '../core/log-store'
 import { useDevTools } from '../provider/useDevTools'
 import { AbusePanel } from './AbusePanel/AbusePanel'
 import { AuthZPanel } from './AuthZPanel/AuthZPanel'
@@ -20,6 +21,7 @@ import { DataExplorer } from './DataExplorer/DataExplorer'
 import { HistoryPanel } from './HistoryPanel/HistoryPanel'
 import { LogsPanel } from './LogsPanel/LogsPanel'
 import { MigrationWizard } from './MigrationWizard/MigrationWizard'
+import { PANEL_GROUP_LABELS, getPanel, heroPanels, secondaryPanelsByGroup } from './panel-registry'
 import { PerformancePanel } from './PerformancePanel/PerformancePanel'
 import { QueryDebugger } from './QueryDebugger/QueryDebugger'
 import { Reset } from './Reset/Reset'
@@ -34,7 +36,6 @@ import { TelemetryPanel } from './TelemetryPanel/TelemetryPanel'
 import { TracesPanel } from './TracesPanel/TracesPanel'
 import { VersionPanel } from './VersionPanel/VersionPanel'
 import { YjsInspector } from './YjsInspector/YjsInspector'
-import { PANEL_GROUP_LABELS, getPanel, heroPanels, secondaryPanelsByGroup } from './panel-registry'
 
 export function DevToolsPanel() {
   const {
@@ -344,6 +345,8 @@ function ClearDataButton() {
           }
         }
       }
+
+      clearLogSnapshot() // preserved logs live in sessionStorage, which survives the reload
 
       window.location.reload()
     } catch (err) {

@@ -3,6 +3,7 @@
  */
 
 import type { DevToolsEventBus } from '../core/event-bus'
+import type { ConsoleLogStore } from '../core/log-store'
 import type { NodeStore } from '@xnetjs/data'
 import type { DocumentHistoryEngine } from '@xnetjs/history'
 import type * as Y from 'yjs'
@@ -95,6 +96,8 @@ export interface DevToolsContextValue {
 
   /** The event bus instance */
   eventBus: DevToolsEventBus
+  /** Provider-lifetime captured console output (exploration 0275) */
+  consoleLogs: ConsoleLogStore
   /** The NodeStore instance (from context) */
   store: NodeStore | null
   /** Registry of Y.Doc instances for tree inspection */
