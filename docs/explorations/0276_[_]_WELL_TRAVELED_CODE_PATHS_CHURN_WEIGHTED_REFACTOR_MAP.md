@@ -4,8 +4,8 @@
 > `ae4c02fb` (2026-07-06); churn windows are the trailing 8 months of git
 > history unless stated otherwise. Companion to exploration
 > `0230_[_]_CODEBASE_REFACTORING_ATLAS_DEAD_CODE_GOD_FILES_AND_DEDUPLICATION.md`
-> — 0230 ranked opportunities by *lines removable*; this doc ranks them by
-> *traffic*: the files every feature PR has to walk through.
+> — 0230 ranked opportunities by _lines removable_; this doc ranks them by
+> _traffic_: the files every feature PR has to walk through.
 
 ## Problem Statement
 
@@ -14,10 +14,10 @@ code paths that are most well traveled, where cleaning up, simplifying, or
 improving legibility pays back on every future change?
 
 "Impactful" here is not "most lines deleted" (0230 covered that). It is: which
-files do we *edit most often*, weighted by how *hard they are to edit*? A
+files do we _edit most often_, weighted by how _hard they are to edit_? A
 7,700-line file nobody touches is sleeping debt; a 2,700-line file changed 47
 times in 8 months taxes nearly every feature. The classic hotspot literature
-(Tornhill's *Your Code as a Crime Scene*, CodeScene) formalizes this as
+(Tornhill's _Your Code as a Crime Scene_, CodeScene) formalizes this as
 **churn × complexity**: the small fraction of code that is both complicated and
 frequently changed accounts for 25–70% of defects.
 
@@ -30,18 +30,18 @@ place to refactor. The giant `CanvasV3.tsx` (7,758 LOC) does not even crack the
 top-40 churn list; its churn happens one layer up, in the app-level
 `CanvasView` wrappers that are duplicated between web and electron.
 
-| Rank | File | Changes | LOC | Churn×LOC | What makes it hard to edit |
-|---|------|--------:|----:|----------:|-----------------------------|
-| 1 | `packages/data/src/store/sqlite-adapter.ts` | 35 | 4,407 | 154k | 80-method god class: 8 subsystems in one file |
-| 2 | `apps/electron/src/renderer/components/CanvasView.tsx` | 42 | 3,195 | 134k | drifted 74%-larger fork of the web copy |
-| 3 | `packages/data/src/store/store.ts` | 47 | 2,763 | 130k | 40+ public methods; dual fast/slow txn paths |
-| 4 | `packages/data/src/index.ts` | 87 | 1,193 | 104k | pure barrel — API-surface ceremony + conflicts |
-| 5 | `packages/hub/src/server.ts` | 56 | 1,750 | 98k | 600-line WebSocket if/else message pump |
-| 6 | `packages/react/src/index.ts` | 90 | 842 | 76k | pure barrel — highest raw churn in the repo |
-| 7 | `packages/hub/src/storage/sqlite.ts` | 26 | 2,539 | 66k | reimplements LWW/hydration from #1 |
-| 8 | `packages/react/src/context.ts` | 49 | 1,213 | 59k | `XNetProvider` god-component (84-line useEffect, 5 concerns) |
-| 9 | `apps/web/src/App.tsx` | 56 | 1,009 | 57k | boot orchestration + state machine + telemetry interleaved |
-| 10 | `apps/electron/src/renderer/components/PageView.tsx` | 44 | 993 | 44k | 93%-identical fork of web's PageView, **0 shared commits** |
+| Rank | File                                                   | Changes |   LOC | Churn×LOC | What makes it hard to edit                                   |
+| ---- | ------------------------------------------------------ | ------: | ----: | --------: | ------------------------------------------------------------ |
+| 1    | `packages/data/src/store/sqlite-adapter.ts`            |      35 | 4,407 |      154k | 80-method god class: 8 subsystems in one file                |
+| 2    | `apps/electron/src/renderer/components/CanvasView.tsx` |      42 | 3,195 |      134k | drifted 74%-larger fork of the web copy                      |
+| 3    | `packages/data/src/store/store.ts`                     |      47 | 2,763 |      130k | 40+ public methods; dual fast/slow txn paths                 |
+| 4    | `packages/data/src/index.ts`                           |      87 | 1,193 |      104k | pure barrel — API-surface ceremony + conflicts               |
+| 5    | `packages/hub/src/server.ts`                           |      56 | 1,750 |       98k | 600-line WebSocket if/else message pump                      |
+| 6    | `packages/react/src/index.ts`                          |      90 |   842 |       76k | pure barrel — highest raw churn in the repo                  |
+| 7    | `packages/hub/src/storage/sqlite.ts`                   |      26 | 2,539 |       66k | reimplements LWW/hydration from #1                           |
+| 8    | `packages/react/src/context.ts`                        |      49 | 1,213 |       59k | `XNetProvider` god-component (84-line useEffect, 5 concerns) |
+| 9    | `apps/web/src/App.tsx`                                 |      56 | 1,009 |       57k | boot orchestration + state machine + telemetry interleaved   |
+| 10   | `apps/electron/src/renderer/components/PageView.tsx`   |      44 |   993 |       44k | 93%-identical fork of web's PageView, **0 shared commits**   |
 
 Four themes fall out, in recommended order:
 
@@ -57,13 +57,13 @@ Four themes fall out, in recommended order:
    across 10 component pairs; `PageView`'s ~800-line comment state machine is
    verbatim-identical yet the two copies have **zero commits in common**. 0230
    deferred whole-component convergence pending a parity audit — still right —
-   but the *verbatim* hooks can be extracted now with no parity question.
+   but the _verbatim_ hooks can be extracted now with no parity question.
 4. **Barrel + provider ergonomics** (ranks 4, 6, 8) — the two biggest barrels
    absorb 90 and 87 commits of pure re-export ceremony; `XNetProvider` bundles
    five initialization concerns into one effect. Cheap fixes, felt weekly.
 
 `CanvasV3.tsx` and `ai-surface/service.ts` stay on the list (0230 Phase 4) but
-are explicitly *down-weighted*: at current churn they should be split
+are explicitly _down-weighted_: at current churn they should be split
 opportunistically — when a feature already forces you in — not as standalone
 projects.
 
@@ -110,16 +110,16 @@ Every one of the 560 `@xnetjs/data` import sites funnels through two files.
 class, 16 public + 64 private methods, spanning eight subsystems that are
 separable today:
 
-| Lines (approx) | Subsystem |
-|---|---|
-| 536–803 | change-log operations (append/get/prune) |
-| 804–1188 | node CRUD + three near-duplicate list/count SQL builders |
-| 1370–2170 | batch import — ~800 lines of duplicated operation builders |
-| 2173–2373 | **hydration, twice**: joined-row and JSON-aggregated modes share ~200 near-identical lines incl. the LWW property merge |
-| 2374–2643 | materialized views (0182 Phase 7) |
-| 2644–3157 | three index families (scalar / FTS / spatial) with the same sync/rebuild/drop lifecycle each |
-| 3429–3550 | adaptive-index budget management (0264) |
-| 3959–4407 | **the query compiler**: `compileNodeQuery`/`compileSqlQuery` + fused candidate-and-hydrate CTE (0264 Wave 1), with feature flags (`adaptiveIndexing.enabled`, `queryVerification`) braided into codegen |
+| Lines (approx) | Subsystem                                                                                                                                                                                               |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 536–803        | change-log operations (append/get/prune)                                                                                                                                                                |
+| 804–1188       | node CRUD + three near-duplicate list/count SQL builders                                                                                                                                                |
+| 1370–2170      | batch import — ~800 lines of duplicated operation builders                                                                                                                                              |
+| 2173–2373      | **hydration, twice**: joined-row and JSON-aggregated modes share ~200 near-identical lines incl. the LWW property merge                                                                                 |
+| 2374–2643      | materialized views (0182 Phase 7)                                                                                                                                                                       |
+| 2644–3157      | three index families (scalar / FTS / spatial) with the same sync/rebuild/drop lifecycle each                                                                                                            |
+| 3429–3550      | adaptive-index budget management (0264)                                                                                                                                                                 |
+| 3959–4407      | **the query compiler**: `compileNodeQuery`/`compileSqlQuery` + fused candidate-and-hydrate CTE (0264 Wave 1), with feature flags (`adaptiveIndexing.enabled`, `queryVerification`) braided into codegen |
 
 **`packages/data/src/store/store.ts` (2,763 LOC, 47 changes).** `NodeStore` has
 40+ public methods and three parallel execution paths (single-write fast path,
@@ -131,7 +131,7 @@ reconciliation, encryption hooks, telemetry, and listener emission.
 **The LWW merge exists three times**: `store.ts` `applyChange`, the adapter's
 hydration property merge (~line 2200), and `packages/hub/src/storage/sqlite.ts`
 (~line 1200). This is the exact same drift class the SSRF-guard duplication in
-0230 was — except this one guards *data convergence*, the protocol's core
+0230 was — except this one guards _data convergence_, the protocol's core
 invariant (exploration 0200 golden vectors; 0272 sim already caught one
 lamport-only LWW guard bug that shipped).
 
@@ -143,7 +143,7 @@ adapter conformance) pins crash/recovery behavior. This is the rare god file
 with characterization tests already written.
 
 Also verified: `packages/data/src/store/query-ast.ts` (1,409 LOC) is **not**
-the SQL compiler — it is the query *type system* plus an in-memory evaluator
+the SQL compiler — it is the query _type system_ plus an in-memory evaluator
 used for JS fallback filtering. SQL generation lives only in the adapter. The
 seam between them is already clean; the extraction below just makes it a file
 boundary.
@@ -167,22 +167,22 @@ message type testable in isolation.
 Ten component pairs exist in both `apps/web/src/components/` and
 `apps/electron/src/renderer/components/` — 6,574 lines total on the two sides:
 
-| Pair | Web LOC | Electron LOC | Similarity | Commits touching web / electron / both (6 mo) |
-|------|--------:|-------------:|-----------|------------------------------|
-| `PageView.tsx` | 1,101 | 993 | ~93% — comment popover state machine, orphaned-thread assembly, and all comment action handlers are verbatim | 12 / 44 / **0** |
-| `DataWorkspaceView.tsx` | 1,060 | 1,189 | ~92% — identical types and atlas/query logic | 13 / 12 / 9 |
-| `CanvasView.tsx` | 1,843 | 3,195 | 60–70% — electron grew query frames + source references; web grew Desk + moderation gating | 23 / 42 / 11 |
-| `DatabaseView.tsx` | 849 | 726 | ~85% | — |
-| `ShareButton.tsx` | 40 | 320 | ~20% — effectively different components | — |
-| (5 more small pairs) | | | 95–100% | — |
+| Pair                    | Web LOC | Electron LOC | Similarity                                                                                                   | Commits touching web / electron / both (6 mo) |
+| ----------------------- | ------: | -----------: | ------------------------------------------------------------------------------------------------------------ | --------------------------------------------- |
+| `PageView.tsx`          |   1,101 |          993 | ~93% — comment popover state machine, orphaned-thread assembly, and all comment action handlers are verbatim | 12 / 44 / **0**                               |
+| `DataWorkspaceView.tsx` |   1,060 |        1,189 | ~92% — identical types and atlas/query logic                                                                 | 13 / 12 / 9                                   |
+| `CanvasView.tsx`        |   1,843 |        3,195 | 60–70% — electron grew query frames + source references; web grew Desk + moderation gating                   | 23 / 42 / 11                                  |
+| `DatabaseView.tsx`      |     849 |          726 | ~85%                                                                                                         | —                                             |
+| `ShareButton.tsx`       |      40 |          320 | ~20% — effectively different components                                                                      | —                                             |
+| (5 more small pairs)    |         |              | 95–100%                                                                                                      | —                                             |
 
-The `PageView` numbers are the alarm: the copies are nearly identical *and*
+The `PageView` numbers are the alarm: the copies are nearly identical _and_
 share **zero commits** — fixes land on one side only, silently. Git history
 shows the drift is passive (parallel evolution, never an intentional fork).
 The blocker to full convergence is real: web views integrate with the
 workbench/router (`useWorkbench`, `useContextPanel`, `useStatusBarItem`),
 electron with the canvas shell and IPC bridge
-(`apps/electron/src/renderer/lib/ipc-sync-manager.ts`). But the *verbatim*
+(`apps/electron/src/renderer/lib/ipc-sync-manager.ts`). But the _verbatim_
 logic — the comment state machine, thread assembly, action handlers, roughly
 800 lines — has no platform dependency at all and can move to a shared package
 today. 0230's "defer pending parity audit" stays correct for the component
@@ -261,15 +261,15 @@ flowchart LR
 - **Barrel files.** Known costs: bigger module graphs and slower builds
   (Next.js measured 15–70% faster dev builds bypassing barrels), impaired
   tree-shaking with `export *`, circular-dependency hiding, and constant merge
-  conflicts — with the standard mitigation being *scoped* sub-barrels or
+  conflicts — with the standard mitigation being _scoped_ sub-barrels or
   generated barrels for a stable public API
   ([jsdev.space on replacing barrels](https://jsdev.space/howto/stop-using-barrel-files/),
   [webpack discussion #16863](https://github.com/orgs/webpack/discussions/16863),
   [barrel pros/cons](https://rahuulmiishra.medium.com/barrel-files-in-javascript-pros-cons-and-when-to-use-them-6efbeb22a8b6)).
-  For a published SDK like `@xnetjs/*` the barrel *is* the public API, so the
+  For a published SDK like `@xnetjs/*` the barrel _is_ the public API, so the
   right move is organization + generation, not deletion.
 - **Decomposing god components/classes.** The consensus playbook: pin behavior
-  with characterization tests, extract *pure* logic first, extract hooks with
+  with characterization tests, extract _pure_ logic first, extract hooks with
   interface-first design, and strangler-fig the rest — each phase shippable
   ([Extract React Hook refactoring](https://blog.rstankov.com/extract-react-hook-refactoring/),
   [CodeScene — refactoring React with custom hooks](https://codescene.com/blog/refactoring-components-in-react-with-custom-hooks),
@@ -305,7 +305,7 @@ flowchart LR
 
 5. **`PageView`'s duplication has crossed from "debt" to "active hazard":**
    93% identical, 56 combined commits, zero shared ones. The verbatim comment
-   subsystem (~800 lines) is extractable *now* without the parity audit that
+   subsystem (~800 lines) is extractable _now_ without the parity audit that
    rightly blocks whole-component convergence.
 
 6. **Barrel churn is a self-inflicted tax with a cheap fix.** Group new
@@ -321,30 +321,30 @@ flowchart LR
 
 ### Which theme to lead with
 
-| Option | Pros | Cons |
-|--------|------|------|
-| **A. Data layer first** (recommended) | Highest traffic; best tests; kills the 3× LWW drift; unblocks 0266 query-perf endgame work by making the compiler standalone | Touches the most-depended-on package; needs careful changesets (fixed-core lockstep) |
-| B. Hub router first | Most mechanical; smallest blast radius; server churn is highest per line | Doesn't help the 560 client-side import sites; auth unification needs care |
-| C. Cross-app dedup first | Stops active drift; user-visible bug class | Partially blocked by parity questions; touches both app shells at once |
-| D. Sleeping giants first (CanvasV3, ai-surface) | Biggest LOC optics | Low traffic → low compounding payoff; highest characterization-test cost |
+| Option                                          | Pros                                                                                                                         | Cons                                                                                 |
+| ----------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| **A. Data layer first** (recommended)           | Highest traffic; best tests; kills the 3× LWW drift; unblocks 0266 query-perf endgame work by making the compiler standalone | Touches the most-depended-on package; needs careful changesets (fixed-core lockstep) |
+| B. Hub router first                             | Most mechanical; smallest blast radius; server churn is highest per line                                                     | Doesn't help the 560 client-side import sites; auth unification needs care           |
+| C. Cross-app dedup first                        | Stops active drift; user-visible bug class                                                                                   | Partially blocked by parity questions; touches both app shells at once               |
+| D. Sleeping giants first (CanvasV3, ai-surface) | Biggest LOC optics                                                                                                           | Low traffic → low compounding payoff; highest characterization-test cost             |
 
 A → B → C ordering maximizes payback-per-risk; D happens opportunistically.
 
 ### How to extract from the god files
 
-| Option | Pros | Cons |
-|--------|------|------|
-| **Delegate-wrapper extraction** (recommended): new module beside the old file; old method body becomes a one-line forward; tests migrate incrementally | Each PR is small and revertible; public API and test surface unchanged; blame stays navigable | Temporary indirection layer; a long tail of wrappers if never finished |
-| Big-bang split into N files | Done in one move | Un-reviewable diff on rank-1 hotspots; conflicts with all in-flight work |
-| Freeze + rewrite (v2 adapter) | Clean slate | History says no (CanvasV2→V3 left a 2.4K-LOC corpse; 0230 had to delete it) |
+| Option                                                                                                                                                 | Pros                                                                                          | Cons                                                                        |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| **Delegate-wrapper extraction** (recommended): new module beside the old file; old method body becomes a one-line forward; tests migrate incrementally | Each PR is small and revertible; public API and test surface unchanged; blame stays navigable | Temporary indirection layer; a long tail of wrappers if never finished      |
+| Big-bang split into N files                                                                                                                            | Done in one move                                                                              | Un-reviewable diff on rank-1 hotspots; conflicts with all in-flight work    |
+| Freeze + rewrite (v2 adapter)                                                                                                                          | Clean slate                                                                                   | History says no (CanvasV2→V3 left a 2.4K-LOC corpse; 0230 had to delete it) |
 
 ### Where the shared LWW merge lives
 
-| Option | Pros | Cons |
-|--------|------|------|
-| **`packages/core` (e.g. `@xnetjs/core/lww`)** (recommended) | Already a dep of both `data` and `hub`; dependency-free; sits next to the 0200 protocol golden vectors conceptually | `core` is in the fixed-version release group — bump discipline needed |
-| Inside `@xnetjs/data`, hub imports it | No new surface in core | Hub currently doesn't depend on `data`; would create a heavyweight edge |
-| Leave 3 copies, add cross-impl conformance test | No refactor risk | Drift remains possible between test runs; 3 places to fix bugs forever |
+| Option                                                      | Pros                                                                                                                | Cons                                                                    |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| **`packages/core` (e.g. `@xnetjs/core/lww`)** (recommended) | Already a dep of both `data` and `hub`; dependency-free; sits next to the 0200 protocol golden vectors conceptually | `core` is in the fixed-version release group — bump discipline needed   |
+| Inside `@xnetjs/data`, hub imports it                       | No new surface in core                                                                                              | Hub currently doesn't depend on `data`; would create a heavyweight edge |
+| Leave 3 copies, add cross-impl conformance test             | No refactor risk                                                                                                    | Drift remains possible between test runs; 3 places to fix bugs forever  |
 
 Even if the module lands in core, the cross-implementation conformance test
 (same golden vectors run against store/adapter/hub paths) is worth writing —
@@ -352,11 +352,11 @@ it converts convergence from "reviewed" to "enforced."
 
 ### Barrel strategy
 
-| Option | Pros | Cons |
-|--------|------|------|
-| **Scoped sub-barrels + namespace exports for new surface** (recommended) | Cuts conflict surface immediately; no build-step change; preserves public API | Existing 1,000-line files shrink only gradually |
-| Generated barrels from a manifest | Eliminates hand-editing entirely; aligns with 0230's schema-SSoT plan | New codegen workflow + staleness CI check |
-| Deep imports only (`@xnetjs/data/store`) | Best tree-shaking | Breaking change for SDK consumers; docs churn; not worth it pre-1.0 adoption |
+| Option                                                                   | Pros                                                                          | Cons                                                                         |
+| ------------------------------------------------------------------------ | ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| **Scoped sub-barrels + namespace exports for new surface** (recommended) | Cuts conflict surface immediately; no build-step change; preserves public API | Existing 1,000-line files shrink only gradually                              |
+| Generated barrels from a manifest                                        | Eliminates hand-editing entirely; aligns with 0230's schema-SSoT plan         | New codegen workflow + staleness CI check                                    |
+| Deep imports only (`@xnetjs/data/store`)                                 | Best tree-shaking                                                             | Breaking change for SDK consumers; docs churn; not worth it pre-1.0 adoption |
 
 ## Recommendation
 
@@ -444,9 +444,9 @@ export class MessageRouter {
       if (!h.guard(raw)) continue
       HUB_METRICS.WS_MESSAGES_RECEIVED.inc({ type })
       try {
-        await h.run(raw, ctx)          // auth lives in ctx.authorize(), one impl
+        await h.run(raw, ctx) // auth lives in ctx.authorize(), one impl
       } catch (err) {
-        ctx.sendError(type, err)        // one error shape for every handler
+        ctx.sendError(type, err) // one error shape for every handler
       }
       return
     }
@@ -459,7 +459,7 @@ router
   .on('client-handshake', isClientHandshake, handleHandshake)
   .on('query-request', isQueryRequest, handleQuery)
   .on('node-sync-request', isNodeSyncRequest, handleNodeSync)
-  // …each handler is a small, individually-tested module
+// …each handler is a small, individually-tested module
 ```
 
 **Shared LWW merge (Theme 1, step 3):**
@@ -468,17 +468,16 @@ router
 // packages/core/src/lww/merge.ts
 export interface LwwStamp {
   lamportTime: number
-  updatedAt: number   // tie-break 1
-  updatedBy: string   // tie-break 2 — compare by code units (see
-}                     // fractional-sortKey collation invariant)
+  updatedAt: number // tie-break 1
+  updatedBy: string // tie-break 2 — compare by code units (see
+} // fractional-sortKey collation invariant)
 
 /** The ONE ordering used by store.applyChange, adapter hydration, and hub
  *  storage. Golden vectors from exploration 0200 run against all call sites. */
 export function lwwWins(incoming: LwwStamp, existing: LwwStamp): boolean {
   if (incoming.lamportTime !== existing.lamportTime)
     return incoming.lamportTime > existing.lamportTime
-  if (incoming.updatedAt !== existing.updatedAt)
-    return incoming.updatedAt > existing.updatedAt
+  if (incoming.updatedAt !== existing.updatedAt) return incoming.updatedAt > existing.updatedAt
   return incoming.updatedBy > existing.updatedBy
 }
 ```
@@ -490,11 +489,14 @@ export function lwwWins(incoming: LwwStamp, existing: LwwStamp): boolean {
 import { QueryCompiler } from './query-compiler'
 
 export class SQLiteAdapterNodeStorageAdapter {
-  private compiler = new QueryCompiler(() => this.schemaContext(), () => this.flags())
+  private compiler = new QueryCompiler(
+    () => this.schemaContext(),
+    () => this.flags()
+  )
 
   /** @deprecated internal — logic lives in query-compiler.ts */
   private compileNodeQuery(d: NodeQueryDescriptor) {
-    return this.compiler.compile(d)   // public behavior byte-identical
+    return this.compiler.compile(d) // public behavior byte-identical
   }
 }
 ```
@@ -508,7 +510,7 @@ export class SQLiteAdapterNodeStorageAdapter {
   the LWW module in core bumps the whole group. Coordinate with the standing
   release-PR cadence (0265 policy) so staged bumps don't rot.
 - **LWW unification may surface latent divergence.** If the three
-  implementations disagree today on some input, unifying *changes behavior*
+  implementations disagree today on some input, unifying _changes behavior_
   somewhere. That's the point — but the conformance test must run against old
   fixtures first, and any divergence found is a release-noted `patch` fix, not
   a silent change.
@@ -517,7 +519,7 @@ export class SQLiteAdapterNodeStorageAdapter {
   adapter state — otherwise the extraction just relocates the tangle.
 - **Hook extraction from `PageView` can still hit subtle platform deltas**
   (web renders comments in a context panel, electron in a sibling sidebar).
-  The extraction is scoped to *state + handlers*, not rendering; if a verbatim
+  The extraction is scoped to _state + handlers_, not rendering; if a verbatim
   block turns out to differ semantically, that's a drift bug to fix, and it
   should be called out in the PR.
 - **Where should the shared app-view hooks live?** `packages/views` currently
@@ -532,7 +534,8 @@ export class SQLiteAdapterNodeStorageAdapter {
 ## Implementation Checklist
 
 Theme 1 — data layer decomposition
-- [ ] Extract `packages/data/src/store/query-compiler.ts` (compile + count +
+
+- [x] Extract `packages/data/src/store/query-compiler.ts` (compile + count +
       fuse + telemetry hooks) with adapter delegating; move matching test
       blocks to `query-compiler.test.ts`.
 - [ ] Extract `packages/data/src/store/hydration.ts` (`JoinedHydrator`,
@@ -548,6 +551,7 @@ Theme 1 — data layer decomposition
 - [ ] Run the full reliability lane (`tests/reliability/`) after each PR.
 
 Theme 2 — hub server
+
 - [ ] Introduce `MessageRouter`; migrate the 12+ WS message types one handler
       per commit; delete the if/else pump.
 - [ ] Unify `authorizeRoomAction` / `checkRoomAuth` / inline checks into one
@@ -557,6 +561,7 @@ Theme 2 — hub server
 - [ ] Add pump-level tests per handler (previously untested end-to-end).
 
 Theme 3 — stop cross-app drift
+
 - [ ] Extract the verbatim page-comment subsystem from both `PageView.tsx`
       files into a shared package; both apps consume it.
 - [ ] Share `DataWorkspaceView` core (92% identical) with platform hooks for
@@ -567,6 +572,7 @@ Theme 3 — stop cross-app drift
       for full convergence, per 0230 Phase 5.
 
 Theme 4 — ergonomics (any time)
+
 - [ ] Adopt sub-barrel/namespace export policy for `react`, `data`, `plugins`
       barrels; document in `CLAUDE.md`.
 - [ ] Decompose `XNetProvider` into init / bridge / sync / auth / backup
@@ -575,6 +581,7 @@ Theme 4 — ergonomics (any time)
       watchers + state machine) and electron `App.tsx` shell-state reducer.
 
 Opportunistic (do when already in the file)
+
 - [ ] CanvasV3: extract pure viewport math + the three duplicate
       `applyXxxUpdates` into a mutation dispatcher; input-handler modules per
       tool mode.
