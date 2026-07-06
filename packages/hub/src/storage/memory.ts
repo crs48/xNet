@@ -2,6 +2,7 @@
  * @xnetjs/hub - In-memory storage adapter.
  */
 
+import { compareChangeApplicationOrder } from '@xnetjs/core'
 import type {
   AwarenessEntry,
   BlobMeta,
@@ -651,10 +652,15 @@ export const createMemoryStorage = (): HubStorage => {
     const changes = nodeChangesByRoom.get(room) ?? []
     return changes
       .filter((change) => change.lamportTime > sinceLamport)
+      // The shared protocol application order (code-unit author tiebreak).
+      // localeCompare here diverged from the SQLite storage's BINARY-collation
+      // `ORDER BY lamport_time, lamport_author` and from the client sort —
+      // locale collation is non-deterministic across ICU versions (0276).
       .sort((a, b) =>
-        a.lamportTime === b.lamportTime
-          ? a.lamportAuthor.localeCompare(b.lamportAuthor)
-          : a.lamportTime - b.lamportTime
+        compareChangeApplicationOrder(
+          { lamport: a.lamportTime, author: a.lamportAuthor },
+          { lamport: b.lamportTime, author: b.lamportAuthor }
+        )
       )
   }
 
