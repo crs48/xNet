@@ -148,6 +148,39 @@ function buildCanvasDoc(id: string, title: string): ReturnType<typeof createCanv
   return doc
 }
 
+/**
+ * Desk starter template (0273): the arrangement a fresh Desk grows into —
+ * a welcome note plus a couple of live pins — so the demo workspace (and the
+ * template picker seeded from it) shows what "building up your Desk" means.
+ */
+function buildDeskTemplateDoc(id: string): ReturnType<typeof createCanvasDoc> {
+  const doc = createCanvasDoc(id, 'Desk starter')
+  const objects = getCanvasObjectsMap(doc)
+
+  const welcome = note(
+    { x: 80, y: 80, width: 260, height: 120 },
+    'Your Desk: pin what matters, arrange it your way.'
+  )
+  const pinnedPage = card(
+    'page',
+    { x: 400, y: 80, width: 240, height: 140 },
+    { title: 'Sample Page' },
+    { nodeId: pageId('sample'), schemaId: PageSchema._schemaId }
+  )
+  const pinnedTask = card(
+    'task',
+    { x: 400, y: 260, width: 220, height: 120 },
+    { title: 'Spec task', renderMode: 'card' },
+    { nodeId: seedId('task', PROJECT_NAMES[0], 0), schemaId: TaskSchema._schemaId }
+  )
+
+  for (const node of [welcome, pinnedPage, pinnedTask]) {
+    objects.set(node.id, node)
+  }
+
+  return doc
+}
+
 export const vizSeeder: SeederModule = {
   domain: 'viz',
   label: 'Canvases & dashboards',
@@ -174,6 +207,19 @@ export const vizSeeder: SeederModule = {
         docs.push({ nodeId: id, build: () => buildCanvasDoc(id, c.title) })
       }
     })
+
+    // ─── Desk starter template (0273) ────────────────────────────────────
+    const deskTemplate = canvasId('desk-template')
+    drafts.push({
+      id: deskTemplate,
+      schemaId: CanvasSchema._schemaId,
+      properties: {
+        title: 'Desk starter',
+        icon: '🗂️',
+        tags: [fixtures.tag('design')]
+      }
+    })
+    docs.push({ nodeId: deskTemplate, build: () => buildDeskTemplateDoc(deskTemplate) })
 
     // ─── Dashboards populated with real, runtime-bound widgets ───────────
     const analytics = buildDashboard(

@@ -77,6 +77,8 @@ export type {
   SettingsPanelProps,
   SchemaContribution,
   StatusBarContribution,
+  SurfaceDockContribution,
+  SurfaceDockTier,
   ImporterContribution,
   AiCommandExposure
 } from './contributions'

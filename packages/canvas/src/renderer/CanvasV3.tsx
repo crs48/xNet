@@ -3048,19 +3048,47 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
       .filter((item) => intersectsViewport(item.rect, viewportSize))
   }, [scene.objects, scene.sourceNodesById, viewport, viewportSize])
 
+  // Bounded pan (0273): with `config.infinite === false` the camera centre is
+  // clamped to the pan bounds (explicit `config.bounds`, else the content
+  // bounds) inflated by roughly one half-viewport — you can push content to
+  // the screen edge but never strand yourself more than a screen from it.
+  // Content bounds grow as objects land outside them, so the board is
+  // bounded-but-growable (the Muse flex-board move), and refs keep the
+  // clamp out of the callback's dependency list.
+  const boundedPan = config.infinite === false
+  const panBoundsRef = useRef<Rect | null>(null)
+  const rawPanBounds = config.bounds ?? scene.bounds ?? null
+  panBoundsRef.current =
+    rawPanBounds &&
+    Number.isFinite(rawPanBounds.x) &&
+    Number.isFinite(rawPanBounds.y) &&
+    Number.isFinite(rawPanBounds.width) &&
+    Number.isFinite(rawPanBounds.height)
+      ? rawPanBounds
+      : null
+  const viewportSizeRef = useRef<Size>(viewportSize)
+  viewportSizeRef.current = viewportSize
+
   const setViewportClamped = useCallback(
     (updater: ViewportState | ((current: ViewportState) => ViewportState)) => {
       setViewport((current) => {
         const next = typeof updater === 'function' ? updater(current) : updater
+        const zoom = clamp(next.zoom, minZoom, maxZoom)
 
-        return {
-          x: next.x,
-          y: next.y,
-          zoom: clamp(next.zoom, minZoom, maxZoom)
+        let { x, y } = next
+        const bounds = boundedPan ? panBoundsRef.current : null
+        if (bounds) {
+          const size = viewportSizeRef.current
+          const marginX = Math.max(size.width / 2 / zoom, 160)
+          const marginY = Math.max(size.height / 2 / zoom, 160)
+          x = clamp(x, bounds.x - marginX, bounds.x + bounds.width + marginX)
+          y = clamp(y, bounds.y - marginY, bounds.y + bounds.height + marginY)
         }
+
+        return { x, y, zoom }
       })
     },
-    [maxZoom, minZoom]
+    [boundedPan, maxZoom, minZoom]
   )
 
   const screenToCanvasPoint = useCallback(

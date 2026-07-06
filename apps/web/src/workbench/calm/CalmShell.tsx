@@ -26,6 +26,7 @@ import { Canvas } from './Canvas'
 import { ListPane } from './ListPane'
 import { modeForPath } from './modes'
 import { ModeSwitch } from './ModeSwitch'
+import { QuietChrome } from './QuietChrome'
 
 const CALM_FRAME =
   'mt-[var(--storage-banner-height,0px)] flex h-[calc(100dvh-var(--storage-banner-height,0px))] flex-col bg-surface-1 text-ink-1'
@@ -43,6 +44,7 @@ export function CalmShell({ children }: { children: ReactNode }) {
 
   const { pathname } = useLocation()
   const mode = useWorkbench((state) => state.mode)
+  const chrome = useWorkbench((state) => state.chrome)
   const storedMode = useWorkbench((state) => state.calmMode)
   const setCalmMode = useWorkbench((state) => state.setCalmMode)
   const listOpen = useWorkbench((state) => state.left.open)
@@ -68,6 +70,23 @@ export function CalmShell({ children }: { children: ReactNode }) {
           <div className="min-h-0 flex-1">
             <CalmSurface>{children}</CalmSurface>
           </div>
+        </div>
+      </UndoToastProvider>
+    )
+  }
+
+  // Quiet posture (0273): the surface owns the viewport; the same List/Canvas
+  // are summoned as overlays from corner glyphs, edge hot-zones, ⌘B/⌘\, or ⌘K.
+  if (chrome === 'quiet') {
+    return (
+      <UndoToastProvider>
+        <div className={`${CALM_FRAME} bg-surface-0`}>
+          <WorkspaceCommands />
+          <GlobalSearch />
+          <CalmDemoBanner />
+          <QuietChrome activeMode={activeMode}>
+            <CalmSurface>{children}</CalmSurface>
+          </QuietChrome>
         </div>
       </UndoToastProvider>
     )

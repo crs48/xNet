@@ -1,0 +1,80 @@
+---
+title: 'The Quiet Shell & the Desk'
+draft: false
+description: 'A blank-sheet workspace posture: the surface owns the screen, chrome is summoned from the edges.'
+---
+
+:::note[You will learn]
+
+- What the quiet chrome posture is and how to switch into it
+- The disclosure ladder: corners, edges, chords, and Esc
+- The Desk — your bounded home canvas — and how pinning works
+- The SurfaceDock, and how it maps to the pinned shell's tray
+  :::
+
+## Overview
+
+The quiet shell inverts the calm shell's composition: at rest the screen is
+just your work — a document, a database, or the Desk canvas — and the chrome
+is *summoned*, never pinned. Glyph clusters sit dimmed in the corners; the
+navigator and the contextual canvas slide in from the edges; the dock expands
+from the bottom-right the way devtools always has. Nothing is removed — every
+drawer is reachable three ways: pointer (hover an edge, or swipe on a phone),
+keyboard chord, or the ⌘K palette.
+
+Switch postures any time with **⌘K → "View: Quiet chrome"** (and back with
+"View: Pinned chrome"). The setting is per-device and changes nothing about
+your data or routes.
+
+## The disclosure ladder
+
+| Level | What you see                | How you got here                             |
+| ----- | --------------------------- | -------------------------------------------- |
+| L0    | Bare surface, dimmed glyphs | Rest state                                   |
+| L1    | Glyphs lit                  | Pointer near an edge, or a touch             |
+| L2    | One overlay open            | Edge hover-dwell, swipe, ⌘B / ⌘\ / ⌘J / ⌘K |
+| L3    | Pinned chrome               | "View: Pinned chrome" or the workbench grid  |
+
+**Esc always walks down one rung.** Dismissing an overlay returns you to the
+bare surface; it never dead-ends.
+
+| Surface   | Pointer / touch          | Chord | Palette             |
+| --------- | ------------------------ | ----- | ------------------- |
+| Navigator | left edge hover / swipe  | ⌘B    | Toggle left panel   |
+| Context   | right edge hover / swipe | ⌘\    | Toggle right panel  |
+| Dock      | corner launcher / FAB    | ⌘J    | `Dock: <panel>`     |
+| Palette   | corner search glyph      | ⌘K    | —                   |
+
+## The Desk
+
+The Desk is a personal home canvas with a deterministic, identity-derived id —
+it is created the first time you visit it, and the same identity gets the same
+Desk on every device. It is **bounded but growable**: panning clamps near your
+content (you can't strand yourself in empty space), and the board grows as
+cards land outside it. **Fit to content** (Ctrl/Cmd 1) is the home anchor.
+
+Build your workspace by pinning:
+
+- **Drag** anything from the navigator onto the Desk.
+- **Pin to Desk** from a document via ⌘K, or the desk icon that appears when
+  you hover a navigator row. Pins queue up and land the next time the Desk is
+  on screen — you don't have to be looking at it.
+- **Go to Desk** (`g k`) from anywhere.
+
+Pinned cards are live views of the real nodes — edit the source and the card
+follows. On a phone the Desk renders as an ordered list (reading order of the
+board), which is also how screen readers traverse it.
+
+## The SurfaceDock
+
+The bottom-right launcher is the devtools grammar for everyone: a single
+glyph that expands into the *hero* panels (Shelf, Capture, Notifications) with
+the rest behind **More** and the palette. It reuses the pinned shell's bottom
+tray state, so ⌘J toggles the same panels in either posture. Plugins add
+panels through the `surfaceDock` contribution point in `@xnetjs/plugins`.
+
+## Rollout
+
+Quiet chrome ships opt-in. New identities boot straight to the Desk under
+quiet chrome once the staged-rollout flag flips; existing workspaces keep
+whatever posture they chose.
