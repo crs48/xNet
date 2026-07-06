@@ -4,6 +4,7 @@ import Nav from '../../components/sections/Nav.astro'
 import Footer from '../../components/sections/Footer.astro'
 import SeriesNav from '../../components/blog/SeriesNav.astro'
 import ForestHero from '../../components/blog/ForestHero.astro'
+import Byline from '../../components/blog/Byline.astro'
 import PrincipleWheel from '../../components/blog/PrincipleWheel.astro'
 import HonestGarden from '../../components/blog/HonestGarden.astro'
 import { postBySlug, formatPostDate } from '../../data/blog'
@@ -26,6 +27,8 @@ const post = postBySlug('the-forest-and-the-field')!
     <article
       class="prose prose-lg mx-auto max-w-3xl px-6 py-16 dark:prose-invert prose-headings:tracking-tight prose-a:text-emerald-600 dark:prose-a:text-emerald-400"
     >
+      <Byline post={post} />
+
       <p>
         A few of these essays have wandered underground and overhead — into the
         soil a forest quietly talks through, into the dust a dead desert sends

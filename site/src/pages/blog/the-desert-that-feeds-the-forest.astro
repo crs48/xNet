@@ -4,6 +4,7 @@ import Nav from '../../components/sections/Nav.astro'
 import Footer from '../../components/sections/Footer.astro'
 import SeriesNav from '../../components/blog/SeriesNav.astro'
 import DustHero from '../../components/blog/DustHero.astro'
+import Byline from '../../components/blog/Byline.astro'
 import DustBridge from '../../components/blog/DustBridge.astro'
 import HonestDesert from '../../components/blog/HonestDesert.astro'
 import { postBySlug, formatPostDate } from '../../data/blog'
@@ -26,6 +27,8 @@ const post = postBySlug('the-desert-that-feeds-the-forest')!
     <article
       class="prose prose-lg mx-auto max-w-3xl px-6 py-16 dark:prose-invert prose-headings:tracking-tight prose-a:text-amber-600 dark:prose-a:text-amber-400"
     >
+      <Byline post={post} />
+
       <p>
         The first time, we looked up — at an open sea of scattered islands and the
         flags you might fly to stop being someone else’s cargo. The second time, we

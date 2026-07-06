@@ -4,6 +4,7 @@ import Nav from '../../components/sections/Nav.astro'
 import Footer from '../../components/sections/Footer.astro'
 import SeriesNav from '../../components/blog/SeriesNav.astro'
 import LoomHero from '../../components/blog/LoomHero.astro'
+import Byline from '../../components/blog/Byline.astro'
 import Mermaid from '../../components/blog/Mermaid.astro'
 import CodeFigure from '../../components/blog/CodeFigure.astro'
 import Peek from '../../components/blog/Peek.astro'
@@ -121,6 +122,8 @@ const mergeSeq = `sequenceDiagram
     <article
       class="prose prose-lg mx-auto max-w-3xl px-6 py-16 dark:prose-invert prose-headings:tracking-tight prose-a:text-indigo-600 dark:prose-a:text-indigo-400"
     >
+      <Byline post={post} />
+
       <p>
         The Luddites have a bad reputation they didn&rsquo;t earn. We use their
         name for anyone who&rsquo;s afraid of technology, but the real weavers of

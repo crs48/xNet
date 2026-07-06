@@ -4,6 +4,7 @@ import Nav from '../../components/sections/Nav.astro'
 import Footer from '../../components/sections/Footer.astro'
 import SeriesNav from '../../components/blog/SeriesNav.astro'
 import TillerHero from '../../components/blog/TillerHero.astro'
+import Byline from '../../components/blog/Byline.astro'
 import AlignmentStack from '../../components/blog/AlignmentStack.astro'
 import HonestTiller from '../../components/blog/HonestTiller.astro'
 import { postBySlug, formatPostDate } from '../../data/blog'
@@ -26,6 +27,8 @@ const post = postBySlug('hand-on-the-tiller')!
     <article
       class="prose prose-lg mx-auto max-w-3xl px-6 py-16 dark:prose-invert prose-headings:tracking-tight prose-a:text-sky-600 dark:prose-a:text-sky-400"
     >
+      <Byline post={post} />
+
       <p>
         Watch a good helmsman for a minute and you notice they never really stop
         moving. The wheel is always drifting a few degrees one way while the sea,

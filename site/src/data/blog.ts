@@ -30,6 +30,41 @@ export type BlogTag =
   | 'cosmos'
   | 'economics'
 
+/** Registered blog authors; posts reference these by id (exploration 0269). */
+export type BlogAuthorId = 'crs48' | 'claude'
+
+export interface BlogAuthor {
+  id: BlogAuthorId
+  /** Display name shown in the byline. */
+  name: string
+  /** Profile link (GitHub for humans; product page for AI agents). */
+  href?: string
+  /**
+   * First-party avatar path under `site/public/` — never a hotlink. Several
+   * essays promise "this page loads nothing third-party", so avatars are
+   * vendored assets served from the site's own origin.
+   */
+  avatar: string
+  /** Marks an AI co-author; drives the "with …" byline treatment. */
+  ai?: boolean
+}
+
+export const AUTHORS: Record<BlogAuthorId, BlogAuthor> = {
+  crs48: {
+    id: 'crs48',
+    name: 'crs48',
+    href: 'https://github.com/crs48',
+    avatar: '/blog/authors/crs48.jpg'
+  },
+  claude: {
+    id: 'claude',
+    name: 'Claude',
+    href: 'https://claude.com/claude-code',
+    avatar: '/blog/authors/claude.svg',
+    ai: true
+  }
+}
+
 export interface BlogPost {
   /** URL slug; matches `site/src/pages/blog/<slug>.astro`. */
   slug: string
@@ -39,8 +74,8 @@ export interface BlogPost {
   description: string
   /** ISO-8601 UTC instant the post was published. */
   pubDate: string
-  /** Display author. */
-  author: string
+  /** Authors shown in the byline, humans first. */
+  authors: BlogAuthorId[]
   tags: BlogTag[]
   /** Rough read time in minutes, shown on the card. */
   readingMinutes: number
@@ -63,7 +98,7 @@ export const posts: BlogPost[] = [
       'code, and what software looks like when the application is just a view ' +
       'over data you own — especially now that anyone can cook.',
     pubDate: '2026-07-05T23:00:00Z',
-    author: 'xNet',
+    authors: ['crs48', 'claude'],
     tags: ['essay', 'philosophy', 'decentralization'],
     readingMinutes: 14
   },
@@ -79,7 +114,7 @@ export const posts: BlogPost[] = [
       'takes to actually hold a course — and the small, real instruments a piece of ' +
       'software can hand back.',
     pubDate: '2026-07-03T15:00:00Z',
-    author: 'xNet',
+    authors: ['crs48', 'claude'],
     tags: ['essay', 'philosophy', 'decentralization'],
     readingMinutes: 15
   },
@@ -89,7 +124,7 @@ export const posts: BlogPost[] = [
     description:
       "You write useQuery(TaskSchema) and get a live, local, cryptographically-authorised, syncing database — with no API endpoint, no auth middleware, and no cache to invalidate. A developer's tour of xNet's React hooks on the surface, then a dive beneath the waterline to the SQLite database running in a worker, the priority scheduler, and the signed change log that make “just trust the client” safe. The tip is small on purpose; the iceberg is yours to open.",
     pubDate: '2026-06-29T17:30:00Z',
-    author: 'xNet',
+    authors: ['crs48', 'claude'],
     tags: ['essay', 'protocol', 'decentralization'],
     readingMinutes: 14
   },
@@ -99,7 +134,7 @@ export const posts: BlogPost[] = [
     description:
       "The Luddites didn't fear machines — they refused looms they weren't allowed to open. Follow one note, “Buy milk,” all the way through xNet's internals: a file on your own disk, a signed change log, a name you mint instead of an account, and a three-line merge that settles conflicts with no server in the middle. A guided tour of a machine you're allowed to open — written for developers and everyone else at once.",
     pubDate: '2026-06-29T01:09:07Z',
-    author: 'xNet',
+    authors: ['crs48', 'claude'],
     tags: ['essay', 'protocol', 'decentralization'],
     readingMinutes: 15
   },
@@ -109,7 +144,7 @@ export const posts: BlogPost[] = [
     description:
       'Industrial farming strips the soil to exhaustion and trucks fertility back in by the ton. Surveillance capitalism does the same to the web. Permaculture is the discipline for growing land that feeds itself — and its principles are, almost furrow for furrow, how you regenerate a digital commons instead of strip-mining one.',
     pubDate: '2026-06-28T23:39:38Z',
-    author: 'xNet',
+    authors: ['crs48', 'claude'],
     tags: ['essay', 'philosophy', 'nature'],
     readingMinutes: 14
   },
@@ -119,7 +154,7 @@ export const posts: BlogPost[] = [
     description:
       "A musician on YouTube argues the economy quietly changed from growth to extraction, and the real prize isn't your money — it's your ability to refuse. He's mostly right. Here's the part software can actually give back.",
     pubDate: '2026-06-28T22:10:50Z',
-    author: 'xNet',
+    authors: ['crs48', 'claude'],
     tags: ['essay', 'philosophy', 'economics'],
     readingMinutes: 13
   },
@@ -129,7 +164,7 @@ export const posts: BlogPost[] = [
     description:
       'Every year a dead desert blows across an ocean and feeds the most alive place on Earth — replacing almost exactly what the rainforest loses. What Saharan dust, the bees nobody watches, and the maintainers nobody thanks teach us about the invisible substrate the open web runs on.',
     pubDate: '2026-06-28T21:46:46Z',
-    author: 'xNet',
+    authors: ['crs48', 'claude'],
     tags: ['essay', 'philosophy', 'nature'],
     readingMinutes: 13
   },
@@ -139,7 +174,7 @@ export const posts: BlogPost[] = [
     description:
       'A star carries the energy of a billion bombs and still feels calm from here. What hydrostatic equilibrium — the thermostat that keeps a star from exploding or going cold — teaches us about information, attention, and building technology that burns long instead of burning out.',
     pubDate: '2026-06-28T02:27:04Z',
-    author: 'xNet',
+    authors: ['crs48', 'claude'],
     tags: ['essay', 'philosophy', 'cosmos'],
     readingMinutes: 13
   },
@@ -149,7 +184,7 @@ export const posts: BlogPost[] = [
     description:
       'Beneath every forest runs a fungal network — the original internet. What mycelium, the human nervous system, and Tesla’s Warp teach us about building one worth living in, and how to heal one that’s gone sick.',
     pubDate: '2026-06-28T01:23:39Z',
-    author: 'xNet',
+    authors: ['crs48', 'claude'],
     tags: ['essay', 'philosophy', 'nature'],
     readingMinutes: 12
   },
@@ -159,7 +194,7 @@ export const posts: BlogPost[] = [
     description:
       'What pirates — the real ones, and the ones in One Piece — can teach us about owning your data. An essay on freedom, self-governance, and why you are the cargo.',
     pubDate: '2026-06-28T00:28:34Z',
-    author: 'xNet',
+    authors: ['crs48', 'claude'],
     tags: ['essay', 'philosophy', 'decentralization'],
     readingMinutes: 11
   }
@@ -199,6 +234,11 @@ export function seriesNeighbors(slug: string): { previous?: BlogPost; next?: Blo
 /** Look up a single post by slug (drafts included, so authoring URLs resolve). */
 export function postBySlug(slug: string): BlogPost | undefined {
   return posts.find((p) => p.slug === slug)
+}
+
+/** Resolve a post's author ids to full registry entries, in declared order. */
+export function postAuthors(post: BlogPost): BlogAuthor[] {
+  return post.authors.map((id) => AUTHORS[id])
 }
 
 /** Human-friendly date, e.g. "June 27, 2026", rendered from the ISO instant. */

@@ -4,6 +4,7 @@ import Nav from '../../components/sections/Nav.astro'
 import Footer from '../../components/sections/Footer.astro'
 import SeriesNav from '../../components/blog/SeriesNav.astro'
 import StarHero from '../../components/blog/StarHero.astro'
+import Byline from '../../components/blog/Byline.astro'
 import HydrostaticBalance from '../../components/blog/HydrostaticBalance.astro'
 import HonestStar from '../../components/blog/HonestStar.astro'
 import { postBySlug, formatPostDate } from '../../data/blog'
@@ -26,6 +27,8 @@ const post = postBySlug('the-gentlest-furnace')!
     <article
       class="prose prose-lg mx-auto max-w-3xl px-6 py-16 dark:prose-invert prose-headings:tracking-tight prose-a:text-amber-600 dark:prose-a:text-amber-400"
     >
+      <Byline post={post} />
+
       <p>
         The first time, we looked up — at an open sea of scattered islands, and
         the flags a person might fly to stop being someone else’s cargo. The

@@ -4,6 +4,7 @@ import Nav from '../../components/sections/Nav.astro'
 import Footer from '../../components/sections/Footer.astro'
 import SeriesNav from '../../components/blog/SeriesNav.astro'
 import WorkshopHero from '../../components/blog/WorkshopHero.astro'
+import Byline from '../../components/blog/Byline.astro'
 import Mermaid from '../../components/blog/Mermaid.astro'
 import CodeFigure from '../../components/blog/CodeFigure.astro'
 import HonestWorkshop from '../../components/blog/HonestWorkshop.astro'
@@ -76,6 +77,8 @@ const viewsOverData = `flowchart LR
     <article
       class="prose prose-lg mx-auto max-w-3xl px-6 py-16 dark:prose-invert prose-headings:tracking-tight prose-a:text-sky-600 dark:prose-a:text-sky-400"
     >
+      <Byline post={post} />
+
       <p>
         In 2003, somewhere on the internet, a modder known only as
         <strong>Eul</strong> sat down with the map editor that shipped in the box
