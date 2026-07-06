@@ -180,6 +180,31 @@ describe('Share Links', () => {
     await hub.stop()
   })
 
+  // The app and the hub are different origins in production (xnet.fyi/app vs
+  // hub.xnet.fyi), and the Authorization header forces a CORS preflight — the
+  // browser surfaces a bare "Failed to fetch" if the hub doesn't answer it.
+  it('answers the CORS preflight for authenticated HTTP APIs', async () => {
+    const preflight = await fetch(`${BASE}/shares/links?docId=doc-cors`, {
+      method: 'OPTIONS',
+      headers: {
+        Origin: 'https://xnet.fyi',
+        'Access-Control-Request-Method': 'GET',
+        'Access-Control-Request-Headers': 'authorization,content-type'
+      }
+    })
+    expect(preflight.status).toBe(204)
+    expect(preflight.headers.get('access-control-allow-origin')).toBe('*')
+    expect(preflight.headers.get('access-control-allow-headers')?.toLowerCase()).toContain(
+      'authorization'
+    )
+
+    const response = await fetch(`${BASE}/shares/links?docId=doc-cors`, {
+      headers: { Origin: 'https://xnet.fyi', Authorization: `Bearer ${owner.token}` }
+    })
+    expect(response.status).toBe(200)
+    expect(response.headers.get('access-control-allow-origin')).toBe('*')
+  })
+
   it('creates a link whose URL carries the secret in the fragment', async () => {
     const { url, linkId } = await createLink(owner, 'doc-anatomy', 'read')
     expect(url).toBe(`http://localhost:${PORT}/s/${linkId}#s=${url.split('#s=')[1]}`)
