@@ -1,3 +1,4 @@
+import { execSync } from 'child_process'
 import { readFileSync } from 'fs'
 import path from 'path'
 import { TanStackRouterVite } from '@tanstack/router-plugin/vite'
@@ -9,10 +10,33 @@ import { coopCoepHeaders } from './vite-plugins/coop-coep-headers'
 // Base path for deployment (default: '/', set VITE_BASE_PATH for custom paths like '/app/')
 const basePath = process.env.VITE_BASE_PATH || '/'
 
-// App version, injected at build time so the in-app "What's New" surface
-// (exploration 0195) can show the running version. Read from package.json.
-const appVersion = JSON.parse(readFileSync(path.resolve(__dirname, 'package.json'), 'utf8'))
-  .version as string
+// App version, injected at build time so the About page and the in-app
+// "What's New" surface (exploration 0195) can show the running version.
+//
+// major.minor is the human-set base in package.json; the patch is derived from
+// git — the number of first-parent commits on the current history that touched
+// the web app or its workspace packages — so every merge to main that changes
+// the app ships with a new version, with no manual bookkeeping. Shallow clones
+// (PR CI) and git-less builds fall back to the package.json version verbatim;
+// the production deploy checks out with fetch-depth: 0, so it always gets the
+// full count.
+function resolveAppVersion(): string {
+  const base = JSON.parse(readFileSync(path.resolve(__dirname, 'package.json'), 'utf8'))
+    .version as string
+  try {
+    const git = (args: string) =>
+      execSync(`git ${args}`, { cwd: __dirname, stdio: ['ignore', 'pipe', 'ignore'] })
+        .toString()
+        .trim()
+    if (git('rev-parse --is-shallow-repository') === 'true') return base
+    const patch = git('rev-list --count --first-parent HEAD -- ":(top)apps/web" ":(top)packages"')
+    const [major, minor] = base.split('.')
+    return `${major}.${minor}.${patch}`
+  } catch {
+    return base
+  }
+}
+const appVersion = resolveAppVersion()
 
 export default defineConfig({
   base: basePath,
