@@ -133,7 +133,7 @@ function DockItemButton({
       aria-label={item.label}
       onClick={() => onOpen(item.id)}
       className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border-none bg-transparent transition-colors ${
-        active ? 'text-ink-1' : 'text-ink-3 hover:text-ink-1'
+        active ? 'text-ink-1' : 'text-ink-2 hover:text-ink-1'
       }`}
     >
       <Icon size={16} strokeWidth={1.5} />
@@ -197,9 +197,7 @@ export function SurfaceDockLauncher({ lit }: { lit: boolean }) {
 
   return (
     <div
-      className={`absolute bottom-2 right-2 z-40 flex flex-col items-end gap-2 transition-opacity duration-normal ease-out focus-within:opacity-100 ${
-        lit || expanded || panelOpen ? 'opacity-100' : 'opacity-40'
-      }`}
+      className="absolute bottom-2 right-2 z-40 flex flex-col items-end gap-2"
       onPointerEnter={() => setExpanded(true)}
       onPointerLeave={() => {
         setExpanded(false)
@@ -247,9 +245,12 @@ export function SurfaceDockLauncher({ lit }: { lit: boolean }) {
       </Presence>
 
       {/* The launcher strip: one glyph at rest, hero items + More expanded. */}
+      {/* Dim = weaker decoration, never faded ink (glyphs hold ≥ Lc 60). */}
       <div
         data-coach="quiet.dock"
-        className="flex items-center gap-0.5 rounded-xl border border-hairline bg-surface-1/90 p-1 shadow-sm backdrop-blur"
+        className={`flex items-center gap-0.5 rounded-xl border border-hairline p-1 backdrop-blur transition-colors duration-normal ease-out ${
+          lit || expanded || panelOpen ? 'bg-surface-1/95 shadow-sm' : 'bg-surface-1/60'
+        }`}
       >
         {(expanded || panelOpen) && (
           <>
@@ -308,7 +309,7 @@ export function SurfaceDockLauncher({ lit }: { lit: boolean }) {
           onClick={() =>
             panelOpen ? setPanelOpen('bottom', false) : open(bottom.activeViewId || 'shelf')
           }
-          className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border-none bg-transparent text-ink-3 transition-colors hover:text-ink-1"
+          className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border-none bg-transparent text-ink-2 transition-colors hover:text-ink-1"
         >
           <LayoutGrid size={16} strokeWidth={1.5} />
         </button>

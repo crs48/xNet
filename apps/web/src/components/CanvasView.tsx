@@ -1803,7 +1803,7 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
           onSurfacePaste={handleSurfacePaste}
           canvasNodeId={docId}
           canvasSchema={CanvasSchema._schemaId}
-          renderNode={(node) => {
+          renderNode={(node, context) => {
             if (
               node.type === 'page' ||
               node.type === 'database' ||
@@ -1815,8 +1815,16 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
             }
 
             if (node.type === 'widget') {
+              // Coarse LOD = the card renders as a sliver anyway (0273):
+              // pause its live query instead of streaming rows nobody can
+              // read. Full-detail cards keep their subscriptions.
+              const suspended = context.lod === 'placeholder' || context.lod === 'minimal'
               return (
-                <DashboardRuntimeProvider schemas={DASHBOARD_SCHEMA_REGISTRY} variables={undefined}>
+                <DashboardRuntimeProvider
+                  schemas={DASHBOARD_SCHEMA_REGISTRY}
+                  variables={undefined}
+                  suspended={suspended}
+                >
                   <CanvasWidgetCard node={node} />
                 </DashboardRuntimeProvider>
               )

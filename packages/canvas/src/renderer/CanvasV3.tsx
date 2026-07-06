@@ -3057,7 +3057,15 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
   // clamp out of the callback's dependency list.
   const boundedPan = config.infinite === false
   const panBoundsRef = useRef<Rect | null>(null)
-  panBoundsRef.current = config.bounds ?? scene.bounds ?? null
+  const rawPanBounds = config.bounds ?? scene.bounds ?? null
+  panBoundsRef.current =
+    rawPanBounds &&
+    Number.isFinite(rawPanBounds.x) &&
+    Number.isFinite(rawPanBounds.y) &&
+    Number.isFinite(rawPanBounds.width) &&
+    Number.isFinite(rawPanBounds.height)
+      ? rawPanBounds
+      : null
   const viewportSizeRef = useRef<Size>(viewportSize)
   viewportSizeRef.current = viewportSize
 

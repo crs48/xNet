@@ -144,7 +144,7 @@ function GlyphButton({
       aria-current={active ? 'page' : undefined}
       onClick={onClick}
       className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border-none bg-transparent transition-colors ${
-        active ? 'text-ink-1' : 'text-ink-3 hover:text-ink-1'
+        active ? 'text-ink-1' : 'text-ink-2 hover:text-ink-1'
       }`}
     >
       <Icon size={16} strokeWidth={1.5} />
@@ -163,11 +163,15 @@ function CornerGlyphs({ lit, activeMode }: { lit: boolean; activeMode: CalmMode 
   const setCalmMode = useWorkbench((state) => state.setCalmMode)
 
   return (
+    // Dim ≠ faded ink (0273 validation: glyphs hold ≥ Lc 60): at L0 the
+    // decoration recedes (weaker bg, no shadow) while icons stay ink-2; at
+    // L1 the cluster surfaces fully.
     <nav
       aria-label="Workspace"
       data-coach="quiet.corners"
-      className={`absolute left-2 top-2 z-40 flex items-center gap-0.5 rounded-xl border border-hairline bg-surface-1/90 p-1 shadow-sm backdrop-blur transition-opacity duration-normal ease-out focus-within:opacity-100 ${
-        lit ? 'opacity-100' : 'opacity-40'
+      data-lit={lit || undefined}
+      className={`absolute left-2 top-2 z-40 flex items-center gap-0.5 rounded-xl border border-hairline p-1 backdrop-blur transition-colors duration-normal ease-out ${
+        lit ? 'bg-surface-1/95 shadow-sm' : 'bg-surface-1/60'
       }`}
     >
       {did && (
@@ -203,7 +207,7 @@ function CornerGlyphs({ lit, activeMode }: { lit: boolean; activeMode: CalmMode 
         to="/settings"
         title="Settings"
         aria-label="Settings"
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-3 no-underline transition-colors hover:text-ink-1 hover:no-underline"
+        className="flex h-8 w-8 items-center justify-center rounded-lg text-ink-2 no-underline transition-colors hover:text-ink-1 hover:no-underline"
       >
         <Settings size={16} strokeWidth={1.5} />
       </Link>
@@ -220,16 +224,14 @@ function QuietSyncGlyph({ lit }: { lit: boolean }) {
   const chip = CHIP[vitals.state]
 
   return (
-    <div
-      className={`absolute bottom-2 left-2 z-40 transition-opacity duration-normal ease-out focus-within:opacity-100 ${
-        lit ? 'opacity-100' : 'opacity-40'
-      }`}
-    >
+    <div className="absolute bottom-2 left-2 z-40">
       <PopoverRoot>
         <PopoverTrigger
           title={`Sync: ${chip.label}`}
           aria-label={`Sync status: ${chip.label}`}
-          className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-xl border border-hairline bg-surface-1/90 shadow-sm backdrop-blur"
+          className={`flex h-8 w-8 cursor-pointer items-center justify-center rounded-xl border border-hairline backdrop-blur transition-colors duration-normal ease-out ${
+            lit ? 'bg-surface-1/95 shadow-sm' : 'bg-surface-1/60'
+          }`}
         >
           <span className={`inline-block h-2 w-2 rounded-full ${chip.tone}`} />
         </PopoverTrigger>
