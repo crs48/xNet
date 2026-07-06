@@ -17,7 +17,7 @@ import { useLocation, useNavigate } from '@tanstack/react-router'
 import { getCommandRegistry } from '@xnetjs/plugins'
 import { DemoBanner, useDemoMode } from '@xnetjs/react'
 import { BottomNav, Sheet, SheetContent } from '@xnetjs/ui'
-import { Menu, PanelRightOpen, Search, Settings, type LucideIcon } from 'lucide-react'
+import { LayoutGrid, Menu, PanelRightOpen, Search, Settings, type LucideIcon } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { GlobalSearch } from '../../components/GlobalSearch'
 import { WorkspaceCommands } from '../../components/WorkspaceCommands'
@@ -29,6 +29,9 @@ import { CalmSurface } from './CalmSurface'
 import { Canvas } from './Canvas'
 import { ListPane } from './ListPane'
 import { CALM_MODES, modeForPath } from './modes'
+import { registerBuiltinSurfaceDock, SurfaceDockSheetContent } from './SurfaceDock'
+
+registerBuiltinSurfaceDock()
 
 const MOBILE_FRAME =
   'mt-[var(--storage-banner-height,0px)] flex h-[calc(100dvh-var(--storage-banner-height,0px))] flex-col bg-surface-1 text-ink-1'
@@ -107,6 +110,7 @@ export function CalmMobile({ children }: { children: ReactNode }) {
 
   const left = useWorkbench((state) => state.left)
   const right = useWorkbench((state) => state.right)
+  const bottom = useWorkbench((state) => state.bottom)
   const chrome = useWorkbench((state) => state.chrome)
   const setPanelOpen = useWorkbench((state) => state.setPanelOpen)
   const setCalmMode = useWorkbench((state) => state.setCalmMode)
@@ -125,6 +129,7 @@ export function CalmMobile({ children }: { children: ReactNode }) {
   useLayoutEffect(() => {
     setPanelOpen('left', false)
     setPanelOpen('right', false)
+    setPanelOpen('bottom', false)
     setArmed(true)
   }, [pathname, setPanelOpen])
 
@@ -236,6 +241,35 @@ export function CalmMobile({ children }: { children: ReactNode }) {
           <Canvas />
         </SheetContent>
       </Sheet>
+
+      {/* Quiet posture (0273): the SurfaceDock's thumb twin — a FAB in the
+          thumb zone opening the dock as the standard bottom Sheet. */}
+      {chrome === 'quiet' && (
+        <>
+          {!bottom.open && (
+            <button
+              type="button"
+              title="Open dock"
+              aria-label="Open dock"
+              onClick={() => setPanelOpen('bottom', true)}
+              className="safe-area-inset-bottom absolute bottom-20 right-4 z-40 flex h-12 w-12 cursor-pointer items-center justify-center rounded-full border border-hairline bg-surface-1 text-ink-2 shadow-lg"
+              data-coach="quiet.dock"
+            >
+              <LayoutGrid size={20} strokeWidth={1.5} />
+            </button>
+          )}
+          <Sheet open={armed && bottom.open} onOpenChange={(open) => setPanelOpen('bottom', open)}>
+            <SheetContent
+              side="bottom"
+              hideClose
+              className="safe-area-inset-bottom h-[70vh] gap-0 rounded-t-2xl border-hairline bg-surface-1 p-0"
+              data-wb-sheet="bottom"
+            >
+              <SurfaceDockSheetContent onClose={() => setPanelOpen('bottom', false)} />
+            </SheetContent>
+          </Sheet>
+        </>
+      )}
     </div>
   )
 }

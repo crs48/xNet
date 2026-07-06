@@ -12,7 +12,6 @@
  * Same components, same panel booleans, same route→mode table as the pinned
  * CalmShell — only the composition differs.
  */
-import type { CalmMode } from '../state'
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import { getCommandRegistry } from '@xnetjs/plugins'
 import { useIdentity } from '@xnetjs/react'
@@ -20,12 +19,15 @@ import { PopoverContent, PopoverRoot, PopoverTrigger, Sheet, SheetContent } from
 import { Search, Settings, type LucideIcon } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { contributeTips } from '../../coachmarks'
-import { useWorkbench, type PanelSide } from '../state'
+import { useWorkbench, type CalmMode, type PanelSide } from '../state'
 import { CHIP, SystemInfoDetails } from '../SyncStatus'
 import { useSyncVitals } from '../useSyncVitals'
 import { Canvas } from './Canvas'
 import { ListPane } from './ListPane'
 import { CALM_MODES } from './modes'
+import { registerBuiltinSurfaceDock, SurfaceDockLauncher } from './SurfaceDock'
+
+registerBuiltinSurfaceDock()
 
 /** Pointer intent: within this many px of a viewport edge lights the glyphs. */
 const EDGE_PROXIMITY = 120
@@ -252,6 +254,7 @@ export function QuietChrome({
 }) {
   const left = useWorkbench((state) => state.left)
   const right = useWorkbench((state) => state.right)
+  const bottom = useWorkbench((state) => state.bottom)
   const setPanelOpen = useWorkbench((state) => state.setPanelOpen)
   const setDiscloseLevel = useWorkbench((state) => state.setDiscloseLevel)
   const { pathname } = useLocation()
@@ -264,11 +267,12 @@ export function QuietChrome({
   useLayoutEffect(() => {
     setPanelOpen('left', false)
     setPanelOpen('right', false)
+    setPanelOpen('bottom', false)
     setArmed(true)
   }, [pathname, setPanelOpen])
 
   // Keep the store's disclosure level honest (L3 = pinned/workbench, not here).
-  const overlayOpen = armed && (left.open || right.open)
+  const overlayOpen = armed && (left.open || right.open || bottom.open)
   useEffect(() => {
     setDiscloseLevel(overlayOpen ? 2 : lit ? 1 : 0)
   }, [overlayOpen, lit, setDiscloseLevel])
@@ -288,6 +292,7 @@ export function QuietChrome({
 
       <CornerGlyphs lit={lit} activeMode={activeMode} />
       <QuietSyncGlyph lit={lit} />
+      <SurfaceDockLauncher lit={lit} />
 
       {/* The List → left overlay. Esc/scrim dismissal via the Sheet dialog. */}
       <Sheet open={armed && left.open} onOpenChange={(open) => setPanelOpen('left', open)}>

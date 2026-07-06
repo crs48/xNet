@@ -288,6 +288,44 @@ export interface SchemaContribution {
   schema: unknown // DefinedSchema from @xnetjs/data
 }
 
+/**
+ * SurfaceDock tier (exploration 0273). `hero` panels render as the corner
+ * launcher's one-tap strip; `secondary` panels live behind "More" and the
+ * command palette. Same progressive-disclosure grammar as the devtools
+ * panel registry (packages/devtools/src/panels/panel-registry.ts), lifted
+ * to an app-level contribution point.
+ */
+export type SurfaceDockTier = 'hero' | 'secondary'
+
+/**
+ * A panel summoned from the quiet shell's bottom-right dock launcher
+ * (exploration 0273). First-party residents are the workbench tray views
+ * (Shelf, Capture, Notifications, Sync, Console); features and plugins add
+ * their own the way they contribute rail items today.
+ */
+export interface SurfaceDockContribution {
+  /** Unique panel ID, preferably plugin-scoped */
+  id: string
+  /** Display name in the launcher strip / More menu / palette */
+  label: string
+  /** Lucide icon name or component */
+  icon?: string | ComponentType
+  /** Disclosure tier: hero = launcher strip, secondary = More + palette */
+  tier: SurfaceDockTier
+  /** Grouping key for the More menu (e.g. 'capture', 'activity') */
+  group?: string
+  /** Extra palette search terms */
+  keywords?: string[]
+  /** Short description for the palette */
+  description?: string
+  /** Ordering within the tier (lower = earlier) */
+  priority?: number
+  /** Dynamic badge (e.g. unread count); null hides it */
+  badge?: () => string | number | null
+  /** The panel body, rendered inside the dock sheet/strip */
+  component: ComponentType
+}
+
 export type CanvasPreviewTier = 'summary' | 'thumbnail' | 'shell' | 'live'
 
 export type CanvasIngestInputKind = 'url' | 'file' | 'data-transfer' | 'text' | 'node' | 'custom'
@@ -545,6 +583,7 @@ export class ContributionRegistry {
   readonly importers = new TypedRegistry<ImporterContribution>()
   readonly mentionProviders = new TypedRegistry<MentionProviderContribution>()
   readonly agentTools = new TypedRegistry<AgentToolContribution>()
+  readonly surfaceDock = new TypedRegistry<SurfaceDockContribution>()
 
   /**
    * Clear all registries (for cleanup/testing)
@@ -570,5 +609,6 @@ export class ContributionRegistry {
     this.importers.clear()
     this.mentionProviders.clear()
     this.agentTools.clear()
+    this.surfaceDock.clear()
   }
 }

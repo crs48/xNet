@@ -493,20 +493,20 @@ chrome`, dogfood, then flip default for _new_ identities only (existing
 
 ### Phase 2 — The Desk
 
-- [ ] Deterministic per-identity Desk canvas provisioning + default `startupTab` for fresh identities
-- [ ] Bounded-canvas mode in `packages/canvas` (grow-on-drag-past-edge, zoom-to-fit Home anchor)
-- [ ] "Pin to Desk" command + context-menu item + drag-from-navigator (`setNodeTransfer` → canvas ingestion)
-- [ ] Pinned nodes render as `CanvasWidgetCard` live views (page/db/view/task cards)
-- [ ] Empty-state starter chips (New page · Pin something · Templates), removed after first content
-- [ ] Compact (<768px) list projection of the Desk (pins first, recency order) — also the a11y/screen-reader order
-- [ ] Pause live queries for culled cards (hook in `DashboardRuntimeProvider`)
+- [x] Deterministic per-identity Desk canvas provisioning + default `startupTab` for fresh identities
+- [x] Bounded-canvas mode in `packages/canvas` (grow-on-drag-past-edge, zoom-to-fit Home anchor)
+- [x] "Pin to Desk" command + context-menu item + drag-from-navigator (`setNodeTransfer` → canvas ingestion)
+- [x] Pinned nodes render as `CanvasWidgetCard` live views (page/db/view/task cards)
+- [x] Empty-state starter chips (New page · Pin something · Templates), removed after first content
+- [x] Compact (<768px) list projection of the Desk (pins first, recency order) — also the a11y/screen-reader order
+- [x] Pause live queries for culled cards (hook in `DashboardRuntimeProvider`)
 
 ### Phase 3 — SurfaceDock (generalized devtools grammar)
 
-- [ ] `surfaceDock` contribution point in `@xnetjs/plugins` (`tier: hero | secondary`, group, keywords) — pattern from `packages/devtools/src/panels/panel-registry.ts`
-- [ ] Bottom-right launcher: hero strip on hover/tap, "More" + palette for secondary; FAB + bottom sheet on compact
-- [ ] Migrate tray views (Shelf, Capture, Notifications, Sync, Console) from `PanelViewHost('bottom')` to SurfaceDock in quiet posture
-- [ ] Changeset for `@xnetjs/plugins` (new contribution point — minor)
+- [x] `surfaceDock` contribution point in `@xnetjs/plugins` (`tier: hero | secondary`, group, keywords) — pattern from `packages/devtools/src/panels/panel-registry.ts`
+- [x] Bottom-right launcher: hero strip on hover/tap, "More" + palette for secondary; FAB + bottom sheet on compact
+- [x] Migrate tray views (Shelf, Capture, Notifications, Sync, Console) from `PanelViewHost('bottom')` to SurfaceDock in quiet posture
+- [x] Changeset for `@xnetjs/plugins` (new contribution point — minor)
 
 ### Phase 4 — Rollout
 
