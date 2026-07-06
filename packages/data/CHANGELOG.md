@@ -1,5 +1,17 @@
 # @xnetjs/data
 
+## 0.2.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/storage@0.2.0
+  - @xnetjs/sqlite@0.2.0
+  - @xnetjs/sync@0.2.0
+  - @xnetjs/identity@0.2.0
+  - @xnetjs/crypto@0.2.0
+  - @xnetjs/core@0.2.0
+
 ## 0.1.2
 
 ### Patch Changes

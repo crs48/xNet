@@ -1,5 +1,18 @@
 # @xnetjs/plugins
 
+## 0.2.0
+
+### Minor Changes
+
+- [#395](https://github.com/crs48/xNet/pull/395) [`7928202`](https://github.com/crs48/xNet/commit/792820204f71b8943f9e601f5edb3a68f86e48f5) Thanks [@crs48](https://github.com/crs48)! - Add the `surfaceDock` contribution point (exploration 0273): plugins can register `SurfaceDockContribution` panels (`tier: 'hero' | 'secondary'`, group, keywords, badge) that the quiet shell's bottom-right dock launcher renders — the devtools hero/secondary grammar lifted to an app-level registry.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/data@0.2.0
+  - @xnetjs/abuse@0.2.0
+  - @xnetjs/core@0.2.0
+
 ## 0.1.2
 
 ### Patch Changes
