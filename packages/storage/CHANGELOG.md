@@ -1,5 +1,14 @@
 # @xnetjs/storage
 
+## 0.1.2
+
+### Patch Changes
+
+- Updated dependencies [[`1a045b3`](https://github.com/crs48/xNet/commit/1a045b371b4d8fabe7cd32c5bc44d03efd6c31cc)]:
+  - @xnetjs/sqlite@0.1.2
+  - @xnetjs/crypto@0.1.2
+  - @xnetjs/core@0.1.2
+
 ## 0.1.1
 
 ### Patch Changes
