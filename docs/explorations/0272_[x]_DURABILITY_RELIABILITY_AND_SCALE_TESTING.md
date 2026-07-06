@@ -498,8 +498,8 @@ expect(headHashes(restored)).toEqual(headHashes(db))
 - [x] Crash harness: full local run (≥25 iterations via `XNET_CRASH_ITERATIONS`) with zero `integrity_check` failures and zero post-replay divergence
 - [x] Restore drill passes on a seeded DB and fails on a deliberately corrupted copy
 - [x] Scale tier at `XNET_SCALE_NODES=100000` runs clean locally; counter assertions match recorded budgets
-- [ ] Full `pnpm typecheck` and `pnpm test` green; PR CI checks (editor-ux, lint, test 1/3–3/3, typecheck, changelog-section) pass
-- [ ] Post-merge: trigger `soak.yml` via `workflow_dispatch` and confirm a green run end-to-end
+- [x] Full `pnpm typecheck` and `pnpm test` green; PR CI checks (editor-ux, lint, test 1/3–3/3, typecheck, changelog-section) pass
+- [x] Post-merge: trigger `soak.yml` via `workflow_dispatch` and confirm a green run end-to-end
 
 ## References
 
