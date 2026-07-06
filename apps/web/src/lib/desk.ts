@@ -50,3 +50,18 @@ export function isQuietDefaultEnabled(): boolean {
     return false
   }
 }
+
+/**
+ * Long-press radial menu on Desk cards (0273 Phase 5, flagged). Marking-menu
+ * research says ≤8 items, one level; we ship a conservative subset behind
+ * this flag while the gesture grammar settles.
+ */
+export const DESK_RADIAL_KEY = 'xnet:experiment:desk-radial'
+
+export function isDeskRadialEnabled(): boolean {
+  try {
+    return localStorage.getItem(DESK_RADIAL_KEY) === '1'
+  } catch {
+    return false
+  }
+}

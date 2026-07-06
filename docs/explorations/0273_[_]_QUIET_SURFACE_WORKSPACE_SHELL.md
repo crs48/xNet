@@ -512,13 +512,13 @@ chrome`, dogfood, then flip default for _new_ identities only (existing
 
 - [x] e2e specs: disclosure ladder (hover/swipe/chord/Esc), pin-to-desk flow, startup-to-Desk
 - [x] Dogfood period; then default `chrome: 'quiet'` for **new** identities only
-- [ ] Docs page + changelog fragment (`scripts/changelog/new.mjs`)
+- [x] Docs page + changelog fragment (`scripts/changelog/new.mjs`)
 
 ### Phase 5 — Optional depth
 
-- [ ] Long-press radial menu on Desk cards (flagged), per marking-menu research (≤8 items, 1 level)
-- [ ] Desk templates in the seed/template picker
-- [ ] Per-Space Desks (post-0258 multi-home decision)
+- [x] Long-press radial menu on Desk cards (flagged), per marking-menu research (≤8 items, 1 level)
+- [x] Desk templates in the seed/template picker
+- [x] Per-Space Desks (post-0258 multi-home decision) — **decided: per-identity only for now.** A per-Space Desk is just another deterministic canvas id plus a `startupTab` policy, so nothing here blocks it; revisit once 0258's deferred multi-home work lands and Spaces are the unit users actually inhabit.
 
 ## Validation Checklist
 

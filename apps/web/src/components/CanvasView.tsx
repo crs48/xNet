@@ -65,12 +65,13 @@ import {
   Table2
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { DESK_TITLE, isDeskId } from '../lib/desk'
+import { DESK_TITLE, isDeskId, isDeskRadialEnabled } from '../lib/desk'
 import { useContextPanel, type ContextPanelSection } from '../workbench/context-panel'
 import { useWorkbench } from '../workbench/state'
 import { useIsCompact } from '../workbench/use-layout-mode'
 import { DASHBOARD_SCHEMA_REGISTRY } from './DashboardView'
 import { DeskListProjection } from './DeskListProjection'
+import { DeskRadialMenu } from './DeskRadialMenu'
 import { PresenceAvatars } from './PresenceAvatars'
 import { ShareButton } from './ShareButton'
 
@@ -1825,6 +1826,9 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
           }}
           onNodeDoubleClick={handleNodeDoubleClick}
         />
+
+        {/* Flagged long-press radial menu on Desk cards (0273 Phase 5). */}
+        {isDesk && isDeskRadialEnabled() ? <DeskRadialMenu doc={doc} /> : null}
       </div>
     </div>
   )

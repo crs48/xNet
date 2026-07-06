@@ -64,6 +64,7 @@ export const sidebar = [
     collapsed: true,
     items: [
       { slug: 'docs/guides/workbench' },
+      { slug: 'docs/guides/quiet-shell' },
       { slug: 'docs/guides/tasks' },
       { slug: 'docs/guides/dashboards' },
       { slug: 'docs/guides/chat-and-calls' },
