@@ -2,6 +2,7 @@
  * AI surface service for focused resources, context packs, and plan-only tools.
  */
 
+import type { AiSurfaceHost } from './host'
 import type {
   AiAuditEvent,
   AiChangeSet,
@@ -14,7 +15,6 @@ import type {
   AiResource,
   AiRiskLevel,
   AiScope,
-  AiTargetKind,
   AiToolDefinition
 } from './types'
 import type { NodeData, NodeStoreAPI, SchemaData, SchemaRegistryAPI } from '../services/local-api'
@@ -27,10 +27,24 @@ import type {
   SortDirection
 } from '@xnetjs/data'
 import {
+  isRecord,
+  readOptionalBoolean,
+  readOptionalString,
+  readRecord,
+  readRecordBoolean,
+  readRecordNumber,
+  readRecordString,
+  readRequiredRecord,
+  readRequiredString,
+  readStringArray
+} from './args'
+import {
   renderMarkdownReviewDiff,
   stripXNetPageFrontmatter,
   validateXNetPageMarkdown
 } from './page-markdown'
+import { createBuiltInResourceRouter } from './resources/routes'
+import { BUILT_IN_TOOL_ENTRIES, BUILT_IN_TOOLS_BY_NAME } from './tools'
 import { attachAiPlanValidation, createAiOperation, validateAiMutationPlan } from './validation'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -198,6 +212,9 @@ const DEFAULT_LIMITS: AiSurfaceLimits = {
   maxDatabaseRows: 100
 }
 
+/** Stateless route table for `readResource` — shared across service instances. */
+const BUILT_IN_RESOURCE_ROUTES = createBuiltInResourceRouter()
+
 // ─── Service ────────────────────────────────────────────────────────────────
 
 export class AiSurfaceService {
@@ -208,6 +225,52 @@ export class AiSurfaceService {
   private readonly rollbackSnapshots = new Map<string, AiPageMarkdownRollbackSnapshot>()
   /** Contributed tools by name (exploration 0196), de-duped at construction. */
   private readonly extraTools = new Map<string, AiExtraTool>()
+
+  /**
+   * The narrow surface handed to built-in tool handlers and resource routes
+   * (`tools/`, `resources/`): closures over the private methods, so the class
+   * stays the facade and its public type is unchanged. The closures are lazy —
+   * nothing here runs until a tool call or resource read arrives.
+   */
+  private readonly host: AiSurfaceHost = {
+    search: (options) => this.search(options),
+    expandGraph: (options) => this.expandGraph(options),
+    createContextPack: (options) => this.createContextPack(options),
+    createExternalContextResource: (options) => this.createExternalContextResource(options),
+    getWorkspaceSummary: () => this.getWorkspaceSummary(),
+    getRecentNodes: () => this.getRecentNodes(),
+    listNodes: async () => {
+      const nodes = await this.config.store.list({ limit: this.limits.maxListLimit })
+      return { nodes, count: nodes.length, limit: this.limits.maxListLimit }
+    },
+    listSchemas: async () => ({ schemas: await this.getSchemaSummaries(true) }),
+    getNodeOrThrow: (id) => this.getNodeOrThrow(id),
+    getNodeProjection: (id) => this.getNodeProjection(id),
+    readPageMarkdown: (pageId, includeFrontmatter, uri) =>
+      this.readPageMarkdown(pageId, includeFrontmatter, uri),
+    readPageOutline: (pageId) => this.readPageOutline(pageId),
+    planPagePatch: (args) => this.planPagePatch(args),
+    applyPageMarkdown: (args) => this.applyPageMarkdown(args),
+    rollbackPageMarkdown: (args) => this.rollbackPageMarkdown(args),
+    getAuditLog: (options) => this.getAuditLog(options),
+    describeDatabase: (databaseId, options) => this.describeDatabase(databaseId, options),
+    readDatabaseViews: (databaseId) => this.readDatabaseViews(databaseId),
+    queryDatabase: (options) => this.queryDatabase(options),
+    sampleDatabase: (options) => this.sampleDatabase(options),
+    explainDatabaseQuery: (options) => this.explainDatabaseQuery(options),
+    planDatabaseMutation: (args) => this.planDatabaseMutation(args),
+    applyDatabaseMutation: (args) => this.applyDatabaseMutation(args),
+    listCanvases: (options) => this.listCanvases(options),
+    readCanvasViewport: (options) => this.readCanvasViewport(options),
+    readCanvasObjects: (canvasId) => this.readCanvasObjects(canvasId),
+    readCanvasSelection: (options) => this.readCanvasSelection(options),
+    searchCanvas: (options) => this.searchCanvas(options),
+    exportCanvasJsonCanvas: (options) => this.exportCanvasJsonCanvas(options),
+    readCanvasObject: (canvasId, objectId) => this.readCanvasObject(canvasId, objectId),
+    planCanvasJsonCanvasImport: (args) => this.planCanvasJsonCanvasImport(args),
+    planCanvasMutation: (args) => this.planCanvasMutation(args),
+    jsonResource: (uri, value) => this.jsonResource(uri, value)
+  }
 
   constructor(private readonly config: AiSurfaceServiceConfig) {
     this.limits = { ...DEFAULT_LIMITS, ...config.limits }
@@ -352,792 +415,25 @@ export class AiSurfaceService {
   }
 
   private builtInTools(): AiToolDefinition[] {
-    return [
-      {
-        name: 'xnet_search',
-        title: 'Search xNet workspace',
-        description: 'Search node titles and searchable properties with pagination and limits.',
-        risk: 'low',
-        requiredScopes: ['workspace.search'],
-        inputSchema: {
-          type: 'object',
-          properties: {
-            query: { type: 'string', description: 'Search text.' },
-            schemaId: { type: 'string', description: 'Optional schema IRI filter.' },
-            limit: { type: 'number', description: 'Maximum result count.' },
-            offset: { type: 'number', description: 'Result offset for pagination.' }
-          },
-          required: ['query']
-        }
-      },
-      {
-        name: 'xnet_graph_expand',
-        title: 'Expand a node along its relations',
-        description:
-          'Walk typed relation edges out from a node to its connected neighbors (bounded by hops and a result limit). Use for just-in-time expansion: fetch a specific node’s connections only when you need them, instead of pulling the whole graph into context.',
-        risk: 'low',
-        requiredScopes: ['workspace.read'],
-        inputSchema: {
-          type: 'object',
-          properties: {
-            nodeId: { type: 'string', description: 'The node to expand from.' },
-            hops: {
-              type: 'number',
-              description: 'How many relation hops to walk (1–2, default 1).'
-            },
-            limit: { type: 'number', description: 'Maximum neighbors to return.' }
-          },
-          required: ['nodeId']
-        }
-      },
-      {
-        name: 'xnet_create_context_pack',
-        title: 'Create context pack',
-        description: 'Create a bounded context pack from seeds and optional search results.',
-        risk: 'low',
-        requiredScopes: ['workspace.read', 'workspace.search'],
-        inputSchema: {
-          type: 'object',
-          properties: {
-            query: { type: 'string', description: 'Optional search query.' },
-            seeds: {
-              type: 'array',
-              description: 'Seed resources such as pages, databases, canvases, or nodes.',
-              items: {
-                type: 'object',
-                properties: {
-                  kind: { type: 'string', description: 'Seed kind.' },
-                  id: { type: 'string', description: 'Seed id.' }
-                }
-              }
-            },
-            limit: { type: 'number', description: 'Maximum resources to include.' }
-          }
-        }
-      },
-      {
-        name: 'xnet_create_external_context_resource',
-        title: 'Create untrusted external context resource',
-        description:
-          'Wrap externally fetched content as an untrusted context-pack resource with an explicit instruction boundary.',
-        risk: 'medium',
-        requiredScopes: ['network.fetch'],
-        inputSchema: {
-          type: 'object',
-          properties: {
-            url: { type: 'string', description: 'External source URL.' },
-            text: { type: 'string', description: 'Fetched external text content.' },
-            mimeType: { type: 'string', description: 'Source MIME type. Defaults to text/plain.' }
-          },
-          required: ['url', 'text']
-        }
-      },
-      {
-        name: 'xnet_read_page_markdown',
-        title: 'Read page Markdown',
-        description: 'Read a page as Markdown with optional xNet frontmatter.',
-        risk: 'low',
-        requiredScopes: ['page.read'],
-        inputSchema: {
-          type: 'object',
-          properties: {
-            pageId: { type: 'string', description: 'Page node id.' },
-            includeFrontmatter: {
-              type: 'boolean',
-              description: 'Include xNet identity frontmatter. Defaults to true.'
-            }
-          },
-          required: ['pageId']
-        }
-      },
-      {
-        name: 'xnet_validate_page_markdown',
-        title: 'Validate page Markdown',
-        description: 'Validate xNet page frontmatter and supported xNet Markdown directives.',
-        risk: 'low',
-        requiredScopes: ['page.read'],
-        inputSchema: {
-          type: 'object',
-          properties: {
-            pageId: { type: 'string', description: 'Optional target page node id.' },
-            baseRevision: { type: 'string', description: 'Optional expected base revision.' },
-            markdown: { type: 'string', description: 'Markdown to validate.' }
-          },
-          required: ['markdown']
-        }
-      },
-      {
-        name: 'xnet_plan_page_patch',
-        title: 'Plan page Markdown patch',
-        description:
-          'Validate an edited Markdown page and return a mutation plan without applying it.',
-        risk: 'medium',
-        requiredScopes: ['page.read', 'page.propose'],
-        inputSchema: {
-          type: 'object',
-          properties: {
-            pageId: { type: 'string', description: 'Page node id.' },
-            baseRevision: { type: 'string', description: 'Revision the patch was based on.' },
-            markdown: { type: 'string', description: 'Proposed full Markdown replacement.' },
-            intent: { type: 'string', description: 'User or agent intent for the patch.' },
-            actor: { type: 'string', description: 'Agent or user creating the plan.' }
-          },
-          required: ['pageId', 'markdown']
-        }
-      },
-      {
-        name: 'xnet_apply_page_markdown',
-        title: 'Apply page Markdown plan',
-        description:
-          'Apply a validated page Markdown mutation plan through the configured TipTap/Yjs document adapter, with a node-property fallback.',
-        risk: 'high',
-        requiredScopes: ['page.read', 'page.write'],
-        inputSchema: {
-          type: 'object',
-          properties: {
-            plan: { type: 'object', description: 'Validated page Markdown mutation plan.' },
-            confirmApply: {
-              type: 'boolean',
-              description: 'Must be true to apply the page Markdown plan.'
-            },
-            allowStale: {
-              type: 'boolean',
-              description: 'Allow applying when the plan base revision differs from the live node.'
-            }
-          },
-          required: ['plan', 'confirmApply']
-        }
-      },
-      {
-        name: 'xnet_get_audit_log',
-        title: 'Read AI audit log',
-        description: 'Read recent AI mutation audit events with optional plan filtering.',
-        risk: 'low',
-        requiredScopes: ['workspace.read'],
-        inputSchema: {
-          type: 'object',
-          properties: {
-            planId: { type: 'string', description: 'Optional mutation plan id filter.' },
-            limit: { type: 'number', description: 'Maximum audit events to return.' }
-          }
-        }
-      },
-      {
-        name: 'xnet_rollback_page_markdown',
-        title: 'Rollback page Markdown apply',
-        description: 'Rollback a previously applied page Markdown plan by rollback handle.',
-        risk: 'high',
-        requiredScopes: ['page.write'],
-        inputSchema: {
-          type: 'object',
-          properties: {
-            rollbackHandle: { type: 'string', description: 'Rollback handle from apply result.' },
-            confirmRollback: {
-              type: 'boolean',
-              description: 'Must be true to perform the rollback.'
-            }
-          },
-          required: ['rollbackHandle', 'confirmRollback']
-        }
-      },
-      {
-        name: 'xnet_database_describe',
-        title: 'Describe database',
-        description: 'Describe database schema, columns, views, row schema, and row counts.',
-        risk: 'low',
-        requiredScopes: ['database.read'],
-        inputSchema: {
-          type: 'object',
-          properties: {
-            databaseId: { type: 'string', description: 'Database node id.' },
-            includeSample: {
-              type: 'boolean',
-              description: 'Include a small descriptor-backed row sample.'
-            }
-          },
-          required: ['databaseId']
-        }
-      },
-      {
-        name: 'xnet_database_query',
-        title: 'Query database rows',
-        description:
-          'Read a bounded page of database rows using NodeQueryDescriptor-compatible options.',
-        risk: 'low',
-        requiredScopes: ['database.read', 'database.query'],
-        inputSchema: {
-          type: 'object',
-          properties: {
-            databaseId: { type: 'string', description: 'Database node id.' },
-            schemaId: { type: 'string', description: 'Optional row schema IRI.' },
-            descriptor: {
-              type: 'object',
-              description: 'Optional NodeQueryDescriptor-compatible query shape.'
-            },
-            where: {
-              type: 'object',
-              description: 'Optional exact property filters for row nodes.'
-            },
-            search: {
-              type: 'object',
-              description: 'Optional NodeQueryDescriptor search filter.'
-            },
-            orderBy: {
-              type: 'object',
-              description: 'Optional NodeQueryDescriptor order map.'
-            },
-            materializedView: {
-              type: 'object',
-              description: 'Optional materialized view query options.'
-            },
-            count: { type: 'string', description: 'Page count mode: exact, estimate, or none.' },
-            limit: { type: 'number', description: 'Maximum row count.' },
-            offset: { type: 'number', description: 'Row offset.' }
-          },
-          required: ['databaseId']
-        }
-      },
-      {
-        name: 'xnet_database_sample',
-        title: 'Sample database rows',
-        description: 'Return a small deterministic sample for schema and content inspection.',
-        risk: 'low',
-        requiredScopes: ['database.read', 'database.query'],
-        inputSchema: {
-          type: 'object',
-          properties: {
-            databaseId: { type: 'string', description: 'Database node id.' },
-            schemaId: { type: 'string', description: 'Optional row schema IRI.' },
-            sampleSize: { type: 'number', description: 'Sample row count.' },
-            descriptor: {
-              type: 'object',
-              description: 'Optional NodeQueryDescriptor-compatible query shape.'
-            }
-          },
-          required: ['databaseId']
-        }
-      },
-      {
-        name: 'xnet_database_explain_query',
-        title: 'Explain database query',
-        description:
-          'Explain descriptor, pagination, materialized view, and storage plan metadata.',
-        risk: 'low',
-        requiredScopes: ['database.read', 'database.query', 'storage.diagnostics'],
-        inputSchema: {
-          type: 'object',
-          properties: {
-            databaseId: { type: 'string', description: 'Database node id.' },
-            schemaId: { type: 'string', description: 'Optional row schema IRI.' },
-            descriptor: {
-              type: 'object',
-              description: 'Optional NodeQueryDescriptor-compatible query shape.'
-            },
-            limit: { type: 'number', description: 'Maximum row count for the dry-run query.' },
-            offset: { type: 'number', description: 'Row offset.' }
-          },
-          required: ['databaseId']
-        }
-      },
-      {
-        name: 'xnet_plan_database_mutation',
-        title: 'Plan database mutation',
-        description: 'Create a database mutation plan for later review without applying it.',
-        risk: 'medium',
-        requiredScopes: ['database.read', 'database.propose'],
-        inputSchema: {
-          type: 'object',
-          properties: {
-            databaseId: { type: 'string', description: 'Database node id.' },
-            baseRevision: { type: 'string', description: 'Revision the mutation was based on.' },
-            operations: { type: 'array', description: 'Database operations to validate.' },
-            intent: { type: 'string', description: 'User or agent intent for the mutation.' },
-            actor: { type: 'string', description: 'Agent or user creating the plan.' }
-          },
-          required: ['databaseId', 'operations']
-        }
-      },
-      {
-        name: 'xnet_apply_database_mutation',
-        title: 'Apply database mutation plan',
-        description:
-          'Apply a validated database row/schema mutation plan with transactional row rollback and audit logging.',
-        risk: 'high',
-        requiredScopes: ['database.read', 'database.write.rows', 'database.write.schema'],
-        inputSchema: {
-          type: 'object',
-          properties: {
-            plan: { type: 'object', description: 'Validated database mutation plan.' },
-            confirmApply: {
-              type: 'boolean',
-              description: 'Must be true to apply the database mutation plan.'
-            },
-            allowStale: {
-              type: 'boolean',
-              description:
-                'Allow applying when the plan base revision differs from the live database node.'
-            }
-          },
-          required: ['plan', 'confirmApply']
-        }
-      },
-      {
-        name: 'xnet_canvas_list',
-        title: 'List canvases',
-        description: 'List canvas nodes visible to the AI surface.',
-        risk: 'low',
-        requiredScopes: ['canvas.read'],
-        inputSchema: {
-          type: 'object',
-          properties: {
-            limit: { type: 'number', description: 'Maximum canvas count.' },
-            offset: { type: 'number', description: 'Canvas offset.' }
-          }
-        }
-      },
-      {
-        name: 'xnet_canvas_read_viewport',
-        title: 'Read canvas viewport',
-        description: 'Read canvas objects and edges intersecting a viewport.',
-        risk: 'low',
-        requiredScopes: ['canvas.read'],
-        inputSchema: {
-          type: 'object',
-          properties: {
-            canvasId: { type: 'string', description: 'Canvas node id.' },
-            x: { type: 'number', description: 'Viewport x.' },
-            y: { type: 'number', description: 'Viewport y.' },
-            w: { type: 'number', description: 'Viewport width.' },
-            h: { type: 'number', description: 'Viewport height.' },
-            includeSourcePreviews: {
-              type: 'boolean',
-              description: 'Include previews for source-backed objects.'
-            },
-            tileSize: { type: 'number', description: 'Optional tile size for tile scoping.' },
-            tileIds: {
-              type: 'array',
-              description: 'Optional tile ids such as 0/1/-2 to constrain the read.',
-              items: { type: 'string' }
-            }
-          },
-          required: ['canvasId']
-        }
-      },
-      {
-        name: 'xnet_canvas_read_selection',
-        title: 'Read canvas selection',
-        description: 'Read selected canvas objects, connected edges, and optional source previews.',
-        risk: 'low',
-        requiredScopes: ['canvas.read'],
-        inputSchema: {
-          type: 'object',
-          properties: {
-            canvasId: { type: 'string', description: 'Canvas node id.' },
-            objectIds: {
-              type: 'array',
-              description: 'Selected object ids.',
-              items: { type: 'string' }
-            },
-            includeSourcePreviews: {
-              type: 'boolean',
-              description: 'Include previews for source-backed objects.'
-            }
-          },
-          required: ['canvasId', 'objectIds']
-        }
-      },
-      {
-        name: 'xnet_canvas_search',
-        title: 'Search canvas',
-        description: 'Search canvas object text, labels, ids, and source metadata.',
-        risk: 'low',
-        requiredScopes: ['canvas.read'],
-        inputSchema: {
-          type: 'object',
-          properties: {
-            canvasId: { type: 'string', description: 'Canvas node id.' },
-            query: { type: 'string', description: 'Search text.' },
-            limit: { type: 'number', description: 'Maximum result count.' }
-          },
-          required: ['canvasId', 'query']
-        }
-      },
-      {
-        name: 'xnet_canvas_export_json_canvas',
-        title: 'Export canvas as JSON Canvas',
-        description: 'Export a canvas or viewport as JSON Canvas with xNet source metadata.',
-        risk: 'low',
-        requiredScopes: ['canvas.read'],
-        inputSchema: {
-          type: 'object',
-          properties: {
-            canvasId: { type: 'string', description: 'Canvas node id.' },
-            includeXNetMetadata: {
-              type: 'boolean',
-              description: 'Include xNet source metadata. Defaults to true.'
-            },
-            x: { type: 'number', description: 'Optional viewport x.' },
-            y: { type: 'number', description: 'Optional viewport y.' },
-            w: { type: 'number', description: 'Optional viewport width.' },
-            h: { type: 'number', description: 'Optional viewport height.' }
-          },
-          required: ['canvasId']
-        }
-      },
-      {
-        name: 'xnet_canvas_plan_json_canvas_import',
-        title: 'Plan JSON Canvas import',
-        description: 'Convert a JSON Canvas document into a plan-only canvas mutation.',
-        risk: 'medium',
-        requiredScopes: ['canvas.read', 'canvas.propose'],
-        inputSchema: {
-          type: 'object',
-          properties: {
-            canvasId: { type: 'string', description: 'Canvas node id.' },
-            document: { type: 'object', description: 'JSON Canvas document.' },
-            baseRevision: { type: 'string', description: 'Revision the import was based on.' },
-            actor: { type: 'string', description: 'Agent or user creating the plan.' },
-            intent: { type: 'string', description: 'User or agent intent for the import.' }
-          },
-          required: ['canvasId', 'document']
-        }
-      },
-      {
-        name: 'xnet_plan_canvas_mutation',
-        title: 'Plan canvas mutation',
-        description: 'Create a canvas mutation plan for later review without applying it.',
-        risk: 'medium',
-        requiredScopes: ['canvas.read', 'canvas.propose'],
-        inputSchema: {
-          type: 'object',
-          properties: {
-            canvasId: { type: 'string', description: 'Canvas node id.' },
-            baseRevision: { type: 'string', description: 'Revision the mutation was based on.' },
-            operations: { type: 'array', description: 'Canvas operations to validate.' },
-            intent: { type: 'string', description: 'User or agent intent for the mutation.' },
-            actor: { type: 'string', description: 'Agent or user creating the plan.' }
-          },
-          required: ['canvasId', 'operations']
-        }
-      },
-      {
-        name: 'xnet_validate_mutation_plan',
-        title: 'Validate mutation plan',
-        description: 'Validate a serialized mutation plan and return errors or warnings.',
-        risk: 'medium',
-        requiredScopes: ['workspace.read'],
-        inputSchema: {
-          type: 'object',
-          properties: {
-            plan: { type: 'object', description: 'Mutation plan object to validate.' }
-          },
-          required: ['plan']
-        }
-      }
-    ]
+    return BUILT_IN_TOOL_ENTRIES.map((entry) => entry.definition)
   }
 
+  /**
+   * Dispatch a tool call: the built-in registry first (a built-in `xnet_*`
+   * name always wins), then contributed tools (plugin/connector `agentTools`,
+   * exploration 0196).
+   */
   async callTool(name: string, args: Record<string, unknown> = {}): Promise<unknown> {
-    switch (name) {
-      case 'xnet_search':
-        return await this.search({
-          query: readRequiredString(args, 'query'),
-          schemaId: readOptionalString(args, 'schemaId') ?? readOptionalString(args, 'schema'),
-          limit: readOptionalNumber(args, 'limit'),
-          offset: readOptionalNumber(args, 'offset')
-        })
+    const builtIn = BUILT_IN_TOOLS_BY_NAME.get(name)
+    if (builtIn) return await builtIn.execute(this.host, args)
 
-      case 'xnet_graph_expand':
-        return await this.expandGraph({
-          nodeId: readRequiredString(args, 'nodeId'),
-          hops: readOptionalNumber(args, 'hops'),
-          limit: readOptionalNumber(args, 'limit')
-        })
-
-      case 'xnet_create_context_pack':
-        return await this.createContextPack({
-          query: readOptionalString(args, 'query'),
-          seeds: readContextSeeds(args.seeds),
-          limit: readOptionalNumber(args, 'limit')
-        })
-
-      case 'xnet_create_external_context_resource':
-        return this.createExternalContextResource({
-          url: readRequiredString(args, 'url'),
-          text: readRequiredString(args, 'text'),
-          mimeType: readOptionalString(args, 'mimeType')
-        })
-
-      case 'xnet_read_page_markdown': {
-        const content = await this.readPageMarkdown(
-          readRequiredString(args, 'pageId'),
-          readOptionalBoolean(args, 'includeFrontmatter') ?? true
-        )
-        return { markdown: content.text, mimeType: content.mimeType, uri: content.uri }
-      }
-
-      case 'xnet_validate_page_markdown': {
-        const pageId = readOptionalString(args, 'pageId')
-        const node = pageId ? await this.getNodeOrThrow(pageId) : null
-        return validateXNetPageMarkdown(readRequiredString(args, 'markdown'), {
-          pageId,
-          schemaId: node?.schemaId,
-          baseRevision: readOptionalString(args, 'baseRevision')
-        })
-      }
-
-      case 'xnet_plan_page_patch':
-        return await this.planPagePatch(args)
-
-      case 'xnet_apply_page_markdown':
-        return await this.applyPageMarkdown(args)
-
-      case 'xnet_get_audit_log':
-        return this.getAuditLog({
-          planId: readOptionalString(args, 'planId'),
-          limit: readOptionalNumber(args, 'limit')
-        })
-
-      case 'xnet_rollback_page_markdown':
-        return await this.rollbackPageMarkdown(args)
-
-      case 'xnet_database_describe':
-        return await this.describeDatabase(readRequiredString(args, 'databaseId'), {
-          includeSample: readOptionalBoolean(args, 'includeSample') ?? false
-        })
-
-      case 'xnet_database_query':
-        return await this.queryDatabase({
-          databaseId: readRequiredString(args, 'databaseId'),
-          schemaId: readOptionalString(args, 'schemaId'),
-          descriptor: readOptionalRecord(args, 'descriptor'),
-          where: readOptionalRecord(args, 'where'),
-          search: args.search,
-          orderBy: readOptionalRecord(args, 'orderBy'),
-          materializedView: args.materializedView,
-          count: readOptionalString(args, 'count'),
-          limit: readOptionalNumber(args, 'limit'),
-          offset: readOptionalNumber(args, 'offset')
-        })
-
-      case 'xnet_database_sample':
-        return await this.sampleDatabase({
-          databaseId: readRequiredString(args, 'databaseId'),
-          schemaId: readOptionalString(args, 'schemaId'),
-          descriptor: readOptionalRecord(args, 'descriptor'),
-          sampleSize: readOptionalNumber(args, 'sampleSize')
-        })
-
-      case 'xnet_database_explain_query':
-        return await this.explainDatabaseQuery({
-          databaseId: readRequiredString(args, 'databaseId'),
-          schemaId: readOptionalString(args, 'schemaId'),
-          descriptor: readOptionalRecord(args, 'descriptor'),
-          limit: readOptionalNumber(args, 'limit'),
-          offset: readOptionalNumber(args, 'offset')
-        })
-
-      case 'xnet_plan_database_mutation':
-        return await this.planDatabaseMutation(args)
-
-      case 'xnet_apply_database_mutation':
-        return await this.applyDatabaseMutation(args)
-
-      case 'xnet_canvas_list':
-        return await this.listCanvases({
-          limit: readOptionalNumber(args, 'limit'),
-          offset: readOptionalNumber(args, 'offset')
-        })
-
-      case 'xnet_canvas_read_viewport':
-        return await this.readCanvasViewport({
-          canvasId: readRequiredString(args, 'canvasId'),
-          x: readOptionalNumber(args, 'x'),
-          y: readOptionalNumber(args, 'y'),
-          w: readOptionalNumber(args, 'w'),
-          h: readOptionalNumber(args, 'h'),
-          tileSize: readOptionalNumber(args, 'tileSize'),
-          tileIds: readStringArray(args.tileIds),
-          includeSourcePreviews: readOptionalBoolean(args, 'includeSourcePreviews') ?? false
-        })
-
-      case 'xnet_canvas_read_selection':
-        return await this.readCanvasSelection({
-          canvasId: readRequiredString(args, 'canvasId'),
-          objectIds: readRequiredStringArray(args.objectIds, 'objectIds'),
-          includeSourcePreviews: readOptionalBoolean(args, 'includeSourcePreviews') ?? false
-        })
-
-      case 'xnet_canvas_search':
-        return await this.searchCanvas({
-          canvasId: readRequiredString(args, 'canvasId'),
-          query: readRequiredString(args, 'query'),
-          limit: readOptionalNumber(args, 'limit')
-        })
-
-      case 'xnet_canvas_export_json_canvas':
-        return await this.exportCanvasJsonCanvas({
-          canvasId: readRequiredString(args, 'canvasId'),
-          includeXNetMetadata: readOptionalBoolean(args, 'includeXNetMetadata') ?? true,
-          x: readOptionalNumber(args, 'x'),
-          y: readOptionalNumber(args, 'y'),
-          w: readOptionalNumber(args, 'w'),
-          h: readOptionalNumber(args, 'h')
-        })
-
-      case 'xnet_canvas_plan_json_canvas_import':
-        return await this.planCanvasJsonCanvasImport(args)
-
-      case 'xnet_plan_canvas_mutation':
-        return await this.planCanvasMutation(args)
-
-      case 'xnet_validate_mutation_plan': {
-        const validation = validateAiMutationPlan(args.plan)
-        return { validation }
-      }
-
-      default: {
-        // Contributed tools (plugin/connector `agentTools`, exploration 0196).
-        const extra = this.extraTools.get(name)
-        if (extra) return await extra.invoke(args)
-        throw new Error(`Unknown AI surface tool: ${name}`)
-      }
-    }
+    const extra = this.extraTools.get(name)
+    if (extra) return await extra.invoke(args)
+    throw new Error(`Unknown AI surface tool: ${name}`)
   }
 
   async readResource(uri: string): Promise<AiResourceContent> {
-    const parsed = parseXNetUri(uri)
-
-    if (uri === 'xnet://nodes') {
-      const nodes = await this.config.store.list({ limit: this.limits.maxListLimit })
-      return this.jsonResource(uri, { nodes, count: nodes.length, limit: this.limits.maxListLimit })
-    }
-
-    if (uri === 'xnet://schemas') {
-      return this.jsonResource(uri, { schemas: await this.getSchemaSummaries(true) })
-    }
-
-    if (parsed.host === 'workspace' && parsed.parts[0] === 'summary') {
-      return this.jsonResource(uri, await this.getWorkspaceSummary())
-    }
-
-    if (parsed.host === 'workspace' && parsed.parts[0] === 'recent') {
-      return this.jsonResource(uri, await this.getRecentNodes())
-    }
-
-    if (parsed.host === 'workspace' && parsed.parts[0] === 'search') {
-      return this.jsonResource(
-        uri,
-        await this.search({
-          query: parsed.searchParams.get('q') ?? '',
-          schemaId: parsed.searchParams.get('schema') ?? undefined,
-          limit: readUrlNumber(parsed.searchParams, 'limit'),
-          offset: readUrlNumber(parsed.searchParams, 'offset')
-        })
-      )
-    }
-
-    if (parsed.host === 'node' && parsed.parts[0]) {
-      return this.jsonResource(uri, await this.getNodeProjection(parsed.parts[0]))
-    }
-
-    if (parsed.host === 'page' && parsed.parts[0]) {
-      const pageId = parsed.parts[0].endsWith('.md')
-        ? parsed.parts[0].slice(0, -'.md'.length)
-        : parsed.parts[0]
-      if (parsed.parts.length === 1 || parsed.parts[0].endsWith('.md')) {
-        return await this.readPageMarkdown(pageId, true, uri)
-      }
-      if (parsed.parts[1] === 'outline') {
-        return this.jsonResource(uri, await this.readPageOutline(pageId))
-      }
-      if (parsed.parts[1] === 'context-pack') {
-        return this.jsonResource(
-          uri,
-          await this.createContextPack({ seeds: [{ kind: 'page', id: pageId }] })
-        )
-      }
-    }
-
-    if (parsed.host === 'database' && parsed.parts[0]) {
-      const databaseId = parsed.parts[0]
-      if (parsed.parts[1] === 'schema') {
-        return this.jsonResource(uri, await this.describeDatabase(databaseId))
-      }
-      if (parsed.parts[1] === 'views') {
-        return this.jsonResource(uri, await this.readDatabaseViews(databaseId))
-      }
-      if (parsed.parts[1] === 'sample') {
-        return this.jsonResource(
-          uri,
-          await this.sampleDatabase({
-            databaseId,
-            sampleSize: readUrlNumber(parsed.searchParams, 'limit')
-          })
-        )
-      }
-      if (parsed.parts[1] === 'query') {
-        return this.jsonResource(
-          uri,
-          await this.queryDatabase({
-            databaseId,
-            schemaId: parsed.searchParams.get('schema') ?? undefined,
-            search: parsed.searchParams.get('q') ?? undefined,
-            materializedView: parsed.searchParams.get('view')
-              ? { viewId: parsed.searchParams.get('view') ?? '' }
-              : undefined,
-            limit: readUrlNumber(parsed.searchParams, 'limit'),
-            offset: readUrlNumber(parsed.searchParams, 'offset')
-          })
-        )
-      }
-    }
-
-    if (parsed.host === 'canvas' && parsed.parts[0]) {
-      const canvasId = parsed.parts[0]
-      if (parsed.parts[1] === 'viewport') {
-        return this.jsonResource(
-          uri,
-          await this.readCanvasViewport({
-            canvasId,
-            x: readUrlNumber(parsed.searchParams, 'x'),
-            y: readUrlNumber(parsed.searchParams, 'y'),
-            w: readUrlNumber(parsed.searchParams, 'w'),
-            h: readUrlNumber(parsed.searchParams, 'h'),
-            tileSize: readUrlNumber(parsed.searchParams, 'tileSize'),
-            tileIds: readCsvStringArray(parsed.searchParams.get('tileIds')),
-            includeSourcePreviews: parsed.searchParams.get('includeSourcePreviews') === 'true'
-          })
-        )
-      }
-      if (parsed.parts[1] === 'objects') {
-        return this.jsonResource(uri, await this.readCanvasObjects(canvasId))
-      }
-      if (parsed.parts[1] === 'selection') {
-        return this.jsonResource(
-          uri,
-          await this.readCanvasSelection({
-            canvasId,
-            objectIds: readCsvStringArray(parsed.searchParams.get('ids')),
-            includeSourcePreviews: parsed.searchParams.get('includeSourcePreviews') !== 'false'
-          })
-        )
-      }
-      if (parsed.parts[1] === 'json-canvas') {
-        return this.jsonResource(
-          uri,
-          await this.exportCanvasJsonCanvas({
-            canvasId,
-            includeXNetMetadata: parsed.searchParams.get('includeXNetMetadata') !== 'false'
-          })
-        )
-      }
-      if (parsed.parts[1] === 'object' && parsed.parts[2]) {
-        return this.jsonResource(uri, await this.readCanvasObject(canvasId, parsed.parts[2]))
-      }
-    }
-
-    throw new Error(`Resource not found: ${uri}`)
+    return await BUILT_IN_RESOURCE_ROUTES.resolve(this.host, uri)
   }
 
   toJsonText(value: unknown, format: 'concise' | 'detailed' = 'concise'): string {
@@ -2815,30 +2111,6 @@ function createResource(
   }
 }
 
-function parseXNetUri(uri: string): {
-  host: string
-  parts: string[]
-  searchParams: URLSearchParams
-} {
-  let parsed: URL
-  try {
-    parsed = new URL(uri)
-  } catch {
-    throw new Error(`Invalid xNet resource URI: ${uri}`)
-  }
-  if (parsed.protocol !== 'xnet:') {
-    throw new Error(`Invalid xNet resource URI: ${uri}`)
-  }
-  return {
-    host: parsed.hostname,
-    parts: parsed.pathname
-      .split('/')
-      .filter(Boolean)
-      .map((part) => decodeURIComponent(part)),
-    searchParams: parsed.searchParams
-  }
-}
-
 function renderPageMarkdown(
   node: NodeData,
   includeFrontmatter: boolean,
@@ -4324,18 +3596,6 @@ function readOperations(value: unknown): AiOperation[] {
   })
 }
 
-function readContextSeeds(value: unknown): AiContextSeed[] {
-  if (!Array.isArray(value)) return []
-  return value
-    .map((seed) => {
-      if (!isRecord(seed)) return null
-      const kind = typeof seed.kind === 'string' ? (seed.kind as AiTargetKind) : null
-      const id = typeof seed.id === 'string' ? seed.id : null
-      return kind && id ? { kind, id } : null
-    })
-    .filter((seed): seed is AiContextSeed => seed !== null)
-}
-
 function uriForSeed(seed: AiContextSeed): string | null {
   switch (seed.kind) {
     case 'node':
@@ -4400,97 +3660,4 @@ function stringifyTruncatedJson(text: string, maxCharacters: number): string {
 
 function quoteYaml(value: string): string {
   return JSON.stringify(value)
-}
-
-function readRequiredString(record: Record<string, unknown>, key: string): string {
-  const value = record[key]
-  if (typeof value !== 'string' || !value.trim()) {
-    throw new Error(`${key} must be a non-empty string`)
-  }
-  return value
-}
-
-function readRequiredRecord(record: Record<string, unknown>, key: string): Record<string, unknown> {
-  const value = record[key]
-  if (!isRecord(value)) {
-    throw new Error(`${key} must be an object`)
-  }
-  return value
-}
-
-function readRequiredStringArray(value: unknown, key: string): string[] {
-  const result = readStringArray(value)
-  if (result.length === 0) {
-    throw new Error(`${key} must contain at least one string`)
-  }
-  return result
-}
-
-function readStringArray(value: unknown): string[] {
-  if (!Array.isArray(value)) return []
-  return value.filter((item): item is string => typeof item === 'string' && item.trim() !== '')
-}
-
-function readCsvStringArray(value: string | null): string[] {
-  if (!value) return []
-  return value
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean)
-}
-
-function readOptionalString(record: Record<string, unknown>, key: string): string | undefined {
-  const value = record[key]
-  return typeof value === 'string' && value.trim() ? value : undefined
-}
-
-function readOptionalRecord(
-  record: Record<string, unknown>,
-  key: string
-): Record<string, unknown> | undefined {
-  return readRecord(record, key)
-}
-
-function readOptionalNumber(record: Record<string, unknown>, key: string): number | undefined {
-  const value = record[key]
-  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
-}
-
-function readOptionalBoolean(record: Record<string, unknown>, key: string): boolean | undefined {
-  const value = record[key]
-  return typeof value === 'boolean' ? value : undefined
-}
-
-function readUrlNumber(params: URLSearchParams, key: string): number | undefined {
-  const value = params.get(key)
-  if (value === null) return undefined
-  const parsed = Number(value)
-  return Number.isFinite(parsed) ? parsed : undefined
-}
-
-function readRecordString(record: Record<string, unknown>, key: string): string | undefined {
-  const value = record[key]
-  return typeof value === 'string' && value.trim() ? value : undefined
-}
-
-function readRecord(
-  record: Record<string, unknown>,
-  key: string
-): Record<string, unknown> | undefined {
-  const value = record[key]
-  return isRecord(value) ? value : undefined
-}
-
-function readRecordNumber(record: Record<string, unknown>, key: string): number | undefined {
-  const value = record[key]
-  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
-}
-
-function readRecordBoolean(record: Record<string, unknown>, key: string): boolean | undefined {
-  const value = record[key]
-  return typeof value === 'boolean' ? value : undefined
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
