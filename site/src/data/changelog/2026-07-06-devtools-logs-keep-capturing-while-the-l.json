@@ -4,5 +4,14 @@
   "title": "DevTools logs keep capturing while the Logs tab is closed",
   "summary": "Console capture now lives on the devtools provider, so log lines recorded before you open the Logs tab (or while another panel is active) are no longer lost. A new opt-in Preserve toggle keeps the log across reloads for the current tab session, with tokens and emails scrubbed from the stored copy.",
   "highlights": [],
-  "tags": ["devtools"]
+  "tags": [
+    "devtools"
+  ],
+  "pr": 397,
+  "mergedAt": "2026-07-06T21:21:30Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
