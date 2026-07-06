@@ -217,6 +217,29 @@ export default defineConfig({
         }
       },
       {
+        // Reliability lane (0272) — durability/fault-injection/scale tests.
+        // Deterministic simulation (seeded PRNG), child-process crash
+        // harnesses, and scale-tier regression suites. Forks + isolation
+        // because tests spawn subprocesses and open real on-disk SQLite
+        // files. Depth is env-knobbed (XNET_SIM_*, XNET_CRASH_*,
+        // XNET_SCALE_*): PR tier stays fast, the soak workflow escalates.
+        extends: true,
+        test: {
+          name: 'reliability',
+          environment: 'node',
+          pool: 'forks',
+          isolate: true,
+          testTimeout: 60000,
+          hookTimeout: 30000,
+          include: ['tests/reliability/**/*.test.ts'],
+          server: {
+            deps: {
+              external: ['better-sqlite3', 'ws']
+            }
+          }
+        }
+      },
+      {
         // Electron desktop app (0238) — main / renderer / data-process unit tests.
         // Runs under the root aliases above (which resolve every @xnetjs/* to its
         // src entry), so it needs no package build — unlike apps/electron's own

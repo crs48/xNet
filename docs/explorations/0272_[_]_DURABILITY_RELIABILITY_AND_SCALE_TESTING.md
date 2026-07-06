@@ -9,8 +9,8 @@ recoverable only through that log. Every process in that chain — the browser
 worker, competing tabs, the Electron utility process, the hub, the backup
 pipeline — can crash, lose power, race, or partition at any moment.
 
-We have ~10,000 tests (956 files) that assert *features work*. Almost nothing
-asserts *data survives*. There is no fault injection, no crash-consistency
+We have ~10,000 tests (956 files) that assert _features work_. Almost nothing
+asserts _data survives_. There is no fault injection, no crash-consistency
 testing, no property-based convergence testing, no restore verification, and no
 performance regression gating. The cold-open saga (explorations 0249→0260,
 fourteen PRs) showed what happens when scale is discovered in production: a
@@ -28,7 +28,7 @@ can actually catch:
 1. **Property-based convergence testing** (fast-check) over the protocol's
    pure core — LWW merge, deterministic ordering, hash chaining, fork
    detection. The conformance vectors pin known-good cases; properties pin
-   *all* cases (permutation, duplication, adversarial interleavings).
+   _all_ cases (permutation, duplication, adversarial interleavings).
 2. **Deterministic sync simulation** (DST-lite) — N in-memory clients + a
    relay under a seeded virtual network that drops, duplicates, reorders,
    delays, and partitions messages, and crash-restarts clients. Every failure
@@ -45,16 +45,38 @@ can actually catch:
    restored is not a backup.
 5. **Scale and performance rails** — a deterministic large-dataset generator
    (up to the 318k-change-log regression scale), regression assertions in the
-   *deterministic-counter* currency the repo already trusts (round-trip and
+   _deterministic-counter_ currency the repo already trusts (round-trip and
    statement counts, exploration 0271) rather than wall-clock on shared
    runners, plus a nightly **soak workflow** that runs the deep tiers: many
    simulation seeds, many crash iterations, 100k-node scale, hub load, and the
    restore drill.
 
-Everything lands in test/CI space (`tests/reliability/`, `scripts/reliability/`,
-`.github/workflows/soak.yml`) — no publishable package source changes, no new
-services, no vendors. Jepsen, Antithesis, TLA+, and a browser chaos-VFS are
-surveyed and deliberately deferred.
+The harness itself lands in test/CI space (`tests/reliability/`,
+`scripts/reliability/`, `.github/workflows/soak.yml`) — no new services, no
+vendors. Jepsen, Antithesis, TLA+, and a browser chaos-VFS are surveyed and
+deliberately deferred.
+
+**Implementation postscript — the program validated itself before merging.**
+Building Pillar 2 immediately surfaced two real, shipped durability defects
+(fixed in this same PR, found in this order):
+
+1. **Re-read changes could never verify.** The client `changes` table never
+   persisted `id`, `type`, `protocolVersion`, or the batch fields — all part
+   of the signed content hash — so the reload-resync push
+   (`getChangesSince` → hub) was structurally rejected as INVALID_HASH,
+   tripping the 0224 breaker and stranding offline edits made before an app
+   restart. (The hub's own `node_changes` table persists every one of these
+   fields; the client log simply predated that care.) Fixed with a lossless
+   envelope in the payload BLOB — no schema migration, legacy rows keep the
+   old fallback.
+2. **SQL LWW guards ignored the tiebreak.** The `node_properties` upsert
+   guard compared only `lamport_time`, while the in-memory `shouldReplace`
+   comparator orders by (lamport → wallTime → author). On same-Lamport
+   concurrent edits — the normal two-devices-offline case — arrival order
+   decided the persisted winner, so replicas could permanently diverge. The
+   0238 convergence tests missed it because they run on the in-memory
+   adapter. Fixed in the per-change upsert, the batched path, and both
+   native (web/electron) batch adapters.
 
 ## Current State In The Repository
 
@@ -76,7 +98,7 @@ surveyed and deliberately deferred.
   a dedicated worker; second tab loses the handle race and silently falls back
   to `:memory:`), `packages/sqlite/src/adapters/electron.ts` (better-sqlite3,
   WAL + `synchronous = NORMAL`, batches chunked at 250 rows per transaction —
-  the whole batch is *not* atomic by design),
+  the whole batch is _not_ atomic by design),
   `packages/sqlite/src/adapters/incremental-vacuum-stepping.ts` (cold-open
   work).
 - **Sync client** — `packages/runtime/src/sync/node-store-sync-provider.ts`:
@@ -119,15 +141,15 @@ surveyed and deliberately deferred.
 
 ### The gaps, concretely
 
-| Gap | Risk it leaves open |
-| --- | --- |
-| No property-based testing | Convergence proven only for hand-picked vectors |
-| No fault injection / chaos | Breaker, cursor, re-sync paths untested under failure |
+| Gap                          | Risk it leaves open                                                |
+| ---------------------------- | ------------------------------------------------------------------ |
+| No property-based testing    | Convergence proven only for hand-picked vectors                    |
+| No fault injection / chaos   | Breaker, cursor, re-sync paths untested under failure              |
 | No crash-consistency testing | Power loss mid-batch never exercised; WAL/NORMAL settings untested |
-| No restore verification | Litestream/backup pipeline trusted, never drilled |
-| No multi-client load tests | Hub ingest behaviour under reconnect storms unknown |
-| Benchmarks outside CI | Regressions like the 318k-row cold-open recur silently |
-| No soak/nightly job | Deep tiers have nowhere to run |
+| No restore verification      | Litestream/backup pipeline trusted, never drilled                  |
+| No multi-client load tests   | Hub ingest behaviour under reconnect storms unknown                |
+| Benchmarks outside CI        | Regressions like the 318k-row cold-open recur silently             |
+| No soak/nightly job          | Deep tiers have nowhere to run                                     |
 
 ## External Research
 
@@ -143,11 +165,11 @@ surveyed and deliberately deferred.
 - **Property-based testing.** fast-check is the TS-native QuickCheck with a
   model-based commands API and shrinking. Precedent that this finds real
   bugs in exactly our domain: Ditto's stateful property tests caught a
-  correctness bug in an *academically published* CRDT optimisation
+  correctness bug in an _academically published_ CRDT optimisation
   (wombat.me "Testing CRDTs in Rust"). The canonical property list for a
   signed LWW log: merge commutativity/associativity/idempotence, convergence
   under arbitrary reordering and duplication, order-independent signature
-  verification, identical final state *and head hash* across N clients.
+  verification, identical final state _and head hash_ across N clients.
 - **Crash-consistency testing.** SQLite's own harness spawns a child process
   killed at random mid-write, with a crash-test VFS that reorders/corrupts
   unsynced writes, then asserts `PRAGMA integrity_check` on reopen
@@ -168,7 +190,7 @@ surveyed and deliberately deferred.
 - **Network chaos.** Toxiproxy (TCP toxics) and toxy (in-process L7) are the
   standard proxies; Playwright `page.route()` covers HTTP but not WebSockets,
   while `context.setOffline()` and page reload/close cover the
-  browser-lifecycle faults that matter most to us. A seeded *virtual* network
+  browser-lifecycle faults that matter most to us. A seeded _virtual_ network
   inside the simulation harness subsumes proxy-level chaos for protocol logic.
 - **Perf regression in CI.** Wall-clock on shared GitHub runners varies
   20–30%+ (Bencher.dev); CodSpeed gets <1% variance by measuring simulated CPU
@@ -280,13 +302,13 @@ exploration**; noted as an upstream-contribution opportunity.
 
 ### Process-coverage matrix
 
-| Process | Pillar 1 (PBT) | Pillar 2 (Sim) | Pillar 3 (Faults) | Pillar 4 (Restore) | Pillar 5 (Scale) |
-| --- | :-: | :-: | :-: | :-: | :-: |
-| Protocol core (sync/data) | ● | ● | | | ● |
-| Browser worker + tabs | | ○ (logic) | ● (reload e2e) | | ● |
-| Electron data process | | ○ (logic) | ● (SIGKILL) | | ● |
-| Hub relay | | ● (restart) | ● | ● | ● (load) |
-| Backup pipeline | | | | ● | |
+| Process                   | Pillar 1 (PBT) | Pillar 2 (Sim) | Pillar 3 (Faults) | Pillar 4 (Restore) | Pillar 5 (Scale) |
+| ------------------------- | :------------: | :------------: | :---------------: | :----------------: | :--------------: |
+| Protocol core (sync/data) |       ●        |       ●        |                   |                    |        ●         |
+| Browser worker + tabs     |                |   ○ (logic)    |  ● (reload e2e)   |                    |        ●         |
+| Electron data process     |                |   ○ (logic)    |    ● (SIGKILL)    |                    |        ●         |
+| Hub relay                 |                |  ● (restart)   |         ●         |         ●          |     ● (load)     |
+| Backup pipeline           |                |                |                   |         ●          |                  |
 
 ● direct coverage ○ covered at the shared-logic layer
 
@@ -373,7 +395,7 @@ it('LWW replicas converge under permutation + duplication', () => {
       const states = plans.map((plan) => applyAll(makeStore(), plan.schedule(changes)))
       const heads = states.map(materialize)
       for (const h of heads) expect(h).toEqual(heads[0])
-    }),
+    })
   )
 })
 ```
@@ -385,11 +407,21 @@ const rng = mulberry32(seed)
 while (ops-- > 0) {
   const actor = pick(rng, clients)
   switch (weighted(rng, { write: 6, deliver: 8, crash: 1, partition: 1, heal: 2 })) {
-    case 'write':     actor.writeRandomProperty(rng); break
-    case 'deliver':   network.deliverOne(rng);        break // may drop/dup/reorder
-    case 'crash':     actor.crashAndRestart();        break // cursor reloads from disk model
-    case 'partition': network.partition(rng);         break
-    case 'heal':      network.heal();                 break
+    case 'write':
+      actor.writeRandomProperty(rng)
+      break
+    case 'deliver':
+      network.deliverOne(rng)
+      break // may drop/dup/reorder
+    case 'crash':
+      actor.crashAndRestart()
+      break // cursor reloads from disk model
+    case 'partition':
+      network.partition(rng)
+      break
+    case 'heal':
+      network.heal()
+      break
   }
 }
 network.drainAll()
@@ -424,7 +456,7 @@ expect(headHashes(restored)).toEqual(headHashes(db))
 - **Wall-clock ceilings even in soak** are noisy on shared runners; ceilings
   are set generous (≥5× local p95) and counters remain the hard gate.
 - **Litestream itself is not exercised** — the drill verifies the
-  backup/restore *logic* via SQLite's backup API locally; a true
+  backup/restore _logic_ via SQLite's backup API locally; a true
   R2 `litestream restore` drill needs staging credentials and belongs with the
   cloud go-live work (0255/0258). Open question: wire it into the hub's
   deploy environment later.
@@ -433,19 +465,19 @@ expect(headHashes(restored)).toEqual(headHashes(db))
   corruption happens (~0.1–0.2%); a follow-up exploration should own recovery
   UX + the chaos wrapper together.
 - **Second-tab `:memory:` fallback** is a known durability hole (0263). This
-  program *detects* it (multitab spec exists; sim models cursor loss) but the
+  program _detects_ it (multitab spec exists; sim models cursor loss) but the
   fix is 0263's Web-Locks leadership work, not a test.
 
 ## Implementation Checklist
 
 - [ ] Add `fast-check` as a root devDependency
-- [ ] Create the `reliability` vitest project (node env, forks pool) in root `vitest.config.ts`, rooted at `tests/reliability/`
+- [x] Create the `reliability` vitest project (node env, forks pool) in root `vitest.config.ts`, rooted at `tests/reliability/`
 - [ ] Pillar 1: property tests for deterministic ordering — `orderChanges` permutation invariance and comparator laws (`packages/sync/src/chain.property.test.ts`)
 - [ ] Pillar 1: property tests for hash/canonicalisation — key-order independence, `verifyChangeHash` round-trip, tamper detection (`packages/sync/src/change.property.test.ts`)
 - [ ] Pillar 1: property tests for chain validation and fork detection under generated histories including forks and missing parents
 - [ ] Pillar 1: LWW convergence property — N replicas, arbitrary permutation + duplication of a generated change set converge to identical state (`tests/reliability/lww-convergence.property.test.ts`)
-- [ ] Pillar 2: deterministic simulation harness under `tests/reliability/sim/` — seeded PRNG, virtual network (drop/dup/reorder/delay/partition), relay with verify-hash/dedup/high-water, client crash-restart with cursor persistence; failures print the seed; depth via `XNET_SIM_SEEDS`/`XNET_SIM_OPS`
-- [ ] Pillar 2: simulation invariant suite — replica convergence after drain, cursor monotonicity, dedup (no double-apply), determinism check (same seed twice → identical event trace)
+- [x] Pillar 2: deterministic simulation harness under `tests/reliability/sim/` — seeded PRNG, virtual network (drop/dup/reorder/delay/partition), relay with verify-hash/dedup/high-water, client crash-restart with cursor persistence; failures print the seed; depth via `XNET_SIM_SEEDS`/`XNET_SIM_OPS`
+- [x] Pillar 2: simulation invariant suite — replica convergence after drain, cursor monotonicity, dedup (no double-apply), determinism check (same seed twice → identical event trace)
 - [ ] Pillar 3: crash-consistency harness under `tests/reliability/crash/` — child-process writer with prod pragmas (WAL, `synchronous = NORMAL`), parent SIGKILL at seeded offsets mid-write (progress-pipe guarded), reopen → `integrity_check` → LWW replay → equality with never-crashed reference; depth via `XNET_CRASH_ITERATIONS`
 - [ ] Pillar 3: adapter fault-injection tests — wrap the SQLite adapter to fail at a chosen chunk of `applyNodeBatch`, assert partial state is valid and full re-apply converges (proves the idempotency safety net)
 - [ ] Pillar 3: browser durability e2e — `tests/e2e/src/durability.spec.ts`: write burst, reload mid-burst, reopen and assert no committed data lost and store converges after re-sync
