@@ -11,8 +11,11 @@ import { randomUUID } from 'crypto'
 import { existsSync, unlinkSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
+import { generateSigningKeyPair } from '@xnetjs/crypto'
+import { identityFromPrivateKey } from '@xnetjs/identity'
 import { createElectronSQLiteAdapter } from '@xnetjs/sqlite/electron'
 import { createMemorySQLiteAdapter } from '@xnetjs/sqlite/memory'
+import { createChangeId, createUnsignedChange, signChange, verifyChangeHash } from '@xnetjs/sync'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { SYSTEM_SCHEMA_BASE_IRIS } from '../schema/schemas/system'
 import { encodeNodeQueryCursor } from './query'
@@ -172,6 +175,105 @@ describe('SQLiteNodeStorageAdapter', () => {
       expect(await adapter.getSyncCursor('room-a')).toBe(100)
       await adapter.setSyncCursor('room-a', 150)
       expect(await adapter.getSyncCursor('room-a')).toBe(150)
+    })
+  })
+
+  describe('change-record envelope (0272)', () => {
+    // The changes table has no columns for id/type/protocolVersion/batch
+    // fields, yet they are hashed content: without the payload envelope a
+    // re-read change can never pass verifyChangeHash, so the reload-resync
+    // push (getChangesSince → hub) was rejected as INVALID_HASH and the 0224
+    // breaker stranded offline edits.
+    function makeRealSignedChange(): NodeChange {
+      const { privateKey } = generateSigningKeyPair()
+      const identity = identityFromPrivateKey(privateKey)
+      const unsigned = createUnsignedChange({
+        id: createChangeId(),
+        type: 'node-change',
+        payload: {
+          nodeId: 'envelope-node',
+          schemaId: testSchemaId,
+          properties: { title: 'hello', count: 3 }
+        } as NodePayload,
+        parentHash: null,
+        authorDID: identity.did as DID,
+        lamport: 41,
+        batchId: 'envelope-batch',
+        batchIndex: 0,
+        batchSize: 1
+      })
+      return signChange(unsigned, privateKey) as NodeChange
+    }
+
+    it('a change re-read from the log still passes verifyChangeHash', async () => {
+      const change = makeRealSignedChange()
+      expect(verifyChangeHash(change)).toBe(true)
+
+      // changes.node_id has a FK to nodes(id) — materialize the node first.
+      await adapter.setNode(createTestNode({ id: 'envelope-node' }))
+      await adapter.appendChange(change)
+      const [reread] = await adapter.getAllChanges()
+
+      expect(reread.id).toBe(change.id)
+      expect(reread.type).toBe('node-change')
+      expect(reread.protocolVersion).toBe(change.protocolVersion)
+      expect(reread.batchId).toBe('envelope-batch')
+      expect(reread.batchIndex).toBe(0)
+      expect(reread.batchSize).toBe(1)
+      expect(reread.payload).toEqual(change.payload)
+      expect(verifyChangeHash(reread)).toBe(true)
+    })
+
+    it('round-trips through the applyNodeBatch change path too', async () => {
+      const change = makeRealSignedChange()
+      await adapter.applyNodeBatch({
+        batchId: 'envelope-batch',
+        nodes: [
+          createTestNode({
+            id: 'envelope-node',
+            properties: { title: 'hello', count: 3 }
+          })
+        ],
+        changes: [change],
+        lastLamportTime: change.lamport,
+        affectedSchemaIds: [testSchemaId],
+        indexMode: 'touched',
+        indexProperties: true
+      })
+      const reread = await adapter.getLastChange('envelope-node')
+      expect(reread).not.toBeNull()
+      expect(verifyChangeHash(reread!)).toBe(true)
+    })
+
+    it('legacy rows (raw payload, no envelope) keep the historical fallback fields', async () => {
+      const change = makeRealSignedChange()
+      await adapter.setNode(createTestNode({ id: 'envelope-node' }))
+      // Simulate a row written before the envelope existed: payload only.
+      await db.run(
+        `INSERT INTO changes
+         (hash, node_id, payload, lamport_time, lamport_peer, wall_time, author, parent_hash, batch_id, signature)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          change.hash,
+          change.payload.nodeId,
+          new TextEncoder().encode(JSON.stringify(change.payload)),
+          change.lamport,
+          change.authorDID,
+          change.wallTime,
+          change.authorDID,
+          null,
+          null,
+          change.signature
+        ]
+      )
+      const [reread] = await adapter.getAllChanges()
+      // Identity fields were never persisted, so the fallback fabricates them
+      // (hash-as-id, type 'node') exactly as before the envelope…
+      expect(reread.id).toBe(change.hash)
+      expect(reread.type).toBe('node')
+      expect(reread.payload).toEqual(change.payload)
+      // …which is precisely why legacy rows cannot re-verify.
+      expect(verifyChangeHash(reread)).toBe(false)
     })
   })
 

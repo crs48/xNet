@@ -1,0 +1,8 @@
+{
+  "id": "2026-07-05-offline-edits-now-survive-app-restarts-a",
+  "date": "July 5, 2026",
+  "title": "Offline edits now survive app restarts and concurrent edits converge",
+  "summary": "Two durability fixes: edits made offline before an app restart no longer get stuck behind the sync circuit breaker, and two devices editing the same field at the same logical time now always agree on the winner instead of depending on delivery order.",
+  "highlights": [],
+  "tags": ["sync"]
+}
