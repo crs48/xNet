@@ -159,7 +159,7 @@ function GlyphButton({
  */
 function CornerGlyphs({ lit, activeMode }: { lit: boolean; activeMode: CalmMode }) {
   const navigate = useNavigate()
-  const { identity } = useIdentity()
+  const { did } = useIdentity()
   const setCalmMode = useWorkbench((state) => state.setCalmMode)
 
   return (
@@ -170,12 +170,12 @@ function CornerGlyphs({ lit, activeMode }: { lit: boolean; activeMode: CalmMode 
         lit ? 'opacity-100' : 'opacity-40'
       }`}
     >
-      {identity && (
+      {did && (
         <span
-          title={identity.did}
+          title={did}
           className="mx-0.5 flex h-6 w-6 items-center justify-center rounded-full border border-hairline bg-surface-2 font-mono text-[9px] text-ink-2"
         >
-          {identity.did
+          {did
             .replace(/^did:[a-z]+:/, '')
             .slice(0, 2)
             .toUpperCase()}
@@ -283,19 +283,38 @@ export function QuietChrome({
     setPanelOpen('right', side === 'right')
   }
 
+  // When an overlay is dismissed while the pointer still rests on the edge,
+  // the browser re-fires pointerenter on the hot-zone the instant the
+  // backdrop unmounts — which would re-summon what the user just dismissed.
+  // A short cooldown after a *user* dismissal (the Sheet's own onOpenChange,
+  // i.e. Esc or scrim — never the mount/navigation arm-close) breaks the loop.
+  const hotzoneCooldownRef = useRef(0)
+  const dismiss = (side: PanelSide) => {
+    hotzoneCooldownRef.current = Date.now() + 600
+    setPanelOpen(side, false)
+  }
+
+  const summon = (side: PanelSide) => {
+    if (Date.now() < hotzoneCooldownRef.current) return
+    openOnly(side)
+  }
+
   return (
     <div className="relative flex min-h-0 flex-1">
       {children}
 
-      <EdgeHotZone side="left" onSummon={() => openOnly('left')} />
-      <EdgeHotZone side="right" onSummon={() => openOnly('right')} />
+      <EdgeHotZone side="left" onSummon={() => summon('left')} />
+      <EdgeHotZone side="right" onSummon={() => summon('right')} />
 
       <CornerGlyphs lit={lit} activeMode={activeMode} />
       <QuietSyncGlyph lit={lit} />
       <SurfaceDockLauncher lit={lit} />
 
       {/* The List → left overlay. Esc/scrim dismissal via the Sheet dialog. */}
-      <Sheet open={armed && left.open} onOpenChange={(open) => setPanelOpen('left', open)}>
+      <Sheet
+        open={armed && left.open}
+        onOpenChange={(open) => (open ? setPanelOpen('left', true) : dismiss('left'))}
+      >
         <SheetContent
           side="left"
           hideClose
@@ -307,7 +326,10 @@ export function QuietChrome({
       </Sheet>
 
       {/* The contextual Canvas → right overlay (artifact or inspector). */}
-      <Sheet open={armed && right.open} onOpenChange={(open) => setPanelOpen('right', open)}>
+      <Sheet
+        open={armed && right.open}
+        onOpenChange={(open) => (open ? setPanelOpen('right', true) : dismiss('right'))}
+      >
         <SheetContent
           side="right"
           hideClose

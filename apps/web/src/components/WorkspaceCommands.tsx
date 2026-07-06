@@ -20,10 +20,11 @@ export function WorkspaceCommands(): JSX.Element | null {
   const [helpOpen, setHelpOpen] = useState(false)
 
   // The Desk (0273): identity-derived id, held in a ref so the commands
-  // register once but always resolve the current identity.
-  const { identity } = useIdentity()
+  // register once but always resolve the current identity. `did` (not
+  // `identity`) — it falls back to authorDID under the test bypass.
+  const { did } = useIdentity()
   const didRef = useRef<string | null>(null)
-  didRef.current = identity?.did ?? null
+  didRef.current = did
 
   // App-wide undo/redo (0179). Held in a ref so the commands register once
   // but always call the current handlers. allowInInput is left off so the

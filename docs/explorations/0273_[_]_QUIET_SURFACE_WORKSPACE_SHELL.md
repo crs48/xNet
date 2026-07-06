@@ -510,8 +510,8 @@ chrome`, dogfood, then flip default for _new_ identities only (existing
 
 ### Phase 4 — Rollout
 
-- [ ] e2e specs: disclosure ladder (hover/swipe/chord/Esc), pin-to-desk flow, startup-to-Desk
-- [ ] Dogfood period; then default `chrome: 'quiet'` for **new** identities only
+- [x] e2e specs: disclosure ladder (hover/swipe/chord/Esc), pin-to-desk flow, startup-to-Desk
+- [x] Dogfood period; then default `chrome: 'quiet'` for **new** identities only
 - [ ] Docs page + changelog fragment (`scripts/changelog/new.mjs`)
 
 ### Phase 5 — Optional depth

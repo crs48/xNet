@@ -34,3 +34,19 @@ export function isDeskId(id: string): boolean {
 }
 
 export const DESK_TITLE = 'Desk'
+
+/**
+ * Staged rollout flag (0273 Phase 4): while dogfooding, the quiet-surface
+ * default for NEW identities (Desk startup + quiet chrome) is opt-in via this
+ * key; existing users are never moved either way. Flipping the default after
+ * the dogfood period = inverting this check.
+ */
+export const QUIET_DEFAULT_KEY = 'xnet:experiment:quiet-default'
+
+export function isQuietDefaultEnabled(): boolean {
+  try {
+    return localStorage.getItem(QUIET_DEFAULT_KEY) === '1'
+  } catch {
+    return false
+  }
+}

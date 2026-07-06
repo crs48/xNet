@@ -8,7 +8,7 @@ import { FileText, Database, Layout, Plus, ChevronDown, Network, Compass } from 
 import { useEffect, useState } from 'react'
 import { RestoringNotice } from '../components/RestoringNotice'
 import { bootMark, logBootTimeline } from '../lib/boot-timeline'
-import { deskIdFor } from '../lib/desk'
+import { deskIdFor, isQuietDefaultEnabled } from '../lib/desk'
 import {
   CreateDocMenuItems,
   navigateToNewDoc,
@@ -77,7 +77,7 @@ function HomePage() {
   useQueryTimer('home:canvases', canvasesQuery.loading, canvasesQuery.data?.length ?? 0)
 
   const restoring = useRestoringFromHub()
-  const { identity } = useIdentity()
+  const { did } = useIdentity()
   const setStartupTab = useWorkbench((state) => state.setStartupTab)
 
   // Combine and sort whatever the overlay has (snapshot first, then live). Each
@@ -100,10 +100,15 @@ function HomePage() {
   // becomes the startup surface and this navigation lands on it (the node
   // itself is created on arrival via CanvasView's createIfMissing). Existing
   // users always have rows (or a restore in flight), so they are never moved.
-  const freshIdentity = allLoaded && !anyRows && !restoring && !startupTab && identity?.did != null
+  // Gated on the staged-rollout flag while dogfooding (0273 Phase 4); the
+  // post-dogfood default flip is inverting isQuietDefaultEnabled.
+  const freshIdentity =
+    allLoaded && !anyRows && !restoring && !startupTab && did != null && isQuietDefaultEnabled()
   useEffect(() => {
-    if (!freshIdentity || !identity?.did) return
-    const deskId = deskIdFor(identity.did)
+    if (!freshIdentity || !did) return
+    const deskId = deskIdFor(did)
+    const workbench = useWorkbench.getState()
+    workbench.setChrome('quiet')
     setStartupTab({ nodeType: 'canvas', nodeId: deskId })
     navigateToNode(navigate, 'canvas', deskId)
     // eslint-disable-next-line react-hooks/exhaustive-deps

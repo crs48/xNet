@@ -156,7 +156,9 @@ export function SurfaceDockLauncher({ lit }: { lit: boolean }) {
   const hero = getSurfaceDockPanels('hero')
   const secondary = getSurfaceDockPanels('secondary')
   const all = getSurfaceDockPanels()
-  const active = all.find((item) => item.id === bottom.activeViewId)
+  // Fall back to the first panel when the persisted activeViewId belongs to
+  // the pinned tray (e.g. 'tray') — same fallback as PanelViewHost.
+  const active = all.find((item) => item.id === bottom.activeViewId) ?? all[0]
   const panelOpen = bottom.open && active != null
 
   // Every dock panel is one ⌘K away: `Dock: <label>` commands, kept in sync
