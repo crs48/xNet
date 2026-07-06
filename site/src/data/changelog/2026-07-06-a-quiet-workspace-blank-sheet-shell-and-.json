@@ -4,5 +4,6 @@
   "title": "A quiet workspace: blank-sheet shell and the Desk",
   "summary": "Opt in to quiet chrome (⌘K → View: Quiet chrome): the surface owns the screen, and the navigator, context panel, and a devtools-style dock are summoned from the corners and edges. Pin pages, databases, and views onto your new Desk — a bounded home canvas that follows your identity.",
   "highlights": [],
-  "tags": ["app"]
+  "tags": ["app"],
+  "pr": 395
 }

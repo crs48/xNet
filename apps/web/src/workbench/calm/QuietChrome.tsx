@@ -247,6 +247,94 @@ function QuietSyncGlyph({ lit }: { lit: boolean }) {
   )
 }
 
+/**
+ * Surface-first arming: overlays start closed and re-close on navigation
+ * (choosing a doc in the navigator lands you on it at L0). Same pre-paint
+ * arm as CalmMobile so a persisted `open` can't strand a Sheet backdrop.
+ */
+function useArmedOverlays(): boolean {
+  const setPanelOpen = useWorkbench((state) => state.setPanelOpen)
+  const { pathname } = useLocation()
+  const [armed, setArmed] = useState(false)
+  useLayoutEffect(() => {
+    setPanelOpen('left', false)
+    setPanelOpen('right', false)
+    setPanelOpen('bottom', false)
+    setArmed(true)
+  }, [pathname, setPanelOpen])
+  return armed
+}
+
+/** Keep the store's disclosure level honest (L3 = pinned/workbench, not here). */
+function useDiscloseLevelSync(armed: boolean, lit: boolean): void {
+  const left = useWorkbench((state) => state.left)
+  const right = useWorkbench((state) => state.right)
+  const bottom = useWorkbench((state) => state.bottom)
+  const setDiscloseLevel = useWorkbench((state) => state.setDiscloseLevel)
+  const overlayOpen = armed && (left.open || right.open || bottom.open)
+  useEffect(() => {
+    setDiscloseLevel(overlayOpen ? 2 : lit ? 1 : 0)
+  }, [overlayOpen, lit, setDiscloseLevel])
+}
+
+/**
+ * Summon/dismiss with a re-summon guard: when an overlay is dismissed while
+ * the pointer still rests on the edge, the browser re-fires pointerenter on
+ * the hot-zone the instant the backdrop unmounts — which would re-summon
+ * what the user just dismissed. A short cooldown after a *user* dismissal
+ * (the Sheet's own onOpenChange, i.e. Esc or scrim — never the
+ * mount/navigation arm-close) breaks the loop. One overlay at a time — the
+ * ladder has a single L2 rung.
+ */
+function useQuietSummon() {
+  const setPanelOpen = useWorkbench((state) => state.setPanelOpen)
+  const cooldownRef = useRef(0)
+
+  const dismiss = (side: PanelSide) => {
+    cooldownRef.current = Date.now() + 600
+    setPanelOpen(side, false)
+  }
+
+  const summon = (side: PanelSide) => {
+    if (Date.now() < cooldownRef.current) return
+    setPanelOpen('left', side === 'left')
+    setPanelOpen('right', side === 'right')
+  }
+
+  return { summon, dismiss }
+}
+
+/** One summonable edge overlay: hot zone + Sheet, dismissal-aware. */
+function QuietOverlay({
+  side,
+  open,
+  widthClass,
+  children
+}: {
+  side: 'left' | 'right'
+  open: boolean
+  widthClass: string
+  children: ReactNode
+}) {
+  const setPanelOpen = useWorkbench((state) => state.setPanelOpen)
+  const { summon, dismiss } = useQuietSummon()
+  return (
+    <>
+      <EdgeHotZone side={side} onSummon={() => summon(side)} />
+      <Sheet open={open} onOpenChange={(next) => (next ? setPanelOpen(side, true) : dismiss(side))}>
+        <SheetContent
+          side={side}
+          hideClose
+          className={`${widthClass} gap-0 border-hairline bg-surface-1 p-0`}
+          data-wb-sheet={side}
+        >
+          {children}
+        </SheetContent>
+      </Sheet>
+    </>
+  )
+}
+
 export function QuietChrome({
   activeMode,
   children
@@ -256,91 +344,30 @@ export function QuietChrome({
 }) {
   const left = useWorkbench((state) => state.left)
   const right = useWorkbench((state) => state.right)
-  const bottom = useWorkbench((state) => state.bottom)
-  const setPanelOpen = useWorkbench((state) => state.setPanelOpen)
-  const setDiscloseLevel = useWorkbench((state) => state.setDiscloseLevel)
-  const { pathname } = useLocation()
   const lit = useEdgeIntent()
-
-  // Surface-first: overlays start closed and re-close on navigation (choosing
-  // a doc in the navigator lands you on it at L0). Same pre-paint arm as
-  // CalmMobile so a persisted `open` can't strand a Sheet backdrop.
-  const [armed, setArmed] = useState(false)
-  useLayoutEffect(() => {
-    setPanelOpen('left', false)
-    setPanelOpen('right', false)
-    setPanelOpen('bottom', false)
-    setArmed(true)
-  }, [pathname, setPanelOpen])
-
-  // Keep the store's disclosure level honest (L3 = pinned/workbench, not here).
-  const overlayOpen = armed && (left.open || right.open || bottom.open)
-  useEffect(() => {
-    setDiscloseLevel(overlayOpen ? 2 : lit ? 1 : 0)
-  }, [overlayOpen, lit, setDiscloseLevel])
-
-  // One overlay at a time — the ladder has a single L2 rung.
-  const openOnly = (side: PanelSide) => {
-    setPanelOpen('left', side === 'left')
-    setPanelOpen('right', side === 'right')
-  }
-
-  // When an overlay is dismissed while the pointer still rests on the edge,
-  // the browser re-fires pointerenter on the hot-zone the instant the
-  // backdrop unmounts — which would re-summon what the user just dismissed.
-  // A short cooldown after a *user* dismissal (the Sheet's own onOpenChange,
-  // i.e. Esc or scrim — never the mount/navigation arm-close) breaks the loop.
-  const hotzoneCooldownRef = useRef(0)
-  const dismiss = (side: PanelSide) => {
-    hotzoneCooldownRef.current = Date.now() + 600
-    setPanelOpen(side, false)
-  }
-
-  const summon = (side: PanelSide) => {
-    if (Date.now() < hotzoneCooldownRef.current) return
-    openOnly(side)
-  }
+  const armed = useArmedOverlays()
+  useDiscloseLevelSync(armed, lit)
 
   return (
     <div className="relative flex min-h-0 flex-1">
       {children}
 
-      <EdgeHotZone side="left" onSummon={() => summon('left')} />
-      <EdgeHotZone side="right" onSummon={() => summon('right')} />
-
       <CornerGlyphs lit={lit} activeMode={activeMode} />
       <QuietSyncGlyph lit={lit} />
       <SurfaceDockLauncher lit={lit} />
 
-      {/* The List → left overlay. Esc/scrim dismissal via the Sheet dialog. */}
-      <Sheet
-        open={armed && left.open}
-        onOpenChange={(open) => (open ? setPanelOpen('left', true) : dismiss('left'))}
-      >
-        <SheetContent
-          side="left"
-          hideClose
-          className="w-[var(--list-width,17rem)] gap-0 border-hairline bg-surface-1 p-0"
-          data-wb-sheet="left"
-        >
-          <ListPane mode={activeMode} />
-        </SheetContent>
-      </Sheet>
-
-      {/* The contextual Canvas → right overlay (artifact or inspector). */}
-      <Sheet
+      {/* The List → left overlay; the contextual Canvas → right overlay.
+          Esc/scrim dismissal via the Sheet dialog. */}
+      <QuietOverlay side="left" open={armed && left.open} widthClass="w-[var(--list-width,17rem)]">
+        <ListPane mode={activeMode} />
+      </QuietOverlay>
+      <QuietOverlay
+        side="right"
         open={armed && right.open}
-        onOpenChange={(open) => (open ? setPanelOpen('right', true) : dismiss('right'))}
+        widthClass="w-[var(--canvas-width,24rem)]"
       >
-        <SheetContent
-          side="right"
-          hideClose
-          className="w-[var(--canvas-width,24rem)] gap-0 border-hairline bg-surface-1 p-0"
-          data-wb-sheet="right"
-        >
-          <Canvas />
-        </SheetContent>
-      </Sheet>
+        <Canvas />
+      </QuietOverlay>
     </div>
   )
 }

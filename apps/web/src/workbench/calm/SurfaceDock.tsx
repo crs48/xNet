@@ -29,7 +29,7 @@ import {
   X,
   type LucideIcon
 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useWorkbench } from '../state'
 import { ShelfTray } from '../views/Shelf'
 import { NotificationsTray, QueryConsoleTray, QuickCaptureTray, SyncTray } from '../views/tray'
@@ -141,6 +141,152 @@ function DockItemButton({
   )
 }
 
+/** Register `Dock: <label>` palette commands for the mounted launcher. */
+function useDockCommands(all: SurfaceDockContribution[]): void {
+  useEffect(() => {
+    const registry = getCommandRegistry()
+    const disposables = all.map((item) =>
+      registry.register({
+        id: `dock.show:${item.id}`,
+        title: `Dock: ${item.label}`,
+        run: () => useWorkbench.getState().showPanelView('bottom', item.id)
+      })
+    )
+    return () => {
+      for (const disposable of disposables) disposable.dispose()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [all.map((item) => item.id).join('|')])
+}
+
+/**
+ * Esc walks the ladder: an open dock panel closes before anything else.
+ * The palette and Sheet overlays preventDefault their own Esc first.
+ */
+function useDockEscape(panelOpen: boolean, onClose: () => void): void {
+  useEffect(() => {
+    if (!panelOpen) return
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return
+      onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [panelOpen, onClose])
+}
+
+/** The summoned panel — the devtools move: a floating corner card. */
+function DockPanelCard({
+  all,
+  active,
+  onOpen,
+  onClose
+}: {
+  all: SurfaceDockContribution[]
+  active: SurfaceDockContribution
+  onOpen: (id: string) => void
+  onClose: () => void
+}) {
+  return (
+    <section
+      data-wb-region="bottom"
+      aria-label={active.label}
+      className="flex h-[22rem] w-[26rem] max-w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-xl border border-hairline bg-surface-1 shadow-xl"
+    >
+      <header className="flex h-8 shrink-0 items-center justify-between gap-3 border-b border-hairline px-3">
+        <div className="flex min-w-0 flex-1 items-center gap-3 overflow-x-auto">
+          {all.map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              onClick={() => onOpen(item.id)}
+              className={`shrink-0 cursor-pointer border-none bg-transparent p-0 text-[11px] font-medium uppercase tracking-wider transition-colors ${
+                item.id === active.id ? 'text-ink-1' : 'text-ink-3 hover:text-ink-2'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          title="Close dock"
+          aria-label="Close dock"
+          onClick={onClose}
+          className="flex cursor-pointer items-center border-none bg-transparent p-0.5 text-ink-3 hover:text-ink-1"
+        >
+          <X size={13} strokeWidth={1.5} />
+        </button>
+      </header>
+      <div className="min-h-0 flex-1 overflow-y-auto">
+        <active.component />
+      </div>
+    </section>
+  )
+}
+
+/** The "More" popover holding the secondary tier. */
+function DockMoreMenu({
+  secondary,
+  open,
+  onToggle,
+  onOpen
+}: {
+  secondary: SurfaceDockContribution[]
+  open: boolean
+  onToggle: () => void
+  onOpen: (id: string) => void
+}) {
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        title="More panels"
+        aria-label="More panels"
+        aria-expanded={open}
+        onClick={onToggle}
+        className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border-none bg-transparent text-ink-3 transition-colors hover:text-ink-1"
+      >
+        <MoreHorizontal size={16} strokeWidth={1.5} />
+      </button>
+      <Presence show={open} motion="pop" className="absolute bottom-full right-0 mb-1">
+        <div className="min-w-[10rem] rounded-lg border border-hairline bg-surface-1 py-1 shadow-lg">
+          {secondary.map((item) => {
+            const Icon = iconFor(item)
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => onOpen(item.id)}
+                className="flex w-full cursor-pointer items-center gap-2 border-none bg-transparent px-3 py-1.5 text-left text-xs text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink-1"
+              >
+                <Icon size={14} strokeWidth={1.5} />
+                {item.label}
+              </button>
+            )
+          })}
+        </div>
+      </Presence>
+    </div>
+  )
+}
+
+/** The main toggle glyph — the one always-visible dock affordance. */
+function DockToggleButton({ panelOpen, onToggle }: { panelOpen: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      title={panelOpen ? 'Close dock (⌘J)' : 'Open dock (⌘J)'}
+      aria-label="Toggle dock"
+      aria-expanded={panelOpen}
+      onClick={onToggle}
+      className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border-none bg-transparent text-ink-2 transition-colors hover:text-ink-1"
+    >
+      <LayoutGrid size={16} strokeWidth={1.5} />
+    </button>
+  )
+}
+
 /**
  * The bottom-right corner cluster: collapsed to one glyph at rest, expanding
  * to the hero strip (+ "More" for secondary) on hover, focus, or tap. Opening
@@ -160,159 +306,62 @@ export function SurfaceDockLauncher({ lit }: { lit: boolean }) {
   // the pinned tray (e.g. 'tray') — same fallback as PanelViewHost.
   const active = all.find((item) => item.id === bottom.activeViewId) ?? all[0]
   const panelOpen = bottom.open && active != null
+  const stripVisible = expanded || panelOpen
 
-  // Every dock panel is one ⌘K away: `Dock: <label>` commands, kept in sync
-  // with the registry for as long as the launcher is mounted.
-  useEffect(() => {
-    const registry = getCommandRegistry()
-    const disposables = all.map((item) =>
-      registry.register({
-        id: `dock.show:${item.id}`,
-        title: `Dock: ${item.label}`,
-        run: () => useWorkbench.getState().showPanelView('bottom', item.id)
-      })
-    )
-    return () => {
-      for (const disposable of disposables) disposable.dispose()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [all.map((item) => item.id).join('|')])
-
-  // Esc walks the ladder: an open dock panel closes before anything else.
-  // The palette and Sheet overlays preventDefault their own Esc first.
-  useEffect(() => {
-    if (!panelOpen) return
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape' || event.defaultPrevented) return
-      setPanelOpen('bottom', false)
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [panelOpen, setPanelOpen])
+  useDockCommands(all)
+  const close = useCallback(() => setPanelOpen('bottom', false), [setPanelOpen])
+  useDockEscape(panelOpen, close)
 
   const open = (id: string) => {
     setMoreOpen(false)
     showPanelView('bottom', id)
   }
+  const collapse = () => {
+    setExpanded(false)
+    setMoreOpen(false)
+  }
+  const toggle = () => (panelOpen ? close() : open(bottom.activeViewId || 'shelf'))
 
   return (
     <div
       className="absolute bottom-2 right-2 z-40 flex flex-col items-end gap-2"
       onPointerEnter={() => setExpanded(true)}
-      onPointerLeave={() => {
-        setExpanded(false)
-        setMoreOpen(false)
-      }}
+      onPointerLeave={collapse}
     >
-      {/* The summoned panel — the devtools move: a floating corner card. */}
       <Presence show={panelOpen} motion="slide-up">
-        {active && (
-          <section
-            data-wb-region="bottom"
-            aria-label={active.label}
-            className="flex h-[22rem] w-[26rem] max-w-[calc(100vw-1rem)] flex-col overflow-hidden rounded-xl border border-hairline bg-surface-1 shadow-xl"
-          >
-            <header className="flex h-8 shrink-0 items-center justify-between gap-3 border-b border-hairline px-3">
-              <div className="flex min-w-0 flex-1 items-center gap-3 overflow-x-auto">
-                {all.map((item) => (
-                  <button
-                    key={item.id}
-                    type="button"
-                    onClick={() => open(item.id)}
-                    className={`shrink-0 cursor-pointer border-none bg-transparent p-0 text-[11px] font-medium uppercase tracking-wider transition-colors ${
-                      item.id === active.id ? 'text-ink-1' : 'text-ink-3 hover:text-ink-2'
-                    }`}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-              <button
-                type="button"
-                title="Close dock"
-                aria-label="Close dock"
-                onClick={() => setPanelOpen('bottom', false)}
-                className="flex cursor-pointer items-center border-none bg-transparent p-0.5 text-ink-3 hover:text-ink-1"
-              >
-                <X size={13} strokeWidth={1.5} />
-              </button>
-            </header>
-            <div className="min-h-0 flex-1 overflow-y-auto">
-              <active.component />
-            </div>
-          </section>
-        )}
+        {active && <DockPanelCard all={all} active={active} onOpen={open} onClose={close} />}
       </Presence>
 
-      {/* The launcher strip: one glyph at rest, hero items + More expanded. */}
-      {/* Dim = weaker decoration, never faded ink (glyphs hold ≥ Lc 60). */}
+      {/* The launcher strip: one glyph at rest, hero items + More expanded.
+          Dim = weaker decoration, never faded ink (glyphs hold ≥ Lc 60). */}
       <div
         data-coach="quiet.dock"
         className={`flex items-center gap-0.5 rounded-xl border border-hairline p-1 backdrop-blur transition-colors duration-normal ease-out ${
-          lit || expanded || panelOpen ? 'bg-surface-1/95 shadow-sm' : 'bg-surface-1/60'
+          lit || stripVisible ? 'bg-surface-1/95 shadow-sm' : 'bg-surface-1/60'
         }`}
       >
-        {(expanded || panelOpen) && (
+        {stripVisible && (
           <>
             {hero.map((item) => (
               <DockItemButton
                 key={item.id}
                 item={item}
-                active={panelOpen && item.id === bottom.activeViewId}
+                active={panelOpen && item.id === active?.id}
                 onOpen={open}
               />
             ))}
             {secondary.length > 0 && (
-              <div className="relative">
-                <button
-                  type="button"
-                  title="More panels"
-                  aria-label="More panels"
-                  aria-expanded={moreOpen}
-                  onClick={() => setMoreOpen((value) => !value)}
-                  className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border-none bg-transparent text-ink-3 transition-colors hover:text-ink-1"
-                >
-                  <MoreHorizontal size={16} strokeWidth={1.5} />
-                </button>
-                <Presence
-                  show={moreOpen}
-                  motion="pop"
-                  className="absolute bottom-full right-0 mb-1"
-                >
-                  <div className="min-w-[10rem] rounded-lg border border-hairline bg-surface-1 py-1 shadow-lg">
-                    {secondary.map((item) => {
-                      const Icon = iconFor(item)
-                      return (
-                        <button
-                          key={item.id}
-                          type="button"
-                          onClick={() => open(item.id)}
-                          className="flex w-full cursor-pointer items-center gap-2 border-none bg-transparent px-3 py-1.5 text-left text-xs text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink-1"
-                        >
-                          <Icon size={14} strokeWidth={1.5} />
-                          {item.label}
-                        </button>
-                      )
-                    })}
-                  </div>
-                </Presence>
-              </div>
+              <DockMoreMenu
+                secondary={secondary}
+                open={moreOpen}
+                onToggle={() => setMoreOpen((value) => !value)}
+                onOpen={open}
+              />
             )}
             <span className="mx-0.5 h-4 w-px bg-hairline" />
           </>
         )}
-        <button
-          type="button"
-          title={panelOpen ? 'Close dock (⌘J)' : 'Open dock (⌘J)'}
-          aria-label={panelOpen ? 'Close dock' : 'Open dock'}
-          aria-expanded={panelOpen}
-          onClick={() =>
-            panelOpen ? setPanelOpen('bottom', false) : open(bottom.activeViewId || 'shelf')
-          }
-          className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg border-none bg-transparent text-ink-2 transition-colors hover:text-ink-1"
-        >
-          <LayoutGrid size={16} strokeWidth={1.5} />
-        </button>
+        <DockToggleButton panelOpen={panelOpen} onToggle={toggle} />
       </div>
     </div>
   )

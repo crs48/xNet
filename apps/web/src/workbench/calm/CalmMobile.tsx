@@ -19,6 +19,7 @@ import { DemoBanner, useDemoMode } from '@xnetjs/react'
 import { BottomNav, Sheet, SheetContent } from '@xnetjs/ui'
 import { LayoutGrid, Menu, PanelRightOpen, Search, Settings, type LucideIcon } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { resolveNavHidden } from '../../components/desk-cards'
 import { GlobalSearch } from '../../components/GlobalSearch'
 import { WorkspaceCommands } from '../../components/WorkspaceCommands'
 import { useWorkbenchCommands, useZenEscape } from '../commands'
@@ -90,10 +91,8 @@ function useAutoHideNav(surfaceRef: RefObject<HTMLDivElement | null>, enabled: b
       const target = event.target
       if (!(target instanceof HTMLElement)) return
       const prev = lastTop.get(target) ?? target.scrollTop
-      const delta = target.scrollTop - prev
       lastTop.set(target, target.scrollTop)
-      if (delta > 8 && target.scrollTop > 48) setHidden(true)
-      else if (delta < -8) setHidden(false)
+      setHidden((current) => resolveNavHidden(current, target.scrollTop - prev, target.scrollTop))
     }
 
     el.addEventListener('scroll', onScroll, { capture: true, passive: true })
