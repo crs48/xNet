@@ -538,11 +538,11 @@ Theme 1 — data layer decomposition
 - [x] Extract `packages/data/src/store/query-compiler.ts` (compile + count +
       fuse + telemetry hooks) with adapter delegating; move matching test
       blocks to `query-compiler.test.ts`.
-- [ ] Extract `packages/data/src/store/hydration.ts` (`JoinedHydrator`,
+- [x] Extract `packages/data/src/store/hydration.ts` (`JoinedHydrator`,
       `AggregatedHydrator`, shared property-merge); delete duplicated logic.
-- [ ] Add `@xnetjs/core` LWW module; adopt in `store.ts` `applyChange`,
+- [x] Add `@xnetjs/core` LWW module; adopt in `store.ts` `applyChange`,
       adapter hydration, `packages/hub/src/storage/sqlite.ts`.
-- [ ] Cross-implementation LWW conformance test using 0200 golden vectors.
+- [x] Cross-implementation LWW conformance test using 0200 golden vectors.
 - [ ] Extract transaction/batch orchestration from `store.ts`
       (`transaction-executor.ts`, `batch-write-orchestrator.ts`); unify
       conflict tracking + listener dispatch between fast and slow paths.

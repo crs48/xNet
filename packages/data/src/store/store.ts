@@ -47,6 +47,7 @@ import type {
 import type { StoreAuthAPI } from '../auth/store-auth'
 import type { LensRegistry } from '../schema/lens'
 import type { AuthAction, AuthDecision, DID, ContentId, PolicyEvaluator } from '@xnetjs/core'
+import { compareChangeApplicationOrder, lwwWins } from '@xnetjs/core'
 import { base64ToBytes, bytesToBase64 } from '@xnetjs/crypto'
 import { parseDID } from '@xnetjs/identity'
 import {
@@ -1945,12 +1946,13 @@ export class NodeStore {
    * Apply multiple remote changes (from sync).
    */
   async applyRemoteChanges(changes: NodeChange[]): Promise<void> {
-    // Sort by Lamport timestamp for causal ordering
-    const sorted = [...changes].sort(
-      (a, b) =>
-        a.lamport - b.lamport ||
-        // UTF-16 code-unit order (not localeCompare) for deterministic convergence.
-        (a.authorDID < b.authorDID ? -1 : a.authorDID > b.authorDID ? 1 : 0)
+    // Sort by Lamport timestamp for causal ordering (the shared protocol
+    // application order — code-unit author tiebreak, never localeCompare).
+    const sorted = [...changes].sort((a, b) =>
+      compareChangeApplicationOrder(
+        { lamport: a.lamport, author: a.authorDID },
+        { lamport: b.lamport, author: b.authorDID }
+      )
     )
 
     for (const change of sorted) {
@@ -2467,13 +2469,11 @@ export class NodeStore {
   }
 
   /**
-   * Determine if newTs should replace existingTs (LWW).
+   * Determine if newTs should replace existingTs (LWW). Delegates to the ONE
+   * protocol ordering in `@xnetjs/core` (§L1.7; exploration 0276).
    */
   private shouldReplace(existing: PropertyTimestamp, incoming: PropertyTimestamp): boolean {
-    if (incoming.lamport !== existing.lamport) return incoming.lamport > existing.lamport
-    if (incoming.wallTime !== existing.wallTime) return incoming.wallTime > existing.wallTime
-    // UTF-16 code-unit order (not localeCompare) for deterministic convergence.
-    return incoming.author > existing.author
+    return lwwWins(incoming, existing)
   }
 
   /**
