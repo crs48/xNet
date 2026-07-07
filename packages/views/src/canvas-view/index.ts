@@ -75,4 +75,11 @@ export {
   type UseCanvasUndoLadderResult
 } from './useCanvasUndoLadder.js'
 export { CanvasSelectionHud, type CanvasSelectionHudProps } from './CanvasSelectionHud.js'
+export {
+  isPeekableCanvasDisplayType,
+  shouldActivateDatabasePreviewSurface,
+  shouldActivateInlinePageSurface,
+  type PeekableCanvasDisplayType
+} from './surface-activation.js'
+export { useCanvasCommands, type UseCanvasCommandsOptions } from './useCanvasCommands.js'
 export { CanvasSourceReferencesPanel, type CanvasSourceReferencesPanelProps } from './panels.js'

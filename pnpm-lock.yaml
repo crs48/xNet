@@ -2141,6 +2141,9 @@ importers:
       '@xnetjs/data':
         specifier: workspace:*
         version: link:../data
+      '@xnetjs/plugins':
+        specifier: workspace:*
+        version: link:../plugins
       '@xnetjs/react':
         specifier: workspace:*
         version: link:../react

@@ -49,6 +49,16 @@ export {
   shouldRenderCanvasNodeCard,
   type RenderCanvasNodeCardOptions
 } from './components/renderCanvasNodeCard'
+export { CanvasInlinePageSurface } from './components/CanvasInlinePageSurface'
+export { CanvasDatabasePreviewSurface } from './components/CanvasDatabasePreviewSurface'
+export {
+  CanvasPeekOverlay,
+  useCanvasPeek,
+  type CanvasPeekOverlayProps,
+  type CanvasPeekState,
+  type UseCanvasPeekOptions,
+  type UseCanvasPeekResult
+} from './components/CanvasPeekOverlay'
 export {
   CanvasCardAuditTrail,
   createCanvasCardAuditSummary,

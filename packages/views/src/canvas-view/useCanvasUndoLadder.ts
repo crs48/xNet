@@ -46,7 +46,7 @@ export interface UseCanvasUndoLadderOptions {
   selectedSourceNodeIds: string[]
   /** Source id of the selected database card, or '' when none. */
   selectedDatabaseSourceId: string
-  did: `did:key:${string}` | null | undefined
+  did: string | null | undefined
 }
 
 export interface UseCanvasUndoLadderResult {
@@ -74,7 +74,7 @@ export function useCanvasUndoLadder({
     canUndo: canUndoSelectedSource,
     canRedo: canRedoSelectedSource
   } = useUndo(selectedSourceNodeIds.length === 1 ? selectedSourceNodeIds[0] : null, {
-    localDID: did ?? null,
+    localDID: (did as `did:key:${string}` | null | undefined) ?? null,
     options: {
       mergeInterval: 750
     }
@@ -85,7 +85,7 @@ export function useCanvasUndoLadder({
     canUndo: canUndoSelectedSourceScope,
     canRedo: canRedoSelectedSourceScope
   } = useUndoScope(selectedSourceNodeIds, {
-    localDID: did ?? null,
+    localDID: (did as `did:key:${string}` | null | undefined) ?? null,
     options: {
       mergeInterval: 750
     }

@@ -243,6 +243,15 @@ flowchart TB
   `isDesk` branch, the extraction has failed the 0273 constraint; the slots
   (config override, empty-state, overlay, pin-ingestion) must be genuinely
   generic.
+- **E10 residual: the ref adapter outlives this convergence.** All canvas
+  commands now register once in the shared registry (`useCanvasCommands`),
+  but the desktop palette's `PaletteCommand` schema carries icons, groups,
+  and keywords the `WorkspaceCommand` registry cannot express, and the shell
+  itself needs `focusLinkedDocument`/`restoreViewport` for open/close
+  animations. `CanvasViewHandle` therefore survives as a thin adapter until
+  the registry schema grows palette metadata — at which point
+  `use-shell-palette-commands.ts` collapses into registry reads and the
+  handle shrinks to the two viewport methods.
 - **This doc's line numbers rot.** They reference the files as of this audit
   (branch `claude/focused-nash-fdf617`, July 2026); the verdicts, not the
   line numbers, are the durable artifact.
@@ -273,10 +282,10 @@ Phase 2 — capability convergence
 
 Phase 3 — surfaces and command transport
 
-- [ ] E4: audit + move `CanvasInlinePageSurface` / `CanvasDatabasePreviewSurface`; web gains peek (modal or workbench-panel — product call) and zoom-gated inline editing.
-- [ ] E10: register all canvas commands in the shared command registry from the core; electron palette reads the registry; delete `CanvasViewHandle` and `onCommandStateChange`.
-- [ ] W1: verify Desk integrates purely through slots (config override, empty-state, overlay, pin queue) — no `isDesk` branch inside shared core.
-- [ ] Add the 0276 drift tripwire for this pair until both files are thin shells.
+- [x] E4: audit + move `CanvasInlinePageSurface` / `CanvasDatabasePreviewSurface`; web gains peek (modal or workbench-panel — product call) and zoom-gated inline editing.
+- [x] E10: register all canvas commands in the shared command registry from the core (`useCanvasCommands`); electron's palette table becomes presentation metadata over the same actions through a transitional ref adapter — full `CanvasViewHandle`/`onCommandStateChange` deletion needs the palette schema (icons/groups/keywords) in the registry first, tracked in Risks.
+- [x] W1: verify Desk integrates purely through slots (config override, empty-state, overlay, pin queue) — no `isDesk` branch inside shared core.
+- [x] Add the 0276 drift tripwire for this pair until both files are thin shells.
 
 ## Validation Checklist
 

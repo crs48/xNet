@@ -26,6 +26,7 @@
     "@xnetjs/core": "workspace:*",
     "@xnetjs/dashboard": "workspace:*",
     "@xnetjs/data": "workspace:*",
+    "@xnetjs/plugins": "workspace:*",
     "@xnetjs/react": "workspace:*",
     "@xnetjs/social": "workspace:*",
     "@xnetjs/ui": "workspace:*",

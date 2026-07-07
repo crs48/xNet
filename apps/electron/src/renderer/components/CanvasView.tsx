@@ -7,7 +7,6 @@ import type {
   CanvasDistributionAxis,
   CanvasLayerDirection,
   CanvasNode,
-  CanvasNodeRenderContext,
   CanvasPlanningTemplateId,
   Rect,
   ShapeType
@@ -18,11 +17,15 @@ import {
   getSelectionBounds,
   useCanvasThemeTokens
 } from '@xnetjs/canvas'
-import { CanvasSchema } from '@xnetjs/data'
+import { CanvasSchema, DatabaseSchema, PageSchema } from '@xnetjs/data'
 import {
+  CanvasDatabasePreviewSurface,
+  CanvasInlinePageSurface,
+  CanvasPeekOverlay,
   renderCanvasNodeCard,
   shouldRenderCanvasNodeCard,
-  useBlobService
+  useBlobService,
+  useCanvasPeek
 } from '@xnetjs/editor/react'
 import { useIdentity, useNode } from '@xnetjs/react'
 import {
@@ -35,18 +38,21 @@ import {
   CanvasSourceReferencesPanel,
   CanvasWidgetNodeCard,
   createCanvasShellNoteProperties,
-  getCanvasShellDisplayType,
   getCanvasShellSourceId,
   getCanvasShellSourceType,
   getCanvasViewDisplayType,
+  isPeekableCanvasDisplayType,
+  shouldActivateDatabasePreviewSurface,
+  shouldActivateInlinePageSurface,
+  useCanvasCommands,
   useCanvasQueryFrames,
   useCanvasSourceReferences,
   useCanvasUndoLadder,
   useCanvasViewController,
+  useSelectedSourceReferences,
   type CanvasNodeCardActions,
-  type CanvasResolvedObject,
   type CanvasUndoDomain,
-  type CanvasViewDisplayType,
+  type PeekableCanvasDisplayType,
   type CanvasViewportSnapshot as ViewportSnapshot,
   type LinkedDocType,
   type LinkedDocumentItem,
@@ -62,17 +68,7 @@ import React, {
   useRef,
   useState
 } from 'react'
-import { CanvasDatabasePreviewSurface } from './CanvasDatabasePreviewSurface'
-import { CanvasInlinePageSurface } from './CanvasInlinePageSurface'
 import { PresenceAvatars } from './PresenceAvatars'
-
-type PeekableCanvasDisplayType = LinkedDocType | 'note'
-
-type CanvasPeekState = {
-  nodeId: string
-  sourceId: string
-  displayType: PeekableCanvasDisplayType
-}
 
 type CanvasViewProps = {
   docId: string
@@ -158,56 +154,6 @@ function getNodeRect(node: CanvasNode): Rect {
   }
 }
 
-function isPeekableCanvasDisplayType(
-  displayType: CanvasViewDisplayType
-): displayType is PeekableCanvasDisplayType {
-  return displayType === 'page' || displayType === 'database' || displayType === 'note'
-}
-
-function shouldActivateInlinePageSurface(
-  node: CanvasNode,
-  context: CanvasNodeRenderContext,
-  linkedDocument?: LinkedDocumentItem
-): boolean {
-  const displayType = getCanvasShellDisplayType(node, linkedDocument)
-  const sourceId = getCanvasShellSourceId(node)
-
-  if (!sourceId) {
-    return false
-  }
-
-  if (displayType !== 'page' && displayType !== 'note') {
-    return false
-  }
-
-  return (
-    context.selected &&
-    context.selectionSize === 1 &&
-    context.lod === 'full' &&
-    context.viewportZoom >= 0.9
-  )
-}
-
-function shouldActivateDatabasePreviewSurface(
-  node: CanvasNode,
-  context: CanvasNodeRenderContext,
-  linkedDocument?: LinkedDocumentItem
-): boolean {
-  const displayType = getCanvasShellDisplayType(node, linkedDocument)
-  const sourceId = getCanvasShellSourceId(node)
-
-  if (!sourceId || displayType !== 'database') {
-    return false
-  }
-
-  return (
-    context.selected &&
-    context.selectionSize === 1 &&
-    context.lod === 'full' &&
-    context.viewportZoom >= 0.9
-  )
-}
-
 export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function CanvasView(
   {
     docId,
@@ -241,7 +187,6 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
 
   const handledInsertIdsRef = useRef<Set<string>>(new Set())
   const [shortcutHelpOpen, setShortcutHelpOpen] = useState(false)
-  const [peekState, setPeekState] = useState<CanvasPeekState | null>(null)
   // The ladder needs the controller's refs and the controller needs the
   // ladder's boundary recorder; break the cycle with a ref.
   const undoLadderRef = useRef<UseCanvasUndoLadderResult | null>(null)
@@ -360,7 +305,20 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     getReferences
   })
 
-  // The shared controller reports commenting/editing; peeking is a  // The shared controller reports commenting/editing; peeking is a
+  // Peek (0277 E4): shared modal preview of the selected card's source.
+  const {
+    peekState,
+    peekedObject: peekedCanvasObject,
+    openPeek,
+    closePeekSurface
+  } = useCanvasPeek({
+    doc,
+    documentMap,
+    selectedObject: selectedCanvasObject,
+    focusCanvasSurface
+  })
+
+  // The shared controller reports commenting/editing; peeking is a
   // desktop-only overlay layered on top.
   const canvasPresenceIntent = useMemo(() => {
     if (peekState) {
@@ -372,60 +330,6 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
 
     return controller.canvasPresenceIntent
   }, [controller.canvasPresenceIntent, peekState])
-
-  const peekedCanvasObject = useMemo<CanvasResolvedObject | null>(() => {
-    if (!peekState || !doc) {
-      return null
-    }
-
-    if (
-      selectedCanvasObject?.node.id === peekState.nodeId &&
-      selectedCanvasObject.sourceId === peekState.sourceId &&
-      selectedCanvasObject.displayType === peekState.displayType
-    ) {
-      return selectedCanvasObject
-    }
-
-    const node = getCanvasObjectsMap<CanvasNode>(doc).get(peekState.nodeId)
-    if (!node) {
-      return null
-    }
-
-    const sourceId = getCanvasShellSourceId(node)
-    const linkedDocument = sourceId ? documentMap.get(sourceId) : undefined
-    const displayType = getCanvasViewDisplayType(node, linkedDocument)
-
-    if (sourceId !== peekState.sourceId || displayType !== peekState.displayType) {
-      return null
-    }
-
-    return {
-      node,
-      sourceId,
-      sourceType: getCanvasShellSourceType(node, linkedDocument),
-      displayType,
-      title: node.alias ?? linkedDocument?.title ?? (node.properties.title as string) ?? 'Untitled'
-    }
-  }, [doc, documentMap, peekState, selectedCanvasObject])
-
-  useEffect(() => {
-    if (!peekState) {
-      return
-    }
-
-    if (!doc) {
-      return
-    }
-
-    const node = getCanvasObjectsMap<CanvasNode>(doc).get(peekState.nodeId)
-    const sourceId = node ? getCanvasShellSourceId(node) : undefined
-    const linkedDocument = sourceId ? documentMap.get(sourceId) : undefined
-    const displayType = node ? getCanvasViewDisplayType(node, linkedDocument) : null
-
-    if (!node || sourceId !== peekState.sourceId || displayType !== peekState.displayType) {
-      setPeekState(null)
-    }
-  }, [doc, documentMap, peekState])
 
   const placeLinkedDocumentNode = useCallback(
     (document: LinkedDocumentItem): boolean => {
@@ -499,11 +403,6 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     lastViewportSnapshotRef.current = snapshot
     canvasRef.current?.setViewportSnapshot(snapshot)
   }, [])
-
-  const closePeekSurface = useCallback(() => {
-    setPeekState(null)
-    focusCanvasSurface()
-  }, [focusCanvasSurface])
 
   const clearCanvasSelection = useCallback(() => {
     closeSelectionPanel()
@@ -615,39 +514,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     return canvasRef.current?.connectSelection() ?? false
   }, [])
 
-  const focusSelectionSurface = useCallback(
-    (
-      sourceId: string,
-      displayType: PeekableCanvasDisplayType,
-      scope: 'peek' | 'inline' = 'inline'
-    ) => {
-      window.requestAnimationFrame(() => {
-        const targetSelector =
-          displayType === 'database'
-            ? `[data-canvas-source-id="${sourceId}"] [data-canvas-database-title="true"]`
-            : `[data-canvas-source-id="${sourceId}"] [data-canvas-page-title="true"]`
-        const scopeSelector =
-          scope === 'peek' ? `[data-canvas-peek-surface="true"] ${targetSelector}` : targetSelector
-        const target =
-          document.querySelector<HTMLElement>(scopeSelector) ??
-          document.querySelector<HTMLElement>(targetSelector)
-        target?.focus()
-        if (target instanceof HTMLInputElement) {
-          target.select()
-        }
-      })
-    },
-    []
-  )
-
-  useEffect(() => {
-    if (!peekState?.sourceId || !isPeekableCanvasDisplayType(peekState.displayType)) {
-      return
-    }
-
-    focusSelectionSurface(peekState.sourceId, peekState.displayType, 'peek')
-  }, [focusSelectionSurface, peekState])
-
+  const openSelectionRef = useRef<((mode?: 'peek' | 'focus' | 'split') => boolean) | null>(null)
   const openSelection = useCallback(
     (mode: 'peek' | 'focus' | 'split' = 'focus'): boolean => {
       if (!selectedCanvasObject) {
@@ -661,16 +528,11 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
           selectedCanvasObject.sourceId &&
           isPeekableCanvasDisplayType(selectedCanvasObject.displayType)
         ) {
-          setPeekState({
+          openPeek({
             nodeId: selectedCanvasObject.node.id,
             sourceId: selectedCanvasObject.sourceId,
             displayType: selectedCanvasObject.displayType
           })
-          focusSelectionSurface(
-            selectedCanvasObject.sourceId,
-            selectedCanvasObject.displayType,
-            'peek'
-          )
           return true
         }
 
@@ -702,12 +564,16 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     [
       closePeekSurface,
       fitSelection,
-      focusSelectionSurface,
       onOpenDatabaseSplit,
       onOpenDocument,
+      openPeek,
       selectedCanvasObject
     ]
   )
+
+  useEffect(() => {
+    openSelectionRef.current = openSelection
+  }, [openSelection])
 
   const openCanvasObjectSource = useCallback(
     ({
@@ -727,12 +593,11 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       setSelectionPanel(null)
 
       if (mode === 'peek') {
-        setPeekState({
+        openPeek({
           nodeId: node.id,
           sourceId,
           displayType
         })
-        focusSelectionSurface(sourceId, displayType, 'peek')
         return true
       }
 
@@ -744,28 +609,8 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       onOpenDocument?.(sourceId, sourceType)
       return true
     },
-    [closePeekSurface, focusSelectionSurface, onOpenDocument]
+    [closePeekSurface, onOpenDocument, openPeek, setSelectionPanel]
   )
-
-  useEffect(() => {
-    if (!peekedCanvasObject) {
-      return
-    }
-
-    const handleWindowKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') {
-        return
-      }
-
-      event.preventDefault()
-      closePeekSurface()
-    }
-
-    window.addEventListener('keydown', handleWindowKeyDown, true)
-    return () => {
-      window.removeEventListener('keydown', handleWindowKeyDown, true)
-    }
-  }, [closePeekSurface, peekedCanvasObject])
 
   const toggleShortcutHelp = useCallback(
     (open?: boolean) => {
@@ -778,6 +623,33 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     },
     [focusCanvasSurface, shortcutHelpOpen]
   )
+
+  // Canvas commands live in the shared registry (0277 E10). The desktop
+  // palette still renders its own metadata table over the same actions via
+  // the imperative handle below — that handle is now a transitional
+  // adapter, not the command source.
+  useCanvasCommands({
+    docId,
+    controller,
+    extraCommands: [
+      {
+        id: 'canvas.peek',
+        title: 'Canvas: Peek at selection',
+        when: () => Boolean(selectedCanvasObject),
+        run: () => {
+          void openSelectionRef.current?.('peek')
+        }
+      },
+      {
+        id: 'canvas.open',
+        title: 'Canvas: Open selection',
+        when: () => Boolean(selectedCanvasObject?.sourceId),
+        run: () => {
+          void openSelectionRef.current?.('focus')
+        }
+      }
+    ]
+  })
 
   const handleDismissTransientUi = useCallback((): boolean => {
     if (selectionPanel) {
@@ -1091,83 +963,21 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
         </div>
       ) : null}
 
-      {peekedCanvasObject?.sourceId ? (
-        <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center p-6">
-          <button
-            type="button"
-            className="pointer-events-auto absolute inset-0 bg-black/12 backdrop-blur-[2px] dark:bg-black/38"
-            onClick={closePeekSurface}
-            aria-label="Close canvas peek"
-            data-canvas-peek-backdrop="true"
-            data-canvas-theme={theme.mode}
-          />
-
-          <div
-            className="pointer-events-auto relative z-10 h-[min(78vh,760px)] w-[min(88vw,980px)] overflow-hidden rounded-[32px] border border-border/60 bg-background/92 p-3 shadow-2xl shadow-black/15 backdrop-blur-xl transition-transform duration-150"
-            data-canvas-peek-surface="true"
-            data-canvas-peek-kind={peekedCanvasObject.displayType}
-            data-canvas-peek-node-id={peekedCanvasObject.node.id}
-            data-canvas-peek-source-id={peekedCanvasObject.sourceId}
-            data-canvas-theme={theme.mode}
-          >
-            <div className="mb-3 flex items-center justify-between gap-3 px-2 pt-1">
-              <div className="flex items-center gap-2">
-                <span className="rounded-full bg-muted px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                  Peek
-                </span>
-                <span className="text-sm text-muted-foreground">{peekedCanvasObject.title}</span>
-              </div>
-
-              <button
-                type="button"
-                className="rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-                onClick={closePeekSurface}
-                data-canvas-peek-close="true"
-              >
-                Close
-              </button>
-            </div>
-
-            <div className="h-[calc(100%-3rem)]">
-              {peekedCanvasObject.displayType === 'database' ? (
-                <CanvasDatabasePreviewSurface
-                  node={peekedCanvasObject.node}
-                  docId={peekedCanvasObject.sourceId}
-                  mode="peek"
-                  onSourceNodeMutated={() => {
-                    recordUndoBoundary('source-node')
-                  }}
-                  onSourceDocumentMutated={() => {
-                    recordUndoBoundary('source-document')
-                  }}
-                  onOpenDocument={(targetDocId) => {
-                    closePeekSurface()
-                    onOpenDocument?.(targetDocId, 'database')
-                  }}
-                  onSplitDocument={(targetDocId) => {
-                    closePeekSurface()
-                    onOpenDatabaseSplit?.(targetDocId)
-                  }}
-                />
-              ) : (
-                <CanvasInlinePageSurface
-                  node={peekedCanvasObject.node}
-                  docId={peekedCanvasObject.sourceId}
-                  variant={peekedCanvasObject.displayType === 'note' ? 'note' : 'page'}
-                  mode="peek"
-                  onSourceNodeMutated={() => {
-                    recordUndoBoundary('source-node')
-                  }}
-                  onOpenDocument={(targetDocId) => {
-                    closePeekSurface()
-                    onOpenDocument?.(targetDocId, 'page')
-                  }}
-                />
-              )}
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <CanvasPeekOverlay
+        peekedObject={peekedCanvasObject}
+        themeMode={theme.mode}
+        onClose={closePeekSurface}
+        onOpenDocument={(targetDocId, docType) => {
+          onOpenDocument?.(targetDocId, docType)
+        }}
+        onSplitDocument={onOpenDatabaseSplit ?? null}
+        onSourceNodeMutated={() => {
+          recordUndoBoundary('source-node')
+        }}
+        onSourceDocumentMutated={() => {
+          recordUndoBoundary('source-document')
+        }}
+      />
 
       {!hasNodes ? (
         <div className="pointer-events-none absolute bottom-28 left-1/2 z-20 w-full max-w-xl -translate-x-1/2 px-6">

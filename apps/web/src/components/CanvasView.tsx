@@ -18,9 +18,13 @@ import {
 } from '@xnetjs/canvas'
 import { CanvasSchema, DatabaseSchema, PageSchema } from '@xnetjs/data'
 import {
+  CanvasDatabasePreviewSurface,
+  CanvasInlinePageSurface,
+  CanvasPeekOverlay,
   renderCanvasNodeCard,
   shouldRenderCanvasNodeCard,
   useBlobService,
+  useCanvasPeek,
   type CanvasMediaGate
 } from '@xnetjs/editor/react'
 import { getCommandRegistry } from '@xnetjs/plugins'
@@ -34,6 +38,10 @@ import {
   CanvasSelectionHud,
   CanvasSourceReferencesPanel,
   CanvasWidgetNodeCard,
+  isPeekableCanvasDisplayType,
+  shouldActivateDatabasePreviewSurface,
+  shouldActivateInlinePageSurface,
+  useCanvasCommands,
   useCanvasQueryFrames,
   useCanvasSourceReferences,
   useCanvasUndoLadder,
@@ -275,6 +283,71 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
     placePrimitiveObject: controller.placePrimitiveObject,
     onUndoBoundary: recordSceneUndoBoundary
   })
+
+  // Peek (0277 E4): modal preview of the selected card's source without
+  // leaving the board; inline editing activates on zoomed-in selection.
+  const { peekState, peekedObject, openPeek, closePeekSurface } = useCanvasPeek({
+    doc,
+    documentMap: controller.documentMap,
+    selectedObject,
+    focusCanvasSurface: controller.focusCanvasSurface
+  })
+  const canvasPresenceIntent = useMemo(() => {
+    if (peekState) {
+      return {
+        activity: 'peeking' as const,
+        editingNodeId: peekState.nodeId
+      }
+    }
+
+    return controller.canvasPresenceIntent
+  }, [controller.canvasPresenceIntent, peekState])
+  // Canvas commands live in the shared registry (0277 E10); the web's
+  // registry-driven surfaces (key dispatch, palettes) see them directly.
+  useCanvasCommands({
+    docId,
+    controller,
+    extraCommands: [
+      {
+        id: 'canvas.peek',
+        title: 'Canvas: Peek at selection',
+        when: () => Boolean(selectedObject),
+        run: () => {
+          handlePeekSelectionRef.current?.()
+        }
+      }
+    ]
+  })
+  const handlePeekSelectionRef = useRef<(() => boolean) | null>(null)
+
+  const handlePeekSelection = useCallback((): boolean => {
+    if (!selectedObject) {
+      return false
+    }
+
+    canvasRef.current?.fitToRect(
+      {
+        x: selectedObject.node.position.x,
+        y: selectedObject.node.position.y,
+        width: selectedObject.node.position.width,
+        height: selectedObject.node.position.height
+      },
+      140
+    )
+
+    if (selectedObject.sourceId && isPeekableCanvasDisplayType(selectedObject.displayType)) {
+      openPeek({
+        nodeId: selectedObject.node.id,
+        sourceId: selectedObject.sourceId,
+        displayType: selectedObject.displayType
+      })
+    }
+
+    return true
+  }, [canvasRef, openPeek, selectedObject])
+  useEffect(() => {
+    handlePeekSelectionRef.current = handlePeekSelection
+  }, [handlePeekSelection])
 
   // Drain queued "Pin to Desk" entries (0273) through the normal ingestion
   // path — same card creation as a drag-drop, spread so a batch doesn't stack.
@@ -678,6 +751,9 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
           <CanvasSelectionHud
             controller={controller}
             themeMode={theme.mode}
+            onPeek={() => {
+              handlePeekSelection()
+            }}
             onOpen={() => {
               if (selectedObject?.node.id) {
                 handleNodeDoubleClick(selectedObject.node.id)
@@ -841,7 +917,7 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
           doc={doc}
           collectPerformanceMetrics={import.meta.env.DEV}
           awareness={awareness}
-          presenceIntent={controller.canvasPresenceIntent}
+          presenceIntent={canvasPresenceIntent}
           config={{
             showGrid: true,
             gridSize: 20,
@@ -866,6 +942,11 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
               return true
             }
 
+            if (peekedObject) {
+              closePeekSurface()
+              return true
+            }
+
             return false
           }}
           onSurfaceDrop={controller.handleSurfaceDrop}
@@ -875,6 +956,47 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
           renderNode={(node, context) => {
             if (node.type === 'widget') {
               return <CanvasWidgetNodeCard node={node} lod={context.lod} />
+            }
+
+            const sourceNodeId = node.sourceNodeId ?? node.linkedNodeId
+            const isPeekedNode = peekedObject?.node.id === node.id
+
+            if (sourceNodeId && !isPeekedNode && shouldActivateInlinePageSurface(node, context)) {
+              return (
+                <CanvasInlinePageSurface
+                  node={node}
+                  docId={sourceNodeId}
+                  variant={node.properties.shellRole === 'canvas-note' ? 'note' : 'page'}
+                  onSourceNodeMutated={() => {
+                    recordUndoBoundary('source-node')
+                  }}
+                  onOpenDocument={(targetDocId) =>
+                    void navigate({ to: '/doc/$docId', params: { docId: targetDocId } })
+                  }
+                />
+              )
+            }
+
+            if (
+              sourceNodeId &&
+              !isPeekedNode &&
+              shouldActivateDatabasePreviewSurface(node, context)
+            ) {
+              return (
+                <CanvasDatabasePreviewSurface
+                  node={node}
+                  docId={sourceNodeId}
+                  onSourceNodeMutated={() => {
+                    recordUndoBoundary('source-node')
+                  }}
+                  onSourceDocumentMutated={() => {
+                    recordUndoBoundary('source-document')
+                  }}
+                  onOpenDocument={(targetDocId) =>
+                    void navigate({ to: '/db/$dbId', params: { dbId: targetDocId } })
+                  }
+                />
+              )
             }
 
             if (shouldRenderCanvasNodeCard(node)) {
@@ -897,6 +1019,26 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
           targets={queryFrameTargets}
           manualRefreshRequests={manualQueryFrameRefreshRequests}
           schemas={CANVAS_DASHBOARD_SCHEMA_REGISTRY}
+        />
+
+        <CanvasPeekOverlay
+          peekedObject={peekedObject}
+          themeMode={theme.mode}
+          onClose={closePeekSurface}
+          onOpenDocument={(targetDocId, docType) => {
+            if (docType === 'database') {
+              void navigate({ to: '/db/$dbId', params: { dbId: targetDocId } })
+              return
+            }
+
+            void navigate({ to: '/doc/$docId', params: { docId: targetDocId } })
+          }}
+          onSourceNodeMutated={() => {
+            recordUndoBoundary('source-node')
+          }}
+          onSourceDocumentMutated={() => {
+            recordUndoBoundary('source-document')
+          }}
         />
 
         {/* Flagged long-press radial menu on Desk cards (0273 Phase 5). */}
