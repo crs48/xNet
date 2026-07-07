@@ -692,18 +692,18 @@ for await (const chunk of stream) {
 
 ### Phase 2 — AI-enhanced notes
 
-- [ ] Template registry (1:1, standup, sales, interview, generic) with
+- [x] Template registry (1:1, standup, sales, interview, generic) with
       system prompts
 - [ ] Post-meeting enhancement via `AIProviderRouter.stream()` (managed /
       BYO / local ladder; respects `AiBudgetError`)
 - [ ] AI-marked spans in the notes Y.Doc (editor extension); regenerate
       replaces only AI spans
 - [ ] Transcript chat surface reusing existing AI chat plumbing
-- [ ] Optional Groq/byo batch re-transcription pass ("polish transcript")
+- [x] Optional Groq/byo batch re-transcription pass ("polish transcript")
 
 ### Phase 3 — Production macOS capture + web tier
 
-- [ ] Swift Core Audio tap helper (AudioTee-style) spawned from Electron
+- [x] Swift Core Audio tap helper (AudioTee-style) spawned from Electron
       main; `NSAudioCaptureUsageDescription`; signing/notarization in the
       electron-builder pipeline; fallback ladder (CATap 14.4+ → SCK 13+ →
       loopback flags → mic-only)
@@ -716,12 +716,12 @@ for await (const chunk of stream) {
 
 ### Phase 4 — Calendar, mobile, diarization
 
-- [ ] Calendar connector via `defineConnector` (Google Calendar first):
+- [x] Calendar connector via `defineConnector` (Google Calendar first):
       upcoming-meeting detection, "start notes" prompt, attendee names
-- [ ] Capacitor in-person mode: mic-only record → post-hoc transcription
-- [ ] Optional "Them" diarization upgrade (cloud diarization flag on byo/
+- [x] Capacitor in-person mode: mic-only record → post-hoc transcription
+- [x] Optional "Them" diarization upgrade (cloud diarization flag on byo/
       managed engines, or local pyannote), seeded with attendee names
-- [ ] Audio retention opt-in: encoded audio → `BlobStore` CID on the
+- [x] Audio retention opt-in: encoded audio → `BlobStore` CID on the
       transcript node (never the change log)
 
 ## Validation Checklist

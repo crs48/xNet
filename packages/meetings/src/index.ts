@@ -30,6 +30,15 @@ export {
   type CapturePlatformHints,
   type CaptureCapability
 } from './capture/capabilities'
+export { detectChannelBleed, type BleedOptions, type BleedResult } from './capture/echo'
+export { InPersonRecorder, type InPersonFinishOptions } from './capture/in-person'
+export {
+  encodeWav,
+  persistMeetingAudio,
+  type RetainedAudioRef,
+  type PutBlob
+} from './capture/retain-audio'
+export { applyDiarization, type SpeakerDiarizer, type SpeakerTurn } from './enhance/diarization'
 
 export { selectEngine, type EngineSelection } from './engines/select'
 

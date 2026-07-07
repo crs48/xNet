@@ -296,8 +296,21 @@ contextBridge.exposeInMainWorld('xnetServices', {
 // the main-process-hosted native STT engines (Parakeet / whisper.cpp).
 contextBridge.exposeInMainWorld('xnetMeetings', {
   captureStatus: () => ipcRenderer.invoke('xnet:meetings:capture-status'),
+  permissions: () => ipcRenderer.invoke('xnet:meetings:permissions'),
   armLoopback: () => ipcRenderer.invoke('xnet:meetings:arm-loopback'),
   disarmLoopback: () => ipcRenderer.invoke('xnet:meetings:disarm-loopback'),
+  startTap: () => ipcRenderer.invoke('xnet:meetings:start-tap'),
+  stopTap: () => ipcRenderer.invoke('xnet:meetings:stop-tap'),
+  onTapPcm: (handler: (chunk: { samples: Float32Array; sampleRate: number }) => void) => {
+    const listener = (_event: unknown, chunk: Parameters<typeof handler>[0]) => handler(chunk)
+    ipcRenderer.on('xnet:meetings:tap-pcm', listener)
+    return () => ipcRenderer.removeListener('xnet:meetings:tap-pcm', listener)
+  },
+  onTapError: (handler: (error: { message: string }) => void) => {
+    const listener = (_event: unknown, error: { message: string }) => handler(error)
+    ipcRenderer.on('xnet:meetings:tap-error', listener)
+    return () => ipcRenderer.removeListener('xnet:meetings:tap-error', listener)
+  },
   engines: () => ipcRenderer.invoke('xnet:meetings:engines'),
   ensureEngine: (engineId: string) => ipcRenderer.invoke('xnet:meetings:ensure-engine', engineId),
   onEngineProgress: (

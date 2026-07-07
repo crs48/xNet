@@ -25,7 +25,8 @@ import { join } from 'path'
 import { EngineRegistry } from '@xnetjs/dictation'
 import { meetingsFeatureModule } from '@xnetjs/meetings'
 import { assertSystemAudio } from '@xnetjs/plugins'
-import { app, ipcMain, session } from 'electron'
+import { app, ipcMain, session, systemPreferences } from 'electron'
+import { resolveSystemAudioPath, startCoreAudioTap, type TapSession } from './core-audio-tap'
 import { ParakeetSherpaEngine } from './engines/parakeet-sherpa'
 import { WhisperCppEngine } from './engines/whisper-cpp'
 
@@ -63,8 +64,54 @@ export function setupMeetingCaptureIPC(): void {
   ipcMain.handle('xnet:meetings:capture-status', () => ({
     systemAudioAvailable: systemAudioAvailable(),
     platform: process.platform,
-    loopbackArmed
+    loopbackArmed,
+    // The 0279 fallback ladder position this machine resolves to.
+    systemAudioPath: resolveSystemAudioPath()
   }))
+
+  // Pre-flight permission state, so the recorder can explain the exact TCC
+  // prompt the user is about to see (and detect a prior denial) instead of
+  // failing opaquely mid-start (0279 permissions UX).
+  ipcMain.handle('xnet:meetings:permissions', () => {
+    if (process.platform !== 'darwin') {
+      return { microphone: 'granted', systemAudio: 'not-required' }
+    }
+    return {
+      microphone: systemPreferences.getMediaAccessStatus('microphone'),
+      // Chromium-loopback needs Screen Recording; the CATap helper triggers
+      // the (unqueryable pre-prompt) audio-capture category instead.
+      systemAudio:
+        resolveSystemAudioPath() === 'core-audio-tap'
+          ? 'audio-capture-tcc'
+          : systemPreferences.getMediaAccessStatus('screen')
+    }
+  })
+
+  // --- Core Audio tap streaming (macOS 14.4+, production path) -------------
+
+  let tap: TapSession | null = null
+  ipcMain.handle('xnet:meetings:start-tap', (event) => {
+    assertCapability(event.senderFrame)
+    if (resolveSystemAudioPath() !== 'core-audio-tap') return { started: false }
+    const sender = event.sender
+    tap?.stop()
+    tap = startCoreAudioTap({
+      onPcm: (samples, sampleRate) => {
+        if (!sender.isDestroyed()) sender.send('xnet:meetings:tap-pcm', { samples, sampleRate })
+      },
+      onError: (message) => {
+        // Degrade mid-session: the renderer drops to the next ladder rung.
+        if (!sender.isDestroyed()) sender.send('xnet:meetings:tap-error', { message })
+      }
+    })
+    return { started: true }
+  })
+
+  ipcMain.handle('xnet:meetings:stop-tap', () => {
+    tap?.stop()
+    tap = null
+    return { started: false }
+  })
 
   // Arm loopback for the next getDisplayMedia call from the renderer.
   ipcMain.handle('xnet:meetings:arm-loopback', (event) => {
