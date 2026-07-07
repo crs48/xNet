@@ -1,5 +1,12 @@
 # @xnetjs/unreal
 
+## 0.0.9
+
+### Patch Changes
+
+- Updated dependencies [[`bc6a088`](https://github.com/crs48/xNet/commit/bc6a088bf778e7126f305ea5af7c54764074de3c)]:
+  - @xnetjs/data@0.5.0
+
 ## 0.0.8
 
 ### Patch Changes
