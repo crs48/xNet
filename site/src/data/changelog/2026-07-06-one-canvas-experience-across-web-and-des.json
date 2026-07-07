@@ -1,0 +1,8 @@
+{
+  "id": "2026-07-06-one-canvas-experience-across-web-and-des",
+  "date": "July 6, 2026",
+  "title": "One canvas experience across web and desktop",
+  "summary": "The web and desktop canvases now share one core: media and PDF cards, dashboard widgets, query frames, and pinned records render identically on both (no more degraded cards after sync), and the web gains the desktop's power features — peek and inline editing of pages and databases, the selection action bar, linked-copies lookup, and multi-domain undo. Scene undo on the desktop canvas is fixed, and inside a focused canvas Cmd+Z can now undo an inline source edit when that was your latest change.",
+  "highlights": [],
+  "tags": ["app", "sync"]
+}
