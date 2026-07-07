@@ -183,6 +183,20 @@ export {
   type Transcription,
   type TranscriptionSourceId
 } from './transcription'
+// Meeting schema pack (exploration 0279)
+export {
+  MeetingSchema,
+  MeetingTranscriptSchema,
+  MEETING_SCHEMA_IRI,
+  MEETING_TRANSCRIPT_SCHEMA_IRI,
+  MEETING_CHANNELS,
+  MEETING_TEMPLATE_IDS,
+  type Meeting,
+  type MeetingTranscript,
+  type MeetingChannel,
+  type MeetingSegment,
+  type MeetingTemplateId
+} from './meeting'
 export { CanvasSchema, type Canvas } from './canvas'
 export {
   MapSchema,
@@ -498,6 +512,10 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/MediaAsset@1.0.0': () => import('./media-asset').then((m) => m.MediaAssetSchema),
   'xnet://xnet.fyi/Transcription@1.0.0': () =>
     import('./transcription').then((m) => m.TranscriptionSchema),
+  // Meeting schema pack (exploration 0279)
+  'xnet://xnet.fyi/Meeting@1.0.0': () => import('./meeting').then((m) => m.MeetingSchema),
+  'xnet://xnet.fyi/MeetingTranscript@1.0.0': () =>
+    import('./meeting').then((m) => m.MeetingTranscriptSchema),
   'xnet://xnet.fyi/Canvas@1.0.0': () => import('./canvas').then((m) => m.CanvasSchema),
   'xnet://xnet.fyi/Map@1.0.0': () => import('./map').then((m) => m.MapSchema),
   'xnet://xnet.fyi/Comment@1.0.0': () => import('./comment').then((m) => m.CommentSchema),
@@ -609,6 +627,9 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/MediaAsset': () => import('./media-asset').then((m) => m.MediaAssetSchema),
   'xnet://xnet.fyi/Transcription': () =>
     import('./transcription').then((m) => m.TranscriptionSchema),
+  'xnet://xnet.fyi/Meeting': () => import('./meeting').then((m) => m.MeetingSchema),
+  'xnet://xnet.fyi/MeetingTranscript': () =>
+    import('./meeting').then((m) => m.MeetingTranscriptSchema),
   'xnet://xnet.fyi/Canvas': () => import('./canvas').then((m) => m.CanvasSchema),
   'xnet://xnet.fyi/Map': () => import('./map').then((m) => m.MapSchema),
   'xnet://xnet.fyi/Comment': () => import('./comment').then((m) => m.CommentSchema),

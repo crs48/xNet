@@ -176,13 +176,13 @@ by default in March 2026 — a structural tailwind for the botless approach.
 
 ### System-audio capture per platform (the hard part)
 
-| Platform | Reality |
-|---|---|
-| **Windows (Electron)** | The easy one. WASAPI loopback has worked forever with no permission prompt; Electron's `session.setDisplayMediaRequestHandler(..., { audio: 'loopback' })` exposes it first-class. Process-scoped loopback (capture only `zoom.exe`) exists since Win10 20H1. |
-| **macOS (Electron)** | Historically no system audio via Chromium. Today: `audio: 'loopback'` works from ~macOS 13 with Chromium flags (`MacLoopbackAudioForScreenShare`, SCK-based variants on 14.2+; the `electron-audio-loopback` npm package wraps this driverlessly) but is flag-dependent with open breakage issues (electron#49607). Serious apps (Granola, Notion, Recall.ai's writeup) ship a **small native Swift helper** using ScreenCaptureKit (`SCStreamConfiguration.capturesAudio`, macOS 13+, Screen Recording TCC) or **Core Audio process taps** (`AudioHardwareCreateProcessTap`, macOS 14.2+/formalized 14.4, gated by `NSAudioCaptureUsageDescription` — no screen-recording prompt) and pipe PCM to the JS layer. Reference code: `insidegui/AudioCap`, AudioTee (Swift binary + Node wrapper). |
-| **Pure web** | `getDisplayMedia({ audio: true })`: Chrome gives **tab audio** on all OSes and whole-system audio **only on Windows/ChromeOS**, behind a non-default checkbox; Firefox ignores the audio constraint; Safari has none. So web capture = mic + best-effort Chrome tab audio (fine for Meet-in-a-tab, useless for the Zoom desktop client). This is why Notion's web tier is mic-only. |
-| **iOS (Capacitor)** | No cross-app or call audio access, period (ReplayKit records only your own app's audio). Mic-only in-person mode — exactly Granola's iPhone shape (cache audio, post-hoc transcribe + diarize). |
-| **Android (Capacitor)** | `AudioPlaybackCapture` (10+) can't capture `USAGE_VOICE_COMMUNICATION` streams — meeting apps are exempt. Practically mic-only too. |
+| Platform                | Reality                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Windows (Electron)**  | The easy one. WASAPI loopback has worked forever with no permission prompt; Electron's `session.setDisplayMediaRequestHandler(..., { audio: 'loopback' })` exposes it first-class. Process-scoped loopback (capture only `zoom.exe`) exists since Win10 20H1.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| **macOS (Electron)**    | Historically no system audio via Chromium. Today: `audio: 'loopback'` works from ~macOS 13 with Chromium flags (`MacLoopbackAudioForScreenShare`, SCK-based variants on 14.2+; the `electron-audio-loopback` npm package wraps this driverlessly) but is flag-dependent with open breakage issues (electron#49607). Serious apps (Granola, Notion, Recall.ai's writeup) ship a **small native Swift helper** using ScreenCaptureKit (`SCStreamConfiguration.capturesAudio`, macOS 13+, Screen Recording TCC) or **Core Audio process taps** (`AudioHardwareCreateProcessTap`, macOS 14.2+/formalized 14.4, gated by `NSAudioCaptureUsageDescription` — no screen-recording prompt) and pipe PCM to the JS layer. Reference code: `insidegui/AudioCap`, AudioTee (Swift binary + Node wrapper). |
+| **Pure web**            | `getDisplayMedia({ audio: true })`: Chrome gives **tab audio** on all OSes and whole-system audio **only on Windows/ChromeOS**, behind a non-default checkbox; Firefox ignores the audio constraint; Safari has none. So web capture = mic + best-effort Chrome tab audio (fine for Meet-in-a-tab, useless for the Zoom desktop client). This is why Notion's web tier is mic-only.                                                                                                                                                                                                                                                                                                                                                                                                            |
+| **iOS (Capacitor)**     | No cross-app or call audio access, period (ReplayKit records only your own app's audio). Mic-only in-person mode — exactly Granola's iPhone shape (cache audio, post-hoc transcribe + diarize).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| **Android (Capacitor)** | `AudioPlaybackCapture` (10+) can't capture `USAGE_VOICE_COMMUNICATION` streams — meeting apps are exempt. Practically mic-only too.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 
 **Recall.ai's botless-recorder writeup** (best implementation narrative):
 Electron shell for orchestration/permissions + Swift helper running SCStream
@@ -194,23 +194,23 @@ the meeting app's UI, not device state.
 
 Local / on-device:
 
-| Engine | Size | Speed | Notes |
-|---|---|---|---|
-| whisper.cpp large-v3-turbo | 809 M | ~8× real-time on Apple Silicon (Metal/CoreML) | Best local speed/quality point; WER ≈ large-v3 (13.4 vs 13.2 long-form) |
-| whisper.cpp tiny→large-v3 | 39 M–1.55 B | RTF ~0.02 (tiny) → ~0.45 (large-v3) on M2 | The MacWhisper/Meetily default; Node bindings exist (`smart-whisper`) |
-| Moonshine streaming (Useful Sensors) | 27–245 MB | true streaming encoder, edge-class | ~6.65 % WER English; English-focused |
-| NVIDIA Parakeet-TDT 0.6B v2/v3 | 600 M (int8 ONNX ≈ 0.6–0.7 GB) | RTFx ≈ 3386 on GPU; comfortably real-time on desktop CPU via sherpa-onnx int8 | 6.05 % WER — #1 Open ASR leaderboard; punctuation + word timestamps built in; v2 English-only, v3 adds 25 European languages. Runs in Node via the **sherpa-onnx addon** (`sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8` has a shipped nodejs example) or on Apple ANE via FluidAudio (Swift/CoreML) — Meetily uses it for "4× faster" live transcription |
-| transformers.js Whisper (browser) | tiny/base, ~76 MB quantized | ~5–8× real-time with WebGPU; WASM can be sub-real-time | The pure-web tier; already adjacent to 0252 local-models work |
-| Apple SpeechAnalyzer (macOS 26) | OS-bundled | ~2.2× faster than local large-v3-turbo | Free, on-device; the obvious macOS-native engine once macOS 26 is a floor |
+| Engine                               | Size                           | Speed                                                                         | Notes                                                                                                                                                                                                                                                                                                                                                   |
+| ------------------------------------ | ------------------------------ | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| whisper.cpp large-v3-turbo           | 809 M                          | ~8× real-time on Apple Silicon (Metal/CoreML)                                 | Best local speed/quality point; WER ≈ large-v3 (13.4 vs 13.2 long-form)                                                                                                                                                                                                                                                                                 |
+| whisper.cpp tiny→large-v3            | 39 M–1.55 B                    | RTF ~0.02 (tiny) → ~0.45 (large-v3) on M2                                     | The MacWhisper/Meetily default; Node bindings exist (`smart-whisper`)                                                                                                                                                                                                                                                                                   |
+| Moonshine streaming (Useful Sensors) | 27–245 MB                      | true streaming encoder, edge-class                                            | ~6.65 % WER English; English-focused                                                                                                                                                                                                                                                                                                                    |
+| NVIDIA Parakeet-TDT 0.6B v2/v3       | 600 M (int8 ONNX ≈ 0.6–0.7 GB) | RTFx ≈ 3386 on GPU; comfortably real-time on desktop CPU via sherpa-onnx int8 | 6.05 % WER — #1 Open ASR leaderboard; punctuation + word timestamps built in; v2 English-only, v3 adds 25 European languages. Runs in Node via the **sherpa-onnx addon** (`sherpa-onnx-nemo-parakeet-tdt-0.6b-v2-int8` has a shipped nodejs example) or on Apple ANE via FluidAudio (Swift/CoreML) — Meetily uses it for "4× faster" live transcription |
+| transformers.js Whisper (browser)    | tiny/base, ~76 MB quantized    | ~5–8× real-time with WebGPU; WASM can be sub-real-time                        | The pure-web tier; already adjacent to 0252 local-models work                                                                                                                                                                                                                                                                                           |
+| Apple SpeechAnalyzer (macOS 26)      | OS-bundled                     | ~2.2× faster than local large-v3-turbo                                        | Free, on-device; the obvious macOS-native engine once macOS 26 is a floor                                                                                                                                                                                                                                                                               |
 
 Cloud / streaming:
 
-| Provider | Price | Diarization |
-|---|---|---|
-| Deepgram Nova-3 | $0.0077/min streaming EN ($0.46/h); batch from $0.0043/min | yes (~+$0.002/min) |
-| AssemblyAI Universal-Streaming | $0.15/h ($0.0025/min); streaming diarization +$0.06/h | yes, incl. streaming |
-| OpenAI whisper-1 / gpt-4o-transcribe | $0.006/min; mini $0.003/min | no |
-| Groq whisper-large-v3-turbo | **$0.04/h** (~$0.00067/min), 216× real-time | no — ideal "re-transcribe at higher quality after the meeting" tier |
+| Provider                             | Price                                                      | Diarization                                                         |
+| ------------------------------------ | ---------------------------------------------------------- | ------------------------------------------------------------------- |
+| Deepgram Nova-3                      | $0.0077/min streaming EN ($0.46/h); batch from $0.0043/min | yes (~+$0.002/min)                                                  |
+| AssemblyAI Universal-Streaming       | $0.15/h ($0.0025/min); streaming diarization +$0.06/h      | yes, incl. streaming                                                |
+| OpenAI whisper-1 / gpt-4o-transcribe | $0.006/min; mini $0.003/min                                | no                                                                  |
+| Groq whisper-large-v3-turbo          | **$0.04/h** (~$0.00067/min), 216× real-time                | no — ideal "re-transcribe at higher quality after the meeting" tier |
 
 Diarization pragmatics: channel-based Me/Them costs nothing and covers 1:1
 perfectly; splitting "Them" costs real money/complexity (pyannote locally
@@ -291,20 +291,20 @@ local whisper-large-v3-turbo, SQLite+FTS5), **AudioCap/AudioTee**
 
 ### A. Capture strategy
 
-| Option | Pros | Cons |
-|---|---|---|
-| **A1. Bot joins the call** (Recall.ai-style) | Works from any device incl. web/mobile; per-speaker audio from the platform | Antithetical to local-first (server infra per meeting); bots increasingly blocked/flagged (Meet, 2026); per-platform integrations; creepy UX |
-| **A2. Pure-web capture only** | Zero native work | Mic-only on macOS/Safari/Firefox; can't hear the Zoom desktop client; unreliable checkbox UX — Notion/Granola both rejected this as the primary tier |
-| **A3. Botless native capture, tiered** (recommended) | Works with every meeting surface; no bot; the Granola/Notion-proven shape; degrades gracefully (desktop full → web mic+tab → mobile mic) | Real native work on macOS; permissions UX; per-platform code |
-| **A4. Manual upload/import only** | Trivial | Not the product; useful as a supplementary path (Notion supports it) |
+| Option                                               | Pros                                                                                                                                     | Cons                                                                                                                                                 |
+| ---------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A1. Bot joins the call** (Recall.ai-style)         | Works from any device incl. web/mobile; per-speaker audio from the platform                                                              | Antithetical to local-first (server infra per meeting); bots increasingly blocked/flagged (Meet, 2026); per-platform integrations; creepy UX         |
+| **A2. Pure-web capture only**                        | Zero native work                                                                                                                         | Mic-only on macOS/Safari/Firefox; can't hear the Zoom desktop client; unreliable checkbox UX — Notion/Granola both rejected this as the primary tier |
+| **A3. Botless native capture, tiered** (recommended) | Works with every meeting surface; no bot; the Granola/Notion-proven shape; degrades gracefully (desktop full → web mic+tab → mobile mic) | Real native work on macOS; permissions UX; per-platform code                                                                                         |
+| **A4. Manual upload/import only**                    | Trivial                                                                                                                                  | Not the product; useful as a supplementary path (Notion supports it)                                                                                 |
 
 Within A3, the macOS system-audio sub-options:
 
-| Sub-option | Pros | Cons |
-|---|---|---|
-| **A3a. `electron-audio-loopback` / Chromium flags** | Pure JS, no signing complexity, macOS 12.3+ | Flag-dependent, open upstream breakage (electron#49607); screen-recording TCC prompt; fragile across Electron upgrades |
-| **A3b. Native Swift helper (Core Audio tap, 14.2+/14.4)** | Audio-capture TCC only (no screen-recording scare prompt); robust; per-process capture possible; reference code exists (AudioCap/AudioTee) | Requires shipping+signing a helper binary; macOS 14.4+ floor for the clean TCC path |
-| **A3c. Native Swift helper (ScreenCaptureKit, 13+)** | Broader OS support than taps; can also do per-app capture | Screen Recording permission (heavier prompt); more moving parts |
+| Sub-option                                                | Pros                                                                                                                                       | Cons                                                                                                                   |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------- |
+| **A3a. `electron-audio-loopback` / Chromium flags**       | Pure JS, no signing complexity, macOS 12.3+                                                                                                | Flag-dependent, open upstream breakage (electron#49607); screen-recording TCC prompt; fragile across Electron upgrades |
+| **A3b. Native Swift helper (Core Audio tap, 14.2+/14.4)** | Audio-capture TCC only (no screen-recording scare prompt); robust; per-process capture possible; reference code exists (AudioCap/AudioTee) | Requires shipping+signing a helper binary; macOS 14.4+ floor for the clean TCC path                                    |
+| **A3c. Native Swift helper (ScreenCaptureKit, 13+)**      | Broader OS support than taps; can also do per-app capture                                                                                  | Screen Recording permission (heavier prompt); more moving parts                                                        |
 
 Recommendation: **start A3a behind the capability flag** (fastest to a working
 end-to-end pipeline; Windows needs nothing extra), and **plan A3b as the
@@ -315,39 +315,39 @@ macOS 14.4.
 
 ### B. Transcription engine strategy
 
-| Option | Pros | Cons |
-|---|---|---|
-| **B1. Cloud-only (Deepgram/AssemblyAI)** | Best streaming accuracy + diarization; least device load | Betrays local-first default; per-minute cost; audio leaves device — Granola's weakest flank |
-| **B2. Local-only, single hardcoded model** | Fully private; free; offline | Model download; battery/CPU during meetings; weaker on low-end hardware; browsers need WebGPU; one model can't cover EN-accuracy + multilingual + low-end at once |
-| **B3. Swappable-engine ladder: local default, BYO/managed cloud opt-in** (recommended) | Matches the existing AI-provider ladder (0208/0252) and `EngineRegistry` design exactly; privacy default; accuracy tier for those who want it; Groq batch re-transcription as a cheap "polish afterwards" tier; users/devices pick the model that fits | Two+ paths to maintain (the port already absorbs this) |
+| Option                                                                                 | Pros                                                                                                                                                                                                                                                   | Cons                                                                                                                                                              |
+| -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **B1. Cloud-only (Deepgram/AssemblyAI)**                                               | Best streaming accuracy + diarization; least device load                                                                                                                                                                                               | Betrays local-first default; per-minute cost; audio leaves device — Granola's weakest flank                                                                       |
+| **B2. Local-only, single hardcoded model**                                             | Fully private; free; offline                                                                                                                                                                                                                           | Model download; battery/CPU during meetings; weaker on low-end hardware; browsers need WebGPU; one model can't cover EN-accuracy + multilingual + low-end at once |
+| **B3. Swappable-engine ladder: local default, BYO/managed cloud opt-in** (recommended) | Matches the existing AI-provider ladder (0208/0252) and `EngineRegistry` design exactly; privacy default; accuracy tier for those who want it; Groq batch re-transcription as a cheap "polish afterwards" tier; users/devices pick the model that fits | Two+ paths to maintain (the port already absorbs this)                                                                                                            |
 
 Within B3, the **local engine choice per platform** — all behind the same
 `DictationEngine` port, selectable in settings and auto-picked by language
 and hardware:
 
-| Engine (local) | Where | Role |
-|---|---|---|
+| Engine (local)                                                                    | Where                 | Role                                                                                                                                                                                                                                              |
+| --------------------------------------------------------------------------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Parakeet-TDT-0.6B-v2 via sherpa-onnx Node addon** (recommended desktop default) | Electron data process | Best English WER (6.05 %), real-time on CPU with int8, punctuation + word-level timestamps (feed segments directly); English-only — auto-fall-back when session language ≠ EN. Parakeet v3 (multilingual, 25 langs) is a drop-in model swap later |
-| **whisper.cpp large-v3-turbo** (via `smart-whisper` or addon) | Electron data process | Multilingual local tier (~100 languages); Metal/CoreML acceleration on macOS |
-| **Apple SpeechAnalyzer** | macOS 26+ helper | Free OS-bundled engine; zero download; add when macOS 26 share justifies it |
-| **transformers.js Whisper (WebGPU)** | Web app worker | Pure-web local tier (0252-adjacent); tiny/base quality — label as "draft quality" |
-| **Moonshine streaming** | any | Candidate for a true-streaming engine once a `StreamingDictationEngine` capability exists |
+| **whisper.cpp large-v3-turbo** (via `smart-whisper` or addon)                     | Electron data process | Multilingual local tier (~100 languages); Metal/CoreML acceleration on macOS                                                                                                                                                                      |
+| **Apple SpeechAnalyzer**                                                          | macOS 26+ helper      | Free OS-bundled engine; zero download; add when macOS 26 share justifies it                                                                                                                                                                       |
+| **transformers.js Whisper (WebGPU)**                                              | Web app worker        | Pure-web local tier (0252-adjacent); tiny/base quality — label as "draft quality"                                                                                                                                                                 |
+| **Moonshine streaming**                                                           | any                   | Candidate for a true-streaming engine once a `StreamingDictationEngine` capability exists                                                                                                                                                         |
 
 ### C. Data model
 
-| Option | Pros | Cons |
-|---|---|---|
-| **C1. Reuse `Transcription` nodes per utterance** | No new schema | Thousands of nodes per meeting; change-log bloat (0249 lesson); no meeting container |
-| **C2. One `Meeting` node holding everything (notes Y.Doc + transcript text + segments JSON)** | Single node; simple | Segment JSON grows unbounded in LWW payload; notes/transcript update cadences differ |
-| **C3. `Meeting` node (metadata + Yjs notes) + one `MeetingTranscript` node (FTS text + segments) per meeting** (recommended) | Notes body is a normal Page-like Y.Doc; transcript updates batch into the sibling node without churning the meeting node; FTS on transcript text; optional audio CID follows the existing `file` pattern | Two schemas instead of one |
+| Option                                                                                                                       | Pros                                                                                                                                                                                                     | Cons                                                                                 |
+| ---------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| **C1. Reuse `Transcription` nodes per utterance**                                                                            | No new schema                                                                                                                                                                                            | Thousands of nodes per meeting; change-log bloat (0249 lesson); no meeting container |
+| **C2. One `Meeting` node holding everything (notes Y.Doc + transcript text + segments JSON)**                                | Single node; simple                                                                                                                                                                                      | Segment JSON grows unbounded in LWW payload; notes/transcript update cadences differ |
+| **C3. `Meeting` node (metadata + Yjs notes) + one `MeetingTranscript` node (FTS text + segments) per meeting** (recommended) | Notes body is a normal Page-like Y.Doc; transcript updates batch into the sibling node without churning the meeting node; FTS on transcript text; optional audio CID follows the existing `file` pattern | Two schemas instead of one                                                           |
 
 ### D. Enhancement flow
 
-| Option | Pros | Cons |
-|---|---|---|
-| **D1. Live enhancement during the meeting** | Wow factor | Burns tokens continuously; distracting; Granola doesn't |
-| **D2. One-shot post-meeting enhancement, streamed** (recommended) | Matches proven UX; single ~15k-token call per hour of meeting; streams into the editor; user bullets stay authoritative (rendered distinct from AI additions) | None significant |
-| **D3. Enhancement + transcript chat** | The expected fast-follow | Needs D2 first; falls out of existing AI chat surface |
+| Option                                                            | Pros                                                                                                                                                          | Cons                                                    |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- |
+| **D1. Live enhancement during the meeting**                       | Wow factor                                                                                                                                                    | Burns tokens continuously; distracting; Granola doesn't |
+| **D2. One-shot post-meeting enhancement, streamed** (recommended) | Matches proven UX; single ~15k-token call per hour of meeting; streams into the editor; user bullets stay authoritative (rendered distinct from AI additions) | None significant                                        |
+| **D3. Enhancement + transcript chat**                             | The expected fast-follow                                                                                                                                      | Needs D2 first; falls out of existing AI chat surface   |
 
 ## Recommendation
 
@@ -507,12 +507,12 @@ export const MeetingSchema = defineSchema({
     visibility: select({
       options: [
         { id: 'private', name: 'Private' },
-        { id: 'space', name: 'Space' },
+        { id: 'space', name: 'Space' }
       ] as const,
-      default: 'private',
-    }),
+      default: 'private'
+    })
   },
-  authorization: spaceCascadeAuthorization(),
+  authorization: spaceCascadeAuthorization()
 })
 ```
 
@@ -526,12 +526,12 @@ async function pumpChannel(
   channel: (typeof CHANNELS)[number],
   chunks: AsyncIterable<Float32Array>, // VAD-split mono 16 kHz windows
   engine: DictationEngine,
-  sink: SegmentBatcher,
+  sink: SegmentBatcher
 ) {
   for await (const samples of chunks) {
     const result = await engine.transcribe(
       { kind: 'pcm', samples, sampleRate: 16_000 },
-      { language: sessionLanguageHint },
+      { language: sessionLanguageHint }
     )
     sink.push(channel, result) // batches LWW upserts every 30-60s of speech
   }
@@ -550,9 +550,9 @@ export class ParakeetSherpaEngine implements DictationEngine {
   descriptor = {
     id: 'parakeet-sherpa',
     modelId: 'parakeet-tdt-0.6b-v2-int8', // swappable: v3 = multilingual
-    languages: ['en'],                    // registry filters on this
+    languages: ['en'], // registry filters on this
     costClass: 'local-cpu',
-    accepts: ['pcm'],
+    accepts: ['pcm']
   } as const
 
   async ensureModel(onProgress?: (p: number) => void) {
@@ -571,7 +571,7 @@ export class ParakeetSherpaEngine implements DictationEngine {
 
 // selection: settings override > language match > hardware cost class
 registry.register(new ParakeetSherpaEngine()) // desktop EN default
-registry.register(new WhisperCppEngine())     // multilingual fallback
+registry.register(new WhisperCppEngine()) // multilingual fallback
 registry.register(new ByoEndpointEngine(cfg)) // cloud opt-in
 const engine = registry.select({ language, preference: userSetting })
 ```
@@ -586,12 +586,12 @@ const stream = provider.stream({
     {
       role: 'user',
       content: buildEnhancePrompt({
-        roughNotes,        // user's bullets, timestamped
-        transcript,        // channel-labelled: [me]/[them]
-        calendar: context, // title + attendees, when available
-      }),
-    },
-  ],
+        roughNotes, // user's bullets, timestamped
+        transcript, // channel-labelled: [me]/[them]
+        calendar: context // title + attendees, when available
+      })
+    }
+  ]
 })
 for await (const chunk of stream) {
   if (chunk.type === 'text') appendAiMarkedText(notesDoc, chunk.text)
@@ -655,7 +655,8 @@ for await (const chunk of stream) {
 ## Implementation Checklist
 
 ### Phase 1 — Capture + live transcript (desktop-first)
-- [ ] `Meeting@1.0.0` + `MeetingTranscript@1.0.0` schemas in
+
+- [x] `Meeting@1.0.0` + `MeetingTranscript@1.0.0` schemas in
       `packages/data/src/schema/schemas/` (Page/Transcription patterns,
       `spaceCascadeAuthorization`, private-by-default), exported via the
       schemas sub-barrel; authz coverage test passes
@@ -690,6 +691,7 @@ for await (const chunk of stream) {
       `views`, new `meetings` — fixed-core rules apply)
 
 ### Phase 2 — AI-enhanced notes
+
 - [ ] Template registry (1:1, standup, sales, interview, generic) with
       system prompts
 - [ ] Post-meeting enhancement via `AIProviderRouter.stream()` (managed /
@@ -700,6 +702,7 @@ for await (const chunk of stream) {
 - [ ] Optional Groq/byo batch re-transcription pass ("polish transcript")
 
 ### Phase 3 — Production macOS capture + web tier
+
 - [ ] Swift Core Audio tap helper (AudioTee-style) spawned from Electron
       main; `NSAudioCaptureUsageDescription`; signing/notarization in the
       electron-builder pipeline; fallback ladder (CATap 14.4+ → SCK 13+ →
@@ -712,6 +715,7 @@ for await (const chunk of stream) {
       (Notion-pattern enterprise controls)
 
 ### Phase 4 — Calendar, mobile, diarization
+
 - [ ] Calendar connector via `defineConnector` (Google Calendar first):
       upcoming-meeting detection, "start notes" prompt, attendee names
 - [ ] Capacitor in-person mode: mic-only record → post-hoc transcription
@@ -752,6 +756,7 @@ for await (const chunk of stream) {
 ## References
 
 ### In-repo
+
 - `packages/dictation/src/` — `DictationEngine` port, `EngineRegistry`, byo engine, retention (exploration 0192)
 - `packages/data/src/schema/schemas/transcription.ts`, `page.ts`, `media-asset.ts`
 - `packages/plugins/src/ai/providers.ts`, `feature-module.ts`, `connectors/define-connector.ts`
@@ -762,6 +767,7 @@ for await (const chunk of stream) {
 - Explorations: 0192 (dictation), 0208/0244/0252 (AI ladder), 0213 (connectors), 0234 (humane charter), 0249 (change-log bloat lesson), 0270 (fs capability pattern), 0277 (shared view cores)
 
 ### External
+
 - Granola: https://docs.granola.ai/article/transcription · https://www.granola.ai/security · https://shotcast.substack.com/p/ux-and-not-llm-chris-pedregal-granolas · https://creatoreconomy.so/p/the-hidden-rules-behind-successful-ai-products-chris-pedregal
 - Notion AI Meeting Notes: https://www.notion.com/help/ai-meeting-notes · https://www.notion.com/releases/2025-05-13
 - Botless recorder build narrative: https://www.recall.ai/blog/how-i-built-a-botless-meeting-recorder-from-scratch
