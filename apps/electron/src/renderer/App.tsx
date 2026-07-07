@@ -18,6 +18,7 @@ import { CanvasView } from './components/CanvasView'
 import { ConnectHubDialog } from './components/ConnectHubDialog'
 import { DatabaseView } from './components/DatabaseView'
 import { DataWorkspaceView } from './components/DataWorkspaceView'
+import { MeetingsView } from './components/MeetingsView'
 import { PageView } from './components/PageView'
 import { SettingsView } from './components/SettingsView'
 import { SocialImportView } from './components/SocialImportView'
@@ -52,6 +53,7 @@ export function App(): React.ReactElement {
     handleOpenSettings,
     handleOpenSocialImport,
     handleOpenDataWorkspace,
+    handleOpenMeetings,
     handleOpenStories,
     handleInsertSavedLensAsCanvasFrame,
     handleCommandStateChange,
@@ -141,6 +143,16 @@ export function App(): React.ReactElement {
               onClose={handleReturnHome}
               onOpenDataWorkspace={handleOpenDataWorkspace}
             />
+          </div>
+        </div>
+      )
+    }
+
+    if (shellState.kind === 'meetings') {
+      return (
+        <div className="absolute inset-0 z-30 px-4 pb-28 pt-6">
+          <div className={overlaySurfaceClassName}>
+            <MeetingsView onClose={handleReturnHome} />
           </div>
         </div>
       )
@@ -253,6 +265,7 @@ export function App(): React.ReactElement {
             onOpenDocument={handleOpenDocument}
             onOpenSettings={handleOpenSettings}
             onOpenDataWorkspace={handleOpenDataWorkspace}
+            onOpenMeetings={handleOpenMeetings}
             onOpenSocialImport={handleOpenSocialImport}
             onOpenStories={STORIES_ENABLED ? handleOpenStories : undefined}
             onAddShared={() => {

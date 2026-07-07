@@ -385,3 +385,28 @@ export {
   type UseCanvasViewControllerOptions,
   type UseCanvasViewControllerResult
 } from './canvas-view/index.js'
+
+// Shared meeting recorder core (exploration 0279): the botless meeting
+// capture/list/detail/settings surfaces both the web and desktop apps consume.
+export {
+  IpcDictationEngine,
+  MEETINGS_STORAGE_KEYS,
+  MeetingDetailView,
+  MeetingEngineSettings,
+  MeetingRecorderView,
+  MeetingsListView,
+  appendAiNotesToDoc,
+  appendMarkdownToDoc,
+  buildMeetingEngineRegistry,
+  getMeetingsBridge,
+  readMeetingEnginePrefs,
+  startMicCapture,
+  startSystemCapture,
+  writeMeetingEnginePref,
+  type MeetingDetailViewProps,
+  type MeetingRecorderViewProps,
+  type MeetingsBridge,
+  type MeetingsBridgeEngine,
+  type MeetingsCaptureStatus,
+  type MeetingsListViewProps
+} from './meeting-recorder/index.js'

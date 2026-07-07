@@ -24,6 +24,7 @@ export type ShellState =
   | { kind: 'settings' }
   | { kind: 'data-workspace' }
   | { kind: 'social-import' }
+  | { kind: 'meetings' }
   | { kind: 'stories' }
 
 export type DocumentItem = {
@@ -53,6 +54,7 @@ export type ShellAction =
   | { type: 'open-settings' }
   | { type: 'open-data-workspace' }
   | { type: 'open-social-import' }
+  | { type: 'open-meetings' }
   | { type: 'open-stories' }
 
 export function shellReducer(_state: ShellState, action: ShellAction): ShellState {
@@ -71,6 +73,8 @@ export function shellReducer(_state: ShellState, action: ShellAction): ShellStat
       return { kind: 'data-workspace' }
     case 'open-social-import':
       return { kind: 'social-import' }
+    case 'open-meetings':
+      return { kind: 'meetings' }
     case 'open-stories':
       return { kind: 'stories' }
   }
@@ -82,6 +86,7 @@ export function overlayTitleFor(kind: ShellState['kind']): string | null {
   if (kind === 'settings') return 'Settings'
   if (kind === 'data-workspace') return 'Data Workspace'
   if (kind === 'social-import') return 'Social Import'
+  if (kind === 'meetings') return 'Meetings'
   if (kind === 'stories') return 'Stories'
   return null
 }

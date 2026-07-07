@@ -2172,6 +2172,12 @@ importers:
       '@xnetjs/data':
         specifier: workspace:*
         version: link:../data
+      '@xnetjs/dictation':
+        specifier: workspace:*
+        version: link:../dictation
+      '@xnetjs/meetings':
+        specifier: workspace:*
+        version: link:../meetings
       '@xnetjs/plugins':
         specifier: workspace:*
         version: link:../plugins

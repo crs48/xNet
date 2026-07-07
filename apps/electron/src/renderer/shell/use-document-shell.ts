@@ -82,6 +82,7 @@ export interface DocumentShell {
   handleOpenSettings: () => void
   handleOpenSocialImport: () => void
   handleOpenDataWorkspace: () => void
+  handleOpenMeetings: () => void
   handleOpenStories: () => void
   handleInsertSavedLensAsCanvasFrame: (view: SavedViewCanvasFrameInput) => void
   handleCommandStateChange: Dispatch<SetStateAction<CanvasViewCommandState>>
@@ -377,6 +378,10 @@ export function useDocumentShell(): DocumentShell {
     transitionShell({ type: 'open-data-workspace' })
   }, [transitionShell])
 
+  const handleOpenMeetings = useCallback(() => {
+    transitionShell({ type: 'open-meetings' })
+  }, [transitionShell])
+
   const handleInsertSavedLensAsCanvasFrame = useCallback(
     (view: SavedViewCanvasFrameInput) => {
       const inserted =
@@ -434,6 +439,7 @@ export function useDocumentShell(): DocumentShell {
     handleOpenSettings,
     handleOpenSocialImport,
     handleOpenDataWorkspace,
+    handleOpenMeetings,
     handleOpenStories,
     handleInsertSavedLensAsCanvasFrame,
     handleCommandStateChange: setCanvasCommandState,
