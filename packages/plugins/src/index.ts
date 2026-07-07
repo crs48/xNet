@@ -77,6 +77,8 @@ export type {
   SettingsPanelProps,
   SchemaContribution,
   StatusBarContribution,
+  SlotContribution,
+  SlotRegion,
   SurfaceDockContribution,
   SurfaceDockTier,
   ImporterContribution,

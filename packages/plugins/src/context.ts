@@ -5,6 +5,7 @@
 import type { AgentToolContribution } from './agent-tools'
 import type {
   ContributionRegistry,
+  SlotContribution,
   ViewContribution,
   WidgetContribution,
   CommandContribution,
@@ -114,6 +115,8 @@ export interface ExtensionContext {
   registerMentionProvider(provider: MentionProviderContribution): Disposable
   /** Register a model-facing agent tool (exploration 0196) */
   registerAgentTool(tool: AgentToolContribution): Disposable
+  /** Register a shell slot view (exploration 0280) */
+  registerSlotView(view: SlotContribution): Disposable
   /** Add middleware to NodeStore */
   addMiddleware(middleware: NodeStoreMiddleware): Disposable
 
@@ -327,6 +330,12 @@ export function createExtensionContext(options: CreateContextOptions): Extension
 
     registerAgentTool(tool) {
       const d = contributions.agentTools.register(tool)
+      disposables.push(d)
+      return d
+    },
+
+    registerSlotView(view) {
+      const d = contributions.slots.register(view)
       disposables.push(d)
       return d
     },

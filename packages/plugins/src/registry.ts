@@ -501,6 +501,11 @@ export class PluginRegistry {
         ctx.registerAgentTool(tool)
       }
     }
+    if (c.slots) {
+      for (const view of c.slots) {
+        ctx.registerSlotView(view)
+      }
+    }
   }
 
   // ─── Load from Store ───────────────────────────────────────────────────

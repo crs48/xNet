@@ -636,14 +636,14 @@ registerCommand({
 
 ### Phase 2 — Slots and movable views
 
-- [ ] Generalize `SurfaceDockContribution` → `SlotContribution`
+- [x] Generalize `SurfaceDockContribution` → `SlotContribution`
       (`defaultRegion`, `allowedRegions`) in `packages/plugins` sub-barrel;
       changeset (minor; keep `SurfaceDockContribution` alias to avoid a major)
-- [ ] Migrate dock residents, ListPane, ContextualCanvas, tray views, Rail
+- [x] Migrate dock residents, ListPane, ContextualCanvas, tray views, Rail
       items, and status glyphs to slot contributions
-- [ ] `slot.move` / `slot.tier` commands + context menus + drag handles;
+- [x] `slot.move` / `slot.tier` commands + context menus + drag handles;
       touch twins (long-press → move sheet)
-- [ ] Palette entries for every slot verb; chords documented in shortcut help
+- [x] Palette entries for every slot verb; chords documented in shortcut help
 
 ### Phase 3 — Workspaces as nodes
 

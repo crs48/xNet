@@ -11,54 +11,34 @@
  * Behind `xnet:experiment:layout-tree` (see experiments.ts); the legacy
  * shells render by default until parity is proven.
  */
-import type { ComponentType, ReactNode } from 'react'
+import type { DragEvent, ReactNode } from 'react'
 import { DemoBanner, useDemoMode } from '@xnetjs/react'
 import { Group, Panel, useDefaultLayout } from 'react-resizable-panels'
 import { GlobalSearch } from '../components/GlobalSearch'
 import { UndoToastProvider } from '../components/UndoToast'
 import { WorkspaceCommands } from '../components/WorkspaceCommands'
 import { CalmSurface } from './calm/CalmSurface'
-import { Canvas } from './calm/Canvas'
-import { ListPane } from './calm/ListPane'
-import { ModeSwitch } from './calm/ModeSwitch'
 import { QuietChrome } from './calm/QuietChrome'
 import { SurfaceDockLauncher } from './calm/SurfaceDock'
 import { useActiveCalmMode } from './calm/use-active-mode'
 import { useWorkbenchCommands, useZenEscape } from './commands'
-import { ContextPanel } from './ContextPanel'
 import { EditorArea } from './EditorArea'
 import { useFocusRing } from './focus'
 import { Hairline } from './Hairline'
 import { slotsIn, type LayoutTree, type RegionId } from './layout-tree'
-import { PanelViewHost } from './PanelViewHost'
-import { Rail } from './Rail'
-import { useWorkbench, type CalmMode, type PanelSide } from './state'
-import { StatusBar } from './StatusBar'
+import { PanelViewHost, SLOT_DRAG_TYPE } from './PanelViewHost'
+import { getSlotView } from './slot-registry'
+import { useWorkbench, type PanelSide } from './state'
 
 const FRAME =
   'mt-[var(--storage-banner-height,0px)] flex h-[calc(100dvh-var(--storage-banner-height,0px))] flex-col text-ink-1'
 
 /**
- * Bare frame views: slot views that bring their own chrome, keyed by the
- * placement's viewId. Everything else falls back to the PanelViewHost
- * (header + registered panel views) for its dock.
+ * Views that bring their own chrome render bare in a dock; everything else
+ * goes through the PanelViewHost (header, panel tabs, move menu). Keyed by
+ * view id — never by preset (the tripwire forbids that).
  */
-const BARE_VIEWS: Record<string, ComponentType<{ mode: CalmMode }>> = {
-  navigator: ({ mode }) => <ListPane mode={mode} />,
-  context: () => <Canvas />,
-  inspector: () => <ContextPanel />
-}
-
-/** Rail-region views (edge strips, not dock panels). */
-const RAIL_VIEWS: Record<string, ComponentType> = {
-  modes: ModeSwitch,
-  rail: Rail
-}
-
-/** Status-region views. */
-const STATUS_VIEWS: Record<string, ComponentType> = {
-  status: StatusBar
-}
+const BARE_VIEW_IDS = new Set(['navigator', 'context', 'inspector'])
 
 function FrameDemoBanner() {
   const { isDemo, limits } = useDemoMode()
@@ -66,35 +46,48 @@ function FrameDemoBanner() {
   return <DemoBanner evictionHours={limits.evictionHours} />
 }
 
+/** Drop target props: the pointer road's landing zone for a dock (0280). */
+function dropProps(region: RegionId) {
+  return {
+    onDragOver: (event: DragEvent) => {
+      if (event.dataTransfer.types.includes(SLOT_DRAG_TYPE)) event.preventDefault()
+    },
+    onDrop: (event: DragEvent) => {
+      const viewId = event.dataTransfer.getData(SLOT_DRAG_TYPE)
+      if (viewId) useWorkbench.getState().moveSlot(viewId, region)
+    }
+  }
+}
+
 /** The dock body: the active placement's view, bare or hosted. */
-function DockBody({
-  tree,
-  region,
-  side,
-  mode
-}: {
-  tree: LayoutTree
-  region: RegionId
-  side: PanelSide
-  mode: CalmMode
-}) {
+function DockBody({ tree, region, side }: { tree: LayoutTree; region: RegionId; side: PanelSide }) {
   const activeViewId = useWorkbench((state) => state[side].activeViewId)
   const placements = slotsIn(tree, region)
   const active = placements.find((placement) => placement.viewId === activeViewId) ?? placements[0]
-  const Bare = active ? BARE_VIEWS[active.viewId] : undefined
-  if (Bare) return <Bare mode={mode} />
-  // Panel-view docks (the 0166 registries) — left and bottom hosts.
-  if (side === 'left' || side === 'bottom') return <PanelViewHost slot={side} />
-  return <Canvas />
+  const view = active ? getSlotView(active.viewId) : undefined
+  if (view && BARE_VIEW_IDS.has(view.id)) {
+    const Bare = view.component
+    return (
+      <div className="h-full min-h-0" {...dropProps(region)}>
+        <Bare />
+      </div>
+    )
+  }
+  // Panel-view docks (the 0166 host: header, tabs, move menu).
+  const slot = side === 'right' ? undefined : side
+  return (
+    <div className="h-full min-h-0" {...dropProps(region)}>
+      {slot ? <PanelViewHost slot={slot} /> : view ? <view.component /> : null}
+    </div>
+  )
 }
 
 function EdgeStrip({ tree, region }: { tree: LayoutTree; region: 'rail' | 'status' }) {
-  const views = region === 'rail' ? RAIL_VIEWS : STATUS_VIEWS
   const pinned = slotsIn(tree, region, 'pinned')
   return (
     <>
       {pinned.map((placement) => {
-        const View = views[placement.viewId]
+        const View = getSlotView(placement.viewId)?.component
         return View ? <View key={placement.viewId} /> : null
       })}
     </>
@@ -125,7 +118,8 @@ function ZenFrame({ tree, children }: { tree: LayoutTree; children: ReactNode })
  * carries its placements everywhere, its pixel widths nowhere.
  */
 function PinnedFrame({ tree, children }: { tree: LayoutTree; children: ReactNode }) {
-  const mode = useActiveCalmMode()
+  // Keep route ↔ mode reconciliation alive in every posture.
+  useActiveCalmMode()
   const left = useWorkbench((state) => state.left)
   const right = useWorkbench((state) => state.right)
   const bottom = useWorkbench((state) => state.bottom)
@@ -164,7 +158,7 @@ function PinnedFrame({ tree, children }: { tree: LayoutTree; children: ReactNode
           {leftOpen && (
             <>
               <Panel id="left" defaultSize={280} minSize={200} maxSize={420}>
-                <DockBody tree={tree} region="dock.left" side="left" mode={mode} />
+                <DockBody tree={tree} region="dock.left" side="left" />
               </Panel>
               <Hairline orientation="horizontal" id="sep-left" />
             </>
@@ -183,7 +177,7 @@ function PinnedFrame({ tree, children }: { tree: LayoutTree; children: ReactNode
                 <>
                   <Hairline orientation="vertical" id="sep-bottom" />
                   <Panel id="bottom" defaultSize={240} minSize={120} maxSize="60%">
-                    <DockBody tree={tree} region="dock.bottom" side="bottom" mode={mode} />
+                    <DockBody tree={tree} region="dock.bottom" side="bottom" />
                   </Panel>
                 </>
               )}
@@ -193,7 +187,7 @@ function PinnedFrame({ tree, children }: { tree: LayoutTree; children: ReactNode
             <>
               <Hairline orientation="horizontal" id="sep-right" />
               <Panel id="right" defaultSize={320} minSize={240} maxSize={520}>
-                <DockBody tree={tree} region="dock.right" side="right" mode={mode} />
+                <DockBody tree={tree} region="dock.right" side="right" />
               </Panel>
             </>
           )}
