@@ -1,5 +1,12 @@
 # @xnetjs/maps
 
+## 0.0.7
+
+### Patch Changes
+
+- Updated dependencies [[`92708ab`](https://github.com/crs48/xNet/commit/92708ab09f2334b1ee02fef4cea654c1aed6b0ed)]:
+  - @xnetjs/data@0.3.0
+
 ## 0.0.6
 
 ### Patch Changes

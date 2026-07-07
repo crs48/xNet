@@ -1,5 +1,20 @@
 # @xnetjs/core
 
+## 0.3.0
+
+### Minor Changes
+
+- [#401](https://github.com/crs48/xNet/pull/401) [`92708ab`](https://github.com/crs48/xNet/commit/92708ab09f2334b1ee02fef4cea654c1aed6b0ed) Thanks [@crs48](https://github.com/crs48)! - Add the shared Last-Write-Wins ordering module to `@xnetjs/core`
+  (`compareChangeApplicationOrder`, `compareLwwStamps`, `lwwWins`,
+  `lwwUpdateGuardSql`, `LwwStamp`) — the single canonical LWW comparison used
+  across the stack (protocol §L1.7).
+
+  `@xnetjs/data`, `@xnetjs/plugins`, and `@xnetjs/react` adopt it and receive
+  internal decompositions of their most-churned modules (NodeStore query
+  compiler/hydration/transaction execution, ai-surface tool registry and
+  resource URI router, XNetProvider provider units). No public API changes in
+  those packages.
+
 ## 0.2.0
 
 ## 0.1.2

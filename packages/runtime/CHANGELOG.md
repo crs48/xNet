@@ -1,5 +1,20 @@
 # @xnetjs/runtime
 
+## 0.1.4
+
+### Patch Changes
+
+- Updated dependencies [[`92708ab`](https://github.com/crs48/xNet/commit/92708ab09f2334b1ee02fef4cea654c1aed6b0ed)]:
+  - @xnetjs/core@0.3.0
+  - @xnetjs/data@0.3.0
+  - @xnetjs/plugins@0.3.0
+  - @xnetjs/crypto@0.3.0
+  - @xnetjs/data-bridge@0.3.0
+  - @xnetjs/history@0.3.0
+  - @xnetjs/identity@0.3.0
+  - @xnetjs/storage@0.3.0
+  - @xnetjs/sync@0.3.0
+
 ## 0.1.3
 
 ### Patch Changes
