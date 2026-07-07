@@ -55,3 +55,6 @@ export { PluginRegistry, PluginError } from '../../packages/plugins/src/registry
 
 export { PluginSchema } from '../../packages/plugins/src/schemas/plugin'
 export type { PluginNode } from '../../packages/plugins/src/schemas/plugin'
+
+// Command registry — used by canvas-view's useCanvasCommands (0277)
+export { getCommandRegistry } from '../../packages/plugins/src/commands'
