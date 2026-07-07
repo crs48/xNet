@@ -492,9 +492,9 @@ const taskV1toV2: SchemaLens = {
 - [x] SchemaLens `CodeFigure` uses the real API shape from
       `packages/data/src/schema/lens.ts` (no invented fields).
 - [x] Changelog fragment via `scripts/changelog/new.mjs` (do not hand-write).
-- [ ] Conventional commit(s), header ≤72 chars; no changeset needed (site
+- [x] Conventional commit(s), header ≤72 chars; no changeset needed (site
       only) — but run the Stop-hook check anyway.
-- [ ] PR to `main`; merge-commit per repo policy.
+- [x] PR to `main`; merge-commit per repo policy.
 
 ## Validation Checklist
 
