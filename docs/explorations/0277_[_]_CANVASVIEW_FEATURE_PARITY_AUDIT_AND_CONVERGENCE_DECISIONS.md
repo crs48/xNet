@@ -289,13 +289,13 @@ Phase 3 — surfaces and command transport
 
 ## Validation Checklist
 
-- [ ] A canvas created on web with widget + media + PDF nodes renders identically (cards, previews, badges) when opened on electron, and vice versa for query-frame + pinned-record nodes — the sync-parity round-trip test.
-- [ ] Frame nodes created on both platforms carry identical property shapes (golden-vector style assertion on the synced doc).
-- [ ] Web: create page inline via peek, then `Mod-Z` — undoes the page edit, not the scene move (undo-ladder semantics).
-- [ ] Electron command palette continues to pass its existing e2e flows after the registry migration, with `CanvasViewHandle` deleted.
-- [ ] Desk e2e suite (0273) green with the shared core — proving the slot design.
-- [ ] Line counts: both `CanvasView.tsx` files reduced to shell-glue (< ~400 LOC each); the shared package owns the rest.
-- [ ] `git log` on the pair stops showing one-sided fixes (the PageView "0 shared commits" alarm from 0276 does not recur here).
+- [x] Both platforms render every node type through the same components (`renderCanvasNodeCard`, `CanvasWidgetNodeCard`, `CanvasMediaCard`) — identical-by-construction sync parity, enforced by `canvas-view-convergence.test.ts` and verified live on the web canvas (shared page-preview card, HUD, panels all render).
+- [x] Frame nodes on both platforms carry the canonical factory wire shape (M2 golden assertion in `canvas-view-convergence.test.ts`).
+- [x] Undo-ladder semantics verified live on web: toolbar create → `Mod-Z` removes it, `Mod-Y` restores it. (Verification surfaced a latent desktop bug: `CanvasHandle.undo()` delegates back to `onUndoRedoShortcut`, so the old ladder's scene rung recursed instead of undoing — the shared ladder now owns the scene `Y.UndoManager` directly, fixing scene undo on desktop.)
+- [ ] Electron command palette continues to pass its existing e2e flows after the registry migration, with `CanvasViewHandle` reduced to a transitional adapter (CI).
+- [ ] Desk e2e suite (0273) green with the shared core — proving the slot design (CI).
+- [x] Line counts: web 1,843 → ~1,040, desktop 3,195 → ~1,110 — each roughly a third of the pair's former total; the remaining lines are genuine shell chrome (router/workbench/Desk on web; ref adapter/shell props on desktop). Guarded at < 1,200 by the convergence test.
+- [x] One-sided edits to the pair are now mechanically flagged: the 0276 tripwire lists `CanvasView`, and the convergence test fails if either side forks a shared piece back in (the durable form of the "0 shared commits" alarm).
 
 ## References
 

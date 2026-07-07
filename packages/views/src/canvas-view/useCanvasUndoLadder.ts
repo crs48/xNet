@@ -14,11 +14,10 @@
  * inline-edited source document when that was the latest change.
  */
 
-import type { CanvasHandle } from '@xnetjs/canvas'
-import type { MutableRefObject } from 'react'
+import { createCanvasUndoManager } from '@xnetjs/canvas'
 import { useDatabaseDoc, useUndo } from '@xnetjs/react'
 import { useUndoScope } from '@xnetjs/react/internal'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as Y from 'yjs'
 
 export type CanvasUndoDomain = 'scene' | 'source-node' | 'source-scope' | 'source-document'
@@ -42,7 +41,13 @@ function getYjsStackDepth(manager: Y.UndoManager | null, stack: 'undoStack' | 'r
 }
 
 export interface UseCanvasUndoLadderOptions {
-  canvasRef: MutableRefObject<CanvasHandle | null>
+  /**
+   * The canvas doc; the ladder owns the scene Y.UndoManager over its maps.
+   * (`CanvasHandle.undo()` delegates back to `onUndoRedoShortcut`, so the
+   * scene rung must NOT round-trip through the handle — that recursion was
+   * a latent desktop bug this extraction fixed.)
+   */
+  doc: Y.Doc | null
   selectedSourceNodeIds: string[]
   /** Source id of the selected database card, or '' when none. */
   selectedDatabaseSourceId: string
@@ -56,12 +61,22 @@ export interface UseCanvasUndoLadderResult {
 }
 
 export function useCanvasUndoLadder({
-  canvasRef,
+  doc,
   selectedSourceNodeIds,
   selectedDatabaseSourceId,
   did
 }: UseCanvasUndoLadderOptions): UseCanvasUndoLadderResult {
   const selectedDatabaseUndoManagerRef = useRef<Y.UndoManager | null>(null)
+  // Scene undo (0179): a Y.UndoManager over the scene maps, owned here.
+  const sceneUndoManager = useMemo(() => (doc ? createCanvasUndoManager(doc) : null), [doc])
+
+  useEffect(() => {
+    if (!sceneUndoManager) return
+
+    return () => {
+      sceneUndoManager.destroy()
+    }
+  }, [sceneUndoManager])
   const undoOrderSequenceRef = useRef(0)
   const undoOrderRef = useRef<Record<CanvasUndoDomain, number[]>>(createUndoOrderMap())
   const redoOrderRef = useRef<Record<CanvasUndoDomain, number[]>>(createUndoOrderMap())
@@ -148,17 +163,22 @@ export function useCanvasUndoLadder({
           direction === 'undo' ? 'undoStack' : 'redoStack'
         ) > 0
 
-      const runScene = (): boolean => {
-        const handled =
-          direction === 'undo'
-            ? (canvasRef.current?.undo() ?? false)
-            : (canvasRef.current?.redo() ?? false)
+      const canScene =
+        getYjsStackDepth(sceneUndoManager, direction === 'undo' ? 'undoStack' : 'redoStack') > 0
 
-        if (handled) {
-          applyUndoBoundary('scene', direction)
+      const runScene = (): boolean => {
+        if (!canScene || !sceneUndoManager) {
+          return false
         }
 
-        return handled
+        if (direction === 'undo') {
+          sceneUndoManager.undo()
+        } else {
+          sceneUndoManager.redo()
+        }
+
+        applyUndoBoundary('scene', direction)
+        return true
       }
 
       const runSelectedSource = (): boolean => {
@@ -197,7 +217,7 @@ export function useCanvasUndoLadder({
 
       const orderedDomains = (
         [
-          { domain: 'scene', available: true, run: runScene },
+          { domain: 'scene', available: canScene, run: runScene },
           {
             domain: 'source-document',
             available: canSelectedSourceDocument,
@@ -232,7 +252,7 @@ export function useCanvasUndoLadder({
       canRedoSelectedSourceScope,
       canUndoSelectedSource,
       canUndoSelectedSourceScope,
-      canvasRef,
+      sceneUndoManager,
       getUndoBoundaryOrder,
       redoSelectedSource,
       redoSelectedSourceScope,

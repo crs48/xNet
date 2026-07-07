@@ -145,7 +145,7 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
   const selectedDatabaseSourceId =
     selectedObject?.displayType === 'database' ? (selectedObject.sourceId ?? '') : ''
   const undoLadder = useCanvasUndoLadder({
-    canvasRef,
+    doc,
     selectedSourceNodeIds,
     selectedDatabaseSourceId,
     did
