@@ -13,6 +13,17 @@
 import type { ExplorerSort } from './views/explorer-sort'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import {
+  createPresetTree,
+  moveSlot as moveSlotInTree,
+  setSlotTier as setSlotTierInTree,
+  slotsIn,
+  type LayoutTree,
+  type PresetId,
+  type RegionId,
+  type SlotTier,
+  type WorkspacePayload
+} from './layout-tree'
 
 export type WorkbenchMode = 'default' | 'zen'
 export type PanelSide = 'left' | 'right' | 'bottom'
@@ -150,6 +161,14 @@ interface WorkbenchState {
    * `left`/`right` panels (as the calm List/Canvas) and `mode` (as focus).
    */
   layout: ShellLayout
+  /**
+   * The layout tree (exploration 0280): regions → slots → views, the
+   * single data model behind every shell posture. The former shells are
+   * presets over this tree; behind `xnet:experiment:layout-tree` the
+   * ShellFrame renders it directly, and the legacy axes (`layout`,
+   * `chrome`) are kept coherent with it during the transition.
+   */
+  tree: LayoutTree
   /** Active primary mode of the calm shell (0250). */
   calmMode: CalmMode
   /**
@@ -215,6 +234,16 @@ interface WorkbenchState {
   setExplorerSort: (sort: ExplorerSort) => void
   /** Set the primary scope and the multi-filter together, atomically. */
   applyScopeSelection: (scope: string | null, filter: string[]) => void
+
+  // ─── Layout tree (0280) ────────────────────────────────────────
+  /** Replace the tree with a built-in preset (and align the legacy axes). */
+  applyPreset: (preset: PresetId) => void
+  /** Load a workspace payload (a `xnet:workspace` node) into the tree. */
+  loadWorkspace: (payload: WorkspacePayload) => void
+  /** Move a view to another region (keeps its tier; ordered last). */
+  moveSlot: (viewId: string, region: RegionId) => void
+  /** Change a placed view's disclosure tier. */
+  setSlotTier: (viewId: string, tier: SlotTier) => void
 
   // ─── Shell layout (0250) ───────────────────────────────────────
   setLayout: (layout: ShellLayout) => void
@@ -302,6 +331,36 @@ function freshGroups(): EditorGroup[] {
   return [{ id: 'group-1', tabs: [], activeTabId: null }]
 }
 
+/**
+ * The store patch for adopting a tree (0280): the legacy `layout`/`chrome`
+ * axes stay coherent, docks open where the tree pins a view, and each
+ * dock's active view snaps to its first placement so the panel hosts show
+ * what the tree says at rest.
+ */
+function stateForTree(tree: LayoutTree): Partial<WorkbenchState> {
+  const patch: Partial<WorkbenchState> = {
+    tree,
+    layout: tree.surface.tabsEnabled ? 'workbench' : 'calm',
+    chrome: tree.chrome,
+    discloseLevel: 0
+  }
+  const docks: Array<[PanelSide, RegionId]> = [
+    ['left', 'dock.left'],
+    ['right', 'dock.right'],
+    ['bottom', 'dock.bottom']
+  ]
+  for (const [side, region] of docks) {
+    const placements = slotsIn(tree, region)
+    const pinned = slotsIn(tree, region, 'pinned')
+    const active = pinned[0] ?? placements[0]
+    patch[side] = {
+      open: pinned.length > 0,
+      activeViewId: active?.viewId ?? ''
+    }
+  }
+  return patch
+}
+
 export const useWorkbench = create<WorkbenchState>()(
   persist(
     (set, get) => ({
@@ -310,6 +369,7 @@ export const useWorkbench = create<WorkbenchState>()(
       // this default), and the workbench grid is one toggle away in Settings →
       // Appearance, or via the "View: Switch layout" command.
       layout: 'calm',
+      tree: createPresetTree('calm'),
       calmMode: 'companion',
       // Pinned chrome stays the shipped default (0273); quiet is one command
       // away (`View: Quiet chrome`) and flips for new identities post-dogfood.
@@ -342,20 +402,63 @@ export const useWorkbench = create<WorkbenchState>()(
       setExplorerSort: (sort) => set({ explorerSort: sort }),
       applyScopeSelection: (scope, filter) => set({ currentSpaceId: scope, spaceFilter: filter }),
 
-      setLayout: (layout) => set({ layout }),
+      applyPreset: (preset) => set(stateForTree(createPresetTree(preset))),
+
+      loadWorkspace: (payload) => set(stateForTree(payload.tree)),
+
+      moveSlot: (viewId, region) =>
+        set((state) => {
+          const tree = moveSlotInTree(state.tree, viewId, region)
+          return tree === state.tree ? {} : { tree }
+        }),
+
+      setSlotTier: (viewId, tier) =>
+        set((state) => {
+          const tree = setSlotTierInTree(state.tree, viewId, tier)
+          if (tree === state.tree) return {}
+          // Un-pinning the active view of a dock closes that dock at rest.
+          const patch: Partial<WorkbenchState> = { tree }
+          for (const side of ['left', 'right', 'bottom'] as const) {
+            const panel = state[side]
+            if (panel.activeViewId === viewId && tier !== 'pinned' && panel.open) {
+              patch[side] = { ...panel, open: false }
+            }
+          }
+          return patch
+        }),
+
+      // Switching layout is choosing a preset (0280): the legacy axes stay
+      // coherent with the tree so both renderers agree during the rollout.
+      setLayout: (layout) =>
+        set((state) =>
+          stateForTree(
+            createPresetTree(
+              layout === 'workbench' ? 'bench' : state.chrome === 'quiet' ? 'quiet' : 'calm'
+            )
+          )
+        ),
 
       toggleLayout: () =>
-        set((state) => ({ layout: state.layout === 'calm' ? 'workbench' : 'calm' })),
+        set((state) =>
+          stateForTree(
+            createPresetTree(
+              state.layout === 'calm' ? 'bench' : state.chrome === 'quiet' ? 'quiet' : 'calm'
+            )
+          )
+        ),
 
       setCalmMode: (calmMode) => set({ calmMode }),
 
-      setChrome: (chrome) => set({ chrome, discloseLevel: 0 }),
+      // Chrome is an orthogonal axis (0273): flipping it never resets a
+      // customized tree, it only changes the posture of the same placements.
+      setChrome: (chrome) =>
+        set((state) => ({ chrome, discloseLevel: 0, tree: { ...state.tree, chrome } })),
 
       toggleChrome: () =>
-        set((state) => ({
-          chrome: state.chrome === 'quiet' ? 'pinned' : 'quiet',
-          discloseLevel: 0
-        })),
+        set((state) => {
+          const chrome = state.chrome === 'quiet' ? 'pinned' : 'quiet'
+          return { chrome, discloseLevel: 0, tree: { ...state.tree, chrome } }
+        }),
 
       setDiscloseLevel: (discloseLevel) =>
         set((state) => (state.discloseLevel === discloseLevel ? {} : { discloseLevel })),
@@ -660,6 +763,19 @@ export const useWorkbench = create<WorkbenchState>()(
     }),
     {
       name: 'xnet:workbench:v1',
+      // v2 (0280): the layout tree joins the persisted state. Pre-tree
+      // profiles derive their tree from the legacy `layout`/`chrome` axes so
+      // panels, pins, shelf and startup node all survive the migration.
+      version: 2,
+      migrate: (persisted, version) => {
+        const state = persisted as Partial<WorkbenchState>
+        if (version < 2 && !state.tree) {
+          state.tree = createPresetTree(
+            state.layout === 'workbench' ? 'bench' : state.chrome === 'quiet' ? 'quiet' : 'calm'
+          )
+        }
+        return state as WorkbenchState
+      },
       // The disclosure level is a live interaction state (0273) — persisting
       // it would resurrect a lit/overlaid shell on reload.
       partialize: (state) =>

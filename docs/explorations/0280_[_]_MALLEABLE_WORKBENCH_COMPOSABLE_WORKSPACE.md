@@ -75,16 +75,16 @@ undoable.
 
 ### The three shells and their shared store
 
-| Piece | Path | Notes |
-| --- | --- | --- |
-| Shell router | `apps/web/src/workbench/Workbench.tsx` (~200 LOC) | Chooses calm vs workbench vs mobile |
-| Shell state | `apps/web/src/workbench/state.ts` (~680 LOC) | One persisted zustand store: `layout`, `calmMode`, `chrome`, `discloseLevel`, `left/right/bottom` panels, editor `groups`/tabs, `shelf`, `deskPins`, `startupTab` |
-| Workbench grid | 0166 components under `apps/web/src/workbench/` | Rail (44px, hard-coded 6 icons) → panels → editor groups via `react-resizable-panels` |
-| Calm shell | `apps/web/src/workbench/calm/CalmShell.tsx` (~115 LOC) | ModeSwitch · ListPane · Surface · ContextualCanvas; modes = companion/workspace/network (`calm/modes.ts`) |
-| Quiet posture | `apps/web/src/workbench/calm/QuietChrome.tsx` (~373 LOC) | Corner glyphs, edge hot-zones, disclosure ladder L0–L2 |
-| Surface dock | `apps/web/src/workbench/calm/SurfaceDock.tsx` (~422 LOC) | Registry-driven corner launcher; hero/secondary tiers |
-| Mobile shell | `apps/web/src/workbench/MobileShell.tsx` | Separate composition below 768px, not a reflow |
-| Commands | `apps/web/src/workbench/commands.ts` | ⌘B/⌘\\/⌘J/⌘./⌘K etc. registered in the global command registry |
+| Piece          | Path                                                     | Notes                                                                                                                                                             |
+| -------------- | -------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Shell router   | `apps/web/src/workbench/Workbench.tsx` (~200 LOC)        | Chooses calm vs workbench vs mobile                                                                                                                               |
+| Shell state    | `apps/web/src/workbench/state.ts` (~680 LOC)             | One persisted zustand store: `layout`, `calmMode`, `chrome`, `discloseLevel`, `left/right/bottom` panels, editor `groups`/tabs, `shelf`, `deskPins`, `startupTab` |
+| Workbench grid | 0166 components under `apps/web/src/workbench/`          | Rail (44px, hard-coded 6 icons) → panels → editor groups via `react-resizable-panels`                                                                             |
+| Calm shell     | `apps/web/src/workbench/calm/CalmShell.tsx` (~115 LOC)   | ModeSwitch · ListPane · Surface · ContextualCanvas; modes = companion/workspace/network (`calm/modes.ts`)                                                         |
+| Quiet posture  | `apps/web/src/workbench/calm/QuietChrome.tsx` (~373 LOC) | Corner glyphs, edge hot-zones, disclosure ladder L0–L2                                                                                                            |
+| Surface dock   | `apps/web/src/workbench/calm/SurfaceDock.tsx` (~422 LOC) | Registry-driven corner launcher; hero/secondary tiers                                                                                                             |
+| Mobile shell   | `apps/web/src/workbench/MobileShell.tsx`                 | Separate composition below 768px, not a reflow                                                                                                                    |
+| Commands       | `apps/web/src/workbench/commands.ts`                     | ⌘B/⌘\\/⌘J/⌘./⌘K etc. registered in the global command registry                                                                                                    |
 
 Three **orthogonal axes** already exist and are the germ of the design:
 `layout` (calm/workbench), `chrome` (pinned/quiet), and theme axes
@@ -224,20 +224,20 @@ per-pane toolbars); tldraw (composable canvas primitives as an SDK).
 
 ### The recurring patterns (distilled)
 
-| # | Pattern | Seen in | Why it works |
-| --- | --- | --- | --- |
-| 1 | Command palette as the universal road | VS Code, Zed, Obsidian, Linear, Claude | Search beats navigation; teaches chords; makes every feature addressable |
-| 2 | Named slots + movable views | VS Code side bars, Zed docks, Obsidian splits | Users rearrange without breaking; plugins target slots, not pixels |
-| 3 | Layout-as-data / settings-as-code | Zed settings.json, Obsidian workspace.json, VS Code .code-workspace | Versionable, shareable, agent-editable |
-| 4 | Saved named workspaces | Obsidian Workspaces, VS Code profiles, browser tab groups | Tasks have shapes; recall beats rebuild |
-| 5 | Progressive disclosure ladder | 0273's L0–L3; VS Code zen→full; Notion menus | Novices see calm; density is earned/summoned, never imposed |
-| 6 | Views as lenses over shared data | Notion databases, xNet views, Potluck | Kills export/import; composition without integration |
-| 7 | Block/slash composition inside the surface | Notion, xNet pages, Obsidian canvas | The document is the workbench for most users |
-| 8 | Declarative contribution points + capability gates | VS Code manifests, Figma/Deno sandboxes, xNet FeatureModule | Ecosystem without catastrophic defaults |
-| 9 | Agent beside artifact | Claude, ChatGPT canvas, Zed agent panel | Reasoning and result visible together; iteration without context-switch |
-| 10 | Zoom/zen as temporary states, not modes | Zed zoom, VS Code zen, 0273 quiet | Focus is a posture you enter and leave losslessly |
-| 11 | Status/ambient indicators at the frame edge | VS Code status bar, xNet corner glyphs | Awareness without panels |
-| 12 | Three roads to everything (pointer, touch, keyboard) | 0273's touch-twin contract; NN/g guidance | No dead ends per input mode; accessibility for free |
+| #   | Pattern                                              | Seen in                                                             | Why it works                                                             |
+| --- | ---------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| 1   | Command palette as the universal road                | VS Code, Zed, Obsidian, Linear, Claude                              | Search beats navigation; teaches chords; makes every feature addressable |
+| 2   | Named slots + movable views                          | VS Code side bars, Zed docks, Obsidian splits                       | Users rearrange without breaking; plugins target slots, not pixels       |
+| 3   | Layout-as-data / settings-as-code                    | Zed settings.json, Obsidian workspace.json, VS Code .code-workspace | Versionable, shareable, agent-editable                                   |
+| 4   | Saved named workspaces                               | Obsidian Workspaces, VS Code profiles, browser tab groups           | Tasks have shapes; recall beats rebuild                                  |
+| 5   | Progressive disclosure ladder                        | 0273's L0–L3; VS Code zen→full; Notion menus                        | Novices see calm; density is earned/summoned, never imposed              |
+| 6   | Views as lenses over shared data                     | Notion databases, xNet views, Potluck                               | Kills export/import; composition without integration                     |
+| 7   | Block/slash composition inside the surface           | Notion, xNet pages, Obsidian canvas                                 | The document is the workbench for most users                             |
+| 8   | Declarative contribution points + capability gates   | VS Code manifests, Figma/Deno sandboxes, xNet FeatureModule         | Ecosystem without catastrophic defaults                                  |
+| 9   | Agent beside artifact                                | Claude, ChatGPT canvas, Zed agent panel                             | Reasoning and result visible together; iteration without context-switch  |
+| 10  | Zoom/zen as temporary states, not modes              | Zed zoom, VS Code zen, 0273 quiet                                   | Focus is a posture you enter and leave losslessly                        |
+| 11  | Status/ambient indicators at the frame edge          | VS Code status bar, xNet corner glyphs                              | Awareness without panels                                                 |
+| 12  | Three roads to everything (pointer, touch, keyboard) | 0273's touch-twin contract; NN/g guidance                           | No dead ends per input mode; accessibility for free                      |
 
 ## Key Findings
 
@@ -537,14 +537,14 @@ export interface LayoutTree {
   regions: Record<RegionId, SlotPlacement[]>
   /** Surface keeps the 0166 editor-group grammar; calm preset = 1 group. */
   surface: { groups: EditorGroup[]; activeGroupId: string; tabsEnabled: boolean }
-  chrome: 'pinned' | 'quiet'          // 0273 axis, unchanged
+  chrome: 'pinned' | 'quiet' // 0273 axis, unchanged
   startup: { nodeType: TabNodeType; nodeId: string } | null
 }
 
 /** Portable half of a workspace node — device-local sizes stay in zustand. */
 export interface WorkspaceNodePayload {
   name: string
-  preset: 'quiet' | 'calm' | 'bench' | null   // provenance, for "Reset to preset"
+  preset: 'quiet' | 'calm' | 'bench' | null // provenance, for "Reset to preset"
   tree: LayoutTree
   theme: { variant: ThemeVariant; density: Density }
 }
@@ -584,9 +584,9 @@ registerCommand({
 
 1. **Migration blast radius.** `xnet:workbench:v1` persists for every
    existing identity; the tree migration must be lossless (zustand `migrate`
-   + a snapshot test on real persisted fixtures). Mitigation: phase 1 keeps a
-   feature flag (`xnet:experiment:layout-tree`) with the old shells intact
-   until parity is source-grep-guarded.
+   - a snapshot test on real persisted fixtures). Mitigation: phase 1 keeps a
+     feature flag (`xnet:experiment:layout-tree`) with the old shells intact
+     until parity is source-grep-guarded.
 2. **Preset drift = the new shell fork.** If quiet/calm/bench presets grow
    preset-specific code paths, we've rebuilt the three-shell problem inside
    one component. Mitigation: presets must be _data only_ (workspace nodes);
@@ -623,15 +623,15 @@ registerCommand({
 
 ### Phase 1 — Layout tree engine
 
-- [ ] Define `LayoutTree`, `RegionId`, `SlotPlacement` in
+- [x] Define `LayoutTree`, `RegionId`, `SlotPlacement` in
       `apps/web/src/workbench/layout-tree.ts` with unit tests
-- [ ] Add tree state + actions (`moveSlot`, `setSlotTier`, `applyPreset`) to
+- [x] Add tree state + actions (`moveSlot`, `setSlotTier`, `applyPreset`) to
       `useWorkbench` behind `xnet:experiment:layout-tree`; zustand `migrate`
       from `xnet:workbench:v1` panel booleans
-- [ ] Build `ShellFrame` rendering regions/slots; express calm, workbench,
+- [x] Build `ShellFrame` rendering regions/slots; express calm, workbench,
       and quiet as preset tree fixtures rendering pixel-equivalently
-- [ ] Source-grep tripwire test: no component may branch on preset name
-- [ ] Route/mode reconciliation (`calm/modes.ts`) reads the tree, not
+- [x] Source-grep tripwire test: no component may branch on preset name
+- [x] Route/mode reconciliation (`calm/modes.ts`) reads the tree, not
       `layout`
 
 ### Phase 2 — Slots and movable views

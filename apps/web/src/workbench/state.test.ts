@@ -3,6 +3,7 @@
  * semantics, pins/recents, and the shelf.
  */
 import { beforeEach, describe, expect, it } from 'vitest'
+import { createPresetTree, moveSlot, presetWorkspaceId, regionOf } from './layout-tree'
 import { selectActiveTab, tabIdFor, useWorkbench } from './state'
 
 function reset() {
@@ -257,5 +258,84 @@ describe('chrome posture (0273)', () => {
     expect(persisted).toBeDefined()
     expect('discloseLevel' in persisted).toBe(false)
     expect(persisted.chrome).toBeDefined()
+  })
+})
+
+describe('layout tree (0280)', () => {
+  it('applyPreset replaces the tree and keeps the legacy axes coherent', () => {
+    useWorkbench.getState().applyPreset('bench')
+    const state = useWorkbench.getState()
+    expect(state.tree.workspaceId).toBe(presetWorkspaceId('bench'))
+    expect(state.layout).toBe('workbench')
+    expect(state.chrome).toBe('pinned')
+    expect(state.left).toEqual({ open: true, activeViewId: 'explorer' })
+    expect(state.right.open).toBe(false)
+
+    useWorkbench.getState().applyPreset('quiet')
+    const quiet = useWorkbench.getState()
+    expect(quiet.layout).toBe('calm')
+    expect(quiet.chrome).toBe('quiet')
+    expect(quiet.left.open).toBe(false)
+    expect(quiet.left.activeViewId).toBe('navigator')
+  })
+
+  it('setLayout / toggleLayout are preset switches over the tree', () => {
+    useWorkbench.getState().applyPreset('calm')
+    useWorkbench.getState().setLayout('workbench')
+    expect(useWorkbench.getState().tree.surface.tabsEnabled).toBe(true)
+    useWorkbench.getState().toggleLayout()
+    expect(useWorkbench.getState().tree.workspaceId).toBe(presetWorkspaceId('calm'))
+  })
+
+  it('chrome is an axis: flipping it never resets placements', () => {
+    useWorkbench.getState().applyPreset('calm')
+    useWorkbench.getState().moveSlot('context', 'dock.left')
+    useWorkbench.getState().setChrome('quiet')
+    const state = useWorkbench.getState()
+    expect(state.tree.chrome).toBe('quiet')
+    expect(regionOf(state.tree, 'context')).toBe('dock.left')
+  })
+
+  it('moveSlot mutates the tree through the store', () => {
+    useWorkbench.getState().applyPreset('bench')
+    useWorkbench.getState().moveSlot('console', 'dock.corner')
+    expect(regionOf(useWorkbench.getState().tree, 'console')).toBe('dock.corner')
+  })
+
+  it('setSlotTier un-pins and closes the dock resting on that view', () => {
+    useWorkbench.getState().applyPreset('calm')
+    expect(useWorkbench.getState().left).toEqual({ open: true, activeViewId: 'navigator' })
+    useWorkbench.getState().setSlotTier('navigator', 'summoned')
+    const state = useWorkbench.getState()
+    expect(state.tree.regions['dock.left'][0].tier).toBe('summoned')
+    expect(state.left.open).toBe(false)
+  })
+
+  it('loadWorkspace adopts a payload tree', () => {
+    const payload = {
+      name: 'Monday triage',
+      preset: 'bench' as const,
+      tree: moveSlot(createPresetTree('bench'), 'tasks', 'dock.right')
+    }
+    useWorkbench.getState().loadWorkspace(payload)
+    expect(regionOf(useWorkbench.getState().tree, 'tasks')).toBe('dock.right')
+    expect(useWorkbench.getState().layout).toBe('workbench')
+  })
+
+  it('migrates a v1 persisted profile to a tree derived from its axes', () => {
+    const migrate = useWorkbench.persist.getOptions().migrate
+    expect(migrate).toBeDefined()
+    const migrated = migrate?.(
+      { layout: 'workbench', chrome: 'pinned', left: { open: true, activeViewId: 'tasks' } },
+      0
+    ) as { tree?: { workspaceId: string }; left?: { activeViewId: string } }
+    expect(migrated?.tree?.workspaceId).toBe(presetWorkspaceId('bench'))
+    // Migration derives the tree but never touches the panel state.
+    expect(migrated?.left?.activeViewId).toBe('tasks')
+
+    const quiet = migrate?.({ layout: 'calm', chrome: 'quiet' }, 0) as {
+      tree?: { workspaceId: string }
+    }
+    expect(quiet?.tree?.workspaceId).toBe(presetWorkspaceId('quiet'))
   })
 })
