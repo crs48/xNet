@@ -5,8 +5,6 @@
 import type {
   CanvasAlignment,
   CanvasDistributionAxis,
-  CanvasEdge,
-  CanvasHandle,
   CanvasLayerDirection,
   CanvasNode,
   CanvasNodeRenderContext,
@@ -15,52 +13,31 @@ import type {
   CanvasQueryFrameRefreshTrigger,
   CanvasQueryFrameResultCard,
   CanvasQueryFrameResultPreview,
-  CanvasSelectionSnapshot,
   Rect,
   ShapeType
 } from '@xnetjs/canvas'
 import {
   Canvas,
-  CANVAS_MIND_MAP_CREATION_TOOL,
-  createCanvasFrameVariantProperties,
-  createCanvasMindMapRootProperties,
-  createCanvasObjectAnchorId,
   createCanvasQueryFrameDefinitionFromSavedView,
   createCanvasQueryFrameProperties,
   createCanvasQueryFrameResultSummaryFromExecution,
-  extractCanvasIngressPayloads,
   getCanvasQueryFrameDefinition,
   getCanvasQueryFrameResultPreview,
   getCanvasQueryFrameResultSummary,
-  getCanvasConnectorsMap,
   getCanvasObjectsMap,
   getSelectionBounds,
   isCanvasQueryFrameNode,
   shouldRefreshCanvasQueryFrameResult,
   updateCanvasQueryFrameResults,
-  useCanvasThemeTokens,
-  useCanvasObjectIngestion
+  useCanvasThemeTokens
 } from '@xnetjs/canvas'
+import { CanvasSchema, validateSavedViewDescriptor, type SavedViewDescriptor } from '@xnetjs/data'
 import {
-  CanvasSchema,
-  DatabaseSchema,
-  PageSchema,
-  decodeAnchor,
-  encodeAnchor,
-  validateSavedViewDescriptor,
-  type SavedViewDescriptor,
-  type CanvasObjectAnchor
-} from '@xnetjs/data'
-import {
-  CanvasExternalReferenceCard,
-  CanvasFailedCardActions,
-  CanvasLifecycleStatusBadge,
-  CanvasMediaCard,
-  useBlobService,
-  type UpdateCanvasNodeProperties
+  renderCanvasNodeCard,
+  shouldRenderCanvasNodeCard,
+  useBlobService
 } from '@xnetjs/editor/react'
 import {
-  useComments,
   useDatabaseDoc,
   useIdentity,
   useNode,
@@ -73,28 +50,24 @@ import {
 import { useUndoScope } from '@xnetjs/react/internal'
 import { socialSchemas } from '@xnetjs/social/schemas'
 import {
+  CanvasAliasEditorPanel,
+  CanvasCommentComposerPanel,
+  CanvasShortcutHelpPanel,
   CanvasWidgetNodeCard,
   createCanvasShellNoteProperties,
   getCanvasShellDisplayType,
-  getCanvasShellPreviewModel,
   getCanvasShellSourceId,
   getCanvasShellSourceType,
-  shouldRenderCanvasShellCard,
+  getCanvasViewDisplayType,
+  useCanvasViewController,
+  type CanvasNodeCardActions,
+  type CanvasResolvedObject,
+  type CanvasViewDisplayType,
+  type CanvasViewportSnapshot as ViewportSnapshot,
   type LinkedDocType,
   type LinkedDocumentItem
 } from '@xnetjs/views'
-import {
-  Command,
-  Database,
-  Eye,
-  FileImage,
-  FileText,
-  Link2,
-  MessageSquare,
-  RefreshCw,
-  StickyNote,
-  X
-} from 'lucide-react'
+import { Command, Database, Eye, Link2, MessageSquare, RefreshCw, X } from 'lucide-react'
 import React, {
   forwardRef,
   useCallback,
@@ -112,12 +85,6 @@ import {
 import { CanvasDatabasePreviewSurface } from './CanvasDatabasePreviewSurface'
 import { CanvasInlinePageSurface } from './CanvasInlinePageSurface'
 
-type ViewportSnapshot = {
-  x: number
-  y: number
-  zoom: number
-}
-
 type PeekableCanvasDisplayType = LinkedDocType | 'note'
 
 type CanvasPeekState = {
@@ -125,16 +92,6 @@ type CanvasPeekState = {
   sourceId: string
   displayType: PeekableCanvasDisplayType
 }
-
-type CanvasResolvedObject = {
-  node: CanvasNode
-  sourceId: string | null
-  sourceType: Exclude<LinkedDocType, 'canvas'> | null
-  displayType: LinkedDocType | 'note' | 'external-reference' | 'media' | 'shape' | 'frame'
-  title: string
-}
-
-type CanvasSelectionPanel = 'alias' | 'references' | 'comment' | null
 
 type CanvasUndoDomain = 'scene' | 'source-node' | 'source-scope' | 'source-document'
 
@@ -513,79 +470,6 @@ function CanvasSavedViewQueryFrameExecutor({
   return null
 }
 
-function getCanvasViewDisplayType(
-  node: CanvasNode,
-  document?: LinkedDocumentItem
-): LinkedDocType | 'note' | 'external-reference' | 'media' | 'shape' | 'frame' {
-  if (node.type === 'shape') {
-    return 'shape'
-  }
-
-  if (node.type === 'group' || node.type === 'frame') {
-    return 'frame'
-  }
-
-  if (node.type === 'external-reference' || node.type === 'media') {
-    return node.type
-  }
-
-  return getCanvasShellDisplayType(node, document)
-}
-
-function readStringList(value: unknown, limit = 4): string[] {
-  if (!Array.isArray(value)) {
-    return []
-  }
-
-  return value
-    .flatMap((item) => (typeof item === 'string' && item.trim() ? [item.trim()] : []))
-    .slice(0, limit)
-}
-
-function schemaIdLabel(schemaId: string | undefined): string {
-  if (!schemaId) {
-    return 'Source record'
-  }
-
-  const withoutVersion = schemaId.split('@')[0] ?? schemaId
-  const lastSegment = withoutVersion.split('/').pop()
-  return lastSegment && lastSegment.trim().length > 0 ? lastSegment.trim() : schemaId
-}
-
-function isPinnedSourceRecordCard(node: CanvasNode): boolean {
-  return (
-    node.type === 'external-reference' &&
-    (node.properties.sourceCardRole === 'query-result' ||
-      node.properties.sourceCardRole === 'social-projection')
-  )
-}
-
-function getShapeLabel(shapeType: ShapeType): string {
-  switch (shapeType) {
-    case 'ellipse':
-      return 'Ellipse'
-    case 'diamond':
-      return 'Diamond'
-    case 'triangle':
-      return 'Triangle'
-    case 'hexagon':
-      return 'Hexagon'
-    case 'star':
-      return 'Star'
-    case 'arrow':
-      return 'Arrow'
-    case 'cylinder':
-      return 'Cylinder'
-    case 'cloud':
-      return 'Cloud'
-    case 'rounded-rectangle':
-      return 'Rounded Rectangle'
-    case 'rectangle':
-    default:
-      return 'Rectangle'
-  }
-}
-
 function sortCanvasSourceReferences(
   left: CanvasSourceReference,
   right: CanvasSourceReference
@@ -608,315 +492,9 @@ function sortCanvasSourceReferences(
 }
 
 function isPeekableCanvasDisplayType(
-  displayType: LinkedDocType | 'note' | 'external-reference' | 'media' | 'shape' | 'frame'
+  displayType: CanvasViewDisplayType
 ): displayType is PeekableCanvasDisplayType {
   return displayType === 'page' || displayType === 'database' || displayType === 'note'
-}
-
-type CanvasNodeCardActions = {
-  onOpen?: () => void
-  onPeek?: () => void
-}
-
-type CanvasNodeCardMediaContext = {
-  blobService: ReturnType<typeof useBlobService>
-  onUpdateNodeProperties: UpdateCanvasNodeProperties
-}
-
-function stopCanvasCardAction(event: React.MouseEvent<HTMLButtonElement>): void {
-  event.preventDefault()
-  event.stopPropagation()
-}
-
-function CanvasPageStaticPreviewCard({
-  node,
-  document,
-  themeMode,
-  context,
-  actions
-}: {
-  node: CanvasNode
-  document: LinkedDocumentItem | undefined
-  themeMode: 'light' | 'dark'
-  context?: CanvasNodeRenderContext
-  actions?: CanvasNodeCardActions
-}): React.ReactElement {
-  const model = getCanvasShellPreviewModel(node, document)
-  const previewMode =
-    context && (context.lod !== 'full' || context.viewportZoom < 0.9) ? 'low-zoom' : 'static'
-  const isNote = model?.displayType === 'note'
-  const title =
-    model?.title ??
-    node.alias ??
-    document?.title ??
-    (node.properties.title as string) ??
-    (isNote ? 'Untitled Note' : 'Untitled Page')
-  const badge = model?.badge ?? (isNote ? 'Note' : 'Page')
-  const previewLines = model?.previewLines ?? []
-  const accentClass = isNote
-    ? 'border-amber-300/70 bg-amber-50/80 text-amber-900 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-100'
-    : 'border-sky-300/70 bg-sky-50/80 text-sky-950 dark:border-sky-400/30 dark:bg-sky-400/10 dark:text-sky-100'
-
-  return (
-    <div
-      className="flex h-full flex-col overflow-hidden rounded-[24px] border border-border/70 bg-background shadow-lg shadow-black/5"
-      data-canvas-page-preview="true"
-      data-canvas-page-preview-mode={previewMode}
-      data-canvas-page-preview-kind={isNote ? 'note' : 'page'}
-      data-canvas-theme={themeMode}
-    >
-      <div className="flex items-center justify-between gap-2 border-b border-border/50 px-3 py-2">
-        <span
-          className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-1 text-[10px] font-medium uppercase tracking-[0.16em] ${accentClass}`}
-        >
-          {isNote ? <StickyNote size={12} /> : <FileText size={12} />}
-          {badge}
-        </span>
-
-        <div className="flex items-center gap-1.5">
-          {actions?.onPeek ? (
-            <button
-              type="button"
-              className="inline-flex h-7 items-center gap-1 rounded-full border border-border/60 bg-background px-2 text-[11px] font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-              onClick={(event) => {
-                stopCanvasCardAction(event)
-                actions.onPeek?.()
-              }}
-              aria-label={`Peek ${title}`}
-              title={`Peek ${title}`}
-              data-canvas-interactive="true"
-              data-canvas-page-peek="true"
-            >
-              <Eye size={13} />
-              Peek
-            </button>
-          ) : null}
-          {actions?.onOpen ? (
-            <button
-              type="button"
-              className="inline-flex h-7 items-center gap-1 rounded-full border border-border/60 bg-background px-2 text-[11px] font-medium text-foreground transition-colors hover:bg-muted"
-              onClick={(event) => {
-                stopCanvasCardAction(event)
-                actions.onOpen?.()
-              }}
-              aria-label={`Open ${title}`}
-              title={`Open ${title}`}
-              data-canvas-interactive="true"
-              data-canvas-page-open="true"
-            >
-              <FileText size={13} />
-              Open
-            </button>
-          ) : null}
-        </div>
-      </div>
-
-      <div className="flex min-h-0 flex-1 flex-col px-4 py-3">
-        <div className="mb-3 line-clamp-2 text-lg font-semibold leading-tight text-foreground">
-          {title}
-        </div>
-
-        <div className="min-h-0 flex-1 rounded-2xl border border-border/55 bg-muted/20 p-3">
-          {previewLines.length > 0 ? (
-            <div className="space-y-2 text-sm leading-6 text-muted-foreground">
-              {previewLines.map((line, index) => (
-                <p key={`${line}:${index}`} className="line-clamp-1">
-                  {line}
-                </p>
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-2" aria-hidden="true">
-              <div className="h-2.5 w-11/12 rounded-full bg-muted-foreground/18" />
-              <div className="h-2.5 w-4/5 rounded-full bg-muted-foreground/14" />
-              <div className="h-2.5 w-2/3 rounded-full bg-muted-foreground/10" />
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function renderNodeCard(
-  node: CanvasNode,
-  document: LinkedDocumentItem | undefined,
-  themeMode: 'light' | 'dark',
-  context?: CanvasNodeRenderContext,
-  actions?: CanvasNodeCardActions,
-  media?: CanvasNodeCardMediaContext
-): React.ReactElement {
-  const displayType = getCanvasViewDisplayType(node, document)
-  const sourceId = getCanvasShellSourceId(node)
-  const linkedTitle =
-    node.alias ?? document?.title ?? (node.properties.title as string) ?? 'Untitled'
-
-  if (displayType === 'media' && media) {
-    const status = typeof node.properties.status === 'string' ? node.properties.status : null
-
-    return (
-      <CanvasMediaCard
-        node={node}
-        title={linkedTitle}
-        status={status}
-        themeMode={themeMode}
-        blobService={media.blobService}
-        onUpdateNodeProperties={media.onUpdateNodeProperties}
-      />
-    )
-  }
-
-  const subtitle =
-    displayType === 'page'
-      ? 'Document'
-      : displayType === 'database'
-        ? 'Database'
-        : displayType === 'note'
-          ? 'Canvas note'
-          : displayType === 'external-reference'
-            ? 'Link preview'
-            : 'Media asset'
-
-  const Icon =
-    displayType === 'page'
-      ? FileText
-      : displayType === 'database'
-        ? Database
-        : displayType === 'note'
-          ? StickyNote
-          : displayType === 'external-reference'
-            ? Link2
-            : FileImage
-  const isOpenable = Boolean(
-    sourceId && (displayType === 'page' || displayType === 'database' || displayType === 'note')
-  )
-  const status = typeof node.properties.status === 'string' ? node.properties.status : null
-
-  if (displayType === 'external-reference' && isPinnedSourceRecordCard(node)) {
-    const badges = readStringList(node.properties.badges)
-    const description =
-      typeof node.properties.description === 'string' ? node.properties.description : null
-    const pinnedSubtitle =
-      typeof node.properties.subtitle === 'string' ? node.properties.subtitle : null
-    const href = typeof node.properties.href === 'string' ? node.properties.href : null
-
-    return (
-      <div
-        className="flex h-full flex-col justify-between rounded-[24px] border border-border/70 bg-background p-4 shadow-lg shadow-black/5"
-        data-canvas-node-card="true"
-        data-canvas-card-kind="source-record"
-        data-canvas-pinned-source-card="true"
-        data-canvas-source-node-id={sourceId}
-        data-canvas-source-schema-id={node.sourceSchemaId}
-        data-canvas-theme={themeMode}
-      >
-        <div className="flex items-start justify-between gap-3">
-          <span className="inline-flex min-w-0 items-center gap-2 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            <Database size={12} />
-            <span className="truncate">{schemaIdLabel(node.sourceSchemaId)}</span>
-          </span>
-          <CanvasLifecycleStatusBadge status={status} />
-        </div>
-
-        <div className="space-y-2">
-          <div className="text-lg font-semibold leading-tight text-foreground">{linkedTitle}</div>
-          {pinnedSubtitle || description ? (
-            <p className="line-clamp-3 text-sm leading-relaxed text-muted-foreground">
-              {description ?? pinnedSubtitle}
-            </p>
-          ) : null}
-          {href ? <p className="truncate text-xs text-muted-foreground">{href}</p> : null}
-        </div>
-
-        {badges.length > 0 ? (
-          <div className="flex min-w-0 flex-wrap gap-1.5 overflow-hidden">
-            {badges.map((badge) => (
-              <span
-                key={badge}
-                className="max-w-full truncate rounded-full border border-border/70 px-2 py-0.5 text-[11px] text-muted-foreground"
-              >
-                {badge}
-              </span>
-            ))}
-          </div>
-        ) : null}
-      </div>
-    )
-  }
-
-  if (displayType === 'page' || displayType === 'note') {
-    return (
-      <CanvasPageStaticPreviewCard
-        node={node}
-        document={document}
-        themeMode={themeMode}
-        context={context}
-        actions={actions}
-      />
-    )
-  }
-
-  if (displayType === 'external-reference') {
-    return (
-      <CanvasExternalReferenceCard
-        title={linkedTitle}
-        url={typeof node.properties.url === 'string' ? node.properties.url : 'Dropped URL'}
-        provider={typeof node.properties.provider === 'string' ? node.properties.provider : null}
-        embedUrl={typeof node.properties.embedUrl === 'string' ? node.properties.embedUrl : null}
-        subtitle={typeof node.properties.subtitle === 'string' ? node.properties.subtitle : null}
-        status={status}
-        themeMode={themeMode}
-        renderMode="compact"
-      />
-    )
-  }
-
-  const summary =
-    displayType === 'database'
-      ? 'Open a focused database surface from the canvas.'
-      : displayType === 'page'
-        ? 'Open a focused writing surface from the canvas.'
-        : displayType === 'note'
-          ? 'A lightweight note pinned directly to the workspace.'
-          : typeof node.properties.mimeType === 'string'
-            ? `${String(node.properties.kind ?? 'file')} · ${node.properties.mimeType}`
-            : 'Dropped media or file'
-
-  return (
-    <div
-      className="flex h-full flex-col justify-between rounded-[24px] border border-border/70 bg-background p-4 shadow-lg shadow-black/5"
-      data-canvas-node-card="true"
-      data-canvas-card-kind={displayType}
-      data-canvas-theme={themeMode}
-      data-canvas-card-render-mode={displayType === 'database' ? 'compact' : undefined}
-      data-canvas-database-compact-renderer={displayType === 'database' ? 'true' : undefined}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <span className="inline-flex items-center gap-2 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-          <Icon size={12} />
-          {subtitle}
-        </span>
-        {isOpenable ? (
-          <span className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-            Open
-          </span>
-        ) : (
-          <CanvasLifecycleStatusBadge status={status} />
-        )}
-      </div>
-
-      <div className="space-y-2">
-        <div className="text-lg font-semibold leading-tight text-foreground">{linkedTitle}</div>
-        <p className="text-sm leading-relaxed text-muted-foreground">{summary}</p>
-        {status === 'error' ? (
-          <CanvasFailedCardActions
-            url={typeof node.properties.url === 'string' ? node.properties.url : null}
-            themeMode={themeMode}
-          />
-        ) : null}
-      </div>
-    </div>
-  )
 }
 
 function shouldActivateInlinePageSurface(
@@ -992,54 +570,72 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
   })
   const theme = useCanvasThemeTokens()
 
-  const canvasRef = useRef<CanvasHandle | null>(null)
-  const setCanvasHandle = useCallback(
-    (handle: CanvasHandle | null) => {
-      canvasRef.current = handle
-
-      const testHarness = window as Window & {
-        __xnetCanvasTestHarness?: {
-          registerCanvasHandle?: (canvasId: string, handle: CanvasHandle | null) => void
-        } | null
-      }
-
-      testHarness.__xnetCanvasTestHarness?.registerCanvasHandle?.(docId, handle)
-    },
-    [docId]
-  )
   const handledInsertIdsRef = useRef<Set<string>>(new Set())
-  const lastViewportSnapshotRef = useRef<ViewportSnapshot>({
-    x: 0,
-    y: 0,
-    zoom: 1
-  })
-  const [canvasReady, setCanvasReady] = useState(false)
-  const [hasNodes, setHasNodes] = useState(false)
-  const [sceneRevision, setSceneRevision] = useState(0)
-  const [selection, setSelection] = useState<CanvasSelectionSnapshot>({
-    nodeIds: [],
-    edgeIds: []
-  })
   const [manualQueryFrameRefreshRequests, setManualQueryFrameRefreshRequests] = useState<
     Record<string, string>
   >({})
   const [shortcutHelpOpen, setShortcutHelpOpen] = useState(false)
   const [peekState, setPeekState] = useState<CanvasPeekState | null>(null)
-  const [selectionPanel, setSelectionPanel] = useState<CanvasSelectionPanel>(null)
-  const [aliasDraft, setAliasDraft] = useState('')
-  const aliasInputRef = useRef<HTMLInputElement | null>(null)
-  const [commentDraft, setCommentDraft] = useState('')
-  const commentInputRef = useRef<HTMLTextAreaElement | null>(null)
-  const mediaFileInputRef = useRef<HTMLInputElement | null>(null)
   const selectedDatabaseUndoManagerRef = useRef<Y.UndoManager | null>(null)
   const undoOrderSequenceRef = useRef(0)
   const undoOrderRef = useRef<Record<CanvasUndoDomain, number[]>>(createUndoOrderMap())
   const redoOrderRef = useRef<Record<CanvasUndoDomain, number[]>>(createUndoOrderMap())
   const [activeUndoDomain, setActiveUndoDomain] = useState<CanvasUndoDomain>('scene')
-  const documentMap = useMemo(
-    () => new Map(documents.map((entry) => [entry.id, entry])),
-    [documents]
-  )
+  const recordUndoBoundary = useCallback((domain: CanvasUndoDomain) => {
+    undoOrderSequenceRef.current += 1
+    undoOrderRef.current[domain].push(undoOrderSequenceRef.current)
+    redoOrderRef.current = createUndoOrderMap()
+    setActiveUndoDomain(domain)
+  }, [])
+  const recordSceneUndoBoundary = useCallback(() => {
+    recordUndoBoundary('scene')
+  }, [recordUndoBoundary])
+
+  const controller = useCanvasViewController({
+    docId,
+    doc,
+    awareness,
+    blobService,
+    documents,
+    onUndoBoundary: recordSceneUndoBoundary
+  })
+  const {
+    canvasRef,
+    setCanvasHandle,
+    canvasReady,
+    hasNodes,
+    sceneRevision,
+    lastViewportSnapshotRef,
+    focusCanvasSurface,
+    selection,
+    setSelection,
+    selectedNodes,
+    selectedObject: selectedCanvasObject,
+    selectedCanvasEdge,
+    selectionAllLocked,
+    selectionAnyLocked,
+    selectedSourceNodeIds,
+    documentMap,
+    selectionPanel,
+    setSelectionPanel,
+    closeSelectionPanel,
+    openAliasEditor,
+    openCommentComposer,
+    clearSelectedAlias: clearSelectionAlias,
+    selectedObjectCommentCount,
+    updateCanvasNodeProperties,
+    placeSourceObject,
+    placePrimitiveObject,
+    handleSurfaceDrop,
+    handleSurfacePaste,
+    createShape,
+    createFrame,
+    createMindMap,
+    createExternalReference,
+    createMediaFile,
+    mediaFileInputRef,
+    handleMediaFileInputChange
+  } = controller
   const canvasDocuments = useMemo(
     () =>
       documents
@@ -1050,68 +646,6 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
         })),
     [documents]
   )
-  const { placeSourceObject, placePrimitiveObject, ingestPayload, ingestDataTransfer } =
-    useCanvasObjectIngestion({
-      doc,
-      blobService,
-      getViewportSnapshot: () =>
-        canvasRef.current?.getViewportSnapshot() ?? lastViewportSnapshotRef.current
-    })
-  const { threads: canvasObjectCommentThreads, addComment: addCanvasComment } = useComments({
-    nodeId: docId,
-    anchorType: 'canvas-object'
-  })
-  const updateCanvasNodeProperties = useCallback<UpdateCanvasNodeProperties>(
-    (nodeId, properties) => {
-      if (!doc) {
-        return
-      }
-
-      const nodesMap = getCanvasObjectsMap<CanvasNode>(doc)
-      const current = nodesMap.get(nodeId)
-      if (!current) {
-        return
-      }
-
-      doc.transact(() => {
-        nodesMap.set(nodeId, {
-          ...current,
-          properties: {
-            ...current.properties,
-            ...properties
-          }
-        })
-      })
-    },
-    [doc]
-  )
-  const selectedCanvasObject = useMemo<CanvasResolvedObject | null>(() => {
-    void sceneRevision
-
-    if (!doc || selection.nodeIds.length !== 1) {
-      return null
-    }
-
-    const node = getCanvasObjectsMap<CanvasNode>(doc).get(selection.nodeIds[0])
-    if (!node) {
-      return null
-    }
-
-    const sourceId = getCanvasShellSourceId(node)
-    const linkedDocument = sourceId ? documentMap.get(sourceId) : undefined
-    const displayType = getCanvasViewDisplayType(node, linkedDocument)
-    const sourceType = getCanvasShellSourceType(node, linkedDocument)
-    const title =
-      node.alias ?? linkedDocument?.title ?? (node.properties.title as string) ?? 'Untitled'
-
-    return {
-      node,
-      sourceId: sourceId ?? null,
-      sourceType,
-      displayType,
-      title
-    }
-  }, [doc, documentMap, sceneRevision, selection.nodeIds])
 
   const {
     loading: sourceReferencesLoading,
@@ -1124,35 +658,6 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     canvases: canvasDocuments
   })
 
-  const selectedCanvasEdge = useMemo(() => {
-    void sceneRevision
-
-    if (!doc || selection.edgeIds.length !== 1) {
-      return null
-    }
-
-    const edgeId = selection.edgeIds[0]
-    for (const [key, edge] of getCanvasConnectorsMap<CanvasEdge>(doc).entries()) {
-      if (key === edgeId || edge.id === edgeId) {
-        return edge
-      }
-    }
-
-    return null
-  }, [doc, sceneRevision, selection.edgeIds])
-
-  const selectedNodes = useMemo(() => {
-    void sceneRevision
-
-    if (!doc || selection.nodeIds.length === 0) {
-      return []
-    }
-
-    const nodes = getCanvasObjectsMap<CanvasNode>(doc)
-    return selection.nodeIds
-      .map((nodeId) => nodes.get(nodeId))
-      .filter((node): node is CanvasNode => node !== undefined)
-  }, [doc, sceneRevision, selection.nodeIds])
   const selectedQueryFrameNode = useMemo(
     () =>
       selectedNodes.length === 1 && isCanvasQueryFrameNode(selectedNodes[0])
@@ -1169,19 +674,6 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     return getCanvasQueryFrameTargets(doc)
   }, [doc, sceneRevision])
 
-  const selectionAllLocked = selectedNodes.length > 0 && selectedNodes.every((node) => node.locked)
-  const selectionAnyLocked = selectedNodes.some((node) => node.locked)
-  const selectedSourceNodeIds = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          selectedNodes
-            .map((node) => getCanvasShellSourceId(node))
-            .filter((sourceId): sourceId is string => typeof sourceId === 'string')
-        )
-      ),
-    [selectedNodes]
-  )
   const selectedDatabaseSourceId =
     selectedCanvasObject?.displayType === 'database' ? (selectedCanvasObject.sourceId ?? '') : ''
   const { doc: selectedDatabaseDoc } = useDatabaseDoc(selectedDatabaseSourceId)
@@ -1266,28 +758,6 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
 
     return Array.from(merged.values()).sort(sortCanvasSourceReferences)
   }, [currentCanvasSourceReferences, getReferences, selectedCanvasObject])
-  const selectedObjectCommentCount = useMemo(() => {
-    if (!selectedCanvasObject) {
-      return 0
-    }
-
-    return canvasObjectCommentThreads.filter((thread) => {
-      try {
-        return (
-          decodeAnchor<CanvasObjectAnchor>(thread.root.properties.anchorData).objectId ===
-          selectedCanvasObject.node.id
-        )
-      } catch {
-        return false
-      }
-    }).length
-  }, [canvasObjectCommentThreads, selectedCanvasObject])
-  const recordUndoBoundary = useCallback((domain: CanvasUndoDomain) => {
-    undoOrderSequenceRef.current += 1
-    undoOrderRef.current[domain].push(undoOrderSequenceRef.current)
-    redoOrderRef.current = createUndoOrderMap()
-    setActiveUndoDomain(domain)
-  }, [])
   const getUndoBoundaryOrder = useCallback(
     (domain: CanvasUndoDomain, direction: 'undo' | 'redo'): number => {
       const stack =
@@ -1309,6 +779,8 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
 
     setActiveUndoDomain(domain)
   }, [])
+  // The shared controller reports commenting/editing; peeking is a
+  // desktop-only overlay layered on top.
   const canvasPresenceIntent = useMemo(() => {
     if (peekState) {
       return {
@@ -1317,26 +789,8 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       }
     }
 
-    if (!selectedCanvasObject) {
-      return null
-    }
-
-    if (selectionPanel === 'comment') {
-      return {
-        activity: 'commenting' as const,
-        editingNodeId: selectedCanvasObject.node.id
-      }
-    }
-
-    if (selectionPanel === 'alias') {
-      return {
-        activity: 'editing' as const,
-        editingNodeId: selectedCanvasObject.node.id
-      }
-    }
-
-    return null
-  }, [peekState, selectedCanvasObject, selectionPanel])
+    return controller.canvasPresenceIntent
+  }, [controller.canvasPresenceIntent, peekState])
 
   const peekedCanvasObject = useMemo<CanvasResolvedObject | null>(() => {
     if (!peekState || !doc) {
@@ -1392,16 +846,6 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
   }, [selectedDatabaseDoc])
 
   useEffect(() => {
-    if (!doc) return
-    setCanvasReady(true)
-  }, [doc])
-
-  useEffect(() => {
-    if (!canvasReady || !canvasRef.current) return
-    lastViewportSnapshotRef.current = canvasRef.current.getViewportSnapshot()
-  }, [canvasReady])
-
-  useEffect(() => {
     if (!peekState) {
       return
     }
@@ -1419,61 +863,6 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       setPeekState(null)
     }
   }, [doc, documentMap, peekState])
-
-  useEffect(() => {
-    if (!selectedCanvasObject) {
-      setSelectionPanel(null)
-      setAliasDraft('')
-      setCommentDraft('')
-      return
-    }
-
-    if (
-      (selectionPanel === 'alias' || selectionPanel === 'references') &&
-      !selectedCanvasObject.sourceId
-    ) {
-      setSelectionPanel(null)
-    }
-
-    setAliasDraft(selectedCanvasObject.node.alias ?? '')
-  }, [selectedCanvasObject, selectionPanel])
-
-  useEffect(() => {
-    if (!doc) return
-
-    const nodesMap = getCanvasObjectsMap<CanvasNode>(doc)
-    const connectorsMap = getCanvasConnectorsMap<CanvasEdge>(doc)
-    const syncHasNodes = () => {
-      setHasNodes(nodesMap.size > 0)
-      setSceneRevision((current) => current + 1)
-    }
-
-    syncHasNodes()
-    nodesMap.observe(syncHasNodes)
-    connectorsMap.observe(syncHasNodes)
-
-    return () => {
-      nodesMap.unobserve(syncHasNodes)
-      connectorsMap.unobserve(syncHasNodes)
-    }
-  }, [doc])
-
-  useEffect(() => {
-    const testHarness = window as Window & {
-      __xnetCanvasTestHarness?: {
-        registerCanvasDoc?: (canvasId: string, doc: import('yjs').Doc | null) => void
-        registerCanvasAwareness?: (canvasId: string, awareness: unknown | null) => void
-      } | null
-    }
-
-    testHarness.__xnetCanvasTestHarness?.registerCanvasDoc?.(docId, doc)
-    testHarness.__xnetCanvasTestHarness?.registerCanvasAwareness?.(docId, awareness ?? null)
-
-    return () => {
-      testHarness.__xnetCanvasTestHarness?.registerCanvasDoc?.(docId, null)
-      testHarness.__xnetCanvasTestHarness?.registerCanvasAwareness?.(docId, null)
-    }
-  }, [awareness, doc, docId])
 
   const placeLinkedDocumentNode = useCallback(
     (document: LinkedDocumentItem): boolean => {
@@ -1548,19 +937,8 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     canvasRef.current?.setViewportSnapshot(snapshot)
   }, [])
 
-  const focusCanvasSurface = useCallback(() => {
-    window.requestAnimationFrame(() => {
-      document.querySelector<HTMLElement>('[data-canvas-surface="true"]')?.focus()
-    })
-  }, [])
-
   const closePeekSurface = useCallback(() => {
     setPeekState(null)
-    focusCanvasSurface()
-  }, [focusCanvasSurface])
-
-  const closeSelectionPanel = useCallback(() => {
-    setSelectionPanel(null)
     focusCanvasSurface()
   }, [focusCanvasSurface])
 
@@ -1806,39 +1184,6 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     [closePeekSurface, focusSelectionSurface, onOpenDocument]
   )
 
-  const handleSurfaceDrop = useCallback(
-    (
-      event: React.DragEvent<HTMLDivElement>,
-      context: {
-        screenToCanvas: (clientX: number, clientY: number) => { x: number; y: number }
-      }
-    ) => {
-      void ingestDataTransfer(event.dataTransfer, {
-        canvasPoint: context.screenToCanvas(event.clientX, event.clientY)
-      })
-    },
-    [ingestDataTransfer]
-  )
-
-  const handleSurfacePaste = useCallback(
-    (
-      event: React.ClipboardEvent<HTMLDivElement>,
-      _context: {
-        screenToCanvas: (clientX: number, clientY: number) => { x: number; y: number }
-      }
-    ) => {
-      const payloads = extractCanvasIngressPayloads(event.clipboardData)
-      const hasMeaningfulPaste = payloads.some((payload) => payload.kind !== 'text')
-      if (!hasMeaningfulPaste) {
-        return
-      }
-
-      event.preventDefault()
-      void ingestDataTransfer(event.clipboardData)
-    },
-    [ingestDataTransfer]
-  )
-
   useEffect(() => {
     if (!peekedCanvasObject) {
       return
@@ -1993,78 +1338,17 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     return true
   }, [closePeekSurface, closeSelectionPanel, peekedCanvasObject, selectionPanel, shortcutHelpOpen])
 
-  const setSelectedSourceAlias = useCallback(
-    (nextAlias: string | null): boolean => {
-      if (!doc || !selectedCanvasObject?.sourceId) {
-        return false
-      }
-
-      const nodesMap = getCanvasObjectsMap<CanvasNode>(doc)
-      const current = nodesMap.get(selectedCanvasObject.node.id)
-      if (!current) {
-        return false
-      }
-
-      const normalized = nextAlias?.trim() ?? ''
-      const resolvedAlias = normalized.length > 0 ? normalized : undefined
-
-      if ((current.alias ?? undefined) === resolvedAlias) {
-        closeSelectionPanel()
-        return true
-      }
-
-      doc.transact(() => {
-        nodesMap.set(current.id, {
-          ...current,
-          alias: resolvedAlias
-        })
-      })
-
-      recordUndoBoundary('scene')
-
-      closeSelectionPanel()
-      return true
-    },
-    [closeSelectionPanel, doc, recordUndoBoundary, selectedCanvasObject]
-  )
-
-  const openAliasEditor = useCallback((): boolean => {
-    if (!selectedCanvasObject?.sourceId) {
-      return false
-    }
-
-    setAliasDraft(selectedCanvasObject.node.alias ?? '')
-    setSelectionPanel('alias')
-    return true
-  }, [selectedCanvasObject])
-
-  const openCommentComposer = useCallback((): boolean => {
-    if (!selectedCanvasObject) {
-      return false
-    }
-
-    setCommentDraft('')
-    setSelectionPanel('comment')
-    return true
-  }, [selectedCanvasObject])
-
-  const clearSelectionAlias = useCallback((): boolean => {
-    return setSelectedSourceAlias(null)
-  }, [setSelectedSourceAlias])
-
   const toggleSourceReferences = useCallback(
     (open?: boolean): boolean => {
       if (!selectedCanvasObject?.sourceId) {
         return false
       }
 
-      setSelectionPanel((current) => {
-        const nextOpen = typeof open === 'boolean' ? open : current !== 'references'
-        return nextOpen ? 'references' : null
-      })
+      const nextOpen = typeof open === 'boolean' ? open : selectionPanel !== 'references'
+      setSelectionPanel(nextOpen ? 'references' : null)
       return true
     },
-    [selectedCanvasObject]
+    [selectedCanvasObject, selectionPanel, setSelectionPanel]
   )
 
   const handleRevealSourceReference = useCallback(
@@ -2086,107 +1370,6 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     },
     [closePeekSurface, closeSelectionPanel, doc]
   )
-
-  useEffect(() => {
-    if (selectionPanel !== 'alias') {
-      return
-    }
-
-    window.requestAnimationFrame(() => {
-      aliasInputRef.current?.focus()
-      aliasInputRef.current?.select()
-    })
-  }, [selectionPanel])
-
-  useEffect(() => {
-    if (selectionPanel !== 'comment') {
-      return
-    }
-
-    window.requestAnimationFrame(() => {
-      commentInputRef.current?.focus()
-    })
-  }, [selectionPanel])
-
-  const submitSelectionComment = useCallback(async (): Promise<boolean> => {
-    if (!selectedCanvasObject) {
-      return false
-    }
-
-    const content = commentDraft.trim()
-    if (!content) {
-      return false
-    }
-
-    const anchor: CanvasObjectAnchor = {
-      objectId: selectedCanvasObject.node.id,
-      anchorId: createCanvasObjectAnchorId({
-        objectId: selectedCanvasObject.node.id,
-        placement: 'right'
-      }),
-      placement: 'right'
-    }
-
-    const createdCommentId = await addCanvasComment({
-      content,
-      anchorType: 'canvas-object',
-      anchorData: encodeAnchor(anchor),
-      targetSchema: CanvasSchema._schemaId
-    })
-
-    if (!createdCommentId) {
-      return false
-    }
-
-    setCommentDraft('')
-    closeSelectionPanel()
-    return true
-  }, [addCanvasComment, closeSelectionPanel, commentDraft, selectedCanvasObject])
-
-  const createShape = useCallback(
-    (shapeType: ShapeType = 'rectangle'): boolean => {
-      const created = Boolean(
-        placePrimitiveObject({
-          objectKind: 'shape',
-          title: getShapeLabel(shapeType),
-          properties: {
-            title: getShapeLabel(shapeType),
-            label: getShapeLabel(shapeType),
-            shapeType
-          }
-        })
-      )
-
-      if (created) {
-        recordUndoBoundary('scene')
-      }
-
-      return created
-    },
-    [placePrimitiveObject, recordUndoBoundary]
-  )
-
-  const createFrame = useCallback((): boolean => {
-    const created = Boolean(
-      placePrimitiveObject({
-        objectKind: 'group',
-        title: 'Frame',
-        rect: {
-          width: 640,
-          height: 420
-        },
-        properties: createCanvasFrameVariantProperties('standard', {
-          title: 'Frame'
-        })
-      })
-    )
-
-    if (created) {
-      recordUndoBoundary('scene')
-    }
-
-    return created
-  }, [placePrimitiveObject, recordUndoBoundary])
 
   const createQueryFrameFromSavedView = useCallback(
     (input: SavedViewCanvasQueryFrameInput): boolean => {
@@ -2238,24 +1421,6 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     return true
   }, [selectedQueryFrameNode])
 
-  const createMindMap = useCallback((): boolean => {
-    const properties = createCanvasMindMapRootProperties()
-    const created = Boolean(
-      placePrimitiveObject({
-        objectKind: CANVAS_MIND_MAP_CREATION_TOOL.objectKind,
-        title: properties.title,
-        rect: CANVAS_MIND_MAP_CREATION_TOOL.rootRect,
-        properties
-      })
-    )
-
-    if (created) {
-      recordUndoBoundary('scene')
-    }
-
-    return created
-  }, [placePrimitiveObject, recordUndoBoundary])
-
   const createPlanningTemplate = useCallback(
     (templateId: CanvasPlanningTemplateId): boolean => {
       const created = canvasRef.current?.createPlanningTemplate(templateId) ?? false
@@ -2267,57 +1432,6 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       return created
     },
     [recordUndoBoundary]
-  )
-
-  const createExternalReference = useCallback(
-    (url?: string): boolean => {
-      const candidate = (
-        url ?? window.prompt('Paste a URL to add to the canvas', 'https://')
-      )?.trim()
-
-      if (!candidate) {
-        return false
-      }
-
-      void ingestPayload({ kind: 'text', text: candidate }).then((result) => {
-        if (result) {
-          recordUndoBoundary('scene')
-        }
-      })
-
-      return true
-    },
-    [ingestPayload, recordUndoBoundary]
-  )
-
-  const createMediaFile = useCallback((): boolean => {
-    const input = mediaFileInputRef.current
-    if (!input) {
-      return false
-    }
-
-    input.click()
-    return true
-  }, [])
-
-  const handleMediaFileInputChange = useCallback(
-    (event: React.ChangeEvent<HTMLInputElement>): void => {
-      const files = Array.from(event.currentTarget.files ?? [])
-      event.currentTarget.value = ''
-
-      if (files.length === 0) {
-        return
-      }
-
-      void Promise.all(
-        files.map((file, index) => ingestPayload({ kind: 'file', file }, { spreadIndex: index }))
-      ).then((results) => {
-        if (results.some(Boolean)) {
-          recordUndoBoundary('scene')
-        }
-      })
-    },
-    [ingestPayload, recordUndoBoundary]
   )
 
   const wrapSelectionInFrame = useCallback((): boolean => {
@@ -2786,141 +1900,9 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
             data-canvas-theme={theme.mode}
           >
             {selectionPanel === 'alias' ? (
-              <div data-canvas-alias-editor="true">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">Canvas alias</p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      This renames the canvas object without touching the underlying page or
-                      database title.
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-                    onClick={closeSelectionPanel}
-                    data-canvas-source-panel-close="true"
-                  >
-                    Close
-                  </button>
-                </div>
-
-                <div className="mt-4 flex items-center gap-2">
-                  <input
-                    ref={aliasInputRef}
-                    type="text"
-                    value={aliasDraft}
-                    onChange={(event) => setAliasDraft(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        event.preventDefault()
-                        setSelectedSourceAlias(aliasDraft)
-                        return
-                      }
-
-                      if (event.key === 'Escape') {
-                        event.preventDefault()
-                        closeSelectionPanel()
-                      }
-                    }}
-                    placeholder={selectedCanvasObject.title}
-                    className="min-w-0 flex-1 rounded-2xl border border-border/60 bg-background px-4 py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground"
-                    data-canvas-alias-input="true"
-                  />
-
-                  <button
-                    type="button"
-                    className="rounded-full border border-border/60 bg-background px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-                    onClick={() => {
-                      setSelectedSourceAlias(aliasDraft)
-                    }}
-                    data-canvas-alias-save="true"
-                  >
-                    Save
-                  </button>
-
-                  <button
-                    type="button"
-                    className="rounded-full border border-border/60 bg-background px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-                    onClick={() => {
-                      clearSelectionAlias()
-                    }}
-                    data-canvas-alias-clear="true"
-                  >
-                    Clear
-                  </button>
-                </div>
-              </div>
+              <CanvasAliasEditorPanel controller={controller} themeMode={theme.mode} />
             ) : selectionPanel === 'comment' ? (
-              <div data-canvas-comment-editor="true">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">Canvas comment</p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Anchor a thread to this object. The pin follows the object as it moves, and
-                      deleted anchors fall back to the orphan tray.
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-                    onClick={closeSelectionPanel}
-                    data-canvas-source-panel-close="true"
-                  >
-                    Close
-                  </button>
-                </div>
-
-                <div className="mt-3 rounded-2xl bg-muted/35 px-3 py-2 text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                  {selectedObjectCommentCount > 0
-                    ? `${selectedObjectCommentCount} existing thread${
-                        selectedObjectCommentCount === 1 ? '' : 's'
-                      } on this object`
-                    : 'No existing threads on this object yet'}
-                </div>
-
-                <div className="mt-4 space-y-3">
-                  <textarea
-                    ref={commentInputRef}
-                    value={commentDraft}
-                    onChange={(event) => setCommentDraft(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
-                        event.preventDefault()
-                        void submitSelectionComment()
-                        return
-                      }
-
-                      if (event.key === 'Escape') {
-                        event.preventDefault()
-                        closeSelectionPanel()
-                      }
-                    }}
-                    placeholder={`Comment on ${selectedCanvasObject.title}`}
-                    className="min-h-[104px] w-full rounded-[24px] border border-border/60 bg-background px-4 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground"
-                    data-canvas-comment-input="true"
-                  />
-
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-xs text-muted-foreground">
-                      Mod+Enter to submit, Esc to close
-                    </p>
-                    <button
-                      type="button"
-                      className="rounded-full border border-border/60 bg-background px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-muted disabled:cursor-not-allowed disabled:opacity-60"
-                      onClick={() => {
-                        void submitSelectionComment()
-                      }}
-                      disabled={commentDraft.trim().length === 0}
-                      data-canvas-comment-save="true"
-                    >
-                      Add comment
-                    </button>
-                  </div>
-                </div>
-              </div>
+              <CanvasCommentComposerPanel controller={controller} themeMode={theme.mode} />
             ) : (
               <div data-canvas-source-references="true">
                 <div className="flex items-start justify-between gap-3">
@@ -2998,62 +1980,11 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
 
       {shortcutHelpOpen ? (
         <div className="pointer-events-none absolute right-6 top-20 z-20 w-[min(92vw,380px)]">
-          <div
-            className="pointer-events-auto rounded-[28px] border border-border/60 bg-background/90 p-5 shadow-2xl shadow-black/10 backdrop-blur-xl"
-            data-canvas-shortcut-help="true"
-            data-canvas-theme={theme.mode}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-foreground">Canvas shortcuts</p>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Keep the chrome quiet. Create, select, edit, and open directly from the board.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                className="rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-                onClick={() => toggleShortcutHelp(false)}
-                data-canvas-shortcut-help-close="true"
-              >
-                Close
-              </button>
-            </div>
-
-            <div className="mt-4 grid gap-2 text-sm text-foreground">
-              {[
-                ['P / D / N / M', 'Create page, database, note, or mind map'],
-                ['R / F', 'Create a rectangle or an empty frame'],
-                ['Drag handle', 'Pull from a selected card to connect objects'],
-                ['Tab', 'Step through canvas objects'],
-                ['Arrow keys', 'Pan the board or nudge the selection'],
-                ['Enter', 'Peek or edit the selected object'],
-                ['Alt+Enter', 'Open the selected database beside the canvas'],
-                ['Mod+Enter', 'Open the focused page or database view'],
-                ['Mod+Shift+A', 'Edit the selection alias'],
-                ['Mod+Shift+C', 'Comment on the selected object'],
-                ['Mod+Shift+K', 'Connect the current two-object selection'],
-                ['Mod+Shift+L', 'Lock or unlock the current selection'],
-                ['Mod+Shift+F', 'Wrap the selection in a frame'],
-                ['Mod+Shift+Arrow', 'Align the selection to one edge'],
-                ['[ / ]', 'Send the selection backward or forward'],
-                ['Mod+Shift+P', 'Open the command palette'],
-                ['Mod+1 / Mod+0', 'Fit content or reset the camera'],
-                ['Esc', 'Dismiss help or clear the selection']
-              ].map(([shortcut, description]) => (
-                <div
-                  key={shortcut}
-                  className="flex items-center justify-between gap-4 rounded-2xl bg-muted/35 px-3 py-2"
-                >
-                  <span className="text-muted-foreground">{description}</span>
-                  <span className="rounded-full border border-border/60 bg-background px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.16em] text-foreground">
-                    {shortcut}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
+          <CanvasShortcutHelpPanel
+            themeMode={theme.mode}
+            onClose={() => toggleShortcutHelp(false)}
+            extraEntries={[['Alt+Enter', 'Open the selected database beside the canvas']]}
+          />
         </div>
       ) : null}
 
@@ -3275,22 +2206,16 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
               return <CanvasWidgetNodeCard node={node} lod={context.lod} />
             }
 
-            if (
-              node.type === 'external-reference' ||
-              node.type === 'media' ||
-              shouldRenderCanvasShellCard(node, linkedDocument)
-            ) {
-              return renderNodeCard(
-                node,
-                linkedDocument,
-                theme.mode,
+            if (shouldRenderCanvasNodeCard(node, linkedDocument)) {
+              return renderCanvasNodeCard(node, {
+                themeMode: theme.mode,
+                document: linkedDocument,
                 context,
-                resolvedCardActions,
-                {
-                  blobService,
-                  onUpdateNodeProperties: updateCanvasNodeProperties
-                }
-              )
+                actions: resolvedCardActions,
+                blobService,
+                onUpdateNodeProperties: updateCanvasNodeProperties,
+                externalReferenceRenderMode: 'compact'
+              })
             }
             return undefined
           }}

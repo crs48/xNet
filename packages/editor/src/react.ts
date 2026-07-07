@@ -45,6 +45,11 @@ export {
   type UpdateCanvasNodeProperties
 } from './components/CanvasMediaCard'
 export {
+  renderCanvasNodeCard,
+  shouldRenderCanvasNodeCard,
+  type RenderCanvasNodeCardOptions
+} from './components/renderCanvasNodeCard'
+export {
   CanvasCardAuditTrail,
   createCanvasCardAuditSummary,
   formatCanvasCardAuditTimestamp,

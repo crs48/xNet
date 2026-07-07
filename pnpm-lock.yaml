@@ -2156,6 +2156,9 @@ importers:
       nanoid:
         specifier: ^5.1.6
         version: 5.1.6
+      yjs:
+        specifier: ^13.6.24
+        version: 13.6.29
     devDependencies:
       '@storybook/react-vite':
         specifier: ^10.2.16

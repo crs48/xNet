@@ -23,3 +23,32 @@ export {
   type LinkedDocType,
   type LinkedDocumentItem
 } from './canvas-shell.js'
+export {
+  getCanvasViewDisplayType,
+  getShapeLabel,
+  useCanvasViewController,
+  type CanvasResolvedObject,
+  type CanvasSelectionPanel,
+  type CanvasViewDisplayType,
+  type UseCanvasViewControllerOptions,
+  type UseCanvasViewControllerResult
+} from './useCanvasViewController.js'
+export {
+  CANVAS_SHORTCUT_HELP_ENTRIES,
+  CanvasAliasEditorPanel,
+  CanvasCommentComposerPanel,
+  CanvasShortcutHelpPanel,
+  type CanvasSelectionPanelCardProps,
+  type CanvasShortcutHelpPanelProps
+} from './panels.js'
+export {
+  CanvasPageStaticPreviewCard,
+  CanvasPinnedSourceRecordCard,
+  isPinnedSourceRecordCard,
+  readStringList,
+  schemaIdLabel,
+  stopCanvasCardAction,
+  type CanvasNodeCardActions,
+  type CanvasPageStaticPreviewCardProps,
+  type CanvasPinnedSourceRecordCardProps
+} from './cards.js'

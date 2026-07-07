@@ -30,7 +30,8 @@
     "@xnetjs/social": "workspace:*",
     "@xnetjs/ui": "workspace:*",
     "lucide-react": "^0.563.0",
-    "nanoid": "^5.1.6"
+    "nanoid": "^5.1.6",
+    "yjs": "^13.6.24"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0"

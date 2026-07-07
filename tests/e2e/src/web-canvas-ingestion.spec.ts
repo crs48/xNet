@@ -140,7 +140,7 @@ async function createCanvasNote(page: import('@playwright/test').Page): Promise<
   } catch {
     await dismissStorageWarning(page)
     await page
-      .locator('[data-web-canvas-create-note="true"]')
+      .locator('[data-canvas-create-note="true"]')
       .evaluate((button: HTMLButtonElement) => button.click())
     await expect(noteLocator).toHaveCount(targetCount, {
       timeout: 30_000
@@ -504,14 +504,14 @@ async function getCanvasThemeDiagnostics(page: import('@playwright/test').Page):
       surfaceTheme: surface.dataset.canvasTheme ?? null,
       navigationTheme: navigationTools.dataset.canvasTheme ?? null,
       minimapTheme: minimap.dataset.canvasTheme ?? null,
-      hintTheme: getTheme('[data-web-canvas-hint="true"]'),
-      emptyStateTheme: getTheme('[data-web-canvas-empty-state="true"]'),
+      hintTheme: getTheme('[data-canvas-hint="true"]'),
+      emptyStateTheme: getTheme('[data-canvas-empty-state="true"]'),
       firstCardTheme: getTheme('[data-canvas-node-card="true"]'),
       surfaceBackground: window.getComputedStyle(surface).backgroundColor,
       navigationBackground: window.getComputedStyle(navigationTools).backgroundColor,
       minimapDismissBackground: window.getComputedStyle(minimapDismissButton).backgroundColor,
-      hintBackground: getBackground('[data-web-canvas-hint="true"]'),
-      emptyStateBackground: getBackground('[data-web-canvas-empty-state="true"]'),
+      hintBackground: getBackground('[data-canvas-hint="true"]'),
+      emptyStateBackground: getBackground('[data-canvas-empty-state="true"]'),
       firstCardBackground: getBackground('[data-canvas-node-card="true"]')
     }
   })
@@ -737,26 +737,26 @@ test.describe('Web canvas ingestion', () => {
     await expect(surface).toBeVisible({ timeout: 30_000 })
     await expect(page.locator('.navigation-tools')).toBeVisible({ timeout: 30_000 })
     await expect(page.locator('[data-canvas-minimap="true"]')).toBeVisible({ timeout: 30_000 })
-    await expect(page.locator('[data-web-canvas-quick-actions="true"]')).toBeVisible({
+    await expect(page.locator('[data-canvas-quick-actions="true"]')).toBeVisible({
       timeout: 30_000
     })
-    await expect(page.locator('[data-web-canvas-quick-action="page"]')).toHaveAttribute(
+    await expect(page.locator('[data-canvas-quick-action="page"]')).toHaveAttribute(
       'title',
       'Create page (P)'
     )
-    await expect(page.locator('[data-web-canvas-quick-action="database"]')).toHaveAttribute(
+    await expect(page.locator('[data-canvas-quick-action="database"]')).toHaveAttribute(
       'title',
       'Create database (D)'
     )
-    await expect(page.locator('[data-web-canvas-create-note="true"]')).toHaveAttribute(
+    await expect(page.locator('[data-canvas-create-note="true"]')).toHaveAttribute(
       'title',
       'Create note (N)'
     )
-    await expect(page.locator('[data-web-canvas-fit="true"]')).toHaveAttribute(
+    await expect(page.locator('[data-canvas-fit="true"]')).toHaveAttribute(
       'title',
       'Fit to content (Ctrl/Cmd 1)'
     )
-    await expect(page.locator('[data-web-canvas-empty-state="true"]')).toBeVisible({
+    await expect(page.locator('[data-canvas-empty-state="true"]')).toBeVisible({
       timeout: 30_000
     })
 
@@ -1192,17 +1192,14 @@ test.describe('Web canvas ingestion', () => {
     await surface.focus()
     await page.keyboard.press(ALIAS_SHORTCUT)
 
-    const aliasEditor = page.locator('[data-web-canvas-alias-editor="true"]')
+    const aliasEditor = page.locator('[data-canvas-alias-editor="true"]')
     await expect(aliasEditor).toBeVisible({ timeout: 30_000 })
-    await page.locator('[data-web-canvas-alias-input="true"]').fill('Quick Alias')
+    await page.locator('[data-canvas-alias-input="true"]').fill('Quick Alias')
     await page.keyboard.press('Enter')
 
-    await expect(page.locator('[data-web-canvas-selection-pill="true"]')).toContainText(
-      'Quick Alias',
-      {
-        timeout: 30_000
-      }
-    )
+    await expect(page.locator('[data-canvas-selection-pill="true"]')).toContainText('Quick Alias', {
+      timeout: 30_000
+    })
     await expect(page.locator('[data-canvas-node-card="true"]').last()).toContainText(
       'Quick Alias',
       {
@@ -1237,10 +1234,10 @@ test.describe('Web canvas ingestion', () => {
     await surface.focus()
     await page.keyboard.press(COMMENT_SHORTCUT)
 
-    const commentEditor = page.locator('[data-web-canvas-comment-editor="true"]')
+    const commentEditor = page.locator('[data-canvas-comment-editor="true"]')
     await expect(commentEditor).toBeVisible({ timeout: 30_000 })
-    await page.locator('[data-web-canvas-comment-input="true"]').fill('Board anchored feedback')
-    await page.locator('[data-web-canvas-comment-save="true"]').click()
+    await page.locator('[data-canvas-comment-input="true"]').fill('Board anchored feedback')
+    await page.locator('[data-canvas-comment-save="true"]').click()
 
     const commentPin = page.locator('[data-canvas-comment-pin="true"]')
     await expect(commentPin).toBeVisible({ timeout: 30_000 })
@@ -1384,7 +1381,7 @@ test.describe('Web canvas ingestion', () => {
 
     await surface.focus()
     await page.keyboard.press(COMMENT_SHORTCUT)
-    await expect(page.locator('[data-web-canvas-comment-editor="true"]')).toBeVisible({
+    await expect(page.locator('[data-canvas-comment-editor="true"]')).toBeVisible({
       timeout: 30_000
     })
     await expect(surface).toHaveAttribute('data-canvas-local-activity', 'commenting')
