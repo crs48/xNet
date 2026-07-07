@@ -158,12 +158,12 @@ maps to a seam:
 
 ### Overlap audit against the existing series
 
-| Existing essay | Its claim | #11's distinct claim |
-| --- | --- | --- |
-| #10 Workshop/Walled Garden | Views-over-data enables safe **moddability** | The **data–app decoupling itself**: lineage, economics, why pods stalled, where value settles |
-| #9 Hand on the Tiller | Steering/cybernetics | — |
-| #7 The Loom You Can Read | How the substrate works internally | #11 cites it instead of re-explaining the log |
-| #5/#6 economics/permaculture essays | Extraction vs regeneration framing | #11 reuses the moat framing in one paragraph, credits it |
+| Existing essay                      | Its claim                                    | #11's distinct claim                                                                          |
+| ----------------------------------- | -------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| #10 Workshop/Walled Garden          | Views-over-data enables safe **moddability** | The **data–app decoupling itself**: lineage, economics, why pods stalled, where value settles |
+| #9 Hand on the Tiller               | Steering/cybernetics                         | —                                                                                             |
+| #7 The Loom You Can Read            | How the substrate works internally           | #11 cites it instead of re-explaining the log                                                 |
+| #5/#6 economics/permaculture essays | Extraction vs regeneration framing           | #11 reuses the moat framing in one paragraph, credits it                                      |
 
 The seam is clean: #10 was "what you can build **on top** once apps are
 views"; #11 is "why apps should be views **at all**, who said so first, and
@@ -178,8 +178,7 @@ was corrected: the "two apps… instantly update both" line is from Zhao's
 
 ### The canon (verified, with exact quotes)
 
-- **Ruben Verborgh, "Paradigm shifts for the decentralized Web" (20 Dec
-  2017)** — <https://ruben.verborgh.org/blog/2017/12/20/paradigm-shifts-for-the-decentralized-web/>.
+- **Ruben Verborgh, "Paradigm shifts for the decentralized Web" (20 Dec 2017)** — <https://ruben.verborgh.org/blog/2017/12/20/paradigm-shifts-for-the-decentralized-web/>.
   Three shifts: end users become data controllers; **apps become views**;
   **interfaces become queries**. Exact: _"Applications as interchangeable
   views, wherein each Web app provides consistent visualizations,
@@ -333,12 +332,12 @@ was corrected: the "two apps… instantly update both" line is from Zhao's
 
 ### Framing options for the essay
 
-| Option | Shape | Pros | Cons |
-| --- | --- | --- | --- |
-| **A. Intellectual-lineage essay** ("the 25-year detour") | History → diagnosis → mechanism → xNet → AI inversion | Distinct from #10; deep; flatters sources honestly | Risk of book-report tone if quotes dominate |
-| B. Polemic on data moats | Economics-first attack on silos | Punchy | Overlaps #5 (Leveragism) and the surveillance framing of #4/#6; thin on mechanism |
-| C. Product-explainer ("how xNet does views") | Architecture tour | Concrete | Reads as marketing; #7 already toured internals |
-| D. Pure AI-angle ("views are disposable now") | Lead with the 2026 inversion | Freshest claim | Loses the commissioned brief (the sources) to a hook |
+| Option                                                   | Shape                                                 | Pros                                               | Cons                                                                              |
+| -------------------------------------------------------- | ----------------------------------------------------- | -------------------------------------------------- | --------------------------------------------------------------------------------- |
+| **A. Intellectual-lineage essay** ("the 25-year detour") | History → diagnosis → mechanism → xNet → AI inversion | Distinct from #10; deep; flatters sources honestly | Risk of book-report tone if quotes dominate                                       |
+| B. Polemic on data moats                                 | Economics-first attack on silos                       | Punchy                                             | Overlaps #5 (Leveragism) and the surveillance framing of #4/#6; thin on mechanism |
+| C. Product-explainer ("how xNet does views")             | Architecture tour                                     | Concrete                                           | Reads as marketing; #7 already toured internals                                   |
+| D. Pure AI-angle ("views are disposable now")            | Lead with the 2026 inversion                          | Freshest claim                                     | Loses the commissioned brief (the sources) to a hook                              |
 
 **A, with D as the closing movement**, honours the brief (the sources ARE the
 story) while contributing a new argument. B's moat point becomes one section
@@ -346,12 +345,12 @@ inside A; C's architecture becomes the receipts, not the subject.
 
 ### Title options
 
-| Title | Notes |
-| --- | --- |
+| Title                           | Notes                                                                                                   |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------- |
 | **"The Vault and the View"** ✅ | Series-consistent metaphor pair (cf. Workshop/Walled Garden, Forest/Field); credits "views, not vaults" |
-| "Apps Are Views, Not Vaults" | Punchier but borrows the slogan wholesale as a headline |
-| "The Twenty-Five-Year Detour" | Strong but opaque on the index card |
-| "Many Windows, One House" | Gentler; weaker link to the sources' language |
+| "Apps Are Views, Not Vaults"    | Punchier but borrows the slogan wholesale as a headline                                                 |
+| "The Twenty-Five-Year Detour"   | Strong but opaque on the index card                                                                     |
+| "Many Windows, One House"       | Gentler; weaker link to the sources' language                                                           |
 
 ### Cold-open options
 
@@ -371,7 +370,7 @@ Write **blog post #11, "The Vault and the View"** (framing A+D):
    yours in the way that mattered — the _shape_ belonged to the vault.
 2. **The detour:** Codd's data independence → Unix files → desktop documents
    → the web app as the anomaly that fused data to interface. The fusion was
-   a business model (moat) *and* an engineering convenience — concede both.
+   a business model (moat) _and_ an engineering convenience — concede both.
 3. **The diagnosis generation:** Verborgh's "apps become views" (quote),
    Solid's pods; why the vision was right and the mechanism stalled (schema
    negotiation tax, server-resident documents, pod-first adoption).
@@ -476,39 +475,39 @@ const taskV1toV2: SchemaLens = {
 
 ## Implementation Checklist
 
-- [ ] Use only the verbatim-verified quotes from External Research (already
+- [x] Use only the verbatim-verified quotes from External Research (already
       checked against live sources; Rhizome vs Reboot attribution fixed);
       link Ink & Switch as `/essay/local-first/`.
-- [ ] Write `site/src/pages/blog/the-vault-and-the-view.astro` following the
+- [x] Write `site/src/pages/blog/the-vault-and-the-view.astro` following the
       #10 conventions (Byline, SeriesNav, Mermaid, CodeFigure, bespoke hero,
       `tok-*` helpers, en-GB, nothing third-party).
-- [ ] Add the `posts[]` entry in `site/src/data/blog.ts` (slug
+- [x] Add the `posts[]` entry in `site/src/data/blog.ts` (slug
       `the-vault-and-the-view`, tags
       `['essay','philosophy','decentralization','protocol']`, authors
       `['crs48','claude']`, honest `readingMinutes`).
-- [ ] Bespoke hero component under `site/src/components/blog/` (vendored
+- [x] Bespoke hero component under `site/src/components/blog/` (vendored
       assets only).
-- [ ] Cross-link: #7 (the loom / internals), #10 (workshop / scoping), the
+- [x] Cross-link: #7 (the loom / internals), #10 (workshop / scoping), the
       protocol spec, and the four external sources with full attribution.
-- [ ] SchemaLens `CodeFigure` uses the real API shape from
+- [x] SchemaLens `CodeFigure` uses the real API shape from
       `packages/data/src/schema/lens.ts` (no invented fields).
-- [ ] Changelog fragment via `scripts/changelog/new.mjs` (do not hand-write).
+- [x] Changelog fragment via `scripts/changelog/new.mjs` (do not hand-write).
 - [ ] Conventional commit(s), header ≤72 chars; no changeset needed (site
       only) — but run the Stop-hook check anyway.
 - [ ] PR to `main`; merge-commit per repo policy.
 
 ## Validation Checklist
 
-- [ ] `pnpm --filter site build` (or the site's build task) passes; the post
+- [x] `pnpm --filter site build` (or the site's build task) passes; the post
       renders with hero, byline, diagrams, and code figure.
-- [ ] Post appears on `/blog` index and in `rss.xml` with correct metadata;
+- [x] Post appears on `/blog` index and in `rss.xml` with correct metadata;
       `seriesNeighbors` links #10 ↔ #11 correctly.
-- [ ] Every factual claim has a source link or a repo path; quotes match the
+- [x] Every factual claim has a source link or a repo path; quotes match the
       live originals verbatim (0247 discipline).
-- [ ] No third-party requests on the page (network tab clean).
-- [ ] Overlap check: a reader of #10 finds new argument in every section of
+- [x] No third-party requests on the page (network tab clean).
+- [x] Overlap check: a reader of #10 finds new argument in every section of
       #11 (the lineage, the Solid post-mortem, the value-settlement close).
-- [ ] Lighthouse/da­rk-mode/mobile spot-check matches the rest of the series.
+- [x] Lighthouse/da­rk-mode/mobile spot-check matches the rest of the series.
 
 ## References
 
