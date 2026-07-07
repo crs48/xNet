@@ -38,6 +38,13 @@ export {
   type CanvasExternalReferenceCardProps
 } from './components/CanvasExternalReferenceCard'
 export {
+  CanvasMediaCard,
+  isPdfMediaNode,
+  type CanvasMediaCardProps,
+  type CanvasMediaGate,
+  type UpdateCanvasNodeProperties
+} from './components/CanvasMediaCard'
+export {
   CanvasCardAuditTrail,
   createCanvasCardAuditSummary,
   formatCanvasCardAuditTimestamp,

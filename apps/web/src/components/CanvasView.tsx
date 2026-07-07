@@ -6,21 +6,18 @@ import type {
   CanvasEdge,
   CanvasHandle,
   CanvasNode,
-  CanvasPdfPageThumbnail,
   CanvasSelectionSnapshot,
   ShapeType
 } from '@xnetjs/canvas'
-import type { ChangeEvent, CSSProperties } from 'react'
+import type { ChangeEvent } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import {
   Canvas,
-  CanvasPdfPageViewer,
   CANVAS_INTERNAL_NODE_MIME,
   CANVAS_MIND_MAP_CREATION_TOOL,
   serializeCanvasInternalNodeDragData,
   createCanvasFrameExportDocument,
   createCanvasFrameVariantProperties,
-  createCanvasPdfPageAnchorId,
   createCanvasMindMapRootProperties,
   createCanvasObjectAnchorId,
   createCanvasUndoManager,
@@ -31,7 +28,6 @@ import {
   useCanvasObjectIngestion,
   useCanvasThemeTokens
 } from '@xnetjs/canvas'
-import { CanvasWidgetCard, DashboardRuntimeProvider } from '@xnetjs/dashboard'
 import {
   CanvasSchema,
   DatabaseSchema,
@@ -39,18 +35,19 @@ import {
   decodeAnchor,
   encodeAnchor,
   type BlobService,
-  type CanvasObjectAnchor,
-  type FileRef
+  type CanvasObjectAnchor
 } from '@xnetjs/data'
 import {
   CanvasExternalReferenceCard,
-  CanvasFailedCardActions,
-  CanvasLifecycleStatusBadge,
-  useBlobService
+  CanvasMediaCard,
+  useBlobService,
+  type CanvasMediaGate,
+  type UpdateCanvasNodeProperties
 } from '@xnetjs/editor/react'
 import { getCommandRegistry } from '@xnetjs/plugins'
 import { useComments, useIdentity, useMutate, useNode } from '@xnetjs/react'
 import { setNodeTransfer } from '@xnetjs/ui'
+import { CanvasWidgetNodeCard } from '@xnetjs/views'
 import {
   Download,
   FileImage,
@@ -70,9 +67,9 @@ import { DESK_TITLE, isDeskId, isDeskRadialEnabled } from '../lib/desk'
 import { useContextPanel, type ContextPanelSection } from '../workbench/context-panel'
 import { useWorkbench } from '../workbench/state'
 import { useIsCompact } from '../workbench/use-layout-mode'
-import { DASHBOARD_SCHEMA_REGISTRY } from './DashboardView'
 import { DeskListProjection } from './DeskListProjection'
 import { DeskRadialMenu } from './DeskRadialMenu'
+import { ModeratedMedia } from './ModeratedMedia'
 import { PresenceAvatars } from './PresenceAvatars'
 import { ShareButton } from './ShareButton'
 
@@ -106,89 +103,12 @@ function getShapeLabel(shapeType: ShapeType): string {
   }
 }
 
-type UpdateCanvasNodeProperties = (nodeId: string, properties: Record<string, unknown>) => void
-
-function getStringProperty(node: CanvasNode, key: string): string | null {
-  const value = node.properties[key]
-
-  return typeof value === 'string' && value.trim().length > 0 ? value : null
-}
-
-function getNumberProperty(node: CanvasNode, key: string): number | null {
-  const value = node.properties[key]
-
-  return typeof value === 'number' && Number.isFinite(value) ? value : null
-}
-
-function isFileRef(value: unknown): value is FileRef {
-  if (!value || typeof value !== 'object') {
-    return false
-  }
-
-  const record = value as Record<string, unknown>
-
-  return (
-    typeof record.cid === 'string' &&
-    typeof record.name === 'string' &&
-    typeof record.mimeType === 'string' &&
-    typeof record.size === 'number'
-  )
-}
-
-function getMediaFileRef(node: CanvasNode): FileRef | null {
-  const file = node.properties.file
-
-  return isFileRef(file) ? file : null
-}
-
-function getMediaObjectFit(node: CanvasNode): CSSProperties['objectFit'] {
-  const objectFit = node.properties.objectFit
-
-  return objectFit === 'cover' || objectFit === 'fill' ? objectFit : 'contain'
-}
-
-function isPdfMediaNode(node: CanvasNode): boolean {
-  return getStringProperty(node, 'mimeType') === 'application/pdf'
-}
-
-function formatFileSize(size: number | null): string | null {
-  if (size === null || size <= 0) {
-    return null
-  }
-
-  if (size < 1024) {
-    return `${size} B`
-  }
-
-  if (size < 1024 * 1024) {
-    return `${Math.round(size / 102.4) / 10} KB`
-  }
-
-  return `${Math.round(size / 1024 / 102.4) / 10} MB`
-}
-
-function getStoragePolicyLabel(node: CanvasNode): string {
-  const storagePolicy = getStringProperty(node, 'storagePolicy')
-  const syncsBytes = node.properties.syncsBytes === true
-
-  if (storagePolicy === 'synced-blob' || syncsBytes) {
-    return 'Synced'
-  }
-
-  if (storagePolicy === 'blocked') {
-    return 'Blocked'
-  }
-
-  if (storagePolicy === 'copied-blob') {
-    return 'Local copy'
-  }
-
-  if (storagePolicy === 'reference-only') {
-    return 'Local-only'
-  }
-
-  return 'Not synced'
-}
+// Every media preview on the web canvas renders behind the moderation veil
+// (0176/0277 M1); labels resolve against the excerpted source node when the
+// card is source-backed.
+const canvasMediaGate: CanvasMediaGate = ({ node, children }) => (
+  <ModeratedMedia nodeId={node.sourceNodeId ?? node.id}>{children}</ModeratedMedia>
+)
 
 function sanitizeCanvasExportFileName(value: string): string {
   const normalized = value
@@ -211,244 +131,6 @@ function downloadJsonFile(input: { fileName: string; data: unknown }): void {
   anchor.click()
   anchor.remove()
   window.setTimeout(() => URL.revokeObjectURL(url), 0)
-}
-
-function getPdfPageCount(node: CanvasNode): number {
-  const pageCount = getNumberProperty(node, 'pageCount')
-
-  return Math.max(1, Math.min(12, Math.round(pageCount ?? 1)))
-}
-
-function getPdfPageNumber(node: CanvasNode): number {
-  const pageNumber = getNumberProperty(node, 'pageNumber')
-
-  return Math.max(1, Math.min(getPdfPageCount(node), Math.round(pageNumber ?? 1)))
-}
-
-function escapeSvgText(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-}
-
-function createPdfPlaceholderThumbnail(input: {
-  title: string
-  pageNumber: number
-  themeMode: 'light' | 'dark'
-}): CanvasPdfPageThumbnail {
-  const background = input.themeMode === 'dark' ? '#111827' : '#f8fafc'
-  const foreground = input.themeMode === 'dark' ? '#f8fafc' : '#0f172a'
-  const muted = input.themeMode === 'dark' ? '#64748b' : '#94a3b8'
-  const title = escapeSvgText(input.title)
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="240" height="320" viewBox="0 0 240 320">
-<rect width="240" height="320" rx="14" fill="${background}"/>
-<rect x="28" y="36" width="184" height="22" rx="4" fill="${muted}"/>
-<rect x="28" y="78" width="132" height="12" rx="3" fill="${muted}" opacity="0.72"/>
-<rect x="28" y="104" width="168" height="12" rx="3" fill="${muted}" opacity="0.5"/>
-<rect x="28" y="130" width="148" height="12" rx="3" fill="${muted}" opacity="0.5"/>
-<text x="120" y="252" text-anchor="middle" font-family="Arial, sans-serif" font-size="42" font-weight="700" fill="${foreground}">${input.pageNumber}</text>
-<text x="120" y="284" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="${muted}">${title}</text>
-</svg>`
-
-  return {
-    pageNumber: input.pageNumber,
-    width: 240,
-    height: 320,
-    dataUrl: `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`,
-    mimeType: 'image/png'
-  }
-}
-
-function getPdfThumbnails(
-  node: CanvasNode,
-  title: string,
-  themeMode: 'light' | 'dark'
-): CanvasPdfPageThumbnail[] {
-  const thumbnailDataUrl = getStringProperty(node, 'thumbnailDataUrl')
-  const thumbnailWidth = getNumberProperty(node, 'thumbnailWidth') ?? 240
-  const thumbnailHeight = getNumberProperty(node, 'thumbnailHeight') ?? 320
-
-  if (thumbnailDataUrl) {
-    return [
-      {
-        pageNumber: getPdfPageNumber(node),
-        width: thumbnailWidth,
-        height: thumbnailHeight,
-        dataUrl: thumbnailDataUrl,
-        mimeType: 'image/png'
-      }
-    ]
-  }
-
-  return Array.from({ length: getPdfPageCount(node) }, (_, index) =>
-    createPdfPlaceholderThumbnail({
-      title,
-      pageNumber: index + 1,
-      themeMode
-    })
-  )
-}
-
-function CanvasMediaCard({
-  node,
-  title,
-  status,
-  themeMode,
-  blobService,
-  onUpdateNodeProperties
-}: {
-  node: CanvasNode
-  title: string
-  status: string | null
-  themeMode: 'light' | 'dark'
-  blobService: BlobService | null
-  onUpdateNodeProperties: UpdateCanvasNodeProperties
-}): JSX.Element {
-  const fileRef = getMediaFileRef(node)
-  const mimeType = getStringProperty(node, 'mimeType')
-  const mediaKind = getStringProperty(node, 'kind') ?? 'file'
-  const fileSize = formatFileSize(getNumberProperty(node, 'size'))
-  const storageLabel = getStoragePolicyLabel(node)
-  const errorMessage = getStringProperty(node, 'error')
-  const localPreviewUrl = getStringProperty(node, 'localPreviewUrl')
-  const thumbnailDataUrl = getStringProperty(node, 'thumbnailDataUrl')
-  const [fileUrl, setFileUrl] = useState<string | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-
-    setFileUrl(null)
-    if (!blobService || !fileRef || mediaKind !== 'image') {
-      return () => {
-        cancelled = true
-      }
-    }
-
-    void blobService
-      .getUrl(fileRef)
-      .then((url) => {
-        if (!cancelled) {
-          setFileUrl(url)
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setFileUrl(null)
-        }
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [blobService, fileRef, mediaKind])
-
-  if (isPdfMediaNode(node)) {
-    return (
-      <div
-        className="flex h-full flex-col gap-3 overflow-hidden rounded-[22px] border border-border/70 bg-background p-3 shadow-lg shadow-black/5"
-        data-canvas-node-card="true"
-        data-canvas-card-kind="media"
-        data-canvas-media-kind="pdf"
-        data-canvas-storage-policy={getStringProperty(node, 'storagePolicy') ?? 'unknown'}
-        data-canvas-theme={themeMode}
-      >
-        <div className="flex items-start justify-between gap-3">
-          <span className="inline-flex items-center gap-2 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-            <FileText size={12} />
-            PDF
-          </span>
-          <div className="flex items-center gap-1.5">
-            <span className="rounded-full border border-border/60 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-              {storageLabel}
-            </span>
-            <CanvasLifecycleStatusBadge status={status} />
-          </div>
-        </div>
-        <div className="min-h-0 flex-1">
-          <CanvasPdfPageViewer
-            title={title}
-            thumbnails={getPdfThumbnails(node, title, themeMode)}
-            selectedPageNumber={getPdfPageNumber(node)}
-            themeMode={themeMode}
-            onSelectPage={(pageNumber) =>
-              onUpdateNodeProperties(node.id, {
-                pageNumber,
-                pageAnchorId: createCanvasPdfPageAnchorId({
-                  objectId: node.id,
-                  pageNumber,
-                  placement: 'center'
-                })
-              })
-            }
-          />
-        </div>
-        {status === 'error' && errorMessage ? (
-          <p className="text-xs leading-relaxed text-destructive">{errorMessage}</p>
-        ) : null}
-      </div>
-    )
-  }
-
-  const alt = getStringProperty(node, 'alt') ?? title
-  const caption = getStringProperty(node, 'caption')
-  const imagePreviewUrl = fileUrl ?? localPreviewUrl ?? thumbnailDataUrl
-
-  return (
-    <div
-      className="flex h-full flex-col justify-between gap-3 overflow-hidden rounded-[22px] border border-border/70 bg-background p-4 shadow-lg shadow-black/5"
-      data-canvas-node-card="true"
-      data-canvas-card-kind="media"
-      data-canvas-media-kind={mediaKind}
-      data-canvas-storage-policy={getStringProperty(node, 'storagePolicy') ?? 'unknown'}
-      data-canvas-theme={themeMode}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <span className="inline-flex items-center gap-2 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-          <FileImage size={12} />
-          {mediaKind === 'image' ? 'Image' : 'File'}
-        </span>
-        <div className="flex items-center gap-1.5">
-          <span className="rounded-full border border-border/60 px-2.5 py-1 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-            {storageLabel}
-          </span>
-          <CanvasLifecycleStatusBadge status={status} />
-        </div>
-      </div>
-
-      {mediaKind === 'image' && imagePreviewUrl ? (
-        <div className="min-h-0 flex-1 overflow-hidden rounded-xl bg-muted/40">
-          <img
-            src={imagePreviewUrl}
-            alt={alt}
-            className="h-full w-full"
-            style={{ objectFit: getMediaObjectFit(node) }}
-            data-canvas-media-thumbnail="true"
-          />
-        </div>
-      ) : null}
-
-      <div className="space-y-2">
-        <div className="text-lg font-semibold leading-tight text-foreground">{title}</div>
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          {[mediaKind, mimeType, fileSize].filter(Boolean).join(' · ') || 'Dropped media or file'}
-        </p>
-        {caption ? (
-          <p className="text-xs leading-relaxed text-muted-foreground">{caption}</p>
-        ) : null}
-        {status === 'error' && errorMessage ? (
-          <p className="text-xs leading-relaxed text-destructive">{errorMessage}</p>
-        ) : null}
-        {status === 'error' ? (
-          <CanvasFailedCardActions
-            url={typeof node.properties.url === 'string' ? node.properties.url : null}
-            themeMode={themeMode}
-          />
-        ) : null}
-      </div>
-    </div>
-  )
 }
 
 function getNodeCard(
@@ -483,6 +165,7 @@ function getNodeCard(
         themeMode={themeMode}
         blobService={blobService}
         onUpdateNodeProperties={onUpdateNodeProperties}
+        mediaGate={canvasMediaGate}
       />
     )
   }
@@ -1813,19 +1496,7 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
             }
 
             if (node.type === 'widget') {
-              // Coarse LOD = the card renders as a sliver anyway (0273):
-              // pause its live query instead of streaming rows nobody can
-              // read. Full-detail cards keep their subscriptions.
-              const suspended = context.lod === 'placeholder' || context.lod === 'minimal'
-              return (
-                <DashboardRuntimeProvider
-                  schemas={DASHBOARD_SCHEMA_REGISTRY}
-                  variables={undefined}
-                  suspended={suspended}
-                >
-                  <CanvasWidgetCard node={node} />
-                </DashboardRuntimeProvider>
-              )
+              return <CanvasWidgetNodeCard node={node} lod={context.lod} />
             }
 
             return undefined

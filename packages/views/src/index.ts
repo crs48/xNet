@@ -316,3 +316,11 @@ export {
   type UseDataWorkspaceResult,
   type WorkspaceMetric
 } from './data-workspace/index.js'
+
+// Shared CanvasView core (exploration 0277 / 0230 Phase 5): canvas
+// capabilities both the web and desktop CanvasViews consume.
+export {
+  CANVAS_DASHBOARD_SCHEMA_REGISTRY,
+  CanvasWidgetNodeCard,
+  type CanvasWidgetNodeCardProps
+} from './canvas-view/index.js'

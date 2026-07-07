@@ -55,7 +55,9 @@ import {
   CanvasExternalReferenceCard,
   CanvasFailedCardActions,
   CanvasLifecycleStatusBadge,
-  useBlobService
+  CanvasMediaCard,
+  useBlobService,
+  type UpdateCanvasNodeProperties
 } from '@xnetjs/editor/react'
 import {
   useComments,
@@ -70,6 +72,7 @@ import {
 } from '@xnetjs/react'
 import { useUndoScope } from '@xnetjs/react/internal'
 import { socialSchemas } from '@xnetjs/social/schemas'
+import { CanvasWidgetNodeCard } from '@xnetjs/views'
 import {
   Command,
   Database,
@@ -615,6 +618,11 @@ type CanvasNodeCardActions = {
   onPeek?: () => void
 }
 
+type CanvasNodeCardMediaContext = {
+  blobService: ReturnType<typeof useBlobService>
+  onUpdateNodeProperties: UpdateCanvasNodeProperties
+}
+
 function stopCanvasCardAction(event: React.MouseEvent<HTMLButtonElement>): void {
   event.preventDefault()
   event.stopPropagation()
@@ -735,12 +743,29 @@ function renderNodeCard(
   document: LinkedDocumentItem | undefined,
   themeMode: 'light' | 'dark',
   context?: CanvasNodeRenderContext,
-  actions?: CanvasNodeCardActions
+  actions?: CanvasNodeCardActions,
+  media?: CanvasNodeCardMediaContext
 ): React.ReactElement {
   const displayType = getCanvasViewDisplayType(node, document)
   const sourceId = getCanvasShellSourceId(node)
   const linkedTitle =
     node.alias ?? document?.title ?? (node.properties.title as string) ?? 'Untitled'
+
+  if (displayType === 'media' && media) {
+    const status = typeof node.properties.status === 'string' ? node.properties.status : null
+
+    return (
+      <CanvasMediaCard
+        node={node}
+        title={linkedTitle}
+        status={status}
+        themeMode={themeMode}
+        blobService={media.blobService}
+        onUpdateNodeProperties={media.onUpdateNodeProperties}
+      />
+    )
+  }
+
   const subtitle =
     displayType === 'page'
       ? 'Document'
@@ -1036,6 +1061,30 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     nodeId: docId,
     anchorType: 'canvas-object'
   })
+  const updateCanvasNodeProperties = useCallback<UpdateCanvasNodeProperties>(
+    (nodeId, properties) => {
+      if (!doc) {
+        return
+      }
+
+      const nodesMap = getCanvasObjectsMap<CanvasNode>(doc)
+      const current = nodesMap.get(nodeId)
+      if (!current) {
+        return
+      }
+
+      doc.transact(() => {
+        nodesMap.set(nodeId, {
+          ...current,
+          properties: {
+            ...current.properties,
+            ...properties
+          }
+        })
+      })
+    },
+    [doc]
+  )
   const selectedCanvasObject = useMemo<CanvasResolvedObject | null>(() => {
     void sceneRevision
 
@@ -3219,12 +3268,29 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
               )
             }
 
+            if (node.type === 'widget') {
+              // Dashboard widget nodes sync from any platform; render them
+              // through the shared runtime host so they hydrate identically
+              // here and on the web (0277 W2).
+              return <CanvasWidgetNodeCard node={node} lod={context.lod} />
+            }
+
             if (
               node.type === 'external-reference' ||
               node.type === 'media' ||
               shouldRenderCanvasShellCard(node, linkedDocument)
             ) {
-              return renderNodeCard(node, linkedDocument, theme.mode, context, resolvedCardActions)
+              return renderNodeCard(
+                node,
+                linkedDocument,
+                theme.mode,
+                context,
+                resolvedCardActions,
+                {
+                  blobService,
+                  onUpdateNodeProperties: updateCanvasNodeProperties
+                }
+              )
             }
             return undefined
           }}

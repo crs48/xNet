@@ -3,35 +3,14 @@
  * schema registry widget queries may target and routes node opens to the
  * right surface.
  */
-import type { SavedViewSchemaRegistry } from '@xnetjs/react'
 import { useNavigate } from '@tanstack/react-router'
 import { DashboardSurface } from '@xnetjs/dashboard'
-import {
-  CanvasSchema,
-  DatabaseSchema,
-  ExperimentSchema,
-  MetricSchema,
-  ObservationSchema,
-  PageSchema,
-  ProjectSchema,
-  SavedViewSchema,
-  TaskSchema
-} from '@xnetjs/data'
-import { socialSchemas } from '@xnetjs/social/schemas'
+import { CANVAS_DASHBOARD_SCHEMA_REGISTRY } from '@xnetjs/views'
 import { useCallback } from 'react'
 
-export const DASHBOARD_SCHEMA_REGISTRY = [
-  PageSchema,
-  DatabaseSchema,
-  TaskSchema,
-  ProjectSchema,
-  CanvasSchema,
-  SavedViewSchema,
-  MetricSchema,
-  ObservationSchema,
-  ExperimentSchema,
-  ...socialSchemas
-] as unknown as SavedViewSchemaRegistry
+// Single-sourced with the canvas widget cards (0277 W2) so dashboards and
+// canvas widgets resolve queries against the same schema set.
+export const DASHBOARD_SCHEMA_REGISTRY = CANVAS_DASHBOARD_SCHEMA_REGISTRY
 
 /** Schema-IRI fragment → surface route. First match wins; fallback is /data. */
 const NODE_OPEN_TARGETS: ReadonlyArray<{ match: string; to: string; paramKey?: string }> = [
