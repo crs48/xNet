@@ -685,7 +685,7 @@ for await (const chunk of stream) {
 - [ ] Recorder view (shared core in `packages/views/src/`, 0277 pattern):
       start/pause/stop, live Me/Them transcript, visible recording indicator,
       mic-only degraded mode
-- [ ] `meetingsSeeder` in `packages/devtools/src/seed/seeders/meetings.ts`,
+- [x] `meetingsSeeder` in `packages/devtools/src/seed/seeders/meetings.ts`,
       registered in `seed-manifest.ts` (seed-coverage test green)
 - [ ] Changesets for every publishable package touched (`data`, `plugins`,
       `views`, new `meetings` — fixed-core rules apply)
