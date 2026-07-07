@@ -1,5 +1,13 @@
 # @xnetjs/meetings
 
+## 0.0.3
+
+### Patch Changes
+
+- Updated dependencies [[`6795f6b`](https://github.com/crs48/xNet/commit/6795f6b0e89c225cfa7892119ab63d6a04226b8f), [`bd50f40`](https://github.com/crs48/xNet/commit/bd50f40371ab44f22eb4f015f27d38bc8b94f025)]:
+  - @xnetjs/plugins@0.6.0
+  - @xnetjs/data@0.6.0
+
 ## 0.0.2
 
 ### Patch Changes

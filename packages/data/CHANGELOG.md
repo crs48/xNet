@@ -1,5 +1,21 @@
 # @xnetjs/data
 
+## 0.6.0
+
+### Minor Changes
+
+- [#409](https://github.com/crs48/xNet/pull/409) [`bd50f40`](https://github.com/crs48/xNet/commit/bd50f40371ab44f22eb4f015f27d38bc8b94f025) Thanks [@crs48](https://github.com/crs48)! - Workspaces as nodes (exploration 0280): new `xnet:Workspace` schema in `@xnetjs/data` (name/preset/system/tree — the portable half of a saved shell layout), and workspace layout primitives in `@xnetjs/plugins` (`LayoutTree`, `createPresetTree`, `moveSlot`/`setSlotTier`, `parseWorkspacePayload`/`serializeWorkspacePayload`) shared by the web shell, the seed, and future desktop adoption.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/storage@0.6.0
+  - @xnetjs/sqlite@0.6.0
+  - @xnetjs/sync@0.6.0
+  - @xnetjs/identity@0.6.0
+  - @xnetjs/crypto@0.6.0
+  - @xnetjs/core@0.6.0
+
 ## 0.5.0
 
 ### Minor Changes
