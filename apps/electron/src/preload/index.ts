@@ -292,6 +292,31 @@ contextBridge.exposeInMainWorld('xnetServices', {
   }
 })
 
+// Meeting capture bridge (exploration 0279): system-audio loopback arming +
+// the main-process-hosted native STT engines (Parakeet / whisper.cpp).
+contextBridge.exposeInMainWorld('xnetMeetings', {
+  captureStatus: () => ipcRenderer.invoke('xnet:meetings:capture-status'),
+  armLoopback: () => ipcRenderer.invoke('xnet:meetings:arm-loopback'),
+  disarmLoopback: () => ipcRenderer.invoke('xnet:meetings:disarm-loopback'),
+  engines: () => ipcRenderer.invoke('xnet:meetings:engines'),
+  ensureEngine: (engineId: string) => ipcRenderer.invoke('xnet:meetings:ensure-engine', engineId),
+  onEngineProgress: (
+    engineId: string,
+    handler: (progress: { fraction: number; receivedBytes?: number; totalBytes?: number }) => void
+  ) => {
+    const channel = `xnet:meetings:engine-progress:${engineId}`
+    const listener = (_event: unknown, progress: Parameters<typeof handler>[0]) => handler(progress)
+    ipcRenderer.on(channel, listener)
+    return () => ipcRenderer.removeListener(channel, listener)
+  },
+  transcribe: (request: {
+    engineId: string
+    samples: Float32Array
+    sampleRate: number
+    language?: string
+  }) => ipcRenderer.invoke('xnet:meetings:transcribe', request)
+})
+
 // Expose Local API status/control for renderer
 contextBridge.exposeInMainWorld('xnetAgentBridge', {
   status: () => ipcRenderer.invoke('xnet:agent-bridge:status'),

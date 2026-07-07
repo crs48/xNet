@@ -185,12 +185,18 @@ importers:
       '@xnetjs/devtools':
         specifier: workspace:*
         version: link:../../packages/devtools
+      '@xnetjs/dictation':
+        specifier: workspace:*
+        version: link:../../packages/dictation
       '@xnetjs/editor':
         specifier: workspace:*
         version: link:../../packages/editor
       '@xnetjs/identity':
         specifier: workspace:*
         version: link:../../packages/identity
+      '@xnetjs/meetings':
+        specifier: workspace:*
+        version: link:../../packages/meetings
       '@xnetjs/network':
         specifier: workspace:*
         version: link:../../packages/network

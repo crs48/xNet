@@ -662,7 +662,7 @@ for await (const chunk of stream) {
       schemas sub-barrel; authz coverage test passes
 - [x] New `packages/meetings` package: `defineFeatureModule({ id: 'meetings', ... })`
       declaring schema capabilities
-- [ ] `systemAudio` capability in `ModuleCapabilities`
+- [x] `systemAudio` capability in `ModuleCapabilities`
       (`packages/plugins/src/feature-module.ts`) following the 0270 `guardFs`
       pattern; guarded Electron IPC in `apps/electron/src/main/`
 - [ ] Electron capture service: Windows `setDisplayMediaRequestHandler`
@@ -670,15 +670,15 @@ for await (const chunk of stream) {
       renderer mic via `getUserMedia` with `echoCancellation: true`
 - [ ] Echo-cancellation spike: verify "Me" channel doesn't contain speaker
       bleed with loopback active (blocker for transcript quality)
-- [ ] VAD chunker (per channel) + `SegmentBatcher` with 30–60 s LWW upserts;
+- [x] VAD chunker (per channel) + `SegmentBatcher` with 30–60 s LWW upserts;
       **no per-utterance change-log rows**
 - [ ] Wire `EngineRegistry`: `byo` engine end-to-end first to prove the
       pipeline
-- [ ] `ParakeetSherpaEngine` (sherpa-onnx Node addon, `parakeet-tdt-0.6b-v2`
+- [x] `ParakeetSherpaEngine` (sherpa-onnx Node addon, `parakeet-tdt-0.6b-v2`
       int8) in the Electron data process — desktop **default for English**;
       `ensureModel()` download with progress; packaging spike for the native
       addon in electron-builder (shared-lib paths, per-platform prebuilds)
-- [ ] `WhisperCppEngine` (large-v3-turbo) as the multilingual local fallback
+- [x] `WhisperCppEngine` (large-v3-turbo) as the multilingual local fallback
 - [ ] Engine/model picker in settings + language/hardware-aware auto-select
       (`descriptor.languages`, `costClass`); non-EN sessions auto-route away
       from Parakeet v2 with a visible notice
