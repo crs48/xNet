@@ -4,8 +4,8 @@
  */
 import { getCommandRegistry } from '@xnetjs/plugins'
 import { beforeEach, describe, expect, it } from 'vitest'
+import { registerBuiltinSlotViews } from '../workbench/builtin-slot-views'
 import { regionOf } from '../workbench/layout-tree'
-import { registerBuiltinSlotViews } from '../workbench/slot-registry'
 import { useWorkbench } from '../workbench/state'
 import {
   AGENT_LAYOUT_EVENT,

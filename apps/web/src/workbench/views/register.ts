@@ -6,7 +6,7 @@
  * register through the same path (`registerSlotView` / the `slots`
  * manifest key).
  */
-import { registerBuiltinSlotViews } from '../slot-registry'
+import { registerBuiltinSlotViews } from '../builtin-slot-views'
 
 export function registerBuiltinPanelViews(): void {
   registerBuiltinSlotViews()

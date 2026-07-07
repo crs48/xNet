@@ -16,8 +16,9 @@ import type { SurfaceDockContribution, SurfaceDockTier } from '@xnetjs/plugins'
 import { Presence } from '@xnetjs/ui'
 import { LayoutGrid, MoreHorizontal, X, type LucideIcon } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
+import { registerBuiltinSlotViews } from '../builtin-slot-views'
 import { MoveViewMenu } from '../PanelViewHost'
-import { registerBuiltinSlotViews, registerSlotView, slotViewsInRegion } from '../slot-registry'
+import { registerSlotView, slotViewsInRegion } from '../slot-registry'
 import { useWorkbench } from '../state'
 
 // ─── Registry (slot-registry backed since 0280) ────────────────────
