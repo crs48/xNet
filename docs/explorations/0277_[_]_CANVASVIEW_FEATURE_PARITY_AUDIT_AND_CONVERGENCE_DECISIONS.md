@@ -258,7 +258,7 @@ Phase 0 — parity fixes (ordinary feature PRs, before any refactor)
 
 Phase 1 — shared package skeleton
 
-- [ ] Settle the `app-views` location (align with the PageView comment-subsystem extraction from 0276).
+- [x] Settle the `app-views` location (align with the PageView comment-subsystem extraction from 0276).
 - [ ] Extract the card set (media, page static preview E9, pinned record E2, widget) and shared panels (alias, comment, shortcut help E8).
 - [ ] Extract `useCanvasViewController`: selection snapshot + resolution, alias/comment state and handlers, ingestion wiring, test-harness registration, `hasNodes`/`sceneRevision`.
 - [ ] M3: unify `data-canvas-*` test attributes; update web + electron e2e selectors.

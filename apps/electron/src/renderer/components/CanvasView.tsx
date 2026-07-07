@@ -72,7 +72,17 @@ import {
 } from '@xnetjs/react'
 import { useUndoScope } from '@xnetjs/react/internal'
 import { socialSchemas } from '@xnetjs/social/schemas'
-import { CanvasWidgetNodeCard } from '@xnetjs/views'
+import {
+  CanvasWidgetNodeCard,
+  createCanvasShellNoteProperties,
+  getCanvasShellDisplayType,
+  getCanvasShellPreviewModel,
+  getCanvasShellSourceId,
+  getCanvasShellSourceType,
+  shouldRenderCanvasShellCard,
+  type LinkedDocType,
+  type LinkedDocumentItem
+} from '@xnetjs/views'
 import {
   Command,
   Database,
@@ -99,16 +109,6 @@ import {
   useCanvasSourceReferences,
   type CanvasSourceReference
 } from '../hooks/useCanvasSourceReferences'
-import {
-  createCanvasShellNoteProperties,
-  getCanvasShellDisplayType,
-  getCanvasShellPreviewModel,
-  getCanvasShellSourceId,
-  getCanvasShellSourceType,
-  shouldRenderCanvasShellCard,
-  type LinkedDocType,
-  type LinkedDocumentItem
-} from '../lib/canvas-shell'
 import { CanvasDatabasePreviewSurface } from './CanvasDatabasePreviewSurface'
 import { CanvasInlinePageSurface } from './CanvasInlinePageSurface'
 

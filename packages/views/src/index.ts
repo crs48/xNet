@@ -322,5 +322,18 @@ export {
 export {
   CANVAS_DASHBOARD_SCHEMA_REGISTRY,
   CanvasWidgetNodeCard,
-  type CanvasWidgetNodeCardProps
+  createCanvasShellNoteProperties,
+  getCanvasShellDisplayType,
+  getCanvasShellNotePlacement,
+  getCanvasShellPreviewModel,
+  getCanvasShellSourceId,
+  getCanvasShellSourceType,
+  getLinkedDocumentPlacement,
+  isCanvasShellNote,
+  shouldRenderCanvasShellCard,
+  type CanvasShellPreviewModel,
+  type CanvasViewportSnapshot,
+  type CanvasWidgetNodeCardProps,
+  type LinkedDocType,
+  type LinkedDocumentItem
 } from './canvas-view/index.js'

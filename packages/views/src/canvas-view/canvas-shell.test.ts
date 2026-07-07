@@ -9,7 +9,7 @@ import {
   getLinkedDocumentPlacement,
   isCanvasShellNote,
   shouldRenderCanvasShellCard
-} from './canvas-shell'
+} from './canvas-shell.js'
 
 describe('canvas-shell', () => {
   describe('isCanvasShellNote', () => {

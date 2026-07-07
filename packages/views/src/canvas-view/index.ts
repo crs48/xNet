@@ -8,3 +8,18 @@
 
 export { CANVAS_DASHBOARD_SCHEMA_REGISTRY } from './dashboard-schemas.js'
 export { CanvasWidgetNodeCard, type CanvasWidgetNodeCardProps } from './CanvasWidgetNodeCard.js'
+export {
+  createCanvasShellNoteProperties,
+  getCanvasShellDisplayType,
+  getCanvasShellNotePlacement,
+  getCanvasShellPreviewModel,
+  getCanvasShellSourceId,
+  getCanvasShellSourceType,
+  getLinkedDocumentPlacement,
+  isCanvasShellNote,
+  shouldRenderCanvasShellCard,
+  type CanvasShellPreviewModel,
+  type CanvasViewportSnapshot,
+  type LinkedDocType,
+  type LinkedDocumentItem
+} from './canvas-shell.js'
