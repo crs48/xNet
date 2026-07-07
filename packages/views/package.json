@@ -25,6 +25,7 @@
     "@xnetjs/core": "workspace:*",
     "@xnetjs/data": "workspace:*",
     "@xnetjs/react": "workspace:*",
+    "@xnetjs/social": "workspace:*",
     "@xnetjs/ui": "workspace:*",
     "lucide-react": "^0.563.0",
     "nanoid": "^5.1.6"

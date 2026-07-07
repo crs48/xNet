@@ -13,20 +13,14 @@ import type {
   CanvasLayerDirection,
   CanvasNode,
   CanvasNodeProperties,
-  CanvasObjectAnchorPlacement,
   Point,
   Rect,
   ResizeHandle,
-  ShapeType
+  ShapeType,
+  ViewportState
 } from '../types'
 import type { CanvasObjectRecord, CanvasTileSummary } from '@xnetjs/canvas-core'
-import {
-  createCanvasCamera,
-  createWorldPointFromCanvasPoint,
-  screenToWorldPoint,
-  worldPointToAnchorLocal,
-  worldToScreenPoint
-} from '@xnetjs/canvas-core'
+import { screenToWorldPoint, worldPointToAnchorLocal } from '@xnetjs/canvas-core'
 import { clamp } from '@xnetjs/core'
 import React, {
   forwardRef,
@@ -116,6 +110,31 @@ import {
 import { type CanvasThemeTokens, useCanvasThemeTokens } from '../theme/canvas-theme'
 import { planDomIslandPool } from './dom-island-pool'
 import { computePinchViewport, measureTouchPinch, type PinchGestureState } from './pinch-zoom'
+import {
+  applyCanvasSceneUpdates,
+  mergeCanvasNodeLockUpdate,
+  mergeCanvasNodePositionUpdate,
+  mergeCanvasNodePropertiesUpdate,
+  type CanvasNodePropertiesUpdate
+} from './scene-mutations'
+import {
+  createCanvasCameraForViewport,
+  getActiveSnapGridSize,
+  getBoundsForRects,
+  getCanvasObjectHitTargetRect,
+  getFitViewport,
+  getNodePositionRect,
+  getRectAnchorPointForPlacement,
+  getScreenLineForSnapGuide,
+  getScreenRectForCanvasRect,
+  getScreenRectForObject,
+  getViewportWorldTopLeft,
+  intersectsViewport,
+  pickConnectorPlacementForScreenPoint,
+  snapCanvasValue,
+  type ConnectorHandlePlacement,
+  type Size
+} from './viewport-math'
 
 const EMPTY_FRAME_STATS: FrameStats = {
   frameCount: 0,
@@ -287,17 +306,6 @@ export type CanvasProps = {
   navigationToolsStyle?: React.CSSProperties
 }
 
-type ViewportState = {
-  x: number
-  y: number
-  zoom: number
-}
-
-type Size = {
-  width: number
-  height: number
-}
-
 type ScreenObject = {
   object: CanvasObjectRecord
   node: CanvasNode
@@ -359,15 +367,6 @@ const SELECTION_POPOVER_CAPABILITY: Record<SelectionPopover, keyof CanvasSelecti
 
 type DimensionField = 'x' | 'y' | 'width' | 'height'
 type CanvasMediaFit = 'contain' | 'cover' | 'fill'
-type CanvasNodePropertiesUpdate = {
-  id: string
-  properties: CanvasNodeProperties
-}
-type ConnectorHandlePlacement = Extract<
-  CanvasObjectAnchorPlacement,
-  'top' | 'right' | 'bottom' | 'left'
->
-
 type ConnectorStart = {
   nodeId: string
   placement: ConnectorHandlePlacement
@@ -542,67 +541,11 @@ const EDGE_TYPE_OPTIONS: readonly {
 ]
 const MIN_SELECTION_DIMENSION_WIDTH = 96
 const MIN_SELECTION_DIMENSION_HEIGHT = 72
-const CANVAS_OBJECT_HIT_TARGET_PADDING = 8
-const CANVAS_OBJECT_MIN_HIT_TARGET_SIZE = 36
 const CANVAS_DRAG_START_THRESHOLD_PX = 3
 const SMART_GUIDE_SCREEN_THRESHOLD = 8
 
-function snapCanvasValue(value: number, gridSize: number): number {
-  return Math.round(value / gridSize) * gridSize
-}
-
-function getActiveSnapGridSize(config: CanvasConfig): number | null {
-  const gridSize = config.gridSize ?? 20
-
-  return Number.isFinite(gridSize) && gridSize > 0 ? gridSize : null
-}
-
-function getCanvasObjectHitTargetRect(rect: Rect): Rect {
-  const extraWidth = Math.max(
-    CANVAS_OBJECT_HIT_TARGET_PADDING * 2,
-    CANVAS_OBJECT_MIN_HIT_TARGET_SIZE - rect.width
-  )
-  const extraHeight = Math.max(
-    CANVAS_OBJECT_HIT_TARGET_PADDING * 2,
-    CANVAS_OBJECT_MIN_HIT_TARGET_SIZE - rect.height
-  )
-
-  return {
-    x: rect.x - extraWidth / 2,
-    y: rect.y - extraHeight / 2,
-    width: rect.width + extraWidth,
-    height: rect.height + extraHeight
-  }
-}
-
 function getObjectTitle(object: CanvasObjectRecord): string {
   return object.preview.title ?? object.kind.replace('-', ' ')
-}
-
-function pickConnectorPlacementForScreenPoint(rect: Rect, point: Point): ConnectorHandlePlacement {
-  const centerX = rect.x + rect.width / 2
-  const centerY = rect.y + rect.height / 2
-  const dx = rect.width > 0 ? (point.x - centerX) / (rect.width / 2) : 0
-  const dy = rect.height > 0 ? (point.y - centerY) / (rect.height / 2) : 0
-
-  if (Math.abs(dx) >= Math.abs(dy)) {
-    return dx >= 0 ? 'right' : 'left'
-  }
-
-  return dy >= 0 ? 'bottom' : 'top'
-}
-
-function getRectAnchorPointForPlacement(rect: Rect, placement: ConnectorHandlePlacement): Point {
-  switch (placement) {
-    case 'top':
-      return { x: rect.x + rect.width / 2, y: rect.y }
-    case 'right':
-      return { x: rect.x + rect.width, y: rect.y + rect.height / 2 }
-    case 'bottom':
-      return { x: rect.x + rect.width / 2, y: rect.y + rect.height }
-    case 'left':
-      return { x: rect.x, y: rect.y + rect.height / 2 }
-  }
 }
 
 function getNodeTitle(node: CanvasNode, fallback: string): string {
@@ -1055,88 +998,6 @@ function applyMindMapInheritedStyle(
   }
 }
 
-function createCanvasCameraForViewport(viewport: ViewportState, viewportSize: Size) {
-  return createCanvasCamera({
-    localCenter: { x: viewport.x, y: viewport.y },
-    zoom: viewport.zoom,
-    viewportPx: viewportSize
-  })
-}
-
-function getViewportWorldTopLeft(viewport: ViewportState, viewportSize: Size): Point {
-  return {
-    x: viewport.x - viewportSize.width / 2 / viewport.zoom,
-    y: viewport.y - viewportSize.height / 2 / viewport.zoom
-  }
-}
-
-function getScreenRectForObject(
-  object: CanvasObjectRecord,
-  viewport: ViewportState,
-  viewportSize: Size
-): Rect {
-  return getScreenRectForCanvasRect(object.position, viewport, viewportSize)
-}
-
-function getScreenPointForCanvasPoint(
-  point: Point,
-  viewport: ViewportState,
-  viewportSize: Size
-): Point {
-  const camera = createCanvasCameraForViewport(viewport, viewportSize)
-
-  return worldToScreenPoint(camera, createWorldPointFromCanvasPoint(point))
-}
-
-function getScreenRectForCanvasRect(rect: Rect, viewport: ViewportState, viewportSize: Size): Rect {
-  const camera = createCanvasCameraForViewport(viewport, viewportSize)
-  const topLeft = worldToScreenPoint(
-    camera,
-    createWorldPointFromCanvasPoint({ x: rect.x, y: rect.y })
-  )
-  const bottomRight = worldToScreenPoint(
-    camera,
-    createWorldPointFromCanvasPoint({
-      x: rect.x + rect.width,
-      y: rect.y + rect.height
-    })
-  )
-
-  return {
-    x: Math.min(topLeft.x, bottomRight.x),
-    y: Math.min(topLeft.y, bottomRight.y),
-    width: Math.abs(bottomRight.x - topLeft.x),
-    height: Math.abs(bottomRight.y - topLeft.y)
-  }
-}
-
-function getBoundsForRects(rects: readonly Rect[]): Rect | null {
-  if (rects.length === 0) {
-    return null
-  }
-
-  const minX = Math.min(...rects.map((rect) => rect.x))
-  const minY = Math.min(...rects.map((rect) => rect.y))
-  const maxX = Math.max(...rects.map((rect) => rect.x + rect.width))
-  const maxY = Math.max(...rects.map((rect) => rect.y + rect.height))
-
-  return {
-    x: minX,
-    y: minY,
-    width: maxX - minX,
-    height: maxY - minY
-  }
-}
-
-function getNodePositionRect(node: CanvasNode): Rect {
-  return {
-    x: node.position.x,
-    y: node.position.y,
-    width: node.position.width,
-    height: node.position.height
-  }
-}
-
 function createResizeUpdatesFromOriginals(input: {
   nodes: readonly CanvasNode[]
   handle: ResizeHandle
@@ -1193,64 +1054,6 @@ function createResizePreviewState(input: {
   return {
     nodeIds: new Set(updates.map((update) => update.id)),
     rects
-  }
-}
-
-function getScreenLineForSnapGuide(
-  guide: CanvasSnapGuideSegment,
-  viewport: ViewportState,
-  viewportSize: Size
-): { x1: number; y1: number; x2: number; y2: number } {
-  const startPoint =
-    guide.orientation === 'vertical'
-      ? { x: guide.position, y: guide.start }
-      : { x: guide.start, y: guide.position }
-  const endPoint =
-    guide.orientation === 'vertical'
-      ? { x: guide.position, y: guide.end }
-      : { x: guide.end, y: guide.position }
-  const start = getScreenPointForCanvasPoint(startPoint, viewport, viewportSize)
-  const end = getScreenPointForCanvasPoint(endPoint, viewport, viewportSize)
-
-  return {
-    x1: start.x,
-    y1: start.y,
-    x2: end.x,
-    y2: end.y
-  }
-}
-
-function intersectsViewport(rect: Rect, viewportSize: Size, marginPx = 320): boolean {
-  return (
-    rect.x + rect.width >= -marginPx &&
-    rect.y + rect.height >= -marginPx &&
-    rect.x <= viewportSize.width + marginPx &&
-    rect.y <= viewportSize.height + marginPx
-  )
-}
-
-function getFitViewport(input: {
-  rect: Rect
-  viewportSize: Size
-  minZoom: number
-  maxZoom: number
-  padding: number
-}): ViewportState {
-  const availableWidth = Math.max(1, input.viewportSize.width - input.padding * 2)
-  const availableHeight = Math.max(1, input.viewportSize.height - input.padding * 2)
-  const zoom = clamp(
-    Math.min(
-      availableWidth / Math.max(input.rect.width, 1),
-      availableHeight / Math.max(input.rect.height, 1)
-    ),
-    input.minZoom,
-    input.maxZoom
-  )
-
-  return {
-    x: input.rect.x + input.rect.width / 2,
-    y: input.rect.y + input.rect.height / 2,
-    zoom
   }
 }
 
@@ -3169,107 +2972,35 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
   }, [doc, selectedNodeIds])
 
   const applyPositionUpdates = useCallback(
-    (updates: CanvasPositionUpdate[]): boolean => {
-      if (updates.length === 0) {
-        return false
-      }
-
-      const objects = getCanvasObjectsMap<CanvasNode>(doc)
-      let changed = false
-
-      doc.transact(() => {
-        for (const update of updates) {
-          const node = objects.get(update.id)
-          if (!node) {
-            continue
-          }
-
-          objects.set(update.id, {
-            ...node,
-            position: {
-              ...node.position,
-              ...update.position
-            }
-          })
-          changed = true
-        }
-      })
-
-      if (changed) {
-        onSceneMutation?.()
-      }
-
-      return changed
-    },
+    (updates: CanvasPositionUpdate[]): boolean =>
+      applyCanvasSceneUpdates({
+        doc,
+        updates,
+        merge: mergeCanvasNodePositionUpdate,
+        onSceneMutation
+      }),
     [doc, onSceneMutation]
   )
 
   const applyLockUpdates = useCallback(
-    (updates: CanvasLockUpdate[]): boolean => {
-      if (updates.length === 0) {
-        return false
-      }
-
-      const objects = getCanvasObjectsMap<CanvasNode>(doc)
-      let changed = false
-
-      doc.transact(() => {
-        for (const update of updates) {
-          const node = objects.get(update.id)
-          if (!node) {
-            continue
-          }
-
-          objects.set(update.id, {
-            ...node,
-            locked: update.locked
-          })
-          changed = true
-        }
-      })
-
-      if (changed) {
-        onSceneMutation?.()
-      }
-
-      return changed
-    },
+    (updates: CanvasLockUpdate[]): boolean =>
+      applyCanvasSceneUpdates({
+        doc,
+        updates,
+        merge: mergeCanvasNodeLockUpdate,
+        onSceneMutation
+      }),
     [doc, onSceneMutation]
   )
 
   const applyNodePropertiesUpdates = useCallback(
-    (updates: CanvasNodePropertiesUpdate[]): boolean => {
-      if (updates.length === 0) {
-        return false
-      }
-
-      const objects = getCanvasObjectsMap<CanvasNode>(doc)
-      let changed = false
-
-      doc.transact(() => {
-        for (const update of updates) {
-          const node = objects.get(update.id)
-          if (!node) {
-            continue
-          }
-
-          objects.set(update.id, {
-            ...node,
-            properties: {
-              ...node.properties,
-              ...update.properties
-            }
-          })
-          changed = true
-        }
-      })
-
-      if (changed) {
-        onSceneMutation?.()
-      }
-
-      return changed
-    },
+    (updates: CanvasNodePropertiesUpdate[]): boolean =>
+      applyCanvasSceneUpdates({
+        doc,
+        updates,
+        merge: mergeCanvasNodePropertiesUpdate,
+        onSceneMutation
+      }),
     [doc, onSceneMutation]
   )
 

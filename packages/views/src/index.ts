@@ -299,3 +299,20 @@ export {
   type SchemaToFormOptions,
   type SchemaFormProps
 } from './form/index.js'
+
+// Shared Data Workspace core (exploration 0276): the saved-view / graph-atlas
+// workspace surface both the web and desktop DataWorkspaceViews consume.
+export {
+  DataWorkspaceBody,
+  useDataWorkspace,
+  getDefaultSocialWorkspaceSeeds,
+  upsertDefaultSocialWorkspace,
+  type DataWorkspaceBodyProps,
+  type GraphAtlasRow,
+  type SavedViewCanvasFrameInput,
+  type SavedViewRow,
+  type SocialWorkspaceSeedSummary,
+  type UseDataWorkspaceOptions,
+  type UseDataWorkspaceResult,
+  type WorkspaceMetric
+} from './data-workspace/index.js'

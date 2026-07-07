@@ -47,6 +47,19 @@ import type {
 import type { StoreAuthAPI } from '../auth/store-auth'
 import type { LensRegistry } from '../schema/lens'
 import type { AuthAction, AuthDecision, DID, ContentId, PolicyEvaluator } from '@xnetjs/core'
+import { compareChangeApplicationOrder, lwwWins } from '@xnetjs/core'
+import {
+  executeTransactionOperations,
+  executeTransactionOperationsFast,
+  type PendingTransactionEvent,
+  type WriteExecutionHost
+} from './transaction-executor'
+import {
+  executeDeterministicNodeImport,
+  planDeterministicNodeImport,
+  type DeterministicNodeImportAppliedPlan,
+  type DeterministicNodeImportPlan
+} from './batch-write-orchestrator'
 import { base64ToBytes, bytesToBase64 } from '@xnetjs/crypto'
 import { parseDID } from '@xnetjs/identity'
 import {
@@ -100,27 +113,6 @@ type SerializedNodeSnapshot = {
   unknown?: Record<string, unknown>
 }
 
-type PendingTransactionEvent = {
-  change: NodeChange
-  result: NodeState | null
-  previousNode: NodeState | null
-}
-
-type DeterministicNodeImportPlan = {
-  created: number
-  updated: number
-  nodes: NodeState[]
-  changes: NodeChange[]
-  events: PendingTransactionEvent[]
-  affectedSchemaIds: SchemaIRI[]
-  timings: Pick<NodeBatchWriteTimings, 'preflightMs' | 'materializeMs'>
-}
-
-type DeterministicNodeImportAppliedPlan = DeterministicNodeImportPlan & {
-  applyMs: number
-  storage?: ApplyNodeBatchResult
-}
-
 type DeterministicNodeImportExecution = ImportDeterministicNodesResult & {
   storage?: ApplyNodeBatchResult
   timings: NodeBatchWriteTimings
@@ -136,6 +128,7 @@ export class NodeStore {
   private changeSigner?: ChangeSigner
   private clock: LamportClock
   private conflicts: MergeConflict[] = []
+  private writeHost?: WriteExecutionHost
   private listeners: Set<NodeChangeListener> = new Set()
   private nodeListeners: Map<NodeId, Set<NodeChangeListener>> = new Map()
   private batchListeners: Set<NodeBatchChangeListener> = new Set()
@@ -1380,81 +1373,7 @@ export class NodeStore {
     batchId: string
     batchSize: number
   }): Promise<DeterministicNodeImportPlan> {
-    const ids = input.drafts.map((draft) => draft.id)
-    const preflightStartedAt = Date.now()
-    const preflight = await this.getBatchPreflight(ids, input.storage)
-    const preflightMs = elapsedMs(preflightStartedAt)
-    const materializeStartedAt = Date.now()
-    const existingNodes = this.cloneNodeMap(preflight.nodesById)
-    const lastChanges = new Map(preflight.lastChangesByNodeId)
-    const nodesById = new Map<NodeId, NodeState>(existingNodes)
-    const changedIds: NodeId[] = []
-    const seenChangedIds = new Set<NodeId>()
-    const changes: NodeChange[] = []
-    const events: PendingTransactionEvent[] = []
-    let created = 0
-    let updated = 0
-
-    for (let index = 0; index < input.drafts.length; index++) {
-      const draft = input.drafts[index]
-      const currentNode = nodesById.get(draft.id) ?? null
-      const previousNode = this.cloneNodeState(currentNode)
-      const isCreate = currentNode === null
-      const payload: NodePayload = {
-        nodeId: draft.id,
-        ...(isCreate ? { schemaId: draft.schemaId } : {}),
-        properties: draft.properties
-      }
-      const change = await this.createBatchedChangeWithParentHash(
-        'node-change',
-        payload,
-        lastChanges.get(draft.id)?.hash ?? null,
-        input.lamport,
-        input.now,
-        input.batchId,
-        index,
-        input.batchSize
-      )
-      const node = this.materializeNodeChange(
-        change,
-        currentNode ?? this.createInitialNodeFromChange(change, draft.schemaId)
-      )
-
-      nodesById.set(draft.id, node)
-      lastChanges.set(draft.id, change)
-      changes.push(change)
-      events.push({ change, result: this.cloneNodeState(node), previousNode })
-
-      if (!seenChangedIds.has(draft.id)) {
-        changedIds.push(draft.id)
-        seenChangedIds.add(draft.id)
-      }
-
-      if (isCreate) {
-        created += 1
-      } else {
-        updated += 1
-      }
-    }
-
-    const nodes = changedIds.flatMap((id) => {
-      const node = nodesById.get(id)
-      return node ? [node] : []
-    })
-    const affectedSchemaIds = Array.from(new Set(nodes.map((node) => node.schemaId)))
-
-    return {
-      created,
-      updated,
-      nodes,
-      changes,
-      events,
-      affectedSchemaIds,
-      timings: {
-        preflightMs,
-        materializeMs: elapsedMs(materializeStartedAt)
-      }
-    }
+    return planDeterministicNodeImport(this.writeExecutionHost(), input)
   }
 
   private async executeDeterministicNodeImport(input: {
@@ -1466,23 +1385,7 @@ export class NodeStore {
     batchSize: number
     deferIndexes: boolean
   }): Promise<DeterministicNodeImportAppliedPlan> {
-    const plan = await this.planDeterministicNodeImport(input)
-
-    const applyStartedAt = Date.now()
-    await this.importMaterializedNodes(input.storage, plan.nodes, {
-      deferIndexes: input.deferIndexes
-    })
-    await this.appendImportedChanges(input.storage, plan.changes)
-    await input.storage.setLastLamportTime(this.clock.time)
-
-    for (const node of plan.nodes) {
-      await this.persistEncryptedNodeSnapshot(node, input.storage)
-    }
-
-    return {
-      ...plan,
-      applyMs: elapsedMs(applyStartedAt)
-    }
+    return executeDeterministicNodeImport(this.writeExecutionHost(), input)
   }
 
   private async getNodesById(
@@ -1633,135 +1536,11 @@ export class NodeStore {
     changes: NodeChange[]
     events: PendingTransactionEvent[]
   }> {
-    const results: (NodeState | null)[] = []
-    const changes: NodeChange[] = []
-    const events: PendingTransactionEvent[] = []
-
-    for (let i = 0; i < input.operations.length; i++) {
-      const op = input.operations[i]
-      let change: NodeChange
-      let result: NodeState | null = null
-      let previousNode: NodeState | null = null
-
-      switch (op.type) {
-        case 'create': {
-          const id = op.options.id ?? createNodeId()
-          const payload: NodePayload = {
-            nodeId: id,
-            schemaId: op.options.schemaId,
-            properties: op.options.properties
-          }
-          change = await this.createBatchedChange(
-            'node-change',
-            payload,
-            input.lamport,
-            input.now,
-            input.batchId,
-            i,
-            input.batchSize,
-            input.storage
-          )
-          await this.applyChange(change, input.storage)
-          result = await input.storage.getNode(id)
-          await this.persistEncryptedNodeSnapshot(result, input.storage)
-          break
-        }
-
-        case 'update': {
-          const existing = this.cloneNodeState(await input.storage.getNode(op.nodeId))
-          if (!existing) {
-            throw new Error(`Node not found: ${op.nodeId}`)
-          }
-          previousNode = existing
-          const payload: NodePayload = {
-            nodeId: op.nodeId,
-            properties: op.options.properties
-          }
-          change = await this.createBatchedChange(
-            'node-change',
-            payload,
-            input.lamport,
-            input.now,
-            input.batchId,
-            i,
-            input.batchSize,
-            input.storage
-          )
-          await this.applyChange(change, input.storage)
-          result = await input.storage.getNode(op.nodeId)
-          await this.persistEncryptedNodeSnapshot(result, input.storage)
-          break
-        }
-
-        case 'delete': {
-          const existing = this.cloneNodeState(await input.storage.getNode(op.nodeId))
-          if (!existing) {
-            throw new Error(`Node not found: ${op.nodeId}`)
-          }
-          previousNode = existing
-          const payload: NodePayload = {
-            nodeId: op.nodeId,
-            properties: {},
-            deleted: true
-          }
-          change = await this.createBatchedChange(
-            'node-change',
-            payload,
-            input.lamport,
-            input.now,
-            input.batchId,
-            i,
-            input.batchSize,
-            input.storage
-          )
-          await this.applyChange(change, input.storage)
-          result = null
-          break
-        }
-
-        case 'restore': {
-          const existing = this.cloneNodeState(await input.storage.getNode(op.nodeId))
-          if (!existing) {
-            throw new Error(`Node not found: ${op.nodeId}`)
-          }
-          previousNode = existing
-          const payload: NodePayload = {
-            nodeId: op.nodeId,
-            properties: {},
-            deleted: false
-          }
-          change = await this.createBatchedChange(
-            'node-change',
-            payload,
-            input.lamport,
-            input.now,
-            input.batchId,
-            i,
-            input.batchSize,
-            input.storage
-          )
-          await this.applyChange(change, input.storage)
-          result = await input.storage.getNode(op.nodeId)
-          await this.persistEncryptedNodeSnapshot(result, input.storage)
-          break
-        }
-      }
-
-      changes.push(change)
-      results.push(result)
-      events.push({ change, result, previousNode })
-    }
-
-    return { results, changes, events }
+    return executeTransactionOperations(this.writeExecutionHost(), input)
   }
 
   /**
-   * Transaction fast path: one preflight for all touched nodes, in-memory
-   * materialization and signing, then one transactional applyNodeBatch.
-   * Avoids the per-operation storage round trips of
-   * {@link executeTransactionOperations} and the adapter-level
-   * withTransaction snapshotting that dominates small interactive
-   * transactions.
+   * Transaction fast path — see `transaction-executor.ts` (0263/0264/0276).
    */
   private async executeTransactionOperationsFast(input: {
     operations: TransactionOperation[]
@@ -1774,83 +1553,7 @@ export class NodeStore {
     changes: NodeChange[]
     events: PendingTransactionEvent[]
   }> {
-    const planned = input.operations.map((op) => ({
-      op,
-      id: op.type === 'create' ? (op.options.id ?? createNodeId()) : op.nodeId
-    }))
-
-    const preflight = await this.getBatchPreflight(
-      planned.map((entry) => entry.id),
-      this.storage
-    )
-    const nodesById = this.cloneNodeMap(preflight.nodesById)
-    const lastChanges = new Map(preflight.lastChangesByNodeId)
-
-    const results: (NodeState | null)[] = []
-    const changes: NodeChange[] = []
-    const events: PendingTransactionEvent[] = []
-    const affectedSchemaIds = new Set<SchemaIRI>()
-
-    for (let i = 0; i < planned.length; i++) {
-      const { op, id } = planned[i]
-      const existing = nodesById.get(id) ?? null
-
-      if (op.type !== 'create' && !existing) {
-        throw new Error(`Node not found: ${id}`)
-      }
-
-      const payload: NodePayload =
-        op.type === 'create'
-          ? { nodeId: id, schemaId: op.options.schemaId, properties: op.options.properties }
-          : op.type === 'update'
-            ? { nodeId: id, properties: op.options.properties }
-            : { nodeId: id, properties: {}, deleted: op.type === 'delete' }
-
-      const change = await this.createBatchedChangeWithParentHash(
-        'node-change',
-        payload,
-        lastChanges.get(id)?.hash ?? null,
-        input.lamport,
-        input.now,
-        input.batchId,
-        i,
-        input.batchSize
-      )
-
-      const schemaId = existing?.schemaId ?? (op.type === 'create' ? op.options.schemaId : null)
-      if (!schemaId) {
-        throw new Error(`First change for node ${id} must include schemaId`)
-      }
-
-      const node = this.materializeNodeChange(
-        change,
-        existing ?? this.createInitialNodeFromChange(change, schemaId)
-      )
-
-      nodesById.set(id, node)
-      lastChanges.set(id, change)
-      affectedSchemaIds.add(schemaId)
-      changes.push(change)
-      const result = op.type === 'delete' ? null : node
-      results.push(result)
-      events.push({ change, result, previousNode: existing })
-    }
-
-    const touchedIds = Array.from(new Set(planned.map((entry) => entry.id)))
-    await this.storage.applyNodeBatch!({
-      batchId: input.batchId,
-      nodes: touchedIds.flatMap((id) => {
-        const node = nodesById.get(id)
-        return node ? [node] : []
-      }),
-      changes,
-      lastLamportTime: this.clock.time,
-      affectedSchemaIds: Array.from(affectedSchemaIds),
-      indexMode: 'touched',
-      indexProperties: true
-    })
-
-    return { results, changes, events }
+    return executeTransactionOperationsFast(this.writeExecutionHost(), input)
   }
 
   // ==========================================================================
@@ -1945,12 +1648,13 @@ export class NodeStore {
    * Apply multiple remote changes (from sync).
    */
   async applyRemoteChanges(changes: NodeChange[]): Promise<void> {
-    // Sort by Lamport timestamp for causal ordering
-    const sorted = [...changes].sort(
-      (a, b) =>
-        a.lamport - b.lamport ||
-        // UTF-16 code-unit order (not localeCompare) for deterministic convergence.
-        (a.authorDID < b.authorDID ? -1 : a.authorDID > b.authorDID ? 1 : 0)
+    // Sort by Lamport timestamp for causal ordering (the shared protocol
+    // application order — code-unit author tiebreak, never localeCompare).
+    const sorted = [...changes].sort((a, b) =>
+      compareChangeApplicationOrder(
+        { lamport: a.lamport, author: a.authorDID },
+        { lamport: b.lamport, author: b.authorDID }
+      )
     )
 
     for (const change of sorted) {
@@ -2342,6 +2046,72 @@ export class NodeStore {
   /**
    * Apply a change to storage and update materialized state.
    */
+  /**
+   * The narrow capability set the write orchestration modules
+   * (transaction-executor.ts, batch-write-orchestrator.ts) run on — one seam
+   * for every write strategy (exploration 0276).
+   */
+  private writeExecutionHost(): WriteExecutionHost {
+    this.writeHost ??= {
+      storage: this.storage,
+      clockTime: () => this.clock.time,
+      cloneNodeState: (node) => this.cloneNodeState(node),
+      cloneNodeMap: (nodesById) => this.cloneNodeMap(nodesById),
+      getBatchPreflight: (ids, storage) => this.getBatchPreflight(ids, storage),
+      createBatchedChange: (
+        type,
+        payload,
+        lamport,
+        wallTime,
+        batchId,
+        batchIndex,
+        batchSize,
+        storage
+      ) =>
+        this.createBatchedChange(
+          type,
+          payload,
+          lamport,
+          wallTime,
+          batchId,
+          batchIndex,
+          batchSize,
+          storage
+        ),
+      createBatchedChangeWithParentHash: (
+        type,
+        payload,
+        parentHash,
+        lamport,
+        wallTime,
+        batchId,
+        batchIndex,
+        batchSize
+      ) =>
+        this.createBatchedChangeWithParentHash(
+          type,
+          payload,
+          parentHash,
+          lamport,
+          wallTime,
+          batchId,
+          batchIndex,
+          batchSize
+        ),
+      applyChange: (change, storage) => this.applyChange(change, storage),
+      materializeNodeChange: (change, currentNode) =>
+        this.materializeNodeChange(change, currentNode),
+      createInitialNodeFromChange: (change, schemaId) =>
+        this.createInitialNodeFromChange(change, schemaId),
+      persistEncryptedNodeSnapshot: (node, storage) =>
+        this.persistEncryptedNodeSnapshot(node, storage),
+      importMaterializedNodes: (storage, nodes, options) =>
+        this.importMaterializedNodes(storage, nodes, options),
+      appendImportedChanges: (storage, changes) => this.appendImportedChanges(storage, changes)
+    }
+    return this.writeHost
+  }
+
   private async applyChange(
     change: NodeChange,
     storage: NodeStorageAdapter = this.storage
@@ -2467,13 +2237,11 @@ export class NodeStore {
   }
 
   /**
-   * Determine if newTs should replace existingTs (LWW).
+   * Determine if newTs should replace existingTs (LWW). Delegates to the ONE
+   * protocol ordering in `@xnetjs/core` (§L1.7; exploration 0276).
    */
   private shouldReplace(existing: PropertyTimestamp, incoming: PropertyTimestamp): boolean {
-    if (incoming.lamport !== existing.lamport) return incoming.lamport > existing.lamport
-    if (incoming.wallTime !== existing.wallTime) return incoming.wallTime > existing.wallTime
-    // UTF-16 code-unit order (not localeCompare) for deterministic convergence.
-    return incoming.author > existing.author
+    return lwwWins(incoming, existing)
   }
 
   /**

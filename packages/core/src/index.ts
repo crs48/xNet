@@ -114,6 +114,15 @@ export { AUTH_ACTIONS } from './auth-types'
 
 // Shared utility helpers (dependency-free)
 export { clamp, clamp01, formatBytes } from './utils'
+
+// The ONE Last-Write-Wins ordering (protocol §L1.7; exploration 0276)
+export {
+  compareChangeApplicationOrder,
+  compareLwwStamps,
+  lwwUpdateGuardSql,
+  lwwWins,
+  type LwwStamp
+} from './lww'
 export { SsrfError, assertPublicUrl, validateExternalUrl } from './utils'
 
 // Core types

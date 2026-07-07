@@ -4,36 +4,29 @@
  * Features:
  * - Collaborative editing via Yjs
  * - Comment system with inline popover
+ *   (state machine shared with web via usePageComments, 0276)
  * - Real-time presence indicators
  */
 
 import type { SyncStatus } from '@xnetjs/react'
 import { PageSchema } from '@xnetjs/data'
-import { CommentMark, CommentPlugin, restoreCommentMarks } from '@xnetjs/editor/extensions'
 import {
   EditorSurface,
   buildTaskMentionSuggestions,
   useImageUpload,
   useFileUpload,
   useFileDownload,
-  type Editor
+  usePageComments
 } from '@xnetjs/editor/react'
 import {
   TaskCollectionEmbed,
   useNode,
   useIdentity,
   useEditorExtensionsSafe,
-  useComments,
   usePluginRegistryOptional,
   usePageTaskSync
 } from '@xnetjs/react'
-import {
-  CommentPopover,
-  CommentsSidebar,
-  OrphanedThreadList,
-  type CommentThreadData,
-  type OrphanedThread
-} from '@xnetjs/ui'
+import { CommentPopover, CommentsSidebar, OrphanedThreadList } from '@xnetjs/ui'
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react'
 import { DocumentHeader } from './DocumentHeader'
 import { resolvePageEditorFocusPosition } from './page-editor-focus'
@@ -46,31 +39,6 @@ interface PageViewProps {
 }
 
 type EditorExtensions = NonNullable<React.ComponentProps<typeof EditorSurface>['extensions']>
-
-// ─── Comment Popover State ──────────────────────────────────────────────────────
-
-interface PopoverState {
-  visible: boolean
-  mode: 'preview' | 'full'
-  threadId: string | null
-  anchor: HTMLElement | null
-}
-
-const INITIAL_POPOVER_STATE: PopoverState = {
-  visible: false,
-  mode: 'preview',
-  threadId: null,
-  anchor: null
-}
-
-/** State for creating a new comment (before submission) */
-interface NewCommentState {
-  visible: boolean
-  anchorData: string
-  /** Selection range to restore when applying the mark */
-  selectionFrom: number
-  selectionTo: number
-}
 
 export function PageView({ docId, minimalChrome = false }: PageViewProps) {
   const { did } = useIdentity()
@@ -112,78 +80,83 @@ export function PageView({ docId, minimalChrome = false }: PageViewProps) {
     [did, presence]
   )
 
-  // ─── Comments Integration ─────────────────────────────────────────────────────
+  // ─── Comments Integration (shared state machine, 0276) ───────────────────────
 
-  // Load comments for this page, filtered to text anchors only
   const {
     threads,
-    addComment,
-    replyTo,
-    resolveThread,
-    reopenThread,
-    deleteComment,
-    editComment,
-    unresolvedCount
-  } = useComments({ nodeId: docId, anchorType: 'text' })
+    unresolvedCount,
+    threadDataMap,
+    sidebarThreads,
+    currentThread,
+    orphanedThreads,
+    orphanedCollapsed,
+    toggleOrphanedCollapsed,
+    popoverState,
+    newCommentState,
+    editorRef,
+    handleEditorReady,
+    commentExtensions,
+    showThreadPopover,
+    handlePopoverMouseEnter,
+    handlePopoverMouseLeave,
+    handleDismiss,
+    handleUpgradeToFull,
+    handleReply,
+    handleResolve,
+    handleReopen,
+    handleDelete,
+    handleEdit,
+    handleCreateComment,
+    handleSubmitNewComment,
+    handleCancelNewComment,
+    handleSidebarSelectThread,
+    handleSidebarReply,
+    handleSidebarResolve,
+    handleSidebarReopen,
+    handleSidebarDelete,
+    handleSidebarEdit,
+    handleDismissOrphaned,
+    handleReattachOrphaned
+  } = usePageComments({ docId, dismissPopoverOnCaretExit: true })
 
-  // Popover state for comment interactions
-  const [popoverState, setPopoverState] = useState<PopoverState>(INITIAL_POPOVER_STATE)
-  const [newCommentState, setNewCommentState] = useState<NewCommentState | null>(null)
-  const [orphanedIds, setOrphanedIds] = useState<string[]>([])
-  const [orphanedCollapsed, setOrphanedCollapsed] = useState(false)
   const [sidebarOpen, setSidebarOpen] = useState(false)
-  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const dismissTimeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const editorRef = useRef<Editor | null>(null)
   const titleInputRef = useRef<HTMLInputElement | null>(null)
-  const marksRestoredRef = useRef(false)
-  const [editorReady, setEditorReady] = useState(false)
 
-  // Reset mark restoration state when switching documents
-  useEffect(() => {
-    marksRestoredRef.current = false
-    editorRef.current = null
-    setEditorReady(false)
-  }, [docId])
+  const handleEditorSurfaceMouseDown = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      const { target } = event
+      if (!(target instanceof HTMLElement)) return
 
-  // Handle editor ready - store ref and trigger mark restoration
-  const handleEditorReady = useCallback((editor: Editor) => {
-    editorRef.current = editor
-    setEditorReady(true)
-  }, [])
+      const interactiveTarget = target.closest(
+        [
+          '[contenteditable="true"]',
+          'a',
+          'button',
+          'input',
+          'select',
+          'textarea',
+          '[role="button"]',
+          '[data-page-editor-ignore-focus="true"]'
+        ].join(',')
+      )
 
-  const handleEditorSurfaceMouseDown = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
-    const { target } = event
-    if (!(target instanceof HTMLElement)) return
+      if (interactiveTarget || !editorRef.current) {
+        return
+      }
 
-    const interactiveTarget = target.closest(
-      [
-        '[contenteditable="true"]',
-        'a',
-        'button',
-        'input',
-        'select',
-        'textarea',
-        '[role="button"]',
-        '[data-page-editor-ignore-focus="true"]'
-      ].join(',')
-    )
-
-    if (interactiveTarget || !editorRef.current) {
-      return
-    }
-
-    event.preventDefault()
-    const focusPosition = resolvePageEditorFocusPosition(
-      event.clientY,
-      editorRef.current.view.dom.getBoundingClientRect()
-    )
-    editorRef.current.commands.focus(focusPosition)
-  }, [])
+      event.preventDefault()
+      const focusPosition = resolvePageEditorFocusPosition(
+        event.clientY,
+        editorRef.current.view.dom.getBoundingClientRect()
+      )
+      editorRef.current.commands.focus(focusPosition)
+    },
+    [editorRef]
+  )
 
   const handleTitleSubmit = useCallback(() => {
     editorRef.current?.commands.focus('start')
-  }, [])
+  }, [editorRef])
 
   const handleBodyBackspaceAtStart = useCallback(() => {
     const titleInput = titleInputRef.current
@@ -195,443 +168,10 @@ export function PageView({ docId, minimalChrome = false }: PageViewProps) {
     return true
   }, [])
 
-  // Restore comment marks when editor is ready and threads are loaded.
-  // Both editorReady and threads are in the dependency array so the effect
-  // fires regardless of which one becomes available first.
-  useEffect(() => {
-    if (!editorRef.current || marksRestoredRef.current || threads.length === 0) return
-
-    // Convert threads to format expected by restoreCommentMarks
-    const commentsToRestore = threads.map((t) => ({
-      id: t.root.id,
-      properties: {
-        anchorType: t.root.properties.anchorType,
-        anchorData: t.root.properties.anchorData,
-        resolved: t.root.properties.resolved
-      }
-    }))
-
-    // Restore marks - this will highlight the commented text
-    const { resolved, orphaned } = restoreCommentMarks(editorRef.current, commentsToRestore)
-
-    if (resolved.length > 0 || orphaned.length > 0) {
-      marksRestoredRef.current = true
-      setOrphanedIds(orphaned)
-      console.log(`[Comments] Restored ${resolved.length} marks, ${orphaned.length} orphaned`)
-    }
-  }, [threads, editorReady])
-
-  // Dismiss the comment popover when the caret moves out of comment marks.
-  // TipTap's onSelectionUpdate fires after every cursor movement.
-  useEffect(() => {
-    const editor = editorRef.current
-    if (!editor) return
-
-    const onSelectionUpdate = () => {
-      setPopoverState((prev) => {
-        if (!prev.visible || !prev.threadId) return prev
-        const { from } = editor.state.selection
-        const resolved = editor.state.doc.resolve(from)
-        const inComment = resolved.marks().some((mark) => {
-          const typedMark = mark as {
-            type?: { name?: string }
-            attrs?: { commentId?: string }
-          }
-          return typedMark.type?.name === 'comment' && typedMark.attrs?.commentId === prev.threadId
-        })
-        if (!inComment && !markHoveredRef.current && !popoverHoveredRef.current) {
-          return INITIAL_POPOVER_STATE
-        }
-        return prev
-      })
-    }
-
-    editor.on('selectionUpdate', onSelectionUpdate)
-    return () => {
-      editor.off('selectionUpdate', onSelectionUpdate)
-    }
-  }, [editorReady])
-
-  // Build orphaned threads list for display
-  const orphanedThreads = useMemo((): OrphanedThread[] => {
-    const result: OrphanedThread[] = []
-
-    for (const id of orphanedIds) {
-      const thread = threads.find((t) => t.root.id === id)
-      if (!thread) continue
-
-      // Parse anchor data to get context
-      let context: string | undefined
-      try {
-        const anchor = JSON.parse(thread.root.properties.anchorData)
-        context = anchor.quotedText
-      } catch {
-        // Ignore parse errors
-      }
-
-      result.push({
-        comment: {
-          id: thread.root.id,
-          author: thread.root.properties.createdBy,
-          authorDisplayName: undefined,
-          content: thread.root.properties.content,
-          createdAt: thread.root.createdAt,
-          replyCount: thread.replies.length
-        },
-        reason: 'text-deleted',
-        context
-      })
-    }
-
-    return result
-  }, [orphanedIds, threads])
-
-  // Convert threads to format expected by CommentPopover
-  const threadDataMap = useMemo(() => {
-    const map = new Map<string, CommentThreadData>()
-    for (const thread of threads) {
-      map.set(thread.root.id, {
-        root: {
-          id: thread.root.id,
-          author: thread.root.properties.createdBy,
-          authorDisplayName: undefined, // TODO: lookup display name
-          content: thread.root.properties.content,
-          createdAt: thread.root.createdAt,
-          edited: thread.root.properties.edited,
-          editedAt: thread.root.properties.editedAt,
-          replyToUser: thread.root.properties.replyToUser,
-          replyToCommentId: thread.root.properties.replyToCommentId
-        },
-        replies: thread.replies.map((r) => ({
-          id: r.id,
-          author: r.properties.createdBy,
-          authorDisplayName: undefined,
-          content: r.properties.content,
-          createdAt: r.createdAt,
-          edited: r.properties.edited,
-          editedAt: r.properties.editedAt,
-          replyToUser: r.properties.replyToUser,
-          replyToCommentId: r.properties.replyToCommentId
-        })),
-        resolved: thread.root.properties.resolved
-      })
-    }
-    return map
-  }, [threads])
-
-  // ─── Popover Handlers ─────────────────────────────────────────────────────────
-
-  // Track whether the cursor is over the mark or the popover.
-  // The popover stays open as long as either is true.
-  const markHoveredRef = useRef(false)
-  const popoverHoveredRef = useRef(false)
-
-  /** Check if the editor caret is currently inside a comment mark matching the popover thread. */
-  const isCaretInComment = useCallback((): boolean => {
-    const editor = editorRef.current
-    if (!editor) return false
-    const { from } = editor.state.selection
-    const resolved = editor.state.doc.resolve(from)
-    return resolved.marks().some((mark) => {
-      const typedMark = mark as { type?: { name?: string } }
-      return typedMark.type?.name === 'comment'
-    })
-  }, [])
-
-  /** Schedule a dismiss after a short delay, unless mark/popover is hovered or caret is in comment. */
-  const scheduleDismiss = useCallback(() => {
-    if (dismissTimeoutRef.current) clearTimeout(dismissTimeoutRef.current)
-    dismissTimeoutRef.current = setTimeout(() => {
-      if (!markHoveredRef.current && !popoverHoveredRef.current && !isCaretInComment()) {
-        setPopoverState(INITIAL_POPOVER_STATE)
-      }
-    }, 200)
-  }, [isCaretInComment])
-
-  const handleClickComment = useCallback((commentId: string, anchorEl: HTMLElement) => {
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current)
-      hoverTimeoutRef.current = null
-    }
-    if (dismissTimeoutRef.current) {
-      clearTimeout(dismissTimeoutRef.current)
-      dismissTimeoutRef.current = null
-    }
-    setPopoverState((prev) => {
-      // Already showing for this comment — keep as-is to avoid flicker
-      if (prev.visible && prev.mode === 'full' && prev.threadId === commentId) {
-        return prev
-      }
-      return { visible: true, mode: 'full', threadId: commentId, anchor: anchorEl }
-    })
-  }, [])
-
-  const handleHoverComment = useCallback((commentId: string, anchorEl: HTMLElement) => {
-    markHoveredRef.current = true
-    // Cancel any pending dismiss
-    if (dismissTimeoutRef.current) {
-      clearTimeout(dismissTimeoutRef.current)
-      dismissTimeoutRef.current = null
-    }
-    // Delay showing to avoid flicker on quick mouse passes
-    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current)
-    hoverTimeoutRef.current = setTimeout(() => {
-      setPopoverState((prev) => {
-        if (prev.visible && prev.threadId === commentId) return prev
-        return { visible: true, mode: 'full', threadId: commentId, anchor: anchorEl }
-      })
-    }, 300)
-  }, [])
-
-  const handleLeaveComment = useCallback(() => {
-    markHoveredRef.current = false
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current)
-      hoverTimeoutRef.current = null
-    }
-    scheduleDismiss()
-  }, [scheduleDismiss])
-
-  const handlePopoverMouseEnter = useCallback(() => {
-    popoverHoveredRef.current = true
-    if (dismissTimeoutRef.current) {
-      clearTimeout(dismissTimeoutRef.current)
-      dismissTimeoutRef.current = null
-    }
-  }, [])
-
-  const handlePopoverMouseLeave = useCallback(() => {
-    popoverHoveredRef.current = false
-    scheduleDismiss()
-  }, [scheduleDismiss])
-
-  const handleDismiss = useCallback(() => {
-    if (hoverTimeoutRef.current) {
-      clearTimeout(hoverTimeoutRef.current)
-      hoverTimeoutRef.current = null
-    }
-    if (dismissTimeoutRef.current) {
-      clearTimeout(dismissTimeoutRef.current)
-      dismissTimeoutRef.current = null
-    }
-    markHoveredRef.current = false
-    popoverHoveredRef.current = false
-    setPopoverState(INITIAL_POPOVER_STATE)
-  }, [])
-
-  const handleUpgradeToFull = useCallback(() => {
-    setPopoverState((prev) => ({ ...prev, mode: 'full' }))
-  }, [])
-
-  // ─── Comment Actions ──────────────────────────────────────────────────────────
-
-  const handleReply = useCallback(
-    async (content: string) => {
-      if (!popoverState.threadId) return
-      await replyTo(popoverState.threadId, content)
-    },
-    [popoverState.threadId, replyTo]
-  )
-
-  const handleResolve = useCallback(async () => {
-    if (!popoverState.threadId) return
-    await resolveThread(popoverState.threadId)
-    // Update the mark visual state to resolved (amber -> green)
-    editorRef.current?.commands.setCommentResolved(popoverState.threadId, true)
-  }, [popoverState.threadId, resolveThread])
-
-  const handleReopen = useCallback(async () => {
-    if (!popoverState.threadId) return
-    await reopenThread(popoverState.threadId)
-    // Update the mark visual state back to active (green -> amber)
-    editorRef.current?.commands.setCommentResolved(popoverState.threadId, false)
-  }, [popoverState.threadId, reopenThread])
-
-  const handleDelete = useCallback(
-    async (commentId: string) => {
-      await deleteComment(commentId)
-      // If deleting root with no replies, remove the mark from the document and close popover
-      const thread = threadDataMap.get(popoverState.threadId || '')
-      if (thread && commentId === thread.root.id && thread.replies.length === 0) {
-        // Remove the comment mark from the editor document
-        const editor = editorRef.current
-        if (editor) {
-          const { tr, doc } = editor.state
-          const markType = editor.schema.marks.comment
-          if (markType) {
-            doc.descendants((node, pos) => {
-              node.marks.forEach((mark) => {
-                if (mark.type === markType && mark.attrs.commentId === commentId) {
-                  tr.removeMark(pos, pos + node.nodeSize, mark)
-                }
-              })
-            })
-            editor.view.dispatch(tr)
-          }
-        }
-        handleDismiss()
-      }
-    },
-    [deleteComment, threadDataMap, popoverState.threadId, handleDismiss]
-  )
-
-  const handleEdit = useCallback(
-    async (commentId: string, newContent: string) => {
-      await editComment(commentId, newContent)
-    },
-    [editComment]
-  )
-
-  // Handler for initiating comment creation from toolbar selection
-  // This shows the input UI; actual comment creation happens on submit
-  const handleCreateComment = useCallback(async (anchorData: string): Promise<string | null> => {
-    if (!editorRef.current) return null
-
-    // Capture the current selection range so we can apply the mark later
-    const { from, to } = editorRef.current.state.selection
-
-    if (from === to) return null // No selection
-
-    // Show the new comment input modal
-    setNewCommentState({
-      visible: true,
-      anchorData,
-      selectionFrom: from,
-      selectionTo: to
-    })
-
-    // Return null - we're not creating the comment yet
-    // The actual creation happens when user submits the new comment form
-    return null
-  }, [])
-
-  // Handler for submitting a new comment
-  const handleSubmitNewComment = useCallback(
-    async (content: string) => {
-      if (!newCommentState || !content.trim() || !editorRef.current) return
-
-      const commentId = await addComment({
-        content: content.trim(),
-        anchorType: 'text',
-        anchorData: newCommentState.anchorData,
-        targetSchema: PageSchema.schema['@id']
-      })
-
-      if (commentId) {
-        console.log('[Comments] Applying mark:', {
-          commentId,
-          from: newCommentState.selectionFrom,
-          to: newCommentState.selectionTo
-        })
-
-        // Use the editor command to apply the mark
-        // First, set selection to the original range, then apply mark
-        editorRef.current
-          .chain()
-          .focus()
-          .setTextSelection({
-            from: newCommentState.selectionFrom,
-            to: newCommentState.selectionTo
-          })
-          .setComment(commentId)
-          .run()
-
-        console.log('[Comments] Mark command executed, checking DOM...')
-        setTimeout(() => {
-          const el = document.querySelector(`[data-comment-id="${commentId}"]`)
-          console.log('[Comments] DOM element found:', el)
-          if (el) {
-            console.log('[Comments] Element HTML:', el.outerHTML)
-          }
-        }, 50)
-
-        // After a short delay, find the mark element and show the popover
-        // This gives time for the DOM and threads state to update
-        const showPopover = () => {
-          const markEl = document.querySelector(
-            `[data-comment-id="${commentId}"]`
-          ) as HTMLElement | null
-          if (markEl) {
-            setPopoverState({
-              visible: true,
-              mode: 'full',
-              threadId: commentId,
-              anchor: markEl
-            })
-          }
-        }
-        // Try immediately, then retry after a delay if needed
-        setTimeout(showPopover, 50)
-        setTimeout(showPopover, 200)
-      }
-
-      // Close the new comment UI
-      setNewCommentState(null)
-    },
-    [newCommentState, addComment]
-  )
-
-  // Handler for canceling new comment creation
-  const handleCancelNewComment = useCallback(() => {
-    setNewCommentState(null)
-  }, [])
-
-  // ─── Sidebar Handlers ─────────────────────────────────────────────────────────
-
-  const handleSidebarSelectThread = useCallback((threadId: string) => {
-    // Find and scroll to the comment mark in the editor
-    const markEl = document.querySelector(`[data-comment-id="${threadId}"]`) as HTMLElement | null
-    if (markEl) {
-      markEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      // Flash the highlight by briefly selecting it
-      setPopoverState({
-        visible: true,
-        mode: 'full',
-        threadId,
-        anchor: markEl
-      })
-    }
-  }, [])
-
-  const handleSidebarReply = useCallback(
-    async (threadId: string, content: string) => {
-      await replyTo(threadId, content)
-    },
-    [replyTo]
-  )
-
-  const handleSidebarResolve = useCallback(
-    async (threadId: string) => {
-      await resolveThread(threadId)
-      editorRef.current?.commands.setCommentResolved(threadId, true)
-    },
-    [resolveThread]
-  )
-
-  const handleSidebarReopen = useCallback(
-    async (threadId: string) => {
-      await reopenThread(threadId)
-      editorRef.current?.commands.setCommentResolved(threadId, false)
-    },
-    [reopenThread]
-  )
-
-  const handleSidebarDelete = useCallback(
-    async (commentId: string) => {
-      await deleteComment(commentId)
-    },
-    [deleteComment]
-  )
-
-  const handleSidebarEdit = useCallback(
-    async (commentId: string, newContent: string) => {
-      await editComment(commentId, newContent)
-    },
-    [editComment]
-  )
+  // ─── Sidebar hover highlights (desktop-only affordance) ──────────────────────
 
   const hoveredThreadRef = useRef<string | null>(null)
-  const leaveTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const leaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const handleSidebarHoverThread = useCallback((threadId: string) => {
     // Cancel any pending leave — user moved to another thread or re-entered
@@ -671,29 +211,11 @@ export function PageView({ docId, minimalChrome = false }: PageViewProps) {
     }, 150)
   }, [])
 
-  // ─── Comment Extensions ───────────────────────────────────────────────────────
-
-  const commentExtensions = useMemo(
-    () => [
-      CommentMark,
-      CommentPlugin.configure({
-        onClickComment: handleClickComment,
-        onHoverComment: handleHoverComment,
-        onLeaveComment: handleLeaveComment
-      })
-    ],
-    [handleClickComment, handleHoverComment, handleLeaveComment]
-  )
-
   // Combine plugin extensions with comment extensions
   const allExtensions = useMemo(
     () => [...pluginExtensions, ...commentExtensions],
     [pluginExtensions, commentExtensions]
   )
-
-  // Get the current thread for the popover
-  // If thread not found in map yet (newly created), it will show once threads update
-  const currentThread = popoverState.threadId ? threadDataMap.get(popoverState.threadId) : null
 
   // Debug: log when popover should show but thread not found
   useEffect(() => {
@@ -706,51 +228,17 @@ export function PageView({ docId, minimalChrome = false }: PageViewProps) {
     }
   }, [popoverState, currentThread, threads])
 
-  // ─── Orphaned Comment Handlers ─────────────────────────────────────────────────
-
-  const handleDismissOrphaned = useCallback(
-    async (commentId: string) => {
-      // Delete the orphaned thread entirely
-      const thread = threads.find((t) => t.root.id === commentId)
-      if (thread) {
-        // Delete replies first, then root
-        for (const reply of thread.replies) {
-          await deleteComment(reply.id)
-        }
-        await deleteComment(commentId)
-      }
-      // Remove from orphaned list
-      setOrphanedIds((prev) => prev.filter((id) => id !== commentId))
-    },
-    [threads, deleteComment]
-  )
-
-  const handleReattachOrphaned = useCallback((commentId: string) => {
-    // For now, just show a message - reattachment requires selecting new text
-    // In a full implementation, this would open a mode to select new anchor text
-    console.log(`[Comments] Reattach not yet implemented for ${commentId}`)
-    // TODO: Implement reattachment UI - enter "select text" mode
-  }, [])
-
   const handleSelectOrphaned = useCallback(
     (commentId: string) => {
       // Open the popover for this orphaned comment
       const thread = threadDataMap.get(commentId)
       if (thread) {
         // Since orphaned comments don't have anchor elements, use coordinates
-        setPopoverState({
-          visible: true,
-          mode: 'full',
-          threadId: commentId,
-          anchor: null // Will need to position differently
-        })
+        showThreadPopover(commentId, null) // Will need to position differently
       }
     },
-    [threadDataMap]
+    [threadDataMap, showThreadPopover]
   )
-
-  // Sidebar thread list (derived from threadDataMap)
-  const sidebarThreads = useMemo(() => Array.from(threadDataMap.values()), [threadDataMap])
 
   if (loading || !doc || !pluginsReady) {
     return (
@@ -834,7 +322,7 @@ export function PageView({ docId, minimalChrome = false }: PageViewProps) {
               <OrphanedThreadList
                 orphanedThreads={orphanedThreads}
                 collapsed={orphanedCollapsed}
-                onToggleCollapse={() => setOrphanedCollapsed((prev) => !prev)}
+                onToggleCollapse={toggleOrphanedCollapsed}
                 onDismiss={handleDismissOrphaned}
                 onReattach={handleReattachOrphaned}
                 onSelect={handleSelectOrphaned}
