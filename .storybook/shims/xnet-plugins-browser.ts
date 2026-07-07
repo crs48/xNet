@@ -72,3 +72,33 @@ export type {
   AIGenerateRequest,
   AIStreamChunk
 } from '../../packages/plugins/src/ai/providers'
+
+// Workspace layout primitives + slot contributions (0280) — the workbench
+// shell modules import these through the @xnetjs/plugins alias.
+export {
+  createPresetTree,
+  isPresetWorkspaceId,
+  moveSlot,
+  parseWorkspacePayload,
+  placementOf,
+  PRESET_IDS,
+  PRESET_WORKSPACE_ID_PREFIX,
+  presetForWorkspaceId,
+  presetWorkspaceId,
+  REGION_IDS,
+  regionOf,
+  serializeWorkspacePayload,
+  setSlotTier,
+  slotsIn
+} from '../../packages/plugins/src/workspace'
+export type {
+  ChromePosture,
+  LayoutTree,
+  PresetId,
+  RegionId,
+  SlotPlacement,
+  SlotTier,
+  WorkspacePayload
+} from '../../packages/plugins/src/workspace'
+export type { SlotContribution, SlotRegion } from '../../packages/plugins/src/contributions'
+export { evaluateInstallConsent, scaffoldPlugin } from '../../packages/plugins/src/ecosystem'
