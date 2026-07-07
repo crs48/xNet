@@ -12,11 +12,7 @@
  * so ⌘J toggles it in quiet posture exactly as it toggles the tray when the
  * chrome is pinned — same state, different clothes.
  */
-import {
-  getCommandRegistry,
-  type SurfaceDockContribution,
-  type SurfaceDockTier
-} from '@xnetjs/plugins'
+import type { SurfaceDockContribution, SurfaceDockTier } from '@xnetjs/plugins'
 import { Presence } from '@xnetjs/ui'
 import { LayoutGrid, MoreHorizontal, X, type LucideIcon } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
@@ -80,24 +76,6 @@ function DockItemButton({
       <Icon size={16} strokeWidth={1.5} />
     </button>
   )
-}
-
-/** Register `Dock: <label>` palette commands for the mounted launcher. */
-function useDockCommands(all: SurfaceDockContribution[]): void {
-  useEffect(() => {
-    const registry = getCommandRegistry()
-    const disposables = all.map((item) =>
-      registry.register({
-        id: `dock.show:${item.id}`,
-        title: `Dock: ${item.label}`,
-        run: () => useWorkbench.getState().showPanelView('bottom', item.id)
-      })
-    )
-    return () => {
-      for (const disposable of disposables) disposable.dispose()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [all.map((item) => item.id).join('|')])
 }
 
 /**
@@ -252,7 +230,7 @@ export function SurfaceDockLauncher({ lit }: { lit: boolean }) {
   const panelOpen = bottom.open && active != null
   const stripVisible = expanded || panelOpen
 
-  useDockCommands(all)
+  // Palette road: the slot registry's `slot.open:<id>` commands (0280).
   const close = useCallback(() => setPanelOpen('bottom', false), [setPanelOpen])
   useDockEscape(panelOpen, close)
 

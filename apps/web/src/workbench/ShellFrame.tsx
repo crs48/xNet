@@ -21,7 +21,7 @@ import { CalmSurface } from './calm/CalmSurface'
 import { QuietChrome } from './calm/QuietChrome'
 import { SurfaceDockLauncher } from './calm/SurfaceDock'
 import { useActiveCalmMode } from './calm/use-active-mode'
-import { useWorkbenchCommands, useZenEscape } from './commands'
+import { useShellEscape, useWorkbenchCommands, useZenEscape } from './commands'
 import { EditorArea } from './EditorArea'
 import { useFocusRing } from './focus'
 import { Hairline } from './Hairline'
@@ -219,6 +219,7 @@ function QuietFrame({ tree, children }: { tree: LayoutTree; children: ReactNode 
 export function ShellFrame({ children }: { children: ReactNode }) {
   useWorkbenchCommands()
   useZenEscape()
+  useShellEscape()
   useFocusRing()
 
   const tree = useWorkbench((state) => state.tree)

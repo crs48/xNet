@@ -658,11 +658,11 @@ registerCommand({
 
 ### Phase 4 — Customization slope polish
 
-- [ ] Extend the 0273 Esc ladder across L2–L4 (arrange → saved → composed)
-- [ ] "Pin to Desk" and slash-embed flows reuse slot registry entries
-- [ ] Empty states and starter chips for the bench preset
+- [x] Extend the 0273 Esc ladder across L2–L4 (arrange → saved → composed)
+- [x] "Pin to Desk" and slash-embed flows reuse slot registry entries
+- [x] Empty states and starter chips for the bench preset
 - [ ] Three-roads audit table in the PR description (review gate)
-- [ ] Onboarding coachmarks (0206 pattern) for `Workspace: Save as…`
+- [x] Onboarding coachmarks (0206 pattern) for `Workspace: Save as…`
 
 ### Phase 5 — Agent + ecosystem
 

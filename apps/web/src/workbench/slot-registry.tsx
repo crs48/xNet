@@ -74,9 +74,27 @@ export function currentRegionOf(viewId: string): SlotRegion | RegionId | null {
   return registry.get(viewId)?.defaultRegion ?? 'dock.corner'
 }
 
+/** The dock PanelState side a region's views open through. */
+function sideForRegion(region: SlotRegion | RegionId | null): 'left' | 'right' | 'bottom' {
+  if (region === 'dock.left') return 'left'
+  if (region === 'dock.right') return 'right'
+  // dock.bottom and dock.corner share the bottom panel state (0273).
+  return 'bottom'
+}
+
 function registerMoveCommands(view: SlotContribution): Array<() => void> {
   const commands = getCommandRegistry()
   const disposers: Array<() => void> = []
+  // Every view is openable from the palette, wherever it currently sits —
+  // the keyboard road of the L4 "compose" rung (0280 phase 4).
+  disposers.push(
+    commands.register({
+      id: `slot.open:${view.id}`,
+      title: `View: Open ${view.label}`,
+      run: () =>
+        useWorkbench.getState().showPanelView(sideForRegion(currentRegionOf(view.id)), view.id)
+    }).dispose
+  )
   for (const { region, label } of movableRegionsFor(view)) {
     disposers.push(
       commands.register({

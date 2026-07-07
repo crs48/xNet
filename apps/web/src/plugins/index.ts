@@ -8,8 +8,13 @@
 import type { XNetExtension } from '@xnetjs/plugins'
 import { ChartsExtraPlugin } from './charts-extra-plugin'
 import { MermaidPlugin } from './mermaid-plugin'
+import { WorkbenchSlashPlugin } from './workbench-slash-plugin'
 
 /**
  * List of bundled plugins to auto-install
  */
-export const BUNDLED_PLUGINS: XNetExtension[] = [MermaidPlugin, ChartsExtraPlugin]
+export const BUNDLED_PLUGINS: XNetExtension[] = [
+  MermaidPlugin,
+  ChartsExtraPlugin,
+  WorkbenchSlashPlugin
+]

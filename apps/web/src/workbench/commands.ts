@@ -107,6 +107,36 @@ export function useWorkbenchCommands(): void {
   }, [])
 }
 
+/**
+ * The pinned frame's Esc ladder (0280 phase 4, extending 0273): each Esc
+ * closes ONE open dock — bottom, then right, then left — walking the
+ * disclosure ladder down to the bare surface. Runs only when nothing
+ * closer to the keystroke claimed it (palette, dialogs, editors all
+ * preventDefault first) and never steals Esc from text inputs.
+ */
+export function useShellEscape(): void {
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented) return
+      const target = event.target as HTMLElement | null
+      if (
+        target &&
+        (target.closest('input, textarea, [contenteditable="true"]') || target.isContentEditable)
+      ) {
+        return
+      }
+      const state = useWorkbench.getState()
+      if (state.chrome === 'quiet' || state.mode === 'zen') return
+      const side = (['bottom', 'right', 'left'] as const).find((s) => state[s].open)
+      if (!side) return
+      event.preventDefault()
+      state.setPanelOpen(side, false)
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [])
+}
+
 /** Exit zen with Esc Esc (two presses within 500ms), preserving layout. */
 export function useZenEscape(): void {
   const mode = useWorkbench((state) => state.mode)

@@ -16,6 +16,7 @@ import { useMutate, useQuery } from '@xnetjs/react'
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '@xnetjs/ui'
 import { Layers, Save } from 'lucide-react'
 import { useEffect, useRef, useState, type JSX } from 'react'
+import { contributeTips } from '../coachmarks'
 import { ShareDialog } from '../components/ShareDialog'
 import {
   isPresetWorkspaceId,
@@ -27,6 +28,20 @@ import {
   type WorkspacePayload
 } from './layout-tree'
 import { useWorkbench } from './state'
+
+// One first-run tip (0206): the layout is yours to keep — say so at the
+// button that proves it. Registered for the home list view; the anchor only
+// exists in the pinned calm shell, so nobody else ever sees it.
+contributeTips([
+  {
+    id: 'home:workspace-save@1',
+    view: 'home',
+    anchor: '[data-coach="workspace.switch"]',
+    title: 'Layouts are yours to keep',
+    body: 'Arrange the shell, then “Workspace: Save as…” (⌘K) keeps it — switch, share or reset any time.',
+    side: 'right'
+  }
+])
 
 const PRESET_TITLES: Record<PresetId, string> = {
   quiet: 'Quiet — bare surface',

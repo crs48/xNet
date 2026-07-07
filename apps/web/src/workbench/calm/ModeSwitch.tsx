@@ -10,7 +10,7 @@
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import { getCommandRegistry } from '@xnetjs/plugins'
 import { useIdentity } from '@xnetjs/react'
-import { Search, Settings, type LucideIcon } from 'lucide-react'
+import { Layers, Search, Settings, type LucideIcon } from 'lucide-react'
 import { useWorkbench } from '../state'
 import { CALM_MODES, modeForPath } from './modes'
 
@@ -87,6 +87,18 @@ export function ModeSwitch() {
       </div>
 
       <div className="flex-1" />
+
+      {/* Workspace switcher (0280): the pointer road to Save/Switch/Reset. */}
+      <button
+        type="button"
+        title="Workspaces"
+        aria-label="Workspaces"
+        data-coach="workspace.switch"
+        onClick={() => void getCommandRegistry().runCommand('workspace.switch')}
+        className="mb-1 flex h-9 w-9 cursor-pointer items-center justify-center rounded-lg border-none bg-transparent text-ink-3 transition-colors hover:text-ink-1"
+      >
+        <Layers size={18} strokeWidth={1.5} />
+      </button>
 
       {identity && (
         <div
