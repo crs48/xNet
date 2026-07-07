@@ -586,12 +586,12 @@ app.post('/forms/:token/submissions', rateLimit(20, 60_000), async (c) => {
 
 ### Phase 3 — Polish
 
-- [ ] Per-field show-if rules evaluated with the `filter-engine` grammar
-- [ ] Confirmation customization + "accepting responses" toggle + expiry
-- [ ] Tier-1 seeder: demo form view + sample submissions
+- [x] Per-field show-if rules evaluated with the `filter-engine` grammar
+- [x] Confirmation customization + "accepting responses" toggle + expiry
+- [x] Tier-1 seeder: demo form view + sample submissions
       (`packages/devtools/src/seed/seeders/`, register in
       `seed-manifest.ts`)
-- [ ] Docs page + `sidebar.mjs` entry; changelog fragment
+- [x] Docs page + `sidebar.mjs` entry; changelog fragment
 
 ## Validation Checklist
 
