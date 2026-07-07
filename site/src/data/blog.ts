@@ -87,6 +87,24 @@ export interface BlogPost {
 
 export const posts: BlogPost[] = [
   {
+    slug: 'the-vault-and-the-view',
+    title: 'The Vault and the View',
+    description:
+      'When Google Reader died, everyone got an export — and discovered the ' +
+      'file was a brick, shaped for a renderer that no longer existed. The ' +
+      'modern app is a vault: it holds your data and the only window onto it. ' +
+      'But the vault is a twenty-five-year detour, not the tradition — from ' +
+      'Codd’s data independence through Solid’s pods to local-first and “apps ' +
+      'as views, not vaults”, five decades of people have insisted the data is ' +
+      'the ground and the software is the weather. On that lineage, why the ' +
+      'first pod-shaped attempt stalled, how xNet ships the inversion — and ' +
+      'why AI-cheap views make user-owned data the only stable ground left.',
+    pubDate: '2026-07-07T21:00:00Z',
+    authors: ['crs48', 'claude'],
+    tags: ['essay', 'philosophy', 'decentralization', 'protocol'],
+    readingMinutes: 14
+  },
+  {
     slug: 'the-workshop-and-the-walled-garden',
     title: 'The Workshop and the Walled Garden',
     description:
