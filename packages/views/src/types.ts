@@ -14,7 +14,7 @@ export interface Disposable {
 /**
  * View type identifiers
  */
-export type ViewType = 'table' | 'board' | 'gallery' | 'timeline' | 'calendar' | 'list'
+export type ViewType = 'table' | 'board' | 'gallery' | 'timeline' | 'calendar' | 'list' | 'form'
 
 /**
  * Sort configuration

@@ -264,6 +264,7 @@ export {
   useGridDatabase,
   type UseGridDatabaseOptions,
   type UseGridDatabaseResult,
+  type AddRowOptions,
   type GridFieldModel,
   type GridOptionModel,
   type GridViewModel,

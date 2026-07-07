@@ -1058,6 +1058,25 @@ export {
   supportsGrouping,
   requiresDateColumn,
 
+  // Form view types and validation (exploration 0278)
+  type FormQuestion,
+  type FormConfirmation,
+  type FormViewConfig,
+  type FormFieldRule,
+  type FormAudience,
+  type FormSubmissionMeta,
+  type FormValidationError,
+  type FormValidationResult,
+  type PublicFormQuestion,
+  type PublicFormDefinition,
+  PUBLIC_SAFE_FORM_FIELD_TYPES,
+  isFormFieldTypeAllowed,
+  isFormQuestionVisible,
+  visibleFormQuestions,
+  validateFormSubmission,
+  buildPublicFormDefinition,
+  submissionRowId,
+
   // View operations
   getViews,
   getView,

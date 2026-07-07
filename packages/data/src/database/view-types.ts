@@ -13,7 +13,7 @@ import type { SummaryFunction } from './summary-engine'
 /**
  * Available view types.
  */
-export type ViewType = 'table' | 'board' | 'list' | 'gallery' | 'calendar' | 'timeline'
+export type ViewType = 'table' | 'board' | 'list' | 'gallery' | 'calendar' | 'timeline' | 'form'
 
 /**
  * View configuration stored in the database's Y.Doc.

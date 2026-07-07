@@ -71,6 +71,7 @@ export const sidebar = [
       { slug: 'docs/guides/notifications' },
       { slug: 'docs/guides/editor' },
       { slug: 'docs/guides/canvas' },
+      { slug: 'docs/guides/forms' },
       { slug: 'docs/guides/devtools' }
     ]
   },

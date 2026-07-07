@@ -56,10 +56,24 @@ export interface FilterSpec {
   value?: unknown
 }
 
+/** Form view config keyed by field keys (exploration 0278). */
+export interface FormSpec {
+  title?: string
+  description?: string
+  submitLabel?: string
+  confirmation?: { title?: string; body?: string }
+  accepting?: boolean
+  questions: Array<{ key: string; label?: string; description?: string; required?: boolean }>
+  /** Question key → show-if condition on another question's answer. */
+  rules?: Record<string, { whenKey: string; operator: FilterSpec['operator']; value?: unknown }>
+}
+
 export interface ViewSpec {
   slug: string
   name: string
-  type: 'table' | 'board' | 'list' | 'gallery' | 'calendar' | 'timeline'
+  type: 'table' | 'board' | 'list' | 'gallery' | 'calendar' | 'timeline' | 'form'
+  /** Form view (type 'form') question config. */
+  form?: FormSpec
   /** Field key to group by (board). */
   groupByKey?: string
   /** Date field key (calendar/timeline). */
@@ -189,6 +203,46 @@ export function databaseDrafts(spec: DatabaseSpec): DeterministicNodeImportDraft
     const columnSummaries = view.summaries
       ? Object.fromEntries(Object.entries(view.summaries).map(([k, fn]) => [fieldId(k), fn]))
       : undefined
+    const formConfig = view.form
+      ? {
+          ...(view.form.title ? { title: view.form.title } : {}),
+          ...(view.form.description ? { description: view.form.description } : {}),
+          questions: view.form.questions.map((q) => ({
+            fieldId: fieldId(q.key),
+            ...(q.label ? { label: q.label } : {}),
+            ...(q.description ? { description: q.description } : {}),
+            ...(q.required ? { required: true } : {})
+          })),
+          ...(view.form.submitLabel ? { submitLabel: view.form.submitLabel } : {}),
+          ...(view.form.confirmation ? { confirmation: view.form.confirmation } : {})
+        }
+      : undefined
+    const formRules = view.form?.rules
+      ? Object.fromEntries(
+          Object.entries(view.form.rules).map(([key, rule]) => {
+            // Select answers are stored as option ids — translate rule values
+            // written as option keys the same way row cells are.
+            const whenField = spec.fields.find((f) => f.key === rule.whenKey)
+            const value =
+              rule.value !== undefined && whenField?.type === 'select'
+                ? optionId(rule.whenKey, rule.value as string)
+                : rule.value
+            return [
+              fieldId(key),
+              {
+                when: [
+                  {
+                    columnId: fieldId(rule.whenKey),
+                    operator: rule.operator,
+                    ...(value !== undefined ? { value } : {})
+                  }
+                ],
+                match: 'all' as const
+              }
+            ]
+          })
+        )
+      : undefined
     drafts.push({
       id: seedId('dbview', spec.slug, view.slug),
       schemaId: DatabaseViewSchema._schemaId,
@@ -206,7 +260,10 @@ export function databaseDrafts(spec: DatabaseSpec): DeterministicNodeImportDraft
         hiddenFields: view.hiddenKeys?.map(fieldId),
         filters,
         sorts,
-        columnSummaries
+        columnSummaries,
+        formConfig,
+        formRules,
+        ...(view.form ? { formAccepting: view.form.accepting ?? true } : {})
       }
     })
   })

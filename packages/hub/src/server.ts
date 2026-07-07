@@ -25,6 +25,7 @@ import { measureDataUsage, type DataUsage } from './data-usage'
 import { aiForwarderFeature } from './features/ai-forwarder'
 import { diagnosticsSharingFeature } from './features/diagnostics-sharing'
 import { billingFeature, tasksFeature, unfurlFeature } from './features/first-party'
+import { formInboxFeature } from './features/form-inbox'
 import { mountFeatures } from './features/registry'
 import { pagerdutyFeature, sentryFeature, stripeFeature } from './features/webhook-integrations'
 import { Metrics, HUB_METRICS } from './middleware/metrics'
@@ -489,7 +490,12 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
       // are reported (`{ ok, actions }`) but not yet materialized.
       stripeFeature(),
       sentryFeature(),
-      pagerdutyFeature()
+      pagerdutyFeature(),
+      // Public form submissions (exploration 0278): owner-minted hashed
+      // tokens, anonymous GET definition / POST response, durable pending
+      // inbox. The hub never writes nodes — the owner's client drains the
+      // inbox into signed DatabaseRows (same deferred-write stance as above).
+      formInboxFeature()
     ],
     {
       app,
