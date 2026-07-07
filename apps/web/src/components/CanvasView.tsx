@@ -19,6 +19,7 @@ import {
   CANVAS_MIND_MAP_CREATION_TOOL,
   serializeCanvasInternalNodeDragData,
   createCanvasFrameExportDocument,
+  createCanvasFrameVariantProperties,
   createCanvasPdfPageAnchorId,
   createCanvasMindMapRootProperties,
   createCanvasObjectAnchorId,
@@ -960,12 +961,9 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
         width: 640,
         height: 420
       },
-      properties: {
-        title: 'Frame',
-        containerRole: 'frame',
-        memberIds: [],
-        memberCount: 0
-      }
+      properties: createCanvasFrameVariantProperties('standard', {
+        title: 'Frame'
+      })
     })
   }, [placePrimitiveObject])
 
