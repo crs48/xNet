@@ -664,7 +664,7 @@ registerCommand({
 - [x] Extend the 0273 Esc ladder across L2–L4 (arrange → saved → composed)
 - [x] "Pin to Desk" and slash-embed flows reuse slot registry entries
 - [x] Empty states and starter chips for the bench preset
-- [ ] Three-roads audit table in the PR description (review gate)
+- [x] Three-roads audit table in the PR description (review gate)
 - [x] Onboarding coachmarks (0206 pattern) for `Workspace: Save as…`
 
 ### Phase 5 — Agent + ecosystem
@@ -684,25 +684,25 @@ registerCommand({
 
 ## Validation Checklist
 
-- [ ] A new identity lands in the default preset and can reach every feature
+- [x] A new identity lands in the default preset and can reach every feature
       of today's calm shell with zero customization (L0/L1 completeness)
-- [ ] Persisted `xnet:workbench:v1` state from a production profile migrates
+- [x] Persisted `xnet:workbench:v1` state from a production profile migrates
       with panels, tabs, pins, shelf, and startup node intact
-- [ ] The three presets render pixel-equivalent to the pre-refactor shells
+- [x] The three presets render pixel-equivalent to the pre-refactor shells
       (screenshot diff via the 0185 visual-capture CI)
-- [ ] A view moved from the corner dock to the left dock survives reload,
+- [x] A view moved from the corner dock to the left dock survives reload,
       workspace switch, and sync to a second device
-- [ ] A workspace shared to a second identity opens with the same tree and
+- [x] A workspace shared to a second identity opens with the same tree and
       only that identity's permitted views (capability scoping holds)
-- [ ] Esc from any rung walks down one level at a time to L0 (automated
+- [x] Esc from any rung walks down one level at a time to L0 (automated
       interaction test)
-- [ ] Every slot verb is reachable via pointer, touch twin, and ⌘K (audit
+- [x] Every slot verb is reachable via pointer, touch twin, and ⌘K (audit
       table checked in review)
-- [ ] Companion "set up a bench" produces a visible, undoable diff and a
+- [x] Companion "set up a bench" produces a visible, undoable diff and a
       change-log entry; Undo restores the prior tree exactly
-- [ ] An AI-scaffolded view runs with only declared capabilities (guarded
+- [x] An AI-scaffolded view runs with only declared capabilities (guarded
       store denies an undeclared schema read in test)
-- [ ] Shell re-render count for a slot move stays bounded (no full-frame
+- [x] Shell re-render count for a slot move stays bounded (no full-frame
       re-render; profiler assertion)
 
 ## References
