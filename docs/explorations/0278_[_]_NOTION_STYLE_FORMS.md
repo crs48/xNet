@@ -65,7 +65,7 @@ exists?**
 - **Build in-house; adopt nothing.** External research (below) says the
   open-source form platforms are AGPL-3.0 (HeyForm, Formbricks, OpnForm —
   license-contagious for an MIT monorepo) and the MIT libraries
-  (TanStack Form, JSON Forms, RJSF) solve form *state*, which
+  (TanStack Form, JSON Forms, RJSF) solve form _state_, which
   `SchemaForm` + property handlers already solve better for our schema
   system. Anti-spam is honeypot + hub rate limiting
   (`packages/hub/src/middleware/rate-limit.ts`) + optional Cloudflare
@@ -116,7 +116,7 @@ flowchart TD
 
 - **`SchemaForm`** (`packages/views/src/form/SchemaForm.tsx`) takes
   `{ schema, value, onChange, options?, readOnly?, onCreateOption?,
-  onUploadFile?, onResolveFileUrl? }` and renders grouped, ordered fields
+onUploadFile?, onResolveFileUrl? }` and renders grouped, ordered fields
   through `getPropertyHandler(field.type)`. `SchemaToFormOptions`
   (`packages/views/src/form/schema-to-form-fields.ts`) already supports
   `hidden`, `order`, `groups`, `highlights` — most of a form builder's
@@ -177,7 +177,7 @@ flowchart TD
   Responses **create new pages/rows only — they cannot update existing
   rows** (Airtable Forms and Fillout can; a noted Notion weakness).
 - Public sharing = "anyone with the link", automatically anonymous;
-  workspace-only forms can capture identity via *Created by*.
+  workspace-only forms can capture identity via _Created by_.
 - Conditional logic ("ask follow-up questions based on earlier answers") is
   gated to Business/Enterprise plans; single-page only; no default values,
   hidden fields, or URL prefill as of early 2025.
@@ -185,15 +185,15 @@ flowchart TD
 
 ### Competitive table stakes (Tally, Typeform, Google/Airtable Forms, Fillout)
 
-| Capability | Consensus |
-|---|---|
-| Field types mapped to columns | Table stakes everywhere |
-| Required/optional per question | Table stakes |
-| Conditional visibility | Table stakes (Tally has it free) |
-| Public anonymous link | Table stakes |
-| Multi-page / branching graphs | Differentiator (Typeform, Fillout) |
-| Update-existing-row submissions | Rare (Airtable, Fillout) — explicitly out of scope for v1 |
-| Payments, e-signature, calculations | Delight tier, not v1 |
+| Capability                          | Consensus                                                 |
+| ----------------------------------- | --------------------------------------------------------- |
+| Field types mapped to columns       | Table stakes everywhere                                   |
+| Required/optional per question      | Table stakes                                              |
+| Conditional visibility              | Table stakes (Tally has it free)                          |
+| Public anonymous link               | Table stakes                                              |
+| Multi-page / branching graphs       | Differentiator (Typeform, Fillout)                        |
+| Update-existing-row submissions     | Rare (Airtable, Fillout) — explicitly out of scope for v1 |
+| Payments, e-signature, calculations | Delight tier, not v1                                      |
 
 ### Libraries and licensing
 
@@ -201,11 +201,11 @@ flowchart TD
   AGPL-3.0**: viral, unusable inside this MIT-licensed monorepo.
 - MIT-friendly libraries (TanStack Form, react-hook-form + Zod, JSON Forms;
   RJSF is Apache-2.0; SurveyJS core is MIT but its Creator is commercial)
-  solve *form state and JSON-Schema rendering* — a problem
+  solve _form state and JSON-Schema rendering_ — a problem
   `SchemaForm` + the property-handler registry already solve natively
   against xNet's own schema system. Adopting one would add a second schema
   dialect for no capability gain. **Build in-house.**
-- The JSON Schema + UI Schema *pattern* (validation concerns vs
+- The JSON Schema + UI Schema _pattern_ (validation concerns vs
   presentation concerns) is worth keeping: xNet's analogue is
   "derived database schema" (validation) vs "form config on the
   DatabaseView node" (presentation) — same separation, already idiomatic.
@@ -274,22 +274,22 @@ is the promotion step. xNet gets to set the precedent here.
 
 ### Decision 1 — Where does the form definition live?
 
-| Option | Description | Pros | Cons |
-|---|---|---|---|
-| **A. New `'form'` `DatabaseView` type** ✅ | Add `form` to the view-type select + `ViewType` union; form config as new json properties on the view node | Notion parity; view tabs/rename/reorder free; LWW config persistence free; Space authz free; smallest diff | Form config rides a schema shared with grid views (a few nullable json props) |
-| B. Standalone `Form` content type | New `FormSchema` node relating to a Database | Clean separation; forms could later target arbitrary schemas | Duplicates view UX (listing, opening, tabs); new sidebar surface; more schema/authz/seed work; diverges from the mental model users have from Notion |
-| C. Plugin-contributed view | Ship as a `ViewContribution` from `packages/plugins` | Dogfoods the plugin fabric | First-party table-stakes feature behind plugin indirection; public submission still needs core+hub work a plugin can't do |
+| Option                                     | Description                                                                                                | Pros                                                                                                       | Cons                                                                                                                                                 |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A. New `'form'` `DatabaseView` type** ✅ | Add `form` to the view-type select + `ViewType` union; form config as new json properties on the view node | Notion parity; view tabs/rename/reorder free; LWW config persistence free; Space authz free; smallest diff | Form config rides a schema shared with grid views (a few nullable json props)                                                                        |
+| B. Standalone `Form` content type          | New `FormSchema` node relating to a Database                                                               | Clean separation; forms could later target arbitrary schemas                                               | Duplicates view UX (listing, opening, tabs); new sidebar surface; more schema/authz/seed work; diverges from the mental model users have from Notion |
+| C. Plugin-contributed view                 | Ship as a `ViewContribution` from `packages/plugins`                                                       | Dogfoods the plugin fabric                                                                                 | First-party table-stakes feature behind plugin indirection; public submission still needs core+hub work a plugin can't do                            |
 
 **Choose A.** Revisit B only if forms ever need to exist without a backing
 database (e.g. "contact form → chat message"), which is out of scope.
 
 ### Decision 2 — Who signs anonymous submissions? (the load-bearing choice)
 
-| Option | Mechanism | Pros | Cons |
-|---|---|---|---|
-| **A. Hub inbox + owner-client materialization** ✅ | Hub stores raw submissions durably (per-form token table, like `ShareLinkRecord`); the form owner's online client drains the inbox, validates, and writes signed `DatabaseRow` nodes under the owner's DID with `cell_` values + submission metadata | Preserves "only user devices sign" (0200); reuses the exact `webhook-inbox` seam; hub stays content-dumb about the change log; spam never enters the replicated log unvetted; works with E2E-encrypted spaces (hub can't write into them anyway) | Rows appear only when an owner device is online (mitigate: hub lists pending count; any workspace member's client with write access can drain); inbox is plaintext on the hub until drained (same as webhook deliveries) |
-| B. Hub service DID (server-authoritative writes) | Hub holds a keypair, signs rows itself | Instant materialization; enables future server automations | Reverses a twice-made deliberate deferral; hub key becomes a workspace-write credential (big blast radius); breaks for E2E-encrypted spaces; authz model needs a "hub actor" concept |
-| C. Ephemeral guest DID in the respondent's browser | Public page mints a throwaway keypair, signs, syncs one change | Purest protocol story; no hub trust growth | Ships the whole data/sync stack to an anonymous page (weight, attack surface); authorization must accept unknown DIDs writing rows (spam lands *in the log*, which is append-only and replicated — the worst place for spam); revocation/cleanup story is ugly |
+| Option                                             | Mechanism                                                                                                                                                                                                                                            | Pros                                                                                                                                                                                                                                             | Cons                                                                                                                                                                                                                                                           |
+| -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **A. Hub inbox + owner-client materialization** ✅ | Hub stores raw submissions durably (per-form token table, like `ShareLinkRecord`); the form owner's online client drains the inbox, validates, and writes signed `DatabaseRow` nodes under the owner's DID with `cell_` values + submission metadata | Preserves "only user devices sign" (0200); reuses the exact `webhook-inbox` seam; hub stays content-dumb about the change log; spam never enters the replicated log unvetted; works with E2E-encrypted spaces (hub can't write into them anyway) | Rows appear only when an owner device is online (mitigate: hub lists pending count; any workspace member's client with write access can drain); inbox is plaintext on the hub until drained (same as webhook deliveries)                                       |
+| B. Hub service DID (server-authoritative writes)   | Hub holds a keypair, signs rows itself                                                                                                                                                                                                               | Instant materialization; enables future server automations                                                                                                                                                                                       | Reverses a twice-made deliberate deferral; hub key becomes a workspace-write credential (big blast radius); breaks for E2E-encrypted spaces; authz model needs a "hub actor" concept                                                                           |
+| C. Ephemeral guest DID in the respondent's browser | Public page mints a throwaway keypair, signs, syncs one change                                                                                                                                                                                       | Purest protocol story; no hub trust growth                                                                                                                                                                                                       | Ships the whole data/sync stack to an anonymous page (weight, attack surface); authorization must accept unknown DIDs writing rows (spam lands _in the log_, which is append-only and replicated — the worst place for spam); revocation/cleanup story is ugly |
 
 **Choose A.** It is the same state machine as Notion's own architecture
 (server receives, workspace materializes) translated to local-first
@@ -298,10 +298,10 @@ doesn't change, only who drains it.
 
 ### Decision 3 — How is the public form rendered?
 
-| Option | Pros | Cons |
-|---|---|---|
-| **App public route `/form/:token`** ✅ (SPA route, no session required) fetching `GET <hub>/forms/:token/definition` | Reuses `SchemaForm` + property editors + theme; one form renderer to maintain; matches how the share interstitial hands off to the app | Needs a session-less code path in the app shell (precedent: share claim flow) |
-| Hub-rendered static/SSR page | Zero app-shell work; tiny payload | Second form renderer to build and keep in parity — exactly the drift class 0277 just spent a convergence effort eliminating |
+| Option                                                                                                               | Pros                                                                                                                                   | Cons                                                                                                                        |
+| -------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| **App public route `/form/:token`** ✅ (SPA route, no session required) fetching `GET <hub>/forms/:token/definition` | Reuses `SchemaForm` + property editors + theme; one form renderer to maintain; matches how the share interstitial hands off to the app | Needs a session-less code path in the app shell (precedent: share claim flow)                                               |
+| Hub-rendered static/SSR page                                                                                         | Zero app-shell work; tiny payload                                                                                                      | Second form renderer to build and keep in parity — exactly the drift class 0277 just spent a convergence effort eliminating |
 
 ### Decision 4 — Conditional logic format
 
@@ -463,7 +463,7 @@ viewRegistry.register({
   type: 'form',
   name: 'Form',
   icon: 'clipboard-list',
-  component: FormView,          // builder + fill modes
+  component: FormView, // builder + fill modes
   supportedSchemas: '*',
   platforms: ['web', 'electron'],
   description: 'Collect responses as new rows'
@@ -475,15 +475,21 @@ Owner-side materialization core (Phase 2):
 ```ts
 // deterministic id: retry/double-drain safe (LWW upsert, seed-ids precedent)
 const rowId = submissionRowId(form.token, submission.nonce)
-await mutate.create(DatabaseRowSchema, {
-  database: databaseId,
-  sortKey: appendSortKey(lastRow?.sortKey),
-  ...toCellProperties(validated.answers),        // cell_<fieldId> props
-  submissionMeta: {
-    via: 'form', viewId: form.viewId,
-    submittedAt: submission.receivedAt, nonce: submission.nonce
-  }
-}, rowId)
+await mutate.create(
+  DatabaseRowSchema,
+  {
+    database: databaseId,
+    sortKey: appendSortKey(lastRow?.sortKey),
+    ...toCellProperties(validated.answers), // cell_<fieldId> props
+    submissionMeta: {
+      via: 'form',
+      viewId: form.viewId,
+      submittedAt: submission.receivedAt,
+      nonce: submission.nonce
+    }
+  },
+  rowId
+)
 await hub.ackFormSubmission(form.token, submission.nonce)
 ```
 
@@ -493,11 +499,11 @@ Hub endpoint sketch (Phase 2, mirrors `webhook-inbox.ts` shape):
 // packages/hub/src/features/form-inbox.ts (new)
 app.post('/forms/:token/submissions', rateLimit(20, 60_000), async (c) => {
   const route = await resolveFormToken(c.req.param('token'))
-  if (!route || route.disabled) return c.notFound()          // token is the credential
+  if (!route || route.disabled) return c.notFound() // token is the credential
   const body = await readCapped(c, MAX_SUBMISSION_BYTES)
-  if (body.website) return c.json({ ok: true })              // honeypot: lie politely
+  if (body.website) return c.json({ ok: true }) // honeypot: lie politely
   if (!route.accepting) return c.json({ ok: false, reason: 'closed' }, 403)
-  await storePending(route, body)                             // durable inbox
+  await storePending(route, body) // durable inbox
   return c.json({ ok: true, confirmation: route.confirmation }, 202)
 })
 ```
@@ -526,7 +532,7 @@ app.post('/forms/:token/submissions', rateLimit(20, 60_000), async (c) => {
   `ShareDocType` are consumer-visible: per changeset policy, bump from the
   diff (hub is periphery; `data`/`views`/`react` land in the fixed core as
   a minor).
-- **Seed coverage.** New schema *properties* don't trip
+- **Seed coverage.** New schema _properties_ don't trip
   `seed-coverage.test.ts`, but a Tier-1 form seeder makes the demo
   workspace demonstrate the feature (`packages/devtools/src/seed/`).
 - **Turnstile dependency.** Keep it optional/env-gated so self-hosters
@@ -537,26 +543,26 @@ app.post('/forms/:token/submissions', rateLimit(20, 60_000), async (c) => {
 
 ### Phase 1 — Form view in the workspace
 
-- [ ] Add `'form'` to `ViewType` (`packages/views/src/types.ts:17`) and to
+- [x] Add `'form'` to `ViewType` (`packages/views/src/types.ts:17`) and to
       the `DatabaseViewSchema` `type` select options
       (`packages/data/src/schema/schemas/database-view.ts`)
-- [ ] Add `formConfig` / `formRules` / `formAccepting` properties to
+- [x] Add `formConfig` / `formRules` / `formAccepting` properties to
       `DatabaseViewSchema`; new `packages/data/src/database/form-types.ts`
       with `FormViewConfig`, `FormQuestion`, `FormFieldRule`
-- [ ] Build `FormView` in `packages/views/src/form-view/` (new sub-barrel;
+- [x] Build `FormView` in `packages/views/src/form-view/` (new sub-barrel;
       ONE grouped re-export block from the root barrel per 0276 policy):
       fill mode = `SchemaForm` over the derived schema restricted to
       configured questions; builder mode = question list (reorder,
       include/exclude, label/description/required overrides)
-- [ ] Public-safe field-type gate: exclude `person`, `relation`, `rollup`,
+- [x] Public-safe field-type gate: exclude `person`, `relation`, `rollup`,
       `formula`, `file`, auto fields from public forms (allow
       person/relation for workspace-internal forms only)
-- [ ] Register in `registerBuiltinViews()`
+- [x] Register in `registerBuiltinViews()`
       (`packages/views/src/builtins.ts`); wire into
       `apps/web/src/components/DatabaseView.tsx` view-tab creation menu
-- [ ] Submit path: `useMutate().create(DatabaseRowSchema, …)` with
+- [x] Submit path: `useMutate().create(DatabaseRowSchema, …)` with
       `cell_` mapping + `sortKey` append + `submissionMeta`
-- [ ] Changesets: minor for `data`, `views`, `react` (fixed core)
+- [x] Changesets: minor for `data`, `views`, `react` (fixed core)
 
 ### Phase 2 — Public forms
 

@@ -216,6 +216,23 @@ export {
   duplicateColumn
 } from './column-operations'
 
+// Form view types and validation (exploration 0278)
+export {
+  type FormQuestion,
+  type FormConfirmation,
+  type FormViewConfig,
+  type FormFieldRule,
+  type FormAudience,
+  type FormSubmissionMeta,
+  type FormValidationError,
+  type FormValidationResult,
+  PUBLIC_SAFE_FORM_FIELD_TYPES,
+  isFormFieldTypeAllowed,
+  isFormQuestionVisible,
+  visibleFormQuestions,
+  validateFormSubmission
+} from './form-types'
+
 // View types
 export {
   type ViewType,

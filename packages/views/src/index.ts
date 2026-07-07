@@ -300,6 +300,18 @@ export {
   type SchemaFormProps
 } from './form/index.js'
 
+// Form view (exploration 0278): database-as-form; submissions become rows
+export {
+  FormBuilder,
+  FormFillView,
+  FormView,
+  formFieldsToColumns,
+  EMPTY_FORM_CONFIG,
+  type FormBuilderProps,
+  type FormFillViewProps,
+  type FormViewProps
+} from './form-view/index.js'
+
 // Shared Data Workspace core (exploration 0276): the saved-view / graph-atlas
 // workspace surface both the web and desktop DataWorkspaceViews consume.
 export {

@@ -12,9 +12,10 @@
  * because they're different properties with independent Lamport timestamps.
  */
 
+import type { FormSubmissionMeta } from '../../database/form-types'
 import type { InferNode } from '../types'
 import { defineSchema } from '../define'
-import { text, relation } from '../properties'
+import { text, relation, json } from '../properties'
 import { spaceCascadeAuthorization } from './space-authorization'
 
 export const DatabaseRowSchema = defineSchema({
@@ -39,7 +40,13 @@ export const DatabaseRowSchema = defineSchema({
      *
      * @see packages/data/src/database/fractional-index.ts
      */
-    sortKey: text({ required: true })
+    sortKey: text({ required: true }),
+
+    /**
+     * Provenance for rows created by a form submission (exploration 0278):
+     * which form view, when, and the submitter's idempotency nonce.
+     */
+    submissionMeta: json<FormSubmissionMeta>({})
   },
 
   /**

@@ -38,6 +38,7 @@ import {
   type CellPresence,
   type GridField,
   FieldConfigEditor,
+  FormView,
   GridPeek,
   GridSkeleton,
   GridSummaryBar,
@@ -477,8 +478,16 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
         views={grid.views.map((v) => ({ id: v.id, name: v.name, type: v.type }))}
         activeViewId={activeView?.id}
         onSelectView={setActiveViewId}
-        onAddView={() => {
-          void grid.addView(`View ${grid.views.length + 1}`, 'table')
+        addViewTypes={[
+          { type: 'table', label: 'Table' },
+          { type: 'form', label: 'Form' }
+        ]}
+        onAddViewOfType={(type) => {
+          void (async () => {
+            const name = type === 'form' ? 'Form' : `View ${grid.views.length + 1}`
+            const id = await grid.addView(name, type)
+            if (id) setActiveViewId(id)
+          })()
         }}
         fields={grid.fields.map((f) => ({
           id: f.id,
@@ -521,109 +530,145 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
         rowCount={grid.rows.length}
       />
 
-      {/* Body: grid + peek */}
-      <div className="flex-1 flex overflow-hidden">
-        <div className="flex-1 flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-hidden">
-            <GridSurface
+      {/* Body: form view or grid + peek */}
+      {activeView?.type === 'form' ? (
+        <FormView
+          fields={grid.fields.map((f) => ({
+            id: f.id,
+            name: f.name,
+            type: f.type,
+            config: f.config as Record<string, unknown>,
+            width: f.width,
+            isTitle: f.isTitle,
+            options: f.options
+          }))}
+          config={activeView.formConfig}
+          rules={activeView.formRules}
+          accepting={activeView.formAccepting}
+          databaseTitle={database?.title}
+          editable
+          onSubmit={async (cells) =>
+            (await grid.addRow(undefined, cells, {
+              meta: { via: 'form', viewId: activeView.id, submittedAt: Date.now() }
+            })) !== null
+          }
+          onChangeConfig={(next) => {
+            void grid.setFormConfig(next)
+          }}
+          onChangeRules={(next) => {
+            void grid.setFormRules(next)
+          }}
+          onChangeAccepting={(next) => {
+            void grid.setFormAccepting(next)
+          }}
+          onUploadFile={blobService ? handleUploadFile : undefined}
+          onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
+          className="flex-1"
+        />
+      ) : (
+        <div className="flex-1 flex overflow-hidden">
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <div className="flex-1 overflow-hidden">
+              <GridSurface
+                fields={gridFields}
+                rows={gridRows}
+                rowHeight={resolveRowHeightPx(activeView?.rowHeight)}
+                sorts={activeView?.sorts}
+                presences={cellPresences}
+                cellCommentCounts={comments.cellCommentCounts}
+                onUpdateCell={(rowId, fieldId, value) => {
+                  void grid.updateCell(rowId, fieldId, value)
+                }}
+                onClearCells={(cells) => {
+                  void grid.clearCells(cells)
+                }}
+                onAddRow={(afterRowId) => {
+                  void grid.addRow(afterRowId)
+                }}
+                onAddRowWithCells={(cells) => {
+                  void grid.addRow(undefined, cells)
+                }}
+                onAddFieldWithCell={(rowId, value) => {
+                  void (async () => {
+                    const fieldId = await grid.addField(`Column ${grid.fields.length + 1}`, 'text')
+                    if (fieldId) await grid.updateCell(rowId, fieldId, value)
+                  })()
+                }}
+                onDeleteRows={(rowIds) => {
+                  void grid.deleteRows(rowIds)
+                }}
+                onMoveRow={(rowId, targetIndex) => {
+                  void grid.moveRowToIndex(rowId, targetIndex)
+                }}
+                onMoveField={(fieldId, targetIndex) => {
+                  void grid.moveFieldToIndex(fieldId, targetIndex)
+                }}
+                onResizeField={(fieldId, width) => {
+                  void grid.resizeField(fieldId, width)
+                }}
+                onToggleSort={(fieldId) => {
+                  void grid.toggleSort(fieldId)
+                }}
+                onFieldMenu={(fieldId, anchorEl) => setFieldMenu({ fieldId, anchor: anchorEl })}
+                onAddField={() => setAddingField(true)}
+                onCreateOption={grid.createOption}
+                onUploadFile={blobService ? handleUploadFile : undefined}
+                onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
+                onOpenRow={setPeekRowId}
+                onUndo={() => {
+                  void grid.undo()
+                }}
+                onRedo={() => {
+                  void grid.redo()
+                }}
+                onCommentCell={openCellComments}
+                onCellFocus={handleCellFocus}
+                onCellBlur={handleCellBlur}
+              />
+            </div>
+            <GridSummaryBar
               fields={gridFields}
               rows={gridRows}
-              rowHeight={resolveRowHeightPx(activeView?.rowHeight)}
-              sorts={activeView?.sorts}
-              presences={cellPresences}
-              cellCommentCounts={comments.cellCommentCounts}
-              onUpdateCell={(rowId, fieldId, value) => {
-                void grid.updateCell(rowId, fieldId, value)
+              summaries={activeView?.columnSummaries ?? {}}
+              onChangeSummary={(fieldId, fn) => {
+                void grid.setColumnSummary(fieldId, fn)
               }}
-              onClearCells={(cells) => {
-                void grid.clearCells(cells)
-              }}
-              onAddRow={(afterRowId) => {
-                void grid.addRow(afterRowId)
-              }}
-              onAddRowWithCells={(cells) => {
-                void grid.addRow(undefined, cells)
-              }}
-              onAddFieldWithCell={(rowId, value) => {
-                void (async () => {
-                  const fieldId = await grid.addField(`Column ${grid.fields.length + 1}`, 'text')
-                  if (fieldId) await grid.updateCell(rowId, fieldId, value)
-                })()
-              }}
-              onDeleteRows={(rowIds) => {
-                void grid.deleteRows(rowIds)
-              }}
-              onMoveRow={(rowId, targetIndex) => {
-                void grid.moveRowToIndex(rowId, targetIndex)
-              }}
-              onMoveField={(fieldId, targetIndex) => {
-                void grid.moveFieldToIndex(fieldId, targetIndex)
-              }}
-              onResizeField={(fieldId, width) => {
-                void grid.resizeField(fieldId, width)
-              }}
-              onToggleSort={(fieldId) => {
-                void grid.toggleSort(fieldId)
-              }}
-              onFieldMenu={(fieldId, anchorEl) => setFieldMenu({ fieldId, anchor: anchorEl })}
-              onAddField={() => setAddingField(true)}
-              onCreateOption={grid.createOption}
-              onUploadFile={blobService ? handleUploadFile : undefined}
-              onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
-              onOpenRow={setPeekRowId}
-              onUndo={() => {
-                void grid.undo()
-              }}
-              onRedo={() => {
-                void grid.redo()
-              }}
-              onCommentCell={openCellComments}
-              onCellFocus={handleCellFocus}
-              onCellBlur={handleCellBlur}
             />
           </div>
-          <GridSummaryBar
-            fields={gridFields}
-            rows={gridRows}
-            summaries={activeView?.columnSummaries ?? {}}
-            onChangeSummary={(fieldId, fn) => {
-              void grid.setColumnSummary(fieldId, fn)
-            }}
-          />
-        </div>
 
-        {peekRow && (
-          <div className="w-[420px] shrink-0">
-            <GridPeek
-              row={{ id: peekRow.id, cells: peekRow.cells }}
-              fields={grid.fields.map((f) => ({
-                id: f.id,
-                name: f.name,
-                type: f.type,
-                config: f.config as Record<string, unknown>,
-                width: f.width,
-                isTitle: f.isTitle,
-                options: f.options
-              }))}
-              onClose={() => setPeekRowId(null)}
-              onUpdateCell={(rowId, fieldId, value) => {
-                void grid.updateCell(rowId, fieldId, value)
-              }}
-              onDeleteRow={(rowId) => {
-                void grid.deleteRows([rowId])
-              }}
-              onCreateOption={grid.createOption}
-              onUploadFile={blobService ? handleUploadFile : undefined}
-              onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
-            >
-              {/* Row comments summary */}
-              <div className="text-xs text-gray-500">
-                {comments.rowCommentCounts.get(peekRow.id) ?? 0} comments on this row
-              </div>
-            </GridPeek>
-          </div>
-        )}
-      </div>
+          {peekRow && (
+            <div className="w-[420px] shrink-0">
+              <GridPeek
+                row={{ id: peekRow.id, cells: peekRow.cells }}
+                fields={grid.fields.map((f) => ({
+                  id: f.id,
+                  name: f.name,
+                  type: f.type,
+                  config: f.config as Record<string, unknown>,
+                  width: f.width,
+                  isTitle: f.isTitle,
+                  options: f.options
+                }))}
+                onClose={() => setPeekRowId(null)}
+                onUpdateCell={(rowId, fieldId, value) => {
+                  void grid.updateCell(rowId, fieldId, value)
+                }}
+                onDeleteRow={(rowId) => {
+                  void grid.deleteRows([rowId])
+                }}
+                onCreateOption={grid.createOption}
+                onUploadFile={blobService ? handleUploadFile : undefined}
+                onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
+              >
+                {/* Row comments summary */}
+                <div className="text-xs text-gray-500">
+                  {comments.rowCommentCounts.get(peekRow.id) ?? 0} comments on this row
+                </div>
+              </GridPeek>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Field menu popover */}
       {fieldMenu && menuField && (

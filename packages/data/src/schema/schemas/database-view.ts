@@ -13,11 +13,12 @@
  * reorder/resize/hide without duplicating the schema.
  */
 
+import type { FormFieldRule, FormViewConfig } from '../../database/form-types'
 import type { SummaryFunction } from '../../database/summary-engine'
 import type { FilterGroup, SortConfig } from '../../database/view-types'
 import type { InferNode } from '../types'
 import { defineSchema } from '../define'
-import { text, relation, select, json } from '../properties'
+import { text, relation, select, json, checkbox } from '../properties'
 import { spaceCascadeAuthorization } from './space-authorization'
 
 export const DatabaseViewSchema = defineSchema({
@@ -41,7 +42,8 @@ export const DatabaseViewSchema = defineSchema({
         { id: 'list', name: 'List' },
         { id: 'gallery', name: 'Gallery' },
         { id: 'calendar', name: 'Calendar' },
-        { id: 'timeline', name: 'Timeline' }
+        { id: 'timeline', name: 'Timeline' },
+        { id: 'form', name: 'Form' }
       ] as const,
       default: 'table'
     }),
@@ -91,7 +93,17 @@ export const DatabaseViewSchema = defineSchema({
     dateField: text({ maxLength: 100 }),
 
     /** End date field ID */
-    endDateField: text({ maxLength: 100 })
+    endDateField: text({ maxLength: 100 }),
+
+    // Form specific (exploration 0278)
+    /** Form question config (FormViewConfig) — whole-object LWW */
+    formConfig: json<FormViewConfig>({}),
+
+    /** Per-question show-if rules: fieldId -> FormFieldRule — whole-map LWW */
+    formRules: json<Record<string, FormFieldRule>>({}),
+
+    /** Accepting responses toggle (form view) */
+    formAccepting: checkbox({ default: true })
   },
   // Inherits access from its home Space (exploration 0181/0192).
   authorization: spaceCascadeAuthorization('database')
