@@ -137,6 +137,68 @@ export interface GridToolbarProps {
 
 type Popover = 'filter' | 'visibility' | 'group' | 'rowHeight' | 'more' | 'addView' | null
 
+/**
+ * Add-view button (exploration 0278): with `addViewTypes` it opens a type
+ * picker (Table / Form / …); without, it keeps the legacy direct-add
+ * behaviour. Extracted so the toolbar shell stays flat.
+ */
+function AddViewButton({
+  onAddView,
+  addViewTypes,
+  onAddViewOfType,
+  open,
+  popoverRef,
+  onToggle,
+  onClose
+}: {
+  onAddView?: () => void
+  addViewTypes?: Array<{ type: ViewType; label: string }>
+  onAddViewOfType?: (type: ViewType) => void
+  open: boolean
+  popoverRef: React.RefObject<HTMLDivElement>
+  onToggle: () => void
+  onClose: () => void
+}): React.JSX.Element | null {
+  const hasMenu = Boolean(addViewTypes && onAddViewOfType)
+  if (!onAddView && !hasMenu) return null
+  return (
+    <span className="relative">
+      <button
+        type="button"
+        aria-label="Add view"
+        title="Add a view"
+        className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+        onClick={hasMenu ? onToggle : onAddView}
+      >
+        <Plus className="w-3.5 h-3.5" />
+      </button>
+      {open && hasMenu && (
+        <div
+          ref={popoverRef}
+          role="menu"
+          aria-label="View type"
+          className="absolute left-0 top-full z-50 mt-1 w-36 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-xl p-1"
+        >
+          {addViewTypes!.map((entry) => (
+            <button
+              key={entry.type}
+              type="button"
+              role="menuitem"
+              className="w-full px-2 py-1 text-left text-xs rounded hover:bg-gray-50 dark:hover:bg-gray-800"
+              onClick={() => {
+                onClose()
+                onAddViewOfType!(entry.type)
+              }}
+            >
+              {entry.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </span>
+  )
+}
+
 export function GridToolbar({
   views,
   activeViewId,
@@ -224,48 +286,15 @@ export function GridToolbar({
             {view.name}
           </button>
         ))}
-        {(onAddView || (addViewTypes && onAddViewOfType)) && (
-          <span className="relative">
-            <button
-              type="button"
-              aria-label="Add view"
-              title="Add a view"
-              className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800/50"
-              onClick={() => {
-                if (addViewTypes && onAddViewOfType) {
-                  setOpenPopover(openPopover === 'addView' ? null : 'addView')
-                } else {
-                  onAddView?.()
-                }
-              }}
-            >
-              <Plus className="w-3.5 h-3.5" />
-            </button>
-            {openPopover === 'addView' && addViewTypes && onAddViewOfType && (
-              <div
-                ref={popoverRef}
-                role="menu"
-                aria-label="View type"
-                className="absolute left-0 top-full z-50 mt-1 w-36 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-xl p-1"
-              >
-                {addViewTypes.map((entry) => (
-                  <button
-                    key={entry.type}
-                    type="button"
-                    role="menuitem"
-                    className="w-full px-2 py-1 text-left text-xs rounded hover:bg-gray-50 dark:hover:bg-gray-800"
-                    onClick={() => {
-                      setOpenPopover(null)
-                      onAddViewOfType(entry.type)
-                    }}
-                  >
-                    {entry.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </span>
-        )}
+        <AddViewButton
+          onAddView={onAddView}
+          addViewTypes={addViewTypes}
+          onAddViewOfType={onAddViewOfType}
+          open={openPopover === 'addView'}
+          popoverRef={popoverRef}
+          onToggle={() => setOpenPopover(openPopover === 'addView' ? null : 'addView')}
+          onClose={() => setOpenPopover(null)}
+        />
       </div>
 
       <div className="flex-1" />

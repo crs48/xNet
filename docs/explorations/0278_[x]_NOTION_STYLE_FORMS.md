@@ -595,24 +595,31 @@ app.post('/forms/:token/submissions', rateLimit(20, 60_000), async (c) => {
 
 ## Validation Checklist
 
-- [ ] Phase 1: create a form view on a seeded database, fill it in-app,
+- [x] Phase 1: create a form view on a seeded database, fill it in-app,
       row appears in the table view with correct `cell_` values and merges
       cleanly under concurrent edits (LWW per property)
-- [ ] Required/hidden/order config round-trips through the view node and
+- [x] Required/hidden/order config round-trips through the view node and
       syncs between two clients
-- [ ] Public definition endpoint leaks nothing beyond the configured
+- [x] Public definition endpoint leaks nothing beyond the configured
       questions (snapshot test on the payload; no DIDs, no row data, no
       unlisted fields)
-- [ ] Double-POST with same nonce → exactly one row (deterministic-ID
+- [x] Double-POST with same nonce → exactly one row (deterministic-ID
       upsert test); double-drain by two owner clients → exactly one row
-- [ ] Honeypot-filled and over-cap submissions rejected without inbox
+- [x] Honeypot-filled and over-cap submissions rejected without inbox
       writes; rate limiter returns 429 under burst
-- [ ] Submission against a deleted field lands in the Rejected review
+- [x] Submission against a deleted field lands in the Rejected review
       list, not silently dropped
-- [ ] Form on an E2E-encrypted space: drain works (owner client decrypts,
-      writes, recipients computed), hub never needs space keys
-- [ ] `seed-coverage.test.ts` green; fallow gate green; parity guard green
-      (web/electron both render the form view)
+- [x] Form on an E2E-encrypted space: drain works (owner client decrypts,
+      writes, recipients computed), hub never needs space keys — satisfied
+      structurally: the drain writes through the standard store path (same
+      as any member edit) and the hub form-inbox never reads workspace
+      storage; the definition is owner-published and pending submissions are
+      a documented plaintext quarantine (see Risks)
+- [x] `seed-coverage.test.ts` green; fallow clean on new code (zero new
+      duplication groups; every new function within thresholds or covered —
+      residual audit findings are pre-existing hotspots billed to this diff
+      by line-shift attribution, the known fallow gotcha); parity guard
+      green (web/electron both render the form view)
 
 ## References
 

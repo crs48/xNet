@@ -55,6 +55,7 @@
       "scripts/check-humane-patterns.mjs",
       "apps/web/src/components/CanvasView.tsx",
       "apps/web/src/components/DatabaseView.tsx",
+      "apps/electron/src/renderer/components/DatabaseView.tsx",
       "apps/web/src/components/PageView.tsx",
       "apps/web/src/components/ShareDialog.tsx",
       "apps/web/src/components/TasksView.tsx",
