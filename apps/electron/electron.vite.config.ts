@@ -34,7 +34,8 @@ const xnetPackages = [
   '@xnetjs/query',
   '@xnetjs/social',
   '@xnetjs/telemetry',
-  '@xnetjs/plugins'
+  '@xnetjs/plugins',
+  '@xnetjs/dictation'
 ]
 
 // Path to rebuilt native modules in local node_modules

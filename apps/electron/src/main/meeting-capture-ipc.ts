@@ -1,9 +1,11 @@
 /**
  * Meeting capture IPC (exploration 0279).
  *
- * Two responsibilities, both gated by the `systemAudio` module capability
- * (the 0270 guardFs pattern — the grant is asserted at the IPC boundary, the
- * one choke point renderer code cannot route around):
+ * Two responsibilities, both restricted to first-party frames (see
+ * `assertFirstPartyFrame`). The `systemAudio` ModuleCapability — the 0270
+ * guardFs pattern — is declared on the meetings feature module and enforced
+ * with its consent flow in `@xnetjs/plugins`; plugin code cannot reach this
+ * IPC because the sandbox never endows `window.xnetMeetings`.
  *
  * 1. **System-audio loopback.** While a capture session is armed, Electron's
  *    `setDisplayMediaRequestHandler` answers the renderer's
@@ -23,8 +25,6 @@ import type { EngineDescriptor, ModelDownloadProgress } from '@xnetjs/dictation'
 import type { WebFrameMain } from 'electron'
 import { join } from 'path'
 import { EngineRegistry } from '@xnetjs/dictation'
-import { meetingsFeatureModule } from '@xnetjs/meetings'
-import { assertSystemAudio } from '@xnetjs/plugins'
 import { app, ipcMain, session, systemPreferences } from 'electron'
 import { resolveSystemAudioPath, startCoreAudioTap, type TapSession } from './core-audio-tap'
 import { ParakeetSherpaEngine } from './engines/parakeet-sherpa'
@@ -52,12 +52,21 @@ const engineRegistry = (): EngineRegistry => {
 export type MeetingEngineStatus = EngineDescriptor & { ready: boolean }
 
 /**
- * Assert the caller may use system audio. First-party surfaces run under the
- * meetings module's own grant; the frame origin is recorded in the error for
- * diagnostics when a non-granted caller probes the channel.
+ * Only the app's own renderer may reach the capture surface. Plugin code never
+ * gets here at all: the sandbox does not endow `window.xnetMeetings`, and a
+ * plugin requesting capture goes through the `systemAudio` ModuleCapability
+ * consent flow in `@xnetjs/plugins` (guards + danger consent line live there —
+ * deliberately NOT imported into the main bundle, which stays dependency-light).
+ * This frame check is the main-process backstop for anything else that might
+ * end up in the session (e.g. a webview).
  */
-const assertCapability = (frame: WebFrameMain | null): void => {
-  assertSystemAudio(meetingsFeatureModule.capabilities, frame?.url ?? meetingsFeatureModule.id)
+const assertFirstPartyFrame = (frame: WebFrameMain | null): void => {
+  const url = frame?.url ?? ''
+  const firstParty =
+    url.startsWith('file://') || /^https?:\/\/localhost(:\d+)?\//.test(url) || url === ''
+  if (!firstParty) {
+    throw new Error(`meeting capture denied for non-app frame: ${url}`)
+  }
 }
 
 export function setupMeetingCaptureIPC(): void {
@@ -91,7 +100,7 @@ export function setupMeetingCaptureIPC(): void {
 
   let tap: TapSession | null = null
   ipcMain.handle('xnet:meetings:start-tap', (event) => {
-    assertCapability(event.senderFrame)
+    assertFirstPartyFrame(event.senderFrame)
     if (resolveSystemAudioPath() !== 'core-audio-tap') return { started: false }
     const sender = event.sender
     tap?.stop()
@@ -115,7 +124,7 @@ export function setupMeetingCaptureIPC(): void {
 
   // Arm loopback for the next getDisplayMedia call from the renderer.
   ipcMain.handle('xnet:meetings:arm-loopback', (event) => {
-    assertCapability(event.senderFrame)
+    assertFirstPartyFrame(event.senderFrame)
     if (!systemAudioAvailable()) return { armed: false }
 
     loopbackArmed = true
@@ -135,7 +144,7 @@ export function setupMeetingCaptureIPC(): void {
   })
 
   ipcMain.handle('xnet:meetings:disarm-loopback', (event) => {
-    assertCapability(event.senderFrame)
+    assertFirstPartyFrame(event.senderFrame)
     loopbackArmed = false
     session.defaultSession.setDisplayMediaRequestHandler(null)
     return { armed: false }
