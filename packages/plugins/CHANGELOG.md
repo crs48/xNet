@@ -1,5 +1,14 @@
 # @xnetjs/plugins
 
+## 0.4.0
+
+### Patch Changes
+
+- Updated dependencies [[`e245a3c`](https://github.com/crs48/xNet/commit/e245a3c792d4e8aa70280c9b9f0f96c213204204)]:
+  - @xnetjs/data@0.4.0
+  - @xnetjs/abuse@0.4.0
+  - @xnetjs/core@0.4.0
+
 ## 0.3.0
 
 ### Patch Changes
