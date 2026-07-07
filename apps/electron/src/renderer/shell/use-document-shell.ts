@@ -16,7 +16,7 @@ import type {
 import type { AddSharedInput } from '../components/AddSharedDialog'
 import type { CanvasViewCommandState, CanvasViewHandle } from '../components/CanvasView'
 import type { SavedViewCanvasFrameInput } from '../components/DataWorkspaceView'
-import type { LinkedDocumentItem } from '../lib/canvas-shell'
+import type { LinkedDocumentItem } from '@xnetjs/views'
 import type { Dispatch, RefObject, SetStateAction } from 'react'
 import { PageSchema, DatabaseSchema, CanvasSchema } from '@xnetjs/data'
 import { useDevTools } from '@xnetjs/devtools'

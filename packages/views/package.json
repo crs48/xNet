@@ -22,13 +22,17 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@tanstack/react-table": "^8.21.2",
     "@tanstack/react-virtual": "^3.13.2",
+    "@xnetjs/canvas": "workspace:*",
     "@xnetjs/core": "workspace:*",
+    "@xnetjs/dashboard": "workspace:*",
     "@xnetjs/data": "workspace:*",
+    "@xnetjs/plugins": "workspace:*",
     "@xnetjs/react": "workspace:*",
     "@xnetjs/social": "workspace:*",
     "@xnetjs/ui": "workspace:*",
     "lucide-react": "^0.563.0",
-    "nanoid": "^5.1.6"
+    "nanoid": "^5.1.6",
+    "yjs": "^13.6.24"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0"

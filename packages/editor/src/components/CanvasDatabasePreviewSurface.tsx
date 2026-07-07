@@ -106,8 +106,9 @@ function formatCellValue(value: CellValue, column: ColumnDefinition): string {
     }
 
     if ('options' in column.config) {
+      const options = (column.config as { options?: Array<{ id: string; name?: string }> }).options
       const optionNames = value.map(
-        (entry) => column.config.options?.find((option) => option.id === entry)?.name ?? entry
+        (entry) => options?.find((option) => option.id === entry)?.name ?? entry
       )
       return optionNames.join(', ')
     }

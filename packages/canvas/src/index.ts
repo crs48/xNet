@@ -880,6 +880,7 @@ export { Canvas } from './renderer/CanvasV3'
 export type {
   CanvasProps,
   CanvasHandle,
+  CanvasPresenceIntent,
   CanvasSelectionSnapshot,
   CanvasSurfaceEventContext,
   CanvasRemoteUser,

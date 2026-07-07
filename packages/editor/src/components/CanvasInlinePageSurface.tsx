@@ -1,14 +1,7 @@
+import type { TaskMentionSuggestion } from '../extensions/task-metadata'
 import type { CanvasNode } from '@xnetjs/canvas'
-import type { TaskMentionSuggestion } from '@xnetjs/editor/react'
 import { useCanvasThemeTokens } from '@xnetjs/canvas'
 import { PageSchema } from '@xnetjs/data'
-import {
-  EditorSurface,
-  buildTaskMentionSuggestions,
-  useFileDownload,
-  useFileUpload,
-  useImageUpload
-} from '@xnetjs/editor/react'
 import {
   TaskCollectionEmbed,
   useEditorExtensionsSafe,
@@ -18,6 +11,11 @@ import {
   usePluginRegistryOptional
 } from '@xnetjs/react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useFileDownload } from '../hooks/useFileDownload'
+import { useFileUpload } from '../hooks/useFileUpload'
+import { useImageUpload } from '../hooks/useImageUpload'
+import { buildTaskMentionSuggestions } from '../utils/taskMentionSuggestions'
+import { EditorSurface } from './EditorSurface'
 
 type CanvasInlinePageSurfaceProps = {
   node: CanvasNode

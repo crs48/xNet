@@ -2,7 +2,7 @@ import type { CanvasNode } from '@xnetjs/canvas'
 import { getCanvasObjectsMap } from '@xnetjs/canvas'
 import { useSyncManager } from '@xnetjs/react'
 import { useNodeStore } from '@xnetjs/react/internal'
-import { startTransition, useCallback, useEffect, useRef, useState } from 'react'
+import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import * as Y from 'yjs'
 
 type CanvasDocHandle = {
@@ -329,4 +329,88 @@ export function useCanvasSourceReferences({
     totalCanvases,
     getReferences
   }
+}
+
+/**
+ * Merge the live current-canvas scan with the cross-canvas index for the
+ * selected object (0277 E3). The current canvas is read straight from the
+ * open doc so edits show up immediately; other canvases come from the
+ * background index above.
+ */
+export function useSelectedSourceReferences({
+  doc,
+  docId,
+  canvasTitle,
+  sceneRevision,
+  selectedObject,
+  resolveTitle,
+  getReferences
+}: {
+  doc: Y.Doc | null
+  docId: string
+  canvasTitle: string | null | undefined
+  sceneRevision: number
+  selectedObject: { node: CanvasNode; sourceId: string | null } | null
+  /** Optional fallback title resolver for a source id (shell document list). */
+  resolveTitle?: (sourceId: string) => string | undefined
+  getReferences: UseCanvasSourceReferencesResult['getReferences']
+}): CanvasSourceReference[] {
+  const currentCanvasSourceReferences = useMemo(() => {
+    void sceneRevision
+
+    if (!doc || !selectedObject?.sourceId) {
+      return []
+    }
+
+    const refs: CanvasSourceReference[] = []
+    const nodesMap = getCanvasObjectsMap<CanvasNode>(doc)
+
+    nodesMap.forEach((value: unknown, key: string) => {
+      const node = value as CanvasNode
+      if (getCanvasSourceId(node) !== selectedObject.sourceId) {
+        return
+      }
+
+      if (key === selectedObject.node.id) {
+        return
+      }
+
+      refs.push({
+        sourceNodeId: selectedObject.sourceId as string,
+        canvasId: docId,
+        canvasTitle: canvasTitle || 'Workspace Canvas',
+        objectId: key,
+        objectType: node.type,
+        alias: typeof node.alias === 'string' && node.alias.trim().length > 0 ? node.alias : null,
+        title:
+          node.alias ??
+          (node.properties.title as string) ??
+          resolveTitle?.(selectedObject.sourceId as string) ??
+          'Untitled',
+        isCurrentCanvas: true
+      })
+    })
+
+    return refs
+  }, [canvasTitle, doc, docId, resolveTitle, sceneRevision, selectedObject])
+
+  return useMemo(() => {
+    if (!selectedObject?.sourceId) {
+      return []
+    }
+
+    const merged = new Map<string, CanvasSourceReference>()
+
+    currentCanvasSourceReferences.forEach((reference) => {
+      merged.set(reference.objectId, reference)
+    })
+
+    getReferences(selectedObject.sourceId, {
+      excludeObjectId: selectedObject.node.id
+    }).forEach((reference) => {
+      merged.set(reference.objectId, reference)
+    })
+
+    return Array.from(merged.values()).sort(sortCanvasReferences)
+  }, [currentCanvasSourceReferences, getReferences, selectedObject])
 }
