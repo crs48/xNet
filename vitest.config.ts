@@ -49,6 +49,7 @@ const workspaceAliases = {
   '@xnetjs/ledger': new URL('./packages/ledger/src/index.ts', import.meta.url).pathname,
   '@xnetjs/licenses': new URL('./packages/licenses/src/index.ts', import.meta.url).pathname,
   '@xnetjs/maps': new URL('./packages/maps/src/index.ts', import.meta.url).pathname,
+  '@xnetjs/meetings': new URL('./packages/meetings/src/index.ts', import.meta.url).pathname,
   '@xnetjs/network': new URL('./packages/network/src/index.ts', import.meta.url).pathname,
   '@xnetjs/plugins/node': new URL('./packages/plugins/src/services/node.ts', import.meta.url)
     .pathname,
@@ -108,8 +109,8 @@ export default defineConfig({
           pool: 'threads',
           isolate: false,
           include: [
-            'packages/{abuse,billing,brain,canvas-core,cli,cloud,crm,dictation,entitlements,comms,crypto,core,data,experiments,formula,history,identity,ledger,licenses,network,query,slack-compat,sqlite,storage,sync,telemetry,trust,vectors}/src/**/*.test.ts',
-            'packages/{abuse,billing,brain,canvas-core,cli,cloud,crm,dictation,entitlements,comms,crypto,core,data,experiments,formula,history,identity,ledger,licenses,network,query,slack-compat,sqlite,storage,sync,telemetry,trust,vectors}/test/**/*.test.ts',
+            'packages/{abuse,billing,brain,canvas-core,cli,cloud,crm,dictation,meetings,entitlements,comms,crypto,core,data,experiments,formula,history,identity,ledger,licenses,network,query,slack-compat,sqlite,storage,sync,telemetry,trust,vectors}/src/**/*.test.ts',
+            'packages/{abuse,billing,brain,canvas-core,cli,cloud,crm,dictation,meetings,entitlements,comms,crypto,core,data,experiments,formula,history,identity,ledger,licenses,network,query,slack-compat,sqlite,storage,sync,telemetry,trust,vectors}/test/**/*.test.ts',
             // Control-plane app logic (xNet Cloud — managed-hosting explorations 0174/0175)
             'apps/cloud/src/**/*.test.ts',
             // Social matching layer — pure connect modules only; the

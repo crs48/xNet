@@ -69,6 +69,11 @@ export function describeCapabilities(caps: ModuleCapabilities | undefined): Cons
   for (const endowment of caps.endowments ?? []) {
     lines.push({ icon: 'plug', text: `Use host API: ${endowment}`, danger: false })
   }
+  if (caps.systemAudio) {
+    // Hearing everything the machine plays is as sensitive as a broad grant —
+    // always shout (exploration 0279).
+    lines.push({ icon: 'plug', text: 'Capture system audio during meetings', danger: true })
+  }
   return lines
 }
 

@@ -40,6 +40,12 @@ declare module '@tiptap/core' {
       ) => ReturnType
       /** Remove the AI-generated mark from the selection. */
       unsetAiGenerated: () => ReturnType
+      /**
+       * Delete every AI-generated span in the document, leaving user-authored
+       * text untouched — the "regenerate" primitive (exploration 0279): drop
+       * the old AI output, then insert the fresh one marked again.
+       */
+      deleteAiGeneratedRanges: () => ReturnType
     }
   }
 }
@@ -50,6 +56,32 @@ export function aiGeneratedTitle(attrs: AiGeneratedAttrs): string {
   const cites = attrs.citations ?? []
   if (cites.length === 0) return head
   return `${head} · Sources: ${cites.map((c) => c.title).join(', ')}`
+}
+
+/**
+ * All ranges in `doc` carrying the aiGenerated mark, merged when adjacent.
+ * Exposed for callers that need to inspect (not delete) AI spans — e.g. the
+ * meeting recorder deciding whether a regenerate has anything to replace.
+ */
+export function aiGeneratedRanges(doc: {
+  descendants: (cb: (node: unknown, pos: number) => void) => void
+}): Array<{ from: number; to: number }> {
+  const ranges: Array<{ from: number; to: number }> = []
+  doc.descendants((node, pos) => {
+    const n = node as {
+      isText?: boolean
+      nodeSize: number
+      marks: Array<{ type: { name: string } }>
+    }
+    if (!n.isText) return
+    if (!n.marks.some((mark) => mark.type.name === 'aiGenerated')) return
+    const from = pos
+    const to = pos + n.nodeSize
+    const last = ranges[ranges.length - 1]
+    if (last && last.to === from) last.to = to
+    else ranges.push({ from, to })
+  })
+  return ranges
 }
 
 function parseCitations(value: string | null): AiCitation[] | null {
@@ -122,7 +154,22 @@ export const AiGeneratedMark = Mark.create<AiGeneratedMarkOptions>({
       unsetAiGenerated:
         () =>
         ({ commands }) =>
-          commands.unsetMark(this.name)
+          commands.unsetMark(this.name),
+
+      deleteAiGeneratedRanges:
+        () =>
+        ({ tr, dispatch }) => {
+          const ranges = aiGeneratedRanges(tr.doc)
+          if (ranges.length === 0) return false
+          if (dispatch) {
+            // Delete back-to-front so earlier positions stay valid.
+            for (const range of [...ranges].reverse()) {
+              tr.delete(range.from, range.to)
+            }
+            dispatch(tr)
+          }
+          return true
+        }
     }
   }
 })

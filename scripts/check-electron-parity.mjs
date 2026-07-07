@@ -45,6 +45,7 @@ const COVERED = new Set([
   'doc', // page-focus overlay
   'db', // database-focus / -split overlay
   'data', // data-workspace (saved views / lenses)
+  'meetings', // meetings overlay (botless recorder + list/detail, 0279)
   'view', // saved view, opened through the data workspace
   'settings', // settings overlay
   'social-import', // social-import overlay

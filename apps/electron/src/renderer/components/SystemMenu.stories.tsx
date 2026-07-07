@@ -15,6 +15,9 @@ const meta = {
     ],
     onOpenDocument: () => undefined,
     onOpenSettings: () => undefined,
+    onOpenDataWorkspace: () => undefined,
+    onOpenMeetings: () => undefined,
+    onOpenSocialImport: () => undefined,
     onAddShared: () => undefined,
     onToggleDebugPanel: () => undefined
   }

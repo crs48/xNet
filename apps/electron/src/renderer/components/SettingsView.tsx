@@ -4,12 +4,13 @@
  * Organized into sections: General, Appearance, Plugins, Data, Network
  */
 
-import { Settings, Palette, Puzzle, Database, Wifi, ChevronRight } from 'lucide-react'
+import { MeetingEngineSettings } from '@xnetjs/views'
+import { Settings, Palette, Puzzle, Database, Mic, Wifi, ChevronRight } from 'lucide-react'
 import React, { useState } from 'react'
 import { persistedHubUrl, setPersistedHubUrl } from '../lib/hub-url'
 import { PluginManager } from './PluginManager'
 
-type SettingsSection = 'general' | 'appearance' | 'plugins' | 'data' | 'network'
+type SettingsSection = 'general' | 'appearance' | 'dictation' | 'plugins' | 'data' | 'network'
 
 interface SettingsSectionConfig {
   id: SettingsSection
@@ -30,6 +31,12 @@ const SECTIONS: SettingsSectionConfig[] = [
     label: 'Appearance',
     icon: <Palette size={18} />,
     description: 'Theme and display preferences'
+  },
+  {
+    id: 'dictation',
+    label: 'Dictation & Meetings',
+    icon: <Mic size={18} />,
+    description: 'Speech-to-text engines and meeting capture'
   },
   {
     id: 'plugins',
@@ -112,6 +119,7 @@ export function SettingsView({ onClose }: SettingsViewProps) {
         <div className="flex-1 overflow-auto p-6">
           {activeSection === 'general' && <GeneralSettings />}
           {activeSection === 'appearance' && <AppearanceSettings />}
+          {activeSection === 'dictation' && <MeetingEngineSettings />}
           {activeSection === 'plugins' && <PluginManager />}
           {activeSection === 'data' && <DataSettings />}
           {activeSection === 'network' && <NetworkSettings />}

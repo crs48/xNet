@@ -189,11 +189,14 @@ export {
   buildNotionConnector,
   buildAirtableConnector,
   buildLinearConnector,
+  buildGoogleCalendarConnector,
+  detectUpcomingMeeting,
   EXTERNAL_ITEM_SCHEMA,
   GITHUB_CONNECTOR_ID,
   NOTION_CONNECTOR_ID,
   AIRTABLE_CONNECTOR_ID,
-  LINEAR_CONNECTOR_ID
+  LINEAR_CONNECTOR_ID,
+  GOOGLE_CALENDAR_CONNECTOR_ID
 } from './connectors'
 export type {
   ConnectorDefinition,
@@ -275,8 +278,10 @@ export {
   isSchemaWriteAllowed,
   isSchemaReadAllowed,
   isNetworkAllowed,
+  isSystemAudioAllowed,
   assertSchemaWrite,
   assertNetwork,
+  assertSystemAudio,
   guardStore,
   // Provenance → trust
   deriveTrustTier,

@@ -95,6 +95,16 @@ jobs:
           name: js-build
           path: .
 
+      # System-audio tap helper (exploration 0279): electron-builder bundles it
+      # as an extra resource; the app falls back to Chromium loopback when the
+      # binary is absent, but release builds always ship it.
+      - name: Build xnet-audiotee helper
+        run: |
+          cd apps/electron/native/audiotee
+          swift build -c release --arch ${{ matrix.arch == 'x64' && 'x86_64' || 'arm64' }}
+          mkdir -p .build/release
+          cp ".build/$([ '${{ matrix.arch }}' = 'x64' ] && echo x86_64 || echo arm64)-apple-macosx/release/xnet-audiotee" .build/release/xnet-audiotee
+
       - name: Resolve macOS signing mode
         id: signing
         env:

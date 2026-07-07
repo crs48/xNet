@@ -32,6 +32,8 @@
     "@xnetjs/core": "workspace:*",
     "@xnetjs/data": "workspace:*",
     "@xnetjs/devkit": "workspace:*",
+    "@xnetjs/dictation": "workspace:*",
+    "@xnetjs/meetings": "workspace:*",
     "@xnetjs/devtools": "workspace:*",
     "@xnetjs/editor": "workspace:*",
     "@xnetjs/identity": "workspace:*",

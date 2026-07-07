@@ -350,6 +350,20 @@ export {
   type Transcription,
   type TranscriptionSourceId
 } from './schemas'
+// Meeting schema pack (exploration 0279)
+export {
+  MeetingSchema,
+  MeetingTranscriptSchema,
+  MEETING_SCHEMA_IRI,
+  MEETING_TRANSCRIPT_SCHEMA_IRI,
+  MEETING_CHANNELS,
+  MEETING_TEMPLATE_IDS,
+  type Meeting,
+  type MeetingTranscript,
+  type MeetingChannel,
+  type MeetingSegment,
+  type MeetingTemplateId
+} from './schemas'
 export { CanvasSchema, type Canvas } from './schemas'
 export {
   MapSchema,

@@ -57,6 +57,7 @@ export type TabNodeType =
   | 'map'
   | 'savedview'
   | 'tasks'
+  | 'meetings'
   | 'data'
   | 'experiments'
   | 'crm'

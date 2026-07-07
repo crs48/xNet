@@ -55,3 +55,20 @@ export { PluginRegistry, PluginError } from '../../packages/plugins/src/registry
 
 export { PluginSchema } from '../../packages/plugins/src/schemas/plugin'
 export type { PluginNode } from '../../packages/plugins/src/schemas/plugin'
+
+// Command registry — used by canvas-view's useCanvasCommands (0277)
+export { getCommandRegistry } from '../../packages/plugins/src/commands'
+
+// Feature modules + capability guards — used by @xnetjs/meetings (0279)
+export { defineFeatureModule } from '../../packages/plugins/src/feature-module'
+export type { FeatureModule, ModuleCapabilities } from '../../packages/plugins/src/feature-module'
+export {
+  isSystemAudioAllowed,
+  assertSystemAudio
+} from '../../packages/plugins/src/ecosystem/capability-guard'
+export type {
+  AIProvider,
+  AIMessage,
+  AIGenerateRequest,
+  AIStreamChunk
+} from '../../packages/plugins/src/ai/providers'

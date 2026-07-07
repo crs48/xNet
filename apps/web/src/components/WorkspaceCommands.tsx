@@ -70,6 +70,12 @@ export function WorkspaceCommands(): JSX.Element | null {
         run: () => void navigate({ to: '/tasks' })
       }),
       registry.register({
+        id: 'nav.meetings',
+        title: 'Go to meetings',
+        key: 'g e',
+        run: () => void navigate({ to: '/meetings' })
+      }),
+      registry.register({
         id: 'nav.data',
         title: 'Go to data workspace',
         key: 'g d',
