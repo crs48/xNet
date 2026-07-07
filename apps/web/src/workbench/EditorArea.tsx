@@ -236,6 +236,35 @@ function GroupPane({
   )
 }
 
+/**
+ * Starter chips (0280 phase 4, the 0273 empty-state pattern): three dimmed
+ * affordances on a tabless bench that vanish after the first real tab —
+ * paralysis mitigation without clutter. Each chip runs the same command
+ * its chord and palette entry run.
+ */
+function StarterChips() {
+  const chips = [
+    { id: 'workbench.newPage', label: 'New page', hint: '⌘T' },
+    { id: 'workbench.toggleLeftPanel', label: 'Open navigator', hint: '⌘B' },
+    { id: 'search.open', label: 'Command palette', hint: '⌘K' }
+  ]
+  return (
+    <div className="flex shrink-0 items-center gap-2 px-3 py-2">
+      {chips.map((chip) => (
+        <button
+          key={chip.id}
+          type="button"
+          onClick={() => void getCommandRegistry().runCommand(chip.id)}
+          className="flex cursor-pointer items-center gap-1.5 rounded-full border border-hairline bg-transparent px-3 py-1 text-xs text-ink-3 transition-colors hover:text-ink-1"
+        >
+          {chip.label}
+          <span className="text-[10px] text-ink-3/70">{chip.hint}</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
 export function EditorArea({ children }: { children: ReactNode }) {
   const location = useLocation()
   const navigate = useNavigate()
@@ -262,6 +291,8 @@ export function EditorArea({ children }: { children: ReactNode }) {
     ? tabIdFor(routedDescriptor.nodeType, routedDescriptor.nodeId)
     : null
 
+  const totalTabs = groups.reduce((count, group) => count + group.tabs.length, 0)
+
   const outlet = (
     <ErrorBoundary
       resetKey={location.pathname}
@@ -282,6 +313,7 @@ export function EditorArea({ children }: { children: ReactNode }) {
         if (hasNodeTransfer(e)) setDragDepth((depth) => Math.max(0, depth - 1))
       }}
     >
+      {totalTabs === 0 && <StarterChips />}
       <Group orientation="horizontal" id="xnet-wb-editor-groups">
         {groups.map((group, index) => (
           <Fragment key={group.id}>

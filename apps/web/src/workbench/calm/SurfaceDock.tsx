@@ -12,102 +12,40 @@
  * so ⌘J toggles it in quiet posture exactly as it toggles the tray when the
  * chrome is pinned — same state, different clothes.
  */
-import {
-  getCommandRegistry,
-  type SurfaceDockContribution,
-  type SurfaceDockTier
-} from '@xnetjs/plugins'
+import type { SurfaceDockContribution, SurfaceDockTier } from '@xnetjs/plugins'
 import { Presence } from '@xnetjs/ui'
-import {
-  Archive,
-  Bell,
-  LayoutGrid,
-  MoreHorizontal,
-  PenLine,
-  RefreshCw,
-  Terminal,
-  X,
-  type LucideIcon
-} from 'lucide-react'
+import { LayoutGrid, MoreHorizontal, X, type LucideIcon } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
+import { registerBuiltinSlotViews } from '../builtin-slot-views'
+import { MoveViewMenu } from '../PanelViewHost'
+import { registerSlotView, slotViewsInRegion } from '../slot-registry'
 import { useWorkbench } from '../state'
-import { ShelfTray } from '../views/Shelf'
-import { NotificationsTray, QueryConsoleTray, QuickCaptureTray, SyncTray } from '../views/tray'
 
-// ─── Registry ──────────────────────────────────────────────────────
+// ─── Registry (slot-registry backed since 0280) ────────────────────
 
-const dockRegistry = new Map<string, SurfaceDockContribution>()
-
+/**
+ * Register a dock panel — a slot view defaulting to the corner dock.
+ * Kept as the 0273 API; new code should use `registerSlotView` directly.
+ */
 export function registerSurfaceDockPanel(item: SurfaceDockContribution): () => void {
-  dockRegistry.set(item.id, item)
-  return () => {
-    dockRegistry.delete(item.id)
-  }
+  return registerSlotView({ defaultRegion: 'dock.corner', ...item })
 }
 
+/**
+ * The corner dock's current residents: views the layout tree places in
+ * `dock.corner` (plus unplaced views defaulting there), by tier.
+ */
 export function getSurfaceDockPanels(tier?: SurfaceDockTier): SurfaceDockContribution[] {
-  const all = [...dockRegistry.values()].sort(
-    (a, b) => (a.priority ?? 0) - (b.priority ?? 0) || a.label.localeCompare(b.label)
-  )
+  const all = slotViewsInRegion('dock.corner')
   return tier ? all.filter((item) => item.tier === tier) : all
 }
 
 /**
- * First-party residents: the tray views migrate here in quiet posture (their
- * ids match the `bottom` panel-view ids, so `showPanelView('bottom', id)`
- * works identically in both postures).
+ * First-party residents (0273): registration now lives in the shared slot
+ * registry; this remains the dock's idempotent entry point.
  */
 export function registerBuiltinSurfaceDock(): void {
-  const builtin: SurfaceDockContribution[] = [
-    {
-      id: 'shelf',
-      label: 'Shelf',
-      icon: Archive,
-      tier: 'hero',
-      group: 'capture',
-      priority: 0,
-      component: ShelfTray
-    },
-    {
-      id: 'capture',
-      label: 'Capture',
-      icon: PenLine,
-      tier: 'hero',
-      group: 'capture',
-      priority: 1,
-      component: QuickCaptureTray
-    },
-    {
-      id: 'notifications',
-      label: 'Notifications',
-      icon: Bell,
-      tier: 'hero',
-      group: 'activity',
-      priority: 2,
-      component: NotificationsTray
-    },
-    {
-      id: 'sync',
-      label: 'Sync',
-      icon: RefreshCw,
-      tier: 'secondary',
-      group: 'activity',
-      priority: 3,
-      keywords: ['status', 'hub'],
-      component: SyncTray
-    },
-    {
-      id: 'console',
-      label: 'Console',
-      icon: Terminal,
-      tier: 'secondary',
-      group: 'tools',
-      priority: 4,
-      keywords: ['query', 'sql'],
-      component: QueryConsoleTray
-    }
-  ]
-  for (const item of builtin) dockRegistry.set(item.id, item)
+  registerBuiltinSlotViews()
 }
 
 function iconFor(item: SurfaceDockContribution): LucideIcon {
@@ -139,24 +77,6 @@ function DockItemButton({
       <Icon size={16} strokeWidth={1.5} />
     </button>
   )
-}
-
-/** Register `Dock: <label>` palette commands for the mounted launcher. */
-function useDockCommands(all: SurfaceDockContribution[]): void {
-  useEffect(() => {
-    const registry = getCommandRegistry()
-    const disposables = all.map((item) =>
-      registry.register({
-        id: `dock.show:${item.id}`,
-        title: `Dock: ${item.label}`,
-        run: () => useWorkbench.getState().showPanelView('bottom', item.id)
-      })
-    )
-    return () => {
-      for (const disposable of disposables) disposable.dispose()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [all.map((item) => item.id).join('|')])
 }
 
 /**
@@ -208,15 +128,18 @@ function DockPanelCard({
             </button>
           ))}
         </div>
-        <button
-          type="button"
-          title="Close dock"
-          aria-label="Close dock"
-          onClick={onClose}
-          className="flex cursor-pointer items-center border-none bg-transparent p-0.5 text-ink-3 hover:text-ink-1"
-        >
-          <X size={13} strokeWidth={1.5} />
-        </button>
+        <div className="flex items-center gap-1">
+          <MoveViewMenu viewId={active.id} />
+          <button
+            type="button"
+            title="Close dock"
+            aria-label="Close dock"
+            onClick={onClose}
+            className="flex cursor-pointer items-center border-none bg-transparent p-0.5 text-ink-3 hover:text-ink-1"
+          >
+            <X size={13} strokeWidth={1.5} />
+          </button>
+        </div>
       </header>
       <div className="min-h-0 flex-1 overflow-y-auto">
         <active.component />
@@ -308,7 +231,7 @@ export function SurfaceDockLauncher({ lit }: { lit: boolean }) {
   const panelOpen = bottom.open && active != null
   const stripVisible = expanded || panelOpen
 
-  useDockCommands(all)
+  // Palette road: the slot registry's `slot.open:<id>` commands (0280).
   const close = useCallback(() => setPanelOpen('bottom', false), [setPanelOpen])
   useDockEscape(panelOpen, close)
 

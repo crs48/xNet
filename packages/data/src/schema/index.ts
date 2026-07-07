@@ -444,6 +444,7 @@ export {
   type LedgerNodeIntent
 } from './schemas'
 export { SavedViewSchema, type SavedView } from './schemas'
+export { WorkspaceSchema, type Workspace, type WorkspaceTreeJson } from './schemas'
 export {
   UserWidgetSchema,
   type UserWidget,

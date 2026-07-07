@@ -35,6 +35,7 @@ import { metricsSeeder } from './seeders/metrics'
 import { spacesSeeder } from './seeders/spaces'
 import { vizSeeder } from './seeders/viz'
 import { workSeeder } from './seeders/work'
+import { workspacesSeeder } from './seeders/workspaces'
 
 /** Ordered Tier-1 seeders. Spaces first; the rest only cross-link by id. */
 export const SEEDERS: readonly SeederModule[] = [
@@ -48,7 +49,8 @@ export const SEEDERS: readonly SeederModule[] = [
   metricsSeeder,
   crmSeeder,
   accountingSeeder,
-  integrationSeeder
+  integrationSeeder,
+  workspacesSeeder
 ]
 
 /** Schemas a Tier-1 seeder is responsible for (canonical `_schemaId`s). */

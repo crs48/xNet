@@ -19,11 +19,11 @@ import { PopoverContent, PopoverRoot, PopoverTrigger, Sheet, SheetContent } from
 import { Search, Settings, type LucideIcon } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { contributeTips } from '../../coachmarks'
+import { slotsIn } from '../layout-tree'
+import { getSlotView } from '../slot-registry'
 import { useWorkbench, type CalmMode, type PanelSide } from '../state'
 import { CHIP, SystemInfoDetails } from '../SyncStatus'
 import { useSyncVitals } from '../useSyncVitals'
-import { Canvas } from './Canvas'
-import { ListPane } from './ListPane'
 import { CALM_MODES } from './modes'
 import { registerBuiltinSurfaceDock, SurfaceDockLauncher } from './SurfaceDock'
 
@@ -335,6 +335,22 @@ function QuietOverlay({
   )
 }
 
+/**
+ * The overlay's body: the dock's active slot view, resolved through the
+ * layout tree + slot registry (0280) — the same resolution the pinned
+ * frame's DockBody uses, so a moved view follows the user into quiet.
+ */
+function OverlayBody({ side }: { side: 'left' | 'right' }) {
+  const activeViewId = useWorkbench((state) => state[side].activeViewId)
+  const tree = useWorkbench((state) => state.tree)
+  const region = side === 'left' ? 'dock.left' : 'dock.right'
+  const placements = slotsIn(tree, region)
+  const active = placements.find((placement) => placement.viewId === activeViewId) ?? placements[0]
+  const view = active ? getSlotView(active.viewId) : undefined
+  if (!view) return null
+  return <view.component />
+}
+
 export function QuietChrome({
   activeMode,
   children
@@ -359,14 +375,14 @@ export function QuietChrome({
       {/* The List → left overlay; the contextual Canvas → right overlay.
           Esc/scrim dismissal via the Sheet dialog. */}
       <QuietOverlay side="left" open={armed && left.open} widthClass="w-[var(--list-width,17rem)]">
-        <ListPane mode={activeMode} />
+        <OverlayBody side="left" />
       </QuietOverlay>
       <QuietOverlay
         side="right"
         open={armed && right.open}
         widthClass="w-[var(--canvas-width,24rem)]"
       >
-        <Canvas />
+        <OverlayBody side="right" />
       </QuietOverlay>
     </div>
   )

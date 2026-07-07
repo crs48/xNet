@@ -20,15 +20,18 @@ import { CalmShell } from './calm/CalmShell'
 import { useWorkbenchCommands, useZenEscape } from './commands'
 import { ContextPanel } from './ContextPanel'
 import { EditorArea } from './EditorArea'
+import { isLayoutTreeEnabled } from './experiments'
 import { useFocusRing } from './focus'
 import { Hairline } from './Hairline'
 import { MobileShell } from './MobileShell'
 import { PanelViewHost } from './PanelViewHost'
 import { Rail } from './Rail'
+import { ShellFrame } from './ShellFrame'
 import { useWorkbench } from './state'
 import { StatusBar } from './StatusBar'
 import { useIsCompact } from './use-layout-mode'
 import { registerBuiltinPanelViews } from './views/register'
+import { WorkspaceSwitcher } from './WorkspaceSwitcher'
 
 registerBuiltinPanelViews()
 
@@ -115,9 +118,24 @@ function WorkbenchDemoBanner() {
 export function Workbench({ children }: { children: ReactNode }) {
   const compact = useIsCompact()
   const layout = useWorkbench((state) => state.layout)
+  const tabsEnabled = useWorkbench((state) => state.tree.surface.tabsEnabled)
+  // 0280: behind the layout-tree flag the ShellFrame renders every posture
+  // from the tree; the legacy fork below stays the default until parity.
+  // Mobile projections read the tree's axes too (tabsEnabled, not layout).
+  const treeShell = isLayoutTreeEnabled()
   return (
     <>
-      {layout === 'calm' ? (
+      {treeShell ? (
+        compact ? (
+          tabsEnabled ? (
+            <MobileShell>{children}</MobileShell>
+          ) : (
+            <CalmMobile>{children}</CalmMobile>
+          )
+        ) : (
+          <ShellFrame>{children}</ShellFrame>
+        )
+      ) : layout === 'calm' ? (
         // Everyperson shell (0250): the same three-mode grammar at every width —
         // CalmMobile reflows it to a bottom-tab phone layout (Phase 4), CalmShell
         // is the desktop/tablet composition.
@@ -131,6 +149,8 @@ export function Workbench({ children }: { children: ReactNode }) {
       ) : (
         <DesktopWorkbench>{children}</DesktopWorkbench>
       )}
+      {/* Workspace quick switcher + verbs (0280) — commands exist in every shell. */}
+      <WorkspaceSwitcher />
       {/* First-run coachmarks (0206) — portals to <body>, so position here is moot. */}
       <CoachmarkLayer />
       {/* Opt-in "time well spent" wind-down (Charter §Calm, 0234); off by default. */}

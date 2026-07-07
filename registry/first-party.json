@@ -17,7 +17,7 @@
   {
     "id": "fyi.xnet.charts-extra",
     "name": "Extra Charts",
-    "description": "Adds donut and horizontal-bar chart types via the chart-type registry — a first-party dogfood showing new chart kinds can ship as a plugin with no core change.",
+    "description": "Adds donut and horizontal-bar chart types via the chart-type registry \u2014 a first-party dogfood showing new chart kinds can ship as a plugin with no core change.",
     "version": "1.0.0",
     "author": "xNet",
     "category": "visualization",
@@ -47,7 +47,7 @@
   {
     "id": "fyi.xnet.unreal",
     "name": "Unreal Engine 6 Connector",
-    "description": "A governed bridge between xNet and Unreal Engine 6 — map player identity, inventory, achievements, match sessions, and economy events into schema nodes (save-file cadence, not netcode).",
+    "description": "A governed bridge between xNet and Unreal Engine 6 \u2014 map player identity, inventory, achievements, match sessions, and economy events into schema nodes (save-file cadence, not netcode).",
     "version": "1.0.0",
     "author": "xNet",
     "category": "connector",
@@ -77,7 +77,7 @@
   {
     "id": "fyi.xnet.rss",
     "name": "RSS / Atom",
-    "description": "Poll any RSS or Atom feed and import each entry as a governed FeedItem node. Zero auth — the hobbyist's favourite.",
+    "description": "Poll any RSS or Atom feed and import each entry as a governed FeedItem node. Zero auth \u2014 the hobbyist's favourite.",
     "version": "1.0.0",
     "author": "xNet",
     "category": "integration",
@@ -137,7 +137,7 @@
   {
     "id": "fyi.xnet.webhook-inbox",
     "name": "Incoming Webhooks",
-    "description": "Give anyone a URL to POST a webhook into xNet (POST /hooks/:token) — the escape hatch that bridges Zapier, Make, n8n, and IFTTT.",
+    "description": "Give anyone a URL to POST a webhook into xNet (POST /hooks/:token) \u2014 the escape hatch that bridges Zapier, Make, n8n, and IFTTT.",
     "version": "1.0.0",
     "author": "xNet",
     "category": "integration",
@@ -152,7 +152,7 @@
   {
     "id": "fyi.xnet.webhook-out",
     "name": "Outgoing Webhook",
-    "description": "POST xNet events as JSON to any external URL when something changes — the outbound half of the automation story.",
+    "description": "POST xNet events as JSON to any external URL when something changes \u2014 the outbound half of the automation story.",
     "version": "1.0.0",
     "author": "xNet",
     "category": "integration",
@@ -253,5 +253,35 @@
     "autoInstalled": false,
     "contributes": [],
     "homepage": "https://github.com/crs48/xNet/tree/main/packages/hub/src/features/webhook-integrations.ts"
+  },
+  {
+    "id": "fyi.xnet.workbench-verbs",
+    "name": "Workbench verbs",
+    "description": "Slash-command road to workbench verbs: /pin pins the page to your Desk, /workspace saves the current shell layout as a named workspace (exploration 0280).",
+    "version": "1.0.0",
+    "author": "xNet",
+    "category": "editor",
+    "keywords": ["desk", "pin", "workspace", "layout", "workbench"],
+    "tier": "bundled",
+    "license": "MIT",
+    "platforms": ["web"],
+    "autoInstalled": true,
+    "contributes": ["slashCommands"],
+    "homepage": "https://github.com/crs48/xNet/tree/main/apps/web/src/plugins/workbench-slash-plugin.ts"
+  },
+  {
+    "id": "fyi.xnet.workspace-agent",
+    "name": "Workspace agent tools",
+    "description": "Model-facing tools that let your agent arrange the shell through the same undoable commands you use \u2014 describe, apply preset, move views, save (user-confirmed). Declares no network access.",
+    "version": "1.0.0",
+    "author": "xNet",
+    "category": "ai",
+    "keywords": ["agent", "workspace", "layout", "companion", "tools"],
+    "tier": "bundled",
+    "license": "MIT",
+    "platforms": ["web"],
+    "autoInstalled": true,
+    "contributes": ["agentTools"],
+    "homepage": "https://github.com/crs48/xNet/tree/main/apps/web/src/plugins/workspace-agent-module.ts"
   }
 ]

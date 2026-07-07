@@ -289,30 +289,46 @@ export interface SchemaContribution {
 }
 
 /**
- * SurfaceDock tier (exploration 0273). `hero` panels render as the corner
- * launcher's one-tap strip; `secondary` panels live behind "More" and the
- * command palette. Same progressive-disclosure grammar as the devtools
+ * Slot prominence (0273, generalized in 0280). `hero` views render in
+ * their region's one-tap strip; `secondary` views live behind "More" and
+ * the command palette. Same progressive-disclosure grammar as the devtools
  * panel registry (packages/devtools/src/panels/panel-registry.ts), lifted
  * to an app-level contribution point.
  */
 export type SurfaceDockTier = 'hero' | 'secondary'
 
 /**
- * A panel summoned from the quiet shell's bottom-right dock launcher
- * (exploration 0273). First-party residents are the workbench tray views
- * (Shelf, Capture, Notifications, Sync, Console); features and plugins add
- * their own the way they contribute rail items today.
+ * The shell's region skeleton a slot view may occupy (exploration 0280).
+ * Mirrors the app's LayoutTree regions: edge strips (`rail`, `status`)
+ * and the four docks. The `surface` center is not a slot target — views
+ * there are routes/tabs, not panels.
  */
-export interface SurfaceDockContribution {
-  /** Unique panel ID, preferably plugin-scoped */
+export type SlotRegion =
+  | 'rail'
+  | 'status'
+  | 'dock.left'
+  | 'dock.right'
+  | 'dock.bottom'
+  | 'dock.corner'
+
+/**
+ * A view contributed to the shell's slot system (exploration 0280 —
+ * generalizing the 0273 SurfaceDock contract to every region). Where the
+ * view actually sits is the user's layout tree; `defaultRegion` only says
+ * where it lands until the user (or their agent) moves it, and
+ * `allowedRegions` bounds where it may go. A plugin places only its OWN
+ * views; moving anyone else's is the user's (or consented agent's) call.
+ */
+export interface SlotContribution {
+  /** Unique view ID, preferably plugin-scoped */
   id: string
-  /** Display name in the launcher strip / More menu / palette */
+  /** Display name in strips / menus / palette */
   label: string
   /** Lucide icon name or component */
   icon?: string | ComponentType
-  /** Disclosure tier: hero = launcher strip, secondary = More + palette */
+  /** Prominence within the region: hero = strip, secondary = More + palette */
   tier: SurfaceDockTier
-  /** Grouping key for the More menu (e.g. 'capture', 'activity') */
+  /** Grouping key for menus (e.g. 'capture', 'activity', 'tools') */
   group?: string
   /** Extra palette search terms */
   keywords?: string[]
@@ -322,9 +338,19 @@ export interface SurfaceDockContribution {
   priority?: number
   /** Dynamic badge (e.g. unread count); null hides it */
   badge?: () => string | number | null
-  /** The panel body, rendered inside the dock sheet/strip */
+  /** The view body, rendered inside its region's host */
   component: ComponentType
+  /** Where the view lands if the user hasn't placed it (default: dock.corner) */
+  defaultRegion?: SlotRegion
+  /** Regions the view may occupy (empty/undefined = any region) */
+  allowedRegions?: SlotRegion[]
 }
+
+/**
+ * @deprecated Since 0280 — use {@link SlotContribution}. The dock was the
+ * first slot region; the contract is now region-agnostic.
+ */
+export type SurfaceDockContribution = SlotContribution
 
 export type CanvasPreviewTier = 'summary' | 'thumbnail' | 'shell' | 'live'
 
@@ -583,7 +609,12 @@ export class ContributionRegistry {
   readonly importers = new TypedRegistry<ImporterContribution>()
   readonly mentionProviders = new TypedRegistry<MentionProviderContribution>()
   readonly agentTools = new TypedRegistry<AgentToolContribution>()
-  readonly surfaceDock = new TypedRegistry<SurfaceDockContribution>()
+  readonly slots = new TypedRegistry<SlotContribution>()
+
+  /** @deprecated Since 0280 — the dock registry is the slot registry. */
+  get surfaceDock(): TypedRegistry<SlotContribution> {
+    return this.slots
+  }
 
   /**
    * Clear all registries (for cleanup/testing)
@@ -609,6 +640,6 @@ export class ContributionRegistry {
     this.importers.clear()
     this.mentionProviders.clear()
     this.agentTools.clear()
-    this.surfaceDock.clear()
+    this.slots.clear()
   }
 }
