@@ -7,15 +7,12 @@
  * context panel, Desk integration (0273), and header chrome.
  */
 
-import type { CanvasEdge, CanvasNode } from '@xnetjs/canvas'
+import type { CanvasNode } from '@xnetjs/canvas'
 import { useNavigate } from '@tanstack/react-router'
 import {
   Canvas,
   CANVAS_INTERNAL_NODE_MIME,
   serializeCanvasInternalNodeDragData,
-  createCanvasFrameExportDocument,
-  createCanvasUndoManager,
-  getCanvasConnectorsMap,
   getCanvasObjectsMap,
   useCanvasThemeTokens
 } from '@xnetjs/canvas'
@@ -27,29 +24,36 @@ import {
   type CanvasMediaGate
 } from '@xnetjs/editor/react'
 import { getCommandRegistry } from '@xnetjs/plugins'
-import { useIdentity, useMutate, useNode } from '@xnetjs/react'
+import { useIdentity, useMutate, useNode, useQuery } from '@xnetjs/react'
 import { setNodeTransfer } from '@xnetjs/ui'
 import {
+  CANVAS_DASHBOARD_SCHEMA_REGISTRY,
   CanvasAliasEditorPanel,
   CanvasCommentComposerPanel,
+  CanvasQueryFrameExecutors,
+  CanvasSelectionHud,
+  CanvasSourceReferencesPanel,
   CanvasWidgetNodeCard,
-  useCanvasViewController
+  useCanvasQueryFrames,
+  useCanvasSourceReferences,
+  useCanvasUndoLadder,
+  useCanvasViewController,
+  useSelectedSourceReferences,
+  type CanvasUndoDomain,
+  type UseCanvasUndoLadderResult
 } from '@xnetjs/views'
 import {
-  Download,
   FileImage,
   FileText,
   GitFork,
   Layout,
   Link2,
   Maximize2,
-  MessageSquare,
-  Presentation,
   Square,
   StickyNote,
   Table2
 } from 'lucide-react'
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { DESK_TITLE, isDeskId, isDeskRadialEnabled } from '../lib/desk'
 import { useContextPanel, type ContextPanelSection } from '../workbench/context-panel'
 import { useWorkbench } from '../workbench/state'
@@ -70,29 +74,6 @@ interface CanvasViewProps {
 const canvasMediaGate: CanvasMediaGate = ({ node, children }) => (
   <ModeratedMedia nodeId={node.sourceNodeId ?? node.id}>{children}</ModeratedMedia>
 )
-
-function sanitizeCanvasExportFileName(value: string): string {
-  const normalized = value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-
-  return normalized.length > 0 ? normalized : 'canvas-frame'
-}
-
-function downloadJsonFile(input: { fileName: string; data: unknown }): void {
-  const blob = new Blob([JSON.stringify(input.data, null, 2)], { type: 'application/json' })
-  const url = URL.createObjectURL(blob)
-  const anchor = document.createElement('a')
-
-  anchor.href = url
-  anchor.download = input.fileName
-  document.body.appendChild(anchor)
-  anchor.click()
-  anchor.remove()
-  window.setTimeout(() => URL.revokeObjectURL(url), 0)
-}
 
 export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
   const navigate = useNavigate()
@@ -119,11 +100,22 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
     did: did ?? undefined
   })
 
+  // The ladder needs the controller's refs and the controller needs the
+  // ladder's boundary recorder; break the cycle with a ref.
+  const undoLadderRef = useRef<UseCanvasUndoLadderResult | null>(null)
+  const recordUndoBoundary = useCallback((domain: CanvasUndoDomain) => {
+    undoLadderRef.current?.recordUndoBoundary(domain)
+  }, [])
+  const recordSceneUndoBoundary = useCallback(() => {
+    recordUndoBoundary('scene')
+  }, [recordUndoBoundary])
+
   const controller = useCanvasViewController({
     docId,
     doc,
     awareness,
-    blobService
+    blobService,
+    onUndoBoundary: recordSceneUndoBoundary
   })
   const {
     canvasRef,
@@ -132,19 +124,34 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
     selectedCanvasEdge,
     selectedFrame,
     selectionPanel,
-    selectedObjectCommentCount
+    selectedObjectCommentCount,
+    sceneRevision,
+    selectedNodes,
+    selectedSourceNodeIds
   } = controller
   const selectedSourceBacked = selectedObject?.sourceId ? selectedObject : null
 
-  // Canvas document-local undo (0179): a Y.UndoManager over the scene maps.
-  // Cmd+Z claims it only while the canvas surface is focused (the higher-
-  // priority 'surface:canvas' scope + focus guard); everywhere else Cmd+Z
-  // falls through to the app-wide node-store undo.
-  const canvasUndoManager = useMemo(() => (doc ? createCanvasUndoManager(doc) : null), [doc])
+  // Multi-domain undo (0277 E5/W8): scene, inline-edited source node/scope,
+  // and inline database edits share one boundary-ordered ladder. The
+  // registry-claimed Mod+Z (0179 focus-guard semantics) dispatches into it.
+  const selectedDatabaseSourceId =
+    selectedObject?.displayType === 'database' ? (selectedObject.sourceId ?? '') : ''
+  const undoLadder = useCanvasUndoLadder({
+    canvasRef,
+    selectedSourceNodeIds,
+    selectedDatabaseSourceId,
+    did
+  })
+  useEffect(() => {
+    undoLadderRef.current = undoLadder
+  }, [undoLadder])
+
+  const handleCanvasUndoRedo = useCallback(
+    (direction: 'undo' | 'redo'): boolean => undoLadder.runCanvasScopedUndo(direction),
+    [undoLadder]
+  )
 
   useEffect(() => {
-    if (!canvasUndoManager) return
-
     const registry = getCommandRegistry()
     const isCanvasFocused = () =>
       typeof document !== 'undefined' &&
@@ -160,7 +167,7 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
         scope: 'surface:canvas',
         when: isCanvasFocused,
         run: () => {
-          canvasUndoManager.undo()
+          undoLadderRef.current?.runCanvasScopedUndo('undo')
         }
       }),
       registry.register({
@@ -170,7 +177,7 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
         scope: 'surface:canvas',
         when: isCanvasFocused,
         run: () => {
-          canvasUndoManager.redo()
+          undoLadderRef.current?.runCanvasScopedUndo('redo')
         }
       }),
       registry.register({
@@ -180,7 +187,7 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
         scope: 'surface:canvas',
         when: isCanvasFocused,
         run: () => {
-          canvasUndoManager.redo()
+          undoLadderRef.current?.runCanvasScopedUndo('redo')
         }
       })
     ]
@@ -188,19 +195,86 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
     return () => {
       for (const disposable of disposables) disposable.dispose()
       scope.dispose()
-      canvasUndoManager.destroy()
     }
-  }, [canvasUndoManager, docId])
+  }, [docId])
 
-  const handleCanvasUndoRedo = useCallback(
-    (direction: 'undo' | 'redo'): boolean => {
-      if (!canvasUndoManager) return false
-      if (direction === 'undo') canvasUndoManager.undo()
-      else canvasUndoManager.redo()
+  // Cross-canvas linked copies (0277 E3): index every canvas so the
+  // "Copies" panel can point at the same source elsewhere.
+  const { data: allCanvases } = useQuery(CanvasSchema)
+  const canvasDocuments = useMemo(
+    () =>
+      (allCanvases ?? []).map((entry) => ({
+        id: entry.id,
+        title: entry.title || 'Untitled Canvas'
+      })),
+    [allCanvases]
+  )
+  const {
+    loading: sourceReferencesLoading,
+    indexedCanvases: indexedReferenceCanvases,
+    totalCanvases: totalReferenceCanvases,
+    getReferences
+  } = useCanvasSourceReferences({
+    enabled: Boolean(selectedObject?.sourceId),
+    currentCanvasId: docId,
+    canvases: canvasDocuments
+  })
+  const selectedSourceReferences = useSelectedSourceReferences({
+    doc,
+    docId,
+    canvasTitle: canvas?.title,
+    sceneRevision,
+    selectedObject,
+    getReferences
+  })
+  const toggleSourceReferences = useCallback((): boolean => {
+    if (!selectedObject?.sourceId) {
+      return false
+    }
+
+    controller.setSelectionPanel(selectionPanel !== 'references' ? 'references' : null)
+    return true
+  }, [controller, selectedObject, selectionPanel])
+  const handleRevealSourceReference = useCallback(
+    (objectId: string): boolean => {
+      if (!doc) {
+        return false
+      }
+
+      const node = getCanvasObjectsMap<CanvasNode>(doc).get(objectId)
+      if (!node) {
+        return false
+      }
+
+      controller.closeSelectionPanel()
+      canvasRef.current?.selectNodes([objectId])
+      canvasRef.current?.fitToRect(
+        {
+          x: node.position.x,
+          y: node.position.y,
+          width: node.position.width,
+          height: node.position.height
+        },
+        140
+      )
       return true
     },
-    [canvasUndoManager]
+    [canvasRef, controller, doc]
   )
+
+  // Query frames (0277 E1): saved-view lenses execute on the web canvas too.
+  const {
+    queryFrameTargets,
+    manualQueryFrameRefreshRequests,
+    selectedQueryFrameDefinition,
+    refreshSelectedQueryFrame
+  } = useCanvasQueryFrames({
+    doc,
+    sceneRevision,
+    selectedNodes,
+    placePrimitiveObject: controller.placePrimitiveObject,
+    onUndoBoundary: recordSceneUndoBoundary
+  })
 
   // Drain queued "Pin to Desk" entries (0273) through the normal ingestion
   // path — same card creation as a drag-drop, spread so a batch doesn't stack.
@@ -409,42 +483,6 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
     [controller.hasNodes]
   )
 
-  const presentSelectedFrame = useCallback(() => {
-    if (!selectedFrame) {
-      return
-    }
-
-    canvasRef.current?.fitToRect(
-      {
-        x: selectedFrame.node.position.x,
-        y: selectedFrame.node.position.y,
-        width: selectedFrame.node.position.width,
-        height: selectedFrame.node.position.height
-      },
-      48
-    )
-  }, [canvasRef, selectedFrame])
-
-  const exportSelectedFrame = useCallback(() => {
-    if (!doc || !selectedFrame) {
-      return
-    }
-
-    const nodes = Array.from(getCanvasObjectsMap<CanvasNode>(doc).values())
-    const edges = Array.from(getCanvasConnectorsMap<CanvasEdge>(doc).values())
-    const frameExport = createCanvasFrameExportDocument({
-      frame: selectedFrame.node,
-      nodes,
-      edges
-    })
-    const fileName = `${sanitizeCanvasExportFileName(selectedFrame.title)}.canvas-section.json`
-
-    downloadJsonFile({
-      fileName,
-      data: frameExport
-    })
-  }, [doc, selectedFrame])
-
   if (loading || !doc) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -636,81 +674,89 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
           {canvasHint}
         </div>
 
-        {selectedObject ? (
-          <div className="pointer-events-none absolute inset-x-0 top-4 z-20 flex justify-center px-4">
+        <div className="pointer-events-none absolute inset-x-0 top-4 z-20 flex justify-center px-4">
+          <CanvasSelectionHud
+            controller={controller}
+            themeMode={theme.mode}
+            onOpen={() => {
+              if (selectedObject?.node.id) {
+                handleNodeDoubleClick(selectedObject.node.id)
+              }
+            }}
+            onRefreshQueryFrame={
+              selectedQueryFrameDefinition
+                ? () => {
+                    refreshSelectedQueryFrame()
+                  }
+                : null
+            }
+            queryFrameRefreshMode={selectedQueryFrameDefinition?.refreshMode ?? null}
+            referencesCount={selectedSourceReferences.length}
+            onToggleReferences={() => {
+              toggleSourceReferences()
+            }}
+            onPresentFrame={
+              selectedFrame
+                ? () => {
+                    controller.presentSelectedFrame()
+                  }
+                : null
+            }
+            onExportFrame={
+              selectedFrame
+                ? () => {
+                    controller.exportSelectedFrame()
+                  }
+                : null
+            }
+            onClearSelection={() => {
+              controller.closeSelectionPanel()
+              canvasRef.current?.clearSelection()
+            }}
+            onTitleDragStart={(event) => {
+              // Dragging the title carries the card's *source* node out
+              // of the canvas — excerpting, never copying (0166).
+              if (!selectedSourceBacked?.sourceId) return
+              event.dataTransfer.effectAllowed = 'copyMove'
+              setNodeTransfer(event, {
+                nodeId: selectedSourceBacked.sourceId,
+                nodeType: 'node',
+                title: selectedSourceBacked.title,
+                schemaId: selectedSourceBacked.node.sourceSchemaId,
+                sourceContext: 'canvas-card'
+              })
+              if (selectedSourceBacked.node.sourceSchemaId) {
+                event.dataTransfer.setData(
+                  CANVAS_INTERNAL_NODE_MIME,
+                  serializeCanvasInternalNodeDragData({
+                    nodeId: selectedSourceBacked.sourceId,
+                    schemaId: selectedSourceBacked.node.sourceSchemaId,
+                    title: selectedSourceBacked.title
+                  })
+                )
+              }
+            }}
+          />
+        </div>
+
+        {selectionPanel === 'references' && selectedSourceBacked ? (
+          <div className="pointer-events-none absolute inset-x-0 top-20 z-20 flex justify-center px-4">
             <div
-              className="pointer-events-auto flex items-center gap-2 rounded-full border border-border/60 bg-background/84 px-3 py-2 shadow-lg backdrop-blur-xl"
-              data-canvas-selection-pill="true"
+              className="pointer-events-auto w-[min(92vw,560px)] rounded-[24px] border border-border/60 bg-background/88 p-4 shadow-2xl shadow-black/10 backdrop-blur-xl"
+              data-canvas-source-panel="references"
               data-canvas-theme={theme.mode}
-              draggable={Boolean(selectedSourceBacked)}
-              onDragStart={(event) => {
-                // Dragging the pill carries the card's *source* node out
-                // of the canvas — excerpting, never copying (0166).
-                if (!selectedSourceBacked?.sourceId) return
-                event.dataTransfer.effectAllowed = 'copyMove'
-                setNodeTransfer(event, {
-                  nodeId: selectedSourceBacked.sourceId,
-                  nodeType: 'node',
-                  title: selectedSourceBacked.title,
-                  schemaId: selectedSourceBacked.node.sourceSchemaId,
-                  sourceContext: 'canvas-card'
-                })
-                if (selectedSourceBacked.node.sourceSchemaId) {
-                  event.dataTransfer.setData(
-                    CANVAS_INTERNAL_NODE_MIME,
-                    serializeCanvasInternalNodeDragData({
-                      nodeId: selectedSourceBacked.sourceId,
-                      schemaId: selectedSourceBacked.node.sourceSchemaId,
-                      title: selectedSourceBacked.title
-                    })
-                  )
-                }
-              }}
             >
-              <span className="max-w-[min(52vw,420px)] truncate px-2 text-sm text-foreground">
-                {selectedObject.title}
-              </span>
-              {selectedSourceBacked ? (
-                <button
-                  type="button"
-                  onClick={controller.openAliasEditor}
-                  className="rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-accent"
-                  data-canvas-selection-action="alias"
-                >
-                  Alias
-                </button>
-              ) : null}
-              <button
-                type="button"
-                onClick={controller.openCommentComposer}
-                className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-accent"
-                data-canvas-selection-action="comment"
-              >
-                <MessageSquare size={12} />
-                Comment{selectedObjectCommentCount > 0 ? ` ${selectedObjectCommentCount}` : ''}
-              </button>
-              {selectedFrame ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={presentSelectedFrame}
-                    className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-accent"
-                    data-canvas-selection-action="present-frame"
-                  >
-                    <Presentation size={12} />
-                    Present
-                  </button>
-                  <button
-                    type="button"
-                    onClick={exportSelectedFrame}
-                    className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-accent"
-                    data-canvas-selection-action="export-frame"
-                  >
-                    <Download size={12} />
-                    Export
-                  </button>
-                </>
-              ) : null}
+              <CanvasSourceReferencesPanel
+                themeMode={theme.mode}
+                loading={sourceReferencesLoading}
+                indexedCanvases={indexedReferenceCanvases}
+                totalCanvases={totalReferenceCanvases}
+                references={selectedSourceReferences}
+                onReveal={(objectId) => {
+                  handleRevealSourceReference(objectId)
+                }}
+                onClose={controller.closeSelectionPanel}
+              />
             </div>
           </div>
         ) : null}
@@ -844,6 +890,13 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
             return undefined
           }}
           onNodeDoubleClick={handleNodeDoubleClick}
+        />
+
+        <CanvasQueryFrameExecutors
+          doc={doc}
+          targets={queryFrameTargets}
+          manualRefreshRequests={manualQueryFrameRefreshRequests}
+          schemas={CANVAS_DASHBOARD_SCHEMA_REGISTRY}
         />
 
         {/* Flagged long-press radial menu on Desk cards (0273 Phase 5). */}

@@ -19,6 +19,7 @@ import type {
   CanvasEdge,
   CanvasHandle,
   CanvasNode,
+  CanvasPlanningTemplateId,
   CanvasPresenceIntent,
   CanvasSelectionSnapshot,
   CanvasViewportSnapshot as CanvasViewport,
@@ -28,6 +29,7 @@ import type { ChangeEvent, ClipboardEvent, DragEvent, MutableRefObject } from 'r
 import type { Doc as YDoc } from 'yjs'
 import {
   CANVAS_MIND_MAP_CREATION_TOOL,
+  createCanvasFrameExportDocument,
   createCanvasFrameVariantProperties,
   createCanvasMindMapRootProperties,
   createCanvasObjectAnchorId,
@@ -117,6 +119,16 @@ export function getShapeLabel(shapeType: ShapeType): string {
   }
 }
 
+function sanitizeCanvasExportFileName(value: string): string {
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+
+  return normalized.length > 0 ? normalized : 'canvas-frame'
+}
+
 type CanvasTestHarnessWindow = Window & {
   __xnetCanvasTestHarness?: {
     registerCanvasHandle?: (canvasId: string, handle: CanvasHandle | null) => void
@@ -193,8 +205,14 @@ export interface UseCanvasViewControllerResult {
   createMindMap: () => boolean
   createExternalReference: (url?: string) => boolean
   createMediaFile: () => boolean
+  createPlanningTemplate: (templateId: CanvasPlanningTemplateId) => boolean
+  wrapSelectionInFrame: () => boolean
   mediaFileInputRef: MutableRefObject<HTMLInputElement | null>
   handleMediaFileInputChange: (event: ChangeEvent<HTMLInputElement>) => void
+
+  // Frames (W6)
+  presentSelectedFrame: () => boolean
+  exportSelectedFrame: () => boolean
 
   // Presence
   canvasPresenceIntent: CanvasPresenceIntent | null
@@ -709,6 +727,68 @@ export function useCanvasViewController({
     [ingestPayload, recordUndoBoundary]
   )
 
+  const createPlanningTemplate = useCallback(
+    (templateId: CanvasPlanningTemplateId): boolean => {
+      const created = canvasRef.current?.createPlanningTemplate(templateId) ?? false
+
+      if (created) {
+        recordUndoBoundary()
+      }
+
+      return created
+    },
+    [recordUndoBoundary]
+  )
+
+  const wrapSelectionInFrame = useCallback((): boolean => {
+    return canvasRef.current?.wrapSelectionInFrame() ?? false
+  }, [])
+
+  // ── Frames (W6) ──────────────────────────────────────────────────────────
+  const presentSelectedFrame = useCallback((): boolean => {
+    if (!selectedFrame) {
+      return false
+    }
+
+    canvasRef.current?.fitToRect(
+      {
+        x: selectedFrame.node.position.x,
+        y: selectedFrame.node.position.y,
+        width: selectedFrame.node.position.width,
+        height: selectedFrame.node.position.height
+      },
+      48
+    )
+    return true
+  }, [selectedFrame])
+
+  const exportSelectedFrame = useCallback((): boolean => {
+    if (!doc || !selectedFrame) {
+      return false
+    }
+
+    const nodes = Array.from(getCanvasObjectsMap<CanvasNode>(doc).values())
+    const edges = Array.from(getCanvasConnectorsMap<CanvasEdge>(doc).values())
+    const frameExport = createCanvasFrameExportDocument({
+      frame: selectedFrame.node,
+      nodes,
+      edges
+    })
+    const fileName = `${sanitizeCanvasExportFileName(selectedFrame.title)}.canvas-section.json`
+
+    const blob = new Blob([JSON.stringify(frameExport, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const anchor = document.createElement('a')
+
+    anchor.href = url
+    anchor.download = fileName
+    document.body.appendChild(anchor)
+    anchor.click()
+    anchor.remove()
+    window.setTimeout(() => URL.revokeObjectURL(url), 0)
+    return true
+  }, [doc, selectedFrame])
+
   // ── Presence ─────────────────────────────────────────────────────────────
   const canvasPresenceIntent = useMemo<CanvasPresenceIntent | null>(() => {
     if (!selectedObject) {
@@ -777,8 +857,12 @@ export function useCanvasViewController({
     createMindMap,
     createExternalReference,
     createMediaFile,
+    createPlanningTemplate,
+    wrapSelectionInFrame,
     mediaFileInputRef,
     handleMediaFileInputChange,
+    presentSelectedFrame,
+    exportSelectedFrame,
     canvasPresenceIntent
   }
 }

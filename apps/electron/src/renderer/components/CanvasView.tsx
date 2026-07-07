@@ -9,65 +9,50 @@ import type {
   CanvasNode,
   CanvasNodeRenderContext,
   CanvasPlanningTemplateId,
-  CanvasQueryFrameExecutionSnapshot,
-  CanvasQueryFrameRefreshTrigger,
-  CanvasQueryFrameResultCard,
-  CanvasQueryFrameResultPreview,
   Rect,
   ShapeType
 } from '@xnetjs/canvas'
 import {
   Canvas,
-  createCanvasQueryFrameDefinitionFromSavedView,
-  createCanvasQueryFrameProperties,
-  createCanvasQueryFrameResultSummaryFromExecution,
-  getCanvasQueryFrameDefinition,
-  getCanvasQueryFrameResultPreview,
-  getCanvasQueryFrameResultSummary,
   getCanvasObjectsMap,
   getSelectionBounds,
-  isCanvasQueryFrameNode,
-  shouldRefreshCanvasQueryFrameResult,
-  updateCanvasQueryFrameResults,
   useCanvasThemeTokens
 } from '@xnetjs/canvas'
-import { CanvasSchema, validateSavedViewDescriptor, type SavedViewDescriptor } from '@xnetjs/data'
+import { CanvasSchema } from '@xnetjs/data'
 import {
   renderCanvasNodeCard,
   shouldRenderCanvasNodeCard,
   useBlobService
 } from '@xnetjs/editor/react'
+import { useIdentity, useNode } from '@xnetjs/react'
 import {
-  useDatabaseDoc,
-  useIdentity,
-  useNode,
-  useSavedView,
-  useUndo,
-  type SavedViewQueryResult,
-  type SavedViewSchemaRegistry,
-  type UseSavedViewResult
-} from '@xnetjs/react'
-import { useUndoScope } from '@xnetjs/react/internal'
-import { socialSchemas } from '@xnetjs/social/schemas'
-import {
+  CANVAS_DASHBOARD_SCHEMA_REGISTRY,
   CanvasAliasEditorPanel,
   CanvasCommentComposerPanel,
+  CanvasQueryFrameExecutors,
+  CanvasSelectionHud,
   CanvasShortcutHelpPanel,
+  CanvasSourceReferencesPanel,
   CanvasWidgetNodeCard,
   createCanvasShellNoteProperties,
   getCanvasShellDisplayType,
   getCanvasShellSourceId,
   getCanvasShellSourceType,
   getCanvasViewDisplayType,
+  useCanvasQueryFrames,
+  useCanvasSourceReferences,
+  useCanvasUndoLadder,
   useCanvasViewController,
   type CanvasNodeCardActions,
   type CanvasResolvedObject,
+  type CanvasUndoDomain,
   type CanvasViewDisplayType,
   type CanvasViewportSnapshot as ViewportSnapshot,
   type LinkedDocType,
-  type LinkedDocumentItem
+  type LinkedDocumentItem,
+  type SavedViewCanvasQueryFrameInput,
+  type UseCanvasUndoLadderResult
 } from '@xnetjs/views'
-import { Command, Database, Eye, Link2, MessageSquare, RefreshCw, X } from 'lucide-react'
 import React, {
   forwardRef,
   useCallback,
@@ -77,13 +62,9 @@ import React, {
   useRef,
   useState
 } from 'react'
-import * as Y from 'yjs'
-import {
-  useCanvasSourceReferences,
-  type CanvasSourceReference
-} from '../hooks/useCanvasSourceReferences'
 import { CanvasDatabasePreviewSurface } from './CanvasDatabasePreviewSurface'
 import { CanvasInlinePageSurface } from './CanvasInlinePageSurface'
+import { PresenceAvatars } from './PresenceAvatars'
 
 type PeekableCanvasDisplayType = LinkedDocType | 'note'
 
@@ -92,8 +73,6 @@ type CanvasPeekState = {
   sourceId: string
   displayType: PeekableCanvasDisplayType
 }
-
-type CanvasUndoDomain = 'scene' | 'source-node' | 'source-scope' | 'source-document'
 
 type CanvasViewProps = {
   docId: string
@@ -109,64 +88,6 @@ type CanvasViewProps = {
   onCreateDatabase?: () => void
   onCreateNote?: () => void
   onCommandStateChange?: (state: CanvasViewCommandState) => void
-}
-
-type CanvasQueryFrameTarget = {
-  nodeId: string
-  descriptorJson: string
-}
-
-const SOCIAL_QUERY_FRAME_SCHEMA_REGISTRY = socialSchemas as unknown as SavedViewSchemaRegistry
-const QUERY_RESULT_PREVIEW_LIMIT = 4
-const QUERY_RESULT_TITLE_FIELDS = [
-  'title',
-  'displayName',
-  'handle',
-  'name',
-  'username',
-  'url',
-  'sourceUrl',
-  'id'
-]
-const QUERY_RESULT_SUBTITLE_FIELDS = [
-  'platform',
-  'contentKind',
-  'interactionKind',
-  'messageKind',
-  'collectionKind',
-  'publishedAt',
-  'observedAt',
-  'sentAt',
-  'createdAt',
-  'updatedAt'
-]
-const QUERY_RESULT_DESCRIPTION_FIELDS = ['summary', 'description', 'text', 'body', 'content']
-const QUERY_RESULT_BADGE_FIELDS = [
-  'platform',
-  'privacyClass',
-  'visibility',
-  'contentKind',
-  'interactionKind',
-  'messageKind',
-  'collectionKind'
-]
-
-function getYjsStackDepth(manager: Y.UndoManager | null, stack: 'undoStack' | 'redoStack'): number {
-  if (!manager) {
-    return 0
-  }
-
-  const entries = (manager as unknown as Record<'undoStack' | 'redoStack', unknown[]>)[stack]
-  return Array.isArray(entries) ? entries.length : 0
-}
-
-function createUndoOrderMap(): Record<CanvasUndoDomain, number[]> {
-  return {
-    scene: [],
-    'source-node': [],
-    'source-scope': [],
-    'source-document': []
-  }
 }
 
 export type CanvasViewCommandState = {
@@ -226,11 +147,7 @@ export type CanvasViewHandle = {
   toggleShortcutHelp: (open?: boolean) => void
 }
 
-export type SavedViewCanvasQueryFrameInput = {
-  viewId: string
-  title?: string | null
-  descriptorJson?: string | null
-}
+export type { SavedViewCanvasQueryFrameInput }
 
 function getNodeRect(node: CanvasNode): Rect {
   return {
@@ -239,256 +156,6 @@ function getNodeRect(node: CanvasNode): Rect {
     width: node.position.width,
     height: node.position.height
   }
-}
-
-function parseSavedViewDescriptorForCanvasFrame(
-  value: string | null | undefined
-): SavedViewDescriptor | null {
-  if (!value) return null
-
-  try {
-    const descriptor = JSON.parse(value) as SavedViewDescriptor
-    return validateSavedViewDescriptor(descriptor).valid ? descriptor : null
-  } catch {
-    return null
-  }
-}
-
-function getCanvasQueryFrameTargets(doc: Y.Doc | null): CanvasQueryFrameTarget[] {
-  if (!doc) return []
-
-  return Array.from(getCanvasObjectsMap<CanvasNode>(doc).values()).flatMap((node) => {
-    if (!isCanvasQueryFrameNode(node)) return []
-
-    const definition = getCanvasQueryFrameDefinition(node)
-    if (!definition?.queryText) return []
-
-    return [
-      {
-        nodeId: node.id,
-        descriptorJson: definition.queryText
-      }
-    ]
-  })
-}
-
-function savedViewQueryExecutionSnapshot(
-  query: SavedViewQueryResult
-): CanvasQueryFrameExecutionSnapshot {
-  return {
-    status: query.status,
-    loading: query.loading,
-    totalCount: query.totalCount,
-    visibleCount: query.data.length,
-    sourceVersion: query.metadata?.updatedAt ? String(query.metadata.updatedAt) : null,
-    contentHash: query.plan?.descriptorHash ?? null,
-    errorMessage: query.error?.message ?? query.metadata?.error ?? null
-  }
-}
-
-function savedViewExecutionSnapshots(
-  result: UseSavedViewResult
-): CanvasQueryFrameExecutionSnapshot[] {
-  const queries = result.queryIds.map((queryId) => result.queries[queryId]).filter(Boolean)
-  if (queries.length > 0) {
-    return queries.map(savedViewQueryExecutionSnapshot)
-  }
-
-  return [
-    {
-      status: result.status,
-      loading: result.loading,
-      totalCount: 0,
-      visibleCount: 0,
-      errorMessage: result.error?.message ?? null
-    }
-  ]
-}
-
-function savedViewResultPreview(result: UseSavedViewResult): CanvasQueryFrameResultPreview {
-  const queries = result.queryIds.map((queryId) => result.queries[queryId]).filter(Boolean)
-  const loadedCount = queries.reduce((total, query) => total + query.data.length, 0)
-  const cards = queries.flatMap((query) =>
-    query.data.map((row, index) => savedViewRowResultCard(query, row, index))
-  )
-
-  return {
-    cards: cards.slice(0, QUERY_RESULT_PREVIEW_LIMIT),
-    overflowCount: Math.max(0, loadedCount - QUERY_RESULT_PREVIEW_LIMIT)
-  }
-}
-
-function savedViewRowResultCard(
-  query: SavedViewQueryResult,
-  row: Record<string, unknown>,
-  index: number
-): CanvasQueryFrameResultCard {
-  const title = firstPreviewFieldValue(row, QUERY_RESULT_TITLE_FIELDS) ?? `${query.rowRole} result`
-  const subtitleParts = QUERY_RESULT_SUBTITLE_FIELDS.flatMap((field) => {
-    const value = previewValueLabel(field, row[field], 48)
-    return value ? [value] : []
-  })
-  const badges = QUERY_RESULT_BADGE_FIELDS.flatMap((field) => {
-    const value = previewValueLabel(field, row[field], 28)
-    return value ? [value] : []
-  })
-  const sourceNodeId = typeof row.id === 'string' ? row.id : null
-
-  return {
-    id: `${query.queryId}:${sourceNodeId ?? index}`,
-    title,
-    subtitle: subtitleParts.slice(0, 2).join(' / ') || undefined,
-    eyebrow: query.rowRole,
-    description: firstPreviewFieldValue(row, QUERY_RESULT_DESCRIPTION_FIELDS, 180) ?? undefined,
-    sourceNodeId: sourceNodeId ?? undefined,
-    schemaId: query.schemaId,
-    href: firstPreviewFieldValue(row, ['url', 'sourceUrl', 'uri'], 240) ?? undefined,
-    badges: [...new Set(badges)].slice(0, 4)
-  }
-}
-
-function firstPreviewFieldValue(
-  row: Record<string, unknown>,
-  fields: readonly string[],
-  maxLength = 120
-): string | null {
-  for (const field of fields) {
-    const value = previewValueLabel(field, row[field], maxLength)
-    if (value) return value
-  }
-
-  return null
-}
-
-function previewValueLabel(field: string, value: unknown, maxLength: number): string | null {
-  if (value === null || value === undefined || value === '') return null
-
-  if (typeof value === 'number' && field.endsWith('At') && value > 1_000_000_000_000) {
-    return new Date(value).toLocaleDateString()
-  }
-
-  if (typeof value === 'string') {
-    const trimmed = value.trim()
-    if (!trimmed) return null
-    return trimmed.length > maxLength
-      ? `${trimmed.slice(0, Math.max(0, maxLength - 3))}...`
-      : trimmed
-  }
-
-  if (typeof value === 'number' || typeof value === 'boolean') {
-    return String(value)
-  }
-
-  if (Array.isArray(value)) {
-    return value.length > 0 ? `${value.length} items` : null
-  }
-
-  return null
-}
-
-function CanvasSavedViewQueryFrameExecutor({
-  doc,
-  nodeId,
-  descriptorJson,
-  manualRefreshRequestId
-}: {
-  doc: Y.Doc | null
-  nodeId: string
-  descriptorJson: string
-  manualRefreshRequestId: string | null
-}): null {
-  const result = useSavedView(descriptorJson, SOCIAL_QUERY_FRAME_SCHEMA_REGISTRY)
-  const snapshots = useMemo(() => savedViewExecutionSnapshots(result), [result])
-  const preview = useMemo(() => savedViewResultPreview(result), [result])
-  const summaryKey = useMemo(() => JSON.stringify(snapshots), [snapshots])
-  const previewKey = useMemo(() => JSON.stringify(preview), [preview])
-  const lastManualRefreshRequestRef = useRef<string | null>(null)
-  const openRefreshPendingRef = useRef(true)
-
-  useEffect(() => {
-    if (!doc) return
-
-    const objects = getCanvasObjectsMap<CanvasNode>(doc)
-    const node = objects.get(nodeId)
-    if (!node) return
-
-    const definition = getCanvasQueryFrameDefinition(node)
-    if (!definition) return
-    if (definition.refreshMode === 'manual') {
-      openRefreshPendingRef.current = false
-    }
-
-    const manualRefreshRequested =
-      manualRefreshRequestId !== null &&
-      manualRefreshRequestId !== lastManualRefreshRequestRef.current
-    const trigger: CanvasQueryFrameRefreshTrigger = manualRefreshRequested
-      ? 'manual'
-      : openRefreshPendingRef.current
-        ? 'open'
-        : 'result-change'
-    const nextBaseline = createCanvasQueryFrameResultSummaryFromExecution({ queries: snapshots })
-    const current = getCanvasQueryFrameResultSummary(node)
-    const currentPreview = getCanvasQueryFrameResultPreview(node)
-    const shouldRefresh = shouldRefreshCanvasQueryFrameResult({
-      refreshMode: definition.refreshMode,
-      trigger,
-      currentSummary: current,
-      nextSummary: nextBaseline,
-      currentPreview,
-      nextPreview: preview
-    })
-
-    if (manualRefreshRequested) {
-      lastManualRefreshRequestRef.current = manualRefreshRequestId
-    }
-    if (!shouldRefresh) {
-      if (trigger === 'open' && nextBaseline.status !== 'loading') {
-        openRefreshPendingRef.current = false
-      }
-      return
-    }
-
-    const nextSummary = createCanvasQueryFrameResultSummaryFromExecution({
-      queries: snapshots,
-      now: new Date().toISOString()
-    })
-    const next = updateCanvasQueryFrameResults(node, {
-      summary: nextSummary,
-      preview
-    })
-
-    if (next !== node) {
-      objects.set(nodeId, next)
-    }
-    if (trigger === 'open' && nextSummary.status !== 'loading') {
-      openRefreshPendingRef.current = false
-    }
-    // summaryKey/previewKey are stable execution signatures; the values remain the source for the write.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [doc, manualRefreshRequestId, nodeId, previewKey, summaryKey])
-
-  return null
-}
-
-function sortCanvasSourceReferences(
-  left: CanvasSourceReference,
-  right: CanvasSourceReference
-): number {
-  if (left.isCurrentCanvas !== right.isCurrentCanvas) {
-    return left.isCurrentCanvas ? -1 : 1
-  }
-
-  const canvasCompare = left.canvasTitle.localeCompare(right.canvasTitle)
-  if (canvasCompare !== 0) {
-    return canvasCompare
-  }
-
-  const titleCompare = left.title.localeCompare(right.title)
-  if (titleCompare !== 0) {
-    return titleCompare
-  }
-
-  return left.objectId.localeCompare(right.objectId)
 }
 
 function isPeekableCanvasDisplayType(
@@ -563,7 +230,9 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     data: canvas,
     doc,
     loading,
-    awareness
+    update,
+    awareness,
+    presence
   } = useNode(CanvasSchema, docId, {
     createIfMissing: { title: 'Untitled Canvas' },
     did: did ?? undefined
@@ -571,21 +240,13 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
   const theme = useCanvasThemeTokens()
 
   const handledInsertIdsRef = useRef<Set<string>>(new Set())
-  const [manualQueryFrameRefreshRequests, setManualQueryFrameRefreshRequests] = useState<
-    Record<string, string>
-  >({})
   const [shortcutHelpOpen, setShortcutHelpOpen] = useState(false)
   const [peekState, setPeekState] = useState<CanvasPeekState | null>(null)
-  const selectedDatabaseUndoManagerRef = useRef<Y.UndoManager | null>(null)
-  const undoOrderSequenceRef = useRef(0)
-  const undoOrderRef = useRef<Record<CanvasUndoDomain, number[]>>(createUndoOrderMap())
-  const redoOrderRef = useRef<Record<CanvasUndoDomain, number[]>>(createUndoOrderMap())
-  const [activeUndoDomain, setActiveUndoDomain] = useState<CanvasUndoDomain>('scene')
+  // The ladder needs the controller's refs and the controller needs the
+  // ladder's boundary recorder; break the cycle with a ref.
+  const undoLadderRef = useRef<UseCanvasUndoLadderResult | null>(null)
   const recordUndoBoundary = useCallback((domain: CanvasUndoDomain) => {
-    undoOrderSequenceRef.current += 1
-    undoOrderRef.current[domain].push(undoOrderSequenceRef.current)
-    redoOrderRef.current = createUndoOrderMap()
-    setActiveUndoDomain(domain)
+    undoLadderRef.current?.recordUndoBoundary(domain)
   }, [])
   const recordSceneUndoBoundary = useCallback(() => {
     recordUndoBoundary('scene')
@@ -611,7 +272,6 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     setSelection,
     selectedNodes,
     selectedObject: selectedCanvasObject,
-    selectedCanvasEdge,
     selectionAllLocked,
     selectionAnyLocked,
     selectedSourceNodeIds,
@@ -622,7 +282,6 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     openAliasEditor,
     openCommentComposer,
     clearSelectedAlias: clearSelectionAlias,
-    selectedObjectCommentCount,
     updateCanvasNodeProperties,
     placeSourceObject,
     placePrimitiveObject,
@@ -633,6 +292,11 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     createMindMap,
     createExternalReference,
     createMediaFile,
+    createPlanningTemplate,
+    wrapSelectionInFrame,
+    presentSelectedFrame,
+    exportSelectedFrame,
+    selectedFrame,
     mediaFileInputRef,
     handleMediaFileInputChange
   } = controller
@@ -658,128 +322,45 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     canvases: canvasDocuments
   })
 
-  const selectedQueryFrameNode = useMemo(
-    () =>
-      selectedNodes.length === 1 && isCanvasQueryFrameNode(selectedNodes[0])
-        ? selectedNodes[0]
-        : null,
-    [selectedNodes]
-  )
-  const selectedQueryFrameDefinition = useMemo(
-    () => (selectedQueryFrameNode ? getCanvasQueryFrameDefinition(selectedQueryFrameNode) : null),
-    [selectedQueryFrameNode]
-  )
-  const queryFrameTargets = useMemo(() => {
-    void sceneRevision
-    return getCanvasQueryFrameTargets(doc)
-  }, [doc, sceneRevision])
+  const {
+    queryFrameTargets,
+    manualQueryFrameRefreshRequests,
+    selectedQueryFrameNode,
+    selectedQueryFrameDefinition,
+    createQueryFrameFromSavedView,
+    refreshSelectedQueryFrame
+  } = useCanvasQueryFrames({
+    doc,
+    sceneRevision,
+    selectedNodes,
+    placePrimitiveObject,
+    onUndoBoundary: recordSceneUndoBoundary
+  })
 
   const selectedDatabaseSourceId =
     selectedCanvasObject?.displayType === 'database' ? (selectedCanvasObject.sourceId ?? '') : ''
-  const { doc: selectedDatabaseDoc } = useDatabaseDoc(selectedDatabaseSourceId)
-  const {
-    undo: undoSelectedSource,
-    redo: redoSelectedSource,
-    canUndo: canUndoSelectedSource,
-    canRedo: canRedoSelectedSource
-  } = useUndo(selectedSourceNodeIds.length === 1 ? selectedSourceNodeIds[0] : null, {
-    localDID: did ?? null,
-    options: {
-      mergeInterval: 750
-    }
+  const undoLadder = useCanvasUndoLadder({
+    canvasRef,
+    selectedSourceNodeIds,
+    selectedDatabaseSourceId,
+    did
   })
-  const {
-    undo: undoSelectedSourceScope,
-    redo: redoSelectedSourceScope,
-    canUndo: canUndoSelectedSourceScope,
-    canRedo: canRedoSelectedSourceScope
-  } = useUndoScope(selectedSourceNodeIds, {
-    localDID: did ?? null,
-    options: {
-      mergeInterval: 750
-    }
+  useEffect(() => {
+    undoLadderRef.current = undoLadder
+  }, [undoLadder])
+  const { activeUndoDomain, runCanvasScopedUndo } = undoLadder
+
+  const selectedSourceReferences = useSelectedSourceReferences({
+    doc,
+    docId,
+    canvasTitle: canvas?.title,
+    sceneRevision,
+    selectedObject: selectedCanvasObject,
+    resolveTitle: (sourceId) => documentMap.get(sourceId)?.title,
+    getReferences
   })
 
-  const currentCanvasSourceReferences = useMemo(() => {
-    void sceneRevision
-
-    if (!doc || !selectedCanvasObject?.sourceId) {
-      return []
-    }
-
-    const refs: CanvasSourceReference[] = []
-    const nodesMap = getCanvasObjectsMap<CanvasNode>(doc)
-
-    nodesMap.forEach((value: unknown, key: string) => {
-      const node = value as CanvasNode
-      if (getCanvasShellSourceId(node) !== selectedCanvasObject.sourceId) {
-        return
-      }
-
-      if (key === selectedCanvasObject.node.id) {
-        return
-      }
-
-      refs.push({
-        sourceNodeId: selectedCanvasObject.sourceId,
-        canvasId: docId,
-        canvasTitle: canvas?.title || 'Workspace Canvas',
-        objectId: key,
-        objectType: node.type,
-        alias: typeof node.alias === 'string' && node.alias.trim().length > 0 ? node.alias : null,
-        title:
-          node.alias ??
-          (node.properties.title as string) ??
-          documentMap.get(selectedCanvasObject.sourceId)?.title ??
-          'Untitled',
-        isCurrentCanvas: true
-      })
-    })
-
-    return refs
-  }, [canvas?.title, doc, docId, documentMap, sceneRevision, selectedCanvasObject])
-
-  const selectedSourceReferences = useMemo(() => {
-    if (!selectedCanvasObject?.sourceId) {
-      return []
-    }
-
-    const merged = new Map<string, CanvasSourceReference>()
-
-    currentCanvasSourceReferences.forEach((reference) => {
-      merged.set(reference.objectId, reference)
-    })
-
-    getReferences(selectedCanvasObject.sourceId, {
-      excludeObjectId: selectedCanvasObject.node.id
-    }).forEach((reference) => {
-      merged.set(reference.objectId, reference)
-    })
-
-    return Array.from(merged.values()).sort(sortCanvasSourceReferences)
-  }, [currentCanvasSourceReferences, getReferences, selectedCanvasObject])
-  const getUndoBoundaryOrder = useCallback(
-    (domain: CanvasUndoDomain, direction: 'undo' | 'redo'): number => {
-      const stack =
-        direction === 'undo' ? undoOrderRef.current[domain] : redoOrderRef.current[domain]
-      return stack.length > 0 ? (stack.at(-1) ?? -1) : -1
-    },
-    []
-  )
-  const applyUndoBoundary = useCallback((domain: CanvasUndoDomain, direction: 'undo' | 'redo') => {
-    const sourceStack =
-      direction === 'undo' ? undoOrderRef.current[domain] : redoOrderRef.current[domain]
-    const targetStack =
-      direction === 'undo' ? redoOrderRef.current[domain] : undoOrderRef.current[domain]
-    const boundaryOrder = sourceStack.pop()
-
-    if (typeof boundaryOrder === 'number') {
-      targetStack.push(boundaryOrder)
-    }
-
-    setActiveUndoDomain(domain)
-  }, [])
-  // The shared controller reports commenting/editing; peeking is a
+  // The shared controller reports commenting/editing; peeking is a  // The shared controller reports commenting/editing; peeking is a
   // desktop-only overlay layered on top.
   const canvasPresenceIntent = useMemo(() => {
     if (peekState) {
@@ -826,24 +407,6 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       title: node.alias ?? linkedDocument?.title ?? (node.properties.title as string) ?? 'Untitled'
     }
   }, [doc, documentMap, peekState, selectedCanvasObject])
-
-  useEffect(() => {
-    if (!selectedDatabaseDoc) {
-      selectedDatabaseUndoManagerRef.current = null
-      return
-    }
-
-    const dataMap = selectedDatabaseDoc.getMap('data')
-    const manager = new Y.UndoManager([dataMap], { captureTimeout: 300 })
-    selectedDatabaseUndoManagerRef.current = manager
-
-    return () => {
-      manager.destroy()
-      if (selectedDatabaseUndoManagerRef.current === manager) {
-        selectedDatabaseUndoManagerRef.current = null
-      }
-    }
-  }, [selectedDatabaseDoc])
 
   useEffect(() => {
     if (!peekState) {
@@ -1216,109 +779,6 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     [focusCanvasSurface, shortcutHelpOpen]
   )
 
-  const runCanvasScopedUndo = useCallback(
-    (direction: 'undo' | 'redo'): boolean => {
-      const canSelectedSource = direction === 'undo' ? canUndoSelectedSource : canRedoSelectedSource
-      const canSelectedSourceScope =
-        direction === 'undo' ? canUndoSelectedSourceScope : canRedoSelectedSourceScope
-      const canSelectedSourceDocument =
-        getYjsStackDepth(
-          selectedDatabaseUndoManagerRef.current,
-          direction === 'undo' ? 'undoStack' : 'redoStack'
-        ) > 0
-
-      const runScene = (): boolean => {
-        const handled =
-          direction === 'undo'
-            ? (canvasRef.current?.undo() ?? false)
-            : (canvasRef.current?.redo() ?? false)
-
-        if (handled) {
-          applyUndoBoundary('scene', direction)
-        }
-
-        return handled
-      }
-
-      const runSelectedSource = (): boolean => {
-        if (!canSelectedSource) {
-          return false
-        }
-
-        applyUndoBoundary('source-node', direction)
-        void (direction === 'undo' ? undoSelectedSource() : redoSelectedSource())
-        return true
-      }
-
-      const runSelectedSourceScope = (): boolean => {
-        if (!canSelectedSourceScope) {
-          return false
-        }
-
-        applyUndoBoundary('source-scope', direction)
-        void (direction === 'undo' ? undoSelectedSourceScope() : redoSelectedSourceScope())
-        return true
-      }
-
-      const runSelectedSourceDocument = (): boolean => {
-        if (!canSelectedSourceDocument || !selectedDatabaseUndoManagerRef.current) {
-          return false
-        }
-
-        applyUndoBoundary('source-document', direction)
-        if (direction === 'undo') {
-          selectedDatabaseUndoManagerRef.current.undo()
-        } else {
-          selectedDatabaseUndoManagerRef.current.redo()
-        }
-        return true
-      }
-
-      const orderedDomains = (
-        [
-          { domain: 'scene', available: true, run: runScene },
-          {
-            domain: 'source-document',
-            available: canSelectedSourceDocument,
-            run: runSelectedSourceDocument
-          },
-          {
-            domain: 'source-scope',
-            available: canSelectedSourceScope,
-            run: runSelectedSourceScope
-          },
-          { domain: 'source-node', available: canSelectedSource, run: runSelectedSource }
-        ] as const
-      )
-        .filter((entry) => entry.available)
-        .sort(
-          (left, right) =>
-            getUndoBoundaryOrder(right.domain, direction) -
-            getUndoBoundaryOrder(left.domain, direction)
-        )
-
-      for (const entry of orderedDomains) {
-        if (entry.run()) {
-          return true
-        }
-      }
-
-      return false
-    },
-    [
-      applyUndoBoundary,
-      canRedoSelectedSource,
-      canRedoSelectedSourceScope,
-      canUndoSelectedSource,
-      canUndoSelectedSourceScope,
-      getUndoBoundaryOrder,
-      redoSelectedSource,
-      redoSelectedSourceScope,
-      undoSelectedSource,
-      undoSelectedSourceScope
-    ]
-  )
-
   const handleDismissTransientUi = useCallback((): boolean => {
     if (selectionPanel) {
       closeSelectionPanel()
@@ -1370,73 +830,6 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     },
     [closePeekSurface, closeSelectionPanel, doc]
   )
-
-  const createQueryFrameFromSavedView = useCallback(
-    (input: SavedViewCanvasQueryFrameInput): boolean => {
-      const descriptor = parseSavedViewDescriptorForCanvasFrame(input.descriptorJson)
-      if (!descriptor) return false
-
-      const title = input.title?.trim() || descriptor.title || 'Saved lens'
-      const queryDefinition = createCanvasQueryFrameDefinitionFromSavedView({
-        viewId: input.viewId,
-        descriptor,
-        label: title
-      })
-      const insertedQueryDefinition = {
-        ...queryDefinition,
-        refreshMode: 'on-open' as const
-      }
-      const created = Boolean(
-        placePrimitiveObject({
-          objectKind: 'group',
-          title,
-          rect: {
-            width: 720,
-            height: 460
-          },
-          properties: createCanvasQueryFrameProperties({
-            title,
-            query: insertedQueryDefinition
-          })
-        })
-      )
-
-      if (created) {
-        recordUndoBoundary('scene')
-      }
-
-      return created
-    },
-    [placePrimitiveObject, recordUndoBoundary]
-  )
-
-  const refreshSelectedQueryFrame = useCallback((): boolean => {
-    if (!selectedQueryFrameNode) return false
-
-    const requestId = `${Date.now()}:${Math.random().toString(36).slice(2)}`
-    setManualQueryFrameRefreshRequests((current) => ({
-      ...current,
-      [selectedQueryFrameNode.id]: requestId
-    }))
-    return true
-  }, [selectedQueryFrameNode])
-
-  const createPlanningTemplate = useCallback(
-    (templateId: CanvasPlanningTemplateId): boolean => {
-      const created = canvasRef.current?.createPlanningTemplate(templateId) ?? false
-
-      if (created) {
-        recordUndoBoundary('scene')
-      }
-
-      return created
-    },
-    [recordUndoBoundary]
-  )
-
-  const wrapSelectionInFrame = useCallback((): boolean => {
-    return canvasRef.current?.wrapSelectionInFrame() ?? false
-  }, [])
 
   const handleCreateObject = useCallback(
     (kind: 'page' | 'database' | 'note' | 'shape' | 'frame' | 'mind-map') => {
@@ -1598,299 +991,67 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
         onChange={handleMediaFileInputChange}
       />
       <div
-        className="pointer-events-none absolute left-6 top-6 z-20 rounded-full border border-border/60 bg-background/80 px-4 py-2 text-xs uppercase tracking-[0.24em] text-muted-foreground shadow-lg backdrop-blur-xl"
+        className="pointer-events-auto absolute left-6 top-6 z-20 flex items-center gap-2 rounded-full border border-border/60 bg-background/80 px-4 py-2 shadow-lg backdrop-blur-xl"
         data-canvas-home-badge="true"
         data-canvas-theme={theme.mode}
       >
-        {canvas?.title || 'Workspace Canvas'}
+        <input
+          type="text"
+          className="min-w-0 border-none bg-transparent text-xs font-medium uppercase tracking-[0.24em] text-muted-foreground outline-none placeholder:text-muted-foreground/70 focus:text-foreground"
+          value={canvas?.title || ''}
+          onChange={(event) => update({ title: event.target.value })}
+          placeholder="Workspace Canvas"
+          data-canvas-title="true"
+        />
+        <PresenceAvatars presence={presence} />
       </div>
 
-      {selection.nodeIds.length === 0 && selectedCanvasEdge ? (
-        <div className="pointer-events-none absolute inset-x-0 top-6 z-20 flex justify-center px-4">
-          <div
-            className="pointer-events-auto flex items-center gap-2 rounded-full border border-border/60 bg-background/82 px-3 py-2 shadow-lg shadow-black/5 backdrop-blur-xl"
-            data-canvas-selection-hud="true"
-            data-canvas-selection-type="connector"
-            data-canvas-theme={theme.mode}
-          >
-            <span className="truncate px-2 text-sm text-foreground">
-              {`Connector · ${selectedCanvasEdge.relationship?.kind ?? 'relates-to'}`}
-              {(selectedCanvasEdge.label ?? selectedCanvasEdge.relationship?.label)
-                ? ` · ${selectedCanvasEdge.label ?? selectedCanvasEdge.relationship?.label}`
-                : ''}
-            </span>
-            <button
-              type="button"
-              className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-              onClick={clearCanvasSelection}
-              data-canvas-selection-action="clear"
-            >
-              <X size={12} />
-              Clear
-            </button>
-          </div>
-        </div>
-      ) : null}
-
-      {selection.nodeIds.length > 0 ? (
-        <div className="pointer-events-none absolute inset-x-0 top-6 z-20 flex justify-center px-4">
-          <div
-            className="pointer-events-auto flex max-w-[min(92vw,780px)] items-center gap-2 rounded-full border border-border/60 bg-background/82 px-3 py-2 shadow-lg shadow-black/5 backdrop-blur-xl"
-            data-canvas-selection-hud="true"
-            data-canvas-selection-count={selection.nodeIds.length}
-            data-canvas-selection-type={selectedCanvasObject?.displayType ?? 'mixed'}
-            data-canvas-selection-all-locked={selectionAllLocked ? 'true' : 'false'}
-            data-canvas-theme={theme.mode}
-          >
-            <span className="truncate px-2 text-sm text-foreground">
-              {selectedCanvasObject
-                ? `${
-                    selectedCanvasObject.displayType === 'note'
-                      ? 'Note'
-                      : selectedCanvasObject.displayType === 'database'
-                        ? 'Database'
-                        : selectedCanvasObject.displayType === 'external-reference'
-                          ? 'Link'
-                          : selectedCanvasObject.displayType === 'media'
-                            ? 'Media'
-                            : selectedCanvasObject.displayType === 'shape'
-                              ? 'Shape'
-                              : selectedCanvasObject.displayType === 'frame'
-                                ? 'Frame'
-                                : 'Page'
-                  } · ${selectedCanvasObject.title}`
-                : `${selection.nodeIds.length} selected`}
-            </span>
-
-            {selectedCanvasObject ? (
-              <>
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-                  onClick={() => {
-                    void openSelection('peek')
-                  }}
-                  data-canvas-selection-action="peek"
-                >
-                  <Eye size={12} />
-                  {selectedCanvasObject.displayType === 'page' ||
-                  selectedCanvasObject.displayType === 'database' ||
-                  selectedCanvasObject.displayType === 'note'
-                    ? 'Peek'
-                    : 'Center'}
-                  <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-                    Enter
-                  </span>
-                </button>
-                {selectedCanvasObject.sourceId && selectedCanvasObject.sourceType ? (
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-                    onClick={() => {
-                      void openSelection('focus')
-                    }}
-                    data-canvas-selection-action="focus"
-                  >
-                    <Command size={12} />
-                    Open
-                    <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-                      Mod+Enter
-                    </span>
-                  </button>
-                ) : null}
-                {selectedQueryFrameDefinition ? (
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-                    onClick={() => {
-                      refreshSelectedQueryFrame()
-                    }}
-                    data-canvas-selection-action="refresh-query-frame"
-                    title={`Refresh ${selectedQueryFrameDefinition.refreshMode} query frame`}
-                  >
-                    <RefreshCw size={12} />
-                    Refresh
-                  </button>
-                ) : null}
-                {selectedCanvasObject.displayType === 'database' &&
-                selectedCanvasObject.sourceId ? (
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-                    onClick={() => {
-                      void openSelection('split')
-                    }}
-                    data-canvas-selection-action="split"
-                  >
-                    <Database size={12} />
-                    Split
-                    <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-                      Alt+Enter
-                    </span>
-                  </button>
-                ) : null}
-                {selectedCanvasObject.sourceId ? (
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-                    onClick={() => {
-                      openAliasEditor()
-                    }}
-                    data-canvas-selection-action="alias"
-                  >
-                    Alias
-                    <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-                      Mod+Shift+A
-                    </span>
-                  </button>
-                ) : null}
-                {selectedCanvasObject.sourceId ? (
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-                    onClick={() => {
-                      toggleSourceReferences()
-                    }}
-                    data-canvas-selection-action="references"
-                  >
-                    Copies {selectedSourceReferences.length}
-                  </button>
-                ) : null}
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-                  onClick={() => {
-                    openCommentComposer()
-                  }}
-                  data-canvas-selection-action="comment"
-                >
-                  <MessageSquare size={12} />
-                  Comment{selectedObjectCommentCount > 0 ? ` ${selectedObjectCommentCount}` : ''}
-                  <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-                    Mod+Shift+C
-                  </span>
-                </button>
-              </>
-            ) : null}
-
-            <button
-              type="button"
-              className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-              onClick={() => {
-                toggleSelectionLock()
-              }}
-              data-canvas-selection-action="lock"
-            >
-              {selectionAllLocked ? 'Unlock' : 'Lock'}
-              <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-                Mod+Shift+L
-              </span>
-            </button>
-
-            {selection.nodeIds.length > 1 ? (
-              <>
-                {selection.nodeIds.length === 2 ? (
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-                    onClick={() => {
-                      connectSelection()
-                    }}
-                    data-canvas-selection-action="connect"
-                  >
-                    <Link2 size={12} />
-                    Connect
-                    <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-                      Mod+Shift+K
-                    </span>
-                  </button>
-                ) : null}
-
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-                  onClick={() => {
-                    alignSelection('left')
-                  }}
-                  data-canvas-selection-action="align-left"
-                >
-                  Align left
-                  <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-                    Mod+Shift+←
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-                  onClick={() => {
-                    distributeSelection('horizontal')
-                  }}
-                  data-canvas-selection-action="distribute"
-                >
-                  Distribute
-                </button>
-
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-                  onClick={() => {
-                    tidySelection()
-                  }}
-                  data-canvas-selection-action="tidy"
-                >
-                  Tidy
-                </button>
-              </>
-            ) : null}
-
-            {selection.nodeIds.length > 0 ? (
-              <>
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-                  onClick={() => {
-                    shiftSelectionLayer('backward')
-                  }}
-                  data-canvas-selection-action="send-backward"
-                >
-                  Back
-                  <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-                    [
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-                  onClick={() => {
-                    shiftSelectionLayer('forward')
-                  }}
-                  data-canvas-selection-action="bring-forward"
-                >
-                  Forward
-                  <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-                    ]
-                  </span>
-                </button>
-              </>
-            ) : null}
-
-            <button
-              type="button"
-              className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-              onClick={clearCanvasSelection}
-              data-canvas-selection-action="clear"
-            >
-              <X size={12} />
-              Clear
-              <span className="text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
-                Esc
-              </span>
-            </button>
-          </div>
-        </div>
-      ) : null}
+      <div className="pointer-events-none absolute inset-x-0 top-6 z-20 flex justify-center px-4">
+        <CanvasSelectionHud
+          controller={controller}
+          themeMode={theme.mode}
+          onPeek={() => {
+            void openSelection('peek')
+          }}
+          onOpen={() => {
+            void openSelection('focus')
+          }}
+          onSplit={
+            onOpenDatabaseSplit
+              ? () => {
+                  void openSelection('split')
+                }
+              : null
+          }
+          onRefreshQueryFrame={
+            selectedQueryFrameDefinition
+              ? () => {
+                  refreshSelectedQueryFrame()
+                }
+              : null
+          }
+          queryFrameRefreshMode={selectedQueryFrameDefinition?.refreshMode ?? null}
+          referencesCount={selectedSourceReferences.length}
+          onToggleReferences={() => {
+            toggleSourceReferences()
+          }}
+          onPresentFrame={
+            selectedFrame
+              ? () => {
+                  presentSelectedFrame()
+                }
+              : null
+          }
+          onExportFrame={
+            selectedFrame
+              ? () => {
+                  exportSelectedFrame()
+                }
+              : null
+          }
+          onClearSelection={clearCanvasSelection}
+        />
+      </div>
 
       {selectionPanel && selectedCanvasObject ? (
         <div className="pointer-events-none absolute inset-x-0 top-24 z-20 flex justify-center px-4">
@@ -1904,75 +1065,17 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
             ) : selectionPanel === 'comment' ? (
               <CanvasCommentComposerPanel controller={controller} themeMode={theme.mode} />
             ) : (
-              <div data-canvas-source-references="true">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">Linked copies</p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Other canvas objects that point at the same source node.
-                    </p>
-                  </div>
-
-                  <button
-                    type="button"
-                    className="rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-                    onClick={closeSelectionPanel}
-                    data-canvas-source-panel-close="true"
-                  >
-                    Close
-                  </button>
-                </div>
-
-                {sourceReferencesLoading ? (
-                  <p className="mt-4 text-sm text-muted-foreground">
-                    Indexing boards... {indexedReferenceCanvases}/{totalReferenceCanvases}
-                  </p>
-                ) : selectedSourceReferences.length === 0 ? (
-                  <p className="mt-4 text-sm text-muted-foreground">
-                    No other canvas objects reference this source yet.
-                  </p>
-                ) : (
-                  <div className="mt-4 space-y-2">
-                    {selectedSourceReferences.map((reference) => (
-                      <div
-                        key={`${reference.canvasId}:${reference.objectId}`}
-                        className="flex items-center justify-between gap-3 rounded-2xl bg-muted/35 px-3 py-3"
-                        data-canvas-source-reference="true"
-                        data-canvas-source-reference-canvas-id={reference.canvasId}
-                        data-canvas-source-reference-current-canvas={
-                          reference.isCurrentCanvas ? 'true' : 'false'
-                        }
-                      >
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-medium text-foreground">
-                            {reference.title}
-                          </p>
-                          <p className="mt-1 text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                            {reference.isCurrentCanvas ? 'This canvas' : reference.canvasTitle}
-                          </p>
-                        </div>
-
-                        {reference.isCurrentCanvas ? (
-                          <button
-                            type="button"
-                            className="rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted"
-                            onClick={() => {
-                              handleRevealSourceReference(reference.objectId)
-                            }}
-                            data-canvas-source-reference-action="reveal"
-                          >
-                            Reveal
-                          </button>
-                        ) : (
-                          <span className="rounded-full border border-border/60 bg-background px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-                            {reference.objectType}
-                          </span>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <CanvasSourceReferencesPanel
+                themeMode={theme.mode}
+                loading={sourceReferencesLoading}
+                indexedCanvases={indexedReferenceCanvases}
+                totalCanvases={totalReferenceCanvases}
+                references={selectedSourceReferences}
+                onReveal={(objectId) => {
+                  handleRevealSourceReference(objectId)
+                }}
+                onClose={closeSelectionPanel}
+              />
             )}
           </div>
         </div>
@@ -2082,15 +1185,12 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
         </div>
       ) : null}
 
-      {queryFrameTargets.map((target) => (
-        <CanvasSavedViewQueryFrameExecutor
-          key={target.nodeId}
-          doc={doc}
-          nodeId={target.nodeId}
-          descriptorJson={target.descriptorJson}
-          manualRefreshRequestId={manualQueryFrameRefreshRequests[target.nodeId] ?? null}
-        />
-      ))}
+      <CanvasQueryFrameExecutors
+        doc={doc}
+        targets={queryFrameTargets}
+        manualRefreshRequests={manualQueryFrameRefreshRequests}
+        schemas={CANVAS_DASHBOARD_SCHEMA_REGISTRY}
+      />
 
       <div className="h-full">
         <Canvas

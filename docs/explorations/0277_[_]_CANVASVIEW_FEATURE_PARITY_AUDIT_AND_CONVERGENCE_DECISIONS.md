@@ -265,11 +265,11 @@ Phase 1 — shared package skeleton
 
 Phase 2 — capability convergence
 
-- [ ] E1/E2: move query-frame executor + helpers into shared core (registry as parameter); web exposes create-from-saved-view + Refresh.
-- [ ] E3: move `useCanvasSourceReferences` to the shared package; "Copies" panel on web.
-- [ ] E5/W8: unified undo ladder in core; web `surface:canvas` registry binding dispatches into it (release-note the behavior change).
-- [ ] E6/E7/W6: shared selection HUD (lock/align/distribute/tidy/cluster/stack/connect/layers/wrap + present/export frame + planning templates) rendered on both platforms.
-- [ ] W5: electron header gains title editing + `PresenceAvatars` (pass `update`/`presence` from `useNode`).
+- [x] E1/E2: move query-frame executor + helpers into shared core (registry as parameter); web exposes create-from-saved-view + Refresh.
+- [x] E3: move `useCanvasSourceReferences` to the shared package; "Copies" panel on web.
+- [x] E5/W8: unified undo ladder in core; web `surface:canvas` registry binding dispatches into it (release-note the behavior change).
+- [x] E6/E7/W6: shared selection HUD (lock/align/distribute/tidy/cluster/stack/connect/layers/wrap + present/export frame + planning templates) rendered on both platforms.
+- [x] W5: electron header gains title editing + `PresenceAvatars` (pass `update`/`presence` from `useNode`).
 
 Phase 3 — surfaces and command transport
 

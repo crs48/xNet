@@ -5,6 +5,7 @@
  * the panel card itself.
  */
 
+import type { CanvasSourceReference } from './useCanvasSourceReferences.js'
 import type { UseCanvasViewControllerResult } from './useCanvasViewController.js'
 import type { JSX } from 'react'
 
@@ -167,6 +168,96 @@ export function CanvasCommentComposerPanel({
           </button>
         </div>
       </div>
+    </div>
+  )
+}
+
+export interface CanvasSourceReferencesPanelProps {
+  themeMode: 'light' | 'dark'
+  loading: boolean
+  indexedCanvases: number
+  totalCanvases: number
+  references: CanvasSourceReference[]
+  onReveal: (objectId: string) => void
+  onClose: () => void
+}
+
+export function CanvasSourceReferencesPanel({
+  themeMode,
+  loading,
+  indexedCanvases,
+  totalCanvases,
+  references,
+  onReveal,
+  onClose
+}: CanvasSourceReferencesPanelProps): JSX.Element {
+  return (
+    <div data-canvas-source-references="true" data-canvas-theme={themeMode}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-semibold text-foreground">Linked copies</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Other canvas objects that point at the same source node.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          className="rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+          onClick={onClose}
+          data-canvas-source-panel-close="true"
+        >
+          Close
+        </button>
+      </div>
+
+      {loading ? (
+        <p className="mt-4 text-sm text-muted-foreground">
+          Indexing boards... {indexedCanvases}/{totalCanvases}
+        </p>
+      ) : references.length === 0 ? (
+        <p className="mt-4 text-sm text-muted-foreground">
+          No other canvas objects reference this source yet.
+        </p>
+      ) : (
+        <div className="mt-4 space-y-2">
+          {references.map((reference) => (
+            <div
+              key={`${reference.canvasId}:${reference.objectId}`}
+              className="flex items-center justify-between gap-3 rounded-2xl bg-muted/35 px-3 py-3"
+              data-canvas-source-reference="true"
+              data-canvas-source-reference-canvas-id={reference.canvasId}
+              data-canvas-source-reference-current-canvas={
+                reference.isCurrentCanvas ? 'true' : 'false'
+              }
+            >
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-foreground">{reference.title}</p>
+                <p className="mt-1 text-xs uppercase tracking-[0.16em] text-muted-foreground">
+                  {reference.isCurrentCanvas ? 'This canvas' : reference.canvasTitle}
+                </p>
+              </div>
+
+              {reference.isCurrentCanvas ? (
+                <button
+                  type="button"
+                  className="rounded-full border border-border/60 bg-background px-3 py-1 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+                  onClick={() => {
+                    onReveal(reference.objectId)
+                  }}
+                  data-canvas-source-reference-action="reveal"
+                >
+                  Reveal
+                </button>
+              ) : (
+                <span className="rounded-full border border-border/60 bg-background px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
+                  {reference.objectType}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

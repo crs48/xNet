@@ -52,3 +52,27 @@ export {
   type CanvasPageStaticPreviewCardProps,
   type CanvasPinnedSourceRecordCardProps
 } from './cards.js'
+export {
+  CanvasQueryFrameExecutors,
+  CanvasSavedViewQueryFrameExecutor,
+  getCanvasQueryFrameTargets,
+  parseSavedViewDescriptorForCanvasFrame,
+  useCanvasQueryFrames,
+  type CanvasQueryFrameTarget,
+  type SavedViewCanvasQueryFrameInput,
+  type UseCanvasQueryFramesOptions,
+  type UseCanvasQueryFramesResult
+} from './query-frames.js'
+export {
+  useCanvasSourceReferences,
+  useSelectedSourceReferences,
+  type CanvasSourceReference
+} from './useCanvasSourceReferences.js'
+export {
+  useCanvasUndoLadder,
+  type CanvasUndoDomain,
+  type UseCanvasUndoLadderOptions,
+  type UseCanvasUndoLadderResult
+} from './useCanvasUndoLadder.js'
+export { CanvasSelectionHud, type CanvasSelectionHudProps } from './CanvasSelectionHud.js'
+export { CanvasSourceReferencesPanel, type CanvasSourceReferencesPanelProps } from './panels.js'
