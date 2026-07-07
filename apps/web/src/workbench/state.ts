@@ -69,6 +69,7 @@ export const TAB_NODE_TYPES = [
   'map',
   'savedview',
   'tasks',
+  'meetings',
   'data',
   'experiments',
   'crm',

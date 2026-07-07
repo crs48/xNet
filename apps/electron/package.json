@@ -1,6 +1,6 @@
 {
   "name": "xnet-desktop",
-  "version": "0.3.0",
+  "version": "0.5.0",
   "description": "xNet Desktop - Local-first data platform for macOS/Windows/Linux",
   "author": {
     "name": "xNet",
@@ -32,6 +32,8 @@
     "@xnetjs/core": "workspace:*",
     "@xnetjs/data": "workspace:*",
     "@xnetjs/devkit": "workspace:*",
+    "@xnetjs/dictation": "workspace:*",
+    "@xnetjs/meetings": "workspace:*",
     "@xnetjs/devtools": "workspace:*",
     "@xnetjs/editor": "workspace:*",
     "@xnetjs/identity": "workspace:*",

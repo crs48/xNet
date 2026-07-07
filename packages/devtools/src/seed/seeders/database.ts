@@ -179,11 +179,47 @@ export const databaseSeeder: SeederModule = {
           type: 'timeline',
           dateKey: 'start',
           endDateKey: 'due'
+        },
+        // Form view (exploration 0278): request intake with a show-if rule.
+        {
+          slug: 'intake',
+          name: 'Intake',
+          type: 'form',
+          form: {
+            title: 'Task intake',
+            description: 'Request work from the engineering tracker.',
+            submitLabel: 'Request',
+            confirmation: { title: 'Request received', body: 'We triage intake every morning.' },
+            questions: [
+              { key: 'title', label: 'What do you need?', required: true },
+              { key: 'priority', label: 'How urgent is it?' },
+              { key: 'due', label: 'Deadline', description: 'Only if urgent' },
+              { key: 'link', label: 'Related link' }
+            ],
+            rules: {
+              due: { whenKey: 'priority', operator: 'equals', value: 'high' }
+            }
+          }
         }
       ]
     }
     const tasksDbId = `seed/database/${TASKS_SLUG}`
     drafts.push(...databaseDrafts(tasksSpec))
+
+    // Two tracker rows arrived through the intake form: stamp submission
+    // provenance so the demo shows what a drained public submission looks like.
+    const intakeViewId = 'seed/dbview/tracker/intake'
+    for (const formRowIndex of [0, 1]) {
+      const rowDraft = drafts.find((d) => d.id === dbRowId(TASKS_SLUG, formRowIndex))
+      if (rowDraft) {
+        rowDraft.properties.submissionMeta = {
+          via: 'form',
+          viewId: intakeViewId,
+          nonce: `seed-nonce-${formRowIndex}`,
+          submittedAt: BASE_TS + formRowIndex * DAY
+        }
+      }
+    }
 
     // ─── CRM accounts database (relates to tracker rows) ─────────────────
     const crmRows = Array.from({ length: Math.max(3, Math.floor(scale.dbRows / 2)) }, (_, i) => {

@@ -16,6 +16,9 @@ import {
   type FieldConfig,
   type FieldType,
   type FilterGroup,
+  type FormFieldRule,
+  type FormSubmissionMeta,
+  type FormViewConfig,
   type SortConfig,
   type ViewType,
   type RowHeight,
@@ -82,12 +85,24 @@ export interface GridViewModel {
   rowHeight: RowHeight
   columnSummaries: Record<string, SummaryFunction>
   sortKey: string
+  // Form view (exploration 0278)
+  formConfig: FormViewConfig | null
+  formRules: Record<string, FormFieldRule>
+  formAccepting: boolean
 }
 
 export interface GridRowModel {
   id: string
   sortKey: string
   cells: Record<string, CellValue>
+}
+
+/** Options for `addRow` (exploration 0278: form submissions). */
+export interface AddRowOptions {
+  /** Explicit node id — deterministic ids make retried submissions upsert. */
+  id?: string
+  /** Form-submission provenance stamped on the row. */
+  meta?: FormSubmissionMeta
 }
 
 export interface UseGridDatabaseOptions {
@@ -116,7 +131,11 @@ export interface UseGridDatabaseResult {
   // Cell/row mutations
   updateCell: (rowId: string, fieldId: string, value: CellValue) => Promise<void>
   clearCells: (cells: Array<{ rowId: string; fieldId: string }>) => Promise<void>
-  addRow: (afterRowId?: string, cells?: Record<string, CellValue>) => Promise<string | null>
+  addRow: (
+    afterRowId?: string,
+    cells?: Record<string, CellValue>,
+    opts?: AddRowOptions
+  ) => Promise<string | null>
   deleteRows: (rowIds: string[]) => Promise<void>
   moveRowToIndex: (rowId: string, targetIndex: number) => Promise<void>
 
@@ -144,6 +163,10 @@ export interface UseGridDatabaseResult {
   setGroupBy: (fieldId: string | null) => Promise<void>
   setRowHeight: (rowHeight: RowHeight) => Promise<void>
   setColumnSummary: (fieldId: string, fn: SummaryFunction) => Promise<void>
+  // Form view (exploration 0278)
+  setFormConfig: (config: FormViewConfig) => Promise<void>
+  setFormRules: (rules: Record<string, FormFieldRule>) => Promise<void>
+  setFormAccepting: (accepting: boolean) => Promise<void>
   addView: (name: string, type: ViewType) => Promise<string | null>
   renameView: (viewId: string, name: string) => Promise<void>
   removeView: (viewId: string) => Promise<void>
@@ -187,7 +210,10 @@ function toViewModel(node: Flat): GridViewModel {
     hiddenFields: (node.hiddenFields as string[] | undefined) ?? [],
     rowHeight: asRowHeight(node.rowHeight as string | undefined),
     columnSummaries: (node.columnSummaries as Record<string, SummaryFunction> | undefined) ?? {},
-    sortKey: (node.sortKey as string) ?? ''
+    sortKey: (node.sortKey as string) ?? '',
+    formConfig: (node.formConfig as FormViewConfig | undefined) ?? null,
+    formRules: (node.formRules as Record<string, FormFieldRule> | undefined) ?? {},
+    formAccepting: (node.formAccepting as boolean | undefined) ?? true
   }
 }
 
@@ -552,7 +578,11 @@ export function useGridDatabase(
   )
 
   const addRow = useCallback(
-    async (afterRowId?: string, cells?: Record<string, CellValue>): Promise<string | null> => {
+    async (
+      afterRowId?: string,
+      cells?: Record<string, CellValue>,
+      opts?: AddRowOptions
+    ): Promise<string | null> => {
       // Position among rows in sortKey order (manual order, not view sort)
       let sortKey: string
       if (afterRowId) {
@@ -575,11 +605,16 @@ export function useGridDatabase(
         cellProps[cellKey(fieldId)] = value
       }
 
-      const node = await mutate.create(DatabaseRowSchema, {
-        database: databaseId,
-        sortKey,
-        ...cellProps
-      } as never)
+      const node = await mutate.create(
+        DatabaseRowSchema,
+        {
+          database: databaseId,
+          sortKey,
+          ...(opts?.meta ? { submissionMeta: opts.meta } : {}),
+          ...cellProps
+        } as never,
+        opts?.id
+      )
       return node?.id ?? null
     },
     [mutate, databaseId, rows, nextAppendKey]
@@ -809,6 +844,32 @@ export function useGridDatabase(
     [mutate, activeView]
   )
 
+  // Form view mutations (exploration 0278): whole-value LWW commits, like
+  // filters — each json prop is one intentional unit.
+  const setFormConfig = useCallback(
+    async (config: FormViewConfig): Promise<void> => {
+      if (!activeView) return
+      await mutate.update(DatabaseViewSchema, activeView.id, { formConfig: config as never })
+    },
+    [mutate, activeView]
+  )
+
+  const setFormRules = useCallback(
+    async (rules: Record<string, FormFieldRule>): Promise<void> => {
+      if (!activeView) return
+      await mutate.update(DatabaseViewSchema, activeView.id, { formRules: rules as never })
+    },
+    [mutate, activeView]
+  )
+
+  const setFormAccepting = useCallback(
+    async (accepting: boolean): Promise<void> => {
+      if (!activeView) return
+      await mutate.update(DatabaseViewSchema, activeView.id, { formAccepting: accepting })
+    },
+    [mutate, activeView]
+  )
+
   const addView = useCallback(
     async (name: string, type: ViewType): Promise<string | null> => {
       const node = await mutate.create(DatabaseViewSchema, {
@@ -863,6 +924,9 @@ export function useGridDatabase(
     setGroupBy,
     setRowHeight,
     setColumnSummary,
+    setFormConfig,
+    setFormRules,
+    setFormAccepting,
     addView,
     renameView,
     removeView,

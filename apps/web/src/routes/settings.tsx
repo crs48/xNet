@@ -11,9 +11,11 @@ import { serializeShare } from '@xnetjs/identity'
 import { deleteDay, leaveWithEverything } from '@xnetjs/plugins'
 import { useIdentity } from '@xnetjs/react'
 import { SettingRow, SettingsGroup, SettingsPanel, SettingToggle, useTheme } from '@xnetjs/ui'
+import { MeetingEngineSettings } from '@xnetjs/views'
 import {
   Palette,
   Database,
+  Mic,
   Info,
   LayoutGrid,
   MessageSquare,
@@ -65,6 +67,7 @@ export const Route = createFileRoute('/settings')({
 type SettingsSection =
   | 'profile'
   | 'appearance'
+  | 'dictation'
   | 'safety'
   | 'data'
   | 'mirror'
@@ -98,6 +101,7 @@ const LEAVE_DEPS: LeaveDeps = {
 const SECTIONS: SectionConfig[] = [
   { id: 'profile', label: 'Profile', icon: <UserRound {...ICON_PROPS} /> },
   { id: 'appearance', label: 'Appearance', icon: <Palette {...ICON_PROPS} /> },
+  { id: 'dictation', label: 'Dictation & Meetings', icon: <Mic {...ICON_PROPS} /> },
   { id: 'safety', label: 'Content & Safety', icon: <ShieldCheck {...ICON_PROPS} /> },
   { id: 'data', label: 'Data', icon: <Database {...ICON_PROPS} /> },
   { id: 'mirror', label: 'What we know', icon: <Eye {...ICON_PROPS} /> },
@@ -158,6 +162,7 @@ function SettingsPage() {
       <div className="flex-1 overflow-auto bg-surface-0 p-6">
         {activeSection === 'profile' && <ProfileSettings />}
         {activeSection === 'appearance' && <AppearanceSettings />}
+        {activeSection === 'dictation' && <MeetingEngineSettings />}
         {activeSection === 'safety' && (
           <div className="space-y-10">
             <ContentSafetySettings />

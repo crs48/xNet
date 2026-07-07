@@ -6,6 +6,7 @@
  */
 import { useRouterState } from '@tanstack/react-router'
 import { useMemo } from 'react'
+import { useFormSubmissionDrain } from '../hooks/useFormSubmissionDrain'
 import { revealContextSection } from '../workbench/context-panel'
 import { useWorkbench } from '../workbench/state'
 import { useStatusBarItem } from '../workbench/status'
@@ -58,6 +59,32 @@ export function PresenceStatusItem() {
         onClick: () => revealContextSection('comms-room')
       }
     }, [here])
+  )
+  return null
+}
+
+/**
+ * Form inbox chip (exploration 0278): hosts the drain agent that turns
+ * public form submissions into rows, and surfaces submissions that failed
+ * drain-time validation (rejected) so they are reviewed, not lost. Pending
+ * normally drains to 0 within a tick, so the chip mostly shows rejects.
+ */
+export function FormInboxItem() {
+  const { pendingTotal, rejectedTotal } = useFormSubmissionDrain()
+
+  useStatusBarItem(
+    useMemo(() => {
+      if (pendingTotal + rejectedTotal === 0) return null
+      const parts: string[] = []
+      if (pendingTotal > 0) parts.push(`${pendingTotal} pending`)
+      if (rejectedTotal > 0) parts.push(`${rejectedTotal} rejected`)
+      return {
+        id: 'form-inbox',
+        side: 'left' as const,
+        text: `📥 ${parts.join(' · ')}`,
+        title: 'Form submissions — pending drain into rows; rejected need review'
+      }
+    }, [pendingTotal, rejectedTotal])
   )
   return null
 }

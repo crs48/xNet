@@ -11,7 +11,7 @@ import { createRootRoute, Outlet } from '@tanstack/react-router'
 import { CallProvider, CommsDock } from '../comms/CallDock'
 import { CommsProvider } from '../comms/CommsContext'
 import { RoomSection } from '../comms/RoomSection'
-import { InboxBellItem, PresenceStatusItem } from '../comms/StatusItems'
+import { FormInboxItem, InboxBellItem, PresenceStatusItem } from '../comms/StatusItems'
 import { Workbench } from '../workbench/Workbench'
 
 export const Route = createRootRoute({
@@ -25,6 +25,7 @@ function RootLayout() {
         <RoomSection />
         <InboxBellItem />
         <PresenceStatusItem />
+        <FormInboxItem />
         <Workbench>
           <Outlet />
         </Workbench>

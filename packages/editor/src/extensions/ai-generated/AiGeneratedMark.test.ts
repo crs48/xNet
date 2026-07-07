@@ -6,7 +6,7 @@
 import { Editor } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
 import { describe, expect, it } from 'vitest'
-import { AiGeneratedMark, aiGeneratedTitle } from './AiGeneratedMark'
+import { AiGeneratedMark, aiGeneratedRanges, aiGeneratedTitle } from './AiGeneratedMark'
 
 function makeEditor(content = '<p>hello world</p>'): Editor {
   return new Editor({
@@ -79,6 +79,22 @@ describe('AiGeneratedMark', () => {
     editor.commands.setTextSelection({ from: 1, to: 6 })
     editor.commands.unsetAiGenerated()
     expect(aiMarkAttrs(editor)).toBeNull()
+    editor.destroy()
+  })
+
+  it('regenerate primitive: deletes ONLY AI spans, keeping user text (0279)', () => {
+    // User bullets + an enhanced block the AI appended (marked spans).
+    const editor = makeEditor(
+      '<p>my notes</p><p><span data-ai-generated data-assist-mode="draft">ai summary</span></p>'
+    )
+    expect(aiGeneratedRanges(editor.state.doc)).toHaveLength(1)
+
+    editor.commands.deleteAiGeneratedRanges()
+
+    expect(editor.getText().trim()).toBe('my notes')
+    expect(aiGeneratedRanges(editor.state.doc)).toHaveLength(0)
+    // Nothing left to delete → returns false, doc untouched.
+    expect(editor.commands.deleteAiGeneratedRanges()).toBe(false)
     editor.destroy()
   })
 

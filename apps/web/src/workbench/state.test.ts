@@ -358,15 +358,15 @@ describe('foreign-tab migration (0280 v3)', () => {
                 preview: false
               },
               {
-                id: 'meetings:m1',
+                id: 'martian:m1',
                 nodeId: 'm1',
-                nodeType: 'meetings',
+                nodeType: 'martian-view',
                 title: '',
                 pinned: false,
                 preview: false
               }
             ],
-            activeTabId: 'meetings:m1'
+            activeTabId: 'martian:m1'
           }
         ]
       },

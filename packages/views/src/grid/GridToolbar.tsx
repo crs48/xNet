@@ -96,6 +96,13 @@ export interface GridToolbarProps {
   activeViewId?: string
   onSelectView?: (viewId: string) => void
   onAddView?: () => void
+  /**
+   * When provided, the add-view button opens a type picker with these
+   * entries instead of calling `onAddView` directly (exploration 0278:
+   * shells that support more than table views pass e.g. table + form).
+   */
+  addViewTypes?: Array<{ type: ViewType; label: string }>
+  onAddViewOfType?: (type: ViewType) => void
 
   fields: GridField[]
   /** Fields hidden in the active view */
@@ -128,13 +135,77 @@ export interface GridToolbarProps {
   className?: string
 }
 
-type Popover = 'filter' | 'visibility' | 'group' | 'rowHeight' | 'more' | null
+type Popover = 'filter' | 'visibility' | 'group' | 'rowHeight' | 'more' | 'addView' | null
+
+/**
+ * Add-view button (exploration 0278): with `addViewTypes` it opens a type
+ * picker (Table / Form / …); without, it keeps the legacy direct-add
+ * behaviour. Extracted so the toolbar shell stays flat.
+ */
+function AddViewButton({
+  onAddView,
+  addViewTypes,
+  onAddViewOfType,
+  open,
+  popoverRef,
+  onToggle,
+  onClose
+}: {
+  onAddView?: () => void
+  addViewTypes?: Array<{ type: ViewType; label: string }>
+  onAddViewOfType?: (type: ViewType) => void
+  open: boolean
+  popoverRef: React.RefObject<HTMLDivElement>
+  onToggle: () => void
+  onClose: () => void
+}): React.JSX.Element | null {
+  const hasMenu = Boolean(addViewTypes && onAddViewOfType)
+  if (!onAddView && !hasMenu) return null
+  return (
+    <span className="relative">
+      <button
+        type="button"
+        aria-label="Add view"
+        title="Add a view"
+        className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+        onClick={hasMenu ? onToggle : onAddView}
+      >
+        <Plus className="w-3.5 h-3.5" />
+      </button>
+      {open && hasMenu && (
+        <div
+          ref={popoverRef}
+          role="menu"
+          aria-label="View type"
+          className="absolute left-0 top-full z-50 mt-1 w-36 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-xl p-1"
+        >
+          {addViewTypes!.map((entry) => (
+            <button
+              key={entry.type}
+              type="button"
+              role="menuitem"
+              className="w-full px-2 py-1 text-left text-xs rounded hover:bg-gray-50 dark:hover:bg-gray-800"
+              onClick={() => {
+                onClose()
+                onAddViewOfType!(entry.type)
+              }}
+            >
+              {entry.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </span>
+  )
+}
 
 export function GridToolbar({
   views,
   activeViewId,
   onSelectView,
   onAddView,
+  addViewTypes,
+  onAddViewOfType,
   fields,
   hiddenFieldIds = [],
   onToggleFieldVisible,
@@ -215,17 +286,15 @@ export function GridToolbar({
             {view.name}
           </button>
         ))}
-        {onAddView && (
-          <button
-            type="button"
-            aria-label="Add view"
-            title="Add a view"
-            className="p-1 rounded text-gray-400 hover:text-gray-600 hover:bg-gray-50 dark:hover:bg-gray-800/50"
-            onClick={onAddView}
-          >
-            <Plus className="w-3.5 h-3.5" />
-          </button>
-        )}
+        <AddViewButton
+          onAddView={onAddView}
+          addViewTypes={addViewTypes}
+          onAddViewOfType={onAddViewOfType}
+          open={openPopover === 'addView'}
+          popoverRef={popoverRef}
+          onToggle={() => setOpenPopover(openPopover === 'addView' ? null : 'addView')}
+          onClose={() => setOpenPopover(null)}
+        />
       </div>
 
       <div className="flex-1" />

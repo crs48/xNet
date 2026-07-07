@@ -1,9 +1,9 @@
 /**
  * Electron main process entry point
  */
+import { appendFileSync } from 'fs'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { appendFileSync } from 'fs'
 import { app, BrowserWindow } from 'electron'
 import { setupAgentBridgeIPC, startAgentBridge, stopAgentBridge } from './agent-bridge-manager'
 import { setupCloudflareTunnelIPC, stopCloudflareTunnel } from './cloudflare-tunnel-ipc'
@@ -16,6 +16,7 @@ import {
 import { parseConnectDeepLink, type CloudConnectPayload } from './deep-link'
 import { setupIPC, getOrCreateStorage } from './ipc'
 import { startLocalAPI, stopLocalAPI, setupLocalAPIIPC } from './local-api'
+import { setupMeetingCaptureIPC } from './meeting-capture-ipc'
 import { createMenu } from './menu'
 import { dataPath, profile } from './profile'
 import { setupServiceIPC, cleanupServices } from './service-ipc'
@@ -28,6 +29,17 @@ import { initAutoUpdater } from './updater'
 if (process.env.NODE_ENV === 'development') {
   const cdpPort = process.env.ELECTRON_CDP_PORT || '9223'
   app.commandLine.appendSwitch('remote-debugging-port', cdpPort)
+}
+
+// macOS system-audio loopback for meeting capture (exploration 0279):
+// Chromium gates mac loopback behind feature flags. Phase-1 path; the
+// production route is the phase-3 Core Audio tap helper. Must be set before
+// app ready.
+if (process.platform === 'darwin') {
+  app.commandLine.appendSwitch(
+    'enable-features',
+    'MacLoopbackAudioForScreenShare,MacSckSystemAudioLoopbackOverride'
+  )
 }
 
 // ESM __dirname shim (electron-vite outputs ESM)
@@ -284,6 +296,9 @@ app.whenReady().then(async () => {
 
   // Setup local social import IPC handlers
   setupSocialImportIPC(() => mainWindow)
+
+  // Setup meeting capture IPC (system-audio loopback + native STT engines)
+  setupMeetingCaptureIPC()
 
   // Setup Cloudflare tunnel IPC handlers
   cleanupTunnelIPC = setupCloudflareTunnelIPC()

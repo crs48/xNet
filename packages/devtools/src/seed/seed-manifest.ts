@@ -30,6 +30,7 @@ import { crmSeeder } from './seeders/crm'
 import { databaseSeeder } from './seeders/database'
 import { docsSeeder } from './seeders/docs'
 import { integrationSeeder } from './seeders/integration'
+import { meetingsSeeder } from './seeders/meetings'
 import { metricsSeeder } from './seeders/metrics'
 import { spacesSeeder } from './seeders/spaces'
 import { vizSeeder } from './seeders/viz'
@@ -41,6 +42,7 @@ export const SEEDERS: readonly SeederModule[] = [
   spacesSeeder,
   workSeeder,
   docsSeeder,
+  meetingsSeeder,
   databaseSeeder,
   vizSeeder,
   commsSeeder,

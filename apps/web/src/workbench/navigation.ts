@@ -31,6 +31,9 @@ export function navigateToNode(navigate: Navigate, nodeType: TabNodeType, nodeId
     case 'tasks':
       void navigate({ to: '/tasks' })
       break
+    case 'meetings':
+      void navigate({ to: '/meetings' })
+      break
     case 'data':
       void navigate({ to: '/data' })
       break

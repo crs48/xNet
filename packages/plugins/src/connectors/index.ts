@@ -46,6 +46,15 @@ export type { SlackConnectorOptions } from './slack-migration'
 // Integration connectors (exploration 0213)
 export { buildRssConnector, parseFeed, RSS_CONNECTOR_ID, FEED_ITEM_SCHEMA } from './rss'
 export type { RssConnectorOptions, FeedEntry } from './rss'
+// Meeting detection from the calendar (exploration 0279)
+export {
+  buildGoogleCalendarConnector,
+  detectUpcomingMeeting,
+  attendeeNames,
+  GOOGLE_CALENDAR_CONNECTOR_ID,
+  MEETING_SCHEMA
+} from './calendar'
+export type { GoogleCalendarConnectorOptions, GoogleCalendarEvent } from './calendar'
 export {
   buildGithubConnector,
   buildNotionConnector,

@@ -1,5 +1,55 @@
 # @xnetjs/data
 
+## 0.5.0
+
+### Minor Changes
+
+- [#407](https://github.com/crs48/xNet/pull/407) [`bc6a088`](https://github.com/crs48/xNet/commit/bc6a088bf778e7126f305ea5af7c54764074de3c) Thanks [@crs48](https://github.com/crs48)! - Botless meeting transcription foundations (exploration 0279).
+
+  `@xnetjs/data`: new `Meeting@1.0.0` (Yjs notes body, Page-like, private by default) and `MeetingTranscript@1.0.0` (channel-attributed timed segments, FTS full text, engine provenance, opt-in audio blob reference) schemas, plus `MeetingSegment`/`MeetingChannel`/`MeetingTemplateId` types.
+
+  `@xnetjs/plugins`: new `systemAudio` module capability (closed by default; gates desktop system-audio capture, renders as a danger consent line) with `isSystemAudioAllowed`/`assertSystemAudio` guards, and a Google Calendar connector (`buildGoogleCalendarConnector`, `detectUpcomingMeeting`) that materializes upcoming events as Meeting nodes.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/storage@0.5.0
+  - @xnetjs/sqlite@0.5.0
+  - @xnetjs/sync@0.5.0
+  - @xnetjs/identity@0.5.0
+  - @xnetjs/crypto@0.5.0
+  - @xnetjs/core@0.5.0
+
+## 0.4.0
+
+### Minor Changes
+
+- [#405](https://github.com/crs48/xNet/pull/405) [`e245a3c`](https://github.com/crs48/xNet/commit/e245a3c792d4e8aa70280c9b9f0f96c213204204) Thanks [@crs48](https://github.com/crs48)! - Add the form view foundation (exploration 0278). `@xnetjs/data` gains a
+  `'form'` DatabaseView type with `formConfig`/`formRules`/`formAccepting`
+  properties, a `submissionMeta` provenance property on DatabaseRow, and a
+  UI-free form core (`FormViewConfig`, `FormFieldRule`, `visibleFormQuestions`,
+  `validateFormSubmission`, `isFormFieldTypeAllowed`,
+  `PUBLIC_SAFE_FORM_FIELD_TYPES`) whose show-if rules evaluate through the
+  existing filter engine. `@xnetjs/react`'s `useGridDatabase` exposes the form
+  view model plus `setFormConfig`/`setFormRules`/`setFormAccepting`, and
+  `addRow` accepts `AddRowOptions` (`id` for deterministic/idempotent row ids,
+  `meta` for submission provenance).
+
+  For public forms, `@xnetjs/data` also gains `buildPublicFormDefinition`
+  (the sanitized snapshot the hub serves to anonymous respondents),
+  `submissionRowId` (deterministic drain-time row ids from the submission
+  nonce), and `createRow` now accepts `id`/`submissionMeta`.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/storage@0.4.0
+  - @xnetjs/sqlite@0.4.0
+  - @xnetjs/sync@0.4.0
+  - @xnetjs/identity@0.4.0
+  - @xnetjs/crypto@0.4.0
+  - @xnetjs/core@0.4.0
+
 ## 0.3.0
 
 ### Patch Changes

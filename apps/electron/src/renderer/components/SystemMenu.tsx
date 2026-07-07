@@ -11,6 +11,7 @@ import {
   Ellipsis,
   Import as ImportIcon,
   Layers3,
+  Mic,
   Monitor,
   Moon,
   Settings,
@@ -30,6 +31,7 @@ interface SystemMenuProps {
   onOpenDocument: (docId: string) => void
   onOpenSettings: () => void
   onOpenDataWorkspace: () => void
+  onOpenMeetings: () => void
   onOpenSocialImport: () => void
   onOpenStories?: () => void
   onAddShared: () => void
@@ -74,6 +76,7 @@ export function SystemMenu({
   onOpenDocument,
   onOpenSettings,
   onOpenDataWorkspace,
+  onOpenMeetings,
   onOpenSocialImport,
   onOpenStories,
   onAddShared,
@@ -117,6 +120,12 @@ export function SystemMenu({
         <span className="flex items-center gap-2">
           <Database size={14} />
           Data Workspace
+        </span>
+      </MenuItem>
+      <MenuItem onSelect={onOpenMeetings}>
+        <span className="flex items-center gap-2">
+          <Mic size={14} />
+          Meetings
         </span>
       </MenuItem>
       <MenuItem onSelect={onOpenSocialImport}>

@@ -300,6 +300,18 @@ export {
   type SchemaFormProps
 } from './form/index.js'
 
+// Form view (exploration 0278): database-as-form; submissions become rows
+export {
+  FormBuilder,
+  FormFillView,
+  FormView,
+  formFieldsToColumns,
+  EMPTY_FORM_CONFIG,
+  type FormBuilderProps,
+  type FormFillViewProps,
+  type FormViewProps
+} from './form-view/index.js'
+
 // Shared Data Workspace core (exploration 0276): the saved-view / graph-atlas
 // workspace surface both the web and desktop DataWorkspaceViews consume.
 export {
@@ -385,3 +397,38 @@ export {
   type UseCanvasViewControllerOptions,
   type UseCanvasViewControllerResult
 } from './canvas-view/index.js'
+
+// Shared meeting recorder core (exploration 0279): the botless meeting
+// capture/list/detail/settings surfaces both the web and desktop apps consume.
+export {
+  IpcDictationEngine,
+  MEETINGS_CONSENT_STORAGE_KEY,
+  MEETINGS_STORAGE_KEYS,
+  MeetingDetailView,
+  MeetingEngineSettings,
+  MeetingRecorderView,
+  MeetingsListView,
+  MeetingTranscriptChat,
+  appendAiNotesToDoc,
+  appendMarkdownToDoc,
+  buildMeetingEngineRegistry,
+  describeCapturePreflight,
+  extractDocText,
+  getCapturePreflight,
+  getMeetingsBridge,
+  readMeetingConsentSettings,
+  readMeetingEnginePrefs,
+  startMicCapture,
+  startSystemCapture,
+  writeMeetingConsentSettings,
+  writeMeetingEnginePref,
+  type CapturePreflight,
+  type MeetingDetailViewProps,
+  type MeetingRecorderViewProps,
+  type MeetingsBridge,
+  type MeetingsBridgeEngine,
+  type MeetingsCaptureStatus,
+  type MeetingsListViewProps,
+  type MeetingsPermissions,
+  type MeetingTranscriptChatProps
+} from './meeting-recorder/index.js'

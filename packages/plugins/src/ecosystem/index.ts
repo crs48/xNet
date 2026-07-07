@@ -13,8 +13,10 @@ export {
   isSchemaWriteAllowed,
   isSchemaReadAllowed,
   isNetworkAllowed,
+  isSystemAudioAllowed,
   assertSchemaWrite,
   assertNetwork,
+  assertSystemAudio,
   guardStore
 } from './capability-guard'
 

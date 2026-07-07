@@ -8,7 +8,9 @@
 import React from 'react'
 import { BoardView } from './board/BoardView.js'
 import { CalendarView } from './calendar/CalendarView.js'
+import { FormFillView } from './form-view/FormFillView.js'
 import { GalleryView } from './gallery/GalleryView.js'
+import { schemaToGridFields } from './grid/schema-to-grid-fields.js'
 import { ListView } from './list/ListView.js'
 import { viewRegistry, type ViewProps, type ViewRegistration } from './registry.js'
 import { TableView } from './table/TableView.js'
@@ -88,6 +90,33 @@ function CalendarViewAdapter(props: ViewProps): React.JSX.Element {
     onUpdateView: props.onUpdateView,
     onEventClick: props.onRowClick,
     onDateClick: props.onCreateRow ? (_date: Date) => props.onCreateRow?.() : undefined,
+    className: props.className
+  })
+}
+
+/**
+ * Form view adapter (exploration 0278). The registry path derives questions
+ * from the view's visible properties (or every field when unset); submissions
+ * go through the standard `onCreateRow(properties)` seam. Database shells use
+ * the richer `FormView` directly with per-view `formConfig`.
+ */
+function FormViewAdapter(props: ViewProps): React.JSX.Element {
+  const fields = schemaToGridFields(props.schema)
+  const asked =
+    props.view.visibleProperties.length > 0
+      ? fields.filter((f) => props.view.visibleProperties.includes(f.id))
+      : fields
+  return React.createElement(FormFillView, {
+    fields,
+    config: {
+      title: props.view.name,
+      questions: asked.map((f) => ({ fieldId: f.id }))
+    },
+    audience: 'workspace',
+    onSubmit: async (cells) => {
+      props.onCreateRow?.(cells)
+      return true
+    },
     className: props.className
   })
 }
@@ -234,6 +263,14 @@ const builtinViews: ViewRegistration[] = [
     icon: 'list',
     component: ListViewAdapter,
     description: 'Simple list with checkbox support',
+    configFields: []
+  },
+  {
+    type: 'form',
+    name: 'Form',
+    icon: 'clipboard-list',
+    component: FormViewAdapter,
+    description: 'Collect responses as new rows',
     configFields: []
   }
 ]

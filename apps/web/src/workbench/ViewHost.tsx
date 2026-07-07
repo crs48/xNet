@@ -19,6 +19,7 @@ import { ExperimentsView } from '../components/experiments/ExperimentsView'
 import { FinanceView } from '../components/finance/FinanceView'
 import { LabView } from '../components/LabView'
 import { MapView } from '../components/MapView'
+import { MeetingsView } from '../components/MeetingsView'
 import { PageView } from '../components/PageView'
 import { PersonView } from '../components/PersonView'
 import { SpaceHomeView } from '../components/SpaceHomeView'
@@ -37,6 +38,7 @@ const HOSTED_VIEWS: Record<TabNodeType, ComponentType<{ nodeId: string }>> = {
     </div>
   ),
   tasks: () => <TasksView />,
+  meetings: () => <MeetingsView />,
   data: () => <DataWorkspaceView />,
   experiments: () => <ExperimentsView />,
   crm: () => <CrmView />,
