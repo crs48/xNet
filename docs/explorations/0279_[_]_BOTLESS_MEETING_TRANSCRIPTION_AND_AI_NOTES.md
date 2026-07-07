@@ -759,7 +759,7 @@ for await (const chunk of stream) {
 - [x] Degraded modes: web build on Safari (mic-only) and Chrome (tab audio)
       state their capture scope in the UI; system-audio denial mid-setup
       lands in mic-only mode, not an error
-- [ ] Seed coverage test green with `meetingsSeeder`; fallow gate green;
+- [x] Seed coverage test green with `meetingsSeeder`; fallow gate green;
       changesets present for all publishable packages touched
 
 ## References
