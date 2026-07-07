@@ -9,7 +9,7 @@
  */
 import { useNavigate } from '@tanstack/react-router'
 import { getNodeTransfer, hasNodeTransfer, setNodeTransfer, type NodeTransfer } from '@xnetjs/ui'
-import { Pin, X } from 'lucide-react'
+import { FileText, Pin, X } from 'lucide-react'
 import { useState } from 'react'
 import { navigateToNode } from './navigation'
 import { useWorkbench, type EditorGroup, type TabNodeType, type WorkbenchTab } from './state'
@@ -144,7 +144,8 @@ function TabItem({
 }) {
   const navigate = useNavigate()
   const [dropEdge, setDropEdge] = useState<'before' | 'after' | null>(null)
-  const Icon = TAB_VIEWS[tab.nodeType].icon
+  // Defensive: a tab persisted by a newer/other build must render, not crash.
+  const Icon = TAB_VIEWS[tab.nodeType]?.icon ?? FileText
 
   const activate = () => {
     const state = useWorkbench.getState()

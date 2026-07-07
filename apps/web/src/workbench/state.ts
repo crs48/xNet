@@ -60,23 +60,27 @@ export type ChromePosture = 'pinned' | 'quiet'
  */
 export type DiscloseLevel = 0 | 1 | 2
 
-export type TabNodeType =
-  | 'page'
-  | 'database'
-  | 'canvas'
-  | 'dashboard'
-  | 'map'
-  | 'savedview'
-  | 'tasks'
-  | 'data'
-  | 'experiments'
-  | 'crm'
-  | 'finance'
-  | 'channel'
-  | 'tag'
-  | 'person'
-  | 'lab'
-  | 'space'
+/** Runtime list backing {@link TabNodeType} (migration filters against it). */
+export const TAB_NODE_TYPES = [
+  'page',
+  'database',
+  'canvas',
+  'dashboard',
+  'map',
+  'savedview',
+  'tasks',
+  'data',
+  'experiments',
+  'crm',
+  'finance',
+  'channel',
+  'tag',
+  'person',
+  'lab',
+  'space'
+] as const
+
+export type TabNodeType = (typeof TAB_NODE_TYPES)[number]
 
 export interface WorkbenchTab {
   /** `${nodeType}:${nodeId}` — stable across sessions */
@@ -766,13 +770,30 @@ export const useWorkbench = create<WorkbenchState>()(
       // v2 (0280): the layout tree joins the persisted state. Pre-tree
       // profiles derive their tree from the legacy `layout`/`chrome` axes so
       // panels, pins, shelf and startup node all survive the migration.
-      version: 2,
+      version: 3,
       migrate: (persisted, version) => {
         const state = persisted as Partial<WorkbenchState>
         if (version < 2 && !state.tree) {
           state.tree = createPresetTree(
             state.layout === 'workbench' ? 'bench' : state.chrome === 'quiet' ? 'quiet' : 'calm'
           )
+        }
+        // v3 (0280): drop tabs whose nodeType this build doesn't know — a
+        // profile shared with another branch/version must never crash the
+        // shell (the meetings-tab incident during 0280 validation).
+        if (version < 3 && Array.isArray(state.groups)) {
+          state.groups = state.groups.map((group) => {
+            const tabs = group.tabs.filter((tab) =>
+              (TAB_NODE_TYPES as readonly string[]).includes(tab.nodeType)
+            )
+            return {
+              ...group,
+              tabs,
+              activeTabId: tabs.some((tab) => tab.id === group.activeTabId)
+                ? group.activeTabId
+                : (tabs[0]?.id ?? null)
+            }
+          })
         }
         return state as WorkbenchState
       },

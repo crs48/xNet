@@ -101,7 +101,8 @@ export function tabFromPathname(pathname: string): RouteTabDescriptor | null {
 }
 
 export function routeForTab(nodeType: TabNodeType, nodeId: string): string {
-  return TAB_VIEWS[nodeType].toRoute(nodeId)
+  // Defensive: an unknown persisted nodeType routes home instead of crashing.
+  return TAB_VIEWS[nodeType]?.toRoute(nodeId) ?? '/'
 }
 
 /**

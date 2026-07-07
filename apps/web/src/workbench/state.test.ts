@@ -339,3 +339,40 @@ describe('layout tree (0280)', () => {
     expect(quiet?.tree?.workspaceId).toBe(presetWorkspaceId('quiet'))
   })
 })
+
+describe('foreign-tab migration (0280 v3)', () => {
+  it('drops tabs with unknown nodeTypes and repairs activeTabId', () => {
+    const migrate = useWorkbench.persist.getOptions().migrate
+    const migrated = migrate?.(
+      {
+        groups: [
+          {
+            id: 'group-1',
+            tabs: [
+              {
+                id: 'canvas:c1',
+                nodeId: 'c1',
+                nodeType: 'canvas',
+                title: '',
+                pinned: false,
+                preview: false
+              },
+              {
+                id: 'meetings:m1',
+                nodeId: 'm1',
+                nodeType: 'meetings',
+                title: '',
+                pinned: false,
+                preview: false
+              }
+            ],
+            activeTabId: 'meetings:m1'
+          }
+        ]
+      },
+      2
+    ) as { groups: Array<{ tabs: Array<{ id: string }>; activeTabId: string | null }> }
+    expect(migrated.groups[0].tabs.map((tab) => tab.id)).toEqual(['canvas:c1'])
+    expect(migrated.groups[0].activeTabId).toBe('canvas:c1')
+  })
+})

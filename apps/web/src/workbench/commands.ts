@@ -118,7 +118,7 @@ export function useShellEscape(): void {
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
       if (event.key !== 'Escape' || event.defaultPrevented) return
-      const target = event.target as HTMLElement | null
+      const target = event.target instanceof HTMLElement ? event.target : null
       if (
         target &&
         (target.closest('input, textarea, [contenteditable="true"]') || target.isContentEditable)
