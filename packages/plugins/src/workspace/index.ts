@@ -1,7 +1,7 @@
 /**
- * LayoutTree (0280) — canonical module lives in @xnetjs/plugins
- * (`workspace/layout-tree`), shared with the seed and the desktop shell.
- * This shim keeps the workbench's local import paths stable.
+ * Workspace layout primitives (exploration 0280): the layout tree, its
+ * preset fixtures, pure tree operations, and the portable workspace
+ * payload (de)serialization shared by web, desktop and the seed.
  */
 export {
   createPresetTree,
@@ -18,7 +18,7 @@ export {
   serializeWorkspacePayload,
   setSlotTier,
   slotsIn
-} from '@xnetjs/plugins'
+} from './layout-tree'
 export type {
   ChromePosture,
   LayoutTree,
@@ -27,4 +27,4 @@ export type {
   SlotPlacement,
   SlotTier,
   WorkspacePayload
-} from '@xnetjs/plugins'
+} from './layout-tree'

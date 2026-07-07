@@ -647,13 +647,13 @@ registerCommand({
 
 ### Phase 3 — Workspaces as nodes
 
-- [ ] `xnet:workspace` schema (portable payload only) + registration; seed
+- [x] `xnet:workspace` schema (portable payload only) + registration; seed
       the three presets as system workspaces (Tier-1 seeder in
       `packages/devtools/src/seed/seeders/`)
-- [ ] Save/Switch/Share/Reset commands + quick switcher UI
-- [ ] Device-local size store keyed by workspace id (unsynced)
-- [ ] Round-trip test: preset → node → tree → identical render
-- [ ] Changesets for `data`/`views`/`plugins` surface changes (fixed-core
+- [x] Save/Switch/Share/Reset commands + quick switcher UI
+- [x] Device-local size store keyed by workspace id (unsynced)
+- [x] Round-trip test: preset → node → tree → identical render
+- [x] Changesets for `data`/`views`/`plugins` surface changes (fixed-core
       lockstep)
 
 ### Phase 4 — Customization slope polish

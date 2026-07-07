@@ -31,6 +31,7 @@ import { useWorkbench } from './state'
 import { StatusBar } from './StatusBar'
 import { useIsCompact } from './use-layout-mode'
 import { registerBuiltinPanelViews } from './views/register'
+import { WorkspaceSwitcher } from './WorkspaceSwitcher'
 
 registerBuiltinPanelViews()
 
@@ -148,6 +149,8 @@ export function Workbench({ children }: { children: ReactNode }) {
       ) : (
         <DesktopWorkbench>{children}</DesktopWorkbench>
       )}
+      {/* Workspace quick switcher + verbs (0280) — commands exist in every shell. */}
+      <WorkspaceSwitcher />
       {/* First-run coachmarks (0206) — portals to <body>, so position here is moot. */}
       <CoachmarkLayer />
       {/* Opt-in "time well spent" wind-down (Charter §Calm, 0234); off by default. */}

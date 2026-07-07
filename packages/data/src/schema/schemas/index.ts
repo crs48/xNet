@@ -265,6 +265,7 @@ export {
   type LedgerNodeIntent
 } from './account-ledger-ops'
 export { SavedViewSchema, type SavedView } from './saved-view'
+export { WorkspaceSchema, type Workspace, type WorkspaceTreeJson } from './workspace'
 export {
   UserWidgetSchema,
   type UserWidget,
@@ -522,6 +523,7 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/RevocationRecord@1.0.0': () =>
     import('./account-ledger').then((m) => m.RevocationRecordSchema),
   'xnet://xnet.fyi/SavedView@1.0.0': () => import('./saved-view').then((m) => m.SavedViewSchema),
+  'xnet://xnet.fyi/Workspace@1.0.0': () => import('./workspace').then((m) => m.WorkspaceSchema),
   'xnet://xnet.fyi/Dashboard@1.0.0': () => import('./dashboard').then((m) => m.DashboardSchema),
   'xnet://xnet.fyi/UserWidget@1.0.0': () => import('./user-widget').then((m) => m.UserWidgetSchema),
   'xnet://xnet.fyi/SchemaDefinition@1.0.0': () =>
@@ -630,6 +632,7 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/RevocationRecord': () =>
     import('./account-ledger').then((m) => m.RevocationRecordSchema),
   'xnet://xnet.fyi/SavedView': () => import('./saved-view').then((m) => m.SavedViewSchema),
+  'xnet://xnet.fyi/Workspace': () => import('./workspace').then((m) => m.WorkspaceSchema),
   'xnet://xnet.fyi/Dashboard': () => import('./dashboard').then((m) => m.DashboardSchema),
   'xnet://xnet.fyi/UserWidget': () => import('./user-widget').then((m) => m.UserWidgetSchema),
   'xnet://xnet.fyi/SchemaDefinition': () =>

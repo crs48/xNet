@@ -86,6 +86,33 @@ export type {
 } from './contributions'
 export { TypedRegistry, ContributionRegistry } from './contributions'
 
+// Workspace layout primitives (exploration 0280) — one grouped block
+export {
+  createPresetTree,
+  moveSlot,
+  parseWorkspacePayload,
+  placementOf,
+  PRESET_IDS,
+  PRESET_WORKSPACE_ID_PREFIX,
+  isPresetWorkspaceId,
+  presetForWorkspaceId,
+  presetWorkspaceId,
+  REGION_IDS,
+  regionOf,
+  serializeWorkspacePayload,
+  setSlotTier,
+  slotsIn
+} from './workspace'
+export type {
+  ChromePosture,
+  LayoutTree,
+  PresetId,
+  RegionId,
+  SlotPlacement,
+  SlotTier,
+  WorkspacePayload
+} from './workspace'
+
 // Feature modules (exploration 0189) — the two-sided plugin shape
 export type { FeatureModule, ModuleCapabilities } from './feature-module'
 export { defineFeatureModule } from './feature-module'

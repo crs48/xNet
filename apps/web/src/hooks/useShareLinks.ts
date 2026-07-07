@@ -10,7 +10,15 @@ import { hubApiFetch, normalizeHubHttpUrl } from '../lib/share-links'
 
 // 'space' invites bootstrap Space membership — one link shares the whole Space
 // (exploration 0179).
-export type ShareDocType = 'page' | 'database' | 'canvas' | 'dashboard' | 'view' | 'space'
+export type ShareDocType =
+  | 'page'
+  | 'database'
+  | 'canvas'
+  | 'dashboard'
+  | 'view'
+  | 'space'
+  // Saved shell layouts (exploration 0280) — a bench travels like a node.
+  | 'workspace'
 export type ShareRole = 'read' | 'comment' | 'write'
 
 export type ShareLink = {
