@@ -12,7 +12,8 @@
  */
 
 import type { EngineDescriptor } from '@xnetjs/dictation'
-import { SettingRow, SettingsGroup, SettingsPanel } from '@xnetjs/ui'
+import type { MeetingConsentSettings } from '@xnetjs/meetings'
+import { SettingRow, SettingsGroup, SettingsPanel, SettingToggle } from '@xnetjs/ui'
 import { Check, Cpu, Download, Loader2 } from 'lucide-react'
 import { useCallback, useEffect, useState, type JSX } from 'react'
 import {
@@ -20,6 +21,7 @@ import {
   readMeetingEnginePrefs,
   writeMeetingEnginePref
 } from './capture/registry.js'
+import { readMeetingConsentSettings, writeMeetingConsentSettings } from './consent.js'
 
 interface EngineRowState {
   descriptor: EngineDescriptor
@@ -216,6 +218,77 @@ export function MeetingEngineSettings(): JSX.Element {
           />
         </SettingRow>
       </SettingsGroup>
+
+      <ConsentRetentionSettings />
     </SettingsPanel>
+  )
+}
+
+/**
+ * Recording consent + retention (0279 phase 3). Semantics live in
+ * @xnetjs/meetings (`consentAnnouncement`, `isTranscriptExpired`); this block
+ * only edits the persisted `MeetingConsentSettings`. Audio retention is
+ * opt-in and labelled as such — audio is NEVER kept unless this is on.
+ */
+function ConsentRetentionSettings(): JSX.Element {
+  const [settings, setSettings] = useState<MeetingConsentSettings>(() =>
+    readMeetingConsentSettings()
+  )
+
+  const apply = useCallback((changes: Partial<MeetingConsentSettings>) => {
+    setSettings((previous) => {
+      const next = { ...previous, ...changes }
+      writeMeetingConsentSettings(next)
+      return next
+    })
+  }, [])
+
+  return (
+    <SettingsGroup
+      label="Recording consent & retention"
+      description="Botless capture plays no recording chime — announcing it is on you. Retention limits how long transcripts stay."
+    >
+      <SettingToggle
+        label="Consent announcement"
+        description="Show the announcement at capture start, ready to copy into the meeting chat"
+        checked={settings.autoConsentMessage}
+        onChange={(checked) => apply({ autoConsentMessage: checked })}
+      />
+      {settings.autoConsentMessage ? (
+        <SettingRow label="Announcement text">
+          <textarea
+            className="h-16 w-72 resize-none rounded-md border border-border bg-background px-2.5 py-1.5 text-xs text-foreground outline-none placeholder:text-muted-foreground"
+            value={settings.consentMessageText}
+            onChange={(event) => apply({ consentMessageText: event.target.value })}
+            data-meeting-consent-text="true"
+          />
+        </SettingRow>
+      ) : null}
+      <SettingRow
+        label="Transcript retention"
+        description="Days to keep transcripts; 0 keeps them until you delete them"
+      >
+        <input
+          type="number"
+          min={0}
+          step={1}
+          className="w-24 rounded-md border border-border bg-background px-2.5 py-1 text-right font-mono text-xs text-foreground outline-none"
+          value={settings.transcriptRetentionDays}
+          onChange={(event) => {
+            const parsed = Number.parseInt(event.target.value, 10)
+            apply({
+              transcriptRetentionDays: Number.isFinite(parsed) ? Math.max(0, parsed) : 0
+            })
+          }}
+          data-meeting-retention-days="true"
+        />
+      </SettingRow>
+      <SettingToggle
+        label="Keep source audio (opt-in)"
+        description="Off by default: audio is never stored. Turning this on keeps recordings as local blobs alongside the transcript."
+        checked={settings.retainAudio}
+        onChange={(checked) => apply({ retainAudio: checked })}
+      />
+    </SettingsGroup>
   )
 }

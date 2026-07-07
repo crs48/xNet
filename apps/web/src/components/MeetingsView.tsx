@@ -60,6 +60,7 @@ export function MeetingsView({
           className="min-h-0 flex-1"
           meetingId={openMeetingId}
           renderNotes={({ doc }) => <Editor doc={doc} className="min-h-full" />}
+          resolveAiProvider={resolveMeetingAiProvider}
         />
       </div>
     )

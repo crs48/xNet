@@ -8,12 +8,15 @@
  */
 
 import type { MeetingSegment } from '@xnetjs/data'
+import type { AIProvider } from '@xnetjs/plugins'
 import type * as Y from 'yjs'
 import { MeetingSchema, MeetingTranscriptSchema } from '@xnetjs/data'
 import { useNode, useQuery } from '@xnetjs/react'
 import { Clock, Mic, Plus } from 'lucide-react'
 import { useMemo, type JSX, type ReactNode } from 'react'
 import { TranscriptSegmentRow } from './components.js'
+import { extractDocText } from './enhance-append.js'
+import { MeetingTranscriptChat } from './MeetingTranscriptChat.js'
 
 function formatDuration(ms: number | undefined): string {
   if (!ms || ms <= 0) return '—'
@@ -129,6 +132,12 @@ export interface MeetingDetailViewProps {
    * notes need the editor surface (transcript still renders).
    */
   renderNotes?: (args: { meetingId: string; doc: Y.Doc }) => ReactNode
+  /**
+   * Platform slot for the transcript chat (0279 phase 2 D3) — same resolver
+   * the recorder's enhancement uses. Absent → the panel is hidden entirely
+   * (the desktop wrapper's current choice while it has no provider wiring).
+   */
+  resolveAiProvider?: () => Promise<AIProvider | null>
   className?: string
 }
 
@@ -136,6 +145,7 @@ export interface MeetingDetailViewProps {
 export function MeetingDetailView({
   meetingId,
   renderNotes,
+  resolveAiProvider,
   className
 }: MeetingDetailViewProps): JSX.Element {
   const { data: meeting, doc, loading, update } = useNode(MeetingSchema, meetingId)
@@ -149,6 +159,10 @@ export function MeetingDetailView({
     () => (Array.isArray(transcript?.segments) ? (transcript.segments as MeetingSegment[]) : []),
     [transcript?.segments]
   )
+
+  // Plain-text notes ground the chat; recomputed per render is fine — the
+  // panel only reads it when a question is asked.
+  const notesText = doc ? extractDocText(doc) : ''
 
   if (loading && !meeting) {
     return (
@@ -195,24 +209,36 @@ export function MeetingDetailView({
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-col gap-1.5">
-          <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            Transcript
-            {transcript?.engineId ? (
-              <span className="ml-2 normal-case tracking-normal text-muted-foreground/80">
-                via {String(transcript.engineId)}
-              </span>
-            ) : null}
-          </span>
-          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto rounded-md border border-border bg-background p-3">
-            {segments.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No transcript for this meeting.</p>
-            ) : (
-              segments.map((segment, index) => (
-                <TranscriptSegmentRow key={`${segment.startMs}-${index}`} segment={segment} />
-              ))
-            )}
+        <div className="flex min-h-0 flex-col gap-3">
+          <div className="flex min-h-0 flex-1 flex-col gap-1.5">
+            <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Transcript
+              {transcript?.engineId ? (
+                <span className="ml-2 normal-case tracking-normal text-muted-foreground/80">
+                  via {String(transcript.engineId)}
+                </span>
+              ) : null}
+            </span>
+            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto rounded-md border border-border bg-background p-3">
+              {segments.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No transcript for this meeting.</p>
+              ) : (
+                segments.map((segment, index) => (
+                  <TranscriptSegmentRow key={`${segment.startMs}-${index}`} segment={segment} />
+                ))
+              )}
+            </div>
           </div>
+
+          {resolveAiProvider && segments.length > 0 ? (
+            <MeetingTranscriptChat
+              className="max-h-[45%] min-h-[180px]"
+              segments={segments}
+              notes={notesText}
+              title={typeof meeting?.title === 'string' ? meeting.title : undefined}
+              resolveAiProvider={resolveAiProvider}
+            />
+          ) : null}
         </div>
       </div>
     </div>

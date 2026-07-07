@@ -6,10 +6,11 @@
  * `MeetingRecorderView`.
  */
 
+import type { CapturePreflight } from './capture/preflight.js'
 import type { MeetingSegment } from '@xnetjs/data'
 import type { MeetingTemplate } from '@xnetjs/meetings'
-import { AlertTriangle, Headphones, Info, MicOff } from 'lucide-react'
-import { useEffect, useRef, type JSX } from 'react'
+import { AlertTriangle, Check, Copy, Headphones, Info, Megaphone, MicOff } from 'lucide-react'
+import { useEffect, useRef, useState, type JSX } from 'react'
 
 // ─── Recording indicator ─────────────────────────────────────────────────────
 
@@ -114,6 +115,76 @@ export function EchoBleedWarning(): JSX.Element {
     >
       <Headphones size={14} className="mt-0.5 shrink-0" />
       <span>Echo detected — far-end audio is leaking into your mic. Wear headphones.</span>
+    </div>
+  )
+}
+
+/**
+ * Permissions pre-flight (0279 permissions UX): the TCC prompt(s) the user is
+ * about to see when they hit Start, and the restart-after-grant explanation
+ * when a permission was previously denied.
+ */
+export function PreflightNotices({ preflight }: { preflight: CapturePreflight }): JSX.Element {
+  return (
+    <div className="flex flex-col gap-2" data-meeting-preflight="true">
+      {preflight.prompts.map((prompt) => (
+        <div
+          key={prompt}
+          className="flex items-start gap-2 rounded-md border border-border bg-secondary/40 px-3 py-2 text-xs text-muted-foreground"
+          data-meeting-preflight-prompt="true"
+        >
+          <Info size={14} className="mt-0.5 shrink-0" />
+          <span>{prompt}</span>
+        </div>
+      ))}
+      {preflight.blocker ? (
+        <div
+          className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-600 dark:text-amber-400"
+          data-meeting-preflight-blocker="true"
+        >
+          <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+          <span>{preflight.blocker}</span>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+/**
+ * The consent announcement (0279 phase 3): botless capture means no platform
+ * plays a "recording started" chime, so the user announces it themselves —
+ * shown prominently at capture start with one-click copy for pasting into the
+ * meeting chat (posting for them would need per-platform integrations).
+ */
+export function ConsentAnnouncementBanner({ message }: { message: string }): JSX.Element {
+  const [copied, setCopied] = useState(false)
+
+  return (
+    <div
+      className="flex items-start gap-2 rounded-md border border-sky-500/40 bg-sky-500/10 px-3 py-2 text-xs text-sky-700 dark:text-sky-300"
+      data-meeting-consent-banner="true"
+    >
+      <Megaphone size={14} className="mt-0.5 shrink-0" />
+      <span className="min-w-0 flex-1">
+        Announce the recording — paste this into the meeting chat: &ldquo;{message}&rdquo;
+      </span>
+      <button
+        type="button"
+        onClick={() => {
+          void navigator.clipboard
+            ?.writeText(message)
+            .then(() => {
+              setCopied(true)
+              window.setTimeout(() => setCopied(false), 2000)
+            })
+            .catch(() => undefined)
+        }}
+        className="inline-flex shrink-0 items-center gap-1 rounded-md border border-sky-500/40 bg-background px-2 py-1 font-medium text-foreground transition-colors hover:bg-secondary"
+        data-meeting-consent-copy="true"
+      >
+        {copied ? <Check size={11} /> : <Copy size={11} />}
+        {copied ? 'Copied' : 'Copy'}
+      </button>
     </div>
   )
 }

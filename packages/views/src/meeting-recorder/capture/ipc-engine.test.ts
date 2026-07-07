@@ -4,44 +4,10 @@
  * on PCM input, and round-trip ensureModel progress over the IPC seam.
  */
 
-import type { MeetingsBridge, MeetingsBridgeEngine } from './bridge'
-import type { ModelDownloadProgress, TranscriptResult } from '@xnetjs/dictation'
+import type { ModelDownloadProgress } from '@xnetjs/dictation'
 import { describe, expect, it, vi } from 'vitest'
 import { IpcDictationEngine } from './ipc-engine'
-
-const PARAKEET: MeetingsBridgeEngine = {
-  id: 'parakeet-sherpa',
-  name: 'NVIDIA Parakeet',
-  languages: ['en'],
-  approxDownloadBytes: 600_000_000,
-  onDevice: true,
-  attribution: 'NVIDIA Parakeet — CC-BY-4.0',
-  ready: false
-}
-
-function fakeBridge(overrides: Partial<MeetingsBridge> = {}): MeetingsBridge {
-  return {
-    captureStatus: vi.fn(async () => ({
-      systemAudioAvailable: true,
-      platform: 'darwin',
-      loopbackArmed: false
-    })),
-    armLoopback: vi.fn(async () => undefined),
-    disarmLoopback: vi.fn(async () => undefined),
-    engines: vi.fn(async () => [PARAKEET]),
-    ensureEngine: vi.fn(async () => undefined),
-    onEngineProgress: vi.fn(() => () => undefined),
-    transcribe: vi.fn(
-      async (): Promise<TranscriptResult> => ({
-        text: 'hello world',
-        durationMs: 1200,
-        engineId: 'parakeet-sherpa',
-        modelId: 'parakeet-tdt-0.6b-v2'
-      })
-    ),
-    ...overrides
-  }
-}
+import { FAKE_PARAKEET as PARAKEET, fakeMeetingsBridge as fakeBridge } from './test-bridge'
 
 describe('IpcDictationEngine', () => {
   it('mirrors the main-process descriptor, attribution included', () => {

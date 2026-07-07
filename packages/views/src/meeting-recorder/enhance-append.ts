@@ -155,3 +155,30 @@ export function appendMarkdownToDoc(
 export function appendAiNotesToDoc(doc: Y.Doc, markdown: string): number {
   return appendMarkdownToDoc(doc, markdown, { aiGenerated: true })
 }
+
+function collectText(node: Y.XmlElement | Y.XmlFragment, lines: string[]): void {
+  let current = ''
+  for (const child of node.toArray()) {
+    if (child instanceof Y.XmlText) {
+      // toDelta() gives raw text runs — toString() would re-embed format tags.
+      for (const op of child.toDelta() as Array<{ insert?: unknown }>) {
+        if (typeof op.insert === 'string') current += op.insert
+      }
+      continue
+    }
+    if (child instanceof Y.XmlElement || child instanceof Y.XmlFragment) {
+      collectText(child, lines)
+    }
+  }
+  if (current.trim()) lines.push(current.trim())
+}
+
+/**
+ * The notes body as plain text (one line per block) — grounding for the
+ * transcript chat. Marks/attributes are dropped; only readable text survives.
+ */
+export function extractDocText(doc: Y.Doc): string {
+  const lines: string[] = []
+  collectText(doc.getXmlFragment(CONTENT_FRAGMENT), lines)
+  return lines.join('\n')
+}

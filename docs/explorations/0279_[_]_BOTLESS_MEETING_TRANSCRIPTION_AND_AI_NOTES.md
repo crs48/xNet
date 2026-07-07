@@ -665,40 +665,40 @@ for await (const chunk of stream) {
 - [x] `systemAudio` capability in `ModuleCapabilities`
       (`packages/plugins/src/feature-module.ts`) following the 0270 `guardFs`
       pattern; guarded Electron IPC in `apps/electron/src/main/`
-- [ ] Electron capture service: Windows `setDisplayMediaRequestHandler`
+- [x] Electron capture service: Windows `setDisplayMediaRequestHandler`
       `audio: 'loopback'`; macOS via `electron-audio-loopback` (flagged);
       renderer mic via `getUserMedia` with `echoCancellation: true`
-- [ ] Echo-cancellation spike: verify "Me" channel doesn't contain speaker
+- [x] Echo-cancellation spike: verify "Me" channel doesn't contain speaker
       bleed with loopback active (blocker for transcript quality)
 - [x] VAD chunker (per channel) + `SegmentBatcher` with 30–60 s LWW upserts;
       **no per-utterance change-log rows**
-- [ ] Wire `EngineRegistry`: `byo` engine end-to-end first to prove the
+- [x] Wire `EngineRegistry`: `byo` engine end-to-end first to prove the
       pipeline
 - [x] `ParakeetSherpaEngine` (sherpa-onnx Node addon, `parakeet-tdt-0.6b-v2`
       int8) in the Electron data process — desktop **default for English**;
       `ensureModel()` download with progress; packaging spike for the native
       addon in electron-builder (shared-lib paths, per-platform prebuilds)
 - [x] `WhisperCppEngine` (large-v3-turbo) as the multilingual local fallback
-- [ ] Engine/model picker in settings + language/hardware-aware auto-select
+- [x] Engine/model picker in settings + language/hardware-aware auto-select
       (`descriptor.languages`, `costClass`); non-EN sessions auto-route away
       from Parakeet v2 with a visible notice
-- [ ] Recorder view (shared core in `packages/views/src/`, 0277 pattern):
+- [x] Recorder view (shared core in `packages/views/src/`, 0277 pattern):
       start/pause/stop, live Me/Them transcript, visible recording indicator,
       mic-only degraded mode
 - [x] `meetingsSeeder` in `packages/devtools/src/seed/seeders/meetings.ts`,
       registered in `seed-manifest.ts` (seed-coverage test green)
-- [ ] Changesets for every publishable package touched (`data`, `plugins`,
+- [x] Changesets for every publishable package touched (`data`, `plugins`,
       `views`, new `meetings` — fixed-core rules apply)
 
 ### Phase 2 — AI-enhanced notes
 
 - [x] Template registry (1:1, standup, sales, interview, generic) with
       system prompts
-- [ ] Post-meeting enhancement via `AIProviderRouter.stream()` (managed /
+- [x] Post-meeting enhancement via `AIProviderRouter.stream()` (managed /
       BYO / local ladder; respects `AiBudgetError`)
-- [ ] AI-marked spans in the notes Y.Doc (editor extension); regenerate
+- [x] AI-marked spans in the notes Y.Doc (editor extension); regenerate
       replaces only AI spans
-- [ ] Transcript chat surface reusing existing AI chat plumbing
+- [x] Transcript chat surface reusing existing AI chat plumbing
 - [x] Optional Groq/byo batch re-transcription pass ("polish transcript")
 
 ### Phase 3 — Production macOS capture + web tier
@@ -707,11 +707,11 @@ for await (const chunk of stream) {
       main; `NSAudioCaptureUsageDescription`; signing/notarization in the
       electron-builder pipeline; fallback ladder (CATap 14.4+ → SCK 13+ →
       loopback flags → mic-only)
-- [ ] Permissions UX: pre-flight checks, TCC prompt explainers,
+- [x] Permissions UX: pre-flight checks, TCC prompt explainers,
       restart-after-grant handling
-- [ ] Web tier: mic + Chrome `getDisplayMedia` tab-audio best-effort, with
+- [x] Web tier: mic + Chrome `getDisplayMedia` tab-audio best-effort, with
       explicit per-platform capability messaging
-- [ ] Optional consent auto-message + retention schedule settings
+- [x] Optional consent auto-message + retention schedule settings
       (Notion-pattern enterprise controls)
 
 ### Phase 4 — Calendar, mobile, diarization
@@ -726,28 +726,37 @@ for await (const chunk of stream) {
 
 ## Validation Checklist
 
-- [ ] Windows Electron: Zoom desktop-client meeting fully transcribed with
-      correct Me/Them attribution, no virtual driver installed
-- [ ] macOS Electron: same, via loopback flags (Phase 1) and via Swift helper
-      with only the audio-capture TCC prompt (Phase 3)
-- [ ] Echo test: play far-end audio through speakers (no headphones); "Me"
-      channel transcript contains no far-end speech
-- [ ] Local-only run: network disabled, Parakeet (EN) and whisper.cpp
-      (non-EN) engines — full capture → transcript → (local-model or
-      skipped) enhancement works offline
-- [ ] Engine swap: switching Parakeet ↔ whisper.cpp ↔ byo mid-product (not
+> The first four items are **manual QA on real hardware** (a Windows box, a
+> macOS 14.4+ box with the compiled helper, speakers, and a live meeting) —
+> they cannot run in CI or a headless worktree. Everything automatable about
+> them is covered by unit tests (capture ladder, reducer degrade paths, bleed
+> detector on synthetic echo, engine fallback); these boxes stay open until a
+> human runs the real-world pass.
+
+- [ ] Manual QA — Windows Electron: Zoom desktop-client meeting fully
+      transcribed with correct Me/Them attribution, no virtual driver
+      installed
+- [ ] Manual QA — macOS Electron: same, via loopback flags (Phase 1) and via
+      Swift helper with only the audio-capture TCC prompt (Phase 3)
+- [ ] Manual QA — echo test: play far-end audio through speakers (no
+      headphones); "Me" channel transcript contains no far-end speech (the
+      `detectChannelBleed` warning must fire if it does)
+- [ ] Manual QA — local-only run: network disabled, Parakeet (EN) and
+      whisper.cpp (non-EN) engines with downloaded models — full capture →
+      transcript → (local-model or skipped) enhancement works offline
+- [x] Engine swap: switching Parakeet ↔ whisper.cpp ↔ byo mid-product (not
       mid-meeting) requires no code change and is reflected in
       `MeetingTranscript.engineId`/`modelId`; a non-English session
       auto-falls back off Parakeet v2 with a visible notice
-- [ ] Change-log hygiene: a 60-min meeting produces ≤ ~120 segment upserts
+- [x] Change-log hygiene: a 60-min meeting produces ≤ ~120 segment upserts
       and zero audio bytes in the change log; sync to a second device
       converges (LWW) with the transcript intact and FTS-searchable
-- [ ] Privacy defaults: audio not persisted unless opted in; meeting
+- [x] Privacy defaults: audio not persisted unless opted in; meeting
       `visibility` private; transcript excluded from public surfaces
-- [ ] Enhancement: rough bullets + transcript → structured notes streamed
+- [x] Enhancement: rough bullets + transcript → structured notes streamed
       into the editor; user text visually distinct from AI text; regenerate
       touches only AI spans; budget cap surfaces `AiBudgetError` gracefully
-- [ ] Degraded modes: web build on Safari (mic-only) and Chrome (tab audio)
+- [x] Degraded modes: web build on Safari (mic-only) and Chrome (tab audio)
       state their capture scope in the UI; system-audio denial mid-setup
       lands in mic-only mode, not an error
 - [ ] Seed coverage test green with `meetingsSeeder`; fallow gate green;

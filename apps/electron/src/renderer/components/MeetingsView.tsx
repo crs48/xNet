@@ -52,6 +52,9 @@ export function MeetingsView({ onClose }: MeetingsViewProps): React.ReactElement
           onCancel={() => setMode({ kind: 'list' })}
         />
       ) : mode.kind === 'detail' ? (
+        // No `resolveAiProvider` yet: the desktop shell has no AI connector
+        // resolution (the web one lives in apps/web), so the transcript chat
+        // panel stays hidden here — same decision as recorder enhancement.
         <MeetingDetailView
           className="min-h-0 flex-1"
           meetingId={mode.meetingId}

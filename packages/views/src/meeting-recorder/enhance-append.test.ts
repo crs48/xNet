@@ -6,7 +6,12 @@
 
 import { describe, expect, it } from 'vitest'
 import * as Y from 'yjs'
-import { appendAiNotesToDoc, appendMarkdownToDoc, parseEnhancedMarkdown } from './enhance-append'
+import {
+  appendAiNotesToDoc,
+  appendMarkdownToDoc,
+  extractDocText,
+  parseEnhancedMarkdown
+} from './enhance-append'
 
 describe('parseEnhancedMarkdown', () => {
   it('parses headings, bullets, and paragraphs', () => {
@@ -91,5 +96,18 @@ describe('appendMarkdownToDoc', () => {
     const doc = new Y.Doc()
     expect(appendAiNotesToDoc(doc, '   ')).toBe(0)
     expect(doc.getXmlFragment('content').length).toBe(0)
+  })
+})
+
+describe('extractDocText', () => {
+  it('flattens blocks to plain lines, dropping marks and nesting', () => {
+    const doc = new Y.Doc()
+    appendMarkdownToDoc(doc, '## Agenda\n\nShip the recorder\n\n- alpha\n- beta')
+    appendAiNotesToDoc(doc, 'AI addendum')
+    expect(extractDocText(doc)).toBe('Agenda\nShip the recorder\nalpha\nbeta\nAI addendum')
+  })
+
+  it('returns an empty string for an empty doc', () => {
+    expect(extractDocText(new Y.Doc())).toBe('')
   })
 })

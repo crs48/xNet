@@ -18,6 +18,7 @@ import type { MeetingSegment } from '@xnetjs/data'
 import type { AIProvider } from '@xnetjs/plugins'
 import { MeetingSchema, MeetingTranscriptSchema } from '@xnetjs/data'
 import {
+  consentAnnouncement,
   detectCaptureCapability,
   detectChannelBleed,
   initialMeetingSessionState,
@@ -36,17 +37,21 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type JSX
 import { startMicCapture, startSystemCapture, type CaptureHandle } from './capture/audio.js'
 import { getMeetingsBridge } from './capture/bridge.js'
 import { MEETING_SAMPLE_RATE, PcmRing } from './capture/pcm.js'
+import { getCapturePreflight, type CapturePreflight } from './capture/preflight.js'
 import { buildMeetingEngineRegistry, readMeetingEnginePrefs } from './capture/registry.js'
 import {
   CaptureErrorNotice,
   CaptureScopeNotice,
+  ConsentAnnouncementBanner,
   EchoBleedWarning,
   EngineFallbackNotice,
   LiveTranscriptPane,
   MicOnlyBanner,
+  PreflightNotices,
   RecordingIndicator,
   TemplatePicker
 } from './components.js'
+import { readMeetingConsentSettings } from './consent.js'
 import { appendAiNotesToDoc, appendMarkdownToDoc } from './enhance-append.js'
 
 // Bleed check cadence: a ~1s window every ~30s while both channels are live.
@@ -108,6 +113,8 @@ export function MeetingRecorderView({
   const [captureError, setCaptureError] = useState<string | null>(null)
   const [elapsedMs, setElapsedMs] = useState(0)
   const [enhanceStatus, setEnhanceStatus] = useState<string | null>(null)
+  const [preflight, setPreflight] = useState<CapturePreflight | null>(null)
+  const [consentMessage, setConsentMessage] = useState<string | null>(null)
 
   const captureRef = useRef<ActiveCapture | null>(null)
   const pausedRef = useRef(false)
@@ -144,6 +151,19 @@ export function MeetingRecorderView({
       .catch(() => {
         if (!cancelled) setCapability(detectCaptureCapability({ isElectron: true }))
       })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  // Permissions pre-flight (desktop): say which TCC prompt(s) Start will
+  // trigger — and explain restart-after-grant when one was already denied —
+  // instead of failing opaquely mid-start (0279 permissions UX).
+  useEffect(() => {
+    let cancelled = false
+    void getCapturePreflight(getMeetingsBridge()).then((result) => {
+      if (!cancelled) setPreflight(result)
+    })
     return () => {
       cancelled = true
     }
@@ -194,6 +214,11 @@ export function MeetingRecorderView({
 
   const handleStart = useCallback(async () => {
     setCaptureError(null)
+    // Botless capture plays no "recording started" chime — when the user
+    // enabled the consent announcement, surface it now, with one-click copy
+    // (0279 phase 3; posting into the meeting chat for them needs
+    // per-platform integrations we don't have yet).
+    setConsentMessage(consentAnnouncement(readMeetingConsentSettings()))
     dispatch({ type: 'start', at: Date.now() })
 
     try {
@@ -493,6 +518,12 @@ export function MeetingRecorderView({
       {/* Notices */}
       {capability && (idle || requesting || capturing) ? (
         <CaptureScopeNotice message={capability.scopeMessage} />
+      ) : null}
+      {preflight && idle && (preflight.prompts.length > 0 || preflight.blocker) ? (
+        <PreflightNotices preflight={preflight} />
+      ) : null}
+      {consentMessage && (requesting || capturing) ? (
+        <ConsentAnnouncementBanner message={consentMessage} />
       ) : null}
       {state.status === 'recording-mic-only' ? <MicOnlyBanner reason={state.reason} /> : null}
       {paused && state.micOnly ? <MicOnlyBanner reason="unavailable" /> : null}

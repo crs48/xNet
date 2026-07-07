@@ -4,51 +4,10 @@
  * preference wins the default slot.
  */
 
-import type { MeetingsBridge, MeetingsBridgeEngine } from './bridge'
 import type { AudioInput, DictationEngine, TranscriptResult } from '@xnetjs/dictation'
 import { describe, expect, it, vi } from 'vitest'
 import { PcmToWavEngine, buildMeetingEngineRegistry } from './registry'
-
-const ENGINES: MeetingsBridgeEngine[] = [
-  {
-    id: 'parakeet-sherpa',
-    name: 'NVIDIA Parakeet',
-    languages: ['en'],
-    approxDownloadBytes: 600_000_000,
-    onDevice: true,
-    attribution: 'NVIDIA Parakeet — CC-BY-4.0',
-    ready: false
-  },
-  {
-    id: 'whisper-cpp',
-    name: 'Whisper',
-    languages: ['*'],
-    approxDownloadBytes: 150_000_000,
-    onDevice: true,
-    ready: true
-  }
-]
-
-function fakeBridge(engines: MeetingsBridgeEngine[] = ENGINES): MeetingsBridge {
-  return {
-    captureStatus: vi.fn(async () => ({
-      systemAudioAvailable: true,
-      platform: 'darwin',
-      loopbackArmed: false
-    })),
-    armLoopback: vi.fn(async () => undefined),
-    disarmLoopback: vi.fn(async () => undefined),
-    engines: vi.fn(async () => engines),
-    ensureEngine: vi.fn(async () => undefined),
-    onEngineProgress: vi.fn(() => () => undefined),
-    transcribe: vi.fn(async () => ({
-      text: '',
-      durationMs: 0,
-      engineId: 'x',
-      modelId: 'y'
-    }))
-  }
-}
+import { fakeMeetingsBridge as fakeBridge } from './test-bridge'
 
 describe('buildMeetingEngineRegistry', () => {
   it('registers every bridge engine and defaults to the first ready one', async () => {
