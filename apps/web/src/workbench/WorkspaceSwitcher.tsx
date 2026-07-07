@@ -18,6 +18,7 @@ import { Layers, Save } from 'lucide-react'
 import { useEffect, useRef, useState, type JSX } from 'react'
 import { contributeTips } from '../coachmarks'
 import { ShareDialog } from '../components/ShareDialog'
+import { AGENT_LAYOUT_EVENT } from '../plugins/workspace-agent-module'
 import {
   isPresetWorkspaceId,
   parseWorkspacePayload,
@@ -64,6 +65,44 @@ function payloadFromRow(row: WorkspaceRow): WorkspacePayload | null {
   // The node id is the tree's identity — a forked/duplicated node must not
   // impersonate another workspace's device-local sizes.
   return { ...parsed, tree: { ...parsed.tree, workspaceId: row.id } }
+}
+
+/**
+ * Agent-change toast (0280 phase 5): when the companion edits the layout
+ * it announces the change; this shows "Companion moved Tasks — Undo" with
+ * the Undo button running the shared `workspace.undoLayout` command.
+ */
+function AgentChangeToast(): JSX.Element | null {
+  const [message, setMessage] = useState<string | null>(null)
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const onChange = (event: Event) => {
+      setMessage((event as CustomEvent<{ message: string }>).detail.message)
+      clearTimeout(timer)
+      timer = setTimeout(() => setMessage(null), 8000)
+    }
+    window.addEventListener(AGENT_LAYOUT_EVENT, onChange)
+    return () => {
+      clearTimeout(timer)
+      window.removeEventListener(AGENT_LAYOUT_EVENT, onChange)
+    }
+  }, [])
+  if (!message) return null
+  return (
+    <div className="fixed bottom-4 left-1/2 z-50 flex -translate-x-1/2 items-center gap-3 rounded-lg border border-hairline bg-surface-1 px-4 py-2 text-sm text-ink-1 shadow-lg">
+      {message}
+      <button
+        type="button"
+        onClick={() => {
+          setMessage(null)
+          void getCommandRegistry().runCommand('workspace.undoLayout')
+        }}
+        className="cursor-pointer border-none bg-transparent p-0 text-sm font-medium text-ink-1 underline"
+      >
+        Undo
+      </button>
+    </div>
+  )
 }
 
 export function WorkspaceSwitcher(): JSX.Element | null {
@@ -156,15 +195,9 @@ export function WorkspaceSwitcher(): JSX.Element | null {
         title: 'Workspace: Share…',
         when: () => !isPresetWorkspaceId(useWorkbench.getState().tree.workspaceId),
         run: () => setShareFor(useWorkbench.getState().tree.workspaceId)
-      }),
-      // Presets are always one command away, seeded or not.
-      ...PRESET_IDS.map((preset) =>
-        registry.register({
-          id: `workspace.preset:${preset}`,
-          title: `Workspace: Preset: ${PRESET_TITLES[preset]}`,
-          run: () => useWorkbench.getState().applyPreset(preset)
-        })
-      )
+      })
+      // Preset commands (`workspace.preset:*`) register headlessly in
+      // plugins/workspace-agent-module.ts, shared with the agent tools.
     ]
     return () => {
       for (const disposable of disposables) disposable.dispose()
@@ -173,11 +206,19 @@ export function WorkspaceSwitcher(): JSX.Element | null {
 
   if (shareFor) {
     return (
-      <ShareDialog docId={shareFor} docType="workspace" isOpen onClose={() => setShareFor(null)} />
+      <>
+        <ShareDialog
+          docId={shareFor}
+          docType="workspace"
+          isOpen
+          onClose={() => setShareFor(null)}
+        />
+        <AgentChangeToast />
+      </>
     )
   }
 
-  if (!open) return null
+  if (!open) return <AgentChangeToast />
   const close = () => setOpen(false)
 
   const filtered = rows.filter(

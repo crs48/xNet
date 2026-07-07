@@ -9,6 +9,7 @@ import type { XNetExtension } from '@xnetjs/plugins'
 import { ChartsExtraPlugin } from './charts-extra-plugin'
 import { MermaidPlugin } from './mermaid-plugin'
 import { WorkbenchSlashPlugin } from './workbench-slash-plugin'
+import { registerWorkspaceCommands, WorkspaceAgentModule } from './workspace-agent-module'
 
 /**
  * List of bundled plugins to auto-install
@@ -16,5 +17,10 @@ import { WorkbenchSlashPlugin } from './workbench-slash-plugin'
 export const BUNDLED_PLUGINS: XNetExtension[] = [
   MermaidPlugin,
   ChartsExtraPlugin,
-  WorkbenchSlashPlugin
+  WorkbenchSlashPlugin,
+  WorkspaceAgentModule
 ]
+
+// The workspace verbs that need no React state (undo + preset switches)
+// register at module load, so agent tools work headless too (0280).
+registerWorkspaceCommands()

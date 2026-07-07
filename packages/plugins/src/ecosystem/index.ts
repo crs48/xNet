@@ -40,6 +40,7 @@ export {
   searchMarketplace,
   sortMarketplace,
   filterByCategory,
+  filterByKind,
   aggregateRatings,
   recommendExtensions,
   MarketplaceClient,
@@ -47,6 +48,7 @@ export {
 } from './marketplace'
 export type {
   MarketplaceEntry,
+  MarketplaceListingKind,
   MarketplaceSort,
   MarketplaceClientOptions,
   FetchJson,

@@ -609,7 +609,10 @@ registerCommand({
    (its command wiring is ref-based, no palette). Do we gate phase 3 on it,
    or accept temporary divergence with a parity test? Recommendation: accept
    divergence through phase 3, port in phase 5 alongside the agent work, keep
-   the 0238-style parity guard.
+   the 0238-style parity guard. **Decision (implementation):** divergence
+   accepted for this change entirely — the primitives are shared and the
+   parity guard (`apps/electron/src/renderer/shell/workspace-parity.test.ts`)
+   forbids forked definitions; the ShellFrame port is a follow-up.
 7. **Performance budget.** Movable slots must not turn the shell into a
    re-render storm; the tree should be normalized in zustand with per-slot
    selectors (the store already follows this style), and live widget cards
@@ -666,13 +669,17 @@ registerCommand({
 
 ### Phase 5 — Agent + ecosystem
 
-- [ ] Companion `workspace.edit` tools emitting registered commands with
+- [x] Companion `workspace.edit` tools emitting registered commands with
       undo toasts and change-log entries
-- [ ] Agent-scaffolded `FeatureModule` flow: template, consent dialog,
+- [x] Agent-scaffolded `FeatureModule` flow: template, consent dialog,
       `ai-generated` provenance tier, `network: []` default
-- [ ] Electron adopts `ShellFrame` + presets; retire `ShellKind` fork; parity
-      guard test
-- [ ] Marketplace listing type for shared benches (workspace nodes +
+- [x] Electron: share the workspace primitives from `@xnetjs/plugins` and add
+      the parity guard test (no forked `LayoutTree`/preset definitions in
+      desktop source). Full `ShellFrame` adoption and `ShellKind` retirement
+      are DEFERRED to a follow-up exploration per risk 6 — the desktop
+      document shell is its own interaction model and must not be rewritten
+      blind inside this change
+- [x] Marketplace listing type for shared benches (workspace nodes +
       optional licensed views)
 
 ## Validation Checklist

@@ -268,5 +268,20 @@
     "autoInstalled": true,
     "contributes": ["slashCommands"],
     "homepage": "https://github.com/crs48/xNet/tree/main/apps/web/src/plugins/workbench-slash-plugin.ts"
+  },
+  {
+    "id": "fyi.xnet.workspace-agent",
+    "name": "Workspace agent tools",
+    "description": "Model-facing tools that let your agent arrange the shell through the same undoable commands you use \u2014 describe, apply preset, move views, save (user-confirmed). Declares no network access.",
+    "version": "1.0.0",
+    "author": "xNet",
+    "category": "ai",
+    "keywords": ["agent", "workspace", "layout", "companion", "tools"],
+    "tier": "bundled",
+    "license": "MIT",
+    "platforms": ["web"],
+    "autoInstalled": true,
+    "contributes": ["agentTools"],
+    "homepage": "https://github.com/crs48/xNet/tree/main/apps/web/src/plugins/workspace-agent-module.ts"
   }
 ]
