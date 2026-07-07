@@ -275,8 +275,10 @@ export {
   isSchemaWriteAllowed,
   isSchemaReadAllowed,
   isNetworkAllowed,
+  isSystemAudioAllowed,
   assertSchemaWrite,
   assertNetwork,
+  assertSystemAudio,
   guardStore,
   // Provenance → trust
   deriveTrustTier,

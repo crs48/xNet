@@ -23,7 +23,7 @@ export class CapabilityError extends Error {
   constructor(
     message: string,
     public readonly pluginId: string,
-    public readonly capability: 'schemaWrite' | 'schemaRead' | 'network',
+    public readonly capability: 'schemaWrite' | 'schemaRead' | 'network' | 'systemAudio',
     public readonly target: string
   ) {
     super(message)
@@ -95,6 +95,26 @@ export function isNetworkAllowed(caps: ModuleCapabilities | undefined, urlOrHost
     if (a.startsWith('.')) return host === a.slice(1) || host.endsWith(a)
     return host === a
   })
+}
+
+/**
+ * Whether the grant permits capturing system audio (exploration 0279). Closed
+ * by default: only an explicit `systemAudio: true` opens the capture IPC.
+ */
+export function isSystemAudioAllowed(caps: ModuleCapabilities | undefined): boolean {
+  return caps?.systemAudio === true
+}
+
+/** Assert system-audio capture is permitted, or throw {@link CapabilityError}. */
+export function assertSystemAudio(caps: ModuleCapabilities | undefined, pluginId: string): void {
+  if (!isSystemAudioAllowed(caps)) {
+    throw new CapabilityError(
+      `Plugin '${pluginId}' lacks systemAudio capability`,
+      pluginId,
+      'systemAudio',
+      'system-audio'
+    )
+  }
 }
 
 /** Assert a schema write is permitted, or throw {@link CapabilityError}. */

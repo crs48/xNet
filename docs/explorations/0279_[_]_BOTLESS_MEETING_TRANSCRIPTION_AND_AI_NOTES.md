@@ -660,7 +660,7 @@ for await (const chunk of stream) {
       `packages/data/src/schema/schemas/` (Page/Transcription patterns,
       `spaceCascadeAuthorization`, private-by-default), exported via the
       schemas sub-barrel; authz coverage test passes
-- [ ] New `packages/meetings` package: `defineFeatureModule({ id: 'meetings', ... })`
+- [x] New `packages/meetings` package: `defineFeatureModule({ id: 'meetings', ... })`
       declaring schema capabilities
 - [ ] `systemAudio` capability in `ModuleCapabilities`
       (`packages/plugins/src/feature-module.ts`) following the 0270 `guardFs`
