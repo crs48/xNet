@@ -566,23 +566,23 @@ app.post('/forms/:token/submissions', rateLimit(20, 60_000), async (c) => {
 
 ### Phase 2 — Public forms
 
-- [ ] `packages/hub/src/features/form-inbox.ts`: token mint/revoke
+- [x] `packages/hub/src/features/form-inbox.ts`: token mint/revoke
       (owner-authed), `GET /forms/:token/definition` (sanitized),
       `POST /forms/:token/submissions` (honeypot, `RateLimiter`, size cap,
       optional Turnstile via `XNET_TURNSTILE_SECRET`), durable pending
       store, owner-authed list/ACK endpoints
-- [ ] Token storage hashed like share secrets
+- [x] Token storage hashed like share secrets
       (`hashShareSecret` pattern, `packages/hub/src/routes/share-links.ts`)
-- [ ] Share-dialog integration: "Share form" surface on the form view mints
+- [x] Share-dialog integration: "Share form" surface on the form view mints
       a token and shows the public URL (`<app>/form/<token>`)
-- [ ] App public route `/form/:token` (session-less; share-claim flow
+- [x] App public route `/form/:token` (session-less; share-claim flow
       precedent) rendering `FormView` fill mode from the definition payload
-- [ ] `FormSubmissionAgent` in the client: drain-on-connect + periodic;
+- [x] `FormSubmissionAgent` in the client: drain-on-connect + periodic;
       validate → materialize (deterministic ID from
       `hash(token, nonce)`) → ACK; Rejected review list
-- [ ] Pending-submission badge via the comms/status surface
+- [x] Pending-submission badge via the comms/status surface
       (`apps/web/src/comms/StatusItems.tsx` precedent)
-- [ ] Changesets: hub (periphery) minor; audit `ShareDocType`/wire changes
+- [x] Changesets: hub (periphery) minor; audit `ShareDocType`/wire changes
 
 ### Phase 3 — Polish
 

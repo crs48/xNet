@@ -13,3 +13,8 @@ existing filter engine. `@xnetjs/react`'s `useGridDatabase` exposes the form
 view model plus `setFormConfig`/`setFormRules`/`setFormAccepting`, and
 `addRow` accepts `AddRowOptions` (`id` for deterministic/idempotent row ids,
 `meta` for submission provenance).
+
+For public forms, `@xnetjs/data` also gains `buildPublicFormDefinition`
+(the sanitized snapshot the hub serves to anonymous respondents),
+`submissionRowId` (deterministic drain-time row ids from the submission
+nonce), and `createRow` now accepts `id`/`submissionMeta`.

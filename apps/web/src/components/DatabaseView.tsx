@@ -51,6 +51,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useCommentPeople } from '../hooks/useCommentPeople'
 import { useContextPanel, type ContextPanelSection } from '../workbench/context-panel'
 import { useWorkbench } from '../workbench/state'
+import { FormShareBar } from './FormShareBar'
 import { PresenceAvatars } from './PresenceAvatars'
 import { ShareButton } from './ShareButton'
 
@@ -532,39 +533,56 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
 
       {/* Body: form view or grid + peek */}
       {activeView?.type === 'form' ? (
-        <FormView
-          fields={grid.fields.map((f) => ({
-            id: f.id,
-            name: f.name,
-            type: f.type,
-            config: f.config as Record<string, unknown>,
-            width: f.width,
-            isTitle: f.isTitle,
-            options: f.options
-          }))}
-          config={activeView.formConfig}
-          rules={activeView.formRules}
-          accepting={activeView.formAccepting}
-          databaseTitle={database?.title}
-          editable
-          onSubmit={async (cells) =>
-            (await grid.addRow(undefined, cells, {
-              meta: { via: 'form', viewId: activeView.id, submittedAt: Date.now() }
-            })) !== null
-          }
-          onChangeConfig={(next) => {
-            void grid.setFormConfig(next)
-          }}
-          onChangeRules={(next) => {
-            void grid.setFormRules(next)
-          }}
-          onChangeAccepting={(next) => {
-            void grid.setFormAccepting(next)
-          }}
-          onUploadFile={blobService ? handleUploadFile : undefined}
-          onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
-          className="flex-1"
-        />
+        <div className="flex-1 flex flex-col overflow-hidden">
+          <FormShareBar
+            viewId={activeView.id}
+            databaseId={docId}
+            space={(database as { space?: string } | null)?.space ?? null}
+            accepting={activeView.formAccepting}
+            config={activeView.formConfig}
+            rules={activeView.formRules}
+            fields={grid.fields.map((f) => ({
+              id: f.id,
+              name: f.name,
+              type: f.type,
+              config: f.config as Record<string, unknown>,
+              options: f.options
+            }))}
+          />
+          <FormView
+            fields={grid.fields.map((f) => ({
+              id: f.id,
+              name: f.name,
+              type: f.type,
+              config: f.config as Record<string, unknown>,
+              width: f.width,
+              isTitle: f.isTitle,
+              options: f.options
+            }))}
+            config={activeView.formConfig}
+            rules={activeView.formRules}
+            accepting={activeView.formAccepting}
+            databaseTitle={database?.title}
+            editable
+            onSubmit={async (cells) =>
+              (await grid.addRow(undefined, cells, {
+                meta: { via: 'form', viewId: activeView.id, submittedAt: Date.now() }
+              })) !== null
+            }
+            onChangeConfig={(next) => {
+              void grid.setFormConfig(next)
+            }}
+            onChangeRules={(next) => {
+              void grid.setFormRules(next)
+            }}
+            onChangeAccepting={(next) => {
+              void grid.setFormAccepting(next)
+            }}
+            onUploadFile={blobService ? handleUploadFile : undefined}
+            onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
+            className="flex-1"
+          />
+        </div>
       ) : (
         <div className="flex-1 flex overflow-hidden">
           <div className="flex-1 flex flex-col overflow-hidden">

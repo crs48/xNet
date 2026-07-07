@@ -18,8 +18,10 @@ import { App } from './App'
 import { initAnalytics } from './lib/analytics'
 import { installBootDiagnostics, installBootFallback } from './lib/boot-diagnostics'
 import { initErrorReporter } from './lib/error-reporter'
+import { parsePublicFormLocation } from './lib/form-links'
 import { preconnectHub } from './lib/preconnect-hub'
 import { installNativeChrome } from './native/chrome'
+import { PublicFormPage } from './PublicFormPage'
 
 type WebCanvasNodeRecord = {
   id: string
@@ -432,8 +434,13 @@ preconnectHub()
 // SPA is hosted in a mobile webview. No-op on the plain web build (0238).
 installNativeChrome()
 
+// Public form pages (exploration 0278) are session-less: a respondent needs
+// no identity, storage, or sync — bypass the whole app boot and render the
+// standalone page against the issuing hub.
+const publicForm = parsePublicFormLocation(window.location)
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <App />
+    {publicForm ? <PublicFormPage token={publicForm.token} hub={publicForm.hub} /> : <App />}
   </React.StrictMode>
 )

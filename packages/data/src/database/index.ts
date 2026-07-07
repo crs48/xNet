@@ -226,11 +226,15 @@ export {
   type FormSubmissionMeta,
   type FormValidationError,
   type FormValidationResult,
+  type PublicFormQuestion,
+  type PublicFormDefinition,
   PUBLIC_SAFE_FORM_FIELD_TYPES,
   isFormFieldTypeAllowed,
   isFormQuestionVisible,
   visibleFormQuestions,
-  validateFormSubmission
+  validateFormSubmission,
+  buildPublicFormDefinition,
+  submissionRowId
 } from './form-types'
 
 // View types

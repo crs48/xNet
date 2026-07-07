@@ -7,8 +7,10 @@ import type { FormFieldRule, FormViewConfig } from './form-types'
 import { describe, it, expect } from 'vitest'
 import {
   PUBLIC_SAFE_FORM_FIELD_TYPES,
+  buildPublicFormDefinition,
   isFormFieldTypeAllowed,
   isFormQuestionVisible,
+  submissionRowId,
   visibleFormQuestions,
   validateFormSubmission
 } from './form-types'
@@ -252,5 +254,79 @@ describe('validateFormSubmission', () => {
       'public'
     )
     expect(result.ok).toBe(true)
+  })
+})
+
+describe('buildPublicFormDefinition', () => {
+  it('publishes only public-safe questions with reduced field shape', () => {
+    const withUnsafe: FormViewConfig = {
+      title: 'RSVP',
+      description: 'Join us',
+      questions: [
+        { fieldId: 'name', label: 'Your name', required: true },
+        { fieldId: 'diet' },
+        { fieldId: 'owner' }, // person → dropped for public
+        { fieldId: 'gone' } // deleted field → dropped
+      ],
+      submitLabel: 'RSVP',
+      confirmation: { title: 'See you there!' }
+    }
+    const def = buildPublicFormDefinition(withUnsafe, undefined, columns)
+    expect(def.questions.map((q) => q.fieldId)).toEqual(['name', 'diet'])
+    expect(def.questions[0]).toEqual({
+      fieldId: 'name',
+      label: 'Your name',
+      required: true,
+      type: 'text'
+    })
+    expect(def.questions[1].options).toEqual([{ id: 'veg', name: 'Veg' }])
+    expect(def.title).toBe('RSVP')
+    expect(def.submitLabel).toBe('RSVP')
+    expect(def.confirmation).toEqual({ title: 'See you there!' })
+    // Leak barrier: nothing beyond the published shape.
+    const json = JSON.stringify(def)
+    expect(json).not.toContain('owner')
+    expect(json).not.toContain('person')
+    expect(json).not.toContain('formula')
+  })
+
+  it('publishes only self-contained rules', () => {
+    const rules: Record<string, FormFieldRule> = {
+      guests: {
+        when: [{ columnId: 'attending', operator: 'equals', value: true }],
+        match: 'all'
+      },
+      diet: {
+        // References the unpublished person field → dropped.
+        when: [{ columnId: 'owner', operator: 'isNotEmpty', value: null }],
+        match: 'all'
+      }
+    }
+    const def = buildPublicFormDefinition(config, rules, columns)
+    expect(def.rules).toEqual({ guests: rules.guests })
+  })
+
+  it('prefers resolved fieldOptions over config options', () => {
+    const def = buildPublicFormDefinition(
+      { questions: [{ fieldId: 'diet' }] },
+      undefined,
+      columns,
+      {
+        diet: [{ id: 'veg', name: 'Vegetarian', color: 'green' }]
+      }
+    )
+    expect(def.questions[0].options).toEqual([{ id: 'veg', name: 'Vegetarian', color: 'green' }])
+  })
+})
+
+describe('submissionRowId', () => {
+  it('is deterministic per (tokenHash, nonce) and distinct across inputs', async () => {
+    const a1 = await submissionRowId('hash-a', 'nonce-1')
+    const a1again = await submissionRowId('hash-a', 'nonce-1')
+    const a2 = await submissionRowId('hash-a', 'nonce-2')
+    const b1 = await submissionRowId('hash-b', 'nonce-1')
+    expect(a1).toBe(a1again)
+    expect(a1).toMatch(/^formsub_[0-9a-f]{24}$/)
+    expect(new Set([a1, a2, b1]).size).toBe(3)
   })
 })
