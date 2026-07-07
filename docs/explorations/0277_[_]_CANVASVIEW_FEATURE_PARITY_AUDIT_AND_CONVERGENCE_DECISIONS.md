@@ -254,7 +254,7 @@ Phase 0 — parity fixes (ordinary feature PRs, before any refactor)
 - [x] M2: web `handleCreateFrame` adopts `createCanvasFrameVariantProperties('standard', …)`.
 - [ ] W2: electron renders `widget` nodes via `DashboardRuntimeProvider` + `CanvasWidgetCard` (LOD suspension included); electron needs its dashboard schema registry equivalent.
 - [ ] W3 + M1: extract web's `CanvasMediaCard` + PDF helpers into the shared package, add `ModeratedMedia` gating, consume from both apps.
-- [ ] W9: electron observes the connectors map and gains edge selection state.
+- [x] W9: electron observes the connectors map and gains edge selection state.
 
 Phase 1 — shared package skeleton
 

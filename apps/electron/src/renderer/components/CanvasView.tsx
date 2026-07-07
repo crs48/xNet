@@ -5,6 +5,7 @@
 import type {
   CanvasAlignment,
   CanvasDistributionAxis,
+  CanvasEdge,
   CanvasHandle,
   CanvasLayerDirection,
   CanvasNode,
@@ -31,6 +32,7 @@ import {
   getCanvasQueryFrameDefinition,
   getCanvasQueryFrameResultPreview,
   getCanvasQueryFrameResultSummary,
+  getCanvasConnectorsMap,
   getCanvasObjectsMap,
   getSelectionBounds,
   isCanvasQueryFrameNode,
@@ -1073,6 +1075,23 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     canvases: canvasDocuments
   })
 
+  const selectedCanvasEdge = useMemo(() => {
+    void sceneRevision
+
+    if (!doc || selection.edgeIds.length !== 1) {
+      return null
+    }
+
+    const edgeId = selection.edgeIds[0]
+    for (const [key, edge] of getCanvasConnectorsMap<CanvasEdge>(doc).entries()) {
+      if (key === edgeId || edge.id === edgeId) {
+        return edge
+      }
+    }
+
+    return null
+  }, [doc, sceneRevision, selection.edgeIds])
+
   const selectedNodes = useMemo(() => {
     void sceneRevision
 
@@ -1374,6 +1393,7 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
     if (!doc) return
 
     const nodesMap = getCanvasObjectsMap<CanvasNode>(doc)
+    const connectorsMap = getCanvasConnectorsMap<CanvasEdge>(doc)
     const syncHasNodes = () => {
       setHasNodes(nodesMap.size > 0)
       setSceneRevision((current) => current + 1)
@@ -1381,9 +1401,11 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
 
     syncHasNodes()
     nodesMap.observe(syncHasNodes)
+    connectorsMap.observe(syncHasNodes)
 
     return () => {
       nodesMap.unobserve(syncHasNodes)
+      connectorsMap.unobserve(syncHasNodes)
     }
   }, [doc])
 
@@ -2419,6 +2441,33 @@ export const CanvasView = forwardRef<CanvasViewHandle, CanvasViewProps>(function
       >
         {canvas?.title || 'Workspace Canvas'}
       </div>
+
+      {selection.nodeIds.length === 0 && selectedCanvasEdge ? (
+        <div className="pointer-events-none absolute inset-x-0 top-6 z-20 flex justify-center px-4">
+          <div
+            className="pointer-events-auto flex items-center gap-2 rounded-full border border-border/60 bg-background/82 px-3 py-2 shadow-lg shadow-black/5 backdrop-blur-xl"
+            data-canvas-selection-hud="true"
+            data-canvas-selection-type="connector"
+            data-canvas-theme={theme.mode}
+          >
+            <span className="truncate px-2 text-sm text-foreground">
+              {`Connector · ${selectedCanvasEdge.relationship?.kind ?? 'relates-to'}`}
+              {(selectedCanvasEdge.label ?? selectedCanvasEdge.relationship?.label)
+                ? ` · ${selectedCanvasEdge.label ?? selectedCanvasEdge.relationship?.label}`
+                : ''}
+            </span>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 rounded-full border border-border/60 bg-background px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-muted"
+              onClick={clearCanvasSelection}
+              data-canvas-selection-action="clear"
+            >
+              <X size={12} />
+              Clear
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {selection.nodeIds.length > 0 ? (
         <div className="pointer-events-none absolute inset-x-0 top-6 z-20 flex justify-center px-4">
