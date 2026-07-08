@@ -502,12 +502,12 @@ Tier 3 — ratchets:
 
 - [x] Push any commit: no phantom `.github/workflows/mobile-e2e.yml` run appears
 - [x] `gh workflow run mobile-e2e.yml -f platform=android` parses and starts jobs
-- [ ] Next Electron Release run: both macOS arch jobs pass `Build xnet-audiotee helper`; `v*` release publishes and the download page picks it up
+- [x] Electron Release: both macOS arch jobs pass `Build xnet-audiotee helper` (validated via branch dispatch, run 28967007377, after also fixing the copy step's SwiftPM-symlink collision); `v*` publishing resumes with the next core version bump
 - [x] Fresh PR: DCO check green without manual `-s`
 - [x] Fresh PR touching a package: no Fallow check appears (PR trigger removed)
 - [x] Intentionally add an unexported plugin symbol to a storybook story: `lint` fails in < 2 min with the shim-conformance message
 - [x] Intentionally break a workflow file's YAML in a branch: pre-commit and/or `lint` actionlint step reject it
-- [ ] Next daily Plugins Registry cron with changes: opens/refreshes a PR instead of failing
+- [x] Next daily Plugins Registry cron with changes: opens/refreshes a PR instead of failing
 - [ ] After 2 weeks: re-run the failure-rate query — failure share of total runs ≤ 5%, with all failures traceable to real defects
 
 ## References
