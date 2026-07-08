@@ -435,5 +435,55 @@
     "autoInstalled": false,
     "contributes": [],
     "homepage": "https://github.com/crs48/xNet/tree/main/packages/hub/src/features/webhook-integrations.ts"
+  },
+  {
+    "id": "fyi.xnet.workbench-verbs",
+    "name": "Workbench verbs",
+    "description": "Slash-command road to workbench verbs: /pin pins the page to your Desk, /workspace saves the current shell layout as a named workspace (exploration 0280).",
+    "version": "1.0.0",
+    "author": "xNet",
+    "category": "editor",
+    "keywords": [
+      "desk",
+      "pin",
+      "workspace",
+      "layout",
+      "workbench"
+    ],
+    "tier": "bundled",
+    "license": "MIT",
+    "platforms": [
+      "web"
+    ],
+    "autoInstalled": true,
+    "contributes": [
+      "slashCommands"
+    ],
+    "homepage": "https://github.com/crs48/xNet/tree/main/apps/web/src/plugins/workbench-slash-plugin.ts"
+  },
+  {
+    "id": "fyi.xnet.workspace-agent",
+    "name": "Workspace agent tools",
+    "description": "Model-facing tools that let your agent arrange the shell through the same undoable commands you use — describe, apply preset, move views, save (user-confirmed). Declares no network access.",
+    "version": "1.0.0",
+    "author": "xNet",
+    "category": "ai",
+    "keywords": [
+      "agent",
+      "workspace",
+      "layout",
+      "companion",
+      "tools"
+    ],
+    "tier": "bundled",
+    "license": "MIT",
+    "platforms": [
+      "web"
+    ],
+    "autoInstalled": true,
+    "contributes": [
+      "agentTools"
+    ],
+    "homepage": "https://github.com/crs48/xNet/tree/main/apps/web/src/plugins/workspace-agent-module.ts"
   }
 ]

@@ -46,6 +46,7 @@ Before reading this documentation, understand that xNet works differently:
   - Notifications & Inbox
   - Rich Text Editor
   - Infinite Canvas
+  - Forms
   - DevTools
   - Authorization
   - Sync Guide
@@ -4169,6 +4170,86 @@ The canvas supports spatial comments via `useCanvasComments`:
 
 - [Collaboration Guide](/docs/guides/collaboration/) — Real-time editing patterns
 - [Sync Guide](/docs/guides/sync/) — How Yjs sync works
+
+---
+
+## Forms
+
+**You will learn**
+
+- How a form is just another database view
+- Building questions, show-if rules, and the confirmation screen
+- Sharing a public link that needs no xNet account
+- How anonymous submissions become signed rows (the drain model)
+  
+
+## A form is a view
+
+Open any database and add a view of type **Form** (the `+` next to the view
+tabs). Like Notion, the form belongs to the database: every question maps to
+a field, and every submission becomes a new row.
+
+The form view has two tabs:
+
+- **Build** — pick which fields are asked, reorder them, override labels and
+  helper text, mark questions required, and add per-question *show only
+  when…* rules (for example, ask for a deadline only when priority is
+  "High"). You also set the submit-button label, the confirmation screen,
+  and the **Accepting responses** toggle here.
+- **Preview** — the live form. Submitting from Preview creates a real row,
+  so workspace members can use it for internal intake immediately.
+
+Show-if rules use the same operators as view filters and are evaluated
+against the in-progress answers, so hidden questions never block submission:
+a required question that is hidden by its rule is simply not required.
+
+Computed and automatic fields (formula, rollup, created, …) can never be
+asked. Person, relation, and file questions work on workspace forms but are
+excluded from public ones.
+
+## Sharing a public link
+
+Click **Share form publicly** in the strip above the form. Your device mints
+a high-entropy token on your hub and publishes a *sanitized snapshot* of the
+form — just the questions, types, and select options, never your workspace
+data. The public URL looks like:
+
+```
+https://your-app.example/form/<token>?hub=<your-hub>
+```
+
+Anyone with the link can respond — no account, no app install. The page is
+completely session-less. The hub stores only a **hash** of the token (like
+share-link secrets), so the full URL exists only on the device that created
+it. Revoke the link at any time from the same strip; flip **Accepting
+responses** off to close the form while keeping the link alive.
+
+Public submissions pass a layered anti-spam gate on the hub: an invisible
+honeypot field, per-IP rate limits, and a payload size cap.
+
+## How responses become rows
+
+xNet's hub never writes workspace data — every change in the log is signed
+by a user device. Public form submissions therefore land in a durable
+**inbox** on the hub, and one of your signed-in devices *drains* it: each
+pending submission is validated against the current fields, written as a
+`DatabaseRow` under your identity, and acknowledged. This usually happens
+within a minute of your app being open.
+
+Two properties of the drain are worth knowing:
+
+- **Idempotent end to end.** The respondent's browser keeps an idempotency
+  nonce, the inbox dedupes on it, and the row id is derived from it — a
+  retried submit, a crashed drain, or two of your devices racing all
+  converge on exactly one row.
+- **Nothing is silently dropped.** If a field was deleted or retyped after
+  someone submitted, the submission is marked *rejected* and kept on the hub
+  for review; the status bar shows a `📥` chip whenever pending or rejected
+  submissions exist.
+
+Rows created by a form carry a `submissionMeta` property (`via: 'form'`,
+the view id, the receive time, and the nonce), so you can filter or audit
+form-created rows like any other data.
 
 ---
 
