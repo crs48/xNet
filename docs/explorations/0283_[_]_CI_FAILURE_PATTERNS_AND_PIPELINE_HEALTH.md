@@ -491,7 +491,7 @@ Tier 2 — prevent the classes:
 - [x] Fix whatever actionlint flags across the other 23 workflows
 - [x] Add `.husky/prepare-commit-msg` DCO auto-sign-off (dependency-free shell)
 - [x] Storybook shim-conformance script + `lint` job step (diff shim exports vs `@xnetjs/plugins` exports)
-- [ ] `plugins-registry.yml`: replace direct push with `peter-evans/create-pull-request` standing PR + auto-merge
+- [x] `plugins-registry.yml`: replace direct push with `peter-evans/create-pull-request` standing PR + auto-merge
 
 Tier 3 — ratchets:
 - [ ] Path-filtered macOS `swift build -c release` check for `apps/electron/native/**` in CI

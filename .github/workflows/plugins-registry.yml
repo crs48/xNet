@@ -46,6 +46,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -57,14 +58,26 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Commit if changed
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add registry/registry.json site/public/revoked.json
-          if git diff --staged --quiet; then
-            echo "Plugin index unchanged."
-          else
-            git commit -m "chore(registry): rebuild plugin index"
-            git push
-          fi
+      # main only takes changes through PRs (repo ruleset), so the old direct
+      # `git push` was rejected on every cron that had changes (exploration
+      # 0283). Refresh a standing PR instead — same shape as the changesets
+      # release PR. Same caveat too: GITHUB_TOKEN events don't trigger CI on
+      # the PR, so it needs an admin-merge (see 0265's release-PR gotcha).
+      - name: Open/refresh registry data PR
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: plugins-registry/data
+          add-paths: |
+            registry/registry.json
+            site/public/revoked.json
+          commit-message: 'chore(registry): rebuild plugin index'
+          signoff: true
+          title: 'chore(registry): rebuild plugin index'
+          labels: skip-changelog
+          delete-branch: true
+          body: |
+            Automated refresh of `registry/registry.json` + `site/public/revoked.json`
+            (stars / latest releases) from the daily Plugins Registry workflow.
+
+            Like the changesets release PR, this PR gets no CI (GITHUB_TOKEN
+            events don't trigger workflows) — review the diff and admin-merge.
