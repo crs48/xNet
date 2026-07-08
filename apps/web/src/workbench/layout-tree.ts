@@ -5,6 +5,7 @@
  */
 export {
   createPresetTree,
+  insertSlot,
   moveSlot,
   parseWorkspacePayload,
   placementOf,

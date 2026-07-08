@@ -7,6 +7,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   createPresetTree,
+  insertSlot,
   moveSlot,
   parseWorkspacePayload,
   placementOf,
@@ -117,5 +118,48 @@ describe('workspace payload round trip', () => {
     ])
     expect(parseWorkspacePayload(null)).toBeNull()
     expect(parseWorkspacePayload({ name: 7 })).toBeNull()
+  })
+})
+
+describe('insertSlot (0282)', () => {
+  it('reorders within a region with dense orders', () => {
+    const tree = createPresetTree('bench')
+    // dock.bottom: shelf, capture, notifications, sync, console
+    const reordered = insertSlot(tree, 'console', 'dock.bottom', 0)
+    expect(slotsIn(reordered, 'dock.bottom').map((p) => p.viewId)).toEqual([
+      'console',
+      'shelf',
+      'capture',
+      'notifications',
+      'sync'
+    ])
+    expect(slotsIn(reordered, 'dock.bottom').map((p) => p.order)).toEqual([0, 1, 2, 3, 4])
+  })
+
+  it('inserts cross-region at the given index and clamps', () => {
+    const tree = createPresetTree('bench')
+    const moved = insertSlot(tree, 'console', 'dock.left', 1)
+    expect(slotsIn(moved, 'dock.left').map((p) => p.viewId)[1]).toBe('console')
+    const clamped = insertSlot(tree, 'console', 'dock.left', 99)
+    expect(
+      slotsIn(clamped, 'dock.left')
+        .map((p) => p.viewId)
+        .at(-1)
+    ).toBe('console')
+  })
+
+  it('no-ops on unknown views and same-position inserts', () => {
+    const tree = createPresetTree('bench')
+    expect(insertSlot(tree, 'nope', 'dock.left', 0)).toBe(tree)
+    const bottom = slotsIn(tree, 'dock.bottom').map((p) => p.viewId)
+    const samePos = insertSlot(tree, 'shelf', 'dock.bottom', 0)
+    expect(slotsIn(samePos, 'dock.bottom').map((p) => p.viewId)).toEqual(bottom)
+  })
+
+  it('moveSlot is insertSlot-at-end', () => {
+    const tree = createPresetTree('bench')
+    expect(slotsIn(moveSlot(tree, 'console', 'dock.left'), 'dock.left')).toEqual(
+      slotsIn(insertSlot(tree, 'console', 'dock.left', 99), 'dock.left')
+    )
   })
 })

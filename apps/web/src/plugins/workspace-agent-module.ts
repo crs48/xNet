@@ -13,6 +13,7 @@
  */
 import type { FeatureModule, ModuleCapabilities } from '@xnetjs/plugins'
 import { evaluateInstallConsent, getCommandRegistry, scaffoldPlugin } from '@xnetjs/plugins'
+import { isLayoutTreeEnabled } from '../workbench/experiments'
 import {
   PRESET_IDS,
   REGION_IDS,
@@ -254,7 +255,15 @@ export function registerWorkspaceCommands(): () => void {
         title: `Workspace: Preset: ${PRESET_COMMAND_TITLES[preset]}`,
         run: () => useWorkbench.getState().applyPreset(preset)
       })
-    )
+    ),
+    // Arrange mode (0282): the shell as an editable schematic. Only
+    // meaningful when the malleable shell renders the tree.
+    registry.register({
+      id: 'workspace.customize',
+      title: 'Workspace: Customize layout…',
+      when: () => isLayoutTreeEnabled(),
+      run: () => useWorkbench.getState().setArranging(true)
+    })
   ]
   return () => {
     for (const disposable of disposables) disposable.dispose()

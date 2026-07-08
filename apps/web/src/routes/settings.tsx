@@ -15,6 +15,7 @@ import { MeetingEngineSettings } from '@xnetjs/views'
 import {
   Palette,
   Database,
+  FlaskConical,
   Mic,
   Info,
   Layers,
@@ -50,10 +51,12 @@ import { useDerivedData } from '../lib/data-dignity'
 import { getTelemetryCollector } from '../lib/error-reporter'
 import { persistedHubUrl, setPersistedHubUrl } from '../lib/hub-url'
 import { identityManager, logout } from '../lib/identity'
+import { isLabEnabled, LABS_FLAGS, setLabEnabled } from '../lib/labs'
 import { createLeavePorts, downloadLeaveBundle, type LeaveDeps } from '../lib/leave'
 import { isSentryConfigured } from '../lib/sentry'
 import { useConsent } from '../lib/use-consent'
 import { WINDDOWN_DURATION_CHOICES, useWinddownPreferences } from '../lib/winddown'
+import { LAYOUT_TREE_KEY } from '../workbench/experiments'
 import { presetForWorkspaceId } from '../workbench/layout-tree'
 import { useWorkbench } from '../workbench/state'
 
@@ -70,6 +73,7 @@ export const Route = createFileRoute('/settings')({
 type SettingsSection =
   | 'profile'
   | 'appearance'
+  | 'labs'
   | 'dictation'
   | 'safety'
   | 'data'
@@ -104,6 +108,7 @@ const LEAVE_DEPS: LeaveDeps = {
 const SECTIONS: SectionConfig[] = [
   { id: 'profile', label: 'Profile', icon: <UserRound {...ICON_PROPS} /> },
   { id: 'appearance', label: 'Appearance', icon: <Palette {...ICON_PROPS} /> },
+  { id: 'labs', label: 'Labs', icon: <FlaskConical {...ICON_PROPS} /> },
   { id: 'dictation', label: 'Dictation & Meetings', icon: <Mic {...ICON_PROPS} /> },
   { id: 'safety', label: 'Content & Safety', icon: <ShieldCheck {...ICON_PROPS} /> },
   { id: 'data', label: 'Data', icon: <Database {...ICON_PROPS} /> },
@@ -165,6 +170,7 @@ function SettingsPage() {
       <div className="flex-1 overflow-auto bg-surface-0 p-6">
         {activeSection === 'profile' && <ProfileSettings />}
         {activeSection === 'appearance' && <AppearanceSettings />}
+        {activeSection === 'labs' && <LabsSettings />}
         {activeSection === 'dictation' && <MeetingEngineSettings />}
         {activeSection === 'safety' && (
           <div className="space-y-10">
@@ -182,6 +188,80 @@ function SettingsPage() {
         {activeSection === 'about' && <AboutSettings />}
       </div>
     </div>
+  )
+}
+
+// ─── Labs Settings ────────────────────────────────────────────────────────────
+
+/**
+ * Labs (exploration 0282): the front door for `xnet:experiment:*` flags.
+ * Rows render from the declarative registry in lib/labs.ts; reload-scoped
+ * flags surface a "Reload to apply" chip after a change instead of
+ * restarting the app out from under the user.
+ */
+function LabsSettings() {
+  // localStorage isn't reactive; mirror it into state keyed by flag.
+  const [enabled, setEnabled] = useState<Record<string, boolean>>(() =>
+    Object.fromEntries(LABS_FLAGS.map((flag) => [flag.key, isLabEnabled(flag.key)]))
+  )
+  const [needsReload, setNeedsReload] = useState(false)
+
+  const toggle = (key: string, appliesOn: 'reload' | 'immediate') => (checked: boolean) => {
+    setLabEnabled(key, checked)
+    setEnabled((prev) => ({ ...prev, [key]: checked }))
+    if (appliesOn === 'reload') setNeedsReload(true)
+  }
+
+  return (
+    <SettingsPanel
+      title="Labs"
+      description="Early features. They may change, move, or go away — nothing here touches your data."
+    >
+      <SettingsGroup>
+        {LABS_FLAGS.map((flag) => (
+          <div key={flag.key} className="relative">
+            <SettingToggle
+              label={flag.label}
+              description={flag.description}
+              checked={enabled[flag.key] ?? false}
+              onChange={toggle(flag.key, flag.appliesOn)}
+            />
+            <span
+              className={`absolute right-14 top-4 rounded-full border px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wider ${
+                flag.stage === 'experimental'
+                  ? 'border-hairline text-ink-3'
+                  : 'border-hairline text-ink-2'
+              }`}
+            >
+              {flag.stage}
+            </span>
+            {flag.key === LAYOUT_TREE_KEY && (enabled[flag.key] ?? false) && !needsReload && (
+              <div className="px-4 pb-3">
+                <button
+                  type="button"
+                  onClick={() => void getCommandRegistry().runCommand('workspace.customize')}
+                  className="cursor-pointer rounded-md border border-hairline bg-transparent px-2.5 py-1 text-xs text-ink-2 transition-colors hover:text-ink-1"
+                >
+                  Customize layout…
+                </button>
+              </div>
+            )}
+          </div>
+        ))}
+      </SettingsGroup>
+      {needsReload && (
+        <div className="mt-4 flex items-center gap-3 rounded-lg border border-hairline bg-surface-2 px-4 py-3 text-sm text-ink-2">
+          Changes apply after a reload.
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="cursor-pointer rounded-md border border-hairline bg-surface-1 px-2.5 py-1 text-xs font-medium text-ink-1"
+          >
+            Reload now
+          </button>
+        </div>
+      )}
+    </SettingsPanel>
   )
 }
 
@@ -232,7 +312,11 @@ function AppearanceSettings() {
         </SettingRow>
         <SettingRow
           label="Workspaces"
-          description="Rearranged panels can be saved as named workspaces — switch, share or reset from the switcher (also on the rail and in ⌘K)"
+          description={
+            isLabEnabled(LAYOUT_TREE_KEY)
+              ? 'Rearranged panels can be saved as named workspaces — switch, share or reset from the switcher (also on the rail and in ⌘K)'
+              : 'Presets and the switcher work now; to move panels between docks, enable the malleable shell in Labs'
+          }
         >
           <div className="flex gap-1.5">
             <ThemeButton

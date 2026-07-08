@@ -208,18 +208,44 @@ function renumber(placements: SlotPlacement[]): SlotPlacement[] {
 }
 
 /**
+ * Insert a view into a region at a specific index (0282 phase 4),
+ * keeping its tier. Works for cross-region moves AND within-region
+ * reorders; the index is clamped, and orders stay dense on both sides.
+ * No-op when the view is absent or nothing would change.
+ */
+export function insertSlot(
+  tree: LayoutTree,
+  viewId: string,
+  to: RegionId,
+  index: number
+): LayoutTree {
+  const from = regionOf(tree, viewId)
+  if (!from) return tree
+  const placement = tree.regions[from].find((entry) => entry.viewId === viewId)
+  if (!placement) return tree
+
+  const regions = cloneRegions(tree.regions)
+  regions[from] = renumber(regions[from].filter((entry) => entry.viewId !== viewId))
+  const target = [...regions[to]].sort((a, b) => a.order - b.order)
+  const clamped = Math.max(0, Math.min(index, target.length))
+  target.splice(clamped, 0, { ...placement, order: 0 })
+  regions[to] = target.map((entry, position) => ({ ...entry, order: position }))
+
+  const changed =
+    from !== to ||
+    regions[to].findIndex((entry) => entry.viewId === viewId) !==
+      tree.regions[to].findIndex((entry) => entry.viewId === viewId)
+  return changed ? { ...tree, regions } : tree
+}
+
+/**
  * Move a view to another region (appended last), keeping its tier.
  * No-op when the view is absent or already there.
  */
 export function moveSlot(tree: LayoutTree, viewId: string, to: RegionId): LayoutTree {
   const from = regionOf(tree, viewId)
   if (!from || from === to) return tree
-  const placement = tree.regions[from].find((entry) => entry.viewId === viewId)
-  if (!placement) return tree
-  const regions = cloneRegions(tree.regions)
-  regions[from] = renumber(regions[from].filter((entry) => entry.viewId !== viewId))
-  regions[to] = renumber([...regions[to], { ...placement, order: Number.MAX_SAFE_INTEGER }])
-  return { ...tree, regions }
+  return insertSlot(tree, viewId, to, tree.regions[to].length)
 }
 
 /** Change a placed view's disclosure tier. No-op when absent/unchanged. */
