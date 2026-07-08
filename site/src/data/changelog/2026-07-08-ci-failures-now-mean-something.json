@@ -1,0 +1,10 @@
+{
+  "id": "2026-07-08-ci-failures-now-mean-something",
+  "date": "July 8, 2026",
+  "title": "CI failures now mean something",
+  "summary": "Fixed a workflow-file bug that failed every push, unblocked desktop releases (audiotee now targets macOS 14.2), moved the quality audit to a weekly schedule, and added guards (actionlint, storybook-shim conformance, DCO auto-sign-off) so red checks track real defects.",
+  "highlights": [],
+  "tags": [
+    "ci"
+  ]
+}

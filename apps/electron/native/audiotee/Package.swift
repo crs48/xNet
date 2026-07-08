@@ -6,7 +6,10 @@ import PackageDescription
 
 let package = Package(
   name: "xnet-audiotee",
-  platforms: [.macOS(.v14)],
+  // 14.2 floor: AudioHardwareCreateProcessTap/DestroyProcessTap (the whole
+  // point of this helper) are macOS 14.2+ APIs; `.v14` (14.0) fails the build
+  // under Swift availability checking.
+  platforms: [.macOS("14.2")],
   targets: [
     .executableTarget(name: "xnet-audiotee", path: "Sources")
   ]

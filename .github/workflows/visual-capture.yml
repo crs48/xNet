@@ -64,6 +64,11 @@ jobs:
     if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # Informational by contract (see header): a capture failure must never show
+    # as a red ✗ on the PR. The recurring real failure class (storybook shim
+    # drifting from @xnetjs/plugins exports) is caught by the required `lint`
+    # job's shim-conformance check instead (exploration 0283).
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
         with:
@@ -108,7 +113,7 @@ jobs:
         run: pnpm --filter xnet-web dev --host 127.0.0.1 --port 5173 > /tmp/xnet-web.log 2>&1 &
 
       - name: Wait for web app
-        run: for i in {1..60}; do curl -fsS "$WEB_URL" >/dev/null && exit 0; sleep 2; done; echo "web app did not start"; cat /tmp/xnet-web.log; exit 1
+        run: for _ in {1..60}; do curl -fsS "$WEB_URL" >/dev/null && exit 0; sleep 2; done; echo "web app did not start"; cat /tmp/xnet-web.log; exit 1
 
       - name: Compute capture set
         id: set
@@ -268,7 +273,7 @@ jobs:
         run: pnpm --filter xnet-web dev --host 127.0.0.1 --port 5173 > /tmp/xnet-web.log 2>&1 &
 
       - name: Wait for web app
-        run: for i in {1..60}; do curl -fsS "$WEB_URL" >/dev/null && exit 0; sleep 2; done; echo "web app did not start"; cat /tmp/xnet-web.log; exit 1
+        run: for _ in {1..60}; do curl -fsS "$WEB_URL" >/dev/null && exit 0; sleep 2; done; echo "web app did not start"; cat /tmp/xnet-web.log; exit 1
 
       - name: Compute full capture set
         run: |

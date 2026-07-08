@@ -26,10 +26,12 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
       - name: Install
         run: pnpm install --frozen-lockfile
+      - name: Build workspace packages
+        run: pnpm turbo run build --filter='./packages/*'
       - name: Build hash-router web bundle
         run: pnpm --filter xnet-mobile-shell build:web
       - name: Add Android project
@@ -41,7 +43,7 @@ jobs:
       # Build the APK and boot an emulator (reactivecircus/android-emulator-runner),
       # then run the flows. Left as the wiring step for a provisioned runner.
       - name: Run Maestro flows
-        run: echo "TODO: build APK + boot emulator, then 'maestro test tests/mobile/flows'"
+        run: 'echo "TODO: build APK + boot emulator, then run: maestro test tests/mobile/flows"'
 
   ios:
     if: ${{ inputs.platform == 'ios' }}
@@ -51,10 +53,12 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: pnpm
       - name: Install
         run: pnpm install --frozen-lockfile
+      - name: Build workspace packages
+        run: pnpm turbo run build --filter='./packages/*'
       - name: Build hash-router web bundle
         run: pnpm --filter xnet-mobile-shell build:web
       - name: Add iOS project
@@ -64,4 +68,4 @@ jobs:
       - name: Install Maestro
         run: curl -Ls "https://get.maestro.mobile.dev" | bash
       - name: Run Maestro flows
-        run: echo "TODO: build .app for a booted simulator, then 'maestro test tests/mobile/flows'"
+        run: 'echo "TODO: build .app for a booted simulator, then run: maestro test tests/mobile/flows"'

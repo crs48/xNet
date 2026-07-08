@@ -19,6 +19,7 @@
     "check:publish-closure": "node scripts/check-publish-closure.mjs",
     "check:electron-parity": "node scripts/check-electron-parity.mjs",
     "check:view-drift": "node scripts/check-view-drift.mjs",
+    "check:storybook-shim": "node scripts/check-storybook-shim.mjs",
     "test:editor": "pnpm --filter @xnetjs/editor test",
     "test:stories": "storybook test --url http://127.0.0.1:6006",
     "test:watch": "vitest",

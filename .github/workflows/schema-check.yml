@@ -33,7 +33,7 @@ jobs:
           # Export schemas from main branch
           # In a real setup, this would run: pnpm xnet schema extract --output schemas-main.json
           # For now, create placeholder if schema export doesn't exist
-          echo '{"timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","schemas":[]}' > schemas-main.json
+          echo "{\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"schemas\":[]}" > schemas-main.json
           git checkout - -- . || true
           git stash pop || true
 
@@ -41,7 +41,7 @@ jobs:
         run: |
           # Export schemas from PR branch
           # In a real setup, this would run: pnpm xnet schema extract --output schemas-pr.json
-          echo '{"timestamp":"'$(date -u +%Y-%m-%dT%H:%M:%SZ)'","schemas":[]}' > schemas-pr.json
+          echo "{\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"schemas\":[]}" > schemas-pr.json
 
       - name: Diff schemas
         id: diff
