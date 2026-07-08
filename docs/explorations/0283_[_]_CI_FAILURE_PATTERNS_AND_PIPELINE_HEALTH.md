@@ -494,9 +494,9 @@ Tier 2 — prevent the classes:
 - [x] `plugins-registry.yml`: replace direct push with `peter-evans/create-pull-request` standing PR + auto-merge
 
 Tier 3 — ratchets:
-- [ ] Path-filtered macOS `swift build -c release` check for `apps/electron/native/**` in CI
+- [x] Path-filtered macOS `swift build -c release` check for `apps/electron/native/**` in CI
 - [ ] After ≥1 week of green DCO: add DCO to the required-checks ruleset
-- [ ] Changelog-fragment Stop-hook warning (mirror `scripts/changeset/assert-coverage.mjs`)
+- [x] Changelog-fragment Stop-hook warning (mirror `scripts/changeset/assert-coverage.mjs`)
 
 ## Validation Checklist
 

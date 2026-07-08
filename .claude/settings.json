@@ -7,6 +7,10 @@
           {
             "type": "command",
             "command": "node scripts/changeset/assert-coverage.mjs"
+          },
+          {
+            "type": "command",
+            "command": "node scripts/changelog/assert-fragment.mjs"
           }
         ]
       }
