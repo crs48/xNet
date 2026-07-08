@@ -474,9 +474,9 @@ platforms: [.macOS("14.2")],  // AudioHardwareCreateProcessTap requires 14.2
 ## Implementation Checklist
 
 Tier 1 — stop the bleeding:
-- [ ] Quote the two `run:` echo lines in `.github/workflows/mobile-e2e.yml` (44, 67)
-- [ ] `apps/electron/native/audiotee/Package.swift`: `.macOS(.v14)` → `.macOS("14.2")`
-- [ ] Verify Electron main's systemAudio capability gates on OS version ≥ 14.2 (not helper presence)
+- [x] Quote the two `run:` echo lines in `.github/workflows/mobile-e2e.yml` (44, 67)
+- [x] `apps/electron/native/audiotee/Package.swift`: `.macOS(.v14)` → `.macOS("14.2")`
+- [x] Verify Electron main's systemAudio capability gates on OS version ≥ 14.2 (not helper presence)
 - [ ] `fallow.yml`: remove `turbo-cache: 'false'`
 - [ ] `fallow.yml`: `--fail-on-issues` only when `github.event_name != 'pull_request'`
 - [ ] `visual-capture.yml`: `continue-on-error: true` on the `capture` job
