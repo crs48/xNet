@@ -59,6 +59,13 @@ jobs:
       - name: Electron parity (0238)
         run: pnpm check:electron-parity
 
+      # The storybook plugins shim must mirror every @xnetjs/plugins name the
+      # story bundle imports; drift broke Visual UI Capture three times (0279,
+      # 0280, #412) six minutes into an optional job. Fail here in seconds
+      # instead — visual-capture is continue-on-error by contract. (0283.)
+      - name: Storybook plugins shim conformance (0283)
+        run: pnpm check:storybook-shim
+
   # Validate changelog fragments and dry-run PR-number resolution on PRs, so a
   # malformed entry (which would otherwise fail only the production deploy and
   # freeze the whole changelog) or one that would ship numberless fails the PR

@@ -18,6 +18,7 @@ export type {
   ViewContribution,
   ViewProps,
   CommandContribution,
+  ImporterContribution,
   SlashCommandContribution,
   SlashCommandContext,
   EditorContribution,
