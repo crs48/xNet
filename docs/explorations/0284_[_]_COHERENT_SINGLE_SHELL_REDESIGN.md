@@ -23,11 +23,11 @@ together, where:
   cursor affordance); an oversized "Durable storage pending" banner eats the
   top third of the viewport on load; the first-run empty state is barren.
 - The mental model is **incoherent**: "three views" is a leaky description of
-  what is actually *two orthogonal axes plus a third mode axis plus a
-  feature-flagged dual renderer*.
+  what is actually _two orthogonal axes plus a third mode axis plus a
+  feature-flagged dual renderer_.
 
 The bar the product is being held to is Notion and the Claude desktop app:
-one well-composed shell you *want* to open, where everything is one obvious
+one well-composed shell you _want_ to open, where everything is one obvious
 click or `⌘K` away.
 
 ## Executive Summary
@@ -42,7 +42,7 @@ desktop composition:
   slash-placeholder);
 - **`⌘K` command palette** as the universal accelerator (already excellent —
   keep it);
-- **Focus / Zen as a *toggle*** (hide chrome), not a separate world.
+- **Focus / Zen as a _toggle_** (hide chrome), not a separate world.
 
 Mechanically this means: **keep the unified `ShellFrame` renderer, delete the
 legacy `CalmShell` / `DesktopWorkbench` fork**, converge the `quiet | calm |
@@ -82,14 +82,14 @@ change must be made in both until the flag flips.
 Stored in `apps/web/src/workbench/state.ts` (`useWorkbench`, zustand+persist,
 key `xnet:workbench:v1`):
 
-| Axis | Values | Meaning |
-|---|---|---|
-| `layout` | `workbench` \| `calm` | really just `surface.tabsEnabled` |
-| `chrome` | `pinned` \| `quiet` | persistent vs hover-summoned chrome |
-| `calmMode` | `companion` \| `workspace` \| `network` | the "mode" inside calm/quiet |
-| `mode` (zen) | `normal` \| `zen` | separate axis again |
-| `discloseLevel` | `0` \| `1` \| `2` | ephemeral quiet summon ladder |
-| `arranging` | bool | Arrange overlay |
+| Axis            | Values                                  | Meaning                             |
+| --------------- | --------------------------------------- | ----------------------------------- |
+| `layout`        | `workbench` \| `calm`                   | really just `surface.tabsEnabled`   |
+| `chrome`        | `pinned` \| `quiet`                     | persistent vs hover-summoned chrome |
+| `calmMode`      | `companion` \| `workspace` \| `network` | the "mode" inside calm/quiet        |
+| `mode` (zen)    | `normal` \| `zen`                       | separate axis again                 |
+| `discloseLevel` | `0` \| `1` \| `2`                       | ephemeral quiet summon ladder       |
+| `arranging`     | bool                                    | Arrange overlay                     |
 
 The three "presets" are just points in this space: **quiet** = calm+quiet,
 **calm** = calm+pinned, **bench** = workbench+pinned. `state.ts` itself
@@ -112,7 +112,7 @@ CRM / Discover / Requests are demoted into a `NetworkList`
 (`apps/web/src/workbench/calm/NetworkList.tsx`) reachable only when "Network
 mode" is active.
 
-### Orphaned routes (no nav affordance in *any* mode)
+### Orphaned routes (no nav affordance in _any_ mode)
 
 Cross-referencing `apps/web/src/routes/` against every nav surface (Rail,
 ModeSwitch, ListPane, CornerGlyphs): `/meetings`, `/finance`, `/experiments`,
@@ -131,7 +131,7 @@ Driving the running app (`web-worktree` on :5199, test-bypass identity):
 2. **Calm default is barren** — a mode rail + two onboarding cards + a large
    empty void.
 3. **Workbench is dense/IDE-like** — full icon rail (`Rail.tsx:85`, 12+ icons)
-   + Explorer + tab strip + status bar. Not calm, not Notion-like.
+   - Explorer + tab strip + status bar. Not calm, not Notion-like.
 4. **New page = blank white void** — `.ProseMirror` (tiptap) mounts, title
    input holds "Untitled", but nothing is visible: no rendered title, no
    "type `/` for commands" placeholder, no cursor affordance.
@@ -140,20 +140,20 @@ Driving the running app (`web-worktree` on :5199, test-bypass identity):
 
 ### Anchor files
 
-| Concern | File |
-|---|---|
-| The fork | `apps/web/src/workbench/Workbench.tsx:119` |
-| Target renderer | `apps/web/src/workbench/ShellFrame.tsx:304` |
-| All axes / store | `apps/web/src/workbench/state.ts` |
-| Preset definitions | `packages/plugins/src/workspace/layout-tree.ts:124` |
-| Legacy calm shell | `apps/web/src/workbench/calm/CalmShell.tsx` |
-| Route↔mode ownership | `apps/web/src/workbench/calm/modes.ts` |
-| Full tool rail | `apps/web/src/workbench/Rail.tsx` |
-| View inventory | `apps/web/src/workbench/builtin-slot-views.tsx` |
-| Nav mode switch | `apps/web/src/workbench/calm/ModeSwitch.tsx` |
-| Editor surface | tiptap `.ProseMirror` via the page view |
-| Storage banner | `apps/web/src/components/StorageOptimiseHint.tsx` |
-| Labs flags | `apps/web/src/lib/labs.ts`, `apps/web/src/workbench/experiments.ts` |
+| Concern              | File                                                                |
+| -------------------- | ------------------------------------------------------------------- |
+| The fork             | `apps/web/src/workbench/Workbench.tsx:119`                          |
+| Target renderer      | `apps/web/src/workbench/ShellFrame.tsx:304`                         |
+| All axes / store     | `apps/web/src/workbench/state.ts`                                   |
+| Preset definitions   | `packages/plugins/src/workspace/layout-tree.ts:124`                 |
+| Legacy calm shell    | `apps/web/src/workbench/calm/CalmShell.tsx`                         |
+| Route↔mode ownership | `apps/web/src/workbench/calm/modes.ts`                              |
+| Full tool rail       | `apps/web/src/workbench/Rail.tsx`                                   |
+| View inventory       | `apps/web/src/workbench/builtin-slot-views.tsx`                     |
+| Nav mode switch      | `apps/web/src/workbench/calm/ModeSwitch.tsx`                        |
+| Editor surface       | tiptap `.ProseMirror` via the page view                             |
+| Storage banner       | `apps/web/src/components/StorageOptimiseHint.tsx`                   |
+| Labs flags           | `apps/web/src/lib/labs.ts`, `apps/web/src/workbench/experiments.ts` |
 
 ## Current vs Target (diagram)
 
@@ -195,20 +195,21 @@ Prior art for "one shell, collapsible sidebar, palette, focus toggle":
   shell; "focus" is just the collapsed sidebar. No competing "modes."
 - **Claude desktop** — left column of top-level destinations (Chat / Projects
   / etc.), a content pane, a command surface; density is uniform. Coherence
-  comes from *one* navigation model, not several.
+  comes from _one_ navigation model, not several.
 - **Linear** — the app the repo already emulates for Tasks (0198). One shell,
   a collapsible sidebar, `⌘K` everywhere, and a genuinely fast content area.
   "Focus mode" hides the sidebar; it is not a separate layout.
-- **VS Code** — the *cautionary* example: an Activity Bar + Side Bar + Panel +
+- **VS Code** — the _cautionary_ example: an Activity Bar + Side Bar + Panel +
   Editor Groups is powerful but reads as an IDE, not a calm workspace. Our
   current **workbench** preset is drifting toward this. The redesign should
-  keep the completeness of workbench but the *calm* of Notion.
+  keep the completeness of workbench but the _calm_ of Notion.
 
 Common thread: **one shell + one collapsible sidebar + one palette + a focus
 toggle** is the dominant, well-loved pattern. Multiple co-equal "shell modes"
 is not a pattern anyone ships, because it forces users to learn several apps.
 
 Sidebar interaction details worth stealing:
+
 - Collapse to a **hover-peek rail** (icons only) rather than fully vanishing,
   so nav is never more than a hover away (Notion, Linear).
 - **Sections with disclosure** (Workspace / Tools / People) instead of a flat
@@ -223,7 +224,7 @@ Sidebar interaction details worth stealing:
    axis without anyone removing the previous shell. There is no user story that
    needs quiet ≠ calm ≠ bench as distinct worlds.
 2. The **layout-tree engine (0280) is sound** and worth keeping. The problem
-   is the *presets* layered on it, not the engine. One good preset fixes the
+   is the _presets_ layered on it, not the engine. One good preset fixes the
    coherence problem without throwing away the malleable-shell work.
 3. **Feature reachability is a data problem**, not a rendering problem: put
    every tool in the one preset's tree and "features hidden in some modes"
@@ -256,7 +257,7 @@ Unify on `ShellFrame`, add the five tool views to the calm/quiet presets, keep
 three presets.
 
 - **Pros:** smaller diff; preserves quiet/calm for users who like them.
-- **Cons:** *does not solve the stated problem* — three worlds remain; the
+- **Cons:** _does not solve the stated problem_ — three worlds remain; the
   user explicitly rejected this. Rejected.
 
 ### Option C — Anoint workbench, demote the rest to "focus"
@@ -265,7 +266,7 @@ Make the bench preset the one true shell, keep quiet as a `focus` toggle over
 it, delete calm entirely.
 
 - **Pros:** workbench already exposes everything; smallest path to "one shell."
-- **Cons:** bench is the *IDE-like, dense* one; shipping it as-is keeps the
+- **Cons:** bench is the _IDE-like, dense_ one; shipping it as-is keeps the
   "utilitarian, not calm" complaint. Acceptable only if paired with a real
   visual calm-down pass on the sidebar/surface.
 
@@ -313,7 +314,7 @@ low:
 
 Keep: `ShellFrame`, the layout-tree engine, `⌘K` palette, workspace switcher,
 sidebar customise/pin (re-skinned from Arrange), `cozy`/`density`/theme
-variants (those are *appearance*, orthogonal and fine).
+variants (those are _appearance_, orthogonal and fine).
 
 ## Example Code
 
@@ -341,20 +342,20 @@ export function createDefaultTree(): LayoutTree {
     // Formerly orphaned routes get a home
     place('meetings', 'summoned', 9),
     place('finance', 'summoned', 10),
-    place('analytics', 'summoned', 11),
+    place('analytics', 'summoned', 11)
   ]
   regions['dock.right'] = [place('context', 'summoned', 0)]
   regions['dock.bottom'] = [
     place('shelf', 'summoned', 0),
     place('capture', 'summoned', 1),
     place('notifications', 'summoned', 2),
-    place('sync', 'summoned', 3),
+    place('sync', 'summoned', 3)
   ]
   return {
     workspaceId: presetWorkspaceId('default'),
     regions,
     surface: { tabsEnabled: true },
-    chrome: 'pinned',
+    chrome: 'pinned'
   }
 }
 ```
@@ -373,11 +374,11 @@ extension is configured and its CSS is present:
 
 ```ts
 Placeholder.configure({
-  placeholder: ({ node }) =>
-    node.type.name === 'title' ? 'Untitled' : "Type '/' for commands…",
-  showOnlyWhenEditable: true,
+  placeholder: ({ node }) => (node.type.name === 'title' ? 'Untitled' : "Type '/' for commands…"),
+  showOnlyWhenEditable: true
 })
 ```
+
 ```css
 .ProseMirror .is-empty::before {
   content: attr(data-placeholder);
@@ -393,7 +394,7 @@ Placeholder.configure({
 - **Persisted-state migration.** `xnet:workbench:v1` is at store version 3
   (`state.ts`). Existing users have `layout`/`chrome`/`calmMode`/custom trees
   persisted. The migration must map all of them onto the one shell without a
-  blank or broken first paint. *Test: seed each legacy state and boot.*
+  blank or broken first paint. _Test: seed each legacy state and boot._
 - **Mobile.** `MobileShell` vs `CalmMobile` is the same fork on phones. The
   single-shell decision must extend to compact widths (likely: keep
   `MobileShell`, delete `CalmMobile`). Needs its own pass.
@@ -416,15 +417,17 @@ Placeholder.configure({
 ## Implementation Checklist
 
 ### Stage 1 — Polish wins (no architecture change)
+
 - [ ] Fix the blank editor surface: configure/repair the tiptap Placeholder
       extension + its CSS so a new page shows a visible "Untitled" title and a
       "Type '/' for commands…" body placeholder with a cursor.
-- [ ] Tame `StorageOptimiseHint` — make it a dismissible one-line toast /
+- [x] Tame `StorageOptimiseHint` — make it a dismissible one-line toast /
       status-bar chip, not a top-of-viewport block; persist dismissal.
 - [ ] Warm up the first-run empty state (a real "create your first page /
       database / canvas" affordance, not just grey text).
 
 ### Stage 2 — One preset
+
 - [ ] Add `sidebar` slot view (sectioned, collapsible, hover-peek) in
       `builtin-slot-views.tsx`; sections: Workspace / Tools / People / More.
 - [ ] Replace `createPresetTree(quiet|calm|bench)` with `createDefaultTree()`
@@ -434,6 +437,7 @@ Placeholder.configure({
       from the palette (`Workspace: Preset: …`).
 
 ### Stage 3 — One toggle
+
 - [ ] Add `focus: boolean` + `toggleFocus` to the store; bind `⌘.`.
 - [ ] Route the collapsed-sidebar / hide-chrome behaviour through `focus`;
       delete `chrome`, `mode` (zen), `discloseLevel` from the public store
@@ -442,6 +446,7 @@ Placeholder.configure({
       tree; keep it silent and total.
 
 ### Stage 4 — One renderer
+
 - [ ] Flip `xnet:experiment:layout-tree` on by default.
 - [ ] Delete `DesktopWorkbench` (in `Workbench.tsx`), `CalmShell`, `ModeSwitch`,
       `ListPane`, `QuietChrome`, `NetworkList`, `CompanionList`, `calm/modes.ts`,
