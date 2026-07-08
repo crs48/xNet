@@ -489,7 +489,7 @@ Tier 2 — prevent the classes:
 - [x] Add actionlint step to the `lint` job in `ci.yml` (pin version)
 - [x] Add actionlint to `.husky/pre-commit` for staged `.github/workflows/**` files
 - [x] Fix whatever actionlint flags across the other 23 workflows
-- [ ] Add `.husky/prepare-commit-msg` DCO auto-sign-off (dependency-free shell)
+- [x] Add `.husky/prepare-commit-msg` DCO auto-sign-off (dependency-free shell)
 - [x] Storybook shim-conformance script + `lint` job step (diff shim exports vs `@xnetjs/plugins` exports)
 - [ ] `plugins-registry.yml`: replace direct push with `peter-evans/create-pull-request` standing PR + auto-merge
 
