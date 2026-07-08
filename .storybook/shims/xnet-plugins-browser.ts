@@ -77,6 +77,7 @@ export type {
 // shell modules import these through the @xnetjs/plugins alias.
 export {
   createPresetTree,
+  insertSlot,
   isPresetWorkspaceId,
   moveSlot,
   parseWorkspacePayload,
