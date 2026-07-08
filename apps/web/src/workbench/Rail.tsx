@@ -14,6 +14,7 @@ import {
   Compass,
   Contact,
   Files,
+  Layers,
   MessageSquare,
   Network,
   Puzzle,
@@ -158,6 +159,14 @@ export function Rail() {
       })}
 
       <div className="flex-1" />
+
+      {/* Workspace switcher (0280): same verb as the calm ModeSwitch button. */}
+      <RailButton
+        label="Workspaces"
+        icon={Layers}
+        coachId="workspace.switch"
+        onClick={() => void getCommandRegistry().runCommand('workspace.switch')}
+      />
 
       {identity && (
         <div

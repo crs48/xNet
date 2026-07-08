@@ -16,7 +16,7 @@ import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import { getCommandRegistry } from '@xnetjs/plugins'
 import { useIdentity } from '@xnetjs/react'
 import { PopoverContent, PopoverRoot, PopoverTrigger, Sheet, SheetContent } from '@xnetjs/ui'
-import { Search, Settings, type LucideIcon } from 'lucide-react'
+import { Layers, Search, Settings, type LucideIcon } from 'lucide-react'
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import { contributeTips } from '../../coachmarks'
 import { slotsIn } from '../layout-tree'
@@ -202,6 +202,11 @@ function CornerGlyphs({ lit, activeMode }: { lit: boolean; activeMode: CalmMode 
         label="Search (⌘K)"
         icon={Search}
         onClick={() => void getCommandRegistry().runCommand('search.open')}
+      />
+      <GlyphButton
+        label="Workspaces"
+        icon={Layers}
+        onClick={() => void getCommandRegistry().runCommand('workspace.switch')}
       />
       <Link
         to="/settings"
