@@ -1,13 +1,11 @@
 name: Fallow
 
+# Weekly + manual only (exploration 0283): the per-PR run was the pipeline's
+# slowest job (~17 min), failed ~44% of PRs on advisory notes it was never a
+# required check for, and its cancellation churn threw away hours of compute.
+# The scheduled run keeps the hard --fail-on-issues gate so quality regressions
+# on main still surface; alerts land as code-scanning annotations via SARIF.
 on:
-  pull_request:
-    branches: [main]
-    paths-ignore:
-      - '*.md'
-      - '**/*.md'
-      - 'docs/**'
-      - '.github/*.md'
   workflow_dispatch:
   schedule:
     - cron: '0 13 * * 1'
@@ -17,7 +15,7 @@ permissions:
   security-events: write
 
 concurrency:
-  group: fallow-${{ github.event.pull_request.number || github.ref }}
+  group: fallow-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -36,27 +34,15 @@ jobs:
           fetch-depth: 0
 
       - uses: ./.github/actions/setup
-        with:
-          turbo-cache: 'false'
 
       - name: Fetch Fallow base
         shell: bash
-        run: |
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            git fetch --no-tags origin "${{ github.base_ref }}:refs/remotes/origin/${{ github.base_ref }}"
-          else
-            git fetch --no-tags origin "main:refs/remotes/origin/main"
-          fi
+        run: git fetch --no-tags origin "main:refs/remotes/origin/main"
 
       - name: Select Fallow base
         id: base
         shell: bash
-        run: |
-          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            echo "ref=origin/${{ github.base_ref }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "ref=origin/main" >> "$GITHUB_OUTPUT"
-          fi
+        run: echo "ref=origin/main" >> "$GITHUB_OUTPUT"
 
       - name: Build packages
         run: pnpm turbo run build --filter='./packages/*'
@@ -106,14 +92,13 @@ jobs:
           fi
 
       - name: Upload Fallow SARIF
-        if: always() && hashFiles('fallow-audit.single.sarif') != '' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        if: always() && hashFiles('fallow-audit.single.sarif') != ''
         uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: fallow-audit.single.sarif
           category: fallow-audit
 
       - name: Run Fallow dead-code regression
-        if: github.event_name != 'pull_request'
         shell: bash
         run: |
           pnpm exec fallow dead-code \

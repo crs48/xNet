@@ -303,6 +303,10 @@ B1 now; consider B3 after a week of green.
 C1 + C3 + C4: Fallow drops from ~17 min red-by-default to ~6-8 min
 informational, and cancellation waste shrinks proportionally.
 
+> **Decision (implementation):** the user chose the stronger cut — remove the
+> `pull_request` trigger entirely. Fallow now runs weekly + on dispatch only,
+> keeping `--fail-on-issues` there; C4 (turbo cache) applied; C2/C3 moot.
+
 ### D. Visual UI Capture
 
 | Option | Effort | Notes |
@@ -477,8 +481,8 @@ Tier 1 — stop the bleeding:
 - [x] Quote the two `run:` echo lines in `.github/workflows/mobile-e2e.yml` (44, 67)
 - [x] `apps/electron/native/audiotee/Package.swift`: `.macOS(.v14)` → `.macOS("14.2")`
 - [x] Verify Electron main's systemAudio capability gates on OS version ≥ 14.2 (not helper presence)
-- [ ] `fallow.yml`: remove `turbo-cache: 'false'`
-- [ ] `fallow.yml`: `--fail-on-issues` only when `github.event_name != 'pull_request'`
+- [x] `fallow.yml`: remove `turbo-cache: 'false'`
+- [x] `fallow.yml`: drop the `pull_request` trigger — weekly/manual only, hard fail kept there (user decision; supersedes report-only-on-PRs)
 - [ ] `visual-capture.yml`: `continue-on-error: true` on the `capture` job
 
 Tier 2 — prevent the classes:
@@ -487,7 +491,6 @@ Tier 2 — prevent the classes:
 - [ ] Fix whatever actionlint flags across the other 23 workflows
 - [ ] Add `.husky/prepare-commit-msg` DCO auto-sign-off (dependency-free shell)
 - [ ] Storybook shim-conformance script + `lint` job step (diff shim exports vs `@xnetjs/plugins` exports)
-- [ ] `fallow.yml`: changed-scope coverage on PR events (`vitest --changed`)
 - [ ] `plugins-registry.yml`: replace direct push with `peter-evans/create-pull-request` standing PR + auto-merge
 
 Tier 3 — ratchets:
@@ -501,7 +504,7 @@ Tier 3 — ratchets:
 - [ ] `gh workflow run mobile-e2e.yml -f platform=android` parses and starts jobs
 - [ ] Next Electron Release run: both macOS arch jobs pass `Build xnet-audiotee helper`; `v*` release publishes and the download page picks it up
 - [ ] Fresh PR: DCO check green without manual `-s`
-- [ ] Fresh PR touching a package: Fallow completes in < 8 min and reports (SARIF alerts + summary) without a red ✗
+- [ ] Fresh PR touching a package: no Fallow check appears (PR trigger removed)
 - [ ] Intentionally add an unexported plugin symbol to a storybook story: `lint` fails in < 2 min with the shim-conformance message
 - [ ] Intentionally break a workflow file's YAML in a branch: pre-commit and/or `lint` actionlint step reject it
 - [ ] Next daily Plugins Registry cron with changes: opens/refreshes a PR instead of failing
