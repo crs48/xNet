@@ -8,7 +8,7 @@
  */
 import { createFileRoute } from '@tanstack/react-router'
 import { serializeShare } from '@xnetjs/identity'
-import { deleteDay, leaveWithEverything } from '@xnetjs/plugins'
+import { deleteDay, getCommandRegistry, leaveWithEverything } from '@xnetjs/plugins'
 import { useIdentity } from '@xnetjs/react'
 import { SettingRow, SettingsGroup, SettingsPanel, SettingToggle, useTheme } from '@xnetjs/ui'
 import { MeetingEngineSettings } from '@xnetjs/views'
@@ -17,8 +17,10 @@ import {
   Database,
   Mic,
   Info,
+  Layers,
   LayoutGrid,
   MessageSquare,
+  Square,
   Sun,
   Moon,
   Monitor,
@@ -52,6 +54,7 @@ import { createLeavePorts, downloadLeaveBundle, type LeaveDeps } from '../lib/le
 import { isSentryConfigured } from '../lib/sentry'
 import { useConsent } from '../lib/use-consent'
 import { WINDDOWN_DURATION_CHOICES, useWinddownPreferences } from '../lib/winddown'
+import { presetForWorkspaceId } from '../workbench/layout-tree'
 import { useWorkbench } from '../workbench/state'
 
 /** Marketing + dashboard origins for xNet Cloud (managed hub hosting). */
@@ -194,28 +197,49 @@ function SettingsPage() {
 function AppearanceSettings() {
   const { theme, setTheme, variant, setVariant, density, setDensity } = useTheme()
   const winddown = useWinddownPreferences()
-  const layout = useWorkbench((state) => state.layout)
-  const setLayout = useWorkbench((state) => state.setLayout)
+  // The shell defaults are presets over the layout tree (0280): the active
+  // one is derived from the tree's provenance; a saved workspace shows none.
+  const activePreset = useWorkbench((state) => presetForWorkspaceId(state.tree.workspaceId))
+  const applyPreset = useWorkbench((state) => state.applyPreset)
 
   return (
     <SettingsPanel title="Appearance" description="Customize how xNet looks">
       <SettingsGroup>
         <SettingRow
           label="Layout"
-          description="Calm puts a conversation, a list and a contextual canvas up front; Workbench is the multi-pane editor grid"
+          description="Quiet is the bare surface with chrome at the edges; Calm puts a conversation, a list and a contextual canvas up front; Bench is the multi-pane editor grid"
         >
           <div className="flex gap-1.5">
             <ThemeButton
+              icon={<Square size={14} strokeWidth={1.5} />}
+              label="Quiet"
+              active={activePreset === 'quiet'}
+              onClick={() => applyPreset('quiet')}
+            />
+            <ThemeButton
               icon={<MessageSquare size={14} strokeWidth={1.5} />}
               label="Calm"
-              active={layout === 'calm'}
-              onClick={() => setLayout('calm')}
+              active={activePreset === 'calm'}
+              onClick={() => applyPreset('calm')}
             />
             <ThemeButton
               icon={<LayoutGrid size={14} strokeWidth={1.5} />}
-              label="Workbench"
-              active={layout === 'workbench'}
-              onClick={() => setLayout('workbench')}
+              label="Bench"
+              active={activePreset === 'bench'}
+              onClick={() => applyPreset('bench')}
+            />
+          </div>
+        </SettingRow>
+        <SettingRow
+          label="Workspaces"
+          description="Rearranged panels can be saved as named workspaces — switch, share or reset from the switcher (also on the rail and in ⌘K)"
+        >
+          <div className="flex gap-1.5">
+            <ThemeButton
+              icon={<Layers size={14} strokeWidth={1.5} />}
+              label="Switch workspace…"
+              active={false}
+              onClick={() => void getCommandRegistry().runCommand('workspace.switch')}
             />
           </div>
         </SettingRow>
