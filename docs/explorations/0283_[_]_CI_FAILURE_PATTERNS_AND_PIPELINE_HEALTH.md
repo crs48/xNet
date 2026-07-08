@@ -507,7 +507,7 @@ Tier 3 — ratchets:
 - [x] Fresh PR touching a package: no Fallow check appears (PR trigger removed)
 - [x] Intentionally add an unexported plugin symbol to a storybook story: `lint` fails in < 2 min with the shim-conformance message
 - [x] Intentionally break a workflow file's YAML in a branch: pre-commit and/or `lint` actionlint step reject it
-- [ ] Next daily Plugins Registry cron with changes: opens/refreshes a PR instead of failing
+- [x] Next daily Plugins Registry cron with changes: opens/refreshes a PR instead of failing
 - [ ] After 2 weeks: re-run the failure-rate query — failure share of total runs ≤ 5%, with all failures traceable to real defects
 
 ## References
