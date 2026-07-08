@@ -66,6 +66,16 @@ jobs:
       - name: Storybook plugins shim conformance (0283)
         run: pnpm check:storybook-shim
 
+      # Workflow files themselves: an unparseable workflow made GitHub emit a
+      # phantom failed run on EVERY push for weeks (exploration 0283). Severity
+      # floor `warning` keeps shellcheck's style/info pedantry out of the gate.
+      - name: Lint workflow files (actionlint, 0283)
+        env:
+          SHELLCHECK_OPTS: --severity=warning
+        run: |
+          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12
+          ./actionlint -color
+
   # Validate changelog fragments and dry-run PR-number resolution on PRs, so a
   # malformed entry (which would otherwise fail only the production deploy and
   # freeze the whole changelog) or one that would ship numberless fails the PR
@@ -173,7 +183,7 @@ jobs:
         run: pnpm --filter xnet-web dev --host 127.0.0.1 --port 5173 > /tmp/xnet-web.log 2>&1 &
 
       - name: Wait for web app
-        run: for i in {1..60}; do curl -fsS http://127.0.0.1:5173 >/dev/null && exit 0; sleep 2; done; echo "web app did not start"; exit 1
+        run: for _ in {1..60}; do curl -fsS http://127.0.0.1:5173 >/dev/null && exit 0; sleep 2; done; echo "web app did not start"; exit 1
 
       - name: Run editor UX smoke tests (desktop + mobile)
         run: pnpm --filter @xnetjs/e2e-tests exec playwright test src/editor-ux.spec.ts src/editor-ux-mobile.spec.ts src/safety-ui.spec.ts --project=chromium --project=mobile-chromium --fail-on-flaky-tests

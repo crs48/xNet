@@ -486,9 +486,9 @@ Tier 1 — stop the bleeding:
 - [x] `visual-capture.yml`: `continue-on-error: true` on the `capture` job
 
 Tier 2 — prevent the classes:
-- [ ] Add actionlint step to the `lint` job in `ci.yml` (pin version)
-- [ ] Add actionlint to `.husky/pre-commit` for staged `.github/workflows/**` files
-- [ ] Fix whatever actionlint flags across the other 23 workflows
+- [x] Add actionlint step to the `lint` job in `ci.yml` (pin version)
+- [x] Add actionlint to `.husky/pre-commit` for staged `.github/workflows/**` files
+- [x] Fix whatever actionlint flags across the other 23 workflows
 - [ ] Add `.husky/prepare-commit-msg` DCO auto-sign-off (dependency-free shell)
 - [x] Storybook shim-conformance script + `lint` job step (diff shim exports vs `@xnetjs/plugins` exports)
 - [ ] `plugins-registry.yml`: replace direct push with `peter-evans/create-pull-request` standing PR + auto-merge
@@ -506,7 +506,7 @@ Tier 3 — ratchets:
 - [ ] Fresh PR: DCO check green without manual `-s`
 - [ ] Fresh PR touching a package: no Fallow check appears (PR trigger removed)
 - [x] Intentionally add an unexported plugin symbol to a storybook story: `lint` fails in < 2 min with the shim-conformance message
-- [ ] Intentionally break a workflow file's YAML in a branch: pre-commit and/or `lint` actionlint step reject it
+- [x] Intentionally break a workflow file's YAML in a branch: pre-commit and/or `lint` actionlint step reject it
 - [ ] Next daily Plugins Registry cron with changes: opens/refreshes a PR instead of failing
 - [ ] After 2 weeks: re-run the failure-rate query — failure share of total runs ≤ 5%, with all failures traceable to real defects
 

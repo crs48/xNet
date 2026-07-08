@@ -113,7 +113,7 @@ jobs:
         run: pnpm --filter xnet-web dev --host 127.0.0.1 --port 5173 > /tmp/xnet-web.log 2>&1 &
 
       - name: Wait for web app
-        run: for i in {1..60}; do curl -fsS "$WEB_URL" >/dev/null && exit 0; sleep 2; done; echo "web app did not start"; cat /tmp/xnet-web.log; exit 1
+        run: for _ in {1..60}; do curl -fsS "$WEB_URL" >/dev/null && exit 0; sleep 2; done; echo "web app did not start"; cat /tmp/xnet-web.log; exit 1
 
       - name: Compute capture set
         id: set
@@ -273,7 +273,7 @@ jobs:
         run: pnpm --filter xnet-web dev --host 127.0.0.1 --port 5173 > /tmp/xnet-web.log 2>&1 &
 
       - name: Wait for web app
-        run: for i in {1..60}; do curl -fsS "$WEB_URL" >/dev/null && exit 0; sleep 2; done; echo "web app did not start"; cat /tmp/xnet-web.log; exit 1
+        run: for _ in {1..60}; do curl -fsS "$WEB_URL" >/dev/null && exit 0; sleep 2; done; echo "web app did not start"; cat /tmp/xnet-web.log; exit 1
 
       - name: Compute full capture set
         run: |
