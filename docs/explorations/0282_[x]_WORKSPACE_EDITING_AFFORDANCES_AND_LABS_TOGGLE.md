@@ -563,24 +563,24 @@ export function useSlotDragActive(): { viewId: string } | null {
 
 ## Validation Checklist
 
-- [ ] With a fresh profile, the malleable shell can be enabled entirely
+- [x] With a fresh profile, the malleable shell can be enabled entirely
       through UI: Settings → Labs → toggle → reload chip → arrange
-- [ ] With the flag off, no drag affordances render anywhere (legacy
+- [x] With the flag off, no drag affordances render anywhere (legacy
       shells inert) and Labs is the only new surface
-- [ ] Dragging any panel header lights up all four dock targets,
+- [x] Dragging any panel header lights up all four dock targets,
       including closed docks (edge strips), and dropping on a closed dock
       opens it with the view landed + flash
-- [ ] The Move menu works reliably in all hosts (left/bottom docks,
+- [x] The Move menu works reliably in all hosts (left/bottom docks,
       corner card ×5 clicks each — the 0280 flake is gone)
-- [ ] Arrange mode: every placed view visible as a chip; move/reorder/
+- [x] Arrange mode: every placed view visible as a chip; move/reorder/
       tier/hide all work by drag AND by menu/keyboard; screen reader
       announces each move; Esc walks out before closing docks
-- [ ] Exiting arrange mode with a diverged tree surfaces the Save-as
+- [x] Exiting arrange mode with a diverged tree surfaces the Save-as
       nudge; saving creates the workspace node (0280 flow)
-- [ ] Reordering within a dock persists across reload and round-trips
+- [x] Reordering within a dock persists across reload and round-trips
       through a saved workspace node
-- [ ] All new motion is disabled under `prefers-reduced-motion`
-- [ ] Quiet posture: edge summon hot-zones and drag edge strips never
+- [x] All new motion is disabled under `prefers-reduced-motion`
+- [x] Quiet posture: edge summon hot-zones and drag edge strips never
       fight (manual pass on the live app)
 
 ## References
