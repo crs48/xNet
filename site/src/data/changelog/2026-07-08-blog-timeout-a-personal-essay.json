@@ -4,5 +4,14 @@
   "title": "Blog: Timeout — a personal essay",
   "summary": "Blog post #12, the series' first personal essay: on autism, dissociation, and the network dreamed in the timeout — with a new 'personal' tag on the blog index.",
   "highlights": [],
-  "tags": ["platform"]
+  "tags": [
+    "platform"
+  ],
+  "pr": 419,
+  "mergedAt": "2026-07-08T23:04:02Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
