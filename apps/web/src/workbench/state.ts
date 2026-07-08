@@ -15,6 +15,7 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import {
   createPresetTree,
+  insertSlot as insertSlotInTree,
   moveSlot as moveSlotInTree,
   setSlotTier as setSlotTierInTree,
   slotsIn,
@@ -253,6 +254,8 @@ interface WorkbenchState {
   loadWorkspace: (payload: WorkspacePayload) => void
   /** Move a view to another region (keeps its tier; ordered last). */
   moveSlot: (viewId: string, region: RegionId) => void
+  /** Insert a view at an index within a region (reorder or cross-move). */
+  insertSlot: (viewId: string, region: RegionId, index: number) => void
   /** Change a placed view's disclosure tier. */
   setSlotTier: (viewId: string, tier: SlotTier) => void
 
@@ -423,6 +426,12 @@ export const useWorkbench = create<WorkbenchState>()(
       moveSlot: (viewId, region) =>
         set((state) => {
           const tree = moveSlotInTree(state.tree, viewId, region)
+          return tree === state.tree ? {} : { tree }
+        }),
+
+      insertSlot: (viewId, region, index) =>
+        set((state) => {
+          const tree = insertSlotInTree(state.tree, viewId, region, index)
           return tree === state.tree ? {} : { tree }
         }),
 

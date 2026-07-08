@@ -76,6 +76,36 @@ function registerMoveCommands(view: SlotContribution): Array<() => void> {
       }).dispose
     )
   }
+  // Within-dock reorder (0282 phase 4) — the keyboard road.
+  for (const [direction, delta] of [
+    ['up', -1],
+    ['down', 1]
+  ] as const) {
+    disposers.push(
+      commands.register({
+        id: `slot.reorder:${view.id}:${direction}`,
+        title: `View: Move ${view.label} ${direction === 'up' ? 'earlier' : 'later'} in its dock`,
+        when: () => {
+          const tree = useWorkbench.getState().tree
+          const region = regionOf(tree, view.id)
+          if (!region) return false
+          const ordered = tree.regions[region]
+          const index = ordered.findIndex((placement) => placement.viewId === view.id)
+          const next = index + delta
+          return index >= 0 && next >= 0 && next < ordered.length
+        },
+        run: () => {
+          const state = useWorkbench.getState()
+          const region = regionOf(state.tree, view.id)
+          if (!region) return
+          const index = state.tree.regions[region].findIndex(
+            (placement) => placement.viewId === view.id
+          )
+          state.insertSlot(view.id, region, index + delta)
+        }
+      }).dispose
+    )
+  }
   disposers.push(
     commands.register({
       id: `slot.hide:${view.id}`,

@@ -552,13 +552,13 @@ export function useSlotDragActive(): { viewId: string } | null {
 
 ### Phase 4 — Reorder within a dock
 
-- [ ] `insertSlot(tree, viewId, region, index)` in
+- [x] `insertSlot(tree, viewId, region, index)` in
       `packages/plugins/src/workspace/layout-tree.ts` + tests; changeset
       (minor)
-- [ ] Store action + `slot.reorder:<id>:up|down` commands
-- [ ] Insertion indicator on arrange-mode chips and the bottom-dock
+- [x] Store action + `slot.reorder:<id>:up|down` commands
+- [x] Insertion indicator on arrange-mode chips and the bottom-dock
       header tabs (lift `TabDropIndicator`)
-- [ ] Changelog fragment (`--tags app`) covering the Labs toggle +
+- [x] Changelog fragment (`--tags app`) covering the Labs toggle +
       arrange mode
 
 ## Validation Checklist

@@ -39,12 +39,26 @@ function tierGlyph(tier: SlotTier): JSX.Element {
 }
 
 /** One view as a draggable, editable chip. */
-function ViewChip({ viewId, tier }: { viewId: string; tier: SlotTier }) {
+function ViewChip({
+  viewId,
+  tier,
+  region,
+  index
+}: {
+  viewId: string
+  tier: SlotTier
+  /** Region + index enable within-dock reorder drops (0282 phase 4). */
+  region?: RegionId
+  index?: number
+}) {
   const setSlotTier = useWorkbench((state) => state.setSlotTier)
+  const insertSlot = useWorkbench((state) => state.insertSlot)
+  const [dropEdge, setDropEdge] = useState<'before' | 'after' | null>(null)
   const view = getSlotView(viewId)
   if (!view) return null
   const Icon = typeof view.icon === 'function' ? view.icon : LayoutGrid
   const nextTier: SlotTier = tier === 'pinned' ? 'summoned' : 'pinned'
+  const reorderable = region !== undefined && index !== undefined
 
   return (
     <div
@@ -56,8 +70,32 @@ function ViewChip({ viewId, tier }: { viewId: string; tier: SlotTier }) {
         beginSlotDrag(viewId)
       }}
       onDragEnd={endSlotDrag}
-      className="flex cursor-grab items-center gap-1.5 rounded-lg border border-hairline bg-surface-1 px-2 py-1.5 text-xs text-ink-1 shadow-sm transition-colors duration-fast ease-out hover:border-ink-3 active:cursor-grabbing"
+      onDragOver={(event) => {
+        if (!reorderable || !event.dataTransfer.types.includes(SLOT_DRAG_TYPE)) return
+        event.preventDefault()
+        event.stopPropagation()
+        const rect = event.currentTarget.getBoundingClientRect()
+        setDropEdge(event.clientX < rect.left + rect.width / 2 ? 'before' : 'after')
+      }}
+      onDragLeave={() => setDropEdge(null)}
+      onDrop={(event) => {
+        if (!reorderable || dropEdge === null) return
+        event.stopPropagation()
+        setDropEdge(null)
+        const dragged = event.dataTransfer.getData(SLOT_DRAG_TYPE)
+        if (!dragged || dragged === viewId || !canOccupy(getSlotView(dragged), region)) return
+        insertSlot(dragged, region, index + (dropEdge === 'after' ? 1 : 0))
+      }}
+      className="relative flex cursor-grab items-center gap-1.5 rounded-lg border border-hairline bg-surface-1 px-2 py-1.5 text-xs text-ink-1 shadow-sm transition-colors duration-fast ease-out hover:border-ink-3 active:cursor-grabbing"
     >
+      {dropEdge && (
+        <span
+          aria-hidden
+          className={`absolute inset-y-0.5 w-0.5 rounded bg-accent-ink ${
+            dropEdge === 'before' ? '-left-1' : '-right-1'
+          }`}
+        />
+      )}
       <GripVertical size={12} strokeWidth={1.5} className="shrink-0 text-ink-3" aria-hidden />
       <Icon size={13} strokeWidth={1.5} className="shrink-0 text-ink-2" />
       <span className="min-w-0 truncate">{view.label}</span>
@@ -106,7 +144,12 @@ function RegionSlot({ tree, region }: { tree: LayoutTree; region: RegionId }) {
   const moveSlot = useWorkbench((state) => state.moveSlot)
   const setSlotTier = useWorkbench((state) => state.setSlotTier)
   const [hovered, setHovered] = useState(0)
-  const placements = slotsIn(tree, region).filter((placement) => placement.tier !== 'hidden')
+  // Indices must come from the UNFILTERED region order — hidden
+  // placements keep their slot in the array, and insertSlot indexes it.
+  const ordered = slotsIn(tree, region)
+  const placements = ordered
+    .map((placement, index) => ({ placement, index }))
+    .filter(({ placement }) => placement.tier !== 'hidden')
 
   const onDrop = (event: DragEvent) => {
     setHovered(0)
@@ -141,8 +184,14 @@ function RegionSlot({ tree, region }: { tree: LayoutTree; region: RegionId }) {
         {regionLabel(region)}
       </h3>
       <div className="flex flex-wrap gap-1.5">
-        {placements.map((placement) => (
-          <ViewChip key={placement.viewId} viewId={placement.viewId} tier={placement.tier} />
+        {placements.map(({ placement, index }) => (
+          <ViewChip
+            key={placement.viewId}
+            viewId={placement.viewId}
+            tier={placement.tier}
+            region={region}
+            index={index}
+          />
         ))}
         {placements.length === 0 && (
           <span className="py-1 text-xs text-ink-3">Drop views here</span>

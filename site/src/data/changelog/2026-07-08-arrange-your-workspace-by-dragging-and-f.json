@@ -1,0 +1,8 @@
+{
+  "id": "2026-07-08-arrange-your-workspace-by-dragging-and-f",
+  "date": "July 8, 2026",
+  "title": "Arrange your workspace by dragging — and find it all in Settings › Labs",
+  "summary": "The malleable shell now has a real front door: a Labs section in Settings toggles it (and the other experiments) without any console tricks. Once on, panels show a grab handle, every dock lights up as a drop target while you drag (closed docks appear as edge strips), and a new Customize layout mode lays the whole shell out as draggable chips you can move, reorder, pin or hide — then save as a named workspace.",
+  "highlights": [],
+  "tags": ["app"]
+}
