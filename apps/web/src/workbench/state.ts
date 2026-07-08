@@ -184,6 +184,12 @@ interface WorkbenchState {
   /** Quiet shell disclosure level (0273). Ephemeral, not persisted. */
   discloseLevel: DiscloseLevel
   /**
+   * Arrange mode (0282): the shell renders as an editable schematic of
+   * its own layout tree. Ephemeral — never persisted (same rule as
+   * `discloseLevel`); reload always lands on the live shell.
+   */
+  arranging: boolean
+  /**
    * Contextual-canvas target (0250). When set, the calm shell's right Canvas
    * hosts the full content view for this node (the Claude "artifact opens on
    * the right" move — e.g. the agent drafts a page). When null the Canvas falls
@@ -262,6 +268,8 @@ interface WorkbenchState {
   toggleChrome: () => void
   /** Update the quiet shell's disclosure level (0273). */
   setDiscloseLevel: (level: DiscloseLevel) => void
+  /** Enter/exit arrange mode (0282). */
+  setArranging: (arranging: boolean) => void
   /** Open the contextual Canvas hosting a node's full content view. */
   openCanvas: (target: { nodeType: TabNodeType; nodeId: string; title?: string }) => void
   /** Close the Canvas and clear its content target (back to the inspector). */
@@ -380,6 +388,7 @@ export const useWorkbench = create<WorkbenchState>()(
       // away (`View: Quiet chrome`) and flips for new identities post-dogfood.
       chrome: 'pinned',
       discloseLevel: 0,
+      arranging: false,
       canvasTarget: null,
       mode: 'default',
       zenSnapshot: null,
@@ -467,6 +476,8 @@ export const useWorkbench = create<WorkbenchState>()(
 
       setDiscloseLevel: (discloseLevel) =>
         set((state) => (state.discloseLevel === discloseLevel ? {} : { discloseLevel })),
+
+      setArranging: (arranging) => set({ arranging }),
 
       openCanvas: (target) =>
         set((state) => ({ canvasTarget: target, right: { ...state.right, open: true } })),
@@ -798,11 +809,12 @@ export const useWorkbench = create<WorkbenchState>()(
         }
         return state as WorkbenchState
       },
-      // The disclosure level is a live interaction state (0273) — persisting
-      // it would resurrect a lit/overlaid shell on reload.
+      // Disclosure level and arrange mode are live interaction state
+      // (0273/0282) — persisting them would resurrect a lit/overlaid or
+      // mid-edit shell on reload.
       partialize: (state) =>
         Object.fromEntries(
-          Object.entries(state).filter(([key]) => key !== 'discloseLevel')
+          Object.entries(state).filter(([key]) => key !== 'discloseLevel' && key !== 'arranging')
         ) as WorkbenchState
     }
   )

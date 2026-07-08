@@ -17,6 +17,7 @@ import { Group, Panel, useDefaultLayout } from 'react-resizable-panels'
 import { GlobalSearch } from '../components/GlobalSearch'
 import { UndoToastProvider } from '../components/UndoToast'
 import { WorkspaceCommands } from '../components/WorkspaceCommands'
+import { ArrangeOverlay } from './ArrangeOverlay'
 import { CalmSurface } from './calm/CalmSurface'
 import { QuietChrome } from './calm/QuietChrome'
 import { SurfaceDockLauncher } from './calm/SurfaceDock'
@@ -308,6 +309,7 @@ export function ShellFrame({ children }: { children: ReactNode }) {
 
   const tree = useWorkbench((state) => state.tree)
   const mode = useWorkbench((state) => state.mode)
+  const arranging = useWorkbench((state) => state.arranging)
 
   if (mode === 'zen') {
     return (
@@ -319,11 +321,15 @@ export function ShellFrame({ children }: { children: ReactNode }) {
 
   return (
     <UndoToastProvider>
-      {tree.chrome === 'quiet' ? (
-        <QuietFrame tree={tree}>{children}</QuietFrame>
-      ) : (
-        <PinnedFrame tree={tree}>{children}</PinnedFrame>
-      )}
+      <div className="relative h-full min-h-0">
+        {tree.chrome === 'quiet' ? (
+          <QuietFrame tree={tree}>{children}</QuietFrame>
+        ) : (
+          <PinnedFrame tree={tree}>{children}</PinnedFrame>
+        )}
+        {/* Arrange mode (0282): the shell as an editable schematic. */}
+        {arranging && <ArrangeOverlay />}
+      </div>
     </UndoToastProvider>
   )
 }

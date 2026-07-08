@@ -14,11 +14,12 @@ import { createNodeId, WorkspaceSchema } from '@xnetjs/data'
 import { getCommandRegistry } from '@xnetjs/plugins'
 import { useMutate, useQuery } from '@xnetjs/react'
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '@xnetjs/ui'
-import { Layers, Save } from 'lucide-react'
+import { Layers, Save, SlidersHorizontal } from 'lucide-react'
 import { useEffect, useRef, useState, type JSX } from 'react'
 import { contributeTips } from '../coachmarks'
 import { ShareDialog } from '../components/ShareDialog'
 import { AGENT_LAYOUT_EVENT } from '../plugins/workspace-agent-module'
+import { isLayoutTreeEnabled } from './experiments'
 import {
   isPresetWorkspaceId,
   parseWorkspacePayload,
@@ -33,6 +34,20 @@ import { useWorkbench } from './state'
 // One first-run tip (0206): the layout is yours to keep — say so at the
 // button that proves it. Registered for the home list view; the anchor only
 // exists in the pinned calm shell, so nobody else ever sees it.
+// Arrange-mode first-run tip (0282): anchored at the grab handle, which
+// only renders when the malleable shell is on — pinned-legacy users
+// never see it.
+contributeTips([
+  {
+    id: 'home:workspace-grab@1',
+    view: 'home',
+    anchor: '[data-coach="workspace.grab"]',
+    title: 'This panel moves',
+    body: 'Drag it to another dock — or press ⌘K and type “customize” to arrange everything at once.',
+    side: 'right'
+  }
+])
+
 contributeTips([
   {
     id: 'home:workspace-save@1',
@@ -300,6 +315,18 @@ export function WorkspaceSwitcher(): JSX.Element | null {
                   <Save size={14} strokeWidth={1.5} className="mr-2 text-ink-3" />
                   Save current layout as…
                 </CommandItem>
+                {isLayoutTreeEnabled() && (
+                  <CommandItem
+                    value="customize"
+                    onSelect={() => {
+                      close()
+                      void getCommandRegistry().runCommand('workspace.customize')
+                    }}
+                  >
+                    <SlidersHorizontal size={14} strokeWidth={1.5} className="mr-2 text-ink-3" />
+                    Customize layout…
+                  </CommandItem>
+                )}
               </>
             )}
           </CommandList>

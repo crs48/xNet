@@ -8,6 +8,7 @@
  * dispatching the same `moveSlot` store action the palette commands run.
  */
 import type { ComponentType } from 'react'
+import { getCommandRegistry } from '@xnetjs/plugins'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -100,6 +101,11 @@ export function MoveViewMenu({ viewId }: { viewId: string }) {
                 Move to {label}
               </DropdownMenuItem>
             ))}
+            <DropdownMenuItem
+              onClick={() => void getCommandRegistry().runCommand('workspace.customize')}
+            >
+              Customize layout…
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenuPositioner>
       </DropdownMenuPortal>
@@ -159,6 +165,7 @@ export function PanelViewHost({ slot }: { slot: 'left' | 'bottom' }) {
             size={13}
             strokeWidth={1.5}
             aria-hidden
+            data-coach="workspace.grab"
             className="shrink-0 text-ink-3 opacity-0 transition-opacity duration-fast ease-out group-hover:opacity-100"
           />
         )}

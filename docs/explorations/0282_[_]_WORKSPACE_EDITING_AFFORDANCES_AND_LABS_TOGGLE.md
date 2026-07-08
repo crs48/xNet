@@ -536,18 +536,18 @@ export function useSlotDragActive(): { viewId: string } | null {
 
 ### Phase 3 — Arrange mode
 
-- [ ] `arranging` ephemeral state + `workspace.customize` headless
+- [x] `arranging` ephemeral state + `workspace.customize` headless
       command (excluded from persistence like `discloseLevel`)
-- [ ] `ArrangeOverlay` schematic: labeled region slots, view chips
+- [x] `ArrangeOverlay` schematic: labeled region slots, view chips
       (icon/label/handle/tier badge/hide), hidden tray; all mutations via
       existing store actions
-- [ ] Entry points: ⌘K, workspace switcher row, Move menu footer, Labs
+- [x] Entry points: ⌘K, workspace switcher row, Move menu footer, Labs
       row button
-- [ ] Exit: Done + Esc (arrange closes first on the ladder); diverged →
+- [x] Exit: Done + Esc (arrange closes first on the ladder); diverged →
       "Save as…" nudge into the 0280 switcher save flow
-- [ ] First-run coachmark on the grab handle (0206), registered only when
+- [x] First-run coachmark on the grab handle (0206), registered only when
       the flag is on
-- [ ] Tests: enter/exit + Esc order; chip move dispatches `moveSlot`;
+- [x] Tests: enter/exit + Esc order; chip move dispatches `moveSlot`;
       tier cycle; hidden tray round-trip
 
 ### Phase 4 — Reorder within a dock
