@@ -8,10 +8,18 @@
  * dispatching the same `moveSlot` store action the palette commands run.
  */
 import type { ComponentType } from 'react'
-import { PopoverContent, PopoverRoot, PopoverTrigger } from '@xnetjs/ui'
-import { ArrowLeftRight, X } from 'lucide-react'
-import { useState } from 'react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuPortal,
+  DropdownMenuPositioner,
+  DropdownMenuTrigger
+} from '@xnetjs/ui'
+import { ArrowLeftRight, GripVertical, X } from 'lucide-react'
+import { isLayoutTreeEnabled } from './experiments'
 import { regionOf } from './layout-tree'
+import { beginSlotDrag } from './slot-drag'
 import {
   getSlotView,
   movableRegionsFor,
@@ -57,9 +65,13 @@ export function getPanelViews(slot: 'left' | 'bottom' | 'right'): PanelViewDefin
   }))
 }
 
-/** The Move menu — the pointer/touch twin of the `slot.move:*` commands. */
+/**
+ * The Move menu — the pointer/touch twin of the `slot.move:*` commands.
+ * A DropdownMenu, not a Popover: menu item selection commits before the
+ * menu dismisses, which kills the click-vs-outside-dismissal race the
+ * corner dock hit during 0280 validation (0282 phase 2).
+ */
 export function MoveViewMenu({ viewId }: { viewId: string }) {
-  const [open, setOpen] = useState(false)
   const view = getSlotView(viewId)
   const moveSlot = useWorkbench((state) => state.moveSlot)
   const currentRegion = useWorkbench((state) => regionOf(state.tree, viewId))
@@ -67,34 +79,31 @@ export function MoveViewMenu({ viewId }: { viewId: string }) {
   const targets = movableRegionsFor(view).filter(({ region }) => region !== currentRegion)
   if (targets.length === 0) return null
   return (
-    <PopoverRoot open={open} onOpenChange={setOpen}>
-      <PopoverTrigger
-        title="Move view"
-        aria-label="Move view"
-        className="flex cursor-pointer items-center border-none bg-transparent p-0.5 text-ink-3 hover:text-ink-1"
-      >
-        <ArrowLeftRight size={13} strokeWidth={1.5} />
-      </PopoverTrigger>
-      <PopoverContent
-        side="bottom"
-        align="end"
-        className="w-auto min-w-[9rem] border-hairline bg-surface-1 p-1"
-      >
-        {targets.map(({ region, label }) => (
+    <DropdownMenu>
+      <DropdownMenuTrigger
+        render={
           <button
-            key={region}
             type="button"
-            onClick={() => {
-              setOpen(false)
-              moveSlot(viewId, region)
-            }}
-            className="flex w-full cursor-pointer items-center border-none bg-transparent px-2 py-1.5 text-left text-xs text-ink-2 transition-colors hover:bg-surface-2 hover:text-ink-1"
+            title="Move view"
+            aria-label="Move view"
+            className="flex cursor-pointer items-center border-none bg-transparent p-0.5 text-ink-3 hover:text-ink-1"
           >
-            Move to {label}
+            <ArrowLeftRight size={13} strokeWidth={1.5} />
           </button>
-        ))}
-      </PopoverContent>
-    </PopoverRoot>
+        }
+      />
+      <DropdownMenuPortal>
+        <DropdownMenuPositioner align="end">
+          <DropdownMenuContent className="min-w-[9rem]">
+            {targets.map(({ region, label }) => (
+              <DropdownMenuItem key={region} onClick={() => moveSlot(viewId, region)}>
+                Move to {label}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenuPositioner>
+      </DropdownMenuPortal>
+    </DropdownMenu>
   )
 }
 
@@ -116,17 +125,43 @@ export function PanelViewHost({ slot }: { slot: 'left' | 'bottom' }) {
   }
 
   const View = view.component
+  // Drag is a malleable-shell affordance; the legacy renderer only
+  // partially reflects tree moves, so the source is flag-gated (0282).
+  const draggable = isLayoutTreeEnabled()
 
   return (
-    <section data-wb-region={slot} className="flex h-full min-h-0 flex-col bg-surface-1">
+    <section
+      data-wb-region={slot}
+      data-slot-view={view.id}
+      className="flex h-full min-h-0 flex-col bg-surface-1"
+    >
       <header
-        className="flex h-8 shrink-0 items-center justify-between gap-3 border-b border-hairline px-3"
-        draggable
+        tabIndex={-1}
+        className={`group flex h-8 shrink-0 items-center justify-between gap-2 border-b border-hairline px-2 ${
+          draggable ? 'cursor-grab active:cursor-grabbing' : 'px-3'
+        }`}
+        draggable={draggable}
         onDragStart={(event) => {
+          if (!draggable) return
           event.dataTransfer.setData(SLOT_DRAG_TYPE, view.id)
           event.dataTransfer.effectAllowed = 'move'
+          // The ghost is the header itself — the thing being moved.
+          event.dataTransfer.setDragImage(event.currentTarget, 12, 12)
+          event.currentTarget.classList.add('opacity-40')
+          beginSlotDrag(view.id)
+        }}
+        onDragEnd={(event) => {
+          event.currentTarget.classList.remove('opacity-40')
         }}
       >
+        {draggable && (
+          <GripVertical
+            size={13}
+            strokeWidth={1.5}
+            aria-hidden
+            className="shrink-0 text-ink-3 opacity-0 transition-opacity duration-fast ease-out group-hover:opacity-100"
+          />
+        )}
         <PanelHeaderTitle slot={slot} activeViewId={view.id} activeTitle={view.title} />
         <div className="flex items-center gap-1">
           <MoveViewMenu viewId={view.id} />

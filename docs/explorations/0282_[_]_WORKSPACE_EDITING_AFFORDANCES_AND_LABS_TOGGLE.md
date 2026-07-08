@@ -512,7 +512,7 @@ export function useSlotDragActive(): { viewId: string } | null {
 - [x] Settings: `labs` entry in `SECTIONS` (FlaskConical) +
       `LabsSettings` panel rendering `SettingToggle` rows, stage badge,
       preamble copy, and a "Reload to apply" chip for `appliesOn:
-  'reload'` changes
+'reload'` changes
 - [x] Appearance → Layout row: one-line pointer to Labs when the
       malleable shell is off; "Customize layout…" button when on
 - [x] Unit test: registry entries resolve real keys; toggling round-trips
@@ -520,18 +520,18 @@ export function useSlotDragActive(): { viewId: string } | null {
 
 ### Phase 2 — Ambient affordances
 
-- [ ] `apps/web/src/workbench/slot-drag.ts` lifecycle
+- [x] `apps/web/src/workbench/slot-drag.ts` lifecycle
       (begin/end/useSlotDragActive + window safety net)
-- [ ] `PanelViewHost` header: `GripVertical` hover handle, `cursor-grab`,
+- [x] `PanelViewHost` header: `GripVertical` hover handle, `cursor-grab`,
       `setDragImage(header)`, 40% source opacity during drag; drag source
       gated on `isLayoutTreeEnabled()`
-- [ ] `ShellFrame`: `data-drop-active` highlight on open dock bodies +
+- [x] `ShellFrame`: `data-drop-active` highlight on open dock bodies +
       portal `DockEdgeStrip`s for closed docks during a live drag;
       post-drop `motion-safe:` flash on the landing dock
-- [ ] `MoveViewMenu`: Popover → DropdownMenu primitives
-- [ ] `aria-live` announcement on `moveSlot` (command layer) + focus
+- [x] `MoveViewMenu`: Popover → DropdownMenu primitives
+- [x] `aria-live` announcement on `moveSlot` (command layer) + focus
       restoration
-- [ ] Tests: lifecycle store; edge-strip render during drag (jsdom
+- [x] Tests: lifecycle store; edge-strip render during drag (jsdom
       drag events); announcement text
 
 ### Phase 3 — Arrange mode

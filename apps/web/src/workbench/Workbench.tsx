@@ -27,6 +27,7 @@ import { MobileShell } from './MobileShell'
 import { PanelViewHost } from './PanelViewHost'
 import { Rail } from './Rail'
 import { ShellFrame } from './ShellFrame'
+import { SlotAnnouncer } from './SlotAnnouncer'
 import { useWorkbench } from './state'
 import { StatusBar } from './StatusBar'
 import { useIsCompact } from './use-layout-mode'
@@ -151,6 +152,8 @@ export function Workbench({ children }: { children: ReactNode }) {
       )}
       {/* Workspace quick switcher + verbs (0280) — commands exist in every shell. */}
       <WorkspaceSwitcher />
+      {/* Slot-move announcements + landing flash + focus (0282). */}
+      <SlotAnnouncer />
       {/* First-run coachmarks (0206) — portals to <body>, so position here is moot. */}
       <CoachmarkLayer />
       {/* Opt-in "time well spent" wind-down (Charter §Calm, 0234); off by default. */}
