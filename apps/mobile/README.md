@@ -23,9 +23,11 @@ client passes the identical data contract is enforced by
 
 ## Prerequisites
 
-Capacitor's CLI and native tooling are **not** repo dependencies (they need
-Xcode / Android Studio and would bloat the install). The scripts call them via
-`npx`, so you need:
+The Capacitor packages (`@capacitor/cli`, `@capacitor/core`, and the
+`@capacitor/ios` / `@capacitor/android` platforms) are pinned devDependencies of
+this package — Capacitor 8's `cap add <platform>` requires the platform package
+installed in the project, so `npx @capacitor/cli@latest` alone no longer works.
+The native _toolchains_ are still your own:
 
 - Node + pnpm (repo standard)
 - **iOS:** macOS + Xcode 15+, CocoaPods
