@@ -13,6 +13,7 @@ import HookArt from '../../components/blog/HookArt.astro'
 import TillerArt from '../../components/blog/TillerArt.astro'
 import WorkshopArt from '../../components/blog/WorkshopArt.astro'
 import VaultArt from '../../components/blog/VaultArt.astro'
+import TimeoutArt from '../../components/blog/TimeoutArt.astro'
 import Byline from '../../components/blog/Byline.astro'
 import { publishedPosts, formatPostDate } from '../../data/blog'
 
@@ -21,6 +22,7 @@ const posts = publishedPosts()
 // Each post's art-directed hero art doubles as its preview-card header image, so
 // the same inline SVG is single-sourced from the hero's *Art.astro component.
 const heroArt: Record<string, typeof PirateArt> = {
+  timeout: TimeoutArt,
   'the-vault-and-the-view': VaultArt,
   'the-workshop-and-the-walled-garden': WorkshopArt,
   'hand-on-the-tiller': TillerArt,

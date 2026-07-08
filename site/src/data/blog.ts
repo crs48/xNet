@@ -29,6 +29,7 @@ export type BlogTag =
   | 'nature'
   | 'cosmos'
   | 'economics'
+  | 'personal'
 
 /** Registered blog authors; posts reference these by id (exploration 0269). */
 export type BlogAuthorId = 'crs48' | 'claude'
@@ -86,6 +87,24 @@ export interface BlogPost {
 }
 
 export const posts: BlogPost[] = [
+  {
+    slug: 'timeout',
+    title: 'Timeout',
+    description:
+      'A personal essay on autism, dissociation, and the network I dreamed ' +
+      'while I was away from my body. The word has three meanings — the ' +
+      'punishment corner, the huddle a team calls for itself, and the quiet ' +
+      'that falls when a peer stops answering — and I have lived in all ' +
+      'three. On finding out at thirty-five, on the years of taking ' +
+      'everything in from a distance, and on discovering that the protocol I ' +
+      'built treats going quiet exactly the way I needed to be treated: a ' +
+      'timeout is a duration, not a verdict, and when the peer comes back, ' +
+      'the log catches it up on everything it missed.',
+    pubDate: '2026-07-08T17:00:00Z',
+    authors: ['crs48', 'claude'],
+    tags: ['essay', 'personal', 'philosophy'],
+    readingMinutes: 13
+  },
   {
     slug: 'the-vault-and-the-view',
     title: 'The Vault and the View',

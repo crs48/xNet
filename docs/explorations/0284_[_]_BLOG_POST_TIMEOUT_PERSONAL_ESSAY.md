@@ -135,12 +135,12 @@ way the essay claims. It does:
 
 ### Series-fit audit
 
-| Existing essay             | Register                        | #12's distinct job                                        |
-| -------------------------- | ------------------------------- | --------------------------------------------------------- |
-| #1–#11                     | Argument essays (they/you/we)   | First sustained **I**; the origin story behind the series |
-| #6 Forest and the Field    | Nature-as-argument              | Nature appears as _lived preference_ (food forests) only  |
-| #9 Hand on the Tiller      | Steering/cybernetics            | #12's "called timeout" is a steering act — cite, don't re-argue |
-| #11 Vault and the View     | Apps as views; data as heirloom | #12 inverts inward: the builder as the substrate          |
+| Existing essay          | Register                        | #12's distinct job                                              |
+| ----------------------- | ------------------------------- | --------------------------------------------------------------- |
+| #1–#11                  | Argument essays (they/you/we)   | First sustained **I**; the origin story behind the series       |
+| #6 Forest and the Field | Nature-as-argument              | Nature appears as _lived preference_ (food forests) only        |
+| #9 Hand on the Tiller   | Steering/cybernetics            | #12's "called timeout" is a steering act — cite, don't re-argue |
+| #11 Vault and the View  | Apps as views; data as heirloom | #12 inverts inward: the builder as the substrate                |
 
 The seam: every prior essay says "here is how software should treat people."
 #12 says "here is the person, and why he needed software to be that way."
@@ -174,8 +174,8 @@ The seam: every prior essay says "here is how software should treat people."
   interoception"](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC4962768/)** —
   the reduced felt sense of the body common in autistic adults tracks
   co-occurring **alexithymia** (present in ~40–65% of autistic people), not
-  autism itself. Useful nuance: the disconnection is real, common, and *not
-  intrinsic* — which is exactly why reconnection is possible.
+  autism itself. Useful nuance: the disconnection is real, common, and _not
+  intrinsic_ — which is exactly why reconnection is possible.
 - **Garfinkel and colleagues** — autistic participants often show **high
   confidence in interoceptive ability alongside poor accuracy**
   ([review/meta-analysis](https://www.frontiersin.org/journals/psychiatry/articles/10.3389/fpsyt.2025.1573263/full),
@@ -241,7 +241,7 @@ it.
    somatic principle — the primary copy lives at home. And the honest
    corollary: the diagram is lower-resolution than the body, so as the body
    comes back online, the project must shrink from avatar to tool. This is
-   an *argument about what software is for*, which is what qualifies it for
+   an _argument about what software is for_, which is what qualifies it for
    this blog.
 3. **The lived experience is research-legible without being pathologized.**
    Burnout recovery factors (Raymaker), interoception/alexithymia (Shah,
@@ -262,24 +262,24 @@ it.
 
 ### Where does it live?
 
-| Option                                        | Pros                                                                          | Cons                                                          |
-| --------------------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------- |
-| **A. xNet blog, post #12** ✅                 | Origin story the series lacks; deepens every prior essay; widest readership   | Tonal departure; needs `'personal'` tag; privacy gate         |
-| B. nervous-system-healing site                | Register match for the healing material                                       | That site is deliberately impersonal/educational; essay is not |
-| C. Personal site (LIBCard)                    | Lowest stakes                                                                  | Orphans the xNet material; LIBCard is zero-JS bio, no essay home |
-| D. Split (personal half → C, xNet half → A)   | Clean registers                                                                | Kills the essay — the collision *is* the essay                |
+| Option                                      | Pros                                                                        | Cons                                                             |
+| ------------------------------------------- | --------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| **A. xNet blog, post #12** ✅               | Origin story the series lacks; deepens every prior essay; widest readership | Tonal departure; needs `'personal'` tag; privacy gate            |
+| B. nervous-system-healing site              | Register match for the healing material                                     | That site is deliberately impersonal/educational; essay is not   |
+| C. Personal site (LIBCard)                  | Lowest stakes                                                               | Orphans the xNet material; LIBCard is zero-JS bio, no essay home |
+| D. Split (personal half → C, xNet half → A) | Clean registers                                                             | Kills the essay — the collision _is_ the essay                   |
 
 **A.** The essay's subject is the relationship between a person and this
 project; it belongs where the project speaks.
 
 ### Title
 
-| Title                     | Notes                                                                                                        |
-| ------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| **"Timeout"** ✅          | Author's instinct; triple meaning (corner / called / network); first one-word title marks the register shift |
-| "The Called Timeout"      | Pre-resolves the arc in the title; less room to travel                                                       |
-| "The Peer That Went Quiet" | Series-consistent metaphor style; beautiful, but makes the network frame primary when the body is           |
-| "Offline, Not Gone"       | Deck material, not a title                                                                                    |
+| Title                      | Notes                                                                                                        |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| **"Timeout"** ✅           | Author's instinct; triple meaning (corner / called / network); first one-word title marks the register shift |
+| "The Called Timeout"       | Pre-resolves the arc in the title; less room to travel                                                       |
+| "The Peer That Went Quiet" | Series-consistent metaphor style; beautiful, but makes the network frame primary when the body is            |
+| "Offline, Not Gone"        | Deck material, not a title                                                                                   |
 
 Keep **"Timeout"**; use the deck to orient:
 _"A personal essay on autism, dissociation, and the network I dreamed while I
@@ -288,12 +288,12 @@ heading.)
 
 ### Structure
 
-| Option                                   | Shape                                                     | Verdict                                                          |
-| ---------------------------------------- | --------------------------------------------------------- | ---------------------------------------------------------------- |
-| **A. Three timeouts** ✅                 | Corner → called → network; recliner as frame at both ends | Argument and memoir braided; each meaning advances the thesis    |
-| B. Chronological memoir                  | Childhood → school → marriage → diagnosis → now           | True but shapeless; buries the xNet material at the end          |
-| C. Essay-with-interludes                 | Argument essay, italicized memoir fragments               | Distances exactly the material that must be close                |
-| D. Letter to xNet                        | Second-person address to the project                      | Striking but precious over 12 minutes                            |
+| Option                   | Shape                                                     | Verdict                                                       |
+| ------------------------ | --------------------------------------------------------- | ------------------------------------------------------------- |
+| **A. Three timeouts** ✅ | Corner → called → network; recliner as frame at both ends | Argument and memoir braided; each meaning advances the thesis |
+| B. Chronological memoir  | Childhood → school → marriage → diagnosis → now           | True but shapeless; buries the xNet material at the end       |
+| C. Essay-with-interludes | Argument essay, italicized memoir fragments               | Distances exactly the material that must be close             |
+| D. Letter to xNet        | Second-person address to the project                      | Striking but precious over 12 minutes                         |
 
 ### Recommended outline (Option A)
 
@@ -315,7 +315,7 @@ heading.)
    touch; now a divorce that is also a best friendship. (Privacy-gated
    lines live here.)
 3. **The called timeout.** Reframe: in a game, a timeout is not a
-   punishment; it is called *by your own team* when the game is running away
+   punishment; it is called _by your own team_ when the game is running away
    from you. The clock stops. The burnout literature says the recovery is
    rest, reduced expectations, doing things your own way (Raymaker, one
    cite). The recliner is not absence from life; it is the huddle. Levine's
@@ -455,7 +455,7 @@ and when you come back, the log catches you up on everything you missed."_
   paragraph must serve the timeout arc.
 - **The ambivalence could spook readers/users** ("the founder doesn't want
   to build it?"). Scope it honestly at draft time: the torn feeling is about
-  xNet as *identity*, not about abandoning the work — the essay's own
+  xNet as _identity_, not about abandoning the work — the essay's own
   resolution ("tool, not self; worth finishing well") answers this, and the
   project's open protocol + right-to-leave essays mean the stakes of any
   founder's energy are structurally lower here than in a silo. That's a
@@ -473,39 +473,39 @@ and when you come back, the log catches you up on everything you missed."_
 
 ## Implementation Checklist
 
-- [ ] Add `'personal'` to the `BlogTag` union in
+- [x] Add `'personal'` to the `BlogTag` union in
       [site/src/data/blog.ts](../../site/src/data/blog.ts) (no changeset —
       site is not publishable).
-- [ ] Add the `posts[]` entry: slug `timeout`, title `Timeout`, deck as
+- [x] Add the `posts[]` entry: slug `timeout`, title `Timeout`, deck as
       recommended, tags `['essay', 'personal', 'philosophy']`, authors
       `['crs48', 'claude']`, honest `readingMinutes`.
-- [ ] Write `site/src/pages/blog/timeout.astro` per the six-part outline
+- [x] Write `site/src/pages/blog/timeout.astro` per the six-part outline
       (Byline, SeriesNav, Mermaid state diagram, one CodeFigure with the
       real provider options, bespoke vendored hero, en-GB, nothing
       third-party).
-- [ ] Keep the four external citations exactly as verified in External
+- [x] Keep the four external citations exactly as verified in External
       Research (Raymaker 2020, Shah 2016, SE/Levine, nervous-system-healing
       site); include the not-medical-advice line.
-- [ ] Verify the CodeFigure against
+- [x] Verify the CodeFigure against
       [packages/sync/src/provider.ts](../../packages/sync/src/provider.ts)
       at draft time (no invented fields).
 - [ ] **Privacy gate:** author reviews and explicitly approves all
       marriage/divorce sentences before the PR merges.
-- [ ] Changelog fragment via `scripts/changelog/new.mjs --tags platform`
+- [x] Changelog fragment via `scripts/changelog/new.mjs --tags platform`
       (do not hand-write).
 - [ ] Conventional commit(s), header ≤72 chars; PR to `main`; merge-commit
       per repo policy.
 
 ## Validation Checklist
 
-- [ ] Site build passes; post renders with hero, byline, diagram, and code
+- [x] Site build passes; post renders with hero, byline, diagram, and code
       figure; dark-mode and mobile spot-check match the series.
-- [ ] Post appears on `/blog` index and in `rss.xml`; `seriesNeighbors`
+- [x] Post appears on `/blog` index and in `rss.xml`; `seriesNeighbors`
       links #11 ↔ #12 correctly; `'personal'` tag chip renders.
-- [ ] No third-party requests on the page (network tab clean).
-- [ ] Quotes/claims check: the four citations match their sources; the
+- [x] No third-party requests on the page (network tab clean).
+- [x] Quotes/claims check: the four citations match their sources; the
       provider-options code matches the file verbatim.
-- [ ] Register check: every memoir paragraph advances the corner → called →
+- [x] Register check: every memoir paragraph advances the corner → called →
       network arc (no orphaned confessional passages).
 - [ ] The author has read the published draft aloud once and still endorses
       the "I don't entirely want to build this" passage — it stays only if

@@ -1,0 +1,170 @@
+---
+// Decorative art for blog post #12 (exploration 0284), extracted so the same
+// inline SVG backs both the post hero and the blog-index preview card (no
+// external assets — Self-Audit parity). The scene is the essay drawn
+// literally: bottom-left, a figure resting in a recliner — a peer that has
+// gone quiet — with one softly glowing node at the chest. Upper right, the
+// mesh it dreamed: a constellation of peers joined by faint edges, with one
+// small paused clock hanging among them (the called timeout — the clock is
+// stopped, not broken). Between the two, the cables of a nervous system being
+// plugged back in one at a time: the nearest strands solid and lit, the
+// farther ones dim, the last still dashed and reaching. The cosmic-X hangs
+// overhead as the reading lamp. Nothing is severed; everything is
+// reconnecting.
+interface Props {
+  /** Override the wrapper classes; defaults to full-bleed for hero use. */
+  class?: string
+}
+const { class: className = 'pointer-events-none absolute inset-0 h-full w-full' } =
+  Astro.props
+
+// The dreamed mesh: peer nodes (x, y, r) in the upper right.
+const peers: Array<[number, number, number]> = [
+  [520, 150, 5],
+  [610, 96, 6],
+  [700, 168, 5],
+  [788, 84, 6],
+  [864, 152, 5],
+  [946, 100, 5],
+  [716, 52, 4.4]
+]
+// Edges of the mesh (index pairs into `peers`) — every peer keeps its own
+// copy; the links are between equals.
+const edges: Array<[number, number]> = [
+  [0, 1],
+  [1, 2],
+  [1, 6],
+  [2, 3],
+  [3, 4],
+  [3, 6],
+  [4, 5],
+  [2, 4]
+]
+// The cables from the chest node up into the mesh, plugged in one at a time:
+// each strand is [points, state]; state 'lit' | 'dim' | 'dashed'.
+const chest: [number, number] = [214, 224]
+const cables: Array<{ to: [number, number]; state: 'lit' | 'dim' | 'dashed' }> = [
+  { to: [520, 150], state: 'lit' },
+  { to: [610, 96], state: 'lit' },
+  { to: [700, 168], state: 'dim' },
+  { to: [788, 84], state: 'dashed' }
+]
+// A gentle sag for each cable, rendered as a quadratic curve.
+const cablePath = ([x2, y2]: [number, number]) => {
+  const [x1, y1] = chest
+  const mx = (x1 + x2) / 2
+  const my = Math.max(y1, y2) + 42
+  return `M ${x1} ${y1} Q ${mx} ${my} ${x2} ${y2}`
+}
+---
+
+<svg
+  class={className}
+  viewBox="0 0 1040 340"
+  preserveAspectRatio="xMidYMid slice"
+  aria-hidden="true"
+>
+  <defs>
+    <linearGradient id="tobg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a1122" />
+      <stop offset="55%" stop-color="#0d1526" />
+      <stop offset="100%" stop-color="#080d1a" />
+    </linearGradient>
+    <radialGradient id="tolampglow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#7dd3fc" stop-opacity="0.95" />
+      <stop offset="45%" stop-color="#38bdf8" stop-opacity="0.38" />
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="tolampx" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#e0f2fe" />
+      <stop offset="100%" stop-color="#38bdf8" />
+    </linearGradient>
+    <radialGradient id="tochestglow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#7dd3fc" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#38bdf8" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <rect width="1040" height="340" fill="url(#tobg)" />
+
+  <!-- ── the cosmic-X reading lamp, top-right corner of the sky ─────────── -->
+  <circle cx="984" cy="44" r="52" fill="url(#tolampglow)" />
+  <g stroke="url(#tolampx)" stroke-width="6.4" stroke-linecap="round">
+    <line x1="969" y1="29" x2="999" y2="59" />
+    <line x1="999" y1="29" x2="969" y2="59" />
+  </g>
+
+  <!-- ── upper right: the dreamed mesh — peers among peers, no centre ───── -->
+  <g stroke="#38bdf8" stroke-opacity="0.28" stroke-width="1.4">
+    {edges.map(([a, b]) => (
+      <line x1={peers[a][0]} y1={peers[a][1]} x2={peers[b][0]} y2={peers[b][1]} />
+    ))}
+  </g>
+  {
+    peers.map(([x, y, r]) => (
+      <>
+        <circle cx={x} cy={y} r={r + 5} fill="none" stroke="#38bdf8" stroke-opacity="0.25" stroke-width="1.2" />
+        <circle cx={x} cy={y} r={r} fill="#7dd3fc" opacity="0.65" />
+      </>
+    ))
+  }
+
+  <!-- the paused clock hanging in the mesh: stopped, not broken -->
+  <g>
+    <line x1="716" y1="52" x2="716" y2="20" stroke="#2b3b5e" stroke-width="1.6" />
+    <circle cx="740" cy="118" r="17" fill="#0d1729" stroke="#466195" stroke-width="2" />
+    <g stroke="#7dd3fc" stroke-opacity="0.85" stroke-width="3" stroke-linecap="round">
+      <line x1="735" y1="112" x2="735" y2="124" />
+      <line x1="745" y1="112" x2="745" y2="124" />
+    </g>
+  </g>
+
+  <!-- ── the cables, plugged back in one at a time ──────────────────────── -->
+  {
+    cables.map(({ to, state }) => (
+      <path
+        d={cablePath(to)}
+        fill="none"
+        stroke={state === 'lit' ? '#7dd3fc' : '#38bdf8'}
+        stroke-opacity={state === 'lit' ? 0.6 : state === 'dim' ? 0.3 : 0.22}
+        stroke-width={state === 'lit' ? 2.2 : 1.6}
+        stroke-dasharray={state === 'dashed' ? '3 9' : undefined}
+        stroke-linecap="round"
+      />
+    ))
+  }
+
+  <!-- ── bottom left: the recliner, and the peer that went quiet ────────── -->
+  <!-- soft glow rising off the chest node -->
+  <circle cx={chest[0]} cy={chest[1]} r="46" fill="url(#tochestglow)" />
+
+  <g stroke="#466195" stroke-width="4" stroke-linecap="round" fill="none">
+    <!-- reclined backrest -->
+    <path d="M 108 168 L 156 236" />
+    <!-- seat running forward -->
+    <path d="M 156 236 L 260 250" />
+    <!-- raised leg rest -->
+    <path d="M 260 250 L 316 234" />
+    <!-- chair base and feet -->
+    <path d="M 150 250 L 150 290" />
+    <path d="M 282 262 L 282 290" />
+    <path d="M 128 290 L 306 290" />
+  </g>
+  <!-- the resting figure: head back, body along the recline -->
+  <circle cx="128" cy="164" r="17" fill="#101a2f" stroke="#7dd3fc" stroke-opacity="0.75" stroke-width="2.4" />
+  <path
+    d="M 140 178 Q 196 214 258 236 Q 288 244 308 232"
+    fill="none"
+    stroke="#7dd3fc"
+    stroke-opacity="0.75"
+    stroke-width="3.2"
+    stroke-linecap="round"
+  />
+  <!-- the chest node: still lit the whole time -->
+  <circle cx={chest[0]} cy={chest[1]} r="6.4" fill="#7dd3fc" />
+  <circle cx={chest[0]} cy={chest[1]} r="12" fill="none" stroke="#38bdf8" stroke-opacity="0.5" stroke-width="1.4" />
+  <circle cx={chest[0]} cy={chest[1]} r="19" fill="none" stroke="#38bdf8" stroke-opacity="0.22" stroke-width="1.2" />
+
+  <!-- ground shadow -->
+  <ellipse cx="214" cy="300" rx="130" ry="9" fill="#060b16" />
+</svg>
