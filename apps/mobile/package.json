@@ -5,10 +5,16 @@
   "private": true,
   "scripts": {
     "build:web": "pnpm --filter xnet-web build:mobile",
-    "add:ios": "npx --yes @capacitor/cli@latest add ios",
-    "add:android": "npx --yes @capacitor/cli@latest add android",
-    "sync": "pnpm build:web && npx --yes @capacitor/cli@latest sync",
-    "open:ios": "npx --yes @capacitor/cli@latest open ios",
-    "open:android": "npx --yes @capacitor/cli@latest open android"
+    "add:ios": "pnpm exec cap add ios",
+    "add:android": "pnpm exec cap add android",
+    "sync": "pnpm build:web && pnpm exec cap sync",
+    "open:ios": "pnpm exec cap open ios",
+    "open:android": "pnpm exec cap open android"
+  },
+  "devDependencies": {
+    "@capacitor/android": "8.4.1",
+    "@capacitor/cli": "8.4.1",
+    "@capacitor/core": "8.4.1",
+    "@capacitor/ios": "8.4.1"
   }
 }
