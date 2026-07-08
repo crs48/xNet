@@ -20,10 +20,10 @@ distinct discoverability failures stack up:
    indicator, no post-drop confirmation. Every affordance-signal pattern
    the industry converged on is missing.
 3. **Drops only land where a dock is already open.** The drop targets in
-   `ShellFrame` wrap the *rendered* dock bodies — a closed or empty dock is
+   `ShellFrame` wrap the _rendered_ dock bodies — a closed or empty dock is
    not a target at all, so "pop this panel out and slot it in over there"
    silently no-ops on most of the viewport. There is also no way to
-   reorder views *within* a dock from the UI, and the corner dock's Move
+   reorder views _within_ a dock from the UI, and the corner dock's Move
    popover intermittently swallows its own click (Radix dismissal race,
    observed during 0280 validation).
 
@@ -45,7 +45,7 @@ Three moves, each independently landable:
 2. **Always-on affordance upgrades** to the existing drag machinery, in
    the exact visual language the research consensus prescribes: a grab
    handle that appears on header hover with `cursor: grab`; a window-level
-   drag lifecycle so that *while any slot drag is in flight* all four dock
+   drag lifecycle so that _while any slot drag is in flight_ all four dock
    regions materialize as highlighted drop zones (closed docks get portal
    edge strips — this fixes the biggest mechanical gap); drag ghost at
    reduced opacity; a brief post-drop flash on the landing dock; and the
@@ -60,7 +60,7 @@ Three moves, each independently landable:
    lines for reordering (the `order` field exists; the UI doesn't);
    Esc/Done walks out, and a "Save as…" nudge appears if the tree diverged
    from its preset. Arrange mode is where coarse rearrangement becomes
-   *teachable* — the affordances don't have to whisper because the user
+   _teachable_ — the affordances don't have to whisper because the user
    explicitly asked to see them.
 
 No new dependencies: the shell already has a working HTML5 DnD idiom
@@ -75,11 +75,11 @@ touch-first.
 
 ### Flags with no front door
 
-| Flag | Defined in | UI today |
-| --- | --- | --- |
-| `xnet:experiment:layout-tree` | `apps/web/src/workbench/experiments.ts` | none |
-| `xnet:experiment:quiet-default` | `apps/web/src/lib/desk.ts` (`QUIET_DEFAULT_KEY`) | none |
-| `xnet:experiment:desk-radial` | `apps/web/src/lib/desk.ts` (`DESK_RADIAL_KEY`) | none |
+| Flag                            | Defined in                                       | UI today |
+| ------------------------------- | ------------------------------------------------ | -------- |
+| `xnet:experiment:layout-tree`   | `apps/web/src/workbench/experiments.ts`          | none     |
+| `xnet:experiment:quiet-default` | `apps/web/src/lib/desk.ts` (`QUIET_DEFAULT_KEY`) | none     |
+| `xnet:experiment:desk-radial`   | `apps/web/src/lib/desk.ts` (`DESK_RADIAL_KEY`)   | none     |
 
 `apps/web/src/routes/settings.tsx` has twelve sections (`SECTIONS`,
 ~line 104) — none is a Labs/flags surface. Naming constraint: the
@@ -98,7 +98,7 @@ called "Experiments".
   intermittently lose the race against outside-dismissal — seen live
   during 0280 validation).
 - `apps/web/src/workbench/ShellFrame.tsx` — `dropProps(region)` adds
-  `onDragOver`/`onDrop` to *open* dock bodies only; no `dragenter`
+  `onDragOver`/`onDrop` to _open_ dock bodies only; no `dragenter`
   highlight state, no indicator when a drop is viable, closed docks are
   untargetable.
 - `apps/web/src/workbench/TabBar.tsx` — the in-house gold standard:
@@ -115,12 +115,12 @@ called "Experiments".
 
 ### The three roads today, honestly graded
 
-| Road | State |
-| --- | --- |
-| Keyboard (⌘K commands) | Complete — every verb exists |
-| Pointer (menus) | Present but subtle (13px ⇄), and flaky in the corner card |
-| Pointer (drag) | Technically present, perceptually absent, drops mostly no-op |
-| Touch | Menu only (HTML5 DnD does not fire on most mobile browsers) |
+| Road                   | State                                                        |
+| ---------------------- | ------------------------------------------------------------ |
+| Keyboard (⌘K commands) | Complete — every verb exists                                 |
+| Pointer (menus)        | Present but subtle (13px ⇄), and flaky in the corner card    |
+| Pointer (drag)         | Technically present, perceptually absent, drops mostly no-op |
+| Touch                  | Menu only (HTML5 DnD does not fire on most mobile browsers)  |
 
 ## External Research
 
@@ -136,14 +136,14 @@ References.
    carries a shadow (Atlassian spec; Trello's signature 4° tilt).
 3. **Highlighted drop zones on every valid target, for the whole drag** —
    Photoshop's blue glow, Visual Studio's shaded preview, Home
-   Assistant's color-coded regions. The critical property: *all* valid
+   Assistant's color-coded regions. The critical property: _all_ valid
    targets light up when the drag starts, not just the one under the
    cursor — which is precisely what fixes our closed-dock problem.
 4. **Insertion indicator** — 2px selected-color line with terminal dots
    (Atlassian pragmatic-drag-and-drop spec) for ordered placement.
 5. **Explicit edit mode for coarse rearrangement** — iOS jiggle mode,
    Home Assistant/Grafana dashboard edit: chosen exactly when
-   rearranging is a *secondary* task, with a clear entry verb and a Done
+   rearranging is a _secondary_ task, with a clear entry verb and a Done
    commit. Always-on handles (Notion/Trello) are chosen when drag is the
    primary interaction. A workspace shell is squarely the former.
 6. **Keyboard/menu fallback with live-region announcements** — Atlassian
@@ -177,7 +177,7 @@ so the library adoption is real but not this iteration's blocker.
    command; what's missing is 100% presentation: handles, highlights,
    indicators, and a front door for the flag. This is styling + one state
    machine, not new architecture.
-2. **The closed-dock gap is the one *mechanical* bug.** Everything else is
+2. **The closed-dock gap is the one _mechanical_ bug.** Everything else is
    perception; "drops silently no-op unless the target dock happens to be
    open" breaks the core promise. The fix falls straight out of research
    pattern 3: a drag-lifecycle state that materializes all four dock
@@ -194,7 +194,7 @@ so the library adoption is real but not this iteration's blocker.
    devtools seed/e2e can enumerate it.
 5. **TabBar already solved insertion indicators in-house.** Reordering
    within a dock is `TabDropIndicator` + an `insertSlot(viewId, region,
-   index)` tree op away — the `order` field is modeled and tested.
+index)` tree op away — the `order` field is modeled and tested.
 6. **The Move menu flake is a real bug** independent of discoverability:
    Radix `Popover` content clicks race outside-dismissal when the trigger
    sits inside a hover-expanded strip. `DropdownMenu` (`onSelect` fires
@@ -226,7 +226,7 @@ so the library adoption is real but not this iteration's blocker.
   outside the mode.
 - **B3 — Both, layered (recommended).** Fix the mechanics and add quiet
   always-on signals (hover handle, cursor, drag-time drop zones,
-  post-drop flash) so direct manipulation works and is *noticeable*; add
+  post-drop flash) so direct manipulation works and is _noticeable_; add
   Arrange mode as the guided, exploratory surface where everything is
   visible at once. This is exactly VS Code's layering: drag works
   ambiently, `View: Move View` and the customize submenu exist for
@@ -240,7 +240,7 @@ so the library adoption is real but not this iteration's blocker.
   keeping as the a11y road regardless).
 - **C2 — Adopt `pragmatic-drag-and-drop` or `dnd-kit`.** Buys touch drag,
   custom previews, a11y kit — at the cost of a new dependency and a
-  rewrite of working code. Right move *if/when* arrange mode needs
+  rewrite of working code. Right move _if/when_ arrange mode needs
   touch-native drag; the arrange-mode chip UI should be built so its drag
   layer is swappable.
 - **C3 — Docking framework (dockview et al.).** Re-rejected (0273 D,
@@ -275,7 +275,7 @@ flowchart LR
 ### Phase 1 — Labs settings section
 
 `apps/web/src/lib/labs.ts`: a declarative registry unifying the existing
-keys (the flag *definitions* stay where they are; the registry references
+keys (the flag _definitions_ stay where they are; the registry references
 them):
 
 - `{ key, label, description, stage: 'experimental' | 'preview', appliesOn: 'reload' | 'immediate', learnMoreTip? }`
@@ -406,7 +406,7 @@ export const LABS_FLAGS: LabsFlag[] = [
       'Move panels between docks, arrange the layout, and save it as a workspace. The presets and switcher work either way.',
     stage: 'experimental',
     appliesOn: 'reload'
-  },
+  }
   // quiet-default, desk-radial…
 ]
 
@@ -457,26 +457,28 @@ export function useSlotDragActive(): { viewId: string } | null {
 
 ```tsx
 // ShellFrame: while a slot drag is live, closed docks become edge strips
-{dragActive && !rightOpen && (
-  <DockEdgeStrip
-    region="dock.right"
-    label="Right dock"
-    className="motion-safe:animate-in fade-in fixed inset-y-16 right-0 w-12
+{
+  dragActive && !rightOpen && (
+    <DockEdgeStrip
+      region="dock.right"
+      label="Right dock"
+      className="motion-safe:animate-in fade-in fixed inset-y-16 right-0 w-12
                rounded-l-lg border-2 border-dashed border-accent-ink/50
                bg-surface-1/80 backdrop-blur data-[drop-active=true]:border-accent-ink"
-  />
-)}
+    />
+  )
+}
 ```
 
 ## Risks And Open Questions
 
 1. **Settings clutter.** Twelve sections become thirteen. Accepted: Labs
-   only renders when the registry is non-empty, and it *removes* the
+   only renders when the registry is non-empty, and it _removes_ the
    worse cost (support burden of "how do I turn this on?").
 2. **Ambient affordances in the legacy renderer.** With the flag off, the
    legacy CalmShell renders ListPane/Canvas directly (no headers), so
    ambient drag simply doesn't exist there — fine (the flag gates the
-   feature), but the legacy *workbench* grid shares `PanelViewHost` and
+   feature), but the legacy _workbench_ grid shares `PanelViewHost` and
    will grow handles whose drops rearrange a tree the legacy renderer
    only partially reflects. Mitigation: gate the handle/drag-source on
    `isLayoutTreeEnabled()` so legacy stays inert.
@@ -504,16 +506,16 @@ export function useSlotDragActive(): { viewId: string } | null {
 
 ### Phase 1 — Labs section
 
-- [ ] `apps/web/src/lib/labs.ts`: `LabsFlag` registry + `isLabEnabled` /
+- [x] `apps/web/src/lib/labs.ts`: `LabsFlag` registry + `isLabEnabled` /
       `setLabEnabled`; entries for layout-tree, quiet-default, desk-radial
       (flag key constants stay in their current homes)
-- [ ] Settings: `labs` entry in `SECTIONS` (FlaskConical) +
+- [x] Settings: `labs` entry in `SECTIONS` (FlaskConical) +
       `LabsSettings` panel rendering `SettingToggle` rows, stage badge,
       preamble copy, and a "Reload to apply" chip for `appliesOn:
-      'reload'` changes
-- [ ] Appearance → Layout row: one-line pointer to Labs when the
+  'reload'` changes
+- [x] Appearance → Layout row: one-line pointer to Labs when the
       malleable shell is off; "Customize layout…" button when on
-- [ ] Unit test: registry entries resolve real keys; toggling round-trips
+- [x] Unit test: registry entries resolve real keys; toggling round-trips
       localStorage
 
 ### Phase 2 — Ambient affordances
