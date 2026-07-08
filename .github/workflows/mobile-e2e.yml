@@ -30,6 +30,8 @@ jobs:
           cache: pnpm
       - name: Install
         run: pnpm install --frozen-lockfile
+      - name: Build workspace packages
+        run: pnpm turbo run build --filter='./packages/*'
       - name: Build hash-router web bundle
         run: pnpm --filter xnet-mobile-shell build:web
       - name: Add Android project
@@ -55,6 +57,8 @@ jobs:
           cache: pnpm
       - name: Install
         run: pnpm install --frozen-lockfile
+      - name: Build workspace packages
+        run: pnpm turbo run build --filter='./packages/*'
       - name: Build hash-router web bundle
         run: pnpm --filter xnet-mobile-shell build:web
       - name: Add iOS project
