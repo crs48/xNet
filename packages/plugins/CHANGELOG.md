@@ -1,5 +1,18 @@
 # @xnetjs/plugins
 
+## 0.7.0
+
+### Minor Changes
+
+- [#412](https://github.com/crs48/xNet/pull/412) [`a5813fc`](https://github.com/crs48/xNet/commit/a5813fc432fcb44cad0caba72d8bfcb065bf5dec) Thanks [@crs48](https://github.com/crs48)! - `insertSlot(tree, viewId, region, index)` joins the workspace layout primitives (exploration 0282): positional insertion for within-dock reorders and cross-region moves; `moveSlot` is now insert-at-end. Purely additive.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/data@0.7.0
+  - @xnetjs/abuse@0.7.0
+  - @xnetjs/core@0.7.0
+
 ## 0.6.0
 
 ### Minor Changes
