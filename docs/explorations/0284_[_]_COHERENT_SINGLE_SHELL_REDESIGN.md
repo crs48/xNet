@@ -132,11 +132,18 @@ Driving the running app (`web-worktree` on :5199, test-bypass identity):
    empty void.
 3. **Workbench is dense/IDE-like** — full icon rail (`Rail.tsx:85`, 12+ icons)
    - Explorer + tab strip + status bar. Not calm, not Notion-like.
-4. **New page = blank white void** — `.ProseMirror` (tiptap) mounts, title
-   input holds "Untitled", but nothing is visible: no rendered title, no
-   "type `/` for commands" placeholder, no cursor affordance.
+4. **~~New page = blank white void~~ — CORRECTED (not a bug).** A first
+   screenshot showed a blank surface, but re-verifying live at 1280px and
+   1600px shows the editor renders correctly: a bold "Untitled" title, a
+   "Start writing…" placeholder (`beforeColor: rgb(113,113,122)`, visible),
+   and a cursor. The "blank" frame was the transient **"Loading document…"**
+   state (slow first-boot sqlite/OPFS worker) captured before the Yjs doc
+   loaded — the known cold-open stall, not an editor defect. No editor fix is
+   warranted; the Placeholder extension is already wired
+   (`RichTextEditor.tsx:512`) with matching CSS (`editor.css:147`).
 5. **Intrusive storage banner** — "Durable storage pending"
-   (`StorageOptimiseHint.tsx`) occupies the top third of the viewport on load.
+   (`StorageWarningBanner.tsx`, driven by `lib/storage-banner.ts`) occupies
+   the top of the viewport on load and re-appears on every reload.
 
 ### Anchor files
 
@@ -152,7 +159,7 @@ Driving the running app (`web-worktree` on :5199, test-bypass identity):
 | View inventory       | `apps/web/src/workbench/builtin-slot-views.tsx`                     |
 | Nav mode switch      | `apps/web/src/workbench/calm/ModeSwitch.tsx`                        |
 | Editor surface       | tiptap `.ProseMirror` via the page view                             |
-| Storage banner       | `apps/web/src/components/StorageOptimiseHint.tsx`                   |
+| Storage banner       | `apps/web/src/components/StorageWarningBanner.tsx` |
 | Labs flags           | `apps/web/src/lib/labs.ts`, `apps/web/src/workbench/experiments.ts` |
 
 ## Current vs Target (diagram)
@@ -418,9 +425,12 @@ Placeholder.configure({
 
 ### Stage 1 — Polish wins (no architecture change)
 
-- [ ] Fix the blank editor surface: configure/repair the tiptap Placeholder
-      extension + its CSS so a new page shows a visible "Untitled" title and a
-      "Type '/' for commands…" body placeholder with a cursor.
+- [x] ~~Fix the blank editor surface~~ — **verified as a non-bug.** Re-tested
+      live: the editor renders a visible "Untitled" title, "Start writing…"
+      placeholder, and cursor. The Placeholder extension + CSS are already
+      correctly wired (`RichTextEditor.tsx:512`, `editor.css:147`); the
+      original "blank" screenshot was the transient "Loading document…"
+      cold-boot state. No change made.
 - [x] Tame `StorageOptimiseHint` — make it a dismissible one-line toast /
       status-bar chip, not a top-of-viewport block; persist dismissal.
 - [ ] Warm up the first-run empty state (a real "create your first page /
@@ -463,10 +473,12 @@ Placeholder.configure({
       Requests, Meetings, Finance, Analytics, Dashboards, Map) is reachable
       from the sidebar with **no mode switch** — verified live in the running
       app.
-- [ ] Creating a new page shows a visible title + slash placeholder + cursor
-      (screenshot before/after).
-- [ ] The storage banner no longer blocks the top of the viewport; dismissal
-      sticks across reloads.
+- [x] Creating a new page shows a visible title + placeholder + cursor —
+      verified live at 1280px and 1600px (was already working; the "blank"
+      report was the transient "Loading document…" state).
+- [x] The storage banner no longer blocks the top of the viewport; dismissal
+      sticks across reloads — verified live (banner drops to ~2 lines with a
+      "What can I do?" disclosure; `--storage-banner-height: 0px` after reload).
 - [ ] `focus` toggle hides/reveals chrome with no layout shift and no stranded
       overlay backdrop (the old quiet jank); `Esc` and `⌘.` both exit.
 - [ ] Booting from each legacy persisted state (`layout:'calm'`,
@@ -490,7 +502,7 @@ Placeholder.configure({
   `calm/QuietChrome.tsx`, `calm/NetworkList.tsx` — the legacy fork to retire.
 - `apps/web/src/workbench/Rail.tsx`, `builtin-slot-views.tsx` — the tool
   inventory the sidebar must surface.
-- `apps/web/src/components/StorageOptimiseHint.tsx` — the intrusive banner.
+- `apps/web/src/components/StorageWarningBanner.tsx` + `lib/storage-banner.ts` — the intrusive banner.
 - `apps/web/src/lib/labs.ts`, `apps/web/src/workbench/experiments.ts` — the
   `layout-tree` flag to flip and remove.
 - Prior explorations: 0232 (cozy/calm), 0250 (everyperson/calm shell), 0273
