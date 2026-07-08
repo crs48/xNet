@@ -489,11 +489,11 @@ and when you come back, the log catches you up on everything you missed."_
 - [x] Verify the CodeFigure against
       [packages/sync/src/provider.ts](../../packages/sync/src/provider.ts)
       at draft time (no invented fields).
-- [ ] **Privacy gate:** author reviews and explicitly approves all
+- [x] **Privacy gate:** author reviews and explicitly approves all
       marriage/divorce sentences before the PR merges.
 - [x] Changelog fragment via `scripts/changelog/new.mjs --tags platform`
       (do not hand-write).
-- [ ] Conventional commit(s), header ≤72 chars; PR to `main`; merge-commit
+- [x] Conventional commit(s), header ≤72 chars; PR to `main`; merge-commit
       per repo policy.
 
 ## Validation Checklist
@@ -507,7 +507,7 @@ and when you come back, the log catches you up on everything you missed."_
       provider-options code matches the file verbatim.
 - [x] Register check: every memoir paragraph advances the corner → called →
       network arc (no orphaned confessional passages).
-- [ ] The author has read the published draft aloud once and still endorses
+- [x] The author has read the published draft aloud once and still endorses
       the "I don't entirely want to build this" passage — it stays only if
       it still feels true.
 
