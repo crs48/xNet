@@ -15,8 +15,8 @@
  * consciously proceed and label the PR. Opt out with CHANGELOG_SKIP_HOOK=1.
  */
 import { execSync } from 'node:child_process'
-import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const FRAGMENT_DIR = 'site/src/data/changelog/'
@@ -56,7 +56,7 @@ async function main() {
     ...sh(`git diff --name-only ${base}...HEAD`).split('\n'),
     ...sh('git status --porcelain')
       .split('\n')
-      .map((l) => l.slice(3)),
+      .map((l) => l.slice(3))
   ]
     .map((s) => s.trim())
     .filter(Boolean)
@@ -77,7 +77,7 @@ async function main() {
       `  node scripts/changelog/new.mjs --title "..." --summary "..." --tags <tag>\n` +
       `If not (refactor/CI/tooling), end the turn again and apply the ` +
       `skip-changelog label when opening the PR. (One-time nudge; ` +
-      `CHANGELOG_SKIP_HOOK=1 silences it.)\n`,
+      `CHANGELOG_SKIP_HOOK=1 silences it.)\n`
   )
   return 2
 }
