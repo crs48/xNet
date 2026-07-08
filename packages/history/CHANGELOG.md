@@ -1,5 +1,14 @@
 # @xnetjs/history
 
+## 0.7.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/data@0.7.0
+  - @xnetjs/sync@0.7.0
+  - @xnetjs/core@0.7.0
+
 ## 0.6.0
 
 ### Patch Changes

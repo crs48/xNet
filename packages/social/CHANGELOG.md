@@ -1,5 +1,13 @@
 # @xnetjs/social
 
+## 0.0.11
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/data@0.7.0
+  - @xnetjs/crypto@0.7.0
+
 ## 0.0.10
 
 ### Patch Changes
