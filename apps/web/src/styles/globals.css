@@ -28,6 +28,48 @@
   }
 }
 
+/* Mobile Floating shell (workbench redesign 0289). The phone shell reuses the
+   desktop `.wb-root` warm "paper" palette (0286), with one deliberate delta in
+   dark mode: the chrome islands lift a couple of lightness points so they
+   separate from the full-bleed document they hover over (on desktop they sit
+   flush with the canvas). Light mode is unchanged. Scoped to the mobile shell
+   root via `data-wb-shell="mobile"`, so the desktop shell keeps its values. */
+.dark .wb-root[data-wb-shell='mobile'],
+.wb-root[data-wb-shell='mobile'].dark {
+  --canvas: 30 8% 13%;
+  --island: 30 8% 13%;
+  --island-b: 30 8% 10%;
+}
+
+/* Mobile sheet entrances (0289). Full-travel slide-ins the Tailwind presets
+   don't cover: bottom sheets rise from off-screen, the right sheet slides in
+   from the edge, popovers fade. Callers gate these off under reduced-motion
+   (they simply don't set the animation), per the motion vocabulary (0199). */
+@keyframes wb-sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@keyframes wb-right-in {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+@keyframes wb-scrim-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 /* Cozy headings (exploration 0232): the warm editorial serif is scoped to the
    `cozy` variant, so default/linear chrome keeps the Inter sans ramp unchanged
    (no regression). Apply `.cozy-heading` to H1/H2-class titles, the home
