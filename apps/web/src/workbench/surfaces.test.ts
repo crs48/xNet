@@ -10,6 +10,7 @@ beforeEach(() => {
     activeSurface: 'explorer',
     navPinned: ['explorer', 'requests', 'tasks'],
     sidebarWidth: 264,
+    sidebarCompact: false,
     floatAi: true,
     floatCall: false
   })
@@ -61,5 +62,13 @@ describe('floating shell store', () => {
     useWorkbench.getState().setFloatCall(true)
     expect(useWorkbench.getState().floatAi).toBe(false)
     expect(useWorkbench.getState().floatCall).toBe(true)
+  })
+
+  it('collapses/expands the header island', () => {
+    expect(useWorkbench.getState().sidebarCompact).toBe(false)
+    useWorkbench.getState().toggleSidebarCompact()
+    expect(useWorkbench.getState().sidebarCompact).toBe(true)
+    useWorkbench.getState().toggleSidebarCompact()
+    expect(useWorkbench.getState().sidebarCompact).toBe(false)
   })
 })

@@ -245,6 +245,12 @@ export interface XNetDevToolsProviderProps {
   /** Floating action button offset from the bottom-right corner */
   fabInitialOffset?: { x: number; y: number }
   /**
+   * Hide the floating draggable toggle FAB. The host renders its own docked
+   * launcher instead (e.g. the workbench dev-tools island, 0287); ⌘⇧D and the
+   * external toggle event still work.
+   */
+  hideFab?: boolean
+  /**
    * "Wipe local database" action wired by the host (OPFS SQLite + IndexedDB +
    * localStorage, then reload). The Reset panel and the status-bar button use
    * this when provided; otherwise they fall back to a best-effort inline clear.
@@ -323,6 +329,7 @@ export function XNetDevToolsProvider({
   traceCollector,
   storageDurability = null,
   fabInitialOffset = { x: 16, y: 16 },
+  hideFab = false,
   onResetLocalData,
   onResetHub
 }: XNetDevToolsProviderProps) {
@@ -608,7 +615,9 @@ export function XNetDevToolsProvider({
             {children}
           </div>
           {isOpen && <DevToolsPanel />}
-          <DevToolsFab isOpen={isOpen} onToggle={toggle} initialOffset={fabInitialOffset} />
+          {!hideFab && (
+            <DevToolsFab isOpen={isOpen} onToggle={toggle} initialOffset={fabInitialOffset} />
+          )}
         </div>
       </InstrumentationContext.Provider>
     </DevToolsContext.Provider>
