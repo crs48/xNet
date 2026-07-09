@@ -77,7 +77,9 @@ export type {
 // Workspace layout primitives + slot contributions (0280) — the workbench
 // shell modules import these through the @xnetjs/plugins alias.
 export {
+  createDefaultTree,
   createPresetTree,
+  DEFAULT_WORKSPACE_ID,
   insertSlot,
   isPresetWorkspaceId,
   moveSlot,
