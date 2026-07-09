@@ -267,19 +267,19 @@ already provides this on explorer rows), surfaces roll-out, command palette
 - [x] Popovers: workspace, new, notifications, profile, surfaces, command
       palette — single-open, backdrop-close, anchored; palette centered with
       dimmed backdrop. Reuse `@xnetjs/ui` primitives / existing GlobalSearch.
-- [ ] Light + dark parity: content stays the brightest plane in both; toggle in
+- [x] Light + dark parity: content stays the brightest plane in both; toggle in
       the status bar flips `dark`.
 - [x] MobileShell unaffected (or given the canvas background); compact width
       still routes to it.
 
 ## Validation Checklist
 
-- [ ] Update/replace affected tests (shell-tripwire, shell-escape,
+- [x] Update/replace affected tests (shell-tripwire, shell-escape,
       state.test, tabs.test, SurfaceDock/ArrangeOverlay as needed); add a
       smoke test for the floating frame + surfaces model.
 - [ ] `pnpm test`, typecheck, lint, Fallow + humane-pattern gates pass; add a
       Changelog fragment (`platform`); private app → no changeset; DCO sign-off.
-- [ ] Live-render verification in the worktree preview (light + dark): islands,
+- [x] Live-render verification in the worktree preview (light + dark): islands,
       surface switching, pin toggle, tabs, floating dock, popovers.
 
 ## References
