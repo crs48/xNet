@@ -69,5 +69,8 @@ export function navigateToNode(
     case 'space':
       void navigate({ to: '/space/$spaceId' as never, params: { spaceId: nodeId } as never })
       break
+    case 'settings':
+      void navigate({ to: '/settings' })
+      break
   }
 }
