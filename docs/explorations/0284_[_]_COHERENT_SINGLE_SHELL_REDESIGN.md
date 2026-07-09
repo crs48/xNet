@@ -457,7 +457,7 @@ Placeholder.configure({
 
 ### Stage 4 — One renderer
 
-- [ ] Flip `xnet:experiment:layout-tree` on by default.
+- [x] Flip `xnet:experiment:layout-tree` on by default.
 - [ ] Delete `DesktopWorkbench` (in `Workbench.tsx`), `CalmShell`, `ModeSwitch`,
       `ListPane`, `QuietChrome`, `NetworkList`, `CompanionList`, `calm/modes.ts`,
       and dead Escape handlers; reconcile mobile to a single `MobileShell`.
