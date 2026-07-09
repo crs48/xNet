@@ -259,12 +259,7 @@ export function Sidebar() {
 
       {/* Footer: focus, workspaces, identity, settings */}
       <div className="mt-1 flex flex-col gap-0.5 border-t border-hairline pt-1.5">
-        <NavRow
-          label="Focus mode"
-          icon={Maximize2}
-          collapsed={collapsed}
-          onClick={toggleFocus}
-        />
+        <NavRow label="Focus mode" icon={Maximize2} collapsed={collapsed} onClick={toggleFocus} />
         <NavRow
           label="Workspaces"
           icon={Layers}
