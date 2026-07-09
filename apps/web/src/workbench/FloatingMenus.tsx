@@ -9,16 +9,31 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useIdentity } from '@xnetjs/react'
 import { DIDAvatar, useTheme } from '@xnetjs/ui'
-import { FolderPlus, Inbox, Link2, LogOut, Moon, Pin, Settings, Sun, User } from 'lucide-react'
+import {
+  Check,
+  FolderPlus,
+  Globe,
+  Inbox,
+  Layers,
+  Link2,
+  LogOut,
+  Moon,
+  Pin,
+  Settings,
+  Sun,
+  User
+} from 'lucide-react'
 import { createPortal } from 'react-dom'
 import { useRequestCount } from '../hooks/useRequestCount'
+import { useSpaces } from '../hooks/useSpaces'
 import { DOC_TYPE_ROUTES } from '../lib/doc-creation'
 import { logout } from '../lib/identity'
 import { useNewActions } from './new-actions'
 import { useWorkbench } from './state'
 import { SURFACES, useSurfaceActivation } from './surfaces'
+import { NO_SPACE } from './views/explorer-scope'
 
-export type FloatingMenuName = 'new' | 'notif' | 'profile' | 'surfaces'
+export type FloatingMenuName = 'new' | 'notif' | 'profile' | 'surfaces' | 'workspace'
 
 export interface FloatingMenuState {
   name: FloatingMenuName
@@ -77,6 +92,66 @@ function NewMenu({ close }: { close: () => void }) {
         <Link2 size={16} strokeWidth={1.75} className="text-ink-3" />
         Add shared…
       </button>
+    </div>
+  )
+}
+
+/** The Space (workspace) scope picker — sets `currentSpaceId` (0288). */
+function WorkspaceMenu({ close }: { close: () => void }) {
+  const currentSpaceId = useWorkbench((s) => s.currentSpaceId)
+  const setCurrentSpace = useWorkbench((s) => s.setCurrentSpace)
+  const { spaces } = useSpaces()
+  const pick = (id: string | null) => {
+    setCurrentSpace(id)
+    close()
+  }
+  const Row = ({
+    active,
+    label,
+    icon,
+    onClick
+  }: {
+    active: boolean
+    label: string
+    icon: React.ReactNode
+    onClick: () => void
+  }) => (
+    <button type="button" className={item} onClick={onClick}>
+      <span className="flex w-4 justify-center text-ink-3">{icon}</span>
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+      {active && <Check size={15} strokeWidth={2} className="text-ink-1" />}
+    </button>
+  )
+  return (
+    <div className="w-[250px] p-1.5">
+      <div className={eyebrow}>Workspaces</div>
+      <Row
+        active={currentSpaceId === null}
+        label="All workspaces"
+        icon={<Globe size={16} strokeWidth={1.75} />}
+        onClick={() => pick(null)}
+      />
+      {spaces.map((space) => (
+        <Row
+          key={space.id}
+          active={currentSpaceId === space.id}
+          label={space.name || 'Untitled workspace'}
+          icon={
+            space.icon ? (
+              <span className="text-[14px] leading-none">{space.icon}</span>
+            ) : (
+              <Layers size={16} strokeWidth={1.75} />
+            )
+          }
+          onClick={() => pick(space.id)}
+        />
+      ))}
+      <Row
+        active={currentSpaceId === NO_SPACE}
+        label="No workspace"
+        icon={<Layers size={16} strokeWidth={1.75} />}
+        onClick={() => pick(NO_SPACE)}
+      />
     </div>
   )
 }
@@ -243,6 +318,7 @@ export function FloatingMenus({
         style={{ left, top }}
       >
         {menu.name === 'new' && <NewMenu close={onClose} />}
+        {menu.name === 'workspace' && <WorkspaceMenu close={onClose} />}
         {menu.name === 'notif' && <NotifMenu close={onClose} />}
         {menu.name === 'profile' && <ProfileMenu close={onClose} />}
         {menu.name === 'surfaces' && <SurfacesMenu close={onClose} />}

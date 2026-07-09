@@ -11,12 +11,9 @@
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { CanvasSchema, DashboardSchema, DatabaseSchema, MapSchema, PageSchema } from '@xnetjs/data'
 import { useQuery } from '@xnetjs/react'
-import { ArrowUpDown, Check, ChevronDown, Link as LinkIcon, Plus } from 'lucide-react'
+import { ArrowUpDown, Check } from 'lucide-react'
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { AddSharedDialog } from '../../components/AddSharedDialog'
 import { useSpaces } from '../../hooks/useSpaces'
-import { CreateDocMenuItems, type CreatableDocType } from '../../lib/doc-creation'
-import { useNewActions } from '../new-actions'
 import { useWorkbench } from '../state'
 import { filterExplorerItems } from './explorer-filter'
 import { partitionByFolder } from './explorer-folders'
@@ -25,7 +22,6 @@ import { ExplorerRow, type ExplorerItem, type ExplorerNodeType } from './explore
 import { NO_SPACE, isRealSpace, matchesScope } from './explorer-scope'
 import { EXPLORER_SORTS, sortExplorerItems, type ExplorerSort } from './explorer-sort'
 import { ExplorerFoldersSection } from './ExplorerFolderTree'
-import { ExplorerScopeBar } from './ExplorerScopeBar'
 import { ExplorerSpacesSection } from './ExplorerSpacesSection'
 import { ExplorerTagsSection } from './ExplorerTagsSection'
 
@@ -40,66 +36,6 @@ const TYPE_FILTERS: Array<{ id: ExplorerNodeType | 'all'; label: string }> = [
 
 const QUERY_LIMIT = 500
 const ROW_HEIGHT = 26
-
-function ExplorerCreateMenu({
-  open,
-  onToggle,
-  onCreate,
-  onAddShared,
-  targetName
-}: {
-  open: boolean
-  onToggle: () => void
-  onCreate: (type: ExplorerNodeType) => void
-  onAddShared: () => void
-  /** Name of the Space new docs file into, or null when creating unfiled. */
-  targetName: string | null
-}) {
-  return (
-    <div className="relative">
-      <button
-        type="button"
-        onClick={onToggle}
-        className={`flex h-7 w-full cursor-pointer items-center gap-1.5 rounded-md border border-hairline bg-surface-0 text-xs text-ink-1 transition-colors hover:bg-accent ${
-          targetName ? 'justify-start px-2' : 'justify-center'
-        }`}
-      >
-        <Plus size={13} strokeWidth={1.5} className="shrink-0" />
-        <span className="shrink-0">New</span>
-        {targetName ? <span className="min-w-0 truncate text-ink-3">in {targetName}</span> : null}
-        <ChevronDown
-          size={12}
-          strokeWidth={1.5}
-          className={`${targetName ? 'ml-auto' : ''} shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
-        />
-      </button>
-      {open && (
-        <div className="absolute left-0 right-0 top-full z-10 mt-1 rounded-md border border-hairline bg-popover py-1">
-          <div className="px-3 pb-1 text-[10px] font-medium uppercase tracking-wider text-ink-3">
-            {targetName ? `Creating in ${targetName}` : 'Not in any workspace'}
-          </div>
-          <CreateDocMenuItems
-            types={['page', 'database', 'canvas', 'dashboard', 'map', 'lab']}
-            onCreate={onCreate}
-          />
-          {targetName ? (
-            <p className="m-0 px-3 pt-1 text-[10px] text-ink-3">
-              Dashboards &amp; Labs file after you move them.
-            </p>
-          ) : null}
-          <hr className="my-1 border-hairline" />
-          <button
-            onClick={onAddShared}
-            className="flex w-full cursor-pointer items-center gap-2 border-none bg-transparent px-3 py-2 text-left text-sm text-ink-2 hover:bg-accent hover:text-ink-1"
-          >
-            <LinkIcon size={14} strokeWidth={1.5} />
-            <span>Add Shared...</span>
-          </button>
-        </div>
-      )}
-    </div>
-  )
-}
 
 /** Compact sort picker for the flat list (exploration 0190). */
 function SortMenu({
@@ -375,15 +311,12 @@ function ExplorerSections({
 export function Explorer() {
   const [filter, setFilter] = useState<ExplorerNodeType | 'all'>('all')
   const [search, setSearch] = useState('')
-  const [showCreateMenu, setShowCreateMenu] = useState(false)
-  const [showAddSharedDialog, setShowAddSharedDialog] = useState(false)
   const pinnedNodeIds = useWorkbench((state) => state.pinnedNodeIds)
   const recents = useWorkbench((state) => state.recents)
   const currentSpaceId = useWorkbench((state) => state.currentSpaceId)
   const explorerSort = useWorkbench((state) => state.explorerSort)
   const setExplorerSort = useWorkbench((state) => state.setExplorerSort)
   const { getSpace } = useSpaces()
-  const { createDoc } = useNewActions()
 
   // The Space new docs file into (null = All / No-workspace → unfiled).
   const createTarget = isRealSpace(currentSpaceId) ? getSpace(currentSpaceId) : null
@@ -421,29 +354,11 @@ export function Explorer() {
     [recents, byId, pinnedNodeIds]
   )
 
-  const handleCreate = (type: ExplorerNodeType) => {
-    setShowCreateMenu(false)
-    // Route through the one canonical, Space-aware New action (0288).
-    createDoc(type as CreatableDocType)
-  }
-
   return (
     <ExplorerFoldersProvider items={allItems}>
       <div className="flex h-full min-h-0 flex-col">
-        {/* Workspace scope — persistent, always visible (exploration 0190) */}
-        <ExplorerScopeBar />
-        {/* Tools */}
+        {/* Tools — Space scope + New now live in the top island (0288). */}
         <div className="flex flex-col gap-2 border-b border-hairline p-2">
-          <ExplorerCreateMenu
-            open={showCreateMenu}
-            onToggle={() => setShowCreateMenu((prev) => !prev)}
-            onCreate={handleCreate}
-            onAddShared={() => {
-              setShowCreateMenu(false)
-              setShowAddSharedDialog(true)
-            }}
-            targetName={createTarget?.name ?? null}
-          />
           <input
             type="text"
             value={search}
@@ -478,11 +393,6 @@ export function Explorer() {
           recentItems={recentItems}
           pinnedNodeIds={pinnedNodeIds}
           listEmptyMessage={listEmptyMessage}
-        />
-
-        <AddSharedDialog
-          isOpen={showAddSharedDialog}
-          onClose={() => setShowAddSharedDialog(false)}
         />
       </div>
     </ExplorerFoldersProvider>

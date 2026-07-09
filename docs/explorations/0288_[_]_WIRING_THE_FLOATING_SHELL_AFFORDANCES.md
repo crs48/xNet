@@ -571,7 +571,7 @@ const actions = useNodeActions(activeTab ? { id: activeTab.nodeId, type: activeT
       and route the **pill +** and `⌘K` through them.
 - [x] Make the **bottom-island +** surface-aware (Tasks/Chats/Data/Explorer),
       hiding it for route surfaces.
-- [ ] Add a compact **Space scope picker** to the top island (`SidebarIslands`),
+- [x] Add a compact **Space scope picker** to the top island (`SidebarIslands`),
       backed by `explorer-scope` state (`currentSpaceId` / `applyScopeSelection`);
       keep/thin `ExplorerScopeBar` for the multi-Space view filter.
 - [ ] Wire the editor **⋯ More** to `useNodeActions(activeTab)` in a popover.
