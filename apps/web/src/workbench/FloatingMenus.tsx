@@ -9,10 +9,12 @@
 import { useNavigate } from '@tanstack/react-router'
 import { useIdentity } from '@xnetjs/react'
 import { DIDAvatar, useTheme } from '@xnetjs/ui'
-import { Columns2, FileText, Inbox, Moon, Pin, Settings, Square, Sun, User } from 'lucide-react'
+import { FolderPlus, Inbox, Link2, LogOut, Moon, Pin, Settings, Sun, User } from 'lucide-react'
 import { createPortal } from 'react-dom'
 import { useRequestCount } from '../hooks/useRequestCount'
-import { navigateToNewDoc, type NavigateLike } from '../lib/doc-creation'
+import { DOC_TYPE_ROUTES } from '../lib/doc-creation'
+import { logout } from '../lib/identity'
+import { useNewActions } from './new-actions'
 import { useWorkbench } from './state'
 import { SURFACES, useSurfaceActivation } from './surfaces'
 
@@ -36,27 +38,44 @@ function positionFor(name: FloatingMenuName, rect: DOMRect): { left: number; top
 
 const item =
   'flex w-full items-center gap-2.5 rounded-lg border-none bg-transparent px-2 py-1.5 text-left text-[13px] text-ink-1 transition-colors hover:bg-accent cursor-pointer'
+const eyebrow = 'px-2 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wider text-ink-3'
 
+/** The canonical, Space-aware New menu — one source for every "New" (0288). */
 function NewMenu({ close }: { close: () => void }) {
-  const navigate = useNavigate()
-  const create = (type: 'page' | 'database' | 'canvas') => {
-    navigateToNewDoc(navigate as unknown as NavigateLike, type)
+  const { types, targetName, createDoc, createFolder, addShared } = useNewActions()
+  const run = (fn: () => void) => {
+    fn()
     close()
   }
   return (
-    <div className="w-[230px] p-1.5">
-      <button type="button" className={item} onClick={() => create('page')}>
-        <FileText size={16} strokeWidth={1.75} className="text-ink-3" />
-        New page
-        <span className="ml-auto font-mono text-[11px] text-ink-3">⌘T</span>
+    <div className="w-[240px] p-1.5">
+      <div className={eyebrow}>{targetName ? `Creating in ${targetName}` : 'New'}</div>
+      {types.map((type) => {
+        const route = DOC_TYPE_ROUTES[type]
+        const Icon = route.icon
+        return (
+          <button
+            key={type}
+            type="button"
+            className={item}
+            onClick={() => run(() => createDoc(type))}
+          >
+            <Icon size={16} className="text-ink-3" />
+            New {route.label.toLowerCase()}
+            {type === 'page' && (
+              <span className="ml-auto font-mono text-[11px] text-ink-3">⌘T</span>
+            )}
+          </button>
+        )
+      })}
+      <div className="mx-0.5 my-1 h-px bg-hairline" />
+      <button type="button" className={item} onClick={() => run(() => void createFolder())}>
+        <FolderPlus size={16} strokeWidth={1.75} className="text-ink-3" />
+        New folder
       </button>
-      <button type="button" className={item} onClick={() => create('database')}>
-        <Columns2 size={16} strokeWidth={1.75} className="text-ink-3" />
-        New database
-      </button>
-      <button type="button" className={item} onClick={() => create('canvas')}>
-        <Square size={16} strokeWidth={1.75} className="text-ink-3" />
-        New canvas
+      <button type="button" className={item} onClick={() => run(addShared)}>
+        <Link2 size={16} strokeWidth={1.75} className="text-ink-3" />
+        Add shared…
       </button>
     </div>
   )
@@ -134,6 +153,18 @@ function ProfileMenu({ close }: { close: () => void }) {
           <Moon size={16} strokeWidth={1.75} className="text-ink-3" />
         )}
         {dark ? 'Light mode' : 'Dark mode'}
+      </button>
+      <div className="mx-0.5 my-1 h-px bg-hairline" />
+      <button
+        type="button"
+        className={item}
+        onClick={() => {
+          close()
+          void logout()
+        }}
+      >
+        <LogOut size={16} strokeWidth={1.75} className="text-ink-3" />
+        Sign out
       </button>
     </div>
   )

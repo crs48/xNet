@@ -25,6 +25,7 @@ import {
 import { useLayoutEffect, useRef } from 'react'
 import { useRequestCount } from '../hooks/useRequestCount'
 import { useSpaces } from '../hooks/useSpaces'
+import { useNewActions } from './new-actions'
 import { getSlotView } from './slot-registry'
 import { useWorkbench } from './state'
 import {
@@ -317,11 +318,22 @@ function TopIsland({ openMenu }: { openMenu: OpenMenu }) {
 
 function BottomIsland() {
   const activeSurface = useWorkbench((s) => s.activeSurface)
+  const { createDoc } = useNewActions()
   const def = surfaceById(activeSurface) ?? surfaceById(DEFAULT_SURFACE)!
   const panel = def.kind === 'panel' ? def : surfaceById(DEFAULT_SURFACE)!
   const view = panel.viewId ? getSlotView(panel.viewId) : undefined
   const Body = view?.component
   const Icon = panel.icon
+
+  // Surface-aware "+": Explorer files a page into the active Space, Data makes a
+  // database. Surfaces that carry their own in-panel create (Tasks/Chats/…) —
+  // or have nothing to create — hide the header +.
+  const create =
+    panel.id === 'explorer'
+      ? () => createDoc('page')
+      : panel.id === 'data'
+        ? () => createDoc('database')
+        : null
 
   return (
     <div className={`${ISLAND} min-h-0 flex-1`}>
@@ -329,15 +341,17 @@ function BottomIsland() {
         <Icon size={16} strokeWidth={1.75} className="text-ink-2" />
         <span className="text-[13px] font-semibold text-ink-1">{panel.label}</span>
         <span className="flex-1" />
-        <button
-          type="button"
-          title={`New in ${panel.label}`}
-          aria-label={`New in ${panel.label}`}
-          onClick={() => void getCommandRegistry().runCommand('workbench.newPage')}
-          className="flex h-6 w-6 items-center justify-center rounded-md border-none bg-transparent text-ink-2 cursor-pointer hover:bg-background-muted hover:text-ink-1"
-        >
-          <Plus size={15} strokeWidth={1.75} />
-        </button>
+        {create && (
+          <button
+            type="button"
+            title={`New in ${panel.label}`}
+            aria-label={`New in ${panel.label}`}
+            onClick={create}
+            className="flex h-6 w-6 items-center justify-center rounded-md border-none bg-transparent text-ink-2 cursor-pointer hover:bg-background-muted hover:text-ink-1"
+          >
+            <Plus size={15} strokeWidth={1.75} />
+          </button>
+        )}
       </div>
       <div className="min-h-0 flex-1 overflow-hidden">{Body ? <Body /> : null}</div>
     </div>

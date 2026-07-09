@@ -8,16 +8,15 @@
  * double click promotes; pinning keeps a node at the top. When a text
  * or type filter is active the tree hides and results span all items.
  */
-import { useNavigate } from '@tanstack/react-router'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { CanvasSchema, DashboardSchema, DatabaseSchema, MapSchema, PageSchema } from '@xnetjs/data'
 import { useQuery } from '@xnetjs/react'
 import { ArrowUpDown, Check, ChevronDown, Link as LinkIcon, Plus } from 'lucide-react'
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { AddSharedDialog } from '../../components/AddSharedDialog'
-import { useCreateInSpace } from '../../hooks/useCreateInSpace'
 import { useSpaces } from '../../hooks/useSpaces'
-import { CreateDocMenuItems, navigateToNewDoc, type NavigateLike } from '../../lib/doc-creation'
+import { CreateDocMenuItems, type CreatableDocType } from '../../lib/doc-creation'
+import { useNewActions } from '../new-actions'
 import { useWorkbench } from '../state'
 import { filterExplorerItems } from './explorer-filter'
 import { partitionByFolder } from './explorer-folders'
@@ -374,7 +373,6 @@ function ExplorerSections({
 }
 
 export function Explorer() {
-  const navigate = useNavigate()
   const [filter, setFilter] = useState<ExplorerNodeType | 'all'>('all')
   const [search, setSearch] = useState('')
   const [showCreateMenu, setShowCreateMenu] = useState(false)
@@ -385,7 +383,7 @@ export function Explorer() {
   const explorerSort = useWorkbench((state) => state.explorerSort)
   const setExplorerSort = useWorkbench((state) => state.setExplorerSort)
   const { getSpace } = useSpaces()
-  const createInSpace = useCreateInSpace()
+  const { createDoc } = useNewActions()
 
   // The Space new docs file into (null = All / No-workspace → unfiled).
   const createTarget = isRealSpace(currentSpaceId) ? getSpace(currentSpaceId) : null
@@ -425,12 +423,8 @@ export function Explorer() {
 
   const handleCreate = (type: ExplorerNodeType) => {
     setShowCreateMenu(false)
-    // File into the active Space; All / No-workspace create unfiled (0190).
-    if (isRealSpace(currentSpaceId)) {
-      void createInSpace(type, currentSpaceId)
-      return
-    }
-    navigateToNewDoc(navigate as unknown as NavigateLike, type)
+    // Route through the one canonical, Space-aware New action (0288).
+    createDoc(type as CreatableDocType)
   }
 
   return (
