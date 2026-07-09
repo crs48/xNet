@@ -80,6 +80,15 @@ as the centrepiece.
    Discover, Inbox, Dashboard and Map do not**, so the panel is empty there. Each
    main UI should publish sections appropriate to *it*, so the right sidebar
    changes shape to meet the surface.
+10. **Retire the per-view header chrome into the shell.** Each main view still
+    renders its *own* Share button, presence avatars and toolbar/actions
+    (`PageView` mounts `ShareButton` + `PresenceAvatars` + `PageToolbar`;
+    Database/Canvas do the same). These now **duplicate** the shell's
+    `EditorHeader` (its Share button, its "you" facepile, its ⋯ More). The
+    per-view copies should be removed and their real data — the active doc's
+    share target, its live collaborators/presence, its contextual actions — fed
+    to the shell header (**Share** + **user-count**) and the ⋯ menu / right
+    sidebar via a small header-contribution API (the `useContextPanel` pattern).
 
 ```mermaid
 flowchart LR
@@ -247,6 +256,38 @@ docked in 0287), so "properly wired" is verifiable live: every surface's queries
 should appear there with results, and none should be firing from placeholder
 descriptors.
 
+### Per-view header chrome still duplicates the shell
+
+The redesign gave the shell an `EditorHeader` (Share, "you" facepile, ⋯ More),
+but the **main views never gave theirs up**:
+
+| View | Renders its own… | File |
+| --- | --- | --- |
+| Page | `ShareButton` (l.298), `PresenceAvatars` (l.295), `PageToolbar` (l.466) | [`PageView.tsx`](../../apps/web/src/components/PageView.tsx) |
+| Database | `ShareButton` + toolbar | [`DatabaseView.tsx`](../../apps/web/src/components/DatabaseView.tsx) |
+| Canvas | `ShareButton` + toolbar | [`CanvasView.tsx`](../../apps/web/src/components/CanvasView.tsx) |
+
+So a page shows **two** Share buttons (in-view and shell) and **two** presence
+displays (the view's real `PresenceAvatars` and the shell's placeholder "you").
+The shell header is the "new home" — the per-view copies must move into it,
+carrying their *real* data (the shell's facepile is a placeholder precisely
+because presence lives in the view).
+
+The catch: presence/share/actions are owned by the mounted view (Y.Doc awareness,
+docId, view-specific verbs) — the shell can't read them directly. The clean
+seam is the **same contribution pattern the right sidebar uses**: the active view
+publishes a small `{ share, collaborators, actions }` payload to a header store;
+`EditorHeader` renders it (real facepile + user-count + Share + ⋯), and the view
+stops drawing its own. When no view contributes (route surfaces), the header
+falls back to today's minimal set.
+
+```mermaid
+flowchart LR
+  PV[PageView / DatabaseView / CanvasView] -->|useEditorChrome ownerId, {share, collaborators, actions}| HS[(header store)]
+  HS --> EH[EditorHeader\nfacepile + user-count + Share + ⋯]
+  PV -. deletes its own .-> X[inline ShareButton / PresenceAvatars / toolbar]
+```
+
 ### Affordance → action audit (the whole sweep)
 
 | Affordance (new location) | File | Current wiring | Gap / intended |
@@ -256,7 +297,8 @@ descriptors.
 | **Space scope picker** | [`ExplorerScopeBar.tsx`](../../apps/web/src/workbench/views/ExplorerScopeBar.tsx), mounted in `Explorer.tsx` | sets `currentSpaceId` (filter + New target) — only visible on the Explorer surface | ⭐ move into the top island (beside New) so scope is always visible and drives New/status everywhere |
 | **Bottom-island header +** | `SidebarIslands.tsx` `BottomIsland` | `workbench.newPage` (always a page) | surface-aware: Tasks→new task, Chats→new channel, Data→new database, Explorer→canonical New in Space |
 | **Editor ⋯ More** | [`EditorHeader.tsx`](../../apps/web/src/workbench/EditorHeader.tsx) | **inert** (no `onClick`) | active-tab node menu via 0285 [`useNodeActions`](../../apps/web/src/hooks/useNodeActions.ts) (rename/duplicate/copy link/move/favorite/export/delete) |
-| Editor facepile | `EditorHeader.tsx` | "you" avatar only | real presence when available (else keep the single "you") |
+| Editor facepile / **user-count** | `EditorHeader.tsx` | placeholder "you" avatar | real collaborators/presence contributed by the active view (retire `PageView`'s `PresenceAvatars`) |
+| Editor **Share** | `EditorHeader.tsx` + per-view `ShareButton` | **two** Share buttons (shell + in-view) | one Share in the shell header, targeting the active doc; delete the per-view `ShareButton` |
 | Editor Share / Comments / Bell | `EditorHeader.tsx` | ShareDialog / `togglePanel('right')` / notif menu | ✅ (bell depends on notif wiring below) |
 | **Right sidebar (contextual)** | `ContextPanel` + `useContextPanel` | populated for Page/DB/Canvas/Tasks/Chat; **empty for Meetings/CRM/Finance/Analytics/Discover/Inbox/Dashboard/Map** | each of those views calls `useContextPanel` with sections that fit it |
 | **Nav counts / badges** | `SidebarIslands.tsx`, `surfaces.ts` | only Inbox (`useRequestCount`) | back Tasks/Chats/Meetings badges with real queries |
@@ -383,6 +425,18 @@ that shows placeholder or nothing, point it at the real hook, and verify in the
 devtools **Queries** panel that it fires with results. Prefer existing domain
 hooks (`useTasks`, `useSpaces`, channel/meeting queries) over hand-rolled reads.
 
+### For the per-view header chrome
+
+| Option | How | Pros | Cons |
+| --- | --- | --- | --- |
+| **A. Header-contribution API** (recommended) | a `useEditorChrome(ownerId, {share, collaborators, actions})` store mirroring `useContextPanel`; the view publishes, `EditorHeader` renders, the view deletes its inline Share/presence/toolbar | single header; real presence in the shell; symmetric with the right-sidebar pattern; route surfaces fall back cleanly | one small new store + touching each view once |
+| B. Shell reads via hooks keyed by active nodeId | shell calls a presence/share hook for the active tab | no view edits to publish | presence needs the live Y.Doc awareness the view owns — a hook outside the view would re-open the doc; wasteful/fragile |
+| C. Keep per-view, hide the shell header there | conditionally blank the shell header | tiny diff | leaves two code paths and the shell facepile permanently fake |
+
+**A** — the header becomes contribution-driven exactly like the right sidebar,
+so both the top chrome and the side chrome adapt to the active UI from one
+mechanism, and the per-view Share/presence/toolbars are deleted (not hidden).
+
 ## Recommendation
 
 Ship in this order (each a self-contained commit):
@@ -410,7 +464,10 @@ Ship in this order (each a self-contained commit):
 10. **Query wiring sweep** — real hooks behind every count/list/section; verify
     in the devtools Queries panel. Runs alongside 7 & 9 (each new panel/section
     lands already wired).
-11. **History pill** + **notifications popover** — polish pass.
+11. **Retire per-view header chrome** — add `useEditorChrome`; move
+    Share/presence/actions from Page/Database/Canvas into the shell `EditorHeader`
+    (real facepile + user-count) and delete the in-view copies.
+12. **History pill** + **notifications popover** — polish pass.
 
 ## Example Code
 
@@ -537,6 +594,10 @@ const actions = useNodeActions(activeTab ? { id: activeTab.nodeId, type: activeT
 - [ ] **Query wiring**: back Tasks/Chats/Meetings nav badges with real queries;
       every new list panel + right-sidebar section reads a real
       `useQuery`/`useNode`/domain hook (no seed/placeholder data in chrome).
+- [ ] **Per-view header chrome**: add a `useEditorChrome(ownerId, {share,
+      collaborators, actions})` store; have Page/Database/Canvas publish to it
+      and **delete** their inline `ShareButton` / `PresenceAvatars` / toolbar;
+      `EditorHeader` renders the real facepile + user-count + Share + ⋯.
 - [ ] Dedupe the home `DataWorkspaceView` New against the shell New.
 
 ## Validation Checklist
@@ -564,6 +625,9 @@ const actions = useNodeActions(activeTab ? { id: activeTab.nodeId, type: activeT
 - [ ] The devtools **Queries** panel shows a real, resulting query behind every
       surface count, list panel and right-sidebar section — none firing from
       placeholder descriptors.
+- [ ] A page/database/canvas shows **exactly one** Share button and **one**
+      presence/user-count — in the shell header, reflecting the real doc's
+      collaborators — with the in-view copies gone.
 - [ ] Editor **⋯ More** opens the active tab's node actions; each verb behaves
       as in the right-click menu (0285).
 - [ ] No duplicate/diverging New menus remain (grep for `navigateToNewDoc`
@@ -601,6 +665,11 @@ const actions = useNodeActions(activeTab ? { id: activeTab.nodeId, type: activeT
 - Repo — query hooks: `@xnetjs/react` `useQuery`/`useNode`/`useTasks`,
   [`hooks/useSpaces.ts`](../../apps/web/src/hooks/useSpaces.ts),
   [`hooks/useRequestCount.ts`](../../apps/web/src/hooks/useRequestCount.ts); instrumented by the devtools Queries panel (0287)
+- Repo — per-view header chrome to retire: [`components/PageView.tsx`](../../apps/web/src/components/PageView.tsx)
+  (`ShareButton` + `PresenceAvatars` + `PageToolbar`),
+  [`components/DatabaseView.tsx`](../../apps/web/src/components/DatabaseView.tsx),
+  [`components/CanvasView.tsx`](../../apps/web/src/components/CanvasView.tsx),
+  [`components/ShareButton.tsx`](../../apps/web/src/components/ShareButton.tsx)
 - Repo — verbs to reuse: [`hooks/useNodeActions.ts`](../../apps/web/src/hooks/useNodeActions.ts) (0285)
 - Prior art: Notion global "New page", Linear global create (`C`) + command
   palette, Claude/Slack top-left composer.
