@@ -648,16 +648,16 @@ stateDiagram-v2
       to `state.ts`/`tabs.ts`).
 - [x] **PR6 Data cards:** Board/Gallery/List/Timeline/Grid/Task rows via
       the shared list.
-- [ ] Add a `.changeset/*.md`: `@xnetjs/ui` **minor** (new export),
+- [x] Add a `.changeset/*.md`: `@xnetjs/ui` **minor** (new export),
       `@xnetjs/react` **minor** (`useNodeActions`).
 
 ## Validation Checklist
 
-- [ ] Right-click, long-press (touch), and `Shift+F10`/`Menu`-key all open
+- [x] Right-click, long-press (touch), and `Shift+F10`/`Menu`-key all open
       the identical menu on a focused Explorer row.
 - [ ] Every menu is also reachable via a visible kebab (no right-click-only
       action anywhere).
-- [ ] Rename / Move-to-workspace / Move-to-folder / Delete on an Explorer
+- [x] Rename / Move-to-workspace / Move-to-folder / Delete on an Explorer
       node persist through the change log and survive reload; Delete lands
       in Trash and `restore` brings it back.
 - [ ] Archive on a Space/Tag/Channel sets `archived` and the item leaves
@@ -670,16 +670,16 @@ stateDiagram-v2
 - [ ] Canvas menu acts on the full selection when the target is selected;
       pan/marquee gestures still work; the updated drawing-tools test
       passes.
-- [ ] TableCell behaves identically to before (copy/edit/clear/comment/
+- [x] TableCell behaves identically to before (copy/edit/clear/comment/
       delete) with the bespoke overlay removed; no visual regression vs the
       screenshot baseline.
-- [ ] Tab "Close others / Close to the right / Duplicate / Split" behave
+- [x] Tab "Close others / Close to the right / Duplicate / Split" behave
       correctly with pinned tabs and across split groups.
 - [ ] Keyboard shortcut hints in the menu match the registry
       (`formatForDisplay`).
 - [ ] Mobile/Capacitor shell: long-press opens the menu; no conflict with
       drag-to-reorder.
-- [ ] `pnpm test`, typecheck, and the Fallow/humane-pattern gates pass; the
+- [x] `pnpm test`, typecheck, and the Fallow/humane-pattern gates pass; the
       Stop-hook changeset check is satisfied.
 
 ## References
