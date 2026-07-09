@@ -1,0 +1,8 @@
+{
+  "id": "2026-07-08-dev-tools-island-and-collapsible-workben",
+  "date": "July 8, 2026",
+  "title": "Dev-tools island and collapsible workbench header",
+  "summary": "In dev builds, the developer tools now dock as their own small island beside the status bar (with an upward menu into the query console, schema inspector, and sync log) instead of a floating button. The workbench header island can also collapse to a compact rail via a caret at its base, giving the Explorer below more room; the change is animated and respects reduced-motion.",
+  "highlights": [],
+  "tags": ["platform"]
+}

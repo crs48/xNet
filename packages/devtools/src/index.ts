@@ -16,6 +16,8 @@ export interface XNetDevToolsProviderProps {
   maxEvents?: number
   /** TraceCollector instance for the Traces panel (exploration 0190). Ignored in production. */
   traceCollector?: unknown
+  /** Hide the floating toggle FAB (host renders its own launcher). Ignored in production. */
+  hideFab?: boolean
 }
 
 /**

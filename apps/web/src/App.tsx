@@ -385,6 +385,7 @@ export function App(): JSX.Element {
           <XNetDevToolsProvider
             position="bottom"
             defaultOpen={false}
+            hideFab
             storageDurability={appState.storageStatus ?? null}
             traceCollector={traceCollector}
             onResetLocalData={requestXNetBrowserStorageReset}

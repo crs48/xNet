@@ -268,6 +268,12 @@ interface WorkbenchState {
   navPinned: string[]
   /** Sidebar island width in px (tweakable knob, 230–320; default 264). */
   sidebarWidth: number
+  /**
+   * The top (nav/header) sidebar island is collapsed to its compact rail
+   * (0287). Only the header island's height changes — the Explorer island
+   * below (flex-1) grows to fill. Persisted (the user's chosen density).
+   */
+  sidebarCompact: boolean
   /** Floating Assistant chat island visible (dismissable). */
   floatAi: boolean
   /** Floating video-call island visible (dismissable). */
@@ -279,6 +285,8 @@ interface WorkbenchState {
   toggleNavPinned: (surface: string) => void
   /** Set the sidebar island width (clamped 230–320). */
   setSidebarWidth: (width: number) => void
+  /** Collapse/expand the top (nav) sidebar island to its compact rail. */
+  toggleSidebarCompact: () => void
   /** Show/hide the floating Assistant island. */
   setFloatAi: (open: boolean) => void
   /** Show/hide the floating video-call island. */
@@ -450,6 +458,7 @@ export const useWorkbench = create<WorkbenchState>()(
       activeSurface: 'explorer',
       navPinned: ['explorer', 'requests', 'tasks'],
       sidebarWidth: 264,
+      sidebarCompact: false,
       // The Assistant floats by default (a launcher to the AI surface); the
       // video-call island stays off until a real calling backend is wired
       // (0286) — no fabricated live-call state is shown at rest.
@@ -525,6 +534,7 @@ export const useWorkbench = create<WorkbenchState>()(
             : [...state.navPinned, surface]
         })),
       setSidebarWidth: (width) => set({ sidebarWidth: Math.max(230, Math.min(320, width)) }),
+      toggleSidebarCompact: () => set((state) => ({ sidebarCompact: !state.sidebarCompact })),
       setFloatAi: (floatAi) => set({ floatAi }),
       setFloatCall: (floatCall) => set({ floatCall }),
 

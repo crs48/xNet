@@ -16,6 +16,7 @@ import { GlobalSearch } from '../components/GlobalSearch'
 import { UndoToastProvider } from '../components/UndoToast'
 import { WorkspaceCommands } from '../components/WorkspaceCommands'
 import { ContextPanel } from './ContextPanel'
+import { DevToolsIsland } from './DevToolsIsland'
 import { EditorArea } from './EditorArea'
 import { EditorHeader } from './EditorHeader'
 import { FloatingDock } from './FloatingDock'
@@ -66,11 +67,12 @@ export function FloatingFrame({ children }: { children: ReactNode }) {
           <FloatingDock />
         </div>
 
-        {/* Status-bar island */}
-        <div
-          className={`h-8 shrink-0 rounded-[14px] border border-hairline bg-island-b shadow-isl`}
-        >
-          <StatusBar variant="island" />
+        {/* Status-bar island (+ dev-tools island in dev builds) */}
+        <div className="flex h-8 shrink-0 items-stretch gap-2">
+          <div className="min-w-0 flex-1 overflow-hidden rounded-[14px] border border-hairline bg-island-b shadow-isl">
+            <StatusBar variant="island" />
+          </div>
+          {import.meta.env.DEV && <DevToolsIsland />}
         </div>
 
         <FloatingMenus menu={menu} onClose={() => setMenu(null)} />
