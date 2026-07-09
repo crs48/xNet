@@ -433,14 +433,14 @@ Placeholder.configure({
       cold-boot state. No change made.
 - [x] Tame `StorageOptimiseHint` — make it a dismissible one-line toast /
       status-bar chip, not a top-of-viewport block; persist dismissal.
-- [ ] Warm up the first-run empty state (a real "create your first page /
+- [x] Warm up the first-run empty state (a real "create your first page /
       database / canvas" affordance, not just grey text).
 
 ### Stage 2 — One preset
 
 - [x] Add `sidebar` slot view (sectioned, collapsible, hover-peek) in
       `builtin-slot-views.tsx`; sections: Workspace / Tools / People / More.
-- [ ] Replace `createPresetTree(quiet|calm|bench)` with `createDefaultTree()`
+- [x] Replace `createPresetTree(quiet|calm|bench)` with `createDefaultTree()`
       pinning every tool (per Example Code); give the orphaned routes
       (meetings/finance/analytics/dashboards/map) a home in the sidebar.
 - [x] Point `ShellFrame` at the single default tree; remove preset switching
