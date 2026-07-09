@@ -7,5 +7,14 @@
     "The navigator's contextual tab tracks the current view (Explorer / Settings / Tasks / Chats / …)",
     "Picking a panel surface from Surfaces opens it right there in the navigator"
   ],
-  "tags": ["app"]
+  "tags": [
+    "app"
+  ],
+  "pr": 441,
+  "mergedAt": "2026-07-09T18:05:34Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
