@@ -20,12 +20,14 @@ import {
   ChevronUp,
   LayoutGrid,
   Plus,
-  Search
+  Search,
+  Settings
 } from 'lucide-react'
 import { useLayoutEffect, useRef } from 'react'
 import { useRequestCount } from '../hooks/useRequestCount'
 import { useSpaces } from '../hooks/useSpaces'
 import { useNewActions } from './new-actions'
+import { SettingsSectionsNav } from './SettingsSectionsNav'
 import { getSlotView } from './slot-registry'
 import { useWorkbench } from './state'
 import {
@@ -319,6 +321,27 @@ function TopIsland({ openMenu }: { openMenu: OpenMenu }) {
 function BottomIsland() {
   const activeSurface = useWorkbench((s) => s.activeSurface)
   const { createDoc } = useNewActions()
+  const onSettings = useRouterState({
+    select: (s) =>
+      s.location.pathname === '/settings' || s.location.pathname.startsWith('/settings/')
+  })
+
+  // When Settings is open, the bottom island hosts its section nav (0288); the
+  // section content renders in the main area via the `/settings` route.
+  if (onSettings) {
+    return (
+      <div className={`${ISLAND} min-h-0 flex-1`}>
+        <div className="flex items-center gap-2 px-3 pb-2 pt-2.5">
+          <Settings size={16} strokeWidth={1.75} className="text-ink-2" />
+          <span className="text-[13px] font-semibold text-ink-1">Settings</span>
+        </div>
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <SettingsSectionsNav />
+        </div>
+      </div>
+    )
+  }
+
   const def = surfaceById(activeSurface) ?? surfaceById(DEFAULT_SURFACE)!
   const panel = def.kind === 'panel' ? def : surfaceById(DEFAULT_SURFACE)!
   const view = panel.viewId ? getSlotView(panel.viewId) : undefined
