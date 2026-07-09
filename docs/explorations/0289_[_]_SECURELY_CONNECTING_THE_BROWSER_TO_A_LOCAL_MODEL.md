@@ -604,9 +604,9 @@ connect-src 'self'
 - [x] (Optional) Add an upstream-proxy mode to the bridge so `/v1/chat/completions`
       can forward to Ollama `:11434`, giving raw-local-model users the same
       authenticated door.
-- [ ] Update tests: `bridge-server.test.ts` (token + Host cases),
+- [x] Update tests: `bridge-server.test.ts` (token + Host cases),
       `detect.test.ts`, `ai-chat-connector.test.ts`.
-- [ ] Changeset for `@xnetjs/devkit` and `@xnetjs/plugins` — new required token on
+- [x] Changeset for `@xnetjs/devkit` and `@xnetjs/plugins` — new required token on
       the bridge data endpoints and the changed `Host` behavior are a **breaking**
       wire-contract change → **major** for any published surface (bump from the
       diff, per CLAUDE.md).
