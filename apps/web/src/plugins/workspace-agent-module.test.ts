@@ -43,19 +43,19 @@ describe('workspace agent tools', () => {
     expect(text).toContain('dock.left: navigator (pinned)')
   })
 
-  it('applies a preset through the registered command, undoably', async () => {
+  it('moves a view via slot.move, announces it, and is undoable', async () => {
     const events: string[] = []
     const listener = (event: Event) =>
       events.push((event as CustomEvent<{ message: string }>).detail.message)
     window.addEventListener(AGENT_LAYOUT_EVENT, listener)
 
-    await tools.workspace_apply_preset.invoke({ preset: 'bench' })
-    expect(useWorkbench.getState().tree.surface.tabsEnabled).toBe(true)
-    expect(events[0]).toContain('bench')
+    await tools.workspace_move_view.invoke({ viewId: 'context', region: 'dock.left' })
+    expect(regionOf(useWorkbench.getState().tree, 'context')).toBe('dock.left')
+    expect(events[0]).toContain('Context')
     expect(workspaceUndoDepth()).toBe(1)
 
     await getCommandRegistry().runCommand('workspace.undoLayout')
-    expect(useWorkbench.getState().tree.surface.tabsEnabled).toBe(false)
+    expect(regionOf(useWorkbench.getState().tree, 'context')).not.toBe('dock.left')
     expect(workspaceUndoDepth()).toBe(0)
     window.removeEventListener(AGENT_LAYOUT_EVENT, listener)
   })

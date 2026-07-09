@@ -10,7 +10,6 @@
  * Named "Labs" and not "Experiments" — the habit tracker owns that word
  * (`/experiments`, ExperimentsView).
  */
-import { LAYOUT_TREE_KEY } from '../workbench/experiments'
 import { DESK_RADIAL_KEY, QUIET_DEFAULT_KEY } from './desk'
 
 export interface LabsFlag {
@@ -25,14 +24,6 @@ export interface LabsFlag {
 }
 
 export const LABS_FLAGS: LabsFlag[] = [
-  {
-    key: LAYOUT_TREE_KEY,
-    label: 'Malleable shell',
-    description:
-      'Move panels between docks, arrange the layout, and save it as a named workspace. The presets and switcher work either way; this enables the movable-panel shell itself.',
-    stage: 'experimental',
-    appliesOn: 'reload'
-  },
   {
     key: QUIET_DEFAULT_KEY,
     label: 'Quiet surface by default',

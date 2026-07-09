@@ -38,11 +38,11 @@ export function useWorkbenchCommands(): void {
         run: () => wb().togglePanel('bottom')
       }),
       registry.register({
-        id: 'workbench.zen',
-        title: 'Toggle zen mode',
+        id: 'workbench.focus',
+        title: 'View: Focus mode (hide chrome)',
         key: 'Mod-.',
         allowInInput: true,
-        run: () => wb().toggleZen()
+        run: () => wb().toggleFocus()
       }),
       registry.register({
         id: 'workbench.switchLayout',
@@ -126,6 +126,12 @@ export function useShellEscape(): void {
         return
       }
       const state = useWorkbench.getState()
+      // Focus mode (0284): a single Esc restores the chrome.
+      if (state.focus) {
+        event.preventDefault()
+        state.setFocus(false)
+        return
+      }
       if (state.chrome === 'quiet' || state.mode === 'zen') return
       const side = (['bottom', 'right', 'left'] as const).find((s) => state[s].open)
       if (!side) return

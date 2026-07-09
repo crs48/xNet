@@ -14,8 +14,10 @@ import type { ExplorerSort } from './views/explorer-sort'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import {
+  createDefaultTree,
   createPresetTree,
   insertSlot as insertSlotInTree,
+  isPresetWorkspaceId,
   moveSlot as moveSlotInTree,
   setSlotTier as setSlotTierInTree,
   slotsIn,
@@ -239,6 +241,18 @@ interface WorkbenchState {
    * (`crm:overview@1`) let a copy rewrite re-surface a tip once.
    */
   seenTips: string[]
+  /**
+   * Sidebar collapsed to the icon rail (exploration 0284). Persisted so the
+   * user's chosen width survives reloads (the Notion/Linear pattern).
+   */
+  sidebarCollapsed: boolean
+  /**
+   * Focus mode (0284): hide the sidebar, docks and status bar so the surface
+   * owns the viewport. One boolean replaces the former zen `mode`, the quiet
+   * `chrome` posture, and the `discloseLevel` ladder. Ephemeral — never
+   * persisted, so a reload always returns to full chrome.
+   */
+  focus: boolean
 
   // ─── Spaces ────────────────────────────────────────────────────
   setCurrentSpace: (spaceId: string | null) => void
@@ -258,6 +272,14 @@ interface WorkbenchState {
   insertSlot: (viewId: string, region: RegionId, index: number) => void
   /** Change a placed view's disclosure tier. */
   setSlotTier: (viewId: string, tier: SlotTier) => void
+
+  // ─── Sidebar + focus (0284) ────────────────────────────────────
+  /** Collapse/expand the sidebar to the icon rail. */
+  toggleSidebar: () => void
+  setSidebarCollapsed: (collapsed: boolean) => void
+  /** Enter/exit focus mode (chrome hidden, surface owns the viewport). */
+  toggleFocus: () => void
+  setFocus: (focus: boolean) => void
 
   // ─── Shell layout (0250) ───────────────────────────────────────
   setLayout: (layout: ShellLayout) => void
@@ -380,21 +402,21 @@ function stateForTree(tree: LayoutTree): Partial<WorkbenchState> {
 export const useWorkbench = create<WorkbenchState>()(
   persist(
     (set, get) => ({
-      // New identities land in the calm everyperson shell (0250); existing users
-      // keep whatever they persisted (zustand merges the stored `layout` over
-      // this default), and the workbench grid is one toggle away in Settings →
-      // Appearance, or via the "View: Switch layout" command.
-      layout: 'calm',
-      tree: createPresetTree('calm'),
+      // One coherent shell (0284): every identity lands in the single default
+      // tree — a sectioned sidebar that surfaces every tool, the full left
+      // dock, tabs on. The former quiet/calm/bench trichotomy is gone; "focus"
+      // (hide chrome) is a toggle, not a preset.
+      layout: 'workbench',
+      tree: createDefaultTree(),
       calmMode: 'companion',
-      // Pinned chrome stays the shipped default (0273); quiet is one command
-      // away (`View: Quiet chrome`) and flips for new identities post-dogfood.
       chrome: 'pinned',
       discloseLevel: 0,
       arranging: false,
       canvasTarget: null,
       mode: 'default',
       zenSnapshot: null,
+      sidebarCollapsed: false,
+      focus: false,
       left: { open: true, activeViewId: 'explorer' },
       right: { open: false, activeViewId: 'context' },
       bottom: { open: false, activeViewId: 'tray' },
@@ -449,6 +471,12 @@ export const useWorkbench = create<WorkbenchState>()(
           }
           return patch
         }),
+
+      // ─── Sidebar + focus (0284) ──────────────────────────────────
+      toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
+      setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
+      toggleFocus: () => set((state) => ({ focus: !state.focus })),
+      setFocus: (focus) => set({ focus }),
 
       // Switching layout is choosing a preset (0280): the legacy axes stay
       // coherent with the tree so both renderers agree during the rollout.
@@ -791,13 +819,29 @@ export const useWorkbench = create<WorkbenchState>()(
       // v2 (0280): the layout tree joins the persisted state. Pre-tree
       // profiles derive their tree from the legacy `layout`/`chrome` axes so
       // panels, pins, shelf and startup node all survive the migration.
-      version: 3,
+      version: 4,
       migrate: (persisted, version) => {
         const state = persisted as Partial<WorkbenchState>
         if (version < 2 && !state.tree) {
           state.tree = createPresetTree(
             state.layout === 'workbench' ? 'bench' : state.chrome === 'quiet' ? 'quiet' : 'calm'
           )
+        }
+        // v4 (0284): collapse the quiet/calm/bench trichotomy to one shell.
+        // Any profile still on a built-in preset tree (or with none) lands in
+        // the single default tree; a user's own saved/arranged workspace
+        // (a non-preset workspaceId) is preserved. The legacy axes are
+        // realigned so the (transitional) renderer fork stays coherent, and a
+        // quiet/zen posture maps onto the ephemeral `focus` toggle at rest
+        // rather than a persisted chrome mode.
+        if (version < 4) {
+          if (!state.tree || isPresetWorkspaceId(state.tree.workspaceId)) {
+            state.tree = createDefaultTree()
+          }
+          state.layout = state.tree.surface.tabsEnabled ? 'workbench' : 'calm'
+          state.chrome = 'pinned'
+          state.sidebarCollapsed = state.sidebarCollapsed ?? false
+          state.focus = false
         }
         // v3 (0280): drop tabs whose nodeType this build doesn't know — a
         // profile shared with another branch/version must never crash the
@@ -818,12 +862,14 @@ export const useWorkbench = create<WorkbenchState>()(
         }
         return state as WorkbenchState
       },
-      // Disclosure level and arrange mode are live interaction state
-      // (0273/0282) — persisting them would resurrect a lit/overlaid or
-      // mid-edit shell on reload.
+      // Disclosure level, arrange mode and focus are live interaction state
+      // (0273/0282/0284) — persisting them would resurrect a lit/overlaid,
+      // mid-edit, or chrome-hidden shell on reload.
       partialize: (state) =>
         Object.fromEntries(
-          Object.entries(state).filter(([key]) => key !== 'discloseLevel' && key !== 'arranging')
+          Object.entries(state).filter(
+            ([key]) => key !== 'discloseLevel' && key !== 'arranging' && key !== 'focus'
+          )
         ) as WorkbenchState
     }
   )

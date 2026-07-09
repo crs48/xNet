@@ -3,7 +3,13 @@
  * semantics, pins/recents, and the shelf.
  */
 import { beforeEach, describe, expect, it } from 'vitest'
-import { createPresetTree, moveSlot, presetWorkspaceId, regionOf } from './layout-tree'
+import {
+  createPresetTree,
+  DEFAULT_WORKSPACE_ID,
+  moveSlot,
+  presetWorkspaceId,
+  regionOf
+} from './layout-tree'
 import { selectActiveTab, tabIdFor, useWorkbench } from './state'
 
 function reset() {
@@ -322,21 +328,39 @@ describe('layout tree (0280)', () => {
     expect(useWorkbench.getState().layout).toBe('workbench')
   })
 
-  it('migrates a v1 persisted profile to a tree derived from its axes', () => {
+  it('collapses every legacy preset profile onto the one default tree (0284 v4)', () => {
     const migrate = useWorkbench.persist.getOptions().migrate
     expect(migrate).toBeDefined()
-    const migrated = migrate?.(
+    // A former bench profile lands in the single shell, panel state intact.
+    const bench = migrate?.(
       { layout: 'workbench', chrome: 'pinned', left: { open: true, activeViewId: 'tasks' } },
       0
-    ) as { tree?: { workspaceId: string }; left?: { activeViewId: string } }
-    expect(migrated?.tree?.workspaceId).toBe(presetWorkspaceId('bench'))
-    // Migration derives the tree but never touches the panel state.
-    expect(migrated?.left?.activeViewId).toBe('tasks')
-
+    ) as {
+      tree?: { workspaceId: string }
+      left?: { activeViewId: string }
+      chrome?: string
+      focus?: boolean
+    }
+    expect(bench?.tree?.workspaceId).toBe(DEFAULT_WORKSPACE_ID)
+    expect(bench?.left?.activeViewId).toBe('tasks')
+    // A former quiet profile also lands in the one shell with chrome restored
+    // (the quiet posture becomes the ephemeral `focus` toggle, off at rest).
     const quiet = migrate?.({ layout: 'calm', chrome: 'quiet' }, 0) as {
       tree?: { workspaceId: string }
+      chrome?: string
+      focus?: boolean
     }
-    expect(quiet?.tree?.workspaceId).toBe(presetWorkspaceId('quiet'))
+    expect(quiet?.tree?.workspaceId).toBe(DEFAULT_WORKSPACE_ID)
+    expect(quiet?.chrome).toBe('pinned')
+    expect(quiet?.focus).toBe(false)
+  })
+
+  it('preserves a user-saved (non-preset) workspace tree across v4', () => {
+    const migrate = useWorkbench.persist.getOptions().migrate
+    const custom = moveSlot(createPresetTree('bench'), 'tasks', 'dock.right')
+    custom.workspaceId = 'workspace-user-saved-123'
+    const migrated = migrate?.({ tree: custom }, 3) as { tree?: { workspaceId: string } }
+    expect(migrated?.tree?.workspaceId).toBe('workspace-user-saved-123')
   })
 })
 

@@ -4,7 +4,9 @@
  * payload (de)serialization shared by web, desktop and the seed.
  */
 export {
+  createDefaultTree,
   createPresetTree,
+  DEFAULT_WORKSPACE_ID,
   insertSlot,
   moveSlot,
   parseWorkspacePayload,

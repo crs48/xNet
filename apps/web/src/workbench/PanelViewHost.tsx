@@ -18,7 +18,6 @@ import {
   DropdownMenuTrigger
 } from '@xnetjs/ui'
 import { ArrowLeftRight, GripVertical, X } from 'lucide-react'
-import { isLayoutTreeEnabled } from './experiments'
 import { regionOf } from './layout-tree'
 import { beginSlotDrag } from './slot-drag'
 import {
@@ -131,9 +130,9 @@ export function PanelViewHost({ slot }: { slot: 'left' | 'bottom' }) {
   }
 
   const View = view.component
-  // Drag is a malleable-shell affordance; the legacy renderer only
-  // partially reflects tree moves, so the source is flag-gated (0282).
-  const draggable = isLayoutTreeEnabled()
+  // The single shell always renders the tree, so panels are always
+  // draggable between docks (0282/0284).
+  const draggable = true
 
   return (
     <section

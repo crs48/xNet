@@ -218,8 +218,42 @@ function HomePage() {
         restoring ? (
           <RestoringNotice />
         ) : (
-          <div className="text-center py-12 text-muted-foreground">
-            <p>No documents yet. Create your first page, database, or canvas!</p>
+          <div className="flex flex-col items-center gap-5 py-16 text-center">
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-border bg-muted/40 text-muted-foreground">
+              <FileText size={22} strokeWidth={1.5} />
+            </div>
+            <div className="space-y-1">
+              <p className="text-base font-medium text-foreground">Your workspace is ready</p>
+              <p className="text-sm text-muted-foreground">
+                Create your first document — or press ⌘K to jump anywhere.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleCreate('page')}
+                className="inline-flex items-center gap-2 rounded-md border border-border bg-transparent px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-accent"
+              >
+                <FileText size={16} strokeWidth={1.5} className="text-muted-foreground" />
+                New page
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCreate('database')}
+                className="inline-flex items-center gap-2 rounded-md border border-border bg-transparent px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-accent"
+              >
+                <Database size={16} strokeWidth={1.5} className="text-muted-foreground" />
+                New database
+              </button>
+              <button
+                type="button"
+                onClick={() => handleCreate('canvas')}
+                className="inline-flex items-center gap-2 rounded-md border border-border bg-transparent px-3 py-1.5 text-sm text-foreground transition-colors hover:bg-accent"
+              >
+                <Layout size={16} strokeWidth={1.5} className="text-muted-foreground" />
+                New canvas
+              </button>
+            </div>
           </div>
         )
       ) : (

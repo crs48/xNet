@@ -4,7 +4,9 @@
  * This shim keeps the workbench's local import paths stable.
  */
 export {
+  createDefaultTree,
   createPresetTree,
+  DEFAULT_WORKSPACE_ID,
   insertSlot,
   moveSlot,
   parseWorkspacePayload,
