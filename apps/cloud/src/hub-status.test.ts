@@ -60,7 +60,10 @@ describe('composeDashboardLive', () => {
 
   it('passes through the measured R2 sync time for the "data safe as of" line', () => {
     const out = composeDashboardLive({
-      health: { ...HEALTH, backup: { replicating: true, lastWriteMs: 1_700_000_000_000, lastSyncMs: 1_700_000_000_500 } },
+      health: {
+        ...HEALTH,
+        backup: { replicating: true, lastWriteMs: 1_700_000_000_000, lastSyncMs: 1_700_000_000_500 }
+      },
       sli: null,
       aiUsedUsd: null,
       dataTier: 'hot'
@@ -73,7 +76,12 @@ describe('composeDashboardLive', () => {
   })
 
   it('reports a null sync time for older hubs that do not measure it', () => {
-    const out = composeDashboardLive({ health: HEALTH, sli: null, aiUsedUsd: null, dataTier: 'hot' })
+    const out = composeDashboardLive({
+      health: HEALTH,
+      sli: null,
+      aiUsedUsd: null,
+      dataTier: 'hot'
+    })
     expect(out.backup?.lastSyncMs).toBeNull()
   })
 

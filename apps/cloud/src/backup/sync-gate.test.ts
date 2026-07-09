@@ -27,13 +27,10 @@ describe('assertSyncedViaHealth', () => {
 
   it('fails closed when the tenant has no live hub URL', async () => {
     let fetched = false
-    const gate = assertSyncedViaHealth(
-      async () => null,
-      (async () => {
-        fetched = true
-        return health({ fresh: true })
-      }) as never
-    )
+    const gate = assertSyncedViaHealth(async () => null, (async () => {
+      fetched = true
+      return health({ fresh: true })
+    }) as never)
     expect(await gate('cold')).toBe(false)
     expect(fetched).toBe(false) // never even probed
   })

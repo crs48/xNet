@@ -290,7 +290,9 @@ function start(): void {
   const drillTimer = setInterval(() => {
     void controlPlane.listTenants().then(async (tenants) => {
       const sample = pickDrillSample(tenants, drillSample, dayIndex(Date.now()))
-      const summary = summarizeDrill(await runRestoreDrills(controlPlane.provisioner, readyProbe, sample))
+      const summary = summarizeDrill(
+        await runRestoreDrills(controlPlane.provisioner, readyProbe, sample)
+      )
       if (summary.alert) {
         // eslint-disable-next-line no-console
         console.error(`[backup] restore drill FAILED for: ${summary.failures.join(', ')}`)
@@ -313,7 +315,9 @@ function start(): void {
       const now = Date.now()
       for (const t of tenants) {
         if (demotionDue(t, now, coldAfterMs)) {
-          await controlPlane.demoteIfCold(t.tenantId, { coldAfterMs, assertSynced }).catch(() => undefined)
+          await controlPlane
+            .demoteIfCold(t.tenantId, { coldAfterMs, assertSynced })
+            .catch(() => undefined)
         }
       }
     })
