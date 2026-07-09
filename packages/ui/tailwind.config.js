@@ -29,7 +29,9 @@ export default {
         canvas: 'hsl(var(--canvas, var(--surface-0)))',
         island: {
           DEFAULT: 'hsl(var(--island, var(--surface-0)))',
-          b: 'hsl(var(--island-b, var(--surface-1)))'
+          b: 'hsl(var(--island-b, var(--surface-1)))',
+          // Overlay islands (modals/panels) — a step darker, deeper shadow.
+          pop: 'hsl(var(--island-pop, var(--popover)))'
         },
 
         // Background variants

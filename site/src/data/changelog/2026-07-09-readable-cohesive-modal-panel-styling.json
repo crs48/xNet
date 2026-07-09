@@ -1,0 +1,8 @@
+{
+  "id": "2026-07-09-readable-cohesive-modal-panel-styling",
+  "date": "July 9, 2026",
+  "title": "Readable, cohesive modal & panel styling",
+  "summary": "The What's New panel and modals now render as solid \"floating islands\" — matching the workspace chrome with a slightly darker surface and deeper shadow so they read as hovering on top, and are fully legible instead of translucent.",
+  "highlights": [],
+  "tags": ["app", "platform"]
+}
