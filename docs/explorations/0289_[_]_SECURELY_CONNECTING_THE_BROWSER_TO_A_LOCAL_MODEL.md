@@ -580,7 +580,7 @@ connect-src 'self'
       [`packages/devkit/src/bridge-server.ts`](packages/devkit/src/bridge-server.ts)
       **and** [`packages/plugins/src/services/mcp-http.ts`](packages/plugins/src/services/mcp-http.ts)
       (exact loopback authority + bound port).
-- [ ] Add a per-launch `pairingToken` to `BridgeServerConfig`, gate
+- [x] Add a per-launch `pairingToken` to `BridgeServerConfig`, gate
       `/v1/chat/completions` and `/run` on `Authorization: Bearer` with a
       constant-time compare; expose `pairingToken` on the handle; leave `/health`
       unauthenticated.
