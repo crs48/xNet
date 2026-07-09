@@ -623,7 +623,7 @@ stateDiagram-v2
       `ActionMenuList`, with one-level submenu + separator support).
 - [x] Export both from a **scoped sub-barrel** re-exported once from the
       `@xnetjs/ui` root barrel (0276 policy).
-- [ ] Add a Storybook story + keep the plugins storybook shim in sync
+- [x] Add a Storybook story + keep the plugins storybook shim in sync
       (recurring gotcha from 0282/0284).
 - [ ] Write `packages/react/src/hooks/useNodeActions.ts` bridging
       `useMutate` / `useSpaces` / `useExplorerFolders`; export via the
