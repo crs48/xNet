@@ -19,14 +19,12 @@ import { useEffect, useRef, useState, type JSX } from 'react'
 import { contributeTips } from '../coachmarks'
 import { ShareDialog } from '../components/ShareDialog'
 import { AGENT_LAYOUT_EVENT } from '../plugins/workspace-agent-module'
-import { isLayoutTreeEnabled } from './experiments'
 import {
+  createDefaultTree,
   isPresetWorkspaceId,
   parseWorkspacePayload,
-  PRESET_IDS,
   presetForWorkspaceId,
   serializeWorkspacePayload,
-  type PresetId,
   type WorkspacePayload
 } from './layout-tree'
 import { useWorkbench } from './state'
@@ -58,12 +56,6 @@ contributeTips([
     side: 'right'
   }
 ])
-
-const PRESET_TITLES: Record<PresetId, string> = {
-  quiet: 'Quiet — bare surface',
-  calm: 'Calm — everyperson shell',
-  bench: 'Bench — full workbench'
-}
 
 interface WorkspaceRow {
   id: string
@@ -192,17 +184,13 @@ export function WorkspaceSwitcher(): JSX.Element | null {
       }),
       registry.register({
         id: 'workspace.reset',
-        title: 'Workspace: Reset to preset',
+        title: 'Workspace: Reset layout',
         run: () => {
-          const state = useWorkbench.getState()
-          const fromId = presetForWorkspaceId(state.tree.workspaceId)
-          if (fromId) {
-            state.applyPreset(fromId)
-            return
-          }
-          const row = rowsRef.current.find((entry) => entry.id === state.tree.workspaceId)
-          const preset = row && row.preset !== 'none' ? (row.preset as PresetId) : 'calm'
-          state.applyPreset(preset)
+          useWorkbench
+            .getState()
+            .loadWorkspace(
+              serializeWorkspacePayload({ name: '', preset: null, tree: createDefaultTree() })
+            )
         }
       }),
       registry.register({
@@ -279,19 +267,6 @@ export function WorkspaceSwitcher(): JSX.Element | null {
             ) : (
               <>
                 <CommandEmpty>No workspaces match.</CommandEmpty>
-                {PRESET_IDS.map((preset) => (
-                  <CommandItem
-                    key={preset}
-                    value={`preset-${preset}`}
-                    onSelect={() => {
-                      useWorkbench.getState().applyPreset(preset)
-                      close()
-                    }}
-                  >
-                    <Layers size={14} strokeWidth={1.5} className="mr-2 text-ink-3" />
-                    {PRESET_TITLES[preset]}
-                  </CommandItem>
-                ))}
                 {filtered.map((row) => (
                   <CommandItem
                     key={row.id}
@@ -315,18 +290,16 @@ export function WorkspaceSwitcher(): JSX.Element | null {
                   <Save size={14} strokeWidth={1.5} className="mr-2 text-ink-3" />
                   Save current layout as…
                 </CommandItem>
-                {isLayoutTreeEnabled() && (
-                  <CommandItem
-                    value="customize"
-                    onSelect={() => {
-                      close()
-                      void getCommandRegistry().runCommand('workspace.customize')
-                    }}
-                  >
-                    <SlidersHorizontal size={14} strokeWidth={1.5} className="mr-2 text-ink-3" />
-                    Customize layout…
-                  </CommandItem>
-                )}
+                <CommandItem
+                  value="customize"
+                  onSelect={() => {
+                    close()
+                    void getCommandRegistry().runCommand('workspace.customize')
+                  }}
+                >
+                  <SlidersHorizontal size={14} strokeWidth={1.5} className="mr-2 text-ink-3" />
+                  Customize layout…
+                </CommandItem>
               </>
             )}
           </CommandList>

@@ -13,14 +13,11 @@
  */
 import type { FeatureModule, ModuleCapabilities } from '@xnetjs/plugins'
 import { evaluateInstallConsent, getCommandRegistry, scaffoldPlugin } from '@xnetjs/plugins'
-import { isLayoutTreeEnabled } from '../workbench/experiments'
 import {
-  PRESET_IDS,
   REGION_IDS,
   regionOf,
   serializeWorkspacePayload,
   type LayoutTree,
-  type PresetId,
   type RegionId
 } from '../workbench/layout-tree'
 import { getSlotView, getSlotViews } from '../workbench/slot-registry'
@@ -80,27 +77,6 @@ export const WorkspaceAgentModule: FeatureModule = {
           'Read the current shell layout: regions, placed views and their disclosure tiers.',
         risk: 'low',
         invoke: () => describeTree(useWorkbench.getState().tree)
-      },
-      {
-        id: 'fyi.xnet.workspace-agent.apply-preset',
-        name: 'workspace_apply_preset',
-        description: `Replace the shell layout with a built-in preset (${PRESET_IDS.join(', ')}). Undoable.`,
-        risk: 'medium',
-        inputSchema: {
-          type: 'object',
-          properties: {
-            preset: { type: 'string', enum: [...PRESET_IDS], description: 'Preset id' }
-          },
-          required: ['preset']
-        },
-        invoke: async (args) => {
-          const preset = args.preset as PresetId
-          if (!PRESET_IDS.includes(preset)) throw new Error(`unknown preset: ${preset}`)
-          snapshot()
-          await emit(`workspace.preset:${preset}`)
-          announce(`Companion applied the ${preset} preset`)
-          return `Applied preset ${preset}. Undo: workspace.undoLayout.`
-        }
       },
       {
         id: 'fyi.xnet.workspace-agent.move-view',
@@ -223,16 +199,12 @@ export const WorkspaceAgentModule: FeatureModule = {
   }
 }
 
-const PRESET_COMMAND_TITLES: Record<PresetId, string> = {
-  quiet: 'Quiet — bare surface',
-  calm: 'Calm — everyperson shell',
-  bench: 'Bench — full workbench'
-}
-
 /**
  * The workspace verbs that need no React state: layout undo (also the
- * toast's Undo button) and the preset switches. Registered once at module
- * load — agent tools, palette and UI all go through these commands.
+ * toast's Undo button) and Arrange mode. With one shell (0284) there are no
+ * presets to switch between — customize/move/save are the layout verbs.
+ * Registered once at module load — agent tools, palette and UI all go
+ * through these commands.
  */
 export function registerWorkspaceCommands(): () => void {
   const registry = getCommandRegistry()
@@ -249,19 +221,10 @@ export function registerWorkspaceCommands(): () => void {
           .loadWorkspace(serializeWorkspacePayload({ name: '', preset: null, tree: previous }))
       }
     }),
-    ...PRESET_IDS.map((preset) =>
-      registry.register({
-        id: `workspace.preset:${preset}`,
-        title: `Workspace: Preset: ${PRESET_COMMAND_TITLES[preset]}`,
-        run: () => useWorkbench.getState().applyPreset(preset)
-      })
-    ),
-    // Arrange mode (0282): the shell as an editable schematic. Only
-    // meaningful when the malleable shell renders the tree.
+    // Arrange mode (0282): the shell as an editable schematic.
     registry.register({
       id: 'workspace.customize',
       title: 'Workspace: Customize layout…',
-      when: () => isLayoutTreeEnabled(),
       run: () => useWorkbench.getState().setArranging(true)
     })
   ]

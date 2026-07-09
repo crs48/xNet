@@ -443,7 +443,7 @@ Placeholder.configure({
 - [ ] Replace `createPresetTree(quiet|calm|bench)` with `createDefaultTree()`
       pinning every tool (per Example Code); give the orphaned routes
       (meetings/finance/analytics/dashboards/map) a home in the sidebar.
-- [ ] Point `ShellFrame` at the single default tree; remove preset switching
+- [x] Point `ShellFrame` at the single default tree; remove preset switching
       from the palette (`Workspace: Preset: …`).
 
 ### Stage 3 — One toggle
@@ -461,7 +461,7 @@ Placeholder.configure({
 - [x] Delete `DesktopWorkbench` (in `Workbench.tsx`), `CalmShell`, `ModeSwitch`,
       `ListPane`, `QuietChrome`, `NetworkList`, `CompanionList`, `calm/modes.ts`,
       and dead Escape handlers; reconcile mobile to a single `MobileShell`.
-- [ ] Update `plugins/workspace-agent-module.ts` (drop `apply_preset`, keep
+- [x] Update `plugins/workspace-agent-module.ts` (drop `apply_preset`, keep
       move/pin) and fix the stale `views/ai-context.ts` system prompt.
 - [ ] Remove the Labs flag once parity is confirmed.
 - [ ] Changesets for every publishable package touched (major where a
