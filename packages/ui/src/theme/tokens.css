@@ -382,6 +382,9 @@
     --canvas: 44 40% 98%;
     --island: 44 40% 98%;
     --island-b: 40 22% 93%;
+    /* Overlay islands (modals/panels): a step darker than the chrome islands
+       so they read as hovering on top of everything, paired with --pop-shadow. */
+    --island-pop: 40 22% 88%;
     --surface-0: 44 38% 97.5%;
     --surface-1: 42 26% 95%;
     --surface-2: 40 20% 92.5%;
@@ -403,6 +406,9 @@
     --canvas: 30 8% 11.5%;
     --island: 30 8% 11.5%;
     --island-b: 30 8% 7%;
+    /* In dark, elevation reads as a touch lighter than the recessed chrome
+       islands; the deeper --pop-shadow carries the "hovering" cue. */
+    --island-pop: 30 8% 15%;
     --surface-0: 30 8% 13%;
     --surface-1: 32 8% 10%;
     --surface-2: 32 8% 8%;

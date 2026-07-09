@@ -86,7 +86,7 @@ function WhatsNewPanel({ api }: { api: ReturnType<typeof useWhatsNew> }) {
       role="presentation"
     >
       <div
-        className="flex max-h-[70vh] w-[min(92vw,440px)] flex-col overflow-hidden rounded-xl border border-hairline bg-surface shadow-2xl"
+        className="flex max-h-[70vh] w-[min(92vw,440px)] flex-col overflow-hidden rounded-2xl border border-hairline bg-island-pop shadow-pop"
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-label="What's New"
