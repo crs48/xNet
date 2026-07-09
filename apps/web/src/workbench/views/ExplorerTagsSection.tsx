@@ -22,7 +22,7 @@ export function ExplorerTagsSection({ items }: { items: ExplorerItem[] }) {
 
   if (ranked.length === 0) return null
   return (
-    <div className="max-h-[30%] shrink-0 overflow-y-auto px-1">
+    <div className="px-1">
       <div className="px-2 pb-1 pt-3 text-[10px] font-medium uppercase tracking-wider text-ink-3">
         Tags
       </div>
