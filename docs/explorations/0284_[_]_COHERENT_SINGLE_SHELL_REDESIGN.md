@@ -463,7 +463,7 @@ Placeholder.configure({
       and dead Escape handlers; reconcile mobile to a single `MobileShell`.
 - [x] Update `plugins/workspace-agent-module.ts` (drop `apply_preset`, keep
       move/pin) and fix the stale `views/ai-context.ts` system prompt.
-- [ ] Remove the Labs flag once parity is confirmed.
+- [x] Remove the Labs flag once parity is confirmed.
 - [ ] Changesets for every publishable package touched (major where a
       preset/agent tool/export was removed).
 

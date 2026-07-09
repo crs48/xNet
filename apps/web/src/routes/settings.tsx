@@ -53,7 +53,6 @@ import { createLeavePorts, downloadLeaveBundle, type LeaveDeps } from '../lib/le
 import { isSentryConfigured } from '../lib/sentry'
 import { useConsent } from '../lib/use-consent'
 import { WINDDOWN_DURATION_CHOICES, useWinddownPreferences } from '../lib/winddown'
-import { LAYOUT_TREE_KEY } from '../workbench/experiments'
 import { useWorkbench } from '../workbench/state'
 
 /** Marketing + dashboard origins for xNet Cloud (managed hub hosting). */
@@ -231,17 +230,6 @@ function LabsSettings() {
             >
               {flag.stage}
             </span>
-            {flag.key === LAYOUT_TREE_KEY && (enabled[flag.key] ?? false) && !needsReload && (
-              <div className="px-4 pb-3">
-                <button
-                  type="button"
-                  onClick={() => void getCommandRegistry().runCommand('workspace.customize')}
-                  className="cursor-pointer rounded-md border border-hairline bg-transparent px-2.5 py-1 text-xs text-ink-2 transition-colors hover:text-ink-1"
-                >
-                  Customize layout…
-                </button>
-              </div>
-            )}
           </div>
         ))}
       </SettingsGroup>
