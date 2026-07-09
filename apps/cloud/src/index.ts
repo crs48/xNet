@@ -19,6 +19,9 @@ import {
 } from '@xnetjs/cloud/identity'
 import { MemoryProvisioner, type Provisioner } from '@xnetjs/cloud/provisioner'
 import { aiChatDepsFromEnv, aiKeysFromEnv } from './ai/wiring'
+import { runRestoreDrills, pickDrillSample } from './backup/restore-drill'
+import { dayIndex, summarizeDrill, demotionDue, httpReadyProbe } from './backup/schedule'
+import { assertSyncedViaHealth } from './backup/sync-gate'
 import { stripeGatewayFromEnv } from './billing/stripe-gateway'
 import { FakeTenantBillingGateway, type TenantBillingGateway } from './billing-gateway'
 import { ControlPlane } from './control-plane'
@@ -161,6 +164,14 @@ export {
   type RestoreProbe,
   type RestoreDrillResult
 } from './backup/restore-drill'
+export {
+  dayIndex,
+  summarizeDrill,
+  demotionDue,
+  httpReadyProbe,
+  type DrillSummary
+} from './backup/schedule'
+export { backupSynced, assertSyncedViaHealth } from './backup/sync-gate'
 export { reconcileTenant, type ReconcileInput, type ReconcileAction } from './reconcile/reconcile'
 export {
   fetchHubHealth,
@@ -267,6 +278,51 @@ function start(): void {
       .then((tenants) => probeFleet(probe, health, tenants, Date.now()))
   }, probeMs)
   timer.unref()
+
+  // Backup automation (exploration 0288). Both loops unref() so they never keep the
+  // process alive; both are no-ops on the in-memory provisioner used in dev/tests.
+  //
+  // (1) Restore drill: nightly, over a rotating sample, PROVE a tenant restores from
+  //     its R2 replica into a throwaway hub — "we replicate" is not "we can restore".
+  const readyProbe = httpReadyProbe()
+  const drillMs = Number(env.XNET_CLOUD_DRILL_MS ?? 24 * 60 * 60_000)
+  const drillSample = Number(env.XNET_CLOUD_DRILL_SAMPLE ?? 20)
+  const drillTimer = setInterval(() => {
+    void controlPlane.listTenants().then(async (tenants) => {
+      const sample = pickDrillSample(tenants, drillSample, dayIndex(Date.now()))
+      const summary = summarizeDrill(
+        await runRestoreDrills(controlPlane.provisioner, readyProbe, sample)
+      )
+      if (summary.alert) {
+        // eslint-disable-next-line no-console
+        console.error(`[backup] restore drill FAILED for: ${summary.failures.join(', ')}`)
+      }
+    })
+  }, drillMs)
+  drillTimer.unref()
+
+  // (2) Cold-demotion sweep: demote idle hot tenants to R2-only, but only once the
+  //     hub confirms its backup is fresh — the gate FAILS CLOSED (never destroys a
+  //     volume on an unproven replica; exploration 0288).
+  const coldAfterMs = Number(env.XNET_CLOUD_COLD_AFTER_MS ?? 7 * 24 * 60 * 60_000)
+  const sweepMs = Number(env.XNET_CLOUD_DEMOTE_SWEEP_MS ?? 60 * 60_000)
+  const assertSynced = assertSyncedViaHealth(async (tenantId) => {
+    const rec = await controlPlane.getTenant(tenantId)
+    return rec?.hubUrl || null
+  })
+  const sweepTimer = setInterval(() => {
+    void controlPlane.listTenants().then(async (tenants) => {
+      const now = Date.now()
+      for (const t of tenants) {
+        if (demotionDue(t, now, coldAfterMs)) {
+          await controlPlane
+            .demoteIfCold(t.tenantId, { coldAfterMs, assertSynced })
+            .catch(() => undefined)
+        }
+      }
+    })
+  }, sweepMs)
+  sweepTimer.unref()
 
   const app = createControlPlaneApp({
     controlPlane,

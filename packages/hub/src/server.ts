@@ -64,6 +64,7 @@ import { ShareAccessService } from './services/share-access'
 import { createSignalingService } from './services/signaling'
 import { TaskIdentifierService } from './services/task-identifiers'
 import { createStorage } from './storage'
+import { LitestreamSyncTracker, readLitestreamMetrics, isBackupFresh } from './storage/litestream'
 import { setupHubTelemetry } from './telemetry/bridge'
 import { authorizeRoomAction, denyAndCloseSocket } from './ws/authorize'
 import { buildWsError } from './ws/errors'
@@ -363,10 +364,28 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     return usage
   }
 
+  // Live backup freshness (exploration 0288): scrape Litestream's localhost metrics
+  // to derive a `lastSyncMs`, refreshed lazily off /health (same TTL pattern as the
+  // usage walk) so the handler stays synchronous and never blocks on the scrape. The
+  // first probe primes the tracker; the next one reads a value.
+  const syncTracker = new LitestreamSyncTracker()
+  let lastMetricsAt = 0
+  const maybeRefreshSync = (): void => {
+    if (process.env.LITESTREAM !== '1') return
+    const nowMs = Date.now()
+    if (nowMs - lastMetricsAt < 15_000) return
+    lastMetricsAt = nowMs
+    void readLitestreamMetrics().then((text) => {
+      if (text) syncTracker.observe(text, Date.now())
+    })
+  }
+
   app.get('/health', (c) => {
     const poolStats = pool.getStats()
     const rlStats = rateLimiter.getStats()
     const usage = dataUsage()
+    maybeRefreshSync()
+    const lastSyncMs = syncTracker.value
     return c.json({
       status: 'ok',
       uptime: Math.floor((Date.now() - startTime) / 1000),
@@ -381,7 +400,15 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
       // Data footprint + a "data as of" signal (exploration 0207). With continuous
       // Litestream replication the R2 replica is ≤ sync-interval behind lastWriteMs.
       storage: { usedBytes: usage.usedBytes },
-      backup: { replicating: process.env.LITESTREAM === '1', lastWriteMs: usage.lastWriteMs },
+      // `lastSyncMs` is the measured R2 replica sync time; `fresh` is the gate the
+      // control plane trusts before demoting a tenant to cold (fails closed when the
+      // scrape is unknown — exploration 0288).
+      backup: {
+        replicating: process.env.LITESTREAM === '1',
+        lastWriteMs: usage.lastWriteMs,
+        lastSyncMs,
+        fresh: isBackupFresh(usage.lastWriteMs, lastSyncMs)
+      },
       platform: config.runtime?.platform ?? 'unknown',
       region: config.runtime?.region,
       machineId: config.runtime?.machineId,

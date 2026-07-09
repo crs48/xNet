@@ -26,9 +26,41 @@ describe('litestreamConfig', () => {
       /requires/
     )
   })
+
+  it('emits a metrics addr only when requested', () => {
+    const withAddr = litestreamConfig({
+      dbPath: '/data/hub.db',
+      endpoint: 'e',
+      bucket: 'b',
+      path: 'p',
+      metricsAddr: '127.0.0.1:9090'
+    })
+    expect(withAddr.addr).toBe('127.0.0.1:9090')
+    const without = litestreamConfig({
+      dbPath: '/data/hub.db',
+      endpoint: 'e',
+      bucket: 'b',
+      path: 'p'
+    })
+    expect(without.addr).toBeUndefined()
+  })
 })
 
 describe('toYaml', () => {
+  it('renders a top-level addr line when configured', () => {
+    const yaml = toYaml(
+      litestreamConfig({
+        dbPath: '/data/hub.db',
+        endpoint: 'e',
+        bucket: 'b',
+        path: 't/acme/db',
+        metricsAddr: '127.0.0.1:9090'
+      })
+    )
+    expect(yaml.startsWith('addr: 127.0.0.1:9090\n')).toBe(true)
+    expect(yaml).toContain('dbs:')
+  })
+
   it('renders the Litestream YAML shape (no secrets embedded by default)', () => {
     const yaml = toYaml(
       litestreamConfig({
