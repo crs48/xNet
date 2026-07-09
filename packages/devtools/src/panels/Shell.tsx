@@ -1,10 +1,12 @@
 /**
  * DevToolsPanel Shell - tab container, resize handle, status bar.
  *
- * The bottom strip is intentionally cozy: four hero panels live in the primary
- * row, every other panel is tucked into a grouped "More" menu, and the command
- * palette (⌘/Ctrl+Shift+P) reaches any panel by name. Styled with the workspace
- * monochrome tokens (surface/ink/hairline) so it follows the app theme.
+ * The panel reads as a floating "overlay island" (0286/0287): it hovers on top
+ * of the app content with rounded corners, a full hairline border and the deep
+ * `shadow-pop` elevation, filled with `bg-island-pop` — the same recipe the
+ * app's Modal and hover panels use. Four hero panels live in the primary row as
+ * pill tabs, every other panel is tucked into a grouped "More" menu, and the
+ * command palette (⌘/Ctrl+Shift+P) reaches any panel by name.
  */
 
 import type { PanelId, PanelPosition } from '../provider/DevToolsContext'
@@ -83,12 +85,12 @@ export function DevToolsPanel() {
     >
       <ResizeHandle position={position} height={height} setHeight={setHeight} />
 
-      {/* Tab Bar */}
-      <div className="flex items-center border-b border-hairline shrink-0">
-        <span className="text-xs font-bold text-ink-2 ml-2 mr-2 select-none shrink-0">xNet</span>
+      {/* Tab Bar — floating pill tabs, matching the app's hover panels. */}
+      <div className="flex items-center gap-1 px-2 py-1.5 border-b border-hairline shrink-0">
+        <span className="text-xs font-bold text-ink-2 mr-1 select-none shrink-0">xNet</span>
 
         {/* Hero panels */}
-        <div className="flex items-center shrink-0">
+        <div className="flex items-center gap-1 shrink-0">
           {heroes.map((panel) => {
             const Icon = panel.icon
             const active = activePanel === panel.id
@@ -96,10 +98,10 @@ export function DevToolsPanel() {
               <button
                 key={panel.id}
                 onClick={() => setActivePanel(panel.id)}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
+                className={`inline-flex items-center gap-1.5 rounded-[9px] px-2.5 py-1 text-xs font-medium transition-colors whitespace-nowrap ${
                   active
-                    ? 'border-accent-ink text-ink-1'
-                    : 'border-transparent text-ink-2 hover:text-ink-1'
+                    ? 'bg-accent text-ink-1'
+                    : 'text-ink-3 hover:bg-background-muted hover:text-ink-1'
                 }`}
               >
                 <Icon size={13} className={active ? 'text-ink-1' : 'text-ink-3'} />
@@ -115,10 +117,10 @@ export function DevToolsPanel() {
             align="start"
             trigger={
               <button
-                className={`inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium border-b-2 transition-colors whitespace-nowrap ${
+                className={`inline-flex items-center gap-1 rounded-[9px] px-2.5 py-1 text-xs font-medium transition-colors whitespace-nowrap ${
                   !activeIsHero
-                    ? 'border-accent-ink text-ink-1'
-                    : 'border-transparent text-ink-2 hover:text-ink-1'
+                    ? 'bg-accent text-ink-1'
+                    : 'text-ink-3 hover:bg-background-muted hover:text-ink-1'
                 }`}
               >
                 {!activeIsHero && activeDef ? activeDef.label : 'More'}
@@ -429,15 +431,23 @@ function ResizeHandle({
 // ─── Layout Helpers ────────────────────────────────────────
 
 function getContainerClass(position: PanelPosition): string {
-  const base = 'flex flex-col bg-surface-1 text-ink-1 font-mono text-xs border-hairline z-[9999]'
+  // Every dock now renders as a hovering overlay island. The `wb-root` class
+  // pulls in the workbench's floating-island token scope (--island-pop /
+  // --pop-shadow + warm surfaces) so the panel matches the app's other hover
+  // panels instead of falling back to the neutral popover ramp; the island
+  // classes (rounded-2xl + full border + shadow-pop) mirror the Modal recipe.
+  const base =
+    'wb-root flex flex-col overflow-hidden bg-island-pop text-ink-1 font-mono text-xs border border-hairline shadow-pop rounded-2xl z-[9999]'
 
   switch (position) {
+    // Inset from the edges so the island clearly floats above the content
+    // rather than sitting flush like a docked sheet.
     case 'bottom':
-      return `${base} fixed bottom-0 left-0 right-0 border-t`
+      return `${base} fixed bottom-2 left-2 right-2`
     case 'right':
-      return `${base} fixed top-0 right-0 bottom-0 border-l`
+      return `${base} fixed top-2 right-2 bottom-2`
     case 'floating':
-      return `${base} fixed bottom-4 right-4 rounded-lg border shadow-2xl`
+      return `${base} fixed bottom-4 right-4`
   }
 }
 

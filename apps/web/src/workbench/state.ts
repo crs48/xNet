@@ -81,7 +81,8 @@ export const TAB_NODE_TYPES = [
   'tag',
   'person',
   'lab',
-  'space'
+  'space',
+  'settings'
 ] as const
 
 export type TabNodeType = (typeof TAB_NODE_TYPES)[number]

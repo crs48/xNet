@@ -20,6 +20,7 @@ import {
   MessageSquare,
   Mic,
   Network,
+  Settings,
   Table2,
   User,
   Users,
@@ -62,7 +63,8 @@ export const TAB_VIEWS: Record<TabNodeType, TabViewEntry> = {
   tag: { label: 'Tag', icon: Hash, toRoute: (id) => `/tag/${id}` },
   person: { label: 'Person', icon: User, toRoute: (id) => `/person/${encodeURIComponent(id)}` },
   lab: { label: 'Lab', icon: Code2, toRoute: (id) => `/lab/${id}` },
-  space: { label: 'Space', icon: Users, toRoute: (id) => `/space/${encodeURIComponent(id)}` }
+  space: { label: 'Space', icon: Users, toRoute: (id) => `/space/${encodeURIComponent(id)}` },
+  settings: { label: 'Settings', icon: Settings, toRoute: () => '/settings', singleton: true }
 }
 
 const ROUTE_PREFIXES: Array<{ prefix: string; nodeType: TabNodeType }> = [
@@ -92,6 +94,9 @@ export function tabFromPathname(pathname: string): RouteTabDescriptor | null {
   if (pathname === '/experiments') return { nodeType: 'experiments', nodeId: 'experiments' }
   if (pathname === '/crm') return { nodeType: 'crm', nodeId: 'crm' }
   if (pathname === '/finance') return { nodeType: 'finance', nodeId: 'finance' }
+  // Settings is a singleton tab; its `?section=` search param is ignored here so
+  // switching sections stays on the one tab (0288).
+  if (pathname === '/settings') return { nodeType: 'settings', nodeId: 'settings' }
 
   for (const { prefix, nodeType } of ROUTE_PREFIXES) {
     if (pathname.startsWith(prefix)) {

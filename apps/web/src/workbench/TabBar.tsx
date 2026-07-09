@@ -110,38 +110,12 @@ function TabLabel({ tab }: { tab: WorkbenchTab }) {
 }
 
 function TabActions({ tab, onClose }: { tab: WorkbenchTab; onClose: () => void }) {
-  if (tab.pinned) {
-    return (
-      <button
-        type="button"
-        title="Unpin tab"
-        aria-label="Unpin tab"
-        onClick={(e) => {
-          e.stopPropagation()
-          useWorkbench.getState().setTabPinned(tab.id, false)
-        }}
-        className="flex cursor-pointer items-center border-none bg-transparent p-0 text-ink-3 hover:text-ink-1"
-      >
-        <Pin size={11} className="fill-current" />
-      </button>
-    )
-  }
+  // Pinned tabs shrink to their icon and expose no inline actions; pin/unpin
+  // lives in the right-click context menu.
+  if (tab.pinned) return null
 
   return (
-    <span className="flex w-[26px] shrink-0 items-center justify-end gap-0.5">
-      <button
-        type="button"
-        title="Pin tab"
-        aria-label="Pin tab"
-        onClick={(e) => {
-          e.stopPropagation()
-          useWorkbench.getState().setTabPinned(tab.id, true)
-        }}
-        onMouseDown={(e) => e.stopPropagation()}
-        className="hidden cursor-pointer items-center border-none bg-transparent p-0 text-ink-3 hover:text-ink-1 group-hover:flex"
-      >
-        <Pin size={11} strokeWidth={1.5} />
-      </button>
+    <span className="flex shrink-0 items-center justify-end">
       <button
         type="button"
         title="Close tab (⌘W)"
