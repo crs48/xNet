@@ -390,10 +390,10 @@ drillTimer.unref()
 ## Validation Checklist
 
 - [ ] **Blob durability:** create a tenant with attachments → demote to cold → reactivate on a fresh container → every blob/file reads back byte-identical (the current failing case).
-- [ ] **Freshness source:** hub `/health` reports a moving `lastSyncMs`; kill Litestream and confirm `fresh` flips to false and `backupHealthy` SLI degrades.
-- [ ] **Demotion gate:** attempt demote while writes are unsynced → refused; after sync catches up → allowed. Metrics-scrape failure → refused (fail closed).
+- [x] **Freshness source:** hub `/health` reports a moving `lastSyncMs`; kill Litestream and confirm `fresh` flips to false and `backupHealthy` SLI degrades.
+- [x] **Demotion gate:** attempt demote while writes are unsynced → refused; after sync catches up → allowed. Metrics-scrape failure → refused (fail closed).
 - [ ] **RPO drill:** kill the container mid-write; reactivate; assert ≤ ~1 s of writes lost and all committed blobs present.
-- [ ] **Scheduled drill:** nightly drill runs, provisions a throwaway restore, asserts `/ready`, tears down, and alerts on an injected broken replica.
+- [x] **Scheduled drill:** nightly drill runs, provisions a throwaway restore, asserts `/ready`, tears down, and alerts on an injected broken replica.
 - [ ] **VFS vs full restore:** same generation restored both ways returns identical rows; VFS cold-open < 500 ms p95.
 - [ ] **`VACUUM INTO` archive** restores to a consistent DB independent of WAL generations.
 - [ ] **Self-host:** a self-hoster with BYO-S3 gets working restore-on-boot + replication with no secret leakage in logs/config.
