@@ -5,7 +5,7 @@
 The user wants to drive a model from **inside the xNet web app** while the model
 runs **on their own machine** — their `claude` (Claude Code) or `codex` CLI
 subscription, or a raw local server like Ollama / LM Studio / llama.cpp. The
-requirement is not just "make it work" but **make it work *securely***: an
+requirement is not just "make it work" but **make it work _securely_**: an
 `https://` page reaching a plaintext `http://127.0.0.1` daemon is exactly the
 shape of attack that has produced a string of real CVEs against local AI tools
 (Ollama DNS-rebinding, AnythingLLM CORS bypass). We need a path that:
@@ -22,7 +22,7 @@ shape of attack that has produced a string of real CVEs against local AI tools
 
 xNet **already has both halves of this** from explorations 0174 (connector
 ladder) and 0194 (agent bridge), but they are wired for the Electron build and
-carry security gaps that make the *deployed browser* case both broken and unsafe:
+carry security gaps that make the _deployed browser_ case both broken and unsafe:
 
 - The **`bridge` tier** — a loopback daemon at `http://127.0.0.1:31416`
   ([`packages/devkit/src/bridge-server.ts`](packages/devkit/src/bridge-server.ts))
@@ -35,13 +35,13 @@ carry security gaps that make the *deployed browser* case both broken and unsafe
   ([`packages/plugins/src/ai/connectors/detect.ts`](packages/plugins/src/ai/connectors/detect.ts),
   [`providers.ts`](packages/plugins/src/ai/providers.ts)).
 
-Three concrete problems block the *secure browser* story:
+Three concrete problems block the _secure browser_ story:
 
 1. **The bridge has no authentication token.** Its sibling — the MCP HTTP
    transport
    ([`packages/plugins/src/services/mcp-http.ts`](packages/plugins/src/services/mcp-http.ts))
    — requires a constant-time-compared `x-xnet-pairing` secret. The chat bridge
-   does **not**: it trusts *origin + loopback bind alone*, and it does **no
+   does **not**: it trusts _origin + loopback bind alone_, and it does **no
    `Host`-header validation**. That is precisely the assumption DNS rebinding
    breaks (the Ollama CVE-2024-28224 class). Any allowlisted origin — or, via
    rebinding, any site — could drive the user's paid coding agent.
@@ -77,15 +77,15 @@ sidesteps HTTP/CORS/DNS-rebinding entirely.
 defines `ConnectorTier = managed | bridge | cloud-key | local-server | webllm |
 prompt-api`. Two of these are "local model on your machine":
 
-| Tier | What it is | Probe | Provider mapping |
-| --- | --- | --- | --- |
-| `bridge` | User's own `claude`/`codex` CLI, wrapped as an HTTP daemon | `GET http://127.0.0.1:31416/health` → `{ ok: true }` | OpenAI-compatible → the daemon |
-| `local-server` | Ollama / LM Studio running directly | `GET :11434/api/tags`, `GET :1234/v1/models` | OpenAI-compatible / Ollama provider |
+| Tier           | What it is                                                 | Probe                                                | Provider mapping                    |
+| -------------- | ---------------------------------------------------------- | ---------------------------------------------------- | ----------------------------------- |
+| `bridge`       | User's own `claude`/`codex` CLI, wrapped as an HTTP daemon | `GET http://127.0.0.1:31416/health` → `{ ok: true }` | OpenAI-compatible → the daemon      |
+| `local-server` | Ollama / LM Studio running directly                        | `GET :11434/api/tags`, `GET :1234/v1/models`         | OpenAI-compatible / Ollama provider |
 
 Ranking + probes live in
 [`detect.ts:63-208`](packages/plugins/src/ai/connectors/detect.ts): `bridge` is
 `preference: 1` (just under managed cloud), `local-server` is `preference: 3`.
-The panel auto-selects the most-preferred *available* tier
+The panel auto-selects the most-preferred _available_ tier
 ([`ai-chat-connector.ts`](apps/web/src/workbench/views/ai-chat-connector.ts)).
 
 ### The bridge daemon — the secure-ish spine we already have
@@ -115,19 +115,19 @@ and from the CLI (`xnet bridge serve`,
 
 ### The security gap — compare the two loopback servers
 
-The MCP HTTP transport is the *same shape* daemon but properly hardened. Diffing
+The MCP HTTP transport is the _same shape_ daemon but properly hardened. Diffing
 the two is the crux of this exploration:
 
-| Control | `mcp-http.ts` (MCP) | `bridge-server.ts` (chat) |
-| --- | --- | --- |
-| Loopback-only bind | ✅ | ✅ |
-| Origin allowlist, never `*` | ✅ | ✅ |
-| PNA / preflight | ✅ | ✅ |
-| **Pairing token** (`x-xnet-pairing`, constant-time) | ✅ [`:36,94`](packages/plugins/src/services/mcp-http.ts:36) | ❌ **none** |
-| **`Host`-header validation** (anti-DNS-rebind) | ❌ (also missing) | ❌ **none** |
-| Body-size cap | ✅ | ✅ [`:28`](packages/devkit/src/bridge-server.ts:28) |
+| Control                                             | `mcp-http.ts` (MCP)                                         | `bridge-server.ts` (chat)                           |
+| --------------------------------------------------- | ----------------------------------------------------------- | --------------------------------------------------- |
+| Loopback-only bind                                  | ✅                                                          | ✅                                                  |
+| Origin allowlist, never `*`                         | ✅                                                          | ✅                                                  |
+| PNA / preflight                                     | ✅                                                          | ✅                                                  |
+| **Pairing token** (`x-xnet-pairing`, constant-time) | ✅ [`:36,94`](packages/plugins/src/services/mcp-http.ts:36) | ❌ **none**                                         |
+| **`Host`-header validation** (anti-DNS-rebind)      | ❌ (also missing)                                           | ❌ **none**                                         |
+| Body-size cap                                       | ✅                                                          | ✅ [`:28`](packages/devkit/src/bridge-server.ts:28) |
 
-So the daemon that drives the user's **paid coding agent** is the *less* guarded
+So the daemon that drives the user's **paid coding agent** is the _less_ guarded
 of the two. And neither validates `Host`, which is the specific fix Ollama
 shipped for its DNS-rebinding CVE.
 
@@ -137,13 +137,13 @@ shipped for its DNS-rebinding CVE.
   `createBridgeServer({ agent, agentName, version })`
   ([`agent-bridge-manager.ts:80`](apps/electron/src/main/agent-bridge-manager.ts:80))
   — **no `allowedOrigins`**, so `https://app.xnet.fyi` (a non-loopback origin)
-  is rejected by `isOriginAllowed`. Only a page *also* served from loopback can
+  is rejected by `isOriginAllowed`. Only a page _also_ served from loopback can
   talk to it.
 - CSP in [`apps/web/index.html`](apps/web/index.html) `connect-src` includes
   `http://localhost:*` and `ws://localhost:*` but **not** `http://127.0.0.1:*`.
   The bridge's default URL (`DEFAULT_BRIDGE_URL = 'http://127.0.0.1:31416'`,
   [`detect.ts:63`](packages/plugins/src/ai/connectors/detect.ts:63)) is a
-  `127.0.0.1` literal → blocked. (This is *also* the safer literal to prefer per
+  `127.0.0.1` literal → blocked. (This is _also_ the safer literal to prefer per
   Spotify's loopback guidance, so the fix is "add 127.0.0.1", not "drop it".)
 
 ### How the pieces connect today
@@ -174,20 +174,20 @@ flowchart LR
 
 ### Local model servers — can a browser talk to them, and how safely?
 
-| System | Port | Transport | Browser-direct? | Auth | CORS default |
-| --- | --- | --- | --- | --- | --- |
-| **Claude Code / Agent SDK** | none | stdio subprocess | ❌ needs your own HTTP/WS relay | build it yourself | n/a |
-| **Codex CLI** (`codex mcp-server`) | stdio (or HTTP) | stdio / Streamable HTTP | ⚠️ only if HTTP transport configured | Bearer / OAuth (HTTP mode) | you add it |
-| **Ollama** | 11434 | HTTP (OpenAI `/v1` + `/api`) | ⚠️ from allowlisted origins only | **none** | conservative allowlist (`localhost`, app schemes); **not** arbitrary `https://` — extend via `OLLAMA_ORIGINS` |
-| **LM Studio** | 1234 | HTTP (OpenAI + Anthropic) | ✅ if CORS toggled on | optional token (off) | off by default |
-| **llama.cpp / llamafile** | 8080 | HTTP + SSE | ✅ **unconditionally** — reflects any `Origin`, allows credentials | optional `--api-key` | **wide open** (no flag to disable) |
-| **MCP Streamable HTTP** | any | HTTP POST + SSE | ✅ | OAuth 2.1 resource-server (RFC 9728/8707) | spec **mandates** Origin validation + loopback bind |
-| **ACP (Zed)** | n/a | JSON-RPC over stdio | ❌ remote/HTTP transport still WIP | `authenticate` RPC | n/a |
+| System                             | Port            | Transport                    | Browser-direct?                                                    | Auth                                      | CORS default                                                                                                  |
+| ---------------------------------- | --------------- | ---------------------------- | ------------------------------------------------------------------ | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| **Claude Code / Agent SDK**        | none            | stdio subprocess             | ❌ needs your own HTTP/WS relay                                    | build it yourself                         | n/a                                                                                                           |
+| **Codex CLI** (`codex mcp-server`) | stdio (or HTTP) | stdio / Streamable HTTP      | ⚠️ only if HTTP transport configured                               | Bearer / OAuth (HTTP mode)                | you add it                                                                                                    |
+| **Ollama**                         | 11434           | HTTP (OpenAI `/v1` + `/api`) | ⚠️ from allowlisted origins only                                   | **none**                                  | conservative allowlist (`localhost`, app schemes); **not** arbitrary `https://` — extend via `OLLAMA_ORIGINS` |
+| **LM Studio**                      | 1234            | HTTP (OpenAI + Anthropic)    | ✅ if CORS toggled on                                              | optional token (off)                      | off by default                                                                                                |
+| **llama.cpp / llamafile**          | 8080            | HTTP + SSE                   | ✅ **unconditionally** — reflects any `Origin`, allows credentials | optional `--api-key`                      | **wide open** (no flag to disable)                                                                            |
+| **MCP Streamable HTTP**            | any             | HTTP POST + SSE              | ✅                                                                 | OAuth 2.1 resource-server (RFC 9728/8707) | spec **mandates** Origin validation + loopback bind                                                           |
+| **ACP (Zed)**                      | n/a             | JSON-RPC over stdio          | ❌ remote/HTTP transport still WIP                                 | `authenticate` RPC                        | n/a                                                                                                           |
 
 Key takeaways:
 
 - **There is no zero-config "point a browser at Claude Code."** The Agent SDK
-  explicitly documents that *you* build the HTTP/WS layer in front of the stdio
+  explicitly documents that _you_ build the HTTP/WS layer in front of the stdio
   subprocess ([Hosting the Agent SDK](https://code.claude.com/docs/en/agent-sdk/hosting)).
   xNet's `cliChatAgent` + `bridge-server.ts` **is** exactly that relay — so we're
   already on the officially-sanctioned pattern, not fighting it.
@@ -195,10 +195,10 @@ Key takeaways:
   through process isolation" ([Claude Code MCP docs](https://code.claude.com/docs/en/mcp)).
   A browser can't speak stdio, so a relay is unavoidable.
 - **llama.cpp is the cautionary tale**: its server reflects any `Origin` and
-  allows credentials *unconditionally* — any open web page can already drive a
+  allows credentials _unconditionally_ — any open web page can already drive a
   user's local `llama-server`. Our bridge must not become this.
 - **MCP Streamable HTTP is the only native protocol here designed with
-  DNS-rebinding/CORS in mind from the spec level** — it *mandates* servers
+  DNS-rebinding/CORS in mind from the spec level** — it _mandates_ servers
   validate `Origin`, bind `127.0.0.1`, and authenticate, and (2025-06 update)
   forbids passing client tokens upstream. Aligning our wire contract with it
   inherits a reviewed threat model and future MCP interop.
@@ -211,7 +211,7 @@ Key takeaways:
   `Host` header** (exact `localhost:<port>`/`127.0.0.1:<port>`) **+ require a
   token.** This is the Ollama **CVE-2024-28224** fix (NCC Group; exploitable in
   ~3s). See also **AnythingLLM GHSA-24qj-pw4h-3jmm** — `cors({ origin: true })`
-  + an auth bypass let any site exfiltrate workspaces/keys.
+  - an auth bypass let any site exfiltrate workspaces/keys.
 - **Mixed content**: loopback (`127.0.0.1`, `::1`, `localhost`, `*.localhost`)
   is a "potentially trustworthy" origin, so `https://` → `http://localhost`
   fetch/WebSocket is **not** mixed-content-blocked (has been true for years;
@@ -225,7 +225,7 @@ Key takeaways:
 - **Firefox**: rolling its own local-network permission (Strict-ETP users in
   **FF149**, general in **FF151**). **Safari/WebKit**: standards-position
   "support" but **not shipped** — today the most permissive (server-side auth is
-  the *only* protection there).
+  the _only_ protection there).
 - **Consequence**: **don't rely on the browser to protect the user.** The one
   layer under our control on every browser/version is **server-side auth +
   `Host`/`Origin` validation on the daemon.** Browser prompts are
@@ -238,7 +238,7 @@ Key takeaways:
 - **RFC 8252** (OAuth for native apps): `http://127.0.0.1:<ephemeral>` redirect
   is fine because the request never leaves the device; layer **PKCE**. Spotify
   now steers redirect URIs to the `127.0.0.1` literal over `localhost`.
-- **Capability token in the URL *fragment*** (`#token=…`) — never sent to a
+- **Capability token in the URL _fragment_** (`#token=…`) — never sent to a
   server or logged.
 - **Native messaging** (1Password): browser extension ↔ desktop app via
   `chrome.runtime.connectNative` + host-manifest extension-ID allowlist — **no
@@ -252,12 +252,12 @@ Key takeaways:
 
 1. **We already have the right architecture** (loopback relay wrapping the user's
    own CLI) — it matches Anthropic's official hosting guidance and MCP's threat
-   model. The work is *hardening + wiring*, not a rebuild.
+   model. The work is _hardening + wiring_, not a rebuild.
 2. **The chat bridge is under-secured relative to its sibling.** It lacks the
    pairing token that `mcp-http.ts` already implements, and neither validates
    `Host`. The daemon driving a paid subscription is the weakest of the two.
 3. **The deployed PWA is doubly blocked**: no `allowedOrigins` on the daemon, and
-   a CSP that omits `http://127.0.0.1:*` while the bridge default *is* a
+   a CSP that omits `http://127.0.0.1:*` while the bridge default _is_ a
    `127.0.0.1` URL.
 4. **Direct `local-server` access pushes security onto the user** and doesn't
    teach the safe framing (never `OLLAMA_ORIGINS=*`).
@@ -275,23 +275,23 @@ Key takeaways:
 - **Cons:** no auth on Ollama at all; relies on the user editing `OLLAMA_ORIGINS`
   correctly (wildcard = any site can drive their model); no `Host` validation on
   their side; llama.cpp is wide open. Security is entirely the user's problem.
-- **Verdict:** keep as an *advanced* tier with safe-origin guidance; never the
+- **Verdict:** keep as an _advanced_ tier with safe-origin guidance; never the
   default trust story.
 
-### B. Harden the loopback bridge into the secure spine *(recommended)*
+### B. Harden the loopback bridge into the secure spine _(recommended)_
 
 Add a **pairing token** (reuse `mcp-http.ts`'s constant-time check), **`Host`
 validation**, an **explicit origin allowlist** including the deployed PWA origin,
-out-of-band token delivery, and fix the CSP. The bridge can *also* front Ollama
+out-of-band token delivery, and fix the CSP. The bridge can _also_ front Ollama
 (proxy `/v1/chat/completions` to `:11434`) so even "raw local model" access flows
 through one audited, authenticated door.
 
-- **Pros:** one hardened trust boundary for *all* local model access; works for
+- **Pros:** one hardened trust boundary for _all_ local model access; works for
   Claude Code / Codex (the user's actual ask) and for Ollama; MCP-aligned;
   survives every browser because auth is server-side; the token defeats
   DNS-rebinding + drive-by sites.
 - **Cons:** needs a native host process (Electron or `xnet bridge serve`) — the
-  pure-web PWA can't *spawn* it, only *connect* to it; token-pairing UX to build.
+  pure-web PWA can't _spawn_ it, only _connect_ to it; token-pairing UX to build.
 - **Verdict:** the spine. Most of it already exists.
 
 ### C. Browser-extension native-messaging bridge (1Password pattern)
@@ -315,7 +315,7 @@ talks to the extension.
 
 ### E. In-tab model (WebLLM / Gemini Nano) — no connection at all
 
-Already implemented (0252): WebGPU model runs *in the page*, nothing to secure.
+Already implemented (0252): WebGPU model runs _in the page_, nothing to secure.
 
 - **Pros:** no network, no daemon, fully private; the true "nothing installed"
   path.
@@ -350,7 +350,7 @@ Concretely, in priority order:
    and pass `allowedOrigins: [deployedWebOrigin, …]` when the Electron/CLI host
    starts the bridge.
 2. **Harden `bridge-server.ts` to match `mcp-http.ts`**: per-launch pairing
-   token (constant-time compare), **`Host`-header validation** (add to *both*
+   token (constant-time compare), **`Host`-header validation** (add to _both_
    servers), keep the origin allowlist + PNA header.
 3. **Deliver the token out-of-band**: Electron injects it via preload; the web
    PWA shows a "paste your bridge pairing code" field fed by what
@@ -361,7 +361,7 @@ Concretely, in priority order:
 5. **Add a `loopback-network` permission UX**: query the permission, and on
    denial show "Allow local network access to use your local model" instead of a
    silent failure.
-6. **Guide the direct tier**: when `local-server` is selected, show the *exact*
+6. **Guide the direct tier**: when `local-server` is selected, show the _exact_
    `OLLAMA_ORIGINS=https://app.xnet.fyi` line (never `*`) and a one-line "why".
 7. **Follow-up: the native-messaging extension (C)** for a browser-only install
    with no bundled daemon.
@@ -426,7 +426,7 @@ flowchart TB
   style Agent fill:#efe,stroke:#0a0
 ```
 
-Note how `Host` validation (G1) stops the DNS-rebind path *before* origin/token
+Note how `Host` validation (G1) stops the DNS-rebind path _before_ origin/token
 even matter — a rebinding page sends `Host: evil.com`, so it never reaches G2.
 
 ## Example Code
@@ -524,9 +524,7 @@ function bridgeProviderConfig(baseUrl: string, token: string): AIProviderConfig 
 // graceful Local Network Access UX before probing the bridge
 async function ensureLoopbackAllowed(): Promise<'granted' | 'prompt' | 'denied'> {
   try {
-    const status = await navigator.permissions.query(
-      { name: 'loopback-network' as PermissionName }
-    )
+    const status = await navigator.permissions.query({ name: 'loopback-network' as PermissionName })
     return status.state as 'granted' | 'prompt' | 'denied'
   } catch {
     return 'granted' // browsers without the gate (Safari today) don't block
@@ -538,11 +536,9 @@ async function ensureLoopbackAllowed(): Promise<'granted' | 'prompt' | 'denied'>
 
 ```html
 <!-- apps/web/index.html — add 127.0.0.1 forms alongside localhost -->
-connect-src 'self'
-  ws://localhost:* http://localhost:*
-  ws://127.0.0.1:* http://127.0.0.1:*
-  wss://* https://hub.xnet.fyi https://*.xnet.fyi
-  https://huggingface.co https://*.huggingface.co https://*.hf.co ...
+connect-src 'self' ws://localhost:* http://localhost:* ws://127.0.0.1:* http://127.0.0.1:* wss://*
+https://hub.xnet.fyi https://*.xnet.fyi https://huggingface.co https://*.huggingface.co
+https://*.hf.co ...
 ```
 
 ## Risks And Open Questions
@@ -554,7 +550,7 @@ connect-src 'self'
   nothing sensitive — currently just `{ ok, service, agent, version }`. The
   `agent` name is arguably minor fingerprinting; acceptable.
 - **`/run`** (agentic worktree edits) is far more dangerous than chat — it must
-  require the token *and* stay opt-in; consider a *separate*, stronger gate
+  require the token _and_ stay opt-in; consider a _separate_, stronger gate
   (confirm-in-app) for it.
 - **Chrome LNA prompt fatigue / enterprise policy.** Some users will see the
   loopback prompt; document `LocalNetworkAccessAllowedForUrls` for managed fleets.
@@ -567,7 +563,7 @@ connect-src 'self'
   users will still want the direct tier. Keep both, default to the bridge.
 - **Does `codex mcp-server` support an HTTP-listen mode** we could target
   directly (skipping our relay for Codex)? Needs a doc-diff — research suggests
-  Codex's HTTP transport is for Codex-as-*client*, not inbound. Until confirmed,
+  Codex's HTTP transport is for Codex-as-_client_, not inbound. Until confirmed,
   the `cliChatAgent` relay covers Codex uniformly.
 - **0174 and 0194 are still `[_]`.** This doc is their security last-mile; decide
   whether to check them off or track hardening here.
@@ -610,8 +606,58 @@ connect-src 'self'
       the bridge data endpoints and the changed `Host` behavior are a **breaking**
       wire-contract change → **major** for any published surface (bump from the
       diff, per CLAUDE.md).
-- [ ] (Follow-up) Spike the native-messaging extension (Option C) for the pure-web
-      PWA install.
+- [x] (Follow-up) Spike the native-messaging extension (Option C) for the pure-web
+      PWA install → [`packages/native-bridge-extension/`](packages/native-bridge-extension/README.md).
+      A minimal, tested POC: an MV3 extension (`externally_connectable` origin
+      allowlist + a fixed `key` → stable ID), a `background.js` relay, a native
+      host (`xnet-bridge-host.mjs`) that either spawns the user's `claude`/`codex`
+      **with no loopback port at all** or forwards to the hardened bridge daemon
+      over loopback carrying its pairing token, and a page-side connector that
+      mirrors the `ChatAgent` contract so it slots into the ladder as an
+      `extension` tier. 28 tests (framing codec, relay + both backends incl. a
+      round-trip through the real hardened daemon, page protocol, extension-ID
+      derivation, and a real-process end-to-end). **UX finding (full table in the
+      package README):** the shipped pairing code (B) is the right default —
+      zero artifacts, every browser, already merged — but carries a recurring
+      per-launch re-paste and a silent-401 failure mode; the extension (C) is
+      zero-friction and zero-secret after a one-time install and is the _only_
+      option that eliminates the loopback attack surface rather than guarding it,
+      at the cost of a per-browser extension + native-host installer. Recommend B
+      as default, C as an opt-in upgrade for a browser-only install with no
+      bundled daemon. Not wired into the deployed app (would touch the churny
+      `detect.ts`); left as a documented drop-in.
+
+## Spike Outcome — Option C (native-messaging extension)
+
+The follow-up POC lives in
+[`packages/native-bridge-extension/`](packages/native-bridge-extension/README.md)
+(`private`, no build, no changeset). It confirms the 1Password pattern is a
+clean fit for xNet:
+
+```mermaid
+sequenceDiagram
+  participant P as PWA page (https://app.xnet.fyi)
+  participant X as Extension (background.js)
+  participant H as Native host (xnet-bridge-host.mjs)
+  participant A as claude / codex  (or the loopback daemon)
+
+  P->>X: sendMessage(extId, {v:1, kind:'chat', messages})
+  Note over X: externally_connectable + sender.origin allowlist
+  X->>H: connectNative('fyi.xnet.bridge') · 4-byte-LE framed JSON
+  Note over H: OS gates: manifest allowed_origins == this extId
+  H->>A: spawn CLI (no port)  ·  or POST loopback + pairing token
+  A-->>H: reply text
+  H-->>X: framed {ok:true, content}
+  X-->>P: reply → chat panel
+```
+
+Two allowlists — the extension's `externally_connectable` and the native host
+manifest's `allowed_origins` (pinned to the extension's derived ID) — are the
+entire trust story. No loopback port faces the browser in `cli` mode, so the
+DNS-rebinding / drive-by-site class the token defends against in Option B simply
+does not exist here. The trade is distribution cost: a per-browser extension and
+a native-host installer to ship and maintain. See the README's UX table for the
+default-vs-upgrade recommendation.
 
 ## Validation Checklist
 
@@ -636,7 +682,7 @@ connect-src 'self'
       denying it surfaces the "allow local network access" hint, not a silent
       failure; granting it lets the chat proceed. _The native permission prompt is
       browser behaviour; the panel wires `navigator.permissions.query({ name:
-      'loopback-network' })` and renders the denial hint (verified in
+  'loopback-network' })` and renders the denial hint (verified in
       `AiChatPanel.tsx`). The prompt itself needs a real Chrome ≥142 to observe._
 - [x] `local-server` tier setup hint shows a concrete `OLLAMA_ORIGINS=<origin>`
       line scoped to the app origin (never `*`).
@@ -653,6 +699,7 @@ connect-src 'self'
 ## References
 
 ### Repo
+
 - [`packages/devkit/src/bridge-server.ts`](packages/devkit/src/bridge-server.ts)
   — the loopback chat daemon (`:31416`), missing token + `Host` checks.
 - [`packages/devkit/src/chat-agent.ts`](packages/devkit/src/chat-agent.ts) —
@@ -675,6 +722,7 @@ connect-src 'self'
   [`0252`](docs/explorations/0252_[_]_WHY_THE_AI_CHAT_BOX_IS_DISABLED_LOCAL_MODEL_CONNECTOR_GAPS.md).
 
 ### External
+
 - [Claude Agent SDK — Hosting](https://code.claude.com/docs/en/agent-sdk/hosting)
   and [Secure Deployment](https://code.claude.com/docs/en/agent-sdk/secure-deployment).
 - [Claude Code as an MCP server](https://code.claude.com/docs/en/mcp) (stdio-only).

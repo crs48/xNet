@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "xNet Local Bridge",
+  "version": "0.1.0",
+  "description": "Relays xNet's web app to a local model (Claude Code / Codex / a bridge daemon) over native messaging — no loopback port, no CORS.",
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "permissions": ["nativeMessaging"],
+  "externally_connectable": {
+    "matches": ["https://app.xnet.fyi/*", "http://localhost/*", "http://127.0.0.1/*"]
+  },
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAitgqlga3G24EnV+qF1p+GKmyE2LdEJqjeqm5WcnQH4U1N93s5wUCV7t7wiJy9bgH3+bb0CDs84ht29PUEwKMIDO6SZQet9kMcI5QdD1YOyFmbyRoo2QN53fgAW1nsx9Bav2x14NMkgvtHEtCCXNlY8J2lkDnTr3rU3dsheeQuAEVLa7Na6zDr6X/MSQ7TgqTsGnY4Y3n6YkxkU3XCBHuycrqVPffOL12fcMTQBb5j2hQVEV06G8NK44I8I0m9mGRsA4JlVqbc/83YtpIciSmrLvATRttYR/enEP9LNnhnjAcnbkIDgHzsAC7qoa/k2T20aBn6Thw7D+Im48plB957QIDAQAB"
+}

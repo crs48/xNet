@@ -1,0 +1,7 @@
+{
+  "name": "fyi.xnet.bridge",
+  "description": "xNet local model bridge — native messaging host",
+  "path": "__HOST_PATH__",
+  "type": "stdio",
+  "allowed_origins": ["__EXTENSION_ORIGIN__"]
+}

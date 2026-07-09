@@ -160,7 +160,11 @@ export default defineConfig({
           testTimeout: 15000,
           include: [
             'packages/{hub,plugins,sdk,devkit,unreal,server}/src/**/*.test.ts',
-            'packages/{hub,plugins,sdk,devkit,unreal,server}/test/**/*.test.ts'
+            'packages/{hub,plugins,sdk,devkit,unreal,server}/test/**/*.test.ts',
+            // Native-messaging bridge spike (0289 Option C): plain-ESM host +
+            // relay, tested as .mjs (a native host must run without a build).
+            // Process/IO heavy (spawns the host, dials the daemon) → forks pool.
+            'packages/native-bridge-extension/test/**/*.test.mjs'
           ],
           server: {
             deps: {
