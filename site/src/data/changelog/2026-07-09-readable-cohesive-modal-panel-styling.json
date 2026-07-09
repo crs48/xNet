@@ -4,5 +4,15 @@
   "title": "Readable, cohesive modal & panel styling",
   "summary": "The What's New panel and modals now render as solid \"floating islands\" — matching the workspace chrome with a slightly darker surface and deeper shadow so they read as hovering on top, and are fully legible instead of translucent.",
   "highlights": [],
-  "tags": ["app", "platform"]
+  "tags": [
+    "app",
+    "platform"
+  ],
+  "pr": 434,
+  "mergedAt": "2026-07-09T12:03:36Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
