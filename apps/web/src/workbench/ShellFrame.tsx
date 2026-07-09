@@ -19,9 +19,7 @@ import { UndoToastProvider } from '../components/UndoToast'
 import { WorkspaceCommands } from '../components/WorkspaceCommands'
 import { ArrangeOverlay } from './ArrangeOverlay'
 import { CalmSurface } from './calm/CalmSurface'
-import { QuietChrome } from './calm/QuietChrome'
 import { SurfaceDockLauncher } from './calm/SurfaceDock'
-import { useActiveCalmMode } from './calm/use-active-mode'
 import { useShellEscape, useWorkbenchCommands, useZenEscape } from './commands'
 import { EditorArea } from './EditorArea'
 import { useFocusRing } from './focus'
@@ -195,8 +193,6 @@ function ZenFrame({ tree, children }: { tree: LayoutTree; children: ReactNode })
  * carries its placements everywhere, its pixel widths nowhere.
  */
 function PinnedFrame({ tree, children }: { tree: LayoutTree; children: ReactNode }) {
-  // Keep route ↔ mode reconciliation alive in every posture.
-  useActiveCalmMode()
   const left = useWorkbench((state) => state.left)
   const right = useWorkbench((state) => state.right)
   const bottom = useWorkbench((state) => state.bottom)
@@ -287,20 +283,6 @@ function PinnedFrame({ tree, children }: { tree: LayoutTree; children: ReactNode
   )
 }
 
-function QuietFrame({ tree, children }: { tree: LayoutTree; children: ReactNode }) {
-  const mode = useActiveCalmMode()
-  return (
-    <div className={`${FRAME} bg-surface-0`}>
-      <WorkspaceCommands />
-      <GlobalSearch />
-      <FrameDemoBanner />
-      <QuietChrome activeMode={mode}>
-        <Surface tree={tree}>{children}</Surface>
-      </QuietChrome>
-    </div>
-  )
-}
-
 export function ShellFrame({ children }: { children: ReactNode }) {
   useWorkbenchCommands()
   useZenEscape()
@@ -326,11 +308,7 @@ export function ShellFrame({ children }: { children: ReactNode }) {
   return (
     <UndoToastProvider>
       <div className="relative h-full min-h-0">
-        {tree.chrome === 'quiet' ? (
-          <QuietFrame tree={tree}>{children}</QuietFrame>
-        ) : (
-          <PinnedFrame tree={tree}>{children}</PinnedFrame>
-        )}
+        <PinnedFrame tree={tree}>{children}</PinnedFrame>
         {/* Arrange mode (0282): the shell as an editable schematic. */}
         {arranging && <ArrangeOverlay />}
       </div>

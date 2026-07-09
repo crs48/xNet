@@ -11,7 +11,6 @@ import {
   Bell,
   Bot,
   CalendarDays,
-  Compass,
   Database,
   FolderTree,
   Info,
@@ -26,9 +25,6 @@ import {
 } from 'lucide-react'
 import { ChatsPanel } from '../comms/ChatsPanel'
 import { Canvas } from './calm/Canvas'
-import { ListPane } from './calm/ListPane'
-import { ModeSwitch } from './calm/ModeSwitch'
-import { useActiveCalmMode } from './calm/use-active-mode'
 import { ContextPanel } from './ContextPanel'
 import { Rail } from './Rail'
 import { Sidebar } from './Sidebar'
@@ -40,11 +36,6 @@ import { DataPanelView, TasksPanelView } from './views/left'
 import { ShelfTray } from './views/Shelf'
 import { TodayPanel } from './views/TodayPanel'
 import { NotificationsTray, QueryConsoleTray, QuickCaptureTray, SyncTray } from './views/tray'
-
-function NavigatorSlotView() {
-  const mode = useActiveCalmMode()
-  return <ListPane mode={mode} />
-}
 
 /** Wrap a bare component so registry entries stay plain ComponentTypes. */
 function asComponent(Component: ComponentType): ComponentType {
@@ -59,17 +50,6 @@ function asComponent(Component: ComponentType): ComponentType {
 export function registerBuiltinSlotViews(): void {
   const builtin: SlotContribution[] = [
     // Frame views
-    {
-      id: 'navigator',
-      icon: ListTree,
-      label: 'Navigator',
-      tier: 'hero',
-      group: 'navigate',
-      priority: 0,
-      component: NavigatorSlotView,
-      defaultRegion: 'dock.left',
-      keywords: ['list', 'documents']
-    },
     {
       id: 'context',
       icon: PanelRight,
@@ -93,17 +73,6 @@ export function registerBuiltinSlotViews(): void {
       keywords: ['properties', 'backlinks', 'comments']
     },
     // Edge strips (not movable into docks)
-    {
-      id: 'modes',
-      icon: Compass,
-      label: 'Mode switch',
-      tier: 'secondary',
-      group: 'navigate',
-      priority: 3,
-      component: asComponent(ModeSwitch),
-      defaultRegion: 'rail',
-      allowedRegions: ['rail']
-    },
     {
       id: 'rail',
       icon: PanelBottom,
