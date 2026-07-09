@@ -30,6 +30,7 @@ export function XNetDevToolsProvider({ children }: XNetDevToolsProviderProps) {
 
 export function useDevTools() {
   return {
+    available: false,
     isOpen: false,
     toggle: () => {},
     eventBus: null,
