@@ -17,7 +17,7 @@
  */
 import type { SurfaceDef } from './surfaces'
 import type { CreatableDocType } from '../lib/doc-creation'
-import { useNavigate } from '@tanstack/react-router'
+import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { useIdentity } from '@xnetjs/react'
 import { DIDAvatar, usePrefersReducedMotion, useTheme } from '@xnetjs/ui'
 import {
@@ -37,7 +37,8 @@ import {
   SplitSquareHorizontal,
   Sun,
   User,
-  X
+  X,
+  type LucideIcon
 } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useSpaces } from '../hooks/useSpaces'
@@ -46,15 +47,17 @@ import { logout } from '../lib/identity'
 import { ContextPanel } from './ContextPanel'
 import { navigateToNode } from './navigation'
 import { useNewActions } from './new-actions'
+import { SettingsSectionsNav } from './SettingsSectionsNav'
 import { getSlotView } from './slot-registry'
 import { selectActiveTab, useWorkbench, type WorkbenchTab } from './state'
-import { SURFACES, useSurfaceActivation } from './surfaces'
-import { TAB_VIEWS } from './tabs'
+import { DEFAULT_SURFACE, SURFACES, surfaceById, useSurfaceActivation } from './surfaces'
+import { TAB_VIEWS, tabFromPathname } from './tabs'
 import { NO_SPACE } from './views/explorer-scope'
 
 /** Overlays driven by the single-overlay `ov` model. `right` rides the store. */
 export type MobileOverlay = 'nav' | 'assistant' | 'new' | 'workspace' | 'profile' | 'context'
-type NavSegment = 'explorer' | 'tabs' | 'surfaces'
+/** Navigator segments — `view` is the CONTEXTUAL first tab (see useContextualView). */
+type NavSegment = 'view' | 'tabs' | 'surfaces'
 
 const EASE = 'cubic-bezier(.32,.72,0,1)'
 
@@ -173,7 +176,38 @@ function Segmented<T extends string>({
   )
 }
 
-/** Navigator — the merged Explorer / Open-tabs / Surfaces sheet (draggable). */
+/**
+ * The Navigator's contextual first tab — the phone twin of the desktop bottom-
+ * left island ({@link BottomIsland}). It follows the view you're looking at: the
+ * Settings route shows the Settings section nav; otherwise it shows the active
+ * panel surface (Explorer / Tasks / Chats / Today / Data / AI), defaulting to
+ * Explorer. Route surfaces (Inbox, People, …) open in the editor and leave this
+ * on its current panel, exactly as the desktop island does.
+ */
+function useContextualView(): {
+  label: string
+  Icon: LucideIcon
+  Body: React.ComponentType | null
+} {
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const activeSurface = useWorkbench((s) => s.activeSurface)
+  if (pathname === '/settings' || pathname.startsWith('/settings/')) {
+    return { label: 'Settings', Icon: Settings, Body: SettingsSectionsNav }
+  }
+  // A panel surface with its own full-page route (Tasks, Data) wins while you're
+  // on that route — so navigating there follows, not just picking it in Surfaces.
+  const routed = tabFromPathname(pathname)
+  const routedPanel = routed
+    ? SURFACES.find((s) => s.kind === 'panel' && s.id === routed.nodeType)
+    : undefined
+  const fallback = surfaceById(DEFAULT_SURFACE)!
+  const def = routedPanel ?? surfaceById(activeSurface) ?? fallback
+  const panel = def.kind === 'panel' ? def : fallback
+  const Body = panel.viewId ? (getSlotView(panel.viewId)?.component ?? null) : null
+  return { label: panel.label, Icon: panel.icon, Body }
+}
+
+/** Navigator — the merged contextual-view / Open-tabs / Surfaces sheet (draggable). */
 function NavigatorSheet({
   onClose,
   onOpenContext,
@@ -184,9 +218,10 @@ function NavigatorSheet({
   onNew: () => void
 }) {
   const reduced = usePrefersReducedMotion()
-  const [seg, setSeg] = useState<NavSegment>('explorer')
+  const [seg, setSeg] = useState<NavSegment>('view')
   const [navH, setNavH] = useState(62)
   const activeTab = useWorkbench(selectActiveTab)
+  const contextual = useContextualView()
   const title =
     activeTab?.title || (activeTab && TAB_VIEWS[activeTab.nodeType]?.label) || 'Workspace'
   const HeaderIcon = (activeTab && TAB_VIEWS[activeTab.nodeType]?.icon) ?? Files
@@ -216,7 +251,7 @@ function NavigatorSheet({
     })
   }
 
-  const Explorer = getSlotView('explorer')?.component
+  const ContextualBody = contextual.Body
 
   return (
     <BottomSheet z={50} height={`${navH}%`} reduced={reduced}>
@@ -248,7 +283,7 @@ function NavigatorSheet({
 
       <Segmented
         options={[
-          { key: 'explorer', label: 'Explorer' },
+          { key: 'view', label: contextual.label },
           { key: 'tabs', label: 'Open tabs' },
           { key: 'surfaces', label: 'Surfaces' }
         ]}
@@ -257,11 +292,11 @@ function NavigatorSheet({
       />
 
       <div className="min-h-0 flex-1 overflow-y-auto">
-        {seg === 'explorer' && (
-          <div className="h-full min-h-0">{Explorer ? <Explorer /> : null}</div>
+        {seg === 'view' && (
+          <div className="h-full min-h-0">{ContextualBody ? <ContextualBody /> : null}</div>
         )}
         {seg === 'tabs' && <OpenTabsList onClose={onClose} onNew={onNew} />}
-        {seg === 'surfaces' && <SurfacesList onClose={onClose} />}
+        {seg === 'surfaces' && <SurfacesList onClose={onClose} onOpenView={() => setSeg('view')} />}
       </div>
     </BottomSheet>
   )
@@ -334,7 +369,7 @@ function OpenTabsList({ onClose, onNew }: { onClose: () => void; onNew: () => vo
   )
 }
 
-function SurfacesList({ onClose }: { onClose: () => void }) {
+function SurfacesList({ onClose, onOpenView }: { onClose: () => void; onOpenView: () => void }) {
   const navPinned = useWorkbench((s) => s.navPinned)
   const activeSurface = useWorkbench((s) => s.activeSurface)
   const toggleNavPinned = useWorkbench((s) => s.toggleNavPinned)
@@ -342,7 +377,10 @@ function SurfacesList({ onClose }: { onClose: () => void }) {
 
   const pick = (surface: SurfaceDef) => {
     activate(surface)
-    onClose()
+    // A route surface opens full-screen in the editor (dismiss the sheet); a
+    // panel surface becomes the contextual view tab, so jump to it and stay.
+    if (surface.kind === 'route') onClose()
+    else onOpenView()
   }
   return (
     <div className="px-2 pb-4">

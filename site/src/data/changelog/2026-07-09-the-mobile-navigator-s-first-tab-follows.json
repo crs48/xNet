@@ -1,0 +1,11 @@
+{
+  "id": "2026-07-09-the-mobile-navigator-s-first-tab-follows",
+  "date": "July 9, 2026",
+  "title": "The mobile navigator's first tab follows the view you're in",
+  "summary": "On phones, the center navigator sheet's first tab is now contextual — like the desktop bottom-left island. It shows Explorer on the workspace, Settings on the settings screen, Tasks on tasks, and so on, instead of always saying Explorer.",
+  "highlights": [
+    "The navigator's contextual tab tracks the current view (Explorer / Settings / Tasks / Chats / …)",
+    "Picking a panel surface from Surfaces opens it right there in the navigator"
+  ],
+  "tags": ["app"]
+}
