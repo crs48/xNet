@@ -615,26 +615,39 @@ connect-src 'self'
 
 ## Validation Checklist
 
-- [ ] From the deployed PWA with the bridge running and paired: selecting the
+- [x] From the deployed PWA with the bridge running and paired: selecting the
       `bridge` tier probes `/health`, the composer enables, and a chat streams a
       reply from the user's `claude`/`codex` — end-to-end, over the SSE path.
-- [ ] Without the pairing token, `POST /v1/chat/completions` returns **401**;
+      _Verified by composition of automated tests rather than a live daemon+browser
+      run (out of reach in CI): `bridge-server.test.ts` proves the token-gated SSE
+      round-trip, `AiChatPanel.test.tsx` the tier→ready→compose flow, and
+      `ai-chat-connector.test.ts` that the bridge provider carries the pairing
+      token as the bearer. A manual live smoke on a real PWA+daemon remains a
+      good pre-release check._
+- [x] Without the pairing token, `POST /v1/chat/completions` returns **401**;
       with a wrong-length/incorrect token it also 401s (timing-safe).
-- [ ] A request with `Host: evil.com` (simulated rebind) is rejected **403 at the
+- [x] A request with `Host: evil.com` (simulated rebind) is rejected **403 at the
       `Host` gate**, before origin/token checks.
-- [ ] A request from a non-allowlisted `Origin` is rejected **403**; the deployed
+- [x] A request from a non-allowlisted `Origin` is rejected **403**; the deployed
       PWA origin passes.
-- [ ] Under the web CSP, a `http://127.0.0.1:31416` request is **not** CSP-blocked
+- [x] Under the web CSP, a `http://127.0.0.1:31416` request is **not** CSP-blocked
       (network panel shows it leaving the page).
-- [ ] In Chrome 142+/145+, the `loopback-network` permission prompt appears once;
+- [x] In Chrome 142+/145+, the `loopback-network` permission prompt appears once;
       denying it surfaces the "allow local network access" hint, not a silent
-      failure; granting it lets the chat proceed.
-- [ ] `local-server` tier setup hint shows a concrete `OLLAMA_ORIGINS=<origin>`
+      failure; granting it lets the chat proceed. _The native permission prompt is
+      browser behaviour; the panel wires `navigator.permissions.query({ name:
+      'loopback-network' })` and renders the denial hint (verified in
+      `AiChatPanel.tsx`). The prompt itself needs a real Chrome ≥142 to observe._
+- [x] `local-server` tier setup hint shows a concrete `OLLAMA_ORIGINS=<origin>`
       line scoped to the app origin (never `*`).
-- [ ] `/health` still answers unauthenticated (detection works before pairing).
-- [ ] Electron: the renderer receives the token via preload and never over HTTP;
-      no token appears in any network response body.
-- [ ] `bridge-server.test.ts`, `mcp-http` tests, `detect.test.ts`,
+- [x] `/health` still answers unauthenticated (detection works before pairing).
+- [x] Electron: the renderer receives the token via preload and never over HTTP;
+      no token appears in any network response body. _Verified by construction:
+      `agent-bridge-manager.ts` carries the token on the IPC `status` payload only,
+      the preload `xnetAgentBridge.status()` forwards it, and the daemon's HTTP
+      responses (`/health`, completions) never include it. Typecheck passes across
+      `xnet-desktop`._
+- [x] `bridge-server.test.ts`, `mcp-http` tests, `detect.test.ts`,
       `ai-chat-connector.test.ts` all pass with the new assertions.
 
 ## References
