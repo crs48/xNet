@@ -277,7 +277,7 @@ already provides this on explorer rows), surfaces roll-out, command palette
 - [x] Update/replace affected tests (shell-tripwire, shell-escape,
       state.test, tabs.test, SurfaceDock/ArrangeOverlay as needed); add a
       smoke test for the floating frame + surfaces model.
-- [ ] `pnpm test`, typecheck, lint, Fallow + humane-pattern gates pass; add a
+- [x] `pnpm test`, typecheck, lint, Fallow + humane-pattern gates pass; add a
       Changelog fragment (`platform`); private app → no changeset; DCO sign-off.
 - [x] Live-render verification in the worktree preview (light + dark): islands,
       surface switching, pin toggle, tabs, floating dock, popovers.
