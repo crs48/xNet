@@ -1,0 +1,10 @@
+{
+  "id": "2026-07-08-one-coherent-workspace-shell",
+  "date": "July 8, 2026",
+  "title": "One coherent workspace shell",
+  "summary": "The web app is now a single shell: a sectioned, collapsible sidebar surfaces every tool (and previously-hidden routes like Meetings, Finance and Analytics), with a ⌘. focus mode to hide the chrome. The quiet/calm/workbench modes are gone.",
+  "highlights": [],
+  "tags": [
+    "app"
+  ]
+}
