@@ -104,7 +104,7 @@ function trustLabel(trust: number): string {
 }
 
 function SubscribedLabelers() {
-  const { subscriptions, subscribe, setEnabled, unsubscribe } = useLabelerSubscriptions()
+  const { subscriptions, ready, subscribe, setEnabled, unsubscribe } = useLabelerSubscriptions()
   const [did, setDid] = useState('')
   const [trust, setTrust] = useState(TRUST_OPTIONS[1].value)
 
@@ -141,7 +141,11 @@ function SubscribedLabelers() {
         <button
           type="button"
           onClick={handleSubscribe}
-          disabled={did.trim().length === 0}
+          // Also gate on `ready`: subscribing before the data bridge + identity are
+          // live silently no-ops, leaving nothing rendered. Keeping the button
+          // disabled until then makes the action deterministic (and fixes an e2e
+          // flake where the click landed during that window).
+          disabled={!ready || did.trim().length === 0}
           className={QUIET_BUTTON}
         >
           Subscribe

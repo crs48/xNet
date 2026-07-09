@@ -67,6 +67,13 @@ export interface LabelerSubscriptionsController {
   subscriptions: LabelerSubscriptionView[]
   /** Active subscriptions projected to runtime trust settings. */
   trustSettings: LabelerTrustSetting[]
+  /**
+   * Whether `subscribe` can actually persist — the data bridge and the viewer's
+   * identity are both ready. `subscribe` silently no-ops until this is true, so the
+   * UI must gate the control on it (otherwise an early click is dropped and nothing
+   * renders — the source of an e2e flake under load).
+   */
+  ready: boolean
   subscribe: (labelerDID: string, trust: number) => Promise<void>
   setEnabled: (id: string, enabled: boolean) => Promise<void>
   unsubscribe: (id: string) => Promise<void>
@@ -123,5 +130,7 @@ export function useLabelerSubscriptions(): LabelerSubscriptionsController {
     [bridge]
   )
 
-  return { subscriptions, trustSettings, subscribe, setEnabled, unsubscribe }
+  const ready = Boolean(bridge) && me.length > 0
+
+  return { subscriptions, trustSettings, ready, subscribe, setEnabled, unsubscribe }
 }
