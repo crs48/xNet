@@ -4,5 +4,15 @@
   "title": "Dev tools open as a hovering island",
   "summary": "The developer tools panel now opens as a floating overlay island — rounded corners, a soft drop shadow and the warm island colour — hovering on top of your content instead of sliding up as a flush bottom sheet. Its tabs are now pills that match the rest of the workbench's hover panels.",
   "highlights": [],
-  "tags": ["devtools", "app"]
+  "tags": [
+    "devtools",
+    "app"
+  ],
+  "pr": 437,
+  "mergedAt": "2026-07-09T14:09:42Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
