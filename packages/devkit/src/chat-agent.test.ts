@@ -64,11 +64,14 @@ describe('fakeChatAgent', () => {
 
 describe('openAiChatAgent', () => {
   it('posts to the upstream /v1/chat/completions and returns the reply content', async () => {
-    const fetchImpl = vi.fn(async () =>
-      new Response(
-        JSON.stringify({ choices: [{ message: { role: 'assistant', content: ' local reply ' } }] }),
-        { status: 200 }
-      )
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response(
+          JSON.stringify({
+            choices: [{ message: { role: 'assistant', content: ' local reply ' } }]
+          }),
+          { status: 200 }
+        )
     ) as unknown as typeof fetch
     const agent = openAiChatAgent({
       baseUrl: 'http://localhost:11434/',
@@ -88,7 +91,9 @@ describe('openAiChatAgent', () => {
   })
 
   it('throws when the upstream server returns a non-2xx status', async () => {
-    const fetchImpl = vi.fn(async () => new Response('nope', { status: 500 })) as unknown as typeof fetch
+    const fetchImpl = vi.fn(
+      async () => new Response('nope', { status: 500 })
+    ) as unknown as typeof fetch
     const agent = openAiChatAgent({ baseUrl: 'http://localhost:11434', model: 'x', fetchImpl })
     await expect(agent.chat(msgs(['user', 'hi']))).rejects.toThrow(/HTTP 500/)
   })

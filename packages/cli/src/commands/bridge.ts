@@ -157,7 +157,9 @@ export function registerBridgeCommand(program: Command): void {
       // here so the user can paste it into the web app's AI settings ("Local
       // bridge" tier) — it is never exposed over HTTP.
       console.error(`Pairing code: ${handle.pairingToken}`)
-      console.error('In XNet, open the AI panel, select "Local bridge", and paste the pairing code.')
+      console.error(
+        'In XNet, open the AI panel, select "Local bridge", and paste the pairing code.'
+      )
       const shutdown = (): void => {
         void handle.stop().then(() => process.exit(0))
       }

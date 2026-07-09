@@ -37,7 +37,10 @@ describe('buildBridgeServer', () => {
   })
 
   it('pins the pairing token when --token is given', async () => {
-    handle = buildBridgeServer({ agent: 'claude', port: 0, token: 'pinned-code' }, new FakeCommandRunner())
+    handle = buildBridgeServer(
+      { agent: 'claude', port: 0, token: 'pinned-code' },
+      new FakeCommandRunner()
+    )
     await handle.start()
     expect(handle.pairingToken).toBe('pinned-code')
   })

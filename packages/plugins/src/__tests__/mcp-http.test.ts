@@ -123,7 +123,12 @@ describe('createMcpHttpServer — boundary hardening', () => {
     // DNS-rebinding request (attacker hostname reaching 127.0.0.1) via node:http.
     const status = await new Promise<number>((resolve, reject) => {
       const req = request(
-        { hostname: '127.0.0.1', port: handle.port, path: '/health', headers: { host: 'evil.example' } },
+        {
+          hostname: '127.0.0.1',
+          port: handle.port,
+          path: '/health',
+          headers: { host: 'evil.example' }
+        },
         (res) => {
           res.resume()
           resolve(res.statusCode ?? 0)

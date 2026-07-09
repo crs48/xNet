@@ -788,13 +788,7 @@ function BridgeStatus({
  * the code `xnet bridge serve` prints. Stored locally, sent only to the loopback
  * daemon as a bearer token — never to our servers.
  */
-function BridgePairing({
-  token,
-  onToken
-}: {
-  token: string
-  onToken: (value: string) => void
-}) {
+function BridgePairing({ token, onToken }: { token: string; onToken: (value: string) => void }) {
   return (
     <div className="flex flex-col gap-1 border-b border-hairline px-3 py-2">
       <input
