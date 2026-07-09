@@ -20,6 +20,10 @@ HUB="node packages/hub/dist/cli.js --port ${PORT} --data ${DATA_DIR}"
 if [ "$LITESTREAM" = "1" ] && [ ! -f "$CONFIG" ] && [ -n "$LITESTREAM_PATH" ] && [ -n "$R2_BUCKET" ]; then
   echo "[entrypoint] generating ${CONFIG} for R2 replication (replica path: ${LITESTREAM_PATH})"
   cat > "$CONFIG" <<YAML
+# Localhost metrics — the hub scrapes this for a live backup-freshness signal
+# (lastSyncMs on /health; exploration 0288). Bound to loopback so a tenant's
+# replication metrics are never publicly reachable.
+addr: 127.0.0.1:9090
 dbs:
   - path: ${DATA_DIR}/hub.db
     replicas:
@@ -42,14 +46,16 @@ fi
 if [ "$LITESTREAM" = "1" ] && [ -f "$CONFIG" ]; then
   echo "[entrypoint] Litestream enabled — restoring ${DATA_DIR}/hub.db from R2 replica"
   litestream restore -config "$CONFIG" -if-db-not-exists -if-replica-exists "${DATA_DIR}/hub.db"
-  # Telemetry lives in a SEPARATE DB (exploration 0187). Restore it too when the
-  # config replicates it — but tolerate its absence: a config that only backs up
-  # hub.db (e.g. the managed-hub config generated above) makes litestream exit
-  # non-zero with "database not found in config", which `set -e` would turn into a
-  # boot crash. Telemetry is operational/ephemeral, so skipping it is fine.
-  echo "[entrypoint] restoring ${DATA_DIR}/telemetry.db from R2 replica (if configured)"
-  litestream restore -config "$CONFIG" -if-db-not-exists -if-replica-exists "${DATA_DIR}/telemetry.db" \
-    || echo "[entrypoint] telemetry.db not in config — skipping its restore"
+  # Telemetry lives in a SEPARATE DB (exploration 0187). Only restore it when the
+  # config actually replicates it — restoring a db that isn't in the config makes
+  # litestream exit non-zero ("database not found in config"), which `set -e` would
+  # turn into a boot crash. The managed-hub config generated above backs up only
+  # hub.db, so this is skipped there rather than attempted-and-tolerated — no more
+  # relying on a swallowed error to paper over the inconsistency (exploration 0288).
+  if grep -q "telemetry.db" "$CONFIG"; then
+    echo "[entrypoint] restoring ${DATA_DIR}/telemetry.db from R2 replica"
+    litestream restore -config "$CONFIG" -if-db-not-exists -if-replica-exists "${DATA_DIR}/telemetry.db"
+  fi
   echo "[entrypoint] starting hub under litestream replicate -exec"
   exec litestream replicate -config "$CONFIG" -exec "$HUB"
 fi
