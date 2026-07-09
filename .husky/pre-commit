@@ -132,4 +132,7 @@ fi
 
 pnpm lint-staged
 pnpm turbo run typecheck --affected
-pnpm vitest run --changed HEAD --passWithNoTests
+# Scrub the repo-location env vars `git commit` exports into hooks: tests that
+# create their own temp repos (e.g. packages/devkit) would otherwise have their
+# spawned git processes redirected at THIS repo's index and fail.
+env -u GIT_INDEX_FILE -u GIT_DIR -u GIT_WORK_TREE pnpm vitest run --changed HEAD --passWithNoTests

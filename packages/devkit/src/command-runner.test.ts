@@ -58,4 +58,25 @@ describe('NodeCommandRunner (real subprocess)', () => {
     expect(r.ok).toBe(false)
     expect(r.code).toBe(-1)
   })
+
+  it('scrubs inherited git repo-location vars but honours explicit env overrides', async () => {
+    // Simulate running inside a git hook (`git commit` exports GIT_INDEX_FILE).
+    process.env.GIT_INDEX_FILE = '/parent/repo/.git/index'
+    process.env.GIT_DIR = '/parent/repo/.git'
+    try {
+      const print =
+        "process.stdout.write(String(process.env.GIT_INDEX_FILE ?? '') + '|' + String(process.env.GIT_DIR ?? ''))"
+      const scrubbed = await runner.run('node', ['-e', print], { cwd: process.cwd() })
+      expect(scrubbed.stdout).toBe('|')
+
+      const overridden = await runner.run('node', ['-e', print], {
+        cwd: process.cwd(),
+        env: { GIT_INDEX_FILE: '/explicit/index' }
+      })
+      expect(overridden.stdout).toBe('/explicit/index|')
+    } finally {
+      delete process.env.GIT_INDEX_FILE
+      delete process.env.GIT_DIR
+    }
+  })
 })
