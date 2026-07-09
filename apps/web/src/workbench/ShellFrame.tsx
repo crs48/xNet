@@ -7,6 +7,7 @@
  * surface owns the whole viewport. Both walk the store's {@link LayoutTree}
  * only through its axes (never the preset identity — the tripwire enforces it).
  */
+import type { LayoutTree } from './layout-tree'
 import type { ReactNode } from 'react'
 import { GlobalSearch } from '../components/GlobalSearch'
 import { UndoToastProvider } from '../components/UndoToast'
@@ -17,7 +18,6 @@ import { useShellEscape, useWorkbenchCommands, useZenEscape } from './commands'
 import { EditorArea } from './EditorArea'
 import { FloatingFrame } from './FloatingFrame'
 import { useFocusRing } from './focus'
-import type { LayoutTree } from './layout-tree'
 import { useWorkbench } from './state'
 
 const FRAME =

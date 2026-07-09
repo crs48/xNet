@@ -6,8 +6,9 @@
  * comments / notifications / more actions. The pill-tab strip renders below it
  * (EditorArea's `pill` variant); the document is the router outlet under that.
  */
-import { DIDAvatar } from '@xnetjs/ui'
+import type { ShareDocType } from '../hooks/useShareLinks'
 import { useIdentity } from '@xnetjs/react'
+import { DIDAvatar } from '@xnetjs/ui'
 import {
   Bell,
   Database,
@@ -22,7 +23,6 @@ import {
 } from 'lucide-react'
 import { useState } from 'react'
 import { ShareDialog } from '../components/ShareDialog'
-import type { ShareDocType } from '../hooks/useShareLinks'
 import { useRequestCount } from '../hooks/useRequestCount'
 import { selectActiveTab, useWorkbench, type TabNodeType } from './state'
 

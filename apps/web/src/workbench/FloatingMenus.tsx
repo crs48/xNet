@@ -11,10 +11,10 @@ import { useIdentity } from '@xnetjs/react'
 import { DIDAvatar, useTheme } from '@xnetjs/ui'
 import { Columns2, FileText, Inbox, Moon, Pin, Settings, Square, Sun, User } from 'lucide-react'
 import { createPortal } from 'react-dom'
-import { navigateToNewDoc, type NavigateLike } from '../lib/doc-creation'
 import { useRequestCount } from '../hooks/useRequestCount'
-import { SURFACES, useSurfaceActivation } from './surfaces'
+import { navigateToNewDoc, type NavigateLike } from '../lib/doc-creation'
 import { useWorkbench } from './state'
+import { SURFACES, useSurfaceActivation } from './surfaces'
 
 export type FloatingMenuName = 'new' | 'notif' | 'profile' | 'surfaces'
 

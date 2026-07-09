@@ -8,6 +8,7 @@
  * (Explorer, Tasks, Chats, Today, Data, AI). Route surfaces open in the editor
  * instead, so the bottom island always shows a panel.
  */
+import type { FloatingMenuName } from './FloatingMenus'
 import { useRouterState } from '@tanstack/react-router'
 import { getCommandRegistry } from '@xnetjs/plugins'
 import { useIdentity } from '@xnetjs/react'
@@ -16,7 +17,7 @@ import { ChevronRight, ChevronsUpDown, LayoutGrid, Plus, Search } from 'lucide-r
 import { useRequestCount } from '../hooks/useRequestCount'
 import { useSpaces } from '../hooks/useSpaces'
 import { getSlotView } from './slot-registry'
-import { isRealSpace } from './views/explorer-scope'
+import { useWorkbench } from './state'
 import {
   DEFAULT_SURFACE,
   SURFACES,
@@ -25,8 +26,7 @@ import {
   useSurfaceActivation,
   type SurfaceDef
 } from './surfaces'
-import type { FloatingMenuName } from './FloatingMenus'
-import { useWorkbench } from './state'
+import { isRealSpace } from './views/explorer-scope'
 
 type OpenMenu = (name: FloatingMenuName) => (e: React.MouseEvent) => void
 

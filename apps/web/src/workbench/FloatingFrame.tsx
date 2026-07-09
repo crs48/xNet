@@ -21,8 +21,8 @@ import { EditorHeader } from './EditorHeader'
 import { FloatingDock } from './FloatingDock'
 import { FloatingMenus, type FloatingMenuName, type FloatingMenuState } from './FloatingMenus'
 import { SidebarIslands } from './SidebarIslands'
-import { StatusBar } from './StatusBar'
 import { useWorkbench } from './state'
+import { StatusBar } from './StatusBar'
 
 const ISLAND = 'overflow-hidden rounded-2xl border border-hairline bg-island-b shadow-isl'
 
