@@ -54,6 +54,19 @@ as the centrepiece.
    contextual island. It belongs beside the New button in the top island so the
    "am I filtered, and to what?" answer and the "in {Space}" filing target are
    one coherent control, visible on every surface (not just Explorer).
+6. **Make the user avatar the single home for identity, profile, settings and
+   sign-out.** The top-left avatar already opens a menu; consolidate *all*
+   account/settings entry points there (Profile, Settings, theme, and a missing
+   **Sign out**) and ensure no stray settings affordance survives elsewhere on
+   the desktop shell.
+7. **Wire every surface as master-detail: list in the bottom island, full
+   content in the main area.** Panel surfaces (Explorer/Chats/Tasks/Today/Data/
+   AI) already render their list in the bottom island and open items in the
+   editor. The **route surfaces in the "More" roll-out** (People/CRM, Discover,
+   Inbox, Meetings, Finance, Analytics) currently jump straight to a full route
+   with **no bottom-island list** — they need the same two-part shape so
+   selecting the surface shows its sub-menu on the left and its content on the
+   right, consistently for *every* tab including those under **More**.
 
 ```mermaid
 flowchart LR
@@ -120,6 +133,53 @@ flowchart TB
   EX[Explorer list] -->|still reflects filter| ST
 ```
 
+### Surfaces are half-wired: list-in-bottom-island + content-in-main
+
+The redesign's `SurfaceDef` ([`surfaces.ts`](../../apps/web/src/workbench/surfaces.ts))
+splits surfaces into two disjoint kinds:
+
+- `kind: 'panel'` → the bottom island renders a registered slot view (its
+  **list/sub-menu**); picking an item navigates the editor (its **content**).
+  Explorer, Chats, Tasks, Today, Data, AI already work this way.
+- `kind: 'route'` → selecting it just navigates the editor; the bottom island is
+  left on whatever panel it last showed. People/CRM, Discover, Inbox, Meetings,
+  Finance, Analytics are all route-only — **they have no bottom-island list.**
+
+The design intent (and the calm-shell prior art, [[0250_EVERYPERSON_SHELL]]'s
+`list · surface`) is that **every** surface is master-detail: a list on the left
+(bottom island), the selected item full-screen on the right (main area). So the
+model should stop being an either/or and instead give each surface **both** a
+`listViewId` (bottom island) and a detail `to`/route (main area).
+
+```mermaid
+flowchart LR
+  Pick[Pick a surface\n(primary row or More roll-out)] --> Set[activeSurface = id]
+  Set --> L[Bottom island renders\nsurface.listViewId]
+  L -->|select an item| R[Main area opens\nthe item's route/tab]
+  Set -.optional default.-> R
+```
+
+Registered slot views already exist for more surfaces than the model uses —
+including `notifications` (`NotificationsTray`), `sync`, and `console`
+([`builtin-slot-views.tsx`](../../apps/web/src/workbench/builtin-slot-views.tsx)).
+So some route surfaces can be wired to an existing list for free; the rest need a
+thin list panel (or a master/detail split of their route view).
+
+| Surface (More-inclusive) | Bottom-island list today | Main-area content | Wiring needed |
+| --- | --- | --- | --- |
+| Explorer | ✅ `explorer` | doc routes | none |
+| Chats | ✅ `chats` (channels + DMs) | `/channel/$id` | none |
+| Tasks | ✅ `tasks` | `/tasks` | none |
+| Today | ✅ `today` | routes | none |
+| Data | ✅ `data` | `/db/$id` | none |
+| AI | ✅ `ai-chat` | — | none |
+| **Inbox** | ❌ (route only) | `/requests` | map to the existing **`notifications`** (`NotificationsTray`) list |
+| **People / CRM** | ❌ | `/crm` | new list panel (contacts) → `/crm/$id` detail |
+| **Discover** | ❌ | `/discover` | new list panel (people/feeds) → detail |
+| **Meetings** | ❌ | `/meetings` | new list panel (meetings) → `/meetings/$id` |
+| **Finance** | ❌ | `/finance` | new list panel (accounts/ledgers) → detail |
+| **Analytics** | ❌ | `/analytics` | list of reports, or a single full view (no list — see options) |
+
 ### Affordance → action audit (the whole sweep)
 
 | Affordance (new location) | File | Current wiring | Gap / intended |
@@ -135,7 +195,7 @@ flowchart TB
 | Pill **+** new tab | `TabBar.tsx` | `workbench.newPage` | route through the canonical New (page default) |
 | Pill Split | `TabBar.tsx` | `splitWith` | ✅ |
 | **Notifications popover** | `FloatingMenus.tsx` `NotifMenu` | request count + link to `/requests` | mentions + resolved comments + share requests if a source exists; else keep the honest link |
-| Profile menu | `FloatingMenus.tsx` `ProfileMenu` | Profile & Settings → `/settings`, theme | add **Sign out**; Profile → a real profile route if one exists |
+| **User avatar menu** | `FloatingMenus.tsx` `ProfileMenu` | Profile & Settings → `/settings`, theme toggle | the single home for identity: Profile, **Settings**, theme, account/DID, and a missing **Sign out**; no other settings entry on the desktop shell |
 | Assistant dock composer | [`FloatingDock.tsx`](../../apps/web/src/workbench/FloatingDock.tsx) | routes to the AI surface | optionally seed the AI panel with the typed text |
 | Home New | `DataWorkspaceView.tsx` | its own New/Import | defer to the shell's canonical New (dedupe) |
 | Dev-tools Feature flags | [`DevToolsIsland.tsx`](../../apps/web/src/workbench/DevToolsIsland.tsx) | `/experiments` | ✅ |
@@ -216,6 +276,27 @@ so `⌘K` and the pill **+** share the path.
 Explorer's `ExplorerScopeBar` kept (or thinned) for the multi-Space *view*
 filter. Both read/write the same store, so they never diverge.
 
+### For the user avatar (profile + settings)
+
+The avatar menu already exists (`ProfileMenu`); this is consolidation, not new
+UI. Fold every account/settings entry into it — Profile, **Settings**, theme,
+the DID/account line, and **Sign out** — and confirm nothing else on the desktop
+shell opens settings (the old sidebar Settings row is already gone; keep it
+that way). Low-risk, mostly a content pass on `ProfileMenu`.
+
+### For the surfaces (master-detail wiring)
+
+| Option | How | Pros | Cons |
+| --- | --- | --- | --- |
+| **A. Give `SurfaceDef` both a `listViewId` and a `to`** (recommended) | evolve the model from `kind:'panel'\|'route'` to "every surface has a bottom-island list + a main detail"; register a list slot view per route surface (reuse `notifications` for Inbox); selecting the surface sets `activeSurface` (→ list) and picking a list item navigates the detail | uniform master-detail for *all* tabs incl. More; reuses the slot registry; the calm-shell pattern, proven | need ~5 new thin list panels (CRM/Discover/Meetings/Finance/Analytics); some route views must split into master/detail |
+| B. Keep route surfaces full-bleed, no list | leave as-is | zero work | violates the design ask; scope/New/context feel inconsistent between surfaces |
+| C. Generic "recents in this surface" list | one list panel that shows recent nodes of the surface's type | one component | weak — not the real domain list (channels, meetings, contacts) |
+
+**A**, reusing existing panels where they exist (`notifications` → Inbox) and
+adding thin list panels for the rest, each opening its route as the detail. For
+a genuinely single-view surface (e.g. Analytics overview) it's acceptable to
+show a short section/report list rather than invent items.
+
 ## Recommendation
 
 Ship in this order (each a self-contained commit):
@@ -232,7 +313,12 @@ Ship in this order (each a self-contained commit):
 6. **Move the Space scope picker into the top island** (compact single-scope
    control backed by `explorer-scope` state; keep Explorer's bar for the
    multi-Space view filter) — so New's "in {Space}" target is set right there.
-7. **History pill** + **notifications** + **profile Sign out** — polish pass.
+7. **Surfaces → master-detail** — evolve `SurfaceDef` to carry both a
+   `listViewId` (bottom island) and a detail `to`; wire Inbox to the existing
+   `notifications` list and add thin list panels for CRM/Discover/Meetings/
+   Finance/Analytics so every tab (incl. More) shows list-left, content-right.
+8. **Avatar menu** consolidation (Profile/Settings/theme/Sign out).
+9. **History pill** + **notifications popover** — polish pass.
 
 ## Example Code
 
@@ -312,6 +398,15 @@ const actions = useNodeActions(activeTab ? { id: activeTab.nodeId, type: activeT
   and don't fabricate a feed.
 - **Home `DataWorkspaceView` New** — dedupe vs leave; low priority, but note it
   so the two News don't drift again.
+- **How many new list panels?** CRM/Discover/Meetings/Finance/Analytics each
+  need a bottom-island list. Scope this — reuse existing route sub-views where a
+  list already exists inside the route (extract it) rather than building five
+  from scratch; land them incrementally (one surface per commit).
+- **Route ↔ activeSurface sync** — with route surfaces gaining lists, selecting
+  a surface must set `activeSurface` *and* the bottom island must reflect the
+  route the user is actually on (deep-link `/meetings/x` → Meetings list active).
+  Reconcile `activeSurface` with the router on navigation, like the tab store
+  does in `EditorArea`.
 
 ## Implementation Checklist
 
@@ -333,8 +428,16 @@ const actions = useNodeActions(activeTab ? { id: activeTab.nodeId, type: activeT
 - [ ] Wire the editor **⋯ More** to `useNodeActions(activeTab)` in a popover.
 - [ ] Give the **pill History** button a real target (recents / reopen closed)
       or remove it.
-- [ ] Enrich or honestly link the **notifications** popover; add **Sign out** to
-      the profile menu.
+- [ ] Enrich or honestly link the **notifications** popover.
+- [ ] **Avatar menu**: consolidate Profile + Settings + theme + account/DID +
+      **Sign out** into `ProfileMenu`; confirm no other desktop settings entry.
+- [ ] **Surfaces master-detail**: evolve `SurfaceDef` to `{ listViewId?, to? }`;
+      map **Inbox → `notifications`** list; add thin list panels for **CRM,
+      Discover, Meetings, Finance, Analytics** (one commit each), each opening
+      its route as the main-area detail; register them so **every More-section
+      tab** has a bottom-island list.
+- [ ] Reconcile `activeSurface` with the router so deep-links light the right
+      surface and its list.
 - [ ] Dedupe the home `DataWorkspaceView` New against the shell New.
 
 ## Validation Checklist
@@ -350,6 +453,12 @@ const actions = useNodeActions(activeTab ? { id: activeTab.nodeId, type: activeT
 - [ ] The top-island **Space scope picker** sets `currentSpaceId`, is visible on
       every surface, and stays in sync with Explorer's bar and the status-bar
       `ScopeStatus` (change scope up top → New files there, status echoes it).
+- [ ] Every surface — **including all the More-section tabs** — shows a
+      bottom-island **list** and opens its selection as **full content in the
+      main area**; Inbox uses the `notifications` list; deep-linking a detail
+      route lights its surface + list.
+- [ ] The **avatar menu** is the only desktop route to Profile/Settings; theme
+      and **Sign out** work from it.
 - [ ] Editor **⋯ More** opens the active tab's node actions; each verb behaves
       as in the right-click menu (0285).
 - [ ] No duplicate/diverging New menus remain (grep for `navigateToNewDoc`
@@ -373,6 +482,10 @@ const actions = useNodeActions(activeTab ? { id: activeTab.nodeId, type: activeT
 - Repo — workspace/Space scope: [`views/ExplorerScopeBar.tsx`](../../apps/web/src/workbench/views/ExplorerScopeBar.tsx),
   [`views/explorer-scope.ts`](../../apps/web/src/workbench/views/explorer-scope.ts),
   [`WorkspaceSwitcher.tsx`](../../apps/web/src/workbench/WorkspaceSwitcher.tsx) (bench switcher, 0280)
+- Repo — surfaces & lists: [`surfaces.ts`](../../apps/web/src/workbench/surfaces.ts),
+  [`builtin-slot-views.tsx`](../../apps/web/src/workbench/builtin-slot-views.tsx) (incl. `notifications`/`sync`/`console` trays),
+  [`slot-registry.tsx`](../../apps/web/src/workbench/slot-registry.tsx),
+  calm-shell list·surface prior art [`calm/CompanionView.tsx`](../../apps/web/src/workbench/calm/CompanionView.tsx) ([[0250_EVERYPERSON_SHELL]])
 - Repo — verbs to reuse: [`hooks/useNodeActions.ts`](../../apps/web/src/hooks/useNodeActions.ts) (0285)
 - Prior art: Notion global "New page", Linear global create (`C`) + command
   palette, Claude/Slack top-left composer.
