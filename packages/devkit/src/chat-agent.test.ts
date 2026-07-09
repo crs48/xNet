@@ -1,5 +1,11 @@
-import { describe, expect, it } from 'vitest'
-import { cliChatAgent, fakeChatAgent, flattenChat, type ChatMessage } from './chat-agent'
+import { describe, expect, it, vi } from 'vitest'
+import {
+  cliChatAgent,
+  fakeChatAgent,
+  flattenChat,
+  openAiChatAgent,
+  type ChatMessage
+} from './chat-agent'
 import { FakeCommandRunner } from './command-runner'
 
 const msgs = (...pairs: Array<[ChatMessage['role'], string]>): ChatMessage[] =>
@@ -53,5 +59,37 @@ describe('fakeChatAgent', () => {
   it('returns the scripted reply', async () => {
     const agent = fakeChatAgent((m) => `echo:${m[m.length - 1].content}`)
     expect(await agent.chat(msgs(['user', 'hi']))).toBe('echo:hi')
+  })
+})
+
+describe('openAiChatAgent', () => {
+  it('posts to the upstream /v1/chat/completions and returns the reply content', async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response(
+        JSON.stringify({ choices: [{ message: { role: 'assistant', content: ' local reply ' } }] }),
+        { status: 200 }
+      )
+    ) as unknown as typeof fetch
+    const agent = openAiChatAgent({
+      baseUrl: 'http://localhost:11434/',
+      model: 'llama3.2',
+      apiKey: 'k',
+      fetchImpl
+    })
+    const reply = await agent.chat(msgs(['user', 'hi']))
+    expect(reply).toBe('local reply')
+    const [url, init] = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0]
+    expect(url).toBe('http://localhost:11434/v1/chat/completions')
+    expect((init as RequestInit).headers).toMatchObject({ authorization: 'Bearer k' })
+    expect(JSON.parse((init as RequestInit).body as string)).toMatchObject({
+      model: 'llama3.2',
+      stream: false
+    })
+  })
+
+  it('throws when the upstream server returns a non-2xx status', async () => {
+    const fetchImpl = vi.fn(async () => new Response('nope', { status: 500 })) as unknown as typeof fetch
+    const agent = openAiChatAgent({ baseUrl: 'http://localhost:11434', model: 'x', fetchImpl })
+    await expect(agent.chat(msgs(['user', 'hi']))).rejects.toThrow(/HTTP 500/)
   })
 })

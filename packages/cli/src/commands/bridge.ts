@@ -23,7 +23,9 @@ import {
   handleBridgeRun,
   mcpConfigFor,
   NodeCommandRunner,
+  openAiChatAgent,
   type BridgeServerHandle,
+  type ChatAgent,
   type CommandRunner
 } from '@xnetjs/devkit'
 import { Command } from 'commander'
@@ -42,6 +44,14 @@ export interface BridgeServeOptions {
   mcpConfigPath?: string
   /** Enable `POST /run` — agentic code tasks (worktree → gate → checkpoint/PR). */
   code?: boolean
+  /**
+   * Front a raw OpenAI-compatible model server (e.g. Ollama at
+   * `http://localhost:11434`) instead of a coding-agent CLI, so browser access
+   * to it goes through the authenticated, origin-locked bridge.
+   */
+  upstream?: string
+  /** Model id to request from `--upstream` (default `llama3.2`). */
+  upstreamModel?: string
 }
 
 /** Build (but don't start) the bridge server for the chosen agent. Injectable runner for tests. */
@@ -54,7 +64,11 @@ export function buildBridgeServer(
   const args = buildAgentArgs(command, {
     ...(options.mcpConfigPath ? { mcpConfigPath: options.mcpConfigPath } : {})
   })
-  const agent = cliChatAgent(runner, { command, cwd, args })
+  // `--upstream` fronts a raw OpenAI-compatible model server through the bridge;
+  // otherwise drive the user's own coding-agent CLI.
+  const agent: ChatAgent = options.upstream
+    ? openAiChatAgent({ baseUrl: options.upstream, model: options.upstreamModel ?? 'llama3.2' })
+    : cliChatAgent(runner, { command, cwd, args })
   // `--code` enables the agentic dev-loop over HTTP (powerful → opt-in): the
   // coding agent edits in a worktree off `cwd`, then the gate runs.
   const run = options.code
@@ -101,6 +115,11 @@ export function registerBridgeCommand(program: Command): void {
       'Pin the pairing code browsers must present (default: a random per-launch code)'
     )
     .option('--cwd <dir>', 'Working directory the agent runs in (default current dir)')
+    .option(
+      '--upstream <url>',
+      'Front a raw OpenAI-compatible server (e.g. http://localhost:11434 for Ollama) instead of a CLI'
+    )
+    .option('--upstream-model <id>', 'Model id to request from --upstream (default llama3.2)')
     .option('--code', 'Enable POST /run agentic code tasks (worktree → gate → checkpoint/PR)')
     .option('--mcp', "Give the agent XNet's workspace tools via `xnet mcp serve`")
     .option(

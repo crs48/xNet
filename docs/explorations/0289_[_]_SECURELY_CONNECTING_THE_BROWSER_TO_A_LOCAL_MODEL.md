@@ -601,7 +601,7 @@ connect-src 'self'
       `*`) in the `local-server` tier setup hint
       ([`detect.ts`](packages/plugins/src/ai/connectors/detect.ts) /
       [`AiChatPanel.tsx`](apps/web/src/workbench/views/AiChatPanel.tsx)).
-- [ ] (Optional) Add an upstream-proxy mode to the bridge so `/v1/chat/completions`
+- [x] (Optional) Add an upstream-proxy mode to the bridge so `/v1/chat/completions`
       can forward to Ollama `:11434`, giving raw-local-model users the same
       authenticated door.
 - [ ] Update tests: `bridge-server.test.ts` (token + Host cases),
