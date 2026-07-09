@@ -76,8 +76,8 @@ describe('announcer', () => {
   it('announces store moves from any road with the view label', () => {
     render(<SlotAnnouncer />)
     act(() => {
-      useWorkbench.getState().moveSlot('navigator', 'dock.right')
+      useWorkbench.getState().moveSlot('context', 'dock.left')
     })
-    expect(screen.getByRole('status').textContent).toBe('Navigator moved to right dock')
+    expect(screen.getByRole('status').textContent).toBe('Context moved to left dock')
   })
 })

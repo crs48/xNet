@@ -464,7 +464,7 @@ Placeholder.configure({
 - [x] Update `plugins/workspace-agent-module.ts` (drop `apply_preset`, keep
       move/pin) and fix the stale `views/ai-context.ts` system prompt.
 - [x] Remove the Labs flag once parity is confirmed.
-- [ ] Changesets for every publishable package touched (major where a
+- [x] Changesets for every publishable package touched (major where a
       preset/agent tool/export was removed).
 
 ## Validation Checklist
