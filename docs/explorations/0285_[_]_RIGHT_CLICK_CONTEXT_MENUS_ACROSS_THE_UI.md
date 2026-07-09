@@ -643,7 +643,7 @@ stateDiagram-v2
 - [ ] **PR4 Canvas:** bind `onContextMenu` on the node component; render
       `commandsForScopes(['surface:canvas'])` via `ActionMenuList`; make it
       multi-select-aware; update the "ignores right-click" test.
-- [ ] **PR5 Tabs:** `TabBar` right-click → Close / Close others / Close to
+- [x] **PR5 Tabs:** `TabBar` right-click → Close / Close others / Close to
       the right / Pin-Unpin / Duplicate / Split (add the two missing verbs
       to `state.ts`/`tabs.ts`).
 - [ ] **PR6 Data cards:** Board/Gallery/List/Timeline/Grid/Task rows via

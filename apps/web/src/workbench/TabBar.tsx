@@ -8,9 +8,25 @@
  * lose the close button.
  */
 import { useNavigate } from '@tanstack/react-router'
-import { getNodeTransfer, hasNodeTransfer, setNodeTransfer, type NodeTransfer } from '@xnetjs/ui'
-import { FileText, Pin, X } from 'lucide-react'
-import { useState } from 'react'
+import {
+  ActionMenuList,
+  ContextMenu,
+  getNodeTransfer,
+  hasNodeTransfer,
+  setNodeTransfer,
+  type Action,
+  type NodeTransfer
+} from '@xnetjs/ui'
+import {
+  ArrowRightFromLine,
+  FileText,
+  Pin,
+  PinOff,
+  SplitSquareHorizontal,
+  X,
+  XSquare
+} from 'lucide-react'
+import { createElement, useState } from 'react'
 import { navigateToNode } from './navigation'
 import { useWorkbench, type EditorGroup, type TabNodeType, type WorkbenchTab } from './state'
 import { TAB_VIEWS } from './tabs'
@@ -177,43 +193,98 @@ function TabItem({
     setDropEdge(e.clientX < rect.left + rect.width / 2 ? 'before' : 'after')
   }
 
+  const closeMany = (predicate: (t: WorkbenchTab, index: number) => boolean) => {
+    const state = useWorkbench.getState()
+    for (const [index, t] of group.tabs.entries()) {
+      if (!t.pinned && predicate(t, index)) state.closeTab(t.id, group.id)
+    }
+    navigateToActiveTab(navigate)
+  }
+
+  const selfIndex = group.tabs.findIndex((t) => t.id === tab.id)
+  const closableOthers = group.tabs.some((t) => t.id !== tab.id && !t.pinned)
+  const closableRight = group.tabs.some((t, i) => i > selfIndex && !t.pinned)
+
+  const actions: Action[] = [
+    {
+      id: 'close',
+      label: 'Close',
+      icon: createElement(X, { size: 14 }),
+      shortcut: '⌘W',
+      when: () => !tab.pinned,
+      run: close
+    },
+    {
+      id: 'close-others',
+      label: 'Close others',
+      icon: createElement(XSquare, { size: 14 }),
+      when: () => closableOthers,
+      run: () => closeMany((t) => t.id !== tab.id)
+    },
+    {
+      id: 'close-right',
+      label: 'Close to the right',
+      icon: createElement(ArrowRightFromLine, { size: 14 }),
+      when: () => closableRight,
+      run: () => closeMany((_t, index) => index > selfIndex)
+    },
+    { id: '---' },
+    {
+      id: 'pin',
+      label: tab.pinned ? 'Unpin tab' : 'Pin tab',
+      icon: createElement(tab.pinned ? PinOff : Pin, { size: 14 }),
+      run: () => useWorkbench.getState().setTabPinned(tab.id, !tab.pinned)
+    },
+    {
+      id: 'split',
+      label: 'Open in split',
+      icon: createElement(SplitSquareHorizontal, { size: 14 }),
+      run: () =>
+        useWorkbench
+          .getState()
+          .splitWith({ nodeId: tab.nodeId, nodeType: tab.nodeType, title: tab.title })
+    }
+  ]
+
   return (
-    <div
-      role="tab"
-      aria-selected={active && routed}
-      data-tab-id={tab.id}
-      draggable
-      onDragStart={(e) => {
-        setNodeTransfer(e, {
-          nodeId: tab.nodeId,
-          nodeType: tab.nodeType,
-          title: tab.title,
-          sourceContext: 'tab'
-        })
-        e.dataTransfer.effectAllowed = 'copyMove'
-      }}
-      onDragOver={handleDragOver}
-      onDragLeave={() => setDropEdge(null)}
-      onDrop={handleDrop}
-      onMouseDown={(e) => {
-        if (e.button === 0) activate()
-      }}
-      onAuxClick={(e) => {
-        if (e.button === 1) {
-          e.preventDefault()
-          close()
-        }
-      }}
-      onDoubleClick={() => useWorkbench.getState().promoteTab(tab.id)}
-      className={tabItemClassName(active, routed)}
-    >
-      <TabDropIndicator dropEdge={dropEdge} />
-      {/* active tab keeps a hairline notch to the editor below */}
-      {active && routed && <span className="absolute inset-x-0 top-0 h-px bg-accent-ink" />}
-      <Icon size={13} strokeWidth={1.5} className="shrink-0 text-ink-3" />
-      <TabLabel tab={tab} />
-      <TabActions tab={tab} onClose={close} />
-    </div>
+    <ContextMenu className="contents" menu={<ActionMenuList actions={actions} />}>
+      <div
+        role="tab"
+        aria-selected={active && routed}
+        data-tab-id={tab.id}
+        draggable
+        onDragStart={(e) => {
+          setNodeTransfer(e, {
+            nodeId: tab.nodeId,
+            nodeType: tab.nodeType,
+            title: tab.title,
+            sourceContext: 'tab'
+          })
+          e.dataTransfer.effectAllowed = 'copyMove'
+        }}
+        onDragOver={handleDragOver}
+        onDragLeave={() => setDropEdge(null)}
+        onDrop={handleDrop}
+        onMouseDown={(e) => {
+          if (e.button === 0) activate()
+        }}
+        onAuxClick={(e) => {
+          if (e.button === 1) {
+            e.preventDefault()
+            close()
+          }
+        }}
+        onDoubleClick={() => useWorkbench.getState().promoteTab(tab.id)}
+        className={tabItemClassName(active, routed)}
+      >
+        <TabDropIndicator dropEdge={dropEdge} />
+        {/* active tab keeps a hairline notch to the editor below */}
+        {active && routed && <span className="absolute inset-x-0 top-0 h-px bg-accent-ink" />}
+        <Icon size={13} strokeWidth={1.5} className="shrink-0 text-ink-3" />
+        <TabLabel tab={tab} />
+        <TabActions tab={tab} onClose={close} />
+      </div>
+    </ContextMenu>
   )
 }
 
