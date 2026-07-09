@@ -574,7 +574,7 @@ connect-src 'self'
 
 ## Implementation Checklist
 
-- [ ] Add `http://127.0.0.1:*` and `ws://127.0.0.1:*` to `connect-src` in
+- [x] Add `http://127.0.0.1:*` and `ws://127.0.0.1:*` to `connect-src` in
       [`apps/web/index.html`](apps/web/index.html).
 - [x] Add `Host`-header validation to
       [`packages/devkit/src/bridge-server.ts`](packages/devkit/src/bridge-server.ts)
@@ -591,13 +591,13 @@ connect-src 'self'
       ([`packages/cli/src/commands/bridge.ts`](packages/cli/src/commands/bridge.ts))
       and inject it into the Electron renderer via preload
       (`window.xnetAgentBridge` / a `xnet:bridge-token` channel).
-- [ ] Add a "bridge pairing code" field to the AI settings in
+- [x] Add a "bridge pairing code" field to the AI settings in
       [`AiChatPanel.tsx`](apps/web/src/workbench/views/AiChatPanel.tsx); persist
       under `AI_CHAT_STORAGE_KEYS`; feed it as the provider `apiKey`/bearer.
-- [ ] Query `navigator.permissions.query({ name: 'loopback-network' })` and show
+- [x] Query `navigator.permissions.query({ name: 'loopback-network' })` and show
       an "allow local network access" hint on `prompt`/`denied` instead of a
       silent dead box.
-- [ ] Show exact `OLLAMA_ORIGINS=<app origin>` / LM Studio CORS guidance (never
+- [x] Show exact `OLLAMA_ORIGINS=<app origin>` / LM Studio CORS guidance (never
       `*`) in the `local-server` tier setup hint
       ([`detect.ts`](packages/plugins/src/ai/connectors/detect.ts) /
       [`AiChatPanel.tsx`](apps/web/src/workbench/views/AiChatPanel.tsx)).
