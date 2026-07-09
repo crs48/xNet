@@ -333,7 +333,12 @@ function liveScript(): string {
     }
     var bl = document.getElementById('backup-lbl');
     if (bl && d.backup) {
-      bl.textContent = (d.backup.replicating ? 'Backed up to R2 ✓ · ' : 'Backups off · ') + 'data as of ' + rel(d.backup.lastWriteMs);
+      // Prefer the confirmed R2 sync time ("data safe as of") when the hub reports
+      // it; fall back to newest-write ("data as of") for older hubs (exploration 0288).
+      var safeAt = d.backup.lastSyncMs != null
+        ? 'data safe as of ' + rel(d.backup.lastSyncMs)
+        : 'data as of ' + rel(d.backup.lastWriteMs);
+      bl.textContent = (d.backup.replicating ? 'Backed up to R2 ✓ · ' : 'Backups off · ') + safeAt;
     }
   }
   function spark(){

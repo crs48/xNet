@@ -57,8 +57,16 @@ export interface DashboardLive {
    * (exploration 0216).
    */
   overQuota: boolean | null
-  /** Backup state: replicating to R2, and "data as of" (≈ last backed up). */
-  backup: { replicating: boolean; lastWriteMs: number | null } | null
+  /**
+   * Backup state: replicating to R2, "data as of" (≈ newest write), and — when the
+   * hub measures it — the confirmed R2 replica sync time for a "data safe as of"
+   * line (exploration 0288). `lastSyncMs` is null on older hubs / unknown scrapes.
+   */
+  backup: {
+    replicating: boolean
+    lastWriteMs: number | null
+    lastSyncMs: number | null
+  } | null
   /** Rolling availability over the plan's SLO window, as a percentage. */
   uptimePct: number | null
   /** p95 probe latency over the SLO window, in ms (from the control-plane probes). */
@@ -161,7 +169,8 @@ export function composeDashboardLive(input: {
     backup: h?.backup
       ? {
           replicating: Boolean(h.backup.replicating),
-          lastWriteMs: num(h.backup.lastWriteMs)
+          lastWriteMs: num(h.backup.lastWriteMs),
+          lastSyncMs: num(h.backup.lastSyncMs)
         }
       : null,
     uptimePct: input.sli ? Number((input.sli.availability * 100).toFixed(2)) : null,

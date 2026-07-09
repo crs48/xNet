@@ -382,7 +382,7 @@ drillTimer.unref()
 - [x] **[P1]** Schedule `runRestoreDrills` (nightly, rotating sample) + a cold-demotion sweep in [`apps/cloud/src/index.ts`](../../apps/cloud/src/index.ts); emit results + alert on failure.
 - [ ] **[P1]** Configure Litestream **snapshot retention** + hourly **`VACUUM INTO → R2`** archive (size/interval-scoped).
 - [ ] **[P2]** Add **Litestream VFS** reactivation path (env-flagged); keep full-file restore fallback.
-- [ ] **[P2]** Dashboard "data safe as of `lastSyncMs`" indicator (extends [`dashboard.ts`](../../apps/cloud/src/dashboard.ts)).
+- [x] **[P2]** Dashboard "data safe as of `lastSyncMs`" indicator (extends [`dashboard.ts`](../../apps/cloud/src/dashboard.ts)).
 - [ ] **[P2]** Opt-in **BYO-S3 Litestream** config for self-host (reuse the config generator + entrypoint).
 - [x] Resolve the **telemetry.db** replicate-vs-restore inconsistency in the entrypoint/config.
 - [ ] Changeset: `@xnetjs/hub` (blob store + health) and `@xnetjs/cloud` (freshness wiring) — **minor**; blob-store swap is internal (no export removal).
