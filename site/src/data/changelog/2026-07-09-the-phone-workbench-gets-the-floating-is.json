@@ -1,0 +1,22 @@
+{
+  "id": "2026-07-09-the-phone-workbench-gets-the-floating-is",
+  "date": "July 9, 2026",
+  "title": "The phone workbench gets the Floating Islands redesign",
+  "summary": "The mobile editor now matches the desktop Floating Islands look: a floating control cluster at the bottom of the screen replaces the old top bar and bottom nav, and every panel opens as a rounded island sheet hovering over your document.",
+  "highlights": [
+    "A bottom control cluster hosts your profile, workspace, a navigator for Explorer/tabs/surfaces, search, and New",
+    "Comments, the assistant, and menus now open as floating island sheets over the page",
+    "A slim status island shows sync health and a theme toggle, with dev tools one tap away"
+  ],
+  "tags": [
+    "app",
+    "platform"
+  ],
+  "pr": 438,
+  "mergedAt": "2026-07-09T15:23:05Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

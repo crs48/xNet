@@ -58,10 +58,12 @@ export {
 export {
   cliChatAgent,
   fakeChatAgent,
+  openAiChatAgent,
   flattenChat,
   type ChatAgent,
   type ChatMessage,
-  type CliChatAgentOptions
+  type CliChatAgentOptions,
+  type OpenAiChatAgentOptions
 } from './chat-agent'
 
 export {

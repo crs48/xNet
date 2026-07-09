@@ -64,15 +64,23 @@ describe('providerConfigForConnector', () => {
     expect(config?.options.baseUrl).toBe('http://localhost:1234')
   })
 
-  it('maps the bridge to an OpenAI-compatible endpoint', () => {
+  it('maps the bridge to an OpenAI-compatible endpoint with the pairing token', () => {
+    const config = providerConfigForConnector(
+      det({ tier: 'bridge', detail: 'http://127.0.0.1:31416' }),
+      { bridgeToken: 'pair-123' }
+    )
+    expect(config).toEqual({
+      type: 'openai-compatible',
+      options: { baseUrl: 'http://127.0.0.1:31416', apiKey: 'pair-123' }
+    })
+  })
+
+  it('returns null for the bridge until a pairing token is supplied', () => {
     const config = providerConfigForConnector(
       det({ tier: 'bridge', detail: 'http://127.0.0.1:31416' }),
       {}
     )
-    expect(config).toEqual({
-      type: 'openai-compatible',
-      options: { baseUrl: 'http://127.0.0.1:31416' }
-    })
+    expect(config).toBeNull()
   })
 
   it('maps managed to the keyless managed provider at the same origin', () => {

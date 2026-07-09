@@ -1,3 +1,4 @@
+import { request } from 'node:http'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   createBridgeServer,
@@ -6,6 +7,26 @@ import {
 } from './bridge-server'
 import { fakeChatAgent } from './chat-agent'
 
+/**
+ * Raw loopback GET with a caller-chosen `Host` header. `fetch`/undici silently
+ * overrides `Host` with the URL authority, so a DNS-rebinding request (attacker
+ * hostname reaching 127.0.0.1) can only be simulated at the `node:http` layer.
+ */
+function getWithHost(url: string, host: string): Promise<number> {
+  const { port } = new URL(url)
+  return new Promise((resolve, reject) => {
+    const req = request(
+      { hostname: '127.0.0.1', port: Number(port), path: '/health', headers: { host } },
+      (res) => {
+        res.resume()
+        resolve(res.statusCode ?? 0)
+      }
+    )
+    req.on('error', reject)
+    req.end()
+  })
+}
+
 let handle: BridgeServerHandle | undefined
 
 afterEach(async () => {
@@ -13,16 +34,22 @@ afterEach(async () => {
   handle = undefined
 })
 
+const TOKEN = 'test-pairing-token'
+
 async function start(overrides: Partial<BridgeServerConfig> = {}): Promise<string> {
   handle = createBridgeServer({
     agent: fakeChatAgent(() => 'hi there'),
     agentName: 'claude',
     port: 0,
+    pairingToken: TOKEN,
     ...overrides
   })
   await handle.start()
   return handle.url
 }
+
+/** Data-endpoint headers: JSON + the pairing token the daemon now requires. */
+const authed = { 'content-type': 'application/json', authorization: `Bearer ${TOKEN}` }
 
 describe('createBridgeServer', () => {
   it('refuses to bind a non-loopback host', () => {
@@ -46,7 +73,7 @@ describe('createBridgeServer', () => {
     const url = await start({ agent: fakeChatAgent((m) => `echo:${m[m.length - 1].content}`) })
     const res = await fetch(`${url}/v1/chat/completions`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: authed,
       body: JSON.stringify({ messages: [{ role: 'user', content: 'hi' }] })
     })
     const body = (await res.json()) as { choices: Array<{ message: { content: string } }> }
@@ -57,7 +84,7 @@ describe('createBridgeServer', () => {
     const url = await start({ agent: fakeChatAgent(() => 'streamed reply') })
     const res = await fetch(`${url}/v1/chat/completions`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: authed,
       body: JSON.stringify({ stream: true, messages: [{ role: 'user', content: 'hi' }] })
     })
     expect(res.headers.get('content-type')).toContain('text/event-stream')
@@ -83,6 +110,45 @@ describe('createBridgeServer', () => {
     expect(res.headers.get('access-control-allow-private-network')).toBe('true')
   })
 
+  it('rejects a chat completion with no pairing token (401)', async () => {
+    const url = await start()
+    const res = await fetch(`${url}/v1/chat/completions`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ messages: [{ role: 'user', content: 'hi' }] })
+    })
+    expect(res.status).toBe(401)
+  })
+
+  it('rejects a chat completion with a wrong pairing token (401)', async () => {
+    const url = await start()
+    const res = await fetch(`${url}/v1/chat/completions`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: 'Bearer nope' },
+      body: JSON.stringify({ messages: [{ role: 'user', content: 'hi' }] })
+    })
+    expect(res.status).toBe(401)
+  })
+
+  it('generates a random pairing token when none is configured', async () => {
+    handle = createBridgeServer({ agent: fakeChatAgent(() => 'hi'), port: 0 })
+    await handle.start()
+    expect(handle.pairingToken).toMatch(/^[A-Za-z0-9_-]{16,}$/)
+  })
+
+  it('rejects a request whose Host is not our loopback authority (anti-rebind, 403)', async () => {
+    const url = await start()
+    expect(await getWithHost(url, 'evil.example')).toBe(403)
+    // sanity: the same request with a correct loopback Host is accepted
+    expect(await getWithHost(url, `127.0.0.1:${new URL(url).port}`)).toBe(200)
+  })
+
+  it('leaves /health unauthenticated so detection works before pairing', async () => {
+    const url = await start()
+    const res = await fetch(`${url}/health`) // no Authorization header
+    expect(res.status).toBe(200)
+  })
+
   it('returns 502 when the agent throws', async () => {
     const url = await start({
       agent: fakeChatAgent(() => {
@@ -91,7 +157,7 @@ describe('createBridgeServer', () => {
     })
     const res = await fetch(`${url}/v1/chat/completions`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: authed,
       body: JSON.stringify({ messages: [{ role: 'user', content: 'hi' }] })
     })
     expect(res.status).toBe(502)
@@ -101,7 +167,7 @@ describe('createBridgeServer', () => {
     const url = await start()
     const res = await fetch(`${url}/run`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: authed,
       body: JSON.stringify({ taskId: 't1', prompt: 'do it' })
     })
     expect(res.status).toBe(501)
@@ -124,7 +190,7 @@ describe('createBridgeServer', () => {
     })
     const res = await fetch(`${url}/run`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: authed,
       body: JSON.stringify({ taskId: 't1', prompt: 'add a toggle' })
     })
     const body = (await res.json()) as { ok: boolean; branch: string }
@@ -137,7 +203,7 @@ describe('createBridgeServer', () => {
     const url = await start({ run: async () => ({}) as never })
     const res = await fetch(`${url}/run`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: authed,
       body: JSON.stringify({ prompt: 'no id' })
     })
     expect(res.status).toBe(400)
@@ -151,7 +217,7 @@ describe('createBridgeServer', () => {
     })
     const res = await fetch(`${url}/run`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: authed,
       body: JSON.stringify({ taskId: 't1', prompt: 'x' })
     })
     expect(res.status).toBe(502)

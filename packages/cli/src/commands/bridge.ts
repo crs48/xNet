@@ -23,7 +23,9 @@ import {
   handleBridgeRun,
   mcpConfigFor,
   NodeCommandRunner,
+  openAiChatAgent,
   type BridgeServerHandle,
+  type ChatAgent,
   type CommandRunner
 } from '@xnetjs/devkit'
 import { Command } from 'commander'
@@ -34,12 +36,22 @@ export interface BridgeServeOptions {
   host?: string
   port?: number
   allowOrigin?: string[]
+  /** Pin the pairing token (default: a random per-launch code printed on start). */
+  token?: string
   /** Working directory the agent runs in (default `process.cwd()`). */
   cwd?: string
   /** Path to an MCP config JSON giving the agent XNet's workspace tools. */
   mcpConfigPath?: string
   /** Enable `POST /run` — agentic code tasks (worktree → gate → checkpoint/PR). */
   code?: boolean
+  /**
+   * Front a raw OpenAI-compatible model server (e.g. Ollama at
+   * `http://localhost:11434`) instead of a coding-agent CLI, so browser access
+   * to it goes through the authenticated, origin-locked bridge.
+   */
+  upstream?: string
+  /** Model id to request from `--upstream` (default `llama3.2`). */
+  upstreamModel?: string
 }
 
 /** Build (but don't start) the bridge server for the chosen agent. Injectable runner for tests. */
@@ -52,7 +64,11 @@ export function buildBridgeServer(
   const args = buildAgentArgs(command, {
     ...(options.mcpConfigPath ? { mcpConfigPath: options.mcpConfigPath } : {})
   })
-  const agent = cliChatAgent(runner, { command, cwd, args })
+  // `--upstream` fronts a raw OpenAI-compatible model server through the bridge;
+  // otherwise drive the user's own coding-agent CLI.
+  const agent: ChatAgent = options.upstream
+    ? openAiChatAgent({ baseUrl: options.upstream, model: options.upstreamModel ?? 'llama3.2' })
+    : cliChatAgent(runner, { command, cwd, args })
   // `--code` enables the agentic dev-loop over HTTP (powerful → opt-in): the
   // coding agent edits in a worktree off `cwd`, then the gate runs.
   const run = options.code
@@ -74,7 +90,8 @@ export function buildBridgeServer(
     ...(run ? { run } : {}),
     ...(options.host ? { host: options.host } : {}),
     ...(options.port !== undefined ? { port: options.port } : {}),
-    ...(options.allowOrigin ? { allowedOrigins: options.allowOrigin } : {})
+    ...(options.allowOrigin ? { allowedOrigins: options.allowOrigin } : {}),
+    ...(options.token ? { pairingToken: options.token } : {})
   })
 }
 
@@ -91,9 +108,18 @@ export function registerBridgeCommand(program: Command): void {
     .option('--port <n>', `Port (default ${DEFAULT_BRIDGE_PORT})`, parseIntOption)
     .option(
       '--allow-origin <origin...>',
-      'Browser origins permitted (e.g. https://user.github.io for the web deployment)'
+      'Browser origins permitted (e.g. https://app.xnet.fyi for the web deployment)'
+    )
+    .option(
+      '--token <token>',
+      'Pin the pairing code browsers must present (default: a random per-launch code)'
     )
     .option('--cwd <dir>', 'Working directory the agent runs in (default current dir)')
+    .option(
+      '--upstream <url>',
+      'Front a raw OpenAI-compatible server (e.g. http://localhost:11434 for Ollama) instead of a CLI'
+    )
+    .option('--upstream-model <id>', 'Model id to request from --upstream (default llama3.2)')
     .option('--code', 'Enable POST /run agentic code tasks (worktree → gate → checkpoint/PR)')
     .option('--mcp', "Give the agent XNet's workspace tools via `xnet mcp serve`")
     .option(
@@ -127,7 +153,13 @@ export function registerBridgeCommand(program: Command): void {
           options.mcp ? ', workspace tools enabled' : ''
         })`
       )
-      console.error('In XNet, open the AI panel and select "Local bridge".')
+      // The pairing code the daemon now requires on its data endpoints. Printed
+      // here so the user can paste it into the web app's AI settings ("Local
+      // bridge" tier) — it is never exposed over HTTP.
+      console.error(`Pairing code: ${handle.pairingToken}`)
+      console.error(
+        'In XNet, open the AI panel, select "Local bridge", and paste the pairing code.'
+      )
       const shutdown = (): void => {
         void handle.stop().then(() => process.exit(0))
       }

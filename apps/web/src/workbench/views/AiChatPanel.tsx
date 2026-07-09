@@ -65,6 +65,8 @@ import { buildWebLLMProvider, type WebLLMProgress } from './ai-webllm-engine'
 /** Electron preload control channel for the local agent bridge (absent on web). */
 interface AgentBridgeControl {
   start: (agent?: string) => Promise<unknown>
+  /** Current daemon status, including the pairing token (IPC only, never HTTP). */
+  status?: () => Promise<{ running?: boolean; token?: string } | undefined>
 }
 
 declare global {
@@ -104,6 +106,12 @@ export function AiChatPanel() {
   const [bridgeHealth, setBridgeHealth] = useState<BridgeHealth | null>(null)
   const [bridgeRefresh, setBridgeRefresh] = useState(0)
   const [model, setModel] = useState(() => readSetting(AI_CHAT_STORAGE_KEYS.model))
+  const [bridgeToken, setBridgeToken] = useState(() =>
+    readSetting(AI_CHAT_STORAGE_KEYS.bridgeToken)
+  )
+  // Chrome 142+/145+ gates https→loopback behind a `loopback-network` permission
+  // (null = not yet queried / browser has no such gate, e.g. Safari today).
+  const [loopbackPermission, setLoopbackPermission] = useState<PermissionState | null>(null)
   const [budget, setBudget] = useState<ManagedBudgetSnapshot | null>(null)
   const [managedModels, setManagedModels] = useState<ManagedModel[]>([])
   // In-tab model activation (exploration 0252). Both in-tab tiers gate their
@@ -123,8 +131,13 @@ export function AiChatPanel() {
   const cleanupRef = useRef<(() => void) | null>(null)
 
   const settings = useMemo<AiChatSettings>(
-    () => ({ apiKey: apiKey || undefined, cloudProvider, model: model || undefined }),
-    [apiKey, cloudProvider, model]
+    () => ({
+      apiKey: apiKey || undefined,
+      cloudProvider,
+      model: model || undefined,
+      bridgeToken: bridgeToken || undefined
+    }),
+    [apiKey, cloudProvider, model, bridgeToken]
   )
 
   // Reset the budget gauge whenever the active model changes — the next managed
@@ -195,7 +208,8 @@ export function AiChatPanel() {
     // longer trusts `navigator.gpu` alone.
     void detectConnectors({
       hasCloudKey: () => apiKey.length > 0,
-      hasWebLLMEngine: () => true
+      hasWebLLMEngine: () => true,
+      ...(typeof location !== 'undefined' ? { appOrigin: location.origin } : {})
     }).then((result) => {
       if (cancelled) return
       setDetections(result)
@@ -256,6 +270,52 @@ export function AiChatPanel() {
       cancelled = true
     }
   }, [bridgeBaseUrl, bridgeRefresh])
+
+  // Auto-pair under Electron: the main process hands the daemon's pairing token
+  // to the renderer over IPC (never HTTP), so the xNet app can talk to its own
+  // bridge without the user copying a code. A plain browser has no such channel
+  // and falls back to the pairing-code field below.
+  useEffect(() => {
+    if (selected?.tier !== 'bridge') return
+    const control = typeof window !== 'undefined' ? window.xnetAgentBridge : undefined
+    if (!control?.status) return
+    let cancelled = false
+    void control
+      .status()
+      .then((state) => {
+        if (cancelled || !state?.token) return
+        setBridgeToken(state.token)
+        writeSetting(AI_CHAT_STORAGE_KEYS.bridgeToken, state.token)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [selected, bridgeRefresh])
+
+  // Loopback tiers reach `http://127.0.0.1:*` from an https page, which Chrome
+  // 142+/145+ gates behind a `loopback-network` permission. Query it so we can
+  // guide the user instead of failing silently (Safari/older browsers lack the
+  // gate → the query rejects → null → no hint, which is correct there).
+  useEffect(() => {
+    const loopbackTier = selected?.tier === 'bridge' || selected?.tier === 'local-server'
+    if (!loopbackTier || typeof navigator === 'undefined' || !navigator.permissions?.query) {
+      setLoopbackPermission(null)
+      return
+    }
+    let cancelled = false
+    void navigator.permissions
+      .query({ name: 'loopback-network' as PermissionName })
+      .then((status) => {
+        if (!cancelled) setLoopbackPermission(status.state)
+      })
+      .catch(() => {
+        if (!cancelled) setLoopbackPermission(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [selected])
 
   // Managed: load the plan-gated model catalog so the picker is data-driven, and
   // preselect the plan's default model when the user hasn't chosen one.
@@ -411,12 +471,28 @@ export function AiChatPanel() {
         hasSelection={!!selected}
       />
       {selected?.tier === 'bridge' && (
-        <BridgeStatus
-          health={bridgeHealth}
-          canSwitch={typeof window !== 'undefined' && !!window.xnetAgentBridge}
-          onSwitchAgent={switchBridgeAgent}
-        />
+        <>
+          <BridgeStatus
+            health={bridgeHealth}
+            canSwitch={typeof window !== 'undefined' && !!window.xnetAgentBridge}
+            onSwitchAgent={switchBridgeAgent}
+          />
+          <BridgePairing
+            token={bridgeToken}
+            onToken={(value) => {
+              setBridgeToken(value)
+              writeSetting(AI_CHAT_STORAGE_KEYS.bridgeToken, value)
+            }}
+          />
+        </>
       )}
+      {(selected?.tier === 'bridge' || selected?.tier === 'local-server') &&
+        loopbackPermission === 'denied' && (
+          <p className="border-b border-hairline px-3 py-2 text-[11px] text-amber-600">
+            Local network access is blocked. Allow it for this site in your browser’s settings to
+            reach a model on this machine.
+          </p>
+        )}
       {selected?.tier === 'cloud-key' && (
         <CloudKeyFields
           apiKey={apiKey}
@@ -702,6 +778,30 @@ function BridgeStatus({
           ))}
         </select>
       )}
+    </div>
+  )
+}
+
+/**
+ * The pairing code the bridge daemon requires. Under Electron it's auto-filled
+ * over IPC (the field then just confirms it); in a plain browser the user pastes
+ * the code `xnet bridge serve` prints. Stored locally, sent only to the loopback
+ * daemon as a bearer token — never to our servers.
+ */
+function BridgePairing({ token, onToken }: { token: string; onToken: (value: string) => void }) {
+  return (
+    <div className="flex flex-col gap-1 border-b border-hairline px-3 py-2">
+      <input
+        type="password"
+        value={token}
+        placeholder="Bridge pairing code"
+        onChange={(event) => onToken(event.target.value)}
+        className="min-w-0 flex-1 rounded-md border border-hairline bg-surface-0 px-2 py-1 text-[11px] text-ink-1 outline-none placeholder:text-ink-3"
+      />
+      <p className="text-[10px] text-ink-3">
+        Paste the code <code>xnet bridge serve</code> prints. Sent only to your local bridge — never
+        to our servers.
+      </p>
     </div>
   )
 }

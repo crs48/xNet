@@ -116,6 +116,13 @@ describe('detectConnectors', () => {
     expect(local?.setupHint).toMatch(/OLLAMA_ORIGINS|CORS/)
   })
 
+  it('names the exact origin (never a wildcard) in the local-server hint', async () => {
+    const result = await detectConnectors({ ...NOTHING, appOrigin: 'https://app.xnet.fyi' })
+    const local = result.find((d) => d.tier === 'local-server')
+    expect(local?.setupHint).toContain('OLLAMA_ORIGINS=https://app.xnet.fyi')
+    expect(local?.setupHint).not.toContain('OLLAMA_ORIGINS=*')
+  })
+
   it('detects a healthy bridge daemon and surfaces its url', async () => {
     const result = await detectConnectors({
       ...NOTHING,

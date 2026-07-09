@@ -62,6 +62,22 @@ export const CONNECTOR_META: Record<ConnectorTier, ConnectorMeta> = {
 
 const DEFAULT_BRIDGE_URL = 'http://127.0.0.1:31416'
 
+/**
+ * Setup hint for the local-server tier. When the app origin is known, name the
+ * *exact* `OLLAMA_ORIGINS=<origin>` line — never a wildcard, which would let any
+ * website drive the user's local model (the Ollama community's own warning).
+ */
+export function localServerSetupHint(appOrigin?: string): string {
+  if (appOrigin) {
+    return (
+      `Start Ollama or LM Studio and allow this origin — for Ollama run ` +
+      `\`OLLAMA_ORIGINS=${appOrigin} ollama serve\` (never \`*\`), or enable the ` +
+      `LM Studio CORS toggle.`
+    )
+  }
+  return 'Start Ollama or LM Studio and allow this origin (OLLAMA_ORIGINS=<this app’s origin>, never *; or the LM Studio CORS toggle).'
+}
+
 /** Default local-model endpoints: Ollama (`/api/tags`) and LM Studio (`/v1/models`). */
 export function defaultLocalServerProbes(): LocalServerProbe[] {
   return [
@@ -169,10 +185,7 @@ export async function detectConnectors(env: ConnectorEnv = {}): Promise<Connecto
       available: localServer.available,
       ...(localServer.available
         ? { detail: localServer.detail }
-        : {
-            setupHint:
-              'Start Ollama or LM Studio and allow this origin (OLLAMA_ORIGINS / LM Studio CORS toggle).'
-          })
+        : { setupHint: localServerSetupHint(env.appOrigin) })
     },
     {
       tier: 'webllm',

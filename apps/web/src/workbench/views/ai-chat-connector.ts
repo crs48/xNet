@@ -22,6 +22,12 @@ export interface AiChatSettings {
   localBaseUrl?: string
   /** Hub base URL for the managed tier (default `''` = same origin). */
   hubBaseUrl?: string
+  /**
+   * Pairing code for the local bridge daemon, sent as `Authorization: Bearer`.
+   * Under Electron it's auto-supplied over IPC; in a plain browser the user
+   * pastes the code `xnet bridge serve` prints.
+   */
+  bridgeToken?: string
 }
 
 /** localStorage keys (xnet:* convention). */
@@ -30,6 +36,8 @@ export const AI_CHAT_STORAGE_KEYS = {
   cloudProvider: 'xnet:ai-cloud-provider',
   model: 'xnet:ai-model',
   localBaseUrl: 'xnet:ai-local-base-url',
+  /** The local-bridge pairing code (survives reload; per-launch tokens re-pair). */
+  bridgeToken: 'xnet:ai-bridge-token',
   /** The connector tier the user last selected (survives reload). */
   tier: 'xnet:ai-tier',
   /** Opt-in: use on-device semantic (vector) entry search (exploration 0211). */
@@ -114,12 +122,18 @@ export function providerConfigForConnector(
       }
     }
     case 'bridge': {
-      // The bridge daemon exposes an OpenAI-compatible endpoint on loopback.
+      // The bridge daemon exposes an OpenAI-compatible endpoint on loopback and
+      // now requires the pairing code as `Authorization: Bearer` — without it the
+      // daemon answers 401, so treat a missing code as "not configured yet".
       const baseUrl = baseUrlFromDetail(detection.detail)
-      if (!baseUrl) return null
+      if (!baseUrl || !settings.bridgeToken) return null
       return {
         type: 'openai-compatible',
-        options: { baseUrl, ...(settings.model ? { model: settings.model } : {}) }
+        options: {
+          baseUrl,
+          apiKey: settings.bridgeToken,
+          ...(settings.model ? { model: settings.model } : {})
+        }
       }
     }
     default:
