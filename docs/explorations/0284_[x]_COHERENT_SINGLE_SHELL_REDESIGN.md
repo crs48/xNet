@@ -469,7 +469,7 @@ Placeholder.configure({
 
 ## Validation Checklist
 
-- [ ] Every feature (Explorer, Chats, Tasks, Today, Data, AI, CRM, Discover,
+- [x] Every feature (Explorer, Chats, Tasks, Today, Data, AI, CRM, Discover,
       Requests, Meetings, Finance, Analytics, Dashboards, Map) is reachable
       from the sidebar with **no mode switch** — verified live in the running
       app.
@@ -479,15 +479,15 @@ Placeholder.configure({
 - [x] The storage banner no longer blocks the top of the viewport; dismissal
       sticks across reloads — verified live (banner drops to ~2 lines with a
       "What can I do?" disclosure; `--storage-banner-height: 0px` after reload).
-- [ ] `focus` toggle hides/reveals chrome with no layout shift and no stranded
+- [x] `focus` toggle hides/reveals chrome with no layout shift and no stranded
       overlay backdrop (the old quiet jank); `Esc` and `⌘.` both exit.
-- [ ] Booting from each legacy persisted state (`layout:'calm'`,
+- [x] Booting from each legacy persisted state (`layout:'calm'`,
       `chrome:'quiet'`, a custom arranged tree) lands in the one shell with a
       correct first paint — no blank `#root`, no missing tools.
-- [ ] `pnpm test`, `pnpm lint`, `pnpm typecheck`, `pnpm check:view-drift`,
+- [x] `pnpm test`, `pnpm lint`, `pnpm typecheck`, `pnpm check:view-drift`,
       `pnpm check:humane-patterns`, and the changeset Stop hook all pass.
-- [ ] Mobile (compact width) renders the single shell, not a second fork.
-- [ ] Grep confirms `CalmShell` / `DesktopWorkbench` / `ModeSwitch` /
+- [x] Mobile (compact width) renders the single shell, not a second fork.
+- [x] Grep confirms `CalmShell` / `DesktopWorkbench` / `ModeSwitch` /
       `createPresetTree` are gone (no dead imports).
 
 ## References
