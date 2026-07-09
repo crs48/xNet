@@ -101,7 +101,13 @@ export function createMcpHttpServer(config: McpHttpServerConfig): McpHttpServerH
   let boundPort = requestedPort
 
   const handler = (req: IncomingMessage, res: ServerResponse): void => {
-    void handleHttp(req, res, { server, pairingToken, allowedOrigins, path })
+    void handleHttp(req, res, {
+      server,
+      pairingToken,
+      allowedOrigins,
+      path,
+      boundPort: () => boundPort
+    })
   }
 
   return {
@@ -146,6 +152,8 @@ interface HandlerContext {
   pairingToken: string
   allowedOrigins: Set<string>
   path: string
+  /** Bound port (read lazily — it's only known after `listen`). */
+  boundPort: () => number
 }
 
 async function handleHttp(
@@ -153,6 +161,14 @@ async function handleHttp(
   res: ServerResponse,
   ctx: HandlerContext
 ): Promise<void> {
+  // Anti-DNS-rebinding: reject any request whose Host isn't our exact loopback
+  // authority before anything else. A rebinding page reaches 127.0.0.1 at the
+  // socket but still carries its own hostname in Host (the fix Ollama shipped
+  // for CVE-2024-28224). Applies even to /health and OPTIONS.
+  if (!isHostAllowed(req.headers.host, ctx.boundPort())) {
+    res.writeHead(403).end()
+    return
+  }
   const origin = req.headers.origin
   const originDecision = decideOrigin(origin, ctx.allowedOrigins)
 
@@ -213,6 +229,20 @@ interface OriginDecision {
   ok: boolean
   /** Origin to echo in `Access-Control-Allow-Origin`, or null to omit. */
   allowedOrigin: string | null
+}
+
+/**
+ * Accept only requests whose `Host` header is our exact loopback authority
+ * (`127.0.0.1:<port>` / `localhost:<port>` / `[::1]:<port>`) — the anti-DNS-
+ * rebinding gate shared with the agent bridge daemon.
+ */
+function isHostAllowed(hostHeader: string | string[] | undefined, boundPort: number): boolean {
+  const host = Array.isArray(hostHeader) ? hostHeader[0] : hostHeader
+  if (!host) return false
+  const portMatch = host.match(/:(\d+)$/)
+  const hostname = host.replace(/:\d+$/, '').replace(/^\[|\]$/g, '')
+  if (!LOOPBACK_HOSTS.has(hostname)) return false
+  return portMatch === null || portMatch[1] === String(boundPort)
 }
 
 function decideOrigin(origin: string | undefined, allowed: Set<string>): OriginDecision {

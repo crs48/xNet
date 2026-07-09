@@ -66,6 +66,13 @@ export interface ConnectorEnv {
   probeBridge?: (baseUrl: string) => Promise<boolean>
   /** Bridge daemon base URL. Default: `http://127.0.0.1:31416`. */
   bridgeUrl?: string
+  /**
+   * This app's own origin (e.g. `https://app.xnet.fyi`). When provided, the
+   * `local-server` setup hint names the *exact* `OLLAMA_ORIGINS=<origin>` line to
+   * run — never a wildcard, which would let any site drive the user's local
+   * model. Default: unset (a generic hint).
+   */
+  appOrigin?: string
 }
 
 /** A named local model endpoint and how to detect it. */

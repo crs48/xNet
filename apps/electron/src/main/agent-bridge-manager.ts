@@ -28,6 +28,13 @@ export interface AgentBridgeStatus {
   running: boolean
   agent: string
   url?: string
+  /**
+   * The pairing token a browser must present as `Authorization: Bearer <token>`.
+   * Delivered to the renderer over IPC only — never over HTTP — so the xNet app
+   * can auto-pair; an external browser gets it via the `xnet bridge serve`
+   * pairing code instead. Present only while `running`.
+   */
+  token?: string
   detail?: string
 }
 
@@ -36,6 +43,20 @@ let status: AgentBridgeStatus = { running: false, agent: 'claude' }
 
 function resolveAgent(explicit?: string): string {
   return explicit ?? process.env.XNET_BRIDGE_AGENT ?? 'claude'
+}
+
+/**
+ * Browser origins allowed to reach the loopback bridge, on top of loopback
+ * origins. The deployed PWA must be listed here or its `https://app.xnet.fyi`
+ * origin is rejected by the daemon's origin gate. Self-hosters extend the set
+ * via `XNET_BRIDGE_ALLOWED_ORIGINS` (comma-separated).
+ */
+function resolveAllowedOrigins(): string[] {
+  const extra = (process.env.XNET_BRIDGE_ALLOWED_ORIGINS ?? '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+  return ['https://app.xnet.fyi', ...extra]
 }
 
 /**
@@ -77,7 +98,12 @@ export async function startAgentBridge(
   const mcpConfigPath = resolveMcpConfigPath()
   const args = buildAgentArgs(agentCmd, { ...(mcpConfigPath ? { mcpConfigPath } : {}) })
   const agent = cliChatAgent(runner, { command: agentCmd, cwd, args })
-  const server = createBridgeServer({ agent, agentName: agentCmd, version: app.getVersion() })
+  const server = createBridgeServer({
+    agent,
+    agentName: agentCmd,
+    version: app.getVersion(),
+    allowedOrigins: resolveAllowedOrigins()
+  })
   try {
     await server.start()
   } catch (err) {
@@ -89,7 +115,7 @@ export async function startAgentBridge(
     return status
   }
   handle = server
-  status = { running: true, agent: agentCmd, url: server.url }
+  status = { running: true, agent: agentCmd, url: server.url, token: server.pairingToken }
   return status
 }
 

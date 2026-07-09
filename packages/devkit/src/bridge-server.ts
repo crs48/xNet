@@ -11,14 +11,25 @@
  *   streaming (SSE, which is what the panel's provider requests) and one-shot.
  *
  * Hardened like the MCP HTTP transport (`@xnetjs/plugins` `mcp-http.ts`): binds
- * loopback only, answers `OPTIONS` preflights, gates by `Origin` (loopback +
- * an allowlist — never reflects `*` to an arbitrary site), and emits
+ * loopback only, validates the `Host` header (anti-DNS-rebinding), answers
+ * `OPTIONS` preflights, gates by `Origin` (loopback + an allowlist — never
+ * reflects `*` to an arbitrary site), requires a per-launch **pairing token** on
+ * the data endpoints (constant-time compared), and emits
  * `Access-Control-Allow-Private-Network` so an HTTPS page can reach the loopback
  * daemon (Chrome's Local Network Access flow).
+ *
+ * The token is the layer that survives regardless of browser: loopback-bind +
+ * origin allowlist alone is exactly the assumption DNS rebinding / a drive-by
+ * site defeats (the Ollama CVE-2024-28224 class). It is delivered out-of-band —
+ * the Electron main process injects it into its renderer over preload, and
+ * `xnet bridge serve` prints it as a pairing code the user pastes into the web
+ * app. `GET /health` stays unauthenticated so the connector ladder can detect
+ * the bridge before pairing.
  */
 
 import type { ChatAgent, ChatMessage } from './chat-agent'
 import type { AgentTaskResult } from './dev-loop'
+import { randomBytes, timingSafeEqual } from 'node:crypto'
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import { bridgeHealth, type BridgeRunRequest } from './bridge'
 
@@ -44,6 +55,14 @@ export interface BridgeServerConfig {
    */
   allowedOrigins?: string[]
   /**
+   * Shared secret required in `Authorization: Bearer <token>` on the data
+   * endpoints (`/v1/chat/completions`, `/run`). A cryptographically random token
+   * is generated when omitted; read it back from
+   * {@link BridgeServerHandle.pairingToken} to hand to the client out-of-band.
+   * `/health` is never gated, so detection works before pairing.
+   */
+  pairingToken?: string
+  /**
    * Optional code-task handler for `POST /run` (e.g. devkit `handleBridgeRun`):
    * isolate in a worktree → agent edits → gate → checkpoint/rollback. Opt-in —
    * when absent, `/run` answers 501. This is powerful (runs a coding agent + the
@@ -57,6 +76,8 @@ export interface BridgeServerHandle {
   stop(): Promise<void>
   /** Resolved base URL, valid after `start()`. */
   readonly url: string
+  /** The pairing token clients must present on the data endpoints. */
+  readonly pairingToken: string
 }
 
 export function createBridgeServer(config: BridgeServerConfig): BridgeServerHandle {
@@ -68,12 +89,21 @@ export function createBridgeServer(config: BridgeServerConfig): BridgeServerHand
   }
   const requestedPort = config.port ?? DEFAULT_BRIDGE_PORT
   const allowed = new Set(config.allowedOrigins ?? [])
+  const pairingToken = config.pairingToken ?? randomBytes(24).toString('base64url')
   const agentName = config.agentName ?? 'agent'
   const version = config.version ?? '0.1.0'
   let boundPort = requestedPort
   let server: Server | undefined
 
   const onRequest = async (req: IncomingMessage, res: ServerResponse): Promise<void> => {
+    // Reject any request whose Host isn't our exact loopback authority. This is
+    // the anti-DNS-rebinding gate: a rebinding page sends `Host: evil.com`, so it
+    // never reaches the origin/token checks below (the fix Ollama shipped for
+    // CVE-2024-28224). Checked before everything else.
+    if (!isHostAllowed(headerStr(req.headers.host), boundPort)) {
+      endStatus(res, 403)
+      return
+    }
     const origin = headerStr(req.headers.origin)
     const ok = isOriginAllowed(origin, allowed)
 
@@ -100,6 +130,10 @@ export function createBridgeServer(config: BridgeServerConfig): BridgeServerHand
     }
 
     if (req.method === 'POST' && path === '/v1/chat/completions') {
+      if (!isTokenValid(headerStr(req.headers.authorization), pairingToken)) {
+        sendJson(res, 401, { error: { message: 'invalid or missing pairing token' } })
+        return
+      }
       let body: Record<string, unknown>
       try {
         body = await readJson(req)
@@ -123,6 +157,10 @@ export function createBridgeServer(config: BridgeServerConfig): BridgeServerHand
     }
 
     if (req.method === 'POST' && path === '/run') {
+      if (!isTokenValid(headerStr(req.headers.authorization), pairingToken)) {
+        sendJson(res, 401, { error: { message: 'invalid or missing pairing token' } })
+        return
+      }
       if (!config.run) {
         sendJson(res, 501, { error: 'code tasks are not enabled on this bridge' })
         return
@@ -160,6 +198,7 @@ export function createBridgeServer(config: BridgeServerConfig): BridgeServerHand
     get url() {
       return `http://${host}:${boundPort}`
     },
+    pairingToken,
     start() {
       return new Promise<void>((resolve, reject) => {
         const created = createServer((req, res) => {
@@ -188,6 +227,30 @@ export function createBridgeServer(config: BridgeServerConfig): BridgeServerHand
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
+
+/**
+ * Accept only requests whose `Host` header is our exact loopback authority
+ * (`127.0.0.1:<port>` / `localhost:<port>` / `[::1]:<port>`). A DNS-rebinding
+ * page reaches `127.0.0.1` at the socket level but still carries the attacker's
+ * hostname in `Host`, so this rejects it before any handler runs.
+ */
+function isHostAllowed(hostHeader: string | undefined, boundPort: number): boolean {
+  if (!hostHeader) return false
+  const portMatch = hostHeader.match(/:(\d+)$/)
+  const hostname = hostHeader.replace(/:\d+$/, '').replace(/^\[|\]$/g, '')
+  if (!LOOPBACK_HOSTS.has(hostname)) return false
+  // A port is required in practice (the panel always hits an explicit port), but
+  // if absent we can't mismatch it; when present it must equal the bound port.
+  return portMatch === null || portMatch[1] === String(boundPort)
+}
+
+/** Constant-time compare of the presented `Authorization: Bearer <token>`. */
+function isTokenValid(authHeader: string | undefined, expected: string): boolean {
+  const presented = (authHeader ?? '').replace(/^Bearer\s+/i, '')
+  const a = Buffer.from(presented)
+  const b = Buffer.from(expected)
+  return a.length === b.length && timingSafeEqual(a, b)
+}
 
 function isOriginAllowed(origin: string | undefined, allowed: Set<string>): boolean {
   if (origin === undefined) return true // non-browser client (curl, the CLI)

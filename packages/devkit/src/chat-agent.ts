@@ -74,6 +74,52 @@ export function cliChatAgent(runner: CommandRunner, options: CliChatAgentOptions
   }
 }
 
+export interface OpenAiChatAgentOptions {
+  /** Base URL of an OpenAI-compatible server, e.g. `http://localhost:11434` (Ollama). */
+  baseUrl: string
+  /** Model id to request (e.g. `llama3.2`). */
+  model: string
+  /** Optional bearer token for the upstream (LM Studio / a keyed gateway). */
+  apiKey?: string
+  /** Per-turn timeout in ms. Default 120000. */
+  timeoutMs?: number
+  /** Injectable fetch for tests. Default: global `fetch`. */
+  fetchImpl?: typeof fetch
+}
+
+/**
+ * A {@link ChatAgent} that forwards the conversation to an upstream
+ * OpenAI-compatible server (Ollama's `/v1`, LM Studio, vLLM, …). This lets the
+ * hardened bridge daemon *front* a raw local model, so browser access to it goes
+ * through the same authenticated, origin-locked, Host-validated door as the CLI
+ * agents — instead of the user weakening the model server's own CORS. The reply
+ * is returned as text; the bridge streams it back as OpenAI SSE.
+ */
+export function openAiChatAgent(options: OpenAiChatAgentOptions): ChatAgent {
+  const fetchImpl = options.fetchImpl ?? fetch
+  const endpoint = `${options.baseUrl.replace(/\/+$/, '')}/v1/chat/completions`
+  return {
+    async chat(messages) {
+      const response = await fetchImpl(endpoint, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          ...(options.apiKey ? { authorization: `Bearer ${options.apiKey}` } : {})
+        },
+        body: JSON.stringify({ model: options.model, messages, stream: false }),
+        signal: AbortSignal.timeout(options.timeoutMs ?? 120_000)
+      })
+      if (!response.ok) {
+        throw new Error(`upstream model at ${options.baseUrl} failed (HTTP ${response.status})`)
+      }
+      const data = (await response.json()) as {
+        choices?: Array<{ message?: { content?: string } }>
+      }
+      return data.choices?.[0]?.message?.content?.trim() ?? ''
+    }
+  }
+}
+
 /** A test/dev {@link ChatAgent} that returns a scripted or derived reply. */
 export function fakeChatAgent(
   reply: (messages: ChatMessage[]) => string | Promise<string>
