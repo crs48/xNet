@@ -603,18 +603,10 @@ export function XNetDevToolsProvider({
     <DevToolsContext.Provider value={contextValue}>
       <InstrumentationContext.Provider value={instrumentationValue}>
         <div className="relative flex flex-col h-full">
-          <div
-            className="flex-1 overflow-hidden"
-            style={
-              isOpen && position === 'bottom'
-                ? { paddingBottom: `${height}px` }
-                : isOpen && position === 'right'
-                  ? { paddingRight: `${height}px` }
-                  : undefined
-            }
-          >
-            {children}
-          </div>
+          {/* The panel is now a hovering overlay island, so the content keeps
+              its full size and the island floats on top rather than reserving a
+              docked strip. */}
+          <div className="flex-1 overflow-hidden">{children}</div>
           {isOpen && <DevToolsPanel />}
           {!hideFab && (
             <DevToolsFab isOpen={isOpen} onToggle={toggle} initialOffset={fabInitialOffset} />
