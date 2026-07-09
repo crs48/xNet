@@ -4,5 +4,14 @@
   "title": "Dev-tools island now shows outside dev-only builds",
   "summary": "The docked developer-tools island (beside the status bar) now appears whenever the developer tools are actually available — matching where the old floating button used to show — instead of only in local dev servers, so it no longer disappears in preview builds while its space stays reserved in the status row.",
   "highlights": [],
-  "tags": ["devtools"]
+  "tags": [
+    "devtools"
+  ],
+  "pr": 429,
+  "mergedAt": "2026-07-09T09:53:27Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
