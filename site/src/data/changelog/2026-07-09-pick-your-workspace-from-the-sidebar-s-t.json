@@ -1,0 +1,10 @@
+{
+  "id": "2026-07-09-pick-your-workspace-from-the-sidebar-s-t",
+  "date": "July 9, 2026",
+  "title": "Pick your workspace from the sidebar's top selector",
+  "summary": "The workspace selector at the top of the sidebar now switches which workspace (Space) you're scoped to and filing into — it no longer changes your shell layout. The old workspace-filter chips and the duplicate New button have been removed from the Explorer, which now stays focused on your files.",
+  "highlights": [],
+  "tags": [
+    "app"
+  ]
+}

@@ -185,7 +185,7 @@ function TopIsland({ openMenu }: { openMenu: OpenMenu }) {
             </button>
             <button
               type="button"
-              onClick={() => void getCommandRegistry().runCommand('workspace.switch')}
+              onClick={openMenu('workspace')}
               className="flex h-[30px] min-w-0 flex-1 items-center gap-2 rounded-lg border-none bg-transparent px-1.5 cursor-pointer hover:bg-background-muted"
               data-coach="workspace.switch"
             >
@@ -251,7 +251,7 @@ function TopIsland({ openMenu }: { openMenu: OpenMenu }) {
             </button>
             <button
               type="button"
-              onClick={() => void getCommandRegistry().runCommand('workspace.switch')}
+              onClick={openMenu('workspace')}
               className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg border-none bg-transparent px-2 py-1.5 cursor-pointer hover:bg-background-muted"
               data-coach="workspace.switch"
             >
