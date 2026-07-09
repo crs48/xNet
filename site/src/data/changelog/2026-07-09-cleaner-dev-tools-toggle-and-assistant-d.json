@@ -1,0 +1,10 @@
+{
+  "id": "2026-07-09-cleaner-dev-tools-toggle-and-assistant-d",
+  "date": "July 9, 2026",
+  "title": "Cleaner dev-tools toggle and Assistant dock spacing",
+  "summary": "The dev-tools button beside the status bar now toggles the panel directly instead of opening a menu. The floating Assistant dock now uses the same 8px spacing as the other islands — it no longer floats with extra margin on the left, right, and bottom.",
+  "highlights": [],
+  "tags": [
+    "app"
+  ]
+}
