@@ -2,13 +2,30 @@
  * Tab navigation helper — the router stays authoritative, so every
  * tab activation goes through navigate(); the route effect in
  * EditorArea reconciles the store afterwards.
+ *
+ * VS Code-style preview tabs (0284): opening a node from a single click is
+ * a *preview* by default — it renders italic and is replaced by the next
+ * single-click open. Editing it, or double-clicking its tab/source row,
+ * promotes it to a permanent tab. Centralizing the preview intent here means
+ * every single-click source (explorer, home list, chat links, person/space/
+ * tag views, desk) gets the behavior without each remembering to opt in.
+ * Pass `{ preview: false }` for activation of an already-open tab, and note
+ * that deep links / back-forward / creation never route through here, so
+ * they stay permanent.
  */
 import type { TabNodeType } from './state'
 import type { useNavigate } from '@tanstack/react-router'
+import { setPreviewIntent } from './tabs'
 
 type Navigate = ReturnType<typeof useNavigate>
 
-export function navigateToNode(navigate: Navigate, nodeType: TabNodeType, nodeId: string): void {
+export function navigateToNode(
+  navigate: Navigate,
+  nodeType: TabNodeType,
+  nodeId: string,
+  opts: { preview?: boolean } = {}
+): void {
+  if (opts.preview !== false) setPreviewIntent()
   switch (nodeType) {
     case 'page':
       void navigate({ to: '/doc/$docId', params: { docId: nodeId } })

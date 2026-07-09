@@ -31,7 +31,7 @@ function navigateToActiveTab(navigate: Navigate): void {
   const group = state.groups.find((g) => g.id === state.activeGroupId)
   const tab = group?.tabs.find((t) => t.id === group.activeTabId)
   if (tab) {
-    navigateToNode(navigate, tab.nodeType, tab.nodeId)
+    navigateToNode(navigate, tab.nodeType, tab.nodeId, { preview: false })
   } else {
     void navigate({ to: '/' })
   }
@@ -151,7 +151,7 @@ function TabItem({
     const state = useWorkbench.getState()
     state.focusGroup(group.id)
     state.activateTab(tab.id, group.id)
-    navigateToNode(navigate, tab.nodeType, tab.nodeId)
+    navigateToNode(navigate, tab.nodeType, tab.nodeId, { preview: false })
   }
 
   const close = () => {

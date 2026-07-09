@@ -19,7 +19,8 @@ import { useQueryTimer } from '../lib/read-path-probe'
 import { useInstantRows } from '../lib/use-instant-rows'
 import { useRestoringFromHub } from '../lib/use-restoring'
 import { navigateToNode } from '../workbench/navigation'
-import { useWorkbench } from '../workbench/state'
+import { tabIdFor, useWorkbench } from '../workbench/state'
+import { setPreviewIntent } from '../workbench/tabs'
 import { hasOnboarded } from './welcome'
 
 export const Route = createFileRoute('/')({
@@ -272,6 +273,13 @@ function HomePage() {
                     <Link
                       to={route.to}
                       params={route.params}
+                      // VS Code-style preview tabs (0284): a single click opens
+                      // an italic preview that the next open replaces; a
+                      // double-click promotes it to a permanent tab.
+                      onClick={() => setPreviewIntent()}
+                      onDoubleClick={() =>
+                        useWorkbench.getState().promoteTab(tabIdFor(doc.type, doc.id))
+                      }
                       className="flex items-center gap-3 py-4 text-foreground no-underline hover:no-underline hover:bg-accent/30 -mx-2 px-2 rounded-md transition-colors"
                     >
                       <Icon size={18} className="text-muted-foreground flex-shrink-0" />
