@@ -108,7 +108,7 @@ function StorageStatus() {
   )
 }
 
-export function StatusBar() {
+export function StatusBar({ variant = 'bar' }: { variant?: 'bar' | 'island' }) {
   const items = useWorkbenchStatus((state) => state.items)
   const jobs = useWorkbenchStatus((state) => state.jobs)
   const { resolvedTheme, toggleTheme } = useTheme()
@@ -131,8 +131,15 @@ export function StatusBar() {
   const rightItems = itemList.filter((item) => item.side === 'right')
   const jobList = Object.values(jobs)
 
+  // In the Floating shell (0286) the status bar is its own rounded island, so
+  // it fills the island wrapper and drops its own top border / surface fill.
+  const footerClass =
+    variant === 'island'
+      ? 'flex h-full w-full items-center gap-4 px-3.5 font-mono text-[11px] text-ink-2'
+      : 'flex h-6 shrink-0 items-center gap-4 border-t border-hairline bg-surface-2 px-3 font-mono text-[11px] text-ink-2'
+
   return (
-    <footer className="flex h-6 shrink-0 items-center gap-4 border-t border-hairline bg-surface-2 px-3 font-mono text-[11px] text-ink-2">
+    <footer className={footerClass}>
       {/* Workspace scope */}
       <SyncStatus />
       <StorageStatus />

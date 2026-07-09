@@ -235,41 +235,41 @@ already provides this on explorer rows), surfaces roll-out, command palette
       `--island`, `--island-b`, `--isl-shadow`, `--pop-shadow` to
       `tokens.css`; expose `island` / `island-b` / `canvas` colors and
       `shadow-isl` / `shadow-pop` in the Tailwind theme.
-- [ ] `FloatingFrame`: root canvas column (11px pad / 8px gap), body row with
+- [x] `FloatingFrame`: root canvas column (11px pad / 8px gap), body row with
       sidebar + editor (base surface) + right island, status-bar island; wire
       `showSidebar`/`showRight`/`focus` from the store.
-- [ ] Sidebar top island: avatar→profile, workspace selector→workspace menu,
+- [x] Sidebar top island: avatar→profile, workspace selector→workspace menu,
       Search→palette, New→new menu, primary `navPinned` rows (active wash +
       counts), More→surfaces flyout with hidden count.
-- [ ] Sidebar bottom island: contextual header + body switched by
+- [x] Sidebar bottom island: contextual header + body switched by
       `activeSurface`; Explorer (pinned + folder tree, reusing existing
       explorer views + 0285 row context menu), Tasks (Checkbox + done/total),
       Inbox / Chats / generic surfaces wired to representative data (real hooks
       where wired).
-- [ ] Surfaces roll-out flyout: navigate on row click, pin toggle mutates
+- [x] Surfaces roll-out flyout: navigate on row click, pin toggle mutates
       `navPinned`; anchored to the right of the More row.
-- [ ] Store: `activeSurface` + `setActiveSurface`; `navPinned` +
+- [x] Store: `activeSurface` + `setActiveSurface`; `navPinned` +
       `toggleNavPinned` (persisted); `floatAi`/`floatCall` + setters;
       `sidebarWidth` setting.
-- [ ] Editor header (50px): sidebar toggle, breadcrumb, facepile + `+N`, Share
+- [x] Editor header (50px): sidebar toggle, breadcrumb, facepile + `+N`, Share
       primary Button, comments toggle (accent when right open), notifications
       bell + dot → notif menu, ⋯ more.
-- [ ] Pill-tab strip (42px): pills from the tab store (active accent wash,
+- [x] Pill-tab strip (42px): pills from the tab store (active accent wash,
       close ×, `+` new-tab), split-view + history icon buttons on the right.
-- [ ] Right island: underline Tabs (Comments/Properties/Activity) + close;
+- [x] Right island: underline Tabs (Comments/Properties/Activity) + close;
       comments composer, properties key/values, activity timeline.
-- [ ] Status-bar island (32px): synced StatusDot, branch, peers; words, ⌘K,
+- [x] Status-bar island (32px): synced StatusDot, branch, peers; words, ⌘K,
       saved, theme toggle.
-- [ ] Floating dock: Assistant island (`flex:1`, bubbles + drafting + composer,
+- [x] Floating dock: Assistant island (`flex:1`, bubbles + drafting + composer,
       minimize/close) + Video-call island (236px, tile + controls + leave),
       each dismissable; container positioned with the 8px-gap math + focus/
       hidden-panel fallbacks; `pointer-events` correct.
-- [ ] Popovers: workspace, new, notifications, profile, surfaces, command
+- [x] Popovers: workspace, new, notifications, profile, surfaces, command
       palette — single-open, backdrop-close, anchored; palette centered with
       dimmed backdrop. Reuse `@xnetjs/ui` primitives / existing GlobalSearch.
 - [ ] Light + dark parity: content stays the brightest plane in both; toggle in
       the status bar flips `dark`.
-- [ ] MobileShell unaffected (or given the canvas background); compact width
+- [x] MobileShell unaffected (or given the canvas background); compact width
       still routes to it.
 
 ## Validation Checklist

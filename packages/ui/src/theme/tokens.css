@@ -376,7 +376,8 @@
 
      Because this is the new default look for the desktop shell, the override
      lives here (not behind a variant flag); the `linear` accent variant still
-     composes on top (accent-ink only). */
+     composes on top (accent-ink only). `dark` lives on <html>, so the dark
+     scope is a descendant selector (`.dark .wb-root`), not `.wb-root.dark`. */
   .wb-root {
     --canvas: 44 40% 98%;
     --island: 44 40% 98%;
@@ -396,6 +397,7 @@
     --pop-shadow: 0 8px 20px hsl(34 20% 26% / 0.14), 0 22px 50px hsl(34 22% 18% / 0.2);
   }
 
+  .dark .wb-root,
   .wb-root.dark {
     --canvas: 30 8% 11.5%;
     --island: 30 8% 11.5%;

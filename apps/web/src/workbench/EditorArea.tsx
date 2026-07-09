@@ -24,7 +24,7 @@ import {
   type TabNodeType,
   type WorkbenchTab
 } from './state'
-import { TabBar } from './TabBar'
+import { TabBar, type TabVariant } from './TabBar'
 import { TabBreadcrumb } from './TabBreadcrumb'
 import { syncRouteToTabs, tabFromPathname, TAB_VIEWS } from './tabs'
 import { ViewHost } from './ViewHost'
@@ -146,14 +146,16 @@ function useTabCommands(navigate: Navigate): void {
 function GroupTabStrip({
   mode,
   group,
-  routed
+  routed,
+  tabVariant
 }: {
   mode: string
   group: EditorGroup
   routed: boolean
+  tabVariant: TabVariant
 }) {
   if (mode === 'zen' || group.tabs.length === 0) return null
-  return <TabBar group={group} routed={routed} />
+  return <TabBar group={group} routed={routed} variant={tabVariant} />
 }
 
 function ActiveGroupOutlet({
@@ -203,11 +205,13 @@ function GroupPane({
   group,
   isActive,
   routed,
+  tabVariant,
   children
 }: {
   group: EditorGroup
   isActive: boolean
   routed: boolean
+  tabVariant: TabVariant
   children: ReactNode
 }) {
   const navigate = useNavigate()
@@ -216,7 +220,7 @@ function GroupPane({
 
   return (
     <div
-      className="flex h-full min-h-0 flex-col bg-surface-0"
+      className={`flex h-full min-h-0 flex-col ${tabVariant === 'pill' ? 'bg-canvas' : 'bg-surface-0'}`}
       onMouseDownCapture={() => {
         if (isActive) return
         const state = useWorkbench.getState()
@@ -225,8 +229,9 @@ function GroupPane({
         if (tab) navigateToNode(navigate, tab.nodeType, tab.nodeId)
       }}
     >
-      <GroupTabStrip mode={mode} group={group} routed={routed} />
-      {mode !== 'zen' && <TabBreadcrumb tab={activeTab} />}
+      <GroupTabStrip mode={mode} group={group} routed={routed} tabVariant={tabVariant} />
+      {/* The floating shell (pill) carries the breadcrumb in its editor header. */}
+      {mode !== 'zen' && tabVariant !== 'pill' && <TabBreadcrumb tab={activeTab} />}
       <div className="min-h-0 flex-1">
         <GroupContent isActive={isActive} activeTab={activeTab} routed={routed}>
           {children}
@@ -265,7 +270,13 @@ function StarterChips() {
   )
 }
 
-export function EditorArea({ children }: { children: ReactNode }) {
+export function EditorArea({
+  children,
+  tabVariant = 'strip'
+}: {
+  children: ReactNode
+  tabVariant?: TabVariant
+}) {
   const location = useLocation()
   const navigate = useNavigate()
   const groups = useWorkbench((state) => state.groups)
@@ -323,6 +334,7 @@ export function EditorArea({ children }: { children: ReactNode }) {
                 group={group}
                 isActive={group.id === activeGroupId}
                 routed={group.id === activeGroupId && group.activeTabId === routedTabId}
+                tabVariant={tabVariant}
               >
                 {outlet}
               </GroupPane>

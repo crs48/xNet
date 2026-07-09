@@ -254,6 +254,36 @@ interface WorkbenchState {
    */
   focus: boolean
 
+  // ─── Floating Islands shell (0286) ─────────────────────────────
+  /**
+   * The primary surface the contextual (bottom) sidebar island shows in the
+   * Floating shell — a view id (`explorer`, `tasks`, …) or a route surface
+   * id. Persisted so the user returns to the surface they left on.
+   */
+  activeSurface: string
+  /**
+   * Surfaces pinned to the top sidebar island's primary rows. The rest live
+   * in the "More" surfaces roll-out. Persisted (the user's curation).
+   */
+  navPinned: string[]
+  /** Sidebar island width in px (tweakable knob, 230–320; default 264). */
+  sidebarWidth: number
+  /** Floating Assistant chat island visible (dismissable). */
+  floatAi: boolean
+  /** Floating video-call island visible (dismissable). */
+  floatCall: boolean
+
+  /** Set the active primary surface (drives the bottom sidebar island). */
+  setActiveSurface: (surface: string) => void
+  /** Pin/unpin a surface to the top island's primary rows. */
+  toggleNavPinned: (surface: string) => void
+  /** Set the sidebar island width (clamped 230–320). */
+  setSidebarWidth: (width: number) => void
+  /** Show/hide the floating Assistant island. */
+  setFloatAi: (open: boolean) => void
+  /** Show/hide the floating video-call island. */
+  setFloatCall: (open: boolean) => void
+
   // ─── Spaces ────────────────────────────────────────────────────
   setCurrentSpace: (spaceId: string | null) => void
   setSpaceFilter: (ids: string[]) => void
@@ -417,6 +447,14 @@ export const useWorkbench = create<WorkbenchState>()(
       zenSnapshot: null,
       sidebarCollapsed: false,
       focus: false,
+      activeSurface: 'explorer',
+      navPinned: ['explorer', 'requests', 'tasks'],
+      sidebarWidth: 264,
+      // The Assistant floats by default (a launcher to the AI surface); the
+      // video-call island stays off until a real calling backend is wired
+      // (0286) — no fabricated live-call state is shown at rest.
+      floatAi: true,
+      floatCall: false,
       left: { open: true, activeViewId: 'explorer' },
       right: { open: false, activeViewId: 'context' },
       bottom: { open: false, activeViewId: 'tray' },
@@ -477,6 +515,18 @@ export const useWorkbench = create<WorkbenchState>()(
       setSidebarCollapsed: (sidebarCollapsed) => set({ sidebarCollapsed }),
       toggleFocus: () => set((state) => ({ focus: !state.focus })),
       setFocus: (focus) => set({ focus }),
+
+      // ─── Floating Islands shell (0286) ───────────────────────────
+      setActiveSurface: (activeSurface) => set({ activeSurface }),
+      toggleNavPinned: (surface) =>
+        set((state) => ({
+          navPinned: state.navPinned.includes(surface)
+            ? state.navPinned.filter((id) => id !== surface)
+            : [...state.navPinned, surface]
+        })),
+      setSidebarWidth: (width) => set({ sidebarWidth: Math.max(230, Math.min(320, width)) }),
+      setFloatAi: (floatAi) => set({ floatAi }),
+      setFloatCall: (floatCall) => set({ floatCall }),
 
       // Switching layout is choosing a preset (0280): the legacy axes stay
       // coherent with the tree so both renderers agree during the rollout.
@@ -868,7 +918,14 @@ export const useWorkbench = create<WorkbenchState>()(
       partialize: (state) =>
         Object.fromEntries(
           Object.entries(state).filter(
-            ([key]) => key !== 'discloseLevel' && key !== 'arranging' && key !== 'focus'
+            ([key]) =>
+              key !== 'discloseLevel' &&
+              key !== 'arranging' &&
+              key !== 'focus' &&
+              // Floating dock visibility is live session state (0286) — a
+              // reload always restores the default dock, never a stuck-closed one.
+              key !== 'floatAi' &&
+              key !== 'floatCall'
           )
         ) as WorkbenchState
     }
