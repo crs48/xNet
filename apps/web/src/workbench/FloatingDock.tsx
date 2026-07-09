@@ -15,8 +15,6 @@ import { useState } from 'react'
 import { useWorkbench } from './state'
 
 const RIGHT_ISLAND = 300
-const STATUS_ISLAND = 32
-const PAD = 11
 const GAP = 8
 
 function Assistant() {
@@ -139,9 +137,13 @@ export function FloatingDock() {
   const sidebarWidth = useWorkbench((s) => s.sidebarWidth)
   const rightOpen = useWorkbench((s) => s.right.open)
 
-  const left = !sidebarCollapsed ? PAD + sidebarWidth + GAP : PAD
-  const right = rightOpen ? PAD + RIGHT_ISLAND + GAP : PAD
-  const bottom = PAD + STATUS_ISLAND + GAP
+  // The dock is absolutely positioned inside the body row, so its offsets are
+  // relative to that row (which already sits inside the 11px root padding and
+  // above the status island). An 8px gap to each neighbour: the sidebar/right
+  // islands on the sides, the status island below (the root's 8px row gap).
+  const left = !sidebarCollapsed ? sidebarWidth + GAP : 0
+  const right = rightOpen ? RIGHT_ISLAND + GAP : 0
+  const bottom = 0
 
   if (!floatAi && !floatCall) {
     // Compact reopener so a dismissed Assistant is one click away.
