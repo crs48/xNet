@@ -377,9 +377,9 @@ drillTimer.unref()
 
 - [ ] **[P0]** Add a blob/file **sync sidecar** to the hub image + entrypoint (`rclone`/`aws s3 sync` `dataDir/{blobs,files}` ↔ R2, restore after `litestream restore`, flush on shutdown before DB drain).
 - [x] **[P0]** Implement `readLitestreamLastSyncMs` + Litestream `addr` (localhost) in the generated config; add `backup.lastSyncMs`/`fresh` to hub `/health`.
-- [ ] **[P0]** Make `demoteIfCold`'s `assertSynced` **mandatory** in `apps/cloud` wiring, backed by `/health` `lastSyncMs`; fail closed on unknown.
+- [x] **[P0]** Make `demoteIfCold`'s `assertSynced` **mandatory** in `apps/cloud` wiring, backed by `/health` `lastSyncMs`; fail closed on unknown.
 - [ ] **[P1]** Build the **R2-native blob store** adapter behind [`storage/interface.ts`](../../packages/hub/src/storage/interface.ts); back-fill existing blobs; switch reads; retire the sidecar.
-- [ ] **[P1]** Schedule `runRestoreDrills` (nightly, rotating sample) + a cold-demotion sweep in [`apps/cloud/src/index.ts`](../../apps/cloud/src/index.ts); emit results + alert on failure.
+- [x] **[P1]** Schedule `runRestoreDrills` (nightly, rotating sample) + a cold-demotion sweep in [`apps/cloud/src/index.ts`](../../apps/cloud/src/index.ts); emit results + alert on failure.
 - [ ] **[P1]** Configure Litestream **snapshot retention** + hourly **`VACUUM INTO → R2`** archive (size/interval-scoped).
 - [ ] **[P2]** Add **Litestream VFS** reactivation path (env-flagged); keep full-file restore fallback.
 - [ ] **[P2]** Dashboard "data safe as of `lastSyncMs`" indicator (extends [`dashboard.ts`](../../apps/cloud/src/dashboard.ts)).

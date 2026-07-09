@@ -612,6 +612,11 @@ export class ControlPlane {
     return this.deps.tenants.get(tenantId)
   }
 
+  /** The substrate provisioner — exposed for the nightly restore drill (0288/0193). */
+  get provisioner(): Provisioner {
+    return this.deps.provisioner
+  }
+
   /** Every tenant the control plane knows about (fleet observability + rollouts). */
   listTenants(): Promise<TenantRecord[]> {
     return this.deps.tenants.list()

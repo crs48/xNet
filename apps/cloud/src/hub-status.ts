@@ -23,7 +23,14 @@ export interface HubHealth {
   connections?: { active?: number; max?: number }
   memory?: { rss?: number; heapUsed?: number }
   storage?: { usedBytes?: number }
-  backup?: { replicating?: boolean; lastWriteMs?: number | null }
+  backup?: {
+    replicating?: boolean
+    lastWriteMs?: number | null
+    /** Measured R2 replica sync time (exploration 0288); absent on older hubs. */
+    lastSyncMs?: number | null
+    /** Hub's own freshness verdict — the cold-demotion gate (fails closed). */
+    fresh?: boolean
+  }
 }
 
 /** The composed payload returned by `GET /dashboard/live.json`. */
