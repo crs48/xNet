@@ -625,10 +625,10 @@ stateDiagram-v2
       `@xnetjs/ui` root barrel (0276 policy).
 - [x] Add a Storybook story + keep the plugins storybook shim in sync
       (recurring gotcha from 0282/0284).
-- [ ] Write `packages/react/src/hooks/useNodeActions.ts` bridging
+- [x] Write `packages/react/src/hooks/useNodeActions.ts` bridging
       `useMutate` / `useSpaces` / `useExplorerFolders`; export via the
       hooks sub-barrel.
-- [ ] **PR1 Explorer:** wrap `ExplorerRow`, `FolderRow`, `SpaceRow`, tag
+- [x] **PR1 Explorer:** wrap `ExplorerRow`, `FolderRow`, `SpaceRow`, tag
       rows; add rename (inline) + delete/Trash for node rows; surface
       `renameSpace`/`archiveSpace`/`setSpaceVisibility`/`setSpaceParent`;
       point existing hover kebabs at the same `ActionMenuList`.

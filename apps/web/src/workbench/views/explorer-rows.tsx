@@ -1,22 +1,32 @@
 /**
- * Explorer row primitives (0166, folders in 0169).
+ * Explorer row primitives (0166, folders in 0169, context menu in 0285).
  *
  * One row component serves both the flat lists and the folder tree:
  * rows drag (unified node transfer + canvas-legacy MIME), accept drops
- * for insert-before reordering inside a folder, and expose pin and
- * move-to-folder affordances on hover.
+ * for insert-before reordering inside a folder, expose a sidebar-pin
+ * toggle, and carry the full verb set on right-click (or the hover "⋯"
+ * kebab) — rename, move to workspace/folder, pin, delete.
  */
 import { useNavigate } from '@tanstack/react-router'
 import { CANVAS_INTERNAL_NODE_MIME, serializeCanvasInternalNodeDragData } from '@xnetjs/canvas'
-import { hasNodeTransfer, getNodeTransfer, setNodeTransfer, type NodeTransfer } from '@xnetjs/ui'
-import { FolderInput, LampDesk, Pin, Users } from 'lucide-react'
-import { useState } from 'react'
-import { useSpaces } from '../../hooks/useSpaces'
+import { useMutate } from '@xnetjs/react'
+import {
+  ActionDropdownItems,
+  ActionMenuList,
+  ContextMenu,
+  Menu,
+  hasNodeTransfer,
+  getNodeTransfer,
+  setNodeTransfer,
+  type NodeTransfer
+} from '@xnetjs/ui'
+import { MoreHorizontal, Pin } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { useNodeActions } from '../../hooks/useNodeActions'
 import { navigateToNode } from '../navigation'
 import { tabIdFor, useWorkbench } from '../state'
 import { setPreviewIntent, TAB_VIEWS } from '../tabs'
-import { useExplorerFolders } from './explorer-folders-context'
-import { SCHEMA_IDS, type ExplorerItem } from './explorer-items'
+import { EXPLORER_SCHEMAS, SCHEMA_IDS, type ExplorerItem } from './explorer-items'
 
 export {
   EXPLORER_SCHEMAS,
@@ -46,143 +56,55 @@ function ExplorerPinToggle({ nodeId, pinned }: { nodeId: string; pinned: boolean
   )
 }
 
-/** Queue this node onto the Desk (0273); the Desk drains it when visible. */
-function PinToDeskButton({ item }: { item: ExplorerItem }) {
-  return (
-    <button
-      type="button"
-      title="Pin to Desk"
-      aria-label="Pin to Desk"
-      onClick={(event) => {
-        event.stopPropagation()
-        useWorkbench.getState().queueDeskPin({
-          nodeId: item.id,
-          schemaId: SCHEMA_IDS[item.type],
-          title: item.title || 'Untitled'
-        })
-      }}
-      className="invisible shrink-0 cursor-pointer border-none bg-transparent p-0 text-ink-3 hover:text-ink-1 group-hover:visible"
-    >
-      <LampDesk size={11} strokeWidth={1.5} />
-    </button>
+/**
+ * The shared action list for a node, rendered inside the menu popup so its
+ * `useNodeActions` (which runs space/folder queries) only mounts on open.
+ */
+function NodeRowMenuBody({
+  item,
+  pinned,
+  variant,
+  onOpen,
+  onRename
+}: {
+  item: ExplorerItem
+  pinned: boolean
+  variant: 'context' | 'dropdown'
+  onOpen: () => void
+  onRename: () => void
+}) {
+  const actions = useNodeActions({ item, pinned, onOpen, onRename })
+  return variant === 'context' ? (
+    <ActionMenuList actions={actions} />
+  ) : (
+    <ActionDropdownItems actions={actions} />
   )
 }
 
-function MoveToFolderMenu({ item, onClose }: { item: ExplorerItem; onClose: () => void }) {
-  const { folderRows, moveItemToFolder } = useExplorerFolders()
-  const choose = (folderId: string | null) => {
-    void moveItemToFolder(item, folderId)
-    onClose()
-  }
+/** Hover "⋯" kebab — the visible twin of the right-click menu. */
+function NodeRowKebab(props: {
+  item: ExplorerItem
+  pinned: boolean
+  onOpen: () => void
+  onRename: () => void
+}) {
   return (
-    <div className="absolute right-0 top-full z-20 mt-1 max-h-64 w-44 overflow-y-auto rounded-md border border-hairline bg-popover py-1">
-      <button
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation()
-          choose(null)
-        }}
-        className="block w-full cursor-pointer border-none bg-transparent px-3 py-1.5 text-left text-xs text-ink-2 hover:bg-accent hover:text-ink-1"
-      >
-        Unfiled
-      </button>
-      {folderRows.map((row) => (
+    <Menu
+      align="start"
+      trigger={
         <button
-          key={row.folder.id}
           type="button"
-          onClick={(event) => {
-            event.stopPropagation()
-            choose(row.folder.id)
-          }}
-          style={{ paddingLeft: 12 + row.depth * 12 }}
-          className="block w-full cursor-pointer truncate border-none bg-transparent py-1.5 pr-3 text-left text-xs text-ink-2 hover:bg-accent hover:text-ink-1"
+          title="More actions"
+          aria-label="More actions"
+          onClick={(event) => event.stopPropagation()}
+          className="invisible shrink-0 cursor-pointer border-none bg-transparent p-0 text-ink-3 hover:text-ink-1 group-hover:visible"
         >
-          {row.folder.name || 'Untitled folder'}
+          <MoreHorizontal size={13} strokeWidth={1.5} />
         </button>
-      ))}
-    </div>
-  )
-}
-
-function MoveToFolderButton({ item }: { item: ExplorerItem }) {
-  const [open, setOpen] = useState(false)
-  return (
-    <span className="relative shrink-0">
-      <button
-        type="button"
-        title="Move to folder…"
-        aria-label="Move to folder…"
-        onClick={(event) => {
-          event.stopPropagation()
-          setOpen((prev) => !prev)
-        }}
-        className="invisible cursor-pointer border-none bg-transparent p-0 text-ink-3 hover:text-ink-1 group-hover:visible"
-      >
-        <FolderInput size={11} strokeWidth={1.5} />
-      </button>
-      {open && <MoveToFolderMenu item={item} onClose={() => setOpen(false)} />}
-    </span>
-  )
-}
-
-/** Move-to-Space menu. Mounted only when open, so `useSpaces` doesn't run per row. */
-function MoveToSpaceMenu({ item, onClose }: { item: ExplorerItem; onClose: () => void }) {
-  const { spaces, setNodeSpace } = useSpaces()
-  const choose = (spaceId: string | null) => {
-    void setNodeSpace(item.id, spaceId)
-    onClose()
-  }
-  return (
-    <div className="absolute right-0 top-full z-20 mt-1 max-h-64 w-44 overflow-y-auto rounded-md border border-hairline bg-popover py-1">
-      <button
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation()
-          choose(null)
-        }}
-        className="block w-full cursor-pointer border-none bg-transparent px-3 py-1.5 text-left text-xs text-ink-2 hover:bg-accent hover:text-ink-1"
-      >
-        No Space
-      </button>
-      {spaces.length === 0 ? (
-        <p className="m-0 px-3 py-1.5 text-[11px] text-ink-3">No Spaces yet.</p>
-      ) : (
-        spaces.map((space) => (
-          <button
-            key={space.id}
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation()
-              choose(space.id)
-            }}
-            className="block w-full cursor-pointer truncate border-none bg-transparent px-3 py-1.5 text-left text-xs text-ink-2 hover:bg-accent hover:text-ink-1"
-          >
-            {space.name || 'Untitled space'}
-          </button>
-        ))
-      )}
-    </div>
-  )
-}
-
-function MoveToSpaceButton({ item }: { item: ExplorerItem }) {
-  const [open, setOpen] = useState(false)
-  return (
-    <span className="relative shrink-0">
-      <button
-        type="button"
-        title="Move to Space…"
-        aria-label="Move to Space…"
-        onClick={(event) => {
-          event.stopPropagation()
-          setOpen((prev) => !prev)
-        }}
-        className="invisible cursor-pointer border-none bg-transparent p-0 text-ink-3 hover:text-ink-1 group-hover:visible"
-      >
-        <Users size={11} strokeWidth={1.5} />
-      </button>
-      {open && <MoveToSpaceMenu item={item} onClose={() => setOpen(false)} />}
-    </span>
+      }
+    >
+      <NodeRowMenuBody {...props} variant="dropdown" />
+    </Menu>
   )
 }
 
@@ -199,72 +121,121 @@ export function ExplorerRow({
   onDropBefore?: (transfer: NodeTransfer) => void
 }) {
   const navigate = useNavigate()
+  const { update } = useMutate()
   const [dropping, setDropping] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
   const Icon = TAB_VIEWS[item.type].icon
   const title = item.title || 'Untitled'
 
+  const open = () => {
+    setPreviewIntent()
+    navigateToNode(navigate, item.type, item.id)
+  }
+
+  const commitRename = (value: string) => {
+    const next = value.trim()
+    setEditing(false)
+    if (next && next !== item.title) {
+      void update(EXPLORER_SCHEMAS[item.type], item.id, { title: next })
+    }
+  }
+
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      draggable
-      data-explorer-item-id={item.id}
-      onDragStart={(event) => {
-        event.dataTransfer.effectAllowed = 'copyMove'
-        setNodeTransfer(event, {
-          nodeId: item.id,
-          nodeType: item.type,
-          title,
-          schemaId: SCHEMA_IDS[item.type],
-          sourceContext: 'explorer'
-        })
-        event.dataTransfer.setData(
-          CANVAS_INTERNAL_NODE_MIME,
-          serializeCanvasInternalNodeDragData({
-            nodeId: item.id,
-            schemaId: SCHEMA_IDS[item.type],
-            title
-          })
-        )
-      }}
-      onDragOver={(event) => {
-        if (!onDropBefore || !hasNodeTransfer(event)) return
-        event.preventDefault()
-        setDropping(true)
-      }}
-      onDragLeave={() => setDropping(false)}
-      onDrop={(event) => {
-        setDropping(false)
-        if (!onDropBefore) return
-        const transfer = getNodeTransfer(event)
-        if (!transfer) return
-        event.preventDefault()
-        event.stopPropagation()
-        onDropBefore(transfer)
-      }}
-      onClick={() => {
-        setPreviewIntent()
-        navigateToNode(navigate, item.type, item.id)
-      }}
-      onDoubleClick={() => {
-        useWorkbench.getState().promoteTab(tabIdFor(item.type, item.id))
-      }}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter') {
-          navigateToNode(navigate, item.type, item.id)
-        }
-      }}
-      style={depth > 0 ? { paddingLeft: 8 + depth * 14 } : undefined}
-      className={`group flex h-[26px] cursor-pointer items-center gap-2 rounded-sm px-2 text-ink-2 transition-colors hover:bg-accent hover:text-ink-1 ${
-        dropping ? 'shadow-[inset_0_1px_0_0_var(--color-border-emphasis,currentColor)]' : ''
-      }`}
+    <ContextMenu
+      className="contents"
+      menu={
+        <NodeRowMenuBody
+          item={item}
+          pinned={pinned}
+          variant="context"
+          onOpen={open}
+          onRename={() => setEditing(true)}
+        />
+      }
     >
-      <Icon size={13} strokeWidth={1.5} className="shrink-0 text-ink-3" />
-      <span className="min-w-0 flex-1 truncate text-xs">{title}</span>
-      <PinToDeskButton item={item} />
-      <MoveToSpaceButton item={item} />
-      <MoveToFolderButton item={item} />
-      <ExplorerPinToggle nodeId={item.id} pinned={pinned} />
-    </div>
+      <div
+        role="button"
+        tabIndex={0}
+        draggable={!editing}
+        data-explorer-item-id={item.id}
+        onDragStart={(event) => {
+          event.dataTransfer.effectAllowed = 'copyMove'
+          setNodeTransfer(event, {
+            nodeId: item.id,
+            nodeType: item.type,
+            title,
+            schemaId: SCHEMA_IDS[item.type],
+            sourceContext: 'explorer'
+          })
+          event.dataTransfer.setData(
+            CANVAS_INTERNAL_NODE_MIME,
+            serializeCanvasInternalNodeDragData({
+              nodeId: item.id,
+              schemaId: SCHEMA_IDS[item.type],
+              title
+            })
+          )
+        }}
+        onDragOver={(event) => {
+          if (!onDropBefore || !hasNodeTransfer(event)) return
+          event.preventDefault()
+          setDropping(true)
+        }}
+        onDragLeave={() => setDropping(false)}
+        onDrop={(event) => {
+          setDropping(false)
+          if (!onDropBefore) return
+          const transfer = getNodeTransfer(event)
+          if (!transfer) return
+          event.preventDefault()
+          event.stopPropagation()
+          onDropBefore(transfer)
+        }}
+        onClick={() => {
+          if (editing) return
+          open()
+        }}
+        onDoubleClick={() => {
+          if (editing) return
+          useWorkbench.getState().promoteTab(tabIdFor(item.type, item.id))
+        }}
+        onKeyDown={(event) => {
+          if (editing) return
+          if (event.key === 'Enter') {
+            navigateToNode(navigate, item.type, item.id)
+          }
+          if (event.key === 'F2') {
+            event.preventDefault()
+            setEditing(true)
+          }
+        }}
+        style={depth > 0 ? { paddingLeft: 8 + depth * 14 } : undefined}
+        className={`group flex h-[26px] cursor-pointer items-center gap-2 rounded-sm px-2 text-ink-2 transition-colors hover:bg-accent hover:text-ink-1 ${
+          dropping ? 'shadow-[inset_0_1px_0_0_var(--color-border-emphasis,currentColor)]' : ''
+        }`}
+      >
+        <Icon size={13} strokeWidth={1.5} className="shrink-0 text-ink-3" />
+        {editing ? (
+          <input
+            ref={inputRef}
+            autoFocus
+            defaultValue={title}
+            onClick={(event) => event.stopPropagation()}
+            onBlur={(event) => commitRename(event.currentTarget.value)}
+            onKeyDown={(event) => {
+              event.stopPropagation()
+              if (event.key === 'Enter') commitRename(event.currentTarget.value)
+              if (event.key === 'Escape') setEditing(false)
+            }}
+            className="min-w-0 flex-1 rounded-sm border border-border bg-surface-0 px-1 text-xs text-ink-1 outline-none"
+          />
+        ) : (
+          <span className="min-w-0 flex-1 truncate text-xs">{title}</span>
+        )}
+        <NodeRowKebab item={item} pinned={pinned} onOpen={open} onRename={() => setEditing(true)} />
+        <ExplorerPinToggle nodeId={item.id} pinned={pinned} />
+      </div>
+    </ContextMenu>
   )
 }
