@@ -8,5 +8,15 @@
     "Comments, the assistant, and menus now open as floating island sheets over the page",
     "A slim status island shows sync health and a theme toggle, with dev tools one tap away"
   ],
-  "tags": ["app", "platform"]
+  "tags": [
+    "app",
+    "platform"
+  ],
+  "pr": 438,
+  "mergedAt": "2026-07-09T15:23:05Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
