@@ -151,7 +151,9 @@ function TopIsland({ openMenu }: { openMenu: OpenMenu }) {
         >
           <LayoutGrid size={16} strokeWidth={1.75} className="shrink-0" />
           <span className="flex-1">More</span>
-          {hiddenCount > 0 && <span className="font-mono text-[11px] text-ink-3">{hiddenCount}</span>}
+          {hiddenCount > 0 && (
+            <span className="font-mono text-[11px] text-ink-3">{hiddenCount}</span>
+          )}
           <ChevronRight size={14} strokeWidth={2} className="text-ink-3" />
         </button>
       </div>

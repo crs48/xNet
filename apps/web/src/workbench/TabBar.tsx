@@ -327,9 +327,11 @@ function PillControls({ group }: { group: EditorGroup }) {
         disabled={!activeTab}
         onClick={() => {
           if (activeTab) {
-            useWorkbench
-              .getState()
-              .splitWith({ nodeId: activeTab.nodeId, nodeType: activeTab.nodeType, title: activeTab.title })
+            useWorkbench.getState().splitWith({
+              nodeId: activeTab.nodeId,
+              nodeType: activeTab.nodeType,
+              title: activeTab.title
+            })
           }
         }}
         className={`${btn} disabled:cursor-default disabled:opacity-40`}

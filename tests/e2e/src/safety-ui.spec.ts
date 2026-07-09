@@ -70,9 +70,10 @@ async function advanceOnboarding(page: Page): Promise<void> {
 
 /**
  * Open a people/social surface from whichever primary nav the active shell
- * shows: the workbench Rail (a direct icon) or the calm shell's ModeSwitch →
- * Network mode, then the Network list entry (0250). Keeps this spec green under
- * either layout default.
+ * shows: the Floating shell's sidebar islands (0286 — Inbox is a pinned primary
+ * row; Discover lives in the "More" surfaces roll-out), the legacy workbench
+ * Rail, or the calm shell's ModeSwitch → Network mode. Keeps this spec green
+ * under any layout default.
  */
 async function openSocialSurface(
   page: Page,
@@ -80,6 +81,19 @@ async function openSocialSurface(
     | { railLabel: 'Discover people'; calmHome: true }
     | { railLabel: 'Requests'; calmHome: false; calmLink: RegExp }
 ): Promise<void> {
+  // Floating shell (0286): the two-island sidebar.
+  const floatingSidebar = page.locator('[data-wb-region="sidebar"]')
+  if ((await floatingSidebar.count()) > 0) {
+    if (r.railLabel === 'Requests') {
+      // The Inbox surface (→ /requests) is a pinned primary row.
+      await floatingSidebar.getByRole('button', { name: 'Inbox' }).first().click()
+    } else {
+      // Discover is not pinned by default — reach it from the "More" roll-out.
+      await floatingSidebar.getByRole('button', { name: /^More/ }).first().click()
+      await page.getByRole('button', { name: 'Discover', exact: true }).first().click()
+    }
+    return
+  }
   const railButton = page.locator(`nav button[aria-label="${r.railLabel}"]`)
   if ((await railButton.count()) > 0) {
     await railButton.first().click()

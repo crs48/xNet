@@ -67,7 +67,9 @@ export function FloatingFrame({ children }: { children: ReactNode }) {
         </div>
 
         {/* Status-bar island */}
-        <div className={`h-8 shrink-0 rounded-[14px] border border-hairline bg-island-b shadow-isl`}>
+        <div
+          className={`h-8 shrink-0 rounded-[14px] border border-hairline bg-island-b shadow-isl`}
+        >
           <StatusBar variant="island" />
         </div>
 

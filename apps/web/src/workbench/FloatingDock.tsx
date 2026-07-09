@@ -146,7 +146,10 @@ export function FloatingDock() {
   if (!floatAi && !floatCall) {
     // Compact reopener so a dismissed Assistant is one click away.
     return (
-      <div className="pointer-events-none absolute z-30 flex justify-end" style={{ left, right, bottom }}>
+      <div
+        className="pointer-events-none absolute z-30 flex justify-end"
+        style={{ left, right, bottom }}
+      >
         <button
           type="button"
           onClick={() => setFloatAi(true)}
