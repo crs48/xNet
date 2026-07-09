@@ -175,6 +175,43 @@ export function createPresetTree(preset: PresetId): LayoutTree {
   }
 }
 
+/**
+ * The single canonical shell (exploration 0284). The former quiet/calm/bench
+ * trichotomy collapses to one tree: a sectioned `sidebar` in the rail that
+ * surfaces every tool, the full left dock, tabs on, pinned chrome. "Focus"
+ * (hide chrome) is a store toggle, not a preset — so there is exactly one
+ * composition and every feature is reachable without a mode switch.
+ */
+export const DEFAULT_WORKSPACE_ID = 'workspace-default'
+
+export function createDefaultTree(): LayoutTree {
+  const regions = emptyRegions()
+  regions.rail = [place('sidebar', 'pinned', 0)]
+  regions.status = [place('status', 'pinned', 0)]
+  regions['dock.left'] = [
+    place('explorer', 'pinned', 0),
+    place('chats', 'summoned', 1),
+    place('tasks', 'summoned', 2),
+    place('today', 'summoned', 3),
+    place('data', 'summoned', 4),
+    place('ai-chat', 'summoned', 5)
+  ]
+  regions['dock.right'] = [place('context', 'summoned', 0)]
+  regions['dock.bottom'] = [
+    place('shelf', 'summoned', 0),
+    place('capture', 'summoned', 1),
+    place('notifications', 'summoned', 2),
+    place('sync', 'summoned', 3),
+    place('console', 'summoned', 4)
+  ]
+  return {
+    workspaceId: DEFAULT_WORKSPACE_ID,
+    regions,
+    surface: { tabsEnabled: true },
+    chrome: 'pinned'
+  }
+}
+
 // ─── Pure tree operations (every mutation is a command; commands call these) ──
 
 function cloneRegions(regions: Record<RegionId, SlotPlacement[]>) {

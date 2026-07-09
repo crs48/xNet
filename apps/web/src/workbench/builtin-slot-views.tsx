@@ -31,6 +31,7 @@ import { ModeSwitch } from './calm/ModeSwitch'
 import { useActiveCalmMode } from './calm/use-active-mode'
 import { ContextPanel } from './ContextPanel'
 import { Rail } from './Rail'
+import { Sidebar } from './Sidebar'
 import { getSlotView, registerSlotView } from './slot-registry'
 import { StatusBar } from './StatusBar'
 import { AiChatPanel } from './views/AiChatPanel'
@@ -111,6 +112,20 @@ export function registerBuiltinSlotViews(): void {
       group: 'navigate',
       priority: 4,
       component: asComponent(Rail),
+      defaultRegion: 'rail',
+      allowedRegions: ['rail']
+    },
+    // The single-shell sidebar (0284) — sectioned, labeled, collapsible; the
+    // default tree's rail resident. Supersedes the icon-only Rail and the
+    // calm ModeSwitch.
+    {
+      id: 'sidebar',
+      icon: ListTree,
+      label: 'Sidebar',
+      tier: 'secondary',
+      group: 'navigate',
+      priority: 4,
+      component: asComponent(Sidebar),
       defaultRegion: 'rail',
       allowedRegions: ['rail']
     },

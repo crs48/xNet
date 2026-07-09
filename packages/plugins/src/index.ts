@@ -88,7 +88,9 @@ export { TypedRegistry, ContributionRegistry } from './contributions'
 
 // Workspace layout primitives (exploration 0280) — one grouped block
 export {
+  createDefaultTree,
   createPresetTree,
+  DEFAULT_WORKSPACE_ID,
   insertSlot,
   moveSlot,
   parseWorkspacePayload,

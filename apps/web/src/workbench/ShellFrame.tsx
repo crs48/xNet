@@ -309,9 +309,13 @@ export function ShellFrame({ children }: { children: ReactNode }) {
 
   const tree = useWorkbench((state) => state.tree)
   const mode = useWorkbench((state) => state.mode)
+  const focus = useWorkbench((state) => state.focus)
   const arranging = useWorkbench((state) => state.arranging)
 
-  if (mode === 'zen') {
+  // Focus mode (0284) hides all chrome so the surface owns the viewport — one
+  // toggle that replaces the former zen `mode` and quiet posture. (`mode`
+  // 'zen' is still honored during the transition; Stage 4 removes it.)
+  if (focus || mode === 'zen') {
     return (
       <UndoToastProvider>
         <ZenFrame tree={tree}>{children}</ZenFrame>

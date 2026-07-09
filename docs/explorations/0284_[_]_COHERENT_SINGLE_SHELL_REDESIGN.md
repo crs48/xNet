@@ -438,7 +438,7 @@ Placeholder.configure({
 
 ### Stage 2 — One preset
 
-- [ ] Add `sidebar` slot view (sectioned, collapsible, hover-peek) in
+- [x] Add `sidebar` slot view (sectioned, collapsible, hover-peek) in
       `builtin-slot-views.tsx`; sections: Workspace / Tools / People / More.
 - [ ] Replace `createPresetTree(quiet|calm|bench)` with `createDefaultTree()`
       pinning every tool (per Example Code); give the orphaned routes
@@ -448,11 +448,11 @@ Placeholder.configure({
 
 ### Stage 3 — One toggle
 
-- [ ] Add `focus: boolean` + `toggleFocus` to the store; bind `⌘.`.
-- [ ] Route the collapsed-sidebar / hide-chrome behaviour through `focus`;
+- [x] Add `focus: boolean` + `toggleFocus` to the store; bind `⌘.`.
+- [x] Route the collapsed-sidebar / hide-chrome behaviour through `focus`;
       delete `chrome`, `mode` (zen), `discloseLevel` from the public store
       surface.
-- [ ] Write store migration v3→v4 mapping legacy axes onto `focus` + default
+- [x] Write store migration v3→v4 mapping legacy axes onto `focus` + default
       tree; keep it silent and total.
 
 ### Stage 4 — One renderer
