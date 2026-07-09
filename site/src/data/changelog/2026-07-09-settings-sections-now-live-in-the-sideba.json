@@ -1,0 +1,10 @@
+{
+  "id": "2026-07-09-settings-sections-now-live-in-the-sideba",
+  "date": "July 9, 2026",
+  "title": "Settings sections now live in the sidebar's context island",
+  "summary": "When Settings is open, its section list (Profile, Appearance, Labs, …) moves into the lower-left contextual island, matching the rest of the workbench, and the selected section fills the main area. The active section now rides in the URL (/settings?section=…), so it's deep-linkable.",
+  "highlights": [],
+  "tags": [
+    "app"
+  ]
+}

@@ -13,11 +13,6 @@ import { useIdentity } from '@xnetjs/react'
 import { SettingRow, SettingsGroup, SettingsPanel, SettingToggle, useTheme } from '@xnetjs/ui'
 import { MeetingEngineSettings } from '@xnetjs/views'
 import {
-  Palette,
-  Database,
-  FlaskConical,
-  Mic,
-  Info,
   Layers,
   Sun,
   Moon,
@@ -25,12 +20,6 @@ import {
   Download,
   LogOut,
   Lightbulb,
-  Puzzle,
-  User,
-  UserRound,
-  Wifi,
-  ShieldCheck,
-  Activity,
   Cloud,
   Eye,
   EyeOff,
@@ -54,6 +43,11 @@ import { isSentryConfigured } from '../lib/sentry'
 import { useConsent } from '../lib/use-consent'
 import { WINDDOWN_DURATION_CHOICES, useWinddownPreferences } from '../lib/winddown'
 import { useWorkbench } from '../workbench/state'
+import {
+  DEFAULT_SETTINGS_SECTION,
+  asSettingsSection,
+  type SettingsSection
+} from './settings-sections'
 
 /** Marketing + dashboard origins for xNet Cloud (managed hub hosting). */
 const CLOUD_MARKETING_URL = 'https://xnet.fyi/cloud'
@@ -62,35 +56,17 @@ const CLOUD_DASHBOARD_URL = 'https://cloud.xnet.fyi/dashboard'
 const CLOUD_BILLING_URL = 'https://cloud.xnet.fyi/dashboard#billing'
 
 export const Route = createFileRoute('/settings')({
+  // The active section rides in the URL (`?section=…`) so the workbench's
+  // contextual bottom island can drive it while the content renders here (0288).
+  validateSearch: (search: Record<string, unknown>): { section?: SettingsSection } => ({
+    section: asSettingsSection(search.section)
+  }),
   component: SettingsPage
 })
-
-type SettingsSection =
-  | 'profile'
-  | 'appearance'
-  | 'labs'
-  | 'dictation'
-  | 'safety'
-  | 'data'
-  | 'mirror'
-  | 'privacy'
-  | 'network'
-  | 'plugins'
-  | 'tips'
-  | 'account'
-  | 'about'
-
-interface SectionConfig {
-  id: SettingsSection
-  label: string
-  icon: React.ReactNode
-}
 
 /** Quiet bordered button — the workbench's default action affordance. */
 const QUIET_BUTTON =
   'flex items-center gap-2 rounded-md border border-hairline bg-surface-0 px-3 py-1.5 text-xs text-ink-1 transition-colors hover:bg-surface-2 disabled:cursor-default disabled:opacity-50'
-
-const ICON_PROPS = { size: 16, strokeWidth: 1.5 } as const
 
 /** Browser capabilities for the Right-to-Leave service (Charter §Exit, 0234). */
 const LEAVE_DEPS: LeaveDeps = {
@@ -100,88 +76,31 @@ const LEAVE_DEPS: LeaveDeps = {
   }
 }
 
-const SECTIONS: SectionConfig[] = [
-  { id: 'profile', label: 'Profile', icon: <UserRound {...ICON_PROPS} /> },
-  { id: 'appearance', label: 'Appearance', icon: <Palette {...ICON_PROPS} /> },
-  { id: 'labs', label: 'Labs', icon: <FlaskConical {...ICON_PROPS} /> },
-  { id: 'dictation', label: 'Dictation & Meetings', icon: <Mic {...ICON_PROPS} /> },
-  { id: 'safety', label: 'Content & Safety', icon: <ShieldCheck {...ICON_PROPS} /> },
-  { id: 'data', label: 'Data', icon: <Database {...ICON_PROPS} /> },
-  { id: 'mirror', label: 'What we know', icon: <Eye {...ICON_PROPS} /> },
-  { id: 'privacy', label: 'Privacy & Diagnostics', icon: <Activity {...ICON_PROPS} /> },
-  { id: 'network', label: 'Network', icon: <Wifi {...ICON_PROPS} /> },
-  { id: 'plugins', label: 'Plugins', icon: <Puzzle {...ICON_PROPS} /> },
-  { id: 'tips', label: 'Tips & tours', icon: <Lightbulb {...ICON_PROPS} /> },
-  { id: 'account', label: 'Account', icon: <User {...ICON_PROPS} /> },
-  { id: 'about', label: 'About', icon: <Info {...ICON_PROPS} /> }
-]
-
-function NavItem({
-  section,
-  active,
-  onClick
-}: {
-  section: SectionConfig
-  active: boolean
-  onClick: () => void
-}) {
-  return (
-    <button
-      type="button"
-      aria-current={active ? 'page' : undefined}
-      onClick={onClick}
-      className={`relative flex w-full items-center gap-2.5 px-3 py-1.5 text-sm transition-colors ${
-        active ? 'text-ink-1' : 'text-ink-3 hover:text-ink-1'
-      }`}
-    >
-      {active && <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 bg-accent-ink" />}
-      <span className="flex-shrink-0">{section.icon}</span>
-      <span className="flex-1 text-left">{section.label}</span>
-    </button>
-  )
-}
-
 function SettingsPage() {
-  const [activeSection, setActiveSection] = useState<SettingsSection>('appearance')
+  // Section nav lives in the workbench bottom island; content follows the URL.
+  const { section } = Route.useSearch()
+  const activeSection = section ?? DEFAULT_SETTINGS_SECTION
 
   return (
-    <div className="-m-6 flex h-full">
-      {/* Sidebar Navigation */}
-      <nav className="w-[200px] shrink-0 space-y-0.5 border-r border-hairline bg-surface-1 p-2">
-        <h1 className="px-3 pb-2 pt-1 text-[10px] font-medium uppercase tracking-wider text-ink-3">
-          Settings
-        </h1>
-        {SECTIONS.map((section) => (
-          <NavItem
-            key={section.id}
-            section={section}
-            active={activeSection === section.id}
-            onClick={() => setActiveSection(section.id)}
-          />
-        ))}
-      </nav>
-
-      {/* Content Area */}
-      <div className="flex-1 overflow-auto bg-surface-0 p-6">
-        {activeSection === 'profile' && <ProfileSettings />}
-        {activeSection === 'appearance' && <AppearanceSettings />}
-        {activeSection === 'labs' && <LabsSettings />}
-        {activeSection === 'dictation' && <MeetingEngineSettings />}
-        {activeSection === 'safety' && (
-          <div className="space-y-10">
-            <ContentSafetySettings />
-            <SafetyCenterSettings />
-          </div>
-        )}
-        {activeSection === 'data' && <DataSettings />}
-        {activeSection === 'mirror' && <WhatWeKnowSettings />}
-        {activeSection === 'privacy' && <PrivacySettings />}
-        {activeSection === 'network' && <NetworkSettings />}
-        {activeSection === 'plugins' && <PluginsPanel />}
-        {activeSection === 'tips' && <TipsSettings />}
-        {activeSection === 'account' && <AccountSettings />}
-        {activeSection === 'about' && <AboutSettings />}
-      </div>
+    <div className="-m-6 h-full overflow-auto bg-surface-0 p-6">
+      {activeSection === 'profile' && <ProfileSettings />}
+      {activeSection === 'appearance' && <AppearanceSettings />}
+      {activeSection === 'labs' && <LabsSettings />}
+      {activeSection === 'dictation' && <MeetingEngineSettings />}
+      {activeSection === 'safety' && (
+        <div className="space-y-10">
+          <ContentSafetySettings />
+          <SafetyCenterSettings />
+        </div>
+      )}
+      {activeSection === 'data' && <DataSettings />}
+      {activeSection === 'mirror' && <WhatWeKnowSettings />}
+      {activeSection === 'privacy' && <PrivacySettings />}
+      {activeSection === 'network' && <NetworkSettings />}
+      {activeSection === 'plugins' && <PluginsPanel />}
+      {activeSection === 'tips' && <TipsSettings />}
+      {activeSection === 'account' && <AccountSettings />}
+      {activeSection === 'about' && <AboutSettings />}
     </div>
   )
 }
