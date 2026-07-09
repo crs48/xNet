@@ -48,6 +48,12 @@ as the centrepiece.
    reopen-closed-tab); enrich (or honestly link) the notifications popover.
 4. **Register the create verbs as commands** so `⌘K`, the pill **+**, and the
    New menu all invoke one code path.
+5. **Move the workspace/Space scope picker up into the top island.** The
+   `ExplorerScopeBar` (0190) — the picker that sets `currentSpaceId`, i.e. the
+   very Space the New action files into — currently lives *inside* the Explorer
+   contextual island. It belongs beside the New button in the top island so the
+   "am I filtered, and to what?" answer and the "in {Space}" filing target are
+   one coherent control, visible on every surface (not just Explorer).
 
 ```mermaid
 flowchart LR
@@ -84,12 +90,43 @@ flowchart LR
 `ExplorerCreateMenu` is the most complete; the top-island `NewMenu` is the stub
 the user wants promoted.
 
+### Two different "workspace" pickers
+
+"Workspace" is overloaded in the shell — untangling it matters here:
+
+| Picker | What it selects | File | Location today |
+| --- | --- | --- | --- |
+| **Bench / layout switcher** (0280) | which saved *shell layout* (`xnet:Workspace` node) is loaded | `WorkspaceSwitcher` via the `workspace.switch` command | already in the top island — the `xN {name}` selector button |
+| **Space scope picker** (0190) | the active *data Space* (`currentSpaceId`) — the filter *and* the New-doc filing target | [`ExplorerScopeBar.tsx`](../../apps/web/src/workbench/views/ExplorerScopeBar.tsx) | **buried in the Explorer contextual island** ([`Explorer.tsx:440`](../../apps/web/src/workbench/views/Explorer.tsx)) |
+
+The **Space scope picker** is the one to promote: it decides where New files
+(`useCreateInSpace(type, currentSpaceId)`), it drives the status-bar
+`ScopeStatus`, and it's only reachable while the Explorer surface is showing —
+yet it governs behaviour on *every* surface. Moving it into the top island (next
+to New) makes scope a first-class, always-visible control and removes the
+"why did my new page file there?" surprise on non-Explorer surfaces.
+
+```mermaid
+flowchart TB
+  subgraph Top["Top island (target)"]
+    WS[Bench switcher\nxN {name} — already here]
+    SP[Space scope picker\nExplorerScopeBar — move up]
+    NB[New button]
+  end
+  SP -->|sets currentSpaceId| ST[(workbench store)]
+  NB -->|useNewActions reads scope| ST
+  ST --> FILE[new doc files into the active Space]
+  ST --> SB[status-bar ScopeStatus]
+  EX[Explorer list] -->|still reflects filter| ST
+```
+
 ### Affordance → action audit (the whole sweep)
 
 | Affordance (new location) | File | Current wiring | Gap / intended |
 | --- | --- | --- | --- |
 | **Top-island New** | `SidebarIslands` → `FloatingMenus.NewMenu` | 3 types, unfiled | ⭐ canonical Space-aware New (all types + folder + Add Shared + target) |
-| Top-island Search / workspace / avatar / rows / More | `SidebarIslands.tsx` | `search.open` / `workspace.switch` / profile / activate / surfaces | ✅ correct |
+| Top-island Search / workspace(bench) / avatar / rows / More | `SidebarIslands.tsx` | `search.open` / `workspace.switch` / profile / activate / surfaces | ✅ correct |
+| **Space scope picker** | [`ExplorerScopeBar.tsx`](../../apps/web/src/workbench/views/ExplorerScopeBar.tsx), mounted in `Explorer.tsx` | sets `currentSpaceId` (filter + New target) — only visible on the Explorer surface | ⭐ move into the top island (beside New) so scope is always visible and drives New/status everywhere |
 | **Bottom-island header +** | `SidebarIslands.tsx` `BottomIsland` | `workbench.newPage` (always a page) | surface-aware: Tasks→new task, Chats→new channel, Data→new database, Explorer→canonical New in Space |
 | **Editor ⋯ More** | [`EditorHeader.tsx`](../../apps/web/src/workbench/EditorHeader.tsx) | **inert** (no `onClick`) | active-tab node menu via 0285 [`useNodeActions`](../../apps/web/src/hooks/useNodeActions.ts) (rename/duplicate/copy link/move/favorite/export/delete) |
 | Editor facepile | `EditorHeader.tsx` | "you" avatar only | real presence when available (else keep the single "you") |
@@ -166,6 +203,19 @@ so `⌘K` and the pill **+** share the path.
   `tasks` → new task, `chats` → new channel, `data` → new database, else hide
   the +. Small `switch`, no new subsystem.
 
+### For the workspace/Space scope picker
+
+| Option | How | Pros | Cons |
+| --- | --- | --- | --- |
+| **A. Compact scope control in the top island** (recommended) | render a small scope chip/dropdown in `SidebarIslands` (its own row, or folded into the `xN {name}` selector as a second line); `ExplorerScopeBar` stays as the full multi-select control but the *primary* single-scope pick lives up top | scope always visible; sits beside New (coherent filing target); works on every surface | two renderings of scope to keep in sync (share the `explorer-scope` helpers so state is one source) |
+| B. Merge bench + Space into one "workspace" selector | the `xN {name}` button opens a combined picker (layouts + Spaces) | one control | conflates two orthogonal concepts (layout vs data Space) — likely confusing |
+| C. Leave it in Explorer | — | zero work | the exact problem: scope hidden on non-Explorer surfaces |
+
+**A** — a compact single-scope picker in the top island backed by the existing
+`explorer-scope` state (`currentSpaceId` / `applyScopeSelection`), with the
+Explorer's `ExplorerScopeBar` kept (or thinned) for the multi-Space *view*
+filter. Both read/write the same store, so they never diverge.
+
 ## Recommendation
 
 Ship in this order (each a self-contained commit):
@@ -179,7 +229,10 @@ Ship in this order (each a self-contained commit):
 4. **Editor ⋯ More** → `useNodeActions` popover.
 5. **Bottom-island +** surface-aware; **pill +** and **`⌘K`** via registered
    `workbench.new*` commands.
-6. **History pill** + **notifications** + **profile Sign out** — polish pass.
+6. **Move the Space scope picker into the top island** (compact single-scope
+   control backed by `explorer-scope` state; keep Explorer's bar for the
+   multi-Space view filter) — so New's "in {Space}" target is set right there.
+7. **History pill** + **notifications** + **profile Sign out** — polish pass.
 
 ## Example Code
 
@@ -274,6 +327,9 @@ const actions = useNodeActions(activeTab ? { id: activeTab.nodeId, type: activeT
       and route the **pill +** and `⌘K` through them.
 - [ ] Make the **bottom-island +** surface-aware (Tasks/Chats/Data/Explorer),
       hiding it for route surfaces.
+- [ ] Add a compact **Space scope picker** to the top island (`SidebarIslands`),
+      backed by `explorer-scope` state (`currentSpaceId` / `applyScopeSelection`);
+      keep/thin `ExplorerScopeBar` for the multi-Space view filter.
 - [ ] Wire the editor **⋯ More** to `useNodeActions(activeTab)` in a popover.
 - [ ] Give the **pill History** button a real target (recents / reopen closed)
       or remove it.
@@ -291,6 +347,9 @@ const actions = useNodeActions(activeTab ? { id: activeTab.nodeId, type: activeT
       path (create a page three ways → identical result).
 - [ ] The bottom-island **+** creates the right thing per surface; hidden on
       route surfaces.
+- [ ] The top-island **Space scope picker** sets `currentSpaceId`, is visible on
+      every surface, and stays in sync with Explorer's bar and the status-bar
+      `ScopeStatus` (change scope up top → New files there, status echoes it).
 - [ ] Editor **⋯ More** opens the active tab's node actions; each verb behaves
       as in the right-click menu (0285).
 - [ ] No duplicate/diverging New menus remain (grep for `navigateToNewDoc`
@@ -311,6 +370,9 @@ const actions = useNodeActions(activeTab ? { id: activeTab.nodeId, type: activeT
   [`EditorHeader.tsx`](../../apps/web/src/workbench/EditorHeader.tsx),
   [`TabBar.tsx`](../../apps/web/src/workbench/TabBar.tsx),
   [`FloatingDock.tsx`](../../apps/web/src/workbench/FloatingDock.tsx)
+- Repo — workspace/Space scope: [`views/ExplorerScopeBar.tsx`](../../apps/web/src/workbench/views/ExplorerScopeBar.tsx),
+  [`views/explorer-scope.ts`](../../apps/web/src/workbench/views/explorer-scope.ts),
+  [`WorkspaceSwitcher.tsx`](../../apps/web/src/workbench/WorkspaceSwitcher.tsx) (bench switcher, 0280)
 - Repo — verbs to reuse: [`hooks/useNodeActions.ts`](../../apps/web/src/hooks/useNodeActions.ts) (0285)
 - Prior art: Notion global "New page", Linear global create (`C`) + command
   palette, Claude/Slack top-left composer.
