@@ -584,10 +584,10 @@ connect-src 'self'
       `/v1/chat/completions` and `/run` on `Authorization: Bearer` with a
       constant-time compare; expose `pairingToken` on the handle; leave `/health`
       unauthenticated.
-- [ ] Pass `allowedOrigins` (deployed PWA origin + `XNET_BRIDGE_ALLOWED_ORIGINS`)
+- [x] Pass `allowedOrigins` (deployed PWA origin + `XNET_BRIDGE_ALLOWED_ORIGINS`)
       from [`apps/electron/src/main/agent-bridge-manager.ts`](apps/electron/src/main/agent-bridge-manager.ts)
       and the `xnet bridge serve` CLI.
-- [ ] Print the pairing code from `xnet bridge serve`
+- [x] Print the pairing code from `xnet bridge serve`
       ([`packages/cli/src/commands/bridge.ts`](packages/cli/src/commands/bridge.ts))
       and inject it into the Electron renderer via preload
       (`window.xnetAgentBridge` / a `xnet:bridge-token` channel).

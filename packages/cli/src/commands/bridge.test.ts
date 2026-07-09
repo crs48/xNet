@@ -23,11 +23,11 @@ describe('buildBridgeServer', () => {
     const runner = new FakeCommandRunner([
       { match: () => true, result: { stdout: 'codex says hi' } }
     ])
-    handle = buildBridgeServer({ agent: 'codex', port: 0 }, runner)
+    handle = buildBridgeServer({ agent: 'codex', port: 0, token: 'test-token' }, runner)
     await handle.start()
     const res = await fetch(`${handle.url}/v1/chat/completions`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', authorization: 'Bearer test-token' },
       body: JSON.stringify({ messages: [{ role: 'user', content: 'hi' }] })
     })
     const body = (await res.json()) as { choices: Array<{ message: { content: string } }> }
@@ -36,13 +36,22 @@ describe('buildBridgeServer', () => {
     expect(runner.calls[0].args).toEqual(['exec', 'hi'])
   })
 
+  it('pins the pairing token when --token is given', async () => {
+    handle = buildBridgeServer({ agent: 'claude', port: 0, token: 'pinned-code' }, new FakeCommandRunner())
+    await handle.start()
+    expect(handle.pairingToken).toBe('pinned-code')
+  })
+
   it('hands XNet workspace tools to the agent when mcpConfigPath is set', async () => {
     const runner = new FakeCommandRunner([{ match: () => true, result: { stdout: 'ok' } }])
-    handle = buildBridgeServer({ agent: 'claude', port: 0, mcpConfigPath: '/tmp/cfg.json' }, runner)
+    handle = buildBridgeServer(
+      { agent: 'claude', port: 0, mcpConfigPath: '/tmp/cfg.json', token: 'test-token' },
+      runner
+    )
     await handle.start()
     await fetch(`${handle.url}/v1/chat/completions`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      headers: { 'content-type': 'application/json', authorization: 'Bearer test-token' },
       body: JSON.stringify({ messages: [{ role: 'user', content: 'hi' }] })
     })
     expect(runner.calls[0].args).toEqual([

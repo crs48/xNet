@@ -34,6 +34,8 @@ export interface BridgeServeOptions {
   host?: string
   port?: number
   allowOrigin?: string[]
+  /** Pin the pairing token (default: a random per-launch code printed on start). */
+  token?: string
   /** Working directory the agent runs in (default `process.cwd()`). */
   cwd?: string
   /** Path to an MCP config JSON giving the agent XNet's workspace tools. */
@@ -74,7 +76,8 @@ export function buildBridgeServer(
     ...(run ? { run } : {}),
     ...(options.host ? { host: options.host } : {}),
     ...(options.port !== undefined ? { port: options.port } : {}),
-    ...(options.allowOrigin ? { allowedOrigins: options.allowOrigin } : {})
+    ...(options.allowOrigin ? { allowedOrigins: options.allowOrigin } : {}),
+    ...(options.token ? { pairingToken: options.token } : {})
   })
 }
 
@@ -91,7 +94,11 @@ export function registerBridgeCommand(program: Command): void {
     .option('--port <n>', `Port (default ${DEFAULT_BRIDGE_PORT})`, parseIntOption)
     .option(
       '--allow-origin <origin...>',
-      'Browser origins permitted (e.g. https://user.github.io for the web deployment)'
+      'Browser origins permitted (e.g. https://app.xnet.fyi for the web deployment)'
+    )
+    .option(
+      '--token <token>',
+      'Pin the pairing code browsers must present (default: a random per-launch code)'
     )
     .option('--cwd <dir>', 'Working directory the agent runs in (default current dir)')
     .option('--code', 'Enable POST /run agentic code tasks (worktree → gate → checkpoint/PR)')
@@ -127,7 +134,11 @@ export function registerBridgeCommand(program: Command): void {
           options.mcp ? ', workspace tools enabled' : ''
         })`
       )
-      console.error('In XNet, open the AI panel and select "Local bridge".')
+      // The pairing code the daemon now requires on its data endpoints. Printed
+      // here so the user can paste it into the web app's AI settings ("Local
+      // bridge" tier) — it is never exposed over HTTP.
+      console.error(`Pairing code: ${handle.pairingToken}`)
+      console.error('In XNet, open the AI panel, select "Local bridge", and paste the pairing code.')
       const shutdown = (): void => {
         void handle.stop().then(() => process.exit(0))
       }
