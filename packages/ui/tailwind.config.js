@@ -22,6 +22,16 @@ export default {
         hairline: 'hsl(var(--hairline))',
         'accent-ink': 'hsl(var(--accent-ink))',
 
+        // Floating-islands surfaces (0286). `canvas`/`island` are the
+        // brightest, forward plane (main surface + editor); `island-b` is the
+        // chrome island fill that recedes. Resolve to the ramp unless a
+        // `.wb-root` scope overrides them (see tokens.css).
+        canvas: 'hsl(var(--canvas, var(--surface-0)))',
+        island: {
+          DEFAULT: 'hsl(var(--island, var(--surface-0)))',
+          b: 'hsl(var(--island-b, var(--surface-1)))'
+        },
+
         // Background variants
         background: {
           DEFAULT: 'hsl(var(--background))',
@@ -220,6 +230,11 @@ export default {
         // theme variant (e.g. `cozy`) defines --shadow-soft, so it's a no-op
         // on the default monochrome ramp.
         soft: 'var(--shadow-soft, none)',
+        // Floating-islands elevation (0286): the soft, warm-tinted shadow every
+        // island carries, and the deeper shadow for popovers. Token-driven so a
+        // `.wb-root` scope can swap light/dark ramps.
+        isl: 'var(--isl-shadow, none)',
+        pop: 'var(--pop-shadow, 0 8px 24px rgb(0 0 0 / 0.12))',
         inner: 'inset 0 2px 4px 0 rgb(0 0 0 / 0.05)',
         none: 'none'
       },

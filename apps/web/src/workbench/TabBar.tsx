@@ -8,6 +8,7 @@
  * lose the close button.
  */
 import { useNavigate } from '@tanstack/react-router'
+import { getCommandRegistry } from '@xnetjs/plugins'
 import {
   ActionMenuList,
   ContextMenu,
@@ -20,8 +21,10 @@ import {
 import {
   ArrowRightFromLine,
   FileText,
+  History,
   Pin,
   PinOff,
+  Plus,
   SplitSquareHorizontal,
   X,
   XSquare
@@ -71,7 +74,16 @@ function dropTransferOnGroup(
   navigateToActiveTab(navigate)
 }
 
-function tabItemClassName(active: boolean, routed: boolean): string {
+/** Tab strip style: the classic edge-to-edge `strip`, or floating `pill`s (0286). */
+export type TabVariant = 'strip' | 'pill'
+
+function tabItemClassName(active: boolean, routed: boolean, variant: TabVariant): string {
+  if (variant === 'pill') {
+    const base =
+      'group relative flex max-w-[200px] min-w-0 cursor-pointer select-none items-center gap-1.5 rounded-[9px] px-2.5 py-1.5 text-[13px] transition-colors'
+    if (active) return `${base} bg-accent text-ink-1`
+    return `${base} text-ink-3 hover:bg-background-muted hover:text-ink-1`
+  }
   const base =
     'group relative flex h-full max-w-[180px] min-w-0 cursor-pointer select-none items-center gap-1.5 border-r border-hairline px-2.5 text-xs transition-colors'
   if (active && routed) return `${base} bg-surface-0 text-ink-1`
@@ -151,12 +163,14 @@ function TabItem({
   tab,
   group,
   active,
-  routed
+  routed,
+  variant
 }: {
   tab: WorkbenchTab
   group: EditorGroup
   active: boolean
   routed: boolean
+  variant: TabVariant
 }) {
   const navigate = useNavigate()
   const [dropEdge, setDropEdge] = useState<'before' | 'after' | null>(null)
@@ -275,11 +289,13 @@ function TabItem({
           }
         }}
         onDoubleClick={() => useWorkbench.getState().promoteTab(tab.id)}
-        className={tabItemClassName(active, routed)}
+        className={tabItemClassName(active, routed, variant)}
       >
         <TabDropIndicator dropEdge={dropEdge} />
-        {/* active tab keeps a hairline notch to the editor below */}
-        {active && routed && <span className="absolute inset-x-0 top-0 h-px bg-accent-ink" />}
+        {/* strip: active tab keeps a hairline notch to the editor below */}
+        {variant === 'strip' && active && routed && (
+          <span className="absolute inset-x-0 top-0 h-px bg-accent-ink" />
+        )}
         <Icon size={13} strokeWidth={1.5} className="shrink-0 text-ink-3" />
         <TabLabel tab={tab} />
         <TabActions tab={tab} onClose={close} />
@@ -288,13 +304,73 @@ function TabItem({
   )
 }
 
-export function TabBar({ group, routed }: { group: EditorGroup; routed: boolean }) {
+function PillControls({ group }: { group: EditorGroup }) {
+  const activeTab = group.tabs.find((t) => t.id === group.activeTabId) ?? null
+  const btn =
+    'flex h-7 w-7 shrink-0 items-center justify-center rounded-[7px] text-ink-2 transition-colors hover:bg-background-muted hover:text-ink-1'
+  return (
+    <>
+      <button
+        type="button"
+        title="New tab (⌘T)"
+        aria-label="New tab"
+        onClick={() => void getCommandRegistry().runCommand('workbench.newPage')}
+        className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-[7px] text-ink-3 transition-colors hover:bg-background-muted hover:text-ink-1"
+      >
+        <Plus size={15} strokeWidth={2} />
+      </button>
+      <div className="min-w-2 flex-1" />
+      <button
+        type="button"
+        title="Split editor"
+        aria-label="Split editor"
+        disabled={!activeTab}
+        onClick={() => {
+          if (activeTab) {
+            useWorkbench.getState().splitWith({
+              nodeId: activeTab.nodeId,
+              nodeType: activeTab.nodeType,
+              title: activeTab.title
+            })
+          }
+        }}
+        className={`${btn} disabled:cursor-default disabled:opacity-40`}
+      >
+        <SplitSquareHorizontal size={16} strokeWidth={1.5} />
+      </button>
+      <button
+        type="button"
+        title="Recent"
+        aria-label="Recent"
+        onClick={() => void getCommandRegistry().runCommand('search.open')}
+        className={btn}
+      >
+        <History size={16} strokeWidth={1.5} />
+      </button>
+    </>
+  )
+}
+
+export function TabBar({
+  group,
+  routed,
+  variant = 'strip'
+}: {
+  group: EditorGroup
+  routed: boolean
+  variant?: TabVariant
+}) {
   const navigate = useNavigate()
+
+  const containerClassName =
+    variant === 'pill'
+      ? 'flex h-[42px] shrink-0 items-center gap-1.5 overflow-x-auto px-2.5 pb-1.5'
+      : 'flex h-9 shrink-0 items-stretch overflow-x-auto border-b border-hairline bg-surface-1'
 
   return (
     <div
       role="tablist"
-      className="flex h-9 shrink-0 items-stretch overflow-x-auto border-b border-hairline bg-surface-1"
+      className={containerClassName}
       onDragOver={(e) => {
         if (hasNodeTransfer(e)) e.preventDefault()
       }}
@@ -312,9 +388,10 @@ export function TabBar({ group, routed }: { group: EditorGroup; routed: boolean 
           group={group}
           active={tab.id === group.activeTabId}
           routed={routed}
+          variant={variant}
         />
       ))}
-      <div className="min-w-4 flex-1" />
+      {variant === 'pill' ? <PillControls group={group} /> : <div className="min-w-4 flex-1" />}
     </div>
   )
 }

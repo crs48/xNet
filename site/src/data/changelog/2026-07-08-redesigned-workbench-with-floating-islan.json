@@ -1,0 +1,10 @@
+{
+  "id": "2026-07-08-redesigned-workbench-with-floating-islan",
+  "date": "July 8, 2026",
+  "title": "Redesigned workbench with floating islands",
+  "summary": "The desktop workbench is now one warm canvas with all chrome floating as rounded, softly-shadowed islands — a calmer, Notion/Claude-desktop feel. Two stacked sidebar islands (navigation + a contextual surface), a base-surface editor with a breadcrumb header and pill tabs, a right context island, a status-bar island, and a bottom-center Assistant dock. A new surfaces model lets you pin the few surfaces you want visible and reach the rest from a roll-out.",
+  "highlights": [],
+  "tags": [
+    "platform"
+  ]
+}

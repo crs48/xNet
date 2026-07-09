@@ -365,6 +365,59 @@
 }
 
 @layer base {
+  /* ─── Floating Islands (exploration 0286) ─────────────────────────────
+     A warm-clay "floating" override for the desktop workbench shell. Rides
+     on top of the 0166 ramp (ink-1/2/3, status hues, chart-*, identity
+     avatars all stay) and is scoped to `.wb-root`, applied by the shell
+     frame wrapper. The main surface + editor use `--canvas`/`--island` (the
+     brightest, forward plane); chrome islands fill with `--island-b` (a step
+     darker in light, a step lighter in dark) so they recede. `dark` still
+     comes from ThemeProvider on <html>, so the dark scope is `.wb-root.dark`.
+
+     Because this is the new default look for the desktop shell, the override
+     lives here (not behind a variant flag); the `linear` accent variant still
+     composes on top (accent-ink only). `dark` lives on <html>, so the dark
+     scope is a descendant selector (`.dark .wb-root`), not `.wb-root.dark`. */
+  .wb-root {
+    --canvas: 44 40% 98%;
+    --island: 44 40% 98%;
+    --island-b: 40 22% 93%;
+    --surface-0: 44 38% 97.5%;
+    --surface-1: 42 26% 95%;
+    --surface-2: 40 20% 92.5%;
+    --hairline: 38 16% 83%;
+    --border: 38 16% 83%;
+    --accent: 40 20% 89.5%;
+    --background-muted: 40 20% 89%;
+    --popover: var(--surface-0);
+    --card: var(--surface-0);
+    --input: var(--hairline);
+    --isl-shadow:
+      0 1px 2px hsl(34 22% 30% / 0.06), 0 4px 12px hsl(34 24% 24% / 0.09),
+      0 10px 24px hsl(34 24% 20% / 0.07);
+    --pop-shadow: 0 8px 20px hsl(34 20% 26% / 0.14), 0 22px 50px hsl(34 22% 18% / 0.2);
+  }
+
+  .dark .wb-root,
+  .wb-root.dark {
+    --canvas: 30 8% 11.5%;
+    --island: 30 8% 11.5%;
+    --island-b: 30 8% 7%;
+    --surface-0: 30 8% 13%;
+    --surface-1: 32 8% 10%;
+    --surface-2: 32 8% 8%;
+    --hairline: 30 7% 19%;
+    --border: 30 7% 19%;
+    --accent: 32 9% 16%;
+    --background-muted: 32 9% 15%;
+    --popover: var(--surface-0);
+    --card: var(--surface-0);
+    --input: var(--hairline);
+    --isl-shadow:
+      0 1px 2px hsl(0 0% 0% / 0.45), 0 5px 14px hsl(0 0% 0% / 0.4), 0 12px 28px hsl(0 0% 0% / 0.35);
+    --pop-shadow: 0 10px 26px hsl(0 0% 0% / 0.6), 0 24px 56px hsl(0 0% 0% / 0.7);
+  }
+
   * {
     @apply border-border;
   }
