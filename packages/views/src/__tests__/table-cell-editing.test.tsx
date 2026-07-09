@@ -113,6 +113,31 @@ describe('TableCell editing flow', () => {
     expect(document.activeElement).toBe(rightCell)
   })
 
+  it('opens the context menu on right-click with row actions (0285)', async () => {
+    const onUpdate = vi.fn()
+    const onDeleteRow = vi.fn()
+    const meta: ColumnMeta = { property, handler: testHandler, onUpdate }
+    const cell = createMockCell('row-1', 'title', 'Initial', meta)
+
+    render(
+      <table>
+        <tbody>
+          <tr>
+            <TableCell cell={cell} onDeleteRow={onDeleteRow} />
+          </tr>
+        </tbody>
+      </table>
+    )
+
+    const td = document.querySelector('td[data-row-id="row-1"]') as HTMLTableCellElement
+    fireEvent.contextMenu(td)
+
+    const del = await screen.findByText('Delete row')
+    expect(screen.getByText('Copy cell')).toBeTruthy()
+    fireEvent.click(del)
+    expect(onDeleteRow).toHaveBeenCalledWith('row-1')
+  })
+
   it('commits on Tab and moves focus without trapping', () => {
     const onUpdate = vi.fn()
     const left = createMockCell('row-1', 'left', 'A', {

@@ -632,7 +632,7 @@ stateDiagram-v2
       rows; add rename (inline) + delete/Trash for node rows; surface
       `renameSpace`/`archiveSpace`/`setSpaceVisibility`/`setSpaceParent`;
       point existing hover kebabs at the same `ActionMenuList`.
-- [ ] **PR2 TableCell:** replace the bespoke overlay
+- [x] **PR2 TableCell:** replace the bespoke overlay
       ([`TableCell.tsx`](../../packages/views/src/table/TableCell.tsx)
       lines ~52/244–270/367–435) with `ContextMenu`; delete the inline SVG
       icons and manual listeners.
