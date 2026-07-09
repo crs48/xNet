@@ -4,5 +4,14 @@
   "title": "Right-click menus across the app",
   "summary": "Right-click (or the hover ⋯ kebab) now opens an actions menu on Explorer items, channels, chat messages, editor tabs, and card/list/timeline/board/task rows — rename, move, archive, delete and more, in place.",
   "highlights": [],
-  "tags": ["app"]
+  "tags": [
+    "app"
+  ],
+  "pr": 424,
+  "mergedAt": "2026-07-09T03:54:31Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
