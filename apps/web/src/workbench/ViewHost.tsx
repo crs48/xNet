@@ -47,7 +47,14 @@ const HOSTED_VIEWS: Record<TabNodeType, ComponentType<{ nodeId: string }>> = {
   tag: ({ nodeId }) => <TagView tagId={nodeId} />,
   person: ({ nodeId }) => <PersonView did={nodeId} />,
   lab: ({ nodeId }) => <LabView labId={nodeId} />,
-  space: ({ nodeId }) => <SpaceHomeView spaceId={nodeId} />
+  space: ({ nodeId }) => <SpaceHomeView spaceId={nodeId} />,
+  // Settings drives its section from the URL, which only the active group's
+  // router outlet has; a split/background settings tab shows a hint instead.
+  settings: () => (
+    <div className="flex h-full items-center justify-center text-xs text-ink-3">
+      Settings open in the active tab
+    </div>
+  )
 }
 
 export function ViewHost({ tab }: { tab: WorkbenchTab }) {

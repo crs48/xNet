@@ -1,0 +1,17 @@
+{
+  "id": "2026-07-09-removed-the-pin-tab-button-from-the-tab-",
+  "date": "July 9, 2026",
+  "title": "Removed the pin-tab button from the tab strip",
+  "summary": "Tabs no longer show an inline pin button that took up space; pin and unpin are still available from the tab's right-click menu.",
+  "highlights": [],
+  "tags": [
+    "app"
+  ],
+  "pr": 436,
+  "mergedAt": "2026-07-09T13:21:01Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}
