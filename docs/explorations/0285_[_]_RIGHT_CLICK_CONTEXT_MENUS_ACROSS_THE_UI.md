@@ -86,7 +86,7 @@ bespoke:
 - A manual `useEffect` adding `document` `mousedown` + `keydown`
   listeners for outside-click / `Escape` (lines ~254–270).
 - A raw, **non-portaled** `<div className="fixed z-50 …" style={{left,
-  top}}>` (lines ~367–435) with naive absolute positioning — **no
+top}}>` (lines ~367–435) with naive absolute positioning — **no
   viewport-edge flipping**.
 - Items are plain `<button>`s styled with raw Tailwind grays
   (`bg-white dark:bg-gray-900`, `hover:bg-gray-100`) **instead of** the
@@ -106,7 +106,7 @@ All menus are Base UI, package `@base-ui/react` `^1.1.0` (note: the modern
   `MenuItem` with `icon`/`shortcut`/`disabled`/`danger`, `MenuSeparator`,
   `MenuLabel`) and the compound `DropdownMenu*` set (incl.
   `Checkbox/Radio/Sub` items). Structure: `Root › Trigger render={…} ›
-  Portal › Positioner › Popup`.
+Portal › Positioner › Popup`.
 - [`packages/ui/src/primitives/Popover.tsx`](../../packages/ui/src/primitives/Popover.tsx)
   — `@base-ui/react/popover`.
 - [`packages/ui/src/base-ui/index.ts`](../../packages/ui/src/base-ui/index.ts)
@@ -128,7 +128,7 @@ verbatim, swapping the click `Trigger` for a pointer-anchored one.
   — `CommandRegistry` + `getCommandRegistry()` singleton. `WorkspaceCommand`
   is `{ id, title, scope?, key?, allowInInput?, when?(), run(ctx) }` (the
   interface's own example is `id: 'task.setStatus'`, `title: 'Change
-  status…'`). Methods a context menu wants: `commandsForScopes(scopes)`
+status…'`). Methods a context menu wants: `commandsForScopes(scopes)`
   (built for exactly this), `getAvailableCommands()`, `runCommand(id)`,
   `formatForDisplay('Mod-K') → '⌘K'` for shortcut hints.
 - [`packages/views/src/canvas-view/useCanvasCommands.ts`](../../packages/views/src/canvas-view/useCanvasCommands.ts)
@@ -138,7 +138,7 @@ verbatim, swapping the click `Trigger` for a pointer-anchored one.
 - **Fragmentation to note:**
   [`packages/ui/src/composed/CommandPalette.tsx`](../../packages/ui/src/composed/CommandPalette.tsx)
   defines a _second_, older `PaletteCommand` model (`{ id, name, icon,
-  shortcut, keywords, group, execute(), when() }`) built on `cmdk`. Two
+shortcut, keywords, group, execute(), when() }`) built on `cmdk`. Two
   command shapes coexist; the context-menu work should standardize on
   `WorkspaceCommand`, not add a third.
 
@@ -166,21 +166,21 @@ verbatim, swapping the click `Trigger` for a pointer-anchored one.
 
 ### Surface inventory — where right-click makes sense
 
-| Surface | File | Unit | Actions today (how) | Gap a menu fills |
-|---|---|---|---|---|
-| **Explorer node row** | [`explorer-rows.tsx`](../../apps/web/src/workbench/views/explorer-rows.tsx) | page/db/canvas/dashboard/map | open, pin-to-Desk, move-to-Space, move-to-folder, sidebar-pin — all **hover icons** | **rename, delete/Trash** (no path today) |
-| **Explorer folder row** | [`ExplorerFolderTree.tsx`](../../apps/web/src/workbench/views/ExplorerFolderTree.tsx) | folder | new page, rename (inline), delete — hover icons | one discoverable menu |
-| **Explorer Space row** | [`ExplorerSpacesSection.tsx`](../../apps/web/src/workbench/views/ExplorerSpacesSection.tsx) | Space | open, invite — hover icons | rename/archive/visibility/re-parent (exist in `useSpaces`, unsurfaced) |
-| **Explorer tag row** | [`ExplorerTagsSection.tsx`](../../apps/web/src/workbench/views/ExplorerTagsSection.tsx) | tag | open only | rename/archive |
-| **Channel / DM row** | [`ChatsPanel.tsx`](../../apps/web/src/comms/ChatsPanel.tsx) | channel | open only | mute / mark-read / archive / leave / pin (mostly net-new) |
-| **Message** | [`MessageRow.tsx`](../../apps/web/src/comms/MessageRow.tsx) + [`MessageActions.tsx`](../../apps/web/src/components/MessageActions.tsx) | message | react/reply/edit (hover toolbar), report/label (popover) | copy, edit, **delete/redact** (`redactMessage` exists, unused), reply |
-| **Table cell/row** | [`TableCell.tsx`](../../packages/views/src/table/TableCell.tsx) | cell | **right-click ✅ (bespoke)** | migrate to primitive |
-| **Grid cell/row** | [`grid/GridSurface.tsx`](../../packages/views/src/grid/GridSurface.tsx) | cell/row | keymap + clipboard | cut/copy/paste/insert/delete row |
-| **Board / Gallery / Timeline card** | `board/BoardCard.tsx`, `gallery/GalleryCard.tsx`, `timeline/TimelineBar.tsx` | card | `onClick` only | open/edit/delete/move |
-| **List item** | [`list/ListItem.tsx`](../../packages/views/src/list/ListItem.tsx) | row | onClick + hover-delete | full row verbs |
-| **Canvas node** | [`CanvasNodeComponent.tsx`](../../packages/canvas/src/nodes/CanvasNodeComponent.tsx) | node | select/double-click; **right-click ignored** (asserted by a test) | the whole `canvas.*` command set + HUD verbs |
-| **Task row** | [`TaskListGrouped.tsx`](../../packages/views/src/tasks/TaskListGrouped.tsx) | task | status glyph dropdown, multi-select | set status/priority/assignee, delete, open |
-| **Editor tab** | [`TabBar.tsx`](../../apps/web/src/workbench/TabBar.tsx) | tab | activate/promote/middle-close/pin/drag | Close others / Close to right / Duplicate / Split / Pin |
+| Surface                             | File                                                                                                                                   | Unit                         | Actions today (how)                                                                 | Gap a menu fills                                                       |
+| ----------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- | ----------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| **Explorer node row**               | [`explorer-rows.tsx`](../../apps/web/src/workbench/views/explorer-rows.tsx)                                                            | page/db/canvas/dashboard/map | open, pin-to-Desk, move-to-Space, move-to-folder, sidebar-pin — all **hover icons** | **rename, delete/Trash** (no path today)                               |
+| **Explorer folder row**             | [`ExplorerFolderTree.tsx`](../../apps/web/src/workbench/views/ExplorerFolderTree.tsx)                                                  | folder                       | new page, rename (inline), delete — hover icons                                     | one discoverable menu                                                  |
+| **Explorer Space row**              | [`ExplorerSpacesSection.tsx`](../../apps/web/src/workbench/views/ExplorerSpacesSection.tsx)                                            | Space                        | open, invite — hover icons                                                          | rename/archive/visibility/re-parent (exist in `useSpaces`, unsurfaced) |
+| **Explorer tag row**                | [`ExplorerTagsSection.tsx`](../../apps/web/src/workbench/views/ExplorerTagsSection.tsx)                                                | tag                          | open only                                                                           | rename/archive                                                         |
+| **Channel / DM row**                | [`ChatsPanel.tsx`](../../apps/web/src/comms/ChatsPanel.tsx)                                                                            | channel                      | open only                                                                           | mute / mark-read / archive / leave / pin (mostly net-new)              |
+| **Message**                         | [`MessageRow.tsx`](../../apps/web/src/comms/MessageRow.tsx) + [`MessageActions.tsx`](../../apps/web/src/components/MessageActions.tsx) | message                      | react/reply/edit (hover toolbar), report/label (popover)                            | copy, edit, **delete/redact** (`redactMessage` exists, unused), reply  |
+| **Table cell/row**                  | [`TableCell.tsx`](../../packages/views/src/table/TableCell.tsx)                                                                        | cell                         | **right-click ✅ (bespoke)**                                                        | migrate to primitive                                                   |
+| **Grid cell/row**                   | [`grid/GridSurface.tsx`](../../packages/views/src/grid/GridSurface.tsx)                                                                | cell/row                     | keymap + clipboard                                                                  | cut/copy/paste/insert/delete row                                       |
+| **Board / Gallery / Timeline card** | `board/BoardCard.tsx`, `gallery/GalleryCard.tsx`, `timeline/TimelineBar.tsx`                                                           | card                         | `onClick` only                                                                      | open/edit/delete/move                                                  |
+| **List item**                       | [`list/ListItem.tsx`](../../packages/views/src/list/ListItem.tsx)                                                                      | row                          | onClick + hover-delete                                                              | full row verbs                                                         |
+| **Canvas node**                     | [`CanvasNodeComponent.tsx`](../../packages/canvas/src/nodes/CanvasNodeComponent.tsx)                                                   | node                         | select/double-click; **right-click ignored** (asserted by a test)                   | the whole `canvas.*` command set + HUD verbs                           |
+| **Task row**                        | [`TaskListGrouped.tsx`](../../packages/views/src/tasks/TaskListGrouped.tsx)                                                            | task                         | status glyph dropdown, multi-select                                                 | set status/priority/assignee, delete, open                             |
+| **Editor tab**                      | [`TabBar.tsx`](../../apps/web/src/workbench/TabBar.tsx)                                                                                | tab                          | activate/promote/middle-close/pin/drag                                              | Close others / Close to right / Duplicate / Split / Pin                |
 
 ## External Research
 
@@ -267,11 +267,11 @@ Distilled principles that shape the design:
 
 ### A. The primitive: how do we render the menu?
 
-| Option | Pros | Cons |
-|---|---|---|
-| **A1. Wrap `@base-ui/react/context-menu`** ✅ | Pointer-anchor, portal, collision, focus, keyboard, submenus, long-press — all free; styling mirrors `Menu.tsx`; consistent with the rest of the UI kit | Must add the wrapper + barrel export |
-| A2. Generalize the `TableCell` hand-rolled overlay into a hook | No new dependency surface | Re-implements (badly) what A1 gives free: no flip, no focus trap, no keyboard, no long-press; diverges from tokens |
-| A3. Reuse `DropdownMenu` anchored to a synthetic 1×1 element at the cursor | Uses an already-wrapped primitive | Fights the library; `DropdownMenu` isn't pointer-anchored; hacky positioning |
+| Option                                                                     | Pros                                                                                                                                                    | Cons                                                                                                               |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| **A1. Wrap `@base-ui/react/context-menu`** ✅                              | Pointer-anchor, portal, collision, focus, keyboard, submenus, long-press — all free; styling mirrors `Menu.tsx`; consistent with the rest of the UI kit | Must add the wrapper + barrel export                                                                               |
+| A2. Generalize the `TableCell` hand-rolled overlay into a hook             | No new dependency surface                                                                                                                               | Re-implements (badly) what A1 gives free: no flip, no focus trap, no keyboard, no long-press; diverges from tokens |
+| A3. Reuse `DropdownMenu` anchored to a synthetic 1×1 element at the cursor | Uses an already-wrapped primitive                                                                                                                       | Fights the library; `DropdownMenu` isn't pointer-anchored; hacky positioning                                       |
 
 **Pick A1.** It's strictly less code than A2 and correct by construction.
 Note the prior-art lesson from
@@ -283,11 +283,11 @@ context-menu primitive inherits that same correct behavior.
 
 ### B. The action source: where do menu items come from?
 
-| Option | Pros | Cons |
-|---|---|---|
-| **B1. Declarative `Action` descriptors per object type**, optionally sourced from the CommandRegistry ✅ | One list per object powers right-click **and** the kebab **and** (eventually) the palette; `when()` gives state-aware items; testable in isolation | Requires defining the descriptor type + per-type action lists |
-| B2. Inline JSX `<ContextMenu.Item>`s at each call site (like TableCell) | Fastest for the first surface | N copies drift; no reuse between kebab and right-click; no single source of truth |
-| B3. Everything must be a registered `WorkspaceCommand` first | Maximal unification; palette parity for free | Heavyweight for object-scoped verbs that need the object instance as an argument; scope plumbing for transient right-clicks is awkward |
+| Option                                                                                                   | Pros                                                                                                                                               | Cons                                                                                                                                   |
+| -------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| **B1. Declarative `Action` descriptors per object type**, optionally sourced from the CommandRegistry ✅ | One list per object powers right-click **and** the kebab **and** (eventually) the palette; `when()` gives state-aware items; testable in isolation | Requires defining the descriptor type + per-type action lists                                                                          |
+| B2. Inline JSX `<ContextMenu.Item>`s at each call site (like TableCell)                                  | Fastest for the first surface                                                                                                                      | N copies drift; no reuse between kebab and right-click; no single source of truth                                                      |
+| B3. Everything must be a registered `WorkspaceCommand` first                                             | Maximal unification; palette parity for free                                                                                                       | Heavyweight for object-scoped verbs that need the object instance as an argument; scope plumbing for transient right-clicks is awkward |
 
 **Pick B1**, with a bridge to B3: object-type action lists are plain data;
 where a verb already exists as a `WorkspaceCommand` (canvas, tasks), the
@@ -297,7 +297,7 @@ gets us reuse without forcing every row verb through scope activation.
 ```mermaid
 flowchart LR
   subgraph Sources
-    NA[useNodeActions\ndescriptors] 
+    NA[useNodeActions\ndescriptors]
     CR[CommandRegistry\ncommandsForScopes]
   end
   subgraph Render
@@ -317,11 +317,11 @@ flowchart LR
 
 ### C. Rollout shape
 
-| Option | Pros | Cons |
-|---|---|---|
-| **C1. Primitive + descriptor first, then Explorer, then fan out by value** ✅ | De-risks the primitive on the user's #1 surface; each surface is an independent, shippable PR | Multiple PRs |
-| C2. Big-bang every surface at once | One review | Huge diff; couples unrelated surfaces; hard to validate |
-| C3. Only do the three the user named (Explorer, Channels, Chats) | Smallest scope | Leaves the highest-value surface (Canvas) and the most-broken one (TableCell) untouched; re-opens the "inconsistent gestures" complaint |
+| Option                                                                        | Pros                                                                                          | Cons                                                                                                                                    |
+| ----------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| **C1. Primitive + descriptor first, then Explorer, then fan out by value** ✅ | De-risks the primitive on the user's #1 surface; each surface is an independent, shippable PR | Multiple PRs                                                                                                                            |
+| C2. Big-bang every surface at once                                            | One review                                                                                    | Huge diff; couples unrelated surfaces; hard to validate                                                                                 |
+| C3. Only do the three the user named (Explorer, Channels, Chats)              | Smallest scope                                                                                | Leaves the highest-value surface (Canvas) and the most-broken one (TableCell) untouched; re-opens the "inconsistent gestures" complaint |
 
 **Pick C1**, sequenced by value: **Explorer → migrate TableCell → Channels
 & Messages → Canvas → Tabs → remaining data-view cards.**
@@ -424,7 +424,8 @@ export const ContextMenuItem = React.forwardRef<
       'data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground',
       'data-[disabled]:pointer-events-none data-[disabled]:opacity-50',
       '[&>svg]:size-4 [&>svg]:shrink-0',
-      danger && 'text-destructive data-[highlighted]:bg-destructive/10 data-[highlighted]:text-destructive',
+      danger &&
+        'text-destructive data-[highlighted]:bg-destructive/10 data-[highlighted]:text-destructive',
       className
     )}
     {...props}
@@ -445,35 +446,50 @@ export interface Action {
   id: string
   label: string
   icon?: React.ReactNode
-  shortcut?: string        // pre-formatted, e.g. via formatForDisplay()
+  shortcut?: string // pre-formatted, e.g. via formatForDisplay()
   danger?: boolean
   disabled?: boolean
-  when?: () => boolean     // hidden when false
+  when?: () => boolean // hidden when false
   run: () => void | Promise<void>
-  children?: Action[]      // one level of submenu ("Move to →")
+  children?: Action[] // one level of submenu ("Move to →")
 }
 
 export function ActionMenuList({ actions }: { actions: Action[] }) {
   return (
     <>
-      {actions.filter(a => a.when?.() ?? true).map(a =>
-        a.id === '---' ? (
-          <ContextMenuSeparator key={Math.random()} />
-        ) : a.children ? (
-          <BaseContextMenu.SubmenuRoot key={a.id}>
-            <BaseContextMenu.SubmenuTrigger className="…">{a.label}</BaseContextMenu.SubmenuTrigger>
-            <BaseContextMenu.Portal><BaseContextMenu.Positioner><BaseContextMenu.Popup className="…">
-              <ActionMenuList actions={a.children} />
-            </BaseContextMenu.Popup></BaseContextMenu.Positioner></BaseContextMenu.Portal>
-          </BaseContextMenu.SubmenuRoot>
-        ) : (
-          <ContextMenuItem key={a.id} danger={a.danger} disabled={a.disabled} onClick={() => void a.run()}>
-            {a.icon}
-            <span className="flex-1">{a.label}</span>
-            {a.shortcut && <span className="ml-auto text-xs text-foreground-muted">{a.shortcut}</span>}
-          </ContextMenuItem>
-        )
-      )}
+      {actions
+        .filter((a) => a.when?.() ?? true)
+        .map((a) =>
+          a.id === '---' ? (
+            <ContextMenuSeparator key={Math.random()} />
+          ) : a.children ? (
+            <BaseContextMenu.SubmenuRoot key={a.id}>
+              <BaseContextMenu.SubmenuTrigger className="…">
+                {a.label}
+              </BaseContextMenu.SubmenuTrigger>
+              <BaseContextMenu.Portal>
+                <BaseContextMenu.Positioner>
+                  <BaseContextMenu.Popup className="…">
+                    <ActionMenuList actions={a.children} />
+                  </BaseContextMenu.Popup>
+                </BaseContextMenu.Positioner>
+              </BaseContextMenu.Portal>
+            </BaseContextMenu.SubmenuRoot>
+          ) : (
+            <ContextMenuItem
+              key={a.id}
+              danger={a.danger}
+              disabled={a.disabled}
+              onClick={() => void a.run()}
+            >
+              {a.icon}
+              <span className="flex-1">{a.label}</span>
+              {a.shortcut && (
+                <span className="ml-auto text-xs text-foreground-muted">{a.shortcut}</span>
+              )}
+            </ContextMenuItem>
+          )
+        )}
     </>
   )
 }
@@ -482,7 +498,11 @@ export function ActionMenuList({ actions }: { actions: Action[] }) {
 ### 3. The node action descriptor — `packages/react/src/hooks/useNodeActions.ts`
 
 ```tsx
-export function useNodeActions(node: { id: string; type: ExplorerNodeType; title: string }): Action[] {
+export function useNodeActions(node: {
+  id: string
+  type: ExplorerNodeType
+  title: string
+}): Action[] {
   const { update, remove } = useMutate()
   const { spaces, setNodeSpace } = useSpaces()
   const { folders, moveItemToFolder } = useExplorerFolders()
@@ -492,19 +512,32 @@ export function useNodeActions(node: { id: string; type: ExplorerNodeType; title
     { id: 'open', label: 'Open', run: () => navigateToNode(node) },
     { id: 'rename', label: 'Rename…', run: () => beginInlineRename(node.id) },
     {
-      id: 'move-space', label: 'Move to workspace', children: spaces.map(s => ({
-        id: `space:${s.id}`, label: s.name, run: () => setNodeSpace(node.id, s.id)
+      id: 'move-space',
+      label: 'Move to workspace',
+      children: spaces.map((s) => ({
+        id: `space:${s.id}`,
+        label: s.name,
+        run: () => setNodeSpace(node.id, s.id)
       }))
     },
     {
-      id: 'move-folder', label: 'Move to folder', children: folders.map(f => ({
-        id: `folder:${f.id}`, label: f.name, run: () => moveItemToFolder(node, f.id)
+      id: 'move-folder',
+      label: 'Move to folder',
+      children: folders.map((f) => ({
+        id: `folder:${f.id}`,
+        label: f.name,
+        run: () => moveItemToFolder(node, f.id)
       }))
     },
     { id: '---', label: '' },
     canArchive
       ? { id: 'archive', label: 'Archive', run: () => update({ id: node.id, archived: true }) }
-      : { id: 'delete', label: 'Delete', danger: true, run: () => remove(node.id) /* → Trash, restorable */ }
+      : {
+          id: 'delete',
+          label: 'Delete',
+          danger: true,
+          run: () => remove(node.id) /* → Trash, restorable */
+        }
   ]
 }
 ```
@@ -515,9 +548,14 @@ export function useNodeActions(node: { id: string; type: ExplorerNodeType; title
 const actions = useNodeActions(item)
 return (
   <ContextMenu menu={<ActionMenuList actions={actions} />}>
-    <ExplorerRow item={item} kebab={<Menu trigger={<KebabButton/>}>
-      <ActionMenuList actions={actions} />
-    </Menu>} />
+    <ExplorerRow
+      item={item}
+      kebab={
+        <Menu trigger={<KebabButton />}>
+          <ActionMenuList actions={actions} />
+        </Menu>
+      }
+    />
   </ContextMenu>
 )
 ```
@@ -576,14 +614,14 @@ stateDiagram-v2
 
 ## Implementation Checklist
 
-- [ ] Add `export * from '@base-ui/react/context-menu'` to
+- [x] Add `export * from '@base-ui/react/context-menu'` to
       [`packages/ui/src/base-ui/index.ts`](../../packages/ui/src/base-ui/index.ts).
-- [ ] Create `packages/ui/src/primitives/ContextMenu.tsx` (`ContextMenu`,
+- [x] Create `packages/ui/src/primitives/ContextMenu.tsx` (`ContextMenu`,
       `ContextMenuItem`, `ContextMenuSeparator`, submenu parts) mirroring
       `Menu.tsx` tokens/motion.
-- [ ] Create `packages/ui/src/composed/ActionMenu.tsx` (`Action` type +
+- [x] Create `packages/ui/src/composed/ActionMenu.tsx` (`Action` type +
       `ActionMenuList`, with one-level submenu + separator support).
-- [ ] Export both from a **scoped sub-barrel** re-exported once from the
+- [x] Export both from a **scoped sub-barrel** re-exported once from the
       `@xnetjs/ui` root barrel (0276 policy).
 - [ ] Add a Storybook story + keep the plugins storybook shim in sync
       (recurring gotcha from 0282/0284).
