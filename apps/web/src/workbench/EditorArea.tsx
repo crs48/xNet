@@ -147,14 +147,16 @@ function GroupTabStrip({
   mode,
   group,
   routed,
-  tabVariant
+  tabVariant,
+  hideTabStrip
 }: {
   mode: string
   group: EditorGroup
   routed: boolean
   tabVariant: TabVariant
+  hideTabStrip: boolean
 }) {
-  if (mode === 'zen' || group.tabs.length === 0) return null
+  if (hideTabStrip || mode === 'zen' || group.tabs.length === 0) return null
   return <TabBar group={group} routed={routed} variant={tabVariant} />
 }
 
@@ -206,12 +208,14 @@ function GroupPane({
   isActive,
   routed,
   tabVariant,
+  hideTabStrip,
   children
 }: {
   group: EditorGroup
   isActive: boolean
   routed: boolean
   tabVariant: TabVariant
+  hideTabStrip: boolean
   children: ReactNode
 }) {
   const navigate = useNavigate()
@@ -229,9 +233,18 @@ function GroupPane({
         if (tab) navigateToNode(navigate, tab.nodeType, tab.nodeId)
       }}
     >
-      <GroupTabStrip mode={mode} group={group} routed={routed} tabVariant={tabVariant} />
-      {/* The floating shell (pill) carries the breadcrumb in its editor header. */}
-      {mode !== 'zen' && tabVariant !== 'pill' && <TabBreadcrumb tab={activeTab} />}
+      <GroupTabStrip
+        mode={mode}
+        group={group}
+        routed={routed}
+        tabVariant={tabVariant}
+        hideTabStrip={hideTabStrip}
+      />
+      {/* The floating shell (pill) and mobile (hideTabStrip) carry the
+          breadcrumb/title in their own chrome. */}
+      {mode !== 'zen' && tabVariant !== 'pill' && !hideTabStrip && (
+        <TabBreadcrumb tab={activeTab} />
+      )}
       <div className="min-h-0 flex-1">
         <GroupContent isActive={isActive} activeTab={activeTab} routed={routed}>
           {children}
@@ -272,10 +285,13 @@ function StarterChips() {
 
 export function EditorArea({
   children,
-  tabVariant = 'strip'
+  tabVariant = 'strip',
+  hideTabStrip = false
 }: {
   children: ReactNode
   tabVariant?: TabVariant
+  /** Suppress the built-in tab strip — the mobile shell renders its own (0289). */
+  hideTabStrip?: boolean
 }) {
   const location = useLocation()
   const navigate = useNavigate()
@@ -335,6 +351,7 @@ export function EditorArea({
                 isActive={group.id === activeGroupId}
                 routed={group.id === activeGroupId && group.activeTabId === routedTabId}
                 tabVariant={tabVariant}
+                hideTabStrip={hideTabStrip}
               >
                 {outlet}
               </GroupPane>
