@@ -11,6 +11,7 @@
  * new paint. Focus mode still hands off to ShellFrame's ZenFrame.
  */
 import type { ReactNode } from 'react'
+import { useDevTools } from '@xnetjs/devtools'
 import { useState } from 'react'
 import { GlobalSearch } from '../components/GlobalSearch'
 import { UndoToastProvider } from '../components/UndoToast'
@@ -30,6 +31,10 @@ const ISLAND = 'overflow-hidden rounded-2xl border border-hairline bg-island-b s
 export function FloatingFrame({ children }: { children: ReactNode }) {
   const sidebarCollapsed = useWorkbench((s) => s.sidebarCollapsed)
   const rightOpen = useWorkbench((s) => s.right.open)
+  // Show the docked dev-tools island whenever the real devtools provider is
+  // mounted — i.e. exactly where the old floating FAB used to appear, including
+  // deploy-preview / prod-ish builds (not only under `import.meta.env.DEV`).
+  const devtoolsAvailable = useDevTools().available
   const [menu, setMenu] = useState<FloatingMenuState | null>(null)
 
   const openMenu = (name: FloatingMenuName) => (e: React.MouseEvent) => {
@@ -72,7 +77,7 @@ export function FloatingFrame({ children }: { children: ReactNode }) {
           <div className="min-w-0 flex-1 overflow-hidden rounded-[14px] border border-hairline bg-island-b shadow-isl">
             <StatusBar variant="island" />
           </div>
-          {import.meta.env.DEV && <DevToolsIsland />}
+          {devtoolsAvailable && <DevToolsIsland />}
         </div>
 
         <FloatingMenus menu={menu} onClose={() => setMenu(null)} />

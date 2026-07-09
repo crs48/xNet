@@ -537,6 +537,7 @@ export function XNetDevToolsProvider({
 
   const contextValue = useMemo(
     () => ({
+      available: true,
       isOpen,
       activePanel,
       position,

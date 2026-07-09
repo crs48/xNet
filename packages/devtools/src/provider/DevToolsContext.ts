@@ -76,6 +76,14 @@ export interface YDocRegistry {
 }
 
 export interface DevToolsContextValue {
+  /**
+   * True when the full devtools implementation is mounted (dev entry). Hosts use
+   * this to decide whether to render their own devtools launcher (e.g. the
+   * workbench dev-tools island, 0287/0289) — it matches exactly when the FAB
+   * would show, so it works in any build that bundles the real provider, not
+   * only under `import.meta.env.DEV`. The production stub returns `false`.
+   */
+  available: boolean
   /** Whether the devtools panel is open */
   isOpen: boolean
   /** Currently active panel tab */
