@@ -6,6 +6,7 @@ import type { ViewConfig } from '../types.js'
 import type { Schema } from '@xnetjs/data'
 import { cn } from '@xnetjs/ui'
 import React, { useRef, useMemo } from 'react'
+import { RowContextMenu } from '../components/RowContextMenu.js'
 import { TimelineBar } from './TimelineBar.js'
 import {
   useTimelineState,
@@ -27,6 +28,8 @@ export interface TimelineViewProps {
   onUpdateView?: (changes: Partial<ViewConfig>) => void
   /** Callback when an item is clicked */
   onItemClick?: (itemId: string) => void
+  /** Callback when an item is deleted (right-click menu) */
+  onDeleteItem?: (itemId: string) => void
   /** Additional CSS class */
   className?: string
 }
@@ -44,6 +47,7 @@ export function TimelineView({
   data,
   onUpdateRow,
   onItemClick,
+  onDeleteItem,
   className
 }: TimelineViewProps): React.JSX.Element {
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -228,15 +232,21 @@ export function TimelineView({
 
               {/* Timeline bars */}
               {items.map((item, index) => (
-                <TimelineBar
+                <RowContextMenu
                   key={item.id}
-                  item={item}
-                  range={range}
-                  zoomConfig={zoomConfig}
-                  rowIndex={index}
-                  rowHeight={ROW_HEIGHT}
-                  onClick={onItemClick}
-                />
+                  className="contents"
+                  onOpen={onItemClick ? () => onItemClick(item.id) : undefined}
+                  onDelete={onDeleteItem ? () => onDeleteItem(item.id) : undefined}
+                >
+                  <TimelineBar
+                    item={item}
+                    range={range}
+                    zoomConfig={zoomConfig}
+                    rowIndex={index}
+                    rowHeight={ROW_HEIGHT}
+                    onClick={onItemClick}
+                  />
+                </RowContextMenu>
               ))}
             </div>
           </div>

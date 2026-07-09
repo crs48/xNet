@@ -9,6 +9,7 @@ import { useSortable, SortableContext, verticalListSortingStrategy } from '@dnd-
 import { CSS } from '@dnd-kit/utilities'
 import { cn } from '@xnetjs/ui'
 import React, { useState, useRef, useEffect } from 'react'
+import { RowContextMenu } from '../components/RowContextMenu.js'
 import { BoardCard } from './BoardCard.js'
 
 export interface BoardColumnProps {
@@ -26,6 +27,8 @@ export interface BoardColumnProps {
   onAddCard?: (columnId: string) => void
   /** Callback when a card is clicked */
   onCardClick?: (itemId: string) => void
+  /** Callback when a card is deleted (right-click menu) */
+  onDeleteCard?: (itemId: string) => void
   /** Callback when column is renamed */
   onRenameColumn?: (columnId: string, newName: string) => void
   /** Callback when column is deleted */
@@ -47,6 +50,7 @@ export function BoardColumn({
   isDropTarget,
   onAddCard,
   onCardClick,
+  onDeleteCard,
   onRenameColumn,
   onDeleteColumn,
   isDraggable = false,
@@ -303,13 +307,19 @@ export function BoardColumn({
             strategy={verticalListSortingStrategy}
           >
             {column.items.map((item) => (
-              <BoardCard
+              <RowContextMenu
                 key={item.id}
-                item={item}
-                schema={schema}
-                cardProperties={cardProperties}
-                onClick={onCardClick}
-              />
+                className="contents"
+                onOpen={onCardClick ? () => onCardClick(item.id) : undefined}
+                onDelete={onDeleteCard ? () => onDeleteCard(item.id) : undefined}
+              >
+                <BoardCard
+                  item={item}
+                  schema={schema}
+                  cardProperties={cardProperties}
+                  onClick={onCardClick}
+                />
+              </RowContextMenu>
             ))}
           </SortableContext>
 

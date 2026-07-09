@@ -9,6 +9,7 @@
 export * from '@base-ui/react/accordion'
 export * from '@base-ui/react/checkbox'
 export * from '@base-ui/react/collapsible'
+export * from '@base-ui/react/context-menu'
 export * from '@base-ui/react/dialog'
 export * from '@base-ui/react/menu'
 export * from '@base-ui/react/popover'

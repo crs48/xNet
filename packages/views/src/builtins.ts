@@ -45,6 +45,7 @@ function BoardViewAdapter(props: ViewProps): React.JSX.Element {
     onUpdateView: props.onUpdateView,
     onUpdateRow: props.onUpdateRow,
     onCardClick: props.onRowClick,
+    onDeleteCard: props.onDeleteRow ? (id: string) => props.onDeleteRow?.(id) : undefined,
     onAddCard: props.onCreateRow ? (_columnId: string) => props.onCreateRow?.() : undefined,
     className: props.className
   })
@@ -60,6 +61,7 @@ function GalleryViewAdapter(props: ViewProps): React.JSX.Element {
     data: props.data,
     onUpdateView: props.onUpdateView,
     onCardClick: props.onRowClick,
+    onDeleteCard: props.onDeleteRow ? (id: string) => props.onDeleteRow?.(id) : undefined,
     onAddCard: props.onCreateRow ? () => props.onCreateRow?.() : undefined,
     className: props.className
   })
@@ -75,6 +77,7 @@ function TimelineViewAdapter(props: ViewProps): React.JSX.Element {
     data: props.data,
     onUpdateView: props.onUpdateView,
     onItemClick: props.onRowClick,
+    onDeleteItem: props.onDeleteRow ? (id: string) => props.onDeleteRow?.(id) : undefined,
     className: props.className
   })
 }

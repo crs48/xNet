@@ -8,7 +8,13 @@
 import type { ChatRow } from './message-grouping'
 import type { WikilinkTarget } from '@xnetjs/editor/react'
 import { sensitivityLabels, type SensitivityLabelValue } from '@xnetjs/abuse'
-import { editMessage, sendMessage, typingPeers, type PresenceStatus } from '@xnetjs/comms'
+import {
+  editMessage,
+  redactMessage,
+  sendMessage,
+  typingPeers,
+  type PresenceStatus
+} from '@xnetjs/comms'
 import { useDataBridge } from '@xnetjs/react/internal'
 import { cn, Popover, useListboxNavigation } from '@xnetjs/ui'
 import { Send, Shield, Smile } from 'lucide-react'
@@ -469,6 +475,15 @@ export function ChannelChat({ channelId }: { channelId: string }) {
     if (last) setEditingId(last.id)
   }, [rows, me.did])
 
+  const deleteMessage = useCallback(
+    async (message: ChatRow) => {
+      if (!bridge) return
+      await redactMessage(bridge, message.id)
+      if (editingId === message.id) setEditingId(null)
+    },
+    [bridge, editingId]
+  )
+
   const openThread = useCallback((rootId: string) => setOpenThreadId(rootId), [])
 
   return (
@@ -489,6 +504,7 @@ export function ChannelChat({ channelId }: { channelId: string }) {
           onCancelEdit={() => setEditingId(null)}
           onSubmitEdit={submitEdit}
           onReply={(message) => openThread(message.id)}
+          onDelete={(message) => void deleteMessage(message)}
           onOpenThread={openThread}
         />
         <div className="relative border-t border-hairline p-2">

@@ -10,16 +10,19 @@
  */
 import { type TaskStatusId } from '@xnetjs/data'
 import {
+  ActionMenuList,
+  ContextMenu,
   DIDAvatar,
   TaskPriorityIcon,
   TaskRow,
   TaskStatusIcon,
   getTaskStatusMeta,
+  type Action,
   type TaskDisplayData,
   type TaskRowDensity
 } from '@xnetjs/ui'
-import { ChevronDown, ChevronRight, Plus } from 'lucide-react'
-import React, { useMemo, useState } from 'react'
+import { Check, ChevronDown, ChevronRight, Circle, Plus, SquareArrowOutUpRight } from 'lucide-react'
+import React, { createElement, useMemo, useState } from 'react'
 import {
   TASK_WORKFLOW_ORDER,
   buildTaskGroups,
@@ -175,20 +178,42 @@ export function TaskListGrouped({
             )}
             {!isCollapsed && (
               <div className="flex flex-col px-1 py-0.5">
-                {group.tasks.map((task) => (
-                  <React.Fragment key={task.id}>
-                    <TaskRow
-                      task={task}
-                      density={density}
-                      focused={task.id === focusedTaskId}
-                      selected={selectedTaskIds?.has(task.id)}
-                      onSelect={onSelectTask}
-                      onOpen={onOpenTask}
-                      onToggleCompleted={onToggleCompleted}
-                      onStatusChange={onStatusChange}
-                    />
-                  </React.Fragment>
-                ))}
+                {group.tasks.map((task) => {
+                  const actions: Action[] = [
+                    {
+                      id: 'open',
+                      label: 'Open',
+                      icon: createElement(SquareArrowOutUpRight, { size: 14 }),
+                      when: () => Boolean(onOpenTask),
+                      run: () => onOpenTask?.(task.id)
+                    },
+                    {
+                      id: 'toggle',
+                      label: task.completed ? 'Mark as not done' : 'Mark as done',
+                      icon: createElement(task.completed ? Circle : Check, { size: 14 }),
+                      when: () => Boolean(onToggleCompleted),
+                      run: () => onToggleCompleted?.(task.id, !task.completed)
+                    }
+                  ]
+                  return (
+                    <ContextMenu
+                      key={task.id}
+                      className="contents"
+                      menu={<ActionMenuList actions={actions} />}
+                    >
+                      <TaskRow
+                        task={task}
+                        density={density}
+                        focused={task.id === focusedTaskId}
+                        selected={selectedTaskIds?.has(task.id)}
+                        onSelect={onSelectTask}
+                        onOpen={onOpenTask}
+                        onToggleCompleted={onToggleCompleted}
+                        onStatusChange={onStatusChange}
+                      />
+                    </ContextMenu>
+                  )
+                })}
               </div>
             )}
           </div>

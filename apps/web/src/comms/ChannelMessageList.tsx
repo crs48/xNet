@@ -76,6 +76,7 @@ export function ChannelMessageList({
   onCancelEdit,
   onSubmitEdit,
   onReply,
+  onDelete,
   onOpenThread
 }: {
   channelId: string
@@ -92,6 +93,7 @@ export function ChannelMessageList({
   onCancelEdit: () => void
   onSubmitEdit: (message: ChatRow, content: string) => void | Promise<void>
   onReply: (message: ChatRow) => void
+  onDelete?: (message: ChatRow) => void
   onOpenThread: (rootId: string) => void
 }) {
   const listRef = useRef<HTMLUListElement>(null)
@@ -184,6 +186,7 @@ export function ChannelMessageList({
                 onCancelEdit={onCancelEdit}
                 onSubmitEdit={(content) => onSubmitEdit(row.message, content)}
                 onReply={() => onReply(row.message)}
+                onDelete={onDelete ? () => onDelete(row.message) : undefined}
                 thread={threadIndex.get(row.message.id)}
                 onOpenThread={() => onOpenThread(row.message.id)}
               />

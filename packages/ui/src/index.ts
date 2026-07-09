@@ -101,6 +101,35 @@ export {
   type MenuItemProps
 } from './primitives/Menu'
 export {
+  ContextMenu,
+  ContextMenuRoot,
+  ContextMenuTrigger,
+  ContextMenuPortal,
+  ContextMenuPositioner,
+  ContextMenuGroup,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuCheckboxItem,
+  ContextMenuRadioGroup,
+  ContextMenuRadioItem,
+  ContextMenuLabel,
+  ContextMenuSeparator,
+  ContextMenuShortcut,
+  ContextMenuSub,
+  ContextMenuSubTrigger,
+  ContextMenuSubContent,
+  type ContextMenuProps,
+  type ContextMenuItemProps
+} from './primitives/ContextMenu'
+export {
+  ActionMenuList,
+  ActionDropdownItems,
+  ActionKebabMenu,
+  visibleActions,
+  ACTION_SEPARATOR,
+  type Action
+} from './composed/ActionMenu'
+export {
   Tooltip,
   TooltipProvider,
   TooltipRoot,

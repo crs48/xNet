@@ -16,9 +16,18 @@ import {
   type PresenceStatus
 } from '@xnetjs/comms'
 import { useDataBridge } from '@xnetjs/react/internal'
-import { cn } from '@xnetjs/ui'
-import { Hash, MessageCircle, Plus, Volume2 } from 'lucide-react'
-import { useMemo, useState, type ReactNode } from 'react'
+import { cn, ActionDropdownItems, ActionMenuList, ContextMenu, Menu, type Action } from '@xnetjs/ui'
+import {
+  Archive,
+  CheckCheck,
+  Hash,
+  MessageCircle,
+  MoreHorizontal,
+  Plus,
+  SquareArrowOutUpRight,
+  Volume2
+} from 'lucide-react'
+import { createElement, useMemo, useState, type ReactNode } from 'react'
 import { ChatAvatar } from './ChatAvatar'
 import { channelLabel, type ChannelEntry } from './comms-utils'
 import { useComms } from './CommsContext'
@@ -54,30 +63,55 @@ function ChannelRow({
   label,
   mentionCount,
   occupancy,
-  onOpen
+  onOpen,
+  actions
 }: {
   leading: ReactNode
   label: string
   mentionCount: number
   occupancy: number
   onOpen: () => void
+  /** Right-click / kebab verbs for this channel (open, mark read, archive). */
+  actions: Action[]
 }) {
   const unread = mentionCount > 0
   return (
     <li>
-      <button
-        type="button"
-        onClick={onOpen}
-        className={cn(
-          'flex w-full cursor-pointer items-center gap-2 rounded border-none bg-transparent px-2 py-1 text-left text-xs hover:bg-surface-2 hover:text-ink-1',
-          unread ? 'font-medium text-ink-1' : 'text-ink-2'
-        )}
-      >
-        <span className="flex w-[18px] shrink-0 items-center justify-center">{leading}</span>
-        <span className="min-w-0 flex-1 truncate">{label}</span>
-        <OccupancyBadge count={occupancy} />
-        <MentionBadge count={mentionCount} />
-      </button>
+      <ContextMenu className="contents" menu={<ActionMenuList actions={actions} />}>
+        <div
+          className={cn(
+            'group flex w-full items-center gap-2 rounded px-2 py-1 text-xs hover:bg-surface-2 hover:text-ink-1',
+            unread ? 'font-medium text-ink-1' : 'text-ink-2'
+          )}
+        >
+          <button
+            type="button"
+            onClick={onOpen}
+            className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 border-none bg-transparent p-0 text-left text-inherit"
+          >
+            <span className="flex w-[18px] shrink-0 items-center justify-center">{leading}</span>
+            <span className="min-w-0 flex-1 truncate">{label}</span>
+          </button>
+          <OccupancyBadge count={occupancy} />
+          <MentionBadge count={mentionCount} />
+          <Menu
+            align="start"
+            trigger={
+              <button
+                type="button"
+                title="Channel actions"
+                aria-label="Channel actions"
+                onClick={(event) => event.stopPropagation()}
+                className="invisible shrink-0 cursor-pointer border-none bg-transparent p-0 text-ink-3 hover:text-ink-1 group-hover:visible"
+              >
+                <MoreHorizontal size={13} strokeWidth={1.5} />
+              </button>
+            }
+          >
+            <ActionDropdownItems actions={actions} />
+          </Menu>
+        </div>
+      </ContextMenu>
     </li>
   )
 }
@@ -172,11 +206,34 @@ function AddButton({ title, onClick }: { title: string; onClick: () => void }) {
 
 export function ChatsPanel() {
   const navigate = useNavigate()
+  const bridge = useDataBridge()
   const { channels } = useChannels()
-  const { items, state } = useInbox()
+  const { items, state, markChannelRead } = useInbox()
   const { me, workspacePeers } = useComms()
   const profiles = useProfiles()
   const [creating, setCreating] = useState<'channel' | 'dm' | null>(null)
+
+  const channelActions = (channel: ChannelEntry): Action[] => [
+    {
+      id: 'open',
+      label: 'Open',
+      icon: createElement(SquareArrowOutUpRight, { size: 14 }),
+      run: () => void navigate({ to: '/channel/$channelId', params: { channelId: channel.id } })
+    },
+    {
+      id: 'read',
+      label: 'Mark as read',
+      icon: createElement(CheckCheck, { size: 14 }),
+      run: () => void markChannelRead(channel.id, Date.now())
+    },
+    { id: '---' },
+    {
+      id: 'archive',
+      label: 'Archive',
+      icon: createElement(Archive, { size: 14 }),
+      run: () => void bridge?.update(channel.id, { archived: true })
+    }
+  ]
 
   const presenceByDid = useMemo(() => {
     const map = new Map<string, PresenceStatus>()
@@ -228,6 +285,7 @@ export function ChatsPanel() {
         onOpen={() =>
           void navigate({ to: '/channel/$channelId', params: { channelId: channel.id } })
         }
+        actions={channelActions(channel)}
       />
     ))
 
