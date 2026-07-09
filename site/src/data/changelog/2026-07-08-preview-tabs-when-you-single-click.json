@@ -1,0 +1,12 @@
+{
+  "id": "2026-07-08-preview-tabs-when-you-single-click",
+  "date": "July 8, 2026",
+  "title": "Preview tabs when you single-click",
+  "summary": "Opening a document with a single click now shows it as a preview tab (italic) that the next click replaces — double-click, or start editing, to keep it. Matches VS Code, and now works from every list including the home page.",
+  "highlights": [],
+  "tags": [
+    "app",
+    "editor"
+  ],
+  "pr": 422
+}
