@@ -8,5 +8,11 @@
     "app",
     "editor"
   ],
-  "pr": 422
+  "pr": 422,
+  "mergedAt": "2026-07-09T02:17:03Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
