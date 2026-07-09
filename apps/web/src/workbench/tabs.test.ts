@@ -87,6 +87,21 @@ describe('navigateToNode', () => {
       { to: '/tasks' },
       { to: '/data' }
     ])
+    consumePreviewIntent() // hermetic: these opens set a preview intent
+  })
+
+  it('sets a preview intent by default (VS Code preview tabs, 0284)', () => {
+    const navigate = (() => Promise.resolve()) as unknown as ReturnType<typeof useNavigate>
+    consumePreviewIntent() // clear any residue
+    navigateToNode(navigate, 'page', 'p')
+    expect(consumePreviewIntent()).toBe(true)
+  })
+
+  it('opts out of preview when activating an existing tab', () => {
+    const navigate = (() => Promise.resolve()) as unknown as ReturnType<typeof useNavigate>
+    consumePreviewIntent()
+    navigateToNode(navigate, 'page', 'p', { preview: false })
+    expect(consumePreviewIntent()).toBe(false)
   })
 })
 
