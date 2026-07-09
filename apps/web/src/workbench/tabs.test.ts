@@ -36,7 +36,7 @@ describe('tabFromPathname', () => {
 
   it('returns null for non-tab routes', () => {
     expect(tabFromPathname('/')).toBeNull()
-    expect(tabFromPathname('/settings')).toBeNull()
+    expect(tabFromPathname('/discover')).toBeNull()
     expect(tabFromPathname('/doc/')).toBeNull()
   })
 })
@@ -150,7 +150,7 @@ describe('syncRouteToTabs', () => {
       activeGroupId: 'group-1',
       recents: []
     })
-    syncRouteToTabs('/settings')
+    syncRouteToTabs('/discover')
     expect(useWorkbench.getState().groups[0].tabs).toEqual([])
   })
 })
