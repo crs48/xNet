@@ -1,9 +1,14 @@
 # Right-Click Context Menus Across The UI
 
-> Status: exploration (`[_]`). Successor to the single-shell / workbench
+> Status: complete (`[x]`). Successor to the single-shell / workbench
 > line of work (0273 → 0280 → 0282 → 0284). Where those explorations made
 > _every destination reachable_, this one makes _every object actionable
-> in place_.
+> in place_. All rollout PRs have landed (PR0–PR6); the final deferred
+> surface, **PR4 Canvas**, shipped the opt-in `nodeContextActions` menu on
+> canvas nodes. Remaining unchecked items in the Validation Checklist are
+> cross-surface manual QA (long-press on the Capacitor shell, native-menu
+> passthrough on editable text, viewport-edge flip, dialog stacking) rather
+> than outstanding implementation.
 
 ## Problem Statement
 
@@ -640,9 +645,16 @@ stateDiagram-v2
       leave / pin — build the missing service verbs) and message menu
       (copy, edit, reply, **delete via `redactMessage`** — currently
       unused, report/label reuse `MessageActions`).
-- [ ] **PR4 Canvas:** bind `onContextMenu` on the node component; render
-      `commandsForScopes(['surface:canvas'])` via `ActionMenuList`; make it
-      multi-select-aware; update the "ignores right-click" test.
+- [x] **PR4 Canvas:** opt-in `nodeContextActions` prop on `CanvasV3`
+      (`packages/canvas/src/renderer/CanvasV3.tsx`) wraps each node island in a
+      `display:contents` `ContextMenu` (from `@xnetjs/ui`); the web consumer
+      (`apps/web/src/components/CanvasView.tsx`) renders
+      `commandsForScopes(['surface:canvas'])` via `ActionMenuList`. Multi-select
+      aware: opening selects the node first when it sits outside the selection,
+      else keeps the whole selection (Linear's rule). The drawing controller's
+      right-click **pointerdown** is still ignored (unchanged
+      `drawing-tools.test.ts`) — the menu opens on the `contextmenu` event, so
+      pan/marquee are untouched. New coverage in `canvas-v3.test.tsx`.
 - [x] **PR5 Tabs:** `TabBar` right-click → Close / Close others / Close to
       the right / Pin-Unpin / Duplicate / Split (add the two missing verbs
       to `state.ts`/`tabs.ts`).
@@ -667,8 +679,9 @@ stateDiagram-v2
 - [ ] Menu flips at viewport edges; opens correctly when the object is near
       the bottom/right; scrolls closed.
 - [ ] Menu stacks above an open Sheet/Modal when invoked from within one.
-- [ ] Canvas menu acts on the full selection when the target is selected;
-      pan/marquee gestures still work; the updated drawing-tools test
+- [x] Canvas menu acts on the full selection when the target is selected
+      (else it collapses to the right-clicked node); pan/marquee gestures still
+      work; the drawing-tools test (right-click pointerdown ignored) still
       passes.
 - [x] TableCell behaves identically to before (copy/edit/clear/comment/
       delete) with the bespoke overlay removed; no visual regression vs the

@@ -29,7 +29,7 @@ import {
 } from '@xnetjs/editor/react'
 import { getCommandRegistry } from '@xnetjs/plugins'
 import { useIdentity, useMutate, useNode, useQuery } from '@xnetjs/react'
-import { setNodeTransfer } from '@xnetjs/ui'
+import { setNodeTransfer, type Action } from '@xnetjs/ui'
 import {
   CANVAS_DASHBOARD_SCHEMA_REGISTRY,
   CanvasAliasEditorPanel,
@@ -548,6 +548,22 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
     [doc, navigate]
   )
 
+  // Right-click a canvas node → the same `surface:canvas` verbs the command
+  // palette and keymap already read (0285 PR4). CanvasV3 selects the target
+  // node first when it sits outside the current selection, so each command's
+  // `when` guard is evaluated against the effective selection here.
+  const buildNodeContextActions = useCallback((): Action[] => {
+    const registry = getCommandRegistry()
+    return registry.commandsForScopes(['surface:canvas']).map((command) => ({
+      id: command.id,
+      label: command.title.replace(/^Canvas:\s*/, ''),
+      shortcut: command.key ? registry.formatForDisplay(command.key) : undefined,
+      run: () => {
+        void registry.runCommand(command.id)
+      }
+    }))
+  }, [])
+
   const canvasHint = useMemo(
     () =>
       controller.hasNodes
@@ -1012,6 +1028,7 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
             return undefined
           }}
           onNodeDoubleClick={handleNodeDoubleClick}
+          nodeContextActions={buildNodeContextActions}
         />
 
         <CanvasQueryFrameExecutors
