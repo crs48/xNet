@@ -385,7 +385,7 @@ drillTimer.unref()
 - [x] **[P2]** Dashboard "data safe as of `lastSyncMs`" indicator (extends [`dashboard.ts`](../../apps/cloud/src/dashboard.ts)).
 - [x] **[P2]** Opt-in **BYO-S3 Litestream** config for self-host (reuse the config generator + entrypoint).
 - [x] Resolve the **telemetry.db** replicate-vs-restore inconsistency in the entrypoint/config.
-- [ ] Changeset: `@xnetjs/hub` (blob store + health) and `@xnetjs/cloud` (freshness wiring) — **minor**; blob-store swap is internal (no export removal).
+- [x] Changeset: `@xnetjs/hub` (blob store + health) and `@xnetjs/cloud` (freshness wiring) — **minor**; blob-store swap is internal (no export removal).
 
 ## Validation Checklist
 
