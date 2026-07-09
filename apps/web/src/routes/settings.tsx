@@ -40,14 +40,14 @@ import { identityManager, logout } from '../lib/identity'
 import { isLabEnabled, LABS_FLAGS, setLabEnabled } from '../lib/labs'
 import { createLeavePorts, downloadLeaveBundle, type LeaveDeps } from '../lib/leave'
 import { isSentryConfigured } from '../lib/sentry'
-import { useConsent } from '../lib/use-consent'
-import { WINDDOWN_DURATION_CHOICES, useWinddownPreferences } from '../lib/winddown'
-import { useWorkbench } from '../workbench/state'
 import {
   DEFAULT_SETTINGS_SECTION,
   asSettingsSection,
   type SettingsSection
-} from './settings-sections'
+} from '../lib/settings-sections'
+import { useConsent } from '../lib/use-consent'
+import { WINDDOWN_DURATION_CHOICES, useWinddownPreferences } from '../lib/winddown'
+import { useWorkbench } from '../workbench/state'
 
 /** Marketing + dashboard origins for xNet Cloud (managed hub hosting). */
 const CLOUD_MARKETING_URL = 'https://xnet.fyi/cloud'

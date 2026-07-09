@@ -9,7 +9,7 @@ import {
   DEFAULT_SETTINGS_SECTION,
   SETTINGS_SECTIONS,
   type SettingsSection
-} from '../routes/settings-sections'
+} from '../lib/settings-sections'
 
 export function SettingsSectionsNav() {
   const navigate = useNavigate()
