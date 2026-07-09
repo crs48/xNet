@@ -22,6 +22,13 @@ import type {
 import type { CanvasObjectRecord, CanvasTileSummary } from '@xnetjs/canvas-core'
 import { screenToWorldPoint, worldPointToAnchorLocal } from '@xnetjs/canvas-core'
 import { clamp } from '@xnetjs/core'
+import {
+  ActionMenuList,
+  ContextMenuContent,
+  ContextMenuRoot,
+  ContextMenuTrigger,
+  type Action
+} from '@xnetjs/ui'
 import React, {
   forwardRef,
   useCallback,
@@ -267,6 +274,14 @@ export type CanvasProps = {
   initialViewport?: { x?: number; y?: number; zoom?: number }
   renderNode?: (node: CanvasNode, context: CanvasNodeRenderContext) => React.ReactNode
   onNodeDoubleClick?: (id: string) => void
+  /**
+   * Right-click context-menu actions for a node (exploration 0285, PR4).
+   * Opt-in: when omitted, nodes carry no custom menu and this renderer is
+   * unchanged. The host — which owns command-registry access — builds the
+   * verb list; right-clicking a node outside the current selection selects
+   * it first, so the actions reflect the effective selection.
+   */
+  nodeContextActions?: (nodeId: string) => Action[]
   onBackgroundClick?: () => void
   onSelectionChange?: (selection: CanvasSelectionSnapshot) => void
   onCreateObject?: (kind: 'page' | 'database' | 'note' | 'shape' | 'frame' | 'mind-map') => void
@@ -2745,6 +2760,47 @@ function useVectorTileLayer(input: {
   return available
 }
 
+/**
+ * Right-click context menu for a single canvas node (exploration 0285, PR4).
+ *
+ * Only rendered when the host passes `nodeContextActions`. The trigger is
+ * `display:contents`, so it adds no box around the absolutely positioned
+ * island and the menu still anchors at the pointer (Base UI context menus
+ * position at the cursor, not the trigger rect). Actions build lazily on open:
+ * opening runs `onContextOpen` first (which selects the node when it sits
+ * outside the current selection), so the host's verb list reflects the
+ * effective selection.
+ */
+function CanvasNodeContextMenu({
+  nodeId,
+  buildActions,
+  onContextOpen,
+  children
+}: {
+  nodeId: string
+  buildActions: (nodeId: string) => Action[]
+  onContextOpen: (nodeId: string) => void
+  children: React.ReactNode
+}): React.JSX.Element {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <ContextMenuRoot
+      onOpenChange={(nextOpen) => {
+        if (nextOpen) {
+          onContextOpen(nodeId)
+        }
+        setOpen(nextOpen)
+      }}
+    >
+      <ContextMenuTrigger className="contents">{children}</ContextMenuTrigger>
+      <ContextMenuContent data-canvas-node-context-menu="true">
+        <ActionMenuList actions={open ? buildActions(nodeId) : []} />
+      </ContextMenuContent>
+    </ContextMenuRoot>
+  )
+}
+
 export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
   {
     doc,
@@ -2752,6 +2808,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     initialViewport,
     renderNode,
     onNodeDoubleClick,
+    nodeContextActions,
     onBackgroundClick,
     onSelectionChange,
     onCreateObject,
@@ -5054,6 +5111,15 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     [createNodeDragState, selectedNodeIds, trackTouchPointerForPinch]
   )
 
+  // Right-click select-first (0285 PR4): opening a node's context menu acts on
+  // the whole selection when the target is already in it (Linear's rule),
+  // otherwise it collapses to that single node so the menu verbs target it.
+  const handleNodeContextMenu = useCallback((objectId: string) => {
+    setFocusedNodeId(objectId)
+    setSelectedNodeIds((current) => (current.has(objectId) ? current : new Set([objectId])))
+    setSelectedEdgeIds((current) => (current.size === 0 ? current : new Set()))
+  }, [])
+
   const handleNodeDoubleClick = useCallback(
     (event: React.MouseEvent, objectId: string) => {
       if (isTextInputLikeElement(event.target)) {
@@ -6115,7 +6181,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
             rect: resizeRect ?? item.object.position
           })
 
-          return (
+          const island = (
             <div
               key={item.object.id}
               className="canvas-node canvas-node--v3"
@@ -6180,6 +6246,21 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
                 onResizePointerDown={handleResizePointerDown}
               />
             </div>
+          )
+
+          if (!nodeContextActions) {
+            return island
+          }
+
+          return (
+            <CanvasNodeContextMenu
+              key={item.object.id}
+              nodeId={item.object.id}
+              buildActions={nodeContextActions}
+              onContextOpen={handleNodeContextMenu}
+            >
+              {island}
+            </CanvasNodeContextMenu>
           )
         })}
 

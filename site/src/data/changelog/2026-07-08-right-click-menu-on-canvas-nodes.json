@@ -1,0 +1,10 @@
+{
+  "id": "2026-07-08-right-click-menu-on-canvas-nodes",
+  "date": "July 8, 2026",
+  "title": "Right-click menu on canvas nodes",
+  "summary": "Right-clicking a canvas node opens a context menu with its actions, matching the right-click menus already available elsewhere in the app.",
+  "highlights": [],
+  "tags": [
+    "app"
+  ]
+}
