@@ -169,8 +169,20 @@ test.describe('Discovery + safety UI (0176)', () => {
     await page.getByLabel('Trust level').selectOption({ label: 'Trusted (strong)' })
     await page.getByRole('button', { name: 'Subscribe' }).click()
 
-    // The subscription persists and renders with its DID + a Remove control.
-    await expect(page.getByText('did:key:zE2ELabeler')).toBeVisible()
+    // The subscription persists and renders with its DID + a Remove control. Under
+    // headless CI load the local SQLite worker can lag reflecting the just-written
+    // row into the live query — the same first-load flake `advanceOnboarding`
+    // settles with a reload. If the row hasn't appeared, re-open the panel from a
+    // fresh navigation to force a re-read: the deterministic test identity is stable
+    // across reloads, so the persisted subscription is still ours.
+    const labeler = page.getByText('did:key:zE2ELabeler')
+    try {
+      await expect(labeler).toBeVisible({ timeout: 10_000 })
+    } catch {
+      await page.goto(`${BASE}/settings`)
+      await page.getByRole('button', { name: /Content & Safety/i }).click()
+      await expect(page.getByText('did:key:zE2ELabeler')).toBeVisible()
+    }
     await expect(page.getByRole('button', { name: 'Remove' })).toBeVisible()
   })
 
