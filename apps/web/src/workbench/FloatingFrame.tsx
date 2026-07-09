@@ -16,6 +16,7 @@ import { useState } from 'react'
 import { GlobalSearch } from '../components/GlobalSearch'
 import { UndoToastProvider } from '../components/UndoToast'
 import { WorkspaceCommands } from '../components/WorkspaceCommands'
+import { AddSharedHost } from './AddSharedHost'
 import { ContextPanel } from './ContextPanel'
 import { DevToolsIsland } from './DevToolsIsland'
 import { EditorArea } from './EditorArea'
@@ -81,6 +82,7 @@ export function FloatingFrame({ children }: { children: ReactNode }) {
         </div>
 
         <FloatingMenus menu={menu} onClose={() => setMenu(null)} />
+        <AddSharedHost />
       </div>
     </UndoToastProvider>
   )

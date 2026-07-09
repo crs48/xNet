@@ -559,17 +559,17 @@ const actions = useNodeActions(activeTab ? { id: activeTab.nodeId, type: activeT
 
 ## Implementation Checklist
 
-- [ ] Add `useNewActions()` + `NEW_DOC_TYPES` in `apps/web/src/workbench/new-actions.ts`.
-- [ ] Add a shared `<NewMenu>` (or fold the items into `FloatingMenus`) covering
+- [x] Add `useNewActions()` + `NEW_DOC_TYPES` in `apps/web/src/workbench/new-actions.ts`.
+- [x] Add a shared `<NewMenu>` (or fold the items into `FloatingMenus`) covering
       all types + New folder + Add Shared… + the "in {Space}" target label.
-- [ ] Make `AddSharedDialog` reachable from the shell (a `share.addShared`
+- [x] Make `AddSharedDialog` reachable from the shell (a `share.addShared`
       command or a shell-level host) and open it from the New menu.
-- [ ] Point the **top-island New** button at the canonical `<NewMenu>`.
-- [ ] Refactor `ExplorerCreateMenu` to consume `useNewActions()` (or remove it),
+- [x] Point the **top-island New** button at the canonical `<NewMenu>`.
+- [x] Refactor `ExplorerCreateMenu` to consume `useNewActions()` (or remove it),
       so there is exactly one New behaviour.
 - [ ] Register create verbs as commands (`workbench.new`, `workbench.new.page`…)
       and route the **pill +** and `⌘K` through them.
-- [ ] Make the **bottom-island +** surface-aware (Tasks/Chats/Data/Explorer),
+- [x] Make the **bottom-island +** surface-aware (Tasks/Chats/Data/Explorer),
       hiding it for route surfaces.
 - [ ] Add a compact **Space scope picker** to the top island (`SidebarIslands`),
       backed by `explorer-scope` state (`currentSpaceId` / `applyScopeSelection`);
@@ -578,7 +578,7 @@ const actions = useNodeActions(activeTab ? { id: activeTab.nodeId, type: activeT
 - [ ] Give the **pill History** button a real target (recents / reopen closed)
       or remove it.
 - [ ] Enrich or honestly link the **notifications** popover.
-- [ ] **Avatar menu**: consolidate Profile + Settings + theme + account/DID +
+- [x] **Avatar menu**: consolidate Profile + Settings + theme + account/DID +
       **Sign out** into `ProfileMenu`; confirm no other desktop settings entry.
 - [ ] **Surfaces master-detail**: evolve `SurfaceDef` to `{ listViewId?, to? }`;
       map **Inbox → `notifications`** list; add thin list panels for **CRM,
