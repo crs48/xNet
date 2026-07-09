@@ -1,0 +1,13 @@
+{
+  "id": "2026-07-08-the-explorer-sidebar-scrolls-when-it-fil",
+  "date": "July 8, 2026",
+  "title": "The Explorer sidebar scrolls when it fills up",
+  "summary": "The left-nav Explorer panel now scrolls vertically, so every workspace, folder, tag, and page stays reachable no matter how much you have.",
+  "highlights": [
+    "Spaces, folders, tags, and pages share one scroll region instead of clipping out of view"
+  ],
+  "tags": [
+    "app"
+  ],
+  "pr": 423
+}

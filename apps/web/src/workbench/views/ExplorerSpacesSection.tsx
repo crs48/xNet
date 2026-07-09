@@ -76,7 +76,7 @@ export function ExplorerSpacesSection() {
   const hasSpaces = tree.length > 0
 
   return (
-    <div className="max-h-[34%] shrink-0 overflow-y-auto px-1">
+    <div className="px-1">
       <SectionHeader onAdd={() => setCreating(true)} />
       {creating && (
         <div className="mx-2 mb-1 flex items-center gap-1">

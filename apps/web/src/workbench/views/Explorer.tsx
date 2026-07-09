@@ -13,7 +13,7 @@ import { useVirtualizer } from '@tanstack/react-virtual'
 import { CanvasSchema, DashboardSchema, DatabaseSchema, MapSchema, PageSchema } from '@xnetjs/data'
 import { useQuery } from '@xnetjs/react'
 import { ArrowUpDown, Check, ChevronDown, Link as LinkIcon, Plus } from 'lucide-react'
-import { useMemo, useRef, useState } from 'react'
+import { useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { AddSharedDialog } from '../../components/AddSharedDialog'
 import { useCreateInSpace } from '../../hooks/useCreateInSpace'
 import { useSpaces } from '../../hooks/useSpaces'
@@ -178,7 +178,7 @@ function PinnedAndRecent({
 }) {
   if (pinnedItems.length === 0 && recentItems.length === 0) return null
   return (
-    <div className="shrink-0 px-1">
+    <div className="px-1">
       <ExplorerSection label="Pinned" items={pinnedItems} pinned />
       <ExplorerSection label="Recent" items={recentItems} pinned={false} />
     </div>
@@ -255,49 +255,75 @@ function useExplorerItems(): ExplorerItem[] {
 function VirtualizedItemList({
   items,
   pinnedNodeIds,
-  emptyMessage = 'No items'
+  emptyMessage = 'No items',
+  scrollRef,
+  contentRef
 }: {
   items: ExplorerItem[]
   pinnedNodeIds: string[]
   emptyMessage?: string
+  /** The shared Explorer scroll viewport this list windows against. */
+  scrollRef: React.RefObject<HTMLDivElement>
+  /** Wrapper of everything scrolled; observed so the list's offset stays fresh. */
+  contentRef: React.RefObject<HTMLDivElement>
 }) {
-  const scrollRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
+
+  // This list is not the scroll container — it sits below Pinned/Recent, Spaces,
+  // Folders and Tags inside one shared scroll parent. Feed the virtualizer the
+  // list's offset within that parent as `scrollMargin`, and re-measure whenever
+  // the scrolled content resizes (sections above collapse/expand/mount), or the
+  // virtualized rows would drift out of place.
+  const [scrollMargin, setScrollMargin] = useState(0)
+  useLayoutEffect(() => {
+    const listEl = listRef.current
+    const contentEl = contentRef.current
+    if (!listEl || !contentEl) return
+    const measure = () => setScrollMargin(listEl.offsetTop)
+    measure()
+    const observer = new ResizeObserver(measure)
+    observer.observe(contentEl)
+    return () => observer.disconnect()
+  }, [contentRef])
+
   const virtualizer = useVirtualizer({
     count: items.length,
     getScrollElement: () => scrollRef.current,
     estimateSize: () => ROW_HEIGHT,
-    overscan: 12
+    overscan: 12,
+    scrollMargin
   })
 
-  return (
-    <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-1">
-      {items.length === 0 ? (
+  if (items.length === 0) {
+    return (
+      <div ref={listRef} className="px-1">
         <p className="mt-6 text-center text-xs text-ink-3">{emptyMessage}</p>
-      ) : (
-        <div
-          style={{ height: virtualizer.getTotalSize(), position: 'relative' }}
-          className="w-full"
-        >
-          {virtualizer.getVirtualItems().map((virtualRow) => {
-            const item = items[virtualRow.index]
-            return (
-              <div
-                key={item.id}
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: virtualRow.size,
-                  transform: `translateY(${virtualRow.start}px)`
-                }}
-              >
-                <ExplorerRow item={item} pinned={pinnedNodeIds.includes(item.id)} />
-              </div>
-            )
-          })}
-        </div>
-      )}
+      </div>
+    )
+  }
+
+  return (
+    <div ref={listRef} className="px-1">
+      <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }} className="w-full">
+        {virtualizer.getVirtualItems().map((virtualRow) => {
+          const item = items[virtualRow.index]
+          return (
+            <div
+              key={item.id}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: virtualRow.size,
+                transform: `translateY(${virtualRow.start - scrollMargin}px)`
+              }}
+            >
+              <ExplorerRow item={item} pinned={pinnedNodeIds.includes(item.id)} />
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -320,9 +346,16 @@ function ExplorerSections({
   pinnedNodeIds: string[]
   listEmptyMessage: string
 }) {
+  // One scroll region for the whole panel: Pinned/Recent, Spaces, Folders and
+  // Tags grow to their natural height and scroll together with the Unfiled list,
+  // instead of each clipping inside a fixed percentage cap (which left overflow
+  // unreachable when several sections were full). `relative` makes this the
+  // offset parent the virtualized list measures its `scrollMargin` against.
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const contentRef = useRef<HTMLDivElement>(null)
   return (
-    <div className="min-h-0 flex-1 overflow-hidden">
-      <div className="flex h-full flex-col">
+    <div ref={scrollRef} className="relative min-h-0 flex-1 overflow-y-auto">
+      <div ref={contentRef}>
         <PinnedAndRecent pinnedItems={pinnedItems} recentItems={recentItems} />
         {!filterActive && <ExplorerSpacesSection />}
         {!filterActive && <ExplorerFoldersSection pinnedNodeIds={pinnedNodeIds} />}
@@ -332,6 +365,8 @@ function ExplorerSections({
           items={listItems}
           pinnedNodeIds={pinnedNodeIds}
           emptyMessage={listEmptyMessage}
+          scrollRef={scrollRef}
+          contentRef={contentRef}
         />
       </div>
     </div>

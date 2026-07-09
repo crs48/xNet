@@ -343,7 +343,7 @@ export function ExplorerFoldersSection({ pinnedNodeIds }: { pinnedNodeIds: strin
   const [editingId, setEditingId] = useState<string | null>(null)
 
   return (
-    <div className="max-h-[45%] shrink-0 overflow-y-auto px-1">
+    <div className="px-1">
       <FolderSectionLabel onCreated={setEditingId} />
       {tree.map((node) => (
         <FolderBranch
