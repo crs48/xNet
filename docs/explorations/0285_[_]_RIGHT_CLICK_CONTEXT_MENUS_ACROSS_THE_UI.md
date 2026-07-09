@@ -636,7 +636,7 @@ stateDiagram-v2
       ([`TableCell.tsx`](../../packages/views/src/table/TableCell.tsx)
       lines ~52/244–270/367–435) with `ContextMenu`; delete the inline SVG
       icons and manual listeners.
-- [ ] **PR3 Comms:** channel/DM row menu (mute / mark-read / archive /
+- [x] **PR3 Comms:** channel/DM row menu (mute / mark-read / archive /
       leave / pin — build the missing service verbs) and message menu
       (copy, edit, reply, **delete via `redactMessage`** — currently
       unused, report/label reuse `MessageActions`).
