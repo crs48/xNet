@@ -67,6 +67,19 @@ as the centrepiece.
    with **no bottom-island list** — they need the same two-part shape so
    selecting the surface shows its sub-menu on the left and its content on the
    right, consistently for *every* tab including those under **More**.
+8. **Back every count, list and badge with a real query.** The surface lists
+   render real slot views, but the nav **counts/badges are only wired for
+   Inbox** (`useRequestCount`); Tasks/Chats/etc. show none, and the new
+   master-detail list panels must each read real domain data
+   (`useQuery`/`useNode`/`useTasks`/channel-unread/…). No representative or
+   placeholder data should survive in the shell chrome.
+9. **Make the contextual right sidebar adapt to every main UI.** The right
+   island (behind the comments icon) is the contribution-driven `ContextPanel`:
+   the routed view publishes its sections via `useContextPanel`. Page, Database,
+   Canvas, Tasks and Chat already do; **Meetings, CRM, Finance, Analytics,
+   Discover, Inbox, Dashboard and Map do not**, so the panel is empty there. Each
+   main UI should publish sections appropriate to *it*, so the right sidebar
+   changes shape to meet the surface.
 
 ```mermaid
 flowchart LR
@@ -180,6 +193,60 @@ thin list panel (or a master/detail split of their route view).
 | **Finance** | ❌ | `/finance` | new list panel (accounts/ledgers) → detail |
 | **Analytics** | ❌ | `/analytics` | list of reports, or a single full view (no list — see options) |
 
+### The contextual right sidebar is contribution-driven — but half-populated
+
+The right island wraps [`ContextPanel`](../../apps/web/src/workbench/ContextPanel.tsx),
+which renders whatever the **routed view publishes** through
+[`useContextPanel(ownerId, sections)`](../../apps/web/src/workbench/context-panel.tsx)
+(0166). The mechanism is exactly what the ask needs — "the sidebar changes to
+meet the requirements of the given UI" — it's just **not called from every UI**:
+
+| Main UI | Publishes context sections? | File |
+| --- | --- | --- |
+| Page | ✅ properties / comments / backlinks | [`PageView.tsx`](../../apps/web/src/components/PageView.tsx) |
+| Database | ✅ | [`DatabaseView.tsx`](../../apps/web/src/components/DatabaseView.tsx) |
+| Canvas | ✅ selection inspector | [`CanvasView.tsx`](../../apps/web/src/components/CanvasView.tsx) |
+| Tasks | ✅ | [`TasksView.tsx`](../../apps/web/src/components/TasksView.tsx) |
+| Chat | ✅ room/members | [`comms/RoomSection.tsx`](../../apps/web/src/comms/RoomSection.tsx) |
+| **Meetings** | ❌ | `routes/meetings.tsx` → participants / notes / transcript |
+| **People / CRM** | ❌ | `routes/crm.tsx` → deal / activity / related contacts |
+| **Finance** | ❌ | `routes/finance.tsx` → account / ledger summary |
+| **Analytics** | ❌ | `routes/analytics.tsx` → filters / legend / date range |
+| **Discover** | ❌ | `routes/discover.tsx` → intent filters / match reasons |
+| **Inbox / Dashboard / Map** | ❌ | request detail / widget inspector / layer list |
+
+So the right-sidebar work is **not** new plumbing — it's calling the existing
+`useContextPanel` from each remaining main view with sections that fit it. The
+redesign's right island already renders them (verified: pages show
+Properties/Comments; other routes show the empty "Context" state today).
+
+```mermaid
+flowchart LR
+  V[Routed main view] -->|useContextPanel ownerId, sections| S[(context-panel store)]
+  S --> RP[Right island / ContextPanel\nrenders active owner's sections as tabs]
+  V -. same view feeds data via .-> Q[useQuery / useNode]
+  Q --> V
+```
+
+### Data wiring: every count/list/section reads a real query
+
+The shell chrome must not fabricate. Audit each data-bearing affordance to a
+real hook:
+
+| Affordance | Real source |
+| --- | --- |
+| Inbox badge | `useRequestCount` ✅ |
+| **Tasks / Chats / Meetings counts** | `useTasks`, unread-channel query, upcoming-meetings query (❌ today — no badge) |
+| Surface **list panels** (existing) | already on `useQuery`/domain hooks ✅ |
+| Surface **list panels** (new CRM/Meetings/…) | each new panel wired to its domain query, not seed data |
+| Notifications popover | a real per-user notification query if one exists, else the honest `/requests` link |
+| Right-sidebar sections | the routed view's own `useQuery`/`useNode` (comments, participants, ledger rows, …) |
+
+`useQuery`/`useNode` are also **instrumented** by devtools (the Queries panel we
+docked in 0287), so "properly wired" is verifiable live: every surface's queries
+should appear there with results, and none should be firing from placeholder
+descriptors.
+
 ### Affordance → action audit (the whole sweep)
 
 | Affordance (new location) | File | Current wiring | Gap / intended |
@@ -191,6 +258,8 @@ thin list panel (or a master/detail split of their route view).
 | **Editor ⋯ More** | [`EditorHeader.tsx`](../../apps/web/src/workbench/EditorHeader.tsx) | **inert** (no `onClick`) | active-tab node menu via 0285 [`useNodeActions`](../../apps/web/src/hooks/useNodeActions.ts) (rename/duplicate/copy link/move/favorite/export/delete) |
 | Editor facepile | `EditorHeader.tsx` | "you" avatar only | real presence when available (else keep the single "you") |
 | Editor Share / Comments / Bell | `EditorHeader.tsx` | ShareDialog / `togglePanel('right')` / notif menu | ✅ (bell depends on notif wiring below) |
+| **Right sidebar (contextual)** | `ContextPanel` + `useContextPanel` | populated for Page/DB/Canvas/Tasks/Chat; **empty for Meetings/CRM/Finance/Analytics/Discover/Inbox/Dashboard/Map** | each of those views calls `useContextPanel` with sections that fit it |
+| **Nav counts / badges** | `SidebarIslands.tsx`, `surfaces.ts` | only Inbox (`useRequestCount`) | back Tasks/Chats/Meetings badges with real queries |
 | **Pill History** | [`TabBar.tsx`](../../apps/web/src/workbench/TabBar.tsx) `PillControls` | `search.open` (placeholder) | recents fly-out / reopen-closed-tab, or drop it |
 | Pill **+** new tab | `TabBar.tsx` | `workbench.newPage` | route through the canonical New (page default) |
 | Pill Split | `TabBar.tsx` | `splitWith` | ✅ |
@@ -297,6 +366,23 @@ adding thin list panels for the rest, each opening its route as the detail. For
 a genuinely single-view surface (e.g. Analytics overview) it's acceptable to
 show a short section/report list rather than invent items.
 
+### For the contextual right sidebar
+
+Reuse the existing `useContextPanel` API — no new subsystem. Each remaining main
+view (Meetings, CRM, Finance, Analytics, Discover, Inbox, Dashboard, Map)
+publishes a memoized `sections` array keyed by a stable `ownerId`
+(e.g. `meeting:<id>`). Sections read the view's own `useQuery`/`useNode`, so the
+right sidebar is both **contextual** (per UI) and **live** (real data) by
+construction. The one design rule: sections must clear on unmount (the hook's
+`clear(ownerId)` already does) so switching surfaces never shows stale context.
+
+### For query wiring
+
+No architectural change — it's a completeness sweep. For each count/list/section
+that shows placeholder or nothing, point it at the real hook, and verify in the
+devtools **Queries** panel that it fires with results. Prefer existing domain
+hooks (`useTasks`, `useSpaces`, channel/meeting queries) over hand-rolled reads.
+
 ## Recommendation
 
 Ship in this order (each a self-contained commit):
@@ -318,7 +404,13 @@ Ship in this order (each a self-contained commit):
    `notifications` list and add thin list panels for CRM/Discover/Meetings/
    Finance/Analytics so every tab (incl. More) shows list-left, content-right.
 8. **Avatar menu** consolidation (Profile/Settings/theme/Sign out).
-9. **History pill** + **notifications popover** — polish pass.
+9. **Contextual right sidebar** — call `useContextPanel` from every remaining
+   main view (Meetings/CRM/Finance/Analytics/Discover/Inbox/Dashboard/Map) with
+   sections that fit it (one view per commit).
+10. **Query wiring sweep** — real hooks behind every count/list/section; verify
+    in the devtools Queries panel. Runs alongside 7 & 9 (each new panel/section
+    lands already wired).
+11. **History pill** + **notifications popover** — polish pass.
 
 ## Example Code
 
@@ -438,6 +530,13 @@ const actions = useNodeActions(activeTab ? { id: activeTab.nodeId, type: activeT
       tab** has a bottom-island list.
 - [ ] Reconcile `activeSurface` with the router so deep-links light the right
       surface and its list.
+- [ ] **Contextual right sidebar**: call `useContextPanel(ownerId, sections)`
+      from Meetings, CRM, Finance, Analytics, Discover, Inbox, Dashboard and Map
+      (one view per commit), each publishing sections that fit the UI and read
+      the view's own queries; sections clear on unmount.
+- [ ] **Query wiring**: back Tasks/Chats/Meetings nav badges with real queries;
+      every new list panel + right-sidebar section reads a real
+      `useQuery`/`useNode`/domain hook (no seed/placeholder data in chrome).
 - [ ] Dedupe the home `DataWorkspaceView` New against the shell New.
 
 ## Validation Checklist
@@ -459,6 +558,12 @@ const actions = useNodeActions(activeTab ? { id: activeTab.nodeId, type: activeT
       route lights its surface + list.
 - [ ] The **avatar menu** is the only desktop route to Profile/Settings; theme
       and **Sign out** work from it.
+- [ ] Opening each main UI changes the **right sidebar** to that UI's own
+      sections (a meeting shows participants/notes; a CRM contact shows
+      deal/activity; …) and they clear when you switch away — no stale context.
+- [ ] The devtools **Queries** panel shows a real, resulting query behind every
+      surface count, list panel and right-sidebar section — none firing from
+      placeholder descriptors.
 - [ ] Editor **⋯ More** opens the active tab's node actions; each verb behaves
       as in the right-click menu (0285).
 - [ ] No duplicate/diverging New menus remain (grep for `navigateToNewDoc`
@@ -486,6 +591,16 @@ const actions = useNodeActions(activeTab ? { id: activeTab.nodeId, type: activeT
   [`builtin-slot-views.tsx`](../../apps/web/src/workbench/builtin-slot-views.tsx) (incl. `notifications`/`sync`/`console` trays),
   [`slot-registry.tsx`](../../apps/web/src/workbench/slot-registry.tsx),
   calm-shell list·surface prior art [`calm/CompanionView.tsx`](../../apps/web/src/workbench/calm/CompanionView.tsx) ([[0250_EVERYPERSON_SHELL]])
+- Repo — right sidebar: [`context-panel.tsx`](../../apps/web/src/workbench/context-panel.tsx) (`useContextPanel`),
+  [`ContextPanel.tsx`](../../apps/web/src/workbench/ContextPanel.tsx); existing contributors
+  [`PageView.tsx`](../../apps/web/src/components/PageView.tsx),
+  [`DatabaseView.tsx`](../../apps/web/src/components/DatabaseView.tsx),
+  [`CanvasView.tsx`](../../apps/web/src/components/CanvasView.tsx),
+  [`TasksView.tsx`](../../apps/web/src/components/TasksView.tsx),
+  [`comms/RoomSection.tsx`](../../apps/web/src/comms/RoomSection.tsx)
+- Repo — query hooks: `@xnetjs/react` `useQuery`/`useNode`/`useTasks`,
+  [`hooks/useSpaces.ts`](../../apps/web/src/hooks/useSpaces.ts),
+  [`hooks/useRequestCount.ts`](../../apps/web/src/hooks/useRequestCount.ts); instrumented by the devtools Queries panel (0287)
 - Repo — verbs to reuse: [`hooks/useNodeActions.ts`](../../apps/web/src/hooks/useNodeActions.ts) (0285)
 - Prior art: Notion global "New page", Linear global create (`C`) + command
   palette, Claude/Slack top-left composer.
