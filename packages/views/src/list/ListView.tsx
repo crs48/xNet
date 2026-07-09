@@ -9,6 +9,7 @@ import type { ViewConfig } from '../types.js'
 import type { Schema, PropertyDefinition } from '@xnetjs/data'
 import { cn } from '@xnetjs/ui'
 import React from 'react'
+import { RowContextMenu } from '../components/RowContextMenu.js'
 import { ListItem } from './ListItem.js'
 import { useListState, type ListRow } from './useListState.js'
 
@@ -70,22 +71,27 @@ export function ListView({
           const checked = checkboxKey ? (item[checkboxKey] as boolean) : false
 
           return (
-            <ListItem
+            <RowContextMenu
               key={item.id}
-              id={item.id}
-              title={title || 'Untitled'}
-              checked={checked}
-              hasCheckbox={!!checkboxProperty}
-              displayProperties={displayProperties}
-              item={item}
-              onCheck={
-                checkboxKey && onUpdateRow
-                  ? (value) => onUpdateRow(item.id, checkboxKey, value)
-                  : undefined
-              }
-              onClick={onItemClick ? () => onItemClick(item.id) : undefined}
+              onOpen={onItemClick ? () => onItemClick(item.id) : undefined}
               onDelete={onDeleteItem ? () => onDeleteItem(item.id) : undefined}
-            />
+            >
+              <ListItem
+                id={item.id}
+                title={title || 'Untitled'}
+                checked={checked}
+                hasCheckbox={!!checkboxProperty}
+                displayProperties={displayProperties}
+                item={item}
+                onCheck={
+                  checkboxKey && onUpdateRow
+                    ? (value) => onUpdateRow(item.id, checkboxKey, value)
+                    : undefined
+                }
+                onClick={onItemClick ? () => onItemClick(item.id) : undefined}
+                onDelete={onDeleteItem ? () => onDeleteItem(item.id) : undefined}
+              />
+            </RowContextMenu>
           )
         })}
 

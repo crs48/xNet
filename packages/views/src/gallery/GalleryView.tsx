@@ -6,6 +6,7 @@ import type { ViewConfig } from '../types.js'
 import type { Schema } from '@xnetjs/data'
 import { cn } from '@xnetjs/ui'
 import React from 'react'
+import { RowContextMenu } from '../components/RowContextMenu.js'
 import { GalleryCard } from './GalleryCard.js'
 import { useGalleryState, type GalleryRow } from './useGalleryState.js'
 
@@ -22,6 +23,8 @@ export interface GalleryViewProps {
   onAddCard?: () => void
   /** Callback when a card is clicked */
   onCardClick?: (itemId: string) => void
+  /** Callback when a card is deleted (right-click menu) */
+  onDeleteCard?: (itemId: string) => void
   /** Additional CSS class */
   className?: string
 }
@@ -35,6 +38,7 @@ export function GalleryView({
   data,
   onAddCard,
   onCardClick,
+  onDeleteCard,
   className
 }: GalleryViewProps): React.JSX.Element {
   const {
@@ -56,17 +60,23 @@ export function GalleryView({
         }}
       >
         {items.map((item) => (
-          <GalleryCard
+          <RowContextMenu
             key={item.id}
-            item={item}
-            coverProperty={coverProperty}
-            titleProperty={titleProperty}
-            displayProperties={displayProperties}
-            cardDimensions={cardDimensions}
-            imageFit={imageFit}
-            showTitle={showTitle}
-            onClick={onCardClick}
-          />
+            className="contents"
+            onOpen={onCardClick ? () => onCardClick(item.id) : undefined}
+            onDelete={onDeleteCard ? () => onDeleteCard(item.id) : undefined}
+          >
+            <GalleryCard
+              item={item}
+              coverProperty={coverProperty}
+              titleProperty={titleProperty}
+              displayProperties={displayProperties}
+              cardDimensions={cardDimensions}
+              imageFit={imageFit}
+              showTitle={showTitle}
+              onClick={onCardClick}
+            />
+          </RowContextMenu>
         ))}
 
         {/* Add card button */}

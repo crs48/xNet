@@ -646,7 +646,7 @@ stateDiagram-v2
 - [x] **PR5 Tabs:** `TabBar` right-click → Close / Close others / Close to
       the right / Pin-Unpin / Duplicate / Split (add the two missing verbs
       to `state.ts`/`tabs.ts`).
-- [ ] **PR6 Data cards:** Board/Gallery/List/Timeline/Grid/Task rows via
+- [x] **PR6 Data cards:** Board/Gallery/List/Timeline/Grid/Task rows via
       the shared list.
 - [ ] Add a `.changeset/*.md`: `@xnetjs/ui` **minor** (new export),
       `@xnetjs/react` **minor** (`useNodeActions`).

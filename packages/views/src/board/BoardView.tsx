@@ -75,6 +75,8 @@ export interface BoardViewProps {
   onReorderCards?: (rowIds: string[]) => void
   /** Callback when a card is clicked */
   onCardClick?: (itemId: string) => void
+  /** Callback when a card is deleted (right-click menu) */
+  onDeleteCard?: (itemId: string) => void
   /** Additional CSS class */
   className?: string
   /**
@@ -102,6 +104,7 @@ export function BoardView({
   onReorderColumns,
   onReorderCards,
   onCardClick,
+  onDeleteCard,
   className,
   compact = false,
   maxRows
@@ -370,6 +373,7 @@ export function BoardView({
                 isDropTarget={false}
                 onAddCard={onAddCard}
                 onCardClick={onCardClick}
+                onDeleteCard={onDeleteCard}
                 onRenameColumn={onRenameColumn}
                 onDeleteColumn={onDeleteColumn}
                 isDraggable={!!onReorderColumns}
