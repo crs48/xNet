@@ -5,6 +5,7 @@
  * port and exercises the trust-boundary rules with `fetch`.
  */
 
+import { request } from 'node:http'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createMcpHttpServer, type McpHttpServerHandle } from '../services/mcp-http'
 import { createMCPServer } from '../services/mcp-server'
@@ -115,6 +116,23 @@ describe('createMcpHttpServer — boundary hardening', () => {
     const body = (await res.json()) as { ok: boolean; server: { name: string } }
     expect(body.ok).toBe(true)
     expect(body.server.name).toBe('xnet')
+  })
+
+  it('rejects a request whose Host is not our loopback authority (anti-rebind, 403)', async () => {
+    // fetch/undici overrides Host with the URL authority, so simulate a
+    // DNS-rebinding request (attacker hostname reaching 127.0.0.1) via node:http.
+    const status = await new Promise<number>((resolve, reject) => {
+      const req = request(
+        { hostname: '127.0.0.1', port: handle.port, path: '/health', headers: { host: 'evil.example' } },
+        (res) => {
+          res.resume()
+          resolve(res.statusCode ?? 0)
+        }
+      )
+      req.on('error', reject)
+      req.end()
+    })
+    expect(status).toBe(403)
   })
 })
 

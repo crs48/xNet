@@ -576,7 +576,7 @@ connect-src 'self'
 
 - [ ] Add `http://127.0.0.1:*` and `ws://127.0.0.1:*` to `connect-src` in
       [`apps/web/index.html`](apps/web/index.html).
-- [ ] Add `Host`-header validation to
+- [x] Add `Host`-header validation to
       [`packages/devkit/src/bridge-server.ts`](packages/devkit/src/bridge-server.ts)
       **and** [`packages/plugins/src/services/mcp-http.ts`](packages/plugins/src/services/mcp-http.ts)
       (exact loopback authority + bound port).
