@@ -33,6 +33,28 @@ export function clearComposerPreviewCache(): void {
   resolutionCache.clear()
 }
 
+/**
+ * Resolve one external URL to the shared MessageLinkPreview shape through
+ * the hub's /unfurl proxy. Shared by the chat composer and the page
+ * editor's rich-link hydration, so every surface stores the same shape.
+ */
+export function resolveExternalPreview(
+  request: (path: string) => Promise<unknown>,
+  url: string,
+  href: string = url
+): Promise<MessageLinkPreview | null> {
+  const cached = resolutionCache.get(url)
+  if (cached) return cached
+  const resolution = Promise.race([
+    request(`/unfurl/metadata?url=${encodeURIComponent(href)}`).then((data) =>
+      toPreview(url, (data ?? {}) as UnfurlResponse)
+    ),
+    new Promise<null>((resolve) => setTimeout(() => resolve(null), RESOLVE_TIMEOUT_MS))
+  ]).catch(() => null)
+  resolutionCache.set(url, resolution)
+  return resolution
+}
+
 function domainOf(url: string): string {
   try {
     return new URL(url).host
@@ -112,20 +134,10 @@ export function useComposerPreviews(text: string, env: UrlEnv): ComposerPreviews
 
   useEffect(() => {
     if (!ready) return
-    for (const candidate of candidates) {
-      if (resolutionCache.has(candidate.text)) continue
-      const resolution = Promise.race([
-        request(`/unfurl/metadata?url=${encodeURIComponent(candidate.href)}`).then((data) =>
-          toPreview(candidate.text, (data ?? {}) as UnfurlResponse)
-        ),
-        new Promise<null>((resolve) => setTimeout(() => resolve(null), RESOLVE_TIMEOUT_MS))
-      ]).catch(() => null)
-      resolutionCache.set(candidate.text, resolution)
-    }
     let cancelled = false
     void Promise.all(
       candidates.map(async (candidate) => {
-        const preview = await (resolutionCache.get(candidate.text) ?? Promise.resolve(null))
+        const preview = await resolveExternalPreview(request, candidate.text, candidate.href)
         return [candidate.text, preview] as const
       })
     ).then((entries) => {

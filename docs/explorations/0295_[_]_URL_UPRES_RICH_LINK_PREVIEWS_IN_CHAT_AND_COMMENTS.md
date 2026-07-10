@@ -552,13 +552,13 @@ const preview = await fetchWithTimeout(
 
 ### Phase 4 — editor convergence + collab hardening
 
-- [ ] `RichLinkExtension`: after paste-insert, pasting peer resolves metadata
+- [x] `RichLinkExtension`: after paste-insert, pasting peer resolves metadata
       via `/unfurl/metadata` and updates node attrs in one follow-up
       transaction; viewers never write attrs
-- [ ] Two-peer regression test (editor or data-bridge lane): peer A pastes,
+- [x] Two-peer regression test (editor or data-bridge lane): peer A pastes,
       peer B has doc open; assert single card, converged attrs, no duplicate
       hydration writes
-- [ ] Unify `RichLinkAttrs`/`SmartReference` card rendering on the shared
+- [x] Unify `RichLinkAttrs`/`SmartReference` card rendering on the shared
       `LinkPreview` shape
 
 ## Validation Checklist
