@@ -1,0 +1,15 @@
+{
+  "id": "2026-07-10-plugin-details-view-with-an-install-butt",
+  "date": "July 10, 2026",
+  "title": "Plugin details view with an install button",
+  "summary": "Browsing plugins in Settings now lets you click a plugin to open a details view — with its description, stats, requested permissions, and what it adds — and install it right from there.",
+  "highlights": [
+    "Click any plugin card in Settings → Plugins → Browse to open its full details",
+    "The details view shows installs, stars, license, homepage, requested access, and contributions",
+    "Install straight from the details view, with the same capability-consent prompt as before"
+  ],
+  "tags": [
+    "app"
+  ],
+  "pr": 443
+}

@@ -20,14 +20,18 @@ import {
   AlertTriangle,
   CheckCircle,
   Download,
+  ExternalLink,
   Eye,
   Globe,
   KeyRound,
   Loader2,
   Pencil,
   Plug,
+  Scale,
   Search,
-  Store
+  Star,
+  Store,
+  X
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
@@ -73,6 +77,7 @@ export function MarketplaceView() {
   const [installing, setInstalling] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [consent, setConsent] = useState<ConsentPrompt | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   // Keep installed ids in sync with the registry.
   useEffect(() => {
@@ -139,6 +144,12 @@ export function MarketplaceView() {
   )
 
   const { builtIn, available, installed } = partitionListings(entries, installedIds)
+
+  const selected = useMemo(
+    () => entries.find((e) => e.id === selectedId) ?? null,
+    [entries, selectedId]
+  )
+  const selectedState = selected ? listingState(selected, installedIds) : undefined
 
   return (
     <div className="space-y-6">
@@ -217,6 +228,7 @@ export function MarketplaceView() {
                   installing={installing === entry.id}
                   disabled={!nodeStoreReady || !registry}
                   onInstall={() => handleInstall(entry)}
+                  onOpen={() => setSelectedId(entry.id)}
                 />
               ))}
             </Group>
@@ -224,14 +236,24 @@ export function MarketplaceView() {
           {builtIn.length > 0 && (
             <Group title="Built in">
               {builtIn.map((entry) => (
-                <MarketplaceCard key={entry.id} entry={entry} state="builtin" />
+                <MarketplaceCard
+                  key={entry.id}
+                  entry={entry}
+                  state="builtin"
+                  onOpen={() => setSelectedId(entry.id)}
+                />
               ))}
             </Group>
           )}
           {installed.length > 0 && (
             <Group title="Installed">
               {installed.map((entry) => (
-                <MarketplaceCard key={entry.id} entry={entry} state="installed" />
+                <MarketplaceCard
+                  key={entry.id}
+                  entry={entry}
+                  state="installed"
+                  onOpen={() => setSelectedId(entry.id)}
+                />
               ))}
             </Group>
           )}
@@ -243,9 +265,30 @@ export function MarketplaceView() {
         </div>
       )}
 
+      {selected && (
+        <PluginDetailsDialog
+          entry={selected}
+          state={selectedState}
+          installing={installing === selected.id}
+          disabled={!nodeStoreReady || !registry}
+          onInstall={() => handleInstall(selected)}
+          onClose={() => setSelectedId(null)}
+        />
+      )}
+
       {consent && <ConsentDialog prompt={consent} onResolve={resolveConsent} />}
     </div>
   )
+}
+
+/** Classify a listing for display: built-in, already-installed, or installable. */
+function listingState(
+  entry: MarketplaceListing,
+  installedIds: readonly string[]
+): 'builtin' | 'installed' | undefined {
+  if (entry.tier === 'bundled') return 'builtin'
+  if (installedIds.includes(entry.id)) return 'installed'
+  return undefined
 }
 
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
@@ -263,12 +306,31 @@ interface MarketplaceCardProps {
   installing?: boolean
   disabled?: boolean
   onInstall?: () => void
+  onOpen?: () => void
 }
 
-function MarketplaceCard({ entry, state, installing, disabled, onInstall }: MarketplaceCardProps) {
+function MarketplaceCard({
+  entry,
+  state,
+  installing,
+  disabled,
+  onInstall,
+  onOpen
+}: MarketplaceCardProps) {
   const caps = describeCapabilities(entry.capabilities)
   return (
-    <div className="rounded-md border border-hairline bg-surface-0 p-3">
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onOpen?.()
+        }
+      }}
+      className="cursor-pointer rounded-md border border-hairline bg-surface-0 p-3 text-left transition-colors hover:border-border-emphasis hover:bg-surface-1"
+    >
       <div className="flex items-start gap-3">
         <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-md bg-surface-2 text-ink-2">
           <Plug size={18} strokeWidth={1.5} />
@@ -310,6 +372,169 @@ function MarketplaceCard({ entry, state, installing, disabled, onInstall }: Mark
           {state === 'builtin' || state === 'installed' ? (
             <span className="inline-flex items-center gap-1 rounded bg-success-muted px-1.5 py-1 text-[10px] font-medium text-success">
               <CheckCircle size={10} strokeWidth={1.5} />
+              {state === 'builtin' ? 'Built-in' : 'Installed'}
+            </span>
+          ) : (
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation()
+                onInstall?.()
+              }}
+              disabled={disabled || installing || !isInstallable(entry)}
+              className={QUIET_BUTTON}
+            >
+              {installing ? (
+                <Loader2 size={14} strokeWidth={1.5} className="animate-spin" />
+              ) : (
+                <Download size={14} strokeWidth={1.5} />
+              )}
+              Install
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * Full-detail view for a single plugin, opened by clicking a marketplace card.
+ * Shows the description, stats, requested capabilities, and what the plugin
+ * contributes — with an Install button that drives the same consent-gated
+ * install flow as the inline card action.
+ */
+function PluginDetailsDialog({
+  entry,
+  state,
+  installing,
+  disabled,
+  onInstall,
+  onClose
+}: {
+  entry: MarketplaceListing
+  state?: 'builtin' | 'installed'
+  installing?: boolean
+  disabled?: boolean
+  onInstall?: () => void
+  onClose: () => void
+}) {
+  const caps = describeCapabilities(entry.capabilities)
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center">
+      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="relative flex max-h-[85vh] w-[480px] flex-col overflow-hidden rounded-md border border-hairline bg-surface-0 shadow-lg">
+        {/* Header */}
+        <div className="flex items-start gap-3 border-b border-hairline px-6 py-4">
+          <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-md bg-surface-2 text-ink-2">
+            <Plug size={22} strokeWidth={1.5} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="truncate text-base font-medium text-ink-1">{entry.name}</h2>
+              <span className="font-mono text-[10px] text-ink-3">v{entry.version}</span>
+              {entry.category && (
+                <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[10px] text-ink-3">
+                  {entry.category}
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-ink-3">By {entry.author}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex-shrink-0 rounded p-1 text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink-1"
+            aria-label="Close"
+          >
+            <X size={16} strokeWidth={1.5} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
+          <p className="text-xs leading-relaxed text-ink-2">{entry.description}</p>
+
+          <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-ink-3">
+            {typeof entry.installs === 'number' && (
+              <span className="inline-flex items-center gap-1">
+                <Download size={11} strokeWidth={1.5} />
+                {entry.installs.toLocaleString()} installs
+              </span>
+            )}
+            {typeof entry.stars === 'number' && (
+              <span className="inline-flex items-center gap-1">
+                <Star size={11} strokeWidth={1.5} />
+                {entry.stars.toLocaleString()}
+              </span>
+            )}
+            {entry.license && (
+              <span className="inline-flex items-center gap-1">
+                <Scale size={11} strokeWidth={1.5} />
+                {entry.license}
+              </span>
+            )}
+            {entry.homepage && (
+              <a
+                href={entry.homepage}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-ink-2 transition-colors hover:text-ink-1"
+              >
+                <ExternalLink size={11} strokeWidth={1.5} />
+                Homepage
+              </a>
+            )}
+          </div>
+
+          {caps.length > 0 && (
+            <div className="space-y-1.5">
+              <h3 className="text-[10px] font-medium uppercase tracking-wider text-ink-3">
+                Requested access
+              </h3>
+              <div className="space-y-1.5">
+                {caps.map((line, i) => {
+                  const Icon = CONSENT_ICON[line.icon]
+                  return (
+                    <div
+                      key={i}
+                      className={`flex items-center gap-2 rounded-md px-3 py-2 text-xs ${
+                        line.danger
+                          ? 'bg-destructive-muted text-destructive'
+                          : 'bg-surface-1 text-ink-2'
+                      }`}
+                    >
+                      <Icon size={14} strokeWidth={1.5} />
+                      {line.text}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
+
+          {entry.contributes && entry.contributes.length > 0 && (
+            <div className="space-y-1.5">
+              <h3 className="text-[10px] font-medium uppercase tracking-wider text-ink-3">Adds</h3>
+              <div className="flex flex-wrap gap-1.5">
+                {entry.contributes.map((c) => (
+                  <span
+                    key={c}
+                    className="rounded bg-surface-2 px-1.5 py-0.5 text-[10px] text-ink-3"
+                  >
+                    {c}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="flex items-center justify-end gap-2 border-t border-hairline px-6 py-4">
+          {state === 'builtin' || state === 'installed' ? (
+            <span className="inline-flex items-center gap-1 rounded bg-success-muted px-2 py-1 text-[11px] font-medium text-success">
+              <CheckCircle size={12} strokeWidth={1.5} />
               {state === 'builtin' ? 'Built-in' : 'Installed'}
             </span>
           ) : (
