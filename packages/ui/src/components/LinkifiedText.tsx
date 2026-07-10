@@ -87,11 +87,15 @@ export function LinkifiedText({
   linkClassName = DEFAULT_LINK_CLASS,
   detectPhones = false
 }: LinkifiedTextProps) {
-  const baseTokens = useMemo(() => findLinkTokens(value), [value])
-  const phoneTokens = usePhoneTokens(value, detectPhones)
+  // Callers render raw property values from untyped stores, so `value` can
+  // arrive as a number/object despite the prop type. Coerce once here —
+  // linkify-it and segmentText both require a real string.
+  const text = typeof value === 'string' ? value : value == null ? '' : String(value)
+  const baseTokens = useMemo(() => findLinkTokens(text), [text])
+  const phoneTokens = usePhoneTokens(text, detectPhones)
   const segments = useMemo(
-    () => segmentText(value, mergeLinkTokens(baseTokens, phoneTokens)),
-    [value, baseTokens, phoneTokens]
+    () => segmentText(text, mergeLinkTokens(baseTokens, phoneTokens)),
+    [text, baseTokens, phoneTokens]
   )
   return (
     <span className={className}>

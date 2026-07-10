@@ -59,7 +59,9 @@ function toLinkToken(match: ReturnType<typeof find>[number]): LinkToken | null {
  * resolve to https; emails resolve to mailto.
  */
 export function findLinkTokens(text: string): LinkToken[] {
-  if (!text) return []
+  // Property values from untyped stores can leak through as numbers/objects;
+  // linkify-it throws on anything that isn't a real string.
+  if (typeof text !== 'string' || text === '') return []
   return find(text, { defaultProtocol: 'https' })
     .map(toLinkToken)
     .filter((token): token is LinkToken => token !== null)
