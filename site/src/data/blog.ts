@@ -88,6 +88,20 @@ export interface BlogPost {
 
 export const posts: BlogPost[] = [
   {
+    slug: 'weights-you-can-hold',
+    title: 'Weights You Can Hold',
+    description:
+      'Graduates are booing AI executives at commencement, then going home to ' +
+      'run open-weight models on their own laptops. Two video essays, one ' +
+      'quiet revolution: a generation trading rented everything for things it ' +
+      'can hold — model weights, assets, film cameras, businesses of its own — ' +
+      'and what that exit means for who owns your software.',
+    pubDate: '2026-07-10T17:00:00Z',
+    authors: ['crs48', 'claude'],
+    tags: ['essay', 'economics', 'privacy', 'decentralization'],
+    readingMinutes: 13
+  },
+  {
     slug: 'timeout',
     title: 'Timeout',
     description:
