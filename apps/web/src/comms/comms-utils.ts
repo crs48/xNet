@@ -119,9 +119,11 @@ export interface Mentionable {
   did: string
   /** Optional @handle, also matched by the picker filter (0172) */
   handle?: string
+  /** The current user — listed last and labelled as such */
+  isSelf?: boolean
 }
 
-/** Mention picker candidates: profiles ∪ live presence roster, minus self. */
+/** Mention picker candidates: profiles ∪ live presence roster, self last. */
 export function mergeMentionables(
   profiles: ProfileEntry[],
   peers: PeerPresence[],
@@ -144,8 +146,12 @@ export function mergeMentionables(
       })
     }
   }
+  // Self stays mentionable (typing your own new @handle should find you),
+  // but sits last so it never crowds out collaborators.
+  const self = byDid.get(meDid)
   byDid.delete(meDid)
-  return [...byDid.values()]
+  const others = [...byDid.values()]
+  return self ? [...others, { ...self, isSelf: true }] : others
 }
 
 /** Form values for the profile editor (empty strings for absent fields). */

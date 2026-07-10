@@ -48,6 +48,8 @@ export function mentionsFromDoc(
 export interface MentionablePerson {
   did: string
   name?: string
+  /** Optional workspace-unique @handle (0172), matched by the picker filter */
+  handle?: string
   color?: string
   avatar?: string
 }
@@ -72,6 +74,7 @@ export function buildPersonMentionSuggestions(
     id: entry.did,
     label: entry.name?.trim() || `${entry.did.slice(8, 16)}...`,
     subtitle: entry.did === selfDid ? 'You' : entry.did,
+    handle: entry.handle,
     color: entry.color,
     avatarUrl: entry.avatar
   }))

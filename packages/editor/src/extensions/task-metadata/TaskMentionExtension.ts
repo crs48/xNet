@@ -24,6 +24,7 @@ function filterSuggestions(items: TaskMentionSuggestion[], query: string): TaskM
       return (
         item.id.toLowerCase().includes(search) ||
         item.label.toLowerCase().includes(search) ||
+        item.handle?.toLowerCase().includes(search) ||
         item.subtitle?.toLowerCase().includes(search)
       )
     })

@@ -33,6 +33,15 @@ describe('people helpers', () => {
     expect(filterTaskPeople(people, 'z6Mkbob')[0]?.name).toBe('Bob')
     expect(filterTaskPeople(people, '')[0]?.isSelf).toBe(true)
   })
+
+  it('matches the @handle even when it shares nothing with the name (0172)', () => {
+    const withHandles = [
+      { did: 'did:key:z6MkadaWWWWWWWWWW', name: 'Alice Lovelace', handle: 'ada' },
+      ...people
+    ]
+    expect(filterTaskPeople(withHandles, 'ada').map((p) => p.handle)).toEqual(['ada'])
+    expect(filterTaskPeople(withHandles, 'AD')[0]?.name).toBe('Alice Lovelace')
+  })
 })
 
 describe('findActiveMention', () => {

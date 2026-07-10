@@ -233,6 +233,7 @@ function MentionPicker({
             className={pickerOptionClass(index === nav.activeIndex)}
           >
             @{option.label}
+            {option.isSelf && <span className="text-ink-3">(you)</span>}
             <span className="truncate font-mono text-[10px] text-ink-3">{option.did}</span>
           </button>
         </li>
