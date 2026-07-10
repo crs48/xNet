@@ -1,6 +1,6 @@
 {
   "name": "@xnetjs/cli",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "xNet CLI - Schema migrations, diagnostics, and development tools",
   "license": "MIT",
   "repository": {
