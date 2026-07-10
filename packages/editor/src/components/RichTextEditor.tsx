@@ -18,7 +18,9 @@ import type * as Y from 'yjs'
 import { offset, type ComputePositionConfig } from '@floating-ui/dom'
 import Collaboration from '@tiptap/extension-collaboration'
 import { DragHandle } from '@tiptap/extension-drag-handle-react'
+import Emoji, { gitHubEmojis } from '@tiptap/extension-emoji'
 import Link from '@tiptap/extension-link'
+import { Mathematics } from '@tiptap/extension-mathematics'
 import Placeholder from '@tiptap/extension-placeholder'
 import TaskList from '@tiptap/extension-task-list'
 import Typography from '@tiptap/extension-typography'
@@ -57,9 +59,12 @@ import {
   ensurePageTaskAttrs,
   getPageTasksSnapshot
 } from '../extensions'
+import { createSuggestionPopupRender } from '../extensions/suggestion-popup'
 import { extractTagIds } from '../utils/hashtags'
 import { resolveEditorModePolicy, type EditorContentMode } from './editor-ux-state'
+import { EmojiMenu, filterEmojiSuggestions } from './EmojiMenu'
 import { FloatingToolbar, type ToolbarMode, type ToolbarSurface } from './FloatingToolbar'
+import 'katex/dist/katex.min.css'
 import '../styles/editor.css'
 import { cn } from '../utils'
 
@@ -572,6 +577,18 @@ export function RichTextEditor({
     SlashCommand.configure({
       commands: slashCommands
     }),
+    // `:` emoji shortcodes (MIT since June 2025 — 0297). Schema node: must
+    // stay statically bundled and identical across collaborators.
+    Emoji.configure({
+      emojis: gitHubEmojis,
+      suggestion: {
+        items: ({ query }: { query: string }) => filterEmojiSuggestions(gitHubEmojis, query),
+        render: createSuggestionPopupRender(EmojiMenu)
+      }
+    }),
+    // `$...$` / `$$...$$` KaTeX math (MIT since June 2025 — 0297). Schema
+    // nodes (inlineMath/blockMath): same static-bundling rule as Emoji.
+    Mathematics,
     // Extra keyboard shortcuts (Mod-e, Mod-k, Mod-\, etc.)
     KeyboardShortcutsExtension,
     // Image extension with paste/drop upload

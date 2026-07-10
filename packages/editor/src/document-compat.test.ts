@@ -205,6 +205,30 @@ describe('normalizeEditorDocumentJson', () => {
     ])
   })
 
+  it('keeps emoji and math nodes without migrations (schema v3, 0297)', () => {
+    const result = normalizeEditorDocumentJson({
+      type: 'doc',
+      content: [
+        {
+          type: 'paragraph',
+          content: [
+            { type: 'text', text: 'Hi ' },
+            { type: 'emoji', attrs: { name: 'smile' } },
+            { type: 'inlineMath', attrs: { latex: 'a^2' } }
+          ]
+        },
+        { type: 'blockMath', attrs: { latex: '\\int_0^1 x\\,dx' } }
+      ]
+    })
+
+    expect(result.migrations).toEqual([])
+    expect(result.doc.content?.[0]?.content?.[1]).toMatchObject({
+      type: 'emoji',
+      attrs: { name: 'smile' }
+    })
+    expect(result.doc.content?.[1]).toMatchObject({ type: 'blockMath' })
+  })
+
   it('creates an empty current document for malformed roots', () => {
     const result = normalizeEditorDocumentJson(null)
 

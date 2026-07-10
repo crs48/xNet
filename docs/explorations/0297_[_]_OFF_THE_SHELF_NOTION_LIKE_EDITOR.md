@@ -336,6 +336,31 @@ sequenceDiagram
     Note over PR4: Emoji/Math/ToC/UniqueID,<br/>schema-gated rollout
 ```
 
+### Decisions (implementation, 2026-07-10)
+
+- **Emoji + Mathematics: adopted.** Both are statically bundled in
+  `RichTextEditor` (schema extensions must be identical across
+  collaborators — the tier rule in `extension-tiers.ts`), with `emoji`,
+  `inlineMath`, `blockMath` added to `CURRENT_NODE_TYPES` and
+  `EDITOR_DOCUMENT_SCHEMA_VERSION` bumped to 3 in `document-compat.ts`.
+  The `:` picker reuses the shared Floating UI suggestion popup
+  (`EmojiMenu.tsx`).
+- **TableOfContents + UniqueID: deferred.** Both are behavior/attribute
+  extensions with **no consuming surface today** — ToC needs a sidebar/
+  outline UI and UniqueID exists to give ToC/anchors stable targets.
+  Bundling them now would add attribute-churn skew risk (old clients
+  strip ids, new clients re-add) with zero user-visible value. Adopt
+  together with an outline feature when one is designed.
+- **ToggleExtension kept over `@tiptap/extension-details`.** Different
+  node names/attrs (`toggle` vs `details`/`detailsSummary`/
+  `detailsContent`) mean stored docs don't round-trip; ours is stable
+  and featureful enough that a migration buys nothing. Revisit only if
+  upstream Details grows something ours lacks.
+- **Changesets: not applicable.** `@xnetjs/editor` is `private: true`
+  and in `.changeset/config.json` `ignore` — no changeset is required
+  for editor-only changes (verified against the Stop-hook coverage
+  script).
+
 ## Example Code
 
 Unified drag handle (replacing both homegrown stacks), in
@@ -426,7 +451,7 @@ registerTierTwoExtension({
       `packages/editor/src/components/ui/` (copied, not CLI-managed);
       rebase `FloatingToolbar.tsx` onto them; keep `editor-ux-state.ts`;
       verify mobile fixed-bar mode on touch.
-- [ ] PR 4: adopt Emoji + Mathematics + TableOfContents + UniqueID behind
+- [x] PR 4: adopt Emoji + Mathematics + TableOfContents + UniqueID behind
       extension tiers with version gating; write a migration decision for
       `ToggleExtension` vs `extension-details` (default: keep ours).
 - [ ] Changesets for `@xnetjs/editor` on each PR (removed exports ⇒
