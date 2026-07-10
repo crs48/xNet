@@ -99,6 +99,49 @@ describe('NodeStoreSyncProvider', () => {
   beforeEach(() => vi.useFakeTimers())
   afterEach(() => vi.useRealTimers())
 
+  describe('subscribe-only share rooms (0298)', () => {
+    it('never publishes local changes into a share room (hub owns fan-out)', async () => {
+      const { store, emit } = makeStore()
+      const { conn } = makeConnection('connected')
+      const provider = new NodeStoreSyncProvider(store, 'xnet-channel-c1', true)
+      provider.attach(conn)
+      emit({ change: makeChange(1), isRemote: false })
+      await vi.advanceTimersByTimeAsync(0)
+      // A normal provider would publish here; a subscribe-only one must not.
+      expect(conn.publish).not.toHaveBeenCalled()
+    })
+
+    it('applies remote changes received from the share room', async () => {
+      const { store } = makeStore()
+      const applyRemoteChange = vi.fn(async () => undefined)
+      ;(store as unknown as { applyRemoteChange: typeof applyRemoteChange }).applyRemoteChange =
+        applyRemoteChange
+      const { conn, injectRoomMessage } = makeConnection('connected')
+      new NodeStoreSyncProvider(store, 'xnet-channel-c1', true).attach(conn)
+
+      injectRoomMessage('xnet-channel-c1', {
+        type: 'node-change',
+        change: {
+          id: 'c1',
+          type: 'node-change',
+          hash: 'cid:blake3:c1',
+          room: 'xnet-channel-c1',
+          nodeId: 'n1',
+          schemaId: 'xnet://xnet.fyi/ChatMessage@1.0.0',
+          lamportTime: 9,
+          lamportAuthor: 'did:key:z6MkAuthor',
+          authorDid: 'did:key:z6MkAuthor',
+          wallTime: 1,
+          parentHash: null,
+          payload: { nodeId: 'n1', properties: { body: 'hi' } },
+          signatureB64: 'AQID'
+        }
+      })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(applyRemoteChange).toHaveBeenCalled()
+    })
+  })
+
   describe('serialization', () => {
     it('publishes node changes with schemaId to the relay room', async () => {
       const { store, emit } = makeStore()
