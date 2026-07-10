@@ -19,13 +19,23 @@ import {
   Trash2,
   Plus,
   AlertCircle,
+  AlertTriangle,
   CheckCircle,
   PowerOff,
+  Settings2,
   XCircle,
   Package,
   Loader2
 } from 'lucide-react'
 import { useState, useCallback, useEffect } from 'react'
+import { firstPartyRecord } from '../plugins/first-party-catalog'
+import {
+  clearPluginConfig,
+  isPluginConfigured,
+  onPluginConfigChange,
+  readPluginConfig
+} from '../plugins/plugin-config'
+import { PluginConfigDialog } from './PluginConfigDialog'
 
 /** Quiet bordered button — the workbench's default action affordance. */
 const QUIET_BUTTON =
@@ -47,6 +57,11 @@ export function PluginManager() {
   const [error, setError] = useState<string | null>(null)
   const [showInstallDialog, setShowInstallDialog] = useState(false)
   const [plugins, setPlugins] = useState<RegisteredPlugin[]>([])
+  const [configFor, setConfigFor] = useState<RegisteredPlugin | null>(null)
+
+  // Re-render when a config dialog saves (needs-setup hints depend on it).
+  const [, setConfigTick] = useState(0)
+  useEffect(() => onPluginConfigChange(() => setConfigTick((t) => t + 1)), [])
 
   // Access the plugin registry from XNet context
   const { pluginRegistry: registry, nodeStoreReady } = useXNet()
@@ -110,6 +125,7 @@ export function PluginManager() {
 
       try {
         await registry.uninstall(pluginId)
+        clearPluginConfig(pluginId) // saved tokens don't outlive the plugin
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to uninstall plugin')
       }
@@ -197,6 +213,11 @@ export function PluginManager() {
               plugin={plugin}
               onToggle={handleToggle}
               onUninstall={handleUninstall}
+              onConfigure={
+                firstPartyRecord(plugin.manifest.id)?.config?.length
+                  ? () => setConfigFor(plugin)
+                  : undefined
+              }
             />
           ))}
         </div>
@@ -210,6 +231,16 @@ export function PluginManager() {
           error={error}
         />
       )}
+
+      {/* Configure dialog (first-party plugins with a config spec) */}
+      {configFor && (
+        <PluginConfigDialog
+          pluginId={configFor.manifest.id}
+          pluginName={configFor.manifest.name}
+          record={firstPartyRecord(configFor.manifest.id)!}
+          onClose={() => setConfigFor(null)}
+        />
+      )}
     </div>
   )
 }
@@ -220,12 +251,17 @@ interface PluginCardProps {
   plugin: RegisteredPlugin
   onToggle: (id: string, next: boolean) => void
   onUninstall: (id: string) => void
+  /** Present when the plugin has a first-party config form. */
+  onConfigure?: () => void
 }
 
-function PluginCard({ plugin, onToggle, onUninstall }: PluginCardProps) {
+function PluginCard({ plugin, onToggle, onUninstall, onConfigure }: PluginCardProps) {
   const { manifest, status, error } = plugin
   const isActive = status === 'active'
   const hasError = status === 'error'
+  const needsSetup =
+    !!onConfigure &&
+    !isPluginConfigured(firstPartyRecord(manifest.id)?.config, readPluginConfig(manifest.id))
 
   return (
     <div
@@ -257,6 +293,13 @@ function PluginCard({ plugin, onToggle, onUninstall }: PluginCardProps) {
 
           {manifest.author && <p className="text-xs text-ink-3">By {manifest.author}</p>}
 
+          {needsSetup && (
+            <p className="mt-2 flex items-center gap-1 text-xs text-warning">
+              <AlertTriangle size={12} strokeWidth={1.5} />
+              Needs setup — open Configure to finish connecting.
+            </p>
+          )}
+
           {hasError && error && (
             <p className="mt-2 flex items-center gap-1 text-xs text-destructive">
               <AlertCircle size={12} strokeWidth={1.5} />
@@ -267,6 +310,17 @@ function PluginCard({ plugin, onToggle, onUninstall }: PluginCardProps) {
 
         {/* Actions */}
         <div className="flex flex-shrink-0 items-center gap-2">
+          {onConfigure && (
+            <button
+              type="button"
+              onClick={onConfigure}
+              className="rounded-md p-1.5 text-ink-3 transition-colors hover:bg-surface-2 hover:text-ink-1"
+              title="Configure"
+              aria-label="Configure plugin"
+            >
+              <Settings2 size={16} strokeWidth={1.5} />
+            </button>
+          )}
           <Switch
             checked={isActive}
             onCheckedChange={(next) => onToggle(manifest.id, next)}

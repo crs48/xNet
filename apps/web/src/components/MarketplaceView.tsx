@@ -6,7 +6,10 @@
  * `PluginRegistry.install` pipeline: the capability-consent gate
  * (`evaluateInstallConsent`) is surfaced as a dialog the user must approve, and
  * the plugin is stamped with `marketplace` provenance so it runs at the right
- * trust tier. Built-in plugins are shown as already available.
+ * trust tier. First-party plugins install from the app-side catalog
+ * (`plugins/first-party-catalog.ts`) at `builtin` provenance, and grouping is
+ * by ACTUAL install state — "Built in" never lies (0290). Installed first-party
+ * plugins configure through `PluginConfigDialog`.
  *
  * Note: loading executable plugin code from a community Release into a
  * tier-appropriate sandbox is a separate hardening step (see exploration 0201
@@ -29,11 +32,14 @@ import {
   Plug,
   Scale,
   Search,
+  Settings2,
   Star,
   Store,
   X
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { firstPartyManifest, firstPartyRecord } from '../plugins/first-party-catalog'
+import { isPluginConfigured, onPluginConfigChange, readPluginConfig } from '../plugins/plugin-config'
 import {
   PLUGIN_REGISTRY_URL,
   fetchManifest,
@@ -41,6 +47,7 @@ import {
   partitionListings,
   type MarketplaceListing
 } from './marketplace-listing'
+import { PluginConfigDialog } from './PluginConfigDialog'
 
 const QUIET_BUTTON =
   'flex items-center gap-2 rounded-md border border-hairline bg-surface-0 px-3 py-1.5 text-xs text-ink-1 transition-colors hover:bg-surface-2 disabled:cursor-not-allowed disabled:opacity-50'
@@ -78,6 +85,11 @@ export function MarketplaceView() {
   const [actionError, setActionError] = useState<string | null>(null)
   const [consent, setConsent] = useState<ConsentPrompt | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [configForId, setConfigForId] = useState<string | null>(null)
+
+  // Re-render when a config dialog saves (needs-setup hints depend on it).
+  const [, setConfigTick] = useState(0)
+  useEffect(() => onPluginConfigChange(() => setConfigTick((t) => t + 1)), [])
 
   // Keep installed ids in sync with the registry.
   useEffect(() => {
@@ -116,16 +128,25 @@ export function MarketplaceView() {
 
   const handleInstall = useCallback(
     async (entry: MarketplaceListing) => {
-      if (!registry || !entry.manifestUrl) return
+      if (!registry) return
       setActionError(null)
       setInstalling(entry.id)
       try {
-        const manifest = await fetchManifest(entry.manifestUrl)
+        // First-party plugins install from the app-side catalog; community
+        // plugins fetch their manifest from the registry entry's URL.
+        const firstParty = firstPartyManifest(entry)
+        const manifest =
+          firstParty ?? (entry.manifestUrl ? await fetchManifest(entry.manifestUrl) : null)
+        if (!manifest) return
         await registry.install(manifest, {
-          provenance: 'marketplace',
+          provenance: firstParty ? 'builtin' : 'marketplace',
           onConsent: (decision) =>
             new Promise<boolean>((resolve) => setConsent({ entry, decision, resolve }))
         })
+        // Installed and configurable → drop straight into the config form.
+        if (firstParty && firstPartyRecord(entry.id)?.config?.length) {
+          setConfigForId(entry.id)
+        }
       } catch (err) {
         setActionError(err instanceof Error ? err.message : 'Install failed')
       } finally {
@@ -150,6 +171,10 @@ export function MarketplaceView() {
     [entries, selectedId]
   )
   const selectedState = selected ? listingState(selected, installedIds) : undefined
+  const configFor = useMemo(
+    () => (configForId ? (entries.find((e) => e.id === configForId) ?? null) : null),
+    [entries, configForId]
+  )
 
   return (
     <div className="space-y-6">
@@ -265,14 +290,28 @@ export function MarketplaceView() {
         </div>
       )}
 
-      {selected && (
+      {selected && !configFor && (
         <PluginDetailsDialog
           entry={selected}
           state={selectedState}
           installing={installing === selected.id}
           disabled={!nodeStoreReady || !registry}
           onInstall={() => handleInstall(selected)}
+          onConfigure={
+            selectedState && firstPartyRecord(selected.id)?.config?.length
+              ? () => setConfigForId(selected.id)
+              : undefined
+          }
           onClose={() => setSelectedId(null)}
+        />
+      )}
+
+      {configFor && (
+        <PluginConfigDialog
+          pluginId={configFor.id}
+          pluginName={configFor.name}
+          record={firstPartyRecord(configFor.id)!}
+          onClose={() => setConfigForId(null)}
         />
       )}
 
@@ -281,14 +320,16 @@ export function MarketplaceView() {
   )
 }
 
-/** Classify a listing for display: built-in, already-installed, or installable. */
+/**
+ * Classify a listing for display by ACTUAL install state: "Built-in" means a
+ * first-party plugin that is genuinely installed, never a mere catalog tier.
+ */
 function listingState(
   entry: MarketplaceListing,
   installedIds: readonly string[]
 ): 'builtin' | 'installed' | undefined {
-  if (entry.tier === 'bundled') return 'builtin'
-  if (installedIds.includes(entry.id)) return 'installed'
-  return undefined
+  if (!installedIds.includes(entry.id)) return undefined
+  return entry.tier === 'bundled' ? 'builtin' : 'installed'
 }
 
 function Group({ title, children }: { title: string; children: React.ReactNode }) {
@@ -317,7 +358,7 @@ function MarketplaceCard({
   onInstall,
   onOpen
 }: MarketplaceCardProps) {
-  const caps = describeCapabilities(entry.capabilities)
+  const caps = describeCapabilities(entry.capabilities ?? firstPartyRecord(entry.id)?.capabilities)
   return (
     <div
       role="button"
@@ -410,6 +451,7 @@ function PluginDetailsDialog({
   installing,
   disabled,
   onInstall,
+  onConfigure,
   onClose
 }: {
   entry: MarketplaceListing
@@ -417,9 +459,14 @@ function PluginDetailsDialog({
   installing?: boolean
   disabled?: boolean
   onInstall?: () => void
+  /** Present when the plugin is installed and has a config form. */
+  onConfigure?: () => void
   onClose: () => void
 }) {
-  const caps = describeCapabilities(entry.capabilities)
+  const record = firstPartyRecord(entry.id)
+  const caps = describeCapabilities(entry.capabilities ?? record?.capabilities)
+  const needsSetup =
+    !!onConfigure && !isPluginConfigured(record?.config, readPluginConfig(entry.id))
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
@@ -531,27 +578,43 @@ function PluginDetailsDialog({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-2 border-t border-hairline px-6 py-4">
-          {state === 'builtin' || state === 'installed' ? (
-            <span className="inline-flex items-center gap-1 rounded bg-success-muted px-2 py-1 text-[11px] font-medium text-success">
-              <CheckCircle size={12} strokeWidth={1.5} />
-              {state === 'builtin' ? 'Built-in' : 'Installed'}
-            </span>
-          ) : (
-            <button
-              type="button"
-              onClick={onInstall}
-              disabled={disabled || installing || !isInstallable(entry)}
-              className={QUIET_BUTTON}
-            >
-              {installing ? (
-                <Loader2 size={14} strokeWidth={1.5} className="animate-spin" />
-              ) : (
-                <Download size={14} strokeWidth={1.5} />
-              )}
-              Install
-            </button>
-          )}
+        <div className="flex items-center justify-between gap-2 border-t border-hairline px-6 py-4">
+          <span className="text-[11px] text-warning">
+            {needsSetup && (
+              <span className="inline-flex items-center gap-1">
+                <AlertTriangle size={12} strokeWidth={1.5} />
+                Needs setup
+              </span>
+            )}
+          </span>
+          <div className="flex items-center gap-2">
+            {onConfigure && (
+              <button type="button" onClick={onConfigure} className={QUIET_BUTTON}>
+                <Settings2 size={14} strokeWidth={1.5} />
+                Configure
+              </button>
+            )}
+            {state === 'builtin' || state === 'installed' ? (
+              <span className="inline-flex items-center gap-1 rounded bg-success-muted px-2 py-1 text-[11px] font-medium text-success">
+                <CheckCircle size={12} strokeWidth={1.5} />
+                {state === 'builtin' ? 'Built-in' : 'Installed'}
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={onInstall}
+                disabled={disabled || installing || !isInstallable(entry)}
+                className={QUIET_BUTTON}
+              >
+                {installing ? (
+                  <Loader2 size={14} strokeWidth={1.5} className="animate-spin" />
+                ) : (
+                  <Download size={14} strokeWidth={1.5} />
+                )}
+                Install
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </div>
