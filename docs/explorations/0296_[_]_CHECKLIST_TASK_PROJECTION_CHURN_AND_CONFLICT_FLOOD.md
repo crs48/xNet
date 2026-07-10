@@ -400,7 +400,7 @@ already do: `packages/ui/src/composed/tasks/TaskRow.tsx:147` etc.)
       the full projection (C5-lite)
 - [x] `@xnetjs/devtools`: split `store:conflict` vs `store:lww-resolution`
       in the event taxonomy + ChangeTimeline rendering (collapsed group)
-- [ ] Update `docs/specs/PAGE_TASK_RECONCILIATION.md`: add "no reconciliation
+- [x] Update `docs/specs/PAGE_TASK_RECONCILIATION.md`: add "no reconciliation
       before first editor snapshot" and "placeholder titles never overwrite
       real titles" to the invariants
 - [ ] Tests: store golden vectors for the conflict predicate (tie, own-stale,
