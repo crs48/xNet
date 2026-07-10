@@ -301,15 +301,15 @@ if (config.demo) {
 ## Implementation Checklist
 
 - [ ] **Immediate:** truncate demo data on the Railway volume; redeploy; confirm `/health` 200 and disk drops (also clears the 0290 502 if disk-full-induced).
-- [ ] Route Backup/File quota to `demoOverrides.quota`/`maxBlob` when `config.demo` (`server.ts:170-178`).
-- [ ] Add per-DID usage accounting to storage (`getUsageByDid`/`addUsageByDid` + a `usage_by_did` row/table) in `storage/sqlite.ts` and `storage/memory.ts`.
-- [ ] Enforce `demoOverrides.quota` on the `appendNodeChange` / `doc_state` write paths (`node-relay.ts`, `pool/node-pool.ts`); reject over budget.
-- [ ] Implement a `config.demo`-gated **daily truncate-all + VACUUM** started in the lifecycle (`server.ts`), operating on the persistent volume.
+- [x] Route Backup/File quota to `demoOverrides.quota`/`maxBlob` when `config.demo` (`server.ts:170-178`).
+- [x] Add per-DID usage accounting to storage (`getUsageByDid`/`addUsageByDid` + a `usage_by_did` row/table) in `storage/sqlite.ts` and `storage/memory.ts`.
+- [x] Enforce `demoOverrides.quota` on the `appendNodeChange` / `doc_state` write paths (`node-relay.ts`, `pool/node-pool.ts`); reject over budget.
+- [x] Implement a `config.demo`-gated **daily truncate-all + VACUUM** started in the lifecycle (`server.ts`), operating on the persistent volume.
 - [ ] (Optional) Implement `EvictionStorage` in sqlite/memory, instantiate + `start()` `EvictionService`, and call `.touch(did)` on authenticated messages — only if inactivity cleanup is also desired.
-- [ ] Add a disk-usage watchdog that sheds writes near capacity instead of crashing.
+- [x] Add a disk-usage watchdog that sheds writes near capacity instead of crashing.
 - [ ] Handle a `quota-exceeded` relay rejection gracefully on the client (surface "demo storage full", keep local data).
-- [ ] Reconcile `litestream-entrypoint.sh:13` (missing `--demo`) with the Railway `startCommand` so all launch paths agree.
-- [ ] Tests: demo write over 10 MB/DID is rejected; daily reset empties all demo tables; real storage satisfies the reset/eviction interface.
+- [x] Reconcile `litestream-entrypoint.sh:13` (missing `--demo`) with the Railway `startCommand` so all launch paths agree.
+- [x] Tests: demo write over 10 MB/DID is rejected; daily reset empties all demo tables; real storage satisfies the reset/eviction interface.
 
 ## Validation Checklist
 

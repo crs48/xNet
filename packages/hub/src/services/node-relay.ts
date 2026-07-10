@@ -57,7 +57,11 @@ export class NodeRelayError extends Error {
       | 'INVALID_CHANGE'
       | 'INVALID_SIGNATURE'
       | 'INVALID_HASH'
-      | 'REPLAY_REJECTED',
+      | 'REPLAY_REJECTED'
+      // The author's stored data would exceed the per-user cap (demo mode).
+      | 'QUOTA_EXCEEDED'
+      // The hub's disk is (near) full; writes are shed to avoid a crash.
+      | 'STORAGE_FULL',
     message: string,
     public action?: string,
     public resource?: string
@@ -67,10 +71,30 @@ export class NodeRelayError extends Error {
   }
 }
 
+export type NodeRelayOptions = {
+  /**
+   * Per-user storage cap in bytes (demo mode, exploration 0291). When set, a
+   * change is rejected if the author's existing `node_changes` bytes plus the
+   * incoming change would exceed it. Unset ⇒ unbounded (self-host default).
+   */
+  quotaBytes?: number
+  /**
+   * Returns true when the hub's disk is at/near capacity. When it does, new
+   * changes are shed with `STORAGE_FULL` so a full volume degrades gracefully
+   * instead of crashing the process.
+   */
+  isStorageFull?: () => boolean
+}
+
+/** Serialized byte size a change contributes to a user's quota. */
+const changeUsageBytes = (change: SerializedNodeChange): number =>
+  JSON.stringify(change.payload).length + change.signatureB64.length
+
 export class NodeRelayService {
   constructor(
     private storage: HubStorage,
-    private telemetryOptions: RemoteMutationTelemetryOptions = {}
+    private telemetryOptions: RemoteMutationTelemetryOptions = {},
+    private options: NodeRelayOptions = {}
   ) {}
 
   async handleNodeChange(msg: NodeChangeMessage, auth: AuthContext): Promise<boolean> {
@@ -136,6 +160,29 @@ export class NodeRelayService {
       )
     }
     if (exists) return false
+
+    // Shed writes before the volume fills so a full disk degrades gracefully
+    // instead of crashing the hub (exploration 0291).
+    if (this.options.isStorageFull?.()) {
+      throw new NodeRelayError(
+        'STORAGE_FULL',
+        'Hub storage is full; new changes are temporarily rejected'
+      )
+    }
+
+    // Per-user storage cap (demo mode). The append-only change log is the
+    // primary grower and, unlike backups/files, had no quota gate — one active
+    // user could fill the disk (exploration 0291).
+    if (this.options.quotaBytes !== undefined) {
+      const used = await this.storage.getUsageBytesByDid(change.authorDID)
+      if (used + changeUsageBytes(msg.change) > this.options.quotaBytes) {
+        throw new NodeRelayError(
+          'QUOTA_EXCEEDED',
+          `Storage limit reached (${this.options.quotaBytes} bytes per user). ` +
+            `Delete some data or use your own hub for more space.`
+        )
+      }
+    }
 
     await this.storage.appendNodeChange(msg.room, {
       ...msg.change,

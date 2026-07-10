@@ -690,6 +690,40 @@ export const createMemoryStorage = (): HubStorage => {
     return changes.length
   }
 
+  const getUsageBytesByDid = async (did: string): Promise<number> => {
+    // Mirror the SQLite sum: LENGTH(payload_json) + LENGTH(signature_b64),
+    // where LENGTH on TEXT is a character count (exploration 0291).
+    let bytes = 0
+    for (const change of nodeChangesByHash.values()) {
+      if (change.authorDid === did) {
+        bytes += JSON.stringify(change.payload).length + change.signatureB64.length
+      }
+    }
+    return bytes
+  }
+
+  const resetAllUserData = async (): Promise<{ nodeChanges: number; docStates: number }> => {
+    const nodeChanges = nodeChangesByHash.size
+    const docStateCount = docStates.size
+    // User-content stores only — leave schemas/peers/federation/shards/crawlers
+    // intact so the hub keeps working after a reset (exploration 0291).
+    docStates.clear()
+    docMetas.clear()
+    searchBodies.clear()
+    docRecipients.clear()
+    blobs.clear()
+    files.clear()
+    grantsById.clear()
+    shareLinksById.clear()
+    nodeContainers.clear()
+    nodeVisibility.clear()
+    nodeChangesByHash.clear()
+    nodeChangesByRoom.clear()
+    databaseRows.clear()
+    awarenessByRoom.clear()
+    return { nodeChanges, docStates: docStateCount }
+  }
+
   // ─── Database Row Operations ─────────────────────────────────────────────────
 
   const insertDatabaseRow = async (row: DatabaseRowRecord): Promise<void> => {
@@ -983,6 +1017,8 @@ export const createMemoryStorage = (): HubStorage => {
     listPopularSchemas,
     hasNodeChange,
     appendNodeChange,
+    getUsageBytesByDid,
+    resetAllUserData,
     getNodeChangesSince,
     getNodeChangesForNode,
     getHighWaterMark,

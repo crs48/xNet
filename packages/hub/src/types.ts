@@ -127,6 +127,10 @@ export type DemoOverrides = {
   evictionTtl: number
   /** How often to run eviction check (ms). Default: 1 hour. */
   evictionInterval: number
+  /** Wipe all user data on this cadence (ms). Default: 24 hours. */
+  resetInterval: number
+  /** Volume capacity the disk watchdog guards (bytes). Default: 500 MB. */
+  diskLimitBytes: number
 }
 
 export const DEMO_DEFAULTS: DemoOverrides = {
@@ -134,7 +138,9 @@ export const DEMO_DEFAULTS: DemoOverrides = {
   maxDocs: 50,
   maxBlob: 2 * 1024 * 1024, // 2 MB
   evictionTtl: 24 * 60 * 60 * 1000, // 24 hours
-  evictionInterval: 60 * 60 * 1000 // 1 hour
+  evictionInterval: 60 * 60 * 1000, // 1 hour
+  resetInterval: 24 * 60 * 60 * 1000, // 24 hours
+  diskLimitBytes: 500 * 1024 * 1024 // 500 MB (Railway demo volume)
 }
 
 export type HubInstance = {

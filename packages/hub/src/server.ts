@@ -53,6 +53,7 @@ import { FederationHealthChecker } from './services/federation-health'
 import { FileService } from './services/files'
 import { ShardRegistry } from './services/index-shards'
 import { KeyRegistryService } from './services/key-registry'
+import { DiskWatchdog } from './services/disk-watchdog'
 import { NodeRelayService } from './services/node-relay'
 import { QueryService } from './services/query'
 import { RelayService } from './services/relay'
@@ -156,7 +157,19 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   const storage = await createStorage(config.storage, config.dataDir, {
     resetOnCorruption: !!config.demo
   })
-  const pool = new NodePool(storage)
+  // In demo mode, every per-user cap comes from the demo overrides (10 MB /
+  // 2 MB by default), not the 1 GB plan quota — otherwise a single visitor can
+  // fill the small demo volume (exploration 0291).
+  const demo = config.demo ? config.demoOverrides : undefined
+  const perUserQuota = demo ? demo.quota : config.defaultQuota
+  const maxBlobBytes = demo ? demo.maxBlob : config.maxBlobSize
+  // Demo-only: watch the data dir and shed relay writes before the volume fills
+  // (a full SQLite volume crashes the hub — exploration 0291 / the 0290 502).
+  const diskWatchdog = demo
+    ? new DiskWatchdog({ dataDir: config.dataDir, maxBytes: demo.diskLimitBytes })
+    : null
+  const isStorageFull = diskWatchdog ? () => diskWatchdog.isFull() : undefined
+  const pool = new NodePool(storage, { isStorageFull })
   const relayIdentity = generateIdentity()
   const relay = new RelayService(pool, {
     replication: config.sync,
@@ -169,14 +182,14 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     }
   })
   const backup = new BackupService(storage, {
-    maxQuotaBytes: config.defaultQuota,
-    maxBlobSize: config.maxBlobSize
+    maxQuotaBytes: perUserQuota,
+    maxBlobSize: maxBlobBytes
   })
   // Files count against the same plan quota as backups (the hub's `defaultQuota`,
   // resolved from the signed HUB_PLAN entitlement). Without this, uploads fall back
   // to FileService's hardcoded 5 GiB default and silently diverge from the plan
   // quota the dashboard meter shows (exploration 0216).
-  const files = new FileService(storage, { maxStoragePerUser: config.defaultQuota })
+  const files = new FileService(storage, { maxStoragePerUser: perUserQuota })
   const keyRegistry = new KeyRegistryService()
   const taskIdentifiers = new TaskIdentifierService()
   const query = new QueryService(storage)
@@ -259,7 +272,10 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     telemetry: config.telemetry,
     telemetryPeerHashSalt: config.telemetryPeerHashSalt
   }
-  const nodeRelay = new NodeRelayService(storage, remoteMutationTelemetry)
+  const nodeRelay = new NodeRelayService(storage, remoteMutationTelemetry, {
+    quotaBytes: demo ? demo.quota : undefined,
+    isStorageFull
+  })
   const shareAccess = new ShareAccessService(storage)
   const awareness = new AwarenessService(storage, {
     ttlMs: config.awarenessTtlMs ?? 24 * 60 * 60 * 1000,
@@ -692,6 +708,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   let httpServer: ReturnType<typeof serve> | null = null
   let wss: WebSocketServer | null = null
   let sessionAuthInterval: ReturnType<typeof setInterval> | null = null
+  let demoResetInterval: ReturnType<typeof setInterval> | null = null
 
   const start = async (): Promise<void> => {
     if (httpServer) return
@@ -717,6 +734,22 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
       if (crawlConfig.seedUrls && crawlConfig.seedUrls.length > 0) {
         await crawlCoordinator.seedUrls(crawlConfig.seedUrls)
       }
+    }
+    // Demo hub: guard the small disposable volume — watch disk usage and wipe
+    // all user data on a fixed cadence so it can't grow unbounded (0291).
+    if (demo && diskWatchdog) {
+      diskWatchdog.start()
+      demoResetInterval = setInterval(() => {
+        storage
+          .resetAllUserData()
+          .then(({ nodeChanges, docStates }) =>
+            console.log(
+              `[demo-reset] wiped ${nodeChanges} node changes, ${docStates} doc states`
+            )
+          )
+          .catch((err) => console.error('[demo-reset] failed:', err))
+      }, demo.resetInterval)
+      demoResetInterval.unref?.()
     }
     await schemas.seedBuiltInSchemas([
       {
@@ -892,6 +925,11 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
       clearInterval(sessionAuthInterval)
       sessionAuthInterval = null
     }
+    if (demoResetInterval) {
+      clearInterval(demoResetInterval)
+      demoResetInterval = null
+    }
+    diskWatchdog?.stop()
 
     if (wss) {
       for (const client of wss.clients) {

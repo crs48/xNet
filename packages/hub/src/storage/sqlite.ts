@@ -334,6 +334,10 @@ const SCHEMA_SQL = `
     ON node_changes(node_id, lamport_time);
   CREATE INDEX IF NOT EXISTS idx_node_changes_batch
     ON node_changes(batch_id) WHERE batch_id IS NOT NULL;
+  -- Backs getUsageBytesByDid: the demo per-user storage cap sums a DID's
+  -- change bytes on demand (exploration 0291).
+  CREATE INDEX IF NOT EXISTS idx_node_changes_author
+    ON node_changes(author_did);
 
   -- Database rows table for large database queries
   CREATE TABLE IF NOT EXISTS database_rows (
@@ -1159,6 +1163,10 @@ export const createSQLiteStorage = (
     `),
     getHighWaterMark: db.prepare(`
       SELECT MAX(lamport_time) as hwm FROM node_changes WHERE room = ?
+    `),
+    getUsageBytesByDid: db.prepare(`
+      SELECT COALESCE(SUM(LENGTH(payload_json) + LENGTH(signature_b64)), 0) AS bytes
+      FROM node_changes WHERE author_did = ?
     `),
     clearNodeChanges: db.prepare(`
       DELETE FROM node_changes WHERE room = ?
@@ -2135,6 +2143,47 @@ export const createSQLiteStorage = (
     return info.changes
   }
 
+  const getUsageBytesByDid = async (did: string): Promise<number> => {
+    const row = stmts.getUsageBytesByDid.get(did) as { bytes: number } | undefined
+    return row?.bytes ?? 0
+  }
+
+  // User-content tables wiped by the demo daily reset (exploration 0291).
+  // Infrastructure (schemas, keys, peers, federation, shards, crawlers) is
+  // intentionally excluded so the hub keeps working after a reset. FTS mirrors
+  // (search_index←doc_meta, database_rows_fts←database_rows) are external-content
+  // tables kept in sync by AFTER DELETE triggers, so deleting the base rows
+  // clears them too.
+  const DEMO_RESET_TABLES = [
+    'node_changes',
+    'doc_state',
+    'doc_meta',
+    'doc_recipients',
+    'database_rows',
+    'grant_index',
+    'share_links',
+    'node_container',
+    'node_visibility',
+    'awareness_state',
+    'backups',
+    'file_meta'
+  ] as const
+
+  const resetAllUserData = async (): Promise<{ nodeChanges: number; docStates: number }> => {
+    const countOf = (table: string): number =>
+      (db.prepare(`SELECT COUNT(*) AS n FROM ${table}`).get() as { n: number }).n
+    const nodeChanges = countOf('node_changes')
+    const docStates = countOf('doc_state')
+    const wipe = db.transaction(() => {
+      for (const table of DEMO_RESET_TABLES) db.prepare(`DELETE FROM ${table}`).run()
+    })
+    wipe()
+    // VACUUM cannot run inside a transaction — reclaim the freed pages so the
+    // on-disk file actually shrinks (the whole point of the daily reset).
+    db.exec('VACUUM')
+    return { nodeChanges, docStates }
+  }
+
   const close = async (): Promise<void> => {
     db.close()
   }
@@ -2515,6 +2564,8 @@ export const createSQLiteStorage = (
     listPopularSchemas,
     hasNodeChange,
     appendNodeChange,
+    getUsageBytesByDid,
+    resetAllUserData,
     getNodeChangesSince,
     getNodeChangesForNode,
     getHighWaterMark,

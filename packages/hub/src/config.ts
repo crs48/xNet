@@ -90,7 +90,10 @@ export const getDemoOverrides = (isDemo: boolean): DemoOverrides | null => {
     maxDocs: toNumber(process.env.DEMO_MAX_DOCS) ?? DEMO_DEFAULTS.maxDocs,
     maxBlob: toNumber(process.env.DEMO_MAX_BLOB) ?? DEMO_DEFAULTS.maxBlob,
     evictionTtl: toNumber(process.env.DEMO_EVICTION_TTL) ?? DEMO_DEFAULTS.evictionTtl,
-    evictionInterval: toNumber(process.env.DEMO_EVICTION_INTERVAL) ?? DEMO_DEFAULTS.evictionInterval
+    evictionInterval:
+      toNumber(process.env.DEMO_EVICTION_INTERVAL) ?? DEMO_DEFAULTS.evictionInterval,
+    resetInterval: toNumber(process.env.DEMO_RESET_INTERVAL) ?? DEMO_DEFAULTS.resetInterval,
+    diskLimitBytes: toNumber(process.env.DEMO_DISK_LIMIT) ?? DEMO_DEFAULTS.diskLimitBytes
   }
 }
 
