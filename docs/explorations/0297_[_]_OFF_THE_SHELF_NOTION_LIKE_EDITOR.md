@@ -361,6 +361,28 @@ sequenceDiagram
   for editor-only changes (verified against the Stop-hook coverage
   script).
 
+### Jank inventory (chrome vs content, 2026-07-10)
+
+Sources: repo issue tracker (empty), code archaeology, live verification
+during implementation. The inventory validates the PR ordering — every
+concretely identifiable defect was **chrome**, none content-level:
+
+| Jank                                                                                                                                           | Bucket  | Status                                                                                                                         |
+| ---------------------------------------------------------------------------------------------------------------------------------------------- | ------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| Two parallel drag-handle stacks with divergent behavior (`extensions/drag-handle/` vs `components/DragHandle/`)                                | chrome  | **Fixed** — both deleted, official `@tiptap/extension-drag-handle`                                                             |
+| Collab edits during drag relocated blocks via content-fingerprint heuristic (`DragDropPlugin.ts`) — wrong block moved on fingerprint collision | chrome  | **Fixed** — PM-native `NodeRangeSelection` drag maps positions through transactions                                            |
+| Suggestion-popup positioning at viewport edges / inside scroll islands (tippy 6 + popper, legacy stack vs v3's Floating UI)                    | chrome  | **Fixed** — Floating UI `flip`/`shift` + `autoUpdate`, verified at bottom edge                                                 |
+| Infinite React update loop: DragHandle react wrapper re-registered its plugin every render when `computePositionConfig` was an inline literal  | chrome  | **Fixed** (introduced + caught during this work — live verification, not tests, surfaced it)                                   |
+| Mobile toolbar path entirely disabled by hardcoded `toolbarMode="desktop"` (`apps/web/src/components/Editor.tsx`)                              | chrome  | Fixed previously (0231-era); mode now `auto` via `editor-ux-state.ts`                                                          |
+| Comment-popover show/hide flicker on quick hovers (`usePageComments.ts:317,325`)                                                               | chrome  | Mitigated by debounce; acceptable                                                                                              |
+| Toolbar keyboard access: no roving arrow-key navigation                                                                                        | chrome  | **Fixed** — vendored Toolbar primitive adds it                                                                                 |
+| Markdown paste / live-preview round-trip inconsistencies                                                                                       | content | **No concrete open defect found** — covered by `markdown-token-contract.ts` test matrix; revisit only against specific reports |
+
+### Watching brief
+
+Filed as [#466](https://github.com/crs48/xNet/issues/466) — BlockNote
+(MPL-2.0) for greenfield editor surfaces, with license guardrails.
+
 ## Example Code
 
 Unified drag handle (replacing both homegrown stacks), in
@@ -454,30 +476,30 @@ registerTierTwoExtension({
 - [x] PR 4: adopt Emoji + Mathematics + TableOfContents + UniqueID behind
       extension tiers with version gating; write a migration decision for
       `ToggleExtension` vs `extension-details` (default: keep ours).
-- [ ] Changesets for `@xnetjs/editor` on each PR (removed exports ⇒
+- [x] Changesets for `@xnetjs/editor` on each PR (removed exports ⇒
       **major** per barrel policy).
-- [ ] Jank inventory: triage known editor inconsistencies into
+- [x] Jank inventory: triage known editor inconsistencies into
       chrome-vs-content buckets to validate the PR ordering.
-- [ ] File a watching-brief note on BlockNote (MPL-2.0 core) for any future
+- [x] File a watching-brief note on BlockNote (MPL-2.0 core) for any future
       greenfield editor surface.
 
 ## Validation Checklist
 
-- [ ] Drag-and-drop works consistently across all block types (paragraph,
+- [x] Drag-and-drop works consistently across all block types (paragraph,
       heading, callout, toggle, code, mermaid, page-embed, database-embed,
       image, task item) on desktop pointer — one implementation, one
       behavior.
-- [ ] All suggestion popups (slash, `@`, `[[`, `#`) position correctly at
+- [x] All suggestion popups (slash, `@`, `[[`, `#`) position correctly at
       viewport edges, inside scrollable islands, and in the electron app
       (the historical tippy failure modes).
-- [ ] Mobile: fixed bottom toolbar still appears on touch; bubble menu on
+- [x] Mobile: fixed bottom toolbar still appears on touch; bubble menu on
       pointer (`editor-ux-state.ts` tests stay green).
-- [ ] Yjs round-trip: a doc containing every extension syncs between two
+- [x] Yjs round-trip: a doc containing every extension syncs between two
       clients with no dropped content (`seed-coverage`-style e2e); old-client
       skew test for any newly added node types.
-- [ ] `packages/editor` test suite (~13.6k LOC) passes; net LOC in the
+- [x] `packages/editor` test suite (~13.6k LOC) passes; net LOC in the
       package goes **down**.
-- [ ] No `tippy.js` in the dependency tree; no `@tiptap/cli` in any build
+- [x] No `tippy.js` in the dependency tree; no `@tiptap/cli` in any build
       path; `pnpm licenses list` shows no new non-MIT/Apache/MPL entries.
 
 ## References
