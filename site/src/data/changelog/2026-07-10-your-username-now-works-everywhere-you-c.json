@@ -13,5 +13,11 @@
     "app",
     "editor"
   ],
-  "pr": 464
+  "pr": 464,
+  "mergedAt": "2026-07-10T23:32:38Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
