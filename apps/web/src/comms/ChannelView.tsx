@@ -9,6 +9,7 @@ import { useMutate, useQuery } from '@xnetjs/react'
 import { cn, Popover } from '@xnetjs/ui'
 import { Hash, MessageCircle, Rows2, Rows3, Users, Volume2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { ShareButton } from '../components/ShareButton'
 import { CallControls } from './CallDock'
 import { ChannelChat } from './ChannelChat'
 import { useChatDensity } from './chat-prefs'
@@ -160,6 +161,7 @@ export function ChannelView({ channelId }: { channelId: string }) {
         <EditableTopic channelId={channelId} topic={header.topic} />
         <div className="min-w-0 flex-1" />
         <MembersButton roster={roster} memberCount={memberCount} profiles={profiles} />
+        <ShareButton docId={channelId} docType="channel" />
         <DensityToggle />
         <CallControls roomId={channelId} autoJoinVoice={header.kind === 'voice'} />
       </header>

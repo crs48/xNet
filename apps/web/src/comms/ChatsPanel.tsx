@@ -24,10 +24,12 @@ import {
   MessageCircle,
   MoreHorizontal,
   Plus,
+  Share2,
   SquareArrowOutUpRight,
   Volume2
 } from 'lucide-react'
 import { createElement, useMemo, useState, type ReactNode } from 'react'
+import { ShareDialog } from '../components/ShareDialog'
 import { ChatAvatar } from './ChatAvatar'
 import { channelLabel, type ChannelEntry } from './comms-utils'
 import { useComms } from './CommsContext'
@@ -212,6 +214,7 @@ export function ChatsPanel() {
   const { me, workspacePeers } = useComms()
   const profiles = useProfiles()
   const [creating, setCreating] = useState<'channel' | 'dm' | null>(null)
+  const [sharing, setSharing] = useState<string | null>(null)
 
   const channelActions = (channel: ChannelEntry): Action[] => [
     {
@@ -219,6 +222,12 @@ export function ChatsPanel() {
       label: 'Open',
       icon: createElement(SquareArrowOutUpRight, { size: 14 }),
       run: () => void navigate({ to: '/channel/$channelId', params: { channelId: channel.id } })
+    },
+    {
+      id: 'share',
+      label: 'Share',
+      icon: createElement(Share2, { size: 14 }),
+      run: () => setSharing(channel.id)
     },
     {
       id: 'read',
@@ -307,6 +316,10 @@ export function ChatsPanel() {
       />
       {creating === 'dm' && <NewDmList onDone={() => setCreating(null)} />}
       <ul className="m-0 list-none p-0 px-1">{rows(groups.dms)}</ul>
+
+      {sharing && (
+        <ShareDialog docId={sharing} docType="channel" isOpen onClose={() => setSharing(null)} />
+      )}
     </div>
   )
 }
