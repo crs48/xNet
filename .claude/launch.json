@@ -14,6 +14,12 @@
       "port": 5199
     },
     {
+      "name": "web-worktree-5203 (vite)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "xnet-web", "dev", "--port", "5203", "--strictPort"],
+      "port": 5203
+    },
+    {
       "name": "web-node23 (vite 5199)",
       "runtimeExecutable": "/bin/sh",
       "runtimeArgs": [

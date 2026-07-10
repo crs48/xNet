@@ -20,7 +20,7 @@ without a rewrite?**
 
 - **No drop-in open-source clone of the Tiptap Notion template exists that
   we can adopt wholesale** — every turnkey option (BlockNote, Plate, Novel,
-  Yoopta) owns its *document model*, and ours is already deeply invested:
+  Yoopta) owns its _document model_, and ours is already deeply invested:
   ~24k LOC in `packages/editor`, ~30 custom extensions, and — critically —
   documents persisted as **ProseMirror-schema Y.XmlFragments synced via
   Yjs**. Swapping editors means migrating every existing document in every
@@ -38,7 +38,7 @@ without a rewrite?**
   most of the paid Notion template's chrome, minus the cloud-bound parts
   (Comments, AI, hosted Collab) — which we already have our own versions of.
 - **Recommendation**: keep our document model and extensions; replace the
-  janky homegrown *chrome* with official MIT pieces — adopt
+  janky homegrown _chrome_ with official MIT pieces — adopt
   `@tiptap/extension-drag-handle` (deleting our **two** parallel drag-handle
   implementations), migrate popups from tippy.js to Floating UI (the v3-native
   positioning stack the official components use), and vendor the MIT UI
@@ -69,7 +69,7 @@ editor is `@xnetjs/editor` (`packages/editor`), ~135 non-test source files /
   - **Two parallel drag-handle implementations** — a ProseMirror-plugin stack
     (`packages/editor/src/extensions/drag-handle/`: `DragHandle.ts`,
     `DragDropPlugin.ts`, `DropIndicatorPlugin.ts`, used by `RichTextEditor`)
-    *and* a React-hook stack (`packages/editor/src/components/DragHandle/`:
+    _and_ a React-hook stack (`packages/editor/src/components/DragHandle/`:
     `DragHandle.tsx`, `useDragDrop.ts`, `useDragHandle.ts`,
     `useDropIndicator.ts`). Duplication like this is a standing source of
     the inconsistency the user is feeling.
@@ -120,7 +120,7 @@ flowchart LR
 
 The red box is the jank zone — and the part off-the-shelf components can
 actually replace. The document model and extensions (green-field editors'
-main selling point) are the parts we *can't* swap cheaply.
+main selling point) are the parts we _can't_ swap cheaply.
 
 ## External Research
 
@@ -158,17 +158,17 @@ plan subscription, config requires `TIPTAP_COLLAB_TOKEN` / `TIPTAP_AI_TOKEN`.
 
 ### The turnkey alternatives (as of July 2026)
 
-| Option | License | Base | Stars | Activity | Notion coverage | Cloud dep | Verdict for us |
-|---|---|---|---|---|---|---|---|
-| **BlockNote** | Core **MPL-2.0**; `@blocknote/xl-*` GPL-3.0/commercial ($195/mo) | Tiptap/PM + Yjs | ~9.9k | v0.51.4 Jun 2026, very active | Best-in-class OOTB: slash, drag, toolbar, tables, comments, collab | None | Best turnkey; wrong doc model for us |
-| **Plate** | **MIT** (paid "Potion" template separate) | Slate | ~16.4k | v53.3.2 Jul 2026, very active | Very high via shadcn registry | None | Slate rewrite + weakest collab story |
-| **Novel** | Apache-2.0 | Tiptap **v2** | ~16.4k | **dormant since Jan 2025** | Slash, bubble menu, AI | Optional | Avoid — unmaintained, v2 |
-| **shadcn-editor** | ⚠️ **no LICENSE file** | Lexical | ~1.4k | active | High | None | Avoid — unlicensed = all rights reserved |
-| **Yoopta-Editor** | MIT | Slate | ~3.1k | v6.0.2 Mar 2026 | Good | None | Single maintainer, Slate |
-| **Milkdown/Crepe** | MIT | PM + remark | ~11.7k | active | Good but **markdown doc model** | None | Wrong model |
-| **reactjs-tiptap-editor** | MIT | Tiptap | 720 | active | Toolbar-WYSIWYG, less Notion | None | Small bus factor |
-| **Tiptap MIT pieces** | MIT | Tiptap v3 | (core 37.6k) | active | Template basic; + MIT ext covers drag/emoji/toggle/math/ToC | None | **Fits our stack exactly** |
-| **Liveblocks tiptap kit** | Apache-2.0 | Tiptap | — | active | Collab/comments UI | **Liveblocks cloud** | Fails no-cloud rule |
+| Option                    | License                                                          | Base            | Stars        | Activity                      | Notion coverage                                                    | Cloud dep            | Verdict for us                           |
+| ------------------------- | ---------------------------------------------------------------- | --------------- | ------------ | ----------------------------- | ------------------------------------------------------------------ | -------------------- | ---------------------------------------- |
+| **BlockNote**             | Core **MPL-2.0**; `@blocknote/xl-*` GPL-3.0/commercial ($195/mo) | Tiptap/PM + Yjs | ~9.9k        | v0.51.4 Jun 2026, very active | Best-in-class OOTB: slash, drag, toolbar, tables, comments, collab | None                 | Best turnkey; wrong doc model for us     |
+| **Plate**                 | **MIT** (paid "Potion" template separate)                        | Slate           | ~16.4k       | v53.3.2 Jul 2026, very active | Very high via shadcn registry                                      | None                 | Slate rewrite + weakest collab story     |
+| **Novel**                 | Apache-2.0                                                       | Tiptap **v2**   | ~16.4k       | **dormant since Jan 2025**    | Slash, bubble menu, AI                                             | Optional             | Avoid — unmaintained, v2                 |
+| **shadcn-editor**         | ⚠️ **no LICENSE file**                                           | Lexical         | ~1.4k        | active                        | High                                                               | None                 | Avoid — unlicensed = all rights reserved |
+| **Yoopta-Editor**         | MIT                                                              | Slate           | ~3.1k        | v6.0.2 Mar 2026               | Good                                                               | None                 | Single maintainer, Slate                 |
+| **Milkdown/Crepe**        | MIT                                                              | PM + remark     | ~11.7k       | active                        | Good but **markdown doc model**                                    | None                 | Wrong model                              |
+| **reactjs-tiptap-editor** | MIT                                                              | Tiptap          | 720          | active                        | Toolbar-WYSIWYG, less Notion                                       | None                 | Small bus factor                         |
+| **Tiptap MIT pieces**     | MIT                                                              | Tiptap v3       | (core 37.6k) | active                        | Template basic; + MIT ext covers drag/emoji/toggle/math/ToC        | None                 | **Fits our stack exactly**               |
+| **Liveblocks tiptap kit** | Apache-2.0                                                       | Tiptap          | —            | active                        | Collab/comments UI                                                 | **Liveblocks cloud** | Fails no-cloud rule                      |
 
 Notable license nuances verified from source:
 
@@ -190,7 +190,7 @@ Notable license nuances verified from source:
 1. **"Off the shelf" exists — but only for the parts we can't use.** The
    turnkey editors' value is the document model + block engine + chrome as
    one unit. We can only swap the chrome: our Y.XmlFragments are shaped by
-   *our* ProseMirror schema, synced to other devices, and guarded by
+   _our_ ProseMirror schema, synced to other devices, and guarded by
    schema-skew safety code precisely because mismatched schemas silently
    eat content. BlockNote/Plate/Yoopta all mean a stored-document migration
    plus re-implementing ~30 extensions.
@@ -255,8 +255,8 @@ with MIT; very active project on our same underlying engine.
 
 ### Option B — Plate (or Yoopta)
 
-MIT-clean, shadcn-style source ownership — but Slate-based: rewrite *and*
-doc-model migration *and* a weaker Yjs story (slate-yjs is less proven than
+MIT-clean, shadcn-style source ownership — but Slate-based: rewrite _and_
+doc-model migration _and_ a weaker Yjs story (slate-yjs is less proven than
 y-prosemirror). The polished Notion template ("Potion") is paid anyway.
 Strictly dominated by Option A for us. **Reject.**
 
@@ -265,14 +265,14 @@ Strictly dominated by Option A for us. **Reject.**
 Replace the parts that are janky with the official, maintained, MIT
 equivalents; keep everything that is xNet-specific:
 
-| Ours today | Replace with | Schema impact |
-|---|---|---|
-| `extensions/drag-handle/` **and** `components/DragHandle/` (two stacks) | `@tiptap/extension-drag-handle` + `-react` (MIT since Jun 2025) | None — UI-only plugin |
-| tippy.js 6 popups (`suggestion-popup.ts`, SlashMenu, mention menus) | Floating UI (`@floating-ui/react`), matching v3 + official components | None |
-| Hand-rolled emoji-less slash items | Keep our `SlashCommand` (it's fine); restyle list UI with vendored MIT ui-components primitives | None |
-| `toggle/ToggleExtension.ts` | Evaluate `@tiptap/extension-details` (MIT) — only if serialization matches | **Node rename risk — migrate carefully or keep ours** |
-| — (missing) | `@tiptap/extension-emoji`, `-mathematics`, `-table-of-contents`, `-unique-id`, `-file-handler` (all MIT) — adopt selectively | Additive nodes/marks → version-gate rollout |
-| `FloatingToolbar.tsx` (1937 LOC) | Incremental: rebuild on vendored MIT toolbar primitives; keep our `editor-ux-state.ts` policy (it encodes real product decisions) | None |
+| Ours today                                                              | Replace with                                                                                                                      | Schema impact                                         |
+| ----------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| `extensions/drag-handle/` **and** `components/DragHandle/` (two stacks) | `@tiptap/extension-drag-handle` + `-react` (MIT since Jun 2025)                                                                   | None — UI-only plugin                                 |
+| tippy.js 6 popups (`suggestion-popup.ts`, SlashMenu, mention menus)     | Floating UI (`@floating-ui/react`), matching v3 + official components                                                             | None                                                  |
+| Hand-rolled emoji-less slash items                                      | Keep our `SlashCommand` (it's fine); restyle list UI with vendored MIT ui-components primitives                                   | None                                                  |
+| `toggle/ToggleExtension.ts`                                             | Evaluate `@tiptap/extension-details` (MIT) — only if serialization matches                                                        | **Node rename risk — migrate carefully or keep ours** |
+| — (missing)                                                             | `@tiptap/extension-emoji`, `-mathematics`, `-table-of-contents`, `-unique-id`, `-file-handler` (all MIT) — adopt selectively      | Additive nodes/marks → version-gate rollout           |
+| `FloatingToolbar.tsx` (1937 LOC)                                        | Incremental: rebuild on vendored MIT toolbar primitives; keep our `editor-ux-state.ts` policy (it encodes real product decisions) | None                                                  |
 
 - **Pros**: no document migration; deletes our highest-jank duplicated
   code; puts us on the same maintained components the paid template uses;
@@ -280,7 +280,7 @@ equivalents; keep everything that is xNet-specific:
   an independent PR.
 - **Cons**: not "one command and done" — it's 3–5 focused PRs; the
   official DragHandle's UX must be validated against our block types
-  (embeds, callouts, page-tasks); any *schema-adding* extension (Emoji,
+  (embeds, callouts, page-tasks); any _schema-adding_ extension (Emoji,
   Details) interacts with the Yjs schema-skew hazard and needs the
   version-gating we already built for plugins.
 - **Cost estimate**: ~1–2 weeks of focused work for the core three
@@ -345,7 +345,7 @@ Unified drag handle (replacing both homegrown stacks), in
 import { DragHandle } from '@tiptap/extension-drag-handle-react'
 
 // inside the editor render, alongside EditorContent:
-<DragHandle editor={editor}>
+;<DragHandle editor={editor}>
   <GripVertical className="wb-drag-grip" size={16} />
 </DragHandle>
 ```
@@ -360,7 +360,7 @@ export function positionSuggestion(reference: DOMRect, popup: HTMLElement) {
   const virtualEl = { getBoundingClientRect: () => reference }
   return computePosition(virtualEl, popup, {
     placement: 'bottom-start',
-    middleware: [offset(6), flip(), shift({ padding: 8 })],
+    middleware: [offset(6), flip(), shift({ padding: 8 })]
   }).then(({ x, y }) => {
     Object.assign(popup.style, { left: `${x}px`, top: `${y}px` })
   })
@@ -376,7 +376,10 @@ import Mathematics from '@tiptap/extension-mathematics'
 registerTierTwoExtension({
   id: 'mathematics',
   minProtocolVersion: 14, // old clients would drop math nodes silently
-  build: () => Mathematics.configure({ /* katex opts */ }),
+  build: () =>
+    Mathematics.configure({
+      /* katex opts */
+    })
 })
 ```
 
@@ -395,7 +398,7 @@ registerTierTwoExtension({
 - **`@tiptap/extension-details` vs our `ToggleExtension`**: different node
   names/attrs → stored docs won't round-trip. Default to keeping ours
   unless a migration is written; decide during PR 4.
-- **Tiptap's licensing posture**: they moved 10 extensions *to* MIT in
+- **Tiptap's licensing posture**: they moved 10 extensions _to_ MIT in
   2025, but the CLI has nagged for subscriptions on free templates —
   vendor everything, pin versions, never gate our build on `@tiptap/cli`.
 - **Mobile toolbar parity**: rebasing `FloatingToolbar.tsx` must preserve
@@ -408,10 +411,10 @@ registerTierTwoExtension({
 
 ## Implementation Checklist
 
-- [ ] Spike: `@tiptap/extension-drag-handle(-react)` in the e2e harness
+- [x] Spike: `@tiptap/extension-drag-handle(-react)` in the e2e harness
       (`tests/e2e/harness/main.tsx`) over callout/embed/page-task blocks;
       compare with both existing stacks.
-- [ ] PR 1: adopt official DragHandle; port drop-indicator styling; delete
+- [x] PR 1: adopt official DragHandle; port drop-indicator styling; delete
       `packages/editor/src/extensions/drag-handle/` and
       `packages/editor/src/components/DragHandle/`; update exports in
       `packages/editor/src/extensions.ts` / `react.ts` (major-bump check —

@@ -647,15 +647,6 @@ export type {
   AiEditorChain
 } from './extensions/ai/ai-commands'
 
-// DragHandle - Drag handle with block DnD and drop indicator
-export { DragHandleExtension } from './extensions/drag-handle'
-export type { DragHandleExtensionOptions } from './extensions/drag-handle'
-export { DragHandle, DragHandlePluginKey } from './extensions/drag-handle'
-export type { DragHandleOptions } from './extensions/drag-handle'
-export { createDragDropPlugin, DragDropPluginKey } from './extensions/drag-handle'
-export type { DragState } from './extensions/drag-handle'
-export { createDropIndicatorPlugin, DropIndicatorPluginKey } from './extensions/drag-handle'
-
 // KeyboardShortcuts - Shortcut definitions and extra bindings
 export { KeyboardShortcutsExtension } from './extensions/keyboard-shortcuts'
 export type { KeyboardShortcutsOptions } from './extensions/keyboard-shortcuts'

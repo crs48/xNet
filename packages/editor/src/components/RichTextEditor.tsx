@@ -15,7 +15,9 @@ import type { AnyExtension } from '@tiptap/core'
 import type { EditorState } from '@tiptap/pm/state'
 import type { Awareness } from 'y-protocols/awareness'
 import type * as Y from 'yjs'
+import { offset } from '@floating-ui/dom'
 import Collaboration from '@tiptap/extension-collaboration'
+import { DragHandle } from '@tiptap/extension-drag-handle-react'
 import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
 import TaskList from '@tiptap/extension-task-list'
@@ -35,7 +37,6 @@ import {
   CodeBlockWithSyntax,
   BlockquoteWithSyntax,
   SlashCommand,
-  DragHandleExtension,
   KeyboardShortcutsExtension,
   ImageExtension,
   CalloutExtension,
@@ -495,8 +496,9 @@ export function RichTextEditor({
       heading: false,
       codeBlock: false,
       blockquote: false,
-      // Disable default dropcursor - we use our own drop indicator
-      dropcursor: false
+      // Styled via .xnet-drop-cursor; the official DragHandle drags through
+      // ProseMirror's native machinery, so the dropcursor is the indicator.
+      dropcursor: { color: false, width: 2, class: 'xnet-drop-cursor' }
     }),
     Markdown.configure({
       indentation: { style: 'space', size: 2 },
@@ -561,11 +563,6 @@ export function RichTextEditor({
     // Slash command palette (with optional custom commands)
     SlashCommand.configure({
       commands: slashCommands
-    }),
-    // Drag handle with block drag-and-drop
-    DragHandleExtension.configure({
-      enableDragDrop: editorModePolicy.isEditable,
-      showDropIndicator: editorModePolicy.isEditable
     }),
     // Extra keyboard shortcuts (Mod-e, Mod-k, Mod-\, etc.)
     KeyboardShortcutsExtension,
@@ -958,6 +955,28 @@ export function RichTextEditor({
 
   return (
     <div className={cn('relative h-full flex flex-col', className)}>
+      {editor && editorModePolicy.rendersRichEditor && editorModePolicy.isEditable && (
+        <DragHandle
+          editor={editor}
+          className="xnet-drag-handle"
+          computePositionConfig={{ placement: 'left-start', middleware: [offset(4)] }}
+        >
+          <button
+            type="button"
+            className="xnet-drag-handle-button"
+            aria-label="Drag to reorder or click for options"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
+              <circle cx="4" cy="3" r="1.5" />
+              <circle cx="10" cy="3" r="1.5" />
+              <circle cx="4" cy="7" r="1.5" />
+              <circle cx="10" cy="7" r="1.5" />
+              <circle cx="4" cy="11" r="1.5" />
+              <circle cx="10" cy="11" r="1.5" />
+            </svg>
+          </button>
+        </DragHandle>
+      )}
       {editorModePolicy.rendersRichEditor ? (
         <EditorContent
           editor={editor}

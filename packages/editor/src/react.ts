@@ -140,24 +140,6 @@ export { TaskViewEmbedNodeView } from './extensions/task-view-embed'
 export { BlobProvider, useBlobService } from './context/BlobContext'
 export type { BlobContextValue, BlobProviderProps } from './context/BlobContext'
 
-// DragHandle components
-export {
-  DragHandle as DragHandleComponent,
-  DropIndicator,
-  useDragHandle,
-  useDragDrop,
-  useDropIndicator
-} from './components/DragHandle'
-export type {
-  DragHandleProps,
-  DropIndicatorProps,
-  DragHandleState,
-  UseDragHandleOptions,
-  UseDragDropOptions,
-  DropIndicatorState,
-  UseDropIndicatorOptions
-} from './components/DragHandle'
-
 // Hooks
 export { useNodeFocus } from './nodeviews/hooks/useNodeFocus'
 export { useActiveStates } from './hooks/useActiveStates'

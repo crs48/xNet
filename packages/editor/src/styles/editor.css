@@ -441,14 +441,20 @@
   padding: 0;
 }
 
-/* ─── Drag Handle ─── */
+/* ─── Drag Handle (official @tiptap/extension-drag-handle) ─── */
 
 .xnet-drag-handle {
   display: flex;
-  /* The handle box is sized to the block's first line (see DragHandle.ts);
-     centring the button within it lands the grip on the first-line centre at
-     any block size, instead of a fixed top offset that only matched one. */
-  align-items: center;
+  align-items: flex-start;
+  /* Extended padding-right creates an invisible hover zone bridging the
+     gap between the handle and the content. */
+  padding-right: 8px;
+  z-index: 50;
+  cursor: grab;
+}
+
+.xnet-drag-handle[data-dragging='true'] {
+  cursor: grabbing;
 }
 
 .xnet-drag-handle-button {
@@ -480,72 +486,16 @@
 
 /* ─── Drag State ─── */
 
-.xnet-editor.is-dragging {
-  cursor: grabbing !important;
-}
-
-.xnet-editor.is-dragging * {
-  cursor: grabbing !important;
-}
-
-.xnet-editor.is-dragging .ProseMirror-selectednode {
+.xnet-editor .ProseMirror-selectednode {
   opacity: 0.4;
 }
 
-.xnet-drag-preview {
-  font-family: inherit;
-  font-size: 14px;
-  color: #374151;
-}
+/* ─── Drop Cursor (ProseMirror dropcursor; color comes from this class) ─── */
 
-.dark .xnet-drag-preview {
-  background: #1f2937;
-  color: #e5e7eb;
-}
-
-/* ─── Drop Indicator ─── */
-
-.xnet-drop-indicator {
-  position: relative;
-  left: 0;
-  right: 0;
-  height: 2px;
+.xnet-drop-cursor {
   background-color: rgb(var(--editor-primary));
   border-radius: 1px;
   pointer-events: none;
-  z-index: 100;
-  animation: drop-indicator-appear 150ms ease-out;
-}
-
-.xnet-drop-indicator--before {
-  margin-top: -2px;
-}
-
-.xnet-drop-indicator--after {
-  margin-bottom: -2px;
-}
-
-.xnet-drop-indicator-dot {
-  position: absolute;
-  left: -4px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 8px;
-  height: 8px;
-  background-color: rgb(var(--editor-primary));
-  border-radius: 50%;
-  border: 2px solid rgb(var(--editor-background));
-}
-
-@keyframes drop-indicator-appear {
-  from {
-    opacity: 0;
-    transform: scaleX(0.9);
-  }
-  to {
-    opacity: 1;
-    transform: scaleX(1);
-  }
 }
 
 /* dark mode handled via CSS variables above */
@@ -557,8 +507,7 @@
   .ProseMirror,
   .ProseMirror *,
   .xnet-drag-handle-button,
-  .xnet-drop-indicator,
-  .xnet-drop-indicator-dot,
+  .xnet-drop-cursor,
   .md-syntax,
   .md-syntax-link,
   .heading-line .heading-syntax,
@@ -601,7 +550,7 @@
     outline-offset: 1px;
   }
 
-  .xnet-drop-indicator {
+  .xnet-drop-cursor {
     height: 4px;
     background-color: currentColor;
   }
@@ -638,13 +587,8 @@
     color: HighlightText;
   }
 
-  .xnet-drop-indicator {
+  .xnet-drop-cursor {
     background-color: Highlight;
-  }
-
-  .xnet-drop-indicator-dot {
-    background-color: Highlight;
-    border-color: Canvas;
   }
 }
 
