@@ -371,7 +371,7 @@ PR 1 — cut the dead weight:
       SARIF steps from the `schedule` path; keep dead-code regression;
       move audit+SARIF behind `workflow_dispatch` (input flag or separate
       job with `if: github.event_name == 'workflow_dispatch'`).
-- [ ] `ci.yml`: drop `--coverage` from the push-event vitest run and remove
+- [x] `ci.yml`: drop `--coverage` from the push-event vitest run and remove
       the codecov step (or, if keeping: add README badge + re-enable
       thresholds on an unsharded nightly run — pick one).
 - [ ] Verify the next scheduled Fallow run is green and ~5 min.
