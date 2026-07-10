@@ -140,9 +140,7 @@ describe.each(factories)('channel share fan-out ($name)', ({ create }) => {
       {},
       {
         shareAccess: gate,
-        broadcastToRoom: broadcasts
-          ? (room) => broadcasts.push(room)
-          : undefined
+        broadcastToRoom: broadcasts ? (room) => broadcasts.push(room) : undefined
       }
     )
 
@@ -174,9 +172,7 @@ describe.each(factories)('channel share fan-out ($name)', ({ create }) => {
       authFor(owner)
     )
     await svc.handleNodeChange(
-      relayMsg(
-        signChangeFor(owner, 'msg-1', CHAT_MESSAGE, { channel: channelId, body: 'hello' })
-      ),
+      relayMsg(signChangeFor(owner, 'msg-1', CHAT_MESSAGE, { channel: channelId, body: 'hello' })),
       authFor(owner)
     )
 
@@ -204,7 +200,9 @@ describe.each(factories)('channel share fan-out ($name)', ({ create }) => {
     const svc = relay(gate)
 
     await svc.handleNodeChange(
-      relayMsg(signChangeFor(owner, channelId, CHANNEL, { name: 'c', kind: 'channel', members: [] })),
+      relayMsg(
+        signChangeFor(owner, channelId, CHANNEL, { name: 'c', kind: 'channel', members: [] })
+      ),
       authFor(owner)
     )
     // Commenter posts (authored in their own room) → fans in.
@@ -229,7 +227,9 @@ describe.each(factories)('channel share fan-out ($name)', ({ create }) => {
     const channelId = 'chan-3'
     const svc = relay(gateWith(new Map()))
     await svc.handleNodeChange(
-      relayMsg(signChangeFor(owner, channelId, CHANNEL, { name: 'c', kind: 'channel', members: [] })),
+      relayMsg(
+        signChangeFor(owner, channelId, CHANNEL, { name: 'c', kind: 'channel', members: [] })
+      ),
       authFor(owner)
     )
     await svc.handleNodeChange(
@@ -253,7 +253,9 @@ describe.each(factories)('channel share fan-out ($name)', ({ create }) => {
     const broadcasts: string[] = []
     const svc = relay(gateWith(new Map()), broadcasts)
     await svc.handleNodeChange(
-      relayMsg(signChangeFor(owner, channelId, CHANNEL, { name: 'c', kind: 'channel', members: [] })),
+      relayMsg(
+        signChangeFor(owner, channelId, CHANNEL, { name: 'c', kind: 'channel', members: [] })
+      ),
       authFor(owner)
     )
     await svc.handleNodeChange(
