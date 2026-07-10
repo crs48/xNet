@@ -49,7 +49,6 @@
     "@xnetjs/ui": "workspace:*",
     "lucide-react": "^0.563.0",
     "mermaid": "^11.12.2",
-    "tippy.js": "^6.3.7",
     "y-protocols": "^1.0.6",
     "yjs": "^13.6.24"
   },

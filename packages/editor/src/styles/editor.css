@@ -430,15 +430,15 @@
   border-radius: 2px;
 }
 
-/* Tippy.js slash menu */
-.tippy-box[data-theme~='slash-menu'] {
-  background: transparent;
-  border: none;
-  box-shadow: none;
-}
-
-.tippy-box[data-theme~='slash-menu'] .tippy-content {
-  padding: 0;
+/* Floating UI suggestion popup (slash menu, mentions, wikilinks, hashtags).
+   The container is a bare positioned wrapper; menus style themselves. */
+.xnet-suggestion-popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+  width: max-content;
+  max-width: calc(100vw - 16px);
 }
 
 /* ─── Drag Handle (official @tiptap/extension-drag-handle) ─── */

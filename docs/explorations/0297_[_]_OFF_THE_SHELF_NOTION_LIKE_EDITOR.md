@@ -419,7 +419,7 @@ registerTierTwoExtension({
       `packages/editor/src/components/DragHandle/`; update exports in
       `packages/editor/src/extensions.ts` / `react.ts` (major-bump check —
       `DragHandleExtension` is exported).
-- [ ] PR 2: migrate `suggestion-popup.ts`, `SlashMenu`, `TaskMentionMenu`,
+- [x] PR 2: migrate `suggestion-popup.ts`, `SlashMenu`, `TaskMentionMenu`,
       `LinkTargetMenu`, wikilink/hashtag popups to `@floating-ui/react`;
       remove `tippy.js` from `packages/editor/package.json`.
 - [ ] PR 3: vendor MIT simple-editor UI primitives into

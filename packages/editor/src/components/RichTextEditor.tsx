@@ -15,7 +15,7 @@ import type { AnyExtension } from '@tiptap/core'
 import type { EditorState } from '@tiptap/pm/state'
 import type { Awareness } from 'y-protocols/awareness'
 import type * as Y from 'yjs'
-import { offset } from '@floating-ui/dom'
+import { offset, type ComputePositionConfig } from '@floating-ui/dom'
 import Collaboration from '@tiptap/extension-collaboration'
 import { DragHandle } from '@tiptap/extension-drag-handle-react'
 import Link from '@tiptap/extension-link'
@@ -171,6 +171,14 @@ function generateAvatarDataURI(did: string, size: number): string {
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}" fill="${bgColor}"/>${rects}</svg>`
   return `data:image/svg+xml,${encodeURIComponent(svg)}`
+}
+
+// Module-level constant: the react DragHandle wrapper keys its plugin
+// registration effect on this object's identity — an inline literal would
+// re-register the plugin every render (infinite update loop).
+const DRAG_HANDLE_POSITION_CONFIG: ComputePositionConfig = {
+  placement: 'left-start',
+  middleware: [offset(4)]
 }
 
 export function isBackspaceAtEmptyFirstBlock(state: EditorState): boolean {
@@ -959,7 +967,7 @@ export function RichTextEditor({
         <DragHandle
           editor={editor}
           className="xnet-drag-handle"
-          computePositionConfig={{ placement: 'left-start', middleware: [offset(4)] }}
+          computePositionConfig={DRAG_HANDLE_POSITION_CONFIG}
         >
           <button
             type="button"

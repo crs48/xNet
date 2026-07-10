@@ -1,5 +1,5 @@
 /**
- * Shared tippy-backed popup renderer for @tiptap/suggestion consumers
+ * Shared Floating UI-backed popup renderer for @tiptap/suggestion consumers
  * (slash commands, @mentions, #hashtags, [[wikilinks — exploration 0170).
  *
  * Every suggestion menu in the editor follows the same contract: the
@@ -7,12 +7,15 @@
  * arrow/enter handling, and is positioned at the caret rect. This module
  * is that contract extracted once, so each extension configures
  * `render: createSuggestionPopupRender(Menu)` instead of carrying its
- * own copy of the tippy lifecycle.
+ * own copy of the popup lifecycle.
+ *
+ * Positioning uses @floating-ui/dom (the stack Tiptap v3 itself uses),
+ * anchored to a virtual element around the caret client rect (0297).
  */
 import type { Editor } from '@tiptap/core'
 import type { ComponentType } from 'react'
+import { autoUpdate, computePosition, flip, offset, shift } from '@floating-ui/dom'
 import { ReactRenderer } from '@tiptap/react'
-import tippy, { type Instance, type Props as TippyProps } from 'tippy.js'
 
 /** Keyboard contract every suggestion menu exposes via ref. */
 export interface SuggestionMenuRef {
@@ -48,6 +51,12 @@ interface PopupInstanceLike {
   setProps(props: Record<string, unknown>): void
 }
 
+/** Caret-anchored popup handle returned by createCaretPopup. */
+export interface CaretPopup extends PopupInstanceLike {
+  hide(): void
+  destroy(): void
+}
+
 /** Suggestion-popup update step shared by onUpdate (exported for tests). */
 export function updateSuggestionPopup<TItem>(
   component: PopupComponentLike | null,
@@ -68,25 +77,55 @@ export function updateSuggestionPopup<TItem>(
   }
 }
 
-function caretPopupOptions(
-  clientRect: () => DOMRect | null,
-  content: Element
-): Partial<TippyProps> {
+/**
+ * Mount `content` in a body-level container positioned at the caret rect,
+ * kept in place across scroll/resize by Floating UI's autoUpdate.
+ * Exported for tests.
+ */
+export function createCaretPopup(clientRect: () => DOMRect | null, content: Element): CaretPopup {
+  const container = document.createElement('div')
+  container.className = 'xnet-suggestion-popup'
+  container.appendChild(content)
+  document.body.appendChild(container)
+
+  let getRect = clientRect
+  let destroyed = false
+  const virtualElement = {
+    getBoundingClientRect: () => getRect() ?? new DOMRect(0, 0, 0, 0)
+  }
+
+  const reposition = () => {
+    if (destroyed) return
+    void computePosition(virtualElement, container, {
+      // Fixed strategy: caret rects are viewport coordinates, so the popup
+      // needs no page-scroll math and stays correct inside scroll islands.
+      strategy: 'fixed',
+      placement: 'bottom-start',
+      middleware: [offset(4), flip({ padding: 8 }), shift({ padding: 8 })]
+    }).then(({ x, y }) => {
+      if (destroyed) return
+      container.style.left = `${x}px`
+      container.style.top = `${y}px`
+    })
+  }
+
+  const stopAutoUpdate = autoUpdate(virtualElement, container, reposition)
+
   return {
-    getReferenceClientRect: clientRect as () => DOMRect,
-    appendTo: () => document.body,
-    content,
-    showOnCreate: true,
-    interactive: true,
-    trigger: 'manual',
-    placement: 'bottom-start',
-    theme: 'slash-menu',
-    maxWidth: 'none',
-    popperOptions: {
-      modifiers: [
-        { name: 'flip', enabled: true },
-        { name: 'preventOverflow', enabled: true }
-      ]
+    setProps(props: Record<string, unknown>) {
+      const next = props.getReferenceClientRect
+      if (typeof next === 'function') {
+        getRect = next as () => DOMRect | null
+      }
+      reposition()
+    },
+    hide() {
+      container.style.display = 'none'
+    },
+    destroy() {
+      destroyed = true
+      stopAutoUpdate()
+      container.remove()
     }
   }
 }
@@ -99,7 +138,7 @@ export function createSuggestionPopupRender<TItem>(
 ): () => SuggestionPopupHandlers<TItem> {
   return () => {
     let component: ReactRenderer<SuggestionMenuRef> | null = null
-    let popup: Instance<TippyProps>[] | null = null
+    let popup: CaretPopup[] | null = null
 
     return {
       onStart: (props) => {
@@ -113,7 +152,7 @@ export function createSuggestionPopupRender<TItem>(
 
         if (!props.clientRect) return
 
-        popup = tippy('body', caretPopupOptions(props.clientRect, component.element))
+        popup = [createCaretPopup(props.clientRect, component.element)]
       },
 
       onUpdate: (props) => {
