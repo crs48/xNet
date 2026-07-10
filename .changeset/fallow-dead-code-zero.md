@@ -1,6 +1,7 @@
 ---
+'@xnetjs/sync': patch
 ---
 
-Housekeeping only: `fast-check` moves from an implicit hoisted import to an
-explicit devDependency of `@xnetjs/sync` (dead-code gate hygiene, exploration
-0294). No consumer-visible change.
+Housekeeping: declare `fast-check` as an explicit devDependency instead of
+relying on hoisting (dead-code gate hygiene, exploration 0294). No runtime or
+API change.
