@@ -110,7 +110,7 @@ const view = entries.map((entry, i) => {
       </div>
 
       <!-- Controls: search + tag filter -->
-      <div class="mb-10 space-y-3">
+      <div id="cl-controls" class="mb-10 scroll-mt-24 space-y-3">
         <input
           id="cl-search"
           type="search"
@@ -231,6 +231,9 @@ const view = entries.map((entry, i) => {
         </div>
       </div>
 
+      <!-- Pager (populated by the script; hidden when everything fits one page) -->
+      <nav id="cl-pager" hidden class="mt-12 flex flex-wrap items-center justify-center gap-1.5" aria-label="Changelog pages"></nav>
+
       <p class="mt-16 text-center text-xs text-gray-400 dark:text-gray-500">Updated {updated}</p>
     </div>
   </main>
@@ -276,6 +279,30 @@ const view = entries.map((entry, i) => {
     background: #4f46e5;
     border-color: #4f46e5;
     color: #fff;
+  }
+  /* Pager buttons — created by the script, so :global keeps the scoped-style
+     hash from excluding them. Same chip language as the filters. */
+  :global(.cl-page) {
+    border: 1px solid var(--lp-border);
+    border-radius: 9999px;
+    padding: 0.25rem 0.75rem;
+    font-size: 0.8rem;
+    color: #6b7280;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  :global(.cl-page:hover:not(:disabled)) {
+    color: #4f46e5;
+  }
+  :global(.cl-page[aria-current='page']) {
+    background: #4f46e5;
+    border-color: #4f46e5;
+    color: #fff;
+  }
+  :global(.cl-page:disabled) {
+    opacity: 0.4;
+    cursor: default;
   }
   .cl-copy {
     color: #9ca3af;
@@ -412,26 +439,68 @@ const view = entries.map((entry, i) => {
 </style>
 
 <script>
-  // ── Tag filter + search ────────────────────────────────────────────────
+  // ── Tag filter + search + pagination ───────────────────────────────────
   const search = document.getElementById('cl-search') as HTMLInputElement | null
   const filterRow = document.getElementById('cl-filters')
   const empty = document.getElementById('cl-empty')
+  const pager = document.getElementById('cl-pager')
   const articles = Array.from(document.querySelectorAll<HTMLElement>('article.cl-entry'))
   let activeTag = 'all'
 
-  function apply() {
+  const PAGE_SIZE = 50
+  let page = 1
+
+  // Entries matching the active tag + search, in timeline order.
+  function matched(): HTMLElement[] {
     const q = (search?.value ?? '').trim().toLowerCase()
-    let shown = 0
-    for (const a of articles) {
+    return articles.filter((a) => {
       const tags = (a.dataset.tags ?? '').split(' ')
       const text = a.dataset.text ?? ''
-      const matchTag = activeTag === 'all' || tags.includes(activeTag)
-      const matchText = q === '' || text.includes(q)
-      const show = matchTag && matchText
-      a.hidden = !show
-      if (show) shown++
+      return (activeTag === 'all' || tags.includes(activeTag)) && (q === '' || text.includes(q))
+    })
+  }
+
+  function apply() {
+    const hits = matched()
+    const totalPages = Math.max(1, Math.ceil(hits.length / PAGE_SIZE))
+    page = Math.min(Math.max(1, page), totalPages)
+    const visible = new Set(hits.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE))
+    for (const a of articles) a.hidden = !visible.has(a)
+    if (empty) empty.hidden = hits.length > 0
+    renderPager(totalPages)
+    markOverflowingRows()
+  }
+
+  function renderPager(totalPages: number) {
+    if (!pager) return
+    pager.hidden = totalPages <= 1
+    pager.replaceChildren()
+    if (totalPages <= 1) return
+    const add = (label: string, target: number | null, opts: { current?: boolean; aria?: string } = {}) => {
+      const b = document.createElement('button')
+      b.type = 'button'
+      b.className = 'cl-page'
+      b.textContent = label
+      if (opts.aria) b.setAttribute('aria-label', opts.aria)
+      if (opts.current) b.setAttribute('aria-current', 'page')
+      b.disabled = target === null
+      if (target !== null) b.addEventListener('click', () => setPage(target))
+      pager.appendChild(b)
     }
-    if (empty) empty.hidden = shown > 0
+    add('‹ Prev', page > 1 ? page - 1 : null, { aria: 'Previous page' })
+    for (let n = 1; n <= totalPages; n++)
+      add(String(n), n === page ? null : n, { current: n === page, aria: `Page ${n}` })
+    add('Next ›', page < totalPages ? page + 1 : null, { aria: 'Next page' })
+  }
+
+  function setPage(n: number, scroll = true) {
+    page = n
+    const url = new URL(location.href)
+    if (page === 1) url.searchParams.delete('page')
+    else url.searchParams.set('page', String(page))
+    history.replaceState(null, '', url)
+    apply()
+    if (scroll) document.getElementById('cl-controls')?.scrollIntoView()
   }
 
   filterRow?.querySelectorAll<HTMLButtonElement>('.cl-filter').forEach((chip) => {
@@ -439,21 +508,43 @@ const view = entries.map((entry, i) => {
       activeTag = chip.dataset.tag ?? 'all'
       filterRow.querySelectorAll('.cl-filter').forEach((c) => c.setAttribute('aria-pressed', 'false'))
       chip.setAttribute('aria-pressed', 'true')
+      page = 1
       const url = new URL(location.href)
       if (activeTag === 'all') url.searchParams.delete('tag')
       else url.searchParams.set('tag', activeTag)
+      url.searchParams.delete('page')
       history.replaceState(null, '', url)
       apply()
     })
   })
-  search?.addEventListener('input', apply)
+  search?.addEventListener('input', () => setPage(1, false))
+
+  // A #entry deep link (copy-link buttons, RSS) may live past page 1 — jump to
+  // the page that contains it, then restore the browser's anchor scroll.
+  function jumpToHash(): boolean {
+    if (!location.hash) return false
+    const target = document.getElementById(decodeURIComponent(location.hash.slice(1)))
+    if (!target?.classList.contains('cl-entry')) return false
+    const i = matched().indexOf(target)
+    if (i < 0) return false
+    page = Math.floor(i / PAGE_SIZE) + 1
+    apply()
+    target.scrollIntoView()
+    return true
+  }
+  window.addEventListener('hashchange', jumpToHash)
 
   // Pre-activate a tag from ?tag= on load (shareable filtered views).
-  const initial = new URLSearchParams(location.search).get('tag')
+  const params = new URLSearchParams(location.search)
+  const initial = params.get('tag')
   if (initial) {
     const chip = filterRow?.querySelector<HTMLButtonElement>(`.cl-filter[data-tag="${initial}"]`)
     chip?.click()
   }
+  // Then ?page= (chip click resets to 1), then let a #hash override both.
+  const initialPage = Number.parseInt(params.get('page') ?? '', 10)
+  if (Number.isFinite(initialPage) && initialPage > 1) page = initialPage
+  if (!jumpToHash()) apply()
 
   // ── Copy-link buttons ──────────────────────────────────────────────────
   document.querySelectorAll<HTMLButtonElement>('.cl-copy').forEach((btn) => {
@@ -569,10 +660,13 @@ const view = entries.map((entry, i) => {
   })
   window.addEventListener('pointerup', () => stage?.classList.remove('is-holding'))
 
-  // Trailing fade only when the row actually overflows.
-  document.querySelectorAll<HTMLElement>('.cl-row').forEach((row) => {
-    if (row.scrollWidth > row.clientWidth + 4) row.classList.add('cl-row--overflow')
-  })
+  // Trailing fade only when the row actually overflows. Hidden rows measure 0,
+  // so re-check from apply() whenever pagination/filtering reveals entries.
+  function markOverflowingRows() {
+    document.querySelectorAll<HTMLElement>('.cl-row').forEach((row) => {
+      if (row.scrollWidth > row.clientWidth + 4) row.classList.add('cl-row--overflow')
+    })
+  }
 
   lb?.addEventListener('click', (e) => {
     const action = (e.target as HTMLElement).closest<HTMLElement>('[data-lb]')?.dataset.lb
