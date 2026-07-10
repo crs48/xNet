@@ -399,24 +399,24 @@ from `packages/plugins/src/ai/connectors/detect.ts`.
       hand-on-the-tiller, the-workshop-and-the-walled-garden).
 - [x] Changelog fragment via `node scripts/changelog/new.mjs` (site change;
       no changeset — `site/` is not a publishable package).
-- [ ] Flip `draft: false`, set real `pubDate`, confirm `readingMinutes`.
+- [x] Flip `draft: false`, set real `pubDate`, confirm `readingMinutes`.
 - [ ] Commit per Conventional Commits (header ≤72 chars), PR, merge-commit
       per repo policy.
 
 ## Validation Checklist
 
-- [ ] `site` builds clean (`pnpm --filter site build` or repo-standard
+- [x] `site` builds clean (`pnpm --filter site build` or repo-standard
       turbo filter) with the post registered.
-- [ ] Post renders at `/blog/weights-you-can-hold` in light **and** dark
+- [x] Post renders at `/blog/weights-you-can-hold` in light **and** dark
       mode; hero, byline ("with Claude"), Mermaid exhibit, and CodeFigure
       all render.
-- [ ] `/blog` index and RSS (`/blog/rss.xml`) include the post once
+- [x] `/blog` index and RSS (`/blog/rss.xml`) include the post once
       `draft: false`; SeriesNav neighbours are correct on this post and its
       neighbours.
-- [ ] All external links resolve (both videos, every cited source).
-- [ ] No hot-linked assets (grep the new files for `https://` in `src`
+- [x] All external links resolve (both videos, every cited source).
+- [x] No hot-linked assets (grep the new files for `https://` in `src`
       attributes).
-- [ ] en-GB spell pass; no unverified statistics remain (re-walk the
+- [x] en-GB spell pass; no unverified statistics remain (re-walk the
       fact-check table).
 - [ ] Fallow/Changelog Check/DCO gates green on the PR.
 

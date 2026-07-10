@@ -99,8 +99,7 @@ export const posts: BlogPost[] = [
     pubDate: '2026-07-10T17:00:00Z',
     authors: ['crs48', 'claude'],
     tags: ['essay', 'economics', 'privacy', 'decentralization'],
-    readingMinutes: 14,
-    draft: true
+    readingMinutes: 13
   },
   {
     slug: 'timeout',
