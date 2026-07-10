@@ -421,7 +421,8 @@ export function useTaskProjectionSync({
               // forced, but a placeholder title must not clobber a real title
               // we cannot see (exploration 0296).
               if (task.data.title === UNTITLED_TASK_PLACEHOLDER) {
-                const { title: _title, ...dataWithoutTitle } = task.data
+                const dataWithoutTitle: Record<string, unknown> = { ...task.data }
+                delete dataWithoutTitle.title
                 await update(TaskSchema, task.id, dataWithoutTitle)
               } else {
                 await update(TaskSchema, task.id, task.data)
