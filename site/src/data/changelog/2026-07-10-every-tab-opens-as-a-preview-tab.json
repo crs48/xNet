@@ -1,0 +1,11 @@
+{
+  "id": "2026-07-10-every-tab-opens-as-a-preview-tab",
+  "date": "July 10, 2026",
+  "title": "Every tab opens as a preview tab",
+  "summary": "Opening a page from the sidebar, command palette, or Settings now opens a temporary (italic) preview tab that the next open replaces — double-click the item, or start editing, to promote it to a permanent tab. Previously this VS Code-style behaviour only applied to Explorer rows.",
+  "highlights": [
+    "Single-click any surface (People, Meetings, Finance, Settings…) → a preview tab",
+    "Double-click the row to keep it open"
+  ],
+  "tags": ["app"]
+}
