@@ -59,10 +59,22 @@
       "port": 4388
     },
     {
+      "name": "site-worktree (astro 4391)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "site", "dev", "--port", "4391", "--strictPort"],
+      "port": 4391
+    },
+    {
       "name": "site-dist (static 4389)",
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "4389", "-d", "site/dist"],
       "port": 4389
+    },
+    {
+      "name": "site-dist-worktree (static 4392)",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "4392", "-d", "site/dist"],
+      "port": 4392
     }
   ]
 }
