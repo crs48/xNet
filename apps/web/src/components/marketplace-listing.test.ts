@@ -54,9 +54,9 @@ describe('isInstallable', () => {
     expect(isInstallable(make('a'))).toBe(true)
   })
   it('is true for first-party entries with a catalog manifest', () => {
-    expect(isInstallable(make('fyi.xnet.github', { tier: 'bundled', manifestUrl: undefined }))).toBe(
-      true
-    )
+    expect(
+      isInstallable(make('fyi.xnet.github', { tier: 'bundled', manifestUrl: undefined }))
+    ).toBe(true)
   })
   it('is false for bundled entries without a catalog manifest', () => {
     expect(isInstallable(make('fyi.xnet.mermaid', { tier: 'bundled' }))).toBe(false)

@@ -39,7 +39,11 @@ import {
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { firstPartyManifest, firstPartyRecord } from '../plugins/first-party-catalog'
-import { isPluginConfigured, onPluginConfigChange, readPluginConfig } from '../plugins/plugin-config'
+import {
+  isPluginConfigured,
+  onPluginConfigChange,
+  readPluginConfig
+} from '../plugins/plugin-config'
 import {
   PLUGIN_REGISTRY_URL,
   fetchManifest,

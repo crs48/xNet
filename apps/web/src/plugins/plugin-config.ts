@@ -64,9 +64,7 @@ export function writePluginConfig(
   store: KeyValueStore | null = defaultStore()
 ): void {
   if (!store) return
-  const compact = Object.fromEntries(
-    Object.entries(values).filter(([, v]) => v.trim() !== '')
-  )
+  const compact = Object.fromEntries(Object.entries(values).filter(([, v]) => v.trim() !== ''))
   if (Object.keys(compact).length === 0) {
     store.removeItem(storageKey(pluginId))
   } else {
@@ -90,9 +88,7 @@ export function isPluginConfigured(
   values: PluginConfigValues
 ): boolean {
   if (!fields) return true
-  return fields
-    .filter((f) => f.required)
-    .every((f) => (values[f.key] ?? '').trim() !== '')
+  return fields.filter((f) => f.required).every((f) => (values[f.key] ?? '').trim() !== '')
 }
 
 // ─── Change notification ─────────────────────────────────────────────────────

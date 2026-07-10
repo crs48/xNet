@@ -58,9 +58,7 @@ export function PluginConfigDialog({
               <Settings2 size={16} strokeWidth={1.5} className="text-ink-3" />
               Configure {pluginName}
             </h2>
-            <p className="text-xs text-ink-3">
-              Saved on this device only — secrets never sync.
-            </p>
+            <p className="text-xs text-ink-3">Saved on this device only — secrets never sync.</p>
           </div>
           <button
             type="button"
