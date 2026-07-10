@@ -15,7 +15,7 @@ export type ShareLinkInput = {
 
 export type ShareClaimResult = {
   resource: string
-  docType: 'page' | 'database' | 'canvas' | 'dashboard' | 'view' | 'space' | 'workspace'
+  docType: 'page' | 'database' | 'canvas' | 'dashboard' | 'view' | 'space' | 'workspace' | 'channel'
   role: 'read' | 'comment' | 'write'
   endpoint: string
 }
@@ -277,6 +277,8 @@ export function docRouteFor(
       // Workspaces have no viewer route; land home — the granted node syncs
       // and appears in the receiver's workspace switcher (0280).
       return { to: '/', params: {} }
+    case 'channel':
+      return { to: '/channel/$channelId', params: { channelId: resource } }
     default:
       return { to: '/doc/$docId', params: { docId: resource } }
   }

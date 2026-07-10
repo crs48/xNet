@@ -1,0 +1,18 @@
+{
+  "id": "2026-07-10-share-chat-channels-and-workspaces-with-",
+  "date": "July 10, 2026",
+  "title": "Share chat channels and workspaces with a link",
+  "summary": "You can now generate a share link for a chat channel (from the channel header or its menu) and for a saved workspace layout — the same way you share a page or database. A channel share with 'comment' access lets people post messages without editing the channel.",
+  "highlights": [],
+  "tags": [
+    "app",
+    "sync"
+  ],
+  "pr": 457,
+  "mergedAt": "2026-07-10T22:04:35Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

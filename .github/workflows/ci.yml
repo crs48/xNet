@@ -130,20 +130,17 @@ jobs:
       # is dead weight for the test run (exploration 0193). better-sqlite3 — the
       # only native dependency tests touch — is rebuilt in the setup composite.
 
+      # No --coverage: CI never enforced thresholds (vitest.config.ts skips
+      # them when CI=true because shards see partial coverage) and the codecov
+      # upload had no consumer — no badge, no gate (exploration 0294). Local
+      # full runs still enforce the configured thresholds.
       - name: Run tests (shard ${{ matrix.shard }})
         if: github.event_name == 'push'
-        run: pnpm vitest run --shard=${{ matrix.shard }} --coverage
+        run: pnpm vitest run --shard=${{ matrix.shard }}
 
       - name: Run changed tests (shard ${{ matrix.shard }})
         if: github.event_name == 'pull_request'
         run: pnpm vitest run --changed=origin/${{ github.base_ref }} --shard=${{ matrix.shard }} --passWithNoTests
-
-      - name: Upload coverage
-        if: matrix.shard == '1/3' && github.event_name == 'push'
-        uses: codecov/codecov-action@v4
-        with:
-          files: ./coverage/coverage-final.json
-          fail_ci_if_error: false
 
   editor-ux:
     runs-on: ubuntu-latest

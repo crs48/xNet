@@ -78,9 +78,14 @@ test.describe('Mobile surfaces (0238)', () => {
   test('database surface renders the grid on a phone', async ({ page }) => {
     await createSurface(page, 'Database')
     await page.waitForURL(/\/db\//, { timeout: 30_000 })
-    // The grid (or its empty state / add-row affordance) is present.
+    // The grid (or its empty state / add-row affordance) is present. .first()
+    // on the combined locator: the DB toolbar's "Row height" button also
+    // matches /row/i, and two strict-mode matches fail the assertion.
     await expect(
-      page.getByRole('grid').or(page.getByRole('button', { name: /add|new row|row/i }).first())
+      page
+        .getByRole('grid')
+        .or(page.getByRole('button', { name: /add|new row|row/i }))
+        .first()
     ).toBeVisible({ timeout: 30_000 })
   })
 

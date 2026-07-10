@@ -50,7 +50,7 @@ export interface BlogAuthor {
   ai?: boolean
 }
 
-export const AUTHORS: Record<BlogAuthorId, BlogAuthor> = {
+const AUTHORS: Record<BlogAuthorId, BlogAuthor> = {
   crs48: {
     id: 'crs48',
     name: 'crs48',
@@ -86,7 +86,7 @@ export interface BlogPost {
   draft?: boolean
 }
 
-export const posts: BlogPost[] = [
+const posts: BlogPost[] = [
   {
     slug: 'weights-you-can-hold',
     title: 'Weights You Can Hold',
@@ -261,7 +261,7 @@ export function publishedPosts(): BlogPost[] {
  * as a running series, so the natural way to read it is front-to-back — the
  * reverse of the index's newest-first listing.
  */
-export function seriesOrder(): BlogPost[] {
+function seriesOrder(): BlogPost[] {
   return publishedPosts().reverse()
 }
 

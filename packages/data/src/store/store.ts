@@ -1616,6 +1616,18 @@ export class NodeStore {
         }
       }
 
+      // Idempotent redelivery (exploration 0296): a change already in the log
+      // was already materialized — hub backfills and relay echoes must not
+      // re-apply it (or re-log conflicts). Still advance the clock so a
+      // replayed high lamport can't regress causality.
+      const alreadyApplied = this.storage.hasChange
+        ? await this.storage.hasChange(change.hash)
+        : (await this.storage.getChangeByHash(change.hash)) !== null
+      if (alreadyApplied) {
+        this.clock = receive(this.clock, change.lamport)
+        return
+      }
+
       // Update our clock to be at least as recent as the remote
       this.clock = receive(this.clock, change.lamport)
       await this.storage.setLastLamportTime(this.clock.time)
@@ -2208,11 +2220,12 @@ export class NodeStore {
       wallTime: change.wallTime
     }
     const incomingWins = !existingTs || this.shouldReplace(existingTs, newTs)
+    const target = isUnknownProperty ? (node._unknown ??= {}) : node.properties
+    const previousValue = target[key]
 
     if (incomingWins) {
       // New value wins: write into properties, or _unknown for forward
       // compatibility when the schema does not know the property.
-      const target = isUnknownProperty ? (node._unknown ??= {}) : node.properties
       if (value === undefined) {
         delete target[key]
       } else {
@@ -2221,19 +2234,26 @@ export class NodeStore {
       node.timestamps[key] = newTs
     }
 
-    // Track a conflict whenever an existing timestamp had to be compared.
-    if (existingTs) {
-      this.conflicts.push({
-        nodeId: change.payload.nodeId,
-        key,
-        localValue: isUnknownProperty ? node._unknown?.[key] : node.properties[key],
-        localTimestamp: existingTs,
-        remoteValue: value,
-        remoteTimestamp: newTs,
-        resolved: incomingWins ? 'remote' : 'local'
-      })
-      this.trimConflicts()
-    }
+    // Record only genuine cross-author divergence (exploration 0296).
+    // Same-author comparisons are never conflicts: identical stamps are
+    // idempotent replays, and an older own write losing to a newer own value
+    // is causal history. Equal values aren't divergence regardless of author.
+    if (!existingTs || existingTs.author === newTs.author) return
+    if (Object.is(previousValue, value)) return
+
+    this.conflicts.push({
+      nodeId: change.payload.nodeId,
+      key,
+      localValue: previousValue,
+      localTimestamp: existingTs,
+      remoteValue: value,
+      remoteTimestamp: newTs,
+      resolved: incomingWins ? 'remote' : 'local',
+      // A losing cross-author write is a true conflict; a winning one is an
+      // informational lost-update record.
+      kind: incomingWins ? 'lww-resolution' : 'conflict'
+    })
+    this.trimConflicts()
   }
 
   /**

@@ -504,6 +504,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       getAllChanges: () => this.getAllChanges(),
       getChangesSince: (sinceLamport) => this.getChangesSince(sinceLamport),
       getChangeByHash: (hash) => this.getChangeByHash(hash),
+      hasChange: (hash) => this.hasChange(hash),
       getLastChange: (nodeId) => this.getLastChange(nodeId),
       getLastChangesByNodeId: (nodeIds) => this.getLastChangesByNodeId(nodeIds),
       appendChanges: (changes) => this.appendChangesInternal(changes),
@@ -686,14 +687,21 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
 
   async getChangeByHash(hash: ContentId): Promise<NodeChange | null> {
     const row = await this.db.queryOne<ChangeRow>(
-      `SELECT hash, node_id, payload, lamport_time, 
-              lamport_peer as lamport_author, wall_time, 
-              author as author_did, parent_hash, batch_id, signature 
+      `SELECT hash, node_id, payload, lamport_time,
+              lamport_peer as lamport_author, wall_time,
+              author as author_did, parent_hash, batch_id, signature
        FROM changes WHERE hash = ?`,
       [hash]
     )
 
     return row ? this.deserializeChange(row) : null
+  }
+
+  async hasChange(hash: ContentId): Promise<boolean> {
+    const row = await this.db.queryOne<{ 1: number }>(`SELECT 1 FROM changes WHERE hash = ?`, [
+      hash
+    ])
+    return row !== null && row !== undefined
   }
 
   async getLastChange(nodeId: NodeId): Promise<NodeChange | null> {

@@ -70,6 +70,16 @@ export interface StoreConflictEvent extends DevToolsEventBase {
   conflict: MergeConflict
 }
 
+/**
+ * Informational LWW housekeeping: a cross-author write replaced a differing
+ * local value (lost update). Distinct from `store:conflict` so routine
+ * resolution doesn't render as an error (exploration 0296).
+ */
+export interface StoreLwwResolutionEvent extends DevToolsEventBase {
+  type: 'store:lww-resolution'
+  conflict: MergeConflict
+}
+
 // ─── Sync Events ───────────────────────────────────────────
 
 export interface SyncStatusEvent extends DevToolsEventBase {
@@ -437,6 +447,7 @@ export type DevToolsEvent =
   | StoreTransactionEvent
   | StoreRemoteChangeEvent
   | StoreConflictEvent
+  | StoreLwwResolutionEvent
   | SyncStatusEvent
   | SyncPeerConnectedEvent
   | SyncPeerDisconnectedEvent

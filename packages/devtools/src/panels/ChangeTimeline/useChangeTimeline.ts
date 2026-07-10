@@ -9,7 +9,8 @@ import type {
   StoreDeleteEvent,
   StoreRestoreEvent,
   StoreRemoteChangeEvent,
-  StoreConflictEvent
+  StoreConflictEvent,
+  StoreLwwResolutionEvent
 } from '../../core/types'
 import { useState, useEffect } from 'react'
 import { useDevTools } from '../../provider/useDevTools'
@@ -21,6 +22,7 @@ export type TimelineEvent =
   | StoreRestoreEvent
   | StoreRemoteChangeEvent
   | StoreConflictEvent
+  | StoreLwwResolutionEvent
 
 const STORE_EVENT_TYPES = new Set([
   'store:create',
@@ -28,7 +30,8 @@ const STORE_EVENT_TYPES = new Set([
   'store:delete',
   'store:restore',
   'store:remote-change',
-  'store:conflict'
+  'store:conflict',
+  'store:lww-resolution'
 ])
 
 export function useChangeTimeline() {

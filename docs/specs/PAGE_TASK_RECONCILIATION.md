@@ -101,3 +101,16 @@ the reference. Implemented by the shared task components in
    left alone.
 5. Reconciliation is idempotent: replaying the same snapshot produces no
    writes (empty diff short-circuits).
+6. **No reconciliation before the first editor snapshot.** The hook's
+   default (empty) snapshot is "the editor hasn't spoken yet", not "the
+   page is empty" — reconciling it would archive every hosted task on a
+   mount race. The gate is keyed to the host id, so a surface reused
+   across navigation never reconciles a previous host's snapshot either
+   (exploration 0296).
+7. **Placeholder titles never overwrite real titles.** The extraction
+   falls back to `Untitled task` for items with no text, and deletion
+   gestures empty an item's text one transaction before removing the
+   node — so a snapshot can transiently carry the placeholder for a task
+   that still has a real title. Diff updates skip the title in that case,
+   and claims omit the title entirely when the snapshot only has the
+   placeholder (exploration 0296).

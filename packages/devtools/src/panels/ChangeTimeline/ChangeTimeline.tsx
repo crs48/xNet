@@ -55,6 +55,7 @@ export function ChangeTimeline() {
             <option value="store:restore">restore</option>
             <option value="store:remote-change">remote</option>
             <option value="store:conflict">conflict</option>
+            <option value="store:lww-resolution">lww</option>
           </select>
           <label className="flex items-center gap-1 text-[10px] text-ink-3 cursor-pointer">
             <input
@@ -108,6 +109,7 @@ function TimelineEntry({
   onSelect: () => void
 }) {
   const isConflict = event.type === 'store:conflict'
+  const isLwwResolution = event.type === 'store:lww-resolution'
   const isRemote = event.type === 'store:remote-change'
   const lamport = 'lamport' in event ? ((event as any).lamport ?? '?') : '?'
   const nodeId = 'nodeId' in event ? (event as any).nodeId : ''
@@ -134,6 +136,9 @@ function TimelineEntry({
       )}
       {isConflict && (
         <span className="text-[9px] text-warning bg-warning-muted px-1 rounded">conflict</span>
+      )}
+      {isLwwResolution && (
+        <span className="text-[9px] text-ink-2 bg-background-emphasis px-1 rounded">lww</span>
       )}
     </div>
   )
@@ -169,6 +174,8 @@ function getDotColor(type: string): string {
       return 'bg-ink-3'
     case 'store:conflict':
       return 'bg-warning'
+    case 'store:lww-resolution':
+      return 'bg-ink-3'
     default:
       return 'bg-ink-3'
   }
