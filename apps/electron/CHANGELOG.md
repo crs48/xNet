@@ -1,5 +1,9 @@
 # xnet-desktop
 
+## 0.8.0
+
+Desktop shell release riding the @xnetjs/core 0.8.0 train. Desktop-specific changes are not tracked here; see the core packages' changelogs for what shipped.
+
 ## 0.7.0
 
 Desktop shell release riding the @xnetjs/core 0.7.0 train. Desktop-specific changes are not tracked here; see the core packages' changelogs for what shipped.

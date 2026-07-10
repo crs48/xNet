@@ -1,5 +1,15 @@
 # @xnetjs/data-bridge
 
+## 0.8.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/data@0.8.0
+  - @xnetjs/sqlite@0.8.0
+  - @xnetjs/sync@0.8.0
+  - @xnetjs/core@0.8.0
+
 ## 0.7.0
 
 ### Patch Changes
