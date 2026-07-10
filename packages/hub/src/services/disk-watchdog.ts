@@ -44,9 +44,7 @@ export class DiskWatchdog {
     const wasFull = this.full
     this.full = usedBytes >= this.limitBytes
     if (this.full && !wasFull) {
-      console.warn(
-        `[disk-watchdog] usage ${usedBytes}B ≥ ${this.limitBytes}B — shedding writes`
-      )
+      console.warn(`[disk-watchdog] usage ${usedBytes}B ≥ ${this.limitBytes}B — shedding writes`)
     } else if (!this.full && wasFull) {
       console.log(`[disk-watchdog] usage ${usedBytes}B back under limit — accepting writes`)
     }

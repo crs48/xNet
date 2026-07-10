@@ -743,9 +743,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
         storage
           .resetAllUserData()
           .then(({ nodeChanges, docStates }) =>
-            console.log(
-              `[demo-reset] wiped ${nodeChanges} node changes, ${docStates} doc states`
-            )
+            console.log(`[demo-reset] wiped ${nodeChanges} node changes, ${docStates} doc states`)
           )
           .catch((err) => console.error('[demo-reset] failed:', err))
       }, demo.resetInterval)

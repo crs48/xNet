@@ -113,7 +113,7 @@ describe.each(factories)('demo storage accounting ($name)', ({ create }) => {
   })
 
   it('getUsageBytesByDid sums a DID change bytes and ignores others', async () => {
-    ({ storage, cleanup } = create())
+    ;({ storage, cleanup } = create())
     const c1 = makeSignedChange('node-1', 1)
     const c2 = makeSignedChange('node-2', 2)
     await storage.appendNodeChange(ROOM, c1)
@@ -125,7 +125,7 @@ describe.each(factories)('demo storage accounting ($name)', ({ create }) => {
   })
 
   it('resetAllUserData wipes user content and returns counts', async () => {
-    ({ storage, cleanup } = create())
+    ;({ storage, cleanup } = create())
     await storage.appendNodeChange(ROOM, makeSignedChange('node-1', 1))
     await storage.appendNodeChange(ROOM, makeSignedChange('node-2', 2))
     await storage.setDocState('doc-1', new Uint8Array([1, 2, 3]))
