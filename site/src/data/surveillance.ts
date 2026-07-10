@@ -146,4 +146,3 @@ export const CLAIMS: Claim[] = [
 ]
 
 export const alarmClaims = CLAIMS.filter((c) => c.tone === 'alarm')
-export const hopeClaims = CLAIMS.filter((c) => c.tone === 'hope')

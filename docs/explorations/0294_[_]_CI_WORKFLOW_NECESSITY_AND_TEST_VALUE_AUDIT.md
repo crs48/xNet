@@ -430,8 +430,11 @@ Standing / follow-ups:
 - [ ] Actions tab shows **zero** workflows with a >50% 30-run failure rate
       (baseline: mobile-e2e 97%, fallow 47%).
 - [ ] Soak nightly green for 2 weeks *after* absorbing the keeper specs.
-- [ ] `tests/e2e/src/` contains only specs referenced by at least one
-      workflow.
+- [x] `tests/e2e/src/` contains only specs referenced by at least one
+      workflow or documented gate script (`web-canvas-ingestion` is
+      consumed by `pnpm validate:canvas-v2`). Verified by grepping every
+      spec name across `.github/`, `package.json`, and `scripts/`:
+      13/13 referenced.
 - [ ] Repo-wide red-run rate (all workflows, 30-day window) ≤ 5% — and a
       red ✗ in the PR view once again means "something you did broke
       something".

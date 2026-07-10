@@ -6,8 +6,8 @@
 
 import { postAuthors, type BlogPost } from '../data/blog'
 
-export const SITE_URL = 'https://xnet.fyi'
-export const BLOG_URL = `${SITE_URL}/blog`
+const SITE_URL = 'https://xnet.fyi'
+const BLOG_URL = `${SITE_URL}/blog`
 
 /** Absolute URL for a post. */
 export function postUrl(post: BlogPost): string {
