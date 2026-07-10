@@ -84,11 +84,35 @@ export type NodeRelayOptions = {
    * instead of crashing the process.
    */
   isStorageFull?: () => boolean
+  /**
+   * Gates channel share-room fan-out (0298). When set, a Channel/ChatMessage
+   * change is indexed into `xnet-channel-<id>` only if its author may write to
+   * that channel — so a share-link grantee's `/channel/<id>` subscription
+   * receives the conversation. Unset ⇒ no fan-out (self-host without sharing).
+   */
+  shareAccess?: ShareAccessGate
+  /**
+   * Live-broadcasts a fanned-out change to a share room's subscribers so new
+   * messages arrive in real time (not just on the next pull). Wired to the
+   * signaling service (0298).
+   */
+  broadcastToRoom?: (room: string, change: SerializedNodeChange) => void
 }
 
 /** Serialized byte size a change contributes to a user's quota. */
 const changeUsageBytes = (change: SerializedNodeChange): number =>
   JSON.stringify(change.payload).length + change.signatureB64.length
+
+/** The share room that carries a channel's nodes to its grantees (0298). */
+export const channelShareRoom = (channelId: string): string => `xnet-channel-${channelId}`
+
+const CHANNEL_SCHEMA_PREFIX = 'xnet://xnet.fyi/Channel@'
+const CHAT_MESSAGE_SCHEMA_PREFIX = 'xnet://xnet.fyi/ChatMessage@'
+
+/** Minimal shape the relay needs to gate channel fan-out. */
+export type ShareAccessGate = {
+  canWriteNodeChange: (did: string, docId: string, schemaId: string | undefined) => Promise<boolean>
+}
 
 export class NodeRelayService {
   constructor(
@@ -189,7 +213,55 @@ export class NodeRelayService {
       room: msg.room
     })
 
+    // Channel sharing (0298): index a channel's nodes into its share room so a
+    // grantee's `/channel/<id>` subscription receives the conversation. Never
+    // blocks the primary relay — a fan-out failure just means slower delivery.
+    try {
+      await this.fanOutToChannelRoom(msg.change)
+    } catch (err) {
+      console.error('[node-relay] channel fan-out failed:', err)
+    }
+
     return true
+  }
+
+  /**
+   * If the change is a Channel or ChatMessage the author may write, index it
+   * (and the relevant member/author Profile) into the channel's share room so
+   * grantees receive the channel node, its history, and members' names (0298).
+   */
+  private async fanOutToChannelRoom(change: SerializedNodeChange): Promise<void> {
+    const gate = this.options.shareAccess
+    if (!gate) return
+    const schema = change.schemaId ?? change.payload.schemaId ?? ''
+
+    let channelId: string | null = null
+    let profileDids: string[] = []
+    if (schema.startsWith(CHANNEL_SCHEMA_PREFIX)) {
+      channelId = change.nodeId
+      const members = change.payload.properties?.members
+      // Deliver every member's profile so names render at share time.
+      profileDids = Array.isArray(members) ? members.filter((m) => typeof m === 'string') : []
+    } else if (schema.startsWith(CHAT_MESSAGE_SCHEMA_PREFIX)) {
+      const channel = change.payload.properties?.channel
+      channelId = typeof channel === 'string' ? channel : null
+      // Deliver the message author's profile so their name renders.
+      profileDids = [change.authorDid]
+    } else {
+      return
+    }
+    if (!channelId) return
+
+    if (!(await gate.canWriteNodeChange(change.authorDid, channelId, schema))) return
+
+    const room = channelShareRoom(channelId)
+    await this.storage.addChangeToRoom(room, change.hash)
+    // Deliver in real time to anyone subscribed to the channel room.
+    this.options.broadcastToRoom?.(room, change)
+    for (const did of profileDids) {
+      const profileHash = await this.storage.getLatestProfileHash(did)
+      if (profileHash) await this.storage.addChangeToRoom(room, profileHash)
+    }
   }
 
   /**
@@ -210,6 +282,17 @@ export class NodeRelayService {
   async handleSyncRequest(msg: NodeSyncRequest, auth: AuthContext): Promise<NodeSyncResponse> {
     if (!auth.can('hub/relay', msg.room)) {
       throw new NodeRelayError('UNAUTHORIZED', 'Insufficient capabilities for node relay')
+    }
+
+    // Channel share rooms (0298) are served from the hash→room mapping and
+    // cursor on a per-room `seq` (carried opaquely in `sinceLamport`/
+    // `highWaterMark`), not the author lamport used for author/doc rooms.
+    if (msg.room.startsWith('xnet-channel-')) {
+      const { changes, highWaterMark } = await this.storage.getRoomChangesSince(
+        msg.room,
+        msg.sinceLamport
+      )
+      return { type: 'node-sync-response', room: msg.room, changes, highWaterMark }
     }
 
     const [changes, highWaterMark] = await Promise.all([
