@@ -8,5 +8,12 @@
     "tasks",
     "devtools",
     "sync"
+  ],
+  "pr": 458,
+  "mergedAt": "2026-07-10T22:01:39Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
   ]
 }
