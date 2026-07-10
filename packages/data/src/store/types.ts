@@ -177,6 +177,12 @@ export interface NodeStorageAdapter {
   /** Get changes with Lamport time greater than `since` */
   getChangesSince(sinceLamport: number): Promise<NodeChange[]>
   getChangeByHash(hash: ContentId): Promise<NodeChange | null>
+  /**
+   * Whether a change with this hash is already in the log. Cheap existence
+   * probe for idempotent redelivery (exploration 0296); callers fall back to
+   * `getChangeByHash` when absent.
+   */
+  hasChange?(hash: ContentId): Promise<boolean>
   getLastChange(nodeId: NodeId): Promise<NodeChange | null>
   /** Return the latest change for each requested node id. Missing nodes are omitted. */
   getLastChangesByNodeId?(nodeIds: readonly NodeId[]): Promise<Map<NodeId, NodeChange>>
@@ -455,6 +461,14 @@ export interface ConflictResult {
 
 /**
  * Conflict detected during merge (for debugging/UI).
+ *
+ * `kind` separates genuine concurrent divergence from routine LWW
+ * housekeeping (exploration 0296):
+ * - `'conflict'` — a cross-author write lost to a newer local value.
+ * - `'lww-resolution'` — a cross-author write replaced a differing local
+ *   value (informational lost-update record, not an error condition).
+ * Identical stamps (idempotent replays) and same-author causal history are
+ * never recorded at all.
  */
 export interface MergeConflict {
   nodeId: NodeId
@@ -464,6 +478,7 @@ export interface MergeConflict {
   remoteValue: unknown
   remoteTimestamp: PropertyTimestamp
   resolved: 'local' | 'remote'
+  kind: 'conflict' | 'lww-resolution'
 }
 
 // ============================================================================
