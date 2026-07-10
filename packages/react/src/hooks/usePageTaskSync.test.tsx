@@ -1,6 +1,11 @@
 import type { DID } from '@xnetjs/core'
 import { renderHook, act, waitFor } from '@testing-library/react'
-import { ExternalReferenceSchema, MemoryNodeStorageAdapter, TaskSchema } from '@xnetjs/data'
+import {
+  ExternalReferenceSchema,
+  MemoryNodeStorageAdapter,
+  NodeStore,
+  TaskSchema
+} from '@xnetjs/data'
 import { generateIdentity, type Identity } from '@xnetjs/identity'
 import React, { type ReactNode, useMemo } from 'react'
 import { describe, expect, it, beforeEach } from 'vitest'
@@ -600,6 +605,210 @@ describe('usePageTaskSync', () => {
       expect(matches[0]).toMatchObject({ page: 'page-b', title: 'Real title' })
       expect(matches[0]?.deleted).toBeFalsy()
     })
+  })
+
+  it('the 0296 repro gesture yields no conflicts, no title loss, and replays idempotently', async () => {
+    // The exact incident script from exploration 0296: create two checklist
+    // items, title them, check both off, delete both (with the transient
+    // placeholder snapshots real delete gestures emit) — then replay the
+    // device's full change log into a mirror store twice, simulating hub
+    // backfill/echo redelivery.
+    const wrapper = createWrapper()
+
+    const { result } = renderHook(
+      () => ({
+        sync: usePageTaskSync({ pageId: 'page-1', debounceMs: 0 }),
+        tasks: useQuery(TaskSchema, { where: { page: 'page-1' }, includeDeleted: true })
+      }),
+      { wrapper }
+    )
+
+    await waitFor(() => {
+      expect(result.current.tasks.loading).toBe(false)
+    })
+
+    const base = {
+      parentTaskId: null,
+      assignees: [],
+      dueDate: null,
+      references: []
+    }
+    const item1 = (title: string, completed = false) => ({
+      ...base,
+      taskId: 'task_one',
+      blockId: 'block_one',
+      sortKey: '0000',
+      title,
+      completed
+    })
+    const item2 = (title: string, completed = false) => ({
+      ...base,
+      taskId: 'task_two',
+      blockId: 'block_two',
+      sortKey: '0001',
+      title,
+      completed
+    })
+
+    const gesture = [
+      [item1('Untitled task')], // "- [ ] " typed, item still empty
+      [item1('yay one')],
+      [item1('yay one'), item2('Untitled task')],
+      [item1('yay one'), item2('yay two')],
+      [item1('yay one', true), item2('yay two')], // check one off
+      [item1('yay one', true), item2('yay two', true)], // check the other
+      [item1('Untitled task', true), item2('yay two', true)], // deleting #1: text emptied first
+      [item2('yay two', true)], // #1 node removed
+      [item2('Untitled task', true)], // deleting #2: text emptied first
+      [] // #2 node removed
+    ]
+
+    for (const snapshot of gesture) {
+      await act(async () => {
+        result.current.sync.handleTasksChange(snapshot)
+      })
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 5))
+      })
+    }
+
+    await waitFor(() => {
+      const one = result.current.tasks.data.find((node) => node.id === 'task_one')
+      const two = result.current.tasks.data.find((node) => node.id === 'task_two')
+      expect(one?.deleted).toBe(true)
+      expect(two?.deleted).toBe(true)
+      // The transient placeholder snapshots never clobbered the real titles.
+      expect(one?.title).toBe('yay one')
+      expect(two?.title).toBe('yay two')
+    })
+
+    // Hub backfill/echo: replay the whole log into a mirror store, twice.
+    const mirrorIdentity = generateIdentity()
+    const mirror = new NodeStore({
+      storage: new MemoryNodeStorageAdapter(),
+      authorDID: mirrorIdentity.identity.did as DID,
+      signingKey: mirrorIdentity.privateKey
+    })
+    await mirror.initialize()
+
+    const log = await storage.getAllChanges()
+    await mirror.applyRemoteChanges(log)
+    await mirror.applyRemoteChanges(log)
+
+    expect(mirror.getRecentConflicts()).toHaveLength(0)
+    const mirrorOne = await mirror.get('task_one')
+    const mirrorTwo = await mirror.get('task_two')
+    expect(mirrorOne?.properties.title).toBe('yay one')
+    expect(mirrorTwo?.properties.title).toBe('yay two')
+    expect(await mirror.getChanges('task_one')).toHaveLength(
+      log.filter((change) => change.payload.nodeId === 'task_one').length
+    )
+  })
+
+  it('repeated page opens without an editor snapshot write nothing', async () => {
+    // Validation for the mount race: opening a task-bearing page many times
+    // (sync live, editor never publishes) must not produce archive/restore
+    // churn in the change log.
+    const wrapper = createWrapper()
+
+    const seed = renderHook(
+      () => ({
+        mutate: useMutate(),
+        tasks: useQuery(TaskSchema, { where: { page: 'page-1' } })
+      }),
+      { wrapper }
+    )
+
+    await waitFor(() => {
+      expect(seed.result.current.tasks.loading).toBe(false)
+    })
+
+    await act(async () => {
+      await seed.result.current.mutate.create(
+        TaskSchema,
+        { title: 'Durable task', completed: false, page: 'page-1', source: 'page' },
+        'task_durable'
+      )
+    })
+    seed.unmount()
+
+    const changesBefore = (await storage.getAllChanges()).length
+
+    for (let open = 0; open < 20; open += 1) {
+      const { result, unmount } = renderHook(
+        () => usePageTaskSync({ pageId: 'page-1', debounceMs: 0 }),
+        { wrapper }
+      )
+      await act(async () => {
+        await new Promise((resolve) => setTimeout(resolve, 5))
+      })
+      expect(result.current.error).toBeNull()
+      unmount()
+    }
+
+    expect((await storage.getAllChanges()).length).toBe(changesBefore)
+  })
+
+  it('a page tab and a canvas-inline embed of the same page converge without oscillating', async () => {
+    // Two reconcilers live for one page (tab + embed). Their snapshots
+    // converge through the shared Y.Doc; the node must settle with no
+    // write ping-pong.
+    const wrapper = createWrapper()
+
+    const { result } = renderHook(
+      () => ({
+        syncTab: usePageTaskSync({ pageId: 'page-1', debounceMs: 0 }),
+        syncEmbed: usePageTaskSync({ pageId: 'page-1', debounceMs: 0 }),
+        tasks: useQuery(TaskSchema, { where: { page: 'page-1' }, includeDeleted: true })
+      }),
+      { wrapper }
+    )
+
+    await waitFor(() => {
+      expect(result.current.tasks.loading).toBe(false)
+    })
+
+    const item = (completed: boolean) => ({
+      taskId: 'task_shared',
+      blockId: 'block_shared',
+      title: 'Shared task',
+      completed,
+      parentTaskId: null,
+      sortKey: '0000',
+      assignees: [],
+      dueDate: null,
+      references: []
+    })
+
+    await act(async () => {
+      result.current.syncTab.handleTasksChange([item(false)])
+      result.current.syncEmbed.handleTasksChange([item(false)])
+    })
+
+    await waitFor(() => {
+      expect(result.current.tasks.data).toHaveLength(1)
+    })
+
+    // Checkbox toggled in the tab; the embed's editor converges on the same
+    // doc state and republishes.
+    await act(async () => {
+      result.current.syncTab.handleTasksChange([item(true)])
+    })
+    await act(async () => {
+      result.current.syncEmbed.handleTasksChange([item(true)])
+    })
+
+    await waitFor(() => {
+      const task = result.current.tasks.data.find((node) => node.id === 'task_shared')
+      expect(task).toMatchObject({ completed: true, status: 'done' })
+      expect(task?.deleted).toBeFalsy()
+    })
+
+    // Bounded writes: create + completion toggle, no oscillation tail.
+    const taskChanges = (await storage.getAllChanges()).filter(
+      (change) => change.payload.nodeId === 'task_shared'
+    )
+    expect(taskChanges.length).toBeLessThanOrEqual(3)
   })
 
   it('ignores invalid due date strings when syncing task nodes', async () => {

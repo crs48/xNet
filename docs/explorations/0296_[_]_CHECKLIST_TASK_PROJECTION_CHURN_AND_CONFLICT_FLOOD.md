@@ -413,18 +413,18 @@ already do: `packages/ui/src/composed/tasks/TaskRow.tsx:147` etc.)
 
 ## Validation Checklist
 
-- [ ] Repro script (create 2 checklist items → title them → check both →
+- [x] Repro script (create 2 checklist items → title them → check both →
       delete both) with DevTools open: **zero** `store:conflict` events,
       no `Untitled task` title writes in the change log
-- [ ] Kill/restore the hub connection mid-session: backfill replays produce
+- [x] Kill/restore the hub connection mid-session: backfill replays produce
       no conflict events and no duplicate change-log rows
-- [ ] Open a task-bearing page 20× (including cold OPFS opens): no
+- [x] Open a task-bearing page 20× (including cold OPFS opens): no
       archive/restore churn pairs in the change log
-- [ ] Page open simultaneously as tab + canvas-inline embed, toggle a
+- [x] Page open simultaneously as tab + canvas-inline embed, toggle a
       checkbox in each: converges without oscillating writes
-- [ ] Existing suites: `usePageTaskSync.test.tsx`, store LWW golden vectors,
+- [x] Existing suites: `usePageTaskSync.test.tsx`, store LWW golden vectors,
       seed-coverage — green from root vitest config
-- [ ] Changes tab under normal editing shows updates/creates only;
+- [x] Changes tab under normal editing shows updates/creates only;
       LWW-resolution group stays collapsed and bounded
 
 ## References
