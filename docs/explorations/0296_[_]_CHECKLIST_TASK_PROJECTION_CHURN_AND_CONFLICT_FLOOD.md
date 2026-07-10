@@ -408,7 +408,7 @@ already do: `packages/ui/src/composed/tasks/TaskRow.tsx:147` etc.)
       log row, zero conflicts); hook tests for mount race, host switch, and
       the delete-gesture transient (empty-title snapshot between two
       transactions)
-- [ ] Changesets for `@xnetjs/data`, `@xnetjs/react`, `@xnetjs/devtools`,
+- [x] Changesets for `@xnetjs/data`, `@xnetjs/react`, `@xnetjs/devtools`,
       `@xnetjs/editor` (if extraction signature changes)
 
 ## Validation Checklist
