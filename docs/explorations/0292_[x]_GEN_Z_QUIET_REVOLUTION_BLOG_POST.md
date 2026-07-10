@@ -400,7 +400,7 @@ from `packages/plugins/src/ai/connectors/detect.ts`.
 - [x] Changelog fragment via `node scripts/changelog/new.mjs` (site change;
       no changeset — `site/` is not a publishable package).
 - [x] Flip `draft: false`, set real `pubDate`, confirm `readingMinutes`.
-- [ ] Commit per Conventional Commits (header ≤72 chars), PR, merge-commit
+- [x] Commit per Conventional Commits (header ≤72 chars), PR, merge-commit
       per repo policy.
 
 ## Validation Checklist
@@ -418,7 +418,7 @@ from `packages/plugins/src/ai/connectors/detect.ts`.
       attributes).
 - [x] en-GB spell pass; no unverified statistics remain (re-walk the
       fact-check table).
-- [ ] Fallow/Changelog Check/DCO gates green on the PR.
+- [x] Fallow/Changelog Check/DCO gates green on the PR.
 
 ## References
 
