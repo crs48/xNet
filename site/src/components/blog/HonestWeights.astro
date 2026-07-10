@@ -1,0 +1,53 @@
+---
+// The honesty beat for post #13 (exploration 0292), modelled on HonestExit /
+// HonestStar / HonestGarden. An essay that cheers a generation's exits while
+// the company behind it sells a managed cloud tier has two easy ways to be
+// dishonest — triumphalism about open models, and silence about our own
+// position. So we say the quiet parts at normal volume.
+const rows = [
+  {
+    isnt: 'We won’t claim open models beat the frontier at everything.',
+    is: 'Benchmark-victory posts age in weeks. The honest claim is smaller and stronger: open-weight models are now good enough for much of what most people actually do, they run on hardware you already own, and the gap closes a little every quarter. That is enough to change who sets the price.'
+  },
+  {
+    isnt: 'We won’t pretend every exit is a choice.',
+    is: 'Being priced out of a mortgage is not a philosophy, and a business started because no one is hiring is partly unemployment wearing a trench coat. The exits are real, but some doors were closed before this generation reached them. Both things are true at once.'
+  },
+  {
+    isnt: 'We won’t pretend to be bystanders.',
+    is: 'xNet sells a managed cloud AI tier and paid hosting. The difference we can defend is structural: the connector ladder makes our tier compete for you next to your own hardware, and the export door means choosing us is never a one-way turnstile. Judge the receipts, not the cheering.'
+  },
+  {
+    isnt: 'We won’t pretend the spiral turns itself.',
+    is: 'The Progressive Era was not a vibe; it was Ida Tarbell doing years of documentary work and reformers building institutions. Booing is a start, and buying differently is better, but the next turn of the spiral gets built by people who make things — including boring, load-bearing things like protocols.'
+  }
+]
+---
+
+<section class="not-prose my-12">
+  <div class="rounded-2xl border border-border bg-surface/30 p-6 dark:bg-surface/40 lg:p-8">
+    <h3 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+      Honest weights and measures
+    </h3>
+    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+      A revolution oversold is just another pitch. Here is the honest scope.
+    </p>
+
+    <ul class="mt-6 space-y-5">
+      {
+        rows.map((row) => (
+          <li class="grid gap-3 sm:grid-cols-[1fr_1.3fr] sm:gap-5">
+            <div class="flex gap-2.5">
+              <span class="select-none text-gray-400 dark:text-gray-600">✕</span>
+              <p class="text-sm leading-relaxed text-gray-500 dark:text-gray-400">{row.isnt}</p>
+            </div>
+            <div class="flex gap-2.5">
+              <span class="select-none text-amber-500">✓</span>
+              <p class="text-sm leading-relaxed text-gray-700 dark:text-gray-200">{row.is}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
