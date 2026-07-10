@@ -11,8 +11,7 @@
 import type { FloatingMenuName } from './FloatingMenus'
 import { useRouterState } from '@tanstack/react-router'
 import { getCommandRegistry } from '@xnetjs/plugins'
-import { useIdentity } from '@xnetjs/react'
-import { DIDAvatar, usePrefersReducedMotion } from '@xnetjs/ui'
+import { usePrefersReducedMotion } from '@xnetjs/ui'
 import {
   ChevronDown,
   ChevronRight,
@@ -24,6 +23,7 @@ import {
   Settings
 } from 'lucide-react'
 import { useLayoutEffect, useRef } from 'react'
+import { SelfAvatar } from '../components/SelfAvatar'
 import { useRequestCount } from '../hooks/useRequestCount'
 import { useSpaces } from '../hooks/useSpaces'
 import { useNewActions } from './new-actions'
@@ -137,7 +137,6 @@ function HeaderCaret({ compact, onToggle }: { compact: boolean; onToggle: () => 
 }
 
 function TopIsland({ openMenu }: { openMenu: OpenMenu }) {
-  const { identity } = useIdentity()
   const navPinned = useWorkbench((s) => s.navPinned)
   const currentSpaceId = useWorkbench((s) => s.currentSpaceId)
   const compact = useWorkbench((s) => s.sidebarCompact)
@@ -188,11 +187,7 @@ function TopIsland({ openMenu }: { openMenu: OpenMenu }) {
               aria-label="Profile"
               className="flex h-[30px] w-[30px] shrink-0 items-center justify-center rounded-full border-none bg-transparent p-0 cursor-pointer"
             >
-              {identity ? (
-                <DIDAvatar did={identity.did} size={28} />
-              ) : (
-                <span className="h-7 w-7 rounded-full bg-background-muted" />
-              )}
+              <SelfAvatar size={28} />
             </button>
             <button
               type="button"
@@ -254,11 +249,7 @@ function TopIsland({ openMenu }: { openMenu: OpenMenu }) {
               aria-label="Profile"
               className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-none bg-transparent p-0 cursor-pointer"
             >
-              {identity ? (
-                <DIDAvatar did={identity.did} size={32} />
-              ) : (
-                <span className="h-8 w-8 rounded-full bg-background-muted" />
-              )}
+              <SelfAvatar size={32} />
             </button>
             <button
               type="button"

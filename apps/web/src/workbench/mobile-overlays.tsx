@@ -19,7 +19,7 @@ import type { SurfaceDef } from './surfaces'
 import type { CreatableDocType } from '../lib/doc-creation'
 import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { useIdentity } from '@xnetjs/react'
-import { DIDAvatar, usePrefersReducedMotion, useTheme } from '@xnetjs/ui'
+import { usePrefersReducedMotion, useTheme } from '@xnetjs/ui'
 import {
   Check,
   FilePlus2,
@@ -41,6 +41,8 @@ import {
   type LucideIcon
 } from 'lucide-react'
 import { useRef, useState } from 'react'
+import { useCommsMaybe } from '../comms/CommsContext'
+import { SelfAvatar } from '../components/SelfAvatar'
 import { useSpaces } from '../hooks/useSpaces'
 import { DOC_TYPE_ROUTES } from '../lib/doc-creation'
 import { logout } from '../lib/identity'
@@ -583,7 +585,8 @@ function WorkspaceSheet({ reduced, onClose }: { reduced: boolean; onClose: () =>
 
 function ProfileSheet({ reduced, onClose }: { reduced: boolean; onClose: () => void }) {
   const navigate = useNavigate()
-  const { identity } = useIdentity()
+  const { did } = useIdentity()
+  const me = useCommsMaybe()?.me
   const { resolvedTheme, toggleTheme } = useTheme()
   const dark = resolvedTheme === 'dark'
   const go = (to: string) => {
@@ -594,14 +597,12 @@ function ProfileSheet({ reduced, onClose }: { reduced: boolean; onClose: () => v
     <BottomSheet reduced={reduced} duration={0.2} className="px-2 pb-4">
       <Grabber />
       <div className="flex items-center gap-3 px-2.5 pb-3 pt-2">
-        {identity ? (
-          <DIDAvatar did={identity.did} size={34} />
-        ) : (
-          <span className="h-[34px] w-[34px] rounded-full bg-background-muted" />
-        )}
+        <SelfAvatar size={34} />
         <div className="min-w-0">
-          <div className="text-[15px] font-medium text-ink-1">You</div>
-          <div className="truncate font-mono text-[11px] text-ink-3">{identity?.did ?? '—'}</div>
+          <div className="truncate text-[15px] font-medium text-ink-1">
+            {me?.name?.trim() || 'You'}
+          </div>
+          <div className="truncate font-mono text-[11px] text-ink-3">{did ?? '—'}</div>
         </div>
       </div>
       <button type="button" className={ROW} onClick={() => go('/settings')}>

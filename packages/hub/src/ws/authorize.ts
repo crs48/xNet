@@ -27,6 +27,7 @@ import type { HubStorage } from '../storage/interface'
 import type { WebSocket } from 'ws'
 import { hasHubCapability } from '../auth/capabilities'
 import { HUB_METRICS } from '../middleware/metrics'
+import { profileSubjectFromDocId } from '../services/share-access'
 import { buildWsError } from './errors'
 
 export const topicToResource = (topic: string): string =>
@@ -38,7 +39,7 @@ export type AuthzDecision = {
   allowed: boolean
   code?: AuthzCode
   message?: string
-  source?: 'capability' | 'grant-index' | 'space-grant'
+  source?: 'capability' | 'grant-index' | 'space-grant' | 'profile-public'
 }
 
 export type RoomAuthAction = 'hub/relay' | 'hub/signal'
@@ -56,7 +57,7 @@ const logAuthDecision = (input: {
   did: string
   action: string
   resource: string
-  source?: 'capability' | 'grant-index' | 'space-grant'
+  source?: 'capability' | 'grant-index' | 'space-grant' | 'profile-public'
   code?: AuthzCode
   reason?: string
 }): void => {
@@ -117,6 +118,22 @@ export const authorizeRoomAction = async (input: {
       reason: decision.message
     })
     return decision
+  }
+
+  // Profile rooms (`profile-<did>`) are hub-published identity: any
+  // authenticated DID may subscribe so shared content can render author
+  // names/avatars, regardless of grants or capabilities. Writes stay
+  // subject-only — enforced on the write paths (canWriteNodeChange /
+  // canWriteYjs in ShareAccessService).
+  if (input.session.did !== 'did:key:anonymous' && profileSubjectFromDocId(resource)) {
+    logAuthDecision({
+      allowed: true,
+      did: input.session.did,
+      action: input.action,
+      resource,
+      source: 'profile-public'
+    })
+    return { allowed: true, source: 'profile-public' }
   }
 
   if (

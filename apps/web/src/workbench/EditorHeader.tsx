@@ -8,7 +8,6 @@
  */
 import type { ShareDocType } from '../hooks/useShareLinks'
 import { useIdentity } from '@xnetjs/react'
-import { DIDAvatar } from '@xnetjs/ui'
 import {
   Bell,
   Database,
@@ -22,6 +21,7 @@ import {
   type LucideIcon
 } from 'lucide-react'
 import { useState } from 'react'
+import { SelfAvatar } from '../components/SelfAvatar'
 import { ShareDialog } from '../components/ShareDialog'
 import { useRequestCount } from '../hooks/useRequestCount'
 import { selectActiveTab, useWorkbench, type TabNodeType } from './state'
@@ -82,7 +82,7 @@ export function EditorHeader({ onOpenNotif }: { onOpenNotif: (e: React.MouseEven
         {/* "You" presence avatar. */}
         {identity && (
           <span className="flex rounded-full ring-2 ring-canvas" title="You">
-            <DIDAvatar did={identity.did} size={24} />
+            <SelfAvatar size={24} />
           </span>
         )}
 

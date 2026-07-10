@@ -20,11 +20,12 @@ import {
   InboxStateSchema,
   ProfileSchema,
   inboxStateNodeId,
+  profileNodeId,
   type InboxItemTriage
 } from '@xnetjs/data'
-import { useQuery } from '@xnetjs/react'
+import { useQuery, useXNet } from '@xnetjs/react'
 import { useDataBridge } from '@xnetjs/react/internal'
-import { useCallback, useMemo, useSyncExternalStore } from 'react'
+import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react'
 import { dedupeProfiles, displayName, type ProfileEntry } from './comms-utils'
 import { useComms } from './CommsContext'
 import { useRoomSession } from './use-room-session'
@@ -53,6 +54,41 @@ export function useProfiles(): ProfileEntry[] {
     () => dedupeProfiles(data as unknown as Array<Record<string, unknown>> | null),
     [data]
   )
+}
+
+// Profile acquisitions already requested this session — module-level so every
+// surface shares one in-flight set and a missing profile is asked for once.
+const requestedProfileNodes = new Set<string>()
+
+/**
+ * Make sure a Profile is present (or being fetched) for each DID. Authors in
+ * shared contexts are only DIDs on `createdBy`; their canonical profile node
+ * is acquired from the hub by its deterministic `profileNodeId` — profile
+ * rooms are readable by any authenticated peer (hub-published identity).
+ */
+export function useEnsureProfiles(dids: ReadonlyArray<string | undefined | null>): void {
+  const { syncManager } = useXNet()
+  const profiles = useProfiles()
+  const key = useMemo(
+    () =>
+      [...new Set(dids.filter((d): d is string => Boolean(d?.startsWith('did:'))))]
+        .sort()
+        .join(' '),
+    [dids]
+  )
+  useEffect(() => {
+    if (!syncManager || !key) return
+    for (const did of key.split(' ')) {
+      if (profiles.some((p) => p.did === did)) continue
+      const nodeId = profileNodeId(did)
+      if (requestedProfileNodes.has(nodeId)) continue
+      requestedProfileNodes.add(nodeId)
+      void Promise.resolve(syncManager.acquire(nodeId)).catch(() => {
+        // Allow a retry on the next render burst (e.g. hub reconnect).
+        requestedProfileNodes.delete(nodeId)
+      })
+    }
+  }, [syncManager, key, profiles])
 }
 
 // ─── Chat data ───────────────────────────────────────────────────────────────

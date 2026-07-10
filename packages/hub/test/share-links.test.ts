@@ -13,11 +13,13 @@ import { WebSocket } from 'ws'
 import { createHub, type HubInstance } from '../src'
 import {
   isCommentSchema,
+  profileSubjectFromDocId,
   roleFromActions,
   ShareAccessService,
   SHARE_ROLE_ACTIONS
 } from '../src/services/share-access'
 import { createMemoryStorage } from '../src/storage/memory'
+import { authorizeRoomAction } from '../src/ws/authorize'
 
 const PORT = 14491
 const BASE = `http://localhost:${PORT}`
@@ -547,5 +549,70 @@ describe('ShareAccessService', () => {
     expect(await access.getStatus('did:key:zReader', 'doc-1')).toBe('revoked')
     expect(await access.isDenied('did:key:zReader', 'doc-1')).toBe(true)
     expect(await access.canWriteNodeChange('did:key:zReader', 'doc-1', 'any')).toBe(false)
+  })
+})
+
+describe('profile rooms (hub-published identity)', () => {
+  const subject = 'did:key:zSubject'
+  const profileDoc = `profile-${subject}`
+
+  it('parses the subject DID out of profile doc IDs only', () => {
+    expect(profileSubjectFromDocId(profileDoc)).toBe(subject)
+    expect(profileSubjectFromDocId('profile-not-a-did')).toBeNull()
+    expect(profileSubjectFromDocId('doc-1')).toBeNull()
+    expect(profileSubjectFromDocId(`inbox-${subject}`)).toBeNull()
+  })
+
+  it('only the subject DID may write a profile room', async () => {
+    const access = new ShareAccessService(createMemoryStorage(), 60_000)
+    expect(
+      await access.canWriteNodeChange(subject, profileDoc, 'xnet://xnet.fyi/Profile@1.0.0')
+    ).toBe(true)
+    expect(await access.canWriteYjs(subject, profileDoc)).toBe(true)
+    // Any other DID is rejected even though it has no restricting grant
+    // (the legacy "no grant → unrestricted" rule must not apply here).
+    expect(
+      await access.canWriteNodeChange('did:key:zOther', profileDoc, 'xnet://xnet.fyi/Profile@1.0.0')
+    ).toBe(false)
+    expect(await access.canWriteYjs('did:key:zOther', profileDoc)).toBe(false)
+  })
+
+  it('any authenticated DID may subscribe to a profile room, anonymous may not (beyond capabilities)', async () => {
+    const storage = createMemoryStorage()
+    const shareAccess = new ShareAccessService(storage, 60_000)
+    // A recipient whose token carries no capability for this resource —
+    // e.g. a share grantee from another workspace.
+    const session = { did: 'did:key:zRecipient', capabilities: [], token: null }
+
+    const profileRead = await authorizeRoomAction({
+      storage,
+      session,
+      action: 'hub/signal',
+      topic: `xnet-doc-${profileDoc}`,
+      shareAccess
+    })
+    expect(profileRead.allowed).toBe(true)
+    expect(profileRead.source).toBe('profile-public')
+
+    // The same session is still denied on a normal doc room.
+    const docRead = await authorizeRoomAction({
+      storage,
+      session,
+      action: 'hub/signal',
+      topic: 'xnet-doc-doc-1',
+      shareAccess
+    })
+    expect(docRead.allowed).toBe(false)
+
+    // Anonymous sessions get no profile-public allowance (they pass or fail
+    // on capabilities alone).
+    const anon = await authorizeRoomAction({
+      storage,
+      session: { did: 'did:key:anonymous', capabilities: [], token: null },
+      action: 'hub/signal',
+      topic: `xnet-doc-${profileDoc}`,
+      shareAccess
+    })
+    expect(anon.allowed).toBe(false)
   })
 })

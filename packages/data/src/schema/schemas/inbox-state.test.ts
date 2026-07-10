@@ -1,7 +1,7 @@
 import type { DID } from '../node'
 import { describe, it, expect } from 'vitest'
 import { InboxStateSchema, inboxStateNodeId } from './inbox-state'
-import { ProfileSchema } from './profile'
+import { didFromProfileNodeId, ProfileSchema, profileNodeId } from './profile'
 
 const alice = 'did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK' as DID
 
@@ -20,6 +20,23 @@ describe('ProfileSchema', () => {
   it('requires displayName', () => {
     const invalid = ProfileSchema.create({ did: alice } as never, { createdBy: alice })
     expect(ProfileSchema.validate(invalid).valid).toBe(false)
+  })
+
+  it('accepts a small inline data-URL avatar', () => {
+    const avatar = `data:image/jpeg;base64,${'A'.repeat(10_000)}`
+    const profile = ProfileSchema.create(
+      { did: alice, displayName: 'Alice', avatar },
+      { createdBy: alice, id: profileNodeId(alice) }
+    )
+    expect(ProfileSchema.validate(profile).valid).toBe(true)
+  })
+
+  it('profileNodeId is deterministic and round-trips the DID', () => {
+    expect(profileNodeId(alice)).toBe(`profile-${alice}`)
+    expect(profileNodeId(alice)).toBe(profileNodeId(alice))
+    expect(didFromProfileNodeId(profileNodeId(alice))).toBe(alice)
+    expect(didFromProfileNodeId('inbox-did:key:z6Mk')).toBeNull()
+    expect(didFromProfileNodeId('profile-not-a-did')).toBeNull()
   })
 })
 

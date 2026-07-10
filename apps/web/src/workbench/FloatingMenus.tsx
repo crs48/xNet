@@ -8,7 +8,7 @@
  */
 import { useNavigate } from '@tanstack/react-router'
 import { useIdentity } from '@xnetjs/react'
-import { DIDAvatar, useTheme } from '@xnetjs/ui'
+import { useTheme } from '@xnetjs/ui'
 import {
   Check,
   FolderPlus,
@@ -24,6 +24,8 @@ import {
   User
 } from 'lucide-react'
 import { createPortal } from 'react-dom'
+import { useCommsMaybe } from '../comms/CommsContext'
+import { SelfAvatar } from '../components/SelfAvatar'
 import { useRequestCount } from '../hooks/useRequestCount'
 import { useSpaces } from '../hooks/useSpaces'
 import { DOC_TYPE_ROUTES } from '../lib/doc-creation'
@@ -191,7 +193,8 @@ function NotifMenu({ close }: { close: () => void }) {
 
 function ProfileMenu({ close }: { close: () => void }) {
   const navigate = useNavigate()
-  const { identity } = useIdentity()
+  const { did } = useIdentity()
+  const me = useCommsMaybe()?.me
   const { resolvedTheme, toggleTheme } = useTheme()
   const dark = resolvedTheme === 'dark'
   const go = (to: string) => {
@@ -203,10 +206,12 @@ function ProfileMenu({ close }: { close: () => void }) {
   return (
     <div className="w-[236px] p-1.5">
       <div className="flex items-center gap-2.5 px-2 pb-2.5 pt-1">
-        {identity && <DIDAvatar did={identity.did} size={32} />}
+        {did && <SelfAvatar size={32} />}
         <div className="min-w-0">
-          <div className="text-[13px] font-medium text-ink-1">You</div>
-          <div className="truncate font-mono text-[11px] text-ink-3">{identity?.did ?? '—'}</div>
+          <div className="truncate text-[13px] font-medium text-ink-1">
+            {me?.name?.trim() || 'You'}
+          </div>
+          <div className="truncate font-mono text-[11px] text-ink-3">{did ?? '—'}</div>
         </div>
       </div>
       <div className="mx-0.5 mb-1 h-px bg-hairline" />

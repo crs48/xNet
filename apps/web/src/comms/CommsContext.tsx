@@ -17,10 +17,18 @@ import {
   type RoomSession,
   type UserCard
 } from '@xnetjs/comms'
-import { ProfileSchema, type NodeChangeEvent } from '@xnetjs/data'
+import { ProfileSchema, profileNodeId, type NodeChangeEvent } from '@xnetjs/data'
 import { useQuery, useXNet } from '@xnetjs/react'
 import { useDataBridge } from '@xnetjs/react/internal'
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode
+} from 'react'
 import { tabFromPathname } from '../workbench/tabs'
 import { userCardFrom } from './comms-utils'
 import { useDesktopNotificationDelivery } from './desktop-notifications'
@@ -58,9 +66,50 @@ function useMe(): UserCard {
   const { data: profiles } = useQuery(ProfileSchema, {
     where: { did: did as `did:key:${string}` }
   })
-  const profile = profiles?.[0] as unknown as Record<string, unknown> | undefined
+  // Prefer the canonical deterministic node over a legacy random-ID one.
+  const nodes = (profiles ?? []) as unknown as Array<Record<string, unknown>>
+  const profile = nodes.find((p) => String(p.id) === profileNodeId(did)) ?? nodes[0]
   // Query snapshots preserve node identity (0163), so `profile` is a stable dep.
   return useMemo(() => userCardFrom(did, profile), [did, profile])
+}
+
+/**
+ * One-time migration: copy a legacy random-ID profile onto the deterministic
+ * `profileNodeId(did)` node, so share recipients can acquire this user's
+ * profile knowing only the DID. Idempotent — skipped once a canonical node
+ * exists; the legacy node is superseded (dedupeProfiles: newest wins), not
+ * deleted.
+ */
+function useProfileNodeMigration(): void {
+  const { authorDID } = useXNet()
+  const bridge = useDataBridge()
+  const { data: profiles } = useQuery(ProfileSchema, {
+    where: { did: (authorDID ?? '') as `did:key:${string}` }
+  })
+  const attempted = useRef(false)
+  useEffect(() => {
+    if (attempted.current || !bridge || !authorDID) return
+    const nodes = (profiles ?? []) as unknown as Array<Record<string, unknown>>
+    if (nodes.length === 0) return
+    const canonicalId = profileNodeId(authorDID)
+    if (nodes.some((p) => String(p.id) === canonicalId)) return
+    const newest = [...nodes].sort((a, b) => Number(b.createdAt ?? 0) - Number(a.createdAt ?? 0))[0]
+    const displayName = (newest.displayName as string | undefined)?.trim()
+    if (!displayName) return
+    attempted.current = true
+    void bridge.create(
+      ProfileSchema,
+      {
+        did: authorDID as `did:key:${string}`,
+        displayName,
+        handle: (newest.handle as string | undefined) ?? '',
+        avatar: (newest.avatar as string | undefined) ?? '',
+        statusEmoji: (newest.statusEmoji as string | undefined) ?? '',
+        statusMessage: (newest.statusMessage as string | undefined) ?? ''
+      },
+      canonicalId
+    )
+  }, [bridge, authorDID, profiles])
 }
 
 /**
@@ -117,6 +166,7 @@ function useNotifierFeed(notifier: Notifier): void {
 export function CommsProvider({ children }: { children: ReactNode }) {
   const { syncManager, authorDID } = useXNet()
   const me = useMe()
+  useProfileNodeMigration()
 
   const roomManager = useMemo(() => {
     if (!syncManager) return null

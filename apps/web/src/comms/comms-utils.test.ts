@@ -10,6 +10,7 @@ import {
   mergeMentionables,
   normalizeHandle,
   profileFormValues,
+  safeAvatarSrc,
   toggleTrackKind,
   userCardFrom
 } from './comms-utils'
@@ -32,12 +33,33 @@ describe('displayName / colorForDid / userCardFrom', () => {
   })
 
   it('userCardFrom merges profile fields', () => {
-    expect(userCardFrom(alice, { displayName: 'Alice', avatar: 'a.png' })).toMatchObject({
+    expect(
+      userCardFrom(alice, { displayName: 'Alice', avatar: 'https://cdn.example/a.png' })
+    ).toMatchObject({
       did: alice,
       name: 'Alice',
-      avatar: 'a.png'
+      avatar: 'https://cdn.example/a.png'
     })
     expect(userCardFrom(alice, undefined).name).toBeUndefined()
+  })
+})
+
+describe('safeAvatarSrc', () => {
+  it('allows inline images, web URLs, and object URLs', () => {
+    expect(safeAvatarSrc('data:image/webp;base64,AAAA')).toBe('data:image/webp;base64,AAAA')
+    expect(safeAvatarSrc('https://cdn.example/a.png')).toBe('https://cdn.example/a.png')
+    expect(safeAvatarSrc('blob:https://app.example/uuid')).toBe('blob:https://app.example/uuid')
+  })
+
+  it('drops everything else — profiles sync from untrusted peers', () => {
+    expect(safeAvatarSrc('javascript:alert(1)')).toBeUndefined()
+    // eslint-disable-next-line no-script-url
+    expect(safeAvatarSrc('JAVASCRIPT:alert(1)')).toBeUndefined()
+    expect(safeAvatarSrc('data:text/html,<script>')).toBeUndefined()
+    expect(safeAvatarSrc('file:///etc/passwd')).toBeUndefined()
+    expect(safeAvatarSrc('a.png')).toBeUndefined()
+    expect(safeAvatarSrc('')).toBeUndefined()
+    expect(safeAvatarSrc(undefined)).toBeUndefined()
   })
 })
 
@@ -55,6 +77,31 @@ describe('dedupeProfiles', () => {
 
   it('handles null input', () => {
     expect(dedupeProfiles(null)).toEqual([])
+  })
+
+  it('prefers self-authored profiles over impersonating ones (createdBy ≠ did)', () => {
+    const result = dedupeProfiles([
+      // Newest node is a spoof injected by bob — the older self-authored
+      // profile must still win.
+      { did: alice, displayName: 'Fake Alice', createdBy: bob },
+      { did: alice, displayName: 'Real Alice', createdBy: alice },
+      { did: bob, displayName: 'Bob' } // no createdBy: legacy local node, trusted
+    ])
+    expect(result).toHaveLength(2)
+    expect(result.find((p) => p.did === alice)?.name).toBe('Real Alice')
+  })
+
+  it('falls back to a foreign-authored profile when no self-authored one exists', () => {
+    // Seeded demo people are authored by the seeding user, not their own DID.
+    const result = dedupeProfiles([{ did: alice, displayName: 'Seeded Alice', createdBy: bob }])
+    expect(result[0]?.name).toBe('Seeded Alice')
+  })
+
+  it('sanitizes avatar sources', () => {
+    const result = dedupeProfiles([
+      { did: alice, displayName: 'Alice', avatar: 'javascript:alert(1)', createdBy: alice }
+    ])
+    expect(result[0]?.avatar).toBeUndefined()
   })
 })
 

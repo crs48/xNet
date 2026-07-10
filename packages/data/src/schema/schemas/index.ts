@@ -214,7 +214,7 @@ export {
 } from './map'
 export { CommentSchema, type Comment } from './comment'
 export { ReactionSchema, type Reaction } from './reaction'
-export { ProfileSchema, type Profile } from './profile'
+export { ProfileSchema, profileNodeId, didFromProfileNodeId, type Profile } from './profile'
 export { ChannelSchema, CHANNEL_KINDS, type Channel, type ChannelKind } from './channel'
 export { ChatMessageSchema, type ChatMessage } from './chat-message'
 // Integration schema pack (exploration 0213)

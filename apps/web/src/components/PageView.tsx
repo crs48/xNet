@@ -36,7 +36,7 @@ import {
 } from '@xnetjs/ui'
 import { MessageSquare } from 'lucide-react'
 import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
-import { useProfiles } from '../comms/hooks'
+import { useEnsureProfiles, useProfiles } from '../comms/hooks'
 import { useCommentPeople } from '../hooks/useCommentPeople'
 import { useLinkTargets } from '../hooks/useLinkTargets'
 import { useWorkspaceTags } from '../hooks/useWorkspaceTags'
@@ -196,6 +196,13 @@ export function PageView({ docId }: { docId: string }) {
 
   // ─── Comments Integration (shared state machine, 0276) ───────────────────────
 
+  // Comment authors resolve to profile names; on shared pages the authors may
+  // be DIDs we've never met, so missing profiles are acquired by DID below.
+  const resolveAuthorName = useCallback(
+    (did: string) => profiles.find((p) => p.did === did)?.name,
+    [profiles]
+  )
+
   const {
     unresolvedCount,
     threadDataMap,
@@ -229,7 +236,17 @@ export function PageView({ docId }: { docId: string }) {
     handleSidebarEdit,
     handleDismissOrphaned,
     handleReattachOrphaned
-  } = usePageComments({ docId })
+  } = usePageComments({ docId, resolveAuthorName })
+
+  const commentAuthorDids = useMemo(
+    () =>
+      sidebarThreads.flatMap((thread) => [
+        thread.root.author,
+        ...thread.replies.map((reply) => reply.author)
+      ]),
+    [sidebarThreads]
+  )
+  useEnsureProfiles(commentAuthorDids)
 
   const titleInputRef = useRef<HTMLInputElement | null>(null)
 

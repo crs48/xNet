@@ -19,6 +19,8 @@ import {
 } from 'lucide-react'
 import QRCode from 'qrcode'
 import { useMemo, useState } from 'react'
+import { ChatAvatar } from '../comms/ChatAvatar'
+import { displayName, useEnsureProfiles, useProfiles } from '../comms/hooks'
 import {
   roleFromGrantActions,
   useShareGrants,
@@ -154,6 +156,12 @@ function ShareDialogBody({
     [hubHttpUrl]
   )
   const activeGrants = useMemo(() => grants.filter((grant) => grant.revokedAt === 0), [grants])
+
+  // Resolve grantees to their profiles (name + picture); missing ones are
+  // acquired from the hub by DID.
+  const granteeDids = useMemo(() => activeGrants.map((g) => g.granteeDid), [activeGrants])
+  useEnsureProfiles(granteeDids)
+  const profiles = useProfiles()
 
   const handleCreate = async (): Promise<void> => {
     setCreating(true)
@@ -427,16 +435,21 @@ function ShareDialogBody({
                     key={grant.grantId}
                     className="flex items-center gap-2 px-2.5 py-2 rounded-md border border-border"
                   >
+                    <ChatAvatar
+                      did={grant.granteeDid}
+                      src={profiles.find((p) => p.did === grant.granteeDid)?.avatar}
+                      size={24}
+                    />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <span className="text-xs font-mono truncate">
-                          {shortDid(grant.granteeDid)}
+                        <span className="text-xs truncate" title={grant.granteeDid}>
+                          {displayName(grant.granteeDid, profiles)}
                           {grant.granteeDid === authorDID ? ' (you)' : ''}
                         </span>
                         <RoleChip role={roleFromGrantActions(grant.actions)} />
                       </div>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
-                        joined {formatDate(grant.createdAt)}
+                        {shortDid(grant.granteeDid)} · joined {formatDate(grant.createdAt)}
                         {grant.viaLinkLabel
                           ? ` · via “${grant.viaLinkLabel}”`
                           : grant.viaLinkId
