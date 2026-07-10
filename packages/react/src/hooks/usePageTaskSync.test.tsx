@@ -406,6 +406,202 @@ describe('usePageTaskSync', () => {
     )
   })
 
+  it('does not reconcile before the editor publishes its first snapshot', async () => {
+    // Mount race from exploration 0296: the sync hook goes live before the
+    // editor emits, so its default empty snapshot must not archive the
+    // page's tasks.
+    const wrapper = createWrapper()
+
+    const { result } = renderHook(
+      () => ({
+        sync: usePageTaskSync({ pageId: 'page-1', debounceMs: 0 }),
+        mutate: useMutate(),
+        tasks: useQuery(TaskSchema, { where: { page: 'page-1' }, includeDeleted: true })
+      }),
+      { wrapper }
+    )
+
+    await waitFor(() => {
+      expect(result.current.tasks.loading).toBe(false)
+    })
+
+    await act(async () => {
+      await result.current.mutate.create(
+        TaskSchema,
+        { title: 'Pre-existing task', completed: false, page: 'page-1', source: 'page' },
+        'task_preexisting'
+      )
+    })
+
+    await waitFor(() => {
+      expect(result.current.tasks.data).toHaveLength(1)
+    })
+
+    // Give the (debounceMs: 0) reconciler every chance to misfire.
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 25))
+    })
+
+    const task = result.current.tasks.data.find((node) => node.id === 'task_preexisting')
+    expect(task?.deleted).toBeFalsy()
+  })
+
+  it("does not reconcile a previous page's snapshot after the host changes", async () => {
+    // Component-reuse hazard from exploration 0296: navigating a reused
+    // surface to another page must not let the old page's snapshot claim
+    // tasks onto (or archive tasks off) the new page.
+    const wrapper = createWrapper()
+
+    const { result, rerender } = renderHook(
+      ({ pageId }: { pageId: string }) => ({
+        sync: usePageTaskSync({ pageId, debounceMs: 0 }),
+        tasks: useQuery(TaskSchema, { includeDeleted: true })
+      }),
+      { wrapper, initialProps: { pageId: 'page-a' } }
+    )
+
+    await waitFor(() => {
+      expect(result.current.tasks.loading).toBe(false)
+    })
+
+    await act(async () => {
+      result.current.sync.handleTasksChange([
+        {
+          taskId: 'task_host_switch',
+          blockId: 'block_host_switch',
+          title: 'Hosted on A',
+          completed: false,
+          parentTaskId: null,
+          sortKey: '0000',
+          assignees: [],
+          dueDate: null,
+          references: []
+        }
+      ])
+    })
+
+    await waitFor(() => {
+      const task = result.current.tasks.data.find((node) => node.id === 'task_host_switch')
+      expect(task).toMatchObject({ page: 'page-a' })
+    })
+
+    rerender({ pageId: 'page-b' })
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 25))
+    })
+
+    // The stale page-a snapshot must not have been reconciled against page-b.
+    const task = result.current.tasks.data.find((node) => node.id === 'task_host_switch')
+    expect(task).toMatchObject({ page: 'page-a' })
+    expect(task?.deleted).toBeFalsy()
+  })
+
+  it('never overwrites a real title with the extraction placeholder', async () => {
+    // Delete-gesture transient from exploration 0296: emptying an item's
+    // text one transaction before removing the node produces a snapshot
+    // titled 'Untitled task' — it must not clobber the real title.
+    const wrapper = createWrapper()
+
+    const { result } = renderHook(
+      () => ({
+        sync: usePageTaskSync({ pageId: 'page-1', debounceMs: 0 }),
+        tasks: useQuery(TaskSchema, { where: { page: 'page-1' } })
+      }),
+      { wrapper }
+    )
+
+    await waitFor(() => {
+      expect(result.current.tasks.loading).toBe(false)
+    })
+
+    const item = {
+      taskId: 'task_transient',
+      blockId: 'block_transient',
+      title: 'yay',
+      completed: false,
+      parentTaskId: null,
+      sortKey: '0000',
+      assignees: [],
+      dueDate: null,
+      references: []
+    }
+
+    await act(async () => {
+      result.current.sync.handleTasksChange([item])
+    })
+
+    await waitFor(() => {
+      expect(result.current.tasks.data).toHaveLength(1)
+    })
+
+    // The transient mid-delete snapshot: text gone, checkbox toggled.
+    await act(async () => {
+      result.current.sync.handleTasksChange([{ ...item, title: 'Untitled task', completed: true }])
+    })
+
+    await waitFor(() => {
+      const task = result.current.tasks.data.find((node) => node.id === 'task_transient')
+      expect(task).toMatchObject({ title: 'yay', completed: true, status: 'done' })
+    })
+  })
+
+  it('claiming a task with a placeholder-title snapshot preserves its real title', async () => {
+    const wrapper = createWrapper()
+
+    const { result } = renderHook(
+      () => ({
+        syncA: usePageTaskSync({ pageId: 'page-a', debounceMs: 0 }),
+        syncB: usePageTaskSync({ pageId: 'page-b', debounceMs: 0 }),
+        tasks: useQuery(TaskSchema, { includeDeleted: true })
+      }),
+      { wrapper }
+    )
+
+    await waitFor(() => {
+      expect(result.current.tasks.loading).toBe(false)
+    })
+
+    const item = {
+      taskId: 'task_claim_placeholder',
+      blockId: 'block_a',
+      title: 'Real title',
+      completed: false,
+      parentTaskId: null,
+      sortKey: '0000',
+      assignees: [],
+      dueDate: null,
+      references: []
+    }
+
+    await act(async () => {
+      result.current.syncA.handleTasksChange([item])
+    })
+
+    await waitFor(() => {
+      const task = result.current.tasks.data.find((node) => node.id === 'task_claim_placeholder')
+      expect(task).toMatchObject({ page: 'page-a', title: 'Real title' })
+    })
+
+    // Page B claims the task before its editor has materialized the text
+    // (so its snapshot only carries the placeholder).
+    await act(async () => {
+      result.current.syncA.handleTasksChange([])
+      result.current.syncB.handleTasksChange([
+        { ...item, blockId: 'block_b', title: 'Untitled task' }
+      ])
+    })
+
+    await waitFor(() => {
+      const matches = result.current.tasks.data.filter(
+        (node) => node.id === 'task_claim_placeholder'
+      )
+      expect(matches).toHaveLength(1)
+      expect(matches[0]).toMatchObject({ page: 'page-b', title: 'Real title' })
+      expect(matches[0]?.deleted).toBeFalsy()
+    })
+  })
+
   it('ignores invalid due date strings when syncing task nodes', async () => {
     const wrapper = createWrapper()
 

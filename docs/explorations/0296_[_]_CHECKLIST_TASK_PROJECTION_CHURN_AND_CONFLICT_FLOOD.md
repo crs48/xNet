@@ -392,11 +392,11 @@ already do: `packages/ui/src/composed/tasks/TaskRow.tsx:147` etc.)
       sqlite/memory/worker-bridge implementations
 - [x] `@xnetjs/data`: `applyRemoteChange` early-returns on already-applied
       hash; memory adapter `appendChange`/`appendChanges` dedupe by hash
-- [ ] `@xnetjs/react`: first-snapshot gate + `hostId`-keyed snapshot reset in
+- [x] `@xnetjs/react`: first-snapshot gate + `hostId`-keyed snapshot reset in
       `useTaskProjectionSync`
-- [ ] `@xnetjs/react`: placeholder-title write guard (and/or emit
+- [x] `@xnetjs/react`: placeholder-title write guard (and/or emit
       `title: null` from extraction, fallback moves to display only)
-- [ ] `@xnetjs/react`: claim path writes host fields + diffed rest instead of
+- [x] `@xnetjs/react`: claim path writes host fields + diffed rest instead of
       the full projection (C5-lite)
 - [ ] `@xnetjs/devtools`: split `store:conflict` vs `store:lww-resolution`
       in the event taxonomy + ChangeTimeline rendering (collapsed group)
