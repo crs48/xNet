@@ -1,5 +1,24 @@
 # @xnetjs/runtime
 
+## 0.2.0
+
+### Minor Changes
+
+- [#448](https://github.com/crs48/xNet/pull/448) [`853d849`](https://github.com/crs48/xNet/commit/853d849039ebf7793dcc41ef3370def95e5dba14) Thanks [@crs48](https://github.com/crs48)! - `NodeStoreSyncProvider` now handles hub capacity rejections gracefully: on the first `QUOTA_EXCEEDED` (over the hub's per-user cap) or `STORAGE_FULL` (hub disk full) rejection it pauses outbound sync instead of re-flooding the hub, keeps local data intact, and resumes on the next reconnect. Subscribe to the new `onSyncBlocked(listener)` API (with `SyncBlockedReason`/`SyncBlockedListener` types) to surface a "storage full" notice in your app.
+
+### Patch Changes
+
+- Updated dependencies [[`dd3b1cb`](https://github.com/crs48/xNet/commit/dd3b1cb270386b243afe0ba28e8e2a55c9ff2726), [`677856e`](https://github.com/crs48/xNet/commit/677856e0317800a0f6e78531ae490aca744570d9)]:
+  - @xnetjs/plugins@0.8.0
+  - @xnetjs/history@0.8.0
+  - @xnetjs/data-bridge@0.8.0
+  - @xnetjs/data@0.8.0
+  - @xnetjs/storage@0.8.0
+  - @xnetjs/sync@0.8.0
+  - @xnetjs/identity@0.8.0
+  - @xnetjs/crypto@0.8.0
+  - @xnetjs/core@0.8.0
+
 ## 0.1.8
 
 ### Patch Changes

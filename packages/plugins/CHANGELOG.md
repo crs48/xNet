@@ -1,5 +1,38 @@
 # @xnetjs/plugins
 
+## 0.8.0
+
+### Minor Changes
+
+- [#420](https://github.com/crs48/xNet/pull/420) [`dd3b1cb`](https://github.com/crs48/xNet/commit/dd3b1cb270386b243afe0ba28e8e2a55c9ff2726) Thanks [@crs48](https://github.com/crs48)! - Single-shell layout primitives (exploration 0284): `createDefaultTree()` and `DEFAULT_WORKSPACE_ID` join the workspace layout API — the one canonical tree (a sectioned sidebar in the rail, the full left dock, tabs on) that replaces the quiet/calm/bench preset trichotomy. Purely additive: `createPresetTree` and the preset ids remain for the devtools seed and portable-workspace round-trips.
+
+- [#439](https://github.com/crs48/xNet/pull/439) [`677856e`](https://github.com/crs48/xNet/commit/677856e0317800a0f6e78531ae490aca744570d9) Thanks [@crs48](https://github.com/crs48)! - Secure the browser↔local-model bridge (exploration 0289).
+  - **`@xnetjs/devkit` (breaking):** the agent bridge daemon now **requires a
+    per-launch pairing token** (`Authorization: Bearer <token>`, constant-time
+    compared) on its data endpoints (`/v1/chat/completions`, `/run`) and validates
+    the `Host` header to reject DNS-rebinding requests. `BridgeServerConfig` gains
+    `pairingToken?`, `BridgeServerHandle` exposes `pairingToken`, and a token is
+    auto-generated when none is supplied — so a client that previously called the
+    data endpoints with no auth now gets `401`. `/health` stays unauthenticated so
+    detection still works before pairing. New `openAiChatAgent` lets the bridge
+    front a raw OpenAI-compatible model server (Ollama/LM Studio) through the same
+    authenticated door.
+  - **`@xnetjs/plugins`:** `ConnectorEnv` gains `appOrigin` and the local-server
+    setup hint now names the exact `OLLAMA_ORIGINS=<origin>` line (never a
+    wildcard); new `localServerSetupHint` export; the MCP HTTP transport now
+    validates the `Host` header (defense-in-depth, no change for legitimate
+    callers). Additive.
+  - **`@xnetjs/cli`:** `xnet bridge serve` prints the pairing code and gains
+    `--token` (pin the code) and `--upstream` / `--upstream-model` (front a raw
+    local model). Additive.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/data@0.8.0
+  - @xnetjs/abuse@0.8.0
+  - @xnetjs/core@0.8.0
+
 ## 0.7.0
 
 ### Minor Changes

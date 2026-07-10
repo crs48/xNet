@@ -1,6 +1,6 @@
 {
   "name": "@xnetjs/devkit",
-  "version": "0.0.2",
+  "version": "1.0.0",
   "description": "The agentic dev-loop core (exploration 0190): isolate in a git worktree, let a bring-your-own coding agent edit, run a validation gate, then checkpoint or roll back. Injectable command runner; zero runtime dependencies.",
   "license": "MIT",
   "type": "module",

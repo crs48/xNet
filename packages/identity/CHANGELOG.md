@@ -1,5 +1,13 @@
 # @xnetjs/identity
 
+## 0.8.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/crypto@0.8.0
+  - @xnetjs/core@0.8.0
+
 ## 0.7.0
 
 ### Patch Changes
