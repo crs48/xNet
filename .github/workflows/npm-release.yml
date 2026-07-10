@@ -31,10 +31,13 @@ jobs:
           node-version: '24'
           registry-url: 'https://registry.npmjs.org'
 
-      # Trusted publishing (OIDC) requires npm CLI >= 11.5.1. Pin latest so the
-      # token-less publish + provenance path is always available. (Exploration 0220.)
+      # Trusted publishing (OIDC) requires npm CLI >= 11.5.1. Pin the 11.x line:
+      # `npm@latest` bit us the day npm 12.0.0 shipped with a build missing the
+      # `sigstore` module its own provenance path requires (MODULE_NOT_FOUND on
+      # every `--provenance` publish). Bump this pin deliberately once a 12.x
+      # publish has been verified. (Explorations 0220, 0291 follow-up.)
       - name: Ensure npm supports trusted publishing
-        run: npm install -g npm@latest
+        run: npm install -g npm@11
 
       - name: Create release PR or publish
         id: changesets
