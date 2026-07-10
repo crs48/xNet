@@ -13,7 +13,7 @@
  */
 
 /** Origin of the xNet Cloud control plane (auth callback, checkout, dashboard). */
-export const CLOUD_ORIGIN = 'https://cloud.xnet.fyi'
+const CLOUD_ORIGIN = 'https://cloud.xnet.fyi'
 
 /** Deep-link into the WorkOS AuthKit sign-in, carrying the chosen plan. */
 export function startUrl(plan: string): string {

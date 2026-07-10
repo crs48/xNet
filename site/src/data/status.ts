@@ -15,14 +15,14 @@ import raw from './status.json'
 
 export type ComponentStatus = 'operational' | 'degraded' | 'down' | 'not-configured'
 
-export interface StatusComponent {
+interface StatusComponent {
   id: string
   status: ComponentStatus
   /** Rolling availability fraction (0..1), or null when suppressed / not applicable. */
   availability?: number | null
 }
 
-export interface PublicStatus {
+interface PublicStatus {
   updatedMs: number
   overall: ComponentStatus
   components: StatusComponent[]

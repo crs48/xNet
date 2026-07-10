@@ -92,8 +92,9 @@ test.describe('Authorization Core Functionality', () => {
 
     // ─── Test 2: Create a Database ──────────────────────────────────────
 
-    // Navigate back to home
-    await page.click('[aria-label*="Home"], [title*="Home"], a[href="/"]')
+    // Navigate back to home. The single-shell workbench (0284) has no Home
+    // affordance — reload the root instead.
+    await page.goto(process.env.PLAYWRIGHT_TEST_BASE_URL || 'http://localhost:5173')
     await page.waitForTimeout(1000)
 
     // Create database
