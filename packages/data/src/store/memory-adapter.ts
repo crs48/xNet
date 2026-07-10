@@ -67,25 +67,29 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
   // ==========================================================================
 
   async appendChange(change: NodeChange): Promise<void> {
-    const nodeId = change.payload.nodeId
-
-    // Add to node's change list
-    const existing = this.changes.get(nodeId) ?? []
-    existing.push(change)
-    this.changes.set(nodeId, existing)
-
-    // Index by hash
-    this.changesByHash.set(change.hash, change)
+    this.appendChangeInternal(change)
   }
 
   async appendChanges(changes: readonly NodeChange[]): Promise<void> {
-    changes.forEach((change) => {
-      const nodeId = change.payload.nodeId
-      const existing = this.changes.get(nodeId) ?? []
-      existing.push(change)
-      this.changes.set(nodeId, existing)
-      this.changesByHash.set(change.hash, change)
-    })
+    changes.forEach((change) => this.appendChangeInternal(change))
+  }
+
+  /**
+   * Append with hash dedupe — replayed changes must not grow the log
+   * (matches the SQLite adapter's `INSERT OR IGNORE`; exploration 0296).
+   */
+  private appendChangeInternal(change: NodeChange): void {
+    if (this.changesByHash.has(change.hash)) return
+
+    const nodeId = change.payload.nodeId
+    const existing = this.changes.get(nodeId) ?? []
+    existing.push(change)
+    this.changes.set(nodeId, existing)
+    this.changesByHash.set(change.hash, change)
+  }
+
+  async hasChange(hash: ContentId): Promise<boolean> {
+    return this.changesByHash.has(hash)
   }
 
   async getChanges(nodeId: NodeId): Promise<NodeChange[]> {

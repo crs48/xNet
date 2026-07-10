@@ -652,6 +652,128 @@ describe('NodeStore', () => {
       // Find the conflict for the 'value' property
       const valueConflict = conflicts.find((c) => c.key === 'value')
       expect(valueConflict).toBeDefined()
+      // A winning cross-author write over a differing value is informational
+      // LWW housekeeping, not a true conflict (exploration 0296).
+      expect(valueConflict?.kind).toBe('lww-resolution')
+    })
+
+    // Conflict-predicate golden vectors (exploration 0296): same-author
+    // causal history, idempotent replays, and equal values never record;
+    // only divergent cross-author writes do.
+    it('does not record conflicts for same-author sequential writes', async () => {
+      const { store } = createTestStore()
+      await store.initialize()
+
+      await store.create({ id: 'seq-node', schemaId: TEST_SCHEMA, properties: { value: 'a' } })
+      await store.update('seq-node', { properties: { value: 'b' } })
+      await store.update('seq-node', { properties: { value: 'c' } })
+
+      expect(store.getRecentConflicts()).toHaveLength(0)
+    })
+
+    it('does not record a conflict when a stale same-author change is applied', async () => {
+      const source = createTestStore()
+      const target = createTestStore()
+      await source.store.initialize()
+      await target.store.initialize()
+
+      await source.store.create({
+        id: 'stale-node',
+        schemaId: TEST_SCHEMA,
+        properties: { value: 'v1' }
+      })
+      await source.store.update('stale-node', { properties: { value: 'v2' } })
+      await source.store.update('stale-node', { properties: { value: 'v3' } })
+      const [createChange, update1, update2] = await source.store.getChanges('stale-node')
+
+      // Deliver out of order: v3 lands, then the stale v2 arrives late (the
+      // hub-backfill shape from exploration 0296). Same author on both sides
+      // is causal history, not a conflict.
+      await target.store.applyRemoteChange(createChange)
+      await target.store.applyRemoteChange(update2)
+      await target.store.applyRemoteChange(update1)
+
+      const node = await target.store.get('stale-node')
+      expect(node!.properties.value).toBe('v3')
+      expect(target.store.getRecentConflicts()).toHaveLength(0)
+    })
+
+    it('applies a redelivered change idempotently without growing the log', async () => {
+      const source = createTestStore()
+      const target = createTestStore()
+      await source.store.initialize()
+      await target.store.initialize()
+
+      await source.store.create({
+        id: 'replay-node',
+        schemaId: TEST_SCHEMA,
+        properties: { value: 'once' }
+      })
+      const [createChange] = await source.store.getChanges('replay-node')
+
+      await target.store.applyRemoteChange(createChange)
+      await target.store.applyRemoteChange(createChange)
+      await target.store.applyRemoteChange(createChange)
+
+      const log = await target.store.getChanges('replay-node')
+      expect(log).toHaveLength(1)
+      expect((await target.store.get('replay-node'))!.properties.value).toBe('once')
+      expect(target.store.getRecentConflicts()).toHaveLength(0)
+    })
+
+    it('records a true conflict when a cross-author write loses to a newer local value', async () => {
+      const source = createTestStore()
+      const target = createTestStore()
+      await source.store.initialize()
+      await target.store.initialize()
+
+      await source.store.create({
+        id: 'cross-node',
+        schemaId: TEST_SCHEMA,
+        properties: { value: 'origin' }
+      })
+      await source.store.update('cross-node', { properties: { value: 'source-edit' } })
+      const [createChange, sourceUpdate] = await source.store.getChanges('cross-node')
+
+      await target.store.applyRemoteChange(createChange)
+      // Target edits locally first (fresh lamport beats the source update)…
+      await target.store.update('cross-node', { properties: { value: 'target-edit' } })
+      target.store.clearConflicts()
+      // …then the divergent cross-author write arrives late and loses.
+      await target.store.applyRemoteChange(sourceUpdate)
+
+      const node = await target.store.get('cross-node')
+      expect(node!.properties.value).toBe('target-edit')
+
+      const conflicts = target.store.getRecentConflicts()
+      expect(conflicts).toHaveLength(1)
+      expect(conflicts[0]).toMatchObject({
+        key: 'value',
+        localValue: 'target-edit',
+        remoteValue: 'source-edit',
+        resolved: 'local',
+        kind: 'conflict'
+      })
+    })
+
+    it('does not record anything when a cross-author write carries an equal value', async () => {
+      const source = createTestStore()
+      const target = createTestStore()
+      await source.store.initialize()
+      await target.store.initialize()
+
+      await source.store.create({
+        id: 'equal-node',
+        schemaId: TEST_SCHEMA,
+        properties: { value: 'same' }
+      })
+      const [createChange] = await source.store.getChanges('equal-node')
+      await target.store.applyRemoteChange(createChange)
+
+      // Cross-author write of the identical value: no divergence to report.
+      await target.store.update('equal-node', { properties: { value: 'same' } })
+
+      expect(target.store.getRecentConflicts()).toHaveLength(0)
     })
   })
 

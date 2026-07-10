@@ -385,12 +385,12 @@ already do: `packages/ui/src/composed/tasks/TaskRow.tsx:147` etc.)
 
 ## Implementation Checklist
 
-- [ ] `@xnetjs/data`: narrow `applyPropertyChangeWithLWW` conflict recording
+- [x] `@xnetjs/data`: narrow `applyPropertyChangeWithLWW` conflict recording
       per A3 (skip identical stamps; skip same-author superseded history;
       only record when incoming loses)
-- [ ] `@xnetjs/data`: add `hasChange(hash)` to `NodeStorageAdapter` +
+- [x] `@xnetjs/data`: add `hasChange(hash)` to `NodeStorageAdapter` +
       sqlite/memory/worker-bridge implementations
-- [ ] `@xnetjs/data`: `applyRemoteChange` early-returns on already-applied
+- [x] `@xnetjs/data`: `applyRemoteChange` early-returns on already-applied
       hash; memory adapter `appendChange`/`appendChanges` dedupe by hash
 - [ ] `@xnetjs/react`: first-snapshot gate + `hostId`-keyed snapshot reset in
       `useTaskProjectionSync`
