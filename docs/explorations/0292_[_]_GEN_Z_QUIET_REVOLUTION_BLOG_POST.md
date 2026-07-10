@@ -57,12 +57,12 @@ rest as colour, always attributed.
 
 ### Video 1 — The Exit Manual: four quiet shifts
 
-| # | Claim cluster | The video's framing |
-|---|---------------|---------------------|
-| 1 | **Open-weight AI exodus** | The commencement boos aren't Luddism — "these kids all use Claude Code to get through finals." They're calling an expensive bluff: AI is simultaneously sold as job-destroying and job-creating because trillion-dollar valuations require it. The real protest is running GLM/Qwen locally: "My device, my model, my rules." "Same productivity tools, $0 to big tech." |
-| 2 | **Skipping the house** | First generation in ~80 years planning to skip the down payment outright; investing from age 19 (vs boomers at 35); houses as "the real pension" is a policy choice, not physics (Tokyo counter-example); draining the monetary premium from housing into equities/BTC. |
-| 3 | **Analog rebirth** | Indie bookstores +70% since 2020; film cameras booming; board games at 20-year growth highs. Framed as a counter-response to how media is _produced_ (the Netflix "second screen" memo — dialogue rewritten for people half-watching) as much as consumed. Key line: "Choosing the things that cost you your undivided attention is like choosing a money you can't print." |
-| 4 | **Forced entrepreneurship** | Record entrepreneurs under 25 — with the asterisk that entry-level jobs have evaporated and many listings are ghosts kept up "for investor optics." "Applying to AI-generated fake jobs with an AI-generated fake CV to make fake money printed out of thin air." Upside: a cohort forced to learn how an idea becomes a thing. |
+| #   | Claim cluster               | The video's framing                                                                                                                                                                                                                                                                                                                                                         |
+| --- | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Open-weight AI exodus**   | The commencement boos aren't Luddism — "these kids all use Claude Code to get through finals." They're calling an expensive bluff: AI is simultaneously sold as job-destroying and job-creating because trillion-dollar valuations require it. The real protest is running GLM/Qwen locally: "My device, my model, my rules." "Same productivity tools, $0 to big tech."    |
+| 2   | **Skipping the house**      | First generation in ~80 years planning to skip the down payment outright; investing from age 19 (vs boomers at 35); houses as "the real pension" is a policy choice, not physics (Tokyo counter-example); draining the monetary premium from housing into equities/BTC.                                                                                                     |
+| 3   | **Analog rebirth**          | Indie bookstores +70% since 2020; film cameras booming; board games at 20-year growth highs. Framed as a counter-response to how media is _produced_ (the Netflix "second screen" memo — dialogue rewritten for people half-watching) as much as consumed. Key line: "Choosing the things that cost you your undivided attention is like choosing a money you can't print." |
+| 4   | **Forced entrepreneurship** | Record entrepreneurs under 25 — with the asterisk that entry-level jobs have evaporated and many listings are ghosts kept up "for investor optics." "Applying to AI-generated fake jobs with an AI-generated fake CV to make fake money printed out of thin air." Upside: a cohort forced to learn how an idea becomes a thing.                                             |
 
 ### Video 2 — Cole Hastings: the spiral
 
@@ -113,7 +113,7 @@ flowchart TD
   (ISO-8601 UTC), `authors` (`['crs48', 'claude']` is the series norm, with
   the AI co-author rendering as "with …"), `tags` (union type `BlogTag`:
   `essay | philosophy | privacy | decentralization | protocol | nature |
-  cosmos | economics | personal`), `readingMinutes`, and optional
+cosmos | economics | personal`), `readingMinutes`, and optional
   `draft: true` while authoring. RSS (`site/src/pages/blog/rss.xml.ts`) and
   the index page derive from this registry — no extra wiring.
 - **Page**: `site/src/pages/blog/<slug>.astro` — hand-authored,
@@ -159,23 +159,23 @@ flowchart TD
 Per the 0247 convention: verify before we publish, attribute what we borrow,
 soften or drop what doesn't hold.
 
-| Claim (as made in the videos) | Verdict | What the sources actually say |
-|---|---|---|
-| Eric Schmidt booed at commencement over AI | **Verified** | NBC News: University of Arizona, class of 2026; opened with Time's 1982 "Machine of the Year" framing; audibly booed. |
-| Gloria Caulfield booed at "University of Florida" (video 2) | **Verified, correct the venue** | It was the University of **Central** Florida; she called AI "the next industrial revolution." |
-| "90% of CEOs report no productivity gains" (2026 study) | **Soften to the real study** | NBER survey (~6,000 execs, US/UK/DE/AU): the vast majority report **no measurable impact** on productivity or employment from AI over three years. MIT's 2025 report separately found ~95% of GenAI pilots deliver no measurable P&L impact. Use these, cited, not "90% of CEOs." |
-| Open models "match or outperform Claude in 90% of tasks" | **Drop the number** | Unsupportable as stated. Defensible version: 2026 open-weight leaders (Qwen3, GLM, DeepSeek, Llama) are genuinely competitive on many benchmarks and trivially runnable via Ollama/LM Studio; "good enough for most of what most people do" is the honest claim. |
-| Anthropic/OpenAI IPOs "$1.2T valuations, $20B revenue" | **Verify before use, likely drop** | Fast-moving numbers; the essay doesn't need them. The verified NBER/MIT gap between capex narrative and measured gains carries the point. |
-| Indie bookstores +70% since 2020 | **Verified** | ~1,916 → ~3,218 US stores; 422 new indie shops opened in 2025 alone (ABA data, widely reported). |
-| Film cameras +900% in 8 years | **Soften** | Solid sources support a large multi-year boom (e.g. +127% sales since 2020; under-25s ≈41% of new film customers; vinyl +29% YoY). Use the sourced figures. |
-| Netflix "second screen" dialogue memo | **Verified as reported** | Widely reported (originating in n+1's "casual viewing" piece, 2024): writers asked to have characters announce what they're doing for half-watching viewers. |
-| Gen Z starts investing at 19 (boomers: 35) | **Verified** | Multiple surveys (Schwab/CFA Institute lineage) put Gen Z's average first-investment age at ~19 vs mid-30s for boomers; crypto held by ~42% of Gen Z investors. |
-| First generation planning to skip the down payment | **Soften** | Well-supported directionally (widely reported surveys: Gen Z redirecting would-be down-payment savings into markets; 27% Gen Z homeownership vs 80% boomer). "22 years vs 7 years to save a deposit" varies wildly by market — use a sourced range or drop. |
-| Ghost jobs: "60% of Fortune 1000 admit fake listings" | **Soften to real surveys** | ResumeBuilder (May 2025, 650 hiring managers): ~40% posted a fake listing that year; ~30% have fakes up now; 7 in 10 hiring managers call the practice acceptable. Greenhouse: ~1 in 4 listings likely ghosts. Use these. |
-| More over-65s than under-25s filled jobs last year | **Verify or drop** | Couldn't confirm in this pass; drop unless a BLS source is found. |
-| Gilded Age: top 10% held ~80% of wealth (1910); child labour ~18% of ages 10–15 (1890) | **Verified** | Piketty's historical series; US census-era child-labour data. (Video says "Thomas Petti" — it's Piketty.) |
-| WWI ~16M dead; 1918 flu ~50M; Stein → Hemingway "lost generation"; Tarbell/Addams/Northern Securities | **Verified** | Standard historical record. |
-| 43% of Gen Z plan to start a business; 13% earn from social media | **Verify before use** | Plausible survey figures; find the primary survey or attribute to the video explicitly. |
+| Claim (as made in the videos)                                                                         | Verdict                            | What the sources actually say                                                                                                                                                                                                                                                     |
+| ----------------------------------------------------------------------------------------------------- | ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Eric Schmidt booed at commencement over AI                                                            | **Verified**                       | NBC News: University of Arizona, class of 2026; opened with Time's 1982 "Machine of the Year" framing; audibly booed.                                                                                                                                                             |
+| Gloria Caulfield booed at "University of Florida" (video 2)                                           | **Verified, correct the venue**    | It was the University of **Central** Florida; she called AI "the next industrial revolution."                                                                                                                                                                                     |
+| "90% of CEOs report no productivity gains" (2026 study)                                               | **Soften to the real study**       | NBER survey (~6,000 execs, US/UK/DE/AU): the vast majority report **no measurable impact** on productivity or employment from AI over three years. MIT's 2025 report separately found ~95% of GenAI pilots deliver no measurable P&L impact. Use these, cited, not "90% of CEOs." |
+| Open models "match or outperform Claude in 90% of tasks"                                              | **Drop the number**                | Unsupportable as stated. Defensible version: 2026 open-weight leaders (Qwen3, GLM, DeepSeek, Llama) are genuinely competitive on many benchmarks and trivially runnable via Ollama/LM Studio; "good enough for most of what most people do" is the honest claim.                  |
+| Anthropic/OpenAI IPOs "$1.2T valuations, $20B revenue"                                                | **Verify before use, likely drop** | Fast-moving numbers; the essay doesn't need them. The verified NBER/MIT gap between capex narrative and measured gains carries the point.                                                                                                                                         |
+| Indie bookstores +70% since 2020                                                                      | **Verified**                       | ~1,916 → ~3,218 US stores; 422 new indie shops opened in 2025 alone (ABA data, widely reported).                                                                                                                                                                                  |
+| Film cameras +900% in 8 years                                                                         | **Soften**                         | Solid sources support a large multi-year boom (e.g. +127% sales since 2020; under-25s ≈41% of new film customers; vinyl +29% YoY). Use the sourced figures.                                                                                                                       |
+| Netflix "second screen" dialogue memo                                                                 | **Verified as reported**           | Widely reported (originating in n+1's "casual viewing" piece, 2024): writers asked to have characters announce what they're doing for half-watching viewers.                                                                                                                      |
+| Gen Z starts investing at 19 (boomers: 35)                                                            | **Verified**                       | Multiple surveys (Schwab/CFA Institute lineage) put Gen Z's average first-investment age at ~19 vs mid-30s for boomers; crypto held by ~42% of Gen Z investors.                                                                                                                   |
+| First generation planning to skip the down payment                                                    | **Soften**                         | Well-supported directionally (widely reported surveys: Gen Z redirecting would-be down-payment savings into markets; 27% Gen Z homeownership vs 80% boomer). "22 years vs 7 years to save a deposit" varies wildly by market — use a sourced range or drop.                       |
+| Ghost jobs: "60% of Fortune 1000 admit fake listings"                                                 | **Soften to real surveys**         | ResumeBuilder (May 2025, 650 hiring managers): ~40% posted a fake listing that year; ~30% have fakes up now; 7 in 10 hiring managers call the practice acceptable. Greenhouse: ~1 in 4 listings likely ghosts. Use these.                                                         |
+| More over-65s than under-25s filled jobs last year                                                    | **Verify or drop**                 | Couldn't confirm in this pass; drop unless a BLS source is found.                                                                                                                                                                                                                 |
+| Gilded Age: top 10% held ~80% of wealth (1910); child labour ~18% of ages 10–15 (1890)                | **Verified**                       | Piketty's historical series; US census-era child-labour data. (Video says "Thomas Petti" — it's Piketty.)                                                                                                                                                                         |
+| WWI ~16M dead; 1918 flu ~50M; Stein → Hemingway "lost generation"; Tarbell/Addams/Northern Securities | **Verified**                       | Standard historical record.                                                                                                                                                                                                                                                       |
+| 43% of Gen Z plan to start a business; 13% earn from social media                                     | **Verify before use**              | Plausible survey figures; find the primary survey or attribute to the video explicitly.                                                                                                                                                                                           |
 
 **Aggregate judgement**: the two videos' spines survive contact with sources;
 the decoration sometimes doesn't. Our essay should quote the videos for
@@ -379,17 +379,17 @@ from `packages/plugins/src/ai/connectors/detect.ts`.
 
 ## Implementation Checklist
 
-- [ ] Draft the essay in `site/src/pages/blog/weights-you-can-hold.astro`
+- [x] Draft the essay in `site/src/pages/blog/weights-you-can-hold.astro`
       (en-GB, series voice, outline above; no MDX).
-- [ ] Register the post in `site/src/data/blog.ts` with `draft: true`
+- [x] Register the post in `site/src/data/blog.ts` with `draft: true`
       (entry per Example Code; final title/description/readingMinutes at
       draft completion).
-- [ ] Build `WeightsHero.astro` (+ art component if the design wants one,
+- [x] Build `WeightsHero.astro` (+ art component if the design wants one,
       e.g. `WeightsArt.astro`/`HonestWeights.astro`) under
       `site/src/components/blog/`, matching the series' hero idiom.
-- [ ] Vendor any stills/assets under `site/public/blog/` (no hot-linking,
+- [x] Vendor any stills/assets under `site/public/blog/` (no hot-linking,
       no YouTube iframes).
-- [ ] Add the `CodeFigure` exhibit from
+- [x] Add the `CodeFigure` exhibit from
       `packages/plugins/src/ai/connectors/detect.ts` (verbatim probe order)
       and the spiral `Mermaid` exhibit.
 - [ ] Fact-check pass against the table above: every "soften" softened,
