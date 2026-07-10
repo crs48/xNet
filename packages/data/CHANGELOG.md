@@ -1,5 +1,30 @@
 # @xnetjs/data
 
+## 0.9.0
+
+### Minor Changes
+
+- [#458](https://github.com/crs48/xNet/pull/458) [`8bb9cc6`](https://github.com/crs48/xNet/commit/8bb9cc6752cfe0a83d91388bdc375ff03f55b852) Thanks [@crs48](https://github.com/crs48)! - Conflict telemetry now reports only genuine divergence, and remote replays
+  are idempotent end to end. `MergeConflict` gains a required `kind` field:
+  `'conflict'` for a cross-author write that lost to a newer local value,
+  `'lww-resolution'` for an informational lost-update where a cross-author
+  write replaced a differing value. Same-author causal history, identical
+  stamps, and equal values are no longer recorded at all. `applyRemoteChange`
+  short-circuits changes already present in the log (new optional
+  `NodeStorageAdapter.hasChange(hash)` probe, implemented by the SQLite and
+  memory adapters; callers fall back to `getChangeByHash`), and the memory
+  adapter dedupes appended changes by hash.
+
+### Patch Changes
+
+- Updated dependencies [[`8955613`](https://github.com/crs48/xNet/commit/8955613cea6a27af0d5cbe483bbd66b202f2dc25)]:
+  - @xnetjs/sync@0.9.0
+  - @xnetjs/storage@0.9.0
+  - @xnetjs/sqlite@0.9.0
+  - @xnetjs/identity@0.9.0
+  - @xnetjs/crypto@0.9.0
+  - @xnetjs/core@0.9.0
+
 ## 0.8.0
 
 ### Patch Changes
