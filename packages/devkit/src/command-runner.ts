@@ -34,13 +34,39 @@ export interface CommandRunner {
   run(command: string, args: string[], options: RunOptions): Promise<CommandResult>
 }
 
+/**
+ * Repo-location env vars that git reads INSTEAD of discovering the repo from the
+ * working directory. A git hook (husky `pre-commit`/`pre-push`) exports these
+ * pointing at the *hook's* repo, so any `git` subprocess spawned while a hook
+ * runs — the dev loop, or this package's own tests under `pnpm test` — would
+ * silently operate on that repo despite an explicit `cwd`. That defeats the very
+ * isolation the required `cwd` exists to guarantee, and has clobbered a real
+ * worktree *and its remote* (the `git config`/`commit`/`push` all misdirected).
+ * We neutralise them for every `git` invocation so `cwd` is always authoritative;
+ * an explicit `options.env` entry still wins (it is spread last).
+ */
+export const GIT_LOCATION_ENV = Object.freeze([
+  'GIT_DIR',
+  'GIT_WORK_TREE',
+  'GIT_INDEX_FILE',
+  'GIT_OBJECT_DIRECTORY',
+  'GIT_ALTERNATE_OBJECT_DIRECTORIES',
+  'GIT_COMMON_DIR',
+  'GIT_NAMESPACE',
+  'GIT_PREFIX'
+])
+
 /** Spawns real subprocesses. Node-only (Electron main / CLI / tests). */
 export class NodeCommandRunner implements CommandRunner {
   run(command: string, args: string[], options: RunOptions): Promise<CommandResult> {
     return new Promise((resolve) => {
+      // For `git`, drop any inherited repo-location env so `cwd` wins (see
+      // GIT_LOCATION_ENV). Values left `undefined` are omitted by spawn.
+      const scrub: Record<string, string | undefined> = {}
+      if (command === 'git') for (const key of GIT_LOCATION_ENV) scrub[key] = undefined
       const child = spawn(command, args, {
         cwd: options.cwd,
-        env: { ...process.env, ...options.env },
+        env: { ...process.env, ...scrub, ...options.env },
         shell: false // never interpret the command through a shell
       })
       let stdout = ''
