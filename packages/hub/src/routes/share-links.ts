@@ -34,6 +34,8 @@ export type ShareLinkRouteDeps = {
 // resolves for every node beneath the Space (exploration 0179).
 // 'workspace' shares a saved shell layout — a bench travels like a node
 // (exploration 0280; the client sent it long before the hub accepted it, 0290).
+// 'channel' shares a chat channel; a comment-role grant lets the recipient
+// post messages (0290 follow-up).
 const SHARE_DOC_TYPES = [
   'page',
   'database',
@@ -41,7 +43,8 @@ const SHARE_DOC_TYPES = [
   'dashboard',
   'view',
   'space',
-  'workspace'
+  'workspace',
+  'channel'
 ] as const
 type ShareDocType = (typeof SHARE_DOC_TYPES)[number]
 

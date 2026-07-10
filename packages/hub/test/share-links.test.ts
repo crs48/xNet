@@ -218,10 +218,19 @@ describe('Share Links', () => {
     expect(JSON.stringify(links[0])).not.toContain(url.split('#s=')[1])
   })
 
-  it('accepts every client ShareDocType, including workspace (0290)', async () => {
+  it('accepts every client ShareDocType, including workspace and channel (0290)', async () => {
     // The client offered 'workspace' (saved bench, 0280) long before the hub
     // accepted it — every union member must round-trip create → claim.
-    const docTypes = ['page', 'database', 'canvas', 'dashboard', 'view', 'space', 'workspace']
+    const docTypes = [
+      'page',
+      'database',
+      'canvas',
+      'dashboard',
+      'view',
+      'space',
+      'workspace',
+      'channel'
+    ]
     for (const docType of docTypes) {
       const { status, json } = await api('/shares/links', {
         method: 'POST',
@@ -420,6 +429,15 @@ describe('Share Links', () => {
       )
       expect(comment?.code).not.toBe('WRITE_FORBIDDEN')
 
+      // A comment-role channel share lets the grantee post messages —
+      // participating in the conversation counts as commenting (0290 follow-up).
+      const message = await publishChange(
+        commenter,
+        'doc-comments',
+        'xnet://xnet.fyi/ChatMessage@1.0.0'
+      )
+      expect(message?.code).not.toBe('WRITE_FORBIDDEN')
+
       const task = await publishChange(commenter, 'doc-comments', 'xnet://xnet.dev/Task@1.0.0')
       expect(task?.code).toBe('WRITE_FORBIDDEN')
     })
@@ -489,7 +507,11 @@ describe('ShareAccessService', () => {
   it('matches comment schemas version-agnostically', () => {
     expect(isCommentSchema('xnet://xnet.fyi/Comment@1.0.0')).toBe(true)
     expect(isCommentSchema('xnet://xnet.fyi/Reaction@2.0.0')).toBe(true)
+    // Chat messages count as commenting: a comment-role channel share means
+    // "can participate in the conversation, can't edit the channel".
+    expect(isCommentSchema('xnet://xnet.fyi/ChatMessage@1.0.0')).toBe(true)
     expect(isCommentSchema('xnet://xnet.fyi/Page@1.0.0')).toBe(false)
+    expect(isCommentSchema('xnet://xnet.fyi/Channel@1.0.0')).toBe(false)
     expect(isCommentSchema(undefined)).toBe(false)
   })
 
