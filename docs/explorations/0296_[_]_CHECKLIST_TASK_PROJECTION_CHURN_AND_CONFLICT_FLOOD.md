@@ -398,7 +398,7 @@ already do: `packages/ui/src/composed/tasks/TaskRow.tsx:147` etc.)
       `title: null` from extraction, fallback moves to display only)
 - [x] `@xnetjs/react`: claim path writes host fields + diffed rest instead of
       the full projection (C5-lite)
-- [ ] `@xnetjs/devtools`: split `store:conflict` vs `store:lww-resolution`
+- [x] `@xnetjs/devtools`: split `store:conflict` vs `store:lww-resolution`
       in the event taxonomy + ChangeTimeline rendering (collapsed group)
 - [ ] Update `docs/specs/PAGE_TASK_RECONCILIATION.md`: add "no reconciliation
       before first editor snapshot" and "placeholder titles never overwrite
