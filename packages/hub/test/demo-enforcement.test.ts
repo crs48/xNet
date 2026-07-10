@@ -14,7 +14,7 @@ import { join } from 'node:path'
 import { bytesToBase64, generateSigningKeyPair } from '@xnetjs/crypto'
 import { identityFromPrivateKey } from '@xnetjs/identity'
 import { createChangeId, createUnsignedChange, signChange } from '@xnetjs/sync'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { DiskWatchdog } from '../src/services/disk-watchdog'
 import { NodeRelayError, NodeRelayService } from '../src/services/node-relay'
 import { createMemoryStorage } from '../src/storage/memory'
@@ -107,13 +107,17 @@ const factories: Factory[] = [
 describe.each(factories)('demo storage accounting ($name)', ({ create }) => {
   let storage: HubStorage
   let cleanup: () => void
+  beforeEach(() => {
+    const created = create()
+    storage = created.storage
+    cleanup = created.cleanup
+  })
   afterEach(async () => {
     await storage.close?.()
     cleanup()
   })
 
   it('getUsageBytesByDid sums a DID change bytes and ignores others', async () => {
-    ;({ storage, cleanup } = create())
     const c1 = makeSignedChange('node-1', 1)
     const c2 = makeSignedChange('node-2', 2)
     await storage.appendNodeChange(ROOM, c1)
@@ -125,7 +129,6 @@ describe.each(factories)('demo storage accounting ($name)', ({ create }) => {
   })
 
   it('resetAllUserData wipes user content and returns counts', async () => {
-    ;({ storage, cleanup } = create())
     await storage.appendNodeChange(ROOM, makeSignedChange('node-1', 1))
     await storage.appendNodeChange(ROOM, makeSignedChange('node-2', 2))
     await storage.setDocState('doc-1', new Uint8Array([1, 2, 3]))
