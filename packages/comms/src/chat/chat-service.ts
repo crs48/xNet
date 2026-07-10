@@ -12,9 +12,11 @@ import {
   ChannelSchema,
   ChatMessageSchema,
   normalizeMentions,
+  sanitizeLinkPreviews,
   type ChannelKind,
   type DefinedSchema,
   type InferCreateProps,
+  type MessageLinkPreview,
   type MessageMentions,
   type PropertyBuilder
 } from '@xnetjs/data'
@@ -48,6 +50,8 @@ export interface SendMessageInput {
   tags?: string[]
   /** Node ids declared by the composer's [[ link picks (0170) */
   links?: string[]
+  /** Composer-resolved URL previews (0295) — capped at composition time */
+  linkPreviews?: MessageLinkPreview[]
   inReplyTo?: string
 }
 
@@ -93,8 +97,22 @@ export async function sendMessage(store: ChatStore, input: SendMessageInput): Pr
     mentions: normalizeMentions(input.mentions),
     tags: input.tags?.length ? input.tags : undefined,
     links: input.links?.length ? input.links : undefined,
+    linkPreviews: input.linkPreviews?.length ? sanitizeLinkPreviews(input.linkPreviews) : undefined,
     inReplyTo: input.inReplyTo
   })
+}
+
+/**
+ * Replace a message's stored link previews (0295) — the author removing a
+ * card. Content is untouched, so this does not mark the message edited.
+ */
+export async function setMessageLinkPreviews(
+  store: ChatStore,
+  messageId: string,
+  previews: MessageLinkPreview[] | null
+): Promise<unknown> {
+  const sanitized = previews ? sanitizeLinkPreviews(previews) : []
+  return store.update(messageId, { linkPreviews: sanitized.length ? sanitized : null })
 }
 
 export async function editMessage(
@@ -113,7 +131,12 @@ export async function editMessage(
 
 /** Soft tombstone: keep the message shell so threads keep their shape. */
 export async function redactMessage(store: ChatStore, messageId: string): Promise<unknown> {
-  return store.update(messageId, { content: '', mentions: null, redacted: true })
+  return store.update(messageId, {
+    content: '',
+    mentions: null,
+    linkPreviews: null,
+    redacted: true
+  })
 }
 
 /** Query options for the latest window of a channel's history. */

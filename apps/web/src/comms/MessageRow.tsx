@@ -13,7 +13,15 @@ import type { AbuseLabel } from '@xnetjs/abuse'
 import type { PresenceStatus } from '@xnetjs/comms'
 import type { WikilinkTarget } from '@xnetjs/editor/react'
 import { useNavigate } from '@tanstack/react-router'
-import { cn, ActionMenuList, ContextMenu, LinkifiedText, type Action } from '@xnetjs/ui'
+import { sanitizeLinkPreviews } from '@xnetjs/data'
+import {
+  cn,
+  ActionMenuList,
+  ContextMenu,
+  LinkifiedText,
+  LinkPreviewCard,
+  type Action
+} from '@xnetjs/ui'
 import { Copy, MessageSquareReply, Pencil, Trash2 } from 'lucide-react'
 import { createElement, useEffect, useRef, useState } from 'react'
 import { ModeratedPost } from '../components/ModeratedMedia'
@@ -51,6 +59,39 @@ function MessageBody({ message }: { message: ChatRow }) {
       className="whitespace-pre-wrap break-words text-sm text-ink-2"
       detectPhones
     />
+  )
+}
+
+/**
+ * Stored URL preview cards (0295). Sender-resolved snapshots — rendering
+ * never fetches. The author can remove a card; readers just see it.
+ */
+function MessageLinkPreviewCards({
+  message,
+  isOwn,
+  onRemovePreview
+}: {
+  message: ChatRow
+  isOwn: boolean
+  onRemovePreview?: (url: string) => void
+}) {
+  if (message.redacted) return null
+  const previews = sanitizeLinkPreviews(message.linkPreviews)
+  if (previews.length === 0) return null
+  return (
+    <div className="mt-1 flex flex-col gap-1">
+      {previews.map((preview) => (
+        <LinkPreviewCard
+          key={preview.url}
+          url={preview.url}
+          title={preview.title}
+          domain={preview.domain}
+          description={preview.description}
+          providerName={preview.providerName}
+          onRemove={isOwn && onRemovePreview ? () => onRemovePreview(preview.url) : undefined}
+        />
+      ))}
+    </div>
   )
 }
 
@@ -234,6 +275,7 @@ export function MessageRow({
   onSubmitEdit,
   onReply,
   onDelete,
+  onRemovePreview,
   thread,
   onOpenThread
 }: {
@@ -254,6 +296,8 @@ export function MessageRow({
   onReply: () => void
   /** Delete (redact) this message — only wired for the author's own messages. */
   onDelete?: () => void
+  /** Author removes a stored URL preview card (0295). */
+  onRemovePreview?: (message: ChatRow, url: string) => void
   thread?: ThreadSummary
   onOpenThread: () => void
 }) {
@@ -351,6 +395,13 @@ export function MessageRow({
                 >
                   <MessageBody message={message} />
                 </ModeratedPost>
+                <MessageLinkPreviewCards
+                  message={message}
+                  isOwn={isOwn}
+                  onRemovePreview={
+                    onRemovePreview ? (url) => onRemovePreview(message, url) : undefined
+                  }
+                />
                 <MessageMentionChips message={message} />
                 <MessageTagChips message={message} />
                 <MessageLinkChips message={message} linkTargets={linkTargets} />

@@ -2,7 +2,6 @@
  * @xnetjs/hub - In-memory storage adapter.
  */
 
-import { compareChangeApplicationOrder } from '@xnetjs/core'
 import type {
   AwarenessEntry,
   BlobMeta,
@@ -26,6 +25,7 @@ import type {
   SearchResult,
   SerializedNodeChange,
   GrantIndexRecord,
+  ShareLinkPreviewRecord,
   ShareLinkRecord,
   DatabaseRowRecord,
   DatabaseRowQueryOptions,
@@ -34,6 +34,7 @@ import type {
   DatabaseFilterCondition,
   DatabaseSortConfig
 } from './interface'
+import { compareChangeApplicationOrder } from '@xnetjs/core'
 
 /**
  * Code-unit string comparison. Fractional sortKeys (and cursor pagination,
@@ -68,6 +69,7 @@ export const createMemoryStorage = (): HubStorage => {
   const docRecipients = new Map<string, Set<string>>()
   const grantsById = new Map<string, GrantIndexRecord>()
   const shareLinksById = new Map<string, ShareLinkRecord>()
+  const shareLinkPreviewsById = new Map<string, ShareLinkPreviewRecord>()
   const nodeContainers = new Map<string, string>()
   const nodeVisibility = new Map<string, string>()
   const nodeChangesByHash = new Map<string, SerializedNodeChange>()
@@ -310,6 +312,20 @@ export const createMemoryStorage = (): HubStorage => {
 
   const deleteShareLink = async (linkId: string): Promise<void> => {
     shareLinksById.delete(linkId)
+    shareLinkPreviewsById.delete(linkId)
+  }
+
+  const upsertShareLinkPreview = async (record: ShareLinkPreviewRecord): Promise<void> => {
+    shareLinkPreviewsById.set(record.linkId, { ...record })
+  }
+
+  const getShareLinkPreview = async (linkId: string): Promise<ShareLinkPreviewRecord | null> => {
+    const record = shareLinkPreviewsById.get(linkId)
+    return record ? { ...record } : null
+  }
+
+  const deleteShareLinkPreview = async (linkId: string): Promise<void> => {
+    shareLinkPreviewsById.delete(linkId)
   }
 
   const getFileMeta = async (cid: string): Promise<FileMeta | null> => files.get(cid)?.meta ?? null
@@ -968,6 +984,9 @@ export const createMemoryStorage = (): HubStorage => {
     setShareLinkDisabled,
     incrementShareLinkUse,
     deleteShareLink,
+    upsertShareLinkPreview,
+    getShareLinkPreview,
+    deleteShareLinkPreview,
     getFileMeta,
     putFile,
     getFileData,

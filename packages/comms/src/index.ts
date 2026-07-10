@@ -87,6 +87,7 @@ export {
   ensureDmChannel,
   redactMessage,
   sendMessage,
+  setMessageLinkPreviews,
   type ChatStore,
   type CreateChannelInput,
   type SendMessageInput

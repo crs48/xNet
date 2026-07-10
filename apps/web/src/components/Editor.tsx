@@ -21,6 +21,7 @@ import {
   type WikilinkTarget
 } from '@xnetjs/editor/react'
 import { TaskCollectionEmbed } from '@xnetjs/react'
+import { useLinkPreviewResolver } from '../hooks/useLinkPreviewResolver'
 
 interface Props {
   doc: Y.Doc
@@ -79,6 +80,7 @@ export function Editor({
   const onImageUpload = useImageUpload()
   const onFileUpload = useFileUpload()
   const onFileDownload = useFileDownload()
+  const resolveLinkPreview = useLinkPreviewResolver()
 
   return (
     <RichTextEditor
@@ -99,6 +101,7 @@ export function Editor({
       onImageUpload={onImageUpload ?? undefined}
       onFileUpload={onFileUpload ?? undefined}
       onFileDownload={onFileDownload ?? undefined}
+      resolveLinkPreview={resolveLinkPreview}
       extensions={extensions}
       onEditorReady={onEditorReady}
       mentionSuggestions={mentionSuggestions}
