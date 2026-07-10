@@ -1,0 +1,11 @@
+{
+  "id": "2026-07-10-share-dialog-connect-a-hub-in-place-and-",
+  "date": "July 10, 2026",
+  "title": "Share dialog: connect a hub in place, and clearer local-only links",
+  "summary": "With no hub connected, the Share dialog now offers a Connect a hub button that opens the status bar's connection panel — which can now actually connect one. Links minted on a localhost/LAN hub are labelled Local only, and Copy/QR ask for a confirming click so a link that only works on your network isn't shared as if it were public.",
+  "highlights": [
+    "Connect a hub straight from the Share dialog",
+    "Local-only links are labelled and confirm before copy/QR"
+  ],
+  "tags": ["app", "sync"]
+}

@@ -28,6 +28,7 @@ import {
   type ShareRole
 } from '../hooks/useShareLinks'
 import { isPrivateHubHost } from '../lib/share-links'
+import { openSyncStatusPanel } from '../workbench/SyncStatus'
 import { PermissionMatrixPanel } from './PermissionMatrixPanel'
 
 interface ShareDialogProps {
@@ -76,24 +77,62 @@ function RoleChip({ role }: { role: ShareRole }): JSX.Element {
   )
 }
 
-function CopyButton({ value }: { value: string }): JSX.Element {
+/** Amber "Local only" badge for links minted on a private/LAN hub (0290). */
+function LocalOnlyChip(): JSX.Element {
+  return (
+    <span
+      title="This hub is not publicly reachable — the link only works on your machine or local network."
+      className="px-1.5 py-0.5 rounded text-[11px] font-medium bg-amber-500/15 text-amber-500 whitespace-nowrap"
+    >
+      Local only
+    </span>
+  )
+}
+
+/**
+ * `requireConfirm` (private-hub links, 0290) arms the button on the first
+ * click — "Copy anyway" — so a local-only URL isn't copied as if it were
+ * shareable, while deliberate LAN/in-person handoff stays one extra click.
+ */
+function CopyButton({
+  value,
+  requireConfirm = false
+}: {
+  value: string
+  requireConfirm?: boolean
+}): JSX.Element {
   const [copied, setCopied] = useState(false)
+  const [armed, setArmed] = useState(false)
   return (
     <button
       type="button"
-      title="Copy link"
+      title={
+        requireConfirm && !armed
+          ? 'This link only works on your machine or local network — click again to copy anyway'
+          : 'Copy link'
+      }
       onClick={() => {
+        if (requireConfirm && !armed) {
+          setArmed(true)
+          setTimeout(() => setArmed(false), 4000)
+          return
+        }
         void navigator.clipboard.writeText(value).then(() => {
+          setArmed(false)
           setCopied(true)
           setTimeout(() => setCopied(false), 1500)
         })
       }}
-      className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
-        copied ? 'bg-green-500/20 text-green-400' : 'bg-primary text-white hover:bg-primary/90'
+      className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors whitespace-nowrap ${
+        copied
+          ? 'bg-green-500/20 text-green-400'
+          : armed
+            ? 'bg-amber-500/20 text-amber-500 hover:bg-amber-500/30'
+            : 'bg-primary text-white hover:bg-primary/90'
       }`}
     >
       {copied ? <Check size={12} /> : <Copy size={12} />}
-      {copied ? 'Copied' : 'Copy'}
+      {copied ? 'Copied' : armed ? 'Copy anyway' : 'Copy'}
     </button>
   )
 }
@@ -125,6 +164,8 @@ function ShareDialogBody({
   const [actionError, setActionError] = useState<string | null>(null)
   const [freshUrl, setFreshUrl] = useState<string | null>(null)
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
+  // Private-hub QR needs the same "are you sure" arming as Copy (0290).
+  const [qrArmed, setQrArmed] = useState(false)
 
   // In-person / P2P handoff: render the same URL as a QR code so a phone
   // camera can claim without any messaging channel.
@@ -236,7 +277,24 @@ function ShareDialogBody({
 
         <div className="p-4 max-h-[60vh] overflow-y-auto">
           {!ready && tab !== 'permissions' && (
-            <p className="text-xs text-muted-foreground">Connect to a hub to create share links.</p>
+            <div className="text-xs text-muted-foreground">
+              <p className="mb-2">
+                Share links are claimed on a hub, so recipients can open them even when this device
+                is offline. You're running local-first with no hub connected.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  // The status bar's connection panel owns hub connection —
+                  // reuse it instead of duplicating the form here (0290).
+                  onClose()
+                  openSyncStatusPanel()
+                }}
+                className="px-2.5 py-1.5 rounded-md bg-primary text-white hover:bg-primary/90 transition-colors"
+              >
+                Connect a hub…
+              </button>
+            </div>
           )}
 
           {ready && privateHub && (
@@ -306,8 +364,11 @@ function ShareDialogBody({
 
               {freshUrl && (
                 <div className="mb-3 p-2 rounded-md border border-primary/40 bg-primary/5">
-                  <p className="text-[11px] text-muted-foreground mb-1.5">
-                    Link created — copy it now. The secret is only stored on this device.
+                  <p className="text-[11px] text-muted-foreground mb-1.5 flex items-center gap-1.5">
+                    <span>
+                      Link created — copy it now. The secret is only stored on this device.
+                    </span>
+                    {privateHub && <LocalOnlyChip />}
                   </p>
                   <div className="flex gap-2 items-center">
                     <input
@@ -317,18 +378,34 @@ function ShareDialogBody({
                       onClick={(e) => (e.target as HTMLInputElement).select()}
                       className="flex-1 px-2 py-1 text-[11px] font-mono bg-secondary border border-border rounded text-foreground"
                     />
-                    <CopyButton value={freshUrl} />
+                    <CopyButton value={freshUrl} requireConfirm={privateHub} />
                     <button
                       type="button"
-                      title={qrDataUrl ? 'Hide QR code' : 'Show QR code'}
-                      onClick={() => void toggleQr(freshUrl)}
-                      className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors ${
+                      title={
+                        privateHub && !qrDataUrl && !qrArmed
+                          ? 'This link only works on your machine or local network — click again to show the QR code anyway'
+                          : qrDataUrl
+                            ? 'Hide QR code'
+                            : 'Show QR code'
+                      }
+                      onClick={() => {
+                        if (privateHub && !qrDataUrl && !qrArmed) {
+                          setQrArmed(true)
+                          setTimeout(() => setQrArmed(false), 4000)
+                          return
+                        }
+                        setQrArmed(false)
+                        void toggleQr(freshUrl)
+                      }}
+                      className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors whitespace-nowrap ${
                         qrDataUrl
                           ? 'bg-primary text-white'
-                          : 'border border-border text-muted-foreground hover:text-foreground'
+                          : qrArmed
+                            ? 'bg-amber-500/20 text-amber-500 hover:bg-amber-500/30'
+                            : 'border border-border text-muted-foreground hover:text-foreground'
                       }`}
                     >
-                      <QrCode size={12} /> QR
+                      <QrCode size={12} /> {qrArmed ? 'QR anyway' : 'QR'}
                     </button>
                   </div>
                   {qrDataUrl && (
@@ -370,6 +447,7 @@ function ShareDialogBody({
                           {link.label || `Link ${link.linkId.slice(0, 6)}`}
                         </span>
                         <RoleChip role={link.role} />
+                        {privateHub && link.url && !link.disabled && <LocalOnlyChip />}
                       </div>
                       <p className="text-[11px] text-muted-foreground mt-0.5">
                         {link.useCount}
@@ -379,7 +457,9 @@ function ShareDialogBody({
                         {link.disabled ? ' · disabled' : ''}
                       </p>
                     </div>
-                    {link.url && !link.disabled && <CopyButton value={link.url} />}
+                    {link.url && !link.disabled && (
+                      <CopyButton value={link.url} requireConfirm={privateHub} />
+                    )}
                     <button
                       type="button"
                       title={link.disabled ? 'Enable link' : 'Disable link'}
