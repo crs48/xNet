@@ -454,7 +454,7 @@ export {
   type ContrastResult
 } from './utils/contrast'
 
-// ─── Link enrichment (0171) ───────────────────────────────────────
+// ─── Link enrichment (0171) + up-res (0295) ───────────────────────
 export {
   findLinkTokens,
   mergeLinkTokens,
@@ -464,6 +464,12 @@ export {
   type LinkTokenType,
   type TextSegment
 } from './utils/linkify'
+export {
+  LinkUpresProvider,
+  useLinkUpres,
+  type LinkUpresRenderer,
+  type UpresLink
+} from './components/LinkUpres'
 
 // ─── Drag & Drop (0166 unified node transfer) ─────────────────────
 export {

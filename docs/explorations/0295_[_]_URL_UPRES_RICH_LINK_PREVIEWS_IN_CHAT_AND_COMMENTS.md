@@ -7,7 +7,7 @@ same treatment via the metadata pipeline the repo already owns.
 
 ## Problem Statement
 
-Exploration 0171 made every text surface *linkify* — URLs become clickable
+Exploration 0171 made every text surface _linkify_ — URLs become clickable
 anchors at render time. But an anchor is the floor, not the ceiling:
 
 - Paste `https://hub.xnet.fyi/s/xv17-H8BwWy9#s=…` (a share link to a page)
@@ -33,14 +33,14 @@ devices) that any async "fetch then decorate" scheme must survive.
 
 ## Executive Summary
 
-- **Three URL classes, three resolution strategies.** (1) *Internal deep
-  links* resolve locally against the workspace store — zero network, live
-  titles, the Notion "link mention" model. (2) *xNet share links* need a new
+- **Three URL classes, three resolution strategies.** (1) _Internal deep
+  links_ resolve locally against the workspace store — zero network, live
+  titles, the Notion "link mention" model. (2) _xNet share links_ need a new
   lightweight hub endpoint (`GET /shares/links/:linkId/preview`) because
-  today nothing can title a share link without claiming it. (3) *External
-  URLs* reuse `resolveExternalReferenceMetadata` + the hub `/unfurl` proxy.
+  today nothing can title a share link without claiming it. (3) _External
+  URLs_ reuse `resolveExternalReferenceMetadata` + the hub `/unfurl` proxy.
 - **Previews are composed, not rendered.** Following the Mysk/Bakry taxonomy
-  and Signal's architecture, the *composer* resolves the preview once and
+  and Signal's architecture, the _composer_ resolves the preview once and
   stores it in the message (`linkPreviews` structured field, mirroring
   `mentions`/`tags`/`links`). Readers never fetch — no per-reader IP leaks,
   no read receipts, no N-clients-race-to-decorate, and previews replicate
@@ -49,7 +49,7 @@ devices) that any async "fetch then decorate" scheme must survive.
   (`packages/data/src/schema/schemas/chat-message.ts:12`).
 - **The collaborative-editing race is designed out, not patched.** A stored,
   composer-written preview is immutable payload on a signed message node —
-  there is nothing for two viewers to fight over. For the *page editor* (Yjs,
+  there is nothing for two viewers to fight over. For the _page editor_ (Yjs,
   concurrently editable), the existing `RichLinkExtension` pattern — paste
   inserts a node whose attrs are written in one transaction by the pasting
   peer only — is the rule to keep; render-time hydration by every viewer is
@@ -73,20 +73,20 @@ devices) that any async "fetch then decorate" scheme must survive.
 
 ### What renders user-authored text today
 
-| Surface | Renderer | URL handling today |
-| --- | --- | --- |
-| Chat messages | `apps/web/src/comms/MessageRow.tsx` (`MessageBody`, line 44) | `<LinkifiedText detectPhones>` — anchor only |
-| Thread pane | `apps/web/src/comms/ThreadPane.tsx` | same |
-| Comments | `packages/ui/src/composed/comments/CommentBubble.tsx` → `MarkdownContent` | GFM autolink literals — anchor only |
-| Table/grid text cells | `packages/views/src/properties/text.tsx` | `LinkifiedText` — anchor only |
-| Page documents | `packages/editor/src/components/RichTextEditor.tsx` | TipTap autolink **plus** `RichLinkExtension` / `SmartReferenceExtension` / embed family — the only surface with cards |
+| Surface               | Renderer                                                                  | URL handling today                                                                                                    |
+| --------------------- | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Chat messages         | `apps/web/src/comms/MessageRow.tsx` (`MessageBody`, line 44)              | `<LinkifiedText detectPhones>` — anchor only                                                                          |
+| Thread pane           | `apps/web/src/comms/ThreadPane.tsx`                                       | same                                                                                                                  |
+| Comments              | `packages/ui/src/composed/comments/CommentBubble.tsx` → `MarkdownContent` | GFM autolink literals — anchor only                                                                                   |
+| Table/grid text cells | `packages/views/src/properties/text.tsx`                                  | `LinkifiedText` — anchor only                                                                                         |
+| Page documents        | `packages/editor/src/components/RichTextEditor.tsx`                       | TipTap autolink **plus** `RichLinkExtension` / `SmartReferenceExtension` / embed family — the only surface with cards |
 
 ### The chip grammar chat already has
 
 `ChatMessageSchema` (`packages/data/src/schema/schemas/chat-message.ts`)
 stores `content` (GFM markdown, max 10k) plus structured, composer-declared
-fields — the doc comment is explicit: *"Mentions are a structured field …
-never parsed text."*
+fields — the doc comment is explicit: _"Mentions are a structured field …
+never parsed text."_
 
 - `mentions: json<MessageMentions>` → `PersonMentionChip`
   (`apps/web/src/components/PersonHovercard.tsx`)
@@ -116,7 +116,7 @@ recognizing a pasted URL as a node reference.
 - **Resolution pipeline** — `packages/data/src/external-reference-metadata.ts`:
   `resolveExternalReferenceMetadata()` → normalized
   `{ title, subtitle, description, imageUrl, providerName, authorName,
-  source: 'oembed' | 'open-graph', sourceUrl }`.
+source: 'oembed' | 'open-graph', sourceUrl }`.
 - **Hub proxy (CORS + SSRF boundary)** — `packages/hub/src/routes/unfurl.ts`:
   `GET /unfurl/metadata?url=…` and `GET /unfurl/image?url=…` (thumbnail proxy
   behind `DEFAULT_UNFURL_IMAGE_HOST_PATTERNS`), both auth-gated, both wrapped
@@ -126,7 +126,7 @@ recognizing a pasted URL as a node reference.
 - **Card renderers in the editor** —
   `packages/editor/src/extensions/rich-link/RichLinkExtension.ts` (block
   preview card for generic pasted URLs; attrs `{url, provider, title,
-  subtitle, icon}` written at paste time), `SmartReferenceExtension`
+subtitle, icon}` written at paste time), `SmartReferenceExtension`
   (provider chips), `PageEmbedNodeView` (internal page as titled card).
   Notably `createRichLinkAttrs()` titles cards from **URL parsing only** — it
   never calls the metadata pipeline, so editor cards show hostnames where
@@ -136,7 +136,7 @@ recognizing a pasted URL as a node reference.
 
 Share URLs are `https://<hub>/s/<linkId>#s=<secret>` (parser:
 `apps/web/src/lib/share-links.ts:50`; deep-link twin
-`xnet://share?link=…&hub=…#s=…`). The secret lives in the URL *fragment* —
+`xnet://share?link=…&hub=…#s=…`). The secret lives in the URL _fragment_ —
 by design it never reaches any server. Minting: `POST /shares/links`
 (`packages/hub/src/routes/share-links.ts:152`, stores only `secretHash`).
 Opening: the interstitial (`packages/hub/src/routes/share-interstitial.ts:111`)
@@ -149,8 +149,8 @@ adjacent precedents:
 - `GET /public/node/:id` (`packages/hub/src/routes/public.ts:75`) — full node,
   but only when effective `visibility === 'public'`.
 - `GET /f/:token` (form inbox, `packages/hub/src/features/form-inbox.ts`) —
-  the repo's established pattern for *unauthenticated, high-entropy-token-
-  gated, sanitized snapshot* reads. The share-link preview endpoint should be
+  the repo's established pattern for _unauthenticated, high-entropy-token-
+  gated, sanitized snapshot_ reads. The share-link preview endpoint should be
   its sibling.
 
 ## External Research
@@ -160,12 +160,12 @@ adjacent precedents:
 The canonical taxonomy of who builds a link preview, from research that
 audited ~20 messengers ([mysk.blog](https://mysk.blog/2020/10/25/link-previews/)):
 
-| Model | Who fetches | Examples | Verdict for xNet |
-| --- | --- | --- | --- |
-| No previews | nobody | Threema, TikTok | The status quo; fine but leaves value on the table |
-| **Sender-generated** | composer's device, preview travels with the message | iMessage, WhatsApp, Signal | **The local-first-correct model** — one fetch, replicates like content, readers never touch the URL |
-| Receiver-generated | every reader's device | (eliminated after the research) | Disqualified: leaks each reader's IP + acts as read receipt, N fetches, race-prone |
-| Server-generated | platform servers | Slack, Discord, FB | The Matrix trap (below); centralizes fetch but leaks URLs into server logs, SSRF surface on the relay |
+| Model                | Who fetches                                         | Examples                        | Verdict for xNet                                                                                      |
+| -------------------- | --------------------------------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| No previews          | nobody                                              | Threema, TikTok                 | The status quo; fine but leaves value on the table                                                    |
+| **Sender-generated** | composer's device, preview travels with the message | iMessage, WhatsApp, Signal      | **The local-first-correct model** — one fetch, replicates like content, readers never touch the URL   |
+| Receiver-generated   | every reader's device                               | (eliminated after the research) | Disqualified: leaks each reader's IP + acts as read receipt, N fetches, race-prone                    |
+| Server-generated     | platform servers                                    | Slack, Discord, FB              | The Matrix trap (below); centralizes fetch but leaks URLs into server logs, SSRF surface on the relay |
 
 Findings against server-generation in the wild: LINE forwarded links from
 E2E-encrypted chats to preview servers; Facebook/Instagram fetched without
@@ -180,7 +180,7 @@ Signal's refinement: the sender fetches through a Signal-operated TCP proxy so
 the target site never sees the sender's IP either
 ([signal.org/blog/i-link-therefore-i-am](https://signal.org/blog/i-link-therefore-i-am/)).
 xNet's `/unfurl` proxy gives us the same property for free: composer fetches
-*through the hub*, target site sees hub egress, readers see nothing.
+_through the hub_, target site sees hub egress, readers see nothing.
 
 ### UX prior art
 
@@ -190,7 +190,7 @@ xNet's `/unfurl` proxy gives us the same property for free: composer fetches
   `chat.unfurl` with URL-keyed maps
   ([docs.slack.dev](https://docs.slack.dev/messaging/unfurling-links-in-messages/)).
 - **Notion**: paste offers **URL / Mention / Preview** — internal URLs become
-  live *page mentions* (entity reference, renders current icon+title,
+  live _page mentions_ (entity reference, renders current icon+title,
   creates a backlink; no fetch) while external previews are a separate,
   integration-gated path
   ([notion.com/help/link-previews](https://www.notion.com/help/link-previews)).
@@ -198,7 +198,7 @@ xNet's `/unfurl` proxy gives us the same property for free: composer fetches
   is exactly the architecture xNet's data model wants.
 - **Editors**: TipTap v2 `nodePasteRule` (paste → node with attrs, async
   hydration via transaction) and Lexical's `LexicalAutoEmbedPlugin` (paste →
-  conversion *menu*) both converge on: store previews as **node attributes**
+  conversion _menu_) both converge on: store previews as **node attributes**
   (serialize with the doc, replicate in the CRDT, never re-fetch per reader),
   and make the transform a dismissible choice.
 
@@ -212,7 +212,7 @@ inside a sandboxed iframe, or (v1) skip embeds and render static cards only.
 
 ### Security notes with direct code implications
 
-- SSRF is *the* classic unfurler bug (link-preview-js shipped
+- SSRF is _the_ classic unfurler bug (link-preview-js shipped
   [CVE-2022-25876](https://security.snyk.io/vuln/SNYK-JS-LINKPREVIEWJS-2933520),
   a DNS-rebinding bypass). The hub's `guardedFetch` already re-validates
   post-redirect URLs and caps sizes — keep all fetching behind it; never add
@@ -235,7 +235,7 @@ inside a sandboxed iframe, or (v1) skip embeds and render static cards only.
    chat & comments, (b) a share-link preview endpoint, and (c) a shared card
    component outside the editor package.
 2. **Internal links are the free win.** Converting a pasted deep link into
-   the *existing* `links` relation reuses the whole chip pipeline — no schema
+   the _existing_ `links` relation reuses the whole chip pipeline — no schema
    change, no fetch, live titles (renames propagate because chips resolve at
    render).
 3. **Share links are unfixable without a hub change** — verified live: the
@@ -327,25 +327,25 @@ stateDiagram-v2
 
 ### A. Who resolves the preview?
 
-| Option | Privacy | Latency | Collab safety | Verdict |
-| --- | --- | --- | --- | --- |
-| A1. Reader render-time fetch | ✗ every reader pings URL (IP leak, read receipt) | card pops per reader | ✗ N clients race to write if cached into the doc | **Rejected** |
-| A2. Hub fetch at message ingest | URLs parsed server-side; hub must inspect content | good | ✓ | Rejected: hub currently relays content without interpreting message bodies; adds Matrix-style leak surface & coupling |
-| **A3. Composer fetch (via hub proxy), stored in message** | ✓ one fetch, author-only, proxied | preview may trail the paste by ~1s — acceptable in-composer | ✓ single writer by construction | **Recommended** |
+| Option                                                    | Privacy                                           | Latency                                                     | Collab safety                                    | Verdict                                                                                                               |
+| --------------------------------------------------------- | ------------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| A1. Reader render-time fetch                              | ✗ every reader pings URL (IP leak, read receipt)  | card pops per reader                                        | ✗ N clients race to write if cached into the doc | **Rejected**                                                                                                          |
+| A2. Hub fetch at message ingest                           | URLs parsed server-side; hub must inspect content | good                                                        | ✓                                                | Rejected: hub currently relays content without interpreting message bodies; adds Matrix-style leak surface & coupling |
+| **A3. Composer fetch (via hub proxy), stored in message** | ✓ one fetch, author-only, proxied                 | preview may trail the paste by ~1s — acceptable in-composer | ✓ single writer by construction                  | **Recommended**                                                                                                       |
 
 A3 also degrades perfectly offline: no metadata → message sends with a bare
 URL, exactly like today. Nothing ever blocks send.
 
 ### B. Where is the preview stored?
 
-| Option | Notes | Verdict |
-| --- | --- | --- |
-| B1. New `linkPreviews` structured field on `ChatMessage`/`Comment` | Mirrors `mentions`; additive schema change (minor bump, `fixed` core versions in lockstep); preview is immutable payload of a signed message | **Recommended** |
-| B2. Sidecar `LinkPreview` nodes + relation | Dedup across messages; but adds GC/authz/lifecycle complexity for tiny (<1 KB) payloads | Later, only if dedup matters |
-| B3. Local-only render cache (no storage) | Zero schema change, but every device re-fetches → reintroduces A1's problems for offline readers | Rejected |
+| Option                                                             | Notes                                                                                                                                        | Verdict                      |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| B1. New `linkPreviews` structured field on `ChatMessage`/`Comment` | Mirrors `mentions`; additive schema change (minor bump, `fixed` core versions in lockstep); preview is immutable payload of a signed message | **Recommended**              |
+| B2. Sidecar `LinkPreview` nodes + relation                         | Dedup across messages; but adds GC/authz/lifecycle complexity for tiny (<1 KB) payloads                                                      | Later, only if dedup matters |
+| B3. Local-only render cache (no storage)                           | Zero schema change, but every device re-fetches → reintroduces A1's problems for offline readers                                             | Rejected                     |
 
 For **internal** links there is nothing to store — the existing `links`
-relation *is* the storage, and titles stay live via `useLinkTargets`.
+relation _is_ the storage, and titles stay live via `useLinkTargets`.
 
 ### C. Share-link preview: what may the endpoint reveal?
 
@@ -355,11 +355,11 @@ authenticates by `linkId` possession only** (the URL path already exposes
 claiming). Because a `linkId` alone would now leak a title where today it
 leaks nothing, disclosure must be owner-controlled:
 
-| Option | Verdict |
-| --- | --- |
-| C1. Always return title for active links | Rejected — silently widens what a bare linkId reveals |
+| Option                                                                                                                            | Verdict                                                                                                            |
+| --------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| C1. Always return title for active links                                                                                          | Rejected — silently widens what a bare linkId reveals                                                              |
 | C2. Owner opt-in per link ("Show title in link previews" in ShareDialog), default **on** for new links, off for pre-existing ones | **Recommended** — visible at mint time, matches user expectation ("I'm sharing this so people can see what it is") |
-| C3. Require the secret | Rejected — sends the secret to the server, violating the fragment invariant |
+| C3. Require the secret                                                                                                            | Rejected — sends the secret to the server, violating the fragment invariant                                        |
 
 Response is a sanitized snapshot (`{ title, docType, icon }`), written at
 mint/rename time by the owner's client (the form-inbox `GET /f/:token`
@@ -367,11 +367,11 @@ pattern) — the hub never reads node content to serve it.
 
 ### D. Composer UX for the conversion
 
-| Option | Verdict |
-| --- | --- |
-| D1. Silent auto-conversion | Rejected — Slack/Notion both learned users need an out; destructive to intent ("I wanted the raw URL") |
-| D2. Paste-time choice pill (keep URL ⌫ / chip / card), Notion/Lexical style, default = enriched | **Recommended**; Escape restores bare URL; ≤3 previews per message; per-card remove-× after send (author only) |
-| D3. Up-res at render only for old messages | Internal links only (zero-fetch, safe); external URLs in historical messages stay plain — no retroactive fetching |
+| Option                                                                                          | Verdict                                                                                                           |
+| ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| D1. Silent auto-conversion                                                                      | Rejected — Slack/Notion both learned users need an out; destructive to intent ("I wanted the raw URL")            |
+| D2. Paste-time choice pill (keep URL ⌫ / chip / card), Notion/Lexical style, default = enriched | **Recommended**; Escape restores bare URL; ≤3 previews per message; per-card remove-× after send (author only)    |
+| D3. Up-res at render only for old messages                                                      | Internal links only (zero-fetch, safe); external URLs in historical messages stay plain — no retroactive fetching |
 
 ## Collaborative Editing Considerations
 
@@ -382,20 +382,20 @@ above is chosen specifically to preclude it:
 1. **Chat/comments: no shared mutable state.** A preview is written once by
    the composer into the message node before/at send. Viewers render; they
    never write. Two devices viewing the same channel cannot conflict over
-   previews *by construction*.
+   previews _by construction_.
 2. **Page editor (Yjs): single-writer hydration.** `RichLinkExtension`
    already inserts the card node with attrs in the paste transaction on the
-   pasting peer. The rule to enforce (and test): *only the peer that performed
-   the paste may later update that node's attrs* (loading → resolved), keyed
+   pasting peer. The rule to enforce (and test): _only the peer that performed
+   the paste may later update that node's attrs_ (loading → resolved), keyed
    by a node-local id. Any render-time "fill in missing attrs" effect run by
    viewers would fire on both devices and clobber concurrently — this is the
    anti-pattern to lint for in review.
 3. **Idempotent upgrade.** If both devices somehow paste the same URL
-   concurrently (genuinely two intents), two cards is the *correct* outcome —
+   concurrently (genuinely two intents), two cards is the _correct_ outcome —
    no dedup magic across peers.
 4. **Smoke-test status (run for this exploration):** `pnpm vitest run
-   --project editor` (805 tests), `--project runtime` (173), `--project
-   data-bridge` (210) — all green in this worktree. No existing test covers
+--project editor` (805 tests), `--project runtime` (173), `--project
+data-bridge` (210) — all green in this worktree. No existing test covers
    a two-peer paste + concurrent-view race; one is specified below. If the
    live two-device errors from `hub.xnet.fyi/s/xv17-H8BwWy9` produce console
    output or a stack trace, that becomes a targeted repro case — the suites
@@ -409,7 +409,7 @@ internal/external split, in four independently shippable phases:
 1. **Phase 1 — Internal link up-res in chat (zero-fetch).** Composer detects
    pasted deep links / `xnet://` URIs, resolves locally, offers the chip,
    stores via the existing `links` relation. Also render-time up-res of
-   internal URLs in *historical* messages (safe: local lookup only).
+   internal URLs in _historical_ messages (safe: local lookup only).
 2. **Phase 2 — Share-link previews.** Owner-published sanitized snapshot on
    the hub (`GET /shares/links/:linkId/preview`, opt-in toggle in
    ShareDialog); "shared document" card with claim CTA in chat.
@@ -432,7 +432,10 @@ export type UrlClass =
   | { kind: 'share'; linkId: string; hubUrl: string }
   | { kind: 'external'; url: string }
 
-export function classifyUrl(raw: string, env: { hubHosts: string[]; appHosts: string[] }): UrlClass {
+export function classifyUrl(
+  raw: string,
+  env: { hubHosts: string[]; appHosts: string[] }
+): UrlClass {
   const xnetRef = raw.match(/^xnet:\/\/([a-z]+)\/(.+)$/)
   if (xnetRef) return { kind: 'internal', nodeKind: xnetRef[1], nodeId: xnetRef[2] }
 
@@ -507,16 +510,16 @@ const preview = await fetchWithTimeout(
 
 ### Phase 1 — internal link chips (chat)
 
-- [ ] `classifyUrl` + `parseAppDeepLink` pure helpers with tests (hash-router
+- [x] `classifyUrl` + `parseAppDeepLink` pure helpers with tests (hash-router
       and path forms; `xnet://` URIs; share URLs delegated to `parseShareUrl`)
-- [ ] Composer: on paste/token-commit of an internal URL resolvable via
+- [x] Composer: on paste/token-commit of an internal URL resolvable via
       `useLinkTargets`, offer conversion pill; accept → record in the
       existing picked-links map so `composerLinks()` emits it
-- [ ] `MessageBody`: render-time substitution of internal-URL tokens whose id
+- [x] `MessageBody`: render-time substitution of internal-URL tokens whose id
       resolves locally → inline chip (same visual as `MessageLinkChips`),
       leaving unresolvable ones as anchors
-- [ ] Same treatment in `ThreadPane` and `CommentBubble`
-- [ ] Unit tests: composer conversion, render substitution, unresolvable
+- [x] Same treatment in `ThreadPane` and `CommentBubble`
+- [x] Unit tests: composer conversion, render substitution, unresolvable
       passthrough
 
 ### Phase 2 — share-link previews
@@ -576,7 +579,7 @@ const preview = await fetchWithTimeout(
       (also the repro attempt for the reported collab issue — capture console
       on both devices)
 - [ ] `pnpm vitest run --project editor --project runtime --project
-      data-bridge` green; new two-peer race test green
+    data-bridge` green; new two-peer race test green
 - [ ] Message with 5 URLs renders ≤3 cards + plain anchors for the rest
 
 ## References
@@ -586,9 +589,9 @@ const preview = await fetchWithTimeout(
   `0170` ([[ link picker), `0198_[x]_POLISHED_CHAT_AND_CHANNELS_UI.md`
   (MessageRow grammar), `0179` (public nodes), `0278` (form-inbox token
   pattern), `0276` (barrel policy)
-- Mysk & Bakry, *Link Previews: How a Simple Feature Can Have Privacy and
-  Security Risks* — https://mysk.blog/2020/10/25/link-previews/
-- Signal, *I link therefore I am* — https://signal.org/blog/i-link-therefore-i-am/
+- Mysk & Bakry, _Link Previews: How a Simple Feature Can Have Privacy and
+  Security Risks_ — https://mysk.blog/2020/10/25/link-previews/
+- Signal, _I link therefore I am_ — https://signal.org/blog/i-link-therefore-i-am/
 - Slack unfurling — https://docs.slack.dev/messaging/unfurling-links-in-messages/
   and https://medium.com/slack-developer-blog/everything-you-ever-wanted-to-know-about-unfurling-but-were-afraid-to-ask-or-how-to-make-your-e64b4bb9254
 - Notion link previews / mentions — https://www.notion.com/help/link-previews,
