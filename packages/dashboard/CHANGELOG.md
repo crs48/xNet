@@ -1,5 +1,15 @@
 # @xnetjs/dashboard
 
+## 0.0.13
+
+### Patch Changes
+
+- Updated dependencies [[`8bb9cc6`](https://github.com/crs48/xNet/commit/8bb9cc6752cfe0a83d91388bdc375ff03f55b852), [`8bb9cc6`](https://github.com/crs48/xNet/commit/8bb9cc6752cfe0a83d91388bdc375ff03f55b852)]:
+  - @xnetjs/react@0.9.0
+  - @xnetjs/data@0.9.0
+  - @xnetjs/plugins@0.9.0
+  - @xnetjs/social@0.0.13
+
 ## 0.0.12
 
 ### Patch Changes

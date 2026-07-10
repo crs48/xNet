@@ -1,6 +1,6 @@
 {
   "name": "@xnetjs/sqlite",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Unified SQLite adapter for xNet across all platforms",
   "license": "MIT",
   "repository": {
