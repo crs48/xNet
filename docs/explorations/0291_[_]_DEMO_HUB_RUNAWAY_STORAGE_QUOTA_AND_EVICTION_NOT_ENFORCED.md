@@ -313,11 +313,11 @@ if (config.demo) {
 
 ## Validation Checklist
 
-- [ ] With `--demo`, a single DID syncing >10 MB is **rejected** at the relay; `node_changes` for that DID stays under budget.
+- [x] With `--demo`, a single DID syncing >10 MB is **rejected** at the relay; `node_changes` for that DID stays under budget.
 - [ ] `hub.xnet.fyi` disk usage stays well under 500 MB across a day of use.
-- [ ] The daily reset empties `node_changes`/`doc_state`/backups/files and the volume shrinks (VACUUM), verified by `/health` `usedBytes`.
-- [ ] Backup/File uploads over 2 MB (demo `maxBlob`) return `413`/`BLOB_TOO_LARGE` in demo mode.
-- [ ] Killing available disk (simulated full volume) makes the hub **shed writes with a clear error**, not crash into a 502.
+- [x] The daily reset empties `node_changes`/`doc_state`/backups/files and the volume shrinks (VACUUM), verified by `/health` `usedBytes`.
+- [x] Backup/File uploads over 2 MB (demo `maxBlob`) return `413`/`BLOB_TOO_LARGE` in demo mode.
+- [x] Killing available disk (simulated full volume) makes the hub **shed writes with a clear error**, not crash into a 502.
 - [ ] `curl https://hub.xnet.fyi/health` returns 200 continuously (no crash loop) under sustained single-user load.
 
 ## References

@@ -181,6 +181,20 @@ describe('node relay demo enforcement', () => {
   })
 })
 
+// ─── createHub demo resolution ──────────────────────────────────────────────
+
+describe('createHub demo overrides', () => {
+  it('resolves demoOverrides when demo: true is passed programmatically', async () => {
+    // The CLI resolves demoOverrides from env, but createHub({ demo: true })
+    // used to leave them undefined — silently disabling every guardrail.
+    const { createHub } = await import('../src')
+    const hub = await createHub({ port: 14971, demo: true, storage: 'memory' })
+    expect(hub.config.demoOverrides).toBeDefined()
+    expect(hub.config.demoOverrides?.quota).toBeGreaterThan(0)
+    await hub.stop()
+  })
+})
+
 // ─── Disk watchdog ──────────────────────────────────────────────────────────
 
 describe('DiskWatchdog', () => {
