@@ -30,7 +30,8 @@ import { DOC_TYPE_ROUTES } from '../lib/doc-creation'
 import { logout } from '../lib/identity'
 import { useNewActions } from './new-actions'
 import { useWorkbench } from './state'
-import { SURFACES, useSurfaceActivation } from './surfaces'
+import { SURFACES, surfaceTabId, useSurfaceActivation } from './surfaces'
+import { setPreviewIntent } from './tabs'
 import { NO_SPACE } from './views/explorer-scope'
 
 export type FloatingMenuName = 'new' | 'notif' | 'profile' | 'surfaces' | 'workspace'
@@ -194,6 +195,8 @@ function ProfileMenu({ close }: { close: () => void }) {
   const { resolvedTheme, toggleTheme } = useTheme()
   const dark = resolvedTheme === 'dark'
   const go = (to: string) => {
+    // Open as a preview tab (0288), same as clicking Settings anywhere else.
+    setPreviewIntent()
     void navigate({ to })
     close()
   }
@@ -269,6 +272,11 @@ function SurfacesMenu({ close }: { close: () => void }) {
             className={`${item} ${active ? 'bg-accent' : ''}`}
             onClick={() => {
               activate(surface)
+              close()
+            }}
+            onDoubleClick={() => {
+              const id = surfaceTabId(surface)
+              if (id) useWorkbench.getState().promoteTab(id)
               close()
             }}
           >

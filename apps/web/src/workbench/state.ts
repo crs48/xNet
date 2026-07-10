@@ -460,10 +460,11 @@ export const useWorkbench = create<WorkbenchState>()(
       navPinned: ['explorer', 'requests', 'tasks'],
       sidebarWidth: 264,
       sidebarCompact: false,
-      // The Assistant floats by default (a launcher to the AI surface); the
-      // video-call island stays off until a real calling backend is wired
-      // (0286) — no fabricated live-call state is shown at rest.
-      floatAi: true,
+      // The Assistant starts minimized to its reopener pill on desktop — the
+      // full island is one click away but doesn't claim editor space at rest.
+      // The video-call island likewise stays off until a real calling backend
+      // is wired (0286) — no fabricated live-call state is shown at rest.
+      floatAi: false,
       floatCall: false,
       left: { open: true, activeViewId: 'explorer' },
       right: { open: false, activeViewId: 'context' },
