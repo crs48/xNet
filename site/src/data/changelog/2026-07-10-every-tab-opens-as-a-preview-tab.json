@@ -7,5 +7,14 @@
     "Single-click any surface (People, Meetings, Finance, Settings…) → a preview tab",
     "Double-click the row to keep it open"
   ],
-  "tags": ["app"]
+  "tags": [
+    "app"
+  ],
+  "pr": 444,
+  "mergedAt": "2026-07-10T14:09:58Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
