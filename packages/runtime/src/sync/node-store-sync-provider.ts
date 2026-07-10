@@ -61,6 +61,12 @@ function yieldToEventLoop(): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, 0))
 }
 
+/**
+ * The share room that carries a channel's nodes to its grantees (0298). Must
+ * match the hub's `channelShareRoom` so `topicToResource` resolves the grant.
+ */
+export const channelShareRoom = (channelId: string): string => `xnet-channel-${channelId}`
+
 export type SerializedNodeChange = {
   id: string
   type: string
@@ -144,9 +150,18 @@ export class NodeStoreSyncProvider {
   // and in DevTools (exploration 0212).
   private firstRemoteApplyMarked = false
 
+  /**
+   * Subscribe-only providers (channel share rooms, 0298) RECEIVE and apply a
+   * room's changes but never publish local changes into it (the hub owns
+   * fan-out) and never advance the cursor from a live broadcast's author
+   * lamport — a share room's cursor is a per-room `seq` carried opaquely in the
+   * sync-response high-water mark, and author lamports across members are not
+   * mutually ordered.
+   */
   constructor(
     private store: NodeStore,
-    private room: string
+    private room: string,
+    private subscribeOnly = false
   ) {}
 
   /**
@@ -208,10 +223,13 @@ export class NodeStoreSyncProvider {
       }
     })
 
-    this.storeCleanup = this.store.subscribe((event) => {
-      if (event.isRemote) return
-      this.enqueueChange(event.change)
-    })
+    // Subscribe-only rooms receive but never publish local changes into the room.
+    if (!this.subscribeOnly) {
+      this.storeCleanup = this.store.subscribe((event) => {
+        if (event.isRemote) return
+        this.enqueueChange(event.change)
+      })
+    }
 
     if (connection.status === 'connected') {
       void this.onConnected()
@@ -252,7 +270,8 @@ export class NodeStoreSyncProvider {
 
     this.requestSync()
     await this.waitForSyncResponse()
-    await this.syncLocalChanges()
+    // Subscribe-only rooms never push local changes (the hub fans them in).
+    if (!this.subscribeOnly) await this.syncLocalChanges()
   }
 
   private onDisconnected(): void {
@@ -447,7 +466,9 @@ export class NodeStoreSyncProvider {
   ): Promise<void> {
     const change = this.deserializeChange(serialized)
 
-    if (serialized.lamportTime > this.lastSyncedLamport) {
+    // Share rooms cursor on a per-room seq (advanced only from sync-response
+    // high-water marks), so a live broadcast's author lamport must not move it.
+    if (!this.subscribeOnly && serialized.lamportTime > this.lastSyncedLamport) {
       this.lastSyncedLamport = serialized.lamportTime
     }
 

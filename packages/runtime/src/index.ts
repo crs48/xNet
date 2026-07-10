@@ -99,6 +99,7 @@ export {
 
 export {
   NodeStoreSyncProvider,
+  channelShareRoom,
   type SerializedNodeChange,
   type NodeSyncResponse,
   type SyncBlockedListener,

@@ -117,6 +117,15 @@ export interface SyncManager {
   /** Stop tracking a Node */
   untrack(nodeId: string): void
 
+  /**
+   * Subscribe (receive-only) to a share room — e.g. a channel's
+   * `xnet-channel-<id>` — so grant-covered nodes the hub fans in reach the
+   * local store (exploration 0298). Idempotent. No-op without a node store.
+   */
+  subscribeShareRoom(room: string): void
+  /** Stop receiving a share room's changes. */
+  unsubscribeShareRoom(room: string): void
+
   /** Acquire a Y.Doc (used by useNode) */
   acquire(nodeId: string): Promise<Y.Doc>
   /** Release a Y.Doc (component unmounted) */
@@ -471,6 +480,9 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
   const nodeSyncProvider = config.nodeSyncRoom
     ? new NodeStoreSyncProvider(config.nodeStore, config.nodeSyncRoom)
     : null
+  // Receive-only providers for share rooms (channels, 0298), opened at runtime
+  // when a channel view mounts or a share link is claimed.
+  const shareRoomProviders = new Map<string, NodeStoreSyncProvider>()
   // Wrap blobStore to auto-announce new blobs to peers on put()
   let blobSync: BlobSyncProvider | null = null
   if (config.blobStore) {
@@ -1079,6 +1091,7 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
       connection.connect()
 
       nodeSyncProvider?.attach(connection)
+      for (const provider of shareRoomProviders.values()) provider.attach(connection)
 
       // Start blob sync if configured
       blobSync?.start()
@@ -1107,6 +1120,8 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
       blobSync?.stop()
 
       nodeSyncProvider?.detach()
+      for (const provider of shareRoomProviders.values()) provider.detach()
+      shareRoomProviders.clear()
 
       // Leave all rooms
       for (const nodeId of Array.from(roomCleanups.keys())) {
@@ -1143,6 +1158,21 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
       registry.untrack(nodeId)
       scheduleRegistrySave()
       leaveNodeRoom(nodeId)
+    },
+
+    subscribeShareRoom(room) {
+      if (shareRoomProviders.has(room)) return
+      const provider = new NodeStoreSyncProvider(config.nodeStore, room, true)
+      shareRoomProviders.set(room, provider)
+      // Attach now if the connection exists; otherwise start() attaches it.
+      provider.attach(connection)
+    },
+
+    unsubscribeShareRoom(room) {
+      const provider = shareRoomProviders.get(room)
+      if (!provider) return
+      provider.detach()
+      shareRoomProviders.delete(room)
     },
 
     async acquire(nodeId) {
