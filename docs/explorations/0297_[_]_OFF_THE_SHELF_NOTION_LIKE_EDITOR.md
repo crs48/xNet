@@ -422,7 +422,7 @@ registerTierTwoExtension({
 - [x] PR 2: migrate `suggestion-popup.ts`, `SlashMenu`, `TaskMentionMenu`,
       `LinkTargetMenu`, wikilink/hashtag popups to `@floating-ui/react`;
       remove `tippy.js` from `packages/editor/package.json`.
-- [ ] PR 3: vendor MIT simple-editor UI primitives into
+- [x] PR 3: vendor MIT simple-editor UI primitives into
       `packages/editor/src/components/ui/` (copied, not CLI-managed);
       rebase `FloatingToolbar.tsx` onto them; keep `editor-ux-state.ts`;
       verify mobile fixed-bar mode on touch.
