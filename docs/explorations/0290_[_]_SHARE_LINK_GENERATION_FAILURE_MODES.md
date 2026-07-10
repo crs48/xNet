@@ -431,7 +431,7 @@ Bug #2 — Share dialog CTA (`apps/web/src/components/ShareDialog.tsx:238`):
 - [ ] Label private-hub links "Local only" and add a copy/QR confirm (keep LAN sharing).
 - [ ] (Follow-up) Decide `ownerDid`-on-first-write vs. permissive default; write a hub test for the chosen behaviour.
 - [x] Add a hub test asserting every `ShareDocType` value returns 200 from `POST /shares/links`.
-- [ ] Write the changeset(s) reflecting the `docType`/union contract change.
+- [x] Write the changeset(s) reflecting the `docType`/union contract change.
 
 ## Validation Checklist
 
