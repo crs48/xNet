@@ -13,6 +13,7 @@ import { useEffect, useRef, useState, type JSX } from 'react'
 import { deskIdFor } from '../lib/desk'
 import { navigateToNode } from '../workbench/navigation'
 import { selectActiveTab, useWorkbench } from '../workbench/state'
+import { setPreviewIntent } from '../workbench/tabs'
 import { SCHEMA_IDS, isExplorerNodeType } from '../workbench/views/explorer-items'
 
 export function WorkspaceCommands(): JSX.Element | null {
@@ -67,25 +68,38 @@ export function WorkspaceCommands(): JSX.Element | null {
         id: 'nav.tasks',
         title: 'Go to tasks',
         key: 'g t',
-        run: () => void navigate({ to: '/tasks' })
+        // Open as a preview tab (0288), same as clicking the surface.
+        run: () => {
+          setPreviewIntent()
+          void navigate({ to: '/tasks' })
+        }
       }),
       registry.register({
         id: 'nav.meetings',
         title: 'Go to meetings',
         key: 'g e',
-        run: () => void navigate({ to: '/meetings' })
+        run: () => {
+          setPreviewIntent()
+          void navigate({ to: '/meetings' })
+        }
       }),
       registry.register({
         id: 'nav.data',
         title: 'Go to data workspace',
         key: 'g d',
-        run: () => void navigate({ to: '/data' })
+        run: () => {
+          setPreviewIntent()
+          void navigate({ to: '/data' })
+        }
       }),
       registry.register({
         id: 'nav.finance',
         title: 'Go to finance',
         key: 'g f',
-        run: () => void navigate({ to: '/finance' })
+        run: () => {
+          setPreviewIntent()
+          void navigate({ to: '/finance' })
+        }
       }),
       registry.register({
         id: 'nav.discover',
@@ -97,12 +111,18 @@ export function WorkspaceCommands(): JSX.Element | null {
         id: 'nav.settings',
         title: 'Go to settings',
         key: 'g s',
-        run: () => void navigate({ to: '/settings' })
+        run: () => {
+          setPreviewIntent()
+          void navigate({ to: '/settings' })
+        }
       }),
       registry.register({
         id: 'safety.filters',
         title: 'Content filters & safety',
-        run: () => void navigate({ to: '/settings' })
+        run: () => {
+          setPreviewIntent()
+          void navigate({ to: '/settings' })
+        }
       }),
       // The Desk (0273): a per-identity home canvas. "Go to Desk" creates it
       // on first visit (deterministic id + createIfMissing); "Pin to Desk"

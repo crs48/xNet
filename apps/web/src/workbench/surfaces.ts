@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import { useCallback } from 'react'
 import { useWorkbench } from './state'
+import { setPreviewIntent, tabIdForRoute } from './tabs'
 
 export interface SurfaceDef {
   /** Stable id — persisted in `activeSurface` / `navPinned`. */
@@ -84,21 +85,47 @@ export function pinnedSurfaces(navPinned: string[]): SurfaceDef[] {
 export const DEFAULT_SURFACE = 'explorer'
 
 /**
+ * The tab a route surface opens/promotes, or null for panel surfaces and
+ * non-tab routes (Discover, Analytics). Lets a surface row promote its tab on
+ * double-click without knowing the node model.
+ */
+export function surfaceTabId(surface: SurfaceDef): string | null {
+  if (surface.kind !== 'route' || !surface.to) return null
+  return tabIdForRoute(surface.to)
+}
+
+/**
  * Activating a surface: a **panel** drives the contextual bottom island
- * (`activeSurface`); a **route** opens in the editor (and leaves the island on
- * its current panel). Shared by the sidebar primary rows and the surfaces
- * roll-out so both roads agree.
+ * (`activeSurface`); a **route** opens in the editor as a VS Code-style preview
+ * tab (0288) — a single click renders it italic and the next single-click open
+ * replaces it; double-clicking the row (or editing) promotes it. Pure so the
+ * decision is testable; the hook below wires the side-effecting deps.
+ */
+export function activateSurface(
+  surface: SurfaceDef,
+  deps: { navigate: (opts: { to: string }) => void; setActiveSurface: (id: string) => void }
+): void {
+  if (surface.kind === 'route' && surface.to) {
+    // Only tab routes honour the preview latch; arming it for a non-tab route
+    // (Discover, Analytics, Inbox) would leave it set for the next navigation.
+    if (tabIdForRoute(surface.to)) setPreviewIntent()
+    deps.navigate({ to: surface.to })
+  } else {
+    deps.setActiveSurface(surface.id)
+  }
+}
+
+/**
+ * Shared by the sidebar primary rows and the surfaces roll-out so both roads
+ * agree. Returns the single-click handler; double-click promote lives in the
+ * render sites (they call {@link surfaceTabId} + the store's `promoteTab`).
  */
 export function useSurfaceActivation(): (surface: SurfaceDef) => void {
   const navigate = useNavigate()
   const setActiveSurface = useWorkbench((state) => state.setActiveSurface)
   return useCallback(
     (surface: SurfaceDef) => {
-      if (surface.kind === 'route' && surface.to) {
-        void navigate({ to: surface.to })
-      } else {
-        setActiveSurface(surface.id)
-      }
+      activateSurface(surface, { navigate: (opts) => void navigate(opts), setActiveSurface })
     },
     [navigate, setActiveSurface]
   )

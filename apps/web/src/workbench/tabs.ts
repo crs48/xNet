@@ -114,6 +114,16 @@ export function routeForTab(nodeType: TabNodeType, nodeId: string): string {
 }
 
 /**
+ * The tab id a pathname maps to, or null for non-tab routes — lets a
+ * click source that only knows a route (surface rows, menu links) resolve
+ * the tab to promote on double-click.
+ */
+export function tabIdForRoute(pathname: string): string | null {
+  const descriptor = tabFromPathname(pathname)
+  return descriptor ? tabIdFor(descriptor.nodeType, descriptor.nodeId) : null
+}
+
+/**
  * Preview intent — set by single-click sources (explorer, palette)
  * just before they navigate, consumed by the route→tab sync. Deep
  * links, back/forward and command navigation open permanent tabs.
@@ -136,7 +146,12 @@ export function consumePreviewIntent(): boolean {
  */
 export function syncRouteToTabs(pathname: string): void {
   const descriptor = tabFromPathname(pathname)
-  if (!descriptor) return
+  if (!descriptor) {
+    // Non-tab route: drop any pending preview intent so a source that armed it
+    // before navigating somewhere untabbed can't leak it onto the next open.
+    consumePreviewIntent()
+    return
+  }
 
   const tabId = tabIdFor(descriptor.nodeType, descriptor.nodeId)
   const state = useWorkbench.getState()
