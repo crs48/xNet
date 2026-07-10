@@ -467,11 +467,26 @@ export type HubStorage = {
   getNodeChangesForNode: (room: string, nodeId: string) => Promise<SerializedNodeChange[]>
   getHighWaterMark: (room: string) => Promise<number>
   /**
+   * Bytes of node-change data attributed to a DID (payload + signature),
+   * summed on demand. Backs the demo-mode per-user storage cap
+   * (exploration 0291) — the append-only `node_changes` log is the primary
+   * grower and, unlike backups/files, had no quota gate.
+   */
+  getUsageBytesByDid: (did: string) => Promise<number>
+  /**
    * Delete every stored node-change for a room and return how many were
    * removed. Used by the "reset my data" dev tool — clearing a room is gated
    * on `hub/relay` for that room (you can only wipe rooms you can write to).
    */
   clearNodeChanges: (room: string) => Promise<number>
+  /**
+   * Wipe all user-content data (node changes, doc state, doc meta, database
+   * rows, blobs, files, grants, share links, containment/visibility, awareness)
+   * and return per-table counts. Backs the demo hub's scheduled daily reset
+   * (exploration 0291); leaves infrastructure (schemas, keys, peers,
+   * federation, shards) intact.
+   */
+  resetAllUserData: () => Promise<{ nodeChanges: number; docStates: number }>
 
   // Database row operations
   insertDatabaseRow: (row: DatabaseRowRecord) => Promise<void>

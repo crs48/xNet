@@ -4,6 +4,7 @@
 
 import type { HubConfig, HubInstance } from './types'
 import { mkdirSync } from 'fs'
+import { getDemoOverrides } from './config'
 import { createServer } from './server'
 import { DEFAULT_CONFIG } from './types'
 export { resolveConfig } from './config'
@@ -36,6 +37,14 @@ export { createHubAuthError, type HubAuthError, type HubAuthErrorCode } from './
  */
 export const createHub = async (config: Partial<HubConfig> = {}): Promise<HubInstance> => {
   const resolved: HubConfig = { ...DEFAULT_CONFIG, ...config }
+
+  // `demo: true` must always carry enforceable limits: the CLI path resolves
+  // demoOverrides from env, but a programmatic `createHub({ demo: true })`
+  // used to leave them undefined — and every demo guardrail silently no-op'd
+  // (exploration 0291). Env vars still override the defaults here.
+  if (resolved.demo && !resolved.demoOverrides) {
+    resolved.demoOverrides = getDemoOverrides(true) ?? undefined
+  }
 
   mkdirSync(resolved.dataDir, { recursive: true })
 

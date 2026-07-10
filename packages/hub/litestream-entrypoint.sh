@@ -12,6 +12,14 @@ PORT="${PORT:-4444}"
 CONFIG="${LITESTREAM_CONFIG:-/etc/litestream.yml}"
 HUB="node packages/hub/dist/cli.js --port ${PORT} --data ${DATA_DIR}"
 
+# Demo hubs enforce per-user quotas + a daily data reset (exploration 0291).
+# The config layer also treats HUB_MODE=demo as demo, but pass the flag through
+# the Litestream path too so every launch path agrees (Railway overrides this
+# start command with its own; this keeps the entrypoint consistent elsewhere).
+if [ "$HUB_MODE" = "demo" ] || [ "$HUB_DEMO" = "1" ]; then
+  HUB="${HUB} --demo"
+fi
+
 # Managed hubs (Cloud Run) can't have a config file written into them, so generate
 # one from env when none is mounted: LITESTREAM=1, a per-tenant LITESTREAM_PATH, and
 # S3 creds. Credentials stay as ${...} refs so the rendered file never embeds

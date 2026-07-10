@@ -93,6 +93,17 @@ export type NodeSyncResponse = {
  */
 export type UnknownChangeTypeListener = (change: NodeChange, peerId: string) => void
 
+/**
+ * The hub is refusing further writes for a capacity reason (exploration 0291):
+ * `QUOTA_EXCEEDED` — this identity is over the hub's per-user cap (demo mode);
+ * `STORAGE_FULL` — the hub's volume is full and it is shedding writes.
+ * Local data is untouched; outbound sync pauses until the next reconnect.
+ */
+export type SyncBlockedReason = 'QUOTA_EXCEEDED' | 'STORAGE_FULL'
+export type SyncBlockedListener = (reason: SyncBlockedReason, detail: string) => void
+
+const CAPACITY_REJECTION_CODES = new Set<SyncBlockedReason>(['QUOTA_EXCEEDED', 'STORAGE_FULL'])
+
 export class NodeStoreSyncProvider {
   /** Confirmed, persisted high-water mark (advanced from the hub's response). */
   private lastSyncedLamport = 0
@@ -106,6 +117,7 @@ export class NodeStoreSyncProvider {
   private messageCleanup: (() => void) | null = null
   private storeCleanup: (() => void) | null = null
   private unknownChangeTypeListeners = new Set<UnknownChangeTypeListener>()
+  private syncBlockedListeners = new Set<SyncBlockedListener>()
 
   // Throttled send queue.
   private sendQueue: NodeChange[] = []
@@ -338,6 +350,9 @@ export class NodeStoreSyncProvider {
       if (STRUCTURAL_REJECTION_CODES.has(code)) {
         this.recordStructuralRejection(code, message)
       }
+      if (CAPACITY_REJECTION_CODES.has(code as SyncBlockedReason)) {
+        this.recordCapacityRejection(code as SyncBlockedReason, message)
+      }
       return
     }
     if (message.type !== 'node-sync-response') return
@@ -371,6 +386,50 @@ export class NodeStoreSyncProvider {
           message.error ?? message.message ?? '(no detail)'
         }`
     )
+  }
+
+  /**
+   * Halt outbound sync on a capacity rejection (exploration 0291). Unlike the
+   * structural breaker, one rejection is enough: while the account is over
+   * quota (or the hub's disk is full) every further change is rejected too, so
+   * resending only floods the hub. Local data is untouched — the store keeps
+   * accepting writes and the un-pushed changes replay on the next reconnect
+   * (the demo hub's daily reset / freed disk clears the condition server-side).
+   */
+  private recordCapacityRejection(
+    reason: SyncBlockedReason,
+    message: Record<string, unknown>
+  ): void {
+    const detail = String(message.error ?? message.message ?? '')
+    if (!this.outboundHalted) {
+      this.outboundHalted = true
+      this.clearSendQueue()
+      console.error(
+        reason === 'QUOTA_EXCEEDED'
+          ? `[NodeStoreSync] Hub storage limit reached — pausing outbound sync. Your data is safe ` +
+              `locally; syncing resumes when space frees up (demo hubs reset daily). Hub said: ${detail}`
+          : `[NodeStoreSync] Hub disk is full — pausing outbound sync. Your data is safe locally; ` +
+              `syncing resumes automatically. Hub said: ${detail}`
+      )
+    }
+    for (const listener of this.syncBlockedListeners) {
+      try {
+        listener(reason, detail)
+      } catch (err) {
+        console.error('Error in sync-blocked listener:', err)
+      }
+    }
+  }
+
+  /**
+   * Subscribe to capacity-blocked events (hub over quota / disk full) so the
+   * app can surface a "storage full" notice. Returns an unsubscribe function.
+   */
+  onSyncBlocked(listener: SyncBlockedListener): () => void {
+    this.syncBlockedListeners.add(listener)
+    return () => {
+      this.syncBlockedListeners.delete(listener)
+    }
   }
 
   private requestSync(): void {

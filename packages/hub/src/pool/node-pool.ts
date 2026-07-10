@@ -16,6 +16,14 @@ type PoolEntry = {
 type NodePoolOptions = {
   maxWarmDocs?: number
   persistDelay?: number
+  /**
+   * When true, defer persisting doc state (the entry stays dirty and retries
+   * on the next markDirty/persistAll). Lets a demo hub ride out a full disk
+   * instead of crashing on SQLITE_FULL (exploration 0291). Yjs state has no
+   * per-DID attribution, so unlike node_changes it can't be quota'd per user —
+   * the watchdog is its only guard.
+   */
+  isStorageFull?: () => boolean
 }
 
 const createEntry = (doc: Y.Doc): PoolEntry => ({
@@ -34,7 +42,7 @@ export class NodePool {
 
   constructor(
     private storage: HubStorage,
-    options?: NodePoolOptions
+    private options?: NodePoolOptions
   ) {
     this.maxWarmDocs = options?.maxWarmDocs ?? 500
     this.persistDelay = options?.persistDelay ?? 1000
@@ -102,6 +110,13 @@ export class NodePool {
   async persist(docId: string): Promise<void> {
     const entry = this.entries.get(docId)
     if (!entry || !entry.dirty) return
+
+    // Full disk: keep the doc dirty in memory and try again on the next
+    // markDirty/persistAll rather than dying on SQLITE_FULL.
+    if (this.options?.isStorageFull?.()) {
+      entry.persistTimer = null
+      return
+    }
 
     const state = Y.encodeStateAsUpdate(entry.doc)
     await this.storage.setDocState(docId, state)

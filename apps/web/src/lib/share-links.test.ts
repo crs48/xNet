@@ -98,6 +98,17 @@ describe('claimShareLink', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('nope', { status: 502 })))
     await expect(claimShareLink(input, 'token')).rejects.toMatchObject({ code: 'HTTP_502' })
   })
+
+  it('maps a network-layer failure to HUB_UNREACHABLE naming the hub (0290)', async () => {
+    // fetch() rejects with a bare TypeError for hub-down / CORS-less edge
+    // errors — the user should see an outage, not "Failed to fetch".
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
+    await expect(claimShareLink(input, 'token')).rejects.toMatchObject({
+      name: 'ShareClaimError',
+      code: 'HUB_UNREACHABLE',
+      message: expect.stringContaining('https://hub.example.com')
+    })
+  })
 })
 
 describe('claim error text', () => {
@@ -136,6 +147,9 @@ describe('docRouteFor', () => {
       params: { dashboardId: 'd' }
     })
     expect(docRouteFor('view', 'e')).toEqual({ to: '/view/$viewId', params: { viewId: 'e' } })
+    expect(docRouteFor('space', 'f')).toEqual({ to: '/space/$spaceId', params: { spaceId: 'f' } })
+    // Workspaces have no viewer route — a claimed bench lands home (0280/0290).
+    expect(docRouteFor('workspace', 'g')).toEqual({ to: '/', params: {} })
   })
 })
 
@@ -239,6 +253,13 @@ describe('hubApiFetch', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('x', { status: 500 })))
     await expect(hubApiFetch('https://hub.x', 'tok', '/x')).rejects.toThrow(
       'Hub request failed (500)'
+    )
+  })
+
+  it('names the hub on network-layer failures instead of "Failed to fetch" (0290)', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('Failed to fetch')))
+    await expect(hubApiFetch('https://hub.x', 'tok', '/shares/links')).rejects.toThrow(
+      "Your hub (https://hub.x) isn't responding"
     )
   })
 })
