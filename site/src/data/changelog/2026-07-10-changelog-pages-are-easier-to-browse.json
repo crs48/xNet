@@ -8,5 +8,14 @@
     "Search and tag filters page their results too",
     "Shared entry links still land on the right entry, whatever page it's on"
   ],
-  "tags": ["app"]
+  "tags": [
+    "app"
+  ],
+  "pr": 454,
+  "mergedAt": "2026-07-10T20:23:09Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
