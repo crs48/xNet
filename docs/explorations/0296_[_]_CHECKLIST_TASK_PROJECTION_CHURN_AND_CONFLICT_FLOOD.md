@@ -403,7 +403,7 @@ already do: `packages/ui/src/composed/tasks/TaskRow.tsx:147` etc.)
 - [x] Update `docs/specs/PAGE_TASK_RECONCILIATION.md`: add "no reconciliation
       before first editor snapshot" and "placeholder titles never overwrite
       real titles" to the invariants
-- [ ] Tests: store golden vectors for the conflict predicate (tie, own-stale,
+- [x] Tests: store golden vectors for the conflict predicate (tie, own-stale,
       cross-author); replay-idempotence test (apply same change twice ⇒ one
       log row, zero conflicts); hook tests for mount race, host switch, and
       the delete-gesture transient (empty-title snapshot between two
