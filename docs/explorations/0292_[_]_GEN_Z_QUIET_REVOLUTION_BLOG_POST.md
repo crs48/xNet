@@ -392,12 +392,12 @@ from `packages/plugins/src/ai/connectors/detect.ts`.
 - [x] Add the `CodeFigure` exhibit from
       `packages/plugins/src/ai/connectors/detect.ts` (verbatim probe order)
       and the spiral `Mermaid` exhibit.
-- [ ] Fact-check pass against the table above: every "soften" softened,
+- [x] Fact-check pass against the table above: every "soften" softened,
       every "verify before use" sourced or cut; quotes attributed to the
       videos with links.
-- [ ] Read-through for series continuity links (the-vault-and-the-view,
+- [x] Read-through for series continuity links (the-vault-and-the-view,
       hand-on-the-tiller, the-workshop-and-the-walled-garden).
-- [ ] Changelog fragment via `node scripts/changelog/new.mjs` (site change;
+- [x] Changelog fragment via `node scripts/changelog/new.mjs` (site change;
       no changeset — `site/` is not a publishable package).
 - [ ] Flip `draft: false`, set real `pubDate`, confirm `readingMinutes`.
 - [ ] Commit per Conventional Commits (header ≤72 chars), PR, merge-commit
