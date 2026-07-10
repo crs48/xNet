@@ -52,6 +52,28 @@ merged. That merge is deliberate and human-gated, but it must not rot
 - If `.changeset/` is piling up (dozens of files), releases have stalled —
   check the `npm Release` workflow runs and the release PR before adding more.
 
+## CI lanes and tests (0294)
+
+Any new workflow, job, or advisory check must have a **named consumer**
+(someone or something acts on its output) and a **decidable pass condition**
+(it can actually go green). A gate that can't pass — e.g. failing a whole-repo
+standing-debt count — or whose output nobody reads is worse than no gate: it
+teaches everyone to ignore red. Ratchet against a committed baseline instead
+of gating absolutes, and prefer deleting an unconsumed lane (git remembers).
+
+Every Playwright spec in `tests/e2e/src/` must be referenced by at least one
+workflow or documented gate script (`validate:canvas-v2`). Orphans rot
+silently — wire them into the nightly soak lane or delete them.
+
+**On-touch integration→unit rewrites** (do when already editing the file, not
+as a campaign — these use real timers/servers/disk and are the suite's flake
+reservoir): `packages/canvas/src/__tests__/chunked-storage.test.ts`,
+`packages/canvas/src/__tests__/presence.test.ts`,
+`packages/runtime/src/sync/sync-manager.test.ts`,
+`packages/hub/test/relay.test.ts`, `packages/hub/test/crawl.test.ts`,
+`tests/integration/src/webrtc-signaling.test.ts`,
+`packages/sqlite/src/adapter.test.ts` (prefer `:memory:`).
+
 ## Commits
 
 Conventional Commits are enforced (commitlint). `feat:` → minor, `fix:`/`perf:` →

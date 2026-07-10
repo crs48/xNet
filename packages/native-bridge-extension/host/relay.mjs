@@ -7,7 +7,7 @@
  * service worker speaks the same `{ v, kind }` envelope to the page.
  */
 
-export const PROTOCOL_VERSION = 1
+const PROTOCOL_VERSION = 1
 
 /**
  * Handle one request envelope against a backend, returning a response envelope.

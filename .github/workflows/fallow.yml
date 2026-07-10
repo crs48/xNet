@@ -1,12 +1,19 @@
 name: Fallow
 
-# Weekly + manual only (exploration 0283): the per-PR run was the pipeline's
-# slowest job (~17 min), failed ~44% of PRs on advisory notes it was never a
-# required check for, and its cancellation churn threw away hours of compute.
-# The scheduled run keeps the hard --fail-on-issues gate so quality regressions
-# on main still surface; alerts land as code-scanning annotations via SARIF.
+# Weekly + manual only (exploration 0283); ratchet-only unattended (0294).
+# The scheduled run used to gate `fallow audit --fail-on-issues` on the whole
+# repo's standing CRAP debt (1,136 findings), so every Monday was a guaranteed
+# red ✗ after a ~10-minute full-coverage vitest run nobody consumed. The only
+# decidable, consumed gate here is the dead-code regression ratchet — that is
+# all the unattended run keeps. The full audit (which needs coverage and a
+# human reading the SARIF) runs only on demand: dispatch with full-audit=true.
 on:
   workflow_dispatch:
+    inputs:
+      full-audit:
+        description: 'Also run the CRAP audit (full coverage build + SARIF upload)'
+        type: boolean
+        default: false
   schedule:
     - cron: '0 13 * * 1'
 
@@ -35,68 +42,8 @@ jobs:
 
       - uses: ./.github/actions/setup
 
-      - name: Fetch Fallow base
-        shell: bash
-        run: git fetch --no-tags origin "main:refs/remotes/origin/main"
-
-      - name: Select Fallow base
-        id: base
-        shell: bash
-        run: echo "ref=origin/main" >> "$GITHUB_OUTPUT"
-
       - name: Build packages
         run: pnpm turbo run build --filter='./packages/*'
-
-      # CRAP scoring needs real coverage: without it every function counts
-      # as 0% covered and CRAP = cc^2 + cc, so any new function with
-      # cyclomatic >= 5 fails the audit. Istanbul provider because fallow's
-      # parser rejects the -1 markers in v8-converted coverage maps.
-      - name: Generate coverage for CRAP scoring
-        shell: bash
-        run: |
-          pnpm vitest run \
-            --coverage.enabled \
-            --coverage.provider=istanbul \
-            --coverage.reporter=json \
-            --coverage.reportsDirectory=coverage
-
-      - name: Run Fallow audit
-        shell: bash
-        run: |
-          COVERAGE_ARGS=()
-          if [[ -f coverage/coverage-final.json ]]; then
-            COVERAGE_ARGS=(--coverage coverage/coverage-final.json)
-          fi
-          pnpm exec fallow audit \
-            --changed-since "${{ steps.base.outputs.ref }}" \
-            "${COVERAGE_ARGS[@]}" \
-            --format sarif \
-            --fail-on-issues > fallow-audit.sarif
-
-      # CodeQL's upload action rejects SARIF files that contain multiple runs
-      # under one category, and fallow emits one run per sub-analysis — this
-      # is why every upload failed before. Merge the runs (same driver) into
-      # one, and drop run-level notices without locations (code scanning
-      # requires every result to carry at least one; they still appear in the
-      # step summary). Producing the .single.sarif file only when the input
-      # parses also guards against the empty file a crashed audit leaves
-      # behind, which passes hashFiles() but is not valid JSON.
-      - name: Normalize Fallow SARIF to a single run
-        if: always()
-        shell: bash
-        run: |
-          if jq -e '.runs | length >= 1' fallow-audit.sarif > /dev/null 2>&1; then
-            jq '.runs[0].results = ([.runs[].results // []] | add | map(select((.locations // []) | length > 0))) |
-                .runs[0].tool.driver.rules = ([.runs[].tool.driver.rules // []] | add | unique_by(.id)) |
-                .runs = [.runs[0]]' fallow-audit.sarif > fallow-audit.single.sarif
-          fi
-
-      - name: Upload Fallow SARIF
-        if: always() && hashFiles('fallow-audit.single.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: fallow-audit.single.sarif
-          category: fallow-audit
 
       - name: Run Fallow dead-code regression
         shell: bash
@@ -129,6 +76,80 @@ jobs:
             pnpm exec fallow health --score --hotspots --targets --top 10 --no-cache || true
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
+
+  # On-demand deep dive: the CRAP audit with real coverage, uploaded as
+  # code-scanning annotations. Attended runs only — it is not a gate (no
+  # --fail-on-issues; the standing-debt count makes that undecidable), it is
+  # evidence for a human or agent who asked for it.
+  audit:
+    name: CRAP audit (on demand)
+    if: github.event_name == 'workflow_dispatch' && inputs.full-audit
+    runs-on: ubuntu-latest
+    env:
+      HUSKY: '0'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: ./.github/actions/setup
+
+      - name: Fetch Fallow base
+        shell: bash
+        run: git fetch --no-tags origin "main:refs/remotes/origin/main"
+
+      - name: Build packages
+        run: pnpm turbo run build --filter='./packages/*'
+
+      # CRAP scoring needs real coverage: without it every function counts
+      # as 0% covered and CRAP = cc^2 + cc, so any new function with
+      # cyclomatic >= 5 flags. Istanbul provider because fallow's parser
+      # rejects the -1 markers in v8-converted coverage maps.
+      - name: Generate coverage for CRAP scoring
+        shell: bash
+        run: |
+          pnpm vitest run \
+            --coverage.enabled \
+            --coverage.provider=istanbul \
+            --coverage.reporter=json \
+            --coverage.reportsDirectory=coverage
+
+      - name: Run Fallow audit
+        shell: bash
+        run: |
+          COVERAGE_ARGS=()
+          if [[ -f coverage/coverage-final.json ]]; then
+            COVERAGE_ARGS=(--coverage coverage/coverage-final.json)
+          fi
+          pnpm exec fallow audit \
+            --changed-since origin/main \
+            "${COVERAGE_ARGS[@]}" \
+            --format sarif > fallow-audit.sarif
+
+      # CodeQL's upload action rejects SARIF files that contain multiple runs
+      # under one category, and fallow emits one run per sub-analysis — this
+      # is why every upload failed before. Merge the runs (same driver) into
+      # one, and drop run-level notices without locations (code scanning
+      # requires every result to carry at least one; they still appear in the
+      # step summary). Producing the .single.sarif file only when the input
+      # parses also guards against the empty file a crashed audit leaves
+      # behind, which passes hashFiles() but is not valid JSON.
+      - name: Normalize Fallow SARIF to a single run
+        if: always()
+        shell: bash
+        run: |
+          if jq -e '.runs | length >= 1' fallow-audit.sarif > /dev/null 2>&1; then
+            jq '.runs[0].results = ([.runs[].results // []] | add | map(select((.locations // []) | length > 0))) |
+                .runs[0].tool.driver.rules = ([.runs[].tool.driver.rules // []] | add | unique_by(.id)) |
+                .runs = [.runs[0]]' fallow-audit.sarif > fallow-audit.single.sarif
+          fi
+
+      - name: Upload Fallow SARIF
+        if: always() && hashFiles('fallow-audit.single.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: fallow-audit.single.sarif
+          category: fallow-audit
 
   # Weekly check that the marketing site and docs haven't silently fallen
   # behind feature work (exploration 0170). Warns — never fails — when the

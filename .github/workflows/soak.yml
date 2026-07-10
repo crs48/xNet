@@ -7,6 +7,12 @@
 # drill, and the browser OPFS durability spec — plus the wall-clock ceilings
 # that only make sense off the PR critical path (XNET_SOAK=1).
 #
+# It also hosts the nightly app-regression lane (exploration 0294): the
+# formerly orphaned Playwright specs — authz-core, doc-sync, database,
+# multitab-sqlite, mobile-surfaces — run here against the real web app,
+# where their runtime is affordable and a failure still pages via the alarm
+# issue below.
+#
 # Scheduled workflows fail silently (nobody watches them — the 0265 lesson),
 # so a failure files/updates exactly one alarm issue.
 
@@ -83,6 +89,38 @@ jobs:
         env:
           CI: 'true'
 
+      # ── Nightly app-regression lane (0294 adoptees) ────────────────────
+      # authz-core and mobile-surfaces drive the real web app (dev server,
+      # PLAYWRIGHT_TEST_BASE_URL); database, doc-sync, and multitab-sqlite
+      # spin their own harness servers but need the workspace built.
+      - name: Build packages for the web app
+        run: pnpm turbo build --filter='./packages/*'
+
+      - name: Start web app
+        run: pnpm --filter xnet-web dev --host 127.0.0.1 --port 5173 > /tmp/xnet-web.log 2>&1 &
+
+      - name: Wait for web app
+        run: for _ in {1..60}; do curl -fsS http://127.0.0.1:5173 >/dev/null && exit 0; sleep 2; done; echo "web app did not start"; exit 1
+
+      - name: App-regression specs (desktop)
+        run: |
+          pnpm --filter @xnetjs/e2e-tests exec playwright test \
+            src/authz-core.spec.ts src/database.spec.ts \
+            src/doc-sync.spec.ts src/multitab-sqlite.spec.ts \
+            --project=chromium --fail-on-flaky-tests
+        env:
+          CI: 'true'
+          PLAYWRIGHT_TEST_BASE_URL: 'http://127.0.0.1:5173'
+
+      - name: App-regression specs (phone viewport)
+        run: |
+          pnpm --filter @xnetjs/e2e-tests exec playwright test \
+            src/mobile-surfaces.spec.ts \
+            --project=mobile-chromium --fail-on-flaky-tests
+        env:
+          CI: 'true'
+          PLAYWRIGHT_TEST_BASE_URL: 'http://127.0.0.1:5173'
+
       - name: Upload artifacts on failure
         if: failure()
         uses: actions/upload-artifact@v4
@@ -117,7 +155,8 @@ jobs:
               "" \
               "This is the deep durability/reliability/scale lane (exploration 0272):" \
               "deterministic sync simulation, SIGKILL crash harness, 100k-node scale" \
-              "rails, hub load, restore drill, and the browser OPFS durability spec." \
+              "rails, hub load, restore drill, the browser OPFS durability spec, and" \
+              "the nightly app-regression specs (exploration 0294)." \
               "A red run means a durability invariant regressed — failures print the" \
               "reproducing seed; see tests/reliability/README.md for replay steps." \
               "" \
