@@ -365,7 +365,7 @@ await vi.advanceTimersByTimeAsync(HEARTBEAT_MS);
 
 PR 1 — cut the dead weight:
 
-- [ ] `git rm .github/workflows/mobile-e2e.yml` (commit message points to
+- [x] `git rm .github/workflows/mobile-e2e.yml` (commit message points to
       `tests/mobile/flows/` and the 0238 re-entry condition).
 - [ ] `fallow.yml`: remove the coverage-generation and `fallow audit` +
       SARIF steps from the `schedule` path; keep dead-code regression;
