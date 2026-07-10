@@ -1,0 +1,11 @@
+{
+  "id": "2026-07-10-demo-hub-now-enforces-its-storage-limits",
+  "date": "July 10, 2026",
+  "title": "Demo hub now enforces its storage limits",
+  "summary": "The shared demo hub enforces its 10 MB per-user cap, wipes demo data daily, and sheds writes before its disk fills instead of crashing. Workspace (bench) share links now work end-to-end, and a hub that is down reports 'isn't responding' instead of a cryptic 'Failed to fetch'.",
+  "highlights": [],
+  "tags": [
+    "sync",
+    "platform"
+  ]
+}
