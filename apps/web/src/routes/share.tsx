@@ -59,7 +59,13 @@ function ShareBridgePage(): JSX.Element {
   const shareInput = useMemo<ShareRouteInput>(() => parseShareRouteInput(window.location), [])
 
   useEffect(() => {
-    const sanitizedPath = `${window.location.pathname}${window.location.hash.split('?')[0] || ''}`
+    // Scrub the claim inputs from the address bar/history once they're read.
+    // Keep the hash only when it's a hash-router ROUTE (`#/...`); a bare
+    // fragment is the `#s=` secret on path-routed deployments — the one thing
+    // this sanitizer exists to remove (0290 follow-up).
+    const rawHash = window.location.hash
+    const routeHash = rawHash.startsWith('#/') ? rawHash.split('?')[0] : ''
+    const sanitizedPath = `${window.location.pathname}${routeHash}`
     window.history.replaceState({}, '', sanitizedPath)
     document.documentElement.setAttribute('data-nosnippet', 'true')
 

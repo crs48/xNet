@@ -33,7 +33,7 @@ import { scheduleChangeLogCompaction } from '../lib/change-log-compaction'
 import { getDataRuntime, isWorkerRuntimeEnabled } from '../lib/data-runtime'
 import { schedulePeriodicOptimize } from '../lib/db-optimize'
 import { scheduleOneTimeVacuum } from '../lib/db-vacuum'
-import { defaultHubUrl, persistedHubUrl, readHubParam, setPersistedHubUrl } from '../lib/hub-url'
+import { resolveHubSessionFromLocation } from './hub-session'
 import { identityManager } from '../lib/identity'
 import { startMainThreadStallDetector } from '../lib/main-thread-stall'
 import { scheduleStalePresenceCleanup } from '../lib/presence-blob-cleanup'
@@ -44,98 +44,9 @@ import { looksEvicted, probeStoreColdStart, recordColdStartProbe } from '../lib/
 import { createWebTraceCollector } from '../lib/tracing'
 import { BOOT_TIMEOUT_MS } from './boot-machine'
 
-// Hub URL from env or default.
-//
-// In development an unset VITE_HUB_URL means "no hub" (empty string) rather than
-// the production hub: dialing wss://hub.xnet.fyi by accident makes the socket
-// reach `connected` against a server that won't ack this client's document
-// subscriptions, which used to stall page loads (exploration 0188) and also
-// leaked dev presence to production. A falsy hub URL keeps the app local-first;
-// opt into a real hub by setting VITE_HUB_URL (e.g. ws://localhost:4444).
-const DEFAULT_HUB_URL = defaultHubUrl()
-
-// A hub the user connected via Settings or the xNet Cloud claim flow (persisted in
-// localStorage) wins over the build-time default — this is the read half of that
-// setting, without which "connect your cloud hub" did nothing (exploration 0192).
-const resolveConfiguredHubUrl = (): string => persistedHubUrl(DEFAULT_HUB_URL)
-
-if (typeof console !== 'undefined') {
-  console.info(
-    '[xNet] hub:',
-    resolveConfiguredHubUrl() || '(none — local-first; set a hub in Settings or VITE_HUB_URL)'
-  )
-}
-
-type SharedHubSession = {
-  endpoint: string
-  token: string
-  exp: number
-}
-
-export function resolveHubSessionFromLocation(): { hubUrl: string; authToken: string | null } {
-  try {
-    const parsed = new URL(window.location.href)
-    // Under hash routing the route query lives inside the fragment
-    // (e.g. /app/#/doc/x?shareSession=k) — check both locations.
-    const [hashPath, hashQuery = ''] = parsed.hash.split('?')
-    const hashParams = new URLSearchParams(hashQuery)
-    const shareSession = parsed.searchParams.get('shareSession') ?? hashParams.get('shareSession')
-
-    const stripParams = (...names: string[]): void => {
-      for (const name of names) {
-        parsed.searchParams.delete(name)
-        hashParams.delete(name)
-      }
-      const hash = hashParams.size > 0 ? `${hashPath}?${hashParams.toString()}` : hashPath
-      window.history.replaceState({}, '', `${parsed.pathname}${parsed.search}${hash}`)
-    }
-
-    if (
-      parsed.searchParams.has('payload') ||
-      parsed.searchParams.has('handle') ||
-      hashParams.has('payload') ||
-      hashParams.has('handle')
-    ) {
-      stripParams('payload', 'handle')
-    }
-    // A `hub` param pins a hub for this browser — the xNet Cloud dashboard's "Open
-    // web app" link passes the user's *personal* hub here so the app dials it
-    // instead of the shared default. Persist it (so it sticks across reloads) and
-    // strip it from the URL; an invalid value is ignored, never persisted.
-    const hubParam = readHubParam(parsed.search, parsed.hash)
-    if (hubParam.present) {
-      if (hubParam.hub) setPersistedHubUrl(hubParam.hub)
-      stripParams('hub')
-    }
-    if (!shareSession) {
-      return { hubUrl: resolveConfiguredHubUrl(), authToken: null }
-    }
-
-    const stored = sessionStorage.getItem(`xnet:share-session:${shareSession}`)
-    stripParams('shareSession')
-    if (!stored) {
-      return { hubUrl: resolveConfiguredHubUrl(), authToken: null }
-    }
-
-    sessionStorage.removeItem(`xnet:share-session:${shareSession}`)
-    const session = JSON.parse(stored) as SharedHubSession
-    if (
-      !session ||
-      typeof session.endpoint !== 'string' ||
-      typeof session.token !== 'string' ||
-      session.endpoint.length === 0 ||
-      session.token.length === 0 ||
-      !Number.isFinite(session.exp) ||
-      session.exp <= Date.now()
-    ) {
-      return { hubUrl: resolveConfiguredHubUrl(), authToken: null }
-    }
-
-    return { hubUrl: session.endpoint, authToken: session.token }
-  } catch {
-    return { hubUrl: DEFAULT_HUB_URL, authToken: null }
-  }
-}
+// Hub/session URL resolution lives in ./hub-session (extracted so it's
+// testable without this module's SQLite worker imports — 0290 follow-up).
+export { resolveHubSessionFromLocation }
 
 /**
  * With the worker runtime enabled, hand the data worker its own port into
