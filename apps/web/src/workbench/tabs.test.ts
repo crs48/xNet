@@ -10,7 +10,8 @@ import {
   routeForTab,
   setPreviewIntent,
   syncRouteToTabs,
-  tabFromPathname
+  tabFromPathname,
+  tabIdForRoute
 } from './tabs'
 
 describe('tabFromPathname', () => {
@@ -50,6 +51,21 @@ describe('routeForTab', () => {
     expect(routeForTab('savedview', 'v')).toBe('/view/v')
     expect(routeForTab('tasks', 'tasks')).toBe('/tasks')
     expect(routeForTab('data', 'data')).toBe('/data')
+  })
+})
+
+describe('tabIdForRoute', () => {
+  it('resolves a tab id for tab routes (single-click sources that only know a path)', () => {
+    expect(tabIdForRoute('/crm')).toBe('crm:crm')
+    expect(tabIdForRoute('/finance')).toBe('finance:finance')
+    expect(tabIdForRoute('/settings')).toBe('settings:settings')
+    expect(tabIdForRoute('/doc/p')).toBe('page:p')
+  })
+
+  it('returns null for non-tab routes', () => {
+    expect(tabIdForRoute('/discover')).toBeNull()
+    expect(tabIdForRoute('/analytics')).toBeNull()
+    expect(tabIdForRoute('/')).toBeNull()
   })
 })
 
@@ -152,5 +168,22 @@ describe('syncRouteToTabs', () => {
     })
     syncRouteToTabs('/discover')
     expect(useWorkbench.getState().groups[0].tabs).toEqual([])
+  })
+
+  it('drops a pending preview intent on a non-tab route so it cannot leak (0288)', () => {
+    useWorkbench.setState({
+      groups: [{ id: 'group-1', tabs: [], activeTabId: null }],
+      activeGroupId: 'group-1',
+      recents: []
+    })
+
+    // A source armed preview then navigated somewhere untabbed; the next real
+    // open must NOT inherit that intent.
+    setPreviewIntent()
+    syncRouteToTabs('/discover')
+    syncRouteToTabs('/doc/p1')
+
+    const tabs = useWorkbench.getState().groups[0].tabs
+    expect(tabs.map((tab) => `${tab.id}${tab.preview ? '(p)' : ''}`)).toEqual(['page:p1'])
   })
 })

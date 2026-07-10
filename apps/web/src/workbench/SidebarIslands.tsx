@@ -35,6 +35,7 @@ import {
   SURFACES,
   pinnedSurfaces,
   surfaceById,
+  surfaceTabId,
   useSurfaceActivation,
   type SurfaceDef
 } from './surfaces'
@@ -50,6 +51,12 @@ function useRouteActive(): (to: string | undefined) => boolean {
   return (to) => Boolean(to) && (pathname === to || pathname.startsWith(`${to}/`))
 }
 
+/** Double-clicking a route surface promotes its preview tab (0288). */
+function promoteSurface(surface: SurfaceDef): void {
+  const id = surfaceTabId(surface)
+  if (id) useWorkbench.getState().promoteTab(id)
+}
+
 function PrimaryRow({ surface }: { surface: SurfaceDef }) {
   const activeSurface = useWorkbench((s) => s.activeSurface)
   const activate = useSurfaceActivation()
@@ -63,6 +70,7 @@ function PrimaryRow({ surface }: { surface: SurfaceDef }) {
     <button
       type="button"
       onClick={() => activate(surface)}
+      onDoubleClick={() => promoteSurface(surface)}
       className={`flex w-full items-center gap-2.5 rounded-lg border-none px-2 py-1.5 text-left text-[13px] transition-colors cursor-pointer ${
         active
           ? 'bg-accent font-medium text-ink-1'
@@ -96,6 +104,7 @@ function CompactSurfaceButton({ surface }: { surface: SurfaceDef }) {
     <button
       type="button"
       onClick={() => activate(surface)}
+      onDoubleClick={() => promoteSurface(surface)}
       title={surface.label}
       aria-label={surface.label}
       className={`relative flex h-8 w-8 items-center justify-center rounded-lg border-none transition-colors cursor-pointer ${

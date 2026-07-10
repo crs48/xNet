@@ -3,7 +3,22 @@
  */
 import { beforeEach, describe, expect, it } from 'vitest'
 import { useWorkbench } from './state'
-import { DEFAULT_SURFACE, SURFACES, pinnedSurfaces, surfaceById } from './surfaces'
+import {
+  DEFAULT_SURFACE,
+  SURFACES,
+  activateSurface,
+  pinnedSurfaces,
+  surfaceById,
+  surfaceTabId,
+  type SurfaceDef
+} from './surfaces'
+import { consumePreviewIntent, setPreviewIntent } from './tabs'
+
+const surface = (id: string): SurfaceDef => {
+  const def = surfaceById(id)
+  if (!def) throw new Error(`unknown surface ${id}`)
+  return def
+}
 
 beforeEach(() => {
   useWorkbench.setState({
@@ -30,10 +45,65 @@ describe('surfaces model', () => {
   })
 
   it('every panel surface names a slot view; every route names a path', () => {
-    for (const surface of SURFACES) {
-      if (surface.kind === 'panel') expect(surface.viewId).toBeTruthy()
-      else expect(surface.to).toBeTruthy()
+    for (const def of SURFACES) {
+      if (def.kind === 'panel') expect(def.viewId).toBeTruthy()
+      else expect(def.to).toBeTruthy()
     }
+  })
+})
+
+describe('surfaceTabId', () => {
+  it('resolves the tab id for tab-backed route surfaces', () => {
+    expect(surfaceTabId(surface('crm'))).toBe('crm:crm')
+    expect(surfaceTabId(surface('meetings'))).toBe('meetings:meetings')
+    expect(surfaceTabId(surface('finance'))).toBe('finance:finance')
+  })
+
+  it('is null for panels and non-tab routes', () => {
+    expect(surfaceTabId(surface('explorer'))).toBeNull() // panel
+    expect(surfaceTabId(surface('discover'))).toBeNull() // route, but untabbed
+    expect(surfaceTabId(surface('analytics'))).toBeNull()
+  })
+})
+
+describe('activateSurface (VS Code preview tabs, 0288)', () => {
+  beforeEach(() => {
+    consumePreviewIntent() // clear residue between cases
+  })
+
+  it('opens a tab-backed route as a preview tab', () => {
+    const calls: Array<{ to: string }> = []
+    activateSurface(surface('crm'), {
+      navigate: (opts) => calls.push(opts),
+      setActiveSurface: () => expect.unreachable('route surfaces do not touch the panel')
+    })
+    expect(calls).toEqual([{ to: '/crm' }])
+    expect(consumePreviewIntent()).toBe(true)
+  })
+
+  it('does NOT arm preview for an untabbed route (would leak onto the next open)', () => {
+    const calls: Array<{ to: string }> = []
+    activateSurface(surface('discover'), {
+      navigate: (opts) => calls.push(opts),
+      setActiveSurface: () => expect.unreachable('route surfaces do not touch the panel')
+    })
+    expect(calls).toEqual([{ to: '/discover' }])
+    expect(consumePreviewIntent()).toBe(false)
+  })
+
+  it('drives the bottom island for panel surfaces without navigating or arming preview', () => {
+    const activated: string[] = []
+    activateSurface(surface('explorer'), {
+      navigate: () => expect.unreachable('panel surfaces do not navigate'),
+      setActiveSurface: (id) => activated.push(id)
+    })
+    expect(activated).toEqual(['explorer'])
+    expect(consumePreviewIntent()).toBe(false)
+  })
+
+  it('leaves the latch clean afterwards', () => {
+    setPreviewIntent()
+    expect(consumePreviewIntent()).toBe(true)
   })
 })
 
