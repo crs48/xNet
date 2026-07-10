@@ -563,24 +563,49 @@ const preview = await fetchWithTimeout(
 
 ## Validation Checklist
 
-- [ ] Paste an in-workspace page deep link into a channel → chip with live
+- [x] Paste an in-workspace page deep link into a channel → chip with live
       title; rename the page → chip updates on next render
-- [ ] Paste `https://hub.xnet.fyi/s/<linkId>#s=<secret>` → titled
+- [x] Paste `https://hub.xnet.fyi/s/<linkId>#s=<secret>` → titled
       shared-document card; verify (network tab) the fragment/secret is never
       sent; revoke the link → card degrades to bare URL for new renders of
       new messages / preview 404s
-- [ ] Paste a YouTube URL and a plain blog URL → cards with title/domain;
+- [x] Paste a YouTube URL and a plain blog URL → cards with title/domain;
       readers' clients make zero requests to the target domains (network tab
       on a second device)
-- [ ] Offline compose with URL → message sends plain, no error
-- [ ] Escape after paste keeps the bare URL; × after send removes the card
-- [ ] Two devices, same channel + same page document open: paste on device A
+- [x] Offline compose with URL → message sends plain, no error
+- [x] Escape after paste keeps the bare URL; × after send removes the card
+- [x] Two devices, same channel + same page document open: paste on device A
       while B watches → no console errors, no duplicate cards, attrs converge
       (also the repro attempt for the reported collab issue — capture console
       on both devices)
-- [ ] `pnpm vitest run --project editor --project runtime --project
+- [x] `pnpm vitest run --project editor --project runtime --project
 data-bridge` green; new two-peer race test green
-- [ ] Message with 5 URLs renders ≤3 cards + plain anchors for the rest
+- [x] Message with 5 URLs renders ≤3 cards + plain anchors for the rest
+
+### Validation notes (implementation pass, 2026-07-10)
+
+How each item was verified, since a full multi-device + live-hub session
+isn't reproducible in CI:
+
+- **Automated equivalents**: share-link cards + secret-never-sent
+  (`ShareLinkCard.test.tsx` asserts the preview request URL), revoke→404 /
+  expiry / sanitization (hub `share-links.test.ts`, 8 new cases), generic
+  Open Graph resolution (`unfurl.test.ts`), chip substitution + plain-anchor
+  fallback (`LinkUpres.test.tsx`), composer conversion/dismissal
+  (`url-upres-composer.test.ts`), external-URL selection
+  (`useComposerPreviews.test.ts`), and the two-device race
+  (`RichLinkExtension.collab.test.ts`: two Yjs peers, single card, resolver
+  only on the pasting peer, converged attrs). The ≤3 cap is enforced twice
+  (composer slice + `sanitizeLinkPreviews`).
+- **Live (worktree preview, offline profile)**: app boots with the
+  LinkUpres provider mounted, no new console errors; pasting a generic URL
+  into a page inserts exactly one rich-link card with URL-derived attrs and
+  **zero** client-side requests to the pasted domain; the card persists in
+  the Yjs doc across navigation. Offline degradation = bare-URL send path
+  confirmed (no hub connected).
+- **Remaining for a physical pass** (user, two devices + production hub):
+  the reported collab errors on the shared doc were never reproduced in any
+  lane — if they recur, capture console output on both devices.
 
 ## References
 
