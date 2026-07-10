@@ -27,7 +27,15 @@ const BASE_PATH = (import.meta.env.BASE_URL || '/').replace(/\/$/, '')
 const USE_HASH_ROUTER = import.meta.env.VITE_USE_HASH_ROUTER === 'true'
 const SHARE_HANDLE_RE = /^sh_[A-Za-z0-9_-]{16,}$/
 
-type ShareDocType = 'page' | 'database' | 'canvas' | 'dashboard' | 'view' | 'space' | 'workspace'
+type ShareDocType =
+  | 'page'
+  | 'database'
+  | 'canvas'
+  | 'dashboard'
+  | 'view'
+  | 'space'
+  | 'workspace'
+  | 'channel'
 
 type SharePayloadV2 = {
   v: 2
@@ -323,7 +331,8 @@ function getWebFallbackPath(docType: ShareDocType, resource: string, shareSessio
     space: `/space/${encodeURIComponent(resource)}`,
     // Workspaces have no viewer route; land home — the granted node syncs
     // and appears in the receiver's workspace switcher (0280).
-    workspace: `/?sharedWorkspace=${encodeURIComponent(resource)}`
+    workspace: `/?sharedWorkspace=${encodeURIComponent(resource)}`,
+    channel: `/channel/${encodeURIComponent(resource)}`
   }
 
   return `${routePrefix}${docPath[docType]}?${query}`

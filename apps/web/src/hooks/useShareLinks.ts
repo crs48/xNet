@@ -19,6 +19,8 @@ export type ShareDocType =
   | 'space'
   // Saved shell layouts (exploration 0280) — a bench travels like a node.
   | 'workspace'
+  // Chat channels — comment role lets the recipient post messages.
+  | 'channel'
 export type ShareRole = 'read' | 'comment' | 'write'
 
 export type ShareLink = {

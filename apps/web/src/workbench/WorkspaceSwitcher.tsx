@@ -14,7 +14,7 @@ import { createNodeId, WorkspaceSchema } from '@xnetjs/data'
 import { getCommandRegistry } from '@xnetjs/plugins'
 import { useMutate, useQuery } from '@xnetjs/react'
 import { Command, CommandEmpty, CommandInput, CommandItem, CommandList } from '@xnetjs/ui'
-import { Layers, Save, SlidersHorizontal } from 'lucide-react'
+import { Layers, Save, Share2, SlidersHorizontal } from 'lucide-react'
 import { useEffect, useRef, useState, type JSX } from 'react'
 import { contributeTips } from '../coachmarks'
 import { ShareDialog } from '../components/ShareDialog'
@@ -277,7 +277,23 @@ export function WorkspaceSwitcher(): JSX.Element | null {
                     }}
                   >
                     <Layers size={14} strokeWidth={1.5} className="mr-2 text-ink-2" />
-                    {row.name}
+                    <span className="min-w-0 flex-1 truncate">{row.name}</span>
+                    {!isPresetWorkspaceId(row.id) && (
+                      <button
+                        type="button"
+                        title={`Share “${row.name}”`}
+                        aria-label={`Share workspace ${row.name}`}
+                        onClick={(event) => {
+                          // Don't let the row's onSelect switch workspaces.
+                          event.preventDefault()
+                          event.stopPropagation()
+                          setShareFor(row.id)
+                        }}
+                        className="ml-2 flex shrink-0 cursor-pointer items-center rounded border-none bg-transparent p-1 text-ink-3 hover:bg-surface-2 hover:text-ink-1"
+                      >
+                        <Share2 size={13} strokeWidth={1.5} />
+                      </button>
+                    )}
                   </CommandItem>
                 ))}
                 <CommandItem
