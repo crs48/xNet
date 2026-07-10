@@ -1,0 +1,17 @@
+{
+  "id": "2026-07-10-fixed-a-crash-when-opening-databases-wit",
+  "date": "July 10, 2026",
+  "title": "Fixed a crash when opening databases with formula or rollup columns",
+  "summary": "Opening a database view containing a formula or rollup column (such as the seeded Tasks Tracker) crashed the editor. Computed cell values are now rendered as text, and link detection safely ignores non-text values.",
+  "highlights": [],
+  "tags": [
+    "app"
+  ],
+  "pr": 460,
+  "mergedAt": "2026-07-10T22:57:54Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}
