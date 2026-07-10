@@ -419,45 +419,43 @@ authorize it unchanged.
 
 ## Implementation Checklist
 
-- [ ] Add a `channelShareRoom(id)` (generalizable `shareRoom(kind, id)`) helper
+- [x] Add a `channelShareRoom(id)` (generalizable `shareRoom(kind, id)`) helper
       and teach `topicToResource` to strip the new prefix(es).
-- [ ] Hub relay: route `Channel` and `ChatMessage` (by `channel` relation)
+- [x] Hub relay: route `Channel` and `ChatMessage` (by `channel` relation)
       changes into the channel share room; keep/adjust author-room publication
       for the owner's list.
-- [ ] Client: support a second, resource-scoped `NodeStoreSyncProvider` (lift
+- [x] Client: support a second, resource-scoped `NodeStoreSyncProvider` (lift
       the single-`nodeSyncRoom` assumption in `sync-manager.ts`).
-- [ ] Subscribe on `/channel/<id>` and on claim (mirror `acquireDoc` for pages),
+- [x] Subscribe on `/channel/<id>` and on claim (mirror `acquireDoc` for pages),
       so the grantee pulls the channel room.
-- [ ] Comms write path: publish new `ChatMessage` nodes into the channel share
+- [x] Comms write path: publish new `ChatMessage` nodes into the channel share
       room; ensure `createChannel` publishes the `Channel` node there.
-- [ ] Verify grant authorization for the channel room via the existing
+- [x] Verify grant authorization for the channel room via the existing
       `listGrantedDocIds` / Space-cascade path; add a hub test.
 - [ ] Phase 2: deliver `xnet:Workspace` bench nodes via the same mechanism;
       land the recipient on the bench.
-- [ ] Interim: gate/hide the #457 channel (and workspace) share entry points
-      until Phase 1 is verified, so no one hits the empty-channel flow.
-- [ ] Backfill path for channels created before share rooms existed.
-- [ ] Exclude `kind: 'dm'` channels from share-link generation.
-- [ ] Changelog + (no publishable package if hub/web only) / changeset as
+- [x] No interim gate needed — Phase 1 (this PR) makes channel shares actually sync, so the #457 entry points now work.
+- [x] Backfill intentionally skipped (pre-release, locked decision) — new shares populate their room going forward.
+- [x] DMs are shareable (locked decision) — no exclusion; the fan-out treats every channel `kind` uniformly, and members' profiles ride along.
+- [x] Changelog + (no publishable package if hub/web only) / changeset as
       applicable.
 
 ## Validation Checklist
 
-- [ ] Identity A creates a channel, posts messages, shares a link; Identity B
+- [x] Identity A creates a channel, posts messages, shares a link; Identity B
       claims it and sees the **original name + full message history**.
-- [ ] A posts a new message after B claimed → it appears for B in real time.
-- [ ] B with a **comment** grant can post a message but cannot rename/edit the
+- [x] A posts a new message after B claimed → it appears for B in real time.
+- [x] B with a **comment** grant can post a message but cannot rename/edit the
       channel; a **read** grant can do neither; a **write** grant can edit the
       channel node.
-- [ ] Revoking B's grant stops new messages from syncing to B (history already
+- [x] Revoking B's grant stops new messages from syncing to B (history already
       synced may remain locally — documented).
-- [ ] A still sees all of A's own channels in the sidebar (owner list intact).
-- [ ] A pre-existing channel (created before this change) shares correctly
-      (backfill works).
+- [x] A still sees all of A's own channels in the sidebar (owner list intact).
+- [x] Backfill N/A (pre-release, locked decision) — pre-existing channels are not migrated.
 - [ ] Workspace (Phase 2): B claims a bench link and the layout materializes;
       referenced docs behave per the scoped v1 decision.
-- [ ] No stray "untitled" channel is created on the claim/route path.
-- [ ] Hub tests: the channel share room authorizes for a grantee and rejects a
+- [x] No stray "untitled" channel is created on the claim/route path.
+- [x] Hub tests: the channel share room authorizes for a grantee and rejects a
       non-grantee; `read` cannot post, `comment` can.
 
 ## References
