@@ -1,0 +1,11 @@
+{
+  "id": "2026-07-10-opening-share-links-in-the-browser-works",
+  "date": "July 10, 2026",
+  "title": "Opening share links in the browser works again",
+  "summary": "Clicking a share link no longer fails with 'Missing link, handle, or payload' when it falls back to the web app — the app was accidentally discarding the link's parameters during startup. Share links also no longer leave their secret in the address bar.",
+  "highlights": [],
+  "tags": [
+    "sync",
+    "app"
+  ]
+}
