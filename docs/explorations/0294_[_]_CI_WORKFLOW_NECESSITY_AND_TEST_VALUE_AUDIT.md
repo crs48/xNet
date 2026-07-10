@@ -420,7 +420,7 @@ Standing / follow-ups:
       workflow artifact, least privilege preserved.
 - [x] Finish 0283 Tier 2/3 items (actionlint hook, plugins-registry PR
       flow, `Package.swift` macOS floor).
-- [ ] (Optional, D4) Point `runtime/conformance.test.ts` at
+- [x] (Optional, D4) Point `runtime/conformance.test.ts` at
       `conformance/vectors/` and extend the vector set.
 
 ## Validation Checklist
