@@ -524,14 +524,14 @@ const preview = await fetchWithTimeout(
 
 ### Phase 2 — share-link previews
 
-- [ ] Hub: `share_link_previews` storage + `GET /shares/links/:linkId/preview`
+- [x] Hub: `share_link_previews` storage + `GET /shares/links/:linkId/preview`
       (linkId-gated, no auth, no secret; 404 when absent/opted-out/revoked)
-- [ ] Owner client publishes `{ title, docType, icon }` at mint; re-publish on
+- [x] Owner client publishes `{ title, docType, icon }` at mint; re-publish on
       rename; delete on revoke
-- [ ] ShareDialog: "Show title in link previews" toggle (default on, new links)
-- [ ] Chat/comments: shared-document card (title, type icon, domain, claim CTA
+- [x] ShareDialog: "Show title in link previews" toggle (default on, new links)
+- [x] Chat/comments: shared-document card (title, type icon, domain, claim CTA
       → existing `/share` claim flow)
-- [ ] Hub tests: gating, revoke-404, sanitization (no content leakage)
+- [x] Hub tests: gating, revoke-404, sanitization (no content leakage)
 
 ### Phase 3 — external unfurl cards
 
@@ -579,7 +579,7 @@ const preview = await fetchWithTimeout(
       (also the repro attempt for the reported collab issue — capture console
       on both devices)
 - [ ] `pnpm vitest run --project editor --project runtime --project
-    data-bridge` green; new two-peer race test green
+  data-bridge` green; new two-peer race test green
 - [ ] Message with 5 URLs renders ≤3 cards + plain anchors for the rest
 
 ## References

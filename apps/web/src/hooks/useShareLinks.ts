@@ -35,6 +35,8 @@ export type ShareLink = {
   createdAt: number
   /** Full URL with secret — only known on the device that created the link. */
   url?: string
+  /** Owner-published preview snapshot (0295); null when previews are off. */
+  preview?: { title: string; icon: string | null } | null
 }
 
 export type ShareGrant = {
@@ -53,6 +55,8 @@ export type CreateLinkOptions = {
   label?: string
   expiresAt?: number
   maxUses?: number
+  /** Publish this title as the link's preview snapshot at mint (0295). */
+  previewTitle?: string
 }
 
 // Scope-aware key so Pages preview deploys (which share production's
@@ -179,6 +183,8 @@ export function useShareLinks(
   createLink: (options: CreateLinkOptions) => Promise<ShareLink>
   setLinkDisabled: (linkId: string, disabled: boolean) => Promise<void>
   deleteLink: (linkId: string) => Promise<void>
+  /** Publish (title) or retract (null) a link's preview snapshot (0295). */
+  setLinkPreview: (linkId: string, title: string | null) => Promise<void>
 } {
   const { items, loading, error, refresh, api } = useHubCollection<ShareLink>(
     docId,
@@ -201,10 +207,31 @@ export function useShareLinks(
         }
       })) as ShareLink & { url: string }
       cacheLinkUrl(data.linkId, data.url)
+      const previewTitle = options.previewTitle?.trim()
+      if (previewTitle) {
+        // Best effort — a failed preview publish must not lose the fresh link.
+        await request(`/shares/links/${encodeURIComponent(data.linkId)}/preview`, {
+          method: 'PUT',
+          body: { title: previewTitle }
+        }).catch(() => undefined)
+      }
       refresh()
       return data
     },
     [request, docId, docType, refresh]
+  )
+
+  const setLinkPreview = useCallback(
+    async (linkId: string, title: string | null): Promise<void> => {
+      const path = `/shares/links/${encodeURIComponent(linkId)}/preview`
+      if (title && title.trim()) {
+        await request(path, { method: 'PUT', body: { title: title.trim() } })
+      } else {
+        await request(path, { method: 'DELETE' })
+      }
+      refresh()
+    },
+    [request, refresh]
   )
 
   const setLinkDisabled = useCallback(
@@ -236,7 +263,8 @@ export function useShareLinks(
     refresh,
     createLink,
     setLinkDisabled,
-    deleteLink
+    deleteLink,
+    setLinkPreview
   }
 }
 

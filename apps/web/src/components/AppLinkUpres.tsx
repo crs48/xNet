@@ -18,6 +18,7 @@ import { useLinkTargets } from '../hooks/useLinkTargets'
 import { normalizeHubHttpUrl } from '../lib/share-links'
 import { classifyUrl, currentUrlEnv } from '../lib/url-upres'
 import { navigateToNode } from '../workbench/navigation'
+import { ShareLinkCard } from './ShareLinkCard'
 
 function NodeChip({ title, kind, onOpen }: { title: string; kind: string; onOpen: () => void }) {
   return (
@@ -45,6 +46,25 @@ export function AppLinkUpres({ children }: { children: ReactNode }) {
   const render = useCallback<LinkUpresRenderer>(
     (link) => {
       const cls = classifyUrl(link.href, env)
+      if (cls.kind === 'share') {
+        // Only auto-fetch previews from the reader's own hub — pinging an
+        // arbitrary pasted host from every reader would leak reader IPs.
+        let host: string | null = null
+        try {
+          host = new URL(normalizeHubHttpUrl(cls.hubUrl)).host
+        } catch {
+          host = null
+        }
+        if (!host || !env.hubHosts.includes(host)) return null
+        return (
+          <ShareLinkCard
+            href={link.href}
+            text={link.text}
+            linkId={cls.linkId}
+            hubHttpUrl={normalizeHubHttpUrl(cls.hubUrl)}
+          />
+        )
+      }
       if (cls.kind !== 'internal') return null
       const target = linkTargets.find((t) => nodeIdFromHref(t.href) === cls.nodeId)
       if (!target) return null
