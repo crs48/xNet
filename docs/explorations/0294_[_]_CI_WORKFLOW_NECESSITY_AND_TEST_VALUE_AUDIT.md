@@ -378,24 +378,47 @@ PR 1 — cut the dead weight:
 
 PR 2 — spec triage:
 
-- [ ] Read/triage the 15 orphaned specs into keep/delete buckets
+- [x] Read/triage the 15 orphaned specs into keep/delete buckets
       (starting point: keep `authz-core`, `doc-sync`, `database`,
       `multitab-sqlite`, `packaged-smoke`; delete `web-canvas-ingestion`,
       `example-with-auth`, `mobile-surfaces`, `editor-markdown`,
       `column-ui`, `authz-advanced`, `authz-validation`, `quiet-shell`,
       `database-undo`, `pages-crud` — adjust from reading).
-- [ ] Append keepers to `soak.yml` with `--fail-on-flaky-tests`; fix rot
+      **Adjusted on implementation:** the true orphan count was 13 —
+      `packaged-smoke` was already wired into `electron-release.yml`'s
+      Linux smoke gate, and `web-canvas-ingestion` is consumed by the
+      documented `pnpm validate:canvas-v2` release gate
+      (`scripts/validate-canvas-v2-release-gate.sh`); both stay untouched.
+      `mobile-surfaces` moved to the keep bucket (active mobile-shell
+      work, 0288/0289, and it passes). Adopted into soak: `authz-core`,
+      `doc-sync`, `database`, `multitab-sqlite`, `mobile-surfaces`.
+      Deleted: `authz-advanced`, `authz-validation`, `column-ui`,
+      `database-undo`, `editor-markdown`, `example-with-auth`,
+      `pages-crud`, `quiet-shell`.
+- [x] Append keepers to `soak.yml` with `--fail-on-flaky-tests`; fix rot
       surfaced by the first nightly run.
-- [ ] `git rm` the delete bucket.
+      **Rot found and fixed before landing** (all five adoptees verified
+      passing locally against the dev server, 25 passed / 0 failed):
+      authz-core navigated via a "Home" affordance the 0284 single shell
+      removed (now reloads the root); mobile-surfaces' grid assertion
+      strict-mode collided with the newer "Row height" toolbar button.
+- [x] `git rm` the delete bucket.
 
 Standing / follow-ups:
 
-- [ ] CLAUDE.md: add the "named consumer + decidable pass condition" rule
+- [x] CLAUDE.md: add the "named consumer + decidable pass condition" rule
       for new CI lanes; note the on-touch integration→unit rewrite list
       (`chunked-storage`, `presence`, `sync-manager`, hub `relay`/`crawl`,
       `webrtc-signaling`, sqlite `adapter`).
-- [ ] Investigate `hub-release.yml`'s 3/4 failures.
-- [ ] Finish 0283 Tier 2/3 items (actionlint hook, plugins-registry PR
+- [x] Investigate `hub-release.yml`'s 3/4 failures.
+      **Found and fixed:** the `anchore/sbom-action` step tries to attach
+      the SBOM to the triggering GitHub release, which needs
+      `contents: write`; the build job (correctly) runs with
+      `contents: read`, so every release-triggered run died with
+      "Resource not accessible by integration". Set
+      `upload-release-assets: false` — the SBOM still uploads as a
+      workflow artifact, least privilege preserved.
+- [x] Finish 0283 Tier 2/3 items (actionlint hook, plugins-registry PR
       flow, `Package.swift` macOS floor).
 - [ ] (Optional, D4) Point `runtime/conformance.test.ts` at
       `conformance/vectors/` and extend the vector set.
