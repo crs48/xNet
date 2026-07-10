@@ -34,6 +34,8 @@ export type ShareLinkRouteDeps = {
 // resolves for every node beneath the Space (exploration 0179).
 // 'workspace' shares a saved shell layout — a bench travels like a node
 // (exploration 0280; the client sent it long before the hub accepted it, 0290).
+// 'channel' shares a chat channel; a comment-role grant lets the recipient
+// post messages (0290 follow-up).
 const SHARE_DOC_TYPES = [
   'page',
   'database',
@@ -41,7 +43,8 @@ const SHARE_DOC_TYPES = [
   'dashboard',
   'view',
   'space',
-  'workspace'
+  'workspace',
+  'channel'
 ] as const
 type ShareDocType = (typeof SHARE_DOC_TYPES)[number]
 
@@ -212,7 +215,77 @@ export const createShareLinkRoutes = (deps: ShareLinkRouteDeps): Hono<Env> => {
       return c.json({ code: 'FORBIDDEN', error: 'Not allowed to manage sharing for this doc' }, 403)
     }
     const links = await storage.listShareLinks(docId)
-    return c.json({ links: links.map(serializeLink) })
+    return c.json({
+      links: await Promise.all(
+        links.map(async (link) => {
+          const preview = await storage.getShareLinkPreview(link.linkId)
+          return {
+            ...serializeLink(link),
+            preview: preview ? { title: preview.title, icon: preview.icon } : null
+          }
+        })
+      )
+    })
+  })
+
+  // ─── Share-link preview snapshots (exploration 0295) ──────────────────────
+  // The public read is gated by linkId possession alone — the fragment secret
+  // must never reach the server. A single 404 covers missing link, revoked or
+  // expired link, and owner opt-out, so the response does not reveal which.
+
+  app.get('/links/:linkId/preview', async (c) => {
+    const link = await storage.getShareLink(c.req.param('linkId'))
+    const active = link && !link.disabled && (link.expiresAt === 0 || link.expiresAt > Date.now())
+    const preview = active ? await storage.getShareLinkPreview(link.linkId) : null
+    if (!link || !active || !preview) {
+      return c.json({ code: 'PREVIEW_NOT_FOUND', error: 'No preview for this link' }, 404)
+    }
+    return c.json({
+      title: preview.title,
+      docType: link.docType,
+      icon: preview.icon,
+      updatedAt: preview.updatedAt
+    })
+  })
+
+  app.put('/links/:linkId/preview', requireAuth, async (c) => {
+    const auth = c.get('auth')
+    const link = await storage.getShareLink(c.req.param('linkId'))
+    if (!link) {
+      return c.json({ code: 'LINK_NOT_FOUND', error: 'Share link not found' }, 404)
+    }
+    if (!(await canManageShares(storage, auth.did, link.docId))) {
+      return c.json({ code: 'FORBIDDEN', error: 'Not allowed to manage sharing for this doc' }, 403)
+    }
+    const body = await c.req.json().catch(() => null)
+    const title = isRecord(body) && typeof body.title === 'string' ? body.title.trim() : ''
+    if (!title) {
+      return c.json({ code: 'INVALID_BODY', error: 'Body must include a non-empty title' }, 400)
+    }
+    const icon =
+      isRecord(body) && typeof body.icon === 'string' && body.icon.trim()
+        ? body.icon.trim().slice(0, 64)
+        : null
+    await storage.upsertShareLinkPreview({
+      linkId: link.linkId,
+      title: title.slice(0, 200),
+      icon,
+      updatedAt: Date.now()
+    })
+    return c.json({ published: true })
+  })
+
+  app.delete('/links/:linkId/preview', requireAuth, async (c) => {
+    const auth = c.get('auth')
+    const link = await storage.getShareLink(c.req.param('linkId'))
+    if (!link) {
+      return c.json({ code: 'LINK_NOT_FOUND', error: 'Share link not found' }, 404)
+    }
+    if (!(await canManageShares(storage, auth.did, link.docId))) {
+      return c.json({ code: 'FORBIDDEN', error: 'Not allowed to manage sharing for this doc' }, 403)
+    }
+    await storage.deleteShareLinkPreview(link.linkId)
+    return c.json({ deleted: true })
   })
 
   app.patch('/links/:linkId', requireAuth, async (c) => {

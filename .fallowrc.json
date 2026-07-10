@@ -9,11 +9,21 @@
     "examples/**",
     "scripts/changelog/**"
   ],
-  "ignoreDependencies": ["expo-splash-screen", "expo-sqlite"],
+  "ignoreDependencies": [
+    "expo-splash-screen",
+    "expo-sqlite",
+    "@capacitor/android",
+    "@capacitor/ios"
+  ],
   "dynamicallyLoaded": [
     "site/src/components/docs/*.astro",
     "site/src/styles/docs.css",
-    "tests/e2e/harness/*.tsx"
+    "tests/e2e/harness/*.tsx",
+    "scripts/cloud-*.mjs",
+    "scripts/changeset/publishable-pathspec.mjs",
+    "scripts/changeset/sync-electron-version.test.mjs",
+    "scripts/reliability/hub-load.mjs",
+    "packages/native-bridge-extension/host/xnet-bridge-host.mjs"
   ],
   "rules": {
     "unused-files": "warn",

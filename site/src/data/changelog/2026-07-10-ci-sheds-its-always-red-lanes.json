@@ -1,0 +1,17 @@
+{
+  "id": "2026-07-10-ci-sheds-its-always-red-lanes",
+  "date": "July 10, 2026",
+  "title": "CI sheds its always-red lanes",
+  "summary": "The mobile-e2e placeholder workflow is retired, Fallow's weekly run now gates only the dead-code ratchet (the full audit runs on demand), five orphaned end-to-end suites joined the nightly soak lane with their rot fixed, and hub image releases no longer fail on SBOM upload permissions.",
+  "highlights": [],
+  "tags": [
+    "ci"
+  ],
+  "pr": 455,
+  "mergedAt": "2026-07-10T21:45:49Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

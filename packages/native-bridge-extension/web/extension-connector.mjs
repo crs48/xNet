@@ -14,7 +14,7 @@
  * providers consume, so it drops into the ladder as one more available tier.
  */
 
-export const DEFAULT_TIMEOUT_MS = 120_000
+const DEFAULT_TIMEOUT_MS = 120_000
 
 /**
  * @param {object} [opts]

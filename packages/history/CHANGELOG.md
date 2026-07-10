@@ -1,5 +1,23 @@
 # @xnetjs/history
 
+## 0.10.0
+
+### Patch Changes
+
+- Updated dependencies [[`0721fd5`](https://github.com/crs48/xNet/commit/0721fd5d263abd3242a3b10cf827fa552cbacbb7)]:
+  - @xnetjs/data@0.10.0
+  - @xnetjs/sync@0.10.0
+  - @xnetjs/core@0.10.0
+
+## 0.9.0
+
+### Patch Changes
+
+- Updated dependencies [[`8955613`](https://github.com/crs48/xNet/commit/8955613cea6a27af0d5cbe483bbd66b202f2dc25), [`8bb9cc6`](https://github.com/crs48/xNet/commit/8bb9cc6752cfe0a83d91388bdc375ff03f55b852)]:
+  - @xnetjs/sync@0.9.0
+  - @xnetjs/data@0.9.0
+  - @xnetjs/core@0.9.0
+
 ## 0.8.0
 
 ### Patch Changes

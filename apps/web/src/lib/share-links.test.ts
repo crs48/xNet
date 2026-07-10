@@ -150,6 +150,10 @@ describe('docRouteFor', () => {
     expect(docRouteFor('space', 'f')).toEqual({ to: '/space/$spaceId', params: { spaceId: 'f' } })
     // Workspaces have no viewer route — a claimed bench lands home (0280/0290).
     expect(docRouteFor('workspace', 'g')).toEqual({ to: '/', params: {} })
+    expect(docRouteFor('channel', 'h')).toEqual({
+      to: '/channel/$channelId',
+      params: { channelId: 'h' }
+    })
   })
 })
 

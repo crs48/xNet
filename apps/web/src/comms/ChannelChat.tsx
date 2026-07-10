@@ -12,16 +12,21 @@ import {
   editMessage,
   redactMessage,
   sendMessage,
+  setMessageLinkPreviews,
   typingPeers,
   type PresenceStatus
 } from '@xnetjs/comms'
+import { sanitizeLinkPreviews } from '@xnetjs/data'
+import { useXNet } from '@xnetjs/react'
 import { useDataBridge } from '@xnetjs/react/internal'
-import { cn, Popover, useListboxNavigation } from '@xnetjs/ui'
-import { Send, Shield, Smile } from 'lucide-react'
+import { cn, LinkPreviewCard, Popover, useListboxNavigation } from '@xnetjs/ui'
+import { Link2, Send, Shield, Smile, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
 import { useLinkTargets } from '../hooks/useLinkTargets'
 import { useWorkspaceTags } from '../hooks/useWorkspaceTags'
 import { useSelfLabel } from '../lib/self-label'
+import { normalizeHubHttpUrl } from '../lib/share-links'
+import { currentUrlEnv } from '../lib/url-upres'
 import { ChannelMessageList } from './ChannelMessageList'
 import { useChatDensity } from './chat-prefs'
 import { mergeMentionables, type Mentionable } from './comms-utils'
@@ -50,6 +55,8 @@ import {
   pickerOptionsFor
 } from './mention-composer'
 import { ThreadPane } from './ThreadPane'
+import { applyUrlUpres, internalUrlCandidate, type UpresCandidate } from './url-upres-composer'
+import { useComposerPreviews } from './useComposerPreviews'
 
 interface PickerNav {
   activeIndex: number
@@ -146,6 +153,51 @@ function LinkPicker({
         </li>
       ))}
     </ul>
+  )
+}
+
+/**
+ * Up-res pill (0295): offers to convert a pasted internal URL into a
+ * `[[Title]]` link pick. Escape (or ×) keeps the plain URL.
+ */
+function UpresPill({
+  candidate,
+  onAccept,
+  onDismiss
+}: {
+  candidate: UpresCandidate
+  onAccept: () => void
+  onDismiss: () => void
+}) {
+  return (
+    <div className="absolute bottom-full left-0 z-10 mb-1 flex items-center gap-0.5 rounded-md border border-hairline bg-surface-0 p-1 shadow-sm">
+      <button
+        type="button"
+        onMouseDown={(event) => {
+          event.preventDefault()
+          onAccept()
+        }}
+        className={pickerOptionClass(true)}
+      >
+        <Link2 size={12} strokeWidth={1.5} className="shrink-0 text-ink-3" />
+        <span className="min-w-0 flex-1 truncate">Link [[{candidate.title}]]</span>
+        <span className="shrink-0 text-[10px] uppercase tracking-wider text-ink-3">
+          {candidate.kind}
+        </span>
+      </button>
+      <button
+        type="button"
+        title="Keep plain URL (Esc)"
+        aria-label="Keep plain URL"
+        onMouseDown={(event) => {
+          event.preventDefault()
+          onDismiss()
+        }}
+        className="flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded border-none bg-transparent text-ink-3 hover:text-ink-1"
+      >
+        <X size={12} strokeWidth={1.5} />
+      </button>
+    </div>
   )
 }
 
@@ -284,6 +336,7 @@ export function ChannelChat({ channelId }: { channelId: string }) {
   const picked = useRef(new Map<string, string>())
   const pickedTags = useRef(new Map<string, string>())
   const pickedLinks = useRef(new Map<string, string>())
+  const [dismissedUpres, setDismissedUpres] = useState<ReadonlySet<string>>(new Set())
   const lastTypingSent = useRef(0)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
@@ -366,6 +419,9 @@ export function ChannelChat({ channelId }: { channelId: string }) {
     [text, caret]
   )
 
+  const { hubUrl } = useXNet()
+  const urlEnv = useMemo(() => currentUrlEnv(hubUrl ? normalizeHubHttpUrl(hubUrl) : null), [hubUrl])
+
   const activeKind: 'mention' | 'link' | 'tag' | null = pickerDismissed
     ? null
     : pickerOptions.length > 0
@@ -408,6 +464,38 @@ export function ChannelChat({ channelId }: { channelId: string }) {
     [activeKind, pickerOptions, linkOptions, tagOptions, pickMention, pickLink, pickTag]
   )
 
+  const {
+    offers: previewOffers,
+    dismiss: dismissPreview,
+    dismissAll: dismissAllPreviews,
+    reset: resetPreviews
+  } = useComposerPreviews(text, urlEnv)
+
+  const upresCandidate = useMemo(
+    () =>
+      activeKind === null ? internalUrlCandidate(text, linkTargets, urlEnv, dismissedUpres) : null,
+    [activeKind, text, linkTargets, urlEnv, dismissedUpres]
+  )
+
+  const acceptUpres = useCallback(() => {
+    if (!upresCandidate) return
+    pickedLinks.current.set(upresCandidate.title, upresCandidate.nodeId)
+    const next = applyUrlUpres(text, upresCandidate)
+    setText(next.text)
+    setCaret(next.caret)
+    const input = inputRef.current
+    if (input) {
+      input.focus()
+      requestAnimationFrame(() => input.setSelectionRange(next.caret, next.caret))
+    }
+  }, [upresCandidate, text])
+
+  const dismissUpres = useCallback(() => {
+    if (!upresCandidate) return
+    setDismissedUpres((prev) => new Set(prev).add(upresCandidate.url))
+    inputRef.current?.focus()
+  }, [upresCandidate])
+
   const pickerNav = useListboxNavigation({
     count: activeOptionCount,
     isOpen: activeKind !== null,
@@ -432,7 +520,8 @@ export function ChannelChat({ channelId }: { channelId: string }) {
       content,
       mentions: composerMentions(content, picked.current),
       tags: composerTags(content, pickedTags.current),
-      links: composerLinks(content, pickedLinks.current)
+      links: composerLinks(content, pickedLinks.current),
+      linkPreviews: previewOffers.length > 0 ? previewOffers : undefined
     })
     if (pendingLabel) {
       const messageId = (created as { id?: string } | undefined)?.id
@@ -442,7 +531,9 @@ export function ChannelChat({ channelId }: { channelId: string }) {
     picked.current.clear()
     pickedTags.current.clear()
     pickedLinks.current.clear()
-  }, [text, bridge, channelId, session, pendingLabel, selfLabel])
+    setDismissedUpres(new Set())
+    resetPreviews()
+  }, [text, bridge, channelId, session, pendingLabel, selfLabel, previewOffers, resetPreviews])
 
   const insertEmoji = useCallback(
     (emoji: string) => {
@@ -484,6 +575,17 @@ export function ChannelChat({ channelId }: { channelId: string }) {
     [bridge, editingId]
   )
 
+  const removePreview = useCallback(
+    (message: ChatRow, url: string) => {
+      if (!bridge || message.createdBy !== me.did) return
+      const remaining = sanitizeLinkPreviews(message.linkPreviews).filter(
+        (preview) => preview.url !== url
+      )
+      void setMessageLinkPreviews(bridge, message.id, remaining.length ? remaining : null)
+    },
+    [bridge, me.did]
+  )
+
   const openThread = useCallback((rootId: string) => setOpenThreadId(rootId), [])
 
   return (
@@ -505,6 +607,7 @@ export function ChannelChat({ channelId }: { channelId: string }) {
           onSubmitEdit={submitEdit}
           onReply={(message) => openThread(message.id)}
           onDelete={(message) => void deleteMessage(message)}
+          onRemovePreview={removePreview}
           onOpenThread={openThread}
         />
         <div className="relative border-t border-hairline p-2">
@@ -516,6 +619,25 @@ export function ChannelChat({ channelId }: { channelId: string }) {
           )}
           {activeKind === 'link' && (
             <LinkPicker options={linkOptions} nav={navProps} onPick={pickLink} />
+          )}
+          {upresCandidate && (
+            <UpresPill candidate={upresCandidate} onAccept={acceptUpres} onDismiss={dismissUpres} />
+          )}
+          {previewOffers.length > 0 && (
+            <div className="mb-1.5 flex flex-col gap-1">
+              {previewOffers.map((offer) => (
+                <LinkPreviewCard
+                  key={offer.url}
+                  url={offer.url}
+                  title={offer.title}
+                  domain={offer.domain}
+                  description={offer.description}
+                  providerName={offer.providerName}
+                  onRemove={() => dismissPreview(offer.url)}
+                  className="bg-surface-0"
+                />
+              ))}
+            </div>
           )}
           <div className="flex items-end gap-2">
             <textarea
@@ -533,6 +655,16 @@ export function ChannelChat({ channelId }: { channelId: string }) {
               }
               onKeyDown={(event) => {
                 if (activeKind && pickerNav.onKeyDown(event)) return
+                if (upresCandidate && event.key === 'Escape') {
+                  event.preventDefault()
+                  dismissUpres()
+                  return
+                }
+                if (previewOffers.length > 0 && event.key === 'Escape') {
+                  event.preventDefault()
+                  dismissAllPreviews()
+                  return
+                }
                 if (
                   event.key === 'ArrowUp' &&
                   !activeKind &&

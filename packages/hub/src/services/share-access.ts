@@ -31,9 +31,15 @@ export const roleFromActions = (actions: string[]): ShareLinkRole => {
 /**
  * Schema IRIs (version-agnostic prefixes) a `comment` grantee may still
  * write. Comments and reactions are their own node kinds, so the gate is a
- * schema allowlist, not content inspection.
+ * schema allowlist, not content inspection. Chat messages count as
+ * "commenting" too — a comment-role channel share means "can participate in
+ * the conversation, can't edit the channel itself" (0290 follow-up).
  */
-const COMMENT_SCHEMA_PREFIXES = ['xnet://xnet.fyi/Comment@', 'xnet://xnet.fyi/Reaction@']
+const COMMENT_SCHEMA_PREFIXES = [
+  'xnet://xnet.fyi/Comment@',
+  'xnet://xnet.fyi/Reaction@',
+  'xnet://xnet.fyi/ChatMessage@'
+]
 
 export const isCommentSchema = (schemaId: string | undefined): boolean =>
   typeof schemaId === 'string' &&

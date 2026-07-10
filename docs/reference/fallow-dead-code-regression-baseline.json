@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "fallow_version": "2.88.1",
-  "timestamp": "2026-06-03T17:21:19Z",
-  "git_sha": "cb674d6540883b3c82ba456b6300ad73f27ed558",
+  "fallow_version": "2.93.0",
+  "timestamp": "2026-07-10T21:25:32Z",
+  "git_sha": "5cbcdd2c0aa8a422bc910b240ffea66c693858e0",
   "check": {
     "total_issues": 0,
     "unused_files": 0,
@@ -20,6 +20,9 @@
     "re_export_cycles": 0,
     "type_only_dependencies": 0,
     "test_only_dependencies": 0,
-    "boundary_violations": 0
+    "boundary_violations": 0,
+    "boundary_coverage_violations": 0,
+    "boundary_call_violations": 0,
+    "policy_violations": 0
   }
 }

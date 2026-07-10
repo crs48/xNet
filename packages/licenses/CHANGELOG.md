@@ -1,5 +1,19 @@
 # @xnetjs/licenses
 
+## 0.0.14
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/crypto@0.10.0
+
+## 0.0.13
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/crypto@0.9.0
+
 ## 0.0.12
 
 ### Patch Changes

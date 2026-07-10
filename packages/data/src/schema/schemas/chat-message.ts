@@ -13,6 +13,7 @@
  */
 
 import type { InferNode } from '../types'
+import type { MessageLinkPreview } from './link-preview'
 import type { MessageMentions } from './mentions'
 import { defineSchema } from '../define'
 import { checkbox, created, createdBy, date, file, json, relation, text } from '../properties'
@@ -51,6 +52,9 @@ export const ChatMessageSchema = defineSchema({
 
     /** Node ids from the composer's [[ link picks (exploration 0170) */
     links: relation({ multiple: true }),
+
+    /** Composer-resolved URL previews (0295) — never parsed from content */
+    linkPreviews: json<MessageLinkPreview[]>({}),
 
     createdAt: created(),
     createdBy: createdBy()

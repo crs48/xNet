@@ -91,7 +91,11 @@ function emitRecentConflicts(store: NodeStore, bus: DevToolsEventBus): void {
   if (conflicts.length === 0) return
 
   conflicts.forEach((conflict) => {
-    bus.emit({ type: 'store:conflict', conflict })
+    // True divergence vs informational LWW housekeeping (exploration 0296).
+    bus.emit({
+      type: conflict.kind === 'lww-resolution' ? 'store:lww-resolution' : 'store:conflict',
+      conflict
+    })
   })
   store.clearConflicts?.()
 }

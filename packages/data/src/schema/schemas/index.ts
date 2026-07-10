@@ -243,6 +243,12 @@ export {
   isValidMentions,
   type MessageMentions
 } from './mentions'
+export {
+  MAX_LINK_PREVIEWS_PER_MESSAGE,
+  isMessageLinkPreview,
+  sanitizeLinkPreviews,
+  type MessageLinkPreview
+} from './link-preview'
 export { GrantSchema, type Grant } from './grant'
 // Account/device ledger (explorations 0149 + 0243)
 export {

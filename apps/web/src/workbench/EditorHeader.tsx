@@ -32,7 +32,8 @@ const SHARE_TYPES: Partial<Record<TabNodeType, ShareDocType>> = {
   canvas: 'canvas',
   dashboard: 'dashboard',
   savedview: 'view',
-  space: 'space'
+  space: 'space',
+  channel: 'channel'
 }
 
 const TAB_ICON: Partial<Record<TabNodeType, LucideIcon>> = {

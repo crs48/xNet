@@ -15,6 +15,7 @@ import {
   type LinkToken,
   type TextSegment
 } from '../utils/linkify'
+import { useLinkUpres, type LinkUpresRenderer } from './LinkUpres'
 
 export interface LinkifiedTextProps {
   /** Plain text to render */
@@ -74,8 +75,17 @@ function LinkSegment({ token, linkClassName }: { token: LinkToken; linkClassName
   )
 }
 
-function renderSegment(segment: TextSegment, index: number, linkClassName: string) {
+function renderSegment(
+  segment: TextSegment,
+  index: number,
+  linkClassName: string,
+  upres: LinkUpresRenderer | null
+) {
   if (segment.token) {
+    if (upres && segment.token.type === 'url') {
+      const rich = upres({ href: segment.token.href, text: segment.token.text })
+      if (rich != null) return <Fragment key={index}>{rich}</Fragment>
+    }
     return <LinkSegment key={index} token={segment.token} linkClassName={linkClassName} />
   }
   return <Fragment key={index}>{segment.text}</Fragment>
@@ -93,13 +103,14 @@ export function LinkifiedText({
   const text = typeof value === 'string' ? value : value == null ? '' : String(value)
   const baseTokens = useMemo(() => findLinkTokens(text), [text])
   const phoneTokens = usePhoneTokens(text, detectPhones)
+  const upres = useLinkUpres()
   const segments = useMemo(
     () => segmentText(text, mergeLinkTokens(baseTokens, phoneTokens)),
     [text, baseTokens, phoneTokens]
   )
   return (
     <span className={className}>
-      {segments.map((segment, index) => renderSegment(segment, index, linkClassName))}
+      {segments.map((segment, index) => renderSegment(segment, index, linkClassName, upres))}
     </span>
   )
 }

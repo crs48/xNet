@@ -57,6 +57,15 @@ export interface UseTaskProjectionSyncResult {
 
 const DEFAULT_DEBOUNCE_MS = 250
 
+/**
+ * Title the editor extraction falls back to for items with no text (see
+ * `extractTaskBody` in @xnetjs/editor's page-tasks extension). Deleting an
+ * item usually empties its text one transaction before the node is removed,
+ * so a debounced snapshot can carry this placeholder for a task that still
+ * has a real title — never let it overwrite one (exploration 0296).
+ */
+const UNTITLED_TASK_PLACEHOLDER = 'Untitled task'
+
 type ExternalReferenceCreate = InferCreateProps<(typeof ExternalReferenceSchema)['_properties']>
 type ExternalReferenceProvider = NonNullable<ExternalReferenceCreate['provider']>
 type ExternalReferenceKind = NonNullable<ExternalReferenceCreate['kind']>
@@ -189,6 +198,11 @@ export function useTaskProjectionSync({
     includeDeleted: true
   })
   const taskSnapshotsRef = useRef<TaskProjectionInput[]>([])
+  // The host whose surface has published a snapshot. Reconciliation must not
+  // run before the editor's first publish (an empty default snapshot would
+  // archive every hosted task), nor against a previous host's snapshot after
+  // navigation (exploration 0296).
+  const snapshotHostRef = useRef<string | null>(null)
   const syncRunIdRef = useRef(0)
   const [revision, setRevision] = useState(0)
   const [syncing, setSyncing] = useState(false)
@@ -198,13 +212,18 @@ export function useTaskProjectionSync({
     return new Map(existingTasks.map((task) => [task.id, task]))
   }, [existingTasks])
 
-  const handleTasksChange = useCallback((tasks: TaskProjectionInput[]) => {
-    taskSnapshotsRef.current = tasks
-    setRevision((value) => value + 1)
-  }, [])
+  const handleTasksChange = useCallback(
+    (tasks: TaskProjectionInput[]) => {
+      taskSnapshotsRef.current = tasks
+      snapshotHostRef.current = hostId
+      setRevision((value) => value + 1)
+    },
+    [hostId]
+  )
 
   useEffect(() => {
     if (!hostId) return
+    if (snapshotHostRef.current !== hostId) return
 
     let cancelled = false
 
@@ -298,7 +317,13 @@ export function useTaskProjectionSync({
           const nextDueDate = dueDate
           const nextPrimaryAssignee = primaryAssignee
 
-          if (existingTask.title !== task.title) updateData.title = task.title
+          const placeholderOverRealTitle =
+            task.title === UNTITLED_TASK_PLACEHOLDER &&
+            typeof existingTask.title === 'string' &&
+            existingTask.title.length > 0
+          if (existingTask.title !== task.title && !placeholderOverRealTitle) {
+            updateData.title = task.title
+          }
           if (existingTask.completed !== task.completed) updateData.completed = task.completed
           if (existingTask.status !== nextStatus) updateData.status = nextStatus
           if ((existingTask.parent ?? null) !== task.parentTaskId) {
@@ -391,7 +416,17 @@ export function useTaskProjectionSync({
             if (cancelled || runId !== syncRunIdRef.current) return
 
             if (claimed) {
-              await update(TaskSchema, task.id, task.data)
+              // The node lives elsewhere, so there is nothing local to diff
+              // against — host fields and surface-authoritative layout must be
+              // forced, but a placeholder title must not clobber a real title
+              // we cannot see (exploration 0296).
+              if (task.data.title === UNTITLED_TASK_PLACEHOLDER) {
+                const dataWithoutTitle: Record<string, unknown> = { ...task.data }
+                delete dataWithoutTitle.title
+                await update(TaskSchema, task.id, dataWithoutTitle)
+              } else {
+                await update(TaskSchema, task.id, task.data)
+              }
             } else {
               await create(TaskSchema, task.data, task.id)
             }

@@ -1,5 +1,42 @@
 # @xnetjs/react
 
+## 0.10.0
+
+### Patch Changes
+
+- Updated dependencies [[`0721fd5`](https://github.com/crs48/xNet/commit/0721fd5d263abd3242a3b10cf827fa552cbacbb7)]:
+  - @xnetjs/data@0.10.0
+  - @xnetjs/data-bridge@0.10.0
+  - @xnetjs/history@0.10.0
+  - @xnetjs/plugins@0.10.0
+  - @xnetjs/runtime@0.2.2
+  - @xnetjs/sync@0.10.0
+  - @xnetjs/identity@0.10.0
+  - @xnetjs/crypto@0.10.0
+  - @xnetjs/core@0.10.0
+
+## 0.9.0
+
+### Patch Changes
+
+- [#458](https://github.com/crs48/xNet/pull/458) [`8bb9cc6`](https://github.com/crs48/xNet/commit/8bb9cc6752cfe0a83d91388bdc375ff03f55b852) Thanks [@crs48](https://github.com/crs48)! - Checklist→task reconciliation (`usePageTaskSync` / `useCanvasTaskSync`) no
+  longer runs before the editor publishes its first snapshot for the current
+  host — a mount race could archive every hosted task and a reused surface
+  could reconcile the previous page's snapshot after navigation. The
+  `'Untitled task'` extraction fallback emitted transiently by delete
+  gestures can no longer overwrite a task's real title, in diff updates or
+  cross-page claims.
+- Updated dependencies [[`8955613`](https://github.com/crs48/xNet/commit/8955613cea6a27af0d5cbe483bbd66b202f2dc25), [`8bb9cc6`](https://github.com/crs48/xNet/commit/8bb9cc6752cfe0a83d91388bdc375ff03f55b852)]:
+  - @xnetjs/sync@0.9.0
+  - @xnetjs/data@0.9.0
+  - @xnetjs/data-bridge@0.9.0
+  - @xnetjs/history@0.9.0
+  - @xnetjs/runtime@0.2.1
+  - @xnetjs/plugins@0.9.0
+  - @xnetjs/identity@0.9.0
+  - @xnetjs/crypto@0.9.0
+  - @xnetjs/core@0.9.0
+
 ## 0.8.0
 
 ### Patch Changes
