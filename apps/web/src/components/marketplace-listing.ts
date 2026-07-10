@@ -9,6 +9,7 @@
  */
 
 import type { MarketplaceEntry, XNetExtension } from '@xnetjs/plugins'
+import { firstPartyRecord } from '../plugins/first-party-catalog'
 
 /** Where the app fetches the index from. Root-relative so the deployed web app
  * (served under `/app/`) reads the site-root `/registry.json`; overridable for
@@ -26,18 +27,20 @@ export interface MarketplaceListing extends MarketplaceEntry {
 }
 
 export interface PartitionedListings {
-  /** First-party plugins that ship with the app (`tier: bundled`). */
+  /** First-party plugins that are actually installed (`tier: bundled` + installed). */
   builtIn: MarketplaceListing[]
-  /** Community plugins not yet installed. */
+  /** Listings not yet installed (first-party or community). */
   available: MarketplaceListing[]
-  /** Listings whose id is already installed in this workspace. */
+  /** Community listings whose id is already installed in this workspace. */
   installed: MarketplaceListing[]
 }
 
 /**
- * Split listings for display: built-in (shown as "Installed/Built-in"),
- * already-installed community plugins, and installable community plugins.
- * Built-in plugins are treated as installed regardless of the registry record.
+ * Split listings for display by ACTUAL install state (0290: the "Built-in"
+ * label used to be assigned to every `tier: bundled` entry, including
+ * first-party connectors that never auto-install — the list lied). A bundled
+ * entry shows as built-in only when the plugin registry really has it; anything
+ * not installed — first-party or community — is available to install.
  */
 export function partitionListings(
   entries: readonly MarketplaceListing[],
@@ -48,15 +51,20 @@ export function partitionListings(
   const available: MarketplaceListing[] = []
   const installed: MarketplaceListing[] = []
   for (const entry of entries) {
-    if (entry.tier === 'bundled') builtIn.push(entry)
-    else if (installedSet.has(entry.id)) installed.push(entry)
-    else available.push(entry)
+    if (!installedSet.has(entry.id)) available.push(entry)
+    else if (entry.tier === 'bundled') builtIn.push(entry)
+    else installed.push(entry)
   }
   return { builtIn, available, installed }
 }
 
-/** True when a listing is installable from the marketplace (community + has a manifest URL). */
+/**
+ * True when a listing can be installed from this app: either a community entry
+ * with a manifest URL, or a first-party entry the app has a catalog manifest
+ * for (see `plugins/first-party-catalog.ts`).
+ */
 export function isInstallable(entry: MarketplaceListing): boolean {
+  if (firstPartyRecord(entry.id)) return true
   return (
     entry.tier !== 'bundled' && typeof entry.manifestUrl === 'string' && entry.manifestUrl !== ''
   )

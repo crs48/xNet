@@ -1,0 +1,16 @@
+{
+  "id": "2026-07-10-install-and-configure-plugins-right-from",
+  "date": "July 10, 2026",
+  "title": "Install and configure plugins right from Settings",
+  "summary": "The plugin browser now tells the truth and does the work: plugins only say Built-in when they're actually installed, every first-party integration (GitHub, Slack, Notion, Linear, Discord, Stripe, and more) gets a real Install button, and a new Configure form collects tokens and settings — stored on your device only.",
+  "highlights": [
+    "Built-in badge now reflects what's actually installed — everything else shows Install",
+    "Install a first-party integration and drop straight into its setup form",
+    "Configure from the plugin details or the Installed tab; a Needs-setup hint flags unfinished connections",
+    "Tokens and webhook secrets stay on this device — they never sync"
+  ],
+  "tags": [
+    "app"
+  ],
+  "pr": 447
+}
