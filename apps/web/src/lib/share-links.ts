@@ -15,7 +15,7 @@ export type ShareLinkInput = {
 
 export type ShareClaimResult = {
   resource: string
-  docType: 'page' | 'database' | 'canvas' | 'dashboard' | 'view' | 'space'
+  docType: 'page' | 'database' | 'canvas' | 'dashboard' | 'view' | 'space' | 'workspace'
   role: 'read' | 'comment' | 'write'
   endpoint: string
 }
@@ -88,15 +88,25 @@ export async function claimShareLink(
   authToken: string
 ): Promise<ShareClaimResult> {
   const hub = normalizeHubHttpUrl(input.hub)
-  const response = await fetch(`${hub}/shares/links/${encodeURIComponent(input.linkId)}/claim`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${authToken}`
-    },
-    body: JSON.stringify({ secret: input.secret }),
-    cache: 'no-store'
-  })
+  let response: Response
+  try {
+    response = await fetch(`${hub}/shares/links/${encodeURIComponent(input.linkId)}/claim`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${authToken}`
+      },
+      body: JSON.stringify({ secret: input.secret }),
+      cache: 'no-store'
+    })
+  } catch {
+    // Network-layer failure (hub down / edge error without CORS headers) —
+    // surface the hub, not a bare "Failed to fetch" (exploration 0290).
+    throw new ShareClaimError(
+      'HUB_UNREACHABLE',
+      `The hub issuing this link (${hub}) isn't responding — it may be down or restarting. Try again shortly.`
+    )
+  }
 
   const data = (await response.json().catch(() => null)) as
     | (ShareClaimResult & { code?: string; error?: string })
@@ -129,6 +139,8 @@ export function shareClaimErrorMessage(code: string): string {
       return 'This share link is missing or has a corrupted secret. Copy the full link and try again.'
     case 'RATE_LIMITED':
       return 'Too many attempts. Wait a minute and try again.'
+    case 'HUB_UNREACHABLE':
+      return "The hub issuing this link isn't responding — it may be down or restarting. Try again shortly."
     default:
       return 'The share link could not be claimed.'
   }
@@ -218,15 +230,26 @@ export async function hubApiFetch(
   path: string,
   init: { method?: string; body?: unknown } = {}
 ): Promise<unknown> {
-  const response = await fetch(`${hubHttpUrl}${path}`, {
-    method: init.method ?? 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${authToken}`
-    },
-    ...(init.body !== undefined ? { body: JSON.stringify(init.body) } : {}),
-    cache: 'no-store'
-  })
+  let response: Response
+  try {
+    response = await fetch(`${hubHttpUrl}${path}`, {
+      method: init.method ?? 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${authToken}`
+      },
+      ...(init.body !== undefined ? { body: JSON.stringify(init.body) } : {}),
+      cache: 'no-store'
+    })
+  } catch {
+    // fetch() rejects with a bare TypeError ("Failed to fetch") for every
+    // network-layer failure — including an edge 502 served without CORS
+    // headers while the hub is down (exploration 0290). Name the hub so the
+    // user sees an outage, not a mystery.
+    throw new Error(
+      `Your hub (${hubHttpUrl}) isn't responding — it may be down or restarting. Try again shortly.`
+    )
+  }
   const data = (await response.json().catch(() => null)) as { error?: string } | null
   if (!response.ok) {
     throw new Error(data?.error ?? `Hub request failed (${response.status})`)
@@ -250,6 +273,10 @@ export function docRouteFor(
       return { to: '/view/$viewId', params: { viewId: resource } }
     case 'space':
       return { to: '/space/$spaceId', params: { spaceId: resource } }
+    case 'workspace':
+      // Workspaces have no viewer route; land home — the granted node syncs
+      // and appears in the receiver's workspace switcher (0280).
+      return { to: '/', params: {} }
     default:
       return { to: '/doc/$docId', params: { docId: resource } }
   }

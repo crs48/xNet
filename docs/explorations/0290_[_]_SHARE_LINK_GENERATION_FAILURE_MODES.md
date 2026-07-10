@@ -422,22 +422,22 @@ Bug #2 — Share dialog CTA (`apps/web/src/components/ShareDialog.tsx:238`):
 
 - [ ] **Restart/redeploy `hub.xnet.fyi` and confirm `/health` → 200** (unblocks the reported "Failed to fetch").
 - [ ] Investigate the Railway crash cause from logs; add a health-check monitor + alerting/auto-restart for the demo hub.
-- [ ] Make `hubApiFetch` catch the network `TypeError` and surface a "hub unreachable / may be restarting" message instead of raw "Failed to fetch" (`apps/web/src/lib/share-links.ts:215`).
-- [ ] Add `'workspace'` to `SHARE_DOC_TYPES` in `packages/hub/src/routes/share-links.ts`.
-- [ ] Extend `ShareClaimResult['docType']` union in `apps/web/src/lib/share-links.ts`.
-- [ ] Add a `'workspace'` case to `docRouteFor` (route target for a claimed bench).
+- [x] Make `hubApiFetch` catch the network `TypeError` and surface a "hub unreachable / may be restarting" message instead of raw "Failed to fetch" (`apps/web/src/lib/share-links.ts:215`).
+- [x] Add `'workspace'` to `SHARE_DOC_TYPES` in `packages/hub/src/routes/share-links.ts`.
+- [x] Extend `ShareClaimResult['docType']` union in `apps/web/src/lib/share-links.ts`.
+- [x] Add a `'workspace'` case to `docRouteFor` (route target for a claimed bench).
 - [ ] Verify the recipient's claim opens the workspace node (sync + route) end-to-end.
 - [ ] Add an in-dialog "Connect a hub" CTA to `ShareDialog` when `!ready`, wired to the existing hub-connection dialog.
 - [ ] Label private-hub links "Local only" and add a copy/QR confirm (keep LAN sharing).
 - [ ] (Follow-up) Decide `ownerDid`-on-first-write vs. permissive default; write a hub test for the chosen behaviour.
-- [ ] Add a hub test asserting every `ShareDocType` value returns 200 from `POST /shares/links`.
+- [x] Add a hub test asserting every `ShareDocType` value returns 200 from `POST /shares/links`.
 - [ ] Write the changeset(s) reflecting the `docType`/union contract change.
 
 ## Validation Checklist
 
 - [ ] `curl https://hub.xnet.fyi/health` returns **200** (not 502); a browser `POST /shares/links` from `xnet.fyi/app` succeeds.
 - [ ] With the hub deliberately stopped, the Share dialog shows a "hub unreachable" message rather than raw "Failed to fetch".
-- [ ] Node probe: `POST /shares/links` returns **200** for all of
+- [x] Node probe: `POST /shares/links` returns **200** for all of
       page/database/canvas/dashboard/view/space/**workspace**.
 - [ ] Browser: with a hub connected, **New link** for a page, a database, and
       a **bench** each yields a copyable URL (no error banner).

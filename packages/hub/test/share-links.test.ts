@@ -218,6 +218,27 @@ describe('Share Links', () => {
     expect(JSON.stringify(links[0])).not.toContain(url.split('#s=')[1])
   })
 
+  it('accepts every client ShareDocType, including workspace (0290)', async () => {
+    // The client offered 'workspace' (saved bench, 0280) long before the hub
+    // accepted it — every union member must round-trip create → claim.
+    const docTypes = ['page', 'database', 'canvas', 'dashboard', 'view', 'space', 'workspace']
+    for (const docType of docTypes) {
+      const { status, json } = await api('/shares/links', {
+        method: 'POST',
+        token: owner.token,
+        body: { docId: `doc-type-${docType}`, docType, role: 'read' }
+      })
+      expect(status, `docType=${docType}`).toBe(200)
+      expect(json.docType).toBe(docType)
+
+      const recipient = makeActor()
+      const secret = (json.url as string).split('#s=')[1]
+      const claimed = await claim(recipient, json.linkId as string, secret)
+      expect(claimed.status, `claim docType=${docType}`).toBe(200)
+      expect(claimed.json.docType).toBe(docType)
+    }
+  })
+
   it('claims a link, records a grant, and is idempotent on re-claim', async () => {
     const recipient = makeActor()
     const { linkId, secret } = await createLink(owner, 'doc-claim', 'read')
