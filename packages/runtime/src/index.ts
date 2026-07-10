@@ -100,7 +100,9 @@ export {
 export {
   NodeStoreSyncProvider,
   type SerializedNodeChange,
-  type NodeSyncResponse
+  type NodeSyncResponse,
+  type SyncBlockedListener,
+  type SyncBlockedReason
 } from './sync/node-store-sync-provider'
 
 export {

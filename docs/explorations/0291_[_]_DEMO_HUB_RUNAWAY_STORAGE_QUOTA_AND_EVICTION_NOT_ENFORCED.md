@@ -307,7 +307,7 @@ if (config.demo) {
 - [x] Implement a `config.demo`-gated **daily truncate-all + VACUUM** started in the lifecycle (`server.ts`), operating on the persistent volume.
 - [ ] (Optional) Implement `EvictionStorage` in sqlite/memory, instantiate + `start()` `EvictionService`, and call `.touch(did)` on authenticated messages — only if inactivity cleanup is also desired.
 - [x] Add a disk-usage watchdog that sheds writes near capacity instead of crashing.
-- [ ] Handle a `quota-exceeded` relay rejection gracefully on the client (surface "demo storage full", keep local data).
+- [x] Handle a `quota-exceeded` relay rejection gracefully on the client (surface "demo storage full", keep local data).
 - [x] Reconcile `litestream-entrypoint.sh:13` (missing `--demo`) with the Railway `startCommand` so all launch paths agree.
 - [x] Tests: demo write over 10 MB/DID is rejected; daily reset empties all demo tables; real storage satisfies the reset/eviction interface.
 

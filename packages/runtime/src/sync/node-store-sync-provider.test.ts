@@ -565,4 +565,66 @@ describe('NodeStoreSyncProvider', () => {
       warn.mockRestore()
     })
   })
+
+  describe('capacity halt (0291 demo quota / disk full)', () => {
+    it('halts outbound on the FIRST QUOTA_EXCEEDED and notifies listeners', async () => {
+      const { store, emit } = makeStore()
+      const { conn, setStatus, injectMessage } = makeConnection('connected')
+      const provider = new NodeStoreSyncProvider(store, 'room-1')
+      provider.attach(conn)
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const blocked = vi.fn()
+      provider.onSyncBlocked(blocked)
+
+      // One rejection is enough: the account stays over quota for every
+      // subsequent change, so resending only floods the hub.
+      injectMessage({ type: 'node-error', code: 'QUOTA_EXCEEDED', error: 'over 10MB' })
+      expect(error).toHaveBeenCalledTimes(1)
+      expect(blocked).toHaveBeenCalledWith('QUOTA_EXCEEDED', 'over 10MB')
+
+      // Local changes are still accepted locally but NOT published while halted.
+      emit({ change: makeChange(1), isRemote: false })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(conn.publish).not.toHaveBeenCalled()
+
+      // Reconnect clears the halt (a demo reset / freed disk lifts the cap).
+      setStatus('disconnected')
+      setStatus('connected')
+      await vi.advanceTimersByTimeAsync(0)
+      injectMessage({ type: 'node-sync-response', room: 'room-1', changes: [], highWaterMark: 0 })
+      await vi.advanceTimersByTimeAsync(0)
+      emit({ change: makeChange(2), isRemote: false })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(conn.publish).toHaveBeenCalledTimes(1)
+
+      error.mockRestore()
+      warn.mockRestore()
+    })
+
+    it('halts outbound on STORAGE_FULL and unsubscribes listeners cleanly', async () => {
+      const { store, emit } = makeStore()
+      const { conn, injectMessage } = makeConnection('connected')
+      const provider = new NodeStoreSyncProvider(store, 'room-1')
+      provider.attach(conn)
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {})
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      const blocked = vi.fn()
+      const unsubscribe = provider.onSyncBlocked(blocked)
+
+      injectMessage({ type: 'node-error', code: 'STORAGE_FULL', error: 'disk full' })
+      expect(blocked).toHaveBeenCalledWith('STORAGE_FULL', 'disk full')
+
+      unsubscribe()
+      injectMessage({ type: 'node-error', code: 'STORAGE_FULL', error: 'disk full' })
+      expect(blocked).toHaveBeenCalledTimes(1)
+
+      emit({ change: makeChange(1), isRemote: false })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(conn.publish).not.toHaveBeenCalled()
+
+      error.mockRestore()
+      warn.mockRestore()
+    })
+  })
 })
