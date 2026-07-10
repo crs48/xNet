@@ -90,13 +90,14 @@ const dropCachedLinkUrl = (linkId: string): void => {
   }
 }
 
-type HubApi = {
+export type HubApi = {
   ready: boolean
   hubHttpUrl: string | null
   request: (path: string, init?: { method?: string; body?: unknown }) => Promise<unknown>
 }
 
-const useHubApi = (): HubApi => {
+/** Authenticated JSON client for the connected hub's HTTP API. */
+export const useHubApi = (): HubApi => {
   const { hubUrl, getHubAuthToken } = useXNet()
   const hubHttpUrl = useMemo(() => (hubUrl ? normalizeHubHttpUrl(hubUrl) : null), [hubUrl])
 

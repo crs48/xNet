@@ -12,12 +12,14 @@ import {
   editMessage,
   redactMessage,
   sendMessage,
+  setMessageLinkPreviews,
   typingPeers,
   type PresenceStatus
 } from '@xnetjs/comms'
+import { sanitizeLinkPreviews } from '@xnetjs/data'
 import { useXNet } from '@xnetjs/react'
 import { useDataBridge } from '@xnetjs/react/internal'
-import { cn, Popover, useListboxNavigation } from '@xnetjs/ui'
+import { cn, LinkPreviewCard, Popover, useListboxNavigation } from '@xnetjs/ui'
 import { Link2, Send, Shield, Smile, X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
 import { useLinkTargets } from '../hooks/useLinkTargets'
@@ -54,6 +56,7 @@ import {
 } from './mention-composer'
 import { ThreadPane } from './ThreadPane'
 import { applyUrlUpres, internalUrlCandidate, type UpresCandidate } from './url-upres-composer'
+import { useComposerPreviews } from './useComposerPreviews'
 
 interface PickerNav {
   activeIndex: number
@@ -461,6 +464,13 @@ export function ChannelChat({ channelId }: { channelId: string }) {
     [activeKind, pickerOptions, linkOptions, tagOptions, pickMention, pickLink, pickTag]
   )
 
+  const {
+    offers: previewOffers,
+    dismiss: dismissPreview,
+    dismissAll: dismissAllPreviews,
+    reset: resetPreviews
+  } = useComposerPreviews(text, urlEnv)
+
   const upresCandidate = useMemo(
     () =>
       activeKind === null ? internalUrlCandidate(text, linkTargets, urlEnv, dismissedUpres) : null,
@@ -510,7 +520,8 @@ export function ChannelChat({ channelId }: { channelId: string }) {
       content,
       mentions: composerMentions(content, picked.current),
       tags: composerTags(content, pickedTags.current),
-      links: composerLinks(content, pickedLinks.current)
+      links: composerLinks(content, pickedLinks.current),
+      linkPreviews: previewOffers.length > 0 ? previewOffers : undefined
     })
     if (pendingLabel) {
       const messageId = (created as { id?: string } | undefined)?.id
@@ -521,7 +532,8 @@ export function ChannelChat({ channelId }: { channelId: string }) {
     pickedTags.current.clear()
     pickedLinks.current.clear()
     setDismissedUpres(new Set())
-  }, [text, bridge, channelId, session, pendingLabel, selfLabel])
+    resetPreviews()
+  }, [text, bridge, channelId, session, pendingLabel, selfLabel, previewOffers, resetPreviews])
 
   const insertEmoji = useCallback(
     (emoji: string) => {
@@ -563,6 +575,17 @@ export function ChannelChat({ channelId }: { channelId: string }) {
     [bridge, editingId]
   )
 
+  const removePreview = useCallback(
+    (message: ChatRow, url: string) => {
+      if (!bridge || message.createdBy !== me.did) return
+      const remaining = sanitizeLinkPreviews(message.linkPreviews).filter(
+        (preview) => preview.url !== url
+      )
+      void setMessageLinkPreviews(bridge, message.id, remaining.length ? remaining : null)
+    },
+    [bridge, me.did]
+  )
+
   const openThread = useCallback((rootId: string) => setOpenThreadId(rootId), [])
 
   return (
@@ -584,6 +607,7 @@ export function ChannelChat({ channelId }: { channelId: string }) {
           onSubmitEdit={submitEdit}
           onReply={(message) => openThread(message.id)}
           onDelete={(message) => void deleteMessage(message)}
+          onRemovePreview={removePreview}
           onOpenThread={openThread}
         />
         <div className="relative border-t border-hairline p-2">
@@ -598,6 +622,22 @@ export function ChannelChat({ channelId }: { channelId: string }) {
           )}
           {upresCandidate && (
             <UpresPill candidate={upresCandidate} onAccept={acceptUpres} onDismiss={dismissUpres} />
+          )}
+          {previewOffers.length > 0 && (
+            <div className="mb-1.5 flex flex-col gap-1">
+              {previewOffers.map((offer) => (
+                <LinkPreviewCard
+                  key={offer.url}
+                  url={offer.url}
+                  title={offer.title}
+                  domain={offer.domain}
+                  description={offer.description}
+                  providerName={offer.providerName}
+                  onRemove={() => dismissPreview(offer.url)}
+                  className="bg-surface-0"
+                />
+              ))}
+            </div>
           )}
           <div className="flex items-end gap-2">
             <textarea
@@ -618,6 +658,11 @@ export function ChannelChat({ channelId }: { channelId: string }) {
                 if (upresCandidate && event.key === 'Escape') {
                   event.preventDefault()
                   dismissUpres()
+                  return
+                }
+                if (previewOffers.length > 0 && event.key === 'Escape') {
+                  event.preventDefault()
+                  dismissAllPreviews()
                   return
                 }
                 if (

@@ -77,6 +77,7 @@ export function ChannelMessageList({
   onSubmitEdit,
   onReply,
   onDelete,
+  onRemovePreview,
   onOpenThread
 }: {
   channelId: string
@@ -94,6 +95,8 @@ export function ChannelMessageList({
   onSubmitEdit: (message: ChatRow, content: string) => void | Promise<void>
   onReply: (message: ChatRow) => void
   onDelete?: (message: ChatRow) => void
+  /** Author removes a stored URL preview card (0295). */
+  onRemovePreview?: (message: ChatRow, url: string) => void
   onOpenThread: (rootId: string) => void
 }) {
   const listRef = useRef<HTMLUListElement>(null)
@@ -187,6 +190,7 @@ export function ChannelMessageList({
                 onSubmitEdit={(content) => onSubmitEdit(row.message, content)}
                 onReply={() => onReply(row.message)}
                 onDelete={onDelete ? () => onDelete(row.message) : undefined}
+                onRemovePreview={onRemovePreview}
                 thread={threadIndex.get(row.message.id)}
                 onOpenThread={() => onOpenThread(row.message.id)}
               />

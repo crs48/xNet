@@ -535,16 +535,16 @@ const preview = await fetchWithTimeout(
 
 ### Phase 3 — external unfurl cards
 
-- [ ] `MessageLinkPreview` type in `@xnetjs/data`; additive `linkPreviews`
+- [x] `MessageLinkPreview` type in `@xnetjs/data`; additive `linkPreviews`
       field on `ChatMessageSchema` + `CommentSchema`; changeset (minor,
       lockstep core) via `/changeset`
-- [ ] `useComposerPreviews` hook: debounce, 3s timeout, ≤3 previews, never
+- [x] `useComposerPreviews` hook: debounce, 3s timeout, ≤3 previews, never
       blocks send; Escape/× dismissal
-- [ ] `<LinkPreviewCard>` in `packages/ui` (sub-barrel export per 0276);
+- [x] `<LinkPreviewCard>` in `packages/ui` (sub-barrel export per 0276);
       always shows `domain`; image via `/unfurl/image` proxy only; `safeHref`
       on card href
-- [ ] Author-only remove-× on rendered cards (message edit drops the entry)
-- [ ] Consider widening `/unfurl` beyond social providers: generic OG fetch is
+- [x] Author-only remove-× on rendered cards (message edit drops the entry)
+- [x] Consider widening `/unfurl` beyond social providers: generic OG fetch is
       already supported by `resolveExternalReferenceMetadata` — verify hub
       route imposes no provider restriction for metadata (it doesn't; image
       proxy allowlist may need favicon strategy instead of og:image for
@@ -579,7 +579,7 @@ const preview = await fetchWithTimeout(
       (also the repro attempt for the reported collab issue — capture console
       on both devices)
 - [ ] `pnpm vitest run --project editor --project runtime --project
-  data-bridge` green; new two-peer race test green
+data-bridge` green; new two-peer race test green
 - [ ] Message with 5 URLs renders ≤3 cards + plain anchors for the rest
 
 ## References

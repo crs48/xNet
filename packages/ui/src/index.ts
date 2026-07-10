@@ -470,6 +470,7 @@ export {
   type LinkUpresRenderer,
   type UpresLink
 } from './components/LinkUpres'
+export { LinkPreviewCard, type LinkPreviewCardProps } from './components/LinkPreviewCard'
 
 // ─── Drag & Drop (0166 unified node transfer) ─────────────────────
 export {
