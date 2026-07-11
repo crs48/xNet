@@ -9,6 +9,8 @@ export type TaskMentionSuggestion = {
   id: string
   label: string
   subtitle?: string
+  /** Optional workspace-unique @handle (0172), matched by the picker filter */
+  handle?: string
   color?: string
   avatarUrl?: string
 }
@@ -106,7 +108,8 @@ export const TaskMentionMenu = forwardRef<TaskMentionMenuRef, TaskMentionMenuPro
             <span className="min-w-0 flex-1">
               <span className="block truncate font-medium">@{item.label}</span>
               <span className="block truncate text-xs text-muted-foreground">
-                {item.subtitle ?? item.id}
+                {item.handle ? `@${item.handle}` : (item.subtitle ?? item.id)}
+                {item.handle && item.subtitle === 'You' ? ' · You' : ''}
               </span>
             </span>
           </button>

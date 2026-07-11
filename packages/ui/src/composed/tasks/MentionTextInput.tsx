@@ -335,6 +335,9 @@ export function MentionTextInput({
                   <DIDAvatar did={person.did} size={18} />
                   <span className="min-w-0 flex-1 truncate">
                     {taskPersonLabel(person)}
+                    {person.handle && (
+                      <span className="text-foreground-muted"> @{person.handle}</span>
+                    )}
                     {person.isSelf && <span className="text-foreground-muted"> (you)</span>}
                   </span>
                 </button>

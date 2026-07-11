@@ -23,7 +23,7 @@ import {
   profileNodeId,
   type InboxItemTriage
 } from '@xnetjs/data'
-import { useQuery, useXNet } from '@xnetjs/react'
+import { channelShareRoom, useQuery, useXNet } from '@xnetjs/react'
 import { useDataBridge } from '@xnetjs/react/internal'
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react'
 import { dedupeProfiles, displayName, type ProfileEntry } from './comms-utils'
@@ -31,6 +31,22 @@ import { useComms } from './CommsContext'
 import { useRoomSession } from './use-room-session'
 
 export { displayName, type ProfileEntry }
+
+/**
+ * Subscribe (receive-only) to a channel's share room while mounted so a
+ * shared channel's node, messages, and member profiles sync into the local
+ * store (exploration 0298). Harmless for channels you own — the hub only
+ * fans grant-covered content into the room, and applies are idempotent.
+ */
+export function useChannelShareSync(channelId: string | null): void {
+  const { syncManager } = useXNet()
+  useEffect(() => {
+    if (!channelId || !syncManager) return
+    const room = channelShareRoom(channelId)
+    syncManager.subscribeShareRoom(room)
+    return () => syncManager.unsubscribeShareRoom(room)
+  }, [channelId, syncManager])
+}
 
 // ─── Presence ────────────────────────────────────────────────────────────────
 

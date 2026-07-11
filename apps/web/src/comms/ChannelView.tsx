@@ -18,6 +18,7 @@ import { channelHeaderModel } from './comms-utils'
 import { useComms } from './CommsContext'
 import {
   displayName,
+  useChannelShareSync,
   useEnsureProfiles,
   useProfiles,
   useRoomPresence,
@@ -147,6 +148,8 @@ function MembersButton({
 
 export function ChannelView({ channelId }: { channelId: string }) {
   const { me } = useComms()
+  // Receive a shared channel's node, history, and member profiles (0298).
+  useChannelShareSync(channelId)
   const profiles = useProfiles()
   const { peers } = useRoomPresence(channelId)
   const { data: channel } = useQuery(ChannelSchema, channelId)

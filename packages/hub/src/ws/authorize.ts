@@ -30,8 +30,14 @@ import { HUB_METRICS } from '../middleware/metrics'
 import { profileSubjectFromDocId } from '../services/share-access'
 import { buildWsError } from './errors'
 
-export const topicToResource = (topic: string): string =>
-  topic.startsWith('xnet-doc-') ? topic.slice('xnet-doc-'.length) : topic
+export const topicToResource = (topic: string): string => {
+  // A doc room and a channel share room (0298) both resolve to the resource id
+  // the grant is keyed on, so the existing grant-index / Space-cascade checks
+  // authorize them unchanged.
+  if (topic.startsWith('xnet-doc-')) return topic.slice('xnet-doc-'.length)
+  if (topic.startsWith('xnet-channel-')) return topic.slice('xnet-channel-'.length)
+  return topic
+}
 
 export type AuthzCode = 'UNAUTHORIZED' | 'TOKEN_EXPIRED' | 'TOKEN_REVOKED'
 

@@ -12,6 +12,7 @@ import { CallProvider, CommsDock } from '../comms/CallDock'
 import { CommsProvider } from '../comms/CommsContext'
 import { RoomSection } from '../comms/RoomSection'
 import { FormInboxItem, InboxBellItem, PresenceStatusItem } from '../comms/StatusItems'
+import { AppLinkUpres } from '../components/AppLinkUpres'
 import { Workbench } from '../workbench/Workbench'
 
 export const Route = createRootRoute({
@@ -22,14 +23,16 @@ function RootLayout() {
   return (
     <CommsProvider>
       <CallProvider>
-        <RoomSection />
-        <InboxBellItem />
-        <PresenceStatusItem />
-        <FormInboxItem />
-        <Workbench>
-          <Outlet />
-        </Workbench>
-        <CommsDock />
+        <AppLinkUpres>
+          <RoomSection />
+          <InboxBellItem />
+          <PresenceStatusItem />
+          <FormInboxItem />
+          <Workbench>
+            <Outlet />
+          </Workbench>
+          <CommsDock />
+        </AppLinkUpres>
       </CallProvider>
     </CommsProvider>
   )

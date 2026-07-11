@@ -2,7 +2,6 @@
  * @xnetjs/hub - In-memory storage adapter.
  */
 
-import { compareChangeApplicationOrder } from '@xnetjs/core'
 import type {
   AwarenessEntry,
   BlobMeta,
@@ -26,6 +25,7 @@ import type {
   SearchResult,
   SerializedNodeChange,
   GrantIndexRecord,
+  ShareLinkPreviewRecord,
   ShareLinkRecord,
   DatabaseRowRecord,
   DatabaseRowQueryOptions,
@@ -34,6 +34,7 @@ import type {
   DatabaseFilterCondition,
   DatabaseSortConfig
 } from './interface'
+import { compareChangeApplicationOrder } from '@xnetjs/core'
 
 /**
  * Code-unit string comparison. Fractional sortKeys (and cursor pagination,
@@ -68,6 +69,7 @@ export const createMemoryStorage = (): HubStorage => {
   const docRecipients = new Map<string, Set<string>>()
   const grantsById = new Map<string, GrantIndexRecord>()
   const shareLinksById = new Map<string, ShareLinkRecord>()
+  const shareLinkPreviewsById = new Map<string, ShareLinkPreviewRecord>()
   const nodeContainers = new Map<string, string>()
   const nodeVisibility = new Map<string, string>()
   const nodeChangesByHash = new Map<string, SerializedNodeChange>()
@@ -310,6 +312,20 @@ export const createMemoryStorage = (): HubStorage => {
 
   const deleteShareLink = async (linkId: string): Promise<void> => {
     shareLinksById.delete(linkId)
+    shareLinkPreviewsById.delete(linkId)
+  }
+
+  const upsertShareLinkPreview = async (record: ShareLinkPreviewRecord): Promise<void> => {
+    shareLinkPreviewsById.set(record.linkId, { ...record })
+  }
+
+  const getShareLinkPreview = async (linkId: string): Promise<ShareLinkPreviewRecord | null> => {
+    const record = shareLinkPreviewsById.get(linkId)
+    return record ? { ...record } : null
+  }
+
+  const deleteShareLinkPreview = async (linkId: string): Promise<void> => {
+    shareLinkPreviewsById.delete(linkId)
   }
 
   const getFileMeta = async (cid: string): Promise<FileMeta | null> => files.get(cid)?.meta ?? null
@@ -645,6 +661,40 @@ export const createMemoryStorage = (): HubStorage => {
     nodeChangesByRoom.set(room, existing)
   }
 
+  // Share rooms (exploration 0298): hash→room mappings with a per-mapping seq.
+  const roomChangeMappings: Array<{ seq: number; room: string; hash: string }> = []
+  let roomMappingSeq = 0
+  const addChangeToRoom = async (room: string, hash: string): Promise<void> => {
+    if (roomChangeMappings.some((m) => m.room === room && m.hash === hash)) return
+    roomChangeMappings.push({ seq: ++roomMappingSeq, room, hash })
+  }
+
+  const getRoomChangesSince = async (
+    room: string,
+    sinceSeq: number,
+    limit = 1000
+  ): Promise<{ changes: SerializedNodeChange[]; highWaterMark: number }> => {
+    const rows = roomChangeMappings
+      .filter((m) => m.room === room && m.seq > sinceSeq)
+      .sort((a, b) => a.seq - b.seq)
+      .slice(0, limit)
+    const changes = rows
+      .map((m) => nodeChangesByHash.get(m.hash))
+      .filter((c): c is SerializedNodeChange => c !== undefined)
+    const highWaterMark = rows.length > 0 ? rows[rows.length - 1].seq : sinceSeq
+    return { changes, highWaterMark }
+  }
+
+  const getLatestProfileHash = async (did: string): Promise<string | null> => {
+    let latest: SerializedNodeChange | null = null
+    for (const change of nodeChangesByHash.values()) {
+      const schema = change.schemaId ?? change.payload.schemaId ?? ''
+      if (change.authorDid !== did || !schema.startsWith('xnet://xnet.fyi/Profile@')) continue
+      if (!latest || change.lamportTime > latest.lamportTime) latest = change
+    }
+    return latest?.hash ?? null
+  }
+
   const getNodeChangesSince = async (
     room: string,
     sinceLamport: number
@@ -719,6 +769,7 @@ export const createMemoryStorage = (): HubStorage => {
     nodeVisibility.clear()
     nodeChangesByHash.clear()
     nodeChangesByRoom.clear()
+    roomChangeMappings.length = 0
     databaseRows.clear()
     awarenessByRoom.clear()
     return { nodeChanges, docStates: docStateCount }
@@ -919,6 +970,7 @@ export const createMemoryStorage = (): HubStorage => {
     searchBodies.clear()
     nodeChangesByHash.clear()
     nodeChangesByRoom.clear()
+    roomChangeMappings.length = 0
     files.clear()
     schemasByIri.clear()
     awarenessByRoom.clear()
@@ -968,6 +1020,9 @@ export const createMemoryStorage = (): HubStorage => {
     setShareLinkDisabled,
     incrementShareLinkUse,
     deleteShareLink,
+    upsertShareLinkPreview,
+    getShareLinkPreview,
+    deleteShareLinkPreview,
     getFileMeta,
     putFile,
     getFileData,
@@ -1018,6 +1073,9 @@ export const createMemoryStorage = (): HubStorage => {
     hasNodeChange,
     appendNodeChange,
     getUsageBytesByDid,
+    addChangeToRoom,
+    getRoomChangesSince,
+    getLatestProfileHash,
     resetAllUserData,
     getNodeChangesSince,
     getNodeChangesForNode,

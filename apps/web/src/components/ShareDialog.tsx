@@ -9,6 +9,8 @@ import { useXNet } from '@xnetjs/react'
 import {
   Check,
   Copy,
+  Eye,
+  EyeOff,
   Link2,
   QrCode,
   ShieldAlert,
@@ -18,9 +20,11 @@ import {
   X
 } from 'lucide-react'
 import QRCode from 'qrcode'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ChatAvatar } from '../comms/ChatAvatar'
 import { displayName, useEnsureProfiles, useProfiles } from '../comms/hooks'
+import { nodeIdFromHref } from '../comms/link-composer'
+import { useLinkTargets } from '../hooks/useLinkTargets'
 import {
   roleFromGrantActions,
   useShareGrants,
@@ -147,9 +151,37 @@ function ShareDialogBody({
     ready,
     createLink,
     setLinkDisabled,
-    deleteLink
+    deleteLink,
+    setLinkPreview
   } = useShareLinks(docId, docType)
   const { grants, loading: grantsLoading, error: grantsError, revokeGrant } = useShareGrants(docId)
+
+  // The doc's current title, for the link-preview snapshot (0295). The doc
+  // being shared is open right now, so the recency-bounded target list has it.
+  const { linkTargets } = useLinkTargets()
+  const docTitle = useMemo(
+    () => linkTargets.find((target) => nodeIdFromHref(target.href) === docId)?.title ?? null,
+    [linkTargets, docId]
+  )
+  const [publishPreview, setPublishPreview] = useState(true)
+
+  // Re-publish stale snapshots so renames propagate to pasted cards. One
+  // attempt per link per dialog mount — a failing hub must not loop.
+  const republished = useRef(new Set<string>())
+  useEffect(() => {
+    if (!docTitle) return
+    for (const link of links) {
+      if (
+        link.preview &&
+        !link.disabled &&
+        link.preview.title !== docTitle &&
+        !republished.current.has(link.linkId)
+      ) {
+        republished.current.add(link.linkId)
+        void setLinkPreview(link.linkId, docTitle).catch(() => undefined)
+      }
+    }
+  }, [links, docTitle, setLinkPreview])
 
   const privateHub = useMemo(
     () => (hubHttpUrl ? isPrivateHubHost(hubHttpUrl) : false),
@@ -171,6 +203,7 @@ function ShareDialogBody({
       if (label.trim()) options.label = label.trim()
       if (expiresIn > 0) options.expiresAt = Date.now() + expiresIn
       if (maxUses > 0) options.maxUses = maxUses
+      if (publishPreview && docTitle) options.previewTitle = docTitle
       const created = await createLink(options)
       setFreshUrl(created.url ?? null)
       setQrDataUrl(null)
@@ -312,6 +345,26 @@ function ShareDialogBody({
                 </button>
               </div>
 
+              <label
+                className={`flex items-center gap-2 mb-3 text-[11px] ${
+                  docTitle ? 'text-muted-foreground' : 'text-muted-foreground/50'
+                }`}
+                title={
+                  docTitle
+                    ? 'Anyone with the link URL can see this title before opening it'
+                    : 'Title unavailable for this document'
+                }
+              >
+                <input
+                  type="checkbox"
+                  checked={publishPreview && Boolean(docTitle)}
+                  disabled={!docTitle}
+                  onChange={(e) => setPublishPreview(e.target.checked)}
+                  className="rounded border-border"
+                />
+                Show title in link previews{docTitle ? ` (“${docTitle}”)` : ''}
+              </label>
+
               {freshUrl && (
                 <div className="mb-3 p-2 rounded-md border border-primary/40 bg-primary/5">
                   <p className="text-[11px] text-muted-foreground mb-1.5">
@@ -388,6 +441,27 @@ function ShareDialogBody({
                       </p>
                     </div>
                     {link.url && !link.disabled && <CopyButton value={link.url} />}
+                    <button
+                      type="button"
+                      title={
+                        link.preview
+                          ? 'Preview on — pasted links show the title. Click to hide.'
+                          : 'Preview off — pasted links stay bare URLs. Click to publish the title.'
+                      }
+                      disabled={!link.preview && !docTitle}
+                      onClick={() =>
+                        void runAction(() =>
+                          setLinkPreview(link.linkId, link.preview ? null : docTitle)
+                        )
+                      }
+                      className={`p-1 transition-colors ${
+                        link.preview
+                          ? 'text-primary hover:text-muted-foreground'
+                          : 'text-muted-foreground hover:text-foreground disabled:opacity-40'
+                      }`}
+                    >
+                      {link.preview ? <Eye size={13} /> : <EyeOff size={13} />}
+                    </button>
                     <button
                       type="button"
                       title={link.disabled ? 'Enable link' : 'Disable link'}

@@ -8,6 +8,7 @@
  */
 
 import type { InferNode } from '../types'
+import type { MessageLinkPreview } from './link-preview'
 import type { MessageMentions } from './mentions'
 import { defineSchema } from '../define'
 import {
@@ -78,6 +79,9 @@ export const CommentSchema = defineSchema({
      * legacy text-parsed mentions (commentReferences.ts) remain as fallback.
      */
     mentions: json<MessageMentions>({}),
+
+    /** Composer-resolved URL previews (0295) — never parsed from content */
+    linkPreviews: json<MessageLinkPreview[]>({}),
 
     // ─── Pseudo Reply-To (for UI, not structural threading) ────────────────────
 

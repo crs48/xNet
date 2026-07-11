@@ -127,13 +127,26 @@ describe('channelLabel / channelHeaderModel', () => {
 })
 
 describe('mergeMentionables', () => {
-  it('merges profiles with presence and removes self', () => {
+  it('merges profiles with presence and lists self last, flagged', () => {
     const peers = [
       { clientId: 1, user: { did: 'did:key:zCarolCarol', name: 'Carol' } },
       { clientId: 2, user: { did: bob, name: 'ignored (profile wins)' } }
     ]
     const result = mergeMentionables(profiles, peers, alice)
-    expect(result.map((m) => m.label).sort()).toEqual(['Bob', 'Carol'])
+    expect(result.map((m) => m.label)).toEqual(['Bob', 'Carol', 'Alice'])
+    expect(result.at(-1)).toMatchObject({ did: alice, isSelf: true })
+    expect(result.slice(0, -1).every((m) => !m.isSelf)).toBe(true)
+  })
+
+  it('keeps the freshly saved @handle reachable for self-mentions', () => {
+    const withHandle = [{ did: alice, name: 'Alice', handle: 'ada' }]
+    const result = mergeMentionables(withHandle, [], alice)
+    expect(result).toHaveLength(1)
+    expect(result[0]).toMatchObject({ did: alice, handle: 'ada', isSelf: true })
+  })
+
+  it('omits self entirely when unknown to profiles and presence', () => {
+    expect(mergeMentionables([], [], alice)).toEqual([])
   })
 })
 

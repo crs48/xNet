@@ -19,6 +19,7 @@ export function useCommentPeople(): TaskPersonOption[] {
     const people: TaskPersonOption[] = profiles.map((profile) => ({
       did: profile.did,
       name: profile.name,
+      handle: profile.handle,
       isSelf: profile.did === did
     }))
     if (did && !people.some((person) => person.did === did)) {

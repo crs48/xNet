@@ -23,4 +23,22 @@ describe('collectWorkspacePeople', () => {
   it('works without an identity', () => {
     expect(collectWorkspacePeople(null, [], [])).toEqual([])
   })
+
+  it('resolves names and @handles from profiles, including self (0172)', () => {
+    const people = collectWorkspacePeople(
+      me,
+      [{ assignee: 'did:key:a' }],
+      [],
+      [
+        { did: me, name: 'Ada Lovelace', handle: 'ada' },
+        { did: 'did:key:b', name: 'Bob', handle: 'bob' }
+      ]
+    )
+
+    expect(people).toEqual([
+      { did: me, name: 'Ada Lovelace', handle: 'ada', isSelf: true },
+      { did: 'did:key:a' },
+      { did: 'did:key:b', name: 'Bob', handle: 'bob' }
+    ])
+  })
 })

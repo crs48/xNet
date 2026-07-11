@@ -94,4 +94,10 @@ describe('buildPersonMentionSuggestions', () => {
     const suggestions = buildPersonMentionSuggestions([], [{ did: alice }], null)
     expect(suggestions[0]?.label).toContain('...')
   })
+
+  it('carries the @handle through for picker filtering (0172)', () => {
+    const profiles = [{ did: alice, name: 'Alice Lovelace', handle: 'ada' }]
+    const suggestions = buildPersonMentionSuggestions(profiles, [], alice)
+    expect(suggestions[0]).toMatchObject({ id: alice, label: 'Alice Lovelace', handle: 'ada' })
+  })
 })

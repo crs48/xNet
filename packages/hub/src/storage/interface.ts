@@ -60,6 +60,17 @@ export type ShareLinkRecord = {
   createdAt: number
 }
 
+/**
+ * Owner-published preview snapshot for a share link (exploration 0295).
+ * Sanitized display fields only — never node content.
+ */
+export type ShareLinkPreviewRecord = {
+  linkId: string
+  title: string
+  icon: string | null
+  updatedAt: number
+}
+
 export type SearchResult = {
   docId: string
   title: string
@@ -387,7 +398,16 @@ export type HubStorage = {
   listShareLinks: (docId: string) => Promise<ShareLinkRecord[]>
   setShareLinkDisabled: (linkId: string, disabled: boolean) => Promise<void>
   incrementShareLinkUse: (linkId: string) => Promise<void>
+  /** Also removes the link's preview snapshot, if any. */
   deleteShareLink: (linkId: string) => Promise<void>
+
+  // ─── Share-link preview snapshots (exploration 0295) ────────────────────────
+  // Owner-published `{ title, icon }` served to holders of the linkId so a
+  // pasted share URL can up-res into a titled card. The hub never reads node
+  // content to produce these; presence of a row is the owner's opt-in.
+  upsertShareLinkPreview: (record: ShareLinkPreviewRecord) => Promise<void>
+  getShareLinkPreview: (linkId: string) => Promise<ShareLinkPreviewRecord | null>
+  deleteShareLinkPreview: (linkId: string) => Promise<void>
 
   getFileMeta: (cid: string) => Promise<FileMeta | null>
   putFile: (
@@ -466,6 +486,28 @@ export type HubStorage = {
   getNodeChangesSince: (room: string, sinceLamport: number) => Promise<SerializedNodeChange[]>
   getNodeChangesForNode: (room: string, nodeId: string) => Promise<SerializedNodeChange[]>
   getHighWaterMark: (room: string) => Promise<number>
+
+  // ─── Share rooms (exploration 0298) ─────────────────────────────────────────
+  // A node change physically lives in exactly one room (`node_changes.hash` is a
+  // global PK). To deliver a channel's nodes to a share-link grantee without
+  // duplicating content, we INDEX an existing change into extra "share rooms"
+  // (`xnet-channel-<id>`) via a mapping keyed by a per-mapping monotonic `seq`.
+  // Share-room sync cursors on that `seq` — NOT the author lamport — because a
+  // channel room aggregates changes from many authors whose lamports are not
+  // mutually ordered.
+  /** Index an existing change (by hash) into a share room. Idempotent. */
+  addChangeToRoom: (room: string, hash: string) => Promise<void>
+  /**
+   * Share-room changes with `seq > sinceSeq`, oldest-first, plus the highest
+   * `seq` in the returned batch (the client's next cursor). Bounded by `limit`.
+   */
+  getRoomChangesSince: (
+    room: string,
+    sinceSeq: number,
+    limit?: number
+  ) => Promise<{ changes: SerializedNodeChange[]; highWaterMark: number }>
+  /** Latest Profile node-change hash authored by a DID, or null. */
+  getLatestProfileHash: (did: string) => Promise<string | null>
   /**
    * Bytes of node-change data attributed to a DID (payload + signature),
    * summed on demand. Backs the demo-mode per-user storage cap

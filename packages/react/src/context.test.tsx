@@ -30,6 +30,8 @@ function createSyncManagerStub(): SyncManager {
     stop: vi.fn(async () => undefined),
     track: vi.fn(),
     untrack: vi.fn(),
+    subscribeShareRoom: vi.fn(),
+    unsubscribeShareRoom: vi.fn(),
     acquire: vi.fn(async () => new Y.Doc()),
     release: vi.fn(),
     getAwareness: vi.fn(() => new Awareness(new Y.Doc())),

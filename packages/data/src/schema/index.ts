@@ -410,6 +410,12 @@ export {
   isValidMentions,
   type MessageMentions
 } from './schemas'
+export {
+  MAX_LINK_PREVIEWS_PER_MESSAGE,
+  isMessageLinkPreview,
+  sanitizeLinkPreviews,
+  type MessageLinkPreview
+} from './schemas'
 export { extractMentions, getMentionedUsers, type Mention } from './schemas'
 export { GrantSchema, type Grant } from './schemas'
 export {

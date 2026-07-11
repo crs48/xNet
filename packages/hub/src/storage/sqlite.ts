@@ -25,6 +25,7 @@ import type {
   SearchOptions,
   SearchResult,
   GrantIndexRecord,
+  ShareLinkPreviewRecord,
   ShareLinkRecord,
   ShareLinkRole,
   SerializedNodeChange,
@@ -103,6 +104,14 @@ const SCHEMA_SQL = `
     created_at INTEGER NOT NULL DEFAULT (unixepoch('now') * 1000)
   );
   CREATE INDEX IF NOT EXISTS idx_share_links_doc ON share_links(doc_id);
+
+  -- Owner-published share-link preview snapshots (exploration 0295).
+  CREATE TABLE IF NOT EXISTS share_link_previews (
+    link_id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    icon TEXT,
+    updated_at INTEGER NOT NULL DEFAULT (unixepoch('now') * 1000)
+  );
 
   -- Space containment index (exploration 0179): one parent pointer per node.
   -- Content nodes point to their Space; a Space points to its parent Space.
@@ -338,6 +347,22 @@ const SCHEMA_SQL = `
   -- change bytes on demand (exploration 0291).
   CREATE INDEX IF NOT EXISTS idx_node_changes_author
     ON node_changes(author_did);
+  -- Backs getLatestProfileHash: resolve a member's profile for a shared channel.
+  CREATE INDEX IF NOT EXISTS idx_node_changes_author_schema
+    ON node_changes(author_did, schema_id);
+
+  -- Share rooms (exploration 0298): index an existing change into extra rooms
+  -- so a channel's nodes reach a grantee without duplicating content. seq is a
+  -- per-mapping monotonic cursor; share-room sync pages on it (author lamports
+  -- across many members are not mutually ordered, so lamport cannot be cursor).
+  CREATE TABLE IF NOT EXISTS node_change_rooms (
+    seq INTEGER PRIMARY KEY AUTOINCREMENT,
+    room TEXT NOT NULL,
+    hash TEXT NOT NULL,
+    UNIQUE(room, hash)
+  );
+  CREATE INDEX IF NOT EXISTS idx_node_change_rooms_room_seq
+    ON node_change_rooms(room, seq);
 
   -- Database rows table for large database queries
   CREATE TABLE IF NOT EXISTS database_rows (
@@ -931,6 +956,14 @@ export const createSQLiteStorage = (
       'UPDATE share_links SET use_count = use_count + 1 WHERE link_id = ?'
     ),
     deleteShareLink: db.prepare('DELETE FROM share_links WHERE link_id = ?'),
+    upsertShareLinkPreview: db.prepare(`
+      INSERT INTO share_link_previews (link_id, title, icon, updated_at)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(link_id) DO UPDATE SET
+        title = excluded.title, icon = excluded.icon, updated_at = excluded.updated_at
+    `),
+    getShareLinkPreview: db.prepare('SELECT * FROM share_link_previews WHERE link_id = ?'),
+    deleteShareLinkPreview: db.prepare('DELETE FROM share_link_previews WHERE link_id = ?'),
     insertBackup: db.prepare(`
       INSERT OR REPLACE INTO backups (key, doc_id, owner_did, size_bytes, content_type, blob_path, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -1167,6 +1200,22 @@ export const createSQLiteStorage = (
     getUsageBytesByDid: db.prepare(`
       SELECT COALESCE(SUM(LENGTH(payload_json) + LENGTH(signature_b64)), 0) AS bytes
       FROM node_changes WHERE author_did = ?
+    `),
+    addChangeToRoom: db.prepare(`
+      INSERT OR IGNORE INTO node_change_rooms (room, hash) VALUES (?, ?)
+    `),
+    getRoomChangesSince: db.prepare(`
+      SELECT nc.*, r.seq AS room_seq
+      FROM node_change_rooms r
+      JOIN node_changes nc ON nc.hash = r.hash
+      WHERE r.room = ? AND r.seq > ?
+      ORDER BY r.seq ASC
+      LIMIT ?
+    `),
+    getLatestProfileHash: db.prepare(`
+      SELECT hash FROM node_changes
+      WHERE author_did = ? AND schema_id LIKE 'xnet://xnet.fyi/Profile@%'
+      ORDER BY lamport_time DESC LIMIT 1
     `),
     clearNodeChanges: db.prepare(`
       DELETE FROM node_changes WHERE room = ?
@@ -2046,6 +2095,23 @@ export const createSQLiteStorage = (
 
   const deleteShareLink = async (linkId: string): Promise<void> => {
     stmts.deleteShareLink.run(linkId)
+    stmts.deleteShareLinkPreview.run(linkId)
+  }
+
+  const upsertShareLinkPreview = async (record: ShareLinkPreviewRecord): Promise<void> => {
+    stmts.upsertShareLinkPreview.run(record.linkId, record.title, record.icon, record.updatedAt)
+  }
+
+  const getShareLinkPreview = async (linkId: string): Promise<ShareLinkPreviewRecord | null> => {
+    const row = stmts.getShareLinkPreview.get(linkId) as
+      | { link_id: string; title: string; icon: string | null; updated_at: number }
+      | undefined
+    if (!row) return null
+    return { linkId: row.link_id, title: row.title, icon: row.icon, updatedAt: row.updated_at }
+  }
+
+  const deleteShareLinkPreview = async (linkId: string): Promise<void> => {
+    stmts.deleteShareLinkPreview.run(linkId)
   }
 
   const search = async (query: string, options?: SearchOptions): Promise<SearchResult[]> => {
@@ -2148,6 +2214,28 @@ export const createSQLiteStorage = (
     return row?.bytes ?? 0
   }
 
+  const addChangeToRoom = async (room: string, hash: string): Promise<void> => {
+    stmts.addChangeToRoom.run(room, hash)
+  }
+
+  const getRoomChangesSince = async (
+    room: string,
+    sinceSeq: number,
+    limit = 1000
+  ): Promise<{ changes: SerializedNodeChange[]; highWaterMark: number }> => {
+    const rows = stmts.getRoomChangesSince.all(room, sinceSeq, limit) as (NodeChangeRow & {
+      room_seq: number
+    })[]
+    const changes = rows.map(rowToSerializedChange)
+    const highWaterMark = rows.length > 0 ? rows[rows.length - 1].room_seq : sinceSeq
+    return { changes, highWaterMark }
+  }
+
+  const getLatestProfileHash = async (did: string): Promise<string | null> => {
+    const row = stmts.getLatestProfileHash.get(did) as { hash: string } | undefined
+    return row?.hash ?? null
+  }
+
   // User-content tables wiped by the demo daily reset (exploration 0291).
   // Infrastructure (schemas, keys, peers, federation, shards, crawlers) is
   // intentionally excluded so the hub keeps working after a reset. FTS mirrors
@@ -2156,12 +2244,14 @@ export const createSQLiteStorage = (
   // clears them too.
   const DEMO_RESET_TABLES = [
     'node_changes',
+    'node_change_rooms',
     'doc_state',
     'doc_meta',
     'doc_recipients',
     'database_rows',
     'grant_index',
     'share_links',
+    'share_link_previews',
     'node_container',
     'node_visibility',
     'awareness_state',
@@ -2515,6 +2605,9 @@ export const createSQLiteStorage = (
     setShareLinkDisabled,
     incrementShareLinkUse,
     deleteShareLink,
+    upsertShareLinkPreview,
+    getShareLinkPreview,
+    deleteShareLinkPreview,
     getFileMeta,
     putFile,
     getFileData,
@@ -2565,6 +2658,9 @@ export const createSQLiteStorage = (
     hasNodeChange,
     appendNodeChange,
     getUsageBytesByDid,
+    addChangeToRoom,
+    getRoomChangesSince,
+    getLatestProfileHash,
     resetAllUserData,
     getNodeChangesSince,
     getNodeChangesForNode,
