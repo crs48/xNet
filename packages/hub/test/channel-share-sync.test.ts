@@ -273,7 +273,11 @@ describe.each(factories)('channel share fan-out ($name)', ({ create }) => {
     const svc = relay(gateWith(new Map()))
     await svc.handleNodeChange(
       relayMsg(
-        signChangeFor(owner, workspaceId, WORKSPACE, { name: 'My bench', preset: 'none', tree: '{}' })
+        signChangeFor(owner, workspaceId, WORKSPACE, {
+          name: 'My bench',
+          preset: 'none',
+          tree: '{}'
+        })
       ),
       authFor(owner)
     )
