@@ -15,6 +15,7 @@
     "check:cloud-boundary": "bash scripts/check-cloud-boundary.sh",
     "check:plugin-licenses": "node scripts/check-plugin-licenses.mjs",
     "check:motion-vocab": "node scripts/check-motion-vocab.mjs",
+    "check:surface-tokens": "node scripts/check-surface-tokens.mjs",
     "check:humane-patterns": "node scripts/check-humane-patterns.mjs",
     "check:publish-closure": "node scripts/check-publish-closure.mjs",
     "check:electron-parity": "node scripts/check-electron-parity.mjs",

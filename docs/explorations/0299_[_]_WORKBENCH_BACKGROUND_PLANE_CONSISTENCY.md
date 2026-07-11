@@ -443,7 +443,7 @@ Adopt **Option C**. Concretely:
       shadow-pop` recipe.
 - [x] `Sheet.tsx:59` `bg-background` → verify it resolves to canvas via alias
       (it will) — or switch to `bg-island-b` if sheets should read as islands.
-- [ ] Add hardcoded-background gate to the lint lane (zero matches on raw
+- [x] Add hardcoded-background gate to the lint lane (zero matches on raw
       palette background classes in workbench packages); wire as a blocking
       check per 0294 (named consumer: CI lint job; decidable: zero-count).
 - [ ] Changesets for `@xnetjs/ui` and `@xnetjs/devtools` (patch).
