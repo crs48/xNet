@@ -1,0 +1,20 @@
+{
+  "id": "2026-07-10-your-username-now-works-everywhere-you-c",
+  "date": "July 10, 2026",
+  "title": "Your @username now works everywhere you can mention someone",
+  "summary": "Setting a username in your profile now surfaces you in the @mention autocomplete in comments, task inputs, and page editors — not just chat. You can also @mention yourself in chat, and pickers show the @username next to each person's name.",
+  "highlights": [
+    "Comment and task @mention pickers match usernames",
+    "Page editor mentions match usernames",
+    "Chat picker includes yourself, listed last as (you)",
+    "Task pickers resolve profile names instead of raw IDs"
+  ],
+  "tags": ["app", "editor"],
+  "pr": 464,
+  "mergedAt": "2026-07-10T23:32:38Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

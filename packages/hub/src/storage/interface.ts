@@ -60,6 +60,17 @@ export type ShareLinkRecord = {
   createdAt: number
 }
 
+/**
+ * Owner-published preview snapshot for a share link (exploration 0295).
+ * Sanitized display fields only — never node content.
+ */
+export type ShareLinkPreviewRecord = {
+  linkId: string
+  title: string
+  icon: string | null
+  updatedAt: number
+}
+
 export type SearchResult = {
   docId: string
   title: string
@@ -387,7 +398,16 @@ export type HubStorage = {
   listShareLinks: (docId: string) => Promise<ShareLinkRecord[]>
   setShareLinkDisabled: (linkId: string, disabled: boolean) => Promise<void>
   incrementShareLinkUse: (linkId: string) => Promise<void>
+  /** Also removes the link's preview snapshot, if any. */
   deleteShareLink: (linkId: string) => Promise<void>
+
+  // ─── Share-link preview snapshots (exploration 0295) ────────────────────────
+  // Owner-published `{ title, icon }` served to holders of the linkId so a
+  // pasted share URL can up-res into a titled card. The hub never reads node
+  // content to produce these; presence of a row is the owner's opt-in.
+  upsertShareLinkPreview: (record: ShareLinkPreviewRecord) => Promise<void>
+  getShareLinkPreview: (linkId: string) => Promise<ShareLinkPreviewRecord | null>
+  deleteShareLinkPreview: (linkId: string) => Promise<void>
 
   getFileMeta: (cid: string) => Promise<FileMeta | null>
   putFile: (

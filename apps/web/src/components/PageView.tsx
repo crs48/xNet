@@ -175,7 +175,10 @@ export function PageView({ docId }: { docId: string }) {
   const mentionSuggestions = useMemo(() => {
     const self = selfDid ? [{ did: selfDid }] : []
     return buildPersonMentionSuggestions(
-      [...self, ...profiles.map((p) => ({ did: p.did, name: p.name, avatar: p.avatar }))],
+      [
+        ...self,
+        ...profiles.map((p) => ({ did: p.did, name: p.name, handle: p.handle, avatar: p.avatar }))
+      ],
       presence,
       selfDid
     )

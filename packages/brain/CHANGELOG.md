@@ -1,5 +1,13 @@
 # @xnetjs/brain
 
+## 0.0.14
+
+### Patch Changes
+
+- Updated dependencies [[`0721fd5`](https://github.com/crs48/xNet/commit/0721fd5d263abd3242a3b10cf827fa552cbacbb7)]:
+  - @xnetjs/data@0.10.0
+  - @xnetjs/vectors@0.0.1
+
 ## 0.0.13
 
 ### Patch Changes

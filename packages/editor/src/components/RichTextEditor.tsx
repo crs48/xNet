@@ -13,6 +13,7 @@ import type {
 } from '../extensions'
 import type { AnyExtension } from '@tiptap/core'
 import type { EditorState } from '@tiptap/pm/state'
+import type { MessageLinkPreview } from '@xnetjs/data'
 import type { Awareness } from 'y-protocols/awareness'
 import type * as Y from 'yjs'
 import { offset, type ComputePositionConfig } from '@floating-ui/dom'
@@ -290,6 +291,12 @@ export interface RichTextEditorProps {
     icon?: string
   } | null>
   /**
+   * Link preview resolver (0295). Given a pasted generic URL, returns the
+   * shared MessageLinkPreview shape (or null). Runs only on the pasting
+   * peer — the rich-link card hydrates via one follow-up transaction.
+   */
+  resolveLinkPreview?: (url: string) => Promise<MessageLinkPreview | null>
+  /**
    * Custom renderer for database views. Receives database ID, view type, and config.
    * If not provided, a placeholder is shown.
    */
@@ -448,6 +455,7 @@ export function RichTextEditor({
   onFileDownload,
   onSelectDatabase,
   resolveDatabaseMeta,
+  resolveLinkPreview,
   renderDatabaseView,
   renderTaskView,
   taskViewPageId = null,
@@ -611,7 +619,9 @@ export function RichTextEditor({
     // Media embeds (YouTube, Spotify, Vimeo, etc.)
     EmbedExtension,
     // Rich preview cards for generic pasted URLs
-    RichLinkExtension,
+    RichLinkExtension.configure({
+      resolvePreview: resolveLinkPreview ?? null
+    }),
     // Page embeds for block references to other documents
     PageEmbedExtension.configure({
       onNavigate

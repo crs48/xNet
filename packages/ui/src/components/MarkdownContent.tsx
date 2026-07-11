@@ -12,6 +12,7 @@ import React, { useMemo } from 'react'
 import ReactMarkdown, { type Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { cn } from '../utils'
+import { useLinkUpres } from './LinkUpres'
 
 export interface MarkdownContentProps {
   /** Markdown string to render */
@@ -23,6 +24,37 @@ export interface MarkdownContentProps {
 }
 
 const remarkPlugins = [remarkGfm]
+
+/** Extract the plain text of an anchor's children (URL text for autolinks). */
+function anchorText(children: React.ReactNode): string {
+  if (typeof children === 'string') return children
+  if (Array.isArray(children)) {
+    return children.filter((child): child is string => typeof child === 'string').join('')
+  }
+  return ''
+}
+
+/**
+ * Anchor renderer that consults the link up-res context (0295) before
+ * falling back to the styled plain anchor.
+ */
+function MarkdownAnchor({ href, children }: { href?: string; children?: React.ReactNode }) {
+  const upres = useLinkUpres()
+  if (href && upres) {
+    const rich = upres({ href, text: anchorText(children) || href })
+    if (rich != null) return <>{rich}</>
+  }
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="text-primary underline hover:text-primary/80"
+    >
+      {children}
+    </a>
+  )
+}
 
 /** Default component overrides styled for compact comment contexts. */
 const defaultComponents: Components = {
@@ -44,17 +76,8 @@ const defaultComponents: Components = {
     <pre className="my-2 rounded-md bg-muted p-2 overflow-x-auto text-xs">{children}</pre>
   ),
 
-  // Links: open in new tab
-  a: ({ href, children }) => (
-    <a
-      href={href}
-      target="_blank"
-      rel="noopener noreferrer"
-      className="text-primary underline hover:text-primary/80"
-    >
-      {children}
-    </a>
-  ),
+  // Links: up-res via context when available, else open in new tab
+  a: MarkdownAnchor,
 
   // Lists
   ul: ({ children }) => <ul className="my-1 ml-4 list-disc space-y-0.5">{children}</ul>,

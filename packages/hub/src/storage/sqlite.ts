@@ -25,6 +25,7 @@ import type {
   SearchOptions,
   SearchResult,
   GrantIndexRecord,
+  ShareLinkPreviewRecord,
   ShareLinkRecord,
   ShareLinkRole,
   SerializedNodeChange,
@@ -103,6 +104,14 @@ const SCHEMA_SQL = `
     created_at INTEGER NOT NULL DEFAULT (unixepoch('now') * 1000)
   );
   CREATE INDEX IF NOT EXISTS idx_share_links_doc ON share_links(doc_id);
+
+  -- Owner-published share-link preview snapshots (exploration 0295).
+  CREATE TABLE IF NOT EXISTS share_link_previews (
+    link_id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    icon TEXT,
+    updated_at INTEGER NOT NULL DEFAULT (unixepoch('now') * 1000)
+  );
 
   -- Space containment index (exploration 0179): one parent pointer per node.
   -- Content nodes point to their Space; a Space points to its parent Space.
@@ -931,6 +940,14 @@ export const createSQLiteStorage = (
       'UPDATE share_links SET use_count = use_count + 1 WHERE link_id = ?'
     ),
     deleteShareLink: db.prepare('DELETE FROM share_links WHERE link_id = ?'),
+    upsertShareLinkPreview: db.prepare(`
+      INSERT INTO share_link_previews (link_id, title, icon, updated_at)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(link_id) DO UPDATE SET
+        title = excluded.title, icon = excluded.icon, updated_at = excluded.updated_at
+    `),
+    getShareLinkPreview: db.prepare('SELECT * FROM share_link_previews WHERE link_id = ?'),
+    deleteShareLinkPreview: db.prepare('DELETE FROM share_link_previews WHERE link_id = ?'),
     insertBackup: db.prepare(`
       INSERT OR REPLACE INTO backups (key, doc_id, owner_did, size_bytes, content_type, blob_path, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -2046,6 +2063,23 @@ export const createSQLiteStorage = (
 
   const deleteShareLink = async (linkId: string): Promise<void> => {
     stmts.deleteShareLink.run(linkId)
+    stmts.deleteShareLinkPreview.run(linkId)
+  }
+
+  const upsertShareLinkPreview = async (record: ShareLinkPreviewRecord): Promise<void> => {
+    stmts.upsertShareLinkPreview.run(record.linkId, record.title, record.icon, record.updatedAt)
+  }
+
+  const getShareLinkPreview = async (linkId: string): Promise<ShareLinkPreviewRecord | null> => {
+    const row = stmts.getShareLinkPreview.get(linkId) as
+      | { link_id: string; title: string; icon: string | null; updated_at: number }
+      | undefined
+    if (!row) return null
+    return { linkId: row.link_id, title: row.title, icon: row.icon, updatedAt: row.updated_at }
+  }
+
+  const deleteShareLinkPreview = async (linkId: string): Promise<void> => {
+    stmts.deleteShareLinkPreview.run(linkId)
   }
 
   const search = async (query: string, options?: SearchOptions): Promise<SearchResult[]> => {
@@ -2162,6 +2196,7 @@ export const createSQLiteStorage = (
     'database_rows',
     'grant_index',
     'share_links',
+    'share_link_previews',
     'node_container',
     'node_visibility',
     'awareness_state',
@@ -2515,6 +2550,9 @@ export const createSQLiteStorage = (
     setShareLinkDisabled,
     incrementShareLinkUse,
     deleteShareLink,
+    upsertShareLinkPreview,
+    getShareLinkPreview,
+    deleteShareLinkPreview,
     getFileMeta,
     putFile,
     getFileData,

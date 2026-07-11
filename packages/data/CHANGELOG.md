@@ -1,5 +1,26 @@
 # @xnetjs/data
 
+## 0.10.0
+
+### Minor Changes
+
+- [#461](https://github.com/crs48/xNet/pull/461) [`0721fd5`](https://github.com/crs48/xNet/commit/0721fd5d263abd3242a3b10cf827fa552cbacbb7) Thanks [@crs48](https://github.com/crs48)! - Add composer-resolved link previews (exploration 0295): a new optional
+  `linkPreviews` json field on `ChatMessageSchema` and `CommentSchema`, plus the
+  `MessageLinkPreview` type with `isMessageLinkPreview`, `sanitizeLinkPreviews`,
+  and `MAX_LINK_PREVIEWS_PER_MESSAGE` helpers. Previews are resolved once by the
+  author's client and stored with the message — readers render the snapshot and
+  never fetch the URL.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/storage@0.10.0
+  - @xnetjs/sqlite@0.10.0
+  - @xnetjs/sync@0.10.0
+  - @xnetjs/identity@0.10.0
+  - @xnetjs/crypto@0.10.0
+  - @xnetjs/core@0.10.0
+
 ## 0.9.0
 
 ### Minor Changes

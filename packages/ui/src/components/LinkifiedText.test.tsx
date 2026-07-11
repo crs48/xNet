@@ -63,6 +63,16 @@ describe('LinkifiedText', () => {
     expect(link.getAttribute('target')).toBeNull()
   })
 
+  it('renders non-string values as text instead of crashing', () => {
+    // Database cell renderers pass raw property values (formula/rollup
+    // results are numbers) — regression test for the Tasks Tracker crash.
+    render(<LinkifiedText value={42 as unknown as string} />)
+    expect(screen.getByText('42')).toBeTruthy()
+
+    const { container } = render(<LinkifiedText value={null as unknown as string} />)
+    expect(container.textContent).toBe('')
+  })
+
   it('applies the wrapper and link classes', () => {
     render(
       <LinkifiedText value="see example.com" className="wrapper-class" linkClassName="link-class" />

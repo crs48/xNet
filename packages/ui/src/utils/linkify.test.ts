@@ -68,6 +68,16 @@ describe('findLinkTokens', () => {
     expect(tokens[0].type).toBe('url')
   })
 
+  it('returns no tokens for non-string input instead of throwing', () => {
+    // Untyped property values (formula/rollup results, raw store data) can
+    // reach this boundary as numbers or objects.
+    expect(findLinkTokens(42 as unknown as string)).toEqual([])
+    expect(findLinkTokens({} as unknown as string)).toEqual([])
+    expect(findLinkTokens([] as unknown as string)).toEqual([])
+    expect(findLinkTokens(null as unknown as string)).toEqual([])
+    expect(findLinkTokens(undefined as unknown as string)).toEqual([])
+  })
+
   it('returns multiple tokens in order with correct offsets', () => {
     const text = 'docs at example.com and mail alice@acme.io'
     const tokens = findLinkTokens(text)

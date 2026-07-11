@@ -1,0 +1,15 @@
+{
+  "id": "2026-07-10-links-you-paste-now-turn-into-what-they-",
+  "date": "July 10, 2026",
+  "title": "Links you paste now turn into what they point at",
+  "summary": "Paste a link in chat and it up-reses: internal deep links become live-titled chips, share links become titled document cards (owner-controlled via a new 'Show title in link previews' toggle), and external URLs get preview cards resolved once by the sender — readers never ping the link. The page editor's pasted-URL cards now hydrate with real titles too.",
+  "highlights": [],
+  "tags": ["app"],
+  "pr": 461,
+  "mergedAt": "2026-07-10T22:30:53Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

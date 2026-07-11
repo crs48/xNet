@@ -20,6 +20,8 @@ export interface ChatRow {
   mentions?: { dids?: string[]; room?: boolean }
   tags?: string[]
   links?: string[]
+  /** Composer-resolved URL previews (0295), stored with the message. */
+  linkPreviews?: unknown
   inReplyTo?: string
 }
 
