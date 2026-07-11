@@ -8,21 +8,11 @@ import { TasksDashboard } from './TasksPanel'
 import { useSavedViews } from './tray'
 
 export function TasksPanelView() {
+  // No board link here: activating the Tasks surface already opens the task
+  // board in the editor (see surfaces.ts).
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <div className="min-h-0 flex-1 overflow-y-auto p-2">
-        <TasksDashboard />
-      </div>
-      <div className="shrink-0 border-t border-hairline p-2">
-        <Link
-          to="/tasks"
-          search={{}}
-          className="flex items-center gap-1.5 px-1 text-xs text-ink-2 no-underline transition-colors hover:text-ink-1 hover:no-underline"
-        >
-          Open task board
-          <ArrowUpRight size={11} strokeWidth={1.5} />
-        </Link>
-      </div>
+    <div className="h-full min-h-0 overflow-y-auto p-2">
+      <TasksDashboard />
     </div>
   )
 }
