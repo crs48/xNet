@@ -480,9 +480,12 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
   const nodeSyncProvider = config.nodeSyncRoom
     ? new NodeStoreSyncProvider(config.nodeStore, config.nodeSyncRoom)
     : null
-  // Receive-only providers for share rooms (channels, 0298), opened at runtime
-  // when a channel view mounts or a share link is claimed.
-  const shareRoomProviders = new Map<string, NodeStoreSyncProvider>()
+  // Receive-only providers for share rooms (channels + workspaces, 0298), opened
+  // at runtime when a view mounts, a link is claimed, or the boot resync runs.
+  // Refcounted: several callers may subscribe to the same room (e.g. the open
+  // ChannelView AND the boot resync) — the room stays open until the last one
+  // unsubscribes.
+  const shareRoomProviders = new Map<string, { provider: NodeStoreSyncProvider; refs: number }>()
   // Wrap blobStore to auto-announce new blobs to peers on put()
   let blobSync: BlobSyncProvider | null = null
   if (config.blobStore) {
@@ -1091,7 +1094,7 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
       connection.connect()
 
       nodeSyncProvider?.attach(connection)
-      for (const provider of shareRoomProviders.values()) provider.attach(connection)
+      for (const entry of shareRoomProviders.values()) entry.provider.attach(connection)
 
       // Start blob sync if configured
       blobSync?.start()
@@ -1120,7 +1123,7 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
       blobSync?.stop()
 
       nodeSyncProvider?.detach()
-      for (const provider of shareRoomProviders.values()) provider.detach()
+      for (const entry of shareRoomProviders.values()) entry.provider.detach()
       shareRoomProviders.clear()
 
       // Leave all rooms
@@ -1161,17 +1164,23 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
     },
 
     subscribeShareRoom(room) {
-      if (shareRoomProviders.has(room)) return
+      const existing = shareRoomProviders.get(room)
+      if (existing) {
+        existing.refs += 1
+        return
+      }
       const provider = new NodeStoreSyncProvider(config.nodeStore, room, true)
-      shareRoomProviders.set(room, provider)
+      shareRoomProviders.set(room, { provider, refs: 1 })
       // Attach now if the connection exists; otherwise start() attaches it.
       provider.attach(connection)
     },
 
     unsubscribeShareRoom(room) {
-      const provider = shareRoomProviders.get(room)
-      if (!provider) return
-      provider.detach()
+      const entry = shareRoomProviders.get(room)
+      if (!entry) return
+      entry.refs -= 1
+      if (entry.refs > 0) return
+      entry.provider.detach()
       shareRoomProviders.delete(room)
     },
 

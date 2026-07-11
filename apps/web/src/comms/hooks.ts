@@ -19,11 +19,12 @@ import {
   ChatMessageSchema,
   InboxStateSchema,
   ProfileSchema,
+  WorkspaceSchema,
   inboxStateNodeId,
   profileNodeId,
   type InboxItemTriage
 } from '@xnetjs/data'
-import { channelShareRoom, useQuery, useXNet } from '@xnetjs/react'
+import { channelShareRoom, useQuery, useXNet, workspaceShareRoom } from '@xnetjs/react'
 import { useDataBridge } from '@xnetjs/react/internal'
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react'
 import { dedupeProfiles, displayName, type ProfileEntry } from './comms-utils'
@@ -46,6 +47,44 @@ export function useChannelShareSync(channelId: string | null): void {
     syncManager.subscribeShareRoom(room)
     return () => syncManager.unsubscribeShareRoom(room)
   }, [channelId, syncManager])
+}
+
+/**
+ * Keep a grantee's shared channels and workspaces receiving edits across
+ * reloads (exploration 0298 follow-up). A channel/workspace view subscribes to
+ * its share room only while open; this subscribes to the share rooms for every
+ * channel/workspace that was shared *to* me (not authored by me) for as long as
+ * the app is running — so new messages and bench edits arrive even when the
+ * view is closed. Own channels sync via the author room and are skipped;
+ * workspaces have no `createdBy`, so all are subscribed (there are few, and the
+ * hub only fans grant-covered content in — applies are idempotent by hash).
+ * Refcounted with the per-view subscriptions in the sync manager.
+ */
+export function useSharedRoomBootSync(): void {
+  const { syncManager, authorDID } = useXNet()
+  const { data: channels } = useQuery(ChannelSchema)
+  const { data: workspaces } = useQuery(WorkspaceSchema)
+
+  const rooms = useMemo(() => {
+    const list: string[] = []
+    for (const c of channels ?? []) {
+      if (c.createdBy && c.createdBy === authorDID) continue
+      if (typeof c.id === 'string') list.push(channelShareRoom(c.id))
+    }
+    for (const w of workspaces ?? []) {
+      if (w.createdBy && w.createdBy === authorDID) continue
+      if (typeof w.id === 'string') list.push(workspaceShareRoom(w.id))
+    }
+    return [...new Set(list)]
+  }, [channels, workspaces, authorDID])
+
+  useEffect(() => {
+    if (!syncManager) return
+    for (const room of rooms) syncManager.subscribeShareRoom(room)
+    return () => {
+      for (const room of rooms) syncManager.unsubscribeShareRoom(room)
+    }
+  }, [syncManager, rooms])
 }
 
 // ─── Presence ────────────────────────────────────────────────────────────────
