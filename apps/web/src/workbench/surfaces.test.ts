@@ -59,7 +59,11 @@ describe('surfaceTabId', () => {
     expect(surfaceTabId(surface('finance'))).toBe('finance:finance')
   })
 
-  it('is null for panels and non-tab routes', () => {
+  it('resolves the tab id for a panel surface with a companion route', () => {
+    expect(surfaceTabId(surface('tasks'))).toBe('tasks:tasks')
+  })
+
+  it('is null for routeless panels and non-tab routes', () => {
     expect(surfaceTabId(surface('explorer'))).toBeNull() // panel
     expect(surfaceTabId(surface('discover'))).toBeNull() // route, but untabbed
     expect(surfaceTabId(surface('analytics'))).toBeNull()
@@ -91,14 +95,26 @@ describe('activateSurface (VS Code preview tabs, 0288)', () => {
     expect(consumePreviewIntent()).toBe(false)
   })
 
-  it('drives the bottom island for panel surfaces without navigating or arming preview', () => {
+  it('drives the bottom island for routeless panel surfaces without navigating or arming preview', () => {
     const activated: string[] = []
     activateSurface(surface('explorer'), {
-      navigate: () => expect.unreachable('panel surfaces do not navigate'),
+      navigate: () => expect.unreachable('routeless panel surfaces do not navigate'),
       setActiveSurface: (id) => activated.push(id)
     })
     expect(activated).toEqual(['explorer'])
     expect(consumePreviewIntent()).toBe(false)
+  })
+
+  it('drives the bottom island AND opens the board for the Tasks panel surface', () => {
+    const activated: string[] = []
+    const calls: Array<{ to: string }> = []
+    activateSurface(surface('tasks'), {
+      navigate: (opts) => calls.push(opts),
+      setActiveSurface: (id) => activated.push(id)
+    })
+    expect(activated).toEqual(['tasks'])
+    expect(calls).toEqual([{ to: '/tasks' }])
+    expect(consumePreviewIntent()).toBe(true) // /tasks is a singleton tab route
   })
 
   it('leaves the latch clean afterwards', () => {

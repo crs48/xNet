@@ -38,7 +38,11 @@ export interface SurfaceDef {
   kind: 'panel' | 'route'
   /** Slot view id (panel surfaces). */
   viewId?: string
-  /** Route path (route surfaces). */
+  /**
+   * Route path. Required for route surfaces; a panel surface may also carry
+   * one, in which case activating it drives the bottom island *and* opens the
+   * route in the editor (Tasks → the task board).
+   */
   to?: string
   /** Live count source for the trailing badge. */
   badge?: 'requests'
@@ -58,7 +62,7 @@ export const SURFACES: SurfaceDef[] = [
     badge: 'requests',
     emphasis: true
   },
-  { id: 'tasks', label: 'Tasks', icon: CheckSquare2, kind: 'panel', viewId: 'tasks' },
+  { id: 'tasks', label: 'Tasks', icon: CheckSquare2, kind: 'panel', viewId: 'tasks', to: '/tasks' },
   { id: 'chats', label: 'Chats', icon: MessageSquare, kind: 'panel', viewId: 'chats' },
   { id: 'today', label: 'Today', icon: Sunrise, kind: 'panel', viewId: 'today' },
   { id: 'data', label: 'Data', icon: Database, kind: 'panel', viewId: 'data' },
@@ -85,33 +89,34 @@ export function pinnedSurfaces(navPinned: string[]): SurfaceDef[] {
 export const DEFAULT_SURFACE = 'explorer'
 
 /**
- * The tab a route surface opens/promotes, or null for panel surfaces and
+ * The tab a surface's route opens/promotes, or null for routeless panels and
  * non-tab routes (Discover, Analytics). Lets a surface row promote its tab on
  * double-click without knowing the node model.
  */
 export function surfaceTabId(surface: SurfaceDef): string | null {
-  if (surface.kind !== 'route' || !surface.to) return null
+  if (!surface.to) return null
   return tabIdForRoute(surface.to)
 }
 
 /**
  * Activating a surface: a **panel** drives the contextual bottom island
- * (`activeSurface`); a **route** opens in the editor as a VS Code-style preview
- * tab (0288) — a single click renders it italic and the next single-click open
- * replaces it; double-clicking the row (or editing) promotes it. Pure so the
- * decision is testable; the hook below wires the side-effecting deps.
+ * (`activeSurface`); a surface with a **route** opens it in the editor as a
+ * VS Code-style preview tab (0288) — a single click renders it italic and the
+ * next single-click open replaces it; double-clicking the row (or editing)
+ * promotes it. A panel surface that also carries a route (Tasks) does both.
+ * Pure so the decision is testable; the hook below wires the side-effecting
+ * deps.
  */
 export function activateSurface(
   surface: SurfaceDef,
   deps: { navigate: (opts: { to: string }) => void; setActiveSurface: (id: string) => void }
 ): void {
-  if (surface.kind === 'route' && surface.to) {
+  if (surface.kind === 'panel') deps.setActiveSurface(surface.id)
+  if (surface.to) {
     // Only tab routes honour the preview latch; arming it for a non-tab route
     // (Discover, Analytics, Inbox) would leave it set for the next navigation.
     if (tabIdForRoute(surface.to)) setPreviewIntent()
     deps.navigate({ to: surface.to })
-  } else {
-    deps.setActiveSurface(surface.id)
   }
 }
 
