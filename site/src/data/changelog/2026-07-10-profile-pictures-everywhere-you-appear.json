@@ -13,5 +13,11 @@
     "identity",
     "sync"
   ],
-  "pr": 465
+  "pr": 465,
+  "mergedAt": "2026-07-11T20:23:34Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
