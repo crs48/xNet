@@ -272,11 +272,15 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     telemetry: config.telemetry,
     telemetryPeerHashSalt: config.telemetryPeerHashSalt
   }
+  const shareAccess = new ShareAccessService(storage)
   const nodeRelay = new NodeRelayService(storage, remoteMutationTelemetry, {
     quotaBytes: demo ? demo.quota : undefined,
-    isStorageFull
+    isStorageFull,
+    // Fan channel nodes into their share room so grantees receive them (0298).
+    shareAccess,
+    broadcastToRoom: (room, change) =>
+      signaling.publishFromHub(room, { type: 'node-change', room, change })
   })
-  const shareAccess = new ShareAccessService(storage)
   const awareness = new AwarenessService(storage, {
     ttlMs: config.awarenessTtlMs ?? 24 * 60 * 60 * 1000,
     cleanupIntervalMs: config.awarenessCleanupIntervalMs ?? 60 * 60 * 1000,

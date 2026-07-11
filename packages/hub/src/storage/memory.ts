@@ -661,6 +661,40 @@ export const createMemoryStorage = (): HubStorage => {
     nodeChangesByRoom.set(room, existing)
   }
 
+  // Share rooms (exploration 0298): hash→room mappings with a per-mapping seq.
+  const roomChangeMappings: Array<{ seq: number; room: string; hash: string }> = []
+  let roomMappingSeq = 0
+  const addChangeToRoom = async (room: string, hash: string): Promise<void> => {
+    if (roomChangeMappings.some((m) => m.room === room && m.hash === hash)) return
+    roomChangeMappings.push({ seq: ++roomMappingSeq, room, hash })
+  }
+
+  const getRoomChangesSince = async (
+    room: string,
+    sinceSeq: number,
+    limit = 1000
+  ): Promise<{ changes: SerializedNodeChange[]; highWaterMark: number }> => {
+    const rows = roomChangeMappings
+      .filter((m) => m.room === room && m.seq > sinceSeq)
+      .sort((a, b) => a.seq - b.seq)
+      .slice(0, limit)
+    const changes = rows
+      .map((m) => nodeChangesByHash.get(m.hash))
+      .filter((c): c is SerializedNodeChange => c !== undefined)
+    const highWaterMark = rows.length > 0 ? rows[rows.length - 1].seq : sinceSeq
+    return { changes, highWaterMark }
+  }
+
+  const getLatestProfileHash = async (did: string): Promise<string | null> => {
+    let latest: SerializedNodeChange | null = null
+    for (const change of nodeChangesByHash.values()) {
+      const schema = change.schemaId ?? change.payload.schemaId ?? ''
+      if (change.authorDid !== did || !schema.startsWith('xnet://xnet.fyi/Profile@')) continue
+      if (!latest || change.lamportTime > latest.lamportTime) latest = change
+    }
+    return latest?.hash ?? null
+  }
+
   const getNodeChangesSince = async (
     room: string,
     sinceLamport: number
@@ -735,6 +769,7 @@ export const createMemoryStorage = (): HubStorage => {
     nodeVisibility.clear()
     nodeChangesByHash.clear()
     nodeChangesByRoom.clear()
+    roomChangeMappings.length = 0
     databaseRows.clear()
     awarenessByRoom.clear()
     return { nodeChanges, docStates: docStateCount }
@@ -935,6 +970,7 @@ export const createMemoryStorage = (): HubStorage => {
     searchBodies.clear()
     nodeChangesByHash.clear()
     nodeChangesByRoom.clear()
+    roomChangeMappings.length = 0
     files.clear()
     schemasByIri.clear()
     awarenessByRoom.clear()
@@ -1037,6 +1073,9 @@ export const createMemoryStorage = (): HubStorage => {
     hasNodeChange,
     appendNodeChange,
     getUsageBytesByDid,
+    addChangeToRoom,
+    getRoomChangesSince,
+    getLatestProfileHash,
     resetAllUserData,
     getNodeChangesSince,
     getNodeChangesForNode,
