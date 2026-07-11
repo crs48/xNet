@@ -1,0 +1,18 @@
+{
+  "id": "2026-07-11-clicking-tasks-opens-the-task-board",
+  "date": "July 11, 2026",
+  "title": "Clicking Tasks opens the task board",
+  "summary": "Selecting Tasks in the sidebar now opens the task board directly alongside the panel, so the extra \"Open task board\" link is gone.",
+  "highlights": [],
+  "tags": [
+    "app",
+    "tasks"
+  ],
+  "pr": 472,
+  "mergedAt": "2026-07-11T21:33:18Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

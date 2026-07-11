@@ -143,13 +143,15 @@ vi.mock('./registry', () => ({
 }))
 
 vi.mock('./node-store-sync-provider', () => ({
-  NodeStoreSyncProvider: vi.fn().mockImplementation(() => ({
-    attach: vi.fn(),
-    detach: vi.fn()
-  }))
+  // A regular function (not an arrow) so `new NodeStoreSyncProvider()` works —
+  // the share-room path (0298) constructs it, unlike the author-room provider.
+  NodeStoreSyncProvider: vi.fn().mockImplementation(function () {
+    return { attach: vi.fn(), detach: vi.fn() }
+  })
 }))
 
 import { createConnectionManager, createMultiHubConnectionManager } from './connection-manager'
+import { NodeStoreSyncProvider } from './node-store-sync-provider'
 import { createSyncManager } from './sync-manager'
 
 describe('createSyncManager', () => {
@@ -216,6 +218,31 @@ describe('createSyncManager', () => {
 
     await manager.stop()
     expect(manager.lifecycle.phase).toBe('stopped')
+  })
+
+  it('refcounts share-room subscriptions so one unsubscribe does not kill another (0298)', async () => {
+    const ProviderMock = vi.mocked(NodeStoreSyncProvider)
+    ProviderMock.mockClear()
+    const manager = createSyncManager({
+      nodeStore: {} as NodeStore,
+      storage: {} as NodeStorageAdapter,
+      signalingUrl: 'ws://localhost:4444'
+    })
+
+    // Two callers subscribe to the same room → exactly one provider is built.
+    manager.subscribeShareRoom('xnet-channel-x')
+    manager.subscribeShareRoom('xnet-channel-x')
+    expect(ProviderMock).toHaveBeenCalledTimes(1)
+    const provider = ProviderMock.mock.results[0].value as { detach: ReturnType<typeof vi.fn> }
+    expect(provider.detach).not.toHaveBeenCalled()
+
+    // First unsubscribe: one ref remains, provider stays attached.
+    manager.unsubscribeShareRoom('xnet-channel-x')
+    expect(provider.detach).not.toHaveBeenCalled()
+
+    // Last unsubscribe: provider detaches.
+    manager.unsubscribeShareRoom('xnet-channel-x')
+    expect(provider.detach).toHaveBeenCalledTimes(1)
   })
 
   it('drains the offline queue when the background load finishes after connect (0229)', async () => {

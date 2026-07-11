@@ -10,6 +10,7 @@
 import { createRootRoute, Outlet } from '@tanstack/react-router'
 import { CallProvider, CommsDock } from '../comms/CallDock'
 import { CommsProvider } from '../comms/CommsContext'
+import { useSharedRoomBootSync } from '../comms/hooks'
 import { RoomSection } from '../comms/RoomSection'
 import { FormInboxItem, InboxBellItem, PresenceStatusItem } from '../comms/StatusItems'
 import { AppLinkUpres } from '../components/AppLinkUpres'
@@ -19,11 +20,21 @@ export const Route = createRootRoute({
   component: RootLayout
 })
 
+/**
+ * Keeps shared channels/workspaces receiving edits across reloads (0298).
+ * Mounted inside CommsProvider so it stays alive for the whole session.
+ */
+function SharedRoomBootSync(): null {
+  useSharedRoomBootSync()
+  return null
+}
+
 function RootLayout() {
   return (
     <CommsProvider>
       <CallProvider>
         <AppLinkUpres>
+          <SharedRoomBootSync />
           <RoomSection />
           <InboxBellItem />
           <PresenceStatusItem />
