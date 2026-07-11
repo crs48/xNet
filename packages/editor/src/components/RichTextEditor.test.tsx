@@ -702,6 +702,106 @@ describe('RichTextEditor', () => {
       }
     })
 
+    it('round-trips a doc spanning custom and 0297-adopted nodes between two clients', async () => {
+      const aliceDoc = new Y.Doc()
+      const bobDoc = new Y.Doc()
+      let aliceEditor: Editor | null = null
+      let bobEditor: Editor | null = null
+
+      try {
+        render(
+          <RichTextEditor
+            ydoc={aliceDoc}
+            showToolbar={false}
+            editorLabel="Alice editor"
+            onEditorReady={(editor) => {
+              aliceEditor = editor
+            }}
+          />
+        )
+        await waitFor(() => expect(aliceEditor).not.toBeNull())
+
+        act(() => {
+          aliceEditor?.commands.setContent({
+            type: 'doc',
+            content: [
+              {
+                type: 'heading',
+                attrs: { level: 2 },
+                content: [{ type: 'text', text: 'Kitchen sink' }]
+              },
+              {
+                type: 'paragraph',
+                content: [
+                  { type: 'text', text: 'Hello ' },
+                  { type: 'emoji', attrs: { name: 'smile' } },
+                  { type: 'text', text: ' with ' },
+                  { type: 'inlineMath', attrs: { latex: 'a^2+b^2' } },
+                  { type: 'text', text: ' and a ', marks: [{ type: 'bold' }] },
+                  {
+                    type: 'text',
+                    text: 'link',
+                    marks: [{ type: 'wikilink', attrs: { href: 'default/target' } }]
+                  }
+                ]
+              },
+              { type: 'blockMath', attrs: { latex: '\\int_0^1 x\\,dx' } },
+              {
+                type: 'callout',
+                attrs: { type: 'info' },
+                content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Callout body' }] }]
+              },
+              {
+                type: 'toggle',
+                content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Hidden body' }] }]
+              },
+              {
+                type: 'codeBlock',
+                attrs: { language: 'ts' },
+                content: [{ type: 'text', text: 'const x = 1' }]
+              },
+              {
+                type: 'blockquote',
+                content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Quoted' }] }]
+              }
+            ]
+          })
+        })
+
+        Y.applyUpdate(bobDoc, Y.encodeStateAsUpdate(aliceDoc), aliceDoc)
+
+        render(
+          <RichTextEditor
+            ydoc={bobDoc}
+            showToolbar={false}
+            editorLabel="Bob editor"
+            onEditorReady={(editor) => {
+              bobEditor = editor
+            }}
+          />
+        )
+        await waitFor(() => expect(bobEditor).not.toBeNull())
+
+        // Bob must see identical structure — Yjs drops nothing.
+        await waitForSyncedContent(bobEditor, aliceEditor?.getJSON().content)
+
+        const bobJson = JSON.stringify(bobEditor!.getJSON())
+        for (const marker of [
+          'emoji',
+          'inlineMath',
+          'blockMath',
+          'callout',
+          'toggle',
+          'wikilink'
+        ]) {
+          expect(bobJson).toContain(marker)
+        }
+      } finally {
+        aliceDoc.destroy()
+        bobDoc.destroy()
+      }
+    })
+
     it('keeps undo and redo local while syncing remote collaboration edits', async () => {
       const aliceDoc = new Y.Doc()
       const bobDoc = new Y.Doc()

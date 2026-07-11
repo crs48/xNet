@@ -9,10 +9,7 @@
     "Chat picker includes yourself, listed last as (you)",
     "Task pickers resolve profile names instead of raw IDs"
   ],
-  "tags": [
-    "app",
-    "editor"
-  ],
+  "tags": ["app", "editor"],
   "pr": 464,
   "mergedAt": "2026-07-10T23:32:38Z",
   "authors": [

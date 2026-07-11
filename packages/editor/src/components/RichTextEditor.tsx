@@ -16,8 +16,12 @@ import type { EditorState } from '@tiptap/pm/state'
 import type { MessageLinkPreview } from '@xnetjs/data'
 import type { Awareness } from 'y-protocols/awareness'
 import type * as Y from 'yjs'
+import { offset, type ComputePositionConfig } from '@floating-ui/dom'
 import Collaboration from '@tiptap/extension-collaboration'
+import { DragHandle } from '@tiptap/extension-drag-handle-react'
+import Emoji, { gitHubEmojis } from '@tiptap/extension-emoji'
 import Link from '@tiptap/extension-link'
+import { Mathematics } from '@tiptap/extension-mathematics'
 import Placeholder from '@tiptap/extension-placeholder'
 import TaskList from '@tiptap/extension-task-list'
 import Typography from '@tiptap/extension-typography'
@@ -36,7 +40,6 @@ import {
   CodeBlockWithSyntax,
   BlockquoteWithSyntax,
   SlashCommand,
-  DragHandleExtension,
   KeyboardShortcutsExtension,
   ImageExtension,
   CalloutExtension,
@@ -57,9 +60,12 @@ import {
   ensurePageTaskAttrs,
   getPageTasksSnapshot
 } from '../extensions'
+import { createSuggestionPopupRender } from '../extensions/suggestion-popup'
 import { extractTagIds } from '../utils/hashtags'
 import { resolveEditorModePolicy, type EditorContentMode } from './editor-ux-state'
+import { EmojiMenu, filterEmojiSuggestions } from './EmojiMenu'
 import { FloatingToolbar, type ToolbarMode, type ToolbarSurface } from './FloatingToolbar'
+import 'katex/dist/katex.min.css'
 import '../styles/editor.css'
 import { cn } from '../utils'
 
@@ -171,6 +177,14 @@ function generateAvatarDataURI(did: string, size: number): string {
 
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}" fill="${bgColor}"/>${rects}</svg>`
   return `data:image/svg+xml,${encodeURIComponent(svg)}`
+}
+
+// Module-level constant: the react DragHandle wrapper keys its plugin
+// registration effect on this object's identity — an inline literal would
+// re-register the plugin every render (infinite update loop).
+const DRAG_HANDLE_POSITION_CONFIG: ComputePositionConfig = {
+  placement: 'left-start',
+  middleware: [offset(4)]
 }
 
 export function isBackspaceAtEmptyFirstBlock(state: EditorState): boolean {
@@ -503,8 +517,9 @@ export function RichTextEditor({
       heading: false,
       codeBlock: false,
       blockquote: false,
-      // Disable default dropcursor - we use our own drop indicator
-      dropcursor: false
+      // Styled via .xnet-drop-cursor; the official DragHandle drags through
+      // ProseMirror's native machinery, so the dropcursor is the indicator.
+      dropcursor: { color: false, width: 2, class: 'xnet-drop-cursor' }
     }),
     Markdown.configure({
       indentation: { style: 'space', size: 2 },
@@ -570,11 +585,18 @@ export function RichTextEditor({
     SlashCommand.configure({
       commands: slashCommands
     }),
-    // Drag handle with block drag-and-drop
-    DragHandleExtension.configure({
-      enableDragDrop: editorModePolicy.isEditable,
-      showDropIndicator: editorModePolicy.isEditable
+    // `:` emoji shortcodes (MIT since June 2025 — 0297). Schema node: must
+    // stay statically bundled and identical across collaborators.
+    Emoji.configure({
+      emojis: gitHubEmojis,
+      suggestion: {
+        items: ({ query }: { query: string }) => filterEmojiSuggestions(gitHubEmojis, query),
+        render: createSuggestionPopupRender(EmojiMenu)
+      }
     }),
+    // `$...$` / `$$...$$` KaTeX math (MIT since June 2025 — 0297). Schema
+    // nodes (inlineMath/blockMath): same static-bundling rule as Emoji.
+    Mathematics,
     // Extra keyboard shortcuts (Mod-e, Mod-k, Mod-\, etc.)
     KeyboardShortcutsExtension,
     // Image extension with paste/drop upload
@@ -968,6 +990,28 @@ export function RichTextEditor({
 
   return (
     <div className={cn('relative h-full flex flex-col', className)}>
+      {editor && editorModePolicy.rendersRichEditor && editorModePolicy.isEditable && (
+        <DragHandle
+          editor={editor}
+          className="xnet-drag-handle"
+          computePositionConfig={DRAG_HANDLE_POSITION_CONFIG}
+        >
+          <button
+            type="button"
+            className="xnet-drag-handle-button"
+            aria-label="Drag to reorder or click for options"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden="true">
+              <circle cx="4" cy="3" r="1.5" />
+              <circle cx="10" cy="3" r="1.5" />
+              <circle cx="4" cy="7" r="1.5" />
+              <circle cx="10" cy="7" r="1.5" />
+              <circle cx="4" cy="11" r="1.5" />
+              <circle cx="10" cy="11" r="1.5" />
+            </svg>
+          </button>
+        </DragHandle>
+      )}
       {editorModePolicy.rendersRichEditor ? (
         <EditorContent
           editor={editor}

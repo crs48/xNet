@@ -6,14 +6,7 @@
  */
 import type { Editor } from '@tiptap/react'
 import { BubbleMenu } from '@tiptap/react/menus'
-import {
-  TooltipPopup,
-  TooltipPortal,
-  TooltipPositioner,
-  TooltipProvider,
-  TooltipRoot,
-  TooltipTrigger
-} from '@xnetjs/ui'
+import { TooltipProvider } from '@xnetjs/ui'
 import {
   AtSign,
   Bold,
@@ -70,6 +63,7 @@ import {
   type ToolbarSurface,
   useEditorUxState
 } from './editor-ux-state'
+import { Button, Toolbar, ToolbarSeparator } from './ui'
 
 export type { ToolbarMode, ToolbarSurface } from './editor-ux-state'
 
@@ -188,6 +182,10 @@ function pickDate(initialValue: string | null): Promise<string | null> {
   })
 }
 
+/**
+ * Domain adapter over the vendored MIT Button primitive (./ui): maps the
+ * toolbar's mobileOnly/isMobile policy onto size/tooltip props (0297).
+ */
 function ToolbarButton({
   onClick,
   active,
@@ -200,62 +198,28 @@ function ToolbarButton({
 }: ToolbarButtonProps): JSX.Element | null {
   if (mobileOnly && !isMobile) return null
 
-  const label = ariaLabel ?? title
-  const button = (
-    <button
+  return (
+    <Button
       onClick={(e) => {
         e.preventDefault()
         onClick()
       }}
       onMouseDown={(e) => e.preventDefault()} // Prevent focus loss
       aria-label={ariaLabel ?? title}
-      data-shortcut={shortcut}
-      className={cn(
-        'flex-shrink-0 flex items-center justify-center rounded text-sm font-medium',
-        'transition-colors duration-100',
-        'touch-manipulation select-none',
-        isMobile ? 'w-10 h-10' : 'w-8 h-8',
-        active
-          ? 'bg-primary/15 text-primary'
-          : 'text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/10 active:bg-black/10 dark:active:bg-white/15'
-      )}
+      tooltip={ariaLabel ?? title}
+      shortcutKeys={shortcut}
+      active={active}
+      size={isMobile ? 'lg' : 'md'}
+      tooltipOffset={isMobile ? 10 : 8}
       title={title}
-      type="button"
     >
       {children}
-    </button>
-  )
-
-  return (
-    <TooltipRoot>
-      <TooltipTrigger render={button} />
-      <TooltipPortal>
-        <TooltipPositioner side="top" sideOffset={isMobile ? 10 : 8}>
-          <TooltipPopup
-            data-testid="editor-toolbar-tooltip"
-            className={cn(
-              'flex items-center gap-2 rounded-md border border-border',
-              'bg-popover px-2 py-1.5 text-xs text-popover-foreground',
-              'shadow-lg'
-            )}
-          >
-            <span className="font-medium">{label}</span>
-            {shortcut && (
-              <kbd className="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] leading-none text-muted-foreground">
-                {shortcut}
-              </kbd>
-            )}
-          </TooltipPopup>
-        </TooltipPositioner>
-      </TooltipPortal>
-    </TooltipRoot>
+    </Button>
   )
 }
 
 function ToolbarDivider({ isMobile }: { isMobile: boolean }): JSX.Element {
-  return (
-    <span className={cn('flex-shrink-0 w-px bg-border/60', isMobile ? 'h-6 mx-1.5' : 'h-5 mx-1')} />
-  )
+  return <ToolbarSeparator size={isMobile ? 'lg' : 'md'} />
 }
 
 function getToolbarAriaLabel(surface: ToolbarSurface): string {
@@ -1623,8 +1587,6 @@ function MobileToolbar({
       data-testid="editor-mobile-toolbar"
       data-editor-toolbar-surface={surface}
       data-canvas-interactive={surface === 'canvas-inline' ? 'true' : undefined}
-      role="toolbar"
-      aria-label={getToolbarAriaLabel(surface)}
       className={cn(
         'fixed left-0 right-0 z-50',
         'bg-background/95 backdrop-blur-sm border-t border-border',
@@ -1640,9 +1602,11 @@ function MobileToolbar({
         transition: 'bottom 0.1s ease-out'
       }}
     >
-      <div
+      <Toolbar
         ref={scrollRef}
-        className="relative flex items-center gap-1 px-3 py-2 overflow-x-auto scrollbar-none"
+        variant="fixed"
+        aria-label={getToolbarAriaLabel(surface)}
+        className="relative gap-1 px-3 py-2 overflow-x-auto scrollbar-none"
         style={{
           // Hide scrollbar but allow scrolling
           scrollbarWidth: 'none',
@@ -1668,7 +1632,7 @@ function MobileToolbar({
           additionalItems={additionalItems}
           onCreateComment={onCreateComment}
         />
-      </div>
+      </Toolbar>
       <LinkToolbarPopover
         editor={editor}
         open={linkPopoverOpen}
@@ -1740,8 +1704,6 @@ function DesktopToolbar({
       data-testid="editor-desktop-toolbar"
       data-editor-toolbar-surface={surface}
       data-canvas-interactive={surface === 'canvas-inline' ? 'true' : undefined}
-      role="toolbar"
-      aria-label={getToolbarAriaLabel(surface)}
       options={{
         placement: 'top',
         offset: 8
@@ -1757,7 +1719,7 @@ function DesktopToolbar({
         })
       }}
       className={cn(
-        'relative flex items-center gap-0.5 px-1 py-1',
+        'relative',
         'bg-background rounded-lg',
         'shadow-xl shadow-black/15 dark:shadow-black/40',
         'border border-border/50',
@@ -1766,20 +1728,26 @@ function DesktopToolbar({
         className
       )}
     >
-      <ToolbarContent
-        editor={editor}
-        isMobile={false}
-        linkPopoverOpen={linkPopoverOpen}
-        onLinkPopoverOpenChange={onLinkPopoverOpenChange}
-        referencePopoverOpen={referencePopoverOpen}
-        onReferencePopoverOpenChange={onReferencePopoverOpenChange}
-        databasePopoverOpen={databasePopoverOpen}
-        onDatabasePopoverOpenChange={onDatabasePopoverOpenChange}
-        mediaPopoverOpen={mediaPopoverOpen}
-        onMediaPopoverOpenChange={onMediaPopoverOpenChange}
-        additionalItems={additionalItems}
-        onCreateComment={onCreateComment}
-      />
+      <Toolbar
+        variant="floating"
+        aria-label={getToolbarAriaLabel(surface)}
+        className="gap-0.5 px-1 py-1"
+      >
+        <ToolbarContent
+          editor={editor}
+          isMobile={false}
+          linkPopoverOpen={linkPopoverOpen}
+          onLinkPopoverOpenChange={onLinkPopoverOpenChange}
+          referencePopoverOpen={referencePopoverOpen}
+          onReferencePopoverOpenChange={onReferencePopoverOpenChange}
+          databasePopoverOpen={databasePopoverOpen}
+          onDatabasePopoverOpenChange={onDatabasePopoverOpenChange}
+          mediaPopoverOpen={mediaPopoverOpen}
+          onMediaPopoverOpenChange={onMediaPopoverOpenChange}
+          additionalItems={additionalItems}
+          onCreateComment={onCreateComment}
+        />
+      </Toolbar>
     </BubbleMenu>
   )
 }

@@ -2,12 +2,17 @@ import type { SlashCommandItem } from './items'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 
 const suggestionMock = vi.hoisted(() => vi.fn((options: unknown) => ({ options })))
-const tippyInstanceMock = vi.hoisted(() => ({
-  destroy: vi.fn(),
-  hide: vi.fn(),
-  setProps: vi.fn()
+const floatingMock = vi.hoisted(() => ({
+  computePosition: vi.fn(() => Promise.resolve({ x: 10, y: 60 })),
+  // Real autoUpdate invokes the update callback immediately on setup.
+  autoUpdate: vi.fn((_ref: unknown, _el: unknown, update: () => void) => {
+    update()
+    return vi.fn()
+  }),
+  offset: vi.fn((value: unknown) => ({ name: 'offset', value })),
+  flip: vi.fn((value: unknown) => ({ name: 'flip', value })),
+  shift: vi.fn((value: unknown) => ({ name: 'shift', value }))
 }))
-const tippyMock = vi.hoisted(() => vi.fn(() => [tippyInstanceMock]))
 const rendererState = vi.hoisted(() => ({
   instances: [] as Array<{
     destroy: ReturnType<typeof vi.fn>
@@ -40,9 +45,7 @@ vi.mock('@tiptap/react', () => ({
   }
 }))
 
-vi.mock('tippy.js', () => ({
-  default: tippyMock
-}))
+vi.mock('@floating-ui/dom', () => floatingMock)
 
 import { SlashCommand } from './index'
 
@@ -92,11 +95,10 @@ function createSuggestionOptions(commands?: SlashCommandItem[]): SuggestionOptio
 describe('SlashCommand extension', () => {
   beforeEach(() => {
     suggestionMock.mockClear()
-    tippyMock.mockClear()
-    tippyInstanceMock.destroy.mockClear()
-    tippyInstanceMock.hide.mockClear()
-    tippyInstanceMock.setProps.mockClear()
+    floatingMock.computePosition.mockClear()
+    floatingMock.autoUpdate.mockClear()
     rendererState.instances.length = 0
+    document.body.innerHTML = ''
   })
 
   it('registers `/` as the trigger and filters default commands by query', () => {
@@ -140,16 +142,20 @@ describe('SlashCommand extension', () => {
 
     expect(rendererState.instances).toHaveLength(1)
     expect(rendererState.instances[0]?.options.props.items).toEqual(commands)
-    expect(tippyMock).toHaveBeenCalledWith(
-      'body',
-      expect.objectContaining({
-        getReferenceClientRect: clientRect,
-        interactive: true,
-        placement: 'bottom-start',
-        showOnCreate: true,
-        trigger: 'manual'
-      })
+
+    // The popup container is mounted at body level and positioned via
+    // Floating UI at the caret rect, tracked across scroll/resize.
+    const container = document.body.querySelector('.xnet-suggestion-popup')
+    expect(container).not.toBeNull()
+    expect(container?.contains(rendererState.instances[0]!.element)).toBe(true)
+    expect(floatingMock.autoUpdate).toHaveBeenCalledTimes(1)
+    expect(floatingMock.computePosition).toHaveBeenCalledWith(
+      expect.objectContaining({ getBoundingClientRect: expect.any(Function) }),
+      container,
+      expect.objectContaining({ strategy: 'fixed', placement: 'bottom-start' })
     )
+
+    const positionCallsBeforeUpdate = floatingMock.computePosition.mock.calls.length
 
     menu.onUpdate({
       clientRect,
@@ -162,9 +168,9 @@ describe('SlashCommand extension', () => {
       command: expect.any(Function),
       items: [commands[1]]
     })
-    expect(tippyInstanceMock.setProps).toHaveBeenCalledWith({
-      getReferenceClientRect: clientRect
-    })
+    expect(floatingMock.computePosition.mock.calls.length).toBeGreaterThan(
+      positionCallsBeforeUpdate
+    )
 
     const arrowDown = new KeyboardEvent('keydown', { key: 'ArrowDown' })
     expect(menu.onKeyDown({ event: arrowDown })).toBe(true)
@@ -172,10 +178,10 @@ describe('SlashCommand extension', () => {
 
     const escape = new KeyboardEvent('keydown', { key: 'Escape' })
     expect(menu.onKeyDown({ event: escape })).toBe(true)
-    expect(tippyInstanceMock.hide).toHaveBeenCalledTimes(1)
+    expect((container as HTMLElement).style.display).toBe('none')
 
     menu.onExit()
-    expect(tippyInstanceMock.destroy).toHaveBeenCalledTimes(1)
+    expect(document.body.querySelector('.xnet-suggestion-popup')).toBeNull()
     expect(rendererState.instances[0]?.destroy).toHaveBeenCalledTimes(1)
   })
 

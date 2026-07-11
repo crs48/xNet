@@ -26,9 +26,15 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
+    "@floating-ui/dom": "^1.6.13",
     "@tiptap/core": "^3.15.3",
     "@tiptap/extension-collaboration": "^3.15.3",
+    "@tiptap/extension-drag-handle": "3.16.0",
+    "@tiptap/extension-drag-handle-react": "3.16.0",
+    "@tiptap/extension-emoji": "3.16.0",
     "@tiptap/extension-link": "^3.15.3",
+    "@tiptap/extension-mathematics": "3.16.0",
+    "@tiptap/extension-node-range": "3.16.0",
     "@tiptap/extension-placeholder": "^3.15.3",
     "@tiptap/extension-task-item": "^3.15.3",
     "@tiptap/extension-task-list": "^3.15.3",
@@ -43,9 +49,9 @@
     "@xnetjs/data": "workspace:*",
     "@xnetjs/react": "workspace:*",
     "@xnetjs/ui": "workspace:*",
+    "katex": "^0.16.28",
     "lucide-react": "^0.563.0",
     "mermaid": "^11.12.2",
-    "tippy.js": "^6.3.7",
     "y-protocols": "^1.0.6",
     "yjs": "^13.6.24"
   },
