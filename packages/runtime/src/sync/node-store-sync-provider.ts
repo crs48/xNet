@@ -67,6 +67,9 @@ function yieldToEventLoop(): Promise<void> {
  */
 export const channelShareRoom = (channelId: string): string => `xnet-channel-${channelId}`
 
+/** The share room that carries a workspace (bench) node to its grantees (0298). */
+export const workspaceShareRoom = (workspaceId: string): string => `xnet-workspace-${workspaceId}`
+
 export type SerializedNodeChange = {
   id: string
   type: string
