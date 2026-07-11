@@ -423,11 +423,11 @@ Adopt **Option C**. Concretely:
 
 ## Implementation Checklist
 
-- [ ] `tokens.css`: alias `--surface-0: var(--canvas)`, `--island:
+- [x] `tokens.css`: alias `--surface-0: var(--canvas)`, `--island:
       var(--canvas)`, `--island-pop: var(--island-b)`, `--popover:
       var(--island-b)` in `.wb-root` light + dark scopes; update the 0286/0287
       doc-comments to describe the two-plane doctrine.
-- [ ] `apps/web/src/styles/globals.css` mobile delta: confirm the dark
+- [x] `apps/web/src/styles/globals.css` mobile delta: confirm the dark
       mobile overrides still resolve correctly through the new aliases (they
       set `--canvas`/`--island-b` directly, so aliases follow — verify).
 - [ ] Remove redundant base paints from view roots: `PageView.tsx:485`,

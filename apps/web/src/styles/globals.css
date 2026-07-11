@@ -37,7 +37,7 @@
 .dark .wb-root[data-wb-shell='mobile'],
 .wb-root[data-wb-shell='mobile'].dark {
   --canvas: 30 8% 13%;
-  --island: 30 8% 13%;
+  --island: var(--canvas);
   --island-b: 30 8% 10%;
 }
 
