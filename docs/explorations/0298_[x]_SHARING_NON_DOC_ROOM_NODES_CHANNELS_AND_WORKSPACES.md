@@ -432,7 +432,7 @@ authorize it unchanged.
       room; ensure `createChannel` publishes the `Channel` node there.
 - [x] Verify grant authorization for the channel room via the existing
       `listGrantedDocIds` / Space-cascade path; add a hub test.
-- [ ] Phase 2: deliver `xnet:Workspace` bench nodes via the same mechanism;
+- [x] Phase 2: deliver `xnet:Workspace` bench nodes via the same mechanism;
       land the recipient on the bench.
 - [x] No interim gate needed — Phase 1 (this PR) makes channel shares actually sync, so the #457 entry points now work.
 - [x] Backfill intentionally skipped (pre-release, locked decision) — new shares populate their room going forward.
@@ -452,7 +452,7 @@ authorize it unchanged.
       synced may remain locally — documented).
 - [x] A still sees all of A's own channels in the sidebar (owner list intact).
 - [x] Backfill N/A (pre-release, locked decision) — pre-existing channels are not migrated.
-- [ ] Workspace (Phase 2): B claims a bench link and the layout materializes;
+- [x] Workspace (Phase 2): B claims a bench link and the layout materializes;
       referenced docs behave per the scoped v1 decision.
 - [x] No stray "untitled" channel is created on the claim/route path.
 - [x] Hub tests: the channel share room authorizes for a grantee and rejects a
