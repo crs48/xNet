@@ -383,8 +383,13 @@
      Because this is the new default look for the desktop shell, the override
      lives here (not behind a variant flag); the `linear` accent variant still
      composes on top (accent-ink only). `dark` lives on <html>, so the dark
-     scope is a descendant selector (`.dark .wb-root`), not `.wb-root.dark`. */
-  .wb-root {
+     scope is a descendant selector (`.dark .wb-root`), not `.wb-root.dark`.
+
+     `body:has(.wb-root)` extends the palette to portal layers: menus,
+     selects, and dialogs portal to <body> (outside `.wb-root`), and without
+     it they'd resolve the neutral :root ramp instead of the island fill. */
+  .wb-root,
+  body:has(.wb-root) {
     --canvas: 44 40% 98%;
     --island: var(--canvas);
     --island-b: 40 22% 93%;
@@ -397,6 +402,14 @@
     --surface-0: var(--canvas);
     --surface-1: 42 26% 95%;
     --surface-2: 40 20% 92.5%;
+    /* :root aliases (--background, --secondary, …) substitute var(--surface-*)
+       at :root, then inherit the RESOLVED neutral value — they do NOT re-read
+       this scope's ramp. Re-declare them here so bg-background/bg-secondary/
+       bg-muted consumers actually land on the warm wb planes. */
+    --background: var(--surface-0);
+    --background-subtle: var(--surface-1);
+    --secondary: var(--surface-2);
+    --muted: var(--surface-2);
     --hairline: 38 16% 83%;
     --border: 38 16% 83%;
     --accent: 40 20% 89.5%;
@@ -412,7 +425,8 @@
   }
 
   .dark .wb-root,
-  .wb-root.dark {
+  .wb-root.dark,
+  .dark body:has(.wb-root) {
     --canvas: 30 8% 11.5%;
     --island: var(--canvas);
     --island-b: 30 8% 7%;
@@ -422,6 +436,12 @@
     --surface-0: var(--canvas);
     --surface-1: 32 8% 10%;
     --surface-2: 32 8% 8%;
+    /* Re-declared for the same reason as the light scope: :root aliases
+       inherit already-substituted neutral values. */
+    --background: var(--surface-0);
+    --background-subtle: var(--surface-1);
+    --secondary: var(--surface-2);
+    --muted: var(--surface-2);
     --hairline: 30 7% 19%;
     --border: 30 7% 19%;
     --accent: 32 9% 16%;
