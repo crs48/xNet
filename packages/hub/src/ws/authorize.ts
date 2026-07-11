@@ -35,6 +35,7 @@ export const topicToResource = (topic: string): string => {
   // authorize them unchanged.
   if (topic.startsWith('xnet-doc-')) return topic.slice('xnet-doc-'.length)
   if (topic.startsWith('xnet-channel-')) return topic.slice('xnet-channel-'.length)
+  if (topic.startsWith('xnet-workspace-')) return topic.slice('xnet-workspace-'.length)
   return topic
 }
 

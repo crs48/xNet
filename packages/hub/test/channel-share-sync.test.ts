@@ -19,6 +19,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   channelShareRoom,
   NodeRelayService,
+  workspaceShareRoom,
   type ShareAccessGate
 } from '../src/services/node-relay'
 import { createMemoryStorage } from '../src/storage/memory'
@@ -80,6 +81,7 @@ const relayMsg = (change: SerializedNodeChange) =>
 const CHANNEL = 'xnet://xnet.fyi/Channel@1.0.0'
 const CHAT_MESSAGE = 'xnet://xnet.fyi/ChatMessage@1.0.0'
 const PROFILE = 'xnet://xnet.fyi/Profile@1.0.0'
+const WORKSPACE = 'xnet://xnet.fyi/Workspace@1.0.0'
 
 // ─── Gate: model roles by (did → status) for the channel resource ────────────
 
@@ -263,5 +265,23 @@ describe.each(factories)('channel share fan-out ($name)', ({ create }) => {
       authFor(owner)
     )
     expect(broadcasts).toContain(channelShareRoom(channelId))
+  })
+
+  it('fans a workspace bench node into its share room (Phase 2)', async () => {
+    const owner = actor()
+    const workspaceId = 'ws-1'
+    const svc = relay(gateWith(new Map()))
+    await svc.handleNodeChange(
+      relayMsg(
+        signChangeFor(owner, workspaceId, WORKSPACE, {
+          name: 'My bench',
+          preset: 'none',
+          tree: '{}'
+        })
+      ),
+      authFor(owner)
+    )
+    const { changes } = await storage.getRoomChangesSince(workspaceShareRoom(workspaceId), 0)
+    expect(changes.some((c) => c.nodeId === workspaceId && c.schemaId === WORKSPACE)).toBe(true)
   })
 })

@@ -8,7 +8,7 @@
 
 import { useNavigate } from '@tanstack/react-router'
 import { SpaceMembershipSchema, spaceMembershipId } from '@xnetjs/data'
-import { useIdentity, useMutate, useXNet } from '@xnetjs/react'
+import { useIdentity, useMutate, useXNet, workspaceShareRoom } from '@xnetjs/react'
 import { Link, X } from 'lucide-react'
 import { useState } from 'react'
 import {
@@ -27,7 +27,7 @@ interface AddSharedDialogProps {
 
 export function AddSharedDialog({ isOpen, onClose }: AddSharedDialogProps) {
   const navigate = useNavigate()
-  const { getHubAuthToken } = useXNet()
+  const { getHubAuthToken, syncManager } = useXNet()
   const { create } = useMutate()
   const { did } = useIdentity()
   const [shareUrl, setShareUrl] = useState('')
@@ -56,6 +56,11 @@ export function AddSharedDialog({ isOpen, onClose }: AddSharedDialogProps) {
   }
 
   const openClaimedDoc = (result: ShareClaimResult): void => {
+    // A workspace has no viewer route to mount its share-room subscription;
+    // pull it so the bench materializes in the switcher (0298 Phase 2).
+    if (result.docType === 'workspace' && syncManager) {
+      syncManager.subscribeShareRoom(workspaceShareRoom(result.resource))
+    }
     const route = docRouteFor(result.docType, result.resource)
     void navigate({ to: route.to, params: route.params } as never)
   }

@@ -11,7 +11,7 @@
  */
 
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { useXNet } from '@xnetjs/react'
+import { useXNet, workspaceShareRoom } from '@xnetjs/react'
 import { useEffect, useMemo, useState } from 'react'
 import {
   claimErrorText,
@@ -62,7 +62,7 @@ function ShareBridgePage(): JSX.Element {
   const [status, setStatus] = useState<'launching' | 'fallback' | 'error'>('launching')
   const [error, setError] = useState<string | null>(null)
   const navigate = useNavigate()
-  const { getHubAuthToken, hubUrl } = useXNet()
+  const { getHubAuthToken, hubUrl, syncManager } = useXNet()
 
   const shareInput = useMemo<ShareRouteInput>(() => parseShareRouteInput(window.location), [])
 
@@ -103,6 +103,13 @@ function ShareBridgePage(): JSX.Element {
         const token = await getHubAuthToken()
         const result = await claimShareLink(input, token)
         const destination = decideClaimDestination(result.endpoint, input.hub, hubUrl)
+
+        // A claimed workspace (bench) has no viewer route to mount its share-room
+        // subscription (channels subscribe when ChannelView mounts), so pull it
+        // here — the bench node then materializes in the switcher (0298 Phase 2).
+        if (result.docType === 'workspace' && syncManager) {
+          syncManager.subscribeShareRoom(workspaceShareRoom(result.resource))
+        }
 
         if (destination.kind === 'navigate') {
           // Visiting the doc subscribes + materializes it locally,

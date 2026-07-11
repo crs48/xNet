@@ -634,6 +634,7 @@ export {
 export {
   NodeStoreSyncProvider,
   channelShareRoom,
+  workspaceShareRoom,
   type SerializedNodeChange,
   type NodeSyncResponse
 } from '@xnetjs/runtime'
