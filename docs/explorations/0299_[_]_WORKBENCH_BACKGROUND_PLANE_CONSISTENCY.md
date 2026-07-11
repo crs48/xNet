@@ -392,6 +392,37 @@ Adopt **Option C**. Concretely:
 + className="absolute z-50 w-64 rounded-lg border border-hairline bg-popover shadow-pop p-2"
 ```
 
+## Implementation Notes (what live verification corrected)
+
+Two claims in "Current State" turned out wrong once measured in the running
+app; both required extra token work beyond the plan above:
+
+1. **`:root` aliases do NOT re-resolve inside `.wb-root`.** The "key
+   structural fact" was backwards: an unregistered custom property
+   substitutes its `var()` references at the element that *declares* it, and
+   descendants inherit the **resolved** value. So `--background:
+   var(--surface-0)` resolved at `:root` to the neutral `0 0% 100%`, and
+   `bg-background`/`bg-secondary`/`bg-muted` inside the workbench had been
+   silently using the neutral 0166 ramp all along (measured:
+   `--background = 0 0% 100%` on `.wb-root` before the fix). The fix
+   re-declares `--background`, `--background-subtle`, `--secondary`, and
+   `--muted` inside both `.wb-root` scopes.
+2. **Menus/selects/dialogs portal to `<body>`, outside `.wb-root`**, so the
+   scoped `--popover` override never reached them (measured: the "New" menu
+   rendered `hsl(0 0% 6.7%)` — the `:root` dark popover — while islands were
+   `hsl(30 8% 7%)`). Fixed by extending the scope selectors with
+   `body:has(.wb-root)` (and `.dark body:has(.wb-root)`, plus the mobile
+   delta in `globals.css`), so portal layers inherit the island palette
+   whenever the workbench is mounted.
+
+Also: `@xnetjs/ui`/`@xnetjs/devtools`/`@xnetjs/views` are `private: true`,
+so no changesets were required; and the zero-match gate is scoped hard-zero
+to `apps/web` + `packages/{ui,devtools,react}` with a ratchet baseline for
+`packages/views` (183 legacy violations — a zero gate there could not go
+green, per the 0294 rule), enforced by `scripts/check-surface-tokens.mjs`
+with a justified allowlist for media letterboxes, QR quiet zones, theme
+swatches, and pre-theme boot/error screens.
+
 ## Risks And Open Questions
 
 - **Dark-mode modal inversion.** Modals go from lightest surface (15%) to
@@ -454,22 +485,22 @@ Adopt **Option C**. Concretely:
 
 ## Validation Checklist
 
-- [ ] Light mode: page editor, database view, settings, chat, canvas tabs all
+- [x] Light mode: page editor, database view, settings, chat, canvas tabs all
       pixel-match the backdrop around the islands (eyedropper or
       `preview_inspect` computed `background-color` equality with `.wb-root`).
-- [ ] Dark mode: same check — no tab rectangle visible against the canvas.
-- [ ] Modal, dev-tools panel, floating menus, command palette, dropdowns,
+- [x] Dark mode: same check — no tab rectangle visible against the canvas.
+- [x] Modal, dev-tools panel, floating menus, command palette, dropdowns,
       context menus, selects all compute the same `background-color` as the
       sidebar island, light and dark.
-- [ ] Dark-mode modal still reads as elevated (shadow + hairline) — visual
+- [x] Dark-mode modal still reads as elevated (shadow + hairline) — visual
       sign-off.
-- [ ] Menu hover states remain distinguishable on the new island fill
+- [x] Menu hover states remain distinguishable on the new island fill
       (APCA/contrast spot-check on `--accent` vs `--island-b`).
-- [ ] Cozy and linear variants, true-black OLED, and the mobile shell render
+- [x] Cozy and linear variants, true-black OLED, and the mobile shell render
       without regressions (variant screenshot pass).
-- [ ] Non-workbench surfaces (onboarding, public share pages, site) are
+- [x] Non-workbench surfaces (onboarding, public share pages, site) are
       unchanged — aliases are `.wb-root`-scoped.
-- [ ] Grep gate green: zero raw palette background classes in scoped
+- [x] Grep gate green: zero raw palette background classes in scoped
       packages.
 - [ ] Existing visual-capture CI screenshots (0185) updated and reviewed.
 
