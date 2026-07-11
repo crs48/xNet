@@ -4,5 +4,14 @@
   "title": "Notion-grade editor chrome on official open-source parts",
   "summary": "Block drag-and-drop, the slash menu, and all suggestion popups were rebuilt on Tiptap's official MIT components (drag handle, Floating UI positioning, toolbar primitives with arrow-key navigation), fixing inconsistent handle and popup behavior. The editor also gains :emoji shortcodes and KaTeX math (^2$ inline, 97747…97747 blocks).",
   "highlights": [],
-  "tags": ["editor"]
+  "tags": [
+    "editor"
+  ],
+  "pr": 468,
+  "mergedAt": "2026-07-11T20:04:09Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
