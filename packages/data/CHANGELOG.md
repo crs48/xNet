@@ -1,5 +1,23 @@
 # @xnetjs/data
 
+## 0.11.0
+
+### Minor Changes
+
+- [#465](https://github.com/crs48/xNet/pull/465) [`d9cd478`](https://github.com/crs48/xNet/commit/d9cd478e554e3bb5de6f6c58c3d1550143bdd31a) Thanks [@crs48](https://github.com/crs48)! - Profiles gain a canonical deterministic node ID and room for inline avatar images:
+  - New `profileNodeId(did)` / `didFromProfileNodeId(nodeId)` helpers — a DID's canonical Profile now lives at `profile-<did>` (same pattern as `inboxStateNodeId`), so any collaborator who knows a DID (e.g. from `createdBy` on shared content) can acquire the profile without a directory lookup.
+  - `Profile.avatar` max length raised from 500 to 65536 so a small, client-side-downscaled `data:image/*` avatar can live inside the Profile node itself and reach share recipients through the same sync path as the display name.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/storage@0.11.0
+  - @xnetjs/sqlite@0.11.0
+  - @xnetjs/sync@0.11.0
+  - @xnetjs/identity@0.11.0
+  - @xnetjs/crypto@0.11.0
+  - @xnetjs/core@0.11.0
+
 ## 0.10.0
 
 ### Minor Changes

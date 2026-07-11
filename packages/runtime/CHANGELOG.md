@@ -1,5 +1,26 @@
 # @xnetjs/runtime
 
+## 0.3.0
+
+### Minor Changes
+
+- [#467](https://github.com/crs48/xNet/pull/467) [`07b480d`](https://github.com/crs48/xNet/commit/07b480d14d34ba7b6d74a49233fc9842f1facfde) Thanks [@crs48](https://github.com/crs48)! - Deliver a shared chat channel's nodes to a grantee (exploration 0298). `NodeStoreSyncProvider` gains a subscribe-only mode (receives + applies a room but never publishes local changes and never advances its cursor from a live broadcast — share rooms cursor on a per-room `seq`). `SyncManager` gains `subscribeShareRoom(room)` / `unsubscribeShareRoom(room)`, and a `channelShareRoom(id)` helper is exported (re-exported from `@xnetjs/react`). Together these let a client subscribe to a channel's `xnet-channel-<id>` share room so its node, message history, and members' profiles sync in — the transport that channel share links were missing.
+
+- [#470](https://github.com/crs48/xNet/pull/470) [`e68c016`](https://github.com/crs48/xNet/commit/e68c01661c77077489f72b97d5f90e0990aa18e1) Thanks [@crs48](https://github.com/crs48)! - Add `workspaceShareRoom(id)` (re-exported from `@xnetjs/react`) so a shared workspace (bench) node is delivered to a grantee via the same share-room mechanism as channels (exploration 0298 Phase 2).
+
+### Patch Changes
+
+- Updated dependencies [[`d9cd478`](https://github.com/crs48/xNet/commit/d9cd478e554e3bb5de6f6c58c3d1550143bdd31a)]:
+  - @xnetjs/data@0.11.0
+  - @xnetjs/data-bridge@0.11.0
+  - @xnetjs/history@0.11.0
+  - @xnetjs/plugins@0.11.0
+  - @xnetjs/storage@0.11.0
+  - @xnetjs/sync@0.11.0
+  - @xnetjs/identity@0.11.0
+  - @xnetjs/crypto@0.11.0
+  - @xnetjs/core@0.11.0
+
 ## 0.2.2
 
 ### Patch Changes

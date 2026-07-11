@@ -1,6 +1,6 @@
 {
   "name": "xnet-cloud",
-  "version": "0.0.13",
+  "version": "0.0.14",
   "description": "xNet Cloud control plane — billing, provisioning, and fleet management (explorations 0174/0175).",
   "license": "FSL-1.1-Apache-2.0",
   "type": "module",
