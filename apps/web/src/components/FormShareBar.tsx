@@ -99,13 +99,13 @@ export function FormShareBar({
           <span className="text-gray-500">Public link</span>
           {link.url ? (
             <>
-              <code className="max-w-[320px] truncate rounded bg-white px-1.5 py-0.5 dark:bg-gray-900">
+              <code className="max-w-[320px] truncate rounded bg-surface-2 px-1.5 py-0.5">
                 {link.url}
               </code>
               <button
                 type="button"
                 aria-label="Copy public form link"
-                className="flex items-center gap-1 rounded border border-border px-1.5 py-0.5 hover:bg-white dark:hover:bg-gray-900"
+                className="flex items-center gap-1 rounded border border-border px-1.5 py-0.5 hover:bg-accent"
                 onClick={() => void handleCopy()}
               >
                 {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
@@ -131,7 +131,7 @@ export function FormShareBar({
             type="button"
             aria-label="Republish form definition"
             title="Publish the current questions to the public link now"
-            className="flex items-center gap-1 rounded border border-border px-1.5 py-0.5 hover:bg-white dark:hover:bg-gray-900"
+            className="flex items-center gap-1 rounded border border-border px-1.5 py-0.5 hover:bg-accent"
             onClick={() => {
               void updateForm(link.tokenHash, { definition, accepting })
             }}
@@ -160,7 +160,7 @@ export function FormShareBar({
               ? 'Add at least one public-safe question first'
               : 'Create a public link anyone can submit to'
           }
-          className="rounded border border-border px-2 py-0.5 hover:bg-white disabled:opacity-50 dark:hover:bg-gray-900"
+          className="rounded border border-border px-2 py-0.5 hover:bg-accent disabled:opacity-50"
           onClick={() => void handleCreate()}
         >
           {busy ? 'Creating…' : 'Share form publicly'}

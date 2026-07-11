@@ -50,6 +50,9 @@ jobs:
       - name: Motion vocabulary (0199)
         run: pnpm check:motion-vocab
 
+      - name: Surface tokens (0299)
+        run: pnpm check:surface-tokens
+
       - name: Humane patterns (0234)
         run: pnpm check:humane-patterns
 

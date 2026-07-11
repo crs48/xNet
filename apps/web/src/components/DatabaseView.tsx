@@ -461,7 +461,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
   return (
     <div className="flex-1 flex flex-col overflow-hidden h-full -m-6">
       {/* Header */}
-      <div className="flex items-center gap-2 p-3 border-b border-border bg-secondary">
+      <div className="flex items-center gap-2 p-3 border-b border-border">
         <input
           type="text"
           className="text-lg font-semibold border-none bg-transparent text-foreground outline-none placeholder:text-muted-foreground"
@@ -697,7 +697,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
           }}
         >
           <div
-            className="absolute z-50 w-64 rounded-lg border border-border bg-white dark:bg-gray-900 shadow-xl p-2"
+            className="absolute z-50 w-64 rounded-lg border border-hairline bg-popover shadow-pop p-2"
             style={{
               top: fieldMenu.anchor.getBoundingClientRect().bottom + 4,
               left: Math.min(fieldMenu.anchor.getBoundingClientRect().left, window.innerWidth - 280)
@@ -708,7 +708,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
               aria-label="Field name"
               defaultValue={menuField.name}
               autoFocus
-              className="w-full mb-2 px-2 py-1 text-sm rounded border border-border bg-transparent outline-none focus:border-blue-400"
+              className="w-full mb-2 px-2 py-1 text-sm rounded border border-border bg-transparent outline-none focus:border-border-emphasis"
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
                   const name = (e.target as HTMLInputElement).value.trim()
@@ -743,7 +743,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
             />
             <button
               type="button"
-              className="w-full px-2 py-1 text-left text-sm rounded hover:bg-gray-50 dark:hover:bg-gray-800"
+              className="w-full px-2 py-1 text-left text-sm rounded hover:bg-accent"
               onClick={() => {
                 void grid.setFieldHidden(menuField.id, true)
                 setFieldMenu(null)
@@ -775,7 +775,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
             if (e.target === e.currentTarget) setAddingField(false)
           }}
         >
-          <div className="w-72 rounded-lg border border-border bg-white dark:bg-gray-900 shadow-xl p-3">
+          <div className="w-72 rounded-lg border border-hairline bg-popover shadow-pop p-3">
             <h3 className="text-sm font-medium mb-2">New field</h3>
             <input
               type="text"
@@ -783,7 +783,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
               placeholder="Field name"
               value={newFieldName}
               autoFocus
-              className="w-full mb-2 px-2 py-1 text-sm rounded border border-border bg-transparent outline-none focus:border-blue-400"
+              className="w-full mb-2 px-2 py-1 text-sm rounded border border-border bg-transparent outline-none focus:border-border-emphasis"
               onChange={(e) => setNewFieldName(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') void submitAddField()
@@ -803,7 +803,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
             <div className="flex justify-end gap-2">
               <button
                 type="button"
-                className="px-3 py-1 text-sm rounded hover:bg-gray-50 dark:hover:bg-gray-800"
+                className="px-3 py-1 text-sm rounded hover:bg-accent"
                 onClick={() => setAddingField(false)}
               >
                 Cancel
@@ -846,7 +846,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
           }}
         >
           <div
-            className="absolute z-50 w-72 rounded-lg border border-border bg-white dark:bg-gray-900 shadow-xl p-3"
+            className="absolute z-50 w-72 rounded-lg border border-hairline bg-popover shadow-pop p-3"
             style={
               commentPopover.anchor instanceof HTMLElement
                 ? {
@@ -867,7 +867,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
               autoFocus
               rows={2}
               containerClassName="mb-2"
-              className="px-2 py-1 text-sm rounded border border-border bg-transparent outline-none focus:border-blue-400 resize-none"
+              className="px-2 py-1 text-sm rounded border border-border bg-transparent outline-none focus:border-border-emphasis resize-none"
               onChange={setNewCommentDraft}
               onKeyDown={(e) => {
                 e.stopPropagation()

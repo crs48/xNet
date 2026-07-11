@@ -35,9 +35,10 @@
    flush with the canvas). Light mode is unchanged. Scoped to the mobile shell
    root via `data-wb-shell="mobile"`, so the desktop shell keeps its values. */
 .dark .wb-root[data-wb-shell='mobile'],
-.wb-root[data-wb-shell='mobile'].dark {
+.wb-root[data-wb-shell='mobile'].dark,
+.dark body:has(.wb-root[data-wb-shell='mobile']) {
   --canvas: 30 8% 13%;
-  --island: 30 8% 13%;
+  --island: var(--canvas);
   --island-b: 30 8% 10%;
 }
 

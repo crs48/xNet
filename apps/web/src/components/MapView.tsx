@@ -171,7 +171,7 @@ export function MapView({ mapId }: MapViewProps) {
   return (
     <div className="-m-6 flex h-full flex-1 flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center gap-2 border-b border-border bg-secondary p-3">
+      <div className="flex items-center gap-2 border-b border-border p-3">
         <input
           type="text"
           className="border-none bg-transparent text-lg font-semibold text-foreground outline-none placeholder:text-muted-foreground"

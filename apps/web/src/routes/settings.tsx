@@ -82,7 +82,7 @@ function SettingsPage() {
   const activeSection = section ?? DEFAULT_SETTINGS_SECTION
 
   return (
-    <div className="-m-6 h-full overflow-auto bg-surface-0 p-6">
+    <div className="-m-6 h-full overflow-auto p-6">
       {activeSection === 'profile' && <ProfileSettings />}
       {activeSection === 'appearance' && <AppearanceSettings />}
       {activeSection === 'labs' && <LabsSettings />}

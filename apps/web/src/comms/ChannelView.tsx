@@ -167,7 +167,7 @@ export function ChannelView({ channelId }: { channelId: string }) {
   useEnsureProfiles(rosterDids)
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-surface-0">
+    <div className="flex h-full min-h-0 flex-col">
       <header className="flex h-11 shrink-0 items-center gap-2 border-b border-hairline px-3">
         <Icon size={15} strokeWidth={1.5} className="shrink-0 text-ink-3" />
         <span className={cn('shrink-0 truncate text-sm font-semibold text-ink-1')}>

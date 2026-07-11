@@ -482,7 +482,7 @@ export function PageView({ docId }: { docId: string }) {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-surface-0">
+    <div className="flex h-full min-h-0 flex-col">
       <PageToolbar docId={docId} unresolvedCount={unresolvedCount} presence={presence} />
 
       {/* The document: one full-height paper surface. The title is the
@@ -686,7 +686,7 @@ function NewCommentInput({ people, onSubmit, onCancel }: NewCommentInputProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-      <div className="w-80 rounded-lg border bg-popover text-popover-foreground shadow-lg p-4">
+      <div className="w-80 rounded-lg border border-hairline bg-island-pop text-popover-foreground shadow-pop p-4">
         <div className="text-sm font-medium mb-2">Add Comment</div>
         <MentionTextArea
           textareaRef={textareaRef}

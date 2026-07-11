@@ -153,7 +153,7 @@ export function SettingsView({
   }
 
   return (
-    <div className={cn('flex h-full bg-background', className)}>
+    <div className={cn('flex h-full', className)}>
       {/* Sidebar navigation */}
       <aside className="w-56 border-r border-border bg-secondary/30">
         <div className="p-4">
