@@ -55,7 +55,24 @@ export default defineConfig({
         // for the browser. @xnetjs/vectors dynamically imports it and falls back to a
         // pure-JS LinearVectorIndex when it's absent, which is what runs in the browser.
         'usearch'
-      ]
+      ],
+      output: {
+        // KaTeX and the emoji catalog (0297) are large leaf libraries pulled
+        // in via @xnetjs/editor; split them out so the main chunk stays under
+        // the workbox 6 MB precache cap.
+        manualChunks(id: string) {
+          if (id.includes('node_modules') && id.includes('/katex/')) return 'katex'
+          if (
+            id.includes('@tiptap/extension-emoji') ||
+            id.includes('emojibase-data') ||
+            id.includes('emoji-regex') ||
+            id.includes('is-emoji-supported')
+          ) {
+            return 'emoji'
+          }
+          return undefined
+        }
+      }
     }
   },
   resolve: {

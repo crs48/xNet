@@ -3,7 +3,8 @@
  */
 import type { JSONContent } from '@tiptap/core'
 
-export const EDITOR_DOCUMENT_SCHEMA_VERSION = 2
+// v3: emoji + inlineMath/blockMath nodes (0297 — MIT extension adoption)
+export const EDITOR_DOCUMENT_SCHEMA_VERSION = 3
 
 export type EditorDocumentMigrationKind =
   | 'root-normalized'
@@ -38,6 +39,7 @@ const EMPTY_DOC: JSONContent = {
 }
 
 const CURRENT_NODE_TYPES = new Set([
+  'blockMath',
   'blockquote',
   'bulletList',
   'callout',
@@ -46,11 +48,13 @@ const CURRENT_NODE_TYPES = new Set([
   'databaseReference',
   'doc',
   'embed',
+  'emoji',
   'file',
   'hardBreak',
   'heading',
   'horizontalRule',
   'image',
+  'inlineMath',
   'listItem',
   'mermaid',
   'orderedList',

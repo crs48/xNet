@@ -32,7 +32,6 @@ import {
   CommentPlugin,
   DEFAULT_TASK_VIEW_CONFIG,
   DatabaseEmbedExtension,
-  DragHandleExtension,
   EmbedExtension,
   FileExtension,
   HeadingWithSyntax,
@@ -418,7 +417,7 @@ function createStorySeedExtensions(): AnyExtension[] {
       heading: false,
       codeBlock: false,
       blockquote: false,
-      dropcursor: false
+      dropcursor: { color: false, width: 2, class: 'xnet-drop-cursor' }
     }),
     HeadingWithSyntax.configure({ levels: [1, 2, 3, 4, 5, 6] }),
     CodeBlockWithSyntax,
@@ -451,10 +450,6 @@ function createStorySeedExtensions(): AnyExtension[] {
     }),
     SlashCommand.configure({
       commands: undefined
-    }),
-    DragHandleExtension.configure({
-      enableDragDrop: true,
-      showDropIndicator: true
     }),
     KeyboardShortcutsExtension,
     ImageExtension.configure({
