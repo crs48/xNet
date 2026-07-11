@@ -8,7 +8,7 @@ import { ChannelSchema } from '@xnetjs/data'
 import { useMutate, useQuery } from '@xnetjs/react'
 import { cn, Popover } from '@xnetjs/ui'
 import { Hash, MessageCircle, Rows2, Rows3, Users, Volume2 } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { ShareButton } from '../components/ShareButton'
 import { CallControls } from './CallDock'
 import { ChannelChat } from './ChannelChat'
@@ -19,6 +19,7 @@ import { useComms } from './CommsContext'
 import {
   displayName,
   useChannelShareSync,
+  useEnsureProfiles,
   useProfiles,
   useRoomPresence,
   type ProfileEntry
@@ -156,7 +157,14 @@ export function ChannelView({ channelId }: { channelId: string }) {
   const header = channelHeaderModel(record, me.did, profiles)
   const Icon = KIND_ICONS[header.kind as keyof typeof KIND_ICONS] ?? Hash
   const roster = rosterUsers(peers).filter((user) => user.did !== me.did)
-  const memberCount = (record?.members as string[] | undefined)?.length ?? 0
+  const members = record?.members as string[] | undefined
+  const memberCount = members?.length ?? 0
+  // Members of a shared channel may be DIDs whose profiles we haven't synced.
+  const rosterDids = useMemo(
+    () => [...(members ?? []), ...roster.map((user) => user.did)],
+    [members, roster]
+  )
+  useEnsureProfiles(rosterDids)
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-surface-0">

@@ -12,6 +12,22 @@ export interface ProfileEntry {
   handle?: string
 }
 
+/**
+ * Only render avatar sources we trust in an <img>: small inline images
+ * (`data:image/*`), web URLs, and session-local object URLs. Profiles sync
+ * from other peers, so anything else (javascript:, file:, …) is dropped and
+ * the caller falls back to the DIDAvatar identicon.
+ */
+export function safeAvatarSrc(src: string | undefined | null): string | undefined {
+  const value = src?.trim()
+  if (!value) return undefined
+  const lower = value.toLowerCase()
+  if (lower.startsWith('data:image/')) return value
+  if (lower.startsWith('https://') || lower.startsWith('http://')) return value
+  if (lower.startsWith('blob:')) return value
+  return undefined
+}
+
 /** Lowercase slug a raw handle input; '' means unusable. */
 export function normalizeHandle(raw: string): string {
   return raw
@@ -53,27 +69,43 @@ export function userCardFrom(did: string, profile: Record<string, unknown> | und
   return {
     did,
     name: profile?.displayName as string | undefined,
-    avatar: profile?.avatar as string | undefined,
+    avatar: safeAvatarSrc(profile?.avatar as string | undefined),
     color: colorForDid(did)
   }
 }
 
-/** Profiles deduped by DID, newest first wins. */
+/**
+ * Profiles deduped by DID, newest first wins — with a trust preference:
+ * a SELF-authored profile (`createdBy` === subject `did`, the only kind the
+ * hub lets through a profile room) always beats a foreign-authored one, so a
+ * peer with write access to a shared doc can't override someone's identity
+ * by injecting a Profile node for their DID. Foreign-authored profiles still
+ * fill DIDs that have no self-authored one (e.g. seeded demo people).
+ */
 export function dedupeProfiles(
   nodes: Array<Record<string, unknown>> | null | undefined
 ): ProfileEntry[] {
-  const seen = new Map<string, ProfileEntry>()
+  const seen = new Map<string, { entry: ProfileEntry; self: boolean }>()
   for (const node of nodes ?? []) {
     const did = node.did as string | undefined
-    if (!did || seen.has(did)) continue
+    if (!did) continue
+    const createdBy = node.createdBy as string | undefined
+    const self = !createdBy || createdBy === did
+    const existing = seen.get(did)
+    // Keep the existing entry unless a self-authored one supersedes a
+    // foreign-authored one (input is newest-first within each class).
+    if (existing && (existing.self || !self)) continue
     seen.set(did, {
-      did,
-      name: node.displayName as string | undefined,
-      avatar: node.avatar as string | undefined,
-      handle: (node.handle as string | undefined)?.trim() || undefined
+      self,
+      entry: {
+        did,
+        name: node.displayName as string | undefined,
+        avatar: safeAvatarSrc(node.avatar as string | undefined),
+        handle: (node.handle as string | undefined)?.trim() || undefined
+      }
     })
   }
-  return [...seen.values()]
+  return [...seen.values()].map((item) => item.entry)
 }
 
 export interface ChannelEntry {

@@ -1,0 +1,17 @@
+{
+  "id": "2026-07-10-profile-pictures-everywhere-you-appear",
+  "date": "July 10, 2026",
+  "title": "Profile pictures, everywhere you appear",
+  "summary": "Upload a profile picture in Settings → Profile — it shows in the top-left profile button, menus, chats, and presence, with your generated avatar as the fallback. Profiles now reach people you share with: names and pictures render on shared channels, pages, and the Share dialog instead of DID fragments. Only you can write your profile; collaborators can read it.",
+  "highlights": [
+    "Upload, change, or remove a profile picture (downscaled locally; photo metadata stripped)",
+    "Share recipients see real names and avatars on messages, comments, rosters, and the People tab",
+    "Your generated avatar (identicon) remains the default when no picture is set"
+  ],
+  "tags": [
+    "app",
+    "identity",
+    "sync"
+  ],
+  "pr": 465
+}

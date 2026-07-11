@@ -340,6 +340,8 @@ export {
   ReactionSchema,
   type Reaction,
   ProfileSchema,
+  profileNodeId,
+  didFromProfileNodeId,
   type Profile,
   ChannelSchema,
   CHANNEL_KINDS,

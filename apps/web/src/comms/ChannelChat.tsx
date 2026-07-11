@@ -40,7 +40,13 @@ import {
   tagOptionsFor,
   type TagOption
 } from './hashtag-composer'
-import { useChannelMessages, useInbox, useProfiles, useRoomPresence } from './hooks'
+import {
+  useChannelMessages,
+  useEnsureProfiles,
+  useInbox,
+  useProfiles,
+  useRoomPresence
+} from './hooks'
 import {
   applyLinkPick,
   composerLinks,
@@ -351,6 +357,11 @@ export function ChannelChat({ channelId }: { channelId: string }) {
       : []
   const typing = useMemo(() => typingPeers(peers, channelId, Date.now()), [peers, channelId])
   const rows = messages as unknown as ChatRow[]
+
+  // In shared channels authors may be DIDs we've never met — fetch their
+  // profiles so names/avatars render instead of DID fragments.
+  const authorDids = useMemo(() => rows.map((row) => row.createdBy), [rows])
+  useEnsureProfiles(authorDids)
 
   const presenceByDid = useMemo(() => {
     const map = new Map<string, PresenceStatus>()

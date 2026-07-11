@@ -22,7 +22,7 @@ import { useLocation, useNavigate } from '@tanstack/react-router'
 import { useDevTools } from '@xnetjs/devtools'
 import { getCommandRegistry } from '@xnetjs/plugins'
 import { DemoBanner, useDemoMode, useIdentity } from '@xnetjs/react'
-import { DIDAvatar, useTheme } from '@xnetjs/ui'
+import { useTheme } from '@xnetjs/ui'
 import {
   ChevronUp,
   FileText,
@@ -38,6 +38,7 @@ import {
 } from 'lucide-react'
 import { useLayoutEffect, useState } from 'react'
 import { GlobalSearch } from '../components/GlobalSearch'
+import { SelfAvatar } from '../components/SelfAvatar'
 import { ShareDialog } from '../components/ShareDialog'
 import { WorkspaceCommands } from '../components/WorkspaceCommands'
 import { useWorkbenchCommands, useZenEscape } from './commands'
@@ -106,7 +107,7 @@ function Header({
           count until it reflects real peers. */}
       {identity ? (
         <span className="flex shrink-0 rounded-full ring-2 ring-island" title="You">
-          <DIDAvatar did={identity.did} size={24} />
+          <SelfAvatar size={24} />
         </span>
       ) : null}
 
@@ -239,7 +240,6 @@ function BottomCluster({
   onSearch: () => void
   onNew: () => void
 }) {
-  const { identity } = useIdentity()
   const circle = `flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full ${ISLAND} cursor-pointer`
   return (
     <div className="absolute inset-x-3 z-20 flex items-center gap-2.5" style={{ bottom: sb(64) }}>
@@ -252,11 +252,7 @@ function BottomCluster({
           aria-label="Profile"
           className="relative flex h-9 w-9 items-center justify-center rounded-full border-none bg-transparent p-0 cursor-pointer"
         >
-          {identity ? (
-            <DIDAvatar did={identity.did} size={32} />
-          ) : (
-            <span className="h-8 w-8 rounded-full bg-background-muted" />
-          )}
+          <SelfAvatar size={32} />
           <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-island-b bg-success" />
         </button>
         <button

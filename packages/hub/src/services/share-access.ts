@@ -46,6 +46,15 @@ export const isCommentSchema = (schemaId: string | undefined): boolean =>
   COMMENT_SCHEMA_PREFIXES.some((prefix) => schemaId.startsWith(prefix))
 
 /**
+ * Profile rooms (`profile-<did>`, see `profileNodeId` in @xnetjs/data) are
+ * hub-published identity: any authenticated DID may read them so shared
+ * content can render author names/avatars, but ONLY the subject DID may
+ * write. Returns the subject DID, or null when the doc isn't a profile.
+ */
+export const profileSubjectFromDocId = (docId: string): string | null =>
+  docId.startsWith('profile-did:') ? docId.slice('profile-'.length) : null
+
+/**
  * Share-grant status of a DID for a doc:
  * - `none` — never had a grant; the legacy capability model applies.
  * - a role — has an active grant; writes are limited to that role.
@@ -177,6 +186,8 @@ export class ShareAccessService {
     docId: string,
     schemaId: string | undefined
   ): Promise<boolean> {
+    const profileSubject = profileSubjectFromDocId(docId)
+    if (profileSubject) return did === profileSubject
     const status = await this.getStatusForNode(did, docId)
     if (status === 'none' || status === 'write') return true
     if (status === 'comment') return isCommentSchema(schemaId)
@@ -188,6 +199,8 @@ export class ShareAccessService {
    * Comment grantees cannot — page bodies are Yjs, comments are node-changes.
    */
   async canWriteYjs(did: string, docId: string): Promise<boolean> {
+    const profileSubject = profileSubjectFromDocId(docId)
+    if (profileSubject) return did === profileSubject
     const status = await this.getStatusForNode(did, docId)
     return status === 'none' || status === 'write'
   }

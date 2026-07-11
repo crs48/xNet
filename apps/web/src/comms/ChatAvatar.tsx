@@ -5,6 +5,7 @@
  */
 import type { PresenceStatus } from '@xnetjs/comms'
 import { cn, DIDAvatar } from '@xnetjs/ui'
+import { safeAvatarSrc } from './comms-utils'
 import { PresenceDot } from './PresenceDot'
 
 export function ChatAvatar({
@@ -22,14 +23,17 @@ export function ChatAvatar({
   showPresence?: boolean
   className?: string
 }) {
+  // Presence cards and synced profiles come from remote peers — only render
+  // sources safeAvatarSrc trusts; anything else falls back to the identicon.
+  const imageSrc = safeAvatarSrc(src)
   return (
     <span
       className={cn('relative inline-flex shrink-0', className)}
       style={{ width: size, height: size }}
     >
-      {src ? (
+      {imageSrc ? (
         <img
-          src={src}
+          src={imageSrc}
           alt=""
           className="rounded-full object-cover"
           style={{ width: size, height: size }}

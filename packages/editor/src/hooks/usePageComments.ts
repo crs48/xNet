@@ -55,6 +55,11 @@ export interface UsePageCommentsOptions {
    * comment mark (TipTap `selectionUpdate`). Desktop PageView behavior.
    */
   dismissPopoverOnCaretExit?: boolean
+  /**
+   * Resolve an author DID to a display name (e.g. from synced Profile
+   * nodes). Unresolved authors fall back to a DID fragment in the UI.
+   */
+  resolveAuthorName?: (did: string) => string | undefined
 }
 
 export interface UsePageCommentsResult {
@@ -114,7 +119,8 @@ export interface UsePageCommentsResult {
 
 export function usePageComments({
   docId,
-  dismissPopoverOnCaretExit = false
+  dismissPopoverOnCaretExit = false,
+  resolveAuthorName
 }: UsePageCommentsOptions): UsePageCommentsResult {
   // Load comments for this page, filtered to text anchors only
   const {
@@ -240,7 +246,7 @@ export function usePageComments({
         comment: {
           id: thread.root.id,
           author: thread.root.properties.createdBy,
-          authorDisplayName: undefined,
+          authorDisplayName: resolveAuthorName?.(thread.root.properties.createdBy),
           content: thread.root.properties.content,
           createdAt: thread.root.createdAt,
           replyCount: thread.replies.length
@@ -251,7 +257,7 @@ export function usePageComments({
     }
 
     return result
-  }, [orphanedIds, threads])
+  }, [orphanedIds, threads, resolveAuthorName])
 
   // Convert threads to format expected by CommentPopover/CommentsSidebar
   const threadDataMap = useMemo(() => {
@@ -261,7 +267,7 @@ export function usePageComments({
         root: {
           id: thread.root.id,
           author: thread.root.properties.createdBy,
-          authorDisplayName: undefined,
+          authorDisplayName: resolveAuthorName?.(thread.root.properties.createdBy),
           content: thread.root.properties.content,
           createdAt: thread.root.createdAt,
           edited: thread.root.properties.edited,
@@ -272,7 +278,7 @@ export function usePageComments({
         replies: thread.replies.map((r) => ({
           id: r.id,
           author: r.properties.createdBy,
-          authorDisplayName: undefined,
+          authorDisplayName: resolveAuthorName?.(r.properties.createdBy),
           content: r.properties.content,
           createdAt: r.createdAt,
           edited: r.properties.edited,
@@ -284,7 +290,7 @@ export function usePageComments({
       })
     }
     return map
-  }, [threads])
+  }, [threads, resolveAuthorName])
 
   // ─── Popover Handlers ─────────────────────────────────────────────────────────
 
