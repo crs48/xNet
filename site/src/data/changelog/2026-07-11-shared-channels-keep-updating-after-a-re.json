@@ -1,0 +1,11 @@
+{
+  "id": "2026-07-11-shared-channels-keep-updating-after-a-re",
+  "date": "July 11, 2026",
+  "title": "Shared channels keep updating after a reload",
+  "summary": "Channels and workspaces shared with you now keep receiving new messages and edits across reloads, even when you're not viewing them.",
+  "highlights": [],
+  "tags": [
+    "app",
+    "sync"
+  ]
+}
