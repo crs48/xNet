@@ -1,5 +1,15 @@
 # @xnetjs/server
 
+## 0.0.15
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/data-bridge@0.11.1
+  - @xnetjs/data@0.11.1
+  - @xnetjs/identity@0.11.1
+  - @xnetjs/crypto@0.11.1
+
 ## 0.0.14
 
 ### Patch Changes

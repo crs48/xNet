@@ -1,5 +1,14 @@
 # @xnetjs/sync
 
+## 0.11.1
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/identity@0.11.1
+  - @xnetjs/crypto@0.11.1
+  - @xnetjs/core@0.11.1
+
 ## 0.11.0
 
 ### Patch Changes

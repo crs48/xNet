@@ -1,5 +1,15 @@
 # @xnetjs/dashboard
 
+## 0.0.16
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/react@0.11.1
+  - @xnetjs/plugins@0.11.1
+  - @xnetjs/data@0.11.1
+  - @xnetjs/social@0.0.16
+
 ## 0.0.15
 
 ### Patch Changes

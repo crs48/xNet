@@ -1,5 +1,13 @@
 # @xnetjs/meetings
 
+## 0.0.9
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/plugins@0.11.1
+  - @xnetjs/data@0.11.1
+
 ## 0.0.8
 
 ### Patch Changes

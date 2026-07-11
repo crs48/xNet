@@ -1,5 +1,20 @@
 # @xnetjs/react
 
+## 0.11.1
+
+### Patch Changes
+
+- Updated dependencies [[`f4ee6f9`](https://github.com/crs48/xNet/commit/f4ee6f96345f8d221100c820732e19566d7118f1)]:
+  - @xnetjs/runtime@0.3.1
+  - @xnetjs/history@0.11.1
+  - @xnetjs/plugins@0.11.1
+  - @xnetjs/data-bridge@0.11.1
+  - @xnetjs/data@0.11.1
+  - @xnetjs/sync@0.11.1
+  - @xnetjs/identity@0.11.1
+  - @xnetjs/crypto@0.11.1
+  - @xnetjs/core@0.11.1
+
 ## 0.11.0
 
 ### Minor Changes
