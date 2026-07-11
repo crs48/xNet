@@ -123,7 +123,7 @@ export function PanelViewHost({ slot }: { slot: 'left' | 'bottom' }) {
 
   if (!view) {
     return (
-      <div className="flex h-full items-center justify-center bg-surface-1 text-ink-3">
+      <div className="flex h-full items-center justify-center text-ink-3">
         No view registered
       </div>
     )
@@ -138,7 +138,7 @@ export function PanelViewHost({ slot }: { slot: 'left' | 'bottom' }) {
     <section
       data-wb-region={slot}
       data-slot-view={view.id}
-      className="flex h-full min-h-0 flex-col bg-surface-1"
+      className="flex h-full min-h-0 flex-col"
     >
       <header
         tabIndex={-1}

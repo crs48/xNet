@@ -430,18 +430,18 @@ Adopt **Option C**. Concretely:
 - [x] `apps/web/src/styles/globals.css` mobile delta: confirm the dark
       mobile overrides still resolve correctly through the new aliases (they
       set `--canvas`/`--island-b` directly, so aliases follow — verify).
-- [ ] Remove redundant base paints from view roots: `PageView.tsx:485`,
+- [x] Remove redundant base paints from view roots: `PageView.tsx:485`,
       `routes/settings.tsx:85`, `ChannelView.tsx:170`, `ThreadPane.tsx:98`,
       `SettingsView.tsx:156`, Person/Tag/Space/Marketplace views,
       `MapView`/`PluginsPanel` (`bg-surface-1`), `PanelViewHost.tsx:126,141`.
-- [ ] `DatabaseView.tsx`: header `bg-secondary` → transparent (`:464`);
+- [x] `DatabaseView.tsx`: header `bg-secondary` → transparent (`:464`);
       dialogs `bg-white dark:bg-gray-900` → `bg-popover` + `shadow-pop`
       (`:700,778,849`); hovers `bg-gray-50 dark:bg-gray-800` →
       `hover:bg-accent` (`:746,806`); `focus:border-blue-400` →
       `focus:border-border-emphasis`.
-- [ ] `PageView.tsx:688` rename dialog → Modal primitive or `bg-island-pop
+- [x] `PageView.tsx:688` rename dialog → Modal primitive or `bg-island-pop
       shadow-pop` recipe.
-- [ ] `Sheet.tsx:59` `bg-background` → verify it resolves to canvas via alias
+- [x] `Sheet.tsx:59` `bg-background` → verify it resolves to canvas via alias
       (it will) — or switch to `bg-island-b` if sheets should read as islands.
 - [ ] Add hardcoded-background gate to the lint lane (zero matches on raw
       palette background classes in workbench packages); wire as a blocking
