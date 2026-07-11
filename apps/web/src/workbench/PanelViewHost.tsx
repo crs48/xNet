@@ -123,9 +123,7 @@ export function PanelViewHost({ slot }: { slot: 'left' | 'bottom' }) {
 
   if (!view) {
     return (
-      <div className="flex h-full items-center justify-center text-ink-3">
-        No view registered
-      </div>
+      <div className="flex h-full items-center justify-center text-ink-3">No view registered</div>
     )
   }
 
