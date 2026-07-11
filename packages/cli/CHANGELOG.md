@@ -1,5 +1,19 @@
 # @xnetjs/cli
 
+## 0.1.3
+
+### Patch Changes
+
+- Updated dependencies [[`07b480d`](https://github.com/crs48/xNet/commit/07b480d14d34ba7b6d74a49233fc9842f1facfde), [`d9cd478`](https://github.com/crs48/xNet/commit/d9cd478e554e3bb5de6f6c58c3d1550143bdd31a), [`e68c016`](https://github.com/crs48/xNet/commit/e68c01661c77077489f72b97d5f90e0990aa18e1)]:
+  - @xnetjs/runtime@0.3.0
+  - @xnetjs/data@0.11.0
+  - @xnetjs/plugins@0.11.0
+  - @xnetjs/sqlite@0.11.0
+  - @xnetjs/sync@0.11.0
+  - @xnetjs/identity@0.11.0
+  - @xnetjs/crypto@0.11.0
+  - @xnetjs/core@0.11.0
+
 ## 0.1.2
 
 ### Patch Changes

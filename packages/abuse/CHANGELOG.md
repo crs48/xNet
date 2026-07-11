@@ -1,5 +1,13 @@
 # @xnetjs/abuse
 
+## 0.11.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/identity@0.11.0
+  - @xnetjs/crypto@0.11.0
+
 ## 0.10.0
 
 ### Patch Changes
