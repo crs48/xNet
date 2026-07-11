@@ -502,7 +502,7 @@ swatches, and pre-theme boot/error screens.
       unchanged — aliases are `.wb-root`-scoped.
 - [x] Grep gate green: zero raw palette background classes in scoped
       packages.
-- [ ] Existing visual-capture CI screenshots (0185) updated and reviewed.
+- [x] Existing visual-capture CI screenshots (0185) updated and reviewed.
 
 ## References
 
