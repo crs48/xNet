@@ -446,8 +446,11 @@ Adopt **Option C**. Concretely:
 - [x] Add hardcoded-background gate to the lint lane (zero matches on raw
       palette background classes in workbench packages); wire as a blocking
       check per 0294 (named consumer: CI lint job; decidable: zero-count).
-- [ ] Changesets for `@xnetjs/ui` and `@xnetjs/devtools` (patch).
-- [ ] Update `packages/ui/DESIGN_SYSTEM.md` with the two-plane doctrine.
+- [x] Changesets for `@xnetjs/ui` and `@xnetjs/devtools` (patch). — Not
+      needed: both packages are `private: true`, so they are outside the
+      changeset-coverage set (`scripts/changeset/publishable-pathspec.mjs`);
+      no publishable package changed in this implementation.
+- [x] Update `packages/ui/DESIGN_SYSTEM.md` with the two-plane doctrine.
 
 ## Validation Checklist
 
