@@ -10,7 +10,7 @@
       "label": "Home",
       "file": "routes/home.png",
       "status": "changed",
-      "ssim": 0.98807,
+      "ssim": 0.988923,
       "before": "before/routes/home.png",
       "after": "routes/home.png",
       "diff": "diff/routes/home.png"
