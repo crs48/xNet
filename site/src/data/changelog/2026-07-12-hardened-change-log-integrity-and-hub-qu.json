@@ -1,0 +1,10 @@
+{
+  "id": "2026-07-12-hardened-change-log-integrity-and-hub-qu",
+  "date": "July 12, 2026",
+  "title": "Hardened change-log integrity and hub query safety",
+  "summary": "Sync integrity checks now verify author signatures cryptographically instead of merely checking they are present, hash auto-repair no longer runs on untrusted data, the hub validates dynamic query column identifiers against SQL injection, and it warns loudly when auth or signed-replication safety is relaxed.",
+  "highlights": [],
+  "tags": [
+    "sync"
+  ]
+}

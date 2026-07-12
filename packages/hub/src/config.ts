@@ -142,6 +142,24 @@ export const resolveConfig = (cliOptions: Partial<HubConfig>): HubConfig => {
   const demo = cliOptions.demo ?? process.env.HUB_MODE === 'demo'
   const demoOverrides = getDemoOverrides(demo) ?? undefined
 
+  // Loudly flag security-relevant footguns at startup (exploration 0307). These
+  // stay non-default; a warning makes an intentional relaxation visible in logs
+  // rather than silent.
+  if (!auth) {
+    console.warn(
+      '[hub] SECURITY: auth is DISABLED (HUB_AUTH=false) — every connection is ' +
+        'treated as an anonymous client with wildcard capabilities and room ' +
+        'authorization is skipped. Do not run this on an open network.'
+    )
+  }
+  if (allowUnsignedReplication) {
+    console.warn(
+      '[hub] SECURITY: HUB_ALLOW_UNSIGNED_REPLICATION is enabled — unsigned Yjs ' +
+        'updates are accepted and applied to hub-held document state without ' +
+        'authorship verification. Enable only for trusted, closed deployments.'
+    )
+  }
+
   return {
     ...DEFAULT_CONFIG,
     ...cliOptions,

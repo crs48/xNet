@@ -101,7 +101,7 @@ signed **Change** records ([`change.ts`](../../../packages/sync/src/change.ts)):
 
 ```ts
 interface Change<T> {
-  protocolVersion?: number      // 3 in xnet/1.0 (CURRENT_PROTOCOL_VERSION)
+  protocolVersion?: number      // 4 in xnet/1.0 (CURRENT_PROTOCOL_VERSION)
   id: string                    // unique change id
   type: string                  // "node-change"
   payload: T                    // NodePayload (below)
@@ -141,7 +141,7 @@ signatures.** The algorithm (reference: `computeChangeHash` / `signChange` in
 **Step 1 — select fields to hash.** Take the unsigned change (all fields *except*
 `hash` and `signature`). If `protocolVersion` is `0` or absent (legacy), remove
 the `protocolVersion` field before hashing. For `xnet/1.0` (`protocolVersion =
-3`), keep it.
+4`, the current `CURRENT_PROTOCOL_VERSION`), keep it.
 
 **Step 2 — canonical JSON.** Serialize with:
 - Object keys sorted **lexicographically, recursively** at every nesting level
