@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-12-schemas-can-now-split-who-may-add-from-w",
+      "url": "https://xnet.fyi/changelog#2026-07-12-schemas-can-now-split-who-may-add-from-w",
+      "title": "Schemas can now split who may add from who may edit",
+      "content_text": "Schema authorization gains create and update actions that refine the coarse write action. Chat messages and comments now declare contributor semantics: anyone in the space may post, but only the author (or a space admin) may edit afterwards.\n",
+      "date_published": "2026-07-12T22:12:58Z",
+      "tags": [
+        "platform"
+      ],
+      "_xnet": {
+        "date": "July 12, 2026",
+        "summary": "Schema authorization gains create and update actions that refine the coarse write action. Chat messages and comments now declare contributor semantics: anyone in the space may post, but only the author (or a space admin) may edit afterwards.",
+        "highlights": [],
+        "mergedAt": "2026-07-12T22:12:58Z",
+        "pr": 488,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-12-hardened-change-log-integrity-and-hub-qu",
       "url": "https://xnet.fyi/changelog#2026-07-12-hardened-change-log-integrity-and-hub-qu",
       "title": "Hardened change-log integrity and hub query safety",
