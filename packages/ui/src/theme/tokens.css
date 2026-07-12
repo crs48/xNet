@@ -377,8 +377,8 @@
          `--surface-0` (and therefore `--background`/`--card`) alias it.
        Plane B — the islands: `--island-b`. Every floating element — chrome
          islands, modals (`--island-pop` alias), popovers/menus (`--popover`)
-         — shares one fill; elevation is carried by --isl-shadow/--pop-shadow
-         and the hairline border, never by a different fill colour.
+         — shares one fill. Chrome islands sit flat (hairline border only);
+         overlays alone carry --pop-shadow. Never a different fill colour.
 
      Because this is the new default look for the desktop shell, the override
      lives here (not behind a variant flag); the `linear` accent variant still
@@ -418,9 +418,6 @@
     --popover: var(--island-b);
     --card: var(--surface-0);
     --input: var(--hairline);
-    --isl-shadow:
-      0 1px 2px hsl(34 22% 30% / 0.06), 0 4px 12px hsl(34 24% 24% / 0.09),
-      0 10px 24px hsl(34 24% 20% / 0.07);
     --pop-shadow: 0 8px 20px hsl(34 20% 26% / 0.14), 0 22px 50px hsl(34 22% 18% / 0.2);
   }
 
@@ -449,8 +446,6 @@
     --popover: var(--island-b);
     --card: var(--surface-0);
     --input: var(--hairline);
-    --isl-shadow:
-      0 1px 2px hsl(0 0% 0% / 0.45), 0 5px 14px hsl(0 0% 0% / 0.4), 0 12px 28px hsl(0 0% 0% / 0.35);
     --pop-shadow: 0 10px 26px hsl(0 0% 0% / 0.6), 0 24px 56px hsl(0 0% 0% / 0.7);
   }
 

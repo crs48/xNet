@@ -21,7 +21,7 @@ export function DevToolsIsland() {
       title={`Toggle developer tools (${shortcut})`}
       aria-label="Toggle developer tools"
       aria-pressed={dt.isOpen}
-      className={`flex h-8 w-8 flex-none items-center justify-center rounded-[14px] border border-hairline shadow-isl transition-colors cursor-pointer ${
+      className={`flex h-8 w-8 flex-none items-center justify-center rounded-[14px] border border-hairline transition-colors cursor-pointer ${
         dt.isOpen ? 'bg-accent text-ink-1' : 'bg-island-b text-ink-2 hover:text-ink-1'
       }`}
     >

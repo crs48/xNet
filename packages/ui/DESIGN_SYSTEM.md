@@ -34,8 +34,9 @@ planes; everything visible sits on one of them:
 | A — the paper | `--canvas` (`bg-canvas`) | shell backdrop, editor, **all tab content**. `--surface-0`, `--background`, and `--card` alias it, so view roots need no background class at all — the host paints the plane. |
 | B — the islands | `--island-b` (`bg-island-b`) | sidebar, status bar, dock, context panel, **and every overlay**: modals (`bg-island-pop` aliases it), dev-tools panel, popovers/menus/selects (`--popover` aliases it). |
 
-Elevation is carried by shadow (`shadow-isl` for chrome islands, `shadow-pop`
-for overlays) and the hairline border — never by a third fill colour. Raw
+Chrome islands sit flat — the hairline border alone draws their edge; only
+overlays carry a shadow (`shadow-pop`). Elevation never comes from a third
+fill colour. Raw
 Tailwind palette backgrounds (`bg-white`, `bg-gray-900`, …) are forbidden and
 CI-gated (`pnpm check:surface-tokens`); opacity-suffixed scrims
 (`bg-black/20`) are fine. `--surface-1`/`--surface-2` remain available for
