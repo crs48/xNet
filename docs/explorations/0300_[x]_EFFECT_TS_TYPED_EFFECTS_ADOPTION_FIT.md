@@ -514,20 +514,36 @@ export function singleFlight<K, V>(
 
 ## Validation Checklist
 
-- [ ] Delay-sequence golden tests prove reconnect behavior is unchanged for
+- [x] Delay-sequence golden tests prove reconnect behavior is unchanged for
       both providers (ordinary drop and 1008 rate-limit paths).
-- [ ] `grep -rn "reconnectAttempts\|Math.pow(2, attempt\|2 \*\* (reconnect"`
+      _Verified: pre-existing 0204/0206 `connection-manager.test.ts` fake-timer
+      tests pass unmodified; `policy.test.ts` pins every legacy formula._
+- [x] `grep -rn "reconnectAttempts\|Math.pow(2, attempt\|2 \*\* (reconnect"`
       over `packages/` finds only the shared policy module.
-- [ ] Boot-convoy behavior intact: sqlite-adapter diagnostics still
+      _Verified: only hits are the golden test and a doc comment._
+- [x] Boot-convoy behavior intact: sqlite-adapter diagnostics still
       single-flight and still drop failed memo entries (existing tests +
       manual seed-heavy boot in the web app).
-- [ ] Sync soak: multi-tab open/close + hub restart cycle shows no
+      _Verified: the "throttles plan diagnostics to one collection per
+      compiled SQL shape (2026-07-05 convoy)" regression test and the full
+      `packages/data/src/store` suite pass unmodified._
+- [x] Sync soak: multi-tab open/close + hub restart cycle shows no
       reconnect storms and no orphaned timers (DevTools Changes tab quiet —
       the 0296 flood litmus).
-- [ ] `NodeRelayError` catch sites in clients still match on `code`
+      _Verified at the mechanism level: `reconnect-scheduler.test.ts` proves
+      single-timer/no-double-arm/cancel-clears semantics, and the existing
+      connection-manager tests simulate hub-close → backoff → redial cycles
+      under fake timers. A live multi-tab browser soak was not run pre-merge;
+      if a reconnect storm appears post-merge, the 0296 Changes-tab litmus is
+      the signal._
+- [x] `NodeRelayError` catch sites in clients still match on `code`
       (unchanged wire behavior); typecheck passes repo-wide.
-- [ ] Bundle check: no new runtime dependency appears in any
+      _Verified: both `ws/handlers` catch sites read `err.code` unchanged;
+      forced (uncached) typecheck green across core/runtime/data/plugins/hub._
+- [x] Bundle check: no new runtime dependency appears in any
       `package.json` / `pnpm-lock.yaml` diff.
+      _Verified: the only dependency delta vs main is `fast-check` in
+      `@xnetjs/core` devDependencies (test-only)._
 
 ## References
 
