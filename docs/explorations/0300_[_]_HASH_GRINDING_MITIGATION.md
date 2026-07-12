@@ -529,9 +529,9 @@ const ringPosition = (hubDid: string, epochNonce: string): bigint => {
       (`packages/core/src/lww.ts`, `packages/data/src/store/types.ts`).
 - [x] Implement `pairTiebreak` and gate it behind `protocolVersion` so mixed
       fleets converge (`packages/core/src/lww.ts`).
-- [ ] Thread the winning change hash into `applyPropertyChange`/`shouldReplace`
+- [x] Thread the winning change hash into `applyPropertyChange`/`shouldReplace`
       (`packages/data/src/store/store.ts:2216-2264`).
-- [ ] Decide + implement the SQLite path: application-defined function or
+- [x] Decide + implement the SQLite path: application-defined function or
       move-LWW-to-app-code; keep it byte-equal to JS
       (`packages/core/src/lww.ts` `lwwUpdateGuardSql`, adapters).
 - [ ] Mirror the comparator in `packages/sync/src/chain.ts` and

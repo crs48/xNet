@@ -12,7 +12,12 @@
  * pinned in `packages/hub/test/lww-order.test.ts`.
  */
 import type { DID } from '@xnetjs/core'
-import { compareLwwStamps, type LwwStamp } from '@xnetjs/core'
+import {
+  LWW_TIEBREAK_KEY_VERSION,
+  compareLwwStamps,
+  computeLwwTiebreakKey,
+  type LwwStamp
+} from '@xnetjs/core'
 import { generateSigningKeyPair } from '@xnetjs/crypto'
 import { createDID } from '@xnetjs/identity'
 import { createMemorySQLiteAdapter } from '@xnetjs/sqlite/memory'
@@ -73,12 +78,16 @@ function oracleFold(changes: readonly NodeChange[]): Record<string, unknown> {
   const properties: Record<string, unknown> = {}
   const stamps: Record<string, LwwStamp> = {}
   for (const change of changes) {
-    const stamp: LwwStamp = {
-      lamport: change.lamport,
-      wallTime: change.wallTime,
-      author: change.authorDID
-    }
+    const hasKey = (change.protocolVersion ?? 0) >= LWW_TIEBREAK_KEY_VERSION
     for (const [key, value] of Object.entries(change.payload.properties ?? {})) {
+      // Mirror the store: v4+ changes carry a grinding-resistant tiebreak key
+      // (exploration 0300); legacy changes fall back to the author DID.
+      const stamp: LwwStamp = {
+        lamport: change.lamport,
+        wallTime: change.wallTime,
+        author: change.authorDID,
+        ...(hasKey ? { tiebreakKey: computeLwwTiebreakKey(change.authorDID, key, value) } : {})
+      }
       const current = stamps[key]
       if (!current || compareLwwStamps(stamp, current) > 0) {
         properties[key] = value

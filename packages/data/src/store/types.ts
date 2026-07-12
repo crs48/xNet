@@ -72,6 +72,12 @@ export interface PropertyTimestamp {
   author: DID
   /** Wall clock time (for display) */
   wallTime: number
+  /**
+   * Grinding-resistant LWW tiebreak key (exploration 0300;
+   * `computeLwwTiebreakKey`). Present only for protocol v4+ writes; absent
+   * (legacy) timestamps fall back to the author-DID tiebreak.
+   */
+  tiebreakKey?: string
 }
 
 /**

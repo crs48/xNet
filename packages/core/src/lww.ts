@@ -162,6 +162,6 @@ export function lwwUpdateGuardSql(input: {
     `            OR (excluded.${lamportColumn} = ${table}.${lamportColumn}\n` +
     `                AND (excluded.${wallTimeColumn} > ${table}.${wallTimeColumn}\n` +
     `                     OR (excluded.${wallTimeColumn} = ${table}.${wallTimeColumn}\n` +
-    `                         AND (${finalRung})))`
+    `                         AND (${finalRung}))))`
   )
 }

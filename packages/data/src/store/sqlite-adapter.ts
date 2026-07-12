@@ -93,7 +93,12 @@ const NODE_PROPERTIES_LWW_GUARD = lwwUpdateGuardSql({
   table: 'node_properties',
   lamportColumn: 'lamport_time',
   wallTimeColumn: 'updated_at',
-  authorColumn: 'updated_by'
+  authorColumn: 'updated_by',
+  // Grinding-resistant final tiebreak (exploration 0300): larger key wins when
+  // both rows carry one (v4+), else the author DID. The key is precomputed in
+  // application code and stored, so SQL only compares the opaque hex — byte
+  // identical to `shouldReplace` in ./store.ts, no user-defined function.
+  tiebreakKeyColumn: 'tiebreak_key'
 })
 
 // ─── Row Types ──────────────────────────────────────────────────────────────
@@ -384,6 +389,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
 
   /** One-time guard: ensure the `auth_fingerprint` column exists on upgraded DBs. */
   private materializationColumnsReady = false
+  private nodePropertyColumnsReady = false
 
   /**
    * Descriptor→SQL compilation lives in `query-compiler.ts` (exploration
@@ -828,6 +834,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     node: NodeState,
     options?: SetNodeOptions | ImportNodesOptions
   ): Promise<void> {
+    await this.ensureNodePropertyColumns()
     // Upsert node
     await this.db.run(
       `INSERT INTO nodes (id, schema_id, created_at, updated_at, created_by, deleted_at)
@@ -863,13 +870,14 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       // wallTime/author; DIDs are ASCII, so SQLite's BINARY collation agrees
       // with the UTF-16 code-unit comparison used in TypeScript.
       await this.db.run(
-        `INSERT INTO node_properties (node_id, property_key, value, lamport_time, updated_by, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?)
+        `INSERT INTO node_properties (node_id, property_key, value, lamport_time, updated_by, updated_at, tiebreak_key)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
          ON CONFLICT(node_id, property_key) DO UPDATE SET
            value = excluded.value,
            lamport_time = excluded.lamport_time,
            updated_by = excluded.updated_by,
-           updated_at = excluded.updated_at
+           updated_at = excluded.updated_at,
+           tiebreak_key = excluded.tiebreak_key
          WHERE ${NODE_PROPERTIES_LWW_GUARD}`,
         [
           node.id,
@@ -877,7 +885,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
           this.serializeValue(value),
           timestamp.lamport,
           timestamp.author,
-          timestamp.wallTime
+          timestamp.wallTime,
+          timestamp.tiebreakKey ?? null
         ]
       )
     }
@@ -959,7 +968,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
         )
         SELECT 
           ln.id, ln.schema_id, ln.created_at, ln.updated_at, ln.created_by, ln.deleted_at,
-          p.property_key, p.value, p.lamport_time, p.updated_by, p.updated_at as prop_updated_at,
+          p.property_key, p.value, p.lamport_time, p.updated_by, p.updated_at as prop_updated_at, p.tiebreak_key,
           NULL as ordinal
         FROM limited_nodes ln
         LEFT JOIN node_properties p ON ln.id = p.node_id
@@ -971,7 +980,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       sql = `
         SELECT 
           n.id, n.schema_id, n.created_at, n.updated_at, n.created_by, n.deleted_at,
-          p.property_key, p.value, p.lamport_time, p.updated_by, p.updated_at as prop_updated_at,
+          p.property_key, p.value, p.lamport_time, p.updated_by, p.updated_at as prop_updated_at, p.tiebreak_key,
           NULL as ordinal
         FROM nodes n
         LEFT JOIN node_properties p ON n.id = p.node_id
@@ -1640,6 +1649,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       throw new Error('SQLite transactionBatch is not available.')
     }
 
+    await this.ensureNodePropertyColumns()
     const operations: Array<{ sql: string; params?: SQLValue[] }> = []
     const indexProperties = options?.indexProperties ?? true
     const hasFullTextSearch = await this.fullTextIndexing.hasTable()
@@ -1706,16 +1716,17 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       if (!timestamp) continue
 
       operations.push({
-        // Full LWW ordering triple — keep in lockstep with the setNode
-        // upsert above and `shouldReplace` in ./store.ts (0272).
+        // Full LWW ordering chain — keep in lockstep with the setNode
+        // upsert above and `shouldReplace` in ./store.ts (0272/0300).
         sql: `INSERT INTO node_properties
-                (node_id, property_key, value, lamport_time, updated_by, updated_at)
-              VALUES (?, ?, ?, ?, ?, ?)
+                (node_id, property_key, value, lamport_time, updated_by, updated_at, tiebreak_key)
+              VALUES (?, ?, ?, ?, ?, ?, ?)
               ON CONFLICT(node_id, property_key) DO UPDATE SET
                 value = excluded.value,
                 lamport_time = excluded.lamport_time,
                 updated_by = excluded.updated_by,
-                updated_at = excluded.updated_at
+                updated_at = excluded.updated_at,
+                tiebreak_key = excluded.tiebreak_key
               WHERE ${NODE_PROPERTIES_LWW_GUARD}`,
         params: [
           node.id,
@@ -1723,7 +1734,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
           this.serializeValue(value),
           timestamp.lamport,
           timestamp.author,
-          timestamp.wallTime
+          timestamp.wallTime,
+          timestamp.tiebreakKey ?? null
         ]
       })
     }
@@ -2032,6 +2044,28 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       // a missing column surfaces as a refresh, never a leak.
     }
     this.materializationColumnsReady = true
+  }
+
+  /**
+   * Ensure the `node_properties.tiebreak_key` column exists (exploration 0300).
+   * Fresh databases get it from the DDL; databases created before schema v8 need
+   * this in-place add so the grinding-resistant LWW guard has a column to
+   * compare. Idempotent, memoized, and non-fatal on races — a legacy NULL key
+   * just falls back to the author-DID tiebreak.
+   */
+  private async ensureNodePropertyColumns(): Promise<void> {
+    if (this.nodePropertyColumnsReady) return
+    try {
+      const columns = await this.db.query<{ name: string }>(
+        `PRAGMA table_info(node_properties)`
+      )
+      if (!columns.some((column) => column.name === 'tiebreak_key')) {
+        await this.db.run('ALTER TABLE node_properties ADD COLUMN tiebreak_key TEXT')
+      }
+    } catch {
+      // A concurrent ALTER (duplicate column) or absent table is non-fatal.
+    }
+    this.nodePropertyColumnsReady = true
   }
 
   setNodeReadAuthorizer(authorizer: NodeReadAuthorizer | undefined): void {
