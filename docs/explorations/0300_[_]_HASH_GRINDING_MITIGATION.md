@@ -544,7 +544,7 @@ const ringPosition = (hubDid: string, epochNonce: string): bigint => {
 - [x] Add/replace golden vectors for the new tiebreak
       (`conformance/vectors/lww/`), update `0003`/`0004`, add a
       "pair-dependent tiebreak is not grindable" vector.
-- [ ] Write a Changeset: **major** for `@xnetjs/core` (+fixed core set) —
+- [x] Write a Changeset: **major** for `@xnetjs/core` (+fixed core set) —
       changed convergence contract; patch/minor for hub/shard/clientid fixes as
       the diff dictates.
 - [x] Add a Security Considerations section to the protocol spec documenting
