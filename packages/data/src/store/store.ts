@@ -53,18 +53,6 @@ import {
   computeLwwTiebreakKey,
   lwwWins
 } from '@xnetjs/core'
-import {
-  executeTransactionOperations,
-  executeTransactionOperationsFast,
-  type PendingTransactionEvent,
-  type WriteExecutionHost
-} from './transaction-executor'
-import {
-  executeDeterministicNodeImport,
-  planDeterministicNodeImport,
-  type DeterministicNodeImportAppliedPlan,
-  type DeterministicNodeImportPlan
-} from './batch-write-orchestrator'
 import { base64ToBytes, bytesToBase64 } from '@xnetjs/crypto'
 import { parseDID } from '@xnetjs/identity'
 import {
@@ -81,6 +69,12 @@ import {
 import { verifyChange, verifyChangeHash } from '@xnetjs/sync'
 import { createNodeId, getBaseSchemaIRI, type SchemaIRI } from '../schema/node'
 import { isSystemNamespaceResource, isSystemSchemaIri } from '../schema/schemas/system'
+import {
+  executeDeterministicNodeImport,
+  planDeterministicNodeImport,
+  type DeterministicNodeImportAppliedPlan,
+  type DeterministicNodeImportPlan
+} from './batch-write-orchestrator'
 import { PermissionError } from './permission-error'
 import {
   applyNodeQueryDescriptor,
@@ -89,6 +83,12 @@ import {
   type NodeQueryResult
 } from './query'
 import { resolveTempIds, type SchemaLookup } from './tempids'
+import {
+  executeTransactionOperations,
+  executeTransactionOperationsFast,
+  type PendingTransactionEvent,
+  type WriteExecutionHost
+} from './transaction-executor'
 
 /** Maximum number of conflicts to retain before trimming */
 const MAX_CONFLICTS = 200
@@ -234,7 +234,7 @@ export class NodeStore {
             schemaId: options.schemaId,
             properties: options.properties
           },
-          authAction: 'write',
+          authAction: 'create',
           requireExisting: false,
           createSchemaId: options.schemaId
         })
@@ -252,7 +252,7 @@ export class NodeStore {
 
       await this.assertAuthorized({
         subject: this.authorDID,
-        action: 'write',
+        action: 'create',
         nodeId: id,
         patch: options.properties,
         node: {
@@ -428,7 +428,7 @@ export class NodeStore {
             nodeId: id,
             properties: options.properties
           },
-          authAction: 'write',
+          authAction: 'update',
           requireExisting: true
         })
 
@@ -458,7 +458,7 @@ export class NodeStore {
 
       await this.assertAuthorized({
         subject: this.authorDID,
-        action: 'write',
+        action: 'update',
         nodeId: id,
         patch: options.properties,
         node: {
@@ -620,7 +620,7 @@ export class NodeStore {
           properties: {},
           deleted: false
         },
-        authAction: 'write',
+        authAction: 'update',
         requireExisting: true
       })
 
@@ -637,7 +637,7 @@ export class NodeStore {
 
     await this.assertAuthorized({
       subject: this.authorDID,
-      action: 'write',
+      action: 'update',
       nodeId: id,
       node: {
         schemaId: existing.schemaId,
@@ -1606,12 +1606,24 @@ export class NodeStore {
       }
 
       if (this.authEvaluator) {
-        const action = this.inferActionFromChange(change)
+        const stored = await this.storage.getNode(change.payload.nodeId)
+        const action = this.inferActionFromChange(change, stored)
         const decision = await this.authEvaluator.can({
           subject: change.authorDID,
           action,
           nodeId: change.payload.nodeId,
-          patch: action === 'write' ? change.payload.properties : undefined
+          patch: action === 'create' || action === 'update' ? change.payload.properties : undefined,
+          // A remote create has no stored node to evaluate against — build the
+          // draft from the payload so container-relation roles resolve
+          // (exploration 0304). Update/delete load the stored node as before.
+          node:
+            action === 'create' && change.payload.schemaId
+              ? {
+                  schemaId: change.payload.schemaId,
+                  createdBy: change.authorDID,
+                  properties: change.payload.properties
+                }
+              : undefined
         })
 
         if (!decision.allowed) {
@@ -2397,7 +2409,7 @@ export class NodeStore {
       if (operation.type === 'create') {
         await this.assertAuthorized({
           subject: this.authorDID,
-          action: 'write',
+          action: 'create',
           nodeId: operation.options.id ?? '',
           node: {
             schemaId: operation.options.schemaId,
@@ -2419,19 +2431,25 @@ export class NodeStore {
 
       await this.assertAuthorized({
         subject: this.authorDID,
-        action: 'write',
+        action: 'update',
         nodeId: operation.nodeId,
         patch: operation.type === 'update' ? operation.options.properties : undefined
       })
     }
   }
 
-  private inferActionFromChange(change: NodeChange): AuthAction {
+  private inferActionFromChange(change: NodeChange, stored: NodeState | null): AuthAction {
     if (change.payload.deleted === true) {
       return 'delete'
     }
 
-    return 'write'
+    // A change that would bring the node into existence is a create; anything
+    // touching a stored node (including redelivered creates) is an update.
+    if (!stored && change.payload.schemaId) {
+      return 'create'
+    }
+
+    return 'update'
   }
 
   private shouldRecomputeRecipients(schemaId: SchemaIRI, patch: Record<string, unknown>): boolean {

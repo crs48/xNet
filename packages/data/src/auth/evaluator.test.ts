@@ -767,3 +767,248 @@ describe('DefaultPolicyEvaluator', () => {
     expect(afterReconnect.cached).toBe(false)
   })
 })
+
+// ─── create/update refinements with write fallback (exploration 0304) ─────────
+
+const ContributorDocSchema = defineSchema({
+  name: 'AuthContributorDoc',
+  namespace: 'xnet://tests/',
+  properties: {
+    title: text({ required: true }),
+    editors: person({ multiple: true })
+  },
+  authorization: {
+    roles: {
+      owner: role.creator(),
+      editor: role.property('editors')
+    },
+    actions: {
+      read: allow('owner', 'editor'),
+      // editors may add documents; only the author may modify them afterwards
+      create: allow('editor'),
+      update: allow('owner'),
+      delete: allow('owner'),
+      share: allow('owner')
+    }
+  }
+})
+
+const SplitWithWriteSchema = defineSchema({
+  name: 'AuthSplitWithWrite',
+  namespace: 'xnet://tests/',
+  properties: {
+    title: text({ required: true }),
+    editors: person({ multiple: true }),
+    admins: person({ multiple: true })
+  },
+  authorization: {
+    roles: {
+      owner: role.creator(),
+      editor: role.property('editors'),
+      admin: role.property('admins')
+    },
+    actions: {
+      read: allow('owner', 'editor', 'admin'),
+      // granular create ignores the write fallback entirely
+      create: allow('admin'),
+      write: allow('owner', 'editor', 'admin'),
+      delete: allow('owner'),
+      share: allow('owner')
+    }
+  }
+})
+
+describe('DefaultPolicyEvaluator create/update fallback (0304)', () => {
+  it('create and update fall back to the write expression when absent', async () => {
+    const alice = createIdentity()
+    const bob = createIdentity()
+    const carol = createIdentity()
+    const store = await createStore(alice)
+    const schemaRegistry = new SchemaRegistry()
+    schemaRegistry.register(ProjectSchema)
+
+    const project = await store.create({
+      schemaId: ProjectSchema.schema['@id'],
+      properties: { title: 'Fallback', admins: [bob.did] }
+    })
+
+    const evaluator = new DefaultPolicyEvaluator({ store, schemaRegistry })
+
+    // ProjectSchema only declares write: allow('owner', 'admin') — the
+    // refinements must behave byte-identically to a write check.
+    for (const action of ['create', 'update', 'write'] as const) {
+      expect(
+        (await evaluator.can({ subject: bob.did, action, nodeId: project.id })).allowed,
+        `admin ${action}`
+      ).toBe(true)
+      expect(
+        (await evaluator.can({ subject: carol.did, action, nodeId: project.id })).allowed,
+        `outsider ${action}`
+      ).toBe(false)
+    }
+  })
+
+  it('expresses contributor semantics: editors may create, only the owner may update', async () => {
+    const alice = createIdentity()
+    const bob = createIdentity()
+    const store = await createStore(alice)
+    const schemaRegistry = new SchemaRegistry()
+    schemaRegistry.register(ContributorDocSchema)
+
+    // Alice's existing doc lists bob as editor.
+    const doc = await store.create({
+      schemaId: ContributorDocSchema.schema['@id'],
+      properties: { title: 'Owned by alice', editors: [bob.did] }
+    })
+
+    const evaluator = new DefaultPolicyEvaluator({ store, schemaRegistry })
+
+    // Bob may create a NEW doc (draft node, createdBy = bob, bob in editors).
+    const draftCreate = await evaluator.can({
+      subject: bob.did,
+      action: 'create',
+      nodeId: 'draft-doc-1',
+      node: {
+        schemaId: ContributorDocSchema.schema['@id'],
+        createdBy: bob.did,
+        properties: { title: 'New from bob', editors: [bob.did] }
+      }
+    })
+    expect(draftCreate.allowed).toBe(true)
+
+    // Bob may NOT update alice's doc — update is owner-only, and the create
+    // expression must not leak into update checks.
+    expect(
+      (await evaluator.can({ subject: bob.did, action: 'update', nodeId: doc.id })).allowed
+    ).toBe(false)
+    // Legacy write checks on an existing node follow the update rule.
+    expect(
+      (await evaluator.can({ subject: bob.did, action: 'write', nodeId: doc.id })).allowed
+    ).toBe(false)
+    // The owner still updates freely.
+    expect(
+      (await evaluator.can({ subject: alice.did, action: 'update', nodeId: doc.id })).allowed
+    ).toBe(true)
+  })
+
+  it('a declared create expression wins over the write fallback', async () => {
+    const alice = createIdentity()
+    const bob = createIdentity()
+    const store = await createStore(alice)
+    const schemaRegistry = new SchemaRegistry()
+    schemaRegistry.register(SplitWithWriteSchema)
+
+    const node = await store.create({
+      schemaId: SplitWithWriteSchema.schema['@id'],
+      properties: { title: 'Split', editors: [bob.did], admins: [] }
+    })
+
+    const evaluator = new DefaultPolicyEvaluator({ store, schemaRegistry })
+
+    // Editor bob is covered by write — update (fallback) allows him...
+    expect(
+      (await evaluator.can({ subject: bob.did, action: 'update', nodeId: node.id })).allowed
+    ).toBe(true)
+    // ...but create is declared as admin-only, so the write expression is
+    // ignored for create checks — even for the owner.
+    expect(
+      (await evaluator.can({ subject: bob.did, action: 'create', nodeId: node.id })).allowed
+    ).toBe(false)
+    expect(
+      (await evaluator.can({ subject: alice.did, action: 'create', nodeId: node.id })).allowed
+    ).toBe(false)
+  })
+
+  it('grant satisfaction: write covers the refinements, granular grants stay narrow', async () => {
+    const alice = createIdentity()
+    const bob = createIdentity()
+    const carol = createIdentity()
+    const store = await createStore(alice)
+    const schemaRegistry = new SchemaRegistry()
+    schemaRegistry.register(ContributorDocSchema)
+
+    const doc = await store.create({
+      schemaId: ContributorDocSchema.schema['@id'],
+      properties: { title: 'Granted', editors: [] }
+    })
+
+    // bob holds a coarse write grant; carol holds a create-only grant.
+    await store.create({
+      schemaId: GRANT_SCHEMA_ID,
+      properties: {
+        grantee: bob.did,
+        resource: doc.id,
+        actions: JSON.stringify(['write']),
+        revokedAt: 0,
+        expiresAt: Date.now() + 10_000
+      }
+    })
+    await store.create({
+      schemaId: GRANT_SCHEMA_ID,
+      properties: {
+        grantee: carol.did,
+        resource: doc.id,
+        actions: JSON.stringify(['create']),
+        revokedAt: 0,
+        expiresAt: Date.now() + 10_000
+      }
+    })
+
+    const grantIndex = new GrantIndex(store)
+    await grantIndex.initialize()
+    const evaluator = new DefaultPolicyEvaluator({ store, schemaRegistry, grantIndex })
+
+    // A write grant satisfies update checks on the node.
+    expect(
+      (await evaluator.can({ subject: bob.did, action: 'update', nodeId: doc.id })).allowed
+    ).toBe(true)
+    // A create-only grant does NOT satisfy update or legacy write checks.
+    expect(
+      (await evaluator.can({ subject: carol.did, action: 'update', nodeId: doc.id })).allowed
+    ).toBe(false)
+    expect(
+      (await evaluator.can({ subject: carol.did, action: 'write', nodeId: doc.id })).allowed
+    ).toBe(false)
+    grantIndex.dispose()
+  })
+
+  it('field rules apply to update and create checks', async () => {
+    const alice = createIdentity()
+    const bob = createIdentity()
+    const store = await createStore(alice)
+    const schemaRegistry = new SchemaRegistry()
+    schemaRegistry.register(ProjectSchema)
+    schemaRegistry.register(TaskSchema)
+
+    const project = await store.create({
+      schemaId: ProjectSchema.schema['@id'],
+      properties: { title: 'FieldRules', admins: [bob.did] }
+    })
+    const task = await store.create({
+      schemaId: TaskSchema.schema['@id'],
+      properties: { title: 'Locked title', project: project.id }
+    })
+
+    const evaluator = new DefaultPolicyEvaluator({ store, schemaRegistry })
+
+    // TaskSchema locks `title` to the owner via fieldRules. A projectAdmin
+    // update patching title must be denied on the update action too.
+    const denied = await evaluator.can({
+      subject: bob.did,
+      action: 'update',
+      nodeId: task.id,
+      patch: { title: 'Hijacked' }
+    })
+    expect(denied.allowed).toBe(false)
+    expect(denied.reasons).toContain('DENY_FIELD_RESTRICTED')
+
+    // Without the restricted field the same update is allowed.
+    const allowed = await evaluator.can({
+      subject: bob.did,
+      action: 'update',
+      nodeId: task.id,
+      patch: { assignee: bob.did }
+    })
+    expect(allowed.allowed).toBe(true)
+  })
+})

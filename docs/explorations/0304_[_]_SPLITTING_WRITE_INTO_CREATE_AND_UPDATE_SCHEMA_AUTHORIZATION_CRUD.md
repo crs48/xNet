@@ -444,20 +444,20 @@ private inferActionFromChange(change: NodeChange, stored: NodeState | null): Aut
 - [x] `packages/core/src/auth-types.ts`: add `create`/`update` to
       `AUTH_ACTIONS`; document fallback semantics on the type; mirror in
       `permissions.ts` `Capability`/`ALL_CAPABILITIES`/`STANDARD_ROLES`.
-- [ ] `packages/data/src/auth/evaluator.ts`: `actionExpression()` fallback;
+- [x] `packages/data/src/auth/evaluator.ts`: `actionExpression()` fallback;
       draft-node evaluation for `create`; extend field-rule gate
       (`:696`) to `create`/`update`/`write`; cache-key audit (action is
       already part of the key).
-- [ ] `packages/data/src/store/store.ts`: `create()`/`update()`/
+- [x] `packages/data/src/store/store.ts`: `create()`/`update()`/
       `assertAuthorizedBatch`/`applySingleNodeWrite` use precise verbs;
       `inferActionFromChange(change, stored)` distinguishes remote creates;
       remote create evaluates against draft-from-payload.
-- [ ] `packages/data/src/auth/store-auth.ts`: `isAuthAction` accepts new
+- [x] `packages/data/src/auth/store-auth.ts`: `isAuthAction` accepts new
       actions; grant matching treats `write` ⊇ {`create`,`update`}.
-- [ ] `packages/data/src/auth/validate.ts`: PUBLIC-on-mutation guard covers
+- [x] `packages/data/src/auth/validate.ts`: PUBLIC-on-mutation guard covers
       `create`/`update`; warn when a schema defines `create`/`update` _and_
       relies on `write` fallback ambiguously (lint-level).
-- [ ] `packages/data/src/auth/hub-policy.ts`: `SCHEMA_ACTION_TO_HUB` maps
+- [x] `packages/data/src/auth/hub-policy.ts`: `SCHEMA_ACTION_TO_HUB` maps
       `create`/`update` → `write`; parity tests updated.
 - [ ] `spaceContributorAuthorization()` (or option on the cascade); adopt for
       `ChatMessage` and `Comment`; audit the other 42 authorized schemas for

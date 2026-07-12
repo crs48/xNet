@@ -555,6 +555,8 @@ function parseActions(value: unknown): AuthAction[] {
 function isAuthAction(value: unknown): value is AuthAction {
   return (
     value === 'read' ||
+    value === 'create' ||
+    value === 'update' ||
     value === 'write' ||
     value === 'delete' ||
     value === 'share' ||

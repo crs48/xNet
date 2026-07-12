@@ -1,16 +1,19 @@
 import type { DefinedSchema, SchemaRegistry } from '../schema'
 import type { Schema } from '../schema/types'
 import type { NodeChangeEvent, NodeState } from '../store'
-import type {
-  AuthCheckInput,
-  AuthDecision,
-  AuthDenyReason,
-  AuthExpression,
-  AuthTrace,
-  AuthTraceStep,
-  DID,
-  PolicyEvaluator,
-  RoleResolver
+import {
+  actionExpressionOrder,
+  grantActionSatisfies,
+  type AuthAction,
+  type AuthCheckInput,
+  type AuthDecision,
+  type AuthDenyReason,
+  type AuthExpression,
+  type AuthTrace,
+  type AuthTraceStep,
+  type DID,
+  type PolicyEvaluator,
+  type RoleResolver
 } from '@xnetjs/core'
 import { GrantIndex, isGrantActive, type GrantNode } from './grants'
 import { getAuthMode } from './mode'
@@ -524,7 +527,7 @@ export class DefaultPolicyEvaluator implements PolicyEvaluator {
       return decision
     }
 
-    const actionExpr = auth.actions[input.action]
+    const actionExpr = resolveActionExpression(auth.actions, input.action)
     if (!actionExpr) {
       const decision = this.deny(input, ['DENY_NO_ROLE_MATCH'], start, [...roles])
       this.emitDecision(decision)
@@ -594,7 +597,7 @@ export class DefaultPolicyEvaluator implements PolicyEvaluator {
         })
 
         const auth = deserializeAuthorization(schema.schema.authorization)
-        actionExpr = auth.actions[input.action]
+        actionExpr = resolveActionExpression(auth.actions, input.action)
 
         const evalStart = performance.now()
         const requiredRoles = actionExpr ? extractRoleRefs(actionExpr) : []
@@ -680,7 +683,8 @@ export class DefaultPolicyEvaluator implements PolicyEvaluator {
       }
 
       const actions = parseActions(grant.properties.actions)
-      if (actions.includes(input.action)) {
+      // Unknown action strings fall through grantActionSatisfies to false.
+      if (actions.some((granted) => grantActionSatisfies(granted as AuthAction, input.action))) {
         return grant
       }
     }
@@ -693,7 +697,9 @@ export class DefaultPolicyEvaluator implements PolicyEvaluator {
     fieldRules: Record<string, { allow: AuthExpression; deny?: AuthExpression }> | undefined,
     roles: Set<string>
   ): boolean {
-    if (input.action !== 'write' || !input.patch || !fieldRules) {
+    const isMutation =
+      input.action === 'write' || input.action === 'update' || input.action === 'create'
+    if (!isMutation || !input.patch || !fieldRules) {
       return false
     }
 
@@ -854,6 +860,23 @@ function membershipRoleAtLeast(
 
 function isDid(value: unknown): value is DID {
   return typeof value === 'string' && value.startsWith('did:key:')
+}
+
+/**
+ * Pick the expression governing a checked action, applying the 0304 write
+ * fallback: `create`/`update` fall back to `write` when the schema does not
+ * declare the finer action; a legacy `write` check uses `update` first so a
+ * schema that split its policy governs old callers with the update rule.
+ */
+function resolveActionExpression(
+  actions: Record<string, AuthExpression | undefined>,
+  action: AuthAction
+): AuthExpression | undefined {
+  for (const candidate of actionExpressionOrder(action)) {
+    const expr = actions[candidate]
+    if (expr) return expr
+  }
+  return undefined
 }
 
 function parseActions(value: unknown): string[] {
