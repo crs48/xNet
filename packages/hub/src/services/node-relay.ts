@@ -5,6 +5,7 @@ import type { RemoteMutationTelemetryOptions } from './remote-mutation-telemetry
 import type { AuthContext } from '../auth/ucan'
 import type { HubStorage, SerializedNodeChange } from '../storage/interface'
 import type { ContentId, DID } from '@xnetjs/core'
+import { TaggedError } from '@xnetjs/core'
 import { base64ToBytes } from '@xnetjs/crypto'
 import { isSystemNamespaceResource, isSystemSchemaIri, isValidMentions } from '@xnetjs/data'
 import { parseDID } from '@xnetjs/identity'
@@ -49,7 +50,9 @@ export type NodeClearedResponse = {
   cleared: number
 }
 
-export class NodeRelayError extends Error {
+export class NodeRelayError extends TaggedError<'NodeRelayError'> {
+  readonly _tag = 'NodeRelayError'
+
   constructor(
     public code:
       | 'UNAUTHORIZED'
@@ -69,7 +72,6 @@ export class NodeRelayError extends Error {
     public resource?: string
   ) {
     super(message)
-    this.name = 'NodeRelayError'
   }
 }
 
@@ -114,7 +116,6 @@ export type NodeRelayOptions = {
   broadcastToRoom?: (room: string, change: SerializedNodeChange) => void
 }
 
-/** Serialized byte size a change contributes to a user's quota. */
 /**
  * Default upper bound on how far a change's `wallTime` may lead the hub clock
  * (exploration 0300, fix G). Five minutes tolerates ordinary client clock skew
@@ -122,6 +123,7 @@ export type NodeRelayOptions = {
  */
 const DEFAULT_MAX_WALL_TIME_SKEW_MS = 5 * 60_000
 
+/** Serialized byte size a change contributes to a user's quota. */
 const changeUsageBytes = (change: SerializedNodeChange): number =>
   JSON.stringify(change.payload).length + change.signatureB64.length
 

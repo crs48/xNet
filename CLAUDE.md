@@ -74,6 +74,21 @@ reservoir): `packages/canvas/src/__tests__/chunked-storage.test.ts`,
 `tests/integration/src/webrtc-signaling.test.ts`,
 `packages/sqlite/src/adapter.test.ts` (prefer `:memory:`).
 
+## Structured errors: TaggedError (0300)
+
+New structured error classes extend `TaggedError` from `@xnetjs/core`
+(`packages/core/src/errors/tagged.ts`) instead of raw `Error`:
+
+- set `_tag` to the class name (string literal), so catch sites can narrow
+  with `isTagged(err, 'SomeError')` or a `_tag` switch;
+- machine-readable context goes in readonly fields — use a `code`
+  string-literal union when one class spans several failure kinds (see
+  `NodeRelayError`, `PermissionError`, the exemplars);
+- chain underlying causes via `new SomeError(msg, { cause })`, never by
+  string-concatenating messages.
+
+Migrate existing `class X extends Error` on touch, not as a campaign.
+
 ## Commits
 
 Conventional Commits are enforced (commitlint). `feat:` → minor, `fix:`/`perf:` →

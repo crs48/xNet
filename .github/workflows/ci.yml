@@ -1,5 +1,10 @@
 name: CI
 
+# KEEP IN SYNC: the `paths-ignore` lists below must exactly mirror the
+# `paths:` list in ci-docs-noop.yml — the no-op twin that reports the required
+# lint/typecheck/test/editor-ux contexts on docs-only PRs, which would
+# otherwise stay BLOCKED because this workflow never runs for them.
+
 on:
   push:
     branches: [main]
