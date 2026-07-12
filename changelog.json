@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-12-hardened-change-log-integrity-and-hub-qu",
+      "url": "https://xnet.fyi/changelog#2026-07-12-hardened-change-log-integrity-and-hub-qu",
+      "title": "Hardened change-log integrity and hub query safety",
+      "content_text": "Sync integrity checks now verify author signatures cryptographically instead of merely checking they are present, hash auto-repair no longer runs on untrusted data, the hub validates dynamic query column identifiers against SQL injection, and it warns loudly when auth or signed-replication safety is relaxed.\n",
+      "date_published": "2026-07-12T21:59:10Z",
+      "tags": [
+        "sync"
+      ],
+      "_xnet": {
+        "date": "July 12, 2026",
+        "summary": "Sync integrity checks now verify author signatures cryptographically instead of merely checking they are present, hash auto-repair no longer runs on untrusted data, the hub validates dynamic query column identifiers against SQL injection, and it warns loudly when auth or signed-replication safety is relaxed.",
+        "highlights": [],
+        "mergedAt": "2026-07-12T21:59:10Z",
+        "pr": 487,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-12-flatter-workbench-islands",
       "url": "https://xnet.fyi/changelog#2026-07-12-flatter-workbench-islands",
       "title": "Flatter workbench islands",

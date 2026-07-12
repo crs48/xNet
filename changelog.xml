@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Hardened change-log integrity and hub query safety</title>
+      <link>https://xnet.fyi/changelog#2026-07-12-hardened-change-log-integrity-and-hub-qu</link>
+      <guid isPermaLink="false">2026-07-12-hardened-change-log-integrity-and-hub-qu</guid>
+      <pubDate>Sun, 12 Jul 2026 21:59:10 GMT</pubDate>
+      <description>Sync integrity checks now verify author signatures cryptographically instead of merely checking they are present, hash auto-repair no longer runs on untrusted data, the hub validates dynamic query column identifiers against SQL injection, and it warns loudly when auth or signed-replication safety is relaxed.</description>
+    </item>
+    <item>
       <title>Flatter workbench islands</title>
       <link>https://xnet.fyi/changelog#2026-07-12-flatter-workbench-islands</link>
       <guid isPermaLink="false">2026-07-12-flatter-workbench-islands</guid>
