@@ -870,7 +870,7 @@ function isDid(value: unknown): value is DID {
  * declare the finer action; a legacy `write` check uses `update` first so a
  * schema that split its policy governs old callers with the update rule.
  */
-function resolveActionExpression(
+export function resolveActionExpression(
   actions: Record<string, AuthExpression | undefined>,
   action: AuthAction
 ): AuthExpression | undefined {

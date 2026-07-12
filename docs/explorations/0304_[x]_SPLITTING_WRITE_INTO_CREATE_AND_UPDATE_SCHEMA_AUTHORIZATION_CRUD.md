@@ -469,26 +469,26 @@ private inferActionFromChange(change: NodeChange, stored: NodeState | null): Aut
 - [x] React hooks: `useCanEdit` checks `update`; add creation checks where
       composers need them (chat composer, task quick-add) — new surface via
       the hooks sub-barrel per 0276 policy.
-- [ ] Changesets: `@xnetjs/core` + `@xnetjs/data` **minor** (additive API);
+- [x] Changesets: `@xnetjs/core` + `@xnetjs/data` **minor** (additive API);
       confirm no serialized-format change ⇒ not major.
-- [ ] Evaluator/store/adversarial tests: contributor semantics (member
+- [x] Evaluator/store/adversarial tests: contributor semantics (member
       creates ✓, member edits other's node ✗, author edits own ✓); remote
       create allow/deny; fallback equivalence property test (schema without
       granular actions behaves byte-identically to today).
 
 ## Validation Checklist
 
-- [ ] All existing auth tests pass unmodified (fallback preserves behavior).
-- [ ] New test: schema with `create: allow('spaceMember')` (no `owner`) —
+- [x] All existing auth tests pass unmodified (fallback preserves behavior).
+- [x] New test: schema with `create: allow('spaceMember')` (no `owner`) —
       non-member create denied locally _and_ via `applyRemoteChange`.
-- [ ] New test: `ChatMessage` with contributor cascade — member A cannot
+- [x] New test: `ChatMessage` with contributor cascade — member A cannot
       update member B's message; B can; spaceAdmin can.
-- [ ] Remote-create regression test: evaluator wired into a syncing store;
+- [x] Remote-create regression test: evaluator wired into a syncing store;
       collaborator create in a shared space applies (fails on `main` today).
-- [ ] `hub-policy.test.ts` parity green with the new projection.
-- [ ] Conformance `authz` vectors green in all kernels; new fallback vectors
+- [x] `hub-policy.test.ts` parity green with the new projection.
+- [x] Conformance `authz` vectors green in all kernels; new fallback vectors
       added and green.
-- [ ] Permission matrix panel renders `create`/`update` rows for a schema
+- [x] Permission matrix panel renders `create`/`update` rows for a schema
       declaring them, and omits them (showing `write`) otherwise.
 
 ## References

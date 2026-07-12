@@ -1012,3 +1012,56 @@ describe('DefaultPolicyEvaluator create/update fallback (0304)', () => {
     expect(allowed.allowed).toBe(true)
   })
 })
+
+describe('write-fallback equivalence property (0304)', () => {
+  it('a schema without granular actions decides create/update/write identically to write', async () => {
+    const fc = await import('fast-check')
+    const { evaluateExpression, resolveActionExpression } = await import('./evaluator')
+
+    const ROLE_UNIVERSE = ['owner', 'editor', 'viewer', 'banned'] as const
+
+    const exprArb = fc.letrec((tie) => ({
+      expr: fc.oneof(
+        { maxDepth: 4, withCrossShrink: true },
+        fc
+          .subarray([...ROLE_UNIVERSE], { minLength: 1 })
+          .map((roles) => ({ _tag: 'allow', roles }) as const),
+        fc
+          .subarray([...ROLE_UNIVERSE], { minLength: 1 })
+          .map((roles) => ({ _tag: 'deny', roles }) as const),
+        fc.constant({ _tag: 'public' } as const),
+        fc.constant({ _tag: 'authenticated' } as const),
+        fc
+          .array(tie('expr'), { minLength: 1, maxLength: 3 })
+          .map((exprs) => ({ _tag: 'and', exprs }) as const),
+        fc
+          .array(tie('expr'), { minLength: 1, maxLength: 3 })
+          .map((exprs) => ({ _tag: 'or', exprs }) as const),
+        tie('expr').map((expr) => ({ _tag: 'not', expr }) as const)
+      )
+    })).expr
+
+    fc.assert(
+      fc.property(
+        exprArb,
+        fc.subarray([...ROLE_UNIVERSE]),
+        fc.boolean(),
+        (writeExpr, heldRoles, isAuthenticated) => {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const actions = { read: { _tag: 'public' }, write: writeExpr } as any
+          const roles = new Set<string>(heldRoles)
+
+          const baseline = evaluateExpression(writeExpr as never, roles, isAuthenticated)
+          for (const action of ['create', 'update', 'write'] as const) {
+            const resolved = resolveActionExpression(actions, action)
+            // The fallback must select the write expression itself…
+            expect(resolved).toBe(writeExpr)
+            // …so the decision is byte-identical to a plain write check.
+            expect(evaluateExpression(resolved as never, roles, isAuthenticated)).toBe(baseline)
+          }
+        }
+      ),
+      { numRuns: 200 }
+    )
+  })
+})
