@@ -115,6 +115,9 @@ export { AUTH_ACTIONS } from './auth-types'
 // Shared utility helpers (dependency-free)
 export { clamp, clamp01, formatBytes } from './utils'
 
+// Retry/backoff policies (exploration 0300)
+export { capped, exponential, fixed, jittered, limitAttempts, type RetryPolicy } from './retry'
+
 // The ONE Last-Write-Wins ordering (protocol §L1.7; exploration 0276)
 export {
   compareChangeApplicationOrder,

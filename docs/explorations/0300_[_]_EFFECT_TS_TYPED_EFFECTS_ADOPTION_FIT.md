@@ -26,15 +26,15 @@ tied to Effect v4 going stable.**
 The survey found genuine overlap — xNet independently re-implements typed
 error codes, exponential-backoff-with-jitter (twice, duplicated),
 single-flight promise memoization (four times), cancellation, and boundary
-validation. Effect would model all of these better *in isolation*. But four
+validation. Effect would model all of these better _in isolation_. But four
 repo-specific facts flip the cost/benefit:
 
-| Fact | Consequence |
-| ---- | ----------- |
-| The repo's runtime-dependency posture is deliberately lean — the only large committed runtime dep is `yjs`; there is no fp library anywhere (`grep effect\|fp-ts\|neverthrow` over every `package.json` → zero) | Effect is not a library, it's a paradigm; it would become the second "framework-grade" commitment after Yjs and it colonizes every function signature it touches |
-| Effect v4 is in **beta** (Feb 2026), a ground-up runtime rewrite with a new package layout; v3 code takes migration work | Adopting v3 now buys a migration; adopting v4 now buys beta churn |
-| `@xnetjs/*` packages are **published libraries** — Effect types in public signatures would force Effect onto every consumer (peer-dependency and API-surface blast radius; root-barrel policy makes API surface a reviewed contract) | Internal-only adoption requires an "Effect firewall" at every package boundary, which forfeits much of the value |
-| The duplicated/fragile async code is concentrated in ~5 files (sync-manager, two reconnect providers, web-leader, hub relay), not smeared across the repo | A targeted native refactor (~300 lines of shared utilities) captures most of the reliability win at ~2% of the adoption cost |
+| Fact                                                                                                                                                                                                                                 | Consequence                                                                                                                                                      |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The repo's runtime-dependency posture is deliberately lean — the only large committed runtime dep is `yjs`; there is no fp library anywhere (`grep effect\|fp-ts\|neverthrow` over every `package.json` → zero)                      | Effect is not a library, it's a paradigm; it would become the second "framework-grade" commitment after Yjs and it colonizes every function signature it touches |
+| Effect v4 is in **beta** (Feb 2026), a ground-up runtime rewrite with a new package layout; v3 code takes migration work                                                                                                             | Adopting v3 now buys a migration; adopting v4 now buys beta churn                                                                                                |
+| `@xnetjs/*` packages are **published libraries** — Effect types in public signatures would force Effect onto every consumer (peer-dependency and API-surface blast radius; root-barrel policy makes API surface a reviewed contract) | Internal-only adoption requires an "Effect firewall" at every package boundary, which forfeits much of the value                                                 |
+| The duplicated/fragile async code is concentrated in ~5 files (sync-manager, two reconnect providers, web-leader, hub relay), not smeared across the repo                                                                            | A targeted native refactor (~300 lines of shared utilities) captures most of the reliability win at ~2% of the adoption cost                                     |
 
 The three ideas worth stealing natively now:
 
@@ -54,7 +54,7 @@ Hono-based (Effect's `@effect/platform` interoperates with Hono).
 ## Current State In The Repository
 
 The survey below is what makes this question non-hypothetical: xNet already
-*has* an effect system — it is just untyped, duplicated, and hand-rolled.
+_has_ an effect system — it is just untyped, duplicated, and hand-rolled.
 
 ### Errors: 91 thrown `Error` subclasses, some with hand-rolled tags
 
@@ -64,8 +64,8 @@ i.e. they are `Data.TaggedError` written by hand:
 
 - `packages/hub/src/services/node-relay.ts:52` — `NodeRelayError` with
   `code: 'UNAUTHORIZED' | 'MISSING_SCOPE' | 'INVALID_CHANGE' |
-  'INVALID_SIGNATURE' | 'INVALID_HASH' | 'REPLAY_REJECTED' |
-  'QUOTA_EXCEEDED' | 'STORAGE_FULL'` plus `action`/`resource` context.
+'INVALID_SIGNATURE' | 'INVALID_HASH' | 'REPLAY_REJECTED' |
+'QUOTA_EXCEEDED' | 'STORAGE_FULL'` plus `action`/`resource` context.
 - `packages/data/src/store/permission-error.ts:6` (`PermissionError`),
   `packages/data/src/schema/lens.ts:79` (`MigrationError`),
   `packages/sync/src/yjs-authorized-sync.ts:314` (`AuthorizedYjsError`),
@@ -183,7 +183,7 @@ fp-runtime and its second framework-grade commitment.
   ([Maglione's migration notes](https://www.sandromaglione.com/newsletter/my-effect-v4-beta-migrations)).
 - Effect's own [Myths page](https://effect.website/docs/additional-resources/myths/)
   concedes ~25 kB gzipped core (v3), argues tree-shaking friendliness and
-  that app code often gets *smaller*, and pitches a 10–20-function starter
+  that app code often gets _smaller_, and pitches a 10–20-function starter
   vocabulary. There is also `Micro`, a reduced-footprint variant.
 - On validation specifically, Effect maintains its own
   [Schema-vs-Zod comparison](https://github.com/Effect-TS/effect/blob/main/packages/effect/schema-vs-zod.md):
@@ -220,7 +220,7 @@ typed protocol errors, devtools introspection)
 ([Sync different talk](https://www.youtube.com/watch?v=nyPl84BopKc),
 [localfirst.fm landscape](https://www.localfirst.fm/landscape/livestore)).
 This proves the pairing works. It also illustrates the commitment level:
-LiveStore is Effect *all the way down* — it was architected on Effect from
+LiveStore is Effect _all the way down_ — it was architected on Effect from
 day one, not retrofitted onto a 49-package monorepo with a published API
 surface.
 
@@ -272,7 +272,7 @@ flowchart LR
   the 0210 consent/observability spine; deletes four categories of
   hand-rolled infrastructure.
 - **Against**: paradigm tax on every future contributor; viral types across
-  49 packages and the *published* API surface (semver majors across the
+  49 packages and the _published_ API surface (semver majors across the
   fixed core); v4-beta churn or v3→v4 migration; violates the repo's lean
   posture; bus-factor risk documented in the wild; the Yjs interop boundary
   (event-emitter world) would need adapters everywhere.
@@ -286,7 +286,7 @@ flowchart LR
 - **Against**: still lands the learning curve and a beta (or
   soon-to-be-legacy v3) dependency; the hub is production infrastructure
   (demo hub on Railway) — the wrong place to learn a new runtime's failure
-  modes; nothing is currently *blocked* on Effect.
+  modes; nothing is currently _blocked_ on Effect.
 - **Verdict**: deferred, not rejected — this is the designated first step if
   the trigger fires.
 
@@ -308,7 +308,7 @@ flowchart LR
   single-flight, informal error tags) with ~300 lines of shared, dependency-
   free utilities; zero onboarding tax; zero API-surface impact beyond
   additive exports; keeps the option value — utilities shaped like
-  `Schedule`/`TaggedError` make a *later* Effect migration nearly
+  `Schedule`/`TaggedError` make a _later_ Effect migration nearly
   mechanical.
 - **Against**: hand-rolled utilities are still hand-rolled — no interruption
   semantics, no fiber supervision, no free tracing; doesn't help the
@@ -327,7 +327,7 @@ trigger down so it isn't vibes:
    test: `WebSocketSyncProvider` should lose its private
    `reconnectDelay/reconnectAttempts/reconnectTimer` trio entirely.
 2. **A `TaggedError` base + convention** — `class NodeRelayError extends
-   TaggedError('NodeRelayError')<{...}>`-style ergonomics without the
+TaggedError('NodeRelayError')<{...}>`-style ergonomics without the
    dependency: a tiny base class ensuring `_tag`, structural `code`, and
    `cause` chaining; migrate `NodeRelayError` and `PermissionError` as the
    exemplars, document the convention, don't campaign the other 89.
@@ -365,15 +365,21 @@ export interface RetryPolicy {
 }
 
 export const exponential = (baseMs: number, factor = 2): RetryPolicy => ({
-  delayFor: (attempt) => baseMs * factor ** (attempt - 1),
+  delayFor: (attempt) => baseMs * factor ** (attempt - 1)
 })
 
 export const capped = (p: RetryPolicy, maxMs: number): RetryPolicy => ({
-  delayFor: (a) => { const d = p.delayFor(a); return d === null ? null : Math.min(d, maxMs) },
+  delayFor: (a) => {
+    const d = p.delayFor(a)
+    return d === null ? null : Math.min(d, maxMs)
+  }
 })
 
 export const jittered = (p: RetryPolicy, ratio = 0.5): RetryPolicy => ({
-  delayFor: (a) => { const d = p.delayFor(a); return d === null ? null : d + Math.floor(Math.random() * d * ratio) },
+  delayFor: (a) => {
+    const d = p.delayFor(a)
+    return d === null ? null : d + Math.floor(Math.random() * d * ratio)
+  }
 })
 ```
 
@@ -384,7 +390,11 @@ const rateLimitPolicy = jittered({ delayFor: () => rateLimitBackoffMs })
 
 const policy = policyViolation ? rateLimitPolicy : reconnectPolicy
 const backoff = policy.delayFor(reconnectAttempts)
-if (backoff !== null) reconnectTimer = setTimeout(() => { reconnectTimer = null; void doConnect() }, backoff)
+if (backoff !== null)
+  reconnectTimer = setTimeout(() => {
+    reconnectTimer = null
+    void doConnect()
+  }, backoff)
 ```
 
 **The Effect equivalent (what Tier 1 would replace it with), for contrast:**
@@ -392,10 +402,7 @@ if (backoff !== null) reconnectTimer = setTimeout(() => { reconnectTimer = null;
 ```ts
 const reconnect = Effect.retry(
   connect,
-  Schedule.exponential('1 second').pipe(
-    Schedule.jittered,
-    Schedule.upTo('2 minutes'),
-  ),
+  Schedule.exponential('1 second').pipe(Schedule.jittered, Schedule.upTo('2 minutes'))
 )
 ```
 
@@ -424,14 +431,19 @@ export function singleFlight<K, V>(
   inflight: Map<K, Promise<V>>,
   key: K,
   fn: () => Promise<V>,
-  opts: { memoizeFailure?: boolean } = {},
+  opts: { memoizeFailure?: boolean } = {}
 ): Promise<V> {
   const existing = inflight.get(key)
   if (existing) return existing
   const p = fn()
   inflight.set(key, p)
-  if (!opts.memoizeFailure) p.catch(() => { inflight.delete(key) })
-  p.then(() => { /* keep or clear per call-site policy */ })
+  if (!opts.memoizeFailure)
+    p.catch(() => {
+      inflight.delete(key)
+    })
+  p.then(() => {
+    /* keep or clear per call-site policy */
+  })
   return p
 }
 ```
@@ -439,13 +451,13 @@ export function singleFlight<K, V>(
 ## Risks And Open Questions
 
 - **Does Tier 0 under-deliver on `sync-manager.ts`?** The 1,338-line
-  teardown-race problem is a *structured concurrency* problem, and no small
+  teardown-race problem is a _structured concurrency_ problem, and no small
   utility gives you fibers and interruption. Mitigation: the 0294 on-touch
   rewrite list already targets `sync-manager.test.ts`; treat any future
   sync-manager restructuring as a fresh data point for the Tier 1 trigger.
 - **Retry-policy utility scope creep.** The moment it grows `union`,
   `intersect`, cron, and hedging, we're maintaining a worse `Schedule`.
-  Guard: if the policy module exceeds ~150 lines, that *is* the trigger
+  Guard: if the policy module exceeds ~150 lines, that _is_ the trigger
   firing — stop and reassess Tier 1 instead of growing it.
 - **Zod-for-hub remains open.** Option C rejected Effect `Schema` as an
   on-ramp, but the hub's `typeof` ladders are still the weakest boundary;
@@ -458,7 +470,7 @@ export function singleFlight<K, V>(
 
 ## Implementation Checklist
 
-- [ ] Add `packages/core/src/retry/` policy module (exponential, capped,
+- [x] Add `packages/core/src/retry/` policy module (exponential, capped,
       jittered, fixed) with unit tests (fake timers, property tests via
       `fast-check` for monotonicity/cap invariants).
 - [ ] Refactor `packages/runtime/src/sync/connection-manager.ts`
