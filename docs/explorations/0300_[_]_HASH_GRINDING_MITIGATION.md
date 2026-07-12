@@ -525,9 +525,9 @@ const ringPosition = (hubDid: string, epochNonce: string): bigint => {
 - [ ] Correct the spec drift: `docs/explorations/0200_*` and
       `docs/specs/protocol/06-*` — BLAKE3 over canonical JSON, not SHA-256 over
       raw bytes.
-- [ ] Add `changeHash` to `LwwStamp` and `PropertyTimestamp`
+- [x] Add `changeHash` to `LwwStamp` and `PropertyTimestamp`
       (`packages/core/src/lww.ts`, `packages/data/src/store/types.ts`).
-- [ ] Implement `pairTiebreak` and gate it behind `protocolVersion` so mixed
+- [x] Implement `pairTiebreak` and gate it behind `protocolVersion` so mixed
       fleets converge (`packages/core/src/lww.ts`).
 - [ ] Thread the winning change hash into `applyPropertyChange`/`shouldReplace`
       (`packages/data/src/store/store.ts:2216-2264`).
