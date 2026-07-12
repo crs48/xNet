@@ -260,6 +260,51 @@ describe('Database Row Storage', () => {
 
         expect(result.rows.some((r) => r.id === 'row-1')).toBe(true)
       })
+
+      // Column identifiers are interpolated into SQL and cannot be
+      // parameterized; they must be allowlisted so a hostile identifier cannot
+      // inject clauses (exploration 0307).
+      it('should reject a SELECT column with SQL metacharacters', async () => {
+        await expect(
+          storage.queryDatabaseRows({
+            databaseId: 'db-1',
+            select: [`title')) UNION SELECT sql FROM sqlite_master --`]
+          })
+        ).rejects.toThrow(/Unsafe column identifier/)
+      })
+
+      it('should reject a filter column with SQL metacharacters', async () => {
+        await expect(
+          storage.queryDatabaseRows({
+            databaseId: 'db-1',
+            filters: {
+              operator: 'and',
+              conditions: [{ columnId: `status') = 'active' OR '1'='1`, operator: 'equals', value: 'x' }]
+            }
+          })
+        ).rejects.toThrow(/Unsafe column identifier/)
+      })
+
+      it('should reject a sort column with SQL metacharacters', async () => {
+        await expect(
+          storage.queryDatabaseRows({
+            databaseId: 'db-1',
+            sorts: [{ columnId: `title') DESC; DROP TABLE database_rows --`, direction: 'asc' }]
+          })
+        ).rejects.toThrow(/Unsafe column identifier/)
+      })
+
+      it('should still accept ordinary column identifiers', async () => {
+        const result = await storage.queryDatabaseRows({
+          databaseId: 'db-1',
+          sorts: [{ columnId: 'title', direction: 'asc' }],
+          filters: {
+            operator: 'and',
+            conditions: [{ columnId: 'status', operator: 'equals', value: 'active' }]
+          }
+        })
+        expect(result.rows.length).toBeGreaterThan(0)
+      })
     })
   })
 

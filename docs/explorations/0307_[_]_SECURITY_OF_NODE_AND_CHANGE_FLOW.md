@@ -521,9 +521,9 @@ export async function verifyIntegrity<T>(
       non-authenticating, or add opt-in signature+size enforcement
       ([`chain.ts:84`](../../packages/sync/src/chain.ts),
       [`yjs-authorized-sync.ts:279`](../../packages/sync/src/yjs-authorized-sync.ts)).
-- [ ] Allowlist column identifiers in `queryDatabaseRows` before it is mounted
+- [x] Allowlist column identifiers in `queryDatabaseRows` before it is mounted
       ([`storage/sqlite.ts:2370`](../../packages/hub/src/storage/sqlite.ts)).
-- [ ] Loud startup warning (and non-default) for `HUB_ALLOW_UNSIGNED_REPLICATION`
+- [x] Loud startup warning (and non-default) for `HUB_ALLOW_UNSIGNED_REPLICATION`
       and `auth=false` ([`config.ts:127`](../../packages/hub/src/config.ts),
       [`auth/ucan.ts:24`](../../packages/hub/src/auth/ucan.ts)).
 - [ ] Replace the wildcard hub UCAN with least-privilege, per-room capabilities

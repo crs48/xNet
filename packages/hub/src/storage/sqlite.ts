@@ -48,6 +48,22 @@ const assertSafePath = (base: string, key: string): string => {
   return resolved
 }
 
+// Column identifiers in the dynamic database-row query are client-supplied and
+// get interpolated into SQL (json_extract paths + SELECT aliases), where they
+// cannot be parameterized. Allowlist them to a conservative property-key charset
+// so a hostile identifier can't break out of the string literal / add clauses
+// (exploration 0307). Values elsewhere in the query stay parameterized.
+const SAFE_JSON_COLUMN = /^[A-Za-z0-9_.-]{1,128}$/
+const assertSafeColumnId = (columnId: string): string => {
+  if (typeof columnId !== 'string' || !SAFE_JSON_COLUMN.test(columnId)) {
+    throw new Error(`Unsafe column identifier: ${JSON.stringify(columnId)}`)
+  }
+  return columnId
+}
+// `json_extract(data, '$.<col>')` for a validated column identifier.
+const jsonExtractColumn = (columnId: string): string =>
+  `json_extract(data, '$.${assertSafeColumnId(columnId)}')`
+
 const SCHEMA_SQL = `
   CREATE TABLE IF NOT EXISTS doc_state (
     doc_id TEXT PRIMARY KEY,
@@ -2367,7 +2383,7 @@ export const createSQLiteStorage = (
     if (select && select.length > 0) {
       const cols = ['id', 'database_id', 'sort_key', 'created_at', 'created_by', 'updated_at']
       for (const col of select) {
-        cols.push(`json_extract(data, '$.${col}') as "${col}"`)
+        cols.push(`${jsonExtractColumn(col)} as "${assertSafeColumnId(col)}"`)
       }
       selectClause = cols.join(', ')
     }
@@ -2405,9 +2421,9 @@ export const createSQLiteStorage = (
     if (sorts && sorts.length > 0) {
       const orderBy = sorts
         .map((s) => {
-          const col =
-            s.columnId === 'sortKey' ? 'sort_key' : `json_extract(data, '$.${s.columnId}')`
-          return `${col} ${s.direction.toUpperCase()}`
+          const col = s.columnId === 'sortKey' ? 'sort_key' : jsonExtractColumn(s.columnId)
+          const direction = s.direction.toUpperCase() === 'DESC' ? 'DESC' : 'ASC'
+          return `${col} ${direction}`
         })
         .join(', ')
       sql += ` ORDER BY ${orderBy}, id ASC`
@@ -2502,7 +2518,7 @@ export const createSQLiteStorage = (
     params: unknown[]
   } {
     const { columnId, operator, value } = condition
-    const col = `json_extract(data, '$.${columnId}')`
+    const col = jsonExtractColumn(columnId)
 
     switch (operator) {
       case 'equals':

@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { resolveConfig } from '../src/config'
 
 const resetEnv = () => {
@@ -10,6 +10,8 @@ const resetEnv = () => {
   delete process.env.HUB_AWARENESS_MAX_UPDATE_SIZE
   delete process.env.FLY_REGION
   delete process.env.FLY_MACHINE_ID
+  delete process.env.HUB_AUTH
+  delete process.env.HUB_ALLOW_UNSIGNED_REPLICATION
 }
 
 describe('resolveConfig', () => {
@@ -45,5 +47,30 @@ describe('resolveConfig', () => {
 
     const config = resolveConfig({ awarenessMaxUpdateSize: 1024 })
     expect(config.awarenessMaxUpdateSize).toBe(2048)
+  })
+
+  it('does not warn for the safe defaults', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    resolveConfig({})
+    expect(warn).not.toHaveBeenCalled()
+    warn.mockRestore()
+  })
+
+  it('loudly warns when auth is disabled', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    process.env.HUB_AUTH = 'false'
+    resolveConfig({})
+    expect(warn).toHaveBeenCalledWith(expect.stringMatching(/SECURITY.*auth is DISABLED/))
+    warn.mockRestore()
+  })
+
+  it('loudly warns when unsigned replication is enabled', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    process.env.HUB_ALLOW_UNSIGNED_REPLICATION = 'true'
+    resolveConfig({})
+    expect(warn).toHaveBeenCalledWith(
+      expect.stringMatching(/SECURITY.*HUB_ALLOW_UNSIGNED_REPLICATION/)
+    )
+    warn.mockRestore()
   })
 })
