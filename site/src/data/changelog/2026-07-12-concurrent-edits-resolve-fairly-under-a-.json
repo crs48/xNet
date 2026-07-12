@@ -1,0 +1,12 @@
+{
+  "id": "2026-07-12-concurrent-edits-resolve-fairly-under-a-",
+  "date": "July 12, 2026",
+  "title": "Concurrent edits resolve fairly under a grinding-resistant tiebreak",
+  "summary": "The last-write-wins tiebreak no longer lets a hand-picked identity win every simultaneous edit; conflicts now break by a per-conflict hash of what was written. Sync bumps to protocol v4.",
+  "highlights": [],
+  "tags": [
+    "sync",
+    "identity",
+    "platform"
+  ]
+}
