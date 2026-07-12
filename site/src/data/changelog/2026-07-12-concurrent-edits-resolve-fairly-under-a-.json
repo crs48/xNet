@@ -8,5 +8,12 @@
     "sync",
     "identity",
     "platform"
+  ],
+  "pr": 482,
+  "mergedAt": "2026-07-12T18:10:40Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
   ]
 }
