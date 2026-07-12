@@ -466,7 +466,7 @@ private inferActionFromChange(change: NodeChange, stored: NodeState | null): Aut
       fallback table, draft-node create rule; new authz conformance vectors
       for fallback (`create` absent → `write` used; `create` present →
       `write` ignored).
-- [ ] React hooks: `useCanEdit` checks `update`; add creation checks where
+- [x] React hooks: `useCanEdit` checks `update`; add creation checks where
       composers need them (chat composer, task quick-add) — new surface via
       the hooks sub-barrel per 0276 policy.
 - [ ] Changesets: `@xnetjs/core` + `@xnetjs/data` **minor** (additive API);

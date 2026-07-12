@@ -16,8 +16,8 @@ import {
   typingPeers,
   type PresenceStatus
 } from '@xnetjs/comms'
-import { sanitizeLinkPreviews } from '@xnetjs/data'
-import { useXNet } from '@xnetjs/react'
+import { ChatMessageSchema, sanitizeLinkPreviews } from '@xnetjs/data'
+import { useCanCreate, useXNet } from '@xnetjs/react'
 import { useDataBridge } from '@xnetjs/react/internal'
 import { cn, LinkPreviewCard, Popover, useListboxNavigation } from '@xnetjs/ui'
 import { Link2, Send, Shield, Smile, X } from 'lucide-react'
@@ -522,6 +522,13 @@ export function ChannelChat({ channelId }: { channelId: string }) {
     onHover: pickerNav.setActiveIndex
   }
 
+  // Post permission (0304): ChatMessage splits create/update — members may
+  // post, only the author may edit. Fail open: gate only on a definitive
+  // deny, so a missing/erroring auth API never blocks sending.
+  const createDraft = useMemo(() => ({ channel: channelId }), [channelId])
+  const createCheck = useCanCreate(ChatMessageSchema.schema['@id'], createDraft)
+  const postBlocked = !createCheck.loading && !createCheck.error && !createCheck.canCreate
+
   const send = useCallback(async () => {
     const content = text.trim()
     if (!content || !bridge) return
@@ -715,7 +722,7 @@ export function ChannelChat({ channelId }: { channelId: string }) {
               title="Send"
               aria-label="Send message"
               onClick={() => void send()}
-              disabled={!text.trim()}
+              disabled={!text.trim() || postBlocked}
               className="flex h-7 w-7 cursor-pointer items-center justify-center rounded-md border border-hairline bg-surface-0 text-ink-2 hover:text-ink-1 disabled:cursor-default disabled:opacity-50"
             >
               <Send size={12} strokeWidth={1.5} />

@@ -458,7 +458,9 @@ export class DefaultPolicyEvaluator implements PolicyEvaluator {
     // cache, which is keyed only by (subject, action, nodeId). Reading it would
     // return the node-level decision (which skips field rules); writing it would
     // poison that key for later checks. So bypass the cache when `patch` is set.
-    const useCache = !input.patch
+    // Draft-node checks (`node` supplied, 0304 create) bypass it for the same
+    // reason: the same draft nodeId can carry different properties per call.
+    const useCache = !input.patch && !input.node
     const cached = useCache ? this.cache.get(input.subject, input.action, input.nodeId) : undefined
     if (cached) {
       const decision = {

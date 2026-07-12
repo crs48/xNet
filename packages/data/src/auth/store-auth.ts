@@ -1,3 +1,4 @@
+import type { SchemaIRI } from '../schema/node'
 import type { AuthAction, AuthDecision, AuthTrace, DID, PolicyEvaluator } from '@xnetjs/core'
 import type { PublicKeyResolver } from '@xnetjs/crypto'
 import { createUCAN } from '@xnetjs/identity'
@@ -18,6 +19,8 @@ export interface StoreAuthAPI {
     action: AuthAction
     nodeId: string
     patch?: Record<string, unknown>
+    /** Draft node for create checks (0304) — evaluated when nodeId is not stored. */
+    node?: { schemaId: SchemaIRI; createdBy?: DID; properties?: Record<string, unknown> }
   }): Promise<AuthDecision>
   explain(input: { action: AuthAction; nodeId: string }): Promise<AuthTrace>
   grant(input: GrantInput): Promise<Grant>
@@ -127,12 +130,16 @@ export class StoreAuth implements StoreAuthAPI {
     action: AuthAction
     nodeId: string
     patch?: Record<string, unknown>
+    node?: { schemaId: SchemaIRI; createdBy?: DID; properties?: Record<string, unknown> }
   }): Promise<AuthDecision> {
     return this.options.evaluator.can({
       subject: this.options.actorDid,
       action: input.action,
       nodeId: input.nodeId,
-      patch: input.patch
+      patch: input.patch,
+      node: input.node
+        ? { ...input.node, createdBy: input.node.createdBy ?? this.options.actorDid }
+        : undefined
     })
   }
 

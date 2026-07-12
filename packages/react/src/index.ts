@@ -523,6 +523,8 @@ export { useCan, type UseCanResult } from './hooks/useCan'
 
 export { useCanEdit, type UseCanEditResult } from './hooks/useCanEdit'
 
+export { useCanCreate, type UseCanCreateResult } from './hooks/useCanCreate'
+
 export {
   describeGrantConsent,
   useGrants,

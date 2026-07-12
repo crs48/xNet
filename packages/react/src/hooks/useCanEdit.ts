@@ -55,7 +55,9 @@ export function useCanEdit(nodeId: string): UseCanEditResult {
       try {
         const [read, write] = await Promise.all([
           store.auth!.can({ action: 'read', nodeId }),
-          store.auth!.can({ action: 'write', nodeId })
+          // 'update' is the precise verb for mutating an existing node; it
+          // falls back to the schema's write expression (0304).
+          store.auth!.can({ action: 'update', nodeId })
         ])
 
         if (requestRef.current !== requestId) return

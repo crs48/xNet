@@ -61,7 +61,9 @@ export function useCan(nodeId: string): UseCanResult {
       try {
         const [read, write, del, share] = await Promise.all([
           store.auth!.can({ action: 'read', nodeId }),
-          store.auth!.can({ action: 'write', nodeId }),
+          // 'update' is the precise verb for mutating an existing node; it
+          // falls back to the schema's write expression (0304).
+          store.auth!.can({ action: 'update', nodeId }),
           store.auth!.can({ action: 'delete', nodeId }),
           store.auth!.can({ action: 'share', nodeId })
         ])
