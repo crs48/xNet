@@ -17,11 +17,7 @@ import type {
 import type { StoreAuthAPI } from '../auth/store-auth'
 import type { SchemaIRI } from '../schema/node'
 import type { AuthCheckInput, AuthDecision, DID, PolicyEvaluator, LwwStamp } from '@xnetjs/core'
-import {
-  LWW_TIEBREAK_KEY_VERSION,
-  compareLwwStamps,
-  computeLwwTiebreakKey
-} from '@xnetjs/core'
+import { LWW_TIEBREAK_KEY_VERSION, compareLwwStamps, computeLwwTiebreakKey } from '@xnetjs/core'
 import { generateSigningKeyPair } from '@xnetjs/crypto'
 import { createDID } from '@xnetjs/identity'
 import { createMemorySQLiteAdapter } from '@xnetjs/sqlite/memory'

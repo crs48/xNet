@@ -65,8 +65,7 @@ const signedChangeWithWallTime = (wallTime: number): SerializedNodeChange => {
 
 const allowAll = { did: 'did:key:tester', can: () => true }
 
-const relay = () =>
-  new NodeRelayService(createMemoryStorage(), {}, { now: () => HUB_NOW })
+const relay = () => new NodeRelayService(createMemoryStorage(), {}, { now: () => HUB_NOW })
 
 describe('relay wallTime bound (0300 fix G)', () => {
   it('rejects a change whose wallTime is far in the future', async () => {
@@ -93,10 +92,14 @@ describe('relay wallTime bound (0300 fix G)', () => {
   })
 
   it('can be disabled with maxWallTimeSkewMs = 0 (self-host)', async () => {
-    const svc = new NodeRelayService(createMemoryStorage(), {}, {
-      now: () => HUB_NOW,
-      maxWallTimeSkewMs: 0
-    })
+    const svc = new NodeRelayService(
+      createMemoryStorage(),
+      {},
+      {
+        now: () => HUB_NOW,
+        maxWallTimeSkewMs: 0
+      }
+    )
     const change = signedChangeWithWallTime(HUB_NOW + 10 * 60 * 60_000) // +10h
     const msg: NodeChangeMessage = { type: 'node-change', room: ROOM, change }
     await expect(svc.handleNodeChange(msg, allowAll)).resolves.toBe(true)

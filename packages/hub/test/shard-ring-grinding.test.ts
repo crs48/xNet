@@ -35,10 +35,7 @@ const captureRegistry = () => {
 const ownership = (assignments: ShardAssignment[]): Record<number, string> =>
   Object.fromEntries(assignments.map((a) => [a.shardId, a.primaryHub.hubDid]))
 
-async function assignmentsFor(
-  nonce: string,
-  hubDids: string[]
-): Promise<Record<number, string>> {
+async function assignmentsFor(nonce: string, hubDids: string[]): Promise<Record<number, string>> {
   const storage = createMemoryStorage()
   const registry = captureRegistry()
   const rebalancer = new ShardRebalancer(

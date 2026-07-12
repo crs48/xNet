@@ -65,11 +65,7 @@ function toHex(bytes: Uint8Array): string {
  * canonical JSON of the value (which every kernel already computes for the
  * change hash). A deletion (`value === undefined`) canonicalises as `null`.
  */
-export function computeLwwTiebreakKey(
-  author: string,
-  propertyKey: string,
-  value: unknown
-): string {
+export function computeLwwTiebreakKey(author: string, propertyKey: string, value: unknown): string {
   const canonical = JSON.stringify(canonicalize(value === undefined ? null : value))
   const bytes = new TextEncoder().encode(`${author}${US}${propertyKey}${US}${canonical}`)
   return toHex(blake3(bytes))

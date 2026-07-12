@@ -169,7 +169,11 @@ type LwwTs = { lamport: number; wallTime: number; author: string; tiebreakKey?: 
 const cmpTs = (a: LwwTs, b: LwwTs): number => {
   if (a.lamport !== b.lamport) return a.lamport - b.lamport
   if (a.wallTime !== b.wallTime) return a.wallTime - b.wallTime
-  if (a.tiebreakKey !== undefined && b.tiebreakKey !== undefined && a.tiebreakKey !== b.tiebreakKey) {
+  if (
+    a.tiebreakKey !== undefined &&
+    b.tiebreakKey !== undefined &&
+    a.tiebreakKey !== b.tiebreakKey
+  ) {
     return a.tiebreakKey < b.tiebreakKey ? -1 : 1
   }
   return a.author < b.author ? -1 : a.author > b.author ? 1 : 0
@@ -266,8 +270,7 @@ const lwwScenarios = [
     // (max DID) loses the `title` tie because its key sorts below zAAA's for
     // this (property, value) pair; a different property re-randomises the win.
     name: '0005-tie-grinding-resistant-key',
-    description:
-      'protocol v4 tie resolved by blake3(author‖property‖value), not the author DID',
+    description: 'protocol v4 tie resolved by blake3(author‖property‖value), not the author DID',
     changes: [
       {
         authorDID: 'did:key:zzzz',

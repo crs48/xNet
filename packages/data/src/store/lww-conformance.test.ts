@@ -200,10 +200,14 @@ describe('LWW conformance across implementations (0200 golden ordering)', () => 
     for (const seed of SHUFFLE_SEEDS) {
       const order = seed % 2 === 0 ? changes : [...changes].reverse()
       const viaMemory = await materializeVia(() => new MemoryNodeStorageAdapter(), order, NODE)
-      const viaSqlite = await materializeVia(async () => {
-        const db = await createMemorySQLiteAdapter()
-        return new SQLiteNodeStorageAdapter(db)
-      }, order, NODE)
+      const viaSqlite = await materializeVia(
+        async () => {
+          const db = await createMemorySQLiteAdapter()
+          return new SQLiteNodeStorageAdapter(db)
+        },
+        order,
+        NODE
+      )
       expect(viaMemory).toEqual(oracle)
       expect(viaSqlite).toEqual(oracle)
     }

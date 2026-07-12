@@ -2056,9 +2056,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   private async ensureNodePropertyColumns(): Promise<void> {
     if (this.nodePropertyColumnsReady) return
     try {
-      const columns = await this.db.query<{ name: string }>(
-        `PRAGMA table_info(node_properties)`
-      )
+      const columns = await this.db.query<{ name: string }>(`PRAGMA table_info(node_properties)`)
       if (!columns.some((column) => column.name === 'tiebreak_key')) {
         await this.db.run('ALTER TABLE node_properties ADD COLUMN tiebreak_key TEXT')
       }

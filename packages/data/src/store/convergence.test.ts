@@ -19,11 +19,7 @@
 import type { NodeChange } from './types'
 import type { SchemaIRI } from '../schema/node'
 import type { DID, LwwStamp } from '@xnetjs/core'
-import {
-  LWW_TIEBREAK_KEY_VERSION,
-  compareLwwStamps,
-  computeLwwTiebreakKey
-} from '@xnetjs/core'
+import { LWW_TIEBREAK_KEY_VERSION, compareLwwStamps, computeLwwTiebreakKey } from '@xnetjs/core'
 import { generateSigningKeyPair } from '@xnetjs/crypto'
 import { createDID } from '@xnetjs/identity'
 import { describe, expect, it } from 'vitest'
