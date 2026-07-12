@@ -6,6 +6,30 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-12-concurrent-edits-resolve-fairly-under-a-",
+      "url": "https://xnet.fyi/changelog#2026-07-12-concurrent-edits-resolve-fairly-under-a-",
+      "title": "Concurrent edits resolve fairly under a grinding-resistant tiebreak",
+      "content_text": "The last-write-wins tiebreak no longer lets a hand-picked identity win every simultaneous edit; conflicts now break by a per-conflict hash of what was written. Sync bumps to protocol v4.\n",
+      "date_published": "2026-07-12T18:10:40Z",
+      "tags": [
+        "sync",
+        "identity",
+        "platform"
+      ],
+      "_xnet": {
+        "date": "July 12, 2026",
+        "summary": "The last-write-wins tiebreak no longer lets a hand-picked identity win every simultaneous edit; conflicts now break by a per-conflict hash of what was written. Sync bumps to protocol v4.",
+        "highlights": [],
+        "mergedAt": "2026-07-12T18:10:40Z",
+        "pr": 482,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-11-one-seamless-surface-across-the-workbenc",
       "url": "https://xnet.fyi/changelog#2026-07-11-one-seamless-surface-across-the-workbenc",
       "title": "One seamless surface across the workbench",

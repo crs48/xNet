@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Concurrent edits resolve fairly under a grinding-resistant tiebreak</title>
+      <link>https://xnet.fyi/changelog#2026-07-12-concurrent-edits-resolve-fairly-under-a-</link>
+      <guid isPermaLink="false">2026-07-12-concurrent-edits-resolve-fairly-under-a-</guid>
+      <pubDate>Sun, 12 Jul 2026 18:10:40 GMT</pubDate>
+      <description>The last-write-wins tiebreak no longer lets a hand-picked identity win every simultaneous edit; conflicts now break by a per-conflict hash of what was written. Sync bumps to protocol v4.</description>
+    </item>
+    <item>
       <title>One seamless surface across the workbench</title>
       <link>https://xnet.fyi/changelog#2026-07-11-one-seamless-surface-across-the-workbenc</link>
       <guid isPermaLink="false">2026-07-11-one-seamless-surface-across-the-workbenc</guid>
