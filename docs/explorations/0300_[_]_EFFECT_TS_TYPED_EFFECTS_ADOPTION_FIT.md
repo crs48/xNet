@@ -344,6 +344,17 @@ TaggedError('NodeRelayError')<{...}>`-style ergonomics without the
    hedged requests + per-peer circuit breakers + tracing), **and (c)**
    there's more than one maintainer willing to own the paradigm.
 
+> **Tier 1 re-evaluation trigger — recorded 2026-07-12 (Tier 0 landed).**
+> Tier 0 shipped as `RetryPolicy` + `reconnect-scheduler`, `TaggedError` +
+> CLAUDE.md convention, and `singleFlight` (this PR). Do NOT add `effect`
+> as a dependency until ALL THREE hold: (a) Effect v4 is out of beta and
+> stable for ≥1 release cycle; (b) a server-side subsystem concretely
+> outgrows these utilities — the canary is the retry module needing
+> `union`/`intersect`/hedging/circuit-breakers, or hub federation needing
+> per-peer breakers + tracing; (c) a second maintainer is willing to own
+> the paradigm. First step if it fires: a hub-only pilot (Option B), never
+> a repo-wide adoption.
+
 ```mermaid
 stateDiagram-v2
     [*] --> Tier0: this exploration
@@ -498,7 +509,7 @@ export function singleFlight<K, V>(
 - [x] Export new modules via scoped sub-barrels + one grouped root
       re-export block (0276 policy); write the changeset (minor for `core`,
       patch for `runtime`/`plugins`/`react`/`data`).
-- [ ] Record the Tier 1 re-evaluation trigger as a dated note in this doc
+- [x] Record the Tier 1 re-evaluation trigger as a dated note in this doc
       when Tier 0 merges.
 
 ## Validation Checklist
