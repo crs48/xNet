@@ -14,13 +14,16 @@
  * - `spaceCascadeAuthorization()` — for content. Each rung is inherited from the
  *   content's `space` relation via `role.relation`, so the content's roles are
  *   exactly the Space's resolved roles.
+ * - `spaceContributorAuthorization()` — for author-owned content (chat
+ *   messages, comments): members may *add*, but only the author (or space
+ *   admins) may *modify*, via the create/update refinements (exploration 0304).
  *
  * The role ladder is kept local here to avoid an import cycle with `space.ts`;
  * it mirrors `SPACE_ROLES` (least → most privileged).
  */
 
-import { allow, role } from '../../auth'
 import type { AuthorizationDefinition } from '../../auth'
+import { allow, role } from '../../auth'
 import { SPACE_MEMBERSHIP_SCHEMA_IRI } from './space-membership'
 
 /** Mirrors `SPACE_ROLES` — least → most privileged. */
@@ -102,6 +105,39 @@ export function spaceCascadeAuthorization(relationName = 'space'): Authorization
       write: allow('owner', 'spaceOwner', 'spaceAdmin', 'spaceMember'),
       delete: allow('owner', 'spaceOwner', 'spaceAdmin'),
       share: allow('owner', 'spaceOwner', 'spaceAdmin')
+    }
+  }
+}
+
+/**
+ * Authorization for **author-owned** content inside a Space — chat messages,
+ * comments, and anything else with "anyone here may post; only the author may
+ * edit" semantics (exploration 0304).
+ *
+ * Same role ladder as `spaceCascadeAuthorization`, but the mutation policy is
+ * split with the create/update refinements:
+ *
+ * - `create` — members and up may add new nodes. Create checks evaluate
+ *   against the draft node, whose `relationName` relation resolves the space
+ *   membership, so this genuinely gates admission into the Space. The creator
+ *   role is deliberately absent: on a draft it always matches (createdBy is
+ *   the caller), so including it would make creation self-authorized and the
+ *   admission gate vacuous.
+ * - `update` — only the author and space admins may modify an existing node.
+ * - `write` stays declared as the coarse fallback so legacy engines that
+ *   don't know the refinements keep today's member-editable behavior instead
+ *   of failing closed.
+ *
+ * @param relationName - the relation that points at the home Space (default `space`).
+ */
+export function spaceContributorAuthorization(relationName = 'space'): AuthorizationDefinition {
+  const cascade = spaceCascadeAuthorization(relationName)
+  return {
+    ...cascade,
+    actions: {
+      ...cascade.actions,
+      create: allow('spaceOwner', 'spaceAdmin', 'spaceMember'),
+      update: allow('owner', 'spaceOwner', 'spaceAdmin')
     }
   }
 }

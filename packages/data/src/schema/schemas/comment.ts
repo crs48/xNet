@@ -10,6 +10,7 @@
 import type { InferNode } from '../types'
 import type { MessageLinkPreview } from './link-preview'
 import type { MessageMentions } from './mentions'
+import { allow, role } from '../../auth'
 import { defineSchema } from '../define'
 import {
   text,
@@ -23,7 +24,7 @@ import {
   createdBy,
   json
 } from '../properties'
-import { spaceCascadeAuthorization } from './space-authorization'
+import { spaceContributorAuthorization } from './space-authorization'
 
 export const CommentSchema = defineSchema({
   name: 'Comment',
@@ -118,11 +119,36 @@ export const CommentSchema = defineSchema({
 
   // Comments are plain text + markdown, no collaborative Y.Doc needed
   document: undefined,
-  // Inherits access from its home Space (exploration 0181/0192).
-  authorization: spaceCascadeAuthorization('target')
+  // Inherits access from the target's Space (exploration 0181/0192), with
+  // author-owned mutation semantics (0304): space folk down to the commenter
+  // rung — plus the target's own author — may add comments, but only the
+  // comment's author (or space admins) may edit one afterwards.
+  authorization: commentAuthorization()
 })
 
 /**
  * A Comment node type (inferred from schema).
  */
 export type Comment = InferNode<(typeof CommentSchema)['_properties']>
+
+/**
+ * Contributor cascade over the comment's `target`, widened for commenting:
+ * the commenter rung exists precisely to allow annotating without editing
+ * (hub `comment` grant parity), and `targetOwner` (the target node's own
+ * `owner` role, resolved through the relation) keeps commenting on private,
+ * space-less nodes possible for their author.
+ */
+function commentAuthorization() {
+  const contributor = spaceContributorAuthorization('target')
+  return {
+    ...contributor,
+    roles: {
+      ...contributor.roles,
+      targetOwner: role.relation('target', 'owner')
+    },
+    actions: {
+      ...contributor.actions,
+      create: allow('targetOwner', 'spaceCommenter', 'spaceMember', 'spaceAdmin', 'spaceOwner')
+    }
+  }
+}

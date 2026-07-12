@@ -459,7 +459,7 @@ private inferActionFromChange(change: NodeChange, stored: NodeState | null): Aut
       relies on `write` fallback ambiguously (lint-level).
 - [x] `packages/data/src/auth/hub-policy.ts`: `SCHEMA_ACTION_TO_HUB` maps
       `create`/`update` → `write`; parity tests updated.
-- [ ] `spaceContributorAuthorization()` (or option on the cascade); adopt for
+- [x] `spaceContributorAuthorization()` (or option on the cascade); adopt for
       `ChatMessage` and `Comment`; audit the other 42 authorized schemas for
       which cascade they want (default: unchanged).
 - [ ] Spec `docs/specs/protocol/04-authorization.md` §1/§7: action list,
