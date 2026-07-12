@@ -190,23 +190,70 @@ wallTime }`. When two changes touch the same property:
 
 1. Higher **`lamport`** wins.
 2. Tie on `lamport` → higher `wallTime` wins.
-3. Tie on both → higher `authorDID` wins, compared **by UTF-16 code unit** (the
-   JS `<`/`>` operators, same order as the §6 canonical-JSON key sort) — a
-   deterministic final tiebreak so all peers converge identically.
-   Implementations MUST NOT use locale-aware collation (e.g. JS
-   `localeCompare`): it is locale- and ICU-version-dependent, so it would make
-   convergence non-deterministic across peers. Pinned by
+3. Tie on both → the **grinding-resistant tiebreak key** (below) decides for
+   changes at `protocolVersion ≥ 4`; otherwise higher `authorDID` wins,
+   compared **by UTF-16 code unit** (the JS `<`/`>` operators, same order as the
+   §6 canonical-JSON key sort). Implementations MUST NOT use locale-aware
+   collation (e.g. JS `localeCompare`): it is locale- and ICU-version-dependent,
+   so it would make convergence non-deterministic across peers. The legacy
+   author rule is pinned by
    `conformance/vectors/lww/0004-tie-author-case-codeunit.json`.
+
+### 7.1 Grinding-resistant final tiebreak (`protocolVersion ≥ 4`)
+
+The raw-`authorDID` tiebreak is **grindable**: a `did:key` is a free,
+attacker-chosen function of a keypair, so an attacker can grind a vanity DID
+that sorts highest and win *every* concurrent-write tie against every honest
+peer, permanently (exploration 0300). From `protocolVersion 4` the final rung is
+instead a per-conflict **tiebreak key**:
+
+```
+tiebreakKey = BLAKE3_hex( authorDID ‖ 0x1f ‖ propertyKey ‖ 0x1f ‖ canonicalJSON(value) )
+```
+
+where `canonicalJSON` is the §6 recursive key-sorted encoding and a deletion
+(`value` absent) canonicalises as `null`. On a `lamport`+`wallTime` tie between
+two v4 changes, the **larger `tiebreakKey`** wins outright (author is
+irrelevant); if either change is pre-v4 (no key) or the keys are equal, the
+comparison falls back to the `authorDID` rule so mixed fleets and the legacy
+vectors still agree. Because the key is a random-oracle function of *what is
+written* (author + property + value — all fixed by the write's intent), a ground
+identity is re-randomised per `(property, value)` and wins **no durable,
+universal advantage**. Pinned by
+`conformance/vectors/lww/0005-tie-grinding-resistant-key.json`.
 
 Lamport clocks advance per the standard rule (on receive, `lamport =
 max(local, incoming) + 1`). LWW is **per property**, so concurrent edits to
 *different* properties of the same node both survive. Reference:
 [`store/types.ts`](../../../packages/data/src/store/types.ts) (`NodeState`,
-`PropertyTimestamp`).
+`PropertyTimestamp`) and [`lww.ts`](../../../packages/core/src/lww.ts)
+(`compareLwwStamps`, `computeLwwTiebreakKey`).
 
 The [LWW golden vectors](90-conformance.md) (`conformance/vectors/lww/`) give
 change sequences and the single converged `NodeState` they MUST produce
 regardless of apply order.
+
+### 7.2 Security considerations (residual grinding surface)
+
+The v4 tiebreak removes the *durable, universal* grinding win, but two residual
+facts are deliberately **not** closed by the ordering rule and MUST be
+understood by implementers:
+
+- **Identity is free (Sybil / per-conflict grind).** Creating a `did:key` costs
+  nothing, so an attacker who already knows a specific victim change *can* still
+  grind their own change (its `value`, or a fresh keypair) to win that one
+  conflict — a reactive, per-conflict, low-value attack, not a permanent one.
+  Making a tie-win *cost* less than grinding it — the `wallTime` upper bound at
+  the relay, per-writer rate limits, and keeping what a tie-win is worth small
+  (an LWW property overwrite) — is the practical mitigation. A hard identity
+  cost (proof-of-work/registration) is out of scope for local-first operation.
+- **The north star is causal validity, not a better hash.** Kleppmann's *Making
+  CRDTs Byzantine Fault Tolerant* (PaPoC 2022) uses content hashes for
+  identity/dedup only and derives order from *provably-shared causal state*
+  (`before(u)` + a Lamport-timestamp validity check), which forecloses the
+  grinding class entirely. xNet does not implement this today; the v4 key is the
+  cheap, local-first-preserving step. See exploration 0301 for an optional
+  hub-arbitration finality layer.
 
 ## 8. The document codec (where Yjs lives — and why it is opaque)
 

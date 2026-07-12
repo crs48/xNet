@@ -9,10 +9,26 @@ import { hash } from '@xnetjs/crypto'
 
 const encoder = new TextEncoder()
 
-const hashToUint32 = (value: string): number => {
-  const digest = hash(encoder.encode(value), 'blake3')
-  const view = new DataView(digest.buffer, digest.byteOffset, digest.byteLength)
-  return view.getUint32(0, false)
+/**
+ * A hub's (or shard's) position on the consistent-hash ring (exploration 0300).
+ *
+ * Previously `blake3(hubDid)` truncated to **32 bits** with no salt — a hub
+ * operator controls their own `hubDid`, so grinding one to land immediately
+ * after a target `shard:N` position (thus capturing that shard) was trivial in
+ * a 32-bit space. Two changes close it:
+ *
+ * 1. **128 bits** — the first 16 blake3 bytes as a big-endian bigint, so hitting
+ *    a chosen ring arc is birthday-infeasible.
+ * 2. **A coordinator epoch nonce** the operator does not control salts the hash.
+ *    Because the ring is recomputed each epoch with a fresh nonce, a hubDid that
+ *    lands favourably this epoch is re-randomised next epoch — defeating
+ *    *persistent* targeted capture even if a single epoch's nonce leaks.
+ */
+const ringPosition = (value: string, epochNonce: string): bigint => {
+  const digest = hash(encoder.encode(`${epochNonce}\x1f${value}`), 'blake3')
+  let acc = 0n
+  for (let i = 0; i < 16; i += 1) acc = (acc << 8n) | BigInt(digest[i])
+  return acc
 }
 
 const computeRange = (shardId: number, totalShards: number): { start: number; end: number } => {
@@ -22,12 +38,14 @@ const computeRange = (shardId: number, totalShards: number): { start: number; en
   return { start, end }
 }
 
-type RingHost = { host: ShardHostRecord; hash: number }
+type RingHost = { host: ShardHostRecord; hash: bigint }
 
-const buildRing = (hosts: ShardHostRecord[]): RingHost[] =>
-  hosts.map((host) => ({ host, hash: hashToUint32(host.hubDid) })).sort((a, b) => a.hash - b.hash)
+const buildRing = (hosts: ShardHostRecord[], epochNonce: string): RingHost[] =>
+  hosts
+    .map((host) => ({ host, hash: ringPosition(host.hubDid, epochNonce) }))
+    .sort((a, b) => (a.hash < b.hash ? -1 : a.hash > b.hash ? 1 : 0))
 
-const pickHost = (ring: RingHost[], shardHash: number): ShardHostRecord | null => {
+const pickHost = (ring: RingHost[], shardHash: bigint): ShardHostRecord | null => {
   if (ring.length === 0) return null
   const found = ring.find((entry) => entry.hash >= shardHash)
   return (found ?? ring[0]).host
@@ -69,11 +87,12 @@ export class ShardRebalancer {
       return []
     }
 
-    const ring = buildRing(hosts)
+    const epochNonce = this.config.shardRingEpochNonce ?? ''
+    const ring = buildRing(hosts, epochNonce)
     const assignments: ShardAssignment[] = []
 
     for (let shardId = 0; shardId < this.config.totalShards; shardId += 1) {
-      const shardHash = hashToUint32(`shard:${shardId}`)
+      const shardHash = ringPosition(`shard:${shardId}`, epochNonce)
       const primary = pickHost(ring, shardHash)
       if (!primary) continue
 

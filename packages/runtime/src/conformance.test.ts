@@ -18,6 +18,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { getSigningPublicKeyFromPrivate, verify, hashHex, hash, sign } from '@xnetjs/crypto'
+import { LWW_TIEBREAK_KEY_VERSION, computeLwwTiebreakKey } from '@xnetjs/core'
 import { createDID } from '@xnetjs/identity'
 import {
   createUnsignedChange,
@@ -161,26 +162,33 @@ for (const { name, description, options } of changeInputs) {
 }
 
 // ── L1 · LWW convergence vectors ─────────────────────────────────────────────
-type LwwTs = { lamport: number; wallTime: number; author: string }
-const cmpTs = (a: LwwTs, b: LwwTs): number =>
-  a.lamport !== b.lamport
-    ? a.lamport - b.lamport
-    : a.wallTime !== b.wallTime
-      ? a.wallTime - b.wallTime
-      : a.author < b.author
-        ? -1
-        : a.author > b.author
-          ? 1
-          : 0
+// The final tiebreak is the raw author DID for legacy changes, or (protocol
+// v4+, exploration 0300) a grinding-resistant per-conflict key. cmpTs mirrors
+// `@xnetjs/core`'s compareLwwStamps exactly.
+type LwwTs = { lamport: number; wallTime: number; author: string; tiebreakKey?: string }
+const cmpTs = (a: LwwTs, b: LwwTs): number => {
+  if (a.lamport !== b.lamport) return a.lamport - b.lamport
+  if (a.wallTime !== b.wallTime) return a.wallTime - b.wallTime
+  if (
+    a.tiebreakKey !== undefined &&
+    b.tiebreakKey !== undefined &&
+    a.tiebreakKey !== b.tiebreakKey
+  ) {
+    return a.tiebreakKey < b.tiebreakKey ? -1 : 1
+  }
+  return a.author < b.author ? -1 : a.author > b.author ? 1 : 0
+}
 
 type LwwChange = {
   authorDID: string
   lamport: number
   wallTime: number
   properties: Record<string, unknown>
+  /** Present ⇒ this change is at that protocol version (gates the v4 key). */
+  protocolVersion?: number
 }
 
-/** The spec's per-property Last-Write-Wins fold (docs/specs/protocol §L1.7). */
+/** The spec's per-property Last-Write-Wins fold (docs/specs/protocol §L1.7/§7.1). */
 function foldLww(changes: LwwChange[]): {
   properties: Record<string, unknown>
   timestamps: Record<string, LwwTs>
@@ -188,8 +196,14 @@ function foldLww(changes: LwwChange[]): {
   const properties: Record<string, unknown> = {}
   const timestamps: Record<string, LwwTs> = {}
   for (const c of changes) {
-    const ts: LwwTs = { lamport: c.lamport, wallTime: c.wallTime, author: c.authorDID }
+    const hasKey = (c.protocolVersion ?? 0) >= LWW_TIEBREAK_KEY_VERSION
     for (const [key, val] of Object.entries(c.properties)) {
+      const ts: LwwTs = {
+        lamport: c.lamport,
+        wallTime: c.wallTime,
+        author: c.authorDID,
+        ...(hasKey ? { tiebreakKey: computeLwwTiebreakKey(c.authorDID, key, val) } : {})
+      }
       const current = timestamps[key]
       if (!current || cmpTs(ts, current) > 0) {
         properties[key] = val
@@ -246,6 +260,32 @@ const lwwScenarios = [
     changes: [
       { authorDID: 'did:key:zAAA', lamport: 1, wallTime: 1, properties: { title: 'from-upper' } },
       { authorDID: 'did:key:zaaa', lamport: 1, wallTime: 1, properties: { title: 'from-lower' } }
+    ] as LwwChange[]
+  },
+  {
+    // Grinding-resistant final tiebreak (exploration 0300, spec §7.1): at
+    // protocolVersion 4 a lamport+wallTime tie is decided by
+    // blake3(author ‖ property ‖ value), NOT the author DID — so the
+    // lexically-maximal DID does NOT automatically win. Here 'did:key:zzzz'
+    // (max DID) loses the `title` tie because its key sorts below zAAA's for
+    // this (property, value) pair; a different property re-randomises the win.
+    name: '0005-tie-grinding-resistant-key',
+    description: 'protocol v4 tie resolved by blake3(author‖property‖value), not the author DID',
+    changes: [
+      {
+        authorDID: 'did:key:zzzz',
+        lamport: 7,
+        wallTime: 700,
+        properties: { title: 'from-zzzz' },
+        protocolVersion: 4
+      },
+      {
+        authorDID: 'did:key:zAAA',
+        lamport: 7,
+        wallTime: 700,
+        properties: { title: 'from-zAAA' },
+        protocolVersion: 4
+      }
     ] as LwwChange[]
   }
 ]

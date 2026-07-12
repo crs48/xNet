@@ -247,7 +247,7 @@ describe('serializers', () => {
     it('should return default serializer', () => {
       const serializer = getDefaultSerializer()
       expect(serializer).toBeDefined()
-      expect([1, 2, 3]).toContain(serializer.version)
+      expect([1, 2, 3, 4]).toContain(serializer.version)
     })
   })
 

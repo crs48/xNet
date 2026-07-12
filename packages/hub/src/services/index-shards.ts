@@ -27,6 +27,15 @@ export type ShardConfig = {
   hubUrl?: string
   isRegistry?: boolean
   refreshIntervalMs?: number
+  /**
+   * Coordinator-issued nonce that salts every hub/shard consistent-hash ring
+   * position (exploration 0300). The registry rotates it per rebalancing epoch;
+   * because a hub operator cannot choose it, they cannot grind a `hubDid` that
+   * durably captures a target shard. Unset ⇒ empty salt (still 128-bit-wide,
+   * but without the per-epoch re-randomisation — set it in multi-operator
+   * fleets).
+   */
+  shardRingEpochNonce?: string
 }
 
 const encoder = new TextEncoder()

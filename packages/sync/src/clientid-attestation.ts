@@ -133,6 +133,15 @@ export interface VerifyAttestationOptions {
 
   /** Minimum security level required */
   minLevel?: SecurityLevel
+
+  /**
+   * Reject an attestation whose `clientId` is not the value derived from its
+   * DID ({@link deriveClientIdFromDid}) — exploration 0300. Constrains the Yjs
+   * clientID so a client cannot pick a maximal one to win insert races. Default
+   * `false` for backward compatibility with pre-0300 random clientIDs; xNet's
+   * own verification path enables it once clients derive their clientID.
+   */
+  enforceDerivedClientId?: boolean
 }
 
 // ─── Type Guards ─────────────────────────────────────────────
@@ -153,6 +162,35 @@ export function isV1Attestation(
   attestation: ClientIdAttestation
 ): attestation is ClientIdAttestationV1 {
   return !('v' in attestation)
+}
+
+// ─── Derived clientID (grinding guard, exploration 0300) ──────
+
+/**
+ * Derive a Yjs `clientID` deterministically from a DID (exploration 0300).
+ *
+ * Yjs assigns a *random* integer clientID and breaks concurrent same-position
+ * insert ties by *higher clientID*, so a client is free to pick
+ * `clientID = 0x7FFFFFFF` and win every insert race. Deriving the clientID from
+ * the DID removes that free choice: the value is now a random-oracle function of
+ * identity, so a client cannot pick a maximal one without grinding a whole
+ * keypair (and even then it wins no *durable* advantage — see the LWW tiebreak
+ * key, `@xnetjs/core`).
+ *
+ * Returns a positive 31-bit integer (1 … 2^31−1) — comfortably inside Yjs's
+ * clientID range and never zero (Yjs treats 0 as unset in some paths).
+ */
+export function deriveClientIdFromDid(did: string): number {
+  const digest = hash(new TextEncoder().encode(`xnet-clientid:${did}`), 'blake3')
+  const view = new DataView(digest.buffer, digest.byteOffset, digest.byteLength)
+  // Mask to 31 bits (positive int32) and force non-zero.
+  const value = view.getUint32(0, false) & 0x7fffffff
+  return value === 0 ? 1 : value
+}
+
+/** Whether a clientID is the one derived from `did` (exploration 0300). */
+export function isDerivedClientId(clientId: number, did: string): boolean {
+  return clientId === deriveClientIdFromDid(did)
 }
 
 // ─── V1 Functions (Legacy) ────────────────────────────────────
@@ -300,13 +338,23 @@ export async function verifyClientIdAttestationV2(
   attestation: ClientIdAttestationV2,
   options: VerifyAttestationOptions = {}
 ): Promise<AttestationVerificationResult> {
-  const { registry, minLevel = 0 } = options
+  const { registry, minLevel = 0, enforceDerivedClientId = false } = options
   const errors: string[] = []
 
   // Check expiration
   const expired = attestation.expiresAt !== undefined && Date.now() > attestation.expiresAt
   if (expired) {
     errors.push('Attestation has expired')
+  }
+
+  // Grinding guard (exploration 0300): the clientID must be the one derived
+  // from the DID, so a client cannot pick a maximal value to win Yjs insert
+  // races. Opt-in for backward compatibility with pre-0300 random clientIDs.
+  if (enforceDerivedClientId && !isDerivedClientId(attestation.clientId, attestation.did)) {
+    errors.push(
+      `clientId ${attestation.clientId} is not derived from the DID ` +
+        `(expected ${deriveClientIdFromDid(attestation.did)})`
+    )
   }
 
   // Check minimum security level

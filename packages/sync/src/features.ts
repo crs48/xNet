@@ -182,6 +182,9 @@ export const FEATURES: Record<FeatureFlag, FeatureConfig> = {
     required: false,
     description: 'Compressed change payloads for bandwidth efficiency'
   }
+  // NOTE: the protocol-v4 grinding-resistant LWW tiebreak (exploration 0300) is
+  // NOT a negotiated feature flag — it is a convergence rule gated purely on a
+  // change's `protocolVersion >= 4` (see `@xnetjs/core`'s compareLwwStamps).
 }
 
 /**

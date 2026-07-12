@@ -322,8 +322,8 @@ describe('BaseSyncProvider', () => {
 
       const remoteCaps: PeerCapabilities = {
         peerId: 'peer-1',
-        protocolVersion: 5,
-        minProtocolVersion: 4, // Requires v4+, but we're v3
+        protocolVersion: 6,
+        minProtocolVersion: 5, // Requires v5+, above our current version
         features: ['node-changes', 'yjs-updates'],
         packageVersion: '2.0.0'
       }

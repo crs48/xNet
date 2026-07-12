@@ -6,7 +6,7 @@
  * Current schema version.
  * Increment this when making schema changes.
  */
-export const SCHEMA_VERSION = 7
+export const SCHEMA_VERSION = 8
 
 /**
  * Core SQLite schema for xNet (without FTS5).
@@ -44,6 +44,10 @@ CREATE TABLE IF NOT EXISTS node_properties (
     lamport_time INTEGER NOT NULL,
     updated_by TEXT NOT NULL,
     updated_at INTEGER NOT NULL,
+    -- Grinding-resistant LWW final tiebreak key (exploration 0300): blake3 of
+    -- (author ‖ property ‖ value), present only for protocol v4+ writes. NULL
+    -- for legacy rows, which fall back to the author-DID tiebreak.
+    tiebreak_key TEXT,
 
     PRIMARY KEY (node_id, property_key),
     FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE
