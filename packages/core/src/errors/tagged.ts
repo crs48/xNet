@@ -1,5 +1,5 @@
 /**
- * Tagged errors (exploration 0300).
+ * Tagged errors (exploration 0303).
  *
  * The repo-wide convention for structured errors, formalizing what
  * `NodeRelayError.code` and friends already did by hand: every structured

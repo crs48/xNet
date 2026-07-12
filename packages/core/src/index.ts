@@ -115,13 +115,13 @@ export { AUTH_ACTIONS } from './auth-types'
 // Shared utility helpers (dependency-free)
 export { clamp, clamp01, formatBytes } from './utils'
 
-// Retry/backoff policies (exploration 0300)
+// Retry/backoff policies (exploration 0303)
 export { capped, exponential, fixed, jittered, limitAttempts, type RetryPolicy } from './retry'
 
-// Tagged-error convention (exploration 0300)
+// Tagged-error convention (exploration 0303)
 export { TaggedError, isTagged } from './errors'
 
-// Async utilities (exploration 0300)
+// Async utilities (exploration 0303)
 export { singleFlight, type SingleFlightOptions } from './async'
 
 // The ONE Last-Write-Wins ordering (protocol §L1.7; exploration 0276)

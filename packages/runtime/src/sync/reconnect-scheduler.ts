@@ -1,6 +1,6 @@
 /**
  * Reconnect scheduler — the one timer-and-attempt-counter state machine shared
- * by every reconnecting transport (exploration 0300).
+ * by every reconnecting transport (exploration 0303).
  *
  * `connection-manager.ts` and `WebSocketSyncProvider.ts` used to each carry a
  * private `reconnectDelay`/`reconnectAttempts`/`reconnectTimer` trio that had
