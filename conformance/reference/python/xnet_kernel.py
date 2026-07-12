@@ -60,7 +60,7 @@ def change_hash(unsigned_change: dict) -> str:
     """
     The content id of an unsigned change: 'cid:blake3:' + hex(BLAKE3(canonical)).
     Legacy changes (protocolVersion 0/undefined) drop the field before hashing;
-    xnet/1.0 (protocolVersion 3) keeps it. [L1 §6]
+    versioned changes (protocolVersion >= 1; current is 4) keep it. [L1 §6]
     """
     to_hash = dict(unsigned_change)
     if to_hash.get("protocolVersion", 0) in (0, None):

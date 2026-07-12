@@ -3,7 +3,7 @@
   "input": {
     "authorSeedHex": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
     "unsignedChange": {
-      "protocolVersion": 3,
+      "protocolVersion": 4,
       "id": "chg-0002",
       "type": "node-change",
       "payload": {
@@ -20,8 +20,8 @@
   },
   "expected": {
     "authorDID": "did:key:z6Mkv1o2GEgtXjFdEMfLtupcKhGRydM8V7VHzii7Uh4aHoqH",
-    "canonicalJson": "{\"authorDID\":\"did:key:z6Mkv1o2GEgtXjFdEMfLtupcKhGRydM8V7VHzii7Uh4aHoqH\",\"id\":\"chg-0002\",\"lamport\":2,\"parentHash\":\"cid:blake3:0000000000000000000000000000000000000000000000000000000000000000\",\"payload\":{\"nodeId\":\"node-0001\",\"properties\":{\"title\":\"Welcome, world\"}},\"protocolVersion\":3,\"type\":\"node-change\",\"wallTime\":1718641260000}",
-    "hash": "cid:blake3:e9921f3a32af4c603b31584c3cf97be9a3aebc8c23442dbe2b978936b24bdd90",
-    "signatureBase64": "x5yEBQFugKlsPFePtedf29WuM7iJxy9WEwLiStuPbjyJowKIP/xlwZknttFmSoQRpcxgYX0Sii+S6q2syKBLCg=="
+    "canonicalJson": "{\"authorDID\":\"did:key:z6Mkv1o2GEgtXjFdEMfLtupcKhGRydM8V7VHzii7Uh4aHoqH\",\"id\":\"chg-0002\",\"lamport\":2,\"parentHash\":\"cid:blake3:0000000000000000000000000000000000000000000000000000000000000000\",\"payload\":{\"nodeId\":\"node-0001\",\"properties\":{\"title\":\"Welcome, world\"}},\"protocolVersion\":4,\"type\":\"node-change\",\"wallTime\":1718641260000}",
+    "hash": "cid:blake3:0a1740cbddfce414f8e8c8a71e55efd2ff852cdb8623c178fe0962de3f721710",
+    "signatureBase64": "DcFzJN2o1bhYApZxGuS4IyuCPZKinLD7RRi5m3jewIEtHYSxFsbngq4bzO6azIAXXmpO0HnTX/utqA17rMYbDw=="
   }
 }

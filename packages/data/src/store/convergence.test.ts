@@ -18,7 +18,12 @@
  */
 import type { NodeChange } from './types'
 import type { SchemaIRI } from '../schema/node'
-import type { DID } from '@xnetjs/core'
+import type { DID, LwwStamp } from '@xnetjs/core'
+import {
+  LWW_TIEBREAK_KEY_VERSION,
+  compareLwwStamps,
+  computeLwwTiebreakKey
+} from '@xnetjs/core'
 import { generateSigningKeyPair } from '@xnetjs/crypto'
 import { createDID } from '@xnetjs/identity'
 import { describe, expect, it } from 'vitest'
@@ -69,22 +74,30 @@ function dedupeByHash(changes: readonly NodeChange[]): NodeChange[] {
 
 /**
  * Independent reference fold: materialize the expected property map from a change
- * set using the documented LWW precedence (Lamport → wallTime → UTF-16 author).
- * Mirrors `shouldReplace` in ./store.ts but is written separately on purpose, so
- * a regression in the store reducer cannot also silently move the oracle.
+ * set using the documented LWW precedence (Lamport → wallTime → and, for v4+
+ * changes, the grinding-resistant tiebreak key, else the UTF-16 author DID).
+ * Per-property, mirroring `shouldReplace` in ./store.ts but written separately on
+ * purpose, so a regression in the store reducer cannot also silently move the
+ * oracle.
  */
 function expectedProperties(changes: readonly NodeChange[]): Record<string, unknown> {
-  const ordered = [...changes].sort(
-    (a, b) =>
-      a.lamport - b.lamport ||
-      a.wallTime - b.wallTime ||
-      (a.authorDID < b.authorDID ? -1 : a.authorDID > b.authorDID ? 1 : 0)
-  )
   const props: Record<string, unknown> = {}
-  for (const c of ordered) {
+  const stamps: Record<string, LwwStamp> = {}
+  for (const c of changes) {
     if (c.payload.deleted) continue
+    const hasKey = (c.protocolVersion ?? 0) >= LWW_TIEBREAK_KEY_VERSION
     for (const [k, v] of Object.entries(c.payload.properties ?? {})) {
-      props[k] = v
+      const stamp: LwwStamp = {
+        lamport: c.lamport,
+        wallTime: c.wallTime,
+        author: c.authorDID,
+        ...(hasKey ? { tiebreakKey: computeLwwTiebreakKey(c.authorDID, k, v) } : {})
+      }
+      const cur = stamps[k]
+      if (!cur || compareLwwStamps(stamp, cur) > 0) {
+        props[k] = v
+        stamps[k] = stamp
+      }
     }
   }
   return props
@@ -176,17 +189,9 @@ describe('NodeStore convergence (strong eventual consistency)', () => {
 
   it('resolves same-property conflicts by the documented precedence', async () => {
     const changes = await buildConcurrentChangeSet(1)
-    const titleWriters = changes.filter(
-      (c) => c.payload.properties && 'title' in c.payload.properties
-    )
-    // The winner under (Lamport → wallTime → UTF-16 author) — computed independently.
-    const winner = [...titleWriters].sort(
-      (a, b) =>
-        b.lamport - a.lamport ||
-        b.wallTime - a.wallTime ||
-        (b.authorDID < a.authorDID ? -1 : b.authorDID > a.authorDID ? 1 : 0)
-    )[0]
-    const expectedTitle = (winner.payload.properties as Record<string, unknown>).title
+    // The winner under (Lamport → wallTime → tiebreak key / author), computed by
+    // the independent per-property reference fold.
+    const expectedTitle = expectedProperties(changes).title
 
     const materialized = await materialize(shuffle(changes, 12345))
     expect(materialized.title).toBe(expectedTitle)

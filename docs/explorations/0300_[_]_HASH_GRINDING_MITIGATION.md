@@ -541,7 +541,7 @@ const ringPosition = (hubDid: string, epochNonce: string): bigint => {
       (`packages/hub/src/services/shard-rebalancer.ts`).
 - [x] Derive Yjs `clientId` from the DID and enforce it in attestation verify
       (`packages/sync/src/clientid-attestation.ts`).
-- [ ] Add/replace golden vectors for the new tiebreak
+- [x] Add/replace golden vectors for the new tiebreak
       (`conformance/vectors/lww/`), update `0003`/`0004`, add a
       "pair-dependent tiebreak is not grindable" vector.
 - [ ] Write a Changeset: **major** for `@xnetjs/core` (+fixed core set) —
