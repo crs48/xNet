@@ -481,7 +481,7 @@ export function singleFlight<K, V>(
       same module; delete its private backoff state.
 - [x] Migrate `packages/plugins/src/services/webhook-emitter.ts` retry loop
       onto the policy module.
-- [ ] Add `packages/core/src/errors/tagged.ts` (`TaggedError` base,
+- [x] Add `packages/core/src/errors/tagged.ts` (`TaggedError` base,
       `isTagged` guard); migrate `NodeRelayError` and `PermissionError` as
       exemplars; document the convention in `CLAUDE.md` or a short ADR.
 - [ ] Add `packages/core/src/async/single-flight.ts`; migrate the four

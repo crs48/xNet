@@ -118,6 +118,9 @@ export { clamp, clamp01, formatBytes } from './utils'
 // Retry/backoff policies (exploration 0300)
 export { capped, exponential, fixed, jittered, limitAttempts, type RetryPolicy } from './retry'
 
+// Tagged-error convention (exploration 0300)
+export { TaggedError, isTagged } from './errors'
+
 // The ONE Last-Write-Wins ordering (protocol §L1.7; exploration 0276)
 export {
   compareChangeApplicationOrder,
