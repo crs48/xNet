@@ -101,6 +101,18 @@ describe('verifyIntegrity', () => {
     expect(report.issues[0].type).toBe('signature-invalid')
   })
 
+  it('should detect a present-but-garbage signature (real Ed25519 verification)', async () => {
+    const change = await createTestChange({ id: 'forged-sig' })
+    // Non-empty but forged signature — previously passed a presence-only check.
+    ;(change as any).signature = new Uint8Array(64).fill(7)
+
+    const report = await verifyIntegrity([change], { skipHashes: true })
+
+    expect(report.issues).toHaveLength(1)
+    expect(report.issues[0].type).toBe('signature-invalid')
+    expect(report.valid).toBe(0)
+  })
+
   it('should detect duplicate IDs', async () => {
     const change1 = await createTestChange({ id: 'dup' })
     const change2 = await createTestChange({ id: 'dup' })

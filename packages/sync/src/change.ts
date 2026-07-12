@@ -15,7 +15,13 @@ import { hashHex, sign, verify } from '@xnetjs/crypto'
  * Current protocol version for Change<T>.
  *
  * Version history:
- * - 3: Multi-level cryptography with hybrid signatures (Ed25519 + ML-DSA)
+ * - 4: Grinding-resistant LWW tiebreak key (exploration 0300). NOTE: the change
+ *   signature is still **Ed25519-only** — `signChange`/`verifyChange` use the
+ *   classical `@xnetjs/crypto` `sign`/`verify`. The hybrid/ML-DSA apparatus
+ *   (`hybrid-signing.ts`) is NOT wired into `Change<T>` yet; wiring it (or the
+ *   PQ envelope) is tracked in exploration 0307.
+ * - 3: Reserved for multi-level cryptography (hybrid Ed25519 + ML-DSA) — defined
+ *   in the crypto layer but not carried by the change-signing path.
  * - 2: V2 compact format with abbreviated field names
  * - 1: Initial versioned protocol (adds protocolVersion field)
  * - 0/undefined: Legacy unversioned changes (backward compat)

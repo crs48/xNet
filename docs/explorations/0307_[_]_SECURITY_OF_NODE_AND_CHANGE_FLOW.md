@@ -534,7 +534,7 @@ export async function verifyIntegrity<T>(
       cross-context replay, and reject V1 Yjs envelopes on new writes.
 - [ ] Add domain separation to `buildMerkleTree` (leaf `0x00` / node `0x01`)
       ([`hashing.ts:80`](../../packages/core/src/hashing.ts)).
-- [ ] Reconcile `protocolVersion` 4-vs-3 across code and spec; either wire hybrid
+- [x] Reconcile `protocolVersion` 4-vs-3 across code and spec; either wire hybrid
       signing into `Change<T>` or correct the "hybrid/PQ" docstring.
 - [ ] (Staged, 0304) Wire `authEvaluator` by default with a real `create`
       decision; (0301) causal-validity / epoch arbitration.
@@ -546,20 +546,20 @@ export async function verifyIntegrity<T>(
       after B lands (extends `data/src/auth/adversarial.test.ts`).
 - [ ] Test: a content-key holder swapping `ciphertext` on a signed envelope
       **fails** signature verification post-fix.
-- [ ] Test: `verifyIntegrity` returns `signature-invalid` for a change with a
+- [x] Test: `verifyIntegrity` returns `signature-invalid` for a change with a
       present-but-garbage signature (currently passes).
 - [ ] Test: a replayed UCAN with a used nonce is rejected; a revoked UCAN is
       rejected; a token with `aud !== hubDid` is rejected.
 - [ ] Test: a signed change replayed into a different `docId`/room is rejected by
       the new room binding.
-- [ ] Test: `queryDatabaseRows` rejects a column identifier containing SQL
+- [x] Test: `queryDatabaseRows` rejects a column identifier containing SQL
       metacharacters.
 - [ ] Fuzz/property test: `buildMerkleTree` leaf data equal to two child hashes
       no longer collides with an internal node.
 - [ ] Golden-vector update for the new envelope signing input; conformance
       kernels re-pinned; changeset with the correct (major) bump for the wire
       change.
-- [ ] Confirm the strong core is untouched: existing change-signing golden
+- [x] Confirm the strong core is untouched: existing change-signing golden
       vectors and the LWW v4 tiebreak vectors still pass.
 
 ## References
