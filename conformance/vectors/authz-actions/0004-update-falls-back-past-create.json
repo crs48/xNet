@@ -1,0 +1,21 @@
+{
+  "description": "a declared create never governs update checks — update falls back to write",
+  "input": {
+    "actions": {
+      "create": {
+        "_tag": "allow",
+        "roles": ["admin"]
+      },
+      "write": {
+        "_tag": "allow",
+        "roles": ["editor"]
+      }
+    },
+    "action": "update",
+    "roles": ["editor"],
+    "isAuthenticated": true
+  },
+  "expected": {
+    "allowed": true
+  }
+}

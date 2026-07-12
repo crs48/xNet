@@ -17,7 +17,7 @@ import type { MessageLinkPreview } from './link-preview'
 import type { MessageMentions } from './mentions'
 import { defineSchema } from '../define'
 import { checkbox, created, createdBy, date, file, json, relation, text } from '../properties'
-import { spaceCascadeAuthorization } from './space-authorization'
+import { spaceContributorAuthorization } from './space-authorization'
 
 export const ChatMessageSchema = defineSchema({
   name: 'ChatMessage',
@@ -60,8 +60,9 @@ export const ChatMessageSchema = defineSchema({
     createdBy: createdBy()
   },
   document: undefined,
-  // Inherits access from its home Space (exploration 0181/0192).
-  authorization: spaceCascadeAuthorization('channel')
+  // Inherits access from its home Space (exploration 0181/0192); members may
+  // post but only the author (or space admins) may edit a message (0304).
+  authorization: spaceContributorAuthorization('channel')
 })
 
 export type ChatMessage = InferNode<(typeof ChatMessageSchema)['_properties']>

@@ -17,8 +17,8 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { getSigningPublicKeyFromPrivate, verify, hashHex, hash, sign } from '@xnetjs/crypto'
 import { LWW_TIEBREAK_KEY_VERSION, computeLwwTiebreakKey } from '@xnetjs/core'
+import { getSigningPublicKeyFromPrivate, verify, hashHex, hash, sign } from '@xnetjs/crypto'
 import { createDID } from '@xnetjs/identity'
 import {
   createUnsignedChange,
@@ -564,6 +564,117 @@ for (const { name, description, expression, roles, isAuthenticated } of authzSce
     data: {
       description,
       input: { expression, roles, isAuthenticated },
+      expected: { allowed }
+    }
+  })
+}
+
+// ── L3 · action-expression resolution (0304 write fallback) ──────────────────
+// Pins how a checked action picks its expression from a schema's `actions`
+// map: `create` falls back to `write`; `update` and legacy `write` checks
+// share the `update` ?? `write` lookup; every other action has no fallback.
+// Mirrors `actionExpressionOrder` in @xnetjs/core.
+
+const actionExpressionOrder = (action: string): string[] => {
+  if (action === 'create') return ['create', 'write']
+  if (action === 'update' || action === 'write') return ['update', 'write']
+  return [action]
+}
+
+const resolveAndEval = (
+  actions: Record<string, AuthExpr | undefined>,
+  action: string,
+  roles: Set<string>,
+  isAuthenticated: boolean
+): boolean => {
+  for (const candidate of actionExpressionOrder(action)) {
+    const expr = actions[candidate]
+    if (expr) return evalExpr(expr, roles, isAuthenticated)
+  }
+  return false
+}
+
+const authzActionScenarios: {
+  name: string
+  description: string
+  actions: Record<string, AuthExpr>
+  action: string
+  roles: string[]
+  isAuthenticated: boolean
+}[] = [
+  {
+    name: '0001-create-falls-back-to-write',
+    description: 'a create check on a schema declaring only write uses the write expression',
+    actions: { write: allow('editor') },
+    action: 'create',
+    roles: ['editor'],
+    isAuthenticated: true
+  },
+  {
+    name: '0002-update-falls-back-to-write',
+    description: 'an update check on a schema declaring only write uses the write expression',
+    actions: { write: allow('editor') },
+    action: 'update',
+    roles: ['editor'],
+    isAuthenticated: true
+  },
+  {
+    name: '0003-declared-create-wins-over-write',
+    description: 'a declared create expression is used even when write would allow',
+    actions: { create: allow('admin'), write: allow('editor', 'admin') },
+    action: 'create',
+    roles: ['editor'],
+    isAuthenticated: true
+  },
+  {
+    name: '0004-update-falls-back-past-create',
+    description: 'a declared create never governs update checks — update falls back to write',
+    actions: { create: allow('admin'), write: allow('editor') },
+    action: 'update',
+    roles: ['editor'],
+    isAuthenticated: true
+  },
+  {
+    name: '0005-legacy-write-check-uses-update',
+    description: 'a legacy write check on a split schema follows the update expression',
+    actions: { update: allow('owner'), write: allow('editor', 'owner') },
+    action: 'write',
+    roles: ['editor'],
+    isAuthenticated: true
+  },
+  {
+    name: '0006-no-expression-denies',
+    description: 'a create check with neither create nor write defined is denied',
+    actions: { read: PUBLIC },
+    action: 'create',
+    roles: ['editor'],
+    isAuthenticated: true
+  },
+  {
+    name: '0007-delete-never-falls-back',
+    description: 'delete has no fallback — write does not cover it',
+    actions: { write: allow('editor') },
+    action: 'delete',
+    roles: ['editor'],
+    isAuthenticated: true
+  },
+  {
+    name: '0008-read-never-falls-back',
+    description: 'read has no fallback — write does not cover it',
+    actions: { write: allow('editor') },
+    action: 'read',
+    roles: ['editor'],
+    isAuthenticated: true
+  }
+]
+for (const { name, description, actions, action, roles, isAuthenticated } of authzActionScenarios) {
+  const allowed = resolveAndEval(actions, action, new Set(roles), isAuthenticated)
+  corpus.push({
+    suite: 'authz-actions',
+    name,
+    data: {
+      description,
+      input: { actions, action, roles, isAuthenticated },
       expected: { allowed }
     }
   })

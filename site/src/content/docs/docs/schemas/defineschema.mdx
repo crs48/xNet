@@ -108,7 +108,7 @@ Validation checks:
 
 ## Adding authorization
 
-Add an `authorization` block to define who can read, write, delete, and share nodes of this schema:
+Add an `authorization` block to define who can read, write, delete, and share nodes of this schema. The mutation policy can optionally be split into `create` (who may add nodes) and `update` (who may modify existing ones) — each falls back to `write` when not declared:
 
 ```ts
 import { defineSchema, text, person, relation } from '@xnetjs/data'

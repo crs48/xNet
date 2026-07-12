@@ -1,0 +1,8 @@
+{
+  "id": "2026-07-12-schemas-can-now-split-who-may-add-from-w",
+  "date": "July 12, 2026",
+  "title": "Schemas can now split who may add from who may edit",
+  "summary": "Schema authorization gains create and update actions that refine the coarse write action. Chat messages and comments now declare contributor semantics: anyone in the space may post, but only the author (or a space admin) may edit afterwards.",
+  "highlights": [],
+  "tags": ["platform"]
+}

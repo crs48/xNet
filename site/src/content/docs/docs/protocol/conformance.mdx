@@ -29,11 +29,13 @@ any language can load them.
 | `vectors/identity/` | L0 | seed → `did:key` + public key |
 | `vectors/change/` | L1 | unsigned change → canonical bytes → BLAKE3 hash → Ed25519 signature |
 | `vectors/lww/` | L1 | change sequence → converged state (order‑independent) |
-| `vectors/replication/` | L2 | *planned* |
-| `vectors/authz/` | L3 | *planned* |
+| `vectors/replication/` | L2 | version handshake, catch‑up filtering, signed Yjs envelope |
+| `vectors/authz/` | L3 | authorization expression (AST) evaluation |
+| `vectors/authz-actions/` | L3 | action‑expression resolution (`create`/`update` → `write` fallback) |
 
-`xnet/1.0`'s first corpus covers the **interop kernel** (L0 + L1). L2/L3 suites
-are tracked as [XPPs](https://github.com/crs48/xNet/tree/main/docs/specs/protocol/xpp).
+`xnet/1.0`'s first corpus covers the **interop kernel** (L0 + L1). Full L3
+decision‑trace suites are tracked as
+[XPPs](https://github.com/crs48/xNet/tree/main/docs/specs/protocol/xpp).
 
 ## Example vector
 

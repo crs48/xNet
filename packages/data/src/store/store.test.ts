@@ -3,7 +3,6 @@
  */
 
 import type { NodeQueryDescriptor, NodeQueryResult } from './query'
-import { applyNodeQueryDescriptor } from './query'
 import type {
   ApplyNodeBatchInput,
   ApplyNodeBatchResult,
@@ -22,8 +21,6 @@ import { generateSigningKeyPair } from '@xnetjs/crypto'
 import { createDID } from '@xnetjs/identity'
 import { createMemorySQLiteAdapter } from '@xnetjs/sqlite/memory'
 import { describe, it, expect, vi } from 'vitest'
-import { SQLiteNodeStorageAdapter } from './sqlite-adapter'
-import { SYSTEM_SCHEMA_BASE_IRIS } from '../schema/schemas/system'
 import {
   LensRegistry,
   SchemaDefinitionSchema,
@@ -32,8 +29,11 @@ import {
   addDefault,
   convert
 } from '../schema'
+import { SYSTEM_SCHEMA_BASE_IRIS } from '../schema/schemas/system'
 import { MemoryNodeStorageAdapter } from './memory-adapter'
 import { PermissionError } from './permission-error'
+import { applyNodeQueryDescriptor } from './query'
+import { SQLiteNodeStorageAdapter } from './sqlite-adapter'
 import { NodeStore } from './store'
 
 // Test fixtures
@@ -1724,7 +1724,7 @@ describe('authorization enforcement', () => {
     ).rejects.toThrow(PermissionError)
 
     expect(auth.can).toHaveBeenCalledWith({
-      action: 'write',
+      action: 'create',
       nodeId,
       patch: properties
     })
@@ -1792,6 +1792,60 @@ describe('authorization enforcement', () => {
     expect(await store.get(node.id)).toBeNull()
     expect(await store.list({ includeDeleted: true })).toHaveLength(0)
     expect(callback).toHaveBeenCalledTimes(2)
+  })
+
+  it('checks remote creates as the create action against a draft node (0304)', async () => {
+    const local = createTestStore()
+    const remote = createTestStore()
+
+    await local.store.initialize()
+    await remote.store.initialize()
+
+    const evaluator = createAuthEvaluator(() => true)
+    const store = new NodeStore({
+      storage: local.adapter,
+      authorDID: local.did,
+      signingKey: local.privateKey,
+      authEvaluator: evaluator
+    })
+    await store.initialize()
+
+    const node = await remote.store.create({
+      schemaId: TEST_SCHEMA,
+      properties: { title: 'Collaborator create' }
+    })
+    const [createChange] = await remote.store.getChanges(node.id)
+
+    await store.applyRemoteChange(createChange)
+
+    // The create was evaluated as 'create' with the payload-built draft — the
+    // node did not exist locally, so nothing else could carry its schema.
+    expect(evaluator.can).toHaveBeenCalledWith(
+      expect.objectContaining({
+        subject: remote.did,
+        action: 'create',
+        nodeId: node.id,
+        node: expect.objectContaining({
+          schemaId: TEST_SCHEMA,
+          createdBy: remote.did
+        })
+      })
+    )
+    expect(await store.get(node.id)).not.toBeNull()
+
+    // A follow-up mutation of the now-existing node checks as 'update'.
+    await remote.store.update(node.id, { properties: { title: 'Edited' } })
+    const updateChange = (await remote.store.getChanges(node.id)).at(-1)!
+    await store.applyRemoteChange(updateChange)
+
+    expect(evaluator.can).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        action: 'update',
+        nodeId: node.id,
+        node: undefined
+      })
+    )
+    expect((await store.get(node.id))?.properties.title).toBe('Edited')
   })
 
   it('shrinks the candidate set via storage for auth reads without exposing hidden counts', async () => {

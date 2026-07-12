@@ -41,9 +41,10 @@ export type AuthSchemaErrorCode =
   | 'AUTH_SCHEMA_INVALID_RELATION_PATH' // Relation/property doesn't exist
   | 'AUTH_SCHEMA_ROLE_CYCLE' // Circular role definition
   | 'AUTH_SCHEMA_EXPR_LIMIT_EXCEEDED' // Expression tree too deep/large
-  | 'AUTH_SCHEMA_UNSAFE_PUBLIC_MUTATION' // PUBLIC on write/delete/share action
+  | 'AUTH_SCHEMA_UNSAFE_PUBLIC_MUTATION' // PUBLIC on create/update/write/delete/share action
   | 'AUTH_SCHEMA_INVALID_FIELD_REF' // Field rule references unknown field
   | 'AUTH_SCHEMA_INVALID_PUBLIC_PROP' // publicProps references unknown property
+  | 'AUTH_SCHEMA_INCOMPLETE_MUTATION_ACTIONS' // create XOR update defined with no write fallback
 
 // ─── Builtin Roles ────────────────────────────────────────────────────────────
 
@@ -246,7 +247,7 @@ export function validateAuthorization(
   }
 
   // 6. Warn about PUBLIC on mutation actions (unsafe pattern)
-  const mutationActions = ['write', 'delete', 'share']
+  const mutationActions = ['create', 'update', 'write', 'delete', 'share']
   for (const actionName of mutationActions) {
     const expr = auth.actions[actionName]
     if (expr && hasPublicAccess(expr)) {
@@ -256,6 +257,23 @@ export function validateAuthorization(
         path: `authorization.actions.${actionName}`
       })
     }
+  }
+
+  // 7. Splitting write requires the split to be total (exploration 0304).
+  // Defining exactly one of create/update with no write leaves the sibling
+  // action default-deny, which is almost always an authoring mistake — the
+  // schema must define the sibling too (or keep write as the fallback).
+  const hasCreate = Boolean(auth.actions.create)
+  const hasUpdate = Boolean(auth.actions.update)
+  if (hasCreate !== hasUpdate && !auth.actions.write) {
+    const missing = hasCreate ? 'update' : 'create'
+    errors.push({
+      code: 'AUTH_SCHEMA_INCOMPLETE_MUTATION_ACTIONS',
+      message:
+        `Action '${missing}' has no expression and no 'write' fallback — ` +
+        `define '${missing}' or add a 'write' action`,
+      path: `authorization.actions.${missing}`
+    })
   }
 
   return { valid: errors.length === 0, errors }

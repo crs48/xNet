@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest'
-import { spaceCascadeAuthorization } from '../schema/schemas/space-authorization'
+import {
+  spaceCascadeAuthorization,
+  spaceContributorAuthorization
+} from '../schema/schemas/space-authorization'
 import { buildPermissionMatrix, describeRoleResolver } from './permission-matrix'
 import { presets } from './presets'
 import { serializeAuthorization } from './serialize'
@@ -41,6 +44,35 @@ describe('buildPermissionMatrix', () => {
     const matrix = buildPermissionMatrix(serializeAuthorization(spaceCascadeAuthorization()))
     const order = matrix.actions.map((a) => a.action)
     expect(order.slice(0, 3)).toEqual(['read', 'write', 'delete'])
+  })
+
+  it('renders create/update rows only for schemas that declare them (0304)', () => {
+    // The contributor cascade declares the refinements — rows appear in
+    // canonical order with their own allow sets.
+    const contributor = buildPermissionMatrix(
+      serializeAuthorization(spaceContributorAuthorization())
+    )
+    expect(contributor.actions.map((a) => a.action)).toEqual([
+      'read',
+      'create',
+      'update',
+      'write',
+      'delete',
+      'share'
+    ])
+    const create = contributor.actions.find((a) => a.action === 'create')!
+    const update = contributor.actions.find((a) => a.action === 'update')!
+    expect(create.roles).toContain('spaceMember')
+    expect(create.roles).not.toContain('owner')
+    expect(update.roles).toContain('owner')
+    expect(update.roles).not.toContain('spaceMember')
+
+    // The plain cascade declares no refinements — only write is shown.
+    const cascade = buildPermissionMatrix(serializeAuthorization(spaceCascadeAuthorization()))
+    const cascadeActions = cascade.actions.map((a) => a.action)
+    expect(cascadeActions).not.toContain('create')
+    expect(cascadeActions).not.toContain('update')
+    expect(cascadeActions).toContain('write')
   })
 
   it('treats an unauthorized schema as fully public', () => {

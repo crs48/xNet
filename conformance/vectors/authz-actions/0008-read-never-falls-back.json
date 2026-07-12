@@ -1,0 +1,17 @@
+{
+  "description": "read has no fallback — write does not cover it",
+  "input": {
+    "actions": {
+      "write": {
+        "_tag": "allow",
+        "roles": ["editor"]
+      }
+    },
+    "action": "read",
+    "roles": ["editor"],
+    "isAuthenticated": true
+  },
+  "expected": {
+    "allowed": false
+  }
+}

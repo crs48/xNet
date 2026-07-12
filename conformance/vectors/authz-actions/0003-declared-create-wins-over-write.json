@@ -1,0 +1,21 @@
+{
+  "description": "a declared create expression is used even when write would allow",
+  "input": {
+    "actions": {
+      "create": {
+        "_tag": "allow",
+        "roles": ["admin"]
+      },
+      "write": {
+        "_tag": "allow",
+        "roles": ["editor", "admin"]
+      }
+    },
+    "action": "create",
+    "roles": ["editor"],
+    "isAuthenticated": true
+  },
+  "expected": {
+    "allowed": false
+  }
+}

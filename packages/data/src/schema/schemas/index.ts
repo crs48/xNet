@@ -142,7 +142,11 @@ export {
   type ImportBatch,
   type ImportSource
 } from './import-batch'
-export { spaceOwnAuthorization, spaceCascadeAuthorization } from './space-authorization'
+export {
+  spaceOwnAuthorization,
+  spaceCascadeAuthorization,
+  spaceContributorAuthorization
+} from './space-authorization'
 export {
   SPACE_SCHEMA_IRI,
   SPACE_KINDS,
