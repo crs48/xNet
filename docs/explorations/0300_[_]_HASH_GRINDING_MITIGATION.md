@@ -534,7 +534,7 @@ const ringPosition = (hubDid: string, epochNonce: string): bigint => {
 - [x] Decide + implement the SQLite path: application-defined function or
       move-LWW-to-app-code; keep it byte-equal to JS
       (`packages/core/src/lww.ts` `lwwUpdateGuardSql`, adapters).
-- [ ] Mirror the comparator in `packages/sync/src/chain.ts` and
+- [x] Mirror the comparator in `packages/sync/src/chain.ts` and
       `packages/sync/src/clock.ts` (fork branch selection, replay order).
 - [ ] Bound `wallTime` at the relay (`packages/hub/src/services/node-relay.ts`).
 - [ ] Widen + salt the shard ring to ≥128 bits with a coordinator epoch nonce
