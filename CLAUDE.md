@@ -74,7 +74,7 @@ reservoir): `packages/canvas/src/__tests__/chunked-storage.test.ts`,
 `tests/integration/src/webrtc-signaling.test.ts`,
 `packages/sqlite/src/adapter.test.ts` (prefer `:memory:`).
 
-## Structured errors: TaggedError (0300)
+## Structured errors: TaggedError (0303)
 
 New structured error classes extend `TaggedError` from `@xnetjs/core`
 (`packages/core/src/errors/tagged.ts`) instead of raw `Error`:
