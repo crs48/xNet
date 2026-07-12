@@ -25,7 +25,8 @@ tied to Effect v4 going stable.**
 
 The survey found genuine overlap — xNet independently re-implements typed
 error codes, exponential-backoff-with-jitter (twice, duplicated),
-single-flight promise memoization (four times), cancellation, and boundary
+single-flight promise memoization (twice, plus two near-miss cousins),
+cancellation, and boundary
 validation. Effect would model all of these better _in isolation_. But four
 repo-specific facts flip the cost/benefit:
 
@@ -42,7 +43,7 @@ The three ideas worth stealing natively now:
    duplicated reconnect implementations and the webhook emitter's loop.
 2. **`Data.TaggedError` → a repo-wide tagged-error convention** formalizing
    what `NodeRelayError.code` already does by hand.
-3. **Single-flight → one `singleFlight(map, key, fn)` helper** replacing four
+3. **Single-flight → one `singleFlight(map, key, fn)` helper** replacing the
    hand-rolled `Map<key, Promise>` memoizations.
 
 Re-evaluation trigger: Effect v4 stable **and** a concrete server-side
@@ -106,16 +107,18 @@ in parallel; they drift independently.
 
 - **Cancellation**: `AbortController` in 20+ files (hub unfurl/federation,
   telemetry transport, plugins process manager, `useRemoteSchema`, …).
-- **Single-flight ("convoy" fixes)** — the same pattern independently
-  invented four times:
-  - `packages/react/src/hooks/useNode.ts:223` — `pendingFlushes` map so a
-    remount awaits the prior unmount's flush.
-  - `packages/react/src/hooks/useQuery.ts:254` — once-per-shape dedupe.
+- **Single-flight ("convoy" fixes)** — the pattern independently invented
+  twice, with two near-miss cousins:
   - `packages/data/src/store/sqlite-adapter.ts:373` —
     `compiledQueryDiagnosticsMemo` in-flight promise memo (the 0271 boot
     convoy fix), with deliberate no-memo-on-failure semantics.
   - `packages/data/src/schema/registry.ts:60` — `loadingPromises` for lazy
-    schema loads.
+    schema loads (built-in and remote paths).
+  - _(Correction during implementation: the initial survey also counted
+    `useNode.ts:223` and `useQuery.ts:254` here, but the former is a flush
+    **handoff** map — set at unmount, awaited by the next mount — and the
+    latter a warn-once `Set`, so neither fits a single-flight helper and
+    both stay as they are.)_
 - **Leadership + resource handoff**:
   `packages/sqlite/src/adapters/web-leader.ts` — Web-Locks leader election
   for multi-tab SQLite, MessagePort handoff, in-flight follower calls
@@ -331,9 +334,10 @@ TaggedError('NodeRelayError')<{...}>`-style ergonomics without the
    dependency: a tiny base class ensuring `_tag`, structural `code`, and
    `cause` chaining; migrate `NodeRelayError` and `PermissionError` as the
    exemplars, document the convention, don't campaign the other 89.
-3. **A `singleFlight` helper** in `@xnetjs/core` — subsuming the four
-   `Map<key, Promise>` sites, preserving the sqlite-adapter's
-   no-memo-on-failure semantics as an option.
+3. **A `singleFlight` helper** in `@xnetjs/core` — subsuming the genuine
+   `Map<key, Promise>` single-flight sites (schema registry, sqlite-adapter
+   diagnostics memo), preserving the sqlite-adapter's no-memo-on-failure
+   semantics via a `retain` option.
 4. **Record the trigger** (in this doc's checkbox lifecycle): reconsider
    Tier 1 when **(a)** Effect v4 is stable, **and (b)** a server-side
    subsystem concretely outgrows Tier 0 (e.g. hub federation health needs
@@ -423,28 +427,29 @@ export const isTagged = <T extends string>(e: unknown, tag: T): e is TaggedError
   e instanceof TaggedError && e._tag === tag
 ```
 
-**Single-flight (subsumes the four Map<key, Promise> sites):**
+**Single-flight (subsumes the genuine Map<key, Promise> sites — as landed):**
 
 ```ts
 // packages/core/src/async/single-flight.ts
 export function singleFlight<K, V>(
-  inflight: Map<K, Promise<V>>,
+  map: Map<K, Promise<V>>,
   key: K,
   fn: () => Promise<V>,
-  opts: { memoizeFailure?: boolean } = {}
+  options: { retain?: 'settled' | 'keep' } = {}
 ): Promise<V> {
-  const existing = inflight.get(key)
+  const existing = map.get(key)
   if (existing) return existing
-  const p = fn()
-  inflight.set(key, p)
-  if (!opts.memoizeFailure)
-    p.catch(() => {
-      inflight.delete(key)
-    })
-  p.then(() => {
-    /* keep or clear per call-site policy */
-  })
-  return p
+  const promise = fn()
+  map.set(key, promise)
+  const evict = (): void => {
+    if (map.get(key) === promise) map.delete(key)
+  }
+  if ((options.retain ?? 'settled') === 'settled') {
+    promise.then(evict, evict) // dedupe only: map holds in-flight work
+  } else {
+    promise.then(undefined, evict) // memoize successes; failures retry
+  }
+  return promise
 }
 ```
 
@@ -484,10 +489,12 @@ export function singleFlight<K, V>(
 - [x] Add `packages/core/src/errors/tagged.ts` (`TaggedError` base,
       `isTagged` guard); migrate `NodeRelayError` and `PermissionError` as
       exemplars; document the convention in `CLAUDE.md` or a short ADR.
-- [ ] Add `packages/core/src/async/single-flight.ts`; migrate the four
-      call sites (`useNode.ts:223`, `useQuery.ts:254`,
-      `sqlite-adapter.ts:373` with `memoizeFailure: false`,
-      `schema/registry.ts:60`).
+- [x] Add `packages/core/src/async/single-flight.ts`; migrate the genuine
+      single-flight call sites (`sqlite-adapter.ts:373` with
+      `retain: 'keep'` + no-memo-on-failure, `schema/registry.ts:60` both
+      load paths). `useNode.ts:223` (flush handoff) and `useQuery.ts:254`
+      (warn-once `Set`) turned out not to be single-flight-shaped — left
+      as-is, see the correction note in §Concurrency.
 - [ ] Export new modules via scoped sub-barrels + one grouped root
       re-export block (0276 policy); write the changeset (minor for `core`,
       patch for `runtime`/`plugins`/`react`/`data`).
