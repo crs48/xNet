@@ -141,7 +141,7 @@ export interface Change<T = unknown> {
   id: string                    // nanoid
   type: string                  // 'node-change'
   payload: T                    // NodePayload: { nodeId, schemaId?, properties, deleted? }
-  hash: ContentId               // SHA-256 over canonical change bytes
+  hash: ContentId               // BLAKE3 over canonical JSON ("cid:blake3:<hex>")
   parentHash: ContentId | null  // hash chain (causal linkage)
   authorDID: DID
   signature: Uint8Array         // Ed25519 over the hash
@@ -536,7 +536,7 @@ refusal.
   "expected": {
     "authorDID": "did:key:z6Mk...",            // derived from seed
     "canonicalBytesBase64": "eyJpZCI6...",      // EXACT canonical serialization
-    "hashHex": "9f86d081884c7d65...",           // SHA-256 of canonical bytes
+    "hashHex": "9f86d081884c7d65...",           // BLAKE3 of canonical JSON
     "signatureBase64": "kQX9c2...=="            // Ed25519 over hashHex bytes
   }
 }
@@ -560,7 +560,7 @@ export interface XNetConformanceKernel {
 
   // L1 — data model
   canonicalize(change: UnsignedChange): Uint8Array         // THE byte-exact contract
-  hashChange(change: UnsignedChange): Uint8Array           // SHA-256(canonicalize)
+  hashChange(change: UnsignedChange): Uint8Array           // BLAKE3(canonicalize)
   applyLWW(state: NodeState | null, change: SignedChange): NodeState  // higher lamport wins
 
   // L1 — document codec (opaque)

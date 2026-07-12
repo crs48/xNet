@@ -522,7 +522,7 @@ const ringPosition = (hubDid: string, epochNonce: string): bigint => {
 
 ## Implementation Checklist
 
-- [ ] Correct the spec drift: `docs/explorations/0200_*` and
+- [x] Correct the spec drift: `docs/explorations/0200_*` and
       `docs/specs/protocol/06-*` — BLAKE3 over canonical JSON, not SHA-256 over
       raw bytes.
 - [x] Add `changeHash` to `LwwStamp` and `PropertyTimestamp`
@@ -547,7 +547,7 @@ const ringPosition = (hubDid: string, epochNonce: string): bigint => {
 - [ ] Write a Changeset: **major** for `@xnetjs/core` (+fixed core set) —
       changed convergence contract; patch/minor for hub/shard/clientid fixes as
       the diff dictates.
-- [ ] Add a Security Considerations section to the protocol spec documenting
+- [x] Add a Security Considerations section to the protocol spec documenting
       the residual Sybil/identity-cost gap (Option C) and the Kleppmann
       causal-validity north-star (Option D).
 
