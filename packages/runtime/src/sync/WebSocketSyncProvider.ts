@@ -157,7 +157,7 @@ export class WebSocketSyncProvider {
     this.url = options.url
     this.options = options
     // Fixed-delay retry (this provider never backed off exponentially),
-    // capped at maxReconnectAttempts — exploration 0300.
+    // capped at maxReconnectAttempts — exploration 0303.
     const reconnectPolicy = limitAttempts(
       fixed(options.reconnectDelay ?? 2000),
       options.maxReconnectAttempts ?? Infinity

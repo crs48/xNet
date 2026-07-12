@@ -1,12 +1,12 @@
 /**
- * Retry/backoff policies (exploration 0300).
+ * Retry/backoff policies (exploration 0303).
  *
  * One dependency-free vocabulary for every reconnect/retry loop in the repo,
  * replacing the hand-rolled backoff math that had drifted into three parallel
  * implementations (sync connection-manager, WebSocketSyncProvider, webhook
  * emitter). Deliberately shaped like Effect's `Schedule` combinators so a
  * later migration would be mechanical — but scope-guarded: if this module
- * needs union/intersect/cron/hedging, stop and re-read exploration 0300.
+ * needs union/intersect/cron/hedging, stop and re-read exploration 0303.
  */
 
 /**

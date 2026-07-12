@@ -1,5 +1,5 @@
 /**
- * Single-flight promise memoization (exploration 0300).
+ * Single-flight promise memoization (exploration 0303).
  *
  * The one implementation of the "share the in-flight promise so concurrent
  * callers don't convoy the backend" pattern that had been independently
