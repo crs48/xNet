@@ -1,0 +1,17 @@
+{
+  "id": "2026-07-12-flatter-workbench-islands",
+  "date": "July 12, 2026",
+  "title": "Flatter workbench islands",
+  "summary": "The sidebar, status bar, dock, and context panel no longer cast a drop shadow — islands sit flat on the surface with just a hairline edge. Modals and menus keep their shadow so they still read as floating.",
+  "highlights": [],
+  "tags": [
+    "app"
+  ],
+  "pr": 485,
+  "mergedAt": "2026-07-12T20:49:23Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

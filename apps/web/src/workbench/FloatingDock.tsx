@@ -30,7 +30,7 @@ function Assistant() {
   }
 
   return (
-    <div className="pointer-events-auto flex min-w-0 flex-1 flex-col overflow-hidden rounded-[14px] border border-hairline bg-island-b shadow-isl">
+    <div className="pointer-events-auto flex min-w-0 flex-1 flex-col overflow-hidden rounded-[14px] border border-hairline bg-island-b">
       <div className="flex items-center gap-2 border-b border-hairline px-2.5 py-2">
         <span className="flex h-[22px] w-[22px] items-center justify-center rounded-[7px] bg-ink-1 text-island-b">
           <Sparkles size={13} className="fill-current" strokeWidth={0} />
@@ -93,7 +93,7 @@ function VideoCall() {
   const round =
     'flex h-[34px] w-[34px] items-center justify-center rounded-full border border-hairline bg-island text-ink-1 cursor-pointer'
   return (
-    <div className="pointer-events-auto flex w-[236px] shrink-0 flex-col overflow-hidden rounded-[14px] border border-hairline bg-island-b shadow-isl">
+    <div className="pointer-events-auto flex w-[236px] shrink-0 flex-col overflow-hidden rounded-[14px] border border-hairline bg-island-b">
       <div
         className="relative flex h-[150px] items-center justify-center"
         style={{ background: 'linear-gradient(140deg, hsl(214 24% 32%), hsl(258 26% 24%))' }}
@@ -157,7 +157,7 @@ export function FloatingDock() {
           onClick={() => setFloatAi(true)}
           title="Assistant"
           aria-label="Open assistant"
-          className="pointer-events-auto flex h-9 items-center gap-2 rounded-full border border-hairline bg-island-b px-3 text-[13px] font-medium text-ink-1 shadow-isl cursor-pointer hover:bg-background-muted"
+          className="pointer-events-auto flex h-9 items-center gap-2 rounded-full border border-hairline bg-island-b px-3 text-[13px] font-medium text-ink-1 cursor-pointer hover:bg-background-muted"
         >
           <span className="flex h-5 w-5 items-center justify-center rounded-md bg-ink-1 text-island-b">
             <Sparkles size={11} className="fill-current" strokeWidth={0} />
