@@ -1,0 +1,27 @@
+{
+  "threshold": 0.998,
+  "baseline": "https://xnet.fyi/visuals-baseline",
+  "fallbackUsed": false,
+  "unmappedFiles": [],
+  "stories": [],
+  "routes": [
+    {
+      "id": "home",
+      "label": "Home",
+      "file": "routes/home.png",
+      "status": "unchanged",
+      "ssim": 0.99985
+    }
+  ],
+  "electron": [],
+  "flows": [
+    {
+      "id": "create-page",
+      "label": "Create a page and use the editor",
+      "gif": "flows/create-page.gif",
+      "mp4": "flows/create-page.mp4",
+      "poster": "flows/create-page.poster.png"
+    }
+  ],
+  "changedCount": 1
+}

@@ -1,0 +1,15 @@
+{
+  "stories": [],
+  "routes": [
+    {
+      "id": "home",
+      "label": "Home",
+      "file": "routes/home.png"
+    }
+  ],
+  "flows": [],
+  "fallbackUsed": true,
+  "unmappedFiles": [
+    "apps/web/src/whats-new/WhatsNewButton.tsx"
+  ]
+}

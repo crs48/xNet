@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>xNet Blog</title>
+    <link>https://xnet.fyi/blog</link>
+    <atom:link href="https://xnet.fyi/blog/rss.xml" rel="self" type="application/rss+xml" />
+    <description>Essays on local-first software, data ownership, and the open web.</description>
+    <language>en-us</language>
+    <lastBuildDate>Fri, 10 Jul 2026 17:00:00 GMT</lastBuildDate>
+    <item>
+      <title>Weights You Can Hold</title>
+      <link>https://xnet.fyi/blog/weights-you-can-hold</link>
+      <guid isPermaLink="true">https://xnet.fyi/blog/weights-you-can-hold</guid>
+      <description>Graduates are booing AI executives at commencement, then going home to run open-weight models on their own laptops. Two video essays, one quiet revolution: a generation trading rented everything for things it can hold — model weights, assets, film cameras, businesses of its own — and what that exit means for who owns your software.</description>
+      <dc:creator>crs48</dc:creator>
+      <dc:creator>Claude</dc:creator>
+      <pubDate>Fri, 10 Jul 2026 17:00:00 GMT</pubDate>
+      <category>essay</category>
+      <category>economics</category>
+      <category>privacy</category>
+      <category>decentralization</category>
+    </item>
+    <item>
+      <title>Timeout</title>
+      <link>https://xnet.fyi/blog/timeout</link>
+      <guid isPermaLink="true">https://xnet.fyi/blog/timeout</guid>
+      <description>A personal essay on autism, dissociation, and the network I dreamed while I was away from my body. The word has three meanings — the punishment corner, the huddle a team calls for itself, and the quiet that falls when a peer stops answering — and I have lived in all three. On finding out at thirty-five, on the years of taking everything in from a distance, and on discovering that the protocol I built treats going quiet exactly the way I needed to be treated: a timeout is a duration, not a verdict, and when the peer comes back, the log catches it up on everything it missed.</description>
+      <dc:creator>crs48</dc:creator>
+      <dc:creator>Claude</dc:creator>
+      <pubDate>Wed, 08 Jul 2026 17:00:00 GMT</pubDate>
+      <category>essay</category>
+      <category>personal</category>
+      <category>philosophy</category>
+    </item>
+    <item>
+      <title>The Vault and the View</title>
+      <link>https://xnet.fyi/blog/the-vault-and-the-view</link>
+      <guid isPermaLink="true">https://xnet.fyi/blog/the-vault-and-the-view</guid>
+      <description>When Google Reader died, everyone got an export — and discovered the file was a brick, shaped for a renderer that no longer existed. The modern app is a vault: it holds your data and the only window onto it. But the vault is a twenty-five-year detour, not the tradition — from Codd’s data independence through Solid’s pods to local-first and “apps as views, not vaults”, five decades of people have insisted the data is the ground and the software is the weather. On that lineage, why the first pod-shaped attempt stalled, how xNet ships the inversion — and why AI-cheap views make user-owned data the only stable ground left.</description>
+      <dc:creator>crs48</dc:creator>
+      <dc:creator>Claude</dc:creator>
+      <pubDate>Tue, 07 Jul 2026 21:00:00 GMT</pubDate>
+      <category>essay</category>
+      <category>philosophy</category>
+      <category>decentralization</category>
+      <category>protocol</category>
+    </item>
+    <item>
+      <title>The Workshop and the Walled Garden</title>
+      <link>https://xnet.fyi/blog/the-workshop-and-the-walled-garden</link>
+      <guid isPermaLink="true">https://xnet.fyi/blog/the-workshop-and-the-walled-garden</guid>
+      <description>DotA was a custom map. Counter-Strike was a mod. The battle royale came from a photographer tinkering with a military sim. Modding built half of modern gaming — then the modern app welded its doors shut, with reasons that are half sincere and half convenient. On what the walled garden actually costs, why the fix is scoping authority rather than banning code, and what software looks like when the application is just a view over data you own — especially now that anyone can cook.</description>
+      <dc:creator>crs48</dc:creator>
+      <dc:creator>Claude</dc:creator>
+      <pubDate>Sun, 05 Jul 2026 23:00:00 GMT</pubDate>
+      <category>essay</category>
+      <category>philosophy</category>
+      <category>decentralization</category>
+    </item>
+    <item>
+      <title>Hand on the Tiller</title>
+      <link>https://xnet.fyi/blog/hand-on-the-tiller</link>
+      <guid isPermaLink="true">https://xnet.fyi/blog/hand-on-the-tiller</guid>
+      <description>Everyone is arguing about one alignment problem: will the AI want what we want? But alignment is a stack — physics, planet, society, technology, AI — and we are bolting an aligned machine onto a civilization that steers by the wrong stars. The oldest word for the fix is the root of “cybernetics” and “govern”: the steersman, correcting course a hundred times a minute. What it takes to actually hold a course — and the small, real instruments a piece of software can hand back.</description>
+      <dc:creator>crs48</dc:creator>
+      <dc:creator>Claude</dc:creator>
+      <pubDate>Fri, 03 Jul 2026 15:00:00 GMT</pubDate>
+      <category>essay</category>
+      <category>philosophy</category>
+      <category>decentralization</category>
+    </item>
+    <item>
+      <title>The Tip of the Hook</title>
+      <link>https://xnet.fyi/blog/the-tip-of-the-hook</link>
+      <guid isPermaLink="true">https://xnet.fyi/blog/the-tip-of-the-hook</guid>
+      <description>You write useQuery(TaskSchema) and get a live, local, cryptographically-authorised, syncing database — with no API endpoint, no auth middleware, and no cache to invalidate. A developer&apos;s tour of xNet&apos;s React hooks on the surface, then a dive beneath the waterline to the SQLite database running in a worker, the priority scheduler, and the signed change log that make “just trust the client” safe. The tip is small on purpose; the iceberg is yours to open.</description>
+      <dc:creator>crs48</dc:creator>
+      <dc:creator>Claude</dc:creator>
+      <pubDate>Mon, 29 Jun 2026 17:30:00 GMT</pubDate>
+      <category>essay</category>
+      <category>protocol</category>
+      <category>decentralization</category>
+    </item>
+    <item>
+      <title>The Loom You Can Read</title>
+      <link>https://xnet.fyi/blog/the-loom-you-can-read</link>
+      <guid isPermaLink="true">https://xnet.fyi/blog/the-loom-you-can-read</guid>
+      <description>The Luddites didn&apos;t fear machines — they refused looms they weren&apos;t allowed to open. Follow one note, “Buy milk,” all the way through xNet&apos;s internals: a file on your own disk, a signed change log, a name you mint instead of an account, and a three-line merge that settles conflicts with no server in the middle. A guided tour of a machine you&apos;re allowed to open — written for developers and everyone else at once.</description>
+      <dc:creator>crs48</dc:creator>
+      <dc:creator>Claude</dc:creator>
+      <pubDate>Mon, 29 Jun 2026 01:09:07 GMT</pubDate>
+      <category>essay</category>
+      <category>protocol</category>
+      <category>decentralization</category>
+    </item>
+    <item>
+      <title>The Forest and the Field</title>
+      <link>https://xnet.fyi/blog/the-forest-and-the-field</link>
+      <guid isPermaLink="true">https://xnet.fyi/blog/the-forest-and-the-field</guid>
+      <description>Industrial farming strips the soil to exhaustion and trucks fertility back in by the ton. Surveillance capitalism does the same to the web. Permaculture is the discipline for growing land that feeds itself — and its principles are, almost furrow for furrow, how you regenerate a digital commons instead of strip-mining one.</description>
+      <dc:creator>crs48</dc:creator>
+      <dc:creator>Claude</dc:creator>
+      <pubDate>Sun, 28 Jun 2026 23:39:38 GMT</pubDate>
+      <category>essay</category>
+      <category>philosophy</category>
+      <category>nature</category>
+    </item>
+    <item>
+      <title>The Right to Say No</title>
+      <link>https://xnet.fyi/blog/the-right-to-say-no</link>
+      <guid isPermaLink="true">https://xnet.fyi/blog/the-right-to-say-no</guid>
+      <description>A musician on YouTube argues the economy quietly changed from growth to extraction, and the real prize isn&apos;t your money — it&apos;s your ability to refuse. He&apos;s mostly right. Here&apos;s the part software can actually give back.</description>
+      <dc:creator>crs48</dc:creator>
+      <dc:creator>Claude</dc:creator>
+      <pubDate>Sun, 28 Jun 2026 22:10:50 GMT</pubDate>
+      <category>essay</category>
+      <category>philosophy</category>
+      <category>economics</category>
+    </item>
+    <item>
+      <title>The Desert That Feeds the Forest</title>
+      <link>https://xnet.fyi/blog/the-desert-that-feeds-the-forest</link>
+      <guid isPermaLink="true">https://xnet.fyi/blog/the-desert-that-feeds-the-forest</guid>
+      <description>Every year a dead desert blows across an ocean and feeds the most alive place on Earth — replacing almost exactly what the rainforest loses. What Saharan dust, the bees nobody watches, and the maintainers nobody thanks teach us about the invisible substrate the open web runs on.</description>
+      <dc:creator>crs48</dc:creator>
+      <dc:creator>Claude</dc:creator>
+      <pubDate>Sun, 28 Jun 2026 21:46:46 GMT</pubDate>
+      <category>essay</category>
+      <category>philosophy</category>
+      <category>nature</category>
+    </item>
+    <item>
+      <title>The Gentlest Furnace</title>
+      <link>https://xnet.fyi/blog/the-gentlest-furnace</link>
+      <guid isPermaLink="true">https://xnet.fyi/blog/the-gentlest-furnace</guid>
+      <description>A star carries the energy of a billion bombs and still feels calm from here. What hydrostatic equilibrium — the thermostat that keeps a star from exploding or going cold — teaches us about information, attention, and building technology that burns long instead of burning out.</description>
+      <dc:creator>crs48</dc:creator>
+      <dc:creator>Claude</dc:creator>
+      <pubDate>Sun, 28 Jun 2026 02:27:04 GMT</pubDate>
+      <category>essay</category>
+      <category>philosophy</category>
+      <category>cosmos</category>
+    </item>
+    <item>
+      <title>Data Should Work Like Soil</title>
+      <link>https://xnet.fyi/blog/data-should-work-like-soil</link>
+      <guid isPermaLink="true">https://xnet.fyi/blog/data-should-work-like-soil</guid>
+      <description>Beneath every forest runs a fungal network — the original internet. What mycelium, the human nervous system, and Tesla’s Warp teach us about building one worth living in, and how to heal one that’s gone sick.</description>
+      <dc:creator>crs48</dc:creator>
+      <dc:creator>Claude</dc:creator>
+      <pubDate>Sun, 28 Jun 2026 01:23:39 GMT</pubDate>
+      <category>essay</category>
+      <category>philosophy</category>
+      <category>nature</category>
+    </item>
+    <item>
+      <title>A Great Pirate Age for the Internet</title>
+      <link>https://xnet.fyi/blog/a-great-pirate-age</link>
+      <guid isPermaLink="true">https://xnet.fyi/blog/a-great-pirate-age</guid>
+      <description>What pirates — the real ones, and the ones in One Piece — can teach us about owning your data. An essay on freedom, self-governance, and why you are the cargo.</description>
+      <dc:creator>crs48</dc:creator>
+      <dc:creator>Claude</dc:creator>
+      <pubDate>Sun, 28 Jun 2026 00:28:34 GMT</pubDate>
+      <category>essay</category>
+      <category>philosophy</category>
+      <category>decentralization</category>
+    </item>
+  </channel>
+</rss>

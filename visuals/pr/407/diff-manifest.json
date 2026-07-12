@@ -1,0 +1,124 @@
+{
+  "threshold": 0.998,
+  "baseline": "https://xnet.fyi/visuals-baseline",
+  "fallbackUsed": false,
+  "unmappedFiles": [],
+  "stories": [
+    {
+      "id": "core-database-surface--playground",
+      "title": "Core/Database/Surface",
+      "name": "Playground",
+      "file": "stories/core-database-surface--playground.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "electron-systemmenu--default",
+      "title": "Electron/SystemMenu",
+      "name": "Default",
+      "file": "stories/electron-systemmenu--default.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "electron-systemmenu--empty-recent",
+      "title": "Electron/SystemMenu",
+      "name": "Empty Recent",
+      "file": "stories/electron-systemmenu--empty-recent.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-presenceavatars--default",
+      "title": "Web/PresenceAvatars",
+      "name": "Default",
+      "file": "stories/web-presenceavatars--default.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-presenceavatars--empty",
+      "title": "Web/PresenceAvatars",
+      "name": "Empty",
+      "file": "stories/web-presenceavatars--empty.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-storagewarningbanner--informational",
+      "title": "Web/StorageWarningBanner",
+      "name": "Informational",
+      "file": "stories/web-storagewarningbanner--informational.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-storagewarningbanner--success",
+      "title": "Web/StorageWarningBanner",
+      "name": "Success",
+      "file": "stories/web-storagewarningbanner--success.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-storagewarningbanner--warning",
+      "title": "Web/StorageWarningBanner",
+      "name": "Warning",
+      "file": "stories/web-storagewarningbanner--warning.png",
+      "status": "unchanged",
+      "ssim": 1
+    }
+  ],
+  "routes": [
+    {
+      "id": "data",
+      "label": "Data",
+      "file": "routes/data.png",
+      "status": "unchanged",
+      "ssim": 0.999036
+    },
+    {
+      "id": "home",
+      "label": "Home",
+      "file": "routes/home.png",
+      "status": "unchanged",
+      "ssim": 0.999036
+    },
+    {
+      "id": "settings",
+      "label": "Settings",
+      "file": "routes/settings.png",
+      "status": "changed",
+      "ssim": 0.983464,
+      "before": "before/routes/settings.png",
+      "after": "routes/settings.png",
+      "diff": "diff/routes/settings.png"
+    }
+  ],
+  "electron": [
+    {
+      "id": "electron-canvas-home",
+      "label": "Desktop · Canvas home",
+      "file": "electron/electron-canvas-home.png",
+      "status": "unchanged",
+      "ssim": 0.999448
+    },
+    {
+      "id": "electron-canvas-objects",
+      "label": "Desktop · Canvas with objects",
+      "file": "electron/electron-canvas-objects.png",
+      "status": "unchanged",
+      "ssim": 0.999429
+    }
+  ],
+  "flows": [
+    {
+      "id": "create-page",
+      "label": "Create a page and use the editor",
+      "gif": "flows/create-page.gif",
+      "mp4": "flows/create-page.mp4",
+      "poster": "flows/create-page.poster.png"
+    }
+  ],
+  "changedCount": 2
+}

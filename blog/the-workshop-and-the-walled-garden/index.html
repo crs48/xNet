@@ -1,0 +1,401 @@
+<!DOCTYPE html><html lang="en" class="dark scroll-smooth astro-5hce7sga"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="DotA was a custom map. Counter-Strike was a mod. The battle royale came from a photographer tinkering with a military sim. Modding built half of modern gaming — then the modern app welded its doors shut, with reasons that are half sincere and half convenient. On what the walled garden actually costs, why the fix is scoping authority rather than banning code, and what software looks like when the application is just a view over data you own — especially now that anyone can cook."><link rel="icon" type="image/svg+xml" href="/favicon.svg"><title>The Workshop and the Walled Garden — xNet</title><!-- Inline script to prevent flash: read localStorage, fallback to system preference --><script>
+      (function() {
+        var storedTheme = localStorage.getItem('xnet-lp-theme')
+        var theme = storedTheme || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+        if (theme === 'light') {
+          document.documentElement.classList.remove('dark')
+        }
+      })()
+    </script><link rel="stylesheet" href="/_astro/acceptable-use.CezTpkRX.css">
+<style>pre.mermaid:not([data-processed]){color:transparent;min-height:2rem}pre.mermaid{text-align:center;background:transparent;margin:0}pre.mermaid svg{margin:0 auto;display:block;height:auto;max-width:100%}
+</style><script type="module" src="/_astro/page.B1D-nYk3.js"></script></head> <body class="bg-white dark:bg-[#0a0a0f] text-gray-800 dark:text-gray-200 antialiased font-sans leading-relaxed astro-5hce7sga">  <header class="sticky top-0 z-50 border-b border-border/50 bg-white/80 dark:bg-[#0a0a0f]/80 backdrop-blur-xl"> <nav class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4"> <a href="/" class="font-mono text-xl font-bold tracking-tight text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+xNet
+</a> <div class="flex items-center gap-5 text-sm"> <a href="/#app" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"> App </a><a href="/#hubs" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"> Teams </a><a href="/#vision" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"> Vision </a> <span class="hidden sm:inline h-4 w-px bg-border" aria-hidden="true"></span> <a href="/why" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"> Why </a><a href="/build-with" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"> Build </a><a href="/blog" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"> Blog </a> <a href="/docs/introduction/" class="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:border-indigo-500/50 hover:bg-surface transition-all"> <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"> <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"></path> </svg>
+Docs
+</a> <a href="/app" class="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500 transition-all">
+Try the App
+</a> <button id="lp-theme-toggle" class="rounded-lg border border-border p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:border-gray-400 dark:hover:border-gray-500 transition-colors" aria-label="Toggle theme"> <!-- Sun icon (shown in dark mode) --> <svg class="h-4 w-4 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path> </svg> <!-- Moon icon (shown in light mode) --> <svg class="h-4 w-4 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path> </svg> </button> <script type="module">const t=document.getElementById("lp-theme-toggle");t?.addEventListener("click",()=>{const e=document.documentElement.classList.toggle("dark");localStorage.setItem("xnet-lp-theme",e?"dark":"light")});</script> <a href="https://github.com/crs48/xNet" aria-label="xNet on GitHub" class="hidden sm:flex items-center rounded-lg border border-border p-1.5 text-gray-600 dark:text-gray-300 hover:border-indigo-500/50 hover:bg-surface transition-all"> <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"></path></svg> </a> </div> </nav> </header> <main> <section class="relative overflow-hidden border-b border-border bg-surface/20 dark:bg-[#080d1a]"> <svg class="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 1040 340" preserveAspectRatio="xMidYMid slice" aria-hidden="true"> <defs> <linearGradient id="workshopbg" x1="0" y1="0" x2="0" y2="1"> <stop offset="0%" stop-color="#0a1122"></stop> <stop offset="55%" stop-color="#0d1526"></stop> <stop offset="100%" stop-color="#080d1a"></stop> </linearGradient> <radialGradient id="lampglow" cx="50%" cy="50%" r="50%"> <stop offset="0%" stop-color="#7dd3fc" stop-opacity="0.95"></stop> <stop offset="45%" stop-color="#38bdf8" stop-opacity="0.38"></stop> <stop offset="100%" stop-color="#38bdf8" stop-opacity="0"></stop> </radialGradient> <linearGradient id="lampx" x1="0" y1="0" x2="1" y2="1"> <stop offset="0%" stop-color="#e0f2fe"></stop> <stop offset="100%" stop-color="#38bdf8"></stop> </linearGradient> <linearGradient id="benchglow" x1="0" y1="0" x2="0" y2="1"> <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.14"></stop> <stop offset="100%" stop-color="#38bdf8" stop-opacity="0"></stop> </linearGradient> </defs> <rect width="1040" height="340" fill="url(#workshopbg)"></rect> <!-- a scatter of faint stars over both halves --> <g fill="#7dd3fc" opacity="0.45"> <circle cx="120" cy="52" r="1.2"></circle> <circle cx="298" cy="38" r="1"></circle> <circle cx="472" cy="60" r="1.4"></circle> <circle cx="618" cy="34" r="1"></circle> <circle cx="964" cy="72" r="1.2"></circle> <circle cx="1006" cy="180" r="1"></circle> </g> <!-- ground line shared by garden and workshop --> <line x1="0" y1="312" x2="1040" y2="312" stroke="#1e293b" stroke-width="1.6" opacity="0.9"></line> <!-- ============ left: the walled garden ============ --> <g> <!-- topiary showing above the wall: clipped, uniform, just out of reach --> <g fill="#123047" stroke="#1e5068" stroke-width="1.3"> <circle cx="70" cy="120" r="22"></circle> <circle cx="130" cy="112" r="26"></circle> <circle cx="196" cy="118" r="21"></circle> <circle cx="254" cy="110" r="25"></circle> <circle cx="312" cy="120" r="20"></circle> </g> <!-- the wall itself: brick courses with staggered joints --> <rect x="16" y="136" width="330" height="176" fill="#0e1b30" stroke="#27435c" stroke-width="1.6"></rect> <g stroke="#22374d" stroke-width="1.1" opacity="0.85"> <line x1="16" y1="148" x2="346" y2="148"></line><line x1="16" y1="176" x2="346" y2="176"></line><line x1="16" y1="204" x2="346" y2="204"></line><line x1="16" y1="232" x2="346" y2="232"></line><line x1="16" y1="260" x2="346" y2="260"></line><line x1="16" y1="288" x2="346" y2="288"></line> <!-- staggered vertical joints, alternating offsets per course --> <g opacity="0.7"> <line x1="76" y1="136" x2="76" y2="148"></line><line x1="156" y1="136" x2="156" y2="148"></line><line x1="236" y1="136" x2="236" y2="148"></line><line x1="316" y1="136" x2="316" y2="148"></line> <line x1="116" y1="148" x2="116" y2="176"></line><line x1="196" y1="148" x2="196" y2="176"></line><line x1="276" y1="148" x2="276" y2="176"></line> <line x1="76" y1="176" x2="76" y2="204"></line><line x1="156" y1="176" x2="156" y2="204"></line><line x1="236" y1="176" x2="236" y2="204"></line><line x1="316" y1="176" x2="316" y2="204"></line> <line x1="116" y1="204" x2="116" y2="232"></line><line x1="196" y1="204" x2="196" y2="232"></line><line x1="276" y1="204" x2="276" y2="232"></line> <line x1="76" y1="232" x2="76" y2="260"></line><line x1="156" y1="232" x2="156" y2="260"></line><line x1="236" y1="232" x2="236" y2="260"></line><line x1="316" y1="232" x2="316" y2="260"></line> <line x1="116" y1="260" x2="116" y2="288"></line><line x1="196" y1="260" x2="196" y2="288"></line><line x1="276" y1="260" x2="276" y2="288"></line> </g> </g> <!-- the gate: arched, barred, and with no handle on this side --> <g> <path d="M 348 312 L 348 214 Q 380 186 412 214 L 412 312 Z" fill="#0a1526" stroke="#27435c" stroke-width="1.8"></path> <g stroke="#1e5068" stroke-width="2" stroke-linecap="round" opacity="0.9"> <line x1="362" y1="208" x2="362" y2="306"></line> <line x1="380" y1="200" x2="380" y2="306"></line> <line x1="398" y1="208" x2="398" y2="306"></line> </g> <!-- the keyhole: someone else keeps the key --> <circle cx="380" cy="256" r="4.5" fill="none" stroke="#38bdf8" stroke-width="1.6" opacity="0.75"></circle> <line x1="380" y1="260" x2="380" y2="268" stroke="#38bdf8" stroke-width="1.6" stroke-linecap="round" opacity="0.75"></line> </g> </g> <!-- the footpath: out of the garden, over to the bench --> <polyline points="368,306 420,298 478,296 538,300 598,296 652,292" fill="none" stroke="#7dd3fc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="1 8" opacity="0.7"></polyline> <!-- ============ right: the open workshop ============ --> <g> <!-- pegboard: a grid of holes, tools hung where their outlines are drawn --> <rect x="700" y="96" width="300" height="128" rx="6" fill="#0e1b30" stroke="#27435c" stroke-width="1.6"></rect> <g fill="#22374d"> <circle cx="722" cy="116" r="2"></circle><circle cx="754" cy="116" r="2"></circle><circle cx="786" cy="116" r="2"></circle><circle cx="818" cy="116" r="2"></circle><circle cx="850" cy="116" r="2"></circle><circle cx="882" cy="116" r="2"></circle><circle cx="914" cy="116" r="2"></circle><circle cx="946" cy="116" r="2"></circle><circle cx="978" cy="116" r="2"></circle><circle cx="722" cy="144" r="2"></circle><circle cx="754" cy="144" r="2"></circle><circle cx="786" cy="144" r="2"></circle><circle cx="818" cy="144" r="2"></circle><circle cx="850" cy="144" r="2"></circle><circle cx="882" cy="144" r="2"></circle><circle cx="914" cy="144" r="2"></circle><circle cx="946" cy="144" r="2"></circle><circle cx="978" cy="144" r="2"></circle><circle cx="722" cy="172" r="2"></circle><circle cx="754" cy="172" r="2"></circle><circle cx="786" cy="172" r="2"></circle><circle cx="818" cy="172" r="2"></circle><circle cx="850" cy="172" r="2"></circle><circle cx="882" cy="172" r="2"></circle><circle cx="914" cy="172" r="2"></circle><circle cx="946" cy="172" r="2"></circle><circle cx="978" cy="172" r="2"></circle><circle cx="722" cy="200" r="2"></circle><circle cx="754" cy="200" r="2"></circle><circle cx="786" cy="200" r="2"></circle><circle cx="818" cy="200" r="2"></circle><circle cx="850" cy="200" r="2"></circle><circle cx="882" cy="200" r="2"></circle><circle cx="914" cy="200" r="2"></circle><circle cx="946" cy="200" r="2"></circle><circle cx="978" cy="200" r="2"></circle> </g> <!-- hung tools, drawn as simple silhouettes: spanner, hammer, screwdriver --> <g stroke="#7dd3fc" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.85"> <!-- spanner --> <line x1="738" y1="128" x2="738" y2="176"></line> <circle cx="738" cy="120" r="7"></circle> <!-- hammer --> <line x1="806" y1="126" x2="806" y2="182"></line> <rect x="792" y="112" width="28" height="12" rx="3" fill="#123047"></rect> <!-- screwdriver --> <line x1="872" y1="118" x2="872" y2="150"></line> <line x1="872" y1="150" x2="872" y2="178" stroke-width="3.2"></line> <!-- one empty outline: a tool out being used right now --> <g stroke-dasharray="2 4" opacity="0.55"> <line x1="938" y1="128" x2="938" y2="176"></line> <circle cx="938" cy="120" r="7"></circle> </g> </g> <!-- the bench, lit from above --> <rect x="668" y="238" width="356" height="52" fill="url(#benchglow)"></rect> <rect x="676" y="252" width="340" height="10" rx="3" fill="#123047" stroke="#1e5068" stroke-width="1.4"></rect> <g stroke="#1e5068" stroke-width="3" stroke-linecap="round"> <line x1="700" y1="262" x2="700" y2="310"></line> <line x1="992" y1="262" x2="992" y2="310"></line> </g> <!-- parts on the bench: a thing mid-repair, opened rather than sealed --> <g stroke="#7dd3fc" stroke-width="1.6" fill="#0a1526" opacity="0.9"> <rect x="742" y="234" width="40" height="18" rx="3"></rect> <rect x="796" y="240" width="18" height="12" rx="2"></rect> <circle cx="842" cy="246" r="6"></circle> <g stroke-width="1.2" opacity="0.8"> <line x1="864" y1="250" x2="884" y2="238"></line> <line x1="884" y1="238" x2="904" y2="248"></line> </g> <circle cx="922" cy="246" r="4"></circle> </g> <!-- the work lamp: the cosmic-X, glowing over the bench --> <g transform="translate(848 58)"> <circle cx="0" cy="0" r="38" fill="url(#lampglow)"></circle> <g stroke="url(#lampx)" stroke-width="5.5" stroke-linecap="round" transform="translate(-11 -11)"> <line x1="0" y1="0" x2="22" y2="22"></line> <line x1="22" y1="0" x2="0" y2="22"></line> </g> </g> </g> </svg> <div class="relative mx-auto max-w-3xl px-6 pb-14 pt-44 lg:pt-52"> <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-sky-200/80"> <time datetime="July 5, 2026">July 5, 2026</time> <span aria-hidden="true">·</span> <span>14 min read</span> <span class="rounded-full border border-sky-400/30 bg-sky-500/10 px-2 py-0.5 font-mono lowercase text-sky-200"> essay </span><span class="rounded-full border border-sky-400/30 bg-sky-500/10 px-2 py-0.5 font-mono lowercase text-sky-200"> philosophy </span><span class="rounded-full border border-sky-400/30 bg-sky-500/10 px-2 py-0.5 font-mono lowercase text-sky-200"> decentralization </span> </div> <h1 class="mt-4 text-4xl font-bold tracking-tight text-white drop-shadow lg:text-5xl"> The Workshop and the Walled Garden </h1> <p class="mt-4 max-w-2xl text-lg leading-relaxed text-gray-300">DotA was a custom map. Counter-Strike was a mod. The battle royale came from a photographer tinkering with a military sim. Modding built half of modern gaming — then the modern app welded its doors shut, with reasons that are half sincere and half convenient. On what the walled garden actually costs, why the fix is scoping authority rather than banning code, and what software looks like when the application is just a view over data you own — especially now that anyone can cook.</p> </div> </section> <article class="prose prose-lg mx-auto max-w-3xl px-6 py-16 dark:prose-invert prose-headings:tracking-tight prose-a:text-sky-600 dark:prose-a:text-sky-400"> <div class="not-prose flex flex-wrap items-center gap-2 text-sm text-gray-500 dark:text-gray-400"> <span class="flex -space-x-2"> <img src="/blog/authors/crs48.jpg" alt="crs48" width="24" height="24" loading="lazy" class="rounded-full ring-2 ring-white dark:ring-gray-900"><img src="/blog/authors/claude.svg" alt="Claude" width="24" height="24" loading="lazy" class="rounded-full ring-2 ring-white dark:ring-gray-900"> </span> <a href="https://github.com/crs48" target="_blank" rel="noopener noreferrer" class="font-medium text-gray-600 transition-colors hover:text-indigo-500 dark:text-gray-300 dark:hover:text-indigo-400"> crs48 </a><span aria-hidden="true">with</span><a href="https://claude.com/claude-code" target="_blank" rel="noopener noreferrer" class="font-medium text-gray-600 transition-colors hover:text-indigo-500 dark:text-gray-300 dark:hover:text-indigo-400"> Claude </a> </div> <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"The Workshop and the Walled Garden","description":"DotA was a custom map. Counter-Strike was a mod. The battle royale came from a photographer tinkering with a military sim. Modding built half of modern gaming — then the modern app welded its doors shut, with reasons that are half sincere and half convenient. On what the walled garden actually costs, why the fix is scoping authority rather than banning code, and what software looks like when the application is just a view over data you own — especially now that anyone can cook.","datePublished":"2026-07-05T23:00:00Z","url":"https://xnet.fyi/blog/the-workshop-and-the-walled-garden","author":[{"@type":"Person","name":"crs48","url":"https://github.com/crs48"},{"@type":"Person","name":"Claude","url":"https://claude.com/claude-code"}]}</script> <p>
+In 2003, somewhere on the internet, a modder known only as
+<strong>Eul</strong> sat down with the map editor that shipped in the box
+        with <em>Warcraft III</em> and made a custom map. It wasn’t even an
+        original idea — he was reworking a concept from <em>Aeon of Strife</em>,
+        a fan-made StarCraft map from a few years earlier. Two teams, three
+        lanes, one hero per player. He called it
+<strong>Defense of the Ancients</strong>.
+</p> <p>
+Eul eventually drifted away, the way hobbyists do. Other pseudonymous
+        hands picked the map up — first a modder called <strong>Guinsoo</strong>,
+        then one called <strong>IceFrog</strong> — each rebalancing and extending
+        it, shipping new versions to a community that play-tested every change by
+        the hundred thousand. No studio green-lit any of this. No product manager
+        wrote a roadmap. It was a mod, passed from hand to hand like a group
+        project with no teacher.
+</p> <p>
+You may know how it ends. Guinsoo was hired by a startup called Riot
+        Games, where the thing he built next was <em>League of Legends</em> —
+        for years the most-played PC game on Earth. Valve hired IceFrog and
+        built <em>Dota 2</em> around him. The custom map became a genre — the
+        MOBA — an e-sports economy measured in billions, and the direct
+        employer of thousands of people. One of the largest categories of
+        entertainment on the planet started life as <strong>a file someone made
+        with the editor that came in the box</strong>.
+</p> <p>
+Here is the question this essay is actually about: <em>when was the last
+        time anything like that could have happened to the software you use for
+        work?</em> </p> <h2>The pattern, and where it went</h2> <p>
+DotA isn’t a fluke; it’s the most famous example of a pattern that built
+        half of modern gaming. <em>Doom</em> shipped in 1993 with its levels and
+        art in separate <code>WAD</code> files — id Software deliberately made
+        the data moddable without touching the engine, and then released the
+        engine’s source code outright in 1997. <em>Team Fortress</em> began in
+        1996 as a Quake mod; Valve hired its makers. <em>Counter-Strike</em>
+began in 1999 as a Half-Life mod by two hobbyists, Minh Le and Jess
+        Cliffe; Valve bought it, hired them, and it remains one of the
+        most-played games in the world a quarter-century later. The battle
+        royale — the defining genre of the last decade — came from Brendan
+        Greene, a photographer modding a military simulator’s zombie mod. And
+        Minecraft’s mod ecosystem recently passed <strong>one hundred billion
+        downloads</strong> on a single hosting site.
+</p> <figure class="not-prose my-10"> <div class="overflow-x-auto rounded-2xl border border-border bg-surface/30 p-4 dark:bg-surface/40 lg:p-6"> <pre class="mermaid">flowchart TD
+  AOS[&quot;Aeon of Strife&lt;br/&gt;a StarCraft custom map&quot;] --&gt; DOTA[&quot;Defense of the Ancients (2003)&lt;br/&gt;a Warcraft III custom map&quot;]
+  DOTA --&gt; LOL[&quot;League of Legends (2009)&lt;br/&gt;its co-author, hired by Riot&quot;]
+  DOTA --&gt; D2[&quot;Dota 2 (2013)&lt;br/&gt;its maintainer, hired by Valve&quot;]
+  QK[&quot;Quake (1996)&quot;] --&gt; TF[&quot;Team Fortress&lt;br/&gt;a mod&quot;] --&gt; TF2[&quot;Team Fortress Classic → TF2&lt;br/&gt;the modders, hired by Valve&quot;]
+  HL[&quot;Half-Life (1998)&quot;] --&gt; CS[&quot;Counter-Strike (1999)&lt;br/&gt;a mod&quot;] --&gt; CS2[&quot;CS → CS:GO → CS2&lt;br/&gt;the mod, acquired by Valve&quot;]
+  A2[&quot;ARMA 2: DayZ&lt;br/&gt;itself a mod&quot;] --&gt; BRM[&quot;PlayerUnknown&#39;s&lt;br/&gt;battle-royale mods&quot;] --&gt; PUBG[&quot;PUBG (2017)&lt;br/&gt;the modder, hired by Krafton&quot;]</pre> </div> <figcaption class="mt-3 text-center text-sm leading-relaxed text-gray-500 dark:text-gray-400"> The genealogy of genres: every box on the right is an industry; every box on the left is a hobbyist modifying software they were allowed to open. </figcaption> </figure>  <script type="module" src="/_astro/Mermaid.astro_astro_type_script_index_0_lang.CxpO6xgw.js"></script> <p>
+Notice what the pattern requires. Not open source, in most cases — Doom
+        was the exception, not the rule. What it requires is humbler:
+<strong>the data separable from the engine, and permission to put your
+        own thing where the old thing was.</strong> A WAD file. A custom map. A
+        model folder the game loads at startup. The vendor kept the engine;
+        the players owned the worlds; and the seam between them was documented
+        and load-bearing.
+</p> <p>
+Old desktop software had the same seam in a dozen humble forms —
+        plugins, macros, extensions, a <code>Scripts</code> folder the app would
+        slurp at launch. Then software moved into the browser tab and the app
+        store, and the seam was welded shut. Apple’s App Review Guidelines say
+        it in one clause — an app <em>“may not download, install, or execute
+        code which introduces or changes features or functionality of the
+        app”</em> — which is a precise legal description of what a mod
+<em>is</em>. On the web, Chrome’s Manifest V3 removed the blocking
+        network API that content blockers are built on; uBlock Origin, with
+        tens of millions of users, could only ship a reduced “Lite” version,
+        and the full one was switched off with the rest of the old extension
+        platform. The SaaS app is the purest case: the program runs on someone
+        else’s computer entirely, and the moddable surface is whatever the
+        vendor’s API team got around to.
+</p> <p>
+We didn’t stop wanting to mod our tools. The DotA community didn’t run
+        out of Euls. The doors got locked — politely, gradually, and with
+        reasons that sound perfectly sensible read one at a time.
+</p> <h2>In fairness to the wall</h2> <p>
+And some of those reasons <em>are</em> sensible, so let’s make the
+        strongest version of the other side’s case before arguing with it.
+</p> <p>
+In June 2023, malware researchers untangled <strong>fractureiser</strong>:
+        attackers had compromised accounts on the biggest Minecraft mod-hosting
+        sites and injected a credential-stealing payload into popular mods and
+        modpacks — including packs with millions of downloads — where it
+        self-propagated into other mod files and stole browser logins, Discord
+        tokens, and Microsoft credentials from players. Some of the compromised
+        accounts had two-factor authentication turned on. The oldest, freest
+        modding culture on the internet shipped professional malware to its
+        most enthusiastic members through its most trusted channel.
+</p> <p>
+That is the real argument behind Apple’s clause 2.5.2 and Chrome’s
+        narrowed APIs, and it deserves to be stated without a sneer:
+<strong>once code is running with your authority, it can do anything
+        you can do.</strong> If installing a mod means handing it your file
+        system, your cookies, your saved passwords, and your network — then
+        yes, a review board and a welded seam genuinely protect people. The
+        walled garden is not a conspiracy. It is a reasonable response to a
+        catastrophic default.
+</p> <p>
+But look at the shape of the response. The catastrophic default —
+<em>all code gets all authority</em> — was treated as a law of nature,
+        and the fix was to ban the code. Nobody banned the default. There was
+        always a second door out of the problem: <strong>scope the authority
+        instead of the code.</strong> Let the mod exist, and bound what it can
+        touch. This isn’t hypothetical — it’s how every system that still dares
+        to run other people’s code does it. Figma runs plugins inside a
+        JavaScript interpreter compiled to WebAssembly, with a hand-picked list
+        of APIs. Deno makes a program declare, on the command line, which
+        directories and hosts it may touch, and denies everything else. VS
+        Code — host to tens of thousands of extensions, the liveliest modding
+        scene in software today — runs them in a separate, killable process.
+        Security researchers have a name for the underlying principle,
+<em>object capabilities</em>: code should hold authority the way your
+        hand holds keys — only the ones you were given, and it can’t forge the
+        rest.
+</p> <p>
+The platforms chose the ban because, for them, the ban was cheaper —
+        and, not incidentally, because a welded seam has commercial upside:
+        nobody mods the feed you monetize. But for <em>you</em>, the ban has a
+        cost that compounds. It’s every workflow that stays broken because the
+        vendor’s backlog doesn’t know you exist. It’s every genre of tool that
+        never gets its DotA, because the map editor never shipped.
+</p> <h2>You can’t mod what you can’t read</h2> <p>
+There’s a precondition hiding under all the modding stories, so obvious
+        it’s easy to miss. Doom mods were possible because the levels lived in
+        a <em>file</em>, in a documented format, separable from the engine.
+        DotA was possible because the map was <em>data</em> the game would load
+        from anyone, not just from Blizzard. The moddable era’s real invariant
+        was never a licence — it was that <strong>the thing you wanted to
+        change was legible and yours to swap.</strong> </p> <p>
+Flip that around and you have a diagnosis of the present. The modern
+        app is unmoddable, at root, because your data is trapped inside it —
+        on the vendor’s servers, in the vendor’s schema, reachable only through
+        the vendor’s screens. You can’t mod what you can’t read. The app and
+        the data are fused, so wanting a different app means begging the vendor
+        or leaving your life behind.
+</p> <p>
+A quiet lineage of thinkers has been circling the way out for twenty
+        years. In 2004, Clay Shirky described <em>situated software</em> —
+        software “designed in and for a particular social situation,” built by
+        and for a group of dozens, thriving precisely because it ignored every
+        rule about scale. In 2020, Robin Sloan built a messaging app just for his
+        family and called it
+<em>a home-cooked meal</em> — “I am the programming equivalent of a
+        home cook,” he wrote, and the app never needed to be a restaurant. The
+        Obsidian community distilled the durability half of the idea into three
+        words — <em>file over app</em>: your notes should be files you own, in
+        a format anything can read, so the app is replaceable and your writing
+        outlives it. And in 2025, researchers at Ink &amp; Switch published the
+        fullest statement of the vision, <em>malleable software</em>: computing
+        as a dynamic medium people can reshape to their own needs, rather than
+        a collection of rigid, locked-down applications — with a gentle slope
+        from using a tool to remaking it.
+</p> <p>
+Different decades, one inversion: <strong>stop treating the app as the
+        home of your data, and start treating your data as the ground the apps
+        stand on.</strong> Own the substrate. Swap the views. That single move
+        is what turns “moddable” from a nostalgic adjective back into an
+        architecture.
+</p> <h2>The application is a view over your data</h2> <p>
+This is the bet <a href="/">xNet</a> is built on, so let us show you the
+        machinery — honestly, including the parts that exist as architecture
+        rather than as a crowded bazaar.
+</p> <section class="not-prose my-12"> <div class="rounded-2xl border border-border bg-surface/30 p-6 dark:bg-surface/40 lg:p-8"> <h3 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+An honest workshop
+</h3> <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+An argument for opening things up has to be straight about why they were
+      closed. Here’s where the romance stops.
+</p> <ul class="mt-6 space-y-5"> <li class="grid gap-3 sm:grid-cols-[1fr_1.3fr] sm:gap-5"> <div class="flex gap-2.5"> <span class="select-none text-gray-400 dark:text-gray-600">✕</span> <p class="text-sm leading-relaxed text-gray-500 dark:text-gray-400">We won’t pretend mod ecosystems are safe by default.</p> </div> <div class="flex gap-2.5"> <span class="select-none text-sky-500">✓</span> <p class="text-sm leading-relaxed text-gray-700 dark:text-gray-200">In 2023 the fractureiser malware rode compromised accounts into popular Minecraft mods — packs with millions of downloads — and stole credentials from the people who trusted them. Distribution trust alone is not enough. That’s exactly why the answer here is capability scoping at runtime, not “it’s open, so it’s fine.”</p> </div> </li><li class="grid gap-3 sm:grid-cols-[1fr_1.3fr] sm:gap-5"> <div class="flex gap-2.5"> <span class="select-none text-gray-400 dark:text-gray-600">✕</span> <p class="text-sm leading-relaxed text-gray-500 dark:text-gray-400">We won’t pretend the platforms locked down out of malice.</p> </div> <div class="flex gap-2.5"> <span class="select-none text-sky-500">✓</span> <p class="text-sm leading-relaxed text-gray-700 dark:text-gray-200">A reviewed app store and a narrow extension API genuinely shrink the attack surface; that’s a real engineering argument, not a smokescreen. Our claim is narrower: it’s a false trade. You can bound what code can touch instead of banning what code can exist.</p> </div> </li><li class="grid gap-3 sm:grid-cols-[1fr_1.3fr] sm:gap-5"> <div class="flex gap-2.5"> <span class="select-none text-gray-400 dark:text-gray-600">✕</span> <p class="text-sm leading-relaxed text-gray-500 dark:text-gray-400">We won’t pretend bespoke software is free.</p> </div> <div class="flex gap-2.5"> <span class="select-none text-sky-500">✓</span> <p class="text-sm leading-relaxed text-gray-700 dark:text-gray-200">A view you build is a view you keep. AI collapses the cost of writing and much of the cost of maintaining it, but not to zero — “as bespoke as possible” comes with “within reason” attached. The substrate’s job is to make the reasonable region as large as it can honestly be.</p> </div> </li><li class="grid gap-3 sm:grid-cols-[1fr_1.3fr] sm:gap-5"> <div class="flex gap-2.5"> <span class="select-none text-gray-400 dark:text-gray-600">✕</span> <p class="text-sm leading-relaxed text-gray-500 dark:text-gray-400">We won’t pretend our workshop is crowded yet.</p> </div> <div class="flex gap-2.5"> <span class="select-none text-sky-500">✓</span> <p class="text-sm leading-relaxed text-gray-700 dark:text-gray-200">What exists today is the architecture — the manifest, the guards, the trust ladder, the licence layer — and the first-party views built on it. The bustling mod scene this essay wants is an invitation, not an inventory. We’re describing the door, and it is genuinely open.</p> </div> </li> </ul> </div> </section> <p>
+In xNet, everything you make — tasks, notes, contacts, messages,
+        ledgers — lives in one store of nodes on your own device, written as a
+        signed, hash-chained change log in an open format. (We walked one note
+        all the way through that machine in
+<a href="/blog/the-loom-you-can-read">The Loom You Can Read</a>.) No
+        app owns the store. Apps <em>subscribe</em> to it. The tasks app is a
+        query over task nodes; the CRM is a query over contact and deal nodes;
+        the finance view is a query over accounts and entries. Three
+        “applications,” one substrate — and each is, in the game modder’s
+        exact sense, a <em>skin over the save file</em>. Replace any of them
+        and your data doesn’t move an inch.
+</p> <figure class="not-prose my-10"> <div class="overflow-x-auto rounded-2xl border border-border bg-surface/30 p-4 dark:bg-surface/40 lg:p-6"> <pre class="mermaid">flowchart LR
+  subgraph yours[&quot;Your substrate — on your device, in the open&quot;]
+    LOG[&quot;Signed, hash-chained&lt;br/&gt;change log&quot;] --&gt; STORE[(&quot;One store of nodes:&lt;br/&gt;tasks, notes, contacts,&lt;br/&gt;accounts, messages&quot;)]
+  end
+  subgraph views[&quot;Views — interchangeable, each scoped to a slice&quot;]
+    T[&quot;Tasks view&quot;]
+    C[&quot;CRM view&quot;]
+    F[&quot;Finance view&quot;]
+    P[&quot;Your mod:&lt;br/&gt;&#39;Focus Board&#39;&quot;]
+  end
+  STORE --&gt;|&quot;tasks + projects&quot;| T
+  STORE --&gt;|&quot;contacts + deals&quot;| C
+  STORE --&gt;|&quot;accounts + entries&quot;| F
+  STORE --&gt;|&quot;tasks + notes,&lt;br/&gt;nothing else&quot;| P</pre> </div> <figcaption class="mt-3 text-center text-sm leading-relaxed text-gray-500 dark:text-gray-400"> One substrate, many views. Each view — including yours — receives only the slice it declared, enforced at the query layer, not by politeness. </figcaption> </figure>   <p>
+That last clause is where safety comes back into the story, because
+        “your mod” in that diagram is doing something the walled garden says
+        must never happen: running code the vendor never reviewed, against your
+        real data. Here is the entire trick that makes it tolerable — the mod
+        arrives with a manifest, and the manifest is a consent form:
+</p> <figure class="not-prose my-6"> <div class="group relative min-w-0 overflow-hidden rounded-xl border border-border bg-code-bg"> <div class="border-b border-border px-4 py-2 font-mono text-xs text-gray-500"> focus-board/module.ts </div> <div class="relative"> <pre class="lp-code overflow-x-auto p-5 font-mono text-sm leading-relaxed"><code><span class="tok-comment">// A mod, in xNet, is a view plus a consent form.</span>
+<span class="tok-keyword">export</span> <span class="tok-keyword">default</span> <span class="tok-function">defineFeatureModule</span>({
+  id: <span class="tok-string">'com.you.focus-board'</span>,
+  name: <span class="tok-string">'Focus Board'</span>,
+  version: <span class="tok-string">'1.0.0'</span>,
+  capabilities: {
+    schemaRead:  [<span class="tok-string">'task'</span>, <span class="tok-string">'note'</span>],  <span class="tok-comment">// sees your tasks and notes…</span>
+    schemaWrite: [<span class="tok-string">'task'</span>],          <span class="tok-comment">// …may tick tasks off…</span>
+    network:     [],                <span class="tok-comment">// …and never phones home.</span>
+    secrets:     []                 <span class="tok-comment">// no tokens — nothing to leak</span>
+  }
+})</code></pre> <button class="copy-btn absolute right-3 top-3 rounded-md border border-border bg-surface px-2 py-1 text-xs text-gray-500 opacity-0 transition-opacity hover:text-gray-700 group-hover:opacity-100 dark:hover:text-gray-300" aria-label="Copy code">
+Copy
+</button> </div> </div> <figcaption class="mt-2.5 text-sm leading-relaxed text-gray-500 dark:text-gray-400"> The whole security model in a dozen legible lines. What it doesn&#39;t declare, it doesn&#39;t get — reads and writes are gated per schema, network calls are gated per domain, and API tokens are brokered by the hub so they never enter plugin code at all. </figcaption> </figure> <p>
+Those declarations aren’t documentation; they’re walls — just walls in
+        the right place. A guarded store hands the plugin only the schemas it
+        declared, and the authorisation layer scopes reads further to the
+        spaces you’ve shared with it — the mod sees the project you pointed it
+        at, not your whole life. A guarded fetch refuses any network call to a
+        domain outside the manifest — and an empty list means <em>offline,
+        provably</em>. Secrets are brokered: a connector that syncs your RSS
+        feeds or your Slack history gets the rows it produced, never the token
+        that produced them. And every plugin carries its provenance — built-in,
+        written by you, generated by an AI, installed from the marketplace,
+        or synced from a friend — and a trust ladder maps that provenance to a
+        sandbox tier and decides when you must be re-asked for consent. A mod
+        your friend shares with you doesn’t inherit your friend’s permissions;
+        it arrives quarantined and asks <em>you</em>.
+</p> <p>
+This is the Figma/Deno lesson, applied to the software you live in
+        rather than the software you design in: <strong>don’t review the code —
+        scope the authority.</strong> The fractureiser payload was
+        catastrophic because a Minecraft mod runs with all the authority of the
+        player’s whole machine. The identical attack against a capability-scoped
+        view is a mod that can tick tasks in one shared project and cannot open
+        a socket. Malicious, still — bounded, by construction.
+</p> <p>
+And because a workshop where nobody can make a living stays a hobby
+        shop, the last piece is economic: plugins can carry licences —
+        cryptographically bound to your identity key, verifiable offline, so a
+        mod-maker can charge for their work without a platform sitting in the
+        middle setting the terms and taking the toll. The marketplace
+        distributes and stamps provenance; it doesn’t own the door.
+</p> <h2>The home-cooked age</h2> <p>
+Everything so far would have been true five years ago. What’s new is
+        who can cook.
+</p> <p>
+The researcher Geoffrey Litt — one of the authors of that malleable
+        software essay — called large language models “a step change in tool
+        support for end-user programming”: the barrier between a fuzzy personal
+        need and working code is collapsing, for everyone, all at once. You’ve
+        felt this if you’ve asked an AI for a script and gotten one. Sloan’s
+        home-cooked meal stops being a metaphor for the few people who happen
+        to be home cooks and becomes a plain description of anyone with an
+        appetite and an evening.
+</p> <p>
+But notice what the AI does <em>not</em> change. A vibe-coded view is
+        still code you didn’t review, running against your real life —
+        generated by a model that can be confused, prompted maliciously, or
+        just wrong. Handing it the catastrophic default — all your data, all
+        your authority — is fractureiser with extra steps. The age of
+        home-cooked software doesn’t lower the value of a safe kitchen; it
+        raises it to the whole game. The scarce thing is no longer the ability
+        to write your bespoke view. It’s a place where a bespoke view can
+<em>run</em> — against your real data, with a bounded blast radius,
+        where “what can this thing touch?” has a checkable answer in twelve
+        lines.
+</p> <p>
+That’s the kitchen we’re building. Your data already on your device, in
+        one legible store. A manifest that turns “trust me” into a consent
+        form. A trust ladder that treats AI-generated code as exactly what it
+        is — a provenance, with its own sandbox tier. There’s even a
+        development bridge so your own coding agent can build against your
+        workspace in a scratch copy, behind validation gates, instead of
+        pasting your life into a chat window. Why wouldn’t your software be as
+        bespoke as your notebook? Within reason — and the whole job of the
+        substrate is to make “within reason” a wide, well-lit room.
+</p> <h2>Leave the door open</h2> <p>
+This blog has walked through pirate seas, forest soil, a gentle star, a
+        loom you’re allowed to open, a hand on the tiller. The workshop is the
+        same argument wearing overalls: systems worth living in are the ones
+        their inhabitants are free to reshape.
+</p> <p>
+The DotA story is usually told as a business parable — genius found in
+        the wild, hired by the smart companies. Told that way, it flatters the
+        walls. The truer telling is about the door: a big studio shipped a
+        world editor in the box, defaulting to <em>yes</em>, and a
+        photographer, a student, and a string of pseudonyms built genres in
+        the space it left open. The talent was always there. The talent is
+<em>still</em> there — in your company, in your group chat, in you —
+        and it now has a compiler that speaks English. What it mostly doesn’t
+        have is a single piece of load-bearing software that defaults to yes.
+</p> <p>
+So the question we’d leave you with is the one the walled garden is
+        designed to keep you from asking: <strong>what’s <em>your</em> DotA?</strong>
+What’s the view — the tiny, situated, home-cooked, one-team-shaped
+        tool — that doesn’t exist because the app that holds your data won’t
+        let you build it? The genre that never happened because the editor
+        never shipped?
+</p> <p>
+If you want to stand in the workshop: <a href="/app">use the app</a> —
+        your data lands in the open store from the first keystroke, so
+        everything here applies to it. If you make things,
+<a href="/build-with">build a view of your own</a> on the open
+        protocol, or browse the <a href="/plugins">plugin catalogue</a> to see
+        the manifest-and-consent flow for real. The bench is lit. The tools
+        are on the board. The door, on purpose, has a handle on your side.
+</p> <hr> <h3 id="sources">Sources</h3> <ul class="text-base"> <li>
+The map that became a genre:
+<a href="https://en.wikipedia.org/wiki/Defense_of_the_Ancients" rel="noopener noreferrer"> <em>Defense of the Ancients</em></a> (Eul, 2003, from the StarCraft custom map <em>Aeon of Strife</em>;
+          continued by Guinsoo and IceFrog) and the
+<a href="https://en.wikipedia.org/wiki/Multiplayer_online_battle_arena" rel="noopener noreferrer">
+MOBA genre</a> it founded — League of Legends (2009), Dota 2 (2013).
+</li> <li>
+The pattern before and after:
+<a href="https://en.wikipedia.org/wiki/Doom_modding" rel="noopener noreferrer">
+Doom’s WAD files</a> (1993; engine source released 1997),
+<a href="https://en.wikipedia.org/wiki/Team_Fortress_Classic" rel="noopener noreferrer">
+Team Fortress</a> (Quake mod, 1996),
+<a href="https://en.wikipedia.org/wiki/Counter-Strike_(video_game)" rel="noopener noreferrer">
+Counter-Strike</a> (Half-Life mod, 1999),
+<a href="https://en.wikipedia.org/wiki/PlayerUnknown" rel="noopener noreferrer">
+Brendan Greene’s battle-royale mods</a> (ARMA 2 DayZ mod → PUBG, 2017), and
+<a href="https://en.wikipedia.org/wiki/Minecraft_modding" rel="noopener noreferrer">
+Minecraft modding</a> (100&nbsp;billion CurseForge downloads, 2025).
+</li> <li>
+The enclosure:
+<a href="https://developer.apple.com/app-store/review/guidelines/" rel="noopener noreferrer">
+Apple App Review Guidelines, §2.5.2</a>; Chrome’s
+<a href="https://ublockorigin.com/" rel="noopener noreferrer">
+Manifest V3 and uBlock Origin</a> (see also the
+<a href="https://www.eff.org/deeplinks" rel="noopener noreferrer">EFF’s coverage</a>).
+</li> <li>
+The honest counterexample:
+<a href="https://github.com/trigram-mrp/fractureiser" rel="noopener noreferrer">
+the fractureiser incident</a> (June 2023) — malware distributed through compromised accounts in
+          Minecraft mods and modpacks.
+</li> <li>
+The intellectual spine:
+<a href="https://gwern.net/doc/technology/2004-03-30-shirky-situatedsoftware.html" rel="noopener noreferrer">
+Clay Shirky, <em>Situated Software</em></a> (2004);
+<a href="https://www.robinsloan.com/notes/home-cooked-app/" rel="noopener noreferrer">
+Robin Sloan, <em>An app can be a home-cooked meal</em></a> (2020);
+<a href="https://stephango.com/file-over-app" rel="noopener noreferrer">
+Steph Ango, <em>File over app</em></a>;
+<a href="https://www.inkandswitch.com/essay/malleable-software/" rel="noopener noreferrer">
+Ink &amp; Switch, <em>Malleable software</em></a> (2025) and
+<a href="https://www.inkandswitch.com/essay/local-first/" rel="noopener noreferrer"> <em>Local-first software</em></a> (2019); the
+<a href="https://malleable.systems/" rel="noopener noreferrer">
+Malleable Systems Collective</a>.
+</li> <li>
+Scoping authority instead of banning code:
+<a href="https://www.figma.com/blog/how-we-built-the-figma-plugin-system/" rel="noopener noreferrer">
+Figma’s plugin sandbox</a> (2019);
+<a href="https://docs.deno.com/runtime/fundamentals/security/" rel="noopener noreferrer">
+Deno’s permission model</a>;
+<a href="https://extism.org/" rel="noopener noreferrer">Extism</a>;
+<a href="https://en.wikipedia.org/wiki/Object-capability_model" rel="noopener noreferrer">
+the object-capability model</a> (Mark S. Miller).
+</li> <li>
+The home-cooked age:
+<a href="https://www.geoffreylitt.com/2023/03/25/llm-end-user-programming.html" rel="noopener noreferrer">
+Geoffrey Litt, <em>Malleable software in the age of LLMs</em></a> (2023).
+</li> <li>
+The machinery and the receipts:
+<a href="/blog/the-loom-you-can-read">The Loom You Can Read</a> (the
+          signed change log, walked end to end),
+<a href="/blog/the-tip-of-the-hook">The Tip of the Hook</a> (the
+          developer’s view of the same machine),
+<a href="/build-with">Build with xNet</a>, and the
+<a href="/plugins">plugin catalogue</a>.
+</li> </ul> <p class="text-sm text-gray-400 dark:text-gray-500"> <em>This is an independent essay. The writers and projects cited are
+          summarized as commentary; xNet is not affiliated with or endorsed by
+          them. The game histories are compressed — follow the citations for
+          the fuller, messier versions. The manifest excerpt is trimmed for
+          reading; the field names match the real source. All artwork here is
+          original.</em> </p> </article> <nav aria-label="More in this series" class="mx-auto max-w-3xl px-6 pb-16"><div class="border-t border-border pt-8"><p class="mb-4 font-mono text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500">
+More from the blog
+</p><div class="grid gap-4 sm:grid-cols-2"><a href="/blog/hand-on-the-tiller" rel="prev" class="group flex flex-col rounded-2xl border border-border bg-surface/20 p-5 transition-all hover:border-indigo-500/40 hover:bg-surface/40"><span class="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 dark:text-indigo-400"><svg class="h-4 w-4 transition-transform group-hover:-translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"></path></svg>
+Previous
+</span><span class="mt-2 font-bold tracking-tight text-gray-900 transition-colors group-hover:text-indigo-600 dark:text-white dark:group-hover:text-indigo-400">Hand on the Tiller</span></a><a href="/blog/the-vault-and-the-view" rel="next" class="group flex flex-col rounded-2xl border border-border bg-surface/20 p-5 text-right transition-all hover:border-indigo-500/40 hover:bg-surface/40 sm:col-start-2"><span class="inline-flex items-center justify-end gap-1 text-sm font-medium text-indigo-600 dark:text-indigo-400">
+Next
+<svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"></path></svg></span><span class="mt-2 font-bold tracking-tight text-gray-900 transition-colors group-hover:text-indigo-600 dark:text-white dark:group-hover:text-indigo-400">The Vault and the View</span></a></div></div></nav> </main> <footer class="border-t border-border/50 bg-surface/10 dark:bg-surface/20"> <div class="mx-auto max-w-6xl px-6 py-12 lg:py-16"> <!-- Main footer content --> <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-7"> <!-- Brand --> <div class="lg:col-span-2"> <a href="/" class="inline-flex items-center gap-2"> <span class="font-mono text-xl font-bold text-gray-800 dark:text-white">xNet</span> </a> <p class="mt-4 text-sm text-gray-500 dark:text-gray-400 max-w-xs leading-relaxed">
+Local-first apps that work offline, sync peer-to-peer, and keep your data under your control.
+</p> <div class="mt-6 flex gap-4"> <a href="https://github.com/crs48/xNet" target="_blank" rel="noopener noreferrer" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors" aria-label="GitHub"> <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"> <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"></path> </svg> </a> <a href="https://github.com/crs48/xNet/discussions" target="_blank" rel="noopener noreferrer" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors" aria-label="GitHub Discussions"> <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"> <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"></path> </svg> </a> </div> </div> <!-- Product --> <div> <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Product</h4> <ul class="space-y-3"> <li> <a href="/app" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Try the App </a> </li><li> <a href="/mobile" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Run on Mobile </a> </li><li> <a href="/download" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Download Desktop </a> </li><li> <a href="/plugins" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Plugins </a> </li><li> <a href="/docs" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Documentation </a> </li><li> <a href="/docs/quickstart/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Quickstart </a> </li><li> <a href="/changelog" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Changelog </a> </li> </ul> </div> <!-- Cloud --> <div> <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Cloud</h4> <ul class="space-y-3"> <li> <a href="/cloud" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> xNet Cloud </a> </li><li> <a href="/cloud/pricing" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Pricing </a> </li><li> <a href="/open" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Open metrics </a> </li><li> <a href="/status" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Status </a> </li> </ul> </div> <!-- Develop --> <div> <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Develop</h4> <ul class="space-y-3"> <li> <a href="/react" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> XNet for React </a> </li><li> <a href="/build-with" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Build with any language </a> </li><li> <a href="/docs/languages/swift/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Swift SDK </a> </li><li> <a href="/docs/languages/rust/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Rust core </a> </li><li> <a href="/devtool" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> DevTools </a> </li><li> <a href="/docs/hooks/overview/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> React Hooks </a> </li><li> <a href="/docs/guides/server/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Your own server </a> </li> </ul> </div> <!-- Resources --> <div> <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Resources</h4> <ul class="space-y-3"> <li> <a href="/why" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Why xNet </a> </li><li> <a href="/blog" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Blog </a> </li><li> <a href="/compare" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Compare </a> </li><li> <a href="/commitments" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Commitments </a> </li><li> <a href="/#roadmap" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Roadmap </a> </li><li> <a href="/docs/architecture/overview/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Architecture </a> </li><li> <a href="/docs/contributing/getting-started/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Contributing </a> </li> </ul> </div> <!-- Community --> <div> <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Community</h4> <ul class="space-y-3"> <li> <a href="https://github.com/crs48/xNet" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> GitHub </a> </li><li> <a href="https://github.com/crs48/xNet/discussions" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> GitHub Discussions </a> </li><li> <a href="https://github.com/crs48/xNet/blob/main/GOVERNANCE.md" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Governance </a> </li><li> <a href="https://github.com/crs48/xNet/blob/main/TRADEMARK.md" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Trademark &amp; Brand </a> </li><li> <a href="https://github.com/crs48/xNet/blob/main/CODE_OF_CONDUCT.md" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Code of Conduct </a> </li> </ul> </div> </div> <!-- Bottom bar --> <div class="mt-12 pt-8 border-t border-border/50 flex flex-col sm:flex-row items-center justify-between gap-4"> <p class="text-sm text-gray-500">
+&copy; 2026 xNet. Open source under MIT License.
+</p> <div class="flex items-center gap-6"> <a href="https://github.com/crs48/xNet/blob/main/LICENSE" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> MIT License </a><a href="/privacy" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Privacy </a><a href="/terms" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Terms </a><a href="/acceptable-use" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Acceptable Use </a><a href="/subprocessors" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Sub-processors </a> </div> </div> </div> </footer>  <script type="module">const o=new IntersectionObserver(e=>{e.forEach(t=>{t.isIntersecting&&(t.target.classList.add("visible"),o.unobserve(t.target))})},{threshold:.1,rootMargin:"0px 0px -40px 0px"});document.querySelectorAll(".animate-on-scroll").forEach(e=>o.observe(e));document.querySelectorAll(".copy-btn").forEach(e=>{e.addEventListener("click",async()=>{const t=e.dataset.copy||e.closest(".relative")?.querySelector("code")?.textContent||"";await navigator.clipboard.writeText(t.trim()),e.textContent="Copied!",e.classList.add("copied"),setTimeout(()=>{e.textContent="Copy",e.classList.remove("copied")},2e3)})});</script> </body> </html>

@@ -1,0 +1,11 @@
+{
+  "stories": [],
+  "routes": [
+    {
+      "id": "home",
+      "label": "Home",
+      "file": "routes/home.png"
+    }
+  ],
+  "flows": []
+}

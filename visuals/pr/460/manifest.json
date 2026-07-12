@@ -1,0 +1,27 @@
+{
+  "stories": [
+    {
+      "id": "ui-components-catalog--overview",
+      "title": "UI/Components/Catalog",
+      "name": "Overview",
+      "file": "stories/ui-components-catalog--overview.png"
+    }
+  ],
+  "routes": [
+    {
+      "id": "data",
+      "label": "Data",
+      "file": "routes/data.png"
+    }
+  ],
+  "flows": [],
+  "electron": [
+    {
+      "id": "electron-canvas-home",
+      "label": "Desktop · Canvas home",
+      "file": "electron/electron-canvas-home.png"
+    }
+  ],
+  "fallbackUsed": false,
+  "unmappedFiles": []
+}

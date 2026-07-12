@@ -1,0 +1,22 @@
+{
+  "threshold": 0.998,
+  "baseline": "https://xnet.fyi/visuals-baseline",
+  "fallbackUsed": false,
+  "unmappedFiles": [],
+  "stories": [],
+  "routes": [
+    {
+      "id": "home",
+      "label": "Home",
+      "file": "routes/home.png",
+      "status": "changed",
+      "ssim": 0.97779,
+      "before": "before/routes/home.png",
+      "after": "routes/home.png",
+      "diff": "diff/routes/home.png"
+    }
+  ],
+  "electron": [],
+  "flows": [],
+  "changedCount": 1
+}

@@ -1,0 +1,136 @@
+{
+  "threshold": 0.998,
+  "baseline": "https://xnet.fyi/visuals-baseline",
+  "fallbackUsed": false,
+  "unmappedFiles": [],
+  "stories": [
+    {
+      "id": "ui-components-catalog--overview",
+      "title": "UI/Components/Catalog",
+      "name": "Overview",
+      "file": "stories/ui-components-catalog--overview.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-comms-presencedot--active",
+      "title": "Web/Comms/PresenceDot",
+      "name": "Active",
+      "file": "stories/web-comms-presencedot--active.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-comms-presencedot--all-statuses",
+      "title": "Web/Comms/PresenceDot",
+      "name": "All Statuses",
+      "file": "stories/web-comms-presencedot--all-statuses.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-comms-reactionbar--default",
+      "title": "Web/Comms/ReactionBar",
+      "name": "Default",
+      "file": "stories/web-comms-reactionbar--default.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-comms-reactionbar--single-reaction",
+      "title": "Web/Comms/ReactionBar",
+      "name": "Single Reaction",
+      "file": "stories/web-comms-reactionbar--single-reaction.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-presenceavatars--default",
+      "title": "Web/PresenceAvatars",
+      "name": "Default",
+      "file": "stories/web-presenceavatars--default.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-presenceavatars--empty",
+      "title": "Web/PresenceAvatars",
+      "name": "Empty",
+      "file": "stories/web-presenceavatars--empty.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-storagewarningbanner--informational",
+      "title": "Web/StorageWarningBanner",
+      "name": "Informational",
+      "file": "stories/web-storagewarningbanner--informational.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-storagewarningbanner--success",
+      "title": "Web/StorageWarningBanner",
+      "name": "Success",
+      "file": "stories/web-storagewarningbanner--success.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-storagewarningbanner--warning",
+      "title": "Web/StorageWarningBanner",
+      "name": "Warning",
+      "file": "stories/web-storagewarningbanner--warning.png",
+      "status": "unchanged",
+      "ssim": 1
+    }
+  ],
+  "routes": [
+    {
+      "id": "data",
+      "label": "Data",
+      "file": "routes/data.png",
+      "status": "changed",
+      "ssim": 0.997961,
+      "before": "before/routes/data.png",
+      "after": "routes/data.png",
+      "diff": "diff/routes/data.png"
+    },
+    {
+      "id": "home",
+      "label": "Home",
+      "file": "routes/home.png",
+      "status": "changed",
+      "ssim": 0.972573,
+      "before": "before/routes/home.png",
+      "after": "routes/home.png",
+      "diff": "diff/routes/home.png"
+    }
+  ],
+  "electron": [
+    {
+      "id": "electron-canvas-home",
+      "label": "Desktop · Canvas home",
+      "file": "electron/electron-canvas-home.png",
+      "status": "unchanged",
+      "ssim": 1
+    }
+  ],
+  "flows": [
+    {
+      "id": "chat",
+      "label": "Open a channel and post a message",
+      "gif": "flows/chat.gif",
+      "mp4": "flows/chat.mp4",
+      "poster": "flows/chat.poster.png"
+    },
+    {
+      "id": "create-page",
+      "label": "Create a page and use the editor",
+      "gif": "flows/create-page.gif",
+      "mp4": "flows/create-page.mp4",
+      "poster": "flows/create-page.poster.png"
+    }
+  ],
+  "changedCount": 4
+}

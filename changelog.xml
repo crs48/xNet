@@ -1,0 +1,1871 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>xNet Changelog</title>
+    <link>https://xnet.fyi/changelog</link>
+    <description>What's new in xNet.</description>
+    <language>en</language>
+    <item>
+      <title>One seamless surface across the workbench</title>
+      <link>https://xnet.fyi/changelog#2026-07-11-one-seamless-surface-across-the-workbenc</link>
+      <guid isPermaLink="false">2026-07-11-one-seamless-surface-across-the-workbenc</guid>
+      <pubDate>Sat, 11 Jul 2026 22:00:45 GMT</pubDate>
+      <description>Tab content — pages, databases, settings, chat — now blends into the backdrop behind the floating islands, and every overlay (modals, menus, dev tools, sheets) shares the same island fill as the sidebar and status bar, in both light and dark mode.</description>
+    </item>
+    <item>
+      <title>Clicking Tasks opens the task board</title>
+      <link>https://xnet.fyi/changelog#2026-07-11-clicking-tasks-opens-the-task-board</link>
+      <guid isPermaLink="false">2026-07-11-clicking-tasks-opens-the-task-board</guid>
+      <pubDate>Sat, 11 Jul 2026 21:33:18 GMT</pubDate>
+      <description>Selecting Tasks in the sidebar now opens the task board directly alongside the panel, so the extra &quot;Open task board&quot; link is gone.</description>
+    </item>
+    <item>
+      <title>Shared channels keep updating after a reload</title>
+      <link>https://xnet.fyi/changelog#2026-07-11-shared-channels-keep-updating-after-a-re</link>
+      <guid isPermaLink="false">2026-07-11-shared-channels-keep-updating-after-a-re</guid>
+      <pubDate>Sat, 11 Jul 2026 21:18:23 GMT</pubDate>
+      <description>Channels and workspaces shared with you now keep receiving new messages and edits across reloads, even when you're not viewing them.</description>
+    </item>
+    <item>
+      <title>Profile pictures, everywhere you appear</title>
+      <link>https://xnet.fyi/changelog#2026-07-10-profile-pictures-everywhere-you-appear</link>
+      <guid isPermaLink="false">2026-07-10-profile-pictures-everywhere-you-appear</guid>
+      <pubDate>Sat, 11 Jul 2026 20:23:34 GMT</pubDate>
+      <description>Upload a profile picture in Settings → Profile — it shows in the top-left profile button, menus, chats, and presence, with your generated avatar as the fallback. Profiles now reach people you share with: names and pictures render on shared channels, pages, and the Share dialog instead of DID fragments. Only you can write your profile; collaborators can read it.
+- Upload, change, or remove a profile picture (downscaled locally; photo metadata stripped)
+- Share recipients see real names and avatars on messages, comments, rosters, and the People tab
+- Your generated avatar (identicon) remains the default when no picture is set</description>
+    </item>
+    <item>
+      <title>Share a workspace layout with a link</title>
+      <link>https://xnet.fyi/changelog#2026-07-11-share-a-workspace-layout-with-a-link</link>
+      <guid isPermaLink="false">2026-07-11-share-a-workspace-layout-with-a-link</guid>
+      <pubDate>Sat, 11 Jul 2026 20:22:51 GMT</pubDate>
+      <description>You can now share a saved workspace (bench) with a link, like a page or channel — the recipient gets the layout in their switcher.</description>
+    </item>
+    <item>
+      <title>Notion-grade editor chrome on official open-source parts</title>
+      <link>https://xnet.fyi/changelog#2026-07-10-notion-grade-editor-chrome-on-official-o</link>
+      <guid isPermaLink="false">2026-07-10-notion-grade-editor-chrome-on-official-o</guid>
+      <pubDate>Sat, 11 Jul 2026 20:04:09 GMT</pubDate>
+      <description>Block drag-and-drop, the slash menu, and all suggestion popups were rebuilt on Tiptap's official MIT components (drag handle, Floating UI positioning, toolbar primitives with arrow-key navigation), fixing inconsistent handle and popup behavior. The editor also gains :emoji shortcodes and KaTeX math (^2$ inline, 97747…97747 blocks).</description>
+    </item>
+    <item>
+      <title>Shared chat channels now sync their messages and members</title>
+      <link>https://xnet.fyi/changelog#2026-07-10-shared-chat-channels-now-sync-their-mess</link>
+      <guid isPermaLink="false">2026-07-10-shared-chat-channels-now-sync-their-mess</guid>
+      <pubDate>Sat, 11 Jul 2026 19:30:06 GMT</pubDate>
+      <description>Opening a shared channel link now shows the real channel — its name, full message history, and members' names/avatars — and new messages arrive live. Previously a shared channel opened empty.</description>
+    </item>
+    <item>
+      <title>Your @username now works everywhere you can mention someone</title>
+      <link>https://xnet.fyi/changelog#2026-07-10-your-username-now-works-everywhere-you-c</link>
+      <guid isPermaLink="false">2026-07-10-your-username-now-works-everywhere-you-c</guid>
+      <pubDate>Fri, 10 Jul 2026 23:32:38 GMT</pubDate>
+      <description>Setting a username in your profile now surfaces you in the @mention autocomplete in comments, task inputs, and page editors — not just chat. You can also @mention yourself in chat, and pickers show the @username next to each person's name.
+- Comment and task @mention pickers match usernames
+- Page editor mentions match usernames
+- Chat picker includes yourself, listed last as (you)
+- Task pickers resolve profile names instead of raw IDs</description>
+    </item>
+    <item>
+      <title>Fixed a crash when opening databases with formula or rollup columns</title>
+      <link>https://xnet.fyi/changelog#2026-07-10-fixed-a-crash-when-opening-databases-wit</link>
+      <guid isPermaLink="false">2026-07-10-fixed-a-crash-when-opening-databases-wit</guid>
+      <pubDate>Fri, 10 Jul 2026 22:57:54 GMT</pubDate>
+      <description>Opening a database view containing a formula or rollup column (such as the seeded Tasks Tracker) crashed the editor. Computed cell values are now rendered as text, and link detection safely ignores non-text values.</description>
+    </item>
+    <item>
+      <title>Links you paste now turn into what they point at</title>
+      <link>https://xnet.fyi/changelog#2026-07-10-links-you-paste-now-turn-into-what-they-</link>
+      <guid isPermaLink="false">2026-07-10-links-you-paste-now-turn-into-what-they-</guid>
+      <pubDate>Fri, 10 Jul 2026 22:30:53 GMT</pubDate>
+      <description>Paste a link in chat and it up-reses: internal deep links become live-titled chips, share links become titled document cards (owner-controlled via a new 'Show title in link previews' toggle), and external URLs get preview cards resolved once by the sender — readers never ping the link. The page editor's pasted-URL cards now hydrate with real titles too.</description>
+    </item>
+    <item>
+      <title>Share chat channels and workspaces with a link</title>
+      <link>https://xnet.fyi/changelog#2026-07-10-share-chat-channels-and-workspaces-with-</link>
+      <guid isPermaLink="false">2026-07-10-share-chat-channels-and-workspaces-with-</guid>
+      <pubDate>Fri, 10 Jul 2026 22:04:35 GMT</pubDate>
+      <description>You can now generate a share link for a chat channel (from the channel header or its menu) and for a saved workspace layout — the same way you share a page or database. A channel share with 'comment' access lets people post messages without editing the channel.</description>
+    </item>
+    <item>
+      <title>Checklist tasks no longer flood the Changes tab with conflicts</title>
+      <link>https://xnet.fyi/changelog#2026-07-10-checklist-tasks-no-longer-flood-the-chan</link>
+      <guid isPermaLink="false">2026-07-10-checklist-tasks-no-longer-flood-the-chan</guid>
+      <pubDate>Fri, 10 Jul 2026 22:01:39 GMT</pubDate>
+      <description>Checking off or deleting page checklist items no longer spams the DevTools Changes tab with false conflicts, and a mid-delete snapshot can no longer rename a task to 'Untitled task'. Replayed sync changes now apply idempotently, and true cross-author conflicts are distinguished from routine last-write-wins housekeeping.</description>
+    </item>
+    <item>
+      <title>CI sheds its always-red lanes</title>
+      <link>https://xnet.fyi/changelog#2026-07-10-ci-sheds-its-always-red-lanes</link>
+      <guid isPermaLink="false">2026-07-10-ci-sheds-its-always-red-lanes</guid>
+      <pubDate>Fri, 10 Jul 2026 21:45:49 GMT</pubDate>
+      <description>The mobile-e2e placeholder workflow is retired, Fallow's weekly run now gates only the dead-code ratchet (the full audit runs on demand), five orphaned end-to-end suites joined the nightly soak lane with their rot fixed, and hub image releases no longer fail on SBOM upload permissions.</description>
+    </item>
+    <item>
+      <title>Changelog pages are easier to browse</title>
+      <link>https://xnet.fyi/changelog#2026-07-10-changelog-pages-are-easier-to-browse</link>
+      <guid isPermaLink="false">2026-07-10-changelog-pages-are-easier-to-browse</guid>
+      <pubDate>Fri, 10 Jul 2026 20:23:09 GMT</pubDate>
+      <description>The changelog now paginates at 50 entries per page, so the timeline loads and scrolls comfortably as history grows.
+- Prev/Next and numbered page buttons below the timeline
+- Search and tag filters page their results too
+- Shared entry links still land on the right entry, whatever page it's on</description>
+    </item>
+    <item>
+      <title>New essay: Weights You Can Hold</title>
+      <link>https://xnet.fyi/changelog#2026-07-10-new-essay-weights-you-can-hold</link>
+      <guid isPermaLink="false">2026-07-10-new-essay-weights-you-can-hold</guid>
+      <pubDate>Fri, 10 Jul 2026 20:09:45 GMT</pubDate>
+      <description>Blog post #13: graduates boo AI executives, then go home and run open-weight models on their own laptops. Two video essays woven into the series' exit-over-voice thread — open weights, owned assets, analogue media, and the software layer of the exit.</description>
+    </item>
+    <item>
+      <title>Opening share links in the browser works again</title>
+      <link>https://xnet.fyi/changelog#2026-07-10-opening-share-links-in-the-browser-works</link>
+      <guid isPermaLink="false">2026-07-10-opening-share-links-in-the-browser-works</guid>
+      <pubDate>Fri, 10 Jul 2026 19:45:05 GMT</pubDate>
+      <description>Clicking a share link no longer fails with 'Missing link, handle, or payload' when it falls back to the web app — the app was accidentally discarding the link's parameters during startup. Share links also no longer leave their secret in the address bar.</description>
+    </item>
+    <item>
+      <title>Demo hub now enforces its storage limits</title>
+      <link>https://xnet.fyi/changelog#2026-07-10-demo-hub-now-enforces-its-storage-limits</link>
+      <guid isPermaLink="false">2026-07-10-demo-hub-now-enforces-its-storage-limits</guid>
+      <pubDate>Fri, 10 Jul 2026 15:40:37 GMT</pubDate>
+      <description>The shared demo hub enforces its 10 MB per-user cap, wipes demo data daily, and sheds writes before its disk fills instead of crashing. Workspace (bench) share links now work end-to-end, and a hub that is down reports 'isn't responding' instead of a cryptic 'Failed to fetch'.</description>
+    </item>
+    <item>
+      <title>Install and configure plugins right from Settings</title>
+      <link>https://xnet.fyi/changelog#2026-07-10-install-and-configure-plugins-right-from</link>
+      <guid isPermaLink="false">2026-07-10-install-and-configure-plugins-right-from</guid>
+      <pubDate>Fri, 10 Jul 2026 15:22:06 GMT</pubDate>
+      <description>The plugin browser now tells the truth and does the work: plugins only say Built-in when they're actually installed, every first-party integration (GitHub, Slack, Notion, Linear, Discord, Stripe, and more) gets a real Install button, and a new Configure form collects tokens and settings — stored on your device only.
+- Built-in badge now reflects what's actually installed — everything else shows Install
+- Install a first-party integration and drop straight into its setup form
+- Configure from the plugin details or the Installed tab; a Needs-setup hint flags unfinished connections
+- Tokens and webhook secrets stay on this device — they never sync</description>
+    </item>
+    <item>
+      <title>The Assistant now starts minimized on desktop</title>
+      <link>https://xnet.fyi/changelog#2026-07-10-the-assistant-now-starts-minimized-on-de</link>
+      <guid isPermaLink="false">2026-07-10-the-assistant-now-starts-minimized-on-de</guid>
+      <pubDate>Fri, 10 Jul 2026 14:22:40 GMT</pubDate>
+      <description>The floating Assistant island no longer opens over the editor at launch. It starts collapsed to its reopener pill so the workspace is clear at rest — one click reopens the full island.</description>
+    </item>
+    <item>
+      <title>Every tab opens as a preview tab</title>
+      <link>https://xnet.fyi/changelog#2026-07-10-every-tab-opens-as-a-preview-tab</link>
+      <guid isPermaLink="false">2026-07-10-every-tab-opens-as-a-preview-tab</guid>
+      <pubDate>Fri, 10 Jul 2026 14:09:58 GMT</pubDate>
+      <description>Opening a page from the sidebar, command palette, or Settings now opens a temporary (italic) preview tab that the next open replaces — double-click the item, or start editing, to promote it to a permanent tab. Previously this VS Code-style behaviour only applied to Explorer rows.
+- Single-click any surface (People, Meetings, Finance, Settings…) → a preview tab
+- Double-click the row to keep it open</description>
+    </item>
+    <item>
+      <title>Plugin details view with an install button</title>
+      <link>https://xnet.fyi/changelog#2026-07-10-plugin-details-view-with-an-install-butt</link>
+      <guid isPermaLink="false">2026-07-10-plugin-details-view-with-an-install-butt</guid>
+      <pubDate>Fri, 10 Jul 2026 13:44:35 GMT</pubDate>
+      <description>Browsing plugins in Settings now lets you click a plugin to open a details view — with its description, stats, requested permissions, and what it adds — and install it right from there.
+- Click any plugin card in Settings → Plugins → Browse to open its full details
+- The details view shows installs, stars, license, homepage, requested access, and contributions
+- Install straight from the details view, with the same capability-consent prompt as before</description>
+    </item>
+    <item>
+      <title>The mobile navigator's first tab follows the view you're in</title>
+      <link>https://xnet.fyi/changelog#2026-07-09-the-mobile-navigator-s-first-tab-follows</link>
+      <guid isPermaLink="false">2026-07-09-the-mobile-navigator-s-first-tab-follows</guid>
+      <pubDate>Thu, 09 Jul 2026 18:05:34 GMT</pubDate>
+      <description>On phones, the center navigator sheet's first tab is now contextual — like the desktop bottom-left island. It shows Explorer on the workspace, Settings on the settings screen, Tasks on tasks, and so on, instead of always saying Explorer.
+- The navigator's contextual tab tracks the current view (Explorer / Settings / Tasks / Chats / …)
+- Picking a panel surface from Surfaces opens it right there in the navigator</description>
+    </item>
+    <item>
+      <title>Managed hubs now report and prove backup freshness</title>
+      <link>https://xnet.fyi/changelog#2026-07-09-managed-hubs-now-report-and-prove-backup</link>
+      <guid isPermaLink="false">2026-07-09-managed-hubs-now-report-and-prove-backup</guid>
+      <pubDate>Thu, 09 Jul 2026 17:10:26 GMT</pubDate>
+      <description>The cloud dashboard shows a real &quot;data safe as of&quot; time from Litestream's measured R2 sync, cold-tiering never destroys a hub until its backup is confirmed fresh, and nightly restore drills verify recoveries. Self-hosters can enable the same Litestream durability against any S3-compatible store.</description>
+    </item>
+    <item>
+      <title>Securely connect the app to your local model</title>
+      <link>https://xnet.fyi/changelog#2026-07-09-securely-connect-the-app-to-your-local-m</link>
+      <guid isPermaLink="false">2026-07-09-securely-connect-the-app-to-your-local-m</guid>
+      <pubDate>Thu, 09 Jul 2026 15:40:34 GMT</pubDate>
+      <description>You can now point the AI panel at a local Claude Code, Codex, or Ollama model through a hardened loopback bridge — protected by a pairing code, an origin allowlist, and Host-header checks so no other website can reach it.</description>
+    </item>
+    <item>
+      <title>The phone workbench gets the Floating Islands redesign</title>
+      <link>https://xnet.fyi/changelog#2026-07-09-the-phone-workbench-gets-the-floating-is</link>
+      <guid isPermaLink="false">2026-07-09-the-phone-workbench-gets-the-floating-is</guid>
+      <pubDate>Thu, 09 Jul 2026 15:23:05 GMT</pubDate>
+      <description>The mobile editor now matches the desktop Floating Islands look: a floating control cluster at the bottom of the screen replaces the old top bar and bottom nav, and every panel opens as a rounded island sheet hovering over your document.
+- A bottom control cluster hosts your profile, workspace, a navigator for Explorer/tabs/surfaces, search, and New
+- Comments, the assistant, and menus now open as floating island sheets over the page
+- A slim status island shows sync health and a theme toggle, with dev tools one tap away</description>
+    </item>
+    <item>
+      <title>Dev tools open as a hovering island</title>
+      <link>https://xnet.fyi/changelog#2026-07-09-dev-tools-open-as-a-hovering-island</link>
+      <guid isPermaLink="false">2026-07-09-dev-tools-open-as-a-hovering-island</guid>
+      <pubDate>Thu, 09 Jul 2026 14:09:42 GMT</pubDate>
+      <description>The developer tools panel now opens as a floating overlay island — rounded corners, a soft drop shadow and the warm island colour — hovering on top of your content instead of sliding up as a flush bottom sheet. Its tabs are now pills that match the rest of the workbench's hover panels.</description>
+    </item>
+    <item>
+      <title>Settings now opens as a tab</title>
+      <link>https://xnet.fyi/changelog#2026-07-09-settings-now-opens-as-a-tab</link>
+      <guid isPermaLink="false">2026-07-09-settings-now-opens-as-a-tab</guid>
+      <pubDate>Thu, 09 Jul 2026 13:21:22 GMT</pubDate>
+      <description>Opening Settings now creates a proper tab in the editor's tab bar (with a gear icon), alongside your documents — you can switch to it, close it, and it survives back/forward like any other tab. Switching between settings sections stays on the one tab.</description>
+    </item>
+    <item>
+      <title>Removed the pin-tab button from the tab strip</title>
+      <link>https://xnet.fyi/changelog#2026-07-09-removed-the-pin-tab-button-from-the-tab-</link>
+      <guid isPermaLink="false">2026-07-09-removed-the-pin-tab-button-from-the-tab-</guid>
+      <pubDate>Thu, 09 Jul 2026 13:21:01 GMT</pubDate>
+      <description>Tabs no longer show an inline pin button that took up space; pin and unpin are still available from the tab's right-click menu.</description>
+    </item>
+    <item>
+      <title>Settings sections now live in the sidebar's context island</title>
+      <link>https://xnet.fyi/changelog#2026-07-09-settings-sections-now-live-in-the-sideba</link>
+      <guid isPermaLink="false">2026-07-09-settings-sections-now-live-in-the-sideba</guid>
+      <pubDate>Thu, 09 Jul 2026 12:11:40 GMT</pubDate>
+      <description>When Settings is open, its section list (Profile, Appearance, Labs, …) moves into the lower-left contextual island, matching the rest of the workbench, and the selected section fills the main area. The active section now rides in the URL (/settings?section=…), so it's deep-linkable.</description>
+    </item>
+    <item>
+      <title>Readable, cohesive modal &amp; panel styling</title>
+      <link>https://xnet.fyi/changelog#2026-07-09-readable-cohesive-modal-panel-styling</link>
+      <guid isPermaLink="false">2026-07-09-readable-cohesive-modal-panel-styling</guid>
+      <pubDate>Thu, 09 Jul 2026 12:03:36 GMT</pubDate>
+      <description>The What's New panel and modals now render as solid &quot;floating islands&quot; — matching the workspace chrome with a slightly darker surface and deeper shadow so they read as hovering on top, and are fully legible instead of translucent.</description>
+    </item>
+    <item>
+      <title>Cleaner dev-tools toggle and Assistant dock spacing</title>
+      <link>https://xnet.fyi/changelog#2026-07-09-cleaner-dev-tools-toggle-and-assistant-d</link>
+      <guid isPermaLink="false">2026-07-09-cleaner-dev-tools-toggle-and-assistant-d</guid>
+      <pubDate>Thu, 09 Jul 2026 11:12:40 GMT</pubDate>
+      <description>The dev-tools button beside the status bar now toggles the panel directly instead of opening a menu. The floating Assistant dock now uses the same 8px spacing as the other islands — it no longer floats with extra margin on the left, right, and bottom.</description>
+    </item>
+    <item>
+      <title>Pick your workspace from the sidebar's top selector</title>
+      <link>https://xnet.fyi/changelog#2026-07-09-pick-your-workspace-from-the-sidebar-s-t</link>
+      <guid isPermaLink="false">2026-07-09-pick-your-workspace-from-the-sidebar-s-t</guid>
+      <pubDate>Thu, 09 Jul 2026 10:54:35 GMT</pubDate>
+      <description>The workspace selector at the top of the sidebar now switches which workspace (Space) you're scoped to and filing into — it no longer changes your shell layout. The old workspace-filter chips and the duplicate New button have been removed from the Explorer, which now stays focused on your files.</description>
+    </item>
+    <item>
+      <title>The New button now creates anything, filed into your workspace</title>
+      <link>https://xnet.fyi/changelog#2026-07-09-the-new-button-now-creates-anything-file</link>
+      <guid isPermaLink="false">2026-07-09-the-new-button-now-creates-anything-file</guid>
+      <pubDate>Thu, 09 Jul 2026 10:20:07 GMT</pubDate>
+      <description>The New button in the sidebar's top island is now the one place to create a page, database, canvas, dashboard, map or lab, a folder, or add a shared link — and it files new items into the workspace you're scoped to, matching the Explorer's New menu. The Explorer and the contextual '+' now use the same action, and the profile menu gained Sign out.</description>
+    </item>
+    <item>
+      <title>Dev-tools island now shows outside dev-only builds</title>
+      <link>https://xnet.fyi/changelog#2026-07-09-dev-tools-island-now-shows-outside-dev-o</link>
+      <guid isPermaLink="false">2026-07-09-dev-tools-island-now-shows-outside-dev-o</guid>
+      <pubDate>Thu, 09 Jul 2026 09:53:27 GMT</pubDate>
+      <description>The docked developer-tools island (beside the status bar) now appears whenever the developer tools are actually available — matching where the old floating button used to show — instead of only in local dev servers, so it no longer disappears in preview builds while its space stays reserved in the status row.</description>
+    </item>
+    <item>
+      <title>Dev-tools island and collapsible workbench header</title>
+      <link>https://xnet.fyi/changelog#2026-07-08-dev-tools-island-and-collapsible-workben</link>
+      <guid isPermaLink="false">2026-07-08-dev-tools-island-and-collapsible-workben</guid>
+      <pubDate>Thu, 09 Jul 2026 06:32:54 GMT</pubDate>
+      <description>In dev builds, the developer tools now dock as their own small island beside the status bar (with an upward menu into the query console, schema inspector, and sync log) instead of a floating button. The workbench header island can also collapse to a compact rail via a caret at its base, giving the Explorer below more room; the change is animated and respects reduced-motion.</description>
+    </item>
+    <item>
+      <title>Redesigned workbench with floating islands</title>
+      <link>https://xnet.fyi/changelog#2026-07-08-redesigned-workbench-with-floating-islan</link>
+      <guid isPermaLink="false">2026-07-08-redesigned-workbench-with-floating-islan</guid>
+      <pubDate>Thu, 09 Jul 2026 05:57:43 GMT</pubDate>
+      <description>The desktop workbench is now one warm canvas with all chrome floating as rounded, softly-shadowed islands — a calmer, Notion/Claude-desktop feel. Two stacked sidebar islands (navigation + a contextual surface), a base-surface editor with a breadcrumb header and pill tabs, a right context island, a status-bar island, and a bottom-center Assistant dock. A new surfaces model lets you pin the few surfaces you want visible and reach the rest from a roll-out.</description>
+    </item>
+    <item>
+      <title>Right-click menu on canvas nodes</title>
+      <link>https://xnet.fyi/changelog#2026-07-08-right-click-menu-on-canvas-nodes</link>
+      <guid isPermaLink="false">2026-07-08-right-click-menu-on-canvas-nodes</guid>
+      <pubDate>Thu, 09 Jul 2026 04:34:49 GMT</pubDate>
+      <description>Right-clicking a canvas node opens a context menu with its actions, matching the right-click menus already available elsewhere in the app.</description>
+    </item>
+    <item>
+      <title>Right-click menus across the app</title>
+      <link>https://xnet.fyi/changelog#2026-07-08-right-click-menus-across-the-app</link>
+      <guid isPermaLink="false">2026-07-08-right-click-menus-across-the-app</guid>
+      <pubDate>Thu, 09 Jul 2026 03:54:31 GMT</pubDate>
+      <description>Right-click (or the hover ⋯ kebab) now opens an actions menu on Explorer items, channels, chat messages, editor tabs, and card/list/timeline/board/task rows — rename, move, archive, delete and more, in place.</description>
+    </item>
+    <item>
+      <title>The Explorer sidebar scrolls when it fills up</title>
+      <link>https://xnet.fyi/changelog#2026-07-08-the-explorer-sidebar-scrolls-when-it-fil</link>
+      <guid isPermaLink="false">2026-07-08-the-explorer-sidebar-scrolls-when-it-fil</guid>
+      <pubDate>Thu, 09 Jul 2026 02:48:54 GMT</pubDate>
+      <description>The left-nav Explorer panel now scrolls vertically, so every workspace, folder, tag, and page stays reachable no matter how much you have.
+- Spaces, folders, tags, and pages share one scroll region instead of clipping out of view</description>
+    </item>
+    <item>
+      <title>Preview tabs when you single-click</title>
+      <link>https://xnet.fyi/changelog#2026-07-08-preview-tabs-when-you-single-click</link>
+      <guid isPermaLink="false">2026-07-08-preview-tabs-when-you-single-click</guid>
+      <pubDate>Thu, 09 Jul 2026 02:17:03 GMT</pubDate>
+      <description>Opening a document with a single click now shows it as a preview tab (italic) that the next click replaces — double-click, or start editing, to keep it. Matches VS Code, and now works from every list including the home page.</description>
+    </item>
+    <item>
+      <title>One coherent workspace shell</title>
+      <link>https://xnet.fyi/changelog#2026-07-08-one-coherent-workspace-shell</link>
+      <guid isPermaLink="false">2026-07-08-one-coherent-workspace-shell</guid>
+      <pubDate>Thu, 09 Jul 2026 01:09:27 GMT</pubDate>
+      <description>The web app is now a single shell: a sectioned, collapsible sidebar surfaces every tool (and previously-hidden routes like Meetings, Finance and Analytics), with a ⌘. focus mode to hide the chrome. The quiet/calm/workbench modes are gone.</description>
+    </item>
+    <item>
+      <title>Blog: Timeout — a personal essay</title>
+      <link>https://xnet.fyi/changelog#2026-07-08-blog-timeout-a-personal-essay</link>
+      <guid isPermaLink="false">2026-07-08-blog-timeout-a-personal-essay</guid>
+      <pubDate>Wed, 08 Jul 2026 23:04:02 GMT</pubDate>
+      <description>Blog post #12, the series' first personal essay: on autism, dissociation, and the network dreamed in the timeout — with a new 'personal' tag on the blog index.</description>
+    </item>
+    <item>
+      <title>CI failures now mean something</title>
+      <link>https://xnet.fyi/changelog#2026-07-08-ci-failures-now-mean-something</link>
+      <guid isPermaLink="false">2026-07-08-ci-failures-now-mean-something</guid>
+      <pubDate>Wed, 08 Jul 2026 18:29:36 GMT</pubDate>
+      <description>Fixed a workflow-file bug that failed every push, unblocked desktop releases (audiotee now targets macOS 14.2), moved the quality audit to a weekly schedule, and added guards (actionlint, storybook-shim conformance, DCO auto-sign-off) so red checks track real defects.</description>
+    </item>
+    <item>
+      <title>Arrange your workspace by dragging — and find it all in Settings › Labs</title>
+      <link>https://xnet.fyi/changelog#2026-07-08-arrange-your-workspace-by-dragging-and-f</link>
+      <guid isPermaLink="false">2026-07-08-arrange-your-workspace-by-dragging-and-f</guid>
+      <pubDate>Wed, 08 Jul 2026 16:25:11 GMT</pubDate>
+      <description>The malleable shell now has a real front door: a Labs section in Settings toggles it (and the other experiments) without any console tricks. Once on, panels show a grab handle, every dock lights up as a drop target while you drag (closed docks appear as edge strips), and a new Customize layout mode lays the whole shell out as draggable chips you can move, reorder, pin or hide — then save as a named workspace.</description>
+    </item>
+    <item>
+      <title>The workspace switcher is now one tap away in every shell</title>
+      <link>https://xnet.fyi/changelog#2026-07-08-the-workspace-switcher-is-now-one-tap-aw</link>
+      <guid isPermaLink="false">2026-07-08-the-workspace-switcher-is-now-one-tap-aw</guid>
+      <pubDate>Wed, 08 Jul 2026 14:37:31 GMT</pubDate>
+      <description>The Workspaces button now appears on the workbench rail and in the quiet shell's corner glyphs, not just the calm mode switch — and Settings → Appearance picks between the three layout presets (Quiet, Calm, Bench) with a shortcut to the workspace switcher.</description>
+    </item>
+    <item>
+      <title>Your workspace layout is now yours to arrange, save and share</title>
+      <link>https://xnet.fyi/changelog#2026-07-07-your-workspace-layout-is-now-yours-to-ar</link>
+      <guid isPermaLink="false">2026-07-07-your-workspace-layout-is-now-yours-to-ar</guid>
+      <pubDate>Tue, 07 Jul 2026 23:36:21 GMT</pubDate>
+      <description>The shell is one layout tree with three presets (Quiet, Calm, Bench) behind an experiment flag: move any panel between docks from its header menu, drag, or the command palette; save the arrangement as a named workspace node that syncs and can be shared like any document; and let the companion rearrange or scaffold new dockable views through undoable, consent-gated tools.</description>
+    </item>
+    <item>
+      <title>Meetings: botless transcription and AI notes</title>
+      <link>https://xnet.fyi/changelog#2026-07-07-meetings-botless-transcription-and-ai-no</link>
+      <guid isPermaLink="false">2026-07-07-meetings-botless-transcription-and-ai-no</guid>
+      <pubDate>Tue, 07 Jul 2026 22:26:20 GMT</pubDate>
+      <description>New Meetings surface: record a meeting without a bot — your mic plus (on desktop) system audio — with live Me/Them transcription that runs on-device by default (NVIDIA Parakeet v2 or Whisper, swappable in Settings), then merge your rough bullets with the transcript into AI-enhanced notes. Includes a meetings list + detail view, engine picker with model downloads, and privacy-first defaults: audio is never stored unless you opt in.</description>
+    </item>
+    <item>
+      <title>Databases gain a Form view with public sharing</title>
+      <link>https://xnet.fyi/changelog#2026-07-07-databases-gain-a-form-view-with-public-s</link>
+      <guid isPermaLink="false">2026-07-07-databases-gain-a-form-view-with-public-s</guid>
+      <pubDate>Tue, 07 Jul 2026 21:23:41 GMT</pubDate>
+      <description>Turn any database into a form: build questions from fields with show-if rules, share a public link that needs no account, and collect responses as rows — validated and signed by your own device, never the server.</description>
+    </item>
+    <item>
+      <title>New essay: The Vault and the View</title>
+      <link>https://xnet.fyi/changelog#2026-07-07-new-essay-the-vault-and-the-view</link>
+      <guid isPermaLink="false">2026-07-07-new-essay-the-vault-and-the-view</guid>
+      <pubDate>Tue, 07 Jul 2026 20:09:29 GMT</pubDate>
+      <description>Blog post #11 traces the fifty-year lineage of apps-as-views-over-your-data — from Codd's data independence through Solid's pods and local-first to xNet's substrate — and why AI-cheap views make user-owned data the ground that's left.</description>
+    </item>
+    <item>
+      <title>One canvas experience across web and desktop</title>
+      <link>https://xnet.fyi/changelog#2026-07-06-one-canvas-experience-across-web-and-des</link>
+      <guid isPermaLink="false">2026-07-06-one-canvas-experience-across-web-and-des</guid>
+      <pubDate>Tue, 07 Jul 2026 02:57:03 GMT</pubDate>
+      <description>The web and desktop canvases now share one core: media and PDF cards, dashboard widgets, query frames, and pinned records render identically on both (no more degraded cards after sync), and the web gains the desktop's power features — peek and inline editing of pages and databases, the selection action bar, linked-copies lookup, and multi-domain undo. Scene undo on the desktop canvas is fixed, and inside a focused canvas Cmd+Z can now undo an inline source edit when that was your latest change.</description>
+    </item>
+    <item>
+      <title>Faster, safer foundations: the hottest code paths got a deep clean</title>
+      <link>https://xnet.fyi/changelog#2026-07-06-faster-safer-foundations-the-hottest-cod</link>
+      <guid isPermaLink="false">2026-07-06-faster-safer-foundations-the-hottest-cod</guid>
+      <pubDate>Tue, 07 Jul 2026 00:16:22 GMT</pubDate>
+      <description>The storage engine, sync server, and app shells were reorganized into smaller, independently tested modules — same behavior, one shared conflict-resolution rule everywhere, and page comments now share one implementation across web and desktop.</description>
+    </item>
+    <item>
+      <title>Share links work from the web app again</title>
+      <link>https://xnet.fyi/changelog#2026-07-06-share-links-work-from-the-web-app-again</link>
+      <guid isPermaLink="false">2026-07-06-share-links-work-from-the-web-app-again</guid>
+      <pubDate>Mon, 06 Jul 2026 23:26:59 GMT</pubDate>
+      <description>Fixed the Share dialog failing with 'Failed to fetch': the hub now answers browser CORS preflights on its HTTP APIs, so listing, creating, and managing share links works from apps hosted on a different origin than the hub.
+- Share dialog Links and People tabs now load and update against your hub</description>
+    </item>
+    <item>
+      <title>The About page now shows the real app version</title>
+      <link>https://xnet.fyi/changelog#2026-07-06-the-about-page-now-shows-the-real-app-ve</link>
+      <guid isPermaLink="false">2026-07-06-the-about-page-now-shows-the-real-app-ve</guid>
+      <pubDate>Mon, 06 Jul 2026 22:31:34 GMT</pubDate>
+      <description>Settings → About now displays the actual running build version — bumped automatically with every release — and links to the correct GitHub repository.
+- App version is derived per release, so you can tell exactly which build you are on</description>
+    </item>
+    <item>
+      <title>DevTools logs keep capturing while the Logs tab is closed</title>
+      <link>https://xnet.fyi/changelog#2026-07-06-devtools-logs-keep-capturing-while-the-l</link>
+      <guid isPermaLink="false">2026-07-06-devtools-logs-keep-capturing-while-the-l</guid>
+      <pubDate>Mon, 06 Jul 2026 21:21:30 GMT</pubDate>
+      <description>Console capture now lives on the devtools provider, so log lines recorded before you open the Logs tab (or while another panel is active) are no longer lost. A new opt-in Preserve toggle keeps the log across reloads for the current tab session, with tokens and emails scrubbed from the stored copy.</description>
+    </item>
+    <item>
+      <title>A quiet workspace: blank-sheet shell and the Desk</title>
+      <link>https://xnet.fyi/changelog#2026-07-06-a-quiet-workspace-blank-sheet-shell-and-</link>
+      <guid isPermaLink="false">2026-07-06-a-quiet-workspace-blank-sheet-shell-and-</guid>
+      <pubDate>Mon, 06 Jul 2026 20:57:05 GMT</pubDate>
+      <description>Opt in to quiet chrome (⌘K → View: Quiet chrome): the surface owns the screen, and the navigator, context panel, and a devtools-style dock are summoned from the corners and edges. Pin pages, databases, and views onto your new Desk — a bounded home canvas that follows your identity.</description>
+    </item>
+    <item>
+      <title>Offline edits now survive app restarts and concurrent edits converge</title>
+      <link>https://xnet.fyi/changelog#2026-07-05-offline-edits-now-survive-app-restarts-a</link>
+      <guid isPermaLink="false">2026-07-05-offline-edits-now-survive-app-restarts-a</guid>
+      <pubDate>Mon, 06 Jul 2026 17:03:52 GMT</pubDate>
+      <description>Two durability fixes: edits made offline before an app restart no longer get stuck behind the sync circuit breaker, and two devices editing the same field at the same logical time now always agree on the winner instead of depending on delivery order.</description>
+    </item>
+    <item>
+      <title>A nightly durability and scale test lane now guards the sync engine</title>
+      <link>https://xnet.fyi/changelog#2026-07-05-a-nightly-durability-and-scale-test-lane</link>
+      <guid isPermaLink="false">2026-07-05-a-nightly-durability-and-scale-test-lane</guid>
+      <pubDate>Mon, 06 Jul 2026 17:03:52 GMT</pubDate>
+      <description>New reliability suite: deterministic sync simulation with seeded network chaos, SIGKILL crash-consistency testing, backup restore drills, 100k-node scale rails, and hub load smoke — run shallow on every PR and deep every night.</description>
+    </item>
+    <item>
+      <title>Query debug mode no longer distorts what it measures</title>
+      <link>https://xnet.fyi/changelog#2026-07-05-query-debug-mode-no-longer-distorts-what</link>
+      <guid isPermaLink="false">2026-07-05-query-debug-mode-no-longer-distorts-what</guid>
+      <pubDate>Mon, 06 Jul 2026 01:44:51 GMT</pubDate>
+      <description>With xnet:query:debug enabled, plan diagnostics issued hundreds of serial SQLite worker round-trips per boot (EXPLAIN + per-index PRAGMAs per query), delaying real query results by 18-20s. Index metadata is now fetched in one batched statement, shared across concurrent callers, and plan diagnostics are collected once per unique query shape per session.</description>
+    </item>
+    <item>
+      <title>Blog posts now credit their authors</title>
+      <link>https://xnet.fyi/changelog#2026-07-05-blog-posts-now-credit-their-authors</link>
+      <guid isPermaLink="false">2026-07-05-blog-posts-now-credit-their-authors</guid>
+      <pubDate>Mon, 06 Jul 2026 00:51:00 GMT</pubDate>
+      <description>Every essay on the blog carries a byline — the human author linked to their GitHub profile, and Claude credited as the AI co-author — with first-party avatar images, per-author RSS credits, and structured data for search engines.</description>
+    </item>
+    <item>
+      <title>New essay: The Workshop and the Walled Garden</title>
+      <link>https://xnet.fyi/changelog#2026-07-05-new-essay-the-workshop-and-the-walled-ga</link>
+      <guid isPermaLink="false">2026-07-05-new-essay-the-workshop-and-the-walled-ga</guid>
+      <pubDate>Sun, 05 Jul 2026 23:30:04 GMT</pubDate>
+      <description>Blog post #10: how game modding built genres, why the walled-garden era locked that creativity out, and how capability-scoped views over data you own bring it back safely.</description>
+    </item>
+    <item>
+      <title>npm releases flow again</title>
+      <link>https://xnet.fyi/changelog#2026-07-05-npm-releases-flow-again</link>
+      <guid isPermaLink="false">2026-07-05-npm-releases-flow-again</guid>
+      <pubDate>Sun, 05 Jul 2026 22:32:37 GMT</pubDate>
+      <description>Fixed the release pipeline stall: the desktop app's version sync now maintains its own changelog (the missing file crashed every release run since July 4), and a failing npm Release workflow now raises a loud alarm issue instead of failing silently.</description>
+    </item>
+    <item>
+      <title>Lists load several times faster and reappear instantly after reload</title>
+      <link>https://xnet.fyi/changelog#2026-07-05-lists-load-several-times-faster-and-reap</link>
+      <guid isPermaLink="false">2026-07-05-lists-load-several-times-faster-and-reap</guid>
+      <pubDate>Sun, 05 Jul 2026 20:47:17 GMT</pubDate>
+      <description>Reading your workspace got a structural speed-up: the database now returns each item as a single row instead of one row per field, list queries travel in one round-trip, and the query planner finally keeps statistics. On top of that, the app remembers your last-loaded lists and paints them immediately on the next visit while fresh data loads behind them.</description>
+    </item>
+    <item>
+      <title>Storage optimisation now survives rapid reloads</title>
+      <link>https://xnet.fyi/changelog#2026-07-05-storage-optimisation-now-survives-rapid-</link>
+      <guid isPermaLink="false">2026-07-05-storage-optimisation-now-survives-rapid-</guid>
+      <pubDate>Sun, 05 Jul 2026 20:04:14 GMT</pubDate>
+      <description>The one-time database conversion that speeds up cold opens is atomic, so reloading mid-run used to cancel it with zero progress — and the slowness it fixes is exactly what makes people reload. xNet now remembers interrupted attempts: it shows a subtle &quot;keep this tab open&quot; hint while the optimisation is running again, and after repeated interruptions it starts the work right at first paint so the conversion finally lands.
+- Interrupted storage-optimisation attempts are tracked and retried smarter
+- Subtle non-blocking hint asks you to keep the tab open while it finishes
+- After repeated interruptions the optimisation starts right after first paint</description>
+    </item>
+    <item>
+      <title>Multiple tabs now share one local database</title>
+      <link>https://xnet.fyi/changelog#2026-07-05-multiple-tabs-now-share-one-local-databa</link>
+      <guid isPermaLink="false">2026-07-05-multiple-tabs-now-share-one-local-databa</guid>
+      <pubDate>Sun, 05 Jul 2026 18:11:44 GMT</pubDate>
+      <description>Opening xNet in a second tab no longer loses local persistence: tabs elect a leader and share its database, and if the leading tab closes another takes over seamlessly. Queries also got faster — repeated statements skip re-parsing, multi-part reads travel in one message, and lists refresh more selectively after large syncs.</description>
+    </item>
+    <item>
+      <title>Storage reclaim now actually returns space to disk</title>
+      <link>https://xnet.fyi/changelog#2026-07-05-storage-reclaim-now-actually-returns-spa</link>
+      <guid isPermaLink="false">2026-07-05-storage-reclaim-now-actually-returns-spa</guid>
+      <pubDate>Sun, 05 Jul 2026 17:29:55 GMT</pubDate>
+      <description>Freed pages from change-log compaction were returned to the filesystem one page at a time due to a WASM binding quirk, so the storage file plateaued instead of shrinking. Reclaim now drains the whole freelist per pass, and a pass that finds a stranded backlog returns it even when there is nothing left to prune.</description>
+    </item>
+    <item>
+      <title>Storage now shrinks on long-lived profiles</title>
+      <link>https://xnet.fyi/changelog#2026-07-05-storage-now-shrinks-on-long-lived-profil</link>
+      <guid isPermaLink="false">2026-07-05-storage-now-shrinks-on-long-lived-profil</guid>
+      <pubDate>Sun, 05 Jul 2026 15:52:27 GMT</pubDate>
+      <description>Databases created before incremental auto-vacuum existed were never converted, so reclaimed space never returned to disk. The one-time conversion now keys off the database's actual auto-vacuum mode instead of a latched flag, so existing profiles get converted and the storage file starts shrinking.</description>
+    </item>
+    <item>
+      <title>Hop through blog essays with previous/next links</title>
+      <link>https://xnet.fyi/changelog#2026-07-04-hop-through-blog-essays-with-previous-ne</link>
+      <guid isPermaLink="false">2026-07-04-hop-through-blog-essays-with-previous-ne</guid>
+      <pubDate>Sat, 04 Jul 2026 22:45:08 GMT</pubDate>
+      <description>Every blog post now ends with a previous/next pager, so you can read the essays as a series — finish one and jump straight to the next.</description>
+    </item>
+    <item>
+      <title>Download page now links to the real desktop app</title>
+      <link>https://xnet.fyi/changelog#2026-07-04-download-page-now-links-to-the-real-desk</link>
+      <guid isPermaLink="false">2026-07-04-download-page-now-links-to-the-real-desk</guid>
+      <pubDate>Sat, 04 Jul 2026 16:11:15 GMT</pubDate>
+      <description>The download page pulls the actual Electron desktop release (macOS, Windows, Linux) instead of the most recent npm package release, so every platform button points at a working installer. Desktop builds now also publish automatically alongside each core release.</description>
+    </item>
+    <item>
+      <title>Large workspaces reclaim disk space as history is pruned</title>
+      <link>https://xnet.fyi/changelog#2026-07-03-large-workspaces-reclaim-disk-space-as-h</link>
+      <guid isPermaLink="false">2026-07-03-large-workspaces-reclaim-disk-space-as-h</guid>
+      <pubDate>Sat, 04 Jul 2026 00:28:12 GMT</pubDate>
+      <description>Local databases now return freed space to the filesystem when old change-log history is compacted, so the file that determines cold-open speed shrinks over time instead of staying large. This steadily speeds up opening large, long-lived workspaces.</description>
+    </item>
+    <item>
+      <title>Missed payments now start a grace period instead of an abrupt cutoff</title>
+      <link>https://xnet.fyi/changelog#2026-07-03-missed-payments-now-start-a-grace-period</link>
+      <guid isPermaLink="false">2026-07-03-missed-payments-now-start-a-grace-period</guid>
+      <pubDate>Fri, 03 Jul 2026 23:57:45 GMT</pubDate>
+      <description>xNet Cloud now recognizes Stripe payment-failure and recovery webhooks and tracks a per-account non-payment lifecycle, so a failed card opens a grace period (and recovers cleanly) rather than silently doing nothing until the subscription cancels.</description>
+    </item>
+    <item>
+      <title>Cold open no longer stalls behind background cleanup</title>
+      <link>https://xnet.fyi/changelog#2026-07-03-cold-open-no-longer-stalls-behind-backgr</link>
+      <guid isPermaLink="false">2026-07-03-cold-open-no-longer-stalls-behind-backgr</guid>
+      <pubDate>Fri, 03 Jul 2026 23:20:55 GMT</pubDate>
+      <description>Change-log compaction, database VACUUM, and presence cleanup now wait until the workspace has painted before touching the single SQLite worker, so opening a large workspace is no longer slowed by maintenance work. A reset or protocol-skewed hub no longer triggers a full change-log re-offer on connect.</description>
+    </item>
+    <item>
+      <title>Multi-home sync routing (selective backup to multiple hubs)</title>
+      <link>https://xnet.fyi/changelog#2026-07-03-multi-home-sync-routing-selective-backup</link>
+      <guid isPermaLink="false">2026-07-03-multi-home-sync-routing-selective-backup</guid>
+      <pubDate>Fri, 03 Jul 2026 23:07:59 GMT</pubDate>
+      <description>New runtime primitives (createMultiHubSyncManager + replication-scope helpers) that route each Space to only the hubs its policy selects, wiring up selective multi-hub replication over the existing multiplexed transports.</description>
+    </item>
+    <item>
+      <title>Foundation for graceful handling of missed payments</title>
+      <link>https://xnet.fyi/changelog#2026-07-03-foundation-for-graceful-handling-of-miss</link>
+      <guid isPermaLink="false">2026-07-03-foundation-for-graceful-handling-of-miss</guid>
+      <pubDate>Fri, 03 Jul 2026 23:02:10 GMT</pubDate>
+      <description>A new dunning lifecycle decision powers grace, suspend, and retention so a failed payment degrades an account gracefully — and never deletes your local data — instead of an abrupt cutoff.</description>
+    </item>
+    <item>
+      <title>Run xNet on your phone via Expo Go</title>
+      <link>https://xnet.fyi/changelog#2026-07-03-run-xnet-on-your-phone-via-expo-go</link>
+      <guid isPermaLink="false">2026-07-03-run-xnet-on-your-phone-via-expo-go</guid>
+      <pubDate>Fri, 03 Jul 2026 19:30:02 GMT</pubDate>
+      <description>A new Run on Mobile page (linked in the footer) shows a QR code that launches the xNet demo inside Expo Go — no App Store, no sideloading — plus copy-paste steps to run it yourself.</description>
+    </item>
+    <item>
+      <title>The marketing site is held to the same 'no dark patterns' bar as the app</title>
+      <link>https://xnet.fyi/changelog#2026-07-03-the-marketing-site-is-held-to-the-same-n</link>
+      <guid isPermaLink="false">2026-07-03-the-marketing-site-is-held-to-the-same-n</guid>
+      <pubDate>Fri, 03 Jul 2026 18:06:40 GMT</pubDate>
+      <description>The humane-pattern build check now scans the site too, and the telemetry commitment is worded honestly — 'scrubbed and bucketed', not 'k-anonymized' — to match what the code actually does.</description>
+    </item>
+    <item>
+      <title>Faster cold open on large workspaces</title>
+      <link>https://xnet.fyi/changelog#2026-07-03-faster-cold-open-on-large-workspaces</link>
+      <guid isPermaLink="false">2026-07-03-faster-cold-open-on-large-workspaces</guid>
+      <pubDate>Fri, 03 Jul 2026 18:00:03 GMT</pubDate>
+      <description>Workspaces with a long edit history now compact their local change log in the background, so the app opens faster after the first sync.</description>
+    </item>
+    <item>
+      <title>New essay: Hand on the Tiller</title>
+      <link>https://xnet.fyi/changelog#2026-07-03-new-essay-hand-on-the-tiller</link>
+      <guid isPermaLink="false">2026-07-03-new-essay-hand-on-the-tiller</guid>
+      <pubDate>Fri, 03 Jul 2026 16:21:41 GMT</pubDate>
+      <description>A new blog essay reframes alignment as continuous course correction across a nested stack of systems — physics, planet, society, technology, AI — and shows the instruments xNet hands back: undo, exit, consent, and a machine you can read.</description>
+    </item>
+    <item>
+      <title>Cold-open no longer freezes on outbound resync</title>
+      <link>https://xnet.fyi/changelog#2026-07-01-cold-open-no-longer-freezes-on-outbound-</link>
+      <guid isPermaLink="false">2026-07-01-cold-open-no-longer-freezes-on-outbound-</guid>
+      <pubDate>Wed, 01 Jul 2026 23:19:54 GMT</pubDate>
+      <description>A lagging sync cursor made the first outbound resync process the whole change-log slice synchronously — a multi-second main-thread freeze on cold open. It now sorts by code units (not locale) and yields to the event loop between batches.</description>
+    </item>
+    <item>
+      <title>The app no longer fails to open on a slow cold start</title>
+      <link>https://xnet.fyi/changelog#2026-07-01-the-app-no-longer-fails-to-open-on-a-slo</link>
+      <guid isPermaLink="false">2026-07-01-the-app-no-longer-fails-to-open-on-a-slo</guid>
+      <pubDate>Wed, 01 Jul 2026 15:01:10 GMT</pubDate>
+      <description>A slow local-database open (which could intermittently exceed the startup timeout and show an initialization error) now retries automatically with a fresh worker instead of failing the whole boot.</description>
+    </item>
+    <item>
+      <title>Cold-start stalls are now timed automatically</title>
+      <link>https://xnet.fyi/changelog#2026-06-30-cold-start-stalls-are-now-timed-automati</link>
+      <guid isPermaLink="false">2026-06-30-cold-start-stalls-are-now-timed-automati</guid>
+      <pubDate>Wed, 01 Jul 2026 14:43:27 GMT</pubDate>
+      <description>A main-thread stall detector records how long the app freezes during a slow cold start and at which phase, so the cause can be pinpointed from one localStorage value.</description>
+    </item>
+    <item>
+      <title>Cold-start diagnostics now capture the slow boot, not just the fast one</title>
+      <link>https://xnet.fyi/changelog#2026-06-30-cold-start-diagnostics-now-capture-the-s</link>
+      <guid isPermaLink="false">2026-06-30-cold-start-diagnostics-now-capture-the-s</guid>
+      <pubDate>Tue, 30 Jun 2026 20:29:50 GMT</pubDate>
+      <description>The persisted boot timeline now re-captures itself after a stall settles, so a slow cold start is recorded in localStorage even when it happens after the app reports connected.</description>
+    </item>
+    <item>
+      <title>Cold-start diagnostics survive a truncated log</title>
+      <link>https://xnet.fyi/changelog#2026-06-30-cold-start-diagnostics-survive-a-truncat</link>
+      <guid isPermaLink="false">2026-06-30-cold-start-diagnostics-survive-a-truncat</guid>
+      <pubDate>Tue, 30 Jun 2026 19:36:20 GMT</pubDate>
+      <description>Boot-phase timings are now persisted to localStorage (xnet:boot:last) so a slow cold start can be diagnosed from a single value even when the console log is truncated.</description>
+    </item>
+    <item>
+      <title>Faster recovery when the local database is slow to open</title>
+      <link>https://xnet.fyi/changelog#2026-06-30-faster-recovery-when-the-local-database-</link>
+      <guid isPermaLink="false">2026-06-30-faster-recovery-when-the-local-database-</guid>
+      <pubDate>Tue, 30 Jun 2026 16:13:12 GMT</pubDate>
+      <description>A timed-out database open now releases its storage handles immediately instead of holding them while still initializing, so a retry no longer compounds the delay. Adds cold-start boot diagnostics that pinpoint where startup time goes.</description>
+    </item>
+    <item>
+      <title>In-browser AI model now downloads and runs</title>
+      <link>https://xnet.fyi/changelog#2026-06-30-in-browser-ai-model-now-downloads-and-ru</link>
+      <guid isPermaLink="false">2026-06-30-in-browser-ai-model-now-downloads-and-ru</guid>
+      <pubDate>Tue, 30 Jun 2026 15:41:58 GMT</pubDate>
+      <description>Fixed a content-security-policy gap that blocked the WebLLM in-browser model from downloading its weights, so the on-device assistant now loads and replies.</description>
+    </item>
+    <item>
+      <title>Local AI models now actually chat (in-browser WebLLM + Gemini Nano)</title>
+      <link>https://xnet.fyi/changelog#2026-06-30-local-ai-models-now-actually-chat-in-bro</link>
+      <guid isPermaLink="false">2026-06-30-local-ai-models-now-actually-chat-in-bro</guid>
+      <pubDate>Tue, 30 Jun 2026 15:17:26 GMT</pubDate>
+      <description>The AI chat box no longer sits disabled with no explanation when you pick an in-browser model. WebLLM now runs a small model fully on-device after a one-tap download (with progress), Gemini Nano offers a download button when its model isn't ready yet, and every tier that can't run shows why instead of a silent dead box.</description>
+    </item>
+    <item>
+      <title>New essay: The Tip of the Hook</title>
+      <link>https://xnet.fyi/changelog#2026-06-29-new-essay-the-tip-of-the-hook</link>
+      <guid isPermaLink="false">2026-06-29-new-essay-the-tip-of-the-hook</guid>
+      <pubDate>Mon, 29 Jun 2026 17:04:03 GMT</pubDate>
+      <description>A developer-facing deep-dive on xNet's React hooks: how useQuery and useMutate let you specify your whole API in the client — including authorisation — and trust it, with a dive beneath the surface to the SQLite-in-a-worker, the priority scheduler, and the signed change log that make it safe.</description>
+    </item>
+    <item>
+      <title>Calm layout now reflows to a mobile shell</title>
+      <link>https://xnet.fyi/changelog#2026-06-29-calm-layout-now-reflows-to-a-mobile-shel</link>
+      <guid isPermaLink="false">2026-06-29-calm-layout-now-reflows-to-a-mobile-shel</guid>
+      <pubDate>Mon, 29 Jun 2026 16:34:28 GMT</pubDate>
+      <description>On phones the calm layout shares the same three modes as desktop — Companion, Workspace, and Network drop to a bottom tab bar, with the list and contextual canvas as sheets.</description>
+    </item>
+    <item>
+      <title>A calmer, conversation-first workspace layout</title>
+      <link>https://xnet.fyi/changelog#2026-06-29-a-calmer-conversation-first-workspace-la</link>
+      <guid isPermaLink="false">2026-06-29-a-calmer-conversation-first-workspace-la</guid>
+      <pubDate>Mon, 29 Jun 2026 15:52:19 GMT</pubDate>
+      <description>New 'Calm' layout (now the default) reorganises the app into three modes — Companion, Workspace, and Network — with a conversation surface and a contextual canvas. Switch back to the multi-pane Workbench anytime in Settings → Appearance or via 'View: Switch layout'.</description>
+    </item>
+    <item>
+      <title>Pages load instantly on return, even on a cold cache</title>
+      <link>https://xnet.fyi/changelog#2026-06-29-pages-load-instantly-on-return-even-on-a</link>
+      <guid isPermaLink="false">2026-06-29-pages-load-instantly-on-return-even-on-a</guid>
+      <pubDate>Mon, 29 Jun 2026 15:50:50 GMT</pubDate>
+      <description>Returning to xNet now paints your recent pages, databases and canvases from a local snapshot in well under a second, instead of waiting on the first cold database read.</description>
+    </item>
+    <item>
+      <title>Change a task's status from its status icon</title>
+      <link>https://xnet.fyi/changelog#2026-06-29-change-a-task-s-status-from-its-status-i</link>
+      <guid isPermaLink="false">2026-06-29-change-a-task-s-status-from-its-status-i</guid>
+      <pubDate>Mon, 29 Jun 2026 15:40:08 GMT</pubDate>
+      <description>Click the status icon on any task — in the task list, on board cards, or inline — to open a dropdown and pick any workflow status (Triage, Backlog, To Do, In Progress, In Review, Done, Cancelled). It no longer just toggles the task complete.</description>
+    </item>
+    <item>
+      <title>Recover your account with trusted guardians</title>
+      <link>https://xnet.fyi/changelog#2026-06-28-recover-your-account-with-trusted-guardi</link>
+      <guid isPermaLink="false">2026-06-28-recover-your-account-with-trusted-guardi</guid>
+      <pubDate>Mon, 29 Jun 2026 03:01:57 GMT</pubDate>
+      <description>You can now split your recovery across trusted people (any 2 of 3 can help you back in) and recover on a new device by collecting their share codes — no recovery phrase to memorize, and the cloud is never involved.</description>
+    </item>
+    <item>
+      <title>Blog index cards now show each post's header art</title>
+      <link>https://xnet.fyi/changelog#2026-06-28-blog-index-cards-now-show-each-post-s-he</link>
+      <guid isPermaLink="false">2026-06-28-blog-index-cards-now-show-each-post-s-he</guid>
+      <pubDate>Mon, 29 Jun 2026 02:51:50 GMT</pubDate>
+      <description>The blog listing shows each essay's hero illustration as a colourful card banner, so posts are easier to tell apart at a glance.
+- Every blog preview card now leads with its post's hero artwork</description>
+    </item>
+    <item>
+      <title>New essay: The Loom You Can Read</title>
+      <link>https://xnet.fyi/changelog#2026-06-28-new-essay-the-loom-you-can-read</link>
+      <guid isPermaLink="false">2026-06-28-new-essay-the-loom-you-can-read</guid>
+      <pubDate>Mon, 29 Jun 2026 01:09:07 GMT</pubDate>
+      <description>A deep-dive essay that follows one note all the way through xNet's internals — local-first storage, the signed change log, the keys you mint, and the no-referee merge — framed as the Luddite argument for a machine you're allowed to open.</description>
+    </item>
+    <item>
+      <title>Recover with a passkey synced from another device</title>
+      <link>https://xnet.fyi/changelog#2026-06-28-recover-with-a-passkey-synced-from-anoth</link>
+      <guid isPermaLink="false">2026-06-28-recover-with-a-passkey-synced-from-anoth</guid>
+      <pubDate>Mon, 29 Jun 2026 00:38:24 GMT</pubDate>
+      <description>If your xNet passkey syncs via iCloud Keychain or Google Password Manager, you can now recover your workspace on a new device with one tap — no recovery phrase needed.</description>
+    </item>
+    <item>
+      <title>New essay: The Forest and the Field</title>
+      <link>https://xnet.fyi/changelog#2026-06-28-new-essay-the-forest-and-the-field</link>
+      <guid isPermaLink="false">2026-06-28-new-essay-the-forest-and-the-field</guid>
+      <pubDate>Sun, 28 Jun 2026 23:39:38 GMT</pubDate>
+      <description>A new essay on applying permaculture's design principles to the open web — regenerating the digital commons instead of strip-mining it.</description>
+    </item>
+    <item>
+      <title>View and back up your recovery phrase in Settings</title>
+      <link>https://xnet.fyi/changelog#2026-06-28-view-and-back-up-your-recovery-phrase-in</link>
+      <guid isPermaLink="false">2026-06-28-view-and-back-up-your-recovery-phrase-in</guid>
+      <pubDate>Sun, 28 Jun 2026 23:35:39 GMT</pubDate>
+      <description>Settings now shows your recovery phrase (behind a passkey prompt) for recoverable identities, so you can save it any time — and back it up to the system keychain in the desktop app.</description>
+    </item>
+    <item>
+      <title>Recover your workspace with a recovery phrase</title>
+      <link>https://xnet.fyi/changelog#2026-06-28-recover-your-workspace-with-a-recovery-p</link>
+      <guid isPermaLink="false">2026-06-28-recover-your-workspace-with-a-recovery-p</guid>
+      <pubDate>Sun, 28 Jun 2026 22:17:16 GMT</pubDate>
+      <description>You can now opt into a recovery phrase at sign-up and use it to restore your identity and encrypted data on a new device if you lose your passkey.</description>
+    </item>
+    <item>
+      <title>New essay: The Right to Say No</title>
+      <link>https://xnet.fyi/changelog#2026-06-28-new-essay-the-right-to-say-no</link>
+      <guid isPermaLink="false">2026-06-28-new-essay-the-right-to-say-no</guid>
+      <pubDate>Sun, 28 Jun 2026 22:10:50 GMT</pubDate>
+      <description>Our fifth blog essay is live — a response to Benn Jordan's 'The Richest Country Is Pretty Mid Now' on how the economy shifted from growth to extraction, and the part local-first software can give back: the right to leave. Read it at /blog/the-right-to-say-no.</description>
+    </item>
+    <item>
+      <title>New essay: The Desert That Feeds the Forest</title>
+      <link>https://xnet.fyi/changelog#2026-06-28-new-essay-the-desert-that-feeds-the-fore</link>
+      <guid isPermaLink="false">2026-06-28-new-essay-the-desert-that-feeds-the-fore</guid>
+      <pubDate>Sun, 28 Jun 2026 21:46:46 GMT</pubDate>
+      <description>A new blog post on Saharan dust, desert bees, and the invisible substrate the open web runs on — the fourth in the essay series.</description>
+    </item>
+    <item>
+      <title>Recover your xNet Cloud account if you lose your passkey</title>
+      <link>https://xnet.fyi/changelog#2026-06-28-recover-your-xnet-cloud-account-if-you-l</link>
+      <guid isPermaLink="false">2026-06-28-recover-your-xnet-cloud-account-if-you-l</guid>
+      <pubDate>Sun, 28 Jun 2026 21:05:11 GMT</pubDate>
+      <description>xNet Cloud now verifies the passkey that claims a hub with a real signature over a single-use server nonce, and the dashboard can recover your paid account and hub from your billing login if you lose the passkey (your encrypted data still needs a saved recovery phrase).</description>
+    </item>
+    <item>
+      <title>Managed AI default models now resolve on OpenRouter</title>
+      <link>https://xnet.fyi/changelog#2026-06-28-managed-ai-default-models-now-resolve-on</link>
+      <guid isPermaLink="false">2026-06-28-managed-ai-default-models-now-resolve-on</guid>
+      <pubDate>Sun, 28 Jun 2026 21:03:23 GMT</pubDate>
+      <description>Fixed the plan default models (Claude Haiku/Sonnet/Opus) to OpenRouter's real catalog IDs, so managed AI works out of the box instead of failing with model-not-found.</description>
+    </item>
+    <item>
+      <title>Set your own AI spend cap and switch models, with streaming</title>
+      <link>https://xnet.fyi/changelog#2026-06-28-set-your-own-ai-spend-cap-and-switch-mod</link>
+      <guid isPermaLink="false">2026-06-28-set-your-own-ai-spend-cap-and-switch-mod</guid>
+      <pubDate>Sun, 28 Jun 2026 20:02:36 GMT</pubDate>
+      <description>Managed AI now lets you pick any plan-allowed model and set a personal spend cap by week, month, or rolling window — we stop calls when you hit it. Replies stream in token-by-token, prices shown are what you pay, and billing stays provably above cost.</description>
+    </item>
+    <item>
+      <title>New essay: The Gentlest Furnace</title>
+      <link>https://xnet.fyi/changelog#2026-06-27-new-essay-the-gentlest-furnace</link>
+      <guid isPermaLink="false">2026-06-27-new-essay-the-gentlest-furnace</guid>
+      <pubDate>Sun, 28 Jun 2026 02:27:04 GMT</pubDate>
+      <description>Our third blog essay is live — what a star's equilibrium teaches us about information, attention, and building technology that burns long instead of burning out. Read it at /blog/the-gentlest-furnace.</description>
+    </item>
+    <item>
+      <title>New blog essay — Data Should Work Like Soil</title>
+      <link>https://xnet.fyi/changelog#2026-06-28-new-essay-data-should-work-like-soil</link>
+      <guid isPermaLink="false">2026-06-28-new-essay-data-should-work-like-soil</guid>
+      <pubDate>Sun, 28 Jun 2026 01:23:39 GMT</pubDate>
+      <description>The second post on the xNet blog is live: an essay on mycelial networks, the nervous systems of bodies, companies, and forests, and how an internet — like a damaged forest — is healed by biodiversity, reciprocity, and care. Read it at /blog/data-should-work-like-soil, or subscribe via RSS at /blog/rss.xml.</description>
+    </item>
+    <item>
+      <title>A tidier site header</title>
+      <link>https://xnet.fyi/changelog#2026-06-27-a-tidier-site-header</link>
+      <guid isPermaLink="false">2026-06-27-a-tidier-site-header</guid>
+      <pubDate>Sun, 28 Jun 2026 00:50:43 GMT</pubDate>
+      <description>The top navigation is shorter and better organized: home-page sections (App, Teams, Vision) come first, then key pages (Why, Build, Blog). Cloud, Plugins, React, Commitments, and the changelog moved to the footer.</description>
+    </item>
+    <item>
+      <title>The xNet blog is live</title>
+      <link>https://xnet.fyi/changelog#2026-06-27-the-xnet-blog-is-live</link>
+      <guid isPermaLink="false">2026-06-27-the-xnet-blog-is-live</guid>
+      <pubDate>Sun, 28 Jun 2026 00:28:34 GMT</pubDate>
+      <description>A new blog at /blog opens with an essay — A Great Pirate Age for the Internet — on data ownership, self-governance, and why you are the cargo. Subscribe via RSS at /blog/rss.xml.</description>
+    </item>
+    <item>
+      <title>The homepage now reflects everything xNet can do</title>
+      <link>https://xnet.fyi/changelog#2026-06-27-the-homepage-now-reflects-everything-xne</link>
+      <guid isPermaLink="false">2026-06-27-the-homepage-now-reflects-everything-xne</guid>
+      <pubDate>Sat, 27 Jun 2026 23:52:56 GMT</pubDate>
+      <description>The landing page got a thorough refresh — an AI-native section, an integrations gallery, the full app surface (CRM, finance, maps, labs), our six commitments, and an honest by-the-numbers strip whose counts are verified against the repo at build time.</description>
+    </item>
+    <item>
+      <title>Foundation for an iOS/Android app that reuses the web UI</title>
+      <link>https://xnet.fyi/changelog#2026-06-27-foundation-for-an-ios-android-app-that-r</link>
+      <guid isPermaLink="false">2026-06-27-foundation-for-an-ios-android-app-that-r</guid>
+      <pubDate>Sat, 27 Jun 2026 23:46:44 GMT</pubDate>
+      <description>Mobile is now wired to host the same xNet web app inside a native webview (Capacitor) rather than re-implementing documents, databases, canvas and dashboards — with OPFS storage capability detection so it picks the right backend per device.</description>
+    </item>
+    <item>
+      <title>Docs &amp; a hub for building xNet in any language</title>
+      <link>https://xnet.fyi/changelog#2026-06-27-docs-a-hub-for-building-xnet-in-any-lang</link>
+      <guid isPermaLink="false">2026-06-27-docs-a-hub-for-building-xnet-in-any-lang</guid>
+      <pubDate>Sat, 27 Jun 2026 23:14:28 GMT</pubDate>
+      <description>New Languages &amp; SDKs docs (Swift's XNetKit, Rust's xnet-core, and a maturity matrix), a /build-with marketing hub, a footer link, and cross-links across the site — so the native Swift/Rust implementations and the Vue/Svelte/Solid adapters are finally discoverable, each with an honest maturity badge.</description>
+    </item>
+    <item>
+      <title>Commitments page now linked in the site footer</title>
+      <link>https://xnet.fyi/changelog#2026-06-27-commitments-page-now-linked-in-the-site-</link>
+      <guid isPermaLink="false">2026-06-27-commitments-page-now-linked-in-the-site-</guid>
+      <pubDate>Sat, 27 Jun 2026 22:49:09 GMT</pubDate>
+      <description>You can reach our Commitments page from the footer of every page, not just the top nav.
+- Added under the footer's Resources column</description>
+    </item>
+    <item>
+      <title>Use xNet from any framework, validated</title>
+      <link>https://xnet.fyi/changelog#2026-06-27-use-xnet-from-any-framework-validated</link>
+      <guid isPermaLink="false">2026-06-27-use-xnet-from-any-framework-validated</guid>
+      <pubDate>Sat, 27 Jun 2026 22:09:32 GMT</pubDate>
+      <description>The headless runtime is now the official 'use xNet from any framework' surface: a documented Vue/Svelte/Solid/vanilla binding over createXNetClient + liveQuery, plus runAdapterConformance — a shared, framework-agnostic suite that proves a binding's live-query, mutate, auth, and lifecycle behaviour in one call.</description>
+    </item>
+    <item>
+      <title>Take everything and go</title>
+      <link>https://xnet.fyi/changelog#2026-06-27-take-everything-and-go</link>
+      <guid isPermaLink="false">2026-06-27-take-everything-and-go</guid>
+      <pubDate>Sat, 27 Jun 2026 19:45:25 GMT</pubDate>
+      <description>Settings → Data now has a 'Leave with everything' export that bundles your whole workspace, your portable did:key identity, and a re-import README into one file — nothing held back. Clearing your data is routed through an honest Delete Day with no guilt or nagging.</description>
+    </item>
+    <item>
+      <title>xNet now listed as a protocol on the compare page</title>
+      <link>https://xnet.fyi/changelog#2026-06-27-xnet-now-listed-as-a-protocol-on-the-com</link>
+      <guid isPermaLink="false">2026-06-27-xnet-now-listed-as-a-protocol-on-the-com</guid>
+      <pubDate>Sat, 27 Jun 2026 19:36:21 GMT</pubDate>
+      <description>The Compare page's Protocols layer now includes xNet alongside AT Protocol and Matrix, and the sync-engines section's framing was corrected so it no longer contradicts the own-store tools (Turso, Ditto) it lists.</description>
+    </item>
+    <item>
+      <title>See exactly what we know about you</title>
+      <link>https://xnet.fyi/changelog#2026-06-27-see-exactly-what-we-know-about-you</link>
+      <guid isPermaLink="false">2026-06-27-see-exactly-what-we-know-about-you</guid>
+      <pubDate>Sat, 27 Jun 2026 19:00:46 GMT</pubDate>
+      <description>A new Settings → 'What we know about you' panel enumerates everything xNet has derived about you — buffered diagnostics, and (as they arrive) embeddings and AI memory — and lets you purge any of it. Because xNet keeps no behavioral surplus, the usual answer is simply: nothing.</description>
+    </item>
+    <item>
+      <title>A gentle nudge to call it a day</title>
+      <link>https://xnet.fyi/changelog#2026-06-27-a-gentle-nudge-to-call-it-a-day</link>
+      <guid isPermaLink="false">2026-06-27-a-gentle-nudge-to-call-it-a-day</guid>
+      <pubDate>Sat, 27 Jun 2026 18:43:42 GMT</pubDate>
+      <description>An opt-in 'time well spent' reminder (off by default, in Settings → Appearance) that, after a long continuous session, slides up a calm note inviting you to step away — never a streak, never a guilt trip. xNet competes for your wellbeing, not your time.</description>
+    </item>
+    <item>
+      <title>Take your data and go, and see what we've derived</title>
+      <link>https://xnet.fyi/changelog#2026-06-27-take-your-data-and-go-and-see-what-we-ve</link>
+      <guid isPermaLink="false">2026-06-27-take-your-data-and-go-and-see-what-we-ve</guid>
+      <pubDate>Sat, 27 Jun 2026 17:49:01 GMT</pubDate>
+      <description>New Right to Leave flow bundles your whole workspace and portable identity into one archive (with an honest Delete Day, no confirmshaming), and a 'what we know about you' mirror enumerates every derived artifact — telemetry, embeddings, AI memory — so you can purge any of it.</description>
+    </item>
+    <item>
+      <title>New &quot;Why xNet&quot; page makes the case against online tracking</title>
+      <link>https://xnet.fyi/changelog#2026-06-27-new-why-xnet-page-makes-the-case-against</link>
+      <guid isPermaLink="false">2026-06-27-new-why-xnet-page-makes-the-case-against</guid>
+      <pubDate>Sat, 27 Jun 2026 17:09:56 GMT</pubDate>
+      <description>A narrative landing page (/why) that reframes everyday web surveillance as a physical-world thought experiment — then shows, with cited sources, how xNet's local-first model keeps your data yours.</description>
+    </item>
+    <item>
+      <title>The assistant now scaffolds by default</title>
+      <link>https://xnet.fyi/changelog#2026-06-27-the-assistant-now-scaffolds-by-default</link>
+      <guid isPermaLink="false">2026-06-27-the-assistant-now-scaffolds-by-default</guid>
+      <pubDate>Sat, 27 Jun 2026 16:38:47 GMT</pubDate>
+      <description>The in-app AI assistant defaults to a 'scaffold' mode — it proposes and cites while you stay the author — and marks anything it writes as AI-generated, a guard against AI deskilling. Backed by a new Humane Internet Charter and a CI gate that keeps dark patterns and third-party tracking SDKs out of the codebase.</description>
+    </item>
+    <item>
+      <title>Faster cold start when reopening a workspace</title>
+      <link>https://xnet.fyi/changelog#2026-06-26-faster-cold-start-when-reopening-a-works</link>
+      <guid isPermaLink="false">2026-06-26-faster-cold-start-when-reopening-a-works</guid>
+      <pubDate>Fri, 26 Jun 2026 22:15:25 GMT</pubDate>
+      <description>Reopening a populated workspace paints sooner: the first database read after a reload is now memory-mapped and the local file is defragmented in the background, cutting the cold-start stall.
+- First read after reload is memory-mapped instead of thousands of synchronous reads</description>
+    </item>
+    <item>
+      <title>Sync status bar shows what's pending and unsafe at a glance</title>
+      <link>https://xnet.fyi/changelog#2026-06-26-sync-status-bar-shows-what-s-pending-and</link>
+      <guid isPermaLink="false">2026-06-26-sync-status-bar-shows-what-s-pending-and</guid>
+      <pubDate>Fri, 26 Jun 2026 21:40:43 GMT</pubDate>
+      <description>The bottom status bar's connection indicator is now a click-through cluster: a calm chip when synced, plus on-demand chips for unsynced changes, integrity warnings, and storage pressure — with a detail popover and a Reconcile action. Mobile gets a matching sync glyph.</description>
+    </item>
+    <item>
+      <title>Durable-storage status lives in the status bar</title>
+      <link>https://xnet.fyi/changelog#2026-06-26-durable-storage-status-lives-in-the-stat</link>
+      <guid isPermaLink="false">2026-06-26-durable-storage-status-lives-in-the-stat</guid>
+      <pubDate>Fri, 26 Jun 2026 21:25:00 GMT</pubDate>
+      <description>Durable local storage now shows as an ambient indicator in the bottom status bar instead of a banner that reappeared on every page load.
+- When storage is working, the persistent top banner is gone — its usage shows quietly in the status bar with the other system info
+- When storage isn't durable yet, you still get the actionable banner plus a warning-toned reminder in the status bar</description>
+    </item>
+    <item>
+      <title>A cozy theme and comfortable density</title>
+      <link>https://xnet.fyi/changelog#2026-06-26-a-cozy-theme-and-comfortable-density</link>
+      <guid isPermaLink="false">2026-06-26-a-cozy-theme-and-comfortable-density</guid>
+      <pubDate>Fri, 26 Jun 2026 20:30:21 GMT</pubDate>
+      <description>New opt-in Appearance options: a warm 'Cozy' theme (paper surfaces, terracotta accent, soft shadows, editorial serif headings) and a 'Comfortable' density that opens up type and spacing. Find them in Settings → Appearance; the default monochrome look is unchanged.</description>
+    </item>
+    <item>
+      <title>Sharper page typography: aligned checkboxes, bullets, and drag handles</title>
+      <link>https://xnet.fyi/changelog#2026-06-26-sharper-page-typography-aligned-checkbox</link>
+      <guid isPermaLink="false">2026-06-26-sharper-page-typography-aligned-checkbox</guid>
+      <pubDate>Fri, 26 Jun 2026 17:35:06 GMT</pubDate>
+      <description>To-do checkboxes now show their real checked state and line up with their text, the block drag handle sits in the margin instead of overlapping bullets and checkboxes, and headings use a consistent vertical rhythm.</description>
+    </item>
+    <item>
+      <title>Hardened SSRF protection and shared core utilities</title>
+      <link>https://xnet.fyi/changelog#2026-06-26-hardened-ssrf-protection-and-shared-core</link>
+      <guid isPermaLink="false">2026-06-26-hardened-ssrf-protection-and-shared-core</guid>
+      <pubDate>Fri, 26 Jun 2026 16:06:10 GMT</pubDate>
+      <description>Server-side URL fetching (link unfurling, federation, crawling) now uses a single strict SSRF guard that blocks private network ranges earlier blocked inconsistently, and several duplicated helper functions were consolidated.</description>
+    </item>
+    <item>
+      <title>Maps: live database query layers, satellite imagery, and raster overlays</title>
+      <link>https://xnet.fyi/changelog#2026-06-26-maps-live-database-query-layers-satellit</link>
+      <guid isPermaLink="false">2026-06-26-maps-live-database-query-layers-satellit</guid>
+      <pubDate>Fri, 26 Jun 2026 16:05:24 GMT</pubDate>
+      <description>Map layers can now bind to a database by lat/lon and render live in the viewport, switch to a satellite basemap, or overlay aerial imagery — backed by new query, raster, and pmtiles layer sources and pure geohash spatial helpers.</description>
+    </item>
+    <item>
+      <title>Faster desktop search and imports</title>
+      <link>https://xnet.fyi/changelog#2026-06-26-faster-desktop-search-and-imports</link>
+      <guid isPermaLink="false">2026-06-26-faster-desktop-search-and-imports</guid>
+      <pubDate>Fri, 26 Jun 2026 13:39:37 GMT</pubDate>
+      <description>The desktop app now runs heavy database reads (search, large lists) in parallel on multiple cores and keeps the UI responsive during big imports.</description>
+    </item>
+    <item>
+      <title>Faster sync on startup, and better boot diagnostics</title>
+      <link>https://xnet.fyi/changelog#2026-06-25-faster-sync-on-startup-and-better-boot-d</link>
+      <guid isPermaLink="false">2026-06-25-faster-sync-on-startup-and-better-boot-d</guid>
+      <pubDate>Fri, 26 Jun 2026 03:06:34 GMT</pubDate>
+      <description>Your workspace now starts syncing with the server immediately on load instead of waiting for local startup work to finish, so changes appear sooner. We also added detailed boot diagnostics and a one-time cleanup that reclaims disk space from old presence data.</description>
+    </item>
+    <item>
+      <title>The app stays responsive during sync and imports</title>
+      <link>https://xnet.fyi/changelog#2026-06-25-the-app-stays-responsive-during-sync-and</link>
+      <guid isPermaLink="false">2026-06-25-the-app-stays-responsive-during-sync-and</guid>
+      <pubDate>Fri, 26 Jun 2026 02:11:52 GMT</pubDate>
+      <description>Interactive reads now take priority over background writes, so opening pages and searching stay snappy even while a large sync or import is running. Repeated identical reads are also collapsed into one.</description>
+    </item>
+    <item>
+      <title>Faster cold start: pages load immediately, not after a long pause</title>
+      <link>https://xnet.fyi/changelog#2026-06-25-faster-cold-start-pages-load-immediately</link>
+      <guid isPermaLink="false">2026-06-25-faster-cold-start-pages-load-immediately</guid>
+      <pubDate>Fri, 26 Jun 2026 01:41:59 GMT</pubDate>
+      <description>Returning users no longer wait through a long blank-screen pause before their workspace appears — local data now paints right away instead of queuing behind presence/document warming. Also fixes a background error that stopped your tracked-node list from saving.</description>
+    </item>
+    <item>
+      <title>Cached database views stay fast and secure under access control</title>
+      <link>https://xnet.fyi/changelog#2026-06-25-cached-database-views-stay-fast-and-secu</link>
+      <guid isPermaLink="false">2026-06-25-cached-database-views-stay-fast-and-secu</guid>
+      <pubDate>Fri, 26 Jun 2026 01:15:33 GMT</pubDate>
+      <description>Database views can now reuse their cached results across reloads even when per-row permissions are in effect — authorized once when the view is built, and automatically rebuilt the moment access changes, so a revoked viewer never sees stale rows.</description>
+    </item>
+    <item>
+      <title>Flame graph and heat maps in the Performance dev tool</title>
+      <link>https://xnet.fyi/changelog#2026-06-25-flame-graph-and-heat-maps-in-the-perform</link>
+      <guid isPermaLink="false">2026-06-25-flame-graph-and-heat-maps-in-the-perform</guid>
+      <pubDate>Fri, 26 Jun 2026 00:05:31 GMT</pubDate>
+      <description>The dev-tools Performance panel now shows a latency heat map (trace latency distribution over time), a frame-time/jank heat map, and an aggregated flame graph of where time goes across recent operations; the Traces panel adds a Waterfall/Flame view toggle for per-trace call nesting and self-time.</description>
+    </item>
+    <item>
+      <title>See the real DevTools on the /devtool page</title>
+      <link>https://xnet.fyi/changelog#2026-06-25-see-the-real-devtools-on-the-devtool-pag</link>
+      <guid isPermaLink="false">2026-06-25-see-the-real-devtools-on-the-devtool-pag</guid>
+      <pubDate>Thu, 25 Jun 2026 22:51:38 GMT</pubDate>
+      <description>The DevTools landing page now shows real screenshots of the in-app debugger instead of stylized mockups.
+- Real Data grid with the live query-plan inspector
+- Changes timeline, Performance boot waterfall, Logs, and Seed panels</description>
+    </item>
+    <item>
+      <title>Dev seed fills every node type with real content</title>
+      <link>https://xnet.fyi/changelog#2026-06-25-dev-seed-fills-every-node-type-with-real</link>
+      <guid isPermaLink="false">2026-06-25-dev-seed-fills-every-node-type-with-real</guid>
+      <pubDate>Thu, 25 Jun 2026 20:06:08 GMT</pubDate>
+      <description>The dev-tools seed now bakes contextually-rich content into every node type — populated dashboards (charts, metrics, time ranges), pages exercising the full editor block + inline vocabulary, databases with all six views and advanced fields, canvas scenes with framed/grouped cards, and rich Task/Project/CRM/Experiment documents.</description>
+    </item>
+    <item>
+      <title>New /react and /devtool guides for React developers</title>
+      <link>https://xnet.fyi/changelog#2026-06-25-new-react-and-devtool-guides-for-react-d</link>
+      <guid isPermaLink="false">2026-06-25-new-react-and-devtool-guides-for-react-d</guid>
+      <pubDate>Thu, 25 Jun 2026 19:41:35 GMT</pubDate>
+      <description>A single-page walkthrough of XNet React — the hooks, then a choice between a managed Hub or your own @xnetjs/server backend — plus a DevTools showcase and docs for running your own server.</description>
+    </item>
+    <item>
+      <title>Hardened the bring-your-own-backend server kit</title>
+      <link>https://xnet.fyi/changelog#2026-06-25-hardened-the-bring-your-own-backend-serv</link>
+      <guid isPermaLink="false">2026-06-25-hardened-the-bring-your-own-backend-serv</guid>
+      <pubDate>Thu, 25 Jun 2026 19:14:30 GMT</pubDate>
+      <description>Adversarial review of @xnetjs/server closed authorization, identity, and conflict-resolution gaps (cross-tenant write/delete, create clobber, signed-change spoofing, custodial clock drift) before the kit is exercised in production.</description>
+    </item>
+    <item>
+      <title>Bring-your-own-backend server kit for XNet React</title>
+      <link>https://xnet.fyi/changelog#2026-06-25-bring-your-own-backend-server-kit-for-xn</link>
+      <guid isPermaLink="false">2026-06-25-bring-your-own-backend-server-kit-for-xn</guid>
+      <pubDate>Thu, 25 Jun 2026 18:33:11 GMT</pubDate>
+      <description>New @xnetjs/server lets developers run XNet's data layer on their own server with their own auth — a structured-query executor, backend-authoritative mutations, and a server/custodial/signed trust spectrum — while React hooks stay unchanged.</description>
+    </item>
+    <item>
+      <title>Dev seed now builds a deep, interrelated workspace</title>
+      <link>https://xnet.fyi/changelog#2026-06-25-dev-seed-now-builds-a-deep-interrelated-</link>
+      <guid isPermaLink="false">2026-06-25-dev-seed-now-builds-a-deep-interrelated-</guid>
+      <pubDate>Thu, 25 Jun 2026 15:15:35 GMT</pubDate>
+      <description>The dev-tools seed now fills out databases (columns, rows, views), a full CRM and ledger, nested folders and team workspaces, multiple rich linked documents, and canvas scenes — so it exercises every relationship in the app.</description>
+    </item>
+    <item>
+      <title>One-click idempotent database seed in dev tools</title>
+      <link>https://xnet.fyi/changelog#2026-06-24-one-click-idempotent-database-seed-in-de</link>
+      <guid isPermaLink="false">2026-06-24-one-click-idempotent-database-seed-in-de</guid>
+      <pubDate>Thu, 25 Jun 2026 04:53:49 GMT</pubDate>
+      <description>The dev tools can now seed a full demo workspace — projects, tasks, pages, canvases, dashboards, channels, comments and metrics, plus the relationships between them — from one button. Re-running converges instead of duplicating, and every new content type is covered automatically.</description>
+    </item>
+    <item>
+      <title>Changelog now shows the exact merge time</title>
+      <link>https://xnet.fyi/changelog#2026-06-24-changelog-now-shows-the-exact-merge-time</link>
+      <guid isPermaLink="false">2026-06-24-changelog-now-shows-the-exact-merge-time</guid>
+      <pubDate>Thu, 25 Jun 2026 02:50:32 GMT</pubDate>
+      <description>Each entry on the What's New page now shows the precise time of day it shipped (in UTC) next to its date, and the RSS and JSON feeds carry the exact merge timestamp — so feed readers and the in-app What's New order and date entries correctly, down to the minute.
+- Every changelog entry shows its merge time-of-day (UTC) beside the date
+- RSS pubDate and JSON Feed date_published now use the real merge instant (fixes a previously malformed timestamp for slugged entries)
+- The in-app What's New feed exposes the precise merge time</description>
+    </item>
+    <item>
+      <title>Changelog entries now sort by actual merge time</title>
+      <link>https://xnet.fyi/changelog#2026-06-24-changelog-entries-now-sort-by-actual-mer</link>
+      <guid isPermaLink="false">2026-06-24-changelog-entries-now-sort-by-actual-mer</guid>
+      <pubDate>Thu, 25 Jun 2026 02:22:28 GMT</pubDate>
+      <description>The What's New / changelog list is now ordered strictly by when each change actually merged — down to the time of day — so several updates that shipped on the same day appear in the true order they landed, newest first, instead of being shuffled by entry name.
+- Entries sort by the PR's real merge timestamp (time-of-day precision), not just the calendar day
+- Same-day updates no longer appear out of order
+- Merge time is recorded automatically when a PR merges, with a deploy-time backfill as a safety net</description>
+    </item>
+    <item>
+      <title>Clearer editing in the dev tool's data table</title>
+      <link>https://xnet.fyi/changelog#2026-06-24-clearer-editing-in-the-dev-tool-data-table</link>
+      <guid isPermaLink="false">2026-06-24-clearer-editing-in-the-dev-tool-data-table</guid>
+      <pubDate>Thu, 25 Jun 2026 01:57:44 GMT</pubDate>
+      <description>The Data panel in the dev tools (Ctrl/Cmd+Shift+D) now makes editing legible: read-only cells show a lock with a hover reason, editable cells don't, and the panel explains when a schema can't be edited — instead of silently refusing.
+- Read-only cells show a lock glyph and a hover tooltip saying why (system field, non-editable type, schema not loaded)
+- Schemas that aren't in the registry now say so, instead of a dead edit toggle that did nothing
+- The edit toggle only appears once a schema's typed definition is loaded, with clearer wording</description>
+    </item>
+    <item>
+      <title>Entity counts in the dev tool's schema picker</title>
+      <link>https://xnet.fyi/changelog#2026-06-24-entity-counts-in-the-dev-tool-schema-picker</link>
+      <guid isPermaLink="false">2026-06-24-entity-counts-in-the-dev-tool-schema-picker</guid>
+      <pubDate>Thu, 25 Jun 2026 01:13:57 GMT</pubDate>
+      <description>The schema dropdown in the dev tools' Data panel (Ctrl/Cmd+Shift+D) now shows how many entities each schema holds — e.g. Task (12), Person (0) — so it's obvious at a glance where the data lives. The counts respect your read permissions and update live as nodes are created or deleted.
+- Each schema shows its entity count, e.g. Task (12) or Person (0)
+- &quot;All schemas&quot; shows the total across schemas
+- Counts respect read authorization and refresh live without polling</description>
+    </item>
+    <item>
+      <title>Per-cell permissions in the dev tool's data table</title>
+      <link>https://xnet.fyi/changelog#2026-06-24-per-cell-permissions-in-the-dev-data-table</link>
+      <guid isPermaLink="false">2026-06-24-per-cell-permissions-in-the-dev-data-table</guid>
+      <pubDate>Thu, 25 Jun 2026 00:04:49 GMT</pubDate>
+      <description>The Data panel in the dev tools (Ctrl/Cmd+Shift+D) now reflects your real authorization per cell — cells you can't edit are locked instead of failing when you try, and a row's detail pane shows exactly how your read and write permissions are derived.
+- Cells you're not allowed to edit are locked (with a lock glyph and a hover reason) rather than failing on save
+- A node's detail pane shows your read/write decision with the full derivation — roles, grants, and evaluation steps
+- Falls back gracefully when authorization isn't enforced in the store</description>
+    </item>
+    <item>
+      <title>Sort and filter in the dev tool's data table</title>
+      <link>https://xnet.fyi/changelog#2026-06-24-sort-and-filter-the-dev-tool-data-table</link>
+      <guid isPermaLink="false">2026-06-24-sort-and-filter-the-dev-tool-data-table</guid>
+      <pubDate>Wed, 24 Jun 2026 22:50:50 GMT</pubDate>
+      <description>The Data panel in the dev tools (Ctrl/Cmd+Shift+D) now has the same rich table toolbar as the database UI — click a column to sort, build filter conditions with real operators, change row density, and show or hide columns.
+- Click any column header to sort (or use the sort chip); the Updated column now sorts chronologically
+- Build AND/OR filter conditions with typed operators (contains, greater than, between, is empty, …)
+- Adjust row density and show/hide columns; your view settings are remembered per schema</description>
+    </item>
+    <item>
+      <title>Sync fails loudly instead of silently retrying forever</title>
+      <link>https://xnet.fyi/changelog#2026-06-24-sync-fails-loudly-instead-of-silently-re</link>
+      <guid isPermaLink="false">2026-06-24-sync-fails-loudly-instead-of-silently-re</guid>
+      <pubDate>Wed, 24 Jun 2026 21:43:08 GMT</pubDate>
+      <description>When the app and your hub are on incompatible versions, every change can be rejected with an opaque 'invalid hash' error. Before, the app retried forever — flooding the hub and silently never syncing. Now the hub explains exactly what mismatched (it names both hashes and protocol versions), and the app stops pushing after a few rejections, logs one clear, actionable message, and automatically resumes the next time it reconnects to a compatible hub.
+- The hub's rejection now names the client hash, the hub's recomputed hash, and both protocol versions — a version skew is obvious instead of looking like data corruption
+- The app trips a circuit breaker after repeated structural rejections, so it no longer floods the hub with changes that can never be accepted
+- Outbound sync resumes automatically on the next reconnect, once the hub and app are back in sync</description>
+    </item>
+    <item>
+      <title>A cozier dev tool with a real data browser</title>
+      <link>https://xnet.fyi/changelog#2026-06-24-cozier-dev-tool-with-a-real-data-browser</link>
+      <guid isPermaLink="false">2026-06-24-cozier-dev-tool-with-a-real-data-browser</guid>
+      <pubDate>Wed, 24 Jun 2026 19:21:42 GMT</pubDate>
+      <description>The in-app dev tools (Ctrl/Cmd+Shift+D) are reorganized around four high-signal panels — Data, Changes, Logs, and Performance — with everything else tucked into a grouped &quot;More&quot; menu and a ⌘⇧P command palette, so the bottom strip is no longer a wall of tabs.
+- Data panel: query and browse every node in the real database grid, with schema-aware columns, live updates, and a query-plan inspector
+- Edit data inline where it makes sense — toggle editing on a selected schema to change values directly in the grid (system and computed columns stay locked)
+- Logs panel: flip the sync/SQLite/query/boot/trace debug channels and read captured output in-app
+- Performance panel: cold-start boot timeline, live frame budget and memory, storage stats, and recent traces in one place
+- Jump to any panel by name with the ⌘⇧P command palette</description>
+    </item>
+    <item>
+      <title>Clearer, safer cloud plan upgrades and downgrades</title>
+      <link>https://xnet.fyi/changelog#2026-06-24-clearer-safer-cloud-plan-upgrades-and-do</link>
+      <guid isPermaLink="false">2026-06-24-clearer-safer-cloud-plan-upgrades-and-do</guid>
+      <pubDate>Wed, 24 Jun 2026 17:05:52 GMT</pubDate>
+      <description>Upgrading your managed hub is seamless — your data just gets more room, applied instantly. Downgrading is now guarded: if your data is larger than the smaller plan allows, we tell you up front and offer two clear paths — free up space and try again, or wipe and start fresh — instead of silently shrinking your quota. File uploads now count against the same plan quota as backups.
+- Upgrades apply instantly with no migration prompt for 'just more space'
+- Downgrades that wouldn't fit your data are blocked with a clear over-quota notice
+- Honest choices: free up space and retry, or wipe and start fresh on the smaller plan
+- Your data is never auto-deleted; an over-quota hub goes read-only until you free space or upgrade</description>
+    </item>
+    <item>
+      <title>Open web app now uses your personal hub</title>
+      <link>https://xnet.fyi/changelog#2026-06-24-open-web-app-now-uses-your-personal-hub</link>
+      <guid isPermaLink="false">2026-06-24-open-web-app-now-uses-your-personal-hub</guid>
+      <pubDate>Wed, 24 Jun 2026 17:01:55 GMT</pubDate>
+      <description>Clicking &quot;Open web app&quot; from the xNet Cloud dashboard now points the web app at your own managed hub instead of the shared default.
+- The dashboard hands the web app your personal hub URL</description>
+    </item>
+    <item>
+      <title>Open xNet Cloud in the desktop app with one click</title>
+      <link>https://xnet.fyi/changelog#2026-06-24-open-xnet-cloud-in-the-desktop-app-with-</link>
+      <guid isPermaLink="false">2026-06-24-open-xnet-cloud-in-the-desktop-app-with-</guid>
+      <pubDate>Wed, 24 Jun 2026 16:35:45 GMT</pubDate>
+      <description>Your Cloud dashboard's Desktop tab now offers an &quot;Open in desktop app&quot; button that hands your hub to the installed app over an xnet://connect link. The app asks you to confirm before pointing itself at the hub — it never repoints silently, and only xNet-hosted wss hubs are accepted.
+- One-click desktop connect via xnet://connect (hub handoff)
+- Explicit in-app confirmation — never auto-connects
+- Hard hub validation: wss-only + xNet host allowlist</description>
+    </item>
+    <item>
+      <title>Guided per-platform connect on the cloud dashboard</title>
+      <link>https://xnet.fyi/changelog#2026-06-24-guided-per-platform-connect-on-the-cloud</link>
+      <guid isPermaLink="false">2026-06-24-guided-per-platform-connect-on-the-cloud</guid>
+      <pubDate>Wed, 24 Jun 2026 15:56:06 GMT</pubDate>
+      <description>The xNet Cloud dashboard now walks you through connecting your web, desktop, or mobile app — with a copyable hub URL, a getting-started checklist, and links to help.
+- Web / Desktop / Mobile connect tabs with tailored steps
+- Copyable hub URL + getting-started checklist
+- Help &amp; FAQ links, plus a new Connect to xNet Cloud guide</description>
+    </item>
+    <item>
+      <title>Updated Terms, Privacy, and new legal pages for xNet Cloud</title>
+      <link>https://xnet.fyi/changelog#2026-06-24-updated-terms-privacy-and-new-legal-page</link>
+      <guid isPermaLink="false">2026-06-24-updated-terms-privacy-and-new-legal-page</guid>
+      <pubDate>Wed, 24 Jun 2026 15:33:03 GMT</pubDate>
+      <description>Ahead of xNet Cloud going live, the Terms and Privacy Policy now reflect accounts, billing, managed hosting, managed AI, and the marketplace — clearly separating the local-first path (we see ~nothing) from Cloud (exactly what we process). New Sub-processors and Acceptable Use pages, plus draft Data Processing Addendum and Marketplace Terms.
+- Privacy Policy rewritten around two contexts: your own device/hub vs xNet Cloud
+- Honest, per-feature scope of what we can and can't see (server-side search and managed AI process content)
+- New /subprocessors and /acceptable-use pages; draft /dpa and /marketplace-terms
+- Terms now cover accounts, billing, cancellation, managed AI, and the marketplace</description>
+    </item>
+    <item>
+      <title>Reset the database from the dev tools</title>
+      <link>https://xnet.fyi/changelog#2026-06-23-reset-the-database-from-the-dev-tools</link>
+      <guid isPermaLink="false">2026-06-23-reset-the-database-from-the-dev-tools</guid>
+      <pubDate>Wed, 24 Jun 2026 14:51:41 GMT</pubDate>
+      <description>A new Reset panel in the dev tools (Ctrl/Cmd+Shift+D) clears the local database, the hub, or both for a clean slate — useful for pre-release resets.
+- Clear local data, hub data, or everything in two clicks
+- The local clear now actually wipes the OPFS SQLite database (it previously left it intact)</description>
+    </item>
+    <item>
+      <title>Open the web app from your cloud dashboard</title>
+      <link>https://xnet.fyi/changelog#2026-06-23-open-the-web-app-from-your-cloud-dashboa</link>
+      <guid isPermaLink="false">2026-06-23-open-the-web-app-from-your-cloud-dashboa</guid>
+      <pubDate>Wed, 24 Jun 2026 03:54:51 GMT</pubDate>
+      <description>The xNet Cloud dashboard now has a persistent &quot;Open web app&quot; button in the header, so you can jump to your workspace from anywhere in the control plane — including before a hub is connected.
+- Always-available header button to the web UI</description>
+    </item>
+    <item>
+      <title>Faster cold load: content paints before the hub syncs</title>
+      <link>https://xnet.fyi/changelog#2026-06-23-faster-cold-load-content-paints-before-t</link>
+      <guid isPermaLink="false">2026-06-23-faster-cold-load-content-paints-before-t</guid>
+      <pubDate>Tue, 23 Jun 2026 21:55:49 GMT</pubDate>
+      <description>The home page now renders each list as soon as it loads instead of blocking on the slowest query, and your recently-opened documents are restored more reliably after a reload.
+- Document list paints per-section instead of all-or-nothing
+- Open documents are pre-synced after a reload (tracked-node registry now persists)</description>
+    </item>
+    <item>
+      <title>Linear connector joins the integration catalog</title>
+      <link>https://xnet.fyi/changelog#2026-06-23-linear-connector-joins-the-integration-c</link>
+      <guid isPermaLink="false">2026-06-23-linear-connector-joins-the-integration-c</guid>
+      <pubDate>Tue, 23 Jun 2026 21:14:16 GMT</pubDate>
+      <description>Import your Linear issues into xNet as governed nodes, alongside GitHub, Notion, and Airtable.
+- Pulls Linear issues via the GraphQL API into governed ExternalItem nodes
+- Follows pagination so large workspaces import in full</description>
+    </item>
+    <item>
+      <title>Integrations: webhooks in, connectors and notifications out</title>
+      <link>https://xnet.fyi/changelog#2026-06-23-integrations-webhooks-in-connectors-and-</link>
+      <guid isPermaLink="false">2026-06-23-integrations-webhooks-in-connectors-and-</guid>
+      <pubDate>Tue, 23 Jun 2026 20:57:51 GMT</pubDate>
+      <description>xNet now speaks to the services developers and hobbyists actually use — GitHub, RSS, Stripe, Sentry, Discord, and a generic webhook in both directions.
+- Receive signed webhooks from GitHub, Stripe, Sentry, and PagerDuty (HMAC-verified, replay-protected)
+- A generic POST /hooks/:token inbox bridges Zapier, Make, n8n, and IFTTT
+- Pull connectors for RSS/Atom, GitHub issues+PRs, Notion, and Airtable into governed nodes
+- Outbound actions post to Discord, Slack, Telegram, email, or any webhook when something changes</description>
+    </item>
+    <item>
+      <title>Conflict resolution is now deterministic across devices — fixed a locale-dependent tiebreak</title>
+      <link>https://xnet.fyi/changelog#2026-06-22-lww-determinism</link>
+      <guid isPermaLink="false">2026-06-22-lww-determinism</guid>
+      <pubDate>Mon, 22 Jun 2026 21:04:46 GMT</pubDate>
+      <description>The last-writer-wins tiebreak that settles concurrent edits to the same field compared author IDs with `localeCompare`, which is locale- and ICU-version-dependent — so two devices could, in rare same-timestamp ties involving mixed-case IDs, disagree on which edit wins. It now compares by code-unit order everywhere, matching the protocol spec and the conformance vectors, so all peers converge identically. Found by the Rust core's adversarial review.
+- Six author-tiebreak sites (store, sync chain/clock, history) switched from `localeCompare` to deterministic UTF-16 code-unit ordering
+- Spec §7 now states the rule explicitly and forbids locale collation; a new golden vector (`lww/0004`) pins the mixed-case case
+- No behavior change for the common case — only removes a latent cross-device divergence in same-lamport/same-wallTime ties</description>
+    </item>
+    <item>
+      <title>A portable Rust core for the XNet protocol — one kernel for every language</title>
+      <link>https://xnet.fyi/changelog#2026-06-22-rust-xnet-core</link>
+      <guid isPermaLink="false">2026-06-22-rust-xnet-core</guid>
+      <pubDate>Mon, 22 Jun 2026 20:43:01 GMT</pubDate>
+      <description>Phase 2 of the native-SDK work: `xnet-core`, a Rust implementation of the protocol's byte-exact kernel (did:key, the canonical-JSON change hash, Ed25519 sign/verify, per-property LWW, version negotiation, authorization eval). It passes the shared golden-vector corpus — and, with deterministic RFC-8032 Ed25519, re-signs changes byte-for-byte (which the Swift/CryptoKit kernel can't). It's the foundation for backing the Swift, Kotlin, and .NET SDKs from a single core via UniFFI.
+- `rust/xnet-core` reproduces the conformance corpus (identity, change incl. byte-exact re-sign, LWW, replication, authz) — a fourth conforming implementation alongside TypeScript, Python, and Swift
+- Ed25519 implemented on audited `curve25519-dalek` + `sha2` (RFC 8032); base58btc and canonical JSON inline — minimal, dependency-light crypto
+- An FFI-ready surface (`String`/`Vec&lt;u8&gt;`/`bool`) is built and tested; generating Swift/Kotlin (UniFFI) + a C ABI for .NET is the documented next step</description>
+    </item>
+    <item>
+      <title>On-device semantic search for the assistant</title>
+      <link>https://xnet.fyi/changelog#2026-06-22-semantic-search</link>
+      <guid isPermaLink="false">2026-06-22-semantic-search</guid>
+      <pubDate>Mon, 22 Jun 2026 15:13:36 GMT</pubDate>
+      <description>Turn on Semantic search in the AI chat and the assistant finds context by meaning, not just matching words — fused with keyword search and your data's connections. It runs entirely on your device and is off by default.
+- Finds related notes even when they don't share the exact words you typed
+- Runs on-device — the model loads only when you opt in, and never leaves your machine
+- Always safe: falls back to keyword search instantly, so it can only help, never slow you down</description>
+    </item>
+    <item>
+      <title>Native Swift data is now durable — XNetKit persists to SQLite</title>
+      <link>https://xnet.fyi/changelog#2026-06-22-swift-persistence</link>
+      <guid isPermaLink="false">2026-06-22-swift-persistence</guid>
+      <pubDate>Mon, 22 Jun 2026 14:50:56 GMT</pubDate>
+      <description>XNetKit gained an on-device store: pass a `SQLiteChangeLog` to a `NodeStore` and every signed change is written to SQLite, then replayed on next launch to rebuild state. A native app's XNet database now survives restarts, with last-writer-wins preserved across the replay. Uses the system SQLite library — no extra dependency.
+- `SQLiteChangeLog` persists the signed change log; `NodeStore(identity:persistence:)` replays it on open to rebuild node state
+- Durable across restarts with LWW intact — verified by a write → close → reopen test that keeps the latest update
+- Built on the system SQLite (`import SQLite3`), so the package's only third-party dependency is still BLAKE3</description>
+    </item>
+    <item>
+      <title>Native Swift now syncs in real time — live changes stream straight to a Swift client</title>
+      <link>https://xnet.fyi/changelog#2026-06-22-swift-realtime-sync</link>
+      <guid isPermaLink="false">2026-06-22-swift-realtime-sync</guid>
+      <pubDate>Mon, 22 Jun 2026 14:32:13 GMT</pubDate>
+      <description>XNetKit's hub connection gained real-time streaming: a Swift client subscribes to a room and receives relayed changes the moment a peer publishes them — not just on-demand catch-up. Proven end-to-end against the reference TypeScript hub: one Swift client publishes a change and a second Swift client sees the live update arrive instantly. Full bidirectional, real-time native-Swift ↔ hub sync.
+- `HubConnection.subscribe(room:)` + `startStreaming()` run a read loop that delivers relayed `node-change`s to `onRemoteChange` live (each verified before apply)
+- `xnet-sync-demo` now proves both phases against the real hub: catch-up via `node-sync-request`, then a real-time streamed update between two Swift clients
+- Complements the existing publish + catch-up path — a native app can now stay continuously in sync, not just reconcile on demand</description>
+    </item>
+    <item>
+      <title>Agents can now follow a node's connections on demand</title>
+      <link>https://xnet.fyi/changelog#2026-06-22-graph-expand-tool</link>
+      <guid isPermaLink="false">2026-06-22-graph-expand-tool</guid>
+      <pubDate>Mon, 22 Jun 2026 14:13:15 GMT</pubDate>
+      <description>A new xnet_graph_expand tool lets a connected agent (via MCP, or the CLI) walk the typed links out from any node to its neighbors — fetching just the connections it needs for a question instead of loading the whole workspace.
+- Just-in-time graph expansion: pull a node's related items only when needed
+- Returns each neighbor with the relation it came through, for traceable answers
+- Auto-available to MCP and CLI agents — no extra setup</description>
+    </item>
+    <item>
+      <title>The assistant now follows your connections</title>
+      <link>https://xnet.fyi/changelog#2026-06-21-assistant-graph-context</link>
+      <guid isPermaLink="false">2026-06-21-assistant-graph-context</guid>
+      <pubDate>Mon, 22 Jun 2026 03:14:04 GMT</pubDate>
+      <description>When you chat with the assistant about your workspace, it now pulls in related items by walking the links between them — not just keyword matches — so multi-step questions get the connected context they need.
+- Context now walks typed relations from the best matches (graph-aware retrieval)
+- A token budget keeps it focused instead of dumping the whole workspace in
+- Runs entirely on-device — no embedding model download, no added startup cost</description>
+    </item>
+    <item>
+      <title>Native Swift now syncs with an XNet hub — proven cross-language interop</title>
+      <link>https://xnet.fyi/changelog#2026-06-21-swift-live-sync</link>
+      <guid isPermaLink="false">2026-06-21-swift-live-sync</guid>
+      <pubDate>Mon, 22 Jun 2026 03:09:30 GMT</pubDate>
+      <description>XNetKit gained a live hub connection: a native Swift client can publish a signed change to a running XNet hub over WebSocket and catch up changes from it. It's proven end-to-end against the real TypeScript hub — a Swift-signed change is verified (hash + Ed25519 signature) and stored by the hub, then caught up and materialized by a second Swift client. This is the first true cross-language round-trip, unblocked by the integer-lamport protocol fix.
+- `HubConnection` speaks the L2 replication protocol over `URLSessionWebSocketTask`: version handshake, room subscribe, `node-change` publish, and `node-sync-request` catch-up
+- `WireCodec` maps a Swift `Change` to/from the hub's `SerializedNodeChange` wire shape; a `NodeStore.onLocalChange` hook publishes local writes
+- `xnet-sync-demo` demonstrates the round-trip live against the reference hub; 16 Swift tests pass including a wire-codec JSON round-trip</description>
+    </item>
+    <item>
+      <title>Protocol fix: a change's Lamport clock is now a plain integer</title>
+      <link>https://xnet.fyi/changelog#2026-06-21-lamport-integer</link>
+      <guid isPermaLink="false">2026-06-21-lamport-integer</guid>
+      <pubDate>Mon, 22 Jun 2026 02:32:42 GMT</pubDate>
+      <description>While building the native Swift SDK we found that the runtime hashed a change's `lamport` field as an object `{time, author}`, but the protocol spec, the conformance golden vectors, and the reference kernels all treat it as a plain integer — so real changes didn't match the vectors and a spec-conformant client would be rejected by the hub. The runtime is now aligned to the spec: `lamport` is an integer, the author tiebreak comes from `authorDID`, and the conformance corpus finally represents reality. A breaking change (no migration; not live yet).
+- `Change.lamport` is now a `number` (the logical clock); the materialized per-property timestamp carries `author` separately for the LWW tiebreak
+- Cross-language interop unblocked: a change created by the TypeScript runtime now hashes identically to one from the Python/Swift kernels and XNetKit
+- Swept across sync, data, hub, history, runtime, react, data-bridge, devtools, cli, and the Electron IPC layer — 88/88 typecheck tasks and all suites green</description>
+    </item>
+    <item>
+      <title>AI second brain: hybrid GraphRAG retrieval</title>
+      <link>https://xnet.fyi/changelog#2026-06-21-ai-second-brain</link>
+      <guid isPermaLink="false">2026-06-21-ai-second-brain</guid>
+      <pubDate>Mon, 22 Jun 2026 02:09:54 GMT</pubDate>
+      <description>A new brain layer connects your governed graph, full-text search, and the vector engine into one retriever — so the assistant pulls the right, connected slice of your data instead of being overwhelmed by all of it.
+- Hybrid retrieval fuses semantic + keyword search, then walks typed relations for multi-hop context
+- A strict token/hop budget keeps answers focused; extra matches stay one click away (just-in-time)
+- First-class, private-by-default memory that's auditable back to its source notes</description>
+    </item>
+    <item>
+      <title>XNetKit — define schemas, query, and observe XNet from native Swift</title>
+      <link>https://xnet.fyi/changelog#2026-06-21-native-swift-xnetkit</link>
+      <guid isPermaLink="false">2026-06-21-native-swift-xnetkit</guid>
+      <pubDate>Sun, 21 Jun 2026 21:15:20 GMT</pubDate>
+      <description>A real, runnable native Swift SDK lands. Define schemas in Swift, write and query the database in Swift, and bind results into a SwiftUI re-rendering loop — no JavaScript, no React. It's built on the conformance-pinned protocol kernel, so identity, signed change hashes, and LWW convergence match the TypeScript reference. This is the native-authoring slice of the Swift exploration (0210); live hub sync and persistence are the next steps.
+- Swift schema DSL (Schema { text(…); select(…) }) emits the same SchemaIRI as TS defineSchema; a native NodeStore signs every write into a Change and folds it via per-property LWW
+- Reactive @Observable LiveQueryModel drives a SwiftUI re-render loop the way useQuery does in React — plus a framework-agnostic LiveQuery and an AsyncSequence view
+- swift run xnet-demo walks it end-to-end; 11 tests pass including the shared golden vectors (identity, change hash, LWW) — verified on Swift 6.3 / macOS</description>
+    </item>
+    <item>
+      <title>A verified Swift kernel — XNet's protocol is provably portable to Apple platforms</title>
+      <link>https://xnet.fyi/changelog#2026-06-20-swift-conformance-kernel</link>
+      <guid isPermaLink="false">2026-06-20-swift-conformance-kernel</guid>
+      <pubDate>Sun, 21 Jun 2026 18:35:14 GMT</pubDate>
+      <description>The first step toward a native Swift SDK: an independent Swift implementation of XNet's interop kernel now reproduces the same did:key, canonical bytes, and BLAKE3 change hashes as the TypeScript reference, and verifies TypeScript-signed changes. The conformance corpus also grew new L2 (replication) and L3 (authorization) golden vectors, so the wire protocol stays honest across languages.
+- New Swift reference kernel (conformance/reference/swift) passes 18/18 L0+L1 checks against the shared golden vectors — proof the protocol, not the TypeScript source, is what implementations follow
+- Conformance corpus extended to L2 (version handshake, catch-up filtering, the byte-exact signed Yjs envelope) and L3 (authorization expression evaluation), drift-guarded in CI
+- Surfaced and documented a real Apple-platform constraint: CryptoKit's Ed25519 is randomized, so it verifies signatures but can't reproduce them byte-for-byte</description>
+    </item>
+    <item>
+      <title>Error monitoring, privacy-preserving analytics, and a consent spine</title>
+      <link>https://xnet.fyi/changelog#2026-06-21-error-monitoring-privacy-preserving-anal</link>
+      <guid isPermaLink="false">2026-06-21-error-monitoring-privacy-preserving-anal</guid>
+      <pubDate>Sun, 21 Jun 2026 15:19:43 GMT</pubDate>
+      <description>The app now captures boot failures instead of showing a blank screen, the site and app gained cookieless analytics that need no cookie banner, the cloud server logs and reports errors, and one Privacy &amp; Diagnostics control governs everything you share — off by default.
+- A blank-screen 'didn't load' now surfaces an actionable screen and a captured error with the failing boot stage
+- Cookieless analytics on the website and app — no personal data, no cookie banner
+- Opt-in crash reporting (Sentry-ready) gated by a single consent spine; self-hosted builds phone nothing home
+- Cloud server adds structured request logs + a global error handler; hubs can opt in to share scrubbed diagnostics</description>
+    </item>
+    <item>
+      <title>Managed AI with model switching</title>
+      <link>https://xnet.fyi/changelog#2026-06-19-managed-ai-with-model-switching</link>
+      <guid isPermaLink="false">2026-06-19-managed-ai-with-model-switching</guid>
+      <pubDate>Sat, 20 Jun 2026 04:36:14 GMT</pubDate>
+      <description>Use metered XNet Cloud AI right from the app — no API key — and switch between models with live pricing.
+- New managed AI tier: the chat panel routes through XNet Cloud's metered gateway with a live used/included/cap budget gauge — no key in the browser.
+- Switch between models from a picker grouped by family, with per-token price and context badges; cheaper plans get a curated set, bigger plans the full OpenRouter catalog.
+- Optional model fallbacks keep a chat working through a provider outage.</description>
+    </item>
+    <item>
+      <title>See xNet Cloud's usage and growth in the open</title>
+      <link>https://xnet.fyi/changelog#2026-06-19-see-xnet-cloud-s-usage-and-growth-in-the</link>
+      <guid isPermaLink="false">2026-06-19-see-xnet-cloud-s-usage-and-growth-in-the</guid>
+      <pubDate>Sat, 20 Jun 2026 03:35:44 GMT</pubDate>
+      <description>The public /open dashboard now publishes live usage at scale — workspaces hosted, documents synced, data under management, people on the platform, and AI tokens metered — alongside the financials, all privacy-safe aggregates.
+- New 'product, at scale' counters on /open
+- Aggregate-only and k-anon-gated below the cohort floor
+- Fed by a control-plane usage collector, published via the weekly snapshot</description>
+    </item>
+    <item>
+      <title>A gentle welcome the first time you open a view</title>
+      <link>https://xnet.fyi/changelog#2026-06-19-a-gentle-welcome-the-first-time-you-open</link>
+      <guid isPermaLink="false">2026-06-19-a-gentle-welcome-the-first-time-you-open</guid>
+      <pubDate>Fri, 19 Jun 2026 15:50:39 GMT</pubDate>
+      <description>xNet now greets you with light, one-at-a-time tips the first time you open a view — what ⌘K does, where your CRM lives, how Tasks work — each dismissible and never in the way. Replay them anytime from Settings → Tips &amp; tours.
+- One tip at a time, shown the first time you reach a view — not a blocking tour
+- Dismiss with Escape, the ✕, or 'Got it' — it never steals focus or blocks the app
+- Replay onboarding anytime from Settings → Tips &amp; tours</description>
+    </item>
+    <item>
+      <title>Sync stays connected — no more reconnect storms on busy workspaces</title>
+      <link>https://xnet.fyi/changelog#2026-06-19-sync-stays-connected-no-more-reconnect-s</link>
+      <guid isPermaLink="false">2026-06-19-sync-stays-connected-no-more-reconnect-s</guid>
+      <pubDate>Fri, 19 Jun 2026 15:33:25 GMT</pubDate>
+      <description>The app no longer re-sends its whole change history to the hub on every load; sync now resumes from where it left off and throttles bursts, so the connection stays steady instead of tripping the hub's rate limit.
+- Reload resumes sync from a persisted cursor instead of replaying the entire change log
+- Outbound changes are throttled and a rate-limit disconnect backs off instead of reconnect-storming
+- A single malformed change no longer aborts a whole sync batch</description>
+    </item>
+    <item>
+      <title>Desktop gets the extra charts; marketplace is more honest</title>
+      <link>https://xnet.fyi/changelog#2026-06-19-desktop-gets-the-extra-charts-marketplac</link>
+      <guid isPermaLink="false">2026-06-19-desktop-gets-the-extra-charts-marketplac</guid>
+      <pubDate>Fri, 19 Jun 2026 15:16:33 GMT</pubDate>
+      <description>The Extra Charts plugin (donut + horizontal bar) now ships in the desktop app too, and the plugins marketplace clearly flags first-party connectors that need explicit setup rather than implying they auto-install.
+- Donut + horizontal-bar charts now bundled in desktop (web/electron parity)
+- Slack/Unreal connectors marked 'Setup required' instead of implying they run</description>
+    </item>
+    <item>
+      <title>Charts, maps, and canvas shapes are now plugin-extensible</title>
+      <link>https://xnet.fyi/changelog#2026-06-18-charts-maps-and-canvas-shapes-are-now-pl</link>
+      <guid isPermaLink="false">2026-06-18-charts-maps-and-canvas-shapes-are-now-pl</guid>
+      <pubDate>Fri, 19 Jun 2026 02:46:34 GMT</pubDate>
+      <description>New chart types, map basemaps, and canvas shapes can be added by a plugin with no change to core code, via shared runtime registries. A bundled Extra Charts plugin adds donut and horizontal-bar charts as a worked example.
+- Chart, basemap, and shape registries (unknown types fall back gracefully)
+- Editor schema/behavior tiering guards against silent Yjs content loss
+- Bundled Extra Charts plugin: donut + horizontal bar</description>
+    </item>
+    <item>
+      <title>Your workspace loads from the local cache again — no waiting for sync</title>
+      <link>https://xnet.fyi/changelog#2026-06-18-your-workspace-loads-from-the-local-cach</link>
+      <guid isPermaLink="false">2026-06-18-your-workspace-loads-from-the-local-cach</guid>
+      <pubDate>Thu, 18 Jun 2026 23:17:05 GMT</pubDate>
+      <description>Fixed a regression where a reload race could drop the local database into memory-only mode, so the app appeared empty until it re-synced from the hub; it now retries and stays on persistent storage.
+- OPFS storage no longer silently falls back to in-memory on a reload race
+- Returning users see their data immediately from the local cache, before the hub connects</description>
+    </item>
+    <item>
+      <title>Faster cold start — your data shows before the hub connects</title>
+      <link>https://xnet.fyi/changelog#2026-06-18-faster-cold-start-your-data-shows-before</link>
+      <guid isPermaLink="false">2026-06-18-faster-cold-start-your-data-shows-before</guid>
+      <pubDate>Thu, 18 Jun 2026 22:31:15 GMT</pubDate>
+      <description>The app now warms the local cache and hub connection during boot and shows a clear 'restoring' state instead of a blank screen, so returning users see their workspace sooner.
+- Boot timeline instrumentation to attribute startup cost
+- Local-first 'restoring from hub' state replaces blank/empty screens after a browser cache eviction
+- Hub preconnect + faster first-dial retry shrink time-to-connected</description>
+    </item>
+    <item>
+      <title>Changelog now credits everyone who contributed</title>
+      <link>https://xnet.fyi/changelog#2026-06-18-changelog-now-credits-everyone-who-contr</link>
+      <guid isPermaLink="false">2026-06-18-changelog-now-credits-everyone-who-contr</guid>
+      <pubDate>Thu, 18 Jun 2026 17:55:05 GMT</pubDate>
+      <description>Each changelog entry now shows every contributor to its pull request — not just a single author — as linked GitHub avatars, on the website and in the in-app What's New.
+- Avatars for every PR contributor (the author plus any co-committers), linking to their GitHub profile
+- Filled automatically from the merge event, and backfilled across past entries</description>
+    </item>
+    <item>
+      <title>Changelog entries get their PR number automatically</title>
+      <link>https://xnet.fyi/changelog#2026-06-18-changelog-entries-get-their-pr-number-au</link>
+      <guid isPermaLink="false">2026-06-18-changelog-entries-get-their-pr-number-au</guid>
+      <pubDate>Thu, 18 Jun 2026 15:00:40 GMT</pubDate>
+      <description>Every changelog entry now reliably links its pull request — the number is stamped into the entry when the PR merges, with no extra commit from you.
+- PR number is written into the entry at merge, so the repo matches what's published
+- Pull requests are verified at PR time — a numberless or malformed entry fails CI, not the live deploy
+- The deploy-time resolver remains a safety net for anything merged outside the normal flow</description>
+    </item>
+    <item>
+      <title>Changelog entries always link their PR</title>
+      <link>https://xnet.fyi/changelog#2026-06-17-changelog-entries-always-link-their-pr</link>
+      <guid isPermaLink="false">2026-06-17-changelog-entries-always-link-their-pr</guid>
+      <pubDate>Thu, 18 Jun 2026 05:51:39 GMT</pubDate>
+      <description>Every changelog entry now links to its pull request and shows a 'View PR' link even when there are no screenshots.
+- PR links resolve reliably (GitHub API fallback), not just from commit messages
+- Entries without screenshots show a clear 'View PR #N' link</description>
+    </item>
+    <item>
+      <title>Plugins marketplace, live on the web</title>
+      <link>https://xnet.fyi/changelog#2026-06-18-plugins-marketplace-live-on-the-web</link>
+      <guid isPermaLink="false">2026-06-18-plugins-marketplace-live-on-the-web</guid>
+      <pubDate>Thu, 18 Jun 2026 04:56:46 GMT</pubDate>
+      <description>Browse every plugin xNet ships out of the box and everything the community builds — on the website and inside the app — and publish your own with a one-line PR.
+- A new /plugins page with search, categories, and per-plugin detail pages
+- In-app Browse tab installs community plugins through a capability-consent gate
+- Publish via a metadata PR — your code stays in your repo and updates ship automatically</description>
+    </item>
+    <item>
+      <title>A public status page and a one-command path to cloud staging</title>
+      <link>https://xnet.fyi/changelog#2026-06-17-cloud-staging-and-status-page</link>
+      <guid isPermaLink="false">2026-06-17-cloud-staging-and-status-page</guid>
+      <pubDate>Thu, 18 Jun 2026 04:43:41 GMT</pubDate>
+      <description>xNet Cloud now publishes its live operational status, ships a containerized control plane you can deploy to Cloud Run, and can run against real Stripe/WorkOS APIs straight from your laptop.
+- New /status page — control plane, hub fleet, managed AI, and backups, with aggregate-only uptime (no tenant is ever identifiable)
+- The control plane is now containerized (apps/cloud/Dockerfile) with a build + smoke-test script and a keyless (Workload Identity Federation) deploy workflow
+- Run against staging credentials locally with `pnpm --filter xnet-cloud dev:staging` plus a git-ignored .env.staging.local for localhost OAuth/webhook overrides
+- A weekly job refreshes the run-in-public /open metrics from live Stripe and opens a PR for review</description>
+    </item>
+    <item>
+      <title>Metered AI through OpenRouter</title>
+      <link>https://xnet.fyi/changelog#2026-06-18-metered-ai-through-openrouter</link>
+      <guid isPermaLink="false">2026-06-18-metered-ai-through-openrouter</guid>
+      <pubDate>Thu, 18 Jun 2026 04:42:37 GMT</pubDate>
+      <description>xNet Cloud can now run managed AI through OpenRouter with per-tenant budgets, exact per-call cost, and a self-serve spend cap.
+- OpenRouter gateway with per-tenant provisioned keys and monthly spend limits
+- Bills off OpenRouter's exact usage.cost, not a static price estimate
+- Self-serve hard spend cap (clamped to your plan) with near-cap warnings</description>
+    </item>
+    <item>
+      <title>Bring Unreal Engine game data into XNet</title>
+      <link>https://xnet.fyi/changelog#2026-06-18-bring-unreal-engine-game-data-into-xnet</link>
+      <guid isPermaLink="false">2026-06-18-bring-unreal-engine-game-data-into-xnet</guid>
+      <pubDate>Thu, 18 Jun 2026 03:05:38 GMT</pubDate>
+      <description>A new governed connector and game-interop schema pack let an Unreal Engine 6 title's durable player data — identity, inventory, achievements, matches, and economy — sync into space-scoped XNet nodes you own.
+- Player identity is keyed to your portable XNet DID, so it carries across games
+- A save-file-not-netcode guardrail rejects per-frame syncs at build time
+- Game assets are stored as glTF/USD references; each title sees only its own space</description>
+    </item>
+    <item>
+      <title>xNet is now an open, re-implementable protocol</title>
+      <link>https://xnet.fyi/changelog#2026-06-18-xnet-is-now-an-open-re-implementable-pro</link>
+      <guid isPermaLink="false">2026-06-18-xnet-is-now-an-open-re-implementable-pro</guid>
+      <pubDate>Thu, 18 Jun 2026 02:46:19 GMT</pubDate>
+      <description>The data model, sync, identity, and authorization are now a written standard — re-implement xNet in any language, over any database, and interoperate.
+- New /docs/protocol section: four normative layers (primitives, data model, replication, authorization) and the xnet/1.0 umbrella version
+- A language-agnostic conformance corpus with golden vectors and a Python reference kernel that verifies TypeScript-signed changes byte-for-byte
+- The XPP proposal process for evolving the standard</description>
+    </item>
+    <item>
+      <title>Managed AI, fair billing, and a company we run in the open</title>
+      <link>https://xnet.fyi/changelog#2026-06-18-pr181</link>
+      <guid isPermaLink="false">2026-06-18-pr181</guid>
+      <pubDate>Thu, 18 Jun 2026 02:35:07 GMT</pubDate>
+      <description>xNet Cloud gains a managed AI gateway with transparent, metered billing — usage is shown against an included budget with a hard cap so there are no surprise bills — plus self-serve plan changes. And a new public dashboard shows our real customer growth, revenue, and full cost breakdown as we build toward break-even.
+- Managed AI on paid plans: included monthly budget, metered overage, and a hard cap that stops before a surprise bill
+- See your AI usage against the included budget and change plans yourself, right from the dashboard
+- A public /open page: customer and revenue growth week over week, with an honest cost breakdown</description>
+    </item>
+    <item>
+      <title>Browsable changelog screenshots</title>
+      <link>https://xnet.fyi/changelog#2026-06-18-quicker-before-after-comparisons</link>
+      <guid isPermaLink="false">2026-06-18-quicker-before-after-comparisons</guid>
+      <pubDate>Thu, 18 Jun 2026 02:05:36 GMT</pubDate>
+      <description>Changelog screenshots are now a scrollable gallery: click any shot to enlarge it, hover a before/after to flip to the before image, and press and hold to reveal the diff.
+- A scrollable row of previews — click one to enlarge it in a lightbox
+- Hover or focus to flip instantly between after and before
+- Press and hold to reveal the diff — in the row or the lightbox</description>
+    </item>
+    <item>
+      <title>A redesigned chat &amp; channels experience</title>
+      <link>https://xnet.fyi/changelog#2026-06-18-pr174</link>
+      <guid isPermaLink="false">2026-06-18-pr174</guid>
+      <pubDate>Thu, 18 Jun 2026 00:24:57 GMT</pubDate>
+      <description>Chat and channels are rebuilt to feel like Slack, Discord, or Zulip — grouped messages with avatars, emoji reactions, threaded replies, presence, and a smarter scroll.
+- Grouped messages with avatars, date separators, and a &quot;new messages&quot; divider
+- Emoji reactions, threaded replies, and inline edit-in-place
+- Presence dots, editable channel topics, and a comfortable/compact density toggle
+- Smart stick-to-bottom with a jump-to-latest pill and unread count</description>
+    </item>
+    <item>
+      <title>Airtable-grade database grids</title>
+      <link>https://xnet.fyi/changelog#2026-06-18-pr173</link>
+      <guid isPermaLink="false">2026-06-18-pr173</guid>
+      <pubDate>Thu, 18 Jun 2026 00:19:12 GMT</pubDate>
+      <description>Database grids gain a summary footer with per-column aggregations and an adjustable row height, so you can read totals and tune density right in the view.
+- Per-column summary footer — Sum, Average, Min/Max, Median, Filled %, Unique, and more
+- Row-height control (Short / Medium / Tall / Extra tall), saved per view
+- Polished field-type pickers with readable labels</description>
+    </item>
+    <item>
+      <title>Smoother, more consistent motion</title>
+      <link>https://xnet.fyi/changelog#2026-06-18-pr171</link>
+      <guid isPermaLink="false">2026-06-18-pr171</guid>
+      <pubDate>Thu, 18 Jun 2026 00:15:19 GMT</pubDate>
+      <description>A small, consistent animation vocabulary now runs across the app, so things move in a calm, on-style way. Toasts and banners glide in and out, and switching workspace scope cross-fades instead of snapping.
+- Toasts and banners animate both in and out
+- Workspace re-scoping cross-fades smoothly
+- Honors your system &quot;reduce motion&quot; setting</description>
+    </item>
+    <item>
+      <title>Bring your Slack data into xNet</title>
+      <link>https://xnet.fyi/changelog#2026-06-18-pr170</link>
+      <guid isPermaLink="false">2026-06-18-pr170</guid>
+      <pubDate>Thu, 18 Jun 2026 00:14:50 GMT</pubDate>
+      <description>Moving from Slack just got easier. A new Slack connector imports your channels and message history into native xNet messages, and a Slack-compatibility layer translates Slack formatting so existing integrations are easier to carry across.
+- Import Slack channels and message history into native xNet channels
+- Slack mrkdwn and Block Kit messages translate to xNet-flavored markdown
+- A migration guide with an honest compatibility matrix</description>
+    </item>
+    <item>
+      <title>Cleaner page editor typography</title>
+      <link>https://xnet.fyi/changelog#2026-06-17-pr169</link>
+      <guid isPermaLink="false">2026-06-17-pr169</guid>
+      <pubDate>Wed, 17 Jun 2026 23:50:04 GMT</pubDate>
+      <description>Page documents now read like Notion or Obsidian. Body text, bullets, numbered lists, to-dos, and blockquotes all share one clean left edge, the text column is centered, and the page title has a clear hierarchy.
+- Bullets, numbered lists, to-dos, and blockquotes align to a single left edge
+- Centered text column with consistent vertical rhythm between blocks
+- Checkboxes sit centered on their first line; the page title now clearly outranks H1</description>
+    </item>
+    <item>
+      <title>Linear-grade Tasks</title>
+      <link>https://xnet.fyi/changelog#2026-06-17-pr167</link>
+      <guid isPermaLink="false">2026-06-17-pr167</guid>
+      <pubDate>Wed, 17 Jun 2026 23:41:38 GMT</pubDate>
+      <description>The Tasks surface gets a Linear-style overhaul — faster in-surface navigation, multi-select bulk actions, a detail slide-over, and powerful filtering and grouping.
+- In-surface sub-nav (All Issues / My Issues / Triage) plus the Projects list
+- Multi-select with a floating bulk-action bar — set status, priority, or assignee in one batch
+- Filter bar, Display Options (group / order / density), Space-to-peek, and a detail slide-over
+- Opt-in violet &quot;Linear&quot; accent theme (Settings → Appearance → Accent)</description>
+    </item>
+    <item>
+      <title>See your local agent in the AI panel</title>
+      <link>https://xnet.fyi/changelog#2026-06-17-pr163</link>
+      <guid isPermaLink="false">2026-06-17-pr163</guid>
+      <pubDate>Wed, 17 Jun 2026 21:31:05 GMT</pubDate>
+      <description>The AI panel now shows the local bridge agent and its connection status, with a picker to choose which agent handles your requests.
+- Live status for the local bridge agent
+- Pick which agent runs (your own Claude Code, Codex, …)</description>
+    </item>
+    <item>
+      <title>xNet adapts to your phone</title>
+      <link>https://xnet.fyi/changelog#2026-06-17-pr156</link>
+      <guid isPermaLink="false">2026-06-17-pr156</guid>
+      <pubDate>Wed, 17 Jun 2026 21:23:11 GMT</pubDate>
+      <description>On a small screen, xNet now uses a content-first mobile layout — bottom navigation and slide-in panels — instead of the desktop grid.
+- Bottom navigation and edge sheets on mobile
+- A content-first shell that gets out of the way
+- The desktop experience is unchanged</description>
+    </item>
+    <item>
+      <title>Kick off agentic code tasks from xNet</title>
+      <link>https://xnet.fyi/changelog#2026-06-17-kick-off-agentic-code-tasks-from-xnet</link>
+      <guid isPermaLink="false">2026-06-17-kick-off-agentic-code-tasks-from-xnet</guid>
+      <pubDate>Wed, 17 Jun 2026 21:16:34 GMT</pubDate>
+      <description>The local bridge gained a run endpoint that executes a full agentic code task end to end, powering one-click dev tasks from the app.
+- A single call drives an end-to-end agent task
+- Foundation for in-app developer workflows</description>
+    </item>
+    <item>
+      <title>Paid plugins</title>
+      <link>https://xnet.fyi/changelog#2026-06-17-pr157</link>
+      <guid isPermaLink="false">2026-06-17-pr157</guid>
+      <pubDate>Wed, 17 Jun 2026 21:16:27 GMT</pubDate>
+      <description>Plugin authors can now sell their plugins — a licensing spine plus Stripe Connect payouts, with a fail-closed install gate that checks entitlements.
+- DID-bound plugin licenses
+- Stripe Connect payouts (publishers keep their own account)
+- Installs are gated on a valid license</description>
+    </item>
+    <item>
+      <title>Plugins run on the Labs runtime</title>
+      <link>https://xnet.fyi/changelog#2026-06-17-plugins-run-on-the-labs-runtime</link>
+      <guid isPermaLink="false">2026-06-17-plugins-run-on-the-labs-runtime</guid>
+      <pubDate>Wed, 17 Jun 2026 21:11:46 GMT</pubDate>
+      <description>Plugin code now executes on the same sandboxed Labs runtime, unifying how user code runs and receives capabilities across the app.
+- Shared sandbox and runtime for plugins and Labs
+- Consistent capability grants for all user code</description>
+    </item>
+    <item>
+      <title>Agent-native Connectors</title>
+      <link>https://xnet.fyi/changelog#2026-06-17-pr160</link>
+      <guid isPermaLink="false">2026-06-17-pr160</guid>
+      <pubDate>Wed, 17 Jun 2026 21:07:19 GMT</pubDate>
+      <description>Connectors sync an external service into governed nodes and expose agent tools — your AI works with policy-checked data while the access token stays in the hub.
+- Sync external services into governed nodes
+- Agent tools are surfaced to the AI automatically
+- Tokens stay server-side; the agent sees only what policy allows</description>
+    </item>
+    <item>
+      <title>Review AI edits before they apply</title>
+      <link>https://xnet.fyi/changelog#2026-06-17-review-ai-edits-before-they-apply</link>
+      <guid isPermaLink="false">2026-06-17-review-ai-edits-before-they-apply</guid>
+      <pubDate>Wed, 17 Jun 2026 20:59:57 GMT</pubDate>
+      <description>AI edits in the editor now show a preview with an approve or reject gate, so nothing changes your document until you say so.
+- Diff preview of the proposed change
+- Approve or reject before it lands</description>
+    </item>
+    <item>
+      <title>AI edits, right inside the editor</title>
+      <link>https://xnet.fyi/changelog#2026-06-17-ai-edits-right-inside-the-editor</link>
+      <guid isPermaLink="false">2026-06-17-ai-edits-right-inside-the-editor</guid>
+      <pubDate>Wed, 17 Jun 2026 20:49:32 GMT</pubDate>
+      <description>Select text in the page editor and ask AI to rewrite, summarize, or transform it — inline, without leaving the document.
+- Trigger AI transforms on a selection
+- Uses your configured AI provider</description>
+    </item>
+    <item>
+      <title>A new look — cosmic-web app icons</title>
+      <link>https://xnet.fyi/changelog#2026-06-17-pr153</link>
+      <guid isPermaLink="false">2026-06-17-pr153</guid>
+      <pubDate>Wed, 17 Jun 2026 20:44:47 GMT</pubDate>
+      <description>xNet has fresh cosmic-web app icons and a new favicon across the desktop app and the website.
+- New app icons on desktop
+- New favicon and marks on the site</description>
+    </item>
+    <item>
+      <title>An agentic dev loop in your terminal</title>
+      <link>https://xnet.fyi/changelog#2026-06-17-an-agentic-dev-loop-in-your-terminal</link>
+      <guid isPermaLink="false">2026-06-17-an-agentic-dev-loop-in-your-terminal</guid>
+      <pubDate>Wed, 17 Jun 2026 20:42:37 GMT</pubDate>
+      <description>The new xnet code command runs an isolated edit → validate → commit loop with your own agent, so you can vibe-code changes to xNet from the CLI.
+- Each task runs in an isolated git worktree
+- Runs the validation gate, commits on pass and rolls back on fail</description>
+    </item>
+    <item>
+      <title>Your agent can use your workspace</title>
+      <link>https://xnet.fyi/changelog#2026-06-17-your-agent-can-use-your-workspace</link>
+      <guid isPermaLink="false">2026-06-17-your-agent-can-use-your-workspace</guid>
+      <pubDate>Wed, 17 Jun 2026 20:26:10 GMT</pubDate>
+      <description>When you drive a local agent from xNet, it now gets governed tools to read and write your workspace — with writes gated by policy and your token staying local.
+- Workspace read/write tools exposed over MCP
+- Writes pass through a policy guardrail</description>
+    </item>
+    <item>
+      <title>A richer, interactive changelog</title>
+      <link>https://xnet.fyi/changelog#2026-06-18-pr151</link>
+      <guid isPermaLink="false">2026-06-18-pr151</guid>
+      <pubDate>Wed, 17 Jun 2026 20:08:15 GMT</pubDate>
+      <description>The changelog page now shows the actual UI that shipped — screenshots pulled straight from CI — and you can filter, search, and click through them.
+- Auto-pulled screenshots, before/after sliders, and a click-to-zoom lightbox
+- Filter by tag and search across every entry
+- JSON and RSS feeds for the full history</description>
+    </item>
+    <item>
+      <title>Your Labs become AI tools</title>
+      <link>https://xnet.fyi/changelog#2026-06-17-your-labs-become-ai-tools</link>
+      <guid isPermaLink="false">2026-06-17-your-labs-become-ai-tools</guid>
+      <pubDate>Wed, 17 Jun 2026 20:05:50 GMT</pubDate>
+      <description>Tools you build in Labs are now available to the assistant, so your own automations can be called directly from AI chat.
+- Lab agent-tools surface to the AI automatically
+- One ladder from a Lab to an AI tool</description>
+    </item>
+    <item>
+      <title>AI that can act on your workspace</title>
+      <link>https://xnet.fyi/changelog#2026-06-17-ai-that-can-act-on-your-workspace</link>
+      <guid isPermaLink="false">2026-06-17-ai-that-can-act-on-your-workspace</guid>
+      <pubDate>Wed, 17 Jun 2026 19:54:48 GMT</pubDate>
+      <description>The assistant gained a tool surface, @-mention providers, and recommendations — so it can reference your data and take actions, not just chat.
+- Plugin and Lab capabilities exposed to the AI as tools
+- Extensible @-mentions in chat
+- Contextual recommendations</description>
+    </item>
+    <item>
+      <title>Drive your own coding agent from xNet</title>
+      <link>https://xnet.fyi/changelog#2026-06-17-drive-your-own-coding-agent-from-xnet</link>
+      <guid isPermaLink="false">2026-06-17-drive-your-own-coding-agent-from-xnet</guid>
+      <pubDate>Wed, 17 Jun 2026 19:53:36 GMT</pubDate>
+      <description>A new local bridge lets xNet drive your own Claude Code or Codex CLI — bring your own agent, no extra API key, and your token never leaves your machine.
+- Runs your local Claude Code / Codex from xNet's UI
+- Loopback-only, OpenAI-compatible streaming
+- No model cost to xNet — it uses your own agent</description>
+    </item>
+    <item>
+      <title>One trust model across plugins and Labs</title>
+      <link>https://xnet.fyi/changelog#2026-06-17-one-trust-model-across-plugins-and-labs</link>
+      <guid isPermaLink="false">2026-06-17-one-trust-model-across-plugins-and-labs</guid>
+      <pubDate>Wed, 17 Jun 2026 19:32:03 GMT</pubDate>
+      <description>Plugins and Labs now share a single trust and provenance system, so “is this code trusted?” is answered the same way everywhere in xNet.
+- Unified provenance and trust checks for plugins and Labs
+- Consistent install and run consent across the app</description>
+    </item>
+    <item>
+      <title>Automated changelog &amp; in-app &quot;What’s New&quot;</title>
+      <link>https://xnet.fyi/changelog#2026-06-17</link>
+      <guid isPermaLink="false">2026-06-17</guid>
+      <pubDate>Wed, 17 Jun 2026 19:02:16 GMT</pubDate>
+      <description>xNet now keeps a changelog you can actually read. Every release is summarized here, on the website, and inside the app — so you always know what changed when a new version lands.
+- A public changelog page with a JSON and RSS feed you can subscribe to
+- An in-app &quot;What’s New&quot; panel that flags updates since your last visit
+- Release notes on the desktop app are now written in plain language, not raw commit logs
+- UI screenshots captured by CI can be embedded directly in changelog entries</description>
+    </item>
+    <item>
+      <title>AI chat that knows your workspace</title>
+      <link>https://xnet.fyi/changelog#2026-06-17-pr143</link>
+      <guid isPermaLink="false">2026-06-17-pr143</guid>
+      <pubDate>Wed, 17 Jun 2026 18:35:59 GMT</pubDate>
+      <description>The in-app assistant now reads your own workspace — your notes, tasks, contacts, and more — so its answers are grounded in your data, with citations. It also remembers the conversation instead of treating every message as the first.
+- Answers are grounded in your workspace and cite the items they draw from
+- Conversations have memory — the assistant sees the whole thread, not just your last message
+- A clear &quot;reads workspace&quot; badge and privacy note explain what it can see</description>
+    </item>
+    <item>
+      <title>Reliability you can see for managed hubs</title>
+      <link>https://xnet.fyi/changelog#2026-06-17-reliability-you-can-see-for-managed-hubs</link>
+      <guid isPermaLink="false">2026-06-17-reliability-you-can-see-for-managed-hubs</guid>
+      <pubDate>Wed, 17 Jun 2026 18:31:06 GMT</pubDate>
+      <description>xNet Cloud now measures uptime against real service-level objectives, ties upgrades to error budgets, and runs backup restore drills — the operational backbone behind the managed fleet.
+- Measured SLIs/SLOs for each managed hub
+- Error-budget-gated rollouts
+- Routine backup restore drills</description>
+    </item>
+    <item>
+      <title>Plugin ecosystem: scaffolding, marketplace &amp; trust</title>
+      <link>https://xnet.fyi/changelog#2026-06-14</link>
+      <guid isPermaLink="false">2026-06-14</guid>
+      <pubDate>Wed, 17 Jun 2026 17:13:30 GMT</pubDate>
+      <description>Building and sharing plugins is now first-class. A scaffolder gets you from zero to a working plugin in seconds, and an enforceable capability model keeps installs safe.
+- xnet plugin scaffold command and an AI &quot;script → plugin&quot; path
+- Capability enforcement, semver compatibility gates and inter-plugin dependencies
+- A searchable marketplace index with install-consent prompts</description>
+    </item>
+    <item>
+      <title>On-device dictation</title>
+      <link>https://xnet.fyi/changelog#2026-06-12</link>
+      <guid isPermaLink="false">2026-06-12</guid>
+      <pubDate>Wed, 17 Jun 2026 17:11:17 GMT</pubDate>
+      <description>Talk to xNet. A new dictation engine turns speech into text locally, with hold-to-talk and private-by-default transcripts.
+- Zero-dependency dictation engine with hold-to-talk
+- Private-by-default transcription with full-text search
+- Pluggable speech backends (bring-your-own engine)</description>
+    </item>
+    <item>
+      <title>Extensibility fabric: one home for plugins, labs &amp; AI</title>
+      <link>https://xnet.fyi/changelog#2026-06-15</link>
+      <guid isPermaLink="false">2026-06-15</guid>
+      <pubDate>Wed, 17 Jun 2026 17:08:14 GMT</pubDate>
+      <description>Plugins, labs, the AI surface, and the editor are converging into a single extensibility fabric, so a capability built in one place can be reused everywhere.
+- Shared trust and consent model across plugins and labs
+- Plugin contributions and lab tools can be exposed to the AI assistant
+- Foundations for an AI → Lab → Plugin assembly line</description>
+    </item>
+    <item>
+      <title>Faster, cheaper CI</title>
+      <link>https://xnet.fyi/changelog#2026-06-10</link>
+      <guid isPermaLink="false">2026-06-10</guid>
+      <pubDate>Wed, 17 Jun 2026 16:59:11 GMT</pubDate>
+      <description>Behind the scenes, the build pipeline got faster and more reliable — which means features reach you sooner.
+- Parallelized lint, typecheck and test jobs
+- Cached browser and native build dependencies</description>
+    </item>
+    <item>
+      <title>xNet Cloud — managed hub hosting</title>
+      <link>https://xnet.fyi/changelog#2026-06-16</link>
+      <guid isPermaLink="false">2026-06-16</guid>
+      <pubDate>Wed, 17 Jun 2026 16:57:25 GMT</pubDate>
+      <description>Don’t want to run your own hub? xNet Cloud hosts one for you. A new onboarding flow takes you from signup to a provisioned hub, then lets you claim it from the app.
+- Marketing and pricing pages for managed hub hosting
+- Signup → provision → claim flow
+- Connect the app to your hosted hub from Settings</description>
+    </item>
+    <item>
+      <title>A safer foundation for plugins</title>
+      <link>https://xnet.fyi/changelog#2026-06-17-a-safer-foundation-for-plugins</link>
+      <guid isPermaLink="false">2026-06-17-a-safer-foundation-for-plugins</guid>
+      <pubDate>Wed, 17 Jun 2026 16:44:47 GMT</pubDate>
+      <description>Plugins now run on an enforceable platform layer — capability gates, provenance and trust checks, dependency resolution, and a searchable marketplace index — so installing a plugin is governed end to end.
+- Capability enforcement wraps each plugin's data access
+- Install-time consent prompts when a plugin needs new capabilities
+- Inter-plugin dependencies resolve with cycle detection</description>
+    </item>
+    <item>
+      <title>xNet AI chat panel works out of the box</title>
+      <link>https://xnet.fyi/changelog#2026-06-11</link>
+      <guid isPermaLink="false">2026-06-11</guid>
+      <pubDate>Wed, 17 Jun 2026 16:10:21 GMT</pubDate>
+      <description>The in-app AI assistant is wired up end-to-end — the chat panel now connects, picks a sensible model tier automatically, and reports errors honestly.
+- Fixed the connection so the assistant responds on a fresh install
+- Automatic model-tier selection with a clear status badge
+- Tier preference persists between sessions</description>
+    </item>
+    <item>
+      <title>Cohesive, feature-complete domain apps</title>
+      <link>https://xnet.fyi/changelog#2026-06-08</link>
+      <guid isPermaLink="false">2026-06-08</guid>
+      <pubDate>Tue, 16 Jun 2026 08:16:25 GMT</pubDate>
+      <description>CRM, accounting, tasks, experiments and spaces are now fully editable and consistent. Open any record to see every field, with bespoke views where they help.
+- Full CRM: contacts, deals, organizations, forecast lanes, quotes and de-dup merge
+- Finance: account and transaction inspectors, reports tab and budgeting
+- Tasks: project detail headers and milestone management
+- A shared inspector substrate (NodePeek + SchemaForm) across every domain</description>
+    </item>
+    <item>
+      <title>Plug-and-play billing (Stripe &amp; Bitcoin)</title>
+      <link>https://xnet.fyi/changelog#2026-06-02</link>
+      <guid isPermaLink="false">2026-06-02</guid>
+      <pubDate>Tue, 16 Jun 2026 01:45:08 GMT</pubDate>
+      <description>A provider-agnostic billing layer lets xNet apps take payments via Stripe or Bitcoin (BTCPay) without locking into either.
+- Stripe and BTCPay adapters behind one payment interface
+- Signed webhooks with idempotent processing
+- A useBilling() hook for checkout and subscription status</description>
+    </item>
+    <item>
+      <title>Native CRM &amp; ERP foundation</title>
+      <link>https://xnet.fyi/changelog#2026-06-05</link>
+      <guid isPermaLink="false">2026-06-05</guid>
+      <pubDate>Tue, 16 Jun 2026 00:34:15 GMT</pubDate>
+      <description>xNet grew a native CRM — a universal party model, pipelines, deals and activities that reuse the same social and schema primitives as the rest of the app.
+- Organizations, contacts, pipelines, deals, products and quotes
+- Append-only activity timeline and contact de-duplication
+- vCard import/export and GDPR helpers</description>
+    </item>
+    <item>
+      <title>Double-entry accounting</title>
+      <link>https://xnet.fyi/changelog#2026-06-04</link>
+      <guid isPermaLink="false">2026-06-04</guid>
+      <pubDate>Mon, 15 Jun 2026 23:55:37 GMT</pubDate>
+      <description>Track your money in xNet. A local-first, double-entry ledger brings accounts, transactions, budgets and reconciliation — with CSV/OFX/QIF import.
+- Balanced double-entry transactions with integer-precise money
+- Budgets, reconciliation and chart-of-accounts reports
+- Import from CSV, OFX and QIF</description>
+    </item>
+    <item>
+      <title>Screenshots of every UI change, automatically</title>
+      <link>https://xnet.fyi/changelog#2026-05-28</link>
+      <guid isPermaLink="false">2026-05-28</guid>
+      <pubDate>Mon, 15 Jun 2026 16:27:51 GMT</pubDate>
+      <description>Every pull request that touches the interface now gets before/after screenshots and GIFs captured by CI — the same visuals that can feed this changelog.
+- Automatic screenshot, diff and GIF capture for changed UI
+- A sticky gallery comment on each pull request
+- Durable galleries that survive after merge</description>
+    </item>
+    <item>
+      <title>Experiment journal &amp; habit tracker</title>
+      <link>https://xnet.fyi/changelog#2026-05-20</link>
+      <guid isPermaLink="false">2026-05-20</guid>
+      <pubDate>Sun, 14 Jun 2026 23:43:49 GMT</pubDate>
+      <description>Run personal experiments and track habits in xNet, with streaks, correlations and a verdict engine that stays honest about what the data can and can’t show.
+- Metrics, observations and experiments as first-class data
+- Streak heatmaps and correlation widgets
+- A &quot;Today&quot; panel for quick logging</description>
+    </item>
+  </channel>
+</rss>

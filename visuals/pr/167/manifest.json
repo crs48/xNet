@@ -1,0 +1,53 @@
+{
+  "stories": [
+    {
+      "id": "core-database-surface--playground",
+      "title": "Core/Database/Surface",
+      "name": "Playground",
+      "file": "stories/core-database-surface--playground.png"
+    },
+    {
+      "id": "web-presenceavatars--default",
+      "title": "Web/PresenceAvatars",
+      "name": "Default",
+      "file": "stories/web-presenceavatars--default.png"
+    },
+    {
+      "id": "web-presenceavatars--empty",
+      "title": "Web/PresenceAvatars",
+      "name": "Empty",
+      "file": "stories/web-presenceavatars--empty.png"
+    },
+    {
+      "id": "web-storagewarningbanner--informational",
+      "title": "Web/StorageWarningBanner",
+      "name": "Informational",
+      "file": "stories/web-storagewarningbanner--informational.png"
+    },
+    {
+      "id": "web-storagewarningbanner--success",
+      "title": "Web/StorageWarningBanner",
+      "name": "Success",
+      "file": "stories/web-storagewarningbanner--success.png"
+    },
+    {
+      "id": "web-storagewarningbanner--warning",
+      "title": "Web/StorageWarningBanner",
+      "name": "Warning",
+      "file": "stories/web-storagewarningbanner--warning.png"
+    }
+  ],
+  "routes": [
+    {
+      "id": "data",
+      "label": "Data",
+      "file": "routes/data.png"
+    },
+    {
+      "id": "settings",
+      "label": "Settings",
+      "file": "routes/settings.png"
+    }
+  ],
+  "flows": []
+}

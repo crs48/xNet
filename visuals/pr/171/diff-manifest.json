@@ -1,0 +1,158 @@
+{
+  "threshold": 0.998,
+  "baseline": "https://xnet.fyi/visuals-baseline",
+  "stories": [
+    {
+      "id": "ui-comments-catalog--overview",
+      "title": "UI/Comments/Catalog",
+      "name": "Overview",
+      "file": "stories/ui-comments-catalog--overview.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "ui-composed-devtools-catalog--overview",
+      "title": "UI/Composed/Devtools Catalog",
+      "name": "Overview",
+      "file": "stories/ui-composed-devtools-catalog--overview.png",
+      "status": "unchanged",
+      "ssim": 0.998657
+    },
+    {
+      "id": "ui-composed-devtools-catalog--performance-lab",
+      "title": "UI/Composed/Devtools Catalog",
+      "name": "Performance Lab",
+      "file": "stories/ui-composed-devtools-catalog--performance-lab.png",
+      "status": "unchanged",
+      "ssim": 0.998712
+    },
+    {
+      "id": "ui-composed-settingsview--default",
+      "title": "UI/Composed/SettingsView",
+      "name": "Default",
+      "file": "stories/ui-composed-settingsview--default.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "ui-composed-settingsview--plugins-section",
+      "title": "UI/Composed/SettingsView",
+      "name": "Plugins Section",
+      "file": "stories/ui-composed-settingsview--plugins-section.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "ui-primitives-button--default",
+      "title": "UI/Primitives/Button",
+      "name": "Default",
+      "file": "stories/ui-primitives-button--default.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "ui-primitives-button--loading",
+      "title": "UI/Primitives/Button",
+      "name": "Loading",
+      "file": "stories/ui-primitives-button--loading.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "ui-primitives-button--variants",
+      "title": "UI/Primitives/Button",
+      "name": "Variants",
+      "file": "stories/ui-primitives-button--variants.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "ui-primitives-button--with-icons",
+      "title": "UI/Primitives/Button",
+      "name": "With Icons",
+      "file": "stories/ui-primitives-button--with-icons.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "ui-primitives-catalog--overview",
+      "title": "UI/Primitives/Catalog",
+      "name": "Overview",
+      "file": "stories/ui-primitives-catalog--overview.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-presenceavatars--default",
+      "title": "Web/PresenceAvatars",
+      "name": "Default",
+      "file": "stories/web-presenceavatars--default.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-presenceavatars--empty",
+      "title": "Web/PresenceAvatars",
+      "name": "Empty",
+      "file": "stories/web-presenceavatars--empty.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-storagewarningbanner--informational",
+      "title": "Web/StorageWarningBanner",
+      "name": "Informational",
+      "file": "stories/web-storagewarningbanner--informational.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-storagewarningbanner--success",
+      "title": "Web/StorageWarningBanner",
+      "name": "Success",
+      "file": "stories/web-storagewarningbanner--success.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-storagewarningbanner--warning",
+      "title": "Web/StorageWarningBanner",
+      "name": "Warning",
+      "file": "stories/web-storagewarningbanner--warning.png",
+      "status": "unchanged",
+      "ssim": 1
+    }
+  ],
+  "routes": [
+    {
+      "id": "home",
+      "label": "Home",
+      "file": "routes/home.png",
+      "status": "changed",
+      "ssim": 0.938948,
+      "before": "before/routes/home.png",
+      "after": "routes/home.png",
+      "diff": "diff/routes/home.png"
+    },
+    {
+      "id": "social-import",
+      "label": "Social import",
+      "file": "routes/social-import.png",
+      "status": "changed",
+      "ssim": 0.808777,
+      "before": "before/routes/social-import.png",
+      "after": "routes/social-import.png",
+      "diff": "diff/routes/social-import.png"
+    }
+  ],
+  "flows": [
+    {
+      "id": "create-page",
+      "label": "Create a page and use the editor",
+      "gif": "flows/create-page.gif",
+      "mp4": "flows/create-page.mp4",
+      "poster": "flows/create-page.poster.png"
+    }
+  ],
+  "changedCount": 3
+}

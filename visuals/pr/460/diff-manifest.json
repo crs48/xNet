@@ -1,0 +1,39 @@
+{
+  "threshold": 0.998,
+  "baseline": "https://xnet.fyi/visuals-baseline",
+  "fallbackUsed": false,
+  "unmappedFiles": [],
+  "stories": [
+    {
+      "id": "ui-components-catalog--overview",
+      "title": "UI/Components/Catalog",
+      "name": "Overview",
+      "file": "stories/ui-components-catalog--overview.png",
+      "status": "unchanged",
+      "ssim": 1
+    }
+  ],
+  "routes": [
+    {
+      "id": "data",
+      "label": "Data",
+      "file": "routes/data.png",
+      "status": "changed",
+      "ssim": 0.997974,
+      "before": "before/routes/data.png",
+      "after": "routes/data.png",
+      "diff": "diff/routes/data.png"
+    }
+  ],
+  "electron": [
+    {
+      "id": "electron-canvas-home",
+      "label": "Desktop · Canvas home",
+      "file": "electron/electron-canvas-home.png",
+      "status": "unchanged",
+      "ssim": 1
+    }
+  ],
+  "flows": [],
+  "changedCount": 1
+}

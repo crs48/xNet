@@ -1,0 +1,50 @@
+{
+  "threshold": 0.998,
+  "baseline": "https://xnet.fyi/visuals-baseline",
+  "fallbackUsed": false,
+  "unmappedFiles": [],
+  "stories": [
+    {
+      "id": "core-canvas-workbench--large-scene",
+      "title": "Core/Canvas/Workbench",
+      "name": "Large Scene",
+      "file": "stories/core-canvas-workbench--large-scene.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "core-canvas-workbench--playground",
+      "title": "Core/Canvas/Workbench",
+      "name": "Playground",
+      "file": "stories/core-canvas-workbench--playground.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "core-editor-richtexteditor--playground",
+      "title": "Core/Editor/RichTextEditor",
+      "name": "Playground",
+      "file": "stories/core-editor-richtexteditor--playground.png",
+      "status": "unchanged",
+      "ssim": 0.999841
+    }
+  ],
+  "routes": [],
+  "flows": [
+    {
+      "id": "canvas",
+      "label": "Open a canvas",
+      "gif": "flows/canvas.gif",
+      "mp4": "flows/canvas.mp4",
+      "poster": "flows/canvas.poster.png"
+    },
+    {
+      "id": "create-page",
+      "label": "Create a page and use the editor",
+      "gif": "flows/create-page.gif",
+      "mp4": "flows/create-page.mp4",
+      "poster": "flows/create-page.poster.png"
+    }
+  ],
+  "changedCount": 2
+}

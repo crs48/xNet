@@ -1,0 +1,26 @@
+{
+  "threshold": 0.998,
+  "baseline": "https://xnet.fyi/visuals-baseline",
+  "fallbackUsed": false,
+  "unmappedFiles": [],
+  "stories": [],
+  "routes": [
+    {
+      "id": "data",
+      "label": "Data",
+      "file": "routes/data.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "discover",
+      "label": "Discover",
+      "file": "routes/discover.png",
+      "status": "unchanged",
+      "ssim": 1
+    }
+  ],
+  "electron": [],
+  "flows": [],
+  "changedCount": 0
+}

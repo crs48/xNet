@@ -1,0 +1,45 @@
+{
+  "threshold": 0.998,
+  "baseline": "https://xnet.fyi/visuals-baseline",
+  "fallbackUsed": false,
+  "unmappedFiles": [],
+  "stories": [
+    {
+      "id": "web-coachmark--below-anchor",
+      "title": "Web/Coachmark",
+      "name": "Below Anchor",
+      "file": "stories/web-coachmark--below-anchor.png",
+      "status": "new",
+      "after": "stories/web-coachmark--below-anchor.png"
+    },
+    {
+      "id": "web-coachmark--command-palette",
+      "title": "Web/Coachmark",
+      "name": "Command Palette",
+      "file": "stories/web-coachmark--command-palette.png",
+      "status": "new",
+      "after": "stories/web-coachmark--command-palette.png"
+    }
+  ],
+  "routes": [
+    {
+      "id": "home",
+      "label": "Home",
+      "file": "routes/home.png",
+      "status": "unchanged",
+      "ssim": 0.999933
+    },
+    {
+      "id": "settings",
+      "label": "Settings",
+      "file": "routes/settings.png",
+      "status": "changed",
+      "ssim": 0.932319,
+      "before": "before/routes/settings.png",
+      "after": "routes/settings.png",
+      "diff": "diff/routes/settings.png"
+    }
+  ],
+  "flows": [],
+  "changedCount": 3
+}

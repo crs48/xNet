@@ -1,0 +1,58 @@
+{
+  "stories": [
+    {
+      "id": "web-presenceavatars--default",
+      "title": "Web/PresenceAvatars",
+      "name": "Default",
+      "file": "stories/web-presenceavatars--default.png"
+    },
+    {
+      "id": "web-presenceavatars--empty",
+      "title": "Web/PresenceAvatars",
+      "name": "Empty",
+      "file": "stories/web-presenceavatars--empty.png"
+    },
+    {
+      "id": "web-storagewarningbanner--informational",
+      "title": "Web/StorageWarningBanner",
+      "name": "Informational",
+      "file": "stories/web-storagewarningbanner--informational.png"
+    },
+    {
+      "id": "web-storagewarningbanner--success",
+      "title": "Web/StorageWarningBanner",
+      "name": "Success",
+      "file": "stories/web-storagewarningbanner--success.png"
+    },
+    {
+      "id": "web-storagewarningbanner--warning",
+      "title": "Web/StorageWarningBanner",
+      "name": "Warning",
+      "file": "stories/web-storagewarningbanner--warning.png"
+    }
+  ],
+  "routes": [],
+  "flows": [
+    {
+      "id": "canvas",
+      "label": "Open a canvas",
+      "gif": "flows/canvas.gif",
+      "mp4": "flows/canvas.mp4",
+      "poster": "flows/canvas.poster.png"
+    }
+  ],
+  "electron": [
+    {
+      "id": "electron-canvas-home",
+      "label": "Desktop · Canvas home",
+      "file": "electron/electron-canvas-home.png"
+    },
+    {
+      "id": "electron-canvas-objects",
+      "label": "Desktop · Canvas with objects",
+      "file": "electron/electron-canvas-objects.png"
+    }
+  ],
+  "fallbackUsed": false,
+  "unmappedFiles": []
+}

@@ -1,0 +1,372 @@
+<!DOCTYPE html><html lang="en" class="dark scroll-smooth astro-5hce7sga"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="You write useQuery(TaskSchema) and get a live, local, cryptographically-authorised, syncing database — with no API endpoint, no auth middleware, and no cache to invalidate. A developer's tour of xNet's React hooks on the surface, then a dive beneath the waterline to the SQLite database running in a worker, the priority scheduler, and the signed change log that make “just trust the client” safe. The tip is small on purpose; the iceberg is yours to open."><link rel="icon" type="image/svg+xml" href="/favicon.svg"><title>The Tip of the Hook — xNet</title><!-- Inline script to prevent flash: read localStorage, fallback to system preference --><script>
+      (function() {
+        var storedTheme = localStorage.getItem('xnet-lp-theme')
+        var theme = storedTheme || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+        if (theme === 'light') {
+          document.documentElement.classList.remove('dark')
+        }
+      })()
+    </script><link rel="stylesheet" href="/_astro/acceptable-use.CezTpkRX.css">
+<style>pre.mermaid:not([data-processed]){color:transparent;min-height:2rem}pre.mermaid{text-align:center;background:transparent;margin:0}pre.mermaid svg{margin:0 auto;display:block;height:auto;max-width:100%}
+.peek:where(.astro-iw2d5fsf)>summary:where(.astro-iw2d5fsf){list-style:none}.peek:where(.astro-iw2d5fsf)>summary:where(.astro-iw2d5fsf)::-webkit-details-marker{display:none}
+</style><script type="module" src="/_astro/page.B1D-nYk3.js"></script></head> <body class="bg-white dark:bg-[#0a0a0f] text-gray-800 dark:text-gray-200 antialiased font-sans leading-relaxed astro-5hce7sga">  <header class="sticky top-0 z-50 border-b border-border/50 bg-white/80 dark:bg-[#0a0a0f]/80 backdrop-blur-xl"> <nav class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4"> <a href="/" class="font-mono text-xl font-bold tracking-tight text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+xNet
+</a> <div class="flex items-center gap-5 text-sm"> <a href="/#app" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"> App </a><a href="/#hubs" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"> Teams </a><a href="/#vision" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"> Vision </a> <span class="hidden sm:inline h-4 w-px bg-border" aria-hidden="true"></span> <a href="/why" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"> Why </a><a href="/build-with" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"> Build </a><a href="/blog" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"> Blog </a> <a href="/docs/introduction/" class="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:border-indigo-500/50 hover:bg-surface transition-all"> <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"> <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"></path> </svg>
+Docs
+</a> <a href="/app" class="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500 transition-all">
+Try the App
+</a> <button id="lp-theme-toggle" class="rounded-lg border border-border p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:border-gray-400 dark:hover:border-gray-500 transition-colors" aria-label="Toggle theme"> <!-- Sun icon (shown in dark mode) --> <svg class="h-4 w-4 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path> </svg> <!-- Moon icon (shown in light mode) --> <svg class="h-4 w-4 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path> </svg> </button> <script type="module">const t=document.getElementById("lp-theme-toggle");t?.addEventListener("click",()=>{const e=document.documentElement.classList.toggle("dark");localStorage.setItem("xnet-lp-theme",e?"dark":"light")});</script> <a href="https://github.com/crs48/xNet" aria-label="xNet on GitHub" class="hidden sm:flex items-center rounded-lg border border-border p-1.5 text-gray-600 dark:text-gray-300 hover:border-indigo-500/50 hover:bg-surface transition-all"> <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"></path></svg> </a> </div> </nav> </header> <main> <section class="relative overflow-hidden border-b border-border bg-surface/20 dark:bg-[#070710]"> <svg class="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 1040 360" preserveAspectRatio="xMidYMid slice" aria-hidden="true"> <defs> <linearGradient id="tohsea" x1="0" y1="0" x2="0" y2="1"> <stop offset="0%" stop-color="#0a0a16"></stop> <stop offset="38%" stop-color="#0b0d1e"></stop> <stop offset="100%" stop-color="#070b18"></stop> </linearGradient> <radialGradient id="tohglow" cx="50%" cy="50%" r="50%"> <stop offset="0%" stop-color="#a5b4fc" stop-opacity="0.85"></stop> <stop offset="45%" stop-color="#6366f1" stop-opacity="0.3"></stop> <stop offset="100%" stop-color="#6366f1" stop-opacity="0"></stop> </radialGradient> <linearGradient id="tohtip" x1="0" y1="0" x2="0" y2="1"> <stop offset="0%" stop-color="#fde68a"></stop> <stop offset="55%" stop-color="#c7d2fe"></stop> <stop offset="100%" stop-color="#818cf8"></stop> </linearGradient> <linearGradient id="tohmass" x1="0" y1="0" x2="0" y2="1"> <stop offset="0%" stop-color="#6366f1" stop-opacity="0.42"></stop> <stop offset="100%" stop-color="#312e81" stop-opacity="0.12"></stop> </linearGradient> <linearGradient id="tohx" x1="0" y1="0" x2="1" y2="1"> <stop offset="0%" stop-color="#fde68a"></stop> <stop offset="100%" stop-color="#818cf8"></stop> </linearGradient> </defs> <rect width="1040" height="360" fill="url(#tohsea)"></rect> <!-- the deep strata: faint layers of machinery beneath the surface --> <g stroke="#818cf8" stroke-width="1" stroke-linecap="round" fill="none"> <line x1="90" y1="196" x2="950" y2="196" stroke-dasharray="10 12" opacity="0.18"></line><line x1="90" y1="224" x2="950" y2="224" stroke-dasharray="10 12" opacity="0.155"></line><line x1="90" y1="252" x2="950" y2="252" stroke-dasharray="10 12" opacity="0.13"></line><line x1="90" y1="280" x2="950" y2="280" stroke-dasharray="10 12" opacity="0.10499999999999998"></line><line x1="90" y1="308" x2="950" y2="308" stroke-dasharray="10 12" opacity="0.07999999999999999"></line> </g> <!-- the submerged mass: large and faceted, descending into the dark --> <polygon points="520,150 690,150 612,250 660,360 360,360 408,250 350,150" fill="url(#tohmass)" stroke="#818cf8" stroke-width="1" stroke-opacity="0.28"></polygon> <!-- internal facets, hinting at the structure inside the machine --> <g stroke="#a5b4fc" stroke-width="0.9" stroke-opacity="0.22" fill="none"> <line x1="520" y1="150" x2="408" y2="250"></line> <line x1="520" y1="150" x2="612" y2="250"></line> <line x1="408" y1="250" x2="612" y2="250"></line> <line x1="408" y1="250" x2="500" y2="360"></line> <line x1="612" y1="250" x2="540" y2="360"></line> </g> <!-- the glow at the core of the submerged engine --> <g transform="translate(520 248)"> <circle cx="0" cy="0" r="120" fill="url(#tohglow)"></circle> </g> <!-- rising bubbles --> <g fill="#c7d2fe"> <circle cx="470" cy="250" r="3" opacity="0.4"></circle><circle cx="588" cy="232" r="2.4" opacity="0.4"></circle><circle cx="512" cy="300" r="2" opacity="0.4"></circle><circle cx="556" cy="270" r="1.6" opacity="0.4"></circle><circle cx="446" cy="296" r="1.8" opacity="0.4"></circle> </g> <!-- the waterline: where the surface meets the deep --> <g stroke-linecap="round"> <line x1="0" y1="150" x2="1040" y2="150" stroke="#a5b4fc" stroke-width="1.4" opacity="0.5"></line> <line x1="60" y1="158" x2="980" y2="158" stroke="#6366f1" stroke-width="1" stroke-dasharray="20 16" opacity="0.3"></line> </g> <!-- the tip above water: small, bright, the part you actually see --> <polygon points="520,52 560,150 480,150" fill="url(#tohtip)"></polygon> <polygon points="520,52 560,150 522,150" fill="#1e1b3a" fill-opacity="0.18"></polygon> <!-- the cosmic-X: the brightest thing under the surface, the engine's core --> <g transform="translate(520 248)"> <g stroke="url(#tohx)" stroke-width="5.5" stroke-linecap="round" transform="translate(-12 -14)"> <line x1="0" y1="0" x2="24" y2="28"></line> <line x1="24" y1="0" x2="0" y2="28"></line> </g> </g> </svg> <div class="relative mx-auto max-w-3xl px-6 pb-14 pt-44 lg:pt-52"> <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-indigo-200/80"> <time datetime="June 29, 2026">June 29, 2026</time> <span aria-hidden="true">·</span> <span>14 min read</span> <span class="rounded-full border border-indigo-400/30 bg-indigo-500/10 px-2 py-0.5 font-mono lowercase text-indigo-200"> essay </span><span class="rounded-full border border-indigo-400/30 bg-indigo-500/10 px-2 py-0.5 font-mono lowercase text-indigo-200"> protocol </span><span class="rounded-full border border-indigo-400/30 bg-indigo-500/10 px-2 py-0.5 font-mono lowercase text-indigo-200"> decentralization </span> </div> <h1 class="mt-4 text-4xl font-bold tracking-tight text-white drop-shadow lg:text-5xl"> The Tip of the Hook </h1> <p class="mt-4 max-w-2xl text-lg leading-relaxed text-gray-300">You write useQuery(TaskSchema) and get a live, local, cryptographically-authorised, syncing database — with no API endpoint, no auth middleware, and no cache to invalidate. A developer&#39;s tour of xNet&#39;s React hooks on the surface, then a dive beneath the waterline to the SQLite database running in a worker, the priority scheduler, and the signed change log that make “just trust the client” safe. The tip is small on purpose; the iceberg is yours to open.</p> </div> </section> <article class="prose prose-lg mx-auto max-w-3xl px-6 py-16 dark:prose-invert prose-headings:tracking-tight prose-a:text-indigo-600 dark:prose-a:text-indigo-400"> <div class="not-prose flex flex-wrap items-center gap-2 text-sm text-gray-500 dark:text-gray-400"> <span class="flex -space-x-2"> <img src="/blog/authors/crs48.jpg" alt="crs48" width="24" height="24" loading="lazy" class="rounded-full ring-2 ring-white dark:ring-gray-900"><img src="/blog/authors/claude.svg" alt="Claude" width="24" height="24" loading="lazy" class="rounded-full ring-2 ring-white dark:ring-gray-900"> </span> <a href="https://github.com/crs48" target="_blank" rel="noopener noreferrer" class="font-medium text-gray-600 transition-colors hover:text-indigo-500 dark:text-gray-300 dark:hover:text-indigo-400"> crs48 </a><span aria-hidden="true">with</span><a href="https://claude.com/claude-code" target="_blank" rel="noopener noreferrer" class="font-medium text-gray-600 transition-colors hover:text-indigo-500 dark:text-gray-300 dark:hover:text-indigo-400"> Claude </a> </div> <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"The Tip of the Hook","description":"You write useQuery(TaskSchema) and get a live, local, cryptographically-authorised, syncing database — with no API endpoint, no auth middleware, and no cache to invalidate. A developer's tour of xNet's React hooks on the surface, then a dive beneath the waterline to the SQLite database running in a worker, the priority scheduler, and the signed change log that make “just trust the client” safe. The tip is small on purpose; the iceberg is yours to open.","datePublished":"2026-06-29T17:30:00Z","url":"https://xnet.fyi/blog/the-tip-of-the-hook","author":[{"@type":"Person","name":"crs48","url":"https://github.com/crs48"},{"@type":"Person","name":"Claude","url":"https://claude.com/claude-code"}]}</script> <p>
+Sit down to build a task list the normal way and, before you write a
+        line of UI, you owe the machine a small bureaucracy. An API endpoint to
+        list the tasks. A second to create one. Authentication to know who&rsquo;s
+        asking. Authorisation middleware to decide what they&rsquo;re allowed to
+        see. An ORM and a database behind that. A client-side cache so the screen
+        doesn&rsquo;t flicker, and a pile of code to keep that cache honest when
+        the data changes. Only <em>then</em> do you get to render a list.
+</p> <p>
+In xNet you write this instead — and you&rsquo;re done:
+</p> <figure class="not-prose my-6"> <div class="group relative min-w-0 overflow-hidden rounded-xl border border-border bg-code-bg">  <div class="relative"> <pre class="lp-code overflow-x-auto p-5 font-mono text-sm leading-relaxed"><code><span class="tok-keyword">function</span> <span class="tok-function">Tasks</span>() {
+  <span class="tok-keyword">const</span> { data: tasks, loading } = <span class="tok-function">useQuery</span>(<span class="tok-type">TaskSchema</span>, {
+    where: { status: <span class="tok-string">'todo'</span> },
+    orderBy: { createdAt: <span class="tok-string">'desc'</span> }
+  })
+  <span class="tok-keyword">const</span> { create } = <span class="tok-function">useMutate</span>()
+
+  <span class="tok-comment">// tasks is live, local and already authorised — no endpoint, no fetch</span>
+  <span class="tok-keyword">if</span> (loading) <span class="tok-keyword">return</span> &lt;<span class="tok-type">Spinner</span> /&gt;
+  <span class="tok-keyword">return</span> &lt;<span class="tok-type">TaskList</span> items={tasks}
+    onCreate={(title) =&gt; <span class="tok-function">create</span>(<span class="tok-type">TaskSchema</span>, { title, status: <span class="tok-string">'todo'</span> })} /&gt;
+}</code></pre> <button class="copy-btn absolute right-3 top-3 rounded-md border border-border bg-surface px-2 py-1 text-xs text-gray-500 opacity-0 transition-opacity hover:text-gray-700 group-hover:opacity-100 dark:hover:text-gray-300" aria-label="Copy code">
+Copy
+</button> </div> </div> <figcaption class="mt-2.5 text-sm leading-relaxed text-gray-500 dark:text-gray-400"> A complete, live, authorised, offline-capable task list. There is no endpoint behind it, because there is no “behind it.” </figcaption> </figure> <p>
+That&rsquo;s the whole feature. <code>tasks</code> is live: edit one on
+        your phone and this list updates on your laptop. It&rsquo;s local: it
+        reads from a database a few millimetres away, so it&rsquo;s instant and
+        works on a plane. It&rsquo;s authorised: a user who isn&rsquo;t allowed
+        to see a task never receives it. And you wired up none of that.
+</p> <p>
+This essay is a tour of the hooks on the surface and a dive into
+        everything that one <code>useQuery</code> quietly stands on — a signed
+        change log, a real SQL database running in a background thread, a
+        scheduler, a sync engine. It&rsquo;s the tip of an iceberg, and the whole
+        point of the tour is that you&rsquo;re allowed to look under the waterline.
+        There&rsquo;s code along the way; every grey panel is skippable and the
+        story still holds — but being able to show you the machine is half the
+        argument.
+</p> <h2>One: there is no API</h2> <p>
+Start with the thing that&rsquo;s missing. In the usual architecture
+        there is a tier in the middle — the endpoints, the request handlers, the
+        serialisers — whose entire job is to stand between your component and the
+        data and mediate every conversation. You design it, version it, secure
+        it, deploy it, and pay for it to be awake at 3am.
+</p> <p>
+xNet deletes that tier. The hook <em>is</em> the interface to your data.
+        Your &ldquo;API design&rdquo; becomes a much smaller, friendlier thing:
+        which <em>schemas</em> exist, and which hooks read and write them. Both
+        live in your client, in TypeScript, fully typed.
+</p> <figure class="not-prose my-10"> <div class="overflow-x-auto rounded-2xl border border-border bg-surface/30 p-4 dark:bg-surface/40 lg:p-6"> <pre class="mermaid">flowchart LR
+  subgraph STACK[&quot;The usual way — a server tier in the middle&quot;]
+    direction LR
+    A1[&quot;Component&quot;] --&gt; A2[&quot;fetch /&lt;br/&gt;GraphQL&quot;]
+    A2 --&gt;|&quot;network&quot;| A3[&quot;API&lt;br/&gt;endpoint&quot;]
+    A3 --&gt; A4[&quot;Auth&lt;br/&gt;middleware&quot;]
+    A4 --&gt; A5[&quot;ORM&quot;]
+    A5 --&gt; A6[&quot;Database&lt;br/&gt;(theirs)&quot;]
+  end
+  subgraph XN[&quot;xNet — the hook is the API&quot;]
+    direction LR
+    B1[&quot;Component&quot;] --&gt; B2[&quot;useQuery(TaskSchema)&quot;]
+    B2 --&gt; B3[&quot;SQLite on&lt;br/&gt;your device&quot;]
+    B3 -.-&gt;|&quot;later, optional&quot;| B4[&quot;Hub (relay)&quot;]
+  end</pre> </div> <figcaption class="mt-3 text-center text-sm leading-relaxed text-gray-500 dark:text-gray-400"> The same app, two shapes. The usual way routes every read through a server tier you own and operate. xNet points the hook straight at a database on the device, and treats the network as an optional courier. </figcaption> </figure>  <script type="module" src="/_astro/Mermaid.astro_astro_type_script_index_0_lang.CxpO6xgw.js"></script> <p>
+It sounds reckless the first time you hear it — <em>the client talks
+        straight to the database?</em> — and it would be, on the old web, where
+        &ldquo;trust the client&rdquo; is a punchline. The rest of this piece is
+        really one long answer to why it&rsquo;s safe here. But first, the tour.
+</p> <h2>Two: a tour of the hooks</h2> <p>
+There are only a handful, and they read like the data tools you already
+        know. <code>useQuery</code> reads. Hand it a schema for the whole set, a
+        schema and an id for one, or a schema and a filter for a slice —
+<code>where</code>, <code>orderBy</code>, <code>limit</code>, and for the
+        ambitious, full-text <code>search</code> and <code>spatial</code> windows
+        for canvases. What comes back is already live; you don&rsquo;t poll and
+        you don&rsquo;t re-fetch.
+</p> <p> <code>useMutate</code> writes — <code>create</code>, <code>update</code>,
+<code>remove</code>, or several at once in a single atomic
+<code>mutate</code>. The change lands in your local database first, so
+        the UI updates on the same tick; the network catches up afterwards, if
+        it&rsquo;s there at all. <code>useNode</code> is for editing one thing in
+        depth: it hands you the node <em>and</em> a collaborative document with
+        live cursors and presence, for when two people are in the same paragraph.
+        And <code>useInfiniteQuery</code> grows a window rather than freezing
+        pages — load more and the earlier rows stay live instead of going stale.
+</p> <p>
+Notice what the surface snippet didn&rsquo;t contain: no <code>fetch</code>,
+        no query keys to invalidate, no loading spinner plumbing beyond a single
+        boolean, no websocket. The ergonomics are deliberately the ones a React
+        developer already has in their fingers — the backend behind them is just
+        no longer someone else&rsquo;s server.
+</p> <h2>Three: the schema is the API — authorisation included</h2> <p>
+If the hooks are how you read and write, the <strong>schema</strong> is
+        where you say what a thing <em>is</em> and who may touch it — and both
+        halves live in the same small object. Here is a task whose editors are
+        named in a property, whose owner is whoever created it, and whose rules
+        are stated right next to its fields.
+</p> <details class="peek not-prose group my-7 overflow-hidden rounded-xl border border-indigo-500/25 bg-indigo-500/[0.04] dark:bg-indigo-500/[0.06] astro-iw2d5fsf"> <summary class="flex cursor-pointer select-none items-center gap-2 px-5 py-3 text-sm font-medium text-indigo-600 transition-colors hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 astro-iw2d5fsf"> <svg class="h-4 w-4 shrink-0 transition-transform duration-200 group-open:rotate-90 astro-iw2d5fsf" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"> <path stroke-linecap="round" stroke-linejoin="round" d="M9 6l6 6-6 6" class="astro-iw2d5fsf"></path> </svg> <span class="astro-iw2d5fsf">Open the panel — a schema with its authorisation</span> </summary> <div class="px-5 pb-5 pt-1 astro-iw2d5fsf">  <figure class="not-prose my-6"> <div class="group relative min-w-0 overflow-hidden rounded-xl border border-border bg-code-bg"> <div class="border-b border-border px-4 py-2 font-mono text-xs text-gray-500"> packages/data/src/auth/builders.ts (shape) </div> <div class="relative"> <pre class="lp-code overflow-x-auto p-5 font-mono text-sm leading-relaxed"><code><span class="tok-keyword">export</span> <span class="tok-keyword">const</span> <span class="tok-type">TaskSchema</span> = <span class="tok-function">defineSchema</span>({
+  name: <span class="tok-string">'Task'</span>, namespace: <span class="tok-string">'xnet://xnet.fyi/'</span>,
+  properties: { title: <span class="tok-function">text</span>({ required: <span class="tok-keyword">true</span> }), status: <span class="tok-function">select</span>({ options: STATUSES }) },
+  authorization: {
+    roles:   { owner: <span class="tok-function">role.creator</span>(), editor: <span class="tok-function">role.property</span>(<span class="tok-string">'editors'</span>) },
+    actions: {
+      read:   <span class="tok-function">allow</span>(<span class="tok-string">'editor'</span>, <span class="tok-string">'owner'</span>),
+      write:  <span class="tok-function">allow</span>(<span class="tok-string">'editor'</span>, <span class="tok-string">'owner'</span>),
+      delete: <span class="tok-function">allow</span>(<span class="tok-string">'owner'</span>)
+    }
+  }
+})</code></pre> <button class="copy-btn absolute right-3 top-3 rounded-md border border-border bg-surface px-2 py-1 text-xs text-gray-500 opacity-0 transition-opacity hover:text-gray-700 group-hover:opacity-100 dark:hover:text-gray-300" aria-label="Copy code">
+Copy
+</button> </div> </div> <figcaption class="mt-2.5 text-sm leading-relaxed text-gray-500 dark:text-gray-400"> Roles are resolved from the data itself — the creator, the DIDs listed in a property, a role inherited from a related node or a Space. Actions name which roles they admit. This block is the access-control policy; there is no second copy on a server. </figcaption> </figure>  </div> </details>  <p>
+This is worth dwelling on, because it&rsquo;s where most systems quietly
+        split in two. Usually your client has an <em>opinion</em> about
+        permissions — it greys out a button — and the server holds the
+<em>truth</em>, re-checking everything because the client can&rsquo;t be
+        trusted. Two implementations of the same rules, forever drifting apart.
+        In xNet there is one declaration. It&rsquo;s what greys out the button
+        and it&rsquo;s what&rsquo;s enforced. When you can&rsquo;t work out why
+        something was allowed or denied, <code>useAuthTrace</code> will hand you
+        the roles, the grants, and the reasons it decided the way it did.
+</p> <p>
+Which raises the obvious objection, and it deserves a straight answer.
+</p> <h2>Four: why you can trust a rule you wrote on the client</h2> <p>
+The old web&rsquo;s iron law is &ldquo;never trust the client,&rdquo; and
+        it&rsquo;s correct there, because a rule that only runs on a device the
+        attacker controls is a suggestion. xNet doesn&rsquo;t trust the client
+        either. What it trusts is <em>cryptography</em>, and that changes where
+        the rules can safely live.
+</p> <p>
+Every write becomes a small, signed record — a <strong>change</strong> —
+        sealed with a key only you hold (Ed25519) and fingerprinted so the whole
+        history forms a tamper-evident chain (BLAKE3). Your identity isn&rsquo;t
+        an account some company can switch off; it&rsquo;s a key pair, and your
+        public name is literally your public key. (The companion essay,
+<a href="/blog/the-loom-you-can-read">The Loom You Can Read</a>, follows
+        a single change through that machinery in detail.) The consequence that
+        matters here: any device can check, on its own, that a change really came
+        from who it claims and wasn&rsquo;t altered — and can run the schema&rsquo;s
+        rules against it — <em>before</em> letting it touch the database.
+</p> <details class="peek not-prose group my-7 overflow-hidden rounded-xl border border-indigo-500/25 bg-indigo-500/[0.04] dark:bg-indigo-500/[0.06] astro-iw2d5fsf"> <summary class="flex cursor-pointer select-none items-center gap-2 px-5 py-3 text-sm font-medium text-indigo-600 transition-colors hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 astro-iw2d5fsf"> <svg class="h-4 w-4 shrink-0 transition-transform duration-200 group-open:rotate-90 astro-iw2d5fsf" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"> <path stroke-linecap="round" stroke-linejoin="round" d="M9 6l6 6-6 6" class="astro-iw2d5fsf"></path> </svg> <span class="astro-iw2d5fsf">Open the panel — the gate every change passes through</span> </summary> <div class="px-5 pb-5 pt-1 astro-iw2d5fsf">  <figure class="not-prose my-6"> <div class="group relative min-w-0 overflow-hidden rounded-xl border border-border bg-code-bg"> <div class="border-b border-border px-4 py-2 font-mono text-xs text-gray-500"> packages/sync/src/integrity.ts · packages/data/src/auth/evaluator.ts </div> <div class="relative"> <pre class="lp-code overflow-x-auto p-5 font-mono text-sm leading-relaxed"><code><span class="tok-comment">// runs before any incoming change touches your database</span>
+<span class="tok-keyword">if</span> (!<span class="tok-function">verifyChangeHash</span>(change)) <span class="tok-function">reject</span>(<span class="tok-string">'INVALID_HASH'</span>)    <span class="tok-comment">// recompute BLAKE3, compare</span>
+<span class="tok-keyword">if</span> (!<span class="tok-function">verifySignature</span>(change)) <span class="tok-function">reject</span>(<span class="tok-string">'BAD_SIGNATURE'</span>)  <span class="tok-comment">// Ed25519, key from the DID</span>
+
+<span class="tok-keyword">const</span> decision = <span class="tok-keyword">await</span> evaluator.<span class="tok-function">check</span>(authorDID, change, <span class="tok-string">'write'</span>)
+<span class="tok-keyword">if</span> (!decision.allowed) <span class="tok-function">reject</span>(decision.reasons)  <span class="tok-comment">// the rules you declared, enforced</span></code></pre> <button class="copy-btn absolute right-3 top-3 rounded-md border border-border bg-surface px-2 py-1 text-xs text-gray-500 opacity-0 transition-opacity hover:text-gray-700 group-hover:opacity-100 dark:hover:text-gray-300" aria-label="Copy code">
+Copy
+</button> </div> </div> <figcaption class="mt-2.5 text-sm leading-relaxed text-gray-500 dark:text-gray-400"> Verify the fingerprint, verify the signature, then evaluate the very rules you declared in the schema. Only a change that survives all three is applied — so the policy you wrote on the client is enforced by maths, not by trusting the wire. </figcaption> </figure>  </div> </details>  <figure class="not-prose my-10"> <div class="overflow-x-auto rounded-2xl border border-border bg-surface/30 p-4 dark:bg-surface/40 lg:p-6"> <pre class="mermaid">sequenceDiagram
+  participant U as Your device
+  participant Hub as Hub (relay, low trust)
+  participant P as Collaborator
+  U-&gt;&gt;U: useMutate update — becomes a signed, hash-chained change
+  U-&gt;&gt;U: write to local SQLite — your screen updates instantly
+  U-&gt;&gt;Hub: send the signed change
+  Hub-&gt;&gt;Hub: verify signature, recompute hash (INVALID_HASH guard)
+  Hub--&gt;&gt;P: relay it — cannot forge it, cannot rewrite the chain
+  P-&gt;&gt;P: verify, authorise against the schema, then merge (last-write-wins)
+  P-&gt;&gt;P: the live query deltas the new value into view</pre> </div> <figcaption class="mt-3 text-center text-sm leading-relaxed text-gray-500 dark:text-gray-400"> The relay in the middle is barely trusted. It can’t forge your signature and it can’t quietly rewrite your history without breaking the chain. Your collaborator’s device verifies and authorises on its own before merging. </figcaption> </figure>   <p>
+So &ldquo;specify your whole API in the client&rdquo; isn&rsquo;t a
+        shortcut that trades away safety. The authority has moved from a
+        privileged place in the network to a property of the data itself. A rule
+        attached to a signed, verifiable object is enforceable anywhere that
+        object travels.
+</p> <h2>Five: how a view materialises</h2> <p>
+Back to that live list. When you call <code>useQuery</code>, it
+        doesn&rsquo;t hand React an array; it hands React a <em>subscription</em>
+— a way to read the current answer synchronously, and a way to be told
+        when the answer changes. That&rsquo;s the exact shape React 18&rsquo;s
+<code>useSyncExternalStore</code> wants, which is why the result stays
+        tear-free under concurrent rendering without any effort from you.
+</p> <details class="peek not-prose group my-7 overflow-hidden rounded-xl border border-indigo-500/25 bg-indigo-500/[0.04] dark:bg-indigo-500/[0.06] astro-iw2d5fsf"> <summary class="flex cursor-pointer select-none items-center gap-2 px-5 py-3 text-sm font-medium text-indigo-600 transition-colors hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 astro-iw2d5fsf"> <svg class="h-4 w-4 shrink-0 transition-transform duration-200 group-open:rotate-90 astro-iw2d5fsf" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"> <path stroke-linecap="round" stroke-linejoin="round" d="M9 6l6 6-6 6" class="astro-iw2d5fsf"></path> </svg> <span class="astro-iw2d5fsf">Open the panel — the contract behind a live query</span> </summary> <div class="px-5 pb-5 pt-1 astro-iw2d5fsf">  <figure class="not-prose my-6"> <div class="group relative min-w-0 overflow-hidden rounded-xl border border-border bg-code-bg"> <div class="border-b border-border px-4 py-2 font-mono text-xs text-gray-500"> packages/data-bridge/src/types.ts </div> <div class="relative"> <pre class="lp-code overflow-x-auto p-5 font-mono text-sm leading-relaxed"><code><span class="tok-keyword">interface</span> <span class="tok-type">QuerySubscription</span>&lt;<span class="tok-type">P</span>&gt; {
+  <span class="tok-function">getSnapshot</span>(): <span class="tok-type">NodeState</span>[] | <span class="tok-keyword">null</span>      <span class="tok-comment">// synchronous read from the cache</span>
+  <span class="tok-function">subscribe</span>(cb: () =&gt; <span class="tok-type">void</span>): () =&gt; <span class="tok-type">void</span>  <span class="tok-comment">// React calls this to stay live</span>
+}
+
+<span class="tok-comment">// useQuery feeds exactly this to React.useSyncExternalStore — no more, no less</span></code></pre> <button class="copy-btn absolute right-3 top-3 rounded-md border border-border bg-surface px-2 py-1 text-xs text-gray-500 opacity-0 transition-opacity hover:text-gray-700 group-hover:opacity-100 dark:hover:text-gray-300" aria-label="Copy code">
+Copy
+</button> </div> </div> <figcaption class="mt-2.5 text-sm leading-relaxed text-gray-500 dark:text-gray-400"> Two methods: read now, and tell me when it changes. Everything else — the cache, the worker, the database — sits behind this tiny interface. </figcaption> </figure>  </div> </details>  <p>
+Behind that interface, a cache keeps the materialised result. When data
+        changes, the bridge doesn&rsquo;t re-run your query from scratch; it keeps
+        a small buffer of spare rows around the edge of your window and applies
+        the change <em>in place</em> — slot a new row into its sorted position,
+        update one, drop one — only falling back to a full reload when a burst of
+        changes is too large to patch. Unchanged rows keep their identity, so the
+        components rendering them simply don&rsquo;t re-render.
+</p> <figure class="not-prose my-10"> <div class="overflow-x-auto rounded-2xl border border-border bg-surface/30 p-4 dark:bg-surface/40 lg:p-6"> <pre class="mermaid">sequenceDiagram
+  participant C as Component
+  participant H as useQuery
+  participant Br as Bridge + cache
+  participant W as Data worker
+  participant S as SQLite worker
+  C-&gt;&gt;H: useQuery(TaskSchema, where status = todo)
+  H-&gt;&gt;Br: subscribe(descriptor)
+  Br-&gt;&gt;W: load (first time only)
+  W-&gt;&gt;S: SELECT … (off the main thread)
+  S--&gt;&gt;W: rows
+  W--&gt;&gt;Br: snapshot
+  Br--&gt;&gt;H: getSnapshot()
+  H--&gt;&gt;C: render
+  Note over Br,W: an edit lands (local, or just-synced from a peer)
+  W--&gt;&gt;Br: bounded delta — small change in place, big burst reloads
+  Br--&gt;&gt;H: notify
+  H--&gt;&gt;C: re-render only the rows that changed</pre> </div> <figcaption class="mt-3 text-center text-sm leading-relaxed text-gray-500 dark:text-gray-400"> First call reads from the database once. After that, edits — yours, or ones that just synced in from someone else — arrive as small deltas, and only the rows that actually changed re-render. </figcaption> </figure>   <p>
+A precise word on &ldquo;live,&rdquo; because honesty is the house style.
+        Your queries are live with respect to your <em>local</em> database: any
+        change written there flows into the view, and that includes changes that
+        arrive from a peer and get merged in locally. A pushier mode — the hub
+        streaming results to you as they happen — is designed and named in the
+        code but not switched on yet. When it is, it&rsquo;ll slot in behind this
+        same subscription, and your <code>useQuery</code> won&rsquo;t change a
+        character.
+</p> <h2>Six: the layer beneath the waterline</h2> <p>
+Now the dive. &ldquo;Reads from a local database&rdquo; is doing a lot of
+        quiet work in the sentences above. That database is real SQLite — the
+        same engine in your phone — compiled to WebAssembly and run inside a
+<strong>Web Worker</strong>, off the thread that paints your UI. It
+        persists to a private corner of the browser called the Origin Private
+        File System, so your data is still there tomorrow.
+</p> <details class="peek not-prose group my-7 overflow-hidden rounded-xl border border-indigo-500/25 bg-indigo-500/[0.04] dark:bg-indigo-500/[0.06] astro-iw2d5fsf"> <summary class="flex cursor-pointer select-none items-center gap-2 px-5 py-3 text-sm font-medium text-indigo-600 transition-colors hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 astro-iw2d5fsf"> <svg class="h-4 w-4 shrink-0 transition-transform duration-200 group-open:rotate-90 astro-iw2d5fsf" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"> <path stroke-linecap="round" stroke-linejoin="round" d="M9 6l6 6-6 6" class="astro-iw2d5fsf"></path> </svg> <span class="astro-iw2d5fsf">Open the panel — a real database, tuned, on a background thread</span> </summary> <div class="px-5 pb-5 pt-1 astro-iw2d5fsf">  <figure class="not-prose my-6"> <div class="group relative min-w-0 overflow-hidden rounded-xl border border-border bg-code-bg"> <div class="border-b border-border px-4 py-2 font-mono text-xs text-gray-500"> packages/sqlite/src/adapters/web.ts </div> <div class="relative"> <pre class="lp-code overflow-x-auto p-5 font-mono text-sm leading-relaxed"><code><span class="tok-comment">// inside a Web Worker — never on the thread that paints your UI</span>
+<span class="tok-keyword">this</span>.poolUtil = <span class="tok-keyword">await</span> sqlite3.<span class="tok-function">installOpfsSAHPoolVfs</span>({ name: <span class="tok-string">'opfs-sahpool'</span> })
+<span class="tok-keyword">this</span>.db = <span class="tok-keyword">new</span> <span class="tok-keyword">this</span>.poolUtil.<span class="tok-type">OpfsSAHPoolDb</span>(dbPath, <span class="tok-string">'c'</span>)
+<span class="tok-keyword">this</span>.<span class="tok-function">execSync</span>(<span class="tok-string">'PRAGMA cache_size = -262144'</span>)    <span class="tok-comment">// 256 MB page cache</span>
+<span class="tok-keyword">this</span>.<span class="tok-function">execSync</span>(<span class="tok-string">'PRAGMA mmap_size  = 268435456'</span>)  <span class="tok-comment">// fault pages via the OS</span>
+<span class="tok-keyword">this</span>.<span class="tok-function">execSync</span>(<span class="tok-string">'PRAGMA journal_mode = TRUNCATE'</span>)  <span class="tok-comment">// fastest durable mode on OPFS</span></code></pre> <button class="copy-btn absolute right-3 top-3 rounded-md border border-border bg-surface px-2 py-1 text-xs text-gray-500 opacity-0 transition-opacity hover:text-gray-700 group-hover:opacity-100 dark:hover:text-gray-300" aria-label="Copy code">
+Copy
+</button> </div> </div> <figcaption class="mt-2.5 text-sm leading-relaxed text-gray-500 dark:text-gray-400"> A genuine SQLite database, persisted to disk and tuned for large stores — a 256 MB page cache, memory-mapped reads, the fastest durable journal mode on OPFS. You didn’t set any of it. </figcaption> </figure>  </div> </details>  <p>
+There are actually two workers, and they talk to each other directly
+        rather than bouncing every message through your UI thread: one owns the
+        store and the live subscriptions, the other owns SQLite. Signing and
+        verifying happen out here too, so the cryptography never stutters a scroll.
+        A single database connection can only do one thing at a time, so a small
+<strong>scheduler</strong> decides the order — and it always lets an
+        interactive read jump ahead of a background import.
+</p> <details class="peek not-prose group my-7 overflow-hidden rounded-xl border border-indigo-500/25 bg-indigo-500/[0.04] dark:bg-indigo-500/[0.06] astro-iw2d5fsf"> <summary class="flex cursor-pointer select-none items-center gap-2 px-5 py-3 text-sm font-medium text-indigo-600 transition-colors hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 astro-iw2d5fsf"> <svg class="h-4 w-4 shrink-0 transition-transform duration-200 group-open:rotate-90 astro-iw2d5fsf" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"> <path stroke-linecap="round" stroke-linejoin="round" d="M9 6l6 6-6 6" class="astro-iw2d5fsf"></path> </svg> <span class="astro-iw2d5fsf">Open the panel — why a tap never waits behind an import</span> </summary> <div class="px-5 pb-5 pt-1 astro-iw2d5fsf">  <figure class="not-prose my-6"> <div class="group relative min-w-0 overflow-hidden rounded-xl border border-border bg-code-bg"> <div class="border-b border-border px-4 py-2 font-mono text-xs text-gray-500"> packages/sqlite/src/adapters/worker-scheduler.ts </div> <div class="relative"> <pre class="lp-code overflow-x-auto p-5 font-mono text-sm leading-relaxed"><code><span class="tok-keyword">const</span> LANE_ORDER = [<span class="tok-string">'interactive'</span>, <span class="tok-string">'bulk'</span>, <span class="tok-string">'write'</span>] <span class="tok-keyword">as</span> <span class="tok-keyword">const</span>
+
+<span class="tok-comment">// drained in that order, so a tap never waits behind a bulk import;</span>
+<span class="tok-comment">// and two identical reads in flight coalesce into a single execution.</span></code></pre> <button class="copy-btn absolute right-3 top-3 rounded-md border border-border bg-surface px-2 py-1 text-xs text-gray-500 opacity-0 transition-opacity hover:text-gray-700 group-hover:opacity-100 dark:hover:text-gray-300" aria-label="Copy code">
+Copy
+</button> </div> </div> <figcaption class="mt-2.5 text-sm leading-relaxed text-gray-500 dark:text-gray-400"> Three lanes, drained in priority order, plus de-duplication of identical in-flight reads. The result: typing stays responsive even while ten thousand rows are importing in the background. </figcaption> </figure>  </div> </details>  <figure class="not-prose my-10"> <div class="overflow-x-auto rounded-2xl border border-border bg-surface/30 p-4 dark:bg-surface/40 lg:p-6"> <pre class="mermaid">flowchart TB
+  subgraph MAIN[&quot;Main thread — your React app&quot;]
+    UI[&quot;Components + hooks&quot;] --&gt; BR[&quot;Worker bridge (Comlink)&quot;]
+  end
+  subgraph DW[&quot;Data worker&quot;]
+    NS[&quot;Store + live query subscriptions&quot;]
+    SG[&quot;sign / verify — off the UI thread&quot;]
+  end
+  subgraph SW[&quot;SQLite worker&quot;]
+    SCH[&quot;Priority scheduler&lt;br/&gt;interactive → bulk → write&quot;]
+    DB[&quot;SQLite (WebAssembly)&quot;]
+  end
+  BR &lt;--&gt;|&quot;RPC&quot;| NS
+  NS &lt;--&gt;|&quot;direct MessagePort&quot;| SCH
+  SCH --&gt; DB
+  DB --&gt; OPFS[(&quot;OPFS on your disk&lt;br/&gt;with graceful fallbacks&quot;)]</pre> </div> <figcaption class="mt-3 text-center text-sm leading-relaxed text-gray-500 dark:text-gray-400"> The shape under the surface. Your hooks talk to a bridge; the bridge talks to a data worker; the data worker talks straight to the SQLite worker over a transferred channel. The heavy lifting — SQL, OPFS I/O, signing — happens where it can’t freeze the interface. </figcaption> </figure>   <p>
+And here&rsquo;s the part that earns the phrase <em>it just works</em>:
+        the database layer probes what the device can actually do and adapts. On
+        a modern browser it takes fast, exclusive file handles. On an older one,
+        or a locked-down webview, it falls back to a slower-but-durable mode, and
+        only as a last resort to an in-memory database — loudly, so it&rsquo;s
+        never a silent surprise. The same <code>useQuery</code> runs on a
+        flagship laptop and a three-year-old phone; the layer underneath quietly
+        picks the best engine each one can offer.
+</p> <h2>Seven: local first, mirrored to remote</h2> <p>
+Because the real copy is on your device, a query is just a query against
+        your own SQLite — instant, offline, no permission to ask. For most
+        workspaces that&rsquo;s the whole story; everything you own fits happily
+        on the device. When a dataset is large, or a request is one only the
+        fleet can answer — a full-text search across more than you hold, say — a
+        router decides to involve the hub, and can serve the local answer
+        immediately while a fuller one refreshes in from the network behind it.
+</p> <p>
+New data doesn&rsquo;t arrive as a refetch. A peer&rsquo;s signed change
+        comes in, gets verified and authorised, and merges into your local
+        database by a simple, deterministic rule — last edit wins, with a logical
+        clock and the author&rsquo;s key breaking ties, so every device reaches
+        the same answer with no server casting a deciding vote. The moment it
+        lands locally, the live query from section five deltas it into your view.
+        &ldquo;Mirrored against a remote database and merging in new data as
+        needed&rdquo; isn&rsquo;t a feature bolted on top; it&rsquo;s what falls
+        out of a signed change log meeting a live local query.
+</p> <h2>It just works</h2> <p>
+Come back up to the surface and look again at the dozen lines we started
+        with. Here is an incomplete list of what you did not write to make them
+        true: an API endpoint, request handlers, an authentication layer,
+        authorisation middleware, an ORM, a database migration runner, a
+        client-side cache, the logic to invalidate it, a websocket, an
+        offline queue, a background sync worker, a conflict resolver, and a
+        connection pool. They&rsquo;re all present. You just didn&rsquo;t have to
+        assemble them, and — this is the part that matters — you&rsquo;re allowed
+        to open every one.
+</p> <p>
+It&rsquo;s worth being clear about the company xNet keeps, because it
+        isn&rsquo;t alone in wanting this. Several good projects give you reactive
+        queries over a local store; most of them keep a server as the root of
+        trust.
+</p> <div class="overflow-x-auto"> <table> <thead> <tr> <th>Approach</th> <th>Database of record</th> <th>Identity is…</th> <th>Rules enforced by…</th> <th>Offline writes</th> </tr> </thead> <tbody> <tr> <td>TanStack Query / SWR</td> <td>none (a remote cache)</td> <td>the app&rsquo;s server</td> <td>the server</td> <td>No</td> </tr> <tr> <td>Convex / InstantDB</td> <td>a vendor cloud</td> <td>a vendor account</td> <td>the vendor backend</td> <td>Partial</td> </tr> <tr> <td>Replicache / Zero</td> <td>your server</td> <td>your server&rsquo;s auth</td> <td>the server</td> <td>Yes (optimistic)</td> </tr> <tr> <td>ElectricSQL / PowerSync</td> <td>a server Postgres</td> <td>your server&rsquo;s auth</td> <td>the server / rules</td> <td>Yes</td> </tr> <tr> <td><strong>xNet</strong></td> <td><strong>local SQLite (yours)</strong></td> <td><strong>a did:key you mint</strong></td> <td><strong>signed, hash-chained changes</strong></td> <td><strong>Yes, first-class</strong></td> </tr> </tbody> </table> </div> <p>
+The family resemblance is real, and the borrowed ergonomics are on
+        purpose — if you&rsquo;ve used <code>useQuery</code> from one of these,
+        ours will feel like home. What&rsquo;s distinctly xNet&rsquo;s is the
+        corner you&rsquo;ve been standing in this whole tour: the master copy is
+        on the edge device, the authority is a key in your hands, and the network
+        is a convenience layered on top — not the place your work is kept.
+</p> <p>
+None of the machinery beneath the waterline is exotic. SQLite, a worker,
+        a hash, a signature, a tiny merge rule, a subscription. It&rsquo;s plain
+        engineering, arranged so that the simple thing on top — a hook you can
+        read in one sitting — is also the correct thing, and the openable thing.
+        So open it. <a href="/app">Use the app</a>, then read the source the
+        excerpts above point at. <a href="/build-with">Build something</a> on the
+        hooks and watch your &ldquo;whole API&rdquo; turn out to be a couple of
+        schemas and a component. The tip is small on purpose. The iceberg is
+        yours to inspect, all the way down.
+</p> <hr> <h3 id="sources">Sources</h3> <ul class="text-base"> <li>
+The tradition this is built in:
+<a href="https://www.inkandswitch.com/essay/local-first/" rel="noopener noreferrer">Kleppmann et&nbsp;al., &ldquo;Local-first software: you own your data,
+            in spite of the cloud&rdquo;</a> (Ink &amp; Switch, 2019).
+</li> <li>
+The reactive-query relatives, each solving a nearby problem:
+<a href="https://zero.rocicorp.dev/" rel="noopener noreferrer">Rocicorp Zero</a> and
+<a href="https://replicache.dev/" rel="noopener noreferrer">Replicache</a>,
+<a href="https://docs.convex.dev/" rel="noopener noreferrer">Convex</a>,
+<a href="https://www.instantdb.com/" rel="noopener noreferrer">InstantDB</a>,
+<a href="https://electric-sql.com/" rel="noopener noreferrer">ElectricSQL</a>,
+<a href="https://www.powersync.com/" rel="noopener noreferrer">PowerSync</a>, and
+<a href="https://watermelondb.dev/" rel="noopener noreferrer">WatermelonDB</a>.
+</li> <li>
+The browser primitives the dive relies on:
+<a href="https://react.dev/reference/react/useSyncExternalStore" rel="noopener noreferrer">React <code>useSyncExternalStore</code></a>,
+<a href="https://sqlite.org/wasm/doc/trunk/persistence.md" rel="noopener noreferrer">SQLite Wasm + OPFS persistence</a>, and
+<a href="https://github.com/GoogleChromeLabs/comlink" rel="noopener noreferrer">Comlink</a>
+for worker RPC.
+</li> <li>
+The machine itself, in full: the
+<a href="/docs/concepts/sync-architecture">sync architecture</a>,
+<a href="/docs/protocol/overview">protocol spec</a>, and
+<a href="/docs/guides/identity">identity</a> docs — every claim above
+          links back to real, readable source.
+</li> <li>
+Companion essay: <a href="/blog/the-loom-you-can-read">The Loom You Can
+          Read</a>, which follows a single change through the kernel beneath these
+          hooks.
+</li> </ul> <p class="text-sm text-gray-400 dark:text-gray-500"> <em>Code excerpts are trimmed and lightly simplified for reading; the file
+          paths point at the real, unabridged source. &ldquo;Live&rdquo; queries
+          are live with respect to the local database (including changes synced in
+          from peers); the hub-push streaming mode is designed but not yet
+          enabled, and is noted as such above. All artwork here is original.</em> </p> </article> <nav aria-label="More in this series" class="mx-auto max-w-3xl px-6 pb-16"><div class="border-t border-border pt-8"><p class="mb-4 font-mono text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500">
+More from the blog
+</p><div class="grid gap-4 sm:grid-cols-2"><a href="/blog/the-loom-you-can-read" rel="prev" class="group flex flex-col rounded-2xl border border-border bg-surface/20 p-5 transition-all hover:border-indigo-500/40 hover:bg-surface/40"><span class="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 dark:text-indigo-400"><svg class="h-4 w-4 transition-transform group-hover:-translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"></path></svg>
+Previous
+</span><span class="mt-2 font-bold tracking-tight text-gray-900 transition-colors group-hover:text-indigo-600 dark:text-white dark:group-hover:text-indigo-400">The Loom You Can Read</span></a><a href="/blog/hand-on-the-tiller" rel="next" class="group flex flex-col rounded-2xl border border-border bg-surface/20 p-5 text-right transition-all hover:border-indigo-500/40 hover:bg-surface/40 sm:col-start-2"><span class="inline-flex items-center justify-end gap-1 text-sm font-medium text-indigo-600 dark:text-indigo-400">
+Next
+<svg class="h-4 w-4 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"></path></svg></span><span class="mt-2 font-bold tracking-tight text-gray-900 transition-colors group-hover:text-indigo-600 dark:text-white dark:group-hover:text-indigo-400">Hand on the Tiller</span></a></div></div></nav> </main> <footer class="border-t border-border/50 bg-surface/10 dark:bg-surface/20"> <div class="mx-auto max-w-6xl px-6 py-12 lg:py-16"> <!-- Main footer content --> <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-7"> <!-- Brand --> <div class="lg:col-span-2"> <a href="/" class="inline-flex items-center gap-2"> <span class="font-mono text-xl font-bold text-gray-800 dark:text-white">xNet</span> </a> <p class="mt-4 text-sm text-gray-500 dark:text-gray-400 max-w-xs leading-relaxed">
+Local-first apps that work offline, sync peer-to-peer, and keep your data under your control.
+</p> <div class="mt-6 flex gap-4"> <a href="https://github.com/crs48/xNet" target="_blank" rel="noopener noreferrer" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors" aria-label="GitHub"> <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"> <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"></path> </svg> </a> <a href="https://github.com/crs48/xNet/discussions" target="_blank" rel="noopener noreferrer" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors" aria-label="GitHub Discussions"> <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"> <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"></path> </svg> </a> </div> </div> <!-- Product --> <div> <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Product</h4> <ul class="space-y-3"> <li> <a href="/app" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Try the App </a> </li><li> <a href="/mobile" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Run on Mobile </a> </li><li> <a href="/download" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Download Desktop </a> </li><li> <a href="/plugins" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Plugins </a> </li><li> <a href="/docs" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Documentation </a> </li><li> <a href="/docs/quickstart/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Quickstart </a> </li><li> <a href="/changelog" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Changelog </a> </li> </ul> </div> <!-- Cloud --> <div> <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Cloud</h4> <ul class="space-y-3"> <li> <a href="/cloud" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> xNet Cloud </a> </li><li> <a href="/cloud/pricing" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Pricing </a> </li><li> <a href="/open" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Open metrics </a> </li><li> <a href="/status" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Status </a> </li> </ul> </div> <!-- Develop --> <div> <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Develop</h4> <ul class="space-y-3"> <li> <a href="/react" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> XNet for React </a> </li><li> <a href="/build-with" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Build with any language </a> </li><li> <a href="/docs/languages/swift/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Swift SDK </a> </li><li> <a href="/docs/languages/rust/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Rust core </a> </li><li> <a href="/devtool" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> DevTools </a> </li><li> <a href="/docs/hooks/overview/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> React Hooks </a> </li><li> <a href="/docs/guides/server/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Your own server </a> </li> </ul> </div> <!-- Resources --> <div> <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Resources</h4> <ul class="space-y-3"> <li> <a href="/why" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Why xNet </a> </li><li> <a href="/blog" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Blog </a> </li><li> <a href="/compare" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Compare </a> </li><li> <a href="/commitments" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Commitments </a> </li><li> <a href="/#roadmap" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Roadmap </a> </li><li> <a href="/docs/architecture/overview/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Architecture </a> </li><li> <a href="/docs/contributing/getting-started/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Contributing </a> </li> </ul> </div> <!-- Community --> <div> <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Community</h4> <ul class="space-y-3"> <li> <a href="https://github.com/crs48/xNet" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> GitHub </a> </li><li> <a href="https://github.com/crs48/xNet/discussions" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> GitHub Discussions </a> </li><li> <a href="https://github.com/crs48/xNet/blob/main/GOVERNANCE.md" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Governance </a> </li><li> <a href="https://github.com/crs48/xNet/blob/main/TRADEMARK.md" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Trademark &amp; Brand </a> </li><li> <a href="https://github.com/crs48/xNet/blob/main/CODE_OF_CONDUCT.md" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Code of Conduct </a> </li> </ul> </div> </div> <!-- Bottom bar --> <div class="mt-12 pt-8 border-t border-border/50 flex flex-col sm:flex-row items-center justify-between gap-4"> <p class="text-sm text-gray-500">
+&copy; 2026 xNet. Open source under MIT License.
+</p> <div class="flex items-center gap-6"> <a href="https://github.com/crs48/xNet/blob/main/LICENSE" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> MIT License </a><a href="/privacy" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Privacy </a><a href="/terms" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Terms </a><a href="/acceptable-use" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Acceptable Use </a><a href="/subprocessors" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Sub-processors </a> </div> </div> </div> </footer>  <script type="module">const o=new IntersectionObserver(e=>{e.forEach(t=>{t.isIntersecting&&(t.target.classList.add("visible"),o.unobserve(t.target))})},{threshold:.1,rootMargin:"0px 0px -40px 0px"});document.querySelectorAll(".animate-on-scroll").forEach(e=>o.observe(e));document.querySelectorAll(".copy-btn").forEach(e=>{e.addEventListener("click",async()=>{const t=e.dataset.copy||e.closest(".relative")?.querySelector("code")?.textContent||"";await navigator.clipboard.writeText(t.trim()),e.textContent="Copied!",e.classList.add("copied"),setTimeout(()=>{e.textContent="Copy",e.classList.remove("copied")},2e3)})});</script> </body> </html>

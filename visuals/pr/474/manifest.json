@@ -1,0 +1,142 @@
+{
+  "stories": [
+    {
+      "id": "ui-composed-devtools-catalog--overview",
+      "title": "UI/Composed/Devtools Catalog",
+      "name": "Overview",
+      "file": "stories/ui-composed-devtools-catalog--overview.png"
+    },
+    {
+      "id": "ui-composed-devtools-catalog--performance-lab",
+      "title": "UI/Composed/Devtools Catalog",
+      "name": "Performance Lab",
+      "file": "stories/ui-composed-devtools-catalog--performance-lab.png"
+    },
+    {
+      "id": "ui-composed-settingsview--default",
+      "title": "UI/Composed/SettingsView",
+      "name": "Default",
+      "file": "stories/ui-composed-settingsview--default.png"
+    },
+    {
+      "id": "ui-composed-settingsview--plugins-section",
+      "title": "UI/Composed/SettingsView",
+      "name": "Plugins Section",
+      "file": "stories/ui-composed-settingsview--plugins-section.png"
+    },
+    {
+      "id": "ui-primitives-button--default",
+      "title": "UI/Primitives/Button",
+      "name": "Default",
+      "file": "stories/ui-primitives-button--default.png"
+    },
+    {
+      "id": "ui-primitives-button--loading",
+      "title": "UI/Primitives/Button",
+      "name": "Loading",
+      "file": "stories/ui-primitives-button--loading.png"
+    },
+    {
+      "id": "ui-primitives-button--variants",
+      "title": "UI/Primitives/Button",
+      "name": "Variants",
+      "file": "stories/ui-primitives-button--variants.png"
+    },
+    {
+      "id": "ui-primitives-button--with-icons",
+      "title": "UI/Primitives/Button",
+      "name": "With Icons",
+      "file": "stories/ui-primitives-button--with-icons.png"
+    },
+    {
+      "id": "ui-primitives-catalog--overview",
+      "title": "UI/Primitives/Catalog",
+      "name": "Overview",
+      "file": "stories/ui-primitives-catalog--overview.png"
+    },
+    {
+      "id": "ui-primitives-contextmenu--from-descriptors",
+      "title": "UI/Primitives/ContextMenu",
+      "name": "From Descriptors",
+      "file": "stories/ui-primitives-contextmenu--from-descriptors.png"
+    },
+    {
+      "id": "ui-primitives-contextmenu--primitive",
+      "title": "UI/Primitives/ContextMenu",
+      "name": "Primitive",
+      "file": "stories/ui-primitives-contextmenu--primitive.png"
+    },
+    {
+      "id": "web-comms-presencedot--active",
+      "title": "Web/Comms/PresenceDot",
+      "name": "Active",
+      "file": "stories/web-comms-presencedot--active.png"
+    },
+    {
+      "id": "web-comms-presencedot--all-statuses",
+      "title": "Web/Comms/PresenceDot",
+      "name": "All Statuses",
+      "file": "stories/web-comms-presencedot--all-statuses.png"
+    },
+    {
+      "id": "web-comms-reactionbar--default",
+      "title": "Web/Comms/ReactionBar",
+      "name": "Default",
+      "file": "stories/web-comms-reactionbar--default.png"
+    },
+    {
+      "id": "web-comms-reactionbar--single-reaction",
+      "title": "Web/Comms/ReactionBar",
+      "name": "Single Reaction",
+      "file": "stories/web-comms-reactionbar--single-reaction.png"
+    },
+    {
+      "id": "web-storagewarningbanner--informational",
+      "title": "Web/StorageWarningBanner",
+      "name": "Informational",
+      "file": "stories/web-storagewarningbanner--informational.png"
+    },
+    {
+      "id": "web-storagewarningbanner--success",
+      "title": "Web/StorageWarningBanner",
+      "name": "Success",
+      "file": "stories/web-storagewarningbanner--success.png"
+    },
+    {
+      "id": "web-storagewarningbanner--warning",
+      "title": "Web/StorageWarningBanner",
+      "name": "Warning",
+      "file": "stories/web-storagewarningbanner--warning.png"
+    }
+  ],
+  "routes": [
+    {
+      "id": "home",
+      "label": "Home",
+      "file": "routes/home.png"
+    },
+    {
+      "id": "settings",
+      "label": "Settings",
+      "file": "routes/settings.png"
+    }
+  ],
+  "flows": [
+    {
+      "id": "chat",
+      "label": "Open a channel and post a message",
+      "gif": "flows/chat.gif",
+      "mp4": "flows/chat.mp4",
+      "poster": "flows/chat.poster.png"
+    }
+  ],
+  "electron": [
+    {
+      "id": "electron-canvas-home",
+      "label": "Desktop · Canvas home",
+      "file": "electron/electron-canvas-home.png"
+    }
+  ],
+  "fallbackUsed": false,
+  "unmappedFiles": []
+}
