@@ -85,13 +85,14 @@ const CLAIMS: Claim[] = [
   {
     id: 'pq-posture-declared',
     source:
-      'change.ts CURRENT_PROTOCOL_VERSION=3 — hybrid Ed25519+ML-DSA (code ahead of the essays)',
+      'change.ts CURRENT_PROTOCOL_VERSION=4 — hybrid Ed25519+ML-DSA (code ahead of the essays)',
     backing: 'architectural',
     assert: () => {
-      // The protocol declares the hybrid capability (v3); the shipped default
+      // The protocol declares the hybrid capability; the shipped default
       // security level is a deliberate choice. This documents the intentional
-      // gap so flipping the default becomes a visible, reviewed change.
-      expect(CURRENT_PROTOCOL_VERSION).toBe(3)
+      // gap so flipping the default becomes a visible, reviewed change. v4
+      // added the grinding-resistant LWW tiebreak (exploration 0300).
+      expect(CURRENT_PROTOCOL_VERSION).toBe(4)
       expect([0, 1, 2]).toContain(DEFAULT_SECURITY_LEVEL)
     }
   },

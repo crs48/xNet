@@ -235,7 +235,9 @@ export {
   isV1Attestation,
   isV2Attestation,
   ClientIdMapImpl,
-  validateClientIdOwnership
+  validateClientIdOwnership,
+  deriveClientIdFromDid,
+  isDerivedClientId
 } from './clientid-attestation'
 
 // Yjs security: hash chain integration (Step 08)

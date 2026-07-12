@@ -38,6 +38,8 @@ export interface JoinedNodePropertyRow {
   lamport_time: number | null
   updated_by: string | null
   prop_updated_at: number | null
+  /** Grinding-resistant LWW tiebreak key (0300); NULL for legacy rows. */
+  tiebreak_key: string | null
   ordinal: number | null
   [key: string]: SQLValue
 }
@@ -106,7 +108,10 @@ export function hydrateJoinedRows(rows: JoinedNodePropertyRow[]): NodeState[] {
       node.timestamps[row.property_key] = {
         lamport: row.lamport_time ?? 0,
         author: (row.updated_by ?? '') as DID,
-        wallTime: row.prop_updated_at ?? 0
+        wallTime: row.prop_updated_at ?? 0,
+        // Round-trip the stored key so the in-memory LWW comparison matches the
+        // SQL guard exactly (0300); NULL legacy rows keep the author tiebreak.
+        ...(row.tiebreak_key != null ? { tiebreakKey: row.tiebreak_key } : {})
       }
       if ((row.prop_updated_at ?? 0) >= node.updatedAt) {
         node.updatedBy = (row.updated_by ?? node.createdBy) as DID
@@ -124,7 +129,10 @@ export function hydrateAggregatedRows(rows: AggregatedNodeRow[]): NodeState[] {
     const node = baseNodeState(row)
     node.properties = row.props_json ? (JSON.parse(row.props_json) as Record<string, unknown>) : {}
     const meta = row.meta_json
-      ? (JSON.parse(row.meta_json) as Record<string, { l: number; b: string; w: number }>)
+      ? (JSON.parse(row.meta_json) as Record<
+          string,
+          { l: number; b: string; w: number; k?: string | null }
+        >)
       : {}
 
     const timestamps: Record<string, PropertyTimestamp> = {}
@@ -132,7 +140,10 @@ export function hydrateAggregatedRows(rows: AggregatedNodeRow[]): NodeState[] {
       timestamps[key] = {
         lamport: entry.l ?? 0,
         author: (entry.b ?? '') as DID,
-        wallTime: entry.w ?? 0
+        wallTime: entry.w ?? 0,
+        // Round-trip the stored tiebreak key (0300) so aggregated hydrate
+        // matches the SQL guard; NULL/absent → author tiebreak.
+        ...(entry.k != null ? { tiebreakKey: entry.k } : {})
       }
       if ((entry.w ?? 0) >= row.updated_at) {
         node.updatedBy = (entry.b ?? row.created_by) as DID
@@ -170,6 +181,7 @@ export function buildHydrateChunkQuery(ids: string[]): { sql: string; params: SQ
         p.lamport_time,
         p.updated_by,
         p.updated_at AS prop_updated_at,
+        p.tiebreak_key,
         wanted.ordinal
       FROM wanted
       JOIN nodes n ON n.id = wanted.id
@@ -209,7 +221,7 @@ export function buildAggregatedHydrateChunkQuery(ids: string[]): {
           FILTER (WHERE p.property_key IS NOT NULL) AS props_json,
         json_group_object(
           p.property_key,
-          json_object('l', p.lamport_time, 'b', p.updated_by, 'w', p.updated_at)
+          json_object('l', p.lamport_time, 'b', p.updated_by, 'w', p.updated_at, 'k', p.tiebreak_key)
         ) FILTER (WHERE p.property_key IS NOT NULL) AS meta_json
       FROM wanted
       JOIN nodes n ON n.id = wanted.id

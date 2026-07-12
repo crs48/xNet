@@ -2,11 +2,15 @@
  * Tests for ClientID-to-DID Binding
  */
 
-import { generateIdentity } from '@xnetjs/identity'
+import { generateIdentity, createKeyBundle } from '@xnetjs/identity'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import {
   createClientIdAttestation,
+  createClientIdAttestationV2,
   verifyClientIdAttestation,
+  verifyClientIdAttestationV2,
+  deriveClientIdFromDid,
+  isDerivedClientId,
   ClientIdMapImpl,
   validateClientIdOwnership,
   type ClientIdAttestation
@@ -486,5 +490,52 @@ describe('integration: attestation flow', () => {
     expect(map.getOwner(200)).toBe(identity.did)
     // DID maps to new clientId
     expect(map.getClientId(identity.did)).toBe(200)
+  })
+})
+
+describe('derived clientID (grinding guard, exploration 0300)', () => {
+  it('deriveClientIdFromDid is deterministic, positive, and 31-bit', () => {
+    const { identity } = generateIdentity()
+    const a = deriveClientIdFromDid(identity.did)
+    expect(a).toBe(deriveClientIdFromDid(identity.did))
+    expect(a).toBeGreaterThan(0)
+    expect(a).toBeLessThanOrEqual(0x7fffffff)
+  })
+
+  it('different DIDs derive different clientIDs', () => {
+    const { identity: a } = generateIdentity()
+    const { identity: b } = generateIdentity()
+    expect(deriveClientIdFromDid(a.did)).not.toBe(deriveClientIdFromDid(b.did))
+  })
+
+  it('isDerivedClientId recognises the derived value only', () => {
+    const { identity } = generateIdentity()
+    const derived = deriveClientIdFromDid(identity.did)
+    expect(isDerivedClientId(derived, identity.did)).toBe(true)
+    expect(isDerivedClientId(0x7fffffff, identity.did)).toBe(false)
+  })
+
+  it('V2 verify with enforcement rejects a non-derived (ground) clientID', async () => {
+    const keyBundle = createKeyBundle({ includePQ: false })
+    // Attacker picks the maximal clientID to win Yjs insert races.
+    const attForged = createClientIdAttestationV2(0x7fffffff, 'doc-room', keyBundle)
+    const res = await verifyClientIdAttestationV2(attForged, { enforceDerivedClientId: true })
+    expect(res.valid).toBe(false)
+    expect(res.errors.join(' ')).toMatch(/not derived/)
+  })
+
+  it('V2 verify with enforcement accepts the DID-derived clientID', async () => {
+    const keyBundle = createKeyBundle({ includePQ: false })
+    const did = keyBundle.identity.did
+    const att = createClientIdAttestationV2(deriveClientIdFromDid(did), 'doc-room', keyBundle)
+    const res = await verifyClientIdAttestationV2(att, { enforceDerivedClientId: true })
+    expect(res.valid).toBe(true)
+  })
+
+  it('enforcement is opt-in: a random clientID still verifies without the flag', async () => {
+    const keyBundle = createKeyBundle({ includePQ: false })
+    const att = createClientIdAttestationV2(0x7fffffff, 'doc-room', keyBundle)
+    const res = await verifyClientIdAttestationV2(att)
+    expect(res.valid).toBe(true)
   })
 })

@@ -19,7 +19,12 @@
  * `fc.assert(..., { seed, path })`. Depth via XNET_PBT_RUNS.
  */
 
-import type { DID } from '@xnetjs/core'
+import type { DID, LwwStamp } from '@xnetjs/core'
+import {
+  LWW_TIEBREAK_KEY_VERSION,
+  compareLwwStamps,
+  computeLwwTiebreakKey
+} from '@xnetjs/core'
 import type { NodeChange, NodePayload } from '@xnetjs/data'
 import { MemoryNodeStorageAdapter, NodeStore } from '@xnetjs/data'
 import { identityFromPrivateKey } from '@xnetjs/identity'
@@ -107,18 +112,27 @@ function buildChangeSet(updates: UpdateSpec[]): NodeChange[] {
   return changes
 }
 
-/** Independent oracle: fold by the documented precedence. */
+/**
+ * Independent oracle: per-property fold by the documented precedence
+ * (lamport → wallTime → v4 grinding-resistant tiebreak key, else author DID).
+ */
 function oracleFold(changes: NodeChange[]): Record<string, unknown> {
-  const ordered = [...changes].sort(
-    (a, b) =>
-      a.lamport - b.lamport ||
-      a.wallTime - b.wallTime ||
-      (a.authorDID < b.authorDID ? -1 : a.authorDID > b.authorDID ? 1 : 0)
-  )
   const props: Record<string, unknown> = {}
-  for (const change of ordered) {
+  const stamps: Record<string, LwwStamp> = {}
+  for (const change of changes) {
+    const hasKey = (change.protocolVersion ?? 0) >= LWW_TIEBREAK_KEY_VERSION
     for (const [key, value] of Object.entries(change.payload.properties ?? {})) {
-      props[key] = value
+      const stamp: LwwStamp = {
+        lamport: change.lamport,
+        wallTime: change.wallTime,
+        author: change.authorDID,
+        ...(hasKey ? { tiebreakKey: computeLwwTiebreakKey(change.authorDID, key, value) } : {})
+      }
+      const cur = stamps[key]
+      if (!cur || compareLwwStamps(stamp, cur) > 0) {
+        props[key] = value
+        stamps[key] = stamp
+      }
     }
   }
   return props
@@ -174,4 +188,42 @@ describe('LWW convergence property (0272)', () => {
       { numRuns: RUNS }
     )
   }, 120_000)
+
+  it('no fixed DID wins a majority of v4 ties across random (property, value) pairs', async () => {
+    // The security property of exploration 0300: under v4 the final tiebreak is
+    // blake3(author‖property‖value), so a single "vanity" DID cannot win most
+    // ties. We simulate an attacker who grinds many identities and, for each,
+    // measures how often it beats a fixed honest DID across random matchups.
+    // NOTE: bounded to keep the reliability lane fast; the property is
+    // scale-invariant (a coin flip per matchup), so a few thousand samples are
+    // representative of the 10^6 in the exploration's checklist.
+    await fc.assert(
+      fc.asyncProperty(
+        fc.array(fc.tuple(fc.constantFrom(...KEY_POOL), fc.integer({ min: 0, max: 10_000 })), {
+          minLength: 40,
+          maxLength: 60
+        }),
+        async (matchups) => {
+          const honest = 'did:key:zHonestFixedVictimIdentity'
+          let worstWinRate = 0
+          // 25 ground "vanity" identities, including the lexically-maximal one
+          // that would have won 100% under the pre-v4 author rule.
+          const grinders = ['did:key:zzzzzzzzzzzzzzzzzzzzzzzz']
+          for (let i = 0; i < 24; i += 1) grinders.push(`did:key:zGrind${i}`)
+          for (const attacker of grinders) {
+            let wins = 0
+            for (const [key, value] of matchups) {
+              const atk = computeLwwTiebreakKey(attacker, key, String(value))
+              const vic = computeLwwTiebreakKey(honest, key, String(value))
+              if (atk > vic) wins += 1
+            }
+            worstWinRate = Math.max(worstWinRate, wins / matchups.length)
+          }
+          // Even the best grinder is nowhere near universal (was 100% pre-v4).
+          expect(worstWinRate).toBeLessThan(0.85)
+        }
+      ),
+      { numRuns: RUNS }
+    )
+  }, 60_000)
 })

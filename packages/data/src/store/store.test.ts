@@ -16,7 +16,8 @@ import type {
 } from './types'
 import type { StoreAuthAPI } from '../auth/store-auth'
 import type { SchemaIRI } from '../schema/node'
-import type { AuthCheckInput, AuthDecision, DID, PolicyEvaluator } from '@xnetjs/core'
+import type { AuthCheckInput, AuthDecision, DID, PolicyEvaluator, LwwStamp } from '@xnetjs/core'
+import { LWW_TIEBREAK_KEY_VERSION, compareLwwStamps, computeLwwTiebreakKey } from '@xnetjs/core'
 import { generateSigningKeyPair } from '@xnetjs/crypto'
 import { createDID } from '@xnetjs/identity'
 import { createMemorySQLiteAdapter } from '@xnetjs/sqlite/memory'
@@ -1187,8 +1188,30 @@ describe('deterministic node import', () => {
     expect(result.updated).toBe(1)
     expect(result.nodes).toHaveLength(1)
     expect(result.changes[1].parentHash).toBe(result.changes[0].hash)
+    // Both writes are same-author, same node, same property at the same logical
+    // time — a degenerate tie. Under protocol v4 (exploration 0300) the winner
+    // is decided by the grinding-resistant tiebreak key, not "first applied".
+    // Fold the two actual changes through the real comparator to get it.
+    const stampFor = (c: (typeof result.changes)[number]): LwwStamp => ({
+      lamport: c.lamport,
+      wallTime: c.wallTime,
+      author: c.authorDID,
+      ...((c.protocolVersion ?? 0) >= LWW_TIEBREAK_KEY_VERSION
+        ? {
+            tiebreakKey: computeLwwTiebreakKey(
+              c.authorDID,
+              'title',
+              (c.payload.properties as Record<string, unknown>).title
+            )
+          }
+        : {})
+    })
+    const winner =
+      compareLwwStamps(stampFor(result.changes[1]), stampFor(result.changes[0])) > 0
+        ? 'Second'
+        : 'First'
     await expect(store.get('duplicate-import-node')).resolves.toMatchObject({
-      properties: { title: 'First' }
+      properties: { title: winner }
     })
   })
 

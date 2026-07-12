@@ -16,6 +16,16 @@ import { verifyChangeHash } from './change'
  * Deterministic change ordering (docs/specs/protocol §L1.7): higher lamport,
  * then higher wallTime, then higher authorDID. `lamport` is a plain integer;
  * the author tiebreak comes from `authorDID`.
+ *
+ * This orders WHOLE changes (fork-branch labelling in `getForks`, replay order
+ * in `topologicalSort`) — it decides no per-property LWW winner and, because
+ * LWW is order-independent, does not affect the converged state. The
+ * grinding-resistant tiebreak key (exploration 0300) therefore lives only in
+ * the per-property decider (`@xnetjs/core`'s `compareLwwStamps`): a key is
+ * `blake3(author ‖ property ‖ value)` and a change spans many properties, so it
+ * has no meaning at change granularity. Keeping the author tiebreak here is a
+ * stable, non-security-critical total order — deliberately NOT a change-hash
+ * tiebreak, which would be grindable and give false assurance.
  */
 function compareChangeOrder<T>(a: Change<T>, b: Change<T>): number {
   if (a.lamport !== b.lamport) return a.lamport - b.lamport

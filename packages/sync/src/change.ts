@@ -20,7 +20,7 @@ import { hashHex, sign, verify } from '@xnetjs/crypto'
  * - 1: Initial versioned protocol (adds protocolVersion field)
  * - 0/undefined: Legacy unversioned changes (backward compat)
  */
-export const CURRENT_PROTOCOL_VERSION = 3
+export const CURRENT_PROTOCOL_VERSION = 4
 
 /**
  * A signed change with chain linkage and Lamport ordering.
