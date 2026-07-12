@@ -479,7 +479,7 @@ export function singleFlight<K, V>(
       sequences before/after).
 - [x] Refactor `packages/runtime/src/sync/WebSocketSyncProvider.ts` onto the
       same module; delete its private backoff state.
-- [ ] Migrate `packages/plugins/src/services/webhook-emitter.ts` retry loop
+- [x] Migrate `packages/plugins/src/services/webhook-emitter.ts` retry loop
       onto the policy module.
 - [ ] Add `packages/core/src/errors/tagged.ts` (`TaggedError` base,
       `isTagged` guard); migrate `NodeRelayError` and `PermissionError` as

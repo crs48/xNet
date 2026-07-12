@@ -6,6 +6,10 @@
  */
 
 import type { NodeStoreAPI, NodeData, NodeChangeEventData } from './local-api'
+import { exponential, type RetryPolicy } from '@xnetjs/core'
+
+/** Delay before retry attempt N: 1s, 2s, 4s, … (exploration 0300). */
+const RETRY_POLICY: RetryPolicy = exponential(1000)
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -235,7 +239,7 @@ export class WebhookEmitter {
 
         // Exponential backoff
         if (attempt < maxRetries) {
-          await this.delay(1000 * Math.pow(2, attempt - 1))
+          await this.delay(RETRY_POLICY.delayFor(attempt) ?? 0)
         }
       }
     }
