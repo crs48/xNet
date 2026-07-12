@@ -812,6 +812,8 @@ export {
 
 // Authorization helpers
 export {
+  AUTH_ACTIONS,
+  type AuthAction,
   StoreAuth,
   GrantRateLimiter,
   GrantExpirationCleaner,

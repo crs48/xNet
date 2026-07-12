@@ -27,12 +27,12 @@ so those refinements can be expressed?
      post a message; only the author may edit it." `ChatMessage` uses
      `spaceCascadeAuthorization('channel')`, whose `write` includes
      `spaceMember` — so by declared policy **any member may edit anyone else's
-     message**. Chat *behaves* correctly today only because enforcement is
+     message**. Chat _behaves_ correctly today only because enforcement is
      partial (see Current State).
   2. **Contributor roles** — "may add tasks to this space and edit their own,
      but not rewrite others'." The forum/issue-tracker default.
 - There is also a **latent fail-closed bug**: the remote-change path maps
-  every non-delete change to `write` on the *existing* node; for a remote
+  every non-delete change to `write` on the _existing_ node; for a remote
   **create** the node doesn't exist, and the evaluator denies missing nodes —
   so the day the `DefaultPolicyEvaluator` is wired into sync, collaborator
   creates get silently rejected.
@@ -67,12 +67,12 @@ so those refinements can be expressed?
 
 ### Where `write` is checked
 
-| Path | Site | Action | Node passed to evaluator |
-|---|---|---|---|
-| `store.create()` | `packages/data/src/store/store.ts:237,255` | `write` | **phantom**: `{ schemaId, createdBy: authorDID, properties }` |
-| `store.update()` | `packages/data/src/store/store.ts:431,461` | `write` | existing node |
-| batch/transaction | `packages/data/src/store/store.ts:2397-2425` | `write` (create + update legs) | phantom / stored |
-| remote sync | `packages/data/src/store/store.ts:1608-1621` + `inferActionFromChange` (`:2429`) | `write` unless `deleted` | **none** — evaluator loads from storage |
+| Path              | Site                                                                             | Action                         | Node passed to evaluator                                      |
+| ----------------- | -------------------------------------------------------------------------------- | ------------------------------ | ------------------------------------------------------------- |
+| `store.create()`  | `packages/data/src/store/store.ts:237,255`                                       | `write`                        | **phantom**: `{ schemaId, createdBy: authorDID, properties }` |
+| `store.update()`  | `packages/data/src/store/store.ts:431,461`                                       | `write`                        | existing node                                                 |
+| batch/transaction | `packages/data/src/store/store.ts:2397-2425`                                     | `write` (create + update legs) | phantom / stored                                              |
+| remote sync       | `packages/data/src/store/store.ts:1608-1621` + `inferActionFromChange` (`:2429`) | `write` unless `deleted`       | **none** — evaluator loads from storage                       |
 
 Three structural observations:
 
@@ -115,8 +115,8 @@ field-level checks unless `input.action === 'write'`.
   `packages/hub/src/services/share-access.ts:184-206`
   (`canWriteNodeChange`/`canWriteYjs`): `write`-status grantees relay
   node-changes; `comment` grantees only for comment schemas. No
-  create/update distinction; a `comment` grantee *creating* a Comment and
-  *editing someone else's* Comment are the same check.
+  create/update distinction; a `comment` grantee _creating_ a Comment and
+  _editing someone else's_ Comment are the same check.
 - **Grant nodes** — `packages/data/src/schema/schemas/grant.ts:17` stores
   `actions` as a JSON text array; the parser
   (`packages/data/src/auth/store-auth.ts:555-563`, `isAuthAction`) **silently
@@ -153,7 +153,7 @@ actions: {
 `ChatMessage` (`packages/data/src/schema/schemas/chat-message.ts:64`) and
 `Comment` (`comment.ts:122`) adopt this cascade. Declared policy therefore
 says a `spaceMember` may **edit anyone's chat message or comment**. The
-intended semantics — *members may add; only the author may modify* — cannot
+intended semantics — _members may add; only the author may modify_ — cannot
 be written down, because there is exactly one verb for both.
 
 ```mermaid
@@ -170,27 +170,27 @@ flowchart LR
 
 ## External Research
 
-| System | Vocabulary | `write` split? | Creation authorized on… |
-|---|---|---|---|
-| **Firestore rules** | `get`,`list` / `create`,`update`,`delete` | Yes — `allow write` is shorthand for all three; docs: "your app may want to enforce different conditions on document creation than on document deletion." `create` fires for nonexistent docs, `update` for existing; `resource` (current data) vs `request.resource` (incoming) enables field-locking idioms only expressible with the split | the incoming document (path + payload) |
-| **PostgreSQL GRANT** | `SELECT`,`INSERT`,`UPDATE`,`DELETE`,… | Yes — independently grantable, per-column for INSERT/UPDATE; append-only ingestion = INSERT-only | the table (container) |
-| **Zanzibar / SpiceDB / OpenFGA** | relations/permissions | n/a | **the container** — tuples need an existing object id, so `can_create_document` lives on the folder (`editor from parent`); create+tuple-write happen as a dual write |
-| **AWS IAM (Dynamo/S3)** | `PutItem`/`UpdateItem`; `s3:PutObject` | Conflated — `PutObject` covers create *and* overwrite; create-only needed request-level conditions (`attribute_not_exists`, `If-None-Match: *` added 2024). A cautionary tale | the resource ARN |
-| **Kubernetes RBAC** | `get,list,watch,create,update,patch,delete` | Yes — three separate mutation verbs | the resource type within a namespace (container) |
-| **Matrix** | power levels per event type | n/a | **the room** — sending any (state) event gated by sender power level in the container |
-| **DXOS / Automerge auth** | space/group membership | n/a | **the space/group** — creating your own doc is unconditionally self-authorized; admission into the shared container is the controlled act |
-| **UCAN 1.0** | free-form commands; example vocab `/crud/create`, `/crud/update` | resource-defined | resource-defined |
-| **HTTP/REST** | `POST` vs `PUT` vs `PATCH` (RFC 9110/5789) | Yes — the protocol layer itself splits it | collection URI (POST-to-container) |
-| **OWASP BOPLA/Mass-Assignment** | — | Root cause named: "the same data model utilised for various CRUD operations without granular authorization checks"; fix = per-operation schemas/checks | — |
+| System                           | Vocabulary                                                       | `write` split?                                                                                                                                                                                                                                                                                                                                | Creation authorized on…                                                                                                                                               |
+| -------------------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Firestore rules**              | `get`,`list` / `create`,`update`,`delete`                        | Yes — `allow write` is shorthand for all three; docs: "your app may want to enforce different conditions on document creation than on document deletion." `create` fires for nonexistent docs, `update` for existing; `resource` (current data) vs `request.resource` (incoming) enables field-locking idioms only expressible with the split | the incoming document (path + payload)                                                                                                                                |
+| **PostgreSQL GRANT**             | `SELECT`,`INSERT`,`UPDATE`,`DELETE`,…                            | Yes — independently grantable, per-column for INSERT/UPDATE; append-only ingestion = INSERT-only                                                                                                                                                                                                                                              | the table (container)                                                                                                                                                 |
+| **Zanzibar / SpiceDB / OpenFGA** | relations/permissions                                            | n/a                                                                                                                                                                                                                                                                                                                                           | **the container** — tuples need an existing object id, so `can_create_document` lives on the folder (`editor from parent`); create+tuple-write happen as a dual write |
+| **AWS IAM (Dynamo/S3)**          | `PutItem`/`UpdateItem`; `s3:PutObject`                           | Conflated — `PutObject` covers create _and_ overwrite; create-only needed request-level conditions (`attribute_not_exists`, `If-None-Match: *` added 2024). A cautionary tale                                                                                                                                                                 | the resource ARN                                                                                                                                                      |
+| **Kubernetes RBAC**              | `get,list,watch,create,update,patch,delete`                      | Yes — three separate mutation verbs                                                                                                                                                                                                                                                                                                           | the resource type within a namespace (container)                                                                                                                      |
+| **Matrix**                       | power levels per event type                                      | n/a                                                                                                                                                                                                                                                                                                                                           | **the room** — sending any (state) event gated by sender power level in the container                                                                                 |
+| **DXOS / Automerge auth**        | space/group membership                                           | n/a                                                                                                                                                                                                                                                                                                                                           | **the space/group** — creating your own doc is unconditionally self-authorized; admission into the shared container is the controlled act                             |
+| **UCAN 1.0**                     | free-form commands; example vocab `/crud/create`, `/crud/update` | resource-defined                                                                                                                                                                                                                                                                                                                              | resource-defined                                                                                                                                                      |
+| **HTTP/REST**                    | `POST` vs `PUT` vs `PATCH` (RFC 9110/5789)                       | Yes — the protocol layer itself splits it                                                                                                                                                                                                                                                                                                     | collection URI (POST-to-container)                                                                                                                                    |
+| **OWASP BOPLA/Mass-Assignment**  | —                                                                | Root cause named: "the same data model utilised for various CRUD operations without granular authorization checks"; fix = per-operation schemas/checks                                                                                                                                                                                        | —                                                                                                                                                                     |
 
 Two consistent lessons:
 
-1. Every mature *policy* system separates create from update; systems that
+1. Every mature _policy_ system separates create from update; systems that
    conflated them (S3, DynamoDB) had to bolt on request-level conditions
    later.
 2. In relationship/local-first systems, **create is a container question**.
    Creating a node under your own key needs nobody's permission; what needs
-   permission is *admission into the shared container* — exactly xNet's Space
+   permission is _admission into the shared container_ — exactly xNet's Space
    membership model. xNet has a structural head start here: content schemas
    already carry their container relation (`space`, `channel`, `target`) in
    the create payload, so a draft-node evaluation can resolve container roles
@@ -207,7 +207,7 @@ Two consistent lessons:
    string-keyed record (`SerializedAuthorization`,
    `packages/core/src/auth-types.ts:151-157`); the evaluator looks actions up
    by name; conformance vectors don't enumerate actions. Adding `create`/
-   `update` is *additive* — the risky part is only the **default** for
+   `update` is _additive_ — the risky part is only the **default** for
    schemas that don't declare them, and the **remote create** evaluation
    path.
 3. **Fail-closed compatibility comes for free on grants** (unknown actions
@@ -219,7 +219,7 @@ Two consistent lessons:
    the parity tests in `hub-policy.test.ts` keep the projection honest.
 5. **Zanzibar-style container-level creation** (`Space.actions.createChild`)
    is the theoretically cleanest model but requires cross-schema evaluation
-   ("which schema may I create *where*?") that nothing else in the evaluator
+   ("which schema may I create _where_?") that nothing else in the evaluator
    needs yet. The draft-node trick gets ~90% of the value from the content
    schema side.
 
@@ -257,11 +257,11 @@ Add `create` and `update` to `AUTH_ACTIONS`. Semantics:
   the precise verbs over time.
 - `store.create()` checks `create`; `store.update()` checks `update`.
 - **Create evaluates against the draft node** (schemaId + payload properties
-  + `createdBy = author`) — as today, but now a schema can *choose* an
-  expression that excludes `owner` and requires a container role, which the
-  draft's relation properties can resolve (e.g.
-  `create: allow('spaceMember')` on ChatMessage → membership resolved through
-  the `channel` relation in the payload).
+  - `createdBy = author`) — as today, but now a schema can _choose_ an
+    expression that excludes `owner` and requires a container role, which the
+    draft's relation properties can resolve (e.g.
+    `create: allow('spaceMember')` on ChatMessage → membership resolved through
+    the `channel` relation in the payload).
 - **Remote path**: a change with `payload.schemaId` and no stored node is a
   create → evaluate `create` against the draft built from the payload;
   otherwise `update` against the stored node. Fixes the latent deny.
@@ -290,12 +290,12 @@ container only.
 
 ### Fallback semantics (Option C, normative once adopted)
 
-| Checked action | Expression used |
-|---|---|
-| `create` | `actions.create` ?? `actions.write` |
-| `update` | `actions.update` ?? `actions.write` |
-| `write` (legacy callers) | same row as `update` |
-| `read` / `delete` / `share` / `admin` | unchanged, no fallback |
+| Checked action                        | Expression used                     |
+| ------------------------------------- | ----------------------------------- |
+| `create`                              | `actions.create` ?? `actions.write` |
+| `update`                              | `actions.update` ?? `actions.write` |
+| `write` (legacy callers)              | same row as `update`                |
+| `read` / `delete` / `share` / `admin` | unchanged, no fallback              |
 
 Deny-wins composition is unchanged; `fieldRules` apply to `create`, `update`,
 and legacy `write` checks (today: `write` only, `evaluator.ts:696`).
@@ -422,7 +422,7 @@ private inferActionFromChange(change: NodeChange, stored: NodeState | null): Aut
   `write` on an existing node mean update.
 - **Draft-node role resolution cost**: membership/relation resolvers walk the
   graph from payload relations; a malicious create payload can point at any
-  container. That's fine (the check *should* run against the claimed
+  container. That's fine (the check _should_ run against the claimed
   container — you must actually be a member of it), but resolver depth limits
   must apply to drafts identically.
 - **Upsert paths**: `applySingleNodeWrite` fast path uses `requireExisting`
@@ -431,17 +431,17 @@ private inferActionFromChange(change: NodeChange, stored: NodeState | null): Aut
 - **Yjs document bodies**: page-content edits relay via `canWriteYjs`, which
   has no per-node create/update notion — document-body granularity is out of
   scope here (hub follow-up).
-- **Spec versioning**: additive actions + fallback should be a spec *minor*
+- **Spec versioning**: additive actions + fallback should be a spec _minor_
   (no wire-format change, unlike 0300's v4 tiebreak) — confirm the charter
   ledger treats the action list as extensible before claiming so.
 - **`comment` unification**: hub `comment` is "read + may create Comment
   nodes" — with `create` in the schema vocabulary, `comment` could eventually
-  be *derived* (`Comment.create: allow(commenters)`) instead of special-cased
+  be _derived_ (`Comment.create: allow(commenters)`) instead of special-cased
   in `canWriteNodeChange`. Follow-up.
 
 ## Implementation Checklist
 
-- [ ] `packages/core/src/auth-types.ts`: add `create`/`update` to
+- [x] `packages/core/src/auth-types.ts`: add `create`/`update` to
       `AUTH_ACTIONS`; document fallback semantics on the type; mirror in
       `permissions.ts` `Capability`/`ALL_CAPABILITIES`/`STANDARD_ROLES`.
 - [ ] `packages/data/src/auth/evaluator.ts`: `actionExpression()` fallback;
@@ -455,7 +455,7 @@ private inferActionFromChange(change: NodeChange, stored: NodeState | null): Aut
 - [ ] `packages/data/src/auth/store-auth.ts`: `isAuthAction` accepts new
       actions; grant matching treats `write` ⊇ {`create`,`update`}.
 - [ ] `packages/data/src/auth/validate.ts`: PUBLIC-on-mutation guard covers
-      `create`/`update`; warn when a schema defines `create`/`update` *and*
+      `create`/`update`; warn when a schema defines `create`/`update` _and_
       relies on `write` fallback ambiguously (lint-level).
 - [ ] `packages/data/src/auth/hub-policy.ts`: `SCHEMA_ACTION_TO_HUB` maps
       `create`/`update` → `write`; parity tests updated.
@@ -480,7 +480,7 @@ private inferActionFromChange(change: NodeChange, stored: NodeState | null): Aut
 
 - [ ] All existing auth tests pass unmodified (fallback preserves behavior).
 - [ ] New test: schema with `create: allow('spaceMember')` (no `owner`) —
-      non-member create denied locally *and* via `applyRemoteChange`.
+      non-member create denied locally _and_ via `applyRemoteChange`.
 - [ ] New test: `ChatMessage` with contributor cascade — member A cannot
       update member B's message; B can; spaceAdmin can.
 - [ ] Remote-create regression test: evaluator wired into a syncing store;

@@ -110,7 +110,7 @@ export type {
   AuthCheckInput,
   PolicyEvaluator
 } from './auth-types'
-export { AUTH_ACTIONS } from './auth-types'
+export { AUTH_ACTIONS, actionExpressionOrder, grantActionSatisfies } from './auth-types'
 
 // Shared utility helpers (dependency-free)
 export { clamp, clamp01, formatBytes } from './utils'
