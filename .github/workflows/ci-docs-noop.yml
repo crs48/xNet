@@ -1,0 +1,79 @@
+name: CI (docs-only no-op)
+
+# Paired no-op twin of ci.yml for docs-only PRs.
+#
+# ci.yml skips entirely when a PR touches only docs/markdown (its
+# `paths-ignore`), but the main-branch ruleset requires the status contexts
+# `lint`, `typecheck`, `test (1/3)`..`test (3/3)`, and `editor-ux`. With no
+# workflow producing them, mergeStateStatus stayed BLOCKED forever and every
+# docs-only PR needed an admin merge (hit on PR #477; same shape as the 0265
+# release-PR stall). This is GitHub's documented fix ("Handling skipped but
+# required checks"): a second workflow with the SAME job names, triggered by
+# `paths:` matching exactly what ci.yml ignores, where every job just
+# succeeds. A required context is satisfied by a passing check run of that
+# name from either workflow.
+#
+# Consumer + pass condition (0294 policy): the consumer is the main-branch
+# ruleset itself — these jobs exist solely so its required contexts resolve
+# on docs-only PRs. The pass condition is decidable by construction: the jobs
+# do nothing and always exit 0.
+#
+# KEEP IN SYNC: the `paths:` list below must exactly mirror the
+# `paths-ignore` lists in ci.yml (both triggers). If you change one, change
+# the other, or docs-only PRs go back to being unmergeable (gap) or CI runs
+# twice (overlap).
+#
+# Mixed PRs (docs + code in one PR) trigger BOTH workflows for the same
+# context names. Both check runs come from the same push; the no-op finishes
+# in seconds and the real ci.yml run completes later, and GitHub surfaces the
+# most recent check run per context — so the real result is the one that
+# gates the merge.
+#
+# `changelog-section` (also required) is NOT twinned: changelog-check.yml has
+# no paths filter, so it already reports on docs-only PRs (add a fragment or
+# the `skip-changelog` label as usual).
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '*.md'
+      - '**/*.md'
+      - 'docs/**'
+      - '.github/*.md'
+
+permissions: {}
+
+concurrency:
+  group: ci-docs-noop-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: No-op (docs-only change)
+        run: echo "Docs-only change — ci.yml is path-skipped; reporting green so the required 'lint' context resolves."
+
+  typecheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: No-op (docs-only change)
+        run: echo "Docs-only change — ci.yml is path-skipped; reporting green so the required 'typecheck' context resolves."
+
+  # Matrix mirrors ci.yml's test shards so the contexts come out as
+  # `test (1/3)`, `test (2/3)`, `test (3/3)` — the exact required names.
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        shard: [1/3, 2/3, 3/3]
+    steps:
+      - name: No-op (docs-only change)
+        run: echo "Docs-only change — ci.yml is path-skipped; reporting green so the required 'test (${{ matrix.shard }})' context resolves."
+
+  editor-ux:
+    runs-on: ubuntu-latest
+    steps:
+      - name: No-op (docs-only change)
+        run: echo "Docs-only change — ci.yml is path-skipped; reporting green so the required 'editor-ux' context resolves."
