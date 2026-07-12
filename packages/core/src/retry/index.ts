@@ -1,5 +1,5 @@
 /**
- * Retry/backoff policy vocabulary (exploration 0300).
+ * Retry/backoff policy vocabulary (exploration 0303).
  *
  * Re-exported from the package root so consumers can
  * `import { exponential } from '@xnetjs/core'`.

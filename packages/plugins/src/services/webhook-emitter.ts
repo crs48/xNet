@@ -8,7 +8,7 @@
 import type { NodeStoreAPI, NodeData, NodeChangeEventData } from './local-api'
 import { exponential, type RetryPolicy } from '@xnetjs/core'
 
-/** Delay before retry attempt N: 1s, 2s, 4s, … (exploration 0300). */
+/** Delay before retry attempt N: 1s, 2s, 4s, … (exploration 0303). */
 const RETRY_POLICY: RetryPolicy = exponential(1000)
 
 // ─── Types ───────────────────────────────────────────────────────────────────
