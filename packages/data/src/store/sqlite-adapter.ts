@@ -24,7 +24,6 @@ import type {
 } from './types'
 import type { SchemaIRI } from '../schema/node'
 import type { ContentId, DID } from '@xnetjs/core'
-import { lwwUpdateGuardSql } from '@xnetjs/core'
 import type {
   SQLiteAdapter,
   SQLValue,
@@ -32,6 +31,7 @@ import type {
   SQLiteOperationStats,
   SQLiteNodeBatchApplyInput
 } from '@xnetjs/sqlite'
+import { lwwUpdateGuardSql, singleFlight } from '@xnetjs/core'
 import {
   extractSearchableContent,
   analyzeQuery,
@@ -42,6 +42,21 @@ import {
 } from '@xnetjs/sqlite'
 import { SYSTEM_SCHEMA_BASE_IRIS } from '../schema/schemas/system'
 import {
+  hydrateAggregatedRows,
+  hydrateJoinedRows,
+  hydrateNodesByIds,
+  type AggregatedNodeRow,
+  type JoinedNodePropertyRow
+} from './hydration'
+import {
+  FullTextIndexing,
+  ScalarIndexing,
+  SpatialIndexing,
+  createDeleteRemovedPropertiesOperation,
+  deleteRemovedProperties,
+  type IndexingContext
+} from './indexing'
+import {
   applyNodeQueryDescriptor,
   withoutNodeQueryMaterializedView,
   withoutNodeQueryPagination,
@@ -50,19 +65,6 @@ import {
   type NodeQueryResult,
   type NodeQueryStorageCapabilitiesMetadata
 } from './query'
-import {
-  hydrateAggregatedRows,
-  hydrateJoinedRows,
-  hydrateNodesByIds,
-  type AggregatedNodeRow,
-  type JoinedNodePropertyRow
-} from './hydration'
-import {
-  SQL_IN_ARITY_BUCKETS,
-  SQLITE_BIND_PARAMETER_BATCH_SIZE,
-  chunkItems,
-  padToArityBucket
-} from './sql-batching'
 import {
   QueryCompiler,
   buildSqlOrderBy,
@@ -77,13 +79,11 @@ import {
   type SpatialQueryPlan
 } from './query-compiler'
 import {
-  FullTextIndexing,
-  ScalarIndexing,
-  SpatialIndexing,
-  createDeleteRemovedPropertiesOperation,
-  deleteRemovedProperties,
-  type IndexingContext
-} from './indexing'
+  SQL_IN_ARITY_BUCKETS,
+  SQLITE_BIND_PARAMETER_BATCH_SIZE,
+  chunkItems,
+  padToArityBucket
+} from './sql-batching'
 
 /**
  * The shared LWW upsert guard for `node_properties` (protocol §L1.7 via
@@ -2381,25 +2381,28 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
     compiled: CompiledNodeQuery
   ): Promise<CompiledQueryDiagnostics> {
     const memoKey = compiled.sql
-    const memoized = this.compiledQueryDiagnosticsMemo.get(memoKey)
-    if (memoized) {
-      return memoized
-    }
-
-    const pending = this.computeCompiledQueryDiagnostics(compiled).then((diagnostics) => {
-      if (diagnostics.diagnosticsError) {
-        this.compiledQueryDiagnosticsMemo.delete(memoKey)
-      }
-      return diagnostics
-    })
-    if (this.compiledQueryDiagnosticsMemo.size >= COMPILED_QUERY_DIAGNOSTICS_MEMO_LIMIT) {
+    if (
+      !this.compiledQueryDiagnosticsMemo.has(memoKey) &&
+      this.compiledQueryDiagnosticsMemo.size >= COMPILED_QUERY_DIAGNOSTICS_MEMO_LIMIT
+    ) {
       const oldest = this.compiledQueryDiagnosticsMemo.keys().next().value
       if (oldest !== undefined) {
         this.compiledQueryDiagnosticsMemo.delete(oldest)
       }
     }
-    this.compiledQueryDiagnosticsMemo.set(memoKey, pending)
-    return pending
+    return singleFlight(
+      this.compiledQueryDiagnosticsMemo,
+      memoKey,
+      () =>
+        this.computeCompiledQueryDiagnostics(compiled).then((diagnostics) => {
+          // Failed collections are not memoized — the next caller retries.
+          if (diagnostics.diagnosticsError) {
+            this.compiledQueryDiagnosticsMemo.delete(memoKey)
+          }
+          return diagnostics
+        }),
+      { retain: 'keep' }
+    )
   }
 
   private async computeCompiledQueryDiagnostics(

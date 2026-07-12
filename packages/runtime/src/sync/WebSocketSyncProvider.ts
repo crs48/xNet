@@ -24,6 +24,7 @@
  * 4. On disconnect: peers remove the disconnected client's state
  */
 import type { SignedYjsEnvelopeV1, SyncReplicationConfig } from '@xnetjs/sync'
+import { fixed, limitAttempts } from '@xnetjs/core'
 import { resolveSyncReplicationPolicy, signYjsUpdate, verifyYjsEnvelopeV1 } from '@xnetjs/sync'
 import {
   Awareness,
@@ -32,6 +33,7 @@ import {
   removeAwarenessStates
 } from 'y-protocols/awareness'
 import * as Y from 'yjs'
+import { createReconnectScheduler, type ReconnectScheduler } from './reconnect-scheduler'
 
 // Debug logging - enable via localStorage.setItem('xnet:sync:debug', 'true')
 function log(provider: WebSocketSyncProvider, ...args: unknown[]): void {
@@ -139,10 +141,7 @@ export class WebSocketSyncProvider {
   readonly awareness: Awareness
 
   private ws: WebSocket | null = null
-  private reconnectDelay: number
-  private maxReconnectAttempts: number
-  private reconnectAttempts = 0
-  private reconnectTimer: ReturnType<typeof setTimeout> | null = null
+  private reconnectScheduler: ReconnectScheduler
   private destroyed = false
   private connected = false
   private synced = false
@@ -157,8 +156,16 @@ export class WebSocketSyncProvider {
     this.room = options.room
     this.url = options.url
     this.options = options
-    this.reconnectDelay = options.reconnectDelay ?? 2000
-    this.maxReconnectAttempts = options.maxReconnectAttempts ?? Infinity
+    // Fixed-delay retry (this provider never backed off exponentially),
+    // capped at maxReconnectAttempts — exploration 0300.
+    const reconnectPolicy = limitAttempts(
+      fixed(options.reconnectDelay ?? 2000),
+      options.maxReconnectAttempts ?? Infinity
+    )
+    this.reconnectScheduler = createReconnectScheduler({
+      policy: () => reconnectPolicy,
+      onRetry: () => this._connect()
+    })
     this.replicationPolicy = resolveSyncReplicationPolicy(options.replication)
 
     // Generate a unique peer ID for this provider instance
@@ -218,10 +225,7 @@ export class WebSocketSyncProvider {
     // Remove our own awareness state
     removeAwarenessStates(this.awareness, [this.doc.clientID], this)
 
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer)
-      this.reconnectTimer = null
-    }
+    this.reconnectScheduler.cancel()
 
     if (this.ws) {
       // Unsubscribe before closing
@@ -246,7 +250,7 @@ export class WebSocketSyncProvider {
       this.ws.onopen = () => {
         log(this, 'WebSocket connected to', this.url)
         this.connected = true
-        this.reconnectAttempts = 0
+        this.reconnectScheduler.reset()
         this.emit('status', { connected: true })
 
         // Subscribe to the room
@@ -306,12 +310,7 @@ export class WebSocketSyncProvider {
 
   private _scheduleReconnect(): void {
     if (this.destroyed) return
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) return
-
-    this.reconnectAttempts++
-    this.reconnectTimer = setTimeout(() => {
-      this._connect()
-    }, this.reconnectDelay)
+    this.reconnectScheduler.schedule()
   }
 
   private _send(msg: object): void {
