@@ -539,7 +539,7 @@ const ringPosition = (hubDid: string, epochNonce: string): bigint => {
 - [x] Bound `wallTime` at the relay (`packages/hub/src/services/node-relay.ts`).
 - [x] Widen + salt the shard ring to ≥128 bits with a coordinator epoch nonce
       (`packages/hub/src/services/shard-rebalancer.ts`).
-- [ ] Derive Yjs `clientId` from the DID and enforce it in attestation verify
+- [x] Derive Yjs `clientId` from the DID and enforce it in attestation verify
       (`packages/sync/src/clientid-attestation.ts`).
 - [ ] Add/replace golden vectors for the new tiebreak
       (`conformance/vectors/lww/`), update `0003`/`0004`, add a
