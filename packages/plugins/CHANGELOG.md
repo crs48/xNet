@@ -1,5 +1,28 @@
 # @xnetjs/plugins
 
+## 0.12.0
+
+### Patch Changes
+
+- [#480](https://github.com/crs48/xNet/pull/480) [`5866992`](https://github.com/crs48/xNet/commit/5866992b73a69a92321c7319a40834019f7f7141) Thanks [@crs48](https://github.com/crs48)! - New `@xnetjs/core` utilities (exploration 0300 — Effect Tier 0): a
+  dependency-free `RetryPolicy` vocabulary (`fixed`, `exponential`, `capped`,
+  `jittered`, `limitAttempts`), a `TaggedError` base class with `isTagged`
+  guard for string-discriminant errors, and a `singleFlight` promise-dedupe
+  helper.
+
+  Internal refactors onto them (no behavior change): both sync reconnect
+  loops (`@xnetjs/runtime`) now share one scheduler with their existing
+  backoff schedules preserved; the webhook emitter (`@xnetjs/plugins`) uses
+  the shared exponential policy; the schema registry and sqlite adapter
+  diagnostics memo (`@xnetjs/data`) use `singleFlight`. `NodeRelayError` and
+  `PermissionError` now extend `TaggedError` — `instanceof`, `.name`, and
+  `.code` matching are unchanged.
+
+- Updated dependencies [[`5866992`](https://github.com/crs48/xNet/commit/5866992b73a69a92321c7319a40834019f7f7141)]:
+  - @xnetjs/core@0.12.0
+  - @xnetjs/data@0.12.0
+  - @xnetjs/abuse@0.12.0
+
 ## 0.11.1
 
 ### Patch Changes

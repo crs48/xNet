@@ -1,6 +1,6 @@
 {
   "name": "@xnetjs/comms",
-  "version": "0.0.16",
+  "version": "0.0.17",
   "description": "Real-time communications for xNet: presence rooms, chat, calls, and the notification inbox (explorations 0167/0168)",
   "type": "module",
   "main": "./src/index.ts",
