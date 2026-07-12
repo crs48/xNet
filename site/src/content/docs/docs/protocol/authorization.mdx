@@ -17,8 +17,29 @@ Normative text:
 ## Actions and decisions
 
 ```
-action ∈ { read, write, delete, share, admin }
+action ∈ { read, create, update, write, delete, share, admin }
 can(subject: DID, action, nodeId) → { allowed, reasons }
+```
+
+`create` and `update` are **refinements of `write`**: `create` governs bringing
+a node into existence, `update` governs mutating one that exists. A schema may
+declare either; when absent, each falls back to the schema's `write`
+expression (and a legacy `write` check follows the `update` rule), so schemas
+that only declare `write` behave exactly as before. Create checks evaluate
+against the *draft* node built from the payload — container relations in the
+payload (e.g. `space`, `channel`) resolve membership roles, which is how
+creation into a shared container is gated. A grant carrying `write` satisfies
+both refinements; a granular grant covers only itself.
+
+```ts
+actions: {
+  read:   allow('owner', 'spaceMember'),
+  create: allow('spaceMember'),          // members may add…
+  update: allow('owner', 'spaceAdmin'),  // …only the author (or admins) may edit
+  write:  allow('owner', 'spaceMember'), // fallback for engines without the split
+  delete: allow('owner', 'spaceAdmin'),
+  share:  allow('owner', 'spaceAdmin')
+}
 ```
 
 ## Schema authorization

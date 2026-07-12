@@ -15,18 +15,20 @@ The corpus lives at [`conformance/`](../../../conformance/).
 An implementation claims conformance to a layer by **reproducing that layer's
 vectors byte‑for‑byte**. The vectors are plain JSON — any language can load them.
 
-| Suite | Layer | Proves |
-|---|---|---|
-| `vectors/identity/` | L0 | seed → `did:key`, public key derivation |
-| `vectors/change/` | L1 | unsigned change → canonical bytes → BLAKE3 hash → Ed25519 signature |
-| `vectors/lww/` | L1 | change sequence → converged `NodeState` (order‑independent) |
-| `vectors/replication/` | L2 | *planned* — handshake negotiation + message round‑trips |
-| `vectors/authz/` | L3 | *planned* — `{graph, subject, action, node}` → decision trace |
+| Suite                    | Layer | Proves                                                                                                                    |
+| ------------------------ | ----- | ------------------------------------------------------------------------------------------------------------------------- |
+| `vectors/identity/`      | L0    | seed → `did:key`, public key derivation                                                                                   |
+| `vectors/change/`        | L1    | unsigned change → canonical bytes → BLAKE3 hash → Ed25519 signature                                                       |
+| `vectors/lww/`           | L1    | change sequence → converged `NodeState` (order‑independent)                                                               |
+| `vectors/replication/`   | L2    | version handshake, catch‑up filtering, signed Yjs envelope                                                                |
+| `vectors/authz/`         | L3    | authorization expression (AST) evaluation — `{expression, roles, isAuthenticated}` → `{allowed}`                          |
+| `vectors/authz-actions/` | L3    | action‑expression resolution with the `write` fallback (0304) — `{actions, action, roles, isAuthenticated}` → `{allowed}` |
 
 `xnet/1.0`'s first corpus covers the **interop kernel** (L0 + L1) — the minimum
 that lets an independent implementation create, sign, verify, and converge
-nodes. The L2/L3 suites are tracked as [XPPs](xpp/) and added as the
-corresponding reference paths stabilise.
+nodes. Full end‑to‑end L3 decision traces (`{graph, subject, action, node}` →
+decision) are tracked as [XPPs](xpp/) and added as the corresponding reference
+paths stabilise.
 
 ## 2. Vector format
 
@@ -39,11 +41,17 @@ an `expected` it must reproduce. Example (`vectors/change/`):
   "input": {
     "authorSeedHex": "0000…20-bytes…",
     "unsignedChange": {
-      "protocolVersion": 3, "id": "chg-0001", "type": "node-change",
-      "payload": { "nodeId": "node-0001",
-                   "schemaId": "xnet://xnet.fyi/Page@1.0.0",
-                   "properties": { "title": "Welcome" } },
-      "parentHash": null, "wallTime": 1718641200000, "lamport": 1
+      "protocolVersion": 3,
+      "id": "chg-0001",
+      "type": "node-change",
+      "payload": {
+        "nodeId": "node-0001",
+        "schemaId": "xnet://xnet.fyi/Page@1.0.0",
+        "properties": { "title": "Welcome" }
+      },
+      "parentHash": null,
+      "wallTime": 1718641200000,
+      "lamport": 1
     }
   },
   "expected": {
@@ -63,8 +71,8 @@ implementation can diff the exact bytes.
 
 [`conformance/reference/`](../../../conformance/reference/) contains a tiny,
 dependency‑light implementation of the L0+L1 kernel in a **second language**
-(Python) that loads the vectors and verifies them. Its purpose is to *prove the
-boundary is real* — that the spec, not the TypeScript source, is sufficient to
+(Python) that loads the vectors and verifies them. Its purpose is to _prove the
+boundary is real_ — that the spec, not the TypeScript source, is sufficient to
 interoperate. If ~100 lines of Python can derive the same DID and verify a
 TypeScript‑signed change, the protocol is portable.
 
@@ -90,8 +98,8 @@ in [`conformance/README.md`](../../../conformance/README.md): which implementati
 passes which suite, as of which date. This is low‑overhead but credible — a
 reader can see exactly what interoperates.
 
-| Implementation | L0 identity | L1 change | L1 lww | L2 | L3 |
-|---|---|---|---|---|---|
-| `xNet` (TypeScript, reference) | ✅ | ✅ | ✅ | ✅ (reference) | ✅ (reference) |
-| `reference/` kernel (Python) | ✅ | ✅ | — | — | — |
-| _your implementation here_ | | | | | |
+| Implementation                 | L0 identity | L1 change | L1 lww | L2             | L3             |
+| ------------------------------ | ----------- | --------- | ------ | -------------- | -------------- |
+| `xNet` (TypeScript, reference) | ✅          | ✅        | ✅     | ✅ (reference) | ✅ (reference) |
+| `reference/` kernel (Python)   | ✅          | ✅        | —      | —              | —              |
+| _your implementation here_     |             |           |        |                |                |

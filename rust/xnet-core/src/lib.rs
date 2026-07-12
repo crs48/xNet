@@ -382,3 +382,33 @@ pub fn eval_auth_expr(expr: &Value, roles: &HashSet<String>, is_authenticated: b
         _ => false,
     }
 }
+
+/// Expression lookup order for a checked action (docs/specs/protocol §L3.1,
+/// exploration 0304): `create` falls back to `write`; `update` and legacy
+/// `write` checks share the `update` ?? `write` lookup; every other action
+/// resolves only its own name. Mirrors `actionExpressionOrder` in the
+/// TypeScript reference (`@xnetjs/core`).
+pub fn action_expression_order(action: &str) -> Vec<&str> {
+    match action {
+        "create" => vec!["create", "write"],
+        "update" | "write" => vec!["update", "write"],
+        other => vec![other],
+    }
+}
+
+/// Evaluate a checked action against a schema's `actions` map with the 0304
+/// write fallback. A missing expression (after fallback) denies.
+pub fn eval_auth_action(
+    actions: &Value,
+    action: &str,
+    roles: &HashSet<String>,
+    is_authenticated: bool,
+) -> bool {
+    for candidate in action_expression_order(action) {
+        let expr = &actions[candidate];
+        if !expr.is_null() {
+            return eval_auth_expr(expr, roles, is_authenticated);
+        }
+    }
+    false
+}

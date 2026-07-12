@@ -147,6 +147,28 @@ fn l3_authz() {
     }
 }
 
+#[test]
+fn l3_authz_actions() {
+    let vectors = load("authz-actions");
+    assert!(!vectors.is_empty());
+    for (name, v) in vectors {
+        let actions = &v["input"]["actions"];
+        let action = v["input"]["action"].as_str().unwrap();
+        let roles: HashSet<String> = v["input"]["roles"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .map(|r| r.as_str().unwrap().to_string())
+            .collect();
+        let is_auth = v["input"]["isAuthenticated"].as_bool().unwrap();
+        assert_eq!(
+            eval_auth_action(actions, action, &roles, is_auth),
+            v["expected"]["allowed"].as_bool().unwrap(),
+            "{name} allowed"
+        );
+    }
+}
+
 fn str_vec(v: &Value) -> Vec<String> {
     v.as_array().unwrap().iter().map(|s| s.as_str().unwrap().to_string()).collect()
 }

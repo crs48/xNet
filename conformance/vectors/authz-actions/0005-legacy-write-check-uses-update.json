@@ -1,0 +1,21 @@
+{
+  "description": "a legacy write check on a split schema follows the update expression",
+  "input": {
+    "actions": {
+      "update": {
+        "_tag": "allow",
+        "roles": ["owner"]
+      },
+      "write": {
+        "_tag": "allow",
+        "roles": ["editor", "owner"]
+      }
+    },
+    "action": "write",
+    "roles": ["editor"],
+    "isAuthenticated": true
+  },
+  "expected": {
+    "allowed": false
+  }
+}

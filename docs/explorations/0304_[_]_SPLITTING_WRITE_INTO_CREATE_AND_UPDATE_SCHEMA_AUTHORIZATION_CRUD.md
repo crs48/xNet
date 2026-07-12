@@ -462,7 +462,7 @@ private inferActionFromChange(change: NodeChange, stored: NodeState | null): Aut
 - [x] `spaceContributorAuthorization()` (or option on the cascade); adopt for
       `ChatMessage` and `Comment`; audit the other 42 authorized schemas for
       which cascade they want (default: unchanged).
-- [ ] Spec `docs/specs/protocol/04-authorization.md` §1/§7: action list,
+- [x] Spec `docs/specs/protocol/04-authorization.md` §1/§7: action list,
       fallback table, draft-node create rule; new authz conformance vectors
       for fallback (`create` absent → `write` used; `create` present →
       `write` ignored).
