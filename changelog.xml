@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Flatter workbench islands</title>
+      <link>https://xnet.fyi/changelog#2026-07-12-flatter-workbench-islands</link>
+      <guid isPermaLink="false">2026-07-12-flatter-workbench-islands</guid>
+      <pubDate>Sun, 12 Jul 2026 20:49:23 GMT</pubDate>
+      <description>The sidebar, status bar, dock, and context panel no longer cast a drop shadow — islands sit flat on the surface with just a hairline edge. Modals and menus keep their shadow so they still read as floating.</description>
+    </item>
+    <item>
       <title>Concurrent edits resolve fairly under a grinding-resistant tiebreak</title>
       <link>https://xnet.fyi/changelog#2026-07-12-concurrent-edits-resolve-fairly-under-a-</link>
       <guid isPermaLink="false">2026-07-12-concurrent-edits-resolve-fairly-under-a-</guid>
