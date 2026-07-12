@@ -21,6 +21,7 @@ import {
 import { generateSigningKeyPair } from '@xnetjs/crypto'
 import { createDID } from '@xnetjs/identity'
 import { createMemorySQLiteAdapter } from '@xnetjs/sqlite/memory'
+import { createUnsignedChange, signChange } from '@xnetjs/sync'
 import { describe, expect, it } from 'vitest'
 import type { SchemaIRI } from '../schema/node'
 import type { NodeChange, NodeStorageAdapter } from './types'
@@ -129,11 +130,12 @@ async function buildConcurrentChangeSet(peers: number): Promise<NodeChange[]> {
 
 async function materializeVia(
   makeStorage: () => Promise<NodeStorageAdapter> | NodeStorageAdapter,
-  changes: readonly NodeChange[]
+  changes: readonly NodeChange[],
+  nodeId: string = NODE_ID
 ): Promise<Record<string, unknown>> {
   const store = makeStore(await makeStorage())
   await store.applyRemoteChanges(changes.slice())
-  const node = await store.get(NODE_ID)
+  const node = await store.get(nodeId)
   if (!node) throw new Error('node did not materialize')
   return node.properties
 }
@@ -154,6 +156,56 @@ describe('LWW conformance across implementations (0200 golden ordering)', () => 
         return new SQLiteNodeStorageAdapter(db)
       }, order)
       expect(viaSqlite, `sqlite adapter diverged from oracle (seed ${seed})`).toEqual(oracle)
+    }
+  })
+
+  it('mixed protocol versions converge (v3 vs v4): no split-brain', async () => {
+    // A legacy v3 change (no tiebreak key) and a v4 change (has one) write the
+    // same property at the same lamport+wallTime. Because only ONE side carries
+    // a key, the comparator MUST fall back to the author DID — the same result
+    // old (v3-only) code computes — so mixed fleets don't diverge. Both adapters
+    // and the shared oracle must agree, in every delivery order.
+    const NODE = 'mixed-version-node'
+    const mkChange = (
+      seedFill: number,
+      value: string,
+      protocolVersion: number,
+      lamport: number
+    ): NodeChange => {
+      const keyPair = generateSigningKeyPair()
+      const did = createDID(keyPair.publicKey) as DID
+      const unsigned = createUnsignedChange({
+        id: `mv-${protocolVersion}-${seedFill}`,
+        type: 'node-change',
+        payload: { nodeId: NODE, schemaId: SCHEMA, properties: { title: value } },
+        parentHash: null,
+        authorDID: did,
+        wallTime: 1000,
+        lamport
+      })
+      // Force the protocol version (the hash covers it) to simulate a fleet
+      // where one peer predates protocol v4.
+      unsigned.protocolVersion = protocolVersion
+      return signChange(unsigned, keyPair.privateKey) as NodeChange
+    }
+
+    // Same lamport+wallTime, different authors and versions → author tiebreak.
+    const v3 = mkChange(0xa1, 'from-v3', 3, 5)
+    const v4 = mkChange(0xb2, 'from-v4', 4, 5)
+    const changes = [v3, v4]
+    const oracle = oracleFold(changes)
+    // The oracle (falls back to author since one side lacks a key) is what a
+    // pre-v4 peer would also compute — that is the no-split-brain guarantee.
+
+    for (const seed of SHUFFLE_SEEDS) {
+      const order = seed % 2 === 0 ? changes : [...changes].reverse()
+      const viaMemory = await materializeVia(() => new MemoryNodeStorageAdapter(), order, NODE)
+      const viaSqlite = await materializeVia(async () => {
+        const db = await createMemorySQLiteAdapter()
+        return new SQLiteNodeStorageAdapter(db)
+      }, order, NODE)
+      expect(viaMemory).toEqual(oracle)
+      expect(viaSqlite).toEqual(oracle)
     }
   })
 

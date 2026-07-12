@@ -553,24 +553,24 @@ const ringPosition = (hubDid: string, epochNonce: string): bigint => {
 
 ## Validation Checklist
 
-- [ ] Golden-vector conformance suite passes and JS ⇆ SQLite paths produce
+- [x] Golden-vector conformance suite passes and JS ⇆ SQLite paths produce
       identical winners for every vector (extends exploration 0200 harness).
-- [ ] Property test (fast-check, per exploration 0272 reliability lane):
+- [x] Property test (fast-check, per exploration 0272 reliability lane):
       **no single fixed DID wins > (1/n + ε) of random pairwise ties** across a
       large random change population — i.e. the "universal winner" property is
       gone.
-- [ ] Grinding simulation: generating `10^6` vanity DIDs yields **no** DID that
+- [x] Grinding simulation: generating `10^6` vanity DIDs yields **no** DID that
       beats a fixed honest change in the new tiebreak more often than chance.
-- [ ] Convergence test: shuffle-and-replay a change set with concurrent
+- [x] Convergence test: shuffle-and-replay a change set with concurrent
       same-property writes across ≥3 orders → identical `NodeState` every time.
-- [ ] Mixed-version test: old-rule and new-rule clients converge (rule is
+- [x] Mixed-version test: old-rule and new-rule clients converge (rule is
       `protocolVersion`-gated; no split-brain).
-- [ ] Relay rejects `wallTime > now + skew` and accepts within skew.
-- [ ] Shard-ring test: grinding `10^4` hubDids cannot deterministically capture
+- [x] Relay rejects `wallTime > now + skew` and accepts within skew.
+- [x] Shard-ring test: grinding `10^4` hubDids cannot deterministically capture
       a chosen shard once the epoch nonce is unknown at grind time.
-- [ ] Yjs test: an attested binding with a clientId ≠ `derive(did)` is rejected;
+- [x] Yjs test: an attested binding with a clientId ≠ `derive(did)` is rejected;
       insert races resolve by the DID-derived clientId.
-- [ ] Query-perf budgets (0264/0266) unregressed after adding `changeHash` to
+- [x] Query-perf budgets (0264/0266) unregressed after adding `changeHash` to
       per-property timestamps.
 
 ## References
