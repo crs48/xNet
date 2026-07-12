@@ -428,6 +428,14 @@ private inferActionFromChange(change: NodeChange, stored: NodeState | null): Aut
 - **Upsert paths**: `applySingleNodeWrite` fast path uses `requireExisting`
   to distinguish — verify importers (`getExistingNodeIds` routing,
   `store.ts:326`) always know which leg they're on.
+- **Space-less containers** (found during implementation): the contributor
+  cascade's `create` requires a membership rung resolved through the
+  container relation. A `Channel` with no `space` set (e.g. a DM) resolves no
+  rungs, so once the evaluator is wired into the local write path nobody can
+  post to it under the declared policy. Comment sidesteps this with a
+  `targetOwner` role (the target node's own author may always comment);
+  ChatMessage will need an analogous channel-participant role (or DM channels
+  need a home space) before local enforcement is switched on.
 - **Yjs document bodies**: page-content edits relay via `canWriteYjs`, which
   has no per-node create/update notion — document-body granularity is out of
   scope here (hub follow-up).
