@@ -57,6 +57,8 @@ export class NodeRelayError extends Error {
       | 'INVALID_CHANGE'
       | 'INVALID_SIGNATURE'
       | 'INVALID_HASH'
+      // `wallTime` is implausibly far in the future (grinding guard, 0300).
+      | 'INVALID_WALL_TIME'
       | 'REPLAY_REJECTED'
       // The author's stored data would exceed the per-user cap (demo mode).
       | 'QUOTA_EXCEEDED'
@@ -85,6 +87,19 @@ export type NodeRelayOptions = {
    */
   isStorageFull?: () => boolean
   /**
+   * Reject a change whose `wallTime` is more than this many milliseconds in the
+   * future (exploration 0300, fix G). `wallTime` is the middle LWW tiebreak
+   * rung and is a client-supplied `Date.now()`; without a bound an attacker can
+   * set it far ahead to win the wallTime rung without ever reaching the author
+   * tiebreak. Default 5 minutes. Set to 0/negative to disable (self-host).
+   */
+  maxWallTimeSkewMs?: number
+  /**
+   * Clock source for the {@link maxWallTimeSkewMs} bound. Injectable for tests;
+   * defaults to `Date.now`.
+   */
+  now?: () => number
+  /**
    * Gates channel share-room fan-out (0298). When set, a Channel/ChatMessage
    * change is indexed into `xnet-channel-<id>` only if its author may write to
    * that channel — so a share-link grantee's `/channel/<id>` subscription
@@ -100,6 +115,13 @@ export type NodeRelayOptions = {
 }
 
 /** Serialized byte size a change contributes to a user's quota. */
+/**
+ * Default upper bound on how far a change's `wallTime` may lead the hub clock
+ * (exploration 0300, fix G). Five minutes tolerates ordinary client clock skew
+ * while bounding the future-wallTime LWW-tiebreak grind.
+ */
+const DEFAULT_MAX_WALL_TIME_SKEW_MS = 5 * 60_000
+
 const changeUsageBytes = (change: SerializedNodeChange): number =>
   JSON.stringify(change.payload).length + change.signatureB64.length
 
@@ -168,6 +190,24 @@ export class NodeRelayService {
 
     if (!verifyChange(change, publicKey)) {
       throw new NodeRelayError('INVALID_SIGNATURE', 'Change signature is invalid')
+    }
+
+    // Bound wallTime to now + skew (exploration 0300, fix G). wallTime is the
+    // middle LWW tiebreak rung and is a client-set Date.now(); an unbounded
+    // future value wins that rung outright, a cheaper grind than the author
+    // tiebreak. A bound closes it without needing synchronized clocks (skew is
+    // generous). The signature already covers wallTime, so this only rejects a
+    // hostile/mis-clocked author, never corrupts a valid one.
+    const maxSkew = this.options.maxWallTimeSkewMs ?? DEFAULT_MAX_WALL_TIME_SKEW_MS
+    if (maxSkew > 0) {
+      const now = (this.options.now ?? Date.now)()
+      if (typeof change.wallTime === 'number' && change.wallTime > now + maxSkew) {
+        throw new NodeRelayError(
+          'INVALID_WALL_TIME',
+          `Change wallTime ${change.wallTime} is more than ${maxSkew}ms in the future ` +
+            `(hub now ${now}); rejecting to bound LWW-tiebreak grinding.`
+        )
+      }
     }
 
     // Structured mentions (exploration 0168): clients declare mentions;

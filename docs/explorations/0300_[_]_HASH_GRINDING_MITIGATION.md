@@ -536,7 +536,7 @@ const ringPosition = (hubDid: string, epochNonce: string): bigint => {
       (`packages/core/src/lww.ts` `lwwUpdateGuardSql`, adapters).
 - [x] Mirror the comparator in `packages/sync/src/chain.ts` and
       `packages/sync/src/clock.ts` (fork branch selection, replay order).
-- [ ] Bound `wallTime` at the relay (`packages/hub/src/services/node-relay.ts`).
+- [x] Bound `wallTime` at the relay (`packages/hub/src/services/node-relay.ts`).
 - [ ] Widen + salt the shard ring to ≥128 bits with a coordinator epoch nonce
       (`packages/hub/src/services/shard-rebalancer.ts`).
 - [ ] Derive Yjs `clientId` from the DID and enforce it in attestation verify
