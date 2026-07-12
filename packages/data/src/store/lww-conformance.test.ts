@@ -82,7 +82,7 @@ function oracleFold(changes: readonly NodeChange[]): Record<string, unknown> {
     const hasKey = (change.protocolVersion ?? 0) >= LWW_TIEBREAK_KEY_VERSION
     for (const [key, value] of Object.entries(change.payload.properties ?? {})) {
       // Mirror the store: v4+ changes carry a grinding-resistant tiebreak key
-      // (exploration 0300); legacy changes fall back to the author DID.
+      // (exploration 0305); legacy changes fall back to the author DID.
       const stamp: LwwStamp = {
         lamport: change.lamport,
         wallTime: change.wallTime,

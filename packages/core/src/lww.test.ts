@@ -56,7 +56,7 @@ describe('compareLwwStamps (spec §L1.7)', () => {
   })
 })
 
-describe('grinding-resistant tiebreak key (exploration 0300)', () => {
+describe('grinding-resistant tiebreak key (exploration 0305)', () => {
   it('when BOTH stamps carry a key, the larger key wins — author is ignored', () => {
     // Attacker holds the lexically-maximal DID but loses because the key,
     // not the DID, decides the tie.

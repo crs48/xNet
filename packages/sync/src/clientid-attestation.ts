@@ -136,9 +136,9 @@ export interface VerifyAttestationOptions {
 
   /**
    * Reject an attestation whose `clientId` is not the value derived from its
-   * DID ({@link deriveClientIdFromDid}) — exploration 0300. Constrains the Yjs
+   * DID ({@link deriveClientIdFromDid}) — exploration 0305. Constrains the Yjs
    * clientID so a client cannot pick a maximal one to win insert races. Default
-   * `false` for backward compatibility with pre-0300 random clientIDs; xNet's
+   * `false` for backward compatibility with pre-0305 random clientIDs; xNet's
    * own verification path enables it once clients derive their clientID.
    */
   enforceDerivedClientId?: boolean
@@ -164,10 +164,10 @@ export function isV1Attestation(
   return !('v' in attestation)
 }
 
-// ─── Derived clientID (grinding guard, exploration 0300) ──────
+// ─── Derived clientID (grinding guard, exploration 0305) ──────
 
 /**
- * Derive a Yjs `clientID` deterministically from a DID (exploration 0300).
+ * Derive a Yjs `clientID` deterministically from a DID (exploration 0305).
  *
  * Yjs assigns a *random* integer clientID and breaks concurrent same-position
  * insert ties by *higher clientID*, so a client is free to pick
@@ -188,7 +188,7 @@ export function deriveClientIdFromDid(did: string): number {
   return value === 0 ? 1 : value
 }
 
-/** Whether a clientID is the one derived from `did` (exploration 0300). */
+/** Whether a clientID is the one derived from `did` (exploration 0305). */
 export function isDerivedClientId(clientId: number, did: string): boolean {
   return clientId === deriveClientIdFromDid(did)
 }
@@ -347,9 +347,9 @@ export async function verifyClientIdAttestationV2(
     errors.push('Attestation has expired')
   }
 
-  // Grinding guard (exploration 0300): the clientID must be the one derived
+  // Grinding guard (exploration 0305): the clientID must be the one derived
   // from the DID, so a client cannot pick a maximal value to win Yjs insert
-  // races. Opt-in for backward compatibility with pre-0300 random clientIDs.
+  // races. Opt-in for backward compatibility with pre-0305 random clientIDs.
   if (enforceDerivedClientId && !isDerivedClientId(attestation.clientId, attestation.did)) {
     errors.push(
       `clientId ${attestation.clientId} is not derived from the DID ` +

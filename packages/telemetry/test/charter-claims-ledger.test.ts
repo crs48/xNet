@@ -91,7 +91,7 @@ const CLAIMS: Claim[] = [
       // The protocol declares the hybrid capability; the shipped default
       // security level is a deliberate choice. This documents the intentional
       // gap so flipping the default becomes a visible, reviewed change. v4
-      // added the grinding-resistant LWW tiebreak (exploration 0300).
+      // added the grinding-resistant LWW tiebreak (exploration 0305).
       expect(CURRENT_PROTOCOL_VERSION).toBe(4)
       expect([0, 1, 2]).toContain(DEFAULT_SECURITY_LEVEL)
     }

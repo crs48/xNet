@@ -204,7 +204,7 @@ wallTime }`. When two changes touch the same property:
 The raw-`authorDID` tiebreak is **grindable**: a `did:key` is a free,
 attacker-chosen function of a keypair, so an attacker can grind a vanity DID
 that sorts highest and win *every* concurrent-write tie against every honest
-peer, permanently (exploration 0300). From `protocolVersion 4` the final rung is
+peer, permanently (exploration 0305). From `protocolVersion 4` the final rung is
 instead a per-conflict **tiebreak key**:
 
 ```
@@ -252,7 +252,7 @@ understood by implementers:
   identity/dedup only and derives order from *provably-shared causal state*
   (`before(u)` + a Lamport-timestamp validity check), which forecloses the
   grinding class entirely. xNet does not implement this today; the v4 key is the
-  cheap, local-first-preserving step. See exploration 0301 for an optional
+  cheap, local-first-preserving step. See exploration 0306 for an optional
   hub-arbitration finality layer.
 
 ## 8. The document codec (where Yjs lives — and why it is opaque)

@@ -258,7 +258,7 @@ pub fn verify_change(unsigned: &Value, signature: &[u8], public_key: &[u8]) -> b
 /// Protocol version at which the grinding-resistant tiebreak key activates.
 const LWW_TIEBREAK_KEY_VERSION: i64 = 4;
 
-/// Grinding-resistant LWW final tiebreak key (exploration 0300 / spec §7.1):
+/// Grinding-resistant LWW final tiebreak key (exploration 0305 / spec §7.1):
 /// `blake3_hex( authorDID ‖ 0x1f ‖ propertyKey ‖ 0x1f ‖ canonicalJSON(value) )`.
 /// A deletion (`value` = `null`) canonicalises as `null`. Portable — mirrors
 /// `computeLwwTiebreakKey` in `@xnetjs/core`.

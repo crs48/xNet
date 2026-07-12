@@ -1189,7 +1189,7 @@ describe('deterministic node import', () => {
     expect(result.nodes).toHaveLength(1)
     expect(result.changes[1].parentHash).toBe(result.changes[0].hash)
     // Both writes are same-author, same node, same property at the same logical
-    // time — a degenerate tie. Under protocol v4 (exploration 0300) the winner
+    // time — a degenerate tie. Under protocol v4 (exploration 0305) the winner
     // is decided by the grinding-resistant tiebreak key, not "first applied".
     // Fold the two actual changes through the real comparator to get it.
     const stampFor = (c: (typeof result.changes)[number]): LwwStamp => ({

@@ -38,7 +38,7 @@ export interface JoinedNodePropertyRow {
   lamport_time: number | null
   updated_by: string | null
   prop_updated_at: number | null
-  /** Grinding-resistant LWW tiebreak key (0300); NULL for legacy rows. */
+  /** Grinding-resistant LWW tiebreak key (0305); NULL for legacy rows. */
   tiebreak_key: string | null
   ordinal: number | null
   [key: string]: SQLValue
@@ -110,7 +110,7 @@ export function hydrateJoinedRows(rows: JoinedNodePropertyRow[]): NodeState[] {
         author: (row.updated_by ?? '') as DID,
         wallTime: row.prop_updated_at ?? 0,
         // Round-trip the stored key so the in-memory LWW comparison matches the
-        // SQL guard exactly (0300); NULL legacy rows keep the author tiebreak.
+        // SQL guard exactly (0305); NULL legacy rows keep the author tiebreak.
         ...(row.tiebreak_key != null ? { tiebreakKey: row.tiebreak_key } : {})
       }
       if ((row.prop_updated_at ?? 0) >= node.updatedAt) {
@@ -141,7 +141,7 @@ export function hydrateAggregatedRows(rows: AggregatedNodeRow[]): NodeState[] {
         lamport: entry.l ?? 0,
         author: (entry.b ?? '') as DID,
         wallTime: entry.w ?? 0,
-        // Round-trip the stored tiebreak key (0300) so aggregated hydrate
+        // Round-trip the stored tiebreak key (0305) so aggregated hydrate
         // matches the SQL guard; NULL/absent → author tiebreak.
         ...(entry.k != null ? { tiebreakKey: entry.k } : {})
       }

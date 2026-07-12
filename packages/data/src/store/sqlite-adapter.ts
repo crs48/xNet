@@ -94,7 +94,7 @@ const NODE_PROPERTIES_LWW_GUARD = lwwUpdateGuardSql({
   lamportColumn: 'lamport_time',
   wallTimeColumn: 'updated_at',
   authorColumn: 'updated_by',
-  // Grinding-resistant final tiebreak (exploration 0300): larger key wins when
+  // Grinding-resistant final tiebreak (exploration 0305): larger key wins when
   // both rows carry one (v4+), else the author DID. The key is precomputed in
   // application code and stored, so SQL only compares the opaque hex — byte
   // identical to `shouldReplace` in ./store.ts, no user-defined function.
@@ -1717,7 +1717,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
 
       operations.push({
         // Full LWW ordering chain — keep in lockstep with the setNode
-        // upsert above and `shouldReplace` in ./store.ts (0272/0300).
+        // upsert above and `shouldReplace` in ./store.ts (0272/0305).
         sql: `INSERT INTO node_properties
                 (node_id, property_key, value, lamport_time, updated_by, updated_at, tiebreak_key)
               VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -2047,7 +2047,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   }
 
   /**
-   * Ensure the `node_properties.tiebreak_key` column exists (exploration 0300).
+   * Ensure the `node_properties.tiebreak_key` column exists (exploration 0305).
    * Fresh databases get it from the DDL; databases created before schema v8 need
    * this in-place add so the grinding-resistant LWW guard has a column to
    * compare. Idempotent, memoized, and non-fatal on races — a legacy NULL key

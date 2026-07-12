@@ -1,5 +1,5 @@
 /**
- * Unit tests for the relay's `wallTime` upper bound (exploration 0300, fix G).
+ * Unit tests for the relay's `wallTime` upper bound (exploration 0305, fix G).
  *
  * `wallTime` is the middle LWW tiebreak rung and is a client-set `Date.now()`.
  * Without a bound an attacker sets it far in the future to win that rung
@@ -67,7 +67,7 @@ const allowAll = { did: 'did:key:tester', can: () => true }
 
 const relay = () => new NodeRelayService(createMemoryStorage(), {}, { now: () => HUB_NOW })
 
-describe('relay wallTime bound (0300 fix G)', () => {
+describe('relay wallTime bound (0305 fix G)', () => {
   it('rejects a change whose wallTime is far in the future', async () => {
     const svc = relay()
     const change = signedChangeWithWallTime(HUB_NOW + 60 * 60_000) // +1h

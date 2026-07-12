@@ -29,7 +29,7 @@ export type ShardConfig = {
   refreshIntervalMs?: number
   /**
    * Coordinator-issued nonce that salts every hub/shard consistent-hash ring
-   * position (exploration 0300). The registry rotates it per rebalancing epoch;
+   * position (exploration 0305). The registry rotates it per rebalancing epoch;
    * because a hub operator cannot choose it, they cannot grind a `hubDid` that
    * durably captures a target shard. Unset ⇒ empty salt (still 128-bit-wide,
    * but without the per-epoch re-randomisation — set it in multi-operator

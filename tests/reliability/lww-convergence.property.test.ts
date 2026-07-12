@@ -190,7 +190,7 @@ describe('LWW convergence property (0272)', () => {
   }, 120_000)
 
   it('no fixed DID wins a majority of v4 ties across random (property, value) pairs', async () => {
-    // The security property of exploration 0300: under v4 the final tiebreak is
+    // The security property of exploration 0305: under v4 the final tiebreak is
     // blake3(author‖property‖value), so a single "vanity" DID cannot win most
     // ties. We simulate an attacker who grinds many identities and, for each,
     // measures how often it beats a fixed honest DID across random matchups.

@@ -15,7 +15,7 @@
  * locale collation is non-deterministic across ICU versions and would break
  * CRDT convergence (see the `0004-tie-author-case-codeunit` golden vector).
  *
- * ## Grinding-resistant final tiebreak (exploration 0300)
+ * ## Grinding-resistant final tiebreak (exploration 0305)
  *
  * The pre-v4 final tiebreak was the raw `author` DID: "higher DID wins". Since
  * a `did:key` is a free, attacker-chosen function of a keypair, an attacker
@@ -58,7 +58,7 @@ function toHex(bytes: Uint8Array): string {
 }
 
 /**
- * The grinding-resistant LWW final tiebreak key (exploration 0300):
+ * The grinding-resistant LWW final tiebreak key (exploration 0305):
  * `blake3_hex( author ‖ US ‖ propertyKey ‖ US ‖ canonicalJSON(value) )`.
  *
  * Portable by construction — a kernel in any language reproduces it from

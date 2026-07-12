@@ -1,5 +1,5 @@
 /**
- * Shard-ring grinding resistance (exploration 0300).
+ * Shard-ring grinding resistance (exploration 0305).
  *
  * The consistent-hash ring places hubs by `ringPosition(hubDid, epochNonce)` —
  * 128-bit and salted by a coordinator nonce. A hub operator controls their
@@ -49,7 +49,7 @@ async function assignmentsFor(nonce: string, hubDids: string[]): Promise<Record<
   return ownership(registry.get())
 }
 
-describe('shard ring grinding resistance (0300)', () => {
+describe('shard ring grinding resistance (0305)', () => {
   const honest = ['did:key:zHostA', 'did:key:zHostB', 'did:key:zHostC']
 
   it('re-salting per epoch re-randomises shard ownership (no persistent capture)', async () => {

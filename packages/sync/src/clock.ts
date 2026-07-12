@@ -93,7 +93,7 @@ export function compareLamportTimestamps(a: LamportTimestamp, b: LamportTimestam
   //
   // This orders bare timestamps (a time + author), which carry no property or
   // value, so the grinding-resistant per-property tiebreak key (exploration
-  // 0300) does not apply here — it lives in `@xnetjs/core`'s `compareLwwStamps`,
+  // 0305) does not apply here — it lives in `@xnetjs/core`'s `compareLwwStamps`,
   // the only per-property LWW winner-decider. `isBefore`/`isAfter` build on
   // this for causal checks, never to pick a conflict winner.
   if (a.author < b.author) return -1

@@ -5,7 +5,7 @@
 "@xnetjs/sqlite": major
 ---
 
-Grinding-resistant Last-Write-Wins tiebreak (protocol v4, exploration 0300)
+Grinding-resistant Last-Write-Wins tiebreak (protocol v4, exploration 0305)
 
 The final LWW conflict tiebreak was the raw author DID ("higher DID wins").
 Because a `did:key` is a free, attacker-chosen function of a keypair, an

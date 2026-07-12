@@ -1,7 +1,7 @@
 /**
  * V4 Serializer — identical wire format to V3, protocol version 4.
  *
- * Protocol v4 (exploration 0300) changes only the *convergence rule* (a
+ * Protocol v4 (exploration 0305) changes only the *convergence rule* (a
  * grinding-resistant LWW final tiebreak, see `@xnetjs/core`'s
  * `computeLwwTiebreakKey`). That tiebreak key is DERIVED at resolution time
  * from the change's own fields — it is never part of the wire format or the
