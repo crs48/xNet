@@ -495,7 +495,7 @@ export function singleFlight<K, V>(
       load paths). `useNode.ts:223` (flush handoff) and `useQuery.ts:254`
       (warn-once `Set`) turned out not to be single-flight-shaped — left
       as-is, see the correction note in §Concurrency.
-- [ ] Export new modules via scoped sub-barrels + one grouped root
+- [x] Export new modules via scoped sub-barrels + one grouped root
       re-export block (0276 policy); write the changeset (minor for `core`,
       patch for `runtime`/`plugins`/`react`/`data`).
 - [ ] Record the Tier 1 re-evaluation trigger as a dated note in this doc
