@@ -27,7 +27,7 @@ import { SidebarIslands } from './SidebarIslands'
 import { useWorkbench } from './state'
 import { StatusBar } from './StatusBar'
 
-const ISLAND = 'overflow-hidden rounded-2xl border border-hairline bg-island-b shadow-isl'
+const ISLAND = 'overflow-hidden rounded-2xl border border-hairline bg-island-b'
 
 export function FloatingFrame({ children }: { children: ReactNode }) {
   const sidebarCollapsed = useWorkbench((s) => s.sidebarCollapsed)
@@ -75,7 +75,7 @@ export function FloatingFrame({ children }: { children: ReactNode }) {
 
         {/* Status-bar island (+ dev-tools island in dev builds) */}
         <div className="flex h-8 shrink-0 items-stretch gap-2">
-          <div className="min-w-0 flex-1 overflow-hidden rounded-[14px] border border-hairline bg-island-b shadow-isl">
+          <div className="min-w-0 flex-1 overflow-hidden rounded-[14px] border border-hairline bg-island-b">
             <StatusBar variant="island" />
           </div>
           {devtoolsAvailable && <DevToolsIsland />}

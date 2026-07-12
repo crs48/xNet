@@ -43,8 +43,7 @@ import { isRealSpace } from './views/explorer-scope'
 
 type OpenMenu = (name: FloatingMenuName) => (e: React.MouseEvent) => void
 
-const ISLAND =
-  'flex flex-col overflow-hidden rounded-2xl border border-hairline bg-island-b shadow-isl'
+const ISLAND = 'flex flex-col overflow-hidden rounded-2xl border border-hairline bg-island-b'
 
 function useRouteActive(): (to: string | undefined) => boolean {
   const pathname = useRouterState({ select: (s) => s.location.pathname })

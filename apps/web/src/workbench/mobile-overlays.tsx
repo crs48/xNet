@@ -165,9 +165,7 @@ function Segmented<T extends string>({
             type="button"
             onClick={() => onChange(opt.key)}
             className={`h-[30px] flex-1 rounded-lg border-none text-[12.5px] transition-colors cursor-pointer ${
-              on
-                ? 'bg-island font-semibold text-ink-1 shadow-isl'
-                : 'bg-transparent font-medium text-ink-3'
+              on ? 'bg-island font-semibold text-ink-1' : 'bg-transparent font-medium text-ink-3'
             }`}
           >
             {opt.label}

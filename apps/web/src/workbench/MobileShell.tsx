@@ -65,7 +65,7 @@ const FRAME =
   'wb-root relative mt-[var(--storage-banner-height,0px)] flex h-[calc(100dvh-var(--storage-banner-height,0px))] flex-col overflow-hidden bg-island font-sans text-ink-1'
 
 /** Island chrome shared by the floating cluster + status pill. */
-const ISLAND = 'border border-hairline bg-island-b shadow-isl'
+const ISLAND = 'border border-hairline bg-island-b'
 
 /** A bottom offset that clears the home-indicator safe area. */
 const sb = (px: number) => `calc(env(safe-area-inset-bottom, 0px) + ${px}px)`
@@ -297,7 +297,7 @@ function BottomCluster({
         onClick={onNew}
         title="New"
         aria-label="New"
-        className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full border-none bg-primary text-primary-foreground shadow-isl cursor-pointer"
+        className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-full border-none bg-primary text-primary-foreground cursor-pointer"
       >
         <Plus size={20} strokeWidth={2} />
       </button>
