@@ -4,7 +4,7 @@
 
 ### Minor Changes
 
-- [#480](https://github.com/crs48/xNet/pull/480) [`5866992`](https://github.com/crs48/xNet/commit/5866992b73a69a92321c7319a40834019f7f7141) Thanks [@crs48](https://github.com/crs48)! - New `@xnetjs/core` utilities (exploration 0300 — Effect Tier 0): a
+- [#480](https://github.com/crs48/xNet/pull/480) [`5866992`](https://github.com/crs48/xNet/commit/5866992b73a69a92321c7319a40834019f7f7141) Thanks [@crs48](https://github.com/crs48)! - New `@xnetjs/core` utilities (exploration 0303 — Effect Tier 0): a
   dependency-free `RetryPolicy` vocabulary (`fixed`, `exponential`, `capped`,
   `jittered`, `limitAttempts`), a `TaggedError` base class with `isTagged`
   guard for string-discriminant errors, and a `singleFlight` promise-dedupe

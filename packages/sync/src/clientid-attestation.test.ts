@@ -493,7 +493,7 @@ describe('integration: attestation flow', () => {
   })
 })
 
-describe('derived clientID (grinding guard, exploration 0300)', () => {
+describe('derived clientID (grinding guard, exploration 0305)', () => {
   it('deriveClientIdFromDid is deterministic, positive, and 31-bit', () => {
     const { identity } = generateIdentity()
     const a = deriveClientIdFromDid(identity.did)

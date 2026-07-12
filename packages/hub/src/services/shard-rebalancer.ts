@@ -10,7 +10,7 @@ import { hash } from '@xnetjs/crypto'
 const encoder = new TextEncoder()
 
 /**
- * A hub's (or shard's) position on the consistent-hash ring (exploration 0300).
+ * A hub's (or shard's) position on the consistent-hash ring (exploration 0305).
  *
  * Previously `blake3(hubDid)` truncated to **32 bits** with no salt — a hub
  * operator controls their own `hubDid`, so grinding one to land immediately

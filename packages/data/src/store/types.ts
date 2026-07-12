@@ -73,7 +73,7 @@ export interface PropertyTimestamp {
   /** Wall clock time (for display) */
   wallTime: number
   /**
-   * Grinding-resistant LWW tiebreak key (exploration 0300;
+   * Grinding-resistant LWW tiebreak key (exploration 0305;
    * `computeLwwTiebreakKey`). Present only for protocol v4+ writes; absent
    * (legacy) timestamps fall back to the author-DID tiebreak.
    */

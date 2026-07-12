@@ -124,7 +124,7 @@ export { TaggedError, isTagged } from './errors'
 // Async utilities (exploration 0303)
 export { singleFlight, type SingleFlightOptions } from './async'
 
-// The ONE Last-Write-Wins ordering (protocol §L1.7; exploration 0276/0300)
+// The ONE Last-Write-Wins ordering (protocol §L1.7; exploration 0276/0305)
 export {
   LWW_TIEBREAK_KEY_VERSION,
   compareChangeApplicationOrder,

@@ -2223,7 +2223,7 @@ export class NodeStore {
       lamport: change.lamport,
       author: change.authorDID,
       wallTime: change.wallTime,
-      // Grinding-resistant final tiebreak (exploration 0300): only v4+ changes
+      // Grinding-resistant final tiebreak (exploration 0305): only v4+ changes
       // carry a key, so a v4-vs-legacy comparison degrades to the author DID
       // and mixed fleets still agree.
       ...((change.protocolVersion ?? 0) >= LWW_TIEBREAK_KEY_VERSION

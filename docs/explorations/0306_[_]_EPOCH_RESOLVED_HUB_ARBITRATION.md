@@ -1,7 +1,7 @@
 # Epoch-Resolved Hub Arbitration — An Optional Finality Layer Against Hash Grinding
 
-> Companion to [`0300_[_]_HASH_GRINDING_MITIGATION.md`](0300_[_]_HASH_GRINDING_MITIGATION.md).
-> 0300 established the attack (grind a vanity DID that wins every LWW tie) and
+> Companion to [`0305_[x]_HASH_GRINDING_MITIGATION.md`](0305_[x]_HASH_GRINDING_MITIGATION.md).
+> 0305 established the attack (grind a vanity DID that wins every LWW tie) and
 > recommended a client-side per-conflict re-keyed tiebreak. This doc explores a
 > **different, heavier mitigation the user asked about specifically**: let hubs
 > assign an unforgeable arrival order, sealed per epoch, and arbitrate conflicts
@@ -14,7 +14,7 @@ whose final tiebreak is the author's DID compared by code units
 (`packages/core/src/lww.ts:29`). Because a DID is a free, attacker-chosen
 function of a keypair (`packages/identity/src/did.ts`), an attacker grinds a
 vanity keypair that sorts to the top and **wins every concurrent-write tie
-against every honest peer, permanently, for a one-time cost** (0300).
+against every honest peer, permanently, for a one-time cost** (0305).
 
 The tiebreak is grindable *because its input is something the attacker controls
 and can precompute offline.* The idea under study here removes that property:
@@ -71,7 +71,7 @@ hub-less, or multi-hub convergence when absent or in conflict?"**
   DID order. This makes arbitration a **strengthening layer, never a
   correctness dependency.**
 - **Recommendation:** treat this as a **long-horizon, opt-in finality layer**,
-  and ship 0300's cheap client-side re-keyed tiebreak first as the baseline that
+  and ship 0305's cheap client-side re-keyed tiebreak first as the baseline that
   protects the offline/hub-less case. Model the seal on Bayou's
   tentative-vs-committed states and CONIKS's chained-STR; make it strictly
   optional per Space; require the unbuilt replication manifest (0258) to name a
@@ -122,7 +122,7 @@ validates capability → `verifyChangeHash` → DID → `verifyChange` (sig) →
 mentions → dedup → storage-full → quota → **`appendNodeChange` (`:215`)** →
 `fanOutToShareRoom` (`:223`). Line 215 is where a hub would assign a monotonic
 epoch/seq under a per-room lock and where an epoch boundary would produce a
-signed seal. Note there is **no `wallTime` upper-bound check** here today (0300
+signed seal. Note there is **no `wallTime` upper-bound check** here today (0305
 fix "G") — an epoch stamp assigned at append time naturally supersedes the
 grindable `wallTime` rung. `appendNodeChange` currently returns `void`
 (`interface.ts:485`); it would need to return the assigned epoch/seq.
@@ -163,7 +163,7 @@ violations (it detects a mark going *backwards*, not equivocation).
   (`hub_did` in `federation_peers`/`shard_hosts`, UCAN `aud` check in
   `auth/ucan.ts:100`). The sync-path hub is `did:key:hub` placeholder
   (`server.ts:198`), and the shard ring already treats `hubDid` as
-  **grindable** (0300, `shard-rebalancer.ts` `blake3(hubDid)` 32-bit) — epoch
+  **grindable** (0305, `shard-rebalancer.ts` `blake3(hubDid)` 32-bit) — epoch
   arbitration that trusts `hubDid` inherits that Sybil surface unless hub
   identity is pinned.
 
@@ -290,7 +290,7 @@ needs the heavy BFT machinery the optionality constraint rules out.
    a lying hub.
 4. **Offline finality gap is unavoidable.** Grinding is mitigated only for
    *sealed* changes on hub-connected rooms; unsealed/offline-concurrent edits
-   still fall through to the grindable DID order — so 0300's client-side fix is
+   still fall through to the grindable DID order — so 0305's client-side fix is
    still needed as the floor.
 5. **Equivocation is the dominant risk, and prevention is out of reach** without
    trusted hardware (A2M) or BFT; the achievable bar is **detection** via
@@ -304,10 +304,10 @@ needs the heavy BFT machinery the optionality constraint rules out.
 
 ## Options And Tradeoffs
 
-### Option A — No hub arbitration; ship 0300's re-keyed tiebreak only
+### Option A — No hub arbitration; ship 0305's re-keyed tiebreak only
 
 Keep order client-derived; kill grinding with the per-conflict pair-hash from
-0300.
+0305.
 
 - **Pro:** preserves the 0258 invariant intact; cheap; protects offline/hub-less
   fully; no equivocation surface, no hub identity work.
@@ -320,13 +320,13 @@ Keep order client-derived; kill grinding with the per-conflict pair-hash from
 
 Hub assigns an epoch/seq at append; at epoch close (`BatchTimeout`/`BatchSize`)
 it signs a seal chained to the prior seal. Changes are **tentative** (ordered by
-local fallback = 0300's rule) until sealed, then **committed** (ordered by
+local fallback = 0305's rule) until sealed, then **committed** (ordered by
 epoch). On seal arrival, re-resolve affected properties (undo/replay).
 
 ```mermaid
 stateDiagram-v2
   [*] --> Tentative: local write / relayed, unsealed
-  Tentative --> Tentative: converge by fallback order (0300 rule)
+  Tentative --> Tentative: converge by fallback order (0305 rule)
   Tentative --> Committed: hub epoch seal arrives (signed, chained)
   Committed --> Committed: order fixed by epoch; grinding irrelevant
   Tentative --> Orphaned: hub never seals (offline / hub-less)
@@ -384,7 +384,7 @@ complexity to Spaces that ask for it (e.g. a shared ledger, governance data).
 
 **Layer, don't choose.** Sequence:
 
-1. **Ship Option A (0300's re-keyed tiebreak) first** as the floor that protects
+1. **Ship Option A (0305's re-keyed tiebreak) first** as the floor that protects
    every case including offline/hub-less. Grinding should not wait on the hub
    machinery.
 2. **Add Option C (evidence-only chained seal)** next: give the sync-path hub a
@@ -462,7 +462,7 @@ export function detectEquivocation(a: SignedEpochSeal, b: SignedEpochSeal): bool
 ```
 
 Comparator gating (`packages/core/src/lww.ts`) — epoch above the fallback, but
-only when **both** sides are sealed (else fall back to 0300's rule so unsealed
+only when **both** sides are sealed (else fall back to 0305's rule so unsealed
 and offline changes still converge):
 
 ```ts
@@ -470,7 +470,7 @@ export interface LwwStamp {
   lamport: number
   wallTime: number
   author: string
-  changeHash: string          // for 0300 fallback tiebreak
+  changeHash: string          // for 0305 fallback tiebreak
   epoch?: { hubDid: string; epoch: number; index: number } // present iff sealed
 }
 
@@ -482,7 +482,7 @@ export function compareLwwStamps(a: LwwStamp, b: LwwStamp): number {
   }
   if (a.lamport !== b.lamport) return a.lamport - b.lamport
   if (a.wallTime !== b.wallTime) return a.wallTime - b.wallTime
-  return pairTiebreak(a, b) // 0300: not grindable, no universal winner
+  return pairTiebreak(a, b) // 0305: not grindable, no universal winner
 }
 ```
 
@@ -502,7 +502,7 @@ export function compareLwwStamps(a: LwwStamp, b: LwwStamp): number {
   stated, not hidden. What is the response to a proven equivocation — evict the
   hub (Depot), warn the user, both?
 - **Hub identity is a grindable placeholder.** `did:key:hub` must become a real
-  pinned key per hub; and since `hubDid` feeds the 32-bit shard ring (0300), the
+  pinned key per hub; and since `hubDid` feeds the 32-bit shard ring (0305), the
   hub-identity work should land with that fix or inherit its Sybil surface.
 - **Manifest bootstrap circularity.** The `ReplicationPolicy` that names the
   arbitrating hub is itself synced LWW data (0258) — how is *it* arbitrated?
@@ -521,8 +521,8 @@ export function compareLwwStamps(a: LwwStamp, b: LwwStamp): number {
 
 ## Implementation Checklist
 
-Baseline (do first, from 0300):
-- [ ] Ship 0300's per-conflict re-keyed tiebreak (Option A) as the floor.
+Baseline (do first, from 0305):
+- [ ] Ship 0305's per-conflict re-keyed tiebreak (Option A) as the floor.
 
 Evidence-only seal (Option C):
 - [ ] Give the sync-path hub a real keypair; retire `did:key:hub`
@@ -538,7 +538,7 @@ Evidence-only seal (Option C):
       verifies hub identity.
 - [ ] Gossip the last seal hash over existing anti-entropy; add
       `detectEquivocation`; define the response to a proven fork.
-- [ ] Bound `wallTime` at the relay (0300 fix G) alongside epoch stamping.
+- [ ] Bound `wallTime` at the relay (0305 fix G) alongside epoch stamping.
 
 Full arbitration behind opt-in Spaces (Options B + D), only if finality is needed:
 - [ ] Per-Space `arbitration` flag + canonical `arbitratingHubDid` in the
@@ -587,7 +587,7 @@ Full arbitration behind opt-in Spaces (Options B + D), only if finality is neede
 - `packages/data/src/store/store.ts:2208-2265`, `types.ts:68` — LWW apply site + `PropertyTimestamp`
 - `packages/core/src/lww.ts:19-34` — comparator; `packages/core/src/snapshots.ts:17` — signed checkpoint
 - `packages/abuse/src/hub-policy-offer.ts` — signed-hub-document template; `packages/hub/src/server.ts:198` — `did:key:hub` placeholder
-- `docs/explorations/0258_..._MULTI_HOME_SYNC...md:88` — the convergence invariant; `docs/explorations/0300_[_]_HASH_GRINDING_MITIGATION.md` — the attack + Option A
+- `docs/explorations/0258_..._MULTI_HOME_SYNC...md:88` — the convergence invariant; `docs/explorations/0305_[x]_HASH_GRINDING_MITIGATION.md` — the attack + Option A
 
 **Prior art**
 - Bayou (Terry et al., SOSP 1995) — https://people.eecs.berkeley.edu/~brewer/cs262b/update-conflicts.pdf

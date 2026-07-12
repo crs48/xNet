@@ -20,7 +20,7 @@ import { verifyChangeHash } from './change'
  * This orders WHOLE changes (fork-branch labelling in `getForks`, replay order
  * in `topologicalSort`) — it decides no per-property LWW winner and, because
  * LWW is order-independent, does not affect the converged state. The
- * grinding-resistant tiebreak key (exploration 0300) therefore lives only in
+ * grinding-resistant tiebreak key (exploration 0305) therefore lives only in
  * the per-property decider (`@xnetjs/core`'s `compareLwwStamps`): a key is
  * `blake3(author ‖ property ‖ value)` and a change spans many properties, so it
  * has no meaning at change granularity. Keeping the author tiebreak here is a

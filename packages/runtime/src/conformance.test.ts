@@ -163,7 +163,7 @@ for (const { name, description, options } of changeInputs) {
 
 // ── L1 · LWW convergence vectors ─────────────────────────────────────────────
 // The final tiebreak is the raw author DID for legacy changes, or (protocol
-// v4+, exploration 0300) a grinding-resistant per-conflict key. cmpTs mirrors
+// v4+, exploration 0305) a grinding-resistant per-conflict key. cmpTs mirrors
 // `@xnetjs/core`'s compareLwwStamps exactly.
 type LwwTs = { lamport: number; wallTime: number; author: string; tiebreakKey?: string }
 const cmpTs = (a: LwwTs, b: LwwTs): number => {
@@ -263,7 +263,7 @@ const lwwScenarios = [
     ] as LwwChange[]
   },
   {
-    // Grinding-resistant final tiebreak (exploration 0300, spec §7.1): at
+    // Grinding-resistant final tiebreak (exploration 0305, spec §7.1): at
     // protocolVersion 4 a lamport+wallTime tie is decided by
     // blake3(author ‖ property ‖ value), NOT the author DID — so the
     // lexically-maximal DID does NOT automatically win. Here 'did:key:zzzz'

@@ -60,7 +60,7 @@ export class NodeRelayError extends TaggedError<'NodeRelayError'> {
       | 'INVALID_CHANGE'
       | 'INVALID_SIGNATURE'
       | 'INVALID_HASH'
-      // `wallTime` is implausibly far in the future (grinding guard, 0300).
+      // `wallTime` is implausibly far in the future (grinding guard, 0305).
       | 'INVALID_WALL_TIME'
       | 'REPLAY_REJECTED'
       // The author's stored data would exceed the per-user cap (demo mode).
@@ -90,7 +90,7 @@ export type NodeRelayOptions = {
   isStorageFull?: () => boolean
   /**
    * Reject a change whose `wallTime` is more than this many milliseconds in the
-   * future (exploration 0300, fix G). `wallTime` is the middle LWW tiebreak
+   * future (exploration 0305, fix G). `wallTime` is the middle LWW tiebreak
    * rung and is a client-supplied `Date.now()`; without a bound an attacker can
    * set it far ahead to win the wallTime rung without ever reaching the author
    * tiebreak. Default 5 minutes. Set to 0/negative to disable (self-host).
@@ -118,7 +118,7 @@ export type NodeRelayOptions = {
 
 /**
  * Default upper bound on how far a change's `wallTime` may lead the hub clock
- * (exploration 0300, fix G). Five minutes tolerates ordinary client clock skew
+ * (exploration 0305, fix G). Five minutes tolerates ordinary client clock skew
  * while bounding the future-wallTime LWW-tiebreak grind.
  */
 const DEFAULT_MAX_WALL_TIME_SKEW_MS = 5 * 60_000
@@ -194,7 +194,7 @@ export class NodeRelayService {
       throw new NodeRelayError('INVALID_SIGNATURE', 'Change signature is invalid')
     }
 
-    // Bound wallTime to now + skew (exploration 0300, fix G). wallTime is the
+    // Bound wallTime to now + skew (exploration 0305, fix G). wallTime is the
     // middle LWW tiebreak rung and is a client-set Date.now(); an unbounded
     // future value wins that rung outright, a cheaper grind than the author
     // tiebreak. A bound closes it without needing synchronized clocks (skew is
