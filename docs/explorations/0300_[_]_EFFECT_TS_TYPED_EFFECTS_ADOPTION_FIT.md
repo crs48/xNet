@@ -473,11 +473,11 @@ export function singleFlight<K, V>(
 - [x] Add `packages/core/src/retry/` policy module (exponential, capped,
       jittered, fixed) with unit tests (fake timers, property tests via
       `fast-check` for monotonicity/cap invariants).
-- [ ] Refactor `packages/runtime/src/sync/connection-manager.ts`
+- [x] Refactor `packages/runtime/src/sync/connection-manager.ts`
       `scheduleReconnect()` onto the policy module, preserving the 1008
       rate-limit branch behavior exactly (golden tests on the delay
       sequences before/after).
-- [ ] Refactor `packages/runtime/src/sync/WebSocketSyncProvider.ts` onto the
+- [x] Refactor `packages/runtime/src/sync/WebSocketSyncProvider.ts` onto the
       same module; delete its private backoff state.
 - [ ] Migrate `packages/plugins/src/services/webhook-emitter.ts` retry loop
       onto the policy module.
