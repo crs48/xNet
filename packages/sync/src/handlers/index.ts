@@ -254,6 +254,12 @@ export const changeHandlerRegistry = new ChangeHandlerRegistry()
 
 /**
  * Create a simple handler that accepts all versions.
+ *
+ * SECURITY: the handler pipeline does NOT verify change hashes or signatures,
+ * and the default `validate` accepts everything. Handlers process
+ * already-authenticated changes — callers MUST verify authorship (`verifyChange`
+ * + `verifyChangeHash`) before routing untrusted input through the registry
+ * (exploration 0307).
  */
 export function createHandler<T>(
   type: string,

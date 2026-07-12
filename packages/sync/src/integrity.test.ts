@@ -4,7 +4,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import type { Change } from './change'
-import { generateKeyPair } from '@xnetjs/crypto'
+import { generateIdentity } from '@xnetjs/identity'
 import { describe, it, expect } from 'vitest'
 import { signChange, createUnsignedChange } from './change'
 import {
@@ -29,17 +29,19 @@ async function createTestChange(
     wallTime: number
   }> = {}
 ): Promise<Change<{ data: string }>> {
-  const keyPair = await generateKeyPair()
+  // Use a real did:key so the author DID binds to the signing key — the
+  // integrity checker now verifies signatures cryptographically (0307).
+  const { identity, privateKey } = generateIdentity()
   const unsigned = createUnsignedChange({
     id: overrides.id ?? `change-${Math.random().toString(36).slice(2)}`,
     type: 'test-change',
     payload: { data: 'test' },
     parentHash: (overrides.parentHash ?? null) as any,
-    authorDID: 'did:key:test' as any,
+    authorDID: identity.did,
     lamport: overrides.lamportTime ?? 1,
     wallTime: overrides.wallTime ?? Date.now()
   })
-  return signChange(unsigned, keyPair.privateKey)
+  return signChange(unsigned, privateKey)
 }
 
 async function createChain(length: number): Promise<Change<{ data: string }>[]> {
@@ -313,13 +315,40 @@ describe('attemptRepair', () => {
       }
     ]
 
-    const result = await attemptRepair([change], issues)
+    // recompute-hash is gated: it must be explicitly trusted (0307).
+    const result = await attemptRepair([change], issues, { trustHashRecompute: true })
 
     expect(result.repairCount).toBe(1)
     expect(result.remainingIssues).toHaveLength(0)
     // Hash should be recomputed (not 'bad' anymore)
     expect(result.repaired[0].hash).not.toBe('cid:blake3:bad')
     expect(result.repaired[0].hash).toMatch(/^cid:blake3:/)
+  })
+
+  it('should refuse recompute-hash on untrusted data by default', async () => {
+    const change = await createTestChange({ id: 'untrusted-hash' })
+    ;(change as any).hash = 'cid:blake3:bad'
+
+    const issues = [
+      {
+        changeId: 'untrusted-hash',
+        type: 'hash-mismatch' as const,
+        details: 'Hash mismatch',
+        severity: 'error' as const,
+        repairAction: {
+          type: 'recompute-hash' as const,
+          description: 'Recompute hash',
+          automatic: true
+        }
+      }
+    ]
+
+    // No trustHashRecompute flag → must NOT launder the tampered payload.
+    const result = await attemptRepair([change], issues)
+
+    expect(result.repairCount).toBe(0)
+    expect(result.remainingIssues).toHaveLength(1)
+    expect(result.repaired[0].hash).toBe('cid:blake3:bad')
   })
 
   it('should not repair non-automatic issues', async () => {

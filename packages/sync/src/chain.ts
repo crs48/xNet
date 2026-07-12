@@ -66,6 +66,13 @@ export interface Fork<T = unknown> {
  * - All hashes are computed correctly (not tampered)
  * - Parent references exist in the chain (or are null for roots)
  *
+ * SECURITY: this is a **structural** check only — it does NOT verify Ed25519
+ * signatures, and a missing parent or a fork is reported (or tolerated) rather
+ * than treated as a hard failure. It is not an admission gate for untrusted
+ * input: authenticate authorship with `verifyChange` (and apply LWW/idempotency)
+ * at the ingest boundary — see `NodeStore.applyRemoteChange` and the hub's
+ * `node-relay.ts`, which run the real crypto checks (exploration 0307).
+ *
  * @param changes - The changes to validate
  * @returns Validation result
  */

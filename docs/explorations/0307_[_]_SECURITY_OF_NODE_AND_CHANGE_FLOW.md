@@ -512,12 +512,12 @@ export async function verifyIntegrity<T>(
       ([`envelope.ts:167`](../../packages/crypto/src/envelope.ts)).
 - [ ] Authenticate or refuse the key-registry HTTP fallback
       ([`key-resolution.ts:211`](../../packages/crypto/src/key-resolution.ts)).
-- [ ] `verifyIntegrity` takes a key resolver and performs real Ed25519
+- [x] `verifyIntegrity` takes a key resolver and performs real Ed25519
       verification; `quickIntegrityCheck` documented as structural-only
       ([`integrity.ts:204`](../../packages/sync/src/integrity.ts)).
-- [ ] Gate `attemptRepair('recompute-hash')` behind an explicit trusted-source
+- [x] Gate `attemptRepair('recompute-hash')` behind an explicit trusted-source
       flag ([`integrity.ts:409`](../../packages/sync/src/integrity.ts)).
-- [ ] Document `validateChain`/handler-registry/`AuthorizedYjsSyncProvider` as
+- [x] Document `validateChain`/handler-registry/`AuthorizedYjsSyncProvider` as
       non-authenticating, or add opt-in signature+size enforcement
       ([`chain.ts:84`](../../packages/sync/src/chain.ts),
       [`yjs-authorized-sync.ts:279`](../../packages/sync/src/yjs-authorized-sync.ts)).

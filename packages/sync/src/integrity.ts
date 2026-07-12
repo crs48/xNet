@@ -20,7 +20,8 @@
  */
 
 import type { Change } from './change'
-import { computeChangeHash, verifyChangeHash } from './change'
+import { parseDID } from '@xnetjs/identity'
+import { computeChangeHash, verifyChange, verifyChangeHash } from './change'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -108,6 +109,14 @@ export interface VerifyOptions {
   maxFutureTimestamp?: number
   /** Progress callback */
   onProgress?: (checked: number, total: number) => void
+  /**
+   * Resolve an author DID to its Ed25519 public key so signatures can be
+   * verified cryptographically (not merely checked for presence). Defaults to
+   * {@link parseDID} — a `did:key` is self-certifying (the DID *is* the public
+   * key), so no external key lookup is needed. Provide a custom resolver only
+   * for non-`did:key` identities.
+   */
+  resolveKey?: (did: string) => Uint8Array
 }
 
 // ─── Verification Functions ───────────────────────────────────────────────────
@@ -197,12 +206,13 @@ export async function verifyIntegrity(
       }
     }
 
-    // 2. Signature verification
-    // Note: Full signature verification requires the author's public key.
-    // This check is skipped by default since we don't have access to keys.
-    // Use skipSignatures: false and provide a key lookup function for full verification.
+    // 2. Signature verification — real Ed25519 verification against the key
+    // recovered from the author's DID. A `did:key` is self-certifying, so
+    // `resolveKey` defaults to {@link parseDID} and no external trust anchor is
+    // needed; a missing/empty signature or an unresolvable author DID is a hard
+    // failure. (Historically this only checked that the field was non-empty,
+    // which reported forged/garbage signatures as valid — exploration 0307.)
     if (!options.skipSignatures && !hasIssue) {
-      // For now, we can only verify that the signature field is present and non-empty
       if (!change.signature || change.signature.length === 0) {
         issues.push({
           changeId: change.id,
@@ -212,6 +222,25 @@ export async function verifyIntegrity(
           // No automatic repair - would need original signing key
         })
         hasIssue = true
+      } else {
+        const resolveKey = options.resolveKey ?? parseDID
+        let signatureValid = false
+        try {
+          signatureValid = verifyChange(change, resolveKey(change.authorDID))
+        } catch {
+          // Unresolvable/invalid author DID — authorship cannot be verified.
+          signatureValid = false
+        }
+        if (!signatureValid) {
+          issues.push({
+            changeId: change.id,
+            type: 'signature-invalid',
+            details: 'Signature does not verify against the author DID',
+            severity: 'error'
+            // No automatic repair - would need original signing key
+          })
+          hasIssue = true
+        }
       }
     }
 
@@ -302,8 +331,10 @@ export async function verifyIntegrity(
 }
 
 /**
- * Quick integrity check - only verifies hashes, not signatures.
- * Much faster but less thorough.
+ * Quick integrity check — verifies **hashes and chain only**, skipping
+ * signature verification. Faster, but it does NOT authenticate authorship, so
+ * a change with a forged signature and a self-consistent hash passes. Use the
+ * full {@link verifyIntegrity} (default) when authorship matters.
  */
 export async function quickIntegrityCheck(changes: Change<unknown>[]): Promise<IntegrityReport> {
   return verifyIntegrity(changes, {
@@ -378,12 +409,31 @@ export function getChainDepth(changes: Change<unknown>[]): number {
 // ─── Repair Helpers ───────────────────────────────────────────────────────────
 
 /**
+ * Options controlling {@link attemptRepair}.
+ */
+export interface RepairOptions {
+  /**
+   * Allow the `recompute-hash` repair, which **overwrites** a change's stored
+   * hash with a freshly computed one. On tampered data this silently reconciles
+   * the tampered payload to a consistent hash (laundering it) rather than
+   * rejecting it, so it is refused unless the caller explicitly asserts the
+   * changes come from a trusted source (e.g. local self-repair, never untrusted
+   * peer input) — exploration 0307. Default: `false`.
+   */
+  trustHashRecompute?: boolean
+}
+
+/**
  * Attempt to repair issues that can be fixed automatically.
  * Returns the repaired changes and any issues that couldn't be fixed.
+ *
+ * SECURITY: `recompute-hash` is gated behind {@link RepairOptions.trustHashRecompute}
+ * — do not enable it for changes received from untrusted peers.
  */
 export async function attemptRepair(
   changes: Change<unknown>[],
-  issues: IntegrityIssue[]
+  issues: IntegrityIssue[],
+  options: RepairOptions = {}
 ): Promise<{
   repaired: Change<unknown>[]
   remainingIssues: IntegrityIssue[]
@@ -407,7 +457,12 @@ export async function attemptRepair(
 
     switch (issue.repairAction.type) {
       case 'recompute-hash':
-        // Recompute the hash
+        // Overwriting the hash launders tampered payloads — only do it when the
+        // caller vouches for the source (exploration 0307).
+        if (!options.trustHashRecompute) {
+          remainingIssues.push(issue)
+          break
+        }
         change.hash = await computeChangeHash(change)
         repairCount++
         break
