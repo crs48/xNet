@@ -1,5 +1,13 @@
 # @xnetjs/brain
 
+## 0.0.16
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/data@0.11.1
+  - @xnetjs/vectors@0.0.1
+
 ## 0.0.15
 
 ### Patch Changes

@@ -1,5 +1,22 @@
 # @xnetjs/runtime
 
+## 0.3.1
+
+### Patch Changes
+
+- [#471](https://github.com/crs48/xNet/pull/471) [`f4ee6f9`](https://github.com/crs48/xNet/commit/f4ee6f96345f8d221100c820732e19566d7118f1) Thanks [@crs48](https://github.com/crs48)! - `SyncManager.subscribeShareRoom`/`unsubscribeShareRoom` are now refcounted, so multiple callers can subscribe to the same share room and it stays open until the last one unsubscribes (exploration 0298 follow-up — lets a channel/workspace boot-resync coexist with the per-view subscription).
+
+- Updated dependencies []:
+  - @xnetjs/history@0.11.1
+  - @xnetjs/plugins@0.11.1
+  - @xnetjs/data-bridge@0.11.1
+  - @xnetjs/data@0.11.1
+  - @xnetjs/storage@0.11.1
+  - @xnetjs/sync@0.11.1
+  - @xnetjs/identity@0.11.1
+  - @xnetjs/crypto@0.11.1
+  - @xnetjs/core@0.11.1
+
 ## 0.3.0
 
 ### Minor Changes
