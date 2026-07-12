@@ -279,7 +279,9 @@ describe('Database Row Storage', () => {
             databaseId: 'db-1',
             filters: {
               operator: 'and',
-              conditions: [{ columnId: `status') = 'active' OR '1'='1`, operator: 'equals', value: 'x' }]
+              conditions: [
+                { columnId: `status') = 'active' OR '1'='1`, operator: 'equals', value: 'x' }
+              ]
             }
           })
         ).rejects.toThrow(/Unsafe column identifier/)
