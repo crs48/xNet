@@ -1,5 +1,0 @@
-export { FileExtension } from './FileExtension'
-export type { FileExtensionOptions } from './FileExtension'
-export { FileNodeView, formatFileSize } from './FileNodeView'
-export { createFileDropPlugin, FileDropPluginKey } from './FileDropPlugin'
-export type { FileDropPluginOptions } from './FileDropPlugin'

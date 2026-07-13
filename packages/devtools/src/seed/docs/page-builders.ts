@@ -93,7 +93,7 @@ export function experimentProtocolDoc(id: string, schemaId: SchemaIRI, title: st
         { text: 'Analyze + conclude', checked: false }
       ]
     },
-    { kind: 'mermaid', code: 'graph LR; Baseline --> Intervention --> Analysis;', theme: 'default' }
+    { kind: 'mermaid', code: 'graph LR; Baseline --> Intervention --> Analysis;' }
   ])
 }
 

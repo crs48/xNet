@@ -454,9 +454,15 @@ export function useHistoryPanel(): UseHistoryPanelResult {
           // Extract text content for display
           const parts: string[] = []
           try {
-            const content = doc.getXmlFragment('content')
-            if (content.length > 0) {
-              parts.push(`[Rich text: ${content.length} blocks]`)
+            // v4 (BlockNote) fragment nests blocks under a single blockGroup;
+            // fall back to the legacy TipTap fragment for old snapshots.
+            const v4 = doc.getXmlFragment('content-v4')
+            const legacy = doc.getXmlFragment('content')
+            if (v4.length > 0) {
+              const group = v4.get(0) as { length?: number }
+              parts.push(`[Rich text: ${group?.length ?? v4.length} blocks]`)
+            } else if (legacy.length > 0) {
+              parts.push(`[Rich text (legacy): ${legacy.length} blocks]`)
             }
           } catch {
             /* no content fragment */

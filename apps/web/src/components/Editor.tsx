@@ -1,27 +1,53 @@
 /**
  * Document editor component
  *
- * Uses the shared @xnetjs/editor package for rich text editing.
- * Supports comment extensions for inline commenting.
+ * Uses the shared @xnetjs/editor package (BlockNote-based XNetEditor,
+ * exploration 0312) for rich text editing.
  */
 import type { JSX } from 'react'
 import type * as Y from 'yjs'
 import { normalizeTagName } from '@xnetjs/data'
 import {
-  RichTextEditor,
+  XNetEditor,
   useImageUpload,
   useFileUpload,
   useFileDownload,
-  type Editor as TipTapEditor,
   type HashtagSuggestion,
   type PageTaskSnapshot,
   type TaskMentionSuggestion,
   type TaskViewConfig,
   type TaskViewEmbedType,
-  type WikilinkTarget
+  type WikilinkTarget,
+  type XNetEditorInstance
 } from '@xnetjs/editor/react'
 import { TaskCollectionEmbed } from '@xnetjs/react'
 import { useLinkPreviewResolver } from '../hooks/useLinkPreviewResolver'
+
+type TaskEmbedFilters = Parameters<typeof TaskCollectionEmbed>[0]
+
+/**
+ * Map the BlockNote task-view embed config (0312 vocabulary) onto the
+ * filters TaskCollectionEmbed expects (the pre-0312 vocabulary). Defaults
+ * match the old task-view extension: open tasks, hierarchy on.
+ */
+function toTaskEmbedFilters(
+  viewConfig: TaskViewConfig
+): Pick<TaskEmbedFilters, 'scope' | 'assignee' | 'dueDate' | 'status' | 'showHierarchy'> {
+  const dueMap = {
+    overdue: 'overdue',
+    today: 'today',
+    week: 'next-7-days',
+    all: 'any'
+  } as const
+  const statusMap = { open: 'open', completed: 'done', all: 'all' } as const
+  return {
+    scope: viewConfig.scope === 'page' ? 'current-page' : 'all',
+    assignee: viewConfig.scope === 'assigned' ? 'me' : 'any',
+    dueDate: viewConfig.dueDate ? dueMap[viewConfig.dueDate] : 'any',
+    status: viewConfig.status ? statusMap[viewConfig.status] : 'open',
+    showHierarchy: viewConfig.showHierarchy ?? true
+  }
+}
 
 interface Props {
   doc: Y.Doc
@@ -29,11 +55,8 @@ interface Props {
   awareness?: any
   did?: string
   onNavigate?: (docId: string) => void
-  /** Custom extensions (e.g., comment extensions) */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  extensions?: any[]
   /** Callback when editor is ready */
-  onEditorReady?: (editor: TipTapEditor) => void
+  onEditorReady?: (editor: XNetEditorInstance) => void
   /** People that can be inserted as mentions */
   mentionSuggestions?: TaskMentionSuggestion[]
   /** Workspace tags offered by the inline '#' picker (0169) */
@@ -50,8 +73,6 @@ interface Props {
   onPageTasksChange?: (tasks: PageTaskSnapshot[]) => void
   /** Current page ID for embedded task views */
   pageId?: string | null
-  /** Callback for creating a comment */
-  onCreateComment?: (anchorData: string) => Promise<string | null>
   /** Additional class for the editor container */
   className?: string
   /** Backspace in an empty first block (e.g. return focus to the title) */
@@ -63,7 +84,6 @@ export function Editor({
   awareness,
   did,
   onNavigate,
-  extensions,
   onEditorReady,
   mentionSuggestions,
   hashtagSuggestions,
@@ -73,7 +93,6 @@ export function Editor({
   onTagsChange,
   onPageTasksChange,
   pageId,
-  onCreateComment,
   className,
   onBackspaceAtStart
 }: Props): JSX.Element {
@@ -83,26 +102,18 @@ export function Editor({
   const resolveLinkPreview = useLinkPreviewResolver()
 
   return (
-    <RichTextEditor
+    <XNetEditor
       ydoc={doc}
-      field="content"
       placeholder="Start writing..."
       className={className}
       onBackspaceAtStart={onBackspaceAtStart}
       awareness={awareness}
       did={did}
-      showToolbar={true}
-      // Auto-detect (exploration 0196): the editor-ux-state machine picks
-      // the floating bubble menu on pointer/desktop and the keyboard-aware
-      // fixed bottom toolbar on touch/narrow widths. Previously hardcoded
-      // to "desktop", which disabled the entire mobile toolbar path.
-      toolbarMode="auto"
       onNavigate={onNavigate}
       onImageUpload={onImageUpload ?? undefined}
       onFileUpload={onFileUpload ?? undefined}
       onFileDownload={onFileDownload ?? undefined}
       resolveLinkPreview={resolveLinkPreview}
-      extensions={extensions}
       onEditorReady={onEditorReady}
       mentionSuggestions={mentionSuggestions}
       hashtagSuggestions={hashtagSuggestions}
@@ -124,14 +135,9 @@ export function Editor({
         <TaskCollectionEmbed
           currentPageId={currentPageId}
           currentDid={did ?? null}
-          scope={viewConfig.scope}
-          assignee={viewConfig.assignee}
-          dueDate={viewConfig.dueDate}
-          status={viewConfig.status}
-          showHierarchy={viewConfig.showHierarchy}
+          {...toTaskEmbedFilters(viewConfig)}
         />
       )}
-      onCreateComment={onCreateComment}
     />
   )
 }

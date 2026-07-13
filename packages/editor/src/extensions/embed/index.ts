@@ -1,5 +1,0 @@
-export { EmbedExtension } from './EmbedExtension'
-export type { EmbedOptions } from './EmbedExtension'
-export { EmbedNodeView } from './EmbedNodeView'
-export { EMBED_PROVIDERS, detectProvider, parseEmbedUrl } from './providers'
-export type { EmbedProvider } from './providers'

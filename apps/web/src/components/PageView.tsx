@@ -9,9 +9,11 @@
  * save/sync state in the Status Bar.
  *
  * Features:
- * - Collaborative editing via Yjs
- * - Comment system with inline popover and sidebar
- *   (state machine shared with desktop via usePageComments, 0276)
+ * - Collaborative editing via Yjs (BlockNote XNetEditor, 0312)
+ * - Comment threads in the right panel (state machine shared with
+ *   desktop via usePageComments, 0276). Inline text anchoring is
+ *   retired for now (0312 Phase 4): the hook never receives the
+ *   BlockNote editor, so marks are not restored in the document.
  * - Real-time presence indicators
  */
 import { useNavigate } from '@tanstack/react-router'
@@ -19,9 +21,10 @@ import { PageSchema } from '@xnetjs/data'
 import {
   buildPersonMentionSuggestions,
   usePageComments,
-  type Editor,
   type PageCommentPopoverState,
-  type PageNewCommentState
+  type PageNewCommentState,
+  type PageTaskSnapshot,
+  type XNetEditorInstance
 } from '@xnetjs/editor/react'
 import { useNode, useIdentity, usePageTaskSync } from '@xnetjs/react'
 import {
@@ -116,16 +119,18 @@ function pageSyncStatusItem(
   }
 }
 
-/** Place the caret at the document position nearest to a margin click. */
-function focusEditorNear(editor: Editor, clientX: number, clientY: number): void {
-  const rect = editor.view.dom.getBoundingClientRect()
-  const left = Math.min(Math.max(clientX, rect.left + 1), rect.right - 1)
-  const top = Math.min(Math.max(clientY, rect.top + 1), rect.bottom - 1)
-  const pos = editor.view.posAtCoords({ left, top })?.pos ?? editor.state.doc.content.size
-  editor.chain().focus(pos).run()
-  // TipTap defers DOM focus to the next animation frame; focus the
-  // view directly so the caret moves immediately.
-  editor.view.focus()
+/**
+ * Focus the BlockNote editor after a margin click. Position-based caret
+ * placement (TipTap `posAtCoords`) has no BlockNote equivalent here, so we
+ * degrade gracefully: focus the editable surface and let the browser place
+ * the caret (0312).
+ */
+function focusEditorNear(editor: XNetEditorInstance | null): void {
+  if (editor) {
+    editor.focus()
+    return
+  }
+  document.querySelector<HTMLElement>('.bn-editor [contenteditable="true"], .bn-editor')?.focus()
 }
 
 export function PageView({ docId }: { docId: string }) {
@@ -153,6 +158,29 @@ export function PageView({ docId }: { docId: string }) {
     did: did ?? undefined
   })
   const { handleTasksChange } = usePageTaskSync({ pageId: docId })
+
+  // Widen the BlockNote snapshot's slim reference shape ({url, title}) to
+  // the projection-sync contract (provider/kind/refId… all unknown here).
+  const handlePageTasksChange = useCallback(
+    (tasks: PageTaskSnapshot[]) =>
+      handleTasksChange(
+        tasks.map((task) => ({
+          ...task,
+          references: task.references.map((ref) => ({
+            url: ref.url,
+            title: ref.title,
+            provider: null,
+            kind: null,
+            refId: null,
+            subtitle: null,
+            icon: null,
+            embedUrl: null,
+            metadata: '{}'
+          }))
+        }))
+      ),
+    [handleTasksChange]
+  )
 
   // Keep the workbench tab title in sync with the page title (0166).
   const pageTitle = page?.title
@@ -216,9 +244,6 @@ export function PageView({ docId }: { docId: string }) {
     toggleOrphanedCollapsed,
     popoverState,
     newCommentState,
-    editorRef,
-    handleEditorReady,
-    commentExtensions,
     handlePopoverMouseEnter,
     handlePopoverMouseLeave,
     handleDismiss,
@@ -228,7 +253,6 @@ export function PageView({ docId }: { docId: string }) {
     handleReopen,
     handleDelete,
     handleEdit,
-    handleCreateComment,
     handleSubmitNewComment,
     handleCancelNewComment,
     handleSidebarSelectThread,
@@ -253,13 +277,14 @@ export function PageView({ docId }: { docId: string }) {
 
   const titleInputRef = useRef<HTMLInputElement | null>(null)
 
-  // The right-panel task editor writes assignee/due-date edits through
-  // this live editor (the document owns those fields while it hosts the
-  // task — see PAGE_TASK_RECONCILIATION.md).
-  const taskHostEditor = useMemo(
-    () => ({ getEditor: () => editorRef.current, suggestions: mentionSuggestions }),
-    [editorRef, mentionSuggestions]
-  )
+  // The live BlockNote editor (0312). Inline comment anchoring is retired
+  // for now — usePageComments keeps the right-panel thread data but never
+  // receives the editor — so this ref only serves the focus flow and
+  // node-drop insertion below.
+  const editorRef = useRef<XNetEditorInstance | null>(null)
+  const handleEditorReady = useCallback((editor: XNetEditorInstance) => {
+    editorRef.current = editor
+  }, [])
 
   const handleSelectOrphaned = useCallback(
     (commentId: string) => {
@@ -323,7 +348,7 @@ export function PageView({ docId }: { docId: string }) {
       {
         id: 'page-tasks',
         title: 'Tasks',
-        content: <PageTasksSection pageId={docId} hostEditor={taskHostEditor} />
+        content: <PageTasksSection pageId={docId} />
       },
       {
         id: 'page-comments',
@@ -373,7 +398,6 @@ export function PageView({ docId }: { docId: string }) {
     isDirty,
     lastSavedAt,
     presence,
-    taskHostEditor,
     unresolvedCount,
     sidebarThreads,
     orphanedThreads,
@@ -404,10 +428,9 @@ export function PageView({ docId }: { docId: string }) {
       event.preventDefault()
       const editor = editorRef.current
       if (!editor) return
-      editor.commands.focus('start')
-      // TipTap defers DOM focus to the next animation frame; focus the
-      // view directly so the caret moves immediately.
-      editor.view.focus()
+      const first = editor.document[0]
+      if (first) editor.setTextCursorPosition(first, 'start')
+      editor.focus()
     },
     [editorRef]
   )
@@ -425,10 +448,8 @@ export function PageView({ docId }: { docId: string }) {
     (event: React.MouseEvent) => {
       const target = event.target as HTMLElement
       if (!target.hasAttribute('data-page-margin')) return
-      const editor = editorRef.current
-      if (!editor) return
       event.preventDefault()
-      focusEditorNear(editor, event.clientX, event.clientY)
+      focusEditorNear(editorRef.current)
     },
     [editorRef]
   )
@@ -462,18 +483,10 @@ export function PageView({ docId }: { docId: string }) {
       transfer.nodeType === 'page'
         ? transfer.nodeId
         : `xnet://${transfer.nodeType}/${transfer.nodeId}`
-    const pos =
-      editor.view.posAtCoords({ left: event.clientX, top: event.clientY })?.pos ??
-      editor.state.selection.to
-    editor
-      .chain()
-      .focus()
-      .insertContentAt(pos, {
-        type: 'text',
-        text: title,
-        marks: [{ type: 'wikilink', attrs: { href, title } }]
-      })
-      .run()
+    // BlockNote has no coordinate→position API on the editor surface, so
+    // the reference chip lands at the current cursor position (0312).
+    editor.focus()
+    editor.insertInlineContent([{ type: 'wikilink', props: { href, title } } as never, ' '])
   }
 
   const placeholder = pageLoadPlaceholder(loading, error, Boolean(page && doc))
@@ -520,7 +533,6 @@ export function PageView({ docId }: { docId: string }) {
             did={did}
             pageId={docId}
             onNavigate={handleNavigate}
-            extensions={commentExtensions}
             onEditorReady={handleEditorReady}
             mentionSuggestions={mentionSuggestions}
             hashtagSuggestions={hashtagSuggestions}
@@ -528,8 +540,7 @@ export function PageView({ docId }: { docId: string }) {
             linkTargets={linkTargets}
             onCreateLinkTarget={createPageTarget}
             onTagsChange={handleTagsChange}
-            onPageTasksChange={handleTasksChange}
-            onCreateComment={handleCreateComment}
+            onPageTasksChange={handlePageTasksChange}
             onBackspaceAtStart={handleBackspaceAtStart}
           />
         </div>

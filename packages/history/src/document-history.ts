@@ -326,11 +326,16 @@ export class MemoryYjsSnapshotStorage implements YjsSnapshotStorageAdapter {
 function extractTextContent(doc: Y.Doc): string {
   const parts: string[] = []
 
-  // Rich text content (pages)
+  // Rich text content (pages). v4 ('content-v4', BlockNote — 0312) is
+  // preferred; 'content' is the legacy TipTap fragment kept until the lazy
+  // importer runs.
   try {
-    const content = doc.getXmlFragment('content')
-    if (content.length > 0) {
-      parts.push(xmlFragmentToText(content))
+    for (const fragmentName of ['content-v4', 'content']) {
+      const content = doc.getXmlFragment(fragmentName)
+      if (content.length > 0) {
+        parts.push(xmlFragmentToText(content))
+        break
+      }
     }
   } catch {
     // No content fragment
@@ -395,8 +400,33 @@ function xmlFragmentToText(fragment: Y.XmlFragment): string {
 
 /**
  * Convert a Y.XmlElement to plain text (simplified).
+ *
+ * BlockNote (v4, 0312) inline atoms carry their readable text in
+ * attributes, not child text nodes.
  */
 function xmlElementToText(element: Y.XmlElement): string {
+  const attr = (key: string): string => {
+    const value = element.getAttribute(key)
+    return typeof value === 'string' ? value : ''
+  }
+
+  switch (element.nodeName) {
+    case 'mention': {
+      const label = attr('label') || attr('id')
+      return label ? `@${label}` : ''
+    }
+    case 'hashtag': {
+      const name = attr('name')
+      return name ? `#${name}` : ''
+    }
+    case 'wikilink':
+      // Legacy wikilinks carry child text; BlockNote atoms are childless.
+      if (element.length === 0) return attr('title')
+      break
+    case 'inlineMath':
+      return attr('latex')
+  }
+
   const parts: string[] = []
 
   for (let i = 0; i < element.length; i++) {

@@ -29,7 +29,9 @@
     "@xnetjs/react": "workspace:*"
   },
   "dependencies": {
+    "@blocknote/core": "0.51.4",
     "@xnetjs/canvas": "workspace:*",
+    "@xnetjs/editor": "workspace:*",
     "@xnetjs/history": "workspace:*",
     "@xnetjs/sqlite": "workspace:*",
     "@xnetjs/ui": "workspace:*",
@@ -37,14 +39,8 @@
     "lucide-react": "^0.400.0"
   },
   "devDependencies": {
-    "@tiptap/core": "^3.15.3",
-    "@tiptap/extension-link": "^3.15.3",
-    "@tiptap/extension-task-list": "^3.15.3",
-    "@tiptap/starter-kit": "^3.15.3",
-    "@tiptap/y-tiptap": "^3.0.1",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
-    "@xnetjs/editor": "workspace:*",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tsup": "^8.0.0",

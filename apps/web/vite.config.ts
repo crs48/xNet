@@ -57,14 +57,25 @@ export default defineConfig({
         'usearch'
       ],
       output: {
-        // KaTeX and the emoji catalog (0297) are large leaf libraries pulled
-        // in via @xnetjs/editor; split them out so the main chunk stays under
-        // the workbox 6 MB precache cap.
+        // KaTeX and the emoji catalog (0297/0312) are large leaf libraries
+        // pulled in via @xnetjs/editor; split them out so the main chunk
+        // stays under the workbox 6 MB precache cap.
         manualChunks(id: string) {
           if (id.includes('node_modules') && id.includes('/katex/')) return 'katex'
+          // BlockNote + Mantine + ProseMirror (0312): keep the editor vendor
+          // out of the main chunk so no precached file exceeds the workbox
+          // 6 MB ceiling.
           if (
-            id.includes('@tiptap/extension-emoji') ||
+            id.includes('@blocknote/') ||
+            id.includes('@mantine/') ||
+            id.includes('/prosemirror-') ||
+            id.includes('/y-prosemirror/')
+          ) {
+            return 'editor-vendor'
+          }
+          if (
             id.includes('emojibase-data') ||
+            id.includes('emoji-mart') ||
             id.includes('emoji-regex') ||
             id.includes('is-emoji-supported')
           ) {

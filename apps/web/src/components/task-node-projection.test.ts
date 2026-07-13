@@ -1,12 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  diffAssignees,
-  dueDateMsToIso,
-  fallbackMentionLabel,
-  taskHostInfo,
-  toTaskDisplayData,
-  type TaskNode
-} from './task-node-projection'
+import { taskHostInfo, toTaskDisplayData, type TaskNode } from './task-node-projection'
 
 function node(overrides: Record<string, unknown> = {}): TaskNode {
   return {
@@ -75,27 +68,5 @@ describe('taskHostInfo', () => {
       sourceLabel: null,
       hostOwned: false
     })
-  })
-})
-
-describe('diffAssignees', () => {
-  it('reports additions and removals', () => {
-    expect(diffAssignees(['a', 'b'], ['b', 'c'])).toEqual({ added: ['c'], removed: ['a'] })
-    expect(diffAssignees([], ['a'])).toEqual({ added: ['a'], removed: [] })
-    expect(diffAssignees(['a'], ['a'])).toEqual({ added: [], removed: [] })
-  })
-})
-
-describe('dueDateMsToIso', () => {
-  it('formats UTC ms as YYYY-MM-DD and passes null through', () => {
-    expect(dueDateMsToIso(Date.UTC(2026, 6, 1))).toBe('2026-07-01')
-    expect(dueDateMsToIso(null)).toBeNull()
-  })
-})
-
-describe('fallbackMentionLabel', () => {
-  it('shortens did:key identifiers, leaves others alone', () => {
-    expect(fallbackMentionLabel('did:key:z6MkabcdefXYZ')).toBe('z6Mkabcdef')
-    expect(fallbackMentionLabel('did:web:example.com')).toBe('did:web:example.com')
   })
 })

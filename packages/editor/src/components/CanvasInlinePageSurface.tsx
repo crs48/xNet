@@ -1,21 +1,36 @@
-import type { TaskMentionSuggestion } from '../extensions/task-metadata'
 import type { CanvasNode } from '@xnetjs/canvas'
 import { useCanvasThemeTokens } from '@xnetjs/canvas'
 import { PageSchema } from '@xnetjs/data'
-import {
-  TaskCollectionEmbed,
-  useEditorExtensionsSafe,
-  useIdentity,
-  useNode,
-  usePageTaskSync,
-  usePluginRegistryOptional
-} from '@xnetjs/react'
+import { TaskCollectionEmbed, useIdentity, useNode, usePageTaskSync } from '@xnetjs/react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { PageTaskSnapshot } from '../blocknote/doc-utils'
+import { XNetEditor } from '../blocknote/XNetEditor'
+import type { TaskViewConfig } from '../blocknote/host-context'
+import type { TaskMentionSuggestion } from '../blocknote/specs/mention'
 import { useFileDownload } from '../hooks/useFileDownload'
 import { useFileUpload } from '../hooks/useFileUpload'
 import { useImageUpload } from '../hooks/useImageUpload'
 import { buildTaskMentionSuggestions } from '../utils/taskMentionSuggestions'
-import { EditorSurface } from './EditorSurface'
+
+/** Map the 0312 task-view vocabulary onto TaskCollectionEmbed's filters
+ * (same adapter the web/electron hosts use). */
+function toTaskEmbedFilters(viewConfig: TaskViewConfig): {
+  scope: 'current-page' | 'all'
+  assignee: 'me' | 'any'
+  dueDate: 'overdue' | 'today' | 'next-7-days' | 'any'
+  status: 'open' | 'done' | 'all'
+  showHierarchy: boolean
+} {
+  const dueMap = { overdue: 'overdue', today: 'today', week: 'next-7-days', all: 'any' } as const
+  const statusMap = { open: 'open', completed: 'done', all: 'all' } as const
+  return {
+    scope: viewConfig.scope === 'page' ? 'current-page' : 'all',
+    assignee: viewConfig.scope === 'assigned' ? 'me' : 'any',
+    dueDate: viewConfig.dueDate ? dueMap[viewConfig.dueDate] : 'any',
+    status: viewConfig.status ? statusMap[viewConfig.status] : 'open',
+    showHierarchy: viewConfig.showHierarchy ?? true
+  }
+}
 
 type CanvasInlinePageSurfaceProps = {
   node: CanvasNode
@@ -25,8 +40,6 @@ type CanvasInlinePageSurfaceProps = {
   onOpenDocument?: (docId: string) => void
   onSourceNodeMutated?: () => void
 }
-
-type EditorExtensions = NonNullable<React.ComponentProps<typeof EditorSurface>['extensions']>
 
 function useStableTitle(
   initialTitle: string,
@@ -88,12 +101,25 @@ export function CanvasInlinePageSurface({
   const onFileUpload = useFileUpload()
   const onFileDownload = useFileDownload()
   const { handleTasksChange } = usePageTaskSync({ pageId: docId })
-  const editorContributions = useEditorExtensionsSafe()
-  const pluginRegistry = usePluginRegistryOptional()
-  const pluginsReady = !pluginRegistry || editorContributions.length > 0
-  const pluginExtensions = useMemo(
-    () => editorContributions.map((contribution) => contribution.extension) as EditorExtensions,
-    [editorContributions]
+  const handlePageTasksChange = useCallback(
+    (tasks: PageTaskSnapshot[]) =>
+      handleTasksChange(
+        tasks.map((task) => ({
+          ...task,
+          references: task.references.map((ref) => ({
+            url: ref.url,
+            title: ref.title,
+            provider: null,
+            kind: null,
+            refId: null,
+            subtitle: null,
+            icon: null,
+            embedUrl: null,
+            metadata: '{}'
+          }))
+        }))
+      ),
+    [handleTasksChange]
   )
   const {
     data: page,
@@ -182,37 +208,28 @@ export function CanvasInlinePageSurface({
         data-canvas-interactive="true"
         data-canvas-page-editor="true"
       >
-        {loading || !doc || !pluginsReady ? (
+        {loading || !doc ? (
           <div className="flex h-full min-h-[140px] items-center justify-center rounded-2xl border border-dashed border-border/70 bg-muted/30 text-sm text-muted-foreground">
             Loading page surface...
           </div>
         ) : (
-          <EditorSurface
-            surfaceMode="canvas-inline"
+          <XNetEditor
             ydoc={doc}
-            field="content"
             placeholder={variant === 'note' ? 'Write a note...' : 'Start writing...'}
-            showToolbar={true}
-            toolbarMode="desktop"
             className="min-h-full [&_.ProseMirror]:select-text [&_[contenteditable='true']]:select-text"
             awareness={awareness ?? undefined}
             did={did ?? undefined}
             onImageUpload={onImageUpload ?? undefined}
             onFileUpload={onFileUpload ?? undefined}
             onFileDownload={onFileDownload ?? undefined}
-            extensions={pluginExtensions}
             mentionSuggestions={mentionSuggestions}
-            onPageTasksChange={handleTasksChange}
+            onPageTasksChange={handlePageTasksChange}
             taskViewPageId={docId}
             renderTaskView={({ viewConfig, currentPageId }) => (
               <TaskCollectionEmbed
                 currentPageId={currentPageId}
                 currentDid={did ?? null}
-                scope={viewConfig.scope}
-                assignee={viewConfig.assignee}
-                dueDate={viewConfig.dueDate}
-                status={viewConfig.status}
-                showHierarchy={viewConfig.showHierarchy}
+                {...toTaskEmbedFilters(viewConfig)}
               />
             )}
           />
