@@ -189,7 +189,15 @@ export default defineConfig({
           pool: 'threads',
           isolate: true,
           setupFiles: ['./packages/editor/src/test/setup.ts'],
-          include: ['packages/editor/src/**/*.test.{ts,tsx}']
+          include: ['packages/editor/src/**/*.test.{ts,tsx}'],
+          server: {
+            deps: {
+              // Single prosemirror/tiptap instance for BlockNote (0312):
+              // tiptap v3 patches Transaction.prototype (changedRange), so
+              // BlockNote's bundled copy must resolve to the same modules.
+              inline: [/@blocknote\//, /@mantine\//, /@tiptap\//]
+            }
+          }
         }
       },
       {
