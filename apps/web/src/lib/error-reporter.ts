@@ -63,6 +63,11 @@ export function getDiagnosticsClient(): DiagnosticsClient | null {
   return diagnostics
 }
 
+/** Whether this build has a first-party diagnostics ingest configured (0315). */
+export function isDiagnosticsConfigured(): boolean {
+  return TELEMETRY_ENABLED && Boolean(DIAGNOSTICS_URL)
+}
+
 /** Whether the app is running inside the desktop shell (preload bridge present). */
 const isElectron = (): boolean =>
   typeof window !== 'undefined' && (window as { xnet?: unknown }).xnet !== undefined

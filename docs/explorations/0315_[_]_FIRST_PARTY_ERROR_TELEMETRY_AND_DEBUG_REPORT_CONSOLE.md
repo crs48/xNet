@@ -621,12 +621,12 @@ export async function composeDebugReport(userDescription: string) {
 - [x] **P3:** `debug-report` schema + authz rungs + `SEED_EXCLUDED_SCHEMA_IDS`
   entry; ops-workspace saved views (Inbox / By release / By fingerprint);
   status field lifecycle; report-detail panel with stack rendering.
-- [ ] **P3:** Retention: auto-archive `released` reports after N days;
+- [x] **P3:** Retention: auto-archive `released` reports after N days;
   privacy-policy wording check for user-triggered reports.
 - [ ] **P4:** Deploy-time source-map upload keyed by release; strip `.map`
   from served bundles; server-side symbolication in the detail panel.
 - [x] **P4:** First-seen-fingerprint webhook alert (reuse 0213 actions).
-- [ ] Document the Bugsink/GlitchTip escape hatch + the dormant Sentry seams
+- [x] Document the Bugsink/GlitchTip escape hatch + the dormant Sentry seams
   in the hub/cloud ops guide; explicitly record the "no `@sentry/*` SDK"
   decision.
 

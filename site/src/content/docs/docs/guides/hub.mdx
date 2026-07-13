@@ -154,6 +154,20 @@ reports upstream — the sender's DID is hashed (never sent raw) and document
 content is never included. Leave them unset (the default) and nothing is
 forwarded; `GET /diagnostics/health` simply reports `sharing: false`.
 
+The upstream sink is xNet Cloud's first-party `POST /diagnostics` ingest
+(exploration 0315): reports land in a quarantine and are drained into
+`debug-report` nodes in the operator's own xNet workspace, where the workbench
+_is_ the triage console — filterable tables, a `new → acked → fixed → released`
+status field, and comments. **xNet does not use a third-party error service such
+as Sentry.** The client keeps a dormant, vendor-neutral Sentry seam (no
+`@sentry/*` SDK is installed and no DSN is minted), so if you self-host a
+Sentry-compatible backend you can point that seam at it — [Bugsink][bugsink]
+(single container, SQLite) or [GlitchTip][glitchtip] (MIT, Sentry-SDK
+compatible) are the proven small-footprint options — but nothing ships enabled.
+
+[bugsink]: https://www.bugsink.com/
+[glitchtip]: https://glitchtip.com/
+
 ### CLI Flags
 
 | Flag                | Description                      |
