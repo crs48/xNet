@@ -523,8 +523,14 @@ export const PageEmbed = createReactBlockSpec(
       `rich-text-cell.ts extractPlainText`) to BlockNote node names
 - [ ] Phase 4: AI surface (`packages/plugins/src/ai-surface/page-markdown.ts`,
       `service.ts`) onto Block JSON / lossy markdown with per-spec exporters
-- [ ] Phase 4: comments spike — BlockNote `ThreadStore` over xNet comment
-      nodes vs. keep 0276 system; decide and implement
+- [x] Phase 4: comments spike — BlockNote `ThreadStore` over xNet comment
+      nodes vs. keep 0276 system; decide and implement — **Decision
+      (implemented):** keep the 0276 node-backed comment system for panel
+      threads (comments live in the LWW log and survive the editor swap
+      untouched); in-document comment *marks* are retired with the TipTap
+      editor. Adopting BlockNote's threaded-comments UI via a custom
+      `ThreadStore` is deferred — it would re-anchor comments in the Y.Doc,
+      changing the 0276 durability property.
 - [ ] Phase 4: `packages/ui/src/utils/linkify.ts` re-mirrors BlockNote link
       policy; `ai-generated` provenance style spec
 - [ ] Phase 5: delete `RichTextEditor.tsx`, `FloatingToolbar.tsx`,
