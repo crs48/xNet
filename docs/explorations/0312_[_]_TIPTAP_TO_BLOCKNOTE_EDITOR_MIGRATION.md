@@ -505,7 +505,7 @@ export const PageEmbed = createReactBlockSpec(
 - [ ] Phase 0: spike branch — BlockNote editor bound to a real node's `Y.Doc`
       via `useNode`, fragment `content-v4`, dark/light theming via `.bn-root`
       vars, lazy chunk + Shiki language allowlist, StrictMode/React-19 check
-- [ ] Phase 1: `XNetEditor` in `packages/editor` (BlockNoteView + schema +
+- [x] Phase 1: `XNetEditor` in `packages/editor` (BlockNoteView + schema +
       mention/hashtag/wikilink inline specs + `/` `@` `#` controllers + `[[`
       shim); swap `apps/web` `PageView` + Electron `PageView`
 - [x] Phase 1: lazy legacy import — old fragment → markdown → 
@@ -515,7 +515,7 @@ export const PageEmbed = createReactBlockSpec(
       `packages/plugins/src/contributions.ts` with skew guard), `callout`,
       `rich-link`, math inline spec; `uploadFile` → CID blob store
 - [x] Phase 2: page-tasks write-through re-keyed to stable block IDs
-- [ ] Phase 3: `TaskInlineEditor`, database rich-text cells
+- [x] Phase 3: `TaskInlineEditor`, database rich-text cells
       (`rich-text-cell.ts` fragment-per-column), `CanvasView`/`DatabaseView`,
       `MeetingsSurface`, Expo `WebViewEditor` bundle
 - [x] Phase 4: re-target fragment readers (`packages/query/src/search/document.ts`,
