@@ -21,6 +21,8 @@ export interface TaskMentionSuggestion {
   subtitle?: string
   /** Accent color for the pill */
   color?: string
+  /** Avatar image for the picker row */
+  avatarUrl?: string
 }
 
 export function truncateDid(value: string): string {

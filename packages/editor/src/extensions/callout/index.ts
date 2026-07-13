@@ -1,5 +1,0 @@
-export { CalloutExtension } from './CalloutExtension'
-export type { CalloutOptions } from './CalloutExtension'
-export { CalloutNodeView } from './CalloutNodeView'
-export { CALLOUT_CONFIGS } from './types'
-export type { CalloutType, CalloutConfig } from './types'
