@@ -508,13 +508,13 @@ export const PageEmbed = createReactBlockSpec(
 - [ ] Phase 1: `XNetEditor` in `packages/editor` (BlockNoteView + schema +
       mention/hashtag/wikilink inline specs + `/` `@` `#` controllers + `[[`
       shim); swap `apps/web` `PageView` + Electron `PageView`
-- [ ] Phase 1: lazy legacy import — old fragment → markdown → 
+- [x] Phase 1: lazy legacy import — old fragment → markdown → 
       `tryParseMarkdownToBlocks` on first open (idempotent via new fragment key)
-- [ ] Phase 2: block specs — `embed`, `database-embed`, `page-embed`,
+- [x] Phase 2: block specs — `embed`, `database-embed`, `page-embed`,
       `task-view-embed`, `mermaid` (+ re-typed `EditorContribution` in
       `packages/plugins/src/contributions.ts` with skew guard), `callout`,
       `rich-link`, math inline spec; `uploadFile` → CID blob store
-- [ ] Phase 2: page-tasks write-through re-keyed to stable block IDs
+- [x] Phase 2: page-tasks write-through re-keyed to stable block IDs
 - [ ] Phase 3: `TaskInlineEditor`, database rich-text cells
       (`rich-text-cell.ts` fragment-per-column), `CanvasView`/`DatabaseView`,
       `MeetingsSurface`, Expo `WebViewEditor` bundle
