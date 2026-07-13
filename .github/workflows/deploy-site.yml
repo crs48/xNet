@@ -6,6 +6,7 @@ on:
     paths:
       - 'site/**'
       - 'apps/web/**'
+      - 'apps/demos/**'
       - 'packages/**'
       - 'registry/**'
       - '!packages/**/*.md'
@@ -49,6 +50,11 @@ jobs:
           VITE_DIAGNOSTICS_URL: ${{ vars.WEB_DIAGNOSTICS_URL }}
           VITE_ANALYTICS_DOMAIN: ${{ vars.PUBLIC_ANALYTICS_DOMAIN }}
 
+      - name: Build demos app (live multiplayer demos, exploration 0314)
+        run: pnpm --filter xnet-demos build
+        env:
+          VITE_BASE_PATH: '/play/'
+
       - name: Cache Astro build
         uses: actions/cache@v4
         with:
@@ -81,10 +87,13 @@ jobs:
       - name: Prepare production site tree
         run: |
           rm -rf /tmp/xnet-pages-root
-          mkdir -p /tmp/xnet-pages-root/app
+          mkdir -p /tmp/xnet-pages-root/app /tmp/xnet-pages-root/play
           cp -R site/dist/. /tmp/xnet-pages-root/
           cp -R apps/web/dist/. /tmp/xnet-pages-root/app/
           cp /tmp/xnet-pages-root/app/index.html /tmp/xnet-pages-root/app/404.html
+          # Demo app (apps/demos) lives at /play/; the site's /demos page frames it.
+          cp -R apps/demos/dist/. /tmp/xnet-pages-root/play/
+          cp /tmp/xnet-pages-root/play/index.html /tmp/xnet-pages-root/play/404.html
           cp site/public/CNAME /tmp/xnet-pages-root/CNAME
           touch /tmp/xnet-pages-root/.nojekyll
 

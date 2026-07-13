@@ -389,7 +389,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
 
   /** One-time guard: ensure the `auth_fingerprint` column exists on upgraded DBs. */
   private materializationColumnsReady = false
-  private nodePropertyColumnsReady = false
+  private nodePropertyColumnsReady: Promise<void> | null = null
 
   /**
    * Descriptor→SQL compilation lives in `query-compiler.ts` (exploration
@@ -764,6 +764,10 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   // ─── Materialized State Operations ────────────────────────────────────────
 
   async getNode(id: NodeId): Promise<NodeState | null> {
+    // Hydrate selects `p.tiebreak_key`, which a pre-v8 database is missing —
+    // repair before the first read, not just before writes (the lazy guard
+    // used to run too late: the first read threw before any write ran it).
+    await this.ensureNodePropertyColumns()
     // One joined read via the shared hydrate path. The previous shape — a
     // node-metadata queryOne followed by a properties query — cost a
     // worker-backed adapter two RPC round-trips per node (exploration 0263).
@@ -774,6 +778,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
   async getNodes(ids: readonly NodeId[]): Promise<NodeState[]> {
     const uniqueIds = Array.from(new Set(ids))
     if (uniqueIds.length === 0) return []
+    await this.ensureNodePropertyColumns()
 
     // hydrateNodesByIds chunks internally and batches multi-chunk reads into
     // one queryBatch RPC (exploration 0263) — don't pre-chunk here or every
@@ -939,6 +944,8 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
    * Fetches nodes and properties in one query for better performance with large datasets.
    */
   async listNodesOptimized(options?: ListNodesOptions): Promise<NodeState[]> {
+    // Selects `p.tiebreak_key` — repair pre-v8 databases first (see getNode).
+    await this.ensureNodePropertyColumns()
     // Build the base query with JOIN
     let whereClause = '1=1'
     const params: SQLValue[] = []
@@ -1012,6 +1019,9 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
 
   async queryNodes(descriptor: NodeQueryDescriptor): Promise<NodeQueryResult> {
     const start = Date.now()
+    // Every branch below hydrates via queries selecting `p.tiebreak_key` —
+    // repair pre-v8 databases first (see getNode).
+    await this.ensureNodePropertyColumns()
     if (descriptor.materializedView) {
       return this.queryMaterializedView(descriptor, start)
     }
@@ -2054,16 +2064,20 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
    * just falls back to the author-DID tiebreak.
    */
   private async ensureNodePropertyColumns(): Promise<void> {
-    if (this.nodePropertyColumnsReady) return
-    try {
-      const columns = await this.db.query<{ name: string }>(`PRAGMA table_info(node_properties)`)
-      if (!columns.some((column) => column.name === 'tiebreak_key')) {
-        await this.db.run('ALTER TABLE node_properties ADD COLUMN tiebreak_key TEXT')
+    // Shared in-flight promise (not a boolean like the materialization guard):
+    // this runs on the read path too, where boot fires many concurrent
+    // hydrates — they must all wait on ONE repair, not each race a PRAGMA.
+    this.nodePropertyColumnsReady ??= (async () => {
+      try {
+        const columns = await this.db.query<{ name: string }>(`PRAGMA table_info(node_properties)`)
+        if (!columns.some((column) => column.name === 'tiebreak_key')) {
+          await this.db.run('ALTER TABLE node_properties ADD COLUMN tiebreak_key TEXT')
+        }
+      } catch {
+        // A concurrent ALTER (duplicate column) or absent table is non-fatal.
       }
-    } catch {
-      // A concurrent ALTER (duplicate column) or absent table is non-fatal.
-    }
-    this.nodePropertyColumnsReady = true
+    })()
+    return this.nodePropertyColumnsReady
   }
 
   setNodeReadAuthorizer(authorizer: NodeReadAuthorizer | undefined): void {

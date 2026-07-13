@@ -1,0 +1,15 @@
+{
+  "id": "2026-07-13-document-pages-open-reliably-on-databas",
+  "date": "July 13, 2026",
+  "title": "Document pages open reliably on databases from older builds",
+  "summary": "Opening a document could fail with a storage error (\"no such column: tiebreak_key\") when the local database had been created by an older build. The missing column is now repaired before the first read, so existing workspaces open documents without needing a data reset.",
+  "highlights": [],
+  "tags": ["fix", "storage"],
+  "pr": 498,
+  "mergedAt": "2026-07-13T20:00:00Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

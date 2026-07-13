@@ -1,0 +1,125 @@
+---
+import Base from '../layouts/Base.astro'
+import Nav from '../components/sections/Nav.astro'
+import Footer from '../components/sections/Footer.astro'
+import SectionHeader from '../components/ui/SectionHeader.astro'
+
+// Live multiplayer demos (exploration 0314). The demo app itself is deployed
+// at /play/ on this same GitHub Pages tree (apps/demos in the repo); this
+// page frames it: two iframes share one room so you SEE sync happen without
+// opening a second window — the Liveblocks paired-iframe trick.
+
+const demos = [
+  {
+    href: '/play/#/cursors',
+    title: 'Cursor party',
+    blurb: 'Live cursors and emoji bursts. Ephemeral presence — nothing is ever persisted.',
+  },
+  {
+    href: '/play/#/connect-four',
+    title: 'Connect Four',
+    blurb:
+      'Every move is a signed, hash-chained log entry; the board is a deterministic fold. Cheat-evident game history for free.',
+  },
+  {
+    href: '/play/#/todo',
+    title: 'Collab todo',
+    blurb: 'The classic — optimistic local-first writes, live everywhere. ~40 lines of app code.',
+  },
+]
+---
+
+<Base
+  title="Live demos — xNet"
+  description="Multiplayer demos built on xNet: live cursors, a signed-move-log Connect Four, and a collaborative todo. Open a demo, share the URL, play together."
+>
+  <Nav />
+  <main class="mx-auto max-w-6xl px-6">
+    <section class="py-16 sm:py-24 text-center">
+      <h1 class="text-4xl sm:text-5xl font-bold tracking-tight text-gray-900 dark:text-white">
+        Watch it sync
+      </h1>
+      <p class="mx-auto mt-4 max-w-2xl text-lg text-gray-600 dark:text-gray-400">
+        Two copies of the same app, one shared room, no accounts. What you change on the left
+        arrives on the right through a real sync hub — signed, local-first, live. Every demo URL
+        is an invitation: copy it and someone else is in your room.
+      </p>
+    </section>
+
+    <section class="pb-16">
+      <div class="grid gap-4 md:grid-cols-2" id="paired-frames">
+        <div class="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
+          <div class="border-b border-border px-4 py-2 text-xs text-gray-500">player one</div>
+          <iframe
+            data-demo-frame
+            title="Collab todo — player one"
+            class="h-[420px] w-full"
+            loading="lazy"></iframe>
+        </div>
+        <div class="overflow-hidden rounded-xl border border-border bg-surface shadow-sm">
+          <div class="border-b border-border px-4 py-2 text-xs text-gray-500">player two</div>
+          <iframe
+            data-demo-frame
+            title="Collab todo — player two"
+            class="h-[420px] w-full"
+            loading="lazy"></iframe>
+        </div>
+      </div>
+      <p class="mt-3 text-center text-sm text-gray-500">
+        Both frames run <a class="text-indigo-600 dark:text-indigo-400 hover:underline" href="/play/">the same app</a>
+        in a room minted just for you. Rooms live on the public demo hub — a quota'd sandbox,
+        periodically evicted.
+      </p>
+    </section>
+
+    <section class="pb-16">
+      <SectionHeader
+        title="Three demos, three sync lanes"
+        subtitle="Each demo deliberately rides a different xNet channel — ephemeral presence, the signed change log, and structured live queries."
+        align="center"
+      />
+      <div class="mt-8 grid gap-4 sm:grid-cols-3">
+        {
+          demos.map((demo) => (
+            <a
+              href={demo.href}
+              class="group rounded-xl border border-border bg-surface p-5 transition-all hover:border-indigo-500/50 hover:shadow-md"
+            >
+              <h3 class="font-semibold text-gray-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400">
+                {demo.title} →
+              </h3>
+              <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">{demo.blurb}</p>
+            </a>
+          ))
+        }
+      </div>
+    </section>
+
+    <section class="pb-24">
+      <div class="rounded-xl border border-border bg-surface p-6 sm:p-8">
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white">Build one yourself</h2>
+        <p class="mt-2 max-w-2xl text-gray-600 dark:text-gray-400">
+          The collab todo is a single file. Copy
+          <a
+            class="text-indigo-600 dark:text-indigo-400 hover:underline"
+            href="https://github.com/crs48/xNet/tree/main/examples/minimal-app">examples/minimal-app</a
+          >, run <code class="rounded bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 text-sm">npm install && npm run hub && npm run dev</code>,
+          and you have a synced multiplayer app — instant identity, one schema, live queries,
+          no backend code. Then read the
+          <a class="text-indigo-600 dark:text-indigo-400 hover:underline" href="/react">React guide</a>
+          for the full hook surface.
+        </p>
+      </div>
+    </section>
+  </main>
+  <Footer />
+
+  <script>
+    // Mint a per-visitor room so the paired frames share state with each
+    // other but not with every other visitor of this page.
+    const room = `site-${Math.random().toString(36).slice(2, 8)}`
+    document.querySelectorAll<HTMLIFrameElement>('[data-demo-frame]').forEach((frame) => {
+      frame.src = `/play/#/todo/${room}`
+    })
+  </script>
+</Base>
