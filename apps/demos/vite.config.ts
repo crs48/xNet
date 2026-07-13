@@ -11,5 +11,10 @@ export default defineConfig({
   plugins: [react()],
   build: {
     target: ['es2022', 'safari16.4', 'chrome102', 'firefox111']
+  },
+  // The devtools pull in workers (canvas layout) that use dynamic imports —
+  // multi-chunk workers require the ES format (same as apps/web).
+  worker: {
+    format: 'es'
   }
 })

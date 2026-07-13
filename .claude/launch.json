@@ -41,6 +41,15 @@
       "port": 5207
     },
     {
+      "name": "demos-node23 (vite 5207)",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "cd apps/demos && exec /Users/crs/.nvm/versions/node/v23.11.1/bin/node node_modules/vite/bin/vite.js --port 5207 --strictPort"
+      ],
+      "port": 5207
+    },
+    {
       "name": "hub (sync server)",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "@xnetjs/hub", "dev"],
