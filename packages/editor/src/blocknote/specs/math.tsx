@@ -16,13 +16,7 @@ function InlineMath({ latex }: { latex: string }): React.JSX.Element {
       return latex
     }
   }, [latex])
-  return (
-    <span
-      data-inline-math=""
-      data-latex={latex}
-      dangerouslySetInnerHTML={{ __html: html }}
-    />
-  )
+  return <span data-inline-math="" data-latex={latex} dangerouslySetInnerHTML={{ __html: html }} />
 }
 
 export const InlineMathSpec = createReactInlineContentSpec(
