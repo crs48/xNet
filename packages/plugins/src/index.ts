@@ -49,7 +49,6 @@ export type {
   SlashCommandContribution,
   SlashCommandContext,
   EditorContribution,
-  ToolbarContribution,
   SidebarContribution,
   PropertyHandlerContribution,
   PropertyHandler,
@@ -186,7 +185,7 @@ export type {
 // Editor schema-skew guard (exploration 0205) — flag schema-defining editor
 // contributions that risk silent Yjs content loss across version skew.
 export {
-  isSchemaDefiningExtension,
+  isSchemaDefiningContribution,
   findEditorSchemaRisks,
   warnOnEditorSchemaRisks,
   type EditorSchemaRisk

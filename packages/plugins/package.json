@@ -44,7 +44,6 @@
     "acorn": "^8.15.0"
   },
   "peerDependencies": {
-    "@tiptap/core": "^2.0.0",
     "react": "^18.0.0"
   },
   "devDependencies": {
