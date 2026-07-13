@@ -44,6 +44,9 @@ jobs:
           # analytics. Self-host/preview builds omit these and phone nothing home (0210).
           VITE_XNET_TELEMETRY: 'on'
           VITE_SENTRY_DSN: ${{ vars.WEB_SENTRY_DSN }}
+          # First-party debug-report ingest (0315), e.g. https://cloud.xnet.fyi.
+          # Unset → the diagnostics client is never constructed.
+          VITE_DIAGNOSTICS_URL: ${{ vars.WEB_DIAGNOSTICS_URL }}
           VITE_ANALYTICS_DOMAIN: ${{ vars.PUBLIC_ANALYTICS_DOMAIN }}
 
       - name: Cache Astro build

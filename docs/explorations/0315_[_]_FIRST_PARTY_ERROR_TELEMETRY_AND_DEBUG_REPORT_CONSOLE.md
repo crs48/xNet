@@ -607,7 +607,7 @@ export async function composeDebugReport(userDescription: string) {
   lanes, 8 KB cap, abuse budget, zod allowlist, fingerprint, short report ID;
   this is also the missing socket for
   [diagnostics-sharing.ts](../../packages/hub/src/features/diagnostics-sharing.ts).
-- [ ] **P1:** Crash transport in `@xnetjs/telemetry` (consent ≥ `crashes`,
+- [x] **P1:** Crash transport in `@xnetjs/telemetry` (consent ≥ `crashes`,
   batched, `keepalive`, fail-silent); wire in
   [error-reporter.ts](../../apps/web/src/lib/error-reporter.ts); add ingest
   origin to CSP `connect-src`; env-gate to official builds only.
