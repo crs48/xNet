@@ -1,6 +1,10 @@
 # First-Party Error Telemetry And A Debug-Report Console (The "Own Sentry" Question, Settled)
 
-> Status: EXPLORATION
+> Status: IMPLEMENTED (P0–P4) — see the checklist below. Deferred: deploy-time
+> source-map upload + server-side symbolication (Phase 4, "later, on demand" —
+> the ingest stores raw frames; symbolication is a self-contained follow-up),
+> and installing an actual `@sentry/*` SDK/DSN (kept as a dormant escape hatch
+> by design).
 > Date: 2026-07-13
 > Related: [[0210_ERROR_MONITORING_PRIVACY_ANALYTICS_AND_CONSENT_ACROSS_SURFACES]]
 > (implemented — this doc is its sequel),
@@ -625,6 +629,9 @@ export async function composeDebugReport(userDescription: string) {
   privacy-policy wording check for user-triggered reports.
 - [ ] **P4:** Deploy-time source-map upload keyed by release; strip `.map`
   from served bundles; server-side symbolication in the detail panel.
+  *(Deferred — Phase 4 "later, on demand." The ingest stores raw stack
+  frames today; symbolication is a self-contained deploy-infra follow-up that
+  needs no schema or protocol change.)*
 - [x] **P4:** First-seen-fingerprint webhook alert (reuse 0213 actions).
 - [x] Document the Bugsink/GlitchTip escape hatch + the dormant Sentry seams
   in the hub/cloud ops guide; explicitly record the "no `@sentry/*` SDK"
@@ -632,24 +639,24 @@ export async function composeDebugReport(userDescription: string) {
 
 ## Validation Checklist
 
-- [ ] Forcing a boot failure in the hosted demo (tier ≥ `crashes`) produces a
+- [x] Forcing a boot failure in the hosted demo (tier ≥ `crashes`) produces a
   `debug-report` node with the failing stage, release, and UA family in the
   operator workspace within a minute.
-- [ ] The same failure at tier `off` sends **zero** network calls to the
+- [x] The same failure at tier `off` sends **zero** network calls to the
   ingest (asserted by test), yet "Report a problem" still works and its
   payload matches the preview byte-for-byte.
-- [ ] A PII-laden fixture (emails, DIDs, paths, tokens in logs) composes into
+- [x] A PII-laden fixture (emails, DIDs, paths, tokens in logs) composes into
   a report with all patterns scrubbed; unknown fields are stripped by the
   ingest zod allowlist.
-- [ ] Repeat identical crashes dedupe into one node with `occurrences`
+- [x] Repeat identical crashes dedupe into one node with `occurrences`
   incrementing — no flood.
-- [ ] An enabled hub's diagnostics-sharing POST now lands (the dead-end is
+- [x] An enabled hub's diagnostics-sharing POST now lands (the dead-end is
   closed); a default hub still exposes no `/diagnostics/report` route.
-- [ ] Oversized (>8 KB) and rapid-fire submissions get 413/429; the abuse
+- [x] Oversized (>8 KB) and rapid-fire submissions get 413/429; the abuse
   budget doesn't starve real sync traffic.
-- [ ] Self-hosted and PR-preview builds emit no telemetry network calls at
+- [x] Self-hosted and PR-preview builds emit no telemetry network calls at
   all (existing 0210 invariant still green).
-- [ ] Electron main-process crash leaves a local crash file that attaches to
+- [x] Electron main-process crash leaves a local crash file that attaches to
   the next user-triggered report.
 
 ## References
