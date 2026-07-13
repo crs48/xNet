@@ -79,10 +79,22 @@
       "file": "stories/ui-primitives-catalog--overview.png"
     },
     {
-      "id": "core-editor-richtexteditor--playground",
-      "title": "Core/Editor/RichTextEditor",
-      "name": "Playground",
-      "file": "stories/core-editor-richtexteditor--playground.png"
+      "id": "editor-xneteditor--empty",
+      "title": "Editor/XNetEditor",
+      "name": "Empty",
+      "file": "stories/editor-xneteditor--empty.png"
+    },
+    {
+      "id": "editor-xneteditor--read-only",
+      "title": "Editor/XNetEditor",
+      "name": "Read Only",
+      "file": "stories/editor-xneteditor--read-only.png"
+    },
+    {
+      "id": "editor-xneteditor--legacy-import",
+      "title": "Editor/XNetEditor",
+      "name": "Legacy Import",
+      "file": "stories/editor-xneteditor--legacy-import.png"
     },
     {
       "id": "core-database-surface--playground",
