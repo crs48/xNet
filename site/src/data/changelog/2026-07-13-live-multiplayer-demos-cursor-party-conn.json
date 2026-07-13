@@ -7,5 +7,12 @@
   "tags": [
     "app",
     "sync"
+  ],
+  "pr": 494,
+  "mergedAt": "2026-07-13T19:03:24Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
   ]
 }
