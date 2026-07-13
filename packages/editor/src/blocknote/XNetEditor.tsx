@@ -200,16 +200,28 @@ export function XNetEditor({
 }: XNetEditorProps): JSX.Element {
   const { theme, containerRef } = useDetectedTheme(forcedTheme)
 
-  // Latest-value refs so suggestion getters never go stale.
+  // Latest-value refs so suggestion getters and host callbacks never go
+  // stale — and, critically, so the editor's creation deps stay STABLE.
+  // Hosts pass fresh callback identities on every render; if those were
+  // useCreateBlockNote deps the editor would be recreated per render,
+  // dropping focus and typed input (0312 regression caught by editor-ux).
   const mentionRef = useRef(mentionSuggestions)
   const hashtagRef = useRef(hashtagSuggestions)
   const linkTargetsRef = useRef(linkTargets)
+  const onImageUploadRef = useRef(onImageUpload)
+  const onFileUploadRef = useRef(onFileUpload)
+  const onFileDownloadRef = useRef(onFileDownload)
+  const resolveLinkPreviewRef = useRef(resolveLinkPreview)
   const tagsSignatureRef = useRef('')
   const pageTaskSignatureRef = useRef('')
   useEffect(() => {
     mentionRef.current = mentionSuggestions
     hashtagRef.current = hashtagSuggestions
     linkTargetsRef.current = linkTargets
+    onImageUploadRef.current = onImageUpload
+    onFileUploadRef.current = onFileUpload
+    onFileDownloadRef.current = onFileDownload
+    resolveLinkPreviewRef.current = resolveLinkPreview
   })
 
   // Lazy legacy import (0312): convert the old TipTap fragment to markdown
@@ -221,40 +233,37 @@ export function XNetEditor({
 
   const fragment = useMemo(() => ydoc.getXmlFragment(field), [ydoc, field])
 
-  const uploadFile = useCallback(
-    async (file: File): Promise<string | Record<string, unknown>> => {
-      if (file.type.startsWith('image/') && onImageUpload) {
-        const result = await onImageUpload(file)
-        return result.src
-      }
-      if (onFileUpload) {
-        const meta = await onFileUpload(file)
-        return {
-          props: {
-            url: `xnet-blob://${meta.cid}?name=${encodeURIComponent(meta.name)}&type=${encodeURIComponent(meta.mimeType)}&size=${meta.size}`,
-            name: meta.name
-          }
+  const uploadFile = useCallback(async (file: File): Promise<string | Record<string, unknown>> => {
+    const imageUpload = onImageUploadRef.current
+    const fileUpload = onFileUploadRef.current
+    if (file.type.startsWith('image/') && imageUpload) {
+      const result = await imageUpload(file)
+      return result.src
+    }
+    if (fileUpload) {
+      const meta = await fileUpload(file)
+      return {
+        props: {
+          url: `xnet-blob://${meta.cid}?name=${encodeURIComponent(meta.name)}&type=${encodeURIComponent(meta.mimeType)}&size=${meta.size}`,
+          name: meta.name
         }
       }
-      throw new Error('File uploads are not available on this surface')
-    },
-    [onImageUpload, onFileUpload]
-  )
+    }
+    throw new Error('File uploads are not available on this surface')
+  }, [])
 
-  const resolveFileUrl = useCallback(
-    async (url: string): Promise<string> => {
-      if (!url.startsWith('xnet-blob://') || !onFileDownload) return url
-      const parsed = new URL(url.replace('xnet-blob://', 'https://cid.invalid/'))
-      const cid = parsed.hostname === 'cid.invalid' ? parsed.pathname.slice(1) : parsed.hostname
-      return onFileDownload({
-        cid: cid || url.slice('xnet-blob://'.length).split('?')[0],
-        name: parsed.searchParams.get('name') ?? 'file',
-        mimeType: parsed.searchParams.get('type') ?? 'application/octet-stream',
-        size: Number(parsed.searchParams.get('size') ?? 0)
-      })
-    },
-    [onFileDownload]
-  )
+  const resolveFileUrl = useCallback(async (url: string): Promise<string> => {
+    const fileDownload = onFileDownloadRef.current
+    if (!url.startsWith('xnet-blob://') || !fileDownload) return url
+    const parsed = new URL(url.replace('xnet-blob://', 'https://cid.invalid/'))
+    const cid = parsed.hostname === 'cid.invalid' ? parsed.pathname.slice(1) : parsed.hostname
+    return fileDownload({
+      cid: cid || url.slice('xnet-blob://'.length).split('?')[0],
+      name: parsed.searchParams.get('name') ?? 'file',
+      mimeType: parsed.searchParams.get('type') ?? 'application/octet-stream',
+      size: Number(parsed.searchParams.get('size') ?? 0)
+    })
+  }, [])
 
   const schema = useMemo(() => createXNetSchema(), [])
 
@@ -294,13 +303,14 @@ export function XNetEditor({
             )
             return
           }
-          if (resolveLinkPreview) {
+          const linkPreviewResolver = resolveLinkPreviewRef.current
+          if (linkPreviewResolver) {
             const inserted = pasteEditor.insertBlocks(
               [{ type: 'richLink', props: { url: text, preview: '' } } as never],
               cursorBlock,
               'after'
             )
-            void resolveLinkPreview(text).then((preview) => {
+            void linkPreviewResolver(text).then((preview) => {
               if (!preview) return
               const block = inserted[0]
               if (!block) return
@@ -325,7 +335,10 @@ export function XNetEditor({
         return true
       }
     },
-    [schema, fragment, awareness, uploadFile, resolveFileUrl]
+    // ONLY identity-stable values: a dep that changes per render recreates
+    // the whole editor (focus loss, dropped input). Host callbacks flow
+    // through refs above.
+    [schema, fragment, awareness]
   )
 
   // One-time legacy import, after the editor exists (parse needs the schema).
@@ -476,7 +489,16 @@ export function XNetEditor({
           }
         })
       }
-      return filterSuggestionItems(items, query)
+      // The menu renders one header per contiguous group run (keyed by group
+      // name), so items appended after the defaults must be regrouped next
+      // to their group peers or React sees duplicate keys.
+      const byGroup = new Map<string | undefined, DefaultReactSuggestionItem[]>()
+      for (const item of items) {
+        const bucket = byGroup.get(item.group)
+        if (bucket) bucket.push(item)
+        else byGroup.set(item.group, [item])
+      }
+      return filterSuggestionItems([...byGroup.values()].flat(), query)
     },
     [editor, onSelectDatabase]
   )

@@ -52,11 +52,9 @@ test.describe('Editor UX mobile', () => {
     const editor = page.locator('[contenteditable="true"]').first()
     await editor.click()
     await page.keyboard.type('mobile toolbar slash test')
-    await page.keyboard.down('Shift')
-    await page.keyboard.press('ArrowLeft')
-    await page.keyboard.press('ArrowLeft')
-    await page.keyboard.press('ArrowLeft')
-    await page.keyboard.up('Shift')
+    // BlockNote's formatting toolbar opens on pointer selections (0312);
+    // double-click selects the last word.
+    await editor.getByText('mobile toolbar slash test').dblclick()
 
     const toolbar = page.locator('.bn-formatting-toolbar')
     await expect(toolbar.first()).toBeVisible()
@@ -65,7 +63,9 @@ test.describe('Editor UX mobile', () => {
       fullPage: true
     })
 
-    await page.keyboard.type('/code')
+    // Collapse the selection to the end before opening the slash menu.
+    await page.keyboard.press('ArrowRight')
+    await page.keyboard.type('\n/code')
     await page.keyboard.press('Enter')
     await page.screenshot({
       path: 'tmp/playwright/editor-mobile-codeblock-focus.png',

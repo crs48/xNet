@@ -60,11 +60,9 @@ test.describe('Editor UX desktop', () => {
     await expect(editor).toBeVisible()
     await editor.click()
     await page.keyboard.type('desktop toolbar slash test')
-    await page.keyboard.down('Shift')
-    await page.keyboard.press('ArrowLeft')
-    await page.keyboard.press('ArrowLeft')
-    await page.keyboard.press('ArrowLeft')
-    await page.keyboard.up('Shift')
+    // BlockNote's formatting toolbar opens on pointer selections (0312);
+    // double-click selects the last word.
+    await editor.getByText('desktop toolbar slash test').dblclick()
 
     await expect(page.locator('.bn-formatting-toolbar').first()).toBeVisible()
     await page.screenshot({

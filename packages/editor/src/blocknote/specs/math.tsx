@@ -20,7 +20,6 @@ function InlineMath({ latex }: { latex: string }): React.JSX.Element {
     <span
       data-inline-math=""
       data-latex={latex}
-      // eslint-disable-next-line react/no-danger
       dangerouslySetInnerHTML={{ __html: html }}
     />
   )
