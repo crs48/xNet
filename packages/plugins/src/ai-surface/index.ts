@@ -81,3 +81,18 @@ export type {
   XNetPageMarkdownValidation,
   XNetPageMarkdownValidationOptions
 } from './page-markdown'
+export {
+  blockNoteFragmentToMarkdown,
+  createBlockNotePageMarkdownAdapter,
+  legacyFragmentToMarkdown,
+  replaceXNetPageFragmentWithMarkdown,
+  XNET_PAGE_FRAGMENT_FIELD,
+  XNET_PAGE_LEGACY_FRAGMENT_FIELD,
+  xnetPageFragmentToMarkdown
+} from './page-fragment'
+export type {
+  BlockNotePageMarkdownAdapterOptions,
+  XNetPageDocResolver,
+  XNetPageFragmentReadOptions,
+  XNetPageFragmentWriteOptions
+} from './page-fragment'

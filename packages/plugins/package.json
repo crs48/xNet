@@ -41,13 +41,13 @@
     "@xnetjs/trust": "workspace:*",
     "@xnetjs/data": "workspace:*",
     "@xnetjs/slack-compat": "workspace:*",
-    "acorn": "^8.15.0"
+    "acorn": "^8.15.0",
+    "yjs": "^13.6.24"
   },
   "peerDependencies": {
     "react": "^18.0.0"
   },
   "devDependencies": {
-    "@tiptap/core": "^2.0.0",
     "@types/react": "^18.2.0",
     "@xnetjs/licenses": "workspace:*",
     "jsdom": "^26.0.0",

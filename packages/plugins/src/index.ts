@@ -669,9 +669,22 @@ export {
   renderMarkdownReviewDiff,
   stripXNetPageFrontmatter,
   XNET_MARKDOWN_DIRECTIVE_SPECS,
-  validateXNetPageMarkdown
+  validateXNetPageMarkdown,
+  blockNoteFragmentToMarkdown,
+  createBlockNotePageMarkdownAdapter,
+  legacyFragmentToMarkdown,
+  replaceXNetPageFragmentWithMarkdown,
+  XNET_PAGE_FRAGMENT_FIELD,
+  XNET_PAGE_LEGACY_FRAGMENT_FIELD,
+  xnetPageFragmentToMarkdown
 } from './ai-surface'
-export type { AiCallableTool } from './ai-surface'
+export type {
+  AiCallableTool,
+  BlockNotePageMarkdownAdapterOptions,
+  XNetPageDocResolver,
+  XNetPageFragmentReadOptions,
+  XNetPageFragmentWriteOptions
+} from './ai-surface'
 
 // Services (Background process management)
 // Note: Node.js-only modules (LocalAPIServer, MCPServer, ProcessManager) are

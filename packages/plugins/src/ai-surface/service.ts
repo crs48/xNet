@@ -93,7 +93,12 @@ export type AiPageMarkdownApplyAdapterInput = {
 }
 
 export type AiPageMarkdownApplyAdapterResult = {
-  mode: 'tiptap-yjs' | 'yjs' | 'custom'
+  /**
+   * `blocknote-yjs` = applied into the BlockNote `content-v4` fragment
+   * (see `createBlockNotePageMarkdownAdapter`); `yjs` = another Yjs-backed
+   * document shape; `custom` = host-specific.
+   */
+  mode: 'blocknote-yjs' | 'yjs' | 'custom'
   yjsField?: string
   documentUpdate?: unknown
   warnings?: string[]
@@ -107,7 +112,7 @@ export type AiPageMarkdownApplyResult = {
   applied: boolean
   pageId: string
   planId: string
-  mode: 'tiptap-yjs' | 'yjs' | 'custom' | 'node-property'
+  mode: 'blocknote-yjs' | 'yjs' | 'custom' | 'node-property'
   baseRevision: string
   liveRevision: string
   markdownHash: string

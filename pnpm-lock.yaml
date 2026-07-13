@@ -1054,12 +1054,18 @@ importers:
 
   packages/devtools:
     dependencies:
+      '@blocknote/core':
+        specifier: 0.51.4
+        version: 0.51.4(@lezer/common@1.5.2)(@lezer/highlight@1.2.3)(@types/hast@3.0.4)
       '@xnetjs/canvas':
         specifier: workspace:*
         version: link:../canvas
       '@xnetjs/data':
         specifier: workspace:*
         version: link:../data
+      '@xnetjs/editor':
+        specifier: workspace:*
+        version: link:../editor
       '@xnetjs/history':
         specifier: workspace:*
         version: link:../history
@@ -1085,30 +1091,12 @@ importers:
         specifier: ^0.400.0
         version: 0.400.0(react@18.3.1)
     devDependencies:
-      '@tiptap/core':
-        specifier: ^3.15.3
-        version: 3.16.0(@tiptap/pm@3.16.0)
-      '@tiptap/extension-link':
-        specifier: ^3.15.3
-        version: 3.16.0(@tiptap/core@3.16.0(@tiptap/pm@3.16.0))(@tiptap/pm@3.16.0)
-      '@tiptap/extension-task-list':
-        specifier: ^3.15.3
-        version: 3.16.0(@tiptap/extension-list@3.16.0(@tiptap/core@3.16.0(@tiptap/pm@3.16.0))(@tiptap/pm@3.16.0))
-      '@tiptap/starter-kit':
-        specifier: ^3.15.3
-        version: 3.16.0
-      '@tiptap/y-tiptap':
-        specifier: ^3.0.1
-        version: 3.0.1(prosemirror-model@1.25.4)(prosemirror-state@1.4.4)(prosemirror-view@1.41.5)(y-protocols@1.0.7(yjs@13.6.29))(yjs@13.6.29)
       '@types/react':
         specifier: ^18.2.0
         version: 18.3.27
       '@types/react-dom':
         specifier: ^18.2.0
         version: 18.3.7(@types/react@18.3.27)
-      '@xnetjs/editor':
-        specifier: workspace:*
-        version: link:../editor
       react:
         specifier: ^18.3.1
         version: 18.3.1
@@ -1673,10 +1661,10 @@ importers:
       acorn:
         specifier: ^8.15.0
         version: 8.15.0
+      yjs:
+        specifier: ^13.6.24
+        version: 13.6.29
     devDependencies:
-      '@tiptap/core':
-        specifier: ^2.0.0
-        version: 2.27.2(@tiptap/pm@3.16.0)
       '@types/react':
         specifier: ^18.2.0
         version: 18.3.27
@@ -6298,11 +6286,6 @@ packages:
     engines: {node: '>=12', npm: '>=6'}
     peerDependencies:
       '@testing-library/dom': '>=7.21.4'
-
-  '@tiptap/core@2.27.2':
-    resolution: {integrity: sha512-ABL1N6eoxzDzC1bYvkMbvyexHacszsKdVPYqhl5GwHLOvpZcv9VE9QaKwDILTyz5voCA0lGcAAXZp+qnXOk5lQ==}
-    peerDependencies:
-      '@tiptap/pm': ^2.7.0
 
   '@tiptap/core@3.16.0':
     resolution: {integrity: sha512-XegRaNuoQ/guzBQU2xHxOwFXXrtoXW9tiyXDhssSqylvZmBVSlRIPNHA6ArkHBKm6ehLf6+6Y9fF3uky1yCXYQ==}
@@ -21132,10 +21115,6 @@ snapshots:
     dependencies:
       '@testing-library/dom': 10.4.1
 
-  '@tiptap/core@2.27.2(@tiptap/pm@3.16.0)':
-    dependencies:
-      '@tiptap/pm': 3.16.0
-
   '@tiptap/core@3.16.0(@tiptap/pm@3.16.0)':
     dependencies:
       '@tiptap/pm': 3.16.0
@@ -21877,7 +21856,7 @@ snapshots:
       '@vitest/mocker': 4.0.18(msw@2.12.7(@types/node@20.19.30)(typescript@5.9.3))(vite@7.3.1(@types/node@20.19.30)(jiti@2.6.1)(lightningcss@1.27.0)(terser@5.48.0)(tsx@4.21.0)(yaml@2.9.0))
       playwright: 1.58.1
       tinyrainbow: 3.0.3
-      vitest: 4.0.18(@opentelemetry/api@1.9.1)(@types/node@20.19.30)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1)(jsdom@25.0.1)(lightningcss@1.27.0)(msw@2.12.7(@types/node@20.19.30)(typescript@5.9.3))(terser@5.48.0)(tsx@4.21.0)(yaml@2.9.0)
+      vitest: 4.0.18(@opentelemetry/api@1.9.1)(@types/node@20.19.30)(@vitest/browser-playwright@4.0.18)(jiti@2.6.1)(jsdom@26.1.0)(lightningcss@1.27.0)(msw@2.12.7(@types/node@20.19.30)(typescript@5.9.3))(terser@5.48.0)(tsx@4.21.0)(yaml@2.9.0)
     transitivePeerDependencies:
       - bufferutil
       - msw
