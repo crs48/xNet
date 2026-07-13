@@ -133,6 +133,9 @@ importers:
       '@xnetjs/cloud':
         specifier: workspace:*
         version: link:../../packages/cloud
+      '@xnetjs/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@xnetjs/crypto':
         specifier: workspace:*
         version: link:../../packages/crypto

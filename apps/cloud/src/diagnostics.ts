@@ -27,6 +27,7 @@
 
 import type { Logger } from './logger'
 import { createHash, randomBytes } from 'node:crypto'
+import { validateExternalUrl } from '@xnetjs/core'
 import { scrubTelemetryData } from '@xnetjs/telemetry'
 import { Hono } from 'hono'
 
@@ -202,6 +203,49 @@ export function fingerprintOf(report: {
 /** Short operator-facing handle, quotable in a GitHub issue ("XR-7F3A2B"). */
 export const shortId = (id: string): string =>
   `XR-${createHash('sha256').update(id).digest('hex').slice(0, 6).toUpperCase()}`
+
+// ─── First-seen alert webhook (exploration 0315 P4) ─────────────────────────
+
+/**
+ * Build an `onFirstSeen` handler that POSTs a compact, content-free alert to a
+ * webhook the first time a fingerprint appears. The URL is SSRF-guarded (0213)
+ * so a misconfigured operator can't point it at cloud metadata or an internal
+ * host, and delivery is fire-and-forget so alerting never blocks or breaks
+ * ingest. Returns undefined (no alerter) if the URL is missing or unsafe.
+ */
+export function createWebhookAlerter(
+  webhookUrl: string | undefined,
+  log: Logger,
+  fetchImpl: typeof fetch = fetch
+): ((record: DebugReportRecord) => void) | undefined {
+  if (!webhookUrl) return undefined
+  const check = validateExternalUrl(webhookUrl)
+  if (!check.valid) {
+    log.warn('diagnostics-alert-url-rejected', { error: check.error })
+    return undefined
+  }
+  return (record: DebugReportRecord): void => {
+    // Content-free: only the grouping identity + coarse context, never the
+    // scrubbed message/stack/breadcrumbs.
+    void fetchImpl(webhookUrl, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        event: 'debug_report.first_seen',
+        shortId: shortId(record.id),
+        fingerprint: record.fingerprint,
+        errorName: record.errorName,
+        surface: record.surface,
+        release: record.release,
+        lane: record.lane
+      })
+    }).catch((err) => {
+      log.warn('diagnostics-alert-failed', {
+        error: err instanceof Error ? err.message : String(err)
+      })
+    })
+  }
+}
 
 // ─── Rate limiting (form-inbox sliding-window pattern) ──────────────────────
 

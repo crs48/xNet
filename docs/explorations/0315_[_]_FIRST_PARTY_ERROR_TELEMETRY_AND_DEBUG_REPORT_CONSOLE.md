@@ -625,7 +625,7 @@ export async function composeDebugReport(userDescription: string) {
   privacy-policy wording check for user-triggered reports.
 - [ ] **P4:** Deploy-time source-map upload keyed by release; strip `.map`
   from served bundles; server-side symbolication in the detail panel.
-- [ ] **P4:** First-seen-fingerprint webhook alert (reuse 0213 actions).
+- [x] **P4:** First-seen-fingerprint webhook alert (reuse 0213 actions).
 - [ ] Document the Bugsink/GlitchTip escape hatch + the dormant Sentry seams
   in the hub/cloud ops guide; explicitly record the "no `@sentry/*` SDK"
   decision.

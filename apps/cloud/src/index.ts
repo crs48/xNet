@@ -336,6 +336,10 @@ function start(): void {
     appUrl: env.XNET_CLOUD_APP_URL ?? 'https://xnet.fyi/app',
     ...(env.XNET_CLOUD_INTERNAL_SECRET ? { internalSecret: env.XNET_CLOUD_INTERNAL_SECRET } : {}),
     ...(env.SENTRY_DSN ? { sentryDsn: env.SENTRY_DSN } : {}),
+    // First-seen crash-fingerprint alert (0315 P4): SSRF-guarded, content-free.
+    ...(env.XNET_CLOUD_DIAGNOSTICS_ALERT_URL
+      ? { diagnosticsAlertUrl: env.XNET_CLOUD_DIAGNOSTICS_ALERT_URL }
+      : {}),
     ...(durable ? { nonces: durable.nonces } : {}),
     ...(ai ? { ai } : {})
   })

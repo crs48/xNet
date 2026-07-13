@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
   createDiagnosticsRoutes,
+  createWebhookAlerter,
   fingerprintOf,
   MemoryDebugReportStore,
   parseIncomingReport,
@@ -273,6 +274,56 @@ describe('first-seen alert seam + retention', () => {
     advance(31 * 24 * 60 * 60 * 1000)
     await ingest(app, autoReport({ errorName: 'OtherError' }), '7.7.7.7')
     expect(await store.get(id)).toBeNull()
+  })
+})
+
+describe('createWebhookAlerter', () => {
+  const record: DebugReportRecord = {
+    id: 'dr_abc',
+    lane: 'auto',
+    fingerprint: 'abc',
+    errorName: 'TypeError',
+    message: 'secret user detail should not be sent',
+    stack: 'sensitive stack',
+    surface: 'web',
+    release: '1.0',
+    occurrences: 1,
+    status: 'pending',
+    firstSeenMs: 1,
+    lastSeenMs: 1
+  }
+
+  it('returns undefined when no URL is set', () => {
+    expect(createWebhookAlerter(undefined, silentLog)).toBeUndefined()
+  })
+
+  it('refuses an SSRF-unsafe URL (localhost / private host)', () => {
+    expect(createWebhookAlerter('http://localhost:9000/hook', silentLog)).toBeUndefined()
+    expect(createWebhookAlerter('http://169.254.169.254/latest', silentLog)).toBeUndefined()
+  })
+
+  it('POSTs a content-free alert (grouping identity only, never message/stack)', async () => {
+    const fetchImpl = vi.fn(async () => new Response('ok', { status: 200 })) as unknown as typeof fetch
+    const alert = createWebhookAlerter('https://hooks.example.com/x', silentLog, fetchImpl)
+    expect(alert).toBeDefined()
+    alert!(record)
+    await new Promise((r) => setTimeout(r, 0))
+
+    const [, init] = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0] as [string, RequestInit]
+    const body = init.body as string
+    expect(body).toContain('debug_report.first_seen')
+    expect(body).toContain('abc')
+    expect(body).not.toContain('secret user detail')
+    expect(body).not.toContain('sensitive stack')
+  })
+
+  it('never throws when the webhook is unreachable', async () => {
+    const fetchImpl = vi.fn(async () => {
+      throw new Error('down')
+    }) as unknown as typeof fetch
+    const alert = createWebhookAlerter('https://hooks.example.com/x', silentLog, fetchImpl)
+    expect(() => alert!(record)).not.toThrow()
+    await new Promise((r) => setTimeout(r, 0))
   })
 })
 

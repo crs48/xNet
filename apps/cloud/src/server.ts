@@ -34,6 +34,7 @@ import {
 import { MemoryDeviceGrantStore, isExpired, type DeviceGrantStore } from './device-grant'
 import {
   createDiagnosticsRoutes,
+  createWebhookAlerter,
   MemoryDebugReportStore,
   type DebugReportRecord,
   type DebugReportStore
@@ -95,6 +96,11 @@ export interface ControlPlaneAppDeps {
   diagnostics?: DebugReportStore
   /** Fired on a first-seen crash fingerprint (the 0315 P4 alert seam). */
   onDiagnosticsFirstSeen?: (record: DebugReportRecord) => void
+  /**
+   * Webhook posted (SSRF-guarded, content-free) on a first-seen fingerprint
+   * (0315 P4). Ignored when `onDiagnosticsFirstSeen` is supplied directly.
+   */
+  diagnosticsAlertUrl?: string
 }
 
 interface ProvisionBody {
@@ -211,7 +217,8 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
       store: deps.diagnostics ?? new MemoryDebugReportStore(),
       log,
       internalSecret: deps.internalSecret,
-      onFirstSeen: deps.onDiagnosticsFirstSeen,
+      onFirstSeen:
+        deps.onDiagnosticsFirstSeen ?? createWebhookAlerter(deps.diagnosticsAlertUrl, log),
       nowMs: deps.nowMs
     })
   )
