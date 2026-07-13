@@ -153,6 +153,19 @@ describe('SQLiteNodeStorageAdapter', () => {
     })
   })
 
+  /**
+   * Pay a fresh adapter's one-time pre-v8 column repair (0305) — a PRAGMA on
+   * the first node_properties read — then clear the query log, so RPC-count
+   * assertions measure the steady state.
+   */
+  async function primeColumnRepair(
+    target: SQLiteNodeStorageAdapter,
+    queries: string[]
+  ): Promise<void> {
+    await target.getNode('prime-column-repair')
+    queries.length = 0
+  }
+
   afterEach(async () => {
     await db.close()
   })
@@ -3380,6 +3393,7 @@ describe('SQLiteNodeStorageAdapter', () => {
     it('answers a pushed-down descriptor in ONE query RPC', async () => {
       const { db: counting, queries } = countingAdapter()
       const fusedAdapter = new SQLiteNodeStorageAdapter(counting)
+      await primeColumnRepair(fusedAdapter, queries)
 
       const result = await fusedAdapter.queryNodes({
         schemaId: taskSchemaId,
@@ -3399,6 +3413,7 @@ describe('SQLiteNodeStorageAdapter', () => {
     it('folds count:exact into the same single RPC via COUNT(*) OVER ()', async () => {
       const { db: counting, queries } = countingAdapter()
       const fusedAdapter = new SQLiteNodeStorageAdapter(counting)
+      await primeColumnRepair(fusedAdapter, queries)
 
       const result = await fusedAdapter.queryNodes({
         schemaId: taskSchemaId,
@@ -3417,6 +3432,7 @@ describe('SQLiteNodeStorageAdapter', () => {
     it('scalar-where descriptors fuse too, with correct membership', async () => {
       const { db: counting, queries } = countingAdapter()
       const fusedAdapter = new SQLiteNodeStorageAdapter(counting)
+      await primeColumnRepair(fusedAdapter, queries)
 
       const result = await fusedAdapter.queryNodes({
         schemaId: taskSchemaId,
@@ -3435,6 +3451,7 @@ describe('SQLiteNodeStorageAdapter', () => {
     it('an empty page at offset 0 reports totalCount 0 without a count RPC', async () => {
       const { db: counting, queries } = countingAdapter()
       const fusedAdapter = new SQLiteNodeStorageAdapter(counting)
+      await primeColumnRepair(fusedAdapter, queries)
 
       const result = await fusedAdapter.queryNodes({
         schemaId: taskSchemaId,
@@ -3496,6 +3513,7 @@ describe('SQLiteNodeStorageAdapter', () => {
     it('different-sized hydrates share ONE SQL string (same bucket)', async () => {
       const { db: capturing, queries } = capturingAdapter()
       const padAdapter = new SQLiteNodeStorageAdapter(capturing)
+      await primeColumnRepair(padAdapter, queries)
 
       const three = await padAdapter.getNodes(['pad-0', 'pad-1', 'pad-2'])
       const seven = await padAdapter.getNodes([
@@ -3601,6 +3619,57 @@ describe('SQLiteNodeStorageAdapter', () => {
 
       expect(result.nodes.length).toBeGreaterThan(0)
       expect(queryBatchCalls).toBe(0)
+    })
+  })
+
+  // ─── Pre-v8 database repair (0305) ─────────────────────────────────────────
+
+  describe('pre-v8 database repair (0305 tiebreak_key)', () => {
+    // A database created by a pre-v8 build has no `tiebreak_key` column, and
+    // the runtime upgrade path (full DDL re-exec via `CREATE TABLE IF NOT
+    // EXISTS`) cannot add it. The repair guard must run before the FIRST
+    // node_properties read — a fresh browser session opens a /doc/ page (pure
+    // reads) long before any write would have triggered the lazy guard.
+    beforeEach(async () => {
+      await db.exec(`
+        DROP TABLE node_properties;
+        CREATE TABLE node_properties (
+            node_id TEXT NOT NULL,
+            property_key TEXT NOT NULL,
+            value BLOB,
+            lamport_time INTEGER NOT NULL,
+            updated_by TEXT NOT NULL,
+            updated_at INTEGER NOT NULL,
+
+            PRIMARY KEY (node_id, property_key),
+            FOREIGN KEY (node_id) REFERENCES nodes(id) ON DELETE CASCADE
+        );
+      `)
+      await db.run(
+        'INSERT INTO nodes (id, schema_id, created_at, updated_at, created_by) VALUES (?, ?, ?, ?, ?)',
+        ['legacy-node', testSchemaId, 1, 1, testDID]
+      )
+      await db.run(
+        `INSERT INTO node_properties (node_id, property_key, value, lamport_time, updated_by, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        ['legacy-node', 'title', new TextEncoder().encode(JSON.stringify('Legacy')), 1, testDID, 1]
+      )
+    })
+
+    it('getNode repairs the missing column instead of throwing', async () => {
+      const node = await adapter.getNode('legacy-node')
+      expect(node?.properties.title).toBe('Legacy')
+
+      const columns = await db.query<{ name: string }>('PRAGMA table_info(node_properties)')
+      expect(columns.some((column) => column.name === 'tiebreak_key')).toBe(true)
+    })
+
+    it('listNodes and queryNodes repair the missing column instead of throwing', async () => {
+      const listed = await adapter.listNodes({ schemaId: testSchemaId })
+      expect(listed.map((node) => node.id)).toContain('legacy-node')
+
+      const queried = await adapter.queryNodes({ schemaId: testSchemaId, includeDeleted: false })
+      expect(queried.nodes.map((node) => node.id)).toContain('legacy-node')
     })
   })
 

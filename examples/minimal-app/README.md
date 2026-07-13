@@ -42,20 +42,25 @@ an invitation. That's the entire mechanism — no tokens, no invites, no user
 management. For real apps that need access control, see UCAN share links
 (`createShareToken` in `@xnetjs/identity`) and schema `authorization` blocks.
 
-## The 60 lines, annotated
+## The one file, annotated
 
-Everything is in [`src/main.tsx`](src/main.tsx):
+Everything is in [`src/main.tsx`](src/main.tsx) (Node 18+ to build):
 
-1. **Schema** — `defineSchema` with property builders (`text`, `checkbox`)
+1. **Schemas** — `defineSchema` with property builders (`text`, `checkbox`)
    and a one-line authorization preset (`presets.open()` = wiki-style).
+   The `Board` schema adds `document: 'yjs'` — a live collaborative doc
+   whose Awareness channel carries the cursors.
 2. **Identity** — `generateIdentity()` returns `{ identity, privateKey }`.
    Persist the key if you want a stable identity; here each tab is a fresh
    anonymous author, which is exactly what a demo wants.
 3. **Provider** — `XNetProvider` boots the store (in-memory by default),
    signs every change with your key, and relays through `hubUrl`.
-4. **Hooks** — `useQuery(Todo)` is a live subscription; `useMutate()` gives
-   optimistic `create`/`update`/`remove`. There is no cache invalidation to
-   manage — the store IS the cache.
+4. **Data hooks** — `useQuery(Todo)` is a live subscription; `useMutate()`
+   gives optimistic `create`/`update`/`remove`. There is no cache
+   invalidation to manage — the store IS the cache.
+5. **Presence hooks** — `useNode(Board, …)` exposes the doc's `awareness`;
+   `usePresence(awareness, { x, y })` broadcasts throttled, ephemeral peer
+   state. Cursors never touch storage and vanish when a peer disconnects.
 
 Point `hubUrl` at `wss://hub.xnet.fyi` to sync through the public demo hub
 instead of a local one (sandbox: quota'd, idle rooms are evicted — don't
