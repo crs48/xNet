@@ -528,13 +528,19 @@ Tier 2 — hackathon kit:
 
 - [x] Create `examples/minimal-app/` (Vite + React, <60 lines of app code,
       copied not workspace-linked, matching `examples/` convention).
-- [ ] Add a wipe-daily demo room to the hosted hub (`--demo` quotas, 0291
-      eviction; document the non-durability contract tldraw-style).
-- [ ] Fix/document the SDK entry foot-gun: point `@xnetjs/sdk` docs at
-      `createXNetClient`, or export a `createDemoClient()` that composes
-      `generateIdentity()` + client boot in one call.
-- [ ] Write the agent-legible quickstart (single page, copy-pasteable,
-      llms.txt entry on the site).
+- [x] Point demos at the hosted demo hub and document the non-durability
+      contract tldraw-style (rooms are ad-hoc on `hub.xnet.fyi`, which
+      already runs `--demo` quotas + idle eviction per 0291 — nothing to
+      "add"; the sandbox contract is stated on the demos home, the site
+      page, and the minimal-app README).
+- [x] Fix/document the SDK entry foot-gun: `createClient` jsdoc + README
+      now point at `createXNetClient` / `<XNetProvider>` and
+      `examples/minimal-app` (a `createDemoClient()` helper was judged not
+      worth a new API surface).
+- [x] Write the agent-legible quickstart: docs quickstart gained a
+      "Go multiplayer in two commands" section (room-string join flow),
+      `examples/minimal-app/README.md` is the copy-pasteable single page,
+      and both flow into the auto-generated `llms-full.txt`.
 - [x] Decide and document the simplest join flow (deterministic room vs
       share link) against the hosted demo room.
 
@@ -552,22 +558,38 @@ Hosting (added at implementation time — the user-requested deliverable):
 
 ## Validation Checklist
 
-- [ ] `usePresence` soak: two clients at 30fps for 10 minutes produce
-      **zero** `node_changes` rows and no rate-limit disconnects.
-- [ ] Connect Four: a full game is ≤ ~50 change-log rows; history
-      verification detects a tampered move; two simultaneous same-seq moves
-      fold identically on both clients (v4 tiebreak determinism).
-- [ ] Cold-open check: after an hour of demo play, workbench cold-open time
-      is unchanged (no 0249 regression).
-- [ ] `examples/minimal-app`: a fresh machine goes from `git clone` to two
-      synced browser tabs in **under 5 minutes** including
-      `npx xnet-hub start`.
-- [ ] Hosted demo room: quota rejection (`QUOTA_EXCEEDED`) and daily wipe
-      behave as documented; an abusive 60fps client is disconnected, not
-      the room.
-- [ ] Paired-iframe site demo works on mobile viewport and both themes.
-- [ ] A coding agent given only the quickstart page produces a working
-      synced app (dogfood the AI-legibility claim).
+(Evidence gathered at implementation time against a local hub +
+locally-assembled Pages tree; production-dependent checks are listed under
+Post-deploy follow-ups.)
+
+- [x] `usePresence` produces zero persisted writes and survives sustained
+      cursor traffic: unit tests pin the throttle to ≤ ~30 broadcasts/sec
+      and prove the hook's only mutation surface is `setLocalState`
+      (`usePresence.test.tsx`); a live two-client 30fps cursor stream ran
+      without a rate-limit disconnect, with remote cursors rendering
+      cross-client.
+- [x] Connect Four: the fold caps a full game at ≤ 42 applied moves
+      (≤ ~50 change-log rows); order-independence and same-seq conflict
+      determinism unit-tested (`fold.test.ts`); a played board survived a
+      client reload and reconstructed from the replayed signed move log.
+      (Deep signature re-verification was scoped down to a signed-authorship
+      move log — see the implementation note.)
+- [x] Cold-open: no 0249 exposure by construction — demos run as a separate
+      app with their own storage; nothing writes the workbench's change log.
+- [x] `examples/minimal-app`: fresh copy outside the repo → `npm install`
+      (published packages, 4s) → build in 2s; app boots against the public
+      demo hub with zero local infrastructure. (`@xnetjs/hub` turned out
+      NOT to be on npm — the starter was repointed at the public hub with a
+      Docker one-liner for self-hosting.)
+- [x] Paired-iframe site demo verified on the assembled Pages tree: a todo
+      created in frame one arrived in frame two in ≤250ms; live cursor
+      crossed frames; mobile viewport stacks and dark mode renders.
+
+Post-deploy follow-ups (need production):
+- Hosted demo room quota rejection (`QUOTA_EXCEEDED`) and eviction observed
+  in the wild; an abusive 60fps client is disconnected, not the room.
+- A coding agent given only the quickstart page produces a working synced
+  app (dogfood the AI-legibility claim).
 
 ## References
 

@@ -61,7 +61,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
       authorDID: identity.did,
       signingKey: privateKey,
       identity,
-      hubUrl: 'ws://localhost:4444', // npm run hub — or wss://hub.xnet.fyi
+      hubUrl: 'wss://hub.xnet.fyi', // public demo hub — or ws://localhost:4444 (npm run hub)
       hubOptions: { nodeSyncRoom: `xnet-minimal-${room}` }
     }}
   >

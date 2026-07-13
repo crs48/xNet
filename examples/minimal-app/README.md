@@ -12,21 +12,26 @@ with cursors added).
 ## Quickstart
 
 ```bash
-# 1. copy this directory anywhere, then:
+# copy this directory anywhere, then:
 npm install
-
-# 2. start a local sync hub (terminal 1) — dev only: --no-auth accepts anyone
-npm run hub
-
-# 3. start the app (terminal 2)
 npm run dev
 ```
 
-Open the printed URL **in two browser windows**. Each window mints its own
-throwaway identity (`generateIdentity()` — a DID + Ed25519 keypair, no
-signup). Add a todo in one window; it appears in the other. Writes land in
-the local store synchronously and sync in the background — kill the hub and
-the app keeps working, restart it and changes catch up.
+That's it — the app syncs through the public demo hub (`wss://hub.xnet.fyi`)
+out of the box. Open the printed URL **in two browser windows**. Each window
+mints its own throwaway identity (`generateIdentity()` — a DID + Ed25519
+keypair, no signup). Add a todo in one window; it appears in the other.
+Writes land in the local store synchronously and sync in the background —
+go offline and the app keeps working; changes catch up on reconnect.
+
+To run your own hub instead (recommended for anything beyond kicking the
+tires — the demo hub is a quota'd sandbox with periodic eviction):
+
+```bash
+npm run hub    # docker run ghcr.io/crs48/xnet-hub with auth off (dev only)
+```
+
+then switch `hubUrl` in `src/main.tsx` to `ws://localhost:4444`.
 
 ## How joining works
 
