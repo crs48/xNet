@@ -113,6 +113,8 @@ export default defineConfig({
             'packages/{abuse,billing,brain,canvas-core,cli,cloud,crm,dictation,meetings,entitlements,comms,crypto,core,data,experiments,formula,history,identity,ledger,licenses,network,query,slack-compat,sqlite,storage,sync,telemetry,trust,vectors}/test/**/*.test.ts',
             // Control-plane app logic (xNet Cloud — managed-hosting explorations 0174/0175)
             'apps/cloud/src/**/*.test.ts',
+            // Demo apps — pure logic only (Connect Four fold, exploration 0314)
+            'apps/demos/src/lib/**/*.test.ts',
             // Social matching layer — pure connect modules only; the
             // social importer/view tests need package subpath resolution that
             // this shared pool doesn't provide, so they stay on the package config.

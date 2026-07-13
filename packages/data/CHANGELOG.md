@@ -1,5 +1,49 @@
 # @xnetjs/data
 
+## 1.0.0
+
+### Major Changes
+
+- [#482](https://github.com/crs48/xNet/pull/482) [`e6b4c6f`](https://github.com/crs48/xNet/commit/e6b4c6f95b2715289ff35ae37ebd6be7eeba5174) Thanks [@crs48](https://github.com/crs48)! - Grinding-resistant Last-Write-Wins tiebreak (protocol v4, exploration 0305)
+
+  The final LWW conflict tiebreak was the raw author DID ("higher DID wins").
+  Because a `did:key` is a free, attacker-chosen function of a keypair, an
+  attacker could grind a vanity DID that sorts highest and win **every**
+  concurrent-write tie against every honest peer, permanently.
+
+  Protocol v4 replaces that final rung with a per-conflict key,
+  `blake3(authorDID ‖ property ‖ value)` (`computeLwwTiebreakKey` in
+  `@xnetjs/core`), so the winner of a tie is a random-oracle function of _what is
+  written_ — a ground identity wins no durable, universal advantage. The key is
+  gated on both changes being v4 (legacy changes fall back to the author DID), is
+  derived at resolution time (never part of the change hash or wire format), and
+  is threaded through `PropertyTimestamp`, the SQLite `node_properties` guard (new
+  nullable `tiebreak_key` column, schema v8), and every conformance kernel.
+
+  BREAKING: `CURRENT_PROTOCOL_VERSION` is now `4` and new changes are stamped v4.
+  The LWW golden vectors gain `0005-tie-grinding-resistant-key`; `LwwStamp` /
+  `PropertyTimestamp` gain an optional `tiebreakKey`. Mixed fleets converge on
+  exact `{lamport, wallTime}` ties only once both peers are on v4 — a transient
+  rollout window affecting rare exact ties.
+
+### Minor Changes
+
+- [#488](https://github.com/crs48/xNet/pull/488) [`1de6587`](https://github.com/crs48/xNet/commit/1de658746fb4b5420f8f92517f9c135562d23d28) Thanks [@crs48](https://github.com/crs48)! - Schema authorization gains `create` and `update` actions — optional refinements of `write` (exploration 0304). A schema may now split its mutation policy into who may **add** nodes vs. who may **modify** existing ones; when a refinement is absent it falls back to the schema's `write` expression, so existing schemas behave identically.
+  - `@xnetjs/core`: `AUTH_ACTIONS` includes `create`/`update`; new `actionExpressionOrder()` and `grantActionSatisfies()` helpers (a `write` grant covers both refinements; granular grants cover only themselves).
+  - `@xnetjs/data`: the policy evaluator resolves actions with the fallback and evaluates `create` against the draft node built from the payload (container relations resolve membership, so creation into a shared Space is genuinely gated); `NodeStore` checks the precise verbs, and remote creates are inferred and checked as `create` instead of failing closed on a not-yet-existing node. New `spaceContributorAuthorization()` cascade — adopted by `ChatMessage` and `Comment` — expresses "members may post, only the author (or space admins) may edit". `StoreAuthAPI.can` accepts an optional draft `node`.
+  - `@xnetjs/react`: new `useCanCreate(schemaId, properties)` hook; `useCan`/`useCanEdit` check the precise `update` verb.
+  - `@xnetjs/runtime`: conformance corpus gains the `authz-actions` suite pinning the fallback table.
+
+### Patch Changes
+
+- Updated dependencies [[`e6b4c6f`](https://github.com/crs48/xNet/commit/e6b4c6f95b2715289ff35ae37ebd6be7eeba5174), [`3bc1b5f`](https://github.com/crs48/xNet/commit/3bc1b5f1243cba019c60c0fda062953fa3ffb910), [`38fd26f`](https://github.com/crs48/xNet/commit/38fd26f3074176ecb73b6b04b8226f2b28d2258c), [`1de6587`](https://github.com/crs48/xNet/commit/1de658746fb4b5420f8f92517f9c135562d23d28)]:
+  - @xnetjs/core@1.0.0
+  - @xnetjs/sync@1.0.0
+  - @xnetjs/sqlite@1.0.0
+  - @xnetjs/crypto@1.0.0
+  - @xnetjs/identity@1.0.0
+  - @xnetjs/storage@1.0.0
+
 ## 0.12.0
 
 ### Patch Changes

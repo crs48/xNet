@@ -1,5 +1,34 @@
 # @xnetjs/react
 
+## 1.0.0
+
+### Minor Changes
+
+- [#494](https://github.com/crs48/xNet/pull/494) [`6acf14b`](https://github.com/crs48/xNet/commit/6acf14b244e6d97e0a96611fc8882bbeadef8207) Thanks [@crs48](https://github.com/crs48)! - New `usePresence<T>(awareness, initialState)` hook: typed, throttled (~30fps)
+  ephemeral peer state over Yjs Awareness. Pairs with `useNode().awareness` for
+  live cursors, positions, and "who's here" UI without writing the persisted
+  change log. Peers are evicted on disconnect; unmount retracts only the fields
+  the hook owns.
+
+- [#488](https://github.com/crs48/xNet/pull/488) [`1de6587`](https://github.com/crs48/xNet/commit/1de658746fb4b5420f8f92517f9c135562d23d28) Thanks [@crs48](https://github.com/crs48)! - Schema authorization gains `create` and `update` actions — optional refinements of `write` (exploration 0304). A schema may now split its mutation policy into who may **add** nodes vs. who may **modify** existing ones; when a refinement is absent it falls back to the schema's `write` expression, so existing schemas behave identically.
+  - `@xnetjs/core`: `AUTH_ACTIONS` includes `create`/`update`; new `actionExpressionOrder()` and `grantActionSatisfies()` helpers (a `write` grant covers both refinements; granular grants cover only themselves).
+  - `@xnetjs/data`: the policy evaluator resolves actions with the fallback and evaluates `create` against the draft node built from the payload (container relations resolve membership, so creation into a shared Space is genuinely gated); `NodeStore` checks the precise verbs, and remote creates are inferred and checked as `create` instead of failing closed on a not-yet-existing node. New `spaceContributorAuthorization()` cascade — adopted by `ChatMessage` and `Comment` — expresses "members may post, only the author (or space admins) may edit". `StoreAuthAPI.can` accepts an optional draft `node`.
+  - `@xnetjs/react`: new `useCanCreate(schemaId, properties)` hook; `useCan`/`useCanEdit` check the precise `update` verb.
+  - `@xnetjs/runtime`: conformance corpus gains the `authz-actions` suite pinning the fallback table.
+
+### Patch Changes
+
+- Updated dependencies [[`e6b4c6f`](https://github.com/crs48/xNet/commit/e6b4c6f95b2715289ff35ae37ebd6be7eeba5174), [`3bc1b5f`](https://github.com/crs48/xNet/commit/3bc1b5f1243cba019c60c0fda062953fa3ffb910), [`38fd26f`](https://github.com/crs48/xNet/commit/38fd26f3074176ecb73b6b04b8226f2b28d2258c), [`1de6587`](https://github.com/crs48/xNet/commit/1de658746fb4b5420f8f92517f9c135562d23d28)]:
+  - @xnetjs/core@1.0.0
+  - @xnetjs/sync@1.0.0
+  - @xnetjs/data@1.0.0
+  - @xnetjs/plugins@1.0.0
+  - @xnetjs/runtime@0.4.0
+  - @xnetjs/crypto@1.0.0
+  - @xnetjs/data-bridge@1.0.0
+  - @xnetjs/history@1.0.0
+  - @xnetjs/identity@1.0.0
+
 ## 0.12.0
 
 ### Patch Changes
