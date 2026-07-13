@@ -603,7 +603,7 @@ export async function composeDebugReport(userDescription: string) {
 - [x] **P0:** Hub: adopt the zero-dep JSON logger pattern + global
   `app.onError` in [packages/hub/src/server.ts](../../packages/hub/src/server.ts)
   (changeset: patch, `@xnetjs/hub`).
-- [ ] **P1:** `POST /diagnostics/ingest` in `apps/cloud` — secret-or-anon
+- [x] **P1:** `POST /diagnostics/ingest` in `apps/cloud` — secret-or-anon
   lanes, 8 KB cap, abuse budget, zod allowlist, fingerprint, short report ID;
   this is also the missing socket for
   [diagnostics-sharing.ts](../../packages/hub/src/features/diagnostics-sharing.ts).

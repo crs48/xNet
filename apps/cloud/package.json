@@ -21,6 +21,7 @@
     "@xnetjs/cloud": "workspace:*",
     "@xnetjs/crypto": "workspace:*",
     "@xnetjs/entitlements": "workspace:*",
+    "@xnetjs/telemetry": "workspace:*",
     "hono": "^4.0.0",
     "stripe": "^17.0.0"
   },
