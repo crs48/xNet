@@ -30,6 +30,7 @@ import { resetCoachSession } from '../coachmarks'
 import { ProfileSettings } from '../comms/ProfileSettings'
 import { ContentSafetySettings } from '../components/ContentSafetySettings'
 import { PluginsPanel } from '../components/PluginsPanel'
+import { ReportProblemDialog } from '../components/ReportProblemDialog'
 import { SafetyCenterSettings } from '../components/SafetyCenterSettings'
 import { isAnalyticsConfigured } from '../lib/analytics'
 import { requestXNetBrowserStorageReset } from '../lib/browser-storage-reset'
@@ -40,6 +41,7 @@ import { identityManager, logout } from '../lib/identity'
 import { isLabEnabled, LABS_FLAGS, setLabEnabled } from '../lib/labs'
 import { createLeavePorts, downloadLeaveBundle, type LeaveDeps } from '../lib/leave'
 import { isSentryConfigured } from '../lib/sentry'
+import { useReportBreadcrumbs } from '../lib/use-report-breadcrumbs'
 import {
   DEFAULT_SETTINGS_SECTION,
   asSettingsSection,
@@ -658,6 +660,8 @@ function PrivacySettings() {
   const { allows, setTier } = useConsent()
   const crashes = allows('crashes')
   const anonymous = allows('anonymous')
+  const breadcrumbs = useReportBreadcrumbs()
+  const [reporting, setReporting] = useState(false)
 
   return (
     <SettingsPanel
@@ -699,6 +703,14 @@ function PrivacySettings() {
             {isAnalyticsConfigured() ? 'Cookieless' : 'Off'}
           </span>
         </SettingRow>
+        <SettingRow
+          label="Report a problem"
+          description="Send us a one-off debug report. You'll see exactly what's included and can edit it before anything is sent."
+        >
+          <button type="button" onClick={() => setReporting(true)} className={QUIET_BUTTON}>
+            Report a problem
+          </button>
+        </SettingRow>
         <SettingRow label="Privacy policy" description="How we handle data, in plain language.">
           <a
             href="https://xnet.fyi/privacy"
@@ -710,6 +722,9 @@ function PrivacySettings() {
           </a>
         </SettingRow>
       </SettingsGroup>
+      {reporting && (
+        <ReportProblemDialog breadcrumbs={breadcrumbs} onClose={() => setReporting(false)} />
+      )}
     </SettingsPanel>
   )
 }

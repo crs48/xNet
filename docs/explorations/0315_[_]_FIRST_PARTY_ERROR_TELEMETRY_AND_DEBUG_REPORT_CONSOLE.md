@@ -613,10 +613,10 @@ export async function composeDebugReport(userDescription: string) {
   origin to CSP `connect-src`; env-gate to official builds only.
 - [ ] **P1:** Fingerprint + occurrence-count upsert into the operator
   workspace (deterministic node IDs, LWW).
-- [ ] **P2:** `composeDebugReport()` + preview-before-send modal (per-section
+- [x] **P2:** `composeDebugReport()` + preview-before-send modal (per-section
   checkboxes, byte-for-byte payload display); entry points in Settings,
   boot-failure screen, and `ErrorFallback`; report-ID handoff UI.
-- [ ] **P2:** Re-scrub the 0275 log ring at compose time; add a
+- [x] **P2:** Re-scrub the 0275 log ring at compose time; add a
   deliberately-PII-laden fixture test for the composed payload.
 - [ ] **P3:** `debug-report` schema + authz rungs + `SEED_EXCLUDED_SCHEMA_IDS`
   entry; ops-workspace saved views (Inbox / By release / By fingerprint);
