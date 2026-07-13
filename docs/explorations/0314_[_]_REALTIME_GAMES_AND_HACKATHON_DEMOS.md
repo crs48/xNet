@@ -526,7 +526,7 @@ Tier 1 — primitive + hosted game demos:
 
 Tier 2 — hackathon kit:
 
-- [ ] Create `examples/minimal-app/` (Vite + React, <60 lines of app code,
+- [x] Create `examples/minimal-app/` (Vite + React, <60 lines of app code,
       copied not workspace-linked, matching `examples/` convention).
 - [ ] Add a wipe-daily demo room to the hosted hub (`--demo` quotas, 0291
       eviction; document the non-durability contract tldraw-style).
@@ -535,19 +535,19 @@ Tier 2 — hackathon kit:
       `generateIdentity()` + client boot in one call.
 - [ ] Write the agent-legible quickstart (single page, copy-pasteable,
       llms.txt entry on the site).
-- [ ] Decide and document the simplest join flow (deterministic room vs
+- [x] Decide and document the simplest join flow (deterministic room vs
       share link) against the hosted demo room.
 
 Tier 3 — collab prototype page:
 
-- [ ] Build the ~40-line collaborative todo + cursors demo.
-- [ ] Embed as paired iframes on a site page (`site/src/pages/`), backed by
+- [x] Build the ~40-line collaborative todo + cursors demo.
+- [x] Embed as paired iframes on a site page (`site/src/pages/`), backed by
       the demo hub room.
-- [ ] Link it from the landing page and the quickstart.
+- [x] Link it from the landing page and the quickstart.
 
 Hosting (added at implementation time — the user-requested deliverable):
 
-- [ ] Deploy `apps/demos` to GitHub Pages at `/demos/` via
+- [x] Deploy `apps/demos` to GitHub Pages at `/play/` via
       `deploy-site.yml`, next to the site (root) and web app (`/app/`).
 
 ## Validation Checklist

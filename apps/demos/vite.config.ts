@@ -1,8 +1,9 @@
 import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 
-// Deployed under xnet.fyi/demos/ on GitHub Pages (deploy-site.yml sets
-// VITE_BASE_PATH='/demos/'); defaults to '/' for local dev and previews.
+// Deployed under xnet.fyi/play/ on GitHub Pages (deploy-site.yml sets
+// VITE_BASE_PATH='/play/'; the site's /demos page frames it). Defaults to
+// '/' for local dev.
 const basePath = process.env.VITE_BASE_PATH || '/'
 
 export default defineConfig({

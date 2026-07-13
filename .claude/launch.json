@@ -93,6 +93,18 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "4392", "-d", "site/dist"],
       "port": 4392
+    },
+    {
+      "name": "pages-root (static 4394)",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "4394",
+        "-d",
+        "/private/tmp/claude-501/-Users-crs-Code-xNet--claude-worktrees-interesting-pike-087bb4/202016a3-c001-4906-b492-f54a17ba223f/scratchpad/pages-root"
+      ],
+      "port": 4394
     }
   ]
 }
