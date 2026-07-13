@@ -171,8 +171,7 @@ describe('POST /diagnostics/ingest', () => {
 
 describe('POST /diagnostics (hub diagnostics-sharing socket)', () => {
   // Exactly what packages/hub/src/features/diagnostics-sharing.ts sends.
-  const hubBody = (report: unknown) =>
-    JSON.stringify({ didHash: 'a'.repeat(43), report })
+  const hubBody = (report: unknown) => JSON.stringify({ didHash: 'a'.repeat(43), report })
 
   it('rejects without the shared secret (403)', async () => {
     const { app } = makeApp()
@@ -303,7 +302,9 @@ describe('createWebhookAlerter', () => {
   })
 
   it('POSTs a content-free alert (grouping identity only, never message/stack)', async () => {
-    const fetchImpl = vi.fn(async () => new Response('ok', { status: 200 })) as unknown as typeof fetch
+    const fetchImpl = vi.fn(
+      async () => new Response('ok', { status: 200 })
+    ) as unknown as typeof fetch
     const alert = createWebhookAlerter('https://hooks.example.com/x', silentLog, fetchImpl)
     expect(alert).toBeDefined()
     alert!(record)

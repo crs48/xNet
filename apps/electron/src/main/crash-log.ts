@@ -42,11 +42,7 @@ let installed = false
 const toEntry = (kind: MainCrashEntry['kind'], reason: unknown): MainCrashEntry => ({
   kind,
   message:
-    reason instanceof Error
-      ? reason.message
-      : typeof reason === 'string'
-        ? reason
-        : String(reason),
+    reason instanceof Error ? reason.message : typeof reason === 'string' ? reason : String(reason),
   stack: reason instanceof Error ? reason.stack : undefined,
   at: Date.now()
 })

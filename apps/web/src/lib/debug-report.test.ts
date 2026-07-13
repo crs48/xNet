@@ -1,10 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { __resetBootTimeline, bootMark } from './boot-timeline'
-import {
-  composeDebugReport,
-  toSubmitPayload,
-  DEFAULT_SECTION_TOGGLES
-} from './debug-report'
+import { composeDebugReport, toSubmitPayload, DEFAULT_SECTION_TOGGLES } from './debug-report'
 
 afterEach(() => {
   __resetBootTimeline()
@@ -22,7 +18,9 @@ describe('composeDebugReport', () => {
     const report = composeDebugReport({
       userDescription:
         'my home is /Users/crs/Code and my id is did:key:z6MkhaXgBZDvotDkL5257faiztiGiC2QtKLGpbnnEGta2doK',
-      breadcrumbs: ['error [sync] fetch http://10.0.0.5/api?token=supersecrettokenvalue123456 failed']
+      breadcrumbs: [
+        'error [sync] fetch http://10.0.0.5/api?token=supersecrettokenvalue123456 failed'
+      ]
     })
 
     expect(report.userDescription).toContain('/Users/[USER]')

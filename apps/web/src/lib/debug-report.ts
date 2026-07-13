@@ -75,8 +75,7 @@ export async function collectElectronCrashBreadcrumbs(): Promise<string[]> {
 
 /** Build the report from local diagnostics, scrubbing every free-text field. */
 export function composeDebugReport(input: ComposeInput): ComposedDebugReport {
-  const failure =
-    typeof window !== 'undefined' ? window.__xnetBootError : undefined
+  const failure = typeof window !== 'undefined' ? window.__xnetBootError : undefined
 
   const scrubbed = scrubTelemetryData({
     userDescription: input.userDescription,
@@ -89,8 +88,7 @@ export function composeDebugReport(input: ComposeInput): ComposedDebugReport {
     release: import.meta.env.VITE_APP_VERSION as string | undefined,
     surface: isElectron() ? 'electron' : 'web',
     bootStage: lastBootPhase(),
-    uaFamily:
-      typeof navigator !== 'undefined' ? uaFamilyOnly(navigator.userAgent) : undefined,
+    uaFamily: typeof navigator !== 'undefined' ? uaFamilyOnly(navigator.userAgent) : undefined,
     breadcrumbs: scrubbed.breadcrumbs,
     lastError: failure
       ? { kind: failure.kind, message: scrubbed.lastErrorMessage, stage: failure.stage }
@@ -109,7 +107,8 @@ export function toSubmitPayload(
 ): DebugReport {
   return {
     errorName: report.lastError?.kind ?? 'UserReport',
-    message: report.lastError && toggles.lastError ? report.lastError.message : report.userDescription,
+    message:
+      report.lastError && toggles.lastError ? report.lastError.message : report.userDescription,
     stack: report.lastError && toggles.lastError ? report.lastError.stage : undefined,
     release: toggles.systemInfo ? report.release : undefined,
     surface: report.surface,

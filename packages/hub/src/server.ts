@@ -760,9 +760,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
       demoResetInterval = setInterval(() => {
         storage
           .resetAllUserData()
-          .then(({ nodeChanges, docStates }) =>
-            log.info('demo-reset', { nodeChanges, docStates })
-          )
+          .then(({ nodeChanges, docStates }) => log.info('demo-reset', { nodeChanges, docStates }))
           .catch((err) =>
             log.error('demo-reset failed', {
               error: err instanceof Error ? err.message : String(err)

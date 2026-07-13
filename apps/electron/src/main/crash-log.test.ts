@@ -78,9 +78,15 @@ describe('readMainCrashLog', () => {
   it('skips torn/corrupt lines and reads across the rotated generation', () => {
     installMainCrashLog(dir)
     const path = join(dir, 'main-crash.log')
-    writeFileSync(`${path}.1`, `${JSON.stringify({ kind: 'uncaughtException', message: 'old', at: 1 })}\n`)
+    writeFileSync(
+      `${path}.1`,
+      `${JSON.stringify({ kind: 'uncaughtException', message: 'old', at: 1 })}\n`
+    )
     appendFileSync(path, 'not json {{{\n')
-    appendFileSync(path, `${JSON.stringify({ kind: 'unhandledRejection', message: 'new', at: 2 })}\n`)
+    appendFileSync(
+      path,
+      `${JSON.stringify({ kind: 'unhandledRejection', message: 'new', at: 2 })}\n`
+    )
 
     const entries = readMainCrashLog()
     expect(entries.map((e) => e.message)).toEqual(['old', 'new'])

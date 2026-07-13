@@ -649,8 +649,7 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Map': () => import('./map').then((m) => m.MapSchema),
   'xnet://xnet.fyi/Comment': () => import('./comment').then((m) => m.CommentSchema),
   'xnet://xnet.fyi/Reaction': () => import('./reaction').then((m) => m.ReactionSchema),
-  'xnet://xnet.fyi/DebugReport': () =>
-    import('./debug-report').then((m) => m.DebugReportSchema),
+  'xnet://xnet.fyi/DebugReport': () => import('./debug-report').then((m) => m.DebugReportSchema),
   'xnet://xnet.fyi/Profile': () => import('./profile').then((m) => m.ProfileSchema),
   'xnet://xnet.fyi/Channel': () => import('./channel').then((m) => m.ChannelSchema),
   'xnet://xnet.fyi/ChatMessage': () => import('./chat-message').then((m) => m.ChatMessageSchema),

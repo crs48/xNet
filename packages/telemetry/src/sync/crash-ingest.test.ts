@@ -19,8 +19,9 @@ const makeClient = (tier: 'off' | 'crashes', fetchImpl: typeof fetch) => {
 }
 
 const okFetch = () =>
-  vi.fn(async () =>
-    new Response(JSON.stringify({ id: 'dr_u_abc', shortId: 'XR-ABC123' }), { status: 202 })
+  vi.fn(
+    async () =>
+      new Response(JSON.stringify({ id: 'dr_u_abc', shortId: 'XR-ABC123' }), { status: 202 })
   ) as unknown as typeof fetch
 
 describe('createDiagnosticsClient — automatic lane', () => {
@@ -74,7 +75,9 @@ describe('createDiagnosticsClient — user-triggered lane', () => {
   })
 
   it('returns null on failure instead of throwing', async () => {
-    const failing = vi.fn(async () => new Response('nope', { status: 500 })) as unknown as typeof fetch
+    const failing = vi.fn(
+      async () => new Response('nope', { status: 500 })
+    ) as unknown as typeof fetch
     const client = makeClient('off', failing)
     expect(await client.submit(PING)).toBeNull()
 

@@ -164,7 +164,11 @@ export function ReportProblemDialog({ onClose, breadcrumbs }: ReportProblemDialo
             </p>
             <div className="mt-3 flex flex-wrap gap-3 text-xs">
               <label className="flex items-center gap-1.5">
-                <input type="checkbox" checked={toggles.systemInfo} onChange={toggle('systemInfo')} />
+                <input
+                  type="checkbox"
+                  checked={toggles.systemInfo}
+                  onChange={toggle('systemInfo')}
+                />
                 System info
               </label>
               <label className="flex items-center gap-1.5">
