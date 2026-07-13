@@ -5,6 +5,30 @@
   "unmappedFiles": [],
   "stories": [
     {
+      "id": "editor-xneteditor--empty",
+      "title": "Editor/XNetEditor",
+      "name": "Empty",
+      "file": "stories/editor-xneteditor--empty.png",
+      "status": "new",
+      "after": "stories/editor-xneteditor--empty.png"
+    },
+    {
+      "id": "editor-xneteditor--legacy-import",
+      "title": "Editor/XNetEditor",
+      "name": "Legacy Import",
+      "file": "stories/editor-xneteditor--legacy-import.png",
+      "status": "new",
+      "after": "stories/editor-xneteditor--legacy-import.png"
+    },
+    {
+      "id": "editor-xneteditor--read-only",
+      "title": "Editor/XNetEditor",
+      "name": "Read Only",
+      "file": "stories/editor-xneteditor--read-only.png",
+      "status": "new",
+      "after": "stories/editor-xneteditor--read-only.png"
+    },
+    {
       "id": "electron-systemmenu--default",
       "title": "Electron/SystemMenu",
       "name": "Default",
@@ -70,6 +94,14 @@
       "ssim": 1
     }
   ],
-  "flows": [],
-  "changedCount": 0
+  "flows": [
+    {
+      "id": "create-page",
+      "label": "Create a page and use the editor",
+      "gif": "flows/create-page.gif",
+      "mp4": "flows/create-page.mp4",
+      "poster": "flows/create-page.poster.png"
+    }
+  ],
+  "changedCount": 4
 }
