@@ -28,6 +28,7 @@ import { billingFeature, tasksFeature, unfurlFeature } from './features/first-pa
 import { formInboxFeature } from './features/form-inbox'
 import { mountFeatures } from './features/registry'
 import { pagerdutyFeature, sentryFeature, stripeFeature } from './features/webhook-integrations'
+import { createLogger } from './logger'
 import { Metrics, HUB_METRICS } from './middleware/metrics'
 import { RateLimiter } from './middleware/rate-limit'
 import { NodePool } from './pool/node-pool'
@@ -144,12 +145,25 @@ const endpointClaimFor = (endpoint: string, resource: string, exp: number): stri
 
 export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   const app = new Hono()
+  const log = createLogger({ level: config.logLevel, base: { service: 'xnet-hub' } })
   // Browser clients live on other origins than the hub (the deployed app on
   // xnet.fyi, Electron/Capacitor shells, self-hosted apps) and call the hub's
   // HTTP APIs with a Bearer UCAN token, which forces a CORS preflight. Auth is
   // token-based — never cookies — so a wildcard origin grants nothing a
   // malicious page could use without already holding a token.
   app.use('*', cors())
+  // Global safety net (exploration 0315 P0): routes do their own try/catch, so
+  // this only fires on a genuinely uncaught throw — log one structured line and
+  // return a clean 500 instead of leaking a stack to the client.
+  app.onError((err, c) => {
+    log.error('unhandled', {
+      method: c.req.method,
+      path: c.req.path,
+      error: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined
+    })
+    return c.json({ error: 'internal_error' }, 500)
+  })
   const signaling = createSignalingService()
   // The demo hub's data is disposable, so let it auto-reset a corrupt base DB
   // and boot rather than crash-loop (exploration 0206 follow-up). A real
@@ -747,9 +761,13 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
         storage
           .resetAllUserData()
           .then(({ nodeChanges, docStates }) =>
-            console.log(`[demo-reset] wiped ${nodeChanges} node changes, ${docStates} doc states`)
+            log.info('demo-reset', { nodeChanges, docStates })
           )
-          .catch((err) => console.error('[demo-reset] failed:', err))
+          .catch((err) =>
+            log.error('demo-reset failed', {
+              error: err instanceof Error ? err.message : String(err)
+            })
+          )
       }, demo.resetInterval)
       demoResetInterval.unref?.()
     }

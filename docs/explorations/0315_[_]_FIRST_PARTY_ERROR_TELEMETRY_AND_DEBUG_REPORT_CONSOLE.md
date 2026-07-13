@@ -600,7 +600,7 @@ export async function composeDebugReport(userDescription: string) {
   `TelemetryErrorBoundary`).
 - [x] **P0:** Electron main: `process.on('uncaughtException'/'unhandledRejection')`
   → structured stderr + local crash file in `userData`.
-- [ ] **P0:** Hub: adopt the zero-dep JSON logger pattern + global
+- [x] **P0:** Hub: adopt the zero-dep JSON logger pattern + global
   `app.onError` in [packages/hub/src/server.ts](../../packages/hub/src/server.ts)
   (changeset: patch, `@xnetjs/hub`).
 - [ ] **P1:** `POST /diagnostics/ingest` in `apps/cloud` — secret-or-anon
