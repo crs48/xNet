@@ -82,7 +82,7 @@ export function createDiagnosticsClient(options: DiagnosticsClientOptions): Diag
     }
   }
 
-  let queue: CrashPing[] = []
+  const queue: CrashPing[] = []
   let draining: Promise<void> = Promise.resolve()
 
   const drain = async (): Promise<void> => {
