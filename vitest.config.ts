@@ -270,7 +270,10 @@ export default defineConfig({
           exclude: ['apps/electron/src/__tests__/sqlite-batch.test.ts'],
           server: {
             deps: {
-              external: ['better-sqlite3', 'electron']
+              external: ['better-sqlite3', 'electron'],
+              // @blocknote/mantine ships ESM that named-imports from CJS
+              // react; inline so Vite transforms the interop (0312).
+              inline: [/@blocknote\//, /@mantine\//]
             }
           }
         },
