@@ -29,9 +29,19 @@ const room = new URLSearchParams(location.search).get('room') ?? 'lobby'
 
 // ─── Live cursors ── ephemeral presence, never written to storage ────────────
 function Cursors() {
+  // The Board node carries a live Y.Doc; useNode hands us its Awareness —
+  // the ephemeral channel peers in this room use to see each other.
   const { awareness } = useNode(Board, `board-${room}`, { createIfMissing: { title: room } })
+
+  // usePresence turns that channel into plain React state:
+  //   peers    — everyone else's latest broadcast (self excluded)
+  //   setState — publish ours, throttled to ~30fps so a fast pointer
+  //              coalesces into a few frames instead of flooding the hub
   const { peers, setState } = usePresence(awareness, { x: -1, y: -1 })
 
+  // The SEND side: one pointermove listener broadcasts our position as a
+  // fraction of the viewport (0..1), so cursors land in the same relative
+  // spot on any screen size. The effect cleans its listener up on unmount.
   useEffect(() => {
     const move = (e: PointerEvent) =>
       setState({ x: e.clientX / innerWidth, y: e.clientY / innerHeight })
@@ -39,6 +49,9 @@ function Cursors() {
     return () => removeEventListener('pointermove', move)
   }, [setState])
 
+  // The RECEIVE side: one element per remote peer, keyed by their awareness
+  // clientId (one per tab). x < 0 means "hasn't moved yet" — skip it. When a
+  // peer disconnects they simply drop out of `peers`; nothing to clean up.
   return (
     <>
       {peers.map(({ clientId, state }) =>
