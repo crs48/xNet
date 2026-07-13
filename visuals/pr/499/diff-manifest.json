@@ -35,14 +35,14 @@
       "label": "Data",
       "file": "routes/data.png",
       "status": "unchanged",
-      "ssim": 0.998823
+      "ssim": 0.998097
     },
     {
       "id": "home",
       "label": "Home",
       "file": "routes/home.png",
       "status": "changed",
-      "ssim": 0.972386,
+      "ssim": 0.972385,
       "before": "before/routes/home.png",
       "after": "routes/home.png",
       "diff": "diff/routes/home.png"
@@ -51,14 +51,11 @@
       "id": "settings",
       "label": "Settings",
       "file": "routes/settings.png",
-      "status": "changed",
-      "ssim": 0.99789,
-      "before": "before/routes/settings.png",
-      "after": "routes/settings.png",
-      "diff": "diff/routes/settings.png"
+      "status": "unchanged",
+      "ssim": 0.998045
     }
   ],
   "electron": [],
   "flows": [],
-  "changedCount": 2
+  "changedCount": 1
 }
