@@ -58,9 +58,7 @@ test.describe('Editor UX mobile', () => {
     await page.keyboard.press('ArrowLeft')
     await page.keyboard.up('Shift')
 
-    const toolbar = page.locator(
-      '[data-testid="editor-mobile-toolbar"], [data-testid="editor-desktop-toolbar"]'
-    )
+    const toolbar = page.locator('.bn-formatting-toolbar')
     await expect(toolbar.first()).toBeVisible()
     await page.screenshot({
       path: 'tmp/playwright/editor-mobile-toolbar-anchored.png',
