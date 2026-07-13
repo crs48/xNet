@@ -1,5 +1,15 @@
 # @xnetjs/data-bridge
 
+## 1.0.0
+
+### Patch Changes
+
+- Updated dependencies [[`e6b4c6f`](https://github.com/crs48/xNet/commit/e6b4c6f95b2715289ff35ae37ebd6be7eeba5174), [`3bc1b5f`](https://github.com/crs48/xNet/commit/3bc1b5f1243cba019c60c0fda062953fa3ffb910), [`38fd26f`](https://github.com/crs48/xNet/commit/38fd26f3074176ecb73b6b04b8226f2b28d2258c), [`1de6587`](https://github.com/crs48/xNet/commit/1de658746fb4b5420f8f92517f9c135562d23d28)]:
+  - @xnetjs/core@1.0.0
+  - @xnetjs/sync@1.0.0
+  - @xnetjs/data@1.0.0
+  - @xnetjs/sqlite@1.0.0
+
 ## 0.12.0
 
 ### Patch Changes
