@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>New Notion-style editor built on BlockNote</title>
+      <link>https://xnet.fyi/changelog#2026-07-13-new-notion-style-editor-built-on-blockno</link>
+      <guid isPermaLink="false">2026-07-13-new-notion-style-editor-built-on-blockno</guid>
+      <pubDate>Mon, 13 Jul 2026 21:07:22 GMT</pubDate>
+      <description>Pages, tasks and canvases now use a BlockNote-based editor: cleaner formatting toolbar, slash menu, drag handles, tables, and an emoji picker — with mentions, hashtags, wikilinks, callouts, embeds, mermaid diagrams and math carried over. Existing documents are converted best-effort on first open (prerelease: complex blocks may degrade to text).</description>
+    </item>
+    <item>
       <title>Report a problem: send us a debug report you can preview first</title>
       <link>https://xnet.fyi/changelog#2026-07-13-report-a-problem-send-us-a-debug-report-</link>
       <guid isPermaLink="false">2026-07-13-report-a-problem-send-us-a-debug-report-</guid>

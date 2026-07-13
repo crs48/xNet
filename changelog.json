@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-13-new-notion-style-editor-built-on-blockno",
+      "url": "https://xnet.fyi/changelog#2026-07-13-new-notion-style-editor-built-on-blockno",
+      "title": "New Notion-style editor built on BlockNote",
+      "content_text": "Pages, tasks and canvases now use a BlockNote-based editor: cleaner formatting toolbar, slash menu, drag handles, tables, and an emoji picker — with mentions, hashtags, wikilinks, callouts, embeds, mermaid diagrams and math carried over. Existing documents are converted best-effort on first open (prerelease: complex blocks may degrade to text).\n",
+      "date_published": "2026-07-13T21:07:22Z",
+      "tags": [
+        "editor"
+      ],
+      "_xnet": {
+        "date": "July 13, 2026",
+        "summary": "Pages, tasks and canvases now use a BlockNote-based editor: cleaner formatting toolbar, slash menu, drag handles, tables, and an emoji picker — with mentions, hashtags, wikilinks, callouts, embeds, mermaid diagrams and math carried over. Existing documents are converted best-effort on first open (prerelease: complex blocks may degrade to text).",
+        "highlights": [],
+        "mergedAt": "2026-07-13T21:07:22Z",
+        "pr": 496,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-13-report-a-problem-send-us-a-debug-report-",
       "url": "https://xnet.fyi/changelog#2026-07-13-report-a-problem-send-us-a-debug-report-",
       "title": "Report a problem: send us a debug report you can preview first",
