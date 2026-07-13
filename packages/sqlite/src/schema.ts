@@ -429,6 +429,11 @@ CREATE INDEX IF NOT EXISTS idx_changes_node_lamport
   7: `
 ALTER TABLE node_query_materializations
     ADD COLUMN auth_fingerprint TEXT;
+`,
+
+  8: `
+ALTER TABLE node_properties
+    ADD COLUMN tiebreak_key TEXT;
 `
 }
 
