@@ -502,7 +502,7 @@ export const PageEmbed = createReactBlockSpec(
 
 ## Implementation Checklist
 
-- [ ] Phase 0: spike branch — BlockNote editor bound to a real node's `Y.Doc`
+- [x] Phase 0: spike branch — BlockNote editor bound to a real node's `Y.Doc`
       via `useNode`, fragment `content-v4`, dark/light theming via `.bn-root`
       vars, lazy chunk + Shiki language allowlist, StrictMode/React-19 check
 - [x] Phase 1: `XNetEditor` in `packages/editor` (BlockNoteView + schema +
@@ -533,7 +533,7 @@ export const PageEmbed = createReactBlockSpec(
       changing the 0276 durability property.
 - [x] Phase 4: `packages/ui/src/utils/linkify.ts` re-mirrors BlockNote link
       policy; `ai-generated` provenance style spec
-- [ ] Phase 5: delete `RichTextEditor.tsx`, `FloatingToolbar.tsx`,
+- [x] Phase 5: delete `RichTextEditor.tsx`, `FloatingToolbar.tsx`,
       `slash-command/`, `suggestion-popup.ts`, `SlashMenu/`, `EmojiMenu`,
       `live-preview/`, markdown structural editing + source mode,
       `document-compat.ts`, old NodeViews, unused `@tiptap/*` +
@@ -542,14 +542,14 @@ export const PageEmbed = createReactBlockSpec(
 - [x] Phase 5: regenerate devtools seed docs as Block JSON via
       `@blocknote/server-util`; fix `seed-render.test.ts`; keep
       `seed-coverage.test.ts` green
-- [ ] Phase 5: rewrite `tests/e2e/src/editor-ux.spec.ts` +
+- [x] Phase 5: rewrite `tests/e2e/src/editor-ux.spec.ts` +
       `editor-ux-mobile.spec.ts` against BlockNote DOM; new stories replacing
       `RichTextEditor.stories.tsx`
-- [ ] Changesets: `packages/plugins` contribution-API change is a **major**
+- [x] Changesets: `packages/plugins` contribution-API change is a **major**
       (exported `EditorContribution` type changes); `packages/editor` is
       private (no changeset); audit `packages/ui`/`packages/data` diffs for
       bump level
-- [ ] Update `extension-tiers.ts` → spec-tier guard; adapt
+- [x] Update `extension-tiers.ts` → spec-tier guard; adapt
       `packages/plugins/src/editor-schema-safety.ts`
 
 ## Validation Checklist
