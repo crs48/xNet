@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url'
 import { app, BrowserWindow } from 'electron'
 import { setupAgentBridgeIPC, startAgentBridge, stopAgentBridge } from './agent-bridge-manager'
 import { setupCloudflareTunnelIPC, stopCloudflareTunnel } from './cloudflare-tunnel-ipc'
+import { installMainCrashLog } from './crash-log'
 import {
   spawnDataProcess,
   stopDataProcess,
@@ -258,6 +259,10 @@ const bootTrace = (msg: string): void => {
 process.on('unhandledRejection', (reason) => {
   bootTrace(`unhandled rejection during startup: ${String(reason)}`)
 })
+// Structured crash capture (0315): uncaughtException + unhandledRejection →
+// stderr + a bounded local file under userData. Local-only; the renderer can
+// attach it to a user-triggered debug report but nothing auto-transmits.
+installMainCrashLog(app.getPath('userData'))
 bootTrace('main module loaded')
 
 app.whenReady().then(async () => {

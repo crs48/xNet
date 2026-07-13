@@ -598,7 +598,7 @@ export async function composeDebugReport(userDescription: string) {
 - [x] **P0:** Pass `onError` from the top-level `ErrorBoundary` in
   [App.tsx](../../apps/web/src/App.tsx) into `error-reporter` (or swap in
   `TelemetryErrorBoundary`).
-- [ ] **P0:** Electron main: `process.on('uncaughtException'/'unhandledRejection')`
+- [x] **P0:** Electron main: `process.on('uncaughtException'/'unhandledRejection')`
   → structured stderr + local crash file in `userData`.
 - [ ] **P0:** Hub: adopt the zero-dep JSON logger pattern + global
   `app.onError` in [packages/hub/src/server.ts](../../packages/hub/src/server.ts)
