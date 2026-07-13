@@ -88,12 +88,23 @@ For xnet.fyi we use <a href="https://plausible.io/">Plausible Analytics</a>, a
 Because no personal data or persistent identifiers are collected, no consent banner is
             required. We don't use tracking cookies, fingerprinting, or any cross-site tracking.
 </p> </section> <section class="mb-12"> <h2>Crash reporting and diagnostics</h2> <p>
-The web and hosted app can report crashes so we can fix what breaks. Crash reporting is
-<strong>opt-in</strong> and off by default — manage it under Settings → Privacy &amp; Diagnostics.
-            When enabled, reports are scrubbed of personal data (paths, emails, IPs, tokens) before they
-            leave your device, and they contain code-level diagnostics, not your documents. If configured,
-            scrubbed reports are sent to <a href="https://sentry.io/">Sentry</a>. Self-hosted builds never
-            send anything.
+The web and hosted app can report crashes so we can fix what breaks. There are two
+            separate ways this happens, and both are off unless you choose them — manage them under
+            Settings → Privacy &amp; Diagnostics.
+</p> <p> <strong>Automatic crash reports</strong> are <strong>opt-in</strong> and off by default.
+            When enabled, reports are scrubbed of personal data (paths, emails, IPs, tokens) before
+            they leave your device, contain code-level diagnostics rather than your documents, and
+            carry no unique identifier. They are sent to our own first-party diagnostics endpoint.
+</p> <p> <strong>“Report a problem”</strong> is a one-off report you send deliberately. You write
+            what went wrong, and before anything is sent you see the exact contents — recent
+            diagnostic logs, coarse system info (browser and OS family only), and your description,
+            all scrubbed — and can remove any part of it. Because you send it explicitly, it works
+            even when automatic reporting is off.
+</p> <p>
+Reports are received into a private queue and kept only as long as needed to resolve the
+            issue. Self-hosted builds never send anything. (We do not use a third-party error
+            service such as <a href="https://sentry.io/">Sentry</a>; the code keeps a dormant seam
+            for one, unused.)
 </p> </section> <section class="mb-12"> <h2>What we don't do</h2> <ul> <li><strong>We don't sell your data</strong> — Never have, never will</li> <li><strong>We don't show ads</strong> — xNet is open source and supported by Cloud subscriptions</li> <li><strong>We don't track you across the web</strong> — No third-party trackers</li> <li><strong>We don't read your content for our own purposes</strong> — Server-side features you enable process your content only to provide that feature to you</li> <li><strong>We don't use your content to train our own models</strong> — and we log AI usage, not your prompts</li> </ul> </section> <section class="mb-12"> <h2>Data security</h2> <p>
 xNet uses strong cryptography throughout:
 </p> <ul> <li><strong>Ed25519</strong> for digital signatures</li> <li><strong>XChaCha20-Poly1305</strong> for encryption</li> <li><strong>BLAKE3</strong> for hashing and content addressing</li> <li><strong>TLS/SSL</strong> for all network connections</li> </ul> <p>
@@ -116,7 +127,7 @@ xNet Cloud is not directed at children. We do not knowingly create accounts for,
             delete it.
 </p> </section> <section class="mb-12"> <h2>Sub-processors</h2> <p>
 We rely on a small set of third parties to run xNet Cloud (such as WorkOS, Stripe, Google Cloud,
-            Cloudflare, OpenRouter, and Sentry). The local-first app and self-hosted hubs use none of them.
+            Cloudflare, and OpenRouter). The local-first app and self-hosted hubs use none of them.
             See the current <a href="/subprocessors">sub-processor list</a> for who they are, what they
             receive, and where they operate.
 </p> </section> <section class="mb-12"> <h2>Changes to this policy</h2> <p>

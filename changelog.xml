@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Report a problem: send us a debug report you can preview first</title>
+      <link>https://xnet.fyi/changelog#2026-07-13-report-a-problem-send-us-a-debug-report-</link>
+      <guid isPermaLink="false">2026-07-13-report-a-problem-send-us-a-debug-report-</guid>
+      <pubDate>Mon, 13 Jul 2026 20:49:15 GMT</pubDate>
+      <description>A new opt-in &quot;Report a problem&quot; flow lets you send scrubbed crash and diagnostic reports to a first-party endpoint — you see and can edit the exact contents before anything is sent. xNet does not use a third-party error service.</description>
+    </item>
+    <item>
       <title>Document pages open reliably on databases from older builds</title>
       <link>https://xnet.fyi/changelog#2026-07-13-document-pages-open-reliably-on-databas</link>
       <guid isPermaLink="false">2026-07-13-document-pages-open-reliably-on-databas</guid>
