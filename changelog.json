@@ -6,6 +6,29 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-13-the-live-demos-now-include-the-xnet-devt",
+      "url": "https://xnet.fyi/changelog#2026-07-13-the-live-demos-now-include-the-xnet-devt",
+      "title": "The live demos now include the xNet DevTools",
+      "content_text": "Every demo at xnet.fyi/play (and the paired frames on /demos) ships the real DevTools inspector — click the floating wrench or press Ctrl/Cmd+Shift+D to watch the data, change log, and sync frames live while you play.\n",
+      "date_published": "2026-07-13T21:45:04Z",
+      "tags": [
+        "devtools",
+        "app"
+      ],
+      "_xnet": {
+        "date": "July 13, 2026",
+        "summary": "Every demo at xnet.fyi/play (and the paired frames on /demos) ships the real DevTools inspector — click the floating wrench or press Ctrl/Cmd+Shift+D to watch the data, change log, and sync frames live while you play.",
+        "highlights": [],
+        "mergedAt": "2026-07-13T21:45:04Z",
+        "pr": 506,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-13-new-notion-style-editor-built-on-blockno",
       "url": "https://xnet.fyi/changelog#2026-07-13-new-notion-style-editor-built-on-blockno",
       "title": "New Notion-style editor built on BlockNote",

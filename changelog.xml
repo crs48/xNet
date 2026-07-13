@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>The live demos now include the xNet DevTools</title>
+      <link>https://xnet.fyi/changelog#2026-07-13-the-live-demos-now-include-the-xnet-devt</link>
+      <guid isPermaLink="false">2026-07-13-the-live-demos-now-include-the-xnet-devt</guid>
+      <pubDate>Mon, 13 Jul 2026 21:45:04 GMT</pubDate>
+      <description>Every demo at xnet.fyi/play (and the paired frames on /demos) ships the real DevTools inspector — click the floating wrench or press Ctrl/Cmd+Shift+D to watch the data, change log, and sync frames live while you play.</description>
+    </item>
+    <item>
       <title>New Notion-style editor built on BlockNote</title>
       <link>https://xnet.fyi/changelog#2026-07-13-new-notion-style-editor-built-on-blockno</link>
       <guid isPermaLink="false">2026-07-13-new-notion-style-editor-built-on-blockno</guid>
