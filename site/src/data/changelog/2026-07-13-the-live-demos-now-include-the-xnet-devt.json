@@ -1,0 +1,9 @@
+{
+  "id": "2026-07-13-the-live-demos-now-include-the-xnet-devt",
+  "date": "July 13, 2026",
+  "title": "The live demos now include the xNet DevTools",
+  "summary": "Every demo at xnet.fyi/play (and the paired frames on /demos) ships the real DevTools inspector — click the floating wrench or press Ctrl/Cmd+Shift+D to watch the data, change log, and sync frames live while you play.",
+  "highlights": [],
+  "tags": ["devtools", "app"],
+  "pr": 506
+}
