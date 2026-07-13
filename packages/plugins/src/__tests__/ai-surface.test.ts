@@ -376,7 +376,7 @@ describe('AI surface contract', () => {
       expect(reverted?.properties.aiRolledBackPlanId).toBe(plan.id)
     })
 
-    it('uses a configured TipTap/Yjs adapter instead of updating node markdown directly', async () => {
+    it('uses a configured BlockNote/Yjs adapter instead of updating node markdown directly', async () => {
       const store = createMockStore([
         {
           id: 'page_1',
@@ -388,8 +388,8 @@ describe('AI surface contract', () => {
         }
       ])
       const applyMarkdown = vi.fn(async (_input: AiPageMarkdownApplyAdapterInput) => ({
-        mode: 'tiptap-yjs' as const,
-        yjsField: 'content',
+        mode: 'blocknote-yjs' as const,
+        yjsField: 'content-v4',
         documentUpdate: { kind: 'replaceXmlFragment' }
       }))
       const service = createAiSurfaceService({
@@ -412,8 +412,8 @@ describe('AI surface contract', () => {
 
       expect(result).toMatchObject({
         applied: true,
-        mode: 'tiptap-yjs',
-        yjsField: 'content',
+        mode: 'blocknote-yjs',
+        yjsField: 'content-v4',
         documentUpdate: { kind: 'replaceXmlFragment' }
       })
       expect(applyMarkdown).toHaveBeenCalledWith(
@@ -438,8 +438,8 @@ describe('AI surface contract', () => {
         }
       ])
       const applyMarkdown = vi.fn(async (_input: AiPageMarkdownApplyAdapterInput) => ({
-        mode: 'tiptap-yjs' as const,
-        yjsField: 'content'
+        mode: 'blocknote-yjs' as const,
+        yjsField: 'content-v4'
       }))
       const service = createAiSurfaceService({
         store,
@@ -486,8 +486,8 @@ describe('AI surface contract', () => {
       expect(plan.changes[0].operations[0].args.directiveCount).toBe(6)
       expect(result).toMatchObject({
         applied: true,
-        mode: 'tiptap-yjs',
-        yjsField: 'content'
+        mode: 'blocknote-yjs',
+        yjsField: 'content-v4'
       })
       const adapterInput = applyMarkdown.mock.calls[0]?.[0]
       expect(adapterInput?.bodyMarkdown).toContain(':::xnet-database')

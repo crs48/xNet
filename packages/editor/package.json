@@ -13,38 +13,20 @@
     "./react": {
       "import": "./src/react.ts",
       "types": "./src/react.ts"
-    },
-    "./extensions": {
-      "import": "./src/extensions.ts",
-      "types": "./src/extensions.ts"
     }
   },
   "scripts": {
-    "build": "tsup src/index.ts src/react.ts src/extensions.ts --format esm --dts --external react",
+    "build": "tsup src/index.ts src/react.ts --format esm --dts --external react",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "@floating-ui/dom": "^1.6.13",
-    "@tiptap/core": "^3.15.3",
-    "@tiptap/extension-collaboration": "^3.15.3",
-    "@tiptap/extension-drag-handle": "3.16.0",
-    "@tiptap/extension-drag-handle-react": "3.16.0",
-    "@tiptap/extension-emoji": "3.16.0",
-    "@tiptap/extension-link": "^3.15.3",
-    "@tiptap/extension-mathematics": "3.16.0",
-    "@tiptap/extension-node-range": "3.16.0",
-    "@tiptap/extension-placeholder": "^3.15.3",
-    "@tiptap/extension-task-item": "^3.15.3",
-    "@tiptap/extension-task-list": "^3.15.3",
-    "@tiptap/extension-typography": "^3.15.3",
-    "@tiptap/markdown": "3.16.0",
-    "@tiptap/pm": "^3.15.3",
-    "@tiptap/react": "^3.15.3",
-    "@tiptap/starter-kit": "^3.15.3",
-    "@tiptap/suggestion": "^3.15.3",
-    "@tiptap/y-tiptap": "^3.0.1",
+    "@blocknote/core": "0.51.4",
+    "@blocknote/mantine": "0.51.4",
+    "@blocknote/react": "0.51.4",
+    "@mantine/core": "^8.3.18",
+    "@mantine/hooks": "^8.3.18",
     "@xnetjs/canvas": "workspace:*",
     "@xnetjs/data": "workspace:*",
     "@xnetjs/react": "workspace:*",

@@ -6,7 +6,9 @@
  */
 import type { YDoc } from '@xnetjs/data'
 
-const CONTENT_FRAGMENT_NAMES = ['content', 'default', 'prosemirror', '']
+// v4 (BlockNote, 0312) is preferred; 'content' is the legacy TipTap field —
+// old docs keep it until the lazy importer runs, so readers check both.
+const CONTENT_FRAGMENT_NAMES = ['content-v4', 'content', 'default', 'prosemirror', '']
 const BLOCK_NODES = new Set([
   'paragraph',
   'heading',
@@ -20,7 +22,16 @@ const BLOCK_NODES = new Set([
   'callout',
   'toggle',
   'details',
-  'summary'
+  'summary',
+  // BlockNote (v4) block-content nodes. blockGroup/blockContainer are pure
+  // wrappers handled by the generic recursive descent.
+  'bulletListItem',
+  'numberedListItem',
+  'checkListItem',
+  'toggleListItem',
+  'quote',
+  'tableRow',
+  'tableParagraph'
 ])
 
 type RawLinkMatch = {
@@ -162,12 +173,36 @@ function walkNode(
         continue
       }
 
+      // BlockNote inline atoms (content: 'none') carry their readable text
+      // in attributes, not child text nodes (0312).
+      if (child.nodeName === 'mention') {
+        const label = readStringAttribute(child, 'label') ?? readStringAttribute(child, 'id')
+        if (label) appendText(state, `@${label}`)
+        continue
+      }
+      if (child.nodeName === 'hashtag') {
+        const name = readStringAttribute(child, 'name')
+        if (name) appendText(state, `#${name}`)
+        continue
+      }
+      if (child.nodeName === 'inlineMath') {
+        const latex = readStringAttribute(child, 'latex')
+        if (latex) appendText(state, latex)
+        continue
+      }
+
       const linkStart = state.length
       walkNode(child, state)
-      const linkEnd = state.length
+      let linkEnd = state.length
 
       if (child.nodeName === 'wikilink') {
         const title = readStringAttribute(child, 'title') ?? ''
+        // BlockNote wikilinks are childless atoms — the title attribute is
+        // the readable text. Legacy TipTap wikilinks carry child text.
+        if (linkEnd === linkStart && title) {
+          appendText(state, title)
+          linkEnd = state.length
+        }
         const href = readStringAttribute(child, 'href') ?? generatePageId(title)
         if (href && linkEnd > linkStart) {
           state.links.push({

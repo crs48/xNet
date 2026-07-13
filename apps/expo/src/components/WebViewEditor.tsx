@@ -1,8 +1,8 @@
 /**
  * WebView-based rich text editor for React Native
  *
- * Uses a WebView to render TipTap editor with full rich text support.
- * Communicates with React Native via postMessage.
+ * Uses a WebView to render the BlockNote editor (0312) with full rich text
+ * support. Communicates with React Native via postMessage.
  */
 import React, { useRef, useCallback, useEffect } from 'react'
 import { StyleSheet, View } from 'react-native'
@@ -256,74 +256,59 @@ function getEditorHTML(placeholder: string): string {
 </head>
 <body>
   <div id="editor"></div>
-  
-  <!-- Load TipTap from CDN -->
-  <script src="https://unpkg.com/@tiptap/core@2.1.13/dist/index.umd.js"></script>
-  <script src="https://unpkg.com/@tiptap/starter-kit@2.1.13/dist/index.umd.js"></script>
-  <script src="https://unpkg.com/@tiptap/extension-placeholder@2.1.13/dist/index.umd.js"></script>
-  <script src="https://unpkg.com/@tiptap/extension-task-list@2.1.13/dist/index.umd.js"></script>
-  <script src="https://unpkg.com/@tiptap/extension-task-item@2.1.13/dist/index.umd.js"></script>
-  
-  <script>
-    const { Editor } = window['@tiptap/core'];
-    const StarterKit = window['@tiptap/starter-kit'].default;
-    const Placeholder = window['@tiptap/extension-placeholder'].default;
-    const TaskList = window['@tiptap/extension-task-list'].default;
-    const TaskItem = window['@tiptap/extension-task-item'].default;
-    
-    // Initialize editor
-    const editor = new Editor({
-      element: document.querySelector('#editor'),
-      extensions: [
-        StarterKit,
-        Placeholder.configure({
-          placeholder: ${JSON.stringify(placeholder)},
-        }),
-        TaskList,
-        TaskItem.configure({ nested: true }),
-      ],
-      content: '',
-      editorProps: {
-        attributes: {
-          class: 'prose prose-sm max-w-none focus:outline-none',
-        },
-      },
-      onUpdate: ({ editor }) => {
-        // Send content changes to React Native
-        window.ReactNativeWebView.postMessage(JSON.stringify({
-          type: 'contentChange',
-          content: editor.getHTML()
-        }));
-      },
+
+  <!-- BlockNote styles (0312) -->
+  <link rel="stylesheet" href="https://esm.sh/@blocknote/core@0.51.4/dist/style.css">
+
+  <script type="module">
+    // Vanilla (non-React) BlockNote from an ESM CDN — same
+    // network-at-startup model as the previous unpkg TipTap embed.
+    import { BlockNoteEditor } from 'https://esm.sh/@blocknote/core@0.51.4';
+
+    const editor = BlockNoteEditor.create({
+      placeholders: { emptyDocument: ${JSON.stringify(placeholder)} },
     });
-    
+    editor.mount(document.querySelector('#editor'));
+
+    editor.onChange(async () => {
+      // Send content changes to React Native (HTML over the bridge,
+      // protocol unchanged from the TipTap embed).
+      const content = await editor.blocksToFullHTML(editor.document);
+      window.ReactNativeWebView.postMessage(JSON.stringify({
+        type: 'contentChange',
+        content
+      }));
+    });
+
     // Handle messages from React Native
-    window.addEventListener('message', (event) => {
+    window.addEventListener('message', async (event) => {
       try {
         const message = JSON.parse(event.data);
-        
+
         switch (message.type) {
-          case 'setContent':
-            editor.commands.setContent(message.content);
+          case 'setContent': {
+            const blocks = await editor.tryParseHTMLToBlocks(message.content || '<p></p>');
+            editor.replaceBlocks(editor.document, blocks);
             break;
+          }
           case 'setReadOnly':
-            editor.setEditable(!message.readOnly);
+            editor.isEditable = !message.readOnly;
             break;
           case 'focus':
-            editor.commands.focus();
+            editor.focus();
             break;
         }
       } catch (e) {
         console.error('Failed to parse message:', e);
       }
     });
-    
+
     // Handle wikilink clicks
     document.addEventListener('click', (e) => {
-      const wikilink = e.target.closest('.wikilink');
+      const wikilink = e.target.closest('.wikilink, a[data-wikilink]');
       if (wikilink) {
         e.preventDefault();
-        const docId = wikilink.getAttribute('data-wikilink');
+        const docId = wikilink.getAttribute('data-wikilink') || wikilink.getAttribute('href');
         if (docId) {
           window.ReactNativeWebView.postMessage(JSON.stringify({
             type: 'navigate',
@@ -332,7 +317,7 @@ function getEditorHTML(placeholder: string): string {
         }
       }
     });
-    
+
     // Notify React Native that editor is ready
     window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'ready' }));
   </script>

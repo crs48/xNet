@@ -8,5 +8,12 @@
     "app",
     "platform",
     "devtools"
+  ],
+  "pr": 499,
+  "mergedAt": "2026-07-13T20:49:15Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
   ]
 }

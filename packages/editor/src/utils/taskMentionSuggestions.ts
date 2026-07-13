@@ -1,7 +1,7 @@
 /**
  * @xnetjs/editor - Shared task mention suggestion helpers
  */
-import type { TaskMentionSuggestion } from '../extensions/task-metadata'
+import type { TaskMentionSuggestion } from '../blocknote/specs/mention'
 import { createGravatarUrl } from './gravatar'
 
 type MentionPresenceEntry = {

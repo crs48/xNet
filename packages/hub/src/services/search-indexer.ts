@@ -202,17 +202,59 @@ function extractPlainTextFromRichText(content: string | object): string {
 
 /**
  * Extract text from ProseMirror JSON document.
+ *
+ * Handles both the legacy TipTap shape and the v4 BlockNote shape (0312):
+ * BlockNote wraps content in blockGroup/blockContainer nodes (plain
+ * containers, covered by the generic recursion) and stores the readable
+ * text of its inline atoms (mention/hashtag/wikilink/inlineMath) in attrs.
  */
 function extractTextFromProseMirrorJson(doc: object): string {
   const parts: string[] = []
 
+  function attrText(attrs: Record<string, unknown> | undefined, key: string): string {
+    const value = attrs?.[key]
+    return typeof value === 'string' ? value : ''
+  }
+
   function walk(node: unknown): void {
     if (!node || typeof node !== 'object') return
 
-    const n = node as { type?: string; text?: string; content?: unknown[] }
+    const n = node as {
+      type?: string
+      text?: string
+      attrs?: Record<string, unknown>
+      content?: unknown[]
+    }
 
     if (n.text) {
       parts.push(n.text)
+    }
+
+    // BlockNote inline atoms carry text in attributes, not content.
+    switch (n.type) {
+      case 'mention': {
+        const label = attrText(n.attrs, 'label') || attrText(n.attrs, 'id')
+        if (label) parts.push(`@${label}`)
+        break
+      }
+      case 'hashtag': {
+        const name = attrText(n.attrs, 'name')
+        if (name) parts.push(`#${name}`)
+        break
+      }
+      case 'wikilink': {
+        // Legacy wikilinks carry child text; only atoms need the attr.
+        if (!Array.isArray(n.content) || n.content.length === 0) {
+          const title = attrText(n.attrs, 'title')
+          if (title) parts.push(title)
+        }
+        break
+      }
+      case 'inlineMath': {
+        const latex = attrText(n.attrs, 'latex')
+        if (latex) parts.push(latex)
+        break
+      }
     }
 
     if (Array.isArray(n.content)) {

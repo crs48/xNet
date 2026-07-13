@@ -38,8 +38,6 @@ const workspaceAliases = {
   '@xnetjs/dictation': new URL('./packages/dictation/src/index.ts', import.meta.url).pathname,
   '@xnetjs/experiments': new URL('./packages/experiments/src/index.ts', import.meta.url).pathname,
   '@xnetjs/editor/react': new URL('./packages/editor/src/react.ts', import.meta.url).pathname,
-  '@xnetjs/editor/extensions': new URL('./packages/editor/src/extensions.ts', import.meta.url)
-    .pathname,
   '@xnetjs/editor': new URL('./packages/editor/src/index.ts', import.meta.url).pathname,
   '@xnetjs/formula': new URL('./packages/formula/src/index.ts', import.meta.url).pathname,
   '@xnetjs/history': new URL('./packages/history/src/index.ts', import.meta.url).pathname,
@@ -141,7 +139,14 @@ export default defineConfig({
             'packages/{canvas,react,views,devtools,ui,dashboard,charts,maps}/test/**/*.test.{ts,tsx}',
             // App-level logic tests (workbench shell, 0166)
             'apps/web/src/**/*.test.{ts,tsx}'
-          ]
+          ],
+          server: {
+            deps: {
+              // @blocknote/mantine ships ESM that named-imports from CJS
+              // react; inline so Vite transforms the interop (0312).
+              inline: [/@blocknote\//, /@mantine\//]
+            }
+          }
         },
         resolve: {
           alias: {
@@ -184,7 +189,15 @@ export default defineConfig({
           pool: 'threads',
           isolate: true,
           setupFiles: ['./packages/editor/src/test/setup.ts'],
-          include: ['packages/editor/src/**/*.test.{ts,tsx}']
+          include: ['packages/editor/src/**/*.test.{ts,tsx}'],
+          server: {
+            deps: {
+              // Single prosemirror/tiptap instance for BlockNote (0312):
+              // tiptap v3 patches Transaction.prototype (changedRange), so
+              // BlockNote's bundled copy must resolve to the same modules.
+              inline: [/@blocknote\//, /@mantine\//, /@tiptap\//]
+            }
+          }
         }
       },
       {
@@ -265,7 +278,10 @@ export default defineConfig({
           exclude: ['apps/electron/src/__tests__/sqlite-batch.test.ts'],
           server: {
             deps: {
-              external: ['better-sqlite3', 'electron']
+              external: ['better-sqlite3', 'electron'],
+              // @blocknote/mantine ships ESM that named-imports from CJS
+              // react; inline so Vite transforms the interop (0312).
+              inline: [/@blocknote\//, /@mantine\//]
             }
           }
         },
