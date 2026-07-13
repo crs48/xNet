@@ -10,9 +10,9 @@
     "hub": "docker run --rm -p 4444:4444 -e HUB_AUTH=false ghcr.io/crs48/xnet-hub:latest"
   },
   "dependencies": {
-    "@xnetjs/data": "^0.12.0",
-    "@xnetjs/identity": "^0.12.0",
-    "@xnetjs/react": "^0.12.0",
+    "@xnetjs/data": "^1.0.0",
+    "@xnetjs/identity": "^1.0.0",
+    "@xnetjs/react": "^1.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
