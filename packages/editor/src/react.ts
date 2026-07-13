@@ -18,6 +18,9 @@
  * }
  * ```
  */
+// BlockNote-based editor surface (0312) — the current editor.
+export * from './blocknote'
+
 export { RichTextEditor, type RichTextEditorProps } from './components/RichTextEditor'
 export {
   EDITOR_ROLLOUT_MODE_STORAGE_KEY,
@@ -160,41 +163,15 @@ export type {
 } from './hooks/useEditorExtensions'
 export { useSlashCommands } from './hooks/useSlashCommands'
 export type { SlashCommandContribution, UseSlashCommandsOptions } from './hooks/useSlashCommands'
-export type { PageTaskSnapshot, PageTaskReferenceSnapshot } from './extensions/page-tasks'
-export {
-  addTaskAssigneeToDoc,
-  removeTaskAssigneeFromDoc,
-  setTaskDueDateInDoc
-} from './extensions/page-tasks/write-through'
-export type { TaskMentionSuggestion } from './extensions/task-metadata'
+// PageTaskSnapshot, TaskMentionSuggestion, HashtagSuggestion,
+// WikilinkTarget, TaskViewConfig, mention/hashtag doc walkers and the
+// document schema version now come from ./blocknote (0312).
 export { createGravatarUrl } from './utils/gravatar'
 export { buildTaskMentionSuggestions } from './utils/taskMentionSuggestions'
 export {
   buildPersonMentionSuggestions,
-  extractMentionDids,
-  mentionsFromDoc,
   type MentionablePerson
 } from './utils/mentions'
-export { extractTagIds, tagsFromDoc } from './utils/hashtags'
-export type { HashtagSuggestion } from './extensions/hashtag'
-export type { WikilinkTarget } from './extensions/wikilink-suggestion'
-export { CREATE_WIKILINK_ID } from './extensions/wikilink-suggestion'
-export { serializeWikilink } from './extensions'
-export type {
-  TaskViewConfig,
-  TaskViewEmbedType,
-  TaskViewScope,
-  TaskViewAssigneeFilter,
-  TaskViewDueDateFilter,
-  TaskViewStatusFilter
-} from './extensions/task-view-embed'
-export {
-  EDITOR_DOCUMENT_SCHEMA_VERSION,
-  normalizeEditorDocumentJson,
-  type EditorDocumentCompatibilityResult,
-  type EditorDocumentMigration,
-  type EditorDocumentMigrationKind
-} from './document-compat'
 
 // Re-export hooks from @tiptap/react for convenience
 export { useEditor, EditorContent } from '@tiptap/react'
