@@ -97,7 +97,9 @@ describe('hydration-mode benchmark (0264 Wave 2)', () => {
       }) as typeof db
       await new SQLiteNodeStorageAdapter(capturing, { aggregatedHydration: false }).getNodes(ids)
       await new SQLiteNodeStorageAdapter(capturing, { aggregatedHydration: true }).getNodes(ids)
-      const [rowsSql, aggSql] = captured
+      // Each fresh adapter's first read runs the one-time pre-v8 column
+      // repair PRAGMA (0305) — skip it; we want the two hydrate reads.
+      const [rowsSql, aggSql] = captured.filter((read) => !read.sql.startsWith('PRAGMA'))
 
       // ── Measure: SQL exec + boundary clone per mode. ──
       const measure = async (read: { sql: string; params: unknown[] }) => {
