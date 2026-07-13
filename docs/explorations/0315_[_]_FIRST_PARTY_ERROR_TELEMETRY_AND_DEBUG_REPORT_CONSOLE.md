@@ -611,14 +611,14 @@ export async function composeDebugReport(userDescription: string) {
   batched, `keepalive`, fail-silent); wire in
   [error-reporter.ts](../../apps/web/src/lib/error-reporter.ts); add ingest
   origin to CSP `connect-src`; env-gate to official builds only.
-- [ ] **P1:** Fingerprint + occurrence-count upsert into the operator
+- [x] **P1:** Fingerprint + occurrence-count upsert into the operator
   workspace (deterministic node IDs, LWW).
 - [x] **P2:** `composeDebugReport()` + preview-before-send modal (per-section
   checkboxes, byte-for-byte payload display); entry points in Settings,
   boot-failure screen, and `ErrorFallback`; report-ID handoff UI.
 - [x] **P2:** Re-scrub the 0275 log ring at compose time; add a
   deliberately-PII-laden fixture test for the composed payload.
-- [ ] **P3:** `debug-report` schema + authz rungs + `SEED_EXCLUDED_SCHEMA_IDS`
+- [x] **P3:** `debug-report` schema + authz rungs + `SEED_EXCLUDED_SCHEMA_IDS`
   entry; ops-workspace saved views (Inbox / By release / By fingerprint);
   status field lifecycle; report-detail panel with stack rendering.
 - [ ] **P3:** Retention: auto-archive `released` reports after N days;

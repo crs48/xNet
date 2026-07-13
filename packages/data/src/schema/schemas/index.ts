@@ -218,6 +218,7 @@ export {
 } from './map'
 export { CommentSchema, type Comment } from './comment'
 export { ReactionSchema, type Reaction } from './reaction'
+export { DebugReportSchema, type DebugReport } from './debug-report'
 export { ProfileSchema, profileNodeId, didFromProfileNodeId, type Profile } from './profile'
 export { ChannelSchema, CHANNEL_KINDS, type Channel, type ChannelKind } from './channel'
 export { ChatMessageSchema, type ChatMessage } from './chat-message'
@@ -531,6 +532,8 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Map@1.0.0': () => import('./map').then((m) => m.MapSchema),
   'xnet://xnet.fyi/Comment@1.0.0': () => import('./comment').then((m) => m.CommentSchema),
   'xnet://xnet.fyi/Reaction@1.0.0': () => import('./reaction').then((m) => m.ReactionSchema),
+  'xnet://xnet.fyi/DebugReport@1.0.0': () =>
+    import('./debug-report').then((m) => m.DebugReportSchema),
   'xnet://xnet.fyi/Profile@1.0.0': () => import('./profile').then((m) => m.ProfileSchema),
   'xnet://xnet.fyi/Channel@1.0.0': () => import('./channel').then((m) => m.ChannelSchema),
   'xnet://xnet.fyi/ChatMessage@1.0.0': () =>
@@ -646,6 +649,8 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Map': () => import('./map').then((m) => m.MapSchema),
   'xnet://xnet.fyi/Comment': () => import('./comment').then((m) => m.CommentSchema),
   'xnet://xnet.fyi/Reaction': () => import('./reaction').then((m) => m.ReactionSchema),
+  'xnet://xnet.fyi/DebugReport': () =>
+    import('./debug-report').then((m) => m.DebugReportSchema),
   'xnet://xnet.fyi/Profile': () => import('./profile').then((m) => m.ProfileSchema),
   'xnet://xnet.fyi/Channel': () => import('./channel').then((m) => m.ChannelSchema),
   'xnet://xnet.fyi/ChatMessage': () => import('./chat-message').then((m) => m.ChatMessageSchema),
