@@ -1,12 +1,7 @@
 import type { CanvasNode } from '@xnetjs/canvas'
 import { useCanvasThemeTokens } from '@xnetjs/canvas'
 import { PageSchema } from '@xnetjs/data'
-import {
-  TaskCollectionEmbed,
-  useIdentity,
-  useNode,
-  usePageTaskSync
-} from '@xnetjs/react'
+import { TaskCollectionEmbed, useIdentity, useNode, usePageTaskSync } from '@xnetjs/react'
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { PageTaskSnapshot } from '../blocknote/doc-utils'
 import { XNetEditor } from '../blocknote/XNetEditor'
@@ -45,7 +40,6 @@ type CanvasInlinePageSurfaceProps = {
   onOpenDocument?: (docId: string) => void
   onSourceNodeMutated?: () => void
 }
-
 
 function useStableTitle(
   initialTitle: string,

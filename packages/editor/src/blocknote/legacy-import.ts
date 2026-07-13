@@ -16,7 +16,10 @@ function textOf(node: Y.XmlText): string {
   // Y.XmlText deltas can carry embedded objects (old inline atoms like
   // mentions); toDelta() preserves them where toString() would emit XML.
   let out = ''
-  for (const op of node.toDelta() as Array<{ insert?: unknown; attributes?: Record<string, unknown> }>) {
+  for (const op of node.toDelta() as Array<{
+    insert?: unknown
+    attributes?: Record<string, unknown>
+  }>) {
     if (typeof op.insert === 'string') {
       out += op.insert
     }

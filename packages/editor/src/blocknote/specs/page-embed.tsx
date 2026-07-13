@@ -31,8 +31,6 @@ export const PageEmbedBlockSpec = createReactBlockSpec(
     content: 'none'
   },
   {
-    render: ({ block }) => (
-      <PageEmbedCard nodeId={block.props.nodeId} title={block.props.title} />
-    )
+    render: ({ block }) => <PageEmbedCard nodeId={block.props.nodeId} title={block.props.title} />
   }
 )

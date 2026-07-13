@@ -38,8 +38,6 @@ const workspaceAliases = {
   '@xnetjs/dictation': new URL('./packages/dictation/src/index.ts', import.meta.url).pathname,
   '@xnetjs/experiments': new URL('./packages/experiments/src/index.ts', import.meta.url).pathname,
   '@xnetjs/editor/react': new URL('./packages/editor/src/react.ts', import.meta.url).pathname,
-  '@xnetjs/editor/extensions': new URL('./packages/editor/src/extensions.ts', import.meta.url)
-    .pathname,
   '@xnetjs/editor': new URL('./packages/editor/src/index.ts', import.meta.url).pathname,
   '@xnetjs/formula': new URL('./packages/formula/src/index.ts', import.meta.url).pathname,
   '@xnetjs/history': new URL('./packages/history/src/index.ts', import.meta.url).pathname,

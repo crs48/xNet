@@ -38,8 +38,7 @@ export const CalloutBlockSpec = createReactBlockSpec(
             aria-label={`Change callout type (${config.label})`}
             contentEditable={false}
             onClick={() => {
-              const next =
-                CALLOUT_TYPES[(CALLOUT_TYPES.indexOf(kind) + 1) % CALLOUT_TYPES.length]
+              const next = CALLOUT_TYPES[(CALLOUT_TYPES.indexOf(kind) + 1) % CALLOUT_TYPES.length]
               editor.updateBlock(block, { props: { kind: next } })
             }}
           >

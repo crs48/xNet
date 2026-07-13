@@ -114,10 +114,7 @@ export type { FileDownloadAttrs } from './hooks/useFileDownload'
 // Mention picker suggestion builders
 export { createGravatarUrl } from './utils/gravatar'
 export { buildTaskMentionSuggestions } from './utils/taskMentionSuggestions'
-export {
-  buildPersonMentionSuggestions,
-  type MentionablePerson
-} from './utils/mentions'
+export { buildPersonMentionSuggestions, type MentionablePerson } from './utils/mentions'
 
 // Shared page-comment subsystem (exploration 0276, editor-decoupled 0312):
 // the comment state machine both the web and desktop PageViews consume.

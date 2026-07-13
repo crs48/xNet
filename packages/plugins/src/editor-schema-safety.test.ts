@@ -15,9 +15,9 @@ afterEach(() => {
 describe('editor-schema-safety (BlockNote specs, 0312)', () => {
   it('classifies spec-carrying contributions as schema-defining', () => {
     expect(isSchemaDefiningContribution({ id: 'a', blockSpecs: { mermaid: spec } })).toBe(true)
-    expect(
-      isSchemaDefiningContribution({ id: 'b', inlineContentSpecs: { mention: spec } })
-    ).toBe(true)
+    expect(isSchemaDefiningContribution({ id: 'b', inlineContentSpecs: { mention: spec } })).toBe(
+      true
+    )
     expect(isSchemaDefiningContribution({ id: 'c', styleSpecs: { aiGenerated: spec } })).toBe(true)
     expect(isSchemaDefiningContribution({ id: 'd', slashMenuItems: [] })).toBe(false)
     expect(isSchemaDefiningContribution({ id: 'e' })).toBe(false)
@@ -39,7 +39,10 @@ describe('editor-schema-safety (BlockNote specs, 0312)', () => {
   it('returns no risks when every spec is bundled or behavior-only', () => {
     expect(
       findEditorSchemaRisks(
-        [{ id: 'a', blockSpecs: { mermaid: spec } }, { id: 'b', slashMenuItems: [] }],
+        [
+          { id: 'a', blockSpecs: { mermaid: spec } },
+          { id: 'b', slashMenuItems: [] }
+        ],
         ['mermaid']
       )
     ).toEqual([])

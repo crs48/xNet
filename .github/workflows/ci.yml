@@ -182,7 +182,7 @@ jobs:
         run: pnpm --filter @xnetjs/e2e-tests exec playwright install-deps chromium webkit
 
       - name: Run focused editor interaction tests
-        run: pnpm --filter @xnetjs/editor exec vitest run src/nodeviews/hooks/useNodeFocus.test.ts src/components/FloatingToolbar.test.tsx src/components/SlashMenu.test.tsx src/components/editor-ux-state.test.ts src/extensions/live-preview/inline-marks.integration.test.ts
+        run: pnpm --filter @xnetjs/editor exec vitest run src/blocknote/collab-convergence.test.tsx src/blocknote/doc-utils.test.ts src/blocknote/legacy-import.test.ts
 
       - name: Start web app
         run: pnpm --filter xnet-web dev --host 127.0.0.1 --port 5173 > /tmp/xnet-web.log 2>&1 &

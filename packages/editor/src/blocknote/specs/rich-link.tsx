@@ -28,9 +28,7 @@ function RichLinkCard({ url, preview }: { url: string; preview: string }): React
       rel="noreferrer"
       className="xnet-rich-link block border rounded-md p-3 no-underline"
     >
-      <span className="xnet-rich-link-title block font-medium">
-        {card?.title || url}
-      </span>
+      <span className="xnet-rich-link-title block font-medium">{card?.title || url}</span>
       {card?.description ? (
         <span className="xnet-rich-link-description block text-sm opacity-80">
           {card.description}

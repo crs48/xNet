@@ -127,7 +127,12 @@ function inline(content: string | Inline[]): InlineJson[] {
 // ─── Blocks ──────────────────────────────────────────────────────────────────
 
 /** Encode seeded file metadata the way the editor's upload path does (0312). */
-export function seedFileUrl(file: { cid: string; name: string; mimeType: string; size: number }): string {
+export function seedFileUrl(file: {
+  cid: string
+  name: string
+  mimeType: string
+  size: number
+}): string {
   return `xnet-blob://${file.cid}?name=${encodeURIComponent(file.name)}&type=${encodeURIComponent(file.mimeType)}&size=${file.size}`
 }
 

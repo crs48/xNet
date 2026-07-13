@@ -106,3 +106,12 @@ export type {
 } from '../../packages/plugins/src/workspace'
 export type { SlotContribution, SlotRegion } from '../../packages/plugins/src/contributions'
 export { evaluateInstallConsent, scaffoldPlugin } from '../../packages/plugins/src/ecosystem'
+
+// Editor schema-skew guard (0205, spec-based since 0312) — used by
+// packages/react's useMergedEditorContributions.
+export {
+  findEditorSchemaRisks,
+  isSchemaDefiningContribution,
+  warnOnEditorSchemaRisks
+} from '../../packages/plugins/src/editor-schema-safety'
+export type { EditorSchemaRisk } from '../../packages/plugins/src/editor-schema-safety'

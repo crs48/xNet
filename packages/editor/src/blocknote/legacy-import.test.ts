@@ -7,7 +7,11 @@ import {
   shouldImportLegacyContent
 } from './legacy-import'
 
-function el(name: string, attrs: Record<string, string> = {}, children: Array<Y.XmlElement | Y.XmlText> = []): Y.XmlElement {
+function el(
+  name: string,
+  attrs: Record<string, string> = {},
+  children: Array<Y.XmlElement | Y.XmlText> = []
+): Y.XmlElement {
   const node = new Y.XmlElement(name)
   for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, value)
   if (children.length) node.insert(0, children)

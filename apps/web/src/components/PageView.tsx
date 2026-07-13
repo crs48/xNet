@@ -130,9 +130,7 @@ function focusEditorNear(editor: XNetEditorInstance | null): void {
     editor.focus()
     return
   }
-  document
-    .querySelector<HTMLElement>('.bn-editor [contenteditable="true"], .bn-editor')
-    ?.focus()
+  document.querySelector<HTMLElement>('.bn-editor [contenteditable="true"], .bn-editor')?.focus()
 }
 
 export function PageView({ docId }: { docId: string }) {
@@ -488,10 +486,7 @@ export function PageView({ docId }: { docId: string }) {
     // BlockNote has no coordinate→position API on the editor surface, so
     // the reference chip lands at the current cursor position (0312).
     editor.focus()
-    editor.insertInlineContent([
-      { type: 'wikilink', props: { href, title } } as never,
-      ' '
-    ])
+    editor.insertInlineContent([{ type: 'wikilink', props: { href, title } } as never, ' '])
   }
 
   const placeholder = pageLoadPlaceholder(loading, error, Boolean(page && doc))

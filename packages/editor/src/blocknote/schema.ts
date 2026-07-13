@@ -8,7 +8,12 @@
  * bundled; plugin-contributed specs must be installed on every peer (the
  * plugins package guards this — see editor-schema-safety).
  */
-import { BlockNoteSchema, defaultBlockSpecs, defaultInlineContentSpecs, defaultStyleSpecs } from '@blocknote/core'
+import {
+  BlockNoteSchema,
+  defaultBlockSpecs,
+  defaultInlineContentSpecs,
+  defaultStyleSpecs
+} from '@blocknote/core'
 import { AiGeneratedStyleSpec } from './specs/ai-generated'
 import { CalloutBlockSpec } from './specs/callout'
 import { DatabaseEmbedBlockSpec } from './specs/database-embed'

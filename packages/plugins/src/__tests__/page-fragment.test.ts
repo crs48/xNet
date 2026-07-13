@@ -40,11 +40,7 @@ function text(value: string): Y.XmlText {
 }
 
 /** blockContainer wrapping one blockContent element (+ optional children). */
-function block(
-  content: Y.XmlElement,
-  id: string,
-  children: Y.XmlElement[] = []
-): Y.XmlElement {
+function block(content: Y.XmlElement, id: string, children: Y.XmlElement[] = []): Y.XmlElement {
   const wrapped: Array<Y.XmlElement | Y.XmlText> = [content]
   if (children.length > 0) wrapped.push(el('blockGroup', {}, children))
   return el('blockContainer', { id }, wrapped)
@@ -173,7 +169,9 @@ describe('blockNoteFragmentToMarkdown', () => {
         el('listItem', {}, [el('paragraph', {}, [text('alpha')])]),
         el('listItem', {}, [el('paragraph', {}, [text('beta')])])
       ]),
-      el('taskList', {}, [el('taskItem', { checked: 'true' }, [el('paragraph', {}, [text('ship')])])])
+      el('taskList', {}, [
+        el('taskItem', { checked: 'true' }, [el('paragraph', {}, [text('ship')])])
+      ])
     ])
 
     expect(xnetPageFragmentToMarkdown(doc)).toBe(

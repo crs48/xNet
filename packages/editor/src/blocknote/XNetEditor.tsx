@@ -86,11 +86,20 @@ export interface XNetEditorProps {
   userLabel?: string
   onNavigate?: (href: string) => void
   /** Image upload → stored src URL (CID-backed). */
-  onImageUpload?: (file: File) => Promise<{ src: string; width?: number; height?: number; cid?: string }>
+  onImageUpload?: (
+    file: File
+  ) => Promise<{ src: string; width?: number; height?: number; cid?: string }>
   /** File upload → stored file metadata. */
-  onFileUpload?: (file: File) => Promise<{ cid: string; name: string; mimeType: string; size: number }>
+  onFileUpload?: (
+    file: File
+  ) => Promise<{ cid: string; name: string; mimeType: string; size: number }>
   /** Resolve stored file metadata to a downloadable URL. */
-  onFileDownload?: (attrs: { cid: string; name: string; mimeType: string; size: number }) => Promise<string>
+  onFileDownload?: (attrs: {
+    cid: string
+    name: string
+    mimeType: string
+    size: number
+  }) => Promise<string>
   /** Link preview resolver (0295), pasting peer only. */
   resolveLinkPreview?: (url: string) => Promise<MessageLinkPreview | null>
   renderDatabaseView?: (props: {
@@ -420,10 +429,7 @@ export function XNetEditor({
           onItemClick: () => {
             const latex = window.prompt('LaTeX expression')
             if (!latex) return
-            editor.insertInlineContent([
-              { type: 'inlineMath', props: { latex } } as never,
-              ' '
-            ])
+            editor.insertInlineContent([{ type: 'inlineMath', props: { latex } } as never, ' '])
           }
         },
         {
@@ -586,8 +592,7 @@ export function XNetEditor({
       const blocks = editor.document
       const first = blocks[0]
       const cursor = editor.getTextCursorPosition()
-      const firstEmpty =
-        Array.isArray(first?.content) && (first.content as unknown[]).length === 0
+      const firstEmpty = Array.isArray(first?.content) && (first.content as unknown[]).length === 0
       if (blocks.length === 1 && cursor.block.id === first?.id && firstEmpty) {
         if (onBackspaceAtStart() === true) {
           event.preventDefault()

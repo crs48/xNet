@@ -11,7 +11,13 @@ function EmbedCard({ url }: { url: string }): React.JSX.Element {
 
   if (!parsed) {
     return (
-      <a data-embed-url={url} href={url} target="_blank" rel="noreferrer" className="xnet-embed-fallback">
+      <a
+        data-embed-url={url}
+        href={url}
+        target="_blank"
+        rel="noreferrer"
+        className="xnet-embed-fallback"
+      >
         {url}
       </a>
     )

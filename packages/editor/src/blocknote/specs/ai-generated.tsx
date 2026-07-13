@@ -10,8 +10,6 @@ export const AiGeneratedStyleSpec = createReactStyleSpec(
     propSchema: 'boolean'
   },
   {
-    render: (props) => (
-      <span data-ai-generated="" className="ai-generated" ref={props.contentRef} />
-    )
+    render: (props) => <span data-ai-generated="" className="ai-generated" ref={props.contentRef} />
   }
 )

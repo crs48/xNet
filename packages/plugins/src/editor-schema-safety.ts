@@ -25,9 +25,7 @@ export interface EditorSchemaRisk {
   name: string
 }
 
-function collectSpecNames(
-  contribution: EditorContribution
-): Array<{ kind: string; name: string }> {
+function collectSpecNames(contribution: EditorContribution): Array<{ kind: string; name: string }> {
   return [
     ...Object.keys(contribution.blockSpecs ?? {}).map((name) => ({ kind: 'block', name })),
     ...Object.keys(contribution.inlineContentSpecs ?? {}).map((name) => ({

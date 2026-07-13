@@ -107,10 +107,26 @@ export function buildSamplePageDoc(
       text: 'function greet(name: string): string {\n  return `Hello, ${name}!`;\n}'
     },
     { kind: 'hr' },
-    { kind: 'callout', type: 'info', text: 'This is an info callout - use it for general information.' },
-    { kind: 'callout', type: 'tip', text: 'This is a tip callout - use it for helpful suggestions.' },
-    { kind: 'callout', type: 'warning', text: 'This is a warning callout - use it for important notices.' },
-    { kind: 'callout', type: 'caution', text: 'This is a caution callout - use it for dangerous operations.' },
+    {
+      kind: 'callout',
+      type: 'info',
+      text: 'This is an info callout - use it for general information.'
+    },
+    {
+      kind: 'callout',
+      type: 'tip',
+      text: 'This is a tip callout - use it for helpful suggestions.'
+    },
+    {
+      kind: 'callout',
+      type: 'warning',
+      text: 'This is a warning callout - use it for important notices.'
+    },
+    {
+      kind: 'callout',
+      type: 'caution',
+      text: 'This is a caution callout - use it for dangerous operations.'
+    },
     { kind: 'callout', type: 'note', text: 'This is a note callout - use it for side notes.' },
     {
       kind: 'toggle',

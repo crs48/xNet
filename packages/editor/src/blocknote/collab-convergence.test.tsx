@@ -99,8 +99,7 @@ describe('two-peer convergence over Yjs (0312 validation)', () => {
       'after'
     )
 
-    const textOf = (editor: BlockNoteEditor<never, never, never>) =>
-      JSON.stringify(editor.document)
+    const textOf = (editor: BlockNoteEditor<never, never, never>) => JSON.stringify(editor.document)
     expect(textOf(peerA as never)).toEqual(textOf(peerB as never))
     expect(JSON.stringify(peerA.document)).toContain('from A')
     expect(JSON.stringify(peerA.document)).toContain('from B')

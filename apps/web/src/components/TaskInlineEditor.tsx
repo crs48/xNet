@@ -29,7 +29,12 @@ import { useMemo } from 'react'
 import { useWorkspacePeople } from '../hooks/useWorkspacePeople'
 import { useWorkspaceTags } from '../hooks/useWorkspaceTags'
 import { useWorkbench } from '../workbench/state'
-import { taskHostInfo, toTaskDisplayData, type TaskHostInfo, type TaskNode } from './task-node-projection'
+import {
+  taskHostInfo,
+  toTaskDisplayData,
+  type TaskHostInfo,
+  type TaskNode
+} from './task-node-projection'
 
 export type { TaskNode }
 
