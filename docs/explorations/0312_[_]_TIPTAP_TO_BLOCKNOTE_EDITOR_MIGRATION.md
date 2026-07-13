@@ -521,7 +521,7 @@ export const PageEmbed = createReactBlockSpec(
 - [x] Phase 4: re-target fragment readers (`packages/query/src/search/document.ts`,
       `packages/hub/src/services/search-indexer.ts`,
       `rich-text-cell.ts extractPlainText`) to BlockNote node names
-- [ ] Phase 4: AI surface (`packages/plugins/src/ai-surface/page-markdown.ts`,
+- [x] Phase 4: AI surface (`packages/plugins/src/ai-surface/page-markdown.ts`,
       `service.ts`) onto Block JSON / lossy markdown with per-spec exporters
 - [x] Phase 4: comments spike — BlockNote `ThreadStore` over xNet comment
       nodes vs. keep 0276 system; decide and implement — **Decision
@@ -531,7 +531,7 @@ export const PageEmbed = createReactBlockSpec(
       editor. Adopting BlockNote's threaded-comments UI via a custom
       `ThreadStore` is deferred — it would re-anchor comments in the Y.Doc,
       changing the 0276 durability property.
-- [ ] Phase 4: `packages/ui/src/utils/linkify.ts` re-mirrors BlockNote link
+- [x] Phase 4: `packages/ui/src/utils/linkify.ts` re-mirrors BlockNote link
       policy; `ai-generated` provenance style spec
 - [ ] Phase 5: delete `RichTextEditor.tsx`, `FloatingToolbar.tsx`,
       `slash-command/`, `suggestion-popup.ts`, `SlashMenu/`, `EmojiMenu`,
