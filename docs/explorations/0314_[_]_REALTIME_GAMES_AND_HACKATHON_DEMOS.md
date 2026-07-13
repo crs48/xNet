@@ -4,7 +4,7 @@
 
 xNet sells itself as a local-first sync framework, but every public demo is a
 productivity workbench. Sync engines that win developer mindshare do it with
-*fun*: PartyKit's drum machine, Liveblocks' paired-iframe examples, InstantDB's
+_fun_: PartyKit's drum machine, Liveblocks' paired-iframe examples, InstantDB's
 sliding puzzle, Convex's AI Town, tldraw's cursor party. Three questions:
 
 1. **Could we build a realtime game on xNet?** Which genres fit a signed,
@@ -20,11 +20,11 @@ sliding puzzle, Convex's AI Town, tldraw's cursor party. Three questions:
 multiplexes three logically distinct channels over one hub WebSocket, and they
 have radically different cost profiles:
 
-| Lane | API | Persisted? | Fit |
-| --- | --- | --- | --- |
-| **Change log** (`node-change`) | `useMutate` / `client.mutate` | Signed, hash-chained, quota-metered rows — forever | Turn-based *moves* (low volume, cheat-evident) |
-| **Y.Doc sync** (`xnet-doc-<nodeId>`) | `useNode().doc` | Y.Doc content (compactable CRDT), **not** the change log | Board state, strokes, shared canvases |
-| **Awareness** | `getAwareness(nodeId)` / `CanvasPresenceManager` | Nothing — cleared on disconnect | Cursors, positions, "who's here", live drag |
+| Lane                                 | API                                              | Persisted?                                               | Fit                                            |
+| ------------------------------------ | ------------------------------------------------ | -------------------------------------------------------- | ---------------------------------------------- |
+| **Change log** (`node-change`)       | `useMutate` / `client.mutate`                    | Signed, hash-chained, quota-metered rows — forever       | Turn-based _moves_ (low volume, cheat-evident) |
+| **Y.Doc sync** (`xnet-doc-<nodeId>`) | `useNode().doc`                                  | Y.Doc content (compactable CRDT), **not** the change log | Board state, strokes, shared canvases          |
+| **Awareness**                        | `getAwareness(nodeId)` / `CanvasPresenceManager` | Nothing — cleared on disconnect                          | Cursors, positions, "who's here", live drag    |
 
 Driving a game through `useMutate` at 20 writes/sec would reproduce the
 318k-row cold-open stall (exploration 0249) as a self-inflicted wound. Driving
@@ -75,7 +75,7 @@ collab prototype as the marketing artifact: a genuinely small
   are throttled to **~30fps (33ms)**; nothing is persisted; state clears on
   disconnect (`removeAwarenessStates`, `sync-manager.ts:700`).
 - `packages/canvas/src/presence/selection-lock.ts` shows Awareness carrying
-  *game-shaped* semantics already: collaborative edit locks with no
+  _game-shaped_ semantics already: collaborative edit locks with no
   persistence.
 - **Gap:** presence is tied to a Y.Doc node room (`xnet-doc-<nodeId>`) and
   the throttle lives inside the canvas package. There is no general
@@ -101,7 +101,7 @@ collab prototype as the marketing artifact: a genuinely small
   (`packages/identity/src/did.ts`, re-exported by `@xnetjs/sdk`) mints a
   DID:key + Ed25519 keypair synchronously. No account, no server. Passkeys
   and recovery (0243) are optional layers on top. Foot-gun: the SDK's
-  `createClient` (`packages/sdk/src/client.ts`) returns *identity only*,
+  `createClient` (`packages/sdk/src/client.ts`) returns _identity only_,
   not a store.
 - **Schema in one call:** `defineSchema`
   (`packages/data/src/schema/define.ts:95`) + property builders +
@@ -169,7 +169,7 @@ Awareness.
   falling-sand game, cursor party, YouTube watch parties
   ([examples gallery](https://docs.partykit.io/examples/)); the community
   Partyworks framework ships Connect4/RPS/tic-tac-toe.
-- **Liveblocks** sells with paired iframes so you *see* two users at once
+- **Liveblocks** sells with paired iframes so you _see_ two users at once
   ([liveblocks.io/examples](https://liveblocks.io/examples)) — whiteboard
   and spreadsheet flagships.
 - **InstantDB** ships a drop-in `<Cursors>` component and a collaborative
@@ -191,11 +191,11 @@ deadline of the player action. Turn-based/board/word/trivia play fine at
 250ms+; RTS-style play tolerates seconds. Drawing games ship stroke events
 over plain websockets at ~100ms perceived delay. Cursors are conventionally
 throttled at 30–100ms (Liveblocks defaults to 100ms, floor 16ms). Below
-~100ms *contested-state* resolution you need rollback or an authoritative
+~100ms _contested-state_ resolution you need rollback or an authoritative
 tick server ([SnapNet rollback explainer](https://www.snapnet.dev/blog/netcode-architectures-part-2-rollback/)).
 
 **Practical rule for xNet:** LWW state sync is comfortable wherever a move is
-a discrete, user-paced event. Once two players contest the *same* state
+a discrete, user-paced event. Once two players contest the _same_ state
 within one RTT continuously, it stops being our genre.
 
 ### Presence best practice
@@ -212,7 +212,7 @@ it just isn't packaged as a public API.
 
 Recurring checklist from BaaS comparisons: (1) zero-signup start
 (InstantDB provisions a DB without an account), (2) one-call auth —
-Firebase's *anonymous auth* is the killer feature, (3) realtime by default,
+Firebase's _anonymous auth_ is the killer feature, (3) realtime by default,
 not opt-in, (4) single-binary/single-file boot (PocketBase), (5) generous
 free tier, (6) AI-legibility — docs written for coding agents
 (llms.txt, MCP). xNet already has (1) via `generateIdentity()` and (3) via
@@ -223,11 +223,11 @@ the agent-legible quickstart.
 
 One Million Checkboxes (built in 2 days, 650M checks in 2 weeks) and r/place
 share five ingredients: (a) trivially compact shared state (a bitfield);
-(b) a per-user rate limit that *creates* the social dynamic; (c) zero
+(b) a per-user rate limit that _creates_ the social dynamic; (c) zero
 onboarding — the URL is the whole game; (d) **LWW is semantically correct** —
 "last pixel wins" is the rule, not a bug; (e) headroom for emergent behavior.
 Ingredient (d) is the design key for xNet: pick games where our merge
-semantics *are* the game rules.
+semantics _are_ the game rules.
 
 ### Modeling turn-based games on LWW
 
@@ -235,7 +235,7 @@ semantics *are* the game rules.
   field — LWW silently drops causally-later-but-lower-timestamp writes.
 - **Move log as append-only entities** works perfectly: each move is a new
   immutable node; board = deterministic fold over moves. On xNet, moves are
-  *already signed and hash-chained* — cheat-evident game history for free.
+  _already signed and hash-chained_ — cheat-evident game history for free.
   This is the one game workload where the persisted change log is a
   feature, not a tax.
 - **Conflict as mechanic:** simultaneous moves at the same seq are detected
@@ -255,7 +255,7 @@ semantics *are* the game rules.
 2. **The persisted change log is the wrong lane for realtime state and the
    perfect lane for moves.** 20 Hz game state through `useMutate` re-creates
    the 0249 cold-open stall; ~60 signed moves per chess game is negligible
-   *and* buys provable, tamper-evident history no competitor demo has.
+   _and_ buys provable, tamper-evident history no competitor demo has.
 3. **Presence needs one extraction, not an invention.**
    `CanvasPresenceManager` has the right semantics (ephemeral, 30fps
    throttle, disconnect eviction) but lives in `packages/canvas` and is
@@ -280,21 +280,21 @@ semantics *are* the game rules.
 
 ### Where does a demo live?
 
-| Option | What it is | Pros | Cons |
-| --- | --- | --- | --- |
-| **A. Workbench plugin** (`ViewContribution`) | Game/board docks into the existing app; identity, sync, storage all provided | Fastest to working multiplayer; demos the plugin story too; ships via marketplace | Players need the workbench open; demo is invisible outside our app |
-| **B. Standalone mini-app** (`createXNetClient` + React) | Tiny Vite app, URL-joinable, share-link invite | The PartyKit/tldraw pattern; URL *is* the game; doubles as the missing starter template | Must hand-wire provider/identity today (no scaffold); needs a hosted hub with wipe policy |
-| **C. Lab node** (`@xnetjs/labs`) | Game as sandboxed code node, published as extension | Most "xNet-native" story (code as content, P2P-synced program) | Labs is exploration-stage (0180); sandbox limits (iframe rung) add friction for a first demo |
+| Option                                                  | What it is                                                                   | Pros                                                                                    | Cons                                                                                         |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| **A. Workbench plugin** (`ViewContribution`)            | Game/board docks into the existing app; identity, sync, storage all provided | Fastest to working multiplayer; demos the plugin story too; ships via marketplace       | Players need the workbench open; demo is invisible outside our app                           |
+| **B. Standalone mini-app** (`createXNetClient` + React) | Tiny Vite app, URL-joinable, share-link invite                               | The PartyKit/tldraw pattern; URL _is_ the game; doubles as the missing starter template | Must hand-wire provider/identity today (no scaffold); needs a hosted hub with wipe policy    |
+| **C. Lab node** (`@xnetjs/labs`)                        | Game as sandboxed code node, published as extension                          | Most "xNet-native" story (code as content, P2P-synced program)                          | Labs is exploration-stage (0180); sandbox limits (iframe rung) add friction for a first demo |
 
 ### Which game first?
 
-| Candidate | Lane usage | Effort | Demo power |
-| --- | --- | --- | --- |
-| **Cursor party** (cursors + emoji bursts on a shared page) | Awareness only | Tiny (~1 day once `usePresence` exists) | Table-stakes; the paired-iframe "wow" |
-| **Turn-based board game** (Connect Four or tic-tac-toe) | Change log for moves (signed!), Awareness for hover/turn indicator | Small | Unique angle: *cryptographically provable game history* — no competitor demo has this |
-| **Pixel place** (shared pixel board, per-user cooldown) | One Y.Doc `Y.Map` cell→color; cooldown client-side + fold-time | Small-medium | Viral pattern; LWW-as-rule; stress-tests Y.Doc fan-out |
-| **Drawing game** (skribbl-style: strokes + guesses + commit-reveal word) | Y.Doc strokes, chat channel guesses, change-log round records | Medium | Shows all three lanes in one app; reuses existing chat/channels |
-| **Trivia/quiz party** | Change log answers, Awareness buzzer | Small | Reuses forms (0278); good for meetups |
+| Candidate                                                                | Lane usage                                                         | Effort                                  | Demo power                                                                            |
+| ------------------------------------------------------------------------ | ------------------------------------------------------------------ | --------------------------------------- | ------------------------------------------------------------------------------------- |
+| **Cursor party** (cursors + emoji bursts on a shared page)               | Awareness only                                                     | Tiny (~1 day once `usePresence` exists) | Table-stakes; the paired-iframe "wow"                                                 |
+| **Turn-based board game** (Connect Four or tic-tac-toe)                  | Change log for moves (signed!), Awareness for hover/turn indicator | Small                                   | Unique angle: _cryptographically provable game history_ — no competitor demo has this |
+| **Pixel place** (shared pixel board, per-user cooldown)                  | One Y.Doc `Y.Map` cell→color; cooldown client-side + fold-time     | Small-medium                            | Viral pattern; LWW-as-rule; stress-tests Y.Doc fan-out                                |
+| **Drawing game** (skribbl-style: strokes + guesses + commit-reveal word) | Y.Doc strokes, chat channel guesses, change-log round records      | Medium                                  | Shows all three lanes in one app; reuses existing chat/channels                       |
+| **Trivia/quiz party**                                                    | Change log answers, Awareness buzzer                               | Small                                   | Reuses forms (0278); good for meetups                                                 |
 
 The board game and pixel place are the strongest seconds after cursor party:
 one shows off the signed log, the other the Y.Doc fan-out, and both are
@@ -310,7 +310,7 @@ famous, legible formats.
   piece positions during drag. Compactable, off the audit log, but
   unsigned-per-op — fine where provenance doesn't matter.
 - **Anti-pattern:** board-as-one-JSON-property via `useMutate.update` —
-  LWW clobbers concurrent moves *and* bloats the log. Never do this; say so
+  LWW clobbers concurrent moves _and_ bloats the log. Never do this; say so
   loudly in the demo README because it's the first thing a hackathon
   participant will try.
 
@@ -342,7 +342,7 @@ stateDiagram-v2
 ```
 
 Everyone syncs everything, so secrets must be commitments — a constraint, but
-also a demo: "the game *proves* the host didn't change the word."
+also a demo: "the game _proves_ the host didn't change the word."
 
 ## Recommendation
 
@@ -396,9 +396,9 @@ const Todo = defineSchema({
   namespace: 'xnet://demo.todo/',
   properties: {
     title: text({ required: true }),
-    done: checkbox({}),
+    done: checkbox({})
   },
-  authorization: presets.publicRead(), // satisfies the 0192/0304 cascade
+  authorization: presets.publicRead() // satisfies the 0192/0304 cascade
 })
 
 const { identity, privateKey } = generateIdentity() // instant DID, no signup
@@ -408,9 +408,9 @@ const client = await createXNetClient({
   signingKey: privateKey,
   identity,
   sync: {
-    signalingUrl: 'ws://localhost:4444',        // npx xnet-hub start --no-auth
-    nodeSyncRoom: `xnet-demo-${location.hash.slice(1) || 'lobby'}`,
-  },
+    signalingUrl: 'ws://localhost:4444', // npx xnet-hub start --no-auth
+    nodeSyncRoom: `xnet-demo-${location.hash.slice(1) || 'lobby'}`
+  }
 })
 
 function App() {
@@ -418,7 +418,7 @@ function App() {
   const { create, update } = useMutate()
   return (
     <ul>
-      {todos.data?.map(t => (
+      {todos.data?.map((t) => (
         <li key={t.id} onClick={() => update(Todo, t.id, { done: !t.done })}>
           {t.done ? '✅' : '⬜'} {t.title}
         </li>
@@ -436,10 +436,11 @@ Tier 1's presence hook, sketched against the existing Awareness plumbing:
 export function usePresence<T extends Record<string, unknown>>(
   nodeId: string,
   initial: T,
-  opts?: { throttleMs?: number },        // default 33ms — under the hub's
-): {                                     // 100 msg/s limit with headroom
+  opts?: { throttleMs?: number } // default 33ms — under the hub's
+): {
+  // 100 msg/s limit with headroom
   peers: Array<{ clientId: number; did: string; state: T }>
-  setState: (patch: Partial<T>) => void  // throttled broadcast
+  setState: (patch: Partial<T>) => void // throttled broadcast
 }
 // Semantics lifted from CanvasPresenceManager (packages/canvas/src/presence/
 // canvas-presence.ts): nothing persisted, peers evicted on disconnect.
@@ -454,9 +455,9 @@ const Move = defineSchema({
   properties: {
     gameId: text({ required: true }),
     column: number({ required: true }), // 0..6
-    seq: number({ required: true }),    // client-claimed turn number
+    seq: number({ required: true }) // client-claimed turn number
   },
-  authorization: presets.publicRead(),
+  authorization: presets.publicRead()
 })
 
 // Board is NEVER stored — it's a deterministic fold over signed moves.
@@ -487,8 +488,8 @@ function foldBoard(moves: C4Move[]): Board {
   before the hosted room ships (relates to `node.acquire` fire-and-forget,
   0188).
 - **Seq-claiming in the move log** trusts clients to claim turn numbers;
-  fold-time legality checks make cheating *visible* (signed!) but not
-  *impossible*. Fine for demos; say so honestly in the README.
+  fold-time legality checks make cheating _visible_ (signed!) but not
+  _impossible_. Fine for demos; say so honestly in the README.
 - **Does `nodeSyncRoom` alone give a joinable session** without a share
   token when the hub enforces auth? The deterministic-room + UCAN
   share-link path exists; the starter must pick the simplest flow that
@@ -496,24 +497,35 @@ function foldBoard(moves: C4Move[]): Board {
 
 ## Implementation Checklist
 
-Tier 1 — primitive + plugin demos:
-- [ ] Extract `usePresence<T>(nodeId)` into `packages/react/src/hooks/`
-      (sub-barrel export per 0276), semantics from `CanvasPresenceManager`;
-      changeset: minor for `@xnetjs/react`.
-- [ ] Unit-test throttle, eviction-on-disconnect, and that no `node_changes`
+> **Implementation note (2026-07-13).** At implementation time the demos were
+> redirected (user decision) from workbench plugins to a **hosted standalone
+> app** (`apps/demos`, deployed to GitHub Pages at `xnet.fyi/demos/` alongside
+> the site and web app) — the URL-is-the-invitation form is the better public
+> artifact, and nothing about the lane architecture changes. `usePresence`
+> takes the `Awareness` instance (from `useNode().awareness`) rather than a
+> nodeId — same capability, composes instead of duplicating `useNode`'s
+> acquisition. The plugin/`ViewContribution` variants and the marketplace
+> listing remain future work if in-workbench games are wanted; the dev-tools
+> seed item does not apply (demo schemas live in `apps/demos`, not the
+> workbench registry). Deep signature re-verification was scoped down to a
+> signed-authorship move log (change-level signature APIs aren't exposed to
+> app hooks today).
+
+Tier 1 — primitive + hosted game demos:
+
+- [x] Extract `usePresence<T>(awareness)` into `packages/react/src/hooks/`
+      (named grouped export from the root barrel per 0276), semantics from
+      `CanvasPresenceManager`; changeset: minor for `@xnetjs/react`.
+- [x] Unit-test throttle, eviction-on-disconnect, and that no `node_changes`
       rows are produced (regression guard for the lane rule).
-- [ ] Build **Cursor Party** plugin (`ViewContribution`): shared page node,
+- [x] Build **Cursor Party** (hosted demo, `apps/demos`): shared room node,
       cursors + emoji bursts via `usePresence`.
-- [ ] Build **Connect Four** plugin: `C4Move` schema, fold-based board,
-      Awareness turn/hover indicator, "verify game history" button that
-      re-checks move signatures.
-- [ ] Register both in the dev-tools seed (Tier-1 seeder or
-      `SEED_EXCLUDED_SCHEMA_IDS` if excluded) so `seed-coverage.test.ts`
-      stays green.
-- [ ] List both in the plugin marketplace (first `registry/community.json`
-      or first-party entries).
+- [x] Build **Connect Four** (hosted demo, `apps/demos`): `C4Move` schema,
+      fold-based board (order-independence + conflict determinism unit
+      tested), Awareness hover indicator, signed move-log panel.
 
 Tier 2 — hackathon kit:
+
 - [ ] Create `examples/minimal-app/` (Vite + React, <60 lines of app code,
       copied not workspace-linked, matching `examples/` convention).
 - [ ] Add a wipe-daily demo room to the hosted hub (`--demo` quotas, 0291
@@ -527,10 +539,16 @@ Tier 2 — hackathon kit:
       share link) against the hosted demo room.
 
 Tier 3 — collab prototype page:
+
 - [ ] Build the ~40-line collaborative todo + cursors demo.
 - [ ] Embed as paired iframes on a site page (`site/src/pages/`), backed by
       the demo hub room.
 - [ ] Link it from the landing page and the quickstart.
+
+Hosting (added at implementation time — the user-requested deliverable):
+
+- [ ] Deploy `apps/demos` to GitHub Pages at `/demos/` via
+      `deploy-site.yml`, next to the site (root) and web app (`/app/`).
 
 ## Validation Checklist
 
