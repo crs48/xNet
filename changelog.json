@@ -6,6 +6,29 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-13-document-pages-open-reliably-on-databas",
+      "url": "https://xnet.fyi/changelog#2026-07-13-document-pages-open-reliably-on-databas",
+      "title": "Document pages open reliably on databases from older builds",
+      "content_text": "Opening a document could fail with a storage error (\"no such column: tiebreak_key\") when the local database had been created by an older build. The missing column is now repaired before the first read, so existing workspaces open documents without needing a data reset.\n",
+      "date_published": "2026-07-13T20:00:00Z",
+      "tags": [
+        "fix",
+        "storage"
+      ],
+      "_xnet": {
+        "date": "July 13, 2026",
+        "summary": "Opening a document could fail with a storage error (\"no such column: tiebreak_key\") when the local database had been created by an older build. The missing column is now repaired before the first read, so existing workspaces open documents without needing a data reset.",
+        "highlights": [],
+        "mergedAt": "2026-07-13T20:00:00Z",
+        "pr": 498,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-13-live-multiplayer-demos-cursor-party-conn",
       "url": "https://xnet.fyi/changelog#2026-07-13-live-multiplayer-demos-cursor-party-conn",
       "title": "Live multiplayer demos: cursor party, Connect Four, collab todo",

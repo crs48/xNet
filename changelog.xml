@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Document pages open reliably on databases from older builds</title>
+      <link>https://xnet.fyi/changelog#2026-07-13-document-pages-open-reliably-on-databas</link>
+      <guid isPermaLink="false">2026-07-13-document-pages-open-reliably-on-databas</guid>
+      <pubDate>Mon, 13 Jul 2026 20:00:00 GMT</pubDate>
+      <description>Opening a document could fail with a storage error (&quot;no such column: tiebreak_key&quot;) when the local database had been created by an older build. The missing column is now repaired before the first read, so existing workspaces open documents without needing a data reset.</description>
+    </item>
+    <item>
       <title>Live multiplayer demos: cursor party, Connect Four, collab todo</title>
       <link>https://xnet.fyi/changelog#2026-07-13-live-multiplayer-demos-cursor-party-conn</link>
       <guid isPermaLink="false">2026-07-13-live-multiplayer-demos-cursor-party-conn</guid>
