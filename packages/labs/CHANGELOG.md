@@ -1,5 +1,13 @@
 # @xnetjs/labs
 
+## 0.0.18
+
+### Patch Changes
+
+- Updated dependencies [[`e6b4c6f`](https://github.com/crs48/xNet/commit/e6b4c6f95b2715289ff35ae37ebd6be7eeba5174), [`38fd26f`](https://github.com/crs48/xNet/commit/38fd26f3074176ecb73b6b04b8226f2b28d2258c), [`1de6587`](https://github.com/crs48/xNet/commit/1de658746fb4b5420f8f92517f9c135562d23d28)]:
+  - @xnetjs/data@1.0.0
+  - @xnetjs/plugins@1.0.0
+
 ## 0.0.17
 
 ### Patch Changes
