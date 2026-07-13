@@ -296,9 +296,10 @@ function extractBlobCids(doc: Y.Doc): string[] {
   const cids: string[] = []
   const seen = new Set<string>()
 
-  // The editor stores content in a Y.XmlFragment named 'default' or 'prosemirror'
-  // Try known fragment names
-  for (const name of ['default', 'prosemirror', '']) {
+  // The editor stores content in a Y.XmlFragment — 'content-v4' (BlockNote,
+  // 0312), 'content' (legacy TipTap), or the older 'default'/'prosemirror'
+  // names. Scan every known fragment name.
+  for (const name of ['content-v4', 'content', 'default', 'prosemirror', '']) {
     let fragment: Y.XmlFragment | undefined
     try {
       fragment = doc.getXmlFragment(name)

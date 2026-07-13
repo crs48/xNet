@@ -23,6 +23,32 @@ import {
 import { TaskCollectionEmbed } from '@xnetjs/react'
 import { useLinkPreviewResolver } from '../hooks/useLinkPreviewResolver'
 
+type TaskEmbedFilters = Parameters<typeof TaskCollectionEmbed>[0]
+
+/**
+ * Map the BlockNote task-view embed config (0312 vocabulary) onto the
+ * filters TaskCollectionEmbed expects (the pre-0312 vocabulary). Defaults
+ * match the old task-view extension: open tasks, hierarchy on.
+ */
+function toTaskEmbedFilters(
+  viewConfig: TaskViewConfig
+): Pick<TaskEmbedFilters, 'scope' | 'assignee' | 'dueDate' | 'status' | 'showHierarchy'> {
+  const dueMap = {
+    overdue: 'overdue',
+    today: 'today',
+    week: 'next-7-days',
+    all: 'any'
+  } as const
+  const statusMap = { open: 'open', completed: 'done', all: 'all' } as const
+  return {
+    scope: viewConfig.scope === 'page' ? 'current-page' : 'all',
+    assignee: viewConfig.scope === 'assigned' ? 'me' : 'any',
+    dueDate: viewConfig.dueDate ? dueMap[viewConfig.dueDate] : 'any',
+    status: viewConfig.status ? statusMap[viewConfig.status] : 'open',
+    showHierarchy: viewConfig.showHierarchy ?? true
+  }
+}
+
 interface Props {
   doc: Y.Doc
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -109,11 +135,7 @@ export function Editor({
         <TaskCollectionEmbed
           currentPageId={currentPageId}
           currentDid={did ?? null}
-          scope={viewConfig.scope}
-          assignee={viewConfig.assignee}
-          dueDate={viewConfig.dueDate}
-          status={viewConfig.status}
-          showHierarchy={viewConfig.showHierarchy}
+          {...toTaskEmbedFilters(viewConfig)}
         />
       )}
     />

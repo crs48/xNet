@@ -139,7 +139,14 @@ export default defineConfig({
             'packages/{canvas,react,views,devtools,ui,dashboard,charts,maps}/test/**/*.test.{ts,tsx}',
             // App-level logic tests (workbench shell, 0166)
             'apps/web/src/**/*.test.{ts,tsx}'
-          ]
+          ],
+          server: {
+            deps: {
+              // @blocknote/mantine ships ESM that named-imports from CJS
+              // react; inline so Vite transforms the interop (0312).
+              inline: [/@blocknote\//, /@mantine\//]
+            }
+          }
         },
         resolve: {
           alias: {

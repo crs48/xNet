@@ -8,11 +8,10 @@
  *
  * Field authority (docs/specs/PAGE_TASK_RECONCILIATION.md): a hosted
  * checklist task owns its title, assignees, and due date in the host
- * document. When the host page's live editor is available (`hostEditor`),
- * assignee/due-date edits write through to the document's inline metadata
- * (mentions, due chips) and reconcile back to the node; without it those
- * fields are read-only and the form links to the host. Status, priority,
- * and pins are node-owned and always editable.
+ * document, so those fields are read-only here and the form links to the
+ * host (the live-editor write-through path was retired with the BlockNote
+ * migration, 0312). Status, priority, and pins are node-owned and always
+ * editable; unhosted tasks edit everything on the node.
  */
 import type { JSX } from 'react'
 import { useNavigate } from '@tanstack/react-router'
@@ -23,13 +22,6 @@ import {
   type DID,
   type TaskStatusId
 } from '@xnetjs/data'
-import {
-  addTaskAssigneeToDoc,
-  removeTaskAssigneeFromDoc,
-  setTaskDueDateInDoc,
-  type Editor,
-  type TaskMentionSuggestion
-} from '@xnetjs/editor/react'
 import { useMutate, useQuery } from '@xnetjs/react'
 import { TaskDetailForm, type TaskTagOption } from '@xnetjs/ui'
 import { Flag, Pin } from 'lucide-react'
@@ -37,43 +29,16 @@ import { useMemo } from 'react'
 import { useWorkspacePeople } from '../hooks/useWorkspacePeople'
 import { useWorkspaceTags } from '../hooks/useWorkspaceTags'
 import { useWorkbench } from '../workbench/state'
-import {
-  diffAssignees,
-  dueDateMsToIso,
-  fallbackMentionLabel,
-  taskHostInfo,
-  toTaskDisplayData,
-  type TaskHostInfo,
-  type TaskNode
-} from './task-node-projection'
+import { taskHostInfo, toTaskDisplayData, type TaskHostInfo, type TaskNode } from './task-node-projection'
 
 export type { TaskNode }
-
-/** Live editor of the page hosting this task (node → editor direction). */
-export interface TaskHostEditor {
-  getEditor: () => Editor | null
-  /** Presence-derived people for mention metadata (labels, colors) */
-  suggestions: TaskMentionSuggestion[]
-}
 
 const HOST_OWNED_NOTICE =
   'Title, due date & assignees live in the hosting document — open it to edit them.'
 
-function mentionForDid(suggestions: TaskMentionSuggestion[], did: string): TaskMentionSuggestion {
-  return (
-    suggestions.find((entry) => entry.id === did) ?? { id: did, label: fallbackMentionLabel(did) }
-  )
-}
-
-/** Doc-owned fields: write through the live editor, fall back to the
- * node when the task is unhosted, and lock when hosted without one. */
-function pickMetaHandler<T>(
-  host: TaskHostInfo,
-  docEditable: boolean,
-  docHandler: T,
-  nodeHandler: T
-): T | undefined {
-  if (docEditable) return docHandler
+/** Doc-owned fields: locked while a document hosts the task (the next
+ * snapshot would overwrite node-side writes); node-owned otherwise. */
+function pickMetaHandler<T>(host: TaskHostInfo, nodeHandler: T): T | undefined {
   return host.hostOwned ? undefined : nodeHandler
 }
 
@@ -149,8 +114,6 @@ function PinToggle({ taskId }: { taskId: string }): JSX.Element {
 
 export interface TaskInlineEditorProps {
   task: TaskNode
-  /** Pass when the hosting page's editor is mounted (page right panel) */
-  hostEditor?: TaskHostEditor
   onClose?: () => void
   autoFocusTitle?: boolean
   className?: string
@@ -158,7 +121,6 @@ export interface TaskInlineEditorProps {
 
 export function TaskInlineEditor({
   task,
-  hostEditor,
   onClose,
   autoFocusTitle,
   className
@@ -176,7 +138,6 @@ export function TaskInlineEditor({
     return ids.map((id) => ({ id, name: allTags.find((tag) => tag.id === id)?.name ?? id }))
   }, [task.tags, allTags])
   const host = taskHostInfo(task)
-  const docEditable = host.hostOwned && Boolean(hostEditor)
 
   const handleOpenSource = () => {
     if (host.pageId) {
@@ -200,20 +161,6 @@ export function TaskInlineEditor({
       assignee: (assignees[0] as DID | undefined) ?? undefined
     })
 
-  const applyDocDueDate = (taskId: string, dueDate: number | null) => {
-    const editor = hostEditor?.getEditor()
-    if (editor) setTaskDueDateInDoc(editor, taskId, dueDateMsToIso(dueDate))
-  }
-
-  const applyDocAssignees = (taskId: string, assignees: string[]) => {
-    const editor = hostEditor?.getEditor()
-    if (!editor) return
-    const suggestions = hostEditor?.suggestions ?? []
-    const { added, removed } = diffAssignees(display.assignees ?? [], assignees)
-    for (const did of added) addTaskAssigneeToDoc(editor, taskId, mentionForDid(suggestions, did))
-    for (const did of removed) removeTaskAssigneeFromDoc(editor, taskId, did)
-  }
-
   return (
     <TaskDetailForm
       task={display}
@@ -223,7 +170,7 @@ export function TaskInlineEditor({
       autoFocusTitle={autoFocusTitle}
       onClose={onClose}
       titleReadOnly={host.hostOwned}
-      metaNotice={host.hostOwned && !docEditable ? HOST_OWNED_NOTICE : undefined}
+      metaNotice={host.hostOwned ? HOST_OWNED_NOTICE : undefined}
       onTitleChange={host.hostOwned ? undefined : updateNodeTitle}
       onStatusChange={(taskId, status) =>
         void update(TaskSchema, taskId, {
@@ -236,8 +183,8 @@ export function TaskInlineEditor({
           priority: priority as 'low' | 'medium' | 'high' | 'urgent'
         })
       }
-      onDueDateChange={pickMetaHandler(host, docEditable, applyDocDueDate, updateNodeDueDate)}
-      onAssigneesChange={pickMetaHandler(host, docEditable, applyDocAssignees, updateNodeAssignees)}
+      onDueDateChange={pickMetaHandler(host, updateNodeDueDate)}
+      onAssigneesChange={pickMetaHandler(host, updateNodeAssignees)}
       tags={selectedTags}
       tagOptions={tagOptions}
       onTagsChange={(taskId, tagIds) => void update(TaskSchema, taskId, { tags: tagIds })}

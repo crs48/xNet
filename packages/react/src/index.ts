@@ -809,6 +809,9 @@ export {
   useImporters,
   useEditorExtensions,
   useEditorExtensionsSafe,
+  useMergedEditorContributions,
+  mergeEditorContributions,
+  type MergedEditorContributions,
   useView,
   useCommand
 } from './hooks/usePlugins'
