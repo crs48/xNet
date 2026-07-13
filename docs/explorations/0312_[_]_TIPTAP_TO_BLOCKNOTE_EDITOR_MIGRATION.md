@@ -518,7 +518,7 @@ export const PageEmbed = createReactBlockSpec(
 - [ ] Phase 3: `TaskInlineEditor`, database rich-text cells
       (`rich-text-cell.ts` fragment-per-column), `CanvasView`/`DatabaseView`,
       `MeetingsSurface`, Expo `WebViewEditor` bundle
-- [ ] Phase 4: re-target fragment readers (`packages/query/src/search/document.ts`,
+- [x] Phase 4: re-target fragment readers (`packages/query/src/search/document.ts`,
       `packages/hub/src/services/search-indexer.ts`,
       `rich-text-cell.ts extractPlainText`) to BlockNote node names
 - [ ] Phase 4: AI surface (`packages/plugins/src/ai-surface/page-markdown.ts`,
