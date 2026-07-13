@@ -139,6 +139,7 @@ export function usePresence<T extends Record<string, unknown>>(
 
     awarenessRef.current = awareness
     setClientId(awareness.clientID)
+    const ownKeys = ownKeysRef.current
 
     // Announce: merge initial state over whatever is already on the wire
     // (preserves e.g. the `user` field useNode broadcasts).
@@ -165,7 +166,7 @@ export function usePresence<T extends Record<string, unknown>>(
       // its other owners. Peers see the retraction; full eviction happens
       // on disconnect via the awareness protocol timeout.
       const remaining = { ...(awareness.getLocalState() ?? {}) }
-      for (const key of ownKeysRef.current) delete remaining[key]
+      for (const key of ownKeys) delete remaining[key]
       awareness.setLocalState(remaining)
       if (awarenessRef.current === awareness) awarenessRef.current = null
     }
