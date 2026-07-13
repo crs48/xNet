@@ -539,7 +539,7 @@ export const PageEmbed = createReactBlockSpec(
       `document-compat.ts`, old NodeViews, unused `@tiptap/*` +
       `katex`-adjacent deps; drop `@tiptap` vite alias in
       `apps/web/vite.config.ts`
-- [ ] Phase 5: regenerate devtools seed docs as Block JSON via
+- [x] Phase 5: regenerate devtools seed docs as Block JSON via
       `@blocknote/server-util`; fix `seed-render.test.ts`; keep
       `seed-coverage.test.ts` green
 - [ ] Phase 5: rewrite `tests/e2e/src/editor-ux.spec.ts` +
