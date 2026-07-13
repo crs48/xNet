@@ -4,12 +4,12 @@
  * The recorder/list/detail cores are shared from @xnetjs/views (0277
  * shared-view-core pattern); this wrapper keeps the desktop deltas: local
  * mode state (the desktop shell has no router — same idiom as
- * DataWorkspaceView), the EditorSurface notes editor, and the close
+ * DataWorkspaceView), the XNetEditor notes editor, and the close
  * affordance back to the home canvas. `window.xnetMeetings` is present here,
  * so the recorder runs at the system-audio tier with the native engines.
  */
 
-import { EditorSurface } from '@xnetjs/editor/react'
+import { XNetEditor } from '@xnetjs/editor/react'
 import { MeetingDetailView, MeetingRecorderView, MeetingsListView } from '@xnetjs/views'
 import { ArrowLeft, X } from 'lucide-react'
 import React, { useState } from 'react'
@@ -58,7 +58,7 @@ export function MeetingsView({ onClose }: MeetingsViewProps): React.ReactElement
         <MeetingDetailView
           className="min-h-0 flex-1"
           meetingId={mode.meetingId}
-          renderNotes={({ doc }) => <EditorSurface ydoc={doc} surfaceMode="page" />}
+          renderNotes={({ doc }) => <XNetEditor ydoc={doc} />}
         />
       ) : (
         <MeetingsListView
