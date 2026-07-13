@@ -34,6 +34,7 @@ import { StorageOptimiseHint } from './components/StorageOptimiseHint'
 import { StorageWarningBanner } from './components/StorageWarningBanner'
 import { WarmStartSnapshots } from './components/WarmStartSnapshots'
 import { WorkingSetPrewarm } from './components/WorkingSetPrewarm'
+import { reportBootFailure } from './lib/boot-diagnostics'
 import {
   clearXNetBrowserStorage,
   requestXNetBrowserStorageReset
@@ -364,7 +365,7 @@ export function App(): JSX.Element {
       {/* "Optimising storage" pill while the interrupted-retry conversion
           VACUUM is in flight (lib/db-vacuum.ts) — reloading cancels it. */}
       <StorageOptimiseHint />
-      <ErrorBoundary>
+      <ErrorBoundary onError={(error) => reportBootFailure('render', error)}>
         <XNetProvider
           config={{
             nodeStorage: storage.nodeStorage,

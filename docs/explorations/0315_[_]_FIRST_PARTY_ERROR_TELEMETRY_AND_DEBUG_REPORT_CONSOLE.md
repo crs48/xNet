@@ -595,7 +595,7 @@ export async function composeDebugReport(userDescription: string) {
 
 ## Implementation Checklist
 
-- [ ] **P0:** Pass `onError` from the top-level `ErrorBoundary` in
+- [x] **P0:** Pass `onError` from the top-level `ErrorBoundary` in
   [App.tsx](../../apps/web/src/App.tsx) into `error-reporter` (or swap in
   `TelemetryErrorBoundary`).
 - [ ] **P0:** Electron main: `process.on('uncaughtException'/'unhandledRejection')`
