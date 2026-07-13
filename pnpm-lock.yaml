@@ -133,12 +133,18 @@ importers:
       '@xnetjs/cloud':
         specifier: workspace:*
         version: link:../../packages/cloud
+      '@xnetjs/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       '@xnetjs/crypto':
         specifier: workspace:*
         version: link:../../packages/crypto
       '@xnetjs/entitlements':
         specifier: workspace:*
         version: link:../../packages/entitlements
+      '@xnetjs/telemetry':
+        specifier: workspace:*
+        version: link:../../packages/telemetry
       hono:
         specifier: ^4.0.0
         version: 4.11.7

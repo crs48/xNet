@@ -212,12 +212,28 @@ const updated = 'June 24, 2026'
         <section class="mb-12">
           <h2>Crash reporting and diagnostics</h2>
           <p>
-            The web and hosted app can report crashes so we can fix what breaks. Crash reporting is
-            <strong>opt-in</strong> and off by default — manage it under Settings → Privacy &amp; Diagnostics.
-            When enabled, reports are scrubbed of personal data (paths, emails, IPs, tokens) before they
-            leave your device, and they contain code-level diagnostics, not your documents. If configured,
-            scrubbed reports are sent to <a href="https://sentry.io/">Sentry</a>. Self-hosted builds never
-            send anything.
+            The web and hosted app can report crashes so we can fix what breaks. There are two
+            separate ways this happens, and both are off unless you choose them — manage them under
+            Settings → Privacy &amp; Diagnostics.
+          </p>
+          <p>
+            <strong>Automatic crash reports</strong> are <strong>opt-in</strong> and off by default.
+            When enabled, reports are scrubbed of personal data (paths, emails, IPs, tokens) before
+            they leave your device, contain code-level diagnostics rather than your documents, and
+            carry no unique identifier. They are sent to our own first-party diagnostics endpoint.
+          </p>
+          <p>
+            <strong>“Report a problem”</strong> is a one-off report you send deliberately. You write
+            what went wrong, and before anything is sent you see the exact contents — recent
+            diagnostic logs, coarse system info (browser and OS family only), and your description,
+            all scrubbed — and can remove any part of it. Because you send it explicitly, it works
+            even when automatic reporting is off.
+          </p>
+          <p>
+            Reports are received into a private queue and kept only as long as needed to resolve the
+            issue. Self-hosted builds never send anything. (We do not use a third-party error
+            service such as <a href="https://sentry.io/">Sentry</a>; the code keeps a dormant seam
+            for one, unused.)
           </p>
         </section>
 
@@ -309,7 +325,7 @@ const updated = 'June 24, 2026'
           <h2>Sub-processors</h2>
           <p>
             We rely on a small set of third parties to run xNet Cloud (such as WorkOS, Stripe, Google Cloud,
-            Cloudflare, OpenRouter, and Sentry). The local-first app and self-hosted hubs use none of them.
+            Cloudflare, and OpenRouter). The local-first app and self-hosted hubs use none of them.
             See the current <a href="/subprocessors">sub-processor list</a> for who they are, what they
             receive, and where they operate.
           </p>

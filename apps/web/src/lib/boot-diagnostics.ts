@@ -26,6 +26,7 @@ export type BootFailureKind =
   | 'unhandledrejection'
   | 'init' // thrown inside the App initialize() try/catch
   | 'timeout' // boot watchdog fired — no error, just never finished
+  | 'render' // caught by the top-level React ErrorBoundary after mount
 
 export interface BootFailure {
   kind: BootFailureKind
