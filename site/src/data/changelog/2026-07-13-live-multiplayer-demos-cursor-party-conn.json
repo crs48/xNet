@@ -1,0 +1,11 @@
+{
+  "id": "2026-07-13-live-multiplayer-demos-cursor-party-conn",
+  "date": "July 13, 2026",
+  "title": "Live multiplayer demos: cursor party, Connect Four, collab todo",
+  "summary": "xnet.fyi/demos shows two copies of the same app syncing in real time; the demos live at /play with shareable room URLs, and a copy-paste examples/minimal-app starter gets a synced app running in two commands. React apps get a new usePresence hook for live cursors and ephemeral peer state.",
+  "highlights": [],
+  "tags": [
+    "app",
+    "sync"
+  ]
+}

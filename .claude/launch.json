@@ -35,6 +35,12 @@
       "port": 5199
     },
     {
+      "name": "demos (vite 5207)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "xnet-demos", "dev", "--port", "5207", "--strictPort"],
+      "port": 5207
+    },
+    {
       "name": "hub (sync server)",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "@xnetjs/hub", "dev"],

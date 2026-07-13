@@ -165,6 +165,14 @@ export {
   type SyncStatus,
   type PresenceUser
 } from './hooks/useNode'
+// Ephemeral typed presence over Yjs Awareness — never writes the change log (0314)
+export {
+  usePresence,
+  type PresenceAwareness,
+  type PresencePeer,
+  type UsePresenceOptions,
+  type UsePresenceResult
+} from './hooks/usePresence'
 export {
   usePageTaskSync,
   type PageTaskInput,

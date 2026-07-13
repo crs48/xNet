@@ -1971,7 +1971,7 @@ Validation checks:
 
 ## Adding authorization
 
-Add an `authorization` block to define who can read, write, delete, and share nodes of this schema:
+Add an `authorization` block to define who can read, write, delete, and share nodes of this schema. The mutation policy can optionally be split into `create` (who may add nodes) and `update` (who may modify existing ones) — each falls back to `write` when not declared:
 
 ```ts
 
@@ -2982,8 +2982,29 @@ Normative text:
 ## Actions and decisions
 
 ```
-action ∈ { read, write, delete, share, admin }
+action ∈ { read, create, update, write, delete, share, admin }
 can(subject: DID, action, nodeId) → { allowed, reasons }
+```
+
+`create` and `update` are **refinements of `write`**: `create` governs bringing
+a node into existence, `update` governs mutating one that exists. A schema may
+declare either; when absent, each falls back to the schema's `write`
+expression (and a legacy `write` check follows the `update` rule), so schemas
+that only declare `write` behave exactly as before. Create checks evaluate
+against the *draft* node built from the payload — container relations in the
+payload (e.g. `space`, `channel`) resolve membership roles, which is how
+creation into a shared container is gated. A grant carrying `write` satisfies
+both refinements; a granular grant covers only itself.
+
+```ts
+actions: {
+  read:   allow('owner', 'spaceMember'),
+  create: allow('spaceMember'),          // members may add…
+  update: allow('owner', 'spaceAdmin'),  // …only the author (or admins) may edit
+  write:  allow('owner', 'spaceMember'), // fallback for engines without the split
+  delete: allow('owner', 'spaceAdmin'),
+  share:  allow('owner', 'spaceAdmin')
+}
 ```
 
 ## Schema authorization
@@ -3166,11 +3187,13 @@ any language can load them.
 | `vectors/identity/` | L0 | seed → `did:key` + public key |
 | `vectors/change/` | L1 | unsigned change → canonical bytes → BLAKE3 hash → Ed25519 signature |
 | `vectors/lww/` | L1 | change sequence → converged state (order‑independent) |
-| `vectors/replication/` | L2 | *planned* |
-| `vectors/authz/` | L3 | *planned* |
+| `vectors/replication/` | L2 | version handshake, catch‑up filtering, signed Yjs envelope |
+| `vectors/authz/` | L3 | authorization expression (AST) evaluation |
+| `vectors/authz-actions/` | L3 | action‑expression resolution (`create`/`update` → `write` fallback) |
 
-`xnet/1.0`'s first corpus covers the **interop kernel** (L0 + L1). L2/L3 suites
-are tracked as [XPPs](https://github.com/crs48/xNet/tree/main/docs/specs/protocol/xpp).
+`xnet/1.0`'s first corpus covers the **interop kernel** (L0 + L1). Full L3
+decision‑trace suites are tracked as
+[XPPs](https://github.com/crs48/xNet/tree/main/docs/specs/protocol/xpp).
 
 ## Example vector
 
@@ -4535,13 +4558,45 @@ export const TaskSchema = defineSchema({
 
 ### Actions
 
-| Action   | Covers                                          |
-| -------- | ----------------------------------------------- |
-| `read`   | `store.get`, `useQuery`, hub queries            |
-| `write`  | `store.create`, `store.update`, `store.restore` |
-| `delete` | `store.delete`                                  |
-| `share`  | `store.auth.grant`, `store.auth.revoke`         |
-| `admin`  | Hub operational controls                        |
+| Action   | Covers                                            |
+| -------- | ------------------------------------------------- |
+| `read`   | `store.get`, `useQuery`, hub queries              |
+| `create` | `store.create` (refines `write`)                  |
+| `update` | `store.update`, `store.restore` (refines `write`) |
+| `write`  | Coarse mutation policy — the fallback for `create`/`update` when they aren't declared |
+| `delete` | `store.delete`                                    |
+| `share`  | `store.auth.grant`, `store.auth.revoke`           |
+| `admin`  | Hub operational controls                          |
+
+#### Splitting `write`: who may add vs. who may edit
+
+`create` and `update` are optional refinements of `write`. Declaring only
+`write` keeps the classic behavior (one mutation policy). Declaring the
+refinements expresses **contributor semantics** — "anyone here may post, but
+only the author may edit":
+
+```ts
+actions: {
+  read:   allow('owner', 'spaceMember'),
+  create: allow('spaceMember'),          // members may add new nodes…
+  update: allow('owner', 'spaceAdmin'),  // …only the author or an admin edits one
+  write:  allow('owner', 'spaceMember'), // fallback for engines without the split
+  delete: allow('owner', 'spaceAdmin'),
+  share:  allow('owner', 'spaceAdmin')
+}
+```
+
+Two rules to remember:
+
+- **Create checks run against the draft node** (its `createdBy` is the
+  caller), so `role.creator()` always matches on create — leave it out of
+  `create` if you want membership to actually gate who may add. Container
+  relations in the draft (`space`, `channel`, …) resolve normally.
+- **A `write` grant covers both refinements**; a `create`-only or
+  `update`-only grant covers just itself.
+
+The built-in `spaceContributorAuthorization()` block packages this pattern for
+Space content (chat messages and comments use it).
 
 Explicit `deny()` always wins over `allow()`:
 
