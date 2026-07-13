@@ -339,6 +339,8 @@ export {
   type Comment,
   ReactionSchema,
   type Reaction,
+  DebugReportSchema,
+  type DebugReport,
   ProfileSchema,
   profileNodeId,
   didFromProfileNodeId,

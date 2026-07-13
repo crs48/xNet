@@ -1,6 +1,12 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import { consent } from './consent'
-import { __resetErrorReporter, initErrorReporter, reportError } from './error-reporter'
+import {
+  __resetErrorReporter,
+  getDiagnosticsClient,
+  initErrorReporter,
+  isDiagnosticsConfigured,
+  reportError
+} from './error-reporter'
 import { __resetSentry, captureToSentry, isSentryConfigured, publicKeyFromDsn } from './sentry'
 
 afterEach(async () => {
@@ -29,6 +35,21 @@ describe('initErrorReporter', () => {
   it('no-ops when telemetry is not enabled for the build', () => {
     // VITE_XNET_TELEMETRY is unset in tests → registers no sink.
     expect(() => initErrorReporter()).not.toThrow()
+  })
+})
+
+describe('diagnostics transport gating (self-host / preview invariant)', () => {
+  it('constructs no ingest client when the build is not the hosted demo', async () => {
+    // Neither VITE_XNET_TELEMETRY nor VITE_DIAGNOSTICS_URL is set in tests, so a
+    // self-hosted or PR-preview build phones nothing home (exploration 0315).
+    expect(isDiagnosticsConfigured()).toBe(false)
+    expect(getDiagnosticsClient()).toBeNull()
+    // Even at the crashes tier, reporting stays a no-op with no transport.
+    await consent.setTier('crashes')
+    expect(() =>
+      reportError({ kind: 'init', stage: 'sqlite:open', message: 'boom', at: 1 })
+    ).not.toThrow()
+    expect(getDiagnosticsClient()).toBeNull()
   })
 })
 

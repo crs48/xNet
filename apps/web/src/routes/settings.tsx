@@ -30,16 +30,17 @@ import { resetCoachSession } from '../coachmarks'
 import { ProfileSettings } from '../comms/ProfileSettings'
 import { ContentSafetySettings } from '../components/ContentSafetySettings'
 import { PluginsPanel } from '../components/PluginsPanel'
+import { ReportProblemDialog } from '../components/ReportProblemDialog'
 import { SafetyCenterSettings } from '../components/SafetyCenterSettings'
 import { isAnalyticsConfigured } from '../lib/analytics'
 import { requestXNetBrowserStorageReset } from '../lib/browser-storage-reset'
 import { useDerivedData } from '../lib/data-dignity'
-import { getTelemetryCollector } from '../lib/error-reporter'
+import { getTelemetryCollector, isDiagnosticsConfigured } from '../lib/error-reporter'
 import { persistedHubUrl, setPersistedHubUrl } from '../lib/hub-url'
 import { identityManager, logout } from '../lib/identity'
 import { isLabEnabled, LABS_FLAGS, setLabEnabled } from '../lib/labs'
 import { createLeavePorts, downloadLeaveBundle, type LeaveDeps } from '../lib/leave'
-import { isSentryConfigured } from '../lib/sentry'
+import { useReportBreadcrumbs } from '../lib/use-report-breadcrumbs'
 import {
   DEFAULT_SETTINGS_SECTION,
   asSettingsSection,
@@ -658,6 +659,8 @@ function PrivacySettings() {
   const { allows, setTier } = useConsent()
   const crashes = allows('crashes')
   const anonymous = allows('anonymous')
+  const breadcrumbs = useReportBreadcrumbs()
+  const [reporting, setReporting] = useState(false)
 
   return (
     <SettingsPanel
@@ -682,13 +685,13 @@ function PrivacySettings() {
         <SettingRow
           label="Crash reporting"
           description={
-            isSentryConfigured()
-              ? 'Reports route to Sentry (EU region, PII scrubbed) when enabled above.'
-              : 'Stored locally only on this build — no external crash service is configured.'
+            isDiagnosticsConfigured()
+              ? 'Scrubbed reports go to our own first-party endpoint (no third-party error service) when enabled above.'
+              : 'Stored locally only on this build — no diagnostics endpoint is configured.'
           }
         >
           <span className="text-xs text-ink-2">
-            {isSentryConfigured() ? 'Sentry' : 'Local only'}
+            {isDiagnosticsConfigured() ? 'First-party' : 'Local only'}
           </span>
         </SettingRow>
         <SettingRow
@@ -698,6 +701,14 @@ function PrivacySettings() {
           <span className="text-xs text-ink-2">
             {isAnalyticsConfigured() ? 'Cookieless' : 'Off'}
           </span>
+        </SettingRow>
+        <SettingRow
+          label="Report a problem"
+          description="Send us a one-off debug report. You'll see exactly what's included and can edit it before anything is sent."
+        >
+          <button type="button" onClick={() => setReporting(true)} className={QUIET_BUTTON}>
+            Report a problem
+          </button>
         </SettingRow>
         <SettingRow label="Privacy policy" description="How we handle data, in plain language.">
           <a
@@ -710,6 +721,9 @@ function PrivacySettings() {
           </a>
         </SettingRow>
       </SettingsGroup>
+      {reporting && (
+        <ReportProblemDialog breadcrumbs={breadcrumbs} onClose={() => setReporting(false)} />
+      )}
     </SettingsPanel>
   )
 }

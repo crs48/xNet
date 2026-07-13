@@ -32,6 +32,13 @@ import {
   renderRecoverResult
 } from './dashboard'
 import { MemoryDeviceGrantStore, isExpired, type DeviceGrantStore } from './device-grant'
+import {
+  createDiagnosticsRoutes,
+  createWebhookAlerter,
+  MemoryDebugReportStore,
+  type DebugReportRecord,
+  type DebugReportStore
+} from './diagnostics'
 import { composeDashboardLive, fetchHubHealth } from './hub-status'
 import { createLogger, type Logger } from './logger'
 import {
@@ -85,6 +92,15 @@ export interface ControlPlaneAppDeps {
    * self-host/dev builds (no DSN) never phone home (exploration 0210).
    */
   sentryDsn?: string
+  /** Debug-report quarantine (exploration 0315). Defaults to in-memory. */
+  diagnostics?: DebugReportStore
+  /** Fired on a first-seen crash fingerprint (the 0315 P4 alert seam). */
+  onDiagnosticsFirstSeen?: (record: DebugReportRecord) => void
+  /**
+   * Webhook posted (SSRF-guarded, content-free) on a first-seen fingerprint
+   * (0315 P4). Ignored when `onDiagnosticsFirstSeen` is supplied directly.
+   */
+  diagnosticsAlertUrl?: string
 }
 
 interface ProvisionBody {
@@ -190,6 +206,22 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
 
   // Managed AI: `POST /ai/chat` (metered gateway). Mounted only when configured.
   if (deps.ai) app.route('/', createAiRoute(deps.ai))
+
+  // Debug-report ingest + drain surface (exploration 0315): the public crash/
+  // debug-report ingest, the socket the hub's diagnostics-sharing feature
+  // forwards to, and the internal-secret-gated quarantine the operator's
+  // signing client drains into debug-report nodes.
+  app.route(
+    '/',
+    createDiagnosticsRoutes({
+      store: deps.diagnostics ?? new MemoryDebugReportStore(),
+      log,
+      internalSecret: deps.internalSecret,
+      onFirstSeen:
+        deps.onDiagnosticsFirstSeen ?? createWebhookAlerter(deps.diagnosticsAlertUrl, log),
+      nowMs: deps.nowMs
+    })
+  )
 
   // ── Auth funnel ───────────────────────────────────────────────────────────
 

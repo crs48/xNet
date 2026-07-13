@@ -88,25 +88,29 @@ const demos = [
         subtitle="One file: two schemas with one-line authorization, an instant identity, a provider, a live query, optimistic writes, and ephemeral cursors. No backend code, no API routes, no cache to invalidate."
         align="center"
       />
-      <div class="mt-8 overflow-hidden rounded-xl border border-gray-700/60 bg-[#282c34] shadow-md">
-        <div class="flex items-center justify-between gap-4 border-b border-gray-700/60 px-4 py-2.5">
-          <span class="flex items-center gap-2 truncate font-mono text-xs text-gray-400">
-            <span class="flex gap-1.5" aria-hidden="true">
-              <span class="h-2.5 w-2.5 rounded-full bg-[#e5484d]/80"></span>
-              <span class="h-2.5 w-2.5 rounded-full bg-[#f5b000]/80"></span>
-              <span class="h-2.5 w-2.5 rounded-full bg-[#2fb344]/80"></span>
+      <div class="mt-8 overflow-hidden rounded-xl border border-border bg-code-bg shadow-sm">
+        <div class="flex items-center justify-between gap-4 border-b border-border bg-surface/50 px-4 py-2">
+          <span class="flex items-center gap-3 truncate">
+            <span class="flex items-center gap-1.5" aria-hidden="true">
+              <span class="h-2.5 w-2.5 rounded-full bg-[#ff5f57]"></span>
+              <span class="h-2.5 w-2.5 rounded-full bg-[#febc2e]"></span>
+              <span class="h-2.5 w-2.5 rounded-full bg-[#28c840]"></span>
             </span>
-            examples/minimal-app/src/main.tsx
+            <span class="truncate font-mono text-xs text-gray-500">examples/minimal-app/src/main.tsx</span>
           </span>
           <a
-            class="shrink-0 text-xs font-medium text-indigo-400 hover:underline"
+            class="shrink-0 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:underline"
             href="https://github.com/crs48/xNet/tree/main/examples/minimal-app"
           >
             Copy the starter →
           </a>
         </div>
         <div class="demo-code text-[13px] leading-relaxed">
-          <Code code={todoSource} lang="tsx" theme="one-dark-pro" />
+          <Code
+            code={todoSource}
+            lang="tsx"
+            themes={{ light: 'one-light', dark: 'one-dark-pro' }}
+          />
         </div>
       </div>
       <p class="mt-3 text-center text-sm text-gray-500">
@@ -168,13 +172,20 @@ const demos = [
   </script>
 
   <style is:global>
-    /* The listing is a fixed dark code panel (github-dark) on both site
-       themes — only bundled Shiki themes resolve here, and a dark card
-       reads well against either background. */
+    /* Dual-theme Shiki (one-light / one-dark-pro — the same palettes the
+       landing page's code blocks use). Shiki emits the light colors inline
+       plus --shiki-dark variables; the site toggles dark via a `.dark`
+       class on <html> (tailwind darkMode: 'class'), so activate the dark
+       variables under it. */
     .demo-code .astro-code {
       margin: 0;
       padding: 1rem 1.25rem;
       overflow-x: auto;
+      background-color: var(--lp-code-bg) !important;
+    }
+    .dark .demo-code .astro-code,
+    .dark .demo-code .astro-code span {
+      color: var(--shiki-dark) !important;
     }
   </style>
 </Base>

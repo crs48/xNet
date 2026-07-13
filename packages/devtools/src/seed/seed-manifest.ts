@@ -11,6 +11,7 @@ import type { SeederModule } from './types'
 import type { DefinedSchema, SchemaIRI } from '@xnetjs/data'
 import {
   AccountRecordSchema,
+  DebugReportSchema,
   DeviceRecordSchema,
   ExtensionFieldSchema,
   GrantSchema,
@@ -73,7 +74,10 @@ export const SEED_EXCLUDED_SCHEMA_IDS: ReadonlySet<string> = new Set([
   AccountRecordSchema._schemaId,
   DeviceRecordSchema._schemaId,
   RecoveryRecordSchema._schemaId,
-  RevocationRecordSchema._schemaId
+  RevocationRecordSchema._schemaId,
+  // Debug reports (0315) — operator triage infrastructure drained from the
+  // diagnostics ingest, not user-authored demo content.
+  DebugReportSchema._schemaId
 ])
 
 /**
