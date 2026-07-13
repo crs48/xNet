@@ -1,6 +1,6 @@
 {
   "name": "@xnetjs/runtime",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "description": "Framework-agnostic xNet runtime: createXNetClient() and sync orchestration, usable from any framework, a CLI, a worker, or a Node service",
   "license": "MIT",
   "repository": {

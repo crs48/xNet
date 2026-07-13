@@ -1,5 +1,23 @@
 # @xnetjs/plugins
 
+## 1.0.0
+
+### Patch Changes
+
+- [#483](https://github.com/crs48/xNet/pull/483) [`38fd26f`](https://github.com/crs48/xNet/commit/38fd26f3074176ecb73b6b04b8226f2b28d2258c) Thanks [@crs48](https://github.com/crs48)! - docs(exploration): renumber Effect adoption doc 0300 -> 0303 (collision)
+
+  Exploration numbers collided across parallel worktrees again (0301 gotcha):
+  0300 was already taken by RUNNING_AN_XNET_HUB_ON_A_RASPBERRY_PI ([#477](https://github.com/crs48/xNet/issues/477)) and
+  0301/0302 are claimed. Renames the doc and updates the exploration-number
+  references in code comments and CLAUDE.md; no code change (empty changeset).
+
+  Signed-off-by: xNet Test <test@xnet.dev>
+
+- Updated dependencies [[`e6b4c6f`](https://github.com/crs48/xNet/commit/e6b4c6f95b2715289ff35ae37ebd6be7eeba5174), [`38fd26f`](https://github.com/crs48/xNet/commit/38fd26f3074176ecb73b6b04b8226f2b28d2258c), [`1de6587`](https://github.com/crs48/xNet/commit/1de658746fb4b5420f8f92517f9c135562d23d28)]:
+  - @xnetjs/core@1.0.0
+  - @xnetjs/data@1.0.0
+  - @xnetjs/abuse@1.0.0
+
 ## 0.12.0
 
 ### Patch Changes
