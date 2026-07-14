@@ -1,0 +1,38 @@
+---
+// Hero band for blog post #15 (exploration 0319). The decorative art lives in
+// BrickArt.astro so the same inline SVG backs both this hero and the
+// blog-index preview card; this component layers the post's title/deck over it.
+import BrickArt from './BrickArt.astro'
+
+interface Props {
+  title: string
+  deck: string
+  date: string
+  readingMinutes: number
+  tags: string[]
+}
+const { title, deck, date, readingMinutes, tags } = Astro.props
+---
+
+<section class="relative overflow-hidden border-b border-border bg-surface/20 dark:bg-[#080d1a]">
+  <BrickArt />
+
+  <div class="relative mx-auto max-w-3xl px-6 pb-14 pt-44 lg:pt-52">
+    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-sky-200/80">
+      <time datetime={date}>{date}</time>
+      <span aria-hidden="true">·</span>
+      <span>{readingMinutes} min read</span>
+      {
+        tags.map((tag) => (
+          <span class="rounded-full border border-sky-400/30 bg-sky-500/10 px-2 py-0.5 font-mono lowercase text-sky-200">
+            {tag}
+          </span>
+        ))
+      }
+    </div>
+    <h1 class="mt-4 text-4xl font-bold tracking-tight text-white drop-shadow lg:text-5xl">
+      {title}
+    </h1>
+    <p class="mt-4 max-w-2xl text-lg leading-relaxed text-gray-300">{deck}</p>
+  </div>
+</section>

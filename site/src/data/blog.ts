@@ -88,6 +88,24 @@ export interface BlogPost {
 
 const posts: BlogPost[] = [
   {
+    slug: 'clutch-power',
+    title: 'Clutch Power',
+    description:
+      'On 28 January 1958 the LEGO Group patented not a brick but a ' +
+      'coupling — stud and tube, and with them clutch power: a grip firm ' +
+      'enough to build with that still comes apart by hand. The web never ' +
+      'got a coupling for data, so every app moulds pieces that fit only ' +
+      'its own set, and the APIs that promised otherwise were drawbridges. ' +
+      'On the four frozen interfaces xNet ships instead — one node shape, ' +
+      'one namespace anyone can mint into, one merge rule, one permission ' +
+      'algebra — and why the grip matters as much as the snap: nobody ' +
+      'plays with your bricks unless you say so.',
+    pubDate: '2026-07-14T17:00:00Z',
+    authors: ['crs48', 'claude'],
+    tags: ['essay', 'protocol', 'decentralization', 'philosophy'],
+    readingMinutes: 14
+  },
+  {
     slug: 'weights-you-can-hold',
     title: 'Weights You Can Hold',
     description:

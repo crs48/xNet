@@ -315,6 +315,29 @@ Without writing a single line of backend code, you got:
   - src/ - schema.ts defineSchema() definitions - App.tsx XNetProvider - TaskList.tsx useQuery +
   useMutate
 
+## Go multiplayer in two commands
+
+Everything above is one keystroke away from being a shared app. Point the
+provider at a sync hub and give everyone the same room string — whoever
+shares the room sees the same data:
+
+```tsx
+
+```
+
+To run your own hub locally (dev only — auth off accepts anyone):
+
+```bash
+docker run --rm -p 4444:4444 -e HUB_AUTH=false ghcr.io/crs48/xnet-hub:latest
+```
+
+Open the app in two browser windows — changes appear in both. The room string
+is the entire join flow: put it in a URL (`?room=standup`) and the URL becomes
+an invitation. The smallest complete example of this is
+[`examples/minimal-app`](https://github.com/crs48/xNet/tree/main/examples/minimal-app)
+in the repo (~60 lines, copy-paste ready), and you can watch it run live on
+the [demos page](/demos/).
+
 ## Next steps
 
   
@@ -7659,6 +7682,20 @@ hub, set both `XNET_DIAGNOSTICS_URL` and `XNET_DIAGNOSTICS_SECRET` to enable the
 reports upstream — the sender's DID is hashed (never sent raw) and document
 content is never included. Leave them unset (the default) and nothing is
 forwarded; `GET /diagnostics/health` simply reports `sharing: false`.
+
+The upstream sink is xNet Cloud's first-party `POST /diagnostics` ingest
+(exploration 0315): reports land in a quarantine and are drained into
+`debug-report` nodes in the operator's own xNet workspace, where the workbench
+_is_ the triage console — filterable tables, a `new → acked → fixed → released`
+status field, and comments. **xNet does not use a third-party error service such
+as Sentry.** The client keeps a dormant, vendor-neutral Sentry seam (no
+`@sentry/*` SDK is installed and no DSN is minted), so if you self-host a
+Sentry-compatible backend you can point that seam at it — [Bugsink][bugsink]
+(single container, SQLite) or [GlitchTip][glitchtip] (MIT, Sentry-SDK
+compatible) are the proven small-footprint options — but nothing ships enabled.
+
+[bugsink]: https://www.bugsink.com/
+[glitchtip]: https://glitchtip.com/
 
 ### CLI Flags
 
