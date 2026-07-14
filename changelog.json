@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-14-pages-sit-flush-on-the-page-again",
+      "url": "https://xnet.fyi/changelog#2026-07-14-pages-sit-flush-on-the-page-again",
+      "title": "Pages sit flush on the page again",
+      "content_text": "The new editor no longer floats as a white card: the document background matches the page, checkboxes and list markers line up with their text, and the blue focus border around the document is gone.\n",
+      "date_published": "2026-07-14T05:23:54Z",
+      "tags": [
+        "editor"
+      ],
+      "_xnet": {
+        "date": "July 14, 2026",
+        "summary": "The new editor no longer floats as a white card: the document background matches the page, checkboxes and list markers line up with their text, and the blue focus border around the document is gone.",
+        "highlights": [],
+        "mergedAt": "2026-07-14T05:23:54Z",
+        "pr": 512,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-14-new-essay-clutch-power",
       "url": "https://xnet.fyi/changelog#2026-07-14-new-essay-clutch-power",
       "title": "New essay: Clutch Power",

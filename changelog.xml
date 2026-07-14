@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Pages sit flush on the page again</title>
+      <link>https://xnet.fyi/changelog#2026-07-14-pages-sit-flush-on-the-page-again</link>
+      <guid isPermaLink="false">2026-07-14-pages-sit-flush-on-the-page-again</guid>
+      <pubDate>Tue, 14 Jul 2026 05:23:54 GMT</pubDate>
+      <description>The new editor no longer floats as a white card: the document background matches the page, checkboxes and list markers line up with their text, and the blue focus border around the document is gone.</description>
+    </item>
+    <item>
       <title>New essay: Clutch Power</title>
       <link>https://xnet.fyi/changelog#2026-07-14-new-essay-clutch-power</link>
       <guid isPermaLink="false">2026-07-14-new-essay-clutch-power</guid>
