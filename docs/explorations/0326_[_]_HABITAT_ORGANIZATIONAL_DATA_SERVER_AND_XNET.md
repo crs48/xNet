@@ -475,13 +475,14 @@ flowchart LR
 
 Now (Option B — no dependency on Habitat):
 
-- [ ] Add Habitat row to Layer 5 `protocols` in
+- [x] Add Habitat row to Layer 5 `protocols` in
       [`site/src/data/compare.ts`](../../site/src/data/compare.ts) with
       `lastVerified: 'July 2026'`, maturity `pre-release`, license
       Apache-2.0, and a footnote on the trust posture (org credential reads
       all spaces); site-only PR → `skip-changelog`
-- [ ] Record the positioning sentence in the compare layer's `xnetNote`
+- [x] Record the positioning sentence in the compare layer's `xnetNote`
       (or a footnote) — trusted-server vs E2EE axiom, stated as a tradeoff
+      (done in the `habitat-ods` footnote)
 - [ ] Cross-link: 0324 parallel-implementations paragraph → "Habitat has
       shipped its implementation, see 0326"; 0322 → Habitat's `pds` login
       provider as prior art; extend 0324's vocabulary note to name Habitat
