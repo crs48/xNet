@@ -334,20 +334,20 @@ The whole remaining `page-prose` document contract
       `line-height: 1.65` override that misaligned every marker
 - [x] Style the page-embed chip (utility classes, hover, full-width card)
 - [x] `editor-css.test.ts` + editor package suite green (17 files, 84 tests)
-- [ ] Inline comments: `XNetThreadStore` in
+- [x] Inline comments: `XNetThreadStore` in
       `packages/editor/src/blocknote/comments/` adapting the 0276 comment
       nodes (create/reply/edit/delete/resolve/subscribe per the mapping
       table), with `DefaultThreadStoreAuth(did, 'editor')` and
       `resolveUsers` from 0298 profiles
-- [ ] Inline comments: wire `CommentsExtension({ threadStore, resolveUsers })`
+- [x] Inline comments: wire `CommentsExtension({ threadStore, resolveUsers })`
       into `XNetEditor` (host passes the 0276 CRUD via props from
       `PageView`), enable the BlockNote comments UI + toolbar button, and
       re-enable comment-mark theming in `editor.css` (amber highlight
       family, keyed to BlockNote's mark classes)
-- [ ] Inline comments: panel ⇄ mark round-trip — selecting a sidebar thread
+- [x] Inline comments: panel ⇄ mark round-trip — selecting a sidebar thread
       scrolls to and flashes its mark; resolving from either surface updates
       both (usePageComments keeps reading the same nodes)
-- [ ] Inline comments: text-only body mapping v1 (`CommentBody` Block JSON →
+- [x] Inline comments: text-only body mapping v1 (`CommentBody` Block JSON →
       plain-text `content` via `blockInlineText`; single-paragraph body on
       read)
 
@@ -363,13 +363,13 @@ The whole remaining `page-prose` document contract
       bullet marker and text line-heights equal (24px/24px)
 - [x] Editor package tests green including the pinned CSS accessibility
       contract
-- [ ] CI required checks green on the PR (editor-ux drives the same page in
+- [x] CI required checks green on the PR (editor-ux drives the same page in
       Chromium desktop + mobile)
-- [ ] Inline comments: select text → comment → highlighted mark appears;
+- [x] Inline comments: select text → comment → highlighted mark appears;
       reply/resolve/delete from the floating thread UI writes 0276 nodes
       (visible in the right panel); reload + second peer both show the mark
       and the thread
-- [ ] Inline comments: deleting the annotated text orphans gracefully (thread
+- [x] Inline comments: deleting the annotated text orphans gracefully (thread
       survives in the panel; no crash)
 
 ## References
