@@ -588,28 +588,28 @@ await mutate.create(SidecarSchema, {
 
 ## Implementation Checklist
 
-- [ ] Re-verify at draft time: 0307 remediation status (gates how the
+- [x] Re-verify at draft time: 0307 remediation status (gates how the
       hardening limit is phrased); JMAP still exploration-only; the ~60
       built-in schema-module count.
-- [ ] Write `site/src/pages/blog/clutch-power.astro` following series
+- [x] Write `site/src/pages/blog/clutch-power.astro` following series
       conventions (Byline, SeriesNav, Mermaid, CodeFigure, `tok-*`
       helpers, `prose` body, en-GB, nothing third-party).
-- [ ] Bespoke vendored hero under `site/src/components/blog/` — abstract
+- [x] Bespoke vendored hero under `site/src/components/blog/` — abstract
       stud-grid motif, no LEGO trade dress.
-- [ ] Add the `posts[]` entry in `site/src/data/blog.ts` (slug
+- [x] Add the `posts[]` entry in `site/src/data/blog.ts` (slug
       `clutch-power`, tags
       `['essay','protocol','decentralization','philosophy']`, authors
       `['crs48','claude']`, honest `readingMinutes`).
-- [ ] Body structure per Recommendation: cold open (1958 patent) → the bin
+- [x] Body structure per Recommendation: cold open (1958 patent) → the bin
       we never got → the coupling & who gets to play → six limits → the
       weld and the grip.
-- [ ] Every mechanism claim carries its repo receipt (paths as listed in
+- [x] Every mechanism claim carries its repo receipt (paths as listed in
       Current State); external dates/quotes only from the verified set in
       External Research; any new quote re-verified against the live source
       (0247 discipline).
-- [ ] `CodeFigure` uses the real `extKey`/`sidecarId` APIs (no invented
+- [x] `CodeFigure` uses the real `extKey`/`sidecarId` APIs (no invented
       fields); Mermaid diagrams adapted from this exploration.
-- [ ] Cross-link essays #7, #8, #10, #11 once each; link the protocol spec
+- [x] Cross-link essays #7, #8, #10, #11 once each; link the protocol spec
       (`docs/specs/protocol/`) as the "System of Play" receipt.
 - [ ] Changelog fragment via `scripts/changelog/new.mjs`; no changeset
       (site is not a publishable package).
