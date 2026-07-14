@@ -1,0 +1,8 @@
+{
+  "id": "2026-07-14-devtools-data-panel-lists-only-schemas-i",
+  "date": "July 14, 2026",
+  "title": "DevTools Data panel lists only schemas in use",
+  "summary": "The schema picker now shows schemas that actually have data in the workspace (plus the current selection), instead of every schema registered by imports — in small embeds like the live demos, side-effect registrations buried the two real schemas under twenty unused ones.",
+  "highlights": [],
+  "tags": ["devtools"]
+}
