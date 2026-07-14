@@ -1,0 +1,10 @@
+{
+  "id": "2026-07-14-pages-sit-flush-on-the-page-again",
+  "date": "July 14, 2026",
+  "title": "Pages sit flush on the page again",
+  "summary": "The new editor no longer floats as a white card: the document background matches the page, checkboxes and list markers line up with their text, and the blue focus border around the document is gone.",
+  "highlights": [],
+  "tags": [
+    "editor"
+  ]
+}
