@@ -86,6 +86,15 @@
       "port": 4388
     },
     {
+      "name": "site-node23 (astro 4391)",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "cd site && exec /Users/crs/.nvm/versions/node/v23.11.1/bin/node node_modules/astro/astro.js dev --port 4391 --strictPort"
+      ],
+      "port": 4391
+    },
+    {
       "name": "site-worktree (astro 4391)",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "site", "dev", "--port", "4391", "--strictPort"],
