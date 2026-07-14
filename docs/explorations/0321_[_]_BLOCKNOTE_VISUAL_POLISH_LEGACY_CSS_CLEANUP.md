@@ -1,4 +1,4 @@
-# BlockNote Visual Polish: Legacy Editor CSS Cleanup
+# BlockNote Visual Polish: Legacy Editor CSS Cleanup + Inline Comments
 
 ## Problem Statement
 
@@ -13,6 +13,12 @@ and screenshotting it surfaced three visible defects:
    near-black card in dark mode) instead of sitting on the page.
 3. **Blue focus border** — clicking into the document drew a 2px blue
    outline around the entire editable surface.
+
+The migration also **retired inline comments**: 0312 kept the node-backed
+comment threads in the right panel (0276) but dropped the in-document
+comment marks, so text can no longer be selected and commented in place.
+This exploration also plans bringing inline comments back on BlockNote's
+own threaded-comments machinery.
 
 ## Executive Summary
 
@@ -176,12 +182,80 @@ flowchart TD
 - B: switch to `:focus-visible` with a keyboard-only polyfill class — extra
   machinery for a surface where the caret already communicates focus.
 
+## Restoring Inline Comments (BlockNote ThreadStore over 0276 nodes)
+
+0312 deferred this with the note that BlockNote's comments would "re-anchor
+comments in the Y.Doc, changing the 0276 durability property." Reading the
+actual API (v0.51 `@blocknote/core/comments`) shows that concern was
+overstated — BlockNote's design splits exactly the way we want:
+
+- **Thread content lives in a `ThreadStore`**, an abstract class the host
+  implements (`createThread`, `addComment`, `updateComment`,
+  `deleteComment`, `deleteThread`, `resolveThread`, `unresolveThread`,
+  `addReaction`, `deleteReaction`, `getThread(s)`, `subscribe`). Nothing
+  about comment *content* has to live in the Y.Doc.
+- **Only the anchor is a document mark** (a `comment` mark carrying the
+  thread id), which is what an inline comment *is* — the mark syncs with
+  the text it annotates through the same `content-v4` fragment.
+- Wiring is one extension + UI flags: `CommentsExtension({ threadStore,
+  resolveUsers })` in the editor's `extensions`, the built-in comments UI
+  on `BlockNoteView` (`comments` default UI), and the formatting toolbar's
+  Add-Comment button. `DefaultThreadStoreAuth(userId, role)` gates
+  edit/delete/resolve per author.
+
+So the plan is an **`XNetThreadStore`** in
+`packages/editor/src/blocknote/comments/` that adapts the 0276 node-backed
+comment system (the same `useComments` CRUD the panel uses — threads are
+LWW-log nodes, so they keep surviving without the doc open and keep
+flowing through sync/authz like any other node):
+
+| ThreadStore method | 0276 backing (`useComments` / comment nodes) |
+|---|---|
+| `createThread` | `addComment({ anchorType: 'text', targetSchema: Page })` |
+| `addComment` | `replyTo(threadId, content)` |
+| `updateComment` | `editComment(commentId, content)` |
+| `deleteComment` / `deleteThread` | `deleteComment(...)` (replies then root) |
+| `resolveThread` / `unresolveThread` | `resolveThread` / `reopenThread` |
+| `getThreads` / `subscribe` | live comment-node query on the page id |
+| `addReaction` / `deleteReaction` | reaction counters (0289 `useMessageReactions` pattern) or no-op v1 |
+| `resolveUsers` | 0298 profiles (`useEnsureProfiles` + DID identicons) |
+
+One impedance note: BlockNote comment bodies are Block JSON
+(`CommentBody`), while 0276 comment nodes store plain-text `content`. V1
+maps text-only both ways (`blockInlineText` on write, a single paragraph
+block on read); rich comment bodies can come later by storing the Block
+JSON alongside.
+
+```mermaid
+sequenceDiagram
+    participant U as User (selects text)
+    participant BN as BlockNote comments UI
+    participant TS as XNetThreadStore
+    participant LWW as Comment nodes (LWW log, 0276)
+    participant Doc as content-v4 fragment
+
+    U->>BN: Add comment on selection
+    BN->>TS: createThread({ body })
+    TS->>LWW: addComment (anchorType 'text')
+    BN->>Doc: comment mark { threadId } on selection
+    Note over Doc,LWW: anchor syncs with the text;<br/>content survives without the doc
+    U->>BN: click highlighted text
+    BN->>TS: getThread(threadId)
+    TS->>LWW: live node query
+```
+
+The right-panel threads (usePageComments) keep working unchanged — they
+read the same nodes; selecting a panel thread can now also scroll to its
+mark (`[data-bn-thread-id]` / the comment mark DOM) again.
+
 ## Recommendation
 
-Ship Option A on all three (done in this exploration's implementation):
-`editor.css` rewritten to the BlockNote-era contract, `page-prose` reduced
-to font-size + gutter + caret breathing room, page-embed chip styled with
-the same utility-class approach as the other 0312 spec cards.
+Ship Option A on all three visual fixes (done in this exploration's
+implementation): `editor.css` rewritten to the BlockNote-era contract,
+`page-prose` reduced to font-size + gutter + caret breathing room,
+page-embed chip styled with the same utility-class approach as the other
+0312 spec cards. Then restore inline comments via `XNetThreadStore` as
+planned above.
 
 ## Example Code
 
@@ -230,6 +304,13 @@ The whole remaining `page-prose` document contract
   regression fix.
 - The Electron renderer shares `@xnetjs/editor` styles but has its own
   globals; it never had the web `page-prose` rules, so it only gains fixes.
+- Inline comments: BlockNote's comment marks live in the `content-v4`
+  fragment, so anchors only exist for peers with the doc — the 0276
+  panel remains the source of truth for thread *content*. Reactions and
+  rich comment bodies are explicitly v2. Electron's PageView reads
+  comments via `useComments` directly (it diverged from `usePageComments`
+  in 0312) — wiring its inline layer needs the same `XNetThreadStore`
+  but its own host pass-through.
 - `editor-css.test.ts` pins the caret/selection/selected-node contract and
   passes against the rewrite; it does not (and should not) pin the deleted
   TipTap rules.
@@ -253,6 +334,22 @@ The whole remaining `page-prose` document contract
       `line-height: 1.65` override that misaligned every marker
 - [x] Style the page-embed chip (utility classes, hover, full-width card)
 - [x] `editor-css.test.ts` + editor package suite green (17 files, 84 tests)
+- [ ] Inline comments: `XNetThreadStore` in
+      `packages/editor/src/blocknote/comments/` adapting the 0276 comment
+      nodes (create/reply/edit/delete/resolve/subscribe per the mapping
+      table), with `DefaultThreadStoreAuth(did, 'editor')` and
+      `resolveUsers` from 0298 profiles
+- [ ] Inline comments: wire `CommentsExtension({ threadStore, resolveUsers })`
+      into `XNetEditor` (host passes the 0276 CRUD via props from
+      `PageView`), enable the BlockNote comments UI + toolbar button, and
+      re-enable comment-mark theming in `editor.css` (amber highlight
+      family, keyed to BlockNote's mark classes)
+- [ ] Inline comments: panel ⇄ mark round-trip — selecting a sidebar thread
+      scrolls to and flashes its mark; resolving from either surface updates
+      both (usePageComments keeps reading the same nodes)
+- [ ] Inline comments: text-only body mapping v1 (`CommentBody` Block JSON →
+      plain-text `content` via `blockInlineText`; single-paragraph body on
+      read)
 
 ## Validation Checklist
 
@@ -268,6 +365,12 @@ The whole remaining `page-prose` document contract
       contract
 - [ ] CI required checks green on the PR (editor-ux drives the same page in
       Chromium desktop + mobile)
+- [ ] Inline comments: select text → comment → highlighted mark appears;
+      reply/resolve/delete from the floating thread UI writes 0276 nodes
+      (visible in the right panel); reload + second peer both show the mark
+      and the thread
+- [ ] Inline comments: deleting the annotated text orphans gracefully (thread
+      survives in the panel; no crash)
 
 ## References
 
