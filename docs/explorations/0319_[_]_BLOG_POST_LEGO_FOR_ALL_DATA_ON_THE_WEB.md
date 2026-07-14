@@ -618,20 +618,20 @@ await mutate.create(SidecarSchema, {
 
 ## Validation Checklist
 
-- [ ] Site build passes (verify via full build — astro dev has hung on
+- [x] Site build passes (verify via full build — astro dev has hung on
       some pages before); post renders with hero, byline, diagrams, code
       figure in light and dark.
-- [ ] Post appears on `/blog` index and in `rss.xml`; `seriesNeighbors`
+- [x] Post appears on `/blog` index and in `rss.xml`; `seriesNeighbors`
       links #14 ↔ #15 correctly.
-- [ ] Network tab clean — no third-party requests on the page.
-- [ ] Fact pass: every date (1958, 2015, 2023, 2013, 2004, 2019, 2024)
+- [x] Network tab clean — no third-party requests on the page.
+- [x] Fact pass: every date (1958, 2015, 2023, 2013, 2004, 2019, 2024)
       matches the sources in References; every repo path in the essay
       exists on `main` at publish time.
-- [ ] Security pass: nothing in the limits section describes an unfixed
+- [x] Security pass: nothing in the limits section describes an unfixed
       vulnerability or its mechanics (0307 check).
-- [ ] Trademark pass: no "Legos", no LEGO imagery, nominative references
+- [x] Trademark pass: no "Legos", no LEGO imagery, nominative references
       only.
-- [ ] Overlap pass: a reader of #10/#11 finds a new argument in every
+- [x] Overlap pass: a reader of #10/#11 finds a new argument in every
       section (the coupling framing, the ATProto foil, the clutch-power
       permissions half, the six limits).
 
