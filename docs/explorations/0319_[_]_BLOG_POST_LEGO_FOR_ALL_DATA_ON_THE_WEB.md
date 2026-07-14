@@ -611,7 +611,7 @@ await mutate.create(SidecarSchema, {
       fields); Mermaid diagrams adapted from this exploration.
 - [x] Cross-link essays #7, #8, #10, #11 once each; link the protocol spec
       (`docs/specs/protocol/`) as the "System of Play" receipt.
-- [ ] Changelog fragment via `scripts/changelog/new.mjs`; no changeset
+- [x] Changelog fragment via `scripts/changelog/new.mjs`; no changeset
       (site is not a publishable package).
 - [ ] Conventional commits, header ≤72 chars; PR to `main`; let CI run
       (no `--admin`); merge-commit per repo policy.
