@@ -9,6 +9,7 @@
  * callouts, mermaid, math) are custom specs in ./specs.
  */
 import { filterSuggestionItems, insertOrUpdateBlockForSlashMenu } from '@blocknote/core'
+import { CommentsExtension, type User } from '@blocknote/core/comments'
 import { BlockNoteView } from '@blocknote/mantine'
 import {
   SuggestionMenuController,
@@ -38,6 +39,12 @@ import {
   type TaskViewEmbedType,
   type XNetEditorHost
 } from './host-context'
+import {
+  XNetThreadStore,
+  XNetThreadStoreAuth,
+  type XNetCommentThread,
+  type XNetThreadStoreHost
+} from './comments/xnet-thread-store'
 import {
   legacyFragmentToMarkdown,
   markLegacyImportDone,
@@ -134,6 +141,20 @@ export interface XNetEditorProps {
   onBackspaceAtStart?: () => boolean | void
   /** Force light/dark; defaults to detecting a `.dark` ancestor. */
   theme?: 'light' | 'dark'
+  /**
+   * Inline comments (0321): the 0276 node-backed thread CRUD plus the
+   * live thread list. When provided, BlockNote's threaded-comments UI is
+   * enabled — anchors are marks in the document, content stays in the
+   * LWW comment nodes. Must be present (or absent) from first render.
+   */
+  comments?: XNetEditorCommentsHost
+}
+
+export interface XNetEditorCommentsHost extends XNetThreadStoreHost {
+  /** Live thread list from the host's reactive comment query. */
+  threads: readonly XNetCommentThread[]
+  /** Resolve author DIDs to display users (0298 profiles). */
+  resolveUsers: (userIds: string[]) => Promise<User[]>
 }
 
 function defaultNormalizeHashtagName(raw: string): string {
@@ -196,7 +217,8 @@ export function XNetEditor({
   onPageTasksChange,
   onEditorReady,
   onBackspaceAtStart,
-  theme: forcedTheme
+  theme: forcedTheme,
+  comments
 }: XNetEditorProps): JSX.Element {
   const { theme, containerRef } = useDetectedTheme(forcedTheme)
 
@@ -212,6 +234,7 @@ export function XNetEditor({
   const onFileUploadRef = useRef(onFileUpload)
   const onFileDownloadRef = useRef(onFileDownload)
   const resolveLinkPreviewRef = useRef(resolveLinkPreview)
+  const commentsRef = useRef(comments)
   const tagsSignatureRef = useRef('')
   const pageTaskSignatureRef = useRef('')
   useEffect(() => {
@@ -222,7 +245,43 @@ export function XNetEditor({
     onFileUploadRef.current = onFileUpload
     onFileDownloadRef.current = onFileDownload
     resolveLinkPreviewRef.current = resolveLinkPreview
+    commentsRef.current = comments
   })
+
+  // Inline comments (0321): one store per editor lifetime, reading the
+  // 0276 CRUD through the ref so host callback identity churn never
+  // recreates the editor. Presence of `comments` is fixed at mount.
+  const commentsEnabledRef = useRef(Boolean(comments))
+  const threadStore = useMemo(() => {
+    if (!commentsEnabledRef.current) return null
+    const hostAdapter: XNetThreadStoreHost = {
+      addComment: (options) => {
+        const host = commentsRef.current
+        return host ? host.addComment(options) : Promise.resolve(null)
+      },
+      replyTo: (threadId, content) =>
+        commentsRef.current?.replyTo(threadId, content) ?? Promise.resolve(undefined),
+      editComment: (commentId, content) =>
+        commentsRef.current?.editComment(commentId, content) ?? Promise.resolve(undefined),
+      deleteComment: (commentId) =>
+        commentsRef.current?.deleteComment(commentId) ?? Promise.resolve(undefined),
+      resolveThread: (threadId) =>
+        commentsRef.current?.resolveThread(threadId) ?? Promise.resolve(undefined),
+      reopenThread: (threadId) =>
+        commentsRef.current?.reopenThread(threadId) ?? Promise.resolve(undefined)
+    }
+    return new XNetThreadStore(
+      hostAdapter,
+      did ?? 'anonymous',
+      new XNetThreadStoreAuth(did ?? 'anonymous', 'editor')
+    )
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Feed the live 0276 thread list into the store (BlockNote subscribes).
+  useEffect(() => {
+    if (threadStore && comments) threadStore.setThreads(comments.threads)
+  }, [threadStore, comments?.threads])
 
   // Lazy legacy import (0312): convert the old TipTap fragment to markdown
   // once, before the editor binds, so initial render shows the content.
@@ -284,6 +343,19 @@ export function XNetEditor({
       dictionary: undefined,
       placeholders: { emptyDocument: placeholder, default: placeholder },
       tables: { splitCells: true, headers: true },
+      // Inline comments (0321): anchor marks in the doc, thread content in
+      // the 0276 nodes via XNetThreadStore.
+      ...(threadStore
+        ? {
+            extensions: [
+              CommentsExtension({
+                threadStore,
+                resolveUsers: (userIds: string[]) =>
+                  commentsRef.current?.resolveUsers(userIds) ?? Promise.resolve([])
+              })
+            ]
+          }
+        : {}),
       // Sender-side paste interception (0295): a lone pasted URL becomes a
       // media embed (known provider) or a rich-link card (preview resolved
       // once, stored on the block).
@@ -337,8 +409,8 @@ export function XNetEditor({
     },
     // ONLY identity-stable values: a dep that changes per render recreates
     // the whole editor (focus loss, dropped input). Host callbacks flow
-    // through refs above.
-    [schema, fragment, awareness]
+    // through refs above; threadStore is created once per editor lifetime.
+    [schema, fragment, awareness, threadStore]
   )
 
   // One-time legacy import, after the editor exists (parse needs the schema).

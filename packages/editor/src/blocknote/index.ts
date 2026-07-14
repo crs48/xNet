@@ -1,7 +1,17 @@
 /**
  * BlockNote-based editor surface (exploration 0312).
  */
-export { XNetEditor, type XNetEditorProps } from './XNetEditor'
+export { XNetEditor, type XNetEditorProps, type XNetEditorCommentsHost } from './XNetEditor'
+export {
+  XNetThreadStore,
+  XNetThreadStoreAuth,
+  commentBodyToText,
+  textToCommentBody,
+  toThreadData,
+  type XNetCommentThread,
+  type XNetCommentNode,
+  type XNetThreadStoreHost
+} from './comments/xnet-thread-store'
 export {
   XNetEditorHostProvider,
   useEditorHost,

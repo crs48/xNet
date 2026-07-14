@@ -151,6 +151,33 @@
   border-bottom-color: rgb(var(--editor-primary) / 0.85);
 }
 
+/* ─── Inline comment marks (0321, BlockNote CommentsExtension) ───
+   The amber highlight family from the 0276 TipTap marks, re-keyed to
+   BlockNote's thread-mark classes. */
+.ProseMirror .bn-thread-mark {
+  background-color: rgb(251 191 36 / 0.3); /* amber-400 */
+  border-bottom: 2px solid rgb(245 158 11); /* amber-500 */
+  padding: 1px 0;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.ProseMirror .bn-thread-mark:hover,
+.ProseMirror .bn-thread-mark-selected {
+  background-color: rgb(251 191 36 / 0.5);
+  border-bottom-color: rgb(217 119 6); /* amber-600 */
+}
+
+.dark .ProseMirror .bn-thread-mark {
+  background-color: rgb(251 191 36 / 0.25);
+  border-bottom-color: rgb(251 191 36);
+}
+
+.dark .ProseMirror .bn-thread-mark:hover,
+.dark .ProseMirror .bn-thread-mark-selected {
+  background-color: rgb(251 191 36 / 0.4);
+}
+
 /* ─── Accessibility ─── */
 
 /* Reduced motion: disable all animations and transitions */

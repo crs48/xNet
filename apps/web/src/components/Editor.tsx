@@ -18,6 +18,7 @@ import {
   type TaskViewConfig,
   type TaskViewEmbedType,
   type WikilinkTarget,
+  type XNetEditorCommentsHost,
   type XNetEditorInstance
 } from '@xnetjs/editor/react'
 import { TaskCollectionEmbed } from '@xnetjs/react'
@@ -73,6 +74,8 @@ interface Props {
   onPageTasksChange?: (tasks: PageTaskSnapshot[]) => void
   /** Current page ID for embedded task views */
   pageId?: string | null
+  /** Inline comments host (0321): 0276 CRUD + live threads + resolveUsers */
+  comments?: XNetEditorCommentsHost
   /** Additional class for the editor container */
   className?: string
   /** Backspace in an empty first block (e.g. return focus to the title) */
@@ -93,6 +96,7 @@ export function Editor({
   onTagsChange,
   onPageTasksChange,
   pageId,
+  comments,
   className,
   onBackspaceAtStart
 }: Props): JSX.Element {
@@ -123,6 +127,7 @@ export function Editor({
       onCreateLinkTarget={onCreateLinkTarget}
       onTagsChange={onTagsChange}
       onPageTasksChange={onPageTasksChange}
+      comments={comments}
       taskViewPageId={pageId ?? null}
       renderTaskView={({
         viewConfig,

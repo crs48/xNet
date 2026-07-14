@@ -90,6 +90,21 @@ export interface UsePageCommentsResult {
   // Orphaned threads
   handleDismissOrphaned: (commentId: string) => Promise<void>
   handleReattachOrphaned: (commentId: string) => void
+
+  /**
+   * Raw 0276 CRUD + live threads, for the inline-comments ThreadStore
+   * (0321): the host passes these straight into XNetEditor's `comments`
+   * prop alongside a resolveUsers profile lookup.
+   */
+  crud: {
+    threads: CommentThread[]
+    addComment: ReturnType<typeof useComments>['addComment']
+    replyTo: (threadId: string, content: string) => Promise<unknown>
+    editComment: (commentId: string, content: string) => Promise<unknown>
+    deleteComment: (commentId: string) => Promise<unknown>
+    resolveThread: (threadId: string) => Promise<unknown>
+    reopenThread: (threadId: string) => Promise<unknown>
+  }
 }
 
 // ─── Hook ──────────────────────────────────────────────────────────────────────
@@ -262,7 +277,13 @@ export function usePageComments({
 
   const handleSidebarSelectThread = useCallback(
     (threadId: string) => {
-      showThreadPopover(threadId, null)
+      // Inline anchors are back (0321): scroll to the BlockNote comment
+      // mark when the thread is still anchored in the document.
+      const markEl = document.querySelector<HTMLElement>(`[data-bn-thread-id="${threadId}"]`)
+      if (markEl) {
+        markEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      }
+      showThreadPopover(threadId, markEl)
     },
     [showThreadPopover]
   )
@@ -363,6 +384,15 @@ export function usePageComments({
     handleSidebarDelete,
     handleSidebarEdit,
     handleDismissOrphaned,
-    handleReattachOrphaned
+    handleReattachOrphaned,
+    crud: {
+      threads,
+      addComment,
+      replyTo,
+      editComment,
+      deleteComment,
+      resolveThread,
+      reopenThread
+    }
   }
 }
