@@ -613,7 +613,7 @@ await mutate.create(SidecarSchema, {
       (`docs/specs/protocol/`) as the "System of Play" receipt.
 - [x] Changelog fragment via `scripts/changelog/new.mjs`; no changeset
       (site is not a publishable package).
-- [ ] Conventional commits, header ≤72 chars; PR to `main`; let CI run
+- [x] Conventional commits, header ≤72 chars; PR to `main`; let CI run
       (no `--admin`); merge-commit per repo policy.
 
 ## Validation Checklist
