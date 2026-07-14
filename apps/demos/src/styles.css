@@ -1,4 +1,7 @@
-/* xnet demos — one small stylesheet, light/dark via prefers-color-scheme */
+/* xnet demos — one small stylesheet. Light/dark switches on an html.dark
+   class (set before paint from the site's persisted theme, else the OS —
+   see index.html), so the demos and the /demos iframes always match the
+   surrounding site rather than only the OS. */
 :root {
   --bg: #fafaf8;
   --panel: #ffffff;
@@ -10,18 +13,17 @@
   --red: #e5484d;
   --yellow: #f5b000;
   --radius: 12px;
-  color-scheme: light dark;
+  color-scheme: light;
 }
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #121215;
-    --panel: #1c1c21;
-    --ink: #ececec;
-    --muted: #9a9aa2;
-    --line: #2c2c33;
-    --accent: #7c88ff;
-    --accent-ink: #0f1020;
-  }
+:root.dark {
+  --bg: #121215;
+  --panel: #1c1c21;
+  --ink: #ececec;
+  --muted: #9a9aa2;
+  --line: #2c2c33;
+  --accent: #7c88ff;
+  --accent-ink: #0f1020;
+  color-scheme: dark;
 }
 
 * {
