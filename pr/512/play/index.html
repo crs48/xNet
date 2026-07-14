@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark" />
+    <title>xNet demos</title>
+    <meta
+      name="description"
+      content="Live multiplayer demos built on xNet — cursor party, Connect Four, collaborative todo."
+    />
+    <!-- Match the site's theme before first paint: same localStorage key and
+         semantics as the site's Base.astro (stored toggle wins, else OS).
+         xnet.fyi and /play share an origin, so the site's choice is visible
+         here — this keeps the /demos iframes in step with the page around
+         them. -->
+    <script>
+      ;(function () {
+        try {
+          var stored = localStorage.getItem('xnet-lp-theme')
+          var theme =
+            stored || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+          document.documentElement.classList.toggle('dark', theme === 'dark')
+        } catch (e) {
+          /* no localStorage (private mode) — CSS falls back to light */
+        }
+      })()
+    </script>
+    <script type="module" crossorigin src="/pr/512/play/assets/index-BbmuaSGT.js"></script>
+    <link rel="stylesheet" crossorigin href="/pr/512/play/assets/index-DFf__CuO.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
