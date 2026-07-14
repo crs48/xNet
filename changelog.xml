@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>DevTools Data panel lists only schemas in use</title>
+      <link>https://xnet.fyi/changelog#2026-07-14-devtools-data-panel-lists-only-schemas-i</link>
+      <guid isPermaLink="false">2026-07-14-devtools-data-panel-lists-only-schemas-i</guid>
+      <pubDate>Tue, 14 Jul 2026 03:40:35 GMT</pubDate>
+      <description>The schema picker now shows schemas that actually have data in the workspace (plus the current selection), instead of every schema registered by imports — in small embeds like the live demos, side-effect registrations buried the two real schemas under twenty unused ones.</description>
+    </item>
+    <item>
       <title>The live demos now include the xNet DevTools</title>
       <link>https://xnet.fyi/changelog#2026-07-13-the-live-demos-now-include-the-xnet-devt</link>
       <guid isPermaLink="false">2026-07-13-the-live-demos-now-include-the-xnet-devt</guid>
