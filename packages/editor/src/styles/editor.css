@@ -50,107 +50,29 @@
   --editor-selection-foreground: 250 250 250;
 }
 
-/* Base editor styles */
+/* ─── BlockNote surface adoption (0321) ───
+   BlockNote paints its own document surface (Mantine theme: white/near-black
+   card with rounded corners). The xNet page provides the paper — the editor
+   must be transparent and square so it sits ON the page instead of floating
+   as a card. Declared after the imported @blocknote styles so the
+   equal-specificity override wins in the cascade, for BOTH color schemes. */
+.xnet-editor .bn-container {
+  --bn-colors-editor-background: transparent;
+  --bn-colors-editor-text: rgb(var(--editor-foreground));
+}
 
-/* Editor container */
+.xnet-editor .bn-editor {
+  background-color: transparent;
+  border-radius: 0;
+}
+
+/* Base editor styles. BlockNote owns document typography (headings, lists,
+   checkboxes, code, quotes) — the TipTap-era tag rules that used to live
+   here fought its block layout and are gone (0321). */
 .ProseMirror {
   @apply outline-none min-h-full;
   caret-color: rgb(var(--editor-caret));
   color: rgb(var(--editor-foreground));
-}
-
-/* ─── Typography: Headings ───
-   Single source of truth for the heading scale (size, weight, line-height,
-   margins). The HeadingView node view no longer carries its own size/leading
-   classes, so these tag rules style headings on every surface. On the page
-   surface the rhythm system (globals.css) neutralises these margins and owns
-   vertical spacing; the size/weight/leading still apply. */
-
-.ProseMirror h1 {
-  @apply text-3xl font-bold leading-tight mt-8 mb-3;
-}
-
-.ProseMirror h2 {
-  @apply text-2xl font-semibold leading-snug mt-6 mb-2;
-}
-
-.ProseMirror h3 {
-  @apply text-xl font-semibold leading-snug mt-5 mb-2;
-}
-
-.ProseMirror h4 {
-  @apply text-lg font-medium leading-snug mt-4 mb-1;
-}
-
-.ProseMirror h5 {
-  @apply text-base font-medium leading-normal mt-3 mb-1;
-}
-
-.ProseMirror h6 {
-  @apply text-sm font-medium leading-normal mt-3 mb-1 uppercase tracking-wide text-muted-foreground;
-}
-
-/* ─── Typography: Lists ─── */
-
-.ProseMirror ul:not([data-type='taskList']) {
-  @apply list-disc pl-6 my-2;
-}
-
-.ProseMirror ol {
-  @apply list-decimal pl-6 my-2;
-}
-
-.ProseMirror li {
-  @apply mb-1;
-}
-
-.ProseMirror li > ul,
-.ProseMirror li > ol {
-  @apply my-1;
-}
-
-/* Nested list style variation */
-.ProseMirror ul:not([data-type='taskList']) ul {
-  list-style-type: circle;
-}
-
-.ProseMirror ul:not([data-type='taskList']) ul ul {
-  list-style-type: square;
-}
-
-/* ─── Typography: Inline ─── */
-
-.ProseMirror p {
-  margin-block: var(--editor-rhythm-1);
-}
-
-.ProseMirror code {
-  @apply bg-muted px-1.5 py-0.5 rounded text-sm font-mono;
-}
-
-.ProseMirror pre {
-  @apply bg-muted p-4 rounded-lg my-3 overflow-x-auto;
-}
-
-.ProseMirror pre code {
-  @apply bg-transparent p-0 rounded-none text-sm;
-}
-
-.ProseMirror blockquote {
-  @apply border-l-4 border-border pl-4 my-3 text-muted-foreground italic;
-}
-
-/* Placeholder: only show on the first empty paragraph of a completely
-   empty editor. TipTap's Placeholder puts emptyEditorClass on the
-   paragraph itself; the legacy root-level selector is kept for
-   older markup. */
-.xnet-editor .ProseMirror.is-editor-empty > p.is-empty:first-child::before,
-.xnet-editor .ProseMirror > p.is-editor-empty:first-child::before {
-  content: attr(data-placeholder);
-  color: rgb(var(--editor-muted-foreground));
-  float: left;
-  pointer-events: none;
-  height: 0;
 }
 
 /* Selection highlight */
@@ -166,50 +88,13 @@
   outline-offset: 2px;
 }
 
-/* Task list styling */
-.ProseMirror ul[data-type='taskList'] {
-  @apply list-none pl-0;
+/* Remote selection highlight (y-prosemirror) */
+.ProseMirror-yjs-selection {
+  display: inline;
+  border-radius: 2px;
 }
 
-.ProseMirror ul[data-type='taskList'] li {
-  @apply flex items-start gap-2;
-}
-
-.ProseMirror ul[data-type='taskList'] li > label {
-  @apply flex-shrink-0 mt-1;
-}
-
-.ProseMirror ul[data-type='taskList'] li > label input[type='checkbox'] {
-  @apply w-4 h-4 rounded border-2 border-border
-         appearance-none cursor-pointer
-         transition-colors duration-150;
-}
-
-/* Fill + checkmark key off the authoritative node state on the <li>
-   (data-checked), NOT the input's :checked DOM property — that property can
-   desync from the node and render unchecked tasks as filled. */
-.ProseMirror ul[data-type='taskList'] li[data-checked='true'] > label input[type='checkbox'] {
-  background-color: rgb(var(--editor-primary));
-  border-color: rgb(var(--editor-primary));
-}
-
-.ProseMirror
-  ul[data-type='taskList']
-  li[data-checked='true']
-  > label
-  input[type='checkbox']::after {
-  content: '';
-  @apply block w-full h-full;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3E%3C/svg%3E");
-}
-
-.ProseMirror ul[data-type='taskList'] li > div {
-  @apply flex-1;
-}
-
-.ProseMirror ul[data-type='taskList'] li[data-checked='true'] > div {
-  @apply text-muted-foreground line-through;
-}
+/* ─── Inline chips (0312 BlockNote specs) ─── */
 
 /* Wikilinks */
 .ProseMirror a[data-wikilink] {
@@ -223,56 +108,9 @@
   border-bottom-style: solid;
 }
 
-/* Smart references */
-.ProseMirror a[data-smart-reference] {
-  @apply inline-flex items-center gap-1 rounded-md px-2 py-0.5 no-underline;
-  background: rgb(var(--editor-muted) / 0.75);
-  border: 1px solid rgb(var(--editor-border));
-  color: rgb(var(--editor-foreground));
-  font-size: 0.875em;
-  line-height: 1.2;
-  vertical-align: baseline;
-}
-
-.ProseMirror a[data-smart-reference]:hover {
-  background: rgb(var(--editor-muted));
-  border-color: rgb(var(--editor-primary) / 0.35);
-}
-
-.ProseMirror a[data-smart-reference][data-provider='github'] {
-  background: rgb(17 24 39 / 0.08);
-}
-
-.ProseMirror a[data-smart-reference][data-provider='figma'] {
-  background: rgb(244 63 94 / 0.08);
-}
-
-.ProseMirror a[data-smart-reference][data-provider='youtube'],
-.ProseMirror a[data-smart-reference][data-provider='loom'],
-.ProseMirror a[data-smart-reference][data-provider='vimeo'] {
-  background: rgb(239 68 68 / 0.08);
-}
-
-/* Database references */
-.ProseMirror a[data-database-reference] {
-  @apply inline-flex items-center gap-1 rounded-md px-2 py-0.5 no-underline;
-  background: rgb(var(--editor-success) / 0.08);
-  border: 1px solid rgb(var(--editor-success) / 0.24);
-  color: rgb(var(--editor-foreground));
-  font-size: 0.875em;
-  line-height: 1.2;
-  vertical-align: baseline;
-}
-
-.ProseMirror a[data-database-reference]:hover {
-  background: rgb(var(--editor-success) / 0.12);
-  border-color: rgb(var(--editor-success) / 0.4);
-}
-
-/* Task metadata chips */
+/* Mention + hashtag pills */
 .ProseMirror span[data-task-mention],
-.ProseMirror span[data-hashtag],
-.ProseMirror time[data-task-due-date] {
+.ProseMirror span[data-hashtag] {
   @apply inline-flex items-center rounded-full px-2 py-0.5 no-underline;
   border: 1px solid rgb(var(--editor-border));
   font-size: 0.8em;
@@ -293,227 +131,32 @@
   cursor: pointer;
 }
 
-.ProseMirror time[data-task-due-date] {
-  background: rgb(var(--editor-warning) / 0.1);
-  color: rgb(146 64 14);
+/* ─── AI-generated provenance badge (exploration 0234, Charter §Agency) ─── */
+
+/* Subtle, legible disclosure: AI-authored text gets a dashed underline in the
+   editor's primary colour; the reader can see what the assistant wrote. */
+.ProseMirror [data-ai-generated] {
+  background-color: rgb(var(--editor-primary) / 0.08);
+  border-bottom: 1px dashed rgb(var(--editor-primary) / 0.7);
+  cursor: help;
+  transition: background-color 0.15s ease;
 }
 
-.dark .ProseMirror time[data-task-due-date] {
-  color: rgb(253 230 138);
+.ProseMirror [data-ai-generated]:hover {
+  background-color: rgb(var(--editor-primary) / 0.16);
 }
 
-.ProseMirror time[data-task-due-date][data-overdue='true'] {
-  background: rgb(var(--editor-destructive) / 0.12);
-  border-color: rgb(var(--editor-destructive) / 0.3);
-  color: rgb(var(--editor-destructive));
+.dark .ProseMirror [data-ai-generated] {
+  background-color: rgb(var(--editor-primary) / 0.16);
+  border-bottom-color: rgb(var(--editor-primary) / 0.85);
 }
-
-/* Horizontal rule */
-.ProseMirror hr {
-  @apply my-8 border-t border-border;
-}
-
-/* Markdown syntax characters (Live Preview) */
-.md-syntax {
-  font-family: var(--font-mono, ui-monospace, 'SF Mono', Menlo, monospace);
-  font-weight: 400;
-  font-size: inherit;
-  color: rgb(var(--editor-muted-foreground));
-  opacity: 0;
-  user-select: none;
-  -webkit-user-select: none;
-  pointer-events: none;
-  display: inline-block;
-  line-height: 1;
-  vertical-align: baseline;
-  animation: syntax-fade-in var(--editor-motion-fast) ease-out forwards;
-}
-
-@keyframes syntax-fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 0.5;
-  }
-}
-
-.md-syntax-open {
-  margin-right: 1px;
-}
-
-.md-syntax-close {
-  margin-left: 1px;
-}
-
-/* Mark-specific syntax styling */
-.md-syntax[data-mark='bold'] {
-  font-weight: 600;
-}
-
-.md-syntax[data-mark='code'] {
-  background: rgb(var(--editor-muted) / 0.5);
-  border-radius: 2px;
-  padding: 0 2px;
-}
-
-/* Link syntax */
-.md-syntax-link {
-  font-family: var(--font-mono, ui-monospace, 'SF Mono', Menlo, monospace);
-  color: rgb(var(--editor-muted-foreground));
-  user-select: none;
-  pointer-events: none;
-  animation: syntax-fade-in var(--editor-motion-fast) ease-out forwards;
-}
-
-.heading-line .heading-syntax,
-.code-block-wrapper .code-fence,
-.blockquote-wrapper .blockquote-syntax {
-  transition-duration: var(--editor-motion-fast);
-}
-
-.md-syntax-url {
-  font-size: 0.85em;
-  opacity: 0.4;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  display: inline-block;
-  vertical-align: baseline;
-}
-
-/* Collaboration cursor styles */
-.collaboration-cursor__caret {
-  position: relative;
-  margin-left: -1px;
-  margin-right: -1px;
-  border-left: 2px solid;
-  border-color: inherit;
-  word-break: normal;
-  pointer-events: none;
-}
-
-.collaboration-cursor__label {
-  position: absolute;
-  top: -1.4em;
-  left: -1px;
-  display: flex;
-  align-items: center;
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1;
-  padding: 2px 6px;
-  border-radius: 3px 3px 3px 0;
-  color: #fff;
-  white-space: nowrap;
-  user-select: none;
-  pointer-events: none;
-  animation: cursor-label-fade 3s forwards;
-}
-
-@keyframes cursor-label-fade {
-  0% {
-    opacity: 1;
-  }
-  70% {
-    opacity: 1;
-  }
-  100% {
-    opacity: 0;
-  }
-}
-
-/* Remote selection highlight */
-.ProseMirror-yjs-selection {
-  display: inline;
-  border-radius: 2px;
-}
-
-/* Floating UI suggestion popup (slash menu, mentions, wikilinks, hashtags).
-   The container is a bare positioned wrapper; menus style themselves. */
-.xnet-suggestion-popup {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 9999;
-  width: max-content;
-  max-width: calc(100vw - 16px);
-}
-
-/* ─── Drag Handle (official @tiptap/extension-drag-handle) ─── */
-
-.xnet-drag-handle {
-  display: flex;
-  align-items: flex-start;
-  /* Extended padding-right creates an invisible hover zone bridging the
-     gap between the handle and the content. */
-  padding-right: 8px;
-  z-index: 50;
-  cursor: grab;
-}
-
-.xnet-drag-handle[data-dragging='true'] {
-  cursor: grabbing;
-}
-
-.xnet-drag-handle-button {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 1.25rem;
-  height: 1.5rem;
-  border-radius: 0.25rem;
-  color: rgb(var(--editor-muted-foreground));
-  cursor: grab;
-  border: none;
-  background: none;
-  padding: 0;
-  transition:
-    background-color 150ms ease,
-    color 150ms ease;
-}
-
-.xnet-drag-handle-button:hover {
-  background-color: rgb(var(--editor-muted));
-  color: rgb(var(--editor-foreground));
-}
-
-.xnet-drag-handle-button:active {
-  cursor: grabbing;
-  background-color: rgb(var(--editor-border));
-}
-
-/* ─── Drag State ─── */
-
-.xnet-editor .ProseMirror-selectednode {
-  opacity: 0.4;
-}
-
-/* ─── Drop Cursor (ProseMirror dropcursor; color comes from this class) ─── */
-
-.xnet-drop-cursor {
-  background-color: rgb(var(--editor-primary));
-  border-radius: 1px;
-  pointer-events: none;
-}
-
-/* dark mode handled via CSS variables above */
 
 /* ─── Accessibility ─── */
 
 /* Reduced motion: disable all animations and transitions */
 @media (prefers-reduced-motion: reduce) {
   .ProseMirror,
-  .ProseMirror *,
-  .xnet-drag-handle-button,
-  .xnet-drop-cursor,
-  .md-syntax,
-  .md-syntax-link,
-  .heading-line .heading-syntax,
-  .code-block-wrapper .code-fence,
-  .blockquote-wrapper .blockquote-syntax,
-  [data-testid='editor-mobile-toolbar'] {
+  .ProseMirror * {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
@@ -521,7 +164,9 @@
   }
 }
 
-/* High contrast mode: increase borders and focus outlines */
+/* High contrast mode: increase borders and focus outlines (opt-in via OS
+   preference — the default surface carries no focus ring; the caret and
+   selection indicate focus). */
 @media (prefers-contrast: high) {
   .ProseMirror {
     border: 2px solid currentColor;
@@ -532,27 +177,8 @@
     outline-offset: 2px;
   }
 
-  .ProseMirror blockquote {
-    border-left-width: 4px;
-    border-left-color: currentColor;
-  }
-
   .ProseMirror code {
     border: 1px solid currentColor;
-  }
-
-  .ProseMirror pre {
-    border: 2px solid currentColor;
-  }
-
-  .xnet-drag-handle-button:focus-visible {
-    outline: 3px solid currentColor;
-    outline-offset: 1px;
-  }
-
-  .xnet-drop-cursor {
-    height: 4px;
-    background-color: currentColor;
   }
 }
 
@@ -576,29 +202,9 @@
     background: Highlight;
     color: HighlightText;
   }
-
-  .xnet-drag-handle-button {
-    color: ButtonText;
-    forced-color-adjust: none;
-  }
-
-  .xnet-drag-handle-button:hover {
-    background-color: Highlight;
-    color: HighlightText;
-  }
-
-  .xnet-drop-cursor {
-    background-color: Highlight;
-  }
 }
 
-/* Focus visible for keyboard navigation */
-.ProseMirror:focus-visible {
-  outline: 2px solid rgb(var(--editor-primary));
-  outline-offset: 2px;
-}
-
-/* Screen reader only utility (used by announcer) */
+/* Screen reader only utility */
 .sr-only {
   position: absolute;
   width: 1px;
@@ -609,119 +215,4 @@
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border-width: 0;
-}
-
-/* ─── Comment Marks ─── */
-
-/* Base comment mark style */
-.xnet-comment-mark {
-  background-color: rgb(251 191 36 / 0.3); /* amber-400 with transparency */
-  border-bottom: 2px solid rgb(245 158 11); /* amber-500 */
-  padding: 1px 0;
-  cursor: text; /* Keep text cursor for editing */
-  transition: background-color 150ms ease;
-  /* Ensure text remains selectable and editable */
-  -webkit-user-select: text;
-  user-select: text;
-}
-
-.xnet-comment-mark:hover {
-  background-color: rgb(251 191 36 / 0.5);
-}
-
-/* Active/selected comment */
-.xnet-comment-selected,
-.xnet-comment-mark.xnet-comment-selected {
-  background-color: rgb(251 191 36 / 0.5);
-  border-bottom-color: rgb(217 119 6); /* amber-600 */
-}
-
-/* Sidebar-hovered comment - brighter to draw attention, no transition to avoid flicker */
-.xnet-comment-sidebar-hover,
-.xnet-comment-mark.xnet-comment-sidebar-hover {
-  background-color: rgb(253 224 71 / 0.55); /* yellow-300 - noticeably brighter */
-  border-bottom-color: rgb(234 179 8); /* yellow-500 */
-  transition: none;
-}
-
-/* Resolved comment - more subtle */
-.xnet-comment-resolved {
-  background-color: rgb(134 239 172 / 0.25); /* green-300 with transparency */
-  border-bottom: 2px solid rgb(34 197 94 / 0.5); /* green-500 */
-}
-
-.xnet-comment-resolved:hover {
-  background-color: rgb(134 239 172 / 0.4);
-}
-
-/* Dark mode adjustments */
-.dark .xnet-comment-mark {
-  background-color: rgb(251 191 36 / 0.25);
-  border-bottom-color: rgb(251 191 36);
-}
-
-.dark .xnet-comment-mark:hover {
-  background-color: rgb(251 191 36 / 0.4);
-}
-
-.dark .xnet-comment-selected,
-.dark .xnet-comment-mark.xnet-comment-selected {
-  background-color: rgb(251 191 36 / 0.4);
-}
-
-.dark .xnet-comment-sidebar-hover,
-.dark .xnet-comment-mark.xnet-comment-sidebar-hover {
-  background-color: rgb(253 224 71 / 0.45); /* yellow-300 - brighter in dark mode */
-  border-bottom-color: rgb(253 224 71); /* yellow-300 */
-  transition: none;
-}
-
-.dark .xnet-comment-resolved {
-  background-color: rgb(34 197 94 / 0.2);
-  border-bottom-color: rgb(34 197 94 / 0.6);
-}
-
-.dark .xnet-comment-resolved:hover {
-  background-color: rgb(34 197 94 / 0.3);
-}
-
-/* Overlapping comments - darker highlight */
-.xnet-comment-mark + .xnet-comment-mark,
-.xnet-comment-mark.has-overlap {
-  background-color: rgb(251 191 36 / 0.5);
-}
-
-/* ─── AI-generated provenance badge (exploration 0234, Charter §Agency) ─── */
-
-/* Subtle, legible disclosure: AI-authored text gets a dashed underline in the
-   editor's primary colour and a help cursor; the hover tooltip (title attr)
-   names the assist mode and any cited sources. */
-.xnet-ai-generated-mark {
-  background-color: rgb(var(--editor-primary) / 0.08);
-  border-bottom: 1px dashed rgb(var(--editor-primary) / 0.7);
-  cursor: help;
-  transition: background-color 0.15s ease;
-}
-
-.xnet-ai-generated-mark:hover {
-  background-color: rgb(var(--editor-primary) / 0.16);
-}
-
-.dark .xnet-ai-generated-mark {
-  background-color: rgb(var(--editor-primary) / 0.16);
-  border-bottom-color: rgb(var(--editor-primary) / 0.85);
-}
-
-/* ─── Database Cell Comment Hover Highlight ─── */
-
-/* Highlight database table cells when hovering a comment in the sidebar */
-.xnet-db-comment-hover {
-  background-color: rgb(251 191 36 / 0.15) !important;
-  box-shadow: inset 0 0 0 2px rgb(245 158 11 / 0.5);
-  transition: none;
-}
-
-.dark .xnet-db-comment-hover {
-  background-color: rgb(251 191 36 / 0.12) !important;
-  box-shadow: inset 0 0 0 2px rgb(251 191 36 / 0.4);
 }

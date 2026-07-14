@@ -131,118 +131,27 @@
 
 /* Prose role: the page document reads at 16px (UI chrome stays 13px).
 
-   One rhythm system drives all document typography (exploration 0198):
-   a single flow unit between blocks, "space precedes" headings, one
-   list-indent step, and to-dos whose checkbox + gap equals that step so
-   their text shares the bullet text edge. Horizontal padding is
-   symmetric (the left half doubles as the drag-handle gutter), so the
-   measure is centred and the title and every body block share one left
-   edge. These `.page-prose .ProseMirror` selectors outspecify the editor
-   package's base `.ProseMirror` rules, so the page is the single source
-   of document typography; canvas/compact surfaces keep the base.
-
-   The bottom padding keeps breathing room after the last line *inside*
-   the editable surface, so clicking it places the caret (the editor
-   stretches to the full page height via flex). */
+   Since the BlockNote migration (0312/0321) the editor owns document
+   typography and geometry — its markers, checkboxes and block spacing
+   are all derived from the editor font size and its internal 1.5 line
+   height. The 0198 TipTap-era rhythm rules (flow units, heading
+   spacing, list indents, checkbox centring) fought that layout — a
+   root line-height override alone left every marker riding high — so
+   the page now sets only what BlockNote derives everything else from:
+   the prose font size, the gutter, and caret breathing room below the
+   last line. */
 .page-prose .ProseMirror {
-  /* Rhythm tokens — em-based, so spacing scales with the font size. */
-  --prose-flow: 0.75em; /* between sibling blocks */
-  --prose-flow-tight: 0.2em; /* between list items */
-  --prose-h-before: 1.7em; /* heading top — space precedes */
-  --prose-h-after: 0.4em; /* heading bottom */
-  --prose-indent: 1.55em; /* one list-indent step (~25px) */
-  --prose-check: 1.15em; /* checkbox size */
-  --page-pad-x: 2rem; /* symmetric gutter; the drag handle lives in it */
+  --page-pad-x: 2rem; /* symmetric gutter, shared with the page title */
 
   font-size: var(--font-prose-size);
-  line-height: 1.65;
   padding-bottom: 20vh;
 }
 
-/* Symmetric padding centres the measure and replaces the old asymmetric
-   pl-8/pr-1; the left half doubles as the drag-handle gutter. The
-   `.tiptap.ProseMirror` compound outspecifies the editor's shared
-   `[&_.ProseMirror]:px-1/pl-8` utility, so this wins only on the page
-   surface (canvas/compact keep their tighter padding). */
+/* Symmetric padding centres the measure and keeps the body text on the
+   same left edge as the page title (which pads with px-8 = 2rem). The
+   `.tiptap.ProseMirror` compound outspecifies BlockNote's own editor
+   padding, so this wins only on the page surface. */
 .page-prose .ProseMirror.tiptap {
   padding-left: var(--page-pad-x);
   padding-right: var(--page-pad-x);
-}
-
-/* Flow: clear default block margins, then one unit between siblings. */
-.page-prose .ProseMirror > * {
-  margin-top: 0;
-  margin-bottom: 0;
-}
-.page-prose .ProseMirror > * + * {
-  margin-top: var(--prose-flow);
-}
-/* Headings bind to the text they introduce: more space above than below.
-   Headings render as React node views wrapped in `div.react-renderer`, so the
-   `:is(h…)` direct-child selectors only match unwrapped headings (other
-   surfaces). The `:has()` variants match "a child that *contains* a heading",
-   piercing the wrapper, and the final rule neutralises the node view's own
-   legacy Tailwind margins so the rhythm — applied to the wrapper — is the one
-   source of heading spacing (uniform across levels). */
-.page-prose .ProseMirror > * + :is(h1, h2, h3, h4, h5, h6),
-.page-prose .ProseMirror > * + *:has(> :is(h1, h2, h3, h4, h5, h6)) {
-  margin-top: var(--prose-h-before);
-}
-.page-prose .ProseMirror :is(h1, h2, h3, h4, h5, h6) + *,
-.page-prose .ProseMirror > *:has(> :is(h1, h2, h3, h4, h5, h6)) + * {
-  margin-top: var(--prose-h-after);
-}
-.page-prose .ProseMirror :is(h1, h2, h3, h4, h5, h6) {
-  margin: 0;
-}
-
-/* Lists: one indent step per level; markers hang in the indent gutter. */
-.page-prose .ProseMirror :is(ul, ol):not([data-type='taskList']) {
-  padding-inline-start: var(--prose-indent);
-}
-.page-prose .ProseMirror li + li {
-  margin-top: var(--prose-flow-tight);
-}
-.page-prose .ProseMirror li > :is(ul, ol) {
-  margin-top: var(--prose-flow-tight);
-}
-
-/* Blockquote: align its text to the list-content edge for one rhythm. */
-.page-prose .ProseMirror blockquote {
-  padding-inline-start: calc(var(--prose-indent) - 4px);
-}
-
-/* To-dos: reset the inherited list indent (the +24px bug), lay the row
-   out as flex, and size checkbox + gap to one indent step so the to-do
-   text lands on the same left edge as bullet text. The checkbox is
-   centred on the first line with the line-relative `lh` unit, not a
-   magic pixel offset, so it stays centred at any font size. */
-.page-prose .ProseMirror ul[data-type='taskList'] {
-  padding-inline-start: 0;
-  list-style: none;
-}
-.page-prose .ProseMirror ul[data-type='taskList'] li {
-  gap: calc(var(--prose-indent) - var(--prose-check));
-}
-.page-prose .ProseMirror ul[data-type='taskList'] li > label {
-  margin-top: 0.5em; /* fallback for browsers without the lh unit */
-  /* Centre the box on the first line. The nudge lands the box centre on the
-     text's optical centre; measured against the cap-height centre, 0.26em
-     lands within ~1px (0.2em sat ~1px high, larger values dropped it low). */
-  margin-top: calc((1lh - var(--prose-check)) / 2 + 0.26em);
-}
-.page-prose .ProseMirror ul[data-type='taskList'] li > label input[type='checkbox'] {
-  width: var(--prose-check);
-  height: var(--prose-check);
-  /* Rounded square, not a near-circle — reads as a checkbox, not a radio/dot. */
-  border-radius: 5px;
-}
-
-/* Inline code + code fences keep the monochrome muted background. */
-.page-prose .ProseMirror code {
-  @apply px-1.5 py-0.5 rounded font-mono text-sm bg-muted;
-}
-
-.page-prose .ProseMirror pre code {
-  @apply p-0 bg-transparent;
 }
