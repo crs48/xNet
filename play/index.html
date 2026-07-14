@@ -9,8 +9,25 @@
       name="description"
       content="Live multiplayer demos built on xNet — cursor party, Connect Four, collaborative todo."
     />
-    <script type="module" crossorigin src="/play/assets/index-C5vrQFql.js"></script>
-    <link rel="stylesheet" crossorigin href="/play/assets/index-BCJjMlwt.css">
+    <!-- Match the site's theme before first paint: same localStorage key and
+         semantics as the site's Base.astro (stored toggle wins, else OS).
+         xnet.fyi and /play share an origin, so the site's choice is visible
+         here — this keeps the /demos iframes in step with the page around
+         them. -->
+    <script>
+      ;(function () {
+        try {
+          var stored = localStorage.getItem('xnet-lp-theme')
+          var theme =
+            stored || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+          document.documentElement.classList.toggle('dark', theme === 'dark')
+        } catch (e) {
+          /* no localStorage (private mode) — CSS falls back to light */
+        }
+      })()
+    </script>
+    <script type="module" crossorigin src="/play/assets/index-BdigUF1f.js"></script>
+    <link rel="stylesheet" crossorigin href="/play/assets/index-DliIyIrD.css">
   </head>
   <body>
     <div id="root"></div>
