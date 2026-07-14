@@ -11,15 +11,16 @@
  * Features:
  * - Collaborative editing via Yjs (BlockNote XNetEditor, 0312)
  * - Comment threads in the right panel (state machine shared with
- *   desktop via usePageComments, 0276). Inline text anchoring is
- *   retired for now (0312 Phase 4): the hook never receives the
- *   BlockNote editor, so marks are not restored in the document.
+ *   desktop via usePageComments, 0276) plus inline text anchoring via
+ *   BlockNote's comments UI (0321): the editor's XNetThreadStore writes
+ *   the same comment nodes, so panel and marks stay in lockstep.
  * - Real-time presence indicators
  */
 import { useNavigate } from '@tanstack/react-router'
 import { PageSchema } from '@xnetjs/data'
 import {
   buildPersonMentionSuggestions,
+  createGravatarUrl,
   usePageComments,
   type PageCommentPopoverState,
   type PageNewCommentState,
@@ -262,7 +263,8 @@ export function PageView({ docId }: { docId: string }) {
     handleSidebarDelete,
     handleSidebarEdit,
     handleDismissOrphaned,
-    handleReattachOrphaned
+    handleReattachOrphaned,
+    crud: commentCrud
   } = usePageComments({ docId, resolveAuthorName })
 
   const commentAuthorDids = useMemo(
@@ -275,11 +277,30 @@ export function PageView({ docId }: { docId: string }) {
   )
   useEnsureProfiles(commentAuthorDids)
 
+  // Inline comments (0321): the editor's ThreadStore writes the same 0276
+  // comment nodes the right panel reads; profiles resolve author chips.
+  const profilesRef = useRef(profiles)
+  profilesRef.current = profiles
+  const resolveCommentUsers = useCallback(
+    async (userIds: string[]) =>
+      userIds.map((userId) => {
+        const profile = profilesRef.current.find((p) => p.did === userId)
+        return {
+          id: userId,
+          username: profile?.name?.trim() || `${userId.slice(8, 16)}…`,
+          avatarUrl: profile?.avatar || createGravatarUrl(userId)
+        }
+      }),
+    []
+  )
+  const editorComments = useMemo(
+    () => ({ ...commentCrud, resolveUsers: resolveCommentUsers }),
+    [commentCrud, resolveCommentUsers]
+  )
+
   const titleInputRef = useRef<HTMLInputElement | null>(null)
 
-  // The live BlockNote editor (0312). Inline comment anchoring is retired
-  // for now — usePageComments keeps the right-panel thread data but never
-  // receives the editor — so this ref only serves the focus flow and
+  // The live BlockNote editor (0312); also serves the focus flow and
   // node-drop insertion below.
   const editorRef = useRef<XNetEditorInstance | null>(null)
   const handleEditorReady = useCallback((editor: XNetEditorInstance) => {
@@ -541,6 +562,7 @@ export function PageView({ docId }: { docId: string }) {
             onCreateLinkTarget={createPageTarget}
             onTagsChange={handleTagsChange}
             onPageTasksChange={handlePageTasksChange}
+            comments={editorComments}
             onBackspaceAtStart={handleBackspaceAtStart}
           />
         </div>
