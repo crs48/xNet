@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-14-new-essay-clutch-power",
+      "url": "https://xnet.fyi/changelog#2026-07-14-new-essay-clutch-power",
+      "title": "New essay: Clutch Power",
+      "content_text": "Blog post #15 frames xNet as LEGO for data on the web: one coupling — node shape, namespace, merge rule, permission algebra — and why the grip that lets go matters as much as the snap.\n",
+      "date_published": "2026-07-14T03:57:45Z",
+      "tags": [
+        "platform"
+      ],
+      "_xnet": {
+        "date": "July 14, 2026",
+        "summary": "Blog post #15 frames xNet as LEGO for data on the web: one coupling — node shape, namespace, merge rule, permission algebra — and why the grip that lets go matters as much as the snap.",
+        "highlights": [],
+        "mergedAt": "2026-07-14T03:57:45Z",
+        "pr": 509,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-14-devtools-data-panel-lists-only-schemas-i",
       "url": "https://xnet.fyi/changelog#2026-07-14-devtools-data-panel-lists-only-schemas-i",
       "title": "DevTools Data panel lists only schemas in use",

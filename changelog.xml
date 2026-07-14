@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>New essay: Clutch Power</title>
+      <link>https://xnet.fyi/changelog#2026-07-14-new-essay-clutch-power</link>
+      <guid isPermaLink="false">2026-07-14-new-essay-clutch-power</guid>
+      <pubDate>Tue, 14 Jul 2026 03:57:45 GMT</pubDate>
+      <description>Blog post #15 frames xNet as LEGO for data on the web: one coupling — node shape, namespace, merge rule, permission algebra — and why the grip that lets go matters as much as the snap.</description>
+    </item>
+    <item>
       <title>DevTools Data panel lists only schemas in use</title>
       <link>https://xnet.fyi/changelog#2026-07-14-devtools-data-panel-lists-only-schemas-i</link>
       <guid isPermaLink="false">2026-07-14-devtools-data-panel-lists-only-schemas-i</guid>

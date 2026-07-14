@@ -1,0 +1,402 @@
+<!DOCTYPE html><html lang="en" class="dark scroll-smooth astro-5hce7sga"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="On 28 January 1958 the LEGO Group patented not a brick but a coupling — stud and tube, and with them clutch power: a grip firm enough to build with that still comes apart by hand. The web never got a coupling for data, so every app moulds pieces that fit only its own set, and the APIs that promised otherwise were drawbridges. On the four frozen interfaces xNet ships instead — one node shape, one namespace anyone can mint into, one merge rule, one permission algebra — and why the grip matters as much as the snap: nobody plays with your bricks unless you say so."><link rel="icon" type="image/svg+xml" href="/favicon.svg"><title>Clutch Power — xNet</title><!-- Inline script to prevent flash: read localStorage, fallback to system preference --><script>
+      (function() {
+        var storedTheme = localStorage.getItem('xnet-lp-theme')
+        var theme = storedTheme || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+        if (theme === 'light') {
+          document.documentElement.classList.remove('dark')
+        }
+      })()
+    </script><link rel="stylesheet" href="/_astro/acceptable-use.BpDF90bT.css">
+<style>pre.mermaid:not([data-processed]){color:transparent;min-height:2rem}pre.mermaid{text-align:center;background:transparent;margin:0}pre.mermaid svg{margin:0 auto;display:block;height:auto;max-width:100%}
+</style><script type="module" src="/_astro/page.B1D-nYk3.js"></script></head> <body class="bg-white dark:bg-[#0a0a0f] text-gray-800 dark:text-gray-200 antialiased font-sans leading-relaxed astro-5hce7sga">  <header class="sticky top-0 z-50 border-b border-border/50 bg-white/80 dark:bg-[#0a0a0f]/80 backdrop-blur-xl"> <nav class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4"> <a href="/" class="font-mono text-xl font-bold tracking-tight text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+xNet
+</a> <div class="flex items-center gap-5 text-sm"> <a href="/#app" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"> App </a><a href="/#hubs" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"> Teams </a><a href="/#vision" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"> Vision </a> <span class="hidden sm:inline h-4 w-px bg-border" aria-hidden="true"></span> <a href="/why" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"> Why </a><a href="/build-with" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"> Build </a><a href="/demos/" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"> Demos </a><a href="/blog" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"> Blog </a> <a href="/docs/introduction/" class="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:border-indigo-500/50 hover:bg-surface transition-all"> <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"> <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"></path> </svg>
+Docs
+</a> <a href="/app" class="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500 transition-all">
+Try the App
+</a> <button id="lp-theme-toggle" class="rounded-lg border border-border p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:border-gray-400 dark:hover:border-gray-500 transition-colors" aria-label="Toggle theme"> <!-- Sun icon (shown in dark mode) --> <svg class="h-4 w-4 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path> </svg> <!-- Moon icon (shown in light mode) --> <svg class="h-4 w-4 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path> </svg> </button> <script type="module">const t=document.getElementById("lp-theme-toggle");t?.addEventListener("click",()=>{const e=document.documentElement.classList.toggle("dark");localStorage.setItem("xnet-lp-theme",e?"dark":"light")});</script> <a href="https://github.com/crs48/xNet" aria-label="xNet on GitHub" class="hidden sm:flex items-center rounded-lg border border-border p-1.5 text-gray-600 dark:text-gray-300 hover:border-indigo-500/50 hover:bg-surface transition-all"> <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"></path></svg> </a> </div> </nav> </header> <main> <section class="relative overflow-hidden border-b border-border bg-surface/20 dark:bg-[#080d1a]"> <svg class="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 1040 340" preserveAspectRatio="xMidYMid slice" aria-hidden="true"> <defs> <linearGradient id="brickbg" x1="0" y1="0" x2="0" y2="1"> <stop offset="0%" stop-color="#0a1122"></stop> <stop offset="55%" stop-color="#0d1526"></stop> <stop offset="100%" stop-color="#080d1a"></stop> </linearGradient> <radialGradient id="bricklampglow" cx="50%" cy="50%" r="50%"> <stop offset="0%" stop-color="#7dd3fc" stop-opacity="0.95"></stop> <stop offset="45%" stop-color="#38bdf8" stop-opacity="0.38"></stop> <stop offset="100%" stop-color="#38bdf8" stop-opacity="0"></stop> </radialGradient> <linearGradient id="bricklampx" x1="0" y1="0" x2="1" y2="1"> <stop offset="0%" stop-color="#e0f2fe"></stop> <stop offset="100%" stop-color="#38bdf8"></stop> </linearGradient> <linearGradient id="baseplateglow" x1="0" y1="0" x2="0" y2="1"> <stop offset="0%" stop-color="#38bdf8" stop-opacity="0.16"></stop> <stop offset="100%" stop-color="#38bdf8" stop-opacity="0"></stop> </linearGradient> <linearGradient id="silosteel" x1="0" y1="0" x2="0" y2="1"> <stop offset="0%" stop-color="#1d2a44"></stop> <stop offset="100%" stop-color="#131d33"></stop> </linearGradient> </defs> <rect width="1040" height="340" fill="url(#brickbg)"></rect> <!-- ── the cosmic-X reading lamp, top-right, clear of the title block ── --> <circle cx="880" cy="58" r="60" fill="url(#bricklampglow)"></circle> <g stroke="url(#bricklampx)" stroke-width="7" stroke-linecap="round"> <line x1="863" y1="41" x2="897" y2="75"></line> <line x1="897" y1="41" x2="863" y2="75"></line> </g> <!-- ── left: two silo boxes whose connectors don't match ────────────── --> <!-- silo A: lidded box with a triangle socket --> <g> <rect x="70" y="150" width="150" height="130" rx="10" fill="url(#silosteel)" stroke="#2b3b5e" stroke-width="3"></rect> <rect x="58" y="128" width="174" height="30" rx="8" fill="#101a2f" stroke="#2b3b5e" stroke-width="2.5"></rect> <!-- its proprietary connector: a triangle socket on the lid --> <polygon points="145,150 131,136 159,136" fill="#0b1322" stroke="#466195" stroke-width="2"></polygon> <!-- dim points locked inside --> <g fill="#38bdf8" opacity="0.3"> <circle cx="112" cy="206" r="4"></circle> <circle cx="145" cy="222" r="4"></circle> <circle cx="178" cy="204" r="4"></circle> </g> </g> <!-- silo B: lidded box with a round socket — it will never join silo A --> <g> <rect x="196" y="196" width="122" height="84" rx="10" fill="url(#silosteel)" stroke="#2b3b5e" stroke-width="3"></rect> <rect x="186" y="176" width="142" height="26" rx="7" fill="#101a2f" stroke="#2b3b5e" stroke-width="2.5"></rect> <circle cx="257" cy="189" r="9" fill="#0b1322" stroke="#466195" stroke-width="2"></circle> <g fill="#38bdf8" opacity="0.3"> <circle cx="230" cy="240" r="4"></circle> <circle cx="262" cy="252" r="4"></circle> <circle cx="292" cy="238" r="4"></circle> </g> </g> <!-- the failed join: a faint × where the two connectors face each other --> <g stroke="#64748b" stroke-opacity="0.55" stroke-width="2.4" stroke-linecap="round"> <line x1="166" y1="168" x2="182" y2="184"></line> <line x1="182" y1="168" x2="166" y2="184"></line> </g> <!-- ground shadow --> <ellipse cx="196" cy="304" rx="150" ry="9" fill="#060b16"></ellipse> <!-- ── the footpath from the silos to the shared coupling ───────────── --> <polyline points="300,300 348,294 396,296 436,306" fill="none" stroke="#38bdf8" stroke-opacity="0.45" stroke-width="2.5" stroke-dasharray="1 10" stroke-linecap="round"></polyline> <!-- ── right: one baseplate, every brick snaps ────────────────────────
+       Everything left of x≈700 stays low and dim (the title/deck sits over
+       it); the taller stack and the lifted brick live in the clear right
+       column, mirroring VaultArt's layout. --> <rect x="420" y="240" width="520" height="70" fill="url(#baseplateglow)"></rect> <!-- the plate itself --> <rect x="432" y="298" width="496" height="18" rx="5" fill="#101a2f" stroke="#38bdf8" stroke-opacity="0.55" stroke-width="1.6"></rect> <!-- its stud row, along the top edge --> <g fill="#7dd3fc" opacity="0.45"> <circle cx="448" cy="294" r="2.6"></circle><circle cx="482" cy="294" r="2.6"></circle><circle cx="516" cy="294" r="2.6"></circle><circle cx="550" cy="294" r="2.6"></circle><circle cx="584" cy="294" r="2.6"></circle><circle cx="618" cy="294" r="2.6"></circle><circle cx="652" cy="294" r="2.6"></circle><circle cx="686" cy="294" r="2.6"></circle><circle cx="720" cy="294" r="2.6"></circle><circle cx="754" cy="294" r="2.6"></circle><circle cx="788" cy="294" r="2.6"></circle><circle cx="822" cy="294" r="2.6"></circle><circle cx="856" cy="294" r="2.6"></circle><circle cx="890" cy="294" r="2.6"></circle><circle cx="924" cy="294" r="2.6"></circle> </g> <!-- brick 1: wide and low, seated on the plate (dim — prose sits above) --> <g> <rect x="452" y="272" width="120" height="26" rx="6" fill="#0d1729" stroke="#38bdf8" stroke-opacity="0.4" stroke-width="1.6"></rect> <g fill="#7dd3fc" opacity="0.5"> <circle cx="467" cy="272" r="3.6"></circle><circle cx="497" cy="272" r="3.6"></circle><circle cx="527" cy="272" r="3.6"></circle><circle cx="557" cy="272" r="3.6"></circle> </g> </g> <!-- brick 2: dashed with a keyhole — visible, but it won't snap without the key --> <g> <rect x="600" y="270" width="88" height="28" rx="6" fill="none" stroke="#64748b" stroke-opacity="0.6" stroke-width="1.6" stroke-dasharray="5 5"></rect> <g fill="none" stroke="#64748b" stroke-opacity="0.6" stroke-width="1.6"> <circle cx="614.6666666666666" cy="270" r="3.6"></circle><circle cx="644" cy="270" r="3.6"></circle><circle cx="673.3333333333334" cy="270" r="3.6"></circle> </g> <!-- keyhole --> <circle cx="644" cy="281" r="4.2" fill="none" stroke="#94a3b8" stroke-width="1.6"></circle> <line x1="644" y1="285" x2="644" y2="292" stroke="#94a3b8" stroke-width="1.6" stroke-linecap="round"></line> </g> <!-- brick 3: mid-lift above the plate — the grip lets go by hand --> <g> <rect x="712" y="238" width="88" height="28" rx="6" fill="#0d1729" stroke="#7dd3fc" stroke-opacity="0.5" stroke-width="1.8"></rect> <g fill="#7dd3fc" opacity="0.6"> <circle cx="726.6666666666666" cy="238" r="4.2"></circle><circle cx="756" cy="238" r="4.2"></circle><circle cx="785.3333333333334" cy="238" r="4.2"></circle> </g> <!-- separation marks between brick and plate --> <g stroke="#38bdf8" stroke-opacity="0.28" stroke-width="1.8" stroke-linecap="round" stroke-dasharray="2 7"> <line x1="728" y1="274" x2="728" y2="292"></line> <line x1="756" y1="274" x2="756" y2="292"></line> <line x1="784" y1="274" x2="784" y2="292"></line> </g> </g> <!-- bricks 4+5: a stack seated in the clear right column — data on data --> <g> <rect x="824" y="266" width="100" height="32" rx="6" fill="#0d1729" stroke="#38bdf8" stroke-opacity="0.5" stroke-width="1.8"></rect> <g fill="#7dd3fc" opacity="0.6"> <circle cx="840.6666666666666" cy="266" r="4.2"></circle><circle cx="874" cy="266" r="4.2"></circle><circle cx="907.3333333333334" cy="266" r="4.2"></circle> </g> <rect x="848" y="238" width="54" height="28" rx="6" fill="#0d1729" stroke="#38bdf8" stroke-opacity="0.5" stroke-width="1.8"></rect> <g fill="#7dd3fc" opacity="0.6"> <circle cx="861.5" cy="238" r="4.2"></circle><circle cx="888.5" cy="238" r="4.2"></circle> </g> </g> </svg> <div class="relative mx-auto max-w-3xl px-6 pb-14 pt-44 lg:pt-52"> <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-sky-200/80"> <time datetime="July 14, 2026">July 14, 2026</time> <span aria-hidden="true">·</span> <span>14 min read</span> <span class="rounded-full border border-sky-400/30 bg-sky-500/10 px-2 py-0.5 font-mono lowercase text-sky-200"> essay </span><span class="rounded-full border border-sky-400/30 bg-sky-500/10 px-2 py-0.5 font-mono lowercase text-sky-200"> protocol </span><span class="rounded-full border border-sky-400/30 bg-sky-500/10 px-2 py-0.5 font-mono lowercase text-sky-200"> decentralization </span><span class="rounded-full border border-sky-400/30 bg-sky-500/10 px-2 py-0.5 font-mono lowercase text-sky-200"> philosophy </span> </div> <h1 class="mt-4 text-4xl font-bold tracking-tight text-white drop-shadow lg:text-5xl"> Clutch Power </h1> <p class="mt-4 max-w-2xl text-lg leading-relaxed text-gray-300">On 28 January 1958 the LEGO Group patented not a brick but a coupling — stud and tube, and with them clutch power: a grip firm enough to build with that still comes apart by hand. The web never got a coupling for data, so every app moulds pieces that fit only its own set, and the APIs that promised otherwise were drawbridges. On the four frozen interfaces xNet ships instead — one node shape, one namespace anyone can mint into, one merge rule, one permission algebra — and why the grip matters as much as the snap: nobody plays with your bricks unless you say so.</p> </div> </section> <article class="prose prose-lg mx-auto max-w-3xl px-6 py-16 dark:prose-invert prose-headings:tracking-tight prose-a:text-sky-600 dark:prose-a:text-sky-400"> <div class="not-prose flex flex-wrap items-center gap-2 text-sm text-gray-500 dark:text-gray-400"> <span class="flex -space-x-2"> <img src="/blog/authors/crs48.jpg" alt="crs48" width="24" height="24" loading="lazy" class="rounded-full ring-2 ring-white dark:ring-gray-900"><img src="/blog/authors/claude.svg" alt="Claude" width="24" height="24" loading="lazy" class="rounded-full ring-2 ring-white dark:ring-gray-900"> </span> <a href="https://github.com/crs48" target="_blank" rel="noopener noreferrer" class="font-medium text-gray-600 transition-colors hover:text-indigo-500 dark:text-gray-300 dark:hover:text-indigo-400"> crs48 </a><span aria-hidden="true">with</span><a href="https://claude.com/claude-code" target="_blank" rel="noopener noreferrer" class="font-medium text-gray-600 transition-colors hover:text-indigo-500 dark:text-gray-300 dark:hover:text-indigo-400"> Claude </a> </div> <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"Clutch Power","description":"On 28 January 1958 the LEGO Group patented not a brick but a coupling — stud and tube, and with them clutch power: a grip firm enough to build with that still comes apart by hand. The web never got a coupling for data, so every app moulds pieces that fit only its own set, and the APIs that promised otherwise were drawbridges. On the four frozen interfaces xNet ships instead — one node shape, one namespace anyone can mint into, one merge rule, one permission algebra — and why the grip matters as much as the snap: nobody plays with your bricks unless you say so.","datePublished":"2026-07-14T17:00:00Z","url":"https://xnet.fyi/blog/clutch-power","author":[{"@type":"Person","name":"crs48","url":"https://github.com/crs48"},{"@type":"Person","name":"Claude","url":"https://claude.com/claude-code"}]}</script> <p>
+On the 28th of January, 1958, Godtfred Kirk Christiansen walked into
+        the Danish patent office and filed for protection of a small plastic
+        brick. The brick was not new — his family’s company had been moulding
+        studded bricks for nearly a decade, and other firms moulded similar
+        ones. What was new was underneath: hollow tubes, set so that the studs
+        of the brick below would grip them from three sides. The filing
+        protected a <em>coupling</em>, not a block. The company came to call
+        the property it created <strong>clutch power</strong> — enough
+        friction that a model holds together in a child’s hands, little
+        enough that the same hands can take it apart, no tools, no
+        permission slip, no breakage.
+</p> <p>
+Two consequences followed, and they built one of the most beloved
+        systems of objects on Earth. The first is the famous one:
+<strong>everything combines</strong>. A brick from the space set
+        snaps to a brick from the castle set, because sets are a marketing
+        fiction and the coupling is the product. The geometry has not
+        changed since the filing, which is why a brick moulded in 1958 still
+        seats perfectly on one moulded this year — sixty-eight years of
+        parts, one interface. The second consequence is quieter, and it is
+        the one this essay is actually about: <strong>everything comes
+        apart</strong>. The coupling grips; it does not weld. Your bricks
+        remain yours — recombinable, refusable, removable — <em>after</em>
+every combination you make.
+</p> <p>
+Now look at your data. Your notes are in one company’s set, your
+        messages in another’s, your contacts copied inconsistently into
+        five more. None of it snaps together, because the web never
+        standardised a coupling for data — every app moulds pieces that fit
+        only its own kit, and calls the kit a product. This essay is about
+        what a coupling for data would even mean, why every previous attempt
+        shipped half of one, and how <a href="/">xNet</a> builds both halves:
+        the snap, <em>and</em> the grip that lets go.
+</p> <h2>The bin we never got</h2> <p>
+Anyone who grew up with bricks knows the bin: the big box where
+        every set eventually goes, out of which anything can be built. The
+        web promised us a bin and delivered a shelf of sealed boxes. It’s
+        worth being precise about how, because we tried three different
+        lids.
+</p> <p>
+The first era simply denied the bin. The application owned its
+        data outright — its schema, its servers, its screens — and the only
+        universal connector on the entire web was copy and paste. (The
+        previous essay, <a href="/blog/the-vault-and-the-view">The Vault and
+        the View</a>, walked through how that fusion became the business
+        model; we won’t re-argue it here.)
+</p> <p>
+The second era promised the bin and kept the keys. In August 2004,
+        Flickr shipped a public API, and for a few giddy years “mashups”
+        were the web’s favourite word — data from one service recombined
+        with another’s into things neither had planned. It felt like
+        composability. It was actually a <strong>drawbridge</strong>:
+        access at the platform’s pleasure, revocable at the platform’s
+        convenience. And when the platforms worked out that the data behind
+        the drawbridge was the asset, up it came. Facebook shut its
+        friends-data API on the 30th of April, 2015. Twitter ended free API
+        access in February 2023 with roughly a week’s notice, stranding a
+        decade’s ecosystem of clients and tools. Reddit repriced its API
+        that same year at rates that would have cost Apollo — the beloved
+        third-party client one developer had spent a decade polishing —
+        millions of dollars a month; Apollo died on schedule, and thousands
+        of communities went dark in protest, which changed nothing. The
+        lesson generalises: <em>an API is not a coupling. A coupling is a
+        property of the pieces. An API is a property of the landlord.</em> </p> <p>
+The third era tried to legislate the bin. Europe’s GDPR grants you a
+        right to data portability; it does not grant you a format, so in
+        practice the right is a ZIP file — technically yours, parseable by
+        nothing you own. Below the law, the market priced the missing
+        coupling with unusual honesty: an entire industry (Mint, then
+        Plaid) was built on users <em>handing over their bank passwords</em>
+so software could impersonate them and scrape their own balances
+        out of HTML, because no first-class way existed for you to hand a
+        program a scoped, revocable slice of your own records. Billions of
+        dollars, for want of a stud.
+</p> <p>
+None of this was for lack of vision. Ted Nelson sketched a universal
+        docuverse from 1960 and spent five decades not shipping it. Apple’s
+        OpenDoc imagined documents as bins of snap-together parts and died
+        in 1997, because it required every vendor to re-mould their
+        software around a shared coupling the platform incumbent had no
+        reason to bless. The Semantic Web imagined the whole web as
+        machine-composable data and stalled on the economics of agreement —
+        by 2006 even Tim Berners-Lee was steering the project away from
+        grand ontologies towards plain linked data. The pattern across all
+        three: <strong>a universal namespace without a shipped substrate is
+        a manifesto</strong>, and a substrate without a permission model is
+        a strip mine. Sixty years of proposals shipped one half or the
+        other. The interesting question was always both.
+</p> <h2>The coupling</h2> <p>
+So what is the stud-and-tube of data? When we distilled xNet’s
+        protocol down to what an independent implementation must honour —
+        the way the 1958 filing distilled a toy down to the geometry that
+        mattered — it came to four frozen interfaces. Everything else is
+        deliberately unfrozen.
+</p> <p> <strong>One node shape.</strong> Every piece of data in xNet — a
+        task, a contact, a paragraph, a ledger entry, a chess move — is a
+        node with exactly four universal fields: an id, a schema reference,
+        a creation time, and the cryptographic identity of its author.
+        That’s the entire footprint. Everything else about a node is
+        declared by its schema, the way everything about a brick beyond its
+        coupling — colour, height, whether it’s a wheel or a window — is
+        free to vary.
+</p> <p> <strong>One namespace.</strong> Every schema has a name of the form
+<code>xnet://authority/Name@version</code> — and the authority can
+        be our registry, someone’s domain, or <em>any cryptographic
+        identity at all</em>. <code>xnet://did:key:z6Mk…/Recipe@1.0.0</code>
+is a real, resolvable schema name minted by an individual person,
+        no committee, no application form. The built-in catalogue ships
+        dozens of schemas — pages, tasks, a full CRM, double-entry
+        accounts, channels and messages, canvases, maps — but the
+        catalogue holds no privileged position in the namespace. Anyone can
+        mould new parts, and the parts carry their maker’s name.
+</p> <p> <strong>One merge rule.</strong> Every mutation is a signed,
+        hash-chained change record, and any two replicas that hold the same
+        changes fold them into byte-identical state — deterministically,
+        with no server as referee. We walked one note through that machine
+        in <a href="/blog/the-loom-you-can-read">The Loom You Can Read</a>;
+        the point here is only that the fold is <em>part of the
+        coupling</em>. Sync is not a feature of some app; it is a property
+        of the pieces, the way clutch power is in the plastic and not in
+        the instruction booklet.
+</p> <p> <strong>One permission algebra.</strong> The fourth interface is the
+        essay’s second act, so we’ll hold it a moment — but it belongs on
+        the list, and the placement is the argument.
+</p> <figure class="not-prose my-10"> <div class="overflow-x-auto rounded-2xl border border-border bg-surface/30 p-4 dark:bg-surface/40 lg:p-6"> <pre class="mermaid">flowchart TB
+  subgraph couplingBlock[&quot;The coupling — frozen, specified, versioned&quot;]
+    N[&quot;one node shape&lt;br/&gt;id · schemaId · createdAt · createdBy&quot;]
+    IRI[&quot;one namespace&lt;br/&gt;xnet://authority/Name@version&lt;br/&gt;(the authority can be you)&quot;]
+    LWW[&quot;one merge rule&lt;br/&gt;signed change log,&lt;br/&gt;deterministic fold&quot;]
+    AUTHZ[&quot;one permission algebra&lt;br/&gt;roles · actions · grants,&lt;br/&gt;enforced where data moves&quot;]
+  end
+  subgraph bricks[&quot;The bricks — open-ended&quot;]
+    T[&quot;a task&quot;]
+    C[&quot;a contact&quot;]
+    M[&quot;a message&quot;]
+    X[&quot;your field on&lt;br/&gt;someone else&#39;s node&quot;]
+    S[&quot;your private notes&lt;br/&gt;on their data&quot;]
+    F[&quot;an imported silo&lt;br/&gt;(CSV, Slack, feeds)&quot;]
+  end
+  subgraph players[&quot;The players&quot;]
+    APP[&quot;apps — views&lt;br/&gt;(the previous essay)&quot;]
+    AGT[&quot;agents — same table,&lt;br/&gt;same rules&quot;]
+    PPL[&quot;people — names you mint,&lt;br/&gt;links you hand over&quot;]
+  end
+  bricks --&gt;|snap onto| couplingBlock
+  players --&gt;|&quot;play, where permitted&quot;| couplingBlock</pre> </div> <figcaption class="mt-3 text-center text-sm leading-relaxed text-gray-500 dark:text-gray-400"> The whole design, one picture. Four interfaces are frozen and specified; bricks and players multiply freely on top. The protocol spec defines the coupling and deliberately refuses to define the apps. </figcaption> </figure>  <script type="module" src="/_astro/Mermaid.astro_astro_type_script_index_0_lang.CxpO6xgw.js"></script> <p>
+What snaps on, once the coupling exists? First, <strong>data snaps
+        to data</strong>. Any node can hold a relation to any other node,
+        of any schema, made by anyone — so a CRM deal can point at the chat
+        thread where it was negotiated, which points at the meeting note,
+        which points at the contact, and no product manager anywhere
+        approved the combination. In the silo world each of those links is
+        an integration, a partnership, a roadmap item. On a shared coupling
+        each is just… a stud.
+</p> <p>
+Second — and this is where it gets properly LEGO —
+<strong>you can build on bricks you don’t own.</strong> Suppose a
+        colleague shares a contact with you. You want a
+<code>leadScore</code> field; she doesn’t. You extend her node with
+        a field in <em>your</em> namespace — an overlay, riding on the node
+        itself, syncing and merging like any core property, no fork, no
+        vendor ticket. And if what you want to add shouldn’t be visible to
+        her at all — your private notes on her contact — you attach a
+<em>sidecar</em>: a separate node that references hers but carries
+<em>its own</em> permissions. Here is the real shape of both moves:
+</p> <figure class="not-prose my-6"> <div class="group relative min-w-0 overflow-hidden rounded-xl border border-border bg-code-bg"> <div class="border-b border-border px-4 py-2 font-mono text-xs text-gray-500"> someone-elses-contact.ts </div> <div class="relative"> <pre class="lp-code overflow-x-auto p-5 font-mono text-sm leading-relaxed"><code><span class="tok-comment">// Their brick: a Contact someone else created and governs.</span>
+<span class="tok-comment">// Your stud: a field in your own namespace, riding on the</span>
+<span class="tok-comment">// node itself — syncing and merging like any other property.</span>
+<span class="tok-keyword">await</span> update(ContactSchema, contact.id, {
+  [extKey(<span class="tok-string">'acme.example'</span>, <span class="tok-string">'leadScore'</span>)]: 42
+})
+
+<span class="tok-comment">// Your private brick on their public one: a sidecar — a</span>
+<span class="tok-comment">// separate node with its own permissions (they never see it),</span>
+<span class="tok-comment">// addressed deterministically so every device finds the same one.</span>
+<span class="tok-keyword">await</span> create(ContactNotes, {
+  target: contact.id,  <span class="tok-comment">// relation → any node, any schema</span>
+  body: <span class="tok-string">'Prefers the 1958 catalogue. Buys in bulk.'</span>
+}, sidecarId(me.did, contact.id))</code></pre> <button class="copy-btn absolute right-3 top-3 rounded-md border border-border bg-surface px-2 py-1 text-xs text-gray-500 opacity-0 transition-opacity hover:text-gray-700 group-hover:opacity-100 dark:hover:text-gray-300" aria-label="Copy code">
+Copy
+</button> </div> </div> <figcaption class="mt-2.5 text-sm leading-relaxed text-gray-500 dark:text-gray-400"> Composition across an ownership boundary. The overlay lives in your namespace on their node; the sidecar is your node about their node, private to you. Nobody asked anybody. Nothing forked. (Trimmed for reading; the helpers and their outputs match the real source.) </figcaption> </figure> <p>
+Third, <strong>the coupling holds across time</strong>. Within a
+        schema version, changes must be additive, and every implementation
+        is required to carry fields it doesn’t recognise rather than drop
+        them — so last year’s client and next year’s client edit the same
+        document without either corrupting the other. Across breaking
+        versions, bidirectional lenses translate at read time (the previous
+        essay showed one in full). This is the discipline the brick teaches:
+        backwards compatibility is not sentimentality, it is what makes a
+<em>collection</em> possible. A datum you created in xNet’s first
+        year is a 1958 brick — it seats on everything we mould later,
+        because the spec makes breaking the seat a violation, not a
+        release note.
+</p> <p>
+And fourth, <strong>the players multiply</strong>. Apps become
+        interchangeable views — that inversion had its own essay. Developers
+        get the whole substrate as
+<a href="/blog/the-tip-of-the-hook">a couple of React hooks</a>, and
+        third-party code plays inside capabilities it declares up front —
+<a href="/blog/the-workshop-and-the-walled-garden">the workshop
+        rules</a>. But
+        the newest player at the table is the one the silo era simply cannot
+        seat: <strong>the agent</strong>. Your workspace exposes itself to
+        any AI tool speaking the open model-context protocol — which means
+        an assistant can query your tasks, cross-reference your contacts,
+        and draft into your pages <em>through the same coupling, under the
+        same permission checks, visible in the same audit trail</em> as any
+        human collaborator. In the silo world, giving an AI your data means
+        uploading your life into yet another vault. On a coupling, the
+        agent comes to the bricks, plays with exactly the ones it’s
+        handed, and leaves fingerprints.
+</p> <h2>Who gets to play</h2> <p>
+Every “LEGO for software” essay ever written stops at the snap. But
+        ask an actual child the governing question of the actual toy and
+        you will not hear a question about combination. You will hear:
+<em>whose bricks are these, and who said you could touch them?</em>
+The toy works socially because possession is legible and physical —
+        your bricks are in your room. The moment data syncs, possession
+        stops being physical, and the question has to be answered in the
+        architecture or it is answered by whoever holds the servers. We
+        have spent this entire series on what that second answer costs.
+</p> <p>
+So xNet answers it in the architecture, three ways at once.
+</p> <p> <strong>The rules ride on the data.</strong> Authorisation in xNet
+        is not middleware in some app — it is declared on the schemas and
+        nodes themselves, as data: which roles exist, how a subject earns
+        one, which of seven actions (<code>read</code>, <code>create</code>,
+<code>update</code>, <code>write</code>, <code>delete</code>,
+<code>share</code>, <code>admin</code>) each role may take, with
+        deny beating allow on every conflict. Because the rules are data,
+        they sync like data, and every honest implementation — ours, yours,
+        a stranger’s — is required by the spec to reach the <em>identical</em>
+allow-or-deny decision on the same graph. Google proved this shape
+        of permission system at planetary scale years ago, inside its own
+        fence — relationship checks over trillions of sharing rules,
+        millions of times a second, across Drive and Photos. The open question was whether the same discipline could
+        exist with <em>nobody owning the fence</em>. Making the decision
+        semantics a conformance requirement — golden test vectors and all —
+        is our answer.
+</p> <p> <strong>Handing over bricks is delegation, not surrender.</strong>
+When you grant access, the grant is itself a node — who, what,
+        which actions, until when — and it can carry a capability token
+        that the grantee can <em>attenuate</em> but never amplify: you hand
+        a contractor read access to one project, the contractor hands her
+        assistant read access to one document, and at no link in the chain
+        can anyone mint themselves more than they were given. Three bricks,
+        not the crate. A share link is the same machinery folded into a
+        URL, with one lovely detail: the secret lives in the link’s
+        fragment — the part after the <code>#</code> that browsers never
+        transmit — so the relay that delivers your data cannot read the
+        key that unlocks it.
+</p> <p> <strong>And underneath both, the snap itself is cryptographic.</strong>
+Content is end-to-end encrypted with its key wrapped per recipient;
+        the relay authorises every subscription and every publish before
+        forwarding, but even a malicious relay is holding bricks it cannot
+        seat. For a party without the key and without a grant, your data
+        doesn’t merely refuse politely. It doesn’t couple. There is nothing
+        to play with.
+</p> <figure class="not-prose my-10"> <div class="overflow-x-auto rounded-2xl border border-border bg-surface/30 p-4 dark:bg-surface/40 lg:p-6"> <pre class="mermaid">sequenceDiagram
+  participant O as Owner
+  participant R as Relay
+  participant G as Guest
+  O-&gt;&gt;O: creates a node — encrypted,&lt;br/&gt;its key wrapped per recipient
+  O-&gt;&gt;R: publishes the signed change
+  Note over R: Guest holds no grant →&lt;br/&gt;nothing is relayed.&lt;br/&gt;No key → the brick doesn&#39;t snap.
+  O-&gt;&gt;G: hands over a share link&lt;br/&gt;(the secret rides in the URL fragment,&lt;br/&gt;which no server ever receives)
+  G-&gt;&gt;R: claims it — a delegation,&lt;br/&gt;attenuated to read-only
+  R--&gt;&gt;G: changes for that one resource
+  G-&gt;&gt;G: unwraps the key. The brick snaps.
+  O-&gt;&gt;O: revokes the grant
+  Note over G: future changes stop arriving.&lt;br/&gt;What was already read is already copied —&lt;br/&gt;a grip, not a weld.</pre> </div> <figcaption class="mt-3 text-center text-sm leading-relaxed text-gray-500 dark:text-gray-400"> The whole permission story in one exchange — including the last beat, which most systems whisper and we would rather say out loud: revocation governs the future, never the past. </figcaption> </figure>   <p>
+Put the two halves together and something inverts that the silo era
+        trained us to stop noticing. In a silo, every datum you add deepens
+<em>the platform’s</em> moat — your photos make their album
+        stickier, your contacts fatten their graph. On a shared coupling,
+        every datum you add makes <em>your</em> bin more generative: the
+        new contact enriches your CRM view <em>and</em> your chat mentions
+<em>and</em> whatever view you or your favourite agent builds next
+        spring. Network effects don’t disappear. They change beneficiary.
+        The compound interest on your own records finally accrues to you.
+</p> <section class="not-prose my-12"> <div class="rounded-2xl border border-border bg-surface/30 p-6 dark:bg-surface/40 lg:p-8"> <h3 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+Where the metaphor stops
+</h3> <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+Six things a universal coupling cannot do, conceded in plain sight —
+      because the essays that skip this section are the ones you were right
+      not to trust.
+</p> <ul class="mt-6 space-y-5"> <li class="grid gap-3 sm:grid-cols-[1fr_1.3fr] sm:gap-5"> <div class="flex gap-2.5"> <span class="select-none text-gray-400 dark:text-gray-600">✕</span> <p class="text-sm leading-relaxed text-gray-500 dark:text-gray-400">We won’t pretend revocation can reach into the past.</p> </div> <div class="flex gap-2.5"> <span class="select-none text-sky-500">✓</span> <p class="text-sm leading-relaxed text-gray-700 dark:text-gray-200">Once someone has read a piece of data, they have it — decryption is copying, and no protocol can un-show something. Revoking a grant stops every future change from reaching them; it cannot repossess what they already saw. Anything that promised more would be DRM wearing a nicer coat, and the grip is deliberately not a weld.</p> </div> </li><li class="grid gap-3 sm:grid-cols-[1fr_1.3fr] sm:gap-5"> <div class="flex gap-2.5"> <span class="select-none text-gray-400 dark:text-gray-600">✕</span> <p class="text-sm leading-relaxed text-gray-500 dark:text-gray-400">We won’t pretend a shared namespace makes people agree.</p> </div> <div class="flex gap-2.5"> <span class="select-none text-sky-500">✓</span> <p class="text-sm leading-relaxed text-gray-700 dark:text-gray-200">Two apps sharing a Contact still have to agree on what a contact is, and that agreement is social, not technical — the Semantic Web spent a decade proving it. Lenses, overlays, and sidecars make disagreement cheap enough to live with; they don’t make coordination free. Anyone can mint a schema, which also means anyone can mint a duplicate.</p> </div> </li><li class="grid gap-3 sm:grid-cols-[1fr_1.3fr] sm:gap-5"> <div class="flex gap-2.5"> <span class="select-none text-gray-400 dark:text-gray-600">✕</span> <p class="text-sm leading-relaxed text-gray-500 dark:text-gray-400">We won’t pretend a frozen interface maintains itself.</p> </div> <div class="flex gap-2.5"> <span class="select-none text-sky-500">✓</span> <p class="text-sm leading-relaxed text-gray-700 dark:text-gray-200">LEGO froze one moulding geometry and iterates everything else; a protocol pays for that promise continuously. When we hardened one detail of our merge rule, the change rippled through every conformance kernel and golden vector we keep. Backwards compatibility is a standing engineering bill, not a patent you file once.</p> </div> </li><li class="grid gap-3 sm:grid-cols-[1fr_1.3fr] sm:gap-5"> <div class="flex gap-2.5"> <span class="select-none text-gray-400 dark:text-gray-600">✕</span> <p class="text-sm leading-relaxed text-gray-500 dark:text-gray-400">We won’t pretend a general-purpose substrate is fast for free.</p> </div> <div class="flex gap-2.5"> <span class="select-none text-sky-500">✓</span> <p class="text-sm leading-relaxed text-gray-700 dark:text-gray-200">A silo optimises for exactly one access pattern; a store that must answer any question about any shape pays a tax the silo never sees. Making the open substrate feel app-fast has taken months of unglamorous query and hydration work, and that ledger is still open.</p> </div> </li><li class="grid gap-3 sm:grid-cols-[1fr_1.3fr] sm:gap-5"> <div class="flex gap-2.5"> <span class="select-none text-gray-400 dark:text-gray-600">✕</span> <p class="text-sm leading-relaxed text-gray-500 dark:text-gray-400">We won’t pretend nobody has to run anything.</p> </div> <div class="flex gap-2.5"> <span class="select-none text-sky-500">✓</span> <p class="text-sm leading-relaxed text-gray-700 dark:text-gray-200">Moxie Marlinspike is right that people do not want to run their own servers. Your replica is primary and local, and peers can sync directly — but an always-reachable relay is what makes sharing feel instant, and someone hosts and pays for it. Ours is optional and replaceable; it is not imaginary.</p> </div> </li><li class="grid gap-3 sm:grid-cols-[1fr_1.3fr] sm:gap-5"> <div class="flex gap-2.5"> <span class="select-none text-gray-400 dark:text-gray-600">✕</span> <p class="text-sm leading-relaxed text-gray-500 dark:text-gray-400">We won’t pretend permissions solve moderation or discovery.</p> </div> <div class="flex gap-2.5"> <span class="select-none text-sky-500">✓</span> <p class="text-sm leading-relaxed text-gray-700 dark:text-gray-200">Access control decides who may read and write; it says nothing about what deserves an audience. Spaces give every community its own table and its own rules, which works at the scale of a table — network-scale discovery, spam, and abuse in a world with no central operator remain honestly unsolved, here and everywhere.</p> </div> </li> </ul> </div> </section> <h2>The weld and the grip</h2> <p>
+There is a version of this essay that ends with everything
+        connecting to everything, and we don’t believe in it. The box above
+        is the reason: a coupling cannot make people agree, cannot repossess
+        a secret, cannot moderate a network into kindness, cannot make
+        hosting free. What a coupling can do — the only thing it can do,
+        and it is enough — is change what kind of thing your data
+<em>is</em>: from contents of someone’s set to pieces in your bin.
+</p> <p>
+The deep insight of 1958 was that the two properties everyone wants
+        from their pieces — <em>holds together</em> and <em>comes
+        apart</em> — are not in tension. They are the same property, tuned.
+        Too little friction and nothing you build survives being picked up.
+        Too much and it isn’t a construction toy any more; it’s a weld, a
+        sculpture, a thing you were sold that only pretends to be yours.
+        The entire silo era, seen from this angle, was a weld sold as a
+        toy: your data holds together beautifully — inside the set, with
+        the set’s pieces, until the set is discontinued.
+</p> <p>
+We built the other tuning. One node shape, one namespace anyone can
+        mint into, one merge rule, one permission algebra — friction enough
+        that what you build holds, and every brick still lifts off in your
+        hand: shareable to exactly whom you choose, extendable by people
+        you’ve never met, revocable tomorrow, and yours in the only sense
+        that has ever mattered with bricks — <em>in your possession,
+        combining at your pleasure</em>. If you want to start filling the
+        bin, <a href="/app">the app is here</a>, and your first note lands
+        as an open, signed, schema-typed node before you’ve thought about
+        any of this. If you build software,
+<a href="/build-with">mint a schema</a> and mould the part we
+        didn’t think of — the catalogue has no gatekeeper. That’s the offer,
+        and the whole of it: <strong>bricks, not sets. Grip, not weld. And
+        nobody plays with yours unless you say so.</strong> </p> <hr> <h3 id="sources">Sources</h3> <ul class="text-base"> <li>
+The coupling: the LEGO Group’s own history of
+<a href="https://www.lego.com/en-us/history/articles/d-the-stud-and-tube-principle" rel="noopener noreferrer">
+the stud-and-tube principle</a> (patent filed 28 January 1958), and the sceptic’s corrective we
+          took to heart —
+<a href="https://safetydave.net/lego-as-a-metaphor-for-software-reuse-does-the-data-stack-up/" rel="noopener noreferrer"> <em>LEGO as a Metaphor for Software Reuse — Does the Data Stack
+            Up?</em></a> (2021), which argues the metaphor only works if the interface is
+          actually frozen. Agreed; hence the conformance suite.
+</li> <li>
+The drawbridge era:
+<a href="https://techcrunch.com/2015/04/28/facebook-api-shut-down/" rel="noopener noreferrer">
+Facebook’s friends-data API shutdown</a> (2015);
+<a href="https://www.engadget.com/twitter-shutting-off-free-api-prepare-174340770.html" rel="noopener noreferrer">
+Twitter ending free API access</a> (2023);
+<a href="https://techcrunch.com/2024/02/09/social-network-api-apps-twitter-reddit-threads-mastodon-bluesky/" rel="noopener noreferrer">
+TechCrunch on the platforms closing ranks</a> (2024); the Reddit repricing that killed Apollo (2023);
+<a href="https://www.bai.org/banking-strategies/from-screen-scraping-to-open-banking/" rel="noopener noreferrer">
+the screen-scraping years of financial data</a>; and
+<a href="https://academic.oup.com/idpl/article-abstract/9/3/173/5529345" rel="noopener noreferrer">
+GDPR data portability in practice</a>.
+</li> <li>
+The half-couplings: Ted Nelson’s
+<a href="https://en.wikipedia.org/wiki/Project_Xanadu" rel="noopener noreferrer">
+Project Xanadu</a>;
+<a href="https://instadeq.com/blog/posts/why-opendoc-failed-and-then-failed-3-more-times/" rel="noopener noreferrer">
+why OpenDoc failed</a>; Berners-Lee’s
+<a href="https://www.w3.org/DesignIssues/LinkedData.html" rel="noopener noreferrer">
+Linked Data note</a> (the 2006 course-correction);
+<a href="https://docs.bsky.app/docs/advanced-guides/atproto" rel="noopener noreferrer">
+the AT Protocol’s lexicon namespace</a> — the closest shipped cousin, public-by-default while
+<a href="https://github.com/bluesky-social/proposals/blob/main/0011-auth-scopes/README.md" rel="noopener noreferrer">
+private data remains a proposal</a> — and
+<a href="https://en.wikipedia.org/wiki/Google_Zanzibar" rel="noopener noreferrer">
+Google Zanzibar</a> (USENIX 2019), fine-grained sharing proven at scale, inside one
+          company’s fence.
+</li> <li>
+The machinery and the receipts:
+<a href="/docs/protocol/overview">the xNet protocol
+          specification</a> (the four interfaces, their conformance vectors,
+          and the schema-evolution rules),
+<a href="/blog/the-loom-you-can-read">The Loom You Can Read</a>
+(the merge rule, byte by byte),
+<a href="/blog/the-tip-of-the-hook">The Tip of the Hook</a> (the
+          developer surface),
+<a href="/blog/the-workshop-and-the-walled-garden">The Workshop
+          and the Walled Garden</a> (how third-party <em>code</em> is
+          scoped), and
+<a href="/blog/the-vault-and-the-view">The Vault and the View</a>
+(apps as views — this essay’s vertical twin).
+</li> </ul> <p class="text-sm text-gray-400 dark:text-gray-500"> <em>This is an independent essay. LEGO® is a trademark of the LEGO
+          Group, which does not sponsor, authorise, or endorse it — the
+          bricks appear here as cultural reference, and all artwork on this
+          page is original. Product histories are compressed; follow the
+          citations for the fuller, messier versions. The code excerpt is
+          trimmed for reading; the helper functions and their behaviour
+          match the real source.</em> </p> </article> <nav aria-label="More in this series" class="mx-auto max-w-3xl px-6 pb-16"><div class="border-t border-border pt-8"><p class="mb-4 font-mono text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500">
+More from the blog
+</p><div class="grid gap-4 sm:grid-cols-2"><a href="/blog/weights-you-can-hold" rel="prev" class="group flex flex-col rounded-2xl border border-border bg-surface/20 p-5 transition-all hover:border-indigo-500/40 hover:bg-surface/40"><span class="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 dark:text-indigo-400"><svg class="h-4 w-4 transition-transform group-hover:-translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"></path></svg>
+Previous
+</span><span class="mt-2 font-bold tracking-tight text-gray-900 transition-colors group-hover:text-indigo-600 dark:text-white dark:group-hover:text-indigo-400">Weights You Can Hold</span></a><span class="hidden sm:block" aria-hidden="true"></span></div></div></nav> </main> <footer class="border-t border-border/50 bg-surface/10 dark:bg-surface/20"> <div class="mx-auto max-w-6xl px-6 py-12 lg:py-16"> <!-- Main footer content --> <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-7"> <!-- Brand --> <div class="lg:col-span-2"> <a href="/" class="inline-flex items-center gap-2"> <span class="font-mono text-xl font-bold text-gray-800 dark:text-white">xNet</span> </a> <p class="mt-4 text-sm text-gray-500 dark:text-gray-400 max-w-xs leading-relaxed">
+Local-first apps that work offline, sync peer-to-peer, and keep your data under your control.
+</p> <div class="mt-6 flex gap-4"> <a href="https://github.com/crs48/xNet" target="_blank" rel="noopener noreferrer" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors" aria-label="GitHub"> <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"> <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"></path> </svg> </a> <a href="https://github.com/crs48/xNet/discussions" target="_blank" rel="noopener noreferrer" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors" aria-label="GitHub Discussions"> <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"> <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"></path> </svg> </a> </div> </div> <!-- Product --> <div> <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Product</h4> <ul class="space-y-3"> <li> <a href="/app" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Try the App </a> </li><li> <a href="/mobile" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Run on Mobile </a> </li><li> <a href="/download" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Download Desktop </a> </li><li> <a href="/plugins" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Plugins </a> </li><li> <a href="/docs" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Documentation </a> </li><li> <a href="/docs/quickstart/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Quickstart </a> </li><li> <a href="/changelog" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Changelog </a> </li> </ul> </div> <!-- Cloud --> <div> <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Cloud</h4> <ul class="space-y-3"> <li> <a href="/cloud" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> xNet Cloud </a> </li><li> <a href="/cloud/pricing" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Pricing </a> </li><li> <a href="/open" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Open metrics </a> </li><li> <a href="/status" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Status </a> </li> </ul> </div> <!-- Develop --> <div> <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Develop</h4> <ul class="space-y-3"> <li> <a href="/react" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> XNet for React </a> </li><li> <a href="/build-with" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Build with any language </a> </li><li> <a href="/docs/languages/swift/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Swift SDK </a> </li><li> <a href="/docs/languages/rust/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Rust core </a> </li><li> <a href="/devtool" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> DevTools </a> </li><li> <a href="/docs/hooks/overview/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> React Hooks </a> </li><li> <a href="/docs/guides/server/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Your own server </a> </li> </ul> </div> <!-- Resources --> <div> <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Resources</h4> <ul class="space-y-3"> <li> <a href="/why" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Why xNet </a> </li><li> <a href="/blog" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Blog </a> </li><li> <a href="/compare" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Compare </a> </li><li> <a href="/commitments" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Commitments </a> </li><li> <a href="/#roadmap" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Roadmap </a> </li><li> <a href="/docs/architecture/overview/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Architecture </a> </li><li> <a href="/docs/contributing/getting-started/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Contributing </a> </li> </ul> </div> <!-- Community --> <div> <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Community</h4> <ul class="space-y-3"> <li> <a href="https://github.com/crs48/xNet" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> GitHub </a> </li><li> <a href="https://github.com/crs48/xNet/discussions" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> GitHub Discussions </a> </li><li> <a href="https://github.com/crs48/xNet/blob/main/GOVERNANCE.md" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Governance </a> </li><li> <a href="https://github.com/crs48/xNet/blob/main/TRADEMARK.md" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Trademark &amp; Brand </a> </li><li> <a href="https://github.com/crs48/xNet/blob/main/CODE_OF_CONDUCT.md" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Code of Conduct </a> </li> </ul> </div> </div> <!-- Bottom bar --> <div class="mt-12 pt-8 border-t border-border/50 flex flex-col sm:flex-row items-center justify-between gap-4"> <p class="text-sm text-gray-500">
+&copy; 2026 xNet. Open source under MIT License.
+</p> <div class="flex items-center gap-6"> <a href="https://github.com/crs48/xNet/blob/main/LICENSE" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> MIT License </a><a href="/privacy" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Privacy </a><a href="/terms" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Terms </a><a href="/acceptable-use" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Acceptable Use </a><a href="/subprocessors" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Sub-processors </a> </div> </div> </div> </footer>  <script type="module">const o=new IntersectionObserver(e=>{e.forEach(t=>{t.isIntersecting&&(t.target.classList.add("visible"),o.unobserve(t.target))})},{threshold:.1,rootMargin:"0px 0px -40px 0px"});document.querySelectorAll(".animate-on-scroll").forEach(e=>o.observe(e));document.querySelectorAll(".copy-btn").forEach(e=>{e.addEventListener("click",async()=>{const t=e.dataset.copy||e.closest(".relative")?.querySelector("code")?.textContent||"";await navigator.clipboard.writeText(t.trim()),e.textContent="Copied!",e.classList.add("copied"),setTimeout(()=>{e.textContent="Copy",e.classList.remove("copied")},2e3)})});</script> </body> </html>
