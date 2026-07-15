@@ -19,10 +19,7 @@ import type { AgentToolContribution } from '../agent-tools'
 import type { ContributionRegistry } from '../contributions'
 import type { ModuleCapabilities } from '../feature-module'
 import type { PluginFrameToHostMessage, PluginHostToFrameMessage } from './protocol'
-import type {
-  PluginSourceNode,
-  WorkspacePluginManifestData
-} from '../schemas/plugin-source'
+import type { PluginSourceNode, WorkspacePluginManifestData } from '../schemas/plugin-source'
 import type { Disposable, PluginPermissions } from '../types'
 import type { PluginBuildInput, PluginModuleGraph } from './builder'
 import type { PluginFrameSession, PluginFeedbackEntry } from './session'
@@ -229,7 +226,11 @@ export async function activateWorkspacePlugin(
     manifest
   })
   const hashPolicy = deps.hashPolicy ?? 'enforce-pin'
-  if (hashPolicy === 'enforce-pin' && source.publishedHash && source.publishedHash !== contentHash) {
+  if (
+    hashPolicy === 'enforce-pin' &&
+    source.publishedHash &&
+    source.publishedHash !== contentHash
+  ) {
     throw new WorkspacePluginError(
       `Source has drifted from its pinned hash (pinned ${source.publishedHash.slice(0, 12)}…, ` +
         `current ${contentHash.slice(0, 12)}…) — review the diff and re-consent to update`,

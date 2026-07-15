@@ -111,14 +111,8 @@ export type {
 
 // Preview + agent tools
 export { createWorkspacePluginPreviewManager } from './preview'
-export type {
-  WorkspacePluginPreviewManager,
-  WorkspacePluginPreviewResult
-} from './preview'
-export {
-  createWorkspacePluginAgentTools,
-  scaffoldWorkspacePluginFiles
-} from './agent-tools'
+export type { WorkspacePluginPreviewManager, WorkspacePluginPreviewResult } from './preview'
+export { createWorkspacePluginAgentTools, scaffoldWorkspacePluginFiles } from './agent-tools'
 export type {
   WorkspacePluginAgentToolsOptions,
   WorkspacePluginDraftBackend,

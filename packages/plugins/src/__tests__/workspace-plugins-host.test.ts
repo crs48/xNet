@@ -219,9 +219,7 @@ describe('trust + provenance (validation item)', () => {
   it('a synced copy is inert until its receiver consents', async () => {
     const { deps, frame } = makeDeps({ provenance: 'synced' })
     // No onConsent wired → the gate fails closed.
-    await expect(activateWorkspacePlugin(taskCounterSource(), deps)).rejects.toThrow(
-      /consent/
-    )
+    await expect(activateWorkspacePlugin(taskCounterSource(), deps)).rejects.toThrow(/consent/)
     expect(frame.mounted).toBe(false)
 
     const granted = await activateWorkspacePlugin(taskCounterSource(), {

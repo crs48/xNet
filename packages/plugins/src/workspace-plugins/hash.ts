@@ -89,7 +89,9 @@ export type PluginUpdateAssessment =
  * (pinned) version and the source have diverged — the host must keep running
  * the pinned version and surface diff-and-consent before swapping.
  */
-export async function assessPluginUpdate(source: PluginSourceNode): Promise<PluginUpdateAssessment> {
+export async function assessPluginUpdate(
+  source: PluginSourceNode
+): Promise<PluginUpdateAssessment> {
   const currentHash = await computePluginSourceHash({
     files: source.files,
     entry: source.entry,

@@ -334,9 +334,7 @@ describe('spec→plugin end-to-end (3c + agent-loop-closes validation)', () => {
     await call(tools, 'plugin_preview', { sourceId })
     const handle = h.previews.handleFor(sourceId)
     await waitFor(() => handle?.session.registered !== null)
-    await expect(handle?.session.invoke('command', 'com.demo.crashy.go')).rejects.toThrow(
-      'kaboom'
-    )
+    await expect(handle?.session.invoke('command', 'com.demo.crashy.go')).rejects.toThrow('kaboom')
 
     const feedback = (await call(tools, 'plugin_preview_feedback', { sourceId })) as {
       feedback: Array<{ kind: string; message: string }>

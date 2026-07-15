@@ -11,10 +11,7 @@
  */
 
 import { describe, expect, it } from 'vitest'
-import {
-  PLUGIN_FRAME_SANDBOX,
-  buildPluginFrameSrcdoc
-} from '../workspace-plugins/frame'
+import { PLUGIN_FRAME_SANDBOX, buildPluginFrameSrcdoc } from '../workspace-plugins/frame'
 
 describe('workspace-plugin frame is hardened-renderer safe (5b)', () => {
   const srcdoc = buildPluginFrameSrcdoc({ capabilities: { network: ['api.example.com'] } })
@@ -30,7 +27,13 @@ describe('workspace-plugin frame is hardened-renderer safe (5b)', () => {
     expect(srcdoc).toContain('URL.createObjectURL')
     expect(srcdoc).toContain('new Blob(')
     // No node/electron globals may leak into the frame runtime.
-    for (const forbidden of ['require(', 'process.', '__dirname', 'ipcRenderer', 'nodeIntegration']) {
+    for (const forbidden of [
+      'require(',
+      'process.',
+      '__dirname',
+      'ipcRenderer',
+      'nodeIntegration'
+    ]) {
       expect(srcdoc).not.toContain(forbidden)
     }
   })

@@ -17,10 +17,7 @@
 import type { WorkspacePluginHostDeps } from './host'
 import type { WorkspacePluginPreviewManager } from './preview'
 import type { AiCallableTool } from '../ai-surface/contribution-tools'
-import type {
-  PluginSourceNode,
-  WorkspacePluginManifestData
-} from '../schemas/plugin-source'
+import type { PluginSourceNode, WorkspacePluginManifestData } from '../schemas/plugin-source'
 import { buildWorkspacePlugin } from './host'
 
 // ─── Backends ──────────────────────────────────────────────────────────────
@@ -39,9 +36,7 @@ export interface WorkspacePluginSourceBackend {
   listSources(): Promise<Array<{ id: string; name: string }>>
   updateSource(
     id: string,
-    patch: Partial<
-      Pick<PluginSourceNode, 'name' | 'description' | 'files' | 'entry' | 'manifest'>
-    >
+    patch: Partial<Pick<PluginSourceNode, 'name' | 'description' | 'files' | 'entry' | 'manifest'>>
   ): Promise<void>
 }
 
@@ -69,10 +64,11 @@ export interface WorkspacePluginAgentToolsOptions {
 // ─── Scaffold template ─────────────────────────────────────────────────────
 
 /** Starter files for a fresh workspace plugin (the bundleless house style). */
-export function scaffoldWorkspacePluginFiles(input: {
-  id: string
-  name: string
-}): { files: Record<string, string>; entry: string; manifest: WorkspacePluginManifestData } {
+export function scaffoldWorkspacePluginFiles(input: { id: string; name: string }): {
+  files: Record<string, string>
+  entry: string
+  manifest: WorkspacePluginManifestData
+} {
   const entry = 'index.ts'
   const files: Record<string, string> = {
     [entry]: `import { definePlugin, store } from 'xnet:plugin-api'
@@ -123,9 +119,7 @@ export function createWorkspacePluginAgentTools(
   }
 
   const text = (value: unknown): { content: Array<{ type: 'text'; text: string }> } => ({
-    content: [
-      { type: 'text', text: typeof value === 'string' ? value : JSON.stringify(value) }
-    ]
+    content: [{ type: 'text', text: typeof value === 'string' ? value : JSON.stringify(value) }]
   })
 
   const tools: AiCallableTool[] = [
@@ -332,7 +326,9 @@ export function createWorkspacePluginAgentTools(
           required: ['name']
         },
         invoke: async (args) =>
-          text(await drafts.start({ name: str(args.name), sourceId: str(args.sourceId) || undefined }))
+          text(
+            await drafts.start({ name: str(args.name), sourceId: str(args.sourceId) || undefined })
+          )
       },
       {
         name: 'plugin_draft_end',

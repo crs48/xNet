@@ -157,9 +157,9 @@ describe('buildPluginModuleGraph (1b)', () => {
       entry: 'index.js'
     })
     expect(graph.ok).toBe(true)
-    expect(
-      graph.diagnostics.some((d) => d.severity === 'warning' && d.file === 'orphan.js')
-    ).toBe(true)
+    expect(graph.diagnostics.some((d) => d.severity === 'warning' && d.file === 'orphan.js')).toBe(
+      true
+    )
   })
 
   it('builds a bundleless plugin well under the 1s loop-latency budget', async () => {
