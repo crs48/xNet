@@ -21,3 +21,14 @@ export type {
   RestoreResult,
   ScopeTimelineEntry
 } from '@xnetjs/history'
+
+// Drafts (exploration 0329 P2/P3) — fork/checkout/review/merge, plus the
+// merge-result types a switcher/review UI needs.
+export {
+  useDraft,
+  type DraftReview,
+  type DraftReviewCard,
+  type DraftReviewMember,
+  type UseDraftResult
+} from './useDraft'
+export type { DraftMergeConflict, MergeDraftResult, RefreshDraftResult } from '@xnetjs/history'

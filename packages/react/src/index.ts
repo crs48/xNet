@@ -461,17 +461,26 @@ export { useHistory, type UseHistoryResult } from './hooks/useHistory'
 
 /**
  * Hooks area sub-barrel (0276 policy) — ONE grouped block for new hook
- * surface. Currently: useTimeMachine (Time Machine scrub/checkpoint/restore,
- * exploration 0329) and the history types its consumers bind to.
+ * surface. Currently: useTimeMachine (Time Machine scrub/checkpoint/restore)
+ * and useDraft (drafts fork/checkout/review/merge), exploration 0329, plus
+ * the history types their consumers bind to.
  */
 export {
+  useDraft,
   useTimeMachine,
+  type DraftMergeConflict,
+  type DraftReview,
+  type DraftReviewCard,
+  type DraftReviewMember,
   type Frontier,
   type FrontierEntry,
   type HistoryHorizon,
+  type MergeDraftResult,
   type PropertyDiff,
+  type RefreshDraftResult,
   type RestoreResult,
   type ScopeTimelineEntry,
+  type UseDraftResult,
   type UseTimeMachineOptions,
   type UseTimeMachineResult
 } from './hooks'
