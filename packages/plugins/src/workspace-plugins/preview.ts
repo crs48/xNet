@@ -96,6 +96,24 @@ export function createWorkspacePluginPreviewManager(options: {
           }
         })
         handles.set(sourceId, handle)
+        // The frame links + imports asynchronously; wait for its registration
+        // report (or a crash) so the agent gets the handler keys immediately.
+        const deadline = Date.now() + 3000
+        while (
+          handle.session.registered === null &&
+          handle.status === 'active' &&
+          Date.now() < deadline
+        ) {
+          await new Promise((resolve) => setTimeout(resolve, 5))
+        }
+        if (handle.status !== 'active') {
+          const errors = handle
+            .drainFeedback()
+            .filter((f) => f.kind === 'crash')
+            .map((f) => f.message)
+          handles.delete(sourceId)
+          return { ok: false, errors: errors.length > 0 ? errors : ['plugin crashed on load'] }
+        }
         return { ok: true, registered: handle.session.registered }
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err)

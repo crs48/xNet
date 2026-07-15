@@ -635,28 +635,28 @@ export const pluginTools: AiToolDefinition[] = [
       command/slash/agent-tool handler proxying; store access =
       `createLabHostBridge` + `guardStore` grants; install/consent gates reused
       from `packages/plugins/src/registry.ts`.
-- [ ] **3a — MCP plugin tools**: `plugin_scaffold` / `plugin_read_file` /
+- [x] **3a — MCP plugin tools**: `plugin_scaffold` / `plugin_read_file` /
       `plugin_write_file` / `plugin_build` / `plugin_preview` /
       `plugin_preview_feedback` / `plugin_publish_request`, registered beside
       the `lab_*` tools and exposed through `mcp-server.ts` + the bridge's
       `--allowedTools`.
-- [ ] **3b — `writing-xnet-plugins` skill** (sibling of `XNET_AGENT_SKILL_MD`):
+- [x] **3b — `writing-xnet-plugins` skill** (sibling of `XNET_AGENT_SKILL_MD`):
       the authoring contract, sandbox-eligible contribution points, the
       spec-Page convention, the loop etiquette (build → preview → feedback →
       fix), publish rules. Export via `ai-workspace-exporter` so external
       agents (Claude Code) receive it.
-- [ ] **3c — end-to-end demo**: a spec Page ("habit-tracker view over Tasks") →
+- [x] **3c — end-to-end demo**: a spec Page ("habit-tracker view over Tasks") →
       Claude Code via the bridge → working sandboxed view contribution, no
       human code edits; repeat with Ollama to prove the local-model path.
-- [ ] **4a — SourceWatcher hot reload**: Yjs subscription + 250 ms debounce →
+- [x] **4a — SourceWatcher hot reload**: Yjs subscription + 250 ms debounce →
       rebuild → swap (the `rehydrate()` pattern); crash → auto-disable + pin
       last good hash.
-- [ ] **4b — content-hash pinning + update consent** (0327-E): activation pins
+- [x] **4b — content-hash pinning + update consent** (0327-E): activation pins
       `publishedHash`; source drift renders as diff-and-consent, not silent
       update.
-- [ ] **4c — drafts integration** (when 0329/0327-A1 lands): agent edits target
+- [x] **4c — drafts integration** (when 0329/0327-A1 lands): agent edits target
       a draft of the source node; merge = review surface.
-- [ ] **5a — in-app publish**: P2P share at `user` tier (receiver re-derives
+- [x] **5a — in-app publish**: P2P share at `user` tier (receiver re-derives
       trust, consents before activation); one-click `publishPluginRepo` +
       `registry/community.json` PR for the public path.
 - [ ] **5b — Electron parity**: un-waive `lab`/plugin surfaces in
