@@ -43,6 +43,17 @@ export type {
 export { HistoryEngine, createEmptyState, applyChangeToState, inferOperation } from './engine'
 export type { TelemetryReporter as HistoryTelemetryReporter } from './engine'
 
+// Frontier — shared primitive for scrub/checkpoint/draft (exploration 0329)
+export {
+  captureFrontier,
+  frontierAtWallTime,
+  frontierTarget,
+  makeYjsSnapshotRef,
+  materializeAtFrontier,
+  parseYjsSnapshotRef
+} from './frontier'
+export type { Frontier, FrontierEntry } from './frontier'
+
 // ─── Snapshot Cache ──────────────────────────────────────────
 export { SnapshotCache, MemorySnapshotStorage, setupAutoSnapshots } from './snapshot-cache'
 export type { SnapshotStorageAdapter } from './snapshot-cache'
