@@ -380,6 +380,12 @@ export {
   type GeoFeatureCollection
 } from './schemas'
 export { CommentSchema, type Comment } from './schemas'
+export {
+  CHECKPOINT_SCHEMA_IRI,
+  CheckpointSchema,
+  type Checkpoint,
+  type CheckpointFrontierEntry
+} from './schemas'
 export { ReactionSchema, type Reaction } from './schemas'
 export { DebugReportSchema, type DebugReport } from './schemas'
 export { ProfileSchema, profileNodeId, didFromProfileNodeId, type Profile } from './schemas'

@@ -620,7 +620,7 @@ stateDiagram-v2
 **P1 — Time Machine**
 - [x] `Frontier` type + construction helpers (`latest ≤ position` per node)
       in `packages/history` (new `frontier.ts`), hash-anchored only.
-- [ ] `Checkpoint` node schema (name, frontier incl. per-node
+- [x] `Checkpoint` node schema (name, frontier incl. per-node
       `yjsSnapshotRef`, creator, note) + create/list APIs; forced
       `DocumentHistoryEngine.forceCapture` on checkpoint.
 - [x] Pin registry: `pinned_changes` table + `PruningEngine` exclusion +

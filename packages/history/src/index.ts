@@ -60,6 +60,16 @@ export type { Frontier, FrontierEntry } from './frontier'
 export { HistoryHorizonError, horizonOf } from './horizon'
 export type { HistoryHorizon } from './horizon'
 
+// Checkpoints — named, pinned frontiers (exploration 0329)
+export {
+  createCheckpoint,
+  deleteCheckpoint,
+  listCheckpoints,
+  pinFrontier,
+  restoreToFrontier
+} from './checkpoint'
+export type { CreateCheckpointOptions, RestoreResult } from './checkpoint'
+
 // ─── Snapshot Cache ──────────────────────────────────────────
 export { SnapshotCache, MemorySnapshotStorage, setupAutoSnapshots } from './snapshot-cache'
 export type { SnapshotStorageAdapter } from './snapshot-cache'
