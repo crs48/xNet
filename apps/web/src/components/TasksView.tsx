@@ -44,6 +44,7 @@ import { useEffect, useMemo, useRef, useState, type JSX } from 'react'
 import { useWorkspacePeople } from '../hooks/useWorkspacePeople'
 import { useWorkspaceTags } from '../hooks/useWorkspaceTags'
 import { useContextPanel, type ContextPanelSection } from '../workbench/context-panel'
+import { DraftSwitcher } from '../workbench/drafts/DraftSwitcher'
 import { ProjectHeader } from './ProjectHeader'
 import {
   EMPTY_TASK_FILTER,
@@ -261,6 +262,9 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
         title: 'Task',
         content: focusedTask ? (
           <div className="p-2">
+            <div className="flex justify-end pb-1">
+              <DraftSwitcher nodeId={focusedTask.id} />
+            </div>
             <TaskInlineEditor task={focusedTask} className="border-none p-0" />
           </div>
         ) : (
@@ -955,6 +959,9 @@ export function TasksView({ openTaskId = null, projectId = null }: TasksViewProp
               className="w-full overflow-y-auto p-0 sm:max-w-lg"
               data-testid="task-detail-sheet"
             >
+              <div className="flex justify-end px-4 pt-3">
+                <DraftSwitcher nodeId={editingTask.id} />
+              </div>
               <TaskInlineEditor
                 task={editingTask}
                 autoFocusTitle

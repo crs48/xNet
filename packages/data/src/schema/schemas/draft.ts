@@ -77,6 +77,12 @@ export const DraftSchema = defineSchema({
     /** Original ids deleted inside the draft (tombstoned on merge) */
     deletedIds: json<string[]>({}),
 
+    /**
+     * P4 request surfacing: the draft author asks for a review; the
+     * Inbox/Requests surface lists open drafts with this flag set.
+     */
+    reviewRequested: checkbox({ default: false }),
+
     /** Written once at merge: what the squash carried and who authored it */
     mergeProvenance: json<DraftProvenance>({}),
 

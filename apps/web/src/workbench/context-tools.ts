@@ -11,6 +11,7 @@
  */
 import type { ReactNode } from 'react'
 import { createElement } from 'react'
+import { DraftReviewPanel } from './drafts/DraftReviewPanel'
 import { TimeMachinePanel } from './timemachine/TimeMachinePanel'
 
 export interface ContextToolDef {
@@ -38,6 +39,15 @@ export const CONTEXT_TOOLS: ContextToolDef[] = [
     icon: 'history',
     supportedSchemas: '*',
     render: ({ nodeId }) => createElement(TimeMachinePanel, { nodeId })
+  },
+  {
+    // The second context tool (exploration 0329 P3): review the focused
+    // node's drafts as three-way property cards; merge/refresh/request-review.
+    id: 'draft-review',
+    title: 'Drafts',
+    icon: 'git-branch',
+    supportedSchemas: '*',
+    render: ({ nodeId }) => createElement(DraftReviewPanel, { nodeId })
   }
 ]
 
