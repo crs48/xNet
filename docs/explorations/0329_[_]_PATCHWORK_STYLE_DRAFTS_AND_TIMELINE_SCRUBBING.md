@@ -632,11 +632,11 @@ stateDiagram-v2
       sets + `ScopeScrubCache`; bind to the existing `PlaybackEngine`.
 - [x] Production Yjs capture: NodePool persist hook → throttled
       `captureSnapshot` (session-boundary + min-interval).
-- [ ] Time Machine UI as the first **context tool**: scrubber with change-
+- [x] Time Machine UI as the first **context tool**: scrubber with change-
       density minibar, named-versions toggle, author colors, word/sentence
       deltas, hover-reveal deletions, keyboard nav, restore button
       (`createRevertPayload`/`restoreSchemaAt`).
-- [ ] Changesets for touched publishable packages (`history`, `data`,
+- [x] Changesets for touched publishable packages (`history`, `data`,
       `sync`, `sqlite`, `react`) — pin-registry schema bump per policy.
 
 **P2 — Drafts core**
