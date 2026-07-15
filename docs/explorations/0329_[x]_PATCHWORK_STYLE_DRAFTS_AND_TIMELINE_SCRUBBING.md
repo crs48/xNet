@@ -618,106 +618,106 @@ stateDiagram-v2
 ## Implementation Checklist
 
 **P1 — Time Machine**
-- [ ] `Frontier` type + construction helpers (`latest ≤ position` per node)
+- [x] `Frontier` type + construction helpers (`latest ≤ position` per node)
       in `packages/history` (new `frontier.ts`), hash-anchored only.
-- [ ] `Checkpoint` node schema (name, frontier incl. per-node
+- [x] `Checkpoint` node schema (name, frontier incl. per-node
       `yjsSnapshotRef`, creator, note) + create/list APIs; forced
       `DocumentHistoryEngine.forceCapture` on checkpoint.
-- [ ] Pin registry: `pinned_changes` table + `PruningEngine` exclusion +
+- [x] Pin registry: `pinned_changes` table + `PruningEngine` exclusion +
       `yjs_snapshots` pinned-exempt eviction + referenced-blob retention (or
       an explicit blob horizon); migration.
-- [ ] Prune-horizon: internal targets become hash-anchored; pruned-below
+- [x] Prune-horizon: internal targets become hash-anchored; pruned-below
       resolution returns an explicit `HistoryHorizon` result, surfaced in UI.
-- [ ] `ScopeTimeline` (generalized `SchemaTimeline`) over arbitrary node
+- [x] `ScopeTimeline` (generalized `SchemaTimeline`) over arbitrary node
       sets + `ScopeScrubCache`; bind to the existing `PlaybackEngine`.
-- [ ] Production Yjs capture: NodePool persist hook → throttled
+- [x] Production Yjs capture: NodePool persist hook → throttled
       `captureSnapshot` (session-boundary + min-interval).
-- [ ] Time Machine UI as the first **context tool**: scrubber with change-
+- [x] Time Machine UI as the first **context tool**: scrubber with change-
       density minibar, named-versions toggle, author colors, word/sentence
       deltas, hover-reveal deletions, keyboard nav, restore button
       (`createRevertPayload`/`restoreSchemaAt`).
-- [ ] Changesets for touched publishable packages (`history`, `data`,
+- [x] Changesets for touched publishable packages (`history`, `data`,
       `sync`, `sqlite`, `react`) — pin-registry schema bump per policy.
 
 **P2 — Drafts core**
-- [ ] Perf spike: hydrate-overlay cost at 1 M nodes, inactive and active,
+- [x] Perf spike: hydrate-overlay cost at 1 M nodes, inactive and active,
       against the 0266 budget; go/no-go gate.
-- [ ] `Draft` schema + `DraftEntry` + never-fork policy list; no parent-draft
+- [x] `Draft` schema + `DraftEntry` + never-fork policy list; no parent-draft
       relation (nesting forbidden).
-- [ ] `forkNode` (snapshot-create + pin + Yjs SV fork; recurse database row
+- [x] `forkNode` (snapshot-create + pin + Yjs SV fork; recurse database row
       docs); lazy trigger on first overlay write.
-- [ ] `NodeStore` overlay: checked-out state, content-swap in
+- [x] `NodeStore` overlay: checked-out state, content-swap in
       `get`/`list`/`query` hydration (incl. the private `getNodesById` batch
       path); `XNetContext` scoping;
       draft-epoch cache invalidation.
-- [ ] Draft switcher UI (create/checkout/main/discard) on Pages + Tasks.
-- [ ] Outbound sync exclusion: `NodeStoreSyncProvider` filter so
+- [x] Draft switcher UI (create/checkout/main/discard) on Pages + Tasks.
+- [x] Outbound sync exclusion: `NodeStoreSyncProvider` filter so
       draft-container members never publish to the personal node-sync room
       (device-local drafts).
-- [ ] New helpers: `privateToCreator()` authorization preset; `headHash`
+- [x] New helpers: `privateToCreator()` authorization preset; `headHash`
       accessor over adapter `getChanges`.
 
 **P3 — Merge review**
-- [ ] `threeWayPropertyMerge` + relation remap via temp-id machinery;
+- [x] `threeWayPropertyMerge` + relation remap via temp-id machinery;
       create/delete op kinds (draft-born nodes promoted via temp-ids with
       provenance-recorded ids; draft deletions tombstone originals, conflict
       card if main also edited); one `batchId` squash; conformance-style
       tests pinning merge determinism.
-- [ ] Yjs post-fork delta merge (SV-based), idempotent + re-runnable on
+- [x] Yjs post-fork delta merge (SV-based), idempotent + re-runnable on
       crash recovery; `draft.status` transitions only after both lanes
       commit; envelope re-wrap for original id (binding matters once the
       V2/authorized envelope path is wired).
-- [ ] Auto-refresh: reverse three-way applied on main-side change events
+- [x] Auto-refresh: reverse three-way applied on main-side change events
       while a draft is open; pauses on conflict cards (Upwelling's floating
       drafts).
-- [ ] Review panel (second context tool): per-property cards, Yjs text diff
+- [x] Review panel (second context tool): per-property cards, Yjs text diff
       via fork snapshot (making same-region overlap visible), conflict
       resolution, AI change summaries (budget/consent-gated);
       provenance-author overlay on merged batches (blame recovery).
 
 **P4 — Agent-PR**
-- [ ] `agentTools`/assistant writes default into a draft; merge request
+- [x] `agentTools`/assistant writes default into a draft; merge request
       surfaced in Inbox/Requests; end-to-end demo in seeded workspace.
 
 **P5 — Query-grade drafts**
-- [ ] Clone scalar participation in `queryNodes` under checkout (filtered/
+- [x] Clone scalar participation in `queryNodes` under checkout (filtered/
       sorted grids correct); shared drafts (container in room) + traffic
       measurement; revisit `YjsChange` tier decision.
 
 ## Validation Checklist
 
-- [ ] Scrubbing a 5k-change page and a 100k-change workspace seeks at
+- [x] Scrubbing a 5k-change page and a 100k-change workspace seeks at
       interactive latency (< 100 ms per seek after warm ScrubCache), with
       correct states verified against golden replays.
-- [ ] A pruned node scrubs to its horizon and *says so*; no silent remap
+- [x] A pruned node scrubs to its horizon and *says so*; no silent remap
       (test: prune, then resolve a pre-prune wall/index target → explicit
       horizon, not a wrong state).
-- [ ] Checkpoints survive pruning (pinned hashes + pinned Yjs snapshots
+- [x] Checkpoints survive pruning (pinned hashes + pinned Yjs snapshots
       restorable after aggressive `MOBILE_POLICY` pruning).
-- [ ] Restore round-trip: restore to checkpoint → new compensating batch →
+- [x] Restore round-trip: restore to checkpoint → new compensating batch →
       undo restores present (UndoManager batch undo).
-- [ ] Fork → edit (records + rich text + canvas + database row) + create a
+- [x] Fork → edit (records + rich text + canvas + database row) + create a
       node in-draft + delete a node in-draft → merge converges: originals
       reflect draft state, draft-born nodes are promoted with remapped ids,
       deletions tombstone originals; LWW conformance vectors pin merge
       determinism; Yjs originals re-merge cleanly on a second device; a crash
       injected between the record batch and the Yjs lane recovers to a fully
       merged state on retry.
-- [ ] Draft privacy: an unshared draft's clones never appear in any
+- [x] Draft privacy: an unshared draft's clones never appear in any
       share-room publish, are excluded from the personal node-sync room by
       the P2 outbound filter (hub-side assertion), and never render for
       another space member.
-- [ ] Overlay perf: 0266 budget holds with overlay inactive (Δ ≤ noise) and
+- [x] Overlay perf: 0266 budget holds with overlay inactive (Δ ≤ noise) and
       active (< 10% hydrate overhead at 10k-row page); grid reference
       stability preserved for untouched rows.
-- [ ] Figma-test: concurrent main-edit to property A and draft-edit to
+- [x] Figma-test: concurrent main-edit to property A and draft-edit to
       property B on the same node merges with zero conflict cards; concurrent
       same-paragraph rich-text edits merge convergently and the review diff
       makes the overlap visible.
-- [ ] Upwelling-test: reviewer reads draft diff, merges — post-merge main
+- [x] Upwelling-test: reviewer reads draft diff, merges — post-merge main
       equals the reviewed state (auto-refresh keeps the draft current
       through review).
-- [ ] Agent-PR: assistant edit lands in a draft, is reviewed as a diff,
+- [x] Agent-PR: assistant edit lands in a draft, is reviewed as a diff,
       merges in one reviewed operation (single `batchId` for record ops, Yjs
       lane verified applied); nothing touches main before approval.
 

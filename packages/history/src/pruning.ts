@@ -82,9 +82,10 @@ export class PruningEngine {
 
       const keepFrom = Math.max(snapshotIdx, sorted.length - this.policy.keepRecentChanges)
       const prunableEnd = Math.min(snapshotIdx, keepFrom)
-      const prunable = sorted
+      let prunable = sorted
         .slice(0, prunableEnd)
         .filter((c) => now - c.wallTime > this.policy.minAge)
+      prunable = await this.withoutPinned(prunable)
 
       if (prunable.length === 0) continue
 
@@ -124,9 +125,10 @@ export class PruningEngine {
     const now = Date.now()
     const keepFrom = Math.max(snapshotIdx, sorted.length - this.policy.keepRecentChanges)
     const prunableEnd = Math.min(snapshotIdx, keepFrom)
-    const toDelete = sorted
-      .slice(0, prunableEnd)
-      .filter((c) => now - c.wallTime > this.policy.minAge)
+    let toDelete = sorted.slice(0, prunableEnd).filter((c) => now - c.wallTime > this.policy.minAge)
+    // Pinned changes (checkpoint frontiers, draft fork points — exploration
+    // 0329) are never pruned, no matter their age or position.
+    toDelete = await this.withoutPinned(toDelete)
 
     if (options.dryRun) {
       return {
@@ -158,6 +160,14 @@ export class PruningEngine {
     this.telemetry?.reportUsage('history.pruned_changes', deleted)
 
     return result
+  }
+
+  /** Filter out changes whose hash is pinned (no-op without the capability). */
+  private async withoutPinned(changes: NodeChange[]): Promise<NodeChange[]> {
+    if (!this.storage.pins || changes.length === 0) return changes
+    const pinned = await this.storage.pins.getPinnedKeysAmong(changes.map((c) => c.hash))
+    if (pinned.size === 0) return changes
+    return changes.filter((c) => !pinned.has(c.hash))
   }
 
   /** Get storage metrics for a node */

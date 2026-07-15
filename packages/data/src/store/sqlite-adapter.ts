@@ -20,7 +20,9 @@ import type {
   RebuildNodeIndexesOptions,
   ApplyNodeBatchInput,
   ApplyNodeBatchResult,
-  NodeBatchPreflightResult
+  NodeBatchPreflightResult,
+  PinEntry,
+  PinRegistry
 } from './types'
 import type { SchemaIRI } from '../schema/node'
 import type { ContentId, DID } from '@xnetjs/core'
@@ -1265,6 +1267,49 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
          updated_at = excluded.updated_at`,
       [nodeId, content, Date.now()]
     )
+  }
+
+  // ─── Pin Registry (exploration 0329) ──────────────────────────────────────
+
+  readonly pins: PinRegistry = {
+    addPins: async (pins: readonly PinEntry[]): Promise<void> => {
+      if (pins.length === 0) return
+      await this.enqueueWrite(async () => {
+        const now = Date.now()
+        for (const chunk of chunkItems(pins, 200)) {
+          const placeholders = chunk.map(() => '(?, ?, ?, ?)').join(', ')
+          const params: SQLValue[] = []
+          for (const pin of chunk) params.push(pin.key, pin.ownerId, pin.reason, now)
+          await this.db.run(
+            `INSERT INTO pinned_changes (pin_key, owner_id, reason, created_at)
+             VALUES ${placeholders}
+             ON CONFLICT(pin_key, owner_id) DO NOTHING`,
+            params
+          )
+        }
+      })
+    },
+    removePinsByOwner: async (ownerId: string): Promise<void> => {
+      await this.enqueueWrite(async () => {
+        await this.db.run(`DELETE FROM pinned_changes WHERE owner_id = ?`, [ownerId])
+      })
+    },
+    getPinnedKeysAmong: async (keys: readonly string[]): Promise<Set<string>> => {
+      const pinned = new Set<string>()
+      for (const chunk of chunkItems(keys, 500)) {
+        const placeholders = chunk.map(() => '?').join(', ')
+        const rows = await this.db.query<{ pin_key: string }>(
+          `SELECT DISTINCT pin_key FROM pinned_changes WHERE pin_key IN (${placeholders})`,
+          [...chunk]
+        )
+        for (const row of rows) pinned.add(row.pin_key)
+      }
+      return pinned
+    },
+    countPins: async (): Promise<number> => {
+      const row = await this.db.queryOne<{ n: number }>(`SELECT COUNT(*) AS n FROM pinned_changes`)
+      return row?.n ?? 0
+    }
   }
 
   // ─── Yjs Snapshots (Extended) ─────────────────────────────────────────────

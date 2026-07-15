@@ -43,6 +43,70 @@ export type {
 export { HistoryEngine, createEmptyState, applyChangeToState, inferOperation } from './engine'
 export type { TelemetryReporter as HistoryTelemetryReporter } from './engine'
 
+// Frontier — shared primitive for scrub/checkpoint/draft (exploration 0329)
+export {
+  captureFrontier,
+  frontierAtWallTime,
+  frontierTarget,
+  headHash,
+  makeYjsSnapshotRef,
+  materializeAtFrontier,
+  parseYjsSnapshotRef,
+  pinKeyForChange,
+  pinKeyForYjsSnapshot
+} from './frontier'
+export type { Frontier, FrontierEntry } from './frontier'
+
+// History horizon — loud failure below the prune line (exploration 0329)
+export { HistoryHorizonError, horizonOf } from './horizon'
+export type { HistoryHorizon } from './horizon'
+
+// Checkpoints — named, pinned frontiers (exploration 0329)
+export {
+  createCheckpoint,
+  deleteCheckpoint,
+  listCheckpoints,
+  pinFrontier,
+  restoreToFrontier
+} from './checkpoint'
+export type { CreateCheckpointOptions, RestoreResult } from './checkpoint'
+
+// Drafts — writable branches forked from a frontier (exploration 0329 P2)
+export {
+  DraftPolicyError,
+  NEVER_FORK_SCHEMA_BASES,
+  createDraft,
+  discardDraft,
+  draftEntries,
+  forkNodeIntoDraft,
+  isForkable,
+  listDrafts,
+  markCreatedInDraft,
+  markDeletedInDraft,
+  rehydrateDraftPrivacy,
+  shareDraft
+} from './draft'
+export type { CreateDraftOptions } from './draft'
+
+// Draft merge — merger-signed three-way squash + floating refresh (0329 P3)
+export {
+  makeIdRemapper,
+  mergeDraft,
+  mergeYjsDelta,
+  refreshDraftFromMain,
+  threeWayPropertyMerge
+} from './merge'
+export type {
+  DraftMergeConflict,
+  MergeDraftResult,
+  RefreshDraftResult,
+  ThreeWayResult
+} from './merge'
+
+// Agent-PR sessions — assistant writes land in a draft by default (0329 P4)
+export { startAgentDraft } from './agent-draft'
+export type { AgentDraftSession } from './agent-draft'
+
 // ─── Snapshot Cache ──────────────────────────────────────────
 export { SnapshotCache, MemorySnapshotStorage, setupAutoSnapshots } from './snapshot-cache'
 export type { SnapshotStorageAdapter } from './snapshot-cache'
@@ -72,6 +136,8 @@ export type { PrunableStorageAdapter } from './pruning'
 // ─── Schema Timeline (Database Time Machine) ─────────────────
 export { SchemaTimeline, restoreSchemaAt } from './schema-timeline'
 export { SchemaScrubCache } from './schema-scrub-cache'
+export { ScopeTimeline, ScopeScrubCache } from './scope-timeline'
+export type { ScopeTimelineEntry } from './scope-timeline'
 
 // ─── Document History (Yjs Snapshots) ─────────────────────────
 export { DocumentHistoryEngine, MemoryYjsSnapshotStorage } from './document-history'

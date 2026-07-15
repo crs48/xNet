@@ -89,6 +89,20 @@ export interface SyncManagerConfig {
   onDocEvict?: (nodeId: string, doc: Y.Doc) => void
   /** Optional room for node-change relay (enables NodeStore sync via hub) */
   nodeSyncRoom?: string
+  /**
+   * Production Yjs history capture (exploration 0329): wired to
+   * `DocumentHistoryEngine` (duck-typed to avoid a hard coupling). Steady
+   * debounce persists go through the engine's own min-interval throttle
+   * (`captureSnapshot`); session boundaries (evict/flush/destroy) force a
+   * capture so a doc never leaves memory without a restorable snapshot.
+   */
+  documentHistory?: DocumentHistoryCapture
+}
+
+/** Duck-typed slice of DocumentHistoryEngine used for capture wiring. */
+export interface DocumentHistoryCapture {
+  captureSnapshot(nodeId: string, doc: Y.Doc): Promise<unknown>
+  forceCapture(nodeId: string, doc: Y.Doc): Promise<unknown>
 }
 
 export type SyncReconciliationOptions = {
@@ -388,7 +402,20 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
       // Clear broadcastDocs so re-acquisition registers a fresh handler
       broadcastDocs.delete(nodeId)
       config.onDocEvict?.(nodeId, doc)
-    }
+    },
+    onDocPersist: config.documentHistory
+      ? (nodeId, doc, context) => {
+          const history = config.documentHistory!
+          // Fire-and-forget: capture must never block or fail a persist.
+          const capture =
+            context === 'debounce'
+              ? history.captureSnapshot(nodeId, doc) // engine min-interval throttles
+              : history.forceCapture(nodeId, doc) // session boundary
+          void capture.catch((err) =>
+            console.warn(`[SyncManager] Yjs snapshot capture failed for ${nodeId}:`, err)
+          )
+        }
+      : undefined
   })
   const registry = createRegistry({
     storage: createRegistryStorageAdapter(config.storage),
@@ -479,7 +506,14 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
   // path that reads the queue (drain on connect) awaits this first.
   let offlineQueueReady: Promise<void> = Promise.resolve()
   const nodeSyncProvider = config.nodeSyncRoom
-    ? new NodeStoreSyncProvider(config.nodeStore, config.nodeSyncRoom)
+    ? new NodeStoreSyncProvider(
+        config.nodeStore,
+        config.nodeSyncRoom,
+        false,
+        // Draft privacy (0329): device-local draft nodes/clones never publish
+        // to the personal node-sync room.
+        (change) => !config.nodeStore.isDraftPrivate(change.payload.nodeId)
+      )
     : null
   // Receive-only providers for share rooms (channels + workspaces, 0298), opened
   // at runtime when a view mounts, a link is claimed, or the boot resync runs.

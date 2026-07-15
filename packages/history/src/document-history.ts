@@ -16,8 +16,9 @@ import type {
   UnifiedTimelineEntry,
   TimelineEntry
 } from './types'
-import type { NodeId } from '@xnetjs/data'
+import type { NodeId, PinRegistry } from '@xnetjs/data'
 import * as Y from 'yjs'
+import { pinKeyForYjsSnapshot } from './frontier'
 
 // ─── Configuration ───────────────────────────────────────────
 
@@ -26,6 +27,11 @@ export interface DocumentHistoryOptions {
   minInterval: number
   /** Maximum snapshots to keep per node (default: 100) */
   maxPerNode: number
+  /**
+   * Pin registry (exploration 0329): snapshots whose `yjs:<nodeId>@<ts>` ref
+   * is pinned (by a checkpoint or draft) are exempt from per-node eviction.
+   */
+  pins?: PinRegistry
 }
 
 const DEFAULT_OPTIONS: DocumentHistoryOptions = {
@@ -260,8 +266,21 @@ export class DocumentHistoryEngine {
     const snapshots = await this.getSnapshots(nodeId)
     if (snapshots.length <= this.options.maxPerNode) return
 
-    // Keep the most recent maxPerNode snapshots by deleting all and re-saving
-    const toKeep = snapshots.slice(-this.options.maxPerNode)
+    // Keep the most recent maxPerNode snapshots — plus any snapshot pinned by
+    // a checkpoint/draft (exploration 0329), which survives eviction so the
+    // pinned frontier stays restorable.
+    const recent = new Set(snapshots.slice(-this.options.maxPerNode))
+    let pinnedRefs = new Set<string>()
+    if (this.options.pins) {
+      pinnedRefs = await this.options.pins.getPinnedKeysAmong(
+        snapshots.map((s) => pinKeyForYjsSnapshot(s.nodeId, s.timestamp))
+      )
+    }
+    const toKeep = snapshots.filter(
+      (s) => recent.has(s) || pinnedRefs.has(pinKeyForYjsSnapshot(s.nodeId, s.timestamp))
+    )
+    if (toKeep.length === snapshots.length) return
+
     await this.snapshotStorage.deleteYjsSnapshots(nodeId)
     for (const snap of toKeep) {
       await this.snapshotStorage.saveYjsSnapshot(snap)
