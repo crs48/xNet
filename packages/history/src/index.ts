@@ -50,7 +50,9 @@ export {
   frontierTarget,
   makeYjsSnapshotRef,
   materializeAtFrontier,
-  parseYjsSnapshotRef
+  parseYjsSnapshotRef,
+  pinKeyForChange,
+  pinKeyForYjsSnapshot
 } from './frontier'
 export type { Frontier, FrontierEntry } from './frontier'
 

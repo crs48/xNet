@@ -277,6 +277,35 @@ export interface NodeStorageAdapter {
   // Document content operations (for nodes with CRDT document)
   getDocumentContent(nodeId: NodeId): Promise<Uint8Array | null>
   setDocumentContent(nodeId: NodeId, content: Uint8Array): Promise<void>
+
+  /**
+   * Pin registry (exploration 0329): keys pinned here are exempt from history
+   * pruning and Yjs snapshot eviction. A key is either a change hash or a
+   * `yjs:<nodeId>@<timestamp>` snapshot ref; owners (checkpoints, drafts)
+   * release all their pins in one call when they are deleted. Blobs are NOT
+   * pinned — referenced blobs past retention are an explicit blob horizon.
+   * Optional: without it, pruning behaves as before (nothing is protected).
+   */
+  pins?: PinRegistry
+}
+
+/** One pinned key: a change hash or a `yjs:`-prefixed snapshot ref. */
+export interface PinEntry {
+  key: string
+  ownerId: string
+  reason: string
+}
+
+/** Pin registry capability on a storage adapter (exploration 0329). */
+export interface PinRegistry {
+  /** Add pins (idempotent per (key, ownerId)). */
+  addPins(pins: readonly PinEntry[]): Promise<void>
+  /** Release every pin held by an owner (checkpoint/draft deletion). */
+  removePinsByOwner(ownerId: string): Promise<void>
+  /** Of the given keys, return the subset pinned by any owner. */
+  getPinnedKeysAmong(keys: readonly string[]): Promise<Set<string>>
+  /** Total number of pins (diagnostics). */
+  countPins(): Promise<number>
 }
 
 export interface SetNodeOptions {

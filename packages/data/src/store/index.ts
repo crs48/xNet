@@ -37,6 +37,8 @@ export type {
   PropertyTimestamp,
   NodeState,
   NodeStorageAdapter,
+  PinEntry,
+  PinRegistry,
   SetNodeOptions,
   ImportNodesOptions,
   RebuildNodeIndexesOptions,

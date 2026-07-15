@@ -623,7 +623,7 @@ stateDiagram-v2
 - [ ] `Checkpoint` node schema (name, frontier incl. per-node
       `yjsSnapshotRef`, creator, note) + create/list APIs; forced
       `DocumentHistoryEngine.forceCapture` on checkpoint.
-- [ ] Pin registry: `pinned_changes` table + `PruningEngine` exclusion +
+- [x] Pin registry: `pinned_changes` table + `PruningEngine` exclusion +
       `yjs_snapshots` pinned-exempt eviction + referenced-blob retention (or
       an explicit blob horizon); migration.
 - [ ] Prune-horizon: internal targets become hash-anchored; pruned-below

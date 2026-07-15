@@ -55,6 +55,21 @@ export function parseYjsSnapshotRef(ref: string): { nodeId: NodeId; timestamp: n
   return { nodeId: ref.slice(0, at) as NodeId, timestamp }
 }
 
+// ─── Pin keys ────────────────────────────────────────────────
+
+/**
+ * Pin-registry keys (`NodeStorageAdapter.pins`): a change is pinned under its
+ * hash; a Yjs snapshot under a `yjs:`-prefixed ref. Blobs are NOT pinned —
+ * referenced blobs past retention are an explicit blob horizon (0329).
+ */
+export function pinKeyForChange(hash: ContentId): string {
+  return hash
+}
+
+export function pinKeyForYjsSnapshot(nodeId: NodeId, timestamp: number): string {
+  return `yjs:${makeYjsSnapshotRef(nodeId, timestamp)}`
+}
+
 // ─── Construction ────────────────────────────────────────────
 
 /**
