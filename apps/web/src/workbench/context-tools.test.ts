@@ -4,7 +4,7 @@
  * schemas match nothing but wildcards.
  */
 import { describe, expect, it } from 'vitest'
-import { contextToolsForSchema, type ContextToolDef } from './context-tools'
+import { CONTEXT_TOOLS, contextToolsForSchema, type ContextToolDef } from './context-tools'
 
 const PAGE = 'xnet://xnet.fyi/Page@1.0.0'
 const TASK = 'xnet://xnet.fyi/Task@1.0.0'
@@ -41,5 +41,12 @@ describe('contextToolsForSchema', () => {
     const ids = contextToolsForSchema(TASK, registry).map((t) => t.id)
     expect(ids).toContain('page-and-task')
     expect(ids).not.toContain('page-only')
+  })
+
+  it('the built-in registry leads with the Time Machine for every schema', () => {
+    // Wildcard registration (0329): every node has a change log, so every
+    // focused node gets a History tab.
+    expect(CONTEXT_TOOLS[0]?.id).toBe('time-machine')
+    expect(contextToolsForSchema('xnet://xnet.fyi/Anything@1.0.0')[0]?.id).toBe('time-machine')
   })
 })

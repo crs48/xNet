@@ -10,6 +10,8 @@
  * one registration covers pages, tasks, database rows, canvases alike.
  */
 import type { ReactNode } from 'react'
+import { createElement } from 'react'
+import { TimeMachinePanel } from './timemachine/TimeMachinePanel'
 
 export interface ContextToolDef {
   /** Stable id — becomes the ContextPanel section id (`tool:<id>`). */
@@ -26,9 +28,18 @@ export interface ContextToolDef {
 
 /**
  * The registry. Order matters within a specificity tier (first registered
- * renders first). Populated below and by feature modules.
+ * renders first). The Time Machine leads: every node has a change log, so
+ * every node gets history (exploration 0329).
  */
-export const CONTEXT_TOOLS: ContextToolDef[] = []
+export const CONTEXT_TOOLS: ContextToolDef[] = [
+  {
+    id: 'time-machine',
+    title: 'History',
+    icon: 'history',
+    supportedSchemas: '*',
+    render: ({ nodeId }) => createElement(TimeMachinePanel, { nodeId })
+  }
+]
 
 /**
  * Tools applicable to a schema, specific-before-wildcard: a tool that names
