@@ -62,9 +62,7 @@ describe('PinRegistry (memory adapter)', () => {
 
     await adapter.pins.removePinsByOwner('checkpoint-1')
     // hash-a stays pinned through draft-1; hash-b is released.
-    expect(await adapter.pins.getPinnedKeysAmong(['hash-a', 'hash-b'])).toEqual(
-      new Set(['hash-a'])
-    )
+    expect(await adapter.pins.getPinnedKeysAmong(['hash-a', 'hash-b'])).toEqual(new Set(['hash-a']))
   })
 })
 

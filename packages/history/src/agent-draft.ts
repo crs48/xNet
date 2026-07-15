@@ -11,7 +11,13 @@
  */
 
 import type { NodeId, NodeState, NodeStorageAdapter, NodeStore } from '@xnetjs/data'
-import { createDraft, draftEntries, forkNodeIntoDraft, isForkable, markCreatedInDraft } from './draft'
+import {
+  createDraft,
+  draftEntries,
+  forkNodeIntoDraft,
+  isForkable,
+  markCreatedInDraft
+} from './draft'
 
 export interface AgentDraftSession {
   /** The Draft node backing this session. */

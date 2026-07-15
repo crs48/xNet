@@ -99,7 +99,11 @@ export async function pinFrontier(
     if (entry.yjsSnapshotRef) {
       const parsed = parseYjsSnapshotRef(entry.yjsSnapshotRef)
       if (parsed) {
-        pins.push({ key: pinKeyForYjsSnapshot(nodeId as NodeId, parsed.timestamp), ownerId, reason })
+        pins.push({
+          key: pinKeyForYjsSnapshot(nodeId as NodeId, parsed.timestamp),
+          ownerId,
+          reason
+        })
       }
     }
   }
@@ -107,10 +111,7 @@ export async function pinFrontier(
 }
 
 /** List checkpoints, optionally filtered to one scope node. */
-export async function listCheckpoints(
-  store: NodeStore,
-  scopeId?: NodeId
-): Promise<NodeState[]> {
+export async function listCheckpoints(store: NodeStore, scopeId?: NodeId): Promise<NodeState[]> {
   const all = await store.list({ schemaId: CHECKPOINT_SCHEMA_IRI as SchemaIRI })
   const filtered = scopeId ? all.filter((c) => c.properties.scope === scopeId) : all
   return filtered.sort((a, b) => b.createdAt - a.createdAt)

@@ -152,9 +152,7 @@ describe('merge crash recovery (0329 validation)', () => {
       return originalSet(nodeId, content)
     }
 
-    await expect(mergeDraft(store, adapter, engine, draft.id)).rejects.toThrow(
-      'simulated crash'
-    )
+    await expect(mergeDraft(store, adapter, engine, draft.id)).rejects.toThrow('simulated crash')
     // Half-merged: records landed, Yjs did not, status still open.
     expect((await store.getRaw(page.id))?.properties.title).toBe('draft-v2')
     expect((await store.getRaw(draft.id))?.properties.status).toBe('open')

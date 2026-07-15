@@ -166,7 +166,11 @@ describe('discardDraft / listDrafts', () => {
     // Simulate a reload: a fresh store over the SAME storage knows nothing.
     const keyPair = generateSigningKeyPair()
     const did = `did:key:z6Mk${Buffer.from(keyPair.publicKey).toString('base64url')}` as DID
-    const fresh = new NodeStore({ storage: adapter, authorDID: did, signingKey: keyPair.privateKey })
+    const fresh = new NodeStore({
+      storage: adapter,
+      authorDID: did,
+      signingKey: keyPair.privateKey
+    })
     expect(fresh.isDraftPrivate(entry.cloneId as NodeId)).toBe(false)
 
     const { rehydrateDraftPrivacy } = await import('./draft')

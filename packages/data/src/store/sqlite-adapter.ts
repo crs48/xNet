@@ -1307,9 +1307,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
       return pinned
     },
     countPins: async (): Promise<number> => {
-      const row = await this.db.queryOne<{ n: number }>(
-        `SELECT COUNT(*) AS n FROM pinned_changes`
-      )
+      const row = await this.db.queryOne<{ n: number }>(`SELECT COUNT(*) AS n FROM pinned_changes`)
       return row?.n ?? 0
     }
   }

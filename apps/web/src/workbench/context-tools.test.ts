@@ -31,10 +31,9 @@ describe('contextToolsForSchema', () => {
   })
 
   it('matches only wildcards for a schema no tool names', () => {
-    expect(contextToolsForSchema('xnet://xnet.fyi/Expense@1.0.0', registry).map((t) => t.id)).toEqual([
-      'wildcard-first',
-      'wildcard-second'
-    ])
+    expect(
+      contextToolsForSchema('xnet://xnet.fyi/Expense@1.0.0', registry).map((t) => t.id)
+    ).toEqual(['wildcard-first', 'wildcard-second'])
   })
 
   it('matches list membership per schema', () => {

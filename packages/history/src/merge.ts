@@ -366,10 +366,7 @@ export async function refreshDraftFromMain(
         const mainDoc = new Y.Doc({ gc: false })
         try {
           Y.applyUpdate(mainDoc, mainBlob)
-          mainBlobDelta = Y.encodeStateAsUpdate(
-            mainDoc,
-            fromBase64(entry.forkedAtYjsStateVector)
-          )
+          mainBlobDelta = Y.encodeStateAsUpdate(mainDoc, fromBase64(entry.forkedAtYjsStateVector))
           newForkSV = toBase64(Y.encodeStateVector(mainDoc))
         } finally {
           mainDoc.destroy()
@@ -397,9 +394,7 @@ export async function refreshDraftFromMain(
         : plan.mainBlobDelta
       await storage.setDocumentContent(plan.entry.cloneId as NodeId, merged)
     }
-    await storage.pins?.addPins([
-      { key: plan.newForkHash, ownerId: draftId, reason: 'draft-fork' }
-    ])
+    await storage.pins?.addPins([{ key: plan.newForkHash, ownerId: draftId, reason: 'draft-fork' }])
     newEntries[plan.originalId] = {
       ...plan.entry,
       forkedAtHash: plan.newForkHash,

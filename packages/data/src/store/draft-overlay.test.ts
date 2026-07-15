@@ -235,8 +235,7 @@ describe('draft overlay events', () => {
       draftId: 'draft-1' as NodeId,
       members: [original.id],
       clones: {},
-      onMissingMember: async () =>
-        (await store.create({ schemaId: TASK, properties: {} })).id
+      onMissingMember: async () => (await store.create({ schemaId: TASK, properties: {} })).id
     })
     expect(notified).toHaveBeenCalledTimes(1)
 

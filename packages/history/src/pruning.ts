@@ -125,9 +125,7 @@ export class PruningEngine {
     const now = Date.now()
     const keepFrom = Math.max(snapshotIdx, sorted.length - this.policy.keepRecentChanges)
     const prunableEnd = Math.min(snapshotIdx, keepFrom)
-    let toDelete = sorted
-      .slice(0, prunableEnd)
-      .filter((c) => now - c.wallTime > this.policy.minAge)
+    let toDelete = sorted.slice(0, prunableEnd).filter((c) => now - c.wallTime > this.policy.minAge)
     // Pinned changes (checkpoint frontiers, draft fork points — exploration
     // 0329) are never pruned, no matter their age or position.
     toDelete = await this.withoutPinned(toDelete)

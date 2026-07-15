@@ -544,8 +544,7 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Canvas@1.0.0': () => import('./canvas').then((m) => m.CanvasSchema),
   'xnet://xnet.fyi/Map@1.0.0': () => import('./map').then((m) => m.MapSchema),
   'xnet://xnet.fyi/Comment@1.0.0': () => import('./comment').then((m) => m.CommentSchema),
-  'xnet://xnet.fyi/Checkpoint@1.0.0': () =>
-    import('./checkpoint').then((m) => m.CheckpointSchema),
+  'xnet://xnet.fyi/Checkpoint@1.0.0': () => import('./checkpoint').then((m) => m.CheckpointSchema),
   'xnet://xnet.fyi/Draft@1.0.0': () => import('./draft').then((m) => m.DraftSchema),
   'xnet://xnet.fyi/Reaction@1.0.0': () => import('./reaction').then((m) => m.ReactionSchema),
   'xnet://xnet.fyi/DebugReport@1.0.0': () =>

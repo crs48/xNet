@@ -499,10 +499,7 @@ export class NodeStore {
 
     const readable = await this.filterReadableNodes(candidates)
     const swapped = await this.overlayStates(readable)
-    const filtered = applyNodeQueryDescriptor(
-      swapped,
-      withoutNodeQueryPagination(descriptor)
-    )
+    const filtered = applyNodeQueryDescriptor(swapped, withoutNodeQueryPagination(descriptor))
     const result = applyNodeQueryDescriptor(swapped, descriptor)
 
     return {

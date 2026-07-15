@@ -85,9 +85,7 @@ describe('useDraft', () => {
       expect(draft?.properties.name).toBe('Try a rewrite')
     })
     await waitFor(() => expect(result.current.d.drafts.length).toBe(1))
-    await waitFor(() =>
-      expect(result.current.d.checkedOut?.properties.name).toBe('Try a rewrite')
-    )
+    await waitFor(() => expect(result.current.d.checkedOut?.properties.name).toBe('Try a rewrite'))
 
     const store = result.current.nodeStore.store!
     // No clone exists until the first write (lazy COW).
@@ -97,9 +95,7 @@ describe('useDraft', () => {
     await act(async () => {
       await store.update(node.id, { properties: { title: 'draft-title' } })
     })
-    await waitFor(() =>
-      expect(store.getCheckedOutDraft()?.clones[node.id]).toBeTruthy()
-    )
+    await waitFor(() => expect(store.getCheckedOutDraft()?.clones[node.id]).toBeTruthy())
 
     // Overlay read shows the draft's content under the original id...
     const overlaid = await store.get(node.id)
@@ -294,8 +290,6 @@ describe('useDraft', () => {
     await act(async () => {
       await result.current.d.setReviewRequested(draftId, true)
     })
-    await waitFor(() =>
-      expect(result.current.d.drafts[0]?.properties.reviewRequested).toBe(true)
-    )
+    await waitFor(() => expect(result.current.d.drafts[0]?.properties.reviewRequested).toBe(true))
   })
 })

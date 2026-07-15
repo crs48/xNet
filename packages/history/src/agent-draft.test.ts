@@ -110,8 +110,6 @@ describe('startAgentDraft (agent-PR, 0329 P4)', () => {
     const { store, adapter } = setup()
     const session = await startAgentDraft(store, adapter, { name: 'AI: no-op' })
     await session.end()
-    expect((await store.getRaw(session.draft.id))?.properties.reviewRequested ?? false).toBe(
-      false
-    )
+    expect((await store.getRaw(session.draft.id))?.properties.reviewRequested ?? false).toBe(false)
   })
 })

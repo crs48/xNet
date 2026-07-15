@@ -25,9 +25,7 @@ describe('density buckets', () => {
   })
 
   it('collapses a single instant into one bucket', () => {
-    expect(bucketDensity([5, 5, 5], 8)).toEqual([
-      { count: 3, start: 5, end: 5, firstIndex: 0 }
-    ])
+    expect(bucketDensity([5, 5, 5], 8)).toEqual([{ count: 3, start: 5, end: 5, firstIndex: 0 }])
     expect(bucketDensity([], 8)).toEqual([])
   })
 })

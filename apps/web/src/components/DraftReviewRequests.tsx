@@ -73,7 +73,8 @@ export function DraftReviewRequests() {
       void navigate({ to: '/tasks', search: { task: host.id } })
       return
     }
-    const nodeType = NODE_TYPE_BY_SCHEMA[host.schemaId] ?? NODE_TYPE_BY_SCHEMA[baseIRI(host.schemaId)]
+    const nodeType =
+      NODE_TYPE_BY_SCHEMA[host.schemaId] ?? NODE_TYPE_BY_SCHEMA[baseIRI(host.schemaId)]
     if (nodeType) navigateToNode(navigate, nodeType, host.id)
   }
 

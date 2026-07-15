@@ -66,10 +66,7 @@ export function DraftReviewPanel({ nodeId }: { nodeId: string }) {
   // Which draft is under review: the checked-out one wins; otherwise pick.
   const [pickedId, setPickedId] = useState<string | null>(null)
   const draft =
-    d.checkedOut ??
-    d.drafts.find((candidate) => candidate.id === pickedId) ??
-    d.drafts[0] ??
-    null
+    d.checkedOut ?? d.drafts.find((candidate) => candidate.id === pickedId) ?? d.drafts[0] ?? null
 
   const [review, setReview] = useState<DraftReview | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
@@ -193,7 +190,10 @@ export function DraftReviewPanel({ nodeId }: { nodeId: string }) {
 
       {/* Refresh conflict pause (Upwelling's floating drafts, paused) */}
       {paused && (
-        <p role="alert" className="m-0 rounded-md bg-destructive/10 px-2 py-1 text-[11px] text-destructive">
+        <p
+          role="alert"
+          className="m-0 rounded-md bg-destructive/10 px-2 py-1 text-[11px] text-destructive"
+        >
           Refresh paused — main and this draft changed the same properties. Resolve below (edit the
           draft or merge with the conflicts in view).
         </p>
@@ -276,7 +276,11 @@ export function DraftReviewPanel({ nodeId }: { nodeId: string }) {
           {reviewRequested ? 'Review requested — withdraw' : 'Request review'}
         </button>
         {d.error && (
-          <span role="alert" className="truncate text-[11px] text-destructive" title={d.error.message}>
+          <span
+            role="alert"
+            className="truncate text-[11px] text-destructive"
+            title={d.error.message}
+          >
             {d.error.message}
           </span>
         )}

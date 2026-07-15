@@ -158,7 +158,10 @@ export async function materializeAtFrontier(
   await Promise.all(
     Object.entries(frontier).map(async ([nodeId, entry]) => {
       try {
-        states.set(nodeId as NodeId, await engine.materializeAt(nodeId as NodeId, frontierTarget(entry)))
+        states.set(
+          nodeId as NodeId,
+          await engine.materializeAt(nodeId as NodeId, frontierTarget(entry))
+        )
       } catch {
         missing.push(nodeId as NodeId)
       }

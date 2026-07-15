@@ -120,8 +120,7 @@ function DiffRows({ tm }: { tm: UseTimeMachineResult }) {
         // Hook semantics: before = at scrub position, after = current. Restore
         // brings `before` back, so lead with it.
         const delta = longTextDelta(diff.before, diff.after)
-        const marker =
-          diff.type === 'added' ? '+' : diff.type === 'removed' ? '−' : '~'
+        const marker = diff.type === 'added' ? '+' : diff.type === 'removed' ? '−' : '~'
         return (
           <li
             key={diff.property}
@@ -363,7 +362,9 @@ export function TimeMachinePanel({ nodeId }: { nodeId: string }) {
                         : (checkpoint.properties.note as string | undefined)
                     }
                     className={`flex w-full cursor-pointer items-center gap-1.5 rounded-md border-none px-1.5 py-1 text-left text-[11px] disabled:cursor-default disabled:opacity-50 ${
-                      active ? 'bg-accent text-ink-1' : 'bg-transparent text-ink-2 hover:bg-background-muted'
+                      active
+                        ? 'bg-accent text-ink-1'
+                        : 'bg-transparent text-ink-2 hover:bg-background-muted'
                     }`}
                   >
                     <Bookmark size={11} strokeWidth={1.75} className="shrink-0 text-ink-3" />
@@ -384,7 +385,9 @@ export function TimeMachinePanel({ nodeId }: { nodeId: string }) {
                     data-tm-active={active || undefined}
                     onClick={() => tm.setPosition(entry.index)}
                     className={`flex w-full cursor-pointer items-center gap-1.5 rounded-md border-none px-1.5 py-1 text-left text-[11px] ${
-                      active ? 'bg-accent text-ink-1' : 'bg-transparent text-ink-2 hover:bg-background-muted'
+                      active
+                        ? 'bg-accent text-ink-1'
+                        : 'bg-transparent text-ink-2 hover:bg-background-muted'
                     }`}
                   >
                     <span

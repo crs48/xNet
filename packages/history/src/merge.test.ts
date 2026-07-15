@@ -9,12 +9,7 @@ import { NodeStore, MemoryNodeStorageAdapter } from '@xnetjs/data'
 import type { NodeId, SchemaIRI } from '@xnetjs/data'
 import { describe, it, expect } from 'vitest'
 import * as Y from 'yjs'
-import {
-  createDraft,
-  forkNodeIntoDraft,
-  markCreatedInDraft,
-  markDeletedInDraft
-} from './draft'
+import { createDraft, forkNodeIntoDraft, markCreatedInDraft, markDeletedInDraft } from './draft'
 import { HistoryEngine } from './engine'
 import { mergeDraft, refreshDraftFromMain, threeWayPropertyMerge, makeIdRemapper } from './merge'
 import { SnapshotCache, MemorySnapshotStorage } from './snapshot-cache'
