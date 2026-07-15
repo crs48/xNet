@@ -56,6 +56,10 @@ export {
 } from './frontier'
 export type { Frontier, FrontierEntry } from './frontier'
 
+// History horizon — loud failure below the prune line (exploration 0329)
+export { HistoryHorizonError, horizonOf } from './horizon'
+export type { HistoryHorizon } from './horizon'
+
 // ─── Snapshot Cache ──────────────────────────────────────────
 export { SnapshotCache, MemorySnapshotStorage, setupAutoSnapshots } from './snapshot-cache'
 export type { SnapshotStorageAdapter } from './snapshot-cache'

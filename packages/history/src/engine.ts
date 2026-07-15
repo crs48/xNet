@@ -18,6 +18,7 @@ import type {
   SchemaIRI
 } from '@xnetjs/data'
 import { topologicalSort } from '@xnetjs/sync'
+import { HistoryHorizonError, horizonOf, type HistoryHorizon } from './horizon'
 import { deepEqual } from './utils'
 
 /**
@@ -231,9 +232,31 @@ export class HistoryEngine {
     return changes.length
   }
 
+  /**
+   * The node's prune horizon: the earliest retained point of its chain, or
+   * null when the full history is still present (exploration 0329). UIs
+   * surface a non-null horizon as "older history was compacted".
+   */
+  async getHorizon(nodeId: NodeId): Promise<HistoryHorizon | null> {
+    const changes = await this.storage.getChanges(nodeId)
+    if (changes.length === 0) return null
+    return horizonOf(nodeId, topologicalSort(changes))
+  }
+
   // ─── Target Resolution ───────────────────────────────────────
 
+  /**
+   * Resolve a target to an index into the retained chain. Targets that fall
+   * below the prune horizon throw {@link HistoryHorizonError} instead of
+   * silently remapping onto the shortened array (exploration 0329): a `hash`
+   * below the horizon is simply absent, and a `lamport`/`wall` value older
+   * than the earliest retained change would otherwise "resolve" to a change
+   * that is not the state the caller asked for. `index`/`relative` remain
+   * positions within the *retained* chain by definition.
+   */
   resolveTarget(target: HistoryTarget, sorted: NodeChange[]): number {
+    const horizon = () => (sorted[0] ? horizonOf(sorted[0].payload.nodeId, sorted) : null)
+
     switch (target.type) {
       case 'index':
         return Math.max(0, Math.min(target.index, sorted.length - 1))
@@ -241,21 +264,31 @@ export class HistoryEngine {
       case 'latest':
         return sorted.length - 1
 
-      case 'lamport':
+      case 'lamport': {
         for (let i = sorted.length - 1; i >= 0; i--) {
           if (sorted[i].lamport <= target.time) return i
         }
+        const h = horizon()
+        if (h) throw new HistoryHorizonError(h, target)
         return 0
+      }
 
-      case 'wall':
+      case 'wall': {
         for (let i = sorted.length - 1; i >= 0; i--) {
           if (sorted[i].wallTime <= target.timestamp) return i
         }
+        const h = horizon()
+        if (h) throw new HistoryHorizonError(h, target)
         return 0
+      }
 
       case 'hash': {
         const idx = sorted.findIndex((c) => c.hash === target.hash)
-        if (idx === -1) throw new Error(`Change hash ${target.hash} not found`)
+        if (idx === -1) {
+          const h = horizon()
+          if (h) throw new HistoryHorizonError(h, target)
+          throw new Error(`Change hash ${target.hash} not found`)
+        }
         return idx
       }
 

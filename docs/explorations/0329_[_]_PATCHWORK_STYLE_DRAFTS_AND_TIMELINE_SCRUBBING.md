@@ -626,7 +626,7 @@ stateDiagram-v2
 - [x] Pin registry: `pinned_changes` table + `PruningEngine` exclusion +
       `yjs_snapshots` pinned-exempt eviction + referenced-blob retention (or
       an explicit blob horizon); migration.
-- [ ] Prune-horizon: internal targets become hash-anchored; pruned-below
+- [x] Prune-horizon: internal targets become hash-anchored; pruned-below
       resolution returns an explicit `HistoryHorizon` result, surfaced in UI.
 - [ ] `ScopeTimeline` (generalized `SchemaTimeline`) over arbitrary node
       sets + `ScopeScrubCache`; bind to the existing `PlaybackEngine`.
