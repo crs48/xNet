@@ -619,17 +619,17 @@ export const pluginTools: AiToolDefinition[] = [
 
 ## Implementation Checklist
 
-- [ ] **1a — `PluginSource` schema** (`packages/plugins/src/schemas/plugin-source.ts`):
+- [x] **1a — `PluginSource` schema** (`packages/plugins/src/schemas/plugin-source.ts`):
       files map, entry, manifest-as-data, spec relation, publishedHash; CRUD
       through the normal store so it syncs/branches like any node.
-- [ ] **1b — module builder**: swc-transpile per file (`@swc/wasm-web` is
+- [x] **1b — module builder**: swc-transpile per file (`@swc/wasm-web` is
       already in `apps/web/src/lib/lab-runtime.ts`), module-graph resolution
       against a pinned import map (react + client plugin API); `plugin_build`
       returns structured diagnostics.
-- [ ] **1c — sandboxed module host**: opaque-origin iframe rung; source-hook
+- [x] **1c — sandboxed module host**: opaque-origin iframe rung; source-hook
       module serving over MessagePort; no host-realm import of plugin code;
       frame CSP `connect-src` derived from the manifest `network` allowlist.
-- [ ] **2 — contribution RPC** (`SandboxedPluginHost`): data-declared
+- [x] **2 — contribution RPC** (`SandboxedPluginHost`): data-declared
       contributions land in `ContributionRegistry`; sandboxed view rendering
       (generalize `packages/dashboard/src/sandbox/IframeWidgetHost.tsx`);
       command/slash/agent-tool handler proxying; store access =

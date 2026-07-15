@@ -13,6 +13,7 @@ import { agentToolsAsExtraTools, type AgentToolContribution } from '../agent-too
 import {
   AiSurfaceService,
   createAiSurfaceService,
+  type AiExtraTool,
   type AiJsonSchema,
   type AiResource,
   type AiSurfaceLimits,
@@ -126,6 +127,13 @@ export interface MCPServerConfig {
    */
   agentTools?: AgentToolContribution[]
   /**
+   * Pre-shaped AI tools to expose beside the built-ins — the `lab_*`
+   * (`labAgentToolsToAiTools`) and `plugin_*` (0331,
+   * `createWorkspacePluginAgentTools`) surfaces plug in here. Like
+   * `agentTools`, ignored when a pre-built `aiSurface` is supplied.
+   */
+  extraTools?: AiExtraTool[]
+  /**
    * Write guardrail for the generic + first-class write tools. A default
    * guardrail (delete/outward writes need confirmation, cost budget, audit) is
    * created when omitted. Pass a configured instance to tune it.
@@ -181,7 +189,10 @@ export class MCPServer {
         store: config.store,
         schemas: config.schemas,
         limits: config.aiLimits,
-        extraTools: agentToolsAsExtraTools(config.agentTools ?? [])
+        extraTools: [
+          ...agentToolsAsExtraTools(config.agentTools ?? []),
+          ...(config.extraTools ?? [])
+        ]
       })
 
     this.config = {

@@ -126,6 +126,7 @@ export {
   renderMarkdownLineDiff,
   renderMarkdownReviewDiff,
   stripXNetPageFrontmatter,
+  WRITING_XNET_PLUGINS_SKILL_MD,
   XNET_AGENT_SKILL_MD,
   XNET_MARKDOWN_DIRECTIVE_SPECS,
   validateXNetPageMarkdown,

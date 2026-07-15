@@ -746,3 +746,74 @@ export type {
   DeleteDayOptions,
   DeleteDayResult
 } from './services'
+
+// Workspace-plugin runtime (exploration 0331) — one grouped block per the
+// sub-barrel policy; the full surface lives in ./workspace-plugins/index.ts.
+export {
+  PluginSourceSchema,
+  PLUGIN_SOURCE_SCHEMA_IRI,
+  readPluginSourceNode,
+  buildPluginModuleGraph,
+  buildPluginFrameSrcdoc,
+  framePluginCsp,
+  PLUGIN_FRAME_SANDBOX,
+  PLUGIN_STORE_DENYLIST,
+  isDenylistedSchema,
+  createPluginStoreRpc,
+  PluginStoreRpcError,
+  createPluginFrameSession,
+  activateWorkspacePlugin,
+  buildWorkspacePlugin,
+  validateWorkspaceManifest,
+  permissionsToCapabilities,
+  WorkspacePluginError,
+  computePluginSourceHash,
+  diffPluginSourceFiles,
+  assessPluginUpdate,
+  createPluginSourceWatcher,
+  createWorkspacePluginHotReloader,
+  SOURCE_SETTLE_DEBOUNCE_MS,
+  createWorkspacePluginPreviewManager,
+  createWorkspacePluginAgentTools,
+  scaffoldWorkspacePluginFiles,
+  requestWorkspacePluginPublish,
+  buildCommunityRegistryEntry,
+  exportPluginSourceAsRepoFiles
+} from './workspace-plugins'
+export type {
+  PluginSourceNode,
+  WorkspacePluginManifestData,
+  WorkspacePluginContributionsData,
+  PluginBuildDiagnostic,
+  PluginBuildInput,
+  PluginFileTranspiler,
+  PluginModuleGraph,
+  VendorModuleSources,
+  PluginFrameToHostMessage,
+  PluginHostToFrameMessage,
+  PluginGraphPayload,
+  PluginStoreRpc,
+  WorkspacePluginStore,
+  PluginFeedbackEntry,
+  PluginFrameSession,
+  PluginRegisteredHandlers,
+  PluginFrameTransport,
+  WorkspacePluginHandle,
+  WorkspacePluginHostDeps,
+  PluginSourceDiff,
+  PluginUpdateAssessment,
+  HotReloadEvent,
+  PluginSourceWatcher,
+  WorkspacePluginHotReloader,
+  WorkspacePluginPreviewManager,
+  WorkspacePluginPreviewResult,
+  WorkspacePluginAgentToolsOptions,
+  WorkspacePluginDraftBackend,
+  WorkspacePluginSourceBackend,
+  PublishConsentRequest,
+  WorkspacePluginPublishResult,
+  CommunityRegistryEntry
+} from './workspace-plugins'
+
+// Workspace-plugin authoring skill (0331)
+export { WRITING_XNET_PLUGINS_SKILL_MD } from './ai-surface/plugin-skill'
