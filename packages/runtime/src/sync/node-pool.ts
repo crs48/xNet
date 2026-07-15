@@ -40,6 +40,18 @@ export interface NodePoolConfig {
   /** Optional callback before a doc is evicted */
   onDocEvict?: (nodeId: string, doc: Y.Doc) => void
   /**
+   * Fired after a doc's state was successfully persisted to `yjs_state`
+   * (exploration 0329: the production Yjs history capture hook). `context`
+   * distinguishes the steady-state debounce from session boundaries
+   * (evict/flush/destroy) so capture policies can throttle the former and
+   * force the latter. Must never throw — persist correctness wins.
+   */
+  onDocPersist?: (
+    nodeId: string,
+    doc: Y.Doc,
+    context: 'debounce' | 'evict' | 'flush' | 'destroy'
+  ) => void
+  /**
    * Predicate marking a node's Y.Doc as **ephemeral** — never persisted to
    * `yjs_state` and never cold-loaded from it. Workspace presence is the
    * canonical case: it is republished continuously and has no value across
@@ -104,6 +116,19 @@ export function createNodePool(config: NodePoolConfig): NodePool {
   const isEphemeral = config.isEphemeral ?? defaultIsEphemeral
   const largeDocWarnBytes = config.largeDocWarnBytes ?? DEFAULT_LARGE_DOC_WARN_BYTES
   let firstAcquireMarked = false
+
+  /** Notify a persist listener; capture hooks must never break persistence. */
+  function notifyPersist(
+    nodeId: string,
+    doc: Y.Doc,
+    context: 'debounce' | 'evict' | 'flush' | 'destroy'
+  ): void {
+    try {
+      config.onDocPersist?.(nodeId, doc, context)
+    } catch (err) {
+      console.warn(`[NodePool] onDocPersist hook failed for ${nodeId}:`, err)
+    }
+  }
 
   /**
    * One-shot performance mark when the first doc-acquire completes. That first
@@ -171,6 +196,7 @@ export function createNodePool(config: NodePoolConfig): NodePool {
           const content = Y.encodeStateAsUpdate(entry.doc)
           await config.storage.setDocumentContent(nodeId, content)
           entry.dirty = false
+          notifyPersist(nodeId, entry.doc, 'debounce')
         }
       }, persistDelay)
     )
@@ -212,6 +238,7 @@ export function createNodePool(config: NodePoolConfig): NodePool {
               )
             }
             await config.storage.setDocumentContent(id, content)
+            notifyPersist(id, entry.doc, 'evict')
           }
         } catch (err) {
           // Log error but continue eviction to prevent memory leak
@@ -318,6 +345,7 @@ export function createNodePool(config: NodePoolConfig): NodePool {
           promises.push(
             config.storage.setDocumentContent(id, content).then(() => {
               entry.dirty = false
+              notifyPersist(id, entry.doc, 'flush')
             })
           )
         }

@@ -630,7 +630,7 @@ stateDiagram-v2
       resolution returns an explicit `HistoryHorizon` result, surfaced in UI.
 - [x] `ScopeTimeline` (generalized `SchemaTimeline`) over arbitrary node
       sets + `ScopeScrubCache`; bind to the existing `PlaybackEngine`.
-- [ ] Production Yjs capture: NodePool persist hook → throttled
+- [x] Production Yjs capture: NodePool persist hook → throttled
       `captureSnapshot` (session-boundary + min-interval).
 - [ ] Time Machine UI as the first **context tool**: scrubber with change-
       density minibar, named-versions toggle, author colors, word/sentence

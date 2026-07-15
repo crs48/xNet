@@ -41,7 +41,7 @@ import type { ChangeSigner, SyncReplicationConfig } from '@xnetjs/sync'
 import { getSigningPublicKeyFromPrivate, sign, verify } from '@xnetjs/crypto'
 import { MemoryNodeStorageAdapter, NodeStore } from '@xnetjs/data'
 import { createMainThreadBridgeSync } from '@xnetjs/data-bridge'
-import { UndoManager } from '@xnetjs/history'
+import { DocumentHistoryEngine, UndoManager, type YjsSnapshotStorageAdapter } from '@xnetjs/history'
 import { PluginRegistry } from '@xnetjs/plugins'
 import { createSyncManager } from './sync/sync-manager'
 
@@ -260,6 +260,26 @@ function buildNodeStore(options: CreateXNetClientOptions, storage: NodeStorageAd
   })
 }
 
+/**
+ * Production Yjs history capture (exploration 0329): when the storage adapter
+ * can persist Yjs snapshots, every doc persist also captures history —
+ * min-interval-throttled in steady state, forced at session boundaries — with
+ * pinned snapshots (checkpoints/drafts) exempt from eviction.
+ */
+function buildDocumentHistory(storage: NodeStorageAdapter): DocumentHistoryEngine | undefined {
+  const snapshotStorage = storage as Partial<YjsSnapshotStorageAdapter>
+  if (
+    typeof snapshotStorage.saveYjsSnapshot !== 'function' ||
+    typeof snapshotStorage.getYjsSnapshots !== 'function' ||
+    typeof snapshotStorage.deleteYjsSnapshots !== 'function'
+  ) {
+    return undefined
+  }
+  return new DocumentHistoryEngine(snapshotStorage as YjsSnapshotStorageAdapter, {
+    pins: storage.pins
+  })
+}
+
 /** Build the SyncManager when sync is enabled (else null). */
 function buildSyncManager(
   store: NodeStore,
@@ -272,6 +292,7 @@ function buildSyncManager(
   return createSyncManager({
     nodeStore: store,
     storage,
+    documentHistory: buildDocumentHistory(storage),
     signalingUrl,
     authorDID: options.authorDID,
     signingKey: options.signingKey,
