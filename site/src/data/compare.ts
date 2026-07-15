@@ -57,7 +57,7 @@ export interface CompareLayer {
   footnotes: Footnote[]
 }
 
-export const updated = 'June 2026'
+export const updated = 'July 2026'
 
 export const layers: CompareLayer[] = [
   // ─── Layer 1: Products ────────────────────────────────────────────────────
@@ -1021,7 +1021,7 @@ export const layers: CompareLayer[] = [
       'Identity, transport, and federation primitives — the broader decentralized-data ecosystem. These are potential transports, identity systems, and federation peers rather than competitors.',
     xnetNote:
       'xNet both consumes and provides at this layer: it builds on WebRTC, DID:key and UCAN as primitives, and is itself a written, conformance-tested protocol (data model · replication · authorization) that anyone can re-implement — like AT Protocol or Matrix.',
-    lastVerified: 'June 2026',
+    lastVerified: 'July 2026',
     columns: [
       { key: 'scope', label: 'Scope' },
       { key: 'dataModel', label: 'Data model' },
@@ -1057,6 +1057,20 @@ export const layers: CompareLayer[] = [
           sync: 'Federated relays',
           identity: 'DID:plc'
         }
+      },
+      {
+        name: 'Habitat',
+        url: 'https://habitat.network',
+        maturity: 'pre-release',
+        license: 'Apache-2.0',
+        bestFor: 'Orgs wanting one trusted server for all app data',
+        dims: {
+          scope: 'Org data server (atproto adaptation)',
+          dataModel: 'atproto records (Lexicons), private-only repos',
+          sync: 'Org-wide event stream (SSE) + backfill crawler',
+          identity: { v: 'DID:web, org-minted', fn: 'habitat-ods' }
+        },
+        footnotes: ['habitat-ods']
       },
       {
         name: 'Nostr',
@@ -1204,6 +1218,11 @@ export const layers: CompareLayer[] = [
         id: 'xnet-kernel',
         text: "xNet's interop kernel is a signed, hash-chained, last-write-wins change log over schema-typed nodes (not Yjs, which travels as an opaque document body). A normative spec ships with a language-agnostic conformance corpus and a reference Python kernel. Hub-to-hub federation is on the roadmap, not yet shipped.",
         sourceUrl: 'https://github.com/crs48/xNet/tree/main/docs/specs/protocol'
+      },
+      {
+        id: 'habitat-ods',
+        text: "Habitat's Organizational Data Server hosts all member repositories on one org-owned server; member DIDs are minted by the org, and an OAuth credential for the org's DID can read every space on it. Access control is enforced at the server API, not by encryption — the inverse of xNet's hub, which never sees plaintext but also never gets a master read credential. Implements the draft atproto permissioned-spaces proposal (0016); pre-1.0 with breaking changes and a spaces→PDS migration announced.",
+        sourceUrl: 'https://github.com/habitat-network/habitat/blob/master/api-docs/docs/building/auth.mdx'
       },
       {
         id: 'iroh-1-0',
