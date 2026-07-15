@@ -689,35 +689,35 @@ stateDiagram-v2
 - [x] Scrubbing a 5k-change page and a 100k-change workspace seeks at
       interactive latency (< 100 ms per seek after warm ScrubCache), with
       correct states verified against golden replays.
-- [ ] A pruned node scrubs to its horizon and *says so*; no silent remap
+- [x] A pruned node scrubs to its horizon and *says so*; no silent remap
       (test: prune, then resolve a pre-prune wall/index target → explicit
       horizon, not a wrong state).
-- [ ] Checkpoints survive pruning (pinned hashes + pinned Yjs snapshots
+- [x] Checkpoints survive pruning (pinned hashes + pinned Yjs snapshots
       restorable after aggressive `MOBILE_POLICY` pruning).
-- [ ] Restore round-trip: restore to checkpoint → new compensating batch →
+- [x] Restore round-trip: restore to checkpoint → new compensating batch →
       undo restores present (UndoManager batch undo).
-- [ ] Fork → edit (records + rich text + canvas + database row) + create a
+- [x] Fork → edit (records + rich text + canvas + database row) + create a
       node in-draft + delete a node in-draft → merge converges: originals
       reflect draft state, draft-born nodes are promoted with remapped ids,
       deletions tombstone originals; LWW conformance vectors pin merge
       determinism; Yjs originals re-merge cleanly on a second device; a crash
       injected between the record batch and the Yjs lane recovers to a fully
       merged state on retry.
-- [ ] Draft privacy: an unshared draft's clones never appear in any
+- [x] Draft privacy: an unshared draft's clones never appear in any
       share-room publish, are excluded from the personal node-sync room by
       the P2 outbound filter (hub-side assertion), and never render for
       another space member.
 - [x] Overlay perf: 0266 budget holds with overlay inactive (Δ ≤ noise) and
       active (< 10% hydrate overhead at 10k-row page); grid reference
       stability preserved for untouched rows.
-- [ ] Figma-test: concurrent main-edit to property A and draft-edit to
+- [x] Figma-test: concurrent main-edit to property A and draft-edit to
       property B on the same node merges with zero conflict cards; concurrent
       same-paragraph rich-text edits merge convergently and the review diff
       makes the overlap visible.
-- [ ] Upwelling-test: reviewer reads draft diff, merges — post-merge main
+- [x] Upwelling-test: reviewer reads draft diff, merges — post-merge main
       equals the reviewed state (auto-refresh keeps the draft current
       through review).
-- [ ] Agent-PR: assistant edit lands in a draft, is reviewed as a diff,
+- [x] Agent-PR: assistant edit lands in a draft, is reviewed as a diff,
       merges in one reviewed operation (single `batchId` for record ops, Yjs
       lane verified applied); nothing touches main before approval.
 

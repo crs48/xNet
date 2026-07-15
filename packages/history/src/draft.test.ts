@@ -157,6 +157,25 @@ describe('discardDraft / listDrafts', () => {
     expect(originalChanges.length).toBeGreaterThan(0)
   })
 
+  it('rehydrateDraftPrivacy rebuilds the exclusion set from persisted drafts', async () => {
+    const { store, adapter } = setup()
+    const page = await store.create({ schemaId: PAGE, properties: { title: 'v1' } })
+    const draft = await createDraft(store, { name: 'survives-reload', targetId: page.id })
+    const entry = await forkNodeIntoDraft(store, adapter, draft.id, page.id)
+
+    // Simulate a reload: a fresh store over the SAME storage knows nothing.
+    const keyPair = generateSigningKeyPair()
+    const did = `did:key:z6Mk${Buffer.from(keyPair.publicKey).toString('base64url')}` as DID
+    const fresh = new NodeStore({ storage: adapter, authorDID: did, signingKey: keyPair.privateKey })
+    expect(fresh.isDraftPrivate(entry.cloneId as NodeId)).toBe(false)
+
+    const { rehydrateDraftPrivacy } = await import('./draft')
+    await rehydrateDraftPrivacy(fresh)
+    expect(fresh.isDraftPrivate(entry.cloneId as NodeId)).toBe(true)
+    expect(fresh.isDraftPrivate(draft.id)).toBe(true)
+    expect(fresh.isDraftPrivate(page.id)).toBe(false) // originals still publish
+  })
+
   it('lists open drafts scoped to a target', async () => {
     const { store } = setup()
     const a = await store.create({ schemaId: PAGE, properties: { title: 'a' } })
