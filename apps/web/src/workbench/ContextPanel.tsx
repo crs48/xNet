@@ -6,10 +6,13 @@
  * (page → properties, comments, backlinks; database → row detail;
  * canvas → selection inspector; task → task detail).
  */
+import type { NodeStore } from '@xnetjs/data'
+import { useNodeStore } from '@xnetjs/react'
 import { X } from 'lucide-react'
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useContextPanelStore, type ContextPanelSection } from './context-panel'
-import { useWorkbench } from './state'
+import { contextToolsForSchema } from './context-tools'
+import { selectActiveTab, useWorkbench } from './state'
 
 function SectionBadge({ badge }: { badge: number | undefined }) {
   if (typeof badge !== 'number' || badge === 0) return null
@@ -51,6 +54,61 @@ function SectionTabs({
   )
 }
 
+/**
+ * The panel renders inside the app's XNetProvider; a bare render (stories,
+ * isolated tests) simply gets no context tools instead of a crash.
+ */
+function useOptionalNodeStore(): { store: NodeStore | null; isReady: boolean } {
+  try {
+    return useNodeStore()
+  } catch {
+    return { store: null, isReady: false }
+  }
+}
+
+/**
+ * The focused node's schema IRI, or null while unresolved. Singleton tabs
+ * (Tasks, Settings, Data …) carry pseudo node ids that resolve to no node, so
+ * they naturally get no context tools.
+ */
+function useFocusedNodeSchema(nodeId: string | null): string | null {
+  const { store, isReady } = useOptionalNodeStore()
+  const [schemaId, setSchemaId] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    setSchemaId(null)
+    if (!nodeId || !store || !isReady) return
+    store
+      .get(nodeId)
+      .then((node) => {
+        if (!cancelled) setSchemaId(node?.schemaId ?? null)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [nodeId, store, isReady])
+
+  return schemaId
+}
+
+/** Context-tool tabs for the focused node (explorations 0327/0329). */
+function useContextToolSections(): ContextPanelSection[] {
+  const activeTab = useWorkbench(selectActiveTab)
+  const nodeId = activeTab?.nodeId ?? null
+  const schemaId = useFocusedNodeSchema(nodeId)
+
+  return useMemo(() => {
+    if (!nodeId || !schemaId) return []
+    return contextToolsForSchema(schemaId).map((tool) => ({
+      id: `tool:${tool.id}`,
+      title: tool.title,
+      content: tool.render({ nodeId })
+    }))
+  }, [nodeId, schemaId])
+}
+
 function resolveActiveSection(
   sections: ContextPanelSection[],
   activeId: string | null
@@ -61,7 +119,11 @@ function resolveActiveSection(
 export function ContextPanel() {
   const setPanelOpen = useWorkbench((state) => state.setPanelOpen)
   const owners = useContextPanelStore((state) => state.owners)
-  const sections = useMemo(() => Object.values(owners).flat(), [owners])
+  const toolSections = useContextToolSections()
+  const sections = useMemo(
+    () => [...Object.values(owners).flat(), ...toolSections],
+    [owners, toolSections]
+  )
   const activeSectionId = useContextPanelStore((state) => state.activeSectionId)
   const setActiveSection = useContextPanelStore((state) => state.setActiveSection)
 

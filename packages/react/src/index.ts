@@ -460,6 +460,23 @@ export { useCommentCount, useCommentCounts } from './hooks/useCommentCount'
 export { useHistory, type UseHistoryResult } from './hooks/useHistory'
 
 /**
+ * Hooks area sub-barrel (0276 policy) — ONE grouped block for new hook
+ * surface. Currently: useTimeMachine (Time Machine scrub/checkpoint/restore,
+ * exploration 0329) and the history types its consumers bind to.
+ */
+export {
+  useTimeMachine,
+  type Frontier,
+  type FrontierEntry,
+  type HistoryHorizon,
+  type PropertyDiff,
+  type RestoreResult,
+  type ScopeTimelineEntry,
+  type UseTimeMachineOptions,
+  type UseTimeMachineResult
+} from './hooks'
+
+/**
  * useUndo - Per-node undo/redo via compensating changes
  *
  * @example
