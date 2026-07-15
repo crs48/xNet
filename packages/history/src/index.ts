@@ -83,7 +83,8 @@ export {
   listDrafts,
   markCreatedInDraft,
   markDeletedInDraft,
-  rehydrateDraftPrivacy
+  rehydrateDraftPrivacy,
+  shareDraft
 } from './draft'
 export type { CreateDraftOptions } from './draft'
 

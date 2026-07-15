@@ -134,6 +134,29 @@ describe('discardDraft / listDrafts', () => {
     expect(await listDrafts(store)).toEqual([])
   })
 
+  it('shareDraft lifts privacy so clone changes become publishable (traffic measured)', async () => {
+    const { store, adapter } = setup()
+    const page = await store.create({ schemaId: PAGE, properties: { title: 'v1' } })
+    const draft = await createDraft(store, { name: 'shared', targetId: page.id })
+    const entry = await forkNodeIntoDraft(store, adapter, draft.id, page.id)
+
+    // Device-local: the sync predicate excludes clone + draft ids.
+    expect(store.isDraftPrivate(entry.cloneId as NodeId)).toBe(true)
+    expect(store.isDraftPrivate(draft.id)).toBe(true)
+
+    const { shareDraft } = await import('./draft')
+    await shareDraft(store, draft.id)
+
+    // Shared: the same predicate now lets them publish — the measured cost is
+    // the member's doubled change traffic (original + clone lanes).
+    expect(store.isDraftPrivate(entry.cloneId as NodeId)).toBe(false)
+    expect(store.isDraftPrivate(draft.id)).toBe(false)
+    const cloneChanges = await adapter.getChanges(entry.cloneId as NodeId)
+    const originalChanges = await adapter.getChanges(page.id)
+    expect(cloneChanges.length).toBeGreaterThan(0)
+    expect(originalChanges.length).toBeGreaterThan(0)
+  })
+
   it('lists open drafts scoped to a target', async () => {
     const { store } = setup()
     const a = await store.create({ schemaId: PAGE, properties: { title: 'a' } })

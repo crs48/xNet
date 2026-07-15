@@ -79,6 +79,7 @@ import {
 import { PermissionError } from './permission-error'
 import {
   applyNodeQueryDescriptor,
+  withoutNodeQueryMaterializedView,
   withoutNodeQueryPagination,
   type NodeQueryDescriptor,
   type NodeQueryResult
@@ -409,14 +410,20 @@ export class NodeStore {
     const overlay = this.checkedOutDraft
     if (!overlay) return states
 
-    const cloneIds = states
+    // Clone rows never render as themselves — the member shows their content.
+    const visible =
+      this.cloneToOriginal.size > 0
+        ? states.filter((state) => !this.cloneToOriginal.has(state.id))
+        : states
+
+    const cloneIds = visible
       .map((s) => overlay.clones[s.id])
       .filter((cloneId): cloneId is NodeId => cloneId !== undefined)
-    if (cloneIds.length === 0) return states
+    if (cloneIds.length === 0) return visible
 
     const cloneMap = await this.getNodesById(cloneIds, this.storage)
     return Promise.all(
-      states.map(async (state) => {
+      visible.map(async (state) => {
         const cloneId = overlay.clones[state.id]
         const clone = cloneId ? cloneMap.get(cloneId) : undefined
         if (!clone) return state
@@ -424,6 +431,71 @@ export class NodeStore {
         return decrypted ? { ...decrypted, id: state.id } : state
       })
     )
+  }
+
+  /**
+   * Draft-aware query path (0329 P5): candidates from storage WITHOUT
+   * pagination, unioned with checked-out members the predicate may have
+   * missed (their clone values can change membership), content-swapped,
+   * clone rows hidden, then the full descriptor re-applied in JS so
+   * filter/sort/pagination reflect draft values.
+   */
+  private async draftAwareQuery(
+    descriptor: NodeQueryDescriptor,
+    start: number
+  ): Promise<NodeQueryResult> {
+    const overlay = this.checkedOutDraft
+    const unpaginated = withoutNodeQueryMaterializedView(withoutNodeQueryPagination(descriptor))
+
+    let candidates: NodeState[]
+    if (this.storage.queryNodes && !this.nodeContentCipher) {
+      candidates = (await this.storage.queryNodes(unpaginated)).nodes
+    } else {
+      const fallback = await this.loadQueryFallbackCandidates(unpaginated)
+      const decrypted = await Promise.all(
+        fallback.nodes.map((node) => this.decryptNodeSnapshotIfPresent(node))
+      )
+      candidates = decrypted.filter((node): node is NodeState => node !== null)
+    }
+
+    // Union in members the storage predicate skipped: a member whose ORIGINAL
+    // doesn't match `where` may match under its clone's values.
+    if (overlay) {
+      const present = new Set(candidates.map((node) => node.id))
+      const missing = Object.keys(overlay.clones).filter(
+        (id) => !present.has(id as NodeId)
+      ) as NodeId[]
+      if (missing.length > 0) {
+        const extra = await this.getNodesById(missing, this.storage)
+        for (const node of extra.values()) {
+          const decrypted = await this.decryptNodeSnapshotIfPresent(node)
+          if (!decrypted) continue
+          if (decrypted.schemaId !== descriptor.schemaId) continue
+          if (decrypted.deleted && !descriptor.includeDeleted) continue
+          candidates.push(decrypted)
+        }
+      }
+    }
+
+    const readable = await this.filterReadableNodes(candidates)
+    const swapped = await this.overlayStates(readable)
+    const filtered = applyNodeQueryDescriptor(
+      swapped,
+      withoutNodeQueryPagination(descriptor)
+    )
+    const result = applyNodeQueryDescriptor(swapped, descriptor)
+
+    return {
+      nodes: result,
+      totalCount: filtered.length,
+      plan: {
+        strategy: 'draft-overlay',
+        candidateNodeCount: readable.length,
+        hydratedNodeCount: swapped.length,
+        returnedNodeCount: result.length,
+        durationMs: Date.now() - start
+      }
+    }
   }
 
   /**
@@ -869,6 +941,16 @@ export class NodeStore {
     const start = Date.now()
 
     try {
+      // Draft-aware queries (0329 P5): while a draft with forked members is
+      // checked out, filters/sorts/pagination must see CLONE values for
+      // members (and never show clone rows themselves). Predicate pushdown
+      // and MV id lists are computed from the originals' scalars, so this
+      // path re-applies the descriptor in JS over the content-swapped set.
+      // Drafts are small, transient sessions — correctness over pushdown.
+      if (this.checkedOutDraft && Object.keys(this.checkedOutDraft.clones).length > 0) {
+        return this.draftAwareQuery(descriptor, start)
+      }
+
       if (this.storage.queryNodes && !this.nodeContentCipher && !this.authEvaluator) {
         const result = await this.storage.queryNodes(descriptor)
         return {

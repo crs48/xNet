@@ -240,6 +240,24 @@ export async function rehydrateDraftPrivacy(store: NodeStore): Promise<void> {
   if (ids.length > 0) store.markDraftPrivate(ids)
 }
 
+/**
+ * Share a draft (P5): lift device-local privacy from the draft node, its
+ * clones, and draft-born nodes so they replicate like ordinary nodes (the
+ * personal room and any share room whose grants cover them). Cross-user
+ * multi-author drafting then rides the existing room machinery — the cost is
+ * the doubled member traffic the exploration accepts knowingly.
+ */
+export async function shareDraft(store: NodeStore, draftId: NodeId): Promise<void> {
+  const draft = await store.get(draftId)
+  if (!draft) throw new Error(`Draft ${draftId} not found`)
+  const entries = draftEntries(draft)
+  store.unmarkDraftPrivate([
+    draftId,
+    ...Object.values(entries).map((e) => e.cloneId as NodeId),
+    ...(((draft.properties.created as NodeId[] | undefined) ?? []) as NodeId[])
+  ])
+}
+
 /** List open drafts, optionally scoped to one target node. */
 export async function listDrafts(store: NodeStore, targetId?: NodeId): Promise<NodeState[]> {
   const all = await store.list({ schemaId: DRAFT_SCHEMA_IRI as SchemaIRI })

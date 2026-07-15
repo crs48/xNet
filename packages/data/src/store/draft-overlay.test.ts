@@ -146,6 +146,70 @@ describe('draft overlay writes', () => {
   })
 })
 
+describe('draft-aware queries (P5)', () => {
+  it('filters and sorts see CLONE values; clone rows are hidden', async () => {
+    const { store } = setup()
+    const a = await store.create({ schemaId: TASK, properties: { title: 'a', status: 'open' } })
+    const b = await store.create({ schemaId: TASK, properties: { title: 'b', status: 'open' } })
+    // Draft changes a's status to done — the original scalar still says open.
+    const cloneA = await store.create({
+      schemaId: TASK,
+      properties: { title: 'a', status: 'done' }
+    })
+    store.setCheckedOutDraft({
+      draftId: 'draft-1' as NodeId,
+      members: [a.id],
+      clones: { [a.id]: cloneA.id }
+    })
+
+    // Membership: filtering for done must return the member (via clone value)…
+    const done = await store.query({
+      schemaId: TASK,
+      includeDeleted: false,
+      where: { status: 'done' }
+    })
+    expect(done.nodes.map((n) => n.id)).toEqual([a.id])
+    expect(done.plan.strategy).toBe('draft-overlay')
+
+    // …and filtering for open must NOT return it (and never the clone row).
+    const open = await store.query({
+      schemaId: TASK,
+      includeDeleted: false,
+      where: { status: 'open' }
+    })
+    expect(open.nodes.map((n) => n.id)).toEqual([b.id])
+
+    // list() also hides clone rows while showing swapped members.
+    const listed = await store.list({ schemaId: TASK })
+    expect(listed.map((n) => n.id).sort()).toEqual([a.id, b.id].sort())
+  })
+
+  it('pagination windows over draft-visible rows', async () => {
+    const { store } = setup()
+    const ids: NodeId[] = []
+    for (let i = 0; i < 5; i++) {
+      const n = await store.create({ schemaId: TASK, properties: { title: `t${i}`, rank: i } })
+      ids.push(n.id)
+    }
+    const clone = await store.create({ schemaId: TASK, properties: { title: 't0', rank: 99 } })
+    store.setCheckedOutDraft({
+      draftId: 'draft-1' as NodeId,
+      members: [ids[0]],
+      clones: { [ids[0]]: clone.id }
+    })
+
+    const page = await store.query({
+      schemaId: TASK,
+      includeDeleted: false,
+      orderBy: { rank: 'asc' },
+      limit: 3
+    })
+    // Member 0's rank is now 99 (clone value) → sorts last; page holds t1-t3.
+    expect(page.nodes.map((n) => n.properties.title)).toEqual(['t1', 't2', 't3'])
+    expect(page.totalCount).toBe(5) // clone row hidden, member counted once
+  })
+})
+
 describe('draft overlay events', () => {
   it('clone changes mirror to original-id subscribers with re-keyed content', async () => {
     const { store } = setup()

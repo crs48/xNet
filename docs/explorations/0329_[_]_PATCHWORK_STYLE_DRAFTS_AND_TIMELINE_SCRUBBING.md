@@ -680,7 +680,7 @@ stateDiagram-v2
       surfaced in Inbox/Requests; end-to-end demo in seeded workspace.
 
 **P5 — Query-grade drafts**
-- [ ] Clone scalar participation in `queryNodes` under checkout (filtered/
+- [x] Clone scalar participation in `queryNodes` under checkout (filtered/
       sorted grids correct); shared drafts (container in room) + traffic
       measurement; revisit `YjsChange` tier decision.
 
