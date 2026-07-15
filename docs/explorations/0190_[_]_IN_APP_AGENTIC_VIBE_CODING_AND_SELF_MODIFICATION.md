@@ -560,6 +560,7 @@ stateDiagram-v2
 - [0174 Bring Your Own Model / AI Chat Panel](./0174_[_]_BRING_YOUR_OWN_MODEL_AI_CHAT_PANEL.md) — the connector ladder + the `bridge` tier this builds on
 - [0161 Token-Efficient Agent Interfaces](./0161_[x]_TOKEN_EFFICIENT_AGENT_INTERFACES.md) — the files-first workspace projection
 - [0180 Code As A First-Class Citizen / Labs](./0180_[x]_CODE_AS_A_FIRST_CLASS_CITIZEN_LABS_AND_RUNTIMES.md) — the sandbox runtime ladder + trust
+- [0331 Developing xNet From Inside xNet](./0331_[x]_DEVELOPING_XNET_FROM_INSIDE_XNET_SPEC_TO_PLUGIN_LOOP.md) — implements this exploration's **Loop A** (workspace plugins) as a shipped runtime: `PluginSource` nodes → in-browser build → opaque-origin iframe → contribution RPC → hot reload → agent feedback. NOTE: the **bridge daemon (0194) has shipped** since this doc was written (`xnet bridge serve`, `KNOWN_BRIDGE_AGENTS`, Electron `agent-bridge-manager`), so the "point your own Claude Code at the running app" premise is now real; 0331 closes the remaining gap on the runtime (not model) side.
 - [0189 Everything Is A Plugin / Feature Modules](./0189_[_]_EVERYTHING_AS_PLUGINS_FEATURE_MODULE_PLATFORM.md) — the FeatureModule + capability broker (publish target)
 - [0047 Plugin Marketplace](./0047_[_]_PLUGIN_MARKETPLACE.md) — GitHub-registry publish + revocation
 - [0119 xNet As A Developer Tool](./0119_[_]_XNET_AS_A_COMPELLING_WEB_AND_MOBILE_DEVELOPER_TOOL.md) and [0160 xNet As An AI Operating System](./0160_[_]_XNET_AS_AN_AI_OPERATING_SYSTEM.md) — the strategic framing

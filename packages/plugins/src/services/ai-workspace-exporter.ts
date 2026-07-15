@@ -17,6 +17,7 @@ import { mkdir, readFile, writeFile } from 'fs/promises'
 import { dirname, join } from 'path'
 import { attachAiPlanValidation, createAiOperation, createAiSurfaceService } from '../ai-surface'
 import { toTsv } from '../ai-surface/format'
+import { WRITING_XNET_PLUGINS_SKILL_MD } from '../ai-surface/plugin-skill'
 import { XNET_AGENT_SKILL_MD } from '../ai-surface/skill'
 
 // ─── Types ─────────────────────────────────────────────────────────────────
@@ -396,6 +397,14 @@ export class AiWorkspaceExporter {
     )
     await this.writeText(rootDir, 'AGENTS.md', renderAgentsMd(), files)
     await this.writeText(rootDir, 'SKILL.md', XNET_AGENT_SKILL_MD, files)
+    // The workspace-plugin authoring contract (0331) — a sibling skill so an
+    // external agent (Claude Code via the bridge) can drive the plugin_* loop.
+    await this.writeText(
+      rootDir,
+      'skills/writing-xnet-plugins/SKILL.md',
+      WRITING_XNET_PLUGINS_SKILL_MD,
+      files
+    )
     await this.writeText(
       rootDir,
       '.mcp.json',

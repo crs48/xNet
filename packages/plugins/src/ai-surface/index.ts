@@ -46,6 +46,7 @@ export {
 } from './validation'
 export { AiSurfaceService, createAiSurfaceService } from './service'
 export { XNET_AGENT_SKILL_MD } from './skill'
+export { WRITING_XNET_PLUGINS_SKILL_MD } from './plugin-skill'
 export { flattenRowForTsv, toTsv } from './format'
 export type {
   AiContextRetriever,

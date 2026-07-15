@@ -619,75 +619,75 @@ export const pluginTools: AiToolDefinition[] = [
 
 ## Implementation Checklist
 
-- [ ] **1a — `PluginSource` schema** (`packages/plugins/src/schemas/plugin-source.ts`):
+- [x] **1a — `PluginSource` schema** (`packages/plugins/src/schemas/plugin-source.ts`):
       files map, entry, manifest-as-data, spec relation, publishedHash; CRUD
       through the normal store so it syncs/branches like any node.
-- [ ] **1b — module builder**: swc-transpile per file (`@swc/wasm-web` is
+- [x] **1b — module builder**: swc-transpile per file (`@swc/wasm-web` is
       already in `apps/web/src/lib/lab-runtime.ts`), module-graph resolution
       against a pinned import map (react + client plugin API); `plugin_build`
       returns structured diagnostics.
-- [ ] **1c — sandboxed module host**: opaque-origin iframe rung; source-hook
+- [x] **1c — sandboxed module host**: opaque-origin iframe rung; source-hook
       module serving over MessagePort; no host-realm import of plugin code;
       frame CSP `connect-src` derived from the manifest `network` allowlist.
-- [ ] **2 — contribution RPC** (`SandboxedPluginHost`): data-declared
+- [x] **2 — contribution RPC** (`SandboxedPluginHost`): data-declared
       contributions land in `ContributionRegistry`; sandboxed view rendering
       (generalize `packages/dashboard/src/sandbox/IframeWidgetHost.tsx`);
       command/slash/agent-tool handler proxying; store access =
       `createLabHostBridge` + `guardStore` grants; install/consent gates reused
       from `packages/plugins/src/registry.ts`.
-- [ ] **3a — MCP plugin tools**: `plugin_scaffold` / `plugin_read_file` /
+- [x] **3a — MCP plugin tools**: `plugin_scaffold` / `plugin_read_file` /
       `plugin_write_file` / `plugin_build` / `plugin_preview` /
       `plugin_preview_feedback` / `plugin_publish_request`, registered beside
       the `lab_*` tools and exposed through `mcp-server.ts` + the bridge's
       `--allowedTools`.
-- [ ] **3b — `writing-xnet-plugins` skill** (sibling of `XNET_AGENT_SKILL_MD`):
+- [x] **3b — `writing-xnet-plugins` skill** (sibling of `XNET_AGENT_SKILL_MD`):
       the authoring contract, sandbox-eligible contribution points, the
       spec-Page convention, the loop etiquette (build → preview → feedback →
       fix), publish rules. Export via `ai-workspace-exporter` so external
       agents (Claude Code) receive it.
-- [ ] **3c — end-to-end demo**: a spec Page ("habit-tracker view over Tasks") →
+- [x] **3c — end-to-end demo**: a spec Page ("habit-tracker view over Tasks") →
       Claude Code via the bridge → working sandboxed view contribution, no
       human code edits; repeat with Ollama to prove the local-model path.
-- [ ] **4a — SourceWatcher hot reload**: Yjs subscription + 250 ms debounce →
+- [x] **4a — SourceWatcher hot reload**: Yjs subscription + 250 ms debounce →
       rebuild → swap (the `rehydrate()` pattern); crash → auto-disable + pin
       last good hash.
-- [ ] **4b — content-hash pinning + update consent** (0327-E): activation pins
+- [x] **4b — content-hash pinning + update consent** (0327-E): activation pins
       `publishedHash`; source drift renders as diff-and-consent, not silent
       update.
-- [ ] **4c — drafts integration** (when 0329/0327-A1 lands): agent edits target
+- [x] **4c — drafts integration** (when 0329/0327-A1 lands): agent edits target
       a draft of the source node; merge = review surface.
-- [ ] **5a — in-app publish**: P2P share at `user` tier (receiver re-derives
+- [x] **5a — in-app publish**: P2P share at `user` tier (receiver re-derives
       trust, consents before activation); one-click `publishPluginRepo` +
       `registry/community.json` PR for the public path.
-- [ ] **5b — Electron parity**: un-waive `lab`/plugin surfaces in
+- [x] **5b — Electron parity**: un-waive `lab`/plugin surfaces in
       `scripts/check-electron-parity.mjs`; verify the iframe rung inside the
       hardened renderer (`sandbox:true` webPreferences).
-- [ ] Cross-link this exploration from 0190, 0192, and 0327; note in 0190 that
+- [x] Cross-link this exploration from 0190, 0192, and 0327; note in 0190 that
       the bridge daemon has shipped since its writing.
 
 ## Validation Checklist
 
-- [ ] **Loop latency**: source-node edit → preview remount measured under 1 s
+- [x] **Loop latency**: source-node edit → preview remount measured under 1 s
       for a bundleless plugin (Patchwork parity); under 3 s with transpile.
-- [ ] **No host-realm execution**: a canary plugin attempting `window.top`,
+- [x] **No host-realm execution**: a canary plugin attempting `window.top`,
       host-DOM access, or a non-allowlisted import fails in tests; host CSP
       unchanged (`script-src 'self' …` — no `blob:`/remote added).
-- [ ] **Capability floor**: a plugin without a `schemaWrite` grant cannot
+- [x] **Capability floor**: a plugin without a `schemaWrite` grant cannot
       mutate (guardStore throws); identity/plugin-source/membership schemas
       are unreachable regardless of grants (denylist wins).
-- [ ] **Trust + provenance**: an AI-generated plugin activates at `user` tier
+- [x] **Trust + provenance**: an AI-generated plugin activates at `user` tier
       after consent showing provenance; a synced copy on a second device is
       inert until re-consented; revocation (`registry/blocked.json` /
       auto-disable) kills a running plugin.
-- [ ] **Agent loop closes**: `plugin_preview_feedback` returns the console
+- [x] **Agent loop closes**: `plugin_preview_feedback` returns the console
       error a deliberately broken build produces, and an agent demonstrably
       fixes it without human relay (the chitter-chatter test).
-- [ ] **Composition**: a workspace plugin's command appears in the palette
+- [x] **Composition**: a workspace plugin's command appears in the palette
       beside bundled ones; a second workspace plugin extends the first through
       a registry id; uninstall removes both cleanly.
-- [ ] **Spec→plugin end-to-end**: the 3c demo recorded (spec Page → Claude
+- [x] **Spec→plugin end-to-end**: the 3c demo recorded (spec Page → Claude
       Code → live view) on web; the same flow on Electron after 5b.
-- [ ] `check:cloud-boundary`, `check:electron-parity`, fallow, typecheck, lint
+- [x] `check:cloud-boundary`, `check:electron-parity`, fallow, typecheck, lint
       stay green.
 
 ## References
