@@ -307,6 +307,14 @@ export interface CheckedOutDraftOverlay {
   /** originalId -> cloneId for members already forked. */
   clones: Record<NodeId, NodeId>
   /**
+   * Schema IRIs the members span. Queries against OTHER schemas keep their
+   * indexed fast path (nothing to overlay); queries against these take the
+   * draft-aware path (clone values drive filter/sort — a JS re-apply over
+   * unpaginated candidates, the accepted transient-session cost). Omitted =
+   * conservative: every query takes the draft-aware path.
+   */
+  memberSchemaIds?: readonly string[]
+  /**
    * Lazy copy-on-write: fork `originalId` into the draft and return the
    * clone id (or null to decline — the write then targets the original).
    */

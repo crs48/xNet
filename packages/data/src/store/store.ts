@@ -143,6 +143,8 @@ export class NodeStore {
   private checkedOutDraft: CheckedOutDraftOverlay | null = null
   private cloneToOriginal: Map<NodeId, NodeId> = new Map()
   private draftMemberSet: Set<NodeId> = new Set()
+  /** null = conservative "all schemas" (memberSchemaIds omitted). */
+  private draftMemberSchemaSet: Set<string> | null = null
   private draftOverlayListeners: Set<() => void> = new Set()
   private schemaLookup?: SchemaLookup
   private propertyLookup?: PropertyLookup
@@ -358,6 +360,7 @@ export class NodeStore {
         : []
     )
     this.draftMemberSet = new Set(overlay?.members ?? [])
+    this.draftMemberSchemaSet = overlay?.memberSchemaIds ? new Set(overlay.memberSchemaIds) : null
     this.notifyDraftOverlayListeners()
   }
 
@@ -946,8 +949,13 @@ export class NodeStore {
       // members (and never show clone rows themselves). Predicate pushdown
       // and MV id lists are computed from the originals' scalars, so this
       // path re-applies the descriptor in JS over the content-swapped set.
-      // Drafts are small, transient sessions — correctness over pushdown.
-      if (this.checkedOutDraft && Object.keys(this.checkedOutDraft.clones).length > 0) {
+      // Scoped to the members' schemas — other grids keep the indexed fast
+      // path; drafts are small, transient sessions (correctness > pushdown).
+      if (
+        this.checkedOutDraft &&
+        Object.keys(this.checkedOutDraft.clones).length > 0 &&
+        (this.draftMemberSchemaSet === null || this.draftMemberSchemaSet.has(descriptor.schemaId))
+      ) {
         return this.draftAwareQuery(descriptor, start)
       }
 

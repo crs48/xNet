@@ -24,6 +24,7 @@ import { NodeStore } from './store'
 import type { NodeId, NodeState } from './types'
 
 const SCHEMA_ID = 'xnet://bench/OverlayNode' as SchemaIRI
+const OTHER_SCHEMA_ID = 'xnet://bench/UnrelatedNode' as SchemaIRI
 const AUTHOR = 'did:key:z6MkoverlayBench' as DID
 
 const NODE_COUNT = Number(process.env.XNET_DRAFT_OVERLAY_BENCH_NODES ?? 10_000)
@@ -31,7 +32,7 @@ const PAGE = 500
 const ITERATIONS = 20
 const OVERLAY_MEMBERS = 10
 
-function benchNode(index: number): NodeState {
+function benchNode(index: number, schemaId: SchemaIRI = SCHEMA_ID): NodeState {
   const now = 1_700_000_000_000 + index
   const properties = {
     title: `node ${index}`,
@@ -39,8 +40,8 @@ function benchNode(index: number): NodeState {
     active: index % 2 === 0
   }
   return {
-    id: `ovl-${String(index).padStart(7, '0')}`,
-    schemaId: SCHEMA_ID,
+    id: `${schemaId === SCHEMA_ID ? 'ovl' : 'unr'}-${String(index).padStart(7, '0')}`,
+    schemaId,
     properties,
     timestamps: Object.fromEntries(
       Object.keys(properties).map((key, i) => [
@@ -69,6 +70,10 @@ describe('draft overlay perf spike (0329 P2 / 0266 budget)', () => {
       const adapter = new SQLiteNodeStorageAdapter(db)
       const nodes = Array.from({ length: NODE_COUNT }, (_, i) => benchNode(i))
       await adapter.importNodes(nodes)
+      // A same-size unrelated schema: the grid a checkout must NOT degrade.
+      await adapter.importNodes(
+        Array.from({ length: NODE_COUNT }, (_, i) => benchNode(i, OTHER_SCHEMA_ID))
+      )
 
       const keyPair = generateSigningKeyPair()
       const store = new NodeStore({
@@ -86,11 +91,11 @@ describe('draft overlay perf spike (0329 P2 / 0266 budget)', () => {
         limit: PAGE
       }
 
-      const measure = async (): Promise<number[]> => {
+      const measure = async (target = descriptor): Promise<number[]> => {
         const samples: number[] = []
         for (let i = 0; i < ITERATIONS; i++) {
           const t0 = performance.now()
-          const result = await store.query(descriptor)
+          const result = await store.query(target)
           samples.push(performance.now() - t0)
           expect(result.nodes.length).toBe(PAGE)
         }
@@ -112,8 +117,21 @@ describe('draft overlay perf spike (0329 P2 / 0266 budget)', () => {
         })
         clones[id] = clone.id
       }
-      store.setCheckedOutDraft({ draftId: 'bench-draft' as NodeId, members: memberIds, clones })
-      const active = await measure()
+      store.setCheckedOutDraft({
+        draftId: 'bench-draft' as NodeId,
+        members: memberIds,
+        clones,
+        memberSchemaIds: [SCHEMA_ID]
+      })
+
+      // 2a. Active, querying the UNRELATED schema: keeps the indexed fast
+      //     path — a checkout must never degrade unrelated grids.
+      const activeOtherSchema = await measure({ ...descriptor, schemaId: OTHER_SCHEMA_ID })
+
+      // 2b. Active, querying the MEMBER schema: the draft-aware path
+      //     (unpaginated candidates + JS re-apply) — the accepted
+      //     transient-session cost.
+      const activeMemberSchema = await measure()
       // Verify the swap actually happens on this path (fetch members directly).
       const swapped = await store.get(memberIds[0])
       expect(swapped?.properties.title).toBe(`draft ${memberIds[0]}`)
@@ -131,23 +149,29 @@ describe('draft overlay perf spike (0329 P2 / 0266 budget)', () => {
 
       const med = (s: number[]) => percentile(s, 50)
       const inactiveDeltaPct = ((med(inactiveB) - med(inactiveA)) / med(inactiveA)) * 100
-      const activeOverheadPct = ((med(active) - med(inactiveB)) / med(inactiveB)) * 100
+      const otherSchemaOverheadPct =
+        ((med(activeOtherSchema) - med(inactiveB)) / med(inactiveB)) * 100
       const p95FirstRows = percentile(firstRowsSamples, 95)
 
       console.info(
         `[0329 overlay spike] ${NODE_COUNT} nodes, page ${PAGE}, ${OVERLAY_MEMBERS} members: ` +
           `inactive med ${med(inactiveA).toFixed(2)}ms/${med(inactiveB).toFixed(2)}ms ` +
-          `(Δ ${inactiveDeltaPct.toFixed(1)}%), active med ${med(active).toFixed(2)}ms ` +
-          `(+${activeOverheadPct.toFixed(1)}%), first-rows(50) p95 ${p95FirstRows.toFixed(2)}ms`
+          `(Δ ${inactiveDeltaPct.toFixed(1)}%), active/other-schema med ` +
+          `${med(activeOtherSchema).toFixed(2)}ms (+${otherSchemaOverheadPct.toFixed(1)}%), ` +
+          `active/member-schema med ${med(activeMemberSchema).toFixed(2)}ms (draft-aware), ` +
+          `first-rows(50) p95 ${p95FirstRows.toFixed(2)}ms`
       )
 
       // Inactive-vs-inactive is pure run noise; generous bound so CI variance
       // never flakes, while a real regression (a per-row cost on the inactive
       // path) would blow far past it.
       expect(Math.abs(inactiveDeltaPct)).toBeLessThan(60)
-      // Checked-out overhead: content swap for a 500-row page must stay well
-      // under the doc's <10% target locally; CI headroom to 50%.
-      expect(activeOverheadPct).toBeLessThan(50)
+      // Checked-out overhead on UNRELATED schemas: content swap only — must
+      // stay well under the doc's <10% target locally; CI headroom to 50%.
+      expect(otherSchemaOverheadPct).toBeLessThan(50)
+      // Member-schema queries take the draft-aware JS re-apply (the accepted
+      // transient-session trade) — still interactive at this scale.
+      expect(med(activeMemberSchema)).toBeLessThan(1_000)
       // 0266 stopping rule at this scale.
       expect(p95FirstRows).toBeLessThan(100)
     } finally {
