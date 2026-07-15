@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-15-time-machine-and-drafts-version-history-",
+      "url": "https://xnet.fyi/changelog#2026-07-15-time-machine-and-drafts-version-history-",
+      "title": "Time Machine and drafts: version history and branching for all your data",
+      "content_text": "Every page, task, database, and canvas gains a Time Machine — scrub through its history with named versions, author colours, and one-click restore — and Patchwork-style drafts: fork content into a private working copy, review a three-way diff against a moving main, and merge back in one step. Assistant edits now land in a draft awaiting your review instead of touching live content.\n",
+      "date_published": "2026-07-15T13:37:16Z",
+      "tags": [
+        "app"
+      ],
+      "_xnet": {
+        "date": "July 15, 2026",
+        "summary": "Every page, task, database, and canvas gains a Time Machine — scrub through its history with named versions, author colours, and one-click restore — and Patchwork-style drafts: fork content into a private working copy, review a three-way diff against a moving main, and merge back in one step. Assistant edits now land in a draft awaiting your review instead of touching live content.",
+        "highlights": [],
+        "mergedAt": "2026-07-15T13:37:16Z",
+        "pr": 523,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-14-pages-sit-flush-on-the-page-again",
       "url": "https://xnet.fyi/changelog#2026-07-14-pages-sit-flush-on-the-page-again",
       "title": "Pages sit flush on the page again",

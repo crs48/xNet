@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Time Machine and drafts: version history and branching for all your data</title>
+      <link>https://xnet.fyi/changelog#2026-07-15-time-machine-and-drafts-version-history-</link>
+      <guid isPermaLink="false">2026-07-15-time-machine-and-drafts-version-history-</guid>
+      <pubDate>Wed, 15 Jul 2026 13:37:16 GMT</pubDate>
+      <description>Every page, task, database, and canvas gains a Time Machine — scrub through its history with named versions, author colours, and one-click restore — and Patchwork-style drafts: fork content into a private working copy, review a three-way diff against a moving main, and merge back in one step. Assistant edits now land in a draft awaiting your review instead of touching live content.</description>
+    </item>
+    <item>
       <title>Pages sit flush on the page again</title>
       <link>https://xnet.fyi/changelog#2026-07-14-pages-sit-flush-on-the-page-again</link>
       <guid isPermaLink="false">2026-07-14-pages-sit-flush-on-the-page-again</guid>
