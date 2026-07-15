@@ -640,7 +640,7 @@ stateDiagram-v2
       `sync`, `sqlite`, `react`) — pin-registry schema bump per policy.
 
 **P2 — Drafts core**
-- [ ] Perf spike: hydrate-overlay cost at 1 M nodes, inactive and active,
+- [x] Perf spike: hydrate-overlay cost at 1 M nodes, inactive and active,
       against the 0266 budget; go/no-go gate.
 - [x] `Draft` schema + `DraftEntry` + never-fork policy list; no parent-draft
       relation (nesting forbidden).
@@ -686,7 +686,7 @@ stateDiagram-v2
 
 ## Validation Checklist
 
-- [ ] Scrubbing a 5k-change page and a 100k-change workspace seeks at
+- [x] Scrubbing a 5k-change page and a 100k-change workspace seeks at
       interactive latency (< 100 ms per seek after warm ScrubCache), with
       correct states verified against golden replays.
 - [ ] A pruned node scrubs to its horizon and *says so*; no silent remap
@@ -707,7 +707,7 @@ stateDiagram-v2
       share-room publish, are excluded from the personal node-sync room by
       the P2 outbound filter (hub-side assertion), and never render for
       another space member.
-- [ ] Overlay perf: 0266 budget holds with overlay inactive (Δ ≤ noise) and
+- [x] Overlay perf: 0266 budget holds with overlay inactive (Δ ≤ noise) and
       active (< 10% hydrate overhead at 10k-row page); grid reference
       stability preserved for untouched rows.
 - [ ] Figma-test: concurrent main-edit to property A and draft-edit to
