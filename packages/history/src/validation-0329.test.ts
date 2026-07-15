@@ -48,7 +48,8 @@ function prunable(adapter: MemoryNodeStorageAdapter): PrunableStorageAdapter {
         changes.filter((c) => c.hash !== hash)
       )
     }
-    ;((adapter as any).changesByHash as Map<string, unknown>).delete(hash)
+    const hashMap = (adapter as any).changesByHash as Map<string, unknown>
+    hashMap.delete(hash)
   }
   return p
 }

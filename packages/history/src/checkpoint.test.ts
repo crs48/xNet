@@ -138,7 +138,7 @@ describe('restoreToFrontier', () => {
   })
 
   it('reports horizon-missing members instead of failing the whole restore', async () => {
-    const { store, adapter, engine } = await setup()
+    const { store, engine } = await setup()
     const a = await store.create({ schemaId: TASK, properties: { title: 'a' } })
     await store.update(a.id, { properties: { title: 'a2' } })
 

@@ -21,7 +21,6 @@ import type {
   DraftEntry,
   DraftProvenance,
   NodeId,
-  NodeState,
   NodeStorageAdapter,
   NodeStore,
   TransactionOperation
