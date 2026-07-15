@@ -17,7 +17,7 @@
 import type { InferNode } from '../types'
 import { presets } from '../../auth'
 import { defineSchema } from '../define'
-import { created, createdBy, json, relation, select, text } from '../properties'
+import { checkbox, created, createdBy, json, relation, select, text } from '../properties'
 
 export const DRAFT_SCHEMA_IRI = 'xnet://xnet.fyi/Draft@1.0.0'
 
@@ -76,6 +76,12 @@ export const DraftSchema = defineSchema({
 
     /** Original ids deleted inside the draft (tombstoned on merge) */
     deletedIds: json<string[]>({}),
+
+    /**
+     * P4 request surfacing: the draft author asks for a review; the
+     * Inbox/Requests surface lists open drafts with this flag set.
+     */
+    reviewRequested: checkbox({ default: false }),
 
     /** Written once at merge: what the squash carried and who authored it */
     mergeProvenance: json<DraftProvenance>({}),
