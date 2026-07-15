@@ -86,9 +86,6 @@ export const DraftSchema = defineSchema({
     /** Written once at merge: what the squash carried and who authored it */
     mergeProvenance: json<DraftProvenance>({}),
 
-    /** Surfaces the draft in Requests for a human merge decision (P4) */
-    reviewRequested: checkbox({ default: false }),
-
     createdAt: created(),
     createdBy: createdBy()
   },
