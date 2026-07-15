@@ -650,7 +650,7 @@ stateDiagram-v2
       `get`/`list`/`query` hydration (incl. the private `getNodesById` batch
       path); `XNetContext` scoping;
       draft-epoch cache invalidation.
-- [ ] Draft switcher UI (create/checkout/main/discard) on Pages + Tasks.
+- [x] Draft switcher UI (create/checkout/main/discard) on Pages + Tasks.
 - [x] Outbound sync exclusion: `NodeStoreSyncProvider` filter so
       draft-container members never publish to the personal node-sync room
       (device-local drafts).
@@ -670,13 +670,13 @@ stateDiagram-v2
 - [x] Auto-refresh: reverse three-way applied on main-side change events
       while a draft is open; pauses on conflict cards (Upwelling's floating
       drafts).
-- [ ] Review panel (second context tool): per-property cards, Yjs text diff
+- [x] Review panel (second context tool): per-property cards, Yjs text diff
       via fork snapshot (making same-region overlap visible), conflict
       resolution, AI change summaries (budget/consent-gated);
       provenance-author overlay on merged batches (blame recovery).
 
 **P4 — Agent-PR**
-- [ ] `agentTools`/assistant writes default into a draft; merge request
+- [x] `agentTools`/assistant writes default into a draft; merge request
       surfaced in Inbox/Requests; end-to-end demo in seeded workspace.
 
 **P5 — Query-grade drafts**
