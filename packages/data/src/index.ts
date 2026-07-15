@@ -662,6 +662,8 @@ export {
   type PropertyTimestamp,
   type NodeState,
   type NodeStorageAdapter,
+  type PinEntry,
+  type PinRegistry,
   type SetNodeOptions,
   type ImportNodesOptions,
   type RebuildNodeIndexesOptions,

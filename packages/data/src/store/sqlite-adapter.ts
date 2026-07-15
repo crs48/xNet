@@ -1278,7 +1278,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
         const now = Date.now()
         for (const chunk of chunkItems(pins, 200)) {
           const placeholders = chunk.map(() => '(?, ?, ?, ?)').join(', ')
-          const params: unknown[] = []
+          const params: SQLValue[] = []
           for (const pin of chunk) params.push(pin.key, pin.ownerId, pin.reason, now)
           await this.db.run(
             `INSERT INTO pinned_changes (pin_key, owner_id, reason, created_at)
