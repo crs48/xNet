@@ -35,14 +35,14 @@
       "label": "Data",
       "file": "routes/data.png",
       "status": "unchanged",
-      "ssim": 0.999166
+      "ssim": 0.999773
     },
     {
       "id": "home",
       "label": "Home",
       "file": "routes/home.png",
       "status": "changed",
-      "ssim": 0.971172,
+      "ssim": 0.971266,
       "before": "before/routes/home.png",
       "after": "routes/home.png",
       "diff": "diff/routes/home.png"
@@ -51,11 +51,14 @@
       "id": "requests",
       "label": "Requests",
       "file": "routes/requests.png",
-      "status": "unchanged",
-      "ssim": 0.998189
+      "status": "changed",
+      "ssim": 0.997869,
+      "before": "before/routes/requests.png",
+      "after": "routes/requests.png",
+      "diff": "diff/routes/requests.png"
     }
   ],
   "electron": [],
   "flows": [],
-  "changedCount": 1
+  "changedCount": 2
 }
