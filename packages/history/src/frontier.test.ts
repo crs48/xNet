@@ -2,7 +2,7 @@
  * Tests for the Frontier primitive (exploration 0329).
  */
 
-import type { DID } from '@xnetjs/core'
+import type { ContentId, DID } from '@xnetjs/core'
 import { generateSigningKeyPair } from '@xnetjs/crypto'
 import { NodeStore, MemoryNodeStorageAdapter } from '@xnetjs/data'
 import type { SchemaIRI } from '@xnetjs/data'
@@ -86,13 +86,14 @@ describe('frontierAtWallTime', () => {
   it('picks the latest change at or before the timestamp per node', async () => {
     const { store, adapter } = createTestStore()
     const a = await store.create({ schemaId: TEST_SCHEMA, properties: { title: 'v1' } })
-    const changesAfterCreate = await adapter.getChanges(a.id)
-    const createTime = changesAfterCreate[0].wallTime
-
     await store.update(a.id, { properties: { title: 'v2' } })
 
-    const frontier = await frontierAtWallTime(adapter, [a.id], createTime)
-    expect(frontier[a.id].hash).toBe(changesAfterCreate[0].hash)
+    // Force distinct wallTimes (both writes can land in the same millisecond).
+    const changes = await adapter.getChanges(a.id)
+    changes[1].wallTime = changes[0].wallTime + 10
+
+    const frontier = await frontierAtWallTime(adapter, [a.id], changes[0].wallTime)
+    expect(frontier[a.id].hash).toBe(changes[0].hash)
   })
 
   it('omits nodes that did not exist at the timestamp', async () => {
@@ -112,7 +113,7 @@ describe('materializeAtFrontier', () => {
     const engine = createEngine(adapter)
 
     const { states, missing } = await materializeAtFrontier(engine, {
-      [a.id]: { hash: 'not-a-real-hash' }
+      [a.id]: { hash: 'not-a-real-hash' as ContentId }
     })
 
     expect(states.size).toBe(0)
@@ -120,6 +121,7 @@ describe('materializeAtFrontier', () => {
   })
 
   it('frontierTarget produces a hash-anchored target', () => {
-    expect(frontierTarget({ hash: 'abc' })).toEqual({ type: 'hash', hash: 'abc' })
+    const hash = 'abc' as ContentId
+    expect(frontierTarget({ hash })).toEqual({ type: 'hash', hash })
   })
 })

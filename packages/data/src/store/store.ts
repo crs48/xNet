@@ -11,6 +11,7 @@
  */
 
 import type {
+  CheckedOutDraftOverlay,
   NodeId,
   NodePayload,
   NodeChange,
@@ -137,6 +138,11 @@ export class NodeStore {
   private listeners: Set<NodeChangeListener> = new Set()
   private nodeListeners: Map<NodeId, Set<NodeChangeListener>> = new Map()
   private batchListeners: Set<NodeBatchChangeListener> = new Set()
+  // Draft overlay (exploration 0329)
+  private checkedOutDraft: CheckedOutDraftOverlay | null = null
+  private cloneToOriginal: Map<NodeId, NodeId> = new Map()
+  private draftMemberSet: Set<NodeId> = new Set()
+  private draftOverlayListeners: Set<() => void> = new Set()
   private schemaLookup?: SchemaLookup
   private propertyLookup?: PropertyLookup
   private lensRegistry?: LensRegistry
@@ -312,9 +318,118 @@ export class NodeStore {
    * Get a Node by ID.
    */
   async get(id: NodeId): Promise<NodeState | null> {
+    // Draft overlay (exploration 0329): a checked-out member reads as its
+    // clone's content under the original id. Zero-cost when no draft is
+    // checked out (the common case).
+    const cloneId = this.checkedOutDraft?.clones[id]
+    if (cloneId) {
+      const clone = await this.getRaw(cloneId)
+      if (clone) return { ...clone, id }
+    }
+    return this.getRaw(id)
+  }
+
+  /**
+   * Read a node WITHOUT the draft overlay (exploration 0329) — merge review
+   * and diff surfaces use this to see main's true state while checked out.
+   */
+  async getRaw(id: NodeId): Promise<NodeState | null> {
     const node = await this.storage.getNode(id)
     const decrypted = await this.decryptNodeSnapshotIfPresent(node)
     return (await this.canReadNode(decrypted)) ? decrypted : null
+  }
+
+  // ==========================================================================
+  // Draft overlay (exploration 0329)
+  // ==========================================================================
+
+  /**
+   * Check a draft out (or pass null to return to main). While checked out,
+   * member reads swap to clone content under original ids, member writes
+   * redirect to clones (lazily forking via `onMissingMember`), and clone
+   * change events mirror to original-id subscribers.
+   */
+  setCheckedOutDraft(overlay: CheckedOutDraftOverlay | null): void {
+    this.checkedOutDraft = overlay
+    this.cloneToOriginal = new Map(
+      overlay
+        ? Object.entries(overlay.clones).map(([orig, clone]) => [clone as NodeId, orig as NodeId])
+        : []
+    )
+    this.draftMemberSet = new Set(overlay?.members ?? [])
+    this.notifyDraftOverlayListeners()
+  }
+
+  private notifyDraftOverlayListeners(): void {
+    for (const listener of this.draftOverlayListeners) {
+      try {
+        listener()
+      } catch (err) {
+        console.error('Error in draft overlay listener:', err)
+      }
+    }
+  }
+
+  getCheckedOutDraft(): CheckedOutDraftOverlay | null {
+    return this.checkedOutDraft
+  }
+
+  /** Notified on every checkout change (including clone-map refreshes). */
+  subscribeToDraftOverlay(listener: () => void): () => void {
+    this.draftOverlayListeners.add(listener)
+    return () => this.draftOverlayListeners.delete(listener)
+  }
+
+  /**
+   * Swap checked-out members' content to their clones (original ids kept, so
+   * MV id lists and grid ordering are untouched). No-op without a checkout.
+   */
+  private async overlayStates(states: NodeState[]): Promise<NodeState[]> {
+    const overlay = this.checkedOutDraft
+    if (!overlay) return states
+
+    const cloneIds = states
+      .map((s) => overlay.clones[s.id])
+      .filter((cloneId): cloneId is NodeId => cloneId !== undefined)
+    if (cloneIds.length === 0) return states
+
+    const cloneMap = await this.getNodesById(cloneIds, this.storage)
+    return Promise.all(
+      states.map(async (state) => {
+        const cloneId = overlay.clones[state.id]
+        const clone = cloneId ? cloneMap.get(cloneId) : undefined
+        if (!clone) return state
+        const decrypted = await this.decryptNodeSnapshotIfPresent(clone)
+        return decrypted ? { ...decrypted, id: state.id } : state
+      })
+    )
+  }
+
+  /**
+   * Resolve where a write to `id` lands under the checkout: an existing
+   * clone, a lazily-forked one (`onMissingMember`), or — for non-members,
+   * clone ids, and declined forks — the id itself.
+   */
+  private async resolveDraftWriteTarget(id: NodeId): Promise<NodeId> {
+    const overlay = this.checkedOutDraft
+    if (!overlay) return id
+    const existing = overlay.clones[id]
+    if (existing) return existing
+    if (!this.draftMemberSet.has(id)) return id
+    if (overlay.onMissingMember) {
+      const cloneId = await overlay.onMissingMember(id)
+      if (cloneId && this.checkedOutDraft === overlay) {
+        // Keep the live overlay self-consistent so the very next read of the
+        // original resolves to the fresh clone without waiting for the UI
+        // layer to re-checkout.
+        this.checkedOutDraft = { ...overlay, clones: { ...overlay.clones, [id]: cloneId } }
+        this.cloneToOriginal.set(cloneId, id)
+        this.notifyDraftOverlayListeners()
+        return cloneId
+      }
+      if (cloneId) return cloneId
+    }
+    return id
   }
 
   /**
@@ -419,6 +534,8 @@ export class NodeStore {
    */
   async update(id: NodeId, options: UpdateNodeOptions): Promise<NodeState> {
     const start = this.telemetry ? Date.now() : 0
+    // Draft overlay (0329): member writes land on the clone (lazy COW).
+    id = await this.resolveDraftWriteTarget(id)
 
     try {
       if (this.canUseSingleWriteFastPath()) {
@@ -526,6 +643,8 @@ export class NodeStore {
    */
   async delete(id: NodeId): Promise<void> {
     const start = this.telemetry ? Date.now() : 0
+    // Draft overlay (0329): member deletes tombstone the clone, not main.
+    id = await this.resolveDraftWriteTarget(id)
 
     try {
       if (this.canUseSingleWriteFastPath()) {
@@ -612,6 +731,8 @@ export class NodeStore {
    * Restore a deleted Node.
    */
   async restore(id: NodeId): Promise<NodeState> {
+    // Draft overlay (0329): member restores un-tombstone the clone.
+    id = await this.resolveDraftWriteTarget(id)
     if (this.canUseSingleWriteFastPath()) {
       const { node, previousNode, change } = await this.applySingleNodeWrite({
         nodeId: id,
@@ -701,7 +822,8 @@ export class NodeStore {
       const readable = await this.filterReadableNodes(
         decrypted.filter((node): node is NodeState => node !== null)
       )
-      const result = this.authEvaluator ? this.applyListPagination(readable, options) : readable
+      const paged = this.authEvaluator ? this.applyListPagination(readable, options) : readable
+      const result = await this.overlayStates(paged)
 
       // Track performance
       if (this.telemetry) {
@@ -729,7 +851,7 @@ export class NodeStore {
       if (this.storage.queryNodes && !this.nodeContentCipher && !this.authEvaluator) {
         const result = await this.storage.queryNodes(descriptor)
         return {
-          nodes: result.nodes,
+          nodes: await this.overlayStates(result.nodes),
           totalCount: result.totalCount,
           plan: {
             ...result.plan,
@@ -756,7 +878,7 @@ export class NodeStore {
         const authFingerprint = await this.authFingerprint()
         const result = await this.storage.queryNodes({ ...descriptor, authFingerprint })
         return {
-          nodes: result.nodes,
+          nodes: await this.overlayStates(result.nodes),
           totalCount: result.totalCount,
           plan: {
             ...result.plan,
@@ -782,7 +904,7 @@ export class NodeStore {
       ) {
         const candidates = await this.storage.queryNodes(withoutNodeQueryPagination(descriptor))
         const readable = await this.filterReadableNodes(candidates.nodes)
-        const result = applyNodeQueryDescriptor(readable, descriptor)
+        const result = await this.overlayStates(applyNodeQueryDescriptor(readable, descriptor))
         return {
           nodes: result,
           totalCount: readable.length,
@@ -807,7 +929,9 @@ export class NodeStore {
       const readable = await this.filterReadableNodes(
         decrypted.filter((node): node is NodeState => node !== null)
       )
-      const result = applyNodeQueryDescriptor(readable, fallback.postFilterDescriptor)
+      const result = await this.overlayStates(
+        applyNodeQueryDescriptor(readable, fallback.postFilterDescriptor)
+      )
       // When pagination was pushed to storage, `readable` holds only the window,
       // so an in-memory count would report the page size, not the true total —
       // leave it undefined (the bridge derives a cheap value). Only count the
@@ -1864,6 +1988,30 @@ export class NodeStore {
           listener(event)
         } catch (err) {
           console.error('Error in NodeStore node listener:', err)
+        }
+      }
+    }
+
+    // Draft overlay (0329): a clone's change also notifies subscribers of its
+    // ORIGINAL id, with node content re-keyed, so `useNode(originalId)`
+    // consumers refresh while the draft is checked out.
+    const originalId = this.cloneToOriginal.get(change.payload.nodeId)
+    if (originalId) {
+      const originalListeners = this.nodeListeners.get(originalId)
+      if (originalListeners) {
+        const mirrored = {
+          ...event,
+          node: event.node ? { ...event.node, id: originalId } : event.node,
+          previousNode: event.previousNode
+            ? { ...event.previousNode, id: originalId }
+            : event.previousNode
+        }
+        for (const listener of originalListeners) {
+          try {
+            listener(mirrored)
+          } catch (err) {
+            console.error('Error in NodeStore draft-mirror listener:', err)
+          }
         }
       }
     }

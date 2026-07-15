@@ -289,6 +289,30 @@ export interface NodeStorageAdapter {
   pins?: PinRegistry
 }
 
+/**
+ * Checked-out draft overlay (exploration 0329): while set on a NodeStore,
+ * reads of an original member id return its clone's content (under the
+ * original id — MV id lists and grid ordering never see clone ids), writes
+ * to members redirect to their clones, and the first write to a not-yet-
+ * forked member triggers `onMissingMember` (lazy copy-on-write, wired to
+ * `forkNodeIntoDraft`). Only ids in `members` are overlay-managed — all
+ * other reads/writes pass through untouched, so bookkeeping writes (the
+ * draft node itself, profiles, unrelated content) never fork.
+ */
+export interface CheckedOutDraftOverlay {
+  /** The Draft node that owns this checkout. */
+  draftId: NodeId
+  /** The draft's declared scope: ids eligible for overlay + lazy COW. */
+  members: readonly NodeId[]
+  /** originalId -> cloneId for members already forked. */
+  clones: Record<NodeId, NodeId>
+  /**
+   * Lazy copy-on-write: fork `originalId` into the draft and return the
+   * clone id (or null to decline — the write then targets the original).
+   */
+  onMissingMember?: (originalId: NodeId) => Promise<NodeId | null>
+}
+
 /** One pinned key: a change hash or a `yjs:`-prefixed snapshot ref. */
 export interface PinEntry {
   key: string

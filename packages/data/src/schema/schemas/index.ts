@@ -223,6 +223,13 @@ export {
   type Checkpoint,
   type CheckpointFrontierEntry
 } from './checkpoint'
+export {
+  DRAFT_SCHEMA_IRI,
+  DraftSchema,
+  type Draft,
+  type DraftEntry,
+  type DraftProvenance
+} from './draft'
 export { ReactionSchema, type Reaction } from './reaction'
 export { DebugReportSchema, type DebugReport } from './debug-report'
 export { ProfileSchema, profileNodeId, didFromProfileNodeId, type Profile } from './profile'
@@ -539,6 +546,7 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/Comment@1.0.0': () => import('./comment').then((m) => m.CommentSchema),
   'xnet://xnet.fyi/Checkpoint@1.0.0': () =>
     import('./checkpoint').then((m) => m.CheckpointSchema),
+  'xnet://xnet.fyi/Draft@1.0.0': () => import('./draft').then((m) => m.DraftSchema),
   'xnet://xnet.fyi/Reaction@1.0.0': () => import('./reaction').then((m) => m.ReactionSchema),
   'xnet://xnet.fyi/DebugReport@1.0.0': () =>
     import('./debug-report').then((m) => m.DebugReportSchema),

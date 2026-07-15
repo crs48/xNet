@@ -642,9 +642,9 @@ stateDiagram-v2
 **P2 — Drafts core**
 - [ ] Perf spike: hydrate-overlay cost at 1 M nodes, inactive and active,
       against the 0266 budget; go/no-go gate.
-- [ ] `Draft` schema + `DraftEntry` + never-fork policy list; no parent-draft
+- [x] `Draft` schema + `DraftEntry` + never-fork policy list; no parent-draft
       relation (nesting forbidden).
-- [ ] `forkNode` (snapshot-create + pin + Yjs SV fork; recurse database row
+- [x] `forkNode` (snapshot-create + pin + Yjs SV fork; recurse database row
       docs); lazy trigger on first overlay write.
 - [ ] `NodeStore` overlay: checked-out state, content-swap in
       `get`/`list`/`query` hydration (incl. the private `getNodesById` batch
@@ -654,7 +654,7 @@ stateDiagram-v2
 - [ ] Outbound sync exclusion: `NodeStoreSyncProvider` filter so
       draft-container members never publish to the personal node-sync room
       (device-local drafts).
-- [ ] New helpers: `privateToCreator()` authorization preset; `headHash`
+- [x] New helpers: `privateToCreator()` authorization preset; `headHash`
       accessor over adapter `getChanges`.
 
 **P3 — Merge review**

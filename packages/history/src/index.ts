@@ -48,6 +48,7 @@ export {
   captureFrontier,
   frontierAtWallTime,
   frontierTarget,
+  headHash,
   makeYjsSnapshotRef,
   materializeAtFrontier,
   parseYjsSnapshotRef,
@@ -69,6 +70,21 @@ export {
   restoreToFrontier
 } from './checkpoint'
 export type { CreateCheckpointOptions, RestoreResult } from './checkpoint'
+
+// Drafts — writable branches forked from a frontier (exploration 0329 P2)
+export {
+  DraftPolicyError,
+  NEVER_FORK_SCHEMA_BASES,
+  createDraft,
+  discardDraft,
+  draftEntries,
+  forkNodeIntoDraft,
+  isForkable,
+  listDrafts,
+  markCreatedInDraft,
+  markDeletedInDraft
+} from './draft'
+export type { CreateDraftOptions } from './draft'
 
 // ─── Snapshot Cache ──────────────────────────────────────────
 export { SnapshotCache, MemorySnapshotStorage, setupAutoSnapshots } from './snapshot-cache'

@@ -73,6 +73,20 @@ export function pinKeyForYjsSnapshot(nodeId: NodeId, timestamp: number): string 
 // ─── Construction ────────────────────────────────────────────
 
 /**
+ * The hash of a node's latest change in its topologically-sorted chain (the
+ * position `{ type: 'latest' }` replays to), or null for an unknown node.
+ */
+export async function headHash(
+  storage: NodeStorageAdapter,
+  nodeId: NodeId
+): Promise<ContentId | null> {
+  const changes = await storage.getChanges(nodeId)
+  if (changes.length === 0) return null
+  const sorted = topologicalSort(changes)
+  return sorted[sorted.length - 1].hash
+}
+
+/**
  * Capture the *current* frontier of a node set: each node's latest change in
  * its topologically-sorted chain (the same "latest" that `materializeAt`
  * with `{ type: 'latest' }` replays to). Nodes with no changes are omitted.

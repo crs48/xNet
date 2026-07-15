@@ -386,6 +386,13 @@ export {
   type Checkpoint,
   type CheckpointFrontierEntry
 } from './schemas'
+export {
+  DRAFT_SCHEMA_IRI,
+  DraftSchema,
+  type Draft,
+  type DraftEntry,
+  type DraftProvenance
+} from './schemas'
 export { ReactionSchema, type Reaction } from './schemas'
 export { DebugReportSchema, type DebugReport } from './schemas'
 export { ProfileSchema, profileNodeId, didFromProfileNodeId, type Profile } from './schemas'
