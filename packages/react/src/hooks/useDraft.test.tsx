@@ -49,7 +49,7 @@ describe('useDraft', () => {
     }
   }
 
-  async function seedNode(title: string, schema: { schema: { '@id': string } } = TaskSchema) {
+  async function seedNode(title: string, schemaId = TaskSchema.schema['@id']) {
     const bootstrapStore = new NodeStore({
       storage,
       authorDID: did,
@@ -57,7 +57,7 @@ describe('useDraft', () => {
     })
     await bootstrapStore.initialize()
     return bootstrapStore.create({
-      schemaId: schema.schema['@id'],
+      schemaId,
       properties: { title }
     })
   }
@@ -215,7 +215,7 @@ describe('useDraft', () => {
   })
 
   it('refreshes clean main-side changes into the draft (floating drafts)', async () => {
-    const node = await seedNode('v1', PageSchema)
+    const node = await seedNode('v1', PageSchema.schema['@id'])
     const { result } = mountHook(node.id)
     await waitFor(() => expect(result.current.nodeStore.isReady).toBe(true))
 
