@@ -49,6 +49,7 @@ import {
   useContextPanel,
   type ContextPanelSection
 } from '../workbench/context-panel'
+import { DraftSwitcher } from '../workbench/drafts/DraftSwitcher'
 import { navigateToNode } from '../workbench/navigation'
 import { useWorkbench, type TabNodeType } from '../workbench/state'
 import { useStatusBarItem, type StatusBarItem } from '../workbench/status'
@@ -612,8 +613,8 @@ function CommentCountBadge({ unresolvedCount }: { unresolvedCount: number }) {
 
 /**
  * A quiet utility row above the document — collaboration affordances
- * only (comments, presence, share). Save/sync state lives in the
- * Status Bar; document metadata lives in the Right Panel.
+ * only (drafts, comments, presence, share). Save/sync state lives in
+ * the Status Bar; document metadata lives in the Right Panel.
  */
 function PageToolbar({
   docId,
@@ -626,6 +627,7 @@ function PageToolbar({
 }) {
   return (
     <div className="flex h-10 shrink-0 items-center justify-end gap-1 px-3">
+      <DraftSwitcher nodeId={docId} />
       <CommentCountBadge unresolvedCount={unresolvedCount} />
       <PresenceAvatars presence={presence} />
       <ShareButton docId={docId} docType="page" />
