@@ -87,6 +87,21 @@ export {
 } from './draft'
 export type { CreateDraftOptions } from './draft'
 
+// Draft merge — merger-signed three-way squash + floating refresh (0329 P3)
+export {
+  makeIdRemapper,
+  mergeDraft,
+  mergeYjsDelta,
+  refreshDraftFromMain,
+  threeWayPropertyMerge
+} from './merge'
+export type {
+  DraftMergeConflict,
+  MergeDraftResult,
+  RefreshDraftResult,
+  ThreeWayResult
+} from './merge'
+
 // ─── Snapshot Cache ──────────────────────────────────────────
 export { SnapshotCache, MemorySnapshotStorage, setupAutoSnapshots } from './snapshot-cache'
 export type { SnapshotStorageAdapter } from './snapshot-cache'

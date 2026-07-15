@@ -658,16 +658,16 @@ stateDiagram-v2
       accessor over adapter `getChanges`.
 
 **P3 — Merge review**
-- [ ] `threeWayPropertyMerge` + relation remap via temp-id machinery;
+- [x] `threeWayPropertyMerge` + relation remap via temp-id machinery;
       create/delete op kinds (draft-born nodes promoted via temp-ids with
       provenance-recorded ids; draft deletions tombstone originals, conflict
       card if main also edited); one `batchId` squash; conformance-style
       tests pinning merge determinism.
-- [ ] Yjs post-fork delta merge (SV-based), idempotent + re-runnable on
+- [x] Yjs post-fork delta merge (SV-based), idempotent + re-runnable on
       crash recovery; `draft.status` transitions only after both lanes
       commit; envelope re-wrap for original id (binding matters once the
       V2/authorized envelope path is wired).
-- [ ] Auto-refresh: reverse three-way applied on main-side change events
+- [x] Auto-refresh: reverse three-way applied on main-side change events
       while a draft is open; pauses on conflict cards (Upwelling's floating
       drafts).
 - [ ] Review panel (second context tool): per-property cards, Yjs text diff
