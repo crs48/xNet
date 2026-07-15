@@ -374,6 +374,27 @@ export class NodeStore {
     return this.checkedOutDraft
   }
 
+  /**
+   * Device-local draft privacy (exploration 0329): ids marked here (draft
+   * bookkeeping nodes, clones, draft-born nodes) are excluded from outbound
+   * sync publication by the personal node-sync room's `shouldPublish`
+   * predicate. In-memory only — the draft module rehydrates it from open
+   * Draft nodes at boot, BEFORE sync starts.
+   */
+  private draftPrivateNodeIds: Set<NodeId> = new Set()
+
+  markDraftPrivate(ids: readonly NodeId[]): void {
+    for (const id of ids) this.draftPrivateNodeIds.add(id)
+  }
+
+  unmarkDraftPrivate(ids: readonly NodeId[]): void {
+    for (const id of ids) this.draftPrivateNodeIds.delete(id)
+  }
+
+  isDraftPrivate(id: NodeId): boolean {
+    return this.draftPrivateNodeIds.has(id)
+  }
+
   /** Notified on every checkout change (including clone-map refreshes). */
   subscribeToDraftOverlay(listener: () => void): () => void {
     this.draftOverlayListeners.add(listener)

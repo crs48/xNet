@@ -506,7 +506,14 @@ export function createSyncManager(config: SyncManagerConfig): SyncManager {
   // path that reads the queue (drain on connect) awaits this first.
   let offlineQueueReady: Promise<void> = Promise.resolve()
   const nodeSyncProvider = config.nodeSyncRoom
-    ? new NodeStoreSyncProvider(config.nodeStore, config.nodeSyncRoom)
+    ? new NodeStoreSyncProvider(
+        config.nodeStore,
+        config.nodeSyncRoom,
+        false,
+        // Draft privacy (0329): device-local draft nodes/clones never publish
+        // to the personal node-sync room.
+        (change) => !config.nodeStore.isDraftPrivate(change.payload.nodeId)
+      )
     : null
   // Receive-only providers for share rooms (channels + workspaces, 0298), opened
   // at runtime when a view mounts, a link is claimed, or the boot resync runs.

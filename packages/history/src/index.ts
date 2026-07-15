@@ -82,7 +82,8 @@ export {
   isForkable,
   listDrafts,
   markCreatedInDraft,
-  markDeletedInDraft
+  markDeletedInDraft,
+  rehydrateDraftPrivacy
 } from './draft'
 export type { CreateDraftOptions } from './draft'
 

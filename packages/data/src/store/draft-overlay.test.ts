@@ -6,9 +6,10 @@
 import type { DID } from '@xnetjs/core'
 import { generateSigningKeyPair } from '@xnetjs/crypto'
 import { describe, it, expect, vi } from 'vitest'
+import type { SchemaIRI } from '../schema/node'
 import { MemoryNodeStorageAdapter } from './memory-adapter'
 import { NodeStore } from './store'
-import type { NodeId, SchemaIRI } from './types'
+import type { NodeId } from './types'
 
 const TASK: SchemaIRI = 'xnet://xnet.fyi/Task' as SchemaIRI
 
@@ -62,7 +63,7 @@ describe('draft overlay reads', () => {
     expect(byId.get(original.id)).toBe('draft-v1')
     expect(byId.get(other.id)).toBe('other')
 
-    const queried = await store.query({ schemaId: TASK })
+    const queried = await store.query({ schemaId: TASK, includeDeleted: false })
     const qById = new Map(queried.nodes.map((n) => [n.id, n.properties.title]))
     expect(qById.get(original.id)).toBe('draft-v1')
   })

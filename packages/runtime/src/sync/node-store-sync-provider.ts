@@ -164,7 +164,14 @@ export class NodeStoreSyncProvider {
   constructor(
     private store: NodeStore,
     private room: string,
-    private subscribeOnly = false
+    private subscribeOnly = false,
+    /**
+     * Outbound exclusion (exploration 0329): return false to keep a change
+     * out of this room entirely (live subscribe AND cursor backfill both
+     * funnel through `enqueueChange`). Used to keep device-local draft
+     * clones out of the personal node-sync room.
+     */
+    private shouldPublish?: (change: NodeChange) => boolean
   ) {}
 
   /**
@@ -636,6 +643,7 @@ export class NodeStoreSyncProvider {
   /** Queue a change for throttled broadcast (deduped by hash). */
   private enqueueChange(change: NodeChange): void {
     if (this.outboundHalted) return
+    if (this.shouldPublish && !this.shouldPublish(change)) return
     if (change.lamport <= this.pushedThrough) return
     if (this.queuedHashes.has(change.hash)) return
     this.queuedHashes.add(change.hash)

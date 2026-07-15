@@ -142,6 +142,54 @@ describe('NodeStoreSyncProvider', () => {
     })
   })
 
+  describe('draft privacy exclusion (0329)', () => {
+    it('shouldPublish=false keeps live changes out of the room', async () => {
+      const { store, emit } = makeStore()
+      const { conn } = makeConnection('connected')
+      const draftPrivate = new Set(['node-1'])
+      const provider = new NodeStoreSyncProvider(
+        store,
+        'user-room',
+        false,
+        (change) => !draftPrivate.has(change.payload.nodeId)
+      )
+      provider.attach(conn)
+
+      emit({ change: makeChange(1), isRemote: false }) // draft-private
+      emit({ change: makeChange(2), isRemote: false }) // publishable
+      await vi.advanceTimersByTimeAsync(0)
+
+      const published = (conn.publish as ReturnType<typeof vi.fn>).mock.calls
+        .map((c) => c[1])
+        .filter((m: { type?: string }) => m?.type === 'node-change')
+      expect(published).toHaveLength(1)
+      expect((published[0] as { change: { nodeId: string } }).change.nodeId).toBe('node-2')
+    })
+
+    it('shouldPublish also filters the cursor backfill replay', async () => {
+      const changes = [makeChange(1), makeChange(2), makeChange(3)]
+      const { store } = makeStore({ changes, cursor: 0 })
+      const { conn, setStatus, injectMessage } = makeConnection('disconnected')
+      new NodeStoreSyncProvider(
+        store,
+        'room-1',
+        false,
+        (change) => change.payload.nodeId !== 'node-2'
+      ).attach(conn)
+
+      setStatus('connected')
+      await vi.advanceTimersByTimeAsync(0)
+      injectMessage({ type: 'node-sync-response', room: 'room-1', changes: [], highWaterMark: 0 })
+      await vi.advanceTimersByTimeAsync(0)
+
+      const published = (conn.publish as ReturnType<typeof vi.fn>).mock.calls
+        .map((c) => c[1])
+        .filter((m: { type?: string }) => m?.type === 'node-change')
+        .map((m: { change: { nodeId: string } }) => m.change.nodeId)
+      expect(published).toEqual(['node-1', 'node-3'])
+    })
+  })
+
   describe('serialization', () => {
     it('publishes node changes with schemaId to the relay room', async () => {
       const { store, emit } = makeStore()

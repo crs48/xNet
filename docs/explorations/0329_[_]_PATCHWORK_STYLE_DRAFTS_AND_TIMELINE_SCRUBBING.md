@@ -651,7 +651,7 @@ stateDiagram-v2
       path); `XNetContext` scoping;
       draft-epoch cache invalidation.
 - [ ] Draft switcher UI (create/checkout/main/discard) on Pages + Tasks.
-- [ ] Outbound sync exclusion: `NodeStoreSyncProvider` filter so
+- [x] Outbound sync exclusion: `NodeStoreSyncProvider` filter so
       draft-container members never publish to the personal node-sync room
       (device-local drafts).
 - [x] New helpers: `privateToCreator()` authorization preset; `headHash`

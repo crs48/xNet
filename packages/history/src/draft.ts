@@ -79,7 +79,7 @@ export async function createDraft(
   store: NodeStore,
   options: CreateDraftOptions
 ): Promise<NodeState> {
-  return store.create({
+  const draft = await store.create({
     schemaId: DRAFT_SCHEMA_IRI as SchemaIRI,
     properties: {
       name: options.name,
@@ -90,6 +90,9 @@ export async function createDraft(
       deletedIds: []
     }
   })
+  // Device-local until shared (P5): keep the bookkeeping out of outbound sync.
+  store.markDraftPrivate([draft.id])
+  return draft
 }
 
 /** The member map of a draft node. */
@@ -155,6 +158,7 @@ export async function forkNodeIntoDraft(
     { key: pinKeyForChange(forkedAtHash), ownerId: draftId, reason: 'draft-fork' }
   ])
 
+  store.markDraftPrivate([cloneId])
   await store.update(draftId, {
     properties: { entries: { ...entries, [originalId]: entry } }
   })
@@ -172,6 +176,7 @@ export async function markCreatedInDraft(
   if (!draft) throw new Error(`Draft ${draftId} not found`)
   const created = (draft.properties.created as NodeId[] | undefined) ?? []
   if (created.includes(nodeId)) return
+  store.markDraftPrivate([nodeId])
   await store.update(draftId, { properties: { created: [...created, nodeId] } })
 }
 
@@ -210,6 +215,29 @@ export async function discardDraft(
 
   await storage.pins?.removePinsByOwner(draftId)
   await store.update(draftId, { properties: { status: 'discarded' } })
+  const cloneIds = Object.values(entries).map((e) => e.cloneId as NodeId)
+  const createdIds = (draft.properties.created as NodeId[] | undefined) ?? []
+  store.unmarkDraftPrivate([...cloneIds, ...createdIds])
+  // The draft node itself stays private: its tombstone is nobody's business.
+}
+
+/**
+ * Rebuild the store's device-local draft-privacy set from persisted Draft
+ * nodes. MUST run before outbound sync starts (the client wires this) so a
+ * reload never leaks clones into the personal node-sync room.
+ */
+export async function rehydrateDraftPrivacy(store: NodeStore): Promise<void> {
+  const drafts = await store.list({ schemaId: DRAFT_SCHEMA_IRI as SchemaIRI })
+  const ids: NodeId[] = []
+  for (const draft of drafts) {
+    ids.push(draft.id)
+    if (draft.properties.status !== 'open') continue
+    for (const entry of Object.values(draftEntries(draft))) {
+      ids.push(entry.cloneId as NodeId)
+    }
+    ids.push(...(((draft.properties.created as NodeId[] | undefined) ?? []) as NodeId[]))
+  }
+  if (ids.length > 0) store.markDraftPrivate(ids)
 }
 
 /** List open drafts, optionally scoped to one target node. */

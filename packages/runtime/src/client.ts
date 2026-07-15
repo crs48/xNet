@@ -41,7 +41,12 @@ import type { ChangeSigner, SyncReplicationConfig } from '@xnetjs/sync'
 import { getSigningPublicKeyFromPrivate, sign, verify } from '@xnetjs/crypto'
 import { MemoryNodeStorageAdapter, NodeStore } from '@xnetjs/data'
 import { createMainThreadBridgeSync } from '@xnetjs/data-bridge'
-import { DocumentHistoryEngine, UndoManager, type YjsSnapshotStorageAdapter } from '@xnetjs/history'
+import {
+  DocumentHistoryEngine,
+  UndoManager,
+  rehydrateDraftPrivacy,
+  type YjsSnapshotStorageAdapter
+} from '@xnetjs/history'
 import { PluginRegistry } from '@xnetjs/plugins'
 import { createSyncManager } from './sync/sync-manager'
 
@@ -322,6 +327,25 @@ function startSyncManager(
   syncManager.start().catch((err) => reportCrash(telemetry, err, 'runtime.syncManager.start'))
 }
 
+/**
+ * Draft privacy must be rehydrated BEFORE outbound sync starts so a reload
+ * never replays draft clones into the personal node-sync room (0329).
+ */
+async function startSyncManagerWithDraftPrivacy(
+  store: NodeStore,
+  syncManager: SyncManager,
+  bridge: DataBridge,
+  sync: XNetClientSyncOptions,
+  telemetry: XNetClientTelemetry | undefined
+): Promise<void> {
+  try {
+    await rehydrateDraftPrivacy(store)
+  } catch (err) {
+    reportCrash(telemetry, err, 'runtime.drafts.rehydratePrivacy')
+  }
+  startSyncManager(syncManager, bridge, sync, telemetry)
+}
+
 /** Build the PluginRegistry when plugins are enabled (else null). */
 function buildPlugins(store: NodeStore, options: CreateXNetClientOptions): PluginRegistry | null {
   const plugins = options.plugins
@@ -393,7 +417,9 @@ export async function createXNetClient(options: CreateXNetClientOptions): Promis
 
   // ── optional subsystems ──────────────────────────────────────────
   const syncManager = buildSyncManager(store, storage, options)
-  if (syncManager && sync) startSyncManager(syncManager, bridge, sync, telemetry)
+  if (syncManager && sync) {
+    void startSyncManagerWithDraftPrivacy(store, syncManager, bridge, sync, telemetry)
+  }
   const pluginRegistry = buildPlugins(store, options)
   const undoManager = buildUndo(store, options)
 
