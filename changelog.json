@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-15-build-plugins-inside-xnet-from-a-spec",
+      "url": "https://xnet.fyi/changelog#2026-07-15-build-plugins-inside-xnet-from-a-spec",
+      "title": "Build plugins inside xNet from a spec",
+      "content_text": "Turn a spec document into a live, sandboxed, composing plugin without leaving the workspace: an agent writes the plugin's source as a synced node, it hot-loads into an isolated iframe, and its console/errors feed back to the agent so it self-debugs.\n",
+      "date_published": "2026-07-15T19:19:57Z",
+      "tags": [
+        "plugins"
+      ],
+      "_xnet": {
+        "date": "July 15, 2026",
+        "summary": "Turn a spec document into a live, sandboxed, composing plugin without leaving the workspace: an agent writes the plugin's source as a synced node, it hot-loads into an isolated iframe, and its console/errors feed back to the agent so it self-debugs.",
+        "highlights": [],
+        "mergedAt": "2026-07-15T19:19:57Z",
+        "pr": 525,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-15-time-machine-and-drafts-version-history-",
       "url": "https://xnet.fyi/changelog#2026-07-15-time-machine-and-drafts-version-history-",
       "title": "Time Machine and drafts: version history and branching for all your data",

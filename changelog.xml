@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Build plugins inside xNet from a spec</title>
+      <link>https://xnet.fyi/changelog#2026-07-15-build-plugins-inside-xnet-from-a-spec</link>
+      <guid isPermaLink="false">2026-07-15-build-plugins-inside-xnet-from-a-spec</guid>
+      <pubDate>Wed, 15 Jul 2026 19:19:57 GMT</pubDate>
+      <description>Turn a spec document into a live, sandboxed, composing plugin without leaving the workspace: an agent writes the plugin's source as a synced node, it hot-loads into an isolated iframe, and its console/errors feed back to the agent so it self-debugs.</description>
+    </item>
+    <item>
       <title>Time Machine and drafts: version history and branching for all your data</title>
       <link>https://xnet.fyi/changelog#2026-07-15-time-machine-and-drafts-version-history-</link>
       <guid isPermaLink="false">2026-07-15-time-machine-and-drafts-version-history-</guid>
