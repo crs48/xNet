@@ -143,6 +143,7 @@ export class NodeStore {
   private checkedOutDraft: CheckedOutDraftOverlay | null = null
   private cloneToOriginal: Map<NodeId, NodeId> = new Map()
   private draftMemberSet: Set<NodeId> = new Set()
+  private draftDynamicMembers = false
   /** null = conservative "all schemas" (memberSchemaIds omitted). */
   private draftMemberSchemaSet: Set<string> | null = null
   private draftOverlayListeners: Set<() => void> = new Set()
@@ -250,6 +251,7 @@ export class NodeStore {
 
         this.emit(change, node, null, false)
         this.authEvaluator?.invalidate(node.id)
+        this.notifyDraftNodeCreated(node.id, node.schemaId)
 
         if (this.telemetry) {
           this.telemetry.reportPerformance('data.create', Date.now() - start)
@@ -300,6 +302,7 @@ export class NodeStore {
       // Emit change event
       this.emit(change, node, null, false)
       this.authEvaluator?.invalidate(node.id)
+      this.notifyDraftNodeCreated(node.id, node.schemaId)
 
       // Track performance
       if (this.telemetry) {
@@ -359,9 +362,23 @@ export class NodeStore {
         ? Object.entries(overlay.clones).map(([orig, clone]) => [clone as NodeId, orig as NodeId])
         : []
     )
-    this.draftMemberSet = new Set(overlay?.members ?? [])
+    this.draftMemberSet =
+      overlay && overlay.members !== 'dynamic' ? new Set(overlay.members) : new Set()
+    this.draftDynamicMembers = overlay?.members === 'dynamic'
     this.draftMemberSchemaSet = overlay?.memberSchemaIds ? new Set(overlay.memberSchemaIds) : null
     this.notifyDraftOverlayListeners()
+  }
+
+  /** Report a locally-created node to the checkout's draft-born hook (0329 P4). */
+  private notifyDraftNodeCreated(nodeId: NodeId, schemaId: string): void {
+    const overlay = this.checkedOutDraft
+    if (!overlay?.onNodeCreated) return
+    if (nodeId === overlay.draftId || this.cloneToOriginal.has(nodeId)) return
+    try {
+      overlay.onNodeCreated(nodeId, schemaId)
+    } catch (err) {
+      console.error('Error in draft onNodeCreated hook:', err)
+    }
   }
 
   private notifyDraftOverlayListeners(): void {
@@ -511,7 +528,13 @@ export class NodeStore {
     if (!overlay) return id
     const existing = overlay.clones[id]
     if (existing) return existing
-    if (!this.draftMemberSet.has(id)) return id
+    // Dynamic (agent-PR) sessions consult the fork callback for every id
+    // except the draft's own bookkeeping and already-created clones.
+    if (this.draftDynamicMembers) {
+      if (id === overlay.draftId || this.cloneToOriginal.has(id)) return id
+    } else if (!this.draftMemberSet.has(id)) {
+      return id
+    }
     if (overlay.onMissingMember) {
       const cloneId = await overlay.onMissingMember(id)
       if (cloneId && this.checkedOutDraft === overlay) {

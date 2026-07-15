@@ -302,8 +302,13 @@ export interface NodeStorageAdapter {
 export interface CheckedOutDraftOverlay {
   /** The Draft node that owns this checkout. */
   draftId: NodeId
-  /** The draft's declared scope: ids eligible for overlay + lazy COW. */
-  members: readonly NodeId[]
+  /**
+   * The draft's declared scope: ids eligible for overlay + lazy COW.
+   * `'dynamic'` (agent-PR sessions, 0329 P4) makes EVERY written id a
+   * candidate — `onMissingMember` decides per id (never-fork schemas and
+   * bookkeeping decline by returning null).
+   */
+  members: readonly NodeId[] | 'dynamic'
   /** originalId -> cloneId for members already forked. */
   clones: Record<NodeId, NodeId>
   /**
@@ -319,6 +324,12 @@ export interface CheckedOutDraftOverlay {
    * clone id (or null to decline — the write then targets the original).
    */
   onMissingMember?: (originalId: NodeId) => Promise<NodeId | null>
+  /**
+   * Fired when a NEW node is created while this draft is checked out
+   * (draft-born; promoted to a fresh main node on merge). Agent-PR sessions
+   * wire this to `markCreatedInDraft`.
+   */
+  onNodeCreated?: (nodeId: NodeId, schemaId: string) => void
 }
 
 /** One pinned key: a change hash or a `yjs:`-prefixed snapshot ref. */

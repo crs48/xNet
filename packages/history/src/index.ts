@@ -103,6 +103,10 @@ export type {
   ThreeWayResult
 } from './merge'
 
+// Agent-PR sessions — assistant writes land in a draft by default (0329 P4)
+export { startAgentDraft } from './agent-draft'
+export type { AgentDraftSession } from './agent-draft'
+
 // ─── Snapshot Cache ──────────────────────────────────────────
 export { SnapshotCache, MemorySnapshotStorage, setupAutoSnapshots } from './snapshot-cache'
 export type { SnapshotStorageAdapter } from './snapshot-cache'

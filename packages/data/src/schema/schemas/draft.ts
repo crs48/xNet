@@ -17,7 +17,7 @@
 import type { InferNode } from '../types'
 import { presets } from '../../auth'
 import { defineSchema } from '../define'
-import { created, createdBy, json, relation, select, text } from '../properties'
+import { checkbox, created, createdBy, json, relation, select, text } from '../properties'
 
 export const DRAFT_SCHEMA_IRI = 'xnet://xnet.fyi/Draft@1.0.0'
 
@@ -79,6 +79,9 @@ export const DraftSchema = defineSchema({
 
     /** Written once at merge: what the squash carried and who authored it */
     mergeProvenance: json<DraftProvenance>({}),
+
+    /** Surfaces the draft in Requests for a human merge decision (P4) */
+    reviewRequested: checkbox({ default: false }),
 
     createdAt: created(),
     createdBy: createdBy()
