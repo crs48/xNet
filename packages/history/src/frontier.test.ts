@@ -2,7 +2,7 @@
  * Tests for the Frontier primitive (exploration 0329).
  */
 
-import type { DID } from '@xnetjs/core'
+import type { ContentId, DID } from '@xnetjs/core'
 import { generateSigningKeyPair } from '@xnetjs/crypto'
 import { NodeStore, MemoryNodeStorageAdapter } from '@xnetjs/data'
 import type { SchemaIRI } from '@xnetjs/data'
@@ -112,7 +112,7 @@ describe('materializeAtFrontier', () => {
     const engine = createEngine(adapter)
 
     const { states, missing } = await materializeAtFrontier(engine, {
-      [a.id]: { hash: 'not-a-real-hash' }
+      [a.id]: { hash: 'not-a-real-hash' as ContentId }
     })
 
     expect(states.size).toBe(0)
@@ -120,6 +120,7 @@ describe('materializeAtFrontier', () => {
   })
 
   it('frontierTarget produces a hash-anchored target', () => {
-    expect(frontierTarget({ hash: 'abc' })).toEqual({ type: 'hash', hash: 'abc' })
+    const hash = 'abc' as ContentId
+    expect(frontierTarget({ hash })).toEqual({ type: 'hash', hash })
   })
 })

@@ -2,7 +2,7 @@
  * Checkpoint tests (exploration 0329): create/list/delete, pinning, restore.
  */
 
-import type { DID } from '@xnetjs/core'
+import type { ContentId, DID } from '@xnetjs/core'
 import { generateSigningKeyPair } from '@xnetjs/crypto'
 import { NodeStore, MemoryNodeStorageAdapter, CHECKPOINT_SCHEMA_IRI } from '@xnetjs/data'
 import type { SchemaIRI } from '@xnetjs/data'
@@ -143,7 +143,7 @@ describe('restoreToFrontier', () => {
     await store.update(a.id, { properties: { title: 'a2' } })
 
     const result = await restoreToFrontier(store, engine, {
-      [a.id]: { hash: 'pruned-away-hash' }
+      [a.id]: { hash: 'pruned-away-hash' as ContentId }
     })
 
     expect(result.missing).toEqual([a.id])
