@@ -69,7 +69,14 @@ const WAIVED = new Map([
   ['discover', 'discovery/feed is a web/social surface'],
   ['experiments', 'experiment journal is web-first'],
   ['finance', 'ledger/finance is a web-first business surface'],
-  ['lab', 'labs runtime ladder (SES/WASM) not wired into the desktop shell'],
+  [
+    'lab',
+    'Labs editor UI (LabView + SES/WASM ladder) still web-only; the 0331 ' +
+      'workspace-plugin SANDBOX rung is renderer-agnostic and hardened-renderer ' +
+      'safe (opaque-origin iframe, no node/same-origin — see ' +
+      'workspace-plugins-electron-parity.test.ts), so porting the editor surface ' +
+      'is the only remaining desktop gap'
+  ],
   ['map', 'map view is web-first; deferred on desktop'],
   ['person', 'people graph / person dashboard is a web/social surface'],
   ['requests', 'requests inbox is part of the unported comms layer'],

@@ -11,8 +11,8 @@
  * has exactly this) drives it.
  */
 
-import type { PluginSourceNode } from '../schemas/plugin-source'
 import type { WorkspacePluginHandle, WorkspacePluginHostDeps } from './host'
+import type { PluginSourceNode } from '../schemas/plugin-source'
 import { activateWorkspacePlugin } from './host'
 
 /** The store slice the watcher needs (structural over NodeStore). */

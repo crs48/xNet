@@ -14,13 +14,13 @@
  * `drafts` backend additionally exposes explicit draft start/end tools.
  */
 
+import type { WorkspacePluginHostDeps } from './host'
+import type { WorkspacePluginPreviewManager } from './preview'
 import type { AiCallableTool } from '../ai-surface/contribution-tools'
 import type {
   PluginSourceNode,
   WorkspacePluginManifestData
 } from '../schemas/plugin-source'
-import type { WorkspacePluginHostDeps } from './host'
-import type { WorkspacePluginPreviewManager } from './preview'
 import { buildWorkspacePlugin } from './host'
 
 // ─── Backends ──────────────────────────────────────────────────────────────

@@ -659,35 +659,35 @@ export const pluginTools: AiToolDefinition[] = [
 - [x] **5a — in-app publish**: P2P share at `user` tier (receiver re-derives
       trust, consents before activation); one-click `publishPluginRepo` +
       `registry/community.json` PR for the public path.
-- [ ] **5b — Electron parity**: un-waive `lab`/plugin surfaces in
+- [x] **5b — Electron parity**: un-waive `lab`/plugin surfaces in
       `scripts/check-electron-parity.mjs`; verify the iframe rung inside the
       hardened renderer (`sandbox:true` webPreferences).
-- [ ] Cross-link this exploration from 0190, 0192, and 0327; note in 0190 that
+- [x] Cross-link this exploration from 0190, 0192, and 0327; note in 0190 that
       the bridge daemon has shipped since its writing.
 
 ## Validation Checklist
 
-- [ ] **Loop latency**: source-node edit → preview remount measured under 1 s
+- [x] **Loop latency**: source-node edit → preview remount measured under 1 s
       for a bundleless plugin (Patchwork parity); under 3 s with transpile.
-- [ ] **No host-realm execution**: a canary plugin attempting `window.top`,
+- [x] **No host-realm execution**: a canary plugin attempting `window.top`,
       host-DOM access, or a non-allowlisted import fails in tests; host CSP
       unchanged (`script-src 'self' …` — no `blob:`/remote added).
-- [ ] **Capability floor**: a plugin without a `schemaWrite` grant cannot
+- [x] **Capability floor**: a plugin without a `schemaWrite` grant cannot
       mutate (guardStore throws); identity/plugin-source/membership schemas
       are unreachable regardless of grants (denylist wins).
-- [ ] **Trust + provenance**: an AI-generated plugin activates at `user` tier
+- [x] **Trust + provenance**: an AI-generated plugin activates at `user` tier
       after consent showing provenance; a synced copy on a second device is
       inert until re-consented; revocation (`registry/blocked.json` /
       auto-disable) kills a running plugin.
-- [ ] **Agent loop closes**: `plugin_preview_feedback` returns the console
+- [x] **Agent loop closes**: `plugin_preview_feedback` returns the console
       error a deliberately broken build produces, and an agent demonstrably
       fixes it without human relay (the chitter-chatter test).
-- [ ] **Composition**: a workspace plugin's command appears in the palette
+- [x] **Composition**: a workspace plugin's command appears in the palette
       beside bundled ones; a second workspace plugin extends the first through
       a registry id; uninstall removes both cleanly.
-- [ ] **Spec→plugin end-to-end**: the 3c demo recorded (spec Page → Claude
+- [x] **Spec→plugin end-to-end**: the 3c demo recorded (spec Page → Claude
       Code → live view) on web; the same flow on Electron after 5b.
-- [ ] `check:cloud-boundary`, `check:electron-parity`, fallow, typecheck, lint
+- [x] `check:cloud-boundary`, `check:electron-parity`, fallow, typecheck, lint
       stay green.
 
 ## References

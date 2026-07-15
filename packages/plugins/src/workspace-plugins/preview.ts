@@ -10,9 +10,9 @@
  * no human ferrying stack traces.
  */
 
-import type { PluginSourceNode } from '../schemas/plugin-source'
-import type { PluginFeedbackEntry, PluginRegisteredHandlers } from './session'
 import type { WorkspacePluginHandle, WorkspacePluginHostDeps } from './host'
+import type { PluginFeedbackEntry, PluginRegisteredHandlers } from './session'
+import type { PluginSourceNode } from '../schemas/plugin-source'
 import { activateWorkspacePlugin, buildWorkspacePlugin } from './host'
 
 export interface WorkspacePluginPreviewResult {

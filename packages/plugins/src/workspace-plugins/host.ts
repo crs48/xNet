@@ -15,19 +15,19 @@
  * compiled-in — 0327's "no frame replacement" non-goal, drawn as a line here.
  */
 
-import type { ComponentType } from 'react'
 import type { AgentToolContribution } from '../agent-tools'
 import type { ContributionRegistry } from '../contributions'
-import type { Disposable, PluginPermissions } from '../types'
 import type { ModuleCapabilities } from '../feature-module'
+import type { PluginFrameToHostMessage, PluginHostToFrameMessage } from './protocol'
 import type {
   PluginSourceNode,
   WorkspacePluginManifestData
 } from '../schemas/plugin-source'
+import type { Disposable, PluginPermissions } from '../types'
 import type { PluginBuildInput, PluginModuleGraph } from './builder'
 import type { PluginFrameSession, PluginFeedbackEntry } from './session'
-import type { PluginFrameToHostMessage, PluginHostToFrameMessage } from './protocol'
 import type { WorkspacePluginStore } from './store-rpc'
+import type { ComponentType } from 'react'
 import { evaluateInstallConsent, type ConsentDecision } from '../ecosystem/consent'
 import {
   deriveTrustTier,

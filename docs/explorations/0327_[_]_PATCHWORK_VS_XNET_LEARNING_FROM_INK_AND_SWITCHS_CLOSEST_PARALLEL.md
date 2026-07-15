@@ -701,6 +701,7 @@ stateDiagram-v2
   [Keyhive notebook](https://www.inkandswitch.com/keyhive/notebook/) ·
   [Upwelling](https://www.inkandswitch.com/upwelling/) ·
   [Cambria](https://www.inkandswitch.com/cambria/)
+- [0331 Developing xNet From Inside xNet](./0331_[x]_DEVELOPING_XNET_FROM_INSIDE_XNET_SPEC_TO_PLUGIN_LOOP.md) — the narrow, shipped follow-up: adopt Patchwork's spec→plugin *loop* (code-as-a-node + in-browser loader + preview-feedback) under xNet's *governance* (trust tiers, capability guard, denylist-wins store access, content-hash pinning), never Patchwork's full-trust dial. Consumes this doc's 0327-E (hash pinning) and, when drafts landed (0329), agent edits target a draft of the source node.
 - Geoffrey Litt, [Towards universal version control with Patchwork](https://buttondown.com/geoffreylitt/archive/towards-universal-version-control-with-patchwork/)
 - [Automerge 3 announcement](https://automerge.org/blog/automerge-3/)
 - Prior xNet explorations: 0200 (protocol boundaries — the not-Automerge

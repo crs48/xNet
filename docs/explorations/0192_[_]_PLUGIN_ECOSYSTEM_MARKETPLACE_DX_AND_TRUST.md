@@ -723,6 +723,7 @@ erDiagram
 - [0187 Plug-And-Play Billing](./0187_[x]_PLUG_AND_PLAY_BILLING_STRIPE_AND_BITCOIN.md) — the monetization engine
 - [0189 Everything Is A Plugin: Feature-Module Platform](./0189_[_]_EVERYTHING_AS_PLUGINS_FEATURE_MODULE_PLATFORM.md) — the chassis this builds on
 - [0190 In-App Agentic Vibe-Coding](./0190_[_]_IN_APP_AGENTIC_VIBE_CODING_AND_SELF_MODIFICATION.md) — the devkit dev-loop
+- [0331 Developing xNet From Inside xNet](./0331_[x]_DEVELOPING_XNET_FROM_INSIDE_XNET_SPEC_TO_PLUGIN_LOOP.md) — takes this exploration's trust tiers, capability guard, consent, and revocation off the shelf for a NEW distribution model: workspace plugins whose source is a synced node, hot-loaded into an opaque-origin iframe. The slow parts of the marketplace path this doc designs (paste JSON, rebuild, GitHub-registry PR) are shown to be *distribution* choices, not security requirements.
 
 ### External
 

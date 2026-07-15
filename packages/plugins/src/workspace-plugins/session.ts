@@ -14,12 +14,12 @@
  *    instructions: consumers must treat it as untrusted plugin output.
  */
 
-import type { PluginStoreRpc } from './store-rpc'
 import type {
   PluginFrameToHostMessage,
   PluginGraphPayload,
   PluginHostToFrameMessage
 } from './protocol'
+import type { PluginStoreRpc } from './store-rpc'
 
 export interface PluginFeedbackEntry {
   kind: 'log' | 'crash' | 'store-denied'
