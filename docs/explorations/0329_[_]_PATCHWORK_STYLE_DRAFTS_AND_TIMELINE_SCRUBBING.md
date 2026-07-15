@@ -628,7 +628,7 @@ stateDiagram-v2
       an explicit blob horizon); migration.
 - [x] Prune-horizon: internal targets become hash-anchored; pruned-below
       resolution returns an explicit `HistoryHorizon` result, surfaced in UI.
-- [ ] `ScopeTimeline` (generalized `SchemaTimeline`) over arbitrary node
+- [x] `ScopeTimeline` (generalized `SchemaTimeline`) over arbitrary node
       sets + `ScopeScrubCache`; bind to the existing `PlaybackEngine`.
 - [ ] Production Yjs capture: NodePool persist hook → throttled
       `captureSnapshot` (session-boundary + min-interval).

@@ -89,6 +89,8 @@ export type { PrunableStorageAdapter } from './pruning'
 // ─── Schema Timeline (Database Time Machine) ─────────────────
 export { SchemaTimeline, restoreSchemaAt } from './schema-timeline'
 export { SchemaScrubCache } from './schema-scrub-cache'
+export { ScopeTimeline, ScopeScrubCache } from './scope-timeline'
+export type { ScopeTimelineEntry } from './scope-timeline'
 
 // ─── Document History (Yjs Snapshots) ─────────────────────────
 export { DocumentHistoryEngine, MemoryYjsSnapshotStorage } from './document-history'
