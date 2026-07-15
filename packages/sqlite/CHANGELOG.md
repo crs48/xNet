@@ -1,5 +1,40 @@
 # @xnetjs/sqlite
 
+## 2.0.0
+
+### Minor Changes
+
+- [#523](https://github.com/crs48/xNet/pull/523) [`0f7ef43`](https://github.com/crs48/xNet/commit/0f7ef435afab91022433ae6c60c3a71510a1d036) Thanks [@crs48](https://github.com/crs48)! - Time Machine P1 (exploration 0329): frontiers, checkpoints, pins, prune horizon, scope timelines, production Yjs snapshot capture, and a React scrub hook.
+  - `@xnetjs/history`: new `Frontier` primitive (hash-anchored per-node positions:
+    `captureFrontier`, `frontierAtWallTime`, `frontierTarget`,
+    `materializeAtFrontier`, Yjs snapshot refs + pin keys); named checkpoints
+    (`createCheckpoint`, `listCheckpoints`, `deleteCheckpoint`, `pinFrontier`,
+    `restoreToFrontier`); `ScopeTimeline`/`ScopeScrubCache` generalizing
+    `SchemaTimeline` to arbitrary node sets; `HistoryHorizonError` +
+    `HistoryEngine.getHorizon` — targets below the prune horizon now fail loudly
+    instead of silently remapping to the wrong change.
+  - `@xnetjs/data`: `Checkpoint` node schema (`CHECKPOINT_SCHEMA_IRI`); pin
+    registry on storage adapters (`NodeStorageAdapter.pins`, `PinEntry`,
+    `PinRegistry`) protecting pinned changes and Yjs snapshots from pruning and
+    eviction (memory + SQLite implementations).
+  - `@xnetjs/sqlite`: `pinned_changes` table (additive migration).
+  - `@xnetjs/runtime`: Yjs history snapshots are now captured on production doc
+    persists (throttled session-boundary/min-interval capture in NodePool).
+  - `@xnetjs/react`: new `useTimeMachine` hook (hooks sub-barrel) binding a
+    scrubber UI to the merged scope timeline: position/step navigation, preview +
+    property diff at the scrub position, named versions, one-transaction restore,
+    and history-horizon reporting.
+
+### Patch Changes
+
+- [#498](https://github.com/crs48/xNet/pull/498) [`e2e78cd`](https://github.com/crs48/xNet/commit/e2e78cd319723972591e1aae9d87af4588edfda3) Thanks [@crs48](https://github.com/crs48)! - Fix "no such column: p.tiebreak_key" on databases created before schema v8. The
+  `tiebreak_key` column repair now runs before the first `node_properties` read
+  (`getNode`/`getNodes`/`listNodes`/`queryNodes`), not just before writes — a
+  fresh session that opened a document page hit the missing column on its first
+  hydrate query before any write could trigger the lazy guard. Also adds the
+  missing v8 entry to `SCHEMA_MIGRATIONS` (`ALTER TABLE node_properties ADD
+COLUMN tiebreak_key TEXT`).
+
 ## 1.0.0
 
 ### Major Changes

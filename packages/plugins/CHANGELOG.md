@@ -1,5 +1,57 @@
 # @xnetjs/plugins
 
+## 2.0.0
+
+### Major Changes
+
+- [#496](https://github.com/crs48/xNet/pull/496) [`6a5a15e`](https://github.com/crs48/xNet/commit/6a5a15e5d7693f54a0c859b1f096dc6405694574) Thanks [@crs48](https://github.com/crs48)! - AI page-markdown surface re-targeted to the BlockNote editor (exploration 0312).
+  - **Breaking**: the page-markdown apply adapter mode `'tiptap-yjs'` is renamed
+    to `'blocknote-yjs'` in `AiPageMarkdownApplyAdapterResult['mode']` and
+    `AiPageMarkdownApplyResult['mode']`. Adapters that returned
+    `mode: 'tiptap-yjs'` must return `'blocknote-yjs'` (or `'yjs'`/`'custom'`).
+  - New Yjs-fragment ↔ markdown conversion for BlockNote (`content-v4`)
+    documents, dependency-light (walks the Yjs XML tree directly, no editor/DOM):
+    - `xnetPageFragmentToMarkdown(doc)` reads the BlockNote fragment
+      (paragraph/heading/lists/check items/code/quote/callout/table + inline
+      `mention`/`hashtag`/`wikilink`/`inlineMath` atoms), falling back to the
+      legacy TipTap `content` fragment when `content-v4` is empty
+      (`blockNoteFragmentToMarkdown` / `legacyFragmentToMarkdown` are also
+      exported).
+    - `replaceXNetPageFragmentWithMarkdown(doc, markdown)` writes the AI
+      markdown subset (paragraphs, headings, bullet/numbered/check lists with
+      nesting, fenced code, quotes, callouts, wikilinks) as BlockNote PM XML —
+      `blockGroup > blockContainer` (unique `id` per block) wrappers — in one
+      Yjs transaction.
+    - `createBlockNotePageMarkdownAdapter({ resolveDoc })` packages both as an
+      `AiPageMarkdownApplyAdapter` (plus `readMarkdown`) for
+      `xnet_apply_page_markdown`, replacing the TipTap-era document bridge.
+    - `XNET_PAGE_FRAGMENT_FIELD` (`'content-v4'`) and
+      `XNET_PAGE_LEGACY_FRAGMENT_FIELD` (`'content'`) constants.
+  - `@xnetjs/plugins` now depends on `yjs`; the unused `@tiptap/core`
+    devDependency is gone.
+
+- [#496](https://github.com/crs48/xNet/pull/496) [`2a7b80f`](https://github.com/crs48/xNet/commit/2a7b80f613d1c7b5db637639d4a3176df23ae1f3) Thanks [@crs48](https://github.com/crs48)! - `EditorContribution` carries BlockNote specs instead of TipTap extensions (exploration 0312).
+  - **Breaking**: `EditorContribution.extension` (TipTap `Extension`) and
+    `EditorContribution.toolbar` (`ToolbarContribution`, removed entirely) are
+    gone. Plugins now contribute `blockSpecs` / `inlineContentSpecs` /
+    `styleSpecs` (opaque BlockNote spec objects keyed by spec name) plus
+    behavior-only `slashMenuItems`.
+  - **Breaking**: the editor schema-skew guard is spec-based —
+    `isSchemaDefiningExtension` is replaced by `isSchemaDefiningContribution`,
+    and `findEditorSchemaRisks` / `warnOnEditorSchemaRisks` take the host's
+    statically bundled spec names and flag any contributed spec outside that
+    set (0205 invariant: schema specs must be identical across all
+    collaborators or Yjs silently drops content).
+  - `SlashCommandContext.editor` is now a BlockNote editor instance.
+  - The `@tiptap/core` dependency is removed.
+
+### Patch Changes
+
+- Updated dependencies [[`85c9700`](https://github.com/crs48/xNet/commit/85c9700d6de11459f39083a1824f9cbf79cdb7bd), [`a91f278`](https://github.com/crs48/xNet/commit/a91f278ac122c588145ebb5f3981f6745b30ba66), [`dd956e5`](https://github.com/crs48/xNet/commit/dd956e512b60f3b4288ae4fb0cb2ade875da1f9f), [`e4cb876`](https://github.com/crs48/xNet/commit/e4cb876cc49fcf94a71d015dd60683ff038b367c), [`e2e78cd`](https://github.com/crs48/xNet/commit/e2e78cd319723972591e1aae9d87af4588edfda3), [`0f7ef43`](https://github.com/crs48/xNet/commit/0f7ef435afab91022433ae6c60c3a71510a1d036)]:
+  - @xnetjs/data@2.0.0
+  - @xnetjs/abuse@2.0.0
+  - @xnetjs/core@2.0.0
+
 ## 1.0.0
 
 ### Patch Changes
