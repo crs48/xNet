@@ -1,0 +1,10 @@
+{
+  "id": "2026-07-15-build-plugins-inside-xnet-from-a-spec",
+  "date": "July 15, 2026",
+  "title": "Build plugins inside xNet from a spec",
+  "summary": "Turn a spec document into a live, sandboxed, composing plugin without leaving the workspace: an agent writes the plugin's source as a synced node, it hot-loads into an isolated iframe, and its console/errors feed back to the agent so it self-debugs.",
+  "highlights": [],
+  "tags": [
+    "plugins"
+  ]
+}
