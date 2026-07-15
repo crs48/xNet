@@ -646,7 +646,7 @@ stateDiagram-v2
       relation (nesting forbidden).
 - [x] `forkNode` (snapshot-create + pin + Yjs SV fork; recurse database row
       docs); lazy trigger on first overlay write.
-- [ ] `NodeStore` overlay: checked-out state, content-swap in
+- [x] `NodeStore` overlay: checked-out state, content-swap in
       `get`/`list`/`query` hydration (incl. the private `getNodesById` batch
       path); `XNetContext` scoping;
       draft-epoch cache invalidation.
