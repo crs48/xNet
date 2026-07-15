@@ -76,13 +76,14 @@ export function DraftReviewPanel({ nodeId }: { nodeId: string }) {
   const [paused, setPaused] = useState(false) // refresh hit conflicts
   const [busy, setBusy] = useState(false)
 
+  const { computeReview } = d
   const loadReview = useCallback(async () => {
     if (!draft) {
       setReview(null)
       return
     }
-    setReview(await d.computeReview(draft.id))
-  }, [draft, d.computeReview])
+    setReview(await computeReview(draft.id))
+  }, [draft, computeReview])
 
   useEffect(() => {
     void loadReview()
