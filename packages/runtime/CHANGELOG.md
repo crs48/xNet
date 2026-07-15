@@ -1,5 +1,83 @@
 # @xnetjs/runtime
 
+## 0.5.0
+
+### Minor Changes
+
+- [#523](https://github.com/crs48/xNet/pull/523) [`a91f278`](https://github.com/crs48/xNet/commit/a91f278ac122c588145ebb5f3981f6745b30ba66) Thanks [@crs48](https://github.com/crs48)! - Drafts P2/P3 (exploration 0329): Patchwork-style branching on the change log.
+  - `@xnetjs/data`: `Draft` node schema (`DRAFT_SCHEMA_IRI`, entries map, no
+    nesting); `NodeStore` draft overlay — `setCheckedOutDraft` swaps member
+    reads to clone content under original ids, redirects member writes to
+    clones with lazy copy-on-write, mirrors clone change events to original-id
+    subscribers, and exposes `getRaw` for overlay-free reads; device-local
+    draft privacy set (`markDraftPrivate`/`isDraftPrivate`).
+  - `@xnetjs/history`: draft lifecycle (`createDraft`, `forkNodeIntoDraft` —
+    signed snapshot-create + pinned fork point + Yjs blob fork with state
+    vector, `discardDraft`, `listDrafts`, never-fork policy); merge
+    (`threeWayPropertyMerge`, `mergeDraft` — one merger-signed squash batch
+    with draft-born promotion via temp ids, relation remapping, deletion
+    conflict cards, idempotent Yjs delta lane, provenance) and
+    `refreshDraftFromMain` (floating drafts).
+  - `@xnetjs/runtime`: `NodeStoreSyncProvider` gains a `shouldPublish`
+    predicate; the personal node-sync room excludes draft-private nodes, and
+    draft privacy is rehydrated before sync starts.
+
+- [#523](https://github.com/crs48/xNet/pull/523) [`0f7ef43`](https://github.com/crs48/xNet/commit/0f7ef435afab91022433ae6c60c3a71510a1d036) Thanks [@crs48](https://github.com/crs48)! - Time Machine P1 (exploration 0329): frontiers, checkpoints, pins, prune horizon, scope timelines, production Yjs snapshot capture, and a React scrub hook.
+  - `@xnetjs/history`: new `Frontier` primitive (hash-anchored per-node positions:
+    `captureFrontier`, `frontierAtWallTime`, `frontierTarget`,
+    `materializeAtFrontier`, Yjs snapshot refs + pin keys); named checkpoints
+    (`createCheckpoint`, `listCheckpoints`, `deleteCheckpoint`, `pinFrontier`,
+    `restoreToFrontier`); `ScopeTimeline`/`ScopeScrubCache` generalizing
+    `SchemaTimeline` to arbitrary node sets; `HistoryHorizonError` +
+    `HistoryEngine.getHorizon` — targets below the prune horizon now fail loudly
+    instead of silently remapping to the wrong change.
+  - `@xnetjs/data`: `Checkpoint` node schema (`CHECKPOINT_SCHEMA_IRI`); pin
+    registry on storage adapters (`NodeStorageAdapter.pins`, `PinEntry`,
+    `PinRegistry`) protecting pinned changes and Yjs snapshots from pruning and
+    eviction (memory + SQLite implementations).
+  - `@xnetjs/sqlite`: `pinned_changes` table (additive migration).
+  - `@xnetjs/runtime`: Yjs history snapshots are now captured on production doc
+    persists (throttled session-boundary/min-interval capture in NodePool).
+  - `@xnetjs/react`: new `useTimeMachine` hook (hooks sub-barrel) binding a
+    scrubber UI to the merged scope timeline: position/step navigation, preview +
+    property diff at the scrub position, named versions, one-transaction restore,
+    and history-horizon reporting.
+
+### Patch Changes
+
+- [#496](https://github.com/crs48/xNet/pull/496) [`85c9700`](https://github.com/crs48/xNet/commit/85c9700d6de11459f39083a1824f9cbf79cdb7bd) Thanks [@crs48](https://github.com/crs48)! - Yjs fragment readers understand the BlockNote document schema (exploration 0312).
+
+  Documents now live in the `content-v4` fragment using BlockNote's ProseMirror
+  shape (`blockGroup > blockContainer > blockContent`); the legacy TipTap
+  `content` fragment remains readable as a fallback until each doc is lazily
+  imported.
+  - `@xnetjs/data`: `getRichTextPlainText` extracts text from BlockNote-shaped
+    rich-text cells, including the new inline atoms (`mention` → `@label`,
+    `hashtag` → `#name`, `wikilink` → title, `inlineMath` → latex), while still
+    reading legacy TipTap-shaped cells.
+  - `@xnetjs/history`: version-diff text extraction prefers `content-v4` (legacy
+    `content` fallback) and renders BlockNote inline atoms as readable text.
+  - `@xnetjs/react`: new `useMergedEditorContributions` /
+    `mergeEditorContributions` (+ `MergedEditorContributions` type) collect
+    plugin-contributed BlockNote `blockSpecs`/`inlineContentSpecs`/`styleSpecs`
+    and slash menu items from the plugin registry, running the editor
+    schema-skew guard (`warnOnEditorSchemaRisks`) against the host's statically
+    bundled spec names and excluding un-bundled (skew-hazard) specs.
+  - `@xnetjs/runtime`: blob-CID retention scanning now also walks the
+    `content-v4` and `content` fragments, so blobs referenced from page
+    documents are discovered.
+
+- Updated dependencies [[`6a5a15e`](https://github.com/crs48/xNet/commit/6a5a15e5d7693f54a0c859b1f096dc6405694574), [`2a7b80f`](https://github.com/crs48/xNet/commit/2a7b80f613d1c7b5db637639d4a3176df23ae1f3), [`85c9700`](https://github.com/crs48/xNet/commit/85c9700d6de11459f39083a1824f9cbf79cdb7bd), [`a91f278`](https://github.com/crs48/xNet/commit/a91f278ac122c588145ebb5f3981f6745b30ba66), [`dd956e5`](https://github.com/crs48/xNet/commit/dd956e512b60f3b4288ae4fb0cb2ade875da1f9f), [`e4cb876`](https://github.com/crs48/xNet/commit/e4cb876cc49fcf94a71d015dd60683ff038b367c), [`e2e78cd`](https://github.com/crs48/xNet/commit/e2e78cd319723972591e1aae9d87af4588edfda3), [`0f7ef43`](https://github.com/crs48/xNet/commit/0f7ef435afab91022433ae6c60c3a71510a1d036)]:
+  - @xnetjs/plugins@2.0.0
+  - @xnetjs/data@2.0.0
+  - @xnetjs/history@2.0.0
+  - @xnetjs/data-bridge@2.0.0
+  - @xnetjs/storage@2.0.0
+  - @xnetjs/sync@2.0.0
+  - @xnetjs/identity@2.0.0
+  - @xnetjs/crypto@2.0.0
+  - @xnetjs/core@2.0.0
+
 ## 0.4.0
 
 ### Minor Changes
