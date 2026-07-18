@@ -118,6 +118,61 @@ control.
   owned page with a portable, DID‑based subscriber list — tracked in
   exploration 0234 (Wave 3).
 
+### No ground rent
+
+The Commons commitment has an economic edge
+([exploration 0351](./explorations/0351_[x]_FRONTIER_ECONOMICS_WITHOUT_ENCLOSURE_RAILROADS_AIRLINES_AND_THE_COMMONS.md)):
+xNet charges for **improvements** — operations, support, context, and
+distribution we build and run — and never for **ground rent**: access to
+things you would own anyway. The refused rents, each with its receipt:
+
+- **No take rate on direct creator sales.** Payments for your work settle on
+  your own account; xNet is not in the flow of funds. **Aspirational:** the
+  policy and design are fixed in
+  [exploration 0349](./explorations/0349_[_]_FIRST_CLASS_PAYMENTS_CREATOR_COMMERCE_AND_ECONOMIC_EXCHANGE.md)
+  (Stripe Connect Standard direct charges, 0%); the payments feature itself
+  has not shipped yet.
+- **No egress or export fees.** You can export everything, verified, for
+  free. **Architectural:** portable `.xnetpack` bundles
+  ([`packages/data/src/portability/`](../packages/data/src/portability/),
+  exploration 0344), JSON export
+  ([`packages/data/src/database/export/json-export.ts`](../packages/data/src/database/export/json-export.ts));
+  the claims ledger pins this receipt to the portability regression suite
+  (`commons-no-ground-rent-export` in
+  [`packages/telemetry/test/charter-claims-ledger.test.ts`](../packages/telemetry/test/charter-claims-ledger.test.ts)).
+- **No identity ransom.** Your `did:key` is minted by you and works on any
+  hub (§2). **Architectural:**
+  [`packages/identity/src/keys.ts`](../packages/identity/src/keys.ts).
+- **No protocol tolls.** The wire format, client, and hub are MIT; the
+  entitlements contract is MIT and dependency‑free, so a self‑hosted hub
+  never phones home to us. **Architectural:** root [`LICENSE`](../LICENSE),
+  [`packages/sync/src/change.ts`](../packages/sync/src/change.ts),
+  [`packages/entitlements/`](../packages/entitlements/).
+- **No behavioural surplus.** Restates §1 as a refused rent. **Enforced:**
+  [`scripts/check-humane-patterns.mjs`](../scripts/check-humane-patterns.mjs)
+  (`surplus` rules).
+- **No global chokepoint tier.** We do not operate an indispensable middle to
+  rent back later: relays are bounded, hubs are user‑ownable.
+  **Architectural:** the decision is recorded in exploration 0333 and the hub
+  is a single self‑contained process
+  ([`packages/hub/src/cli.ts`](../packages/hub/src/cli.ts)).
+- **A FRAND trademark.** The name never fences the code (see
+  [`TRADEMARK.md`](../TRADEMARK.md)).
+
+Covenants are tested in down quarters, not up ones — so the test lives here,
+not in anyone's memory. **Every new revenue lane must pass three tests before
+it ships:**
+
+1. **Improvement test** — the margin pays for labour, capital, or operations
+   *we* provide, not for access to something users would own anyway.
+2. **BATNA test** — after the lane ships, self‑hosting remains a real,
+   undegraded alternative.
+3. **Vanish test** — if xNet‑the‑company disappeared tomorrow, what the
+   customer paid for (their data, their audience, their workflows) survives.
+
+A lane that fails any test is redesigned or refused. Exploration documents
+that propose a revenue lane should apply the three tests explicitly.
+
 ---
 
 ## Cryptographic posture (post‑quantum)

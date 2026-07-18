@@ -77,6 +77,10 @@ Requirements:
 - **Checklists** — every implementation and validation step as
   `- [ ]` items, so progress can be tracked and the file eventually
   checked off.
+- **Revenue lanes** — if the exploration proposes a new way xNet makes
+  money, apply the three "No ground rent" tests from
+  `docs/CHARTER.md` §6 (improvement / BATNA / vanish) explicitly in the
+  Options and Recommendation sections (exploration 0351).
 
 ## Committing
 
