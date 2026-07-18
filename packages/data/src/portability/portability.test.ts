@@ -13,6 +13,8 @@ import { NodeStore } from '../store/store'
 import { applyBundle, BundleImportError } from './apply'
 import { MemoryBundleSink, MemoryBundleSource } from './memory-bundle'
 import { decodeUtf8, encodeUtf8 } from './serialize'
+import * as Y from 'yjs'
+import { createStoreYjsPort } from './store-yjs-port'
 import { BUNDLE_ENTRY, type BundleBlobPort, type BundleYjsPort } from './types'
 import { verifyBundle } from './verify'
 import { writeBundle, blobEntryPath } from './write'
@@ -401,6 +403,52 @@ describe('xnetpack blob and yjs ports', () => {
     expect(result.yjsDocsApplied).toBe(1)
     expect(destBlobs.blobs.get(cid)?.mimeType).toBe('text/plain')
     expect(destYjs.applied).toEqual(['node-1'])
+  })
+
+  it('store yjs port: re-import into a store that already has the doc does not duplicate', async () => {
+    const a = createTestStore()
+    await a.store.initialize()
+    const [node] = await seedStore(a.store, 1)
+
+    // Author a doc on A.
+    const docA = new Y.Doc()
+    docA.getText('body').insert(0, 'hello world')
+    await a.store.setDocumentContent(node.id, Y.encodeStateAsUpdate(docA))
+
+    const sink = new MemoryBundleSink()
+    await writeBundle(a.store, { kind: 'full' }, sink, {
+      ownerDid: a.did,
+      manifestSigner: signerFor(a.privateKey),
+      yjsPort: createStoreYjsPort(a.store)
+    })
+
+    // B already has the same doc plus a local edit.
+    const b = createTestStore({ did: a.did, privateKey: a.privateKey })
+    await b.store.initialize()
+    const docB = new Y.Doc()
+    Y.applyUpdate(docB, Y.encodeStateAsUpdate(docA))
+    docB.getText('body').insert(docB.getText('body').length, ' + local edit')
+    // The change log must exist on B for the node row; import brings it.
+    const result = await applyBundle(b.store, sink.toSource(), {
+      importerDid: a.did,
+      yjsPort: createStoreYjsPort(b.store)
+    })
+    expect(result.yjsDocsApplied).toBe(1)
+    await b.store.setDocumentContent(node.id, Y.encodeStateAsUpdate(docB))
+    const second = await applyBundle(b.store, sink.toSource(), {
+      importerDid: a.did,
+      yjsPort: createStoreYjsPort(b.store)
+    })
+    expect(second.yjsDocsApplied).toBe(1)
+
+    const mergedBytes = await b.store.getDocumentContent(node.id)
+    const merged = new Y.Doc()
+    Y.applyUpdate(merged, mergedBytes!)
+    // State-vector merge: shared prefix present once, local edit preserved.
+    expect(merged.getText('body').toString()).toBe('hello world + local edit')
+    docA.destroy()
+    docB.destroy()
+    merged.destroy()
   })
 
   it('flags a blob whose bytes do not match its content-addressed filename', async () => {

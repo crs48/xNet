@@ -60,6 +60,13 @@ import { configuredHubUrl, persistedHubUrl, setPersistedHubUrl } from '../lib/hu
 import { identityManager, logout } from '../lib/identity'
 import { isLabEnabled, LABS_FLAGS, setLabEnabled } from '../lib/labs'
 import { createLeavePorts, downloadLeaveBundle, type LeaveDeps } from '../lib/leave'
+import {
+  downloadBytes,
+  exportXnetpack,
+  importXnetpackFile,
+  verifyXnetpackFile
+} from '../lib/bundle-export'
+import { sign } from '@xnetjs/crypto'
 import { useReportBreadcrumbs } from '../lib/use-report-breadcrumbs'
 import {
   DEFAULT_SETTINGS_SECTION,
@@ -382,23 +389,35 @@ function ThemeButton({
 
 function DataSettings() {
   const { identity } = useIdentity()
+  const { store: nodeStore } = useNodeStore()
   const [clearing, setClearing] = useState(false)
   const [cleared, setCleared] = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [leaving, setLeaving] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [importReport, setImportReport] = useState<string | null>(null)
 
-  // Charter §Exit: take everything and go — workspace + portable identity +
-  // a re-import README, bundled by the tested @xnetjs/plugins leave service.
+  /** Manifest signer backed by the unlocked identity key (0344). */
+  const getSignBytes = useCallback(async () => {
+    const keyBundle = await identityManager.unlock()
+    return (bytes: Uint8Array) => sign(bytes, keyBundle.signingKey)
+  }, [])
+
+  // Charter §Exit: take everything and go — the signed .xnetpack change log
+  // (the OPFS SQLite master, not the IndexedDB sidecars), portable identity,
+  // and a re-import README, bundled by the tested @xnetjs/plugins service.
   const handleLeaveWithEverything = useCallback(async () => {
     setLeaving(true)
     try {
       const now = new Date().toISOString()
       const bundle = await leaveWithEverything(
-        createLeavePorts({ did: identity?.did }, now, LEAVE_DEPS),
-        {
-          now
-        }
+        createLeavePorts({ did: identity?.did }, now, {
+          ...LEAVE_DEPS,
+          store: nodeStore,
+          signBytes: identity?.did ? await getSignBytes() : undefined
+        }),
+        { now }
       )
       downloadLeaveBundle(bundle)
     } catch (err) {
@@ -406,65 +425,58 @@ function DataSettings() {
     } finally {
       setLeaving(false)
     }
-  }, [identity?.did])
+  }, [identity?.did, nodeStore, getSignBytes])
 
+  // The real backup (0344): the signed change log + document states from the
+  // OPFS SQLite master, zipped as one verifiable .xnetpack file.
   const handleExportData = useCallback(async () => {
+    if (!nodeStore || !identity?.did) return
     setExporting(true)
     try {
-      const databases = await indexedDB.databases()
-      const exportData: {
-        exportedAt: string
-        version: string
-        databases: Record<string, Record<string, unknown[]>>
-      } = {
-        exportedAt: new Date().toISOString(),
-        version: '1.0.0',
-        databases: {}
-      }
-
-      // Export each database
-      for (const dbInfo of databases) {
-        if (!dbInfo.name) continue
-
-        const db = await new Promise<IDBDatabase>((resolve, reject) => {
-          const request = indexedDB.open(dbInfo.name!)
-          request.onsuccess = () => resolve(request.result)
-          request.onerror = () => reject(request.error)
-        })
-
-        const dbExport: Record<string, unknown[]> = {}
-
-        for (const storeName of Array.from(db.objectStoreNames)) {
-          const tx = db.transaction(storeName, 'readonly')
-          const store = tx.objectStore(storeName)
-          const items = await new Promise<unknown[]>((resolve, reject) => {
-            const request = store.getAll()
-            request.onsuccess = () => resolve(request.result)
-            request.onerror = () => reject(request.error)
-          })
-          dbExport[storeName] = items
-        }
-
-        exportData.databases[dbInfo.name] = dbExport
-        db.close()
-      }
-
-      // Download as JSON
-      const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = url
-      a.download = `xnet-export-${new Date().toISOString().split('T')[0]}.json`
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
+      const signBytes = await getSignBytes()
+      const { bytes, filename } = await exportXnetpack(nodeStore, identity.did, signBytes)
+      downloadBytes(filename, bytes)
     } catch (err) {
       console.error('Failed to export data:', err)
     } finally {
       setExporting(false)
     }
-  }, [])
+  }, [nodeStore, identity?.did, getSignBytes])
+
+  // Restore: verify first (signatures, hash chain, owner DID), then replay
+  // through the same apply path a sync peer uses. Dry-run report on failure.
+  const handleImportFile = useCallback(
+    async (file: File) => {
+      if (!nodeStore || !identity?.did) return
+      setImporting(true)
+      setImportReport(null)
+      try {
+        const bytes = new Uint8Array(await file.arrayBuffer())
+        const report = await verifyXnetpackFile(bytes)
+        if (!report.ok) {
+          const errors = report.issues
+            .filter((i) => i.severity === 'error')
+            .map((i) => i.detail)
+            .join('; ')
+          setImportReport(`Bundle failed verification — nothing imported. ${errors}`)
+          return
+        }
+        const result = await importXnetpackFile(nodeStore, bytes, {
+          importerDid: identity.did
+        })
+        const quarantineNote =
+          result.quarantined.length > 0 ? `, ${result.quarantined.length} quarantined` : ''
+        setImportReport(
+          `Restored ${result.applied} change(s); ${result.duplicates} already present${quarantineNote}.`
+        )
+      } catch (err) {
+        setImportReport(err instanceof Error ? err.message : String(err))
+      } finally {
+        setImporting(false)
+      }
+    },
+    [nodeStore, identity?.did]
+  )
 
   const handleClearData = useCallback(async () => {
     if (!confirmClear) {
@@ -509,11 +521,42 @@ function DataSettings() {
           </span>
         </SettingRow>
 
-        <SettingRow label="Export data" description="Download a backup of all your documents">
-          <button onClick={handleExportData} disabled={exporting} className={QUIET_BUTTON}>
+        <SettingRow
+          label="Export data"
+          description="Download your workspace as a signed .xnetpack bundle — the full change log with history and document contents, re-importable here or on any xNet"
+        >
+          <button
+            onClick={handleExportData}
+            disabled={exporting || !nodeStore}
+            className={QUIET_BUTTON}
+          >
             <Download size={14} strokeWidth={1.5} />
             {exporting ? 'Exporting…' : 'Export'}
           </button>
+        </SettingRow>
+
+        <SettingRow
+          label="Restore from bundle"
+          description="Verify and import an .xnetpack bundle. Records are checked (signatures, hash chain, owner) before anything is written"
+        >
+          <div className="flex flex-col items-end gap-1">
+            <label className={QUIET_BUTTON} style={{ cursor: 'pointer' }}>
+              <Download size={14} strokeWidth={1.5} className="rotate-180" />
+              {importing ? 'Importing…' : 'Choose file'}
+              <input
+                type="file"
+                accept=".xnetpack,.zip"
+                className="hidden"
+                disabled={importing || !nodeStore}
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) void handleImportFile(file)
+                  e.target.value = ''
+                }}
+              />
+            </label>
+            {importReport ? <span className="text-xs text-ink-3">{importReport}</span> : null}
+          </div>
         </SettingRow>
 
         <SettingRow

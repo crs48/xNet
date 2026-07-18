@@ -582,7 +582,7 @@ Phase 1 — canonical bundle (Tier 1 core):
 
 Phase 2 — surfaces:
 
-- [ ] Settings: point "Export data" and `leaveWithEverything` at
+- [x] Settings: point "Export data" and `leaveWithEverything` at
       `writeBundle` (full scope); keep IndexedDB dump as a
       devtools-only extra. Add import ("Restore from bundle") with
       dry-run verify report UI.

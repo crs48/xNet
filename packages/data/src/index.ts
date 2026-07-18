@@ -1304,6 +1304,7 @@ export {
   BundleImportError,
   MemoryBundleSink,
   MemoryBundleSource,
+  createStoreYjsPort,
   XNETPACK_FORMAT_VERSION,
   BUNDLE_ENTRY,
   type XnetpackManifest,
