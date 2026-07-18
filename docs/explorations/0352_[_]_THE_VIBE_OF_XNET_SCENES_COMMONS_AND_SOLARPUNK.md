@@ -529,7 +529,7 @@ export const nightBloomSeeder = defineSeeder({
       component (en-GB, cosmic-X in the hero per series convention)
 - [x] Add `ratio-scorekeeping` rule to `scripts/check-humane-patterns.mjs`
       (+ selftest fixture)
-- [ ] Add scene seed profile (`packages/devtools/src/seed/seeders/`), register
+- [x] Add scene seed profile (`packages/devtools/src/seed/seeders/`), register
       in `seed-manifest.ts`, keep `seed-coverage.test.ts` green; keep Acme as
       the business profile
 - [ ] Surface feel/warmth choice (cozy variant + calm/quiet shells) in
@@ -544,7 +544,7 @@ export const nightBloomSeeder = defineSeeder({
       a quarter (else fold into charter — see Risks)
 - [x] `check-humane-patterns.mjs --selftest` catches a planted
       `shareRatio`/`leaderboard` violation
-- [ ] Seed: `pnpm vitest --project devtools` green with the scene profile;
+- [x] Seed: `pnpm vitest --project devtools` green with the scene profile;
       demo workspace first-run shows the scene, not Acme
 - [ ] Essay ships with `skip-changelog` (site-only) and DCO signoff
 - [ ] A cold read test: someone who has never heard the word "xNet" reads
