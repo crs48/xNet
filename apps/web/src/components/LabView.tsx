@@ -92,7 +92,7 @@ export function LabView({ labId }: { labId: string }): JSX.Element {
   }, [lab?.code])
 
   // Publish the title for the header/tab/recents (0166, 0353).
-  usePublishTitle(labId, lab?.title)
+  usePublishTitle(labId, lab?.title, lab?.id)
 
   // Persist code edits (lightly debounced).
   useEffect(() => {

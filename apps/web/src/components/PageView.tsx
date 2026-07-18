@@ -187,7 +187,7 @@ export function PageView({ docId }: { docId: string }) {
   )
 
   // Publish the title for the header/tab/recents (0166, 0353).
-  usePublishTitle(docId, page?.title)
+  usePublishTitle(docId, page?.title, page?.id)
 
   // Editing promotes a preview tab to a permanent one (0166).
   useEffect(() => {

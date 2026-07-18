@@ -147,7 +147,7 @@ export function MapView({ mapId }: MapViewProps) {
     [layers, queryData]
   )
 
-  usePublishTitle(mapId, title)
+  usePublishTitle(mapId, title, map?.id)
 
   const persistViewport = useDebouncedViewport(
     useCallback((next: MapViewport) => void update({ viewport: next }), [update])

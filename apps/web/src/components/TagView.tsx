@@ -305,7 +305,7 @@ export function TagView({ tagId }: { tagId: string }) {
   const data = useTagPageData(tagId)
   const { tag, sections, taggedTasks } = data
 
-  usePublishTitle(tagId, tag?.name ? `#${tag.name}` : null)
+  usePublishTitle(tagId, tag?.name ? `#${tag.name}` : null, tag?.id)
 
   if (!tag) {
     return <p className="mt-10 text-center text-sm text-ink-3">Tag not found.</p>

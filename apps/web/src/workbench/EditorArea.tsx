@@ -46,6 +46,25 @@ function useRouteTabSync(pathname: string): void {
 }
 
 /**
+ * Navigate to a remembered pathname (0353).
+ *
+ * Stored pathnames are already URL-encoded, and node ids contain slashes
+ * (`seed/page/spec/…`), so handing one straight to `navigate({ to })` —
+ * which expects a path *template* — leaves the param un-round-tripped and
+ * the view renders the node we came from. Parsing back to a descriptor
+ * and reusing `navigateToNode` makes history navigation take exactly the
+ * same path as a click.
+ */
+function navigateToPathname(navigate: Navigate, pathname: string): void {
+  const descriptor = tabFromPathname(pathname)
+  if (descriptor) {
+    navigateToNode(navigate, descriptor.nodeType, descriptor.nodeId, { preview: false })
+    return
+  }
+  void navigate({ to: pathname })
+}
+
+/**
  * Tabless commands (0353): history walking and the recent-two toggle
  * replace tab cycling. Registered only when tabs are off, so the two
  * modes never fight over the same chords.
@@ -83,7 +102,7 @@ function useTablessCommands(navigate: Navigate | null): void {
         allowInInput: true,
         run: () => {
           const previous = selectPreviousRoute(useWorkbench.getState())
-          if (previous) void navigate({ to: previous })
+          if (previous) navigateToPathname(navigate, previous)
         }
       }),
       registry.register({

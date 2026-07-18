@@ -16,12 +16,24 @@ import { tabFromPathname } from './tabs'
  * Publish this view's title for the current route. Pass the node id the
  * view renders so the title also reaches the tab store (tabs on) and
  * the recents entry (both modes).
+ *
+ * `sourceId` is the id of the record the title came from. `useNode` keeps
+ * the previous node's data while the next one loads, so during a
+ * navigation `title` briefly belongs to the node we just left while
+ * `nodeId` is already the new one — publishing then puts the old title on
+ * the new route and mints a mis-titled recents entry. Passing the loaded
+ * record's own id lets us hold the publish until the data catches up.
  */
-export function usePublishTitle(nodeId: string, title: string | null | undefined): void {
+export function usePublishTitle(
+  nodeId: string,
+  title: string | null | undefined,
+  sourceId?: string | null
+): void {
   const pathname = useLocation({ select: (location) => location.pathname })
 
   useEffect(() => {
     if (!title) return
+    if (sourceId != null && sourceId !== nodeId) return
     const state = useWorkbench.getState()
     state.setRouteTitle(pathname, title)
     // Tabs (while they exist) and recents both key off the node id.
@@ -30,7 +42,7 @@ export function usePublishTitle(nodeId: string, title: string | null | undefined
     if (descriptor) {
       state.touchRecent({ nodeId: descriptor.nodeId, nodeType: descriptor.nodeType, title })
     }
-  }, [pathname, nodeId, title])
+  }, [pathname, nodeId, title, sourceId])
 }
 
 /** The current route's published title, if a view has published one. */

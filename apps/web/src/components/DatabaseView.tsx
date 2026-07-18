@@ -423,7 +423,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
   )
 
   // ─── Workbench integration (0166/0353): title + row detail section ────────
-  usePublishTitle(docId, database?.title)
+  usePublishTitle(docId, database?.title, database?.id)
 
   const databaseContextSections = useMemo<ContextPanelSection[]>(
     () => [

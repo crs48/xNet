@@ -5,7 +5,7 @@
  */
 import { beforeEach, describe, expect, it } from 'vitest'
 import { selectPreviousRoute, useWorkbench } from './state'
-import { syncRouteToTabs, trackRouteVisit } from './tabs'
+import { syncRouteToTabs, tabFromPathname, trackRouteVisit } from './tabs'
 
 function reset(tabsEnabled: boolean) {
   useWorkbench.setState({
@@ -95,6 +95,20 @@ describe('trackRouteVisit', () => {
   it('syncRouteToTabs opens nothing when tabless', () => {
     syncRouteToTabs('/doc/page-3')
     expect(useWorkbench.getState().groups[0].tabs).toHaveLength(0)
+  })
+})
+
+describe('recent-two navigation round-trips slash-bearing ids', () => {
+  it('decodes a remembered pathname back into a node descriptor', () => {
+    // Seed ids contain slashes, so the remembered pathname is encoded.
+    // Navigating must go through the descriptor, not the raw string —
+    // `navigate({ to })` treats it as a path template and the param never
+    // round-trips, leaving the previous node on screen.
+    const encoded = '/doc/seed%2Fpage%2Fspec%2Fapi-migration'
+    expect(tabFromPathname(encoded)).toEqual({
+      nodeType: 'page',
+      nodeId: 'seed/page/spec/api-migration'
+    })
   })
 })
 

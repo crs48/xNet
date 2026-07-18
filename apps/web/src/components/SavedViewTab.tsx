@@ -34,8 +34,11 @@ function SavedViewPlaceholder({ loading }: { loading: boolean }) {
 }
 
 /** Publish a loaded node's title for the header/tab/recents (0353). */
-function useTabTitleSync(nodeId: string, node: { title?: string } | null | undefined): void {
-  usePublishTitle(nodeId, node?.title)
+function useTabTitleSync(
+  nodeId: string,
+  node: { id?: string; title?: string } | null | undefined
+): void {
+  usePublishTitle(nodeId, node?.title, node?.id)
 }
 
 function SavedViewReady({
