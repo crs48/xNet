@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Databases gain Board, Gallery, Calendar, Timeline, List, and Map views</title>
+      <link>https://xnet.fyi/changelog#2026-07-17-databases-gain-board-gallery-calendar-ti</link>
+      <guid isPermaLink="false">2026-07-17-databases-gain-board-gallery-calendar-ti</guid>
+      <pubDate>Sat, 18 Jul 2026 03:25:28 GMT</pubDate>
+      <description>Every database now offers Notion-style views beyond the table: a kanban board grouped by any select field (drag cards between stacks), a cover-image gallery, a month calendar with drag-to-reschedule, a roadmap timeline with month/quarter/year zoom and swimlanes, a compact list, and a map that pins rows by latitude/longitude with clustering. Each view remembers its own configuration, colors, and layout — and says so honestly when a large database is windowed.</description>
+    </item>
+    <item>
       <title>Agent Passports: audit every OpenClaw/Hermes action</title>
       <link>https://xnet.fyi/changelog#2026-07-17-agent-passports-audit-every-openclaw-her</link>
       <guid isPermaLink="false">2026-07-17-agent-passports-audit-every-openclaw-her</guid>
