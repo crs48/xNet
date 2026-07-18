@@ -41,14 +41,22 @@ cluster of first-impression risks that separate "shipped" from "well received."*
    on the default profile name collide onto the same DID. The secure path
    already exists (`apps/electron/src/main/secure-seed.ts` via Electron
    `safeStorage`) but the renderer never calls it.
-2. **Wildcard UCAN neutralizes all hub-side authorization.** The client mints
-   `{ with: '*', can: 'hub/*' }` (`packages/react/src/provider/use-hub-auth-token.ts:10`);
-   the hub treats `'*'` as universal (`packages/hub/src/auth/capabilities.ts`)
-   and short-circuits `allowed: true` before the grant-index / Space-cascade /
-   deny checks ever run (`packages/hub/src/ws/authorize.ts:146`). Any
-   authenticated peer can subscribe/relay into any room it can name.
-   Cross-user confidentiality currently rests entirely on E2E encryption, not
-   access control. (This is exploration 0307's unfixed "Option B.")
+2. **Resource-wildcard UCAN neutralizes room-level hub authorization.**
+   *(Updated 2026-07-18 via 0343: the action wildcard is fixed — the client
+   now enumerates explicit actions, no more self-granted `hub/admin` — but
+   the blocker stands in narrower form.)* The client mints action-scoped
+   capabilities with `with: '*'` for every data-plane action
+   (`HUB_CAPABILITIES`, `packages/react/src/provider/use-hub-auth-token.ts:20`);
+   the hub treats resource `'*'` as matching any room
+   (`packages/hub/src/auth/capabilities.ts`) and short-circuits
+   `allowed: true` before the grant-index / Space-cascade checks ever run
+   (`packages/hub/src/ws/authorize.ts:146`; only the deny list runs first).
+   Any authenticated peer can still subscribe/relay into any room it can
+   name. Cross-user confidentiality currently rests entirely on E2E
+   encryption, not access control. Remaining fix: per-room resource scoping
+   client-side + the hub refusing wildcard `with` on relay/subscribe, so the
+   grant-index/Space-cascade path becomes live. (Exploration 0307's
+   "Option B," now half-done.)
 3. **Envelope signature does not cover the ciphertext.**
    `packages/crypto/src/envelope.ts:167` signs metadata + the *set of recipient
    DIDs* but not `ciphertext`, `nonce`, or wrapped-key values. Any content-key
@@ -623,6 +631,25 @@ Phase 2 — `xnet 1.0`:
 - [ ] `electron-e2e` / `conformance-rust` / `schema-check` are required checks;
       `validate:canvas-v2` runs green in a workflow.
 - [ ] A create→edit→sync→share smoke passes on web and desktop.
+
+## Addendum (2026-07-18): sequencing decision vs the 0325/0343 Keyhive program
+
+Exploration 0343 (xNet auth vs Keyhive comparison) surfaced its finding #5
+here, as its checklist directs: **until blocker #2's residue is closed, the
+trusted-hub tier provides integrity and revocation-denial but not
+confidentiality between users of the same hub** — meaning deployed xNet is
+behind Keyhive's *design* on the enforcement dimension while ahead on nearly
+all others. Decision recorded:
+
+- **Blockers #2 and #3 stay sequenced ahead of any 0325-C1/C2 start**
+  (replicated grant/revocation unification, sealed Spaces). They are release
+  blockers here already; 0343 adds the argument that every C1/C2 design
+  decision gets easier once the perimeter is real. The Agent Passport mint
+  (`mintAgentPassport` rejects wildcards) is the template for the blocker-#2
+  client-side fix.
+- Status update folded into blocker #2 above: the action wildcard shipped
+  away with 0307-B; the **resource** wildcard + `authorize.ts:146`
+  short-circuit are the remaining residue.
 
 ## References
 
