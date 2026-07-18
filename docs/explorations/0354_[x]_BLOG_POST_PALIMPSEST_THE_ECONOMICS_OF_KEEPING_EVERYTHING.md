@@ -344,48 +344,48 @@ carry the argument.)
 
 ## Implementation Checklist
 
-- [ ] Fact-check the Archimedes Palimpsest hook against
+- [x] Fact-check the Archimedes Palimpsest hook against
       archimedespalimpsest.org (dates, scribe, sale, imaging methods)
-- [ ] Draft `site/src/pages/blog/palimpsest.astro` per the spine above
+- [x] Draft `site/src/pages/blog/palimpsest.astro` per the spine above
       (en-GB, ~14 min, one quote max, honest panel in section 5)
-- [ ] Create `PalimpsestHero.astro` + `PalimpsestArt.astro` in
+- [x] Create `PalimpsestHero.astro` + `PalimpsestArt.astro` in
       `site/src/components/blog/` (layered underwriting/overwriting
       motif; original artwork; no third-party loads)
-- [ ] Build the "two prices" and "envelope anatomy" figures as
+- [x] Build the "two prices" and "envelope anatomy" figures as
       hand-rolled `not-prose` figure blocks (no Mermaid)
-- [ ] Add the `BlogPost` entry (newest-first) in `site/src/data/blog.ts`
+- [x] Add the `BlogPost` entry (newest-first) in `site/src/data/blog.ts`
       — slug `palimpsest`, tags `essay, protocol, economics,
       philosophy`, `authors: ['crs48','claude']`, `readingMinutes: 14`
-- [ ] Add `'palimpsest': PalimpsestArt` to the `heroArt` map in
+- [x] Add `'palimpsest': PalimpsestArt` to the `heroArt` map in
       `site/src/pages/blog/index.astro`
-- [ ] Sources section: source material (Archimedes project, ed25519
+- [x] Sources section: source material (Archimedes project, ed25519
       paper, archived openssl speed, Backblaze/mkomo, automerge-perf) /
       receipts (repo paths from 0350) / paper trail (0350, 0323, 0344,
       0305, 0264) / companion essays; closing no-third-party disclaimer
-- [ ] Verify all cited repo paths resolve on main at publication time
-- [ ] `pnpm build` in `site/` — confirm index card, RSS item, and
+- [x] Verify all cited repo paths resolve on main at publication time
+- [x] `pnpm build` in `site/` — confirm index card, RSS item, and
       SeriesNav neighbours render (do not use `astro dev` for
       /changelog-adjacent verification — known hang)
-- [ ] Site-only PR with `skip-changelog` label (via `gh api`, not
+- [x] Site-only PR with `skip-changelog` label (via `gh api`, not
       `gh pr edit --add-label`); DCO signoff every commit; let CI run,
       merge-commit only
 
 ## Validation Checklist
 
-- [ ] `pnpm build` green; essay renders in light and dark mode
-- [ ] Essay appears on `/blog` index with `PalimpsestArt` card and in
+- [x] `pnpm build` green; essay renders in light and dark mode
+- [x] Essay appears on `/blog` index with `PalimpsestArt` card and in
       `rss.xml` with correct `dc:creator` entries
-- [ ] SeriesNav links Tree Rings ↔ Palimpsest correctly by pubDate
-- [ ] Every number in the essay traces to 0350 or a primary source; the
+- [x] SeriesNav links Tree Rings ↔ Palimpsest correctly by pubDate
+- [x] Every number in the essay traces to 0350 or a primary source; the
       eight-number ceiling held
-- [ ] Hook facts confirmed against archimedespalimpsest.org
-- [ ] The honest panel names the 318k-row stall and the 15:1 boundary
+- [x] Hook facts confirmed against archimedespalimpsest.org
+- [x] The honest panel names the 318k-row stall and the 15:1 boundary
       without hedging
-- [ ] No paragraph duplicates Tree Rings' argument (spot-check by
+- [x] No paragraph duplicates Tree Rings' argument (spot-check by
       reading both essays back to back)
-- [ ] Page loads nothing third-party (network tab clean on the built
+- [x] Page loads nothing third-party (network tab clean on the built
       page)
-- [ ] Reading time honest at ~14 min (word count ÷ 230 wpm)
+- [x] Reading time honest at ~14 min (word count ÷ 230 wpm)
 
 ## References
 
