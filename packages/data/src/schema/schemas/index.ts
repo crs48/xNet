@@ -302,6 +302,15 @@ export {
   nextEpoch,
   type LedgerNodeIntent
 } from './account-ledger-ops'
+export {
+  evaluateLedgerWrite,
+  foldAccountRecord,
+  ledgerAccountId,
+  ledgerWriteKind,
+  type LedgerEnforcementState,
+  type LedgerWriteDecision,
+  type LedgerWriteKind
+} from './account-ledger-enforce'
 export { SavedViewSchema, type SavedView } from './saved-view'
 export { WorkspaceSchema, type Workspace, type WorkspaceTreeJson } from './workspace'
 export {

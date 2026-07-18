@@ -563,7 +563,7 @@ already drafted in 0322):
 
 Phase 0 — prerequisites (tracked elsewhere, listed for dependency truth):
 - [x] 0307-B: scoped least-privilege UCANs + revocation + `aud` enforcement; remove wildcard self-grant from `packages/react/src/provider/use-hub-auth-token.ts`
-- [ ] Account-ledger enforcement: signing/epoch checks wired in hub + client (`packages/data/src/schema/schemas/account-ledger.ts` docstring follow-ups)
+- [x] Account-ledger enforcement: signing/epoch checks wired in hub + client (`packages/data/src/schema/schemas/account-ledger.ts` docstring follow-ups)
 
 Phase 1 — ATProto link + login door (0301 P1 / 0322 I1–I2):
 - [ ] Add `@atproto/oauth-client-browser` to `apps/web` (and Electron variant); ceremony service with PKCE + DPoP

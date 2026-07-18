@@ -7,7 +7,17 @@ import type { HubStorage, SerializedNodeChange } from '../storage/interface'
 import type { ContentId, DID } from '@xnetjs/core'
 import { TaggedError } from '@xnetjs/core'
 import { base64ToBytes } from '@xnetjs/crypto'
-import { isSystemNamespaceResource, isSystemSchemaIri, isValidMentions } from '@xnetjs/data'
+import {
+  accountRecordId,
+  evaluateLedgerWrite,
+  foldAccountRecord,
+  isSystemNamespaceResource,
+  isSystemSchemaIri,
+  isValidMentions,
+  ledgerAccountId,
+  ledgerWriteKind,
+  revocationRecordId
+} from '@xnetjs/data'
 import { parseDID } from '@xnetjs/identity'
 import {
   CURRENT_PROTOCOL_VERSION,
@@ -60,6 +70,8 @@ export class NodeRelayError extends TaggedError<'NodeRelayError'> {
       | 'INVALID_CHANGE'
       | 'INVALID_SIGNATURE'
       | 'INVALID_HASH'
+      // Account-ledger write not signed by an active controller (0149/0243/0337).
+      | 'LEDGER_UNAUTHORIZED'
       // `wallTime` is implausibly far in the future (grinding guard, 0305).
       | 'INVALID_WALL_TIME'
       | 'REPLAY_REJECTED'
@@ -220,6 +232,10 @@ export class NodeRelayService {
       throw new NodeRelayError('INVALID_CHANGE', 'Malformed mentions declaration')
     }
 
+    // Account-ledger enforcement (0149/0243, wired by 0337): ledger records are
+    // only writable by an active controller of the account they reference.
+    await this.enforceLedgerWrite(msg.room, msg.change)
+
     const exists = await this.storage.hasNodeChange(change.hash)
     if (exists && systemResource) {
       throw new NodeRelayError(
@@ -269,6 +285,57 @@ export class NodeRelayService {
     }
 
     return true
+  }
+
+  /**
+   * Account-ledger enforcement (explorations 0149/0243, wired by 0337): before
+   * appending an `AccountRecord`/`DeviceRecord`/`RecoveryRecord`/
+   * `RevocationRecord` change, hydrate what this hub knows about the account
+   * from its own change log (same room — ledger records live in their author's
+   * sync room) and require the write to be signed by an active controller.
+   * Genesis (first account record, author among controllers) is the anchor;
+   * everything after must chain from it. Stateless per request — no cache to
+   * go stale across hub restarts.
+   */
+  private async enforceLedgerWrite(room: string, change: SerializedNodeChange): Promise<void> {
+    const schemaId = change.payload.schemaId ?? change.schemaId
+    const kind = ledgerWriteKind(schemaId)
+    if (!kind) return
+    const properties = change.payload.properties ?? {}
+    const accountId = ledgerAccountId(kind, properties)
+
+    let account: ReturnType<typeof foldAccountRecord> | null = null
+    let authorRevoked = false
+    if (accountId) {
+      const accountChanges = await this.storage.getNodeChangesForNode(
+        room,
+        accountRecordId(accountId)
+      )
+      if (accountChanges.length > 0) {
+        // Fold in lamport order so the latest state of each property wins.
+        const merged: Record<string, unknown> = {}
+        for (const c of [...accountChanges].sort((a, b) => a.lamportTime - b.lamportTime)) {
+          Object.assign(merged, c.payload.properties ?? {})
+        }
+        account = foldAccountRecord(merged)
+      }
+      const authorRevocation = await this.storage.getNodeChangesForNode(
+        room,
+        revocationRecordId(accountId, change.authorDid)
+      )
+      authorRevoked = authorRevocation.length > 0
+    }
+
+    const decision = evaluateLedgerWrite({
+      schemaId,
+      authorDid: change.authorDid,
+      properties,
+      state: { account, authorRevoked }
+    })
+    if (!decision.allowed) {
+      reportUnauthorizedRemoteWrite(this.telemetryOptions, change.authorDid)
+      throw new NodeRelayError('LEDGER_UNAUTHORIZED', decision.reason)
+    }
   }
 
   /**

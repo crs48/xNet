@@ -69,6 +69,13 @@ import {
 } from '@xnetjs/sync'
 import { verifyChange, verifyChangeHash } from '@xnetjs/sync'
 import { createNodeId, getBaseSchemaIRI, type SchemaIRI } from '../schema/node'
+import { accountRecordId, revocationRecordId } from '../schema/schemas/account-ledger'
+import {
+  evaluateLedgerWrite,
+  foldAccountRecord,
+  ledgerAccountId,
+  ledgerWriteKind
+} from '../schema/schemas/account-ledger-enforce'
 import { isSystemNamespaceResource, isSystemSchemaIri } from '../schema/schemas/system'
 import {
   executeDeterministicNodeImport,
@@ -1826,6 +1833,56 @@ export class NodeStore {
    *
    * @throws Error if signature verification fails
    */
+  /**
+   * Account-ledger enforcement for inbound changes (0149/0243, wired by 0337):
+   * hydrate the account's controllers/epoch and the author's revocation status
+   * from local storage, then require the write to pass `evaluateLedgerWrite`.
+   * Mirrors the hub's `enforceLedgerWrite` so a hostile or auth-less hub still
+   * cannot push unauthorized ledger records into a client.
+   */
+  private async enforceRemoteLedgerWrite(change: NodeChange): Promise<void> {
+    const schemaId = change.payload.schemaId
+    const kind = ledgerWriteKind(schemaId)
+    if (!kind) return
+    const properties = (change.payload.properties ?? {}) as Record<string, unknown>
+    const accountId = ledgerAccountId(kind, properties)
+
+    let account: ReturnType<typeof foldAccountRecord> | null = null
+    let authorRevoked = false
+    if (accountId) {
+      const accountNode = await this.storage.getNode(accountRecordId(accountId))
+      if (accountNode) {
+        account = foldAccountRecord(accountNode.properties as Record<string, unknown>)
+      }
+      const revocationNode = await this.storage.getNode(
+        revocationRecordId(accountId, change.authorDID)
+      )
+      authorRevoked = revocationNode !== null && revocationNode !== undefined
+    }
+
+    const decision = evaluateLedgerWrite({
+      schemaId,
+      authorDid: change.authorDID,
+      properties,
+      state: { account, authorRevoked }
+    })
+    if (!decision.allowed) {
+      this.telemetry?.reportSecurityEvent('data.ledger_write_rejected', 'high')
+      throw new PermissionError({
+        allowed: false,
+        action: 'update',
+        subject: change.authorDID,
+        resource: change.payload.nodeId,
+        roles: [],
+        grants: [],
+        reasons: ['DENY_NODE_POLICY'],
+        cached: false,
+        evaluatedAt: Date.now(),
+        duration: 0
+      })
+    }
+  }
+
   async applyRemoteChange(change: NodeChange): Promise<void> {
     const start = this.telemetry ? Date.now() : 0
 
@@ -1859,6 +1916,12 @@ export class NodeStore {
           `[NodeStore] Remote change ${change.id} failed verification: ${err instanceof Error ? err.message : String(err)}`
         )
       }
+
+      // Account-ledger enforcement (0149/0243, wired by 0337): always-on, no
+      // config — ledger records decide who may act as an account, so a remote
+      // change writing one must itself be signed by an active controller of
+      // that account. Evaluated against this store's local ledger state.
+      await this.enforceRemoteLedgerWrite(change)
 
       if (this.authEvaluator) {
         const stored = await this.storage.getNode(change.payload.nodeId)
