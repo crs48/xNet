@@ -21,84 +21,73 @@ const analyticsSrc = import.meta.env.PUBLIC_ANALYTICS_SRC || 'https://plausible.
 
 {analyticsDomain && <script is:inline defer data-domain={analyticsDomain} src={analyticsSrc} />}
 
-<script type="module">
-  import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs'
+<script>
+  // Mermaid is only fetched on pages that actually contain a diagram: the
+  // dynamic import() stays a separate Vite chunk, so the ~480 KB core bundle
+  // is loaded on demand instead of by every docs page.
+  const diagrams = () => document.querySelectorAll<HTMLElement>('pre.mermaid')
 
-  const darkVars = {
-    primaryColor: '#6366f1',
-    primaryTextColor: '#e5e7eb',
-    primaryBorderColor: '#4b5563',
-    lineColor: '#6b7280',
-    secondaryColor: '#1e1e2e',
-    tertiaryColor: '#12121a'
-  }
+  if (diagrams().length > 0) void setup()
 
-  const lightVars = {
-    primaryColor: '#4f46e5',
-    primaryTextColor: '#1e1e2e',
-    primaryBorderColor: '#9ca3af',
-    lineColor: '#6b7280',
-    secondaryColor: '#e8e8ff',
-    tertiaryColor: '#f0f0f4'
-  }
-
-  function getTheme() {
-    return document.documentElement.dataset.theme === 'light' ? 'default' : 'dark'
-  }
-
-  function getVars() {
-    return document.documentElement.dataset.theme === 'light' ? lightVars : darkVars
-  }
-
-  // Initial render
-  mermaid.initialize({
-    startOnLoad: true,
-    theme: getTheme(),
-    themeVariables: getVars()
-  })
-
-  // Re-render on theme change (Starlight sets data-theme on <html>)
-  const observer = new MutationObserver(async () => {
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: getTheme(),
-      themeVariables: getVars()
+  async function setup() {
+    // Stash each diagram's source before Mermaid replaces it with an <svg>,
+    // so a theme toggle can re-render from the original markup.
+    diagrams().forEach((el) => {
+      if (el.textContent && !el.dataset.source) el.dataset.source = el.textContent
     })
-    // Re-render all diagrams: reset to source text, then run mermaid again
-    document.querySelectorAll('.mermaid[data-processed],.mermaid svg').forEach((el) => {
-      // Mermaid replaces content with SVG; we need the original source
-      // The pre-mermaid strategy keeps the source as text content initially,
-      // but after processing mermaid replaces it. We store the source on first render.
-    })
-    // Simplest approach: reload diagrams by re-running on the page
-    const elements = document.querySelectorAll('pre.mermaid')
-    for (const el of elements) {
-      // Store original source if not already stored
-      if (!el.dataset.source && el.textContent) {
-        el.dataset.source = el.textContent
+
+    const { default: mermaid } = await import('mermaid')
+
+    const darkVars = {
+      primaryColor: '#6366f1',
+      primaryTextColor: '#e5e7eb',
+      primaryBorderColor: '#4b5563',
+      lineColor: '#6b7280',
+      secondaryColor: '#1e1e2e',
+      tertiaryColor: '#12121a'
+    }
+
+    const lightVars = {
+      primaryColor: '#4f46e5',
+      primaryTextColor: '#1e1e2e',
+      primaryBorderColor: '#9ca3af',
+      lineColor: '#6b7280',
+      secondaryColor: '#e8e8ff',
+      tertiaryColor: '#f0f0f4'
+    }
+
+    const isLight = () => document.documentElement.dataset.theme === 'light'
+
+    let drawing = false
+    async function draw() {
+      if (drawing) return
+      drawing = true
+      try {
+        mermaid.initialize({
+          startOnLoad: false,
+          theme: isLight() ? 'default' : 'dark',
+          themeVariables: isLight() ? lightVars : darkVars
+        })
+        const nodes = diagrams()
+        // Reset elements to source text, then re-render
+        for (const el of nodes) {
+          if (el.dataset.source) {
+            el.removeAttribute('data-processed')
+            el.innerHTML = el.dataset.source
+          }
+        }
+        await mermaid.run({ nodes })
+      } finally {
+        drawing = false
       }
     }
-    // Reset elements to source text and re-render
-    for (const el of elements) {
-      if (el.dataset.source) {
-        el.removeAttribute('data-processed')
-        el.innerHTML = el.dataset.source
-      }
-    }
-    await mermaid.run({ nodes: elements })
-  })
 
-  observer.observe(document.documentElement, {
-    attributes: true,
-    attributeFilter: ['data-theme']
-  })
+    await draw()
 
-  // Store original sources on first load for theme switching
-  requestAnimationFrame(() => {
-    document.querySelectorAll('pre.mermaid').forEach((el) => {
-      if (!el.dataset.source && el.textContent) {
-        el.dataset.source = el.textContent
-      }
+    // Re-render on theme change (Starlight sets data-theme on <html>)
+    new MutationObserver(() => void draw()).observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme']
     })
-  })
+  }
 </script>
