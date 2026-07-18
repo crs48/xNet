@@ -24,6 +24,7 @@ import type {
   SearchOptions,
   SearchResult,
   SerializedNodeChange,
+  NodeChangePage,
   GrantIndexRecord,
   ShareLinkPreviewRecord,
   ShareLinkRecord,
@@ -35,6 +36,7 @@ import type {
   DatabaseSortConfig
 } from './interface'
 import { compareChangeApplicationOrder } from '@xnetjs/core'
+import { NODE_SYNC_PAGE_SIZE } from './interface'
 
 /**
  * Code-unit string comparison. Fractional sortKeys (and cursor pagination,
@@ -684,8 +686,8 @@ export const createMemoryStorage = (): HubStorage => {
   const getRoomChangesSince = async (
     room: string,
     sinceSeq: number,
-    limit = 1000
-  ): Promise<{ changes: SerializedNodeChange[]; highWaterMark: number }> => {
+    limit = NODE_SYNC_PAGE_SIZE
+  ): Promise<NodeChangePage> => {
     const rows = roomChangeMappings
       .filter((m) => m.room === room && m.seq > sinceSeq)
       .sort((a, b) => a.seq - b.seq)
@@ -694,7 +696,9 @@ export const createMemoryStorage = (): HubStorage => {
       .map((m) => nodeChangesByHash.get(m.hash))
       .filter((c): c is SerializedNodeChange => c !== undefined)
     const highWaterMark = rows.length > 0 ? rows[rows.length - 1].seq : sinceSeq
-    return { changes, highWaterMark }
+    // Count MAPPINGS, not resolved changes: a mapping whose change is missing
+    // still consumed a slot, so a full page means more seqs remain.
+    return { changes, highWaterMark, hasMore: rows.length >= limit }
   }
 
   const getLatestProfileHash = async (did: string): Promise<string | null> => {
@@ -709,23 +713,56 @@ export const createMemoryStorage = (): HubStorage => {
 
   const getNodeChangesSince = async (
     room: string,
-    sinceLamport: number
-  ): Promise<SerializedNodeChange[]> => {
+    sinceLamport: number,
+    limit = NODE_SYNC_PAGE_SIZE
+  ): Promise<NodeChangePage> => {
+    const pageSize = Math.min(Math.max(limit, 1), NODE_SYNC_PAGE_SIZE)
     const changes = nodeChangesByRoom.get(room) ?? []
-    return (
-      changes
-        .filter((change) => change.lamportTime > sinceLamport)
-        // The shared protocol application order (code-unit author tiebreak).
-        // localeCompare here diverged from the SQLite storage's BINARY-collation
-        // `ORDER BY lamport_time, lamport_author` and from the client sort —
-        // locale collation is non-deterministic across ICU versions (0276).
-        .sort((a, b) =>
-          compareChangeApplicationOrder(
-            { lamport: a.lamportTime, author: a.lamportAuthor },
-            { lamport: b.lamportTime, author: b.lamportAuthor }
-          )
+    const ordered = changes
+      .filter((change) => change.lamportTime > sinceLamport)
+      // The shared protocol application order (code-unit author tiebreak).
+      // localeCompare here diverged from the SQLite storage's BINARY-collation
+      // `ORDER BY lamport_time, lamport_author` and from the client sort —
+      // locale collation is non-deterministic across ICU versions (0276).
+      .sort((a, b) =>
+        compareChangeApplicationOrder(
+          { lamport: a.lamportTime, author: a.lamportAuthor },
+          { lamport: b.lamportTime, author: b.lamportAuthor }
         )
-    )
+      )
+
+    // This storage is memory-bounded and could hand back the whole room at
+    // once, but it must page on exactly the same terms as SQLite — the two
+    // serve the same clients, and a paging contract that holds for only one of
+    // them is the same class of divergence as the 0276 collation split.
+    // 0 for an empty room, matching `getHighWaterMark` — the client's rollback
+    // guard treats 0 as "fresh/wiped hub" and declines to re-offer on it.
+    const roomMax = changes.reduce((max, change) => Math.max(max, change.lamportTime), 0)
+    if (ordered.length <= pageSize) {
+      return { changes: ordered, highWaterMark: roomMax, hasMore: false }
+    }
+
+    // Full page: never report a mark past the last change handed back, and
+    // never cut through a group sharing one lamport. See NodeChangePage.
+    const page = ordered.slice(0, pageSize)
+    const lastLamport = page[page.length - 1].lamportTime
+    const trimmed = page.filter((change) => change.lamportTime < lastLamport)
+
+    if (trimmed.length > 0) {
+      return {
+        changes: trimmed,
+        highWaterMark: trimmed[trimmed.length - 1].lamportTime,
+        hasMore: true
+      }
+    }
+
+    // A single lamport's tie group wider than a page: serve it whole rather
+    // than stall the catch-up on an empty page.
+    return {
+      changes: ordered.filter((change) => change.lamportTime === lastLamport),
+      highWaterMark: lastLamport,
+      hasMore: true
+    }
   }
 
   const getNodeChangesForNode = async (

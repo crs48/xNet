@@ -29,6 +29,7 @@ import type {
   ShareLinkRecord,
   ShareLinkRole,
   SerializedNodeChange,
+  NodeChangePage,
   DatabaseRowRecord,
   DatabaseRowQueryOptions,
   DatabaseRowQueryResult,
@@ -38,6 +39,7 @@ import type {
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import Database from 'better-sqlite3'
+import { NODE_SYNC_PAGE_SIZE } from './interface'
 import { litestreamWalPragmas } from './litestream'
 
 const assertSafePath = (base: string, key: string): string => {
@@ -1208,7 +1210,12 @@ export const createSQLiteStorage = (
       SELECT * FROM node_changes
       WHERE room = ? AND lamport_time > ?
       ORDER BY lamport_time ASC, lamport_author ASC
-      LIMIT 1000
+      LIMIT ?
+    `),
+    getNodeChangesAtLamport: db.prepare(`
+      SELECT * FROM node_changes
+      WHERE room = ? AND lamport_time = ?
+      ORDER BY lamport_author ASC
     `),
     getNodeChangesForNode: db.prepare(`
       SELECT * FROM node_changes
@@ -2215,10 +2222,57 @@ export const createSQLiteStorage = (
 
   const getNodeChangesSince = async (
     room: string,
-    sinceLamport: number
-  ): Promise<SerializedNodeChange[]> => {
-    const rows = stmts.getNodeChangesSince.all(room, sinceLamport) as NodeChangeRow[]
-    return rows.map(rowToSerializedChange)
+    sinceLamport: number,
+    limit = NODE_SYNC_PAGE_SIZE
+  ): Promise<NodeChangePage> => {
+    const pageSize = Math.min(Math.max(limit, 1), NODE_SYNC_PAGE_SIZE)
+    const rows = stmts.getNodeChangesSince.all(room, sinceLamport, pageSize) as NodeChangeRow[]
+
+    // Short page: the client now holds everything the room has, so report the
+    // room-wide mark. The client's rollback guard (0254/0260) compares this
+    // against its own cursor to spot a hub that lost history, so it must stay
+    // room-wide here even when the page is empty.
+    if (rows.length < pageSize) {
+      const row = stmts.getHighWaterMark.get(room) as { hwm: number | null } | undefined
+      return {
+        changes: rows.map(rowToSerializedChange),
+        // 0 for an empty room, exactly as `getHighWaterMark` reports it: the
+        // client's rollback guard reads 0 as "fresh/wiped hub" and deliberately
+        // declines to re-offer, so this must not be softened to the cursor.
+        highWaterMark: row?.hwm ?? 0,
+        hasMore: false
+      }
+    }
+
+    // Full page: more rows remain, so the mark must be the last change actually
+    // handed back — NOT the room-wide max. The client persists this mark as its
+    // cursor and only ever asks for `lamport > cursor`, so a mark that runs past
+    // the page skips everything in between, permanently.
+    //
+    // The boundary also must not fall inside a group of changes sharing one
+    // lamport (different authors advance their counters independently, so ties
+    // are normal). Drop the trailing tie group and let the next page re-fetch it
+    // whole; otherwise its far-side siblings sit below the new cursor forever.
+    const lastLamport = rows[rows.length - 1].lamport_time
+    const trimmed = rows.filter((row) => row.lamport_time < lastLamport)
+
+    if (trimmed.length > 0) {
+      return {
+        changes: trimmed.map(rowToSerializedChange),
+        highWaterMark: trimmed[trimmed.length - 1].lamport_time,
+        hasMore: true
+      }
+    }
+
+    // Pathological: a single lamport's tie group is itself larger than a page.
+    // Trimming would return nothing and stall the catch-up, so serve the whole
+    // group in one over-sized page — it is bounded by the tie width.
+    const group = stmts.getNodeChangesAtLamport.all(room, lastLamport) as NodeChangeRow[]
+    return {
+      changes: group.map(rowToSerializedChange),
+      highWaterMark: lastLamport,
+      hasMore: true
+    }
   }
 
   const getNodeChangesForNode = async (
@@ -2269,14 +2323,14 @@ export const createSQLiteStorage = (
   const getRoomChangesSince = async (
     room: string,
     sinceSeq: number,
-    limit = 1000
-  ): Promise<{ changes: SerializedNodeChange[]; highWaterMark: number }> => {
+    limit = NODE_SYNC_PAGE_SIZE
+  ): Promise<NodeChangePage> => {
     const rows = stmts.getRoomChangesSince.all(room, sinceSeq, limit) as (NodeChangeRow & {
       room_seq: number
     })[]
     const changes = rows.map(rowToSerializedChange)
     const highWaterMark = rows.length > 0 ? rows[rows.length - 1].room_seq : sinceSeq
-    return { changes, highWaterMark }
+    return { changes, highWaterMark, hasMore: rows.length >= limit }
   }
 
   const getLatestProfileHash = async (did: string): Promise<string | null> => {

@@ -38,6 +38,12 @@ const SYNC_RESPONSE_TIMEOUT_MS = 4000
 const STRUCTURAL_REJECTION_CODES = new Set(['INVALID_HASH', 'INVALID_SIGNATURE', 'INVALID_CHANGE'])
 const MAX_STRUCTURAL_REJECTIONS = 5
 
+// The hub caps a sync response at one page, so a cold catch-up walks several.
+// This bounds ONE burst (at the hub's 1000-row page, ~500k changes) so a hub
+// that keeps flagging `hasMore` can't spin the client indefinitely; whatever
+// remains is picked up by the next sync.
+const MAX_CATCH_UP_PAGES = 500
+
 // How many changes the outbound resync enqueues between event-loop yields, so a
 // large first-sync slice can't monopolise a frame (exploration 0253). 1024 keeps
 // per-batch work well under a frame while the yield count stays tiny.
@@ -95,6 +101,11 @@ export type NodeSyncResponse = {
   room: string
   changes: SerializedNodeChange[]
   highWaterMark: number
+  /**
+   * The hub capped this response and more changes remain past `highWaterMark`.
+   * Older hubs never send it, in which case one response is the whole catch-up.
+   */
+  hasMore?: boolean
 }
 
 /**
@@ -136,6 +147,9 @@ export class NodeStoreSyncProvider {
 
   // Request-sync-first: resolver for the in-flight node-sync-response wait.
   private syncResponseResolver: (() => void) | null = null
+
+  // Pages walked in the current catch-up burst (see MAX_CATCH_UP_PAGES).
+  private catchUpPages = 0
 
   // Protocol-skew circuit breaker state. `structuralRejections` counts
   // consecutive structural node-errors (reset on forward progress); once it
@@ -274,6 +288,7 @@ export class NodeStoreSyncProvider {
     // simply different) hub gets a chance to accept our changes again.
     this.outboundHalted = false
     this.structuralRejections = 0
+    this.catchUpPages = 0
 
     await this.ensureCursorLoaded()
     if (!this.connection || this.connection.status !== 'connected') return
@@ -569,7 +584,8 @@ export class NodeStoreSyncProvider {
     // durably holds changes up to this point. Advance and PERSIST the cursor
     // from it (not from local sends) so a reload never replays already-synced
     // history (exploration 0206).
-    if (response.highWaterMark > this.lastSyncedLamport) {
+    const advanced = response.highWaterMark > this.lastSyncedLamport
+    if (advanced) {
       this.lastSyncedLamport = response.highWaterMark
       this.pushedThrough = Math.max(this.pushedThrough, this.lastSyncedLamport)
       // Forward progress from the hub: clear any accumulated structural-rejection
@@ -582,6 +598,32 @@ export class NodeStoreSyncProvider {
         console.warn('[NodeStoreSync] failed to persist sync cursor:', err)
       }
     }
+
+    // A capped response covers only part of the catch-up. Ask for the next page
+    // now, from the cursor we just persisted, rather than leaving the rest until
+    // some later reconnect. Keep the waiter pending so `onConnected` pushes local
+    // changes only once we are genuinely caught up.
+    //
+    // Only continue when the mark actually MOVED: a hub that keeps saying
+    // `hasMore` at a standing cursor would otherwise spin a request storm, and
+    // the page cap bounds a single burst regardless.
+    if (
+      response.hasMore === true &&
+      advanced &&
+      this.catchUpPages < MAX_CATCH_UP_PAGES &&
+      this.connection?.status === 'connected'
+    ) {
+      this.catchUpPages += 1
+      this.requestSync()
+      return
+    }
+    if (response.hasMore === true && this.catchUpPages >= MAX_CATCH_UP_PAGES) {
+      console.warn(
+        `[NodeStoreSync] stopping catch-up for ${this.room} after ${MAX_CATCH_UP_PAGES} pages ` +
+          `(cursor ${this.lastSyncedLamport}); the remainder resumes on the next sync.`
+      )
+    }
+    this.catchUpPages = 0
 
     this.resolveSyncResponse()
   }

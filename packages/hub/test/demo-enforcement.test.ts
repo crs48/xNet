@@ -138,7 +138,7 @@ describe.each(factories)('demo storage accounting ($name)', ({ create }) => {
     expect(result.docStates).toBe(1)
 
     expect(await storage.getUsageBytesByDid(identity.did)).toBe(0)
-    expect(await storage.getNodeChangesSince(ROOM, 0)).toHaveLength(0)
+    expect((await storage.getNodeChangesSince(ROOM, 0)).changes).toHaveLength(0)
     expect(await storage.getDocState('doc-1')).toBeNull()
   })
 })

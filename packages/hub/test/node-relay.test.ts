@@ -561,3 +561,71 @@ describe('Node Sync Relay authorization', () => {
     allowedWs.close()
   })
 })
+
+describe('sync-request paging', () => {
+  const auth = { did: 'did:key:zAuthor', can: () => true }
+
+  const change = (room: string, lamport: number): SerializedNodeChange =>
+    ({
+      id: `c${lamport}`,
+      type: 'node-change',
+      hash: `h${lamport}`,
+      room,
+      nodeId: 'n1',
+      schemaId: 'xnet://xnet.dev/Task',
+      lamportTime: lamport,
+      lamportAuthor: 'did:key:zAuthor',
+      authorDid: 'did:key:zAuthor',
+      wallTime: 1,
+      parentHash: null,
+      payload: { nodeId: 'n1', properties: { title: 't' } },
+      signatureB64: 'AA=='
+    }) as SerializedNodeChange
+
+  // The whole point of the paged response: walking it like the client does must
+  // deliver every change. A mark that ran past the page used to strand the rest
+  // of the room behind a cursor that only moves forward.
+  it('walks a >1-page room without skipping changes', async () => {
+    const { createMemoryStorage } = await import('../src/storage/memory')
+    const { NodeRelayService } = await import('../src/services/node-relay')
+    const storage = createMemoryStorage()
+    const relay = new NodeRelayService(storage)
+    const room = 'workspace-paging'
+
+    const TOTAL = 2500
+    for (let i = 1; i <= TOTAL; i++) await storage.appendNodeChange(room, change(room, i))
+
+    const seen: number[] = []
+    let cursor = 0
+    for (let page = 0; page < 20; page++) {
+      const res = await relay.handleSyncRequest(
+        { type: 'node-sync-request', room, sinceLamport: cursor },
+        auth
+      )
+      for (const c of res.changes) seen.push(c.lamportTime)
+      expect(res.highWaterMark).toBeGreaterThanOrEqual(cursor)
+      cursor = res.highWaterMark
+      if (!res.hasMore) break
+    }
+
+    expect(seen).toEqual(Array.from({ length: TOTAL }, (_, i) => i + 1))
+    expect(cursor).toBe(TOTAL)
+  })
+
+  it('reports hasMore false and the room mark when everything fits in one page', async () => {
+    const { createMemoryStorage } = await import('../src/storage/memory')
+    const { NodeRelayService } = await import('../src/services/node-relay')
+    const storage = createMemoryStorage()
+    const relay = new NodeRelayService(storage)
+    const room = 'workspace-small'
+
+    await storage.appendNodeChange(room, change(room, 3))
+    const res = await relay.handleSyncRequest(
+      { type: 'node-sync-request', room, sinceLamport: 0 },
+      auth
+    )
+    expect(res.changes).toHaveLength(1)
+    expect(res.highWaterMark).toBe(3)
+    expect(res.hasMore).toBe(false)
+  })
+})

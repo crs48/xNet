@@ -47,6 +47,12 @@ export type NodeSyncResponse = {
   room: string
   changes: SerializedNodeChange[]
   highWaterMark: number
+  /**
+   * More changes remain past `highWaterMark`. Optional so a client talking to
+   * an older hub (which never sets it) still reads as "caught up" rather than
+   * looping forever.
+   */
+  hasMore?: boolean
 }
 
 export type NodeClearRequest = {
@@ -410,23 +416,29 @@ export class NodeRelayService {
     // `sinceLamport`/`highWaterMark`), not the author lamport used for
     // author/doc rooms.
     if (msg.room.startsWith('xnet-channel-') || msg.room.startsWith('xnet-workspace-')) {
-      const { changes, highWaterMark } = await this.storage.getRoomChangesSince(
+      const { changes, highWaterMark, hasMore } = await this.storage.getRoomChangesSince(
         msg.room,
         msg.sinceLamport
       )
-      return { type: 'node-sync-response', room: msg.room, changes, highWaterMark }
+      return { type: 'node-sync-response', room: msg.room, changes, highWaterMark, hasMore }
     }
 
-    const [changes, highWaterMark] = await Promise.all([
-      this.storage.getNodeChangesSince(msg.room, msg.sinceLamport),
-      this.storage.getHighWaterMark(msg.room)
-    ])
+    // The page carries its own mark: on a full page it is the last change in
+    // the page, NOT the room-wide max, so a >1-page catch-up can't leave the
+    // client's cursor parked beyond changes it never received (the mark is
+    // persisted and monotonic, so such a gap never heals). `hasMore` asks the
+    // client to come straight back for the next page.
+    const { changes, highWaterMark, hasMore } = await this.storage.getNodeChangesSince(
+      msg.room,
+      msg.sinceLamport
+    )
 
     return {
       type: 'node-sync-response',
       room: msg.room,
       changes,
-      highWaterMark
+      highWaterMark,
+      hasMore
     }
   }
 

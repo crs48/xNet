@@ -112,18 +112,101 @@ describe.each(storageFactories)('HubStorage ($name)', ({ create }: StorageFactor
       expect(cleared).toBe(2)
 
       // room-a is empty; room-b is untouched.
-      expect(await storage.getNodeChangesSince('room-a', 0)).toHaveLength(0)
-      expect(await storage.getNodeChangesSince('room-b', 0)).toHaveLength(1)
+      expect((await storage.getNodeChangesSince('room-a', 0)).changes).toHaveLength(0)
+      expect((await storage.getNodeChangesSince('room-b', 0)).changes).toHaveLength(1)
       expect(await storage.getHighWaterMark('room-a')).toBe(0)
 
       // The dedup map was cleared, so the same change can be re-appended.
       expect(await storage.hasNodeChange('h1')).toBe(false)
       await storage.appendNodeChange('room-a', makeChange('room-a', 'h1', 1))
-      expect(await storage.getNodeChangesSince('room-a', 0)).toHaveLength(1)
+      expect((await storage.getNodeChangesSince('room-a', 0)).changes).toHaveLength(1)
     })
 
     it('clearNodeChanges on an unknown room is a no-op returning 0', async () => {
       expect(await storage.clearNodeChanges('nope')).toBe(0)
+    })
+
+    // A cold catch-up of more than one page must not lose the tail. The pull path
+    // pages the room log, but the client only ever advances its cursor to the
+    // reported `highWaterMark` — so if that mark runs ahead of the last change
+    // actually handed back, every change in between is skipped PERMANENTLY (the
+    // cursor is persisted and monotonic, so the gap is never re-requested).
+    it('pages a >1-page catch-up without skipping changes', async () => {
+      const TOTAL = 2500
+      for (let i = 1; i <= TOTAL; i++) {
+        await storage.appendNodeChange('room-big', makeChange('room-big', `h${i}`, i))
+      }
+
+      // Replay exactly what the client does: request from the cursor, apply the
+      // page, advance the cursor to the reported high-water mark, repeat.
+      const seen: number[] = []
+      let cursor = 0
+      for (let page = 0; page < 20; page++) {
+        const { changes, highWaterMark } = await storage.getNodeChangesSince('room-big', cursor)
+        if (changes.length === 0) break
+        for (const change of changes) seen.push(change.lamportTime)
+        expect(highWaterMark).toBeGreaterThan(cursor)
+        cursor = highWaterMark
+      }
+
+      expect(seen).toHaveLength(TOTAL)
+      expect(seen).toEqual(Array.from({ length: TOTAL }, (_, i) => i + 1))
+      expect(cursor).toBe(TOTAL)
+    })
+
+    // The page boundary must never fall INSIDE a group of changes sharing one
+    // lamport: the next request asks for `lamport > cursor`, so a same-lamport
+    // sibling left behind on the far side of the boundary is skipped for good.
+    it('never splits a same-lamport group across a page boundary', async () => {
+      // 1200 changes at lamport 7 (distinct authors), then a later change — the
+      // tie group alone is larger than one page.
+      for (let i = 0; i < 1200; i++) {
+        await storage.appendNodeChange('room-tie', {
+          ...makeChange('room-tie', `tie${i}`, 7),
+          lamportAuthor: `did:key:zAuthor${String(i).padStart(4, '0')}`
+        })
+      }
+      await storage.appendNodeChange('room-tie', makeChange('room-tie', 'after', 8))
+
+      const first = await storage.getNodeChangesSince('room-tie', 0)
+      // Either the whole tie group came back, or the mark stayed below it — what
+      // must NOT happen is a mark of 7 with only part of the group delivered.
+      if (first.highWaterMark >= 7) {
+        expect(first.changes.filter((c) => c.lamportTime === 7)).toHaveLength(1200)
+      }
+
+      const second = await storage.getNodeChangesSince('room-tie', first.highWaterMark)
+      const total = first.changes.length + second.changes.length
+      expect(total).toBe(1201)
+    })
+
+    // The client's rollback guard (0254/0260) keys off a high-water mark BELOW
+    // its cursor to detect a hub that lost history. A short page must therefore
+    // keep reporting the room-wide mark, or a restored-from-backup hub reads as
+    // "caught up" and the guard never fires.
+    it('reports the room-wide mark when the page is not full', async () => {
+      await storage.appendNodeChange('room-small', makeChange('room-small', 's1', 4))
+      await storage.appendNodeChange('room-small', makeChange('room-small', 's2', 9))
+
+      const all = await storage.getNodeChangesSince('room-small', 0)
+      expect(all.changes).toHaveLength(2)
+      expect(all.highWaterMark).toBe(9)
+
+      // Caught up: no changes, but still the room-wide mark (this is the value
+      // the rollback guard compares against).
+      const caughtUp = await storage.getNodeChangesSince('room-small', 9)
+      expect(caughtUp.changes).toHaveLength(0)
+      expect(caughtUp.highWaterMark).toBe(9)
+    })
+
+    // A wiped room must keep reporting 0 rather than echoing the cursor back:
+    // the client reads a 0 mark as "fresh/reset hub" and deliberately declines
+    // to re-offer its whole log (0260 — that re-offer flooded the cold-open).
+    it('reports a 0 mark for an empty room even when the client has a cursor', async () => {
+      const empty = await storage.getNodeChangesSince('room-never-used', 5000)
+      expect(empty.changes).toHaveLength(0)
+      expect(empty.highWaterMark).toBe(0)
+      expect(empty.hasMore).toBe(false)
     })
   })
 
