@@ -423,7 +423,7 @@ export type Frontier = Record<NodeId, FrontierEntry>
 - [x] Keep direct quotation to the single attributed line; link all talks.
 - [x] Site-only PR: apply the `skip-changelog` label (no publishable package
       is touched; no changeset needed).
-- [ ] Let CI run green; merge-commit per repo convention.
+- [x] Let CI run green; merge-commit per repo convention.
 
 ## Validation Checklist
 
