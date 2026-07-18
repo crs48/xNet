@@ -578,7 +578,7 @@ Phase 1 — canonical bundle (Tier 1 core):
       node state and identical change heads; idempotent double-import;
       hostile-bundle fixtures (bad sig, broken chain, wrong DID, unknown
       version) all quarantine/reject cleanly.
-- [ ] Changeset (minor, `@xnetjs/data` + any touched fixed-core packages).
+- [x] Changeset (minor, `@xnetjs/data` + any touched fixed-core packages).
 
 Phase 2 — surfaces:
 
