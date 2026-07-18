@@ -1,5 +1,5 @@
 """
-Run the XNet golden-vector corpus through the second-language kernel.
+Run the xNet golden-vector corpus through the second-language kernel.
 
 This is the proof: an independent ~100-line implementation reproduces the same
 DIDs and verifies (and re-signs, byte-identically) changes signed by the

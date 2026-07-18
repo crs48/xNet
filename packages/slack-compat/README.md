@@ -1,7 +1,7 @@
 # @xnetjs/slack-compat
 
-Slack wire-protocol compatibility primitives for XNet — the shared, pure-logic
-core that lets integrations written against Slack work against XNet
+Slack wire-protocol compatibility primitives for xNet — the shared, pure-logic
+core that lets integrations written against Slack work against xNet
 (exploration [0198](../../docs/explorations/0198_%5B_%5D_SLACK_COMPATIBLE_INTEGRATIONS_AND_MIGRATION.md)).
 
 Zero runtime dependencies (`node:crypto` only). Used by the Slack **migration

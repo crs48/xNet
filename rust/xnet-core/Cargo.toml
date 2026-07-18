@@ -2,7 +2,7 @@
 name = "xnet-core"
 version = "0.1.0"
 edition = "2021"
-description = "Portable Rust implementation of the XNet interop kernel (L0-L1 + L2/L3 decision core)."
+description = "Portable Rust implementation of the xNet interop kernel (L0-L1 + L2/L3 decision core)."
 license = "MIT"
 
 [lib]

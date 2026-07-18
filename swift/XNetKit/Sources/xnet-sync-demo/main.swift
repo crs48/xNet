@@ -1,7 +1,7 @@
 import Foundation
 import XNetKit
 
-// Live end-to-end interop proof against a running XNet hub (TypeScript):
+// Live end-to-end interop proof against a running xNet hub (TypeScript):
 //   1. catch-up: a Swift writer publishes a signed change; a second Swift client
 //      catches it up via node-sync-request and materializes the node.
 //   2. streaming: the reader subscribes and receives a *live* relayed update the

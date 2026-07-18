@@ -1,5 +1,5 @@
 /**
- * XNet Protocol conformance corpus — generator + drift guard.
+ * xNet Protocol conformance corpus — generator + drift guard.
  *
  * This test derives the golden-vector corpus at `conformance/vectors/` from the
  * reference implementation and asserts it matches the committed JSON. It makes
@@ -852,7 +852,7 @@ for (const { name, description, actions, action, roles, isAuthenticated } of aut
 }
 
 // ── generate-or-verify ────────────────────────────────────────────────────────
-describe('XNet Protocol conformance corpus', () => {
+describe('xNet Protocol conformance corpus', () => {
   for (const vector of corpus) {
     it(`${vector.suite}/${vector.name} matches the committed golden vector`, () => {
       const file = path.join(vectorsDir, vector.suite, `${vector.name}.json`)

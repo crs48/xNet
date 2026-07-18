@@ -1,7 +1,7 @@
 /**
  * Agent bridge daemon for the Electron app (exploration 0194).
  *
- * Runs the loopback HTTP daemon XNet's chat panel probes at :31416 (the
+ * Runs the loopback HTTP daemon xNet's chat panel probes at :31416 (the
  * `bridge` connector tier), driving the user's OWN coding-agent CLI
  * (`claude` / `codex` / …) as the model. The agent authenticates with the
  * user's subscription — the app never sees the token.
@@ -60,7 +60,7 @@ function resolveAllowedOrigins(): string[] {
 }
 
 /**
- * Opt-in: give the agent XNet's workspace tools by pointing its MCP config at a
+ * Opt-in: give the agent xNet's workspace tools by pointing its MCP config at a
  * resolvable `xnet mcp serve`. Requires `XNET_BRIDGE_MCP=1` and a CLI entry
  * (`XNET_BRIDGE_MCP_CLI`, run via this process's node), because in a packaged
  * app `xnet` isn't on PATH. Returns the written config path, or undefined.

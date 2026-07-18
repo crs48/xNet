@@ -1,16 +1,16 @@
 /**
  * @xnetjs/plugins — the Slack migration connector (exploration 0198).
  *
- * "Switch from Slack to XNet and bring my data with me." This is the Half-1
+ * "Switch from Slack to xNet and bring my data with me." This is the Half-1
  * answer from exploration 0198: a {@link defineConnector} that pulls a Slack
- * workspace's channels and message history into XNet's native `Channel` and
+ * workspace's channels and message history into xNet's native `Channel` and
  * `ChatMessage` nodes, through the guarded connector store (egress-contained to
  * `slack.com`, space-stamped, budget-charged). The Slack token lives in the hub
  * broker and never reaches the agent — it only ever sees the synced nodes.
  *
  * Message bodies are translated to GitHub-flavored markdown via
  * `@xnetjs/slack-compat` (Block Kit first, then `mrkdwn`), so they render
- * natively in XNet chat. Pagination, DMs, files and reactions are deferred (see
+ * natively in xNet chat. Pagination, DMs, files and reactions are deferred (see
  * the exploration's checklist).
  */
 
@@ -81,7 +81,7 @@ async function syncChannel(ctx: ConnectorSyncContext, channel: SlackApiChannel):
       url: `https://slack.com/api/conversations.history?channel=${encodeURIComponent(channel.id)}`
     })
   )
-  // Slack returns newest-first; reverse so XNet keeps chronological order.
+  // Slack returns newest-first; reverse so xNet keeps chronological order.
   for (const message of (history.messages ?? []).slice().reverse()) {
     if (message.subtype) continue // skip joins/leaves/system messages
     const content = messageContent(message)
@@ -103,7 +103,7 @@ function searchTool(
   return {
     id: `${id}.search`,
     name: 'slack_search_messages',
-    description: 'Search messages imported from Slack into XNet channels.',
+    description: 'Search messages imported from Slack into xNet channels.',
     inputSchema: {
       type: 'object',
       properties: { query: { type: 'string', description: 'Full-text query.' } },
@@ -123,7 +123,7 @@ export function buildSlackConnector(options: SlackConnectorOptions = {}): Define
   return defineConnector({
     id,
     name: 'Slack',
-    description: 'Import Slack channels and message history into XNet.',
+    description: 'Import Slack channels and message history into xNet.',
     capabilities: {
       secrets: ['SLACK_USER_TOKEN'],
       schemaWrite: [CHANNEL_SCHEMA, CHAT_MESSAGE_SCHEMA],

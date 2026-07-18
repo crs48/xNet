@@ -5,7 +5,7 @@
  * The shapes here are deliberately framework-agnostic: a developer mounts the
  * server into Express / Hono / Fastify / a Next.js route handler and wires
  * three hooks — {@link AuthenticateHook}, {@link AuthorizeReadHook},
- * {@link AuthorizeWriteHook} — that map *their* auth onto XNet's data layer.
+ * {@link AuthorizeWriteHook} — that map *their* auth onto xNet's data layer.
  * No UCAN, no `did:key` required from the end user.
  */
 import type { NodeChange, NodeState, NodeStorageAdapter, SchemaIRI } from '@xnetjs/data'

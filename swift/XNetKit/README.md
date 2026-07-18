@@ -1,6 +1,6 @@
 # XNetKit
 
-A **native Swift SDK** for XNet's local-first graph database. Define schemas in
+A **native Swift SDK** for xNet's local-first graph database. Define schemas in
 Swift, write and query the database in Swift, and bind results into a SwiftUI
 re-rendering loop — no JavaScript, no React. Built directly on the
 conformance-pinned protocol kernel, so it interoperates with the TypeScript
@@ -69,7 +69,7 @@ Headless, the same reactivity is the framework-agnostic `LiveQuery`
 (`subscribe(_:)` fires immediately and on every change — a 1:1 port of
 `packages/runtime/src/live-query.ts`).
 
-### Live sync with an XNet hub
+### Live sync with an xNet hub
 
 `HubConnection` speaks the L2 replication wire protocol
 ([`03-replication.md`](../../docs/specs/protocol/03-replication.md)) over a
@@ -158,7 +158,7 @@ deliberately does **not** yet include:
   Object keys now sort by UTF-16 code unit (matching JS) and integer-valued
   numbers (incl. money minor units) serialize exactly. Arbitrary *fractional*
   doubles needing exponential notation are not yet guaranteed byte-identical to
-  JS `Number::toString` (a Ryu/Grisu port is the fix) — XNet's hashed numeric
+  JS `Number::toString` (a Ryu/Grisu port is the fix) — xNet's hashed numeric
   fields are integer-valued, so this is an edge, not the common path.
 
 ### A known Apple-platform constraint

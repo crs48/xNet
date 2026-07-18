@@ -1,7 +1,7 @@
 /**
  * `xnet bridge serve` — run the agent bridge daemon (exploration 0194).
  *
- * Serves the loopback endpoint XNet's chat panel probes at `:31416` (the
+ * Serves the loopback endpoint xNet's chat panel probes at `:31416` (the
  * `bridge` connector tier), driving the user's OWN coding-agent CLI
  * (`claude` / `codex` / …) as the model. The agent authenticates itself with
  * the user's subscription — xNet never sees the token. This is the missing
@@ -40,7 +40,7 @@ export interface BridgeServeOptions {
   token?: string
   /** Working directory the agent runs in (default `process.cwd()`). */
   cwd?: string
-  /** Path to an MCP config JSON giving the agent XNet's workspace tools. */
+  /** Path to an MCP config JSON giving the agent xNet's workspace tools. */
   mcpConfigPath?: string
   /** Enable `POST /run` — agentic code tasks (worktree → gate → checkpoint/PR). */
   code?: boolean
@@ -98,7 +98,7 @@ export function buildBridgeServer(
 export function registerBridgeCommand(program: Command): void {
   const bridge = program
     .command('bridge')
-    .description("Run the local agent bridge for XNet's AI chat panel")
+    .description("Run the local agent bridge for xNet's AI chat panel")
 
   bridge
     .command('serve')
@@ -121,7 +121,7 @@ export function registerBridgeCommand(program: Command): void {
     )
     .option('--upstream-model <id>', 'Model id to request from --upstream (default llama3.2)')
     .option('--code', 'Enable POST /run agentic code tasks (worktree → gate → checkpoint/PR)')
-    .option('--mcp', "Give the agent XNet's workspace tools via `xnet mcp serve`")
+    .option('--mcp', "Give the agent xNet's workspace tools via `xnet mcp serve`")
     .option(
       '--mcp-api-url <url>',
       'xNet local API URL the MCP server talks to (default http://127.0.0.1:31415)'
@@ -158,7 +158,7 @@ export function registerBridgeCommand(program: Command): void {
       // bridge" tier) — it is never exposed over HTTP.
       console.error(`Pairing code: ${handle.pairingToken}`)
       console.error(
-        'In XNet, open the AI panel, select "Local bridge", and paste the pairing code.'
+        'In xNet, open the AI panel, select "Local bridge", and paste the pairing code.'
       )
       const shutdown = (): void => {
         void handle.stop().then(() => process.exit(0))

@@ -6,7 +6,7 @@
  * user's `claude` / `codex` CLI (their subscription — zero model cost to xNet);
  * `fakeChatAgent` scripts replies for tests. Distinct from {@link AgentRunner},
  * which edits files in a worktree — here we just want the model's reply to stream
- * back to XNet's chat panel.
+ * back to xNet's chat panel.
  */
 
 import type { CommandRunner } from './command-runner'

@@ -1030,7 +1030,7 @@ const createOpenAICompatiblePresetProvider = (
   })
 }
 
-// ─── Managed (XNet Cloud metered AI) ─────────────────────────────────────────
+// ─── Managed (xNet Cloud metered AI) ─────────────────────────────────────────
 
 /** The live budget snapshot a managed call reports back (drives the panel gauge). */
 export interface ManagedBudgetSnapshot {
@@ -1077,7 +1077,7 @@ interface ManagedChatResponse {
 }
 
 /**
- * XNet Cloud **managed** AI provider (exploration 0208).
+ * xNet Cloud **managed** AI provider (exploration 0208).
  *
  * Posts to the hub's `/ai/chat`, which forwards to the metered control-plane
  * gateway (OpenRouter behind a per-tenant budgeted key). Unlike every other cloud
@@ -1091,7 +1091,7 @@ interface ManagedChatResponse {
  * No `stream` method, so the runtime uses the request/response path.
  */
 export class ManagedProvider implements AIProvider {
-  readonly name = 'XNet Cloud'
+  readonly name = 'xNet Cloud'
   private readonly baseUrl: string
   private readonly model?: string
   private readonly fetchImpl: typeof fetch

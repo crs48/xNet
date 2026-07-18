@@ -1,5 +1,5 @@
 /**
- * The umbrella XNet Protocol Version.
+ * The umbrella xNet Protocol Version.
  *
  * Five subsystems version independently (the change record, the Yjs sync
  * envelope, awareness, schemas, the crypto level). To avoid a five-way

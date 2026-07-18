@@ -45,7 +45,7 @@ describe('buildBridgeServer', () => {
     expect(handle.pairingToken).toBe('pinned-code')
   })
 
-  it('hands XNet workspace tools to the agent when mcpConfigPath is set', async () => {
+  it('hands xNet workspace tools to the agent when mcpConfigPath is set', async () => {
     const runner = new FakeCommandRunner([{ match: () => true, result: { stdout: 'ok' } }])
     handle = buildBridgeServer(
       { agent: 'claude', port: 0, mcpConfigPath: '/tmp/cfg.json', token: 'test-token' },

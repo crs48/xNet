@@ -140,7 +140,7 @@ export {
   type ProgressListener
 } from './sync/InitialSyncManager'
 
-// The umbrella XNet Protocol Version — the machine-readable counterpart of the
+// The umbrella xNet Protocol Version — the machine-readable counterpart of the
 // normative spec in docs/specs/protocol/. See exploration 0200.
 export {
   XNET_PROTOCOL_VERSION,

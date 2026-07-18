@@ -3,7 +3,7 @@
  *
  * A Connector is xNet's answer to the agent-native CLI (Printing Press / OpenClaw):
  * instead of giving the agent a credentialed shell, it syncs an external service
- * into governed XNet nodes and exposes agent-callable tools over them. It is a
+ * into governed xNet nodes and exposes agent-callable tools over them. It is a
  * `FeatureModule` subtype that bundles three things:
  *
  *   1. a `capabilities` manifest — `secrets` (held by the hub broker, never the

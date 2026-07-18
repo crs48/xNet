@@ -1,6 +1,6 @@
 # Migrating from Slack
 
-XNet has a complete native chat substrate — channels, DMs, threads, mentions,
+xNet has a complete native chat substrate — channels, DMs, threads, mentions,
 reactions, presence, an inbox — so a team can move off Slack and keep working.
 This guide covers the two halves of that move and, crucially, **what does and
 doesn't carry over automatically** ([exploration 0198](../explorations/0198_[_]_SLACK_COMPATIBLE_INTEGRATIONS_AND_MIGRATION.md)).
@@ -8,7 +8,7 @@ doesn't carry over automatically** ([exploration 0198](../explorations/0198_[_]_
 > **The honest promise.** Your incoming-webhook alerts and simple slash commands
 > keep working with only a URL swap; your channels and history migrate in; and
 > rich interactive apps (OAuth + Events API + Block Kit buttons/modals) need a
-> first-class native connector rather than working unchanged. XNet is **not** a
+> first-class native connector rather than working unchanged. xNet is **not** a
 > drop-in clone of the entire Slack app platform — and neither were Slack's
 > open-source competitors, which emulated exactly these commodity tiers.
 
@@ -16,7 +16,7 @@ doesn't carry over automatically** ([exploration 0198](../explorations/0198_[_]_
 
 `@xnetjs/plugins` ships a **Slack migration connector** (`buildSlackConnector`,
 id `dev.xnet.connector.slack`). It pulls your workspace's channels and message
-history into XNet's native `Channel` and `ChatMessage` nodes via the **guarded
+history into xNet's native `Channel` and `ChatMessage` nodes via the **guarded
 connector store** — egress is contained to `slack.com`, every node is stamped
 into the target Space (no cross-space leakage), and writes are charged against
 the dedicated `connector` budget surface. The Slack token lives in the **hub
@@ -39,7 +39,7 @@ private channels + their visible history via the Slack Web API.
 ## Half 2 — Keep your integrations working (the `slack-compat` hub feature)
 
 `@xnetjs/hub` ships `slackCompatFeature()`, which speaks enough of Slack's wire
-protocol that integrations point at XNet instead of Slack. It is **generic over
+protocol that integrations point at xNet instead of Slack. It is **generic over
 an injected delivery sink** — the hub does the Slack-specific verification and
 parsing; your app wires the actual `ChatMessage` write (the same injection seam
 the connectors and the GitHub→Tasks webhook use).
@@ -62,7 +62,7 @@ webhook URL changes** in the sending integration.
 
 ### Tier 1 — Slash commands
 
-Point a Slack slash command's Request URL at `POST /slack/commands`. XNet
+Point a Slack slash command's Request URL at `POST /slack/commands`. xNet
 verifies the request with your **signing secret** (`x-slack-signature`,
 replay-protected), parses the Slack-format form body, and returns a
 Slack-shaped response (`response_type` defaults to `ephemeral`, matching Slack).
@@ -74,7 +74,7 @@ SLACK_SIGNING_SECRET=…   # unset → /slack/commands answers 503
 
 ## Compatibility matrix
 
-| Slack capability | XNet status | Notes |
+| Slack capability | xNet status | Notes |
 | --- | --- | --- |
 | **Incoming webhooks** (alerts) | ✅ Works (URL swap) | `text` / `blocks` / `attachments` → markdown. |
 | **Slash commands** | ✅ Works (URL swap) | Signing-secret verified; `ephemeral`/`in_channel`. `response_url` delayed replies deferred. |
@@ -89,7 +89,7 @@ SLACK_SIGNING_SECRET=…   # unset → /slack/commands answers 503
 ## When to reach for a native connector instead
 
 For a rich app (PagerDuty, Datadog, GitHub, Jira), don't chase Slack-API parity
-— write an XNet-native **connector** with `agentTools`. It's governed, the
+— write an xNet-native **connector** with `agentTools`. It's governed, the
 credential stays in the hub, and the agent operates on policy-evaluated nodes
 rather than a raw Slack emulation. That's the destination; the compat shim is
 the on-ramp.

@@ -1,4 +1,4 @@
-// Run the XNet golden-vector corpus through the Swift second-language kernel.
+// Run the xNet golden-vector corpus through the Swift second-language kernel.
 //
 // This is the proof: an independent Swift implementation reproduces the same
 // DIDs and verifies (and re-signs, byte-identically) changes signed by the

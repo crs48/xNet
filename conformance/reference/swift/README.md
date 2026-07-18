@@ -1,6 +1,6 @@
 # Swift reference kernel
 
-A small implementation of the XNet **L0 + L1 interop kernel** in Swift — the
+A small implementation of the xNet **L0 + L1 interop kernel** in Swift — the
 Apple-platform sibling of [`../python`](../python). Its only job is to **prove
 the protocol boundary is real on Apple platforms**: that the written
 [spec](../../../docs/specs/protocol/) plus the [golden vectors](../../vectors)

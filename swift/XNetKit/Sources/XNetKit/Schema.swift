@@ -82,7 +82,7 @@ public struct Authorization: Sendable, Equatable {
     public static func publicRead() -> Authorization { .init(kind: .publicRead) }
 }
 
-/// An XNet schema — the Swift analogue of TS `defineSchema(...)`. It lowers to
+/// An xNet schema — the Swift analogue of TS `defineSchema(...)`. It lowers to
 /// the same `SchemaIRI` (`xnet://authority/Name@version`) and property set.
 public struct Schema: Sendable, Equatable {
     public var name: String

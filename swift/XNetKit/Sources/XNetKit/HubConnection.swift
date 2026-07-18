@@ -66,7 +66,7 @@ public enum WireCodec {
     }
 }
 
-/// A live connection to an XNet hub over WebSocket — the L2 replication binding
+/// A live connection to an xNet hub over WebSocket — the L2 replication binding
 /// (docs/specs/protocol/03-replication.md). Speaks the same JSON frames as the
 /// reference hub: a version handshake, room subscribe, `node-change` publish,
 /// and `node-sync-request`/`node-sync-response` catch-up.

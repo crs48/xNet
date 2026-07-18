@@ -1,8 +1,8 @@
 # @xnetjs/server
 
-Bring-your-own-backend server kit for XNet React (exploration 0223).
+Bring-your-own-backend server kit for xNet React (exploration 0223).
 
-Run XNet's data layer on **your own centralized server**, gated by **your own
+Run xNet's data layer on **your own centralized server**, gated by **your own
 auth**, stored in **your own database** — while React keeps the unchanged
 `useQuery` / `useMutate` / `useNode` hooks. No UCAN, no `did:key` required from
 your end users.
@@ -19,7 +19,7 @@ your end users.
 - **`createXNetServer(options)`** — the engine. Owns a server-side `NodeStore`
   over a pluggable `NodeStorageAdapter` (in-memory by default).
 - **`server.query(request)`** — the *server side* of the `RemoteNodeQueryClient`
-  protocol: the structured-query executor the XNet hub never had (the hub only
+  protocol: the structured-query executor the xNet hub never had (the hub only
   did full-text search). Authenticates → scopes via `authorizeRead` → runs →
   returns a protocol `RemoteNodeQueryResponse`.
 - **`server.mutate(token, input)`** — backend-authoritative writes:
@@ -53,7 +53,7 @@ const xnet = await createXNetServer({
 
 ## The trust spectrum
 
-How an end-user's identity maps onto XNet's signed-change model:
+How an end-user's identity maps onto xNet's signed-change model:
 
 | Mode | Who signs | `authorDID` | Best for |
 | --- | --- | --- | --- |

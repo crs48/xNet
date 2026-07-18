@@ -1,4 +1,4 @@
-// A minimal, second-language implementation of the XNet L0 + L1 interop kernel.
+// A minimal, second-language implementation of the xNet L0 + L1 interop kernel.
 //
 // This mirrors `conformance/reference/python/xnet_kernel.py` and exists to prove
 // the same thing on the Apple platform: that the written spec in
