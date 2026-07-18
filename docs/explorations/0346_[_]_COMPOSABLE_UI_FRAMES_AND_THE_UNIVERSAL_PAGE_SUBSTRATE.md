@@ -617,13 +617,13 @@ registerAgentTool({
 
 ### Phase 3 — Visible studs
 
-- [ ] Entangle bus (page-scoped hover/select context) + adoption in grid
+- [x] Entangle bus (page-scoped hover/select context) + adoption in grid
       rows, board cards, map pins, calendar chips, doc mentions
-- [ ] Relations badge + rail (via `useReverseRelations` + typed relations)
+- [x] Relations badge + rail (via `useReverseRelations` + typed relations)
       reusing the right island; "open as frame here" action
-- [ ] Drop-to-relate: node drag onto frame → insert-frame / add-relation /
+- [x] Drop-to-relate: node drag onto frame → insert-frame / add-relation /
       add-row menu; all three reversible
-- [ ] Sealed-frame placeholder for unauthorized embedded sources
+- [x] Sealed-frame placeholder for unauthorized embedded sources
 
 ### Phase 4 — One substrate, three geometries
 

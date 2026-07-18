@@ -5,6 +5,7 @@
  * view without touching the closed TabNodeType machinery again.
  */
 import { useNavigate } from '@tanstack/react-router'
+import { EntangleProvider } from '@xnetjs/react'
 import { FrameHostProvider, FrameRenderer, type FrameDef } from '@xnetjs/views'
 import { useCallback, useMemo, type JSX } from 'react'
 import { WORKBENCH_SAVED_VIEW_REGISTRY } from '../lib/saved-view-registry'
@@ -54,9 +55,11 @@ export function FrameTabView({ frameSpec }: { frameSpec: string }): JSX.Element 
     <FrameHostProvider
       value={{ onNavigate: handleNavigate, savedViewRegistry: WORKBENCH_SAVED_VIEW_REGISTRY }}
     >
-      <div className="flex h-full min-h-0 flex-col overflow-y-auto p-4">
-        <FrameRenderer frame={frame} className="flex-1" />
-      </div>
+      <EntangleProvider>
+        <div className="flex h-full min-h-0 flex-col overflow-y-auto p-4">
+          <FrameRenderer frame={frame} className="flex-1" />
+        </div>
+      </EntangleProvider>
     </FrameHostProvider>
   )
 }

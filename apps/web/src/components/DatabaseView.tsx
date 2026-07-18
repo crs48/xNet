@@ -48,6 +48,7 @@ import {
   GridSummaryBar,
   GridSurface,
   GridToolbar,
+  ReverseRelationsPanel,
   ViewOptionsBar,
   ViewRenderer,
   registerBuiltinViews,
@@ -55,8 +56,10 @@ import {
   useDatabaseComments,
   viewRegistry
 } from '@xnetjs/views'
+import { useNavigate } from '@tanstack/react-router'
 import { Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { navigateToFrame, navigateToNode } from '../workbench/navigation'
 import { useCommentPeople } from '../hooks/useCommentPeople'
 import { useContextPanel, type ContextPanelSection } from '../workbench/context-panel'
 import { useWorkbench } from '../workbench/state'
@@ -145,6 +148,7 @@ interface CommentPopoverState {
 
 export function DatabaseView({ docId }: DatabaseViewProps) {
   const { did } = useIdentity()
+  const navigate = useNavigate()
 
   // Database node: title + the Y.Doc awareness channel (presence only)
   const {
@@ -424,6 +428,29 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
 
   const databaseContextSections = useMemo<ContextPanelSection[]>(
     () => [
+      // Relations rail (0346): the peeked row's backlinks — rows in other
+      // databases whose relation cells point here — with "open as frame".
+      {
+        id: 'database-row-relations',
+        title: 'Linked from',
+        content: peekRow ? (
+          <ReverseRelationsPanel
+            rowId={peekRow.id}
+            databaseId={docId}
+            onRowClick={(rowId, sourceDatabaseId) => {
+              navigateToNode(navigate, 'database', sourceDatabaseId)
+              void rowId
+            }}
+            onOpenAsFrame={(sourceDatabaseId) => {
+              navigateToFrame(navigate, 'table', sourceDatabaseId)
+            }}
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center p-4 text-center text-xs text-ink-3">
+            Open a row to see what links to it.
+          </div>
+        )
+      },
       {
         id: 'database-row',
         title: 'Row',
@@ -474,7 +501,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
         )
       }
     ],
-    [peekRow, grid.fields, grid.rows.length]
+    [peekRow, grid.fields, grid.rows.length, docId, navigate]
   )
   useContextPanel(`database:${docId}`, databaseContextSections)
 

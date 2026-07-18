@@ -27,7 +27,7 @@ import {
   type PageTaskSnapshot,
   type XNetEditorInstance
 } from '@xnetjs/editor/react'
-import { useNode, useIdentity, usePageTaskSync } from '@xnetjs/react'
+import { EntangleProvider, useNode, useIdentity, usePageTaskSync } from '@xnetjs/react'
 import {
   CommentPopover,
   CommentsSidebar,
@@ -487,13 +487,18 @@ export function PageView({ docId }: { docId: string }) {
     navigate({ to: '/doc/$docId', params: { docId: targetDocId } })
   }
 
-  // Dropping any node onto the editor inserts a reference chip (a
-  // wikilink mark) at the drop point — a reference, never a copy.
+  // Dropping a node onto the editor (0346 drop-to-relate): a database
+  // lands as a LIVE frame, a page as a summary transclusion, anything
+  // else as a reference chip. Drops on an existing database frame are
+  // delegated to the frame's own add-row/add-relation menu.
   const handleEditorDragOver = (event: React.DragEvent) => {
-    if (hasNodeTransfer(event)) event.preventDefault()
+    if (!hasNodeTransfer(event)) return
+    if ((event.target as HTMLElement).closest?.('[data-database-embed-frame]')) return
+    event.preventDefault()
   }
 
   const handleEditorDrop = (event: React.DragEvent) => {
+    if ((event.target as HTMLElement).closest?.('[data-database-embed-frame]')) return
     const transfer = getNodeTransfer(event)
     if (!transfer) return
     event.preventDefault()
@@ -501,13 +506,26 @@ export function PageView({ docId }: { docId: string }) {
     const editor = editorRef.current
     if (!editor) return
     const title = transfer.title || 'Untitled'
+    editor.focus()
+    // BlockNote has no coordinate→position API on the editor surface, so
+    // insertion lands at the current cursor position (0312).
+    if (transfer.nodeType === 'database') {
+      editor.insertBlocks(
+        [
+          {
+            type: 'databaseEmbed',
+            props: { databaseId: transfer.nodeId, viewType: 'table', viewConfig: '' }
+          } as never
+        ],
+        editor.getTextCursorPosition().block,
+        'after'
+      )
+      return
+    }
     const href =
       transfer.nodeType === 'page'
         ? transfer.nodeId
         : `xnet://${transfer.nodeType}/${transfer.nodeId}`
-    // BlockNote has no coordinate→position API on the editor surface, so
-    // the reference chip lands at the current cursor position (0312).
-    editor.focus()
     editor.insertInlineContent([{ type: 'wikilink', props: { href, title } } as never, ' '])
   }
 
@@ -517,80 +535,84 @@ export function PageView({ docId }: { docId: string }) {
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col">
-      <PageToolbar docId={docId} unresolvedCount={unresolvedCount} presence={presence} />
+    // Entangle bus (0346): one hover/select bus per page — frames in the
+    // document and inline chips co-highlight the same nodes.
+    <EntangleProvider>
+      <div className="flex h-full min-h-0 flex-col">
+        <PageToolbar docId={docId} unresolvedCount={unresolvedCount} presence={presence} />
 
-      {/* The document: one full-height paper surface. The title is the
+        {/* The document: one full-height paper surface. The title is the
           first line of the page; margin clicks place the caret. */}
-      <div
-        data-page-margin
-        className="flex min-h-0 flex-1 flex-col overflow-y-auto"
-        onMouseDown={handleMarginMouseDown}
-        onDragOverCapture={handleEditorDragOver}
-        onDropCapture={handleEditorDrop}
-      >
-        {/* `grow` (not min-h-full): a flex child only stretches into
-            definite space, so the column must flex from the scroller
-            for the editor to fill the page height. */}
-        {/* max-w-[44rem]: with the px-6 + prose gutters this lands the reading
-            measure near ~70ch (max-w-3xl read ~78ch, a touch wide). */}
         <div
           data-page-margin
-          className="mx-auto flex w-full max-w-[44rem] grow flex-col px-6 pt-10"
+          className="flex min-h-0 flex-1 flex-col overflow-y-auto"
+          onMouseDown={handleMarginMouseDown}
+          onDragOverCapture={handleEditorDragOver}
+          onDropCapture={handleEditorDrop}
         >
-          <input
-            ref={titleInputRef}
-            type="text"
-            aria-label="Page title"
-            className="w-full shrink-0 border-none bg-transparent px-8 text-[2.5rem] font-bold leading-tight tracking-tight text-ink-1 outline-none placeholder:text-ink-3"
-            value={page!.title || ''}
-            onChange={(e) => update({ title: e.target.value })}
-            onKeyDown={handleTitleKeyDown}
-            placeholder="Untitled"
-          />
-          <EditorComponent
-            className="page-prose mt-3 flex-1"
-            doc={doc!}
-            awareness={awareness}
-            did={did}
-            pageId={docId}
-            onNavigate={handleNavigate}
-            onEditorReady={handleEditorReady}
-            mentionSuggestions={mentionSuggestions}
-            hashtagSuggestions={hashtagSuggestions}
-            onCreateHashtag={getOrCreateTag}
-            linkTargets={linkTargets}
-            onCreateLinkTarget={createPageTarget}
-            onTagsChange={handleTagsChange}
-            onPageTasksChange={handlePageTasksChange}
-            comments={editorComments}
-            onBackspaceAtStart={handleBackspaceAtStart}
-          />
+          {/* `grow` (not min-h-full): a flex child only stretches into
+            definite space, so the column must flex from the scroller
+            for the editor to fill the page height. */}
+          {/* max-w-[44rem]: with the px-6 + prose gutters this lands the reading
+            measure near ~70ch (max-w-3xl read ~78ch, a touch wide). */}
+          <div
+            data-page-margin
+            className="mx-auto flex w-full max-w-[44rem] grow flex-col px-6 pt-10"
+          >
+            <input
+              ref={titleInputRef}
+              type="text"
+              aria-label="Page title"
+              className="w-full shrink-0 border-none bg-transparent px-8 text-[2.5rem] font-bold leading-tight tracking-tight text-ink-1 outline-none placeholder:text-ink-3"
+              value={page!.title || ''}
+              onChange={(e) => update({ title: e.target.value })}
+              onKeyDown={handleTitleKeyDown}
+              placeholder="Untitled"
+            />
+            <EditorComponent
+              className="page-prose mt-3 flex-1"
+              doc={doc!}
+              awareness={awareness}
+              did={did}
+              pageId={docId}
+              onNavigate={handleNavigate}
+              onEditorReady={handleEditorReady}
+              mentionSuggestions={mentionSuggestions}
+              hashtagSuggestions={hashtagSuggestions}
+              onCreateHashtag={getOrCreateTag}
+              linkTargets={linkTargets}
+              onCreateLinkTarget={createPageTarget}
+              onTagsChange={handleTagsChange}
+              onPageTasksChange={handlePageTasksChange}
+              comments={editorComments}
+              onBackspaceAtStart={handleBackspaceAtStart}
+            />
+          </div>
         </div>
+
+        <PageCommentPopoverOverlay
+          popoverState={popoverState}
+          thread={currentThread}
+          people={commentPeople}
+          onReply={handleReply}
+          onResolve={handleResolve}
+          onReopen={handleReopen}
+          onDelete={handleDelete}
+          onEdit={handleEdit}
+          onDismiss={handleDismiss}
+          onUpgradeToFull={handleUpgradeToFull}
+          onMouseEnter={handlePopoverMouseEnter}
+          onMouseLeave={handlePopoverMouseLeave}
+        />
+
+        <PageNewCommentOverlay
+          state={newCommentState}
+          people={commentPeople}
+          onSubmit={handleSubmitNewComment}
+          onCancel={handleCancelNewComment}
+        />
       </div>
-
-      <PageCommentPopoverOverlay
-        popoverState={popoverState}
-        thread={currentThread}
-        people={commentPeople}
-        onReply={handleReply}
-        onResolve={handleResolve}
-        onReopen={handleReopen}
-        onDelete={handleDelete}
-        onEdit={handleEdit}
-        onDismiss={handleDismiss}
-        onUpgradeToFull={handleUpgradeToFull}
-        onMouseEnter={handlePopoverMouseEnter}
-        onMouseLeave={handlePopoverMouseLeave}
-      />
-
-      <PageNewCommentOverlay
-        state={newCommentState}
-        people={commentPeople}
-        onSubmit={handleSubmitNewComment}
-        onCancel={handleCancelNewComment}
-      />
-    </div>
+    </EntangleProvider>
   )
 }
 

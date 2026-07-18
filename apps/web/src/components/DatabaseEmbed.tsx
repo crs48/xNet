@@ -9,7 +9,8 @@
  * tab, another embed, a remote peer — update the embed in place.
  */
 import { type CellValue, cellKey, DatabaseSchema, resolveRowHeightPx } from '@xnetjs/data'
-import { useGridDatabase, useNode } from '@xnetjs/react'
+import { useGridDatabase, useNode, useNodeStore } from '@xnetjs/react'
+import { getNodeTransfer, hasNodeTransfer } from '@xnetjs/ui'
 import {
   type DatabaseViewConfig,
   type DatabaseViewRow,
@@ -22,10 +23,20 @@ import {
   viewRegistry
 } from '@xnetjs/views'
 import { Database, ExternalLink } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState, type JSX } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type JSX } from 'react'
 
 // Built-ins register through the plugin door (0339); guarded for HMR.
 if (!viewRegistry.has('board')) registerBuiltinViews()
+
+/** Drop-to-relate (0346): the pending drop awaiting a verb choice. */
+interface DropMenuState {
+  x: number
+  y: number
+  nodeId: string
+  title: string
+  /** Relation fields in THIS database targeting the dragged row's database. */
+  relationFields: Array<{ id: string; name: string }>
+}
 
 /** Embed heights per view family — bounded so the page stays a page. */
 const EMBED_HEIGHT: Record<string, string> = {
@@ -199,6 +210,78 @@ export function DatabaseEmbed({
   const height = EMBED_HEIGHT[viewType] ?? 'h-80'
   const title = database?.title || 'Untitled Database'
 
+  // ── Drop-to-relate (0346): dropping a node on the frame offers verbs —
+  // add a row, or add a row linked through a matching relation field.
+  // Every choice is a normal row write, reversible like any edit.
+  const { store } = useNodeStore()
+  const [dropMenu, setDropMenu] = useState<DropMenuState | null>(null)
+  const frameRef = useRef<HTMLDivElement | null>(null)
+
+  const handleDragOver = useCallback(
+    (event: React.DragEvent) => {
+      if (readOnly || !hasNodeTransfer(event)) return
+      event.preventDefault()
+      event.stopPropagation()
+    },
+    [readOnly]
+  )
+
+  const handleDrop = useCallback(
+    (event: React.DragEvent) => {
+      if (readOnly) return
+      const transfer = getNodeTransfer(event)
+      if (!transfer || transfer.nodeId === databaseId) return
+      event.preventDefault()
+      event.stopPropagation()
+      const rect = frameRef.current?.getBoundingClientRect()
+      const x = rect ? event.clientX - rect.left : 12
+      const y = rect ? event.clientY - rect.top : 12
+      void (async () => {
+        // Relation verbs apply when the dragged node is a row and this
+        // database has a relation field targeting the row's database.
+        let relationFields: DropMenuState['relationFields'] = []
+        if (transfer.nodeType === 'row' && store) {
+          const rowState = await store.get(transfer.nodeId)
+          const sourceDb = rowState?.properties.database
+          if (typeof sourceDb === 'string') {
+            relationFields = grid.fields
+              .filter(
+                (f) =>
+                  f.type === 'relation' &&
+                  (f.config as { targetDatabase?: string }).targetDatabase === sourceDb
+              )
+              .map((f) => ({ id: f.id, name: f.name }))
+          }
+        }
+        setDropMenu({
+          x,
+          y,
+          nodeId: transfer.nodeId,
+          title: transfer.title || 'Untitled',
+          relationFields
+        })
+      })()
+    },
+    [readOnly, databaseId, store, grid.fields]
+  )
+
+  const titleFieldId = useMemo(
+    () => grid.fields.find((f) => f.isTitle)?.id ?? grid.fields[0]?.id,
+    [grid.fields]
+  )
+
+  const addDroppedRow = useCallback(
+    (relationFieldId?: string) => {
+      if (!dropMenu) return
+      const cells: Record<string, CellValue> = {}
+      if (titleFieldId) cells[titleFieldId] = dropMenu.title
+      if (relationFieldId) cells[relationFieldId] = [dropMenu.nodeId]
+      void grid.addRow(undefined, cells)
+      setDropMenu(null)
+    },
+    [dropMenu, titleFieldId, grid]
+  )
+
   if (!nodeLoading && !grid.loading && !database) {
     // Sealed frame (0346): the source is unreadable here — deleted, not
     // yet synced, or outside this identity's grants. Never an error.
@@ -212,11 +295,46 @@ export function DatabaseEmbed({
 
   return (
     <div
+      ref={frameRef}
       data-database-embed-frame={databaseId}
       data-database-embed-view={viewType}
-      className="my-1 flex w-full flex-col overflow-hidden rounded-lg border border-border/60 bg-background"
+      className="relative my-1 flex w-full flex-col overflow-hidden rounded-lg border border-border/60 bg-background"
       contentEditable={false}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
     >
+      {dropMenu && (
+        <div
+          className="absolute z-40 flex min-w-44 flex-col rounded-md border border-border bg-background py-1 shadow-lg"
+          style={{ left: Math.min(dropMenu.x, 320), top: Math.min(dropMenu.y, 200) }}
+          data-database-embed-drop-menu="true"
+        >
+          <button
+            type="button"
+            className="px-3 py-1.5 text-left text-sm hover:bg-muted"
+            onClick={() => addDroppedRow()}
+          >
+            Add row “{dropMenu.title}”
+          </button>
+          {dropMenu.relationFields.map((field) => (
+            <button
+              key={field.id}
+              type="button"
+              className="px-3 py-1.5 text-left text-sm hover:bg-muted"
+              onClick={() => addDroppedRow(field.id)}
+            >
+              Add row linked via “{field.name}”
+            </button>
+          ))}
+          <button
+            type="button"
+            className="px-3 py-1.5 text-left text-sm text-muted-foreground hover:bg-muted"
+            onClick={() => setDropMenu(null)}
+          >
+            Cancel
+          </button>
+        </div>
+      )}
       <div className="flex shrink-0 items-center gap-2 border-b border-border/50 px-3 py-1.5">
         <Database size={13} className="shrink-0 text-muted-foreground" />
         <button

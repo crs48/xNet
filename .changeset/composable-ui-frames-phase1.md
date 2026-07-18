@@ -1,6 +1,7 @@
 ---
 '@xnetjs/editor': minor
 '@xnetjs/views': minor
+'@xnetjs/react': minor
 ---
 
 Live embeds in documents (exploration 0346, Phase 1): `databaseEmbed` blocks
@@ -17,3 +18,9 @@ summary-tier text extraction from a v4 document fragment.
 frames, depth-clamped transclusion), container adapters
 (`frameFromDatabaseEmbed` / `frameFromPageEmbed` / `frameFromCanvasNode`),
 and the generic dashboard frame widget (`registerFrameWidget`).
+
+`@xnetjs/react` gains the entangle bus (0346 Phase 3): `EntangleProvider`
+/ `useEntangledHighlight` / `useEntangleBind` — page-scoped hover/select
+co-presence so frames on one page (grid rows, board cards, calendar
+chips, map pins, wikilink chips) highlight the same node together.
+`ReverseRelationsPanel` gains an `onOpenAsFrame` action.
