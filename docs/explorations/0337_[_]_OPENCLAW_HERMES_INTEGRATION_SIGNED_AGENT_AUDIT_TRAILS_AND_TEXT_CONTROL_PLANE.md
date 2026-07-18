@@ -602,7 +602,7 @@ Phase 1 — Agent Passport (identity + capability):
       generates agent `did:key`, mints operator-signed scoped UCAN,
       prints gateway config snippet (extends
       `packages/cli/src/commands/mcp.ts` pairing output)
-- [ ] Store passports as `AgentPassport` nodes (schema in
+- [x] Store passports as `AgentPassport` nodes (schema in
       `packages/data/src/schema/schemas/`, registered in `schemas/index.ts`)
 - [ ] MCP server accepts agent-scoped auth: tool calls execute against a
       store identity = agent DID (writes signed by agent key held locally
@@ -613,7 +613,7 @@ Phase 1 — Agent Passport (identity + capability):
 
 Phase 2 — Audit trail:
 
-- [ ] `AgentSession` / `AgentAction` / `AgentApproval` schemas
+- [x] `AgentSession` / `AgentAction` / `AgentApproval` schemas
       (deterministic ids, `spaceCascadeAuthorization`, reversibility field)
 - [ ] Audit middleware wrapping `AiSurfaceService.callTool` (one
       `AgentAction` per call, linked `changeIds`)
