@@ -6,6 +6,29 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-17-continue-with-bluesky-link-a-global-atpr",
+      "url": "https://xnet.fyi/changelog#2026-07-17-continue-with-bluesky-link-a-global-atpr",
+      "title": "Continue with Bluesky: link a global ATProto identity",
+      "content_text": "Sign in with any ATProto handle to claim a free global name, with a verified-handle badge and Bluesky-identity account recovery — all optional and self-hostable.\n",
+      "date_published": "2026-07-18T04:28:19Z",
+      "tags": [
+        "identity",
+        "app"
+      ],
+      "_xnet": {
+        "date": "July 17, 2026",
+        "summary": "Sign in with any ATProto handle to claim a free global name, with a verified-handle badge and Bluesky-identity account recovery — all optional and self-hostable.",
+        "highlights": [],
+        "mergedAt": "2026-07-18T04:28:19Z",
+        "pr": 536,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-17-your-hub-is-your-crash-console",
       "url": "https://xnet.fyi/changelog#2026-07-17-your-hub-is-your-crash-console",
       "title": "Your hub is your crash console",
