@@ -23,11 +23,10 @@ import {
 import { useMutate, useQuery } from '@xnetjs/react'
 import { useDataBridge } from '@xnetjs/react/internal'
 import { Archive, ArchiveRestore, Hash, Merge, MessageSquare } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ChannelChat } from '../comms/ChannelChat'
 import { navigateToNode } from '../workbench/navigation'
 import { usePublishTitle } from '../workbench/route-title'
-import { useWorkbench } from '../workbench/state'
 import { TAB_VIEWS } from '../workbench/tabs'
 import { filterTagged, mergeTagOps, type TaggedRef } from './tag-view-data'
 

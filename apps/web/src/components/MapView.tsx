@@ -29,7 +29,6 @@ import { useNodeStore } from '@xnetjs/react/internal'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { usePublishTitle } from '../workbench/route-title'
-import { useWorkbench } from '../workbench/state'
 
 const EMPTY_FC: GeoFeatureCollection = { type: 'FeatureCollection', features: [] }
 

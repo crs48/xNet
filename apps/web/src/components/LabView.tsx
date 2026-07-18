@@ -24,7 +24,6 @@ import { CheckCircle2, Loader2, Play, Upload } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createWebLabLadder, labStoreFromNodeStore } from '../lib/lab-runtime'
 import { usePublishTitle } from '../workbench/route-title'
-import { useWorkbench } from '../workbench/state'
 
 const DEFAULT_CODE = `// Write code, then Run (Cmd/Ctrl+Enter).
 // 'return' a value and use console.log; read your data via xnet.query(...).

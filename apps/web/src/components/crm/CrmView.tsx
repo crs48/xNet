@@ -8,7 +8,6 @@
 import { computeNextTouch, dueForFollowUp, daysUntilTouch } from '@xnetjs/crm'
 import { ContactSchema, OrganizationSchema, PipelineSchema, StageSchema } from '@xnetjs/data'
 import { useMutate, useQuery } from '@xnetjs/react'
-import { cn } from '@xnetjs/ui'
 import { Plus, SlidersHorizontal } from 'lucide-react'
 import { useEffect, useRef, useState, type JSX } from 'react'
 import { ActivityTimeline } from '../ActivityTimeline'

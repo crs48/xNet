@@ -39,7 +39,7 @@ import {
   Users,
   X
 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { displayName as resolveName } from '../comms/comms-utils'
 import { useComms } from '../comms/CommsContext'
 import { useProfiles } from '../comms/hooks'
@@ -47,7 +47,7 @@ import { useCreateInSpace } from '../hooks/useCreateInSpace'
 import { useSpaceMembers, useSpaces } from '../hooks/useSpaces'
 import { navigateToNode } from '../workbench/navigation'
 import { usePublishTitle } from '../workbench/route-title'
-import { useWorkbench, type TabNodeType } from '../workbench/state'
+import { type TabNodeType } from '../workbench/state'
 import { ShareDialog } from './ShareDialog'
 
 const KIND_META: Record<SpaceKind, { icon: LucideIcon; label: string }> = {
