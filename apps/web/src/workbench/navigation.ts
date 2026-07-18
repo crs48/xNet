@@ -54,6 +54,15 @@ export function navigateToNode(
     case 'data':
       void navigate({ to: '/data' })
       break
+    case 'experiments':
+      void navigate({ to: '/experiments' as never })
+      break
+    case 'crm':
+      void navigate({ to: '/crm' as never })
+      break
+    case 'finance':
+      void navigate({ to: '/finance' as never })
+      break
     case 'tag':
       void navigate({ to: '/tag/$tagId' as never, params: { tagId: nodeId } as never })
       break
@@ -75,7 +84,16 @@ export function navigateToNode(
     case 'frame':
       void navigate({ to: '/frame/$frameSpec' as never, params: { frameSpec: nodeId } as never })
       break
+    default:
+      // Exhaustiveness guard: a TabNodeType with no case here navigates
+      // nowhere, silently. Tabless (0353) that also strands the history
+      // chords, which resolve a remembered route through this switch.
+      assertNeverNodeType(nodeType)
   }
+}
+
+function assertNeverNodeType(nodeType: never): void {
+  console.warn(`navigateToNode: unhandled node type ${String(nodeType)}`)
 }
 
 /**
