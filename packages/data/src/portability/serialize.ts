@@ -76,7 +76,8 @@ function sortObjectKeys(obj: unknown): unknown {
  * with `signatureB64` removed.
  */
 export function canonicalManifestBytes(manifest: XnetpackManifest): Uint8Array {
-  const { signatureB64: _sig, ...unsigned } = manifest
+  const unsigned: Partial<XnetpackManifest> = { ...manifest }
+  delete unsigned.signatureB64
   return textEncoder.encode(JSON.stringify(sortObjectKeys(unsigned)))
 }
 
