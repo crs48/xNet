@@ -8,5 +8,11 @@
     "identity",
     "app"
   ],
-  "pr": 536
+  "pr": 536,
+  "mergedAt": "2026-07-18T04:28:19Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
