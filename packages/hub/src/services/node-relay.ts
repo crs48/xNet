@@ -22,7 +22,7 @@ import { parseDID } from '@xnetjs/identity'
 import {
   CURRENT_PROTOCOL_VERSION,
   recomputeChangeHash,
-  verifyChange,
+  verifyChangeFast,
   verifyChangeHash,
   type Change
 } from '@xnetjs/sync'
@@ -202,7 +202,7 @@ export class NodeRelayService {
       throw new NodeRelayError('INVALID_CHANGE', `Invalid author DID: ${err}`)
     }
 
-    if (!verifyChange(change, publicKey)) {
+    if (!(await verifyChangeFast(change, publicKey))) {
       throw new NodeRelayError('INVALID_SIGNATURE', 'Change signature is invalid')
     }
 

@@ -23,6 +23,8 @@ export {
   signChange,
   createWebCryptoChangeSigner,
   verifyChange,
+  verifyChangeFast,
+  verifyChangesFast,
   verifyChangeHash,
   createChangeId,
   createBatchId

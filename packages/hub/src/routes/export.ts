@@ -16,13 +16,13 @@
  *          the authenticated DID (the Right-to-Leave hub-purge port).
  */
 
-import type { DID, ContentId } from '@xnetjs/core'
-import type { Context, MiddlewareHandler } from 'hono'
 import type { AuthContext } from '../auth/ucan'
 import type { HubStorage, SerializedNodeChange } from '../storage/interface'
+import type { DID, ContentId } from '@xnetjs/core'
+import type { Context, MiddlewareHandler } from 'hono'
 import { base64ToBytes } from '@xnetjs/crypto'
 import { parseDID } from '@xnetjs/identity'
-import { verifyChange, verifyChangeHash, type Change } from '@xnetjs/sync'
+import { verifyChangeFast, verifyChangeHash, type Change } from '@xnetjs/sync'
 import { Hono } from 'hono'
 import { stream } from 'hono/streaming'
 
@@ -137,7 +137,7 @@ export const createExportRoutes = (storage: HubStorage, options: ExportRoutesOpt
         continue
       }
       try {
-        if (!verifyChange(change, parseDID(change.authorDID))) {
+        if (!(await verifyChangeFast(change, parseDID(change.authorDID)))) {
           rejected.push({ hash: serialized.hash, reason: 'signature verification failed' })
           continue
         }

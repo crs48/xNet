@@ -7,7 +7,7 @@
  */
 
 import type { DID, ContentId } from '@xnetjs/core'
-import { hashHex, sign, verify } from '@xnetjs/crypto'
+import { hashHex, sign, verify, verifyFast, verifyMany } from '@xnetjs/crypto'
 
 // ─── Protocol Versioning ─────────────────────────────────────────────────────
 
@@ -319,7 +319,15 @@ export function createWebCryptoChangeSigner(signingKey: Uint8Array): ChangeSigne
  * @returns true if the signature is valid
  */
 export function verifyChange<T>(change: Change<T>, publicKey: Uint8Array): boolean {
-  // Warn about future protocol versions but don't reject
+  warnOnFutureProtocolVersion(change)
+
+  // Verify the signature matches the hash
+  const hashBytes = new TextEncoder().encode(change.hash)
+  return verify(hashBytes, change.signature, publicKey)
+}
+
+/** Warn about future protocol versions but never reject on version alone. */
+function warnOnFutureProtocolVersion<T>(change: Change<T>): void {
   const version = change.protocolVersion ?? 0
   if (version > CURRENT_PROTOCOL_VERSION) {
     console.warn(
@@ -328,10 +336,46 @@ export function verifyChange<T>(change: Change<T>, publicKey: Uint8Array): boole
         `Consider upgrading xNet for full compatibility.`
     )
   }
+}
 
-  // Verify the signature matches the hash
+/**
+ * Verify a change's signature using the native (WebCrypto) verifier when the
+ * runtime has it — ~13x faster than the pure-JS path (exploration 0350/0357).
+ *
+ * Semantically identical to {@link verifyChange}; use this on bulk paths
+ * (hub relay, `.xnetpack` import, NDJSON restore, resync) where per-change
+ * verification is the bottleneck. Single interactive writes can keep using
+ * the synchronous {@link verifyChange}.
+ */
+export async function verifyChangeFast<T>(
+  change: Change<T>,
+  publicKey: Uint8Array
+): Promise<boolean> {
+  warnOnFutureProtocolVersion(change)
   const hashBytes = new TextEncoder().encode(change.hash)
-  return verify(hashBytes, change.signature, publicKey)
+  return verifyFast(hashBytes, change.signature, publicKey)
+}
+
+/**
+ * Verify many changes at once. Results are positional — `result[i]`
+ * corresponds to `entries[i]` — and a failure never short-circuits the rest,
+ * so callers can report exactly which change was rejected.
+ *
+ * This shares one native-support probe and one key import per distinct author
+ * across the whole set, which is the common shape for a bulk import.
+ */
+export async function verifyChangesFast<T>(
+  entries: readonly { change: Change<T>; publicKey: Uint8Array }[]
+): Promise<boolean[]> {
+  const encoder = new TextEncoder()
+  for (const entry of entries) warnOnFutureProtocolVersion(entry.change)
+  return verifyMany(
+    entries.map((entry) => ({
+      message: encoder.encode(entry.change.hash),
+      signature: entry.change.signature,
+      publicKey: entry.publicKey
+    }))
+  )
 }
 
 /**

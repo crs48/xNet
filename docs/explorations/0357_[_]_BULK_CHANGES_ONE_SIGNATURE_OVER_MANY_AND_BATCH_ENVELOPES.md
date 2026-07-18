@@ -21,7 +21,7 @@ from exploration 0350's benchmarks):
 The write-side physical batching problem was solved in exploration 0157
 (`NodeStore.batchWrite`, storage-owned `applyNodeBatch`). This
 exploration answers the two questions 0157 explicitly deferred: the
-**semantic** question (what *is* a bulk operation in the change model)
+**semantic** question (what _is_ a bulk operation in the change model)
 and the **cryptographic/wire** question (can one signature and one
 envelope cover many changes).
 
@@ -41,7 +41,7 @@ per-node history work.
 **Physical batching already exists and is good.** `transaction()`,
 `importDeterministicNodes()`, and `batchWrite()` all collapse N node
 writes into one `applyNodeBatch` storage transaction (0157, shipped).
-What is *not* batched today, in descending order of pain:
+What is _not_ batched today, in descending order of pain:
 
 1. **The wire.** Push is strictly one change per WebSocket frame,
    throttled to 40 msg/s (`node-store-sync-provider.ts:680-690`, `:25`).
@@ -74,7 +74,7 @@ per-node parent-hash chains); only the "sign the root" half is missing.
   batch preflight. This converts the 4-minute push into seconds and the
   14 s verify into <1 s, without touching the change record, the hash,
   or the four conformance kernels.
-- **Tier 2 (protocol *addition*): batch commits — one signature over N
+- **Tier 2 (protocol _addition_): batch commits — one signature over N
   change hashes.** A new signed `batch-commit` record carrying the
   BLAKE3 Merkle root of the batch's change hashes. Changes covered by a
   commit may omit their individual signature; verifiers check N hashes
@@ -93,17 +93,17 @@ per-node parent-hash chains); only the "sign the root" half is missing.
 ```ts
 // packages/sync/src/change.ts:44-104 (abridged)
 export interface Change<T = unknown> {
-  protocolVersion?: number   // CURRENT_PROTOCOL_VERSION = 4 (change.ts:29)
+  protocolVersion?: number // CURRENT_PROTOCOL_VERSION = 4 (change.ts:29)
   id: string
-  type: string               // e.g. 'node-change'
-  payload: T                 // NodePayload: ONE nodeId + sparse properties
-  hash: ContentId            // cid:blake3:… over canonical sorted-key JSON
-  parentHash: ContentId | null  // per-NODE chain, not per-author
+  type: string // e.g. 'node-change'
+  payload: T // NodePayload: ONE nodeId + sparse properties
+  hash: ContentId // cid:blake3:… over canonical sorted-key JSON
+  parentHash: ContentId | null // per-NODE chain, not per-author
   authorDID: DID
-  signature: Uint8Array      // Ed25519 over the UTF-8 bytes of `hash`
+  signature: Uint8Array // Ed25519 over the UTF-8 bytes of `hash`
   wallTime: number
   lamport: number
-  batchId?: string           // transaction grouping (semantic, not wire)
+  batchId?: string // transaction grouping (semantic, not wire)
   batchIndex?: number
   batchSize?: number
 }
@@ -151,25 +151,25 @@ the receiving verifier.**
 
 ### What is not batched
 
-| Layer | Today | Cost at N=10k (pure JS) | File |
-|---|---|---:|---|
-| Sign | one Ed25519 per change | 3.6 s | `packages/sync/src/change.ts:234-247` |
-| Push | one WS frame per change, 40/s throttle | **250 s** | `node-store-sync-provider.ts:680-690`, `:25` |
-| Hub verify | hash + sig per change | 14 s | `packages/hub/src/services/node-relay.ts:182-207` |
-| Client re-apply (`.xnetpack`) | `applyRemoteChange` loop, per-change verify | 14 s+ | `packages/data/src/portability/apply.ts:119-138` |
-| Envelope | ~554 B fixed/change; sig 88 B, DID ×2 ~110 B | 5.5 MB | 0350 §size budget |
-| Storage insert | one prepared INSERT per change (inside one tx) | fine | `packages/sqlite/src/adapters/web.ts:606-754` |
+| Layer                         | Today                                          | Cost at N=10k (pure JS) | File                                              |
+| ----------------------------- | ---------------------------------------------- | ----------------------: | ------------------------------------------------- |
+| Sign                          | one Ed25519 per change                         |                   3.6 s | `packages/sync/src/change.ts:234-247`             |
+| Push                          | one WS frame per change, 40/s throttle         |               **250 s** | `node-store-sync-provider.ts:680-690`, `:25`      |
+| Hub verify                    | hash + sig per change                          |                    14 s | `packages/hub/src/services/node-relay.ts:182-207` |
+| Client re-apply (`.xnetpack`) | `applyRemoteChange` loop, per-change verify    |                   14 s+ | `packages/data/src/portability/apply.ts:119-138`  |
+| Envelope                      | ~554 B fixed/change; sig 88 B, DID ×2 ~110 B   |                  5.5 MB | 0350 §size budget                                 |
+| Storage insert                | one prepared INSERT per change (inside one tx) |                    fine | `packages/sqlite/src/adapters/web.ts:606-754`     |
 
 Two details that matter for the design space:
 
 - **`batchId` is semantic, not wire.** The handshake advertises a
   `'batch-changes'` feature (`packages/hub/src/server.ts:1008-1015`)
-  but it only means changes *carry* batch fields — every change still
+  but it only means changes _carry_ batch fields — every change still
   travels alone.
 - **Parent-hash chains are per-node, not per-author.** So
   "sign the chain head and cover ancestors transitively"
   (Scuttlebutt/ATProto `prev` style) amortizes nothing for a bulk
-  import of N *distinct* nodes — each node's chain is depth 1. A batch
+  import of N _distinct_ nodes — each node's chain is depth 1. A batch
   root must span nodes: a Merkle root (or flat hash list) over the
   batch's change hashes.
 - **The signature column is `NOT NULL`** in both the client log
@@ -209,7 +209,7 @@ Full survey in the research notes; the load-bearing findings:
    because "signatures are applied once per batch, not once per
    certificate."
 4. **AT Protocol**: one commit object `{did, data: <MST root>, rev,
-   prev, sig}` signed **once regardless of how many records changed**;
+prev, sig}` signed **once regardless of how many records changed**;
    `applyWrites` batches many creates/updates/deletes into one commit.
    Bluesky's relay ingests millions of commits/day this way. Notably
    the DID appears once per commit, not once per record — exactly the
@@ -252,7 +252,7 @@ Full survey in the research notes; the load-bearing findings:
 4. **Chain-head signing doesn't work for xNet's bulk case** because
    parent chains are per-node. The batch root must be a Merkle tree (or
    flat list ≤ some N) over change hashes.
-5. **A batch commit is an *addition*, not a change-record change.** The
+5. **A batch commit is an _addition_, not a change-record change.** The
    change hash, canonical bytes, and LWW rules are untouched, so the
    four conformance kernels (`packages/sync/src/change.ts` +
    `packages/core/src/lww.ts`, Python + Swift reference kernels,
@@ -324,11 +324,11 @@ recomputes each change hash (mandatory anyway), checks membership under
 
 Numbers at N=10,000 (from 0350's measured per-op costs):
 
-| | Today (pure JS) | Today (native) | C1 batch commit |
-|---|---:|---:|---:|
-| Client sign | 3.6 s | 0.38 s | **~0.11 s** (10k hashes + 1 sign) |
-| Hub verify | 14 s | 0.9 s | **~0.11 s** (10k hashes + 1 verify) |
-| Signature bytes | 880 KB | 880 KB | **64 B** (+ ~750 KB hash list, or 32 B root) |
+|                 | Today (pure JS) | Today (native) |                              C1 batch commit |
+| --------------- | --------------: | -------------: | -------------------------------------------: |
+| Client sign     |           3.6 s |         0.38 s |            **~0.11 s** (10k hashes + 1 sign) |
+| Hub verify      |            14 s |          0.9 s |          **~0.11 s** (10k hashes + 1 verify) |
+| Signature bytes |          880 KB |         880 KB | **64 B** (+ ~750 KB hash list, or 32 B root) |
 
 - ✅ the proven, convergent architecture (Hypercore/CT/ATProto)
 - ✅ additive: change hash/LWW/canonical bytes untouched; kernels gain
@@ -338,7 +338,7 @@ Numbers at N=10,000 (from 0350's measured per-op costs):
 - ❌ real design debt to pay: `signature NOT NULL` columns need
   relaxing (`schema.ts:130-143`, hub `sqlite.ts:2183-2209`) or a
   sentinel; hub relay, export/restore, purge, and quota accounting must
-  learn commit records; fan-out of a *single* commit-covered change to
+  learn commit records; fan-out of a _single_ commit-covered change to
   a live share room needs either the commit alongside or C2 proofs
 - ❌ pruning interaction: `pruneSupersededChanges` deleting a
   commit-covered change orphans siblings' verifiability unless the
@@ -379,6 +379,7 @@ Sequence the tiers; each is independently shippable and none blocks the
 previous.
 
 **Tier 1 — now (no protocol change):**
+
 1. Ship Option B: `node-changes` batched push behind a handshake
    feature flag, capped at 1000 changes/frame, hub handler looping the
    existing verify pipeline; wire `syncMode: 'after-commit'` bulk
@@ -390,20 +391,16 @@ previous.
    — `portability/apply.ts:119-138`) while keeping per-change
    verification (cheap once native).
 
-**Tier 2 — next (protocol addition, design doc → implementation):**
-4. Add the `BatchCommit` record (Option C1, flat hash list, N ≤ 1000)
-   for the ingest lanes: `.xnetpack` import/export, hub NDJSON
-   restore, initial-sync snapshot, migrations. Commit-covered changes
-   ship unsigned; interactive single edits keep per-change signatures.
-   Add golden vectors for commit hashing/signing to `conformance/`
-   before code.
+**Tier 2 — next (protocol addition, design doc → implementation):** 4. Add the `BatchCommit` record (Option C1, flat hash list, N ≤ 1000)
+for the ingest lanes: `.xnetpack` import/export, hub NDJSON
+restore, initial-sync snapshot, migrations. Commit-covered changes
+ship unsigned; interactive single edits keep per-change signatures.
+Add golden vectors for commit hashing/signing to `conformance/`
+before code.
 
-**Tier 3 — deferred:**
-5. C2 Merkle inclusion proofs — only when a lane needs to redistribute
-   commit-covered changes individually.
-6. Envelope slimming and any batch-verification adoption ride protocol
-   v5 with ZIP-215-style validity pinned in vectors first.
-7. Option D stays rejected.
+**Tier 3 — deferred:** 5. C2 Merkle inclusion proofs — only when a lane needs to redistribute
+commit-covered changes individually. 6. Envelope slimming and any batch-verification adoption ride protocol
+v5 with ZIP-215-style validity pinned in vectors first. 7. Option D stays rejected.
 
 No new revenue lane is proposed, so the CHARTER §6 "no ground rent"
 tests are not triggered.
@@ -469,23 +466,23 @@ export interface BatchCommit {
   root: ContentId
   lamport: number
   wallTime: number
-  hash: ContentId          // canonical-JSON blake3, same recipe as Change
-  signature: Uint8Array    // Ed25519 over hash — ONE per batch
+  hash: ContentId // canonical-JSON blake3, same recipe as Change
+  signature: Uint8Array // Ed25519 over hash — ONE per batch
 }
 
 export function verifyBatch(
   commit: BatchCommit,
   changes: Change<unknown>[],
-  publicKey: Uint8Array,
+  publicKey: Uint8Array
 ): boolean {
-  if (!verifyCommitSignature(commit, publicKey)) return false   // 1 verify
+  if (!verifyCommitSignature(commit, publicKey)) return false // 1 verify
   if (computeBatchRoot(commit.changeHashes) !== commit.root) return false
   const covered = new Set(commit.changeHashes)
   return changes.every(
     (c) =>
       covered.has(c.hash) &&
-      recomputeChangeHash(c) === c.hash &&        // N hashes — needed anyway
-      c.authorDID === commit.authorDID,           // commit can't launder authorship
+      recomputeChangeHash(c) === c.hash && // N hashes — needed anyway
+      c.authorDID === commit.authorDID // commit can't launder authorship
   )
 }
 ```
@@ -544,7 +541,7 @@ Tier 1 — batched wire + fast verify (no protocol bump):
       per change
 - [ ] Rework hub rate-limit + quota accounting to count changes inside
       batch frames
-- [ ] Ship 0350's `verifyFast` native/WebCrypto seam and route
+- [x] Ship 0350's `verifyFast` native/WebCrypto seam and route
       `node-relay.ts`, `routes/export.ts` restore, and
       `portability/verify.ts` through it
 - [ ] Route `.xnetpack` apply through
@@ -592,6 +589,7 @@ Tier 2 — batch commits (design first):
 ## References
 
 Repository:
+
 - `packages/sync/src/change.ts` — Change envelope, hash/sign/verify,
   protocol v4
 - `packages/data/src/store/store.ts`, `transaction-executor.ts`,
@@ -611,6 +609,7 @@ Repository:
   (checkpoints/pins), 0296 (batch conflict semantics)
 
 External:
+
 - Hypercore DEP-0002 (signed Merkle root per append batch),
   https://www.datprotocol.com/deps/0002-hypercore/
 - RFC 6962 Certificate Transparency (signed tree heads, inclusion

@@ -6,9 +6,9 @@
  */
 
 import type { DID } from '@xnetjs/core'
-import { verifyChange, verifyChangeHash, CURRENT_PROTOCOL_VERSION } from '@xnetjs/sync'
 import { base64ToBytes, verify as verifySignature } from '@xnetjs/crypto'
 import { parseDID } from '@xnetjs/identity'
+import { verifyChangeFast, verifyChangeHash, CURRENT_PROTOCOL_VERSION } from '@xnetjs/sync'
 import {
   canonicalManifestBytes,
   combineEntryDigests,
@@ -138,7 +138,7 @@ export async function verifyBundle(
       }
       try {
         const publicKey = parseDID(change.authorDID)
-        if (!verifyChange(change, publicKey)) {
+        if (!(await verifyChangeFast(change, publicKey))) {
           error(
             'change-signature-invalid',
             `change ${change.id} signature does not match ${change.authorDID}`,
