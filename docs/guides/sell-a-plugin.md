@@ -89,7 +89,23 @@ a device), one purchase works across all their devices and can be revoked
 hub-side. The token is the anti-piracy moat; the license governs redistribution
 and the eventual open-sourcing.
 
-## 4. Publish
+## 4. Marketplace neutrality
+
+The marketplace's steward is also a publisher (xNet ships first-party plugins),
+so the ranking rule is written down before it is ever needed
+([exploration 0351](../explorations/0351_[_]_FRONTIER_ECONOMICS_WITHOUT_ENCLOSURE_RAILROADS_AIRLINES_AND_THE_COMMONS.md)):
+
+- **First-party plugins compete under the same ranking inputs as third-party
+  plugins.** No reserved slots, no default boost, no placement that a
+  third-party listing could not earn with the same signals.
+- The marketplace fee pays for the distribution services the marketplace
+  actually provides (hosting, review, licensing, payments) — it is a fee on
+  improvements, not a toll for reaching users. BYO checkout stays available,
+  fee-free, for exactly that reason.
+- Any change to ranking inputs is documented in this guide **before** it goes
+  live.
+
+## 5. Publish
 
 1. `xnet plugin scaffold` → set `license` + `pricing` (above).
 2. Connect Stripe (managed) from the marketplace's "Become a publisher" flow, or

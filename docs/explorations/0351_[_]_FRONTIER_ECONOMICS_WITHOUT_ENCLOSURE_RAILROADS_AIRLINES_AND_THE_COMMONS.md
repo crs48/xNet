@@ -521,7 +521,7 @@ where the values-aligned position and the risk-adjusted position coincide.
       support, never for access to your own data — with the export/exit
       links as proof (converts the covenant into marketing surface, per
       0336 finding 4 "we under-market the trust artifacts").
-- [ ] Record a **marketplace ranking-neutrality rule** (first-party plugins
+- [x] Record a **marketplace ranking-neutrality rule** (first-party plugins
       compete under the same ranking inputs as third-party) in the 0196
       marketplace docs before Phase 2 of 0349 ships the paid-plugin loop.
 - [ ] Add an **anchor-tenant note** to the 0349 implementation plan: each
