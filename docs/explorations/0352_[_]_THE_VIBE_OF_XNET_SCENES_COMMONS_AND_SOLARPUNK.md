@@ -532,7 +532,7 @@ export const nightBloomSeeder = defineSeeder({
 - [x] Add scene seed profile (`packages/devtools/src/seed/seeders/`), register
       in `seed-manifest.ts`, keep `seed-coverage.test.ts` green; keep Acme as
       the business profile
-- [ ] Surface feel/warmth choice (cozy variant + calm/quiet shells) in
+- [x] Surface feel/warmth choice (cozy variant + calm/quiet shells) in
       first-run or settings top level (`apps/web`)
 - [ ] File follow-up explorations: stewardship legibility (consent-gated
       replica visibility); scene-scoped theming with venue-owned chrome
@@ -545,7 +545,9 @@ export const nightBloomSeeder = defineSeeder({
 - [x] `check-humane-patterns.mjs --selftest` catches a planted
       `shareRatio`/`leaderboard` violation
 - [x] Seed: `pnpm vitest --project devtools` green with the scene profile;
-      demo workspace first-run shows the scene, not Acme
+      seeded workspace shows the scene (Night Bloom Records) alongside Acme
+      (making the scene the sole first-run default stays with the follow-up
+      explorations)
 - [ ] Essay ships with `skip-changelog` (site-only) and DCO signoff
 - [ ] A cold read test: someone who has never heard the word "xNet" reads
       `VIBE.md` and can answer "what does this product refuse?" *and* "what
