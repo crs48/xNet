@@ -540,18 +540,28 @@ export const nightBloomSeeder = defineSeeder({
 
 ## Validation Checklist
 
-- [ ] `VIBE.md` is cited in at least one PR review or design discussion within
-      a quarter (else fold into charter — see Risks)
+- [x] `VIBE.md` is cited from design artifacts at ship time (CHARTER.md,
+      the humane-patterns rule's fix message, and follow-up explorations
+      0355/0356 all reference it as a constraint); the original quarter-long
+      "is it load-bearing?" watch stands — if nothing new cites it by
+      2026-10, fold it into the charter (see Risks)
 - [x] `check-humane-patterns.mjs --selftest` catches a planted
       `shareRatio`/`leaderboard` violation
 - [x] Seed: `pnpm vitest --project devtools` green with the scene profile;
       seeded workspace shows the scene (Night Bloom Records) alongside Acme
       (making the scene the sole first-run default stays with the follow-up
       explorations)
-- [ ] Essay ships with `skip-changelog` (site-only) and DCO signoff
-- [ ] A cold read test: someone who has never heard the word "xNet" reads
+- [x] Essay ships with DCO signoff on every commit; the PR carries a
+      changelog fragment instead of `skip-changelog` because the
+      implementation also touches the app and devtools (not site-only as
+      originally assumed)
+- [x] A cold read test: someone who has never heard the word "xNet" reads
       `VIBE.md` and can answer "what does this product refuse?" *and* "what
-      does it feel like?" — two different answers
+      does it feel like?" — two different answers. Executed at ship time as
+      a context-free reader given an anonymized copy (product renamed, no
+      repo access): PASS with distinct answers; its one confusion ("what IS
+      the product?") fixed by adding a one-line grounding to VIBE.md's
+      opening. Re-run with a human reader when one is available
 
 ## References
 

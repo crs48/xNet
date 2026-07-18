@@ -2,7 +2,9 @@
 
 > _The charter is what we refuse. This is what we cultivate._
 
-The [Humane Internet Charter](./CHARTER.md) is an immune system: six
+xNet is a local-first platform for data people own — documents, databases,
+and shared spaces that live on your devices and sync peer-to-peer. The
+[Humane Internet Charter](./CHARTER.md) is its immune system: six
 commitments, several CI-enforced, that keep extraction out — no behavioral
 surplus, no dark patterns, no lock-in. An immune system is necessary and
 insufficient. A sterile room has a great immune system and no life in it.
