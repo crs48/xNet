@@ -6,7 +6,20 @@
     <atom:link href="https://xnet.fyi/blog/rss.xml" rel="self" type="application/rss+xml" />
     <description>Essays on local-first software, data ownership, and the open web.</description>
     <language>en-us</language>
-    <lastBuildDate>Tue, 14 Jul 2026 17:00:00 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 18 Jul 2026 17:00:00 GMT</lastBuildDate>
+    <item>
+      <title>People in Disguise</title>
+      <link>https://xnet.fyi/blog/people-in-disguise</link>
+      <guid isPermaLink="true">https://xnet.fyi/blog/people-in-disguise</guid>
+      <description>For forty years, one man has been making the same argument from inside the machine: a VR pioneer, a working musician, Microsoft’s in-house heretic — insisting that digital information is really just people in disguise. On Jaron Lanier’s long war against the siren servers, what his ideas look like when you actually build them — and the one prescription we deliberately refuse.</description>
+      <dc:creator>crs48</dc:creator>
+      <dc:creator>Claude</dc:creator>
+      <pubDate>Sat, 18 Jul 2026 17:00:00 GMT</pubDate>
+      <category>essay</category>
+      <category>philosophy</category>
+      <category>privacy</category>
+      <category>economics</category>
+    </item>
     <item>
       <title>Clutch Power</title>
       <link>https://xnet.fyi/blog/clutch-power</link>
