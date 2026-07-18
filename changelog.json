@@ -3620,14 +3620,14 @@
       "id": "2026-06-25-new-react-and-devtool-guides-for-react-d",
       "url": "https://xnet.fyi/changelog#2026-06-25-new-react-and-devtool-guides-for-react-d",
       "title": "New /react and /devtool guides for React developers",
-      "content_text": "A single-page walkthrough of XNet React — the hooks, then a choice between a managed Hub or your own @xnetjs/server backend — plus a DevTools showcase and docs for running your own server.\n",
+      "content_text": "A single-page walkthrough of xNet React — the hooks, then a choice between a managed Hub or your own @xnetjs/server backend — plus a DevTools showcase and docs for running your own server.\n",
       "date_published": "2026-06-25T19:41:35Z",
       "tags": [
         "platform"
       ],
       "_xnet": {
         "date": "June 25, 2026",
-        "summary": "A single-page walkthrough of XNet React — the hooks, then a choice between a managed Hub or your own @xnetjs/server backend — plus a DevTools showcase and docs for running your own server.",
+        "summary": "A single-page walkthrough of xNet React — the hooks, then a choice between a managed Hub or your own @xnetjs/server backend — plus a DevTools showcase and docs for running your own server.",
         "highlights": [],
         "mergedAt": "2026-06-25T19:41:35Z",
         "pr": 271,
@@ -3663,15 +3663,15 @@
     {
       "id": "2026-06-25-bring-your-own-backend-server-kit-for-xn",
       "url": "https://xnet.fyi/changelog#2026-06-25-bring-your-own-backend-server-kit-for-xn",
-      "title": "Bring-your-own-backend server kit for XNet React",
-      "content_text": "New @xnetjs/server lets developers run XNet's data layer on their own server with their own auth — a structured-query executor, backend-authoritative mutations, and a server/custodial/signed trust spectrum — while React hooks stay unchanged.\n",
+      "title": "Bring-your-own-backend server kit for xNet React",
+      "content_text": "New @xnetjs/server lets developers run xNet's data layer on their own server with their own auth — a structured-query executor, backend-authoritative mutations, and a server/custodial/signed trust spectrum — while React hooks stay unchanged.\n",
       "date_published": "2026-06-25T18:33:11Z",
       "tags": [
         "platform"
       ],
       "_xnet": {
         "date": "June 25, 2026",
-        "summary": "New @xnetjs/server lets developers run XNet's data layer on their own server with their own auth — a structured-query executor, backend-authoritative mutations, and a server/custodial/signed trust spectrum — while React hooks stay unchanged.",
+        "summary": "New @xnetjs/server lets developers run xNet's data layer on their own server with their own auth — a structured-query executor, backend-authoritative mutations, and a server/custodial/signed trust spectrum — while React hooks stay unchanged.",
         "highlights": [],
         "mergedAt": "2026-06-25T18:33:11Z",
         "pr": 267,
@@ -4237,7 +4237,7 @@
     {
       "id": "2026-06-22-rust-xnet-core",
       "url": "https://xnet.fyi/changelog#2026-06-22-rust-xnet-core",
-      "title": "A portable Rust core for the XNet protocol — one kernel for every language",
+      "title": "A portable Rust core for the xNet protocol — one kernel for every language",
       "content_text": "Phase 2 of the native-SDK work: `xnet-core`, a Rust implementation of the protocol's byte-exact kernel (did:key, the canonical-JSON change hash, Ed25519 sign/verify, per-property LWW, version negotiation, authorization eval). It passes the shared golden-vector corpus — and, with deterministic RFC-8032 Ed25519, re-signs changes byte-for-byte (which the Swift/CryptoKit kernel can't). It's the foundation for backing the Swift, Kotlin, and .NET SDKs from a single core via UniFFI.\n\n• `rust/xnet-core` reproduces the conformance corpus (identity, change incl. byte-exact re-sign, LWW, replication, authz) — a fourth conforming implementation alongside TypeScript, Python, and Swift\n• Ed25519 implemented on audited `curve25519-dalek` + `sha2` (RFC 8032); base58btc and canonical JSON inline — minimal, dependency-light crypto\n• An FFI-ready surface (`String`/`Vec<u8>`/`bool`) is built and tested; generating Swift/Kotlin (UniFFI) + a C ABI for .NET is the documented next step",
       "date_published": "2026-06-22T20:43:01Z",
       "tags": [
@@ -4293,7 +4293,7 @@
       "id": "2026-06-22-swift-persistence",
       "url": "https://xnet.fyi/changelog#2026-06-22-swift-persistence",
       "title": "Native Swift data is now durable — XNetKit persists to SQLite",
-      "content_text": "XNetKit gained an on-device store: pass a `SQLiteChangeLog` to a `NodeStore` and every signed change is written to SQLite, then replayed on next launch to rebuild state. A native app's XNet database now survives restarts, with last-writer-wins preserved across the replay. Uses the system SQLite library — no extra dependency.\n\n• `SQLiteChangeLog` persists the signed change log; `NodeStore(identity:persistence:)` replays it on open to rebuild node state\n• Durable across restarts with LWW intact — verified by a write → close → reopen test that keeps the latest update\n• Built on the system SQLite (`import SQLite3`), so the package's only third-party dependency is still BLAKE3",
+      "content_text": "XNetKit gained an on-device store: pass a `SQLiteChangeLog` to a `NodeStore` and every signed change is written to SQLite, then replayed on next launch to rebuild state. A native app's xNet database now survives restarts, with last-writer-wins preserved across the replay. Uses the system SQLite library — no extra dependency.\n\n• `SQLiteChangeLog` persists the signed change log; `NodeStore(identity:persistence:)` replays it on open to rebuild node state\n• Durable across restarts with LWW intact — verified by a write → close → reopen test that keeps the latest update\n• Built on the system SQLite (`import SQLite3`), so the package's only third-party dependency is still BLAKE3",
       "date_published": "2026-06-22T14:50:56Z",
       "tags": [
         "swift",
@@ -4302,7 +4302,7 @@
       ],
       "_xnet": {
         "date": "June 22, 2026",
-        "summary": "XNetKit gained an on-device store: pass a `SQLiteChangeLog` to a `NodeStore` and every signed change is written to SQLite, then replayed on next launch to rebuild state. A native app's XNet database now survives restarts, with last-writer-wins preserved across the replay. Uses the system SQLite library — no extra dependency.",
+        "summary": "XNetKit gained an on-device store: pass a `SQLiteChangeLog` to a `NodeStore` and every signed change is written to SQLite, then replayed on next launch to rebuild state. A native app's xNet database now survives restarts, with last-writer-wins preserved across the replay. Uses the system SQLite library — no extra dependency.",
         "highlights": [
           "`SQLiteChangeLog` persists the signed change log; `NodeStore(identity:persistence:)` replays it on open to rebuild node state",
           "Durable across restarts with LWW intact — verified by a write → close → reopen test that keeps the latest update",
@@ -4402,8 +4402,8 @@
     {
       "id": "2026-06-21-swift-live-sync",
       "url": "https://xnet.fyi/changelog#2026-06-21-swift-live-sync",
-      "title": "Native Swift now syncs with an XNet hub — proven cross-language interop",
-      "content_text": "XNetKit gained a live hub connection: a native Swift client can publish a signed change to a running XNet hub over WebSocket and catch up changes from it. It's proven end-to-end against the real TypeScript hub — a Swift-signed change is verified (hash + Ed25519 signature) and stored by the hub, then caught up and materialized by a second Swift client. This is the first true cross-language round-trip, unblocked by the integer-lamport protocol fix.\n\n• `HubConnection` speaks the L2 replication protocol over `URLSessionWebSocketTask`: version handshake, room subscribe, `node-change` publish, and `node-sync-request` catch-up\n• `WireCodec` maps a Swift `Change` to/from the hub's `SerializedNodeChange` wire shape; a `NodeStore.onLocalChange` hook publishes local writes\n• `xnet-sync-demo` demonstrates the round-trip live against the reference hub; 16 Swift tests pass including a wire-codec JSON round-trip",
+      "title": "Native Swift now syncs with an xNet hub — proven cross-language interop",
+      "content_text": "XNetKit gained a live hub connection: a native Swift client can publish a signed change to a running xNet hub over WebSocket and catch up changes from it. It's proven end-to-end against the real TypeScript hub — a Swift-signed change is verified (hash + Ed25519 signature) and stored by the hub, then caught up and materialized by a second Swift client. This is the first true cross-language round-trip, unblocked by the integer-lamport protocol fix.\n\n• `HubConnection` speaks the L2 replication protocol over `URLSessionWebSocketTask`: version handshake, room subscribe, `node-change` publish, and `node-sync-request` catch-up\n• `WireCodec` maps a Swift `Change` to/from the hub's `SerializedNodeChange` wire shape; a `NodeStore.onLocalChange` hook publishes local writes\n• `xnet-sync-demo` demonstrates the round-trip live against the reference hub; 16 Swift tests pass including a wire-codec JSON round-trip",
       "date_published": "2026-06-22T03:09:30Z",
       "tags": [
         "swift",
@@ -4412,7 +4412,7 @@
       ],
       "_xnet": {
         "date": "June 21, 2026",
-        "summary": "XNetKit gained a live hub connection: a native Swift client can publish a signed change to a running XNet hub over WebSocket and catch up changes from it. It's proven end-to-end against the real TypeScript hub — a Swift-signed change is verified (hash + Ed25519 signature) and stored by the hub, then caught up and materialized by a second Swift client. This is the first true cross-language round-trip, unblocked by the integer-lamport protocol fix.",
+        "summary": "XNetKit gained a live hub connection: a native Swift client can publish a signed change to a running xNet hub over WebSocket and catch up changes from it. It's proven end-to-end against the real TypeScript hub — a Swift-signed change is verified (hash + Ed25519 signature) and stored by the hub, then caught up and materialized by a second Swift client. This is the first true cross-language round-trip, unblocked by the integer-lamport protocol fix.",
         "highlights": [
           "`HubConnection` speaks the L2 replication protocol over `URLSessionWebSocketTask`: version handshake, room subscribe, `node-change` publish, and `node-sync-request` catch-up",
           "`WireCodec` maps a Swift `Change` to/from the hub's `SerializedNodeChange` wire shape; a `NodeStore.onLocalChange` hook publishes local writes",
@@ -4485,7 +4485,7 @@
     {
       "id": "2026-06-21-native-swift-xnetkit",
       "url": "https://xnet.fyi/changelog#2026-06-21-native-swift-xnetkit",
-      "title": "XNetKit — define schemas, query, and observe XNet from native Swift",
+      "title": "XNetKit — define schemas, query, and observe xNet from native Swift",
       "content_text": "A real, runnable native Swift SDK lands. Define schemas in Swift, write and query the database in Swift, and bind results into a SwiftUI re-rendering loop — no JavaScript, no React. It's built on the conformance-pinned protocol kernel, so identity, signed change hashes, and LWW convergence match the TypeScript reference. This is the native-authoring slice of the Swift exploration (0210); live hub sync and persistence are the next steps.\n\n• Swift schema DSL (Schema { text(…); select(…) }) emits the same SchemaIRI as TS defineSchema; a native NodeStore signs every write into a Change and folds it via per-property LWW\n• Reactive @Observable LiveQueryModel drives a SwiftUI re-render loop the way useQuery does in React — plus a framework-agnostic LiveQuery and an AsyncSequence view\n• swift run xnet-demo walks it end-to-end; 11 tests pass including the shared golden vectors (identity, change hash, LWW) — verified on Swift 6.3 / macOS",
       "date_published": "2026-06-21T21:15:20Z",
       "tags": [
@@ -4513,8 +4513,8 @@
     {
       "id": "2026-06-20-swift-conformance-kernel",
       "url": "https://xnet.fyi/changelog#2026-06-20-swift-conformance-kernel",
-      "title": "A verified Swift kernel — XNet's protocol is provably portable to Apple platforms",
-      "content_text": "The first step toward a native Swift SDK: an independent Swift implementation of XNet's interop kernel now reproduces the same did:key, canonical bytes, and BLAKE3 change hashes as the TypeScript reference, and verifies TypeScript-signed changes. The conformance corpus also grew new L2 (replication) and L3 (authorization) golden vectors, so the wire protocol stays honest across languages.\n\n• New Swift reference kernel (conformance/reference/swift) passes 18/18 L0+L1 checks against the shared golden vectors — proof the protocol, not the TypeScript source, is what implementations follow\n• Conformance corpus extended to L2 (version handshake, catch-up filtering, the byte-exact signed Yjs envelope) and L3 (authorization expression evaluation), drift-guarded in CI\n• Surfaced and documented a real Apple-platform constraint: CryptoKit's Ed25519 is randomized, so it verifies signatures but can't reproduce them byte-for-byte",
+      "title": "A verified Swift kernel — xNet's protocol is provably portable to Apple platforms",
+      "content_text": "The first step toward a native Swift SDK: an independent Swift implementation of xNet's interop kernel now reproduces the same did:key, canonical bytes, and BLAKE3 change hashes as the TypeScript reference, and verifies TypeScript-signed changes. The conformance corpus also grew new L2 (replication) and L3 (authorization) golden vectors, so the wire protocol stays honest across languages.\n\n• New Swift reference kernel (conformance/reference/swift) passes 18/18 L0+L1 checks against the shared golden vectors — proof the protocol, not the TypeScript source, is what implementations follow\n• Conformance corpus extended to L2 (version handshake, catch-up filtering, the byte-exact signed Yjs envelope) and L3 (authorization expression evaluation), drift-guarded in CI\n• Surfaced and documented a real Apple-platform constraint: CryptoKit's Ed25519 is randomized, so it verifies signatures but can't reproduce them byte-for-byte",
       "date_published": "2026-06-21T18:35:14Z",
       "tags": [
         "protocol",
@@ -4523,7 +4523,7 @@
       ],
       "_xnet": {
         "date": "June 20, 2026",
-        "summary": "The first step toward a native Swift SDK: an independent Swift implementation of XNet's interop kernel now reproduces the same did:key, canonical bytes, and BLAKE3 change hashes as the TypeScript reference, and verifies TypeScript-signed changes. The conformance corpus also grew new L2 (replication) and L3 (authorization) golden vectors, so the wire protocol stays honest across languages.",
+        "summary": "The first step toward a native Swift SDK: an independent Swift implementation of xNet's interop kernel now reproduces the same did:key, canonical bytes, and BLAKE3 change hashes as the TypeScript reference, and verifies TypeScript-signed changes. The conformance corpus also grew new L2 (replication) and L3 (authorization) golden vectors, so the wire protocol stays honest across languages.",
         "highlights": [
           "New Swift reference kernel (conformance/reference/swift) passes 18/18 L0+L1 checks against the shared golden vectors — proof the protocol, not the TypeScript source, is what implementations follow",
           "Conformance corpus extended to L2 (version handshake, catch-up filtering, the byte-exact signed Yjs envelope) and L3 (authorization expression evaluation), drift-guarded in CI",
@@ -4571,7 +4571,7 @@
       "id": "2026-06-19-managed-ai-with-model-switching",
       "url": "https://xnet.fyi/changelog#2026-06-19-managed-ai-with-model-switching",
       "title": "Managed AI with model switching",
-      "content_text": "Use metered XNet Cloud AI right from the app — no API key — and switch between models with live pricing.\n\n• New managed AI tier: the chat panel routes through XNet Cloud's metered gateway with a live used/included/cap budget gauge — no key in the browser.\n• Switch between models from a picker grouped by family, with per-token price and context badges; cheaper plans get a curated set, bigger plans the full OpenRouter catalog.\n• Optional model fallbacks keep a chat working through a provider outage.",
+      "content_text": "Use metered xNet Cloud AI right from the app — no API key — and switch between models with live pricing.\n\n• New managed AI tier: the chat panel routes through xNet Cloud's metered gateway with a live used/included/cap budget gauge — no key in the browser.\n• Switch between models from a picker grouped by family, with per-token price and context badges; cheaper plans get a curated set, bigger plans the full OpenRouter catalog.\n• Optional model fallbacks keep a chat working through a provider outage.",
       "date_published": "2026-06-20T04:36:14Z",
       "tags": [
         "ai",
@@ -4580,9 +4580,9 @@
       ],
       "_xnet": {
         "date": "June 19, 2026",
-        "summary": "Use metered XNet Cloud AI right from the app — no API key — and switch between models with live pricing.",
+        "summary": "Use metered xNet Cloud AI right from the app — no API key — and switch between models with live pricing.",
         "highlights": [
-          "New managed AI tier: the chat panel routes through XNet Cloud's metered gateway with a live used/included/cap budget gauge — no key in the browser.",
+          "New managed AI tier: the chat panel routes through xNet Cloud's metered gateway with a live used/included/cap budget gauge — no key in the browser.",
           "Switch between models from a picker grouped by family, with per-token price and context badges; cheaper plans get a curated set, bigger plans the full OpenRouter catalog.",
           "Optional model fallbacks keep a chat working through a provider outage."
         ],
@@ -4945,8 +4945,8 @@
     {
       "id": "2026-06-18-bring-unreal-engine-game-data-into-xnet",
       "url": "https://xnet.fyi/changelog#2026-06-18-bring-unreal-engine-game-data-into-xnet",
-      "title": "Bring Unreal Engine game data into XNet",
-      "content_text": "A new governed connector and game-interop schema pack let an Unreal Engine 6 title's durable player data — identity, inventory, achievements, matches, and economy — sync into space-scoped XNet nodes you own.\n\n• Player identity is keyed to your portable XNet DID, so it carries across games\n• A save-file-not-netcode guardrail rejects per-frame syncs at build time\n• Game assets are stored as glTF/USD references; each title sees only its own space",
+      "title": "Bring Unreal Engine game data into xNet",
+      "content_text": "A new governed connector and game-interop schema pack let an Unreal Engine 6 title's durable player data — identity, inventory, achievements, matches, and economy — sync into space-scoped xNet nodes you own.\n\n• Player identity is keyed to your portable xNet DID, so it carries across games\n• A save-file-not-netcode guardrail rejects per-frame syncs at build time\n• Game assets are stored as glTF/USD references; each title sees only its own space",
       "date_published": "2026-06-18T03:05:38Z",
       "tags": [
         "platform",
@@ -4954,9 +4954,9 @@
       ],
       "_xnet": {
         "date": "June 18, 2026",
-        "summary": "A new governed connector and game-interop schema pack let an Unreal Engine 6 title's durable player data — identity, inventory, achievements, matches, and economy — sync into space-scoped XNet nodes you own.",
+        "summary": "A new governed connector and game-interop schema pack let an Unreal Engine 6 title's durable player data — identity, inventory, achievements, matches, and economy — sync into space-scoped xNet nodes you own.",
         "highlights": [
-          "Player identity is keyed to your portable XNet DID, so it carries across games",
+          "Player identity is keyed to your portable xNet DID, so it carries across games",
           "A save-file-not-netcode guardrail rejects per-frame syncs at build time",
           "Game assets are stored as glTF/USD references; each title sees only its own space"
         ],
