@@ -43,14 +43,14 @@
       "label": "Data",
       "file": "routes/data.png",
       "status": "unchanged",
-      "ssim": 0.998907
+      "ssim": 0.99915
     },
     {
       "id": "home",
       "label": "Home",
       "file": "routes/home.png",
       "status": "changed",
-      "ssim": 0.97233,
+      "ssim": 0.972573,
       "before": "before/routes/home.png",
       "after": "routes/home.png",
       "diff": "diff/routes/home.png"
@@ -60,7 +60,7 @@
       "label": "Settings",
       "file": "routes/settings.png",
       "status": "unchanged",
-      "ssim": 0.999039
+      "ssim": 0.999252
     }
   ],
   "electron": [],
