@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Agent Passports: audit every OpenClaw/Hermes action</title>
+      <link>https://xnet.fyi/changelog#2026-07-17-agent-passports-audit-every-openclaw-her</link>
+      <guid isPermaLink="false">2026-07-17-agent-passports-audit-every-openclaw-her</guid>
+      <pubDate>Sat, 18 Jul 2026 02:48:50 GMT</pubDate>
+      <description>External agents (OpenClaw, Hermes, Claude Code) can now be enrolled with their own scoped identity: every tool call is recorded as a signed audit node, risky actions require a typed approval code in chat or an in-app confirmation, reversible actions can be undone, and the new DevTools Agent Audit panel shows the full per-agent trail.</description>
+    </item>
+    <item>
       <title>Databases scroll past 500 rows with honest row counts</title>
       <link>https://xnet.fyi/changelog#2026-07-17-databases-scroll-past-500-rows-with-hone</link>
       <guid isPermaLink="false">2026-07-17-databases-scroll-past-500-rows-with-hone</guid>

@@ -6,6 +6,30 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-17-agent-passports-audit-every-openclaw-her",
+      "url": "https://xnet.fyi/changelog#2026-07-17-agent-passports-audit-every-openclaw-her",
+      "title": "Agent Passports: audit every OpenClaw/Hermes action",
+      "content_text": "External agents (OpenClaw, Hermes, Claude Code) can now be enrolled with their own scoped identity: every tool call is recorded as a signed audit node, risky actions require a typed approval code in chat or an in-app confirmation, reversible actions can be undone, and the new DevTools Agent Audit panel shows the full per-agent trail.\n",
+      "date_published": "2026-07-18T02:48:50Z",
+      "tags": [
+        "ai",
+        "identity",
+        "devtools"
+      ],
+      "_xnet": {
+        "date": "July 17, 2026",
+        "summary": "External agents (OpenClaw, Hermes, Claude Code) can now be enrolled with their own scoped identity: every tool call is recorded as a signed audit node, risky actions require a typed approval code in chat or an in-app confirmation, reversible actions can be undone, and the new DevTools Agent Audit panel shows the full per-agent trail.",
+        "highlights": [],
+        "mergedAt": "2026-07-18T02:48:50Z",
+        "pr": 533,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-17-databases-scroll-past-500-rows-with-hone",
       "url": "https://xnet.fyi/changelog#2026-07-17-databases-scroll-past-500-rows-with-hone",
       "title": "Databases scroll past 500 rows with honest row counts",
