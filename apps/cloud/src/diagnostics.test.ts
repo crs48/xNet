@@ -2,10 +2,12 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   createDiagnosticsRoutes,
   createWebhookAlerter,
+  diagnosticsSecretFor,
   fingerprintOf,
   MemoryDebugReportStore,
   parseIncomingReport,
   shortId,
+  tenantFromDiagnosticsSecret,
   MAX_REPORT_BYTES,
   type DebugReportRecord
 } from './diagnostics'
@@ -325,6 +327,74 @@ describe('createWebhookAlerter', () => {
     const alert = createWebhookAlerter('https://hooks.example.com/x', silentLog, fetchImpl)
     expect(() => alert!(record)).not.toThrow()
     await new Promise((r) => setTimeout(r, 0))
+  })
+})
+
+describe('per-tenant diagnostics secrets + fleet view (0341 P3)', () => {
+  it('derives a self-identifying secret that round-trips verification', () => {
+    const secret = diagnosticsSecretFor(SECRET, 'tenant-a')
+    expect(secret.startsWith('tenant-a.')).toBe(true)
+    expect(tenantFromDiagnosticsSecret(SECRET, secret)).toBe('tenant-a')
+    // Tampered tenant id, truncated hmac, or the wrong master all fail.
+    expect(tenantFromDiagnosticsSecret(SECRET, `tenant-b.${secret.split('.')[1]}`)).toBeNull()
+    expect(tenantFromDiagnosticsSecret(SECRET, secret.slice(0, -1))).toBeNull()
+    expect(tenantFromDiagnosticsSecret('other-master', secret)).toBeNull()
+    expect(tenantFromDiagnosticsSecret(SECRET, undefined)).toBeNull()
+  })
+
+  it('attributes hub-lane reports to the tenant whose secret forwarded them', async () => {
+    const { app, store } = makeApp()
+    const res = await app.request('/diagnostics', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-internal-secret': diagnosticsSecretFor(SECRET, 'tenant-a')
+      },
+      body: JSON.stringify({ didHash: 'h', report: autoReport() })
+    })
+    expect(res.status).toBe(202)
+    const { id } = (await res.json()) as { id: string }
+    expect((await store.get(id))?.tenantId).toBe('tenant-a')
+
+    // The master secret still works and leaves reports unattributed.
+    const own = await app.request('/diagnostics', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-internal-secret': SECRET },
+      body: JSON.stringify({ didHash: 'h', report: autoReport({ errorName: 'RangeError' }) })
+    })
+    expect(own.status).toBe(202)
+    const ownId = ((await own.json()) as { id: string }).id
+    expect((await store.get(ownId))?.tenantId).toBeUndefined()
+  })
+
+  it('groups the fleet view by tenant, master-secret-gated', async () => {
+    const { app } = makeApp()
+    for (const [tenant, name] of [
+      ['tenant-a', 'TypeError'],
+      ['tenant-a', 'RangeError'],
+      ['tenant-b', 'SyntaxError']
+    ] as const) {
+      await app.request('/diagnostics', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-internal-secret': diagnosticsSecretFor(SECRET, tenant)
+        },
+        body: JSON.stringify({ report: autoReport({ errorName: name }) })
+      })
+    }
+
+    expect((await app.request('/internal/diagnostics/fleet')).status).toBe(403)
+    const res = await app.request('/internal/diagnostics/fleet', {
+      headers: { 'x-internal-secret': SECRET }
+    })
+    expect(res.status).toBe(200)
+    const { tenants } = (await res.json()) as {
+      tenants: Array<{ tenantId: string; reports: number; topIssues: unknown[] }>
+    }
+    const byId = new Map(tenants.map((t) => [t.tenantId, t]))
+    expect(byId.get('tenant-a')?.reports).toBe(2)
+    expect(byId.get('tenant-b')?.reports).toBe(1)
   })
 })
 

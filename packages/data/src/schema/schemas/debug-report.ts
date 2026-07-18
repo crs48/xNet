@@ -49,6 +49,8 @@ export const DebugReportSchema = defineSchema({
     lane: select({ options: lanes, required: true, default: 'auto' }),
     /** Grouping key: hash(errorName + normalized top frame + release). */
     fingerprint: text({ required: true, maxLength: 64 }),
+    /** Cross-release issue identity: the fingerprint minus release (0341). */
+    issueKey: text({ maxLength: 64 }),
     errorName: text({ required: true, maxLength: 120 }),
     message: text({ maxLength: 500 }),
     stack: text({ maxLength: 6000 }),
@@ -63,6 +65,8 @@ export const DebugReportSchema = defineSchema({
     didHash: text({ maxLength: 128 }),
     occurrences: number({ integer: true }),
     status: select({ options: statuses, required: true, default: 'new' }),
+    /** Set when the operator escalated this report to the vendor: the quotable XR-… handle (0341). */
+    escalatedId: text({ maxLength: 16 }),
     firstSeen: number({}),
     lastSeen: number({}),
     createdAt: created(),

@@ -35,11 +35,12 @@ import { MemoryDeviceGrantStore, isExpired, type DeviceGrantStore } from './devi
 import {
   createDiagnosticsRoutes,
   createWebhookAlerter,
+  diagnosticsSecretFor,
   MemoryDebugReportStore,
   type DebugReportRecord,
   type DebugReportStore
 } from './diagnostics'
-import { composeDashboardLive, fetchHubHealth } from './hub-status'
+import { composeDashboardLive, fetchHubDiagnosticsSummary, fetchHubHealth } from './hub-status'
 import { createLogger, type Logger } from './logger'
 import {
   collectUsage,
@@ -335,10 +336,21 @@ export function createControlPlaneApp(deps: ControlPlaneAppDeps): Hono {
       tenant.entitlements.aiEnabled && deps.ai
         ? await deps.ai.ledger.totalChargeUsd(tenant.tenantId, currentPeriodStartMs(now()))
         : null
+    // The tenant's own crash inbox (0341): read with the per-tenant secret the
+    // provisioner hands the hub — a window onto their hub, never a copy here.
+    const diagnostics =
+      health && deps.internalSecret
+        ? await fetchHubDiagnosticsSummary(
+            tenant.hubUrl,
+            diagnosticsSecretFor(deps.internalSecret, tenant.tenantId),
+            { timeoutMs: 2000 }
+          )
+        : null
     const body = composeDashboardLive({
       health,
       sli,
       aiUsedUsd,
+      diagnostics,
       quotaBytes: tenant.entitlements.quotaBytes,
       ...(tenant.subscriptionStatus ? { subscriptionStatus: tenant.subscriptionStatus } : {}),
       dataTier: tenant.dataTier

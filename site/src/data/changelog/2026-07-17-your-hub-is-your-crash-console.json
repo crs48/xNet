@@ -1,0 +1,11 @@
+{
+  "id": "2026-07-17-your-hub-is-your-crash-console",
+  "date": "July 17, 2026",
+  "title": "Your hub is your crash console",
+  "summary": "Every hub now quarantines its own deployment's crash reports — nothing leaves your infrastructure by default. Operators import reports into a Diagnostics Space (Settings → Privacy & Diagnostics) and triage them in the workbench; managed-hub owners see pending counts and top issues on their cloud dashboard, read live from their own hub. Sharing anything with xNet stays a separate, explicit choice: preview-and-send a single report, opt in to anonymous crash counts, or grant time-boxed, revocable support access.",
+  "highlights": [],
+  "tags": [
+    "app",
+    "platform"
+  ]
+}

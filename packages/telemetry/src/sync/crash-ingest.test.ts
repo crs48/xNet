@@ -87,3 +87,33 @@ describe('createDiagnosticsClient — user-triggered lane', () => {
     expect(await makeClient('off', offline).submit(PING)).toBeNull()
   })
 })
+
+describe('createDiagnosticsClient — lazy destination (0341)', () => {
+  const makeLazy = (resolve: () => string | null, fetchImpl: typeof fetch) => {
+    const consent = new ConsentManager({ storage: new MemoryConsentStorage() })
+    consent.setTier('crashes')
+    return createDiagnosticsClient({ ingestUrl: resolve, consent, fetchImpl })
+  }
+
+  it('resolves the base per send, so a hub connected later redirects the next ping', async () => {
+    let hub: string | null = null
+    const fetchImpl = okFetch()
+    const client = makeLazy(() => hub, fetchImpl)
+
+    client.crash(PING)
+    await client.flush()
+    expect(fetchImpl).not.toHaveBeenCalled() // no destination → no network call
+
+    hub = 'https://hub.example'
+    client.crash(PING)
+    await client.flush()
+    const [url] = (fetchImpl as ReturnType<typeof vi.fn>).mock.calls[0] as [string]
+    expect(url).toBe('https://hub.example/diagnostics/ingest')
+  })
+
+  it('submit returns null when no destination resolves', async () => {
+    const fetchImpl = okFetch()
+    expect(await makeLazy(() => null, fetchImpl).submit(PING)).toBeNull()
+    expect(fetchImpl).not.toHaveBeenCalled()
+  })
+})

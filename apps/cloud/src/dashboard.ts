@@ -262,6 +262,11 @@ function hubCard(tenant: TenantRecord): string {
       <div class="budget" id="budget-wrap" hidden>
         <div class="budget-bar"><div class="budget-fill" id="budget-fill"></div></div>
         <span class="muted" id="budget-lbl"></span>
+      </div>
+      <div id="diag-wrap" hidden>
+        <p class="muted" id="diag-lbl" style="margin:8px 0 4px"></p>
+        <ul id="diag-issues" class="diag-issues"></ul>
+        <p class="muted" style="margin:2px 0 0;font-size:12px">Crash reports live on <em>your</em> hub — this is a window, not a copy. Triage them in the app: Settings → Privacy &amp; Diagnostics → Import reports.</p>
       </div>`
       : ''
   return `
@@ -353,6 +358,27 @@ function liveScript(): string {
     line.setAttribute('points', pts);
     set('spark-n', String(hist.length));
   }
+  function esc(s){ var el = document.createElement('span'); el.textContent = String(s); return el.innerHTML; }
+  function diagnostics(d){
+    var wrap = document.getElementById('diag-wrap');
+    if (!wrap) return;
+    var g = d.diagnostics;
+    // Only show the section when the hub reports an inbox (older hubs: absent).
+    if (!g) { wrap.hidden = true; return; }
+    wrap.hidden = false;
+    var lbl = g.pending > 0
+      ? 'Diagnostics: ' + g.pending + ' report' + (g.pending === 1 ? '' : 's') + ' awaiting triage' + (g.lastSeenMs != null ? ' · last seen ' + rel(g.lastSeenMs) : '')
+      : 'Diagnostics: no reports awaiting triage';
+    set('diag-lbl', lbl);
+    var ul = document.getElementById('diag-issues');
+    if (ul) {
+      ul.innerHTML = (g.topIssues || []).slice(0, 3).map(function(issue){
+        return '<li><code>' + esc(issue.shortId) + '</code> ' + esc(issue.errorName)
+          + ' — seen ' + issue.occurrences + '\\u00d7'
+          + (issue.release ? ' in ' + esc(issue.release) : '') + '</li>';
+      }).join('');
+    }
+  }
   function budget(d){
     var wrap = document.getElementById('budget-wrap');
     if (!wrap || d.errorBudgetPct == null) return;
@@ -380,6 +406,7 @@ function liveScript(): string {
       if (d.connections) { hist.push(d.connections.active); if (hist.length > MAX) hist.shift(); spark(); }
       storage(d);
       budget(d);
+      diagnostics(d);
     } catch (e) {}
   }
   tick();
@@ -675,6 +702,9 @@ const STYLE = `
   .tile { background: #0d0d12; border: 1px solid #1f1f27; border-radius: 10px; padding: 12px 14px; text-align: center; }
   .tile-val { display: block; font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
   .tile-lbl { display: block; color: #9ca3af; font-size: 12px; margin-top: 2px; }
+  .diag-issues { margin: 0; padding-left: 18px; color: #d1d5db; font-size: 13px; }
+  .diag-issues li { margin: 2px 0; }
+  .diag-issues code { color: #a5b4fc; }
   .spark { margin-bottom: 16px; }
   .spark svg { width: 100%; height: 40px; display: block; background: #0d0d12; border: 1px solid #1f1f27; border-radius: 10px; }
   .spark-lbl { display: block; font-size: 12px; margin-top: 6px; }

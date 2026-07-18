@@ -23,6 +23,7 @@ import {
 } from './auth/ucan'
 import { measureDataUsage, type DataUsage } from './data-usage'
 import { aiForwarderFeature } from './features/ai-forwarder'
+import { diagnosticsInboxFeature } from './features/diagnostics-inbox'
 import { diagnosticsSharingFeature } from './features/diagnostics-sharing'
 import { billingFeature, tasksFeature, unfurlFeature } from './features/first-party'
 import { formInboxFeature } from './features/form-inbox'
@@ -545,6 +546,11 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
       // XNET_DIAGNOSTICS_URL/SECRET, forwards scrubbed, content-free crash
       // reports upstream so we can help debug their hub.
       diagnosticsSharingFeature(),
+      // Diagnostics inbox (0341): default-on first-party crash quarantine —
+      // this deployment's own clients report here, the operator drains into
+      // debug-report nodes. Nothing leaves the deployment unless sharing
+      // (above) is separately enabled.
+      diagnosticsInboxFeature(),
       // Signed integration webhooks (exploration 0213): Stripe/Sentry/PagerDuty.
       // Each is secret-gated (503 until its *_WEBHOOK_SECRET is set), verifies the
       // provider HMAC, and normalizes deliveries into ExternalItem-shaped actions.
