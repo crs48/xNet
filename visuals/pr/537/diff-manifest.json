@@ -1,0 +1,51 @@
+{
+  "threshold": 0.998,
+  "baseline": "https://xnet.fyi/visuals-baseline",
+  "fallbackUsed": false,
+  "unmappedFiles": [],
+  "stories": [
+    {
+      "id": "web-storagewarningbanner--informational",
+      "title": "Web/StorageWarningBanner",
+      "name": "Informational",
+      "file": "stories/web-storagewarningbanner--informational.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-storagewarningbanner--success",
+      "title": "Web/StorageWarningBanner",
+      "name": "Success",
+      "file": "stories/web-storagewarningbanner--success.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-storagewarningbanner--warning",
+      "title": "Web/StorageWarningBanner",
+      "name": "Warning",
+      "file": "stories/web-storagewarningbanner--warning.png",
+      "status": "unchanged",
+      "ssim": 1
+    }
+  ],
+  "routes": [
+    {
+      "id": "data",
+      "label": "Data",
+      "file": "routes/data.png",
+      "status": "unchanged",
+      "ssim": 0.998907
+    },
+    {
+      "id": "settings",
+      "label": "Settings",
+      "file": "routes/settings.png",
+      "status": "unchanged",
+      "ssim": 0.998922
+    }
+  ],
+  "electron": [],
+  "flows": [],
+  "changedCount": 0
+}
