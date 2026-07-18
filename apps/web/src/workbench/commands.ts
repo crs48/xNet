@@ -146,6 +146,13 @@ export function useShellEscape(): void {
         state.setFocus(false)
         return
       }
+      // Tabless split (0353) is the newest surface, so it's the first rung
+      // down: Esc closes the second pane before it starts closing docks.
+      if (state.splitTarget) {
+        event.preventDefault()
+        state.setSplitTarget(null)
+        return
+      }
       if (state.chrome === 'quiet' || state.mode === 'zen') return
       const side = (['bottom', 'right', 'left'] as const).find((s) => state[s].open)
       if (!side) return

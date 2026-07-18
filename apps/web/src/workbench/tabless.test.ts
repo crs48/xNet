@@ -4,8 +4,8 @@
  * split target.
  */
 import { beforeEach, describe, expect, it } from 'vitest'
-import { selectPreviousRoute, useWorkbench } from './state'
-import { syncRouteToTabs, tabFromPathname, trackRouteVisit } from './tabs'
+import { selectPreviousRoute, TAB_NODE_TYPES, useWorkbench } from './state'
+import { routeForTab, syncRouteToTabs, tabFromPathname, trackRouteVisit, TAB_VIEWS } from './tabs'
 
 function reset(tabsEnabled: boolean) {
   useWorkbench.setState({
@@ -96,6 +96,25 @@ describe('trackRouteVisit', () => {
     syncRouteToTabs('/doc/page-3')
     expect(useWorkbench.getState().groups[0].tabs).toHaveLength(0)
   })
+})
+
+describe('route smoke test: every node type still opens its target', () => {
+  // With tabs off the route IS the navigation, so a node type whose route
+  // doesn't round-trip is a dead link at every `navigateToNode` call site
+  // — and the tabless history chords resolve through the same pair.
+  const NON_NODE_TYPES = new Set(['frame'])
+
+  it.each(TAB_NODE_TYPES.filter((type) => !NON_NODE_TYPES.has(type)))(
+    '%s round-trips route → descriptor',
+    (nodeType) => {
+      const nodeId = TAB_VIEWS[nodeType].singleton ? nodeType : 'seed/some/node-1'
+      const route = routeForTab(nodeType, nodeId)
+
+      expect(route).not.toBe('/')
+      const descriptor = tabFromPathname(route)
+      expect(descriptor?.nodeType).toBe(nodeType)
+    }
+  )
 })
 
 describe('recent-two navigation round-trips slash-bearing ids', () => {
