@@ -507,13 +507,13 @@ where the values-aligned position and the risk-adjusted position coincide.
 
 ## Implementation Checklist
 
-- [ ] Draft the **"No Ground Rent"** addition to `docs/CHARTER.md` §6:
+- [x] Draft the **"No Ground Rent"** addition to `docs/CHARTER.md` §6:
       one clause naming the refused-rent class + the seven receipts
       (0349 0% take, 0344 free export, portable identity, MIT core/open
       wire format, no behavioural surplus, no global chokepoint tier,
       FRAND trademark), each labelled Enforced / Architectural /
       Aspirational per the Charter's honesty convention.
-- [ ] Add the **three-test rubric** (improvement / BATNA / vanish) to the
+- [x] Add the **three-test rubric** (improvement / BATNA / vanish) to the
       same clause, and note in `CLAUDE.md` or the exploration skill that
       new revenue-lane explorations should apply it explicitly.
 - [ ] Add a **"where the margin comes from"** entry to the pricing FAQ in
