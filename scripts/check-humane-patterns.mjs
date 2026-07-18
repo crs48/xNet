@@ -300,7 +300,8 @@ function runSelfTest() {
 }
 
 // Only run as a CLI when invoked directly (keeps scanText importable for tests).
-const invokedDirectly = process.argv[1] && resolve(process.argv[1]).endsWith('check-humane-patterns.mjs')
+const invokedDirectly =
+  process.argv[1] && resolve(process.argv[1]).endsWith('check-humane-patterns.mjs')
 if (invokedDirectly) {
   const args = process.argv.slice(2)
   const exit = args.includes('--selftest') ? runSelfTest() : runScan(args)

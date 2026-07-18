@@ -149,9 +149,26 @@ export const sceneSeeder: SeederModule = {
           }
         ],
         views: [
-          { slug: 'table', name: 'All crates', type: 'table', sorts: [{ key: 'year', direction: 'asc' }] },
-          { slug: 'by-format', name: 'By format', type: 'board', groupByKey: 'format', colorByKey: 'condition' },
-          { slug: 'listening-nights', name: 'Listening nights', type: 'calendar', dateKey: 'spinDate', colorByKey: 'format' }
+          {
+            slug: 'table',
+            name: 'All crates',
+            type: 'table',
+            sorts: [{ key: 'year', direction: 'asc' }]
+          },
+          {
+            slug: 'by-format',
+            name: 'By format',
+            type: 'board',
+            groupByKey: 'format',
+            colorByKey: 'condition'
+          },
+          {
+            slug: 'listening-nights',
+            name: 'Listening nights',
+            type: 'calendar',
+            dateKey: 'spinDate',
+            colorByKey: 'format'
+          }
         ]
       })
     )
@@ -192,7 +209,11 @@ export const sceneSeeder: SeederModule = {
           'Last Tram Home — field recording outro, see Field Recordings Vol. 3'
         ]
       },
-      { kind: 'callout', type: 'info', text: 'Next listening night: first Friday of the month. Bring one record and one story.' }
+      {
+        kind: 'callout',
+        type: 'info',
+        text: 'Next listening night: first Friday of the month. Bring one record and one story.'
+      }
     ]
 
     // ─── The quality bar: cultural, held by people, never a score ─────────

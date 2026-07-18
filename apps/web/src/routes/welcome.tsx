@@ -123,8 +123,8 @@ function WelcomePage() {
         <section className="space-y-4">
           <h1 className="cozy-heading text-xl font-semibold">How should xNet feel?</h1>
           <p className="text-sm text-muted-foreground">
-            The venue is calm by default; warmth is a choice, not a flag to find. Change it any
-            time in Settings → Appearance.
+            The venue is calm by default; warmth is a choice, not a flag to find. Change it any time
+            in Settings → Appearance.
           </p>
           <div className="space-y-2">
             {FEEL_CHOICES.map((feel) => (
