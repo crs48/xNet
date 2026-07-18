@@ -22,6 +22,10 @@ how the code is built), it links to that code. Where it is **aspirational** (not
 yet fully built), it says that too — honesty about the gap is itself a
 commitment.
 
+This charter is the refusal side of the coin. Its companion,
+[`docs/VIBE.md`](./VIBE.md), names what the refusals make room for — the feel
+xNet cultivates (exploration 0352).
+
 ---
 
 ## 1. Own — you hold the master copy

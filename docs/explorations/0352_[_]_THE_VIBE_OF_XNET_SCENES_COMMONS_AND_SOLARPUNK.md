@@ -429,10 +429,11 @@ not replacement.
    table, the loop (*legible, never scored*), the strongest sentence (*the
    scene outlives the server*), and a closing IndieWeb-style ordering that
    ends in *have fun*. Cross-link from `CHARTER.md` and `VISION.md`.
-2. Ship blog essay #17 (working title: **"The World's Greatest Record
+2. Ship blog essay #18 (working title: **"The World's Greatest Record
    Store"**) — Oink → Ostrom's missing principle 7 → local-first as the
    commons that can't be raided. En-GB, `.astro`, hand-drawn art with the
-   cosmic-X as the glowing node in a pink palace.
+   cosmic-X as the glowing node in a pink palace. (#17, "Palimpsest",
+   shipped separately while this doc was in flight.)
 3. Reseed: add a scene-flavored Tier-1 seed profile alongside Acme Inc;
    make it the default for personal/first-run workspaces.
 4. Extend `check-humane-patterns.mjs`: ban `ratio`/`leaderboard`/`rank`
@@ -520,10 +521,10 @@ export const nightBloomSeeder = defineSeeder({
 
 ## Implementation Checklist
 
-- [ ] Write `docs/VIBE.md` (doctrine, three-layer table, the loop, "the scene
+- [x] Write `docs/VIBE.md` (doctrine, three-layer table, the loop, "the scene
       outlives the server", ends with *have fun*); cross-link from
       `docs/CHARTER.md` and `docs/VISION.md`
-- [ ] Blog essay #17 "The World's Greatest Record Store" in
+- [ ] Blog essay #18 "The World's Greatest Record Store" in
       `site/src/pages/blog/` + entry in `site/src/data/blog.ts` + hero art
       component (en-GB, cosmic-X in the hero per series convention)
 - [x] Add `ratio-scorekeeping` rule to `scripts/check-humane-patterns.mjs`
