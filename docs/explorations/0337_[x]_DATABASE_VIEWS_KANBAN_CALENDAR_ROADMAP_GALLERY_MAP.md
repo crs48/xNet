@@ -535,25 +535,25 @@ Cross-cutting
 
 ## Validation Checklist
 
-- [ ] `DatabaseView` view switcher offers Board/Gallery/Calendar (then
+- [x] `DatabaseView` view switcher offers Board/Gallery/Calendar (then
       Roadmap/Map) and round-trips config through `DatabaseViewSchema` nodes
       (reload-safe, sync-safe across two clients).
-- [ ] Kanban: dragging a card writes exactly two fields (group value,
+- [x] Kanban: dragging a card writes exactly two fields (group value,
       sortKey); concurrent moves on two clients converge (LWW) with no
       conflict-node flood; option rename does not orphan stacks.
-- [ ] 500-row window truncation is visibly labeled in every grouped view —
+- [x] 500-row window truncation is visibly labeled in every grouped view —
       no silent lies (0318 lesson).
-- [ ] Seeded demo workspace renders every new view non-empty
+- [x] Seeded demo workspace renders every new view non-empty
       (`seed-coverage.test.ts` still green).
-- [ ] Calendar month navigation issues bounded range queries (no
+- [x] Calendar month navigation issues bounded range queries (no
       `warnIfUnboundedPropertySort` warnings in dev console).
-- [ ] Map fetches only viewport data; app works offline with PMTiles; CSP
+- [x] Map fetches only viewport data; app works offline with PMTiles; CSP
       passes with the chosen tile host; no `react-leaflet`/GPL deps in the
       lockfile (`pnpm licenses list` audit).
-- [ ] Legacy view stack deleted; `grep -r "registerBuiltinViews"` finds only
+- [x] Legacy view stack deleted; `grep -r "registerBuiltinViews"` finds only
       the V2 registration; bundle size delta per view recorded (>6MB chunk
       breaks PWA — 0297 gotcha).
-- [ ] Changesets present for every `packages/*` touch; additive schema fields
+- [x] Changesets present for every `packages/*` touch; additive schema fields
       shipped as **minor**, any removed export as **major**.
 
 ## References
