@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Your hub is your crash console</title>
+      <link>https://xnet.fyi/changelog#2026-07-17-your-hub-is-your-crash-console</link>
+      <guid isPermaLink="false">2026-07-17-your-hub-is-your-crash-console</guid>
+      <pubDate>Sat, 18 Jul 2026 03:37:24 GMT</pubDate>
+      <description>Every hub now quarantines its own deployment's crash reports — nothing leaves your infrastructure by default. Operators import reports into a Diagnostics Space (Settings → Privacy &amp; Diagnostics) and triage them in the workbench; managed-hub owners see pending counts and top issues on their cloud dashboard, read live from their own hub. Sharing anything with xNet stays a separate, explicit choice: preview-and-send a single report, opt in to anonymous crash counts, or grant time-boxed, revocable support access.</description>
+    </item>
+    <item>
       <title>Databases gain Board, Gallery, Calendar, Timeline, List, and Map views</title>
       <link>https://xnet.fyi/changelog#2026-07-17-databases-gain-board-gallery-calendar-ti</link>
       <guid isPermaLink="false">2026-07-17-databases-gain-board-gallery-calendar-ti</guid>

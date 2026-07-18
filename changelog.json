@@ -6,6 +6,29 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-17-your-hub-is-your-crash-console",
+      "url": "https://xnet.fyi/changelog#2026-07-17-your-hub-is-your-crash-console",
+      "title": "Your hub is your crash console",
+      "content_text": "Every hub now quarantines its own deployment's crash reports — nothing leaves your infrastructure by default. Operators import reports into a Diagnostics Space (Settings → Privacy & Diagnostics) and triage them in the workbench; managed-hub owners see pending counts and top issues on their cloud dashboard, read live from their own hub. Sharing anything with xNet stays a separate, explicit choice: preview-and-send a single report, opt in to anonymous crash counts, or grant time-boxed, revocable support access.\n",
+      "date_published": "2026-07-18T03:37:24Z",
+      "tags": [
+        "app",
+        "platform"
+      ],
+      "_xnet": {
+        "date": "July 17, 2026",
+        "summary": "Every hub now quarantines its own deployment's crash reports — nothing leaves your infrastructure by default. Operators import reports into a Diagnostics Space (Settings → Privacy & Diagnostics) and triage them in the workbench; managed-hub owners see pending counts and top issues on their cloud dashboard, read live from their own hub. Sharing anything with xNet stays a separate, explicit choice: preview-and-send a single report, opt in to anonymous crash counts, or grant time-boxed, revocable support access.",
+        "highlights": [],
+        "mergedAt": "2026-07-18T03:37:24Z",
+        "pr": 537,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-17-databases-gain-board-gallery-calendar-ti",
       "url": "https://xnet.fyi/changelog#2026-07-17-databases-gain-board-gallery-calendar-ti",
       "title": "Databases gain Board, Gallery, Calendar, Timeline, List, and Map views",
