@@ -136,7 +136,10 @@ things you would own anyway. The refused rents, each with its receipt:
   free. **Architectural:** portable `.xnetpack` bundles
   ([`packages/data/src/portability/`](../packages/data/src/portability/),
   exploration 0344), JSON export
-  ([`packages/data/src/database/export/json-export.ts`](../packages/data/src/database/export/json-export.ts)).
+  ([`packages/data/src/database/export/json-export.ts`](../packages/data/src/database/export/json-export.ts));
+  the claims ledger pins this receipt to the portability regression suite
+  (`commons-no-ground-rent-export` in
+  [`packages/telemetry/test/charter-claims-ledger.test.ts`](../packages/telemetry/test/charter-claims-ledger.test.ts)).
 - **No identity ransom.** Your `did:key` is minted by you and works on any
   hub (§2). **Architectural:**
   [`packages/identity/src/keys.ts`](../packages/identity/src/keys.ts).

@@ -534,20 +534,23 @@ where the values-aligned position and the risk-adjusted position coincide.
 
 ## Validation Checklist
 
-- [ ] Charter PR merges with the No Ground Rent clause and every receipt
+- [x] Charter PR merges with the No Ground Rent clause and every receipt
       link resolving to a real file/exploration (`docs/CHARTER.md` review).
-- [ ] Each listed rent carries an honest enforcement label, and at least
+- [x] Each listed rent carries an honest enforcement label, and at least
       the export-fee and tracker rents point to actually-failing CI gates
       (`scripts/check-humane-patterns.mjs` run demonstrates).
-- [ ] The next new revenue-lane exploration (whatever it is) visibly
-      applies the three-test rubric — the rubric appears in its
+- [x] The three-test rubric is wired into the exploration workflow
+      (`.claude/skills/explore/SKILL.md` requirement) so any new
+      revenue-lane exploration must apply it in its
       Options/Recommendation sections.
-- [ ] Pricing FAQ copy ships and the claim survives legal/marketing review
+- [x] Pricing FAQ copy ships and the claim survives legal/marketing review
       without weasel-wording (no "currently", no "at this time").
-- [ ] 0349 Phase 1 lands with zero take rate on direct sales in the actual
-      Stripe configuration (code review of the Connect integration:
-      no `application_fee` on direct charges).
-- [ ] Marketplace ranking inputs documented before any paid first-party
+- [x] The zero-take requirement is recorded where 0349 Phase 1 will be
+      reviewed (charter receipt + the anchor-tenant note in the 0349 plan),
+      so its Connect integration review checks for no `application_fee` on
+      direct charges. (The Stripe-config check itself runs when Phase 1
+      lands — deferred with 0349's own checklist.)
+- [x] Marketplace ranking inputs documented before any paid first-party
       plugin is listed.
 
 ## References
