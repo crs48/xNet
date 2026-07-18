@@ -380,7 +380,7 @@ Registry entry (`site/src/data/blog.ts`, prepended to `posts[]`):
       check the page, index card, and prev/next series threading.
 - [x] Set `pubDate`, drop `draft`, update `readingMinutes` from the final
       word count.
-- [ ] PR with `skip-changelog` label (site-only), DCO sign-off, merge-commit
+- [x] PR with `skip-changelog` label (site-only), DCO sign-off, merge-commit
       per repo convention; let CI run green before merge.
 
 ## Validation Checklist
