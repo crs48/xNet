@@ -23,7 +23,11 @@ export interface PageEmbedPreviewProps {
   onNavigate?: (href: string) => void
 }
 
-export function PageEmbedPreview({ nodeId, title, onNavigate }: PageEmbedPreviewProps): JSX.Element {
+export function PageEmbedPreview({
+  nodeId,
+  title,
+  onNavigate
+}: PageEmbedPreviewProps): JSX.Element {
   const { data: page, doc, loading } = useNode(PageSchema, nodeId)
   const [expanded, setExpanded] = useState(false)
   const [lines, setLines] = useState<DocPreviewLine[]>([])

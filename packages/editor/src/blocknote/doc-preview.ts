@@ -68,7 +68,11 @@ const BLOCK_ATOM_MARKERS: Record<string, string> = {
   file: '📎 File'
 }
 
-function collectLines(container: Y.XmlElement | Y.XmlFragment, lines: DocPreviewLine[], max: number): void {
+function collectLines(
+  container: Y.XmlElement | Y.XmlFragment,
+  lines: DocPreviewLine[],
+  max: number
+): void {
   for (let i = 0; i < container.length && lines.length < max; i++) {
     const child = container.get(i)
     if (!(child instanceof Y.XmlElement)) continue

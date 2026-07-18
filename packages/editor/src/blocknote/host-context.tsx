@@ -21,7 +21,7 @@ export type DatabaseViewType =
   | 'gallery'
   | 'calendar'
   | 'form'
-  | (string & {})
+  | (string & Record<never, never>)
 
 export interface TaskViewConfig {
   scope: 'page' | 'workspace' | 'assigned'

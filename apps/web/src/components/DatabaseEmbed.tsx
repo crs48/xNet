@@ -180,13 +180,13 @@ export function DatabaseEmbed({
           mapViewport: activeView.mapViewport
         }
       : EMPTY_VIEW_CONFIG
-    const overrides: Partial<DatabaseViewConfig> = {}
+    const overrides: Record<string, unknown> = {}
     for (const key of CONFIG_KEYS) {
       if (embedConfig[key] !== undefined) {
-        ;(overrides as Record<string, unknown>)[key] = embedConfig[key]
+        overrides[key] = embedConfig[key]
       }
     }
-    return { ...base, ...overrides }
+    return { ...base, ...(overrides as Partial<DatabaseViewConfig>) }
   }, [activeView, embedConfig])
 
   // Resolve the map's location binding into spatial cell properties.
