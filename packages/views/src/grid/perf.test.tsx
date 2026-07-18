@@ -95,6 +95,35 @@ describe('grid performance budgets', () => {
     expect(elapsed).toBeLessThan(budget(1500, 4000))
   })
 
+  it('renders a 128-column table with bounded cells per row (column virtualization, 0340)', () => {
+    const wideFields: GridField[] = Array.from({ length: 128 }, (_, i) => ({
+      id: `f${i}`,
+      name: `Col ${i}`,
+      type: 'text' as const,
+      config: {},
+      width: 150,
+      ...(i === 0 ? { isTitle: true } : {})
+    }))
+    const rows: GridRowData[] = Array.from({ length: 1000 }, (_, r) => ({
+      id: `r${r}`,
+      cells: Object.fromEntries(wideFields.map((f, c) => [f.id, `r${r}c${c}`]))
+    }))
+
+    const start = performance.now()
+    render(<GridSurface fields={wideFields} rows={rows} />)
+    const elapsed = performance.now() - start
+
+    // Column virtualization: only the visible window (+overscan 3) of the
+    // 128 columns renders per row — the measured fps killer was mounting
+    // all columns per overscan row (0340: 8.6fps at 128 cols unvirtualized).
+    const firstRow = document.querySelector('[data-grid-body] [role="row"]') as HTMLElement
+    const renderedCells = firstRow.querySelectorAll('[data-grid-cell]').length
+    expect(renderedCells).toBeGreaterThan(0)
+    expect(renderedCells).toBeLessThan(32)
+
+    expect(elapsed).toBeLessThan(budget(1500, 4000))
+  })
+
   it('the state machine sustains 100k reducer operations cheaply', () => {
     let state = createGridState(10_000, 20)
     state = gridReducer(state, { type: 'focusCell', pos: { row: 0, col: 0 } })
