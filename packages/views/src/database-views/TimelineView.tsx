@@ -1,5 +1,5 @@
 /**
- * TimelineView — V2 roadmap (exploration 0337).
+ * TimelineView — V2 roadmap (exploration 0339).
  *
  * GitHub-Projects/Linear-style: one item per row, bars positioned by the
  * start/end date fields, month/quarter/year zoom, swimlanes from the

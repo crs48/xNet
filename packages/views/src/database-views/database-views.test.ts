@@ -1,5 +1,5 @@
 /**
- * Pure-model tests for the V2 database views (exploration 0337):
+ * Pure-model tests for the V2 database views (exploration 0339):
  * grouping (option-id keying, rename safety), card-move write shape,
  * calendar lane packing, timeline geometry, map GeoJSON, and the
  * floating-date invariant.

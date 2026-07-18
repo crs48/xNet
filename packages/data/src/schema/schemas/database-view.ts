@@ -121,7 +121,7 @@ export const DatabaseViewSchema = defineSchema({
     /** End date field ID */
     endDateField: text({ maxLength: 100 }),
 
-    // Map specific (exploration 0337)
+    // Map specific (exploration 0339)
     /** Latitude field ID (number field) */
     latField: text({ maxLength: 100 }),
 

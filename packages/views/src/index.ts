@@ -32,7 +32,7 @@ export {
   getRegisteredPropertyTypes
 } from './properties/index.js'
 
-// View Registry (V2 contract — exploration 0337)
+// View Registry (V2 contract — exploration 0339)
 export {
   ViewRegistry,
   viewRegistry,
@@ -50,7 +50,7 @@ export { useViewRegistry, type UseViewRegistryResult } from './hooks/useViewRegi
 // View Renderer
 export { ViewRenderer, type ViewRendererProps } from './ViewRenderer.js'
 
-// V2 database views (exploration 0337): board / gallery / calendar /
+// V2 database views (exploration 0339): board / gallery / calendar /
 // timeline / list / map on the grid data model — ONE grouped area block.
 export {
   BoardView,

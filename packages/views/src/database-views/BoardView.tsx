@@ -1,5 +1,5 @@
 /**
- * BoardView — V2 kanban over the grid data model (exploration 0337).
+ * BoardView — V2 kanban over the grid data model (exploration 0339).
  *
  * Stacks come from the group-by select field's options (keyed by option
  * ID — renames never orphan a stack), plus a "No <field>" stack for empty

@@ -1,6 +1,6 @@
 /**
  * ViewRenderer — dispatches a database view type to its registered
- * component (exploration 0337). The database shell renders this for
+ * component (exploration 0339). The database shell renders this for
  * every non-table/form view; plugin-registered types render through the
  * exact same path.
  */

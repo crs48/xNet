@@ -49,7 +49,7 @@ import { PresenceAvatars } from './PresenceAvatars'
 import { ShareButton } from './ShareButton'
 
 // Built-in board/gallery/calendar/timeline/list/map views (exploration
-// 0337) register once through the plugin door. Guarded for HMR.
+// 0339) register once through the plugin door. Guarded for HMR.
 if (!viewRegistry.has('board')) registerBuiltinViews()
 
 const ADD_VIEW_TYPES = [
@@ -362,7 +362,7 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
 
   const activeView = grid.activeView
 
-  // ─── Registry views (board/gallery/calendar/timeline/list/map — 0337) ────
+  // ─── Registry views (board/gallery/calendar/timeline/list/map — 0339) ────
   const allFields: GridField[] = useMemo(
     () =>
       grid.fields.map((f) => ({

@@ -1,6 +1,6 @@
 /**
  * useViewRegistry — reactive access to the global view registry
- * (exploration 0337). Re-renders when plugins register/unregister views.
+ * (exploration 0339). Re-renders when plugins register/unregister views.
  */
 
 import { useSyncExternalStore } from 'react'

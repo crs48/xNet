@@ -1,5 +1,5 @@
 /**
- * BoardView render tests (exploration 0337): stacks from option order,
+ * BoardView render tests (exploration 0339): stacks from option order,
  * null stack, open-on-click, add-card prefill, and the window-honesty
  * footnote.
  */

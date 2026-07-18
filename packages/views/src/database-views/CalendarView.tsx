@@ -1,5 +1,5 @@
 /**
- * CalendarView — V2 month calendar (exploration 0337).
+ * CalendarView — V2 month calendar (exploration 0339).
  *
  * Events position by the configured date field (single `date` or
  * `dateRange`; an optional end-date field turns single dates into spans).

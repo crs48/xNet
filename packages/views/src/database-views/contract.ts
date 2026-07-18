@@ -1,5 +1,5 @@
 /**
- * V2 database-view contract (exploration 0337).
+ * V2 database-view contract (exploration 0339).
  *
  * Every non-grid database view (board, gallery, calendar, timeline, list,
  * map) renders from the same prop shape, derived by the app shell from

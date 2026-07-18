@@ -165,7 +165,7 @@ export function isFilterCondition(item: FilterCondition | FilterGroup): item is 
  * Check if a view type supports grouping.
  */
 export function supportsGrouping(type: ViewType): boolean {
-  // Timeline groups rows into swimlanes (roadmap view, exploration 0337)
+  // Timeline groups rows into swimlanes (roadmap view, exploration 0339)
   return type === 'table' || type === 'board' || type === 'list' || type === 'timeline'
 }
 

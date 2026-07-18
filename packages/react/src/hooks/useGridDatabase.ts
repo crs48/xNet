@@ -93,7 +93,7 @@ export interface GridViewModel {
   formConfig: FormViewConfig | null
   formRules: Record<string, FormFieldRule>
   formAccepting: boolean
-  // Board/Gallery/Calendar/Timeline/Map config (exploration 0337)
+  // Board/Gallery/Calendar/Timeline/Map config (exploration 0339)
   coverField: string | null
   cardSize: string | null
   coverFit: string | null
@@ -108,7 +108,7 @@ export interface GridViewModel {
 
 /**
  * The per-view presentation config a view component may patch through
- * `setViewConfig` (exploration 0337). One node write per patch — each
+ * `setViewConfig` (exploration 0339). One node write per patch — each
  * property merges independently (LWW) with other clients' edits.
  */
 export interface GridViewConfigPatch {
@@ -156,7 +156,7 @@ export interface UseGridDatabaseOptions {
   maxLoaded?: number
   /**
    * Spatial window over two cell properties (map views, exploration
-   * 0337): only rows inside the rect are fetched. Bypasses the
+   * 0339): only rows inside the rect are fetched. Bypasses the
    * materialized-view cache (the rect varies per pan).
    */
   spatial?: QuerySpatialFilter
@@ -175,7 +175,7 @@ export interface UseGridDatabaseResult {
   /** Rows: view filters + sorts applied to the fetched window */
   rows: GridRowModel[]
   /**
-   * The fetch window (exploration 0337): `size` is the row cap, `total`
+   * The fetch window (exploration 0339): `size` is the row cap, `total`
    * the full match count when the bridge reports one. Views use this to
    * label truncation honestly instead of silently clipping.
    */
@@ -195,7 +195,7 @@ export interface UseGridDatabaseResult {
   /**
    * Write several cells (and optionally the row's sortKey) as ONE node
    * update — a kanban card move is exactly one write carrying the group
-   * cell + the fractional position (exploration 0337).
+   * cell + the fractional position (exploration 0339).
    */
   updateRowCells: (
     rowId: string,
@@ -233,7 +233,7 @@ export interface UseGridDatabaseResult {
   toggleSort: (fieldId: string) => Promise<void>
   setFilters: (filters: FilterGroup | null) => Promise<void>
   setGroupBy: (fieldId: string | null) => Promise<void>
-  /** Patch the active view's presentation config (exploration 0337) */
+  /** Patch the active view's presentation config (exploration 0339) */
   setViewConfig: (patch: GridViewConfigPatch) => Promise<void>
   /** Persist a group's collapsed state on the active view */
   setGroupCollapsed: (groupKey: string, collapsed: boolean) => Promise<void>
@@ -370,7 +370,7 @@ export function useGridDatabase(
   // whole window stays on the bridge's bounded-delta live path (0182/0340).
   // `count: 'exact'` folds a COUNT(*) OVER () into the fused row query so the
   // footer can show the true total, not the window size. Map views swap the
-  // materialized-view cache for a spatial viewport window (0337) — the rect
+  // materialized-view cache for a spatial viewport window (0339) — the rect
   // varies per pan, so caching by view id would serve stale slices.
   const {
     data: rowNodes,

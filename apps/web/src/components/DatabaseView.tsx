@@ -73,7 +73,7 @@ function formatPeekCellValue(value: unknown): string {
 }
 
 // Built-in board/gallery/calendar/timeline/list/map views register once
-// through the plugin door (exploration 0337). Guarded for HMR.
+// through the plugin door (exploration 0339). Guarded for HMR.
 if (!viewRegistry.has('board')) registerBuiltinViews()
 
 // Types offered by the add-view picker: table + form are shell-owned,
@@ -161,7 +161,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
   const [search, setSearch] = useState('')
 
   // Map views feed their visible bounds back as a spatial query window
-  // (exploration 0337): only rows inside the viewport are fetched. The
+  // (exploration 0339): only rows inside the viewport are fetched. The
   // window comes from the previous render's active view — one harmless
   // unfiltered fetch on first paint, then viewport-bounded.
   const [mapBounds, setMapBounds] = useState<[number, number, number, number] | null>(null)
@@ -512,7 +512,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
 
   const activeView = grid.activeView
 
-  // ─── Registry views (board/gallery/calendar/timeline/list/map — 0337) ────
+  // ─── Registry views (board/gallery/calendar/timeline/list/map — 0339) ────
   const isCompact = useIsCompact()
   const allFields: GridField[] = useMemo(
     () =>

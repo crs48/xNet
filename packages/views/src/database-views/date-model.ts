@@ -1,5 +1,5 @@
 /**
- * Date semantics for calendar/timeline views (exploration 0337).
+ * Date semantics for calendar/timeline views (exploration 0339).
  *
  * DECISION — floating wall-clock dates: date cells store `YYYY-MM-DD`
  * (sometimes with a time suffix from imports). Views parse them as LOCAL

@@ -1,6 +1,6 @@
 /**
  * Group model — pure grouping engine shared by board stacks, timeline
- * swimlanes, and grouped lists (exploration 0337).
+ * swimlanes, and grouped lists (exploration 0339).
  *
  * Groups are keyed by select option ID (never label — renames must not
  * orphan stacks), with a `__none__` group for rows whose group cell is
