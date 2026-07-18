@@ -48,6 +48,11 @@ export interface XNetEditorHost {
     databaseId: string
     viewType: DatabaseViewType
     viewConfig: Record<string, unknown>
+    /**
+     * Persist a view-type switch back onto the embed block ("Open
+     * with…" on the frame, 0346). Absent on read-only surfaces.
+     */
+    onChangeViewType?: (viewType: DatabaseViewType) => void
   }) => React.ReactNode
   /** Host renderer for embedded task collection views. */
   renderTaskView?: (props: {

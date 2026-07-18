@@ -598,21 +598,21 @@ registerAgentTool({
       chooser (delete `ADD_VIEW_TYPES` hardcoding on this path)
 - [x] Demo page in dev-tools seed: database frame + map frame of the same
       DB (geo field), proving cross-frame reactivity (Tier-1 seeder)
-- [ ] Changesets: `editor` (minor), `views` (minor) — fixed-core lockstep
+- [x] Changesets: `editor` (minor), `views` (minor) — fixed-core lockstep
 
 ### Phase 2 — The Frame contract
 
-- [ ] `FrameDef` / `FrameSource` / `FrameTier` + `FrameRenderer` in
+- [x] `FrameDef` / `FrameSource` / `FrameTier` + `FrameRenderer` in
       `packages/views/src/frames/` (new sub-barrel, one grouped root
       re-export)
-- [ ] Adopt in editor embed specs (shim existing `databaseEmbed` props →
+- [x] Adopt in editor embed specs (shim existing `databaseEmbed` props →
       `FrameDef`), canvas node cards, and a generic dashboard frame widget
-- [ ] "Open with…" on tab header + frame context menu via `getForSchema`
-- [ ] `frame:<viewType>` tab escape hatch so plugin views are openable
+- [x] "Open with…" on tab header + frame context menu via `getForSchema`
+- [x] `frame:<viewType>` tab escape hatch so plugin views are openable
       without editing `TAB_NODE_TYPES`
-- [ ] Collection source (`kind: 'collection'`) + picker (the Set/Collection
+- [x] Collection source (`kind: 'collection'`) + picker (the Set/Collection
       duality lands)
-- [ ] Persistence decision memo (block props vs sibling `PageFrame` nodes)
+- [x] Persistence decision memo (block props vs sibling `PageFrame` nodes)
       reviewed and recorded in `docs/specs`
 
 ### Phase 3 — Visible studs

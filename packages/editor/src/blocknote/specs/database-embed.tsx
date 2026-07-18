@@ -30,11 +30,13 @@ export function parseViewConfig(raw: string): Record<string, unknown> {
 function DatabaseEmbedCard({
   databaseId,
   viewType,
-  viewConfig
+  viewConfig,
+  onChangeViewType
 }: {
   databaseId: string
   viewType: string
   viewConfig: string
+  onChangeViewType?: (viewType: DatabaseViewType) => void
 }): React.JSX.Element {
   const host = useEditorHost()
   const config = React.useMemo(() => parseViewConfig(viewConfig), [viewConfig])
@@ -51,7 +53,8 @@ function DatabaseEmbedCard({
         host.renderDatabaseView({
           databaseId,
           viewType: coerceViewType(viewType),
-          viewConfig: config
+          viewConfig: config,
+          onChangeViewType: host.readOnly ? undefined : onChangeViewType
         })
       ) : (
         <div className="xnet-database-embed-placeholder">Database {databaseId}</div>
@@ -71,11 +74,14 @@ export const DatabaseEmbedBlockSpec = createReactBlockSpec(
     content: 'none'
   },
   {
-    render: ({ block }) => (
+    render: ({ block, editor }) => (
       <DatabaseEmbedCard
         databaseId={block.props.databaseId}
         viewType={block.props.viewType}
         viewConfig={block.props.viewConfig}
+        onChangeViewType={(viewType) => {
+          editor.updateBlock(block, { props: { viewType } } as never)
+        }}
       />
     ),
     // Deep-interactive NodeView (0346): without this, ProseMirror keeps

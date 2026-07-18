@@ -113,6 +113,8 @@ export interface XNetEditorProps {
     databaseId: string
     viewType: DatabaseViewType
     viewConfig: Record<string, unknown>
+    /** Persist an "Open with…" view switch onto the block (0346). */
+    onChangeViewType?: (viewType: DatabaseViewType) => void
   }) => React.ReactNode
   renderTaskView?: (props: {
     viewType: TaskViewEmbedType

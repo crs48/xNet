@@ -162,12 +162,13 @@ export function Editor({
             {...toTaskEmbedFilters(viewConfig)}
           />
         )}
-        renderDatabaseView={({ databaseId, viewType, viewConfig }) => (
+        renderDatabaseView={({ databaseId, viewType, viewConfig, onChangeViewType }) => (
           <DatabaseEmbed
             databaseId={databaseId}
             viewType={viewType}
             viewConfig={viewConfig}
             onNavigate={onNavigate}
+            onChangeViewType={onChangeViewType}
           />
         )}
         renderPageEmbed={({ nodeId, title }) => (

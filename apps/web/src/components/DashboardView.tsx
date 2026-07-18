@@ -4,9 +4,20 @@
  * right surface.
  */
 import { useNavigate } from '@tanstack/react-router'
-import { DashboardSurface } from '@xnetjs/dashboard'
-import { CANVAS_DASHBOARD_SCHEMA_REGISTRY } from '@xnetjs/views'
-import { useCallback } from 'react'
+import { DashboardSurface, widgetRegistry } from '@xnetjs/dashboard'
+import {
+  CANVAS_DASHBOARD_SCHEMA_REGISTRY,
+  FrameHostProvider,
+  registerFrameWidget
+} from '@xnetjs/views'
+import { useCallback, useMemo } from 'react'
+import { WORKBENCH_SAVED_VIEW_REGISTRY } from '../lib/saved-view-registry'
+import { navigateToNode } from '../workbench/navigation'
+import type { TabNodeType } from '../workbench/state'
+import '../lib/frame-renderers'
+
+// The generic frame widget (0346): any node through any registered view.
+registerFrameWidget(widgetRegistry)
 
 // Single-sourced with the canvas widget cards (0277 W2) so dashboards and
 // canvas widgets resolve queries against the same schema set.
@@ -41,11 +52,30 @@ export function DashboardView({ dashboardId }: { dashboardId: string }) {
     [navigate]
   )
 
+  // Frame widgets navigate through the tab machinery (xnet://type/id).
+  const handleFrameNavigate = useCallback(
+    (href: string) => {
+      const match = href.match(/^xnet:\/\/([a-z]+)\/(.+)$/)
+      if (match) {
+        navigateToNode(navigate, match[1] as TabNodeType, match[2])
+        return
+      }
+      void navigate({ to: '/doc/$docId', params: { docId: href } })
+    },
+    [navigate]
+  )
+  const frameHost = useMemo(
+    () => ({ onNavigate: handleFrameNavigate, savedViewRegistry: WORKBENCH_SAVED_VIEW_REGISTRY }),
+    [handleFrameNavigate]
+  )
+
   return (
-    <DashboardSurface
-      dashboardId={dashboardId}
-      schemas={DASHBOARD_SCHEMA_REGISTRY}
-      onOpenNode={handleOpenNode}
-    />
+    <FrameHostProvider value={frameHost}>
+      <DashboardSurface
+        dashboardId={dashboardId}
+        schemas={DASHBOARD_SCHEMA_REGISTRY}
+        onOpenNode={handleOpenNode}
+      />
+    </FrameHostProvider>
   )
 }

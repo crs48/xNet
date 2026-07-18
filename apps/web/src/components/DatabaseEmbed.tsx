@@ -46,6 +46,8 @@ export interface DatabaseEmbedProps {
   viewConfig: Record<string, unknown>
   onNavigate?: (href: string) => void
   readOnly?: boolean
+  /** "Open with…" (0346): switch this frame's view type in place. */
+  onChangeViewType?: (viewType: string) => void
 }
 
 /** Keys of DatabaseViewConfig an embed block may override. */
@@ -67,7 +69,8 @@ export function DatabaseEmbed({
   viewType: requestedViewType,
   viewConfig: embedConfig,
   onNavigate,
-  readOnly
+  readOnly,
+  onChangeViewType
 }: DatabaseEmbedProps): JSX.Element {
   // Form embeds don't fit a compact card; render the grid instead.
   const viewType = requestedViewType === 'form' ? 'table' : requestedViewType
@@ -224,9 +227,27 @@ export function DatabaseEmbed({
         >
           {title}
         </button>
-        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
-          {viewType}
-        </span>
+        {onChangeViewType ? (
+          // "Open with…" — the frame switches to any registered view in
+          // place; plugin views appear the moment they register (0346).
+          <select
+            aria-label="Open with view"
+            value={viewType}
+            onChange={(e) => onChangeViewType(e.target.value)}
+            className="rounded-full border-none bg-muted px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground outline-none"
+          >
+            <option value="table">table</option>
+            {viewRegistry.getAll().map((v) => (
+              <option key={v.type} value={v.type}>
+                {v.type}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+            {viewType}
+          </span>
+        )}
         <div className="flex-1" />
         <span className="text-xs text-muted-foreground">
           {grid.rowWindow.total != null && grid.rowWindow.total > grid.rows.length
