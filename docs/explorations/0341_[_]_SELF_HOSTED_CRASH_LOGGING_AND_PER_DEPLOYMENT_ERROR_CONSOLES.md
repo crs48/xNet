@@ -716,7 +716,7 @@ async function maybeTeeUpstream(record: DebugReportRecord) {
 - [x] **P2:** Client ingest resolution: connected hub first,
   `VITE_DIAGNOSTICS_URL` fallback; multi-hub pick-active-workspace rule;
   verify CSP `connect-src` covers hub origins in all builds.
-- [ ] **P2:** Drain UI: Diagnostics section (pending count, "Import
+- [x] **P2:** Drain UI: Diagnostics section (pending count, "Import
   reports" running `drainDebugReports`, first-run diagnostics-Space
   bootstrap with Inbox / By release / By fingerprint saved views, deep-link
   to console).

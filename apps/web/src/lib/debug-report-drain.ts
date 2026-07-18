@@ -49,6 +49,24 @@ export interface DrainReportsResult {
   drained: number
 }
 
+/** Where the quarantine lives, relative to the ingest `request` base. */
+export interface DrainPaths {
+  list: string
+  ack: string
+}
+
+/** The vendor cloud's internal-secret drain surface (0315). */
+export const CLOUD_DRAIN_PATHS: DrainPaths = {
+  list: '/internal/diagnostics/reports',
+  ack: '/internal/diagnostics/ack'
+}
+
+/** The deployment's own hub inbox (0341) — admin-UCAN-gated. */
+export const HUB_DRAIN_PATHS: DrainPaths = {
+  list: '/diagnostics/pending',
+  ack: '/diagnostics/ack'
+}
+
 /** Deterministic node id from the quarantine report id (LWW upsert key). */
 export const debugReportNodeId = (reportId: string): string => `debugreport_${reportId}`
 
@@ -92,9 +110,10 @@ function reportProperties(
 export async function drainDebugReports(
   store: NodeStore,
   request: IngestRequest,
-  space: string
+  space: string,
+  paths: DrainPaths = CLOUD_DRAIN_PATHS
 ): Promise<DrainReportsResult> {
-  const { reports = [] } = (await request('/internal/diagnostics/reports')) as {
+  const { reports = [] } = (await request(paths.list)) as {
     reports?: QuarantinedReport[]
   }
   if (reports.length === 0) return { drained: 0 }
@@ -112,7 +131,7 @@ export async function drainDebugReports(
   }
 
   if (drainedIds.length > 0) {
-    await request('/internal/diagnostics/ack', {
+    await request(paths.ack, {
       method: 'POST',
       body: { ids: drainedIds }
     })

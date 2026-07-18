@@ -6,7 +6,7 @@
  * and panels come from the shared settings kit in @xnetjs/ui; booleans use
  * the design-system <Switch>; data atoms (DID, version, hub URL) read mono.
  */
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { serializeShare } from '@xnetjs/identity'
 import { deleteDay, getCommandRegistry, leaveWithEverything } from '@xnetjs/plugins'
 import { useIdentity } from '@xnetjs/react'
@@ -35,6 +35,8 @@ import { SafetyCenterSettings } from '../components/SafetyCenterSettings'
 import { isAnalyticsConfigured } from '../lib/analytics'
 import { requestXNetBrowserStorageReset } from '../lib/browser-storage-reset'
 import { useDerivedData } from '../lib/data-dignity'
+import { useDiagnosticsInbox } from '../hooks/useDiagnosticsInbox'
+import { DIAGNOSTICS_CONSOLE_VIEW_ID } from '../lib/diagnostics-console'
 import { getTelemetryCollector, isDiagnosticsConfigured } from '../lib/error-reporter'
 import { persistedHubUrl, setPersistedHubUrl } from '../lib/hub-url'
 import { identityManager, logout } from '../lib/identity'
@@ -724,7 +726,84 @@ function PrivacySettings() {
       {reporting && (
         <ReportProblemDialog breadcrumbs={breadcrumbs} onClose={() => setReporting(false)} />
       )}
+      <DiagnosticsConsoleSettings />
     </SettingsPanel>
+  )
+}
+
+/**
+ * Operator console for the hub's diagnostics inbox (exploration 0341). Only
+ * renders content when the connected hub answers the admin-gated summary —
+ * non-operators and hubless builds see nothing. "Import reports" drains the
+ * quarantine into the Diagnostics Space (bootstrapping it plus the Inbox /
+ * By release / By fingerprint saved views on first run).
+ */
+function DiagnosticsConsoleSettings() {
+  const { ready, summary, imported, importing, error, importReports } = useDiagnosticsInbox()
+  const navigate = useNavigate()
+
+  if (!ready || !summary) return null
+
+  const lastSeen = summary.lastSeenMs ? new Date(summary.lastSeenMs).toLocaleString() : null
+  return (
+    <SettingsGroup>
+      <SettingRow
+        label="Deployment diagnostics"
+        description={
+          summary.pending > 0
+            ? `${summary.pending} report${summary.pending === 1 ? '' : 's'} waiting on your hub${lastSeen ? ` · last seen ${lastSeen}` : ''}. Importing writes them into your Diagnostics Space — nothing has left your deployment.`
+            : 'No reports waiting on your hub. Crashes from this deployment land here, not on anyone else’s servers.'
+        }
+      >
+        <button
+          type="button"
+          onClick={() => void importReports()}
+          disabled={importing || summary.pending === 0}
+          className={QUIET_BUTTON}
+        >
+          {importing ? 'Importing…' : 'Import reports'}
+        </button>
+      </SettingRow>
+      {summary.topIssues.length > 0 && (
+        <SettingRow
+          label="Top issue"
+          description={`${summary.topIssues[0].errorName} (${summary.topIssues[0].shortId}) — seen ${summary.topIssues[0].occurrences}×`}
+        >
+          <button
+            type="button"
+            onClick={() =>
+              void navigate({
+                to: '/view/$viewId',
+                params: { viewId: DIAGNOSTICS_CONSOLE_VIEW_ID }
+              })
+            }
+            className={QUIET_BUTTON}
+          >
+            Open console
+          </button>
+        </SettingRow>
+      )}
+      {imported !== null && !error && (
+        <SettingRow
+          label="Last import"
+          description={`${imported} report${imported === 1 ? '' : 's'} imported into the Diagnostics Space.`}
+        >
+          <button
+            type="button"
+            onClick={() =>
+              void navigate({
+                to: '/view/$viewId',
+                params: { viewId: DIAGNOSTICS_CONSOLE_VIEW_ID }
+              })
+            }
+            className={QUIET_BUTTON}
+          >
+            Open console
+          </button>
+        </SettingRow>
+      )}
+      {error && <SettingRow label="Import failed" description={error} />}
+    </SettingsGroup>
   )
 }
 
