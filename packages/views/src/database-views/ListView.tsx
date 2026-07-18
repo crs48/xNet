@@ -50,7 +50,10 @@ export function ListView(props: DatabaseViewProps): React.JSX.Element {
                 onClick={() => onToggleGroupCollapsed?.(group.key, !group.collapsed)}
               >
                 <ChevronRight
-                  className={cn('h-3 w-3 text-ink-3 transition-transform', !group.collapsed && 'rotate-90')}
+                  className={cn(
+                    'h-3 w-3 text-ink-3 transition-transform',
+                    !group.collapsed && 'rotate-90'
+                  )}
                 />
                 <span
                   className="rounded px-1.5 py-px text-[11px] font-medium leading-4"

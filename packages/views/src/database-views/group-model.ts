@@ -84,11 +84,18 @@ export function buildGroups(
   }))
 
   // Manual stack order: groupMeta sortKey wins over option order
-  const orderKey = (key: string, index: number) => meta[key]?.sortKey ?? `~${String(index).padStart(6, '0')}`
+  const orderKey = (key: string, index: number) =>
+    meta[key]?.sortKey ?? `~${String(index).padStart(6, '0')}`
   groups.sort((a, b) =>
     compareSortKeys(
-      orderKey(a.key, options.findIndex((o) => o.id === a.key)),
-      orderKey(b.key, options.findIndex((o) => o.id === b.key))
+      orderKey(
+        a.key,
+        options.findIndex((o) => o.id === a.key)
+      ),
+      orderKey(
+        b.key,
+        options.findIndex((o) => o.id === b.key)
+      )
     )
   )
 

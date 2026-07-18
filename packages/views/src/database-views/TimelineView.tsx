@@ -53,15 +53,7 @@ interface DragState {
 }
 
 export function TimelineView(props: DatabaseViewProps): React.JSX.Element {
-  const {
-    fields,
-    rows,
-    window: viewWindow,
-    config,
-    className,
-    onMoveCard,
-    onOpenRow
-  } = props
+  const { fields, rows, window: viewWindow, config, className, onMoveCard, onOpenRow } = props
 
   const [zoom, setZoom] = useState<TimelineZoom>('quarter')
   const [drag, setDrag] = useState<DragState | null>(null)
@@ -73,10 +65,7 @@ export function TimelineView(props: DatabaseViewProps): React.JSX.Element {
   const colorField = config.colorBy ? fields.find((f) => f.id === config.colorBy) : undefined
 
   const items = useMemo(
-    () =>
-      dateField
-        ? timelineItems(rows, dateField, { endDateField: endField?.id ?? null })
-        : [],
+    () => (dateField ? timelineItems(rows, dateField, { endDateField: endField?.id ?? null }) : []),
     [rows, dateField, endField]
   )
   const itemsByRow = useMemo(() => new Map(items.map((i) => [i.row.id, i])), [items])
@@ -168,7 +157,9 @@ export function TimelineView(props: DatabaseViewProps): React.JSX.Element {
 
   if (!dateField) {
     return (
-      <div className={cn('flex h-full items-center justify-center p-8 text-sm text-ink-3', className)}>
+      <div
+        className={cn('flex h-full items-center justify-center p-8 text-sm text-ink-3', className)}
+      >
         Add a date (or date range) field to draw the roadmap.
       </div>
     )
@@ -179,7 +170,10 @@ export function TimelineView(props: DatabaseViewProps): React.JSX.Element {
   const todayLeft = dayOffsetPx(range, zoom, new Date())
 
   return (
-    <div className={cn('flex h-full flex-col overflow-hidden', className)} data-testid="timeline-view">
+    <div
+      className={cn('flex h-full flex-col overflow-hidden', className)}
+      data-testid="timeline-view"
+    >
       {/* Zoom control */}
       <div className="flex items-center gap-1 border-b border-border px-3 py-1.5">
         <span className="text-[11px] text-ink-3">Zoom</span>
@@ -189,7 +183,9 @@ export function TimelineView(props: DatabaseViewProps): React.JSX.Element {
             type="button"
             className={cn(
               'rounded px-2 py-0.5 text-xs',
-              zoom === z.id ? 'bg-surface-1 font-medium text-ink-1' : 'text-ink-3 hover:bg-surface-1'
+              zoom === z.id
+                ? 'bg-surface-1 font-medium text-ink-1'
+                : 'text-ink-3 hover:bg-surface-1'
             )}
             onClick={() => setZoom(z.id)}
           >
@@ -264,8 +260,7 @@ export function TimelineView(props: DatabaseViewProps): React.JSX.Element {
                   ? {
                       start:
                         drag.mode === 'resize-end' ? item.start : addDays(item.start, drag.delta),
-                      end:
-                        drag.mode === 'resize-start' ? item.end : addDays(item.end, drag.delta)
+                      end: drag.mode === 'resize-start' ? item.end : addDays(item.end, drag.delta)
                     }
                   : item
               const geometry = barGeometry(range, zoom, preview)

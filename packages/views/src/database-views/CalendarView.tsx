@@ -38,9 +38,7 @@ function eventStyle(
     const value = event.row.cells[colorField.id]
     const optionId = typeof value === 'string' ? value : Array.isArray(value) ? value[0] : null
     const option =
-      typeof optionId === 'string'
-        ? colorField.options?.find((o) => o.id === optionId)
-        : undefined
+      typeof optionId === 'string' ? colorField.options?.find((o) => o.id === optionId) : undefined
     if (option) return optionChipStyle(option.color)
   }
   return optionChipStyle('blue')
@@ -65,8 +63,7 @@ export function CalendarView(props: DatabaseViewProps): React.JSX.Element {
   const colorField = config.colorBy ? fields.find((f) => f.id === config.colorBy) : undefined
   const grid = useMemo(() => buildMonthGrid(anchor), [anchor])
   const events = useMemo(
-    () =>
-      dateField ? eventsInRange(rows, dateField, config, grid.gridStart, grid.gridEnd) : [],
+    () => (dateField ? eventsInRange(rows, dateField, config, grid.gridStart, grid.gridEnd) : []),
     [rows, dateField, config, grid]
   )
 
@@ -125,14 +122,19 @@ export function CalendarView(props: DatabaseViewProps): React.JSX.Element {
 
   if (!dateField) {
     return (
-      <div className={cn('flex h-full items-center justify-center p-8 text-sm text-ink-3', className)}>
+      <div
+        className={cn('flex h-full items-center justify-center p-8 text-sm text-ink-3', className)}
+      >
         Add a date field to place rows on the calendar.
       </div>
     )
   }
 
   return (
-    <div className={cn('flex h-full flex-col overflow-hidden', className)} data-testid="calendar-view">
+    <div
+      className={cn('flex h-full flex-col overflow-hidden', className)}
+      data-testid="calendar-view"
+    >
       {/* Month header */}
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         <span className="text-sm font-semibold text-ink-1">{format(anchor, 'MMMM yyyy')}</span>
@@ -207,7 +209,8 @@ export function CalendarView(props: DatabaseViewProps): React.JSX.Element {
                     data-testid="calendar-cell"
                     data-date={toDateCell(day)}
                     onDragOver={(e) => {
-                      if (e.dataTransfer.types.includes('application/x-xnet-row')) e.preventDefault()
+                      if (e.dataTransfer.types.includes('application/x-xnet-row'))
+                        e.preventDefault()
                     }}
                     onDrop={(e) => {
                       const rowId = e.dataTransfer.getData('application/x-xnet-row')

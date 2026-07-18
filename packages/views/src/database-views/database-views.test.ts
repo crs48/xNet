@@ -8,12 +8,7 @@
 import { compareSortKeys } from '@xnetjs/data'
 import { describe, expect, it } from 'vitest'
 import type { GridField } from '../grid/model.js'
-import {
-  buildMonthGrid,
-  eventsInRange,
-  overflowByDay,
-  packWeekSegments
-} from './calendar-model.js'
+import { buildMonthGrid, eventsInRange, overflowByDay, packWeekSegments } from './calendar-model.js'
 import type { DatabaseViewRow } from './contract.js'
 import { parseDateCell, parseDateRangeCell, rowDateSpan, toDateCell } from './date-model.js'
 import {
@@ -193,19 +188,23 @@ describe('calendar-model', () => {
       row('in', 'a1', { 'f-due': '2026-07-10' }),
       row('out', 'a2', { 'f-due': '2026-01-01' })
     ]
-    const events = eventsInRange(rows, dateField, { endDateField: null }, grid.gridStart, grid.gridEnd)
+    const events = eventsInRange(
+      rows,
+      dateField,
+      { endDateField: null },
+      grid.gridStart,
+      grid.gridEnd
+    )
     expect(events.map((e) => e.row.id)).toEqual(['in'])
   })
 
   it('packs overlapping events into distinct lanes and counts overflow', () => {
     const weekStart = parseDateCell('2026-07-12')! // a Sunday
-    const events = ['a', 'b', 'c', 'd', 'e'].map((id, i) =>
-      ({
-        row: row(id, `a${i}`, {}),
-        start: parseDateCell('2026-07-13')!,
-        end: parseDateCell('2026-07-15')!
-      })
-    )
+    const events = ['a', 'b', 'c', 'd', 'e'].map((id, i) => ({
+      row: row(id, `a${i}`, {}),
+      start: parseDateCell('2026-07-13')!,
+      end: parseDateCell('2026-07-15')!
+    }))
     const segments = packWeekSegments(events, weekStart)
     const lanes = new Set(segments.map((s) => s.lane))
     expect(lanes.size).toBe(5) // all overlap → five distinct lanes
@@ -216,7 +215,13 @@ describe('calendar-model', () => {
 })
 
 describe('timeline-model', () => {
-  const dateField: GridField = { id: 'f-span', name: 'Window', type: 'dateRange', config: {}, width: 100 }
+  const dateField: GridField = {
+    id: 'f-span',
+    name: 'Window',
+    type: 'dateRange',
+    config: {},
+    width: 100
+  }
 
   it('derives items, a padded month range, and bar geometry', () => {
     const rows = [

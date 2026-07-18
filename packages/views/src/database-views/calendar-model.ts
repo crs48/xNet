@@ -55,9 +55,7 @@ export function eventsInRange(
     if (span.end < rangeStart || span.start > rangeEnd) continue
     events.push({ row, ...span })
   }
-  events.sort(
-    (a, b) => a.start.getTime() - b.start.getTime() || b.end.getTime() - a.end.getTime()
-  )
+  events.sort((a, b) => a.start.getTime() - b.start.getTime() || b.end.getTime() - a.end.getTime())
   return events
 }
 

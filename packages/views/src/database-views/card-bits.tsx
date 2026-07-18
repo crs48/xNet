@@ -51,9 +51,7 @@ export function FieldValueChip({
         </span>
       ) : null
     case 'checkbox':
-      return value === true ? (
-        <span className="text-[11px] text-ink-2">✓ {field.name}</span>
-      ) : null
+      return value === true ? <span className="text-[11px] text-ink-2">✓ {field.name}</span> : null
     case 'date': {
       const date = parseDateCell(value)
       return date ? <span className="text-[11px] text-ink-2">{formatDayLabel(date)}</span> : null

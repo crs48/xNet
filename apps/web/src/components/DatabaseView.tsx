@@ -180,8 +180,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
             fields: mapGeoProps,
             // Overscan is in coordinate units: fetch a 25% margin so
             // small pans reuse already-fetched rows
-            overscan:
-              Math.max(mapBounds[2] - mapBounds[0], mapBounds[3] - mapBounds[1]) * 0.25
+            overscan: Math.max(mapBounds[2] - mapBounds[0], mapBounds[3] - mapBounds[1]) * 0.25
           } as const)
         : undefined,
     [mapBounds, mapGeoProps]
@@ -571,9 +570,7 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
       return
     }
     const geo = resolveGeoFields(allFields, viewConfig)
-    setMapGeoProps(
-      geo.lat && geo.lng ? { x: cellKey(geo.lng.id), y: cellKey(geo.lat.id) } : null
-    )
+    setMapGeoProps(geo.lat && geo.lng ? { x: cellKey(geo.lng.id), y: cellKey(geo.lat.id) } : null)
   }, [registryViewType, allFields, viewConfig])
 
   // View filters/sorts apply client-side over the loaded window — when more

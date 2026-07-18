@@ -50,10 +50,7 @@ export function ViewOptionsBar({
                   .filter((f) => !field.fieldTypes || field.fieldTypes.includes(f.type))
                   .map((f) => ({ value: f.id, label: f.name }))
               ]
-            : [
-                { value: NONE, label: 'Default' },
-                ...(field.options ?? [])
-              ]
+            : [{ value: NONE, label: 'Default' }, ...(field.options ?? [])]
         const missing = field.required && current === NONE
         return (
           <label key={field.key} className="flex items-center gap-1.5">

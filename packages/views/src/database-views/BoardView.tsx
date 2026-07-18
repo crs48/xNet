@@ -57,7 +57,9 @@ import {
 // Composite drag ids keep a multiSelect row unique per stack.
 const cardDragId = (groupKey: string, rowId: string) => `card:${groupKey}:${rowId}`
 const columnDragId = (groupKey: string) => `col:${groupKey}`
-const parseDragId = (id: string): { kind: 'card' | 'col'; groupKey: string; rowId?: string } | null => {
+const parseDragId = (
+  id: string
+): { kind: 'card' | 'col'; groupKey: string; rowId?: string } | null => {
   if (id.startsWith('card:')) {
     const rest = id.slice(5)
     const sep = rest.indexOf(':')
@@ -277,9 +279,7 @@ export function BoardView(props: DatabaseViewProps): React.JSX.Element {
   const groupField = resolveGroupField(fields, config)
   // Boards show covers only when explicitly configured (Notion default);
   // the gallery is where the first-file-field fallback lives.
-  const coverField = config.coverField
-    ? fields.find((f) => f.id === config.coverField)
-    : undefined
+  const coverField = config.coverField ? fields.find((f) => f.id === config.coverField) : undefined
   const colorField = config.colorBy ? fields.find((f) => f.id === config.colorBy) : undefined
   const coverFit = config.coverFit === 'contain' ? 'contain' : 'cover'
 
@@ -397,9 +397,7 @@ export function BoardView(props: DatabaseViewProps): React.JSX.Element {
         return
       }
       onCreateRow({
-        [groupField.id]: (groupField.type === 'multiSelect'
-          ? [group.key]
-          : group.key) as CellValue
+        [groupField.id]: (groupField.type === 'multiSelect' ? [group.key] : group.key) as CellValue
       })
     },
     [onCreateRow, groupField]
@@ -407,13 +405,17 @@ export function BoardView(props: DatabaseViewProps): React.JSX.Element {
 
   if (!groupField) {
     return (
-      <div className={cn('flex h-full items-center justify-center p-8 text-sm text-ink-3', className)}>
+      <div
+        className={cn('flex h-full items-center justify-center p-8 text-sm text-ink-3', className)}
+      >
         Add a select field to group this board.
       </div>
     )
   }
 
-  const columnDragIds = groups.filter((g) => g.key !== UNGROUPED_KEY).map((g) => columnDragId(g.key))
+  const columnDragIds = groups
+    .filter((g) => g.key !== UNGROUPED_KEY)
+    .map((g) => columnDragId(g.key))
 
   return (
     <div className={cn('flex h-full flex-col overflow-hidden', className)} data-testid="board-view">

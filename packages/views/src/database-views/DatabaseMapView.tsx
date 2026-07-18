@@ -145,7 +145,11 @@ export function DatabaseMapView(props: DatabaseViewProps): React.JSX.Element {
     () =>
       latField && lngField
         ? rowsToGeoJSON(rows, fields, latField, lngField)
-        : { geojson: { type: 'FeatureCollection', features: [] } as GeoJSON.FeatureCollection, plotted: 0, skipped: rows.length },
+        : {
+            geojson: { type: 'FeatureCollection', features: [] } as GeoJSON.FeatureCollection,
+            plotted: 0,
+            skipped: rows.length
+          },
     [rows, fields, latField, lngField]
   )
 
@@ -258,9 +262,14 @@ export function DatabaseMapView(props: DatabaseViewProps): React.JSX.Element {
 
   if (!latField || !lngField) {
     return (
-      <div className={cn('flex h-full items-center justify-center p-8 text-center text-sm text-ink-3', className)}>
-        Add two number fields named “lat” and “lng” (or pick them in view
-        options) to place rows on the map.
+      <div
+        className={cn(
+          'flex h-full items-center justify-center p-8 text-center text-sm text-ink-3',
+          className
+        )}
+      >
+        Add two number fields named “lat” and “lng” (or pick them in view options) to place rows on
+        the map.
       </div>
     )
   }

@@ -401,9 +401,7 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
     [activeView]
   )
   const registryViewType =
-    activeView && activeView.type !== 'table' && activeView.type !== 'form'
-      ? activeView.type
-      : null
+    activeView && activeView.type !== 'table' && activeView.type !== 'form' ? activeView.type : null
   const registration = registryViewType ? viewRegistry.get(registryViewType) : undefined
 
   if (nodeLoading || grid.loading) {

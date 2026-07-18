@@ -30,11 +30,7 @@ export { DatabaseSchema, type Database } from './database'
 export { DatabaseRowSchema, type DatabaseRow } from './database-row'
 export { DatabaseFieldSchema, type DatabaseField } from './database-field'
 export { DatabaseSelectOptionSchema, type DatabaseSelectOption } from './database-select-option'
-export {
-  DatabaseViewSchema,
-  type DatabaseView,
-  type ViewGroupMeta
-} from './database-view'
+export { DatabaseViewSchema, type DatabaseView, type ViewGroupMeta } from './database-view'
 export {
   SchemaExtensionSchema,
   ExtensionFieldSchema,

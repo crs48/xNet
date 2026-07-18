@@ -98,7 +98,10 @@ export function GalleryView(props: DatabaseViewProps): React.JSX.Element {
   })
 
   return (
-    <div className={cn('flex h-full flex-col overflow-hidden', className)} data-testid="gallery-view">
+    <div
+      className={cn('flex h-full flex-col overflow-hidden', className)}
+      data-testid="gallery-view"
+    >
       <div ref={scrollRef} className="flex-1 overflow-y-auto" style={{ padding }}>
         <div style={{ height: virtualizer.getTotalSize(), position: 'relative' }}>
           {virtualizer.getVirtualItems().map((virtualRow) => {
