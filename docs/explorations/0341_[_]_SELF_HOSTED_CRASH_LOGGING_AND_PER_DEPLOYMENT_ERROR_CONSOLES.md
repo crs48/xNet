@@ -738,12 +738,12 @@ async function maybeTeeUpstream(record: DebugReportRecord) {
 - [x] **P4:** Support access: share diagnostics Space with published xNet
   support identity, explicit duration, enforced expiry/revoke, red
   "currently shared" indicator in Privacy & Diagnostics.
-- [ ] **P4:** Privacy-policy + docs updates: deployment-local default,
+- [x] **P4:** Privacy-policy + docs updates: deployment-local default,
   the three escalation switches, retention numbers.
 - [ ] **P5 (deferred):** Sentry-envelope adapter route (`length` handling,
   gzip, 200-ack unknown types, PII-field stripping) — only with a named
   consumer.
-- [ ] Ops-guide page: "Your hub is your crash console" (self-host setup,
+- [x] Ops-guide page: "Your hub is your crash console" (self-host setup,
   two env vars for escalation, GlitchTip escape hatch restated).
 
 ## Validation Checklist
