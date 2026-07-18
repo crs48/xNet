@@ -1,5 +1,31 @@
 # @xnetjs/identity
 
+## 2.3.0
+
+### Minor Changes
+
+- [#536](https://github.com/crs48/xNet/pull/536) [`3ea44c6`](https://github.com/crs48/xNet/commit/3ea44c6354e3f55443d3c3b49d8ca1f9c0941987) Thanks [@crs48](https://github.com/crs48)! - OAuth + shared global identity (exploration 0338).
+
+  New, additive public surface — nothing removed or renamed:
+  - `@xnetjs/identity`: ATProto bridge (`@xnetjs/identity` re-exports
+    `parseAnyDid`/`isAtprotoDid`/`createAtprotoBinding`/`verifyAtprotoBinding`,
+    represent-only foreign DIDs — `parseDID` signing guarantees unchanged), the
+    `net.x.identity.binding` record, `derivePlcRotationKey` +
+    `withUserPriorityRotationKey` (user-priority did:plc rotation key from the
+    recovery seed), the `RecoveryAnchorProvider` contract, and `ucanTokenId` +
+    a per-token `nonce` on `createUCAN` (0307-B least-privilege/revocation).
+  - `@xnetjs/data`: `ProfileSchema` gains `atprotoDid`/`atprotoHandle`/
+    `atprotoBindingUri`; new `evaluateLedgerWrite` account-ledger enforcement
+    helpers.
+  - `@xnetjs/react`: onboarding gains the ATProto login-door state + the
+    injectable `RunAtprotoCeremony` contract ("Continue with Bluesky / any PDS").
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/crypto@2.3.0
+  - @xnetjs/core@2.3.0
+
 ## 2.2.0
 
 ### Patch Changes

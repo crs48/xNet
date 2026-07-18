@@ -1,5 +1,14 @@
 # @xnetjs/storage
 
+## 2.3.0
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/sqlite@2.3.0
+  - @xnetjs/crypto@2.3.0
+  - @xnetjs/core@2.3.0
+
 ## 2.2.0
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "xnet-demos",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "private": true,
   "description": "xNet live demos — cursor party, Connect Four, collaborative todo (exploration 0314)",
   "type": "module",
