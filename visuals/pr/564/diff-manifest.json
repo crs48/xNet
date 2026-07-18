@@ -35,7 +35,7 @@
       "label": "CRM",
       "file": "routes/crm.png",
       "status": "changed",
-      "ssim": 0.936016,
+      "ssim": 0.93685,
       "before": "before/routes/crm.png",
       "after": "routes/crm.png",
       "diff": "diff/routes/crm.png"
@@ -45,7 +45,7 @@
       "label": "Home",
       "file": "routes/home.png",
       "status": "changed",
-      "ssim": 0.865042,
+      "ssim": 0.865876,
       "before": "before/routes/home.png",
       "after": "routes/home.png",
       "diff": "diff/routes/home.png"
