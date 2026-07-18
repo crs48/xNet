@@ -702,7 +702,7 @@ async function maybeTeeUpstream(record: DebugReportRecord) {
 
 ## Implementation Checklist
 
-- [ ] **P1:** Extract `parseIncomingReport` / `fingerprintOf` / `shortId` /
+- [x] **P1:** Extract `parseIncomingReport` / `fingerprintOf` / `shortId` /
   `DebugReportRecord` / `DebugReportStore` from
   `apps/cloud/src/diagnostics.ts` into an MIT-zone module
   (`packages/telemetry/src/inbox/`); `apps/cloud` re-imports (behavior
