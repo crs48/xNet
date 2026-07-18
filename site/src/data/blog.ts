@@ -18,6 +18,11 @@
  *   - `pubDate` is an ISO-8601 instant (UTC). Newest-first ordering is by `pubDate`.
  *   - `draft: true` hides a post from the index and the feed (still reachable by URL
  *     during authoring). Production never lists drafts.
+ *
+ * Essay backlog (candidates researched but not yet written):
+ *   - "The Railroad and the Airline" — frontier economics without enclosure:
+ *     railroad land grants, the airline margin trap, dumb pipes, and the
+ *     Georgist operator position (exploration 0351). Tags: essay, economics.
  */
 
 export type BlogTag =

@@ -610,6 +610,12 @@ it('support lane is margin-positive at modeled labor', () => {
 **Prior explorations:** 0132, 0144, 0147, 0174, 0175, 0177, 0178, 0181, 0187,
 0192, 0196, 0200, 0201, 0208, 0216, 0241, 0242, 0244, 0291, 0300, 0333.
 
+**Follow-up:**
+[0351](./0351_[x]_FRONTIER_ECONOMICS_WITHOUT_ENCLOSURE_RAILROADS_AIRLINES_AND_THE_COMMONS.md)
+generalises this positioning into the "Georgist operator" frame (margin on
+improvements, never ground rent) and adds the No Ground Rent charter covenant
+plus the three-test rubric for new revenue lanes.
+
 **External (key figures; estimates flagged in text):**
 - Google Workspace pricing — <https://workspace.google.com/pricing>
 - Incentro — Workspace 2025 price increase (Gemini bundling) — <https://www.incentro.com/en-EAF/news/google-workspace-price-increase-2025>

@@ -128,6 +128,13 @@ const CLAIMS: Claim[] = [
       'not yet selectable. Ship: exploration 0252 / 0257 Tier 1 (engine-injection path).'
   },
   {
+    id: 'commons-no-ground-rent-export',
+    source:
+      'Charter §Commons/No ground rent — "no egress or export fees: export everything, verified, for free" (0351)',
+    backing: 'enforced',
+    enforcedBy: 'packages/data/src/portability/portability.test.ts'
+  },
+  {
     id: 'exit-reimport-roundtrip',
     source: 'the-right-to-say-no — "leave with everything" (a door that swings both ways)',
     backing: 'building',
