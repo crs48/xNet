@@ -20,6 +20,7 @@ export {
   type TaskViewConfig,
   type TaskViewEmbedType
 } from './host-context'
+export { extractDocPreviewLines, type DocPreviewLine } from './doc-preview'
 export {
   createXNetSchema,
   xnetSchema,

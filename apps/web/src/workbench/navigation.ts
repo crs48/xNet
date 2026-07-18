@@ -72,5 +72,30 @@ export function navigateToNode(
     case 'settings':
       void navigate({ to: '/settings' })
       break
+    case 'frame':
+      void navigate({ to: '/frame/$frameSpec' as never, params: { frameSpec: nodeId } as never })
+      break
   }
+}
+
+/**
+ * Open a node through an arbitrary registered view as a frame tab
+ * (0346): `frameSpec` = `<viewType>~<nodeId>`. One route covers every
+ * registry/plugin view — the escape hatch past the closed TabNodeType
+ * set.
+ */
+export function navigateToFrame(
+  navigate: Navigate,
+  viewType: string,
+  nodeId: string,
+  opts: { preview?: boolean } = {}
+): void {
+  navigateToNode(navigate, 'frame', `${viewType}~${nodeId}`, opts)
+}
+
+/** Parse a frame tab's nodeId back into view type + target node. */
+export function parseFrameSpec(frameSpec: string): { viewType: string; nodeId: string } | null {
+  const idx = frameSpec.indexOf('~')
+  if (idx <= 0 || idx === frameSpec.length - 1) return null
+  return { viewType: frameSpec.slice(0, idx), nodeId: frameSpec.slice(idx + 1) }
 }

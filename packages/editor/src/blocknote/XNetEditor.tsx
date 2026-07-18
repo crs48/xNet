@@ -113,14 +113,20 @@ export interface XNetEditorProps {
     databaseId: string
     viewType: DatabaseViewType
     viewConfig: Record<string, unknown>
+    /** Persist an "Open with…" view switch onto the block (0346). */
+    onChangeViewType?: (viewType: DatabaseViewType) => void
   }) => React.ReactNode
   renderTaskView?: (props: {
     viewType: TaskViewEmbedType
     viewConfig: TaskViewConfig
     currentPageId: string | null
   }) => React.ReactNode
+  /** Live summary transclusion for page embeds (0346). */
+  renderPageEmbed?: (props: { nodeId: string; title: string }) => React.ReactNode
   taskViewPageId?: string | null
   onSelectDatabase?: () => Promise<string | null>
+  /** Database + registry-view picker for the `/view of…` command (0346). */
+  onSelectDatabaseView?: () => Promise<{ databaseId: string; viewType: DatabaseViewType } | null>
   resolveDatabaseMeta?: (databaseId: string) => Promise<{ title: string; icon?: string } | null>
   /** People offered by the `@` picker. */
   mentionSuggestions?: TaskMentionSuggestion[]
@@ -204,8 +210,10 @@ export function XNetEditor({
   resolveLinkPreview,
   renderDatabaseView,
   renderTaskView,
+  renderPageEmbed,
   taskViewPageId = null,
   onSelectDatabase,
+  onSelectDatabaseView,
   resolveDatabaseMeta,
   mentionSuggestions = [],
   hashtagSuggestions = [],
@@ -445,8 +453,10 @@ export function XNetEditor({
       onFileDownload,
       renderDatabaseView,
       renderTaskView,
+      renderPageEmbed,
       taskViewPageId,
       onSelectDatabase,
+      onSelectDatabaseView,
       resolveDatabaseMeta,
       readOnly
     }),
@@ -455,8 +465,10 @@ export function XNetEditor({
       onFileDownload,
       renderDatabaseView,
       renderTaskView,
+      renderPageEmbed,
       taskViewPageId,
       onSelectDatabase,
+      onSelectDatabaseView,
       resolveDatabaseMeta,
       readOnly
     ]
@@ -544,7 +556,30 @@ export function XNetEditor({
           }
         }
       ]
-      if (onSelectDatabase) {
+      if (onSelectDatabaseView) {
+        // `/view of…` (0346): the host's picker chooses a database AND a
+        // view type enumerated from its view registry, so plugin views
+        // are insertable without an editor release.
+        items.push({
+          title: 'View of…',
+          subtext: 'Live view of a workspace database (table, board, map, …)',
+          aliases: ['view', 'database', 'table', 'board', 'map', 'calendar', 'gallery'],
+          group: 'Advanced',
+          onItemClick: () => {
+            void onSelectDatabaseView().then((choice) => {
+              if (!choice) return
+              insertOrUpdateBlockForSlashMenu(editor, {
+                type: 'databaseEmbed',
+                props: {
+                  databaseId: choice.databaseId,
+                  viewType: choice.viewType,
+                  viewConfig: ''
+                }
+              } as never)
+            })
+          }
+        })
+      } else if (onSelectDatabase) {
         items.push({
           title: 'Database view',
           subtext: 'Inline table of a workspace database',
@@ -572,7 +607,7 @@ export function XNetEditor({
       }
       return filterSuggestionItems([...byGroup.values()].flat(), query)
     },
-    [editor, onSelectDatabase]
+    [editor, onSelectDatabase, onSelectDatabaseView]
   )
 
   const getMentionItems = useCallback(

@@ -13,6 +13,7 @@ import {
   Database,
   FileText,
   FlaskConical,
+  Frame,
   Hash,
   Layout,
   LayoutDashboard,
@@ -64,7 +65,9 @@ export const TAB_VIEWS: Record<TabNodeType, TabViewEntry> = {
   person: { label: 'Person', icon: User, toRoute: (id) => `/person/${encodeURIComponent(id)}` },
   lab: { label: 'Lab', icon: Code2, toRoute: (id) => `/lab/${id}` },
   space: { label: 'Space', icon: Users, toRoute: (id) => `/space/${encodeURIComponent(id)}` },
-  settings: { label: 'Settings', icon: Settings, toRoute: () => '/settings', singleton: true }
+  settings: { label: 'Settings', icon: Settings, toRoute: () => '/settings', singleton: true },
+  // 0346: a node opened through an arbitrary registered view.
+  frame: { label: 'View', icon: Frame, toRoute: (id) => `/frame/${encodeURIComponent(id)}` }
 }
 
 const ROUTE_PREFIXES: Array<{ prefix: string; nodeType: TabNodeType }> = [
@@ -78,7 +81,8 @@ const ROUTE_PREFIXES: Array<{ prefix: string; nodeType: TabNodeType }> = [
   { prefix: '/tag/', nodeType: 'tag' },
   { prefix: '/person/', nodeType: 'person' },
   { prefix: '/lab/', nodeType: 'lab' },
-  { prefix: '/space/', nodeType: 'space' }
+  { prefix: '/space/', nodeType: 'space' },
+  { prefix: '/frame/', nodeType: 'frame' }
 ]
 
 export interface RouteTabDescriptor {

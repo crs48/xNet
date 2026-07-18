@@ -7,17 +7,13 @@ import { createReactBlockSpec } from '@blocknote/react'
 import * as React from 'react'
 import { useEditorHost, type DatabaseViewType } from '../host-context'
 
-const VIEW_TYPES: readonly DatabaseViewType[] = [
-  'table',
-  'board',
-  'list',
-  'gallery',
-  'calendar',
-  'form'
-]
-
+/**
+ * Any non-empty view type travels through to the host (0346) — the host
+ * dispatches through its view registry and owns the unknown-type
+ * fallback, so plugin view types work without an editor release.
+ */
 function coerceViewType(raw: string): DatabaseViewType {
-  return (VIEW_TYPES as readonly string[]).includes(raw) ? (raw as DatabaseViewType) : 'table'
+  return raw.trim() ? (raw as DatabaseViewType) : 'table'
 }
 
 /** viewConfig travels as a JSON string (BlockNote props are scalars only). */
@@ -34,11 +30,13 @@ export function parseViewConfig(raw: string): Record<string, unknown> {
 function DatabaseEmbedCard({
   databaseId,
   viewType,
-  viewConfig
+  viewConfig,
+  onChangeViewType
 }: {
   databaseId: string
   viewType: string
   viewConfig: string
+  onChangeViewType?: (viewType: DatabaseViewType) => void
 }): React.JSX.Element {
   const host = useEditorHost()
   const config = React.useMemo(() => parseViewConfig(viewConfig), [viewConfig])
@@ -48,12 +46,15 @@ function DatabaseEmbedCard({
   }
 
   return (
-    <div data-database-embed={databaseId} className="xnet-database-embed">
+    // min-w-0: the BlockNote content wrapper is a flex row; without it the
+    // embed balloons to the grid's natural width and clips unreachably.
+    <div data-database-embed={databaseId} className="xnet-database-embed w-full min-w-0 max-w-full">
       {host.renderDatabaseView ? (
         host.renderDatabaseView({
           databaseId,
           viewType: coerceViewType(viewType),
-          viewConfig: config
+          viewConfig: config,
+          onChangeViewType: host.readOnly ? undefined : onChangeViewType
         })
       ) : (
         <div className="xnet-database-embed-placeholder">Database {databaseId}</div>
@@ -73,12 +74,21 @@ export const DatabaseEmbedBlockSpec = createReactBlockSpec(
     content: 'none'
   },
   {
-    render: ({ block }) => (
+    render: ({ block, editor }) => (
       <DatabaseEmbedCard
         databaseId={block.props.databaseId}
         viewType={block.props.viewType}
         viewConfig={block.props.viewConfig}
+        onChangeViewType={(viewType) => {
+          editor.updateBlock(block, { props: { viewType } } as never)
+        }}
       />
-    )
+    ),
+    // Deep-interactive NodeView (0346): without this, ProseMirror keeps
+    // node-selecting the block and re-grabbing focus, so grid clicks and
+    // keystrokes edit the DOCUMENT instead of the cell. selectable:false
+    // applies BlockNote's stopEvent-everything isolation; deletion still
+    // works through the side-menu drag handle.
+    meta: { selectable: false }
   }
 )

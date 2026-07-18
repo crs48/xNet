@@ -11,6 +11,7 @@
 
 import { addDays, addMonths, differenceInCalendarDays, format, isToday } from 'date-fns'
 import type { CellValue } from '@xnetjs/data'
+import { useEntangleBind, useEntangledHighlight } from '@xnetjs/react'
 import { cn } from '@xnetjs/ui'
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import React, { useCallback, useMemo, useState } from 'react'
@@ -22,13 +23,64 @@ import {
   isSameMonth,
   overflowByDay,
   packWeekSegments,
-  type CalendarEvent
+  type CalendarEvent,
+  type WeekSegment
 } from './calendar-model.js'
 import { resolveDateField, rowTitle, type DatabaseViewProps } from './contract.js'
 import { rowDateSpan, toDateCell } from './date-model.js'
 
 const MAX_LANES = 3
 const LANE_HEIGHT = 22
+
+/** One lane-packed event bar — extracted so entangle hooks run per chip. */
+function CalendarEventBar({
+  segment,
+  fields,
+  colorField,
+  draggable,
+  onOpenRow
+}: {
+  segment: WeekSegment
+  fields: DatabaseViewProps['fields']
+  colorField: DatabaseViewProps['fields'][number] | undefined
+  draggable: boolean
+  onOpenRow?: (rowId: string) => void
+}): React.JSX.Element {
+  const rowId = segment.event.row.id
+  // Entangle bus (0346): chip ↔ sibling frames co-highlight.
+  const entangleBind = useEntangleBind(rowId)
+  const entangled = useEntangledHighlight(rowId)
+  const style = eventStyle(segment.event, colorField)
+  return (
+    <button
+      type="button"
+      draggable={draggable}
+      onDragStart={(e) => {
+        e.dataTransfer.setData('application/x-xnet-row', rowId)
+        e.dataTransfer.effectAllowed = 'move'
+      }}
+      className={cn(
+        'absolute z-10 truncate px-1.5 text-left text-[11px] leading-5',
+        segment.isStart ? 'rounded-l' : '',
+        segment.isEnd ? 'rounded-r' : '',
+        entangled && 'ring-2 ring-amber-300/80 dark:ring-amber-500/50'
+      )}
+      style={{
+        ...style,
+        top: 24 + segment.lane * LANE_HEIGHT,
+        left: `calc(${(segment.startCol / 7) * 100}% + 4px)`,
+        width: `calc(${((segment.endCol - segment.startCol + 1) / 7) * 100}% - 8px)`,
+        height: LANE_HEIGHT - 4
+      }}
+      data-testid="calendar-event"
+      data-row-id={rowId}
+      onClick={() => onOpenRow?.(rowId)}
+      {...entangleBind}
+    >
+      {rowTitle(segment.event.row, fields)}
+    </button>
+  )
+}
 
 function eventStyle(
   event: CalendarEvent,
@@ -274,37 +326,16 @@ export function CalendarView(props: DatabaseViewProps): React.JSX.Element {
               })}
 
               {/* Event bars (lane-packed, spanning columns) */}
-              {visible.map((segment) => {
-                const style = eventStyle(segment.event, colorField)
-                return (
-                  <button
-                    key={`${segment.event.row.id}:${segment.startCol}`}
-                    type="button"
-                    draggable={Boolean(onMoveCard)}
-                    onDragStart={(e) => {
-                      e.dataTransfer.setData('application/x-xnet-row', segment.event.row.id)
-                      e.dataTransfer.effectAllowed = 'move'
-                    }}
-                    className={cn(
-                      'absolute z-10 truncate px-1.5 text-left text-[11px] leading-5',
-                      segment.isStart ? 'rounded-l' : '',
-                      segment.isEnd ? 'rounded-r' : ''
-                    )}
-                    style={{
-                      ...style,
-                      top: 24 + segment.lane * LANE_HEIGHT,
-                      left: `calc(${(segment.startCol / 7) * 100}% + 4px)`,
-                      width: `calc(${((segment.endCol - segment.startCol + 1) / 7) * 100}% - 8px)`,
-                      height: LANE_HEIGHT - 4
-                    }}
-                    data-testid="calendar-event"
-                    data-row-id={segment.event.row.id}
-                    onClick={() => onOpenRow?.(segment.event.row.id)}
-                  >
-                    {rowTitle(segment.event.row, fields)}
-                  </button>
-                )
-              })}
+              {visible.map((segment) => (
+                <CalendarEventBar
+                  key={`${segment.event.row.id}:${segment.startCol}`}
+                  segment={segment}
+                  fields={fields}
+                  colorField={colorField}
+                  draggable={Boolean(onMoveCard)}
+                  onOpenRow={onOpenRow}
+                />
+              ))}
             </div>
           )
         })}

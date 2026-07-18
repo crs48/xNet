@@ -257,6 +257,7 @@ export class AiSurfaceService {
     planPagePatch: (args) => this.planPagePatch(args),
     applyPageMarkdown: (args) => this.applyPageMarkdown(args),
     rollbackPageMarkdown: (args) => this.rollbackPageMarkdown(args),
+    composePage: (args) => this.composePage(args),
     getAuditLog: (options) => this.getAuditLog(options),
     describeDatabase: (databaseId, options) => this.describeDatabase(databaseId, options),
     readDatabaseViews: (databaseId) => this.readDatabaseViews(databaseId),
@@ -776,6 +777,50 @@ export class AiSurfaceService {
       warnings: [...warnings, ...markdownValidation.validation.warnings],
       errors: markdownValidation.validation.errors
     })
+  }
+
+  /**
+   * Compose a page of frames (0346, Phase 5): create the Page node, then
+   * plan + apply its markdown content (intro + frame directives) through
+   * the standard page pipeline — one audited step, rollbackable via the
+   * page-markdown rollback handle (the created page itself is reported
+   * so a rejected compose can be cleaned up).
+   */
+  private async composePage(args: {
+    title: string
+    markdown: string
+    confirmApply: boolean
+    actor?: string
+    intent?: string
+    extra?: Record<string, unknown>
+  }): Promise<Record<string, unknown>> {
+    if (!args.confirmApply) {
+      throw new Error('confirmApply must be true to compose a page')
+    }
+    const created = await this.config.store.create({
+      schemaId: 'xnet://xnet.fyi/Page@1.0.0',
+      properties: { title: args.title, ...(args.extra ?? {}) }
+    })
+    const frontmatterBody = args.markdown
+    const plan = await this.planPagePatch({
+      pageId: created.id,
+      markdown: frontmatterBody,
+      actor: args.actor ?? 'ai-agent',
+      intent: args.intent ?? `Compose page "${args.title}"`
+    })
+    if (plan.status !== 'validated') {
+      return { pageId: created.id, planId: plan.id, applied: false, plan }
+    }
+    const result = await this.applyPageMarkdown({
+      plan: plan as unknown as Record<string, unknown>,
+      confirmApply: true
+    })
+    return {
+      pageId: created.id,
+      planId: plan.id,
+      applied: result.applied ?? false,
+      result: result as unknown as Record<string, unknown>
+    }
   }
 
   private async applyPageMarkdown(

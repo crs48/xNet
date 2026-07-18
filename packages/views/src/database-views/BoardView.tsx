@@ -33,6 +33,7 @@ import {
 } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { rebalanceSortKeys, type CellValue, type ViewGroupMeta } from '@xnetjs/data'
+import { useEntangleBind, useEntangledHighlight } from '@xnetjs/react'
 import { cn } from '@xnetjs/ui'
 import { ChevronRight, Plus } from 'lucide-react'
 import React, { useCallback, useMemo, useState } from 'react'
@@ -112,6 +113,9 @@ function BoardCard({
     id: cardDragId(groupKey, row.id),
     disabled: overlay
   })
+  // Entangle bus (0346): card ↔ sibling frames co-highlight.
+  const entangleBind = useEntangleBind(overlay ? null : row.id)
+  const entangled = useEntangledHighlight(overlay ? null : row.id)
   const cover = coverField ? firstFileRef(row.cells[coverField.id]) : null
   return (
     <div
@@ -123,6 +127,7 @@ function BoardCard({
       }}
       className={cn(
         'group/card cursor-pointer overflow-hidden rounded-md border border-hairline bg-surface-0 shadow-sm',
+        entangled && 'ring-2 ring-amber-300/80 dark:ring-amber-500/50',
         isDragging && 'opacity-40',
         overlay && 'shadow-lg'
       )}
@@ -131,6 +136,7 @@ function BoardCard({
       onClick={() => onOpenRow?.(row.id)}
       {...attributes}
       {...listeners}
+      {...entangleBind}
     >
       {cover && (
         <CardCover
