@@ -51,6 +51,7 @@ import {
 } from '../workbench/context-panel'
 import { DraftSwitcher } from '../workbench/drafts/DraftSwitcher'
 import { navigateToNode } from '../workbench/navigation'
+import { usePublishTitle } from '../workbench/route-title'
 import { useWorkbench, type TabNodeType } from '../workbench/state'
 import { useStatusBarItem, type StatusBarItem } from '../workbench/status'
 import { BacklinksPanel } from './BacklinksPanel'
@@ -185,11 +186,8 @@ export function PageView({ docId }: { docId: string }) {
     [handleTasksChange]
   )
 
-  // Keep the workbench tab title in sync with the page title (0166).
-  const pageTitle = page?.title
-  useEffect(() => {
-    if (pageTitle) useWorkbench.getState().setTabTitle(docId, pageTitle)
-  }, [docId, pageTitle])
+  // Publish the title for the header/tab/recents (0166, 0353).
+  usePublishTitle(docId, page?.title)
 
   // Editing promotes a preview tab to a permanent one (0166).
   useEffect(() => {

@@ -23,6 +23,7 @@ import { CodeEditor, type CodeEditorLanguage } from '@xnetjs/ui'
 import { CheckCircle2, Loader2, Play, Upload } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createWebLabLadder, labStoreFromNodeStore } from '../lib/lab-runtime'
+import { usePublishTitle } from '../workbench/route-title'
 import { useWorkbench } from '../workbench/state'
 
 const DEFAULT_CODE = `// Write code, then Run (Cmd/Ctrl+Enter).
@@ -90,10 +91,8 @@ export function LabView({ labId }: { labId: string }): JSX.Element {
     }
   }, [lab?.code])
 
-  // Keep the workbench tab title in sync (0166).
-  useEffect(() => {
-    if (lab?.title) useWorkbench.getState().setTabTitle(labId, lab.title)
-  }, [labId, lab?.title])
+  // Publish the title for the header/tab/recents (0166, 0353).
+  usePublishTitle(labId, lab?.title)
 
   // Persist code edits (lightly debounced).
   useEffect(() => {

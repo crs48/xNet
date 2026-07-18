@@ -210,6 +210,31 @@ interface WorkbenchState {
   bottom: PanelState
   groups: EditorGroup[]
   activeGroupId: string
+  /**
+   * Tabless mode (0353). When false the editor renders the router outlet
+   * directly — no strip, no groups, no preview/promote — and the working
+   * set lives in the sidebar's Pinned + Recents sections instead. The
+   * router stays authoritative either way, so navigation is unaffected.
+   */
+  tabsEnabled: boolean
+  /**
+   * Route → title, published by the views themselves (0353). Replaces
+   * `setTabTitle` as the header's title source when tabless; the tab
+   * store mirrors it while tabs are on.
+   */
+  routeTitles: Record<string, string>
+  /**
+   * The last two visited routes, newest first (0353). Backs the
+   * "recent two" Ctrl-Tab toggle — the tabless replacement for
+   * cycling tabs.
+   */
+  routeHistory: string[]
+  /**
+   * The node shown in the tabless split pane, or null (0353). A layout
+   * concern, not a window: closing it orphans nothing, and durable
+   * side-by-side belongs on a page as frames (0346).
+   */
+  splitTarget: { nodeId: string; nodeType: TabNodeType } | null
   pinnedNodeIds: string[]
   recents: RecentEntry[]
   /** Expanded folders in the Explorer tree (exploration 0169) */
@@ -379,6 +404,15 @@ interface WorkbenchState {
   /** Cycle active tab within the active group (Ctrl+Tab) */
   cycleTab: (delta: 1 | -1) => void
 
+  // ─── Tabless mode (0353) ───────────────────────────────────────
+  setTabsEnabled: (enabled: boolean) => void
+  /** Publish the current route's title (route-derived header chrome). */
+  setRouteTitle: (pathname: string, title: string) => void
+  /** Record a visited route for the recent-two toggle. */
+  pushRouteHistory: (pathname: string) => void
+  /** Show (or clear) the tabless split pane's node. */
+  setSplitTarget: (target: { nodeId: string; nodeType: TabNodeType } | null) => void
+
   // ─── Explorer pins & recents ───────────────────────────────────
   togglePinnedNode: (nodeId: string) => void
   touchRecent: (entry: Omit<RecentEntry, 'at'>) => void
@@ -474,6 +508,12 @@ export const useWorkbench = create<WorkbenchState>()(
       bottom: { open: false, activeViewId: 'tray' },
       groups: freshGroups(),
       activeGroupId: 'group-1',
+      // 0353 Phase 1: tabs stay on by default until parity is proven;
+      // Phase 5 flips the default and drops the machinery.
+      tabsEnabled: true,
+      routeTitles: {},
+      routeHistory: [],
+      splitTarget: null,
       pinnedNodeIds: [],
       recents: [],
       expandedFolderIds: [],
@@ -830,6 +870,31 @@ export const useWorkbench = create<WorkbenchState>()(
           }
         }),
 
+      setTabsEnabled: (enabled) => set({ tabsEnabled: enabled }),
+
+      setRouteTitle: (pathname, title) =>
+        set((state) =>
+          state.routeTitles[pathname] === title
+            ? {}
+            : { routeTitles: { ...state.routeTitles, [pathname]: title } }
+        ),
+
+      // Only two entries are kept: the toggle is "the other one", not a
+      // history stack (the router owns real back/forward).
+      pushRouteHistory: (pathname) =>
+        set((state) =>
+          state.routeHistory[0] === pathname
+            ? {}
+            : {
+                routeHistory: [pathname, ...state.routeHistory.filter((p) => p !== pathname)].slice(
+                  0,
+                  2
+                )
+              }
+        ),
+
+      setSplitTarget: (target) => set({ splitTarget: target }),
+
       togglePinnedNode: (nodeId) =>
         set((state) => ({
           pinnedNodeIds: state.pinnedNodeIds.includes(nodeId)
@@ -940,7 +1005,13 @@ export const useWorkbench = create<WorkbenchState>()(
               // Floating dock visibility is live session state (0286) — a
               // reload always restores the default dock, never a stuck-closed one.
               key !== 'floatAi' &&
-              key !== 'floatCall'
+              key !== 'floatCall' &&
+              // Route titles/history are derived from what's mounted right
+              // now (0353); persisting them would resurrect stale chrome.
+              key !== 'routeTitles' &&
+              key !== 'routeHistory' &&
+              // The split is a transient layout, never a restored window.
+              key !== 'splitTarget'
           )
         ) as WorkbenchState
     }
@@ -951,4 +1022,12 @@ export const useWorkbench = create<WorkbenchState>()(
 export function selectActiveTab(state: Pick<WorkbenchState, 'groups' | 'activeGroupId'>) {
   const group = state.groups.find((g) => g.id === state.activeGroupId)
   return group?.tabs.find((tab) => tab.id === group.activeTabId) ?? null
+}
+
+/**
+ * The route the recent-two toggle (Ctrl-Tab) should jump to: the
+ * previously visited route, or null when there's only one (0353).
+ */
+export function selectPreviousRoute(state: Pick<WorkbenchState, 'routeHistory'>): string | null {
+  return state.routeHistory[1] ?? null
 }

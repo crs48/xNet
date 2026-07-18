@@ -427,16 +427,16 @@ const title = useRouteTitle(routed)                   // views publish here
 
 ### Phase 1 — Tabless mode (flagged)
 
-- [ ] `tabsEnabled` preference; `EditorArea` renders bare outlet when
+- [x] `tabsEnabled` preference; `EditorArea` renders bare outlet when
       off; strip/groups/`useTabCommands` gated
-- [ ] Route-derived header title (`useRouteTitle` map fed by the 8
+- [x] Route-derived header title (`useRouteTitle` map fed by the 8
       `setTabTitle` call sites; `EditorHeader` drops `selectActiveTab`
       when tabless)
-- [ ] ⌘[ / ⌘] back/forward commands + "recent two" Ctrl-Tab toggle;
+- [x] ⌘[ / ⌘] back/forward commands + "recent two" Ctrl-Tab toggle;
       ⌘W → home
-- [ ] Recents fed by a route effect (decouple from `syncRouteToTabs`)
-- [ ] Pinned + Recents sections always visible in the sidebar
-- [ ] `View: Split` as a frame-host layout command (no tab groups)
+- [x] Recents fed by a route effect (decouple from `syncRouteToTabs`)
+- [x] Pinned + Recents sections always visible in the sidebar
+- [x] `View: Split` as a frame-host layout command (no tab groups)
 
 ### Phase 2 — One tree
 

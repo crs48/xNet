@@ -7,7 +7,7 @@
  * (EditorArea's `pill` variant); the document is the router outlet under that.
  */
 import type { ShareDocType } from '../hooks/useShareLinks'
-import { useNavigate } from '@tanstack/react-router'
+import { useLocation, useNavigate } from '@tanstack/react-router'
 import { useIdentity } from '@xnetjs/react'
 import { viewRegistry } from '@xnetjs/views'
 import {
@@ -27,7 +27,9 @@ import { SelfAvatar } from '../components/SelfAvatar'
 import { ShareDialog } from '../components/ShareDialog'
 import { useRequestCount } from '../hooks/useRequestCount'
 import { navigateToFrame, navigateToNode, parseFrameSpec } from './navigation'
+import { useRouteTitle } from './route-title'
 import { selectActiveTab, useWorkbench, type TabNodeType } from './state'
+import { tabFromPathname } from './tabs'
 
 const SHARE_TYPES: Partial<Record<TabNodeType, ShareDocType>> = {
   page: 'page',
@@ -91,13 +93,27 @@ export function EditorHeader({ onOpenNotif }: { onOpenNotif: (e: React.MouseEven
   const toggleSidebar = useWorkbench((s) => s.toggleSidebar)
   const rightOpen = useWorkbench((s) => s.right.open)
   const togglePanel = useWorkbench((s) => s.togglePanel)
+  const tabsEnabled = useWorkbench((s) => s.tabsEnabled)
   const activeTab = useWorkbench(selectActiveTab)
   const { identity } = useIdentity()
   const requestCount = useRequestCount()
   const [shareOpen, setShareOpen] = useState(false)
 
-  const shareType = activeTab ? SHARE_TYPES[activeTab.nodeType] : undefined
-  const BreadIcon = (activeTab && TAB_ICON[activeTab.nodeType]) ?? FileText
+  // Tabless (0353): "what am I looking at" comes from the route + the
+  // title the view published, not from an active tab.
+  const pathname = useLocation({ select: (location) => location.pathname })
+  const routeTitle = useRouteTitle()
+  const routed = tabFromPathname(pathname)
+  const current = tabsEnabled
+    ? activeTab
+      ? { nodeType: activeTab.nodeType, nodeId: activeTab.nodeId, title: activeTab.title }
+      : null
+    : routed
+      ? { nodeType: routed.nodeType, nodeId: routed.nodeId, title: routeTitle ?? '' }
+      : null
+
+  const shareType = current ? SHARE_TYPES[current.nodeType] : undefined
+  const BreadIcon = (current && TAB_ICON[current.nodeType]) ?? FileText
 
   return (
     <div className="flex h-[50px] shrink-0 items-center gap-2 pl-2 pr-3">
@@ -115,10 +131,10 @@ export function EditorHeader({ onOpenNotif }: { onOpenNotif: (e: React.MouseEven
       <div className="flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden whitespace-nowrap text-[13px]">
         <BreadIcon size={14} strokeWidth={1.75} className="shrink-0 text-ink-3" />
         <span className="truncate font-medium text-ink-1">
-          {activeTab?.title || activeTab?.nodeType || 'Workspace'}
+          {current?.title || current?.nodeType || 'Workspace'}
         </span>
-        {activeTab && (activeTab.nodeType === 'database' || activeTab.nodeType === 'frame') && (
-          <OpenWithSelect nodeType={activeTab.nodeType} nodeId={activeTab.nodeId} />
+        {current && (current.nodeType === 'database' || current.nodeType === 'frame') && (
+          <OpenWithSelect nodeType={current.nodeType} nodeId={current.nodeId} />
         )}
       </div>
 
@@ -130,7 +146,7 @@ export function EditorHeader({ onOpenNotif }: { onOpenNotif: (e: React.MouseEven
           </span>
         )}
 
-        {shareType && activeTab && (
+        {shareType && current && (
           <>
             <button
               type="button"
@@ -141,7 +157,7 @@ export function EditorHeader({ onOpenNotif }: { onOpenNotif: (e: React.MouseEven
               Share
             </button>
             <ShareDialog
-              docId={activeTab.nodeId}
+              docId={current.nodeId}
               docType={shareType}
               isOpen={shareOpen}
               onClose={() => setShareOpen(false)}

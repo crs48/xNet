@@ -8,6 +8,7 @@ import { SavedViewRunner, useQuery } from '@xnetjs/react'
 import { useEffect, useMemo } from 'react'
 import { useSocialFeedEnrichment } from '../hooks/useSocialFeedEnrichment'
 import { WORKBENCH_SAVED_VIEW_REGISTRY } from '../lib/saved-view-registry'
+import { usePublishTitle } from '../workbench/route-title'
 import { useWorkbench } from '../workbench/state'
 
 /** Parse + validate a stored descriptor; null when missing/invalid. */
@@ -32,12 +33,9 @@ function SavedViewPlaceholder({ loading }: { loading: boolean }) {
   )
 }
 
-/** Keep the workbench tab title in sync with a loaded node title. */
+/** Publish a loaded node's title for the header/tab/recents (0353). */
 function useTabTitleSync(nodeId: string, node: { title?: string } | null | undefined): void {
-  const title = node?.title
-  useEffect(() => {
-    if (title) useWorkbench.getState().setTabTitle(nodeId, title)
-  }, [nodeId, title])
+  usePublishTitle(nodeId, node?.title)
 }
 
 function SavedViewReady({

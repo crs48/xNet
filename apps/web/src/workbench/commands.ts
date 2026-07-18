@@ -49,6 +49,20 @@ export function useWorkbenchCommands(): void {
         title: 'View: Switch layout (Calm ↔ Workbench)',
         run: () => wb().toggleLayout()
       }),
+      // Tabless mode (0353): both directions are one ⌘K away, so the
+      // preference is reversible without hunting through settings.
+      registry.register({
+        id: 'workbench.disableTabs',
+        title: 'View: Turn off tabs (single surface)',
+        when: () => useWorkbench.getState().tabsEnabled,
+        run: () => wb().setTabsEnabled(false)
+      }),
+      registry.register({
+        id: 'workbench.enableTabs',
+        title: 'View: Turn on tabs',
+        when: () => !useWorkbench.getState().tabsEnabled,
+        run: () => wb().setTabsEnabled(true)
+      }),
       // Quiet-surface posture (0273): both directions get explicit palette
       // entries so either posture is one ⌘K away from the other.
       registry.register({

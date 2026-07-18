@@ -30,6 +30,7 @@ import { useNewActions } from './new-actions'
 import { SettingsSectionsNav } from './SettingsSectionsNav'
 import { getSlotView } from './slot-registry'
 import { useWorkbench } from './state'
+import { WorkingSet } from './WorkingSet'
 import {
   DEFAULT_SURFACE,
   SURFACES,
@@ -309,6 +310,10 @@ function TopIsland({ openMenu }: { openMenu: OpenMenu }) {
               <ChevronRight size={14} strokeWidth={2} className="text-ink-3" />
             </button>
           </div>
+
+          {/* The working set (0353): Pinned + Recents replace the tab
+              strip as "what am I in the middle of". Always visible. */}
+          <WorkingSet />
         </>
       )}
 
