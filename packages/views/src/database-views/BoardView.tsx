@@ -40,7 +40,6 @@ import type { GridField } from '../grid/model.js'
 import { optionChipStyle } from '../properties/optionColors.js'
 import { CardCover, FieldValueChip, WindowFootnote, firstFileRef } from './card-bits.js'
 import {
-  resolveCoverField,
   resolveGroupField,
   rowTitle,
   type DatabaseViewProps,
@@ -276,7 +275,11 @@ export function BoardView(props: DatabaseViewProps): React.JSX.Element {
   } = props
 
   const groupField = resolveGroupField(fields, config)
-  const coverField = resolveCoverField(fields, config)
+  // Boards show covers only when explicitly configured (Notion default);
+  // the gallery is where the first-file-field fallback lives.
+  const coverField = config.coverField
+    ? fields.find((f) => f.id === config.coverField)
+    : undefined
   const colorField = config.colorBy ? fields.find((f) => f.id === config.colorBy) : undefined
   const coverFit = config.coverFit === 'contain' ? 'contain' : 'cover'
 

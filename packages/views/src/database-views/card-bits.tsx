@@ -142,19 +142,18 @@ export function CardCover({
 }): React.JSX.Element | null {
   const isImage = fileRef?.mimeType.startsWith('image/') ?? false
   const url = useFileUrl(isImage ? fileRef : null, onResolveFileUrl)
-  if (!fileRef || !isImage) return null
+  // No container until the blob resolves — unresolvable covers (missing
+  // blobs, seed fixtures) must not leave a blank block on every card.
+  if (!fileRef || !isImage || !url) return null
   return (
     <div className={cn('w-full overflow-hidden bg-surface-1', heightClass)}>
-      {url ? (
-        // eslint-disable-next-line jsx-a11y/alt-text
-        <img
-          src={url}
-          className={cn('h-full w-full', fit === 'contain' ? 'object-contain' : 'object-cover')}
-          alt={fileRef.name}
-          loading="lazy"
-          draggable={false}
-        />
-      ) : null}
+      <img
+        src={url}
+        className={cn('h-full w-full', fit === 'contain' ? 'object-contain' : 'object-cover')}
+        alt={fileRef.name}
+        loading="lazy"
+        draggable={false}
+      />
     </div>
   )
 }

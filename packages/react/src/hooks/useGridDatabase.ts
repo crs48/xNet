@@ -331,19 +331,22 @@ export function useGridDatabase(
 
   const { data: database, status: dbStatus } = useQuery(DatabaseSchema, databaseId)
 
+  // Metadata queries fetch by system order (indexable — avoids the
+  // unbounded-property-sort full-scan warning); the memos below re-sort
+  // by fractional sortKey, which is the real ordering authority.
   const { data: fieldNodes, status: fieldStatus } = useQuery(DatabaseFieldSchema, {
     where: { database: databaseId },
-    orderBy: { sortKey: 'asc' }
+    orderBy: { createdAt: 'asc' }
   })
 
   const { data: viewNodes, status: viewStatus } = useQuery(DatabaseViewSchema, {
     where: { database: databaseId },
-    orderBy: { sortKey: 'asc' }
+    orderBy: { createdAt: 'asc' }
   })
 
   const { data: optionNodes } = useQuery(DatabaseSelectOptionSchema, {
     where: { database: databaseId },
-    orderBy: { sortKey: 'asc' }
+    orderBy: { createdAt: 'asc' }
   })
 
   const {

@@ -25,7 +25,7 @@ import {
   type CalendarEvent
 } from './calendar-model.js'
 import { resolveDateField, rowTitle, type DatabaseViewProps } from './contract.js'
-import { toDateCell } from './date-model.js'
+import { rowDateSpan, toDateCell } from './date-model.js'
 
 const MAX_LANES = 3
 const LANE_HEIGHT = 22
@@ -69,6 +69,25 @@ export function CalendarView(props: DatabaseViewProps): React.JSX.Element {
       dateField ? eventsInRange(rows, dateField, config, grid.gridStart, grid.gridEnd) : [],
     [rows, dateField, config, grid]
   )
+
+  // Empty-month affordance: when the visible month has no events but the
+  // data does, offer a jump to the nearest event (demo data and archives
+  // otherwise open onto a blank grid).
+  const nearestEventStart = useMemo(() => {
+    if (!dateField || events.length > 0) return null
+    let nearest: Date | null = null
+    let nearestDistance = Infinity
+    for (const row of rows) {
+      const span = rowDateSpan(row.cells, dateField.id, dateField.type, config.endDateField)
+      if (!span) continue
+      const distance = Math.abs(span.start.getTime() - anchor.getTime())
+      if (distance < nearestDistance) {
+        nearestDistance = distance
+        nearest = span.start
+      }
+    }
+    return nearest
+  }, [rows, dateField, config.endDateField, events.length, anchor])
 
   // Drop = shift the event's span so it starts on the target day
   const handleDrop = useCallback(
@@ -117,6 +136,16 @@ export function CalendarView(props: DatabaseViewProps): React.JSX.Element {
       {/* Month header */}
       <div className="flex items-center gap-2 border-b border-border px-3 py-2">
         <span className="text-sm font-semibold text-ink-1">{format(anchor, 'MMMM yyyy')}</span>
+        {nearestEventStart && (
+          <button
+            type="button"
+            className="rounded px-2 py-0.5 text-xs text-primary hover:bg-surface-1"
+            data-testid="calendar-jump-to-events"
+            onClick={() => setAnchor(nearestEventStart)}
+          >
+            Jump to events ({format(nearestEventStart, 'MMM yyyy')})
+          </button>
+        )}
         <span className="flex-1" />
         <button
           type="button"
