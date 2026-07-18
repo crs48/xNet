@@ -633,10 +633,10 @@ Phase 3 — Text control plane:
       every decision, operator-signed for high-risk
 - [x] `AgentNotification` outbox schema + MCP subscription/poll tool; ship
       notification → text relay instructions in the skill
-- [ ] Update the ClawHub skill + publish a Hermes-compatible skill
+- [x] Update the ClawHub skill + publish a Hermes-compatible skill
       (`docs/integrations/openclaw/xnet-workspace-skill.md` — same
       AgentSkills spec covers both) with the ceremony script
-- [ ] Update `docs/guides/openclaw-integration.md`: enrollment flow,
+- [x] Update `docs/guides/openclaw-integration.md`: enrollment flow,
       approval tiers, audit console pointer; add a Hermes section
 
 Housekeeping:
