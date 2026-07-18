@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>One sidebar, no tab strip</title>
+      <link>https://xnet.fyi/changelog#2026-07-18-one-sidebar-no-tab-strip</link>
+      <guid isPermaLink="false">2026-07-18-one-sidebar-no-tab-strip</guid>
+      <pubDate>Sat, 18 Jul 2026 22:49:58 GMT</pubDate>
+      <description>The workbench now opens as a single calm surface: no tab strip, with what you are working on kept as Pinned and Recent rows in the sidebar. The nine separate left-hand navigations collapse into one list of your workspace, filtered by lens — Docs, Chats, People, Views — so channels and contacts live alongside your documents. Chats sort by recency and bump on unread; documents hold their order. Cmd-[ and Cmd-] walk history, Ctrl-Tab flips between your last two views, and tabs remain one command away.</description>
+    </item>
+    <item>
       <title>Large imports sync in seconds, not minutes</title>
       <link>https://xnet.fyi/changelog#2026-07-18-large-imports-sync-in-seconds-not-minute</link>
       <guid isPermaLink="false">2026-07-18-large-imports-sync-in-seconds-not-minute</guid>
