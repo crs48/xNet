@@ -589,14 +589,14 @@ registerAgentTool({
 
 ### Phase 1 — Light the embeds
 
-- [ ] Wire `renderDatabaseView` / `onSelectDatabase` / `resolveDatabaseMeta`
+- [x] Wire `renderDatabaseView` / `onSelectDatabase` / `resolveDatabaseMeta`
       in `apps/web/src/components/Editor.tsx`'s `XNetEditorHost`, rendering
       via `ViewRenderer` (any registry view type works in-doc)
-- [ ] `pageEmbed` → summary-tier live transclusion (title + first blocks,
+- [x] `pageEmbed` → summary-tier live transclusion (title + first blocks,
       read-only, expand affordance)
-- [ ] `/view of…` slash command with node picker + registry-enumerated view
+- [x] `/view of…` slash command with node picker + registry-enumerated view
       chooser (delete `ADD_VIEW_TYPES` hardcoding on this path)
-- [ ] Demo page in dev-tools seed: database frame + map frame of the same
+- [x] Demo page in dev-tools seed: database frame + map frame of the same
       DB (geo field), proving cross-frame reactivity (Tier-1 seeder)
 - [ ] Changesets: `editor` (minor), `views` (minor) — fixed-core lockstep
 

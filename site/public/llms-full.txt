@@ -7673,6 +7673,38 @@ Your Hub is live. Copy the URL and configure your app:
 | `RAILWAY_VOLUME_MOUNT_PATH` | —                 | Auto-set by Railway when a volume is attached |
 | `XNET_DIAGNOSTICS_URL`      | —                 | Opt-in: upstream sink for scrubbed crash reports (see below) |
 | `XNET_DIAGNOSTICS_SECRET`   | —                 | Opt-in: shared secret for diagnostics sharing |
+| `XNET_DIAGNOSTICS_INBOX`    | `open`            | Crash inbox mode: `open`, `authed`, or `off`  |
+| `XNET_SHARE_CRASH_COUNTS`   | —                 | Opt-in: tee fingerprint-level crash *counts* upstream |
+
+### Your hub is your crash console (default on)
+
+Every hub runs a first-party **diagnostics inbox**: your deployment's own
+clients report crashes to `POST /diagnostics/ingest` on *your* hub, and the
+reports go nowhere else. The quarantine lives in its own `diagnostics.db`
+(8 KB per report, deduplicated by fingerprint, 30-day retention for handled
+reports, hard row cap), and the operator drains it from the app — **Settings →
+Privacy &amp; Diagnostics → Import reports** — into a Diagnostics Space where
+the workbench is the triage console (Inbox / By release / By fingerprint saved
+views, a `new → acked → fixed → released` status field, comments).
+
+The ingest is rate-limited per client IP and accepts only allowlisted,
+length-bounded, twice-scrubbed fields. Set `XNET_DIAGNOSTICS_INBOX=authed` to
+require authentication for it on hubs exposed to the open internet, or `off`
+to disable the inbox entirely.
+
+Escalation to xNet is a separate, layered choice — three switches, each off
+by default:
+
+1. **Send one report** — from the console, "Send to xNet" previews the exact
+   payload and forwards it through the sharing route below. Requires sharing
+   to be configured; without it, the route does not exist.
+2. **Share crash counts** — `XNET_SHARE_CRASH_COUNTS=on` (plus the sharing
+   config below) tees *fingerprint-level* data upstream on each automatic
+   crash: error name, release, surface, grouping hash, and count. Never the
+   message, stack, breadcrumbs, or any identifier.
+3. **Let xNet help debug** — grant xNet's support identity time-boxed,
+   read-only access to your Diagnostics Space from the same settings panel.
+   It expires on its own and can be revoked in one click.
 
 ### Diagnostics sharing (opt-in, off by default)
 

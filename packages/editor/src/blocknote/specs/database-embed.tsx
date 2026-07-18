@@ -7,17 +7,13 @@ import { createReactBlockSpec } from '@blocknote/react'
 import * as React from 'react'
 import { useEditorHost, type DatabaseViewType } from '../host-context'
 
-const VIEW_TYPES: readonly DatabaseViewType[] = [
-  'table',
-  'board',
-  'list',
-  'gallery',
-  'calendar',
-  'form'
-]
-
+/**
+ * Any non-empty view type travels through to the host (0346) — the host
+ * dispatches through its view registry and owns the unknown-type
+ * fallback, so plugin view types work without an editor release.
+ */
 function coerceViewType(raw: string): DatabaseViewType {
-  return (VIEW_TYPES as readonly string[]).includes(raw) ? (raw as DatabaseViewType) : 'table'
+  return raw.trim() ? (raw as DatabaseViewType) : 'table'
 }
 
 /** viewConfig travels as a JSON string (BlockNote props are scalars only). */
