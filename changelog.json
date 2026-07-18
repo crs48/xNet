@@ -6,6 +6,30 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-18-documents-now-embed-live-databases-maps-",
+      "url": "https://xnet.fyi/changelog#2026-07-18-documents-now-embed-live-databases-maps-",
+      "title": "Documents now embed live databases, maps, and pages",
+      "content_text": "Pages compose like Lego: slash in a live view of any database (table, board, map, calendar and plugin views), transclude other pages, and drop nodes onto frames to link or add rows. Hovering a row lights the same item up in every frame on the page, every surface carries the same node passport, and the assistant can compose whole pages of live frames with a reviewable plan.\n",
+      "date_published": "2026-07-18T17:46:54Z",
+      "tags": [
+        "editor",
+        "app",
+        "ai"
+      ],
+      "_xnet": {
+        "date": "July 18, 2026",
+        "summary": "Pages compose like Lego: slash in a live view of any database (table, board, map, calendar and plugin views), transclude other pages, and drop nodes onto frames to link or add rows. Hovering a row lights the same item up in every frame on the page, every surface carries the same node passport, and the assistant can compose whole pages of live frames with a reviewable plan.",
+        "highlights": [],
+        "mergedAt": "2026-07-18T17:46:54Z",
+        "pr": 552,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-18-export-your-whole-workspace-as-a-portabl",
       "url": "https://xnet.fyi/changelog#2026-07-18-export-your-whole-workspace-as-a-portabl",
       "title": "Export your whole workspace as a portable bundle — and restore it anywhere",

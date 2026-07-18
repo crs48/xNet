@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Documents now embed live databases, maps, and pages</title>
+      <link>https://xnet.fyi/changelog#2026-07-18-documents-now-embed-live-databases-maps-</link>
+      <guid isPermaLink="false">2026-07-18-documents-now-embed-live-databases-maps-</guid>
+      <pubDate>Sat, 18 Jul 2026 17:46:54 GMT</pubDate>
+      <description>Pages compose like Lego: slash in a live view of any database (table, board, map, calendar and plugin views), transclude other pages, and drop nodes onto frames to link or add rows. Hovering a row lights the same item up in every frame on the page, every surface carries the same node passport, and the assistant can compose whole pages of live frames with a reviewable plan.</description>
+    </item>
+    <item>
       <title>Export your whole workspace as a portable bundle — and restore it anywhere</title>
       <link>https://xnet.fyi/changelog#2026-07-18-export-your-whole-workspace-as-a-portabl</link>
       <guid isPermaLink="false">2026-07-18-export-your-whole-workspace-as-a-portabl</guid>

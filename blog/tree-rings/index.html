@@ -1,0 +1,424 @@
+<!DOCTYPE html><html lang="en" class="dark scroll-smooth astro-5hce7sga"> <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="description" content="A tree never edits a ring: growth accretes on the outside, and the whole history stays legible in the grain. Rich Hickey has spent two decades arguing software should be built the same way — values that accrete, not places that overwrite. On Effective Programs and its pyramid of what actually costs money, Simple Made Easy, the epochal time model — what taking the middle of that pyramid seriously looks like in a working protocol, and the three places we deliberately depart from the hammock."><link rel="icon" type="image/svg+xml" href="/favicon.svg"><title>Tree Rings — xNet</title><!-- Inline script to prevent flash: read localStorage, fallback to system preference --><script>
+      (function() {
+        var storedTheme = localStorage.getItem('xnet-lp-theme')
+        var theme = storedTheme || (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark')
+        if (theme === 'light') {
+          document.documentElement.classList.remove('dark')
+        }
+      })()
+    </script><link rel="stylesheet" href="/_astro/acceptable-use.DaJO1PI5.css"><script type="module" src="/_astro/page.B1D-nYk3.js"></script></head> <body class="bg-white dark:bg-[#0a0a0f] text-gray-800 dark:text-gray-200 antialiased font-sans leading-relaxed astro-5hce7sga">  <header class="sticky top-0 z-50 border-b border-border/50 bg-white/80 dark:bg-[#0a0a0f]/80 backdrop-blur-xl"> <nav class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4"> <a href="/" class="font-mono text-xl font-bold tracking-tight text-gray-900 dark:text-white hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors">
+xNet
+</a> <div class="flex items-center gap-5 text-sm"> <a href="/#app" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"> App </a><a href="/#hubs" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"> Teams </a><a href="/#vision" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"> Vision </a> <span class="hidden sm:inline h-4 w-px bg-border" aria-hidden="true"></span> <a href="/why" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"> Why </a><a href="/build-with" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"> Build </a><a href="/demos/" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"> Demos </a><a href="/blog" class="hidden sm:inline text-gray-500 hover:text-gray-900 dark:hover:text-white transition-colors"> Blog </a> <a href="/docs/introduction/" class="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-sm text-gray-600 dark:text-gray-300 hover:border-indigo-500/50 hover:bg-surface transition-all"> <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2"> <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25"></path> </svg>
+Docs
+</a> <a href="/app" class="rounded-lg bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500 transition-all">
+Try the App
+</a> <button id="lp-theme-toggle" class="rounded-lg border border-border p-1.5 text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 hover:border-gray-400 dark:hover:border-gray-500 transition-colors" aria-label="Toggle theme"> <!-- Sun icon (shown in dark mode) --> <svg class="h-4 w-4 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"></path> </svg> <!-- Moon icon (shown in light mode) --> <svg class="h-4 w-4 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"> <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"></path> </svg> </button> <script type="module">const t=document.getElementById("lp-theme-toggle");t?.addEventListener("click",()=>{const e=document.documentElement.classList.toggle("dark");localStorage.setItem("xnet-lp-theme",e?"dark":"light")});</script> <a href="https://github.com/crs48/xNet" aria-label="xNet on GitHub" class="hidden sm:flex items-center rounded-lg border border-border p-1.5 text-gray-600 dark:text-gray-300 hover:border-indigo-500/50 hover:bg-surface transition-all"> <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"></path></svg> </a> </div> </nav> </header> <main> <section class="relative overflow-hidden border-b border-border bg-surface/20 dark:bg-[#080611]"> <svg class="pointer-events-none absolute inset-0 h-full w-full" viewBox="0 0 1040 340" preserveAspectRatio="xMidYMid slice" aria-hidden="true"> <defs> <linearGradient id="trbg" x1="0" y1="0" x2="0" y2="1"> <stop offset="0%" stop-color="#100c1d"></stop> <stop offset="55%" stop-color="#0c0917"></stop> <stop offset="100%" stop-color="#080611"></stop> </linearGradient> <radialGradient id="trglow" cx="50%" cy="50%" r="50%"> <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.85"></stop> <stop offset="45%" stop-color="#f59e0b" stop-opacity="0.3"></stop> <stop offset="100%" stop-color="#f59e0b" stop-opacity="0"></stop> </radialGradient> <linearGradient id="trx" x1="0" y1="0" x2="1" y2="1"> <stop offset="0%" stop-color="#fde68a"></stop> <stop offset="100%" stop-color="#f59e0b"></stop> </linearGradient> </defs> <rect width="1040" height="340" fill="url(#trbg)"></rect> <!-- the change log: signed blocks, hash-chained, walking toward the tree --> <g> <g opacity="0.35"> <rect x="51" y="159" width="26" height="26" rx="5" fill="none" stroke="#a78bfa" stroke-width="1.5"></rect>  <path d="M 59 173 l 4 4 l 7 -8" fill="none" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>  <line x1="77" y1="172" x2="115" y2="172" stroke="#5b4a8f" stroke-width="1.4" stroke-dasharray="5 4"></line> </g><g opacity="0.43999999999999995"> <rect x="115" y="159" width="26" height="26" rx="5" fill="none" stroke="#a78bfa" stroke-width="1.5"></rect>  <path d="M 123 173 l 4 4 l 7 -8" fill="none" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>  <line x1="141" y1="172" x2="179" y2="172" stroke="#5b4a8f" stroke-width="1.4" stroke-dasharray="5 4"></line> </g><g opacity="0.53"> <rect x="179" y="159" width="26" height="26" rx="5" fill="none" stroke="#a78bfa" stroke-width="1.5"></rect>  <path d="M 187 173 l 4 4 l 7 -8" fill="none" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>  <line x1="205" y1="172" x2="243" y2="172" stroke="#5b4a8f" stroke-width="1.4" stroke-dasharray="5 4"></line> </g><g opacity="0.62"> <rect x="243" y="159" width="26" height="26" rx="5" fill="none" stroke="#a78bfa" stroke-width="1.5"></rect>  <path d="M 251 173 l 4 4 l 7 -8" fill="none" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>  <line x1="269" y1="172" x2="307" y2="172" stroke="#5b4a8f" stroke-width="1.4" stroke-dasharray="5 4"></line> </g><g opacity="0.71"> <rect x="307" y="159" width="26" height="26" rx="5" fill="none" stroke="#a78bfa" stroke-width="1.5"></rect>  <path d="M 315 173 l 4 4 l 7 -8" fill="none" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>  <line x1="333" y1="172" x2="371" y2="172" stroke="#5b4a8f" stroke-width="1.4" stroke-dasharray="5 4"></line> </g><g opacity="0.7999999999999999"> <rect x="371" y="159" width="26" height="26" rx="5" fill="none" stroke="#a78bfa" stroke-width="1.5"></rect>  <path d="M 379 173 l 4 4 l 7 -8" fill="none" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>  <line x1="397" y1="172" x2="435" y2="172" stroke="#5b4a8f" stroke-width="1.4" stroke-dasharray="5 4"></line> </g><g opacity="0.89"> <rect x="435" y="159" width="26" height="26" rx="5" fill="none" stroke="#a78bfa" stroke-width="1.5"></rect>  <path d="M 443 173 l 4 4 l 7 -8" fill="none" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path>  <line x1="461" y1="172" x2="499" y2="172" stroke="#5b4a8f" stroke-width="1.4" stroke-dasharray="5 4"></line> </g> <!-- the last link curls off the line and into the outermost ring --> <path d="M 461 172 C 540 172, 590 96, 772 22" fill="none" stroke="#5b4a8f" stroke-width="1.4" stroke-dasharray="5 4" opacity="0.8"></path> </g> <!-- the trunk: every year still there, the newest on the outside --> <g fill="none" stroke="#b45309"> <circle cx="780" cy="172" r="18" stroke-width="1.6" opacity="0.65"></circle><circle cx="780" cy="172" r="30" stroke-width="1.3" opacity="0.55"></circle><circle cx="780" cy="172" r="40" stroke-width="1.1" opacity="0.5" stroke-dasharray="52 9"></circle><circle cx="780" cy="172" r="54" stroke-width="1.5" opacity="0.6"></circle><circle cx="780" cy="172" r="63" stroke-width="1" opacity="0.42" stroke-dasharray="34 7"></circle><circle cx="780" cy="172" r="76" stroke-width="1.3" opacity="0.52"></circle><circle cx="780" cy="172" r="92" stroke-width="1.1" opacity="0.45" stroke-dasharray="80 12"></circle><circle cx="780" cy="172" r="104" stroke-width="1.5" opacity="0.55"></circle><circle cx="780" cy="172" r="113" stroke-width="1" opacity="0.38" stroke-dasharray="26 6"></circle><circle cx="780" cy="172" r="126" stroke-width="1.3" opacity="0.48"></circle><circle cx="780" cy="172" r="138" stroke-width="1.1" opacity="0.4" stroke-dasharray="110 14"></circle><circle cx="780" cy="172" r="148" stroke-width="2.6" opacity="0.6"></circle> </g> <!-- one hairline check in the wood — age, not erasure --> <path d="M 802 158 Q 854 132 912 114" fill="none" stroke="#78350f" stroke-width="1.2" opacity="0.5"></path> <!-- the dendrochronologist's tick marks along the counting radius --> <g stroke="#f59e0b" stroke-width="1" opacity="0.4"> <line x1="798" y1="168" x2="798" y2="176"></line><line x1="810" y1="168" x2="810" y2="176"></line><line x1="820" y1="168" x2="820" y2="176"></line><line x1="834" y1="168" x2="834" y2="176"></line><line x1="843" y1="168" x2="843" y2="176"></line><line x1="856" y1="168" x2="856" y2="176"></line><line x1="872" y1="168" x2="872" y2="176"></line><line x1="884" y1="168" x2="884" y2="176"></line><line x1="893" y1="168" x2="893" y2="176"></line><line x1="906" y1="168" x2="906" y2="176"></line><line x1="918" y1="168" x2="918" y2="176"></line><line x1="928" y1="168" x2="928" y2="176"></line> </g> <!-- the core: the first change, still readable --> <g transform="translate(780 172)"> <circle cx="0" cy="0" r="44" fill="url(#trglow)"></circle> <g stroke="url(#trx)" stroke-width="5.5" stroke-linecap="round" transform="translate(-11 -12)"> <line x1="0" y1="0" x2="22" y2="24"></line> <line x1="22" y1="0" x2="0" y2="24"></line> </g> </g> </svg> <div class="relative mx-auto max-w-3xl px-6 pb-14 pt-44 lg:pt-52"> <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-violet-200/80"> <time datetime="July 18, 2026">July 18, 2026</time> <span aria-hidden="true">·</span> <span>14 min read</span> <span class="rounded-full border border-violet-400/30 bg-violet-500/10 px-2 py-0.5 font-mono lowercase text-violet-200"> essay </span><span class="rounded-full border border-violet-400/30 bg-violet-500/10 px-2 py-0.5 font-mono lowercase text-violet-200"> philosophy </span><span class="rounded-full border border-violet-400/30 bg-violet-500/10 px-2 py-0.5 font-mono lowercase text-violet-200"> protocol </span> </div> <h1 class="mt-4 text-4xl font-bold tracking-tight text-white drop-shadow lg:text-5xl"> Tree Rings </h1> <p class="mt-4 max-w-2xl text-lg leading-relaxed text-gray-300">A tree never edits a ring: growth accretes on the outside, and the whole history stays legible in the grain. Rich Hickey has spent two decades arguing software should be built the same way — values that accrete, not places that overwrite. On Effective Programs and its pyramid of what actually costs money, Simple Made Easy, the epochal time model — what taking the middle of that pyramid seriously looks like in a working protocol, and the three places we deliberately depart from the hammock.</p> </div> </section> <article class="prose prose-lg mx-auto max-w-3xl px-6 py-16 dark:prose-invert prose-headings:tracking-tight prose-a:text-violet-600 dark:prose-a:text-violet-400"> <div class="not-prose flex flex-wrap items-center gap-2 text-sm text-gray-500 dark:text-gray-400"> <span class="flex -space-x-2"> <img src="/blog/authors/crs48.jpg" alt="crs48" width="24" height="24" loading="lazy" class="rounded-full ring-2 ring-white dark:ring-gray-900"><img src="/blog/authors/claude.svg" alt="Claude" width="24" height="24" loading="lazy" class="rounded-full ring-2 ring-white dark:ring-gray-900"> </span> <a href="https://github.com/crs48" target="_blank" rel="noopener noreferrer" class="font-medium text-gray-600 transition-colors hover:text-indigo-500 dark:text-gray-300 dark:hover:text-indigo-400"> crs48 </a><span aria-hidden="true">with</span><a href="https://claude.com/claude-code" target="_blank" rel="noopener noreferrer" class="font-medium text-gray-600 transition-colors hover:text-indigo-500 dark:text-gray-300 dark:hover:text-indigo-400"> Claude </a> </div> <script type="application/ld+json">{"@context":"https://schema.org","@type":"Article","headline":"Tree Rings","description":"A tree never edits a ring: growth accretes on the outside, and the whole history stays legible in the grain. Rich Hickey has spent two decades arguing software should be built the same way — values that accrete, not places that overwrite. On Effective Programs and its pyramid of what actually costs money, Simple Made Easy, the epochal time model — what taking the middle of that pyramid seriously looks like in a working protocol, and the three places we deliberately depart from the hammock.","datePublished":"2026-07-18T21:00:00Z","url":"https://xnet.fyi/blog/tree-rings","author":[{"@type":"Person","name":"crs48","url":"https://github.com/crs48"},{"@type":"Person","name":"Claude","url":"https://claude.com/claude-code"}]}</script> <p>
+Cut a tree and you can read its whole life. Every year the trunk lays a
+        new ring on the outside — wide in the wet years, tight in the
+        droughts, scarred where the fire came through — and the years already
+        laid down do not move. A tree never goes back to fix 1987. There is a
+        science built on exactly this property: dendrochronologists have
+        cross-dated overlapping ring patterns from living trees back through
+        beams in medieval barns to sub-fossil oaks in peat bogs, and
+        assembled an unbroken year-by-year record reaching thousands of years
+        into the past. The record is trustworthy for one reason. The medium
+        only ever <em>adds</em>. Growth on the outside; history, legible,
+        within.
+</p> <p>
+Software, mostly, is not built like this. Software is built like a
+        whiteboard: to record something new, we erase something old. A
+        database row is a place; an update walks to the place and destroys
+        what it finds there. Rich Hickey — the creator of the Clojure
+        programming language, and the closest thing our field has to a
+        working philosopher — has spent two decades arguing that this is not
+        a detail. It is the load-bearing mistake. He gave it a deliberately
+        deflating name, <em>place-oriented programming</em>, and pointed out
+        that its only real justification was that 1970s memory and disk were
+        desperately small. The constraint died; the habit survived. New
+        information does not need to replace old information. That is just
+        what tiny computers forced us to do, and we kept doing it after the
+        computers stopped being tiny.
+</p> <p>
+This essay is about Hickey's argument and one attempt — ours — to
+        take it literally in a protocol. The occasion is a talk he gave in
+        2017, at the conference marking Clojure's tenth birthday, called
+<em>Effective Programs</em>. It is the closest thing the corpus has
+        to a summing-up, and near its centre there is a slide we have never
+        stopped thinking about: a ranked list of everything that goes wrong
+        in software, ordered by what it actually costs.
+</p> <h2>The pyramid of what actually hurts</h2> <p>
+The talk opens with a question most language designers skip:
+        what are programs <em>for</em>? Hickey's answer is that programming
+        is about making computers effective in the world — and that most of
+        the leverage comes not from computation but from information: from
+        accumulating facts about what happened and extracting predictive
+        power from them. The programs that do this — the ones most of us are
+        paid to build and run — he calls <em>situated</em>. A situated
+        program runs for years, not milliseconds. It consumes and produces
+        information whose meaning it does not control. It talks to other
+        systems that will not upgrade on its schedule, absorbs requirements
+        of genuinely dumbfounding arbitrariness (his example, from a
+        radio-scheduling system he built early in his career: the station
+        plays two songs by the same artist back-to-back on Tuesdays), and is
+        expected to keep working while the world changes around it. A
+        compiler gets to define its whole universe. A situated program lives
+        in ours.
+</p> <p>
+Then comes the slide. Hickey lists the problems of programming and
+        prices them, most expensive at the top. At the summit sit
+<strong>domain complexity</strong> and <strong>misconceptions</strong>
+— the problem being genuinely hard, and you misunderstanding it. These
+        dominate everything, and no language feature reaches them; by his
+        estimate there is roughly an order-of-magnitude drop in cost before
+        the first problem a language could even address. At the bottom sit
+        the trivia: typos, silly inconsistencies, passing the wrong type —
+        real, but cheap, caught earliest, closest to the keyboard. And in
+        between lies the band where design actually pays: mutable places.
+        Tangled couplings. Information forced through rigid class shapes.
+        Names that only mean something inside one program's walls.
+        Concurrency. Distribution. His charge, delivered mildly and landing
+        heavily, is that our industry's most celebrated tooling concentrates
+        on the cheap bottom of the pyramid — while the middle, where
+        systems actually die, goes comparatively unserved. Clojure was his
+        attempt to serve the middle.
+</p> <figure class="not-prose my-10"> <div class="rounded-2xl border border-border bg-surface/30 p-5 dark:bg-surface/40 lg:p-7"> <div class="mx-auto max-w-[11rem] rounded-lg border border-rose-500/40 bg-rose-500/10 px-3 py-2 text-center"> <p class="text-xs font-semibold leading-snug text-gray-900 dark:text-white">
+misconceptions · domain complexity
+</p> <p class="mt-1 font-mono text-[10px] text-rose-500 dark:text-rose-400">$$$$$ — no language can help</p> </div> <p class="my-2 text-center text-gray-400 dark:text-gray-600" aria-hidden="true">↓</p> <div class="mx-auto max-w-xl rounded-lg border border-violet-500/40 bg-violet-500/10 p-3"> <p class="text-center font-mono text-[10px] uppercase tracking-wider text-violet-500 dark:text-violet-300">
+the leverage band — and what a protocol can do about it
+</p> <ul class="mt-2 grid gap-1.5"> <li class="flex flex-col gap-0.5 rounded-md border border-border bg-surface/40 px-3 py-1.5 text-xs leading-relaxed dark:bg-surface/60 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3"> <span class="font-semibold text-gray-900 dark:text-white">place-oriented programming</span> <span class="text-gray-500 dark:text-gray-400 sm:text-right">a signed, append-only change log — nothing is ever overwritten</span> </li><li class="flex flex-col gap-0.5 rounded-md border border-border bg-surface/40 px-3 py-1.5 text-xs leading-relaxed dark:bg-surface/60 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3"> <span class="font-semibold text-gray-900 dark:text-white">information handling</span> <span class="text-gray-500 dark:text-gray-400 sm:text-right">one open-map node shape; schemas are lenses, not cages</span> </li><li class="flex flex-col gap-0.5 rounded-md border border-border bg-surface/40 px-3 py-1.5 text-xs leading-relaxed dark:bg-surface/60 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3"> <span class="font-semibold text-gray-900 dark:text-white">brittleness &amp; coupling</span> <span class="text-gray-500 dark:text-gray-400 sm:text-right">one merge rule, derived everywhere, pinned by conformance vectors</span> </li><li class="flex flex-col gap-0.5 rounded-md border border-border bg-surface/40 px-3 py-1.5 text-xs leading-relaxed dark:bg-surface/60 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3"> <span class="font-semibold text-gray-900 dark:text-white">parochial names &amp; types</span> <span class="text-gray-500 dark:text-gray-400 sm:text-right">namespaced schema IRIs, authority-scoped extension keys, DIDs</span> </li><li class="flex flex-col gap-0.5 rounded-md border border-border bg-surface/40 px-3 py-1.5 text-xs leading-relaxed dark:bg-surface/60 sm:flex-row sm:items-baseline sm:justify-between sm:gap-3"> <span class="font-semibold text-gray-900 dark:text-white">concurrency &amp; distribution</span> <span class="text-gray-500 dark:text-gray-400 sm:text-right">immutable facts + a pure fold; devices converge without a referee</span> </li> </ul> </div> <p class="my-2 text-center text-gray-400 dark:text-gray-600" aria-hidden="true">↓</p> <div class="mx-auto max-w-3xl rounded-lg border border-border bg-surface/40 px-3 py-2 text-center dark:bg-surface/60"> <p class="text-xs leading-snug text-gray-600 dark:text-gray-300">
+typos · inconsistencies · type mismatches
+</p> <p class="mt-1 font-mono text-[10px] text-gray-400 dark:text-gray-500">
+$ — cheapest, caught earliest, where most tooling energy goes
+</p> </div> </div> <figcaption class="mt-3 text-center text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+The severity ranking from <em>Effective Programs</em>, drawn as the pyramid it implies —
+          dearest at the top, cheapest at the bottom, and the middle band where design leverage
+          actually lives. The right-hand column is our homework, marked in the sections below.
+</figcaption> </figure> <p>
+Clojure serves that middle band at the level of a language. xNet is a
+        bet that the same band can be served at the level of a
+<em>system</em> — a protocol for keeping, merging, and sharing a
+        workspace full of other people's information, which is about as
+        situated as programs get: always on, many devices, many authors,
+        nobody in charge of the whole world. So let us descend the middle of
+        the pyramid, problem by problem, and show receipts.
+</p> <h2>Facts do not take editing</h2> <p>
+Start with place-oriented programming, because everything else in
+        xNet follows from refusing it. Hickey's alternative to the mutable
+        place is the <em>value</em> — immutable, and meaning what it says
+        without needing anyone's permission or interface documentation to
+        read it. His favourite examples are disarming: your source control
+        system never edits a commit; your logs are never rewritten; your
+        accountant does not erase the ledger when the balance changes, and
+        it is mildly alarming how many industries consider that basic
+        hygiene while software considers it exotic. A fact is something that
+        happened. You cannot update the past; you can only learn more of it.
+</p> <p>
+In xNet, the primitive of all writing is built exactly on this
+        refusal. Every edit — a keystroke batch, a task ticked, a cell
+        changed — becomes a <em>change</em>: a small record naming the node
+        it touches and the properties it sets. Before it goes anywhere, it
+        is hashed and signed:
+</p> <figure class="not-prose my-6"> <div class="group relative min-w-0 overflow-hidden rounded-xl border border-border bg-code-bg"> <div class="border-b border-border px-4 py-2 font-mono text-xs text-gray-500"> packages/sync/src/change.ts </div> <div class="relative"> <pre class="lp-code overflow-x-auto p-5 font-mono text-sm leading-relaxed"><code><span class="tok-comment">// packages/sync/src/change.ts — an edit becomes a fact: hash, then sign.</span>
+<span class="tok-keyword">export function</span> <span class="tok-fn">signChange</span>&lt;T&gt;(unsigned: <span class="tok-type">UnsignedChange</span>&lt;T&gt;, signingKey: <span class="tok-type">Uint8Array</span>): <span class="tok-type">Change</span>&lt;T&gt; {
+  <span class="tok-keyword">const</span> hash = <span class="tok-fn">computeChangeHash</span>(unsigned)  <span class="tok-comment">// BLAKE3 over canonical JSON</span>
+  <span class="tok-keyword">const</span> signature = <span class="tok-fn">sign</span>(<span class="tok-keyword">new</span> <span class="tok-type">TextEncoder</span>().<span class="tok-fn">encode</span>(hash), signingKey)
+  <span class="tok-keyword">return</span> { ...unsigned, hash, signature }
+}</code></pre> <button class="copy-btn absolute right-3 top-3 rounded-md border border-border bg-surface px-2 py-1 text-xs text-gray-500 opacity-0 transition-opacity hover:text-gray-700 group-hover:opacity-100 dark:hover:text-gray-300" aria-label="Copy code">
+Copy
+</button> </div> </div> <figcaption class="mt-2.5 text-sm leading-relaxed text-gray-500 dark:text-gray-400"> An edit becomes a fact. The hash is computed over canonical JSON with BLAKE3; the author&#39;s Ed25519 key signs the hash; the change carries its parent&#39;s hash, so history is a chain. There is no other write path in the protocol. </figcaption> </figure> <p>
+Note what this object cannot do. It cannot be altered — the hash
+        would break. It cannot be disowned — the signature names its author.
+        And it cannot be <em>overwritten</em>, because nothing in the system
+        overwrites: the log of these changes is append-only, and the current
+        state of your workspace is not a place being serviced by updates but
+        a view <em>derived</em> from the log, the way the shape of a trunk
+        is derived from its rings. We have
+<a href="/blog/the-loom-you-can-read">walked through this log
+        line-by-line before</a>; what we want to say here is simply where
+        the idea sits. It is the top of Hickey's middle band, implemented as
+        a wire format.
+</p> <h2>Just use maps</h2> <p>
+Next: information. The strangest-sounding claim in
+<em>Effective Programs</em>, until it clicks, is that mainstream
+        languages are bad at <em>information</em> specifically. The class —
+        the proud unit of object-oriented design — makes you declare, in
+        advance, in one program's vocabulary, what a person or an invoice
+<em>is</em>; the names get compiled away, and two systems with
+        slightly different declarations cannot use each other's data without
+        a diplomatic incident. Hickey's word for this is
+<em>parochialism</em>: types and names that only work inside their
+        own parish. His prescription is older than it sounds — represent
+        information as plain associative data, maps of self-describing keys,
+        the way RDF represents everything as subject-predicate-object so
+        that facts from strangers can merge at all. Clojure programs are
+        famously maps all the way down. So is xNet:
+</p> <figure class="not-prose my-6"> <div class="group relative min-w-0 overflow-hidden rounded-xl border border-border bg-code-bg"> <div class="border-b border-border px-4 py-2 font-mono text-xs text-gray-500"> packages/data/src/schema/node.ts </div> <div class="relative"> <pre class="lp-code overflow-x-auto p-5 font-mono text-sm leading-relaxed"><code><span class="tok-comment">// packages/data/src/schema/node.ts — the universal container type.</span>
+<span class="tok-keyword">export interface</span> <span class="tok-type">Node</span> {
+  id: <span class="tok-type">string</span>
+  schemaId: <span class="tok-type">SchemaIRI</span>   <span class="tok-comment">// e.g. xnet://xnet.fyi/Task@2.0.0</span>
+  createdAt: <span class="tok-type">number</span>
+  createdBy: <span class="tok-type">DID</span>
+  <span class="tok-comment">/** All other fields are schema-defined */</span>
+  [key: <span class="tok-type">string</span>]: <span class="tok-type">unknown</span>
+}</code></pre> <button class="copy-btn absolute right-3 top-3 rounded-md border border-border bg-surface px-2 py-1 text-xs text-gray-500 opacity-0 transition-opacity hover:text-gray-700 group-hover:opacity-100 dark:hover:text-gray-300" aria-label="Copy code">
+Copy
+</button> </div> </div> <figcaption class="mt-2.5 text-sm leading-relaxed text-gray-500 dark:text-gray-400"> Every piece of data in xNet — a page, a task, a contact, a message — is this one shape: four universal fields, then an open map. Schemas validate and describe; they do not own. </figcaption> </figure> <p>
+Four fields are universal; everything else is keys. A schema in xNet
+        is a <em>lens</em> over this open map — it validates, describes, and
+        gives your editor something to autocomplete — but it does not seal
+        the map shut. Anyone can lay extra keys on any node under an
+        extension prefix that names <em>their</em> authority, and the
+        protocol will sync and merge them like any other property; a later
+        owner can promote a well-loved extension into the schema proper.
+        And the names are anti-parochial by construction: a schema is not
+<code>Task</code>, a word that means something different in every
+        codebase on earth, but <code>xnet://xnet.fyi/Task@2.0.0</code> — a
+        namespaced, versioned identifier anyone can mint under their own
+        domain or DID, and no one can collide with. Authors, likewise, are
+        not row IDs in somebody's users table; they are DIDs, names that
+        keep working when the data walks out of the building. This is what
+        it looks like to let information leave the parish: the map is open,
+        and every key knows where it came from.
+</p> <h2>One braid at a time</h2> <p>
+Six years before <em>Effective Programs</em>, Hickey gave the talk
+        most working programmers know him for, <em>Simple Made Easy</em> —
+        the one that rescued the word <em>simple</em> from meaning "whatever
+        I already know". Simple, by etymology, is <em>one fold</em>: a thing
+        is simple when each concern stands alone, and complex when concerns
+        are braided together — for which he exhumed the perfect archaic
+        verb, <em>complect</em>. Easy, by contrast, just means <em>near at
+        hand</em> — and the talk's lasting warning is that these are
+        different axes. Tools that make things easy to write can braid
+        horrors into what you have written. State complects value with
+        time. Objects complect state with identity. And the cost lands
+        later, in the artefact you run and maintain, not in the construct
+        you enjoyed typing. His verdict on our profession's due diligence
+        still stings: <em>"programmers know the benefits of everything and
+        the tradeoffs of nothing."</em> </p> <p>
+We can offer a confession-shaped receipt for this one. The heart of
+        any multi-device protocol is its merge rule — ours is per-property
+        last-writer-wins over the change log. For a while, that rule lived
+        in three places: once in the store that applies changes, once in
+        the SQLite layer's conflict guards, once in the hub's ordering.
+        Three implementations of one idea, each drifting on its own
+        schedule, on the invariant the whole system's convergence depends
+        on. That is complexity in Hickey's exact sense — not a hard
+        algorithm, but one fold braided through three modules. The fix was
+        not cleverness. It was un-braiding:
+</p> <figure class="not-prose my-6"> <div class="group relative min-w-0 overflow-hidden rounded-xl border border-border bg-code-bg"> <div class="border-b border-border px-4 py-2 font-mono text-xs text-gray-500"> packages/core/src/lww.ts </div> <div class="relative"> <pre class="lp-code overflow-x-auto p-5 font-mono text-sm leading-relaxed"><code><span class="tok-comment">// packages/core/src/lww.ts — "The ONE Last-Write-Wins ordering for xNet".</span>
+<span class="tok-comment">// Previously re-implemented in three places; every implementation now</span>
+<span class="tok-comment">// derives from this module, and a conformance suite pins them equal.</span>
+<span class="tok-keyword">export function</span> <span class="tok-fn">compareLwwStamps</span>(a: <span class="tok-type">LwwStamp</span>, b: <span class="tok-type">LwwStamp</span>): <span class="tok-type">number</span> {
+  <span class="tok-keyword">if</span> (a.lamport !== b.lamport) <span class="tok-keyword">return</span> a.lamport - b.lamport
+  <span class="tok-keyword">if</span> (a.wallTime !== b.wallTime) <span class="tok-keyword">return</span> a.wallTime - b.wallTime
+  <span class="tok-comment">// … then a grinding-resistant tiebreak key, then the author DID</span>
+}</code></pre> <button class="copy-btn absolute right-3 top-3 rounded-md border border-border bg-surface px-2 py-1 text-xs text-gray-500 opacity-0 transition-opacity hover:text-gray-700 group-hover:opacity-100 dark:hover:text-gray-300" aria-label="Copy code">
+Copy
+</button> </div> </div> <figcaption class="mt-2.5 text-sm leading-relaxed text-gray-500 dark:text-gray-400"> The merge rule, un-braided: one module owns the ordering — Lamport time, then wall time, then a grinding-resistant tiebreak — and the store, the SQLite guards, and the hub all derive from it. Golden-vector conformance tests pin every implementation to the same answers. </figcaption> </figure> <p>
+The rule itself stayed three lines. The work was making it
+<em>one</em> — a single fold, projected into JavaScript and SQL from
+        one source, with a conformance suite standing guard against
+        re-braiding. Simplicity, Hickey keeps insisting, is a choice, and
+        mostly an unglamorous one; nothing about that diff would demo well.
+        But it is the difference between a castle of bricks and a castle of
+        knitting, and you find out which one you built on the day you need
+        to change it.
+</p> <h2>The whole workspace is a value</h2> <p>
+The deepest idea in the corpus is the one Hickey built a database
+        out of. If facts are immutable and accrete, then <em>time</em>
+stops being an enemy and becomes an index. He calls it the epochal
+        time model: an identity — you, a document, a company — is not a
+        mutable thing but a <em>succession of values</em>, each one
+        complete, each one permanent, like — his image, and this essay's
+        title — the rings of a tree. Datomic, his database, made this
+        concrete in a way that still feels like a magic trick: you do not
+        send queries to the database; you ask for <em>the database</em>, as
+        a value, as of any moment, and query it locally at your leisure.
+        The past is not a backup tape. It is an argument you can pass.
+</p> <p>
+xNet's version of the trick is called a <em>frontier</em>: a map
+        from node to change-hash that pins a moment in the log — by
+        content, never by clock, so it either means exactly what it says or
+        fails honestly. Materialising a workspace at a frontier is a pure
+        fold: start empty, apply changes in order, out comes the state as
+        of that moment. Everything the app calls history is this one
+        primitive wearing three hats. A read-only frontier is the timeline
+        scrubber. A named, pinned frontier is a checkpoint. A frontier you
+        fork and keep writing to is a draft — and because your draft and
+        the shared head are just two successions of the same values,
+        comparing or merging them needs no new machinery at all. Undo,
+        blame, diff, "what did this look like in March?" — none of these
+        are features in xNet. They are queries against rings the tree was
+        growing anyway.
+</p> <figure class="not-prose my-10"> <div class="rounded-2xl border border-border bg-surface/30 p-5 dark:bg-surface/40 lg:p-7"> <div class="flex flex-wrap items-center justify-center gap-2"> <span class="rounded-lg border border-violet-500/40 bg-violet-500/10 px-3 py-1.5 font-mono text-sm text-gray-900 dark:text-white"> c₁ </span> <span class="font-mono text-xs text-gray-400 dark:text-gray-600" aria-hidden="true">
+←
+</span><span class="rounded-lg border border-violet-500/40 bg-violet-500/10 px-3 py-1.5 font-mono text-sm text-gray-900 dark:text-white"> c₂ </span> <span class="font-mono text-xs text-gray-400 dark:text-gray-600" aria-hidden="true">
+←
+</span><span class="rounded-lg border border-violet-500/40 bg-violet-500/10 px-3 py-1.5 font-mono text-sm text-gray-900 dark:text-white"> c₃ </span> <span class="font-mono text-xs text-gray-400 dark:text-gray-600" aria-hidden="true">
+←
+</span><span class="rounded-lg border border-violet-500/40 bg-violet-500/10 px-3 py-1.5 font-mono text-sm text-gray-900 dark:text-white"> c₄ </span> <span class="font-mono text-xs text-gray-400 dark:text-gray-600" aria-hidden="true">
+←
+</span><span class="rounded-lg border border-violet-500/40 bg-violet-500/10 px-3 py-1.5 font-mono text-sm text-gray-900 dark:text-white"> c₅ </span>  <span class="ml-2 font-mono text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400">
+the log — signed facts, hash-chained, append-only
+</span> </div> <p class="my-3 text-center font-mono text-xs text-gray-500 dark:text-gray-400">
+↓ &nbsp;fold(state, change) → state′ &nbsp;— one pure function, no coordination
+</p> <div class="grid gap-3 sm:grid-cols-3"> <div class="rounded-xl border border-border bg-surface/40 p-3 text-center dark:bg-surface/60"> <p class="font-mono text-xs text-amber-600 dark:text-amber-400">value as of c₂</p> <p class="mt-1 text-xs leading-relaxed text-gray-600 dark:text-gray-300">
+a pinned frontier — a <strong>checkpoint</strong>, or the scrubber paused in March
+</p> </div> <div class="rounded-xl border border-border bg-surface/40 p-3 text-center dark:bg-surface/60"> <p class="font-mono text-xs text-amber-600 dark:text-amber-400">value as of c₄, forked</p> <p class="mt-1 text-xs leading-relaxed text-gray-600 dark:text-gray-300">
+a writable frontier — a <strong>draft</strong>, growing rings of its own
+</p> </div> <div class="rounded-xl border border-border bg-surface/40 p-3 text-center dark:bg-surface/60"> <p class="font-mono text-xs text-amber-600 dark:text-amber-400">value as of c₅</p> <p class="mt-1 text-xs leading-relaxed text-gray-600 dark:text-gray-300">
+the <strong>head</strong> — what your screen shows, kept hot in SQLite
+</p> </div> </div> </div> <figcaption class="mt-3 text-center text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+The epochal time model, as shipped: one append-only log of facts, one pure fold, and
+          every "feature" of history — checkpoints, drafts, the current state — is just the same
+          fold stopped at a different ring.
+</figcaption> </figure> <p>
+Once you see the pattern you find it everywhere in the design, and
+        the repetition is the point. A change is a value — hashed, signed,
+        done. A moment is a value — a frontier of hashes. A query is a
+        value — a serialisable expression any storage engine can compile. An
+        error is a value — a tagged record you can match on, not a string
+        you grep. Even a schema is a value, versioned in its own name, with
+        lenses to carry data between versions. Hickey's pitch for values —
+        that they can be shared, cached, compared, sent across a wire, and
+        reproduced without anyone coordinating — is not an aesthetic in a
+        sync protocol. It is the entire mechanism. Two devices converge
+        because they are folding the same immutable facts through the same
+        pure function; there is nothing else to agree on.
+</p> <h2>Three departures</h2> <p>
+If the essay ended there it would be fan mail, and Hickey's own
+        method forbids that — the benefits of everything, remember, and the
+        tradeoffs of nothing. So here is where xNet leaves the hammock, on
+        purpose, three times.
+</p> <p> <strong>We use static types. Everywhere.</strong> xNet is
+        TypeScript from kernel to UI, and its author would not give up the
+        tooling — the renames, the exhaustive switches, the autocomplete —
+        for any philosophy. What we kept from Hickey's type-scepticism is
+        the boundary discipline: his real charge is that elaborate types
+        mostly polish the cheap bottom of the pyramid, and become actively
+        parochial at system boundaries, where your beautiful
+<code>Invoice&lt;Paid&gt;</code> is a private language nobody else
+        speaks. So in xNet, types never cross the wire. The protocol's
+        contract is canonical JSON, open maps, and namespaced names; the
+        TypeScript is scaffolding inside our walls, and a peer written in
+        Rust or Clojure owes it nothing. Types as tooling, data as truth —
+        we think of it as agreeing with the talk's conclusion while
+        declining its temperament.
+</p> <p> <strong>There is one black box in the tree.</strong> Prose is the
+        one domain where per-property last-writer-wins is the wrong
+        physics — two people typing in the same paragraph need
+        character-level merging — so document bodies and canvas scenes use
+        Yjs, a CRDT whose binary updates are decidedly <em>not</em>
+semantically transparent values. We drew a hard lane around it:
+        the log for facts, the CRDT for prose, and the CRDT's blobs ride
+<em>inside</em> signed log changes like freight — addressed,
+        attributed, and ordered by the same machinery, opaque only within.
+        A purist would note the interior of that box has no rings. Correct.
+        It is the tradeoff we can name.
+</p> <p> <strong>We prune.</strong> Hickey's soaring line about the new
+        economics of storage is that we can finally afford to remember
+        everything — and servers can. Phones, whose owners also deserve
+        their whole workspace, cannot always. So xNet ships history-horizon
+        policies that can compact the deep past on constrained devices,
+        which is a real departure from the accrete-forever ethos. What we
+        refused to give up is honesty at the horizon: because frontiers
+        address history by hash, a scrub past what a device retains cannot
+        silently show you a wrong answer — it fails, loudly, and
+        checkpoints pin what they reference so the moments someone chose to
+        name survive compaction. A tree with a hollow core, which still
+        never lies about a ring it has.
+</p> <h2>The hammock at the top</h2> <p>
+Which leaves the summit of the pyramid — misconceptions, the
+        problems that cost the most and that no data model, ours included,
+        can touch. Hickey's remedy for those is not in any repository. In
+        the most beloved talk of the corpus he recommends, with a
+        completely straight face, the hammock: state the problem in
+        writing, feed your head with everything known about it, and then
+        stop typing — because the waking mind is a good critic and a
+        mediocre designer, and the background mind, which does the real
+        synthesis, only takes an agenda from what you loaded before you
+        stepped away. Solve problems, he keeps saying, not features. The
+        cheapest bug is the one designed out before the first keystroke.
+</p> <p>
+The closest thing xNet has to an engineering method is an attempt
+        to practise this. Nothing sizeable lands in the codebase without a
+        numbered exploration first — a written statement of the problem,
+        the prior art, the options, the tradeoffs, a recommendation, and a
+        checklist that later gets marked against reality. At the time of
+        writing there are three hundred and forty-eight of them, and the
+        one that specified this essay spent a while in the hammock deciding
+        what this essay should refuse to claim. Some explorations conclude
+<em>build nothing</em>; those are the best value in the folder.
+        This, we have come to believe, is the real substance of
+        Hickey-style design — not parentheses, not any particular database,
+        but the unfashionable conviction that understanding is a
+        deliverable, and that the pyramid is climbed from the top.
+</p> <p>
+A tree does not hurry, and it does not revise. It commits, once a
+        year, in public, and keeps every commitment where anyone with a
+        saw and some patience can audit the whole series. That is the
+        standard the talks set for software that intends to be around in
+        forty years and legible when it gets there: growth on the outside;
+        history, legible, within. If you want to hold a workspace built on
+        that bet: <a href="/app">the app is free, offline, and private</a>.
+        Read <a href="/commitments">the commitments</a>, or
+<a href="/build-with">build on the protocol</a> — the wire format
+        is open maps and signed facts, so you do not need our permission,
+        which is rather the point. And watch the talk below, ideally twice.
+        It is ten years of thinking, compressed to seventy minutes, about
+        the only questions in software that compound.
+</p> <aside class="not-prose my-12"> <a href="https://www.youtube.com/watch?v=2V1FtfBDsLU" target="_blank" rel="noopener noreferrer" class="group block overflow-hidden rounded-2xl border border-border bg-surface/30 transition-all hover:border-rose-500/40 hover:bg-surface/50 dark:bg-surface/40"> <!-- poster: original art, no YouTube thumbnail (which would phone home) --> <div class="relative aspect-[16/7] w-full overflow-hidden bg-[#0c0609]"> <svg class="absolute inset-0 h-full w-full" viewBox="0 0 1040 455" preserveAspectRatio="xMidYMid slice" aria-hidden="true"> <defs> <linearGradient id="vbg" x1="0" y1="0" x2="0" y2="1"> <stop offset="0%" stop-color="#150b11"></stop> <stop offset="100%" stop-color="#0a0608"></stop> </linearGradient> <radialGradient id="vglow" cx="50%" cy="50%" r="50%"> <stop offset="0%" stop-color="#fb7185" stop-opacity="0.5"></stop> <stop offset="60%" stop-color="#f43f5e" stop-opacity="0.12"></stop> <stop offset="100%" stop-color="#f43f5e" stop-opacity="0"></stop> </radialGradient> </defs> <rect width="1040" height="455" fill="url(#vbg)"></rect> <!-- a rising line chart that the play button sits on: "the richest country" --> <polyline points="0,360 130,348 260,352 390,300 520,312 650,236 780,250 910,150 1040,96" fill="none" stroke="#3f2a33" stroke-width="2.5" opacity="0.8"></polyline> <circle cx="520" cy="228" r="150" fill="url(#vglow)"></circle> <!-- play triangle with the cosmic-X notched into it --> <g transform="translate(520 228)"> <circle cx="0" cy="0" r="52" fill="#0c0609" stroke="#fb7185" stroke-width="2" opacity="0.95"></circle> <path d="M -16 -24 L 26 0 L -16 24 Z" fill="#fb7185"></path> </g> </svg> <span class="absolute bottom-3 right-3 rounded bg-black/55 px-2 py-1 font-mono text-xs text-rose-100 backdrop-blur-sm"> 1 hr 12 min </span> </div> <div class="flex items-center justify-between gap-4 px-5 py-4 sm:px-6"> <div class="min-w-0"> <p class="text-xs font-medium uppercase tracking-wide text-rose-500 dark:text-rose-400">
+Watch the original
+</p> <p class="mt-1 truncate font-semibold text-gray-900 dark:text-white">Effective Programs: 10 Years of Clojure</p> <p class="text-sm text-gray-500 dark:text-gray-400">Rich Hickey — Clojure/conj 2017</p> </div> <span class="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-sm font-medium text-rose-600 transition-colors group-hover:bg-rose-500/20 dark:text-rose-300">
+YouTube
+<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true"> <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25"></path> </svg> </span> </div> </a> <p class="mt-2 px-1 text-xs text-gray-400 dark:text-gray-500">
+We link out instead of embedding a player, so this page still loads nothing
+    from YouTube until you choose to go there. That restraint is the essay in
+    miniature.
+</p> </aside> <hr> <h3 id="sources">Sources</h3> <ul class="text-base"> <li>
+The talks:
+<a href="https://www.youtube.com/watch?v=2V1FtfBDsLU" rel="noopener noreferrer"> <em>Effective Programs: 10 Years of Clojure</em> (Clojure/conj 2017)</a>;
+<a href="https://www.youtube.com/watch?v=SxdOUGdseq4" rel="noopener noreferrer"> <em>Simple Made Easy</em> (Strange Loop 2011)</a>;
+<a href="https://www.youtube.com/watch?v=-6BsiVyC1kM" rel="noopener noreferrer"> <em>The Value of Values</em> (2012)</a>;
+<a href="https://www.youtube.com/watch?v=Cym4TZwTCNU" rel="noopener noreferrer"> <em>Deconstructing the Database</em> (2012)</a>;
+<a href="https://www.youtube.com/watch?v=f84n5oFoZBc" rel="noopener noreferrer"> <em>Hammock Driven Development</em> (Clojure/conj 2010)</a>; and
+<a href="https://www.youtube.com/watch?v=ScEPu1cs4l0" rel="noopener noreferrer"> <em>Are We There Yet?</em> (JVM Language Summit 2009)</a>. Community-maintained transcripts of all of these live in the
+<a href="https://github.com/matthiasn/talk-transcripts" rel="noopener noreferrer">
+matthiasn/talk-transcripts</a> repository.
+</li> <li>
+The receipts, in the open codebase: the change primitive
+          (<code>packages/sync/src/change.ts</code>), the open-map node
+          (<code>packages/data/src/schema/node.ts</code>), the single merge
+          rule (<code>packages/core/src/lww.ts</code>), and the history
+          engine and frontiers (<code>packages/history/</code>) — see
+<a href="https://github.com/crs48/xNet" rel="noopener noreferrer">the repository</a>
+and <a href="/build-with">the protocol docs</a>.
+</li> <li>
+The paper trail — the numbered explorations behind this essay's
+          claims, in the open repository:
+<a href="https://github.com/crs48/xNet/blob/main/docs/explorations/0021_%5B_%5D_CLOJURE_PORT.md" rel="noopener noreferrer">0021 (a Clojure port of the kernel)</a>,
+<a href="https://github.com/crs48/xNet/blob/main/docs/explorations/0200_%5Bx%5D_PORTABLE_XNET_PROTOCOL_BOUNDARIES_AND_STANDARD.md" rel="noopener noreferrer">0200 (the kernel is the signed log, not the CRDT)</a>,
+<a href="https://github.com/crs48/xNet/blob/main/docs/explorations/0329_%5Bx%5D_PATCHWORK_STYLE_DRAFTS_AND_TIMELINE_SCRUBBING.md" rel="noopener noreferrer">0329 (frontiers, checkpoints, and drafts)</a>, and
+<a href="https://github.com/crs48/xNet/blob/main/docs/explorations/0330_%5B_%5D_CRDT_DEPTH_AUTOMERGE_VS_YJS.md" rel="noopener noreferrer">0330 (the log-for-facts, CRDT-for-prose rule)</a>.
+</li> <li>
+Companion essays in this series:
+<a href="/blog/the-loom-you-can-read">The Loom You Can Read</a>
+(the change log, line by line),
+<a href="/blog/clutch-power">Clutch Power</a> (the four frozen
+          interfaces), and
+<a href="/blog/the-vault-and-the-view">The Vault and the View</a>
+(apps as views over data you keep).
+</li> </ul> <p class="text-sm text-gray-400 dark:text-gray-500"> <em>This is an independent essay about Rich Hickey's public talks.
+          He has no affiliation with xNet and has not reviewed or endorsed
+          this essay or this project. Ideas are paraphrased from the talks
+          linked above; the one direct quotation is brief, attributed, and
+          used as commentary. All artwork here is original, and this page
+          loads nothing third-party.</em> </p> </article> <nav aria-label="More in this series" class="mx-auto max-w-3xl px-6 pb-16"><div class="border-t border-border pt-8"><p class="mb-4 font-mono text-xs uppercase tracking-wider text-gray-400 dark:text-gray-500">
+More from the blog
+</p><div class="grid gap-4 sm:grid-cols-2"><a href="/blog/people-in-disguise" rel="prev" class="group flex flex-col rounded-2xl border border-border bg-surface/20 p-5 transition-all hover:border-indigo-500/40 hover:bg-surface/40"><span class="inline-flex items-center gap-1 text-sm font-medium text-indigo-600 dark:text-indigo-400"><svg class="h-4 w-4 transition-transform group-hover:-translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"></path></svg>
+Previous
+</span><span class="mt-2 font-bold tracking-tight text-gray-900 transition-colors group-hover:text-indigo-600 dark:text-white dark:group-hover:text-indigo-400">People in Disguise</span></a><span class="hidden sm:block" aria-hidden="true"></span></div></div></nav> </main> <footer class="border-t border-border/50 bg-surface/10 dark:bg-surface/20"> <div class="mx-auto max-w-6xl px-6 py-12 lg:py-16"> <!-- Main footer content --> <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-7"> <!-- Brand --> <div class="lg:col-span-2"> <a href="/" class="inline-flex items-center gap-2"> <span class="font-mono text-xl font-bold text-gray-800 dark:text-white">xNet</span> </a> <p class="mt-4 text-sm text-gray-500 dark:text-gray-400 max-w-xs leading-relaxed">
+Local-first apps that work offline, sync peer-to-peer, and keep your data under your control.
+</p> <div class="mt-6 flex gap-4"> <a href="https://github.com/crs48/xNet" target="_blank" rel="noopener noreferrer" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors" aria-label="GitHub"> <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"> <path fill-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clip-rule="evenodd"></path> </svg> </a> <a href="https://github.com/crs48/xNet/discussions" target="_blank" rel="noopener noreferrer" class="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors" aria-label="GitHub Discussions"> <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 24 24"> <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"></path> </svg> </a> </div> </div> <!-- Product --> <div> <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Product</h4> <ul class="space-y-3"> <li> <a href="/app" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Try the App </a> </li><li> <a href="/mobile" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Run on Mobile </a> </li><li> <a href="/download" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Download Desktop </a> </li><li> <a href="/plugins" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Plugins </a> </li><li> <a href="/docs" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Documentation </a> </li><li> <a href="/docs/quickstart/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Quickstart </a> </li><li> <a href="/changelog" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Changelog </a> </li> </ul> </div> <!-- Cloud --> <div> <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Cloud</h4> <ul class="space-y-3"> <li> <a href="/cloud" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> xNet Cloud </a> </li><li> <a href="/cloud/pricing" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Pricing </a> </li><li> <a href="/open" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Open metrics </a> </li><li> <a href="/status" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Status </a> </li> </ul> </div> <!-- Develop --> <div> <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Develop</h4> <ul class="space-y-3"> <li> <a href="/react" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> XNet for React </a> </li><li> <a href="/build-with" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Build with any language </a> </li><li> <a href="/docs/languages/swift/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Swift SDK </a> </li><li> <a href="/docs/languages/rust/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Rust core </a> </li><li> <a href="/devtool" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> DevTools </a> </li><li> <a href="/docs/hooks/overview/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> React Hooks </a> </li><li> <a href="/docs/guides/server/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Your own server </a> </li> </ul> </div> <!-- Resources --> <div> <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Resources</h4> <ul class="space-y-3"> <li> <a href="/why" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Why xNet </a> </li><li> <a href="/blog" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Blog </a> </li><li> <a href="/compare" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Compare </a> </li><li> <a href="/commitments" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Commitments </a> </li><li> <a href="/#roadmap" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Roadmap </a> </li><li> <a href="/docs/architecture/overview/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Architecture </a> </li><li> <a href="/docs/contributing/getting-started/" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Contributing </a> </li> </ul> </div> <!-- Community --> <div> <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-4">Community</h4> <ul class="space-y-3"> <li> <a href="https://github.com/crs48/xNet" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> GitHub </a> </li><li> <a href="https://github.com/crs48/xNet/discussions" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> GitHub Discussions </a> </li><li> <a href="https://github.com/crs48/xNet/blob/main/GOVERNANCE.md" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Governance </a> </li><li> <a href="https://github.com/crs48/xNet/blob/main/TRADEMARK.md" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Trademark &amp; Brand </a> </li><li> <a href="https://github.com/crs48/xNet/blob/main/CODE_OF_CONDUCT.md" target="_blank" rel="noopener noreferrer" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Code of Conduct </a> </li> </ul> </div> </div> <!-- Bottom bar --> <div class="mt-12 pt-8 border-t border-border/50 flex flex-col sm:flex-row items-center justify-between gap-4"> <p class="text-sm text-gray-500">
+&copy; 2026 xNet. Open source under MIT License.
+</p> <div class="flex items-center gap-6"> <a href="https://github.com/crs48/xNet/blob/main/LICENSE" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> MIT License </a><a href="/privacy" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Privacy </a><a href="/terms" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Terms </a><a href="/acceptable-use" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Acceptable Use </a><a href="/subprocessors" class="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"> Sub-processors </a> </div> </div> </div> </footer>  <script type="module">const o=new IntersectionObserver(e=>{e.forEach(t=>{t.isIntersecting&&(t.target.classList.add("visible"),o.unobserve(t.target))})},{threshold:.1,rootMargin:"0px 0px -40px 0px"});document.querySelectorAll(".animate-on-scroll").forEach(e=>o.observe(e));document.querySelectorAll(".copy-btn").forEach(e=>{e.addEventListener("click",async()=>{const t=e.dataset.copy||e.closest(".relative")?.querySelector("code")?.textContent||"";await navigator.clipboard.writeText(t.trim()),e.textContent="Copied!",e.classList.add("copied"),setTimeout(()=>{e.textContent="Copy",e.classList.remove("copied")},2e3)})});</script> </body> </html>
