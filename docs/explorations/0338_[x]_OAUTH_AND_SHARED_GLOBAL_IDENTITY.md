@@ -594,16 +594,16 @@ Phase 4 — demand-gated:
 
 ## Validation Checklist
 
-- [ ] Fresh user completes "Continue with Bluesky" → passkey create in ≤2 interactive steps; resulting Profile shows a verified handle chip backed by a hub-verified binding
-- [ ] Binding verification rejects: record signed by wrong xNet key; AS issuer not matching resolved DID doc; stale ceremony outside freshness window
-- [ ] Escrow release via ATProto anchor succeeds only with (valid ceremony ∧ matching binding ∧ correct PIN); wrong-PDS/lying-AS attempt fails closed
-- [ ] After enrolling the user-priority rotation key, a simulated hostile-PDS identity op is overridable within the 72 h window (testnet/PLC sandbox exercise)
-- [ ] Rotation key reconstructs from the recovery phrase alone (device loss drill)
-- [ ] A third-party app (e.g. Grafana) completes OIDC login against a hub with `oidcProvider.enabled`; disabled flag = no `/oidc/*` routes exposed
-- [ ] BYO-OIDC org onboarding: IdP session admits device; revoking IdP user does not decrypt-lock existing data but blocks new device admission (documented semantics)
-- [ ] Hub with `auth: false` prints the 0307 loud warning and OIDC provider refuses to start
-- [ ] No `@xnetjs/cloud` import appears in `packages/hub` (existing boundary lint/check still green)
-- [ ] MIT/FSL audit: every Phase 1–3 dependency is MIT/Apache/BSD (notably no Zitadel/Hanko/AGPL code)
+- [x] Fresh user completes "Continue with Bluesky" → passkey create in ≤2 interactive steps; resulting Profile shows a verified handle chip backed by a hub-verified binding
+- [x] Binding verification rejects: record signed by wrong xNet key; AS issuer not matching resolved DID doc; stale ceremony outside freshness window
+- [x] Escrow release via ATProto anchor succeeds only with (valid ceremony ∧ matching binding ∧ correct PIN); wrong-PDS/lying-AS attempt fails closed
+- [x] After enrolling the user-priority rotation key, a simulated hostile-PDS identity op is overridable within the 72 h window (testnet/PLC sandbox exercise)
+- [x] Rotation key reconstructs from the recovery phrase alone (device loss drill)
+- [x] A third-party app (e.g. Grafana) completes OIDC login against a hub with `oidcProvider.enabled`; disabled flag = no `/oidc/*` routes exposed
+- [x] BYO-OIDC org onboarding: IdP session admits device; revoking IdP user does not decrypt-lock existing data but blocks new device admission (documented semantics)
+- [x] Hub with `auth: false` prints the 0307 loud warning and OIDC provider refuses to start
+- [x] No `@xnetjs/cloud` import appears in `packages/hub` (existing boundary lint/check still green)
+- [x] MIT/FSL audit: every Phase 1–3 dependency is MIT/Apache/BSD (notably no Zitadel/Hanko/AGPL code)
 
 ## References
 

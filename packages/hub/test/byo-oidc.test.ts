@@ -74,3 +74,36 @@ describe('verifyByoOidcToken', () => {
     expect(result.ok).toBe(false)
   })
 })
+
+describe('createByoOidcRoutes /admit', () => {
+  it('admits a device only with a valid IdP token', async () => {
+    const { getKey, sign } = await setup()
+    const admitted: unknown[] = []
+    const { createByoOidcRoutes } = await import('../src/routes/byo-oidc')
+    const app = createByoOidcRoutes({
+      config: { issuer: ISSUER, clientId: CLIENT_ID },
+      getKey,
+      onAdmit: (a) => {
+        admitted.push(a)
+      }
+    })
+
+    const token = await sign({ sub: 'bob@acme.com', email: 'bob@acme.com' })
+    const ok = await app.request('/admit', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ idToken: token, deviceDid: 'did:key:zBobDevice' })
+    })
+    expect(ok.status).toBe(200)
+    expect(admitted).toHaveLength(1)
+
+    const badToken = await sign({ sub: 'x' }, { iss: 'https://evil.example.com' })
+    const denied = await app.request('/admit', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ idToken: badToken, deviceDid: 'did:key:zEvil' })
+    })
+    expect(denied.status).toBe(403)
+    expect(admitted).toHaveLength(1) // unchanged
+  })
+})

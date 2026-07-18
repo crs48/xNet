@@ -51,4 +51,22 @@ describe('withUserPriorityRotationKey', () => {
     // Idempotent if already present.
     expect(withUserPriorityRotationKey(user, [pds, user])).toEqual([user, pds])
   })
+
+  it('simulated hostile-PDS override: the user key outranks the PDS key', () => {
+    // did:plc resolves rotation conflicts by array priority (earlier wins), so
+    // an operation signed by a HIGHER-priority key can nullify one signed by a
+    // lower-priority key within the 72h window. This simulates that resolution
+    // over our produced ordering — the live 72h enforcement is PLC's, exercised
+    // manually against a PLC sandbox (see docs/hub-as-pds-spike.md).
+    const userKey = derivePlcRotationKey(new Uint8Array(64).fill(9)).didKey
+    const pdsKey = 'did:key:zHostilePdsRotationKey'
+    const rotationKeys = withUserPriorityRotationKey(userKey, [pdsKey])
+
+    const priority = (didKey: string): number => rotationKeys.indexOf(didKey)
+    // A lower index = higher priority. The user can override the PDS; not vice-versa.
+    const userCanOverridePds = priority(userKey) < priority(pdsKey)
+    const pdsCanOverrideUser = priority(pdsKey) < priority(userKey)
+    expect(userCanOverridePds).toBe(true)
+    expect(pdsCanOverrideUser).toBe(false)
+  })
 })
