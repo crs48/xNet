@@ -88,6 +88,23 @@ export interface BlogPost {
 
 const posts: BlogPost[] = [
   {
+    slug: 'the-worlds-greatest-record-store',
+    title: 'The World’s Greatest Record Store',
+    description:
+      'In 2004 a pink website with a pig mascot became the most complete ' +
+      'music collection on the internet — run by one person, governed by its ' +
+      'members, and killed by a police raid. Its community rediscovered ' +
+      'Elinor Ostrom’s commons principles from scratch and was denied only ' +
+      'the one no tracker could have: the right to exist. On ratio economies ' +
+      'and the anxiety they bred, scenius and the ground scenes rent, and ' +
+      'the promise the Palace couldn’t make that local-first software can — ' +
+      'the scene outlives the server.',
+    pubDate: '2026-07-19T17:00:00Z',
+    authors: ['crs48', 'claude'],
+    tags: ['essay', 'philosophy', 'decentralization', 'economics'],
+    readingMinutes: 14
+  },
+  {
     slug: 'tree-rings',
     title: 'Tree Rings',
     description:

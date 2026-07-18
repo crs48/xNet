@@ -524,7 +524,7 @@ export const nightBloomSeeder = defineSeeder({
 - [x] Write `docs/VIBE.md` (doctrine, three-layer table, the loop, "the scene
       outlives the server", ends with *have fun*); cross-link from
       `docs/CHARTER.md` and `docs/VISION.md`
-- [ ] Blog essay #18 "The World's Greatest Record Store" in
+- [x] Blog essay #18 "The World's Greatest Record Store" in
       `site/src/pages/blog/` + entry in `site/src/data/blog.ts` + hero art
       component (en-GB, cosmic-X in the hero per series convention)
 - [x] Add `ratio-scorekeeping` rule to `scripts/check-humane-patterns.mjs`
