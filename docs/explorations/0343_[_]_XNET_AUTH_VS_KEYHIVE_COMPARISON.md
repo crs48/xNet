@@ -47,7 +47,7 @@ decrypt IS access control."* That sentence is a description of Keyhive's
 |---|---|---|---|
 | Identity | Every principal/doc is a pubkey; device groups first-class | `did:key` Ed25519 root; ATProto global names + recovery anchors shipped (0338); account-ledger device records with epochs | **xNet** on real-world identity (names, recovery, OAuth); **Keyhive** on device/key hygiene |
 | Capability model | Convergent capabilities: delegation graph *with* CRDT state; Pull < Read < Write < Admin | UCAN cert chains (attenuation, aud, nonce, trustedDids) + hub grant index + schema policy engine (roles, CRUD split, Space cascade) | **xNet** richer policy language; **Keyhive** cleaner revocation story |
-| Enforcement locus | Every peer, cryptographically (decryptability) | Honest hub (neutralized by wildcard client mint) + optional client evaluator (unwired by default) + envelopes | **Keyhive** structurally |
+| Enforcement locus | Every peer, cryptographically (decryptability) | Honest hub (room checks neutralized by resource-wildcard client mint) + optional client evaluator (unwired by default) + envelopes | **Keyhive** structurally |
 | Groups/membership | Groups = pattern over delegations; membership ops are CRDT ops with key consequences | `SpaceMembership` nodes in the change log + nested cascade (0181) — CRDT ops **without** key consequences (except per-node rotation on grant revoke) | Tie on data model; **Keyhive** on key coupling |
 | Encryption | Causal chunk keys + BeeKEM CGKA; PCS yes, FS deliberately no | Per-node XChaCha20 envelopes, X25519 wrap, per-node rotation; sig omits ciphertext (open blocker); X25519 derived from signing seed | **Keyhive** on design; **xNet** on actually shipping *something* |
 | Revocation | Native in the op graph, offline-capable, future-only | Three list-based surfaces (hub token revocation, signed share revocations, grant cascade + key rotation) — deny-wins survives even the wildcard bug | **Keyhive** conceptually; xNet's is real and layered but hub-anchored |
@@ -57,7 +57,7 @@ decrypt IS access control."* That sentence is a description of Keyhive's
 **Bottom line:** Keyhive is a better *theory* of local-first access control;
 xNet is a better *system* that currently pays for its product features
 (search, indexes, recovery, global names, agents) with a trusted-hub
-assumption — and two known blockers (wildcard client UCAN, envelope
+assumption — and two known blockers (resource-wildcard client UCAN, envelope
 signature gap) that make even that tier weaker than designed. The comparison
 does not change 0325's harvest-not-adopt verdict; it sharpens the gap list
 and records that roughly half of the 0307-B perimeter has shipped since.
@@ -80,8 +80,13 @@ the comparison-relevant anchors, verified against the working tree.
    `packages/identity/src/agent-passport.ts:70` mints per-agent `did:key`s
    with operator-signed attenuated UCANs and **explicitly rejects wildcard
    capabilities** (`isWildcard`, `agent-passport.ts:47`). Agents are now the
-   *least*-privileged principals in the system — ironically ahead of human
-   users, whose client still self-mints `{with:'*', can:'hub/*'}`.
+   *least*-privileged principals in the system — ironically still ahead of
+   human users: the client mint is action-scoped since 0307-B (explicit
+   `HUB_CAPABILITIES` enumeration, no more `hub/*` or self-granted
+   `hub/admin`) but keeps resource scope `with: '*'` on every data-plane
+   action (`packages/react/src/provider/use-hub-auth-token.ts:20`), and the
+   hub's capability check short-circuits on it before the room-level checks
+   run (`packages/hub/src/ws/authorize.ts:146`).
 3. **ATProto identity (0338, PR #536).** Global handles, OAuth login,
    bidirectional signed binding (`packages/identity/src/atproto/binding.ts`),
    recovery-seed-derived PLC rotation key at higher priority than the PDS
@@ -127,9 +132,10 @@ the comparison-relevant anchors, verified against the working tree.
   key, XChaCha20-Poly1305, per-recipient X25519 wrap, `PUBLIC_RECIPIENT`
   sentinel. Open blocker: `createSignatureMessage` (`envelope.ts:167`)
   **omits ciphertext/nonce/wrapped-key values** (0335 blocker #3).
-- **Standing blockers (0335):** wildcard client mint
-  (`packages/react/src/provider/use-hub-auth-token.ts:10`), envelope
-  signature gap, Electron deterministic dev key, no SECURITY.md.
+- **Standing blockers (0335):** resource-wildcard client mint
+  (`packages/react/src/provider/use-hub-auth-token.ts:20` — the action
+  wildcard is already fixed), envelope signature gap, Electron
+  deterministic dev key, no SECURITY.md.
 
 ## External Research
 
@@ -259,8 +265,9 @@ search, indexes, mention parsing (`node-relay.ts` reads
 retention policies. xNet's two-tier ambition — trusted-hub Spaces (default,
 full server features) beside sealed Spaces (E2EE, 0325-C2) — is a superset
 of Keyhive's model *if* the trusted tier's perimeter actually holds. Today
-it doesn't fully: the wildcard client mint means room ACLs are advisory for
-any authenticated peer, so the "trusted hub" tier currently provides
+it doesn't fully: the resource-wildcard client mint means room ACLs are
+advisory for any authenticated peer (`with: '*'` satisfies the capability
+short-circuit at `authorize.ts:146` for any room), so the "trusted hub" tier currently provides
 integrity (signatures re-verified) and revocation-denial, but not
 confidentiality between users of the same hub. That is the single most
 consequential difference between the systems as deployed.
@@ -340,7 +347,7 @@ then the 0325 harvest program.** Concretely:
    perimeter, 0325 C1–C4 for the Keyhive-shaped end-state. Do not fork a
    third program.
 2. **Elevate one sentence into the release conversation:** until the
-   wildcard client mint is replaced, xNet's trusted tier provides integrity
+   resource-wildcard client mint is replaced, xNet's trusted tier provides integrity
    and revocation-denial but **not confidentiality between users of the
    same hub** — which means today's deployed xNet is *behind* Keyhive's
    design on the one dimension both systems treat as the point
@@ -372,8 +379,8 @@ flowchart LR
 
 ## Risks And Open Questions
 
-- **Scoped client UCANs have a real UX/plumbing cost.** The wildcard mint
-  exists because clients don't know their room set at connect time. The
+- **Scoped client UCANs have a real UX/plumbing cost.** The resource-wildcard
+  mint exists because clients don't know their room set at connect time. The
   Agent Passport flow shows the shape, but human clients need incremental
   capability acquisition (request-on-first-access) — design work 0335
   gestures at but nobody has specced.
@@ -408,15 +415,27 @@ programs, not a new track:
       split, not device *identity* — ledger devices/epochs exist); C2 notes
       `rotateContentKey` (`packages/data/src/auth/store-auth.ts:283`) as
       the existing membership⇒key coupling to extend.
-- [ ] When C1 begins: evaluate adding a relay-only (`pull`-style) rung to
+- [x] When C1 begins: evaluate adding a relay-only (`pull`-style) rung to
       `AUTH_ACTIONS` in `packages/core/src/auth-types.ts` (decide
       protocol-visible vs hub-internal; see open question).
-- [ ] When C2's sealed-Space spec is written: include the explicit stance
+      **Decision (2026-07-18): rejected for now — keep relay-only as a
+      hub-internal concept.** Adding a rung to `AUTH_ACTIONS` ripples the
+      0304 `grantActionSatisfies` fallback table and every consumer for a
+      role no runtime yet enforces; there is no zero-knowledge hub to hold
+      it. Revisit as part of 0258/C3 (when a blind relay actually exists),
+      not C1.
+- [x] When C2's sealed-Space spec is written: include the explicit stance
       section (future-only revocation, full history for new members, no
       forward secrecy) mirroring Keyhive's `causal_encryption.md` honesty.
-- [ ] Keep 0325's ~2026-Q4 reminder to re-review `inkandswitch/keyhive` +
+      **Done by propagation (2026-07-18):** the instruction now lives in
+      0325's C2 checklist item ("FS/full-history stance documented",
+      reinforced by the 0343 addendum there); nothing further to do until
+      the C2 spec exists.
+- [x] Keep 0325's ~2026-Q4 reminder to re-review `inkandswitch/keyhive` +
       `automerge/beelay` (audit? threat model? Beelay stable?) — no
       separate reminder needed.
+      **Confirmed (2026-07-18):** 0325's implementation checklist retains
+      its re-review item; no duplicate created.
 
 ## Validation Checklist
 
@@ -453,4 +472,4 @@ programs, not a new track:
   `packages/crypto/src/envelope.ts`,
   `packages/identity/src/agent-passport.ts`,
   `packages/identity/src/atproto/binding.ts`,
-  `packages/react/src/provider/use-hub-auth-token.ts` (wildcard mint)
+  `packages/react/src/provider/use-hub-auth-token.ts` (resource-wildcard mint)
