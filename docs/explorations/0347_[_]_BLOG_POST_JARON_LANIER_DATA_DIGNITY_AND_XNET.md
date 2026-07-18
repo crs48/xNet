@@ -360,41 +360,41 @@ Registry entry (`site/src/data/blog.ts`, prepended to `posts[]`):
 
 ## Implementation Checklist
 
-- [ ] Draft `site/src/pages/blog/people-in-disguise.astro` (en-GB,
+- [x] Draft `site/src/pages/blog/people-in-disguise.astro` (en-GB,
       art-directed, no third-party assets), following the section sketch.
-- [ ] Add the registry entry to `site/src/data/blog.ts` with `draft: true`;
+- [x] Add the registry entry to `site/src/data/blog.ts` with `draft: true`;
       confirm index and RSS pick it up once `draft` drops.
-- [ ] Fact-check pass against the References below: every quote, date, title,
+- [x] Fact-check pass against the References below: every quote, date, title,
       and stat; verify BUMMER expansion and the 1995 essay citation.
-- [ ] Verify the StarTalk quotes ("collection of people", "data doesn't come
+- [x] Verify the StarTalk quotes ("collection of people", "data doesn't come
       from angels", "not being manipulated or toyed with") against the video
       itself (<https://www.youtube.com/watch?v=a_ZKYH8v_do>), not just the
       third-party transcript; confirm the episode date.
-- [ ] Verify internal claims about xNet against code: `authorDID`/signature
+- [x] Verify internal claims about xNet against code: `authorDID`/signature
       fields, `deriveTrustTier`, `check-humane-patterns.mjs`, charter axes,
       Agent Passport scope rules.
-- [ ] Read-through for the three tone rules: no implied endorsement, no
+- [x] Read-through for the three tone rules: no implied endorsement, no
       hagiography (section 5 carries the disagreement), Microsoft line
       respectful.
-- [ ] `pnpm build` the site (not `astro dev` — known hang risk) and visually
+- [x] `pnpm build` the site (not `astro dev` — known hang risk) and visually
       check the page, index card, and prev/next series threading.
-- [ ] Set `pubDate`, drop `draft`, update `readingMinutes` from the final
+- [x] Set `pubDate`, drop `draft`, update `readingMinutes` from the final
       word count.
 - [ ] PR with `skip-changelog` label (site-only), DCO sign-off, merge-commit
       per repo convention; let CI run green before merge.
 
 ## Validation Checklist
 
-- [ ] Post renders correctly in production build; appears in
+- [x] Post renders correctly in production build; appears in
       `/blog` index and RSS with correct metadata.
-- [ ] `seriesNeighbors()` threads it as #15 (prev: Clutch Power).
-- [ ] No third-party network requests on the page (check devtools network
+- [x] `seriesNeighbors()` threads it as #15 (prev: Clutch Power).
+- [x] No third-party network requests on the page (check devtools network
       panel against the series' "nothing third-party" promise).
-- [ ] Every Lanier quote in the shipped essay is <15 words, in quotation
+- [x] Every Lanier quote in the shipped essay is <15 words, in quotation
       marks, attributed to the specific work and year.
-- [ ] A sceptical reader can verify each xNet receipt by following a link or
+- [x] A sceptical reader can verify each xNet receipt by following a link or
       file path in the essay.
-- [ ] en-GB spelling throughout (behaviour, honours, legitimise…).
+- [x] en-GB spelling throughout (behaviour, honours, legitimise…).
 
 ## References
 

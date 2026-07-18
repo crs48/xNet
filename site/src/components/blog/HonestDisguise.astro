@@ -1,0 +1,53 @@
+---
+// The honesty beat for post #15 (exploration 0347), modelled on HonestWeights /
+// HonestExit. An essay-length portrait of a living thinker has three easy ways
+// to be dishonest — implying he blessed us, skipping the half of his programme
+// we refused, and hiding that his critics have a point. So we say the quiet
+// parts at normal volume.
+const rows = [
+  {
+    isnt: 'We won’t imply Jaron Lanier endorses xNet.',
+    is: 'He has never mentioned it, and we have never spoken to him. What this essay does is mark our own homework against his public writing — a spec anyone can read — and show the receipts. Convergence is the claim; association is not.'
+  },
+  {
+    isnt: 'We won’t pretend we built his whole programme.',
+    is: 'Data dignity, as he and Glen Weyl wrote it, has two halves: inalienable provenance and a market that pays royalties on your data. We built the first half and deliberately refused the second. That refusal is argued in the essay, partly with his own exemption for direct-payment models — but it is a refusal, and he might well not accept it.'
+  },
+  {
+    isnt: 'We won’t pretend his critics are wrong about everything.',
+    is: 'The micropayment sums look trivially small for most people; a data market can legitimise the very harvesting it prices; the “Digital Maoism” essay swung at some collaboration that plainly does have authors. Those critiques are part of why we built the half we built. The famous Kodak-versus-Instagram comparison is his framing of a real shift, not settled economics — economists have pushed back hard on it.'
+  },
+  {
+    isnt: 'We won’t pretend to be bystanders.',
+    is: 'xNet sells a managed cloud tier and metered AI, so we profit when you pay us — the same insider tension he carries at Microsoft. The defence is structural, not rhetorical: the meter charges for what you actually use — with the margin modelled in the open in the repository’s own cost tests — the master copy stays on your device, and the export door means leaving loses nothing. Judge the receipts, not the essay.'
+  }
+]
+---
+
+<section class="not-prose my-12">
+  <div class="rounded-2xl border border-border bg-surface/30 p-6 dark:bg-surface/40 lg:p-8">
+    <h3 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+      Honest provenance
+    </h3>
+    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+      A portrait that flatters its painter is an advert. Here is the honest scope.
+    </p>
+
+    <ul class="mt-6 space-y-5">
+      {
+        rows.map((row) => (
+          <li class="grid gap-3 sm:grid-cols-[1fr_1.3fr] sm:gap-5">
+            <div class="flex gap-2.5">
+              <span class="select-none text-gray-400 dark:text-gray-600">✕</span>
+              <p class="text-sm leading-relaxed text-gray-500 dark:text-gray-400">{row.isnt}</p>
+            </div>
+            <div class="flex gap-2.5">
+              <span class="select-none text-violet-500">✓</span>
+              <p class="text-sm leading-relaxed text-gray-700 dark:text-gray-200">{row.is}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
