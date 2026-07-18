@@ -6,12 +6,11 @@
  * bundle can do nothing a hostile sync peer couldn't.
  */
 
-import { compareChangeApplicationOrder, type ContentId } from '@xnetjs/core'
-import { base64ToBytes } from '@xnetjs/crypto'
 import type { NodeStore } from '../store/store'
 import type { NodeChange } from '../store/types'
+import { compareChangeApplicationOrder, type ContentId } from '@xnetjs/core'
+import { base64ToBytes } from '@xnetjs/crypto'
 import { decodeUtf8, fromPortableChangeRecord } from './serialize'
-import { verifyBundle } from './verify'
 import {
   BUNDLE_ENTRY,
   type ApplyBundleOptions,
@@ -22,6 +21,7 @@ import {
   type PortableYjsDocRecord,
   type QuarantinedRecord
 } from './types'
+import { verifyBundle } from './verify'
 
 /** Thrown when the bundle fails a pre-apply gate; nothing was written. */
 export class BundleImportError extends Error {
@@ -117,15 +117,31 @@ export async function applyBundle(
   let applied = 0
   let duplicates = 0
   for (let i = 0; i < changes.length; i += APPLY_BATCH_SIZE) {
-    for (const change of changes.slice(i, i + APPLY_BATCH_SIZE)) {
+    const slice = changes.slice(i, i + APPLY_BATCH_SIZE)
+    // Verify the slice in one pass (exploration 0357): identical hash +
+    // signature checks, but the native crypto probe and per-author key import
+    // are shared across the slice instead of paid per change. This is what
+    // makes full per-change verification affordable on import (0344 measured
+    // 1.4ms/change on the pure-JS path).
+    const verdicts = await store.verifyRemoteChanges(slice)
+
+    for (const [index, change] of slice.entries()) {
       try {
         if (await store.hasChange(change.hash)) {
           duplicates++
           continue
         }
-        // Full remote-change pipeline: hash + signature verification,
-        // account-ledger enforcement, authz evaluation, LWW apply.
-        await store.applyRemoteChange(change)
+        if (!verdicts[index]) {
+          quarantine({
+            kind: 'change',
+            subject: change.hash,
+            reason: 'hash or signature verification failed'
+          })
+          continue
+        }
+        // Remainder of the remote-change pipeline: account-ledger
+        // enforcement, authz evaluation, LWW apply.
+        await store.applyRemoteChange(change, { preVerified: true })
         applied++
       } catch (err) {
         quarantine({

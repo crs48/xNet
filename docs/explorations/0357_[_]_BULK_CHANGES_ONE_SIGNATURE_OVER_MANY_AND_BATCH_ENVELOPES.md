@@ -544,7 +544,7 @@ Tier 1 — batched wire + fast verify (no protocol bump):
 - [x] Ship 0350's `verifyFast` native/WebCrypto seam and route
       `node-relay.ts`, `routes/export.ts` restore, and
       `portability/verify.ts` through it
-- [ ] Route `.xnetpack` apply through
+- [x] Route `.xnetpack` apply through
       `getBatchPreflight`/`applyNodeBatch` instead of the per-change
       `applyRemoteChange` loop (`portability/apply.ts:119-138`),
       keeping per-change verification

@@ -67,7 +67,7 @@ import {
   type LamportClock,
   type UnsignedChange
 } from '@xnetjs/sync'
-import { verifyChange, verifyChangeHash } from '@xnetjs/sync'
+import { verifyChange, verifyChangeHash, verifyChangesFast } from '@xnetjs/sync'
 import { createNodeId, getBaseSchemaIRI, type SchemaIRI } from '../schema/node'
 import { accountRecordId, revocationRecordId } from '../schema/schemas/account-ledger'
 import {
@@ -135,6 +135,15 @@ type DeterministicNodeImportExecution = ImportDeterministicNodesResult & {
 /**
  * NodeStore manages event-sourced Nodes with LWW conflict resolution.
  */
+/**
+ * Internal options for {@link NodeStore.applyRemoteChange}. Not exported from
+ * the package: `preVerified` skips signature checking and is only sound when
+ * the caller ran {@link NodeStore.verifyRemoteChanges} over the same change.
+ */
+type ApplyRemoteChangeOptions = {
+  preVerified?: boolean
+}
+
 export class NodeStore {
   private storage: NodeStorageAdapter
   private authorDID: DID
@@ -1883,38 +1892,48 @@ export class NodeStore {
     }
   }
 
-  async applyRemoteChange(change: NodeChange): Promise<void> {
+  async applyRemoteChange(
+    change: NodeChange,
+    options: ApplyRemoteChangeOptions = {}
+  ): Promise<void> {
     const start = this.telemetry ? Date.now() : 0
 
     try {
-      // Verify hash integrity (no tampering)
-      if (!verifyChangeHash(change)) {
-        const error = new Error(
-          `[NodeStore] Remote change ${change.id} failed hash verification - data may be corrupted`
-        )
-        this.telemetry?.reportSecurityEvent('data.hash_verification_failed', 'high')
-        throw error
-      }
-
-      // Verify signature matches the author's public key
-      try {
-        const publicKey = parseDID(change.authorDID)
-        if (!verifyChange(change, publicKey)) {
+      // `preVerified` is an INTERNAL fast path for callers that already ran
+      // the identical hash + signature checks over a whole batch (see
+      // verifyRemoteChanges). It skips only the crypto — ledger enforcement,
+      // authorization, dedup, and LWW still run per change. Never set it from
+      // data that hasn't been verified in this process.
+      if (!options.preVerified) {
+        // Verify hash integrity (no tampering)
+        if (!verifyChangeHash(change)) {
           const error = new Error(
-            `[NodeStore] Remote change ${change.id} failed signature verification - ` +
-              `signature does not match author ${change.authorDID}`
+            `[NodeStore] Remote change ${change.id} failed hash verification - data may be corrupted`
           )
-          this.telemetry?.reportSecurityEvent('data.signature_verification_failed', 'high')
+          this.telemetry?.reportSecurityEvent('data.hash_verification_failed', 'high')
           throw error
         }
-      } catch (err) {
-        // Re-throw verification errors, wrap other errors
-        if (err instanceof Error && err.message.includes('failed')) {
-          throw err
+
+        // Verify signature matches the author's public key
+        try {
+          const publicKey = parseDID(change.authorDID)
+          if (!verifyChange(change, publicKey)) {
+            const error = new Error(
+              `[NodeStore] Remote change ${change.id} failed signature verification - ` +
+                `signature does not match author ${change.authorDID}`
+            )
+            this.telemetry?.reportSecurityEvent('data.signature_verification_failed', 'high')
+            throw error
+          }
+        } catch (err) {
+          // Re-throw verification errors, wrap other errors
+          if (err instanceof Error && err.message.includes('failed')) {
+            throw err
+          }
+          throw new Error(
+            `[NodeStore] Remote change ${change.id} failed verification: ${err instanceof Error ? err.message : String(err)}`
+          )
         }
-        throw new Error(
-          `[NodeStore] Remote change ${change.id} failed verification: ${err instanceof Error ? err.message : String(err)}`
-        )
       }
 
       // Account-ledger enforcement (0149/0243, wired by 0337): always-on, no
@@ -1992,6 +2011,43 @@ export class NodeStore {
   }
 
   /**
+   * Verify hash + signature for many remote changes at once.
+   *
+   * Results are positional and never short-circuit, so a caller can quarantine
+   * exactly the changes that failed and still apply the rest. This runs the
+   * SAME checks as {@link applyRemoteChange} — it just amortizes the native
+   * crypto setup across the batch (exploration 0357).
+   */
+  async verifyRemoteChanges(changes: readonly NodeChange[]): Promise<boolean[]> {
+    const entries: { change: NodeChange; publicKey: Uint8Array }[] = []
+    // Positional map from input index → index within `entries`; -1 means the
+    // change already failed (bad hash or unparseable DID) and needs no
+    // signature check.
+    const slots: number[] = []
+
+    for (const change of changes) {
+      if (!verifyChangeHash(change)) {
+        this.telemetry?.reportSecurityEvent('data.hash_verification_failed', 'high')
+        slots.push(-1)
+        continue
+      }
+      try {
+        slots.push(entries.push({ change, publicKey: parseDID(change.authorDID) }) - 1)
+      } catch {
+        slots.push(-1)
+      }
+    }
+
+    const signatureResults = await verifyChangesFast(entries)
+    for (const [index, ok] of signatureResults.entries()) {
+      if (!ok) this.telemetry?.reportSecurityEvent('data.signature_verification_failed', 'high')
+      void index
+    }
+
+    return slots.map((slot) => (slot === -1 ? false : signatureResults[slot]))
+  }
+
+  /**
    * Apply multiple remote changes (from sync).
    */
   async applyRemoteChanges(changes: NodeChange[]): Promise<void> {
@@ -2004,9 +2060,21 @@ export class NodeStore {
       )
     )
 
-    for (const change of sorted) {
+    // Verify the whole set up front (exploration 0357): one native-support
+    // probe and one key import per distinct author, instead of N cold
+    // pure-JS verifies. Identical checks, ~13x less time on bulk paths.
+    const verdicts = await this.verifyRemoteChanges(sorted)
+
+    for (const [index, change] of sorted.entries()) {
+      if (!verdicts[index]) {
+        console.warn(
+          `[NodeStore] skipping remote change ${change.hash} for node ` +
+            `${change.payload?.nodeId}: failed hash or signature verification`
+        )
+        continue
+      }
       try {
-        await this.applyRemoteChange(change)
+        await this.applyRemoteChange(change, { preVerified: true })
       } catch (err) {
         // A single un-appliable remote change (e.g. a first change missing its
         // schemaId) must not abort the whole batch — skip it and keep applying
