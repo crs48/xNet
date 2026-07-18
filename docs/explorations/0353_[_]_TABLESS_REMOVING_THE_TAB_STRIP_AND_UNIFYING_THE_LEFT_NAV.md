@@ -1,6 +1,6 @@
 # Tabless: Removing The Tab Strip And Unifying The Left Nav
 
-> Exploration 0350 · 2026-07-18
+> Exploration 0353 · 2026-07-18
 >
 > Lineage: [[0346_COMPOSABLE_UI_FRAMES]] (frames make side-by-side a page
 > concern, not a window concern — the prerequisite that makes this
