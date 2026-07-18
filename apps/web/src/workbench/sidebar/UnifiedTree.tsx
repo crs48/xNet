@@ -51,7 +51,7 @@ function LensRows({ sources, lensId }: { sources: SidebarRowSource[]; lensId: st
   const lens = sidebarRegistry.getLens(lensId)
   // eslint-disable-next-line react-hooks/rules-of-hooks -- stable per mount (keyed)
   const rows = sources.flatMap((source) => source.useRows())
-  const sorted = useMemo(() => sortSidebarRows(rows, lens), [rows, lens])
+  const sorted = sortSidebarRows(rows, lens)
 
   if (sorted.length === 0) {
     return <p className="px-3 py-4 text-center text-xs text-ink-3">Nothing here yet.</p>

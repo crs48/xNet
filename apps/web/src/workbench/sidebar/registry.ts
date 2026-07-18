@@ -17,6 +17,13 @@ class SidebarRegistry {
   private sources = new Map<string, SidebarRowSource>()
   private lenses = new Map<string, SidebarLens>()
   private listeners = new Set<() => void>()
+  /**
+   * Cached array snapshots. `useSyncExternalStore` compares snapshots by
+   * identity — returning a fresh array per call is an infinite render
+   * loop, so the arrays are rebuilt only when the registry changes.
+   */
+  private sourcesSnapshot: SidebarRowSource[] = []
+  private lensesSnapshot: SidebarLens[] = []
 
   registerSource(source: SidebarRowSource): Disposable {
     this.sources.set(source.id, source)
@@ -56,12 +63,14 @@ class SidebarRegistry {
     return this.sources.get(id)
   }
 
+  /** Stable snapshot — safe as a `useSyncExternalStore` getSnapshot. */
   getSources(): SidebarRowSource[] {
-    return [...this.sources.values()]
+    return this.sourcesSnapshot
   }
 
+  /** Stable snapshot — safe as a `useSyncExternalStore` getSnapshot. */
   getLenses(): SidebarLens[] {
-    return [...this.lenses.values()]
+    return this.lensesSnapshot
   }
 
   getLens(id: string): SidebarLens | undefined {
@@ -87,6 +96,9 @@ class SidebarRegistry {
   }
 
   private notify(): void {
+    // Rebuild snapshots exactly once per change, then fan out.
+    this.sourcesSnapshot = [...this.sources.values()]
+    this.lensesSnapshot = [...this.lenses.values()]
     for (const listener of this.listeners) listener()
   }
 }

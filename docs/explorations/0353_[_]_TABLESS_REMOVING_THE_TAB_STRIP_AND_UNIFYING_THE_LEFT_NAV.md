@@ -450,12 +450,12 @@ const title = useRouteTitle(routed)                   // views publish here
 
 ### Phase 3 — Panels → lenses; surfaces → sections
 
-- [ ] Chats lens behind flag; badge/presence parity with ChatsPanel;
+- [x] Chats lens behind flag; badge/presence parity with ChatsPanel;
       then retire ChatsPanel
-- [ ] Tasks/Today/Data panels → lenses/pinned views; retire
-- [ ] `SURFACES`/`navPinned`/More → user sections (per-user, reorder,
+- [x] Tasks/Today/Data panels → lenses/pinned views; retire
+- [x] `SURFACES`/`navPinned`/More → user sections (per-user, reorder,
       pin any row/lens/route)
-- [ ] Route surfaces (Meetings/Finance/Analytics/Discover) become
+- [x] Route surfaces (Meetings/Finance/Analytics/Discover) become
       pinned rows
 
 ### Phase 4 — Stragglers

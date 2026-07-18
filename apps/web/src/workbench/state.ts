@@ -13,6 +13,7 @@
 import type { ExplorerSort } from './views/explorer-sort'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { DEFAULT_PINNED_SECTION_IDS, DEFAULT_SECTIONS } from './sidebar/sections'
 import {
   createDefaultTree,
   createPresetTree,
@@ -245,6 +246,14 @@ interface WorkbenchState {
    * bump: shipping those independently is a recurring bug class.
    */
   mutedRowIds: string[]
+  /**
+   * The user's section order (0353) — the successor to `navPinned` +
+   * the "More" roll-out. Per-user, reorderable; unknown ids resolve
+   * away rather than crashing a shell shared across builds.
+   */
+  sectionOrder: string[]
+  /** Section ids shown as primary rows; the rest live behind "More". */
+  pinnedSectionIds: string[]
   pinnedNodeIds: string[]
   recents: RecentEntry[]
   /** Expanded folders in the Explorer tree (exploration 0169) */
@@ -426,6 +435,10 @@ interface WorkbenchState {
   setActiveLens: (lensId: string) => void
   /** Mute/unmute a row: badge and recency bump, together. */
   toggleRowMuted: (rowId: string) => void
+  /** Show/hide a section among the primary rows. */
+  toggleSectionPinned: (sectionId: string) => void
+  /** Persist a user-chosen section order. */
+  setSectionOrder: (order: string[]) => void
 
   // ─── Explorer pins & recents ───────────────────────────────────
   togglePinnedNode: (nodeId: string) => void
@@ -530,6 +543,8 @@ export const useWorkbench = create<WorkbenchState>()(
       splitTarget: null,
       activeLensId: 'all',
       mutedRowIds: [],
+      sectionOrder: DEFAULT_SECTIONS.map((section) => section.id),
+      pinnedSectionIds: [...DEFAULT_PINNED_SECTION_IDS],
       pinnedNodeIds: [],
       recents: [],
       expandedFolderIds: [],
@@ -919,6 +934,15 @@ export const useWorkbench = create<WorkbenchState>()(
             ? state.mutedRowIds.filter((id) => id !== rowId)
             : [...state.mutedRowIds, rowId]
         })),
+
+      toggleSectionPinned: (sectionId) =>
+        set((state) => ({
+          pinnedSectionIds: state.pinnedSectionIds.includes(sectionId)
+            ? state.pinnedSectionIds.filter((id) => id !== sectionId)
+            : [...state.pinnedSectionIds, sectionId]
+        })),
+
+      setSectionOrder: (order) => set({ sectionOrder: order }),
 
       togglePinnedNode: (nodeId) =>
         set((state) => ({
