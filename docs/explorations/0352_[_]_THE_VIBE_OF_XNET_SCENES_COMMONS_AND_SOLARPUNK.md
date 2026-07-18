@@ -534,7 +534,7 @@ export const nightBloomSeeder = defineSeeder({
       the business profile
 - [x] Surface feel/warmth choice (cozy variant + calm/quiet shells) in
       first-run or settings top level (`apps/web`)
-- [ ] File follow-up explorations: stewardship legibility (consent-gated
+- [x] File follow-up explorations: stewardship legibility (consent-gated
       replica visibility); scene-scoped theming with venue-owned chrome
       boundary
 
