@@ -9,7 +9,7 @@ import { compareSortKeys } from '@xnetjs/data'
 import { describe, expect, it } from 'vitest'
 import type { GridField } from '../grid/model.js'
 import { buildMonthGrid, eventsInRange, overflowByDay, packWeekSegments } from './calendar-model.js'
-import type { DatabaseViewRow } from './contract.js'
+import { EMPTY_VIEW_CONFIG, resolveGeoFields, type DatabaseViewRow } from './contract.js'
 import { parseDateCell, parseDateRangeCell, rowDateSpan, toDateCell } from './date-model.js'
 import {
   UNGROUPED_KEY,
@@ -246,6 +246,45 @@ describe('timeline-model', () => {
   })
 })
 
+describe('resolveGeoFields', () => {
+  const latField: GridField = { id: 'f-lat', name: 'lat', type: 'number', config: {}, width: 80 }
+  const lngField: GridField = { id: 'f-lng', name: 'lng', type: 'number', config: {}, width: 80 }
+  const geoField: GridField = { id: 'f-geo', name: 'Where', type: 'geo', config: {}, width: 160 }
+
+  it('prefers a geo field over the lat/lng name convention', () => {
+    const binding = resolveGeoFields([latField, lngField, geoField], EMPTY_VIEW_CONFIG)
+    expect(binding.geo?.id).toBe('f-geo')
+    expect(binding.lat).toBeUndefined()
+    expect(binding.lng).toBeUndefined()
+  })
+
+  it('honors an explicitly configured lat/lng pair over an unconfigured geo field', () => {
+    const binding = resolveGeoFields([latField, lngField, geoField], {
+      ...EMPTY_VIEW_CONFIG,
+      latField: 'f-lat',
+      lngField: 'f-lng'
+    })
+    expect(binding.geo).toBeUndefined()
+    expect(binding.lat?.id).toBe('f-lat')
+    expect(binding.lng?.id).toBe('f-lng')
+  })
+
+  it('binds a geo field configured in the latField slot (no config migration)', () => {
+    const binding = resolveGeoFields([latField, lngField, geoField], {
+      ...EMPTY_VIEW_CONFIG,
+      latField: 'f-geo'
+    })
+    expect(binding.geo?.id).toBe('f-geo')
+  })
+
+  it('falls back to the lat/lng name convention without a geo field', () => {
+    const binding = resolveGeoFields([latField, lngField], EMPTY_VIEW_CONFIG)
+    expect(binding.geo).toBeUndefined()
+    expect(binding.lat?.id).toBe('f-lat')
+    expect(binding.lng?.id).toBe('f-lng')
+  })
+})
+
 describe('map-model', () => {
   const latField: GridField = { id: 'f-lat', name: 'lat', type: 'number', config: {}, width: 80 }
   const lngField: GridField = { id: 'f-lng', name: 'lng', type: 'number', config: {}, width: 80 }
@@ -264,7 +303,11 @@ describe('map-model', () => {
       row('r2', 'a2', { 'f-lat': 999, 'f-lng': 0 }),
       row('r3', 'a3', {})
     ]
-    const result = rowsToGeoJSON(rows, [titleField, latField, lngField], latField, lngField)
+    const result = rowsToGeoJSON(rows, [titleField, latField, lngField], {
+      geo: undefined,
+      lat: latField,
+      lng: lngField
+    })
     expect(result.plotted).toBe(1)
     expect(result.skipped).toBe(2)
     const feature = result.geojson.features[0]
@@ -276,17 +319,44 @@ describe('map-model', () => {
     const rows = Array.from({ length: MAX_MAP_PINS + 5 }, (_, i) =>
       row(`r${i}`, `a${i}`, { 'f-lat': 10, 'f-lng': 10 })
     )
-    const result = rowsToGeoJSON(rows, [latField, lngField], latField, lngField)
+    const result = rowsToGeoJSON(rows, [latField, lngField], {
+      geo: undefined,
+      lat: latField,
+      lng: lngField
+    })
     expect(result.plotted).toBe(MAX_MAP_PINS)
     expect(result.skipped).toBe(5)
+  })
+
+  it('plots rows through a single geo field, skipping malformed cells', () => {
+    const geoField: GridField = { id: 'f-geo', name: 'Where', type: 'geo', config: {}, width: 160 }
+    const rows = [
+      row('r1', 'a1', { 'f-geo': { lat: 52.52, lng: 13.405 }, 'f-title': 'Berlin' }),
+      row('r2', 'a2', { 'f-geo': { lat: 999, lng: 0 } }),
+      row('r3', 'a3', { 'f-geo': 'not a point' }),
+      row('r4', 'a4', {})
+    ]
+    const result = rowsToGeoJSON(rows, [titleField, geoField], {
+      geo: geoField,
+      lat: undefined,
+      lng: undefined
+    })
+    expect(result.plotted).toBe(1)
+    expect(result.skipped).toBe(3)
+    const feature = result.geojson.features[0]
+    expect(feature.properties).toMatchObject({ rowId: 'r1', title: 'Berlin' })
+    expect((feature.geometry as GeoJSON.Point).coordinates).toEqual([13.405, 52.52])
   })
 
   it('fits the default viewport to the points', () => {
     const result = rowsToGeoJSON(
       [row('r1', 'a1', { 'f-lat': 52.52, 'f-lng': 13.405 })],
       [latField, lngField],
-      latField,
-      lngField
+      {
+        geo: undefined,
+        lat: latField,
+        lng: lngField
+      }
     )
     const viewport = defaultViewportFor(result.geojson)
     expect(viewport.latitude).toBeCloseTo(52.52, 3)

@@ -15,6 +15,7 @@ export type PropertyType =
   | 'json'
   | 'date'
   | 'dateRange'
+  | 'geo'
   | 'select'
   | 'multiSelect'
   | 'person'

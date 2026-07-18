@@ -4,7 +4,7 @@
  * footnote (exploration 0339).
  */
 
-import { isCellFileRef, type CellValue, type FileRef } from '@xnetjs/data'
+import { isCellFileRef, isCellGeoPoint, type CellValue, type FileRef } from '@xnetjs/data'
 import { cn } from '@xnetjs/ui'
 import React, { useEffect, useState } from 'react'
 import type { GridField } from '../grid/model.js'
@@ -64,6 +64,12 @@ export function FieldValueChip({
         </span>
       ) : null
     }
+    case 'geo':
+      return isCellGeoPoint(value) ? (
+        <span className="text-[11px] text-ink-2 tabular-nums">
+          {value.lat}, {value.lng}
+        </span>
+      ) : null
     case 'person': {
       const dids = Array.isArray(value) ? value : [value]
       const label = dids

@@ -72,7 +72,8 @@ const READ_ONLY_TYPES = new Set([
   'relation',
   'person',
   'richText',
-  'dateRange'
+  'dateRange',
+  'geo'
 ])
 
 // ─── Field editor (stacked, native controls) ─────────────────────────────────

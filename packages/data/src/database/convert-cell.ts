@@ -12,7 +12,7 @@
 
 import type { CellValue, FileRef } from './cell-types'
 import type { FieldType } from './field-types'
-import { isDateRange, isFileRef } from './cell-types'
+import { isDateRange, isFileRef, isGeoPoint } from './cell-types'
 
 export interface ConvertContext {
   /** Resolve an option ID to its display name (source select fields) */
@@ -50,6 +50,8 @@ export function cellValueToText(
     }
     case 'dateRange':
       return isDateRange(value) ? `${value.start} → ${value.end}` : String(value)
+    case 'geo':
+      return isGeoPoint(value) ? `${value.lat}, ${value.lng}` : ''
     case 'file':
       return isFileRef(value as FileRef) ? (value as FileRef).name : ''
     default:
@@ -139,6 +141,16 @@ export function convertCellValue(
       if (!Number.isNaN(single.getTime())) {
         const iso = single.toISOString()
         return { value: { start: iso, end: iso } }
+      }
+      return { value: null }
+    }
+
+    case 'geo': {
+      // "lat, lng" text (the geo cell's own text rendering) round-trips
+      const parts = text.split(',').map((s) => Number(s.trim()))
+      if (parts.length === 2) {
+        const point = { lat: parts[0], lng: parts[1] }
+        if (isGeoPoint(point)) return { value: point }
       }
       return { value: null }
     }

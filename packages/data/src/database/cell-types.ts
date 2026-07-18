@@ -35,6 +35,17 @@ export interface DateRange {
 }
 
 /**
+ * A geographic point in WGS84 decimal degrees.
+ * Same shape as the schema-layer GeoPoint (schema/properties/geo.ts).
+ */
+export interface GeoPoint {
+  /** Latitude in decimal degrees, -90..90 */
+  lat: number
+  /** Longitude in decimal degrees, -180..180 */
+  lng: number
+}
+
+/**
  * All possible cell value types.
  *
  * - string: text, url, email, phone, select (option ID), person (DID)
@@ -42,11 +53,12 @@ export interface DateRange {
  * - boolean: checkbox
  * - string (ISO 8601): date
  * - DateRange: dateRange
+ * - GeoPoint: geo
  * - string[]: multiSelect (option IDs), relation (row IDs)
  * - FileRef: file
  * - null: empty cell
  */
-export type CellValue = string | number | boolean | DateRange | string[] | FileRef | null
+export type CellValue = string | number | boolean | DateRange | GeoPoint | string[] | FileRef | null
 
 // ─── Cell Key Utilities ──────────────────────────────────────────────────────
 
@@ -136,6 +148,22 @@ export function isDateRange(value: unknown): value is DateRange {
 }
 
 /**
+ * Check if a value is a valid GeoPoint.
+ */
+export function isGeoPoint(value: unknown): value is GeoPoint {
+  if (typeof value !== 'object' || value === null) return false
+  const obj = value as Record<string, unknown>
+  return (
+    typeof obj.lat === 'number' &&
+    Number.isFinite(obj.lat) &&
+    Math.abs(obj.lat) <= 90 &&
+    typeof obj.lng === 'number' &&
+    Number.isFinite(obj.lng) &&
+    Math.abs(obj.lng) <= 180
+  )
+}
+
+/**
  * Check if a value is a valid FileRef.
  */
 export function isFileRef(value: unknown): value is FileRef {
@@ -161,6 +189,7 @@ export function isCellValue(value: unknown): value is CellValue {
     return value.every((v) => typeof v === 'string')
   }
   if (isDateRange(value)) return true
+  if (isGeoPoint(value)) return true
   if (isFileRef(value)) return true
   return false
 }

@@ -17,6 +17,7 @@ export type ColumnType =
   | 'checkbox'
   | 'date'
   | 'dateRange'
+  | 'geo'
   | 'select'
   | 'multiSelect'
   | 'person'
@@ -217,6 +218,7 @@ export function isNodeStoreColumnType(type: ColumnType): boolean {
     'checkbox',
     'date',
     'dateRange',
+    'geo',
     'select',
     'multiSelect',
     'person',

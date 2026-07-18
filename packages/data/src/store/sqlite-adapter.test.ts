@@ -2137,6 +2137,38 @@ describe('SQLiteNodeStorageAdapter', () => {
       expect(result.plan.postFilterReason).toBe('verified-in-js')
     })
 
+    it('matches spatial filters through dotted object-subfield keys (geo cells)', async () => {
+      await adapter.importNodes([
+        createTestNode({
+          id: 'geo-near',
+          schemaId: taskSchemaId,
+          properties: { title: 'Near', cell_where: { lat: 10, lng: 20 } }
+        }),
+        createTestNode({
+          id: 'geo-far',
+          schemaId: taskSchemaId,
+          properties: { title: 'Far', cell_where: { lat: 80, lng: 170 } }
+        }),
+        createTestNode({
+          id: 'geo-none',
+          schemaId: taskSchemaId,
+          properties: { title: 'No location' }
+        })
+      ])
+
+      const result = await adapter.queryNodes({
+        schemaId: taskSchemaId,
+        includeDeleted: false,
+        spatial: {
+          kind: 'window',
+          rect: { x: 0, y: 0, width: 50, height: 50 },
+          fields: { x: 'cell_where.lng', y: 'cell_where.lat' }
+        }
+      })
+
+      expect(result.nodes.map((node) => node.id)).toEqual(['geo-near'])
+    })
+
     it('collects plan diagnostics when the xnet:query:debug flag is set', async () => {
       const debugAdapter = new SQLiteNodeStorageAdapter(db)
       const globalWithStorage = globalThis as {
@@ -2498,6 +2530,50 @@ describe('SQLiteNodeStorageAdapter', () => {
           spatial
         })
         expect(afterDelete.nodes.map((node) => node.id)).toEqual(['rtree-new', 'rtree-near-large'])
+      } finally {
+        if (nativeDb.isOpen()) {
+          await nativeDb.close()
+        }
+        cleanupDb(dbPath)
+      }
+    })
+
+    it('indexes dotted object-subfield keys (geo cells) in the R-Tree', async () => {
+      const dbPath = getTestDbPath()
+      const nativeDb = await createNativeSQLiteAdapterOrNull(dbPath)
+      if (!nativeDb) return
+
+      const nativeAdapter = new SQLiteNodeStorageAdapter(nativeDb, {
+        queryVerification: { enabled: true }
+      })
+
+      try {
+        await nativeAdapter.importNodes([
+          createTestNode({
+            id: 'geo-rtree-near',
+            schemaId: taskSchemaId,
+            properties: { title: 'Near', cell_where: { lat: 10, lng: 20 } }
+          }),
+          createTestNode({
+            id: 'geo-rtree-far',
+            schemaId: taskSchemaId,
+            properties: { title: 'Far', cell_where: { lat: 80, lng: 170 } }
+          })
+        ])
+
+        const result = await nativeAdapter.queryNodes({
+          schemaId: taskSchemaId,
+          includeDeleted: false,
+          spatial: {
+            kind: 'window',
+            rect: { x: 0, y: 0, width: 50, height: 50 },
+            fields: { x: 'cell_where.lng', y: 'cell_where.lat' }
+          }
+        })
+
+        expect(result.nodes.map((node) => node.id)).toEqual(['geo-rtree-near'])
+        expect(result.plan.postFilterReason).toBe('spatial-rtree-verified-in-js')
+        expect(result.plan.candidateAccelerators).toEqual(['rtree'])
       } finally {
         if (nativeDb.isOpen()) {
           await nativeDb.close()

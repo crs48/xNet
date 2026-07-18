@@ -44,6 +44,8 @@ export {
   isMoneyValue,
   date,
   dateRange,
+  geo,
+  isGeoPoint,
   select,
   multiSelect,
   person,
@@ -66,6 +68,8 @@ export {
   type DateOptions,
   type DateRangeOptions,
   type DateRange,
+  type GeoOptions,
+  type GeoPoint,
   type SelectOptions,
   type SelectOption,
   type MultiSelectOptions,
@@ -915,6 +919,7 @@ export {
   type CellValue,
   type FileRef as CellFileRef,
   type DateRange as CellDateRange,
+  type GeoPoint as CellGeoPoint,
   CELL_PREFIX,
   cellKey,
   isCellKey,
@@ -923,6 +928,7 @@ export {
   fromCellProperties,
   isDateRange as isCellDateRange,
   isFileRef as isCellFileRef,
+  isGeoPoint as isCellGeoPoint,
   isCellValue,
 
   // Row operations

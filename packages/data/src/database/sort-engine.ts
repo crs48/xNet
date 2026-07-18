@@ -105,6 +105,17 @@ function compareValues(a: unknown, b: unknown, type: ColumnType): number {
     case 'updated':
       return new Date(a as string).getTime() - new Date(b as string).getTime()
 
+    // ─── Geo Type ─────────────────────────────────────────────────────────────
+    case 'geo': {
+      // North-to-south, then west-to-east — arbitrary but stable
+      const aGeo = a as { lat?: number; lng?: number } | null
+      const bGeo = b as { lat?: number; lng?: number } | null
+      return (
+        (bGeo?.lat ?? -Infinity) - (aGeo?.lat ?? -Infinity) ||
+        (aGeo?.lng ?? Infinity) - (bGeo?.lng ?? Infinity)
+      )
+    }
+
     // ─── Array Types ──────────────────────────────────────────────────────────
     case 'multiSelect':
     case 'relation':

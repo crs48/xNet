@@ -4,7 +4,7 @@
 
 The xNet database surface ships exactly two layouts: the V2 grid (Table) and
 Form. Every peer product — Notion, Airtable, NocoDB, Baserow, Teable, AFFiNE —
-treats a database as *one dataset, many views*: Board/Kanban grouped by a
+treats a database as _one dataset, many views_: Board/Kanban grouped by a
 select field, Calendar positioned by a date field, Timeline/Roadmap bars over
 a date range, Gallery cards with cover images, and (NocoDB) a Map of rows with
 coordinates. Baserow literally paywalls Kanban/Calendar/Timeline as
@@ -40,7 +40,7 @@ The recommended path:
    and Gallery need zero new dependencies (dnd-kit and TanStack Virtual are
    already in `packages/views`). Calendar wants `date-fns` (MIT). Roadmap
    should be a custom virtualized timeline (evolving the existing
-   `TimelineView`), *not* a Gantt library. Map already has `maplibre-gl`,
+   `TimelineView`), _not_ a Gantt library. Map already has `maplibre-gl`,
    `QuerySpatialFilter`, and geohash plumbing in `packages/maps` — its gap is
    a first-class geo property type and an offline-friendly tile story
    (Protomaps PMTiles).
@@ -145,7 +145,7 @@ Key facts, with paths:
   is a dependency; `packages/maps` has `MapView.tsx`, geohash spatial
   indexing, and `MapSchema` (`schemas/map.ts:107`) with query-driven layers
   (exploration 0187). `useQuery` even accepts `spatial: QuerySpatialFilter`
-  (`useQuery.ts:99`). What's missing is a *database view* that renders the
+  (`useQuery.ts:99`). What's missing is a _database view_ that renders the
   current table's rows as pins.
 - **Data to feed the views is seeded.** Work (`Project→Milestone→Task`), CRM
   (`Deal`/`Stage`/`Pipeline` — a natural kanban-by-stage), and accounting
@@ -178,14 +178,14 @@ Key facts, with paths:
 Across Notion, Airtable, NocoDB, and Baserow, per-view persisted config has
 converged on the same shape (beyond shared filter/sort/field-visibility):
 
-| Concern | Notion | Airtable | NocoDB | Baserow |
-|---|---|---|---|---|
-| Kanban group-by | status/select/person/relation, + sub-group swimlanes | single select / collaborator / linked record only | `fk_grp_col_id` (SingleSelect) | "Stacked by" single-select |
-| Card cover | page cover / property image / none, fit toggle, S/M/L | attachment field, crop vs fit, size slider | `fk_cover_image_col_id` | cover file field |
-| Calendar | "Show calendar by" date property picker | date field mapping | date column | (premium) |
-| Timeline | start + end properties or one range | start/end mapping + swimlane group-by | — | (premium) |
-| Map | — | — | dedicated `GeoData` column, 1000-row cap, persisted viewport, right-click-to-create | — |
-| Group keying | option **id**, not label; explicit "uncategorized" stack for nulls | same | `meta` JSON stack order/colors | `field_options` |
+| Concern         | Notion                                                             | Airtable                                          | NocoDB                                                                              | Baserow                    |
+| --------------- | ------------------------------------------------------------------ | ------------------------------------------------- | ----------------------------------------------------------------------------------- | -------------------------- |
+| Kanban group-by | status/select/person/relation, + sub-group swimlanes               | single select / collaborator / linked record only | `fk_grp_col_id` (SingleSelect)                                                      | "Stacked by" single-select |
+| Card cover      | page cover / property image / none, fit toggle, S/M/L              | attachment field, crop vs fit, size slider        | `fk_cover_image_col_id`                                                             | cover file field           |
+| Calendar        | "Show calendar by" date property picker                            | date field mapping                                | date column                                                                         | (premium)                  |
+| Timeline        | start + end properties or one range                                | start/end mapping + swimlane group-by             | —                                                                                   | (premium)                  |
+| Map             | —                                                                  | —                                                 | dedicated `GeoData` column, 1000-row cap, persisted viewport, right-click-to-create | —                          |
+| Group keying    | option **id**, not label; explicit "uncategorized" stack for nulls | same                                              | `meta` JSON stack order/colors                                                      | `field_options`            |
 
 Two business signals: Baserow paywalls exactly these views (Kanban, Calendar,
 Timeline are Premium), and NocoDB left open source entirely (fair-code
@@ -195,15 +195,15 @@ the one license-compatible local-first reference implementation.
 
 ### Library landscape (licenses verified on npm, 2026-07)
 
-| Need | Recommended | License | Why / why not alternatives |
-|---|---|---|---|
-| Kanban DnD | keep `@dnd-kit/core` (already used); watch `pragmatic-drag-and-drop` | MIT / Apache-2.0 | dnd-kit classic is stale (last publish Dec 2024; author moved to pre-1.0 `@dnd-kit/react`). Atlassian's pragmatic-drag-and-drop (Apache-2.0, powers Trello/Jira) is the scale + virtualization winner — but swapping now would churn working code. Revisit if column virtualization fights dnd-kit's droppable registry. |
-| Calendar | hand-rolled month grid (exists) + `date-fns` | MIT | FullCalendar standard plugins are MIT but its Timeline/Resource views are commercial — a trap. `react-big-calendar` (MIT) is the fallback if the week/time-slot view gets expensive to build. Schedule-X core MIT, premium plugins paid. toast-ui dead since 2022. |
-| Roadmap/Timeline | custom virtualized timeline (evolve existing `TimelineView`) | — | Linear/GitHub-Projects roadmaps are *not* Gantts: bars + month/quarter/year zoom + swimlanes, no dependency arrows. `frappe-gantt` (MIT, active) is the fallback if dependencies are ever wanted. vis-timeline (Apache/MIT) struggles past a few thousand DOM items. SVAR (GPLv3), planby (custom license), DHTMLX — excluded. |
-| Gallery | uniform card grid + `@tanstack/react-virtual` (already a dep) | MIT | Notion/Airtable both use uniform grids, not masonry; virtualize rows-of-N-cards. `masonic`/`react-virtuoso` only if masonry or grouped galleries demanded. |
-| Map renderer | `maplibre-gl` (already a dep) | BSD-3 | **`react-leaflet` is Hippocratic-2.1 — not OSI, excluded from MIT core.** Plain Leaflet (BSD-2) would need a hand wrapper; we already ship maplibre. `supercluster` (ISC) or maplibre's built-in `cluster: true` for pin clustering. |
-| Map tiles | Protomaps **PMTiles** (`pmtiles`, BSD-3) self-hosted; OpenFreeMap as zero-key hosted default | BSD-3 | OSM's public raster tiles prohibit heavy/bulk/offline use. PMTiles = whole basemap as one static file over HTTP range requests — servable from the hub origin (one CSP entry) or even cached locally; genuinely local-first. |
-| Geocoding | none in-client; optional hub-side Photon (Apache-2.0) later | — | Public Nominatim forbids autocomplete outright (1 req/s policy). Store lat/lng; geocoding is a pluggable service, never a client dependency. |
+| Need             | Recommended                                                                                  | License          | Why / why not alternatives                                                                                                                                                                                                                                                                                                     |
+| ---------------- | -------------------------------------------------------------------------------------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Kanban DnD       | keep `@dnd-kit/core` (already used); watch `pragmatic-drag-and-drop`                         | MIT / Apache-2.0 | dnd-kit classic is stale (last publish Dec 2024; author moved to pre-1.0 `@dnd-kit/react`). Atlassian's pragmatic-drag-and-drop (Apache-2.0, powers Trello/Jira) is the scale + virtualization winner — but swapping now would churn working code. Revisit if column virtualization fights dnd-kit's droppable registry.       |
+| Calendar         | hand-rolled month grid (exists) + `date-fns`                                                 | MIT              | FullCalendar standard plugins are MIT but its Timeline/Resource views are commercial — a trap. `react-big-calendar` (MIT) is the fallback if the week/time-slot view gets expensive to build. Schedule-X core MIT, premium plugins paid. toast-ui dead since 2022.                                                             |
+| Roadmap/Timeline | custom virtualized timeline (evolve existing `TimelineView`)                                 | —                | Linear/GitHub-Projects roadmaps are _not_ Gantts: bars + month/quarter/year zoom + swimlanes, no dependency arrows. `frappe-gantt` (MIT, active) is the fallback if dependencies are ever wanted. vis-timeline (Apache/MIT) struggles past a few thousand DOM items. SVAR (GPLv3), planby (custom license), DHTMLX — excluded. |
+| Gallery          | uniform card grid + `@tanstack/react-virtual` (already a dep)                                | MIT              | Notion/Airtable both use uniform grids, not masonry; virtualize rows-of-N-cards. `masonic`/`react-virtuoso` only if masonry or grouped galleries demanded.                                                                                                                                                                     |
+| Map renderer     | `maplibre-gl` (already a dep)                                                                | BSD-3            | **`react-leaflet` is Hippocratic-2.1 — not OSI, excluded from MIT core.** Plain Leaflet (BSD-2) would need a hand wrapper; we already ship maplibre. `supercluster` (ISC) or maplibre's built-in `cluster: true` for pin clustering.                                                                                           |
+| Map tiles        | Protomaps **PMTiles** (`pmtiles`, BSD-3) self-hosted; OpenFreeMap as zero-key hosted default | BSD-3            | OSM's public raster tiles prohibit heavy/bulk/offline use. PMTiles = whole basemap as one static file over HTTP range requests — servable from the hub origin (one CSP entry) or even cached locally; genuinely local-first.                                                                                                   |
+| Geocoding        | none in-client; optional hub-side Photon (Apache-2.0) later                                  | —                | Public Nominatim forbids autocomplete outright (1 req/s policy). Store lat/lng; geocoding is a pluggable service, never a client dependency.                                                                                                                                                                                   |
 
 ### Performance patterns from the field
 
@@ -213,7 +213,7 @@ the one license-compatible local-first reference implementation.
   windows — matching 0318's finding that sort/count/OFFSET are the cliffs,
   not reads. For select fields the stack list comes free from the field's
   option list (no `SELECT DISTINCT` needed).
-- Virtualized kanban: virtualize *within* each column; columns themselves
+- Virtualized kanban: virtualize _within_ each column; columns themselves
   only if >~20 stacks. Card render cost becomes the bottleneck before the
   virtualizer does — memoize cards, defer covers/chips.
 - Calendars don't need virtualization (≤42 cells) — they need per-cell event
@@ -231,7 +231,7 @@ the one license-compatible local-first reference implementation.
    fields for cover/date/geo/viewport config. Schema change ⇒ major-vs-minor
    review under the changeset policy (additive optional fields ⇒ minor).
 3. **Grouping must stay honest about the 500-row window.** Client-side
-   `groupRows` over the window is correct for v1 *if the UI says so*
+   `groupRows` over the window is correct for v1 _if the UI says so_
    ("showing 500 of 12,400"); silently truncated stacks would repeat the
    "grid 500-cap lies" failure noted in 0318.
 4. **Map is the only view needing new data-model work** (a geo/point property
@@ -251,7 +251,7 @@ the one license-compatible local-first reference implementation.
 ### Option A — Revive the legacy registry stack wholesale
 
 Mount `ViewRenderer` + `registerBuiltinViews()` in `DatabaseView.tsx` and
-adapt the V2 grid data *into* the legacy `ViewProps<TRow>` shape.
+adapt the V2 grid data _into_ the legacy `ViewProps<TRow>` shape.
 
 - ✅ Fastest visible demo; components run as-is.
 - ❌ Freezes the legacy `ViewConfig` (Y.Doc-era, `view-operations.ts`) as a
@@ -286,11 +286,11 @@ legacy `TableView` as each view lands.
 
 ### Map sub-decision — geo binding
 
-| | A: convention (two number props `lat`/`lon`) | B: first-class `geo` PropertyType/ColumnType |
-|---|---|---|
-| Effort | zero data-model work (matches `query-layer.ts:46` defaults today) | new property builder, cell editor, grid column, seed coverage |
-| UX | user must maintain paired columns; view config picks both | one field, one picker; enables right-click-to-create-at-location (NocoDB parity) |
-| Sync/protocol | none | additive schema surface — minor bump, no wire change |
+|               | A: convention (two number props `lat`/`lon`)                      | B: first-class `geo` PropertyType/ColumnType                                     |
+| ------------- | ----------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Effort        | zero data-model work (matches `query-layer.ts:46` defaults today) | new property builder, cell editor, grid column, seed coverage                    |
+| UX            | user must maintain paired columns; view config picks both         | one field, one picker; enables right-click-to-create-at-location (NocoDB parity) |
+| Sync/protocol | none                                                              | additive schema surface — minor bump, no wire change                             |
 
 Recommend **A for the first Map view release, B as the fast follow** — the
 view config should name `latField`/`lngField` explicitly either way, so B
@@ -319,15 +319,15 @@ Define the V2 view contract once:
 ```ts
 // packages/views/src/v2-contract.ts (new)
 export interface DatabaseViewProps {
-  fields: GridField[]          // from useGridDatabase
-  rows: GridRow[]              // windowed; window metadata included
+  fields: GridField[] // from useGridDatabase
+  rows: GridRow[] // windowed; window metadata included
   window: { size: number; total: number | null } // honesty about the 500-cap
-  view: GridViewModel          // filters/sorts/groupBy + new config below
+  view: GridViewModel // filters/sorts/groupBy + new config below
   mutate: {
     setCell(rowId: string, fieldId: string, value: unknown): void
     setViewConfig(patch: Partial<DatabaseViewConfig>): void
     moveRow(rowId: string, groupValue: string | null, sortKey: string): void
-    openRow(rowId: string): void  // GridPeek / route
+    openRow(rowId: string): void // GridPeek / route
     createRow(prefill?: Record<string, unknown>): void
   }
 }
@@ -476,6 +476,7 @@ ever demanded — do not reach for GPL/commercial Gantts.
 ## Implementation Checklist
 
 Phase 0 — contract & config
+
 - [x] Define `DatabaseViewProps` V2 contract in `packages/views` (new
       `v2-contract.ts`), derived from `useGridDatabase` outputs.
 - [x] Extend `DatabaseViewSchema` with `coverField`, `cardSize`, `colorBy`,
@@ -488,6 +489,7 @@ Phase 0 — contract & config
       feature-area barrels, one grouped block at the root (0276 rule).
 
 Phase 1 — Kanban
+
 - [x] Port `BoardView`/`useBoardState` to V2 contract; stacks keyed by option
       id + null stack; column order from option order + `groupMeta`.
 - [x] Card move = `setCell(groupBy field)` + fractional `sortKey`
@@ -498,22 +500,26 @@ Phase 1 — Kanban
 - [x] Tests: grouping (option rename safety), drag ordering, LWW double-move.
 
 Phase 2 — Gallery
+
 - [x] Port `GalleryView` to V2; rows-of-N virtualization with
       `@tanstack/react-virtual`; `coverField` thumbnails from blob store;
       crop/fit + `cardSize`.
 
 Phase 3 — Calendar
+
 - [x] Add `date-fns` to `packages/views` (changeset).
 - [x] Port `CalendarMonthView`; visible-range query on `dateField`; "+N more"
       cell overflow; drag-to-reschedule; `dateRange` spans.
 - [x] Decide + document date timezone semantics (floating vs UTC).
 
 Phase 4 — Roadmap
+
 - [x] Evolve `TimelineView`: bars from `dateField`/`endDateField`,
       month/quarter/year zoom, swimlanes via `groupBy`, drag-edge resize,
       TanStack Virtual rows.
 
 Phase 5 — Map
+
 - [x] Map view on `maplibre-gl` with `cluster: true`; `latField`/`lngField`
       binding; viewport-bounded fetch via `QuerySpatialFilter`; persisted
       `mapViewport`; record cap + clustering.
@@ -523,8 +529,17 @@ Phase 5 — Map
       `geo` property type stays the recorded fast-follow (Map sub-decision
       B — view config already names `latField`/`lngField` explicitly, so it
       slots in without view-config migration).
+- [x] First-class `geo` property/column type (Map sub-decision B, the
+      fast-follow above): `geo()` builder + `GeoPoint` cell value, grid
+      Location column with a lat/lng editor, `resolveGeoFields` prefers a
+      geo field over the number-pair convention (the `latField` slot doubles
+      as the geo picker — no view-config migration), right-click-to-create
+      writes the geo cell, and spatial viewport queries address geo
+      subfields via dotted keys (`cell_<id>.lat`) on both the R\*Tree and
+      JS-verified paths.
 
 Cross-cutting
+
 - [x] Delete legacy `ViewProps`/`ViewConfig` path + legacy `TableView` as
       each port lands (major-bump review if anything was root-barrel
       exported).

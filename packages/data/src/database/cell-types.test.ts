@@ -11,6 +11,7 @@ import {
   fromCellProperties,
   isDateRange,
   isFileRef,
+  isGeoPoint,
   isCellValue,
   CELL_PREFIX
 } from './cell-types'
@@ -166,6 +167,22 @@ describe('Type Guards', () => {
     })
   })
 
+  describe('isGeoPoint', () => {
+    it('should return true for valid geo points', () => {
+      expect(isGeoPoint({ lat: 52.52, lng: 13.405 })).toBe(true)
+      expect(isGeoPoint({ lat: -90, lng: 180 })).toBe(true)
+    })
+
+    it('should return false for out-of-range or malformed points', () => {
+      expect(isGeoPoint({ lat: 91, lng: 0 })).toBe(false)
+      expect(isGeoPoint({ lat: 0, lng: 181 })).toBe(false)
+      expect(isGeoPoint({ lat: NaN, lng: 0 })).toBe(false)
+      expect(isGeoPoint({ lat: '52', lng: 13 })).toBe(false)
+      expect(isGeoPoint({ lat: 52 })).toBe(false)
+      expect(isGeoPoint(null)).toBe(false)
+    })
+  })
+
   describe('isCellValue', () => {
     it('should return true for valid cell values', () => {
       // Primitives
@@ -174,6 +191,9 @@ describe('Type Guards', () => {
       expect(isCellValue(123)).toBe(true)
       expect(isCellValue(true)).toBe(true)
       expect(isCellValue(false)).toBe(true)
+
+      // Geo points
+      expect(isCellValue({ lat: 52.52, lng: 13.405 })).toBe(true)
 
       // Arrays of strings
       expect(isCellValue([])).toBe(true)

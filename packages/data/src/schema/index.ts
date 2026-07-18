@@ -72,6 +72,9 @@ export {
   type DateRange
 } from './properties'
 
+// Property helpers - Spatial
+export { geo, isGeoPoint, type GeoOptions, type GeoPoint } from './properties'
+
 // Property helpers - Selection
 export {
   select,

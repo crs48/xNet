@@ -107,6 +107,7 @@ const FIELD_TYPE_LABELS: Partial<Record<FieldType, string>> = {
   checkbox: 'Checkbox',
   date: 'Date',
   dateRange: 'Date range',
+  geo: 'Location',
   select: 'Single select',
   multiSelect: 'Multiple select',
   person: 'Person',
@@ -562,7 +563,9 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
   const registration = registryViewType ? viewRegistry.get(registryViewType) : undefined
 
   // Keep the spatial window in sync with the active view: resolve the
-  // lat/lng cell property names on map views, clear everything elsewhere.
+  // location cell property names on map views, clear everything elsewhere.
+  // A geo field addresses its lat/lng subfields with the dotted form the
+  // spatial index understands (`cell_<id>.lng`).
   useEffect(() => {
     if (registryViewType !== 'map') {
       setMapBounds(null)
@@ -570,7 +573,13 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
       return
     }
     const geo = resolveGeoFields(allFields, viewConfig)
-    setMapGeoProps(geo.lat && geo.lng ? { x: cellKey(geo.lng.id), y: cellKey(geo.lat.id) } : null)
+    setMapGeoProps(
+      geo.geo
+        ? { x: `${cellKey(geo.geo.id)}.lng`, y: `${cellKey(geo.geo.id)}.lat` }
+        : geo.lat && geo.lng
+          ? { x: cellKey(geo.lng.id), y: cellKey(geo.lat.id) }
+          : null
+    )
   }, [registryViewType, allFields, viewConfig])
 
   // View filters/sorts apply client-side over the loaded window — when more

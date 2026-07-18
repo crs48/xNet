@@ -118,21 +118,22 @@ export const builtinViews: ViewRegistration[] = [
     name: 'Map',
     icon: 'map',
     component: DatabaseMapView,
-    description: 'Rows as pins, bound by lat/lng number fields',
+    description: 'Rows as pins, bound by a Location field or lat/lng numbers',
     configFields: [
       {
+        // Doubles as the geo-field slot (0339 Map sub-decision B): pick a
+        // Location field here and Longitude is ignored
         key: 'latField',
-        label: 'Latitude',
+        label: 'Location',
         type: 'field-select',
-        fieldTypes: ['number'],
+        fieldTypes: ['geo', 'number'],
         required: true
       },
       {
         key: 'lngField',
         label: 'Longitude',
         type: 'field-select',
-        fieldTypes: ['number'],
-        required: true
+        fieldTypes: ['number']
       }
     ]
   }
