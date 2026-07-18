@@ -516,7 +516,7 @@ where the values-aligned position and the risk-adjusted position coincide.
 - [x] Add the **three-test rubric** (improvement / BATNA / vanish) to the
       same clause, and note in `CLAUDE.md` or the exploration skill that
       new revenue-lane explorations should apply it explicitly.
-- [ ] Add a **"where the margin comes from"** entry to the pricing FAQ in
+- [x] Add a **"where the margin comes from"** entry to the pricing FAQ in
       `site/src/data/pricing.ts` copy: we charge for operations and
       support, never for access to your own data — with the export/exit
       links as proof (converts the covenant into marketing surface, per
