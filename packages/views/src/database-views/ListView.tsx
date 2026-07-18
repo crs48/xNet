@@ -1,5 +1,5 @@
 /**
- * ListView — V2 stacked list, optionally grouped (exploration 0337).
+ * ListView — V2 stacked list, optionally grouped (exploration 0339).
  *
  * Also serves as the compact fallback for board/gallery on narrow shells
  * (`useIsCompact` in the app layer): every view's data renders legibly as

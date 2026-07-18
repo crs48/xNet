@@ -1,5 +1,5 @@
 /**
- * Built-in database views (exploration 0337) — registered through the
+ * Built-in database views (exploration 0339) — registered through the
  * same ViewRegistry door plugins use. Table and Form are deliberately
  * absent: the grid engine (GridSurface) and the form share surface own
  * their own chrome in the database shell.

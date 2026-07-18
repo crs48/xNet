@@ -1,6 +1,6 @@
 /**
  * Calendar model — pure month-grid math and event lane packing
- * (exploration 0337). All dates are floating local dates (date-model.ts).
+ * (exploration 0339). All dates are floating local dates (date-model.ts).
  */
 
 import {

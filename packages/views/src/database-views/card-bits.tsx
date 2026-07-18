@@ -1,7 +1,7 @@
 /**
  * Shared card rendering bits for board/gallery/list/calendar cards:
  * compact field-value chips, async cover images, and the window-honesty
- * footnote (exploration 0337).
+ * footnote (exploration 0339).
  */
 
 import { isCellFileRef, type CellValue, type FileRef } from '@xnetjs/data'

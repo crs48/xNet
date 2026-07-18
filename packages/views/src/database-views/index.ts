@@ -1,5 +1,5 @@
 /**
- * V2 database views (exploration 0337) — feature-area sub-barrel.
+ * V2 database views (exploration 0339) — feature-area sub-barrel.
  * The root barrel re-exports this area as ONE grouped block (0276 rule).
  */
 

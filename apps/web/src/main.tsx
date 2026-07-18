@@ -18,7 +18,7 @@ import * as Y from 'yjs'
 import { App } from './App'
 import { initAnalytics } from './lib/analytics'
 
-// Database Map view tiles (exploration 0337): OpenFreeMap by default;
+// Database Map view tiles (exploration 0339): OpenFreeMap by default;
 // self-hosted deployments serve one PMTiles archive from their own
 // origin instead (offline-capable, one CSP host).
 const selfHostedPmtiles = import.meta.env.VITE_MAP_PMTILES_URL as string | undefined

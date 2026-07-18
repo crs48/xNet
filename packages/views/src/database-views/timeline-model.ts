@@ -1,5 +1,5 @@
 /**
- * Timeline (roadmap) model — pure time-scale math (exploration 0337).
+ * Timeline (roadmap) model — pure time-scale math (exploration 0339).
  *
  * A roadmap, not a Gantt: bars on a horizontal time axis, month/quarter/
  * year zoom, swimlane grouping — no dependency arrows or critical path

@@ -1,5 +1,5 @@
 /**
- * DatabaseMapView — V2 map of the current table's rows (exploration 0337).
+ * DatabaseMapView — V2 map of the current table's rows (exploration 0339).
  *
  * A pin map, not the full GIS surface (that's `MapSchema` +
  * `packages/maps`): rows bind through two number fields (lat/lng, with
@@ -34,7 +34,7 @@ const BASEMAP = 'protomaps-light' as const
  */
 export const OPENFREEMAP_LIBERTY_STYLE = 'https://tiles.openfreemap.org/styles/liberty'
 
-/** Tile configuration for the database Map view (exploration 0337). */
+/** Tile configuration for the database Map view (exploration 0339). */
 export interface DatabaseMapTiles {
   /**
    * Self-hosted Protomaps PMTiles archive URL — ONE static file served

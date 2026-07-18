@@ -1,6 +1,6 @@
 /**
  * ViewRegistry — runtime registration of database view types
- * (exploration 0337, reviving the 0267 "apps are views over your data"
+ * (exploration 0339, reviving the 0267 "apps are views over your data"
  * seam on the V2 grid contract).
  *
  * Built-in views (board, gallery, calendar, timeline, list, map) register

@@ -1,5 +1,5 @@
 /**
- * ViewOptionsBar — per-view configuration strip (exploration 0337).
+ * ViewOptionsBar — per-view configuration strip (exploration 0339).
  *
  * Renders the active view registration's `configFields` as compact
  * selects (field pickers filtered by type, or fixed options) and writes

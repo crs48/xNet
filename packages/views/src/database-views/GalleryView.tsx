@@ -1,5 +1,5 @@
 /**
- * GalleryView — V2 uniform card grid (exploration 0337).
+ * GalleryView — V2 uniform card grid (exploration 0339).
  *
  * Uniform cards (Notion/Airtable-style, not masonry), virtualized as
  * rows-of-N with TanStack Virtual so 10k cards stay smooth. Cover images

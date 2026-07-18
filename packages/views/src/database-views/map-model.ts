@@ -1,5 +1,5 @@
 /**
- * Map model — pure helpers for the database Map view (exploration 0337).
+ * Map model — pure helpers for the database Map view (exploration 0339).
  *
  * Rows bind through two number fields (lat/lng). Rows without a finite
  * coordinate pair are skipped (and counted, for the honesty footer).
