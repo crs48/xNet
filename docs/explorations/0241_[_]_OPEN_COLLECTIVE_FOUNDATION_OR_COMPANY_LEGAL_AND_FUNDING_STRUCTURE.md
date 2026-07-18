@@ -540,7 +540,7 @@ buy_me_a_coffee: crs48
   on maintenance, security, and docs — visible in a public ledger.
 
 ## Trademark
-- The code is free to fork. The name "xNet" / "XNet-compatible" mark exists to
+- The code is free to fork. The name "xNet" / "xNet-compatible" mark exists to
   protect users from confusion and will be stewarded by an independent
   foundation as the ecosystem matures.
 

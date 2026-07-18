@@ -531,7 +531,7 @@ mindmap
       SaaS platforms
       Search and social
       Public sector vendors
-    XNet artifacts
+    xNet artifacts
       Privacy docs
       Security process
       Conformance tests
@@ -1337,7 +1337,7 @@ until their "now" artifacts exist.
 - [ ] An independent operator can run conformance tests without asking Labs for permission.
 - [ ] xNet has a published vulnerability disclosure path and can receive private security reports.
 - [ ] Release artifacts can produce SBOMs and eventually signed provenance.
-- [ ] Standards docs distinguish existing standards from XNet-specific extensions.
+- [ ] Standards docs distinguish existing standards from xNet-specific extensions.
 - [ ] Incumbent connectors degrade gracefully when APIs change.
 - [ ] No public search/crawl surface indexes private or access-controlled data by default.
 - [ ] AI-generated content or moderation has provenance and appeal paths.

@@ -404,7 +404,7 @@ sequenceDiagram
 export type AIProviderType =
   | 'anthropic' | 'openai' | 'ollama' | 'openai-compatible'
   | 'openrouter' | 'ollama-openai' | 'lmstudio' | 'vllm' | 'litellm'
-  | 'managed' // ← XNet Cloud metered AI, routed through the hub; no API key
+  | 'managed' // ← xNet Cloud metered AI, routed through the hub; no API key
   | 'custom'
 
 export interface ManagedProviderOptions {

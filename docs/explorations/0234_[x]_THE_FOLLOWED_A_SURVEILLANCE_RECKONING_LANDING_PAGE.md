@@ -383,7 +383,7 @@ flowchart TD
   A1 --> R["HINGE: 'You did it today, online, ~2,230×'"]
   R --> A2["Act II — The real mechanisms + citations<br/>(physical ⇄ digital pairs)"]
   A2 --> HOPE["Counter-beats: Oracle Ads shut down · FTC 2024 bans"]
-  HOPE --> T["Act III — The turn: XNet (emerald)"]
+  HOPE --> T["Act III — The turn: xNet (emerald)"]
   T --> HB["Honesty box: what xNet is / isn't"]
   HB --> SA["Self-audit: 0 cookies · 0 trackers"]
   SA --> CTA["CTA: install / use the app"]
@@ -550,14 +550,14 @@ import FollowedHero from '../components/followed/FollowedHero.astro'
 import PhysicalAct from '../components/followed/PhysicalAct.astro'   // Act I, scrolly
 import RevealHinge from '../components/followed/RevealHinge.astro'
 import MechanismGrid from '../components/followed/MechanismGrid.astro' // Act II, from CLAIMS
-import TheTurn from '../components/followed/TheTurn.astro'            // Act III, XNet (emerald)
+import TheTurn from '../components/followed/TheTurn.astro'            // Act III, xNet (emerald)
 import HonestyBox from '../components/followed/HonestyBox.astro'
 import SelfAudit from '../components/followed/SelfAudit.astro'
 import { CLAIMS } from '../data/surveillance.ts'
 ---
 <Base
   title="The Followed — you'd never allow this in the real world"
-  description="The level of tracking we accept online would be dystopian if it were physical. Here's exactly how it works — and how XNet is built so there's nothing to traffic."
+  description="The level of tracking we accept online would be dystopian if it were physical. Here's exactly how it works — and how xNet is built so there's nothing to traffic."
 >
   <Nav />
   <main>
@@ -600,7 +600,7 @@ import { CLAIMS } from '../data/surveillance.ts'
 
 ## Risks And Open Questions
 
-- **Over‑claiming about XNet (highest risk).** The page must not imply universal
+- **Over‑claiming about xNet (highest risk).** The page must not imply universal
   E2E encryption, zero servers, or anonymity. Mitigation: the honesty box is
   mandatory, not optional, and the ⚠️ table rows ship verbatim. A privacy page
   that overclaims is worse than no page.

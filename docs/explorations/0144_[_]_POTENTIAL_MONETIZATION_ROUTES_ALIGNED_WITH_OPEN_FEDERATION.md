@@ -407,7 +407,7 @@ This gives xNet a way to charge without becoming the federation gatekeeper.
 ```mermaid
 sequenceDiagram
     participant User as User / organization
-    participant App as XNet app
+    participant App as xNet app
     participant Hub as Managed hub
     participant Ledger as Usage ledger
     participant Fund as Commons fund
@@ -560,7 +560,7 @@ xNet should move down the stack gradually:
 
 ```mermaid
 mindmap
-  root((XNet Monetization))
+  root((xNet Monetization))
     Managed Hubs
       Personal
       Family
@@ -1135,7 +1135,7 @@ public commitment that commercial success funds the open network.
 
 ## Validation Checklist 🔬
 
-- [ ] A competent operator can run a production hub without paying XNet.
+- [ ] A competent operator can run a production hub without paying xNet.
 - [ ] A hosted user can export data and migrate to another hub.
 - [ ] Baseline federation works without a paid peering agreement.
 - [ ] Paid plans improve reliability, scale, support, compliance, or convenience rather than

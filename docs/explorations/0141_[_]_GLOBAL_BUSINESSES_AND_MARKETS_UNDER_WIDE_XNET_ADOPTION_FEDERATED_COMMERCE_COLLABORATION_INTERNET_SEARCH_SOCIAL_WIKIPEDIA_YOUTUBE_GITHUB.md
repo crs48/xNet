@@ -1171,7 +1171,7 @@ possible worlds.
 
 ```mermaid
 mindmap
-  root((Wide XNet adoption))
+  root((Wide xNet adoption))
     Markets
       Open marketplaces
       Co-op commerce

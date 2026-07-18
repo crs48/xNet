@@ -2,7 +2,7 @@
 
 ## Problem Statement
 
-> "Get Claude Code and Codex working with XNet. Ideally on the web deployment,
+> "Get Claude Code and Codex working with xNet. Ideally on the web deployment,
 > but at least the Electron app. They should leverage your existing Claude Code
 > or Codex subscription. Ideally it works with **any** agent (OpenCode, Kimi
 > K2.5, a local coding agent…), primarily Claude and Codex, and the integration
@@ -14,7 +14,7 @@ xNet's in-app AI chat (exploration 0192) can now talk to a raw model and
 read the workspace, but a raw model is not an *agent*: it has no tool-execution
 loop, no file editing, no plan/approve/apply cycle. Meanwhile the user already
 pays for **Claude Code** and **Codex** — agents that already have all of that.
-The opportunity is to **drive those existing agents from XNet's UI** rather than
+The opportunity is to **drive those existing agents from xNet's UI** rather than
 rebuild them, so the assistant can actually *do* things: edit pages, build
 canvases, mutate databases, and author plugins.
 
@@ -251,7 +251,7 @@ this is a "nice to know," not a dependency.
 
 ## Options And Tradeoffs
 
-### Transport from XNet UI → agent
+### Transport from xNet UI → agent
 
 | Option | What | Pros | Cons |
 | --- | --- | --- | --- |
@@ -275,10 +275,10 @@ standalone `xnet bridge serve` for web, phased:**
 
 ```mermaid
 sequenceDiagram
-  participant UI as XNet panel
+  participant UI as xNet panel
   participant BR as Bridge daemon (:31416)
   participant AG as Agent (claude-code-acp)
-  participant MCP as XNet MCP (stdio)
+  participant MCP as xNet MCP (stdio)
   UI->>BR: GET /health → {ok:true}
   UI->>BR: open session (prompt, agent=claude)
   BR->>AG: spawn + ACP initialize
@@ -345,7 +345,7 @@ export function startAgentBridge(opts: { port?: number; agent: string } ) {
 ### Bridge ↔ agent over ACP, with xNet's MCP tools declared in the handshake
 
 ```ts
-// Phase 1: launch an ACP agent and open a session that connects to XNet's MCP.
+// Phase 1: launch an ACP agent and open a session that connects to xNet's MCP.
 import { spawn } from 'node:child_process'
 
 const agent = spawn('npx', ['-y', '@zed-industries/claude-code-acp'], {

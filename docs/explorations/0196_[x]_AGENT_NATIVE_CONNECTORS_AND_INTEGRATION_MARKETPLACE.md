@@ -437,7 +437,7 @@ import { defineFeatureModule, type FeatureModule } from '../feature-module'
 export interface ConnectorSyncSpec {
   /** Schema IRIs this connector materializes (must be a subset of capabilities.schemaWrite). */
   schemas: string[]
-  /** Pull external data → XNet nodes. Runs hub-side with scoped secrets + guardedFetch. */
+  /** Pull external data → xNet nodes. Runs hub-side with scoped secrets + guardedFetch. */
   pull(ctx: ConnectorSyncContext): Promise<ConnectorSyncResult>
   /** How often to re-sync (cron-ish). Optional; default manual + on-demand. */
   cadence?: 'manual' | 'hourly' | 'daily' | { everyMs: number }

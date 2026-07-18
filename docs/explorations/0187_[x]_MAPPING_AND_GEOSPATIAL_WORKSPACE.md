@@ -301,7 +301,7 @@ vector) → **GeoParquet / PMTiles** (bulk/analytical, Overture-native).
    auth-scoped via Spaces
    ([0181](0181_%5B_%5D_SPACES_AS_NESTED_GROUPINGS_AND_SCHEMA_AUTHORIZATION.md))
    — is something no embedded Google/Mapbox map can offer. This is the reason to
-   build it *inside* XNet.
+   build it *inside* xNet.
 4. **Open + local-first + private actually compose here.** PMTiles gives an
    open, key-less, offline, self-hostable basemap; hub-proxied tiles & geocoding
    keep the user's location interest from leaking to a vendor. "Open source" and

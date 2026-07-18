@@ -392,7 +392,7 @@ const MESSAGE = 'xnet://xnet.fyi/ChatMessage@1.0.0'
 export const slackMigrationConnector = defineConnector({
   id: 'dev.xnet.connector.slack',
   name: 'Slack',
-  description: 'Import Slack channels, history, members and files into XNet.',
+  description: 'Import Slack channels, history, members and files into xNet.',
   capabilities: {
     secrets: ['SLACK_USER_TOKEN'],          // held by the hub broker, never the agent
     schemaWrite: [CHANNEL, MESSAGE],         // every synced schema must be covered
@@ -505,10 +505,10 @@ routes.post('/api/chat.postMessage', requireBotToken, async (c) => {
 ```mermaid
 sequenceDiagram
   participant App as Slack integration (PagerDuty/CI/...)
-  participant Hub as XNet hub (slack-compat feature)
+  participant Hub as xNet hub (slack-compat feature)
   participant Guard as guardStore + budget + MCP guardrail
   participant Sync as Yjs sync
-  participant UI as XNet ChannelChat
+  participant UI as xNet ChannelChat
 
   App->>Hub: POST /slack/services/hooks/:token {text, blocks?}
   Hub->>Hub: verify token / x-slack-signature (HMAC)
@@ -524,7 +524,7 @@ sequenceDiagram
 
 ```mermaid
 sequenceDiagram
-  participant UI as XNet user posts in #ops
+  participant UI as xNet user posts in #ops
   participant Log as Change log / notifier
   participant Emit as Events emitter (slack-compat)
   participant App as Subscribed Slack app (Request URL)

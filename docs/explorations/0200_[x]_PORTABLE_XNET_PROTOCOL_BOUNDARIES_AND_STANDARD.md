@@ -171,7 +171,7 @@ with a compact wire form ([`:91`](packages/sync/src/yjs-envelope.ts)):
 ```ts
 interface SignedYjsEnvelopeWire {
   v: 2
-  u: string   // base64(Yjs update bytes) — OPAQUE to XNet
+  u: string   // base64(Yjs update bytes) — OPAQUE to xNet
   m: { a: DID; c: number; t: number; d: string }  // author, clientId, ts, docId
   s: SignatureWire   // ed25519 (+ optional ML-DSA), level
 }
@@ -608,7 +608,7 @@ docs/specs/protocol/
   04-authorization.md       # L3 — authz definitions, role resolvers, expression AST, grants, sync-boundary
   05-schema-evolution.md    # versioning + Cambria lenses (links docs/sync/03-lens-cookbook.md)
   90-conformance.md         # how to run the corpus; the conformance matrix
-  xpp/                      # XNet Protocol Proposals (MSC-style), 0000-template.md
+  xpp/                      # xNet Protocol Proposals (MSC-style), 0000-template.md
 conformance/
   vectors/{identity,change,lww,authz,sync}/*.json
   README.md

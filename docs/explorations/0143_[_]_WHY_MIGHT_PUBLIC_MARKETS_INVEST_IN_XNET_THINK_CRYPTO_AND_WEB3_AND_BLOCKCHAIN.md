@@ -20,7 +20,7 @@ creates a much harsher design question:
 > Can xNet become a useful decentralized resource economy before it becomes a publicly tradable
 > story?
 
-This exploration is strategic analysis for XNet. It is not investment advice, legal advice, a token
+This exploration is strategic analysis for xNet. It is not investment advice, legal advice, a token
 launch recommendation, or a securities-law conclusion.
 
 ## Exploration Status
@@ -433,9 +433,9 @@ regulatory and capture risks.
 
 ```mermaid
 mindmap
-  root((XNet Public-Market Thesis))
+  root((xNet Public-Market Thesis))
     Equity
-      XNet Cloud revenue
+      xNet Cloud revenue
       Enterprise workspaces
       Developer platform
       AI data layer
@@ -650,7 +650,7 @@ This is the scenario to avoid.
 
 ```mermaid
 stateDiagram-v2
-    [*] --> ProductFirst: Build XNet app, SDK, hub reliability
+    [*] --> ProductFirst: Build xNet app, SDK, hub reliability
     ProductFirst --> MeteredNetwork: Add billing-grade metering
     MeteredNetwork --> StablecoinSettlement: Accept fiat/stablecoin payments
     StablecoinSettlement --> OperatorMarketplace: Publish hub offers + receipts

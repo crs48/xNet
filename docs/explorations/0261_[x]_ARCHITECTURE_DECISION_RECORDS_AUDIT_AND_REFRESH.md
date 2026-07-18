@@ -358,20 +358,20 @@ stateDiagram-v2
 ### B) ADR-11, drafted (the keystone addition)
 
 ```markdown
-## ADR-11: XNet is a protocol; the interop kernel is the change log, not Yjs
+## ADR-11: xNet is a protocol; the interop kernel is the change log, not Yjs
 
 **Status:** Accepted
 **Date:** 2026-06 (exploration 0200)
-**Context:** 0200 — Portable XNet protocol boundaries.
+**Context:** 0200 — Portable xNet protocol boundaries.
 
-**Decision:** Treat XNet as a versioned, multi-implementation **protocol** whose
+**Decision:** Treat xNet as a versioned, multi-implementation **protocol** whose
 normative surface is four layers — L0 primitives, L1 data model, L2 replication,
 L3 authorization — with the application profile (L4) explicitly non-normative.
 The interop kernel is a **signed, hash-chained, per-property-LWW change log over
 schema-typed nodes** (`CURRENT_PROTOCOL_VERSION = 3`,
 `packages/sync/src/change.ts`). Yjs is a **pluggable document codec** for the
 rich-text/canvas body of certain nodes and travels the wire as opaque bytes
-inside an XNet envelope.
+inside an xNet envelope.
 
 **Rationale:**
 - A second implementation in any language can forward/store the Yjs blob as an

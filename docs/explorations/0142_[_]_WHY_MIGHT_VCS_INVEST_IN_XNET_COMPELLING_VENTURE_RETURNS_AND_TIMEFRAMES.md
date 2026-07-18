@@ -373,7 +373,7 @@ support venture returns.
 
 ```mermaid
 mindmap
-  root((XNet VC Thesis))
+  root((xNet VC Thesis))
     Near-term wedge
       React app platform
       Collaborative productivity
@@ -381,7 +381,7 @@ mindmap
       Hosted sync and backup
     Medium-term revenue
       Team subscriptions
-      XNet Cloud
+      xNet Cloud
       Managed hubs
       Plugin marketplace
       Enterprise controls
@@ -589,7 +589,7 @@ to $5B range.
 
 ```mermaid
 gantt
-    title Venture Timeframe For XNet
+    title Venture Timeframe For xNet
     dateFormat  YYYY-MM-DD
 
     section Seed Proof

@@ -320,7 +320,7 @@ expectation; if it requires uniqueness, link rather than re-list.)
 
 ```js
 const developLinks = [
-  { label: 'XNet for React', href: '/react' },
+  { label: 'xNet for React', href: '/react' },
   { label: 'Build with any language', href: '/build-with' }, // NEW — the ask
   { label: 'Swift SDK', href: '/docs/languages/swift/' },     // NEW
   { label: 'Rust core', href: '/docs/languages/rust/' },      // NEW

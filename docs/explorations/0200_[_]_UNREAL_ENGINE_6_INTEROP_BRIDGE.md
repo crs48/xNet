@@ -10,7 +10,7 @@
 > versa, Unreal Engine games accessible to xNet apps. I don't know what the
 > interface might look like or where the different touch points might be, but
 > it's worth doing some exploration into Unreal Engine 6 and seeing how it might
-> integrate with XNet."
+> integrate with xNet."
 
 At [State of Unreal 2026](https://www.unrealengine.com/news/state-of-unreal-2026-top-news-from-the-show)
 Epic announced Unreal Engine 6 (Early Access **late 2027**) around three pillars:
@@ -89,7 +89,7 @@ should we build first?**
    useful bridge and a melted hub.
 
 6. **The runtime bridge needs a native UE plugin, not pure Verse, for *local*
-   XNet.** Verse's networking is sandboxed toward Epic-hosted services; reaching a
+   xNet.** Verse's networking is sandboxed toward Epic-hosted services; reaching a
    user's `127.0.0.1` xNet daemon from inside Fortnite/UEFN will be restricted. So:
    *Verse path* → talks to an Epic-hosted or cloud xNet hub; *native C++ UE plugin
    path* → talks to the local xNet daemon (LocalAPI `:31415` / bridge `:31416`).
@@ -320,7 +320,7 @@ harness. The agent reads xNet design docs, tasks, lore, asset lists and drives t
 engine; engine MCP tools surface into xNet's AI surface.
 
 - **Pros:** Near-zero new code (both sides already speak MCP); rides Epic's own
-  open MCP foundation; immediately useful for *making* games from XNet specs;
+  open MCP foundation; immediately useful for *making* games from xNet specs;
   inherits `McpWriteGuardrail` safety.
 - **Cons:** Request/response, agent-mediated; not a runtime data path; "in-game
   xNet data" only as far as an agent pastes it in.
@@ -347,7 +347,7 @@ xNet apps (dashboard, CRM-style guild manager, ledger, task board) render them.
   apps light up immediately.
 - **Cons:** One-directional (doesn't put xNet data *in* the game); needs the game
   to emit events somewhere the connector can fetch.
-- **Best for:** "Manage / analyze / socialize my game life from XNet."
+- **Best for:** "Manage / analyze / socialize my game life from xNet."
 
 ### Option D — Open-standard asset & identity exchange (glTF/USD + DID)
 
@@ -424,7 +424,7 @@ import { defineSchema, text, number, select, relation, person, money, file }
 
 const ns = 'xnet://game/'
 
-/** The player's portable identity — keyed to their XNet DID. */
+/** The player's portable identity — keyed to their xNet DID. */
 export const PlayerIdentitySchema = defineSchema({
   name: 'PlayerIdentity', namespace: ns, version: '1.0.0',
   properties: {
@@ -524,7 +524,7 @@ XNetClient := class:
 sequenceDiagram
   participant Game as UE6 Game (C++/Verse)
   participant XC as XNetClient
-  participant API as XNet LocalAPI / Hub
+  participant API as xNet LocalAPI / Hub
   participant Store as NodeStore (authz-scoped)
   participant Blob as Blob /files/:cid
 
@@ -575,7 +575,7 @@ erDiagram
   asset conventions, the MCP foundation surface, and the general persistence API
   will shift. *Mitigation:* Phase 1 (MCP peering) works against today's UE5.x/UEFN;
   treat Phases 3–4 as tracking targets, gate them behind labs trust tiers, and keep
-  the UE-side client in its own repo so its churn doesn't destabilize XNet.
+  the UE-side client in its own repo so its churn doesn't destabilize xNet.
 - **Verse can't reach localhost.** Almost certain in Fortnite/UEFN sandboxes.
   *Mitigation:* native C++ plugin for local-xNet titles; Verse path strictly to a
   hosted hub. Decide per-title; don't promise localhost from Verse.

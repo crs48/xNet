@@ -324,7 +324,7 @@ Keep copy code-first and adjective-free; render dark by default.
 ```astro
 ---
 const developLinks = [
-  { label: 'XNet for React', href: '/react' },
+  { label: 'xNet for React', href: '/react' },
   { label: 'DevTools', href: '/devtool' },
   { label: 'React Hooks', href: '/docs/hooks/overview/' },
   { label: 'Your own server', href: '/docs/guides/server/' }

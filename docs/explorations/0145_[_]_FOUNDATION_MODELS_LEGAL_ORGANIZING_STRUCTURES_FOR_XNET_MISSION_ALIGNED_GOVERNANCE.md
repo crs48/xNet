@@ -511,7 +511,7 @@ Sources:
 
 ```mermaid
 mindmap
-  root((XNet governance fit))
+  root((xNet governance fit))
     Operating company
       Delaware PBC
       Delaware C corp
@@ -831,8 +831,8 @@ steward of specific commons assets and processes.
 ```mermaid
 sequenceDiagram
     participant User
-    participant Labs as XNet Labs
-    participant Foundation as XNet Foundation
+    participant Labs as xNet Labs
+    participant Foundation as xNet Foundation
     participant Operator as Independent Operator
     participant Commons as Open Commons
 
@@ -843,7 +843,7 @@ sequenceDiagram
     Operator->>Foundation: Requests compatibility certification
     Foundation->>Operator: Runs conformance and trademark process
     Operator->>User: Offers certified independent hosting
-    User->>Operator: Migrates or multi-homes without leaving XNet
+    User->>Operator: Migrates or multi-homes without leaving xNet
 ```
 
 ### Option 9: Hosted foundation project
@@ -1187,7 +1187,7 @@ legal review first.
 
 The code is MIT, but the brand and compatibility mark become the real moat.
 
-**Symptom:** forks can exist, but only Labs can plausibly be "real XNet."
+**Symptom:** forks can exist, but only Labs can plausibly be "real xNet."
 
 **Prevention:** publish a trademark policy that lets compatible independent implementations use
 clear compatibility language while protecting users from confusion and abuse.
@@ -1218,7 +1218,7 @@ stateDiagram-v2
     FoundationLaunch --> ProtocolTreasury: real settlement/treasury need
 
     MaintainerProject: Current shape
-    Labs: XNet Labs PBC/C-Corp
+    Labs: xNet Labs PBC/C-Corp
     CommonsFund: transparent commons allocation
     AdvisoryCouncil: non-binding governance practice
     FoundationDesign: counsel + charter + asset map
@@ -1664,8 +1664,8 @@ const criteriaWeights = {
 const options: readonly StructureOption[] = [
   {
     id: 'delaware_pbc',
-    label: 'XNet Labs as Delaware Public Benefit Corporation',
-    bestWhen: 'XNet needs a commercial operating company with explicit mission duties.',
+    label: 'xNet Labs as Delaware Public Benefit Corporation',
+    bestWhen: 'xNet needs a commercial operating company with explicit mission duties.',
     scores: {
       missionTrust: 3.5,
       commercialFlexibility: 4.5,
@@ -1677,8 +1677,8 @@ const options: readonly StructureOption[] = [
   },
   {
     id: 'opco_plus_foundation',
-    label: 'XNet Labs plus independent XNet Foundation',
-    bestWhen: 'XNet has enough revenue, operators, and contributors to justify shared governance.',
+    label: 'xNet Labs plus independent xNet Foundation',
+    bestWhen: 'xNet has enough revenue, operators, and contributors to justify shared governance.',
     scores: {
       missionTrust: 4.5,
       commercialFlexibility: 4.5,
@@ -1690,7 +1690,7 @@ const options: readonly StructureOption[] = [
   },
   {
     id: 'foundation_501c3',
-    label: 'US 501(c)(3) XNet Foundation',
+    label: 'US 501(c)(3) xNet Foundation',
     bestWhen: 'Education, research, public-interest open infrastructure, and grants dominate.',
     scores: {
       missionTrust: 5,
@@ -1793,7 +1793,7 @@ venture liquidity.
 ## Validation Checklist 🔬
 
 - [ ] A self-hosted user can run xNet without paying Labs.
-- [ ] A hosted user can export and migrate away from XNet Cloud.
+- [ ] A hosted user can export and migrate away from xNet Cloud.
 - [ ] An independent operator can truthfully advertise compatibility under clear rules.
 - [ ] The official brand cannot be used to confuse users, but compatibility claims are allowed.
 - [ ] Labs can still fund employees, cloud operations, support, and product development.

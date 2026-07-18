@@ -566,7 +566,7 @@ const xnet = createXNetServer({
   storage: sqliteStorage({ path: './data/xnet.db' }), // or postgresStorage(pool)
   trust: 'custodial',                                   // server signs on behalf of users
 
-  // 1) Map THEIR auth → an XNet context. No UCAN, no DID required from the user.
+  // 1) Map THEIR auth → an xNet context. No UCAN, no DID required from the user.
   async authenticate(req) {
     const session = await getSession(req)
     if (!session) return null // rejects the connection
@@ -621,7 +621,7 @@ export function App() {
 }
 
 function Todos() {
-  // EXACTLY the same hooks as a full-XNet app:
+  // EXACTLY the same hooks as a full-xNet app:
   const { data: todos } = useQuery(TodoSchema, { where: { done: false } })
   const { create, update } = useMutate()
   // …
@@ -634,7 +634,7 @@ function Todos() {
 const xnet = createXNetServer({
   storage: sqliteStorage({ path: './data/xnet.db' }),
   trust: 'signed',                 // client signs; we verify signatures
-  authorization: 'xnet',           // use XNet space/role/grant evaluator
+  authorization: 'xnet',           // use xNet space/role/grant evaluator
   async authenticate(req) {
     const session = await getSession(req)
     if (!session) return null

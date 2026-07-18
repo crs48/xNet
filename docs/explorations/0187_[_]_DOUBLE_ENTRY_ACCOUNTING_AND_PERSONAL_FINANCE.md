@@ -260,7 +260,7 @@ manual entry + import** — preserving the local-first, no-lock-in ethos.
    currency, integer-only ledger math. Get this wrong and balances drift.
 4. **The CRM and accounting graphs are the same graph.** Counterparties =
    contacts. This is why "accounting in xNet" is strategically a Trojan horse
-   for "ERP in XNet."
+   for "ERP in xNet."
 5. **Bank sync = metered AI, reskinned.** The provider adapter and cost unit
    change; the gateway/budget/ledger/Stripe machinery is reused verbatim.
 6. **Free tier must be complete without sync.** Import + manual keeps the
