@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Databases scroll past 500 rows with honest row counts</title>
+      <link>https://xnet.fyi/changelog#2026-07-17-databases-scroll-past-500-rows-with-hone</link>
+      <guid isPermaLink="false">2026-07-17-databases-scroll-past-500-rows-with-hone</guid>
+      <pubDate>Sat, 18 Jul 2026 02:35:49 GMT</pubDate>
+      <description>The database grid now loads more rows as you scroll (up to 2,000), shows the true total ('500 of 12,000 rows') instead of the window size, and stays smooth on wide tables by rendering only the visible columns. Filtered views on large tables say when they only cover the loaded rows.</description>
+    </item>
+    <item>
       <title>Build plugins inside xNet from a spec</title>
       <link>https://xnet.fyi/changelog#2026-07-15-build-plugins-inside-xnet-from-a-spec</link>
       <guid isPermaLink="false">2026-07-15-build-plugins-inside-xnet-from-a-spec</guid>
