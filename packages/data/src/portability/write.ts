@@ -5,11 +5,17 @@
  * parser on the other side.
  */
 
-import { compareChangeApplicationOrder } from '@xnetjs/core'
-import { CURRENT_PROTOCOL_VERSION } from '@xnetjs/sync'
+import type { SchemaIRI } from '../schema/node'
 import type { NodeStore } from '../store/store'
 import type { NodeChange } from '../store/types'
-import type { SchemaIRI } from '../schema/node'
+import { compareChangeApplicationOrder } from '@xnetjs/core'
+import { bytesToBase64 } from '@xnetjs/crypto'
+import {
+  CURRENT_PROTOCOL_VERSION,
+  chunkForCommits,
+  computeBatchCommitHash,
+  createUnsignedBatchCommit
+} from '@xnetjs/sync'
 import {
   combineEntryDigests,
   createNdjsonDigest,
@@ -19,7 +25,6 @@ import {
   toPortableChangeRecord,
   canonicalManifestBytes
 } from './serialize'
-import { bytesToBase64 } from '@xnetjs/crypto'
 import {
   BUNDLE_ENTRY,
   FRONTIER_HEADS_CAP,
@@ -28,6 +33,7 @@ import {
   type BundleScope,
   type BundleSink,
   type PortableBlobRecord,
+  type PortableCommitRecord,
   type WriteBundleOptions,
   type XnetpackManifest
 } from './types'
@@ -131,7 +137,52 @@ export async function writeBundle(
   )
   entryDigests.set(BUNDLE_ENTRY.changes, changesDigest.finish())
 
-  // 2. Blobs (optional port).
+  // 2. Batch commits over the owner's own changes (exploration 0357).
+  // A commit may only cover changes by its own author, so changes authored by
+  // anyone else are left to per-change verification on import.
+  const commitLines: string[] = []
+  const commitsDigest = createNdjsonDigest()
+  let commitCount = 0
+  if (options.commitSigner) {
+    const ownChanges = changes.filter((change) => change.authorDID === options.ownerDid)
+    let commitIndex = 0
+    for (const group of chunkForCommits(ownChanges)) {
+      const unsigned = createUnsignedBatchCommit({
+        id: `${options.ownerDid}:commit:${commitIndex++}`,
+        authorDID: options.ownerDid as NodeChange['authorDID'],
+        changeHashes: group.map((change) => change.hash),
+        // Commits order after every change they cover, so a consumer replaying
+        // in lamport order sees the members first.
+        lamport: group[group.length - 1].lamport,
+        wallTime: group[group.length - 1].wallTime
+      })
+      const hash = computeBatchCommitHash(unsigned)
+      const signature = await options.commitSigner(encodeUtf8(hash))
+      const record: PortableCommitRecord = {
+        id: unsigned.id,
+        type: 'batch-commit',
+        protocolVersion: unsigned.protocolVersion,
+        authorDid: unsigned.authorDID,
+        changeHashes: unsigned.changeHashes,
+        root: unsigned.root,
+        lamportTime: unsigned.lamport,
+        wallTime: unsigned.wallTime,
+        hash,
+        signatureB64: bytesToBase64(signature)
+      }
+      const line = encodeNdjsonLine(record)
+      commitsDigest.addLine(line)
+      commitLines.push(line)
+      commitCount++
+    }
+  }
+  await sink.writeEntry(
+    BUNDLE_ENTRY.commits,
+    encodeUtf8(commitLines.join('\n') + (commitLines.length ? '\n' : ''))
+  )
+  entryDigests.set(BUNDLE_ENTRY.commits, commitsDigest.finish())
+
+  // 3. Blobs (optional port).
   let blobCount = 0
   const blobIndexDigest = createNdjsonDigest()
   const blobIndexLines: string[] = []
@@ -158,7 +209,7 @@ export async function writeBundle(
   )
   entryDigests.set(BUNDLE_ENTRY.blobIndex, blobIndexDigest.finish())
 
-  // 3. Yjs docs (optional port).
+  // 4. Yjs docs (optional port).
   let yjsCount = 0
   const yjsDigest = createNdjsonDigest()
   const yjsLines: string[] = []
@@ -176,7 +227,7 @@ export async function writeBundle(
   )
   entryDigests.set(BUNDLE_ENTRY.yjsDocs, yjsDigest.finish())
 
-  // 4. Manifest.
+  // 5. Manifest.
   const manifest: XnetpackManifest = {
     formatVersion: XNETPACK_FORMAT_VERSION,
     protocolVersion: { change: CURRENT_PROTOCOL_VERSION },
@@ -185,7 +236,12 @@ export async function writeBundle(
     createdAt: Date.now(),
     frontier: frontierOf(changes),
     prerequisites: options.since,
-    counts: { changes: changes.length, blobs: blobCount, yjsDocs: yjsCount },
+    counts: {
+      changes: changes.length,
+      blobs: blobCount,
+      yjsDocs: yjsCount,
+      commits: commitCount
+    },
     contentDigest: combineEntryDigests(entryDigests)
   }
   if (options.manifestSigner) {

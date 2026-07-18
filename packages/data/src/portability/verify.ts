@@ -183,6 +183,28 @@ export async function verifyBundle(
     )
   }
 
+  // ── Batch commits (exploration 0357) ─────────────────────────────────────
+  // Digested so the manifest's contentDigest covers them; a swapped or
+  // truncated commits entry is caught exactly like a swapped changes entry.
+  // Their signatures are checked during apply, where the covered changes are
+  // in hand to check membership against.
+  const commitsDigest = createNdjsonDigest()
+  try {
+    for await (const line of source.readLines(BUNDLE_ENTRY.commits)) {
+      commitsDigest.addLine(line)
+    }
+    entryDigests.set(BUNDLE_ENTRY.commits, commitsDigest.finish())
+    const declaredCommits = manifest.counts.commits ?? 0
+    if (commitsDigest.lineCount() !== declaredCommits) {
+      error(
+        'count-mismatch',
+        `manifest declares ${declaredCommits} batch commits, bundle has ${commitsDigest.lineCount()}`
+      )
+    }
+  } catch {
+    // Older bundles predate commits.ndjson; absence is not an error.
+  }
+
   // ── Blob index + blob entries ─────────────────────────────────────────────
   const blobIndexDigest = createNdjsonDigest()
   const indexedPaths = new Set<string>()
