@@ -1,0 +1,8 @@
+{
+  "id": "2026-07-18-large-imports-sync-in-seconds-not-minute",
+  "date": "July 18, 2026",
+  "title": "Large imports sync in seconds, not minutes",
+  "summary": "Importing or deleting a large data set now sends changes in batched frames instead of one at a time, and verifies them with native crypto — a 10,000-change import reaches the hub in under a second instead of several minutes.",
+  "highlights": [],
+  "tags": ["sync", "performance"]
+}
