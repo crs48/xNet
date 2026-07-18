@@ -8,5 +8,12 @@
     "editor",
     "app",
     "ai"
+  ],
+  "pr": 552,
+  "mergedAt": "2026-07-18T17:46:54Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
   ]
 }
