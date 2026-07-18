@@ -99,17 +99,14 @@
       "label": "Data",
       "file": "routes/data.png",
       "status": "unchanged",
-      "ssim": 0.999937
+      "ssim": 1
     },
     {
       "id": "home",
       "label": "Home",
       "file": "routes/home.png",
-      "status": "changed",
-      "ssim": 0.972972,
-      "before": "before/routes/home.png",
-      "after": "routes/home.png",
-      "diff": "diff/routes/home.png"
+      "status": "new",
+      "after": "routes/home.png"
     }
   ],
   "electron": [],
