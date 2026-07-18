@@ -100,9 +100,21 @@ export {
   hasCapability,
   getCapabilities,
   isExpired,
+  rootIssuers,
   type CreateUCANOptions,
   type VerifyResult
 } from './ucan'
+
+// Agent Passport (exploration 0337)
+export {
+  AGENT_PASSPORT_DEFAULT_TTL_SECONDS,
+  assertAttenuated,
+  mintAgentPassport,
+  verifyAgentPassport,
+  type AgentPassportGrant,
+  type MintAgentPassportOptions,
+  type VerifyAgentPassportOptions
+} from './agent-passport'
 
 // Legacy passkey storage (deprecated — use @xnetjs/identity/passkey instead)
 export { type PasskeyStorage, BrowserPasskeyStorage, MemoryPasskeyStorage } from './passkey'

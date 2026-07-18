@@ -82,7 +82,12 @@ export interface NodeStoreAPI {
   get(id: string): Promise<NodeData | null>
   list(options?: { schemaId?: string; limit?: number; offset?: number }): Promise<NodeData[]>
   query?(descriptor: NodeQueryDescriptor): Promise<NodeQueryResult>
-  create(options: { schemaId: string; properties: Record<string, unknown> }): Promise<NodeData>
+  create(options: {
+    /** Optional deterministic id (LWW upsert on collision — exploration 0337). */
+    id?: string
+    schemaId: string
+    properties: Record<string, unknown>
+  }): Promise<NodeData>
   update(id: string, options: { properties: Record<string, unknown> }): Promise<NodeData>
   delete(id: string): Promise<void>
   subscribe(listener: (event: NodeChangeEventData) => void): () => void

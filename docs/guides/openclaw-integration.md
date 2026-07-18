@@ -1,14 +1,21 @@
-# Driving xNet from OpenClaw (and other MCP agents)
+# Driving xNet from OpenClaw and Hermes (and other MCP agents)
 
 xNet exposes its workspace as an **MCP substrate**: any MCP client — OpenClaw,
-Claude Code, Codex, Cline, Goose — can read and safely mutate your tasks, pages,
-and databases through one server. You build the connection once; it works for
-every client ([exploration 0175](../explorations/0175_[_]_XNET_AS_A_SUBSTRATE_FOR_OPENCLAW.md)).
+Hermes Agent, Claude Code, Codex, Cline, Goose — can read and safely mutate
+your tasks, pages, and databases through one server. You build the connection
+once; it works for every client
+([exploration 0175](../explorations/0175_[_]_XNET_AS_A_SUBSTRATE_FOR_OPENCLAW.md)).
 
 Every write flows through xNet's mutation-plan guardrail (risk, scopes,
 approval, audit, rollback) regardless of which client is connected — so letting
 an autonomous agent into your workspace is governed by xNet, not by the agent's
 own (often weak) safety model.
+
+With an **Agent Passport** (below), the agent additionally gets its own DID and
+a scoped, operator-delegated UCAN — every change it makes is signed by *its*
+identity, every tool call lands as a signed `AgentAction` audit node, and
+risky calls go through a risk-tiered approval ceremony
+([exploration 0337](../explorations/0337_[_]_OPENCLAW_HERMES_INTEGRATION_SIGNED_AGENT_AUDIT_TRAILS_AND_TEXT_CONTROL_PLANE.md)).
 
 ## Start the server
 
@@ -63,6 +70,55 @@ For the HTTP transport (e.g. an Electron-hosted xNet), use the snippet printed b
   }
 }
 ```
+
+## Enroll the agent (Agent Passport)
+
+Give the agent its own scoped identity instead of yours:
+
+```bash
+# Mint a did:key for the agent + a 7-day operator-signed UCAN limited to
+# node/create + node/update in the named Space(s). Saved to
+# ~/.xnet/agents/homeclaw.json (0600) — the key never reaches the gateway.
+xnet agent enroll homeclaw --runtime openclaw --space <spaceId> \
+  --key $XNET_SIGNING_KEY
+
+# Serve as that agent. With --db, writes are signed by the AGENT's DID in a
+# local store — the change log becomes its tamper-evident audit trail.
+xnet mcp serve --agent homeclaw --db ~/.xnet/homeclaw.sqlite \
+  --audit-space <spaceId>
+```
+
+`enroll` prints ready-to-paste config for both OpenClaw (`mcp.servers`) and
+Hermes Agent (`mcpServers`) — the `--agent` serve command is the same.
+
+What this buys you:
+
+- **Attribution** — `AgentAction` nodes record every tool call (tool, verbatim
+  instruction, risk, status, reversibility, produced change ids). Browse them
+  in the DevTools **Agent Audit** panel, filtered per agent.
+- **Risk-tiered approvals** — low-risk calls run; medium-risk calls park
+  behind a one-time `APPROVE <code>` you type in chat (5-minute TTL);
+  high/critical calls can **only** be approved in an xNet surface — the agent
+  relaying your chat cannot forge those.
+- **Scoped authority** — the delegated UCAN names spaces and actions;
+  wildcards are rejected at mint time. Hubs with `trustedDids` configured
+  reject any token that doesn't chain to your operator DID.
+- **Undo** — `xnet_undo <actionId>` rolls back reversible actions.
+- **A text outbox** — `AgentNotification` nodes are polled by the agent
+  (`xnet_poll_notifications`) and relayed to you over WhatsApp/Telegram/…, so
+  the hub reaches you through channels the agent already has.
+
+Rotate by re-running `enroll` (passports expire after 7 days by default).
+
+## Hermes Agent
+
+Hermes consumes the same MCP server and the same AgentSkills-format skill.
+Use the `mcpServers` snippet printed by `enroll` (or configure
+`xnet mcp serve --agent <name>` as a stdio server in Hermes's config). The
+ceremony, audit trail, and outbox behave identically. One caution specific to
+Hermes: its learning loop autonomously writes new skill documents — the audit
+trail is how you retrace *which* self-written skill drove an action, so keep
+enrolled mode on.
 
 ## Hardening OpenClaw
 

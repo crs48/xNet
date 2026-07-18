@@ -29,12 +29,17 @@ export function createMemoryNodeStore(initialNodes: NodeData[]): MemoryNodeStore
     },
     create: async (options) => {
       counter += 1
+      const id = options.id ?? `node-${nodes.size + 1}-${counter}`
+      const existing = nodes.get(id)
       const node: NodeData = {
-        id: `node-${nodes.size + 1}-${counter}`,
+        id,
         schemaId: options.schemaId,
-        properties: options.properties,
+        // Deterministic-id retries LWW-upsert like the real store.
+        properties: existing
+          ? { ...existing.properties, ...options.properties }
+          : options.properties,
         deleted: false,
-        createdAt: 1,
+        createdAt: existing?.createdAt ?? 1,
         updatedAt: 1000 + counter
       }
       nodes.set(node.id, node)

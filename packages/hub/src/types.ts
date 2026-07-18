@@ -46,6 +46,14 @@ export type HubConfig = {
   telemetryPeerHashSalt?: string
   /** Hub's own DID for UCAN audience verification (optional). */
   hubDid?: string
+  /**
+   * Delegation roots this hub trusts (exploration 0337). When set, a
+   * presented UCAN is only honored if every root issuer of its proof chain
+   * is in this list — a self-issued `{with:'*', can:'*'}` token roots at the
+   * stranger who minted it and is rejected (the 0307 weakness). Unset
+   * preserves the legacy accept-any-verified-token behavior.
+   */
+  trustedDids?: string[]
   /** Public hub URL for peer discovery (optional). */
   publicUrl?: string
   /**
