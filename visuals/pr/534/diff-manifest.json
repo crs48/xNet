@@ -1,0 +1,108 @@
+{
+  "threshold": 0.998,
+  "baseline": "https://xnet.fyi/visuals-baseline",
+  "fallbackUsed": false,
+  "unmappedFiles": [],
+  "stories": [
+    {
+      "id": "core-database-grid-v2--comment-badges",
+      "title": "Core/Database/Grid V2",
+      "name": "Comment Badges",
+      "file": "stories/core-database-grid-v2--comment-badges.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "core-database-grid-v2--files-and-images",
+      "title": "Core/Database/Grid V2",
+      "name": "Files And Images",
+      "file": "stories/core-database-grid-v2--files-and-images.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "core-database-grid-v2--loading-skeleton",
+      "title": "Core/Database/Grid V2",
+      "name": "Loading Skeleton",
+      "file": "stories/core-database-grid-v2--loading-skeleton.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "core-database-grid-v2--playground",
+      "title": "Core/Database/Grid V2",
+      "name": "Playground",
+      "file": "stories/core-database-grid-v2--playground.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "core-database-grid-v2--presence",
+      "title": "Core/Database/Grid V2",
+      "name": "Presence",
+      "file": "stories/core-database-grid-v2--presence.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "core-database-grid-v2--read-only",
+      "title": "Core/Database/Grid V2",
+      "name": "Read Only",
+      "file": "stories/core-database-grid-v2--read-only.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "core-database-grid-v2--spreadsheet-ghost-cells",
+      "title": "Core/Database/Grid V2",
+      "name": "Spreadsheet Ghost Cells",
+      "file": "stories/core-database-grid-v2--spreadsheet-ghost-cells.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "core-database-grid-v2--typeahead-tags",
+      "title": "Core/Database/Grid V2",
+      "name": "Typeahead Tags",
+      "file": "stories/core-database-grid-v2--typeahead-tags.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-storagewarningbanner--informational",
+      "title": "Web/StorageWarningBanner",
+      "name": "Informational",
+      "file": "stories/web-storagewarningbanner--informational.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-storagewarningbanner--success",
+      "title": "Web/StorageWarningBanner",
+      "name": "Success",
+      "file": "stories/web-storagewarningbanner--success.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-storagewarningbanner--warning",
+      "title": "Web/StorageWarningBanner",
+      "name": "Warning",
+      "file": "stories/web-storagewarningbanner--warning.png",
+      "status": "unchanged",
+      "ssim": 1
+    }
+  ],
+  "routes": [
+    {
+      "id": "data",
+      "label": "Data",
+      "file": "routes/data.png",
+      "status": "unchanged",
+      "ssim": 0.998802
+    }
+  ],
+  "electron": [],
+  "flows": [],
+  "changedCount": 0
+}
