@@ -2034,6 +2034,19 @@ export class NodeStore {
   }
 
   /**
+   * Whether a change with this hash is already in the local log. Cheap
+   * existence probe (falls back to a full fetch when the adapter lacks the
+   * optional fast path) — used for idempotent import and bundle
+   * prerequisite checks (exploration 0344).
+   */
+  async hasChange(hash: ContentId): Promise<boolean> {
+    if (this.storage.hasChange) {
+      return this.storage.hasChange(hash)
+    }
+    return (await this.storage.getChangeByHash(hash)) !== null
+  }
+
+  /**
    * Get changes since a Lamport time (for delta sync).
    */
   async getChangesSince(sinceLamport: number): Promise<NodeChange[]> {

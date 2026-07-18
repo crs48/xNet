@@ -564,17 +564,17 @@ files['README.md'] = LEAVE_README   // now truthful
 
 Phase 1 — canonical bundle (Tier 1 core):
 
-- [ ] Create `packages/data/src/portability/` sub-barrel: manifest types,
+- [x] Create `packages/data/src/portability/` sub-barrel: manifest types,
       `writeBundle` / `verifyBundle` / `applyBundle` streaming codec over
       `SerializedNodeChange` NDJSON + `blobs/sha256/*` + Yjs snapshot
       stream; zstd or deflate via zip.
-- [ ] Frontier/prerequisite support (`since`) for incremental bundles;
+- [x] Frontier/prerequisite support (`since`) for incremental bundles;
       verify report lists missing prerequisites before any write.
-- [ ] Import pipeline: format/protocol gate → manifest signature → owner
+- [x] Import pipeline: format/protocol gate → manifest signature → owner
       DID policy → batched per-change verify + apply through the existing
       sync apply path → Yjs state-vector merge → blob install →
       quarantine report (reuse the AiWorkspaceWatcher quarantine shape).
-- [ ] Unit + round-trip tests: export→wipe→import converges to identical
+- [x] Unit + round-trip tests: export→wipe→import converges to identical
       node state and identical change heads; idempotent double-import;
       hostile-bundle fixtures (bad sig, broken chain, wrong DID, unknown
       version) all quarantine/reject cleanly.
@@ -606,14 +606,14 @@ Phase 3 — Tier-2 polish and honesty:
 - [ ] Seed data round-trip demo: export demo workspace, import into fresh
       instance, seed-coverage still green.
 
-Phase 4 — deferred (tracked, not started):
+Phase 4 — deferred (tracked, not started; intentionally not part of this
+doc's implementation scope):
 
-- [ ] Tier 3 working-app bundle: static app build + `.xnetpack` +
-      identity + bootstrap README in one zip ("leave with a working
-      copy").
-- [ ] Scheduled/rotating export (nightly incremental to a chosen
-      directory) — Tonsky's commodity-file-sync story.
-- [ ] Foreign-space import UX (import-as-join with grants).
+- Tier 3 working-app bundle: static app build + `.xnetpack` + identity +
+  bootstrap README in one zip ("leave with a working copy").
+- Scheduled/rotating export (nightly incremental to a chosen directory)
+  — Tonsky's commodity-file-sync story.
+- Foreign-space import UX (import-as-join with grants).
 
 ## Validation Checklist
 

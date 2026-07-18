@@ -1291,6 +1291,39 @@ export {
   type CloneSourceData
 } from './database'
 
+// Portability — .xnetpack export/import bundles (exploration 0344)
+export {
+  writeBundle,
+  verifyBundle,
+  applyBundle,
+  readBundleManifest,
+  blobEntryPath,
+  toPortableChangeRecord,
+  fromPortableChangeRecord,
+  canonicalManifestBytes,
+  BundleImportError,
+  MemoryBundleSink,
+  MemoryBundleSource,
+  XNETPACK_FORMAT_VERSION,
+  BUNDLE_ENTRY,
+  type XnetpackManifest,
+  type BundleScope,
+  type BundleFrontier,
+  type PortableChangeRecord,
+  type PortableBlobRecord,
+  type PortableYjsDocRecord,
+  type BundleSink,
+  type BundleSource,
+  type BundleBlobPort,
+  type BundleYjsPort,
+  type BundleVerifyIssue,
+  type BundleVerifyReport,
+  type BundleApplyReport,
+  type QuarantinedRecord,
+  type ApplyBundleOptions,
+  type WriteBundleOptions
+} from './portability'
+
 // Re-export Yjs for convenience
 export {
   Doc as YDoc,
