@@ -54,7 +54,8 @@
     "workbox-window": "^7.1.0",
     "y-protocols": "^1.0.6",
     "yjs": "^13.6.24",
-    "zustand": "^5.0.14"
+    "zustand": "^5.0.14",
+    "@atproto/oauth-client-browser": "^0.4.9"
   },
   "devDependencies": {
     "@storybook/react-vite": "^10.2.16",

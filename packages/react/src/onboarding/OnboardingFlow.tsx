@@ -5,6 +5,7 @@
  * Must be rendered inside an <OnboardingProvider>.
  */
 import { useOnboarding } from './OnboardingProvider'
+import { AtprotoCeremonyScreen } from './screens/AtprotoCeremonyScreen'
 import { AuthenticatingScreen } from './screens/AuthenticatingScreen'
 import { AuthErrorScreen } from './screens/AuthErrorScreen'
 import { GuardianRecoveryScreen } from './screens/GuardianRecoveryScreen'
@@ -59,6 +60,8 @@ export function OnboardingFlow({ connectToHub, children }: OnboardingFlowProps):
       return <RecoveryPhraseScreen />
     case 'guardian-recovery':
       return <GuardianRecoveryScreen />
+    case 'atproto-ceremony':
+      return <AtprotoCeremonyScreen />
     case 'creating-recoverable':
       return <AuthenticatingScreen />
     case 'show-recovery-phrase':

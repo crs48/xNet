@@ -737,7 +737,9 @@ export {
   type OnboardingMachineContext,
   type OnboardingReducerState,
   type QuickStartTemplate,
-  type SyncProgressOverlayProps
+  type SyncProgressOverlayProps,
+  type RunAtprotoCeremony,
+  type AtprotoCeremonyResult
 } from './onboarding/index'
 
 // =============================================================================

@@ -23,6 +23,9 @@ export {
 // Flow component
 export { OnboardingFlow, type OnboardingFlowProps } from './OnboardingFlow'
 
+// ATProto login-door ceremony contract (0322/0338) — host app supplies the impl
+export type { RunAtprotoCeremony, AtprotoCeremonyResult } from './atproto-ceremony'
+
 // Screen components
 export { WelcomeScreen } from './screens/WelcomeScreen'
 export { AuthenticatingScreen } from './screens/AuthenticatingScreen'

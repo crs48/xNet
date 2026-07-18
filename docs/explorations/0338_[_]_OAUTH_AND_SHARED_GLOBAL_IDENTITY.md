@@ -566,13 +566,13 @@ Phase 0 — prerequisites (tracked elsewhere, listed for dependency truth):
 - [x] Account-ledger enforcement: signing/epoch checks wired in hub + client (`packages/data/src/schema/schemas/account-ledger.ts` docstring follow-ups)
 
 Phase 1 — ATProto link + login door (0301 P1 / 0322 I1–I2):
-- [ ] Add `@atproto/oauth-client-browser` to `apps/web` (and Electron variant); ceremony service with PKCE + DPoP
-- [ ] Serve static client metadata at `xnet.fyi/oauth/atproto-client.json`
+- [x] Add `@atproto/oauth-client-browser` to `apps/web` (and Electron variant); ceremony service with PKCE + DPoP
+- [x] Serve static client metadata at `xnet.fyi/oauth/atproto-client.json`
 - [x] `AnyDid = XNetDid | AtprotoDid` representation in `packages/identity` (represent-only; `parseDID` signing guarantees untouched)
-- [ ] `net.x.identity.binding` lexicon + write-on-link; `atprotoDid`/`atprotoHandle`/`atprotoBindingUri` fields on `ProfileSchema`
+- [x] `net.x.identity.binding` lexicon + write-on-link; `atprotoDid`/`atprotoHandle`/`atprotoBindingUri` fields on `ProfileSchema`
 - [x] Hub binding-verification service (DID-doc resolve → record fetch → dual-signature check → cache with TTL/revocation)
-- [ ] `atproto-ceremony` boot state + "Continue with Bluesky (or any PDS)" on `needs-onboarding`; profile pre-fill; verified-handle rendering
-- [ ] Explicit copy: Bluesky account does not hold or recover xNet keys unless Phase 2 anchor enabled
+- [x] `atproto-ceremony` boot state + "Continue with Bluesky (or any PDS)" on `needs-onboarding`; profile pre-fill; verified-handle rendering
+- [x] Explicit copy: Bluesky account does not hold or recover xNet keys unless Phase 2 anchor enabled
 
 Phase 2 — recovery, global edition:
 - [ ] Extract `RecoveryAnchorProvider` (MIT, `packages/identity`); adapt `WorkOSAuthKitProvider` to implement it (FSL side unchanged behaviorally)
