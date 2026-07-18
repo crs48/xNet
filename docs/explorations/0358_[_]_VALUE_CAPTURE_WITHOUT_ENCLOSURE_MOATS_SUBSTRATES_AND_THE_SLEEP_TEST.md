@@ -587,15 +587,36 @@ an *evolutionary attractor*: layered stacks converge on an hourglass regardless
 of initial shape, with waist protocols outliving their peers and becoming
 "ossified."
 
+The cross-domain link is **in the literature, not invented here** — Csete &
+Doyle name the internet stack directly as "a bow tie on its side," and Doyle &
+Csete generalise it in [*PNAS* 108(Suppl. 3)](https://doi.org/10.1073/pnas.1103557108).
+Friedlander et al. supply the "why": bow-ties **spontaneously evolve when the
+information in the evolutionary goal can be compressed**.
+
+Four properties of every observed waist matter to us:
+
 - **Nobody owns the waist and nobody captures rent at it.** No organism holds
   a patent on ATP; no company collects rent on IP. Fitness and profit accrue
   above and below. A waist someone tolls stops being a waist.
 - **Therefore: if you build the waist, plan to earn somewhere other than the
   waist.** EvoArch says this is not idealism — it is where competitive layered
   systems end up.
+- **Position beats merit at the waist — and this is a warning, not a
+  consolation.** EvoArch's own finding: *"the most stable protocols at the
+  waist of the architecture are often **not** those with the highest
+  quality."* The same result appears independently in biology: the genetic
+  code is near-universal, demonstrably error-robust, and **demonstrably not
+  optimal** — Freeland & Hurst found only ~1 in 10⁶ random codes beats it,
+  and Koonin & Novozhilov note that a very large number of *still better*
+  codes exist. **A waist ossifies because everything depends on it, not
+  because it is good.** For us that cuts both ways: it is why an open
+  protocol can persist without a toll, and why we must not mistake protocol
+  durability for evidence that the protocol is right.
 - **The waist is where fragility concentrates.** Csete & Doyle: universal
-  currencies "can be easily hijacked by parasites." A shared substrate must be
-  *governed*, not merely published.
+  currencies "can be easily hijacked by parasites," and the core resists
+  change precisely because "the whole system is fragile to short-term changes
+  in the core." A shared substrate must be *governed*, not merely published —
+  which is the same conclusion §G reaches from Hirschman and Ostrom.
 
 **The right cooperation model is biological markets, not networks.** Kiers et
 al., ["Reciprocal rewards stabilize cooperation in the mycorrhizal symbiosis"](https://doi.org/10.1126/science.1208473)
@@ -1140,7 +1161,10 @@ fi
 
 **Substrates — architecture and biology**
 - Csete & Doyle, [Bow ties, metabolism and disease](https://pubmed.ncbi.nlm.nih.gov/15331224/), *Trends in Biotechnology* 22(9), 2004 · [free PDF](https://www.cs.cornell.edu/~ginsparg/physics/Phys446-546/doyle_bowties.pdf) · [Evolution of Bow-Tie Architectures in Biology, *PLOS Comp Bio*](https://journals.plos.org/ploscompbiol/article?id=10.1371%2Fjournal.pcbi.1004055)
-- Akhshabi & Dovrolis, [The evolution of layered protocol stacks leads to an hourglass-shaped architecture](https://dl.acm.org/doi/10.1145/2018436.2018460), SIGCOMM 2011 · [free PDF](https://sites.cc.gatech.edu/home/dovrolis/Papers/evoarch.pdf)
+- Akhshabi & Dovrolis, [The evolution of layered protocol stacks leads to an hourglass-shaped architecture](https://dl.acm.org/doi/10.1145/2018436.2018460), SIGCOMM 2011 · [free PDF](https://sites.cc.gatech.edu/home/dovrolis/Papers/evoarch.pdf) — EvoArch; "evolutionary kernels"; waist protocols are often *not* the highest quality
+- Doyle & Csete, [Architecture, constraints, and behavior](https://doi.org/10.1073/pnas.1103557108), *PNAS* 108(Suppl. 3) — the explicit biology↔networking bridge
+- Friedlander, Mayo, Tlusty & Alon, [Evolution of Bow-Tie Architectures in Biology](https://doi.org/10.1371/journal.pcbi.1004055), *PLOS Comp Bio* 11(3) — bow-ties evolve when the goal is compressible
+- Freeland & Hurst, [The Genetic Code Is One in a Million](https://doi.org/10.1007/PL00006381), *J. Mol. Evol.* 47 · Koonin & Novozhilov, [the universal enigma](https://doi.org/10.1002/iub.146), *IUBMB Life* 61 — robust, near-universal, **not** optimal
 - Kiers et al., ["Reciprocal rewards stabilize cooperation in the mycorrhizal symbiosis"](https://doi.org/10.1126/science.1208473), *Science* 333:880 (2011) — the right cooperation model
 - [OpenStax Biology 2e §2.2 — Water](https://openstax.org/books/biology-2e/pages/2-2-water) — including the **non**-universality of water as a solvent
 - Karst, Jones & Hoeksema, [Positive citation bias and overinterpreted results lead to misinformation on common mycorrhizal networks in forests](https://www.nature.com/articles/s41559-023-01986-1), *Nature Ecology & Evolution* (2023) — why we do **not** use the "wood wide web" metaphor
