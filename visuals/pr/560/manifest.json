@@ -1,0 +1,16 @@
+{
+  "stories": [],
+  "routes": [
+    {
+      "id": "home",
+      "label": "Home",
+      "file": "routes/home.png"
+    }
+  ],
+  "flows": [],
+  "electron": [],
+  "fallbackUsed": true,
+  "unmappedFiles": [
+    "apps/web/src/routes/welcome.tsx"
+  ]
+}
