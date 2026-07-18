@@ -75,10 +75,14 @@ describe('mountOidcProvider', () => {
     expect(result).not.toBeNull()
     expect(result?.issuer).toBe('https://hub.example.com')
     // The discovery document is served under the mounted /oidc/* prefix.
-    const res = await d.app.request('/oidc/.well-known/openid-configuration', {}, {
-      incoming: undefined,
-      outgoing: undefined
-    })
+    const res = await d.app.request(
+      '/oidc/.well-known/openid-configuration',
+      {},
+      {
+        incoming: undefined,
+        outgoing: undefined
+      }
+    )
     // Without the Node runtime bindings the bridge reports 500 — but the route
     // exists (not 404), proving the provider mounted.
     expect(res.status).not.toBe(404)

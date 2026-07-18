@@ -21,8 +21,7 @@ export function AtprotoCeremonyScreen(): JSX.Element {
     <div className="flex flex-col items-center justify-center min-h-screen bg-background text-foreground p-6">
       <h1 className="text-2xl font-semibold mb-2">Continue with Bluesky</h1>
       <p className="text-muted-foreground text-center mb-6 max-w-sm">
-        Sign in with your ATProto handle to claim a free global name. Works with
-        Bluesky or any PDS.
+        Sign in with your ATProto handle to claim a free global name. Works with Bluesky or any PDS.
       </p>
 
       {linked ? (
@@ -67,8 +66,8 @@ export function AtprotoCeremonyScreen(): JSX.Element {
       )}
 
       <p className="text-xs text-muted-foreground/80 text-center max-w-xs mt-6">
-        Your Bluesky account gives you a global name. It does <strong>not</strong> hold or
-        recover your xNet keys unless you later enable it as a recovery anchor.
+        Your Bluesky account gives you a global name. It does <strong>not</strong> hold or recover
+        your xNet keys unless you later enable it as a recovery anchor.
       </p>
 
       <button

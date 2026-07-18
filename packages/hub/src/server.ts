@@ -9,7 +9,12 @@ import type { IncomingMessage } from 'http'
 import type { RawData, WebSocket } from 'ws'
 import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { serve } from '@hono/node-server'
-import { DatabaseSchema, PageSchema, TaskSchema, profileNodeId as profileNodeIdForDid } from '@xnetjs/data'
+import {
+  DatabaseSchema,
+  PageSchema,
+  TaskSchema,
+  profileNodeId as profileNodeIdForDid
+} from '@xnetjs/data'
 import { generateIdentity, ucanTokenId, verifyUCAN } from '@xnetjs/identity'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
@@ -820,11 +825,11 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
           'Every connection gets wildcard capabilities — any peer can read and ' +
           'write every room. Do NOT expose this hub to the internet. (0307)'
       )
-    } else if (!config.hubDid && !config.publicUrl) {
+    } else if (!config.hubDid) {
       log.warn(
-        'UCAN audience enforcement is OFF: neither hubDid nor publicUrl is ' +
-          'configured, so tokens minted for other hubs are accepted here. ' +
-          'Set hubDid (preferred) or publicUrl. (0307-B)'
+        'UCAN audience enforcement is OFF: hubDid is not configured, so tokens ' +
+          'minted for other hubs are accepted here. Set hubDid to bind tokens ' +
+          'to this hub. (0307-B)'
       )
     }
 

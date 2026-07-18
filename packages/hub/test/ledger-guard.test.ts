@@ -69,8 +69,7 @@ const signedChange = (
   }
 }
 
-const msg = (change: SerializedNodeChange) =>
-  ({ type: 'node-change', room: ROOM, change }) as const
+const msg = (change: SerializedNodeChange) => ({ type: 'node-change', room: ROOM, change }) as const
 
 const allow = { did: 'did:key:any', can: () => true } as unknown as AuthContext
 
@@ -123,11 +122,16 @@ describe('relay ledger guard', () => {
   it('rejects genesis whose author is not among the controllers', async () => {
     const storage = createMemoryStorage()
     const relay = new NodeRelayService(storage, {}, {})
-    const bogus = signedChange(mallory, accountRecordId('xnet:account:x'), ACCOUNT_RECORD_SCHEMA_IRI, {
-      accountId: 'xnet:account:x',
-      controllers: [alice.identity.did],
-      epoch: 0
-    })
+    const bogus = signedChange(
+      mallory,
+      accountRecordId('xnet:account:x'),
+      ACCOUNT_RECORD_SCHEMA_IRI,
+      {
+        accountId: 'xnet:account:x',
+        controllers: [alice.identity.did],
+        epoch: 0
+      }
+    )
     await expect(relay.handleNodeChange(msg(bogus), allow)).rejects.toMatchObject({
       code: 'LEDGER_UNAUTHORIZED'
     })
@@ -137,7 +141,10 @@ describe('relay ledger guard', () => {
     const storage = createMemoryStorage()
     const relay = new NodeRelayService(storage, {}, {})
     const bobKeys = generateSigningKeyPair()
-    const bob = { privateKey: bobKeys.privateKey, identity: identityFromPrivateKey(bobKeys.privateKey) }
+    const bob = {
+      privateKey: bobKeys.privateKey,
+      identity: identityFromPrivateKey(bobKeys.privateKey)
+    }
 
     const genesis = signedChange(alice, accountRecordId(ACCOUNT), ACCOUNT_RECORD_SCHEMA_IRI, {
       accountId: ACCOUNT,

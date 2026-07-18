@@ -35,8 +35,7 @@ describe('derivePlcRotationKey', () => {
   })
 
   it('reconstructs from a recovery phrase alone (device-loss drill)', () => {
-    const phrase =
-      'amber ocean puzzle velvet cabin ridge tunnel garden mellow spark orbit lantern'
+    const phrase = 'amber ocean puzzle velvet cabin ridge tunnel garden mellow spark orbit lantern'
     const first = derivePlcRotationKey(seedFromPhrase(phrase))
     const second = derivePlcRotationKey(seedFromPhrase(phrase))
     expect(first.didKey).toBe(second.didKey)

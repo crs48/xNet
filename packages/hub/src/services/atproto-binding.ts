@@ -160,7 +160,10 @@ export class AtprotoBindingVerifier {
       }
       doc = (await res.json()) as DidDoc
     } catch (err) {
-      return { ok: false, reason: `DID document fetch failed: ${err instanceof Error ? err.message : err}` }
+      return {
+        ok: false,
+        reason: `DID document fetch failed: ${err instanceof Error ? err.message : err}`
+      }
     }
     if (doc.id !== atprotoDid) {
       return { ok: false, reason: 'DID document id does not match the requested DID' }

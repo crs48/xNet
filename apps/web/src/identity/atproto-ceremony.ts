@@ -73,7 +73,7 @@ export const runAtprotoCeremony: RunAtprotoCeremony = async ({ handleOrPds }) =>
   const atprotoDid = session.did
 
   // Best-effort handle + display name from the profile record (non-fatal).
-  let atprotoHandle = handleOrPds.replace(/^@/, '').trim().toLowerCase()
+  const atprotoHandle = handleOrPds.replace(/^@/, '').trim().toLowerCase()
   let displayName: string | undefined
   try {
     const res = await session.fetchHandler(

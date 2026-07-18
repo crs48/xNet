@@ -124,9 +124,7 @@ export function evaluateLedgerWrite(input: {
       return deny('Only an active controller may update the account record')
     }
     if (epoch < state.account.epoch) {
-      return deny(
-        `Account epoch may not move backwards (${epoch} < ${state.account.epoch})`
-      )
+      return deny(`Account epoch may not move backwards (${epoch} < ${state.account.epoch})`)
     }
     return { allowed: true }
   }
@@ -145,9 +143,7 @@ export function evaluateLedgerWrite(input: {
   if (kind === 'device') {
     const epoch = epochOf(input.properties)
     if (epoch === null || Number.isNaN(epoch) || epoch !== state.account.epoch) {
-      return deny(
-        `Device admission must carry the current account epoch ${state.account.epoch}`
-      )
+      return deny(`Device admission must carry the current account epoch ${state.account.epoch}`)
     }
     const deviceDid = input.properties.deviceDid
     if (typeof deviceDid !== 'string' || deviceDid.length === 0) {

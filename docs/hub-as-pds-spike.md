@@ -6,7 +6,7 @@ sketch. Revisit against the trigger metrics below._
 Phases 1–3 give xNet users a free global name **without operating any ATProto
 infrastructure**: identities live on Bluesky's hosted PDS (or any PDS), and the
 hub only verifies bindings and (optionally) acts as an OIDC provider. Turning a
-hub into a literal PDS — so an org's hub *is* its members' ATProto home — is the
+hub into a literal PDS — so an org's hub _is_ its members' ATProto home — is the
 endgame, but it is deliberately deferred.
 
 ## Why defer

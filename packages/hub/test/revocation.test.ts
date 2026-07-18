@@ -8,7 +8,7 @@ import { WebSocket } from 'ws'
 import { RevocationService } from '../src/auth/revocation'
 import { createHub } from '../src/index'
 
-const PORT = 14471
+const PORT = 14473
 const HUB_DID = 'did:key:z6MkTestHubIdentity'
 
 const clientCaps = [
@@ -51,16 +51,16 @@ describe('RevocationService', () => {
     const nowSeconds = Math.floor(Date.now() / 1000)
     svc.revokeDid('did:key:mallory')
     // A token that expires within the 24h max TTL window was minted pre-cutoff.
-    expect(
-      svc.isRevoked('any-token', { iss: 'did:key:mallory', exp: nowSeconds + 60 * 60 })
-    ).toBe(true)
+    expect(svc.isRevoked('any-token', { iss: 'did:key:mallory', exp: nowSeconds + 60 * 60 })).toBe(
+      true
+    )
     expect(svc.isRevoked('any-token', { iss: 'did:key:alice', exp: nowSeconds + 60 * 60 })).toBe(
       false
     )
     svc.reinstateDid('did:key:mallory')
-    expect(
-      svc.isRevoked('any-token', { iss: 'did:key:mallory', exp: nowSeconds + 60 * 60 })
-    ).toBe(false)
+    expect(svc.isRevoked('any-token', { iss: 'did:key:mallory', exp: nowSeconds + 60 * 60 })).toBe(
+      false
+    )
   })
 })
 

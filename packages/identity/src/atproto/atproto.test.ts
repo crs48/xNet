@@ -3,11 +3,7 @@
  */
 import { describe, expect, it } from 'vitest'
 import { generateIdentity } from '../did'
-import {
-  createAtprotoBinding,
-  verifyAtprotoBinding,
-  type AtprotoBindingRecord
-} from './binding'
+import { createAtprotoBinding, verifyAtprotoBinding, type AtprotoBindingRecord } from './binding'
 import {
   isAtprotoDid,
   isValidAtprotoHandle,

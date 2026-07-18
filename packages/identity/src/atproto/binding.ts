@@ -89,9 +89,7 @@ export function createAtprotoBinding(input: {
   }
 }
 
-export type BindingVerification =
-  | { valid: true }
-  | { valid: false; reason: string }
+export type BindingVerification = { valid: true } | { valid: false; reason: string }
 
 /**
  * Verify the xNet half of a binding record: shape, DID formats, and the

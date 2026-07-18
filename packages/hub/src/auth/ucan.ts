@@ -78,19 +78,20 @@ const parseWebSocketProtocols = (value: string | string[] | undefined): string[]
 }
 
 /**
- * Audience enforcement (0307-B): a token is only valid at THIS hub. Clients
- * mint `aud` as either the hub's DID (when discovered via /health) or the hub
- * URL they connected to. When neither `hubDid` nor `publicUrl` is configured
- * the hub cannot name itself and enforcement is skipped (server.ts logs a
- * loud startup warning for that configuration).
+ * Audience enforcement (0307-B): a token is only valid at THIS hub. Enforcement
+ * is triggered by a configured `hubDid` — the canonical hub identifier — which
+ * is also what the server.ts startup warning tells operators to set. When
+ * `hubDid` is present the accepted audiences are the hub's DID *or* its
+ * `publicUrl` (real clients mint `aud` as the URL they connected to, before
+ * they have discovered the DID via /health). A hub with no `hubDid` cannot
+ * name itself and skips enforcement (the startup warning fires).
  */
 const normalizeAudience = (value: string): string => value.replace(/\/+$/, '')
 
 export const audienceAccepted = (aud: string, config: HubConfig): boolean => {
-  const allowed: string[] = []
-  if (config.hubDid) allowed.push(config.hubDid)
+  if (!config.hubDid) return true
+  const allowed = [config.hubDid]
   if (config.publicUrl) allowed.push(normalizeAudience(config.publicUrl))
-  if (allowed.length === 0) return true
   const normalized = normalizeAudience(aud)
   return allowed.includes(normalized) || allowed.includes(aud)
 }

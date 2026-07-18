@@ -30,7 +30,7 @@ Specifically:
    `packages/identity` stays the only thing that signs changes. No external
    system — not ATProto, not WorkOS, not a chain — ever holds or replaces it.
    Keyhive reached the same conclusion independently: identity binding is a
-   layer *above* the capability system, not inside it.
+   layer _above_ the capability system, not inside it.
 
 2. **Global name + consumer login (adopt ATProto, don't run it):** the free,
    MIT-compatible, registration-free global identity layer the prompt is
@@ -59,7 +59,7 @@ Specifically:
      the hub.
    - **Outbound** (hub as IdP): embed **`node-oidc-provider`** (MIT, the only
      certified OP that mounts in-process into a Node server) into the hub as
-     an optional feature. A family/team hub then *is* the OIDC provider for
+     an optional feature. A family/team hub then _is_ the OIDC provider for
      everything else that org runs (Grafana, Gitea, whatever) — the `tsidp`
      pattern, and the honest version of "hubs mint identity": hubs mint
      **sessions and attestations**, never root keys.
@@ -68,7 +68,7 @@ Specifically:
 Shamir guardians, PIN escrow engine, account/device ledger schemas). What this
 exploration adds is (a) finishing ledger **enforcement** (0243 P2 follow-ups),
 and (b) harvesting `did:plc`'s best idea — **priority-ordered rotation keys
-with a 72-hour override window** — as the recovery model for the *global*
+with a 72-hour override window** — as the recovery model for the _global_
 layer: the PDS holds a low-priority key for convenience, the user's xNet
 identity can enroll a **higher-priority** rotation key so the PDS can never
 permanently take the global name. That single move fixes the biggest ATProto
@@ -81,7 +81,7 @@ the best-designed chain-registry identity — was sold to a single company
 the same auditability without wallets or gas; that is literally `did:plc`'s
 design position and also what our own account ledger (0149/0243) already is.
 
-**2FA:** the passkey (with user verification) *is* the primary factor; PRF now
+**2FA:** the passkey (with user verification) _is_ the primary factor; PRF now
 works on 100% of synced-provider creates and can wrap the key bundle. 2FA in
 the classic sense applies to the two custodial doors only: WorkOS sessions
 (AuthKit MFA, already available) and the hub admin/dashboard (add TOTP/second
@@ -119,7 +119,7 @@ What **exists** (shipped code) vs what is **design-only** matters a lot here.
 - `packages/data/src/schema/schemas/account-ledger.ts` — `AccountRecord` /
   `DeviceRecord` / `RecoveryRecord` / `RevocationRecord` (the 0149 ledger) +
   content-key re-wrap on device admit/revoke. **Gap:** the docstring flags
-  signing/epoch *enforcement* and the cloud-binding migration as unshipped
+  signing/epoch _enforcement_ and the cloud-binding migration as unshipped
   follow-ups — records exist, enforcement is not wired.
 
 ### Auth surfaces — EXISTS, with one known hole
@@ -131,21 +131,21 @@ What **exists** (shipped code) vs what is **design-only** matters a lot here.
   self-mints a wildcard-ish UCAN (`hub/*`, `backup/*`, `files/*`, `query/*`,
   24 h), and `auth: false` hubs create anonymous `{with:'*', can:'*'}`
   sessions. Any global-identity work that doesn't first make hub authz
-  *mean something* is decorative. 0335 lists this as a release blocker.
+  _mean something_ is decorative. 0335 lists this as a release blocker.
 - Share links (`packages/hub/src/routes/share-links.ts`) use fragment
   secrets; X25519 key registry at `packages/hub/src/routes/keys.ts`.
 
 ### Cloud identity — EXISTS, FSL (not MIT)
 
 - `packages/cloud/src/identity/workos.ts` — `WorkOSAuthKitProvider
-  implements BillingIdentityProvider`; raw fetch against WorkOS User
+implements BillingIdentityProvider`; raw fetch against WorkOS User
   Management (authorize / authenticate-with-code / getUser). SSO/SCIM
   anticipated in comments, not coded.
 - `packages/cloud/src/identity/binding.ts` — the **two-identity model**
   already in production shape: custodial billing identity (WorkOS user) ⇄
   sovereign data identity (`did:key`), dual-proof `bindIdentities`
   (billing session + `DidChallenge`), `recoverPaidAccount` (restores account
-  + hub, *not* encrypted data), `completeRebind`, `accountSubjectForDid`.
+  - hub, _not_ encrypted data), `completeRebind`, `accountSubjectForDid`.
 - `apps/cloud/src/verify-did.ts`, `nonce.ts` — real Ed25519 DID-challenge
   verifier over single-use server nonces (0243 P0).
 - Boundary rule (`packages/cloud/README.md`): **never import
@@ -174,7 +174,7 @@ Highlights from the mid-2026 landscape scan (full citations in References).
   DPoP (with server nonces) mandatory; `atproto` scope; granular scopes
   live on bsky.social and rolling out to self-hosted PDS. The spec
   explicitly supports **auth-only, OIDC-like use without touching repo
-  data**, and the OAuth flow can even *initiate account creation* on a
+  data**, and the OAuth flow can even _initiate account creation_ on a
   chosen PDS. FedCM (browser-native "sign in with ATProto") is on the
   early-2026 roadmap.
 - **Bluesky's hosted PDS is free with no paid tier** — the "global identity
@@ -191,8 +191,8 @@ key can nullify a lower-priority key's operations **within 72 hours**
 (forking the log at a CID); everything lands in a permanent public audit
 log. In practice the PDS holds the rotation keys and nobody enrolls their
 own (there's a CLI — `goat account plc add-rotation-key` — but no UI), which
-produces the standing criticism: *"your PDS operator can post as you —
-cryptographically indistinguishable."* An app that enrolls a
+produces the standing criticism: _"your PDS operator can post as you —
+cryptographically indistinguishable."_ An app that enrolls a
 **user-controlled higher-priority key by default** would have the best
 identity-recovery story in the ecosystem. xNet can be that app.
 
@@ -220,9 +220,9 @@ tier; categorically wrong as an identity root for MIT self-hosters.
 
 Zombie since the 2020 Zoom acquihire (life-support commits only;
 keybase.pub shut 2023). Its two durable ideas: per-device keys in a signed
-append-only **sigchain** (→ our 0149 account ledger *is* one) and **social
+append-only **sigchain** (→ our 0149 account ledger _is_ one) and **social
 proofs** binding keys to existing identities (→ the 0301
-`net.x.identity.binding` record *is* one, with ATProto as the proof
+`net.x.identity.binding` record _is_ one, with ATProto as the proof
 surface). Successors (Keyoxide, keys.pub) are niche; nothing to build on.
 
 ### Passkeys/PRF matured
@@ -240,18 +240,18 @@ Microsoft **deprecated ION** (Dec 2023, "little uptake") → `did:web`. ENS
 retreated from its L2 back to mainnet-only (Feb 2026) — fine as an optional
 vanity handle, not an identity root (wallets + gas). Farcaster's onchain
 IdRegistry has the space's best recovery design (separate custody +
-recovery addresses) and *still* ended up owned by one company (Neynar
+recovery addresses) and _still_ ended up owned by one company (Neynar
 acquired the protocol Jan 2026). Every property we want — auditability,
 rotation, recovery — is achievable with signed logs + a directory.
 
 ### Prior-art patterns that work
 
-| Pattern | Source | xNet translation |
-|---|---|---|
-| Outsource the account, own the device keys | Tailscale (OIDC-only login, node keys native, `tsidp` to re-export identity) | Hub trusts external IdPs inbound; hub *is* an IdP outbound; `did:key` stays native |
-| Priority rotation keys + time-boxed override | did:plc, Farcaster recovery address | User key outranks PDS key; hub key (if any) lowest priority |
-| Identity binding above the crypto layer, pluggable | Ink & Switch Keyhive | Bindings are Profile-schema data + PDS records, not kernel changes |
-| Raw key as the identity | Nostr — **the anti-pattern** ("no real recovery") | Never expose `did:key` as the user-facing name |
+| Pattern                                            | Source                                                                       | xNet translation                                                                   |
+| -------------------------------------------------- | ---------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| Outsource the account, own the device keys         | Tailscale (OIDC-only login, node keys native, `tsidp` to re-export identity) | Hub trusts external IdPs inbound; hub _is_ an IdP outbound; `did:key` stays native |
+| Priority rotation keys + time-boxed override       | did:plc, Farcaster recovery address                                          | User key outranks PDS key; hub key (if any) lowest priority                        |
+| Identity binding above the crypto layer, pluggable | Ink & Switch Keyhive                                                         | Bindings are Profile-schema data + PDS records, not kernel changes                 |
+| Raw key as the identity                            | Nostr — **the anti-pattern** ("no real recovery")                            | Never expose `did:key` as the user-facing name                                     |
 
 ## Key Findings
 
@@ -271,7 +271,7 @@ rotation, recovery — is achievable with signed logs + a directory.
 3. **"Hub as PDS" is the wrong first move but the right option to keep.**
    Global identity must survive the hub dying (hubs are $5 commodity boxes;
    people's names should not be hostage to them). The de facto PDS framing
-   is right *directionally* — hubs should participate in identity — but the
+   is right _directionally_ — hubs should participate in identity — but the
    right participation is: verifier of bindings, OIDC provider for the org,
    optional low-priority recovery participant, and (later, demand-gated)
    literal PDS host via `@atproto/pds`.
@@ -297,36 +297,36 @@ rotation, recovery — is achievable with signed logs + a directory.
 
 ### The global-namespace question
 
-| Option | Free? | MIT-clean? | Recovery | Verdict |
-|---|---|---|---|---|
-| **A. ATProto identity (handles + did:plc), no PDS ops** | Yes (Bluesky hosted PDS free) | Yes (`@atproto/oauth-client` deps, dual-licensed MIT/Apache) | did:plc rotation keys; add user-priority key | **Adopt** |
-| B. Hub-minted identity (hub signs/mints DIDs) | Runs on user's $5 hub | Yes | Hub = SPOF for your *name*; re-invents PLC without the directory | Reject as root; keep hub as verifier/IdP |
-| C. Hub as literal PDS (`@atproto/pds` mounted) | ~$5/mo | Yes (PDS is MIT/Apache) | Inherits did:plc | **Defer** (0301 P3): 10-account federation cap, ops burden; revisit when caps lift |
-| D. xNet-operated central directory (Keybase model) | We pay forever | Yes | We become the custodian we refuse to be | Reject (and Keybase itself died) |
-| E. Blockchain (ENS / ION-style / Farcaster-style) | Gas + wallets | Mixed | Onchain recovery addr is nice | Reject (ION dead; Neynar lesson; UX tax) — ENS at most a future vanity-handle import |
-| F. Email/OIDC accounts as identity (classic SaaS) | Yes | Requires an IdP dependency | Password reset | Reject as root — this is the custodial model the kernel exists to avoid |
+| Option                                                  | Free?                         | MIT-clean?                                                   | Recovery                                                         | Verdict                                                                              |
+| ------------------------------------------------------- | ----------------------------- | ------------------------------------------------------------ | ---------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| **A. ATProto identity (handles + did:plc), no PDS ops** | Yes (Bluesky hosted PDS free) | Yes (`@atproto/oauth-client` deps, dual-licensed MIT/Apache) | did:plc rotation keys; add user-priority key                     | **Adopt**                                                                            |
+| B. Hub-minted identity (hub signs/mints DIDs)           | Runs on user's $5 hub         | Yes                                                          | Hub = SPOF for your _name_; re-invents PLC without the directory | Reject as root; keep hub as verifier/IdP                                             |
+| C. Hub as literal PDS (`@atproto/pds` mounted)          | ~$5/mo                        | Yes (PDS is MIT/Apache)                                      | Inherits did:plc                                                 | **Defer** (0301 P3): 10-account federation cap, ops burden; revisit when caps lift   |
+| D. xNet-operated central directory (Keybase model)      | We pay forever                | Yes                                                          | We become the custodian we refuse to be                          | Reject (and Keybase itself died)                                                     |
+| E. Blockchain (ENS / ION-style / Farcaster-style)       | Gas + wallets                 | Mixed                                                        | Onchain recovery addr is nice                                    | Reject (ION dead; Neynar lesson; UX tax) — ENS at most a future vanity-handle import |
+| F. Email/OIDC accounts as identity (classic SaaS)       | Yes                           | Requires an IdP dependency                                   | Password reset                                                   | Reject as root — this is the custodial model the kernel exists to avoid              |
 
 ### The OAuth-surface question
 
-| Option | Serves | Cost/footprint | Verdict |
-|---|---|---|---|
-| **Inbound: ATProto OAuth login door** (0322) | Individuals | Static client-metadata JSON + client lib | **Adopt** (Increment 1–2 of 0322) |
-| **Inbound: BYO-OIDC for org hubs** | Self-hosted orgs | OIDC RP code in hub (openid-client, MIT) | **Adopt**, org-config-gated — the Tailscale pattern |
-| Inbound: WorkOS AuthKit/SSO | Cloud tenants | Already shipped; $0 to 1M MAU; $125/conn SAML | **Keep**, FSL-only |
-| **Outbound: hub embeds `node-oidc-provider`** | Org's *other* apps SSO against the hub | In-process, MIT, certified | **Adopt** as optional hub feature (the `tsidp` pattern) |
-| Outbound: rauthy sidecar | Same | +35–57 MB RAM, separate container, Apache-2.0 | Fallback if embedding proves painful; don't start here |
-| Outbound: hub as full ATProto AS/entryway | ATProto apps | Implements DPoP/PAR server-side | Only meaningful with Option C; defer with it |
+| Option                                        | Serves                                 | Cost/footprint                                | Verdict                                                 |
+| --------------------------------------------- | -------------------------------------- | --------------------------------------------- | ------------------------------------------------------- |
+| **Inbound: ATProto OAuth login door** (0322)  | Individuals                            | Static client-metadata JSON + client lib      | **Adopt** (Increment 1–2 of 0322)                       |
+| **Inbound: BYO-OIDC for org hubs**            | Self-hosted orgs                       | OIDC RP code in hub (openid-client, MIT)      | **Adopt**, org-config-gated — the Tailscale pattern     |
+| Inbound: WorkOS AuthKit/SSO                   | Cloud tenants                          | Already shipped; $0 to 1M MAU; $125/conn SAML | **Keep**, FSL-only                                      |
+| **Outbound: hub embeds `node-oidc-provider`** | Org's _other_ apps SSO against the hub | In-process, MIT, certified                    | **Adopt** as optional hub feature (the `tsidp` pattern) |
+| Outbound: rauthy sidecar                      | Same                                   | +35–57 MB RAM, separate container, Apache-2.0 | Fallback if embedding proves painful; don't start here  |
+| Outbound: hub as full ATProto AS/entryway     | ATProto apps                           | Implements DPoP/PAR server-side               | Only meaningful with Option C; defer with it            |
 
 ### The recovery-anchor question
 
-| Anchor | Custody | Who it's for | Status |
-|---|---|---|---|
-| Recovery phrase | User | Everyone (default) | Shipped (0243) |
-| Synced passkey (+ PRF) | Platform vendor | Everyone (default) | Shipped (0243) |
-| Shamir guardians | Friends/family | Sovereignty-minded | Shipped (0243) |
-| **ATProto identity + PIN** | User's PDS + user PIN | Individuals with a Bluesky/PDS account | Design (0322 I3) — build |
-| WorkOS billing session | WorkOS + xNet cloud | Paying tenants | Shipped (`recoverPaidAccount`) |
-| Custodial KMS escrow | xNet | Nobody — declined in 0243 | Stays declined |
+| Anchor                     | Custody               | Who it's for                           | Status                         |
+| -------------------------- | --------------------- | -------------------------------------- | ------------------------------ |
+| Recovery phrase            | User                  | Everyone (default)                     | Shipped (0243)                 |
+| Synced passkey (+ PRF)     | Platform vendor       | Everyone (default)                     | Shipped (0243)                 |
+| Shamir guardians           | Friends/family        | Sovereignty-minded                     | Shipped (0243)                 |
+| **ATProto identity + PIN** | User's PDS + user PIN | Individuals with a Bluesky/PDS account | Design (0322 I3) — build       |
+| WorkOS billing session     | WorkOS + xNet cloud   | Paying tenants                         | Shipped (`recoverPaidAccount`) |
+| Custodial KMS escrow       | xNet                  | Nobody — declined in 0243              | Stays declined                 |
 
 ## Recommendation
 
@@ -372,7 +372,7 @@ xNet-operated infrastructure.
    with your Bluesky identity + PIN" writes the same escrow envelope the
    WorkOS path writes; release requires full server-side verification
    (DID doc, AS issuer, binding record, freshness window). Now an
-   individual with only a free Bluesky account has custodial-*feeling*
+   individual with only a free Bluesky account has custodial-_feeling_
    recovery with no custodian.
 2. **Rotation-key sovereignty:** during (or after) linking, offer "Make
    xNet your recovery key for this identity" — enroll a P-256 key derived
@@ -381,7 +381,7 @@ xNet-operated infrastructure.
    longer permanently hijack or lose their global name; xNet users get the
    strongest identity-ownership story in the ATProto ecosystem. This is
    the correct form of "the hub signs something": nothing is minted, the
-   *user's* key gains override power.
+   _user's_ key gains override power.
 
 **Phase 3 — the OAuth provider story (MIT, self-host-first).**
 
@@ -393,7 +393,7 @@ xNet-operated infrastructure.
   and the durable answer to "eventually this should all be integrated."
 - **Inbound:** BYO-OIDC for org hubs (hub config lists an issuer +
   client_id; standard `openid-client` RP flow; org members onboard by
-  proving an IdP session *plus* creating their sovereign keys — IdP
+  proving an IdP session _plus_ creating their sovereign keys — IdP
   session admits the device into the org's ledger, it never holds keys).
 - WorkOS remains the cloud door and gains nothing new here; when an
   enterprise tenant wants SAML, that's a WorkOS connection in FSL cloud
@@ -426,7 +426,7 @@ sequenceDiagram
 ```
 
 Onboarding is two gestures (OAuth tap + passkey create). No seed phrase up
-front (phrase remains an *offered* upgrade in Settings, per 0243). Recovery
+front (phrase remains an _offered_ upgrade in Settings, per 0243). Recovery
 is a menu of independent anchors, any one of which suffices. And no step
 depends on an xNet-operated service existing.
 
@@ -462,9 +462,9 @@ WorkOS impl):
 ```ts
 // packages/identity/src/recovery/anchor.ts (MIT)
 export interface RecoveryAnchorProvider {
-  readonly kind: 'atproto' | 'workos' | (string & {});
+  readonly kind: 'atproto' | 'workos' | (string & {})
   /** Begin the external proof ceremony; returns a URL to send the user to. */
-  beginCeremony(opts: { state: string; redirectUri: string }): Promise<{ url: string }>;
+  beginCeremony(opts: { state: string; redirectUri: string }): Promise<{ url: string }>
   /**
    * Server-side verification that the ceremony completed for the SAME
    * external identity the escrow envelope was enrolled under.
@@ -472,10 +472,10 @@ export interface RecoveryAnchorProvider {
    * fetch + verify net.x.identity.binding, enforce freshness window.
    */
   verifyCeremony(opts: {
-    code: string;
-    expectedSubject: string;      // atproto DID or WorkOS user id
-    boundXnetDid: string;         // must match the binding record
-  }): Promise<{ verified: boolean; subject: string }>;
+    code: string
+    expectedSubject: string // atproto DID or WorkOS user id
+    boundXnetDid: string // must match the binding record
+  }): Promise<{ verified: boolean; subject: string }>
 }
 // Both anchors write the SAME envelope shape from packages/identity/src/escrow.ts:
 //   sealEscrow(recoverySeed, { anchor: { kind, subject }, pin })
@@ -485,29 +485,29 @@ export interface RecoveryAnchorProvider {
 
 ```ts
 // packages/hub/src/features/oidc-provider.ts (MIT)
-import Provider from 'oidc-provider'; // panva/node-oidc-provider, MIT
+import Provider from 'oidc-provider' // panva/node-oidc-provider, MIT
 
 export function mountOidcProvider(app: Hono, config: HubConfig) {
-  if (!config.identity?.oidcProvider?.enabled) return;
+  if (!config.identity?.oidcProvider?.enabled) return
   const oidc = new Provider(config.publicUrl, {
     clients: config.identity.oidcProvider.clients, // org-declared RPs
     // Subject is the xNet DID; pairwise keeps cross-app correlation opt-in.
     subjectTypes: ['pairwise'],
     features: { devInteractions: { enabled: false } },
     async findAccount(_ctx, sub) {
-      const profile = await loadProfileByDid(sub); // profile-<did> node
+      const profile = await loadProfileByDid(sub) // profile-<did> node
       return {
         accountId: sub,
         claims: () => ({
           sub,
           name: profile?.displayName,
-          preferred_username: profile?.atprotoHandle ?? profile?.handle,
-        }),
-      };
-    },
-  });
+          preferred_username: profile?.atprotoHandle ?? profile?.handle
+        })
+      }
+    }
+  })
   // Login interaction = the existing passkey unlock flow, not a password UI.
-  app.use('/oidc/*', honoAdapter(oidc));
+  app.use('/oidc/*', honoAdapter(oidc))
 }
 ```
 
@@ -536,7 +536,7 @@ already drafted in 0322):
   Sept 2025; whether it is fully operational in mid-2026 is unconfirmed.
   Mitigation: nothing in Phases 0–3 breaks if PLC governance stalls
   (did:web handles work too), and the rotation-key work makes users
-  *harder* to strand, not easier.
+  _harder_ to strand, not easier.
 - **Rotation-key custody UX.** A user-priority P-256 rotation key must
   itself be recoverable (derive it from the same seed the recovery phrase
   reconstructs — `seed-recovery.ts` already has the HKDF plumbing) or we
@@ -562,10 +562,12 @@ already drafted in 0322):
 ## Implementation Checklist
 
 Phase 0 — prerequisites (tracked elsewhere, listed for dependency truth):
+
 - [x] 0307-B: scoped least-privilege UCANs + revocation + `aud` enforcement; remove wildcard self-grant from `packages/react/src/provider/use-hub-auth-token.ts`
 - [x] Account-ledger enforcement: signing/epoch checks wired in hub + client (`packages/data/src/schema/schemas/account-ledger.ts` docstring follow-ups)
 
 Phase 1 — ATProto link + login door (0301 P1 / 0322 I1–I2):
+
 - [x] Add `@atproto/oauth-client-browser` to `apps/web` (and Electron variant); ceremony service with PKCE + DPoP
 - [x] Serve static client metadata at `xnet.fyi/oauth/atproto-client.json`
 - [x] `AnyDid = XNetDid | AtprotoDid` representation in `packages/identity` (represent-only; `parseDID` signing guarantees untouched)
@@ -575,6 +577,7 @@ Phase 1 — ATProto link + login door (0301 P1 / 0322 I1–I2):
 - [x] Explicit copy: Bluesky account does not hold or recover xNet keys unless Phase 2 anchor enabled
 
 Phase 2 — recovery, global edition:
+
 - [x] Extract `RecoveryAnchorProvider` (MIT, `packages/identity`); adapt `WorkOSAuthKitProvider` to implement it (FSL side unchanged behaviorally)
 - [x] `AtprotoIdentityProvider` + escrow enrollment UI ("Bluesky identity + PIN") writing the existing `sealEscrow` envelope
 - [x] Hub escrow-release endpoint with full server-side ceremony verification (DID doc, AS issuer, binding record, freshness window)
@@ -582,12 +585,14 @@ Phase 2 — recovery, global edition:
 - [x] Recovery-anchor menu in Settings → Security alongside phrase/passkey/Shamir
 
 Phase 3 — OAuth provider (MIT):
+
 - [x] `packages/hub/src/features/oidc-provider.ts`: config-gated `node-oidc-provider` mount; passkey unlock as the interaction; pairwise subjects; Profile-derived claims
 - [x] BYO-OIDC inbound: hub config for issuer/client; `openid-client` RP flow; IdP-session-gated device admission into the org ledger (keys never touch IdP)
 - [x] Docs: "Your hub as your team's identity provider" + threat-model note on what the IdP sees
 - [x] Changesets: minor for `@xnetjs/hub` (new opt-in feature), minor for `@xnetjs/identity` (new exports via scoped sub-barrels per 0276 policy)
 
 Phase 4 — demand-gated:
+
 - [x] Hub-as-PDS spike: mount official `@atproto/pds` behind one hostname next to a hub; document ops story (0301 P3)
 - [x] WorkOS SSO/SAML connection support in `packages/cloud` for enterprise tenants
 - [x] Decide trigger metrics (federation caps, binding adoption) and record the go/no-go
@@ -608,6 +613,7 @@ Phase 4 — demand-gated:
 ## References
 
 Repository:
+
 - `packages/identity/src/{did,types,keys,ucan,recoverable,seed-recovery,escrow}.ts`, `packages/identity/src/passkey/`
 - `packages/hub/src/auth/{ucan,capabilities,errors}.ts`, `packages/hub/src/ws/authorize.ts`, `packages/hub/src/routes/{share-links,keys,dids}.ts`
 - `packages/cloud/src/identity/{workos,provider,binding}.ts`, `apps/cloud/src/{verify-did,nonce}.ts`
@@ -616,6 +622,7 @@ Repository:
 - Explorations: 0149, 0174/0175, 0243 (`[x]`), 0301, 0304, 0307, 0310, 0322, 0324, 0333/0334, 0335
 
 External:
+
 - ATProto OAuth spec: https://atproto.com/specs/oauth · client guide: https://docs.bsky.app/docs/advanced-guides/oauth-client
 - OAuth progress + granular scopes: https://github.com/bluesky-social/atproto/discussions/4118 · FedCM roadmap: https://github.com/bluesky-social/atproto/discussions/2796
 - PLC directory independence: https://docs.bsky.app/blog/plc-directory-org · did:plc spec (rotation keys, 72 h window): https://web.plc.directory/spec/v0.1/did-plc

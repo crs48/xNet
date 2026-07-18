@@ -8,14 +8,14 @@ sovereign. Hubs mint **sessions and attestations**, never root keys.
 
 ## Outbound: the hub IS an OIDC provider (the `tsidp` pattern)
 
-When you enable it, your hub becomes an OpenID Connect provider for the *other*
+When you enable it, your hub becomes an OpenID Connect provider for the _other_
 self-hosted tools your team runs — Grafana, Gitea, a wiki — so people sign into
 all of them with the xNet identity they already have.
 
 ```jsonc
 // hub config
 {
-  "auth": true,                       // required — see the safety note below
+  "auth": true, // required — see the safety note below
   "publicUrl": "https://hub.acme.dev", // becomes the OIDC issuer
   "identity": {
     "oidcProvider": {
@@ -78,12 +78,12 @@ Flow:
 
 ### Threat model — what the IdP sees, and what it does not
 
-| The IdP **can** observe | The IdP **cannot** observe or do |
-| --- | --- |
-| That a device was admitted (a login event: who, when) | Any workspace content — it is end-to-end encrypted |
-| The member's email / directory attributes it already holds | The member's signing or encryption keys — these never leave the device |
-| That the member belongs to this org's hub | Read or write nodes; content keys are re-wrapped through the ledger, not the IdP |
-| Revoke *future* device admissions by disabling the IdP user | Decrypt data a member already synced — revocation blocks new admissions, it is not a remote wipe |
+| The IdP **can** observe                                     | The IdP **cannot** observe or do                                                                 |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| That a device was admitted (a login event: who, when)       | Any workspace content — it is end-to-end encrypted                                               |
+| The member's email / directory attributes it already holds  | The member's signing or encryption keys — these never leave the device                           |
+| That the member belongs to this org's hub                   | Read or write nodes; content keys are re-wrapped through the ledger, not the IdP                 |
+| Revoke _future_ device admissions by disabling the IdP user | Decrypt data a member already synced — revocation blocks new admissions, it is not a remote wipe |
 
 Two consequences worth stating plainly to org admins:
 

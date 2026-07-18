@@ -203,9 +203,11 @@ describe('device / recovery / revocation records', () => {
 
 describe('foldAccountRecord', () => {
   it('extracts controllers and epoch with defaults', () => {
-    expect(
-      foldAccountRecord({ accountId: ACCOUNT, controllers: [ALICE], epoch: 3 })
-    ).toEqual({ accountId: ACCOUNT, controllers: [ALICE], epoch: 3 })
+    expect(foldAccountRecord({ accountId: ACCOUNT, controllers: [ALICE], epoch: 3 })).toEqual({
+      accountId: ACCOUNT,
+      controllers: [ALICE],
+      epoch: 3
+    })
     expect(foldAccountRecord({ accountId: ACCOUNT })).toEqual({
       accountId: ACCOUNT,
       controllers: [],

@@ -11,11 +11,7 @@ import { EscrowStore } from '../src/services/escrow-store'
 const PLC = 'did:plc:ewvi7nxzyoun6zhxrhs64oiz'
 const PDS = 'https://pds.example.com'
 
-const makeFetch = (opts: {
-  record: unknown
-  createdAt?: string
-  withAs?: boolean
-}): typeof fetch =>
+const makeFetch = (opts: { record: unknown; createdAt?: string; withAs?: boolean }): typeof fetch =>
   (async (input: string | URL | Request) => {
     const url = String(input)
     if (url.includes('plc.directory')) {
@@ -23,9 +19,7 @@ const makeFetch = (opts: {
         JSON.stringify({
           id: PLC,
           alsoKnownAs: ['at://alice.example.com'],
-          service: [
-            { id: '#atproto_pds', type: 'AtprotoPersonalDataServer', serviceEndpoint: PDS }
-          ]
+          service: [{ id: '#atproto_pds', type: 'AtprotoPersonalDataServer', serviceEndpoint: PDS }]
         }),
         { status: 200 }
       )
@@ -38,7 +32,9 @@ const makeFetch = (opts: {
     }
     if (url.includes('oauth-protected-resource')) {
       return new Response(
-        JSON.stringify(opts.withAs === false ? {} : { authorization_servers: ['https://as.example.com'] }),
+        JSON.stringify(
+          opts.withAs === false ? {} : { authorization_servers: ['https://as.example.com'] }
+        ),
         { status: opts.withAs === false ? 200 : 200 }
       )
     }
@@ -48,7 +44,11 @@ const makeFetch = (opts: {
 describe('AtprotoRecoveryAnchor.verifyCeremony', () => {
   it('verifies a genuine bound ATProto identity', async () => {
     const { identity, privateKey } = generateIdentity()
-    const record = createAtprotoBinding({ xnetDid: identity.did, signingKey: privateKey, atprotoDid: PLC })
+    const record = createAtprotoBinding({
+      xnetDid: identity.did,
+      signingKey: privateKey,
+      atprotoDid: PLC
+    })
     const verifier = new AtprotoBindingVerifier({ fetchImpl: makeFetch({ record }) })
     const anchor = new AtprotoRecoveryAnchor(verifier)
 
@@ -82,7 +82,11 @@ describe('AtprotoRecoveryAnchor.verifyCeremony', () => {
 
   it('rejects when the canonical PDS advertises no authorization server', async () => {
     const { identity, privateKey } = generateIdentity()
-    const record = createAtprotoBinding({ xnetDid: identity.did, signingKey: privateKey, atprotoDid: PLC })
+    const record = createAtprotoBinding({
+      xnetDid: identity.did,
+      signingKey: privateKey,
+      atprotoDid: PLC
+    })
     const anchor = new AtprotoRecoveryAnchor(
       new AtprotoBindingVerifier({ fetchImpl: makeFetch({ record, withAs: false }) })
     )

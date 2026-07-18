@@ -7,7 +7,6 @@
  * the check runs against the hub the app is connected to and degrades to
  * "linked, unverified" when no hub is configured or the check fails.
  */
-import { useXNet } from '@xnetjs/react'
 import { useEffect, useState } from 'react'
 
 type VerifyState = 'checking' | 'verified' | 'unverified'
@@ -65,9 +64,7 @@ export function VerifiedHandle(props: {
         <span className="h-2 w-2 rounded-full bg-ink-3" aria-hidden />
       )}
       @{atprotoHandle}
-      {!verified && state !== 'checking' && (
-        <span className="text-ink-3">· unverified</span>
-      )}
+      {!verified && state !== 'checking' && <span className="text-ink-3">· unverified</span>}
     </span>
   )
 }
