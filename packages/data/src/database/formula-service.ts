@@ -30,6 +30,17 @@ export interface FormulaValidationResult {
   dependencies?: string[]
 }
 
+/**
+ * Cross-node scope resolvers (0346): pre-resolved, synchronous access
+ * for `RELATED()` and `NODE()` — scope widened row → relations → named
+ * nodes without a second engine. Recompute on related-node change rides
+ * the reload path until 0317's predicate-aware invalidation lands.
+ */
+export interface FormulaScope {
+  getRelatedValues?: (relationColumnId: string, targetColumnId?: string) => unknown[]
+  getNodeProperty?: (nodeId: string, property: string) => unknown
+}
+
 // ─── Formula Service ─────────────────────────────────────────────────────────
 
 export class FormulaService {
@@ -46,18 +57,26 @@ export class FormulaService {
    * const value = service.compute(row, formulaColumn, columns)
    * ```
    */
-  compute(row: FormulaRow, column: ColumnDefinition, columns: ColumnDefinition[]): unknown {
+  compute(
+    row: FormulaRow,
+    column: ColumnDefinition,
+    columns: ColumnDefinition[],
+    scope?: FormulaScope
+  ): unknown {
     if (column.type !== 'formula') {
       throw new Error(`Column ${column.id} is not a formula column`)
     }
 
     const config = column.config as FormulaColumnConfig
 
-    // Check cache
+    // Check cache. Cross-node formulas (RELATED/NODE) bypass the value
+    // cache: their inputs live outside the row hash, so a cached value
+    // could go stale invisibly (0317 gates smarter invalidation).
+    const usesScope = /\b(RELATED|NODE)\s*\(/.test(config.expression)
     const cacheKey = `${row.id}:${column.id}`
     const deps = config.dependencies ?? extractDependencies(config.expression)
     const hash = this.computeHash(row, deps)
-    const cached = this.valueCache.get(cacheKey)
+    const cached = usesScope ? undefined : this.valueCache.get(cacheKey)
 
     if (cached && cached.hash === hash) {
       return cached.value
@@ -76,11 +95,13 @@ export class FormulaService {
         // Check if dependency is also a formula
         const depColumn = columns.find((c) => c.id === columnId)
         if (depColumn?.type === 'formula') {
-          return this.compute(row, depColumn, columns)
+          return this.compute(row, depColumn, columns, scope)
         }
         return row.cells[columnId]
       },
-      getColumn: (columnId: string) => columns.find((c) => c.id === columnId)
+      getColumn: (columnId: string) => columns.find((c) => c.id === columnId),
+      getRelatedValues: scope?.getRelatedValues,
+      getNodeProperty: scope?.getNodeProperty
     }
 
     // Evaluate
@@ -88,7 +109,7 @@ export class FormulaService {
       const value = evaluate(ast, context)
       const coerced = this.coerceResult(value, config.resultType)
 
-      this.valueCache.set(cacheKey, { value: coerced, hash })
+      if (!usesScope) this.valueCache.set(cacheKey, { value: coerced, hash })
       return coerced
     } catch (error) {
       console.error(`Formula error in ${column.name}:`, error)
@@ -102,12 +123,13 @@ export class FormulaService {
   batchCompute(
     rows: FormulaRow[],
     column: ColumnDefinition,
-    columns: ColumnDefinition[]
+    columns: ColumnDefinition[],
+    scope?: FormulaScope
   ): Map<string, unknown> {
     const results = new Map<string, unknown>()
 
     for (const row of rows) {
-      const value = this.compute(row, column, columns)
+      const value = this.compute(row, column, columns, scope)
       results.set(row.id, value)
     }
 

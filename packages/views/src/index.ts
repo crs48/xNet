@@ -370,3 +370,37 @@ export {
   type MeetingsPermissions,
   type MeetingTranscriptChatProps
 } from './meeting-recorder/index.js'
+
+// Frames — the compositional unit (0346): FrameDef contract, renderer +
+// source registry, container adapters, dashboard frame widget.
+export {
+  FRAME_MAX_DEPTH,
+  FRAME_WIDGET_TYPE,
+  FrameHostProvider,
+  FrameRenderer,
+  FrameSourceRegistry,
+  SealedFrame,
+  createFrameWidgetDefinition,
+  frameFromCanvasNode,
+  frameFromDatabaseEmbed,
+  frameFromPageEmbed,
+  frameSetSignature,
+  frameSourceRegistry,
+  orderForStack,
+  parseCollectionIds,
+  registerFrameWidget,
+  toggleGeometry,
+  useFrameAncestry,
+  useFrameDepth,
+  useFrameHost,
+  withLayoutDefaults,
+  type FrameDef,
+  type FrameHost,
+  type FrameRendererProps,
+  type FrameSource,
+  type FrameSourceRenderer,
+  type FrameTier,
+  type FrameWidgetConfig,
+  type NodeFrameProps,
+  type PageGeometry
+} from './frames/index.js'

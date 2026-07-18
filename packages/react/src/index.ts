@@ -329,6 +329,20 @@ export {
 } from './hooks/useReverseRelations'
 
 /**
+ * Entangle bus (0346) — page-scoped hover/select co-presence between
+ * frames: hover a row in one frame, its pin/card/wikilink lights up in
+ * every sibling frame on the page.
+ */
+export {
+  EntangleBus,
+  EntangleProvider,
+  useEntangleBind,
+  useEntangleBus,
+  useEntangledHighlight,
+  usePublishEntangleHover
+} from './hooks/useEntangle'
+
+/**
  * useDatabaseSchema - Hook for database-defined schema access
  *
  * @example

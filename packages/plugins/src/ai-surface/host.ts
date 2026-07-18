@@ -58,6 +58,15 @@ export type AiSurfaceHost = {
   planPagePatch(args: Record<string, unknown>): Promise<AiMutationPlan>
   applyPageMarkdown(args: Record<string, unknown>): Promise<AiPageMarkdownApplyResult>
   rollbackPageMarkdown(args: Record<string, unknown>): Promise<AiPageMarkdownRollbackResult>
+  /** Create a page and seed its content in one audited step (0346). */
+  composePage(args: {
+    title: string
+    markdown: string
+    confirmApply: boolean
+    actor?: string
+    intent?: string
+    extra?: Record<string, unknown>
+  }): Promise<Record<string, unknown>>
 
   // ─── Audit ────────────────────────────────────────────────────────────────
   getAuditLog(options: { planId?: string; limit?: number }): {
