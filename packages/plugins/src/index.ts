@@ -81,7 +81,8 @@ export type {
   SurfaceDockContribution,
   SurfaceDockTier,
   ImporterContribution,
-  AiCommandExposure
+  AiCommandExposure,
+  FrameRendererContribution
 } from './contributions'
 export { TypedRegistry, ContributionRegistry } from './contributions'
 

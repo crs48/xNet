@@ -26,6 +26,23 @@ export {
 } from './auth/capabilities'
 export { createHubAuthError, type HubAuthError, type HubAuthErrorCode } from './auth/errors'
 
+// Inbound webhooks (0213/0346): the inbox feature plus the first-party
+// deliver/apply sinks that close the "normalized then discarded" seam.
+export {
+  webhookInboxFeature,
+  WEBHOOK_INBOX_FEATURE_ID,
+  type WebhookInboxDelivery,
+  type WebhookInboxPorts,
+  type WebhookInboxRoute
+} from './features/webhook-inbox'
+export {
+  createFrameAwareDeliver,
+  createIntegrationApply,
+  EXTERNAL_ITEM_SCHEMA,
+  type FrameAwareDeliverOptions,
+  type WebhookNodeWriter
+} from './features/webhook-deliver'
+
 /**
  * Create an xNet Hub instance.
  *

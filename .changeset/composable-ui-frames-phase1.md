@@ -2,6 +2,8 @@
 '@xnetjs/editor': minor
 '@xnetjs/views': minor
 '@xnetjs/react': minor
+'@xnetjs/plugins': minor
+'@xnetjs/data': minor
 ---
 
 Live embeds in documents (exploration 0346, Phase 1): `databaseEmbed` blocks
@@ -24,3 +26,16 @@ and the generic dashboard frame widget (`registerFrameWidget`).
 co-presence so frames on one page (grid rows, board cards, calendar
 chips, map pins, wikilink chips) highlight the same node together.
 `ReverseRelationsPanel` gains an `onOpenAsFrame` action.
+
+`@xnetjs/plugins` (0346 Phase 5): new agent tools
+`xnet_plan_frame_placement` / `xnet_apply_frame_placement` /
+`xnet_compose_page` — the agent composes pages of live frames through
+the standard plan → validate → apply pipeline (declarative tier only).
+Plugins gain `registerFrameRenderer` with the own-views-only namespacing
+rule.
+
+`@xnetjs/data` (0346 Phase 5): cross-node formula scope — `RELATED()`
+and `NODE()` context functions widen the one formula language from row →
+relations → named nodes (host-resolved, cache-bypassed until 0317's
+precise invalidation). Pages gain an additive
+`geometry: stack | grid | space` property (default `stack`).

@@ -640,17 +640,17 @@ registerAgentTool({
 
 ### Phase 5 — Agents and formulas
 
-- [ ] `xnet_plan_frame_placement` / `xnet_apply_frame_placement` /
+- [x] `xnet_plan_frame_placement` / `xnet_apply_frame_placement` /
       `xnet_compose_page` agent tools (plan pipeline, `page.propose` scope,
       audit + rollback)
-- [ ] Companion flow: "set up a …" → created nodes + composed page of live
+- [x] Companion flow: "set up a …" → created nodes + composed page of live
       frames, plan preview before apply
-- [ ] Formula scope widening: `related()` + `node().prop()` in
+- [x] Formula scope widening: `related()` + `node().prop()` in
       `formula-service.ts` with dependency extraction; recompute gated on
       0317 (reload path until then)
-- [ ] Close the 0213 webhook `apply` seam with a frame-aware deliver target
+- [x] Close the 0213 webhook `apply` seam with a frame-aware deliver target
       (external item → row + ensured frame)
-- [ ] Plugin frame-placement capability rule (own-views-only default)
+- [x] Plugin frame-placement capability rule (own-views-only default)
       enforced in the contribution registry
 
 ## Validation Checklist
