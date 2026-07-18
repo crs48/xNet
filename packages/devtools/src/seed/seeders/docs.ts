@@ -279,6 +279,35 @@ export const docsSeeder: SeederModule = {
         ])
     })
 
+    // ─── Composable frames demo (0346) — two live views of ONE database ──
+    // The accounts database has lat/lng columns and a map view; editing a
+    // coordinate in the table frame moves the pin in the map frame below
+    // it. One store, two subscriptions — no glue code.
+    const composeId = pageId('compose-demo')
+    page(composeId, 'Composable Frames Demo', '🧱', fixtures.spaces.org, 'notes', [
+      fixtures.tag('docs')
+    ])
+    const accountsDb = databaseId('accounts')
+    docs.push({
+      nodeId: composeId,
+      build: () =>
+        buildRichPageDoc(composeId, PageSchema._schemaId, 'Composable Frames Demo', '🧱', [
+          { kind: 'h', level: 1, text: 'Composable Frames Demo' },
+          {
+            kind: 'p',
+            text:
+              'Two live frames of the same database. Edit a lat/lng cell in the ' +
+              'table and the pin on the map below moves with it.'
+          },
+          { kind: 'h', level: 2, text: 'Accounts — table' },
+          { kind: 'databaseEmbed', databaseId: accountsDb, viewType: 'table' },
+          { kind: 'h', level: 2, text: 'Accounts — map' },
+          { kind: 'databaseEmbed', databaseId: accountsDb, viewType: 'map' },
+          { kind: 'h', level: 2, text: 'A transcluded page' },
+          { kind: 'pageEmbed', pageId: sampleId, title: SAMPLE_TITLE }
+        ])
+    })
+
     return { drafts, docs }
   }
 }

@@ -20,6 +20,7 @@ import { FinanceView } from '../components/finance/FinanceView'
 import { LabView } from '../components/LabView'
 import { MapView } from '../components/MapView'
 import { MeetingsView } from '../components/MeetingsView'
+import { FrameTabView } from '../components/FrameTabView'
 import { PageView } from '../components/PageView'
 import { PersonView } from '../components/PersonView'
 import { SpaceHomeView } from '../components/SpaceHomeView'
@@ -28,6 +29,7 @@ import { TasksView } from '../components/TasksView'
 
 const HOSTED_VIEWS: Record<TabNodeType, ComponentType<{ nodeId: string }>> = {
   page: ({ nodeId }) => <PageView docId={nodeId} />,
+  frame: ({ nodeId }) => <FrameTabView frameSpec={nodeId} />,
   database: ({ nodeId }) => <DatabaseView docId={nodeId} />,
   canvas: ({ nodeId }) => <CanvasView docId={nodeId} />,
   dashboard: ({ nodeId }) => <DashboardView dashboardId={nodeId} />,

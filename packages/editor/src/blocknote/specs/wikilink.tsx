@@ -5,6 +5,7 @@
  * simpler and consistent with mentions/hashtags.
  */
 import { createReactInlineContentSpec } from '@blocknote/react'
+import { useEntangleBind, useEntangledHighlight } from '@xnetjs/react'
 import * as React from 'react'
 import { useEditorHost } from '../host-context'
 
@@ -47,17 +48,34 @@ export function matchWikilinkTargets(
   return [...prefix, ...substring].slice(0, cap)
 }
 
+/** The node id a wikilink points at (strips the xnet://<type>/ scheme). */
+function wikilinkNodeId(href: string): string | null {
+  if (!href) return null
+  const match = href.match(/^xnet:\/\/[a-z]+\/(.+)$/)
+  return match ? match[1] : href
+}
+
 function WikilinkChip({ href, title }: { href: string; title: string }): React.JSX.Element {
   const host = useEditorHost()
+  // Entangle bus (0346): the chip lights up when its target is hovered
+  // in a sibling frame (map pin, grid row) and publishes its own hover.
+  const nodeId = wikilinkNodeId(href)
+  const entangleBind = useEntangleBind(nodeId)
+  const entangled = useEntangledHighlight(nodeId)
   return (
     <a
       data-wikilink=""
       href={href}
-      className="wikilink cursor-pointer"
+      className={
+        entangled
+          ? 'wikilink cursor-pointer rounded-sm bg-amber-200/60 dark:bg-amber-500/25'
+          : 'wikilink cursor-pointer'
+      }
       onClick={(event) => {
         event.preventDefault()
         host.onNavigate?.(href)
       }}
+      {...entangleBind}
     >
       {title}
     </a>

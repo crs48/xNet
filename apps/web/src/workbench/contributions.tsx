@@ -14,6 +14,7 @@ import {
   type StatusBarContribution
 } from '@xnetjs/plugins'
 import { usePluginRegistryOptional } from '@xnetjs/react'
+import { frameSourceRegistry } from '@xnetjs/views'
 import { useEffect, useState } from 'react'
 import { registerPanelView } from './PanelViewHost'
 
@@ -67,11 +68,29 @@ export function useWorkbenchContributions(): WorkbenchContributions {
       }
     }
 
+    // Plugin frame renderers (0346) bridge into the frame source
+    // registry. The own-views-only rule is enforced at registration
+    // (namespaced ids in PluginContext.registerFrameRenderer); here we
+    // additionally never let a plugin renderer shadow a first-party one.
+    const frameDisposers = new Map<string, () => void>()
+    const bridgeFrameRenderers = () => {
+      for (const renderer of registry.frameRenderers.getAll()) {
+        if (frameDisposers.has(renderer.id) || frameSourceRegistry.has(renderer.id)) continue
+        const disposable = frameSourceRegistry.register({
+          id: renderer.id,
+          supportedSchemas: renderer.supportedSchemas as never,
+          component: renderer.component as never
+        })
+        frameDisposers.set(renderer.id, () => disposable.dispose())
+      }
+    }
+
     const sync = () => {
       const railItems = registry.sidebar.getAll()
       const statusItems = registry.statusBar.getAll()
       bridgePanels(railItems)
       bridgeCommands()
+      bridgeFrameRenderers()
       setContributions({ railItems, statusItems })
     }
 
@@ -79,13 +98,15 @@ export function useWorkbenchContributions(): WorkbenchContributions {
     const unsubscribers = [
       registry.sidebar.onChange(sync),
       registry.statusBar.onChange(sync),
-      registry.commands.onChange(sync)
+      registry.commands.onChange(sync),
+      registry.frameRenderers.onChange(sync)
     ]
 
     return () => {
       for (const unsubscribe of unsubscribers) unsubscribe()
       for (const dispose of panelDisposers.values()) dispose()
       for (const dispose of commandDisposers.values()) dispose()
+      for (const dispose of frameDisposers.values()) dispose()
     }
   }, [pluginRegistry])
 

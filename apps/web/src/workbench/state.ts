@@ -82,7 +82,10 @@ export const TAB_NODE_TYPES = [
   'person',
   'lab',
   'space',
-  'settings'
+  'settings',
+  // Frame tabs (0346): nodeId is `<viewType>~<nodeId>` — ONE tab type
+  // covers every registry/plugin view, so new views need no app edits.
+  'frame'
 ] as const
 
 export type TabNodeType = (typeof TAB_NODE_TYPES)[number]

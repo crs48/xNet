@@ -58,6 +58,10 @@ const COVERED = new Set([
 // recorded in docs/explorations/0238. Each entry must keep its reason; deleting a
 // reason (or the comment) should be a conscious act, reviewed alongside the code.
 const WAIVED = new Map([
+  [
+    'frame',
+    'frame tabs (0346) ride the web workbench tab machinery; desktop adopts them with the deferred ShellFrame port (0280 risk 6)'
+  ],
   ['analytics', 'usage analytics is a web/cloud surface, not a desktop workflow'],
   [
     'companion',

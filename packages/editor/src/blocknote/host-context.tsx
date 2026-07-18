@@ -9,7 +9,19 @@
 import * as React from 'react'
 import { createContext, useContext } from 'react'
 
-export type DatabaseViewType = 'table' | 'board' | 'list' | 'gallery' | 'calendar' | 'form'
+/**
+ * Known view types keep their literals for autocomplete; the open tail
+ * lets registry/plugin view types (map, timeline, …) travel through the
+ * embed without an editor-package release per new view (0346).
+ */
+export type DatabaseViewType =
+  | 'table'
+  | 'board'
+  | 'list'
+  | 'gallery'
+  | 'calendar'
+  | 'form'
+  | (string & Record<never, never>)
 
 export interface TaskViewConfig {
   scope: 'page' | 'workspace' | 'assigned'
@@ -36,6 +48,11 @@ export interface XNetEditorHost {
     databaseId: string
     viewType: DatabaseViewType
     viewConfig: Record<string, unknown>
+    /**
+     * Persist a view-type switch back onto the embed block ("Open
+     * with…" on the frame, 0346). Absent on read-only surfaces.
+     */
+    onChangeViewType?: (viewType: DatabaseViewType) => void
   }) => React.ReactNode
   /** Host renderer for embedded task collection views. */
   renderTaskView?: (props: {
@@ -43,10 +60,22 @@ export interface XNetEditorHost {
     viewConfig: TaskViewConfig
     currentPageId: string | null
   }) => React.ReactNode
+  /**
+   * Host renderer for page embeds (0346): a live summary-tier
+   * transclusion of the target node. Absent, the embed falls back to a
+   * navigation card.
+   */
+  renderPageEmbed?: (props: { nodeId: string; title: string }) => React.ReactNode
   /** Page id given to page-scoped task view embeds. */
   taskViewPageId: string | null
   /** Database picker for the slash command. */
   onSelectDatabase?: () => Promise<string | null>
+  /**
+   * Combined database + view-type picker for the `/view of…` slash
+   * command (0346). The host enumerates its view registry; the choice
+   * lands as a databaseEmbed block with that view type.
+   */
+  onSelectDatabaseView?: () => Promise<{ databaseId: string; viewType: DatabaseViewType } | null>
   /** Database title/icon resolver for embed headers. */
   resolveDatabaseMeta?: (databaseId: string) => Promise<{ title: string; icon?: string } | null>
   /** Whether the surface is read-only. */

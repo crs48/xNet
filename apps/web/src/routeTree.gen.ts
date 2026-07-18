@@ -31,6 +31,7 @@ import { Route as SpaceSpaceIdRouteImport } from './routes/space.$spaceId'
 import { Route as PersonDidRouteImport } from './routes/person.$did'
 import { Route as MapMapIdRouteImport } from './routes/map.$mapId'
 import { Route as LabLabIdRouteImport } from './routes/lab.$labId'
+import { Route as FrameFrameSpecRouteImport } from './routes/frame.$frameSpec'
 import { Route as DocDocIdRouteImport } from './routes/doc.$docId'
 import { Route as DbDbIdRouteImport } from './routes/db.$dbId'
 import { Route as DashboardDashboardIdRouteImport } from './routes/dashboard.$dashboardId'
@@ -147,6 +148,11 @@ const LabLabIdRoute = LabLabIdRouteImport.update({
   path: '/lab/$labId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const FrameFrameSpecRoute = FrameFrameSpecRouteImport.update({
+  id: '/frame/$frameSpec',
+  path: '/frame/$frameSpec',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const DocDocIdRoute = DocDocIdRouteImport.update({
   id: '/doc/$docId',
   path: '/doc/$docId',
@@ -195,6 +201,7 @@ export interface FileRoutesByFullPath {
   '/dashboard/$dashboardId': typeof DashboardDashboardIdRoute
   '/db/$dbId': typeof DbDbIdRoute
   '/doc/$docId': typeof DocDocIdRoute
+  '/frame/$frameSpec': typeof FrameFrameSpecRoute
   '/lab/$labId': typeof LabLabIdRoute
   '/map/$mapId': typeof MapMapIdRoute
   '/person/$did': typeof PersonDidRoute
@@ -224,6 +231,7 @@ export interface FileRoutesByTo {
   '/dashboard/$dashboardId': typeof DashboardDashboardIdRoute
   '/db/$dbId': typeof DbDbIdRoute
   '/doc/$docId': typeof DocDocIdRoute
+  '/frame/$frameSpec': typeof FrameFrameSpecRoute
   '/lab/$labId': typeof LabLabIdRoute
   '/map/$mapId': typeof MapMapIdRoute
   '/person/$did': typeof PersonDidRoute
@@ -254,6 +262,7 @@ export interface FileRoutesById {
   '/dashboard/$dashboardId': typeof DashboardDashboardIdRoute
   '/db/$dbId': typeof DbDbIdRoute
   '/doc/$docId': typeof DocDocIdRoute
+  '/frame/$frameSpec': typeof FrameFrameSpecRoute
   '/lab/$labId': typeof LabLabIdRoute
   '/map/$mapId': typeof MapMapIdRoute
   '/person/$did': typeof PersonDidRoute
@@ -285,6 +294,7 @@ export interface FileRouteTypes {
     | '/dashboard/$dashboardId'
     | '/db/$dbId'
     | '/doc/$docId'
+    | '/frame/$frameSpec'
     | '/lab/$labId'
     | '/map/$mapId'
     | '/person/$did'
@@ -314,6 +324,7 @@ export interface FileRouteTypes {
     | '/dashboard/$dashboardId'
     | '/db/$dbId'
     | '/doc/$docId'
+    | '/frame/$frameSpec'
     | '/lab/$labId'
     | '/map/$mapId'
     | '/person/$did'
@@ -343,6 +354,7 @@ export interface FileRouteTypes {
     | '/dashboard/$dashboardId'
     | '/db/$dbId'
     | '/doc/$docId'
+    | '/frame/$frameSpec'
     | '/lab/$labId'
     | '/map/$mapId'
     | '/person/$did'
@@ -373,6 +385,7 @@ export interface RootRouteChildren {
   DashboardDashboardIdRoute: typeof DashboardDashboardIdRoute
   DbDbIdRoute: typeof DbDbIdRoute
   DocDocIdRoute: typeof DocDocIdRoute
+  FrameFrameSpecRoute: typeof FrameFrameSpecRoute
   LabLabIdRoute: typeof LabLabIdRoute
   MapMapIdRoute: typeof MapMapIdRoute
   PersonDidRoute: typeof PersonDidRoute
@@ -537,6 +550,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LabLabIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/frame/$frameSpec': {
+      id: '/frame/$frameSpec'
+      path: '/frame/$frameSpec'
+      fullPath: '/frame/$frameSpec'
+      preLoaderRoute: typeof FrameFrameSpecRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/doc/$docId': {
       id: '/doc/$docId'
       path: '/doc/$docId'
@@ -597,6 +617,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardDashboardIdRoute: DashboardDashboardIdRoute,
   DbDbIdRoute: DbDbIdRoute,
   DocDocIdRoute: DocDocIdRoute,
+  FrameFrameSpecRoute: FrameFrameSpecRoute,
   LabLabIdRoute: LabLabIdRoute,
   MapMapIdRoute: MapMapIdRoute,
   PersonDidRoute: PersonDidRoute,

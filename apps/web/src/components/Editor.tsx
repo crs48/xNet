@@ -4,7 +4,7 @@
  * Uses the shared @xnetjs/editor package (BlockNote-based XNetEditor,
  * exploration 0312) for rich text editing.
  */
-import type { JSX } from 'react'
+import { useCallback, type JSX } from 'react'
 import type * as Y from 'yjs'
 import { normalizeTagName } from '@xnetjs/data'
 import {
@@ -21,8 +21,11 @@ import {
   type XNetEditorCommentsHost,
   type XNetEditorInstance
 } from '@xnetjs/editor/react'
-import { TaskCollectionEmbed } from '@xnetjs/react'
+import { TaskCollectionEmbed, useNodeStore } from '@xnetjs/react'
 import { useLinkPreviewResolver } from '../hooks/useLinkPreviewResolver'
+import { DatabaseEmbed } from './DatabaseEmbed'
+import { useDatabaseViewPicker } from './DatabaseViewPicker'
+import { PageEmbedPreview } from './PageEmbedPreview'
 
 type TaskEmbedFilters = Parameters<typeof TaskCollectionEmbed>[0]
 
@@ -105,44 +108,75 @@ export function Editor({
   const onFileDownload = useFileDownload()
   const resolveLinkPreview = useLinkPreviewResolver()
 
+  // 0346 Phase 1: live embeds. Database views render through the
+  // ViewRegistry; page embeds render a summary-tier transclusion; the
+  // `/view of…` slash command opens the registry-enumerated picker.
+  const { pick: pickDatabaseView, dialog: databaseViewPickerDialog } = useDatabaseViewPicker()
+  const { store } = useNodeStore()
+  const resolveDatabaseMeta = useCallback(
+    async (databaseId: string): Promise<{ title: string; icon?: string } | null> => {
+      const node = await store?.get(databaseId)
+      if (!node) return null
+      return { title: (node.properties.title as string) || 'Untitled Database' }
+    },
+    [store]
+  )
+
   return (
-    <XNetEditor
-      ydoc={doc}
-      placeholder="Start writing..."
-      className={className}
-      onBackspaceAtStart={onBackspaceAtStart}
-      awareness={awareness}
-      did={did}
-      onNavigate={onNavigate}
-      onImageUpload={onImageUpload ?? undefined}
-      onFileUpload={onFileUpload ?? undefined}
-      onFileDownload={onFileDownload ?? undefined}
-      resolveLinkPreview={resolveLinkPreview}
-      onEditorReady={onEditorReady}
-      mentionSuggestions={mentionSuggestions}
-      hashtagSuggestions={hashtagSuggestions}
-      onCreateHashtag={onCreateHashtag}
-      normalizeHashtagName={normalizeTagName}
-      linkTargets={linkTargets}
-      onCreateLinkTarget={onCreateLinkTarget}
-      onTagsChange={onTagsChange}
-      onPageTasksChange={onPageTasksChange}
-      comments={comments}
-      taskViewPageId={pageId ?? null}
-      renderTaskView={({
-        viewConfig,
-        currentPageId
-      }: {
-        viewType: TaskViewEmbedType
-        viewConfig: TaskViewConfig
-        currentPageId: string | null
-      }) => (
-        <TaskCollectionEmbed
-          currentPageId={currentPageId}
-          currentDid={did ?? null}
-          {...toTaskEmbedFilters(viewConfig)}
-        />
-      )}
-    />
+    <>
+      {databaseViewPickerDialog}
+      <XNetEditor
+        ydoc={doc}
+        placeholder="Start writing..."
+        className={className}
+        onBackspaceAtStart={onBackspaceAtStart}
+        awareness={awareness}
+        did={did}
+        onNavigate={onNavigate}
+        onImageUpload={onImageUpload ?? undefined}
+        onFileUpload={onFileUpload ?? undefined}
+        onFileDownload={onFileDownload ?? undefined}
+        resolveLinkPreview={resolveLinkPreview}
+        onEditorReady={onEditorReady}
+        mentionSuggestions={mentionSuggestions}
+        hashtagSuggestions={hashtagSuggestions}
+        onCreateHashtag={onCreateHashtag}
+        normalizeHashtagName={normalizeTagName}
+        linkTargets={linkTargets}
+        onCreateLinkTarget={onCreateLinkTarget}
+        onTagsChange={onTagsChange}
+        onPageTasksChange={onPageTasksChange}
+        comments={comments}
+        taskViewPageId={pageId ?? null}
+        renderTaskView={({
+          viewConfig,
+          currentPageId
+        }: {
+          viewType: TaskViewEmbedType
+          viewConfig: TaskViewConfig
+          currentPageId: string | null
+        }) => (
+          <TaskCollectionEmbed
+            currentPageId={currentPageId}
+            currentDid={did ?? null}
+            {...toTaskEmbedFilters(viewConfig)}
+          />
+        )}
+        renderDatabaseView={({ databaseId, viewType, viewConfig, onChangeViewType }) => (
+          <DatabaseEmbed
+            databaseId={databaseId}
+            viewType={viewType}
+            viewConfig={viewConfig}
+            onNavigate={onNavigate}
+            onChangeViewType={onChangeViewType}
+          />
+        )}
+        renderPageEmbed={({ nodeId, title }) => (
+          <PageEmbedPreview nodeId={nodeId} title={title} onNavigate={onNavigate} />
+        )}
+        onSelectDatabaseView={pickDatabaseView}
+        resolveDatabaseMeta={resolveDatabaseMeta}
+      />
+    </>
   )
 }
