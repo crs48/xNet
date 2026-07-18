@@ -56,6 +56,14 @@ export {
   RECOVERY_WORDLIST
 } from './seed-recovery'
 
+// Recovery anchor contract (0243/0322/0338): WorkOS + ATProto siblings
+export type {
+  RecoveryAnchorProvider,
+  RecoveryCeremonyStart,
+  RecoveryCeremonyVerification,
+  RecoveryAnchorEnrollment
+} from './recovery/anchor'
+
 // Recovery escrow (privacy-preserving PIN factor) — exploration 0243 P3.1
 export type { EscrowEnvelope } from './escrow'
 export {
@@ -93,6 +101,30 @@ export {
   deserializeKeyBundleFromBinary
 } from './key-bundle-storage'
 
+// ATProto identity bridge (0301/0322/0337) — foreign-DID representation +
+// binding record; grouped re-export from the scoped sub-barrel (0276 policy)
+export {
+  isAtprotoDid,
+  isXNetDid,
+  parseAnyDid,
+  normalizeAtprotoHandle,
+  isValidAtprotoHandle,
+  bindingMessage,
+  createAtprotoBinding,
+  verifyAtprotoBinding,
+  derivePlcRotationKey,
+  withUserPriorityRotationKey,
+  ATPROTO_BINDING_COLLECTION,
+  ATPROTO_BINDING_RKEY,
+  type PlcRotationKey,
+  type AnyDid,
+  type AtprotoDid,
+  type XNetDid,
+  type ParsedAnyDid,
+  type AtprotoBindingRecord,
+  type BindingVerification
+} from './atproto'
+
 // UCAN tokens
 export {
   createUCAN,
@@ -100,6 +132,7 @@ export {
   hasCapability,
   getCapabilities,
   isExpired,
+  ucanTokenId,
   rootIssuers,
   type CreateUCANOptions,
   type VerifyResult

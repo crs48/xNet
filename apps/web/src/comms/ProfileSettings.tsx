@@ -12,6 +12,15 @@ import { useEffect, useRef, useState } from 'react'
 import { imageToAvatarDataUrl } from './avatar-image'
 import { isHandleTaken, normalizeHandle, profileFormValues, safeAvatarSrc } from './comms-utils'
 import { useProfiles } from './hooks'
+import { configuredHubUrl } from '../lib/hub-url'
+import { VerifiedHandle } from '../identity/VerifiedHandle'
+
+/** The hub's HTTPS base (the verifier endpoint), derived from the ws hub URL. */
+function atprotoHubHttpUrl(): string | undefined {
+  const ws = configuredHubUrl()
+  if (!ws) return undefined
+  return ws.replace(/^wss:\/\//, 'https://').replace(/^ws:\/\//, 'http://')
+}
 
 function Field({
   label,
@@ -232,6 +241,19 @@ export function ProfileSettings() {
           </span>
         )}
       </label>
+      {typeof profile?.atprotoHandle === 'string' && profile.atprotoHandle && (
+        <div className="flex flex-col gap-1">
+          <span className="text-[11px] font-medium uppercase tracking-wider text-ink-3">
+            Global identity
+          </span>
+          <VerifiedHandle
+            atprotoDid={String(profile.atprotoDid ?? '')}
+            atprotoHandle={String(profile.atprotoHandle)}
+            xnetDid={did}
+            hubHttpUrl={atprotoHubHttpUrl()}
+          />
+        </div>
+      )}
       <Field
         label="Status emoji"
         value={form.emoji}

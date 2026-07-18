@@ -325,6 +325,48 @@ describe('helpers', () => {
 
 // ─── Templates Tests ─────────────────────────────────────────
 
+describe('ATProto login door (0322/0338)', () => {
+  it('welcome → atproto-ceremony → (linked + passkey) → connecting-hub', () => {
+    let s = createInitialState('wss://hub.xnet.fyi')
+    s = send(s, { type: 'CONTINUE_WITH_ATPROTO' })
+    expect(s.state).toBe('atproto-ceremony')
+
+    // The ceremony handler stores the link (self-loop) then the passkey lands.
+    s = send(s, {
+      type: 'ATPROTO_LINKED',
+      atprotoDid: 'did:plc:ewvi7nxzyoun6zhxrhs64oiz',
+      atprotoHandle: 'alice.bsky.social',
+      displayName: 'Alice'
+    })
+    expect(s.state).toBe('atproto-ceremony')
+    expect(s.context.atprotoDid).toBe('did:plc:ewvi7nxzyoun6zhxrhs64oiz')
+    expect(s.context.atprotoHandle).toBe('alice.bsky.social')
+    expect(s.context.atprotoDisplayName).toBe('Alice')
+
+    s = send(s, makeIdentityEvent())
+    expect(s.state).toBe('connecting-hub')
+    // The linked handle survives into the authenticated context.
+    expect(s.context.atprotoHandle).toBe('alice.bsky.social')
+  })
+
+  it('ceremony failure routes to auth-error and can retry', () => {
+    let s = createInitialState()
+    s = send(s, { type: 'CONTINUE_WITH_ATPROTO' })
+    s = send(s, { type: 'ATPROTO_CEREMONY_FAILED', error: new Error('user cancelled') })
+    expect(s.state).toBe('auth-error')
+    expect(s.context.error?.message).toBe('user cancelled')
+    s = send(s, { type: 'BACK_TO_WELCOME' })
+    expect(s.state).toBe('welcome')
+  })
+
+  it('can back out of the ceremony', () => {
+    let s = createInitialState()
+    s = send(s, { type: 'CONTINUE_WITH_ATPROTO' })
+    s = send(s, { type: 'BACK_TO_WELCOME' })
+    expect(s.state).toBe('welcome')
+  })
+})
+
 describe('QUICK_START_TEMPLATES', () => {
   it('has at least one template', () => {
     expect(QUICK_START_TEMPLATES.length).toBeGreaterThan(0)

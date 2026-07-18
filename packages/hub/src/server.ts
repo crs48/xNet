@@ -9,8 +9,13 @@ import type { IncomingMessage } from 'http'
 import type { RawData, WebSocket } from 'ws'
 import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { serve } from '@hono/node-server'
-import { DatabaseSchema, PageSchema, TaskSchema } from '@xnetjs/data'
-import { generateIdentity } from '@xnetjs/identity'
+import {
+  DatabaseSchema,
+  PageSchema,
+  TaskSchema,
+  profileNodeId as profileNodeIdForDid
+} from '@xnetjs/data'
+import { generateIdentity, ucanTokenId, verifyUCAN } from '@xnetjs/identity'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { WebSocketServer } from 'ws'
@@ -21,6 +26,7 @@ import {
   removeSession,
   toAuthContext
 } from './auth/ucan'
+import { RevocationService } from './auth/revocation'
 import { measureDataUsage, type DataUsage } from './data-usage'
 import { aiForwarderFeature } from './features/ai-forwarder'
 import { diagnosticsInboxFeature } from './features/diagnostics-inbox'
@@ -39,7 +45,13 @@ import { createCrawlRoutes } from './routes/crawl'
 import { createDiscoveryRoutes } from './routes/dids'
 import { createFederationRoutes } from './routes/federation'
 import { createFileRoutes } from './routes/files'
+import { mountOidcProvider } from './features/oidc-provider'
+import { createAtprotoRoutes } from './routes/atproto'
 import { createKeyRegistryRoutes } from './routes/keys'
+import { createRecoveryAnchorRoutes } from './routes/recovery-anchor'
+import { AtprotoBindingVerifier } from './services/atproto-binding'
+import { AtprotoRecoveryAnchor } from './services/atproto-recovery-anchor'
+import { EscrowStore } from './services/escrow-store'
 import { createPublicRoutes } from './routes/public'
 import { createSchemaRoutes } from './routes/schemas'
 import { createShardRoutes } from './routes/shards'
@@ -207,6 +219,9 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   // quota the dashboard meter shows (exploration 0216).
   const files = new FileService(storage, { maxStoragePerUser: perUserQuota })
   const keyRegistry = new KeyRegistryService()
+  const atprotoBindingVerifier = new AtprotoBindingVerifier()
+  const atprotoRecoveryAnchor = new AtprotoRecoveryAnchor(atprotoBindingVerifier)
+  const escrowStore = new EscrowStore()
   const taskIdentifiers = new TaskIdentifierService()
   const query = new QueryService(storage)
   const federationDefaults = {
@@ -448,6 +463,9 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
       platform: config.runtime?.platform ?? 'unknown',
       region: config.runtime?.region,
       machineId: config.runtime?.machineId,
+      // Hub identity (0307-B): clients mint UCANs with `aud` = this DID so a
+      // token stolen for one hub is useless at another.
+      hubDid: config.hubDid,
       version: '0.0.1'
     })
   })
@@ -492,9 +510,11 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     })
   })
 
+  const revocation = new RevocationService()
+
   const requireAuth: MiddlewareHandler = async (c, next) => {
     const authHeader = c.req.header('authorization') ?? c.req.header('Authorization')
-    const auth = authenticateHttpRequest(authHeader ?? null, config)
+    const auth = authenticateHttpRequest(authHeader ?? null, config, revocation)
     if (!auth) {
       return c.json(
         createHubAuthError({
@@ -520,6 +540,30 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   app.route('/schemas', createSchemaRoutes(schemas, { requireAuth }))
   app.route('/audit', createAuditRoutes(storage, { requireAuth }))
   app.route('/keys', createKeyRegistryRoutes(keyRegistry))
+  // ATProto binding verification (0301/0322/0338): the hub resolves DID docs
+  // and binding records so clients can render verified handles.
+  app.use('/atproto/*', requireAuth)
+  app.route('/atproto', createAtprotoRoutes(atprotoBindingVerifier))
+
+  // Recovery-anchor escrow (0243/0322/0338): enroll requires auth (a DID may
+  // only enroll for itself); release is the recovery path and is public (the
+  // caller has, by definition, lost their key) but gated by full server-side
+  // ceremony verification + the user's PIN applied client-side.
+  app.use('/recovery-anchor/enroll', requireAuth)
+  app.route(
+    '/recovery-anchor',
+    createRecoveryAnchorRoutes({
+      store: escrowStore,
+      anchor: atprotoRecoveryAnchor,
+      callerDid: (ctx) => {
+        const header =
+          (ctx as { req: { header(name: string): string | undefined } }).req.header(
+            'authorization'
+          ) ?? null
+        return authenticateHttpRequest(header, config, revocation)?.did ?? null
+      }
+    })
+  )
   // First-party hub features mount through the feature registry (exploration
   // 0189). Each receives a broker-scoped env — only the secrets it declared — so
   // billing reads STRIPE_SECRET_KEY/STRIPE_WEBHOOK_SECRET/BTCPAY_* but never the
@@ -632,6 +676,47 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
       androidCertSha256: config.androidCertSha256
     })
   )
+  // UCAN revocation (0307-B): admins kill a leaked/over-broad token by id
+  // (sha256 of the compact JWT — `ucanTokenId`), a raw token, or a whole DID.
+  // Enforced on every subsequent WS connect and HTTP request.
+  app.post('/auth/revoke', requireAuth, async (c) => {
+    // The root app is an untyped Hono; re-derive the context the middleware
+    // just validated instead of reading the untyped variable bag.
+    const authHeader = c.req.header('authorization') ?? c.req.header('Authorization')
+    const auth = authenticateHttpRequest(authHeader ?? null, config, revocation)
+    if (!auth || !auth.can('hub/admin', '*')) {
+      return c.json(
+        createHubAuthError({
+          code: 'FORBIDDEN',
+          message: 'hub/admin capability required to revoke tokens',
+          action: 'hub/admin'
+        }),
+        403
+      )
+    }
+    const body = await c.req.json().catch(() => null)
+    if (!isRecord(body)) {
+      return c.json({ error: 'Invalid request body' }, 400)
+    }
+    if (typeof body.token === 'string' && body.token.length > 0) {
+      const parsed = verifyUCAN(body.token)
+      const exp = parsed.payload?.exp ?? Math.floor(Date.now() / 1000) + 24 * 60 * 60
+      revocation.revokeToken(ucanTokenId(body.token), exp)
+      return c.json({ ok: true, revoked: 'token' })
+    }
+    if (typeof body.tokenId === 'string' && body.tokenId.length > 0) {
+      const exp =
+        typeof body.exp === 'number' ? body.exp : Math.floor(Date.now() / 1000) + 24 * 60 * 60
+      revocation.revokeToken(body.tokenId, exp)
+      return c.json({ ok: true, revoked: 'tokenId' })
+    }
+    if (typeof body.did === 'string' && body.did.startsWith('did:')) {
+      revocation.revokeDid(body.did, typeof body.beforeMs === 'number' ? body.beforeMs : Date.now())
+      return c.json({ ok: true, revoked: 'did' })
+    }
+    return c.json({ error: 'Provide token, tokenId, or did' }, 400)
+  })
+
   app.post('/shares/issue', requireAuth, async (c) => {
     const body = await c.req.json().catch(() => null)
     if (!isRecord(body)) {
@@ -738,6 +823,53 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
 
   const start = async (): Promise<void> => {
     if (httpServer) return
+    // 0307: an unauthenticated hub is an OPEN RELAY — anyone can read/write any
+    // room. Never run this outside local development.
+    if (!config.auth) {
+      log.warn(
+        '⚠️  AUTH DISABLED (auth: false): this hub is an OPEN RELAY. ' +
+          'Every connection gets wildcard capabilities — any peer can read and ' +
+          'write every room. Do NOT expose this hub to the internet. (0307)'
+      )
+    } else if (!config.hubDid) {
+      log.warn(
+        'UCAN audience enforcement is OFF: hubDid is not configured, so tokens ' +
+          'minted for other hubs are accepted here. Set hubDid to bind tokens ' +
+          'to this hub. (0307-B)'
+      )
+    }
+
+    // Embedded OIDC provider (0338 Phase 3): the hub as an identity provider
+    // for the org's other self-hosted apps. Opt-in; throws loud if misconfigured.
+    if (config.identity?.oidcProvider?.enabled) {
+      const mounted = await mountOidcProvider({
+        app,
+        config,
+        storage,
+        loadProfileClaims: async (did: string) => {
+          const room = profileNodeIdForDid(did)
+          const changes = await storage.getNodeChangesForNode(room, room)
+          if (changes.length === 0) return null
+          const merged: Record<string, unknown> = {}
+          for (const ch of [...changes].sort((a, b) => a.lamportTime - b.lamportTime)) {
+            Object.assign(merged, ch.payload.properties ?? {})
+          }
+          const name = typeof merged.displayName === 'string' ? merged.displayName : undefined
+          const handle =
+            typeof merged.atprotoHandle === 'string'
+              ? merged.atprotoHandle
+              : typeof merged.handle === 'string'
+                ? merged.handle
+                : undefined
+          return {
+            ...(name ? { name } : {}),
+            ...(handle ? { preferred_username: handle } : {})
+          }
+        }
+      })
+      if (mounted) log.info(`OIDC provider mounted (issuer ${mounted.issuer})`)
+    }
+
     telemetry.start()
     awareness.start()
     discovery.start()
@@ -823,7 +955,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
           return
         }
 
-        const session = await authenticateConnection(ws, req, config)
+        const session = await authenticateConnection(ws, req, config, revocation)
         if (!session) return
         socketSessions.set(ws, session)
         const authContext = toAuthContext(session)

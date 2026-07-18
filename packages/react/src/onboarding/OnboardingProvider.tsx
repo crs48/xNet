@@ -25,6 +25,7 @@ import {
   type OnboardingEvent,
   type OnboardingMachineContext
 } from './machine'
+import type { RunAtprotoCeremony } from './atproto-ceremony'
 
 // ─── Context ─────────────────────────────────────────────────
 
@@ -32,6 +33,14 @@ export type OnboardingContextValue = {
   state: OnboardingState
   context: OnboardingMachineContext
   send: (event: OnboardingEvent) => void
+  /** Whether the ATProto login door is available (host supplied a ceremony). */
+  atprotoEnabled: boolean
+  /**
+   * Run the ATProto login door for a typed handle/PDS (0322/0338): OAuth
+   * ceremony → existing passkey-create → write the binding record. No-op when
+   * the ceremony was not provided.
+   */
+  startAtprotoCeremony: (handleOrPds: string) => void
 }
 
 const OnboardingCtx = createContext<OnboardingContextValue | null>(null)
@@ -44,12 +53,19 @@ export type OnboardingProviderProps = {
   defaultHubUrl?: string
   /** Called when onboarding completes */
   onComplete?: (identity: Identity, keyBundle: KeyBundle) => void
+  /**
+   * ATProto login-door ceremony (0322/0338). When provided, the "Continue with
+   * Bluesky (or any PDS)" door is offered; the host app supplies the OAuth
+   * implementation. When omitted, the door is hidden.
+   */
+  runAtprotoCeremony?: RunAtprotoCeremony
 }
 
 export function OnboardingProvider({
   children,
   defaultHubUrl = 'wss://hub.xnet.fyi',
-  onComplete
+  onComplete,
+  runAtprotoCeremony
 }: OnboardingProviderProps): JSX.Element {
   const [{ state, context }, dispatch] = useReducer(
     onboardingReducer,
@@ -238,9 +254,53 @@ export function OnboardingProvider({
     [state, manager]
   )
 
-  return (
-    <OnboardingCtx.Provider value={{ state, context, send }}>{children}</OnboardingCtx.Provider>
+  // ATProto login door (0322/0338): OAuth ceremony → the *existing* passkey
+  // create flow (unchanged) → write the signed binding record. The Bluesky
+  // account never holds or recovers xNet keys unless the user later enrolls
+  // the Phase-2 recovery anchor.
+  const startAtprotoCeremony = useCallback(
+    (handleOrPds: string) => {
+      if (!runAtprotoCeremony || authInFlight.current) return
+      authInFlight.current = true
+      runAtprotoCeremony({ handleOrPds })
+        .then(async (result) => {
+          dispatch({
+            type: 'ATPROTO_LINKED',
+            atprotoDid: result.atprotoDid,
+            atprotoHandle: result.atprotoHandle,
+            displayName: result.displayName
+          })
+          const keyBundle = await manager.create()
+          if (result.writeBinding) {
+            await result.writeBinding(keyBundle.identity.did, keyBundle.signingKey)
+          }
+          dispatch({ type: 'PASSKEY_SUCCESS', identity: keyBundle.identity, keyBundle })
+        })
+        .catch((err: unknown) => {
+          dispatch({
+            type: 'ATPROTO_CEREMONY_FAILED',
+            error: err instanceof Error ? err : new Error(String(err))
+          })
+        })
+        .finally(() => {
+          authInFlight.current = false
+        })
+    },
+    [runAtprotoCeremony, manager]
   )
+
+  const value = useMemo(
+    () => ({
+      state,
+      context,
+      send,
+      atprotoEnabled: Boolean(runAtprotoCeremony),
+      startAtprotoCeremony
+    }),
+    [state, context, send, runAtprotoCeremony, startAtprotoCeremony]
+  )
+
+  return <OnboardingCtx.Provider value={value}>{children}</OnboardingCtx.Provider>
 }
 
 // ─── Hook ────────────────────────────────────────────────────

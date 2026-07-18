@@ -7,9 +7,16 @@
  * the design-system <Switch>; data atoms (DID, version, hub URL) read mono.
  */
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { serializeShare } from '@xnetjs/identity'
+import {
+  MIN_ESCROW_PIN_LENGTH,
+  createUCAN,
+  deriveKeysFromSeed,
+  sealEscrow,
+  serializeEscrow,
+  serializeShare
+} from '@xnetjs/identity'
+import { DebugReportSchema, ProfileSchema, profileNodeId } from '@xnetjs/data'
 import { deleteDay, getCommandRegistry, leaveWithEverything } from '@xnetjs/plugins'
-import { DebugReportSchema } from '@xnetjs/data'
 import { useIdentity, useNodeStore, useQuery, useXNet } from '@xnetjs/react'
 import { SettingRow, SettingsGroup, SettingsPanel, SettingToggle, useTheme } from '@xnetjs/ui'
 import { MeetingEngineSettings } from '@xnetjs/views'
@@ -49,7 +56,7 @@ import {
   type SupportAccessState
 } from '../lib/support-access'
 import { getTelemetryCollector, isDiagnosticsConfigured } from '../lib/error-reporter'
-import { persistedHubUrl, setPersistedHubUrl } from '../lib/hub-url'
+import { configuredHubUrl, persistedHubUrl, setPersistedHubUrl } from '../lib/hub-url'
 import { identityManager, logout } from '../lib/identity'
 import { isLabEnabled, LABS_FLAGS, setLabEnabled } from '../lib/labs'
 import { createLeavePorts, downloadLeaveBundle, type LeaveDeps } from '../lib/leave'
@@ -81,6 +88,20 @@ export const Route = createFileRoute('/settings')({
 /** Quiet bordered button — the workbench's default action affordance. */
 const QUIET_BUTTON =
   'flex items-center gap-2 rounded-md border border-hairline bg-surface-0 px-3 py-1.5 text-xs text-ink-1 transition-colors hover:bg-surface-2 disabled:cursor-default disabled:opacity-50'
+
+/** Base64url-encode bytes (avoids a direct @xnetjs/crypto dep in the app). */
+function bytesToBase64url(bytes: Uint8Array): string {
+  let binary = ''
+  for (const b of bytes) binary += String.fromCharCode(b)
+  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+}
+
+/** The hub's HTTPS base (recovery-anchor endpoints), from the ws hub URL. */
+function atprotoHubHttpUrl(): string | undefined {
+  const ws = configuredHubUrl()
+  if (!ws) return undefined
+  return ws.replace(/^wss:\/\//, 'https://').replace(/^ws:\/\//, 'http://')
+}
 
 /** Browser capabilities for the Right-to-Leave service (Charter §Exit, 0234). */
 const LEAVE_DEPS: LeaveDeps = {
@@ -1292,6 +1313,108 @@ function GuardianSetupRow() {
   )
 }
 
+/**
+ * Recovery-anchor enrollment (0243/0322/0338). Once a user has linked an
+ * ATProto identity, they can protect their account with "Bluesky identity +
+ * PIN": we seal the recovery backup key under the PIN (`sealEscrow`) and enroll
+ * the sealed blob at the hub under the ATProto anchor. The hub can never open
+ * it; recovery needs both a proof of the ATProto account AND the PIN.
+ */
+function RecoveryAnchorRow() {
+  const { authorDID } = useXNet()
+  const did = authorDID ?? ''
+  const { data: profiles } = useQuery(ProfileSchema, {
+    where: { did: did as `did:key:${string}` }
+  })
+  const [pin, setPin] = useState('')
+  const [status, setStatus] = useState<'idle' | 'busy' | 'done' | 'error'>('idle')
+  const [message, setMessage] = useState('')
+
+  const profile = (profiles ?? []).find((p) => String(p.id) === profileNodeId(did)) as
+    | Record<string, unknown>
+    | undefined
+  const atprotoHandle = typeof profile?.atprotoHandle === 'string' ? profile.atprotoHandle : ''
+  const atprotoDid = typeof profile?.atprotoDid === 'string' ? profile.atprotoDid : ''
+
+  const enroll = useCallback(async () => {
+    if (pin.length < MIN_ESCROW_PIN_LENGTH || !did || !atprotoDid) return
+    setStatus('busy')
+    setMessage('')
+    try {
+      const phrase = await identityManager.exportRecoveryPhrase()
+      if (!phrase) throw new Error('This identity has no recovery phrase to protect.')
+      const { backupKey } = deriveKeysFromSeed(phrase)
+      const sealed = serializeEscrow(sealEscrow(backupKey, pin))
+      const bundle = await identityManager.unlock()
+      const httpHub = atprotoHubHttpUrl()
+      if (!httpHub) throw new Error('No hub configured to hold the escrow.')
+      const token = createUCAN({
+        issuer: did,
+        issuerKey: bundle.signingKey,
+        audience: configuredHubUrl(),
+        capabilities: [{ with: '*', can: 'backup/write' }],
+        expiration: Math.floor(Date.now() / 1000) + 300
+      })
+      const res = await fetch(`${httpHub}/recovery-anchor/enroll`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          xnetDid: did,
+          anchorSubject: atprotoDid,
+          sealedEscrowB64: bytesToBase64url(sealed)
+        })
+      })
+      if (!res.ok) throw new Error(`Hub rejected enrollment (${res.status})`)
+      setStatus('done')
+      setPin('')
+    } catch (err) {
+      setStatus('error')
+      setMessage(err instanceof Error ? err.message : String(err))
+    }
+  }, [pin, did, atprotoDid])
+
+  if (!atprotoHandle) {
+    return (
+      <SettingRow
+        label="Recovery anchor"
+        description="Link a Bluesky (ATProto) identity from your profile to protect your account with your global identity + a PIN. The hub never holds a key it could use alone."
+      >
+        <span className="text-[11px] text-ink-3">No linked identity yet</span>
+      </SettingRow>
+    )
+  }
+
+  return (
+    <SettingRow
+      label="Recovery anchor"
+      description={`Protect your account with @${atprotoHandle} + a PIN. We seal your recovery key under the PIN; the hub stores only the sealed blob and can never open it.`}
+    >
+      {status === 'done' ? (
+        <span className="text-[11px] text-green-600">Enrolled with @{atprotoHandle}</span>
+      ) : (
+        <div className="flex max-w-[300px] flex-col items-end gap-2">
+          <input
+            type="password"
+            inputMode="numeric"
+            placeholder={`PIN (min ${MIN_ESCROW_PIN_LENGTH})`}
+            value={pin}
+            onChange={(e) => setPin(e.target.value)}
+            className="h-8 w-40 rounded-md border border-hairline bg-surface-0 px-2 text-sm text-ink-1 outline-none"
+          />
+          <button
+            onClick={() => void enroll()}
+            disabled={status === 'busy' || pin.length < MIN_ESCROW_PIN_LENGTH}
+            className={QUIET_BUTTON}
+          >
+            {status === 'busy' ? 'Enrolling…' : 'Enroll recovery anchor'}
+          </button>
+          {status === 'error' && <span className="text-[11px] text-red-500">{message}</span>}
+        </div>
+      )}
+    </SettingRow>
+  )
+}
+
 function AccountSettings() {
   const { identity } = useIdentity()
   const [loggingOut, setLoggingOut] = useState(false)
@@ -1318,6 +1441,8 @@ function AccountSettings() {
         <RecoveryPhraseRow />
 
         <GuardianSetupRow />
+
+        <RecoveryAnchorRow />
 
         <SettingRow
           label="Log out"

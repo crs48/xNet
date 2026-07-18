@@ -35,6 +35,8 @@ import { StorageOptimiseHint } from './components/StorageOptimiseHint'
 import { StorageWarningBanner } from './components/StorageWarningBanner'
 import { WarmStartSnapshots } from './components/WarmStartSnapshots'
 import { WorkingSetPrewarm } from './components/WorkingSetPrewarm'
+import { AtprotoProfileLinker } from './identity/AtprotoProfileLinker'
+import { runAtprotoCeremony } from './identity/atproto-ceremony'
 import { reportBootFailure } from './lib/boot-diagnostics'
 import {
   clearXNetBrowserStorage,
@@ -342,7 +344,11 @@ export function App(): JSX.Element {
             onSecondaryAction={storageBanner.secondaryActionLabel ? handleInstallApp : undefined}
           />
         )}
-        <OnboardingProvider defaultHubUrl={hubUrl} onComplete={handleOnboardingComplete}>
+        <OnboardingProvider
+          defaultHubUrl={hubUrl}
+          onComplete={handleOnboardingComplete}
+          runAtprotoCeremony={runAtprotoCeremony}
+        >
           <OnboardingFlow />
         </OnboardingProvider>
       </ThemeProvider>
@@ -389,6 +395,7 @@ export function App(): JSX.Element {
           }}
         >
           <BootTimelineProbe />
+          <AtprotoProfileLinker />
           <WarmStartSnapshots did={identity.did} />
           <WorkingSetPrewarm />
           <BundledPluginInstaller />

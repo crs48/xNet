@@ -503,7 +503,14 @@ export {
   revokeDeviceRecord,
   accountState,
   nextEpoch,
-  type LedgerNodeIntent
+  type LedgerNodeIntent,
+  evaluateLedgerWrite,
+  foldAccountRecord,
+  ledgerAccountId,
+  ledgerWriteKind,
+  type LedgerEnforcementState,
+  type LedgerWriteDecision,
+  type LedgerWriteKind
 } from './schemas'
 export { SavedViewSchema, type SavedView } from './schemas'
 export { WorkspaceSchema, type Workspace, type WorkspaceTreeJson } from './schemas'

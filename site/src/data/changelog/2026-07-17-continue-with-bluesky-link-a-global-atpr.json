@@ -1,0 +1,12 @@
+{
+  "id": "2026-07-17-continue-with-bluesky-link-a-global-atpr",
+  "date": "July 17, 2026",
+  "title": "Continue with Bluesky: link a global ATProto identity",
+  "summary": "Sign in with any ATProto handle to claim a free global name, with a verified-handle badge and Bluesky-identity account recovery — all optional and self-hostable.",
+  "highlights": [],
+  "tags": [
+    "identity",
+    "app"
+  ],
+  "pr": 536
+}

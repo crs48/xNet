@@ -21,6 +21,9 @@ export type OnboardingState =
   | 'qr-scan'
   | 'recovery-phrase'
   | 'guardian-recovery'
+  // "Continue with Bluesky (or any PDS)" login door (0322/0338): run the ATProto
+  // OAuth ceremony, then the existing passkey-create flow, then write the binding.
+  | 'atproto-ceremony'
   // Creating a recoverable identity (exploration 0243): mint → show the phrase to save.
   | 'creating-recoverable'
   | 'show-recovery-phrase'
@@ -54,6 +57,10 @@ export type OnboardingEvent =
   | { type: 'IMPORT_FAILED'; error: Error }
   | { type: 'RECOVERABLE_CREATED'; identity: Identity; keyBundle: KeyBundle; phrase: string }
   | { type: 'PHRASE_SAVED' }
+  // ATProto login door (0322/0338)
+  | { type: 'CONTINUE_WITH_ATPROTO' }
+  | { type: 'ATPROTO_LINKED'; atprotoDid: string; atprotoHandle: string; displayName?: string }
+  | { type: 'ATPROTO_CEREMONY_FAILED'; error: Error }
 
 // ─── Context ─────────────────────────────────────────────────
 
@@ -65,6 +72,11 @@ export type OnboardingMachineContext = {
   isDemo: boolean
   /** The recovery phrase to show once, after creating a recoverable identity (0243). */
   recoveryPhrase: string | null
+  /** Linked ATProto identity from the login-door ceremony (0322/0338), if any. */
+  atprotoDid: string | null
+  atprotoHandle: string | null
+  /** Display name pulled from the ATProto profile, to pre-fill the xNet profile. */
+  atprotoDisplayName: string | null
 }
 
 // ─── Transition Table ────────────────────────────────────────
@@ -80,8 +92,17 @@ const TRANSITIONS: Partial<
     AUTHENTICATE: 'authenticating',
     CREATE_NEW: 'authenticating',
     CREATE_RECOVERABLE: 'creating-recoverable',
+    CONTINUE_WITH_ATPROTO: 'atproto-ceremony',
     IMPORT_EXISTING: 'import-identity',
     BROWSER_UNSUPPORTED: 'unsupported-browser'
+  },
+  'atproto-ceremony': {
+    // The ceremony handler stores the linked handle (ATPROTO_LINKED, self-loop)
+    // then runs the existing passkey-create flow → PASSKEY_SUCCESS.
+    ATPROTO_LINKED: 'atproto-ceremony',
+    PASSKEY_SUCCESS: 'connecting-hub',
+    ATPROTO_CEREMONY_FAILED: 'auth-error',
+    BACK_TO_WELCOME: 'welcome'
   },
   'creating-recoverable': {
     RECOVERABLE_CREATED: 'show-recovery-phrase',
@@ -180,6 +201,18 @@ export function onboardingReducer(
       nextContext.error = event.error
       break
 
+    case 'ATPROTO_LINKED':
+      nextContext.atprotoDid = event.atprotoDid
+      nextContext.atprotoHandle = event.atprotoHandle
+      nextContext.atprotoDisplayName = event.displayName ?? null
+      nextContext.error = null
+      break
+
+    case 'ATPROTO_CEREMONY_FAILED':
+      nextContext.error = event.error
+      break
+
+    case 'CONTINUE_WITH_ATPROTO':
     case 'CREATE_RECOVERABLE':
       nextContext.error = null
       break
@@ -213,7 +246,10 @@ export function createInitialState(hubUrl?: string): OnboardingReducerState {
       hubUrl: hubUrl ?? null,
       error: null,
       isDemo: false,
-      recoveryPhrase: null
+      recoveryPhrase: null,
+      atprotoDid: null,
+      atprotoHandle: null,
+      atprotoDisplayName: null
     }
   }
 }
