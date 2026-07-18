@@ -430,6 +430,137 @@ describe('NodeStoreSyncProvider', () => {
     })
   })
 
+  describe('paged catch-up', () => {
+    const syncRequests = (conn: ConnectionManager) =>
+      (conn.sendRaw as unknown as { mock: { calls: Array<[Record<string, unknown>]> } }).mock.calls
+        .map(([m]) => m)
+        .filter((m) => m.type === 'node-sync-request')
+
+    it('re-requests from the new cursor while the hub reports more pages', async () => {
+      const { store, setSyncCursor } = makeStore({ changes: [], cursor: 0 })
+      const { conn, setStatus, injectMessage } = makeConnection('disconnected')
+      new NodeStoreSyncProvider(store, 'room-1').attach(conn)
+
+      setStatus('connected')
+      await vi.advanceTimersByTimeAsync(0)
+      expect(syncRequests(conn).at(-1)).toMatchObject({ sinceLamport: 0 })
+
+      // First page of a multi-page catch-up: the mark covers only what was sent.
+      injectMessage({
+        type: 'node-sync-response',
+        room: 'room-1',
+        changes: [],
+        highWaterMark: 999,
+        hasMore: true
+      })
+      await vi.advanceTimersByTimeAsync(0)
+
+      // The client must come straight back for the rest, from the mark it just
+      // persisted — not wait for a reconnect (which would strand the remainder).
+      expect(syncRequests(conn).at(-1)).toMatchObject({ sinceLamport: 999 })
+      expect(setSyncCursor).toHaveBeenCalledWith('room-1', 999)
+
+      injectMessage({
+        type: 'node-sync-response',
+        room: 'room-1',
+        changes: [],
+        highWaterMark: 1998,
+        hasMore: true
+      })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(syncRequests(conn).at(-1)).toMatchObject({ sinceLamport: 1998 })
+
+      // Final short page: no further request.
+      const before = syncRequests(conn).length
+      injectMessage({
+        type: 'node-sync-response',
+        room: 'room-1',
+        changes: [],
+        highWaterMark: 2500,
+        hasMore: false
+      })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(syncRequests(conn)).toHaveLength(before)
+      expect(setSyncCursor).toHaveBeenLastCalledWith('room-1', 2500)
+    })
+
+    it('treats a response without hasMore as the whole catch-up (older hubs)', async () => {
+      const { store } = makeStore({ changes: [], cursor: 0 })
+      const { conn, setStatus, injectMessage } = makeConnection('disconnected')
+      new NodeStoreSyncProvider(store, 'room-1').attach(conn)
+
+      setStatus('connected')
+      await vi.advanceTimersByTimeAsync(0)
+      const before = syncRequests(conn).length
+
+      injectMessage({ type: 'node-sync-response', room: 'room-1', changes: [], highWaterMark: 42 })
+      await vi.advanceTimersByTimeAsync(0)
+
+      expect(syncRequests(conn)).toHaveLength(before)
+    })
+
+    it('stops re-requesting when hasMore is set but the mark does not advance', async () => {
+      const { store } = makeStore({ changes: [], cursor: 0 })
+      const { conn, setStatus, injectMessage } = makeConnection('disconnected')
+      new NodeStoreSyncProvider(store, 'room-1').attach(conn)
+
+      setStatus('connected')
+      await vi.advanceTimersByTimeAsync(0)
+
+      injectMessage({
+        type: 'node-sync-response',
+        room: 'room-1',
+        changes: [],
+        highWaterMark: 500,
+        hasMore: true
+      })
+      await vi.advanceTimersByTimeAsync(0)
+      const after = syncRequests(conn).length
+
+      // Same mark again: continuing would be a request storm against a hub that
+      // is not actually making progress.
+      injectMessage({
+        type: 'node-sync-response',
+        room: 'room-1',
+        changes: [],
+        highWaterMark: 500,
+        hasMore: true
+      })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(syncRequests(conn)).toHaveLength(after)
+    })
+
+    it('pushes local changes only after the last page lands', async () => {
+      const { store, getChangesSince } = makeStore({ changes: [], cursor: 0 })
+      const { conn, setStatus, injectMessage } = makeConnection('disconnected')
+      new NodeStoreSyncProvider(store, 'room-1').attach(conn)
+
+      setStatus('connected')
+      await vi.advanceTimersByTimeAsync(0)
+
+      injectMessage({
+        type: 'node-sync-response',
+        room: 'room-1',
+        changes: [],
+        highWaterMark: 999,
+        hasMore: true
+      })
+      await vi.advanceTimersByTimeAsync(0)
+      // Still catching up — the outbound push waits (request-sync-first, 0206).
+      expect(getChangesSince).not.toHaveBeenCalled()
+
+      injectMessage({
+        type: 'node-sync-response',
+        room: 'room-1',
+        changes: [],
+        highWaterMark: 1500,
+        hasMore: false
+      })
+      await vi.advanceTimersByTimeAsync(0)
+      expect(getChangesSince).toHaveBeenCalled()
+    })
+  })
+
   describe('rollback guard (0254)', () => {
     it('re-offers local changes when the hub high-water mark regresses below the cursor', async () => {
       const { store, getChangesSince } = makeStore({ changes: [], cursor: 0 })

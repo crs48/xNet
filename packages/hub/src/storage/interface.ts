@@ -279,6 +279,26 @@ export type SerializedNodeChange = {
   batchSize?: number
 }
 
+/** Largest node-change page the pull path will assemble in one response. */
+export const NODE_SYNC_PAGE_SIZE = 1000
+
+/**
+ * One page of a room's node-change log.
+ *
+ * `highWaterMark` is the cursor the client persists, so it may never run ahead
+ * of the last change in `changes` — the client only re-requests `lamport >
+ * cursor`, so anything between the page and a further-ahead mark is skipped for
+ * good. When the page is short the mark IS the room-wide max (nothing was left
+ * behind, and the client's rollback guard needs the room-wide value to detect a
+ * hub that lost history). `hasMore` tells the client to come straight back for
+ * the next page instead of waiting for the next reconnect.
+ */
+export type NodeChangePage = {
+  changes: SerializedNodeChange[]
+  highWaterMark: number
+  hasMore: boolean
+}
+
 // ─── Database Row Types ──────────────────────────────────────────────────────
 
 export type DatabaseRowRecord = {
@@ -483,7 +503,16 @@ export type HubStorage = {
 
   hasNodeChange: (hash: string) => Promise<boolean>
   appendNodeChange: (room: string, change: SerializedNodeChange) => Promise<void>
-  getNodeChangesSince: (room: string, sinceLamport: number) => Promise<SerializedNodeChange[]>
+  /**
+   * One page of a room's log after `sinceLamport`, for the WS pull path.
+   * Pages on the author lamport; see {@link NodeChangePage} for why the
+   * returned mark is page-relative rather than room-wide.
+   */
+  getNodeChangesSince: (
+    room: string,
+    sinceLamport: number,
+    limit?: number
+  ) => Promise<NodeChangePage>
   getNodeChangesForNode: (room: string, nodeId: string) => Promise<SerializedNodeChange[]>
   /**
    * Agent audit trail (exploration 0337): an author's changes across all
@@ -511,11 +540,11 @@ export type HubStorage = {
    * Share-room changes with `seq > sinceSeq`, oldest-first, plus the highest
    * `seq` in the returned batch (the client's next cursor). Bounded by `limit`.
    */
-  getRoomChangesSince: (
-    room: string,
-    sinceSeq: number,
-    limit?: number
-  ) => Promise<{ changes: SerializedNodeChange[]; highWaterMark: number }>
+  /**
+   * One page of a share room, cursored on the per-room `seq`. `seq` is unique
+   * per mapping, so unlike the lamport path there is no tie group to keep whole.
+   */
+  getRoomChangesSince: (room: string, sinceSeq: number, limit?: number) => Promise<NodeChangePage>
   /** Latest Profile node-change hash authored by a DID, or null. */
   getLatestProfileHash: (did: string) => Promise<string | null>
   /**
