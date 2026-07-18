@@ -88,6 +88,23 @@ export interface BlogPost {
 
 const posts: BlogPost[] = [
   {
+    slug: 'tree-rings',
+    title: 'Tree Rings',
+    description:
+      'A tree never edits a ring: growth accretes on the outside, and the ' +
+      'whole history stays legible in the grain. Rich Hickey has spent two ' +
+      'decades arguing software should be built the same way — values that ' +
+      'accrete, not places that overwrite. On Effective Programs and its ' +
+      'pyramid of what actually costs money, Simple Made Easy, the epochal ' +
+      'time model — what taking the middle of that pyramid seriously looks ' +
+      'like in a working protocol, and the three places we deliberately ' +
+      'depart from the hammock.',
+    pubDate: '2026-07-18T21:00:00Z',
+    authors: ['crs48', 'claude'],
+    tags: ['essay', 'philosophy', 'protocol'],
+    readingMinutes: 14
+  },
+  {
     slug: 'people-in-disguise',
     title: 'People in Disguise',
     description:

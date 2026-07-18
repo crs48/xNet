@@ -406,21 +406,21 @@ export type Frontier = Record<NodeId, FrontierEntry>
 
 ## Implementation Checklist
 
-- [ ] Draft `site/src/pages/blog/tree-rings.astro` following the spine above
+- [x] Draft `site/src/pages/blog/tree-rings.astro` following the spine above
       (en-GB, `.astro` not MDX, single H1, deck paragraph, inline Mermaid for
       the pyramid mapping and the epochal fold).
-- [ ] Add the registry entry to `site/src/data/blog.ts` (`slug: 'tree-rings'`,
+- [x] Add the registry entry to `site/src/data/blog.ts` (`slug: 'tree-rings'`,
       `authors: ['crs48', 'claude']`, `tags: ['essay', 'philosophy',
       'protocol']`, honest `readingMinutes`, `pubDate` in ISO-8601 UTC).
 - [ ] Verify RSS and index pick it up (both render from `publishedPosts()`;
       build the site — memory 0291: don't trust `astro dev` for
       long-page routes, verify via `pnpm build`).
-- [ ] Cross-link from the essay to *Clutch Power*, *The Loom You Can Read*,
+- [x] Cross-link from the essay to *Clutch Power*, *The Loom You Can Read*,
       and *The Vault and the View*; add a "paper trail" footer linking
       explorations 0021, 0200, 0329, 0330.
 - [ ] Fact-check the four talk characterizations against the linked videos
       one final time in-draft (especially the severity-ranking description).
-- [ ] Keep direct quotation to the single attributed line; link all talks.
+- [x] Keep direct quotation to the single attributed line; link all talks.
 - [ ] Site-only PR: apply the `skip-changelog` label (no publishable package
       is touched; no changeset needed).
 - [ ] Let CI run green; merge-commit per repo convention.
