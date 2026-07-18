@@ -25,6 +25,17 @@ const KNOWN_CHANGE_TYPES = new Set(['node-change'])
 const MAX_SENDS_PER_WINDOW = 40
 const SEND_WINDOW_MS = 1000
 
+// Batched push (exploration 0357). When the hub advertises `batch-push`, the
+// drain packs up to MAX_BATCH_CHANGES changes into ONE frame instead of one
+// frame per change. The hub charges its rate limit per *change*, so the
+// per-window change budget is what actually rises here — the win is removing
+// the one-frame-per-change ceiling that made a 10k import take minutes.
+//
+// Must not exceed the hub's own MAX_BATCH_CHANGES guard (packages/hub/src/ws/
+// guards.ts) or the frame is rejected wholesale.
+const MAX_BATCH_CHANGES = 1000
+const MAX_BATCHED_CHANGES_PER_WINDOW = 5000
+
 // How long to wait for the hub's node-sync-response before pushing local
 // changes anyway (request-sync-first, with a fallback so we never hang).
 const SYNC_RESPONSE_TIMEOUT_MS = 4000
@@ -133,6 +144,12 @@ export class NodeStoreSyncProvider {
   private queuedHashes = new Set<string>()
   private sendTimer: ReturnType<typeof setTimeout> | null = null
   private sentInWindow = 0
+  /**
+   * Whether the connected hub advertised `batch-push` in its handshake.
+   * Stays false against older hubs, which keeps the one-change-per-frame
+   * path as the compatible default.
+   */
+  private batchPushSupported = false
 
   // Request-sync-first: resolver for the in-flight node-sync-response wait.
   private syncResponseResolver: (() => void) | null = null
@@ -290,6 +307,9 @@ export class NodeStoreSyncProvider {
     // nothing is lost and nothing is double-queued.
     this.clearSendQueue()
     this.resolveSyncResponse()
+    // Re-negotiate on the next handshake: a reconnect may land on a different
+    // hub (or an older build) that doesn't support batched push.
+    this.batchPushSupported = false
   }
 
   private async ensureCursorLoaded(): Promise<void> {
@@ -361,6 +381,13 @@ export class NodeStoreSyncProvider {
   }
 
   private handleDirectMessage(message: Record<string, unknown>): void {
+    if (message.type === 'handshake') {
+      // Negotiate batched push. Absent flag → older hub → keep sending
+      // one change per frame.
+      const features = message.features
+      this.batchPushSupported = Array.isArray(features) && features.includes('batch-push')
+      return
+    }
     if (message.type === 'node-cleared') {
       if (message.room === this.room) {
         this.resolveClear(typeof message.cleared === 'number' ? message.cleared : 0)
@@ -664,16 +691,41 @@ export class NodeStoreSyncProvider {
     if (!this.connection || this.connection.status !== 'connected') return
 
     this.sentInWindow = 0
-    while (this.sendQueue.length > 0 && this.sentInWindow < MAX_SENDS_PER_WINDOW) {
-      const change = this.sendQueue.shift()!
-      this.queuedHashes.delete(change.hash)
-      this.publishChange(change)
-      this.sentInWindow += 1
+    if (this.batchPushSupported) {
+      this.drainBatched()
+    } else {
+      while (this.sendQueue.length > 0 && this.sentInWindow < MAX_SENDS_PER_WINDOW) {
+        const change = this.sendQueue.shift()!
+        this.queuedHashes.delete(change.hash)
+        this.publishChange(change)
+        this.sentInWindow += 1
+      }
     }
 
     // More queued than this window allows → drain the rest after the window.
     if (this.sendQueue.length > 0) {
       this.scheduleDrain(SEND_WINDOW_MS)
+    }
+  }
+
+  /**
+   * Batched drain (exploration 0357): pack the queue into slabs of up to
+   * MAX_BATCH_CHANGES and send one frame per slab. `sentInWindow` counts
+   * CHANGES, not frames, matching how the hub charges its rate limit — so the
+   * budget stays a real bound on work rather than a bound on syscalls.
+   */
+  private drainBatched(): void {
+    while (this.sendQueue.length > 0 && this.sentInWindow < MAX_BATCHED_CHANGES_PER_WINDOW) {
+      const queued = this.sendQueue.length
+      const slabSize = Math.min(
+        MAX_BATCH_CHANGES,
+        queued,
+        MAX_BATCHED_CHANGES_PER_WINDOW - this.sentInWindow
+      )
+      const slab = this.sendQueue.splice(0, slabSize)
+      for (const change of slab) this.queuedHashes.delete(change.hash)
+      this.publishChangeBatch(slab)
+      this.sentInWindow += slab.length
     }
   }
 
@@ -687,6 +739,25 @@ export class NodeStoreSyncProvider {
     // Optimistic in-memory advance — keeps us from re-sending within a session.
     // The PERSISTED cursor only advances on the hub's high-water mark.
     this.pushedThrough = Math.max(this.pushedThrough, change.lamport)
+  }
+
+  /**
+   * Send many changes in one frame. The hub verifies and authorizes each one
+   * individually and re-broadcasts them as ordinary `node-change` messages, so
+   * this is purely a transport-level batch.
+   */
+  private publishChangeBatch(changes: NodeChange[]): void {
+    if (!this.connection || changes.length === 0) return
+    this.connection.publish(this.room, {
+      type: 'node-change-batch',
+      room: this.room,
+      changes: changes.map((change) => this.serializeChange(change))
+    })
+    // Optimistic in-memory advance — same contract as publishChange: the
+    // PERSISTED cursor only moves on the hub's high-water mark.
+    for (const change of changes) {
+      this.pushedThrough = Math.max(this.pushedThrough, change.lamport)
+    }
   }
 
   private clearSendQueue(): void {

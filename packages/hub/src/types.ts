@@ -105,6 +105,8 @@ export type HubConfig = {
   /** Optional rate limit overrides. */
   rateLimit?: {
     perConnectionRate?: number
+    /** Max node-changes per window per connection, across single and batched pushes (0357). */
+    perConnectionChangeRate?: number
     maxConnections?: number
     maxMessageSize?: number
     windowMs?: number

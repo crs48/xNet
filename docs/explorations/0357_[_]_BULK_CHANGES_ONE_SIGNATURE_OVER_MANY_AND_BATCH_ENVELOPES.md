@@ -528,18 +528,18 @@ export function verifyBatch(
 
 Tier 1 — batched wire + fast verify (no protocol bump):
 
-- [ ] Add `node-changes` message type + guard
+- [x] Add `node-changes` message type + guard
       (`packages/hub/src/ws/guards.ts`) + handler beside
       `packages/hub/src/ws/handlers/node-change.ts` looping the
       existing `NodeRelayService.handleNodeChange` pipeline
-- [ ] Advertise `batch-push` in the handshake feature flags
+- [x] Advertise `batch-push` in the handshake feature flags
       (`packages/hub/src/server.ts:1008-1015`); client falls back to
       singles when absent
-- [ ] Client: batched `drain()` in
+- [x] Client: batched `drain()` in
       `node-store-sync-provider.ts` — throttle counts changes/window,
       cap 1000 changes/frame; keep the structural-rejection breaker
       per change
-- [ ] Rework hub rate-limit + quota accounting to count changes inside
+- [x] Rework hub rate-limit + quota accounting to count changes inside
       batch frames
 - [x] Ship 0350's `verifyFast` native/WebCrypto seam and route
       `node-relay.ts`, `routes/export.ts` restore, and
