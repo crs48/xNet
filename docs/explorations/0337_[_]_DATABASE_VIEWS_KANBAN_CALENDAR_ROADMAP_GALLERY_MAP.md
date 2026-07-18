@@ -476,45 +476,45 @@ ever demanded — do not reach for GPL/commercial Gantts.
 ## Implementation Checklist
 
 Phase 0 — contract & config
-- [ ] Define `DatabaseViewProps` V2 contract in `packages/views` (new
+- [x] Define `DatabaseViewProps` V2 contract in `packages/views` (new
       `v2-contract.ts`), derived from `useGridDatabase` outputs.
 - [x] Extend `DatabaseViewSchema` with `coverField`, `cardSize`, `colorBy`,
       `dateField`, `endDateField`, `latField`, `lngField`, `mapViewport`,
       `groupMeta` (all optional) + mutators on `useGridDatabase`; changeset
       (**minor**, fixed core).
-- [ ] Revive `ViewRegistry`/`ViewRenderer` against the V2 contract; register
+- [x] Revive `ViewRegistry`/`ViewRenderer` against the V2 contract; register
       views from `DatabaseView.tsx`; extend `addViewTypes` per shipped view.
-- [ ] Sub-barrel policy: new exports via `packages/views/src/grid/index.ts` /
+- [x] Sub-barrel policy: new exports via `packages/views/src/grid/index.ts` /
       feature-area barrels, one grouped block at the root (0276 rule).
 
 Phase 1 — Kanban
-- [ ] Port `BoardView`/`useBoardState` to V2 contract; stacks keyed by option
+- [x] Port `BoardView`/`useBoardState` to V2 contract; stacks keyed by option
       id + null stack; column order from option order + `groupMeta`.
-- [ ] Card move = `setCell(groupBy field)` + fractional `sortKey`
+- [x] Card move = `setCell(groupBy field)` + fractional `sortKey`
       (`generateSortKey`; rebalance on `needsRebalancing`).
-- [ ] Window-honesty footers ("12 of 340") when the 500-row window truncates.
-- [ ] Card cover/colorBy rendering; GridPeek on click; `createRow` per column
+- [x] Window-honesty footers ("12 of 340") when the 500-row window truncates.
+- [x] Card cover/colorBy rendering; GridPeek on click; `createRow` per column
       (prefilled group value).
-- [ ] Tests: grouping (option rename safety), drag ordering, LWW double-move.
+- [x] Tests: grouping (option rename safety), drag ordering, LWW double-move.
 
 Phase 2 — Gallery
-- [ ] Port `GalleryView` to V2; rows-of-N virtualization with
+- [x] Port `GalleryView` to V2; rows-of-N virtualization with
       `@tanstack/react-virtual`; `coverField` thumbnails from blob store;
       crop/fit + `cardSize`.
 
 Phase 3 — Calendar
-- [ ] Add `date-fns` to `packages/views` (changeset).
-- [ ] Port `CalendarMonthView`; visible-range query on `dateField`; "+N more"
+- [x] Add `date-fns` to `packages/views` (changeset).
+- [x] Port `CalendarMonthView`; visible-range query on `dateField`; "+N more"
       cell overflow; drag-to-reschedule; `dateRange` spans.
-- [ ] Decide + document date timezone semantics (floating vs UTC).
+- [x] Decide + document date timezone semantics (floating vs UTC).
 
 Phase 4 — Roadmap
-- [ ] Evolve `TimelineView`: bars from `dateField`/`endDateField`,
+- [x] Evolve `TimelineView`: bars from `dateField`/`endDateField`,
       month/quarter/year zoom, swimlanes via `groupBy`, drag-edge resize,
       TanStack Virtual rows.
 
 Phase 5 — Map
-- [ ] Map view on `maplibre-gl` with `cluster: true`; `latField`/`lngField`
+- [x] Map view on `maplibre-gl` with `cluster: true`; `latField`/`lngField`
       binding; viewport-bounded fetch via `QuerySpatialFilter`; persisted
       `mapViewport`; record cap + clustering.
 - [ ] Tile story: OpenFreeMap default + PMTiles self-host path; add tile host
@@ -528,7 +528,7 @@ Cross-cutting
 - [ ] Seed: extend `seed/seeders/work.ts`/`crm.ts` so demo workspace shows a
       board (tasks by status, deals by stage), calendar (due dates), roadmap
       (project date ranges), gallery (file covers), map (lat/lng rows).
-- [ ] Mobile: compact fallback to List view via `useIsCompact()`.
+- [x] Mobile: compact fallback to List view via `useIsCompact()`.
 
 ## Validation Checklist
 

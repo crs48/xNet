@@ -44,6 +44,7 @@ import {
   FormulaService,
   type RollupAggregation
 } from '@xnetjs/data'
+import type { QuerySpatialFilter } from '@xnetjs/data-bridge'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useIdentity } from './useIdentity'
 import { useMutate } from './useMutate'
@@ -145,6 +146,12 @@ export interface UseGridDatabaseOptions {
   search?: string
   /** Row window size (default 500) */
   pageSize?: number
+  /**
+   * Spatial window over two cell properties (map views, exploration
+   * 0337): only rows inside the rect are fetched. Bypasses the
+   * materialized-view cache (the rect varies per pan).
+   */
+  spatial?: QuerySpatialFilter
 }
 
 export interface UseGridDatabaseResult {
@@ -159,6 +166,12 @@ export interface UseGridDatabaseResult {
   activeView: GridViewModel | null
   /** Rows: view filters + sorts applied to the fetched window */
   rows: GridRowModel[]
+  /**
+   * The fetch window (exploration 0337): `size` is the row cap, `total`
+   * the full match count when the bridge reports one. Views use this to
+   * label truncation honestly instead of silently clipping.
+   */
+  rowWindow: { size: number; total: number | null }
   loading: boolean
 
   // Cell/row mutations
@@ -310,7 +323,7 @@ export function useGridDatabase(
   databaseId: string,
   options: UseGridDatabaseOptions = {}
 ): UseGridDatabaseResult {
-  const { viewId, search, pageSize = 500 } = options
+  const { viewId, search, pageSize = 500, spatial } = options
   const mutate = useMutate()
   const { did } = useIdentity()
 
@@ -333,11 +346,17 @@ export function useGridDatabase(
     orderBy: { sortKey: 'asc' }
   })
 
-  const { data: rowNodes, status: rowStatus } = useQuery(DatabaseRowSchema, {
+  const {
+    data: rowNodes,
+    status: rowStatus,
+    totalCount: rowTotalCount
+  } = useQuery(DatabaseRowSchema, {
     where: { database: databaseId },
     orderBy: { sortKey: 'asc' },
     limit: pageSize,
-    materializedView: `db:${databaseId}${viewId ? `:view:${viewId}` : ''}`,
+    ...(spatial
+      ? { spatial }
+      : { materializedView: `db:${databaseId}${viewId ? `:view:${viewId}` : ''}` }),
     ...(search ? { search } : {})
   })
 
@@ -1002,6 +1021,7 @@ export function useGridDatabase(
     views,
     activeView,
     rows,
+    rowWindow: { size: pageSize, total: rowTotalCount ?? null },
     loading,
     updateCell,
     updateRowCells,

@@ -1,86 +1,38 @@
 /**
- * React hook for accessing the ViewRegistry
+ * useViewRegistry — reactive access to the global view registry
+ * (exploration 0337). Re-renders when plugins register/unregister views.
  */
 
-import type { SchemaIRI } from '@xnetjs/data'
-import { useState, useEffect, useCallback } from 'react'
-import { viewRegistry, type ViewRegistration, type Platform } from '../registry.js'
+import { useSyncExternalStore } from 'react'
+import { viewRegistry, type Platform, type ViewRegistration } from '../registry.js'
 
-/**
- * Hook return value for useViewRegistry
- */
 export interface UseViewRegistryResult {
   /** All registered views */
   views: ViewRegistration[]
-  /** Get a specific view by type */
-  getView: (type: string) => ViewRegistration | undefined
-  /** Get views compatible with a schema */
-  getViewsForSchema: (schemaIRI: SchemaIRI) => ViewRegistration[]
-  /** Get views compatible with a platform */
-  getViewsForPlatform: (platform: Platform) => ViewRegistration[]
-  /** Check if a view type is registered */
-  hasView: (type: string) => boolean
+  /** Views for a platform */
+  forPlatform: (platform: Platform) => ViewRegistration[]
+  /** Lookup by type */
+  get: (type: string) => ViewRegistration | undefined
 }
 
-/**
- * React hook for accessing the ViewRegistry
- *
- * Provides reactive access to registered views. The hook re-renders
- * when views are added or removed from the registry.
- *
- * @example
- * ```tsx
- * function ViewSwitcher({ currentType, onChange }) {
- *   const { views } = useViewRegistry()
- *
- *   return (
- *     <div>
- *       {views.map(view => (
- *         <button
- *           key={view.type}
- *           onClick={() => onChange(view.type)}
- *           className={currentType === view.type ? 'active' : ''}
- *         >
- *           {view.name}
- *         </button>
- *       ))}
- *     </div>
- *   )
- * }
- * ```
- */
+let snapshot: ViewRegistration[] = viewRegistry.getAll()
+
+function subscribe(onChange: () => void): () => void {
+  return viewRegistry.onChange(() => {
+    snapshot = viewRegistry.getAll()
+    onChange()
+  })
+}
+
 export function useViewRegistry(): UseViewRegistryResult {
-  const [views, setViews] = useState(() => viewRegistry.getAll())
-
-  useEffect(() => {
-    // Subscribe to registry changes
-    const unsubscribe = viewRegistry.onChange(() => {
-      setViews(viewRegistry.getAll())
-    })
-    return unsubscribe
-  }, [])
-
-  const getView = useCallback((type: string) => {
-    return viewRegistry.get(type)
-  }, [])
-
-  const getViewsForSchema = useCallback((schemaIRI: SchemaIRI) => {
-    return viewRegistry.getForSchema(schemaIRI)
-  }, [])
-
-  const getViewsForPlatform = useCallback((platform: Platform) => {
-    return viewRegistry.getForPlatform(platform)
-  }, [])
-
-  const hasView = useCallback((type: string) => {
-    return viewRegistry.has(type)
-  }, [])
-
+  const views = useSyncExternalStore(
+    subscribe,
+    () => snapshot,
+    () => snapshot
+  )
   return {
     views,
-    getView,
-    getViewsForSchema,
-    getViewsForPlatform,
-    hasView
+    forPlatform: (platform) => views.filter((v) => !v.platforms || v.platforms.includes(platform)),
+    get: (type) => views.find((v) => v.type === type)
   }
 }
