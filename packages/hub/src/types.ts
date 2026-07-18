@@ -49,6 +49,35 @@ export type HubConfig = {
   /** Public hub URL for peer discovery (optional). */
   publicUrl?: string
   /**
+   * Identity-provider features (0338 Phase 3). When `oidcProvider.enabled`, the
+   * hub embeds `node-oidc-provider` (MIT) and becomes an OIDC provider for the
+   * org's other self-hosted apps — the `tsidp` pattern. Opt-in only; requires
+   * `auth: true` and a `publicUrl` (the issuer). Never the packaged default.
+   */
+  identity?: {
+    oidcProvider?: {
+      enabled: boolean
+      /** Relying parties allowed to authenticate against this hub. */
+      clients?: Array<{
+        client_id: string
+        client_secret?: string
+        redirect_uris: string[]
+        grant_types?: string[]
+        response_types?: string[]
+      }>
+      /** JWKS for signing id_tokens; auto-generated ephemeral if omitted. */
+      jwks?: { keys: unknown[] }
+    }
+    /**
+     * Bring-your-own-OIDC inbound (0338 Phase 3): an org points its hub at an
+     * existing IdP; a verified session admits a device into the account ledger.
+     */
+    byoOidc?: {
+      issuer: string
+      clientId: string
+    }
+  }
+  /**
    * Web app base URL the share interstitial falls back to. A trailing `#`
    * marks a hash-routed deployment (default: https://xnet.fyi/app/#).
    */

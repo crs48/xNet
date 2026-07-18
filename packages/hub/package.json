@@ -39,7 +39,8 @@
     "hono": "^4.0.0",
     "ws": "^8.16.0",
     "y-protocols": "^1.0.6",
-    "yjs": "^13.6.24"
+    "yjs": "^13.6.24",
+    "jose": "^5.10.0"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.0",
@@ -47,7 +48,11 @@
     "tsup": "^8.0.0",
     "tsx": "^4.0.0",
     "typescript": "^5.4.0",
-    "vitest": "^4.0.0"
+    "vitest": "^4.0.0",
+    "oidc-provider": "^9.5.0"
   },
-  "private": true
+  "private": true,
+  "optionalDependencies": {
+    "oidc-provider": "^9.5.0"
+  }
 }

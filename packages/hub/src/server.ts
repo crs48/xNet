@@ -9,7 +9,7 @@ import type { IncomingMessage } from 'http'
 import type { RawData, WebSocket } from 'ws'
 import { createHash, randomBytes, randomUUID } from 'node:crypto'
 import { serve } from '@hono/node-server'
-import { DatabaseSchema, PageSchema, TaskSchema } from '@xnetjs/data'
+import { DatabaseSchema, PageSchema, TaskSchema, profileNodeId as profileNodeIdForDid } from '@xnetjs/data'
 import { generateIdentity, ucanTokenId, verifyUCAN } from '@xnetjs/identity'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
@@ -38,6 +38,7 @@ import { createCrawlRoutes } from './routes/crawl'
 import { createDiscoveryRoutes } from './routes/dids'
 import { createFederationRoutes } from './routes/federation'
 import { createFileRoutes } from './routes/files'
+import { mountOidcProvider } from './features/oidc-provider'
 import { createAtprotoRoutes } from './routes/atproto'
 import { createKeyRegistryRoutes } from './routes/keys'
 import { createRecoveryAnchorRoutes } from './routes/recovery-anchor'
@@ -824,6 +825,38 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
           'Set hubDid (preferred) or publicUrl. (0307-B)'
       )
     }
+
+    // Embedded OIDC provider (0338 Phase 3): the hub as an identity provider
+    // for the org's other self-hosted apps. Opt-in; throws loud if misconfigured.
+    if (config.identity?.oidcProvider?.enabled) {
+      const mounted = await mountOidcProvider({
+        app,
+        config,
+        storage,
+        loadProfileClaims: async (did: string) => {
+          const room = profileNodeIdForDid(did)
+          const changes = await storage.getNodeChangesForNode(room, room)
+          if (changes.length === 0) return null
+          const merged: Record<string, unknown> = {}
+          for (const ch of [...changes].sort((a, b) => a.lamportTime - b.lamportTime)) {
+            Object.assign(merged, ch.payload.properties ?? {})
+          }
+          const name = typeof merged.displayName === 'string' ? merged.displayName : undefined
+          const handle =
+            typeof merged.atprotoHandle === 'string'
+              ? merged.atprotoHandle
+              : typeof merged.handle === 'string'
+                ? merged.handle
+                : undefined
+          return {
+            ...(name ? { name } : {}),
+            ...(handle ? { preferred_username: handle } : {})
+          }
+        }
+      })
+      if (mounted) log.info(`OIDC provider mounted (issuer ${mounted.issuer})`)
+    }
+
     telemetry.start()
     awareness.start()
     discovery.start()

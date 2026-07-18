@@ -582,10 +582,10 @@ Phase 2 — recovery, global edition:
 - [x] Recovery-anchor menu in Settings → Security alongside phrase/passkey/Shamir
 
 Phase 3 — OAuth provider (MIT):
-- [ ] `packages/hub/src/features/oidc-provider.ts`: config-gated `node-oidc-provider` mount; passkey unlock as the interaction; pairwise subjects; Profile-derived claims
-- [ ] BYO-OIDC inbound: hub config for issuer/client; `openid-client` RP flow; IdP-session-gated device admission into the org ledger (keys never touch IdP)
-- [ ] Docs: "Your hub as your team's identity provider" + threat-model note on what the IdP sees
-- [ ] Changesets: minor for `@xnetjs/hub` (new opt-in feature), minor for `@xnetjs/identity` (new exports via scoped sub-barrels per 0276 policy)
+- [x] `packages/hub/src/features/oidc-provider.ts`: config-gated `node-oidc-provider` mount; passkey unlock as the interaction; pairwise subjects; Profile-derived claims
+- [x] BYO-OIDC inbound: hub config for issuer/client; `openid-client` RP flow; IdP-session-gated device admission into the org ledger (keys never touch IdP)
+- [x] Docs: "Your hub as your team's identity provider" + threat-model note on what the IdP sees
+- [x] Changesets: minor for `@xnetjs/hub` (new opt-in feature), minor for `@xnetjs/identity` (new exports via scoped sub-barrels per 0276 policy)
 
 Phase 4 — demand-gated:
 - [ ] Hub-as-PDS spike: mount official `@atproto/pds` behind one hostname next to a hub; document ops story (0301 P3)
