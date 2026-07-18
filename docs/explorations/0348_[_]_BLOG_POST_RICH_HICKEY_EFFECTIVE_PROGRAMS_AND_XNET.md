@@ -412,34 +412,34 @@ export type Frontier = Record<NodeId, FrontierEntry>
 - [x] Add the registry entry to `site/src/data/blog.ts` (`slug: 'tree-rings'`,
       `authors: ['crs48', 'claude']`, `tags: ['essay', 'philosophy',
       'protocol']`, honest `readingMinutes`, `pubDate` in ISO-8601 UTC).
-- [ ] Verify RSS and index pick it up (both render from `publishedPosts()`;
+- [x] Verify RSS and index pick it up (both render from `publishedPosts()`;
       build the site — memory 0291: don't trust `astro dev` for
       long-page routes, verify via `pnpm build`).
 - [x] Cross-link from the essay to *Clutch Power*, *The Loom You Can Read*,
       and *The Vault and the View*; add a "paper trail" footer linking
       explorations 0021, 0200, 0329, 0330.
-- [ ] Fact-check the four talk characterizations against the linked videos
+- [x] Fact-check the four talk characterizations against the linked videos
       one final time in-draft (especially the severity-ranking description).
 - [x] Keep direct quotation to the single attributed line; link all talks.
-- [ ] Site-only PR: apply the `skip-changelog` label (no publishable package
+- [x] Site-only PR: apply the `skip-changelog` label (no publishable package
       is touched; no changeset needed).
 - [ ] Let CI run green; merge-commit per repo convention.
 
 ## Validation Checklist
 
-- [ ] `pnpm build` (site) passes and `/blog/tree-rings` renders with both
+- [x] `pnpm build` (site) passes and `/blog/tree-rings` renders with both
       Mermaid diagrams and correct dark/light theming.
-- [ ] `/blog/rss.xml` includes the new entry with correct pubDate and
+- [x] `/blog/rss.xml` includes the new entry with correct pubDate and
       description; index page shows it first.
-- [ ] All file-path claims in the essay resolve against `main` at publish
+- [x] All file-path claims in the essay resolve against `main` at publish
       time (`packages/sync/src/change.ts`, `packages/core/src/lww.ts`,
       `packages/history/src/frontier.ts`, `packages/data/src/schema/node.ts`).
-- [ ] A reader who has watched Effective Programs recognises the severity
+- [x] A reader who has watched Effective Programs recognises the severity
       ranking as described (no invented layers); a reader who hasn't can
       follow the essay without the talk.
-- [ ] The divergences section names TypeScript, Yjs, and pruning explicitly —
+- [x] The divergences section names TypeScript, Yjs, and pruning explicitly —
       the essay does not read as hagiography.
-- [ ] Reading time honest at ~14 minutes.
+- [x] Reading time honest at ~14 minutes.
 
 ## References
 
