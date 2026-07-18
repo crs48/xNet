@@ -1,5 +1,24 @@
 # xNet — agent conventions
 
+## Spelling the brand: `xNet`
+
+Lowercase x, uppercase N — in **everything a human reads**: prose, doc titles,
+code comments, UI strings, CLI help, package descriptions, commit messages.
+Never `XNet`, `Xnet` or `XNET`. Sentence-initial is still `xNet`; recast the
+sentence rather than capitalising the mark.
+
+Lowercase everywhere a machine reads: `@xnetjs/*`, the `xnet` bin, `xnet://`
+URIs, file and database names.
+
+**Existing identifiers keep their casing** — `XNetProvider`, `useXNet`,
+`XNetKit`, `XNetClient`, mermaid node ids, `XNET_*` env vars. Renaming one is a
+breaking change, not a copy fix. The line is identifier vs copy, and it does not
+follow file type: code samples inside markdown are code.
+
+When sweeping, match on a word boundary (`\bXNet\b`) and skip fenced code
+blocks — `docs/plans/` and `docs/explorations/` quote an `XNet` SDK class that
+an unbounded replace silently corrupts. See AGENTS.md for the full table.
+
 ## Barrel exports (index.ts) — sub-barrel policy (0276)
 
 The `react`/`data`/`plugins` root barrels are the highest-churn files in the

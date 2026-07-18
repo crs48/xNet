@@ -32,11 +32,11 @@ Before reading this documentation, understand that xNet works differently:
   - Relations
   - Type Inference
   - Extending Schemas
-- The XNet Protocol
+- The xNet Protocol
 - Data Model (L1)
 - Replication (L2)
 - Authorization (L3)
-- Implement XNet in Your Language
+- Implement xNet in Your Language
 - Conformance
   - The Workbench
   - The Quiet Shell & the Desk
@@ -2724,9 +2724,9 @@ authoring a genuinely new type.
 
 ---
 
-## The XNet Protocol
+## The xNet Protocol
 
-The `xNet` repository is **one implementation** of XNet. XNet itself is a
+The `xNet` repository is **one implementation** of xNet. xNet itself is a
 **protocol** — a written interface you can re‑implement in any language, over any
 database, and still interoperate with every other conforming implementation. Like
 Matrix, the AT Protocol, or ActivityPub, the standard is separate from any one
@@ -2738,7 +2738,7 @@ codebase.
 
 ## The boundary in one sentence
 
-> A conforming XNet implementation agrees on the **cryptographic primitives**,
+> A conforming xNet implementation agrees on the **cryptographic primitives**,
 > the **data model** (especially the byte‑exact canonicalization of a change),
 > the **replication wire format**, and the **authorization semantics** — and
 > treats everything above (query, storage layout, UI, the built‑in app schemas)
@@ -2761,7 +2761,7 @@ flowchart TB
   
   
 
-## The interop kernel (the part that makes it XNet)
+## The interop kernel (the part that makes it xNet)
 
 The irreducible core is small. An implementation that does **only L0 + L1** can
 already create, sign, verify, and converge nodes — fully participating in the
@@ -2776,7 +2776,7 @@ graph:
 
 ## Yjs is _not_ the protocol
 
-A common misconception: "XNet is built on Yjs, so I'd have to port a CRDT." Not
+A common misconception: "xNet is built on Yjs, so I'd have to port a CRDT." Not
 so. Yjs is used only for the optional rich‑text **document body** of certain
 nodes, and it travels the wire as **opaque bytes inside a signed envelope**. A
 second implementation can relay and store that blob without parsing it, and still
@@ -2900,7 +2900,7 @@ A schema may declare a collaborative body with `document: 'yjs'`. Such nodes
 carry a `documentContent` blob identified by a `documentCodec` discriminator
 (`yjs-v1`, `automerge-2`, `none`). Implementations **must transport and persist**
 the blob faithfully, but **interpreting it is optional** — a peer that can't parse
-`yjs-v1` still fully participates in the graph. This is the seam that makes XNet
+`yjs-v1` still fully participates in the graph. This is the seam that makes xNet
 portable without porting a CRDT byte format across languages.
 
 Next: [Replication (L2) →](/docs/protocol/replication/)
@@ -2995,7 +2995,7 @@ Next: [Authorization (L3) →](/docs/protocol/authorization/)
 
 ## Authorization (L3)
 
-In XNet, authorization is **data, not application logic**: rules are declared on
+In xNet, authorization is **data, not application logic**: rules are declared on
 schemas and delegated through grant nodes and UCAN tokens, and enforced at the
 sync boundary. Because two implementations that disagree on policy make different
 read/write decisions on the same graph, the decision *semantics* are normative.
@@ -3075,7 +3075,7 @@ attribution.
 
 ## Grants and UCAN
 
-- **Grant nodes** — ordinary XNet nodes recording `{ issuer, grantee, resource,
+- **Grant nodes** — ordinary xNet nodes recording `{ issuer, grantee, resource,
   actions, expiresAt, revokedAt }`. Active iff not revoked and not expired.
 - **UCAN tokens** — capability tokens (JWT/EdDSA) with a proof chain. Each
   capability must be an attenuation of its proof; child expiry ≤ parent; chains
@@ -3104,7 +3104,7 @@ Next: [Implement it in your language →](/docs/protocol/implement-in-your-langu
 
 ---
 
-## Implement XNet in Your Language
+## Implement xNet in Your Language
 
 You don't need to port the whole `xNet` codebase to build a compatible
 implementation. You need the **interop kernel** (L0 + L1) — and the
@@ -3192,7 +3192,7 @@ lightweight, "prove‑it‑before‑you‑spec‑it" proposal process.
 
 A specification without a conformance suite drifts — independent implementations
 diverge silently. (ActivityPub shipped a W3C Recommendation with no test suite
-for ~5 years; the fediverse is still paying for it.) XNet ships a
+for ~5 years; the fediverse is still paying for it.) xNet ships a
 **language‑agnostic golden‑vector corpus alongside the spec, from day one**, and
 re‑verifies it in CI.
 
@@ -9911,7 +9911,7 @@ These records follow the standard [ADR](https://adr.github.io/) discipline:
 **Scope note:** Yjs is the **document codec** for the rich-text/canvas _body_ of
 certain nodes — it is _not_ the sync backbone. Structured node data syncs through
 the signed `Change` log ([ADR-3](#adr-3-field-level-lww-for-structured-data)),
-and Yjs updates ride the wire as opaque bytes inside an XNet envelope. See
+and Yjs updates ride the wire as opaque bytes inside an xNet envelope. See
 [ADR-11](#adr-11-xnet-is-a-protocol--the-interop-kernel-is-the-change-log-not-yjs).
 
 ## ADR-2: DID:key for identity
@@ -10049,19 +10049,19 @@ The decisions below were made after the initial ten were written, as the system
 grew from an app into a protocol with a managed cloud. They are recorded here so
 the log reflects the architecture as it actually stands.
 
-## ADR-11: XNet is a protocol — the interop kernel is the change log, not Yjs
+## ADR-11: xNet is a protocol — the interop kernel is the change log, not Yjs
 
 **Status:** Accepted (2026-06)
 **Context:** Exploration 0200. The normative spec lives in `docs/specs/protocol/`; see also [The Protocol](/docs/protocol/overview/).
 
-**Decision:** Treat XNet as a versioned, multi-implementation **protocol** whose
+**Decision:** Treat xNet as a versioned, multi-implementation **protocol** whose
 normative surface is four layers — **L0** cryptographic primitives, **L1** data
 model, **L2** replication, **L3** authorization — with the application profile
 (**L4**) explicitly non-normative. The interop kernel is a **signed,
 hash-chained, per-property-LWW change log over schema-typed nodes**
 (`CURRENT_PROTOCOL_VERSION = 3` in `packages/sync/src/change.ts`). Yjs is a
 **pluggable document codec** for the rich-text/canvas body of certain nodes and
-travels the wire as opaque bytes inside an XNet envelope.
+travels the wire as opaque bytes inside an xNet envelope.
 
 **Rationale:**
 
