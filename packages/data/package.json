@@ -1,6 +1,6 @@
 {
   "name": "@xnetjs/data",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -29,6 +29,10 @@
     "./auth": {
       "import": "./dist/auth/index.js",
       "types": "./dist/auth/index.d.ts"
+    },
+    "./portability": {
+      "import": "./dist/portability/index.js",
+      "types": "./dist/portability/index.d.ts"
     },
     "./updates": {
       "import": "./dist/updates.js",

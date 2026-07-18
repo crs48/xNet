@@ -1,0 +1,154 @@
+---
+// Decorative art for blog post #16 (exploration 0348), extracted so the same
+// inline SVG backs both the post hero and the blog-index preview card (no
+// external assets — Self-Audit parity). The essay's argument in one frame:
+// a change log — a hash chain of small signed blocks — enters from the left
+// and curls into the cross-section of a tree. The log *is* the tree. Growth
+// accretes on the outside ring by ring, the interior never changes, and the
+// whole history stays legible in the grain. At the core, the cosmic-X: the
+// first change, still there, still readable. A few faint year ticks run along
+// the horizontal radius the way a dendrochronologist would count them.
+interface Props {
+  /** Override the wrapper classes; defaults to full-bleed for hero use. */
+  class?: string
+}
+const { class: className = 'pointer-events-none absolute inset-0 h-full w-full' } =
+  Astro.props
+
+// The trunk cross-section, centred right of frame.
+const core = { x: 780, y: 172 }
+// Rings: radius, stroke width, opacity, dash pattern (irregular years — wide
+// rings are wet years, tight rings are droughts; none of them get edited).
+const rings = [
+  [18, 1.6, 0.65, ''],
+  [30, 1.3, 0.55, ''],
+  [40, 1.1, 0.5, '52 9'],
+  [54, 1.5, 0.6, ''],
+  [63, 1, 0.42, '34 7'],
+  [76, 1.3, 0.52, ''],
+  [92, 1.1, 0.45, '80 12'],
+  [104, 1.5, 0.55, ''],
+  [113, 1, 0.38, '26 6'],
+  [126, 1.3, 0.48, ''],
+  [138, 1.1, 0.4, '110 14'],
+  [148, 2.6, 0.6, '']
+] as const
+// The change log: a hash chain of signed blocks walking in from the left.
+const blocks = [64, 128, 192, 256, 320, 384, 448] as const
+const blockY = 172
+---
+
+<svg
+  class={className}
+  viewBox="0 0 1040 340"
+  preserveAspectRatio="xMidYMid slice"
+  aria-hidden="true"
+>
+  <defs>
+    <linearGradient id="trbg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#100c1d" />
+      <stop offset="55%" stop-color="#0c0917" />
+      <stop offset="100%" stop-color="#080611" />
+    </linearGradient>
+    <radialGradient id="trglow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.85" />
+      <stop offset="45%" stop-color="#f59e0b" stop-opacity="0.3" />
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="trx" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#fde68a" />
+      <stop offset="100%" stop-color="#f59e0b" />
+    </linearGradient>
+  </defs>
+
+  <rect width="1040" height="340" fill="url(#trbg)" />
+
+  <!-- the change log: signed blocks, hash-chained, walking toward the tree -->
+  <g>
+    {
+      blocks.map((x, i) => (
+        <g opacity={0.35 + i * 0.09}>
+          <rect
+            x={x - 13}
+            y={blockY - 13}
+            width="26"
+            height="26"
+            rx="5"
+            fill="none"
+            stroke="#a78bfa"
+            stroke-width="1.5"
+          />
+          {/* the signature tick inside each block */}
+          <path
+            d={`M ${x - 5} ${blockY + 1} l 4 4 l 7 -8`}
+            fill="none"
+            stroke="#a78bfa"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          {/* the parent-hash link to the next block */}
+          <line
+            x1={x + 13}
+            y1={blockY}
+            x2={x + 51}
+            y2={blockY}
+            stroke="#5b4a8f"
+            stroke-width="1.4"
+            stroke-dasharray="5 4"
+          />
+        </g>
+      ))
+    }
+    <!-- the last link curls off the line and into the outermost ring -->
+    <path
+      d={`M ${blocks[blocks.length - 1] + 13} ${blockY} C 540 ${blockY}, 590 96, ${core.x - 8} ${core.y - 150}`}
+      fill="none"
+      stroke="#5b4a8f"
+      stroke-width="1.4"
+      stroke-dasharray="5 4"
+      opacity="0.8"
+    />
+  </g>
+
+  <!-- the trunk: every year still there, the newest on the outside -->
+  <g fill="none" stroke="#b45309">
+    {
+      rings.map(([r, w, o, dash]) => (
+        <circle
+          cx={core.x}
+          cy={core.y}
+          r={r}
+          stroke-width={w}
+          opacity={o}
+          stroke-dasharray={dash || undefined}
+        />
+      ))
+    }
+  </g>
+  <!-- one hairline check in the wood — age, not erasure -->
+  <path
+    d={`M ${core.x + 22} ${core.y - 14} Q ${core.x + 74} ${core.y - 40} ${core.x + 132} ${core.y - 58}`}
+    fill="none"
+    stroke="#78350f"
+    stroke-width="1.2"
+    opacity="0.5"
+  />
+  <!-- the dendrochronologist's tick marks along the counting radius -->
+  <g stroke="#f59e0b" stroke-width="1" opacity="0.4">
+    {
+      rings.map(([r]) => (
+        <line x1={core.x + r} y1={core.y - 4} x2={core.x + r} y2={core.y + 4} />
+      ))
+    }
+  </g>
+
+  <!-- the core: the first change, still readable -->
+  <g transform={`translate(${core.x} ${core.y})`}>
+    <circle cx="0" cy="0" r="44" fill="url(#trglow)" />
+    <g stroke="url(#trx)" stroke-width="5.5" stroke-linecap="round" transform="translate(-11 -12)">
+      <line x1="0" y1="0" x2="22" y2="24" />
+      <line x1="22" y1="0" x2="0" y2="24" />
+    </g>
+  </g>
+</svg>

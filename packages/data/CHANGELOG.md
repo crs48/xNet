@@ -1,5 +1,28 @@
 # @xnetjs/data
 
+## 2.4.0
+
+### Minor Changes
+
+- [#545](https://github.com/crs48/xNet/pull/545) [`1c7b9c9`](https://github.com/crs48/xNet/commit/1c7b9c9c3804fc0d4c80b032ae0ebc0163714c52) Thanks [@crs48](https://github.com/crs48)! - First-class data portability: the `.xnetpack` bundle codec
+  (`@xnetjs/data/portability`). `writeBundle` exports the signed change log
+  (full, per-space, per-schema, or per-node scope, with incremental
+  `since`-frontier bundles) as NDJSON plus content-addressed blobs and Yjs
+  doc states under a signed manifest; `verifyBundle` integrity-checks a
+  bundle without writing; `applyBundle` imports by replaying through the
+  store's verified remote-change path (idempotent, quarantine-reporting).
+  Adds `NodeStore.hasChange(hash)`.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/storage@2.4.0
+  - @xnetjs/sqlite@2.4.0
+  - @xnetjs/sync@2.4.0
+  - @xnetjs/identity@2.4.0
+  - @xnetjs/crypto@2.4.0
+  - @xnetjs/core@2.4.0
+
 ## 2.3.0
 
 ### Minor Changes

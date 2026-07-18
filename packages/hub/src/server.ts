@@ -43,6 +43,7 @@ import { createAuditRoutes } from './routes/audit'
 import { createBackupRoutes } from './routes/backup'
 import { createCrawlRoutes } from './routes/crawl'
 import { createDiscoveryRoutes } from './routes/dids'
+import { createExportRoutes } from './routes/export'
 import { createFederationRoutes } from './routes/federation'
 import { createFileRoutes } from './routes/files'
 import { mountOidcProvider } from './features/oidc-provider'
@@ -539,6 +540,9 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
 
   app.route('/schemas', createSchemaRoutes(schemas, { requireAuth }))
   app.route('/audit', createAuditRoutes(storage, { requireAuth }))
+  // Data portability (exploration 0344): stream/restore/purge your own
+  // signed changes — the hub-side counterpart of the .xnetpack bundle.
+  app.route('/export', createExportRoutes(storage, { requireAuth }))
   app.route('/keys', createKeyRegistryRoutes(keyRegistry))
   // ATProto binding verification (0301/0322/0338): the hub resolves DID docs
   // and binding records so clients can render verified handles.

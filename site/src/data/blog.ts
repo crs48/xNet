@@ -88,6 +88,38 @@ export interface BlogPost {
 
 const posts: BlogPost[] = [
   {
+    slug: 'tree-rings',
+    title: 'Tree Rings',
+    description:
+      'A tree never edits a ring: growth accretes on the outside, and the ' +
+      'whole history stays legible in the grain. Rich Hickey has spent two ' +
+      'decades arguing software should be built the same way — values that ' +
+      'accrete, not places that overwrite. On Effective Programs and its ' +
+      'pyramid of what actually costs money, Simple Made Easy, the epochal ' +
+      'time model — what taking the middle of that pyramid seriously looks ' +
+      'like in a working protocol, and the three places we deliberately ' +
+      'depart from the hammock.',
+    pubDate: '2026-07-18T21:00:00Z',
+    authors: ['crs48', 'claude'],
+    tags: ['essay', 'philosophy', 'protocol'],
+    readingMinutes: 14
+  },
+  {
+    slug: 'people-in-disguise',
+    title: 'People in Disguise',
+    description:
+      'For forty years, one man has been making the same argument from ' +
+      'inside the machine: a VR pioneer, a working musician, Microsoft’s ' +
+      'in-house heretic — insisting that digital information is really just ' +
+      'people in disguise. On Jaron Lanier’s long war against the siren ' +
+      'servers, what his ideas look like when you actually build them — and ' +
+      'the one prescription we deliberately refuse.',
+    pubDate: '2026-07-18T17:00:00Z',
+    authors: ['crs48', 'claude'],
+    tags: ['essay', 'philosophy', 'privacy', 'economics'],
+    readingMinutes: 14
+  },
+  {
     slug: 'clutch-power',
     title: 'Clutch Power',
     description:
