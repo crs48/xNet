@@ -19,6 +19,11 @@ import {
   type AiSurfaceLimits,
   type AiToolDefinition
 } from '../ai-surface'
+import { AgentAuditRecorder, type AgentAuditContext } from '../ai-surface/agent-audit'
+import {
+  createAgentCeremonyTools,
+  createAgentNotificationTools
+} from '../ai-surface/agent-ceremony-tools'
 import { McpWriteGuardrail, type McpWriteRequest } from './mcp-guardrail'
 
 /** Schema IRIs for the first-class write tools (exploration 0174/0175). */
@@ -143,6 +148,17 @@ export interface MCPServerConfig {
   name?: string
   /** Server version (default: '1.0.0') */
   version?: string
+  /**
+   * Agent-scoped session (exploration 0337). When set, every AI-surface tool
+   * call routes through an {@link AgentAuditRecorder}: it lands as an
+   * `AgentAction` node and medium+ risk calls park behind the risk-tiered
+   * approval ceremony. Also exposes the ceremony (`xnet_approve`,
+   * `xnet_deny`, `xnet_pending_approvals`, `xnet_undo`) and outbox
+   * (`xnet_poll_notifications`) tools. The store this server was built with
+   * should be signing as the enrolled agent's DID — that is what makes the
+   * kernel change log the tamper-evident half of the trail.
+   */
+  agentAudit?: AgentAuditContext & { approvalTtlMs?: number }
 }
 
 // ─── MCP Server Implementation ───────────────────────────────────────────────
@@ -181,6 +197,9 @@ export class MCPServer {
   private tools: Map<string, MCPTool> = new Map()
   private aiToolNames: Set<string> = new Set()
   private running = false
+  /** Present when `agentAudit` is configured (exploration 0337). */
+  private recorder: AgentAuditRecorder | null = null
+  private agentExtraTools: Map<string, AiExtraTool> = new Map()
 
   constructor(config: MCPServerConfig) {
     const aiSurface =
@@ -203,6 +222,23 @@ export class MCPServer {
       name: config.name ?? 'xnet',
       version: config.version ?? '1.0.0'
     }
+
+    if (config.agentAudit) {
+      const { approvalTtlMs, ...context } = config.agentAudit
+      this.recorder = new AgentAuditRecorder({
+        surface: aiSurface,
+        store: config.store,
+        context,
+        approvalTtlMs
+      })
+      for (const tool of [
+        ...createAgentCeremonyTools(this.recorder),
+        ...createAgentNotificationTools(config.store)
+      ]) {
+        this.agentExtraTools.set(tool.name, tool)
+      }
+    }
+
     this.registerTools()
   }
 
@@ -529,9 +565,17 @@ export class MCPServer {
       this.tools.set(tool.name, toMCPTool(tool))
     }
 
+    for (const tool of this.agentExtraTools.values()) {
+      const { invoke: _invoke, ...def } = tool
+      this.tools.set(tool.name, toMCPTool(def))
+    }
+
     for (const [name, tool] of this.tools) {
       tool.defer_loading = !MCP_CORE_TOOL_NAMES.includes(name)
       tool.inputSchema.properties.response_format = RESPONSE_FORMAT_SCHEMA
+      if (this.recorder && this.aiToolNames.has(name)) {
+        tool.inputSchema.properties._instruction = INSTRUCTION_SCHEMA
+      }
     }
   }
 
@@ -660,8 +704,22 @@ export class MCPServer {
       }
 
       default:
+        if (this.agentExtraTools.has(name)) {
+          result = await this.agentExtraTools.get(name)!.invoke(toolArgs)
+          break
+        }
         if (this.aiToolNames.has(name)) {
-          result = await this.config.aiSurface.callTool(name, toolArgs)
+          if (this.recorder) {
+            const { _instruction, ...rest } = toolArgs
+            const outcome = await this.recorder.callTool(
+              name,
+              rest,
+              typeof _instruction === 'string' ? _instruction : undefined
+            )
+            result = outcome.pending ? outcome : outcome.result
+          } else {
+            result = await this.config.aiSurface.callTool(name, toolArgs)
+          }
           break
         }
         throw new Error(`Unknown tool: ${name}`)
@@ -764,6 +822,13 @@ const RESPONSE_FORMAT_SCHEMA: MCPPropertySchema = {
   type: 'string',
   enum: ['concise', 'detailed'],
   description: 'Response verbosity. Defaults to concise (compact JSON).'
+}
+
+/** Injected on AI tools when an agent-audit session is active (0337). */
+const INSTRUCTION_SCHEMA: MCPPropertySchema = {
+  type: 'string',
+  description:
+    "The operator's instruction that triggered this call, verbatim — recorded in the AgentAction audit trail."
 }
 
 const CONFIRM_SCHEMA: MCPPropertySchema = {

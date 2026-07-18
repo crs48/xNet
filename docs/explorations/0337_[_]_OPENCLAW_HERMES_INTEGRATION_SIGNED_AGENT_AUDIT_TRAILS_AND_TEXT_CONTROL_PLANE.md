@@ -615,23 +615,23 @@ Phase 2 — Audit trail:
 
 - [x] `AgentSession` / `AgentAction` / `AgentApproval` schemas
       (deterministic ids, `spaceCascadeAuthorization`, reversibility field)
-- [ ] Audit middleware wrapping `AiSurfaceService.callTool` (one
+- [x] Audit middleware wrapping `AiSurfaceService.callTool` (one
       `AgentAction` per call, linked `changeIds`)
 - [x] Per-author index + query: hub storage index on change author,
       `GET /audit/authors/:did/changes?since=` (paginated), UCAN-gated
 - [ ] Workbench audit console: table view over `AgentAction` filtered by
       agent DID, with per-action change diffs (reuse DebugReport console
       patterns from 0315)
-- [ ] `xnet_undo <actionId>` honoring `reversibility` (compensating
+- [x] `xnet_undo <actionId>` honoring `reversibility` (compensating
       changes, not history rewrite)
 
 Phase 3 — Text control plane:
 
-- [ ] Risk-tiered approval ceremony in the guardrail: low=auto,
+- [x] Risk-tiered approval ceremony in the guardrail: low=auto,
       medium=chat nonce (TTL 5 min, staleness-rejected),
       high/critical=xNet-surface only; `AgentApproval` node written for
       every decision, operator-signed for high-risk
-- [ ] `AgentNotification` outbox schema + MCP subscription/poll tool; ship
+- [x] `AgentNotification` outbox schema + MCP subscription/poll tool; ship
       notification → text relay instructions in the skill
 - [ ] Update the ClawHub skill + publish a Hermes-compatible skill
       (`docs/integrations/openclaw/xnet-workspace-skill.md` — same
