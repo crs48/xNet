@@ -49,8 +49,7 @@ export async function getSupportAccess(
 ): Promise<SupportAccessState> {
   const node = await liveMembership(store, supportDid)
   if (!node) return { active: false, expiresAt: null }
-  const expiresAt =
-    typeof node.properties.expiresAt === 'number' ? node.properties.expiresAt : null
+  const expiresAt = typeof node.properties.expiresAt === 'number' ? node.properties.expiresAt : null
   return { active: expiresAt === null || expiresAt > nowMs, expiresAt }
 }
 

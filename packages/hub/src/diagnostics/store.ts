@@ -236,9 +236,7 @@ export function createSqliteDebugReportStore(
         drained: total - pending,
         total,
         lastSeenMs: m ?? null,
-        topIssues: (topByOccurrences.all(topN) as Row[]).map((row) =>
-          toSummaryIssue(toRecord(row))
-        )
+        topIssues: (topByOccurrences.all(topN) as Row[]).map((row) => toSummaryIssue(toRecord(row)))
       }
     },
 

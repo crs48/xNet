@@ -1,6 +1,11 @@
 import type { TenantSli } from './observability/health'
 import { describe, expect, it } from 'vitest'
-import { composeDashboardLive, fetchHubDiagnosticsSummary, fetchHubHealth, type HubHealth } from './hub-status'
+import {
+  composeDashboardLive,
+  fetchHubDiagnosticsSummary,
+  fetchHubHealth,
+  type HubHealth
+} from './hub-status'
 
 const sli = (availability: number): TenantSli => ({
   tenantId: 't',
@@ -254,15 +259,22 @@ describe('fetchHubDiagnosticsSummary (0341)', () => {
 
   it('returns null on 401/404, malformed payloads, rejects, and missing inputs', async () => {
     const denied = (async () => new Response('no', { status: 401 })) as unknown as typeof fetch
-    expect(await fetchHubDiagnosticsSummary('https://hub.example', 's', { fetchImpl: denied })).toBeNull()
+    expect(
+      await fetchHubDiagnosticsSummary('https://hub.example', 's', { fetchImpl: denied })
+    ).toBeNull()
 
-    const junk = (async () => new Response('{"nope":1}', { status: 200 })) as unknown as typeof fetch
-    expect(await fetchHubDiagnosticsSummary('https://hub.example', 's', { fetchImpl: junk })).toBeNull()
+    const junk = (async () =>
+      new Response('{"nope":1}', { status: 200 })) as unknown as typeof fetch
+    expect(
+      await fetchHubDiagnosticsSummary('https://hub.example', 's', { fetchImpl: junk })
+    ).toBeNull()
 
     const boom = (async () => {
       throw new Error('aborted')
     }) as unknown as typeof fetch
-    expect(await fetchHubDiagnosticsSummary('https://hub.example', 's', { fetchImpl: boom })).toBeNull()
+    expect(
+      await fetchHubDiagnosticsSummary('https://hub.example', 's', { fetchImpl: boom })
+    ).toBeNull()
 
     expect(await fetchHubDiagnosticsSummary('', 's')).toBeNull()
     expect(await fetchHubDiagnosticsSummary('https://hub.example', '')).toBeNull()

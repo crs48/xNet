@@ -833,7 +833,10 @@ function EscalationSettings() {
   const { hubUrl, getHubAuthToken } = useXNet()
   const { store, isReady } = useNodeStore()
   const [sharing, setSharing] = useState(false)
-  const [escalating, setEscalating] = useState<{ id: string; properties: Record<string, unknown> } | null>(null)
+  const [escalating, setEscalating] = useState<{
+    id: string
+    properties: Record<string, unknown>
+  } | null>(null)
   const { data: reports } = useQuery(DebugReportSchema, {
     orderBy: { lastSeen: 'desc' },
     limit: 25

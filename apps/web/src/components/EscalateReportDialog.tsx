@@ -91,8 +91,8 @@ export function EscalateReportDialog(props: EscalateReportDialogProps) {
           <div className="mt-3">
             <p className="text-sm text-muted-foreground">{error}</p>
             <p className="mt-1 text-xs text-muted-foreground">
-              Nothing was recorded as sent. If your hub has diagnostics sharing disabled, this
-              route doesn't exist — that's the off switch working.
+              Nothing was recorded as sent. If your hub has diagnostics sharing disabled, this route
+              doesn't exist — that's the off switch working.
             </p>
             <div className="mt-4 flex justify-end">
               <button
