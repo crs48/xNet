@@ -10,12 +10,19 @@ import {
   type FrameStats
 } from '@xnetjs/canvas'
 import { CanvasSchema } from '@xnetjs/data'
+import { configureDatabaseMapTiles } from '@xnetjs/views'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 import { App } from './App'
 import { initAnalytics } from './lib/analytics'
+
+// Database Map view tiles (exploration 0337): OpenFreeMap by default;
+// self-hosted deployments serve one PMTiles archive from their own
+// origin instead (offline-capable, one CSP host).
+const selfHostedPmtiles = import.meta.env.VITE_MAP_PMTILES_URL as string | undefined
+if (selfHostedPmtiles) configureDatabaseMapTiles({ pmtilesUrl: selfHostedPmtiles })
 import { installBootDiagnostics, installBootFallback } from './lib/boot-diagnostics'
 import { initErrorReporter } from './lib/error-reporter'
 import { parsePublicFormLocation } from './lib/form-links'

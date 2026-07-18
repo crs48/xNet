@@ -1,0 +1,10 @@
+{
+  "id": "2026-07-17-databases-gain-board-gallery-calendar-ti",
+  "date": "July 17, 2026",
+  "title": "Databases gain Board, Gallery, Calendar, Timeline, List, and Map views",
+  "summary": "Every database now offers Notion-style views beyond the table: a kanban board grouped by any select field (drag cards between stacks), a cover-image gallery, a month calendar with drag-to-reschedule, a roadmap timeline with month/quarter/year zoom and swimlanes, a compact list, and a map that pins rows by latitude/longitude with clustering. Each view remembers its own configuration, colors, and layout — and says so honestly when a large database is windowed.",
+  "highlights": [],
+  "tags": [
+    "app"
+  ]
+}

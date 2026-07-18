@@ -71,7 +71,7 @@ export interface FormSpec {
 export interface ViewSpec {
   slug: string
   name: string
-  type: 'table' | 'board' | 'list' | 'gallery' | 'calendar' | 'timeline' | 'form'
+  type: 'table' | 'board' | 'list' | 'gallery' | 'calendar' | 'timeline' | 'form' | 'map'
   /** Form view (type 'form') question config. */
   form?: FormSpec
   /** Field key to group by (board). */
@@ -82,6 +82,11 @@ export interface ViewSpec {
   endDateKey?: string
   /** Cover image field key (gallery). */
   coverKey?: string
+  /** Select field key used to color cards/bars (board/calendar/timeline). */
+  colorByKey?: string
+  /** Latitude/longitude number field keys (map). */
+  latKey?: string
+  lngKey?: string
   cardSize?: 'small' | 'medium' | 'large'
   rowHeight?: 'short' | 'medium' | 'tall'
   /** AND-combined filter conditions (keys translated to field ids). */
@@ -255,6 +260,9 @@ export function databaseDrafts(spec: DatabaseSpec): DeterministicNodeImportDraft
         dateField: view.dateKey ? fieldId(view.dateKey) : undefined,
         endDateField: view.endDateKey ? fieldId(view.endDateKey) : undefined,
         coverField: view.coverKey ? fieldId(view.coverKey) : undefined,
+        colorBy: view.colorByKey ? fieldId(view.colorByKey) : undefined,
+        latField: view.latKey ? fieldId(view.latKey) : undefined,
+        lngField: view.lngKey ? fieldId(view.lngKey) : undefined,
         cardSize: view.cardSize,
         rowHeight: view.rowHeight,
         hiddenFields: view.hiddenKeys?.map(fieldId),

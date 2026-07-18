@@ -19,7 +19,9 @@ import {
   type FormFieldRule,
   type FormSubmissionMeta,
   type FormViewConfig,
+  type MapViewport,
   type SortConfig,
+  type ViewGroupMeta,
   type ViewType,
   type RowHeight,
   type SummaryFunction,
@@ -42,6 +44,7 @@ import {
   FormulaService,
   type RollupAggregation
 } from '@xnetjs/data'
+import type { QuerySpatialFilter } from '@xnetjs/data-bridge'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useIdentity } from './useIdentity'
 import { useInfiniteQuery } from './useInfiniteQuery'
@@ -90,6 +93,37 @@ export interface GridViewModel {
   formConfig: FormViewConfig | null
   formRules: Record<string, FormFieldRule>
   formAccepting: boolean
+  // Board/Gallery/Calendar/Timeline/Map config (exploration 0337)
+  coverField: string | null
+  cardSize: string | null
+  coverFit: string | null
+  colorBy: string | null
+  groupMeta: Record<string, ViewGroupMeta>
+  dateField: string | null
+  endDateField: string | null
+  latField: string | null
+  lngField: string | null
+  mapViewport: MapViewport | null
+}
+
+/**
+ * The per-view presentation config a view component may patch through
+ * `setViewConfig` (exploration 0337). One node write per patch — each
+ * property merges independently (LWW) with other clients' edits.
+ */
+export interface GridViewConfigPatch {
+  groupBy?: string | null
+  collapsedGroups?: string[]
+  coverField?: string | null
+  cardSize?: string | null
+  coverFit?: string | null
+  colorBy?: string | null
+  groupMeta?: Record<string, ViewGroupMeta>
+  dateField?: string | null
+  endDateField?: string | null
+  latField?: string | null
+  lngField?: string | null
+  mapViewport?: MapViewport | null
 }
 
 export interface GridRowModel {
@@ -120,6 +154,12 @@ export interface UseGridDatabaseOptions {
    * bounded (exploration 0340).
    */
   maxLoaded?: number
+  /**
+   * Spatial window over two cell properties (map views, exploration
+   * 0337): only rows inside the rect are fetched. Bypasses the
+   * materialized-view cache (the rect varies per pan).
+   */
+  spatial?: QuerySpatialFilter
 }
 
 export interface UseGridDatabaseResult {
@@ -134,6 +174,12 @@ export interface UseGridDatabaseResult {
   activeView: GridViewModel | null
   /** Rows: view filters + sorts applied to the fetched window */
   rows: GridRowModel[]
+  /**
+   * The fetch window (exploration 0337): `size` is the row cap, `total`
+   * the full match count when the bridge reports one. Views use this to
+   * label truncation honestly instead of silently clipping.
+   */
+  rowWindow: { size: number; total: number | null }
   loading: boolean
   /** Exact matching row count for the whole database (null while unknown). */
   totalRowCount: number | null
@@ -146,6 +192,16 @@ export interface UseGridDatabaseResult {
 
   // Cell/row mutations
   updateCell: (rowId: string, fieldId: string, value: CellValue) => Promise<void>
+  /**
+   * Write several cells (and optionally the row's sortKey) as ONE node
+   * update — a kanban card move is exactly one write carrying the group
+   * cell + the fractional position (exploration 0337).
+   */
+  updateRowCells: (
+    rowId: string,
+    cells: Record<string, CellValue>,
+    opts?: { sortKey?: string }
+  ) => Promise<void>
   clearCells: (cells: Array<{ rowId: string; fieldId: string }>) => Promise<void>
   addRow: (
     afterRowId?: string,
@@ -177,6 +233,10 @@ export interface UseGridDatabaseResult {
   toggleSort: (fieldId: string) => Promise<void>
   setFilters: (filters: FilterGroup | null) => Promise<void>
   setGroupBy: (fieldId: string | null) => Promise<void>
+  /** Patch the active view's presentation config (exploration 0337) */
+  setViewConfig: (patch: GridViewConfigPatch) => Promise<void>
+  /** Persist a group's collapsed state on the active view */
+  setGroupCollapsed: (groupKey: string, collapsed: boolean) => Promise<void>
   setRowHeight: (rowHeight: RowHeight) => Promise<void>
   setColumnSummary: (fieldId: string, fn: SummaryFunction) => Promise<void>
   // Form view (exploration 0278)
@@ -229,7 +289,17 @@ function toViewModel(node: Flat): GridViewModel {
     sortKey: (node.sortKey as string) ?? '',
     formConfig: (node.formConfig as FormViewConfig | undefined) ?? null,
     formRules: (node.formRules as Record<string, FormFieldRule> | undefined) ?? {},
-    formAccepting: (node.formAccepting as boolean | undefined) ?? true
+    formAccepting: (node.formAccepting as boolean | undefined) ?? true,
+    coverField: (node.coverField as string | undefined) ?? null,
+    cardSize: (node.cardSize as string | undefined) ?? null,
+    coverFit: (node.coverFit as string | undefined) ?? null,
+    colorBy: (node.colorBy as string | undefined) ?? null,
+    groupMeta: (node.groupMeta as Record<string, ViewGroupMeta> | undefined) ?? {},
+    dateField: (node.dateField as string | undefined) ?? null,
+    endDateField: (node.endDateField as string | undefined) ?? null,
+    latField: (node.latField as string | undefined) ?? null,
+    lngField: (node.lngField as string | undefined) ?? null,
+    mapViewport: (node.mapViewport as MapViewport | undefined) ?? null
   }
 }
 
@@ -269,7 +339,7 @@ export function useGridDatabase(
   databaseId: string,
   options: UseGridDatabaseOptions = {}
 ): UseGridDatabaseResult {
-  const { viewId, search, pageSize = 500, maxLoaded = 2000 } = options
+  const { viewId, search, pageSize = 500, maxLoaded = 2000, spatial } = options
   const mutate = useMutate()
   const { did } = useIdentity()
 
@@ -277,26 +347,31 @@ export function useGridDatabase(
 
   const { data: database, status: dbStatus } = useQuery(DatabaseSchema, databaseId)
 
+  // Metadata queries fetch by system order (indexable — avoids the
+  // unbounded-property-sort full-scan warning); the memos below re-sort
+  // by fractional sortKey, which is the real ordering authority.
   const { data: fieldNodes, status: fieldStatus } = useQuery(DatabaseFieldSchema, {
     where: { database: databaseId },
-    orderBy: { sortKey: 'asc' }
+    orderBy: { createdAt: 'asc' }
   })
 
   const { data: viewNodes, status: viewStatus } = useQuery(DatabaseViewSchema, {
     where: { database: databaseId },
-    orderBy: { sortKey: 'asc' }
+    orderBy: { createdAt: 'asc' }
   })
 
   const { data: optionNodes } = useQuery(DatabaseSelectOptionSchema, {
     where: { database: databaseId },
-    orderBy: { sortKey: 'asc' }
+    orderBy: { createdAt: 'asc' }
   })
 
   // Rows ride a growing `limit + orderBy` window (useInfiniteQuery) instead
   // of a fixed page: `fetchMoreRows` extends it toward `maxLoaded`, and the
   // whole window stays on the bridge's bounded-delta live path (0182/0340).
   // `count: 'exact'` folds a COUNT(*) OVER () into the fused row query so the
-  // footer can show the true total, not the window size.
+  // footer can show the true total, not the window size. Map views swap the
+  // materialized-view cache for a spatial viewport window (0337) — the rect
+  // varies per pan, so caching by view id would serve stale slices.
   const {
     data: rowNodes,
     // Masked while a window grow is in flight (previous rows stay visible):
@@ -313,7 +388,9 @@ export function useGridDatabase(
     pageSize,
     maxLoaded,
     page: { count: 'exact' },
-    materializedView: `db:${databaseId}${viewId ? `:view:${viewId}` : ''}`,
+    ...(spatial
+      ? { spatial }
+      : { materializedView: `db:${databaseId}${viewId ? `:view:${viewId}` : ''}` }),
     ...(search ? { search } : {})
   })
 
@@ -614,6 +691,22 @@ export function useGridDatabase(
     [updateRowProps]
   )
 
+  const updateRowCells = useCallback(
+    async (
+      rowId: string,
+      cells: Record<string, CellValue>,
+      opts?: { sortKey?: string }
+    ): Promise<void> => {
+      const props: Record<string, unknown> = {}
+      for (const [fieldId, value] of Object.entries(cells)) {
+        props[cellKey(fieldId)] = value
+      }
+      if (opts?.sortKey !== undefined) props.sortKey = opts.sortKey
+      await updateRowProps(rowId, props)
+    },
+    [updateRowProps]
+  )
+
   const clearCells = useCallback(
     async (cells: Array<{ rowId: string; fieldId: string }>): Promise<void> => {
       const byRow = new Map<string, Record<string, unknown>>()
@@ -875,6 +968,31 @@ export function useGridDatabase(
     [mutate, activeView]
   )
 
+  const setViewConfig = useCallback(
+    async (patch: GridViewConfigPatch): Promise<void> => {
+      if (!activeView) return
+      // null clears a field (LWW tombstone); undefined keys are omitted
+      const props: Record<string, unknown> = {}
+      for (const [key, value] of Object.entries(patch)) {
+        if (value !== undefined) props[key] = value
+      }
+      if (Object.keys(props).length === 0) return
+      await mutate.update(DatabaseViewSchema, activeView.id, props as never)
+    },
+    [mutate, activeView]
+  )
+
+  const setGroupCollapsed = useCallback(
+    async (groupKey: string, collapsed: boolean): Promise<void> => {
+      if (!activeView) return
+      const set = new Set(activeView.collapsedGroups)
+      if (collapsed) set.add(groupKey)
+      else set.delete(groupKey)
+      await mutate.update(DatabaseViewSchema, activeView.id, { collapsedGroups: [...set] })
+    },
+    [mutate, activeView]
+  )
+
   const setRowHeight = useCallback(
     async (rowHeight: RowHeight): Promise<void> => {
       if (!activeView) return
@@ -954,12 +1072,14 @@ export function useGridDatabase(
     views,
     activeView,
     rows,
+    rowWindow: { size: (rowNodes ?? []).length, total: totalRowCount ?? null },
     loading,
     totalRowCount,
     hasMoreRows,
     isFetchingMoreRows,
     fetchMoreRows,
     updateCell,
+    updateRowCells,
     clearCells,
     addRow,
     deleteRows,
@@ -976,6 +1096,8 @@ export function useGridDatabase(
     toggleSort,
     setFilters,
     setGroupBy,
+    setViewConfig,
+    setGroupCollapsed,
     setRowHeight,
     setColumnSummary,
     setFormConfig,

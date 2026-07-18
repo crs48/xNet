@@ -4,10 +4,11 @@
 
 import React from 'react'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { ViewRegistry, type ViewRegistration, type ViewProps } from '../registry.js'
+import { ViewRegistry, type ViewRegistration } from '../registry.js'
+import type { DatabaseViewProps } from '../database-views/contract.js'
 
 // Mock view component
-function MockView(_props: ViewProps): React.JSX.Element {
+function MockView(_props: DatabaseViewProps): React.JSX.Element {
   return React.createElement('div', null, 'Mock View')
 }
 
