@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Export your whole workspace as a portable bundle — and restore it anywhere</title>
+      <link>https://xnet.fyi/changelog#2026-07-18-export-your-whole-workspace-as-a-portabl</link>
+      <guid isPermaLink="false">2026-07-18-export-your-whole-workspace-as-a-portabl</guid>
+      <pubDate>Sat, 18 Jul 2026 15:59:43 GMT</pubDate>
+      <description>Settings → Data now exports a signed .xnetpack bundle: the full change log with history, signatures, and document contents from the real local database (the old export missed the master copy). Restore it on any xNet — a fresh device, the CLI (xnet data export/import/snapshot/export-folder), or back into the same app — with every record verified before anything is written. Lossy CSV/JSON exports now say what they drop, and hubs gained export/restore/purge endpoints so leaving takes everything with you.</description>
+    </item>
+    <item>
       <title>Location fields put your rows on the map</title>
       <link>https://xnet.fyi/changelog#2026-07-18-location-fields-put-your-rows-on-the-map</link>
       <guid isPermaLink="false">2026-07-18-location-fields-put-your-rows-on-the-map</guid>
