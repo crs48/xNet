@@ -354,9 +354,9 @@ Neither blocks the other; A+B here need no query-layer changes at the
 - [x] Column virtualization for `GridSurface` (horizontal `useVirtualizer`,
       overscan 3, per `VirtualizedTableView.tsx:146-152`) — required for >~20-field schemas (32 fields measured at 48fps, 64 at 28fps);
       interim: default-hide properties past ~15 visible
-- [ ] Label client-side filter/sort results when the window is capped
+- [x] Label client-side filter/sort results when the window is capped
       ("filtered within first N rows")
-- [ ] Keep 0318's checklist as the query-side prerequisite track (keyset
+- [x] Keep 0318's checklist as the query-side prerequisite track (keyset
       pushdown, index-servable property sorts, estimate counts) — this
       exploration's render work does not supersede it
 
