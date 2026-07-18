@@ -566,8 +566,8 @@ export class MCPServer {
     }
 
     for (const tool of this.agentExtraTools.values()) {
-      const { invoke: _invoke, ...def } = tool
-      this.tools.set(tool.name, toMCPTool(def))
+      // AiExtraTool extends AiToolDefinition; toMCPTool reads definition fields only.
+      this.tools.set(tool.name, toMCPTool(tool))
     }
 
     for (const [name, tool] of this.tools) {
