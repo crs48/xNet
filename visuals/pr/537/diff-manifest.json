@@ -35,14 +35,14 @@
       "label": "Data",
       "file": "routes/data.png",
       "status": "unchanged",
-      "ssim": 0.998907
+      "ssim": 0.999161
     },
     {
       "id": "settings",
       "label": "Settings",
       "file": "routes/settings.png",
       "status": "unchanged",
-      "ssim": 0.998922
+      "ssim": 0.999416
     }
   ],
   "electron": [],
