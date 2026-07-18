@@ -655,30 +655,30 @@ registerAgentTool({
 
 ## Validation Checklist
 
-- [ ] Editing a row's geo cell in a grid frame moves the pin in a map frame
+- [x] Editing a row's geo cell in a grid frame moves the pin in a map frame
       on the same page within one flush (no manual refresh, no new sync
       code) — automated via the seeded demo page
-- [ ] The same edit arriving as a *remote* change (second peer) updates both
+- [x] The same edit arriving as a *remote* change (second peer) updates both
       frames identically (`isRemote` path)
-- [ ] Hovering a map pin highlights the corresponding grid row and any doc
+- [x] Hovering a map pin highlights the corresponding grid row and any doc
       mention of that node (entangle bus, three view types)
-- [ ] A plugin-registered view type appears in the slash view chooser, the
+- [x] A plugin-registered view type appears in the slash view chooser, the
       "Open with…" menu, and as a dashboard frame with zero app-code edits
-- [ ] A page with 10 frames (2 live, 8 summary) stays within the shell
+- [x] A page with 10 frames (2 live, 8 summary) stays within the shell
       re-render budget; the bulk-cliff scenario (250+ changes) degrades to
       reload without UI jank
-- [ ] Toggling stack → grid → space → stack preserves the exact frame set
+- [x] Toggling stack → grid → space → stack preserves the exact frame set
       and all frame configs (round-trip test)
-- [ ] A frame over a node the viewer cannot read renders sealed; sharing the
+- [x] A frame over a node the viewer cannot read renders sealed; sharing the
       page never leaks embedded content beyond per-node grants
-- [ ] Self/circular embeds clamp at depth 2 with summary cards; no infinite
+- [x] Self/circular embeds clamp at depth 2 with summary cards; no infinite
       render
-- [ ] Companion "compose a trip page" produces a plan preview; applying
+- [x] Companion "compose a trip page" produces a plan preview; applying
       yields live entangled frames; rollback restores the prior page exactly
       (audit event present)
-- [ ] Promoted-frame database surface is pixel-equivalent to today's
+- [x] Promoted-frame database surface is pixel-equivalent to today's
       `/db/$dbId` (screenshot diff)
-- [ ] All existing documents (content-v4) open unchanged; peers without the
+- [x] All existing documents (content-v4) open unchanged; peers without the
       new build render Phase-1 embeds via the already-shipped specs (no
       schema skew incident)
 
