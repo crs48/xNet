@@ -404,7 +404,7 @@ programs, not a new track:
 - [ ] Surface finding #5 (trusted-tier confidentiality gap) in the 0335
       release-blocker discussion; confirm blockers #2/#3 stay ahead of any
       0325-C1/C2 start.
-- [ ] Amend 0325: C4 prerequisite updated (device *keypairs* + lineage
+- [x] Amend 0325: C4 prerequisite updated (device *keypairs* + lineage
       split, not device *identity* — ledger devices/epochs exist); C2 notes
       `rotateContentKey` (`packages/data/src/auth/store-auth.ts:283`) as
       the existing membership⇒key coupling to extend.
