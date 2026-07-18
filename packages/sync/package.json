@@ -1,6 +1,6 @@
 {
   "name": "@xnetjs/sync",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "Unified sync primitives for xNet (Change<T>, vector clocks, hash chains)",
   "license": "MIT",
   "repository": {

@@ -1,5 +1,26 @@
 # @xnetjs/cli
 
+## 0.3.0
+
+### Minor Changes
+
+- [#545](https://github.com/crs48/xNet/pull/545) [`7bb5f80`](https://github.com/crs48/xNet/commit/7bb5f809da96e3cb7bea2c31569e388371c1b1ee) Thanks [@crs48](https://github.com/crs48)! - New `xnet data export` (full/space/schema/node scope, incremental
+  `--since-lamport`), `xnet data import` (with `--dry-run` verify report),
+  and `xnet data snapshot --sqlite` (VACUUM INTO) commands for `.xnetpack`
+  bundle portability.
+
+### Patch Changes
+
+- Updated dependencies [[`1c7b9c9`](https://github.com/crs48/xNet/commit/1c7b9c9c3804fc0d4c80b032ae0ebc0163714c52)]:
+  - @xnetjs/data@2.4.0
+  - @xnetjs/plugins@2.4.0
+  - @xnetjs/runtime@0.5.4
+  - @xnetjs/sqlite@2.4.0
+  - @xnetjs/sync@2.4.0
+  - @xnetjs/identity@2.4.0
+  - @xnetjs/crypto@2.4.0
+  - @xnetjs/core@2.4.0
+
 ## 0.2.2
 
 ### Patch Changes
