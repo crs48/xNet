@@ -8,7 +8,7 @@
 
 ## Problem Statement 🧭
 
-XNet currently treats a DID as the user identity for passkeys, UCAN hub sessions, sync rooms,
+xNet currently treats a DID as the user identity for passkeys, UCAN hub sessions, sync rooms,
 backups, sharing grants, and resource recipients. That is simple, but it creates pressure in the
 wrong place once a person owns multiple devices, loses a device, joins an enterprise, or wants the
 same identity to work across deployments and hubs.
@@ -20,7 +20,7 @@ The immediate question is practical:
 
 The long-term question is broader:
 
-> What identity model lets XNet support multi-device accounts, account recovery, device invalidation,
+> What identity model lets xNet support multi-device accounts, account recovery, device invalidation,
 > federated identity networks, and enterprise domain management without spraying unrelated DIDs
 > through every data model?
 
@@ -39,14 +39,14 @@ into recovery, hub-backed identity services, federation, and enterprise manageme
 
 ## Executive Summary 🎯
 
-Short answer: **a synced passkey can make the laptop-to-phone happy path work, but XNet should not
+Short answer: **a synced passkey can make the laptop-to-phone happy path work, but xNet should not
 build long-term account identity on "the same passkey derives the same DID" alone.**
 
 Passkeys are scoped to a WebAuthn relying party ID. Apple iCloud Keychain, Google Password Manager,
 Microsoft passkey support, and third-party password managers can sync passkeys across devices, but
 sync behavior depends on the credential provider, OS, browser, RP ID, user account, enterprise
-policy, and whether the credential is synced or device-bound. WebAuthn gives XNet a credential and
-possibly a PRF output. It does not give XNet a durable account ledger, device roster, recovery
+policy, and whether the credential is synced or device-bound. WebAuthn gives xNet a credential and
+possibly a PRF output. It does not give xNet a durable account ledger, device roster, recovery
 policy, revocation feed, or federation model.
 
 The recommended model is:
@@ -73,10 +73,10 @@ The recommended model is:
 
 | User question                                               | Practical answer                                                                                                                                                                                                                                 |
 | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Can Apple Passwords share the passkey to my phone?          | Usually yes inside the Apple ecosystem when iCloud Keychain/Passwords is enabled, the device is approved, and XNet uses the same RP ID. Similar sync exists for Google Password Manager and Microsoft/third-party providers, but support varies. |
+| Can Apple Passwords share the passkey to my phone?          | Usually yes inside the Apple ecosystem when iCloud Keychain/Passwords is enabled, the device is approved, and xNet uses the same RP ID. Similar sync exists for Google Password Manager and Microsoft/third-party providers, but support varies. |
 | Will that make the same xNet DID appear on the phone?       | In the current PRF path, it can if the same credential is discoverable on the same RP ID and returns the same PRF output. That is a happy path, not a complete account model.                                                                    |
 | Am I missing the right DID for that token?                  | Current xNet derives the DID from PRF output, stores metadata locally, and uses the DID as the identity. If the phone cannot access the same credential/PRF, it creates or imports a different DID.                                              |
-| Can the DID be saved into the password manager?             | XNet can put account hints into WebAuthn user fields, but a passkey manager is not an xNet account ledger. Store the account/device ledger in signed xNet/hub data instead.                                                                      |
+| Can the DID be saved into the password manager?             | xNet can put account hints into WebAuthn user fields, but a passkey manager is not an xNet account ledger. Store the account/device ledger in signed xNet/hub data instead.                                                                      |
 | If a new device needs a new DID, how is it the same person? | Add the new device DID to a stable account root with a signed join record from an existing device, recovery key, or enterprise authority.                                                                                                        |
 | How do we avoid DID bloat?                                  | Put account IDs and compact device key IDs in data. Resolve device DIDs through the account ledger when verifying signatures and authorization.                                                                                                  |
 | How does invalidation work?                                 | Publish signed device revocation records, have hubs reject revoked devices immediately, expire/rotate UCANs, invalidate auth caches, and rotate content keys for sensitive resources.                                                            |
@@ -187,7 +187,7 @@ Observed implementation facts:
 - `createKeyBackup()` encrypts deterministic key material with a backup key derived from the seed
   (`packages/identity/src/seed-recovery.ts:189`).
 
-Interpretation: XNet already has pieces for recovery, but they are not integrated with the
+Interpretation: xNet already has pieces for recovery, but they are not integrated with the
 passkey-first account flow. They also recover a DID/key bundle rather than enrolling a device into a
 stable account ledger.
 
@@ -220,7 +220,7 @@ Observed implementation facts:
   resources (`packages/data/src/auth/store-auth.ts`).
 - Recipient computation and authorization are DID-centric today.
 
-Interpretation: XNet already has a strong authorization substrate. It needs an account subject
+Interpretation: xNet already has a strong authorization substrate. It needs an account subject
 resolver so grants target a stable account, group, or org subject while devices act as signing
 methods for that subject.
 
@@ -246,11 +246,11 @@ documents.
 Observed facts from standards and official docs:
 
 - WebAuthn Level 3 defines discoverable credentials and retains old "resident key" terminology for
-  compatibility. XNet's `residentKey: 'required'` choice is aligned with account discovery flows.
+  compatibility. xNet's `residentKey: 'required'` choice is aligned with account discovery flows.
 - WebAuthn credentials are scoped to the RP ID. A credential created for one RP ID is not a general
   network identity credential.
 - WebAuthn Level 3 defines the PRF extension and exposes a single PRF per credential when supported.
-  XNet uses that PRF to derive identity key material.
+  xNet uses that PRF to derive identity key material.
 - Apple says iCloud Keychain keeps website/app passwords and passkeys up to date across approved
   Apple devices, with encrypted storage/transmission and escrow recovery controls.
 - Google says passkeys are created, saved, and synchronized through a password manager; passkeys made
@@ -262,7 +262,7 @@ Observed facts from standards and official docs:
   credential managers more safely, but that is password-manager portability, not an app-level
   account/device ledger.
 
-Inference for XNet:
+Inference for xNet:
 
 - Synced passkeys are a good bootstrap and return-user experience.
 - Device-bound passkeys are a good high-assurance enterprise option.
@@ -278,13 +278,13 @@ Observed facts:
   services, and controller relationships. It explicitly has concepts relevant to verification method
   rotation, revocation, recovery, and correlation risks.
 - UCAN is a DID-based, public-key verifiable, delegable capability scheme for local-first systems.
-  XNet already uses UCANs for hub capabilities.
+  xNet already uses UCANs for hub capabilities.
 - OpenID Federation 1.0 defines signed entity statements, metadata policy, trust chains, trust
   anchors, and trust marks for multilateral federation.
 - SCIM 2.0 defines REST protocol endpoints and schemas for managing users and groups. It is the
   standard shape enterprises expect for provisioning and deprovisioning.
 
-Inference for XNet:
+Inference for xNet:
 
 - Account identity can borrow DID document concepts without requiring every account to be a bare
   `did:key`.
@@ -297,8 +297,8 @@ Inference for XNet:
 
 ### 1. The Current Happy Path Is Real But Narrow
 
-If the same passkey syncs from laptop to phone, the same RP ID is used, PRF is available, and XNet
-calls the unlock-discovered path, then XNet can derive the same key bundle and DID on the phone.
+If the same passkey syncs from laptop to phone, the same RP ID is used, PRF is available, and xNet
+calls the unlock-discovered path, then xNet can derive the same key bundle and DID on the phone.
 That is the cleanest short-term path.
 
 Current blocker: onboarding currently calls create for `AUTHENTICATE`. Fixing that is low risk and
@@ -309,12 +309,12 @@ should be done before designing bigger recovery systems.
 Current code defaults `rpId` to `window.location.hostname`. That means:
 
 - `localhost`, staging, production, and packaged Electron origins can create different passkeys.
-- A hub at `hub.customer.com` and the XNet app at `app.xnet.fyi` are not the same RP unless designed
+- A hub at `hub.customer.com` and the xNet app at `app.xnet.fyi` are not the same RP unless designed
   as such.
 - Cross-deployment identity will not work if every deployment uses its own unrelated RP ID as the
   root identity namespace.
 
-XNet needs a stable RP strategy:
+xNet needs a stable RP strategy:
 
 - Consumer web: use a canonical RP ID such as `xnet.fyi` where possible.
 - Electron: use the same web origin for WebAuthn or a well-defined native credential bridge.
@@ -586,7 +586,7 @@ flowchart LR
 
 ## Federated Identity Network 🌎
 
-The goal is stable identity across the XNet surface area, not just one local deployment.
+The goal is stable identity across the xNet surface area, not just one local deployment.
 
 Recommended model:
 
@@ -643,7 +643,7 @@ Federation should answer:
 
 Federation should not require:
 
-- one global XNet login server;
+- one global xNet login server;
 - every deployment to share one WebAuthn RP ID;
 - exposing personal device rosters to unrelated peers;
 - trusting a hub to rewrite local authorization decisions.
@@ -660,7 +660,7 @@ Add org/domain records:
 - `OrganizationAccount`: org id, display name, verified domains, admins, policy.
 - `DomainVerification`: domain, DNS challenge, verifiedAt, verifier, status.
 - `ManagedUserBinding`: account id, enterprise subject id, email/domain, status.
-- `ManagedGroupBinding`: SCIM/OIDC group id mapped to XNet group nodes.
+- `ManagedGroupBinding`: SCIM/OIDC group id mapped to xNet group nodes.
 - `EnterpriseDevicePolicy`: passkey type policy, device posture, allowed providers, recovery rules.
 - `AdminActionLog`: append-only audit of provisioning, grants, revocations, and policy changes.
 
@@ -694,7 +694,7 @@ mindmap
 
 Use the existing authorization direction:
 
-- SCIM groups become XNet group nodes.
+- SCIM groups become xNet group nodes.
 - Org roles become schema relation roles or group memberships.
 - Grants target account/group/org subjects, not every device DID.
 - Device revocation is separate from user deprovisioning.
@@ -747,16 +747,16 @@ Pros:
 
 Cons:
 
-- XNet must choose or implement a DID method with update/recovery semantics.
+- xNet must choose or implement a DID method with update/recovery semantics.
 - DID document privacy and correlation risks must be handled.
 - More complex than needed if implemented all at once.
 
-Verdict: good target shape, but can start with an XNet-native account ledger before committing to a
+Verdict: good target shape, but can start with an xNet-native account ledger before committing to a
 public DID method.
 
-### Option C: XNet Account Ledger With Device DIDs
+### Option C: xNet Account Ledger With Device DIDs
 
-Create XNet-native account records and signed ledgers. Devices remain DIDs/public keys. Hubs mirror
+Create xNet-native account records and signed ledgers. Devices remain DIDs/public keys. Hubs mirror
 the ledger.
 
 Pros:
@@ -790,7 +790,7 @@ Cons:
 - Centralizes managed identities under enterprise IdP availability.
 - Must handle personal/work account separation.
 
-Verdict: use as an enterprise overlay, not as the universal XNet identity root.
+Verdict: use as an enterprise overlay, not as the universal xNet identity root.
 
 ## Recommended Roadmap 🛣️
 
@@ -872,7 +872,7 @@ Goal: support managed domains, users, groups, devices, and policy.
 - [ ] Add DNS domain verification flow.
 - [ ] Add SCIM `/Users` and `/Groups` provisioning endpoints or integration package.
 - [ ] Add OIDC/SAML login assurance bindings.
-- [ ] Map IdP groups to XNet groups and grants.
+- [ ] Map IdP groups to xNet groups and grants.
 - [ ] Add admin device revocation and user offboarding flows.
 - [ ] Add audit log exports and policy reports.
 
@@ -1063,7 +1063,7 @@ export function canUseHubSession(
 - [ ] Lost phone is revoked and cannot reconnect to hub.
 - [ ] Revocation propagates through hub federation.
 - [ ] Account backup can recover to a new device after all devices are lost.
-- [ ] Enterprise SCIM group update changes XNet group membership.
+- [ ] Enterprise SCIM group update changes xNet group membership.
 - [ ] Enterprise user offboarding revokes org grants and rotates sensitive content keys.
 
 ### Manual Browser/Electron Checks
@@ -1113,7 +1113,7 @@ A global account ledger can become a global tracking object if exposed too broad
 ### Enterprise vs Personal Ownership
 
 Enterprises need control over business data and managed devices. Users need personal accounts that
-survive job changes. XNet should support both:
+survive job changes. xNet should support both:
 
 - personal account owns personal data;
 - org account owns org data;
@@ -1132,11 +1132,11 @@ offline:
 
 ## Open Questions ❓
 
-- Should the stable account id be an XNet-native URI first, a DID method from day one, or both?
+- Should the stable account id be an xNet-native URI first, a DID method from day one, or both?
 - Should consumer accounts default to a synced passkey primary device plus recovery phrase, or should
   every device always get a distinct device key?
 - How much of the account ledger is public, hub-private, or encrypted-to-account?
-- How should XNet represent aliases so a person can intentionally separate personal, community, and
+- How should xNet represent aliases so a person can intentionally separate personal, community, and
   work identities?
 - Which hub is allowed to serve account recovery if multiple hubs mirror the same account?
 - What should the first enterprise policy surface be: verified domains, SCIM groups, or device
@@ -1159,7 +1159,7 @@ Second, start the account/device ledger:
 3. Teach hubs to store signed ledger events and reject revoked devices.
 4. Migrate grants and recipients toward account subjects while preserving legacy DID behavior.
 
-This gives XNet a clean growth path:
+This gives xNet a clean growth path:
 
 - consumer multi-device accounts work even when passkey sync is imperfect;
 - account recovery becomes a controlled device enrollment flow;

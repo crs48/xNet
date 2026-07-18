@@ -1,4 +1,4 @@
-# 0146 - Working With Regulators Standards Bodies And Incumbents For XNet Market Adoption
+# 0146 - Working With Regulators Standards Bodies And Incumbents For xNet Market Adoption
 
 > **Status:** Exploration  
 > **Date:** 2026-06-03  
@@ -8,14 +8,14 @@
 
 ## Problem Statement 🧭
 
-How should XNet work with regulators, standards bodies, and incumbents so it can come to market,
+How should xNet work with regulators, standards bodies, and incumbents so it can come to market,
 grow, and be adopted with minimal friction?
 
-The question is not "how does XNet avoid external reality?" A federated local-first system touches
+The question is not "how does xNet avoid external reality?" A federated local-first system touches
 privacy, cloud services, online safety, app distribution, identity, cybersecurity, open standards,
 enterprise procurement, search, crawling, content moderation, AI, payments, and public-sector
-trust. External institutions can help XNet become legitimate and interoperable. They can also slow
-XNet down through ambiguity, procurement demands, platform policies, standards politics, lobbying,
+trust. External institutions can help xNet become legitimate and interoperable. They can also slow
+xNet down through ambiguity, procurement demands, platform policies, standards politics, lobbying,
 or compliance obligations that were designed around centralized platforms.
 
 The goal is:
@@ -24,7 +24,7 @@ The goal is:
 > security process, conformance tests, open standards, operator certification, and credible
 > governance.
 
-This is strategic product/governance research, not legal advice. XNet would need qualified counsel,
+This is strategic product/governance research, not legal advice. xNet would need qualified counsel,
 privacy/security experts, and jurisdiction-specific review before offering regulated services,
 serving children, operating public social/search surfaces, launching payments/crypto rails, or
 selling into public sector and regulated industries.
@@ -32,38 +32,38 @@ selling into public sector and regulated industries.
 ## Exploration Status
 
 - [x] Compute the next exploration number and use a valid shortened filename
-- [x] Review XNet README, hub, query, identity, telemetry, plugins, abuse, and tradeoff docs
+- [x] Review xNet README, hub, query, identity, telemetry, plugins, abuse, and tradeoff docs
 - [x] Review recent explorations on monetization, public markets, foundation models, and abuse
 - [x] Research regulators, standards bodies, app stores, procurement regimes, and security guidance
-- [x] Map where regulators, standards bodies, and incumbents can help or impede XNet
+- [x] Map where regulators, standards bodies, and incumbents can help or impede xNet
 - [x] Synthesize an external alignment program with phases, risk gates, and concrete artifacts
 - [x] Include mermaid diagrams, checklists, recommendations, example code, and references
 
 ## Executive Summary 🎯
 
-XNet should treat regulation, standards, and incumbents as **adoption infrastructure**, not only as
+xNet should treat regulation, standards, and incumbents as **adoption infrastructure**, not only as
 constraints.
 
 The core recommendation:
 
-> Build XNet as an open, local-first, user-owned data system that is easy for regulators to
+> Build xNet as an open, local-first, user-owned data system that is easy for regulators to
 > understand, easy for standards bodies to test, easy for incumbents to integrate with, and hard for
 > any single incumbent to capture.
 
 Practical strategy:
 
-1. **Classify XNet surfaces by obligation.** A local-only desktop app, managed personal hub, public
+1. **Classify xNet surfaces by obligation.** A local-only desktop app, managed personal hub, public
    community hub, federated search index, plugin marketplace, AI script generator, enterprise cloud,
    and future crypto settlement rail are different regulatory products.
 2. **Ship trust artifacts early.** Privacy policy, data processing addendum, subprocessors list,
    retention schedule, vulnerability disclosure policy, security contact, export/delete workflows,
    transparency reports, content policy, and law-enforcement request policy should not wait until
    there is a crisis.
-3. **Use existing standards where they reduce friction.** XNet can keep DID/UCAN/local-first
+3. **Use existing standards where they reduce friction.** xNet can keep DID/UCAN/local-first
    primitives while adding pragmatic bridges for WebAuthn/passkeys, OpenID Connect, OAuth,
    ActivityPub, AT Protocol, Matrix, C2PA, OpenTelemetry, SBOM/SLSA/OpenSSF practices, and
    enterprise identity expectations.
-4. **Join standards conversations after there is running code.** XNet should bring conformance
+4. **Join standards conversations after there is running code.** xNet should bring conformance
    tests, reference deployments, and measured problems into W3C/IETF/OpenID/FIDO/C2PA/OpenSSF-style
    venues rather than asking committees to bless an unproven design.
 5. **Collaborate with incumbents through portability and integration.** The strongest incumbent
@@ -81,7 +81,7 @@ The external alignment loop should look like this:
 
 ```mermaid
 flowchart TD
-    Surface["XNet product surface<br/>local app, hub, search, plugins, AI"]
+    Surface["xNet product surface<br/>local app, hub, search, plugins, AI"]
     Duties["External duties<br/>privacy, safety, security, interop, procurement"]
     Product["Product controls<br/>export, consent, reporting, audit, policy"]
     Evidence["Evidence artifacts<br/>docs, tests, logs, reports, certifications"]
@@ -100,15 +100,15 @@ flowchart TD
 
 The main posture:
 
-> XNet should not present itself as "decentralization to avoid rules." It should present itself as
+> xNet should not present itself as "decentralization to avoid rules." It should present itself as
 > "decentralization to make user rights, data portability, local resilience, and competition easier
 > to enforce."
 
 ## Current State In The Repository 🔎
 
-### XNet already has externally relevant surfaces
+### xNet already has externally relevant surfaces
 
-The root [`README.md`](../../README.md) positions XNet as decentralized data infrastructure and a
+The root [`README.md`](../../README.md) positions xNet as decentralized data infrastructure and a
 user-facing app: local-first, P2P-synced, user-owned data. The repo already includes:
 
 | Surface                     | Repo evidence                                                                                                                                                                    | External relevance                                                                               |
@@ -126,7 +126,7 @@ user-facing app: local-first, P2P-synced, user-owned data. The repo already incl
 
 ### Current strengths for external alignment
 
-XNet already has unusually regulator-friendly primitives:
+xNet already has unusually regulator-friendly primitives:
 
 - **Local-first storage:** reduces default central data collection.
 - **User-owned data posture:** aligns with data portability and user rights narratives.
@@ -157,7 +157,7 @@ buyers:
 | UCAN over OAuth                                                                           | Good for P2P capability delegation, but less familiar to standards bodies and enterprise IdPs.                       |
 | BLAKE3/Ed25519 tradeoff docs note NIST/FIPS gaps                                          | Some regulated/public-sector buyers may require FIPS-validated algorithms/modules.                                   |
 | No standards conformance suite yet                                                        | Hard for third-party operators or standards bodies to validate compatibility.                                        |
-| No trademark/compatibility policy                                                         | "XNet-compatible" claims need rules before incumbents or hosts use the brand.                                        |
+| No trademark/compatibility policy                                                         | "xNet-compatible" claims need rules before incumbents or hosts use the brand.                                        |
 | No formal content policy, notice/action flow, appeals, or transparency report process     | Public hubs and app stores expect UGC moderation mechanisms.                                                         |
 | Plugin marketplace safety is not yet an external trust program                            | Script/plugin ecosystems need signing, review, permission manifests, malware response, and takedown.                 |
 | No procurement packet                                                                     | Enterprise/public-sector adoption usually needs security, privacy, accessibility, support, and continuity artifacts. |
@@ -173,7 +173,7 @@ compliance friction:
 - telemetry: explicit opt-in, progressive tiers, and bucketed reporting; strong trust, less
   diagnostic data.
 
-These should not be reversed casually. But XNet should add compatibility layers where external
+These should not be reversed casually. But xNet should add compatibility layers where external
 markets need them.
 
 ```mermaid
@@ -221,7 +221,7 @@ GDPR, CCPA-style state privacy laws, app-store privacy policies, and enterprise 
 care about who controls data, what is collected, why it is processed, how long it is retained, who
 receives it, how users can export/delete it, and how consent works.
 
-XNet's local-first posture helps. But the moment XNet offers managed hubs, public hubs, support
+xNet's local-first posture helps. But the moment xNet offers managed hubs, public hubs, support
 diagnostics, telemetry, hosted search, AI enrichment, or enterprise services, it needs operational
 answers:
 
@@ -242,13 +242,13 @@ Relevant sources:
 [California Privacy Protection Agency CCPA](https://cppa.ca.gov/regulations/consumer_privacy_act.html),
 [Google Play User Data policy](https://support.google.com/googleplay/android-developer/answer/10144311).
 
-### EU Data Act and Data Governance Act: XNet can be an interoperability ally
+### EU Data Act and Data Governance Act: xNet can be an interoperability ally
 
 The EU Data Act emphasizes access, use, sharing, cloud switching, and interoperability. The Data
 Governance Act introduces governance for data sharing, data intermediation services, and data
 altruism organizations.
 
-XNet can align with this direction by making:
+xNet can align with this direction by making:
 
 - user-controlled export/import real;
 - hub migration testable;
@@ -258,7 +258,7 @@ XNet can align with this direction by making:
 - independent operators viable;
 - public-interest data commons possible.
 
-This is a major narrative advantage: XNet can make data portability and competition easier in
+This is a major narrative advantage: xNet can make data portability and competition easier in
 practice.
 
 Relevant sources:
@@ -272,7 +272,7 @@ services, online platforms, and very large online platforms/search engines. The 
 regime is also relevant for user-to-user and search services. App stores impose their own
 moderation/reporting/blocking requirements for user-generated content.
 
-XNet can reduce friction by splitting product modes:
+xNet can reduce friction by splitting product modes:
 
 - private local/family/team collaboration;
 - invite-only community hubs;
@@ -306,7 +306,7 @@ NIST CSF 2.0, CISA Secure by Design, FTC security guidance, OpenSSF/SLSA, FedRAM
 defaults, vulnerability handling, software supply chain integrity, logging, incident response, and
 evidence.
 
-XNet's technical base is strong, but market adoption will need artifacts:
+xNet's technical base is strong, but market adoption will need artifacts:
 
 - security architecture overview;
 - threat model;
@@ -334,7 +334,7 @@ Relevant sources:
 
 ### Identity standards: preserve DID/UCAN, add enterprise bridges
 
-XNet uses `did:key`, UCAN, passkeys/WebAuthn, and local key bundles. This is coherent for
+xNet uses `did:key`, UCAN, passkeys/WebAuthn, and local key bundles. This is coherent for
 local-first infrastructure. But external adopters will often expect:
 
 - OpenID Connect;
@@ -348,7 +348,7 @@ local-first infrastructure. But external adopters will often expect:
 
 The right answer is not to abandon UCAN. It is to build bridges:
 
-- OIDC login creates or links an XNet DID;
+- OIDC login creates or links an xNet DID;
 - enterprise IdP issues organization membership claims;
 - UCAN remains the local/offline capability format;
 - admins can rotate/revoke organization keys;
@@ -362,12 +362,12 @@ Relevant sources:
 [NIST SP 800-63-4](https://pages.nist.gov/800-63-4/),
 [FIDO Alliance passkeys](https://fidoalliance.org/passkeys/).
 
-### Federation and social standards: interoperate before standardizing XNet itself
+### Federation and social standards: interoperate before standardizing xNet itself
 
-XNet should not ask the world to adopt a new standard before proving the product. It should:
+xNet should not ask the world to adopt a new standard before proving the product. It should:
 
 - implement bridges to existing federation protocols where useful;
-- publish precise specs for XNet-specific schemas and hub federation;
+- publish precise specs for xNet-specific schemas and hub federation;
 - provide conformance tests;
 - document deltas from ActivityPub, AT Protocol, Matrix, Solid, and WebDAV-like data portability;
 - join discussions once the gaps are concrete.
@@ -381,7 +381,7 @@ Relevant sources:
 
 ### Search, crawling, provenance, and AI: public reach brings public responsibilities
 
-Federated search and crawling can help XNet become more useful, but they create friction:
+Federated search and crawling can help xNet become more useful, but they create friction:
 
 - site owners may object to crawling;
 - platforms may restrict API or scraping access;
@@ -390,7 +390,7 @@ Federated search and crawling can help XNet become more useful, but they create 
 - AI-generated summaries need provenance and citation support;
 - minors, health, finance, elections, crisis, and public-safety topics raise scrutiny.
 
-XNet should default to:
+xNet should default to:
 
 - robots.txt compliance;
 - source policy and takedown channel;
@@ -409,12 +409,12 @@ Relevant sources:
 
 ### Standards bodies: bring running code, tests, and humility
 
-Standards bodies can help XNet gain legitimacy, procurement acceptance, and interop. They can also
+Standards bodies can help xNet gain legitimacy, procurement acceptance, and interop. They can also
 consume years if approached too early.
 
 Best path:
 
-1. build working XNet interfaces;
+1. build working xNet interfaces;
 2. write implementation-neutral drafts;
 3. publish conformance tests;
 4. build adapters to existing standards;
@@ -422,7 +422,7 @@ Best path:
 6. participate in existing groups;
 7. propose narrow extensions only where there is a real gap.
 
-The wrong path is declaring "XNet is the new standard" before multiple independent
+The wrong path is declaring "xNet is the new standard" before multiple independent
 implementations exist.
 
 Relevant sources:
@@ -447,7 +447,7 @@ Incumbents include:
 - public-sector procurement vendors;
 - open-source foundations and standards consortia.
 
-They can help XNet through:
+They can help xNet through:
 
 - APIs and import/export;
 - app distribution;
@@ -461,7 +461,7 @@ They can help XNet through:
 - standards experience;
 - trust transfer.
 
-They can slow XNet through:
+They can slow xNet through:
 
 - API rate limits and policy changes;
 - app-store rejections;
@@ -475,7 +475,7 @@ They can slow XNet through:
 - "security review" delays;
 - requiring enterprise features before adoption.
 
-XNet should collaborate without becoming dependent on any one incumbent.
+xNet should collaborate without becoming dependent on any one incumbent.
 
 ## Key Findings 🔑
 
@@ -484,8 +484,8 @@ XNet should collaborate without becoming dependent on any one incumbent.
 2. **Local-first is a regulatory advantage only if hosted boundaries are clear.** If users cannot
    tell what is local, what is backed up, what is indexed, and who processes it, local-first will
    not reduce friction.
-3. **Standards bodies reward implementation evidence.** XNet should publish specs and conformance
-   tests after running code, then participate where XNet exposes real gaps in existing standards.
+3. **Standards bodies reward implementation evidence.** xNet should publish specs and conformance
+   tests after running code, then participate where xNet exposes real gaps in existing standards.
 4. **Incumbents are not one thing.** Apple, Google, Microsoft, AWS, Slack, Notion, Atlassian,
    Salesforce, school districts, local governments, banks, and open-source foundations all create
    different incentives.
@@ -493,12 +493,12 @@ XNet should collaborate without becoming dependent on any one incumbent.
    export/delete, incident process, SBOM, content policy, support SLAs, and procurement packets
    matter before abstract decentralization arguments.
 6. **Public hubs need DSA/app-store-style moderation primitives early.** `@xnetjs/abuse` is a strong
-   start, but XNet still needs productized reporting, blocking, appeals, operator policy, and
+   start, but xNet still needs productized reporting, blocking, appeals, operator policy, and
    transparency reports.
 7. **Enterprise buyers need bridges, not philosophical purity.** OIDC/SAML/SCIM, audit logs, DLP,
    retention, eDiscovery, legal hold, data residency, FIPS profiles, and SOC 2 readiness will matter
-   if XNet wants B2B adoption.
-8. **Regulators can become allies if XNet frames itself as enforceable user choice.** Data
+   if xNet wants B2B adoption.
+8. **Regulators can become allies if xNet frames itself as enforceable user choice.** Data
    portability, local resilience, open schemas, and independent operators map well to competition
    and consumer-protection goals.
 9. **The biggest incumbent risk is default capture.** App stores, cloud providers, identity
@@ -540,19 +540,19 @@ mindmap
       Operator certification
 ```
 
-## How External Actors Can Help XNet 🤝
+## How External Actors Can Help xNet 🤝
 
 ### Regulators
 
 Regulators can help by:
 
-- clarifying what category XNet falls into at each surface;
+- clarifying what category xNet falls into at each surface;
 - supporting sandboxes and public-interest pilots;
 - validating privacy-by-design and portability claims;
 - encouraging incumbent data portability;
 - making decentralized operator models legible;
 - recognizing open-source maintainers and foundations as part of critical digital infrastructure;
-- pushing markets toward interoperability that XNet already wants.
+- pushing markets toward interoperability that xNet already wants.
 
 Good collaboration patterns:
 
@@ -567,12 +567,12 @@ Good collaboration patterns:
 
 Standards bodies can help by:
 
-- legitimizing XNet interfaces;
+- legitimizing xNet interfaces;
 - improving interop with existing systems;
 - creating procurement-friendly references;
 - attracting independent implementers;
 - forcing spec clarity;
-- exposing where XNet should reuse rather than invent.
+- exposing where xNet should reuse rather than invent.
 
 Good collaboration patterns:
 
@@ -589,12 +589,12 @@ Incumbents can help by:
 
 - providing identity integrations;
 - supporting import/export and data transfer;
-- distributing XNet clients through app stores;
+- distributing xNet clients through app stores;
 - hosting hubs through cloud marketplace images;
 - enabling connectors to existing work systems;
 - co-selling to enterprise buyers;
 - offering compliance and security review templates;
-- validating XNet as a safe integration partner.
+- validating xNet as a safe integration partner.
 
 Good collaboration patterns:
 
@@ -605,7 +605,7 @@ Good collaboration patterns:
 - create migration tools that reduce customer switching risk;
 - pursue public standards where incumbents also benefit.
 
-## How They Can Slow XNet Down 🧱
+## How They Can Slow xNet Down 🧱
 
 ### Regulatory delay modes
 
@@ -617,7 +617,7 @@ Good collaboration patterns:
 - encryption/backdoor pressure;
 - law-enforcement request complexity for encrypted/local-first data;
 - sector-specific rules in health, education, finance, employment, housing, and government records;
-- payments, money-transmission, securities, commodities, sanctions, and tax issues if XNet adds
+- payments, money-transmission, securities, commodities, sanctions, and tax issues if xNet adds
   tokens or stablecoin settlement.
 
 ### Standards delay modes
@@ -625,7 +625,7 @@ Good collaboration patterns:
 - slow committees;
 - incumbent capture;
 - requirements that overfit centralized systems;
-- pressure to support heavy legacy protocols before XNet has product-market fit;
+- pressure to support heavy legacy protocols before xNet has product-market fit;
 - spec churn;
 - disagreements over identity, moderation, search ranking, or data schemas;
 - conformance requirements that become expensive enough to exclude small operators.
@@ -641,7 +641,7 @@ Good collaboration patterns:
 - brand/trademark disputes;
 - patent assertions;
 - FUD that decentralized/local-first means unsafe, unmoderated, noncompliant, or crypto-adjacent;
-- using standards bodies to slow or dilute XNet-compatible interoperability.
+- using standards bodies to slow or dilute xNet-compatible interoperability.
 
 ## Options And Tradeoffs ⚖️
 
@@ -661,7 +661,7 @@ Good collaboration patterns:
 - expensive retrofits;
 - trust damage after first incident;
 - hard to sell to regulated buyers;
-- regulators may see XNet as evasive rather than constructive.
+- regulators may see xNet as evasive rather than constructive.
 
 **Verdict:** acceptable for narrow local-only prototypes, bad for managed hubs or public surfaces.
 
@@ -679,7 +679,7 @@ program before broad market push.
 **Costs:**
 
 - slow and expensive;
-- can pull XNet toward enterprise SaaS before consumer/community fit;
+- can pull xNet toward enterprise SaaS before consumer/community fit;
 - may overfit centralized admin assumptions;
 - delays public federation experiments.
 
@@ -726,7 +726,7 @@ Cloudflare, schools, governments, and cloud marketplaces early.
 - incumbents can shape roadmap;
 - "decentralized" vision may be diluted into another integration layer.
 
-**Verdict:** good if XNet remains portable and multi-provider.
+**Verdict:** good if xNet remains portable and multi-provider.
 
 ### Option 5: Public-interest/regulatory sandbox path
 
@@ -794,7 +794,7 @@ and community governance to reduce incumbent dependence.
 
 ## Recommended Strategy 🚀
 
-XNet should create a lightweight **External Alignment Program** with four tracks:
+xNet should create a lightweight **External Alignment Program** with four tracks:
 
 ```mermaid
 flowchart LR
@@ -849,7 +849,7 @@ Build these before broad managed/public launch:
 
 Near-term:
 
-- publish XNet schema and federation specs as implementation-neutral docs;
+- publish xNet schema and federation specs as implementation-neutral docs;
 - create conformance tests for hubs, schemas, export, and migration;
 - document compatibility with DID Core, WebAuthn, OAuth/OIDC bridge, ActivityPub/AT/Matrix bridges,
   robots.txt, C2PA, and OpenSSF/SLSA practices;
@@ -857,7 +857,7 @@ Near-term:
 
 Mid-term:
 
-- join W3C/IETF/OpenID/FIDO/C2PA/OpenSSF conversations where XNet has direct relevance;
+- join W3C/IETF/OpenID/FIDO/C2PA/OpenSSF conversations where xNet has direct relevance;
 - run interop events;
 - invite independent hub operators to test;
 - create compatibility profiles for personal, community, enterprise, public, and search hubs.
@@ -1002,7 +1002,7 @@ Avoid:
 
 ### Enterprise/public sector
 
-Goal: sell responsibly without rebuilding XNet as conventional SaaS.
+Goal: sell responsibly without rebuilding xNet as conventional SaaS.
 
 Do:
 
@@ -1081,7 +1081,7 @@ pilots, or crypto/payment rails.
 
 ### Standards body playbook
 
-Use when XNet has running interop code.
+Use when xNet has running interop code.
 
 1. Publish implementation-neutral draft.
 2. Publish test vectors.
@@ -1121,7 +1121,7 @@ data commons.
 
 ## Example Code: Surface-Based External Risk Planner 🧪
 
-This is not legal analysis. It is a product planning sketch that turns XNet surfaces into
+This is not legal analysis. It is a product planning sketch that turns xNet surfaces into
 engagement work items.
 
 ```typescript
@@ -1311,8 +1311,8 @@ until their "now" artifacts exist.
       and account deletion.
 - [ ] Productize `@xnetjs/abuse` into report/block/mute/appeal/transparency UX for public hubs.
 - [ ] Add operator policy disclosure documents for hubs.
-- [ ] Draft XNet hub federation and schema conformance tests.
-- [ ] Draft "XNet-compatible" trademark and certification policy, building on exploration 0145.
+- [ ] Draft xNet hub federation and schema conformance tests.
+- [ ] Draft "xNet-compatible" trademark and certification policy, building on exploration 0145.
 - [ ] Build OIDC bridge design without replacing UCAN as the local capability layer.
 - [ ] Create standards map: W3C DID/VC/WebAuthn/ActivityPub, IETF/OAuth/robots, OpenID, FIDO,
       C2PA, OpenSSF/SLSA, Matrix/AT Protocol bridges.
@@ -1335,7 +1335,7 @@ until their "now" artifacts exist.
 - [ ] A public hub has reporting, blocking, muting, appeal, repeat-abuse, and transparency flows.
 - [ ] A mobile app reviewer can use a demo mode and verify UGC controls.
 - [ ] An independent operator can run conformance tests without asking Labs for permission.
-- [ ] XNet has a published vulnerability disclosure path and can receive private security reports.
+- [ ] xNet has a published vulnerability disclosure path and can receive private security reports.
 - [ ] Release artifacts can produce SBOMs and eventually signed provenance.
 - [ ] Standards docs distinguish existing standards from XNet-specific extensions.
 - [ ] Incumbent connectors degrade gracefully when APIs change.
@@ -1348,7 +1348,7 @@ until their "now" artifacts exist.
 
 ## Strategic Recommendation 🧩
 
-XNet should align with the external world through **evidence, interfaces, and staged exposure**.
+xNet should align with the external world through **evidence, interfaces, and staged exposure**.
 
 Near-term:
 
@@ -1370,22 +1370,22 @@ Mid-term:
 
 Long-term:
 
-1. Use an XNet Foundation or commons body to steward specs, conformance, trademarks, and public
+1. Use an xNet Foundation or commons body to steward specs, conformance, trademarks, and public
    policy engagement.
 2. Push standards that make user-owned data, local-first sync, and federated operators easier for
    regulators and incumbents to trust.
 3. Keep crypto/payment rails optional and utility-driven.
-4. Use XNet's open architecture as a policy argument for competition, resilience, and user rights.
+4. Use xNet's open architecture as a policy argument for competition, resilience, and user rights.
 
 The simplest external narrative:
 
-> XNet is not trying to route around regulators, standards, or existing institutions. It is trying
+> xNet is not trying to route around regulators, standards, or existing institutions. It is trying
 > to make the things they already say they want - portability, competition, privacy, resilience,
 > interoperability, security, and user choice - concrete enough to run.
 
 ## References 📚
 
-### Local XNet context
+### Local xNet context
 
 - [Root README](../../README.md)
 - [Hub README](../../packages/hub/README.md)

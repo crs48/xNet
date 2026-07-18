@@ -39,7 +39,7 @@ packages/sdk/
 
 ## Implementation
 
-### XNet Client (client.ts)
+### xNet Client (client.ts)
 
 ```typescript
 import { IndexedDBAdapter, MemoryAdapter, type StorageAdapter } from '@xnetjs/storage'

@@ -5,7 +5,7 @@
 
 ## Problem Statement
 
-XNet now has a genuinely compelling story for React developers — typed schemas,
+xNet now has a genuinely compelling story for React developers — typed schemas,
 live `useQuery`/`useMutate`/`useNode` hooks, an offline-first local cache, a
 20‑panel in‑app **DevTools** suite, and (new, exploration
 [0223](docs/explorations/0223_[_]_XNET_REACT_WITH_YOUR_OWN_SERVER_AND_AUTH.md))
@@ -21,7 +21,7 @@ The ask, distilled:
    - **Managed hub** → works out of the box, zero server, and
    - **Bring your own server** → `@xnetjs/server`, with example code and links.
    You should be able to read *just this page* and understand how to get the most
-   out of XNet React, with links to deeper docs throughout.
+   out of xNet React, with links to deeper docs throughout.
 2. A **`/devtool` landing page** — feature-showcase for the in-app DevTools,
    with annotated screenshots of the database browser and other panels (also
    featured as a section on `/react`).

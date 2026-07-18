@@ -218,7 +218,7 @@ export class ExpoStorageAdapter implements StorageAdapter {
 }
 ```
 
-### XNet Hook (hooks/useXNet.ts)
+### xNet Hook (hooks/useXNet.ts)
 
 ```typescript
 import { useState, useEffect, useCallback } from 'react'

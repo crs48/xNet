@@ -2,7 +2,7 @@
 
 ## Problem Statement
 
-XNet should grow a **first-class mapping capability**: not a one-off "show
+xNet should grow a **first-class mapping capability**: not a one-off "show
 pins on a map" embed, but a durable foundation for geospatial work that scales
 from "drop a marker on a page" to "the operational map for an agriculture
 company, a logistics fleet, a data-center portfolio, a neighborhood, or a trip."
@@ -24,11 +24,11 @@ Concretely, we want to be able to:
   API key, and no leaking the user's location browsing to a tile vendor.
 
 The strategic question is *not* "which map library" in isolation — it's **how a
-map plugs into XNet's existing node/schema/view/widget architecture** so that a
+map plugs into xNet's existing node/schema/view/widget architecture** so that a
 place on the map is a *node in the knowledge graph* (linkable, taggable,
 shareable, auth-scoped, commentable), not an opaque pin in someone else's
 canvas. That node-native quality is the thing Google Maps can never give us, and
-it is the whole reason to build this inside XNet rather than iframe a map.
+it is the whole reason to build this inside xNet rather than iframe a map.
 
 ## Executive Summary
 
@@ -36,7 +36,7 @@ it is the whole reason to build this inside XNet rather than iframe a map.
 vector renderer) as the base engine, default to a **self-hosted Protomaps
 PMTiles basemap** proxied through the hub (open data, no API key, offline-
 capable), add **deck.gl** as an optional high-volume overlay engine and
-**Terra Draw** for geometry editing — and wire it into XNet through **three
+**Terra Draw** for geometry editing — and wire it into xNet through **three
 escalating surfaces** that all share one geo data model:
 
 1. **A `geo` property type + a "Map" view** over *any* database — the
@@ -50,7 +50,7 @@ escalating surfaces** that all share one geo data model:
 3. **A `Map` dashboard widget** for embedding a map tile in a dashboard.
 
 The data model is **tiered**: small/curated features become **one node each**
-(queryable, linkable, the XNet-native superpower), while bulk datasets (millions
+(queryable, linkable, the xNet-native superpower), while bulk datasets (millions
 of features) are stored as **dataset artifacts** (PMTiles/FlatGeobuf/GeoParquet
 blobs) attached to a `GeoDataset` node and rendered via vector tiles / deck.gl,
 with "promote a feature to a node" on click.
@@ -64,7 +64,7 @@ proxy tiles through the hub (`https://*.xnet.fyi` is already allowed in
 
 ## Current State In The Repository
 
-XNet has **zero geo support today** — a repo-wide search for `leaflet`,
+xNet has **zero geo support today** — a repo-wide search for `leaflet`,
 `mapbox`, `maplibre`, `geojson`, `latitude`/`longitude` turns up nothing in the
 feature sense (the only `coordinate`/`camera` references are the *non-geographic*
 infinite-canvas math in `packages/canvas-core`). This is greenfield, which is
@@ -251,13 +251,13 @@ the standard big-data overlay, integrating with MapLibre via `@deck.gl/mapbox`'s
   PMTiles natively (via the `pmtiles` protocol plugin + `protomaps-themes-base`
   styles). Daily world builds exist down to building detail, and the file can be
   cached in OPFS/IndexedDB for **true offline maps** — aligning perfectly with
-  XNet's durable-storage direction
+  xNet's durable-storage direction
   ([0172](0172_%5Bx%5D_DURABLE_STORAGE_WITHOUT_APP_INSTALL.md)).
 - **Overture Maps Foundation** (Linux Foundation; Amazon/Meta/Microsoft/TomTom)
   publishes open map data — places, buildings, transportation, addresses — in
   **GeoParquet**, ~40% sourced from OSM plus ~200 other sources. This is the
   premium *open* dataset for analytical layers (POIs, building footprints) and a
-  future XNet import target.
+  future xNet import target.
 - **Hosted open options** (drop-in if we ever want managed tiles without running
   our own): **MapTiler** and **Stadia Maps** both serve OSM-based vector styles
   with free tiers — usable behind a key, but they re-introduce a vendor and
@@ -278,7 +278,7 @@ the standard big-data overlay, integrating with MapLibre via `@deck.gl/mapbox`'s
   MapLibre, Leaflet, OpenLayers, Google, Mapbox). It represents everything as
   **GeoJSON Features** and is **agnostic about persistence** — "store it in
   IndexedDB, a remote DB, or any mechanism you wish." That maps *one-to-one* onto
-  XNet: each drawn Feature becomes a node. This is the cleanest path to
+  xNet: each drawn Feature becomes a node. This is the cleanest path to
   draw-a-polygon / edit-a-route UX without reinventing geometry editing.
 
 ### Formats to support (in priority order)
@@ -337,7 +337,7 @@ flowchart TD
   Q{"How many features?\nHow curated?"}
   Q -->|"1 – ~10k, curated,\nwant each linkable"| NODES["One node per feature\n(GeoFeature / any DB row\nwith a geo property)"]
   Q -->|">10k – millions,\nbulk reference data"| BLOB["GeoDataset artifact\n(PMTiles / FlatGeobuf / GeoParquet\nstored as a file blob)"]
-  NODES -->|"queryable, linkable,\ntaggable, auth-scoped"| WIN["XNet-native superpower"]
+  NODES -->|"queryable, linkable,\ntaggable, auth-scoped"| WIN["xNet-native superpower"]
   BLOB -->|"rendered as vector tiles /\ndeck.gl; click = promote\nfeature to a node"| FAST["Stays fast at scale"]
 ```
 
@@ -412,7 +412,7 @@ flowchart TB
     BASE["Basemap: MapLibre + PMTiles\n(self-hosted via hub, offline-cacheable)"]
   end
   INT --> OVR --> DATA --> BASE
-  DATA -->|"each feature ↔ node"| GRAPH["XNet graph:\nlink • tag • comment • task • auth"]
+  DATA -->|"each feature ↔ node"| GRAPH["xNet graph:\nlink • tag • comment • task • auth"]
 ```
 
 ## Example Code

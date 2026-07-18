@@ -1,4 +1,4 @@
-# 0142 - Why Might VCs Invest In XNet?
+# 0142 - Why Might VCs Invest In xNet?
 
 > **Status:** Exploration  
 > **Date:** 2026-06-03  
@@ -7,7 +7,7 @@
 
 ## Problem Statement 💸
 
-Why might venture capitalists invest in XNet? What makes it compelling for venture-scale returns,
+Why might venture capitalists invest in xNet? What makes it compelling for venture-scale returns,
 and on what timeframes?
 
 This question needs a blunt answer. "A decentralized data layer for a new internet" is interesting,
@@ -16,11 +16,11 @@ in a company that might plausibly become worth billions of dollars within a fund
 
 The useful question is narrower:
 
-> Can XNet plausibly become a venture-scale company fast enough to matter for a seed, Series A, or
+> Can xNet plausibly become a venture-scale company fast enough to matter for a seed, Series A, or
 > early growth investor, while still preserving the long-range local-first and federated internet
 > vision?
 
-This exploration evaluates how XNet maps to venture return math, why the timing might be attractive
+This exploration evaluates how xNet maps to venture return math, why the timing might be attractive
 in 2026, which wedges are most fundable, what evidence investors would need at each stage, and
 where the thesis is weak.
 
@@ -30,8 +30,8 @@ This is strategic analysis, not investment advice or a fundraising memo.
 
 - [x] Determine next exploration number and create the target filename
 - [x] Fast-forward local `main` before writing
-- [x] Review current XNet README, vision, roadmap, package lifecycle, hub, React, and plugin docs
-- [x] Review adjacent explorations on global XNet adoption, hub economics, developer tooling, AI,
+- [x] Review current xNet README, vision, roadmap, package lifecycle, hub, React, and plugin docs
+- [x] Review adjacent explorations on global xNet adoption, hub economics, developer tooling, AI,
       enterprise readiness, and post-open-source priorities
 - [x] Research current VC market mechanics, AI software spend, strategic exits, public software
       multiples, data portability regulation, and federation precedents
@@ -40,7 +40,7 @@ This is strategic analysis, not investment advice or a fundraising memo.
 
 ## Executive Summary 🎯
 
-VCs might invest in XNet because it sits at the intersection of several large investable shifts:
+VCs might invest in xNet because it sits at the intersection of several large investable shifts:
 
 1. **AI is forcing every company to reorganize its data layer.** Useful agents need secure,
    structured, permissioned, local/contextual access to work data.
@@ -49,9 +49,9 @@ VCs might invest in XNet because it sits at the intersection of several large in
    infrastructure.
 3. **Local-first collaboration is moving from ideology to product need.** Offline, privacy,
    latency, data ownership, and resilience matter more as work becomes AI-assisted and distributed.
-4. **Regulators are pushing portability and interoperability.** XNet's user-owned data, schema, and
+4. **Regulators are pushing portability and interoperability.** xNet's user-owned data, schema, and
    hub model lines up with a direction governments already want.
-5. **XNet has multiple revenue layers.** Hosted hubs, team subscriptions, developer cloud,
+5. **xNet has multiple revenue layers.** Hosted hubs, team subscriptions, developer cloud,
    enterprise controls, plugins, AI workspace services, and future app-view ecosystems can all
    compound.
 6. **The repo is unusually broad for an early platform.** It already contains web, Electron, Expo,
@@ -60,11 +60,11 @@ VCs might invest in XNet because it sits at the intersection of several large in
 
 The best venture framing is not:
 
-> "XNet decentralizes everything."
+> "xNet decentralizes everything."
 
 The best venture framing is:
 
-> **XNet is the local-first, AI-native application platform for building collaborative software
+> **xNet is the local-first, AI-native application platform for building collaborative software
 > where users and organizations own the data, developers get React-style primitives, and hosted hubs
 > provide the operational cloud layer.**
 
@@ -72,14 +72,14 @@ That gives investors a near-term wedge and long-term upside:
 
 - **Near-term wedge:** developer platform plus hosted sync, backup, search, and AI workspace
   services for collaborative productivity apps.
-- **Medium-term expansion:** XNet Cloud for teams, agencies, internal tools, and enterprise data
+- **Medium-term expansion:** xNet Cloud for teams, agencies, internal tools, and enterprise data
   workspaces.
 - **Long-term platform upside:** federated app views, plugins, AI agents, schema ecosystems, and
   data/network effects around portable work graphs.
 
-The venture case becomes strong only if XNet proves three things quickly:
+The venture case becomes strong only if xNet proves three things quickly:
 
-1. **Product pull:** developers or teams choose XNet because it saves real time or unlocks a product
+1. **Product pull:** developers or teams choose xNet because it saves real time or unlocks a product
    they cannot easily build with Firebase, Supabase, Convex, Jazz, Liveblocks, or Notion-style
    stacks.
 2. **Revenue pull:** hosted hub or team subscriptions convert users into recurring revenue without
@@ -87,17 +87,17 @@ The venture case becomes strong only if XNet proves three things quickly:
 3. **Platform pull:** third-party schemas, plugins, AI workflows, or hub operators create leverage
    beyond one productivity app.
 
-The biggest risk is that XNet is too broad and too early. Venture capital rewards focused
-compounding, not maximum surface area. If XNet pitches local-first docs, distributed search,
+The biggest risk is that xNet is too broad and too early. Venture capital rewards focused
+compounding, not maximum surface area. If xNet pitches local-first docs, distributed search,
 federated social, video, GitHub, Wikipedia, ERP, AI agents, and enterprise compliance all at once,
-investors will hear "scope risk." If XNet pitches a tight wedge with credible expansion options, it
+investors will hear "scope risk." If xNet pitches a tight wedge with credible expansion options, it
 becomes much more investable.
 
 ```mermaid
 flowchart TD
-    Repo["Current XNet repo<br/>local-first app + SDK + hub"]
+    Repo["Current xNet repo<br/>local-first app + SDK + hub"]
     Wedge["Fundable wedge<br/>AI-native local-first app platform"]
-    Revenue["Near-term revenue<br/>XNet Cloud, teams, hosted hubs"]
+    Revenue["Near-term revenue<br/>xNet Cloud, teams, hosted hubs"]
     Expansion["Expansion<br/>plugins, enterprise, vertical packs"]
     Platform["Platform upside<br/>federated schemas, app views, data graph"]
     Outcome["Venture outcome<br/>strategic exit or IPO scale"]
@@ -114,9 +114,9 @@ flowchart TD
 
 ## Current State In The Repository
 
-### What XNet already has
+### What xNet already has
 
-The root [`README.md`](../../README.md) positions XNet as decentralized data infrastructure and an
+The root [`README.md`](../../README.md) positions xNet as decentralized data infrastructure and an
 application: local-first, P2P-synced, user-owned data. It starts with documents and databases, then
 expands through plugins to ERP, MCP integrations, and more.
 
@@ -141,7 +141,7 @@ reliability and multi-hub operator maturity.
 
 The strongest local strategic document for fundraising is
 [`0119_[_]_XNET_AS_A_COMPELLING_WEB_AND_MOBILE_DEVELOPER_TOOL.md`](./0119_[_]_XNET_AS_A_COMPELLING_WEB_AND_MOBILE_DEVELOPER_TOOL.md).
-Its main conclusion is that XNet should stop leading with generalized future-internet substrate and
+Its main conclusion is that xNet should stop leading with generalized future-internet substrate and
 instead become:
 
 > the best way for React and Expo teams to build local-first collaborative productivity SaaS.
@@ -162,7 +162,7 @@ argues that hubs should become a layered service economy:
   tools.
 
 For a VC, this matters because open-source protocols often struggle with value capture. Hosted hubs
-give XNet direct monetization:
+give xNet direct monetization:
 
 - per-user storage and sync plans;
 - team workspace subscriptions;
@@ -176,21 +176,21 @@ give XNet direct monetization:
 ### AI integration creates the current-market narrative
 
 [`0138_[x]_AI_DEEP_INTEGRATION_WITH_PAGES_DATABASES_CANVASES.md`](./0138_[x]_AI_DEEP_INTEGRATION_WITH_PAGES_DATABASES_CANVASES.md)
-argues that XNet should become both an AI-readable vault and an AI-controllable application.
+argues that xNet should become both an AI-readable vault and an AI-controllable application.
 
 This is probably the most timely venture angle:
 
 - AI agents need structured, permissioned access to real user and company data.
-- XNet already has typed schemas, Local API, MCP direction, pages, databases, canvases, plugins,
+- xNet already has typed schemas, Local API, MCP direction, pages, databases, canvases, plugins,
   NodeStore, and rich audit/history primitives.
 - Local-first data reduces the "upload everything to a model vendor" concern.
-- XNet can become a workspace substrate where agents operate through scoped grants and reviewable
+- xNet can become a workspace substrate where agents operate through scoped grants and reviewable
   mutation plans.
 
 ### Enterprise readiness is plausible but not done
 
 [`0128_[_]_COULD_XNET_EVER_BE_MADE_SOC_2_OR_GDPR_OR_ANY_OTHER_KIND_OF_COMPLIANT_AND_ENTERPRISE_FRIENDLY.md`](./0128_[_]_COULD_XNET_EVER_BE_MADE_SOC_2_OR_GDPR_OR_ANY_OTHER_KIND_OF_COMPLIANT_AND_ENTERPRISE_FRIENDLY.md)
-concludes that XNet has strong compliance-relevant primitives but is not yet enterprise compliant.
+concludes that xNet has strong compliance-relevant primitives but is not yet enterprise compliant.
 
 Positive primitives include DID identity and UCAN delegation, signed changes, hash chains,
 schema-level authorization, grant issuance and revocation, content-addressed blobs, encrypted
@@ -240,11 +240,11 @@ NVCA's 2026 Yearbook describes a two-layer venture market: $320B deployed in 202
 value in AI, only $67B in VC fundraising, and 859 active unicorns with aggregate valuation of
 $4.34T waiting for liquidity. Source: [2026 NVCA Yearbook](https://nvca.org/2026-nvca-yearbook/).
 
-Implication for XNet:
+Implication for xNet:
 
 - Investors have capital for AI/software platform companies.
 - They are also more skeptical of broad narratives without evidence.
-- A credible XNet pitch needs to show why it can become one of the concentrated winners, not merely
+- A credible xNet pitch needs to show why it can become one of the concentrated winners, not merely
   part of the "interesting infrastructure" crowd.
 
 ### Fund return math and timing
@@ -255,11 +255,11 @@ median at 1.33x, and 25th percentile at 1.02x. It also reports large dry powder 
 including 72% of 2025 vintage capital remaining unspent at year-end. Source:
 [Carta Q4 2025 VC Fund Performance](https://carta.com/data/vc-fund-performance-q4-2025/).
 
-Implication for XNet:
+Implication for xNet:
 
 - VCs are hunting for outliers because median outcomes are not enough.
 - A seed-stage investment has to plausibly return the fund or materially move it.
-- XNet needs a credible route to a multi-billion-dollar outcome, even if the first product is
+- xNet needs a credible route to a multi-billion-dollar outcome, even if the first product is
   narrower.
 
 Typical VC fund structures intensify this point. A fund generally invests during the first several
@@ -282,13 +282,13 @@ Battery Ventures' State of OpenCloud frames AI as a supercycle comparable to mob
 warning that enterprise deployment still has a gap between expectations and reality. Source:
 [Battery State of OpenCloud 2024](https://www.battery.com/blog/opencloud-2024/).
 
-Implication for XNet:
+Implication for xNet:
 
 - The best time to build a new data/application substrate is when a new compute and UX platform
   changes what software needs from data.
 - AI agents need structured data, permissions, local/private context, audit trails, and reliable
   write paths.
-- XNet can pitch itself as the substrate that makes AI useful on real work data without handing all
+- xNet can pitch itself as the substrate that makes AI useful on real work data without handing all
   canonical state to one model provider.
 
 ### Developer platforms and collaboration exits can be large
@@ -305,11 +305,11 @@ infrastructure platforms:
 - Salesforce announced a $6.5B enterprise value acquisition of MuleSoft in 2018. Source:
   [Salesforce/MuleSoft announcement](https://investor.salesforce.com/news/news-details/2018/Salesforce-Signs-Definitive-Agreement-to-Acquire-MuleSoft/default.aspx).
 
-Implication for XNet:
+Implication for xNet:
 
 - Strategic buyers understand the value of developer ecosystems, integration layers, collaboration
   systems, and infrastructure control planes.
-- XNet's long-term acquirer universe is not only productivity app companies. It could include cloud
+- xNet's long-term acquirer universe is not only productivity app companies. It could include cloud
   providers, developer platforms, enterprise collaboration suites, AI platform companies, database
   vendors, security/compliance vendors, and open-source infrastructure buyers.
 
@@ -323,16 +323,16 @@ The OECD paper on Data Portability, Interoperability and Competition says portab
 interoperability measures can promote competition within and among digital platforms. Source:
 [OECD Data Portability, Interoperability and Competition](https://www.oecd.org/en/publications/data-portability-interoperability-and-competition_73a083a9-en.html).
 
-Implication for XNet:
+Implication for xNet:
 
-- XNet aligns with a policy direction that wants lower switching costs and more competitive digital
+- xNet aligns with a policy direction that wants lower switching costs and more competitive digital
   markets.
 - This can help enterprise/government adoption and long-term strategic positioning.
 - It does not remove the need for product-market fit.
 
 ### Federation precedents validate the shape but expose operating costs
 
-Several external precedents support pieces of the XNet model:
+Several external precedents support pieces of the xNet model:
 
 - [Solid](https://solidproject.org/) frames user data control around Pods and app interoperability.
 - [AT Protocol self-hosting docs](https://atproto.com/guides/self-hosting) distinguish data hosting
@@ -342,7 +342,7 @@ Several external precedents support pieces of the XNet model:
 - [Mastodon server docs](https://docs.joinmastodon.org/user/run-your-own/) show that self-hosted
   federation still requires moderation, operations, and community management.
 
-Implication for XNet:
+Implication for xNet:
 
 - The architecture is not fantasy. The market has seen parts of it.
 - The business model must account for operations. Federation does not eliminate cost; it changes
@@ -352,7 +352,7 @@ Implication for XNet:
 
 ### 1. The strongest VC case is platform, not app
 
-XNet can look like several companies:
+xNet can look like several companies:
 
 - a local-first Notion/Airtable/Linear-style app;
 - a React developer framework;
@@ -364,7 +364,7 @@ XNet can look like several companies:
 
 The most venture-compelling interpretation is:
 
-> **XNet is a platform company that starts as a developer/productivity tool and compounds into a
+> **xNet is a platform company that starts as a developer/productivity tool and compounds into a
 > hosted cloud and ecosystem.**
 
 A pure app can be valuable, but it may not justify the technical breadth. A pure protocol can be
@@ -399,7 +399,7 @@ mindmap
       IPO if ARR scales
 ```
 
-### 2. XNet needs an expansion path beyond notes
+### 2. xNet needs an expansion path beyond notes
 
 A local-first note app alone is not enough. A good notes/docs product can become a strong business,
 but the venture case needs credible expansion into larger budget categories:
@@ -420,7 +420,7 @@ sync, hub, plugins, MCP, AI generation, history, telemetry, search, and vectors.
 The risk is that breadth turns into distraction. The fundraising narrative should show expansion
 sequence, not simultaneous execution.
 
-### 3. XNet has a plausible "why now"
+### 3. xNet has a plausible "why now"
 
 The "why now" is not decentralization by itself. It is the combination of:
 
@@ -432,7 +432,7 @@ The "why now" is not decentralization by itself. It is the combination of:
 - incumbents bundling more AI into closed work suites;
 - open-source developer workflows increasingly mediated by agents.
 
-XNet can position itself as the answer to this problem:
+xNet can position itself as the answer to this problem:
 
 > The AI era needs an application data layer that is local-first, schema-aware, permissioned,
 > auditable, and still cloud-operable.
@@ -441,7 +441,7 @@ XNet can position itself as the answer to this problem:
 
 The most investable revenue is not a future protocol token or speculative network fee. It is:
 
-- XNet Cloud sync/backup/search;
+- xNet Cloud sync/backup/search;
 - hosted team workspaces;
 - managed hubs;
 - developer platform plans;
@@ -468,13 +468,13 @@ flowchart LR
     Enterprise --> Ecosystem
 ```
 
-### 5. XNet is unusually attractive to seed investors if the entry price is disciplined
+### 5. xNet is unusually attractive to seed investors if the entry price is disciplined
 
 At seed, VCs do not need proof of $100M ARR. They need a huge market, a non-obvious insight, a
 strong technical team, early product proof, a wedge that can compound, and asymmetric upside
 relative to entry price.
 
-XNet has much of that:
+xNet has much of that:
 
 - huge market: collaborative software, developer platforms, AI data layer, cloud services;
 - non-obvious insight: user-owned local-first data can be the substrate for AI-native apps;
@@ -501,15 +501,15 @@ By Series A, "vision plus code" is not enough. The company needs one of:
 - open-source distribution showing strong community pull;
 - hosted cloud usage growing with a clear usage-based revenue model.
 
-For XNet, the cleanest Series A story is probably:
+For xNet, the cleanest Series A story is probably:
 
-> Developers are using XNet to build collaborative local-first apps faster than with existing stacks,
-> and many of those apps use XNet Cloud for hosted sync, backup, search, and AI workspace services.
+> Developers are using xNet to build collaborative local-first apps faster than with existing stacks,
+> and many of those apps use xNet Cloud for hosted sync, backup, search, and AI workspace services.
 
 ### 7. The fund-returner math is plausible but not automatic
 
-A seed VC might invest because a small ownership stake in XNet could be worth enough to return a
-fund if XNet becomes a category-defining platform.
+A seed VC might invest because a small ownership stake in xNet could be worth enough to return a
+fund if xNet becomes a category-defining platform.
 
 Example:
 
@@ -519,10 +519,10 @@ Example:
 - At a $5B exit, stake is worth $400M.
 - At a $10B exit, stake is worth $800M.
 
-For a $50M seed fund, even the $2B case is meaningful. For a $500M multi-stage fund, XNet needs a
+For a $50M seed fund, even the $2B case is meaningful. For a $500M multi-stage fund, xNet needs a
 larger exit or the fund must own more over time.
 
-This is why XNet is more compelling to early-stage investors who can get meaningful ownership before
+This is why xNet is more compelling to early-stage investors who can get meaningful ownership before
 category consensus forms.
 
 ### 8. The biggest investor objection is scope
@@ -551,7 +551,7 @@ The answer is not to argue every future scenario. The answer is to show a narrow
 
 ### What VCs need to believe
 
-A VC does not need to believe every XNet scenario. They need to believe a specific return path:
+A VC does not need to believe every xNet scenario. They need to believe a specific return path:
 
 ```mermaid
 flowchart TD
@@ -570,7 +570,7 @@ flowchart TD
 
 The core belief:
 
-> XNet can become one of the few companies that matters in AI-native collaborative application
+> xNet can become one of the few companies that matters in AI-native collaborative application
 > infrastructure.
 
 ### Simple ownership math
@@ -582,7 +582,7 @@ The core belief:
 | Category-defining exit |            $5B |              8% |          $400M | Fund-returning for many early funds                  |
 | IPO-scale platform     |          $10B+ |           6-10% |     $600M-$1B+ | Multi-stage venture-scale outcome                    |
 
-The seed case is strong only if investors can believe XNet has a credible path to at least the $2B
+The seed case is strong only if investors can believe xNet has a credible path to at least the $2B
 to $5B range.
 
 ### Timeframe map
@@ -627,13 +627,13 @@ gantt
 
 ### Thesis A: Developer platform for local-first collaborative apps
 
-**Pitch:** XNet is the best way for React/Expo developers to build collaborative productivity apps
+**Pitch:** xNet is the best way for React/Expo developers to build collaborative productivity apps
 with local-first sync, structured data, rich text, canvas, auth, and hosted cloud defaults.
 
 Why VCs like it:
 
 - developer platforms can scale efficiently;
-- XNet has a clear package/API story;
+- xNet has a clear package/API story;
 - hosted cloud creates recurring revenue;
 - AI makes collaborative app development more important;
 - technical differentiation is real.
@@ -648,7 +648,7 @@ What must be proven:
 
 ### Thesis B: AI-native workspace substrate
 
-**Pitch:** AI agents need structured, permissioned, auditable access to user and business data. XNet
+**Pitch:** AI agents need structured, permissioned, auditable access to user and business data. xNet
 is the local-first workspace data layer where agents can safely read, plan, and mutate pages,
 databases, and canvases.
 
@@ -656,7 +656,7 @@ Why VCs like it:
 
 - AI spend is growing fast;
 - data/action layer is a strategic bottleneck;
-- XNet has MCP, Local API, plugins, schemas, history, and permissions;
+- xNet has MCP, Local API, plugins, schemas, history, and permissions;
 - agent workflows can generate premium revenue;
 - secure/private/local context is differentiated.
 
@@ -670,7 +670,7 @@ What must be proven:
 
 ### Thesis C: Hosted hub and enterprise cloud
 
-**Pitch:** XNet Cloud monetizes local-first collaboration through sync, backup, search, sharing,
+**Pitch:** xNet Cloud monetizes local-first collaboration through sync, backup, search, sharing,
 admin, audit, compliance, and managed hubs.
 
 Why VCs like it:
@@ -691,7 +691,7 @@ What must be proven:
 
 ### Thesis D: Open data/application ecosystem
 
-**Pitch:** XNet becomes the substrate for interoperable schemas, app views, plugins, hubs, and
+**Pitch:** xNet becomes the substrate for interoperable schemas, app views, plugins, hubs, and
 federated business objects.
 
 Why VCs like it:
@@ -747,7 +747,7 @@ Costs:
 - infrastructure work may outstrip solo/small-team capacity;
 - less ability to capture AI timing.
 
-Best if current usage is still early and XNet can keep shipping while collecting evidence.
+Best if current usage is still early and xNet can keep shipping while collecting evidence.
 
 ### Option 3: Raise a small strategic seed from aligned investors/operators
 
@@ -764,7 +764,7 @@ Costs:
 - could be too little for full cloud/product push;
 - investor signaling matters.
 
-Best if XNet needs focused help and runway, not a giant go-to-market machine yet.
+Best if xNet needs focused help and runway, not a giant go-to-market machine yet.
 
 ### Option 4: Build an open-source foundation plus commercial cloud
 
@@ -781,7 +781,7 @@ Costs:
 - VCs may worry about foundation/commercial boundaries;
 - slower decision-making if premature.
 
-Best if XNet starts getting serious community and operator participation.
+Best if xNet starts getting serious community and operator participation.
 
 ## Investor Objections And Responses
 
@@ -790,7 +790,7 @@ Best if XNet starts getting serious community and operator participation.
 | "This is too broad."                | Correct. The fundable wedge is local-first AI-native app platform plus hosted cloud. Federation is expansion.                                                           |
 | "Who pays?"                         | Individuals and teams pay for sync, backup, search, AI workspace, and reliability. Developers pay for hosted hub/API. Enterprises pay for admin/compliance.             |
 | "Why now?"                          | AI agents need permissioned work data; local-first tech is mature enough; regulators push portability; developers are tired of stitching collaboration stacks together. |
-| "Why won't incumbents copy it?"     | They can copy features, but their incentives favor owning the data/app bundle. XNet's differentiated bet is app-as-view plus local-first kernel plus open ecosystem.    |
+| "Why won't incumbents copy it?"     | They can copy features, but their incentives favor owning the data/app bundle. xNet's differentiated bet is app-as-view plus local-first kernel plus open ecosystem.    |
 | "Decentralization has bad UX."      | Do not lead with decentralization UX. Lead with reliable local-first product and hosted defaults. Federation appears as migration, sharing, and operator choice.        |
 | "Open source weakens capture."      | Open source drives trust and developer adoption; capture comes from hosted cloud, enterprise controls, AI services, and ecosystem operations.                           |
 | "Enterprise compliance is missing." | True today. Stage enterprise after team/cloud traction; use existing auth/audit/encryption primitives as base.                                                          |
@@ -800,10 +800,10 @@ Best if XNet starts getting serious community and operator participation.
 
 ### Recommended fundraising posture
 
-If talking to VCs, frame XNet as:
+If talking to VCs, frame xNet as:
 
 > **the local-first, AI-native application platform for collaborative software, with an open-source
-> developer wedge and hosted XNet Cloud revenue.**
+> developer wedge and hosted xNet Cloud revenue.**
 
 Do not lead with:
 
@@ -820,14 +820,14 @@ Those are long-term optionality, not the first underwriting case.
 
 - The old cloud app stack is wrong for AI-native collaborative software.
 - AI needs structured, permissioned, local-context data and reviewable actions.
-- XNet has built the kernel: schemas, NodeStore, sync, Yjs documents, hub, plugins, MCP, app
+- xNet has built the kernel: schemas, NodeStore, sync, Yjs documents, hub, plugins, MCP, app
   surfaces.
 - The wedge is developer platform plus hosted sync/backup/search for collaborative apps.
-- The expansion path is XNet Cloud, team workspaces, AI agents, plugins, enterprise, and federation.
+- The expansion path is xNet Cloud, team workspaces, AI agents, plugins, enterprise, and federation.
 
 **Series A narrative:**
 
-- Developers and teams are adopting XNet because it cuts build time and enables local-first AI
+- Developers and teams are adopting xNet because it cuts build time and enables local-first AI
   workflows.
 - Hosted hub/cloud revenue is growing.
 - Retention is strong because data, sync, and workflows become core infrastructure.
@@ -835,7 +835,7 @@ Those are long-term optionality, not the first underwriting case.
 
 **Series B narrative:**
 
-- XNet is becoming category infrastructure for AI-native collaborative apps.
+- xNet is becoming category infrastructure for AI-native collaborative apps.
 - Enterprise controls and ecosystem are compounding.
 - Multiple revenue lines have emerged.
 - Net retention and usage prove platform pull.
@@ -844,7 +844,7 @@ Those are long-term optionality, not the first underwriting case.
 
 1. **Polish one product path.** Make web/Electron daily-driver reliability undeniable.
 2. **Ship developer starter.** `create-xnet-app`, hosted demo, docs, templates, deploy path.
-3. **Ship XNet Cloud beta.** Paid hosted hub with sync, backup, search, quota, billing, status, and
+3. **Ship xNet Cloud beta.** Paid hosted hub with sync, backup, search, quota, billing, status, and
    migration.
 4. **Ship AI workspace integration.** MCP/Local API plus a safe proposal/apply loop for pages,
    databases, and canvases.
@@ -861,12 +861,12 @@ Those are long-term optionality, not the first underwriting case.
 - [ ] Define the first fundable wedge: developer platform, team workspace, AI workspace, or hosted
       hub cloud.
 - [ ] Add a simple `create-xnet-app` or equivalent starter path with deploy instructions.
-- [ ] Publish hosted XNet Cloud pricing hypotheses for individual, team, developer, and enterprise
+- [ ] Publish hosted xNet Cloud pricing hypotheses for individual, team, developer, and enterprise
       plans.
 - [ ] Add billing-grade hub usage primitives: account, plan, quota, metering event, invoice line.
 - [ ] Add a metrics dashboard covering activation, retention, sync health, cloud usage, and cost.
 - [ ] Package an AI workspace demo using MCP/Local API and reviewable mutation plans.
-- [ ] Identify 5-10 design partners and map their pain to XNet's wedge.
+- [ ] Identify 5-10 design partners and map their pain to xNet's wedge.
 - [ ] Produce a competitive matrix against Firebase, Supabase, Convex, Jazz, Electric, Liveblocks,
       Notion, Anytype, and AFFiNE.
 - [ ] Write a return-path model for seed investors with ownership, dilution, exit valuation, and
@@ -882,7 +882,7 @@ Those are long-term optionality, not the first underwriting case.
 
 - [ ] A new developer can build and deploy a small collaborative app in under 30 minutes.
 - [ ] At least 10 external developers build non-trivial demos or apps without direct handholding.
-- [ ] At least 3 design partners use XNet weekly for real work.
+- [ ] At least 3 design partners use xNet weekly for real work.
 - [ ] Hosted hub beta converts at least some users to paid plans.
 - [ ] Week-4 retention for active users is high enough to indicate workflow pull, not curiosity.
 - [ ] Hub gross margin model is credible under expected storage/search/sync usage.
@@ -958,18 +958,18 @@ console.log(seedCase)
 // }
 ```
 
-This is why early-stage VCs might care. If XNet has even a plausible path to becoming a $5B platform
+This is why early-stage VCs might care. If xNet has even a plausible path to becoming a $5B platform
 company, disciplined early ownership can change a fund.
 
 But this model also shows the pressure. A $100M exit is excellent for many founders and employees,
-but it is not enough for most institutional VC portfolios. If XNet wants VC, it should behave like a
+but it is not enough for most institutional VC portfolios. If xNet wants VC, it should behave like a
 company chasing category scale.
 
 ## Practical Pitch Shape
 
 ### One-sentence pitch
 
-XNet is the local-first, AI-native application platform for building collaborative software where
+xNet is the local-first, AI-native application platform for building collaborative software where
 users and organizations own their data, developers get React-style primitives, and hosted hubs
 provide the operational cloud layer.
 
@@ -1005,7 +1005,7 @@ Lead with:
 - Current app data is trapped in cloud silos.
 - Developers still assemble sync, auth, collaboration, offline, search, and AI with too many
   vendors.
-- XNet gives them local-first data, collaboration primitives, and hosted cloud in one stack.
+- xNet gives them local-first data, collaboration primitives, and hosted cloud in one stack.
 - The same substrate later supports portable apps, plugins, enterprise, and federation.
 
 ## Risks ⚠️
@@ -1022,12 +1022,12 @@ if fundraising creates pressure to pursue every future at once.
 
 ### Market risk
 
-AI-native app platforms are crowded and fast-moving. XNet must show why local-first and user-owned
+AI-native app platforms are crowded and fast-moving. xNet must show why local-first and user-owned
 data are not just values but practical advantages.
 
 ### Value-capture risk
 
-If XNet succeeds as a protocol but not as a cloud/product company, commercial capture may leak to
+If xNet succeeds as a protocol but not as a cloud/product company, commercial capture may leak to
 app views, hub operators, or incumbents.
 
 ### Enterprise risk
@@ -1045,7 +1045,7 @@ and plan design before scale.
 Firebase, Supabase, Convex, Jazz, Electric, Liveblocks, Notion, Anytype, AFFiNE, Microsoft, Google,
 OpenAI, Anthropic, Atlassian, and Salesforce can each attack pieces of the wedge.
 
-XNet's defense must be integrated architecture plus developer/user trust, not feature checklists.
+xNet's defense must be integrated architecture plus developer/user trust, not feature checklists.
 
 ## Next Actions
 
@@ -1059,7 +1059,7 @@ XNet's defense must be integrated architecture plus developer/user trust, not fe
 
 ## References
 
-### Local XNet references
+### Local xNet references
 
 - [`README.md`](../../README.md)
 - [`docs/VISION.md`](../VISION.md)

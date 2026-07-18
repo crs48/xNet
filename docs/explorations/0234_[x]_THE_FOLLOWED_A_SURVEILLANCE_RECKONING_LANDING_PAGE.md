@@ -1,18 +1,18 @@
-# The Followed — A Surveillance‑Reckoning Landing Page for XNet
+# The Followed — A Surveillance‑Reckoning Landing Page for xNet
 
-> Turning the everyday absurdity of internet tracking into XNet's strongest
+> Turning the everyday absurdity of internet tracking into xNet's strongest
 > argument: _you would never tolerate this in the physical world — so why do you
 > tolerate it online?_
 
 ## Problem Statement
 
-XNet's homepage leads with a true but **abstract** promise — "Your data. Your
+xNet's homepage leads with a true but **abstract** promise — "Your data. Your
 devices. Your rules." (`site/src/pages/index.astro`). It is a developer‑shaped
 value proposition: local‑first, offline, peer‑to‑peer, three React hooks. It
-tells you _what XNet is_. It does not make you _feel the thing XNet is a reaction
+tells you _what xNet is_. It does not make you _feel the thing xNet is a reaction
 to._
 
-The thing XNet is a reaction to is **surveillance capitalism** — the now‑normal
+The thing xNet is a reaction to is **surveillance capitalism** — the now‑normal
 arrangement in which nearly every site and app you touch reports you to an
 advertising/data‑broker ecosystem you cannot see, did not consent to in any
 meaningful way, and cannot opt out of. The reason this is hard to sell against is
@@ -33,7 +33,7 @@ route `/why` or `/followed`) that:
    now._
 2. Backs every claim with **sourced, current facts** (2024–2026), with the
    over‑claims the popular narrative gets wrong explicitly corrected.
-3. Pivots to XNet as the structural alternative — and makes only claims the
+3. Pivots to xNet as the structural alternative — and makes only claims the
    **codebase actually supports**, including honest caveats.
 4. Ends with a proof‑of‑practice the page can make about _itself_: this page set
    **0 cookies** and called **0 third‑party trackers**.
@@ -48,16 +48,16 @@ route `/why` or `/followed`) that:
   normal afternoon" in a world where online tracking is made physical
   (scroll‑driven, a visible "tracker count" ticking up). Act II rips the set
   away: each physical absurdity is annotated with the real online mechanism and a
-  citation. Act III is the turn — XNet — and the page's own honesty.
+  citation. Act III is the turn — xNet — and the page's own honesty.
 - **Facts are a data module, not prose** — mirror the repo's existing
   `site/src/data/compare.ts` convention where every claim carries a `sourceUrl`,
   validated at build time. This keeps the page defensible and updatable.
 - **Truth discipline is the whole game.** The strongest version of this page is
   the one a hostile ad‑tech engineer can't refute. That means: correct the Target
   "father" myth, _don't_ say Google killed cookies (they reversed in 2024–25),
-  separate the €1.2B GDPR fine from the €200M DMA fine, and never claim XNet is
+  separate the €1.2B GDPR fine from the €200M DMA fine, and never claim xNet is
   "100% encrypted / anonymous / serverless" because the code says otherwise.
-- **The killer proof point is self‑referential and already true:** XNet's own
+- **The killer proof point is self‑referential and already true:** xNet's own
   site uses cookieless Plausible and ships no ad SDKs. The page can truthfully
   audit _itself_ in the footer — a live contrast no surveillance‑funded
   competitor can copy.
@@ -102,7 +102,7 @@ route `/why` or `/followed`) that:
   Tailwind‑native and **color‑coded by meaning**: indigo = SDK/build, emerald =
   app/local‑first, purple = protocol/vision, plus amber/pink/cyan/rose/sky for
   feature cards. For "The Followed", an **amber→red** accent for the surveillance
-  act and **emerald** for the XNet turn fits the established semantics.
+  act and **emerald** for the xNet turn fits the established semantics.
 - `Base.astro` already ships a scroll‑reveal primitive: `.animate-on-scroll`
   - IntersectionObserver with staggered `nth-child` delays. That is exactly the
     mechanism the scrolly narrative needs — **no new animation library required**
@@ -138,7 +138,7 @@ The repo already says the right things, quietly, in legal/utility pages:
 "The Followed" is the **emotional front door** to all of this. It should link
 _out_ to `privacy.astro` and `compare.astro` rather than restate them.
 
-### What XNet can truthfully claim (sourced from code)
+### What xNet can truthfully claim (sourced from code)
 
 | Claim the page wants to make                    | Code support                                                                                           | Verdict                                                   |
 | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------ | --------------------------------------------------------- |
@@ -154,7 +154,7 @@ _out_ to `privacy.astro` and `compare.astro` rather than restate them.
 | Completely anonymous                            | Identified telemetry tier uses a (hashed) DID — pseudonymous, not anonymous                            | ⚠️ overclaim                                              |
 
 The honesty box at the bottom of the page is not a weakness — it is the
-_proof_ that XNet's privacy is architectural, not a marketing promise. It is the
+_proof_ that xNet's privacy is architectural, not a marketing promise. It is the
 single most credibility‑building element on the page.
 
 ## External Research
@@ -257,7 +257,7 @@ exact places competing privacy pitches get sloppy and lose credibility.
   Tracks"** (live fingerprinting demo), **The Markup "Blacklight"** (scan any URL
   for its trackers live). These prove the _interactive‑audit_ device works.
 - **DuckDuckGo / Proton / Brave** marketing — adjacent privacy‑brand voice;
-  note they sell a _tool_, XNet sells a _substrate_ (own the data, not just hide
+  note they sell a _tool_, xNet sells a _substrate_ (own the data, not just hide
   from trackers). That is the differentiated angle.
 
 ## Key Findings
@@ -272,9 +272,9 @@ exact places competing privacy pitches get sloppy and lose credibility.
    of the web," "Google killed cookies") hands a skeptic a reason to dismiss the
    whole page. The corrected, cited version is _more_ alarming _and_
    bulletproof — accuracy is a feature, not a tax.
-3. **XNet's answer is structural, which is rare and sellable.** Most privacy
+3. **xNet's answer is structural, which is rare and sellable.** Most privacy
    pitches are subtractive (block, hide, delete — DuckDuckGo, an ad blocker).
-   XNet is _additive_: the data is yours by construction (you sign every change
+   xNet is _additive_: the data is yours by construction (you sign every change
    with a key only you hold; it lives on your disk; the network is optional).
    "Don't get tracked" is a tool; "there's nothing to traffic in the first place"
    is an architecture. Lead with the architecture.
@@ -285,8 +285,8 @@ exact places competing privacy pitches get sloppy and lose credibility.
    possible mic‑drop.
 5. **It must avoid two failure modes:** (a) _doomer paralysis_ — all problem, no
    exit; fixed by giving Act III real agency and a one‑command start; (b)
-   _over‑claim_ — promising XNet is magic privacy dust; fixed by the honesty box
-   and the "what XNet is / isn't" table grounded in code.
+   _over‑claim_ — promising xNet is magic privacy dust; fixed by the honesty box
+   and the "what xNet is / isn't" table grounded in code.
 
 ## Options And Tradeoffs
 
@@ -302,20 +302,20 @@ exact places competing privacy pitches get sloppy and lose credibility.
 
 | Option                                                                                                                  | Pros                                                                                               | Cons                                                                 |
 | ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| **B1. Two‑act scrolly re‑enactment** _(recommended)_ — Act I physical story, Act II reveal‑with‑citations, Act III XNet | Emotional → rational → actionable arc; reuses `.animate-on-scroll`; degrades gracefully without JS | Most design/copy effort                                              |
+| **B1. Two‑act scrolly re‑enactment** _(recommended)_ — Act I physical story, Act II reveal‑with‑citations, Act III xNet | Emotional → rational → actionable arc; reuses `.animate-on-scroll`; degrades gracefully without JS | Most design/copy effort                                              |
 | B2. Side‑by‑side "Physical world vs. The internet" table                                                                | Cheap, skimmable, very shareable                                                                   | Lower emotional punch; reads like a comparison, not an experience    |
 | B3. Live tracker‑audit widget (à la Blacklight) of a sample site                                                        | Visceral, interactive, true                                                                        | Engineering + privacy/legal care to scan a third‑party site; flakey  |
 | B4. "Your receipt" — a generated faux‑dossier of "what they think they know"                                            | Personal, sticky                                                                                   | Risks feeling gimmicky or creepy‑in‑a‑bad‑way; hard to keep accurate |
 
 B1 is the spine; **fold B2 in** as the Act‑II annotation layout and **borrow
-B3's spirit** only for the _self‑audit of XNet's own page_ (safe, true, no
+B3's spirit** only for the _self‑audit of xNet's own page_ (safe, true, no
 third‑party scanning).
 
 ### C. Tone
 
 | Option                                                                                                     | Pros                                                     | Cons                                                                                       |
 | ---------------------------------------------------------------------------------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| C1. Aggressive / dystopian‑thriller                                                                        | High arousal, shareable                                  | Easy to read as FUD; ages badly; clashes with XNet's "cozy/calm" direction (memory `0232`) |
+| C1. Aggressive / dystopian‑thriller                                                                        | High arousal, shareable                                  | Easy to read as FUD; ages badly; clashes with xNet's "cozy/calm" direction (memory `0232`) |
 | **C2. Calm, concrete, a little wry** _(recommended)_ — Apple‑grade restraint, let the facts do the scaring | Credible, durable, on‑brand; invites rather than hectors | Requires disciplined copywriting                                                           |
 | C3. Wonky / academic                                                                                       | Maximum credibility                                      | Loses the general audience the physical analogy is meant to reach                          |
 
@@ -353,15 +353,15 @@ section components, in the established idiom:
    (Oracle Advertising shut down; FTC's 2024 location‑data bans) so it isn't pure
    doom.
 
-4. **The turn — "It doesn't have to be built this way."** Emerald. XNet as the
+4. **The turn — "It doesn't have to be built this way."** Emerald. xNet as the
    structural alternative, each claim grounded and linked: data on _your_ device
    (local‑first), keys only _you_ hold (`did:key`/Ed25519/passkeys), every change
    signed by _you_ (the hash‑chained log), no pixel/no broker/not ad‑funded,
    tracking _off by default_ (the consent spine), open & verifiable (MIT +
    conformance vectors). Link to `compare.astro`, `privacy.astro`, `/app`.
 
-5. **The honesty box — "What XNet is, and isn't."** The ⚠️ rows from the table
-   above, in XNet's own voice. _"We won't tell you it's magic. Encryption is
+5. **The honesty box — "What xNet is, and isn't."** The ⚠️ rows from the table
+   above, in xNet's own voice. _"We won't tell you it's magic. Encryption is
    yours to switch on. A hub, if you use one, holds encrypted backups. Telemetry
    is opt‑in and scrubbed — and off until you say otherwise. Here's the source
    code; go check."_ This _earns_ the rest of the page.
@@ -384,7 +384,7 @@ flowchart TD
   R --> A2["Act II — The real mechanisms + citations<br/>(physical ⇄ digital pairs)"]
   A2 --> HOPE["Counter-beats: Oracle Ads shut down · FTC 2024 bans"]
   HOPE --> T["Act III — The turn: XNet (emerald)"]
-  T --> HB["Honesty box: what XNet is / isn't"]
+  T --> HB["Honesty box: what xNet is / isn't"]
   HB --> SA["Self-audit: 0 cookies · 0 trackers"]
   SA --> CTA["CTA: install / use the app"]
 ```
@@ -401,7 +401,7 @@ flowchart LR
     DB --> PROF["Unified profile<br/>~thousands of attributes"]
     PROF --> TGT["Targeting & behavioral futures"]
   end
-  subgraph XNET["XNet"]
+  subgraph XNET["xNet"]
     U2["You (hold the keys)"] -->|"signed change (Ed25519)"| LOC["Local SQLite / OPFS on your device"]
     LOC -.->|"optional, encrypted"| HUB["A hub you choose<br/>(self-host or managed)"]
     LOC -->|"no pixel · no broker"| NONE["(nothing to traffic)"]
@@ -646,10 +646,10 @@ import { CLAIMS } from '../data/surveillance.ts'
 - [x] Add `site/src/pages/why.astro` composing the above with `Base`/`Nav`/`Footer`.
 - [x] Copy pass in the calm C2 voice; physical‑world beats and online annotations
       paired 1:1 with the data module.
-- [x] Honesty box renders the ⚠️ "is / isn't" rows in XNet's own voice, linking
+- [x] Honesty box renders the ⚠️ "is / isn't" rows in xNet's own voice, linking
       to source files / `privacy.astro` / `compare.astro`.
 - [x] Self‑audit section + runtime warning; keep amber→red (alarm) / emerald
-      (XNet) accents consistent with existing token semantics.
+      (xNet) accents consistent with existing token semantics.
 - [x] Link in from `Footer.astro` (Product or Resources column) and a homepage
       entry point; **defer** Nav promotion pending reception.
 - [x] Confirm all motion uses the approved `.animate-on-scroll` primitive
@@ -665,7 +665,7 @@ import { CLAIMS } from '../data/surveillance.ts'
       the six accuracy flags are honored (Target anecdote framed as folklore; no
       "Google killed cookies"; €1.2B vs €200M kept distinct; "Meta Pixel 30%"
       avoided; Oracle Ads past‑tense; Visa nuance).
-- [x] None of the ⚠️ overclaim rows appear as unqualified XNet promises anywhere
+- [x] None of the ⚠️ overclaim rows appear as unqualified xNet promises anywhere
       on the page.
 - [x] Network tab on `/why` shows **0 cross‑origin requests** and **0 cookies**
       (self‑audit truthful); runtime warning silent.
@@ -694,7 +694,7 @@ import { CLAIMS } from '../data/surveillance.ts'
   primitive, cookieless analytics.
 - `site/tailwind.config.mjs`, `site/astro.config.mjs`, `site/package.json` —
   styling, integrations, gated build order.
-- XNet ground truth: `README.md`, `docs/VISION.md`,
+- xNet ground truth: `README.md`, `docs/VISION.md`,
   `docs/specs/protocol/00-overview.md`, `packages/storage/`, `packages/sync/`,
   `packages/identity/`, `packages/telemetry/`, `apps/web/src/lib/consent.ts`,
   `apps/web/src/App.tsx`, `conformance/`.

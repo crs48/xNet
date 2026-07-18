@@ -1,13 +1,13 @@
-# XNet × Unreal Engine 6: A Sovereign Cross-Game Data & Identity Bridge
+# xNet × Unreal Engine 6: A Sovereign Cross-Game Data & Identity Bridge
 
 ## Problem Statement
 
 > "Unreal Engine 6 was just announced and it has kind of deep support for open
 > standards. It seems like they're really trying to provide open standards for
-> the entire gaming industry. And I'm thinking it'd be really cool if XNet was
+> the entire gaming industry. And I'm thinking it'd be really cool if xNet was
 > able to integrate directly into the Unreal Engine 6 ecosystem. So… somehow
-> making XNet data and applications accessible to Unreal Engine games, and vice
-> versa, Unreal Engine games accessible to XNet apps. I don't know what the
+> making xNet data and applications accessible to Unreal Engine games, and vice
+> versa, Unreal Engine games accessible to xNet apps. I don't know what the
 > interface might look like or where the different touch points might be, but
 > it's worth doing some exploration into Unreal Engine 6 and seeing how it might
 > integrate with XNet."
@@ -36,49 +36,49 @@ The strategic observation that makes this worth exploring: **UE6's vision needs 
 persistent, user-owned, cross-game data-and-identity layer, and conspicuously does
 not provide one in a sovereign way.** Verse persistence is real but lives inside an
 Epic-hosted, per-ecosystem runtime. "Portable player value" presumes somewhere
-neutral for that value to *live* between games. XNet — a **local-first,
+neutral for that value to *live* between games. xNet — a **local-first,
 schema-typed, authorization-aware, CRDT-synced data graph with DID identity, an
 MCP server, and a capability-scoped connector runtime** — is almost exactly the
 shape of the missing piece. And the bridge it would need is already 80% built.
 
 This exploration answers: **what is the concrete interface and set of touch points
-by which (a) a UE6 game reads/writes a player's XNet data at authoring- and
-run-time, and (b) a UE6 game's state, events and economy flow into XNet as
-governed nodes that XNet apps render, automate and share — and which of these
+by which (a) a UE6 game reads/writes a player's xNet data at authoring- and
+run-time, and (b) a UE6 game's state, events and economy flow into xNet as
+governed nodes that xNet apps render, automate and share — and which of these
 should we build first?**
 
 ## Executive Summary
 
-1. **There are two directions, and they map cleanly onto primitives XNet already
-   ships.** *XNet → game* (player's sovereign data appears in-world) rides the
+1. **There are two directions, and they map cleanly onto primitives xNet already
+   ships.** *xNet → game* (player's sovereign data appears in-world) rides the
    **MCP server** (`packages/plugins/src/services/mcp-server.ts`) and **LocalAPI**
-   (`packages/plugins/src/services/local-api.ts`). *Game → XNet* (game state
+   (`packages/plugins/src/services/local-api.ts`). *Game → xNet* (game state
    becomes governed nodes) rides the **Connector** primitive
    (`packages/plugins/src/connectors/define-connector.ts`). Neither direction
    requires new infrastructure — both are compositions of existing seams.
 
 2. **The single most valuable, most defensible integration is identity +
-   persistent player data, not graphics.** XNet has `did:key` + UCAN
+   persistent player data, not graphics.** xNet has `did:key` + UCAN
    (`packages/identity`), schema-native authorization, spaces cascade, and signed
-   CRDT changes. UE6 wants portable player value across engines. **XNet's DID is
-   the player's portable identity; their XNet graph is the portable, user-owned
+   CRDT changes. UE6 wants portable player value across engines. **xNet's DID is
+   the player's portable identity; their xNet graph is the portable, user-owned
    save state and inventory.** That is a capability UE6 structurally does not have
    and Epic's own persistence cannot offer (it's Epic-hosted, per-ecosystem). This
    is the wedge.
 
 3. **Align at the open-standard layer where it's cheap, bridge at the protocol
    layer where it's rich.** UE6's open specs are glTF/USD (assets) and Verse APIs +
-   asset conventions (everything else), over an MCP foundation. XNet should: store
+   asset conventions (everything else), over an MCP foundation. xNet should: store
    asset *references* as glTF/USD-shaped `FileRef` CIDs (cheap, standards-aligned),
    and do the real bidirectional work over **MCP** (authoring/agent) and a thin
    **runtime HTTP/WebSocket bridge** (live data). Don't try to be a 3D engine —
-   XNet has no native glTF/USD/mesh support and shouldn't grow one.
+   xNet has no native glTF/USD/mesh support and shouldn't grow one.
 
 4. **The new code is small: one schema pack + one Verse/native client SDK + MCP
    cross-wiring.** A `@xnetjs/unreal` package contributing a **game-interop schema
    pack** (`PlayerIdentity`, `Inventory`, `Item`, `Achievement`, `MatchSession`,
    `GameEconomyEntry`, `AssetRef`), a **Connector** for ingesting game events, and
-   a published **Verse/C++ client** (`XNetClient`) that speaks to XNet's existing
+   a published **Verse/C++ client** (`XNetClient`) that speaks to xNet's existing
    MCP/LocalAPI/hub endpoints. Everything underneath already exists.
 
 5. **Respect the impedance mismatch.** A signed, content-addressed, LWW CRDT graph
@@ -90,25 +90,25 @@ should we build first?**
 
 6. **The runtime bridge needs a native UE plugin, not pure Verse, for *local*
    XNet.** Verse's networking is sandboxed toward Epic-hosted services; reaching a
-   user's `127.0.0.1` XNet daemon from inside Fortnite/UEFN will be restricted. So:
-   *Verse path* → talks to an Epic-hosted or cloud XNet hub; *native C++ UE plugin
-   path* → talks to the local XNet daemon (LocalAPI `:31415` / bridge `:31416`).
+   user's `127.0.0.1` xNet daemon from inside Fortnite/UEFN will be restricted. So:
+   *Verse path* → talks to an Epic-hosted or cloud xNet hub; *native C++ UE plugin
+   path* → talks to the local xNet daemon (LocalAPI `:31415` / bridge `:31416`).
    Support both; don't assume Verse can hit localhost.
 
-7. **Recommendation: Option E — "XNet as the player's sovereign cross-game data
+7. **Recommendation: Option E — "xNet as the player's sovereign cross-game data
    plane," shipped in four phases.** Start MCP-first (authoring, lowest cost,
    rides UE6's own open MCP foundation), add the schema pack + Connector
-   (game → XNet), then the runtime client SDK (XNet → game), then standards-layer
-   asset/identity exchange. Each phase is independently useful and inherits XNet's
+   (game → xNet), then the runtime client SDK (xNet → game), then standards-layer
+   asset/identity exchange. Each phase is independently useful and inherits xNet's
    capability/consent/authorization security from
    [[0196-agent-native-connectors]] and [[0192-schema-authorization-coverage]].
 
 ## Current State In The Repository
 
-XNet already exposes every seam an engine integration needs. The work is a schema
+xNet already exposes every seam an engine integration needs. The work is a schema
 pack, a client SDK, and wiring — not greenfield infrastructure. Verified paths:
 
-### The agent/data interface (XNet → game, machine-readable)
+### The agent/data interface (xNet → game, machine-readable)
 
 - **MCP server.** `packages/plugins/src/services/mcp-server.ts` (+ `mcp-http.ts`,
   `mcp-guardrail.ts`) exposes the workspace as MCP tools (`xnet_search`,
@@ -127,9 +127,9 @@ pack, a client SDK, and wiring — not greenfield infrastructure. Verified paths
 - **Agent bridge.** `packages/devkit/src/bridge-server.ts`
   (`DEFAULT_BRIDGE_PORT = 31416`, `createBridgeServer`) — loopback daemon with
   `/health` + OpenAI-compatible SSE + an MCP config, the BYO-agent path from
-  [[0194-agent-bridge]]. A UE6 in-editor assistant could drive XNet through it.
+  [[0194-agent-bridge]]. A UE6 in-editor assistant could drive xNet through it.
 
-### The ingestion interface (game → XNet, governed)
+### The ingestion interface (game → xNet, governed)
 
 - **Connector primitive.** `packages/plugins/src/connectors/define-connector.ts` —
   `defineConnector({ id, capabilities, sync, agentTools })` produces a
@@ -157,7 +157,7 @@ pack, a client SDK, and wiring — not greenfield infrastructure. Verified paths
   doc for collaborative content).
 - **Blobs.** `packages/data/src/blob/blob-service.ts` — content-addressed (CID),
   chunked storage returning a `FileRef { cid, name, mimeType, size }`. **A glTF or
-  USDZ asset can be stored as a blob today** — XNet just won't *understand* or
+  USDZ asset can be stored as a blob today** — xNet just won't *understand* or
   *render* it (see Gaps).
 
 ### The transport & realtime layer
@@ -170,7 +170,7 @@ pack, a client SDK, and wiring — not greenfield infrastructure. Verified paths
   (`providers/`), the P2P sync substrate.
 - **Comms.** `packages/comms/src/{calls,chat,presence,notify}` — WebRTC
   voice/video + chat + presence. Directly relevant to **cross-game voice/party**
-  and **in-game chat surfaced into XNet** (and vice versa).
+  and **in-game chat surfaced into xNet** (and vice versa).
 
 ### Adjacent surfaces worth reusing
 
@@ -192,9 +192,9 @@ pack, a client SDK, and wiring — not greenfield infrastructure. Verified paths
 
 | Gap | Reality | Consequence for UE6 |
 |---|---|---|
-| **No native 3D** | Zero glTF/USD/mesh/skeleton types; `grep` finds no `gltf`/`openusd`/`babylon` anywhere. Canvas WebGL is 2D tiles. | XNet stores asset *refs* (CIDs, URIs), never renders the scene. Rendering stays in UE. |
+| **No native 3D** | Zero glTF/USD/mesh/skeleton types; `grep` finds no `gltf`/`openusd`/`babylon` anywhere. Canvas WebGL is 2D tiles. | xNet stores asset *refs* (CIDs, URIs), never renders the scene. Rendering stays in UE. |
 | **No frame-rate sync** | NodeStore is signed, content-addressed, LWW. | Don't push transforms/physics. Sync durable player data; model the rest as events. |
-| **Verse ↔ localhost** | Verse networking is sandboxed toward Epic services. | Local-XNet runtime bridge needs a native C++ UE plugin; Verse path targets a hosted hub. |
+| **Verse ↔ localhost** | Verse networking is sandboxed toward Epic services. | Local-xNet runtime bridge needs a native C++ UE plugin; Verse path targets a hosted hub. |
 | **Blob streaming** | Content-addressed chunk retrieval, not a stream CDN. | Fine for metadata/small assets; large meshes → external CDN, store CID/URI. |
 | **No spatial schema** | No transform/Vec3/scene-graph primitive. | Add light `transform`/`AssetRef` fields in the schema pack; keep them coarse. |
 
@@ -216,7 +216,7 @@ pack, a client SDK, and wiring — not greenfield infrastructure. Verified paths
   authoring/scene format. The AOUSD↔Khronos liaison is actively defining USD↔glTF
   interop. AOUSD members already include Apple, Pixar, Adobe, Autodesk, NVIDIA,
   Meta, **Epic**, Unity, IKEA, Lowes — the format war is cooling into a layered
-  standard. **Implication for XNet: treat both as opaque, store the ref, don't
+  standard. **Implication for xNet: treat both as opaque, store the ref, don't
   parse.**
 - **Persistent player data.** Per
   [GamingOnLinux](https://www.gamingonlinux.com/2026/06/unreal-engine-6-is-all-about-generative-ai-fortnite-and-the-verse/)
@@ -227,8 +227,8 @@ pack, a client SDK, and wiring — not greenfield infrastructure. Verified paths
   [wccftech](https://wccftech.com/epic-games-unreal-engine-6-claude-gemini-developer-control/)
   and [Neowin](https://www.neowin.net/news/epic-games-says-unreal-engine-6-will-help-developers-build-content-faster-using-ai-models/),
   Epic is exposing engine capabilities over MCP with Claude/Gemini/Codex
-  first-class. **This is the single biggest gift to XNet: a standard, already-built
-  protocol on both sides.** XNet ships an MCP server; UE6 ships an MCP foundation.
+  first-class. **This is the single biggest gift to xNet: a standard, already-built
+  protocol on both sides.** xNet ships an MCP server; UE6 ships an MCP foundation.
 - **Timeline.** Early Access **late 2027**, full release 12–18 months after. So
   this is a *forward-looking bet*: build against the open specs as they stabilize,
   prototype now against UE5.x/UEFN + the public MCP/USD tooling that already exists.
@@ -238,47 +238,47 @@ pack, a client SDK, and wiring — not greenfield infrastructure. Verified paths
 - **OpenUSD as the metaverse substrate** ([The New Stack](https://thenewstack.io/openusd-could-enable-a-real-metaverse/))
   — the industry consensus that scene/asset interop runs through USD; identity,
   economy and social graphs are explicitly *out of scope* for USD. That out-of-scope
-  set is precisely XNet's domain.
+  set is precisely xNet's domain.
 - **Existing engine ↔ external-data bridges** — Unreal's HTTP/REST (`FHttpModule`),
   WebSocket, and Remote Control API; UEFN's `weak_map` + (announced) general
   persistence. None of these give the *player* ownership of the data; they bind it
-  to the game/publisher. XNet inverts that.
+  to the game/publisher. xNet inverts that.
 - **MCP game servers** — a small but growing set of "expose the engine to an agent
-  over MCP" projects already exist for UE5; UE6 makes this first-party. XNet
+  over MCP" projects already exist for UE5; UE6 makes this first-party. xNet
   joining as a *peer* MCP server (not just a client) is the novel move.
 
 ## Key Findings
 
 1. **Both peers already speak MCP — that's the cheapest, highest-leverage bridge.**
-   XNet's MCP server and UE6's MCP foundation can be wired as two registered MCP
+   xNet's MCP server and UE6's MCP foundation can be wired as two registered MCP
    servers in the same agent harness *today's-pattern* way. An in-editor agent can
-   read a designer's XNet spec docs/tasks and drive the engine; conversely the
-   engine's MCP tools can be surfaced into XNet's AI surface. No new protocol.
+   read a designer's xNet spec docs/tasks and drive the engine; conversely the
+   engine's MCP tools can be surfaced into xNet's AI surface. No new protocol.
 
 2. **The defensible product is sovereignty, not rendering.** UE6 gives portability
-   *within Epic's ecosystem*; XNet gives portability *the player owns*. Identity
+   *within Epic's ecosystem*; xNet gives portability *the player owns*. Identity
    (DID), inventory, achievements, economy, and social graph living in a
    user-controlled, authorization-scoped graph that *any* engine can read is a
-   capability no engine ships. Lead with that, not with "XNet renders your game."
+   capability no engine ships. Lead with that, not with "xNet renders your game."
 
 3. **The Connector already models "a game is an external service."** Game →
-   XNet ingestion is a `defineConnector` away — same governed, capability-scoped,
+   xNet ingestion is a `defineConnector` away — same governed, capability-scoped,
    marketplace-distributable shape as Slack/GitHub. The only new artifact is the
    schema pack the connector writes into.
 
 4. **Granularity is the whole ballgame.** The bridge is great for the ~dozens of
    durable, player-facing facts per session and catastrophic for the thousands of
    per-frame ones. Encode that boundary as a rule, not a hope: *if it belongs in a
-   save file, it can sync to XNet; if it belongs in a netcode packet, it must not.*
+   save file, it can sync to xNet; if it belongs in a netcode packet, it must not.*
 
-5. **Two runtime paths, by trust boundary.** Verse → hosted XNet hub (sandbox-safe,
-   works inside Fortnite islands). Native C++ UE plugin → local XNet daemon
+5. **Two runtime paths, by trust boundary.** Verse → hosted xNet hub (sandbox-safe,
+   works inside Fortnite islands). Native C++ UE plugin → local xNet daemon
    (`:31415`/`:31416`, full power, desktop/standalone titles). Different titles
    will want different paths; the schema pack and MCP layer are shared.
 
 6. **Standards alignment is mostly free.** Storing an asset as a `FileRef` whose
    `mimeType` is `model/gltf-binary` or `model/vnd.usdz+zip` and whose CID resolves
-   via the hub `/files/:cid` route makes XNet a *standards-compliant asset
+   via the hub `/files/:cid` route makes xNet a *standards-compliant asset
    reference store* with no parser, no renderer, no new dependency.
 
 ## Options And Tradeoffs
@@ -291,7 +291,7 @@ flowchart LR
     ASSET[glTF / OpenUSD assets]
     NET[FHttp / WebSocket / Remote Control]
   end
-  subgraph XNET["XNet"]
+  subgraph XNET["xNet"]
     MCPx[MCP server<br/>mcp-server.ts]
     API[LocalAPI REST<br/>local-api.ts]
     HUB[Hub WS rooms<br/>hub/server.ts]
@@ -315,43 +315,43 @@ flowchart LR
 
 ### Option A — MCP-only bridge (authoring / agent-time)
 
-Wire XNet's MCP server and UE6's MCP foundation as peer servers in an agent
-harness. The agent reads XNet design docs, tasks, lore, asset lists and drives the
-engine; engine MCP tools surface into XNet's AI surface.
+Wire xNet's MCP server and UE6's MCP foundation as peer servers in an agent
+harness. The agent reads xNet design docs, tasks, lore, asset lists and drives the
+engine; engine MCP tools surface into xNet's AI surface.
 
 - **Pros:** Near-zero new code (both sides already speak MCP); rides Epic's own
   open MCP foundation; immediately useful for *making* games from XNet specs;
   inherits `McpWriteGuardrail` safety.
 - **Cons:** Request/response, agent-mediated; not a runtime data path; "in-game
-  XNet data" only as far as an agent pastes it in.
+  xNet data" only as far as an agent pastes it in.
 - **Best for:** Day-1 prototype, design/production pipeline, lowest risk.
 
 ### Option B — Runtime data bridge (LocalAPI REST + hub WS ↔ UE networking)
 
-A UE plugin / Verse module reads & writes the player's XNet nodes live: poll
+A UE plugin / Verse module reads & writes the player's xNet nodes live: poll
 LocalAPI, or subscribe to a hub room for push.
 
-- **Pros:** Genuine "XNet data in the game" and "game state to XNet" in real time;
+- **Pros:** Genuine "xNet data in the game" and "game state to xNet" in real time;
   player-owned inventory/identity rendered in-world.
 - **Cons:** Needs a maintained client SDK on the UE side; Verse can't reach
-  localhost (native plugin needed for local XNet); must police granularity.
+  localhost (native plugin needed for local xNet); must police granularity.
 - **Best for:** The headline experience — sovereign cross-game inventory/identity.
 
-### Option C — Connector ingestion (game → XNet analytics/management plane)
+### Option C — Connector ingestion (game → xNet analytics/management plane)
 
 A `defineConnector` pulls game events/economy/match-history into governed nodes;
-XNet apps (dashboard, CRM-style guild manager, ledger, task board) render them.
+xNet apps (dashboard, CRM-style guild manager, ledger, task board) render them.
 
 - **Pros:** Pure reuse of [[0196-agent-native-connectors]]; governed,
-  marketplace-distributable; async (no frame-rate worries); huge surface of XNet
+  marketplace-distributable; async (no frame-rate worries); huge surface of xNet
   apps light up immediately.
-- **Cons:** One-directional (doesn't put XNet data *in* the game); needs the game
+- **Cons:** One-directional (doesn't put xNet data *in* the game); needs the game
   to emit events somewhere the connector can fetch.
 - **Best for:** "Manage / analyze / socialize my game life from XNet."
 
 ### Option D — Open-standard asset & identity exchange (glTF/USD + DID)
 
-Interop purely at the data-format layer: XNet stores glTF/USD asset refs and the
+Interop purely at the data-format layer: xNet stores glTF/USD asset refs and the
 player's DID; the game resolves them via standard formats.
 
 - **Pros:** Maximally durable & standards-aligned; survives protocol churn;
@@ -363,15 +363,15 @@ player's DID; the game resolves them via standard formats.
 ### Option E — **Layered "sovereign cross-game data plane" (recommended)**
 
 Not a choice between A–D but a **phased stack**: MCP-first (A) for authoring, the
-schema pack + Connector (C) for game→XNet, the runtime client SDK (B) for
-XNet→game, all sitting on the standards layer (D) for assets/identity. One new
+schema pack + Connector (C) for game→xNet, the runtime client SDK (B) for
+xNet→game, all sitting on the standards layer (D) for assets/identity. One new
 package (`@xnetjs/unreal`), one schema pack, one published UE client.
 
-- **Pros:** Each layer ships independently and is useful alone; matches XNet's
+- **Pros:** Each layer ships independently and is useful alone; matches xNet's
   "thin composition over existing primitives" grain; security inherited from the
   authorization/capability/consent stack.
 - **Cons:** Largest total scope; depends on UE6 specs maturing through 2027.
-- **Best for:** The actual long-term position — XNet as the neutral, user-owned
+- **Best for:** The actual long-term position — xNet as the neutral, user-owned
   layer UE6's portability vision implies but doesn't supply.
 
 | Option | New code | Bidirectional | Runtime | Standards-aligned | Ship risk |
@@ -388,7 +388,7 @@ package (`@xnetjs/unreal`), one schema pack, one published UE client.
 
 ```mermaid
 flowchart TD
-  P1["Phase 1 — MCP peering (Option A)<br/>XNet MCP ⇄ UE6 MCP foundation<br/>authoring/agent pipeline"]
+  P1["Phase 1 — MCP peering (Option A)<br/>xNet MCP ⇄ UE6 MCP foundation<br/>authoring/agent pipeline"]
   P2["Phase 2 — Schema pack + Connector (Options C+D)<br/>@xnetjs/unreal: PlayerIdentity, Inventory, Item,<br/>Achievement, MatchSession, GameEconomyEntry, AssetRef<br/>game events → governed nodes; asset refs as glTF/USD CIDs"]
   P3["Phase 3 — Runtime client SDK (Option B)<br/>XNetClient for Verse (hosted hub) + native C++ (local daemon)<br/>read inventory/identity in-world; write back achievements"]
   P4["Phase 4 — Sovereign identity & economy<br/>DID-as-player-login (UCAN-scoped), ledger-backed economy,<br/>cross-game social graph + comms party"]
@@ -401,7 +401,7 @@ Why this order:
   against UE5.x/UEFN tooling — it de-risks everything by proving the protocol seam
   before UE6 ships.
 - **Phase 2** is pure reuse of the Connector pattern and immediately lights up the
-  entire XNet app surface (dashboards, guild manager, quest board, economy ledger)
+  entire xNet app surface (dashboards, guild manager, quest board, economy ledger)
   over real game data, with zero runtime/frame-rate exposure.
 - **Phase 3** is the headline "sovereign inventory in any game" experience, but
   it's also the highest-maintenance (a published UE SDK tracking moving specs), so
@@ -410,7 +410,7 @@ Why this order:
   own, across publishers — the thing no engine can ship.
 
 Concrete next steps: create `packages/unreal` (`@xnetjs/unreal`) with the schema
-pack + a `defineConnector('fyi.xnet.unreal', …)`; register XNet's MCP server in a
+pack + a `defineConnector('fyi.xnet.unreal', …)`; register xNet's MCP server in a
 UE6 MCP config as a Phase-1 spike; keep the UE-side client out of this repo (a
 separate Verse/C++ plugin repo) but define its contract here.
 
@@ -469,7 +469,7 @@ export const GameEconomyEntrySchema = defineSchema({
 // + AchievementSchema, MatchSessionSchema, AssetRefSchema …
 ```
 
-### 2. Game → XNet ingestion (`packages/unreal/src/connector.ts`)
+### 2. Game → xNet ingestion (`packages/unreal/src/connector.ts`)
 
 ```ts
 import { defineConnector } from '@xnetjs/plugins'
@@ -502,7 +502,7 @@ export const unrealConnector = defineConnector({
 })
 ```
 
-### 3. XNet → game at runtime (UE side, illustrative Verse pseudocode)
+### 3. xNet → game at runtime (UE side, illustrative Verse pseudocode)
 
 ```verse
 # Native C++ plugin path hits the local daemon; Verse path hits a hosted hub.
@@ -577,17 +577,17 @@ erDiagram
   treat Phases 3–4 as tracking targets, gate them behind labs trust tiers, and keep
   the UE-side client in its own repo so its churn doesn't destabilize XNet.
 - **Verse can't reach localhost.** Almost certain in Fortnite/UEFN sandboxes.
-  *Mitigation:* native C++ plugin for local-XNet titles; Verse path strictly to a
+  *Mitigation:* native C++ plugin for local-xNet titles; Verse path strictly to a
   hosted hub. Decide per-title; don't promise localhost from Verse.
 - **Granularity melt-down.** Someone *will* try to sync transforms every frame and
   vaporize the hub. *Mitigation:* document the save-file-vs-netcode-packet rule;
   have the connector/SDK reject high-frequency schemas; expose only durable
   schemas in the pack.
-- **Privacy blast radius.** A game reading "the player's XNet graph" is a serious
+- **Privacy blast radius.** A game reading "the player's xNet graph" is a serious
   risk. *Mitigation:* lean entirely on [[0192-schema-authorization-coverage]] —
   the game gets a UCAN scoped to a single `game/*` space; the policy evaluator +
   spaces cascade guarantee it can never see the player's finance/CRM/notes. This is
-  XNet's core differentiator; make it loud.
+  xNet's core differentiator; make it loud.
 - **Economy = regulatory minefield.** "Portable economies" + real money + NFTs +
   cross-jurisdiction. *Mitigation:* Phase 2/4 represent economy as a *ledger of
   record* (`@xnetjs/ledger`), explicitly **not** a settlement/payment rail. No
@@ -600,14 +600,14 @@ erDiagram
   Phase 2 pays off even if UE6 slips.
 - **Open questions:** Does UE6 let a third-party MCP server register *into* the
   engine's foundation, or only the reverse? What's the auth model on UE6's MCP
-  endpoint? Will Epic's persistence expose an export hook XNet could mirror? Does
+  endpoint? Will Epic's persistence expose an export hook xNet could mirror? Does
   Verse get general outbound HTTP or only allowlisted hosts?
 
 ## Implementation Checklist
 
 - [ ] **Phase 1 — MCP peering spike.** Stand up `xnet mcp serve --http`, register
       it alongside a UE5.x/UEFN MCP server in one agent harness, and demo an agent
-      reading XNet design docs/tasks and issuing an engine action. Document the
+      reading xNet design docs/tasks and issuing an engine action. Document the
       auth/registration contract UE exposes.
 - [x] **Phase 2 — schema pack.** Game-interop pack shipped in `@xnetjs/data`
       (`packages/data/src/schema/schemas/game.ts`): `PlayerIdentity`, `Inventory`,
@@ -625,20 +625,20 @@ erDiagram
       `defineConnector` to prove zero structural drift. (Hub `connectorSyncFeature`
       mount under `.sync` deferred — the connector ships unmounted, exactly like the
       0196 connectors, to be wired when a real title API exists.)
-- [ ] **Phase 2 — XNet app surfaces.** A "Games" workbench view + a dashboard/CRM
+- [ ] **Phase 2 — xNet app surfaces.** A "Games" workbench view + a dashboard/CRM
       "guild manager" + a ledger-backed economy view over the ingested nodes.
       *(Deferred — view-layer follow-on.)*
 - [x] **Phase 2 — asset refs.** `GameItem.asset` / `PlayerIdentity.avatarAsset` /
       `GameAsset.file` are `file()` refs restricted to glTF/USD MIME types
       (`GAME_ASSET_MIME_TYPES`); the existing content-addressed blob path +
-      `/files/:cid` serve them unchanged (no XNet-side parsing).
+      `/files/:cid` serve them unchanged (no xNet-side parsing).
 - [ ] **Phase 3 — UE client SDK (separate repo).** `XNetClient` for Verse (hosted
       hub) + native C++ (LocalAPI `:31415`); read inventory/identity, write
       achievements; ship a sample "sovereign inventory" map. *(Deferred — separate
       repo.)*
 - [ ] **Phase 3 — runtime auth.** Mint UCAN tokens scoped to a single `game/*`
       space; verify the policy evaluator denies cross-space reads. *(Deferred.)*
-- [ ] **Phase 4 — DID login.** Prototype "log into a game with your XNet DID";
+- [ ] **Phase 4 — DID login.** Prototype "log into a game with your xNet DID";
       cross-game social graph via `packages/social`; party voice via
       `packages/comms`. *(Deferred.)*
 - [x] **Pin the granularity rule** in the connector and enforce it: the
@@ -649,8 +649,8 @@ erDiagram
 
 ## Validation Checklist
 
-- [ ] A coding agent, given an XNet workspace + a UE MCP server, completes a task
-      that *reads* XNet data and *acts* on the engine (Phase 1 proof).
+- [ ] A coding agent, given an xNet workspace + a UE MCP server, completes a task
+      that *reads* xNet data and *acts* on the engine (Phase 1 proof).
 - [x] The Unreal connector maps sample game events into the durable `game/*`
       schemas via `mapGameEventToNode` + `pull` (unit-proven with a fake store);
       appearing in search/dashboard/ledger follows from the standard node path.
@@ -695,14 +695,14 @@ erDiagram
 - [OpenUSD Could Enable a Real Metaverse (The New Stack)](https://thenewstack.io/openusd-could-enable-a-real-metaverse/)
 - [Metaverse Standards Forum Launches (The New Stack)](https://thenewstack.io/metaverse-standards-forum/)
 
-### XNet internal (prior explorations)
+### xNet internal (prior explorations)
 - [[0196-agent-native-connectors]] — the Connector primitive (game = external service)
 - [[0194-agent-bridge]] — local bridge daemon `:31416`, BYO-agent, MCP config
 - [[0192-schema-authorization-coverage]] — the policy/space privacy gate the game bridge depends on
 - `docs/explorations/0196_[x]_AGENT_NATIVE_CONNECTORS_AND_INTEGRATION_MARKETPLACE.md`
 - `docs/explorations/0194_[_]_AGENT_BRIDGE_CLAUDE_CODE_CODEX_AND_ANY_AGENT_IN_XNET.md`
 
-### XNet code touch points
+### xNet code touch points
 - `packages/plugins/src/services/mcp-server.ts`, `mcp-http.ts`, `mcp-guardrail.ts` — MCP peer
 - `packages/plugins/src/services/local-api.ts` — runtime REST
 - `packages/plugins/src/connectors/define-connector.ts`, `sync-runner.ts` — ingestion

@@ -656,7 +656,7 @@ server.on('upgrade', (request, socket, head) => {
 - [ ] Create `integrations/n8n-nodes-xnet/` package
 - [ ] Implement xNet credential type
 - [ ] Implement XNetTrigger node (polling + future WebSocket)
-- [ ] Implement XNet action node (create/get/getMany/update/delete)
+- [ ] Implement xNet action node (create/get/getMany/update/delete)
 - [ ] Add event buffer to local API for polling
 - [ ] Add WebSocket endpoint to local API for real-time events
 - [ ] Implement MCP server with all tools

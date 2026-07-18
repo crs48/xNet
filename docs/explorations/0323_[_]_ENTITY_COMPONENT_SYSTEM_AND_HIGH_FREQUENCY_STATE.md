@@ -177,7 +177,7 @@ interface Change<T> {
 `packages/unreal/src/granularity.ts` (exploration 0200, Unreal bridge) is the
 load-bearing statement of policy, enforced at connector build time:
 
-> "If it belongs in a save file it can sync to XNet; if it belongs in a
+> "If it belongs in a save file it can sync to xNet; if it belongs in a
 > netcode packet it must not."
 
 - `MIN_SYNC_INTERVAL_MS = 1000` (`granularity.ts:29`) — hard floor;
