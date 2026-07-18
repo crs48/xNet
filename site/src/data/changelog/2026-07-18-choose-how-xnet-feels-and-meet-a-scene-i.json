@@ -7,5 +7,12 @@
   "tags": [
     "app",
     "devtools"
+  ],
+  "pr": 560,
+  "mergedAt": "2026-07-18T18:56:51Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
   ]
 }
