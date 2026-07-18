@@ -34,6 +34,7 @@ import {
   type PlanEntitlements,
   type PlanId
 } from '@xnetjs/entitlements'
+import { diagnosticsSecretFor } from './diagnostics'
 import { fetchHubHealth } from './hub-status'
 import { applyBillingEvent, type BillingEvent } from './reconcile/billing'
 import { type TenantRecord, type TenantStore } from './registry'
@@ -61,6 +62,16 @@ export interface ControlPlaneDeps {
    * per-hub configuration (exploration 0208). Omit to leave hubs without managed AI.
    */
   managedAi?: { cloudUrl: string; internalSecret: string }
+  /**
+   * When set, every managed hub is provisioned with diagnostics escalation
+   * pre-wired (exploration 0341): `XNET_DIAGNOSTICS_URL` pointing at this
+   * control plane and a self-identifying per-tenant `XNET_DIAGNOSTICS_SECRET`
+   * (`diagnosticsSecretFor`). The tenant still holds every escalation switch —
+   * this only makes "Send to xNet" and the Lane-1 tee POSSIBLE with zero
+   * per-hub config; both stay off/absent until the owner acts. The same secret
+   * lets the dashboard read the hub's content-free `/diagnostics/summary`.
+   */
+  diagnostics?: { cloudUrl: string; masterSecret: string }
   /**
    * Reads a tenant hub's current on-disk usage in bytes (fresh, uncached), or
    * `null` when the hub can't be reached (cold/asleep/unreachable). Used by
@@ -149,6 +160,15 @@ export class ControlPlane {
       env.XNET_CLOUD_URL = this.deps.managedAi.cloudUrl
       env.XNET_CLOUD_INTERNAL_SECRET = this.deps.managedAi.internalSecret
       env.XNET_TENANT_ID = tenantId
+    }
+    // Diagnostics escalation wiring (0341): pre-configured, never pre-enabled —
+    // the forwarder and tee both require the owner's explicit switches on top.
+    if (this.deps.diagnostics) {
+      env.XNET_DIAGNOSTICS_URL = this.deps.diagnostics.cloudUrl
+      env.XNET_DIAGNOSTICS_SECRET = diagnosticsSecretFor(
+        this.deps.diagnostics.masterSecret,
+        tenantId
+      )
     }
     return env
   }

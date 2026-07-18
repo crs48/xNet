@@ -65,6 +65,8 @@ export const DebugReportSchema = defineSchema({
     didHash: text({ maxLength: 128 }),
     occurrences: number({ integer: true }),
     status: select({ options: statuses, required: true, default: 'new' }),
+    /** Set when the operator escalated this report to the vendor: the quotable XR-… handle (0341). */
+    escalatedId: text({ maxLength: 16 }),
     firstSeen: number({}),
     lastSeen: number({}),
     createdAt: created(),

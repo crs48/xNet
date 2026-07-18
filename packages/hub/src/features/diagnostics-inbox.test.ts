@@ -11,7 +11,7 @@
 import type { MiddlewareHandler } from 'hono'
 import { MemoryDebugReportStore, type DebugReportStore } from '@xnetjs/telemetry/inbox'
 import { Hono } from 'hono'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { diagnosticsInboxFeature, type DiagnosticsInboxOptions } from './diagnostics-inbox'
 
 const authAs =
@@ -216,6 +216,55 @@ describe('diagnosticsInboxFeature — summary', () => {
   it('forbids non-admin UCANs without the secret', async () => {
     const { app } = mount({ auth: authAs('did:key:member', false) })
     expect((await app.request('/diagnostics/summary')).status).toBe(403)
+  })
+})
+
+describe('diagnosticsInboxFeature — Lane-1 tee (0341 P4)', () => {
+  const TEE_ENV = {
+    XNET_SHARE_CRASH_COUNTS: 'on',
+    XNET_DIAGNOSTICS_URL: 'https://cloud.example/',
+    XNET_DIAGNOSTICS_SECRET: 'tenant-a.s3cret'
+  }
+  const okFetch = () =>
+    vi.fn(async () => new Response('{}', { status: 202 })) as unknown as typeof fetch
+
+  it('forwards fingerprint-level data only — no message, stack, breadcrumbs, or didHash', async () => {
+    const fetchImpl = okFetch()
+    const { app } = mount({ env: TEE_ENV, fetchImpl })
+    await post(app, '/diagnostics/ingest', ping({ message: 'SECRET free text' }))
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1)
+    const [url, init] = (fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0] as [
+      string,
+      RequestInit
+    ]
+    expect(url).toBe('https://cloud.example/diagnostics')
+    expect((init.headers as Record<string, string>)['x-internal-secret']).toBe('tenant-a.s3cret')
+    const body = init.body as string
+    expect(body).not.toContain('SECRET free text')
+    expect(body).not.toContain('app.js') // no stack frames
+    expect(body).not.toContain('breadcrumbs')
+    expect(body).not.toContain('didHash')
+    const sent = JSON.parse(body).report
+    expect(sent).toMatchObject({ lane: 'auto', errorName: 'TypeError', release: 'web-1.42' })
+    expect(sent.fingerprint).toBeTruthy()
+  })
+
+  it('stays fully local when the toggle is off, even with sharing configured', async () => {
+    const fetchImpl = okFetch()
+    const { app } = mount({
+      env: { ...TEE_ENV, XNET_SHARE_CRASH_COUNTS: undefined },
+      fetchImpl
+    })
+    await post(app, '/diagnostics/ingest', ping())
+    expect(fetchImpl).not.toHaveBeenCalled()
+  })
+
+  it('never tees the user lane (previewed reports escalate per-report instead)', async () => {
+    const fetchImpl = okFetch()
+    const { app } = mount({ env: TEE_ENV, fetchImpl })
+    await post(app, '/diagnostics/ingest', ping({ lane: 'user', userDescription: 'help' }))
+    expect(fetchImpl).not.toHaveBeenCalled()
   })
 })
 

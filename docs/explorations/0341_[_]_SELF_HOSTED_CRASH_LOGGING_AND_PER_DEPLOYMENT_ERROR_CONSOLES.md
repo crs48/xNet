@@ -729,13 +729,13 @@ async function maybeTeeUpstream(record: DebugReportRecord) {
 - [x] **P3:** `tenantId` on the cloud `DebugReportRecord` (hub lane resolves
   from hub registration); vendor fleet view grouping escalations + Lane-1
   counts by tenant.
-- [ ] **P4:** "Send to xNet" per-report escalation: preview modal →
+- [x] **P4:** "Send to xNet" per-report escalation: preview modal →
   `diagnostics-sharing` forwarder → store `escalatedId` (`XR-…`) on the
   node; managed hubs pre-configured with upstream + secret.
-- [ ] **P4:** Lane-1 tee toggle (`XNET_SHARE_CRASH_COUNTS`):
+- [x] **P4:** Lane-1 tee toggle (`XNET_SHARE_CRASH_COUNTS`):
   fingerprint-count-only upstream forwarding; settings UI copy makes the
   payload explicit.
-- [ ] **P4:** Support access: share diagnostics Space with published xNet
+- [x] **P4:** Support access: share diagnostics Space with published xNet
   support identity, explicit duration, enforced expiry/revoke, red
   "currently shared" indicator in Privacy & Diagnostics.
 - [ ] **P4:** Privacy-policy + docs updates: deployment-local default,

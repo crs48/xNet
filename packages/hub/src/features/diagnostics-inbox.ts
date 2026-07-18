@@ -60,6 +60,8 @@ export interface DiagnosticsInboxOptions {
   nowMs?: () => number
   /** Fired the first time a fingerprint is seen (alert seam, 0315 P4). */
   onFirstSeen?: (record: DebugReportRecord) => void
+  /** Injected fetch for the Lane-1 tee (tests); defaults to global fetch. */
+  fetchImpl?: typeof fetch
 }
 
 const modeFromEnv = (env: Env): DiagnosticsInboxMode => {
@@ -92,7 +94,12 @@ async function runAuth(c: Context, requireAuth: MiddlewareHandler): Promise<Resp
 export function diagnosticsInboxFeature(options: DiagnosticsInboxOptions = {}): HubFeature {
   return {
     id: 'fyi.xnet.diagnostics-inbox',
-    secrets: ['XNET_DIAGNOSTICS_INBOX', 'XNET_DIAGNOSTICS_SECRET'],
+    secrets: [
+      'XNET_DIAGNOSTICS_INBOX',
+      'XNET_DIAGNOSTICS_SECRET',
+      'XNET_DIAGNOSTICS_URL',
+      'XNET_SHARE_CRASH_COUNTS'
+    ],
     mount({ app, env, requireAuth, storage, dataDir }) {
       const mode = modeFromEnv(env as Env)
       if (mode === 'off') return
@@ -113,6 +120,38 @@ export function diagnosticsInboxFeature(options: DiagnosticsInboxOptions = {}): 
       const sharedSecret = (env as Env).XNET_DIAGNOSTICS_SECRET
       const secretOk = (c: Context): boolean =>
         Boolean(sharedSecret) && c.req.header('x-internal-secret') === sharedSecret
+
+      // Lane-1 tee (0341 P4): the SECOND of the three escalation switches.
+      // Off by default; when the owner opts in (and sharing is configured),
+      // each auto-lane ingest forwards FINGERPRINT-LEVEL data upstream —
+      // grouping identity and counts, never the scrubbed message, stack,
+      // breadcrumbs, or didHash. Fire-and-forget: the tee can never fail or
+      // slow the deployment's own ingest.
+      const upstream = (env as Env).XNET_DIAGNOSTICS_URL?.replace(/\/+$/, '')
+      const teeEnabled = Boolean(
+        (env as Env).XNET_SHARE_CRASH_COUNTS === 'on' && upstream && sharedSecret
+      )
+      const doFetch = options.fetchImpl ?? fetch
+      const teeUpstream = (record: DebugReportRecord): void => {
+        if (!teeEnabled || record.lane !== 'auto') return
+        void doFetch(`${upstream}/diagnostics`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', 'x-internal-secret': sharedSecret! },
+          body: JSON.stringify({
+            report: {
+              lane: 'auto',
+              errorName: record.errorName,
+              // The upstream allowlist requires a message; the error name is
+              // the only content-free value that satisfies it.
+              message: record.errorName,
+              release: record.release,
+              surface: record.surface,
+              fingerprint: record.fingerprint,
+              occurrences: record.occurrences
+            }
+          })
+        }).catch(() => {})
+      }
 
       const inbox = new Hono()
 
@@ -145,6 +184,7 @@ export function diagnosticsInboxFeature(options: DiagnosticsInboxOptions = {}): 
         }
 
         const record = await ingestReport(store, incoming, {}, ingestOpts)
+        teeUpstream(record)
         return c.json({ id: record.id, shortId: shortId(record.id) }, 202)
       })
 
