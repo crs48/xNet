@@ -6,6 +6,15 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Large sync catch-ups no longer drop changes</title>
+      <link>https://xnet.fyi/changelog#2026-07-18-large-sync-catch-ups-no-longer-drop-chan</link>
+      <guid isPermaLink="false">2026-07-18-large-sync-catch-ups-no-longer-drop-chan</guid>
+      <pubDate>Sat, 18 Jul 2026 20:30:22 GMT</pubDate>
+      <description>Syncing a workspace with a big backlog could silently lose changes: the hub sent them 1000 at a time but told the client it was fully caught up, so everything past the first batch was skipped and never re-requested. Clients now walk every batch to the end.
+- No more silently missing changes after a long time offline or on a fresh device
+- Catch-up continues in the same session instead of waiting for the next reconnect</description>
+    </item>
+    <item>
       <title>Choose how xNet feels, and meet a scene in the demo</title>
       <link>https://xnet.fyi/changelog#2026-07-18-choose-how-xnet-feels-and-meet-a-scene-i</link>
       <guid isPermaLink="false">2026-07-18-choose-how-xnet-feels-and-meet-a-scene-i</guid>

@@ -6,6 +6,31 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-18-large-sync-catch-ups-no-longer-drop-chan",
+      "url": "https://xnet.fyi/changelog#2026-07-18-large-sync-catch-ups-no-longer-drop-chan",
+      "title": "Large sync catch-ups no longer drop changes",
+      "content_text": "Syncing a workspace with a big backlog could silently lose changes: the hub sent them 1000 at a time but told the client it was fully caught up, so everything past the first batch was skipped and never re-requested. Clients now walk every batch to the end.\n\n• No more silently missing changes after a long time offline or on a fresh device\n• Catch-up continues in the same session instead of waiting for the next reconnect",
+      "date_published": "2026-07-18T20:30:22Z",
+      "tags": [
+        "sync"
+      ],
+      "_xnet": {
+        "date": "July 18, 2026",
+        "summary": "Syncing a workspace with a big backlog could silently lose changes: the hub sent them 1000 at a time but told the client it was fully caught up, so everything past the first batch was skipped and never re-requested. Clients now walk every batch to the end.",
+        "highlights": [
+          "No more silently missing changes after a long time offline or on a fresh device",
+          "Catch-up continues in the same session instead of waiting for the next reconnect"
+        ],
+        "mergedAt": "2026-07-18T20:30:22Z",
+        "pr": 561,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-18-choose-how-xnet-feels-and-meet-a-scene-i",
       "url": "https://xnet.fyi/changelog#2026-07-18-choose-how-xnet-feels-and-meet-a-scene-i",
       "title": "Choose how xNet feels, and meet a scene in the demo",
