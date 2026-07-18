@@ -277,39 +277,36 @@ function SectionsMenu({ close }: { close: () => void }) {
       {[...pinned, ...hidden].map((section) => {
         const Icon = sectionIcon(section)
         const isPinned = pinnedIds.has(section.id)
+        // The pin is a SIBLING of the row, not a child: nesting it made the
+        // row's accessible name "DiscoverPin" (one control announcing two
+        // actions), and left the pin unreachable on its own by keyboard.
         return (
-          <button
-            key={section.id}
-            type="button"
-            className={item}
-            onClick={() => {
-              activate(section)
-              close()
-            }}
-          >
-            <Icon size={16} strokeWidth={1.75} className="text-ink-3" />
-            <span className="flex-1">{section.label}</span>
-            <span
-              role="button"
-              tabIndex={0}
-              title={isPinned ? 'Unpin from sidebar' : 'Pin to sidebar'}
-              onClick={(e) => {
-                e.stopPropagation()
-                toggleSectionPinned(section.id)
+          <div key={section.id} className="flex items-center">
+            <button
+              type="button"
+              className={`${item} flex-1`}
+              onClick={() => {
+                activate(section)
+                close()
               }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.stopPropagation()
-                  toggleSectionPinned(section.id)
-                }
-              }}
-              className={`cursor-pointer rounded px-1 text-[11px] ${
+            >
+              <Icon size={16} strokeWidth={1.75} className="text-ink-3" />
+              <span className="flex-1 text-left">{section.label}</span>
+            </button>
+            <button
+              type="button"
+              aria-label={
+                isPinned ? `Unpin ${section.label} from sidebar` : `Pin ${section.label} to sidebar`
+              }
+              aria-pressed={isPinned}
+              onClick={() => toggleSectionPinned(section.id)}
+              className={`shrink-0 rounded border-none bg-transparent px-1.5 py-1 text-[11px] cursor-pointer hover:bg-background-muted ${
                 isPinned ? 'text-ink-1' : 'text-ink-3'
               }`}
             >
               {isPinned ? 'Pinned' : 'Pin'}
-            </span>
-          </button>
+            </button>
+          </div>
         )
       })}
     </div>

@@ -385,7 +385,11 @@ export function MobileShell({ children }: { children: ReactNode }) {
   // derives from the route the same way the desktop one does. `current`
   // keeps both modes on one shape so title, icon and share agree.
   const current = tabsEnabled
-    ? activeTab && { nodeId: activeTab.nodeId, nodeType: activeTab.nodeType, title: activeTab.title }
+    ? activeTab && {
+        nodeId: activeTab.nodeId,
+        nodeType: activeTab.nodeType,
+        title: activeTab.title
+      }
     : routedDescriptor && {
         nodeId: routedDescriptor.nodeId,
         nodeType: routedDescriptor.nodeType,

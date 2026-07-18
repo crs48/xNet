@@ -96,7 +96,11 @@ export function SplitPane({ children }: { children: ReactNode }): React.JSX.Elem
   // ancestor, so the two panes are a real Group/Panel pair — which also
   // makes the split draggable, like every other workbench divider.
   return (
-    <Group orientation="horizontal" id="xnet-wb-split-group" className="flex h-full min-h-0 flex-row">
+    <Group
+      orientation="horizontal"
+      id="xnet-wb-split-group"
+      className="flex h-full min-h-0 flex-row"
+    >
       <Panel defaultSize={65} minSize={30} className="min-w-0">
         {children}
       </Panel>
