@@ -235,6 +235,16 @@ interface WorkbenchState {
    * side-by-side belongs on a page as frames (0346).
    */
   splitTarget: { nodeId: string; nodeType: TabNodeType } | null
+  /**
+   * The unified sidebar's active lens (0353) — the projection of the one
+   * tree currently on screen ('all' | 'docs' | 'chats' | …).
+   */
+  activeLensId: string
+  /**
+   * Muted sidebar rows (0353). ONE flag suppressing badge *and* unread
+   * bump: shipping those independently is a recurring bug class.
+   */
+  mutedRowIds: string[]
   pinnedNodeIds: string[]
   recents: RecentEntry[]
   /** Expanded folders in the Explorer tree (exploration 0169) */
@@ -412,6 +422,10 @@ interface WorkbenchState {
   pushRouteHistory: (pathname: string) => void
   /** Show (or clear) the tabless split pane's node. */
   setSplitTarget: (target: { nodeId: string; nodeType: TabNodeType } | null) => void
+  /** Switch the unified sidebar's lens. */
+  setActiveLens: (lensId: string) => void
+  /** Mute/unmute a row: badge and recency bump, together. */
+  toggleRowMuted: (rowId: string) => void
 
   // ─── Explorer pins & recents ───────────────────────────────────
   togglePinnedNode: (nodeId: string) => void
@@ -514,6 +528,8 @@ export const useWorkbench = create<WorkbenchState>()(
       routeTitles: {},
       routeHistory: [],
       splitTarget: null,
+      activeLensId: 'all',
+      mutedRowIds: [],
       pinnedNodeIds: [],
       recents: [],
       expandedFolderIds: [],
@@ -894,6 +910,15 @@ export const useWorkbench = create<WorkbenchState>()(
         ),
 
       setSplitTarget: (target) => set({ splitTarget: target }),
+
+      setActiveLens: (lensId) => set({ activeLensId: lensId }),
+
+      toggleRowMuted: (rowId) =>
+        set((state) => ({
+          mutedRowIds: state.mutedRowIds.includes(rowId)
+            ? state.mutedRowIds.filter((id) => id !== rowId)
+            : [...state.mutedRowIds, rowId]
+        })),
 
       togglePinnedNode: (nodeId) =>
         set((state) => ({

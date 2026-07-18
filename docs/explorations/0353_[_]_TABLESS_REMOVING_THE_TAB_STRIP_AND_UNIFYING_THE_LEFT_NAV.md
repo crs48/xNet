@@ -440,13 +440,13 @@ const title = useRouteTitle(routed)                   // views publish here
 
 ### Phase 2 — One tree
 
-- [ ] `SidebarRowModel`/`SidebarRowSource`/`SidebarLens` contracts +
+- [x] `SidebarRowModel`/`SidebarRowSource`/`SidebarLens` contracts +
       registry (slot-registry idiom)
-- [ ] Migrate `useExplorerItems` to the docs row source; add channels,
+- [x] Migrate `useExplorerItems` to the docs row source; add channels,
       people, saved-views sources
-- [ ] Type lenses replace the Explorer chips; lens = persistable
+- [x] Type lenses replace the Explorer chips; lens = persistable
       descriptor
-- [ ] Type-scoped sort defaults + unified mute flag (badge+bump)
+- [x] Type-scoped sort defaults + unified mute flag (badge+bump)
 
 ### Phase 3 — Panels → lenses; surfaces → sections
 
