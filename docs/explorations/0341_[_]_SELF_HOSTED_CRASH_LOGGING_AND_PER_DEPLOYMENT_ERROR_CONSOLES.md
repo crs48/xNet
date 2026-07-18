@@ -707,9 +707,9 @@ async function maybeTeeUpstream(record: DebugReportRecord) {
   `apps/cloud/src/diagnostics.ts` into an MIT-zone module
   (`packages/telemetry/src/inbox/`); `apps/cloud` re-imports (behavior
   unchanged, tests still green).
-- [ ] **P1:** `SqliteDebugReportStore` in `packages/hub` (own
+- [x] **P1:** `SqliteDebugReportStore` in `packages/hub` (own
   `diagnostics.db`, prune on tiering cadence, hard row cap + eviction).
-- [ ] **P1:** `diagnosticsInboxFeature` (`fyi.xnet.diagnostics-inbox`):
+- [x] **P1:** `diagnosticsInboxFeature` (`fyi.xnet.diagnostics-inbox`):
   public `/diagnostics/ingest` (rate-limited, 8 KB, CORS for app origin,
   `open|authed|off` flag), authed `/summary` + `/pending` + `/ack`;
   register in `server.ts`; changeset for `@xnetjs/hub` (minor).
