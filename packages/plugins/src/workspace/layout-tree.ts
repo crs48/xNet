@@ -147,7 +147,9 @@ export function createPresetTree(preset: PresetId): LayoutTree {
         chrome: 'pinned'
       }
     case 'bench':
-      regions.rail = [place('rail', 'pinned', 0)]
+      // 0353: the icon-only `rail` view is gone; the region stays as a
+      // placement target for user-moved views.
+      regions.rail = []
       regions.status = [place('status', 'pinned', 0)]
       regions['dock.left'] = [
         place('explorer', 'pinned', 0),
@@ -186,15 +188,19 @@ export const DEFAULT_WORKSPACE_ID = 'workspace-default'
 
 export function createDefaultTree(): LayoutTree {
   const regions = emptyRegions()
-  regions.rail = [place('sidebar', 'pinned', 0)]
+  // The rail is empty (0353): the sectioned `sidebar` view it used to
+  // place is gone, since the shipping shell renders its own sidebar
+  // islands and the unified tree is the one nav.
+  regions.rail = []
   regions.status = [place('status', 'pinned', 0)]
   regions['dock.left'] = [
-    place('explorer', 'pinned', 0),
-    place('chats', 'summoned', 1),
-    place('tasks', 'summoned', 2),
-    place('today', 'summoned', 3),
-    place('data', 'summoned', 4),
-    place('ai-chat', 'summoned', 5)
+    place('tree', 'pinned', 0),
+    place('explorer', 'summoned', 1),
+    place('chats', 'summoned', 2),
+    place('tasks', 'summoned', 3),
+    place('today', 'summoned', 4),
+    place('data', 'summoned', 5),
+    place('ai-chat', 'summoned', 6)
   ]
   regions['dock.right'] = [place('context', 'summoned', 0)]
   regions['dock.bottom'] = [

@@ -39,14 +39,15 @@ import {
   Users,
   X
 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { displayName as resolveName } from '../comms/comms-utils'
 import { useComms } from '../comms/CommsContext'
 import { useProfiles } from '../comms/hooks'
 import { useCreateInSpace } from '../hooks/useCreateInSpace'
 import { useSpaceMembers, useSpaces } from '../hooks/useSpaces'
 import { navigateToNode } from '../workbench/navigation'
-import { useWorkbench, type TabNodeType } from '../workbench/state'
+import { usePublishTitle } from '../workbench/route-title'
+import { type TabNodeType } from '../workbench/state'
 import { ShareDialog } from './ShareDialog'
 
 const KIND_META: Record<SpaceKind, { icon: LucideIcon; label: string }> = {
@@ -322,9 +323,7 @@ export function SpaceHomeView({ spaceId }: { spaceId: string }) {
   const space = getSpace(spaceId)
   const subSpaces = useMemo(() => tree.flatMap((n) => collectChildren(n, spaceId)), [tree, spaceId])
 
-  useEffect(() => {
-    if (space?.name) useWorkbench.getState().setTabTitle(spaceId, space.name)
-  }, [spaceId, space?.name])
+  usePublishTitle(spaceId, space?.name)
 
   const myRoles = useMemo<SpaceRole[]>(() => {
     const roles: SpaceRole[] = []

@@ -23,10 +23,10 @@ import {
 import { useMutate, useQuery } from '@xnetjs/react'
 import { useDataBridge } from '@xnetjs/react/internal'
 import { Archive, ArchiveRestore, Hash, Merge, MessageSquare } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { ChannelChat } from '../comms/ChannelChat'
 import { navigateToNode } from '../workbench/navigation'
-import { useWorkbench } from '../workbench/state'
+import { usePublishTitle } from '../workbench/route-title'
 import { TAB_VIEWS } from '../workbench/tabs'
 import { filterTagged, mergeTagOps, type TaggedRef } from './tag-view-data'
 
@@ -304,9 +304,7 @@ export function TagView({ tagId }: { tagId: string }) {
   const data = useTagPageData(tagId)
   const { tag, sections, taggedTasks } = data
 
-  useEffect(() => {
-    if (tag?.name) useWorkbench.getState().setTabTitle(tagId, `#${tag.name}`)
-  }, [tagId, tag?.name])
+  usePublishTitle(tagId, tag?.name ? `#${tag.name}` : null, tag?.id)
 
   if (!tag) {
     return <p className="mt-10 text-center text-sm text-ink-3">Tag not found.</p>

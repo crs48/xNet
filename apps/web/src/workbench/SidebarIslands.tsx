@@ -17,6 +17,7 @@ import {
   ChevronRight,
   ChevronsUpDown,
   ChevronUp,
+  Layers,
   LayoutGrid,
   Plus,
   Search,
@@ -29,7 +30,11 @@ import { useSpaces } from '../hooks/useSpaces'
 import { useNewActions } from './new-actions'
 import { SettingsSectionsNav } from './SettingsSectionsNav'
 import { getSlotView } from './slot-registry'
+import { SectionRow, useSections } from './sidebar/SectionRows'
+import { sidebarRegistry } from './sidebar/registry'
+import { UnifiedTree } from './sidebar/UnifiedTree'
 import { useWorkbench } from './state'
+import { WorkingSet } from './WorkingSet'
 import {
   DEFAULT_SURFACE,
   SURFACES,
@@ -137,12 +142,15 @@ function HeaderCaret({ compact, onToggle }: { compact: boolean; onToggle: () => 
 
 function TopIsland({ openMenu }: { openMenu: OpenMenu }) {
   const navPinned = useWorkbench((s) => s.navPinned)
+  const unifiedNav = useWorkbench((s) => !s.tabsEnabled)
+  const activeLensId = useWorkbench((s) => s.activeLensId)
+  const { pinned: sections, hidden: hiddenSections } = useSections()
   const currentSpaceId = useWorkbench((s) => s.currentSpaceId)
   const compact = useWorkbench((s) => s.sidebarCompact)
   const toggleCompact = useWorkbench((s) => s.toggleSidebarCompact)
   const { getSpace } = useSpaces()
   const pinned = pinnedSurfaces(navPinned)
-  const hiddenCount = SURFACES.length - pinned.length
+  const hiddenCount = unifiedNav ? hiddenSections.length : SURFACES.length - pinned.length
   const space = isRealSpace(currentSpaceId) ? getSpace(currentSpaceId) : null
   const workspaceName = space?.name || 'My workspace'
 
@@ -291,11 +299,17 @@ function TopIsland({ openMenu }: { openMenu: OpenMenu }) {
             </button>
           </div>
 
-          {/* Primary surface rows + More */}
+          {/* Primary rows: user sections (0353) or legacy surfaces + More */}
           <div className="flex flex-col gap-px px-2 pt-1">
-            {pinned.map((surface) => (
-              <PrimaryRow key={surface.id} surface={surface} />
-            ))}
+            {unifiedNav
+              ? sections.map((section) => (
+                  <SectionRow
+                    key={section.id}
+                    section={section}
+                    active={section.kind === 'lens' && section.target === activeLensId}
+                  />
+                ))
+              : pinned.map((surface) => <PrimaryRow key={surface.id} surface={surface} />)}
             <button
               type="button"
               onClick={openMenu('surfaces')}
@@ -309,6 +323,10 @@ function TopIsland({ openMenu }: { openMenu: OpenMenu }) {
               <ChevronRight size={14} strokeWidth={2} className="text-ink-3" />
             </button>
           </div>
+
+          {/* The working set (0353): Pinned + Recents replace the tab
+              strip as "what am I in the middle of". Always visible. */}
+          <WorkingSet />
         </>
       )}
 
@@ -319,6 +337,11 @@ function TopIsland({ openMenu }: { openMenu: OpenMenu }) {
 
 function BottomIsland() {
   const activeSurface = useWorkbench((s) => s.activeSurface)
+  const activeLensId = useWorkbench((s) => s.activeLensId)
+  // The unified nav rides the same preference as tabless mode: both are
+  // the same simplification, and shipping them apart would leave the
+  // shell in a half-migrated grammar.
+  const unifiedNav = useWorkbench((s) => !s.tabsEnabled)
   const { createDoc } = useNewActions()
   const onSettings = useRouterState({
     select: (s) =>
@@ -336,6 +359,33 @@ function BottomIsland() {
         </div>
         <div className="min-h-0 flex-1 overflow-hidden">
           <SettingsSectionsNav />
+        </div>
+      </div>
+    )
+  }
+
+  // Unified nav (0353): one tree projected through the active lens
+  // replaces switching between seven bespoke panels.
+  if (unifiedNav) {
+    const lensLabel = sidebarRegistry.getLens(activeLensId)?.label ?? 'All'
+    return (
+      <div className={`${ISLAND} min-h-0 flex-1`}>
+        <div className="flex items-center gap-2 px-3 pb-1 pt-2.5">
+          <Layers size={16} strokeWidth={1.75} className="text-ink-2" />
+          <span className="text-[13px] font-semibold text-ink-1">{lensLabel}</span>
+          <span className="flex-1" />
+          <button
+            type="button"
+            title="New page"
+            aria-label="New page"
+            onClick={() => createDoc('page')}
+            className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border-none bg-transparent text-ink-2 hover:bg-background-muted hover:text-ink-1"
+          >
+            <Plus size={15} strokeWidth={1.75} />
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <UnifiedTree />
         </div>
       </div>
     )

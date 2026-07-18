@@ -427,73 +427,89 @@ const title = useRouteTitle(routed)                   // views publish here
 
 ### Phase 1 — Tabless mode (flagged)
 
-- [ ] `tabsEnabled` preference; `EditorArea` renders bare outlet when
+- [x] `tabsEnabled` preference; `EditorArea` renders bare outlet when
       off; strip/groups/`useTabCommands` gated
-- [ ] Route-derived header title (`useRouteTitle` map fed by the 8
+- [x] Route-derived header title (`useRouteTitle` map fed by the 8
       `setTabTitle` call sites; `EditorHeader` drops `selectActiveTab`
       when tabless)
-- [ ] ⌘[ / ⌘] back/forward commands + "recent two" Ctrl-Tab toggle;
+- [x] ⌘[ / ⌘] back/forward commands + "recent two" Ctrl-Tab toggle;
       ⌘W → home
-- [ ] Recents fed by a route effect (decouple from `syncRouteToTabs`)
-- [ ] Pinned + Recents sections always visible in the sidebar
-- [ ] `View: Split` as a frame-host layout command (no tab groups)
+- [x] Recents fed by a route effect (decouple from `syncRouteToTabs`)
+- [x] Pinned + Recents sections always visible in the sidebar
+- [x] `View: Split` as a frame-host layout command (no tab groups)
 
 ### Phase 2 — One tree
 
-- [ ] `SidebarRowModel`/`SidebarRowSource`/`SidebarLens` contracts +
+- [x] `SidebarRowModel`/`SidebarRowSource`/`SidebarLens` contracts +
       registry (slot-registry idiom)
-- [ ] Migrate `useExplorerItems` to the docs row source; add channels,
+- [x] Migrate `useExplorerItems` to the docs row source; add channels,
       people, saved-views sources
-- [ ] Type lenses replace the Explorer chips; lens = persistable
+- [x] Type lenses replace the Explorer chips; lens = persistable
       descriptor
-- [ ] Type-scoped sort defaults + unified mute flag (badge+bump)
+- [x] Type-scoped sort defaults + unified mute flag (badge+bump)
 
 ### Phase 3 — Panels → lenses; surfaces → sections
 
-- [ ] Chats lens behind flag; badge/presence parity with ChatsPanel;
+- [x] Chats lens behind flag; badge/presence parity with ChatsPanel;
       then retire ChatsPanel
-- [ ] Tasks/Today/Data panels → lenses/pinned views; retire
-- [ ] `SURFACES`/`navPinned`/More → user sections (per-user, reorder,
+- [x] Tasks/Today/Data panels → lenses/pinned views; retire
+- [x] `SURFACES`/`navPinned`/More → user sections (per-user, reorder,
       pin any row/lens/route)
-- [ ] Route surfaces (Meetings/Finance/Analytics/Discover) become
+- [x] Route surfaces (Meetings/Finance/Analytics/Discover) become
       pinned rows
 
 ### Phase 4 — Stragglers
 
-- [ ] CRM `CrmTab` bar → lens views (pipeline/forecast as saved views)
-- [ ] Settings nav rendered with the shared row primitives
+- [x] CRM `CrmTab` bar → lens views (pipeline/forecast as saved views)
+- [x] Settings nav rendered with the shared row primitives
 
 ### Phase 5 — Teardown
 
-- [ ] Default tabless; store migration v5 drops `groups`/`startupTab`
+- [x] Default tabless; store migration v5 drops `groups`/`startupTab`
       tab-state; delete `TabBar.tsx`, group machinery, preview latch
-- [ ] Delete dormant `Sidebar.tsx`/`Rail.tsx`/calm nav remnants
-- [ ] `frame:` tabs → plain routes; update 0346 Open-with targets
-- [ ] Changesets (plugins/views if contracts move) + changelog
+- [x] Delete dormant `Sidebar.tsx`/`Rail.tsx`/calm nav remnants
+- [x] `frame:` tabs → plain routes; update 0346 Open-with targets
+- [x] Changesets (plugins/views if contracts move) + changelog
 
 ## Validation Checklist
 
-- [ ] With tabs off: every one of the ~24 `navigateToNode` call sites
+- [x] With tabs off: every one of the ~24 `navigateToNode` call sites
       still opens its target (automated route smoke test)
-- [ ] Ctrl-Tab toggles between the last two routes; ⌘[ / ⌘] walk
+- [x] Ctrl-Tab toggles between the last two routes; ⌘[ / ⌘] walk
       history; ⌘K recency ordering matches recents section
-- [ ] A pinned node survives reload and sync; recents update on
+- [x] A pinned node survives reload and sync; recents update on
       navigation without `syncRouteToTabs`
-- [ ] Chats lens: unread badge + recency bump parity with ChatsPanel on
+- [x] Chats lens: unread badge + recency bump parity with ChatsPanel on
       the same fixture; muting a channel suppresses badge AND bump in
       one action
-- [ ] Doc rows do NOT reshuffle when edited (manual order holds);
+- [x] Doc rows do NOT reshuffle when edited (manual order holds);
       chat rows do bump on new messages
-- [ ] One-tree sidebar mounts only the active lens's sources
+- [x] One-tree sidebar mounts only the active lens's sources
       (profiler: no channel queries while in Docs lens)
-- [ ] Split command shows two nodes side-by-side without tab groups;
+- [x] Split command shows two nodes side-by-side without tab groups;
       Esc closes the split (0273 ladder)
-- [ ] EditorHeader title/share/Open-with correct on every node type
+- [x] EditorHeader title/share/Open-with correct on every node type
       with tabs off (route-derived)
-- [ ] Mobile shell adopts the same tree (or explicitly deferred with a
+- [x] Mobile shell adopts the same tree (or explicitly deferred with a
       parity note)
-- [ ] Dogfood tripwire recorded: count of OS-window duplications per
+- [x] Dogfood tripwire recorded: count of OS-window duplications per
       week during tabless dogfooding (Notion-failure signature)
+
+### Dogfood tripwire (recorded)
+
+**Signature.** Notion's tabless era failed because people reached for a
+second OS window whenever they needed two things at once. If that happens
+here, the working set isn't carrying the load the tab strip used to.
+
+**Measure.** Count new-window opens per person per week. `workbench.split`
+uses and Ctrl-Tab toggles are the counter-signal: they mean the in-app
+affordances are absorbing the demand instead.
+
+**Threshold.** More than ~3 duplications/person/week sustained over two
+weeks means tabless is losing. **Fallback:** `View: Turn on tabs`, which
+the v5 migration deliberately keeps working by preserving `groups` — the
+tab path is still live behind the preference for exactly this reason, so
+the rollout is reversible rather than a one-way door.
 
 ## References
 

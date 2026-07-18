@@ -17,7 +17,9 @@ import { ErrorFallback } from '../components/ErrorFallback'
 import { navigateToNewDoc, type NavigateLike } from '../lib/doc-creation'
 import { Hairline } from './Hairline'
 import { navigateToNode } from './navigation'
+import { SplitPane } from './SplitPane'
 import {
+  selectPreviousRoute,
   useWorkbench,
   tabIdFor,
   type EditorGroup,
@@ -26,18 +28,100 @@ import {
 } from './state'
 import { TabBar, type TabVariant } from './TabBar'
 import { TabBreadcrumb } from './TabBreadcrumb'
-import { syncRouteToTabs, tabFromPathname, TAB_VIEWS } from './tabs'
+import { syncRouteToTabs, tabFromPathname, trackRouteVisit, TAB_VIEWS } from './tabs'
 import { ViewHost } from './ViewHost'
 
 type Navigate = ReturnType<typeof useNavigate>
 
-/** Open-or-activate the tab for the current route (router → store). */
+/**
+ * Reconcile the route into the working set. `trackRouteVisit` runs in
+ * both modes (recents + recent-two history, 0353); the tab sync is a
+ * no-op when tabless.
+ */
 function useRouteTabSync(pathname: string): void {
-  useEffect(() => syncRouteToTabs(pathname), [pathname])
+  useEffect(() => {
+    trackRouteVisit(pathname)
+    syncRouteToTabs(pathname)
+  }, [pathname])
 }
 
-function useTabCommands(navigate: Navigate): void {
+/**
+ * Navigate to a remembered pathname (0353).
+ *
+ * Stored pathnames are already URL-encoded, and node ids contain slashes
+ * (`seed/page/spec/…`), so handing one straight to `navigate({ to })` —
+ * which expects a path *template* — leaves the param un-round-tripped and
+ * the view renders the node we came from. Parsing back to a descriptor
+ * and reusing `navigateToNode` makes history navigation take exactly the
+ * same path as a click.
+ */
+function navigateToPathname(navigate: Navigate, pathname: string): void {
+  const descriptor = tabFromPathname(pathname)
+  if (descriptor) {
+    navigateToNode(navigate, descriptor.nodeType, descriptor.nodeId, { preview: false })
+    return
+  }
+  void navigate({ to: pathname })
+}
+
+/**
+ * Tabless commands (0353): history walking and the recent-two toggle
+ * replace tab cycling. Registered only when tabs are off, so the two
+ * modes never fight over the same chords.
+ */
+function useTablessCommands(navigate: Navigate | null): void {
   useEffect(() => {
+    if (!navigate) return
+    const registry = getCommandRegistry()
+    const disposables = [
+      registry.register({
+        id: 'workbench.newPage',
+        title: 'New page',
+        key: 'Mod-T',
+        allowInInput: true,
+        run: () => navigateToNewDoc(navigate as unknown as NavigateLike, 'page')
+      }),
+      registry.register({
+        id: 'workbench.back',
+        title: 'Back',
+        key: 'Mod-[',
+        allowInInput: true,
+        run: () => window.history.back()
+      }),
+      registry.register({
+        id: 'workbench.forward',
+        title: 'Forward',
+        key: 'Mod-]',
+        allowInInput: true,
+        run: () => window.history.forward()
+      }),
+      registry.register({
+        id: 'workbench.recentTwo',
+        title: 'Switch to previous view',
+        key: 'Ctrl-Tab',
+        allowInInput: true,
+        run: () => {
+          const previous = selectPreviousRoute(useWorkbench.getState())
+          if (previous) navigateToPathname(navigate, previous)
+        }
+      }),
+      registry.register({
+        id: 'workbench.closeView',
+        title: 'Close view',
+        key: 'Mod-W',
+        allowInInput: true,
+        run: () => void navigate({ to: '/' })
+      })
+    ]
+    return () => {
+      for (const disposable of disposables) disposable.dispose()
+    }
+  }, [navigate])
+}
+
+function useTabCommands(navigate: Navigate, enabled: boolean): void {
+  useEffect(() => {
+    if (!enabled) return
     const registry = getCommandRegistry()
     const wb = () => useWorkbench.getState()
 
@@ -140,7 +224,7 @@ function useTabCommands(navigate: Navigate): void {
     return () => {
       for (const disposable of disposables) disposable.dispose()
     }
-  }, [navigate])
+  }, [navigate, enabled])
 }
 
 function GroupTabStrip({
@@ -297,10 +381,12 @@ export function EditorArea({
   const navigate = useNavigate()
   const groups = useWorkbench((state) => state.groups)
   const activeGroupId = useWorkbench((state) => state.activeGroupId)
+  const tabsEnabled = useWorkbench((state) => state.tabsEnabled)
   const [dragDepth, setDragDepth] = useState(0)
 
   useRouteTabSync(location.pathname)
-  useTabCommands(navigate)
+  useTabCommands(navigate, tabsEnabled)
+  useTablessCommands(tabsEnabled ? null : navigate)
 
   // Clear the split-drop affordance when any drag ends.
   useEffect(() => {
@@ -328,6 +414,28 @@ export function EditorArea({
       {children}
     </ErrorBoundary>
   )
+
+  // Tabless (0353): one surface, the router outlet, nothing else. The
+  // working set lives in the sidebar (Pinned + Recents) and side-by-side
+  // is a page concern (0346 frames) or the split layout command.
+  if (!tabsEnabled) {
+    const fullBleed = routedDescriptor?.nodeType === 'page'
+    return (
+      <div
+        data-wb-region="editor"
+        data-wb-tabless="true"
+        className="relative flex h-full min-h-0 flex-col bg-canvas"
+      >
+        <SplitPane>
+          <main
+            className={`h-full min-h-0 ${fullBleed ? 'overflow-hidden' : 'overflow-y-auto p-6'}`}
+          >
+            {outlet}
+          </main>
+        </SplitPane>
+      </div>
+    )
+  }
 
   return (
     <div

@@ -1,0 +1,10 @@
+{
+  "id": "2026-07-18-one-sidebar-no-tab-strip",
+  "date": "July 18, 2026",
+  "title": "One sidebar, no tab strip",
+  "summary": "The workbench now opens as a single calm surface: no tab strip, with what you are working on kept as Pinned and Recent rows in the sidebar. The nine separate left-hand navigations collapse into one list of your workspace, filtered by lens — Docs, Chats, People, Views — so channels and contacts live alongside your documents. Chats sort by recency and bump on unread; documents hold their order. Cmd-[ and Cmd-] walk history, Ctrl-Tab flips between your last two views, and tabs remain one command away.",
+  "highlights": [],
+  "tags": [
+    "app"
+  ]
+}

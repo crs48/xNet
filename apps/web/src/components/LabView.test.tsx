@@ -8,8 +8,16 @@ import { MemoryNodeStorageAdapter } from '@xnetjs/data'
 import { generateIdentity } from '@xnetjs/identity'
 import { XNetProvider } from '@xnetjs/react'
 import { useMemo } from 'react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { LabView } from './LabView'
+
+// LabView publishes its title against the current route (0353), which
+// reads router state. This test renders the view standalone, so stub the
+// location rather than standing up a router it doesn't otherwise need.
+vi.mock('@tanstack/react-router', () => ({
+  useLocation: ({ select }: { select: (l: { pathname: string }) => unknown }) =>
+    select({ pathname: '/lab/lab-test-1' })
+}))
 
 function Harness({ children }: { children: ReactNode }) {
   const identity = useMemo(() => generateIdentity(), [])

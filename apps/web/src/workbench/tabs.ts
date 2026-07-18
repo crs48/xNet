@@ -145,10 +145,36 @@ export function consumePreviewIntent(): boolean {
 }
 
 /**
+ * Record a visited route in the working set (0353): recents + the
+ * recent-two history. Runs in BOTH modes — it is the tabless
+ * replacement for the recents feed that used to ride tab opening, and
+ * stays correct when tabs are on.
+ */
+export function trackRouteVisit(pathname: string): void {
+  const state = useWorkbench.getState()
+  state.pushRouteHistory(pathname)
+
+  const descriptor = tabFromPathname(pathname)
+  if (!descriptor) return
+  state.touchRecent({
+    nodeId: descriptor.nodeId,
+    nodeType: descriptor.nodeType,
+    title: state.routeTitles[pathname] ?? ''
+  })
+}
+
+/**
  * Open-or-activate the tab matching a pathname (router → store).
- * Returns silently for non-tab routes.
+ * Returns silently for non-tab routes. No-op when tabless (0353) —
+ * `trackRouteVisit` carries the working set instead.
  */
 export function syncRouteToTabs(pathname: string): void {
+  const state = useWorkbench.getState()
+  if (!state.tabsEnabled) {
+    consumePreviewIntent()
+    return
+  }
+
   const descriptor = tabFromPathname(pathname)
   if (!descriptor) {
     // Non-tab route: drop any pending preview intent so a source that armed it
@@ -158,7 +184,6 @@ export function syncRouteToTabs(pathname: string): void {
   }
 
   const tabId = tabIdFor(descriptor.nodeType, descriptor.nodeId)
-  const state = useWorkbench.getState()
   const owner = state.groups.find((group) => group.tabs.some((tab) => tab.id === tabId))
 
   if (owner) {
@@ -172,6 +197,8 @@ export function syncRouteToTabs(pathname: string): void {
     })
   }
 
+  // Recents are also written by `trackRouteVisit` (0353) — `touchRecent`
+  // dedupes by node id, so the tab title simply refines the entry.
   const tab = useWorkbench
     .getState()
     .groups.flatMap((group) => group.tabs)

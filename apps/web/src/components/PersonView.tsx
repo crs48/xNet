@@ -23,12 +23,12 @@ import { useQuery } from '@xnetjs/react'
 import { useDmOpen } from '../hooks/useDmOpen'
 import { DIDAvatar } from '@xnetjs/ui'
 import { MessageCircle } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { channelLabel, displayName as resolveName, type ProfileEntry } from '../comms/comms-utils'
 import { useComms } from '../comms/CommsContext'
 import { useProfiles } from '../comms/hooks'
 import { navigateToNode } from '../workbench/navigation'
-import { useWorkbench } from '../workbench/state'
+import { usePublishTitle } from '../workbench/route-title'
 import { PersonActions } from './PersonActions'
 
 const BOUNDED = { orderBy: { updatedAt: 'desc' as const }, limit: 200 }
@@ -168,10 +168,8 @@ export function PersonView({ did }: { did: string }) {
   const tasks = useAssignedTasks(did)
   const channels = useSharedChannels(did, me.did, profiles)
 
-  // Keep the tab label in sync with the resolved display name.
-  useEffect(() => {
-    useWorkbench.getState().setTabTitle(did, name)
-  }, [did, name])
+  // Publish the resolved display name as this route's title (0353).
+  usePublishTitle(did, name)
 
   const message = useCallback(async () => {
     if (isSelf) return

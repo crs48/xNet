@@ -63,7 +63,7 @@ import { navigateToFrame, navigateToNode } from '../workbench/navigation'
 import { nodePassportSection } from './NodePassport'
 import { useCommentPeople } from '../hooks/useCommentPeople'
 import { useContextPanel, type ContextPanelSection } from '../workbench/context-panel'
-import { useWorkbench } from '../workbench/state'
+import { usePublishTitle } from '../workbench/route-title'
 import { useIsCompact } from '../workbench/use-layout-mode'
 import { FormShareBar } from './FormShareBar'
 import { PresenceAvatars } from './PresenceAvatars'
@@ -421,11 +421,8 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
     [grid.rows, peekRowId]
   )
 
-  // ─── Workbench integration (0166): tab title + row detail section ─────────
-  const databaseTitle = database?.title
-  useEffect(() => {
-    if (databaseTitle) useWorkbench.getState().setTabTitle(docId, databaseTitle)
-  }, [docId, databaseTitle])
+  // ─── Workbench integration (0166/0353): title + row detail section ────────
+  usePublishTitle(docId, database?.title, database?.id)
 
   const databaseContextSections = useMemo<ContextPanelSection[]>(
     () => [

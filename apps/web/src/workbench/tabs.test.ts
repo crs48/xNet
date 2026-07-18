@@ -126,7 +126,9 @@ describe('syncRouteToTabs', () => {
     useWorkbench.setState({
       groups: [{ id: 'group-1', tabs: [], activeTabId: null }],
       activeGroupId: 'group-1',
-      recents: []
+      recents: [],
+      // These exercise the TAB path, which is opt-in since 0353 P5.
+      tabsEnabled: true
     })
 
     syncRouteToTabs('/doc/r1')
@@ -146,7 +148,9 @@ describe('syncRouteToTabs', () => {
     useWorkbench.setState({
       groups: [{ id: 'group-1', tabs: [], activeTabId: null }],
       activeGroupId: 'group-1',
-      recents: []
+      recents: [],
+      // These exercise the TAB path, which is opt-in since 0353 P5.
+      tabsEnabled: true
     })
 
     setPreviewIntent()
@@ -164,7 +168,9 @@ describe('syncRouteToTabs', () => {
     useWorkbench.setState({
       groups: [{ id: 'group-1', tabs: [], activeTabId: null }],
       activeGroupId: 'group-1',
-      recents: []
+      recents: [],
+      // These exercise the TAB path, which is opt-in since 0353 P5.
+      tabsEnabled: true
     })
     syncRouteToTabs('/discover')
     expect(useWorkbench.getState().groups[0].tabs).toEqual([])
@@ -174,7 +180,9 @@ describe('syncRouteToTabs', () => {
     useWorkbench.setState({
       groups: [{ id: 'group-1', tabs: [], activeTabId: null }],
       activeGroupId: 'group-1',
-      recents: []
+      recents: [],
+      // These exercise the TAB path, which is opt-in since 0353 P5.
+      tabsEnabled: true
     })
 
     // A source armed preview then navigated somewhere untabbed; the next real

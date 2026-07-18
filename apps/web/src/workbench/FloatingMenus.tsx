@@ -31,6 +31,8 @@ import { useSpaces } from '../hooks/useSpaces'
 import { DOC_TYPE_ROUTES } from '../lib/doc-creation'
 import { logout } from '../lib/identity'
 import { useNewActions } from './new-actions'
+import { useActivateSection, useSections } from './sidebar/SectionRows'
+import { sectionIcon } from './sidebar/sections'
 import { useWorkbench } from './state'
 import { SURFACES, surfaceTabId, useSurfaceActivation } from './surfaces'
 import { setPreviewIntent } from './tabs'
@@ -253,6 +255,64 @@ function ProfileMenu({ close }: { close: () => void }) {
   )
 }
 
+/**
+ * Sections roll-out (0353): the unified-nav counterpart to the surfaces
+ * menu — one list of the user's sections (lenses + routes), each
+ * pinnable to the primary rows.
+ */
+function SectionsMenu({ close }: { close: () => void }) {
+  const { pinned, hidden } = useSections()
+  const activate = useActivateSection()
+  const toggleSectionPinned = useWorkbench((s) => s.toggleSectionPinned)
+  const pinnedIds = new Set(pinned.map((section) => section.id))
+
+  return (
+    <div className="w-[256px] p-1.5">
+      <div className="flex items-center justify-between px-2 pb-1 pt-1">
+        <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-3">
+          Sections
+        </span>
+        <span className="text-[11px] text-ink-3">Pin to keep visible</span>
+      </div>
+      {[...pinned, ...hidden].map((section) => {
+        const Icon = sectionIcon(section)
+        const isPinned = pinnedIds.has(section.id)
+        // The pin is a SIBLING of the row, not a child: nesting it made the
+        // row's accessible name "DiscoverPin" (one control announcing two
+        // actions), and left the pin unreachable on its own by keyboard.
+        return (
+          <div key={section.id} className="flex items-center">
+            <button
+              type="button"
+              className={`${item} flex-1`}
+              onClick={() => {
+                activate(section)
+                close()
+              }}
+            >
+              <Icon size={16} strokeWidth={1.75} className="text-ink-3" />
+              <span className="flex-1 text-left">{section.label}</span>
+            </button>
+            <button
+              type="button"
+              aria-label={
+                isPinned ? `Unpin ${section.label} from sidebar` : `Pin ${section.label} to sidebar`
+              }
+              aria-pressed={isPinned}
+              onClick={() => toggleSectionPinned(section.id)}
+              className={`shrink-0 rounded border-none bg-transparent px-1.5 py-1 text-[11px] cursor-pointer hover:bg-background-muted ${
+                isPinned ? 'text-ink-1' : 'text-ink-3'
+              }`}
+            >
+              {isPinned ? 'Pinned' : 'Pin'}
+            </button>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 function SurfacesMenu({ close }: { close: () => void }) {
   const navPinned = useWorkbench((s) => s.navPinned)
   const activeSurface = useWorkbench((s) => s.activeSurface)
@@ -321,6 +381,8 @@ export function FloatingMenus({
   menu: FloatingMenuState | null
   onClose: () => void
 }) {
+  // Unified nav (0353) shows sections; the legacy shell shows surfaces.
+  const unifiedNav = useWorkbench((s) => !s.tabsEnabled)
   if (!menu) return null
   const { left, top } = positionFor(menu.name, menu.rect)
   return createPortal(
@@ -334,7 +396,8 @@ export function FloatingMenus({
         {menu.name === 'workspace' && <WorkspaceMenu close={onClose} />}
         {menu.name === 'notif' && <NotifMenu close={onClose} />}
         {menu.name === 'profile' && <ProfileMenu close={onClose} />}
-        {menu.name === 'surfaces' && <SurfacesMenu close={onClose} />}
+        {menu.name === 'surfaces' &&
+          (unifiedNav ? <SectionsMenu close={onClose} /> : <SurfacesMenu close={onClose} />)}
       </div>
     </>,
     document.body

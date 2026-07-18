@@ -14,7 +14,7 @@ import {
   Database,
   FolderTree,
   Info,
-  ListTree,
+  Layers,
   MessagesSquare,
   PanelBottom,
   PanelRight,
@@ -26,11 +26,10 @@ import {
 import { ChatsPanel } from '../comms/ChatsPanel'
 import { Canvas } from './calm/Canvas'
 import { ContextPanel } from './ContextPanel'
-import { Rail } from './Rail'
-import { Sidebar } from './Sidebar'
 import { getSlotView, registerSlotView } from './slot-registry'
 import { StatusBar } from './StatusBar'
 import { AiChatPanel } from './views/AiChatPanel'
+import { UnifiedTree } from './sidebar/UnifiedTree'
 import { Explorer } from './views/Explorer'
 import { DataPanelView, TasksPanelView } from './views/left'
 import { ShelfTray } from './views/Shelf'
@@ -72,32 +71,9 @@ export function registerBuiltinSlotViews(): void {
       defaultRegion: 'dock.right',
       keywords: ['properties', 'backlinks', 'comments']
     },
-    // Edge strips (not movable into docks)
-    {
-      id: 'rail',
-      icon: PanelBottom,
-      label: 'Rail',
-      tier: 'secondary',
-      group: 'navigate',
-      priority: 4,
-      component: asComponent(Rail),
-      defaultRegion: 'rail',
-      allowedRegions: ['rail']
-    },
-    // The single-shell sidebar (0284) — sectioned, labeled, collapsible; the
-    // default tree's rail resident. Supersedes the icon-only Rail and the
-    // calm ModeSwitch.
-    {
-      id: 'sidebar',
-      icon: ListTree,
-      label: 'Sidebar',
-      tier: 'secondary',
-      group: 'navigate',
-      priority: 4,
-      component: asComponent(Sidebar),
-      defaultRegion: 'rail',
-      allowedRegions: ['rail']
-    },
+    // Edge strips. The icon-only `rail` and the sectioned `sidebar`
+    // (0284) are gone (0353): the shipping shell renders its own sidebar
+    // islands, and the unified tree is the one nav.
     {
       id: 'status',
       icon: PanelBottom,
@@ -118,6 +94,18 @@ export function registerBuiltinSlotViews(): void {
       group: 'navigate',
       priority: 10,
       component: asComponent(Explorer),
+      defaultRegion: 'dock.left'
+    },
+    // The unified tree (0353): one list over the node graph, projected
+    // through lenses — the successor to the type-siloed panels.
+    {
+      id: 'tree',
+      icon: Layers,
+      label: 'Tree',
+      tier: 'hero',
+      group: 'navigate',
+      priority: 9,
+      component: asComponent(UnifiedTree),
       defaultRegion: 'dock.left'
     },
     {

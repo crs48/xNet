@@ -13,6 +13,7 @@
 import type { ExplorerSort } from './views/explorer-sort'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
+import { DEFAULT_PINNED_SECTION_IDS, DEFAULT_SECTIONS } from './sidebar/sections'
 import {
   createDefaultTree,
   createPresetTree,
@@ -210,6 +211,49 @@ interface WorkbenchState {
   bottom: PanelState
   groups: EditorGroup[]
   activeGroupId: string
+  /**
+   * Tabless mode (0353). When false the editor renders the router outlet
+   * directly — no strip, no groups, no preview/promote — and the working
+   * set lives in the sidebar's Pinned + Recents sections instead. The
+   * router stays authoritative either way, so navigation is unaffected.
+   */
+  tabsEnabled: boolean
+  /**
+   * Route → title, published by the views themselves (0353). Replaces
+   * `setTabTitle` as the header's title source when tabless; the tab
+   * store mirrors it while tabs are on.
+   */
+  routeTitles: Record<string, string>
+  /**
+   * The last two visited routes, newest first (0353). Backs the
+   * "recent two" Ctrl-Tab toggle — the tabless replacement for
+   * cycling tabs.
+   */
+  routeHistory: string[]
+  /**
+   * The node shown in the tabless split pane, or null (0353). A layout
+   * concern, not a window: closing it orphans nothing, and durable
+   * side-by-side belongs on a page as frames (0346).
+   */
+  splitTarget: { nodeId: string; nodeType: TabNodeType } | null
+  /**
+   * The unified sidebar's active lens (0353) — the projection of the one
+   * tree currently on screen ('all' | 'docs' | 'chats' | …).
+   */
+  activeLensId: string
+  /**
+   * Muted sidebar rows (0353). ONE flag suppressing badge *and* unread
+   * bump: shipping those independently is a recurring bug class.
+   */
+  mutedRowIds: string[]
+  /**
+   * The user's section order (0353) — the successor to `navPinned` +
+   * the "More" roll-out. Per-user, reorderable; unknown ids resolve
+   * away rather than crashing a shell shared across builds.
+   */
+  sectionOrder: string[]
+  /** Section ids shown as primary rows; the rest live behind "More". */
+  pinnedSectionIds: string[]
   pinnedNodeIds: string[]
   recents: RecentEntry[]
   /** Expanded folders in the Explorer tree (exploration 0169) */
@@ -379,6 +423,23 @@ interface WorkbenchState {
   /** Cycle active tab within the active group (Ctrl+Tab) */
   cycleTab: (delta: 1 | -1) => void
 
+  // ─── Tabless mode (0353) ───────────────────────────────────────
+  setTabsEnabled: (enabled: boolean) => void
+  /** Publish the current route's title (route-derived header chrome). */
+  setRouteTitle: (pathname: string, title: string) => void
+  /** Record a visited route for the recent-two toggle. */
+  pushRouteHistory: (pathname: string) => void
+  /** Show (or clear) the tabless split pane's node. */
+  setSplitTarget: (target: { nodeId: string; nodeType: TabNodeType } | null) => void
+  /** Switch the unified sidebar's lens. */
+  setActiveLens: (lensId: string) => void
+  /** Mute/unmute a row: badge and recency bump, together. */
+  toggleRowMuted: (rowId: string) => void
+  /** Show/hide a section among the primary rows. */
+  toggleSectionPinned: (sectionId: string) => void
+  /** Persist a user-chosen section order. */
+  setSectionOrder: (order: string[]) => void
+
   // ─── Explorer pins & recents ───────────────────────────────────
   togglePinnedNode: (nodeId: string) => void
   touchRecent: (entry: Omit<RecentEntry, 'at'>) => void
@@ -474,6 +535,18 @@ export const useWorkbench = create<WorkbenchState>()(
       bottom: { open: false, activeViewId: 'tray' },
       groups: freshGroups(),
       activeGroupId: 'group-1',
+      // 0353 Phase 5: tabless is the default — one surface, with the
+      // working set in the sidebar. The tab path stays reachable
+      // ("View: Turn on tabs") for one release so the dogfood tripwire
+      // in the exploration has something to fall back to.
+      tabsEnabled: false,
+      routeTitles: {},
+      routeHistory: [],
+      splitTarget: null,
+      activeLensId: 'all',
+      mutedRowIds: [],
+      sectionOrder: DEFAULT_SECTIONS.map((section) => section.id),
+      pinnedSectionIds: [...DEFAULT_PINNED_SECTION_IDS],
       pinnedNodeIds: [],
       recents: [],
       expandedFolderIds: [],
@@ -830,6 +903,49 @@ export const useWorkbench = create<WorkbenchState>()(
           }
         }),
 
+      setTabsEnabled: (enabled) => set({ tabsEnabled: enabled }),
+
+      setRouteTitle: (pathname, title) =>
+        set((state) =>
+          state.routeTitles[pathname] === title
+            ? {}
+            : { routeTitles: { ...state.routeTitles, [pathname]: title } }
+        ),
+
+      // Only two entries are kept: the toggle is "the other one", not a
+      // history stack (the router owns real back/forward).
+      pushRouteHistory: (pathname) =>
+        set((state) =>
+          state.routeHistory[0] === pathname
+            ? {}
+            : {
+                routeHistory: [pathname, ...state.routeHistory.filter((p) => p !== pathname)].slice(
+                  0,
+                  2
+                )
+              }
+        ),
+
+      setSplitTarget: (target) => set({ splitTarget: target }),
+
+      setActiveLens: (lensId) => set({ activeLensId: lensId }),
+
+      toggleRowMuted: (rowId) =>
+        set((state) => ({
+          mutedRowIds: state.mutedRowIds.includes(rowId)
+            ? state.mutedRowIds.filter((id) => id !== rowId)
+            : [...state.mutedRowIds, rowId]
+        })),
+
+      toggleSectionPinned: (sectionId) =>
+        set((state) => ({
+          pinnedSectionIds: state.pinnedSectionIds.includes(sectionId)
+            ? state.pinnedSectionIds.filter((id) => id !== sectionId)
+            : [...state.pinnedSectionIds, sectionId]
+        })),
+
+      setSectionOrder: (order) => set({ sectionOrder: order }),
+
       togglePinnedNode: (nodeId) =>
         set((state) => ({
           pinnedNodeIds: state.pinnedNodeIds.includes(nodeId)
@@ -884,9 +1000,21 @@ export const useWorkbench = create<WorkbenchState>()(
       // v2 (0280): the layout tree joins the persisted state. Pre-tree
       // profiles derive their tree from the legacy `layout`/`chrome` axes so
       // panels, pins, shelf and startup node all survive the migration.
-      version: 4,
+      version: 5,
       migrate: (persisted, version) => {
         const state = persisted as Partial<WorkbenchState>
+        // v5 (0353): tabless becomes the default, and the unified-nav
+        // state gets its defaults. Persisted `groups` are deliberately
+        // KEPT: turning tabs back on ("View: Turn on tabs") must restore
+        // the session it left, which is what makes the tabless rollout
+        // reversible rather than a one-way door.
+        if (version < 5) {
+          state.tabsEnabled = state.tabsEnabled === true
+          state.sectionOrder = state.sectionOrder ?? DEFAULT_SECTIONS.map((s) => s.id)
+          state.pinnedSectionIds = state.pinnedSectionIds ?? [...DEFAULT_PINNED_SECTION_IDS]
+          state.activeLensId = state.activeLensId ?? 'all'
+          state.mutedRowIds = state.mutedRowIds ?? []
+        }
         if (version < 2 && !state.tree) {
           state.tree = createPresetTree(
             state.layout === 'workbench' ? 'bench' : state.chrome === 'quiet' ? 'quiet' : 'calm'
@@ -940,7 +1068,13 @@ export const useWorkbench = create<WorkbenchState>()(
               // Floating dock visibility is live session state (0286) — a
               // reload always restores the default dock, never a stuck-closed one.
               key !== 'floatAi' &&
-              key !== 'floatCall'
+              key !== 'floatCall' &&
+              // Route titles/history are derived from what's mounted right
+              // now (0353); persisting them would resurrect stale chrome.
+              key !== 'routeTitles' &&
+              key !== 'routeHistory' &&
+              // The split is a transient layout, never a restored window.
+              key !== 'splitTarget'
           )
         ) as WorkbenchState
     }
@@ -951,4 +1085,12 @@ export const useWorkbench = create<WorkbenchState>()(
 export function selectActiveTab(state: Pick<WorkbenchState, 'groups' | 'activeGroupId'>) {
   const group = state.groups.find((g) => g.id === state.activeGroupId)
   return group?.tabs.find((tab) => tab.id === group.activeTabId) ?? null
+}
+
+/**
+ * The route the recent-two toggle (Ctrl-Tab) should jump to: the
+ * previously visited route, or null when there's only one (0353).
+ */
+export function selectPreviousRoute(state: Pick<WorkbenchState, 'routeHistory'>): string | null {
+  return state.routeHistory[1] ?? null
 }
