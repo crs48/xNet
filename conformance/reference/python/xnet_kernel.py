@@ -82,3 +82,59 @@ def verify_change(unsigned_change: dict, signature: bytes, public_key: bytes) ->
         return True
     except BadSignatureError:
         return False
+
+
+# ── Batch commits (one signature over many changes) [L1 §6.1] ──────────────────
+
+
+def batch_root(change_hashes: list[str]) -> str:
+    """
+    Root over an ORDERED list of change hashes: 'cid:blake3:' + hex(BLAKE3(
+    hashes joined by '\n')). Order is part of the commitment, so a permuted
+    batch yields a different root. [L1 §6.1]
+    """
+    return "cid:blake3:" + blake3("\n".join(change_hashes).encode("utf-8")).hexdigest()
+
+
+def batch_commit_hash(unsigned_commit: dict) -> str:
+    """
+    A commit is hashed with the SAME recipe as a change: canonical JSON,
+    BLAKE3, 'cid:blake3:' prefix. Unlike a change there is no legacy
+    unversioned form. [L1 §6.1]
+    """
+    return "cid:blake3:" + blake3(canonical_json(unsigned_commit)).hexdigest()
+
+
+def sign_batch_commit(unsigned_commit: dict, seed: bytes) -> bytes:
+    """One Ed25519 signature over the commit hash string. [L1 §6.1]"""
+    h = batch_commit_hash(unsigned_commit)
+    return SigningKey(seed).sign(h.encode("utf-8")).signature
+
+
+def verify_batch_commit(unsigned_commit: dict, signature: bytes, public_key: bytes) -> bool:
+    """
+    A commit is valid iff its root matches its own ordered hash list AND its
+    signature matches its author. [L1 §6.1]
+    """
+    if batch_root(unsigned_commit["changeHashes"]) != unsigned_commit["root"]:
+        return False
+    h = batch_commit_hash(unsigned_commit)
+    try:
+        VerifyKey(public_key).verify(h.encode("utf-8"), signature)
+        return True
+    except BadSignatureError:
+        return False
+
+
+def batch_member_ok(unsigned_change: dict, claimed_hash: str, commit: dict) -> bool:
+    """
+    Membership rules that keep a commit from being weaker than a per-change
+    signature: the change must hash to its claimed hash, that hash must be in
+    the commit's list, and the change's author must be the commit's author
+    (so a commit cannot launder someone else's change). [L1 §6.1]
+    """
+    if change_hash(unsigned_change) != claimed_hash:
+        return False
+    if claimed_hash not in commit["changeHashes"]:
+        return False
+    return unsigned_change["authorDID"] == commit["authorDID"]

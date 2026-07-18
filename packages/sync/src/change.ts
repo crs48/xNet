@@ -174,9 +174,13 @@ export function createBatchId(): string {
 }
 
 /**
- * Recursively sort object keys for canonical JSON representation.
+ * Recursively sort object keys so canonical JSON is deterministic.
+ *
+ * Exported for `batch-commit.ts`, which hashes its own record with the exact
+ * same recipe — the two MUST NOT drift or a commit hashed by one kernel would
+ * not verify against another.
  */
-function sortObjectKeys(obj: unknown): unknown {
+export function sortObjectKeys(obj: unknown): unknown {
   if (obj === null || typeof obj !== 'object') {
     return obj
   }

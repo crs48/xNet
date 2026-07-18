@@ -552,14 +552,14 @@ Tier 1 — batched wire + fast verify (no protocol bump):
 
 Tier 2 — batch commits (design first):
 
-- [ ] Write the `BatchCommit` spec section in
+- [x] Write the `BatchCommit` spec section in
       `docs/specs/protocol/` (hashing recipe, root construction,
       authorship rule, pruning-pin rule, lanes where valid)
-- [ ] Golden vectors: commit hash/sign/verify + tamper cases in
+- [x] Golden vectors: commit hash/sign/verify + tamper cases in
       `conformance/vectors/`; extend Python + Swift reference kernels
 - [ ] Schema migrations: nullable signature + `commit_id` on client
       `changes` and hub `node_changes`; commit storage tables
-- [ ] Implement `packages/sync/src/batch-commit.ts` (create/verify) and
+- [x] Implement `packages/sync/src/batch-commit.ts` (create/verify) and
       wire into `.xnetpack` write/verify/apply and hub NDJSON
       export/restore
 - [ ] Pruning: treat commits as pins; re-sign survivor commits on prune

@@ -24,6 +24,12 @@ import {
   createUnsignedChange,
   computeChangeHash,
   signChange,
+  computeBatchRoot,
+  createUnsignedBatchCommit,
+  signBatchCommit,
+  verifyBatch,
+  verifyBatchCommit,
+  recomputeChangeHash,
   serializeYjsEnvelope,
   verifyYjsEnvelopeV2,
   type SignedYjsEnvelopeV2
@@ -300,6 +306,171 @@ for (const { name, description, changes } of lwwScenarios) {
     suite: 'lww',
     name,
     data: { description, input: { changes }, expected }
+  })
+}
+
+// ── L1 · batch-commit vectors (one signature over many changes, 0357) ────────
+// A batch commit is an ADDITIVE record: it never changes how a Change is
+// hashed or ordered. These vectors pin the commit's own canonical bytes, its
+// root over the ordered member hashes, and the membership rules that keep a
+// commit from being weaker than per-change signatures.
+{
+  const members = [
+    {
+      id: 'chg-b001',
+      payload: {
+        nodeId: 'node-b001',
+        schemaId: 'xnet://xnet.fyi/Task@1.0.0',
+        properties: { title: 'One' }
+      },
+      lamport: 1
+    },
+    {
+      id: 'chg-b002',
+      payload: {
+        nodeId: 'node-b002',
+        schemaId: 'xnet://xnet.fyi/Task@1.0.0',
+        properties: { title: 'Two' }
+      },
+      lamport: 2
+    },
+    {
+      id: 'chg-b003',
+      payload: {
+        nodeId: 'node-b003',
+        schemaId: 'xnet://xnet.fyi/Task@1.0.0',
+        properties: { title: 'Three' }
+      },
+      lamport: 3
+    }
+  ].map((member) =>
+    signChange(
+      createUnsignedChange({
+        id: member.id,
+        type: 'node-change',
+        payload: member.payload,
+        parentHash: null,
+        authorDID,
+        lamport: member.lamport,
+        wallTime: 1718641200000 + member.lamport
+      }),
+      authorSeed
+    )
+  )
+
+  const changeHashes = members.map((member) => member.hash)
+  const unsignedCommit = createUnsignedBatchCommit({
+    id: 'commit-0001',
+    authorDID,
+    changeHashes,
+    lamport: 10,
+    wallTime: 1718641300000
+  })
+  const commit = signBatchCommit(unsignedCommit, authorSeed)
+
+  // The commit must verify, and every member must be covered by it.
+  expect(verifyBatchCommit(commit, authorPub)).toBe(true)
+  const membership = await verifyBatch(commit, members, authorPub, recomputeChangeHash)
+  expect(membership.ok).toBe(true)
+
+  corpus.push({
+    suite: 'batch-commit',
+    name: '0001-commit-over-three-changes',
+    data: {
+      description: 'one Ed25519 signature covering three ordered change hashes',
+      input: { authorSeedHex: toHex(authorSeed), unsignedCommit },
+      expected: {
+        canonicalJson: canonicalJson(unsignedCommit),
+        root: commit.root,
+        hash: commit.hash,
+        signatureBase64: toB64(commit.signature),
+        memberHashes: changeHashes
+      }
+    }
+  })
+
+  // Order is part of the commitment: the same hashes in a different order
+  // MUST produce a different root, or a batch could be replayed permuted.
+  const reversed = [...changeHashes].reverse()
+  expect(computeBatchRoot(reversed)).not.toBe(commit.root)
+
+  corpus.push({
+    suite: 'batch-commit',
+    name: '0002-root-is-order-sensitive',
+    data: {
+      description: 'reordering the member hashes changes the root',
+      input: { changeHashes, reversedChangeHashes: reversed },
+      expected: { root: commit.root, reversedRoot: computeBatchRoot(reversed) }
+    }
+  })
+
+  // Tamper cases — each MUST be rejected.
+  const smuggled = signChange(
+    createUnsignedChange({
+      id: 'chg-b999',
+      type: 'node-change',
+      payload: {
+        nodeId: 'node-b999',
+        schemaId: 'xnet://xnet.fyi/Task@1.0.0',
+        properties: { title: 'Smuggled' }
+      },
+      parentHash: null,
+      authorDID,
+      lamport: 9,
+      wallTime: 1718641290000
+    }),
+    authorSeed
+  )
+  const smuggledResult = await verifyBatch(
+    commit,
+    [...members, smuggled],
+    authorPub,
+    recomputeChangeHash
+  )
+  expect(smuggledResult.ok).toBe(false)
+  expect(smuggledResult.members).toEqual([true, true, true, false])
+
+  const tamperedMember = {
+    ...members[1],
+    payload: { ...members[1].payload, properties: { title: 'Forged' } }
+  }
+  const tamperedResult = await verifyBatch(
+    commit,
+    [members[0], tamperedMember, members[2]],
+    authorPub,
+    recomputeChangeHash
+  )
+  expect(tamperedResult.ok).toBe(false)
+  expect(tamperedResult.members).toEqual([true, false, true])
+
+  // A commit whose list was edited AND root recomputed still fails, because
+  // the commit hash (and therefore the signature) covers the original list.
+  const editedHashes = [...changeHashes, smuggled.hash]
+  const forgedCommit = {
+    ...commit,
+    changeHashes: editedHashes,
+    root: computeBatchRoot(editedHashes)
+  }
+  expect(verifyBatchCommit(forgedCommit, authorPub)).toBe(false)
+
+  corpus.push({
+    suite: 'batch-commit',
+    name: '0003-tamper-cases',
+    data: {
+      description: 'membership and commit-integrity tamper cases, all rejected',
+      input: {
+        commitHash: commit.hash,
+        smuggledChangeHash: smuggled.hash,
+        tamperedMemberIndex: 1,
+        editedChangeHashes: editedHashes
+      },
+      expected: {
+        smuggledMembers: smuggledResult.members,
+        tamperedMembers: tamperedResult.members,
+        forgedCommitRoot: forgedCommit.root,
+        forgedCommitVerifies: false
+      }
+    }
   })
 }
 

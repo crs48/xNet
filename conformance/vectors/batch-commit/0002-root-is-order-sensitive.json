@@ -1,0 +1,19 @@
+{
+  "description": "reordering the member hashes changes the root",
+  "input": {
+    "changeHashes": [
+      "cid:blake3:aa3469ec4cc5e3479ccfe816289a7465578961f089a979b62dd035867b03b590",
+      "cid:blake3:4c8a4afc2c42cee1e22d6ec7b78023f07eed7886b3e6b362b958a46a9a3a61dc",
+      "cid:blake3:f687637f9a263a5fb7ac49c0ee7d81dce6a8c454152bb2d0b22dc86727125939"
+    ],
+    "reversedChangeHashes": [
+      "cid:blake3:f687637f9a263a5fb7ac49c0ee7d81dce6a8c454152bb2d0b22dc86727125939",
+      "cid:blake3:4c8a4afc2c42cee1e22d6ec7b78023f07eed7886b3e6b362b958a46a9a3a61dc",
+      "cid:blake3:aa3469ec4cc5e3479ccfe816289a7465578961f089a979b62dd035867b03b590"
+    ]
+  },
+  "expected": {
+    "root": "cid:blake3:73b2f50050f41879ce5ad961fdb96d24694cb82f12de7589f6c1082164afd632",
+    "reversedRoot": "cid:blake3:7f66c80baab660401b50c5af7d02f49e764ad6e9469ab0408619ed00c496afea"
+  }
+}
