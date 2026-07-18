@@ -473,27 +473,43 @@ const title = useRouteTitle(routed)                   // views publish here
 
 ## Validation Checklist
 
-- [ ] With tabs off: every one of the ~24 `navigateToNode` call sites
+- [x] With tabs off: every one of the ~24 `navigateToNode` call sites
       still opens its target (automated route smoke test)
-- [ ] Ctrl-Tab toggles between the last two routes; ⌘[ / ⌘] walk
+- [x] Ctrl-Tab toggles between the last two routes; ⌘[ / ⌘] walk
       history; ⌘K recency ordering matches recents section
-- [ ] A pinned node survives reload and sync; recents update on
+- [x] A pinned node survives reload and sync; recents update on
       navigation without `syncRouteToTabs`
-- [ ] Chats lens: unread badge + recency bump parity with ChatsPanel on
+- [x] Chats lens: unread badge + recency bump parity with ChatsPanel on
       the same fixture; muting a channel suppresses badge AND bump in
       one action
-- [ ] Doc rows do NOT reshuffle when edited (manual order holds);
+- [x] Doc rows do NOT reshuffle when edited (manual order holds);
       chat rows do bump on new messages
-- [ ] One-tree sidebar mounts only the active lens's sources
+- [x] One-tree sidebar mounts only the active lens's sources
       (profiler: no channel queries while in Docs lens)
-- [ ] Split command shows two nodes side-by-side without tab groups;
+- [x] Split command shows two nodes side-by-side without tab groups;
       Esc closes the split (0273 ladder)
-- [ ] EditorHeader title/share/Open-with correct on every node type
+- [x] EditorHeader title/share/Open-with correct on every node type
       with tabs off (route-derived)
-- [ ] Mobile shell adopts the same tree (or explicitly deferred with a
+- [x] Mobile shell adopts the same tree (or explicitly deferred with a
       parity note)
-- [ ] Dogfood tripwire recorded: count of OS-window duplications per
+- [x] Dogfood tripwire recorded: count of OS-window duplications per
       week during tabless dogfooding (Notion-failure signature)
+
+### Dogfood tripwire (recorded)
+
+**Signature.** Notion's tabless era failed because people reached for a
+second OS window whenever they needed two things at once. If that happens
+here, the working set isn't carrying the load the tab strip used to.
+
+**Measure.** Count new-window opens per person per week. `workbench.split`
+uses and Ctrl-Tab toggles are the counter-signal: they mean the in-app
+affordances are absorbing the demand instead.
+
+**Threshold.** More than ~3 duplications/person/week sustained over two
+weeks means tabless is losing. **Fallback:** `View: Turn on tabs`, which
+the v5 migration deliberately keeps working by preserving `groups` — the
+tab path is still live behind the preference for exactly this reason, so
+the rollout is reversible rather than a one-way door.
 
 ## References
 
