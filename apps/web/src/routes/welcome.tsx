@@ -1,11 +1,14 @@
 /**
  * /welcome (exploration 0176) — short, skippable first-run setup.
  *
- * Three steps: age confirmation, a one-screen content dial, and a discovery
- * opt-in. Nothing here gates core app use — every step can be skipped, and the
- * same controls live in Settings for later.
+ * Four steps: age confirmation, a "how should this feel" chooser (0352 — the
+ * cozy/quiet feels are real choices offered in the lobby, not flags to find),
+ * a one-screen content dial, and a discovery opt-in. Nothing here gates core
+ * app use — every step can be skipped, and the same controls live in Settings
+ * for later.
  */
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useTheme } from '@xnetjs/ui'
 import { useState } from 'react'
 import {
   CONTENT_DIAL_PRESETS,
@@ -16,6 +19,28 @@ import {
   loadSensitivityPreferences,
   saveSensitivityPreferences
 } from '../lib/sensitivity-preferences'
+import { useWorkbench } from '../workbench/state'
+
+/** The first-run feel presets (0352): venue calm by default, warmth on request. */
+const FEEL_CHOICES = [
+  {
+    id: 'focused',
+    name: 'Focused',
+    description: 'Monochrome workbench — precise, dense, everything at hand.'
+  },
+  {
+    id: 'cozy',
+    name: 'Cozy',
+    description: 'Warm paper and terracotta — a room, not an IDE.'
+  },
+  {
+    id: 'quiet',
+    name: 'Quiet',
+    description: 'An almost-bare surface; chrome waits at the edges until summoned.'
+  }
+] as const
+
+type FeelChoice = (typeof FEEL_CHOICES)[number]['id']
 
 export const Route = createFileRoute('/welcome')({
   component: WelcomePage
@@ -39,6 +64,7 @@ export function hasOnboarded(): boolean {
 
 function WelcomePage() {
   const navigate = useNavigate()
+  const { setVariant } = useTheme()
   const [step, setStep] = useState(0)
   const [ageConfirmed, setAgeConfirmed] = useState(false)
 
@@ -47,10 +73,18 @@ function WelcomePage() {
     void navigate({ to: toDiscover ? '/discover' : '/' })
   }
 
+  const chooseFeel = (feel: FeelChoice) => {
+    // Both axes persist (ThemeProvider storage / workbench store), so the
+    // choice survives into the app and stays editable in Settings → Appearance.
+    if (feel === 'cozy') setVariant('cozy')
+    if (feel === 'quiet') useWorkbench.getState().setChrome('quiet')
+    setStep(2)
+  }
+
   const choosePreset = (preset: ContentDialPreset) => {
     const current = { ...loadSensitivityPreferences(), ageConfirmed }
     saveSensitivityPreferences(applyContentDialPreset(preset, current))
-    setStep(2)
+    setStep(3)
   }
 
   return (
@@ -87,6 +121,36 @@ function WelcomePage() {
 
       {step === 1 && (
         <section className="space-y-4">
+          <h1 className="cozy-heading text-xl font-semibold">How should xNet feel?</h1>
+          <p className="text-sm text-muted-foreground">
+            The venue is calm by default; warmth is a choice, not a flag to find. Change it any time
+            in Settings → Appearance.
+          </p>
+          <div className="space-y-2">
+            {FEEL_CHOICES.map((feel) => (
+              <button
+                key={feel.id}
+                type="button"
+                onClick={() => chooseFeel(feel.id)}
+                className="flex w-full flex-col rounded-md border border-border px-3 py-2 text-left hover:bg-accent/50"
+              >
+                <span className="text-sm font-medium">{feel.name}</span>
+                <span className="text-xs text-muted-foreground">{feel.description}</span>
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => setStep(2)}
+            className="rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-accent/50"
+          >
+            Skip
+          </button>
+        </section>
+      )}
+
+      {step === 2 && (
+        <section className="space-y-4">
           <h1 className="text-xl font-semibold">What content would you like to see?</h1>
           <div className="space-y-2">
             {CONTENT_DIAL_PRESETS.map((preset) => (
@@ -105,7 +169,7 @@ function WelcomePage() {
         </section>
       )}
 
-      {step === 2 && (
+      {step === 3 && (
         <section className="space-y-4">
           <h1 className="text-xl font-semibold">Open to meeting people?</h1>
           <p className="text-sm text-muted-foreground">
