@@ -1,7 +1,7 @@
 /**
  * @xnetjs/brain — shared types for the AI second-brain layer (exploration 0211).
  *
- * The "brain" is the thin layer that connects three assets XNet already has but
+ * The "brain" is the thin layer that connects three assets xNet already has but
  * never wired together: the governed node graph (`@xnetjs/data`), full-text
  * search, and the dormant vector engine (`@xnetjs/vectors`). It turns them into
  * a hybrid GraphRAG retriever that hands an agent a small, ranked, budgeted slice

@@ -1,8 +1,8 @@
-# Portable XNet — Defining The Protocol Boundaries For A Multi‑Implementation Standard
+# Portable xNet — Defining The Protocol Boundaries For A Multi‑Implementation Standard
 
 ## Problem Statement
 
-Today, "XNet" and "the `xNet` repository" are the same thing. The TypeScript
+Today, "xNet" and "the `xNet` repository" are the same thing. The TypeScript
 monorepo *is* the protocol — there is no document that another engineer in
 another language, on another database, could pick up and use to build a second
 implementation that interoperates with the first. The protocol lives implicitly
@@ -10,12 +10,12 @@ in the code: in the shape of a `Node`, in how a `Change` is hashed and signed,
 in the bytes the hub relays over a WebSocket, in how a `did:key` is derived from
 an Ed25519 public key.
 
-The user's ask: treat XNet as **Lego, not as an app**. If XNet is a protocol,
+The user's ask: treat xNet as **Lego, not as an app**. If xNet is a protocol,
 it needs a *clear, written interface* — an explicit boundary between "this is
 the standard, you must agree on it to interoperate" and "this is one
 implementation's private business." The intuition is exactly right: *"YJS docs,
-the shape of a node, encrypted/ID/creator — a few key details that make XNet
-XNet, that make the data model the data model, sync replication."* The goal of
+the shape of a node, encrypted/ID/creator — a few key details that make xNet
+xNet, that make the data model the data model, sync replication."* The goal of
 this exploration is to find **where those boundaries actually are in the code as
 it exists today**, decide which seams are normative protocol vs. implementation
 detail, and propose how to express that as a versioned standard — in the repo
@@ -27,7 +27,7 @@ that are already there** and write them down.
 ## Executive Summary
 
 **The good news: the boundaries already exist in the code — they are just
-undocumented.** XNet is unusually well‑factored for this. The monorepo is
+undocumented.** xNet is unusually well‑factored for this. The monorepo is
 layered so cleanly (`core` → `crypto`/`identity` → `sync`/`data`/`storage` →
 `network`/`hub` → `runtime`/`react`/`ui`) that the protocol surface is almost
 exactly the bottom three layers, and the "app" is almost exactly the top two.
@@ -39,24 +39,24 @@ and identity primitives are *already* cross‑language standards (DID:key, UCAN,
 Ed25519, XChaCha20‑Poly1305, X25519, HKDF) implemented on the audited `@noble/*`
 libraries.
 
-**The headline finding:** XNet's interop kernel is a **signed, hash‑chained,
+**The headline finding:** xNet's interop kernel is a **signed, hash‑chained,
 LWW change log over schema‑typed nodes** — *not* Yjs. Yjs is used only for the
 rich‑text/CRDT *document body* of certain nodes, and it already travels the wire
-as **opaque bytes inside an XNet envelope**. That means the hardest portability
+as **opaque bytes inside an xNet envelope**. That means the hardest portability
 problem in local‑first systems (porting a CRDT byte format across languages) is
-*not on XNet's critical path*: a second implementation can treat the Yjs blob as
+*not on xNet's critical path*: a second implementation can treat the Yjs blob as
 an octet string it forwards and stores, and still fully participate in the node
 graph, identity, authorization, and sync. The CRDT is a **pluggable document
 codec**, not the protocol.
 
-**The recommendation:** carve a normative **XNet Protocol Specification** out of
+**The recommendation:** carve a normative **xNet Protocol Specification** out of
 the existing code in four layers — (L0) Cryptographic Primitives, (L1) Data
 Model, (L2) Replication, (L3) Authorization — plus a non‑normative (L4)
-Application Profile. Define a single umbrella **XNet Protocol Version** (an
-"XNet 1.0 = data‑model‑1 + change‑3 + envelope‑2 + crypto‑level‑0" bundle, the
+Application Profile. Define a single umbrella **xNet Protocol Version** (an
+"xNet 1.0 = data‑model‑1 + change‑3 + envelope‑2 + crypto‑level‑0" bundle, the
 way Matrix bundles algorithm changes into *room versions*). Ship it as
 `docs/specs/protocol/` (source of truth) rendered to a `/protocol` section of
-the Astro site, governed by a lightweight **XPP** (XNet Protocol Proposal)
+the Astro site, governed by a lightweight **XPP** (xNet Protocol Proposal)
 process modeled on Matrix MSCs. Critically — and this is the lesson every prior
 protocol learned the hard way — **publish a language‑agnostic conformance corpus
 (golden vectors) at the same time as the spec**, not years later. Prove the
@@ -67,7 +67,7 @@ schema model and give it a normative resolution path.
 
 ## Current State In The Repository
 
-XNet is already a layered system where the lower layers are the protocol and the
+xNet is already a layered system where the lower layers are the protocol and the
 upper layers are the implementation. Here is the actual map.
 
 ### The package layering (the boundary is already drawn)
@@ -158,7 +158,7 @@ a `PropertyTimestamp { lamport, wallTime }` *per property*; on conflict the
 subsequent changes carry only the changed properties (sparse). This is the heart
 of "the data model is the data model" — and it is **independent of Yjs**.
 
-### Yjs is the document body, behind an XNet envelope
+### Yjs is the document body, behind an xNet envelope
 
 Schemas may declare `document: 'yjs'`
 ([`packages/data/src/schema/types.ts`](packages/data/src/schema/types.ts)). When
@@ -171,13 +171,13 @@ with a compact wire form ([`:91`](packages/sync/src/yjs-envelope.ts)):
 ```ts
 interface SignedYjsEnvelopeWire {
   v: 2
-  u: string   // base64(Yjs update bytes) — OPAQUE to XNet
+  u: string   // base64(Yjs update bytes) — OPAQUE to xNet
   m: { a: DID; c: number; t: number; d: string }  // author, clientId, ts, docId
   s: SignatureWire   // ed25519 (+ optional ML-DSA), level
 }
 ```
 
-The envelope is signed over `BLAKE3(update || JSON(meta))`. **XNet authenticates
+The envelope is signed over `BLAKE3(update || JSON(meta))`. **xNet authenticates
 and routes the Yjs bytes; it does not need to parse them.** That is the seam
 that makes portability tractable.
 
@@ -240,7 +240,7 @@ define messages once, bind to multiple transports).
 
 - `docs/specs/` exists but holds a single reconciliation note; `docs/sync/`
   holds migration/version‑compat/lens cookbook docs (relevant prior art for the
-  schema‑evolution story). `docs/VISION.md` already frames XNet as
+  schema‑evolution story). `docs/VISION.md` already frames xNet as
   "infrastructure for a new internet… a universal namespace" — the spec is the
   technical cash‑out of that vision.
 - The website is an Astro site (`site/`) with a docs content collection at
@@ -258,7 +258,7 @@ Six protocols/efforts are directly instructive. (Full URLs in References.)
   Records are self‑describing via `$type`. Deliberately chose Lexicon over RDF —
   Paul Frazee's "Why not RDF" is required reading. Standardization path:
   authored in‑house → atproto.com → chartered an IETF WG only *after* ecosystem
-  adoption. **Takeaway for XNet:** `xnet://authority/Name@version` ≈ NSID; give
+  adoption. **Takeaway for xNet:** `xnet://authority/Name@version` ≈ NSID; give
   it a normative DNS/DID‑anchored resolution path; constrain content addressing
   (one hash, one codec) rather than negotiating it.
 
@@ -266,9 +266,9 @@ Six protocols/efforts are directly instructive. (Full URLs in References.)
   (GitHub‑PR‑as‑proposal, PR number = permanent ID, FCP, *working implementation
   required before merge*) is the most practical model for a small team. **Room
   versions** bundle breaking algorithm changes so old and new rooms coexist —
-  the model for XNet's umbrella version. Conformance via **Complement** +
+  the model for xNet's umbrella version. Conformance via **Complement** +
   **Sytest**. **Cautionary tale:** Matrix state resolution is so hard to
-  implement that Dendrite went into maintenance mode. *Keep XNet's relay/merge
+  implement that Dendrite went into maintenance mode. *Keep xNet's relay/merge
   semantics simple enough to implement in a weekend.*
 
 - **ActivityPub** — the JSON‑LD cautionary tale. Full JSON‑LD requires every
@@ -285,25 +285,25 @@ Six protocols/efforts are directly instructive. (Full URLs in References.)
   (sync message wire format), and ports (Rust **yrs**/`y-crdt`, `y-octo`,
   pycrdt, yswift, ywasm…) maintain *binary compatibility by reverse‑engineering
   the JS*. Automerge, by contrast, has a **written binary‑format spec** and a
-  Rust core exposed via C‑ABI/WASM. **Takeaway:** because XNet already transports
+  Rust core exposed via C‑ABI/WASM. **Takeaway:** because xNet already transports
   Yjs as opaque bytes, it can normatively reference `y-protocols` + "yrs‑compatible
   serialization" and tag a `documentCodec`, leaving room to swap codecs later —
   without betting the protocol on Yjs internals.
 
 - **Already‑standard primitives** — `did:key` (W3C CCG, final, many languages),
   UCAN (`ucan-wg/spec` at 1.0‑rc, TS/Rust/Go libs — **pin the version**), IPLD/CID
-  + DAG‑CBOR (mature in Go/JS/Rust, Rust‑backed Python). XNet's primitives layer
+  + DAG‑CBOR (mature in Go/JS/Rust, Rust‑backed Python). xNet's primitives layer
   is mostly "cite an external spec," with UCAN and Yjs the weakest links on
   cross‑language coverage.
 
 - **Local‑first interop** — **Braid** (HTTP state‑sync, IETF draft, CRDT‑agnostic
   "merge‑type" negotiation), **Cambria** (bidirectional lenses for schema
-  evolution — directly relevant to `@v1`↔`@v2` coexistence, and XNet already has
+  evolution — directly relevant to `@v1`↔`@v2` coexistence, and xNet already has
   a "lens cookbook" in `docs/sync/03-lens-cookbook.md`), **Willow** (spec as a
   *meta‑protocol* with pluggable parameters + per‑component conformance matrix),
   **Earthstar** (deliberately constrained scope to make multiple implementations
   feasible), **p2panda** (modular bytes‑level protocol on BLAKE3/Ed25519/CBOR —
-  the nearest neighbor to what XNet wants to be).
+  the nearest neighbor to what xNet wants to be).
 
 ## Key Findings
 
@@ -321,7 +321,7 @@ Six protocols/efforts are directly instructive. (Full URLs in References.)
 3. **Version numbers are fragmented and need an umbrella.** `change.ts` is at
    `protocolVersion 3`, the Yjs envelope at `v: 2`, schemas default to `1.0.0`,
    the libp2p protocol is `/xnet/sync/1.0.0`, crypto has `securityLevel` 0–2,
-   `REMOTE_NODE_QUERY_PROTOCOL_VERSION = 1`. No single "what version of XNet do
+   `REMOTE_NODE_QUERY_PROTOCOL_VERSION = 1`. No single "what version of xNet do
    you speak?" handshake bundles these. (The hub handshake *does* carry
    `protocolVersion`/`minProtocolVersion`/`features` —
    [`packages/network/src/types.ts`](packages/network/src/types.ts) — a hook to
@@ -354,7 +354,7 @@ Six protocols/efforts are directly instructive. (Full URLs in References.)
    (DNS? DID doc? a well‑known endpoint? bundled built‑ins under `xnet.fyi`?) is
    not defined as a protocol step. AT Proto's NSID→DNS→DID→repo path is the model.
 
-8. **No JSON‑LD trap yet — keep it that way.** XNet schemas are JSON‑Schema‑like,
+8. **No JSON‑LD trap yet — keep it that way.** xNet schemas are JSON‑Schema‑like,
    not RDF. This is the *right* call (per ActivityPub's experience). Extensibility
    should stay namespaced‑but‑document‑oriented.
 
@@ -369,7 +369,7 @@ flowchart LR
   end
   subgraph Mid["Layered profiles (recommended)"]
     m1["L0 crypto · L1 data-model · L2 replication · L3 authz"]
-    m2["each independently versioned, bundled by XNet vN"]
+    m2["each independently versioned, bundled by xNet vN"]
   end
   subgraph Thick["Whole stack"]
     k1["+ query semantics, storage, UI surfaces, plugins"]
@@ -384,7 +384,7 @@ flowchart LR
   on a live hub. Good as a *starting* profile, insufficient as the whole story.
 - **A2 — Layered profiles (recommended).** Four normative layers (L0–L3) + a
   non‑normative L4 application profile, each with its own version, bundled by a
-  single **XNet Protocol Version**. Mirrors Willow's pluggable‑parameter model
+  single **xNet Protocol Version**. Mirrors Willow's pluggable‑parameter model
   and Matrix room versions. More to write, but it lets the CRDT codec, transport,
   and crypto level vary while keeping a stable interop core.
 - **A3 — Whole stack.** Standardize query AST, storage, plugin runtime, UI. This
@@ -402,7 +402,7 @@ flowchart LR
   document blobs faithfully and to verify the envelope signature, but only
   *optionally* to interpret a given codec. An implementation that doesn't speak
   `yjs-v1` can still sync the node graph and relay documents. Matches how the
-  code already treats the blob. Future‑proofs against a native XNet CRDT.
+  code already treats the blob. Future‑proofs against a native xNet CRDT.
 - **B3 — Adopt Automerge's spec'd format.** Cleanest long‑term portability, but a
   large migration and not what's deployed. Park as a future codec option.
 
@@ -416,7 +416,7 @@ flowchart LR
   TXT → well‑known JSON; DID authorities resolve via the DID document / a synced
   schema node. Self‑describing nodes via `schemaId` (already true). Evolution
   rules: additive‑only within a major; breaking change ⇒ new `@version`; provide
-  **Cambria‑style lenses** for cross‑version coexistence (XNet already has the
+  **Cambria‑style lenses** for cross‑version coexistence (xNet already has the
   lens cookbook).
 - **C3 — Schemas only as synced nodes.** Elegant (schemas are just data) and
   already partially true (personal schemas under a DID authority). But bootstrap
@@ -447,7 +447,7 @@ flowchart LR
 
 ## Recommendation
 
-Adopt **A2 + B2 + C2 + D2 + E2**: a **layered XNet Protocol** with an opaque
+Adopt **A2 + B2 + C2 + D2 + E2**: a **layered xNet Protocol** with an opaque
 document codec, Lexicon‑style schemas with a defined resolution path, governed by
 an MSC‑style proposal process that starts in‑repo, and shipped *with* a
 golden‑vector conformance corpus.
@@ -467,7 +467,7 @@ flowchart TB
   class L0,L1,L2,L3 norm; class L4 non;
 ```
 
-| Layer | Normative? | Mostly references… | XNet‑specific work to write |
+| Layer | Normative? | Mostly references… | xNet‑specific work to write |
 |------|-----------|--------------------|------------------------------|
 | **L0 Primitives** | Yes | W3C `did:key`, UCAN, RFC 7748/8439, FIPS 203/204 | The exact algorithm choices + `securityLevel` 0/1/2 bundles; key‑wrap envelope format |
 | **L1 Data Model** | Yes | nanoid, semver | `Node`, `SchemaIRI` + **resolution**, property types, `Change` + **canonical serialization & hash**, LWW rules, `documentCodec` |
@@ -502,7 +502,7 @@ refusal.
    second language (Python or Rust) that reproduces L0+L1 vectors. This is the
    user's "proof of concept": it *demonstrates* the boundary is real.
 4. **Phase 3 — Express it.** Add a `/protocol` section to the Astro site rendering
-   the spec, a one‑page "Implement XNet in your language" guide, and a conformance
+   the spec, a one‑page "Implement xNet in your language" guide, and a conformance
    matrix (Willow‑style).
 5. **Phase 4 — Govern it.** Stand up the **XPP** process (proposal template,
    editorial board of 2–3, "implementation required before merge"), graduate to a
@@ -608,7 +608,7 @@ docs/specs/protocol/
   04-authorization.md       # L3 — authz definitions, role resolvers, expression AST, grants, sync-boundary
   05-schema-evolution.md    # versioning + Cambria lenses (links docs/sync/03-lens-cookbook.md)
   90-conformance.md         # how to run the corpus; the conformance matrix
-  xpp/                      # XNet Protocol Proposals (MSC-style), 0000-template.md
+  xpp/                      # xNet Protocol Proposals (MSC-style), 0000-template.md
 conformance/
   vectors/{identity,change,lww,authz,sync}/*.json
   README.md
@@ -662,7 +662,7 @@ site/src/content/docs/docs/protocol/   # rendered spec (Astro) + "implement it i
       re‑exported by `@xnetjs/sdk`; single‑sources `change` from `@xnetjs/sync`.
 - [x] Write `01-primitives.md` (L0): did:key derivation, Ed25519/XChaCha20/X25519/
       HKDF/BLAKE3 choices, `securityLevel` bundles, key‑wrap envelope, UCAN version
-      pin — mostly external normative references + XNet's exact parameters.
+      pin — mostly external normative references + xNet's exact parameters.
 - [x] Write `02-data-model.md` (L1): `Node` shape, `SchemaIRI` grammar + resolution
       path, property type catalog, `Change` record, **canonical serialization +
       hashing algorithm**, Lamport/LWW resolution, `documentCodec` discriminator.
@@ -689,7 +689,7 @@ site/src/content/docs/docs/protocol/   # rendered spec (Astro) + "implement it i
       corpus fails CI. (A dedicated workflow was unnecessary.)
 - [x] Build the **conformance kernel** in a second language (Python) that reproduces
       L0+L1 vectors — `conformance/reference/python/` (18/18 vectors pass).
-- [x] Add a `/protocol` Astro docs section + an "Implement XNet in your language"
+- [x] Add a `/protocol` Astro docs section + an "Implement xNet in your language"
       quickstart + a conformance matrix page.
 - [x] Add the **XPP** proposal template and process doc (`xpp/0000-template.md`),
       including the "working implementation required before merge" rule.
@@ -727,7 +727,7 @@ site/src/content/docs/docs/protocol/   # rendered spec (Astro) + "implement it i
 
 ## References
 
-### XNet repository (source of truth)
+### xNet repository (source of truth)
 - Node shape / SchemaIRI / DID / `createNodeId` — [`packages/data/src/schema/node.ts`](packages/data/src/schema/node.ts)
 - Property type system — [`packages/data/src/schema/types.ts`](packages/data/src/schema/types.ts)
 - `Change` record + `CURRENT_PROTOCOL_VERSION` + hashing — [`packages/sync/src/change.ts`](packages/sync/src/change.ts)

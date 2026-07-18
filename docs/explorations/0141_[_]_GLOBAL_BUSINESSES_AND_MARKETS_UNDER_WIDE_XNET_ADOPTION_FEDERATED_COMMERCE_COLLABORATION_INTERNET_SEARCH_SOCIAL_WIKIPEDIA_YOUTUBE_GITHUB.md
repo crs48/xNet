@@ -1,4 +1,4 @@
-# 0141 - Global Businesses And Markets Under Wide XNet Adoption
+# 0141 - Global Businesses And Markets Under Wide xNet Adoption
 
 > **Status:** Exploration  
 > **Date:** 2026-06-03  
@@ -8,9 +8,9 @@
 ## Problem Statement
 
 What might global businesses, markets, collaboration, social life, and the internet look like if a
-product like XNet reached wide adoption?
+product like xNet reached wide adoption?
 
-This is not just a product strategy question. Wide XNet adoption would imply a deeper shift:
+This is not just a product strategy question. Wide xNet adoption would imply a deeper shift:
 
 - personal and organizational data becomes locally controlled, cryptographically attributable, and
   globally addressable;
@@ -34,9 +34,9 @@ as a deterministic forecast.
 ## Exploration Status
 
 - [x] Inspect existing exploration numbering and create the next exploration file
-- [x] Review current XNet repo capabilities relevant to local-first data, hubs, query, federation,
+- [x] Review current xNet repo capabilities relevant to local-first data, hubs, query, federation,
       social primitives, plugins, and authorization
-- [x] Review adjacent XNet explorations on decentralized search, social, video, Wikipedia, OSS
+- [x] Review adjacent xNet explorations on decentralized search, social, video, Wikipedia, OSS
       forges, schema federation, abuse mitigation, and hub economics
 - [x] Research external protocols, standards, and operating lessons from federated systems
 - [x] Synthesize market, collaboration, internet, and social scenarios
@@ -45,7 +45,7 @@ as a deterministic forecast.
 
 ## Executive Summary
 
-If XNet reached wide adoption, the most important shift would not be "everything is peer-to-peer."
+If xNet reached wide adoption, the most important shift would not be "everything is peer-to-peer."
 The shift would be:
 
 **Canonical data moves closer to people and organizations, while reach, ranking, workflows,
@@ -56,7 +56,7 @@ state, the moderation system, the search ranking, the recommender, the identity 
 business relationship. If users or businesses leave, they often leave behind history, reputation,
 audience, operational records, integrations, and sometimes their economic viability.
 
-In a mature XNet-like world, that bundle splits apart:
+In a mature xNet-like world, that bundle splits apart:
 
 - A business can own its catalog, invoices, customer relationships, support tickets, compliance
   evidence, product manuals, and collaboration records as signed nodes in its namespace.
@@ -120,7 +120,7 @@ flowchart TD
 
 The recommendation is:
 
-**XNet should first become the best portable data and collaboration substrate for real workflows,
+**xNet should first become the best portable data and collaboration substrate for real workflows,
 then build federated market/search/social layers as replaceable app views.**
 
 Do not begin with "replace Google, Amazon, YouTube, GitHub, Wikipedia, X, and LinkedIn." Begin with
@@ -140,10 +140,10 @@ of trying to run planetary infrastructure before the product and trust model are
 
 ## Current State In The Repository
 
-### What XNet already is
+### What xNet already is
 
-The root [`README.md`](../../README.md) describes XNet as "decentralized data infrastructure and
-application" with local-first, P2P-synced, user-owned data. It also states that XNet is both the
+The root [`README.md`](../../README.md) describes xNet as "decentralized data infrastructure and
+application" with local-first, P2P-synced, user-owned data. It also states that xNet is both the
 underlying infrastructure and the user-facing app, starting with documents and databases and
 expanding through plugins to ERP, MCP integrations, and more.
 
@@ -194,7 +194,7 @@ production-grade internet-scale federation layer.
 
 ### Current social and collaboration substrate
 
-XNet already has universal social primitives that can generalize beyond "social media":
+xNet already has universal social primitives that can generalize beyond "social media":
 
 - [`CommentSchema`](../../packages/data/src/schema/schemas/comment.ts) is schema-agnostic and can
   target pages, tasks, database records, canvas objects, or any node.
@@ -249,8 +249,8 @@ Wide adoption would require capabilities that are still partial or absent:
   delivery are not built yet;
 - video, search, AI, and large feed infrastructure remain expensive derived layers.
 
-Those gaps do not invalidate the vision. They define the path from "XNet as a local-first platform"
-to "XNet as a broad internet substrate."
+Those gaps do not invalidate the vision. They define the path from "xNet as a local-first platform"
+to "xNet as a broad internet substrate."
 
 ## External Research
 
@@ -261,7 +261,7 @@ networking. It defines a client-to-server API and federated server-to-server del
 updating, deleting, notifying, and distributing social content. This is the main standard behind
 much of the Fediverse.
 
-XNet can learn from ActivityPub's success and limits:
+xNet can learn from ActivityPub's success and limits:
 
 - standardized activities are powerful;
 - independently operated servers can interoperate;
@@ -274,7 +274,7 @@ distinguish Personal Data Servers, Relays, and App Views. The
 infrastructure, while Relays and AppViews are application-level infrastructure and can be bandwidth
 or resource intensive.
 
-The lesson for XNet is direct:
+The lesson for xNet is direct:
 
 **separate data ownership from expensive reach.**
 
@@ -295,7 +295,7 @@ moderation, trust and safety, governance, and ecosystem work. Their
 [homeserver pricing page](https://matrix.org/homeserver/pricing/) frames this around user choice of
 homeserver and usage limits.
 
-The XNet implication is:
+The xNet implication is:
 
 **wide adoption needs sustainable hub economics before it needs exotic payment protocols.**
 
@@ -306,7 +306,7 @@ explicitly about users controlling data in decentralized stores called Pods and 
 data. The Solid FAQ describes self-hosting Identity and Pod infrastructure and allowing apps to
 access data through open, interoperable standards.
 
-XNet differs technically, especially around local-first sync, schemas, CRDTs, and hubs, but Solid is
+xNet differs technically, especially around local-first sync, schemas, CRDTs, and hubs, but Solid is
 an important precedent for the social meaning of app-as-view:
 
 - users need to understand where data lives;
@@ -318,7 +318,7 @@ an important precedent for the social meaning of app-as-view:
 
 [IPFS docs](https://docs.ipfs.tech/) describe IPFS as open protocols for content addressing,
 routing, and transferring data. The
-[persistence docs](https://docs.ipfs.tech/concepts/persistence/) make the key point for XNet:
+[persistence docs](https://docs.ipfs.tech/concepts/persistence/) make the key point for xNet:
 content addressing does not by itself guarantee that data remains available. Someone has to pin,
 host, mirror, pay for, or otherwise keep content online.
 
@@ -367,7 +367,7 @@ governance, contributor norms, licensing, and downstream service businesses.
 
 The [European Commission Digital Markets Act](https://digital-markets-act.ec.europa.eu/index_en)
 targets gatekeeper power in large digital platforms. Commission pages highlight concepts that map
-directly to XNet's strategic value: interoperability, data portability, contestability, network
+directly to xNet's strategic value: interoperability, data portability, contestability, network
 effects, business-user dependence, and lock-in.
 
 The [OECD paper on Data Portability, Interoperability and Competition](https://www.oecd.org/en/publications/data-portability-interoperability-and-competition_73a083a9-en.html)
@@ -375,7 +375,7 @@ describes how portability and interoperability can promote competition within an
 platforms. The accompanying OECD event page notes that interoperability can preserve network effects
 while reducing switching barriers.
 
-The XNet inference is:
+The xNet inference is:
 
 **a working data-portable, app-portable, graph-portable platform can operationalize goals regulators
 already care about.**
@@ -396,7 +396,7 @@ Several search precedents matter:
 - [Brave Search](https://brave.com/search/) operates an independent search index and uses an opt-in
   Web Discovery Project for privacy-preserving contribution to index quality.
 
-The lessons for XNet:
+The lessons for xNet:
 
 - crawling can be open and shared;
 - query privacy matters;
@@ -418,7 +418,7 @@ federated software forges, including forge-related objects and activities.
 show that open source distribution increasingly needs provenance, signing, attestations,
 transparency logs, and verifiable build integrity.
 
-The XNet inference:
+The xNet inference:
 
 **decentralized GitHub is mostly a collaboration, trust, package, and preservation problem, not a
 Git object problem.**
@@ -434,18 +434,18 @@ frames local-first software around ownership, offline work, privacy, collaborati
 user agency.
 
 [Automerge](https://automerge.org/) is a CRDT library that supports automatic merging of concurrent
-changes without requiring a central server. XNet uses Yjs rather than Automerge for rich text, but
+changes without requiring a central server. xNet uses Yjs rather than Automerge for rich text, but
 the broad research direction is the same: collaboration can be built around replicated local state
 rather than a single authoritative cloud database.
 
-The XNet inference:
+The xNet inference:
 
 **local-first is not only a technical feature. It changes the default power relationship between
 people, apps, companies, and institutions.**
 
 ## Core Thesis
 
-Wide XNet adoption would make the internet less "site-centric" and more "object-centric."
+Wide xNet adoption would make the internet less "site-centric" and more "object-centric."
 
 Today, when people talk about the internet, they often mean:
 
@@ -460,7 +460,7 @@ Today, when people talk about the internet, they often mean:
 
 Each platform owns a domain-shaped slice of reality.
 
-In a mature XNet world, the internet begins to look more like:
+In a mature xNet world, the internet begins to look more like:
 
 - globally addressable people, organizations, products, services, projects, media, code,
   credentials, citations, places, events, orders, invoices, contracts, posts, datasets, comments,
@@ -482,7 +482,7 @@ flowchart LR
         Google["Google owns search<br/>ranking and intent data"]
     end
 
-    subgraph XNet["Wide XNet adoption: object-owned reality"]
+    subgraph XNet["Wide xNet adoption: object-owned reality"]
         Listings["Listings"]
         Orders["Orders"]
         Reviews["Reviews"]
@@ -511,7 +511,7 @@ The platform does not disappear. It becomes more accountable, replaceable, and s
 
 ### 1. Data lock-in becomes a weaker moat
 
-If XNet works at scale, platforms can no longer rely as heavily on owning:
+If xNet works at scale, platforms can no longer rely as heavily on owning:
 
 - your social graph;
 - your creator catalog;
@@ -588,7 +588,7 @@ graph TD
 
 ### 3. Markets become federated query graphs
 
-In an XNet commerce world, a market is not necessarily a single website. It can be:
+In an xNet commerce world, a market is not necessarily a single website. It can be:
 
 - a query over public listings;
 - a set of trust filters;
@@ -651,7 +651,7 @@ Today's digital businesses often monetize:
 - switching costs;
 - forced bundling.
 
-In a federated XNet market, sustainable business models lean more toward:
+In a federated xNet market, sustainable business models lean more toward:
 
 - hosting and backup subscriptions;
 - app view subscriptions;
@@ -750,7 +750,7 @@ flowchart TD
 
 ### 7. Social becomes a marketplace of timelines and contexts
 
-A federated social XNet would likely not look like one X/Twitter replacement. It would look like:
+A federated social xNet would likely not look like one X/Twitter replacement. It would look like:
 
 - canonical posts, comments, reactions, follows, lists, profiles, labels, and blocks;
 - multiple timeline services;
@@ -801,7 +801,7 @@ all maintain separate versions of:
 - meeting notes;
 - decisions.
 
-In an XNet world, each party can keep local-first control while sharing scoped nodes and updates.
+In an xNet world, each party can keep local-first control while sharing scoped nodes and updates.
 The same object can move through organizations without becoming an email attachment or a SaaS
 record trapped in one vendor's database.
 
@@ -845,9 +845,9 @@ Enterprise systems are currently sticky because they own process state and integ
 - identity;
 - analytics.
 
-XNet can make enterprise software more modular. A company might run:
+xNet can make enterprise software more modular. A company might run:
 
-- its canonical organization graph in XNet;
+- its canonical organization graph in xNet;
 - one vendor for CRM UX;
 - another for quoting;
 - another for finance;
@@ -904,7 +904,7 @@ But portable reputation can become coercive:
 - algorithmic labels can become de facto social credit;
 - communities can inherit biases from shared trust lenses.
 
-XNet should therefore treat reputation as contextual, inspectable, appealable, and permissioned.
+xNet should therefore treat reputation as contextual, inspectable, appealable, and permissioned.
 
 ### 12. Public knowledge becomes a federation of claims, citations, and review lanes
 
@@ -971,7 +971,7 @@ But video remains brutal:
 - monetization fraud;
 - creator support.
 
-The most likely XNet video outcome is not "everyone hosts YouTube from a laptop." It is "creators
+The most likely xNet video outcome is not "everyone hosts YouTube from a laptop." It is "creators
 own portable video catalogs and communities, while specialized media hubs compete to distribute and
 monetize them."
 
@@ -997,7 +997,7 @@ The hard parts:
 
 ### 15. AI agents become delegated actors, not omniscient platform bots
 
-If XNet data is local-first and grant-scoped, AI agents can work differently:
+If xNet data is local-first and grant-scoped, AI agents can work differently:
 
 - a personal agent gets a scoped grant to search personal notes, calendar, family plans, and public
   market listings;
@@ -1033,7 +1033,7 @@ Today's family and friend collaboration is scattered:
 - event apps;
 - private social accounts.
 
-XNet could turn this into a controlled family/community data graph:
+xNet could turn this into a controlled family/community data graph:
 
 - shared emergency docs;
 - household inventory;
@@ -1092,7 +1092,7 @@ Dating platforms today own:
 - social proof;
 - payment state.
 
-With XNet, people could carry:
+With xNet, people could carry:
 
 - a portable dating profile;
 - verified identity or age credentials without exposing legal identity;
@@ -1116,12 +1116,12 @@ misuse more dangerous:
 - cross-app harassment;
 - consent drift when data used in one dating context appears elsewhere.
 
-The right XNet design should support contextual identity, narrow grants, expiry, private block
+The right xNet design should support contextual identity, narrow grants, expiry, private block
 lists, safety labels, and "do not correlate" boundaries.
 
 ### 18. Governments and regulators gain tools and lose simple chokepoints
 
-XNet-like federation aligns with regulatory interest in competition, data portability, and
+xNet-like federation aligns with regulatory interest in competition, data portability, and
 interoperability. It could make it easier to:
 
 - enforce portability;
@@ -1166,12 +1166,12 @@ control. Funding, defaults, governance, UX, and education decide who benefits.
 
 ## Scenario Map
 
-The most useful way to think about wide XNet adoption is not one future, but many overlapping
+The most useful way to think about wide xNet adoption is not one future, but many overlapping
 possible worlds.
 
 ```mermaid
 mindmap
-  root((Wide XNet adoption))
+  root((Wide xNet adoption))
     Markets
       Open marketplaces
       Co-op commerce
@@ -1205,7 +1205,7 @@ mindmap
 
 ### Scenario 1: Quiet business substrate
 
-XNet does not immediately become a consumer social phenomenon. Instead, it becomes the invisible
+xNet does not immediately become a consumer social phenomenon. Instead, it becomes the invisible
 data substrate for small teams, consultants, agencies, local businesses, and open source projects.
 
 What changes:
@@ -1231,7 +1231,7 @@ What can go wrong:
 - too much complexity;
 - no shared schema consensus;
 - enterprises wait for compliance guarantees;
-- incumbents wrap XNet data in proprietary UX and re-create lock-in.
+- incumbents wrap xNet data in proprietary UX and re-create lock-in.
 
 ### Scenario 2: Open marketplace web
 
@@ -1266,12 +1266,12 @@ What can go wrong:
 
 ### Scenario 3: Enterprise interop layer
 
-Large organizations adopt XNet under the language of audit, data portability, vendor risk, and
+Large organizations adopt xNet under the language of audit, data portability, vendor risk, and
 cross-organization collaboration rather than ideology.
 
 What changes:
 
-- internal systems expose data through XNet-compatible schemas;
+- internal systems expose data through xNet-compatible schemas;
 - vendors receive scoped grants instead of full database exports;
 - compliance evidence becomes structured and queryable;
 - M&A integration becomes less painful;
@@ -1291,7 +1291,7 @@ What can go wrong:
 - enterprise vendors standardize only the minimum;
 - permission models become too complex;
 - legal departments slow adoption;
-- private XNet islands do not federate well.
+- private xNet islands do not federate well.
 
 ### Scenario 4: AppView recentralization
 
@@ -1303,7 +1303,7 @@ What changes:
 - users technically can leave;
 - alternative app views exist;
 - data export/import is less catastrophic;
-- regulators point to XNet as contestability infrastructure.
+- regulators point to xNet as contestability infrastructure.
 
 What does not change enough:
 
@@ -1347,7 +1347,7 @@ What can go wrong:
 
 ### Scenario 6: Public knowledge renaissance
 
-XNet becomes a substrate for expert-run, citation-native, federated knowledge bases. Wikipedia
+xNet becomes a substrate for expert-run, citation-native, federated knowledge bases. Wikipedia
 does not disappear, but the public knowledge ecosystem becomes more plural and structured.
 
 What changes:
@@ -1467,7 +1467,7 @@ What can go wrong:
 
 ### Scenario 10: Relationship-centered internet
 
-People use XNet not mainly as a public platform, but as a private and semi-private relationship
+People use xNet not mainly as a public platform, but as a private and semi-private relationship
 system across friends, family, collaborators, caregivers, neighbors, and romantic partners.
 
 What changes:
@@ -1497,7 +1497,7 @@ What can go wrong:
 
 ### Scenario 11: Regulatory interoperability layer
 
-Governments begin treating XNet-like protocols as practical infrastructure for data portability and
+Governments begin treating xNet-like protocols as practical infrastructure for data portability and
 digital market contestability.
 
 What changes:
@@ -1579,7 +1579,7 @@ What can go wrong:
 
 ### Scenario 14: Local-first dark forest
 
-People adopt XNet partly to retreat from public platforms.
+People adopt xNet partly to retreat from public platforms.
 
 What changes:
 
@@ -1606,7 +1606,7 @@ What can go wrong:
 
 ### Scenario 15: Nation-state and corporate fragmentation
 
-XNet adoption intersects with national data localization, corporate compliance, censorship, and
+xNet adoption intersects with national data localization, corporate compliance, censorship, and
 geopolitical rivalry.
 
 What changes:
@@ -1655,7 +1655,7 @@ Current marketplace bundle:
 - customer relationship;
 - policy enforcement.
 
-XNet marketplace bundle:
+xNet marketplace bundle:
 
 - seller owns catalog and operational data;
 - buyer owns profile and preferences;
@@ -1669,7 +1669,7 @@ XNet marketplace bundle:
 
 ```mermaid
 flowchart TB
-    subgraph Canonical["Canonical XNet objects"]
+    subgraph Canonical["Canonical xNet objects"]
         Seller["Seller profile"]
         Product["Product listing"]
         Inventory["Inventory/availability"]
@@ -1712,7 +1712,7 @@ Likely business impacts:
 
 ### Labor and professional work
 
-XNet can turn portfolios, credentials, references, work samples, contracts, invoices, and project
+xNet can turn portfolios, credentials, references, work samples, contracts, invoices, and project
 history into portable professional graphs.
 
 Possible effects:
@@ -1734,12 +1734,12 @@ Risks:
 
 Design implication:
 
-XNet needs contextual, selective, revocable professional identity rather than one universal
+xNet needs contextual, selective, revocable professional identity rather than one universal
 reputation score.
 
 ### Collaboration and organizations
 
-XNet's collaboration model can be stronger than cloud-only SaaS because it supports:
+xNet's collaboration model can be stronger than cloud-only SaaS because it supports:
 
 - offline continuity;
 - local ownership;
@@ -1765,11 +1765,11 @@ Search shifts from a default global monopoly to a layered fabric:
 
 - local/private first;
 - workspace and community second;
-- public web and public XNet objects third;
+- public web and public xNet objects third;
 - vertical indexes and lenses fourth;
 - AI synthesis with citations on top.
 
-The strongest XNet search differentiator is not "no one has a big index." It is:
+The strongest xNet search differentiator is not "no one has a big index." It is:
 
 - local/private context can be searched without disclosure;
 - public results can be re-ranked by user/community lenses;
@@ -1779,7 +1779,7 @@ The strongest XNet search differentiator is not "no one has a big index." It is:
 
 ### Social and human relationships
 
-XNet social could reduce hard platform lock-in, but it also increases the importance of context.
+xNet social could reduce hard platform lock-in, but it also increases the importance of context.
 
 Human relationships are not one graph. They are many overlapping graphs:
 
@@ -1796,7 +1796,7 @@ Human relationships are not one graph. They are many overlapping graphs:
 - caregiving;
 - mutual aid.
 
-XNet should support that multiplicity. A single global graph is too coarse and too dangerous.
+xNet should support that multiplicity. A single global graph is too coarse and too dangerous.
 
 ```mermaid
 graph TD
@@ -1844,14 +1844,14 @@ But public knowledge needs institutions, not only software:
 - public trust;
 - funding.
 
-XNet's advantage is that it can make public knowledge more structured, portable, and reviewable. It
+xNet's advantage is that it can make public knowledge more structured, portable, and reviewable. It
 cannot shortcut legitimacy.
 
 ### Software and infrastructure
 
 Federated GitHub-like systems matter because software increasingly runs society.
 
-XNet can help make code collaboration:
+xNet can help make code collaboration:
 
 - less dependent on one forge;
 - more resistant to platform policy shocks;
@@ -1888,7 +1888,7 @@ Risks:
 
 ### Finance, payments, and contracts
 
-XNet does not need to be a cryptocurrency platform to change commerce.
+xNet does not need to be a cryptocurrency platform to change commerce.
 
 The more important primitives are:
 
@@ -1903,7 +1903,7 @@ The more important primitives are:
 - grant-scoped accounting access;
 - audit logs.
 
-Payments can integrate through existing rails while XNet holds the business objects and receipts.
+Payments can integrate through existing rails while xNet holds the business objects and receipts.
 
 Possible markets:
 
@@ -1925,7 +1925,7 @@ Risks:
 
 ### Education and credentials
 
-XNet-like infrastructure could make credentials portable:
+xNet-like infrastructure could make credentials portable:
 
 - diplomas;
 - microcredentials;
@@ -2000,7 +2000,7 @@ Costs:
 
 Best fit:
 
-- XNet's current architecture;
+- xNet's current architecture;
 - commerce;
 - workspaces;
 - public knowledge;
@@ -2034,7 +2034,7 @@ Best fit:
 
 ### Option D: Regulated portability bridge
 
-**Shape:** large incumbents expose enough XNet-compatible interfaces to satisfy competition and data
+**Shape:** large incumbents expose enough xNet-compatible interfaces to satisfy competition and data
 portability demands.
 
 Benefits:
@@ -2060,7 +2060,7 @@ Best fit:
 
 ### Option E: Vertical-first federations
 
-**Shape:** XNet adoption starts in specific domains: local services, open source plugins, research
+**Shape:** xNet adoption starts in specific domains: local services, open source plugins, research
 knowledge bases, farming/food supply chains, creator catalogs, professional credentials.
 
 Benefits:
@@ -2079,11 +2079,11 @@ Costs:
 
 Best fit:
 
-- near-term XNet strategy.
+- near-term xNet strategy.
 
 ## Recommendation
 
-XNet should not try to sell "a federated everything internet" as the first product. That is too
+xNet should not try to sell "a federated everything internet" as the first product. That is too
 abstract, too expensive, and too politically loaded.
 
 The recommended strategy is:
@@ -2142,7 +2142,7 @@ Do not attempt to standardize the world at once. Pick one domain and prove the l
 
 Search, feeds, markets, moderation, and trust all need portable policies.
 
-XNet should model lenses as signed, shareable, inspectable nodes:
+xNet should model lenses as signed, shareable, inspectable nodes:
 
 - search ranking lens;
 - market ranking lens;
@@ -2162,7 +2162,7 @@ Users should be able to ask "why did I see this?" and "what lens ranked this?"
 The hub economy exploration already reached the right conclusion: ship metering, quotas, plan
 metadata, and operator transparency before inventing protocol-native settlement.
 
-XNet should standardize hub capability metadata:
+xNet should standardize hub capability metadata:
 
 - storage quota;
 - file limits;
@@ -2199,7 +2199,7 @@ Needed early:
 
 Good pilots:
 
-- XNet plugin marketplace and decentralized package/extension publication;
+- xNet plugin marketplace and decentralized package/extension publication;
 - local service marketplace for a city or professional guild;
 - expert-run public knowledge base with citation and review workflows;
 - creator catalog with portable membership and comments;
@@ -2284,7 +2284,7 @@ Those are destination ecosystems, not first proof points.
 ## Example Code
 
 The following code is illustrative. It sketches how a federated commerce and trust-lens schema pack
-could be expressed in XNet style. The exact property imports and schema conventions should be
+could be expressed in xNet style. The exact property imports and schema conventions should be
 aligned with the current `@xnetjs/data/schema` entrypoints before implementation.
 
 ```typescript
@@ -2439,7 +2439,7 @@ The key product requirement is not this exact code. It is the contract:
 - results carry provenance;
 - users can understand why something appeared.
 
-## Strategic Architecture For A Federated Everything XNet
+## Strategic Architecture For A Federated Everything xNet
 
 The broad system can be modeled as five planes:
 
@@ -2573,7 +2573,7 @@ Mitigation:
 
 ## Next Actions
 
-1. Pick one practical pilot domain where XNet can prove app-as-view and federated commerce or
+1. Pick one practical pilot domain where xNet can prove app-as-view and federated commerce or
    collaboration without needing planetary scale.
 2. Define the minimum schema pack for that pilot and keep it intentionally small.
 3. Build a multi-hub demo where two app views operate over the same canonical data.
@@ -2585,7 +2585,7 @@ Mitigation:
 
 ## References
 
-### Local XNet references
+### Local xNet references
 
 - [`README.md`](../../README.md)
 - [`docs/VISION.md`](../VISION.md)

@@ -66,7 +66,7 @@ These records follow the standard [ADR](https://adr.github.io/) discipline:
 **Scope note:** Yjs is the **document codec** for the rich-text/canvas _body_ of
 certain nodes — it is _not_ the sync backbone. Structured node data syncs through
 the signed `Change<T>` log ([ADR-3](#adr-3-field-level-lww-for-structured-data)),
-and Yjs updates ride the wire as opaque bytes inside an XNet envelope. See
+and Yjs updates ride the wire as opaque bytes inside an xNet envelope. See
 [ADR-11](#adr-11-xnet-is-a-protocol--the-interop-kernel-is-the-change-log-not-yjs).
 
 ## ADR-2: DID:key for identity
@@ -204,19 +204,19 @@ The decisions below were made after the initial ten were written, as the system
 grew from an app into a protocol with a managed cloud. They are recorded here so
 the log reflects the architecture as it actually stands.
 
-## ADR-11: XNet is a protocol — the interop kernel is the change log, not Yjs
+## ADR-11: xNet is a protocol — the interop kernel is the change log, not Yjs
 
 **Status:** Accepted (2026-06)
 **Context:** Exploration 0200. The normative spec lives in `docs/specs/protocol/`; see also [The Protocol](/docs/protocol/overview/).
 
-**Decision:** Treat XNet as a versioned, multi-implementation **protocol** whose
+**Decision:** Treat xNet as a versioned, multi-implementation **protocol** whose
 normative surface is four layers — **L0** cryptographic primitives, **L1** data
 model, **L2** replication, **L3** authorization — with the application profile
 (**L4**) explicitly non-normative. The interop kernel is a **signed,
 hash-chained, per-property-LWW change log over schema-typed nodes**
 (`CURRENT_PROTOCOL_VERSION = 3` in `packages/sync/src/change.ts`). Yjs is a
 **pluggable document codec** for the rich-text/canvas body of certain nodes and
-travels the wire as opaque bytes inside an XNet envelope.
+travels the wire as opaque bytes inside an xNet envelope.
 
 **Rationale:**
 

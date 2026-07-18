@@ -228,7 +228,7 @@ gantt
     Tests & docs                 :q4, 54, 2d
 
     section @xnetjs/react
-    XNet context                 :r1, 49, 3d
+    xNet context                 :r1, 49, 3d
     useDocument hook             :r2, 52, 3d
     useQuery hook                :r3, 55, 3d
     useSync/usePresence          :r4, 58, 3d

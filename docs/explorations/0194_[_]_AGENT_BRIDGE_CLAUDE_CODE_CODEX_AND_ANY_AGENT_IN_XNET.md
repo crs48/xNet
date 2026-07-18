@@ -1,20 +1,20 @@
-# Agent Bridge — Driving Claude Code, Codex, And Any Agent From XNet's UI
+# Agent Bridge — Driving Claude Code, Codex, And Any Agent From xNet's UI
 
 ## Problem Statement
 
-> "Get Claude Code and Codex working with XNet. Ideally on the web deployment,
+> "Get Claude Code and Codex working with xNet. Ideally on the web deployment,
 > but at least the Electron app. They should leverage your existing Claude Code
 > or Codex subscription. Ideally it works with **any** agent (OpenCode, Kimi
 > K2.5, a local coding agent…), primarily Claude and Codex, and the integration
-> *just works* across all surfaces — so you can use XNet's UI directly to drive
+> *just works* across all surfaces — so you can use xNet's UI directly to drive
 > an agent that creates/edits plugins, modifies your workspace, writes
 > documents, and builds canvases."
 
-XNet's in-app AI chat (exploration 0192) can now talk to a raw model and
+xNet's in-app AI chat (exploration 0192) can now talk to a raw model and
 read the workspace, but a raw model is not an *agent*: it has no tool-execution
 loop, no file editing, no plan/approve/apply cycle. Meanwhile the user already
 pays for **Claude Code** and **Codex** — agents that already have all of that.
-The opportunity is to **drive those existing agents from XNet's UI** rather than
+The opportunity is to **drive those existing agents from xNet's UI** rather than
 rebuild them, so the assistant can actually *do* things: edit pages, build
 canvases, mutate databases, and author plugins.
 
@@ -22,10 +22,10 @@ canvases, mutate databases, and author plugins.
 
 The pieces are unusually well-aligned for this:
 
-- XNet already **exposes its workspace + code surface as MCP tools**
+- xNet already **exposes its workspace + code surface as MCP tools**
   (`xnet mcp serve`, `AiSurfaceService`, 20+ `xnet_*` tools). That's the
   *agent-to-tool* layer — done.
-- XNet's chat panel already **probes for a "local bridge" daemon at
+- xNet's chat panel already **probes for a "local bridge" daemon at
   `http://127.0.0.1:31416/health`** (the `bridge` connector tier, preference
   #1). That's the *UI-to-agent* hook — but **nothing serves it**.
 - The whole industry just standardized the *UI-to-agent* layer as **ACP (Agent
@@ -34,7 +34,7 @@ The pieces are unusually well-aligned for this:
   through ACP adapters today. ACP sessions even declare their `mcpServers` in
   the handshake, so **ACP (agent) + MCP (tools) compose in one wire-up**.
 - The ToS-safe way to "use your subscription" is to **spawn the user's own
-  installed CLI** (`claude`, `codex`, …) as a subprocess — exactly XNet's
+  installed CLI** (`claude`, `codex`, …) as a subprocess — exactly xNet's
   existing `cliAgentRunner` "bring-your-own-agent" model. (Reusing the
   subscription *OAuth token* directly is banned; spawning the CLI is sanctioned
   and now draws from a subscription "Agent SDK credit.")
@@ -42,12 +42,12 @@ The pieces are unusually well-aligned for this:
 **The missing 20% is one component: the agent bridge daemon.** A loopback
 process that (a) answers `/health` so the panel lights up the bridge tier,
 (b) launches the chosen agent (Claude Code / Codex / OpenCode / …) as an ACP
-subprocess, (c) hands that agent XNet's MCP tool server, and (d) streams the
+subprocess, (c) hands that agent xNet's MCP tool server, and (d) streams the
 agent's events (text, tool calls, permission requests, diffs) back to the panel.
 
 ```mermaid
 flowchart LR
-  subgraph XNet["XNet UI (web or Electron)"]
+  subgraph XNet["xNet UI (web or Electron)"]
     Panel["AiChatPanel<br/>bridge tier → :31416"]
   end
   subgraph Bridge["Agent Bridge daemon :31416 (NEW)"]
@@ -59,7 +59,7 @@ flowchart LR
     CX["codex / codex-acp"]
     OC["opencode-acp (Kimi K2, …)"]
   end
-  subgraph Tools["XNet MCP tool surface (EXISTS)"]
+  subgraph Tools["xNet MCP tool surface (EXISTS)"]
     MCP["xnet_* tools → AiSurfaceService → NodeStore"]
     DEV["devkit runAgentTask (plugin/code edits)"]
   end
@@ -75,9 +75,9 @@ flowchart LR
 unifying seam. It runs in Electron (spawns agents directly) and as a standalone
 `xnet bridge serve` for the web deployment (browser → loopback daemon, reusing
 the hardened-loopback pattern already built for MCP HTTP). This gets "any agent"
-for free (ACP adapters exist for Claude/Codex/Gemini/OpenCode), reuses XNet's
+for free (ACP adapters exist for Claude/Codex/Gemini/OpenCode), reuses xNet's
 MCP tools wholesale, and — because the *agent* owns the tool loop — delivers
-full agentic workspace editing **without** XNet having to build its own tool
+full agentic workspace editing **without** xNet having to build its own tool
 loop (exploration 0192, Phase 1b).
 
 ## Current State In The Repository
@@ -161,7 +161,7 @@ loop (exploration 0192, Phase 1b).
   (`read-only-answer` / `proposed-change` / `applied-change`), and a `tool.call`
   event type already exist — the scaffolding for rendering agent activity.
 - **0192 Phase 1a (shipped)** grounded the panel in the workspace (read-only
-  context). **Phase 1b** (build XNet's *own* tool loop) is open — but the bridge
+  context). **Phase 1b** (build xNet's *own* tool loop) is open — but the bridge
   path makes it **optional for agent tiers**, because Claude Code/Codex run their
   own loop.
 
@@ -193,7 +193,7 @@ loop (exploration 0192, Phase 1b).
 
 - **Claude Agent SDK (TS)** — `query()` returns an async generator streaming
   messages; built-in **MCP** support; **`canUseTool`** permission callback
-  (allow/deny per tool call) — perfect for surfacing approvals in XNet's UI.
+  (allow/deny per tool call) — perfect for surfacing approvals in xNet's UI.
   ([Agent SDK TS](https://code.claude.com/docs/en/agent-sdk/typescript),
   [permissions](https://docs.claude.com/en/docs/agent-sdk/permissions))
 - **Codex app-server** — a long-lived process speaking **JSON-RPC as JSONL over
@@ -213,27 +213,27 @@ loop (exploration 0192, Phase 1b).
   **2026-06-15**, "Agent SDK and `claude -p` usage on Claude subscription plans
   draws from a monthly Agent SDK credit, separate from interactive limits."
   ([Agent SDK overview](https://code.claude.com/docs/en/agent-sdk/overview))
-- **Implication:** XNet must **never extract or proxy the user's subscription
+- **Implication:** xNet must **never extract or proxy the user's subscription
   token**. It should **spawn the user's own CLI/adapter** (which authenticates
   itself), or let the user supply an **API key**. This is exactly devkit's
-  `cliAgentRunner` model and keeps XNet on the right side of every provider ToS.
+  `cliAgentRunner` model and keeps xNet on the right side of every provider ToS.
 
 ### Optional: AG-UI for the panel event stream
 
 CopilotKit's **AG-UI** standardizes streaming *agent→UI* events (text deltas,
-tool calls, state). If XNet wants a provider-neutral panel event contract beyond
+tool calls, state). If xNet wants a provider-neutral panel event contract beyond
 ACP's own client methods, AG-UI is prior art — but ACP's client-side methods
 (`session/update`, `session/request_permission`, `fs/*`) already cover it, so
 this is a "nice to know," not a dependency.
 
 ## Key Findings
 
-1. **The tool side is done; only the agent side is missing.** XNet already
+1. **The tool side is done; only the agent side is missing.** xNet already
    speaks MCP. The gap is a daemon that *launches an agent* and streams it back.
 2. **ACP makes "any agent" a config choice, not N integrations.** One ACP client
-   in XNet + off-the-shelf adapters = Claude Code, Codex, Gemini, OpenCode/Kimi.
+   in xNet + off-the-shelf adapters = Claude Code, Codex, Gemini, OpenCode/Kimi.
 3. **The bridge path sidesteps 0192 Phase 1b.** Claude Code/Codex bring their own
-   tool loop; XNet doesn't have to build one for agent tiers. The panel's
+   tool loop; xNet doesn't have to build one for agent tiers. The panel's
    `bridge` tier (preference #1) is the intended home for this.
 4. **`:31416` is already the agreed address** — the panel probes it; the MCP HTTP
    transport defaults to it. The daemon should *own* `:31416` and serve `/health`
@@ -251,7 +251,7 @@ this is a "nice to know," not a dependency.
 
 ## Options And Tradeoffs
 
-### Transport from XNet UI → agent
+### Transport from xNet UI → agent
 
 | Option | What | Pros | Cons |
 | --- | --- | --- | --- |
@@ -275,10 +275,10 @@ standalone `xnet bridge serve` for web, phased:**
 
 ```mermaid
 sequenceDiagram
-  participant UI as XNet panel
+  participant UI as xNet panel
   participant BR as Bridge daemon (:31416)
   participant AG as Agent (claude-code-acp)
-  participant MCP as XNet MCP (stdio)
+  participant MCP as xNet MCP (stdio)
   UI->>BR: GET /health → {ok:true}
   UI->>BR: open session (prompt, agent=claude)
   BR->>AG: spawn + ACP initialize
@@ -298,10 +298,10 @@ sequenceDiagram
   `:31416` from the Electron main (wrap devkit `bridgeHealth()`); the panel's
   bridge tier lights up. No agent yet.
 - **Phase 1 — one agent, end to end (Claude Code via ACP).** Bridge spawns
-  `@zed-industries/claude-code-acp`, opens a session declaring XNet's MCP server,
+  `@zed-industries/claude-code-acp`, opens a session declaring xNet's MCP server,
   streams text. The agent can already *read* the workspace via MCP.
 - **Phase 2 — writes with approvals.** Map ACP `session/request_permission` →
-  XNet's existing approval flow (`requestApproval` / `classifyAiAgentDisplayState`);
+  xNet's existing approval flow (`requestApproval` / `classifyAiAgentDisplayState`);
   render diffs. Now the agent edits pages/databases/canvases with user consent.
 - **Phase 3 — "any agent."** Add a small **agent registry** (command + adapter +
   args) so the panel offers Claude Code / Codex / Gemini / OpenCode (Kimi);
@@ -314,7 +314,7 @@ sequenceDiagram
 Rationale: maximum leverage of what exists (MCP tools, `:31416` probe, devkit
 runner, Electron spawn precedent, runtime approval scaffolding), "any agent" by
 construction, ToS-safe (spawns the user's CLI), and it delivers agentic
-workspace editing **sooner** than building XNet's own tool loop.
+workspace editing **sooner** than building xNet's own tool loop.
 
 ## Example Code
 
@@ -342,10 +342,10 @@ export function startAgentBridge(opts: { port?: number; agent: string } ) {
 }
 ```
 
-### Bridge ↔ agent over ACP, with XNet's MCP tools declared in the handshake
+### Bridge ↔ agent over ACP, with xNet's MCP tools declared in the handshake
 
 ```ts
-// Phase 1: launch an ACP agent and open a session that connects to XNet's MCP.
+// Phase 1: launch an ACP agent and open a session that connects to xNet's MCP.
 import { spawn } from 'node:child_process'
 
 const agent = spawn('npx', ['-y', '@zed-industries/claude-code-acp'], {
@@ -429,8 +429,8 @@ export const AGENTS = {
 - [ ] Verify in a running Electron build that the tier flips to "available" and a
       prompt round-trips (covered by unit tests; not exercised in CI).
 
-**Phase 1 — agent gets XNet's tools (read + write)** — ✅ shipped (via the facade, not ACP)
-- [x] Give the spawned agent XNet's MCP tools: `buildAgentArgs` adds
+**Phase 1 — agent gets xNet's tools (read + write)** — ✅ shipped (via the facade, not ACP)
+- [x] Give the spawned agent xNet's MCP tools: `buildAgentArgs` adds
       `--mcp-config` + `--allowedTools "mcp__xnet__*"` (Claude Code); `xnet bridge
       serve --mcp` writes a self-referential MCP config (`node <cli> mcp serve
       --api-url :31415`) so it resolves without `xnet` on PATH. The agent can now
@@ -485,11 +485,11 @@ export const AGENTS = {
 - [x] The **web** deployment can drive the bridge via `xnet bridge serve` on
       loopback (Origin allowlist + Private Network Access; no CORS errors for an
       allowed origin) — covered by the preflight/origin tests.
-- [x] **No subscription token is ever read by XNet** — the bridge spawns the
+- [x] **No subscription token is ever read by xNet** — the bridge spawns the
       user's own CLI, which authenticates itself (BYO-agent by construction).
 - [x] Bridge daemon refuses non-loopback binds; Origin allowlist enforced —
       covered by `bridge-server.test.ts`. *(Pairing-token gate deferred.)*
-- [x] The agent is wired to XNet's MCP tools: `buildAgentArgs` emits the
+- [x] The agent is wired to xNet's MCP tools: `buildAgentArgs` emits the
       `--mcp-config` + `--allowedTools` flags and `xnet bridge serve --mcp` writes
       the config — covered by `agent-launch.test.ts` + the bridge MCP-args test.
 - [ ] With a real `claude` + `xnet` CLI, "create a page titled X" actually edits

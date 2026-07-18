@@ -1,6 +1,6 @@
-# XPP — XNet Protocol Proposals
+# XPP — xNet Protocol Proposals
 
-The protocol evolves through **XNet Protocol Proposals**. The process is modeled
+The protocol evolves through **xNet Protocol Proposals**. The process is modeled
 on [Matrix's MSC](https://spec.matrix.org/proposals/) and the fediverse's
 [FEPs](https://codeberg.org/fediverse/fep): lightweight enough for a small team,
 credible enough to attract independent implementers.

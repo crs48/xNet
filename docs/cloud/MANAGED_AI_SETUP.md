@@ -143,7 +143,7 @@ curl -s -X POST https://<hub>/ai/chat -H 'content-type: application/json' \
   | jq '{text, model, spendThisPeriodUsd, budgetUsd, budgetState}'
 ```
 
-In the app: open the AI chat panel — it should auto-select **XNet Cloud (managed,
+In the app: open the AI chat panel — it should auto-select **xNet Cloud (managed,
 metered)**, show a model picker (grouped, with price/context badges) and a
 "used / included / cap" budget gauge.
 

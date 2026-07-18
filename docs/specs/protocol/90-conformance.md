@@ -1,10 +1,10 @@
 # Conformance
 
-**This document is normative.** Part of [XNet Protocol `xnet/1.0`](00-overview.md).
+**This document is normative.** Part of [xNet Protocol `xnet/1.0`](00-overview.md).
 
 A specification without a conformance corpus drifts: independent implementations
 diverge silently (the lesson of ActivityPub, which shipped a W3C Recommendation
-with no test suite for ~5 years). XNet therefore ships a **language‑agnostic
+with no test suite for ~5 years). xNet therefore ships a **language‑agnostic
 golden‑vector corpus alongside the spec, from day one**, and re‑verifies it in
 CI so the prose cannot drift from the reference implementation.
 

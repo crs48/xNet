@@ -1,7 +1,7 @@
 /**
  * @xnetjs/devkit — the agent bridge HTTP daemon (exploration 0194).
  *
- * Serves the loopback endpoint the XNet chat panel's `bridge` connector tier
+ * Serves the loopback endpoint the xNet chat panel's `bridge` connector tier
  * already probes at `http://127.0.0.1:31416`:
  *
  * - `GET  /health`              → {@link bridgeHealth} so the panel detects the

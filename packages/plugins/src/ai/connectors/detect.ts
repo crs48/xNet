@@ -29,7 +29,7 @@ export const CONNECTOR_META: Record<ConnectorTier, ConnectorMeta> = {
   // Preferred when available: no key to paste, metered + budget-capped, switchable
   // models — the managed path the rest of this exploration (0208) wires up.
   managed: {
-    label: 'XNet Cloud (managed, metered)',
+    label: 'xNet Cloud (managed, metered)',
     toolCalling: 'reliable',
     preference: 0
   },
@@ -166,7 +166,7 @@ export async function detectConnectors(env: ConnectorEnv = {}): Promise<Connecto
       available: managed,
       ...(managed
         ? {}
-        : { setupHint: 'Managed AI is available on XNet Cloud plans with AI enabled.' })
+        : { setupHint: 'Managed AI is available on xNet Cloud plans with AI enabled.' })
     },
     {
       tier: 'bridge',

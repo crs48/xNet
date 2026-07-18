@@ -1,6 +1,6 @@
 # xnet-core
 
-A **portable Rust implementation of the XNet interop kernel** — the byte-exact
+A **portable Rust implementation of the xNet interop kernel** — the byte-exact
 core of the protocol (docs/specs/protocol/): `did:key` identity, the
 canonical-JSON change hash, Ed25519 sign/verify, per-property LWW convergence,
 and the pure L2/L3 decision functions (version negotiation, authorization

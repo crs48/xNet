@@ -1,4 +1,4 @@
-# 0145 - Foundation Models And Legal Organizing Structures For XNet Mission-Aligned Governance
+# 0145 - Foundation Models And Legal Organizing Structures For xNet Mission-Aligned Governance
 
 > **Status:** Exploration  
 > **Date:** 2026-06-03  
@@ -8,24 +8,24 @@
 
 ## Problem Statement 🏛️
 
-What legal and organizational structure should XNet use if it wants the community to believe that
+What legal and organizational structure should xNet use if it wants the community to believe that
 its incentives are aligned with decentralization, federation, openness, open source, user-owned
 data, and long-term public infrastructure?
 
 The question is not only "Delaware C corporation or nonprofit?" It is:
 
-- how XNet can fund serious engineering, maintenance, security, research, hosting, documentation,
+- how xNet can fund serious engineering, maintenance, security, research, hosting, documentation,
   standards, and ecosystem work;
-- how XNet can avoid becoming a central gatekeeper over a system whose value depends on federation;
+- how xNet can avoid becoming a central gatekeeper over a system whose value depends on federation;
 - how users, developers, operators, public institutions, enterprises, and investors can trust that
-  XNet will not enclose the protocol commons after adoption;
+  xNet will not enclose the protocol commons after adoption;
 - how a legal structure can work in the US while staying legible to foreign markets and future
   international communities;
 - how to avoid premature governance that slows the project before there is enough ecosystem to
   govern.
 
 This is a strategic product/governance exploration, not legal, tax, securities, or investment
-advice. XNet would need experienced counsel before forming, converting, transferring assets,
+advice. xNet would need experienced counsel before forming, converting, transferring assets,
 issuing securities, creating tokens, operating internationally, or making tax-exempt claims.
 
 ## Exploration Status
@@ -43,15 +43,15 @@ issuing securities, creating tokens, operating internationally, or making tax-ex
 
 The best long-term answer is probably **not one entity**.
 
-For XNet, the strongest structure is a staged hybrid:
+For xNet, the strongest structure is a staged hybrid:
 
-1. **XNet Labs:** a for-profit operating company, likely a Delaware Public Benefit Corporation
+1. **xNet Labs:** a for-profit operating company, likely a Delaware Public Benefit Corporation
    (PBC) or Delaware C corporation, that builds the product, hires engineers, runs managed hubs,
    sells enterprise/operator services, and raises capital if needed.
-2. **XNet Commons Fund:** an early lightweight funding layer, possibly under a fiscal sponsor,
+2. **xNet Commons Fund:** an early lightweight funding layer, possibly under a fiscal sponsor,
    Open Collective-style host, donor-advised fund, or directed sponsorship program, that receives a
    transparent share of revenue and donations for open maintenance.
-3. **XNet Foundation:** a later independent stewardship body that holds or governs protocol
+3. **xNet Foundation:** a later independent stewardship body that holds or governs protocol
    specifications, conformance tests, trademarks, schemas, security processes, working groups, and
    possibly grants. Depending on the ecosystem, this could be a US 501(c)(3), US 501(c)(6), UK
    Community Interest Company, Dutch stichting, Belgian AISBL, Swiss foundation, or hosted project
@@ -62,24 +62,24 @@ For XNet, the strongest structure is a staged hybrid:
 
 Short answer to the entity list:
 
-| Structure                                        | XNet fit                                                                                                                         |
+| Structure                                        | xNet fit                                                                                                                         |
 | ------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
 | **Delaware C corporation**                       | Best for standard venture financing and public-company path; weakest mission signal by itself.                                   |
-| **Delaware Public Benefit Corporation**          | Best near-term operating-company default if XNet wants capital flexibility plus explicit mission duties.                         |
+| **Delaware Public Benefit Corporation**          | Best near-term operating-company default if xNet wants capital flexibility plus explicit mission duties.                         |
 | **Certified B Corp**                             | Useful trust signal for a mature company, but certification is not itself a legal entity or community-control mechanism.         |
 | **LLC**                                          | Good for early simplicity or small services; weaker for venture-scale financing, public markets, and broad ecosystem legitimacy. |
 | **501(c)(3) charity**                            | Good for education, research, public-interest open infrastructure, donations, and grants; awkward as the primary cloud business. |
-| **501(c)(6) trade association**                  | Good for an industry/operator consortium; less ideal if XNet's purpose is framed as broad public charity.                        |
+| **501(c)(6) trade association**                  | Good for an industry/operator consortium; less ideal if xNet's purpose is framed as broad public charity.                        |
 | **Foundation-owned for-profit subsidiary**       | Strong mission lock, but complex; can create governance tension if the commercial entity must raise large capital.               |
-| **For-profit opco plus independent foundation**  | Most balanced for XNet: economic engine and credible commons stewardship, if asset boundaries are designed well.                 |
-| **International foundation/CIC/stichting/AISBL** | Useful if XNet's community becomes global and wants jurisdictional neutrality or EU credibility.                                 |
+| **For-profit opco plus independent foundation**  | Most balanced for xNet: economic engine and credible commons stewardship, if asset boundaries are designed well.                 |
+| **International foundation/CIC/stichting/AISBL** | Useful if xNet's community becomes global and wants jurisdictional neutrality or EU credibility.                                 |
 | **DAO/Web3 foundation wrapper**                  | Potentially useful much later for protocol treasury/operator settlement; risky and unnecessary before real network economics.    |
-| **Steward-owned / purpose trust model**          | Powerful long-term mission lock if XNet chooses independence over conventional liquidity; harder for VC-style returns.           |
+| **Steward-owned / purpose trust model**          | Powerful long-term mission lock if xNet chooses independence over conventional liquidity; harder for VC-style returns.           |
 
 The strategic recommendation:
 
-> Start as **XNet Labs PBC** or a mission-covenanted Delaware C corporation, create a transparent
-> **XNet Commons Fund** immediately, and defer the independent **XNet Foundation** until there is
+> Start as **xNet Labs PBC** or a mission-covenanted Delaware C corporation, create a transparent
+> **xNet Commons Fund** immediately, and defer the independent **xNet Foundation** until there is
 > enough community, operator, standards, and revenue activity to justify real shared governance.
 
 The strongest eventual model is:
@@ -88,9 +88,9 @@ The strongest eventual model is:
 flowchart TD
     Users["Users and organizations<br/>own data, identities, workspaces"]
     Operators["Independent hub operators<br/>personal, community, enterprise, public-good"]
-    Labs["XNet Labs PBC<br/>product, cloud, support, enterprise, R&D"]
-    Foundation["XNet Foundation<br/>specs, trademarks, conformance, security, grants"]
-    Commons["Open XNet commons<br/>MIT code, protocol docs, schemas, tests"]
+    Labs["xNet Labs PBC<br/>product, cloud, support, enterprise, R&D"]
+    Foundation["xNet Foundation<br/>specs, trademarks, conformance, security, grants"]
+    Commons["Open xNet commons<br/>MIT code, protocol docs, schemas, tests"]
     Revenue["Service revenue<br/>hosting, support, search, operator tools"]
     Fund["Commons allocation<br/>transparent percentage of net service revenue"]
     TSC["Technical steering<br/>maintainers, operators, community, security"]
@@ -114,7 +114,7 @@ The foundation should not exist as a branding exercise. It becomes credible only
 stewardship rights:
 
 - public protocol and schema governance;
-- trademark policy for "XNet-compatible" claims;
+- trademark policy for "xNet-compatible" claims;
 - open conformance suites;
 - security advisory coordination;
 - public grants and maintenance budget;
@@ -125,13 +125,13 @@ stewardship rights:
 
 ## Current State In The Repository 🔎
 
-### XNet is already positioned as open infrastructure plus product
+### xNet is already positioned as open infrastructure plus product
 
-The root [`README.md`](../../README.md) describes XNet as:
+The root [`README.md`](../../README.md) describes xNet as:
 
 > Decentralized data infrastructure and application. Local-first, P2P-synced, user-owned data.
 
-It also states that XNet is both the underlying infrastructure and the user-facing app. The
+It also states that xNet is both the underlying infrastructure and the user-facing app. The
 monorepo includes core cryptography, identity, sync, data, query, network, hub, React SDK, editor,
 views, canvas, plugins, telemetry, formula, vectors, web, Electron, Expo, tests, and docs.
 
@@ -148,13 +148,13 @@ Current visible state:
 | Surface                    | Current state                                                  | Governance implication                                                                  |
 | -------------------------- | -------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
 | Code license               | MIT                                                            | Strong openness for code; does not govern trademarks, hosting, specs, or defaults.      |
-| Brand/trademark policy     | Not visible in the repo                                        | "XNet-compatible" and "official" claims need future rules.                              |
+| Brand/trademark policy     | Not visible in the repo                                        | "xNet-compatible" and "official" claims need future rules.                              |
 | Foundation entity          | Not visible in the repo                                        | No independent stewardship layer yet.                                                   |
 | CLA/DCO policy             | Not visible from reviewed docs                                 | Future contributor IP flow should be decided before major outside contributions.        |
-| Protocol/spec governance   | Mostly project-maintainer driven                               | Fine early; risky if XNet becomes a multi-operator protocol.                            |
+| Protocol/spec governance   | Mostly project-maintainer driven                               | Fine early; risky if xNet becomes a multi-operator protocol.                            |
 | Commons funding policy     | Proposed in exploration 0144, not implemented                  | Needs a public policy before monetization becomes complicated.                          |
-| Hub/operator certification | Not present                                                    | Needed before "trusted hub," "certified host," or "XNet-compatible" has market meaning. |
-| Token/DAO governance       | Explicitly absent in exploration 0143's current-state analysis | A strength for now; XNet can become crypto-ready before becoming crypto-native.         |
+| Hub/operator certification | Not present                                                    | Needed before "trusted hub," "certified host," or "xNet-compatible" has market meaning. |
+| Token/DAO governance       | Explicitly absent in exploration 0143's current-state analysis | A strength for now; xNet can become crypto-ready before becoming crypto-native.         |
 
 ### Recent explorations already point toward a hybrid
 
@@ -164,18 +164,18 @@ This document builds directly on the most recent strategic explorations:
   names "open-source foundation plus commercial cloud" as an option with strong alignment, while
   warning that it creates IP, governance, and value-capture complexity.
 - [`0143_[_]_WHY_MIGHT_PUBLIC_MARKETS_INVEST_IN_XNET_THINK_CRYPTO_AND_WEB3_AND_BLOCKCHAIN.md`](./0143_[_]_WHY_MIGHT_PUBLIC_MARKETS_INVEST_IN_XNET_THINK_CRYPTO_AND_WEB3_AND_BLOCKCHAIN.md)
-  recommends making XNet crypto-ready before crypto-native, with metered usage and signed service
+  recommends making xNet crypto-ready before crypto-native, with metered usage and signed service
   receipts before any transferable asset.
 - [`0144_[_]_POTENTIAL_MONETIZATION_ROUTES_ALIGNED_WITH_OPEN_FEDERATION.md`](./0144_[_]_POTENTIAL_MONETIZATION_ROUTES_ALIGNED_WITH_OPEN_FEDERATION.md)
-  recommends open-source XNet plus paid XNet Cloud/operator services, backed by a transparent
+  recommends open-source xNet plus paid xNet Cloud/operator services, backed by a transparent
   commons budget.
 
 Those documents converge on the same core tension:
 
-> XNet needs an economic engine strong enough to fund hard infrastructure work, but the network
+> xNet needs an economic engine strong enough to fund hard infrastructure work, but the network
 > becomes more valuable if users and operators believe the protocol commons cannot be captured.
 
-### XNet has two different asset classes
+### xNet has two different asset classes
 
 The cleanest governance boundary is not "open source vs business." It is **commons assets vs
 commercial service assets**.
@@ -196,7 +196,7 @@ column and leave the second column competitive.
 
 ```mermaid
 quadrantChart
-    title "XNet Asset Placement"
+    title "xNet Asset Placement"
     x-axis "Company-controlled" --> "Foundation/community-stewarded"
     y-axis "Revenue capture" --> "Network trust"
     quadrant-1 "Stewarded public goods"
@@ -205,7 +205,7 @@ quadrantChart
     quadrant-4 "Risky enclosure zone"
     "Protocol specs": [0.86, 0.91]
     "Conformance tests": [0.82, 0.84]
-    "XNet-compatible trademark": [0.75, 0.78]
+    "xNet-compatible trademark": [0.75, 0.78]
     "Managed hub hosting": [0.20, 0.38]
     "Enterprise support": [0.15, 0.30]
     "Operator control plane": [0.34, 0.50]
@@ -225,7 +225,7 @@ that need the most explicit governance.
 
 The IRS describes 501(c)(3) organizations as organizations operated for exempt purposes such as
 charitable, religious, educational, scientific, literary, testing for public safety, and similar
-purposes. The public benefit can fit parts of XNet: open-source education, security research,
+purposes. The public benefit can fit parts of xNet: open-source education, security research,
 public-interest protocols, privacy infrastructure, digital autonomy, interoperability research,
 documentation, and grants.
 
@@ -238,7 +238,7 @@ But a 501(c)(3) is not a free pass to run any business under a nonprofit label:
 - if commercial activity dominates, tax-exempt status can become fragile;
 - donation/grant cycles may be too unstable to fund a full cloud/product company.
 
-Implication for XNet:
+Implication for xNet:
 
 > A 501(c)(3) can be excellent for the **commons**, but it is a poor primary container for a
 > fast-moving managed hosting and enterprise services business.
@@ -271,7 +271,7 @@ The IRS describes 501(c)(6) organizations as business leagues, chambers of comme
 boards, boards of trade, and similar organizations that are not organized for profit and whose net
 earnings do not benefit private shareholders or individuals.
 
-For XNet, a 501(c)(6) is plausible if the ecosystem becomes a trade association of:
+For xNet, a 501(c)(6) is plausible if the ecosystem becomes a trade association of:
 
 - hub operators;
 - app developers;
@@ -283,12 +283,12 @@ For XNet, a 501(c)(6) is plausible if the ecosystem becomes a trade association 
 
 It can support standards, certification, industry coordination, events, policy work, and shared
 infrastructure that improves a line of business. It is less emotionally compelling than a charity
-if the XNet mission is framed as a public digital commons for users.
+if the xNet mission is framed as a public digital commons for users.
 
 Implication:
 
-> If XNet becomes an **operator/vendor ecosystem**, 501(c)(6) may fit better than 501(c)(3). If
-> XNet becomes a **public-interest open infrastructure project**, 501(c)(3) may fit better.
+> If xNet becomes an **operator/vendor ecosystem**, 501(c)(6) may fit better than 501(c)(3). If
+> xNet becomes a **public-interest open infrastructure project**, 501(c)(3) may fit better.
 
 Source: [IRS business leagues](https://www.irs.gov/charities-non-profits/other-non-profits/business-leagues).
 
@@ -299,7 +299,7 @@ public benefit and operate in a responsible and sustainable manner. Delaware dir
 stockholders' pecuniary interests, the public benefit identified in the certificate of
 incorporation, and the interests of those materially affected by the corporation's conduct.
 
-This is a strong near-term fit because XNet may need:
+This is a strong near-term fit because xNet may need:
 
 - employees;
 - equity compensation;
@@ -331,7 +331,7 @@ state law. Certification is an external certification and brand framework.
 
 Implication:
 
-> XNet can pursue B Corp certification later as a trust signal, but it should not treat B Corp
+> xNet can pursue B Corp certification later as a trust signal, but it should not treat B Corp
 > certification as the main governance answer.
 
 Sources:
@@ -382,7 +382,7 @@ they should not be treated as a shortcut around securities, tax, governance, or 
 
 Implication:
 
-> A Swiss foundation can be compelling if XNet becomes a protocol treasury or international
+> A Swiss foundation can be compelling if xNet becomes a protocol treasury or international
 > standards/research foundation, but it is probably not the first operating structure.
 
 Sources:
@@ -398,7 +398,7 @@ privacy, and multi-member governance.
 
 Implication:
 
-> If XNet becomes a global federation standard with significant European operators, a Belgian AISBL
+> If xNet becomes a global federation standard with significant European operators, a Belgian AISBL
 > or hosted European foundation project may be more credible than a US-only structure.
 
 Sources:
@@ -410,13 +410,13 @@ Sources:
 
 Open-source governance examples:
 
-| Example                    | Model                                                                                          | Lesson for XNet                                                                 |
+| Example                    | Model                                                                                          | Lesson for xNet                                                                 |
 | -------------------------- | ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | Apache Software Foundation | US 501(c)(3) charity stewarding many open-source projects                                      | Strong neutral charity model for project communities and trademarks.            |
 | Python Software Foundation | US 501(c)(3) scientific/educational public charity                                             | Strong fit for language/ecosystem grants, education, packaging, community.      |
 | Linux Foundation           | Large neutral open technology consortium ecosystem, commonly understood as a 501(c)(6) pattern | Strong for industry-backed shared infrastructure and standards.                 |
 | Mozilla                    | 501(c)(3) foundation with wholly owned taxable subsidiary                                      | Shows nonprofit parent + market-based work can coexist, but governance is hard. |
-| Matrix.org Foundation      | UK CIC guardian for federated protocol standard                                                | Directly relevant to XNet's federation/protocol stewardship problem.            |
+| Matrix.org Foundation      | UK CIC guardian for federated protocol standard                                                | Directly relevant to xNet's federation/protocol stewardship problem.            |
 | Signal Foundation          | 501(c)(3) nonprofit supporting Signal Messenger LLC                                            | Shows nonprofit + LLC can support mission-driven consumer infrastructure.       |
 | Ethereum Foundation        | Nonprofit ecosystem supporter, explicitly not the controller/leader of Ethereum                | Useful Web3 lesson: foundation should fund and coordinate, not claim ownership. |
 
@@ -437,17 +437,17 @@ or decentralized nonprofit association structures to hold assets, manage governa
 with legal systems. These can make sense when there is a real protocol treasury, decentralized
 operator network, token governance system, or cross-border settlement layer.
 
-For XNet today, the risk is premature theater:
+For xNet today, the risk is premature theater:
 
 - token governance before there are meaningful network services to govern;
 - foundations that are controlled by insiders but marketed as decentralized;
 - treasury speculation distracting from product-market fit;
-- securities/tax/regulatory complexity before XNet has usage;
+- securities/tax/regulatory complexity before xNet has usage;
 - community cynicism if "foundation" means "token issuer with a board."
 
 Implication:
 
-> XNet should become **governance-ready** and **crypto-ready** before becoming DAO-native.
+> xNet should become **governance-ready** and **crypto-ready** before becoming DAO-native.
 
 Useful later triggers:
 
@@ -466,12 +466,12 @@ connected to the mission, while profits are reinvested, used for capital costs, 
 stakeholders, or donated. In the US, some companies use perpetual purpose trusts to preserve
 mission over time.
 
-This is not the standard venture path. But if XNet decides that independence and mission lock
+This is not the standard venture path. But if xNet decides that independence and mission lock
 matter more than conventional liquidity, steward ownership could be a powerful long-term model.
 
 Implication:
 
-> Steward ownership is a credible "something else entirely" if XNet wants to be durable open
+> Steward ownership is a credible "something else entirely" if xNet wants to be durable open
 > infrastructure rather than a conventional startup. It is less compatible with VC expectations,
 > but more compatible with deep community trust.
 
@@ -484,7 +484,7 @@ Sources:
 1. **Entity names do not create trust by themselves.** A PBC, B Corp, nonprofit, CIC, foundation,
    or DAO wrapper only matters if meaningful assets, duties, budgets, or veto points sit inside the
    structure.
-2. **XNet needs an operating company unless it chooses to remain small.** Managed hubs, enterprise
+2. **xNet needs an operating company unless it chooses to remain small.** Managed hubs, enterprise
    support, search/backbone hosting, and paid operator tools are normal commercial activity and
    should not be forced into a charity unless the project wants nonprofit constraints.
 3. **The foundation should protect the network boundary, not manage every product decision.** Specs,
@@ -494,7 +494,7 @@ Sources:
    maintenance, privacy, security, interoperability, and public digital infrastructure, but it is
    not the cleanest home for a cloud business.
 5. **501(c)(6), AISBL, and hosted foundation projects become more attractive when operators and
-   vendors show up.** If XNet becomes an ecosystem of hosts, app vendors, integrators, and public
+   vendors show up.** If xNet becomes an ecosystem of hosts, app vendors, integrators, and public
    institutions, consortium governance may matter more than charitable framing.
 6. **B Corp certification is a later trust layer, not the foundation.** It can help signal values,
    but it does not replace asset placement, trademark policy, governance, or revenue commitments.
@@ -511,7 +511,7 @@ Sources:
 
 ```mermaid
 mindmap
-  root((XNet governance fit))
+  root((xNet governance fit))
     Operating company
       Delaware PBC
       Delaware C corp
@@ -540,7 +540,7 @@ mindmap
 
 ## The Core Design Question 🧭
 
-XNet has to decide what the foundation is supposed to protect.
+xNet has to decide what the foundation is supposed to protect.
 
 There are at least six different "foundation purposes":
 
@@ -591,14 +591,14 @@ flowchart LR
     Treasury --> Swiss
 ```
 
-XNet does not need to decide all of this on day one. It needs to avoid decisions that foreclose the
+xNet does not need to decide all of this on day one. It needs to avoid decisions that foreclose the
 right later structure.
 
 ## Options And Tradeoffs ⚖️
 
 ### Option 1: Plain Delaware C corporation
 
-**Model:** XNet is a standard Delaware C corporation. It owns the brand, product, IP, cloud,
+**Model:** xNet is a standard Delaware C corporation. It owns the brand, product, IP, cloud,
 marketplace, and commercial contracts.
 
 **Benefits:**
@@ -617,14 +617,14 @@ marketplace, and commercial contracts.
 - any "commons budget" is mostly a policy promise unless contractually committed;
 - future foundation transfer can be politically and legally harder after value accrues.
 
-**Best if:** XNet needs standard startup financing above all else and is willing to build trust
+**Best if:** xNet needs standard startup financing above all else and is willing to build trust
 through license, transparency, governance docs, and later asset transfers.
 
-**XNet verdict:** viable, but not the most aligned default if mission signaling is central.
+**xNet verdict:** viable, but not the most aligned default if mission signaling is central.
 
 ### Option 2: Delaware Public Benefit Corporation
 
-**Model:** XNet Labs is a Delaware PBC with a specific public benefit in its charter.
+**Model:** xNet Labs is a Delaware PBC with a specific public benefit in its charter.
 
 Potential public benefit language should be drafted by counsel, but the intent could be:
 
@@ -649,19 +649,19 @@ Potential public benefit language should be drafted by counsel, but the intent c
 - may be less familiar to some investors, though far less unusual than nonprofit control;
 - does not by itself protect trademarks, specs, or conformance tests.
 
-**Best if:** XNet expects to build a real business but wants public mission duties in the operating
+**Best if:** xNet expects to build a real business but wants public mission duties in the operating
 company from the start.
 
-**XNet verdict:** strongest near-term operating-company default.
+**xNet verdict:** strongest near-term operating-company default.
 
 ### Option 3: Delaware C corporation plus mission covenants
 
-**Model:** XNet is a normal C corporation but uses contractual and governance documents to commit
+**Model:** xNet is a normal C corporation but uses contractual and governance documents to commit
 to open-source and federation principles.
 
 Examples:
 
-- public "XNet Alignment Covenant";
+- public "xNet Alignment Covenant";
 - board-approved commons budget policy;
 - trademark neutrality policy;
 - open protocol pledge;
@@ -684,13 +684,13 @@ Examples:
 - may look like promises without legal teeth;
 - can be diluted by future financing unless protected.
 
-**Best if:** XNet needs C-corp investor simplicity but still wants to document commitments early.
+**Best if:** xNet needs C-corp investor simplicity but still wants to document commitments early.
 
-**XNet verdict:** acceptable fallback if PBC is a financing obstacle.
+**xNet verdict:** acceptable fallback if PBC is a financing obstacle.
 
 ### Option 4: LLC
 
-**Model:** XNet starts as an LLC, likely manager-managed, with an operating agreement embedding
+**Model:** xNet starts as an LLC, likely manager-managed, with an operating agreement embedding
 mission and revenue allocation.
 
 **Benefits:**
@@ -709,14 +709,14 @@ mission and revenue allocation.
 - ownership/governance can be opaque;
 - conversion later can create tax/legal complexity.
 
-**Best if:** XNet stays small, founder-led, service-oriented, and not venture-backed.
+**Best if:** xNet stays small, founder-led, service-oriented, and not venture-backed.
 
-**XNet verdict:** useful only for a small early services wrapper, not ideal for the main long-term
+**xNet verdict:** useful only for a small early services wrapper, not ideal for the main long-term
 structure.
 
 ### Option 5: 501(c)(3) nonprofit owns everything
 
-**Model:** A charitable XNet Foundation owns the code, brand, product, cloud, and operating
+**Model:** A charitable xNet Foundation owns the code, brand, product, cloud, and operating
 activity.
 
 **Benefits:**
@@ -738,15 +738,15 @@ activity.
 - commercial competitors may benefit from foundation-funded work without helping fund it;
 - if a for-profit subsidiary is later created, boundaries become complex.
 
-**Best if:** XNet chooses public-good infrastructure over startup growth and expects donations,
+**Best if:** xNet chooses public-good infrastructure over startup growth and expects donations,
 grants, sponsorships, and modest service revenue to fund the work.
 
-**XNet verdict:** strong for a future foundation, weak as the main operating company if XNet needs
+**xNet verdict:** strong for a future foundation, weak as the main operating company if xNet needs
 managed hubs, enterprise services, and rapid product development.
 
 ### Option 6: 501(c)(6) trade association / consortium
 
-**Model:** XNet Foundation is a trade association of operators, vendors, developers, integrators,
+**Model:** xNet Foundation is a trade association of operators, vendors, developers, integrators,
 institutions, and users.
 
 **Benefits:**
@@ -766,10 +766,10 @@ institutions, and users.
 - donation/grant path is different from 501(c)(3);
 - can become politics-heavy if created too early.
 
-**Best if:** XNet has many independent commercial operators and app vendors who need neutral
+**Best if:** xNet has many independent commercial operators and app vendors who need neutral
 coordination.
 
-**XNet verdict:** plausible later if the ecosystem becomes operator/vendor-heavy.
+**xNet verdict:** plausible later if the ecosystem becomes operator/vendor-heavy.
 
 ### Option 7: Foundation parent with for-profit subsidiary
 
@@ -795,15 +795,15 @@ Foundation/Signal Messenger LLC.
 - hard to communicate cleanly;
 - failure modes are public and legitimacy-damaging.
 
-**Best if:** XNet prioritizes public mission and can fund growth mostly through revenue,
+**Best if:** xNet prioritizes public mission and can fund growth mostly through revenue,
 philanthropy, strategic partnerships, or limited aligned capital rather than conventional VC.
 
-**XNet verdict:** powerful but heavy. Keep as a long-term possibility if XNet wants mission lock
+**xNet verdict:** powerful but heavy. Keep as a long-term possibility if xNet wants mission lock
 over venture-style scaling.
 
 ### Option 8: For-profit opco plus independent foundation
 
-**Model:** XNet Labs is the operating company. XNet Foundation is an independent or semi-independent
+**Model:** xNet Labs is the operating company. xNet Foundation is an independent or semi-independent
 steward of specific commons assets and processes.
 
 **Benefits:**
@@ -824,15 +824,15 @@ steward of specific commons assets and processes.
 - if Labs controls the foundation in practice, trust benefit evaporates;
 - if Foundation controls too much too early, execution slows.
 
-**Best if:** XNet wants both a serious company and a serious commons.
+**Best if:** xNet wants both a serious company and a serious commons.
 
-**XNet verdict:** best long-term target.
+**xNet verdict:** best long-term target.
 
 ```mermaid
 sequenceDiagram
     participant User
-    participant Labs as XNet Labs
-    participant Foundation as XNet Foundation
+    participant Labs as xNet Labs
+    participant Foundation as xNet Foundation
     participant Operator as Independent Operator
     participant Commons as Open Commons
 
@@ -843,12 +843,12 @@ sequenceDiagram
     Operator->>Foundation: Requests compatibility certification
     Foundation->>Operator: Runs conformance and trademark process
     Operator->>User: Offers certified independent hosting
-    User->>Operator: Migrates or multi-homes without leaving XNet
+    User->>Operator: Migrates or multi-homes without leaving xNet
 ```
 
 ### Option 9: Hosted foundation project
 
-**Model:** XNet joins or creates a project under an existing foundation such as Apache, Eclipse,
+**Model:** xNet joins or creates a project under an existing foundation such as Apache, Eclipse,
 Linux Foundation, OpenJS, OpenSSF, or another relevant host.
 
 **Benefits:**
@@ -863,19 +863,19 @@ Linux Foundation, OpenJS, OpenSSF, or another relevant host.
 **Costs:**
 
 - less control;
-- host rules may not fit XNet's product/protocol blend;
+- host rules may not fit xNet's product/protocol blend;
 - foundation processes can be slower;
 - commercial Labs boundary still needs design;
 - not all hosts fit MIT/product/cloud/federation/trademark needs.
 
-**Best if:** XNet becomes strategically important but does not want to build its own foundation
+**Best if:** xNet becomes strategically important but does not want to build its own foundation
 administration.
 
-**XNet verdict:** worth evaluating when third-party operators and institutional partners arrive.
+**xNet verdict:** worth evaluating when third-party operators and institutional partners arrive.
 
 ### Option 10: International foundation / CIC / stichting / AISBL
 
-**Model:** XNet creates a non-US public-interest or nonprofit entity for protocol stewardship.
+**Model:** xNet creates a non-US public-interest or nonprofit entity for protocol stewardship.
 
 **Benefits:**
 
@@ -892,13 +892,13 @@ administration.
 - can complicate US commercial operations;
 - not necessarily better unless community is truly international.
 
-**Best if:** XNet becomes a cross-border protocol and has meaningful non-US stakeholders.
+**Best if:** xNet becomes a cross-border protocol and has meaningful non-US stakeholders.
 
-**XNet verdict:** not first step, but important long-term option.
+**xNet verdict:** not first step, but important long-term option.
 
 ### Option 11: DAO, DUNA, Cayman foundation company, or crypto foundation
 
-**Model:** XNet uses DAO-like governance and a legal wrapper for treasury, grants, operator
+**Model:** xNet uses DAO-like governance and a legal wrapper for treasury, grants, operator
 settlement, or token governance.
 
 **Benefits:**
@@ -918,15 +918,15 @@ settlement, or token governance.
 - can repel enterprise/public-sector adopters;
 - can become a speculative asset story instead of an infrastructure story.
 
-**Best if:** XNet later has real decentralized network economics that cannot be handled with
+**Best if:** xNet later has real decentralized network economics that cannot be handled with
 ordinary contracts, invoices, stablecoins, and service credits.
 
-**XNet verdict:** prepare data structures for verifiable service receipts; do not create DAO/token
+**xNet verdict:** prepare data structures for verifiable service receipts; do not create DAO/token
 governance now.
 
 ### Option 12: Steward-owned company / perpetual purpose trust
 
-**Model:** XNet's operating company is owned or constrained by a purpose trust or steward-ownership
+**Model:** xNet's operating company is owned or constrained by a purpose trust or steward-ownership
 structure, separating control from extractive financial ownership.
 
 **Benefits:**
@@ -946,17 +946,17 @@ structure, separating control from extractive financial ownership.
 - may reduce ability to attract venture-scale capital or employees seeking conventional equity
   upside.
 
-**Best if:** XNet wants durable independence and can fund itself through revenue, grants,
+**Best if:** xNet wants durable independence and can fund itself through revenue, grants,
 mission-aligned debt, redeemable equity, or patient capital.
 
-**XNet verdict:** keep as a serious long-term path if the project chooses self-sufficiency over
+**xNet verdict:** keep as a serious long-term path if the project chooses self-sufficiency over
 venture-scale outcomes.
 
 ## Scenario Map 🗺️
 
 ### Scenario A: Startup-first, foundation later
 
-XNet Labs starts as a Delaware PBC, sells managed hubs and enterprise services, raises modest
+xNet Labs starts as a Delaware PBC, sells managed hubs and enterprise services, raises modest
 mission-aligned capital, publishes a commons budget, and creates a foundation only after the
 ecosystem has external operators and contributors.
 
@@ -984,7 +984,7 @@ ecosystem has external operators and contributors.
 
 ### Scenario B: Foundation-first public infrastructure
 
-XNet forms a 501(c)(3) or CIC-style foundation early and builds XNet as a public-good project.
+xNet forms a 501(c)(3) or CIC-style foundation early and builds xNet as a public-good project.
 Commercial services are small, outsourced, or handled by a later subsidiary.
 
 **What works:**
@@ -1012,7 +1012,7 @@ Commercial services are small, outsourced, or handled by a later subsidiary.
 
 ### Scenario C: Consortium protocol
 
-XNet becomes important to multiple companies, operators, public institutions, and app vendors. A
+xNet becomes important to multiple companies, operators, public institutions, and app vendors. A
 501(c)(6), AISBL, or hosted foundation project governs standards, conformance, compatibility, and
 certification. Labs remains one vendor among many.
 
@@ -1041,7 +1041,7 @@ certification. Labs remains one vendor among many.
 
 ### Scenario D: Mozilla/Signal-style nonprofit parent
 
-A nonprofit foundation controls a for-profit subsidiary. XNet commercial work exists, but the
+A nonprofit foundation controls a for-profit subsidiary. xNet commercial work exists, but the
 mission parent holds ultimate control.
 
 **What works:**
@@ -1067,7 +1067,7 @@ mission parent holds ultimate control.
 
 ### Scenario E: Web3 protocol foundation
 
-XNet eventually has independent operators, service receipts, stablecoin settlement, and maybe a
+xNet eventually has independent operators, service receipts, stablecoin settlement, and maybe a
 protocol resource token. A foundation or DAO wrapper manages grants, treasury, operator incentives,
 and public governance.
 
@@ -1096,7 +1096,7 @@ and public governance.
 
 ### Scenario F: Steward-owned independent infrastructure company
 
-XNet rejects conventional exit pressure. Control is held in trust/steward form; profits fund
+xNet rejects conventional exit pressure. Control is held in trust/steward form; profits fund
 mission, product, employees, and commons. Outside capital is patient and capped or redeemable.
 
 **What works:**
@@ -1124,7 +1124,7 @@ mission, product, employees, and commons. Outside capital is patient and capped 
 
 ### 1. Mission-washed PBC
 
-XNet forms a PBC, writes beautiful public benefit language, then keeps all important rights inside
+xNet forms a PBC, writes beautiful public benefit language, then keeps all important rights inside
 the company and runs the ecosystem like a normal platform.
 
 **Symptom:** self-hosting technically exists, but official identity, search, marketplace,
@@ -1135,7 +1135,7 @@ trademark policy, open registry rules, migration tests, and commons budget.
 
 ### 2. Premature foundation
 
-XNet creates a foundation before there is a real community, forcing a small product team to serve a
+xNet creates a foundation before there is a real community, forcing a small product team to serve a
 governance structure instead of users.
 
 **Symptom:** lots of meetings, few shipped improvements, no money.
@@ -1154,7 +1154,7 @@ public minutes, and transparent asset agreements.
 
 ### 4. Charity trapped in commercial reality
 
-XNet puts everything in a 501(c)(3), then discovers that cloud hosting, enterprise work, and
+xNet puts everything in a 501(c)(3), then discovers that cloud hosting, enterprise work, and
 private benefit constraints make normal operations hard.
 
 **Symptom:** every deal requires legal gymnastics; revenue is taxable or risky; growth stalls.
@@ -1175,7 +1175,7 @@ tests open, and publish low-cost operator paths.
 
 ### 6. Token-before-network
 
-XNet launches a token or DAO before the network has usage, service receipts, or operator economics.
+xNet launches a token or DAO before the network has usage, service receipts, or operator economics.
 
 **Symptom:** roadmap shifts from product and protocol to exchange listings, treasury debates, and
 governance theater.
@@ -1187,7 +1187,7 @@ legal review first.
 
 The code is MIT, but the brand and compatibility mark become the real moat.
 
-**Symptom:** forks can exist, but only Labs can plausibly be "real XNet."
+**Symptom:** forks can exist, but only Labs can plausibly be "real xNet."
 
 **Prevention:** publish a trademark policy that lets compatible independent implementations use
 clear compatibility language while protecting users from confusion and abuse.
@@ -1204,7 +1204,7 @@ not only new research.
 
 ## Foundation Trigger Points 📍
 
-XNet should not form every structure immediately. It should define triggers.
+xNet should not form every structure immediately. It should define triggers.
 
 ```mermaid
 stateDiagram-v2
@@ -1218,7 +1218,7 @@ stateDiagram-v2
     FoundationLaunch --> ProtocolTreasury: real settlement/treasury need
 
     MaintainerProject: Current shape
-    Labs: XNet Labs PBC/C-Corp
+    Labs: xNet Labs PBC/C-Corp
     CommonsFund: transparent commons allocation
     AdvisoryCouncil: non-binding governance practice
     FoundationDesign: counsel + charter + asset map
@@ -1235,7 +1235,7 @@ Suggested concrete thresholds:
 | Outside contributors               | 10+ recurring non-founder contributors or maintainers                                    | Publish governance, DCO/CLA, maintainer, and security policies.                |
 | Independent operators              | 3+ production hubs not run by Labs                                                       | Create operator advisory council and conformance roadmap.                      |
 | Marketplace/registry control       | Official plugin/schema/hub registry influences adoption                                  | Move registry rules and compatibility tests toward foundation process.         |
-| Enterprise/public-sector adoption  | XNet becomes infrastructure for organizations with switching costs                       | Publish trademark, migration, compatibility, and data-portability commitments. |
+| Enterprise/public-sector adoption  | xNet becomes infrastructure for organizations with switching costs                       | Publish trademark, migration, compatibility, and data-portability commitments. |
 | Significant public-good donations  | More than small sponsorships/grants                                                      | Use fiscal sponsor or form foundation.                                         |
 | Token/settlement interest          | Real cross-operator settlement volume and signed service receipts                        | Commission legal analysis before any token/DAO wrapper.                        |
 | International public-sector demand | EU/UK/public-interest institutions require neutral governance or local legal counterpart | Evaluate CIC, AISBL, stichting, Swiss foundation, or hosted foundation.        |
@@ -1248,7 +1248,7 @@ Do now:
 
 - keep MIT core;
 - publish an `OPEN_GOVERNANCE.md` or `docs/governance/README.md`;
-- write an "XNet Alignment Covenant";
+- write an "xNet Alignment Covenant";
 - document what will remain open: core protocol, schemas, self-hosting, export/migration,
   conformance tests;
 - document what may be commercial: managed hosting, support, compliance, premium operator tools,
@@ -1261,11 +1261,11 @@ Do now:
 This phase does not require creating a nonprofit. It requires making future trust promises concrete
 enough that they can be audited.
 
-### Phase 1: Operating company - XNet Labs PBC unless financing requires C-corp
+### Phase 1: Operating company - xNet Labs PBC unless financing requires C-corp
 
 Recommended default:
 
-> Form **XNet Labs, PBC** as the operating company.
+> Form **xNet Labs, PBC** as the operating company.
 
 If investor constraints make PBC meaningfully harder, use a Delaware C corporation with strong
 mission covenants and an explicit conversion/foundation roadmap.
@@ -1294,7 +1294,7 @@ Labs should publicly commit to:
 
 Create:
 
-- "XNet Commons Fund";
+- "xNet Commons Fund";
 - transparent allocation formula;
 - public ledger of funded work;
 - sponsorship categories;
@@ -1318,7 +1318,7 @@ The key is not the wrapper. The key is that users can see:
 
 ### Phase 3: Foundation design - asset map before incorporation
 
-Before creating XNet Foundation, define exactly what it will hold or govern.
+Before creating xNet Foundation, define exactly what it will hold or govern.
 
 Candidate foundation assets:
 
@@ -1364,7 +1364,7 @@ Choose:
 
 ### Phase 5: Mature ecosystem governance
 
-When XNet has many operators and stakeholders:
+When xNet has many operators and stakeholders:
 
 - create a Technical Steering Committee;
 - create working groups for schemas, search, identity, federation, abuse, privacy, compliance,
@@ -1379,7 +1379,7 @@ When XNet has many operators and stakeholders:
 
 ## Legal Structure Decision Matrix 📊
 
-Scored from 1 to 5 for XNet's likely needs. Higher is better except "governance overhead," where
+Scored from 1 to 5 for xNet's likely needs. Higher is better except "governance overhead," where
 higher means easier/lower overhead.
 
 | Structure                         | Mission trust | Commercial flexibility | VC/public-market fit | Grant/donation fit | International legibility | Low overhead | Overall read                          |
@@ -1443,7 +1443,7 @@ The foundation should control or govern:
 Labs should control:
 
 - commercial roadmap;
-- managed XNet Cloud;
+- managed xNet Cloud;
 - customer support;
 - enterprise features;
 - hiring and compensation;
@@ -1478,7 +1478,7 @@ Do not put these under committee governance before the product works:
 - hiring;
 - infrastructure implementation details.
 
-Premature governance over execution will slow XNet before it has enough adoption to justify the
+Premature governance over execution will slow xNet before it has enough adoption to justify the
 cost.
 
 ## Investor And Market Interpretation 💸
@@ -1522,7 +1522,7 @@ Negative:
 
 Best framing:
 
-> XNet Labs is not giving away the business. It is funding and standardizing the commons that makes
+> xNet Labs is not giving away the business. It is funding and standardizing the commons that makes
 > the business defensible through adoption rather than lock-in.
 
 ### How Web3 markets might see the hybrid
@@ -1541,16 +1541,16 @@ Negative:
 
 Best framing:
 
-> XNet is building the network and receipts before the token. If a token ever exists, it will be
+> xNet is building the network and receipts before the token. If a token ever exists, it will be
 > because operators need settlement, not because the project needs hype.
 
 ## Human Trust Effects 👥
 
-Legal structure will affect how people feel about XNet, not only how money moves.
+Legal structure will affect how people feel about xNet, not only how money moves.
 
 ### Users and families
 
-Families using XNet for documents, photos, planning, health records, caregiving, school, or small
+Families using xNet for documents, photos, planning, health records, caregiving, school, or small
 business data will care less about Delaware law and more about:
 
 - can I leave?
@@ -1578,9 +1578,9 @@ A foundation helps if it protects conformance, compatibility, and neutral regist
 
 Operators will ask:
 
-- can I use the XNet name truthfully?
+- can I use the xNet name truthfully?
 - can I pass compatibility tests without paying rent?
-- can Labs change the protocol to favor XNet Cloud?
+- can Labs change the protocol to favor xNet Cloud?
 - can users migrate to me easily?
 - can I participate in governance?
 
@@ -1592,7 +1592,7 @@ Organizations will ask:
 
 - is this controlled by one startup?
 - can we self-host?
-- what happens if XNet Labs is acquired?
+- what happens if xNet Labs is acquired?
 - who governs standards?
 - can we comply with local rules?
 - is there a neutral body we can engage with?
@@ -1664,8 +1664,8 @@ const criteriaWeights = {
 const options: readonly StructureOption[] = [
   {
     id: 'delaware_pbc',
-    label: 'XNet Labs as Delaware Public Benefit Corporation',
-    bestWhen: 'XNet needs a commercial operating company with explicit mission duties.',
+    label: 'xNet Labs as Delaware Public Benefit Corporation',
+    bestWhen: 'xNet needs a commercial operating company with explicit mission duties.',
     scores: {
       missionTrust: 3.5,
       commercialFlexibility: 4.5,
@@ -1677,8 +1677,8 @@ const options: readonly StructureOption[] = [
   },
   {
     id: 'opco_plus_foundation',
-    label: 'XNet Labs plus independent XNet Foundation',
-    bestWhen: 'XNet has enough revenue, operators, and contributors to justify shared governance.',
+    label: 'xNet Labs plus independent xNet Foundation',
+    bestWhen: 'xNet has enough revenue, operators, and contributors to justify shared governance.',
     scores: {
       missionTrust: 4.5,
       commercialFlexibility: 4.5,
@@ -1690,7 +1690,7 @@ const options: readonly StructureOption[] = [
   },
   {
     id: 'foundation_501c3',
-    label: 'US 501(c)(3) XNet Foundation',
+    label: 'US 501(c)(3) xNet Foundation',
     bestWhen: 'Education, research, public-interest open infrastructure, and grants dominate.',
     scores: {
       missionTrust: 5,
@@ -1755,25 +1755,25 @@ Expected strategic output with these weights:
 5. `association_501c6`
 
 That matches the qualitative recommendation: PBC or C-corp-like execution now, opco plus
-foundation later, steward ownership as a serious alternate future if XNet chooses independence over
+foundation later, steward ownership as a serious alternate future if xNet chooses independence over
 venture liquidity.
 
 ## Implementation Checklist 🛠️
 
 - [ ] Ask counsel to compare Delaware C corp, Delaware PBC, LLC, and later foundation pathways for
-      XNet's expected fundraising and revenue model.
-- [ ] Draft a one-page XNet mission/alignment covenant in plain language.
+      xNet's expected fundraising and revenue model.
+- [ ] Draft a one-page xNet mission/alignment covenant in plain language.
 - [ ] Define a candidate Delaware PBC public benefit purpose.
 - [ ] Decide whether Labs should form as PBC immediately or C corp with PBC/foundation trigger
       covenants.
-- [ ] Publish what XNet will never charge for: self-hosting, data export, basic federation,
+- [ ] Publish what xNet will never charge for: self-hosting, data export, basic federation,
       protocol access, open conformance tests, and open core use.
-- [ ] Publish what XNet may charge for: managed hubs, support, compliance, high-scale hosted
+- [ ] Publish what xNet may charge for: managed hubs, support, compliance, high-scale hosted
       search, operator tooling, enterprise services, marketplace settlement, and migrations.
 - [ ] Draft a commons budget policy that allocates a transparent share of service revenue to
       maintenance, security, docs, protocol work, and research.
 - [ ] Decide DCO vs CLA before larger outside contribution flows.
-- [ ] Draft a trademark and compatibility policy for "XNet," "XNet-compatible," package names, and
+- [ ] Draft a trademark and compatibility policy for "xNet," "xNet-compatible," package names, and
       official registries.
 - [ ] Create a `docs/governance/` folder with governance, security, trademark, compatibility, and
       commons-funding drafts.
@@ -1792,8 +1792,8 @@ venture liquidity.
 
 ## Validation Checklist 🔬
 
-- [ ] A self-hosted user can run XNet without paying Labs.
-- [ ] A hosted user can export and migrate away from XNet Cloud.
+- [ ] A self-hosted user can run xNet without paying Labs.
+- [ ] A hosted user can export and migrate away from xNet Cloud.
 - [ ] An independent operator can truthfully advertise compatibility under clear rules.
 - [ ] The official brand cannot be used to confuse users, but compatibility claims are allowed.
 - [ ] Labs can still fund employees, cloud operations, support, and product development.
@@ -1813,15 +1813,15 @@ venture liquidity.
 The recommended path is:
 
 1. **Do not start with a pure nonprofit.** It is too constraining for the managed hub, support,
-   enterprise, and infrastructure work XNet likely needs.
-2. **Use a mission-aligned operating company.** Prefer Delaware PBC for XNet Labs unless counsel or
+   enterprise, and infrastructure work xNet likely needs.
+2. **Use a mission-aligned operating company.** Prefer Delaware PBC for xNet Labs unless counsel or
    financing constraints point strongly to a standard C corp.
 3. **Make the commons budget real early.** Before there is a foundation, publish how revenue funds
    maintenance, security, docs, protocol work, and R&D.
 4. **Create governance documents before governance theater.** Trademark, compatibility,
    contributor, security, migration, self-hosting, and commons policies matter more than a legal
    entity name.
-5. **Form XNet Foundation when there is something real to steward.** The foundation should launch
+5. **Form xNet Foundation when there is something real to steward.** The foundation should launch
    when there are independent operators, contributors, registry pressure, public-good funding, or
    standards adoption.
 6. **Choose the foundation type based on actual role.** 501(c)(3) for charity/research/education;
@@ -1829,13 +1829,13 @@ The recommended path is:
    foundation only if treasury/protocol economics justify it.
 7. **Keep Web3 optional.** Signed service receipts, stable payments, and operator accounting should
    come before tokens, DAO wrappers, or protocol treasuries.
-8. **Keep steward ownership alive as a serious alternate future.** If XNet becomes self-sustaining
+8. **Keep steward ownership alive as a serious alternate future.** If xNet becomes self-sustaining
    and wants to reject conventional exit pressure, a purpose trust/steward-owned model may become
    the most aligned structure.
 
 The plain-language answer:
 
-> XNet should likely be **multiple things**: a serious operating company that can build and fund the
+> xNet should likely be **multiple things**: a serious operating company that can build and fund the
 > product, plus a serious commons institution that can protect the protocol from capture. The
 > operating company should earn money by doing real operational work. The foundation should make
 > sure the network remains open enough that users, developers, operators, families, institutions,
@@ -1843,12 +1843,12 @@ The plain-language answer:
 
 ## References 📚
 
-### Local XNet context
+### Local xNet context
 
 - [Root README](../../README.md)
 - [MIT License](../../LICENSE)
-- [0142 - Why Might VCs Invest In XNet](./0142_[_]_WHY_MIGHT_VCS_INVEST_IN_XNET_COMPELLING_VENTURE_RETURNS_AND_TIMEFRAMES.md)
-- [0143 - Why Might Public Markets Invest In XNet Through Crypto And Web3](./0143_[_]_WHY_MIGHT_PUBLIC_MARKETS_INVEST_IN_XNET_THINK_CRYPTO_AND_WEB3_AND_BLOCKCHAIN.md)
+- [0142 - Why Might VCs Invest In xNet](./0142_[_]_WHY_MIGHT_VCS_INVEST_IN_XNET_COMPELLING_VENTURE_RETURNS_AND_TIMEFRAMES.md)
+- [0143 - Why Might Public Markets Invest In xNet Through Crypto And Web3](./0143_[_]_WHY_MIGHT_PUBLIC_MARKETS_INVEST_IN_XNET_THINK_CRYPTO_AND_WEB3_AND_BLOCKCHAIN.md)
 - [0144 - Potential Monetization Routes Aligned With Open Federation](./0144_[_]_POTENTIAL_MONETIZATION_ROUTES_ALIGNED_WITH_OPEN_FEDERATION.md)
 
 ### US legal/entity references

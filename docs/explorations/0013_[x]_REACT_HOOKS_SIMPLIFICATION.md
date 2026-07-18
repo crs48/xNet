@@ -85,7 +85,7 @@ All three are defined, exported, and imported by exactly zero files outside thei
 | ----------------- | ------------------------------------------- | ---------------------------------- |
 | `XNetProvider`    | App-level context (identity + store + sync) | 2 app entry points (web, electron) |
 | `useXNet`         | Access the XNetProvider context             | 1 web component (GlobalSearch)     |
-| `createXNetStore` | Factory for XNet zustand store              | Used by XNetProvider               |
+| `createXNetStore` | Factory for xNet zustand store              | Used by XNetProvider               |
 
 `XNetProvider` is still used in app entry points. However, its role overlaps with `NodeStoreProvider` — both provide the store. This is a separate cleanup (provider consolidation), not part of the immediate hook removal.
 

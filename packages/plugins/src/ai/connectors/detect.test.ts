@@ -53,7 +53,7 @@ describe('detectConnectors', () => {
     const result = await detectConnectors(NOTHING)
     const managed = result.find((d) => d.tier === 'managed')
     expect(managed?.available).toBe(false)
-    expect(managed?.setupHint).toMatch(/XNet Cloud/)
+    expect(managed?.setupHint).toMatch(/xNet Cloud/)
   })
 
   it('reports the in-tab tier unavailable when WebGPU is present but no engine is wired', async () => {

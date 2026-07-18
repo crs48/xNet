@@ -1,6 +1,6 @@
 # Second‑language reference kernel
 
-A tiny, dependency‑light implementation of the XNet **L0 + L1 interop kernel** in
+A tiny, dependency‑light implementation of the xNet **L0 + L1 interop kernel** in
 a language other than the reference TypeScript — here, Python. Its only job is to
 **prove the protocol boundary is real**: that the written
 [spec](../../docs/specs/protocol/) plus the [golden vectors](../) are sufficient

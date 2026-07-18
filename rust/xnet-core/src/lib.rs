@@ -1,6 +1,6 @@
-//! Portable Rust implementation of the XNet interop kernel.
+//! Portable Rust implementation of the xNet interop kernel.
 //!
-//! This is the byte-exact core of the XNet protocol (docs/specs/protocol/):
+//! This is the byte-exact core of the xNet protocol (docs/specs/protocol/):
 //! `did:key` identity, the canonical-JSON change hash, Ed25519 sign/verify,
 //! per-property LWW convergence, and the pure L2/L3 decision functions. It
 //! reproduces the conformance golden vectors in `conformance/vectors/` exactly,

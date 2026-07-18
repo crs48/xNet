@@ -1,5 +1,5 @@
 """
-A minimal, second-language implementation of the XNet L0 + L1 interop kernel.
+A minimal, second-language implementation of the xNet L0 + L1 interop kernel.
 
 This file exists to prove the protocol boundary is real: that the written spec
 in docs/specs/protocol/ — not the TypeScript source — is sufficient to derive

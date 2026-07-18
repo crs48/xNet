@@ -1,8 +1,8 @@
 /**
  * Sync granularity guardrail (exploration 0200).
  *
- * The central rule of the XNet ↔ Unreal bridge: **if it belongs in a save file it
- * can sync to XNet; if it belongs in a netcode packet it must not.** XNet's store
+ * The central rule of the xNet ↔ Unreal bridge: **if it belongs in a save file it
+ * can sync to xNet; if it belongs in a netcode packet it must not.** xNet's store
  * is a signed, content-addressed, LWW CRDT graph — wonderful for the dozens of
  * durable, player-facing facts per session (identity, inventory, achievements,
  * economy) and catastrophic for the thousands of per-frame ones (transforms,
@@ -66,7 +66,7 @@ export function assertDurableCadence(cadence: SyncCadence): void {
     const interval = cadenceIntervalMs(cadence)
     throw new GranularityError(
       `sync cadence ${interval}ms is below the ${MIN_SYNC_INTERVAL_MS}ms durable floor — ` +
-        `XNet syncs save-file-grade data, not netcode-packet state (exploration 0200)`
+        `xNet syncs save-file-grade data, not netcode-packet state (exploration 0200)`
     )
   }
 }

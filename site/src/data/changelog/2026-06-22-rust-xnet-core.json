@@ -1,7 +1,7 @@
 {
   "id": "2026-06-22-rust-xnet-core",
   "date": "June 22, 2026",
-  "title": "A portable Rust core for the XNet protocol — one kernel for every language",
+  "title": "A portable Rust core for the xNet protocol — one kernel for every language",
   "summary": "Phase 2 of the native-SDK work: `xnet-core`, a Rust implementation of the protocol's byte-exact kernel (did:key, the canonical-JSON change hash, Ed25519 sign/verify, per-property LWW, version negotiation, authorization eval). It passes the shared golden-vector corpus — and, with deterministic RFC-8032 Ed25519, re-signs changes byte-for-byte (which the Swift/CryptoKit kernel can't). It's the foundation for backing the Swift, Kotlin, and .NET SDKs from a single core via UniFFI.",
   "highlights": [
     "`rust/xnet-core` reproduces the conformance corpus (identity, change incl. byte-exact re-sign, LWW, replication, authz) — a fourth conforming implementation alongside TypeScript, Python, and Swift",

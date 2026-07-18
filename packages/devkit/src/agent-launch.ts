@@ -1,8 +1,8 @@
 /**
  * @xnetjs/devkit — headless launch specs for coding agents (exploration 0194).
  *
- * Maps a known agent CLI + an optional XNet MCP server to the argv that drives
- * it non-interactively. Handing the agent XNet's MCP server is what turns the
+ * Maps a known agent CLI + an optional xNet MCP server to the argv that drives
+ * it non-interactively. Handing the agent xNet's MCP server is what turns the
  * bridge from a chatbot into something that *acts on the workspace*: it can
  * search/read and create/update pages, databases, and canvases through the
  * `xnet_*` tools (which enforce the write guardrail server-side). Pure, so the
@@ -14,7 +14,7 @@ export interface McpServerSpec {
   args: string[]
 }
 
-/** The `mcpServers` config object a spawned agent loads to reach XNet's tools. */
+/** The `mcpServers` config object a spawned agent loads to reach xNet's tools. */
 export function mcpConfigFor(
   server: McpServerSpec,
   name = 'xnet'
@@ -23,12 +23,12 @@ export function mcpConfigFor(
 }
 
 export interface AgentLaunchOptions {
-  /** Path to an MCP config JSON file — gives the agent XNet's workspace tools. */
+  /** Path to an MCP config JSON file — gives the agent xNet's workspace tools. */
   mcpConfigPath?: string
   /**
    * allowedTools pattern auto-approved for the MCP server (Claude Code print
    * mode — `--permission-mode acceptEdits` does NOT cover MCP tools). Default
-   * `mcp__xnet__*` (all XNet tools).
+   * `mcp__xnet__*` (all xNet tools).
    */
   allowedTools?: string
 }

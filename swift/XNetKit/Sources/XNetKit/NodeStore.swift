@@ -13,7 +13,7 @@ public final class Cancellable {
     deinit { _cancel() }
 }
 
-/// A local, in-memory XNet node store: the native-Swift analogue of
+/// A local, in-memory xNet node store: the native-Swift analogue of
 /// `@xnetjs/data`'s `NodeStore`. It signs every mutation into a `Change`,
 /// materializes node state via per-property LWW, and notifies subscribers.
 ///

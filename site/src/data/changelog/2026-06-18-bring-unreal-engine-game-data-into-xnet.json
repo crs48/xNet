@@ -1,10 +1,10 @@
 {
   "id": "2026-06-18-bring-unreal-engine-game-data-into-xnet",
   "date": "June 18, 2026",
-  "title": "Bring Unreal Engine game data into XNet",
-  "summary": "A new governed connector and game-interop schema pack let an Unreal Engine 6 title's durable player data — identity, inventory, achievements, matches, and economy — sync into space-scoped XNet nodes you own.",
+  "title": "Bring Unreal Engine game data into xNet",
+  "summary": "A new governed connector and game-interop schema pack let an Unreal Engine 6 title's durable player data — identity, inventory, achievements, matches, and economy — sync into space-scoped xNet nodes you own.",
   "highlights": [
-    "Player identity is keyed to your portable XNet DID, so it carries across games",
+    "Player identity is keyed to your portable xNet DID, so it carries across games",
     "A save-file-not-netcode guardrail rejects per-frame syncs at build time",
     "Game assets are stored as glTF/USD references; each title sees only its own space"
   ],

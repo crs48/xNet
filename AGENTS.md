@@ -79,6 +79,26 @@ apps/
 | Type params   | Single uppercase      | `T`, `P`                         |
 | Unused params | Prefix with `_`       | `_event`, `_unused`              |
 
+### Spelling the brand: `xNet`
+
+The product is **xNet** — lowercase x, uppercase N. Never `XNet`, `Xnet` or
+`XNET` in anything a human reads.
+
+| Where                                                  | Form            | Example                                              |
+| ------------------------------------------------------ | --------------- | ---------------------------------------------------- |
+| Prose — docs, comments, UI strings, titles, commits     | `xNet`          | "xNet syncs save-file-grade data", `'xNet Cloud'`     |
+| npm packages, bins, URLs, DB/file names, env prefixes   | all lowercase   | `@xnetjs/data`, `xnet mcp serve`, `xnet://`, `xnet.db` |
+| TypeScript/Swift identifiers already named `XNet*`      | leave as-is     | `XNetProvider`, `useXNet`, `XNetKit`, `XNetClient`    |
+| Mermaid node ids, SCREAMING_SNAKE constants             | leave as-is     | `subgraph XNet["xNet Core"]`, `XNET_HUB_URL`         |
+
+Sentence-initial is still `xNet` — the lowercase x is part of the mark, so
+rewrite the sentence rather than capitalising it.
+
+The split is **identifier vs copy**, not file type: a code sample inside a
+markdown doc is still code. When renaming, only replace `XNet` on a word
+boundary (`\bXNet\b`) — an unbounded find-and-replace corrupts `XNetProvider`
+and the `XNet` SDK class quoted in `docs/plans/` and `docs/explorations/`.
+
 ### TypeScript
 
 - Strict mode enabled

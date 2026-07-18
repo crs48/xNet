@@ -7,7 +7,7 @@ sidebar:
   label: 'Authorization'
 ---
 
-In XNet, authorization is **data, not application logic**: rules are declared on
+In xNet, authorization is **data, not application logic**: rules are declared on
 schemas and delegated through grant nodes and UCAN tokens, and enforced at the
 sync boundary. Because two implementations that disagree on policy make different
 read/write decisions on the same graph, the decision *semantics* are normative.
@@ -87,7 +87,7 @@ attribution.
 
 ## Grants and UCAN
 
-- **Grant nodes** — ordinary XNet nodes recording `{ issuer, grantee, resource,
+- **Grant nodes** — ordinary xNet nodes recording `{ issuer, grantee, resource,
   actions, expiresAt, revokedAt }`. Active iff not revoked and not expired.
 - **UCAN tokens** — capability tokens (JWT/EdDSA) with a proof chain. Each
   capability must be an attenuation of its proof; child expiry ≤ parent; chains

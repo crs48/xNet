@@ -1,6 +1,6 @@
 # L0 · Cryptographic Primitives
 
-**This document is normative.** Part of [XNet Protocol `xnet/1.0`](00-overview.md).
+**This document is normative.** Part of [xNet Protocol `xnet/1.0`](00-overview.md).
 
 L0 is mostly a **profile over existing standards**. Implementations SHOULD use
 audited libraries (the reference implementation uses the
@@ -13,7 +13,7 @@ Reference: [`packages/crypto/src/`](../../../packages/crypto/src/),
 
 ## 1. Identity: `did:key` over Ed25519
 
-An XNet identity is a [`did:key`](https://w3c-ccg.github.io/did-key-spec/)
+An xNet identity is a [`did:key`](https://w3c-ccg.github.io/did-key-spec/)
 encoding an Ed25519 public key. Derivation (MUST):
 
 1. Generate or import a 32‑byte Ed25519 key pair (private seed → public key per
@@ -53,7 +53,7 @@ Type: `DID = `did:key:${string}`` — [`node.ts`](../../../packages/data/src/sch
 | Content IDs / change hashes | **BLAKE3** (256‑bit) | Default. Encoded as `cid:blake3:<hex>` (lowercase hex). |
 | HKDF / key derivation | HKDF‑**SHA‑256** ([RFC 5869](https://www.rfc-editor.org/rfc/rfc5869)) | Domain‑separated `info` strings (§6). |
 
-> ⚠️ **Implementer note:** XNet change hashes are **BLAKE3**, not SHA‑256. The
+> ⚠️ **Implementer note:** xNet change hashes are **BLAKE3**, not SHA‑256. The
 > `cid:blake3:` prefix is part of the hashed‑then‑signed string, so getting the
 > algorithm or the prefix wrong makes every signature fail to verify. The
 > [golden vectors](90-conformance.md) pin this exactly.

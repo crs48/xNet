@@ -28,7 +28,7 @@ packages/sdk/
 ├── tsconfig.json
 ├── src/
 │   ├── index.ts              # Main entry point
-│   ├── client.ts             # XNet client class
+│   ├── client.ts             # xNet client class
 │   ├── client.test.ts
 │   └── presets/
 │       ├── browser.ts        # Browser preset
@@ -39,7 +39,7 @@ packages/sdk/
 
 ## Implementation
 
-### XNet Client (client.ts)
+### xNet Client (client.ts)
 
 ```typescript
 import { IndexedDBAdapter, MemoryAdapter, type StorageAdapter } from '@xnetjs/storage'

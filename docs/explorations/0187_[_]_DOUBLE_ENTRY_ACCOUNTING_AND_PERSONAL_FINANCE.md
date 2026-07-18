@@ -1,8 +1,8 @@
-# Double-Entry Accounting, Personal Finance, and the Road to an XNet ERP
+# Double-Entry Accounting, Personal Finance, and the Road to an xNet ERP
 
 ## Problem Statement
 
-XNet today is a local-first, schema-native personal data platform: pages,
+xNet today is a local-first, schema-native personal data platform: pages,
 tasks, databases, a CRM/people-matching primitive, an experiment journal, a
 spaces authorization model, and a managed cloud with metered AI. The proposal
 is to add **money** to that graph — a first-class double-entry accounting
@@ -13,7 +13,7 @@ the same surface that a CRM exploration is already converging on).
 
 Concretely, this exploration answers:
 
-1. What does a **double-entry accounting schema** look like inside XNet's node
+1. What does a **double-entry accounting schema** look like inside xNet's node
    model — accounts, journal entries, postings, money?
 2. What does **V1 personal-finance UI** look like, and how does it reuse the
    patterns we already have (the experiments package, views, query/mutate
@@ -21,7 +21,7 @@ Concretely, this exploration answers:
 3. How do we get **transactions in** — manual entry, file import (CSV/OFX/QIF),
    and automated **bank sync** — and which bank-data API do we lean on given
    that Plaid is expensive?
-4. How does bank sync become a **paid XNet Cloud service**, mirroring the
+4. How does bank sync become a **paid xNet Cloud service**, mirroring the
    existing metered-AI precedent?
 5. What is the **ERP endgame**, and how do we avoid painting ourselves into a
    corner with a personal-finance-only data model?
@@ -73,7 +73,7 @@ orders, payroll seams).
 
 ## Current State In The Repository
 
-XNet already has every structural seam this feature needs. Nothing here
+xNet already has every structural seam this feature needs. Nothing here
 requires new platform primitives — only new schemas, one pure-logic package,
 one property helper, and one surface.
 
@@ -194,16 +194,16 @@ is the single most important new primitive: a `money()` property storing
 
 ### Prior art in open-source personal finance
 
-| Tool | Model | Stack | License | Takeaway for XNet |
+| Tool | Model | Stack | License | Takeaway for xNet |
 | --- | --- | --- | --- | --- |
 | **Firefly III** | Full double-entry, chart of accounts, multi-currency, rules engine | PHP/Laravel, self-host | AGPL | The reference for *depth*; proves double-entry scales to near-business use. Heavy/server-bound — the opposite of local-first. |
 | **Actual Budget** | Envelope / zero-sum (single-entry-ish) | JS, **local-first (CRDT sync)** | MIT | The reference for *feel* — instant, offline, syncs. Deliberately shallow on account types (no proper investment/loan ledger). |
-| **Maybe Finance** | Entry-based **immutable ledger** (transactions, trades, valuations as immutable `Entry` records); `Family` as tenant root | Rails + Postgres + Sidekiq | AGPL (open-sourced, 40k★) | Validates *immutable entries* and a *household tenant boundary* — XNet's `Space` is our `Family`. |
+| **Maybe Finance** | Entry-based **immutable ledger** (transactions, trades, valuations as immutable `Entry` records); `Family` as tenant root | Rails + Postgres + Sidekiq | AGPL (open-sourced, 40k★) | Validates *immutable entries* and a *household tenant boundary* — xNet's `Space` is our `Family`. |
 | **Beancount / hledger / Ledger** | Plain-text double-entry, strict, plugin reporting | Python / Haskell / C++ | Various OSS | The *correctness* gold standard. Their account-type sign rules and balance assertions are worth copying wholesale. Text-file UX is not our audience, but the *engine semantics* are. |
 | **Blnk / envato `double_entry` / `plutus`** | Embeddable double-entry ledger libraries | Go / Ruby | OSS | Confirm the minimal table shape: accounts + immutable postings that sum to zero; balances are *derived*, never stored authoritatively. |
 
 **Synthesis:** *Firefly's double-entry spine + Actual's local-first runtime +
-Maybe's immutable-entry discipline.* XNet is uniquely positioned to deliver all
+Maybe's immutable-entry discipline.* xNet is uniquely positioned to deliver all
 three because it already *is* a local-first CRDT graph with sync.
 
 ### Double-entry, distilled (the rules `@xnetjs/ledger` encodes)
@@ -219,7 +219,7 @@ three because it already *is* a local-first CRDT graph with sync.
   truth (store snapshots only as a cache/optimization with the running-balance
   trick).
 - A chart of accounts is a **hierarchy** (numeric/lettered codes that roll up),
-  which maps naturally to XNet's existing folder/tag/parent patterns.
+  which maps naturally to xNet's existing folder/tag/parent patterns.
 
 ### Bank data APIs — the Plaid problem and the cheaper ladder
 
@@ -253,14 +253,14 @@ manual entry + import** — preserving the local-first, no-lock-in ethos.
 1. **Double-entry is a schema choice, not a UX choice.** We can present a
    dead-simple "spent $40 at grocery store" form while writing a balanced
    journal entry underneath. The complexity is hidden, not absent.
-2. **XNet has every seam already** — schema DSL, atomic mutations, spaces auth,
+2. **xNet has every seam already** — schema DSL, atomic mutations, spaces auth,
    pure-logic package pattern, view registry, metered-cloud blueprint. The net
    new surface area is small and well-bounded.
 3. **Money precision is the one genuine new primitive.** Integer minor units +
    currency, integer-only ledger math. Get this wrong and balances drift.
 4. **The CRM and accounting graphs are the same graph.** Counterparties =
-   contacts. This is why "accounting in XNet" is strategically a Trojan horse
-   for "ERP in XNet."
+   contacts. This is why "accounting in xNet" is strategically a Trojan horse
+   for "ERP in xNet."
 5. **Bank sync = metered AI, reskinned.** The provider adapter and cost unit
    change; the gateway/budget/ledger/Stripe machinery is reused verbatim.
 6. **Free tier must be complete without sync.** Import + manual keeps the

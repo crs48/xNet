@@ -1,7 +1,7 @@
 // swift-tools-version:5.10
 import PackageDescription
 
-// XNetKit — a native Swift SDK for XNet's local-first graph database.
+// XNetKit — a native Swift SDK for xNet's local-first graph database.
 //
 // This package realizes the user-facing vision of exploration 0210: define
 // schemas in Swift, query the database in Swift, and bind results into a

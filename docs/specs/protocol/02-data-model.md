@@ -1,6 +1,6 @@
 # L1 · Data Model
 
-**This document is normative.** Part of [XNet Protocol `xnet/1.0`](00-overview.md).
+**This document is normative.** Part of [xNet Protocol `xnet/1.0`](00-overview.md).
 
 L1 is the heart of the protocol — the part that makes "the data model the data
 model." It defines what a node is, how it is named, how it mutates, and how
@@ -13,7 +13,7 @@ Reference: [`packages/data/src/schema/node.ts`](../../../packages/data/src/schem
 
 ## 1. The Node
 
-A **Node** is the atomic unit of XNet data. Every node, in every implementation,
+A **Node** is the atomic unit of xNet data. Every node, in every implementation,
 has exactly these four universal fields; all other fields are defined by the
 node's schema.
 
@@ -81,7 +81,7 @@ governs the schema; the version is semver and participates in
 
 1. **Built‑in authority `xnet.fyi`** — implementations ship these schemas (the
    L4 application profile). They MAY be resolved offline.
-2. **DID authority** (`xnet://did:key:…/…`) — the schema is itself an XNet node
+2. **DID authority** (`xnet://did:key:…/…`) — the schema is itself an xNet node
    authored by that DID; resolve it through normal node sync.
 3. **Domain authority** (`xnet://example.com/…`) — RESERVED for `xnet/1.1`:
    resolution via a `.well-known` document anchored by DNS, following the
@@ -347,7 +347,7 @@ The protocol treats this blob as an **opaque, versioned codec payload**:
   implementation that cannot parse `yjs-v1` still fully participates in the node
   graph, identity, replication, and authorization — it simply relays the body.
 
-This is the seam that makes XNet portable without porting a CRDT byte format
+This is the seam that makes xNet portable without porting a CRDT byte format
 across languages: the [Yjs sync envelope](03-replication.md) authenticates and
 routes the bytes; only peers that _use_ the document need a Yjs‑compatible
 library (e.g. [yrs](https://github.com/y-crdt/y-crdt)). The wire format of the

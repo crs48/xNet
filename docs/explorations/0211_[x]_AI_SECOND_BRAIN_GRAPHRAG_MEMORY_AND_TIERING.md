@@ -1,4 +1,4 @@
-# AI Second Brain: GraphRAG Retrieval, Memory, and Data Tiering on the XNet Substrate
+# AI Second Brain: GraphRAG Retrieval, Memory, and Data Tiering on the xNet Substrate
 
 > Exploration 0211 — 2026-06-21
 > Status: **IMPLEMENTED & LIVE** (`[x]`). PRs #228 (engine `@xnetjs/brain`),
@@ -42,10 +42,10 @@ It should be:
   with provenance you can audit.
 
 The question is twofold: **(1)** what does the field say a great AI second brain
-needs, and **(2)** how much of it does XNet already have — and what's the smallest,
+needs, and **(2)** how much of it does xNet already have — and what's the smallest,
 highest-leverage layer we can add to be *better* than what's out there?
 
-The short answer, grounded below: **XNet already ships ~80% of the hard substrate.**
+The short answer, grounded below: **xNet already ships ~80% of the hard substrate.**
 The governed graph, LWW sync, local-first SQLite/OPFS cache, hub/remote split,
 connector ingestion, and the AI surface are all live. A best-in-class **vector
 engine exists but is dormant**, retrieval into the agent is **keyword-only**, there
@@ -82,7 +82,7 @@ flowchart LR
 ```
 
 **Recommendation in one line:** build a small, package-local **`@xnetjs/brain`**
-layer (plus an embedding job and a memory schema pack) that turns XNet's dormant
+layer (plus an embedding job and a memory schema pack) that turns xNet's dormant
 vector engine + live graph + FTS into a **hybrid GraphRAG retriever**, wires it
 into the existing `AiSurfaceService` with a **token/locality budget** so the agent
 is never overwhelmed, and promotes the stubbed `QuerySource` preference into a real
@@ -91,7 +91,7 @@ is exactly why it's high-leverage.
 
 ## Current State In The Repository
 
-XNet's second-brain substrate is unusually complete. The honest framing is that
+xNet's second-brain substrate is unusually complete. The honest framing is that
 the parts exist but were built in separate explorations and never stitched into a
 single retrieval/agent loop.
 
@@ -172,14 +172,14 @@ round-ups ([Buildin](https://buildin.ai/blog/best-second-brain-apps-2026),
 - **Obsidian** — local-first, plain-Markdown, graph-walk retrieval; the privacy /
   data-durability benchmark.
 - **Anytype** — "Notion UX with the privacy of a decentralized network" —
-  *the closest competitor to XNet's positioning*.
+  *the closest competitor to xNet's positioning*.
 - **Heptabase** — spatial/canvas reasoning.
 - **Notion / Logseq / Roam** — block model + ecosystem; the differentiator the
   reviewers name is **retrieval style**: graph-walk vs spatial-canvas vs
   block-outliner vs **AI-cited search**.
 
 The standout takeaway: *"the variable that actually matters is retrieval style."*
-XNet can offer **all of them over one governed graph** — which none of the
+xNet can offer **all of them over one governed graph** — which none of the
 single-mode tools do.
 
 ### GraphRAG vs vector RAG — the retrieval debate
@@ -196,7 +196,7 @@ Head-to-head studies in 2025–26
 - **Explainability:** *"a vector match is a number; a graph path is a sentence a
   human can read."* For a second brain you can trust, the readable path matters.
 - **Consensus:** *hybrid systems combining both are the future.* GraphRAG's cost is
-  the upfront graph-build — **which XNet doesn't pay, because the graph already
+  the upfront graph-build — **which xNet doesn't pay, because the graph already
   exists as governed nodes + typed relations.**
 
 ### Agent memory architectures
@@ -213,7 +213,7 @@ MemGPT/MemoryOS):
   bounded context window, treating the window like RAM and storage like disk.
 - **MemoryOS** — explicit short/mid/long-term tiers.
 
-The pattern maps *directly* onto XNet: memory items are just **governed nodes**
+The pattern maps *directly* onto xNet: memory items are just **governed nodes**
 with relations, decay, and provenance; the LWW change-log already gives you the
 `ADD/UPDATE/DELETE` substrate for free.
 
@@ -241,13 +241,13 @@ never the whole graph.**
 [`sqlite-vec`](https://www.sitepoint.com/local-first-rag-vector-search-in-sqlite-with-hamming-distance/)
 (pure-C, runs in browser via WASM) and on-device RAG guides show local vector
 search over hundreds of thousands of vectors at **single-digit-ms** latency, with
-binary/quantized vectors keeping the index small. XNet already uses WASM SQLite +
+binary/quantized vectors keeping the index small. xNet already uses WASM SQLite +
 OPFS and ships `usearch` (HNSW) in `@xnetjs/vectors`, so a local-first vector tier
 is firmly in reach — and aligns with the `0204` local-first cold-start work.
 
 ## Key Findings
 
-1. **XNet is a second-brain *platform*, not a note app.** The governed graph +
+1. **xNet is a second-brain *platform*, not a note app.** The governed graph +
    connectors + LWW sync + spaces/auth already beat the single-mode PKM tools on
    *breadth of data* and *governance*. The competitive gap is purely **retrieval
    intelligence and agent integration**.
@@ -256,7 +256,7 @@ is firmly in reach — and aligns with the `0204` local-first cold-start work.
    `AiSurfaceService`.** A complete vector engine sitting unused while the agent
    retrieves by keyword is the clearest "free win" in the codebase.
 
-3. **GraphRAG is cheap for XNet specifically.** The usual GraphRAG tax (extract
+3. **GraphRAG is cheap for xNet specifically.** The usual GraphRAG tax (extract
    entities/relations, build a graph) is already paid: nodes are entities, `relation()`
    edges are relations, `follow()`/`include` is the traversal. We get the
    multi-hop/sense-making retrieval mode almost for free.

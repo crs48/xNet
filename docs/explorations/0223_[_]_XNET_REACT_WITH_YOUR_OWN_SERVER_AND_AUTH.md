@@ -1,4 +1,4 @@
-# XNet React With Your Own Server (Bring-Your-Own Backend & Auth)
+# xNet React With Your Own Server (Bring-Your-Own Backend & Auth)
 
 > Status: exploration / proposal. Filename starts `[_]`; flip to `[x]` once the
 > `@xnetjs/server` kit + server transport land and a sample app runs against a
@@ -6,7 +6,7 @@
 
 ## Problem Statement
 
-Today, adopting XNet means adopting **all** of XNet: the decentralized hub, the
+Today, adopting xNet means adopting **all** of xNet: the decentralized hub, the
 `did:key` identity model, Ed25519-signed changes, UCAN capabilities, and the
 space/role/grant authorization graph. That is the right default for a
 local-first, user-owned network — but it is a large pill to swallow for a
@@ -26,7 +26,7 @@ The user's framing, distilled:
 > "Can we extract and abstract the data layer? Store stuff in the database, get
 > the nice React hooks, subscriptions, query a remote database — but
 > plug‑and‑play for your own infrastructure. You bring your own permissioning,
-> identity, and (maybe) authorization. The tricky part is mapping XNet's
+> identity, and (maybe) authorization. The tricky part is mapping xNet's
 > authorization/identity primitives onto *other people's* primitives."
 
 So the core question is **two coupled questions**:
@@ -35,13 +35,13 @@ So the core question is **two coupled questions**:
    server? A REST contract they implement? Do we manage their DB? (Answer
    below: a thin embeddable server kit *and* an open HTTP contract — both, in
    layers.)
-2. **Identity & authorization mapping** — XNet assumes every write is signed by
+2. **Identity & authorization mapping** — xNet assumes every write is signed by
    a keypair and tagged with an `authorDID`, and authorization is keyed on DIDs.
    How do we let a developer's `req.user.id` drive the system instead?
 
 ## Executive Summary
 
-**The good news: the client is already abstracted enough.** XNet's React hooks
+**The good news: the client is already abstracted enough.** xNet's React hooks
 do not talk to the hub or the store directly. They depend on three clean,
 already-shipping seams:
 
@@ -81,7 +81,7 @@ Both ride the **same client seams**, so the React hooks (`useQuery`,
 `useMutate`, `useNode`, …) are **unchanged**.
 
 For identity, offer a **trust spectrum** so the developer chooses how much of
-XNet's crypto to keep:
+xNet's crypto to keep:
 
 - **`trust: 'signed'`** — client holds/derives an Ed25519 key; full signed-change
   integrity and offline writes (DID bound to session at the token endpoint).
@@ -92,7 +92,7 @@ XNet's crypto to keep:
   plug-and-play.
 
 Authorization is **bring-your-own by default** (enforced in `authorizeWrite` /
-`authorizeRead` using the developer's primitives), with XNet's space/role/grant
+`authorizeRead` using the developer's primitives), with xNet's space/role/grant
 model available opt-in for teams that want it.
 
 ## Current State In The Repository
@@ -289,7 +289,7 @@ flowchart LR
     B --> NS["NodeStore + local SQLite/OPFS"]
     B --> SM["SyncManager"]
   end
-  SM <-->|"WebSocket<br/>signed changes + UCAN"| HUB["XNet Hub<br/>relay + SQLite<br/>(billing/federation/…)"]
+  SM <-->|"WebSocket<br/>signed changes + UCAN"| HUB["xNet Hub<br/>relay + SQLite<br/>(billing/federation/…)"]
   HUB --> ST[("Hub storage")]
   NS -. "authz: DefaultPolicyEvaluator (DID/space/grant)" .-> NS
   style HUB fill:#5b8def,color:#fff
@@ -316,7 +316,7 @@ engine.*
 | **Automerge-repo** | BYO sync server (relay) | None built-in; `@localfirst/auth` is its own crypto world | Document-level | Automerge CRDT |
 | **RxDB** | BYO via replication handlers | Token injected in your pull/push handlers | Code | Configurable (server master default) |
 
-### The five recurring patterns (and which fit XNet)
+### The five recurring patterns (and which fit xNet)
 
 ```mermaid
 flowchart TB
@@ -326,7 +326,7 @@ flowchart TB
   A --> P3["3 Proxy / gatekeeper<br/>(ElectricSQL, Hocuspocus)<br/>your code authorizes at a hook"]
   A --> P4["4 Backend-authoritative mutators<br/>(Replicache, Zero, Convex)<br/>server validates + applies every write"]
   A --> P5["5 Cryptographic / structural<br/>(Jazz, localfirst-auth)<br/>keys ARE the permission"]
-  P5 -.->|"XNet already IS this<br/>(DID/UCAN) — it's what we're abstracting AWAY from"| X[("XNet today")]
+  P5 -.->|"xNet already IS this<br/>(DID/UCAN) — it's what we're abstracting AWAY from"| X[("xNet today")]
   style P5 fill:#eee,color:#444
   style P1 fill:#2ecc71,color:#fff
   style P3 fill:#2ecc71,color:#fff
@@ -417,10 +417,10 @@ developer `authenticate`/`authorize` callback; developer runs it as a sidecar.
 
 ### Option D — Generalize authz: non-DID `subject`
 
-Refactor `AuthCheckInput.subject` from `DID` to an opaque principal so XNet authz
+Refactor `AuthCheckInput.subject` from `DID` to an opaque principal so xNet authz
 can run directly on `req.user.id`.
 
-- ➕ Cleanest conceptual fit for "use XNet authz with my users."
+- ➕ Cleanest conceptual fit for "use xNet authz with my users."
 - ➖ Invasive: touches `Change`, `NodeState`, `Grant`, every role resolver, the
   evaluator, and the wire format. High blast radius for uncertain demand.
 - ➖ Not needed for the centralized default (Option B + BYO authz hook covers it).
@@ -456,8 +456,8 @@ Ship **Option B (`@xnetjs/server`) as the headline**, with **Option A's HTTP
 contract documented and exported (`createHttpBridge`)** as the
 any-language escape hatch. Both terminate at the **same client seams**, so React
 is untouched. Default new deployments to **`trust: 'custodial'` + BYO
-authorization**, and let teams dial up to `signed` (keep XNet crypto) or down to
-`server` (max simplicity), and opt *into* XNet's space/role/grant authz if they
+authorization**, and let teams dial up to `signed` (keep xNet crypto) or down to
+`server` (max simplicity), and opt *into* xNet's space/role/grant authz if they
 want it.
 
 ### Target architecture
@@ -533,7 +533,7 @@ sequenceDiagram
   validation + BYO storage is the Replicache/Zero/Electric consensus; declarative
   claims-in-rules can come later as sugar.
 - **It preserves the optional magic.** Teams who *do* want user-owned, signed,
-  offline-first data flip `trust: 'signed'` and keep XNet authz — same package,
+  offline-first data flip `trust: 'signed'` and keep xNet authz — same package,
   same hooks.
 
 ### Concrete next steps
@@ -566,7 +566,7 @@ const xnet = createXNetServer({
   storage: sqliteStorage({ path: './data/xnet.db' }), // or postgresStorage(pool)
   trust: 'custodial',                                   // server signs on behalf of users
 
-  // 1) Map THEIR auth → an XNet context. No UCAN, no DID required from the user.
+  // 1) Map THEIR auth → an xNet context. No UCAN, no DID required from the user.
   async authenticate(req) {
     const session = await getSession(req)
     if (!session) return null // rejects the connection
@@ -621,20 +621,20 @@ export function App() {
 }
 
 function Todos() {
-  // EXACTLY the same hooks as a full-XNet app:
+  // EXACTLY the same hooks as a full-xNet app:
   const { data: todos } = useQuery(TodoSchema, { where: { done: false } })
   const { create, update } = useMutate()
   // …
 }
 ```
 
-### Strict mode: keep XNet crypto + authz, bridge identity at the token endpoint
+### Strict mode: keep xNet crypto + authz, bridge identity at the token endpoint
 
 ```ts
 const xnet = createXNetServer({
   storage: sqliteStorage({ path: './data/xnet.db' }),
   trust: 'signed',                 // client signs; we verify signatures
-  authorization: 'xnet',           // use XNet space/role/grant evaluator
+  authorization: 'xnet',           // use xNet space/role/grant evaluator
   async authenticate(req) {
     const session = await getSession(req)
     if (!session) return null
@@ -652,7 +652,7 @@ const xnet = createXNetServer({
   records `userId ↔ DID`). Needs a concrete design.
 - **Protocol relaxation for `server` mode.** Disabling `verifyChange` on the
   relay must be a *deliberate, server-scoped* flag — never reachable on the
-  public XNet hub. Versioning + a hard config gate required.
+  public xNet hub. Versioning + a hard config gate required.
 - **Structured query executor scope.** `QueryDescriptor` supports filter ASTs,
   ordering, pagination, spatial, FTS. Server-side execution over a NodeStore (or
   translated to SQL) is real work; v1 may support a subset and report
@@ -669,7 +669,7 @@ const xnet = createXNetServer({
   a design choice with migration implications.
 - **Authorization granularity.** Hooks give row-level for free; field-level
   (à la `fieldRules`) needs to be exposed in `authorizeWrite` with the `patch`.
-- **Demand for Option D.** Is "non-DID subject in XNet authz" worth the invasive
+- **Demand for Option D.** Is "non-DID subject in xNet authz" worth the invasive
   refactor, or does the BYO authz hook satisfy the real need? Defer until asked.
 - **Versioning/packaging.** New publishable packages (`@xnetjs/server`,
   `@xnetjs/server-client`) need changesets and fit into the two-tier topology.
@@ -698,7 +698,7 @@ const xnet = createXNetServer({
 - [ ] Mutation-reject surfacing on the client (no silent optimistic revert).
 - [ ] `examples/byo-server`: Next.js + Postgres + an off-the-shelf IdP, hooks
       unchanged.
-- [ ] Docs guide: "Use XNet React with your own server" + the open HTTP/WS
+- [ ] Docs guide: "Use xNet React with your own server" + the open HTTP/WS
       contract spec; add to site sidebar + `llms-full.txt`.
 - [ ] Changesets for new publishable packages; slot into release topology.
 
@@ -718,7 +718,7 @@ const xnet = createXNetServer({
       with no client key.
 - [x] `trust: 'signed'` verifies client signatures and rejects a forged
       `authorDID` not bound to the session.
-- [ ] `trust: 'server'` (signatures off) is unreachable against the public XNet
+- [ ] `trust: 'server'` (signatures off) is unreachable against the public xNet
       hub (config-gate test).
 - [ ] Structured query executor passes a conformance suite over the
       `QueryDescriptor` subset; unsupported features report `QUERY_UNSUPPORTED`.
@@ -753,7 +753,7 @@ const xnet = createXNetServer({
   [auth/ucan.ts](packages/hub/src/auth/ucan.ts)
 - Current wiring: [apps/web/src/App.tsx](apps/web/src/App.tsx);
   server-side NodeStore precedent: [scripts/benchmark-social-batch-writes.ts](scripts/benchmark-social-batch-writes.ts)
-- Related explorations: [0200 Portable XNet protocol boundaries](docs/explorations/0200_[x]_PORTABLE_XNET_PROTOCOL_BOUNDARIES_AND_STANDARD.md),
+- Related explorations: [0200 Portable xNet protocol boundaries](docs/explorations/0200_[x]_PORTABLE_XNET_PROTOCOL_BOUNDARIES_AND_STANDARD.md),
   [0210 Native Swift SDK & portable core](docs/explorations/0210_[_]_NATIVE_SWIFT_SDK_AND_PORTABLE_MULTI_LANGUAGE_CORE.md)
 
 ### External (prior art)

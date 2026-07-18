@@ -1,5 +1,5 @@
 /**
- * XNet React context provider
+ * xNet React context provider
  *
  * Provides NodeStore and optional identity to the React tree.
  * All data access happens through useQuery/useMutate/useNode hooks.
@@ -58,7 +58,7 @@ function resolveConfiguredSignalingUrls(
 }
 
 /**
- * XNet configuration
+ * xNet configuration
  */
 export interface XNetConfig {
   /** Node storage adapter for NodeStore (defaults to MemoryNodeStorageAdapter) */
@@ -226,7 +226,7 @@ export interface XNetConfig {
 }
 
 /**
- * XNet context value
+ * xNet context value
  */
 export interface XNetContextValue {
   /** NodeStore for Node operations */
@@ -297,7 +297,7 @@ export function useDataBridge(): DataBridge | null {
 }
 
 /**
- * XNet provider props
+ * xNet provider props
  */
 export interface XNetProviderProps {
   config: XNetConfig
@@ -305,7 +305,7 @@ export interface XNetProviderProps {
 }
 
 /**
- * XNet provider component
+ * xNet provider component
  *
  * Initializes NodeStore and provides it to the React tree.
  */
@@ -531,7 +531,7 @@ export function XNetProvider({ config, children }: XNetProviderProps): JSX.Eleme
 }
 
 /**
- * Hook to access XNet context
+ * Hook to access xNet context
  *
  * @internal Used by useIdentity. Not part of public API.
  */

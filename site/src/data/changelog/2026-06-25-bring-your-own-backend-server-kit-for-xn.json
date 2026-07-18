@@ -1,8 +1,8 @@
 {
   "id": "2026-06-25-bring-your-own-backend-server-kit-for-xn",
   "date": "June 25, 2026",
-  "title": "Bring-your-own-backend server kit for XNet React",
-  "summary": "New @xnetjs/server lets developers run XNet's data layer on their own server with their own auth — a structured-query executor, backend-authoritative mutations, and a server/custodial/signed trust spectrum — while React hooks stay unchanged.",
+  "title": "Bring-your-own-backend server kit for xNet React",
+  "summary": "New @xnetjs/server lets developers run xNet's data layer on their own server with their own auth — a structured-query executor, backend-authoritative mutations, and a server/custodial/signed trust spectrum — while React hooks stay unchanged.",
   "highlights": [],
   "tags": [
     "platform"
