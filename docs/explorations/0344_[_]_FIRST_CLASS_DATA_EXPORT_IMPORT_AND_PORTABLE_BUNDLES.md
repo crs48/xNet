@@ -586,7 +586,7 @@ Phase 2 — surfaces:
       `writeBundle` (full scope); keep IndexedDB dump as a
       devtools-only extra. Add import ("Restore from bundle") with
       dry-run verify report UI.
-- [ ] CLI: `xnet data export` / `import --dry-run` / `snapshot --sqlite`
+- [x] CLI: `xnet data export` / `import --dry-run` / `snapshot --sqlite`
       on `buildDataClient`; document in CLI help.
 - [ ] Hub: streaming `GET /spaces/:id/export?since=` + import endpoint
       with grant-based authz and DID-ownership check; wire the missing
