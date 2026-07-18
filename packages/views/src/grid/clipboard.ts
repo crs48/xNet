@@ -43,6 +43,12 @@ export function formatCellText(value: CellValue | undefined, field: CopyField): 
       }
       return String(value)
     }
+    case 'geo': {
+      if (typeof value === 'object' && value !== null && 'lat' in value && 'lng' in value) {
+        return `${value.lat}, ${value.lng}`
+      }
+      return String(value)
+    }
     case 'file': {
       if (typeof value === 'object' && value !== null && 'name' in value) {
         return String((value as { name: unknown }).name)
@@ -199,6 +205,23 @@ export function coerceCellText(text: string, field: PasteField): CoerceResult {
         const end = new Date(parts[1])
         if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime())) {
           return { value: { start: start.toISOString(), end: end.toISOString() } }
+        }
+      }
+      return { value: null, lossy: true }
+    }
+
+    case 'geo': {
+      if (trimmed === '') return { value: null }
+      const parts = trimmed.split(',').map((s) => Number(s.trim()))
+      if (parts.length === 2) {
+        const [lat, lng] = parts
+        if (
+          Number.isFinite(lat) &&
+          Math.abs(lat) <= 90 &&
+          Number.isFinite(lng) &&
+          Math.abs(lng) <= 180
+        ) {
+          return { value: { lat, lng } }
         }
       }
       return { value: null, lossy: true }

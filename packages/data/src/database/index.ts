@@ -15,6 +15,7 @@ export {
   type CellValue,
   type FileRef,
   type DateRange,
+  type GeoPoint,
   CELL_PREFIX,
   cellKey,
   isCellKey,
@@ -23,6 +24,7 @@ export {
   fromCellProperties,
   isDateRange,
   isFileRef,
+  isGeoPoint,
   isCellValue
 } from './cell-types'
 

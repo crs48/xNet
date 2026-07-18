@@ -188,17 +188,45 @@ export function resolveCoverField(
 const LAT_NAMES = ['lat', 'latitude']
 const LNG_NAMES = ['lng', 'lon', 'long', 'longitude']
 
-/** Effective lat/lng number fields for the map view (name convention fallback). */
+/** The map view's resolved location binding: ONE geo field, or a lat/lng pair. */
+export interface ResolvedGeoBinding {
+  /** First-class geo field — set iff the binding is a single geo column */
+  geo: GridField | undefined
+  lat: GridField | undefined
+  lng: GridField | undefined
+}
+
+/**
+ * Effective location binding for the map view. A first-class `geo` field
+ * is preferred over the lat/lng number-pair convention (0339, Map
+ * sub-decision B): a geo field configured in either slot wins outright,
+ * an explicitly configured pair is honored next, then any geo field,
+ * then the lat/lng name convention. No view-config migration — `latField`
+ * doubles as the geo-field slot.
+ */
 export function resolveGeoFields(
   fields: GridField[],
   config: DatabaseViewConfig
-): { lat: GridField | undefined; lng: GridField | undefined } {
+): ResolvedGeoBinding {
   const byId = (id: string | null) => (id ? fields.find((f) => f.id === id) : undefined)
   const numberByName = (names: string[]) =>
     fields.find((f) => f.type === 'number' && names.includes(f.name.trim().toLowerCase()))
+
+  const configuredLat = byId(config.latField)
+  const configuredLng = byId(config.lngField)
+  const configuredGeo = [configuredLat, configuredLng].find((f) => f?.type === 'geo')
+  if (configuredGeo) return { geo: configuredGeo, lat: undefined, lng: undefined }
+  if (configuredLat && configuredLng) {
+    return { geo: undefined, lat: configuredLat, lng: configuredLng }
+  }
+
+  const firstGeo = firstFieldOfType(fields, ['geo'])
+  if (firstGeo) return { geo: firstGeo, lat: undefined, lng: undefined }
+
   return {
-    lat: byId(config.latField) ?? numberByName(LAT_NAMES),
-    lng: byId(config.lngField) ?? numberByName(LNG_NAMES)
+    geo: undefined,
+    lat: configuredLat ?? numberByName(LAT_NAMES),
+    lng: configuredLng ?? numberByName(LNG_NAMES)
   }
 }
 

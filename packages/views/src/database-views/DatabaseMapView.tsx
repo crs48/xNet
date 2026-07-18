@@ -2,8 +2,9 @@
  * DatabaseMapView — V2 map of the current table's rows (exploration 0339).
  *
  * A pin map, not the full GIS surface (that's `MapSchema` +
- * `packages/maps`): rows bind through two number fields (lat/lng, with
- * name-convention defaults), pins cluster via MapLibre's built-in
+ * `packages/maps`): rows bind through one first-class geo field, or two
+ * number fields (lat/lng, with name-convention defaults) — see
+ * `resolveGeoFields`. Pins cluster via MapLibre's built-in
  * supercluster (`cluster: true`), a pin click opens the row, and the
  * camera persists per view (`mapViewport`, debounced whole-object LWW).
  *
@@ -140,17 +141,20 @@ export function DatabaseMapView(props: DatabaseViewProps): React.JSX.Element {
   const mapRef = useRef<MlMap | null>(null)
   const [fallback, setFallback] = useState<string | null>(null)
 
-  const { lat: latField, lng: lngField } = resolveGeoFields(fields, config)
+  const binding = resolveGeoFields(fields, config)
+  const { geo: geoField, lat: latField, lng: lngField } = binding
+  const bound = Boolean(geoField ?? (latField && lngField))
   const points = useMemo(
     () =>
-      latField && lngField
-        ? rowsToGeoJSON(rows, fields, latField, lngField)
+      bound
+        ? rowsToGeoJSON(rows, fields, binding)
         : {
             geojson: { type: 'FeatureCollection', features: [] } as GeoJSON.FeatureCollection,
             plotted: 0,
             skipped: rows.length
           },
-    [rows, fields, latField, lngField]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [rows, fields, bound, geoField?.id, latField?.id, lngField?.id]
   )
 
   // Keep the latest callbacks/data in refs so the map effect runs once
@@ -162,8 +166,12 @@ export function DatabaseMapView(props: DatabaseViewProps): React.JSX.Element {
   boundsChangeRef.current = onBoundsChange
   const createRowRef = useRef(onCreateRow)
   createRowRef.current = onCreateRow
-  const geoFieldIdsRef = useRef<{ lat: string; lng: string } | null>(null)
-  geoFieldIdsRef.current = latField && lngField ? { lat: latField.id, lng: lngField.id } : null
+  const geoFieldIdsRef = useRef<{ geo: string } | { lat: string; lng: string } | null>(null)
+  geoFieldIdsRef.current = geoField
+    ? { geo: geoField.id }
+    : latField && lngField
+      ? { lat: latField.id, lng: lngField.id }
+      : null
   const initialViewportRef = useRef<MapViewport>(
     config.mapViewport ?? defaultViewportFor(points.geojson)
   )
@@ -171,7 +179,7 @@ export function DatabaseMapView(props: DatabaseViewProps): React.JSX.Element {
 
   // ─── Map lifecycle ────────────────────────────────────────────────────────
   useEffect(() => {
-    if (!latField || !lngField) return
+    if (!bound) return
     let disposed = false
     let map: MlMap | null = null
     let persistTimer: ReturnType<typeof setTimeout> | null = null
@@ -205,15 +213,17 @@ export function DatabaseMapView(props: DatabaseViewProps): React.JSX.Element {
           const rowId = e.features?.[0]?.properties?.rowId
           if (typeof rowId === 'string') openRowRef.current?.(rowId)
         })
-        // Right-click → create a row at that location (NocoDB parity)
+        // Right-click → create a row at that location (NocoDB parity):
+        // one geo cell when the binding is a geo field, else the pair
         map.on('contextmenu', (e) => {
           const geo = geoFieldIdsRef.current
           if (!geo || !createRowRef.current) return
           e.preventDefault()
-          createRowRef.current({
-            [geo.lat]: Number(e.lngLat.lat.toFixed(6)),
-            [geo.lng]: Number(e.lngLat.lng.toFixed(6))
-          })
+          const lat = Number(e.lngLat.lat.toFixed(6))
+          const lng = Number(e.lngLat.lng.toFixed(6))
+          createRowRef.current(
+            'geo' in geo ? { [geo.geo]: { lat, lng } } : { [geo.lat]: lat, [geo.lng]: lng }
+          )
         })
         map.on('mouseenter', `${SOURCE_ID}-pins`, () => {
           if (map) map.getCanvas().style.cursor = 'pointer'
@@ -248,7 +258,7 @@ export function DatabaseMapView(props: DatabaseViewProps): React.JSX.Element {
       mapRef.current = null
       map?.remove()
     }
-  }, [latField?.id, lngField?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [geoField?.id, latField?.id, lngField?.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Push data updates into the live source
   useEffect(() => {
@@ -260,7 +270,7 @@ export function DatabaseMapView(props: DatabaseViewProps): React.JSX.Element {
     source?.setData(points.geojson)
   }, [points.geojson])
 
-  if (!latField || !lngField) {
+  if (!bound) {
     return (
       <div
         className={cn(
@@ -268,8 +278,8 @@ export function DatabaseMapView(props: DatabaseViewProps): React.JSX.Element {
           className
         )}
       >
-        Add two number fields named “lat” and “lng” (or pick them in view options) to place rows on
-        the map.
+        Add a Location field — or two number fields named “lat” and “lng” (or pick them in view
+        options) — to place rows on the map.
       </div>
     )
   }

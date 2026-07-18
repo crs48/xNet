@@ -1,14 +1,16 @@
 /**
  * Map model — pure helpers for the database Map view (exploration 0339).
  *
- * Rows bind through two number fields (lat/lng). Rows without a finite
- * coordinate pair are skipped (and counted, for the honesty footer).
- * Pin cap guards render cost NocoDB-style; clustering handles density.
+ * Rows bind through one first-class geo field, or two number fields
+ * (lat/lng). Rows without a finite coordinate pair are skipped (and
+ * counted, for the honesty footer). Pin cap guards render cost
+ * NocoDB-style; clustering handles density.
  */
 
 import type { MapViewport } from '@xnetjs/data'
+import { isCellGeoPoint } from '@xnetjs/data'
 import type { GridField } from '../grid/model.js'
-import { rowTitle, type DatabaseViewRow } from './contract.js'
+import { rowTitle, type DatabaseViewRow, type ResolvedGeoBinding } from './contract.js'
 
 /** Hard cap on rendered pins (the fetch window is the real bound). */
 export const MAX_MAP_PINS = 1000
@@ -24,12 +26,27 @@ function coordinate(value: unknown): number | null {
   return typeof n === 'number' && Number.isFinite(n) ? n : null
 }
 
+/** The row's coordinates through the resolved binding, or null. */
+function rowCoordinates(
+  row: DatabaseViewRow,
+  binding: ResolvedGeoBinding
+): { lat: number; lng: number } | null {
+  if (binding.geo) {
+    const value = row.cells[binding.geo.id]
+    return isCellGeoPoint(value) ? { lat: value.lat, lng: value.lng } : null
+  }
+  if (!binding.lat || !binding.lng) return null
+  const lat = coordinate(row.cells[binding.lat.id])
+  const lng = coordinate(row.cells[binding.lng.id])
+  if (lat === null || lng === null || Math.abs(lat) > 90 || Math.abs(lng) > 180) return null
+  return { lat, lng }
+}
+
 /** Rows → GeoJSON points, `rowId`/`title` in properties for click + popup. */
 export function rowsToGeoJSON(
   rows: DatabaseViewRow[],
   fields: GridField[],
-  latField: GridField,
-  lngField: GridField
+  binding: ResolvedGeoBinding
 ): MapPointsResult {
   const features: GeoJSON.Feature[] = []
   let skipped = 0
@@ -38,12 +55,12 @@ export function rowsToGeoJSON(
       skipped += 1
       continue
     }
-    const lat = coordinate(row.cells[latField.id])
-    const lng = coordinate(row.cells[lngField.id])
-    if (lat === null || lng === null || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+    const point = rowCoordinates(row, binding)
+    if (point === null) {
       skipped += 1
       continue
     }
+    const { lat, lng } = point
     features.push({
       type: 'Feature',
       geometry: { type: 'Point', coordinates: [lng, lat] },
