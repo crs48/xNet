@@ -1,6 +1,6 @@
 {
   "name": "@xnetjs/unreal",
-  "version": "0.0.19",
+  "version": "0.0.20",
   "description": "Unreal Engine 6 interop — the governed game connector (durable player data → XNet nodes), the save-file-not-netcode granularity guardrail, and the game-event → node mapping over the @xnetjs/data game-interop schema pack (exploration 0200).",
   "license": "MIT",
   "type": "module",
