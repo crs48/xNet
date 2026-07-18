@@ -121,7 +121,7 @@ control.
 ### No ground rent
 
 The Commons commitment has an economic edge
-([exploration 0351](./explorations/0351_[_]_FRONTIER_ECONOMICS_WITHOUT_ENCLOSURE_RAILROADS_AIRLINES_AND_THE_COMMONS.md)):
+([exploration 0351](./explorations/0351_[x]_FRONTIER_ECONOMICS_WITHOUT_ENCLOSURE_RAILROADS_AIRLINES_AND_THE_COMMONS.md)):
 xNet charges for **improvements** — operations, support, context, and
 distribution we build and run — and never for **ground rent**: access to
 things you would own anyway. The refused rents, each with its receipt:

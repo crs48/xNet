@@ -611,7 +611,7 @@ it('support lane is margin-positive at modeled labor', () => {
 0192, 0196, 0200, 0201, 0208, 0216, 0241, 0242, 0244, 0291, 0300, 0333.
 
 **Follow-up:**
-[0351](./0351_[_]_FRONTIER_ECONOMICS_WITHOUT_ENCLOSURE_RAILROADS_AIRLINES_AND_THE_COMMONS.md)
+[0351](./0351_[x]_FRONTIER_ECONOMICS_WITHOUT_ENCLOSURE_RAILROADS_AIRLINES_AND_THE_COMMONS.md)
 generalises this positioning into the "Georgist operator" frame (margin on
 improvements, never ground rent) and adds the No Ground Rent charter covenant
 plus the three-test rubric for new revenue lanes.

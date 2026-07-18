@@ -602,7 +602,7 @@ app.use('/export/changes', async (c, next) => {
 ## Implementation Checklist
 
 > **Anchor-tenant rule** (exploration
-> [0351](./0351_[_]_FRONTIER_ECONOMICS_WITHOUT_ENCLOSURE_RAILROADS_AIRLINES_AND_THE_COMMONS.md)):
+> [0351](./0351_[x]_FRONTIER_ECONOMICS_WITHOUT_ENCLOSURE_RAILROADS_AIRLINES_AND_THE_COMMONS.md)):
 > each new open rail this plan adopts (Connect direct charges in Phase 1,
 > the paid-plugin loop in Phase 2, x402 in Phase 4) ships with at least one
 > **first-party consumer** in the same phase — our own marketplace, docs
@@ -720,7 +720,7 @@ app.use('/export/changes', async (c, next) => {
   [0336](./0336_[_]_COMPARATIVE_CLOUD_ECONOMICS_AND_XNET_CLOUD_POSITIONING.md),
   [0337](./0337_[x]_OPENCLAW_HERMES_INTEGRATION_SIGNED_AGENT_AUDIT_TRAILS_AND_TEXT_CONTROL_PLANE.md),
   [0344](./0344_[x]_FIRST_CLASS_DATA_EXPORT_IMPORT_AND_PORTABLE_BUNDLES.md),
-  [0351](./0351_[_]_FRONTIER_ECONOMICS_WITHOUT_ENCLOSURE_RAILROADS_AIRLINES_AND_THE_COMMONS.md)
+  [0351](./0351_[x]_FRONTIER_ECONOMICS_WITHOUT_ENCLOSURE_RAILROADS_AIRLINES_AND_THE_COMMONS.md)
   (the values framework: 0% direct-sales take = "no ground rent"; the
   anchor-tenant rule above)
 

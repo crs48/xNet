@@ -93,7 +93,7 @@ and the eventual open-sourcing.
 
 The marketplace's steward is also a publisher (xNet ships first-party plugins),
 so the ranking rule is written down before it is ever needed
-([exploration 0351](../explorations/0351_[_]_FRONTIER_ECONOMICS_WITHOUT_ENCLOSURE_RAILROADS_AIRLINES_AND_THE_COMMONS.md)):
+([exploration 0351](../explorations/0351_[x]_FRONTIER_ECONOMICS_WITHOUT_ENCLOSURE_RAILROADS_AIRLINES_AND_THE_COMMONS.md)):
 
 - **First-party plugins compete under the same ranking inputs as third-party
   plugins.** No reserved slots, no default boost, no placement that a
