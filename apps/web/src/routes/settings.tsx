@@ -6,7 +6,7 @@
  * and panels come from the shared settings kit in @xnetjs/ui; booleans use
  * the design-system <Switch>; data atoms (DID, version, hub URL) read mono.
  */
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import {
   MIN_ESCROW_PIN_LENGTH,
   createUCAN,
@@ -15,9 +15,9 @@ import {
   serializeEscrow,
   serializeShare
 } from '@xnetjs/identity'
-import { ProfileSchema, profileNodeId } from '@xnetjs/data'
+import { DebugReportSchema, ProfileSchema, profileNodeId } from '@xnetjs/data'
 import { deleteDay, getCommandRegistry, leaveWithEverything } from '@xnetjs/plugins'
-import { useIdentity, useQuery, useXNet } from '@xnetjs/react'
+import { useIdentity, useNodeStore, useQuery, useXNet } from '@xnetjs/react'
 import { SettingRow, SettingsGroup, SettingsPanel, SettingToggle, useTheme } from '@xnetjs/ui'
 import { MeetingEngineSettings } from '@xnetjs/views'
 import {
@@ -43,6 +43,18 @@ import { SafetyCenterSettings } from '../components/SafetyCenterSettings'
 import { isAnalyticsConfigured } from '../lib/analytics'
 import { requestXNetBrowserStorageReset } from '../lib/browser-storage-reset'
 import { useDerivedData } from '../lib/data-dignity'
+import { EscalateReportDialog } from '../components/EscalateReportDialog'
+import { useDiagnosticsInbox } from '../hooks/useDiagnosticsInbox'
+import { DIAGNOSTICS_CONSOLE_VIEW_ID } from '../lib/diagnostics-console'
+import { hubApiFetch, normalizeHubHttpUrl } from '../lib/share-links'
+import {
+  getSupportAccess,
+  grantSupportAccess,
+  revokeSupportAccess,
+  supportIdentityDid,
+  sweepExpiredSupportAccess,
+  type SupportAccessState
+} from '../lib/support-access'
 import { getTelemetryCollector, isDiagnosticsConfigured } from '../lib/error-reporter'
 import { configuredHubUrl, persistedHubUrl, setPersistedHubUrl } from '../lib/hub-url'
 import { identityManager, logout } from '../lib/identity'
@@ -746,7 +758,236 @@ function PrivacySettings() {
       {reporting && (
         <ReportProblemDialog breadcrumbs={breadcrumbs} onClose={() => setReporting(false)} />
       )}
+      <DiagnosticsConsoleSettings />
     </SettingsPanel>
+  )
+}
+
+/**
+ * Operator console for the hub's diagnostics inbox (exploration 0341). Only
+ * renders content when the connected hub answers the admin-gated summary —
+ * non-operators and hubless builds see nothing. "Import reports" drains the
+ * quarantine into the Diagnostics Space (bootstrapping it plus the Inbox /
+ * By release / By fingerprint saved views on first run). Below it: the two
+ * operator-facing escalation switches — per-report "Send to xNet" (preview →
+ * hub forwarder, only when sharing is configured) and time-boxed support
+ * access to the Diagnostics Space (red while active, one-click revoke).
+ */
+function DiagnosticsConsoleSettings() {
+  const { ready, summary, imported, importing, error, importReports } = useDiagnosticsInbox()
+  const navigate = useNavigate()
+
+  if (!ready || !summary) return null
+
+  const lastSeen = summary.lastSeenMs ? new Date(summary.lastSeenMs).toLocaleString() : null
+  return (
+    <SettingsGroup>
+      <SettingRow
+        label="Deployment diagnostics"
+        description={
+          summary.pending > 0
+            ? `${summary.pending} report${summary.pending === 1 ? '' : 's'} waiting on your hub${lastSeen ? ` · last seen ${lastSeen}` : ''}. Importing writes them into your Diagnostics Space — nothing has left your deployment.`
+            : 'No reports waiting on your hub. Crashes from this deployment land here, not on anyone else’s servers.'
+        }
+      >
+        <button
+          type="button"
+          onClick={() => void importReports()}
+          disabled={importing || summary.pending === 0}
+          className={QUIET_BUTTON}
+        >
+          {importing ? 'Importing…' : 'Import reports'}
+        </button>
+      </SettingRow>
+      {summary.topIssues.length > 0 && (
+        <SettingRow
+          label="Top issue"
+          description={`${summary.topIssues[0].errorName} (${summary.topIssues[0].shortId}) — seen ${summary.topIssues[0].occurrences}×`}
+        >
+          <button
+            type="button"
+            onClick={() =>
+              void navigate({
+                to: '/view/$viewId',
+                params: { viewId: DIAGNOSTICS_CONSOLE_VIEW_ID }
+              })
+            }
+            className={QUIET_BUTTON}
+          >
+            Open console
+          </button>
+        </SettingRow>
+      )}
+      {imported !== null && !error && (
+        <SettingRow
+          label="Last import"
+          description={`${imported} report${imported === 1 ? '' : 's'} imported into the Diagnostics Space.`}
+        >
+          <button
+            type="button"
+            onClick={() =>
+              void navigate({
+                to: '/view/$viewId',
+                params: { viewId: DIAGNOSTICS_CONSOLE_VIEW_ID }
+              })
+            }
+            className={QUIET_BUTTON}
+          >
+            Open console
+          </button>
+        </SettingRow>
+      )}
+      {error && <SettingRow label="Import failed" description={error} />}
+      <EscalationSettings />
+      <SupportAccessSettings />
+    </SettingsGroup>
+  )
+}
+
+/**
+ * Per-report escalation (0341 P4, switch 1 of 3): recent unescalated reports
+ * from the Diagnostics Space, each with a previewed "Send to xNet". Rendered
+ * only when the hub's diagnostics-sharing forwarder is configured — with
+ * sharing off, the forward route does not exist and neither does this UI.
+ */
+function EscalationSettings() {
+  const { hubUrl, getHubAuthToken } = useXNet()
+  const { store, isReady } = useNodeStore()
+  const [sharing, setSharing] = useState(false)
+  const [escalating, setEscalating] = useState<{
+    id: string
+    properties: Record<string, unknown>
+  } | null>(null)
+  const { data: reports } = useQuery(DebugReportSchema, {
+    orderBy: { lastSeen: 'desc' },
+    limit: 25
+  })
+
+  useEffect(() => {
+    if (!hubUrl) return
+    let cancelled = false
+    void fetch(`${normalizeHubHttpUrl(hubUrl)}/diagnostics/health`, { cache: 'no-store' })
+      .then((res) => res.json())
+      .then((body: { sharing?: boolean }) => {
+        if (!cancelled) setSharing(Boolean(body.sharing))
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [hubUrl])
+
+  // useQuery returns flattened nodes (properties on the node itself); the
+  // escalation payload composer allowlists, so passing the flat node is safe.
+  const pendingEscalation = (reports ?? []).filter((node) => !node.escalatedId).slice(0, 5)
+
+  if (!sharing || !store || !isReady || !hubUrl || !getHubAuthToken) return null
+  if (pendingEscalation.length === 0) return null
+
+  const request = async (path: string, init?: { method?: string; body?: unknown }) => {
+    const token = await getHubAuthToken()
+    if (!token) throw new Error('Not authenticated with the hub')
+    return hubApiFetch(normalizeHubHttpUrl(hubUrl), token, path, init)
+  }
+
+  return (
+    <>
+      {pendingEscalation.map((node) => (
+        <SettingRow
+          key={node.id}
+          label={String(node.errorName ?? 'Report')}
+          description={`Seen ${node.occurrences ?? 1}× · not shared with xNet. You'll preview the exact payload first.`}
+        >
+          <button
+            type="button"
+            onClick={() =>
+              setEscalating({ id: node.id, properties: node as unknown as Record<string, unknown> })
+            }
+            className={QUIET_BUTTON}
+          >
+            Send to xNet…
+          </button>
+        </SettingRow>
+      ))}
+      {escalating && (
+        <EscalateReportDialog
+          nodeId={escalating.id}
+          properties={escalating.properties}
+          store={store}
+          request={request}
+          onClose={() => setEscalating(null)}
+        />
+      )}
+    </>
+  )
+}
+
+const SUPPORT_DURATIONS = [
+  { label: '24 hours', ms: 24 * 60 * 60 * 1000 },
+  { label: '7 days', ms: 7 * 24 * 60 * 60 * 1000 }
+] as const
+
+/**
+ * Time-boxed support access (0341 P4, switch 3 of 3). Red while a grant is
+ * live; expiry is enforced by the sweep on every render of this section.
+ */
+function SupportAccessSettings() {
+  const { store, isReady } = useNodeStore()
+  const { did } = useIdentity()
+  const supportDid = supportIdentityDid()
+  const [state, setState] = useState<SupportAccessState | null>(null)
+
+  const reload = useCallback(async () => {
+    if (!store || !supportDid) return
+    await sweepExpiredSupportAccess(store, supportDid)
+    setState(await getSupportAccess(store, supportDid))
+  }, [store, supportDid])
+
+  useEffect(() => {
+    if (isReady) void reload()
+  }, [isReady, reload])
+
+  if (!supportDid || !store || !isReady || !state) return null
+
+  if (state.active) {
+    return (
+      <SettingRow
+        label="xNet support access"
+        description={`xNet can currently read your Diagnostics Space${state.expiresAt ? ` until ${new Date(state.expiresAt).toLocaleString()}` : ''}. Only that Space — nothing else.`}
+      >
+        <button
+          type="button"
+          onClick={() => void revokeSupportAccess(store, supportDid).then(reload)}
+          className="rounded-md border border-red-500/50 px-3 py-1.5 text-xs text-red-500 hover:bg-red-500/10"
+        >
+          Revoke now
+        </button>
+      </SettingRow>
+    )
+  }
+
+  return (
+    <SettingRow
+      label="Let xNet help debug"
+      description="Grant xNet support read access to your Diagnostics Space only, for a fixed time. It expires by itself and you can revoke it any moment."
+    >
+      <div className="flex gap-2">
+        {SUPPORT_DURATIONS.map((duration) => (
+          <button
+            key={duration.label}
+            type="button"
+            onClick={() =>
+              void (did
+                ? grantSupportAccess(store, did, supportDid, duration.ms).then(reload)
+                : Promise.resolve())
+            }
+            className={QUIET_BUTTON}
+          >
+            {duration.label}
+          </button>
+        ))}
+      </div>
+    </SettingRow>
   )
 }
 

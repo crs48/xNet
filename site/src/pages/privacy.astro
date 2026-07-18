@@ -220,7 +220,10 @@ const updated = 'June 24, 2026'
             <strong>Automatic crash reports</strong> are <strong>opt-in</strong> and off by default.
             When enabled, reports are scrubbed of personal data (paths, emails, IPs, tokens) before
             they leave your device, contain code-level diagnostics rather than your documents, and
-            carry no unique identifier. They are sent to our own first-party diagnostics endpoint.
+            carry no unique identifier. <strong>They go to your own hub first:</strong> when your
+            app is connected to a hub, crash reports land in that hub's private inbox — your
+            infrastructure, your data — and never reach us. Only the hosted demo, running without a
+            hub, sends them to our own first-party endpoint instead.
           </p>
           <p>
             <strong>“Report a problem”</strong> is a one-off report you send deliberately. You write
@@ -230,10 +233,17 @@ const updated = 'June 24, 2026'
             even when automatic reporting is off.
           </p>
           <p>
-            Reports are received into a private queue and kept only as long as needed to resolve the
-            issue. Self-hosted builds never send anything. (We do not use a third-party error
-            service such as <a href="https://sentry.io/">Sentry</a>; the code keeps a dormant seam
-            for one, unused.)
+            <strong>Escalating to us is always a separate choice.</strong> Deployment owners can
+            send an individual report to xNet (after previewing the exact payload), opt in to
+            sharing anonymous crash <em>counts</em> (never contents), or grant our support identity
+            time-boxed, revocable read access to their diagnostics workspace — each switch is
+            independent and off by default.
+          </p>
+          <p>
+            Reports we receive land in a private queue and are kept only as long as needed to
+            resolve the issue. Self-hosted builds send nothing to xNet — their crash reports stay
+            on their own hub. (We do not use a third-party error service such as
+            <a href="https://sentry.io/">Sentry</a>; the code keeps a dormant seam for one, unused.)
           </p>
         </section>
 

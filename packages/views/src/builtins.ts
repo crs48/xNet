@@ -1,313 +1,157 @@
 /**
- * Built-in view registrations
- *
- * Registers the standard views (table, board, gallery, timeline, calendar)
- * with the ViewRegistry at startup.
+ * Built-in database views (exploration 0339) — registered through the
+ * same ViewRegistry door plugins use. Table and Form are deliberately
+ * absent: the grid engine (GridSurface) and the form share surface own
+ * their own chrome in the database shell.
  */
 
-import React from 'react'
-import { BoardView } from './board/BoardView.js'
-import { CalendarView } from './calendar/CalendarView.js'
-import { FormFillView } from './form-view/FormFillView.js'
-import { GalleryView } from './gallery/GalleryView.js'
-import { schemaToGridFields } from './grid/schema-to-grid-fields.js'
-import { ListView } from './list/ListView.js'
-import { viewRegistry, type ViewProps, type ViewRegistration } from './registry.js'
-import { TableView } from './table/TableView.js'
-import { TimelineView } from './timeline/TimelineView.js'
+import { BoardView } from './database-views/BoardView.js'
+import { CalendarView } from './database-views/CalendarView.js'
+import { DatabaseMapView } from './database-views/DatabaseMapView.js'
+import { GalleryView } from './database-views/GalleryView.js'
+import { ListView } from './database-views/ListView.js'
+import { TimelineView } from './database-views/TimelineView.js'
+import { viewRegistry, type ViewRegistration } from './registry.js'
+import type { Disposable } from './types.js'
 
-// ─── Adapter Components ─────────────────────────────────────────────────────
-// These adapt the standard ViewProps to each view's specific prop interface
+const CARD_SIZE_OPTIONS = [
+  { label: 'Small', value: 'small' },
+  { label: 'Medium', value: 'medium' },
+  { label: 'Large', value: 'large' }
+]
 
-/**
- * Table view adapter
- */
-function TableViewAdapter(props: ViewProps): React.JSX.Element {
-  return React.createElement(TableView, {
-    schema: props.schema,
-    view: props.view,
-    data: props.data,
-    onUpdateView: props.onUpdateView,
-    onUpdateRow: props.onUpdateRow,
-    onAddRow: props.onCreateRow ? () => props.onCreateRow?.() : undefined,
-    className: props.className
-  })
-}
+const COVER_FIT_OPTIONS = [
+  { label: 'Crop', value: 'cover' },
+  { label: 'Fit', value: 'contain' }
+]
 
-/**
- * Board view adapter
- */
-function BoardViewAdapter(props: ViewProps): React.JSX.Element {
-  return React.createElement(BoardView, {
-    schema: props.schema,
-    view: props.view,
-    data: props.data,
-    onUpdateView: props.onUpdateView,
-    onUpdateRow: props.onUpdateRow,
-    onCardClick: props.onRowClick,
-    onDeleteCard: props.onDeleteRow ? (id: string) => props.onDeleteRow?.(id) : undefined,
-    onAddCard: props.onCreateRow ? (_columnId: string) => props.onCreateRow?.() : undefined,
-    className: props.className
-  })
-}
-
-/**
- * Gallery view adapter
- */
-function GalleryViewAdapter(props: ViewProps): React.JSX.Element {
-  return React.createElement(GalleryView, {
-    schema: props.schema,
-    view: props.view,
-    data: props.data,
-    onUpdateView: props.onUpdateView,
-    onCardClick: props.onRowClick,
-    onDeleteCard: props.onDeleteRow ? (id: string) => props.onDeleteRow?.(id) : undefined,
-    onAddCard: props.onCreateRow ? () => props.onCreateRow?.() : undefined,
-    className: props.className
-  })
-}
-
-/**
- * Timeline view adapter
- */
-function TimelineViewAdapter(props: ViewProps): React.JSX.Element {
-  return React.createElement(TimelineView, {
-    schema: props.schema,
-    view: props.view,
-    data: props.data,
-    onUpdateView: props.onUpdateView,
-    onItemClick: props.onRowClick,
-    onDeleteItem: props.onDeleteRow ? (id: string) => props.onDeleteRow?.(id) : undefined,
-    className: props.className
-  })
-}
-
-/**
- * Calendar view adapter
- */
-function CalendarViewAdapter(props: ViewProps): React.JSX.Element {
-  return React.createElement(CalendarView, {
-    schema: props.schema,
-    view: props.view,
-    data: props.data,
-    onUpdateView: props.onUpdateView,
-    onEventClick: props.onRowClick,
-    onDateClick: props.onCreateRow ? (_date: Date) => props.onCreateRow?.() : undefined,
-    className: props.className
-  })
-}
-
-/**
- * Form view adapter (exploration 0278). The registry path derives questions
- * from the view's visible properties (or every field when unset); submissions
- * go through the standard `onCreateRow(properties)` seam. Database shells use
- * the richer `FormView` directly with per-view `formConfig`.
- */
-function FormViewAdapter(props: ViewProps): React.JSX.Element {
-  const fields = schemaToGridFields(props.schema)
-  const asked =
-    props.view.visibleProperties.length > 0
-      ? fields.filter((f) => props.view.visibleProperties.includes(f.id))
-      : fields
-  return React.createElement(FormFillView, {
-    fields,
-    config: {
-      title: props.view.name,
-      questions: asked.map((f) => ({ fieldId: f.id }))
-    },
-    audience: 'workspace',
-    onSubmit: async (cells) => {
-      props.onCreateRow?.(cells)
-      return true
-    },
-    className: props.className
-  })
-}
-
-/**
- * List view adapter
- */
-function ListViewAdapter(props: ViewProps): React.JSX.Element {
-  return React.createElement(ListView, {
-    schema: props.schema,
-    view: props.view,
-    data: props.data,
-    onUpdateView: props.onUpdateView,
-    onUpdateRow: props.onUpdateRow,
-    onItemClick: props.onRowClick,
-    onAddItem: props.onCreateRow ? () => props.onCreateRow?.() : undefined,
-    onDeleteItem: props.onDeleteRow ? (id: string) => props.onDeleteRow?.(id) : undefined,
-    className: props.className
-  })
-}
-
-// ─── Built-in View Definitions ──────────────────────────────────────────────
-
-const builtinViews: ViewRegistration[] = [
-  {
-    type: 'table',
-    name: 'Table',
-    icon: 'table',
-    component: TableViewAdapter,
-    description: 'Spreadsheet-like table with sorting and filtering',
-    configFields: [
-      {
-        key: 'rowHeight',
-        label: 'Row Height',
-        type: 'select',
-        options: [
-          { label: 'Compact', value: 'compact' },
-          { label: 'Normal', value: 'normal' },
-          { label: 'Tall', value: 'tall' }
-        ],
-        defaultValue: 'normal'
-      }
-    ]
-  },
+export const builtinViews: ViewRegistration[] = [
   {
     type: 'board',
     name: 'Board',
-    icon: 'columns',
-    component: BoardViewAdapter,
-    description: 'Kanban board with drag-and-drop',
+    icon: 'square-kanban',
+    component: BoardView,
+    description: 'Kanban stacks grouped by a select field',
     configFields: [
       {
-        key: 'groupByProperty',
-        label: 'Group By',
-        type: 'property-select',
-        required: true,
-        description: 'Select property to group cards by (must be a select or status type)'
-      }
+        key: 'groupBy',
+        label: 'Group by',
+        type: 'field-select',
+        fieldTypes: ['select', 'multiSelect'],
+        required: true
+      },
+      { key: 'colorBy', label: 'Color by', type: 'field-select', fieldTypes: ['select'] },
+      { key: 'coverField', label: 'Card cover', type: 'field-select', fieldTypes: ['file'] }
     ]
   },
   {
     type: 'gallery',
     name: 'Gallery',
-    icon: 'grid-3x3',
-    component: GalleryViewAdapter,
-    description: 'Card gallery with cover images',
+    icon: 'layout-grid',
+    component: GalleryView,
+    description: 'Cards with cover images',
     configFields: [
-      {
-        key: 'coverProperty',
-        label: 'Cover Image',
-        type: 'property-select',
-        description: 'Property containing the cover image URL'
-      },
-      {
-        key: 'galleryCardSize',
-        label: 'Card Size',
-        type: 'select',
-        options: [
-          { label: 'Small', value: 'small' },
-          { label: 'Medium', value: 'medium' },
-          { label: 'Large', value: 'large' }
-        ],
-        defaultValue: 'medium'
-      },
-      {
-        key: 'galleryImageFit',
-        label: 'Image Fit',
-        type: 'select',
-        options: [
-          { label: 'Cover', value: 'cover' },
-          { label: 'Contain', value: 'contain' }
-        ],
-        defaultValue: 'cover'
-      },
-      {
-        key: 'galleryShowTitle',
-        label: 'Show Title',
-        type: 'checkbox',
-        defaultValue: true
-      }
-    ]
-  },
-  {
-    type: 'timeline',
-    name: 'Timeline',
-    icon: 'gantt-chart',
-    component: TimelineViewAdapter,
-    description: 'Gantt-style timeline view',
-    configFields: [
-      {
-        key: 'dateProperty',
-        label: 'Start Date',
-        type: 'property-select',
-        required: true,
-        description: 'Property for the start date'
-      },
-      {
-        key: 'endDateProperty',
-        label: 'End Date',
-        type: 'property-select',
-        description: 'Property for the end date (optional for ranges)'
-      }
+      { key: 'coverField', label: 'Cover', type: 'field-select', fieldTypes: ['file'] },
+      { key: 'coverFit', label: 'Image fit', type: 'select', options: COVER_FIT_OPTIONS },
+      { key: 'cardSize', label: 'Card size', type: 'select', options: CARD_SIZE_OPTIONS }
     ]
   },
   {
     type: 'calendar',
     name: 'Calendar',
     icon: 'calendar',
-    component: CalendarViewAdapter,
-    description: 'Month/week/day calendar view',
+    component: CalendarView,
+    description: 'Month grid positioned by a date field',
     configFields: [
       {
-        key: 'dateProperty',
-        label: 'Date Field',
-        type: 'property-select',
-        required: true,
-        description: 'Property containing the event date'
-      }
+        key: 'dateField',
+        label: 'Date',
+        type: 'field-select',
+        fieldTypes: ['date', 'dateRange'],
+        required: true
+      },
+      { key: 'endDateField', label: 'End date', type: 'field-select', fieldTypes: ['date'] },
+      { key: 'colorBy', label: 'Color by', type: 'field-select', fieldTypes: ['select'] }
+    ]
+  },
+  {
+    type: 'timeline',
+    name: 'Timeline',
+    icon: 'chart-gantt',
+    component: TimelineView,
+    description: 'Roadmap bars over a time axis, swimlanes by group',
+    configFields: [
+      {
+        key: 'dateField',
+        label: 'Start',
+        type: 'field-select',
+        fieldTypes: ['date', 'dateRange'],
+        required: true
+      },
+      { key: 'endDateField', label: 'End', type: 'field-select', fieldTypes: ['date'] },
+      {
+        key: 'groupBy',
+        label: 'Swimlanes',
+        type: 'field-select',
+        fieldTypes: ['select', 'multiSelect']
+      },
+      { key: 'colorBy', label: 'Color by', type: 'field-select', fieldTypes: ['select'] }
     ]
   },
   {
     type: 'list',
     name: 'List',
     icon: 'list',
-    component: ListViewAdapter,
-    description: 'Simple list with checkbox support',
-    configFields: []
+    component: ListView,
+    description: 'Compact stacked list, optionally grouped',
+    configFields: [
+      {
+        key: 'groupBy',
+        label: 'Group by',
+        type: 'field-select',
+        fieldTypes: ['select', 'multiSelect']
+      }
+    ]
   },
   {
-    type: 'form',
-    name: 'Form',
-    icon: 'clipboard-list',
-    component: FormViewAdapter,
-    description: 'Collect responses as new rows',
-    configFields: []
+    type: 'map',
+    name: 'Map',
+    icon: 'map',
+    component: DatabaseMapView,
+    description: 'Rows as pins, bound by lat/lng number fields',
+    configFields: [
+      {
+        key: 'latField',
+        label: 'Latitude',
+        type: 'field-select',
+        fieldTypes: ['number'],
+        required: true
+      },
+      {
+        key: 'lngField',
+        label: 'Longitude',
+        type: 'field-select',
+        fieldTypes: ['number'],
+        required: true
+      }
+    ]
   }
 ]
 
-// ─── Registration ───────────────────────────────────────────────────────────
-
-let registered = false
-
 /**
- * Register all built-in views with the ViewRegistry
- *
- * This should be called once at application startup.
- * Safe to call multiple times (only registers once).
- *
- * @example
- * ```ts
- * import { registerBuiltinViews } from '@xnetjs/views'
- * registerBuiltinViews()
- * ```
+ * Register all built-in views on the global registry. Returns one
+ * Disposable that unregisters everything.
  */
-export function registerBuiltinViews(): void {
-  if (registered) return
-  registered = true
-
-  for (const view of builtinViews) {
-    viewRegistry.register(view)
+export function registerBuiltinViews(): Disposable {
+  const disposables = builtinViews.map((view) => viewRegistry.register(view))
+  return {
+    dispose: () => {
+      for (const d of disposables) d.dispose()
+    }
   }
 }
 
-/**
- * Get the built-in view definitions (without registering)
- *
- * Useful for testing or custom registration.
- */
+/** The built-in registrations (without registering them). */
 export function getBuiltinViews(): ViewRegistration[] {
   return [...builtinViews]
 }

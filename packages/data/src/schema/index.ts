@@ -133,7 +133,7 @@ export { DatabaseSchema, type Database } from './schemas'
 export { DatabaseRowSchema, type DatabaseRow } from './schemas'
 export { DatabaseFieldSchema, type DatabaseField } from './schemas'
 export { DatabaseSelectOptionSchema, type DatabaseSelectOption } from './schemas'
-export { DatabaseViewSchema, type DatabaseView } from './schemas'
+export { DatabaseViewSchema, type DatabaseView, type ViewGroupMeta } from './schemas'
 export {
   SchemaExtensionSchema,
   ExtensionFieldSchema,

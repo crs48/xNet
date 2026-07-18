@@ -109,6 +109,7 @@ export {
   type DatabaseSelectOption,
   DatabaseViewSchema,
   type DatabaseView,
+  type ViewGroupMeta,
   SchemaExtensionSchema,
   ExtensionFieldSchema,
   SCHEMA_EXTENSION_SCHEMA_IRI,

@@ -13,6 +13,7 @@ import {
   type ColumnDefinition,
   type FieldType,
   type FileRef,
+  cellKey,
   DatabaseRowSchema,
   DatabaseSchema,
   FIELD_TYPES,
@@ -36,7 +37,10 @@ import {
 } from '@xnetjs/ui'
 import {
   type CellPresence,
+  type DatabaseViewConfig,
+  type DatabaseViewRow,
   type GridField,
+  EMPTY_VIEW_CONFIG,
   FieldConfigEditor,
   FormView,
   GridPeek,
@@ -44,13 +48,19 @@ import {
   GridSummaryBar,
   GridSurface,
   GridToolbar,
-  useDatabaseComments
+  ViewOptionsBar,
+  ViewRenderer,
+  registerBuiltinViews,
+  resolveGeoFields,
+  useDatabaseComments,
+  viewRegistry
 } from '@xnetjs/views'
 import { Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useCommentPeople } from '../hooks/useCommentPeople'
 import { useContextPanel, type ContextPanelSection } from '../workbench/context-panel'
 import { useWorkbench } from '../workbench/state'
+import { useIsCompact } from '../workbench/use-layout-mode'
 import { FormShareBar } from './FormShareBar'
 import { PresenceAvatars } from './PresenceAvatars'
 import { ShareButton } from './ShareButton'
@@ -61,6 +71,23 @@ function formatPeekCellValue(value: unknown): string {
   if (typeof value === 'object') return JSON.stringify(value)
   return String(value)
 }
+
+// Built-in board/gallery/calendar/timeline/list/map views register once
+// through the plugin door (exploration 0339). Guarded for HMR.
+if (!viewRegistry.has('board')) registerBuiltinViews()
+
+// Types offered by the add-view picker: table + form are shell-owned,
+// everything else comes from the registry.
+const ADD_VIEW_TYPES = [
+  { type: 'table' as const, label: 'Table' },
+  { type: 'board' as const, label: 'Board' },
+  { type: 'gallery' as const, label: 'Gallery' },
+  { type: 'calendar' as const, label: 'Calendar' },
+  { type: 'timeline' as const, label: 'Timeline' },
+  { type: 'list' as const, label: 'List' },
+  { type: 'map' as const, label: 'Map' },
+  { type: 'form' as const, label: 'Form' }
+]
 
 interface DatabaseViewProps {
   docId: string
@@ -132,7 +159,38 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
 
   const [activeViewId, setActiveViewId] = useState<string | undefined>(undefined)
   const [search, setSearch] = useState('')
-  const grid = useGridDatabase(docId, { viewId: activeViewId, search: search || undefined })
+
+  // Map views feed their visible bounds back as a spatial query window
+  // (exploration 0339): only rows inside the viewport are fetched. The
+  // window comes from the previous render's active view — one harmless
+  // unfiltered fetch on first paint, then viewport-bounded.
+  const [mapBounds, setMapBounds] = useState<[number, number, number, number] | null>(null)
+  const [mapGeoProps, setMapGeoProps] = useState<{ x: string; y: string } | null>(null)
+  const spatial = useMemo(
+    () =>
+      mapBounds && mapGeoProps
+        ? ({
+            kind: 'window' as const,
+            rect: {
+              x: mapBounds[0],
+              y: mapBounds[1],
+              width: mapBounds[2] - mapBounds[0],
+              height: mapBounds[3] - mapBounds[1]
+            },
+            fields: mapGeoProps,
+            // Overscan is in coordinate units: fetch a 25% margin so
+            // small pans reuse already-fetched rows
+            overscan: Math.max(mapBounds[2] - mapBounds[0], mapBounds[3] - mapBounds[1]) * 0.25
+          } as const)
+        : undefined,
+    [mapBounds, mapGeoProps]
+  )
+
+  const grid = useGridDatabase(docId, {
+    viewId: activeViewId,
+    search: search || undefined,
+    spatial
+  })
 
   // ─── File attachments (BlobService: local-first, chunked) ─────────────────
   const blobService = useBlobService()
@@ -454,6 +512,67 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
 
   const activeView = grid.activeView
 
+  // ─── Registry views (board/gallery/calendar/timeline/list/map — 0339) ────
+  const isCompact = useIsCompact()
+  const allFields: GridField[] = useMemo(
+    () =>
+      grid.fields.map((f) => ({
+        id: f.id,
+        name: f.name,
+        type: f.type,
+        config: f.config as Record<string, unknown>,
+        width: f.width,
+        isTitle: f.isTitle,
+        options: f.options
+      })),
+    [grid.fields]
+  )
+  const viewRows: DatabaseViewRow[] = useMemo(
+    () => grid.rows.map((r) => ({ id: r.id, sortKey: r.sortKey, cells: r.cells })),
+    [grid.rows]
+  )
+  const viewConfig: DatabaseViewConfig = useMemo(
+    () =>
+      activeView
+        ? {
+            groupBy: activeView.groupBy,
+            collapsedGroups: activeView.collapsedGroups,
+            groupMeta: activeView.groupMeta,
+            coverField: activeView.coverField,
+            cardSize: (activeView.cardSize as DatabaseViewConfig['cardSize']) ?? null,
+            coverFit: (activeView.coverFit as DatabaseViewConfig['coverFit']) ?? null,
+            colorBy: activeView.colorBy,
+            dateField: activeView.dateField,
+            endDateField: activeView.endDateField,
+            latField: activeView.latField,
+            lngField: activeView.lngField,
+            mapViewport: activeView.mapViewport
+          }
+        : EMPTY_VIEW_CONFIG,
+    [activeView]
+  )
+
+  // Compact shells: boards/galleries fall back to the list layout
+  const registryViewType =
+    activeView && activeView.type !== 'table' && activeView.type !== 'form'
+      ? isCompact && (activeView.type === 'board' || activeView.type === 'gallery')
+        ? 'list'
+        : activeView.type
+      : null
+  const registration = registryViewType ? viewRegistry.get(registryViewType) : undefined
+
+  // Keep the spatial window in sync with the active view: resolve the
+  // lat/lng cell property names on map views, clear everything elsewhere.
+  useEffect(() => {
+    if (registryViewType !== 'map') {
+      setMapBounds(null)
+      setMapGeoProps(null)
+      return
+    }
+    const geo = resolveGeoFields(allFields, viewConfig)
+    setMapGeoProps(geo.lat && geo.lng ? { x: cellKey(geo.lng.id), y: cellKey(geo.lat.id) } : null)
+  }, [registryViewType, allFields, viewConfig])
+
   // View filters/sorts apply client-side over the loaded window — when more
   // rows exist past it, say so instead of presenting a partial result as the
   // whole table (exploration 0340).
@@ -488,13 +607,11 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
         views={grid.views.map((v) => ({ id: v.id, name: v.name, type: v.type }))}
         activeViewId={activeView?.id}
         onSelectView={setActiveViewId}
-        addViewTypes={[
-          { type: 'table', label: 'Table' },
-          { type: 'form', label: 'Form' }
-        ]}
+        addViewTypes={ADD_VIEW_TYPES}
         onAddViewOfType={(type) => {
           void (async () => {
-            const name = type === 'form' ? 'Form' : `View ${grid.views.length + 1}`
+            const label = ADD_VIEW_TYPES.find((t) => t.type === type)?.label
+            const name = label ?? `View ${grid.views.length + 1}`
             const id = await grid.addView(name, type)
             if (id) setActiveViewId(id)
           })()
@@ -540,8 +657,75 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
         rowCount={grid.rows.length}
       />
 
-      {/* Body: form view or grid + peek */}
-      {activeView?.type === 'form' ? (
+      {/* Body: form view, registry view (board/gallery/…), or grid + peek */}
+      {registryViewType && registration ? (
+        <div className="flex-1 flex overflow-hidden">
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <ViewOptionsBar
+              configFields={registration.configFields ?? []}
+              fields={allFields}
+              config={viewConfig}
+              onPatchConfig={(patch) => {
+                void grid.setViewConfig(patch)
+              }}
+            />
+            <div className="flex-1 overflow-hidden">
+              <ViewRenderer
+                type={registryViewType}
+                fields={allFields}
+                visibleFields={gridFields}
+                rows={viewRows}
+                window={grid.rowWindow}
+                config={viewConfig}
+                sorted={(activeView?.sorts.length ?? 0) > 0}
+                compact={isCompact}
+                onPatchConfig={(patch) => {
+                  void grid.setViewConfig(patch)
+                }}
+                onUpdateCell={(rowId, fieldId, value) => {
+                  void grid.updateCell(rowId, fieldId, value)
+                }}
+                onMoveCard={(rowId, cells, opts) => {
+                  void grid.updateRowCells(rowId, cells, opts)
+                }}
+                onToggleGroupCollapsed={(groupKey, collapsed) => {
+                  void grid.setGroupCollapsed(groupKey, collapsed)
+                }}
+                onOpenRow={setPeekRowId}
+                onCreateRow={(cells) => {
+                  void grid.addRow(undefined, cells)
+                }}
+                onCreateOption={grid.createOption}
+                onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
+                onBoundsChange={setMapBounds}
+              />
+            </div>
+          </div>
+
+          {peekRow && (
+            <div className="w-[420px] shrink-0">
+              <GridPeek
+                row={{ id: peekRow.id, cells: peekRow.cells }}
+                fields={allFields}
+                onClose={() => setPeekRowId(null)}
+                onUpdateCell={(rowId, fieldId, value) => {
+                  void grid.updateCell(rowId, fieldId, value)
+                }}
+                onDeleteRow={(rowId) => {
+                  void grid.deleteRows([rowId])
+                }}
+                onCreateOption={grid.createOption}
+                onUploadFile={blobService ? handleUploadFile : undefined}
+                onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
+              >
+                <div className="text-xs text-gray-500">
+                  {comments.rowCommentCounts.get(peekRow.id) ?? 0} comments on this row
+                </div>
+              </GridPeek>
+            </div>
+          )}
+        </div>
+      ) : activeView?.type === 'form' ? (
         <div className="flex-1 flex flex-col overflow-hidden">
           <FormShareBar
             viewId={activeView.id}

@@ -19,7 +19,19 @@ import type { FilterGroup, SortConfig } from '../../database/view-types'
 import type { InferNode } from '../types'
 import { defineSchema } from '../define'
 import { text, relation, select, json, checkbox } from '../properties'
+import type { MapViewport } from './map'
 import { spaceCascadeAuthorization } from './space-authorization'
+
+/**
+ * Per-group presentation override for grouped views (board stacks,
+ * timeline swimlanes). Keyed by select option ID in `groupMeta`.
+ */
+export interface ViewGroupMeta {
+  /** Manual stack order (fractional sortKey, code-unit collation) */
+  sortKey?: string
+  /** Hide this stack from the view */
+  hidden?: boolean
+}
 
 export const DatabaseViewSchema = defineSchema({
   name: 'DatabaseView',
@@ -43,7 +55,8 @@ export const DatabaseViewSchema = defineSchema({
         { id: 'gallery', name: 'Gallery' },
         { id: 'calendar', name: 'Calendar' },
         { id: 'timeline', name: 'Timeline' },
-        { id: 'form', name: 'Form' }
+        { id: 'form', name: 'Form' },
+        { id: 'map', name: 'Map' }
       ] as const,
       default: 'table'
     }),
@@ -88,12 +101,35 @@ export const DatabaseViewSchema = defineSchema({
     /** Card size ('small' | 'medium' | 'large') */
     cardSize: text({ maxLength: 10 }),
 
+    /** Cover image fit ('cover' | 'contain') */
+    coverFit: text({ maxLength: 10 }),
+
+    /** Select field ID used to color cards/bars/pins */
+    colorBy: text({ maxLength: 100 }),
+
+    /**
+     * Per-group presentation overrides keyed by select option ID (or
+     * '__none__' for the null group): manual stack order + hidden stacks.
+     * Collapse state lives in `collapsedGroups`.
+     */
+    groupMeta: json<Record<string, ViewGroupMeta>>({}),
+
     // Calendar/Timeline specific
     /** Start date field ID */
     dateField: text({ maxLength: 100 }),
 
     /** End date field ID */
     endDateField: text({ maxLength: 100 }),
+
+    // Map specific (exploration 0339)
+    /** Latitude field ID (number field) */
+    latField: text({ maxLength: 100 }),
+
+    /** Longitude field ID (number field) */
+    lngField: text({ maxLength: 100 }),
+
+    /** Persisted map camera (center + zoom) — whole-object LWW */
+    mapViewport: json<MapViewport>({}),
 
     // Form specific (exploration 0278)
     /** Form question config (FormViewConfig) — whole-object LWW */

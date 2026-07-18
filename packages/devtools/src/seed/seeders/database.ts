@@ -92,6 +92,8 @@ const CRM_FIELDS = (tasksDbId: string): FieldSpec[] => [
   { key: 'email', name: 'Contact email', type: 'email' },
   { key: 'phone', name: 'Phone', type: 'phone' },
   { key: 'renews', name: 'Renews', type: 'date' },
+  { key: 'lat', name: 'lat', type: 'number' },
+  { key: 'lng', name: 'lng', type: 'number' },
   // Cross-database relation → a row in the Tasks tracker database.
   {
     key: 'leadTask',
@@ -163,8 +165,14 @@ export const databaseSeeder: SeederModule = {
           summaries: { estimate: 'sum', done: 'checked' },
           rowHeight: 'medium'
         },
-        { slug: 'board', name: 'By status', type: 'board', groupByKey: 'status' },
-        { slug: 'list', name: 'List', type: 'list' },
+        {
+          slug: 'board',
+          name: 'By status',
+          type: 'board',
+          groupByKey: 'status',
+          colorByKey: 'priority'
+        },
+        { slug: 'list', name: 'List', type: 'list', groupByKey: 'priority' },
         {
           slug: 'gallery',
           name: 'Gallery',
@@ -233,6 +241,9 @@ export const databaseSeeder: SeederModule = {
         email: `hello@account${i + 1}.example.com`,
         phone: '+1 (555) 0' + String(100 + i),
         renews: iso(BASE_TS + (i + 30) * DAY),
+        // HQ coordinates spread across a plausible lat/lng band (map view)
+        lat: Number((25 + ((i * 7) % 40) + (i % 3) * 0.37).toFixed(4)),
+        lng: Number((-120 + ((i * 23) % 140) + (i % 5) * 0.51).toFixed(4)),
         // Relation cell → a real tracker row id.
         leadTask: [dbRowId(TASKS_SLUG, i % scale.dbRows)]
       }
@@ -249,7 +260,8 @@ export const databaseSeeder: SeederModule = {
         rows: crmRows,
         views: [
           { slug: 'table', name: 'All accounts', type: 'table' },
-          { slug: 'board', name: 'By stage', type: 'board', groupByKey: 'stage' }
+          { slug: 'board', name: 'By stage', type: 'board', groupByKey: 'stage' },
+          { slug: 'map', name: 'Map', type: 'map', latKey: 'lat', lngKey: 'lng' }
         ]
       })
     )

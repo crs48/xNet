@@ -1,6 +1,11 @@
 import type { TenantSli } from './observability/health'
 import { describe, expect, it } from 'vitest'
-import { composeDashboardLive, fetchHubHealth, type HubHealth } from './hub-status'
+import {
+  composeDashboardLive,
+  fetchHubDiagnosticsSummary,
+  fetchHubHealth,
+  type HubHealth
+} from './hub-status'
 
 const sli = (availability: number): TenantSli => ({
   tenantId: 't',
@@ -211,5 +216,79 @@ describe('fetchHubHealth', () => {
     }) as unknown as typeof fetch
     await fetchHubHealth('https://hub.example/', { fetchImpl })
     expect(seen).toBe('https://hub.example/health')
+  })
+})
+
+describe('fetchHubDiagnosticsSummary (0341)', () => {
+  const SUMMARY = {
+    pending: 3,
+    drained: 1,
+    total: 4,
+    lastSeenMs: 1_700_000_000_000,
+    topIssues: [
+      {
+        fingerprint: 'abc',
+        shortId: 'XR-ABC123',
+        errorName: 'TypeError',
+        lane: 'auto',
+        surface: 'web',
+        occurrences: 7,
+        status: 'pending',
+        firstSeenMs: 1,
+        lastSeenMs: 2
+      }
+    ]
+  }
+
+  it('sends the per-tenant secret and validates the payload shape', async () => {
+    let seenUrl = ''
+    let seenSecret: string | null = null
+    const fetchImpl = (async (url: string, init: RequestInit) => {
+      seenUrl = url
+      seenSecret = (init.headers as Record<string, string>)['x-internal-secret']
+      return new Response(JSON.stringify(SUMMARY), { status: 200 })
+    }) as unknown as typeof fetch
+
+    const out = await fetchHubDiagnosticsSummary('https://hub.example/', 'tenant-a.s3cret', {
+      fetchImpl
+    })
+    expect(seenUrl).toBe('https://hub.example/diagnostics/summary')
+    expect(seenSecret).toBe('tenant-a.s3cret')
+    expect(out).toEqual(SUMMARY)
+  })
+
+  it('returns null on 401/404, malformed payloads, rejects, and missing inputs', async () => {
+    const denied = (async () => new Response('no', { status: 401 })) as unknown as typeof fetch
+    expect(
+      await fetchHubDiagnosticsSummary('https://hub.example', 's', { fetchImpl: denied })
+    ).toBeNull()
+
+    const junk = (async () =>
+      new Response('{"nope":1}', { status: 200 })) as unknown as typeof fetch
+    expect(
+      await fetchHubDiagnosticsSummary('https://hub.example', 's', { fetchImpl: junk })
+    ).toBeNull()
+
+    const boom = (async () => {
+      throw new Error('aborted')
+    }) as unknown as typeof fetch
+    expect(
+      await fetchHubDiagnosticsSummary('https://hub.example', 's', { fetchImpl: boom })
+    ).toBeNull()
+
+    expect(await fetchHubDiagnosticsSummary('', 's')).toBeNull()
+    expect(await fetchHubDiagnosticsSummary('https://hub.example', '')).toBeNull()
+  })
+
+  it('passes through composeDashboardLive (null when absent)', () => {
+    const withDiag = composeDashboardLive({
+      health: HEALTH,
+      sli: null,
+      aiUsedUsd: null,
+      diagnostics: SUMMARY
+    })
+    expect(withDiag.diagnostics).toEqual(SUMMARY)
+    const without = composeDashboardLive({ health: HEALTH, sli: null, aiUsedUsd: null })
+    expect(without.diagnostics).toBeNull()
   })
 })
