@@ -597,13 +597,18 @@ Phase 2 — surfaces:
 
 Phase 3 — Tier-2 polish and honesty:
 
-- [ ] `VACUUM INTO` snapshot export (electron/hub native; WASM
-      `sqlite3_serialize` in browser) with tenant/room scrub on hub.
-- [ ] Surface AiWorkspaceExporter as user-facing "Export as folder
+- [x] SQLite snapshot export: `VACUUM INTO` where the native driver runs
+      (`xnet data snapshot --sqlite`, covering CLI/electron-class
+      deployments); in the browser, a SQL-text dump through the worker
+      adapter's `query()` surface (SQLitePanel — WASM `sqlite3_serialize`
+      needs a new worker-RPC surface, deferred); on the hub, deliberately
+      **no raw DB file ever** (multi-tenant) — the tenant-scrubbed
+      equivalent is `GET /export/changes`.
+- [x] Surface AiWorkspaceExporter as user-facing "Export as folder
       (markdown + JSONL)" on desktop; document its dialect.
-- [ ] One-line loss labels on every Tier-2 export ("CSV does not include
+- [x] One-line loss labels on every Tier-2 export ("CSV does not include
       relations, history, or comments").
-- [ ] Seed data round-trip demo: export demo workspace, import into fresh
+- [x] Seed data round-trip demo: export demo workspace, import into fresh
       instance, seed-coverage still green.
 
 Phase 4 — deferred (tracked, not started; intentionally not part of this

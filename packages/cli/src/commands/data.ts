@@ -25,6 +25,7 @@ import {
 import { createDID } from '@xnetjs/identity'
 import { createXNetClient } from '@xnetjs/runtime'
 import chalk from 'chalk'
+import { resolve } from 'node:path'
 import { FsBundleSink, FsBundleSource } from '../utils/fs-bundle.js'
 
 /** Built-in demonstration schema. Replace with your app's schemas in real use. */
@@ -267,6 +268,44 @@ export function registerDataCommand(program: Command): void {
         }
       }
     )
+
+  data
+    .command('export-folder')
+    .description(
+      'Export the workspace as a human-readable folder: Pages/*.md, Databases/*.rows.jsonl,\n' +
+        "Canvases/*.canvas (Tier 2 — a projection in xNet's markdown dialect: wikilinks and\n" +
+        'schema JSON travel, history/signatures/comments do not; use `export` for the lossless bundle)'
+    )
+    .requiredOption('--out <dir>', 'Folder to write the projection into')
+    .option('--db <path>', 'SQLite file path (default: in-memory)')
+    .option('--key <hex>', 'Ed25519 signing key (hex); falls back to $XNET_SIGNING_KEY')
+    .action(async (opts: { out: string; db?: string; key?: string }) => {
+      const { signingKey } = resolveSigningKey(opts.key)
+      const [{ createLocalAgentBackend }, plugins] = await Promise.all([
+        import('../utils/agent-local.js'),
+        import('@xnetjs/plugins/node')
+      ])
+      const backend = await createLocalAgentBackend({ db: opts.db, agentKey: signingKey })
+      try {
+        const aiSurface = plugins.createAiSurfaceService({
+          store: backend.store,
+          schemas: backend.schemas
+        })
+        const exporter = plugins.createAiWorkspaceExporter({ ...backend, aiSurface })
+        const result = await exporter.exportWorkspace({ rootDir: resolve(opts.out) })
+        console.log(
+          chalk.green(`✓ exported ${result.manifestEntries.length} file(s) to ${opts.out}`)
+        )
+        console.log(
+          chalk.dim(
+            '  note: this is a readable projection (markdown + JSONL); history, signatures,\n' +
+              '  and comments do not survive — use `xnet data export` for the lossless bundle'
+          )
+        )
+      } finally {
+        await backend.client.destroy()
+      }
+    })
 
   data
     .command('snapshot')
