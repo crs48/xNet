@@ -524,12 +524,12 @@ where the values-aligned position and the risk-adjusted position coincide.
 - [x] Record a **marketplace ranking-neutrality rule** (first-party plugins
       compete under the same ranking inputs as third-party) in the 0196
       marketplace docs before Phase 2 of 0349 ships the paid-plugin loop.
-- [ ] Add an **anchor-tenant note** to the 0349 implementation plan: each
+- [x] Add an **anchor-tenant note** to the 0349 implementation plan: each
       new open rail (direct charges, x402) ships with at least one
       first-party consumer in the same phase.
-- [ ] Cross-link this exploration from 0336 (positioning) and 0349
+- [x] Cross-link this exploration from 0336 (positioning) and 0349
       (payments) as the shared values framework.
-- [ ] Log the essay candidate ("The Railroad and the Airline") in the
+- [x] Log the essay candidate ("The Railroad and the Airline") in the
       essay-series backlog; do not write it in this exploration's scope.
 
 ## Validation Checklist
