@@ -1,6 +1,8 @@
 # Copyleft Licensing: Is There a Case to Move xNet to GPL or AGPL?
 
-**Exploration 0343** · Status: `[_]` unimplemented · 2026-07-18
+**Exploration 0345** · Status: `[_]` unimplemented · 2026-07-18
+(originally numbered 0343, renumbered per the collision rule — 0343 went to
+the auth-vs-Keyhive exploration on main, 0344 to export/import bundles)
 
 > Question: Is there a case to move xNet into a copyleft license like GPL or
 > AGPL? Would it align with the vision of the project?
