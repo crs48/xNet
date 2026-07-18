@@ -63,6 +63,7 @@ import {
 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { DESK_TITLE, isDeskId, isDeskRadialEnabled } from '../lib/desk'
+import { nodePassportSection } from './NodePassport'
 import { useContextPanel, type ContextPanelSection } from '../workbench/context-panel'
 import { useWorkbench } from '../workbench/state'
 import { useIsCompact } from '../workbench/use-layout-mode'
@@ -427,9 +428,11 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
                 : 'Select a canvas object to inspect it.'}
           </div>
         )
-      }
+      },
+      nodePassportSection(docId)
     ],
     [
+      docId,
       selection.edgeIds.length,
       selection.nodeIds.length,
       selectedCanvasEdge,

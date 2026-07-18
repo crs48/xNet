@@ -44,6 +44,22 @@ export interface ViewContribution {
   supportedSchemas?: string[]
 }
 
+/**
+ * A frame source renderer (0346): how a node of some schema renders as
+ * a frame (document embeds, dashboard frame widgets, frame tabs). The
+ * capability rule mirrors slots: a plugin registers renderers only under
+ * its OWN id namespace and never replaces another provider's renderer —
+ * enforced by `PluginContext.registerFrameRenderer`.
+ */
+export interface FrameRendererContribution {
+  /** Renderer id — namespaced `${pluginId}:${name}` by the context. */
+  id: string
+  /** Schema IRIs this renderer can frame ('*' = any). */
+  supportedSchemas: string[] | '*'
+  /** Component receiving the host's NodeFrameProps contract. */
+  component: ComponentType<never>
+}
+
 export interface ViewProps {
   nodeId: string
   schemaId: string
@@ -609,6 +625,7 @@ export class ContributionRegistry {
   readonly mentionProviders = new TypedRegistry<MentionProviderContribution>()
   readonly agentTools = new TypedRegistry<AgentToolContribution>()
   readonly slots = new TypedRegistry<SlotContribution>()
+  readonly frameRenderers = new TypedRegistry<FrameRendererContribution>()
 
   /** @deprecated Since 0280 — the dock registry is the slot registry. */
   get surfaceDock(): TypedRegistry<SlotContribution> {
@@ -640,5 +657,6 @@ export class ContributionRegistry {
     this.mentionProviders.clear()
     this.agentTools.clear()
     this.slots.clear()
+    this.frameRenderers.clear()
   }
 }

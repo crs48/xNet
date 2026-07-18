@@ -7,7 +7,9 @@
  * (EditorArea's `pill` variant); the document is the router outlet under that.
  */
 import type { ShareDocType } from '../hooks/useShareLinks'
+import { useNavigate } from '@tanstack/react-router'
 import { useIdentity } from '@xnetjs/react'
+import { viewRegistry } from '@xnetjs/views'
 import {
   Bell,
   Database,
@@ -24,6 +26,7 @@ import { useState } from 'react'
 import { SelfAvatar } from '../components/SelfAvatar'
 import { ShareDialog } from '../components/ShareDialog'
 import { useRequestCount } from '../hooks/useRequestCount'
+import { navigateToFrame, navigateToNode, parseFrameSpec } from './navigation'
 import { selectActiveTab, useWorkbench, type TabNodeType } from './state'
 
 const SHARE_TYPES: Partial<Record<TabNodeType, ShareDocType>> = {
@@ -45,6 +48,44 @@ const TAB_ICON: Partial<Record<TabNodeType, LucideIcon>> = {
 
 const iconBtn =
   'flex h-[30px] w-[30px] items-center justify-center rounded-lg border-none bg-transparent text-ink-2 transition-colors hover:bg-background-muted hover:text-ink-1'
+
+/**
+ * "Open with…" (0346): a database (or frame) tab reopens through any
+ * ViewRegistry view — table routes to the full database surface, every
+ * other type opens as a frame tab. Plugin views appear the moment they
+ * register; no app edits per view.
+ */
+function OpenWithSelect({ nodeType, nodeId }: { nodeType: TabNodeType; nodeId: string }) {
+  const navigate = useNavigate()
+  const spec = nodeType === 'frame' ? parseFrameSpec(nodeId) : null
+  const targetNodeId = nodeType === 'frame' ? spec?.nodeId : nodeId
+  if (!targetNodeId) return null
+  const current = nodeType === 'frame' ? (spec?.viewType ?? 'table') : 'table'
+
+  return (
+    <select
+      aria-label="Open with…"
+      title="Open with…"
+      value={current}
+      onChange={(e) => {
+        const viewType = e.target.value
+        if (viewType === 'table') {
+          navigateToNode(navigate, 'database', targetNodeId, { preview: false })
+        } else {
+          navigateToFrame(navigate, viewType, targetNodeId, { preview: false })
+        }
+      }}
+      className="h-[26px] shrink-0 rounded-lg border border-hairline bg-transparent px-1.5 text-xs text-ink-2 outline-none hover:bg-background-muted"
+    >
+      <option value="table">table</option>
+      {viewRegistry.getAll().map((v) => (
+        <option key={v.type} value={v.type}>
+          {v.type}
+        </option>
+      ))}
+    </select>
+  )
+}
 
 export function EditorHeader({ onOpenNotif }: { onOpenNotif: (e: React.MouseEvent) => void }) {
   const toggleSidebar = useWorkbench((s) => s.toggleSidebar)
@@ -76,6 +117,9 @@ export function EditorHeader({ onOpenNotif }: { onOpenNotif: (e: React.MouseEven
         <span className="truncate font-medium text-ink-1">
           {activeTab?.title || activeTab?.nodeType || 'Workspace'}
         </span>
+        {activeTab && (activeTab.nodeType === 'database' || activeTab.nodeType === 'frame') && (
+          <OpenWithSelect nodeType={activeTab.nodeType} nodeId={activeTab.nodeId} />
+        )}
       </div>
 
       <div className="flex shrink-0 items-center gap-2">

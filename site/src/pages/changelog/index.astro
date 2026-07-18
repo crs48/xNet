@@ -4,7 +4,7 @@ import Nav from '../../components/sections/Nav.astro'
 import Footer from '../../components/sections/Footer.astro'
 import Gallery from '../../components/changelog/Gallery.astro'
 import { entries, updated } from '../../data/changelog'
-import { loadPrGallery } from '../../lib/changelog-gallery'
+import { loadPrGalleries } from '../../lib/changelog-gallery'
 
 const repo = 'https://github.com/crs48/xNet'
 const editUrl = `${repo}/blob/main/site/src/data/changelog.ts`
@@ -42,8 +42,10 @@ const usedTags = Object.keys(tagColor).filter((t) => entries.some((e) => e.tags.
 
 // Resolve each entry's auto-gallery from its PR's durable diff manifest at
 // build time (exploration 0196). Build-time, fail-open: a 404 / offline fetch
-// yields null and the entry falls back to its curated hero/images.
-const galleries = await Promise.all(entries.map((e) => (e.pr ? loadPrGallery(e.pr) : null)))
+// yields null and the entry falls back to its curated hero/images. Bounded in
+// concurrency and total time — fetching one manifest per entry unbounded took
+// the whole production deploy down once (see loadPrGalleries).
+const galleries = await loadPrGalleries(entries.map((e) => e.pr))
 
 // Normalise per-entry media into one ordered list of gallery items (changed
 // surfaces first, as before/after comparisons; then new + curated images).

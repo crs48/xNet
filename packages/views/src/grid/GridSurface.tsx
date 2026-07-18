@@ -29,6 +29,7 @@ import {
 } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { useVirtualizer } from '@tanstack/react-virtual'
+import { useEntangleBind, useEntangledHighlight } from '@xnetjs/react'
 import { cn } from '@xnetjs/ui'
 import { Expand, GripVertical, Plus } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useReducer, useRef } from 'react'
@@ -893,6 +894,11 @@ const GridRow = React.memo(function GridRow({
     disabled: readOnly
   })
 
+  // Entangle bus (0346): hovering this row lights the same node in
+  // sibling frames (map pin, board card, wikilink) and vice versa.
+  const entangleBind = useEntangleBind(isGhostRow ? null : row.id)
+  const entangled = useEntangledHighlight(isGhostRow ? null : row.id)
+
   const hostsEditing = state.editing?.pos.row === rowIndex
 
   const rowSelected =
@@ -920,8 +926,10 @@ const GridRow = React.memo(function GridRow({
       className={cn(
         'flex group/row hover:bg-gray-50 dark:hover:bg-gray-800/40',
         rowSelected && 'bg-blue-50 dark:bg-blue-900/20',
+        entangled && 'bg-amber-50/70 dark:bg-amber-900/15',
         isDragging && 'opacity-60 z-20'
       )}
+      {...entangleBind}
     >
       {/* Gutter: row number, drag handle, expand (ghost row: + affordance) */}
       <div

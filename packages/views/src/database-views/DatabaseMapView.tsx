@@ -17,6 +17,7 @@
 
 import type { MapViewport } from '@xnetjs/data'
 import { resolveBasemapStyle } from '@xnetjs/maps'
+import { useEntangleBus } from '@xnetjs/react'
 import { cn } from '@xnetjs/ui'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { WindowFootnote } from './card-bits.js'
@@ -122,6 +123,19 @@ function addRowLayers(map: MlMap, geojson: GeoJSON.FeatureCollection): void {
       'circle-stroke-width': 1.5
     }
   })
+  // Entangle highlight (0346): pins for rows hovered in sibling frames
+  // render a halo. The filter starts empty; the bus effect updates it.
+  map.addLayer({
+    id: `${SOURCE_ID}-pins-entangled`,
+    type: 'circle',
+    source: SOURCE_ID,
+    filter: ['in', ['get', 'rowId'], ['literal', []]],
+    paint: {
+      'circle-color': '#f59e0b',
+      'circle-opacity': 0.35,
+      'circle-radius': 12
+    }
+  })
 }
 
 export function DatabaseMapView(props: DatabaseViewProps): React.JSX.Element {
@@ -140,6 +154,27 @@ export function DatabaseMapView(props: DatabaseViewProps): React.JSX.Element {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MlMap | null>(null)
   const [fallback, setFallback] = useState<string | null>(null)
+
+  // Entangle bus (0346): pins publish hover; a halo layer mirrors rows
+  // highlighted in sibling frames.
+  const entangleBus = useEntangleBus()
+  const busRef = useRef(entangleBus)
+  busRef.current = entangleBus
+  const lastHoverRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (!entangleBus) return
+    const apply = () => {
+      const map = mapRef.current
+      if (!map || !map.getLayer(`${SOURCE_ID}-pins-entangled`)) return
+      map.setFilter(`${SOURCE_ID}-pins-entangled`, [
+        'in',
+        ['get', 'rowId'],
+        ['literal', entangleBus.snapshotHighlighted()]
+      ])
+    }
+    return entangleBus.subscribe(apply)
+  }, [entangleBus])
 
   const binding = resolveGeoFields(fields, config)
   const { geo: geoField, lat: latField, lng: lngField } = binding
@@ -230,6 +265,21 @@ export function DatabaseMapView(props: DatabaseViewProps): React.JSX.Element {
         })
         map.on('mouseleave', `${SOURCE_ID}-pins`, () => {
           if (map) map.getCanvas().style.cursor = ''
+          const last = lastHoverRef.current
+          if (last) {
+            busRef.current?.setHovered(last, false)
+            lastHoverRef.current = null
+          }
+        })
+        // Entangle publish (0346): hovering a pin lights the same row in
+        // sibling frames (grid row, board card, wikilink).
+        map.on('mousemove', `${SOURCE_ID}-pins`, (e) => {
+          const rowId = e.features?.[0]?.properties?.rowId
+          if (typeof rowId !== 'string' || rowId === lastHoverRef.current) return
+          const last = lastHoverRef.current
+          if (last) busRef.current?.setHovered(last, false)
+          lastHoverRef.current = rowId
+          busRef.current?.setHovered(rowId, true)
         })
         // Persist the camera per view (debounced, whole-object LWW)
         map.on('moveend', () => {

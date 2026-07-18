@@ -18,6 +18,7 @@ import {
   rollbackPageMarkdownTool,
   validatePageMarkdownTool
 } from './page-mutation'
+import { frameToolEntries } from './frames'
 import { searchToolEntries } from './search'
 
 export type { AiToolEntry } from './entry'
@@ -37,7 +38,9 @@ export const BUILT_IN_TOOL_ENTRIES: readonly AiToolEntry[] = [
   rollbackPageMarkdownTool,
   ...databaseToolEntries,
   ...canvasToolEntries,
-  validateMutationPlanTool
+  validateMutationPlanTool,
+  // Frame placement (0346) — appended last to keep prior positions stable.
+  ...frameToolEntries
 ]
 
 export const BUILT_IN_TOOLS_BY_NAME: ReadonlyMap<string, AiToolEntry> = new Map(
