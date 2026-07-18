@@ -13,6 +13,7 @@ import { Plus, SlidersHorizontal } from 'lucide-react'
 import { useEffect, useRef, useState, type JSX } from 'react'
 import { ActivityTimeline } from '../ActivityTimeline'
 import { NodePeek } from '../NodeInspector'
+import { LensChips } from '../../workbench/sidebar/LensChips'
 import { num, relDays, str } from './crm-helpers'
 import { CrmContacts } from './CrmContacts'
 import { CrmForecast } from './CrmForecast'
@@ -45,8 +46,23 @@ const DEFAULT_STAGES: Array<{
   { name: 'Lost', probability: 0, isClosed: true, isWon: false }
 ]
 
-export function CrmView(): JSX.Element {
-  const [tab, setTab] = useState<CrmTab>('contacts')
+export function CrmView({
+  view,
+  onViewChange
+}: {
+  /** Active view from the route's `view` search param (0353). */
+  view?: string
+  onViewChange?: (view: string) => void
+} = {}): JSX.Element {
+  // Route-addressed views (0353): the URL is the state, so a CRM view is
+  // linkable and reachable from ⌘K like any other destination. Falls
+  // back to local state on surfaces that don't route (tests, embeds).
+  const [localTab, setLocalTab] = useState<CrmTab>('contacts')
+  const tab: CrmTab = TABS.some((t) => t.id === view) ? (view as CrmTab) : localTab
+  const setTab = (next: CrmTab) => {
+    setLocalTab(next)
+    onViewChange?.(next)
+  }
   const { data: pipelineData, loading } = useQuery(PipelineSchema, {
     orderBy: { createdAt: 'asc' }
   })
@@ -79,20 +95,10 @@ export function CrmView(): JSX.Element {
 
   return (
     <div className="flex h-full min-h-0 flex-col">
+      {/* Lens chips, not a tab bar (0353): the same primitive the
+          sidebar uses, so no surface grows a second tab system. */}
       <div className="flex items-center gap-1 border-b border-hairline px-3 py-1.5">
-        {TABS.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            onClick={() => setTab(t.id)}
-            className={cn(
-              'rounded-sm px-2.5 py-1 text-xs transition-colors',
-              tab === t.id ? 'bg-accent text-ink-1' : 'text-ink-3 hover:bg-accent hover:text-ink-1'
-            )}
-          >
-            {t.label}
-          </button>
-        ))}
+        <LensChips choices={TABS} activeId={tab} onSelect={(id) => setTab(id as CrmTab)} />
       </div>
 
       <div className="min-h-0 flex-1">

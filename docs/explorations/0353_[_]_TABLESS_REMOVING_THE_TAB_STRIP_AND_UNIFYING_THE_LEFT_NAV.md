@@ -460,8 +460,8 @@ const title = useRouteTitle(routed)                   // views publish here
 
 ### Phase 4 — Stragglers
 
-- [ ] CRM `CrmTab` bar → lens views (pipeline/forecast as saved views)
-- [ ] Settings nav rendered with the shared row primitives
+- [x] CRM `CrmTab` bar → lens views (pipeline/forecast as saved views)
+- [x] Settings nav rendered with the shared row primitives
 
 ### Phase 5 — Teardown
 
