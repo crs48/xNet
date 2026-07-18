@@ -2,10 +2,11 @@
  * @xnetjs/hub - UCAN authentication helpers.
  */
 
+import type { RevocationService } from './revocation'
 import type { HubConfig } from '../types'
 import type { IncomingMessage } from 'http'
 import type { WebSocket } from 'ws'
-import { getCapabilities, type UCANToken, verifyUCAN } from '@xnetjs/identity'
+import { getCapabilities, ucanTokenId, type UCANToken, verifyUCAN } from '@xnetjs/identity'
 import { actionAllows, resourceAllows } from './capabilities'
 
 export type AuthSession = {
@@ -51,6 +52,24 @@ const parseWebSocketProtocols = (value: string | string[] | undefined): string[]
     .filter((entry) => entry.length > 0)
 }
 
+/**
+ * Audience enforcement (0307-B): a token is only valid at THIS hub. Clients
+ * mint `aud` as either the hub's DID (when discovered via /health) or the hub
+ * URL they connected to. When neither `hubDid` nor `publicUrl` is configured
+ * the hub cannot name itself and enforcement is skipped (server.ts logs a
+ * loud startup warning for that configuration).
+ */
+const normalizeAudience = (value: string): string => value.replace(/\/+$/, '')
+
+export const audienceAccepted = (aud: string, config: HubConfig): boolean => {
+  const allowed: string[] = []
+  if (config.hubDid) allowed.push(config.hubDid)
+  if (config.publicUrl) allowed.push(normalizeAudience(config.publicUrl))
+  if (allowed.length === 0) return true
+  const normalized = normalizeAudience(aud)
+  return allowed.includes(normalized) || allowed.includes(aud)
+}
+
 const getTokenFromRequest = (req: IncomingMessage): string | null => {
   const authHeader = req.headers.authorization
   if (typeof authHeader === 'string') {
@@ -76,7 +95,8 @@ const getTokenFromRequest = (req: IncomingMessage): string | null => {
 export const authenticateConnection = async (
   ws: WebSocket,
   req: IncomingMessage,
-  config: HubConfig
+  config: HubConfig,
+  revocation?: RevocationService
 ): Promise<AuthSession | null> => {
   if (!config.auth) {
     const session = createAnonymousSession()
@@ -96,9 +116,15 @@ export const authenticateConnection = async (
     return null
   }
 
-  // Verify audience matches this hub's DID (if configured)
-  if (config.hubDid && result.payload.aud !== config.hubDid) {
+  // Audience must name this hub (DID or public URL) — a token minted for
+  // another hub is not valid here (0307-B).
+  if (!audienceAccepted(result.payload.aud, config)) {
     ws.close(4401, 'UCAN audience does not match this hub')
+    return null
+  }
+
+  if (revocation?.isRevoked(ucanTokenId(token), result.payload)) {
+    ws.close(4403, 'Token revoked')
     return null
   }
 
@@ -127,7 +153,8 @@ const parseBearerToken = (value: string | null): string | null => {
 
 export const authenticateHttpRequest = (
   authHeader: string | null,
-  config: HubConfig
+  config: HubConfig,
+  revocation?: RevocationService
 ): AuthContext | null => {
   if (!config.auth) {
     return createAuthContext(createAnonymousSession())
@@ -139,8 +166,10 @@ export const authenticateHttpRequest = (
   const result = verifyUCAN(token)
   if (!result.valid || !result.payload) return null
 
-  // Verify audience matches this hub's DID (if configured)
-  if (config.hubDid && result.payload.aud !== config.hubDid) return null
+  // Audience must name this hub (DID or public URL) — see audienceAccepted.
+  if (!audienceAccepted(result.payload.aud, config)) return null
+
+  if (revocation?.isRevoked(ucanTokenId(token), result.payload)) return null
 
   return createAuthContext({
     did: result.payload.iss,

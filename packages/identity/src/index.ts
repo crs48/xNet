@@ -100,6 +100,7 @@ export {
   hasCapability,
   getCapabilities,
   isExpired,
+  ucanTokenId,
   type CreateUCANOptions,
   type VerifyResult
 } from './ucan'

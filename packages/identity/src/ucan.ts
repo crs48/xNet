@@ -2,7 +2,7 @@
  * UCAN (User Controlled Authorization Networks) token implementation
  */
 import type { UCANCapability, UCANToken } from './types'
-import { sign, verify } from '@xnetjs/crypto'
+import { hashHex, sign, verify } from '@xnetjs/crypto'
 import { parseDID } from './did'
 
 /**
@@ -15,6 +15,7 @@ export type CreateUCANOptions = {
   capabilities: UCANCapability[]
   expiration?: number // Unix timestamp (default: 1 hour from now)
   proofs?: string[] // Parent UCAN tokens
+  nonce?: string // Per-token nonce (0307-B): distinguishes otherwise-identical mints
 }
 
 /**
@@ -47,13 +48,15 @@ const createPayload = (
   audience: string,
   expiration: number,
   capabilities: UCANCapability[],
-  proofs: string[]
+  proofs: string[],
+  nonce?: string
 ): UCANPayload => ({
   iss: issuer,
   aud: audience,
   exp: expiration,
   att: capabilities,
-  prf: proofs
+  prf: proofs,
+  ...(nonce ? { nnc: nonce } : {})
 })
 
 const encodeUtf8 = (value: string): Uint8Array => new TextEncoder().encode(value)
@@ -73,13 +76,15 @@ const parsePayload = (payload: unknown): UCANPayload | null => {
   if (!Array.isArray(record.att) || !record.att.every(isCapability)) return null
   if (!Array.isArray(record.prf) || !record.prf.every((entry) => typeof entry === 'string'))
     return null
+  if (record.nnc !== undefined && typeof record.nnc !== 'string') return null
 
   return {
     iss: record.iss,
     aud: record.aud,
     exp: record.exp,
     att: record.att,
-    prf: record.prf
+    prf: record.prf,
+    ...(typeof record.nnc === 'string' ? { nnc: record.nnc } : {})
   }
 }
 
@@ -140,11 +145,12 @@ export function createUCAN(options: CreateUCANOptions): string {
     audience,
     capabilities,
     expiration = Math.floor(Date.now() / 1000) + 3600, // 1 hour default
-    proofs = []
+    proofs = [],
+    nonce
   } = options
 
   const header = toBase64Url(JSON.stringify(createHeader()))
-  const payload = createPayload(issuer, audience, expiration, capabilities, proofs)
+  const payload = createPayload(issuer, audience, expiration, capabilities, proofs, nonce)
   const body = toBase64Url(JSON.stringify(payload))
   const signingInput = createSigningInput(header, body)
 
@@ -240,6 +246,15 @@ export function getCapabilities(token: UCANToken): UCANCapability[] {
  */
 export function isExpired(token: UCANToken): boolean {
   return token.exp < Math.floor(Date.now() / 1000)
+}
+
+/**
+ * Stable identifier for a serialized UCAN token (0307-B): the SHA-256 of the
+ * compact JWT string. Used as the revocation key — revoking by id invalidates
+ * exactly one minted token without needing to store the token itself.
+ */
+export function ucanTokenId(token: string): string {
+  return hashHex(new TextEncoder().encode(token), 'sha256')
 }
 
 // ─── Unicode-safe base64url helpers ──────────────────────────
