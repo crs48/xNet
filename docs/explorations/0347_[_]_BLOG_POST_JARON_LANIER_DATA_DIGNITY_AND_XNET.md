@@ -173,6 +173,19 @@ timeline
   mismanaging it. The answer is provenance: _"Big-model A.I. is made of
   people — and the way to open the black box is to reveal them."_ Closing:
   _"People are the answer to the problems of bits."_
+- **The StarTalk conversation (video)**: _"Neil deGrasse Tyson And Jaron
+  Lanier on the AI Illusion"_ — StarTalk Plus,
+  <https://www.youtube.com/watch?v=a_ZKYH8v_do> (transcript published
+  2026). The whole corpus delivered conversationally in one sitting: _"there
+  is no AI, but instead there's a collection of people"_; data dignity in a
+  sentence — _"data only comes from people. Data doesn't come from angels"_;
+  privacy redefined as _"not being manipulated or toyed with"_; network
+  effects as hyper-centralised power around one node; and an in-between
+  economics — affordable, _"not just free or impossibly expensive"_ — that is
+  close to xNet's "pay with value, not data" stance. This is the post's best
+  **on-ramp source**: readers who won't open a New Yorker essay will watch
+  Tyson interview him. (Quotes above are from a third-party transcript —
+  verify against the video before shipping.)
 - **The humanist frame**: he is a musician first; the MIDI critique came from
   *hearing* what the protocol dropped. "One Half a Manifesto" (2000) names
   the enemy **cybernetic totalism** — the belief that people are just
@@ -279,7 +292,13 @@ Section sketch (en-GB, series voice):
 2. **The forty-year argument** — 1995 agents essay → cybernetic totalism →
    Digital Maoism → gadget → siren servers → BUMMER → data dignity → "There
    Is No A.I." One claim, restated per decade, from *inside* the industry
-   (name the Microsoft tension in a sentence).
+   (name the Microsoft tension in a sentence). Link the StarTalk episode
+   (<https://www.youtube.com/watch?v=a_ZKYH8v_do>) here as the "hear him
+   make it himself" pointer — series precedent: _Weights You Can Hold_ and
+   _The Right to Say No_ both link their source videos. **Link, don't
+   embed**: the series promises pages that load nothing third-party, so a
+   YouTube iframe is out; a plain link (optionally beside a vendored still
+   or styled quote card) keeps the promise.
 3. **The spec hidden in the critique** — what he'd have us build: provenance,
    two-way links, no behaviour modification, direct payment, tools not
    creatures.
@@ -289,7 +308,8 @@ Section sketch (en-GB, series voice):
 5. **The fork in data dignity** — his market half, his critics, his own
    direct-payment exemption; why "collect nothing, attribute everything" is
    the dignity position; where money does flow (creators pricing work, AI at
-   exact cost).
+   exact cost). Candidate epigraph from the StarTalk conversation: _"data
+   only comes from people. Data doesn't come from angels."_
 6. **Close** — _"People are the answer to the problems of bits."_ The point
    of local-first isn't the storage topology; it's that the human stays the
    protagonist.
@@ -346,6 +366,10 @@ Registry entry (`site/src/data/blog.ts`, prepended to `posts[]`):
       confirm index and RSS pick it up once `draft` drops.
 - [ ] Fact-check pass against the References below: every quote, date, title,
       and stat; verify BUMMER expansion and the 1995 essay citation.
+- [ ] Verify the StarTalk quotes ("collection of people", "data doesn't come
+      from angels", "not being manipulated or toyed with") against the video
+      itself (<https://www.youtube.com/watch?v=a_ZKYH8v_do>), not just the
+      third-party transcript; confirm the episode date.
 - [ ] Verify internal claims about xNet against code: `authorDID`/signature
       fields, `deriveTrustTier`, `check-humane-patterns.mjs`, charter axes,
       Agent Passport scope rules.
@@ -393,6 +417,10 @@ Registry entry (`site/src/data/blog.ts`, prepended to `posts[]`):
 - Brown University Cooper Lecture coverage, 24 Apr 2026:
   <https://www.brown.edu/news/2026-04-24/jaron-lanier-cooper-lecture>
 - _"Your A.I. Lover Will Change You"_ — The New Yorker, 22 Mar 2025.
+- _"Neil deGrasse Tyson And Jaron Lanier on the AI Illusion"_ — StarTalk
+  Plus (video): <https://www.youtube.com/watch?v=a_ZKYH8v_do>; third-party
+  transcript:
+  <https://singjupost.com/startalk-there-is-no-ai-really-its-just-people-w-jaron-lanier-transcript/>
 
 **Critiques**
 
