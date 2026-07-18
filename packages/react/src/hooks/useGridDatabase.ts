@@ -44,6 +44,7 @@ import {
 } from '@xnetjs/data'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useIdentity } from './useIdentity'
+import { useInfiniteQuery } from './useInfiniteQuery'
 import { useMutate } from './useMutate'
 import { useNodeStore } from './useNodeStore'
 import { useQuery } from './useQuery'
@@ -110,8 +111,15 @@ export interface UseGridDatabaseOptions {
   viewId?: string
   /** Quick-find text (full-text search via SQLite FTS) */
   search?: string
-  /** Row window size (default 500) */
+  /** Rows fetched per window grow (default 500) */
   pageSize?: number
+  /**
+   * Ceiling on the live row window (default 2000). The window grows by
+   * `pageSize` via `fetchMoreRows` until this bound; beyond it further
+   * fetches are no-ops so the overfetch buffer and live snapshot stay
+   * bounded (exploration 0340).
+   */
+  maxLoaded?: number
 }
 
 export interface UseGridDatabaseResult {
@@ -127,6 +135,14 @@ export interface UseGridDatabaseResult {
   /** Rows: view filters + sorts applied to the fetched window */
   rows: GridRowModel[]
   loading: boolean
+  /** Exact matching row count for the whole database (null while unknown). */
+  totalRowCount: number | null
+  /** Whether the row window can grow further (more rows exist past it). */
+  hasMoreRows: boolean
+  /** Whether a window grow is awaiting the larger read. */
+  isFetchingMoreRows: boolean
+  /** Grow the row window by `pageSize` (bounded by `maxLoaded`). */
+  fetchMoreRows: () => Promise<void>
 
   // Cell/row mutations
   updateCell: (rowId: string, fieldId: string, value: CellValue) => Promise<void>
@@ -253,7 +269,7 @@ export function useGridDatabase(
   databaseId: string,
   options: UseGridDatabaseOptions = {}
 ): UseGridDatabaseResult {
-  const { viewId, search, pageSize = 500 } = options
+  const { viewId, search, pageSize = 500, maxLoaded = 2000 } = options
   const mutate = useMutate()
   const { did } = useIdentity()
 
@@ -276,10 +292,24 @@ export function useGridDatabase(
     orderBy: { sortKey: 'asc' }
   })
 
-  const { data: rowNodes, status: rowStatus } = useQuery(DatabaseRowSchema, {
+  // Rows ride a growing `limit + orderBy` window (useInfiniteQuery) instead
+  // of a fixed page: `fetchMoreRows` extends it toward `maxLoaded`, and the
+  // whole window stays on the bridge's bounded-delta live path (0182/0340).
+  // `count: 'exact'` folds a COUNT(*) OVER () into the fused row query so the
+  // footer can show the true total, not the window size.
+  const {
+    data: rowNodes,
+    status: rowStatus,
+    totalCount: totalRowCount,
+    hasMore: hasMoreRows,
+    isFetchingNextPage: isFetchingMoreRows,
+    fetchNextPage: fetchMoreRows
+  } = useInfiniteQuery(DatabaseRowSchema, {
     where: { database: databaseId },
     orderBy: { sortKey: 'asc' },
-    limit: pageSize,
+    pageSize,
+    maxLoaded,
+    page: { count: 'exact' },
     materializedView: `db:${databaseId}${viewId ? `:view:${viewId}` : ''}`,
     ...(search ? { search } : {})
   })
@@ -905,6 +935,10 @@ export function useGridDatabase(
     activeView,
     rows,
     loading,
+    totalRowCount,
+    hasMoreRows,
+    isFetchingMoreRows,
+    fetchMoreRows,
     updateCell,
     clearCells,
     addRow,

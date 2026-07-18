@@ -26,7 +26,7 @@ neither pagination nor infinite scroll exists in the shipped grid.**
   to a 600-row one (p50 8.3ms, p95 16.7ms, zero frames >33ms, constant
   1,244 grid DOM nodes, constant 202MB heap). Row virtualization
   (`overscan: 10`) plus the fixed 500-row window make dataset size
-  invisible to the renderer. The engine's ceiling for *rendered* rows is
+  invisible to the renderer. The engine's ceiling for _rendered_ rows is
   untested beyond 500 — but 0318 already showed the query layer holds to
   10M, so rows are a solved axis end-to-end.
 - **Columns: 60fps dies between 16 and 32 total columns.** Vertical-scroll
@@ -34,12 +34,12 @@ neither pagination nor infinite scroll exists in the shipped grid.**
   gestures): **8 cols → p95 16.7ms; 16 → p95 25ms; 32 → 48fps avg, p95
   42ms; 64 → 28fps, p95 92ms, 1.4s total main-thread blocking; 128 →
   8.6fps, p50 142ms** — unusable. Mechanism: `GridSurface` has no column
-  virtualization, so every newly mounted row mounts *all* C cells; at 128
+  virtualization, so every newly mounted row mounts _all_ C cells; at 128
   columns a fast scroll mounts thousands of cells per second — exactly
   Glide's "hundreds of DOM elements per frame" wall.
 - **Horizontal scroll is innocent.** p50 stays 8.3ms at every width
   (compositor scrolls pre-rendered DOM; nothing mounts). The cost of wide
-  schemas is paid on *vertical* scroll and initial render, not on panning.
+  schemas is paid on _vertical_ scroll and initial render, not on panning.
 - **The 500-row window lies at every scale, live-verified**: 600, 2,000 and
   10,000-row databases all render exactly rows 1–500, footer reads
   "500 rows", and scrolling to the bottom loads nothing further
@@ -131,11 +131,11 @@ flowchart LR
 - Drive: real `mouse.wheel` gestures (240px per tick, ~60 ticks/s, 4s per
   axis) — compositor-real scrolling, not synthetic `scrollTop` writes.
 - Measure: rAF delta sampling (avg fps, p50/p95/max frame, frames >17ms and
-  >33ms) plus `PerformanceObserver({type:'long-animation-frame'})` (count and
-  total blocking ms). Playwright Chromium headless (new headless shares the
-  headed rendering path), backgrounding/timer-throttling disabled. The in-IDE
-  preview pane was **not** used for numbers (hidden `visibilityState` stops
-  rAF entirely — measured 0 frames; same trap 0318 documented).
+  > 33ms) plus `PerformanceObserver({type:'long-animation-frame'})` (count and
+  > total blocking ms). Playwright Chromium headless (new headless shares the
+  > headed rendering path), backgrounding/timer-throttling disabled. The in-IDE
+  > preview pane was **not** used for numbers (hidden `visibilityState` stops
+  > rAF entirely — measured 0 frames; same trap 0318 documented).
 - Caveat: rAF measures main-thread frame production. Compositor-thread
   scrolling can remain smooth while rAF stutters (and vice versa); LoAF
   blocking time is the tie-breaker signal.
@@ -149,13 +149,13 @@ Headless Chromium runs without vsync, so avg fps can exceed 60 — treat
 
 ### Column sweep — 600 rows, vertical wheel scroll (4s)
 
-| Columns | Grid DOM nodes | avg fps | p50 frame | p95 frame | frames >33ms | LoAF blocking | 60fps verdict |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 8 | 1,244 | 102 | 8.3ms | 16.7ms | 2 | 3ms | ✅ fluid |
-| 16 | 1,956 | 85 | 8.3ms | 25.0ms | 2 | 0ms | ⚠️ budget-edge |
-| 32 | 3,380 | 48 | 9.4ms | 42.3ms | 65 | 48ms | ❌ sub-60 |
-| 64 | 6,228 | 28 | 9.7ms | 91.7ms | 40 | 1,390ms | ❌ janky |
-| 128 | 11,924 | 8.6 | **141.9ms** | 291.7ms | 23 | 2,406ms | ❌ unusable |
+| Columns | Grid DOM nodes | avg fps | p50 frame   | p95 frame | frames >33ms | LoAF blocking | 60fps verdict  |
+| ------- | -------------- | ------- | ----------- | --------- | ------------ | ------------- | -------------- |
+| 8       | 1,244          | 102     | 8.3ms       | 16.7ms    | 2            | 3ms           | ✅ fluid       |
+| 16      | 1,956          | 85      | 8.3ms       | 25.0ms    | 2            | 0ms           | ⚠️ budget-edge |
+| 32      | 3,380          | 48      | 9.4ms       | 42.3ms    | 65           | 48ms          | ❌ sub-60      |
+| 64      | 6,228          | 28      | 9.7ms       | 91.7ms    | 40           | 1,390ms       | ❌ janky       |
+| 128     | 11,924         | 8.6     | **141.9ms** | 291.7ms   | 23           | 2,406ms       | ❌ unusable    |
 
 fps roughly halves per column doubling past 16. The p50 staying ~9ms up to
 64 columns while p95 explodes is the signature of **row-mount spikes**:
@@ -165,11 +165,11 @@ pays C cell-mounts at once.
 ### Column sweep — horizontal wheel scroll (4s)
 
 | Columns | avg fps | p50 frame | p95 frame | LoAF blocking |
-| --- | --- | --- | --- | --- |
-| 16 | 119 | 8.3ms | 9.2ms | 0ms |
-| 32 | 118 | 8.3ms | 10.0ms | 3ms |
-| 64 | 113 | 8.3ms | 9.3ms | 108ms |
-| 128 | 105 | 8.3ms | 9.3ms | 435ms |
+| ------- | ------- | --------- | --------- | ------------- |
+| 16      | 119     | 8.3ms     | 9.2ms     | 0ms           |
+| 32      | 118     | 8.3ms     | 10.0ms    | 3ms           |
+| 64      | 113     | 8.3ms     | 9.3ms     | 108ms         |
+| 128     | 105     | 8.3ms     | 9.3ms     | 435ms         |
 
 Horizontal panning never mounts anything (all columns are already in the
 DOM), so it rides the compositor. The growing LoAF blocking at high widths
@@ -177,11 +177,11 @@ is periodic React work (effects/selection bookkeeping), not scroll cost.
 
 ### Row sweep — 8 columns, vertical wheel scroll
 
-| Rows seeded | time-to-rows (dev-mode) | avg fps | p95 frame | frames >33ms | rendered window | footer says | heap |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 600 | 6.8s | 102 | 16.7ms | 2 | rows 1–500 | "500 rows" | 202MB |
-| 2,000 | 6.3s | 103 | 16.7ms | 0 | rows 1–500 | "500 rows" | 202MB |
-| 10,000 | 8.4s | 103 | 16.7ms | 0 | rows 1–500 | "500 rows" | 202MB |
+| Rows seeded | time-to-rows (dev-mode) | avg fps | p95 frame | frames >33ms | rendered window | footer says | heap  |
+| ----------- | ----------------------- | ------- | --------- | ------------ | --------------- | ----------- | ----- |
+| 600         | 6.8s                    | 102     | 16.7ms    | 2            | rows 1–500      | "500 rows"  | 202MB |
+| 2,000       | 6.3s                    | 103     | 16.7ms    | 0            | rows 1–500      | "500 rows"  | 202MB |
+| 10,000      | 8.4s                    | 103     | 16.7ms    | 0            | rows 1–500      | "500 rows"  | 202MB |
 
 Dataset size does not touch a single render metric — the fixed window and
 the row virtualizer fully decouple them. (time-to-rows is a dev-mode vite
@@ -256,7 +256,7 @@ Render-side and column-side prior art (0318 covered the row/query side):
   accessibility, selection, and text editing.
 - **The 500-field coincidence**: Airtable caps at 500 fields/table
   ([plans](https://support.airtable.com/docs/airtable-plans)); Notion caps at
-  500 properties/database and explicitly tells users that *visible* property
+  500 properties/database and explicitly tells users that _visible_ property
   count drives load time — "hiding them may improve responsiveness"
   ([Notion performance](https://www.notion.com/help/optimize-database-load-times-and-performance)).
   Both DOM grids landed on 500; canvas/native spreadsheets sit at 16,384
@@ -281,13 +281,13 @@ Render-side and column-side prior art (0318 covered the row/query side):
 
 ## Options And Tradeoffs
 
-| Option | Cost | What it buys | Verdict |
-| --- | --- | --- | --- |
-| A. Wire `useInfiniteQuery` into `useGridDatabase` (growing window + `maxLoaded` eviction) | M | Real infinite scroll on the shipped grid; kills the 500-row lie; stays on the bounded-delta live path | **Do this** — the primitive is verified working; only the wiring is missing |
-| B. Column virtualization in `GridSurface` (port the `VirtualizedTableView` horizontal axis) | M | Caps vertical-scroll cell-mounts at ~10-12 visible columns regardless of schema width — the measured 8-col profile (p95 16.7ms) at any column count; lifts the ceiling from ~24 columns to the 500-field product cap | **Do this** for schemas >~20 fields; `VirtualizedTableView.tsx:146-152` is the in-repo donor implementation |
-| C. Canvas grid (Glide-style) | XL | Unbounded cells, flat memory | Not yet — DOM + dual virtualization holds at the scales measured; revisit only past the measured ceiling |
-| D. Fixed row heights + `content-visibility` on cells | S | Cheap paint skips without restructuring | Marginal next to A+B; worth a flag experiment |
-| E. Do nothing (500-window forever) | — | — | No — the footer lies, filters silently miss rows, and 0318's keyset work makes the window growable for free |
+| Option                                                                                      | Cost | What it buys                                                                                                                                                                                                         | Verdict                                                                                                     |
+| ------------------------------------------------------------------------------------------- | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| A. Wire `useInfiniteQuery` into `useGridDatabase` (growing window + `maxLoaded` eviction)   | M    | Real infinite scroll on the shipped grid; kills the 500-row lie; stays on the bounded-delta live path                                                                                                                | **Do this** — the primitive is verified working; only the wiring is missing                                 |
+| B. Column virtualization in `GridSurface` (port the `VirtualizedTableView` horizontal axis) | M    | Caps vertical-scroll cell-mounts at ~10-12 visible columns regardless of schema width — the measured 8-col profile (p95 16.7ms) at any column count; lifts the ceiling from ~24 columns to the 500-field product cap | **Do this** for schemas >~20 fields; `VirtualizedTableView.tsx:146-152` is the in-repo donor implementation |
+| C. Canvas grid (Glide-style)                                                                | XL   | Unbounded cells, flat memory                                                                                                                                                                                         | Not yet — DOM + dual virtualization holds at the scales measured; revisit only past the measured ceiling    |
+| D. Fixed row heights + `content-visibility` on cells                                        | S    | Cheap paint skips without restructuring                                                                                                                                                                              | Marginal next to A+B; worth a flag experiment                                                               |
+| E. Do nothing (500-window forever)                                                          | —    | —                                                                                                                                                                                                                    | No — the footer lies, filters silently miss rows, and 0318's keyset work makes the window growable for free |
 
 ## Recommendation
 
@@ -300,11 +300,11 @@ infrastructure.**
    virtualizer-end sentinel calling `fetchNextPage()`. This kills the
    footer lie and delivers real infinite scroll while staying on the
    bounded-delta live path. The row-sweep numbers guarantee the renderer
-   won't notice: rendering cost is set by the *window*, not the dataset,
+   won't notice: rendering cost is set by the _window_, not the dataset,
    and eviction keeps the window bounded.
 2. **Columns (Option B): virtualize columns in `GridSurface`** (donor code
    in-repo: `VirtualizedTableView`'s horizontal virtualizer, overscan 3).
-   Measured stakes: a 32-field database is *already* sub-60fps today, and
+   Measured stakes: a 32-field database is _already_ sub-60fps today, and
    real CRM/tracker schemas hit 20+ fields quickly. Interim mitigation
    that ships in a day: Notion-style default-hidden properties past the
    first ~15 visible (Notion's own confession that visible-column count is
@@ -317,7 +317,7 @@ infrastructure.**
 
 Sequencing note: 0318 (query layer, unmerged branch
 `claude/database-performance-testing-f395db`) and this doc are complements —
-0318 makes deep windows *queryable*; this doc makes them *scrollable*.
+0318 makes deep windows _queryable_; this doc makes them _scrollable_.
 Neither blocks the other; A+B here need no query-layer changes at the
 500–2,000-row window sizes recommended.
 
@@ -331,7 +331,7 @@ Neither blocks the other; A+B here need no query-layer changes at the
 - **dnd-kit per-row `useSortable`** is a fixed per-visible-row tax; row
   drag-reorder and column virtualization interact (a dragged row renders all
   its cells while floating).
-- **Client-side filters over a grown window** get *more* wrong before they
+- **Client-side filters over a grown window** get _more_ wrong before they
   get right: a 2k-row window filters 2k rows, still not the full table.
   Filter pushdown (0317's PredicateIndex direction) is the real fix; until
   then the UI should label filtered views on capped windows.
@@ -341,20 +341,18 @@ Neither blocks the other; A+B here need no query-layer changes at the
 
 ## Implementation Checklist
 
-- [ ] Wire `useGridDatabase` onto `useInfiniteQuery`: replace fixed
-      `pageSize = 500` with growing window (pageSize 500, `maxLoaded` ~2,000)
-      + `fetchNextPage()` from a virtualizer end-sentinel
+- [x] Wire `useGridDatabase` onto `useInfiniteQuery`: replace fixed
+      `pageSize = 500` with growing window (pageSize 500, `maxLoaded` ~2,000) + `fetchNextPage()` from a virtualizer end-sentinel
       (`useGridDatabase.ts:256`, `useGridDatabase.ts:279-285`)
 - [ ] Grid footer: show `count` totals ("500 of 12,000"), reusing the Data
       tab's `count: 'exact'`/capped pattern (`GridSurface.tsx:698-700`,
       `useDataExplorer.ts:185-210`); switch to `count:'estimate'` when 0318's
       estimate mode lands
-- [ ] Promote the `useInfiniteQuery` scratch test into a real committed test
+- [x] Promote the `useInfiniteQuery` scratch test into a real committed test
       (`packages/react/src/hooks/useInfiniteQuery.test.tsx`) — the hook is
       about to gain its first production consumer
 - [ ] Column virtualization for `GridSurface` (horizontal `useVirtualizer`,
-      overscan 3, per `VirtualizedTableView.tsx:146-152`) — required for
-      >~20-field schemas (32 fields measured at 48fps, 64 at 28fps);
+      overscan 3, per `VirtualizedTableView.tsx:146-152`) — required for >~20-field schemas (32 fields measured at 48fps, 64 at 28fps);
       interim: default-hide properties past ~15 visible
 - [ ] Label client-side filter/sort results when the window is capped
       ("filtered within first N rows")
