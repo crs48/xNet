@@ -526,7 +526,7 @@ export const nightBloomSeeder = defineSeeder({
 - [ ] Blog essay #17 "The World's Greatest Record Store" in
       `site/src/pages/blog/` + entry in `site/src/data/blog.ts` + hero art
       component (en-GB, cosmic-X in the hero per series convention)
-- [ ] Add `ratio-scorekeeping` rule to `scripts/check-humane-patterns.mjs`
+- [x] Add `ratio-scorekeeping` rule to `scripts/check-humane-patterns.mjs`
       (+ selftest fixture)
 - [ ] Add scene seed profile (`packages/devtools/src/seed/seeders/`), register
       in `seed-manifest.ts`, keep `seed-coverage.test.ts` green; keep Acme as
@@ -541,7 +541,7 @@ export const nightBloomSeeder = defineSeeder({
 
 - [ ] `VIBE.md` is cited in at least one PR review or design discussion within
       a quarter (else fold into charter — see Risks)
-- [ ] `check-humane-patterns.mjs --selftest` catches a planted
+- [x] `check-humane-patterns.mjs --selftest` catches a planted
       `shareRatio`/`leaderboard` violation
 - [ ] Seed: `pnpm vitest --project devtools` green with the scene profile;
       demo workspace first-run shows the scene, not Acme

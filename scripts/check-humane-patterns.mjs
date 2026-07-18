@@ -12,6 +12,8 @@
  *                              engagement-driven endless feed
  *     ✗ streak counters      → gamified streaks weaponize loss aversion
  *     ✗ confirmshaming       → don't shame the user out of a choice they made
+ *     ✗ ratio scorekeeping   → reciprocity is legible, never scored; show
+ *                              stewardship, not standing (exploration 0352)
  *
  *   surplus       (scoped to all of packages/ + apps/)
  *     ✗ third-party ad/analytics SDKs (gtag, fbq, Segment, Mixpanel,
@@ -73,6 +75,15 @@ const RULES = [
     group: 'dark-pattern',
     re: /\bconfirm[-_]?sham(?:e|ing)?\b/i,
     fix: "let the user decline plainly; don't guilt them out of their choice"
+  },
+  {
+    // The Oink lesson (exploration 0352): ratio economies turned generosity into
+    // scorekeeping and scorekeeping into anxiety. Stewardship surfaces may show
+    // care ("held this space 340 days"), never standing ("#14 in this space").
+    name: 'ratio scorekeeping',
+    group: 'dark-pattern',
+    re: /\b(shareRatio|uploadRatio|seedRatio|leaderboard|userRank|rankBadge)\b/i,
+    fix: 'show stewardship, never standing — reciprocity is legible, not scored (docs/VIBE.md)'
   },
   {
     name: 'third-party ad/analytics SDK',
@@ -225,6 +236,18 @@ function runSelfTest() {
       dark: true,
       text: 'let dailyStreak = 0',
       expect: (v) => v.some((x) => x.rule === 'streak counter')
+    },
+    {
+      label: 'flags ratio scorekeeping in a UI file',
+      dark: true,
+      text: 'const leaderboard = rankMembers(members)',
+      expect: (v) => v.some((x) => x.rule === 'ratio scorekeeping')
+    },
+    {
+      label: 'aspect-ratio style code is not ratio scorekeeping',
+      dark: true,
+      text: 'const aspectRatio = width / height',
+      expect: (v) => v.length === 0
     },
     {
       label: 'flags a third-party analytics SDK anywhere',
