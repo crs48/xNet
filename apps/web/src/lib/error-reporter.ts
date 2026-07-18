@@ -22,13 +22,28 @@ import {
 } from '@xnetjs/telemetry'
 import { onBootFailure, type BootFailure } from './boot-diagnostics'
 import { consent } from './consent'
+import { diagnosticsIngestBase } from './hub-url'
 import { captureToSentry } from './sentry'
 import { uaFamilyOnly } from './ua-family'
 
 /** Only the official hosted demo build sets this — never self-host or previews. */
 const TELEMETRY_ENABLED = import.meta.env.VITE_XNET_TELEMETRY === 'on'
-/** First-party ingest base (0315), e.g. https://cloud.xnet.fyi. Unset → no client. */
+/** Vendor-cloud ingest fallback (0315), e.g. https://cloud.xnet.fyi. Unset → none. */
 const DIAGNOSTICS_URL = import.meta.env.VITE_DIAGNOSTICS_URL as string | undefined
+
+/**
+ * Where diagnostics go (exploration 0341): the deployment's OWN hub first —
+ * crash reports stay inside the user's trust domain, on every build, with no
+ * env vars. The vendor cloud ingest is only the fallback for the hosted demo
+ * running hubless, and only on official telemetry-enabled builds; self-host
+ * and PR-preview builds without a hub resolve to null and phone nothing home.
+ * Resolved per send, so connecting a hub in Settings takes effect live.
+ */
+function resolveIngestBase(): string | null {
+  const own = diagnosticsIngestBase()
+  if (own) return own
+  return TELEMETRY_ENABLED && DIAGNOSTICS_URL ? DIAGNOSTICS_URL : null
+}
 
 let collector: TelemetryCollector | null = null
 let diagnostics: DiagnosticsClient | null = null
@@ -56,16 +71,23 @@ export function getTelemetryCollector(): TelemetryCollector {
  * "Report a problem" flow, where the explicit send IS the consent.
  */
 export function getDiagnosticsClient(): DiagnosticsClient | null {
-  if (!TELEMETRY_ENABLED || !DIAGNOSTICS_URL) return null
+  if (resolveIngestBase() === null) return null
   if (!diagnostics) {
-    diagnostics = createDiagnosticsClient({ ingestUrl: DIAGNOSTICS_URL, consent })
+    // The resolver is passed through so the destination follows the connected
+    // hub — a hub set later in Settings redirects the very next send.
+    diagnostics = createDiagnosticsClient({ ingestUrl: resolveIngestBase, consent })
   }
   return diagnostics
 }
 
-/** Whether this build has a first-party diagnostics ingest configured (0315). */
+/** Whether this client currently has a first-party diagnostics destination. */
 export function isDiagnosticsConfigured(): boolean {
-  return TELEMETRY_ENABLED && Boolean(DIAGNOSTICS_URL)
+  return resolveIngestBase() !== null
+}
+
+/** Whether diagnostics go to this deployment's own hub (vs the vendor cloud). */
+export function isDiagnosticsLocalFirst(): boolean {
+  return diagnosticsIngestBase() !== null
 }
 
 /** Whether the app is running inside the desktop shell (preload bridge present). */
@@ -112,10 +134,12 @@ export function reportError(failure: BootFailure, error?: unknown): void {
 
 /**
  * Register the reporter as the boot-diagnostics sink. Call once, early in
- * `main.tsx`. A no-op (no sink registered) on non-hosted builds.
+ * `main.tsx`. Registered on telemetry-enabled builds (0210) and on any build
+ * with a connected hub (0341 — deployment-local capture to the user's own
+ * hub); a hubless self-host or PR-preview build still registers no sink.
  */
 export function initErrorReporter(): void {
-  if (!TELEMETRY_ENABLED) return
+  if (!TELEMETRY_ENABLED && !isDiagnosticsLocalFirst()) return
   onBootFailure(reportError)
 }
 

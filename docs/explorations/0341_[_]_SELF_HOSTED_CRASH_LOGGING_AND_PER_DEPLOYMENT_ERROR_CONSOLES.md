@@ -713,7 +713,7 @@ async function maybeTeeUpstream(record: DebugReportRecord) {
   public `/diagnostics/ingest` (rate-limited, 8 KB, CORS for app origin,
   `open|authed|off` flag), authed `/summary` + `/pending` + `/ack`;
   register in `server.ts`; changeset for `@xnetjs/hub` (minor).
-- [ ] **P2:** Client ingest resolution: connected hub first,
+- [x] **P2:** Client ingest resolution: connected hub first,
   `VITE_DIAGNOSTICS_URL` fallback; multi-hub pick-active-workspace rule;
   verify CSP `connect-src` covers hub origins in all builds.
 - [ ] **P2:** Drain UI: Diagnostics section (pending count, "Import

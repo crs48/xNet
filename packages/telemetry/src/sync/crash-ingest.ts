@@ -38,8 +38,13 @@ export interface DebugReport extends CrashPing {
 }
 
 export interface DiagnosticsClientOptions {
-  /** Ingest base URL, e.g. https://cloud.xnet.fyi (no trailing slash needed). */
-  ingestUrl: string
+  /**
+   * Ingest base URL, e.g. https://cloud.xnet.fyi (no trailing slash needed) —
+   * or a resolver, evaluated per send, so the destination can follow the
+   * connected hub ("reports go to YOUR deployment first", exploration 0341).
+   * A `null` resolution drops the send: no destination, no network call.
+   */
+  ingestUrl: string | (() => string | null)
   /** Gates the automatic lane; `submit` is deliberately not tier-gated. */
   consent: ConsentManager
   /** Override fetch (tests / non-browser runtimes). */
@@ -62,10 +67,15 @@ const MAX_QUEUED = 5
 
 export function createDiagnosticsClient(options: DiagnosticsClientOptions): DiagnosticsClient {
   const doFetch = options.fetchImpl ?? fetch
-  const base = options.ingestUrl.replace(/\/+$/, '')
+  const resolveBase = (): string | null => {
+    const raw = typeof options.ingestUrl === 'function' ? options.ingestUrl() : options.ingestUrl
+    return raw ? raw.replace(/\/+$/, '') : null
+  }
   const timeoutMs = options.timeoutMs ?? 10_000
 
-  const post = async (body: Record<string, unknown>): Promise<Response> => {
+  const post = async (body: Record<string, unknown>): Promise<Response | null> => {
+    const base = resolveBase()
+    if (base === null) return null
     const controller = new AbortController()
     const timer = setTimeout(() => controller.abort(), timeoutMs)
     try {
@@ -110,7 +120,7 @@ export function createDiagnosticsClient(options: DiagnosticsClientOptions): Diag
           lane: 'user',
           ...scrubTelemetryData({ ...report } as Record<string, unknown>)
         })
-        if (!res.ok) return null
+        if (!res?.ok) return null
         const json = (await res.json().catch(() => null)) as {
           id?: string
           shortId?: string

@@ -76,6 +76,22 @@ export function readHubParam(
   return { present: true, hub: normalizeHubUrl(raw) }
 }
 
+/**
+ * The first-party diagnostics ingest base for this deployment (0341): the
+ * connected hub's HTTP origin, or null when this client has no hub. Crash
+ * reports go to the deployment's OWN hub first — they never leave the user's
+ * trust domain unless the operator separately enables escalation. The client
+ * dials one hub today; when multi-home (0258) lands, this should resolve the
+ * hub serving the active workspace rather than the single persisted URL.
+ */
+export function diagnosticsIngestBase(): string | null {
+  const hub = configuredHubUrl()
+  if (!hub) return null
+  if (/^wss:\/\//i.test(hub)) return `https://${hub.slice(6)}`
+  if (/^ws:\/\//i.test(hub)) return `http://${hub.slice(5)}`
+  return null
+}
+
 /** Persist (or clear, when empty) the hub URL the client should dial. */
 export function setPersistedHubUrl(url: string): void {
   try {
