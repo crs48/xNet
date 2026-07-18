@@ -1,0 +1,19 @@
+{
+  "stories": [],
+  "routes": [
+    {
+      "id": "data",
+      "label": "Data",
+      "file": "routes/data.png"
+    },
+    {
+      "id": "discover",
+      "label": "Discover",
+      "file": "routes/discover.png"
+    }
+  ],
+  "flows": [],
+  "electron": [],
+  "fallbackUsed": false,
+  "unmappedFiles": []
+}
