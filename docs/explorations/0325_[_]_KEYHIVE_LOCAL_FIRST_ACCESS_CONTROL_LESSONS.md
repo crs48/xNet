@@ -592,6 +592,10 @@ function chunkLevel(changeHash: Uint8Array, base = 2): number {
 - [ ] **C2** Spec: sealed-Space chunk format (parents, ancestorKeys,
       wrappedKeys), signature over full structure, FS/full-history stance
       documented; wire into `packages/crypto/src/envelope.ts` lineage.
+      Build on the existing membership⇒key coupling: grant revocation
+      already rotates the per-node content key
+      (`packages/data/src/auth/store-auth.ts:283`, `rotateContentKey`) —
+      extend that to chunk keys rather than starting cold (0343 amendment).
 - [ ] **C2** `sealed: true` Space option; membership-change ⇒ key-set change
       driven by C1 state; hub stores/relays ciphertext blobs for sealed rooms
       without payload inspection (skip `mentions` parse at
@@ -604,8 +608,15 @@ function chunkLevel(changeHash: Uint8Array, base = 2): number {
       (`packages/hub/src/services/node-relay.ts`).
 - [ ] **C3** Multi-hub anti-entropy test: two hubs with divergent per-Space
       sets converge via digest diff, byte cost ∝ difference.
-- [ ] **C4** File follow-up exploration: device DIDs + key rotation + split
-      signing/encryption lineages, then BeeKEM-shaped CGKA (gated, do last).
+- [ ] **C4** File follow-up exploration: per-device *keypairs* with
+      independent lineage + split signing/encryption lineages, then
+      BeeKEM-shaped CGKA (gated, do last). Prerequisite narrowed by the
+      0343 amendment: account-ledger device records with monotonic epochs
+      already exist (`packages/data/src/schema/schemas/account-ledger-enforce.ts`)
+      and envelope recipients already expand DID → active devices
+      (`packages/data/src/auth/recipients.ts:35`) — what's missing is
+      per-device key material and the Ed25519/X25519 lineage split, not
+      device identity as such.
 - [ ] Set a reminder to re-review `inkandswitch/keyhive` + `automerge/beelay`
       + notebook 06+ (~2026-Q4): audit? threat model written? Beelay stable?
 
@@ -631,6 +642,29 @@ function chunkLevel(changeHash: Uint8Array, base = 2): number {
 - [ ] Golden vectors for the change kernel unchanged — none of C1–C3 bumps
       `CURRENT_PROTOCOL_VERSION` without the 0305-documented 4-kernel ripple
       being budgeted.
+
+## Addendum (2026-07-18, from exploration 0343)
+
+Exploration 0343 (`0343_[_]_XNET_AUTH_VS_KEYHIVE_COMPARISON.md`) re-verified
+this document's code claims four days on and found favorable drift — the
+recommendations stand, but two premises moved:
+
+- **C4's prerequisite is narrower than "no device identity."** The account
+  ledger now tracks devices and controllers with monotonic epochs, enforced
+  at both hub and client ingest (`account-ledger-enforce.ts:91`,
+  `store.ts:1843`), and recipients expand DID → active devices. The real
+  remaining gap for a CGKA is per-device keypairs with independent lineage
+  plus the signing/encryption seed split (checklist item updated in place).
+- **C2 has an existing key-consequence hook.** `StoreAuthManager.revoke`
+  already cascades child grants and rotates the per-node content key
+  (`store-auth.ts:283`) — the "membership change ⇒ key change" coupling this
+  doc asked for exists in per-node form; C2 should generalize it to chunks.
+- **Perimeter status (C0):** the 0307-B mechanisms (audience binding,
+  RevocationService, per-token nonce, trustedDids) and action-scoped client
+  minting have shipped; the remaining C0 items are the *resource*-wildcard
+  client capability scope + `authorize.ts:146` short-circuit, the envelope
+  signature over ciphertext, and wiring `authEvaluator` by default. See
+  0343 §"Current State" for the precise residue and 0335 for sequencing.
 
 ## References
 
