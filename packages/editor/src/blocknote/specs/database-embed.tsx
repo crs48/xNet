@@ -44,7 +44,9 @@ function DatabaseEmbedCard({
   }
 
   return (
-    <div data-database-embed={databaseId} className="xnet-database-embed">
+    // min-w-0: the BlockNote content wrapper is a flex row; without it the
+    // embed balloons to the grid's natural width and clips unreachably.
+    <div data-database-embed={databaseId} className="xnet-database-embed w-full min-w-0 max-w-full">
       {host.renderDatabaseView ? (
         host.renderDatabaseView({
           databaseId,
@@ -75,6 +77,12 @@ export const DatabaseEmbedBlockSpec = createReactBlockSpec(
         viewType={block.props.viewType}
         viewConfig={block.props.viewConfig}
       />
-    )
+    ),
+    // Deep-interactive NodeView (0346): without this, ProseMirror keeps
+    // node-selecting the block and re-grabbing focus, so grid clicks and
+    // keystrokes edit the DOCUMENT instead of the cell. selectable:false
+    // applies BlockNote's stopEvent-everything isolation; deletion still
+    // works through the side-menu drag handle.
+    meta: { selectable: false }
   }
 )

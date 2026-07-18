@@ -15,7 +15,7 @@ function PageEmbedCard({ nodeId, title }: { nodeId: string; title: string }): Re
 
   if (host.renderPageEmbed && nodeId) {
     return (
-      <div data-page-embed={nodeId} className="xnet-page-embed w-full">
+      <div data-page-embed={nodeId} className="xnet-page-embed w-full min-w-0 max-w-full">
         {host.renderPageEmbed({ nodeId, title })}
       </div>
     )
@@ -46,6 +46,8 @@ export const PageEmbedBlockSpec = createReactBlockSpec(
     content: 'none'
   },
   {
-    render: ({ block }) => <PageEmbedCard nodeId={block.props.nodeId} title={block.props.title} />
+    render: ({ block }) => <PageEmbedCard nodeId={block.props.nodeId} title={block.props.title} />,
+    // Interactive preview card (0346): same isolation as databaseEmbed.
+    meta: { selectable: false }
   }
 )
