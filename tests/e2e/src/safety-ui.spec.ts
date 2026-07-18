@@ -205,6 +205,9 @@ test.describe('Discovery + safety UI (0176)', () => {
     await page.goto(`${BASE}/welcome`)
     await expect(page.getByText(/Are you 18 or older/i)).toBeVisible()
     await page.getByRole('button', { name: /Yes, I'm 18\+/i }).click()
+    // The feel chooser (0352) sits between age confirmation and the content dial.
+    await expect(page.getByRole('heading', { name: /How should xNet feel/i })).toBeVisible()
+    await page.getByRole('button', { name: /Focused/i }).click()
     await expect(
       page.getByRole('heading', { name: /What content would you like to see/i })
     ).toBeVisible()
