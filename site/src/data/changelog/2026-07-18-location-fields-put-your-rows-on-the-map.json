@@ -1,0 +1,15 @@
+{
+  "id": "2026-07-18-location-fields-put-your-rows-on-the-map",
+  "date": "July 18, 2026",
+  "title": "Location fields put your rows on the map",
+  "summary": "Databases gain a first-class Location column type storing latitude and longitude in one cell.",
+  "highlights": [
+    "Add a Location column and the Map view binds to it automatically — no more paired lat/lng number columns",
+    "Right-click the map to create a row at that spot, with its location filled in",
+    "Paste \"lat, lng\" text straight into Location cells, and CSV import/export round-trips coordinates"
+  ],
+  "tags": [
+    "app"
+  ],
+  "pr": 541
+}
