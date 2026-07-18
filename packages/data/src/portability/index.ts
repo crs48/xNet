@@ -31,7 +31,7 @@ export {
   canonicalManifestBytes
 } from './serialize'
 export { writeBundle, blobEntryPath } from './write'
-export { verifyBundle } from './verify'
+export { verifyBundle, type VerifyBundleOptions } from './verify'
 export { applyBundle, readBundleManifest, BundleImportError } from './apply'
 export { MemoryBundleSink, MemoryBundleSource } from './memory-bundle'
 export { createStoreYjsPort } from './store-yjs-port'

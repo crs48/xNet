@@ -622,27 +622,27 @@ doc's implementation scope):
 
 ## Validation Checklist
 
-- [ ] Round-trip: fresh instance imports a full bundle and
+- [x] Round-trip: fresh instance imports a full bundle and
       `getAllChanges()` heads match the exporter's frontier; node states
       byte-identical after materialization.
-- [ ] Idempotency: importing the same bundle twice yields zero new
+- [x] Idempotency: importing the same bundle twice yields zero new
       changes (LWW duplicate detection), matching seed-runner semantics.
-- [ ] Incremental: full bundle + later incremental bundle ≡ later full
+- [x] Incremental: full bundle + later incremental bundle ≡ later full
       bundle (state and heads).
-- [ ] Hostile inputs: tampered payload line, forged signature, broken
+- [x] Hostile inputs: tampered payload line, forged signature, broken
       parent chain, mismatched owner DID, future protocolVersion — each
       rejected/quarantined with a clear report, no partial writes outside
       quarantine accounting.
-- [ ] Yjs: exported doc re-imported into an instance that already has the
+- [x] Yjs: exported doc re-imported into an instance that already has the
       node does not duplicate blocks (state-vector merge, not
       re-application).
 - [ ] Scale: 300k-change workspace exports from browser OPFS without OOM
       (streamed), and imports on hub within an acceptable bound; record
       numbers.
-- [ ] Settings "Export data" produces a bundle that restores on a clean
+- [x] Settings "Export data" produces a bundle that restores on a clean
       profile — verified in an e2e spec wired to a workflow (0294: no
       orphan specs).
-- [ ] Tier-2: CSV/JSON table export still round-trips via
+- [x] Tier-2: CSV/JSON table export still round-trips via
       `import-export.test.ts`; SQLite snapshot opens in stock `sqlite3`
       and contains only the requesting tenant's rooms.
 

@@ -67,6 +67,7 @@ import {
   verifyXnetpackFile
 } from '../lib/bundle-export'
 import { sign } from '@xnetjs/crypto'
+import { useXNetInternal } from '@xnetjs/react/internal'
 import { useReportBreadcrumbs } from '../lib/use-report-breadcrumbs'
 import {
   DEFAULT_SETTINGS_SECTION,
@@ -390,7 +391,8 @@ function ThemeButton({
 function DataSettings() {
   const { identity } = useIdentity()
   const { store: nodeStore } = useNodeStore()
-  const { getHubAuthToken } = useXNet()
+  const { getHubAuthToken, authorDID } = useXNet()
+  const { signingKey } = useXNetInternal()
   const [clearing, setClearing] = useState(false)
   const [cleared, setCleared] = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
@@ -399,11 +401,14 @@ function DataSettings() {
   const [importing, setImporting] = useState(false)
   const [importReport, setImportReport] = useState<string | null>(null)
 
-  /** Manifest signer backed by the unlocked identity key (0344). */
+  /**
+   * Manifest signer backed by the provider's in-memory signing key (0344) —
+   * the same key the store signs changes with, no unlock ceremony needed.
+   */
   const getSignBytes = useCallback(async () => {
-    const keyBundle = await identityManager.unlock()
-    return (bytes: Uint8Array) => sign(bytes, keyBundle.signingKey)
-  }, [])
+    if (!signingKey) return undefined
+    return (bytes: Uint8Array) => sign(bytes, signingKey)
+  }, [signingKey])
 
   // Charter §Exit: take everything and go — the signed .xnetpack change log
   // (the OPFS SQLite master, not the IndexedDB sidecars), portable identity,
@@ -412,11 +417,15 @@ function DataSettings() {
     setLeaving(true)
     try {
       const now = new Date().toISOString()
+      // authorDID (the provider's signing identity) — useIdentity() may not
+      // be hydrated on this route, and the bundle owner must match the key
+      // that signs it anyway.
+      const did = authorDID ?? identity?.did ?? undefined
       const bundle = await leaveWithEverything(
-        createLeavePorts({ did: identity?.did }, now, {
+        createLeavePorts({ did }, now, {
           ...LEAVE_DEPS,
           store: nodeStore,
-          signBytes: identity?.did ? await getSignBytes() : undefined
+          signBytes: did ? await getSignBytes() : undefined
         }),
         { now }
       )
@@ -426,19 +435,23 @@ function DataSettings() {
     } finally {
       setLeaving(false)
     }
-  }, [identity?.did, nodeStore, getSignBytes])
+  }, [authorDID, identity?.did, nodeStore, getSignBytes])
 
   // The real backup (0344): the signed change log + document states from the
   // OPFS SQLite master, zipped as one verifiable .xnetpack file.
+  const [exportReport, setExportReport] = useState<string | null>(null)
   const handleExportData = useCallback(async () => {
-    if (!nodeStore || !identity?.did) return
+    if (!nodeStore || !authorDID) return
     setExporting(true)
+    setExportReport(null)
     try {
       const signBytes = await getSignBytes()
-      const { bytes, filename } = await exportXnetpack(nodeStore, identity.did, signBytes)
+      const { bytes, filename, manifest } = await exportXnetpack(nodeStore, authorDID, signBytes)
       downloadBytes(filename, bytes)
+      setExportReport(`Exported ${manifest.counts.changes} change(s) as ${filename}`)
     } catch (err) {
       console.error('Failed to export data:', err)
+      setExportReport(err instanceof Error ? err.message : String(err))
     } finally {
       setExporting(false)
     }
@@ -448,7 +461,7 @@ function DataSettings() {
   // through the same apply path a sync peer uses. Dry-run report on failure.
   const handleImportFile = useCallback(
     async (file: File) => {
-      if (!nodeStore || !identity?.did) return
+      if (!nodeStore || !authorDID) return
       setImporting(true)
       setImportReport(null)
       try {
@@ -463,7 +476,7 @@ function DataSettings() {
           return
         }
         const result = await importXnetpackFile(nodeStore, bytes, {
-          importerDid: identity.did
+          importerDid: authorDID
         })
         const quarantineNote =
           result.quarantined.length > 0 ? `, ${result.quarantined.length} quarantined` : ''
@@ -537,14 +550,17 @@ function DataSettings() {
           label="Export data"
           description="Download your workspace as a signed .xnetpack bundle — the full change log with history and document contents, re-importable here or on any xNet"
         >
-          <button
-            onClick={handleExportData}
-            disabled={exporting || !nodeStore}
-            className={QUIET_BUTTON}
-          >
-            <Download size={14} strokeWidth={1.5} />
-            {exporting ? 'Exporting…' : 'Export'}
-          </button>
+          <div className="flex flex-col items-end gap-1">
+            <button
+              onClick={handleExportData}
+              disabled={exporting || !nodeStore || !authorDID}
+              className={QUIET_BUTTON}
+            >
+              <Download size={14} strokeWidth={1.5} />
+              {exporting ? 'Exporting…' : 'Export'}
+            </button>
+            {exportReport ? <span className="text-xs text-ink-3">{exportReport}</span> : null}
+          </div>
         </SettingRow>
 
         <SettingRow

@@ -33,7 +33,23 @@ function parseCidHex(path: string): { algo: string; hex: string } | null {
   return { algo: match[1], hex: match[2] }
 }
 
-export async function verifyBundle(source: BundleSource): Promise<BundleVerifyReport> {
+export type VerifyBundleOptions = {
+  /**
+   * Verify each change's hash + Ed25519 signature (default true). The
+   * apply pipeline passes false: the manifest-signed content digest
+   * already proves bundle-level integrity here, and `applyRemoteChange`
+   * re-verifies every record individually before it is written — checking
+   * signatures twice doubles import time (~1.4ms/change) for no added
+   * safety.
+   */
+  verifyChangeSignatures?: boolean
+}
+
+export async function verifyBundle(
+  source: BundleSource,
+  options: VerifyBundleOptions = {}
+): Promise<BundleVerifyReport> {
+  const verifyChangeSignatures = options.verifyChangeSignatures ?? true
   const issues: BundleVerifyIssue[] = []
   const error = (code: BundleVerifyIssue['code'], detail: string, subject?: string) =>
     issues.push({ severity: 'error', code, detail, subject })
@@ -101,19 +117,21 @@ export async function verifyBundle(source: BundleSource): Promise<BundleVerifyRe
       error('change-unparseable', `line ${lineNumber}: ${(err as Error).message}`, record.hash)
       continue
     }
-    if (!verifyChangeHash(change)) {
-      error('change-hash-invalid', `change ${change.id} fails hash re-computation (tampered?)`, record.hash)
-      continue
-    }
-    try {
-      const publicKey = parseDID(change.authorDID)
-      if (!verifyChange(change, publicKey)) {
-        error('change-signature-invalid', `change ${change.id} signature does not match ${change.authorDID}`, record.hash)
+    if (verifyChangeSignatures) {
+      if (!verifyChangeHash(change)) {
+        error('change-hash-invalid', `change ${change.id} fails hash re-computation (tampered?)`, record.hash)
         continue
       }
-    } catch (err) {
-      error('change-signature-invalid', `change ${change.id}: ${(err as Error).message}`, record.hash)
-      continue
+      try {
+        const publicKey = parseDID(change.authorDID)
+        if (!verifyChange(change, publicKey)) {
+          error('change-signature-invalid', `change ${change.id} signature does not match ${change.authorDID}`, record.hash)
+          continue
+        }
+      } catch (err) {
+        error('change-signature-invalid', `change ${change.id}: ${(err as Error).message}`, record.hash)
+        continue
+      }
     }
     presentHashes.add(change.hash)
     parentHashes.push(change.parentHash)

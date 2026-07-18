@@ -45,8 +45,12 @@ export async function applyBundle(
   source: BundleSource,
   options: ApplyBundleOptions
 ): Promise<BundleApplyReport> {
-  // ── Gates: verify everything before writing anything ─────────────────────
-  const verifyReport = await verifyBundle(source)
+  // ── Gates: verify bundle-level integrity before writing anything ─────────
+  // Per-change signatures are deliberately NOT verified here: the
+  // manifest-signed content digest covers every line, and the apply path
+  // below re-verifies each record (hash + signature + ledger + authz)
+  // before it is written — see VerifyBundleOptions.
+  const verifyReport = await verifyBundle(source, { verifyChangeSignatures: false })
   if (!verifyReport.ok || !verifyReport.manifest) {
     const details = verifyReport.issues
       .filter((i) => i.severity === 'error')
