@@ -27,19 +27,41 @@ import { useGridDatabase, useIdentity, useNode } from '@xnetjs/react'
 import { CommentPopover, type CommentThreadData } from '@xnetjs/ui'
 import {
   type CellPresence,
+  type DatabaseViewConfig,
+  type DatabaseViewRow,
   type GridField,
+  EMPTY_VIEW_CONFIG,
   FieldConfigEditor,
   FormView,
   GridPeek,
   GridSkeleton,
   GridSurface,
   GridToolbar,
-  useDatabaseComments
+  ViewOptionsBar,
+  ViewRenderer,
+  registerBuiltinViews,
+  useDatabaseComments,
+  viewRegistry
 } from '@xnetjs/views'
 import { Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PresenceAvatars } from './PresenceAvatars'
 import { ShareButton } from './ShareButton'
+
+// Built-in board/gallery/calendar/timeline/list/map views (exploration
+// 0337) register once through the plugin door. Guarded for HMR.
+if (!viewRegistry.has('board')) registerBuiltinViews()
+
+const ADD_VIEW_TYPES = [
+  { type: 'table' as const, label: 'Table' },
+  { type: 'board' as const, label: 'Board' },
+  { type: 'gallery' as const, label: 'Gallery' },
+  { type: 'calendar' as const, label: 'Calendar' },
+  { type: 'timeline' as const, label: 'Timeline' },
+  { type: 'list' as const, label: 'List' },
+  { type: 'map' as const, label: 'Map' },
+  { type: 'form' as const, label: 'Form' }
+]
 
 interface DatabaseViewProps {
   docId: string
@@ -340,6 +362,48 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
 
   const activeView = grid.activeView
 
+  // ─── Registry views (board/gallery/calendar/timeline/list/map — 0337) ────
+  const allFields: GridField[] = useMemo(
+    () =>
+      grid.fields.map((f) => ({
+        id: f.id,
+        name: f.name,
+        type: f.type,
+        config: f.config as Record<string, unknown>,
+        width: f.width,
+        isTitle: f.isTitle,
+        options: f.options
+      })),
+    [grid.fields]
+  )
+  const viewRows: DatabaseViewRow[] = useMemo(
+    () => grid.rows.map((r) => ({ id: r.id, sortKey: r.sortKey, cells: r.cells })),
+    [grid.rows]
+  )
+  const viewConfig: DatabaseViewConfig = useMemo(
+    () =>
+      activeView
+        ? {
+            groupBy: activeView.groupBy,
+            collapsedGroups: activeView.collapsedGroups,
+            groupMeta: activeView.groupMeta,
+            coverField: activeView.coverField,
+            cardSize: (activeView.cardSize as DatabaseViewConfig['cardSize']) ?? null,
+            coverFit: (activeView.coverFit as DatabaseViewConfig['coverFit']) ?? null,
+            colorBy: activeView.colorBy,
+            dateField: activeView.dateField,
+            endDateField: activeView.endDateField,
+            latField: activeView.latField,
+            lngField: activeView.lngField,
+            mapViewport: activeView.mapViewport
+          }
+        : EMPTY_VIEW_CONFIG,
+    [activeView]
+  )
+  const registryViewType =
+    activeView && activeView.type !== 'table' && activeView.type !== 'form' ? activeView.type : null
+  const registration = registryViewType ? viewRegistry.get(registryViewType) : undefined
+
   if (nodeLoading || grid.loading) {
     return <GridSkeleton className="-m-6" />
   }
@@ -367,13 +431,11 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
         views={grid.views.map((v) => ({ id: v.id, name: v.name, type: v.type }))}
         activeViewId={activeView?.id}
         onSelectView={setActiveViewId}
-        addViewTypes={[
-          { type: 'table', label: 'Table' },
-          { type: 'form', label: 'Form' }
-        ]}
+        addViewTypes={ADD_VIEW_TYPES}
         onAddViewOfType={(type) => {
           void (async () => {
-            const name = type === 'form' ? 'Form' : `View ${grid.views.length + 1}`
+            const label = ADD_VIEW_TYPES.find((t) => t.type === type)?.label
+            const name = label ?? `View ${grid.views.length + 1}`
             const id = await grid.addView(name, type)
             if (id) setActiveViewId(id)
           })()
@@ -450,6 +512,71 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
           onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
           className="flex-1"
         />
+      ) : registryViewType && registration ? (
+        <div className="flex-1 flex overflow-hidden">
+          <div className="flex-1 flex flex-col overflow-hidden">
+            <ViewOptionsBar
+              configFields={registration.configFields ?? []}
+              fields={allFields}
+              config={viewConfig}
+              onPatchConfig={(patch) => {
+                void grid.setViewConfig(patch)
+              }}
+            />
+            <div className="flex-1 overflow-hidden">
+              <ViewRenderer
+                type={registryViewType}
+                fields={allFields}
+                visibleFields={gridFields}
+                rows={viewRows}
+                window={grid.rowWindow}
+                config={viewConfig}
+                sorted={(activeView?.sorts.length ?? 0) > 0}
+                onPatchConfig={(patch) => {
+                  void grid.setViewConfig(patch)
+                }}
+                onUpdateCell={(rowId, fieldId, value) => {
+                  void grid.updateCell(rowId, fieldId, value)
+                }}
+                onMoveCard={(rowId, cells, opts) => {
+                  void grid.updateRowCells(rowId, cells, opts)
+                }}
+                onToggleGroupCollapsed={(groupKey, collapsed) => {
+                  void grid.setGroupCollapsed(groupKey, collapsed)
+                }}
+                onOpenRow={setPeekRowId}
+                onCreateRow={(cells) => {
+                  void grid.addRow(undefined, cells)
+                }}
+                onCreateOption={grid.createOption}
+                onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
+              />
+            </div>
+          </div>
+
+          {peekRow && (
+            <div className="w-[420px] shrink-0">
+              <GridPeek
+                row={{ id: peekRow.id, cells: peekRow.cells }}
+                fields={allFields}
+                onClose={() => setPeekRowId(null)}
+                onUpdateCell={(rowId, fieldId, value) => {
+                  void grid.updateCell(rowId, fieldId, value)
+                }}
+                onDeleteRow={(rowId) => {
+                  void grid.deleteRows([rowId])
+                }}
+                onCreateOption={grid.createOption}
+                onUploadFile={blobService ? handleUploadFile : undefined}
+                onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
+              >
+                <div className="text-xs text-gray-500">
+                  {comments.rowCommentCounts.get(peekRow.id) ?? 0} comments on this row
+                </div>
+              </GridPeek>
+            </div>
+          )}
+        </div>
       ) : (
         <div className="flex-1 flex overflow-hidden">
           <div className="flex-1 overflow-hidden">

@@ -35,6 +35,15 @@
       "port": 5199
     },
     {
+      "name": "web-0337 (vite 5205)",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "cd apps/web && exec /Users/crs/.nvm/versions/node/v23.11.1/bin/node node_modules/vite/bin/vite.js --port 5205 --strictPort"
+      ],
+      "port": 5205
+    },
+    {
       "name": "demos (vite 5207)",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "xnet-demos", "dev", "--port", "5207", "--strictPort"],
