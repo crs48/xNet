@@ -18,6 +18,7 @@ import WeightsArt from '../../components/blog/WeightsArt.astro'
 import BrickArt from '../../components/blog/BrickArt.astro'
 import DisguiseArt from '../../components/blog/DisguiseArt.astro'
 import RingsArt from '../../components/blog/RingsArt.astro'
+import PalimpsestArt from '../../components/blog/PalimpsestArt.astro'
 import Byline from '../../components/blog/Byline.astro'
 import { publishedPosts, formatPostDate } from '../../data/blog'
 
@@ -26,6 +27,7 @@ const posts = publishedPosts()
 // Each post's art-directed hero art doubles as its preview-card header image, so
 // the same inline SVG is single-sourced from the hero's *Art.astro component.
 const heroArt: Record<string, typeof PirateArt> = {
+  palimpsest: PalimpsestArt,
   'tree-rings': RingsArt,
   'people-in-disguise': DisguiseArt,
   'clutch-power': BrickArt,
