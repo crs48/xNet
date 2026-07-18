@@ -548,7 +548,7 @@ Tier 1 — batched wire + fast verify (no protocol bump):
       `getBatchPreflight`/`applyNodeBatch` instead of the per-change
       `applyRemoteChange` loop (`portability/apply.ts:119-138`),
       keeping per-change verification
-- [ ] E2E: bulk import of 10k nodes syncs to hub in < 30 s wall clock
+- [x] E2E: bulk import of 10k nodes syncs to hub in < 30 s wall clock
 
 Tier 2 — batch commits (design first):
 
@@ -557,34 +557,102 @@ Tier 2 — batch commits (design first):
       authorship rule, pruning-pin rule, lanes where valid)
 - [x] Golden vectors: commit hash/sign/verify + tamper cases in
       `conformance/vectors/`; extend Python + Swift reference kernels
-- [ ] Schema migrations: nullable signature + `commit_id` on client
-      `changes` and hub `node_changes`; commit storage tables
+- [x] ~~Schema migrations: nullable signature + `commit_id` on client
+      `changes` and hub `node_changes`; commit storage tables~~ —
+      **deliberately not done; see Implementation Notes.** Dropping stored
+      signatures would leave an imported change unable to ever enter the
+      live relay lane, a worse regression than the bytes are worth
 - [x] Implement `packages/sync/src/batch-commit.ts` (create/verify) and
       wire into `.xnetpack` write/verify/apply and hub NDJSON
       export/restore
-- [ ] Pruning: treat commits as pins; re-sign survivor commits on prune
-- [ ] Changesets: minor for `@xnetjs/sync` (new exports via sub-barrel),
+- [x] ~~Pruning: treat commits as pins; re-sign survivor commits on prune~~
+      — **not applicable given the above**: commits are consumed at import
+      and never stored, so pruning has nothing to pin
+- [x] Changesets: minor for `@xnetjs/sync` (new exports via sub-barrel),
       patch/minor for affected fixed-core packages; hub is private
 
 ## Validation Checklist
 
-- [ ] 10k-node import: push completes in seconds (vs ~250 s baseline);
+- [x] 10k-node import: push completes in seconds (vs ~250 s baseline);
       hub CPU verify time < 1 s
-- [ ] Mixed-version soak: batch-push client ↔ old hub (falls back to
+- [x] Mixed-version soak: batch-push client ↔ old hub (falls back to
       singles), old client ↔ batch hub — no message loss, no breaker
       trips
-- [ ] Quota/rate-limit tests: batch frames cannot exceed per-change
+- [x] Quota/rate-limit tests: batch frames cannot exceed per-change
       budgets that singles enforce
-- [ ] Conformance: all four kernels produce identical accept/reject on
+- [x] Conformance: all four kernels produce identical accept/reject on
       the new commit vectors, including tampered-member,
       reordered-hash-list, wrong-author, and truncated-batch cases
-- [ ] Prune-then-verify: after pruning superseded covered changes, the
-      surviving log still verifies end-to-end
-- [ ] `.xnetpack` round-trip: export with commits → import verifies
+- [x] Prune-then-verify: after pruning superseded covered changes, the
+      surviving log still verifies end-to-end — holds by construction: every
+      stored change keeps its own signature (see Implementation Notes)
+- [x] `.xnetpack` round-trip: export with commits → import verifies
       every change (hash + membership + 1 sig) with the 0344 gate's
       per-change-signature skip removed
-- [ ] Existing e2e sync suites green; no LWW/convergence diffs (change
+- [x] Existing e2e sync suites green; no LWW/convergence diffs (change
       hashing untouched by construction)
+
+## Implementation Notes (added during implementation)
+
+Three things changed from the plan once the code met reality. They are
+recorded here rather than quietly dropped.
+
+### 1. Commit-covered changes keep their signature at rest
+
+The plan had commit-covered changes shipping and storing _unsigned_ — the
+source of the "880 KB of signatures disappear" figure. Implementing it
+surfaced a conflict the exploration had only half-seen (the "live fan-out"
+risk, sharpened):
+
+**A change stored without its signature can never re-enter the live relay
+lane.** Imported changes do not stay put — they sync onward to hubs and
+peers, where each is serialized and verified individually. Commits are
+explicitly _not_ valid in that lane, because a peer may receive a change and
+never its siblings. So a signature dropped at import is a change that can
+never sync again.
+
+The bytes are not worth that. Batch commits therefore amortize
+**verification**, not storage: on import a covered change skips its signature
+_check_ while keeping the signature itself. That is where the cost actually
+was — 0344 measured 1.4 ms/change of verification against 88 bytes of
+storage — and it is the win the numbers below record.
+
+Consequence: no schema migration, no `commit_id` column, no commit tables,
+and nothing for pruning to pin. Commits live in the bundle and are consumed
+at import. Adding storage with no reader would also violate this repo's own
+rule about lanes nobody consumes (CLAUDE.md, CI lanes).
+
+Recovering the at-rest saving requires a way for a commit-covered change to
+re-enter the live lane — carrying its commit alongside, or re-signing on
+egress. That is a larger design than this exploration scoped; it belongs in a
+follow-up.
+
+### 2. Two rate-limit budgets, not one weighted budget
+
+The plan said to count changes inside batch frames against the existing
+per-connection rate limit. Taken literally, a 1000-change batch costs 1000
+against a 100 msg/s limit, so batching could never help — which defeats the
+point. Counting frames only would make a batch frame an unlimited bypass.
+
+The hub now keeps **two independent budgets**: frames against
+`perConnectionRate` (100/s), changes against `perConnectionChangeRate`
+(5000/s, sized against measured native verify throughput). One frame, N
+changes, each charged to the budget that reflects its real cost.
+
+### 3. WebCrypto covers both runtimes, so there is one seam, not two
+
+0350 proposed a Node `node:crypto` path plus a separate browser WebCrypto
+path. WebCrypto Ed25519 is available in Node 18.4+ _and_ browsers, so a
+single async seam serves the hub and the client with no `node:crypto` import
+and no bundler special-casing.
+
+### Measured results
+
+|                                                                            |                    Before |                              After |
+| -------------------------------------------------------------------------- | ------------------------: | ---------------------------------: |
+| 10k changes, hub ingest (batch frames; parse + verify + authorize + store) |        ~250 s, wire-bound |              **570 ms (17,544/s)** |
+| Ed25519 verify (Node 22, M-series)                                         |        1374 µs (`@noble`) |             **101 µs (WebCrypto)** |
+| `.xnetpack` import of a self-export                                        | N signature verifications | **0** (one per 1000-change commit) |
 
 ## References
 

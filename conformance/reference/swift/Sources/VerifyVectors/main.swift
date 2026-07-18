@@ -93,5 +93,40 @@ for (name, v) in loadVectors("change") {
           XNetKernel.verifyChange(unsigned, signature: resigned, publicKey: pub))
 }
 
+print("L1 · batch commit (one signature over many changes)")
+for (name, v) in loadVectors("batch-commit") {
+    let input = v["input"] as! [String: Any]
+    let expected = v["expected"] as! [String: Any]
+
+    if name.hasPrefix("0001") {
+        let seed = hexToBytes(input["authorSeedHex"] as! String)
+        let unsigned = input["unsignedCommit"] as! [String: Any]
+        let pub = try XNetKernel.publicKey(fromSeed: seed)
+        let sig = [UInt8](Data(base64Encoded: expected["signatureBase64"] as! String)!)
+
+        check("batch-commit/\(name) canonical",
+              XNetKernel.canonicalJSON(unsigned) == (expected["canonicalJson"] as! String))
+        let root = XNetKernel.batchRoot(unsigned["changeHashes"] as! [String])
+        check("batch-commit/\(name) root", root == (expected["root"] as! String), "got \(root)")
+        let hash = XNetKernel.batchCommitHash(unsigned)
+        check("batch-commit/\(name) hash", hash == (expected["hash"] as! String), "got \(hash)")
+        // Verify the TypeScript-produced commit signature — one signature
+        // standing in for every member change.
+        check("batch-commit/\(name) verify",
+              XNetKernel.verifyBatchCommit(unsigned, signature: sig, publicKey: pub))
+    } else if name.hasPrefix("0002") {
+        let forward = XNetKernel.batchRoot(input["changeHashes"] as! [String])
+        let reverse = XNetKernel.batchRoot(input["reversedChangeHashes"] as! [String])
+        check("batch-commit/\(name) root", forward == (expected["root"] as! String))
+        check("batch-commit/\(name) reversed", reverse == (expected["reversedRoot"] as! String))
+        // The whole point: order changes the commitment.
+        check("batch-commit/\(name) order-sensitive", forward != reverse)
+    } else if name.hasPrefix("0003") {
+        let edited = XNetKernel.batchRoot(input["editedChangeHashes"] as! [String])
+        check("batch-commit/\(name) forged root",
+              edited == (expected["forgedCommitRoot"] as! String))
+    }
+}
+
 print("\n\(passed) passed, \(failed) failed")
 exit(failed == 0 ? 0 : 1)

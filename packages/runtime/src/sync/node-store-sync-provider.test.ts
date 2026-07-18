@@ -99,6 +99,88 @@ describe('NodeStoreSyncProvider', () => {
   beforeEach(() => vi.useFakeTimers())
   afterEach(() => vi.useRealTimers())
 
+  describe('batched push negotiation (0357)', () => {
+    const HANDSHAKE_WITH_BATCH = {
+      type: 'handshake',
+      features: ['node-changes', 'yjs-updates', 'batch-changes', 'batch-push']
+    }
+    const HANDSHAKE_WITHOUT_BATCH = {
+      type: 'handshake',
+      features: ['node-changes', 'yjs-updates', 'batch-changes']
+    }
+
+    it('falls back to one frame per change against a hub without batch-push', async () => {
+      const changes = Array.from({ length: 5 }, (_, index) => makeChange(index + 1))
+      const { store } = makeStore({ changes })
+      const { conn, injectMessage } = makeConnection('connected')
+
+      const provider = new NodeStoreSyncProvider(store, 'room-old-hub')
+      provider.attach(conn)
+      injectMessage(HANDSHAKE_WITHOUT_BATCH)
+      await vi.advanceTimersByTimeAsync(SYNC_RESPONSE_TIMEOUT_MS + 10)
+
+      const published = (conn.publish as ReturnType<typeof vi.fn>).mock.calls
+      const batchFrames = published.filter(
+        ([, data]) => (data as { type?: string }).type === 'node-change-batch'
+      )
+      const singleFrames = published.filter(
+        ([, data]) => (data as { type?: string }).type === 'node-change'
+      )
+
+      // An older hub must never see a batch frame.
+      expect(batchFrames).toHaveLength(0)
+      expect(singleFrames).toHaveLength(5)
+    })
+
+    it('packs changes into one frame when the hub advertises batch-push', async () => {
+      const changes = Array.from({ length: 120 }, (_, index) => makeChange(index + 1))
+      const { store } = makeStore({ changes })
+      const { conn, injectMessage } = makeConnection('connected')
+
+      const provider = new NodeStoreSyncProvider(store, 'room-new-hub')
+      provider.attach(conn)
+      injectMessage(HANDSHAKE_WITH_BATCH)
+      await vi.advanceTimersByTimeAsync(SYNC_RESPONSE_TIMEOUT_MS + 10)
+
+      const published = (conn.publish as ReturnType<typeof vi.fn>).mock.calls
+      const batchFrames = published.filter(
+        ([, data]) => (data as { type?: string }).type === 'node-change-batch'
+      )
+
+      // 120 changes that would have cost 120 frames (and, past the 40/s
+      // throttle, three windows) now cost a single frame.
+      expect(batchFrames).toHaveLength(1)
+      const carried = (batchFrames[0][1] as { changes: unknown[] }).changes
+      expect(carried).toHaveLength(120)
+      expect(
+        published.filter(([, data]) => (data as { type?: string }).type === 'node-change')
+      ).toHaveLength(0)
+    })
+
+    it('re-negotiates after a reconnect', async () => {
+      const { store, emit } = makeStore()
+      const { conn, injectMessage, setStatus } = makeConnection('connected')
+
+      const provider = new NodeStoreSyncProvider(store, 'room-reconnect')
+      provider.attach(conn)
+      injectMessage(HANDSHAKE_WITH_BATCH)
+      await vi.advanceTimersByTimeAsync(SYNC_RESPONSE_TIMEOUT_MS + 10)
+      ;(conn.publish as ReturnType<typeof vi.fn>).mockClear()
+
+      // Drop and come back on a hub that does NOT support batching.
+      setStatus('disconnected')
+      setStatus('connected')
+      injectMessage(HANDSHAKE_WITHOUT_BATCH)
+      emit({ change: makeChange(900), isRemote: false })
+      await vi.advanceTimersByTimeAsync(SYNC_RESPONSE_TIMEOUT_MS + 10)
+
+      const published = (conn.publish as ReturnType<typeof vi.fn>).mock.calls
+      expect(
+        published.filter(([, data]) => (data as { type?: string }).type === 'node-change-batch')
+      ).toHaveLength(0)
+    })
+  })
+
   describe('subscribe-only share rooms (0298)', () => {
     it('never publishes local changes into a share room (hub owns fan-out)', async () => {
       const { store, emit } = makeStore()
