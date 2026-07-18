@@ -517,15 +517,18 @@ Phase 5 — Map
 - [x] Map view on `maplibre-gl` with `cluster: true`; `latField`/`lngField`
       binding; viewport-bounded fetch via `QuerySpatialFilter`; persisted
       `mapViewport`; record cap + clustering.
-- [ ] Tile story: OpenFreeMap default + PMTiles self-host path; add tile host
+- [x] Tile story: OpenFreeMap default + PMTiles self-host path; add tile host
       to web CSP (`connect-src`/`img-src`/`worker-src`).
-- [ ] Follow-up: first-class `geo` property type + right-click-to-create.
+- [x] Right-click-to-create at a map location (NocoDB parity); first-class
+      `geo` property type stays the recorded fast-follow (Map sub-decision
+      B — view config already names `latField`/`lngField` explicitly, so it
+      slots in without view-config migration).
 
 Cross-cutting
-- [ ] Delete legacy `ViewProps`/`ViewConfig` path + legacy `TableView` as
+- [x] Delete legacy `ViewProps`/`ViewConfig` path + legacy `TableView` as
       each port lands (major-bump review if anything was root-barrel
       exported).
-- [ ] Seed: extend `seed/seeders/work.ts`/`crm.ts` so demo workspace shows a
+- [x] Seed: extend `seed/seeders/work.ts`/`crm.ts` so demo workspace shows a
       board (tasks by status, deals by stage), calendar (due dates), roadmap
       (project date ranges), gallery (file covers), map (lat/lng rows).
 - [x] Mobile: compact fallback to List view via `useIsCompact()`.

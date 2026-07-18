@@ -72,6 +72,11 @@ export { GalleryView } from './GalleryView.js'
 export { CalendarView } from './CalendarView.js'
 export { TimelineView } from './TimelineView.js'
 export { ListView } from './ListView.js'
-export { DatabaseMapView } from './DatabaseMapView.js'
+export {
+  DatabaseMapView,
+  OPENFREEMAP_LIBERTY_STYLE,
+  configureDatabaseMapTiles,
+  type DatabaseMapTiles
+} from './DatabaseMapView.js'
 export { ViewOptionsBar, type ViewOptionsBarProps } from './ViewOptionsBar.js'
 export { FieldValueChip, WindowFootnote, firstFileRef, useFileUrl } from './card-bits.js'

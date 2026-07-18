@@ -15,7 +15,7 @@
  */
 
 import type { MapViewport } from '@xnetjs/data'
-import { basemapUsesPmtiles, resolveBasemapStyle } from '@xnetjs/maps'
+import { resolveBasemapStyle } from '@xnetjs/maps'
 import { cn } from '@xnetjs/ui'
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { WindowFootnote } from './card-bits.js'
@@ -26,6 +26,46 @@ type MlMap = import('maplibre-gl').Map
 
 const SOURCE_ID = 'xnet-db-rows'
 const BASEMAP = 'protomaps-light' as const
+
+/**
+ * Hosted default: OpenFreeMap's Liberty style — key-less, no
+ * registration, full labels. Requires `https://tiles.openfreemap.org`
+ * in the app CSP (connect-src).
+ */
+export const OPENFREEMAP_LIBERTY_STYLE = 'https://tiles.openfreemap.org/styles/liberty'
+
+/** Tile configuration for the database Map view (exploration 0337). */
+export interface DatabaseMapTiles {
+  /**
+   * Self-hosted Protomaps PMTiles archive URL — ONE static file served
+   * from your own origin (offline/local-first path). When set, it wins
+   * over `styleUrl`.
+   */
+  pmtilesUrl?: string
+  /** Hosted MapLibre style JSON URL (default: OpenFreeMap Liberty). */
+  styleUrl?: string
+}
+
+let tiles: DatabaseMapTiles = {}
+
+/**
+ * Configure basemap tiles app-wide (call once at startup). Self-hosted
+ * deployments point `pmtilesUrl` at their own archive; the default is
+ * the key-less OpenFreeMap style.
+ */
+export function configureDatabaseMapTiles(config: DatabaseMapTiles): void {
+  tiles = config
+}
+
+function resolveMapStyle(): { style: unknown; needsPmtiles: boolean } {
+  if (tiles.pmtilesUrl) {
+    return {
+      style: resolveBasemapStyle(BASEMAP, { pmtilesUrl: tiles.pmtilesUrl }),
+      needsPmtiles: true
+    }
+  }
+  return { style: tiles.styleUrl ?? OPENFREEMAP_LIBERTY_STYLE, needsPmtiles: false }
+}
 
 let pmtilesRegistered = false
 
@@ -92,6 +132,7 @@ export function DatabaseMapView(props: DatabaseViewProps): React.JSX.Element {
     className,
     onPatchConfig,
     onOpenRow,
+    onCreateRow,
     onBoundsChange
   } = props
 
@@ -115,6 +156,10 @@ export function DatabaseMapView(props: DatabaseViewProps): React.JSX.Element {
   patchConfigRef.current = onPatchConfig
   const boundsChangeRef = useRef(onBoundsChange)
   boundsChangeRef.current = onBoundsChange
+  const createRowRef = useRef(onCreateRow)
+  createRowRef.current = onCreateRow
+  const geoFieldIdsRef = useRef<{ lat: string; lng: string } | null>(null)
+  geoFieldIdsRef.current = latField && lngField ? { lat: latField.id, lng: lngField.id } : null
   const initialViewportRef = useRef<MapViewport>(
     config.mapViewport ?? defaultViewportFor(points.geojson)
   )
@@ -130,12 +175,13 @@ export function DatabaseMapView(props: DatabaseViewProps): React.JSX.Element {
     void (async () => {
       try {
         const maplibre = await import('maplibre-gl')
-        if (basemapUsesPmtiles(BASEMAP)) await registerPmtiles()
+        const { style, needsPmtiles } = resolveMapStyle()
+        if (needsPmtiles) await registerPmtiles()
         if (disposed || !containerRef.current) return
         const viewport = initialViewportRef.current
         map = new maplibre.Map({
           container: containerRef.current,
-          style: resolveBasemapStyle(BASEMAP) as never,
+          style: style as never,
           center: [viewport.longitude, viewport.latitude],
           zoom: viewport.zoom,
           attributionControl: { compact: true }
@@ -154,6 +200,16 @@ export function DatabaseMapView(props: DatabaseViewProps): React.JSX.Element {
         map.on('click', `${SOURCE_ID}-pins`, (e) => {
           const rowId = e.features?.[0]?.properties?.rowId
           if (typeof rowId === 'string') openRowRef.current?.(rowId)
+        })
+        // Right-click → create a row at that location (NocoDB parity)
+        map.on('contextmenu', (e) => {
+          const geo = geoFieldIdsRef.current
+          if (!geo || !createRowRef.current) return
+          e.preventDefault()
+          createRowRef.current({
+            [geo.lat]: Number(e.lngLat.lat.toFixed(6)),
+            [geo.lng]: Number(e.lngLat.lng.toFixed(6))
+          })
         })
         map.on('mouseenter', `${SOURCE_ID}-pins`, () => {
           if (map) map.getCanvas().style.cursor = 'pointer'

@@ -56,6 +56,8 @@ export {
   BoardView,
   CalendarView,
   DatabaseMapView,
+  OPENFREEMAP_LIBERTY_STYLE,
+  configureDatabaseMapTiles,
   GalleryView,
   ListView,
   TimelineView,
