@@ -35,6 +35,15 @@
       "port": 5199
     },
     {
+      "name": "web-0344 (vite 5211)",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "cd apps/web && exec /Users/crs/.nvm/versions/node/v22.16.0/bin/node node_modules/vite/bin/vite.js --port 5211 --strictPort --host 127.0.0.1"
+      ],
+      "port": 5211
+    },
+    {
       "name": "web-0337 (vite 5205)",
       "runtimeExecutable": "/bin/sh",
       "runtimeArgs": [

@@ -1247,6 +1247,9 @@ export const createSQLiteStorage = (
     clearNodeChanges: db.prepare(`
       DELETE FROM node_changes WHERE room = ?
     `),
+    deleteNodeChangesByAuthor: db.prepare(`
+      DELETE FROM node_changes WHERE author_did = ?
+    `),
     // Database row statements
     insertDatabaseRow: db.prepare(`
       INSERT INTO database_rows
@@ -2249,6 +2252,11 @@ export const createSQLiteStorage = (
     return info.changes
   }
 
+  const deleteNodeChangesByAuthor = async (authorDid: string): Promise<number> => {
+    const info = stmts.deleteNodeChangesByAuthor.run(authorDid)
+    return info.changes
+  }
+
   const getUsageBytesByDid = async (did: string): Promise<number> => {
     const row = stmts.getUsageBytesByDid.get(did) as { bytes: number } | undefined
     return row?.bytes ?? 0
@@ -2707,6 +2715,7 @@ export const createSQLiteStorage = (
     getNodeChangesByAuthor,
     getHighWaterMark,
     clearNodeChanges,
+    deleteNodeChangesByAuthor,
     updateSearchBody: async (docId: string, text: string): Promise<void> => {
       const updateFn = db.transaction(() => {
         stmts.updateSearchBody.run(docId)

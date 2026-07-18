@@ -10,14 +10,23 @@
  * self-contained; the same pattern works for any app schema.
  */
 import type { DID } from '@xnetjs/core'
-import type { NodeState, NodeStorageAdapter } from '@xnetjs/data'
+import type { BundleScope, BundleVerifyReport, NodeState, NodeStorageAdapter } from '@xnetjs/data'
 import type { XNetClient } from '@xnetjs/runtime'
 import type { Command } from 'commander'
-import { generateSigningKeyPair, getSigningPublicKeyFromPrivate } from '@xnetjs/crypto'
-import { defineSchema, SQLiteNodeStorageAdapter, text } from '@xnetjs/data'
+import { generateSigningKeyPair, getSigningPublicKeyFromPrivate, sign } from '@xnetjs/crypto'
+import {
+  applyBundle,
+  defineSchema,
+  SQLiteNodeStorageAdapter,
+  text,
+  verifyBundle,
+  writeBundle
+} from '@xnetjs/data'
 import { createDID } from '@xnetjs/identity'
 import { createXNetClient } from '@xnetjs/runtime'
 import chalk from 'chalk'
+import { resolve } from 'node:path'
+import { FsBundleSink, FsBundleSource } from '../utils/fs-bundle.js'
 
 /** Built-in demonstration schema. Replace with your app's schemas in real use. */
 export const NoteSchema = defineSchema({
@@ -86,6 +95,37 @@ export async function runListNotes(client: XNetClient): Promise<NodeState[]> {
   return client.fetch(NoteSchema)
 }
 
+function parseScope(opts: { space?: string; schema?: string[]; node?: string[] }): BundleScope {
+  if (opts.space) return { kind: 'space', spaceId: opts.space }
+  if (opts.schema?.length) return { kind: 'schemas', schemaIds: opts.schema }
+  if (opts.node?.length) return { kind: 'nodes', nodeIds: opts.node }
+  return { kind: 'full' }
+}
+
+function printVerifyReport(report: BundleVerifyReport): void {
+  const m = report.manifest
+  if (m) {
+    console.log(`  format:   ${m.formatVersion} (change protocol v${m.protocolVersion.change})`)
+    console.log(`  owner:    ${m.ownerDid}`)
+    console.log(`  scope:    ${JSON.stringify(m.scope)}`)
+    console.log(
+      `  contents: ${m.counts.changes} changes, ${m.counts.blobs} blobs, ${m.counts.yjsDocs} yjs docs`
+    )
+    if (m.prerequisites) {
+      console.log(
+        `  requires: base bundle through lamport ${m.prerequisites.lamport} (incremental)`
+      )
+    }
+  }
+  for (const issue of report.issues) {
+    const paint = issue.severity === 'error' ? chalk.red : chalk.yellow
+    console.log(paint(`  ${issue.severity}: [${issue.code}] ${issue.detail}`))
+  }
+  console.log(
+    report.ok ? chalk.green('✓ bundle verifies clean') : chalk.red('✗ bundle failed verification')
+  )
+}
+
 export function registerDataCommand(program: Command): void {
   const data = program.command('data').description('Read and write live nodes (runtime client)')
 
@@ -126,6 +166,175 @@ export function registerDataCommand(program: Command): void {
         }
       } finally {
         await client.destroy()
+      }
+    })
+
+  data
+    .command('export')
+    .description('Export the change log as an .xnetpack bundle directory (exploration 0344)')
+    .requiredOption('--out <dir>', 'Bundle output directory')
+    .option('--db <path>', 'SQLite file path (default: in-memory)')
+    .option('--key <hex>', 'Ed25519 signing key (hex); falls back to $XNET_SIGNING_KEY')
+    .option('--space <id>', 'Export one space (the space node plus its members)')
+    .option('--schema <iri...>', 'Export nodes of the given schema IRI(s)')
+    .option('--node <id...>', 'Export the given node id(s)')
+    .option('--since-lamport <n>', 'Incremental: export changes after this lamport time')
+    .action(
+      async (opts: {
+        out: string
+        db?: string
+        key?: string
+        space?: string
+        schema?: string[]
+        node?: string[]
+        sinceLamport?: string
+      }) => {
+        const { signingKey, ephemeral } = resolveSigningKey(opts.key)
+        if (ephemeral) {
+          console.log(
+            chalk.yellow(
+              '⚠ no signing key provided — manifest will be signed by an ephemeral identity'
+            )
+          )
+        }
+        // Build the client with the SAME resolved key so the manifest
+        // signature matches the client's authorDID even when ephemeral.
+        const client = await buildDataClient({
+          db: opts.db,
+          key: Buffer.from(signingKey).toString('hex')
+        })
+        try {
+          const scope = parseScope(opts)
+          const since = opts.sinceLamport
+            ? { lamport: Number(opts.sinceLamport), heads: [], changeCount: 0 }
+            : undefined
+          const manifest = await writeBundle(client.store, scope, new FsBundleSink(opts.out), {
+            ownerDid: client.authorDID,
+            manifestSigner: (bytes) => sign(bytes, signingKey),
+            since
+          })
+          console.log(chalk.green(`✓ exported ${manifest.counts.changes} changes to ${opts.out}`))
+          console.log(chalk.dim(`  owner: ${manifest.ownerDid}`))
+          console.log(chalk.dim(`  frontier lamport: ${manifest.frontier.lamport}`))
+        } finally {
+          await client.destroy()
+        }
+      }
+    )
+
+  data
+    .command('import')
+    .description('Verify and import an .xnetpack bundle directory')
+    .requiredOption('--in <dir>', 'Bundle directory to import')
+    .option('--db <path>', 'SQLite file path (default: in-memory)')
+    .option('--key <hex>', 'Ed25519 signing key (hex); falls back to $XNET_SIGNING_KEY')
+    .option('--dry-run', 'Verify and report only — write nothing')
+    .option('--allow-foreign-owner', "Import a bundle owned by another identity's DID")
+    .option('--allow-unsigned', 'Import a bundle whose manifest is unsigned')
+    .action(
+      async (opts: {
+        in: string
+        db?: string
+        key?: string
+        dryRun?: boolean
+        allowForeignOwner?: boolean
+        allowUnsigned?: boolean
+      }) => {
+        const source = new FsBundleSource(opts.in)
+        if (opts.dryRun) {
+          const report = await verifyBundle(source)
+          printVerifyReport(report)
+          if (!report.ok) process.exitCode = 1
+          return
+        }
+        const client = await buildDataClient({ db: opts.db, key: opts.key })
+        try {
+          const result = await applyBundle(client.store, source, {
+            importerDid: client.authorDID,
+            allowForeignOwner: opts.allowForeignOwner,
+            allowUnsigned: opts.allowUnsigned
+          })
+          console.log(
+            chalk.green(
+              `✓ applied ${result.applied} change(s), ${result.duplicates} duplicate(s) skipped`
+            )
+          )
+          if (result.quarantined.length > 0) {
+            console.log(chalk.yellow(`⚠ ${result.quarantined.length} record(s) quarantined:`))
+            for (const q of result.quarantined.slice(0, 20)) {
+              console.log(chalk.yellow(`  [${q.kind}] ${q.subject}: ${q.reason}`))
+            }
+          }
+        } finally {
+          await client.destroy()
+        }
+      }
+    )
+
+  data
+    .command('export-folder')
+    .description(
+      'Export the workspace as a human-readable folder: Pages/*.md, Databases/*.rows.jsonl,\n' +
+        "Canvases/*.canvas (Tier 2 — a projection in xNet's markdown dialect: wikilinks and\n" +
+        'schema JSON travel, history/signatures/comments do not; use `export` for the lossless bundle)'
+    )
+    .requiredOption('--out <dir>', 'Folder to write the projection into')
+    .option('--db <path>', 'SQLite file path (default: in-memory)')
+    .option('--key <hex>', 'Ed25519 signing key (hex); falls back to $XNET_SIGNING_KEY')
+    .action(async (opts: { out: string; db?: string; key?: string }) => {
+      const { signingKey } = resolveSigningKey(opts.key)
+      const [{ createLocalAgentBackend }, plugins] = await Promise.all([
+        import('../utils/agent-local.js'),
+        import('@xnetjs/plugins/node')
+      ])
+      const backend = await createLocalAgentBackend({ db: opts.db, agentKey: signingKey })
+      try {
+        const aiSurface = plugins.createAiSurfaceService({
+          store: backend.store,
+          schemas: backend.schemas
+        })
+        const exporter = plugins.createAiWorkspaceExporter({ ...backend, aiSurface })
+        const result = await exporter.exportWorkspace({ rootDir: resolve(opts.out) })
+        console.log(
+          chalk.green(`✓ exported ${result.manifestEntries.length} file(s) to ${opts.out}`)
+        )
+        console.log(
+          chalk.dim(
+            '  note: this is a readable projection (markdown + JSONL); history, signatures,\n' +
+              '  and comments do not survive — use `xnet data export` for the lossless bundle'
+          )
+        )
+      } finally {
+        await backend.client.destroy()
+      }
+    })
+
+  data
+    .command('snapshot')
+    .description(
+      "Write a defragmented SQLite snapshot of the database (VACUUM INTO — Tier 2:\nmaterialized state for any SQLite tool; use 'export' for the lossless bundle)"
+    )
+    .requiredOption('--db <path>', 'SQLite file path to snapshot')
+    .requiredOption('--sqlite <out>', 'Output .sqlite file path')
+    .action(async (opts: { db: string; sqlite: string }) => {
+      const { createElectronSQLiteAdapter } = await import('@xnetjs/sqlite/electron')
+      const adapter = await createElectronSQLiteAdapter({
+        path: opts.db,
+        busyTimeout: 5000,
+        foreignKeys: true,
+        walMode: true
+      })
+      try {
+        await adapter.exec(`VACUUM INTO '${opts.sqlite.replace(/'/g, "''")}'`)
+        console.log(chalk.green(`✓ snapshot written to ${opts.sqlite}`))
+        console.log(
+          chalk.dim(
+            '  note: a snapshot is materialized state (readable by any SQLite tool); it is not\n' +
+              '  a signed bundle — use `xnet data export` for the lossless, verifiable artifact'
+          )
+        )
+      } finally {
+        await adapter.close()
       }
     })
 }

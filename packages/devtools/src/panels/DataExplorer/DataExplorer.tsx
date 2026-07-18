@@ -7,7 +7,15 @@
  */
 
 import type { NodeState } from '@xnetjs/data'
-import { ROW_HEIGHT_PX, filterRows, sortRows } from '@xnetjs/data'
+import {
+  ROW_HEIGHT_PX,
+  downloadCsv,
+  downloadJson,
+  exportToCsv,
+  exportToJson,
+  filterRows,
+  sortRows
+} from '@xnetjs/data'
 import { GridSurface, GridToolbar, type GridField } from '@xnetjs/views'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CopyButton } from '../../components/CopyButton'
@@ -104,6 +112,20 @@ export function DataExplorer() {
   // Copy the raw node window (full fidelity for debugging), not the grid cells.
   const getCopyData = useCallback(() => nodes, [nodes])
 
+  // Tier-2 interchange download of the current view (0344). Deliberately
+  // lossy: materialized cell values only — the tooltip says so.
+  const handleDownload = useCallback(
+    (format: 'csv' | 'json') => {
+      const exportRows = displayRows.map((r) => ({ id: r.id, sortKey: r.sortKey, cells: r.cells }))
+      const exportColumns = gridFieldsToColumnDefinitions(visibleFields)
+      const schemaSlug = selectedSchema?.split('/').pop()?.split('@')[0] ?? 'all-nodes'
+      const name = `xnet-${schemaSlug}-${new Date().toISOString().slice(0, 10)}`
+      if (format === 'csv') downloadCsv(exportToCsv(exportRows, exportColumns), name)
+      else downloadJson(exportToJson(exportRows, exportColumns), name)
+    },
+    [displayRows, visibleFields, selectedSchema]
+  )
+
   return (
     <div className="flex h-full">
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -159,6 +181,20 @@ export function DataExplorer() {
             ↻
           </button>
           <CopyButton getData={getCopyData} label="Copy" />
+          <button
+            onClick={() => handleDownload('csv')}
+            className="text-[10px] text-ink-2 hover:text-ink-1 px-1 border border-hairline rounded whitespace-nowrap"
+            title="Download the current view as CSV. CSV carries cell values only — relations, history, and comments do not survive; use Settings → Export data for the lossless bundle."
+          >
+            CSV
+          </button>
+          <button
+            onClick={() => handleDownload('json')}
+            className="text-[10px] text-ink-2 hover:text-ink-1 px-1 border border-hairline rounded whitespace-nowrap"
+            title="Download the current view as JSON (re-importable as new rows). Materialized values only — history and authorship do not survive; use Settings → Export data for the lossless bundle."
+          >
+            JSON
+          </button>
           <span className="ml-auto text-[10px] text-ink-3 whitespace-nowrap">
             {displayRows.length} shown · {loadedCount} loaded
             {totalCount != null && totalCount !== loadedCount ? ` of ${totalCount}` : ''}

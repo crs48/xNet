@@ -1,0 +1,12 @@
+{
+  "id": "2026-07-18-export-your-whole-workspace-as-a-portabl",
+  "date": "July 18, 2026",
+  "title": "Export your whole workspace as a portable bundle — and restore it anywhere",
+  "summary": "Settings → Data now exports a signed .xnetpack bundle: the full change log with history, signatures, and document contents from the real local database (the old export missed the master copy). Restore it on any xNet — a fresh device, the CLI (xnet data export/import/snapshot/export-folder), or back into the same app — with every record verified before anything is written. Lossy CSV/JSON exports now say what they drop, and hubs gained export/restore/purge endpoints so leaving takes everything with you.",
+  "highlights": [],
+  "tags": [
+    "app",
+    "platform",
+    "devtools"
+  ]
+}

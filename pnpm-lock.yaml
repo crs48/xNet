@@ -509,6 +509,9 @@ importers:
       '@xnetjs/crm':
         specifier: workspace:*
         version: link:../../packages/crm
+      '@xnetjs/crypto':
+        specifier: workspace:*
+        version: link:../../packages/crypto
       '@xnetjs/dashboard':
         specifier: workspace:*
         version: link:../../packages/dashboard
@@ -572,6 +575,9 @@ importers:
       '@xnetjs/views':
         specifier: workspace:*
         version: link:../../packages/views
+      fflate:
+        specifier: 0.8.3
+        version: 0.8.3
       lucide-react:
         specifier: ^0.453.0
         version: 0.453.0(react@18.3.1)
@@ -1154,6 +1160,9 @@ importers:
       '@xnetjs/views':
         specifier: workspace:*
         version: link:../views
+      fflate:
+        specifier: 0.8.3
+        version: 0.8.3
       lucide-react:
         specifier: ^0.400.0
         version: 0.400.0(react@18.3.1)
