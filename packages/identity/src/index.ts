@@ -93,6 +93,27 @@ export {
   deserializeKeyBundleFromBinary
 } from './key-bundle-storage'
 
+// ATProto identity bridge (0301/0322/0337) — foreign-DID representation +
+// binding record; grouped re-export from the scoped sub-barrel (0276 policy)
+export {
+  isAtprotoDid,
+  isXNetDid,
+  parseAnyDid,
+  normalizeAtprotoHandle,
+  isValidAtprotoHandle,
+  bindingMessage,
+  createAtprotoBinding,
+  verifyAtprotoBinding,
+  ATPROTO_BINDING_COLLECTION,
+  ATPROTO_BINDING_RKEY,
+  type AnyDid,
+  type AtprotoDid,
+  type XNetDid,
+  type ParsedAnyDid,
+  type AtprotoBindingRecord,
+  type BindingVerification
+} from './atproto'
+
 // UCAN tokens
 export {
   createUCAN,

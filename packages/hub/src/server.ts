@@ -38,7 +38,9 @@ import { createCrawlRoutes } from './routes/crawl'
 import { createDiscoveryRoutes } from './routes/dids'
 import { createFederationRoutes } from './routes/federation'
 import { createFileRoutes } from './routes/files'
+import { createAtprotoRoutes } from './routes/atproto'
 import { createKeyRegistryRoutes } from './routes/keys'
+import { AtprotoBindingVerifier } from './services/atproto-binding'
 import { createPublicRoutes } from './routes/public'
 import { createSchemaRoutes } from './routes/schemas'
 import { createShardRoutes } from './routes/shards'
@@ -206,6 +208,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   // quota the dashboard meter shows (exploration 0216).
   const files = new FileService(storage, { maxStoragePerUser: perUserQuota })
   const keyRegistry = new KeyRegistryService()
+  const atprotoBindingVerifier = new AtprotoBindingVerifier()
   const taskIdentifiers = new TaskIdentifierService()
   const query = new QueryService(storage)
   const federationDefaults = {
@@ -523,6 +526,10 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
 
   app.route('/schemas', createSchemaRoutes(schemas, { requireAuth }))
   app.route('/keys', createKeyRegistryRoutes(keyRegistry))
+  // ATProto binding verification (0301/0322/0337): the hub resolves DID docs
+  // and binding records so clients can render verified handles.
+  app.use('/atproto/*', requireAuth)
+  app.route('/atproto', createAtprotoRoutes(atprotoBindingVerifier))
   // First-party hub features mount through the feature registry (exploration
   // 0189). Each receives a broker-scoped env — only the secrets it declared — so
   // billing reads STRIPE_SECRET_KEY/STRIPE_WEBHOOK_SECRET/BTCPAY_* but never the
