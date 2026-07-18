@@ -106,9 +106,7 @@ describe('agent schema pack (exploration 0337)', () => {
 
     it('passport and notification ids are prefixed and stable', () => {
       expect(agentPassportId('did:key:z6MkA')).toBe('agent-passport:did:key:z6MkA')
-      expect(agentNotificationId('agent-action:x:1')).toBe(
-        'agent-notification:agent-action:x:1'
-      )
+      expect(agentNotificationId('agent-action:x:1')).toBe('agent-notification:agent-action:x:1')
     })
   })
 

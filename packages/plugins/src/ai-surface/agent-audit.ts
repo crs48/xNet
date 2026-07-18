@@ -134,10 +134,8 @@ export const reversibilityForTool = (name: string): AgentReversibility => {
 }
 
 /** Risk from the tool definition; unknown tools are treated as medium. */
-export const riskForTool = (
-  defs: AiToolDefinition[],
-  name: string
-): AiRiskLevel => defs.find((d) => d.name === name)?.risk ?? 'medium'
+export const riskForTool = (defs: AiToolDefinition[], name: string): AiRiskLevel =>
+  defs.find((d) => d.name === name)?.risk ?? 'medium'
 
 const surfaceForRisk = (risk: AiRiskLevel): AgentApprovalSurface =>
   risk === 'medium' ? 'chat' : 'app'
@@ -201,9 +199,7 @@ export class AgentAuditRecorder {
     schemaId: string,
     properties: Record<string, unknown>
   ): Promise<string> {
-    const clean = Object.fromEntries(
-      Object.entries(properties).filter(([, v]) => v !== undefined)
-    )
+    const clean = Object.fromEntries(Object.entries(properties).filter(([, v]) => v !== undefined))
     const node = await this.store.create({ id: auditId, schemaId, properties: clean })
     return node.id
   }

@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  assertAttenuated,
-  mintAgentPassport,
-  verifyAgentPassport
-} from './agent-passport'
+import { assertAttenuated, mintAgentPassport, verifyAgentPassport } from './agent-passport'
 import { generateIdentity } from './did'
 import { createUCAN, hasCapability, rootIssuers, verifyUCAN } from './ucan'
 
@@ -51,19 +47,15 @@ describe('agent passport (exploration 0337)', () => {
       capabilities: CAPS
     })
     const stranger = generateIdentity()
-    expect(
-      verifyAgentPassport(grant.ucan, { agentDID: stranger.identity.did }).valid
-    ).toBe(false)
-    expect(
-      verifyAgentPassport(grant.ucan, { operatorDID: stranger.identity.did }).valid
-    ).toBe(false)
+    expect(verifyAgentPassport(grant.ucan, { agentDID: stranger.identity.did }).valid).toBe(false)
+    expect(verifyAgentPassport(grant.ucan, { operatorDID: stranger.identity.did }).valid).toBe(
+      false
+    )
   })
 
   it('rejects wildcard capabilities — the 0307 weakness must not re-enter', () => {
     expect(() => assertAttenuated([{ with: '*', can: 'node/create' }])).toThrow(/attenuated/)
-    expect(() => assertAttenuated([{ with: 'xnet://space/inbox', can: '*' }])).toThrow(
-      /attenuated/
-    )
+    expect(() => assertAttenuated([{ with: 'xnet://space/inbox', can: '*' }])).toThrow(/attenuated/)
     expect(() => assertAttenuated([])).toThrow(/at least one/)
     expect(() =>
       mintAgentPassport({

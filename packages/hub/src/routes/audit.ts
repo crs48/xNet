@@ -43,8 +43,7 @@ export const createAuditRoutes = (storage: HubStorage, options: AuditRoutesOptio
     const since = parsePositiveInt(c.req.query('since'), 0)
     const limit = parsePositiveInt(c.req.query('limit'), 200)
     const changes = await storage.getNodeChangesByAuthor(did, since, limit)
-    const nextCursor =
-      changes.length > 0 ? changes[changes.length - 1].lamportTime : since
+    const nextCursor = changes.length > 0 ? changes[changes.length - 1].lamportTime : since
 
     return c.json({
       author: did,

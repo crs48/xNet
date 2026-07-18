@@ -57,14 +57,10 @@ describe('audit routes (exploration 0337)', () => {
     const res = await app.request(`/audit/authors/${agent}/changes`)
     expect(res.status).toBe(200)
     const body = await res.json()
-    expect(body.changes.map((c: SerializedNodeChange) => c.lamportTime)).toEqual([
-      1, 2, 3, 4, 5, 6
-    ])
+    expect(body.changes.map((c: SerializedNodeChange) => c.lamportTime)).toEqual([1, 2, 3, 4, 5, 6])
     expect(body.nextCursor).toBe(6)
     // Only the agent's changes — the human's change never leaks in.
-    expect(
-      body.changes.every((c: SerializedNodeChange) => c.authorDid === agent)
-    ).toBe(true)
+    expect(body.changes.every((c: SerializedNodeChange) => c.authorDid === agent)).toBe(true)
   })
 
   it('pages on the ?since lamport cursor', async () => {
@@ -79,9 +75,7 @@ describe('audit routes (exploration 0337)', () => {
 
   it('reading another author requires audit/read', async () => {
     const denied = await mount({ as: 'did:key:zOperator', can: false })
-    expect(
-      (await denied.app.request(`/audit/authors/${denied.agent}/changes`)).status
-    ).toBe(403)
+    expect((await denied.app.request(`/audit/authors/${denied.agent}/changes`)).status).toBe(403)
 
     const allowed = await mount({ as: 'did:key:zOperator', can: true })
     const res = await allowed.app.request(`/audit/authors/${allowed.agent}/changes`)

@@ -34,8 +34,8 @@ export function AgentAuditPanel() {
           <div className="text-sm font-medium">No agent activity yet</div>
           <div className="mt-1 text-xs text-ink-3">
             Enroll an agent (<code>xnet agent enroll &lt;name&gt; --space &lt;id&gt;</code>) and
-            serve it with <code>xnet mcp serve --agent &lt;name&gt;</code>. Every guarded tool
-            call lands here as an AgentAction node.
+            serve it with <code>xnet mcp serve --agent &lt;name&gt;</code>. Every guarded tool call
+            lands here as an AgentAction node.
           </div>
         </div>
       </div>
@@ -128,10 +128,7 @@ function DetailPane({ row }: { row: AgentActionRow }) {
       {row.error && <Field label="Error" value={row.error} />}
       {row.approval && (
         <>
-          <Field
-            label="Approval"
-            value={`${row.approval.decision} via ${row.approval.surface}`}
-          />
+          <Field label="Approval" value={`${row.approval.decision} via ${row.approval.surface}`} />
           {row.approval.approverDID && (
             <Field label="Approver" value={row.approval.approverDID} mono />
           )}
@@ -140,9 +137,7 @@ function DetailPane({ row }: { row: AgentActionRow }) {
       )}
       {row.changeIds.length > 0 && (
         <div className="mt-2">
-          <div className="text-[10px] font-bold uppercase tracking-wide text-ink-3">
-            Change ids
-          </div>
+          <div className="text-[10px] font-bold uppercase tracking-wide text-ink-3">Change ids</div>
           {row.changeIds.map((id) => (
             <div key={id} className="truncate font-mono text-[10px]">
               {id}

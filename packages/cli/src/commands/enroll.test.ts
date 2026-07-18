@@ -9,10 +9,7 @@ import { generateIdentity, verifyAgentPassport } from '@xnetjs/identity'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { runEnroll, openClawStdioSnippet, hermesStdioSnippet } from './enroll'
 import { startMcpServe } from './mcp'
-import {
-  bytesToHex,
-  loadAgentPassportFile
-} from '../utils/agent-passport-file.js'
+import { bytesToHex, loadAgentPassportFile } from '../utils/agent-passport-file.js'
 
 let dir: string
 const operator = generateIdentity()

@@ -64,8 +64,7 @@ export function createAgentCeremonyTools(recorder: AgentAuditRecorder): AiExtraT
     {
       name: 'xnet_pending_approvals',
       title: 'List pending approvals',
-      description:
-        'List actions waiting on operator approval (never includes approval codes).',
+      description: 'List actions waiting on operator approval (never includes approval codes).',
       risk: 'low',
       requiredScopes: ['agent.approve'],
       inputSchema: { type: 'object', properties: {} },

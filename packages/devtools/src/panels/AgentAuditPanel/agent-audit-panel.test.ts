@@ -6,11 +6,7 @@ import type { NodeState } from '@xnetjs/data'
 import { describe, expect, it } from 'vitest'
 import { buildRows } from './useAgentAudit'
 
-const node = (
-  id: string,
-  schemaSuffix: string,
-  properties: Record<string, unknown>
-): NodeState =>
+const node = (id: string, schemaSuffix: string, properties: Record<string, unknown>): NodeState =>
   ({
     id,
     schemaId: `xnet://xnet.fyi/${schemaSuffix}@1.0.0`,

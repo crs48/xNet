@@ -655,12 +655,10 @@ export const builtInSchemas = {
   // Memory schema pack (exploration 0211)
   'xnet://xnet.fyi/MemoryItem@1.0.0': () => import('./memory').then((m) => m.MemoryItemSchema),
   // Agent schema pack (exploration 0337)
-  'xnet://xnet.fyi/AgentPassport@1.0.0': () =>
-    import('./agent').then((m) => m.AgentPassportSchema),
+  'xnet://xnet.fyi/AgentPassport@1.0.0': () => import('./agent').then((m) => m.AgentPassportSchema),
   'xnet://xnet.fyi/AgentSession@1.0.0': () => import('./agent').then((m) => m.AgentSessionSchema),
   'xnet://xnet.fyi/AgentAction@1.0.0': () => import('./agent').then((m) => m.AgentActionSchema),
-  'xnet://xnet.fyi/AgentApproval@1.0.0': () =>
-    import('./agent').then((m) => m.AgentApprovalSchema),
+  'xnet://xnet.fyi/AgentApproval@1.0.0': () => import('./agent').then((m) => m.AgentApprovalSchema),
   'xnet://xnet.fyi/AgentNotification@1.0.0': () =>
     import('./agent').then((m) => m.AgentNotificationSchema),
 
@@ -775,7 +773,8 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/AgentSession': () => import('./agent').then((m) => m.AgentSessionSchema),
   'xnet://xnet.fyi/AgentAction': () => import('./agent').then((m) => m.AgentActionSchema),
   'xnet://xnet.fyi/AgentApproval': () => import('./agent').then((m) => m.AgentApprovalSchema),
-  'xnet://xnet.fyi/AgentNotification': () => import('./agent').then((m) => m.AgentNotificationSchema)
+  'xnet://xnet.fyi/AgentNotification': () =>
+    import('./agent').then((m) => m.AgentNotificationSchema)
 } as const
 
 /**

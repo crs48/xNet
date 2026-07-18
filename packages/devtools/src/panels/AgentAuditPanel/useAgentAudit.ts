@@ -59,9 +59,7 @@ const buildRows = (
   approvals: NodeState[],
   sessions: NodeState[]
 ): AgentActionRow[] => {
-  const approvalByAction = new Map(
-    approvals.map((a) => [str(a.properties.action), a] as const)
-  )
+  const approvalByAction = new Map(approvals.map((a) => [str(a.properties.action), a] as const))
   const sessionById = new Map(sessions.map((s) => [s.id, s] as const))
 
   return actions
@@ -92,8 +90,7 @@ const buildRows = (
                 typeof approval.properties.approverDID === 'string'
                   ? approval.properties.approverDID
                   : null,
-              peer:
-                typeof approval.properties.peer === 'string' ? approval.properties.peer : null
+              peer: typeof approval.properties.peer === 'string' ? approval.properties.peer : null
             }
           : null
       }
@@ -153,10 +150,7 @@ export function useAgentAudit(): AgentAuditState {
     }
   }, [store, refresh])
 
-  const agents = useMemo(
-    () => [...new Set(rows.map((r) => r.agentDID))].sort(),
-    [rows]
-  )
+  const agents = useMemo(() => [...new Set(rows.map((r) => r.agentDID))].sort(), [rows])
   const filtered = useMemo(
     () => (agentFilter ? rows.filter((r) => r.agentDID === agentFilter) : rows),
     [rows, agentFilter]
