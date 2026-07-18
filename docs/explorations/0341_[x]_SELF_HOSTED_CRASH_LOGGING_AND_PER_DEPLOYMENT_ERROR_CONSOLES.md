@@ -1,6 +1,13 @@
 # Self-Hosted Crash Logging And Per-Deployment Error Consoles ("Every Hub Is Its Own Sentry")
 
-> Status: EXPLORATION
+> Status: IMPLEMENTED (P1–P4) — hub diagnostics inbox (default-on SQLite
+> quarantine + admin drain surface), deployment-local client resolution +
+> CSP, operator drain UI with Diagnostics Space bootstrap, TaggedError
+> naming + cross-release `issueKey`, tenant dashboard card + tenant-keyed
+> fleet view, and all three escalation switches (previewed "Send to xNet",
+> fingerprint-count tee, time-boxed support access). Deferred by design:
+> P5 Sentry-envelope compatibility (needs a named consumer) and deploy-time
+> symbolication (already deferred from 0315).
 > Date: 2026-07-17
 > Related: [[0315_FIRST_PARTY_ERROR_TELEMETRY_AND_DEBUG_REPORT_CONSOLE]] (implemented
 > — this doc is its multi-tenant sequel), [[0210_ERROR_MONITORING_PRIVACY_ANALYTICS_AND_CONSENT_ACROSS_SURFACES]]
@@ -740,40 +747,42 @@ async function maybeTeeUpstream(record: DebugReportRecord) {
   "currently shared" indicator in Privacy & Diagnostics.
 - [x] **P4:** Privacy-policy + docs updates: deployment-local default,
   the three escalation switches, retention numbers.
-- [ ] **P5 (deferred):** Sentry-envelope adapter route (`length` handling,
-  gzip, 200-ack unknown types, PII-field stripping) — only with a named
-  consumer.
+- **P5 — DEFERRED by design (not a box to tick):** Sentry-envelope adapter
+  route (`length` handling, gzip, 200-ack unknown types, PII-field
+  stripping) — only with a named consumer (the 0294 rule). Nothing in P1–P4
+  needs to change shape for it; the store abstraction was validated against
+  this case.
 - [x] Ops-guide page: "Your hub is your crash console" (self-host setup,
   two env vars for escalation, GlitchTip escape hatch restated).
 
 ## Validation Checklist
 
-- [ ] A self-hosted hub with default config accepts a Lane-1 ping from its
+- [x] A self-hosted hub with default config accepts a Lane-1 ping from its
   own web app, dedupes a repeat crash into one record with
   `occurrences: 2`, and **makes zero outbound network calls** (tcpdump/test
   assert — the deployment-local default is provable).
-- [ ] The operator drain UI imports pending reports into `DebugReport`
+- [x] The operator drain UI imports pending reports into `DebugReport`
   nodes; re-draining after a status change preserves the operator's status;
   the three saved views exist after first-run bootstrap.
-- [ ] A managed tenant's dashboard shows their pending count and top
+- [x] A managed tenant's dashboard shows their pending count and top
   fingerprints sourced from *their* hub; another tenant's dashboard shows
   none of it (tenant isolation asserted in a fleet test).
-- [ ] "Send to xNet" shows the byte-for-byte forward payload; the vendor
+- [x] "Send to xNet" shows the byte-for-byte forward payload; the vendor
   workspace receives it tagged with the right `tenantId`; the node carries
   the `XR-…` id; with the toggle never touched, the vendor store contains
   nothing from that deployment.
-- [ ] Lane-1 tee forwards fingerprint/counts only — a captured upstream
+- [x] Lane-1 tee forwards fingerprint/counts only — a captured upstream
   request contains no `stack`, `message`, `breadcrumbs`, or `didHash`.
-- [ ] Support share: xNet support identity can read the diagnostics Space
+- [x] Support share: xNet support identity can read the diagnostics Space
   while the grant is live, loses access on expiry/revoke (sync-level test),
   and the settings panel reflects both states.
-- [ ] Quarantine row cap: flooding past the cap evicts oldest drained
+- [x] Quarantine row cap: flooding past the cap evicts oldest drained
   records, never pending ones; hub disk stays bounded.
-- [ ] Ingest abuse: >8 KB → 413, >10/min/IP → 429, junk fields stripped;
+- [x] Ingest abuse: >8 KB → 413, >10/min/IP → 429, junk fields stripped;
   `authed` mode rejects anonymous posts.
-- [ ] Cloud behavior after the extraction refactor is unchanged
+- [x] Cloud behavior after the extraction refactor is unchanged
   (`diagnostics.test.ts` green without modification).
-- [ ] 0210 invariant still holds: PR-preview/self-host builds emit no
+- [x] 0210 invariant still holds: PR-preview/self-host builds emit no
   telemetry to *xNet* origins at all (their own hub is not "telemetry" —
   update the test's origin allowlist accordingly).
 
