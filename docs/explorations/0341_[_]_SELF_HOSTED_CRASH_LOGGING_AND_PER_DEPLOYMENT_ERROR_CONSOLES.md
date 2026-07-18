@@ -723,10 +723,10 @@ async function maybeTeeUpstream(record: DebugReportRecord) {
 - [x] **P2:** Route `TaggedError` (`_tag`, `code`) into the reporter and
   prefer them as fingerprint inputs; consider `issueKey` cross-release
   grouping field (schema-additive).
-- [ ] **P3:** Hub `GET /diagnostics/summary` → `fetchHubDiagnosticsSummary`
+- [x] **P3:** Hub `GET /diagnostics/summary` → `fetchHubDiagnosticsSummary`
   in `apps/cloud/src/hub-status.ts` → Diagnostics card in `dashboard.ts`
   (pending, top fingerprints, last seen, console link).
-- [ ] **P3:** `tenantId` on the cloud `DebugReportRecord` (hub lane resolves
+- [x] **P3:** `tenantId` on the cloud `DebugReportRecord` (hub lane resolves
   from hub registration); vendor fleet view grouping escalations + Lane-1
   counts by tenant.
 - [ ] **P4:** "Send to xNet" per-report escalation: preview modal →

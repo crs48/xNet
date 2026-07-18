@@ -168,6 +168,7 @@ export function createSqliteDebugReportStore(
   const topByOccurrences = db.prepare(
     'SELECT * FROM debug_reports ORDER BY occurrences DESC, last_seen_ms DESC LIMIT ?'
   )
+  const recentAll = db.prepare('SELECT * FROM debug_reports ORDER BY last_seen_ms DESC LIMIT ?')
   // Eviction: oldest DRAINED first, never pending (triage state is sacred).
   const evictDrained = db.prepare(`
     DELETE FROM debug_reports WHERE id IN (
@@ -243,6 +244,10 @@ export function createSqliteDebugReportStore(
 
     async pendingCount(): Promise<number> {
       return (countPending.get() as { n: number }).n
+    },
+
+    async listRecent(limit = 500): Promise<DebugReportRecord[]> {
+      return (recentAll.all(limit) as Row[]).map(toRecord)
     },
 
     close(): void {

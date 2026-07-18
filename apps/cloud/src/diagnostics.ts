@@ -21,6 +21,7 @@
  */
 
 import type { Logger } from './logger'
+import { createHmac, timingSafeEqual } from 'node:crypto'
 import { validateExternalUrl } from '@xnetjs/core'
 import {
   clientIpOf,
@@ -51,6 +52,38 @@ export type {
   DebugReportStore,
   IncomingReport
 } from '@xnetjs/telemetry/inbox'
+
+// ─── Per-tenant diagnostics secrets (exploration 0341 P3) ────────────────────
+
+const hmacHex = (masterSecret: string, message: string): string =>
+  createHmac('sha256', masterSecret).update(message).digest('hex')
+
+/**
+ * The diagnostics secret a managed hub is provisioned with. Self-identifying
+ * (`<tenantId>.<hmac>`) so the escalation lane can attribute a report to its
+ * deployment in O(1) — verified against the control plane's master secret,
+ * never trusted from the payload. The same value authenticates the dashboard's
+ * summary read against the tenant hub: one secret, one trust relationship,
+ * both directions.
+ */
+export function diagnosticsSecretFor(masterSecret: string, tenantId: string): string {
+  return `${tenantId}.${hmacHex(masterSecret, `diag:${tenantId}`).slice(0, 32)}`
+}
+
+/** Verify a presented secret; returns its tenantId, or null when invalid. */
+export function tenantFromDiagnosticsSecret(
+  masterSecret: string,
+  presented: string | undefined
+): string | null {
+  if (!presented) return null
+  const dot = presented.lastIndexOf('.')
+  if (dot <= 0) return null
+  const tenantId = presented.slice(0, dot)
+  const expected = diagnosticsSecretFor(masterSecret, tenantId)
+  const a = Buffer.from(presented)
+  const b = Buffer.from(expected)
+  return a.length === b.length && timingSafeEqual(a, b) ? tenantId : null
+}
 
 // ─── First-seen alert webhook (exploration 0315 P4) ─────────────────────────
 
@@ -118,6 +151,21 @@ export function createDiagnosticsRoutes(deps: DiagnosticsRoutesDeps): Hono {
   )
   const requireInternal = (c: { req: { header: (k: string) => string | undefined } }): boolean =>
     Boolean(deps.internalSecret) && c.req.header('x-internal-secret') === deps.internalSecret
+  /**
+   * The hub lane admits the master secret (our own hubs, pre-0341 configs) or
+   * a tenant-derived secret — which also attributes the report (0341 P3).
+   */
+  const hubLaneAuth = (c: {
+    req: { header: (k: string) => string | undefined }
+  }): { ok: boolean; tenantId?: string } => {
+    if (requireInternal(c)) return { ok: true }
+    if (!deps.internalSecret) return { ok: false }
+    const tenantId = tenantFromDiagnosticsSecret(
+      deps.internalSecret,
+      c.req.header('x-internal-secret')
+    )
+    return tenantId ? { ok: true, tenantId } : { ok: false }
+  }
   const ingestOpts = { nowMs: now, onFirstSeen: deps.onFirstSeen }
 
   // ── Public ingest: app crash pings (auto) + user-triggered reports ────────
@@ -148,7 +196,8 @@ export function createDiagnosticsRoutes(deps: DiagnosticsRoutesDeps): Hono {
   // ── Hub lane: the socket diagnostics-sharing has always POSTed to ─────────
   // Body: `{ didHash, report }` (packages/hub/src/features/diagnostics-sharing.ts).
   app.post('/diagnostics', async (c) => {
-    if (!requireInternal(c)) return c.json({ error: 'forbidden' }, 403)
+    const auth = hubLaneAuth(c)
+    if (!auth.ok) return c.json({ error: 'forbidden' }, 403)
     const raw = await c.req.text()
     if (raw.length > MAX_REPORT_BYTES) return c.json({ error: 'too_large' }, 413)
     let body: unknown
@@ -168,8 +217,16 @@ export function createDiagnosticsRoutes(deps: DiagnosticsRoutesDeps): Hono {
       surface: 'hub' as const
     }
     const didHash = typeof body.didHash === 'string' ? body.didHash.slice(0, 128) : undefined
-    const record = await ingestReport(deps.store, incoming, { lane: 'hub', didHash }, ingestOpts)
-    deps.log.info('diagnostics-hub-report', { fingerprint: record.fingerprint })
+    const record = await ingestReport(
+      deps.store,
+      incoming,
+      { lane: 'hub', didHash, tenantId: auth.tenantId },
+      ingestOpts
+    )
+    deps.log.info('diagnostics-hub-report', {
+      fingerprint: record.fingerprint,
+      tenantId: auth.tenantId
+    })
     return c.json({ id: record.id, shortId: shortId(record.id) }, 202)
   })
 
@@ -179,6 +236,40 @@ export function createDiagnosticsRoutes(deps: DiagnosticsRoutesDeps): Hono {
     const limitParam = Number(c.req.query('limit'))
     const limit = Number.isFinite(limitParam) && limitParam > 0 ? limitParam : 100
     return c.json({ reports: await deps.store.listPending(limit) })
+  })
+
+  // ── Fleet view (0341 P3): escalations + counts grouped by deployment ──────
+  app.get('/internal/diagnostics/fleet', async (c) => {
+    if (!requireInternal(c)) return c.json({ error: 'forbidden' }, 403)
+    const records = await deps.store.listRecent?.(1000)
+    if (!records) return c.json({ error: 'unsupported' }, 501)
+    const byTenant = new Map<string, DebugReportRecord[]>()
+    for (const record of records) {
+      const key = record.tenantId ?? '(unattributed)'
+      const bucket = byTenant.get(key)
+      if (bucket) bucket.push(record)
+      else byTenant.set(key, [record])
+    }
+    const tenants = [...byTenant.entries()]
+      .map(([tenantId, reports]) => ({
+        tenantId,
+        reports: reports.length,
+        occurrences: reports.reduce((sum, r) => sum + r.occurrences, 0),
+        lastSeenMs: Math.max(...reports.map((r) => r.lastSeenMs)),
+        topIssues: [...reports]
+          .sort((a, b) => b.occurrences - a.occurrences)
+          .slice(0, 5)
+          .map((r) => ({
+            shortId: shortId(r.id),
+            fingerprint: r.fingerprint,
+            errorName: r.errorName,
+            lane: r.lane,
+            occurrences: r.occurrences,
+            lastSeenMs: r.lastSeenMs
+          }))
+      }))
+      .sort((a, b) => b.lastSeenMs - a.lastSeenMs)
+    return c.json({ tenants })
   })
 
   app.post('/internal/diagnostics/ack', async (c) => {

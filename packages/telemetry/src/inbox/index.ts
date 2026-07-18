@@ -57,6 +57,12 @@ export interface DebugReportRecord {
   breadcrumbs?: string[]
   /** Hub lane only: the hub-salted sender hash (never a raw DID). */
   didHash?: string
+  /**
+   * Vendor-cloud only: which deployment escalated this report (resolved from
+   * the forwarding hub's provisioned secret, never self-asserted). Absent on
+   * deployment-local hub quarantines — a hub has exactly one tenant: itself.
+   */
+  tenantId?: string
   occurrences: number
   status: DebugReportStatus
   firstSeenMs: number
@@ -102,6 +108,11 @@ export interface DebugReportStore {
   summary?(topN?: number): Promise<DiagnosticsSummary>
   /** Pending-row count — the quarantine-full backpressure signal. Optional. */
   pendingCount?(): Promise<number>
+  /**
+   * Most-recent records regardless of status (newest last-seen first) — the
+   * fleet view's read. Optional: stores that predate it may not implement it.
+   */
+  listRecent?(limit?: number): Promise<DebugReportRecord[]>
 }
 
 export const toSummaryIssue = (record: DebugReportRecord): DiagnosticsSummaryIssue => ({
@@ -178,6 +189,13 @@ export class MemoryDebugReportStore implements DebugReportStore {
 
   async pendingCount(): Promise<number> {
     return [...this.records.values()].filter((r) => r.status === 'pending').length
+  }
+
+  async listRecent(limit = 500): Promise<DebugReportRecord[]> {
+    return [...this.records.values()]
+      .sort((a, b) => b.lastSeenMs - a.lastSeenMs)
+      .slice(0, limit)
+      .map((r) => structuredClone(r))
   }
 }
 
@@ -292,6 +310,8 @@ export interface IngestExtras {
   lane?: DebugReportLane
   /** Hub lane only: the hub-salted sender hash. */
   didHash?: string
+  /** Vendor cloud only: the verified escalating deployment. */
+  tenantId?: string
 }
 
 export interface IngestOptions {
@@ -352,6 +372,7 @@ export async function ingestReport(
         userDescription: scrubbed.userDescription,
         breadcrumbs: scrubbed.breadcrumbs,
         didHash: extra.didHash,
+        tenantId: extra.tenantId,
         occurrences: 1,
         status: 'pending',
         firstSeenMs: at,
