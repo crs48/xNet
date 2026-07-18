@@ -1,6 +1,6 @@
 {
   "name": "@xnetjs/abuse",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "Composable abuse, moderation, and reach policy decisions for xNet",
   "license": "MIT",
   "repository": {
