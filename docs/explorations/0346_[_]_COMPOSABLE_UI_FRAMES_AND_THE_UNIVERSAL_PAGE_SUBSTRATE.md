@@ -627,16 +627,16 @@ registerAgentTool({
 
 ### Phase 4 — One substrate, three geometries
 
-- [ ] Shared node-passport page chrome (title, breadcrumb, properties,
+- [x] Shared node-passport page chrome (title, breadcrumb, properties,
       backlinks, comments) across all node surfaces
-- [ ] Promoted-frame mode for full-bleed types; screenshot-diff parity with
+- [x] Promoted-frame mode for full-bleed types; screenshot-diff parity with
       today's `/db`, `/canvas`, `/map` surfaces (0185 CI)
-- [ ] `geometry: stack | grid | space` on pages; frames carry `sortKey` +
+- [x] `geometry: stack | grid | space` on pages; frames carry `sortKey` +
       optional `layout`; geometry round-trip test (frame set invariant)
-- [ ] Converge `DashboardView` / `CanvasView` surfaces onto the shared page
+- [x] Converge `DashboardView` / `CanvasView` surfaces onto the shared page
       component per the 0277 convergence playbook (surfaces remain, engines
       shared)
-- [ ] Nesting clamp: depth 2, cycle detection, summary-tier degradation
+- [x] Nesting clamp: depth 2, cycle detection, summary-tier degradation
 
 ### Phase 5 — Agents and formulas
 

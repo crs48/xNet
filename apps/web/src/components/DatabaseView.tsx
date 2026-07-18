@@ -60,6 +60,7 @@ import { useNavigate } from '@tanstack/react-router'
 import { Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { navigateToFrame, navigateToNode } from '../workbench/navigation'
+import { nodePassportSection } from './NodePassport'
 import { useCommentPeople } from '../hooks/useCommentPeople'
 import { useContextPanel, type ContextPanelSection } from '../workbench/context-panel'
 import { useWorkbench } from '../workbench/state'
@@ -499,7 +500,8 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
             Open a row to see its detail here. {grid.rows.length} rows in view.
           </div>
         )
-      }
+      },
+      nodePassportSection(docId)
     ],
     [peekRow, grid.fields, grid.rows.length, docId, navigate]
   )

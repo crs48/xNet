@@ -9,8 +9,10 @@ import { EntangleProvider } from '@xnetjs/react'
 import { FrameHostProvider, FrameRenderer, type FrameDef } from '@xnetjs/views'
 import { useCallback, useMemo, type JSX } from 'react'
 import { WORKBENCH_SAVED_VIEW_REGISTRY } from '../lib/saved-view-registry'
+import { useContextPanel, type ContextPanelSection } from '../workbench/context-panel'
 import { navigateToNode, parseFrameSpec } from '../workbench/navigation'
 import type { TabNodeType } from '../workbench/state'
+import { nodePassportSection } from './NodePassport'
 import '../lib/frame-renderers'
 
 export function FrameTabView({ frameSpec }: { frameSpec: string }): JSX.Element {
@@ -36,12 +38,23 @@ export function FrameTabView({ frameSpec }: { frameSpec: string }): JSX.Element 
             id: `tab:${frameSpec}`,
             source: { kind: 'node', nodeId: spec.nodeId },
             viewType: spec.viewType,
+            // Promoted frame (0346 P4): the tab IS the frame — full
+            // height, minimal wrapper chrome.
+            config: { promoted: true },
             tier: 'live',
             sortKey: ''
           }
         : null,
     [spec, frameSpec]
   )
+
+  // Node passport (0346 P4): frame tabs carry the same identity chrome
+  // as every other node surface.
+  const passportSections = useMemo<ContextPanelSection[]>(
+    () => (spec ? [nodePassportSection(spec.nodeId)] : []),
+    [spec]
+  )
+  useContextPanel(`frame:${frameSpec}`, passportSections)
 
   if (!frame) {
     return (
@@ -57,7 +70,7 @@ export function FrameTabView({ frameSpec }: { frameSpec: string }): JSX.Element 
     >
       <EntangleProvider>
         <div className="flex h-full min-h-0 flex-col overflow-y-auto p-4">
-          <FrameRenderer frame={frame} className="flex-1" />
+          <FrameRenderer frame={frame} className="min-h-0 flex-1" />
         </div>
       </EntangleProvider>
     </FrameHostProvider>

@@ -384,11 +384,16 @@ export {
   frameFromCanvasNode,
   frameFromDatabaseEmbed,
   frameFromPageEmbed,
+  frameSetSignature,
   frameSourceRegistry,
+  orderForStack,
   parseCollectionIds,
   registerFrameWidget,
+  toggleGeometry,
+  useFrameAncestry,
   useFrameDepth,
   useFrameHost,
+  withLayoutDefaults,
   type FrameDef,
   type FrameHost,
   type FrameRendererProps,
@@ -396,5 +401,6 @@ export {
   type FrameSourceRenderer,
   type FrameTier,
   type FrameWidgetConfig,
-  type NodeFrameProps
+  type NodeFrameProps,
+  type PageGeometry
 } from './frames/index.js'

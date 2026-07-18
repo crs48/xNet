@@ -55,6 +55,7 @@ import { useWorkbench, type TabNodeType } from '../workbench/state'
 import { useStatusBarItem, type StatusBarItem } from '../workbench/status'
 import { BacklinksPanel } from './BacklinksPanel'
 import { Editor as EditorComponent } from './Editor'
+import { nodePassportSection } from './NodePassport'
 import { PageTasksSection } from './PageTasksSection'
 import { PresenceAvatars } from './PresenceAvatars'
 import { ShareButton } from './ShareButton'
@@ -410,7 +411,8 @@ export function PageView({ docId }: { docId: string }) {
         id: 'page-backlinks',
         title: 'Backlinks',
         content: <BacklinksPanel docId={docId} />
-      }
+      },
+      nodePassportSection(docId)
     ]
   }, [
     page,

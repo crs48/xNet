@@ -207,7 +207,10 @@ export function DatabaseEmbed({
   }, [viewType, allFields, config])
 
   const registration = viewType !== 'table' ? viewRegistry.get(viewType) : undefined
-  const height = EMBED_HEIGHT[viewType] ?? 'h-80'
+  // Promoted frames (0346 P4): a frame tab renders the database
+  // full-bleed — the tab IS the frame — instead of the bounded card.
+  const promoted = embedConfig.promoted === true
+  const height = promoted ? 'flex-1' : (EMBED_HEIGHT[viewType] ?? 'h-80')
   const title = database?.title || 'Untitled Database'
 
   // ── Drop-to-relate (0346): dropping a node on the frame offers verbs —
@@ -298,7 +301,11 @@ export function DatabaseEmbed({
       ref={frameRef}
       data-database-embed-frame={databaseId}
       data-database-embed-view={viewType}
-      className="relative my-1 flex w-full flex-col overflow-hidden rounded-lg border border-border/60 bg-background"
+      className={
+        promoted
+          ? 'relative flex h-full w-full flex-col overflow-hidden bg-background'
+          : 'relative my-1 flex w-full flex-col overflow-hidden rounded-lg border border-border/60 bg-background'
+      }
       contentEditable={false}
       onDragOver={handleDragOver}
       onDrop={handleDrop}

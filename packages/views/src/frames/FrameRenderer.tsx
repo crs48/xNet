@@ -49,13 +49,21 @@ export function useFrameHost(): FrameHost {
   return useContext(FrameHostContext)
 }
 
-// ─── Depth clamp ────────────────────────────────────────────────────────────
+// ─── Depth clamp + cycle detection ─────────────────────────────────────────
 
 const FrameDepthContext = createContext(0)
 
 /** Depth of the current frame nesting (0 outside any frame). */
 export function useFrameDepth(): number {
   return useContext(FrameDepthContext)
+}
+
+/** Node ids already being rendered up the frame ancestry (cycle guard). */
+const FrameAncestryContext = createContext<ReadonlySet<string>>(new Set())
+
+/** Ancestor node ids of the current frame nesting. */
+export function useFrameAncestry(): ReadonlySet<string> {
+  return useContext(FrameAncestryContext)
 }
 
 // ─── Shared cards ───────────────────────────────────────────────────────────
@@ -224,8 +232,14 @@ export interface FrameRendererProps {
 export function FrameRenderer({ frame, className }: FrameRendererProps): JSX.Element {
   const host = useFrameHost()
   const depth = useFrameDepth()
+  const ancestry = useFrameAncestry()
 
-  if (depth >= FRAME_MAX_DEPTH) {
+  const sourceNodeId = frame.source.kind === 'node' ? frame.source.nodeId : null
+
+  // Depth clamp + cycle guard (0346): A→B→A (or A→A) degrades to a
+  // summary card instead of recursing — Dataview's instability is the
+  // cautionary tale.
+  if (depth >= FRAME_MAX_DEPTH || (sourceNodeId !== null && ancestry.has(sourceNodeId))) {
     return <DepthClampedCard frame={frame} />
   }
 
@@ -250,11 +264,15 @@ export function FrameRenderer({ frame, className }: FrameRendererProps): JSX.Ele
       break
   }
 
+  const nextAncestry = sourceNodeId ? new Set([...ancestry, sourceNodeId]) : ancestry
+
   return (
     <FrameDepthContext.Provider value={depth + 1}>
-      <div data-frame-id={frame.id} data-frame-tier={frame.tier} className={className}>
-        {body}
-      </div>
+      <FrameAncestryContext.Provider value={nextAncestry}>
+        <div data-frame-id={frame.id} data-frame-tier={frame.tier} className={className}>
+          {body}
+        </div>
+      </FrameAncestryContext.Provider>
     </FrameDepthContext.Provider>
   )
 }

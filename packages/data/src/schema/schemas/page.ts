@@ -46,6 +46,21 @@ export const PageSchema = defineSchema({
         { id: 'public', name: 'Public', color: 'green' }
       ] as const,
       default: 'inherit'
+    }),
+
+    /**
+     * Page geometry (exploration 0346): how the page's frame children
+     * arrange — a linear stack (document, default), a tiled grid
+     * (dashboard-style), or free space (canvas-style). A view property:
+     * toggling never converts the frames themselves.
+     */
+    geometry: select({
+      options: [
+        { id: 'stack', name: 'Stack', color: 'gray' },
+        { id: 'grid', name: 'Grid', color: 'blue' },
+        { id: 'space', name: 'Space', color: 'purple' }
+      ] as const,
+      default: 'stack'
     })
   },
   document: 'yjs', // Collaborative Y.Doc for rich text

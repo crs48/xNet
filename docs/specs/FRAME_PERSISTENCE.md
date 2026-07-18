@@ -7,14 +7,14 @@ nodes queried by page id)?
 **Decision: split by geometry.**
 
 - **Doc-stack frames are block props** (status quo, kept). A frame in a
-  document's stack *is content*: it belongs to the prose's CRDT — it
+  document's stack _is content_: it belongs to the prose's CRDT — it
   moves with text edits, merges with concurrent typing, travels with the
   page's Y.Doc, and participates in editor undo. The already-shipped
   `databaseEmbed` / `pageEmbed` specs carry `FrameDef`-equivalent props
   (`databaseId`/`nodeId`, `viewType`, `viewConfig` as a JSON string);
   `frameFromDatabaseEmbed` / `frameFromPageEmbed`
   (`packages/views/src/frames/adapters.ts`) are the canonical mapping.
-  Cost accepted: adding a *new* block spec is a coordinated editor-schema
+  Cost accepted: adding a _new_ block spec is a coordinated editor-schema
   rollout (0205 skew rule), so new frame capabilities should extend
   existing spec props before minting new specs.
 
@@ -27,6 +27,16 @@ nodes queried by page id)?
   Rationale: arrangement is queryable presentation state ("which pages
   embed this database?" should be a node query), has no prose merge
   semantics, and must not force an editor-schema rollout per tweak.
+
+**Geometry (Phase 4).** Pages carry a `geometry: stack | grid | space`
+select property (default `stack`); the arrangement model lives in
+`packages/views/src/frames/geometry.ts` with the round-trip invariant
+(toggling geometries never changes the frame set — only missing layouts
+gain defaults) enforced by `geometry.test.ts`. The grid and space
+_renderers_ are the existing Dashboard and Canvas engines — per the
+0277 convergence playbook the surfaces remain and the engines are
+shared through the frames layer (`frameFromCanvasNode`, the dashboard
+frame widget), rather than minting a third grid/canvas implementation.
 
 **Consequences.**
 

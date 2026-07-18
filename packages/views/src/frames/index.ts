@@ -14,12 +14,20 @@ export {
   FrameHostProvider,
   FrameRenderer,
   SealedFrame,
+  useFrameAncestry,
   useFrameDepth,
   useFrameHost,
   type FrameHost,
   type FrameRendererProps
 } from './FrameRenderer.js'
 export { frameFromCanvasNode, frameFromDatabaseEmbed, frameFromPageEmbed } from './adapters.js'
+export {
+  frameSetSignature,
+  orderForStack,
+  toggleGeometry,
+  withLayoutDefaults,
+  type PageGeometry
+} from './geometry.js'
 export {
   FRAME_WIDGET_TYPE,
   createFrameWidgetDefinition,
