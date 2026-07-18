@@ -40,7 +40,10 @@ import { createFederationRoutes } from './routes/federation'
 import { createFileRoutes } from './routes/files'
 import { createAtprotoRoutes } from './routes/atproto'
 import { createKeyRegistryRoutes } from './routes/keys'
+import { createRecoveryAnchorRoutes } from './routes/recovery-anchor'
 import { AtprotoBindingVerifier } from './services/atproto-binding'
+import { AtprotoRecoveryAnchor } from './services/atproto-recovery-anchor'
+import { EscrowStore } from './services/escrow-store'
 import { createPublicRoutes } from './routes/public'
 import { createSchemaRoutes } from './routes/schemas'
 import { createShardRoutes } from './routes/shards'
@@ -209,6 +212,8 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   const files = new FileService(storage, { maxStoragePerUser: perUserQuota })
   const keyRegistry = new KeyRegistryService()
   const atprotoBindingVerifier = new AtprotoBindingVerifier()
+  const atprotoRecoveryAnchor = new AtprotoRecoveryAnchor(atprotoBindingVerifier)
+  const escrowStore = new EscrowStore()
   const taskIdentifiers = new TaskIdentifierService()
   const query = new QueryService(storage)
   const federationDefaults = {
@@ -526,10 +531,30 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
 
   app.route('/schemas', createSchemaRoutes(schemas, { requireAuth }))
   app.route('/keys', createKeyRegistryRoutes(keyRegistry))
-  // ATProto binding verification (0301/0322/0337): the hub resolves DID docs
+  // ATProto binding verification (0301/0322/0338): the hub resolves DID docs
   // and binding records so clients can render verified handles.
   app.use('/atproto/*', requireAuth)
   app.route('/atproto', createAtprotoRoutes(atprotoBindingVerifier))
+
+  // Recovery-anchor escrow (0243/0322/0338): enroll requires auth (a DID may
+  // only enroll for itself); release is the recovery path and is public (the
+  // caller has, by definition, lost their key) but gated by full server-side
+  // ceremony verification + the user's PIN applied client-side.
+  app.use('/recovery-anchor/enroll', requireAuth)
+  app.route(
+    '/recovery-anchor',
+    createRecoveryAnchorRoutes({
+      store: escrowStore,
+      anchor: atprotoRecoveryAnchor,
+      callerDid: (ctx) => {
+        const header =
+          (ctx as { req: { header(name: string): string | undefined } }).req.header(
+            'authorization'
+          ) ?? null
+        return authenticateHttpRequest(header, config, revocation)?.did ?? null
+      }
+    })
+  )
   // First-party hub features mount through the feature registry (exploration
   // 0189). Each receives a broker-scoped env — only the secrets it declared — so
   // billing reads STRIPE_SECRET_KEY/STRIPE_WEBHOOK_SECRET/BTCPAY_* but never the

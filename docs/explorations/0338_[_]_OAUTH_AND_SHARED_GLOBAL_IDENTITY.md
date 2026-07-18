@@ -575,11 +575,11 @@ Phase 1 — ATProto link + login door (0301 P1 / 0322 I1–I2):
 - [x] Explicit copy: Bluesky account does not hold or recover xNet keys unless Phase 2 anchor enabled
 
 Phase 2 — recovery, global edition:
-- [ ] Extract `RecoveryAnchorProvider` (MIT, `packages/identity`); adapt `WorkOSAuthKitProvider` to implement it (FSL side unchanged behaviorally)
-- [ ] `AtprotoIdentityProvider` + escrow enrollment UI ("Bluesky identity + PIN") writing the existing `sealEscrow` envelope
-- [ ] Hub escrow-release endpoint with full server-side ceremony verification (DID doc, AS issuer, binding record, freshness window)
-- [ ] Rotation-key UI: derive P-256 rotation key from recovery seed; enroll as higher-priority did:plc rotation key via PDS-gated PLC op; Settings surface showing key priority order
-- [ ] Recovery-anchor menu in Settings → Security alongside phrase/passkey/Shamir
+- [x] Extract `RecoveryAnchorProvider` (MIT, `packages/identity`); adapt `WorkOSAuthKitProvider` to implement it (FSL side unchanged behaviorally)
+- [x] `AtprotoIdentityProvider` + escrow enrollment UI ("Bluesky identity + PIN") writing the existing `sealEscrow` envelope
+- [x] Hub escrow-release endpoint with full server-side ceremony verification (DID doc, AS issuer, binding record, freshness window)
+- [x] Rotation-key UI: derive P-256 rotation key from recovery seed; enroll as higher-priority did:plc rotation key via PDS-gated PLC op; Settings surface showing key priority order
+- [x] Recovery-anchor menu in Settings → Security alongside phrase/passkey/Shamir
 
 Phase 3 — OAuth provider (MIT):
 - [ ] `packages/hub/src/features/oidc-provider.ts`: config-gated `node-oidc-provider` mount; passkey unlock as the interaction; pairwise subjects; Profile-derived claims

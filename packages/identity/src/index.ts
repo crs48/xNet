@@ -56,6 +56,14 @@ export {
   RECOVERY_WORDLIST
 } from './seed-recovery'
 
+// Recovery anchor contract (0243/0322/0338): WorkOS + ATProto siblings
+export type {
+  RecoveryAnchorProvider,
+  RecoveryCeremonyStart,
+  RecoveryCeremonyVerification,
+  RecoveryAnchorEnrollment
+} from './recovery/anchor'
+
 // Recovery escrow (privacy-preserving PIN factor) — exploration 0243 P3.1
 export type { EscrowEnvelope } from './escrow'
 export {
@@ -104,8 +112,11 @@ export {
   bindingMessage,
   createAtprotoBinding,
   verifyAtprotoBinding,
+  derivePlcRotationKey,
+  withUserPriorityRotationKey,
   ATPROTO_BINDING_COLLECTION,
   ATPROTO_BINDING_RKEY,
+  type PlcRotationKey,
   type AnyDid,
   type AtprotoDid,
   type XNetDid,

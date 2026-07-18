@@ -23,3 +23,8 @@ export {
   type AtprotoBindingRecord,
   type BindingVerification
 } from './binding'
+export {
+  derivePlcRotationKey,
+  withUserPriorityRotationKey,
+  type PlcRotationKey
+} from './rotation-key'
