@@ -6,7 +6,20 @@
     <atom:link href="https://xnet.fyi/blog/rss.xml" rel="self" type="application/rss+xml" />
     <description>Essays on local-first software, data ownership, and the open web.</description>
     <language>en-us</language>
-    <lastBuildDate>Sat, 18 Jul 2026 21:00:00 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 19 Jul 2026 17:00:00 GMT</lastBuildDate>
+    <item>
+      <title>The World’s Greatest Record Store</title>
+      <link>https://xnet.fyi/blog/the-worlds-greatest-record-store</link>
+      <guid isPermaLink="true">https://xnet.fyi/blog/the-worlds-greatest-record-store</guid>
+      <description>In 2004 a pink website with a pig mascot became the most complete music collection on the internet — run by one person, governed by its members, and killed by a police raid. Its community rediscovered Elinor Ostrom’s commons principles from scratch and was denied only the one no tracker could have: the right to exist. On ratio economies and the anxiety they bred, scenius and the ground scenes rent, and the promise the Palace couldn’t make that local-first software can — the scene outlives the server.</description>
+      <dc:creator>crs48</dc:creator>
+      <dc:creator>Claude</dc:creator>
+      <pubDate>Sun, 19 Jul 2026 17:00:00 GMT</pubDate>
+      <category>essay</category>
+      <category>philosophy</category>
+      <category>decentralization</category>
+      <category>economics</category>
+    </item>
     <item>
       <title>Tree Rings</title>
       <link>https://xnet.fyi/blog/tree-rings</link>

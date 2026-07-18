@@ -6,6 +6,29 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-18-choose-how-xnet-feels-and-meet-a-scene-i",
+      "url": "https://xnet.fyi/changelog#2026-07-18-choose-how-xnet-feels-and-meet-a-scene-i",
+      "title": "Choose how xNet feels, and meet a scene in the demo",
+      "content_text": "First-run now asks how xNet should feel — focused, cozy, or quiet — instead of hiding warmth in settings. The demo workspace gains Night Bloom Records, a small record-archiving collective, alongside Acme Inc. And a new CI rule bans ratio/leaderboard scorekeeping for good.\n",
+      "date_published": "2026-07-18T18:56:51Z",
+      "tags": [
+        "app",
+        "devtools"
+      ],
+      "_xnet": {
+        "date": "July 18, 2026",
+        "summary": "First-run now asks how xNet should feel — focused, cozy, or quiet — instead of hiding warmth in settings. The demo workspace gains Night Bloom Records, a small record-archiving collective, alongside Acme Inc. And a new CI rule bans ratio/leaderboard scorekeeping for good.",
+        "highlights": [],
+        "mergedAt": "2026-07-18T18:56:51Z",
+        "pr": 560,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-18-documents-now-embed-live-databases-maps-",
       "url": "https://xnet.fyi/changelog#2026-07-18-documents-now-embed-live-databases-maps-",
       "title": "Documents now embed live databases, maps, and pages",

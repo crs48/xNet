@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Choose how xNet feels, and meet a scene in the demo</title>
+      <link>https://xnet.fyi/changelog#2026-07-18-choose-how-xnet-feels-and-meet-a-scene-i</link>
+      <guid isPermaLink="false">2026-07-18-choose-how-xnet-feels-and-meet-a-scene-i</guid>
+      <pubDate>Sat, 18 Jul 2026 18:56:51 GMT</pubDate>
+      <description>First-run now asks how xNet should feel — focused, cozy, or quiet — instead of hiding warmth in settings. The demo workspace gains Night Bloom Records, a small record-archiving collective, alongside Acme Inc. And a new CI rule bans ratio/leaderboard scorekeeping for good.</description>
+    </item>
+    <item>
       <title>Documents now embed live databases, maps, and pages</title>
       <link>https://xnet.fyi/changelog#2026-07-18-documents-now-embed-live-databases-maps-</link>
       <guid isPermaLink="false">2026-07-18-documents-now-embed-live-databases-maps-</guid>
