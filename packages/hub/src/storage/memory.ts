@@ -752,6 +752,22 @@ export const createMemoryStorage = (): HubStorage => {
     return changes.length
   }
 
+  const deleteNodeChangesByAuthor = async (authorDid: string): Promise<number> => {
+    let deleted = 0
+    for (const [hash, change] of [...nodeChangesByHash.entries()]) {
+      if (change.authorDid !== authorDid) continue
+      nodeChangesByHash.delete(hash)
+      deleted++
+    }
+    for (const [room, changes] of nodeChangesByRoom.entries()) {
+      nodeChangesByRoom.set(
+        room,
+        changes.filter((c) => c.authorDid !== authorDid)
+      )
+    }
+    return deleted
+  }
+
   const getUsageBytesByDid = async (did: string): Promise<number> => {
     // Mirror the SQLite sum: LENGTH(payload_json) + LENGTH(signature_b64),
     // where LENGTH on TEXT is a character count (exploration 0291).
@@ -1094,6 +1110,7 @@ export const createMemoryStorage = (): HubStorage => {
     getNodeChangesForNode,
     getHighWaterMark,
     clearNodeChanges,
+    deleteNodeChangesByAuthor,
     insertDatabaseRow,
     updateDatabaseRow,
     deleteDatabaseRow,

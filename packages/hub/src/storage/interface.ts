@@ -532,6 +532,13 @@ export type HubStorage = {
    */
   clearNodeChanges: (room: string) => Promise<number>
   /**
+   * Delete every stored node-change authored by a DID across all rooms and
+   * return how many were removed. The Right-to-Leave hub-purge port
+   * (explorations 0234/0344): a departing identity's `DELETE
+   * /export/changes` removes its authored content from this hub.
+   */
+  deleteNodeChangesByAuthor: (authorDid: string) => Promise<number>
+  /**
    * Wipe all user-content data (node changes, doc state, doc meta, database
    * rows, blobs, files, grants, share links, containment/visibility, awareness)
    * and return per-table counts. Backs the demo hub's scheduled daily reset

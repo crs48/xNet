@@ -31,6 +31,12 @@ export interface LeaveDeps {
   store?: NodeStore | null
   /** Signs the bundle manifest with the identity's key. */
   signBytes?: (bytes: Uint8Array) => Uint8Array | Promise<Uint8Array>
+  /**
+   * Purge this identity's authored changes from the configured hub
+   * (`DELETE /export/changes`, exploration 0344). Absent when no hub is
+   * configured — an offline-only departure has nothing remote to purge.
+   */
+  purgeRemote?: () => Promise<void>
 }
 
 /** Browser implementations of the leave ports. `now` is injected for determinism. */
@@ -54,8 +60,7 @@ export function createLeavePorts(
       return files
     },
     exportIdentity: async () => ({ did: identity.did ?? null }),
-    // No hub-purge port wired yet — an offline-only departure tombstones nothing
-    // remote. The local master is the user's; destroyLocal wipes it on request.
+    ...(deps.purgeRemote ? { purgeRemoteCopies: deps.purgeRemote } : {}),
     destroyLocal: async () => deps.destroyLocal(),
     recordLeft: deps.recordLeft
   }

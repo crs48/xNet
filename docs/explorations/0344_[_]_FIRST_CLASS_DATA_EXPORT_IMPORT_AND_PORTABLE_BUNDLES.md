@@ -588,7 +588,7 @@ Phase 2 — surfaces:
       dry-run verify report UI.
 - [x] CLI: `xnet data export` / `import --dry-run` / `snapshot --sqlite`
       on `buildDataClient`; document in CLI help.
-- [ ] Hub: streaming `GET /spaces/:id/export?since=` + import endpoint
+- [x] Hub: streaming `GET /spaces/:id/export?since=` + import endpoint
       with grant-based authz and DID-ownership check; wire the missing
       hub-purge port for `deleteDay` while in there.
 - [ ] Devtools: DataExplorer download (reuse `database/export`),

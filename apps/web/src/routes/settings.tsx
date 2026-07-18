@@ -390,6 +390,7 @@ function ThemeButton({
 function DataSettings() {
   const { identity } = useIdentity()
   const { store: nodeStore } = useNodeStore()
+  const { getHubAuthToken } = useXNet()
   const [clearing, setClearing] = useState(false)
   const [cleared, setCleared] = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
@@ -488,18 +489,29 @@ function DataSettings() {
     try {
       // Honest Delete Day via the tested leave service: wipe the local master
       // and emit only an anonymous account.left signal — no guilt, no nagging.
+      // When a hub is configured, also purge our authored changes from it
+      // (the hub-purge port, exploration 0344).
       const now = new Date().toISOString()
-      await deleteDay(createLeavePorts({ did: identity?.did }, now, LEAVE_DEPS), {
-        keepLocal: false,
-        now
-      })
+      const httpHub = atprotoHubHttpUrl()
+      const purgeRemote =
+        httpHub && getHubAuthToken
+          ? async () => {
+              await hubApiFetch(httpHub, await getHubAuthToken(), '/export/changes', {
+                method: 'DELETE'
+              })
+            }
+          : undefined
+      await deleteDay(
+        createLeavePorts({ did: identity?.did }, now, { ...LEAVE_DEPS, purgeRemote }),
+        { keepLocal: false, now }
+      )
       setCleared(true)
       setConfirmClear(false)
     } catch (err) {
       console.error('Failed to clear data:', err)
       setClearing(false)
     }
-  }, [confirmClear, identity?.did])
+  }, [confirmClear, identity?.did, getHubAuthToken])
 
   const handleCancelClear = useCallback(() => {
     setConfirmClear(false)

@@ -2,8 +2,7 @@
  * Browser bundle round-trip (0344): the settings "Export data" path produces
  * one zipped .xnetpack whose import restores an identical store.
  */
-import type { DID } from '@xnetjs/core'
-import { generateSigningKeyPair, sign } from '@xnetjs/crypto'
+import { generateSigningKeyPair, sign, type DID } from '@xnetjs/crypto'
 import { MemoryNodeStorageAdapter, NodeStore } from '@xnetjs/data'
 import { createDID } from '@xnetjs/identity'
 import { describe, expect, it } from 'vitest'
