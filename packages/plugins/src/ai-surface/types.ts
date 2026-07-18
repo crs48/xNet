@@ -25,6 +25,8 @@ export type AiScope =
   | 'network.fetch'
   | 'agent.workspace.export'
   | 'agent.workspace.import'
+  | 'agent.approve'
+  | 'agent.notifications'
 
 export const AI_RISK_LEVELS: readonly AiRiskLevel[] = ['low', 'medium', 'high', 'critical']
 
@@ -46,7 +48,9 @@ export const AI_SCOPES: readonly AiScope[] = [
   'storage.recovery',
   'network.fetch',
   'agent.workspace.export',
-  'agent.workspace.import'
+  'agent.workspace.import',
+  'agent.approve',
+  'agent.notifications'
 ]
 
 export type AiTargetKind =

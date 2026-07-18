@@ -661,6 +661,18 @@ export const createMemoryStorage = (): HubStorage => {
     nodeChangesByRoom.set(room, existing)
   }
 
+  const getNodeChangesByAuthor = async (
+    authorDid: string,
+    sinceLamport: number,
+    limit = 200
+  ): Promise<SerializedNodeChange[]> => {
+    const bounded = Math.min(Math.max(limit, 1), 1000)
+    return [...nodeChangesByHash.values()]
+      .filter((c) => c.authorDid === authorDid && c.lamportTime > sinceLamport)
+      .sort((a, b) => a.lamportTime - b.lamportTime)
+      .slice(0, bounded)
+  }
+
   // Share rooms (exploration 0298): hash→room mappings with a per-mapping seq.
   const roomChangeMappings: Array<{ seq: number; room: string; hash: string }> = []
   let roomMappingSeq = 0
@@ -1072,6 +1084,7 @@ export const createMemoryStorage = (): HubStorage => {
     listPopularSchemas,
     hasNodeChange,
     appendNodeChange,
+    getNodeChangesByAuthor,
     getUsageBytesByDid,
     addChangeToRoom,
     getRoomChangesSince,

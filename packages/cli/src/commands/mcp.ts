@@ -24,6 +24,12 @@ import {
   type McpHttpServerHandle
 } from '@xnetjs/plugins/node'
 import { Command } from 'commander'
+import { createLocalAgentBackend } from '../utils/agent-local.js'
+import {
+  hexToBytes,
+  loadAgentPassportFile,
+  type AgentPassportFile
+} from '../utils/agent-passport-file.js'
 import { createRemoteAgentBackend, type AgentBackend } from '../utils/agent-remote.js'
 
 export type McpBackendFactory = (options: {
@@ -33,9 +39,27 @@ export type McpBackendFactory = (options: {
 
 const defaultBackendFactory: McpBackendFactory = (options) => createRemoteAgentBackend(options)
 
+export type McpAgentSession = {
+  passport: AgentPassportFile
+  auditSpaceId?: string
+}
+
 /** Build an MCP server over a resolved backend. Writes route through its AI surface. */
-export function buildMcpServer(backend: AgentBackend): MCPServer {
-  return createMCPServer({ store: backend.store, schemas: backend.schemas })
+export function buildMcpServer(backend: AgentBackend, agent?: McpAgentSession): MCPServer {
+  return createMCPServer({
+    store: backend.store,
+    schemas: backend.schemas,
+    ...(agent
+      ? {
+          agentAudit: {
+            agentDID: agent.passport.agentDID,
+            sessionKey: `${agent.passport.runtime}:${agent.passport.name}`,
+            channel: 'other',
+            ...(agent.auditSpaceId ? { spaceId: agent.auditSpaceId } : {})
+          }
+        }
+      : {})
+  })
 }
 
 export type McpServeOptions = {
@@ -45,6 +69,12 @@ export type McpServeOptions = {
   allowOrigin?: string[]
   pairingToken?: string
   apiUrl?: string
+  /** Enrolled agent passport name (exploration 0337). */
+  agent?: string
+  /** Local SQLite path — serve over an agent-signed local store. */
+  db?: string
+  /** Space id the audit records are homed in. */
+  auditSpace?: string
 }
 
 export type McpServeHandle = {
@@ -63,10 +93,47 @@ export async function startMcpServe(
   backendFactory: McpBackendFactory,
   options: McpServeOptions
 ): Promise<McpServeHandle> {
-  const backend = await backendFactory({
-    ...(options.apiUrl ? { apiUrl: options.apiUrl } : {})
-  })
-  const server = buildMcpServer(backend)
+  let agent: McpAgentSession | undefined
+  let backend: AgentBackend
+  if (options.agent) {
+    const passport = await loadAgentPassportFile(options.agent)
+    if (!passport) {
+      throw new Error(
+        `No passport for agent "${options.agent}" (run: xnet agent enroll ${options.agent} --space <id>)`
+      )
+    }
+    if (passport.expiresAt <= Date.now()) {
+      throw new Error(
+        `Passport for "${options.agent}" expired ${new Date(passport.expiresAt).toISOString()} — re-enroll to rotate`
+      )
+    }
+    agent = {
+      passport,
+      ...(options.auditSpace ? { auditSpaceId: options.auditSpace } : {})
+    }
+    if (options.db) {
+      // Agent-signed local store: every write lands in the change log signed
+      // by the agent DID — the tamper-evident half of the audit trail.
+      backend = await createLocalAgentBackend({
+        db: options.db,
+        agentKey: hexToBytes(passport.agentKeyHex)
+      })
+    } else {
+      // Remote-API backend: audit nodes still record the trail, but writes
+      // are signed by the app's identity, not the agent's.
+      console.error(
+        'warning: --agent without --db serves over the local API; writes are signed by the app identity, not the agent DID'
+      )
+      backend = await backendFactory({
+        ...(options.apiUrl ? { apiUrl: options.apiUrl } : {})
+      })
+    }
+  } else {
+    backend = await backendFactory({
+      ...(options.apiUrl ? { apiUrl: options.apiUrl } : {})
+    })
+  }
+  const server = buildMcpServer(backend, agent)
 
   if (options.http) {
     const http = createMcpHttpServer({
@@ -128,6 +195,9 @@ export function registerMcpCommand(
     )
     .option('--pairing-token <token>', 'Shared secret for --http (generated if omitted)')
     .option('--api-url <url>', 'xNet local API URL (default http://127.0.0.1:31415)')
+    .option('--agent <name>', 'Serve as an enrolled agent passport (exploration 0337)')
+    .option('--db <path>', 'With --agent: agent-signed local SQLite store')
+    .option('--audit-space <id>', 'With --agent: Space to home audit records in')
     .action(async (options: McpServeOptions) => {
       const handle = await startMcpServe(backendFactory, options)
       if (handle.mode === 'http' && handle.http) {

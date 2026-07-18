@@ -367,6 +367,11 @@ const SCHEMA_SQL = `
   CREATE INDEX IF NOT EXISTS idx_node_changes_author_schema
     ON node_changes(author_did, schema_id);
 
+  -- Backs getNodeChangesByAuthor: the agent audit trail (exploration 0337)
+  -- pages an author's history on their per-author lamport without a scan.
+  CREATE INDEX IF NOT EXISTS idx_node_changes_author_lamport
+    ON node_changes(author_did, lamport_time);
+
   -- Share rooms (exploration 0298): index an existing change into extra rooms
   -- so a channel's nodes reach a grantee without duplicating content. seq is a
   -- per-mapping monotonic cursor; share-room sync pages on it (author lamports
@@ -1209,6 +1214,12 @@ export const createSQLiteStorage = (
       SELECT * FROM node_changes
       WHERE room = ? AND node_id = ?
       ORDER BY lamport_time ASC
+    `),
+    getNodeChangesByAuthor: db.prepare(`
+      SELECT * FROM node_changes
+      WHERE author_did = ? AND lamport_time > ?
+      ORDER BY lamport_time ASC
+      LIMIT ?
     `),
     getHighWaterMark: db.prepare(`
       SELECT MAX(lamport_time) as hwm FROM node_changes WHERE room = ?
@@ -2215,6 +2226,19 @@ export const createSQLiteStorage = (
     return rows.map(rowToSerializedChange)
   }
 
+  const getNodeChangesByAuthor = async (
+    authorDid: string,
+    sinceLamport: number,
+    limit = 200
+  ): Promise<SerializedNodeChange[]> => {
+    const rows = stmts.getNodeChangesByAuthor.all(
+      authorDid,
+      sinceLamport,
+      Math.min(Math.max(limit, 1), 1000)
+    ) as NodeChangeRow[]
+    return rows.map(rowToSerializedChange)
+  }
+
   const getHighWaterMark = async (room: string): Promise<number> => {
     const row = stmts.getHighWaterMark.get(room) as { hwm: number | null } | undefined
     return row?.hwm ?? 0
@@ -2680,6 +2704,7 @@ export const createSQLiteStorage = (
     resetAllUserData,
     getNodeChangesSince,
     getNodeChangesForNode,
+    getNodeChangesByAuthor,
     getHighWaterMark,
     clearNodeChanges,
     updateSearchBody: async (docId: string, text: string): Promise<void> => {

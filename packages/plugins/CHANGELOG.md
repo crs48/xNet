@@ -1,5 +1,50 @@
 # @xnetjs/plugins
 
+## 2.1.0
+
+### Minor Changes
+
+- [#533](https://github.com/crs48/xNet/pull/533) [`0a4a1de`](https://github.com/crs48/xNet/commit/0a4a1de41b0f68c197ba5f7d191706668550f708) Thanks [@crs48](https://github.com/crs48)! - Agent Passports and signed agent audit trails (exploration 0337).
+  - `@xnetjs/data`: new agent schema pack — `AgentPassport`, `AgentSession`,
+    `AgentAction`, `AgentApproval`, `AgentNotification` — with deterministic id
+    helpers (`agentActionId`, …) and `redactInstruction`.
+  - `@xnetjs/identity`: `mintAgentPassport` / `verifyAgentPassport` (per-agent
+    `did:key` + operator-delegated, attenuation-checked UCAN; wildcards
+    rejected) and `rootIssuers` for delegation-chain root inspection.
+  - `@xnetjs/plugins`: `AgentAuditRecorder` wraps the AI surface so every tool
+    call lands as an `AgentAction` node and medium+ risk calls park behind a
+    risk-tiered approval ceremony (chat nonce with TTL for medium; xNet-surface
+    only for high/critical); ceremony tools (`xnet_approve`, `xnet_deny`,
+    `xnet_pending_approvals`, `xnet_undo`) and the `xnet_poll_notifications`
+    outbox tool; `MCPServerConfig.agentAudit` wires it into the MCP server;
+    `NodeStoreAPI.create` now accepts an optional deterministic `id`; new AI
+    scopes `agent.approve` and `agent.notifications`.
+  - `@xnetjs/cli`: `xnet agent enroll <name>` mints and stores passports
+    (`~/.xnet/agents`, 0600) and prints OpenClaw/Hermes config; `xnet mcp serve
+--agent <name> [--db <path>]` serves an agent-scoped session over an
+    agent-signed local store.
+
+- [#525](https://github.com/crs48/xNet/pull/525) [`fa93e2f`](https://github.com/crs48/xNet/commit/fa93e2f7177367e7336f6a825f8c3436a2165833) Thanks [@crs48](https://github.com/crs48)! - Add the workspace-plugin runtime (exploration 0331): author, hot-load, and
+  compose plugins whose source lives in the workspace as a `PluginSource` node.
+  New public surface: `PluginSourceSchema` + `readPluginSourceNode`, an in-browser
+  module builder (`buildPluginModuleGraph`) with a pinned import map, the
+  `SandboxedPluginHost` (`activateWorkspacePlugin`) that loads plugin code only in
+  an opaque-origin iframe and registers data-declared contributions over
+  MessagePort RPC, a gated store RPC (`createPluginStoreRpc`, denylist-wins), a
+  250ms-debounce hot reloader (`createWorkspacePluginHotReloader`), content-hash
+  pinning + drift diffing (`computePluginSourceHash`, `assessPluginUpdate`), the
+  `plugin_*` agent tools (`createWorkspacePluginAgentTools`) and the
+  `WRITING_XNET_PLUGINS_SKILL_MD` authoring skill, and both publish paths
+  (`requestWorkspacePluginPublish`, `buildCommunityRegistryEntry`). `MCPServerConfig`
+  gains an `extraTools` field to expose the new tools beside the built-ins.
+
+### Patch Changes
+
+- Updated dependencies [[`0a4a1de`](https://github.com/crs48/xNet/commit/0a4a1de41b0f68c197ba5f7d191706668550f708)]:
+  - @xnetjs/data@2.1.0
+  - @xnetjs/abuse@2.1.0
+  - @xnetjs/core@2.1.0
+
 ## 2.0.0
 
 ### Major Changes
