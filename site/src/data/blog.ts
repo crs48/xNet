@@ -110,6 +110,23 @@ const posts: BlogPost[] = [
     readingMinutes: 14
   },
   {
+    slug: 'palimpsest',
+    title: 'Palimpsest',
+    description:
+      'Overwriting was always an economy measure. The economy changed. In ' +
+      '1229 a scribe scraped the only copy of Archimedes’ Method to reuse ' +
+      'the parchment; it took a particle accelerator to partially undo the ' +
+      'knife. Every UPDATE in every mutable database is that knife — and ' +
+      'for the first time we can price it: microseconds, half a kilobyte, ' +
+      'pennies a year. On what a signed, append-only history actually ' +
+      'costs, measured on the shipped code, and why the trade that made ' +
+      'erasure rational has permanently inverted.',
+    pubDate: '2026-07-18T23:00:00Z',
+    authors: ['crs48', 'claude'],
+    tags: ['essay', 'protocol', 'economics', 'philosophy'],
+    readingMinutes: 13
+  },
+  {
     slug: 'tree-rings',
     title: 'Tree Rings',
     description:

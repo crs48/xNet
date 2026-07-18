@@ -1,0 +1,542 @@
+---
+import Base from '../../layouts/Base.astro'
+import Nav from '../../components/sections/Nav.astro'
+import Footer from '../../components/sections/Footer.astro'
+import SeriesNav from '../../components/blog/SeriesNav.astro'
+import PalimpsestHero from '../../components/blog/PalimpsestHero.astro'
+import Byline from '../../components/blog/Byline.astro'
+import CodeFigure from '../../components/blog/CodeFigure.astro'
+import { postBySlug, formatPostDate } from '../../data/blog'
+
+const post = postBySlug('palimpsest')!
+
+// --- syntax highlighting helpers (same tok-* idiom as the landing page's
+//     CodeBlock; coloured by the CSS variables in Base.astro).
+const cm = (s: string) => `<span class="tok-comment">${s}</span>`
+const ty = (s: string) => `<span class="tok-type">${s}</span>`
+const kw = (s: string) => `<span class="tok-keyword">${s}</span>`
+
+// The one code exhibit: the shape of a remembered fact, abridged from
+// packages/sync/src/change.ts. Each field annotated with what it answers.
+const changeCode = [
+  `${cm('// packages/sync/src/change.ts — the shape of one remembered fact (abridged).')}`,
+  `${kw('interface')} ${ty('Change')}&lt;T&gt; {`,
+  `  payload: ${ty('T')}                    ${cm('// the fact itself')}`,
+  `  hash: ${ty('ContentId')}               ${cm('// what was said — BLAKE3, content-addressed')}`,
+  `  parentHash: ${ty('ContentId')} | ${ty('null')}  ${cm('// what came before — history is a chain')}`,
+  `  authorDID: ${ty('DID')}                ${cm('// who said it')}`,
+  `  signature: ${ty('Uint8Array')}         ${cm('// provably — Ed25519, 64 bytes')}`,
+  `  lamport: ${ty('number')}               ${cm('// in what order')}`,
+  `}`
+].join('\n')
+
+// --- the "two prices" figure (hand-rolled, no diagram library: this page
+//     keeps the series' "loads nothing third-party" promise literally) ---
+const eraThen = [
+  { label: 'a gigabyte of disk', value: '≈ $850', note: '1995, consumer drives' },
+  { label: 'one RSA-2048 signature', value: '1/31.8 s', note: '2003, a commodity Celeron: 31.8 per second, flat out' },
+  { label: 'keeping a year of history', value: 'a real bill', note: 'and a visible slice of the machine' }
+] as const
+const eraNow = [
+  { label: 'a gigabyte of disk', value: '≈ 2¢', note: '2025-era drives' },
+  { label: 'one Ed25519 signature', value: '38 µs', note: 'native, one laptop core: 26,100 per second' },
+  { label: 'keeping a year of history', value: '≈ $0.06', note: 'a heavy user’s entire edit history, signed' }
+] as const
+
+// --- the envelope anatomy figure: ~554 bytes of provenance around a payload.
+//     Widths are proportional to real byte counts (0350's measurement of a
+//     typical task edit: ~160 B of payload fields).
+const envelope = [
+  { label: 'payload', bytes: 160, cls: 'bg-amber-500/70', note: 'the fact itself — the fields you edited' },
+  { label: 'hash', bytes: 75, cls: 'bg-violet-500/60', note: 'content address (BLAKE3)' },
+  { label: 'parent hash', bytes: 75, cls: 'bg-violet-500/45', note: 'the chain link backwards' },
+  { label: 'signature', bytes: 88, cls: 'bg-violet-500/75', note: 'Ed25519, base64 on the wire' },
+  { label: 'author', bytes: 110, cls: 'bg-violet-500/30', note: 'the DID — currently carried twice' },
+  { label: 'ids & clocks', bytes: 100, cls: 'bg-violet-500/20', note: 'change id, timestamps, Lamport, syntax' }
+] as const
+const envelopeTotal = envelope.reduce((sum, seg) => sum + seg.bytes, 0)
+---
+
+<Base title={`${post.title} — xNet`} description={post.description}>
+  <Nav />
+
+  <main>
+    <PalimpsestHero
+      title={post.title}
+      deck={post.description}
+      date={formatPostDate(post.pubDate)}
+      readingMinutes={post.readingMinutes}
+      tags={post.tags}
+    />
+
+    <article
+      class="prose prose-lg mx-auto max-w-3xl px-6 py-16 dark:prose-invert prose-headings:tracking-tight prose-a:text-violet-600 dark:prose-a:text-violet-400"
+    >
+      <Byline post={post} />
+
+      <p>
+        On the fourteenth of April, 1229, a scribe named Ioannes Myronas
+        finished a prayer book. He was working in Jerusalem, and he did what
+        scribes of his time routinely did when good writing material was
+        scarce: he made his book out of older books. Among the volumes he
+        unbound was a manuscript copied in Constantinople around the year
+        950 — a collection of treatises by Archimedes. Myronas took its
+        pages apart, scraped and washed the mathematics off them, cut them
+        down, turned them sideways, and wrote his prayers across the faint
+        ghost of the old ink. Among the texts he overwrote were
+        <em>The Method of Mechanical Theorems</em>, which survives nowhere
+        else, and the only copy of <em>On Floating Bodies</em> in the Greek
+        in which Archimedes wrote it.
+      </p>
+      <p>
+        The prayer book worked. It served a monastic community for
+        centuries, which is to say the erasure was, on its own terms, a
+        success. Then, in 1998, the battered volume sold at auction for two
+        million dollars, and a team of imaging scientists spent the better
+        part of a decade teasing the underwriting back out of it — first
+        with ultraviolet and infrared light, and finally, for four pages
+        someone had covered with forged religious paintings, with X-ray
+        fluorescence at the Stanford synchrotron. It took a particle
+        accelerator to partially undo what one man with a knife did in an
+        afternoon. And the man was not a vandal. He was an economist.
+        Parchment was dear; the mathematics was not deemed worth its
+        substrate. He made a rational trade at the prices of 1229.
+      </p>
+      <p>
+        Software makes the same trade billions of times a second, and calls
+        it a design principle. Every <code>UPDATE</code> in every mutable
+        database is the scribe's knife: walk to the place, scrape what is
+        there, write the new text over it. We built our whole industry on
+        update-in-place for the same reason Myronas scraped Archimedes —
+        the substrate was expensive, and history did not seem worth what it
+        cost to keep. This essay is about that trade, at today's prices. We
+        have <a href="/blog/tree-rings">argued elsewhere</a> that keeping
+        history is <em>right</em>. This essay makes a narrower, more
+        falsifiable claim: keeping history — signed, ordered, attributable
+        history — is now so cheap that erasing it saves almost nothing. And
+        for once we can show the bill.
+      </p>
+
+      <h2>The scribe was an economist</h2>
+      <p>
+        It is worth taking the economics of the medieval scriptorium
+        seriously, because they rhyme with ours. Parchment was animal skin,
+        prepared by hand; a large book cost a flock. Reusing it was not
+        desecration but housekeeping — palimpsesting was ordinary practice
+        across centuries of book production, and nobody wept over the
+        underwriting, because the underwriting had been judged, reasonably
+        or not, to be the less valuable layer. The knife was a tool of
+        thrift.
+      </p>
+      <p>
+        Computing had its parchment era, and it lasted into living memory.
+        In 1995 a gigabyte of consumer disk cost roughly eight hundred and
+        fifty dollars — history, at that price, was a luxury good. And
+        storage was the <em>cheaper</em> half of the problem. If you wanted
+        history you could trust — each entry signed, so you know who wrote
+        what — the arithmetic got ugly fast. In 2003, a commodity desktop
+        processor could produce about thirty-two RSA-2048 signatures per
+        second, flat out, doing nothing else. Signing every edit a busy
+        user made would have consumed a visible fraction of the machine;
+        signing every keystroke was simply out of the question. The
+        database designers of that era were not timid. They were doing what
+        Myronas did: pricing the substrate honestly and concluding that the
+        past could not pay its rent.
+      </p>
+      <p>
+        So the mutable row became the default shape of records — not
+        because anyone argued that destroying the previous state of your
+        data was <em>good</em>, but because the alternative billed by the
+        byte and by the cycle, and the bill was unpayable. The trouble with
+        defaults born of scarcity is that nobody re-litigates them when the
+        scarcity ends. The prices collapsed. The knife stayed.
+      </p>
+
+      <h2>The bill, itemised</h2>
+      <p>
+        xNet refuses the knife. There is no update-in-place anywhere in the
+        protocol: every edit becomes a small immutable record — a
+        <em>change</em> — that is content-hashed, signed by its author's
+        key, chained to what came before, and appended to a log that only
+        ever grows. Current state is derived from the log, never stored
+        <em>instead of</em> it. This is exactly the design the parchment
+        era could not afford. So what does it cost now? We measured, on the
+        codebase as it ships, and we would rather show the receipts than
+        wave at them.
+      </p>
+
+      <CodeFigure
+        code={changeCode}
+        filename="packages/sync/src/change.ts"
+        caption="The unit of memory: one signed change. Who, what, when, in what order — provably, forever. This is the entire object whose cost the rest of this essay itemises."
+      />
+
+      <p>
+        The time cost first. On a recent laptop, the full pipeline that
+        turns an edit into a fact — canonicalise the record, hash it, sign
+        the hash — takes about 357 microseconds per change, running the
+        deliberately portable pure-JavaScript cryptography we ship today.
+        End to end, with the database write and the index updates and the
+        subscribers notified, a single edit lands in a handful of
+        milliseconds. Let us be honest about the multiplier, because
+        overhead analyses that hide their worst number are advertising:
+        against a bare in-memory write, or a plain database row update with
+        none of the guarantees, the full pipeline is on the order of a
+        hundred times more expensive per write. That is the real ratio, and
+        it sounds damning — right up until you price it against a human
+        being. A furiously productive person generating five thousand edits
+        in a day spends, at 357 microseconds each, under two seconds of one
+        core's time. Not two seconds per edit. Two seconds, total, for the
+        day, to make every one of those edits provable. The overhead is two
+        to three orders of magnitude below the threshold where anyone could
+        feel it, and reads pay nothing at all — the current state is kept
+        materialised in an ordinary indexed database, so asking "what does
+        my workspace look like?" never touches the log.
+      </p>
+      <p>
+        Now the space cost. Provenance travels as an envelope around each
+        change, and the envelope is a fixed tax:
+      </p>
+
+      <figure class="not-prose my-10">
+        <div class="rounded-2xl border border-border bg-surface/30 p-5 dark:bg-surface/40 lg:p-7">
+          <p class="text-center font-mono text-[10px] uppercase tracking-wider text-violet-500 dark:text-violet-300">
+            one signed change — a typical small edit, ≈{envelopeTotal} bytes on the wire
+          </p>
+          <div class="mt-3 flex h-9 w-full overflow-hidden rounded-lg border border-border">
+            {
+              envelope.map((seg) => (
+                <div
+                  class={`${seg.cls} h-full`}
+                  style={`width: ${(seg.bytes / envelopeTotal) * 100}%`}
+                  title={`${seg.label} — ~${seg.bytes} B`}
+                />
+              ))
+            }
+          </div>
+          <ul class="mt-4 grid gap-1.5 sm:grid-cols-2">
+            {
+              envelope.map((seg) => (
+                <li class="flex items-baseline gap-2 text-xs leading-relaxed">
+                  <span class={`inline-block h-2.5 w-2.5 shrink-0 translate-y-px rounded-sm ${seg.cls}`} />
+                  <span>
+                    <span class="font-semibold text-gray-900 dark:text-white">{seg.label}</span>
+                    <span class="font-mono text-gray-500 dark:text-gray-400"> ~{seg.bytes} B</span>
+                    <span class="text-gray-500 dark:text-gray-400"> — {seg.note}</span>
+                  </span>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+        <figcaption class="mt-3 text-center text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+          The anatomy of one change: the amber segment is the edit itself; every violet
+          segment is provenance — roughly 554 bytes of envelope wrapped around it. For a
+          typical edit that is about three and a half times the raw payload. Half a
+          kilobyte, to know who, what, when, and in what order, forever.
+        </figcaption>
+      </figure>
+
+      <p>
+        Roughly 554 bytes of envelope per change, then, around whatever the
+        edit itself weighs. Multiply it out: our furious five-thousand-edits-a-day
+        user accumulates about 1.3 gigabytes of signed history in a
+        year — around a minute of 4K video — which at today's storage
+        prices costs six cents. Per year. For <em>everything they ever
+        did</em>, attributable and ordered and cryptographically beyond
+        dispute. The parchment-era bill that made update-in-place a
+        necessity has become a rounding error on a rounding error; the
+        knife now saves the price of a sweet from a corner shop, annually,
+        and costs you your entire past.
+      </p>
+
+      <h2>Four curves crossed</h2>
+      <p>
+        Why now? Because four exponential curves, moving mostly
+        independently for thirty years, all crossed the line labelled
+        "cheaper than caring about". None of them alone would have been
+        enough.
+      </p>
+
+      <figure class="not-prose my-10">
+        <div class="grid gap-4 sm:grid-cols-2">
+          <div class="rounded-2xl border border-border bg-surface/30 p-5 dark:bg-surface/40">
+            <p class="font-mono text-[10px] uppercase tracking-wider text-rose-500 dark:text-rose-400">
+              the parchment era — 1995–2003
+            </p>
+            <ul class="mt-3 grid gap-3">
+              {
+                eraThen.map((row) => (
+                  <li class="rounded-lg border border-border bg-surface/40 px-3 py-2 dark:bg-surface/60">
+                    <div class="flex items-baseline justify-between gap-3">
+                      <span class="text-xs font-semibold text-gray-900 dark:text-white">{row.label}</span>
+                      <span class="font-mono text-sm text-rose-500 dark:text-rose-400">{row.value}</span>
+                    </div>
+                    <p class="mt-0.5 text-[11px] leading-snug text-gray-500 dark:text-gray-400">{row.note}</p>
+                  </li>
+                ))
+              }
+            </ul>
+            <p class="mt-3 text-center font-mono text-[10px] text-gray-400 dark:text-gray-500">
+              verdict: scraping is rational
+            </p>
+          </div>
+          <div class="rounded-2xl border border-border bg-surface/30 p-5 dark:bg-surface/40">
+            <p class="font-mono text-[10px] uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+              after the collapse — now
+            </p>
+            <ul class="mt-3 grid gap-3">
+              {
+                eraNow.map((row) => (
+                  <li class="rounded-lg border border-border bg-surface/40 px-3 py-2 dark:bg-surface/60">
+                    <div class="flex items-baseline justify-between gap-3">
+                      <span class="text-xs font-semibold text-gray-900 dark:text-white">{row.label}</span>
+                      <span class="font-mono text-sm text-emerald-600 dark:text-emerald-400">{row.value}</span>
+                    </div>
+                    <p class="mt-0.5 text-[11px] leading-snug text-gray-500 dark:text-gray-400">{row.note}</p>
+                  </li>
+                ))
+              }
+            </ul>
+            <p class="mt-3 text-center font-mono text-[10px] text-gray-400 dark:text-gray-500">
+              verdict: keeping everything is noise
+            </p>
+          </div>
+        </div>
+        <figcaption class="mt-3 text-center text-sm leading-relaxed text-gray-500 dark:text-gray-400">
+          Two price lists for the same design. Signed, kept-forever history did not become
+          a good idea — it always was one. It became <em>affordable</em>.
+        </figcaption>
+      </figure>
+
+      <p>
+        <strong>Signatures collapsed by three orders of magnitude.</strong>
+        Half of that was silicon getting faster; the other half was
+        mathematics getting better. The Ed25519 signature scheme, published
+        in 2011, was designed from the start for speed on ordinary
+        processors, and the difference against the RSA of the parchment era
+        is not an increment — it is the difference between thirty-odd
+        signatures a second and twenty-six thousand. A signature stopped
+        being a ceremony and became a reflex, cheap enough to spend on
+        every edit without thinking.
+      </p>
+      <p>
+        <strong>Storage collapsed by five.</strong> From hundreds of
+        dollars per gigabyte to pennies — with one clause of honesty
+        attached: that is the curve of the decades, not of the last two
+        years, in which memory prices have actually risen on the back of
+        the AI build-out. The argument survives the wobble comfortably; a
+        year of signed history costs cents even at unkind prices. But an
+        essay that quotes price curves owes you the direction of the latest
+        segment.
+      </p>
+      <p>
+        <strong>Encodings collapsed the waste.</strong> Keeping every
+        operation used to imply grotesque amplification — early
+        collaborative-editing data structures could spend a hundred bytes
+        of bookkeeping per character of text. A decade of careful
+        engineering, most visibly Martin Kleppmann's columnar encoding work
+        in the Automerge project, compressed that overhead from roughly a
+        hundred-to-one down to a few tens of percent. Full history went
+        from "pathological bloat" to "about a third more than the text
+        itself" — not by hardware, but by cleverness.
+      </p>
+      <p>
+        <strong>And the platform finally showed up.</strong> A signed log
+        on the server was already prior art — git has been content-addressed
+        and immutable since 2005; certificate transparency runs append-only
+        signed logs for the entire web. The missing piece was the device in
+        your hand. Only in the last few years did the browser acquire what
+        this design needs to run <em>where the user is</em>: real
+        cryptography in the standard library, a real filesystem, a real
+        database compiled to WebAssembly, and the threading to keep it all
+        off the interactive path. The oldest load-bearing part of that
+        platform stack is barely five years old. This design was not
+        waiting for permission. It was waiting for its substrate.
+      </p>
+
+      <h2>Where the cost still lives</h2>
+      <p>
+        If the essay stopped here it would be a brochure, and this series
+        does not do brochures. The overhead is imperceptible <em>per
+        action</em> — but it has not vanished. It has moved. It now lives
+        at the boundaries where you touch the <em>whole</em> history at
+        once, and we know precisely where those are because each one has
+        already hurt us in production.
+      </p>
+      <p>
+        Our worst incident of this kind: a workspace whose change log had
+        grown to 318,000 rows took fifteen seconds to become usable on a
+        cold start, because the boot path was replaying history it should
+        have skipped. A mutable database cannot have that bug — there is
+        nothing to replay — and it would be dishonest not to say so. The
+        cure was not to abandon the log but to respect its asymptotics:
+        current state is served from the materialised view, checkpoints
+        bound how much past a cold start ever touches, and superseded
+        entries are pruned. The log is an archive you consult, not a
+        corridor you must walk every morning.
+      </p>
+      <p>
+        Bulk verification is the same story. Checking one signature is
+        instant; checking a third of a million of them during a large
+        import is minutes of work with the portable cryptography we
+        currently ship — which is why our import path verifies bundles
+        wholesale rather than change-by-change, and why the next
+        engineering increment on our list swaps the bulk paths onto the
+        platform's native cryptography, which we have measured at roughly
+        sixteen times faster. And there is a boundary of <em>kind</em>, not
+        just of scale: the envelope is a fixed tax, so it only makes sense
+        around facts big enough to carry it. Wrap half a kilobyte of
+        provenance around a forty-byte pencil coordinate at a hundred
+        events a second and you will burn hundreds of megabytes an hour
+        recording jitter no one will ever ask about — we know because we
+        tried. The rule that fell out is now protocol discipline: the log
+        is for <em>facts</em>, things a person did that history should
+        answer for; high-frequency ephemera — cursors, presence,
+        mid-gesture strokes — travel a separate, unrecorded lane, and only
+        their settled results become changes. Today that boundary is a
+        convention the codebase polices by rate limits and review rather
+        than a physical law, and we are not yet sure that is enough.
+      </p>
+
+      <h2>Keep the underwriting</h2>
+      <p>
+        Here is the closing irony, and it is not hypothetical. Our industry
+        already runs multispectral imaging on its own palimpsests — we just
+        give it other names. Change-data-capture pipelines that
+        reverse-engineer a history the database was busy destroying. Audit
+        tables bolted on after the compliance letter arrives. Backup
+        archaeology after an incident, diffing snapshots to reconstruct
+        who changed what, when, because the row itself will not say.
+        Forensics teams billing by the hour to recover, partially and
+        expensively, information the system was handed for free and chose
+        to scrape. Every one of these is a synchrotron pointed at a prayer
+        book. The recovered text is always incomplete, and the imaging
+        always costs more than the ink ever did.
+      </p>
+      <p>
+        The cheapest recovery technology ever devised is not scraping. That
+        is the whole argument. Not that history is sacred — the scribe can
+        be forgiven; at his prices, we would have reached for the knife
+        too. The argument is arithmetic: the trade that made erasure
+        rational has inverted, thoroughly and permanently, and the systems
+        we build should notice. About half a kilobyte and a third of a
+        millisecond per edit now buys what no mutable row can offer at any
+        price: who, what, when, in what order — provable by anyone,
+        deniable by no one, forever. At those prices, overwriting your
+        users' history is no longer thrift. It is just a habit, wearing
+        thrift's old clothes.
+      </p>
+      <p>
+        If you want to hold a workspace built on the other habit —
+        <a href="/app">the app is free, offline, and private</a>; every
+        edit you make in it is a signed fact you own. Read
+        <a href="/commitments">the commitments</a>, or
+        <a href="/build-with">build on the protocol</a> — the wire format
+        is open, and the log is legible on purpose. Somewhere under the
+        prayers of every mutable database is a <em>Method</em> nobody meant
+        to lose. Keep the underwriting.
+      </p>
+
+      <hr />
+
+      <h3 id="sources">Sources</h3>
+      <ul class="text-base">
+        <li>
+          The manuscript: the
+          <a href="https://www.archimedespalimpsest.org/" rel="noopener noreferrer"
+            >Archimedes Palimpsest Project</a
+          > — the scribe Ioannes Myronas and the colophon date of 14 April
+          1229, the 1998 Christie's sale, the multispectral imaging
+          programme, and the X-ray fluorescence work at the Stanford
+          synchrotron on the pages hidden beneath forged paintings. See
+          also the Walters Art Museum's exhibition record,
+          <a
+            href="https://thewalters.org/news/lost-and-found-the-secrets-of-archimedes/"
+            rel="noopener noreferrer"><em>Lost and Found: The Secrets of Archimedes</em></a
+          >.
+        </li>
+        <li>
+          The numbers: Bernstein, Duif, Lange, Schwabe &amp; Yang,
+          <a href="https://ed25519.cr.yp.to/ed25519-20110926.pdf" rel="noopener noreferrer"
+            ><em>High-speed high-security signatures</em></a
+          > (the Ed25519 paper);
+          <a
+            href="https://www.georglutz.de/2006/05/06/openssl-speed-measurements/"
+            rel="noopener noreferrer">archived <code>openssl speed</code> runs, 2003–2006</a
+          > (RSA-2048 on the era's commodity processors); Backblaze,
+          <a
+            href="https://www.backblaze.com/blog/hard-drive-cost-per-gigabyte/"
+            rel="noopener noreferrer"><em>Hard Drive Cost Per Gigabyte</em></a
+          >; Matt Komorowski,
+          <a href="https://mkomo.com/cost-per-gigabyte" rel="noopener noreferrer"
+            ><em>A History of Storage Cost</em></a
+          >; and Martin Kleppmann's
+          <a
+            href="https://github.com/automerge/automerge-perf/blob/master/columnar/README.md"
+            rel="noopener noreferrer">columnar-encoding benchmarks</a
+          > for the collapse in CRDT overhead.
+        </li>
+        <li>
+          The receipts, in the open codebase: the change primitive and its
+          signing path (<code>packages/sync/src/change.ts</code>), the
+          cryptography (<code>packages/crypto/src/signing.ts</code>), the
+          append-only <code>changes</code> table
+          (<code>packages/sqlite/src/schema.ts</code>), and the
+          materialised read path (<code>packages/data/src/store/store.ts</code>)
+          — see <a href="https://github.com/crs48/xNet" rel="noopener noreferrer"
+            >the repository</a
+          > and <a href="/build-with">the protocol docs</a>. The
+          measurements in this essay were made on the shipped code and are
+          written up, with methodology and caveats, in
+          <a
+            href="https://github.com/crs48/xNet/blob/main/docs/explorations/0350_%5B_%5D_OVERHEAD_OF_THE_SIGNED_CHANGE_LOG_VS_A_MUTABLE_DATABASE_AND_WHY_ITS_AFFORDABLE_NOW.md"
+            rel="noopener noreferrer">exploration 0350</a
+          >.
+        </li>
+        <li>
+          The paper trail — the numbered explorations behind this essay's
+          incidents and rules:
+          <a
+            href="https://github.com/crs48/xNet/blob/main/docs/explorations/0323_%5B_%5D_ENTITY_COMPONENT_SYSTEM_AND_HIGH_FREQUENCY_STATE.md"
+            rel="noopener noreferrer">0323 (the high-frequency boundary and the envelope tax)</a
+          >,
+          <a
+            href="https://github.com/crs48/xNet/blob/main/docs/explorations/0344_%5Bx%5D_FIRST_CLASS_DATA_EXPORT_IMPORT_AND_PORTABLE_BUNDLES.md"
+            rel="noopener noreferrer">0344 (bulk verification and the import gate)</a
+          >, and
+          <a
+            href="https://github.com/crs48/xNet/blob/main/docs/explorations/0329_%5Bx%5D_PATCHWORK_STYLE_DRAFTS_AND_TIMELINE_SCRUBBING.md"
+            rel="noopener noreferrer">0329 (checkpoints — bounding what a cold start touches)</a
+          >.
+        </li>
+        <li>
+          Companion essays in this series:
+          <a href="/blog/tree-rings">Tree Rings</a> (why accretion is the
+          right model — this essay is its price tag),
+          <a href="/blog/the-loom-you-can-read">The Loom You Can Read</a>
+          (the change log, line by line), and
+          <a href="/blog/weights-you-can-hold">Weights You Can Hold</a>
+          (the economics of holding your own data).
+        </li>
+      </ul>
+
+      <p class="text-sm text-gray-400 dark:text-gray-500">
+        <em
+          >The benchmark figures in this essay were measured on the xNet
+          codebase as shipped, on a recent laptop, and are documented with
+          methodology and caveats in exploration 0350; they are
+          representative, not universal. Historical facts about the
+          Archimedes Palimpsest follow the Archimedes Palimpsest Project
+          and the sources linked above. This essay contains no direct
+          quotations. All artwork here is original, and this page loads
+          nothing third-party.</em
+        >
+      </p>
+    </article>
+
+    <SeriesNav slug="palimpsest" />
+  </main>
+
+  <Footer />
+</Base>
