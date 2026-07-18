@@ -299,7 +299,10 @@ export function useGridDatabase(
   // footer can show the true total, not the window size.
   const {
     data: rowNodes,
-    status: rowStatus,
+    // Masked while a window grow is in flight (previous rows stay visible):
+    // consumers must not fall back to a skeleton mid-grow or scroll position
+    // is lost — `isFetchingMoreRows` reports the in-flight grow instead.
+    loading: rowsLoading,
     totalCount: totalRowCount,
     hasMore: hasMoreRows,
     isFetchingNextPage: isFetchingMoreRows,
@@ -421,12 +424,36 @@ export function useGridDatabase(
     }
   }, [rowNodes, fields, store])
 
+  // Row models cache per node identity: useQuery preserves FlatNode identity
+  // for unchanged rows, so a window grow (or an edit elsewhere) rebuilds only
+  // the rows whose node actually changed. Without this every grow re-created
+  // all models and re-rendered every visible row — the measured window-grow
+  // frame spike (0340). The cache resets whenever any model input other than
+  // the node itself changes.
+  const rowModelCacheRef = useRef<{ deps: readonly unknown[]; map: WeakMap<object, GridRowModel> }>(
+    { deps: [], map: new WeakMap() }
+  )
+
   const rows = useMemo(() => {
+    const cacheDeps = [fields, rollupValues, databaseId] as const
+    if (
+      cacheDeps.length !== rowModelCacheRef.current.deps.length ||
+      cacheDeps.some((d, i) => d !== rowModelCacheRef.current.deps[i])
+    ) {
+      rowModelCacheRef.current = { deps: cacheDeps, map: new WeakMap() }
+    }
+    const cache = rowModelCacheRef.current.map
+
     // Auto fields read node metadata instead of stored cells
     const autoFields = fields.filter((f) =>
       ['created', 'createdBy', 'updated', 'updatedBy'].includes(f.type)
     )
-    const base: GridRowModel[] = ((rowNodes ?? []) as unknown as Flat[]).map((node) => {
+    const formulaFields = fields.filter((f) => f.type === 'formula')
+    const rollupFields = fields.filter((f) => f.type === 'rollup')
+    const columnDefs =
+      formulaFields.length > 0 || activeView ? fieldsToColumnDefinitions(fields) : []
+
+    const buildRow = (node: Flat): GridRowModel => {
       const cells = fromCellProperties(node)
       for (const field of autoFields) {
         switch (field.type) {
@@ -449,59 +476,52 @@ export function useGridDatabase(
             break
         }
       }
-      return {
+      const row: GridRowModel = {
         id: node.id,
         sortKey: (node.sortKey as string) ?? '',
         cells
       }
-    })
+      // Formula fields evaluate from the row's other cells (cached per
+      // row+column input hash), before filters/sorts so they can use the
+      // computed values
+      for (const field of formulaFields) {
+        const columnDef = columnDefs.find((c) => c.id === field.id)
+        if (!columnDef) continue
+        try {
+          row.cells[field.id] = formulaService.compute(
+            { id: row.id, databaseId, cells: row.cells },
+            columnDef,
+            columnDefs
+          ) as CellValue
+        } catch {
+          row.cells[field.id] = null
+        }
+      }
+      // Rollup values merge from the async computation
+      for (const field of rollupFields) {
+        const computed = rollupValues.get(`${row.id}:${field.id}`)
+        if (computed !== undefined) row.cells[field.id] = computed
+      }
+      return row
+    }
 
-    // Formula fields evaluate from the row's other cells (cached per
-    // row+column input hash), before filters/sorts so they can use the
-    // computed values
-    const formulaFields = fields.filter((f) => f.type === 'formula')
-    if (formulaFields.length > 0) {
-      const columnDefs = fieldsToColumnDefinitions(fields)
-      for (const row of base) {
-        for (const field of formulaFields) {
-          const columnDef = columnDefs.find((c) => c.id === field.id)
-          if (!columnDef) continue
-          try {
-            row.cells[field.id] = formulaService.compute(
-              { id: row.id, databaseId, cells: row.cells },
-              columnDef,
-              columnDefs
-            ) as CellValue
-          } catch {
-            row.cells[field.id] = null
-          }
-        }
-      }
-    }
-    // Rollup values merge from the async computation
-    if (rollupValues.size > 0) {
-      for (const row of base) {
-        for (const field of fields) {
-          if (field.type !== 'rollup') continue
-          const computed = rollupValues.get(`${row.id}:${field.id}`)
-          if (computed !== undefined) row.cells[field.id] = computed
-        }
-      }
-    }
+    const base: GridRowModel[] = ((rowNodes ?? []) as unknown as Flat[]).map((node) => {
+      const hit = cache.get(node)
+      if (hit) return hit
+      const row = buildRow(node)
+      cache.set(node, row)
+      return row
+    })
 
     // Fractional-index comparator is the final ordering authority
     base.sort((a, b) => compareSortKeys(a.sortKey, b.sortKey))
     if (!activeView) return base
-    const columns = fieldsToColumnDefinitions(fields)
-    const filtered = filterRows(base, columns, activeView.filters)
-    return sortRows(filtered, columns, activeView.sorts)
+    const filtered = filterRows(base, columnDefs, activeView.filters)
+    return sortRows(filtered, columnDefs, activeView.sorts)
   }, [rowNodes, activeView, fields, databaseId, rollupValues])
 
   const loading =
-    dbStatus === 'loading' ||
-    fieldStatus === 'loading' ||
-    viewStatus === 'loading' ||
-    rowStatus === 'loading'
+    dbStatus === 'loading' || fieldStatus === 'loading' || viewStatus === 'loading' || rowsLoading
 
   // ─── Append-key tails ─────────────────────────────────────────────────────
   // Query results lag mutations within a burst (e.g. three addRow calls in

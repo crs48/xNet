@@ -663,6 +663,11 @@ export function GridSurface({
     containerRef.current?.focus()
   }, [])
 
+  // Stable identity so memoized rows don't re-render on unrelated updates
+  const handleSelectRow = useCallback((r: number, shiftKey: boolean) => {
+    dispatch({ type: 'selectRow', row: r, extend: shiftKey })
+  }, [])
+
   // ─── Row drag (gutter handles) ─────────────────────────────────────────────
 
   const rowSensors = useSensors(
@@ -772,9 +777,7 @@ export function GridSurface({
                       onDoubleClickCell={handleCellDoubleClick}
                       onEditorCommit={handleEditorCommit}
                       onEditorCancel={handleEditorCancel}
-                      onSelectRow={(r, shiftKey) =>
-                        dispatch({ type: 'selectRow', row: r, extend: shiftKey })
-                      }
+                      onSelectRow={handleSelectRow}
                       onOpenRow={onOpenRow}
                       onCommentClick={onCommentCell ?? undefined}
                       onCreateOption={onCreateOption}
@@ -851,7 +854,13 @@ interface GridRowProps {
   colWindow?: ColWindow
 }
 
-function GridRow({
+/**
+ * Memoized: with stable row identity from the data hook (0340), a window
+ * grow or an edit to one row re-renders only the rows whose props changed —
+ * not every visible row. Interaction state (cursor/selection/editing) is a
+ * single `state` prop, so interactions still repaint the visible window.
+ */
+const GridRow = React.memo(function GridRow({
   row,
   rowIndex,
   top,
@@ -1025,4 +1034,4 @@ function GridRow({
       )}
     </div>
   )
-}
+})
