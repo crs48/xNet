@@ -30,6 +30,7 @@ const SCHEMA_SQL = `
     id TEXT PRIMARY KEY,
     lane TEXT NOT NULL,
     fingerprint TEXT NOT NULL,
+    issue_key TEXT,
     error_name TEXT NOT NULL,
     message TEXT NOT NULL,
     stack TEXT,
@@ -56,6 +57,7 @@ interface Row {
   id: string
   lane: string
   fingerprint: string
+  issue_key: string | null
   error_name: string
   message: string
   stack: string | null
@@ -76,6 +78,7 @@ const toRecord = (row: Row): DebugReportRecord => ({
   id: row.id,
   lane: row.lane as DebugReportRecord['lane'],
   fingerprint: row.fingerprint,
+  issueKey: row.issue_key ?? undefined,
   errorName: row.error_name,
   message: row.message,
   stack: row.stack ?? undefined,
@@ -132,11 +135,11 @@ export function createSqliteDebugReportStore(
 
   const upsert = db.prepare(`
     INSERT INTO debug_reports (
-      id, lane, fingerprint, error_name, message, stack, release, surface,
+      id, lane, fingerprint, issue_key, error_name, message, stack, release, surface,
       boot_stage, ua_family, user_description, breadcrumbs, did_hash,
       occurrences, status, first_seen_ms, last_seen_ms
     ) VALUES (
-      @id, @lane, @fingerprint, @errorName, @message, @stack, @release, @surface,
+      @id, @lane, @fingerprint, @issueKey, @errorName, @message, @stack, @release, @surface,
       @bootStage, @uaFamily, @userDescription, @breadcrumbs, @didHash,
       @occurrences, @status, @firstSeenMs, @lastSeenMs
     )
@@ -186,6 +189,7 @@ export function createSqliteDebugReportStore(
         id: record.id,
         lane: record.lane,
         fingerprint: record.fingerprint,
+        issueKey: record.issueKey ?? null,
         errorName: record.errorName,
         message: record.message,
         stack: record.stack ?? null,

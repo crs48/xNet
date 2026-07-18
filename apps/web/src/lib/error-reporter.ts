@@ -94,10 +94,23 @@ export function isDiagnosticsLocalFirst(): boolean {
 const isElectron = (): boolean =>
   typeof window !== 'undefined' && (window as { xnet?: unknown }).xnet !== undefined
 
+/**
+ * Structured errors group better than raw names: a `TaggedError`'s `_tag` (and
+ * `code`, when the class carries one) survives re-bundling and message churn,
+ * so it becomes the fingerprint's error-name input (0303/0341). Duck-typed
+ * rather than `instanceof` so tagged errors from any bundle copy qualify.
+ */
+function reportedErrorName(error: Error): string {
+  const tag = (error as { _tag?: unknown })._tag
+  if (typeof tag !== 'string' || tag.length === 0) return error.name || 'Error'
+  const code = (error as { code?: unknown }).code
+  return typeof code === 'string' && code.length > 0 ? `${tag}.${code}` : tag
+}
+
 /** Shared shape for the automatic crash lane and the debug-report composer. */
 export function toCrashPing(failure: BootFailure, error: Error): CrashPing {
   return {
-    errorName: error.name || 'Error',
+    errorName: reportedErrorName(error),
     message: failure.message,
     stack: failure.stack ?? error.stack,
     release: import.meta.env.VITE_APP_VERSION as string | undefined,

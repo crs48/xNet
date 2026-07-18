@@ -30,6 +30,7 @@ export interface QuarantinedReport {
   id: string
   lane: 'auto' | 'user' | 'hub'
   fingerprint: string
+  issueKey?: string
   errorName: string
   message?: string
   stack?: string
@@ -84,6 +85,7 @@ function reportProperties(
     space,
     lane: report.lane,
     fingerprint: report.fingerprint,
+    issueKey: report.issueKey,
     errorName: report.errorName,
     message: report.message,
     stack: report.stack,

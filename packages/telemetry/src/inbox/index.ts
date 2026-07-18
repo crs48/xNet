@@ -38,6 +38,13 @@ export interface DebugReportRecord {
   id: string
   lane: DebugReportLane
   fingerprint: string
+  /**
+   * Cross-release grouping key: `fingerprint` without the release component,
+   * so "did 1.42 fix it?" splits per release while the console can still
+   * group one issue's whole history (exploration 0341). Optional only because
+   * records quarantined before 0341 lack it; every new ingest sets it.
+   */
+  issueKey?: string
   errorName: string
   message: string
   stack?: string
@@ -237,6 +244,14 @@ export function parseIncomingReport(body: unknown): IncomingReport | null {
   }
 }
 
+/** The top stack frame, kept path + line/col but stripped of its origin. */
+const normalizedTopFrame = (stack?: string): string =>
+  stack
+    ?.split('\n')
+    .map((line) => line.trim())
+    .find((line) => line.startsWith('at ') || /\S+:\d+:\d+/.test(line))
+    ?.replace(/https?:\/\/[^/]+/g, '') ?? ''
+
 /**
  * Grouping key: error name + normalized top stack frame + release. The frame
  * keeps its path and line/col but drops the origin, so the same build crashing
@@ -247,14 +262,21 @@ export function fingerprintOf(report: {
   stack?: string
   release?: string
 }): string {
-  const topFrame =
-    report.stack
-      ?.split('\n')
-      .map((line) => line.trim())
-      .find((line) => line.startsWith('at ') || /\S+:\d+:\d+/.test(line))
-      ?.replace(/https?:\/\/[^/]+/g, '') ?? ''
   return createHash('sha256')
-    .update(`${report.errorName}|${topFrame}|${report.release ?? ''}`)
+    .update(`${report.errorName}|${normalizedTopFrame(report.stack)}|${report.release ?? ''}`)
+    .digest('hex')
+    .slice(0, 24)
+}
+
+/**
+ * Release-independent issue identity: the fingerprint minus the release
+ * component. Never hashes line-varying content like raw messages (grouping
+ * stability — the Sentry lesson), and `TaggedError` names (`_tag.code`) make
+ * the best inputs because they survive re-bundling.
+ */
+export function issueKeyOf(report: { errorName: string; stack?: string }): string {
+  return createHash('sha256')
+    .update(`${report.errorName}|${normalizedTopFrame(report.stack)}`)
     .digest('hex')
     .slice(0, 24)
 }
@@ -301,6 +323,7 @@ export async function ingestReport(
 
   const lane = extra.lane ?? incoming.lane
   const fingerprint = fingerprintOf(incoming)
+  const issueKey = issueKeyOf(incoming)
   const id = lane === 'auto' ? `dr_${fingerprint}` : `dr_u_${randomBytes(9).toString('hex')}`
   const at = now()
 
@@ -318,6 +341,7 @@ export async function ingestReport(
         id,
         lane,
         fingerprint,
+        issueKey,
         errorName: incoming.errorName,
         message: scrubbed.message ?? incoming.errorName,
         stack: scrubbed.stack,

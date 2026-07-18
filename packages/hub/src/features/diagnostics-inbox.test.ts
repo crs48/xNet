@@ -78,6 +78,16 @@ describe('diagnosticsInboxFeature — ingest', () => {
     expect(record?.status).toBe('pending')
   })
 
+  it('stamps a release-independent issueKey so releases split but issues persist', async () => {
+    const { app, store } = mount()
+    const a = await (await post(app, '/diagnostics/ingest', ping())).json()
+    const b = await (await post(app, '/diagnostics/ingest', ping({ release: 'web-1.43' }))).json()
+    expect(b.id).not.toBe(a.id) // release is part of the fingerprint…
+    const [ra, rb] = [await store.get(a.id), await store.get(b.id)]
+    expect(ra?.issueKey).toBeTruthy()
+    expect(ra?.issueKey).toBe(rb?.issueKey) // …but not of the issue identity
+  })
+
   it('rejects oversized (413), invalid (400), and junk-stripped payloads', async () => {
     const { app } = mount()
     const big = await post(app, '/diagnostics/ingest', {

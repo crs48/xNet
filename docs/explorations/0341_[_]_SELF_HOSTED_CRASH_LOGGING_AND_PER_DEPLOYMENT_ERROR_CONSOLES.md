@@ -720,7 +720,7 @@ async function maybeTeeUpstream(record: DebugReportRecord) {
   reports" running `drainDebugReports`, first-run diagnostics-Space
   bootstrap with Inbox / By release / By fingerprint saved views, deep-link
   to console).
-- [ ] **P2:** Route `TaggedError` (`_tag`, `code`) into the reporter and
+- [x] **P2:** Route `TaggedError` (`_tag`, `code`) into the reporter and
   prefer them as fingerprint inputs; consider `issueKey` cross-release
   grouping field (schema-additive).
 - [ ] **P3:** Hub `GET /diagnostics/summary` → `fetchHubDiagnosticsSummary`

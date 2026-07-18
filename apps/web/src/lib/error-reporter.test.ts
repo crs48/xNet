@@ -6,7 +6,8 @@ import {
   initErrorReporter,
   isDiagnosticsConfigured,
   isDiagnosticsLocalFirst,
-  reportError
+  reportError,
+  toCrashPing
 } from './error-reporter'
 import { diagnosticsIngestBase, HUB_URL_STORAGE_KEY } from './hub-url'
 import { __resetSentry, captureToSentry, isSentryConfigured, publicKeyFromDsn } from './sentry'
@@ -53,6 +54,25 @@ describe('diagnostics transport gating (self-host / preview invariant)', () => {
       reportError({ kind: 'init', stage: 'sqlite:open', message: 'boom', at: 1 })
     ).not.toThrow()
     expect(getDiagnosticsClient()).toBeNull()
+  })
+})
+
+describe('toCrashPing — TaggedError routing (0303/0341)', () => {
+  const failure = { kind: 'init', stage: 'sqlite:open', message: 'boom', at: 1 } as const
+
+  it('prefers _tag (and code) over the raw error name', () => {
+    const tagged = Object.assign(new Error('relay fell over'), {
+      _tag: 'NodeRelayError',
+      code: 'RELAY_TIMEOUT'
+    })
+    expect(toCrashPing(failure, tagged).errorName).toBe('NodeRelayError.RELAY_TIMEOUT')
+
+    const tagOnly = Object.assign(new Error('denied'), { _tag: 'PermissionError' })
+    expect(toCrashPing(failure, tagOnly).errorName).toBe('PermissionError')
+  })
+
+  it('falls back to the error name for untagged errors', () => {
+    expect(toCrashPing(failure, new TypeError('x')).errorName).toBe('TypeError')
   })
 })
 
