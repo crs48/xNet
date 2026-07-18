@@ -1,6 +1,6 @@
 # xNet Auth vs Keyhive: A Dimension-by-Dimension Comparison
 
-> Exploration 0343 · 2026-07-18 · status: unimplemented
+> Exploration 0343 · 2026-07-18 · status: implemented (analysis routed; see checklist decisions)
 >
 > Prompt: "how does xnet auth compare to keyhive?
 > https://www.inkandswitch.com/keyhive/notebook/"
@@ -439,16 +439,16 @@ programs, not a new track:
 
 ## Validation Checklist
 
-- [ ] The scorecard's "shipped since 0325" claims are code-verified (each
+- [x] The scorecard's "shipped since 0325" claims are code-verified (each
       cited file/line exists on main): audience enforcement + revocation +
       nonce + trustedDids in `packages/hub/src/auth/`, Agent Passport
       wildcard rejection, ATProto binding/rotation modules, ledger device
       epochs, `rotateContentKey` cascade.
-- [ ] 0325's amendment lands (C4 prerequisite + C2 rotateContentKey note)
+- [x] 0325's amendment lands (C4 prerequisite + C2 rotateContentKey note)
       and the two docs cross-reference each other.
-- [ ] The 0335 conversation has an explicit decision recorded: perimeter
+- [x] The 0335 conversation has an explicit decision recorded: perimeter
       blockers sequenced before (or consciously parallel to) 0325-C1/C2.
-- [ ] If the `pull` rung is adopted: 0304's `grantActionSatisfies` fallback
+- [x] If the `pull` rung is adopted: 0304's `grantActionSatisfies` fallback
       table extended + property tests updated; if rejected: the decision
       and reason recorded here or in C1's design doc.
 
