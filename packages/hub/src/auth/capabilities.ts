@@ -22,6 +22,7 @@ export type HubAction =
   | 'notify/push'
   | 'telemetry/ingest'
   | 'telemetry/read'
+  | 'audit/read'
 
 /** Canonical bridge from hub actions to AuthAction. */
 export const HUB_ACTION_MAP: Record<HubAction, AuthAction> = {
@@ -43,7 +44,10 @@ export const HUB_ACTION_MAP: Record<HubAction, AuthAction> = {
   // may submit its own telemetry; the hub hashes the DID), reads are admin-only
   // (an aggregate of everyone's usage).
   'telemetry/ingest': 'write',
-  'telemetry/read': 'admin'
+  'telemetry/read': 'admin',
+  // Audit (exploration 0337): reading another author's full change history is
+  // operator territory; self-reads are always allowed by the route.
+  'audit/read': 'admin'
 }
 
 /** Check if a granted action pattern covers the requested action. */

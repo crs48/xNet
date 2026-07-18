@@ -607,7 +607,7 @@ Phase 1 — Agent Passport (identity + capability):
 - [ ] MCP server accepts agent-scoped auth: tool calls execute against a
       store identity = agent DID (writes signed by agent key held locally
       by `xnet mcp serve`, never by the gateway)
-- [ ] Hub: derive `AuthSession.capabilities` from presented UCAN instead of
+- [x] Hub: derive `AuthSession.capabilities` from presented UCAN instead of
       anonymous wildcard when a passport token is presented
       (`packages/hub/src/auth/ucan.ts`) — 0307 remediation, first consumer
 
@@ -617,7 +617,7 @@ Phase 2 — Audit trail:
       (deterministic ids, `spaceCascadeAuthorization`, reversibility field)
 - [ ] Audit middleware wrapping `AiSurfaceService.callTool` (one
       `AgentAction` per call, linked `changeIds`)
-- [ ] Per-author index + query: hub storage index on change author,
+- [x] Per-author index + query: hub storage index on change author,
       `GET /audit/authors/:did/changes?since=` (paginated), UCAN-gated
 - [ ] Workbench audit console: table view over `AgentAction` filtered by
       agent DID, with per-action change diffs (reuse DebugReport console
