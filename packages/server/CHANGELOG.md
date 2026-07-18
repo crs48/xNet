@@ -1,5 +1,15 @@
 # @xnetjs/server
 
+## 0.0.19
+
+### Patch Changes
+
+- Updated dependencies [[`0a4a1de`](https://github.com/crs48/xNet/commit/0a4a1de41b0f68c197ba5f7d191706668550f708)]:
+  - @xnetjs/data@2.1.0
+  - @xnetjs/identity@2.1.0
+  - @xnetjs/data-bridge@2.1.0
+  - @xnetjs/crypto@2.1.0
+
 ## 0.0.18
 
 ### Patch Changes

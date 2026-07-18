@@ -1,5 +1,41 @@
 # @xnetjs/cli
 
+## 0.2.0
+
+### Minor Changes
+
+- [#533](https://github.com/crs48/xNet/pull/533) [`0a4a1de`](https://github.com/crs48/xNet/commit/0a4a1de41b0f68c197ba5f7d191706668550f708) Thanks [@crs48](https://github.com/crs48)! - Agent Passports and signed agent audit trails (exploration 0337).
+  - `@xnetjs/data`: new agent schema pack — `AgentPassport`, `AgentSession`,
+    `AgentAction`, `AgentApproval`, `AgentNotification` — with deterministic id
+    helpers (`agentActionId`, …) and `redactInstruction`.
+  - `@xnetjs/identity`: `mintAgentPassport` / `verifyAgentPassport` (per-agent
+    `did:key` + operator-delegated, attenuation-checked UCAN; wildcards
+    rejected) and `rootIssuers` for delegation-chain root inspection.
+  - `@xnetjs/plugins`: `AgentAuditRecorder` wraps the AI surface so every tool
+    call lands as an `AgentAction` node and medium+ risk calls park behind a
+    risk-tiered approval ceremony (chat nonce with TTL for medium; xNet-surface
+    only for high/critical); ceremony tools (`xnet_approve`, `xnet_deny`,
+    `xnet_pending_approvals`, `xnet_undo`) and the `xnet_poll_notifications`
+    outbox tool; `MCPServerConfig.agentAudit` wires it into the MCP server;
+    `NodeStoreAPI.create` now accepts an optional deterministic `id`; new AI
+    scopes `agent.approve` and `agent.notifications`.
+  - `@xnetjs/cli`: `xnet agent enroll <name>` mints and stores passports
+    (`~/.xnet/agents`, 0600) and prints OpenClaw/Hermes config; `xnet mcp serve
+--agent <name> [--db <path>]` serves an agent-scoped session over an
+    agent-signed local store.
+
+### Patch Changes
+
+- Updated dependencies [[`0a4a1de`](https://github.com/crs48/xNet/commit/0a4a1de41b0f68c197ba5f7d191706668550f708), [`fa93e2f`](https://github.com/crs48/xNet/commit/fa93e2f7177367e7336f6a825f8c3436a2165833)]:
+  - @xnetjs/data@2.1.0
+  - @xnetjs/identity@2.1.0
+  - @xnetjs/plugins@2.1.0
+  - @xnetjs/runtime@0.5.1
+  - @xnetjs/sync@2.1.0
+  - @xnetjs/sqlite@2.1.0
+  - @xnetjs/crypto@2.1.0
+  - @xnetjs/core@2.1.0
+
 ## 0.1.7
 
 ### Patch Changes

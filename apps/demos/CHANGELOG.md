@@ -1,5 +1,15 @@
 # xnet-demos
 
+## 0.1.3
+
+### Patch Changes
+
+- Updated dependencies [[`0a4a1de`](https://github.com/crs48/xNet/commit/0a4a1de41b0f68c197ba5f7d191706668550f708), [`5473a29`](https://github.com/crs48/xNet/commit/5473a292597f0b47aa804af7ee2e38e25a549137)]:
+  - @xnetjs/data@2.1.0
+  - @xnetjs/identity@2.1.0
+  - @xnetjs/react@2.1.0
+  - @xnetjs/devtools@0.1.0
+
 ## 0.1.2
 
 ### Patch Changes

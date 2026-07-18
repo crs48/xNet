@@ -1,6 +1,6 @@
 {
   "name": "@xnetjs/licenses",
-  "version": "0.0.19",
+  "version": "0.0.20",
   "description": "Ed25519-signed, DID-bound plugin license tokens — the offline-verifiable entitlement spine for the paid plugin marketplace (exploration 0196).",
   "license": "MIT",
   "type": "module",
