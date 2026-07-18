@@ -48,7 +48,8 @@ import { DoubleStar, MobileOverlays } from './mobile-overlays'
 import { navigateToNode } from './navigation'
 import { selectActiveTab, useWorkbench, type WorkbenchTab } from './state'
 import { CHIP } from './SyncStatus'
-import { TAB_VIEWS } from './tabs'
+import { useRouteTitle } from './route-title'
+import { tabFromPathname, TAB_VIEWS } from './tabs'
 import { useSyncVitals } from './useSyncVitals'
 
 const SHARE_TYPES: Partial<Record<WorkbenchTab['nodeType'], ShareDocType>> = {
@@ -350,6 +351,9 @@ export function MobileShell({ children }: { children: ReactNode }) {
 
   const { pathname } = useLocation()
   const activeTab = useWorkbench(selectActiveTab)
+  const tabsEnabled = useWorkbench((s) => s.tabsEnabled)
+  const routeTitle = useRouteTitle()
+  const routedDescriptor = tabFromPathname(pathname)
   const rightOpen = useWorkbench((s) => s.right.open)
   const setPanelOpen = useWorkbench((s) => s.setPanelOpen)
 
@@ -377,10 +381,20 @@ export function MobileShell({ children }: { children: ReactNode }) {
   }
   const openNew = () => setOv('new')
 
-  const title =
-    activeTab?.title?.trim() || (activeTab && TAB_VIEWS[activeTab.nodeType]?.label) || 'xNet'
-  const BreadIcon = (activeTab && TAB_VIEWS[activeTab.nodeType]?.icon) ?? FileText
-  const shareType = activeTab ? SHARE_TYPES[activeTab.nodeType] : undefined
+  // Tabless (0353): no tab owns "what am I looking at", so the header
+  // derives from the route the same way the desktop one does. `current`
+  // keeps both modes on one shape so title, icon and share agree.
+  const current = tabsEnabled
+    ? activeTab && { nodeId: activeTab.nodeId, nodeType: activeTab.nodeType, title: activeTab.title }
+    : routedDescriptor && {
+        nodeId: routedDescriptor.nodeId,
+        nodeType: routedDescriptor.nodeType,
+        title: routeTitle ?? ''
+      }
+
+  const title = current?.title?.trim() || (current && TAB_VIEWS[current.nodeType]?.label) || 'xNet'
+  const BreadIcon = (current && TAB_VIEWS[current.nodeType]?.icon) ?? FileText
+  const shareType = current ? SHARE_TYPES[current.nodeType] : undefined
 
   return (
     <div className={FRAME} data-wb-shell="mobile">
@@ -428,9 +442,9 @@ export function MobileShell({ children }: { children: ReactNode }) {
         }}
       />
 
-      {shareType && activeTab && (
+      {shareType && current && (
         <ShareDialog
-          docId={activeTab.nodeId}
+          docId={current.nodeId}
           docType={shareType}
           isOpen={shareOpen}
           onClose={() => setShareOpen(false)}
