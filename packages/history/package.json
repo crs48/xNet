@@ -1,6 +1,6 @@
 {
   "name": "@xnetjs/history",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "description": "History, audit & time travel for xNet (point-in-time reconstruction, undo/redo, diffs, blame, verification)",
   "license": "MIT",
   "repository": {

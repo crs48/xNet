@@ -1,5 +1,49 @@
 # @xnetjs/react
 
+## 2.3.0
+
+### Minor Changes
+
+- [#536](https://github.com/crs48/xNet/pull/536) [`3ea44c6`](https://github.com/crs48/xNet/commit/3ea44c6354e3f55443d3c3b49d8ca1f9c0941987) Thanks [@crs48](https://github.com/crs48)! - OAuth + shared global identity (exploration 0338).
+
+  New, additive public surface — nothing removed or renamed:
+  - `@xnetjs/identity`: ATProto bridge (`@xnetjs/identity` re-exports
+    `parseAnyDid`/`isAtprotoDid`/`createAtprotoBinding`/`verifyAtprotoBinding`,
+    represent-only foreign DIDs — `parseDID` signing guarantees unchanged), the
+    `net.x.identity.binding` record, `derivePlcRotationKey` +
+    `withUserPriorityRotationKey` (user-priority did:plc rotation key from the
+    recovery seed), the `RecoveryAnchorProvider` contract, and `ucanTokenId` +
+    a per-token `nonce` on `createUCAN` (0307-B least-privilege/revocation).
+  - `@xnetjs/data`: `ProfileSchema` gains `atprotoDid`/`atprotoHandle`/
+    `atprotoBindingUri`; new `evaluateLedgerWrite` account-ledger enforcement
+    helpers.
+  - `@xnetjs/react`: onboarding gains the ATProto login-door state + the
+    injectable `RunAtprotoCeremony` contract ("Continue with Bluesky / any PDS").
+
+### Patch Changes
+
+- [#539](https://github.com/crs48/xNet/pull/539) [`e2ec439`](https://github.com/crs48/xNet/commit/e2ec43932ec3b05e74765a537ae9b94a219c7c36) Thanks [@crs48](https://github.com/crs48)! - docs(exploration): renumber database views 0337 -> 0339 (collision with OpenClaw 0337)
+
+  Two explorations claimed 0337; the OpenClaw agent-audit doc's first
+  commit (18:05:21) predates the database-views doc (18:07:01), so per the
+  collision rule the database-views doc renumbers. Comment references in
+  the code it introduced follow. No behavior change (empty changeset).
+
+  Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+
+  Signed-off-by: xNet Test <test@xnet.dev>
+
+- Updated dependencies [[`e2ec439`](https://github.com/crs48/xNet/commit/e2ec43932ec3b05e74765a537ae9b94a219c7c36), [`735d491`](https://github.com/crs48/xNet/commit/735d491217a964c5210140ac58925db0ecdd765e), [`d246195`](https://github.com/crs48/xNet/commit/d2461957723cc4c9e6366192670127f8bd1d458d), [`3ea44c6`](https://github.com/crs48/xNet/commit/3ea44c6354e3f55443d3c3b49d8ca1f9c0941987)]:
+  - @xnetjs/data@2.3.0
+  - @xnetjs/identity@2.3.0
+  - @xnetjs/data-bridge@2.3.0
+  - @xnetjs/history@2.3.0
+  - @xnetjs/plugins@2.3.0
+  - @xnetjs/runtime@0.5.3
+  - @xnetjs/sync@2.3.0
+  - @xnetjs/crypto@2.3.0
+  - @xnetjs/core@2.3.0
+
 ## 2.2.0
 
 ### Minor Changes

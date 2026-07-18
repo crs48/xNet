@@ -1,6 +1,6 @@
 {
   "name": "@xnetjs/server",
-  "version": "0.0.20",
+  "version": "0.0.21",
   "description": "Bring-your-own-backend server kit for XNet React: a framework-agnostic structured-query executor + mutation engine over a server-side NodeStore, with developer auth hooks (authenticate / authorizeRead / authorizeWrite) replacing UCAN/DID, and a trust spectrum (server | custodial | signed) for how end-user identity maps onto signed changes (exploration 0223).",
   "license": "MIT",
   "type": "module",

@@ -1,6 +1,6 @@
 {
   "name": "@xnetjs/meetings",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "Botless meeting transcription + AI notes (exploration 0279). Platform-agnostic capture session (VAD chunking, Me/Them channel attribution, batched segment upserts), swappable-engine selection over @xnetjs/dictation, and the enhancement/template/chat logic. Audio capture itself is platform code (Electron/web); this package is the pure core.",
   "license": "MIT",
   "type": "module",
