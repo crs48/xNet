@@ -1,0 +1,12 @@
+{
+  "id": "2026-07-17-agent-passports-audit-every-openclaw-her",
+  "date": "July 17, 2026",
+  "title": "Agent Passports: audit every OpenClaw/Hermes action",
+  "summary": "External agents (OpenClaw, Hermes, Claude Code) can now be enrolled with their own scoped identity: every tool call is recorded as a signed audit node, risky actions require a typed approval code in chat or an in-app confirmation, reversible actions can be undone, and the new DevTools Agent Audit panel shows the full per-agent trail.",
+  "highlights": [],
+  "tags": [
+    "ai",
+    "identity",
+    "devtools"
+  ]
+}

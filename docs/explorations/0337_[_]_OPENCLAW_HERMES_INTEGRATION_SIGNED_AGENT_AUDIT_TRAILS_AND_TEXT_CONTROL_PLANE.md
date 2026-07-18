@@ -641,10 +641,10 @@ Phase 3 — Text control plane:
 
 Housekeeping:
 
-- [ ] Changesets for touched publishable packages (`data`, `identity`,
+- [x] Changesets for touched publishable packages (`data`, `identity`,
       `plugins`, `hub` are in the fixed core — bump from the diff; new
       schemas + new exports = minor)
-- [ ] New surface lands in scoped sub-barrels per the 0276 policy (e.g.
+- [x] New surface lands in scoped sub-barrels per the 0276 policy (e.g.
       `packages/data/src/schema/schemas/index.ts`, not root barrel churn)
 
 ## Validation Checklist
