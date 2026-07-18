@@ -598,13 +598,13 @@ agent→ "That's destructive (risk: critical). I can't take chat
 
 Phase 1 — Agent Passport (identity + capability):
 
-- [ ] `xnet agent enroll <name> --runtime openclaw|hermes|other` CLI:
+- [x] `xnet agent enroll <name> --runtime openclaw|hermes|other` CLI:
       generates agent `did:key`, mints operator-signed scoped UCAN,
       prints gateway config snippet (extends
       `packages/cli/src/commands/mcp.ts` pairing output)
 - [x] Store passports as `AgentPassport` nodes (schema in
       `packages/data/src/schema/schemas/`, registered in `schemas/index.ts`)
-- [ ] MCP server accepts agent-scoped auth: tool calls execute against a
+- [x] MCP server accepts agent-scoped auth: tool calls execute against a
       store identity = agent DID (writes signed by agent key held locally
       by `xnet mcp serve`, never by the gateway)
 - [x] Hub: derive `AuthSession.capabilities` from presented UCAN instead of
