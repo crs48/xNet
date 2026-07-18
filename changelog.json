@@ -6,6 +6,32 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-18-location-fields-put-your-rows-on-the-map",
+      "url": "https://xnet.fyi/changelog#2026-07-18-location-fields-put-your-rows-on-the-map",
+      "title": "Location fields put your rows on the map",
+      "content_text": "Databases gain a first-class Location column type storing latitude and longitude in one cell.\n\n• Add a Location column and the Map view binds to it automatically — no more paired lat/lng number columns\n• Right-click the map to create a row at that spot, with its location filled in\n• Paste \"lat, lng\" text straight into Location cells, and CSV import/export round-trips coordinates",
+      "date_published": "2026-07-18T12:45:38Z",
+      "tags": [
+        "app"
+      ],
+      "_xnet": {
+        "date": "July 18, 2026",
+        "summary": "Databases gain a first-class Location column type storing latitude and longitude in one cell.",
+        "highlights": [
+          "Add a Location column and the Map view binds to it automatically — no more paired lat/lng number columns",
+          "Right-click the map to create a row at that spot, with its location filled in",
+          "Paste \"lat, lng\" text straight into Location cells, and CSV import/export round-trips coordinates"
+        ],
+        "mergedAt": "2026-07-18T12:45:38Z",
+        "pr": 541,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-17-continue-with-bluesky-link-a-global-atpr",
       "url": "https://xnet.fyi/changelog#2026-07-17-continue-with-bluesky-link-a-global-atpr",
       "title": "Continue with Bluesky: link a global ATProto identity",

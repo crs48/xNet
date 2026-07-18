@@ -6,6 +6,16 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Location fields put your rows on the map</title>
+      <link>https://xnet.fyi/changelog#2026-07-18-location-fields-put-your-rows-on-the-map</link>
+      <guid isPermaLink="false">2026-07-18-location-fields-put-your-rows-on-the-map</guid>
+      <pubDate>Sat, 18 Jul 2026 12:45:38 GMT</pubDate>
+      <description>Databases gain a first-class Location column type storing latitude and longitude in one cell.
+- Add a Location column and the Map view binds to it automatically — no more paired lat/lng number columns
+- Right-click the map to create a row at that spot, with its location filled in
+- Paste &quot;lat, lng&quot; text straight into Location cells, and CSV import/export round-trips coordinates</description>
+    </item>
+    <item>
       <title>Continue with Bluesky: link a global ATProto identity</title>
       <link>https://xnet.fyi/changelog#2026-07-17-continue-with-bluesky-link-a-global-atpr</link>
       <guid isPermaLink="false">2026-07-17-continue-with-bluesky-link-a-global-atpr</guid>
