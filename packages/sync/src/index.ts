@@ -23,10 +23,32 @@ export {
   signChange,
   createWebCryptoChangeSigner,
   verifyChange,
+  verifyChangeFast,
+  verifyChangesFast,
   verifyChangeHash,
   createChangeId,
   createBatchId
 } from './change'
+
+// Batch commits: one signature over many changes (exploration 0357)
+export type {
+  BatchCommit,
+  UnsignedBatchCommit,
+  CreateBatchCommitOptions,
+  BatchVerificationResult
+} from './batch-commit'
+export {
+  MAX_COMMIT_CHANGES,
+  computeBatchRoot,
+  computeBatchCommitHash,
+  createUnsignedBatchCommit,
+  signBatchCommit,
+  recomputeBatchCommitHash,
+  verifyBatchCommit,
+  verifyBatchCommitFast,
+  verifyBatch,
+  chunkForCommits
+} from './batch-commit'
 
 // Lamport clock utilities
 export type { LamportTimestamp, LamportClock } from './clock'

@@ -17,8 +17,8 @@
  *   yjs/docs.ndjson        — one PortableYjsDocRecord per line
  */
 
-import type { ContentId } from '@xnetjs/core'
 import type { NodePayload } from '../store/types'
+import type { ContentId } from '@xnetjs/core'
 
 /** Format identifier + version for the bundle layout itself. */
 export const XNETPACK_FORMAT_VERSION = 'xnetpack/1'
@@ -27,6 +27,8 @@ export const XNETPACK_FORMAT_VERSION = 'xnetpack/1'
 export const BUNDLE_ENTRY = {
   manifest: 'manifest.json',
   changes: 'changes.ndjson',
+  /** Batch commits covering the owner's own changes (exploration 0357). */
+  commits: 'commits.ndjson',
   blobIndex: 'blobs.ndjson',
   yjsDocs: 'yjs/docs.ndjson'
 } as const
@@ -53,6 +55,31 @@ export type PortableChangeRecord = {
   batchId?: string
   batchIndex?: number
   batchSize?: number
+}
+
+/**
+ * A batch commit serialized for the bundle (exploration 0357).
+ *
+ * One commit authenticates up to `MAX_COMMIT_CHANGES` of the owner's changes
+ * with a single signature, so importing a large self-export costs ~1 signature
+ * verification per 1000 changes instead of one per change.
+ *
+ * A commit may only cover changes by its OWN author — a commit cannot vouch
+ * for someone else's change (see the membership rules in L1 §6.1) — so a
+ * bundle containing several authors' changes commits only the owner's, and
+ * the rest keep per-change verification.
+ */
+export type PortableCommitRecord = {
+  id: string
+  type: 'batch-commit'
+  protocolVersion: number
+  authorDid: string
+  changeHashes: string[]
+  root: string
+  lamportTime: number
+  wallTime: number
+  hash: string
+  signatureB64: string
 }
 
 /** Blob index line: metadata for a `blobs/<algo>/<hex>` entry. */
@@ -101,7 +128,7 @@ export type XnetpackManifest = {
   frontier: BundleFrontier
   /** Present on incremental bundles: the frontier this bundle starts after. */
   prerequisites?: BundleFrontier
-  counts: { changes: number; blobs: number; yjsDocs: number }
+  counts: { changes: number; blobs: number; yjsDocs: number; commits?: number }
   /**
    * Digest over every non-manifest entry (see `digestEntries`): detects a
    * bundle whose entries were swapped or truncated after manifest signing.
@@ -227,6 +254,13 @@ export type WriteBundleOptions = {
    * requires `allowUnsigned`.
    */
   manifestSigner?: (bytes: Uint8Array) => Promise<Uint8Array> | Uint8Array
+  /**
+   * Signs the UTF-8 bytes of a batch commit's hash, enabling one signature to
+   * cover up to 1000 of the owner's changes on import (exploration 0357).
+   * Same key as `manifestSigner`; omit to emit a bundle with no commits
+   * (every change is then verified individually, as before).
+   */
+  commitSigner?: (bytes: Uint8Array) => Promise<Uint8Array> | Uint8Array
   /** Export only changes after this frontier (becomes `prerequisites`). */
   since?: BundleFrontier
   blobPort?: BundleBlobPort

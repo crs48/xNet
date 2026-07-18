@@ -3,17 +3,17 @@
  * bundle codec (exploration 0344).
  */
 
+import type { SchemaIRI } from '../schema/node'
 import type { DID } from '@xnetjs/core'
 import { generateSigningKeyPair, sign, hashHex } from '@xnetjs/crypto'
 import { createDID } from '@xnetjs/identity'
-import { describe, it, expect } from 'vitest'
-import type { SchemaIRI } from '../schema/node'
+import { describe, it, expect, vi } from 'vitest'
+import * as Y from 'yjs'
 import { MemoryNodeStorageAdapter } from '../store/memory-adapter'
 import { NodeStore } from '../store/store'
 import { applyBundle } from './apply'
 import { MemoryBundleSink } from './memory-bundle'
 import { decodeUtf8, encodeUtf8 } from './serialize'
-import * as Y from 'yjs'
 import { createStoreYjsPort } from './store-yjs-port'
 import { BUNDLE_ENTRY, type BundleBlobPort, type BundleYjsPort } from './types'
 import { verifyBundle } from './verify'
@@ -164,6 +164,147 @@ describe('xnetpack bundle round-trip', () => {
     await expect(
       applyBundle(empty.store, sink.toSource(), { importerDid: a.did })
     ).rejects.toMatchObject({ code: 'missing-prerequisites' })
+  })
+})
+
+describe('xnetpack batch commits (0357)', () => {
+  const exportWithCommits = async (store: NodeStore, did: DID, privateKey: Uint8Array) => {
+    const sink = new MemoryBundleSink()
+    const manifest = await writeBundle(store, { kind: 'full' }, sink, {
+      ownerDid: did,
+      manifestSigner: signerFor(privateKey),
+      commitSigner: signerFor(privateKey)
+    })
+    return { manifest, source: sink.toSource(), sink }
+  }
+
+  it('emits commits covering the owner’s changes and imports them', async () => {
+    const a = createTestStore()
+    await a.store.initialize()
+    await seedStore(a.store, 5)
+
+    const { manifest, source } = await exportWithCommits(a.store, a.did, a.privateKey)
+    expect(manifest.counts.commits).toBe(1)
+    expect(manifest.counts.changes).toBeGreaterThan(0)
+
+    const b = createTestStore()
+    await b.store.initialize()
+    const report = await applyBundle(b.store, source, {
+      importerDid: b.did,
+      allowForeignOwner: true
+    })
+
+    expect(report.quarantined).toHaveLength(0)
+    expect(report.applied).toBe(manifest.counts.changes)
+  })
+
+  it('verifies clean and keeps the commits entry under the content digest', async () => {
+    const a = createTestStore()
+    await a.store.initialize()
+    await seedStore(a.store, 3)
+
+    const { source } = await exportWithCommits(a.store, a.did, a.privateKey)
+    const report = await verifyBundle(source)
+    expect(report.ok).toBe(true)
+  })
+
+  it('rejects a bundle whose commits entry was tampered with', async () => {
+    const a = createTestStore()
+    await a.store.initialize()
+    await seedStore(a.store, 3)
+
+    const { sink } = await exportWithCommits(a.store, a.did, a.privateKey)
+    // Swap the commit's root — the manifest content digest must catch it.
+    const raw = new TextDecoder().decode(sink.entries.get(BUNDLE_ENTRY.commits)!)
+    const line = JSON.parse(raw.trim())
+    line.root = 'cid:blake3:' + '0'.repeat(64)
+    sink.entries.set(BUNDLE_ENTRY.commits, new TextEncoder().encode(JSON.stringify(line) + '\n'))
+
+    const report = await verifyBundle(sink.toSource())
+    expect(report.ok).toBe(false)
+  })
+
+  it('actually uses the commit: covered changes skip per-change signature checks', async () => {
+    // Proves the batch path is live rather than silently falling back to
+    // per-change verification. Every covered change should bypass the
+    // signature verifier entirely — the commit's ONE signature covers them.
+    const a = createTestStore()
+    await a.store.initialize()
+    await seedStore(a.store, 6)
+
+    const { manifest, source } = await exportWithCommits(a.store, a.did, a.privateKey)
+    expect(manifest.counts.commits).toBe(1)
+
+    const b = createTestStore()
+    await b.store.initialize()
+    const verifySpy = vi.spyOn(b.store, 'verifyRemoteChanges')
+
+    const report = await applyBundle(b.store, source, {
+      importerDid: b.did,
+      allowForeignOwner: true
+    })
+
+    expect(report.applied).toBe(manifest.counts.changes)
+    // All of the owner's changes are commit-covered, so the signature
+    // verifier is handed an empty set.
+    const individuallyVerified = verifySpy.mock.calls.reduce(
+      (total, [changes]) => total + changes.length,
+      0
+    )
+    expect(individuallyVerified).toBe(0)
+    verifySpy.mockRestore()
+  })
+
+  it('still verifies every change individually when the bundle has no commits', async () => {
+    const a = createTestStore()
+    await a.store.initialize()
+    await seedStore(a.store, 4)
+
+    // exportFull passes no commitSigner — the pre-0357 shape.
+    const { manifest, source } = await exportFull(a.store, a.did, a.privateKey)
+
+    const b = createTestStore()
+    await b.store.initialize()
+    const verifySpy = vi.spyOn(b.store, 'verifyRemoteChanges')
+
+    await applyBundle(b.store, source, { importerDid: b.did, allowForeignOwner: true })
+
+    const individuallyVerified = verifySpy.mock.calls.reduce(
+      (total, [changes]) => total + changes.length,
+      0
+    )
+    expect(individuallyVerified).toBe(manifest.counts.changes)
+    verifySpy.mockRestore()
+  })
+
+  it('never lets a commit vouch for another author’s change', async () => {
+    // Two authors' changes in one store; the owner commits only their own.
+    const a = createTestStore()
+    await a.store.initialize()
+    await seedStore(a.store, 2)
+
+    const foreign = createTestStore()
+    await foreign.store.initialize()
+    await seedStore(foreign.store, 2)
+    for (const change of await foreign.store.getChangesSince(0)) {
+      await a.store.applyRemoteChange(change)
+    }
+
+    const { manifest, source } = await exportWithCommits(a.store, a.did, a.privateKey)
+    // The commit covers only the owner's changes, never the foreign ones.
+    expect(manifest.counts.commits).toBe(1)
+
+    const b = createTestStore()
+    await b.store.initialize()
+    const report = await applyBundle(b.store, source, {
+      importerDid: b.did,
+      allowForeignOwner: true
+    })
+
+    // Both authors' changes still import — the foreign ones simply took the
+    // per-change verification path.
+    expect(report.quarantined).toHaveLength(0)
+    expect(report.applied).toBe(manifest.counts.changes)
   })
 })
 

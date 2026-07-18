@@ -19,10 +19,10 @@ node's schema.
 
 ```ts
 interface Node {
-  id: string            // unique node id (see §2)
-  schemaId: SchemaIRI   // "xnet://authority/Name@version" (see §4)
-  createdAt: number     // Unix milliseconds, set on first change
-  createdBy: DID        // did:key of the creator; IMMUTABLE
+  id: string // unique node id (see §2)
+  schemaId: SchemaIRI // "xnet://authority/Name@version" (see §4)
+  createdAt: number // Unix milliseconds, set on first change
+  createdBy: DID // did:key of the creator; IMMUTABLE
   [key: string]: unknown // schema-defined properties
 }
 ```
@@ -35,7 +35,7 @@ Invariants (MUST):
   and never change thereafter. `createdBy` is the authorial DID and the root of
   the node's provenance.
 - A node is **soft‑deleted**, never hard‑deleted, by a change with `deleted:
-  true`; its tombstone and history remain.
+true`; its tombstone and history remain.
 
 ## 2. Node identifiers
 
@@ -101,23 +101,25 @@ signed **Change** records ([`change.ts`](../../../packages/sync/src/change.ts)):
 
 ```ts
 interface Change<T> {
-  protocolVersion?: number      // 4 in xnet/1.0 (CURRENT_PROTOCOL_VERSION)
-  id: string                    // unique change id
-  type: string                  // "node-change"
-  payload: T                    // NodePayload (below)
-  hash: ContentId               // "cid:blake3:<hex>" over canonical bytes (§6)
-  parentHash: ContentId | null  // previous change's hash — the causal chain
+  protocolVersion?: number // 4 in xnet/1.0 (CURRENT_PROTOCOL_VERSION)
+  id: string // unique change id
+  type: string // "node-change"
+  payload: T // NodePayload (below)
+  hash: ContentId // "cid:blake3:<hex>" over canonical bytes (§6)
+  parentHash: ContentId | null // previous change's hash — the causal chain
   authorDID: DID
-  signature: Uint8Array         // Ed25519 over UTF-8(hash) (§6)
-  wallTime: number              // Unix ms (display/tiebreak only)
-  lamport: number               // logical clock (ordering / LWW)
-  batchId?: string; batchIndex?: number; batchSize?: number // atomic batches
+  signature: Uint8Array // Ed25519 over UTF-8(hash) (§6)
+  wallTime: number // Unix ms (display/tiebreak only)
+  lamport: number // logical clock (ordering / LWW)
+  batchId?: string
+  batchIndex?: number
+  batchSize?: number // atomic batches
 }
 
 interface NodePayload {
   nodeId: string
-  schemaId?: SchemaIRI                  // REQUIRED on the first change only
-  properties: Record<string, unknown>  // sparse: only changed properties
+  schemaId?: SchemaIRI // REQUIRED on the first change only
+  properties: Record<string, unknown> // sparse: only changed properties
   deleted?: boolean
 }
 ```
@@ -138,12 +140,13 @@ implementations that disagree on these bytes cannot verify each other's
 signatures.** The algorithm (reference: `computeChangeHash` / `signChange` in
 [`change.ts`](../../../packages/sync/src/change.ts)):
 
-**Step 1 — select fields to hash.** Take the unsigned change (all fields *except*
+**Step 1 — select fields to hash.** Take the unsigned change (all fields _except_
 `hash` and `signature`). If `protocolVersion` is `0` or absent (legacy), remove
 the `protocolVersion` field before hashing. For `xnet/1.0` (`protocolVersion =
 4`, the current `CURRENT_PROTOCOL_VERSION`), keep it.
 
 **Step 2 — canonical JSON.** Serialize with:
+
 - Object keys sorted **lexicographically, recursively** at every nesting level
   (by UTF‑16 code unit, i.e. JavaScript `Array.prototype.sort` default / the
   `<` operator on strings).
@@ -168,12 +171,14 @@ confirm it equals the carried `hash`, then verify the Ed25519 signature over
 `UTF8(hash)` against the public key recovered from `authorDID`.
 
 > Reference canonicalization in JavaScript:
+>
 > ```js
 > const sorted = sortKeysRecursively(unsignedChangeWithoutHashAndSig)
-> const bytes  = utf8(JSON.stringify(sorted))          // compact, sorted
-> const hash   = "cid:blake3:" + hex(blake3(bytes))
-> const sig    = ed25519.sign(utf8(hash), signingKey)
+> const bytes = utf8(JSON.stringify(sorted)) // compact, sorted
+> const hash = 'cid:blake3:' + hex(blake3(bytes))
+> const sig = ed25519.sign(utf8(hash), signingKey)
 > ```
+>
 > Equivalent in Python: `json.dumps(obj, sort_keys=True, separators=(",", ":"))`
 > then `.encode("utf-8")`, `blake3(...).hexdigest()`, `SigningKey(seed).sign(...)`.
 > A 30‑line cross‑language reference lives in
@@ -182,6 +187,77 @@ confirm it equals the carried `hash`, then verify the Ed25519 signature over
 The [golden vectors](90-conformance.md) (`conformance/vectors/change/`) pin
 known `{ unsigned change, seed } → { did, canonicalBytes, hash, signature }`
 tuples that every implementation MUST reproduce.
+
+## 6.1 Batch commits — one signature over many changes
+
+A bulk operation (import, migration, mass delete) is **N changes, one per
+node** — see §5; nothing about that changes. But signing and verifying each of
+those N changes individually is the dominant cost of a bulk operation, and it
+is avoidable: the same authentication can be obtained from **one** signature
+over a commitment to all N change hashes.
+
+A `BatchCommit` is that commitment. Reference:
+[`batch-commit.ts`](../../../packages/sync/src/batch-commit.ts).
+
+```
+BatchCommit {
+  id             string
+  type           "batch-commit"
+  protocolVersion int          // 4
+  authorDID      DID
+  room?          string
+  changeHashes   ContentId[]   // ORDERED, 1..1000
+  root           ContentId     // see below
+  lamport        int
+  wallTime       int
+  hash           ContentId     // canonical-JSON BLAKE3, exactly as §6 step 2–3
+  signature      bytes         // Ed25519 over UTF8(hash), exactly as §6 step 4
+}
+```
+
+**Root.** `root = "cid:blake3:" + hex(BLAKE3(UTF8(changeHashes.join("\n"))))`.
+The separator cannot occur inside a `cid:blake3:<hex>` string, so no two
+distinct hash lists can produce the same input. **Order is part of the
+commitment** — a permuted list yields a different root, so a batch cannot be
+replayed with its members reordered.
+
+**Commit hash and signature** use the _identical_ recipe as a change (§6
+steps 2–4); a commit has no legacy unversioned form.
+
+**Verifying a batch** is one signature check plus N hash recomputations —
+recomputations a verifier already owes, because it must confirm each change
+matches its own content address. A change is a valid member iff **all** of:
+
+1. the change recomputes to its own claimed `hash` (§6) — payload tampering is
+   caught exactly as it would be for an individually signed change;
+2. that hash appears in the commit's `changeHashes` — a change cannot be
+   smuggled into a batch it was not signed over;
+3. `change.authorDID == commit.authorDID` — a commit vouches only for its
+   signer's own changes and cannot launder another author's;
+4. the commit itself verifies (hash matches its fields, root matches its list,
+   signature matches its author) — the list cannot be edited, and recomputing
+   the root after editing does not help, because the signature covers the
+   commit hash, which covers the original list.
+
+**Where batch commits are valid.** Only in lanes where the batch travels as a
+unit: `.xnetpack` import/export, hub NDJSON restore, initial-sync snapshots,
+and migrations. Changes relayed live MUST carry their own signature, because
+live fan-out delivers a change to peers that may never receive its siblings,
+and a change whose validity depends on a sibling would be unverifiable there.
+
+> **Why a flat root and not a Merkle tree.** Members always travel together in
+> the lanes above, so no member needs an O(log n) inclusion proof. If a lane
+> later needs to redistribute covered changes individually, `root` becomes a
+> Merkle root and members gain proofs; the record shape is unchanged.
+>
+> **Why not sign a chain head.** xNet's `parentHash` chains are **per node**
+> (§5), so a bulk import of N distinct nodes is N chains of depth 1 — a chain
+> head amortizes nothing. The commitment must span nodes.
+
+Golden vectors: `conformance/vectors/batch-commit/` pin the root, canonical
+bytes, commit hash, signature, and the three tamper cases (smuggled member,
+tampered member, edited-and-rerooted commit) that every implementation MUST
+reject.
 
 ## 7. Conflict resolution: Lamport clocks + Last‑Write‑Wins
 
@@ -203,7 +279,7 @@ wallTime }`. When two changes touch the same property:
 
 The raw-`authorDID` tiebreak is **grindable**: a `did:key` is a free,
 attacker-chosen function of a keypair, so an attacker can grind a vanity DID
-that sorts highest and win *every* concurrent-write tie against every honest
+that sorts highest and win _every_ concurrent-write tie against every honest
 peer, permanently (exploration 0305). From `protocolVersion 4` the final rung is
 instead a per-conflict **tiebreak key**:
 
@@ -216,15 +292,15 @@ where `canonicalJSON` is the §6 recursive key-sorted encoding and a deletion
 two v4 changes, the **larger `tiebreakKey`** wins outright (author is
 irrelevant); if either change is pre-v4 (no key) or the keys are equal, the
 comparison falls back to the `authorDID` rule so mixed fleets and the legacy
-vectors still agree. Because the key is a random-oracle function of *what is
-written* (author + property + value — all fixed by the write's intent), a ground
+vectors still agree. Because the key is a random-oracle function of _what is
+written_ (author + property + value — all fixed by the write's intent), a ground
 identity is re-randomised per `(property, value)` and wins **no durable,
 universal advantage**. Pinned by
 `conformance/vectors/lww/0005-tie-grinding-resistant-key.json`.
 
 Lamport clocks advance per the standard rule (on receive, `lamport =
 max(local, incoming) + 1`). LWW is **per property**, so concurrent edits to
-*different* properties of the same node both survive. Reference:
+_different_ properties of the same node both survive. Reference:
 [`store/types.ts`](../../../packages/data/src/store/types.ts) (`NodeState`,
 `PropertyTimestamp`) and [`lww.ts`](../../../packages/core/src/lww.ts)
 (`compareLwwStamps`, `computeLwwTiebreakKey`).
@@ -235,21 +311,21 @@ regardless of apply order.
 
 ### 7.2 Security considerations (residual grinding surface)
 
-The v4 tiebreak removes the *durable, universal* grinding win, but two residual
+The v4 tiebreak removes the _durable, universal_ grinding win, but two residual
 facts are deliberately **not** closed by the ordering rule and MUST be
 understood by implementers:
 
 - **Identity is free (Sybil / per-conflict grind).** Creating a `did:key` costs
-  nothing, so an attacker who already knows a specific victim change *can* still
+  nothing, so an attacker who already knows a specific victim change _can_ still
   grind their own change (its `value`, or a fresh keypair) to win that one
   conflict — a reactive, per-conflict, low-value attack, not a permanent one.
-  Making a tie-win *cost* less than grinding it — the `wallTime` upper bound at
+  Making a tie-win _cost_ less than grinding it — the `wallTime` upper bound at
   the relay, per-writer rate limits, and keeping what a tie-win is worth small
   (an LWW property overwrite) — is the practical mitigation. A hard identity
   cost (proof-of-work/registration) is out of scope for local-first operation.
-- **The north star is causal validity, not a better hash.** Kleppmann's *Making
-  CRDTs Byzantine Fault Tolerant* (PaPoC 2022) uses content hashes for
-  identity/dedup only and derives order from *provably-shared causal state*
+- **The north star is causal validity, not a better hash.** Kleppmann's _Making
+  CRDTs Byzantine Fault Tolerant_ (PaPoC 2022) uses content hashes for
+  identity/dedup only and derives order from _provably-shared causal state_
   (`before(u)` + a Lamport-timestamp validity check), which forecloses the
   grinding class entirely. xNet does not implement this today; the v4 key is the
   cheap, local-first-preserving step. See exploration 0306 for an optional
@@ -273,7 +349,7 @@ The protocol treats this blob as an **opaque, versioned codec payload**:
 
 This is the seam that makes XNet portable without porting a CRDT byte format
 across languages: the [Yjs sync envelope](03-replication.md) authenticates and
-routes the bytes; only peers that *use* the document need a Yjs‑compatible
+routes the bytes; only peers that _use_ the document need a Yjs‑compatible
 library (e.g. [yrs](https://github.com/y-crdt/y-crdt)). The wire format of the
 envelope is specified in [L2](03-replication.md); the Yjs update bytes
 themselves follow [y‑protocols](https://github.com/yjs/y-protocols/blob/master/PROTOCOL.md).

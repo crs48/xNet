@@ -6,12 +6,13 @@
  * bundle can do nothing a hostile sync peer couldn't.
  */
 
-import { compareChangeApplicationOrder, type ContentId } from '@xnetjs/core'
-import { base64ToBytes } from '@xnetjs/crypto'
 import type { NodeStore } from '../store/store'
 import type { NodeChange } from '../store/types'
+import { compareChangeApplicationOrder, type ContentId } from '@xnetjs/core'
+import { base64ToBytes } from '@xnetjs/crypto'
+import { parseDID } from '@xnetjs/identity'
+import { recomputeChangeHash, verifyBatchCommitFast, type BatchCommit } from '@xnetjs/sync'
 import { decodeUtf8, fromPortableChangeRecord } from './serialize'
-import { verifyBundle } from './verify'
 import {
   BUNDLE_ENTRY,
   type ApplyBundleOptions,
@@ -19,9 +20,11 @@ import {
   type BundleSource,
   type PortableBlobRecord,
   type PortableChangeRecord,
+  type PortableCommitRecord,
   type PortableYjsDocRecord,
   type QuarantinedRecord
 } from './types'
+import { verifyBundle } from './verify'
 
 /** Thrown when the bundle fails a pre-apply gate; nothing was written. */
 export class BundleImportError extends Error {
@@ -114,18 +117,99 @@ export async function applyBundle(
     )
   )
 
+  // ── Batch commits: one signature covering many changes (0357) ────────────
+  // A change whose hash is covered by a VALID commit from its own author is
+  // authenticated by that commit's single signature, so it needs no signature
+  // check of its own — only the hash recomputation every change owes anyway.
+  // Anything not covered falls through to per-change verification unchanged.
+  const commitCoveredHashes = new Set<string>()
+  try {
+    for await (const line of source.readLines(BUNDLE_ENTRY.commits)) {
+      if (!line.trim()) continue
+      let record: PortableCommitRecord
+      try {
+        record = JSON.parse(line) as PortableCommitRecord
+      } catch (err) {
+        quarantine({ kind: 'change', subject: line.slice(0, 80), reason: (err as Error).message })
+        continue
+      }
+      const commit: BatchCommit = {
+        id: record.id,
+        type: 'batch-commit',
+        protocolVersion: record.protocolVersion,
+        authorDID: record.authorDid as NodeChange['authorDID'],
+        changeHashes: record.changeHashes as ContentId[],
+        root: record.root as ContentId,
+        lamport: record.lamportTime,
+        wallTime: record.wallTime,
+        hash: record.hash as ContentId,
+        signature: base64ToBytes(record.signatureB64)
+      }
+      try {
+        if (!(await verifyBatchCommitFast(commit, parseDID(commit.authorDID)))) {
+          quarantine({
+            kind: 'change',
+            subject: record.hash,
+            reason: 'batch commit failed verification'
+          })
+          continue
+        }
+      } catch (err) {
+        quarantine({ kind: 'change', subject: record.hash, reason: (err as Error).message })
+        continue
+      }
+      // Only trust a commit for its OWN author's changes — a commit must not
+      // be able to vouch for a change someone else signed (L1 §6.1).
+      for (const [index, hash] of commit.changeHashes.entries()) {
+        const change = changes.find((candidate) => candidate.hash === hash)
+        void index
+        if (change && change.authorDID === commit.authorDID) commitCoveredHashes.add(hash)
+      }
+    }
+  } catch {
+    // No commits entry (older bundle) — every change verifies individually.
+  }
+
   let applied = 0
   let duplicates = 0
   for (let i = 0; i < changes.length; i += APPLY_BATCH_SIZE) {
-    for (const change of changes.slice(i, i + APPLY_BATCH_SIZE)) {
+    const slice = changes.slice(i, i + APPLY_BATCH_SIZE)
+    // Verify the slice in one pass (exploration 0357): identical hash +
+    // signature checks, but the native crypto probe and per-author key import
+    // are shared across the slice instead of paid per change. This is what
+    // makes full per-change verification affordable on import (0344 measured
+    // 1.4ms/change on the pure-JS path).
+    const needsSignatureCheck = slice.filter((change) => !commitCoveredHashes.has(change.hash))
+    const checked = await store.verifyRemoteChanges(needsSignatureCheck)
+    const verdictByHash = new Map<string, boolean>()
+    for (const [index, change] of needsSignatureCheck.entries()) {
+      verdictByHash.set(change.hash, checked[index])
+    }
+    // A commit-covered change still must match its own content address.
+    for (const change of slice) {
+      if (!verdictByHash.has(change.hash)) {
+        verdictByHash.set(change.hash, recomputeChangeHash(change) === change.hash)
+      }
+    }
+    const verdicts = slice.map((change) => verdictByHash.get(change.hash) ?? false)
+
+    for (const [index, change] of slice.entries()) {
       try {
         if (await store.hasChange(change.hash)) {
           duplicates++
           continue
         }
-        // Full remote-change pipeline: hash + signature verification,
-        // account-ledger enforcement, authz evaluation, LWW apply.
-        await store.applyRemoteChange(change)
+        if (!verdicts[index]) {
+          quarantine({
+            kind: 'change',
+            subject: change.hash,
+            reason: 'hash or signature verification failed'
+          })
+          continue
+        }
+        // Remainder of the remote-change pipeline: account-ledger
+        // enforcement, authz evaluation, LWW apply.
+        await store.applyRemoteChange(change, { preVerified: true })
         applied++
       } catch (err) {
         quarantine({

@@ -110,6 +110,37 @@ export const isNodeChangePayload = (value: unknown): value is NodeChangeMessage 
   return typeof change.hash === 'string' && typeof change.signatureB64 === 'string'
 }
 
+/**
+ * Batched node-change push (exploration 0357 Tier 1).
+ *
+ * The single-change form above costs one WebSocket frame per change, which at
+ * the client's 40 msg/s outbound throttle makes a bulk import take minutes to
+ * push. This carries up to {@link MAX_BATCH_CHANGES} changes in one frame.
+ *
+ * The hub still verifies and authorizes EVERY change individually — this is a
+ * transport batch, not a trust batch — and re-broadcasts each accepted change
+ * to room subscribers as an ordinary `node-change`, so subscribers that don't
+ * speak this message type never see a batch frame.
+ */
+export const MAX_BATCH_CHANGES = 1000
+
+export type NodeChangeBatchMessage = {
+  type: 'node-change-batch'
+  room: string
+  changes: SerializedNodeChange[]
+}
+
+export const isNodeChangeBatchPayload = (value: unknown): value is NodeChangeBatchMessage => {
+  if (!isRecord(value)) return false
+  if (value.type !== 'node-change-batch' || typeof value.room !== 'string') return false
+  if (!Array.isArray(value.changes)) return false
+  if (value.changes.length === 0 || value.changes.length > MAX_BATCH_CHANGES) return false
+  return value.changes.every((entry) => {
+    if (!isRecord(entry)) return false
+    return typeof entry.hash === 'string' && typeof entry.signatureB64 === 'string'
+  })
+}
+
 export type AwarenessMessage = { type: 'awareness'; update?: string; state?: unknown }
 
 export const isAwarenessMessage = (value: unknown): value is AwarenessMessage => {

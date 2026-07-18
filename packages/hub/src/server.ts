@@ -20,25 +20,27 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { WebSocketServer } from 'ws'
 import { createHubAuthError } from './auth/errors'
+import { RevocationService } from './auth/revocation'
 import {
   authenticateConnection,
   authenticateHttpRequest,
   removeSession,
   toAuthContext
 } from './auth/ucan'
-import { RevocationService } from './auth/revocation'
 import { measureDataUsage, type DataUsage } from './data-usage'
 import { aiForwarderFeature } from './features/ai-forwarder'
 import { diagnosticsInboxFeature } from './features/diagnostics-inbox'
 import { diagnosticsSharingFeature } from './features/diagnostics-sharing'
 import { billingFeature, tasksFeature, unfurlFeature } from './features/first-party'
 import { formInboxFeature } from './features/form-inbox'
+import { mountOidcProvider } from './features/oidc-provider'
 import { mountFeatures } from './features/registry'
 import { pagerdutyFeature, sentryFeature, stripeFeature } from './features/webhook-integrations'
 import { createLogger } from './logger'
 import { Metrics, HUB_METRICS } from './middleware/metrics'
 import { RateLimiter } from './middleware/rate-limit'
 import { NodePool } from './pool/node-pool'
+import { createAtprotoRoutes } from './routes/atproto'
 import { createAuditRoutes } from './routes/audit'
 import { createBackupRoutes } from './routes/backup'
 import { createCrawlRoutes } from './routes/crawl'
@@ -46,30 +48,28 @@ import { createDiscoveryRoutes } from './routes/dids'
 import { createExportRoutes } from './routes/export'
 import { createFederationRoutes } from './routes/federation'
 import { createFileRoutes } from './routes/files'
-import { mountOidcProvider } from './features/oidc-provider'
-import { createAtprotoRoutes } from './routes/atproto'
 import { createKeyRegistryRoutes } from './routes/keys'
-import { createRecoveryAnchorRoutes } from './routes/recovery-anchor'
-import { AtprotoBindingVerifier } from './services/atproto-binding'
-import { AtprotoRecoveryAnchor } from './services/atproto-recovery-anchor'
-import { EscrowStore } from './services/escrow-store'
 import { createPublicRoutes } from './routes/public'
+import { createRecoveryAnchorRoutes } from './routes/recovery-anchor'
 import { createSchemaRoutes } from './routes/schemas'
 import { createShardRoutes } from './routes/shards'
 import { createShareInterstitialRoutes, DEFAULT_APP_URL } from './routes/share-interstitial'
 import { createShareLinkRoutes } from './routes/share-links'
 import { createTelemetryRoutes } from './routes/telemetry'
+import { AtprotoBindingVerifier } from './services/atproto-binding'
+import { AtprotoRecoveryAnchor } from './services/atproto-recovery-anchor'
 import { AwarenessService } from './services/awareness'
 import { BackupService } from './services/backup'
 import { CrawlCoordinator } from './services/crawl'
 import { RobotsChecker } from './services/crawl-robots'
 import { DiscoveryService } from './services/discovery'
+import { DiskWatchdog } from './services/disk-watchdog'
+import { EscrowStore } from './services/escrow-store'
 import { FederationService, type FederationConfig } from './services/federation'
 import { FederationHealthChecker } from './services/federation-health'
 import { FileService } from './services/files'
 import { ShardRegistry } from './services/index-shards'
 import { KeyRegistryService } from './services/key-registry'
-import { DiskWatchdog } from './services/disk-watchdog'
 import { NodeRelayService } from './services/node-relay'
 import { QueryService } from './services/query'
 import { RelayService } from './services/relay'
@@ -114,6 +114,25 @@ const safeParseJson = (payload: string): unknown | null => {
   } catch {
     return null
   }
+}
+
+/**
+ * How many node-changes a frame carries, for the per-connection change budget.
+ *
+ * A batch frame is charged for every change inside it, so batching removes the
+ * per-frame ceiling without becoming a way around the per-change one
+ * (exploration 0357).
+ */
+const frameChangeCount = (payload: unknown): number => {
+  if (!payload || typeof payload !== 'object') return 0
+  const data = (payload as { data?: unknown }).data
+  if (!data || typeof data !== 'object') return 0
+  const message = data as { type?: unknown; changes?: unknown }
+  if (message.type === 'node-change') return 1
+  if (message.type === 'node-change-batch' && Array.isArray(message.changes)) {
+    return message.changes.length
+  }
+  return 0
 }
 
 type ShareHandleDocType = 'page' | 'database' | 'canvas'
@@ -336,6 +355,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   })
   const rateLimiter = new RateLimiter({
     perConnectionRate: config.rateLimit?.perConnectionRate ?? 100,
+    perConnectionChangeRate: config.rateLimit?.perConnectionChangeRate ?? 5000,
     maxConnections: config.rateLimit?.maxConnections ?? config.maxConnections,
     maxMessageSize: config.rateLimit?.maxMessageSize ?? config.maxMessageSize,
     windowMs: config.rateLimit?.windowMs ?? 1000
@@ -1011,7 +1031,8 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
             'node-changes', // NodeChange sync
             'yjs-updates', // Yjs CRDT sync
             'signed-yjs-envelopes', // Signed Yjs updates
-            'batch-changes' // Transaction batching
+            'batch-changes', // Transaction batching
+            'batch-push' // Batched node-change push frames (exploration 0357)
           ],
           hubDid: config.hubDid,
           isDemo: !!config.demo
@@ -1057,20 +1078,36 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
             if (session.did !== 'did:key:anonymous') {
               void discovery.heartbeat(session.did)
             }
-            const check = rateLimiter.checkMessage(connId, getMessageSize(data))
-            if (!check.allowed) {
+            const messageSize = getMessageSize(data)
+            const rejectRateLimit = (reason?: string): void => {
               metrics.increment(HUB_METRICS.RATE_LIMIT_REJECTIONS)
               metrics.increment(HUB_METRICS.WS_MESSAGES_REJECTED)
-              if (check.reason?.includes('will be closed')) {
+              if (reason?.includes('will be closed')) {
                 ws.close(1008, 'Rate limit exceeded')
                 return
               }
-              ws.send(JSON.stringify(buildWsError({ kind: 'error', message: check.reason })))
+              ws.send(JSON.stringify(buildWsError({ kind: 'error', message: reason })))
+            }
+
+            // Size guard runs pre-parse so an oversized frame is dropped
+            // without paying to parse it.
+            const sizeCheck = rateLimiter.checkSize(messageSize)
+            if (!sizeCheck.allowed) {
+              rejectRateLimit(sizeCheck.reason)
               return
             }
 
             const payload = safeParseJson(dataToString(data))
             if (!payload) return
+
+            // Charge both budgets: one frame, plus every change it carries.
+            // Batching lifts the per-frame ceiling without lifting the
+            // per-change one (exploration 0357).
+            const check = rateLimiter.checkMessage(connId, messageSize, frameChangeCount(payload))
+            if (!check.allowed) {
+              rejectRateLimit(check.reason)
+              return
+            }
 
             await messageRouter.dispatch(payload, { ws, session, authContext })
           })()
