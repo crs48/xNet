@@ -33,6 +33,7 @@ import { docsSeeder } from './seeders/docs'
 import { integrationSeeder } from './seeders/integration'
 import { meetingsSeeder } from './seeders/meetings'
 import { metricsSeeder } from './seeders/metrics'
+import { sceneSeeder } from './seeders/scene'
 import { spacesSeeder } from './seeders/spaces'
 import { vizSeeder } from './seeders/viz'
 import { workSeeder } from './seeders/work'
@@ -41,6 +42,7 @@ import { workspacesSeeder } from './seeders/workspaces'
 /** Ordered Tier-1 seeders. Spaces first; the rest only cross-link by id. */
 export const SEEDERS: readonly SeederModule[] = [
   spacesSeeder,
+  sceneSeeder,
   workSeeder,
   docsSeeder,
   meetingsSeeder,

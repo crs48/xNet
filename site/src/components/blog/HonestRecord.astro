@@ -1,0 +1,47 @@
+---
+// The honesty beat (series convention, modeled on the /why page's HonestyBox).
+// An essay that borrows from a piracy story owes the reader plain lines about
+// what it is and isn't taking — otherwise the metaphor is just marketing.
+const rows = [
+  {
+    isnt: 'We won’t pretend the files were theirs to share.',
+    is: 'The music belonged to the people who made it, and the trial doesn’t change that. What we harvest is the community’s mechanics — the care, the quality bar, the reciprocity — which were never illegal and never stopped working.',
+  },
+  {
+    isnt: 'We won’t romanticise the ratio.',
+    is: 'Ratio enforcement kept rare things alive — and manufactured chronic anxiety. Economists who studied it call it a credit economy, not a gift economy: the scoreboard crowded out the generosity. Our CI gate bans ratio scorekeeping outright, next to streak counters.',
+  },
+  {
+    isnt: 'We won’t promise that a platform can’t die.',
+    is: 'Anything with a plug can be unplugged, including anything we run. What the architecture promises instead is that the scene outlives the server: your data, your log, and your keys are already on your device when the bad day comes.',
+  },
+]
+---
+
+<section class="not-prose my-12">
+  <div class="rounded-2xl border border-border bg-surface/30 p-6 dark:bg-surface/40 lg:p-8">
+    <h3 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+      What we take from the record store — and what we leave
+    </h3>
+    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+      A metaphor that flatters itself is just more marketing. Here’s the honest version.
+    </p>
+
+    <ul class="mt-6 space-y-5">
+      {
+        rows.map((row) => (
+          <li class="grid gap-3 sm:grid-cols-[1fr_1.3fr] sm:gap-5">
+            <div class="flex gap-2.5">
+              <span class="select-none text-gray-400 dark:text-gray-600">✕</span>
+              <p class="text-sm leading-relaxed text-gray-500 dark:text-gray-400">{row.isnt}</p>
+            </div>
+            <div class="flex gap-2.5">
+              <span class="select-none text-emerald-500">✓</span>
+              <p class="text-sm leading-relaxed text-gray-700 dark:text-gray-200">{row.is}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
