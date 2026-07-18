@@ -20,13 +20,13 @@
     "clean": "rm -rf dist"
   },
   "peerDependencies": {
-    "react": ">=18.0.0",
-    "react-dom": ">=18.0.0",
-    "yjs": ">=13.0.0",
     "@xnetjs/data": "workspace:*",
     "@xnetjs/plugins": "workspace:*",
+    "@xnetjs/react": "workspace:*",
     "@xnetjs/sync": "workspace:*",
-    "@xnetjs/react": "workspace:*"
+    "react": ">=18.0.0",
+    "react-dom": ">=18.0.0",
+    "yjs": ">=13.0.0"
   },
   "dependencies": {
     "@blocknote/core": "0.51.4",
@@ -36,6 +36,7 @@
     "@xnetjs/sqlite": "workspace:*",
     "@xnetjs/ui": "workspace:*",
     "@xnetjs/views": "workspace:*",
+    "fflate": "0.8.3",
     "lucide-react": "^0.400.0"
   },
   "devDependencies": {
