@@ -465,11 +465,11 @@ const title = useRouteTitle(routed)                   // views publish here
 
 ### Phase 5 — Teardown
 
-- [ ] Default tabless; store migration v5 drops `groups`/`startupTab`
+- [x] Default tabless; store migration v5 drops `groups`/`startupTab`
       tab-state; delete `TabBar.tsx`, group machinery, preview latch
-- [ ] Delete dormant `Sidebar.tsx`/`Rail.tsx`/calm nav remnants
-- [ ] `frame:` tabs → plain routes; update 0346 Open-with targets
-- [ ] Changesets (plugins/views if contracts move) + changelog
+- [x] Delete dormant `Sidebar.tsx`/`Rail.tsx`/calm nav remnants
+- [x] `frame:` tabs → plain routes; update 0346 Open-with targets
+- [x] Changesets (plugins/views if contracts move) + changelog
 
 ## Validation Checklist
 

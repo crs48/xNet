@@ -79,10 +79,11 @@ export function navigateToNode(
 }
 
 /**
- * Open a node through an arbitrary registered view as a frame tab
- * (0346): `frameSpec` = `<viewType>~<nodeId>`. One route covers every
- * registry/plugin view — the escape hatch past the closed TabNodeType
- * set.
+ * Open a node through an arbitrary registered view (0346).
+ * `frameSpec` = `<viewType>~<nodeId>`; one route covers every
+ * registry/plugin view. Tabless (0353) this is a plain route like any
+ * other — the `frame` TabNodeType survives only so the tab path (still
+ * reachable behind the preference) keeps working.
  */
 export function navigateToFrame(
   navigate: Navigate,

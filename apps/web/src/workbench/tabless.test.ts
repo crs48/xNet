@@ -98,6 +98,55 @@ describe('trackRouteVisit', () => {
   })
 })
 
+describe('v5 migration (tabless default)', () => {
+  const migrate = () => useWorkbench.persist.getOptions().migrate
+
+  it('adopts tabless for profiles that never chose, and KEEPS their tabs', () => {
+    const migrated = migrate()?.(
+      {
+        groups: [
+          {
+            id: 'group-1',
+            tabs: [
+              {
+                id: 'page:p1',
+                nodeId: 'p1',
+                nodeType: 'page',
+                title: '',
+                pinned: false,
+                preview: false
+              }
+            ],
+            activeTabId: 'page:p1'
+          }
+        ]
+      },
+      4
+    ) as { tabsEnabled: boolean; groups: Array<{ tabs: unknown[] }> }
+
+    expect(migrated.tabsEnabled).toBe(false)
+    // Reversibility: turning tabs back on must restore the session, so
+    // the migration must not wipe groups.
+    expect(migrated.groups[0].tabs).toHaveLength(1)
+  })
+
+  it('respects a profile that explicitly turned tabs on', () => {
+    const migrated = migrate()?.({ tabsEnabled: true }, 4) as { tabsEnabled: boolean }
+    expect(migrated.tabsEnabled).toBe(true)
+  })
+
+  it('seeds the unified-nav defaults', () => {
+    const migrated = migrate()?.({}, 4) as {
+      activeLensId: string
+      pinnedSectionIds: string[]
+      mutedRowIds: string[]
+    }
+    expect(migrated.activeLensId).toBe('all')
+    expect(migrated.pinnedSectionIds.length).toBeGreaterThan(0)
+    expect(migrated.mutedRowIds).toEqual([])
+  })
+})
+
 describe('split target', () => {
   it('sets and clears without touching tab groups', () => {
     const state = () => useWorkbench.getState()

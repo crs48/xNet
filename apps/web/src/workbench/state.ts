@@ -535,9 +535,11 @@ export const useWorkbench = create<WorkbenchState>()(
       bottom: { open: false, activeViewId: 'tray' },
       groups: freshGroups(),
       activeGroupId: 'group-1',
-      // 0353 Phase 1: tabs stay on by default until parity is proven;
-      // Phase 5 flips the default and drops the machinery.
-      tabsEnabled: true,
+      // 0353 Phase 5: tabless is the default — one surface, with the
+      // working set in the sidebar. The tab path stays reachable
+      // ("View: Turn on tabs") for one release so the dogfood tripwire
+      // in the exploration has something to fall back to.
+      tabsEnabled: false,
       routeTitles: {},
       routeHistory: [],
       splitTarget: null,
@@ -998,9 +1000,21 @@ export const useWorkbench = create<WorkbenchState>()(
       // v2 (0280): the layout tree joins the persisted state. Pre-tree
       // profiles derive their tree from the legacy `layout`/`chrome` axes so
       // panels, pins, shelf and startup node all survive the migration.
-      version: 4,
+      version: 5,
       migrate: (persisted, version) => {
         const state = persisted as Partial<WorkbenchState>
+        // v5 (0353): tabless becomes the default, and the unified-nav
+        // state gets its defaults. Persisted `groups` are deliberately
+        // KEPT: turning tabs back on ("View: Turn on tabs") must restore
+        // the session it left, which is what makes the tabless rollout
+        // reversible rather than a one-way door.
+        if (version < 5) {
+          state.tabsEnabled = state.tabsEnabled === true
+          state.sectionOrder = state.sectionOrder ?? DEFAULT_SECTIONS.map((s) => s.id)
+          state.pinnedSectionIds = state.pinnedSectionIds ?? [...DEFAULT_PINNED_SECTION_IDS]
+          state.activeLensId = state.activeLensId ?? 'all'
+          state.mutedRowIds = state.mutedRowIds ?? []
+        }
         if (version < 2 && !state.tree) {
           state.tree = createPresetTree(
             state.layout === 'workbench' ? 'bench' : state.chrome === 'quiet' ? 'quiet' : 'calm'
