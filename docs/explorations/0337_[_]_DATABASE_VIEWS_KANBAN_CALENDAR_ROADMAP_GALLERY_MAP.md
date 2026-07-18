@@ -478,7 +478,7 @@ ever demanded — do not reach for GPL/commercial Gantts.
 Phase 0 — contract & config
 - [ ] Define `DatabaseViewProps` V2 contract in `packages/views` (new
       `v2-contract.ts`), derived from `useGridDatabase` outputs.
-- [ ] Extend `DatabaseViewSchema` with `coverField`, `cardSize`, `colorBy`,
+- [x] Extend `DatabaseViewSchema` with `coverField`, `cardSize`, `colorBy`,
       `dateField`, `endDateField`, `latField`, `lngField`, `mapViewport`,
       `groupMeta` (all optional) + mutators on `useGridDatabase`; changeset
       (**minor**, fixed core).

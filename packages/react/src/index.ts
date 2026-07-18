@@ -276,6 +276,7 @@ export {
   type GridFieldModel,
   type GridOptionModel,
   type GridViewModel,
+  type GridViewConfigPatch,
   type GridRowModel
 } from './hooks/useGridDatabase'
 

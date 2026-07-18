@@ -19,7 +19,9 @@ import {
   type FormFieldRule,
   type FormSubmissionMeta,
   type FormViewConfig,
+  type MapViewport,
   type SortConfig,
+  type ViewGroupMeta,
   type ViewType,
   type RowHeight,
   type SummaryFunction,
@@ -89,6 +91,37 @@ export interface GridViewModel {
   formConfig: FormViewConfig | null
   formRules: Record<string, FormFieldRule>
   formAccepting: boolean
+  // Board/Gallery/Calendar/Timeline/Map config (exploration 0337)
+  coverField: string | null
+  cardSize: string | null
+  coverFit: string | null
+  colorBy: string | null
+  groupMeta: Record<string, ViewGroupMeta>
+  dateField: string | null
+  endDateField: string | null
+  latField: string | null
+  lngField: string | null
+  mapViewport: MapViewport | null
+}
+
+/**
+ * The per-view presentation config a view component may patch through
+ * `setViewConfig` (exploration 0337). One node write per patch — each
+ * property merges independently (LWW) with other clients' edits.
+ */
+export interface GridViewConfigPatch {
+  groupBy?: string | null
+  collapsedGroups?: string[]
+  coverField?: string | null
+  cardSize?: string | null
+  coverFit?: string | null
+  colorBy?: string | null
+  groupMeta?: Record<string, ViewGroupMeta>
+  dateField?: string | null
+  endDateField?: string | null
+  latField?: string | null
+  lngField?: string | null
+  mapViewport?: MapViewport | null
 }
 
 export interface GridRowModel {
@@ -130,6 +163,16 @@ export interface UseGridDatabaseResult {
 
   // Cell/row mutations
   updateCell: (rowId: string, fieldId: string, value: CellValue) => Promise<void>
+  /**
+   * Write several cells (and optionally the row's sortKey) as ONE node
+   * update — a kanban card move is exactly one write carrying the group
+   * cell + the fractional position (exploration 0337).
+   */
+  updateRowCells: (
+    rowId: string,
+    cells: Record<string, CellValue>,
+    opts?: { sortKey?: string }
+  ) => Promise<void>
   clearCells: (cells: Array<{ rowId: string; fieldId: string }>) => Promise<void>
   addRow: (
     afterRowId?: string,
@@ -161,6 +204,10 @@ export interface UseGridDatabaseResult {
   toggleSort: (fieldId: string) => Promise<void>
   setFilters: (filters: FilterGroup | null) => Promise<void>
   setGroupBy: (fieldId: string | null) => Promise<void>
+  /** Patch the active view's presentation config (exploration 0337) */
+  setViewConfig: (patch: GridViewConfigPatch) => Promise<void>
+  /** Persist a group's collapsed state on the active view */
+  setGroupCollapsed: (groupKey: string, collapsed: boolean) => Promise<void>
   setRowHeight: (rowHeight: RowHeight) => Promise<void>
   setColumnSummary: (fieldId: string, fn: SummaryFunction) => Promise<void>
   // Form view (exploration 0278)
@@ -213,7 +260,17 @@ function toViewModel(node: Flat): GridViewModel {
     sortKey: (node.sortKey as string) ?? '',
     formConfig: (node.formConfig as FormViewConfig | undefined) ?? null,
     formRules: (node.formRules as Record<string, FormFieldRule> | undefined) ?? {},
-    formAccepting: (node.formAccepting as boolean | undefined) ?? true
+    formAccepting: (node.formAccepting as boolean | undefined) ?? true,
+    coverField: (node.coverField as string | undefined) ?? null,
+    cardSize: (node.cardSize as string | undefined) ?? null,
+    coverFit: (node.coverFit as string | undefined) ?? null,
+    colorBy: (node.colorBy as string | undefined) ?? null,
+    groupMeta: (node.groupMeta as Record<string, ViewGroupMeta> | undefined) ?? {},
+    dateField: (node.dateField as string | undefined) ?? null,
+    endDateField: (node.endDateField as string | undefined) ?? null,
+    latField: (node.latField as string | undefined) ?? null,
+    lngField: (node.lngField as string | undefined) ?? null,
+    mapViewport: (node.mapViewport as MapViewport | undefined) ?? null
   }
 }
 
@@ -564,6 +621,22 @@ export function useGridDatabase(
     [updateRowProps]
   )
 
+  const updateRowCells = useCallback(
+    async (
+      rowId: string,
+      cells: Record<string, CellValue>,
+      opts?: { sortKey?: string }
+    ): Promise<void> => {
+      const props: Record<string, unknown> = {}
+      for (const [fieldId, value] of Object.entries(cells)) {
+        props[cellKey(fieldId)] = value
+      }
+      if (opts?.sortKey !== undefined) props.sortKey = opts.sortKey
+      await updateRowProps(rowId, props)
+    },
+    [updateRowProps]
+  )
+
   const clearCells = useCallback(
     async (cells: Array<{ rowId: string; fieldId: string }>): Promise<void> => {
       const byRow = new Map<string, Record<string, unknown>>()
@@ -825,6 +898,31 @@ export function useGridDatabase(
     [mutate, activeView]
   )
 
+  const setViewConfig = useCallback(
+    async (patch: GridViewConfigPatch): Promise<void> => {
+      if (!activeView) return
+      // null clears a field (LWW tombstone); undefined keys are omitted
+      const props: Record<string, unknown> = {}
+      for (const [key, value] of Object.entries(patch)) {
+        if (value !== undefined) props[key] = value
+      }
+      if (Object.keys(props).length === 0) return
+      await mutate.update(DatabaseViewSchema, activeView.id, props as never)
+    },
+    [mutate, activeView]
+  )
+
+  const setGroupCollapsed = useCallback(
+    async (groupKey: string, collapsed: boolean): Promise<void> => {
+      if (!activeView) return
+      const set = new Set(activeView.collapsedGroups)
+      if (collapsed) set.add(groupKey)
+      else set.delete(groupKey)
+      await mutate.update(DatabaseViewSchema, activeView.id, { collapsedGroups: [...set] })
+    },
+    [mutate, activeView]
+  )
+
   const setRowHeight = useCallback(
     async (rowHeight: RowHeight): Promise<void> => {
       if (!activeView) return
@@ -906,6 +1004,7 @@ export function useGridDatabase(
     rows,
     loading,
     updateCell,
+    updateRowCells,
     clearCells,
     addRow,
     deleteRows,
@@ -922,6 +1021,8 @@ export function useGridDatabase(
     toggleSort,
     setFilters,
     setGroupBy,
+    setViewConfig,
+    setGroupCollapsed,
     setRowHeight,
     setColumnSummary,
     setFormConfig,

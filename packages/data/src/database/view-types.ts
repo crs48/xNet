@@ -13,7 +13,15 @@ import type { SummaryFunction } from './summary-engine'
 /**
  * Available view types.
  */
-export type ViewType = 'table' | 'board' | 'list' | 'gallery' | 'calendar' | 'timeline' | 'form'
+export type ViewType =
+  | 'table'
+  | 'board'
+  | 'list'
+  | 'gallery'
+  | 'calendar'
+  | 'timeline'
+  | 'form'
+  | 'map'
 
 /**
  * View configuration stored in the database's Y.Doc.
@@ -157,7 +165,8 @@ export function isFilterCondition(item: FilterCondition | FilterGroup): item is 
  * Check if a view type supports grouping.
  */
 export function supportsGrouping(type: ViewType): boolean {
-  return type === 'table' || type === 'board' || type === 'list'
+  // Timeline groups rows into swimlanes (roadmap view, exploration 0337)
+  return type === 'table' || type === 'board' || type === 'list' || type === 'timeline'
 }
 
 /**
