@@ -1,12 +1,12 @@
 ---
-'@xnetjs/editor': minor
-'@xnetjs/views': minor
 '@xnetjs/react': minor
 '@xnetjs/plugins': minor
 '@xnetjs/data': minor
 ---
 
-Live embeds in documents (exploration 0346, Phase 1): `databaseEmbed` blocks
+Composable UI frames (exploration 0346). The `@xnetjs/editor` and
+`@xnetjs/views` surfaces are release-ignored packages; their changes ship
+with the app. Live embeds in documents (Phase 1): `databaseEmbed` blocks
 now pass any registry view type through to the host (map, timeline, plugin
 views — not just the built-in six), `pageEmbed` blocks render a host-provided
 live summary transclusion via the new `renderPageEmbed` host callback, and the
