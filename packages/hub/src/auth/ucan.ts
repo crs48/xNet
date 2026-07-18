@@ -5,7 +5,7 @@
 import type { HubConfig } from '../types'
 import type { IncomingMessage } from 'http'
 import type { WebSocket } from 'ws'
-import { getCapabilities, type UCANToken, verifyUCAN } from '@xnetjs/identity'
+import { getCapabilities, rootIssuers, type UCANToken, verifyUCAN } from '@xnetjs/identity'
 import { actionAllows, resourceAllows } from './capabilities'
 
 export type AuthSession = {
@@ -26,6 +26,25 @@ const createAnonymousSession = (): AuthSession => ({
   capabilities: [{ with: '*', can: '*' }],
   token: null
 })
+
+/**
+ * Enforce the trusted-root policy (exploration 0337): when `trustedDids` is
+ * configured, every root issuer of the token's delegation chain must be
+ * trusted. A proof-less token roots at its own issuer, so self-issued
+ * capability claims from unknown DIDs stop here. Returns an error string, or
+ * null when the token passes (or no policy is set).
+ */
+const checkTrustedRoots = (token: string, config: HubConfig): string | null => {
+  const trusted = config.trustedDids
+  if (!trusted || trusted.length === 0) return null
+  const roots = rootIssuers(token)
+  if (roots.length === 0) return 'UCAN has no resolvable delegation root'
+  const untrusted = roots.filter((root) => !trusted.includes(root))
+  if (untrusted.length > 0) {
+    return 'UCAN does not chain to a trusted root'
+  }
+  return null
+}
 
 const createAuthContext = (session: AuthSession): AuthContext => ({
   did: session.did,
@@ -102,6 +121,12 @@ export const authenticateConnection = async (
     return null
   }
 
+  const rootError = checkTrustedRoots(token, config)
+  if (rootError) {
+    ws.close(4403, rootError)
+    return null
+  }
+
   const session: AuthSession = {
     did: result.payload.iss,
     capabilities: getCapabilities(result.payload),
@@ -141,6 +166,8 @@ export const authenticateHttpRequest = (
 
   // Verify audience matches this hub's DID (if configured)
   if (config.hubDid && result.payload.aud !== config.hubDid) return null
+
+  if (checkTrustedRoots(token, config) !== null) return null
 
   return createAuthContext({
     did: result.payload.iss,

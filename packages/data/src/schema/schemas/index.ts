@@ -432,6 +432,49 @@ export {
   type MemoryKind
 } from './memory'
 
+// Agent schema pack (exploration 0337)
+export {
+  AGENT_ACTION_SCHEMA_IRI,
+  AGENT_ACTION_STATUSES,
+  AGENT_APPROVAL_DECISIONS,
+  AGENT_APPROVAL_SCHEMA_IRI,
+  AGENT_APPROVAL_SURFACES,
+  AGENT_CHANNELS,
+  AGENT_NOTIFICATION_KINDS,
+  AGENT_NOTIFICATION_SCHEMA_IRI,
+  AGENT_NOTIFICATION_STATUSES,
+  AGENT_PASSPORT_SCHEMA_IRI,
+  AGENT_REVERSIBILITIES,
+  AGENT_RISKS,
+  AGENT_RUNTIMES,
+  AGENT_SESSION_SCHEMA_IRI,
+  AgentActionSchema,
+  AgentApprovalSchema,
+  AgentNotificationSchema,
+  AgentPassportSchema,
+  AgentSessionSchema,
+  agentActionId,
+  agentApprovalId,
+  agentNotificationId,
+  agentPassportId,
+  agentSessionId,
+  redactInstruction,
+  type AgentAction,
+  type AgentActionStatus,
+  type AgentApproval,
+  type AgentApprovalDecision,
+  type AgentApprovalSurface,
+  type AgentChannel,
+  type AgentNotification,
+  type AgentNotificationKind,
+  type AgentNotificationStatus,
+  type AgentPassport,
+  type AgentReversibility,
+  type AgentRisk,
+  type AgentRuntime,
+  type AgentSession
+} from './agent'
+
 // Comment anchor types
 export {
   type AnchorType,
@@ -615,6 +658,13 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/GameAsset@1.0.0': () => import('./game').then((m) => m.GameAssetSchema),
   // Memory schema pack (exploration 0211)
   'xnet://xnet.fyi/MemoryItem@1.0.0': () => import('./memory').then((m) => m.MemoryItemSchema),
+  // Agent schema pack (exploration 0337)
+  'xnet://xnet.fyi/AgentPassport@1.0.0': () => import('./agent').then((m) => m.AgentPassportSchema),
+  'xnet://xnet.fyi/AgentSession@1.0.0': () => import('./agent').then((m) => m.AgentSessionSchema),
+  'xnet://xnet.fyi/AgentAction@1.0.0': () => import('./agent').then((m) => m.AgentActionSchema),
+  'xnet://xnet.fyi/AgentApproval@1.0.0': () => import('./agent').then((m) => m.AgentApprovalSchema),
+  'xnet://xnet.fyi/AgentNotification@1.0.0': () =>
+    import('./agent').then((m) => m.AgentNotificationSchema),
 
   // Legacy unversioned IRIs (aliases for the current version)
   'xnet://xnet.fyi/Page': () => import('./page').then((m) => m.PageSchema),
@@ -721,7 +771,14 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/GameEconomyEntry': () => import('./game').then((m) => m.GameEconomyEntrySchema),
   'xnet://xnet.fyi/GameAsset': () => import('./game').then((m) => m.GameAssetSchema),
   // Memory schema pack (exploration 0211)
-  'xnet://xnet.fyi/MemoryItem': () => import('./memory').then((m) => m.MemoryItemSchema)
+  'xnet://xnet.fyi/MemoryItem': () => import('./memory').then((m) => m.MemoryItemSchema),
+  // Agent schema pack (exploration 0337)
+  'xnet://xnet.fyi/AgentPassport': () => import('./agent').then((m) => m.AgentPassportSchema),
+  'xnet://xnet.fyi/AgentSession': () => import('./agent').then((m) => m.AgentSessionSchema),
+  'xnet://xnet.fyi/AgentAction': () => import('./agent').then((m) => m.AgentActionSchema),
+  'xnet://xnet.fyi/AgentApproval': () => import('./agent').then((m) => m.AgentApprovalSchema),
+  'xnet://xnet.fyi/AgentNotification': () =>
+    import('./agent').then((m) => m.AgentNotificationSchema)
 } as const
 
 /**

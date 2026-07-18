@@ -1,5 +1,24 @@
 # @xnetjs/react
 
+## 2.1.0
+
+### Minor Changes
+
+- [#534](https://github.com/crs48/xNet/pull/534) [`5473a29`](https://github.com/crs48/xNet/commit/5473a292597f0b47aa804af7ee2e38e25a549137) Thanks [@crs48](https://github.com/crs48)! - `useGridDatabase` now pages database rows through a growing window instead of a fixed 500-row page: new `fetchMoreRows()` grows the window by `pageSize` (default 500) up to `maxLoaded` (default 2000, configurable via options), and the result exposes `totalRowCount` (exact matching count), `hasMoreRows`, and `isFetchingMoreRows` so grids can render honest totals and infinite scroll. Existing consumers keep working unchanged — rows still arrive sorted by `sortKey` on the live query path.
+
+### Patch Changes
+
+- Updated dependencies [[`0a4a1de`](https://github.com/crs48/xNet/commit/0a4a1de41b0f68c197ba5f7d191706668550f708), [`fa93e2f`](https://github.com/crs48/xNet/commit/fa93e2f7177367e7336f6a825f8c3436a2165833)]:
+  - @xnetjs/data@2.1.0
+  - @xnetjs/identity@2.1.0
+  - @xnetjs/plugins@2.1.0
+  - @xnetjs/data-bridge@2.1.0
+  - @xnetjs/history@2.1.0
+  - @xnetjs/runtime@0.5.1
+  - @xnetjs/sync@2.1.0
+  - @xnetjs/crypto@2.1.0
+  - @xnetjs/core@2.1.0
+
 ## 2.0.0
 
 ### Minor Changes
