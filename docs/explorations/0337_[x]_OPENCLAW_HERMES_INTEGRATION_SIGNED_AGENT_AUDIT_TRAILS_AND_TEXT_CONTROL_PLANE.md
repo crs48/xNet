@@ -649,28 +649,28 @@ Housekeeping:
 
 ## Validation Checklist
 
-- [ ] Enroll a real OpenClaw gateway with a passport; verify a tool-call
+- [x] Enroll a real OpenClaw gateway with a passport; verify a tool-call
       write lands with `authorDID = agent DID` and `verifyChange` passes
       hub-side
-- [ ] Attempt a write outside the delegated capability set (other space,
+- [x] Attempt a write outside the delegated capability set (other space,
       `delete`) → rejected at hub with capability error, `AgentAction`
       records the denial
-- [ ] Tamper test: mutate an agent session transcript on disk *and* attempt
+- [x] Tamper test: mutate an agent session transcript on disk *and* attempt
       to replay an altered change → hub rejects (hash/signature); audit
       console still shows the true history
-- [ ] Medium-risk ceremony end-to-end over Telegram: nonce expires after
+- [x] Medium-risk ceremony end-to-end over Telegram: nonce expires after
       TTL; stale/wrong nonce rejected; `AgentApproval` node present with
       `surface: 'chat'` and correct peer id
-- [ ] High-risk op requested via chat → refused in-chat, approvable only in
+- [x] High-risk op requested via chat → refused in-chat, approvable only in
       app; resulting `AgentApproval` is operator-signed
-- [ ] Author-index query returns the agent's full change history in
+- [x] Author-index query returns the agent's full change history in
       paginated order on a 100k-change log without a full scan (explain
       plan / timing)
-- [ ] `xnet_undo` on a reversible action produces compensating changes and
+- [x] `xnet_undo` on a reversible action produces compensating changes and
       flips status to `rolled-back`
-- [ ] Same skill + passport flow works against a Hermes Agent gateway
+- [x] Same skill + passport flow works against a Hermes Agent gateway
       (MCP streamable-http)
-- [ ] Seed coverage test green (auto-generator covers the new schemas);
+- [x] Seed coverage test green (auto-generator covers the new schemas);
       full `vitest` from root
 
 ## References
