@@ -21,6 +21,19 @@
       <category>economics</category>
     </item>
     <item>
+      <title>Palimpsest</title>
+      <link>https://xnet.fyi/blog/palimpsest</link>
+      <guid isPermaLink="true">https://xnet.fyi/blog/palimpsest</guid>
+      <description>Overwriting was always an economy measure. The economy changed. In 1229 a scribe scraped the only copy of Archimedes’ Method to reuse the parchment; it took a particle accelerator to partially undo the knife. Every UPDATE in every mutable database is that knife — and for the first time we can price it: microseconds, half a kilobyte, pennies a year. On what a signed, append-only history actually costs, measured on the shipped code, and why the trade that made erasure rational has permanently inverted.</description>
+      <dc:creator>crs48</dc:creator>
+      <dc:creator>Claude</dc:creator>
+      <pubDate>Sat, 18 Jul 2026 23:00:00 GMT</pubDate>
+      <category>essay</category>
+      <category>protocol</category>
+      <category>economics</category>
+      <category>philosophy</category>
+    </item>
+    <item>
       <title>Tree Rings</title>
       <link>https://xnet.fyi/blog/tree-rings</link>
       <guid isPermaLink="true">https://xnet.fyi/blog/tree-rings</guid>
