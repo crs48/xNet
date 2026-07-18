@@ -1,5 +1,15 @@
 # xnet-cloud
 
+## 0.0.19
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/telemetry@0.0.1
+  - @xnetjs/crypto@2.1.0
+  - @xnetjs/core@2.1.0
+  - @xnetjs/cloud@0.0.1
+
 ## 0.0.18
 
 ### Patch Changes

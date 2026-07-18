@@ -25,6 +25,7 @@ import { registerCodeCommand } from './commands/code.js'
 import { registerConnectorCommand } from './commands/connector.js'
 import { registerDataCommand } from './commands/data.js'
 import { registerDoctorCommand } from './commands/doctor.js'
+import { registerAgentEnrollCommand } from './commands/enroll.js'
 import { registerMcpCommand } from './commands/mcp.js'
 import { registerMigrateCommand } from './commands/migrate.js'
 import { registerPluginCommand } from './commands/plugin.js'
@@ -40,6 +41,7 @@ registerMigrateCommand(program)
 registerSchemaCommand(program)
 registerDoctorCommand(program)
 registerAgentCommands(program)
+registerAgentEnrollCommand(program)
 registerMcpCommand(program)
 registerBridgeCommand(program)
 registerCodeCommand(program)

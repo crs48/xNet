@@ -33,6 +33,7 @@ import { createLogger } from './logger'
 import { Metrics, HUB_METRICS } from './middleware/metrics'
 import { RateLimiter } from './middleware/rate-limit'
 import { NodePool } from './pool/node-pool'
+import { createAuditRoutes } from './routes/audit'
 import { createBackupRoutes } from './routes/backup'
 import { createCrawlRoutes } from './routes/crawl'
 import { createDiscoveryRoutes } from './routes/dids'
@@ -531,6 +532,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   app.route('/files', createFileRoutes(files))
 
   app.route('/schemas', createSchemaRoutes(schemas, { requireAuth }))
+  app.route('/audit', createAuditRoutes(storage, { requireAuth }))
   app.route('/keys', createKeyRegistryRoutes(keyRegistry))
   // ATProto binding verification (0301/0322/0338): the hub resolves DID docs
   // and binding records so clients can render verified handles.

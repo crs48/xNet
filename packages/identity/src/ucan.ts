@@ -257,6 +257,24 @@ export function ucanTokenId(token: string): string {
   return hashHex(new TextEncoder().encode(token), 'sha256')
 }
 
+const ROOT_ISSUER_MAX_DEPTH = 16
+
+/**
+ * The root issuer DIDs of a delegation chain — the identities whose authority
+ * everything else attenuates from. A proof-less token is its own root, which
+ * is how a hub distinguishes a self-issued token from a delegated one.
+ *
+ * Call only on tokens that already passed `verifyUCAN`; this walks the chain
+ * structurally without re-verifying signatures.
+ */
+export function rootIssuers(token: string, depth = 0): string[] {
+  if (depth > ROOT_ISSUER_MAX_DEPTH) return []
+  const parsed = parseUCAN(token)
+  if (!parsed) return []
+  if (parsed.payload.prf.length === 0) return [parsed.payload.iss]
+  return [...new Set(parsed.payload.prf.flatMap((proof) => rootIssuers(proof, depth + 1)))]
+}
+
 // ─── Unicode-safe base64url helpers ──────────────────────────
 
 function toBase64Url(str: string): string {

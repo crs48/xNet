@@ -45,6 +45,24 @@ export {
   type AiValidator
 } from './validation'
 export { AiSurfaceService, createAiSurfaceService } from './service'
+// Agent audit + ceremony (exploration 0337)
+export {
+  AgentAuditRecorder,
+  hashNonce,
+  reversibilityForTool,
+  riskForTool,
+  type AgentAuditContext,
+  type AgentAuditRecorderConfig,
+  type AgentAuditSurface,
+  type AgentCallOutcome,
+  type AgentExecutedResult,
+  type AgentPendingApproval
+} from './agent-audit'
+export {
+  createAgentCeremonyTools,
+  createAgentNotificationTools,
+  type AgentNotificationToolsOptions
+} from './agent-ceremony-tools'
 export { XNET_AGENT_SKILL_MD } from './skill'
 export { WRITING_XNET_PLUGINS_SKILL_MD } from './plugin-skill'
 export { flattenRowForTsv, toTsv } from './format'

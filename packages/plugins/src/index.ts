@@ -685,6 +685,22 @@ export type {
   XNetPageFragmentReadOptions,
   XNetPageFragmentWriteOptions
 } from './ai-surface'
+// Agent audit + ceremony (exploration 0337)
+export {
+  AgentAuditRecorder,
+  createAgentCeremonyTools,
+  createAgentNotificationTools,
+  hashNonce,
+  reversibilityForTool,
+  riskForTool,
+  type AgentAuditContext,
+  type AgentAuditRecorderConfig,
+  type AgentAuditSurface,
+  type AgentCallOutcome,
+  type AgentExecutedResult,
+  type AgentNotificationToolsOptions,
+  type AgentPendingApproval
+} from './ai-surface'
 
 // Services (Background process management)
 // Note: Node.js-only modules (LocalAPIServer, MCPServer, ProcessManager) are

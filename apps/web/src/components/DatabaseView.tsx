@@ -454,6 +454,15 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
 
   const activeView = grid.activeView
 
+  // View filters/sorts apply client-side over the loaded window — when more
+  // rows exist past it, say so instead of presenting a partial result as the
+  // whole table (exploration 0340).
+  const windowedFilterNotice =
+    grid.hasMoreRows &&
+    ((activeView?.filters?.conditions.length ?? 0) > 0 || (activeView?.sorts.length ?? 0) > 0)
+      ? 'filtered within loaded rows'
+      : undefined
+
   if (nodeLoading || grid.loading) {
     return <GridSkeleton className="-m-6" />
   }
@@ -594,6 +603,13 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
                 sorts={activeView?.sorts}
                 presences={cellPresences}
                 cellCommentCounts={comments.cellCommentCounts}
+                totalRowCount={grid.totalRowCount}
+                hasMoreRows={grid.hasMoreRows}
+                loadingMoreRows={grid.isFetchingMoreRows}
+                onReachEnd={() => {
+                  void grid.fetchMoreRows()
+                }}
+                footerNotice={windowedFilterNotice}
                 onUpdateCell={(rowId, fieldId, value) => {
                   void grid.updateCell(rowId, fieldId, value)
                 }}

@@ -485,6 +485,16 @@ export type HubStorage = {
   appendNodeChange: (room: string, change: SerializedNodeChange) => Promise<void>
   getNodeChangesSince: (room: string, sinceLamport: number) => Promise<SerializedNodeChange[]>
   getNodeChangesForNode: (room: string, nodeId: string) => Promise<SerializedNodeChange[]>
+  /**
+   * Agent audit trail (exploration 0337): an author's changes across all
+   * rooms, paged on the per-author lamport cursor. Backed by
+   * `idx_node_changes_author_lamport` — never a scan.
+   */
+  getNodeChangesByAuthor: (
+    authorDid: string,
+    sinceLamport: number,
+    limit?: number
+  ) => Promise<SerializedNodeChange[]>
   getHighWaterMark: (room: string) => Promise<number>
 
   // ─── Share rooms (exploration 0298) ─────────────────────────────────────────
