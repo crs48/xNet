@@ -1,0 +1,46 @@
+{
+  "stories": [
+    {
+      "id": "web-storagewarningbanner--informational",
+      "title": "Web/StorageWarningBanner",
+      "name": "Informational",
+      "file": "stories/web-storagewarningbanner--informational.png"
+    },
+    {
+      "id": "web-storagewarningbanner--success",
+      "title": "Web/StorageWarningBanner",
+      "name": "Success",
+      "file": "stories/web-storagewarningbanner--success.png"
+    },
+    {
+      "id": "web-storagewarningbanner--warning",
+      "title": "Web/StorageWarningBanner",
+      "name": "Warning",
+      "file": "stories/web-storagewarningbanner--warning.png"
+    }
+  ],
+  "routes": [
+    {
+      "id": "crm",
+      "label": "CRM",
+      "file": "routes/crm.png"
+    },
+    {
+      "id": "home",
+      "label": "Home",
+      "file": "routes/home.png"
+    }
+  ],
+  "flows": [
+    {
+      "id": "crm-quote",
+      "label": "Build a CRM quote (product + line item)",
+      "gif": "flows/crm-quote.gif",
+      "mp4": "flows/crm-quote.mp4",
+      "poster": "flows/crm-quote.poster.png"
+    }
+  ],
+  "electron": [],
+  "fallbackUsed": false,
+  "unmappedFiles": []
+}
