@@ -13,11 +13,13 @@ import { EntangleProvider } from '@xnetjs/react'
 import { FrameHostProvider, FrameRenderer, type FrameDef } from '@xnetjs/views'
 import { X } from 'lucide-react'
 import { useCallback, useEffect, useMemo, type ReactNode } from 'react'
+import { Group, Panel } from 'react-resizable-panels'
 import '../lib/frame-renderers'
 import { WORKBENCH_SAVED_VIEW_REGISTRY } from '../lib/saved-view-registry'
 import { Hairline } from './Hairline'
 import { navigateToNode } from './navigation'
 import { useWorkbench, type TabNodeType } from './state'
+import { tabFromPathname } from './tabs'
 
 /** Register the split commands; the store holds the target. */
 function useSplitCommands(): void {
@@ -32,9 +34,12 @@ function useSplitCommands(): void {
         when: () => Boolean(useWorkbench.getState().splitTarget === null),
         run: () => {
           // Split with whatever the sidebar last surfaced as pinned/recent —
-          // the working set is the picker (no tab to clone).
+          // the working set is the picker (no tab to clone). Skip the node
+          // the primary pane is already showing: recents[0] is the current
+          // route, so taking it verbatim splits a document with itself.
           const state = useWorkbench.getState()
-          const recent = state.recents[0]
+          const current = tabFromPathname(window.location.pathname)
+          const recent = state.recents.find((entry) => entry.nodeId !== current?.nodeId)
           if (recent) {
             state.setSplitTarget({ nodeId: recent.nodeId, nodeType: recent.nodeType })
           }
@@ -87,13 +92,20 @@ export function SplitPane({ children }: { children: ReactNode }): React.JSX.Elem
 
   if (!frame) return <>{children}</>
 
+  // `Hairline` is a resizable-panels Separator and throws without a Group
+  // ancestor, so the two panes are a real Group/Panel pair — which also
+  // makes the split draggable, like every other workbench divider.
   return (
-    <div className="flex h-full min-h-0 flex-row">
-      <div className="min-w-0 flex-1">{children}</div>
+    <Group orientation="horizontal" id="xnet-wb-split-group" className="flex h-full min-h-0 flex-row">
+      <Panel defaultSize={65} minSize={30} className="min-w-0">
+        {children}
+      </Panel>
       <Hairline orientation="horizontal" id="xnet-wb-split" />
-      <aside
+      <Panel
+        defaultSize={35}
+        minSize={20}
         data-wb-split-pane="true"
-        className="flex h-full min-h-0 w-[420px] shrink-0 flex-col bg-canvas"
+        className="flex h-full min-h-0 flex-col bg-canvas"
       >
         <div className="flex h-9 shrink-0 items-center justify-end px-2">
           <button
@@ -118,7 +130,7 @@ export function SplitPane({ children }: { children: ReactNode }): React.JSX.Elem
             </EntangleProvider>
           </FrameHostProvider>
         </div>
-      </aside>
-    </div>
+      </Panel>
+    </Group>
   )
 }
