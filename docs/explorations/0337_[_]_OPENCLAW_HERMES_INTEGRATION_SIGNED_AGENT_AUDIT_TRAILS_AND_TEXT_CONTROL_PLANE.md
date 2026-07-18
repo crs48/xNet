@@ -619,7 +619,7 @@ Phase 2 — Audit trail:
       `AgentAction` per call, linked `changeIds`)
 - [x] Per-author index + query: hub storage index on change author,
       `GET /audit/authors/:did/changes?since=` (paginated), UCAN-gated
-- [ ] Workbench audit console: table view over `AgentAction` filtered by
+- [x] Workbench audit console: table view over `AgentAction` filtered by
       agent DID, with per-action change diffs (reuse DebugReport console
       patterns from 0315)
 - [x] `xnet_undo <actionId>` honoring `reversibility` (compensating

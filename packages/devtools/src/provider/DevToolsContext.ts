@@ -20,6 +20,7 @@ export type PanelId =
   | 'yjs'
   | 'authz'
   | 'abuse'
+  | 'agent-audit'
   | 'queries'
   | 'traces'
   | 'telemetry'
