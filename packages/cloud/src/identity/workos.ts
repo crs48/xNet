@@ -65,8 +65,17 @@ export class WorkOSAuthKitProvider implements BillingIdentityProvider {
     url.searchParams.set('client_id', this.config.clientId)
     url.searchParams.set('redirect_uri', options.redirectUri ?? this.config.redirectUri)
     url.searchParams.set('response_type', 'code')
-    // `authkit` uses WorkOS's hosted sign-in/up UI (the free AuthKit experience).
-    url.searchParams.set('provider', 'authkit')
+    // Enterprise SSO (0338 Phase 4): pin to a specific SAML/OIDC connection or
+    // organization when provided; otherwise use WorkOS's hosted AuthKit UI (the
+    // free experience). `connection`/`organization` and `provider` are mutually
+    // exclusive in the WorkOS API, so we set exactly one path.
+    if (options.connectionId) {
+      url.searchParams.set('connection', options.connectionId)
+    } else if (options.organizationId) {
+      url.searchParams.set('organization', options.organizationId)
+    } else {
+      url.searchParams.set('provider', 'authkit')
+    }
     if (options.state) url.searchParams.set('state', options.state)
     if (options.screenHint) url.searchParams.set('screen_hint', options.screenHint)
     return url.toString()

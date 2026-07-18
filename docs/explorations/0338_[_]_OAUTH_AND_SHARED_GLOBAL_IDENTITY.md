@@ -588,9 +588,9 @@ Phase 3 — OAuth provider (MIT):
 - [x] Changesets: minor for `@xnetjs/hub` (new opt-in feature), minor for `@xnetjs/identity` (new exports via scoped sub-barrels per 0276 policy)
 
 Phase 4 — demand-gated:
-- [ ] Hub-as-PDS spike: mount official `@atproto/pds` behind one hostname next to a hub; document ops story (0301 P3)
-- [ ] WorkOS SSO/SAML connection support in `packages/cloud` for enterprise tenants
-- [ ] Decide trigger metrics (federation caps, binding adoption) and record the go/no-go
+- [x] Hub-as-PDS spike: mount official `@atproto/pds` behind one hostname next to a hub; document ops story (0301 P3)
+- [x] WorkOS SSO/SAML connection support in `packages/cloud` for enterprise tenants
+- [x] Decide trigger metrics (federation caps, binding adoption) and record the go/no-go
 
 ## Validation Checklist
 
