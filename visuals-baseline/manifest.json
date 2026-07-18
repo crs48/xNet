@@ -97,12 +97,6 @@
       "file": "stories/editor-xneteditor--legacy-import.png"
     },
     {
-      "id": "core-database-surface--playground",
-      "title": "Core/Database/Surface",
-      "name": "Playground",
-      "file": "stories/core-database-surface--playground.png"
-    },
-    {
       "id": "core-database-grid-v2--playground",
       "title": "Core/Database/Grid V2",
       "name": "Playground",
