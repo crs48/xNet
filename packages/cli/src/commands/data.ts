@@ -121,7 +121,9 @@ function printVerifyReport(report: BundleVerifyReport): void {
     const paint = issue.severity === 'error' ? chalk.red : chalk.yellow
     console.log(paint(`  ${issue.severity}: [${issue.code}] ${issue.detail}`))
   }
-  console.log(report.ok ? chalk.green('✓ bundle verifies clean') : chalk.red('✗ bundle failed verification'))
+  console.log(
+    report.ok ? chalk.green('✓ bundle verifies clean') : chalk.red('✗ bundle failed verification')
+  )
 }
 
 export function registerDataCommand(program: Command): void {
@@ -309,7 +311,9 @@ export function registerDataCommand(program: Command): void {
 
   data
     .command('snapshot')
-    .description("Write a defragmented SQLite snapshot of the database (VACUUM INTO — Tier 2:\nmaterialized state for any SQLite tool; use 'export' for the lossless bundle)")
+    .description(
+      "Write a defragmented SQLite snapshot of the database (VACUUM INTO — Tier 2:\nmaterialized state for any SQLite tool; use 'export' for the lossless bundle)"
+    )
     .requiredOption('--db <path>', 'SQLite file path to snapshot')
     .requiredOption('--sqlite <out>', 'Output .sqlite file path')
     .action(async (opts: { db: string; sqlite: string }) => {

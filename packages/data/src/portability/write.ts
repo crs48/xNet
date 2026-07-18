@@ -125,7 +125,10 @@ export async function writeBundle(
     changesDigest.addLine(line)
     changeLines.push(line)
   }
-  await sink.writeEntry(BUNDLE_ENTRY.changes, encodeUtf8(changeLines.join('\n') + (changeLines.length ? '\n' : '')))
+  await sink.writeEntry(
+    BUNDLE_ENTRY.changes,
+    encodeUtf8(changeLines.join('\n') + (changeLines.length ? '\n' : ''))
+  )
   entryDigests.set(BUNDLE_ENTRY.changes, changesDigest.finish())
 
   // 2. Blobs (optional port).
@@ -167,7 +170,10 @@ export async function writeBundle(
       yjsCount++
     }
   }
-  await sink.writeEntry(BUNDLE_ENTRY.yjsDocs, encodeUtf8(yjsLines.join('\n') + (yjsLines.length ? '\n' : '')))
+  await sink.writeEntry(
+    BUNDLE_ENTRY.yjsDocs,
+    encodeUtf8(yjsLines.join('\n') + (yjsLines.length ? '\n' : ''))
+  )
   entryDigests.set(BUNDLE_ENTRY.yjsDocs, yjsDigest.finish())
 
   // 4. Manifest.

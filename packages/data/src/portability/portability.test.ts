@@ -134,9 +134,7 @@ describe('xnetpack bundle round-trip', () => {
     })
     expect(incrementalManifest.prerequisites).toEqual(first.manifest.frontier)
     expect(incrementalManifest.counts.changes).toBeGreaterThan(0)
-    expect(incrementalManifest.counts.changes).toBeLessThan(
-      (await a.store.getAllChanges()).length
-    )
+    expect(incrementalManifest.counts.changes).toBeLessThan((await a.store.getAllChanges()).length)
 
     const b = createTestStore({ did: a.did, privateKey: a.privateKey })
     await b.store.initialize()
@@ -245,9 +243,9 @@ describe('xnetpack hostile input', () => {
 
     const b = createTestStore({ did: identity.did, privateKey: identity.privateKey })
     await b.store.initialize()
-    await expect(
-      applyBundle(b.store, source, { importerDid: identity.did })
-    ).rejects.toMatchObject({ code: 'verify-failed' })
+    await expect(applyBundle(b.store, source, { importerDid: identity.did })).rejects.toMatchObject(
+      { code: 'verify-failed' }
+    )
     expect(await b.store.getAllChanges()).toEqual([])
   })
 

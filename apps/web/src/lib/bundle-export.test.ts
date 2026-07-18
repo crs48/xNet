@@ -54,9 +54,7 @@ describe('exportXnetpack / importXnetpackFile', () => {
 
     const b = makeStore({ did: a.did, privateKey: a.privateKey })
     await b.store.initialize()
-    await expect(
-      importXnetpackFile(b.store, bytes, { importerDid: a.did })
-    ).rejects.toThrow()
+    await expect(importXnetpackFile(b.store, bytes, { importerDid: a.did })).rejects.toThrow()
     expect(await b.store.getAllChanges()).toEqual([])
   })
 })

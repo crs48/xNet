@@ -87,10 +87,16 @@ export async function verifyBundle(
       const publicKey = parseDID(manifest.ownerDid as DID)
       const signature = base64ToBytes(manifest.signatureB64)
       if (!verifySignature(canonicalManifestBytes(manifest), signature, publicKey)) {
-        error('manifest-signature-invalid', `manifest signature does not verify against ${manifest.ownerDid}`)
+        error(
+          'manifest-signature-invalid',
+          `manifest signature does not verify against ${manifest.ownerDid}`
+        )
       }
     } catch (err) {
-      error('manifest-signature-invalid', `cannot verify manifest signature: ${(err as Error).message}`)
+      error(
+        'manifest-signature-invalid',
+        `cannot verify manifest signature: ${(err as Error).message}`
+      )
     }
   }
 
@@ -107,7 +113,11 @@ export async function verifyBundle(
     try {
       record = JSON.parse(line) as PortableChangeRecord
     } catch {
-      error('change-unparseable', `changes.ndjson line ${lineNumber} is not valid JSON`, `line:${lineNumber}`)
+      error(
+        'change-unparseable',
+        `changes.ndjson line ${lineNumber} is not valid JSON`,
+        `line:${lineNumber}`
+      )
       continue
     }
     let change
@@ -119,17 +129,29 @@ export async function verifyBundle(
     }
     if (verifyChangeSignatures) {
       if (!verifyChangeHash(change)) {
-        error('change-hash-invalid', `change ${change.id} fails hash re-computation (tampered?)`, record.hash)
+        error(
+          'change-hash-invalid',
+          `change ${change.id} fails hash re-computation (tampered?)`,
+          record.hash
+        )
         continue
       }
       try {
         const publicKey = parseDID(change.authorDID)
         if (!verifyChange(change, publicKey)) {
-          error('change-signature-invalid', `change ${change.id} signature does not match ${change.authorDID}`, record.hash)
+          error(
+            'change-signature-invalid',
+            `change ${change.id} signature does not match ${change.authorDID}`,
+            record.hash
+          )
           continue
         }
       } catch (err) {
-        error('change-signature-invalid', `change ${change.id}: ${(err as Error).message}`, record.hash)
+        error(
+          'change-signature-invalid',
+          `change ${change.id}: ${(err as Error).message}`,
+          record.hash
+        )
         continue
       }
     }
@@ -175,7 +197,10 @@ export async function verifyBundle(
   }
   entryDigests.set(BUNDLE_ENTRY.blobIndex, blobIndexDigest.finish())
   if (blobIndexDigest.lineCount() !== manifest.counts.blobs) {
-    error('count-mismatch', `manifest declares ${manifest.counts.blobs} blobs, index has ${blobIndexDigest.lineCount()}`)
+    error(
+      'count-mismatch',
+      `manifest declares ${manifest.counts.blobs} blobs, index has ${blobIndexDigest.lineCount()}`
+    )
   }
   for (const path of await source.listEntries('blobs/')) {
     if (path === BUNDLE_ENTRY.blobIndex) continue
@@ -200,7 +225,10 @@ export async function verifyBundle(
   }
   entryDigests.set(BUNDLE_ENTRY.yjsDocs, yjsDigest.finish())
   if (yjsDigest.lineCount() !== manifest.counts.yjsDocs) {
-    error('count-mismatch', `manifest declares ${manifest.counts.yjsDocs} yjs docs, bundle has ${yjsDigest.lineCount()}`)
+    error(
+      'count-mismatch',
+      `manifest declares ${manifest.counts.yjsDocs} yjs docs, bundle has ${yjsDigest.lineCount()}`
+    )
   }
 
   // ── Whole-bundle digest ───────────────────────────────────────────────────

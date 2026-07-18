@@ -27,11 +27,7 @@ import {
 export class BundleImportError extends Error {
   constructor(
     message: string,
-    readonly code:
-      | 'verify-failed'
-      | 'unsigned-manifest'
-      | 'foreign-owner'
-      | 'missing-prerequisites'
+    readonly code: 'verify-failed' | 'unsigned-manifest' | 'foreign-owner' | 'missing-prerequisites'
   ) {
     super(message)
     this.name = 'BundleImportError'
@@ -156,7 +152,11 @@ export async function applyBundle(
         if (await options.blobPort.has(record.cid)) continue
         const bytes = await source.readEntry(record.path)
         if (!bytes) {
-          quarantine({ kind: 'blob', subject: record.cid, reason: `bundle entry ${record.path} missing` })
+          quarantine({
+            kind: 'blob',
+            subject: record.cid,
+            reason: `bundle entry ${record.path} missing`
+          })
           continue
         }
         await options.blobPort.put(bytes, { cid: record.cid, mimeType: record.mimeType })

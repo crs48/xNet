@@ -18,7 +18,7 @@ describe('buildSqlDump', () => {
   const fakeDb: Record<string, Array<Record<string, unknown>>> = {
     sqlite_master: [
       { name: 'nodes', sql: 'CREATE TABLE nodes (id TEXT PRIMARY KEY, title TEXT)' },
-      { name: 'nodes_fts', sql: "CREATE VIRTUAL TABLE nodes_fts USING fts5(title)" },
+      { name: 'nodes_fts', sql: 'CREATE VIRTUAL TABLE nodes_fts USING fts5(title)' },
       { name: 'nodes_fts_data', sql: 'CREATE TABLE nodes_fts_data (block BLOB)' },
       { name: 'sqlite_sequence', sql: 'CREATE TABLE sqlite_sequence (name, seq)' }
     ],

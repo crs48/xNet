@@ -66,7 +66,11 @@ export async function exportXnetpackEntries(
   return files
 }
 
-export function downloadBytes(filename: string, bytes: Uint8Array, mimeType = 'application/zip'): void {
+export function downloadBytes(
+  filename: string,
+  bytes: Uint8Array,
+  mimeType = 'application/zip'
+): void {
   const blob = new Blob([bytes as BlobPart], { type: mimeType })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')

@@ -118,7 +118,10 @@ describe('export routes (exploration 0344)', () => {
     const { app, storage } = mount({ as: me.did })
 
     const foreign = signedChange(other, 1)
-    const tampered = { ...signedChange(me, 2), payload: { nodeId: 'node-2', properties: { title: 'EVIL' } } }
+    const tampered = {
+      ...signedChange(me, 2),
+      payload: { nodeId: 'node-2', properties: { title: 'EVIL' } }
+    }
     const res = await app.request('/export/changes', {
       method: 'POST',
       body: ndjson([foreign, tampered as SerializedNodeChange])
