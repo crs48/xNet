@@ -344,14 +344,14 @@ Neither blocks the other; A+B here need no query-layer changes at the
 - [x] Wire `useGridDatabase` onto `useInfiniteQuery`: replace fixed
       `pageSize = 500` with growing window (pageSize 500, `maxLoaded` ~2,000) + `fetchNextPage()` from a virtualizer end-sentinel
       (`useGridDatabase.ts:256`, `useGridDatabase.ts:279-285`)
-- [ ] Grid footer: show `count` totals ("500 of 12,000"), reusing the Data
+- [x] Grid footer: show `count` totals ("500 of 12,000"), reusing the Data
       tab's `count: 'exact'`/capped pattern (`GridSurface.tsx:698-700`,
       `useDataExplorer.ts:185-210`); switch to `count:'estimate'` when 0318's
       estimate mode lands
 - [x] Promote the `useInfiniteQuery` scratch test into a real committed test
       (`packages/react/src/hooks/useInfiniteQuery.test.tsx`) — the hook is
       about to gain its first production consumer
-- [ ] Column virtualization for `GridSurface` (horizontal `useVirtualizer`,
+- [x] Column virtualization for `GridSurface` (horizontal `useVirtualizer`,
       overscan 3, per `VirtualizedTableView.tsx:146-152`) — required for >~20-field schemas (32 fields measured at 48fps, 64 at 28fps);
       interim: default-hide properties past ~15 visible
 - [ ] Label client-side filter/sort results when the window is capped

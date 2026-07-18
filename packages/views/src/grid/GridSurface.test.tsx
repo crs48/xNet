@@ -483,4 +483,98 @@ describe('GridSurface', () => {
     fireEvent.mouseDown(cell(1, 1))
     expect(onCellFocus).toHaveBeenCalledWith('r2', 'count')
   })
+
+  // ─── Windowed rows: footer totals + infinite scroll (exploration 0340) ────
+
+  it('footer shows "N of M rows" when the loaded window is smaller than the table', () => {
+    render(<GridSurface fields={fields} rows={rows} totalRowCount={12000} hasMoreRows />)
+    expect(screen.getByTestId('grid-row-count').textContent).toContain('3 of 12,000 rows')
+  })
+
+  it('footer shows the plain count when the window covers the whole table', () => {
+    render(<GridSurface fields={fields} rows={rows} totalRowCount={3} />)
+    expect(screen.getByTestId('grid-row-count').textContent).toBe('3 rows')
+  })
+
+  it('footer appends the loading hint and notice', () => {
+    render(
+      <GridSurface
+        fields={fields}
+        rows={rows}
+        totalRowCount={500}
+        hasMoreRows
+        loadingMoreRows
+        footerNotice="filtered within loaded rows"
+      />
+    )
+    const text = screen.getByTestId('grid-row-count').textContent ?? ''
+    expect(text).toContain('3 of 500 rows')
+    expect(text).toContain('loading more…')
+    expect(text).toContain('filtered within loaded rows')
+  })
+
+  it('calls onReachEnd when the rendered window reaches the end of loaded rows', () => {
+    const onReachEnd = vi.fn()
+    // 30 rows in an 800px viewport: the virtualizer renders to the end, which
+    // is within the reach-end threshold — the sentinel fires once.
+    const manyRows: GridRowData[] = Array.from({ length: 30 }, (_, i) => ({
+      id: `m${i}`,
+      cells: { name: `Row ${i}`, count: i }
+    }))
+    render(<GridSurface fields={fields} rows={manyRows} hasMoreRows onReachEnd={onReachEnd} />)
+    expect(onReachEnd).toHaveBeenCalledTimes(1)
+  })
+
+  it('does not call onReachEnd when there are no more rows or while loading', () => {
+    const onReachEnd = vi.fn()
+    const manyRows: GridRowData[] = Array.from({ length: 30 }, (_, i) => ({
+      id: `m${i}`,
+      cells: { name: `Row ${i}`, count: i }
+    }))
+    const { unmount } = render(
+      <GridSurface fields={fields} rows={manyRows} onReachEnd={onReachEnd} />
+    )
+    expect(onReachEnd).not.toHaveBeenCalled()
+    unmount()
+    render(
+      <GridSurface
+        fields={fields}
+        rows={manyRows}
+        hasMoreRows
+        loadingMoreRows
+        onReachEnd={onReachEnd}
+      />
+    )
+    expect(onReachEnd).not.toHaveBeenCalled()
+  })
+
+  it('keyboard navigation works across a virtualized column window', () => {
+    // 40 columns crosses the virtualization threshold; the cursor cell must
+    // stay reachable as it moves beyond the initially rendered window.
+    const wideFields: GridField[] = Array.from({ length: 40 }, (_, i) => ({
+      id: `f${i}`,
+      name: `Col ${i}`,
+      type: 'text' as const,
+      config: {},
+      width: 150,
+      ...(i === 0 ? { isTitle: true } : {})
+    }))
+    const wideRows: GridRowData[] = Array.from({ length: 3 }, (_, r) => ({
+      id: `w${r}`,
+      cells: Object.fromEntries(wideFields.map((f, c) => [f.id, `r${r}c${c}`]))
+    }))
+    render(<GridSurface fields={wideFields} rows={wideRows} />)
+
+    // Only a window of the 40 columns is rendered
+    const firstRow = document.querySelector('[data-grid-body] [role="row"]') as HTMLElement
+    expect(firstRow.querySelectorAll('[data-grid-cell]').length).toBeLessThan(40)
+
+    // Cursor moves right; the grid keeps a focused cell rendered at each step
+    fireEvent.mouseDown(cell(0, 0))
+    const grid = gridEl()
+    for (let i = 0; i < 5; i++) {
+      fireEvent.keyDown(grid, { key: 'ArrowRight' })
+    }
+    expect(document.querySelector('[data-row-index="0"][data-col-index="5"]')).toBeTruthy()
+  })
 })
