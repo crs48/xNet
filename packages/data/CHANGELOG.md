@@ -1,5 +1,21 @@
 # @xnetjs/data
 
+## 2.2.0
+
+### Minor Changes
+
+- [#535](https://github.com/crs48/xNet/pull/535) [`2962c28`](https://github.com/crs48/xNet/commit/2962c28afd0b5c15ce42ee1b42e58e6c55868d5a) Thanks [@crs48](https://github.com/crs48)! - Database views (exploration 0337): `DatabaseViewSchema` gains a `map` view type and per-view presentation config — `colorBy`, `coverFit`, `groupMeta` (per-stack order/hidden overrides), `latField`/`lngField`, and a persisted `mapViewport`. `useGridDatabase` exposes the new config on `GridViewModel`, reports the fetch window (`rowWindow: { size, total }` for truncation-honest views), accepts a `spatial` query window option (map views fetch only the visible viewport), and adds `setViewConfig(patch)`, `updateRowCells(rowId, cells, { sortKey })` (one-write card moves), and `setGroupCollapsed` mutators. Timeline views now report `supportsGrouping` (swimlanes). All additions are optional fields — existing views are unaffected.
+
+### Patch Changes
+
+- Updated dependencies []:
+  - @xnetjs/storage@2.2.0
+  - @xnetjs/sqlite@2.2.0
+  - @xnetjs/sync@2.2.0
+  - @xnetjs/identity@2.2.0
+  - @xnetjs/crypto@2.2.0
+  - @xnetjs/core@2.2.0
+
 ## 2.1.0
 
 ### Minor Changes
