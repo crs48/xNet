@@ -24,7 +24,7 @@ to be the same question wearing different clothes:
    a commodity margin and calling it ethics?
 2. **Personal.** The Gates email is a snapshot of a man in a fortress
    discovering that fortresses have windows. That fear is not incidental to
-   monopoly capitalism — it is *produced* by it. What structural properties
+   monopoly capitalism — it is _produced_ by it. What structural properties
    would let xNet's operators never feel it?
 
 There is also a gap worth naming: the founding local-first manifesto
@@ -37,7 +37,7 @@ that hole for xNet specifically.
 ## Executive Summary
 
 **The Gates email is a diagnostic of a position, not a personality.**
-Microsoft in 1996 held a *rent* — a toll on the Windows API position — and
+Microsoft in 1996 held a _rent_ — a toll on the Windows API position — and
 rents are **binary**: you hold the position or you don't. A Java runtime that
 became the de facto OS would not have shaved Microsoft's margin, it would have
 **relocated** it. That is why it cost him sleep. Improvement-based margins
@@ -46,7 +46,7 @@ share; you get better and take some back.
 
 > **Rent is a cliff. Improvement is a slope. You only lose sleep on cliffs.**
 
-Shapiro and Varian give this an equation. *Information Rules* (1998), ch. 5:
+Shapiro and Varian give this an equation. _Information Rules_ (1998), ch. 5:
 "the profits a supplier can expect to earn from a customer are equal to the
 total switching costs… plus the value of other competitive advantages." Read
 the inverse and you have xNet's wager in the incumbents' own textbook:
@@ -54,8 +54,8 @@ the inverse and you have xNet's wager in the incumbents' own textbook:
 > **Enterprise value ≈ total switching costs + genuine advantage. Refusing
 > lock-in means deleting the first term and being valued on the second alone.**
 
-That is falsifiable, and it comes with a test: *how much would our valuation
-fall if switching became free tomorrow?* For xNet the answer must be
+That is falsifiable, and it comes with a test: _how much would our valuation
+fall if switching became free tomorrow?_ For xNet the answer must be
 "nothing, because it already is."
 
 Four findings from the research were not obvious going in, and three of them
@@ -65,34 +65,34 @@ Four findings from the research were not obvious going in, and three of them
   Mongo/Elastic/HashiCorp/Redis to show that restricting a licence backfires.
   It mostly didn't. Elastic grew ~2.4× in the four years after SSPL ($608.5M
   FY21 → $1.483B FY25); MongoDB ~7.5× after SSPL ($267M FY19 → $2.01B FY25).
-  The one clear loss was **Redis**, and it lost because it was *substitutable*
+  The one clear loss was **Redis**, and it lost because it was _substitutable_
   — same wire protocol, drop-in replacement, no operational gravity. **The
   variable is substitution cost, not licence text.** A licence cannot
   manufacture switching cost a product doesn't have.
 - **Removing switching costs by decree does not durably remove them.** US
   wireless number portability (Nov 2003) moved industry churn from **2.43% to
-  2.55% monthly — twelve basis points** — and churn then *declined*. Actual
+  2.55% monthly — twelve basis points** — and churn then _declined_. Actual
   switchers: **7.8M against 30M predicted, a 74% shortfall**. Carriers rebuilt
   the lock-in within a product cycle via handset subsidies and contracts. The
   EU's DMA is running the same experiment now: after two years of mandated
-  browser choice screens, **Safari's European *mobile* share is higher than
+  browser choice screens, **Safari's European _mobile_ share is higher than
   before (29.34% → 30.34%)**, and the Commission's own 2026 review cites
   vendor press releases because it has no independent share evidence.
   **Moats regrow. Credible exit is a standing commitment, not a shipped
   feature.**
 - **Tesla ran both strategies and the contrast is decisive.** The 2014 patent
-  pledge was *conditional* — its "good faith" clause voids protection if you
+  pledge was _conditional_ — its "good faith" clause voids protection if you
   or any affiliate ever assert an EV-related patent against anyone, or
   challenge a Tesla patent. The only empirical study
   ([Wang, Cambridge WP 2532, 2025](https://www.econ.cam.ac.uk/publications/cwpe/2532))
   finds **no significant effect on the extensive margin of follow-on
   innovation**, and attributes the null result specifically to that condition.
-  NACS was *unconditional* — and Ford, GM and Rivian adopted within **27 days
+  NACS was _unconditional_ — and Ford, GM and Rivian adopted within **27 days
   of each other**, seventeen automakers inside nine months, SAE standardising
   it in six. Same company, same "gift" framing. **Conditions destroy pledges;
   unconditional specs plus owned operations win.**
 - **Tailscale has already run xNet's hardest experiment.** Headscale is an
-  independent open-source reimplementation of Tailscale's *proprietary*
+  independent open-source reimplementation of Tailscale's _proprietary_
   control plane — the one thing they kept. Their own words: "Tailscale employs
   the head maintainer of Headscale, but does not direct or steer the project."
   The incumbent funds its own replacement and declines to steer it.
@@ -113,18 +113,18 @@ Four findings from the research were not obvious going in, and three of them
 
 ## Current State In The Repository
 
-xNet has, unusually, already *built* most of the anti-moat position. What it
+xNet has, unusually, already _built_ most of the anti-moat position. What it
 lacks is a statement of what replaces it.
 
 ### What is already enforced
 
-| Commitment | Mechanism | Path |
-| --- | --- | --- |
-| No behavioural surplus | CI gate, self-testing, reasoned escape hatch | [`scripts/check-humane-patterns.mjs`](../../scripts/check-humane-patterns.mjs) |
-| MIT core cannot depend on the commercial layer | CI gate, three assertions | [`scripts/check-cloud-boundary.sh`](../../scripts/check-cloud-boundary.sh) |
-| Claims cannot outrun shipped defaults | Ledger test, `assert` \| `enforcedBy` \| `pending` | [`packages/telemetry/test/charter-claims-ledger.test.ts`](../../packages/telemetry/test/charter-claims-ledger.test.ts) |
-| Marketplace licences stay source-available-or-better | Allowlist gate | [`scripts/check-plugin-licenses.mjs`](../../scripts/check-plugin-licenses.mjs) |
-| Free, verified exit | `.xnetpack` codec + regression suite | [`packages/data/src/portability/`](../../packages/data/src/portability/) |
+| Commitment                                           | Mechanism                                          | Path                                                                                                                   |
+| ---------------------------------------------------- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| No behavioural surplus                               | CI gate, self-testing, reasoned escape hatch       | [`scripts/check-humane-patterns.mjs`](../../scripts/check-humane-patterns.mjs)                                         |
+| MIT core cannot depend on the commercial layer       | CI gate, three assertions                          | [`scripts/check-cloud-boundary.sh`](../../scripts/check-cloud-boundary.sh)                                             |
+| Claims cannot outrun shipped defaults                | Ledger test, `assert` \| `enforcedBy` \| `pending` | [`packages/telemetry/test/charter-claims-ledger.test.ts`](../../packages/telemetry/test/charter-claims-ledger.test.ts) |
+| Marketplace licences stay source-available-or-better | Allowlist gate                                     | [`scripts/check-plugin-licenses.mjs`](../../scripts/check-plugin-licenses.mjs)                                         |
+| Free, verified exit                                  | `.xnetpack` codec + regression suite               | [`packages/data/src/portability/`](../../packages/data/src/portability/)                                               |
 
 The claims ledger is the most important artefact, because it stops the ethics
 becoming marketing. A claim declares exactly one backing — `assert`,
@@ -134,15 +134,15 @@ alone." `commons-no-ground-rent-export` is already an entry.
 ### The structural anti-moat: the entitlements contract is MIT
 
 [`packages/entitlements/`](../../packages/entitlements/) — the package defining
-the *paid plan ladder* — is **MIT and dependency-free**. Plans travel as an
+the _paid plan ladder_ — is **MIT and dependency-free**. Plans travel as an
 HMAC-signed `HUB_PLAN` token, so a self-hosted hub **never phones home**.
 Exactly one package in 49 is FSL:
 [`packages/cloud/`](../../packages/cloud/) (`FSL-1.1-Apache-2.0`, auto-opening
 to Apache-2.0 after two years), and `check-cloud-boundary.sh` proves the hub
 never imports it.
 
-This is the difference between saying "you can self-host" and being *unable to
-degrade self-hosting even if we wanted to*. It is a BATNA guarantee written in
+This is the difference between saying "you can self-host" and being _unable to
+degrade self-hosting even if we wanted to_. It is a BATNA guarantee written in
 dependency edges rather than prose — and per Red Hat's 2023 reversal below,
 prose is exactly what does not hold.
 
@@ -156,7 +156,7 @@ correctly, since 0336 identifies AI as "the one COGS line local-first does not
 collapse."
 [`packages/billing/src/connect.ts:11`](../../packages/billing/src/connect.ts)
 carries `DEFAULT_MARKETPLACE_FEE_BPS = 1000` (10%), reserved by 0349 for the
-*managed marketplace listing service*, while direct creator sales are 0%.
+_managed marketplace listing service_, while direct creator sales are 0%.
 
 ### Three things to be honest about
 
@@ -179,8 +179,8 @@ carries `DEFAULT_MARKETPLACE_FEE_BPS = 1000` (10%), reserved by 0349 for the
 
 The Gates email is famous for the phrase; the interesting part is the
 **subject line** — "Java runtime becomes the operating system." He is not
-worried about a competitor selling more copies. He is worried the *layer at
-which value is captured* will move up one, and Microsoft's position, not its
+worried about a competitor selling more copies. He is worried the _layer at
+which value is captured_ will move up one, and Microsoft's position, not its
 products, will evaporate underneath it.
 
 The court found the response unlawful in a specific and instructive way.
@@ -200,7 +200,7 @@ because it is a test we can apply to our own defaults.
 > different phrase, "embrace and smother," which Maritz called a parody of the
 > company's stated "embrace and extend" policy. No document containing the
 > phrase was produced. "Embrace, extend, extinguish" appears to belong to
-> DOJ's *Proposed* Findings — a party brief — not the court's Findings. And
+> DOJ's _Proposed_ Findings — a party brief — not the court's Findings. And
 > the widely circulated Gates quote "this scares the hell out of me" about
 > Java **could not be verified from any source** and appears to be a
 > conflation of the "losing sleep" email. Don't use it.
@@ -221,39 +221,39 @@ the Windows division dissolved (Mar 2018), GitHub acquired, and **60,000
 patents pledged royalty-free to the Open Invention Network** (Oct 2018) —
 disarming the very patent-licensing campaign that Ballmer's "Linux is a
 cancer" framing had underwritten. Nadella's own words at the reversal are the
-tell: *"Twenty percent of Azure is already Linux… this is not some new news,
-this is, in fact, today true."* **The market had decided before Microsoft
+tell: _"Twenty percent of Azure is already Linux… this is not some new news,
+this is, in fact, today true."_ **The market had decided before Microsoft
 did.**
 
 Joel Spolsky named the general law in
 [Strategy Letter V](https://www.joelonsoftware.com/2002/06/12/strategy-letter-v/)
 (2002): "smart companies try to commoditize their products' complements."
-Christensen's *conservation of attractive profits* is the same mechanism from
+Christensen's _conservation of attractive profits_ is the same mechanism from
 the other side: when commoditisation kills profit at one stage, it re-emerges
 at an adjacent one.
 
 > **Spolsky is not our ally, and we should say so.** Commoditize-your-
-> complement presupposes you *hold* a layer you are protecting; Gwern's gloss
+> complement presupposes you _hold_ a layer you are protecting; Gwern's gloss
 > is "create a desert of profitability around you." A business refusing the
-> moat in *every* layer gets no comfort from it — and worse, **openness is a
+> moat in _every_ layer gets no comfort from it — and worse, **openness is a
 > standing invitation to be someone else's complement.** Docker was Google's.
 > Redis was AWS's. Sun's Java was IBM's.
 
 ### B. The evidence on restricting a licence — which cuts against us
 
-| Company | Left permissive | Went to | After |
-| --- | --- | --- | --- |
-| MongoDB | Oct 2018 | SSPL | $267M FY19 → **$2.01B FY25** (~7.5×) |
-| Elastic | Jan 2021 | SSPL + ELv2 | $608.5M FY21 → **$1.483B FY25** (~2.4×) |
-| HashiCorp | Aug 2023 | BUSL 1.1 | $476M → $583M; **sold to IBM for $6.4B** vs a >$14B IPO valuation |
-| Redis | Mar 2024 | RSALv2 + SSPL | **Lost decisively to Valkey** |
+| Company   | Left permissive | Went to       | After                                                             |
+| --------- | --------------- | ------------- | ----------------------------------------------------------------- |
+| MongoDB   | Oct 2018        | SSPL          | $267M FY19 → **$2.01B FY25** (~7.5×)                              |
+| Elastic   | Jan 2021        | SSPL + ELv2   | $608.5M FY21 → **$1.483B FY25** (~2.4×)                           |
+| HashiCorp | Aug 2023        | BUSL 1.1      | $476M → $583M; **sold to IBM for $6.4B** vs a >$14B IPO valuation |
+| Redis     | Mar 2024        | RSALv2 + SSPL | **Lost decisively to Valkey**                                     |
 
 Elastic returned to AGPLv3 (Aug 2024) and Redis to AGPLv3 (May 2025), but
 Elastic's own retrospective does **not** call the relicense a mistake — Shay
 Banon writes that "Amazon is fully invested in their fork, the market
 confusion has been (mostly) resolved… **The plan worked.**"
 
-**Why Redis lost where MongoDB won.** Redis is a *component*: wire-compatible,
+**Why Redis lost where MongoDB won.** Redis is a _component_: wire-compatible,
 drop-in replaceable, no data gravity, no compliance surface. Valkey — forked
 under the Linux Foundation with AWS, Google and Oracle backing — became the
 default in-memory cache across Fedora, Ubuntu, Debian and Arch within about
@@ -263,8 +263,8 @@ is a project. Redis had a self-described "1% conversion problem."
 **The counterweight, which matters for us.** Grafana went Apache → **AGPLv3**
 in 2021 — a large practical restriction — and produced **no fork**, reaching
 **$400M+ ARR and a $6B valuation**. Its stated reason is the boundary that
-seems to matter: *"it's hard to say you're an open source company when you're
-using a license that isn't accepted by OSI."* **Crossing the OSI line is the
+seems to matter: _"it's hard to say you're an open source company when you're
+using a license that isn't accepted by OSI."_ **Crossing the OSI line is the
 discontinuity; tightening within it is survivable.**
 
 **Where this leaves xNet — the structural point.** The strip-mining failure
@@ -280,13 +280,13 @@ asset, and it is currently unargued anywhere in the repo.
 **Bell Labs is the strongest causal evidence in the whole file.** The 1956
 consent decree forced royalty-free licensing of **7,820 patents — 1.3% of all
 unexpired US patents**. A peer-reviewed causal study
-([Watzinger et al., *AEJ: Policy* 2020](https://economics.yale.edu/sites/default/files/how_antitrust_enforcement.pdf))
+([Watzinger et al., _AEJ: Policy_ 2020](https://economics.yale.edu/sites/default/files/how_antitrust_enforcement.pdf))
 finds **follow-on innovation rose 17% in the first five years**, driven mainly
 by **young and small companies** — dominant-firm patents were acting as an
-entry barrier. But note the honest half: **innovation increased only *outside*
+entry barrier. But note the honest half: **innovation increased only _outside_
 telecoms.** Bell stayed vertically integrated and kept foreclosing its own
-market. *Compulsory openness grew the field; it did not discipline the
-incumbent where the incumbent actually operated.*
+market. _Compulsory openness grew the field; it did not discipline the
+incumbent where the incumbent actually operated._
 
 **Red Hat — and its reversal.** FY2019: $3.4B revenue, +15%, **88%
 subscription**; acquired by IBM for **$34B**. CentOS was bit-identical and
@@ -309,7 +309,7 @@ alongside those same rebuilders for twenty years. SUSE committed **$10M+** to
 fork RHEL, AlmaLinux dropped 1:1 compatibility, and CIQ/Oracle/SUSE founded
 **OpenELA**. SUSE's CEO chose the attack word: this "ensures that customers
 and community alike are **not subjected to vendor lock-in**." A competitor
-using *vendor lock-in* against **Red Hat** is the reputational cost made
+using _vendor lock-in_ against **Red Hat** is the reputational cost made
 explicit.
 
 **No public number shows revenue damage.** The cost was that Red Hat stopped
@@ -366,22 +366,22 @@ moat. $1.5B valuation, 10,000+ organisations. **The closest existing analogue
 to what `packages/cloud` should be to `packages/hub`.**
 
 **Tesla — the same company running both strategies.** The 2014 pledge is a
-*standstill*, not a licence: Tesla's own terms say it "is not a waiver of any
+_standstill_, not a licence: Tesla's own terms say it "is not a waiver of any
 patent claims… and is not a license, covenant not to sue, or authorization."
 Good faith is void if you or any **related or affiliated company** ever assert
 any EV-related patent against anyone, or challenge any Tesla patent — a
 licensee-estoppel effect without a licence. The Cambridge study finds it
-expanded the *ecosystem's technical similarity* to Tesla but produced **no
+expanded the _ecosystem's technical similarity_ to Tesla but produced **no
 significant increase in new entrants**, attributing that squarely to the
 condition.
 
 NACS carried no conditions — and **the spec alone still did nothing.** Tesla
 published it on 11 November 2022 and **nothing happened for six months.** The
-cascade began only when Supercharger *access* was bundled with it: Ford
+cascade began only when Supercharger _access_ was bundled with it: Ford
 (25 May 2023) → GM (8 Jun) → Rivian (20 Jun), twenty companies by Feb 2024,
 nearly all on an identical "adapter 2024, native port 2025" timeline that
 twenty firms did not independently derive. **SAE followed the market**,
-announcing standardisation on 27 June 2023 — *after* six automakers and four
+announcing standardisation on 27 June 2023 — _after_ six automakers and four
 charging networks had already signed. Tesla's own Nov 2022 post said the quiet
 part out loud: it already had "60% more NACS posts than all the CCS-equipped
 networks combined," and NREL measured **60.4% of all US DC fast-charging ports**
@@ -392,12 +392,12 @@ roughly **$1B into Ionna**, a rival network, within a year. **They took the
 connector for free and immediately funded an alternative to the network** —
 which tells you which asset they thought was the moat. Tesla's FY2025 10-K
 reports "Services and other" revenue of **$12.53B, up 19%**, attributing the
-increase *primarily to paid Supercharging sessions*, and non-Tesla drivers pay
+increase _primarily to paid Supercharging sessions_, and non-Tesla drivers pay
 a **30–35% premium** to use it.
 
 > **The honest mechanism is not "open the standard, capture the market."** It
-> is: *give away the interface, which was cheap; keep the installed base,
-> which was expensive and slow to replicate.* Neither Tesla outcome turned on
+> is: _give away the interface, which was cheap; keep the installed base,
+> which was expensive and slow to replicate._ Neither Tesla outcome turned on
 > openness. Both turned on whether Tesla held a complementary asset adopters
 > couldn't quickly build. **In 2014 it didn't. In 2022 it did.**
 
@@ -408,7 +408,7 @@ now pouring the concrete. **An operations moat decays the moment competitors
 start operating** — which is the argument for continuously re-earning it, not
 for regretting the openness.
 
-**Valve — openness as moat *reinforcement*.** Valve funds Wine (via
+**Valve — openness as moat _reinforcement_.** Valve funds Wine (via
 CodeWeavers), DXVK, Mesa/RADV and Igalia's compiler work, all upstreamed and
 usable by competitors. Newell's stated motive in 2012 was defensive: Windows 8
 is "a catastrophe," Linux is "a hedging strategy." The mechanism is exact:
@@ -421,7 +421,7 @@ the landlord** — and it shipped the Steam Deck without paying an OS tax.
 **GitHub is the sharpest case, and it cuts against us.** Git makes exit nearly
 free. GitHub was still worth **$7.5B** in 2018 and went from 28M to **180M
 developers** under the acquirer. Why? Because the lock-in relocated — and
-GitHub *publishes the inventory*. Its Enterprise Importer, for a friendly
+GitHub _publishes the inventory_. Its Enterprise Importer, for a friendly
 **GitHub-to-GitHub** migration, does **not** carry:
 
 > Actions secrets, variables, environments, runners, artifacts or workflow
@@ -446,12 +446,12 @@ directly bypassing the Databricks Runtime, Unity Catalog's protections
 vanish."
 
 > **The data is portable; the governance is not.** Databricks opened the
-> *format* and kept the *enforcement plane*. Your bytes can leave; your access
+> _format_ and kept the _enforcement plane_. Your bytes can leave; your access
 > policies, lineage, audit trail and compliance posture cannot. **This is the
 > most likely place xNet's own lock-in would silently re-accumulate.**
 
 **Nvidia is the honest counter-case: closed, and won far bigger.** CUDA shipped
-across the *entire* consumer GeForce line from G80 — flood the base, same
+across the _entire_ consumer GeForce line from G80 — flood the base, same
 manoeuvre as free Acrobat Reader, but with a hardware lock. The EULA forbids
 reverse-engineering toolchain **output** "for the purpose of translating such
 output artifacts to target a non-NVIDIA platform" — and that clause has been
@@ -460,8 +460,8 @@ When ZLUDA made CUDA binaries run on Radeon, **Nvidia never sued: AMD's own
 lawyers demanded the takedown.** A licence term that changes your competitor's
 counsel's risk calculus is more efficient than litigation. Result: FY2026
 revenue **$215.9B**, data centre **$193.7B**, **71.1% gross margin**, $5T
-market cap. *A hardware company sustaining 70%+ margins at $200B scale is not
-being priced as a commodity supplier.* Any honest version of this document has
+market cap. _A hardware company sustaining 70%+ margins at $200B scale is not
+being priced as a commodity supplier._ Any honest version of this document has
 to concede that the closed strategy outperformed every open one in it.
 
 **Docker — correctly diagnosed.** Runtime donated (runc → OCI 2015,
@@ -474,28 +474,28 @@ to the one thing it could charge for: the local developer experience.
 
 **Interop mandates — the inconvenient natural experiments.**
 
-| Mandate | Plumbing outcome | Share outcome |
-| --- | --- | --- |
-| US wireless LNP (2003) | 20.4M ports in two years | Churn **2.43% → 2.55%**, then declined; 7.8M switchers vs 30M predicted; small carriers gained **nothing** |
+| Mandate                | Plumbing outcome                                    | Share outcome                                                                                                                                                         |
+| ---------------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| US wireless LNP (2003) | 20.4M ports in two years                            | Churn **2.43% → 2.55%**, then declined; 7.8M switchers vs 30M predicted; small carriers gained **nothing**                                                            |
 | UK Open Banking (2018) | 16.5M connections, 24bn API calls, 351M payments/yr | Switching stayed **~1%/yr and fell 11.4% in 2025**; biggest net winner was **Nationwide, a CMA9 incumbent**; switchers cite app quality (47%), never data portability |
-| EU DMA (2024) | Choice screens, €700M in fines | **Safari's EU mobile share rose 29.34% → 30.34%**; Firefox +0.52pp; Opera flat; WhatsApp interop's only two partners are unknown startups |
+| EU DMA (2024)          | Choice screens, €700M in fines                      | **Safari's EU mobile share rose 29.34% → 30.34%**; Firefox +0.52pp; Opera flat; WhatsApp interop's only two partners are unknown startups                             |
 
-Shi, Chiang & Rhee (*Management Science*, 2006) found MNP **"may accelerate
+Shi, Chiang & Rhee (_Management Science_, 2006) found MNP **"may accelerate
 market concentration"** rather than help smaller firms. And the DMA's own 2026
 review says the impact "is not yet fully observable" while citing Opera's
 press release as evidence.
 
 > **Deleting switching costs by decree does not redistribute markets. It
-> disciplines incumbents' *conduct* while they remain incumbents.** For xNet
+> disciplines incumbents' _conduct_ while they remain incumbents.** For xNet
 > this is the most operationally useful finding here: credible exit is a
-> standing commitment against a gradient, which is why a *build-time* gate
+> standing commitment against a gradient, which is why a _build-time_ gate
 > (the claims ledger) is the right shape of answer.
 
 ### E. The nearest neighbours — the most relevant evidence in this file
 
 **Obsidian is the closest living analogue to xNet, and it is profitable.**
 Local-first, plain Markdown files, explicitly no lock-in. Revenue comes
-entirely from *optional* paid services that all have free alternatives: Sync
+entirely from _optional_ paid services that all have free alternatives: Sync
 ($4–8/mo), Publish ($8–16/mo), commercial licence ($50/person/yr).
 Bootstrapped, no VC, roughly seven people. Steph Ango's
 ["File over app"](https://stephango.com/file-over-app):
@@ -503,7 +503,7 @@ Bootstrapped, no VC, roughly seven people. Steph Ango's
 > "if you want to create digital artifacts that last, they must be files you
 > can control, in formats that are easy to retrieve and read."
 
-Ango has publicly asked what to *call* this model — "revenue primarily comes
+Ango has publicly asked what to _call_ this model — "revenue primarily comes
 from optional paid services that have free alternatives; 'freemium' isn't
 quite right." **That is xNet's monetisation question, unnamed, being answered
 profitably.** (ARR estimates range $2M–$25M across third-party trackers;
@@ -540,8 +540,7 @@ adversarial." And yet: **~70% of accounts sit on Bluesky's own PDS**, all
 genuine independent providers combined hold about **0.1%**, there is **exactly
 one independent full-network AppView**, and **Bluesky still operates the PLC
 directory** the whole migration story depends on. $123M raised, no disclosed
-revenue, DAU reportedly down ~40% YoY, founder-CEO moved sideways in March
-2026. Christine Lemmer-Webber's critique is precise and worth internalising:
+revenue, DAU reportedly down ~40% YoY, founder-CEO moved sideways in March 2026. Christine Lemmer-Webber's critique is precise and worth internalising:
 she recommends they claim **"an open architecture with the possibility of
 credible exit"** rather than "decentralization."
 
@@ -551,7 +550,7 @@ credible exit"** rather than "decentralization."
 > settling the question.
 
 **Regulatory tailwind.** The EU Data Act (Reg. 2023/2854) applied from
-**12 September 2025** (30-day porting to another provider *or on-premise*),
+**12 September 2025** (30-day porting to another provider _or on-premise_),
 and **all switching charges are prohibited outright from 12 January 2027**.
 The Commission opened DMA proceedings into AWS and Azure cloud services in
 Nov 2025. **The EU is legislating away exactly the moat xNet is voluntarily
@@ -563,7 +562,7 @@ head start.
 **Water is not a universal solvent.** It dissolves polar and ionic species
 superbly — high dielectric constant, small molecule, hydrogen bonding — and
 [**refuses** nonpolar ones](https://openstax.org/books/biology-2e/pages/2-2-water).
-That refusal is the *generative* part: hydrophobic exclusion is what drives
+That refusal is the _generative_ part: hydrophobic exclusion is what drives
 phospholipid bilayers to self-assemble. **No refusal, no membranes; no
 membranes, no cells.** A substrate that dissolved everything would produce a
 uniform soup with no boundaries and no differentiation.
@@ -578,18 +577,18 @@ bounded entities rather than dissolving into one platform's pool.
 
 **The bow tie / narrow waist is the architecture.** Csete & Doyle,
 ["Bow ties, metabolism and disease"](https://pubmed.ncbi.nlm.nih.gov/15331224/)
-(*Trends in Biotechnology* 22(9), 2004): cells take a huge variety of
+(_Trends in Biotechnology_ 22(9), 2004): cells take a huge variety of
 nutrients, funnel them through **~12 metabolic precursors** and a few universal
 carriers (ATP, NADH), then fan back out to the full diversity of biomass. The
 internet has the identical shape, and Akhshabi & Dovrolis' **EvoArch** model
 ([SIGCOMM 2011](https://dl.acm.org/doi/10.1145/2018436.2018460)) shows this is
-an *evolutionary attractor*: layered stacks converge on an hourglass regardless
+an _evolutionary attractor_: layered stacks converge on an hourglass regardless
 of initial shape, with waist protocols outliving their peers and becoming
 "ossified."
 
 The cross-domain link is **in the literature, not invented here** — Csete &
 Doyle name the internet stack directly as "a bow tie on its side," and Doyle &
-Csete generalise it in [*PNAS* 108(Suppl. 3)](https://doi.org/10.1073/pnas.1103557108).
+Csete generalise it in [_PNAS_ 108(Suppl. 3)](https://doi.org/10.1073/pnas.1103557108).
 Friedlander et al. supply the "why": bow-ties **spontaneously evolve when the
 information in the evolutionary goal can be compressed**.
 
@@ -602,12 +601,12 @@ Four properties of every observed waist matter to us:
   waist.** EvoArch says this is not idealism — it is where competitive layered
   systems end up.
 - **Position beats merit at the waist — and this is a warning, not a
-  consolation.** EvoArch's own finding: *"the most stable protocols at the
+  consolation.** EvoArch's own finding: _"the most stable protocols at the
   waist of the architecture are often **not** those with the highest
-  quality."* The same result appears independently in biology: the genetic
+  quality."_ The same result appears independently in biology: the genetic
   code is near-universal, demonstrably error-robust, and **demonstrably not
   optimal** — Freeland & Hurst found only ~1 in 10⁶ random codes beats it,
-  and Koonin & Novozhilov note that a very large number of *still better*
+  and Koonin & Novozhilov note that a very large number of _still better_
   codes exist. **A waist ossifies because everything depends on it, not
   because it is good.** For us that cuts both ways: it is why an open
   protocol can persist without a toll, and why we must not mistake protocol
@@ -615,12 +614,12 @@ Four properties of every observed waist matter to us:
 - **The waist is where fragility concentrates.** Csete & Doyle: universal
   currencies "can be easily hijacked by parasites," and the core resists
   change precisely because "the whole system is fragile to short-term changes
-  in the core." A shared substrate must be *governed*, not merely published —
+  in the core." A shared substrate must be _governed_, not merely published —
   which is the same conclusion §G reaches from Hirschman and Ostrom.
 
 **The right cooperation model is biological markets, not networks.** Kiers et
 al., ["Reciprocal rewards stabilize cooperation in the mycorrhizal symbiosis"](https://doi.org/10.1126/science.1208473)
-(*Science* 333:880, 2011): **"plants can detect, discriminate, and reward the
+(_Science_ 333:880, 2011): **"plants can detect, discriminate, and reward the
 best fungal partners with more carbohydrates,"** and fungi reciprocally
 allocate more phosphorus to the more generous roots. Cheaters are sanctioned
 by **resource withdrawal**, enforcement is mutual and local, and nobody
@@ -635,7 +634,7 @@ polices from above.
 **Two metaphors to refuse, both instructive:**
 
 - **The "wood wide web."** Karst, Jones & Hoeksema,
-  [*Nature Ecology & Evolution* 7:501 (2023)](https://www.nature.com/articles/s41559-023-01986-1),
+  [_Nature Ecology & Evolution_ 7:501 (2023)](https://www.nature.com/articles/s41559-023-01986-1),
   reviewed 1,500+ papers: unsupported claims **doubled over 25 years** on a
   positive-citation bias, and the claim that mature trees preferentially
   provision their own offspring has **no peer-reviewed evidence at all**.
@@ -644,7 +643,7 @@ polices from above.
   beautiful story a field over-cited into fact** — appropriate for a doctrine
   built on a claims ledger.
 - **Endosymbiosis as "merge and both stay free."** It is the opposite. A major
-  evolutionary transition is *defined* by entities that could replicate
+  evolutionary transition is _defined_ by entities that could replicate
   independently before being able to replicate only as part of a larger whole.
   Human mtDNA retains **37 genes (13 protein-coding)** while ~1,100 of the
   mitochondrial proteome is nuclear-encoded. **If the point is "partnership of
@@ -654,15 +653,15 @@ polices from above.
 
 ### G. Exit is necessary and not sufficient — the Hirschman correction
 
-**Hirschman, *Exit, Voice, and Loyalty* (Harvard, 1970)** is the actual source,
+**Hirschman, _Exit, Voice, and Loyalty_ (Harvard, 1970)** is the actual source,
 and the popular reading inverts him. Exit, voice, and loyalty — the last being
-the moderating variable that *raises* the cost of exit and thereby makes voice
+the moderating variable that _raises_ the cost of exit and thereby makes voice
 more likely. His warning:
 
 > **Too-easy exit can degrade quality**, by draining precisely the
 > quality-sensitive members who would otherwise have exercised voice.
 
-Balaji Srinivasan's 2013 "Ultimate Exit" reads this as *exit over voice*;
+Balaji Srinivasan's 2013 "Ultimate Exit" reads this as _exit over voice_;
 Hirschman's argument is about their interaction. **Ostrom supplies the missing
 half** — her design principles (revalidated across 91 studies by
 [Cox, Arnold & Villamayor-Tomás 2010](https://www.ecologyandsociety.org/vol15/iss4/art38/))
@@ -676,7 +675,7 @@ switching costs. Two are directly actionable:
 
 > **xNet has built world-class exit and has comparatively little voice
 > machinery.** [`GOVERNANCE.md`](../../GOVERNANCE.md) currently justifies BDFL
-> by pointing *at* exit ("you can fork the code or re-implement the
+> by pointing _at_ exit ("you can fork the code or re-implement the
 > protocol") — precisely the exit-without-voice posture Hirschman warns
 > degrades quality. Automattic is what it looks like when the only check that
 > works is a federal court.
@@ -719,7 +718,7 @@ switching costs. Two are directly actionable:
     vanish and still be a cliff.
 11. **The closed strategy still outperforms on the raw numbers.** Nvidia is at
     $5T on 71% margins. Any honest version of this argument concedes that we
-    are choosing a *shape of risk*, not a bigger business.
+    are choosing a _shape of risk_, not a bigger business.
 
 ## Options And Tradeoffs
 
@@ -744,11 +743,11 @@ flowchart TB
 ```
 
 The four on the right can all be taken from us — by someone being better. None
-can be taken *at a stroke* by a change in the layer beneath us.
+can be taken _at a stroke_ by a change in the layer beneath us.
 
 **M3 is stated broadly on purpose.** GitHub took the social graph; Databricks
-took the policy plane. The general form is *everything about your work that
-isn't the bytes* — and GitHub's own non-migrating list is the best available
+took the policy plane. The general form is _everything about your work that
+isn't the bytes_ — and GitHub's own non-migrating list is the best available
 specification of it.
 
 ### The rent cliff vs the improvement slope
@@ -790,13 +789,13 @@ stateDiagram-v2
 
 ### Five candidate postures
 
-| # | Posture | Value capture | Cliff risk | Charter fit | Verdict |
-| --- | --- | --- | --- | --- | --- |
-| **A** | **Open core** — MIT client, proprietary server features | Feature gating | **High** — invites the fork | Fails BATNA by design | ❌ Refused |
-| **B** | **Commodity hosting** — cheapest hub operator | Infra margin | Medium — price war, 50–65% GM (0336) | Passes | ⚠️ Survivable, unattractive |
-| **C** | **Foundation / donation** | Grants, donations | **High** — Signal's 2024 revenue was $29.4M against a stated ~$50M need, with **negative net assets**, and most historic "contributions" were one donor forgiving his own loan; Mozilla's audited notes report **86% of contract revenue from one customer** | Passes | ❌ Not a business |
-| **D** | **Context capture** — open substrate, own the graph or the policy plane | Network effects, enforcement plane | Low — genuinely durable | **Fails Vanish** | ❌ Refused, and it's the tempting one |
-| **E** | **Open substrate + operated trust + anchor tenancy** | Operations, context, support, distribution *we perform* | **Low** — all slopes | Passes all three by construction | ✅ **Recommended** |
+| #     | Posture                                                                 | Value capture                                           | Cliff risk                                                                                                                                                                                                                                                   | Charter fit                      | Verdict                               |
+| ----- | ----------------------------------------------------------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------- | ------------------------------------- |
+| **A** | **Open core** — MIT client, proprietary server features                 | Feature gating                                          | **High** — invites the fork                                                                                                                                                                                                                                  | Fails BATNA by design            | ❌ Refused                            |
+| **B** | **Commodity hosting** — cheapest hub operator                           | Infra margin                                            | Medium — price war, 50–65% GM (0336)                                                                                                                                                                                                                         | Passes                           | ⚠️ Survivable, unattractive           |
+| **C** | **Foundation / donation**                                               | Grants, donations                                       | **High** — Signal's 2024 revenue was $29.4M against a stated ~$50M need, with **negative net assets**, and most historic "contributions" were one donor forgiving his own loan; Mozilla's audited notes report **86% of contract revenue from one customer** | Passes                           | ❌ Not a business                     |
+| **D** | **Context capture** — open substrate, own the graph or the policy plane | Network effects, enforcement plane                      | Low — genuinely durable                                                                                                                                                                                                                                      | **Fails Vanish**                 | ❌ Refused, and it's the tempting one |
+| **E** | **Open substrate + operated trust + anchor tenancy**                    | Operations, context, support, distribution _we perform_ | **Low** — all slopes                                                                                                                                                                                                                                         | Passes all three by construction | ✅ **Recommended**                    |
 
 **Why D deserves an explicit refusal rather than silence.** It is the option
 that most resembles a normal, well-liked, non-evil software business. Refusing
@@ -807,13 +806,13 @@ career.
 
 ### Applying the three Charter tests to option E
 
-| Lane | Improvement test | BATNA test | Vanish test |
-| --- | --- | --- | --- |
-| Hub hosting/ops (`personal`…`enterprise`) | ✅ real servers, backups, uptime | ✅ `docker compose up` gets the same hub; entitlements MIT | ✅ `.xnetpack` out, self-host in |
-| AI metering (`includedAiUsd`) | ✅ pass-through + real inference COGS | ✅ BYO key path preserved | ✅ outputs are nodes in your log |
-| Support / SLA / indemnity | ✅ pure labour and risk transfer | ✅ unaffected | ✅ nothing sealed to us |
-| Managed marketplace listing (10%) | ✅ distribution work we perform | ✅ BYO-billing path is 0% and MIT | ✅ licences DID-bound, offline-verifiable |
-| Direct creator sales (0%) | n/a — refused | ✅ | ✅ |
+| Lane                                      | Improvement test                      | BATNA test                                                 | Vanish test                               |
+| ----------------------------------------- | ------------------------------------- | ---------------------------------------------------------- | ----------------------------------------- |
+| Hub hosting/ops (`personal`…`enterprise`) | ✅ real servers, backups, uptime      | ✅ `docker compose up` gets the same hub; entitlements MIT | ✅ `.xnetpack` out, self-host in          |
+| AI metering (`includedAiUsd`)             | ✅ pass-through + real inference COGS | ✅ BYO key path preserved                                  | ✅ outputs are nodes in your log          |
+| Support / SLA / indemnity                 | ✅ pure labour and risk transfer      | ✅ unaffected                                              | ✅ nothing sealed to us                   |
+| Managed marketplace listing (10%)         | ✅ distribution work we perform       | ✅ BYO-billing path is 0% and MIT                          | ✅ licences DID-bound, offline-verifiable |
+| Direct creator sales (0%)                 | n/a — refused                         | ✅                                                         | ✅                                        |
 
 All pass — **which is exactly the problem this exploration exists to name.**
 They would also all pass if the lane were unsustainably thin. Necessary, not
@@ -827,8 +826,8 @@ sufficient.
 > the user, but because a company defending one will eventually break the
 > other three promises to keep from falling off it.
 
-The first three ask *"is this fair to them?"*; this one asks *"is this
-survivable for us?"* — and the argument here is that **under an anti-enclosure
+The first three ask _"is this fair to them?"_; this one asks _"is this
+survivable for us?"_ — and the argument here is that **under an anti-enclosure
 charter these converge**, because the only lanes that survive commoditisation
 are improvement lanes, and improvement lanes are the only ones the first three
 tests permit.
@@ -860,7 +859,7 @@ flowchart TB
 ```
 
 The four independent kernels (TypeScript, Rust, Swift, Python) plus the
-`conformance/` vector corpus are what make the waist *real* rather than
+`conformance/` vector corpus are what make the waist _real_ rather than
 declared — the lesson 0200 absorbed from ActivityPub shipping a W3C
 Recommendation with no test suite for ~5 years while implementations diverged
 silently.
@@ -888,7 +887,7 @@ sequenceDiagram
 
 **xNet Cloud must never run a hub the public cannot run.** No privileged
 endpoints, no fork, no cloud-only protocol extension. Today
-`check-cloud-boundary.sh` proves the *import direction*; it does not prove
+`check-cloud-boundary.sh` proves the _import direction_; it does not prove
 **version parity**. Tailscale/Headscale is the precedent that this is
 commercially survivable — and their stronger version (fund the maintainer of
 your own replacement, decline to steer it) becomes a live option once a second
@@ -949,7 +948,7 @@ apart under the DMA). Keep the first, refuse the second, and here is the test:
 ### 5. Voice, not only exit
 
 Per Hirschman, Ostrom 3 and 7, and Kiers 2011: reciprocity needs to be
-*conditional and enforceable*, not merely possible. The smallest honest step is
+_conditional and enforceable_, not merely possible. The smallest honest step is
 a published mechanism by which users affected by operational rules can
 participate in changing them. Scope this as a follow-on exploration rather
 than inventing governance here.
@@ -1037,16 +1036,16 @@ fi
   only point at which naming it is cheap.
 - **37signals' ONCE failed.** Pay-once self-hosted did not find market
   traction and was open-sourced in March 2026; open-sourcing is what produced
-  adoption. Anyone treating our self-host lane as a *revenue* source rather
-  than a *BATNA guarantee* should read that post first.
+  adoption. Anyone treating our self-host lane as a _revenue_ source rather
+  than a _BATNA guarantee_ should read that post first.
 - **Anchor tenancy has an unresolved edge.** If xNet Cloud is the best operator
-  by a wide margin, we approach a *de facto* chokepoint with no *de jure* one.
+  by a wide margin, we approach a _de facto_ chokepoint with no _de jure_ one.
   0333 refused the global relay tier; the same logic may need a stated
   market-share tripwire.
 - **Unverified / do not assert.** The Gates email's exhibit provenance; "cut
   off Netscape's air supply" and "embrace, extend, extinguish" as Microsoft
   statements (disputed testimony, denied under oath; the latter appears in
-  DOJ's *proposed* findings, not the court's); "this scares the hell out of
+  DOJ's _proposed_ findings, not the court's); "this scares the hell out of
   me" as a Gates quote (**not found — likely apocryphal**); any Collison quote
   on lock-in (**not found** — cite the PAN-export docs); Stripe export being
   free (**the docs are silent — say "no fee is stated"**); the "$1M in weeks"
@@ -1065,7 +1064,7 @@ fi
 - [x] Produce the **context-portability inventory** — what `.xnetpack` carries
       and what it does not — modelled on GitHub's non-migrating list. Every
       "does not" becomes a bug or a declared `pending`.
-- [ ] Add a neutrality clause to `site/src/pages/marketplace-terms.astro`.
+- [x] Add a neutrality clause to `site/src/pages/marketplace-terms.astro`.
 - [x] Add the **"integration you can walk out with"** design rule to
       `docs/VIBE.md`.
 - [ ] Add `economics-anchor-tenancy-parity` and `economics-no-context-capture`
@@ -1110,25 +1109,28 @@ fi
 ## References
 
 **Primary — the fear case**
+
 - [Bill Gates → Nathan Myhrvold, 30 Sep 1996, "Java runtime becomes the operating system"](https://www.techemails.com/p/bill-gates-im-literally-losing-sleep-over-java)
-- [Findings of Fact, *US v. Microsoft*, 84 F. Supp. 2d 9 (D.D.C. 1999)](https://cyber.harvard.edu/msdoj/findings.html) — §VI on Java; ¶394 on defaults
+- [Findings of Fact, _US v. Microsoft_, 84 F. Supp. 2d 9 (D.D.C. 1999)](https://cyber.harvard.edu/msdoj/findings.html) — §VI on Java; ¶394 on defaults
 - [D.C. Circuit en banc, 253 F.3d 34 (2001)](https://cyber.harvard.edu/msdoj/msft_ruling.html) — liability affirmed, remedy vacated
 - [Maritz denies "cut off Netscape's air supply", The Register, 1 Feb 1999](https://www.theregister.com/1999/02/01/maritz_on_netscape/)
 - [Nadella, "Microsoft loves Linux", 20 Oct 2014](https://news.microsoft.com/speeches/satya-nadella-and-scott-guthrie-microsoft-cloud-briefing/)
 - [Microsoft joins the Open Invention Network, 60,000 patents, Oct 2018](https://azure.microsoft.com/en-us/blog/microsoft-joins-open-invention-network-to-help-protect-linux-and-open-source/)
 
 **Economic theory**
-- Shapiro & Varian, *Information Rules* (HBS Press, 1998), ch. 5–6 · [full text PDF](https://www.kcmit.edu.np/Uploads/information-rulesLarge20210211052224.pdf)
+
+- Shapiro & Varian, _Information Rules_ (HBS Press, 1998), ch. 5–6 · [full text PDF](https://www.kcmit.edu.np/Uploads/information-rulesLarge20210211052224.pdf)
 - Joel Spolsky, [Strategy Letter V](https://www.joelonsoftware.com/2002/06/12/strategy-letter-v/) · [Gwern's expansion](https://gwern.net/complement)
-- Christensen & Raynor, *The Innovator's Solution* (2003) · [Thompson's application](https://stratechery.com/2015/netflix-and-the-conservation-of-attractive-profits/) · critique: [Gans](https://joshgans.medium.com/the-disruption-dilemma-56b05cc866d1)
-- Hirschman, *Exit, Voice, and Loyalty* (1970) · [full text PDF](https://pages.ucsd.edu/~bslantchev/courses/ps240/05%20Cooperation%20with%20States%20as%20Unitary%20Actors/Hirschman%20-%20Exit,%20voice,%20and%20loyalty%20[Ch%201-5].pdf)
-- Ostrom, *Governing the Commons* (1990) · [Cox, Arnold & Villamayor-Tomás (2010), *Ecology and Society* 15(4):38](https://www.ecologyandsociety.org/vol15/iss4/art38/) · [SustainOSS translation](https://sustainoss.pubpub.org/pub/jqngsp5u/release/1)
-- Henry George, [*Progress and Poverty*](https://www.gutenberg.org/ebooks/55308) (1879), Bk III ch. II
-- Watzinger, Fackler, Nagler & Schnitzer, ["How Antitrust Enforcement Can Spur Innovation: Bell Labs and the 1956 Consent Decree", *AEJ: Policy* (2020)](https://economics.yale.edu/sites/default/files/how_antitrust_enforcement.pdf)
+- Christensen & Raynor, _The Innovator's Solution_ (2003) · [Thompson's application](https://stratechery.com/2015/netflix-and-the-conservation-of-attractive-profits/) · critique: [Gans](https://joshgans.medium.com/the-disruption-dilemma-56b05cc866d1)
+- Hirschman, _Exit, Voice, and Loyalty_ (1970) · [full text PDF](https://pages.ucsd.edu/~bslantchev/courses/ps240/05%20Cooperation%20with%20States%20as%20Unitary%20Actors/Hirschman%20-%20Exit,%20voice,%20and%20loyalty%20[Ch%201-5].pdf)
+- Ostrom, _Governing the Commons_ (1990) · [Cox, Arnold & Villamayor-Tomás (2010), _Ecology and Society_ 15(4):38](https://www.ecologyandsociety.org/vol15/iss4/art38/) · [SustainOSS translation](https://sustainoss.pubpub.org/pub/jqngsp5u/release/1)
+- Henry George, [_Progress and Poverty_](https://www.gutenberg.org/ebooks/55308) (1879), Bk III ch. II
+- Watzinger, Fackler, Nagler & Schnitzer, ["How Antitrust Enforcement Can Spur Innovation: Bell Labs and the 1956 Consent Decree", _AEJ: Policy_ (2020)](https://economics.yale.edu/sites/default/files/how_antitrust_enforcement.pdf)
 - Kleppmann, Wiggins, van Hardenberg & McGranaghan, [Local-first software](https://www.inkandswitch.com/essay/local-first/) (Onward! 2019)
 - Doctorow, [enshittification](https://pluralistic.net/2023/01/21/potemkin-ai/#hey-guys) · [Adversarial Interoperability, EFF](https://www.eff.org/deeplinks/2019/06/adversarial-interoperability-reviving-elegant-weapon-more-civilized-age-slay)
 
 **Licence changes and their outcomes**
+
 - [HashiCorp adopts BUSL](https://www.hashicorp.com/blog/hashicorp-adopts-business-source-license) · [OpenTofu Manifesto](https://opentofu.org/manifesto/) · [Linux Foundation announces OpenTofu](https://www.linuxfoundation.org/press/announcing-opentofu)
 - [Elasticsearch is Open Source, Again](https://www.elastic.co/blog/elasticsearch-is-open-source-again) (Aug 2024)
 - [Redis dual source-available licensing](https://redis.io/blog/redis-adopts-dual-source-available-licensing/) · [Redis under AGPLv3](https://redis.io/blog/agplv3/) · [Linux Foundation launches Valkey](https://www.linuxfoundation.org/press/linux-foundation-launches-open-source-valkey-community)
@@ -1136,6 +1138,7 @@ fi
 - [Element adopts AGPLv3](https://element.io/blog/element-to-adopt-agplv3/) (6 Nov 2023)
 
 **Businesses without lock-in**
+
 - [Red Hat FY2019 results](https://www.redhat.com/en/about/press-releases/red-hat-reports-fourth-quarter-and-fiscal-year-2019-results) · [Open Source Assurance](https://www.redhat.com/en/about/open-source-assurance) · [CentOS Stream, Dec 2020](https://blog.centos.org/2020/12/future-is-centos-stream/) · [Red Hat's commitment to open source, 26 Jun 2023](https://www.redhat.com/en/blog/red-hats-commitment-open-source-response-gitcentosorg-changes) · [SUSE forks RHEL](https://www.suse.com/news/SUSE-Preserves-Choice-in-Enterprise-Linux/) · [OpenELA](https://openela.org/news/2023/08/hello_world/)
 - [Stripe PAN export to a competing processor](https://docs.stripe.com/get-started/data-migrations/pan-export)
 - [Obsidian — "File over app", Steph Ango](https://stephango.com/file-over-app)
@@ -1147,30 +1150,33 @@ fi
 - 37signals: [Campfire is ONCE #1](https://world.hey.com/dhh/campfire-is-once-1-d2cebd12) · **[ONCE (Again) — the model failed, Mar 2026](https://world.hey.com/dhh/once-again-3e99f755)**
 
 **Counterexamples and the counterargument**
+
 - [GitHub Enterprise Importer — what does and does not migrate](https://docs.github.com/en/migrations/using-github-enterprise-importer/migrating-between-github-products/about-migrations-between-github-products) — the moat, enumerated
 - [Microsoft to acquire GitHub for $7.5B](https://news.microsoft.com/source/2018/06/04/microsoft-to-acquire-github-for-7-5-billion/)
 - [Unity Catalog governs the Runtime, not the data](https://www.trustlogix.ai/blog/beyond-databricks-runtime-enterprise-data-access-control-governance-trustlogix-unity-catalog) · [Databricks Series L](https://www.databricks.com/company/newsroom/press-releases/databricks-grows-65-yoy-surpasses-5-4-billion-revenue-run-rate)
 - [NVIDIA CUDA EULA §1.2](https://docs.nvidia.com/cuda/eula/index.html) · [AMD's lawyers take down ZLUDA, The Register](https://www.theregister.com/2024/08/09/amd_zluda_take_down/)
 - [Mirantis acquires Docker Enterprise](https://techcrunch.com/2019/11/13/mirantis-acquires-docker-enterprise/) · [Hykes on the Docker story](https://www.heavybit.com/library/podcasts/the-kubelist-podcast/ep-36-the-docker-story-with-solomon-hykes)
 - Levine, [Why There Will Never Be Another Red Hat](https://a16z.com/2014/02/14/why-there-will-never-be-another-redhat-the-economics-of-open-source/) (2014)
-- Interop mandates: [FCC Ninth Report, FCC 04-216](https://docs.fcc.gov/public/attachments/FCC-04-216A1.pdf) (churn 2.43→2.55%) · [FCC Eleventh Report, FCC 06-142](https://docs.fcc.gov/public/attachments/FCC-06-142A1.pdf) · [Shi, Chiang & Rhee, *Management Science* (2006)](https://pubsonline.informs.org/doi/abs/10.1287/mnsc.1050.0466) · [CASS Dashboard](https://www.currentaccountswitch.co.uk/media/mqcnuwwv/cass-dashboard-q2-2025.pdf) · [DMA Review, COM(2026) 178](https://digital-markets-act.ec.europa.eu/system/files/2026-04/DMA%20Review%20Report_COM_2026_178_1_EN.pdf) · [StatCounter Europe](https://gs.statcounter.com/browser-market-share/all/europe)
+- Interop mandates: [FCC Ninth Report, FCC 04-216](https://docs.fcc.gov/public/attachments/FCC-04-216A1.pdf) (churn 2.43→2.55%) · [FCC Eleventh Report, FCC 06-142](https://docs.fcc.gov/public/attachments/FCC-06-142A1.pdf) · [Shi, Chiang & Rhee, _Management Science_ (2006)](https://pubsonline.informs.org/doi/abs/10.1287/mnsc.1050.0466) · [CASS Dashboard](https://www.currentaccountswitch.co.uk/media/mqcnuwwv/cass-dashboard-q2-2025.pdf) · [DMA Review, COM(2026) 178](https://digital-markets-act.ec.europa.eu/system/files/2026-04/DMA%20Review%20Report_COM_2026_178_1_EN.pdf) · [StatCounter Europe](https://gs.statcounter.com/browser-market-share/all/europe)
 - Automattic/WP Engine: [WP Engine is not WordPress](https://ma.tt/2024/09/on-wp-engine/) · [Alignment Offer](https://ma.tt/2024/10/alignment/) · [ACF listing reassigned](https://wordpress.org/news/2024/10/secure-custom-fields/) · [injunction, 10 Dec 2024](https://techcrunch.com/2024/12/10/court-orders-mullenweg-and-automattic-to-restore-wp-engines-access-to-wordpress-org/)
 - Foundation fragility: [Signal Foundation 990s, ProPublica](https://projects.propublica.org/nonprofits/organizations/824506840) · ["Privacy is Priceless, but Signal is Expensive"](https://signal.org/blog/signal-is-expensive/) · [Mozilla Fdn 2024 audited financials](https://stateof.mozilla.org/pdf/Mozilla%20Fdn%202024%20-%20AuditedFinancials.pdf) · [Mozilla asks DOJ to preserve Google payments](https://www.theregister.com/2025/03/12/mozilla_doj_google_search_payments/)
 - Protocol economics: [Matrix.org 2025 Public Annual Report](https://matrix.org/foundation/reports/2025%20Public%20Annual%20Report.pdf) · [A roadmap and appeal for help](https://matrix.org/blog/2024/01/2024-roadmap-and-fundraiser/) · [Newbold, Progress on atproto Values](https://bnewbold.net/2024/atproto_progress/) · [Lemmer-Webber, How decentralized is Bluesky really?](https://dustycloud.org/blog/how-decentralized-is-bluesky/)
 - [EU Data Act switching provisions](https://www.lw.com/en/insights/eu-data-act-significant-new-switching-requirements-due-to-take-effect-for-data-processing-services) — all switching charges banned from 12 Jan 2027
 
 **Substrates — architecture and biology**
-- Csete & Doyle, [Bow ties, metabolism and disease](https://pubmed.ncbi.nlm.nih.gov/15331224/), *Trends in Biotechnology* 22(9), 2004 · [free PDF](https://www.cs.cornell.edu/~ginsparg/physics/Phys446-546/doyle_bowties.pdf) · [Evolution of Bow-Tie Architectures in Biology, *PLOS Comp Bio*](https://journals.plos.org/ploscompbiol/article?id=10.1371%2Fjournal.pcbi.1004055)
-- Akhshabi & Dovrolis, [The evolution of layered protocol stacks leads to an hourglass-shaped architecture](https://dl.acm.org/doi/10.1145/2018436.2018460), SIGCOMM 2011 · [free PDF](https://sites.cc.gatech.edu/home/dovrolis/Papers/evoarch.pdf) — EvoArch; "evolutionary kernels"; waist protocols are often *not* the highest quality
-- Doyle & Csete, [Architecture, constraints, and behavior](https://doi.org/10.1073/pnas.1103557108), *PNAS* 108(Suppl. 3) — the explicit biology↔networking bridge
-- Friedlander, Mayo, Tlusty & Alon, [Evolution of Bow-Tie Architectures in Biology](https://doi.org/10.1371/journal.pcbi.1004055), *PLOS Comp Bio* 11(3) — bow-ties evolve when the goal is compressible
-- Freeland & Hurst, [The Genetic Code Is One in a Million](https://doi.org/10.1007/PL00006381), *J. Mol. Evol.* 47 · Koonin & Novozhilov, [the universal enigma](https://doi.org/10.1002/iub.146), *IUBMB Life* 61 — robust, near-universal, **not** optimal
-- Kiers et al., ["Reciprocal rewards stabilize cooperation in the mycorrhizal symbiosis"](https://doi.org/10.1126/science.1208473), *Science* 333:880 (2011) — the right cooperation model
+
+- Csete & Doyle, [Bow ties, metabolism and disease](https://pubmed.ncbi.nlm.nih.gov/15331224/), _Trends in Biotechnology_ 22(9), 2004 · [free PDF](https://www.cs.cornell.edu/~ginsparg/physics/Phys446-546/doyle_bowties.pdf) · [Evolution of Bow-Tie Architectures in Biology, _PLOS Comp Bio_](https://journals.plos.org/ploscompbiol/article?id=10.1371%2Fjournal.pcbi.1004055)
+- Akhshabi & Dovrolis, [The evolution of layered protocol stacks leads to an hourglass-shaped architecture](https://dl.acm.org/doi/10.1145/2018436.2018460), SIGCOMM 2011 · [free PDF](https://sites.cc.gatech.edu/home/dovrolis/Papers/evoarch.pdf) — EvoArch; "evolutionary kernels"; waist protocols are often _not_ the highest quality
+- Doyle & Csete, [Architecture, constraints, and behavior](https://doi.org/10.1073/pnas.1103557108), _PNAS_ 108(Suppl. 3) — the explicit biology↔networking bridge
+- Friedlander, Mayo, Tlusty & Alon, [Evolution of Bow-Tie Architectures in Biology](https://doi.org/10.1371/journal.pcbi.1004055), _PLOS Comp Bio_ 11(3) — bow-ties evolve when the goal is compressible
+- Freeland & Hurst, [The Genetic Code Is One in a Million](https://doi.org/10.1007/PL00006381), _J. Mol. Evol._ 47 · Koonin & Novozhilov, [the universal enigma](https://doi.org/10.1002/iub.146), _IUBMB Life_ 61 — robust, near-universal, **not** optimal
+- Kiers et al., ["Reciprocal rewards stabilize cooperation in the mycorrhizal symbiosis"](https://doi.org/10.1126/science.1208473), _Science_ 333:880 (2011) — the right cooperation model
 - [OpenStax Biology 2e §2.2 — Water](https://openstax.org/books/biology-2e/pages/2-2-water) — including the **non**-universality of water as a solvent
-- Karst, Jones & Hoeksema, [Positive citation bias and overinterpreted results lead to misinformation on common mycorrhizal networks in forests](https://www.nature.com/articles/s41559-023-01986-1), *Nature Ecology & Evolution* (2023) — why we do **not** use the "wood wide web" metaphor
-- Maynard Smith & Szathmáry, *The Major Transitions in Evolution* (1995) — a transition is defined by the loss of independent replication
+- Karst, Jones & Hoeksema, [Positive citation bias and overinterpreted results lead to misinformation on common mycorrhizal networks in forests](https://www.nature.com/articles/s41559-023-01986-1), _Nature Ecology & Evolution_ (2023) — why we do **not** use the "wood wide web" metaphor
+- Maynard Smith & Szathmáry, _The Major Transitions in Evolution_ (1995) — a transition is defined by the loss of independent replication
 
 **Internal**
+
 - [`docs/CHARTER.md`](../CHARTER.md) §6 — Commons / No ground rent, the three tests
 - [`docs/VIBE.md`](../VIBE.md) — "the scene outlives the server"
 - [`GOVERNANCE.md`](../../GOVERNANCE.md) · [`TRADEMARK.md`](../../TRADEMARK.md)
