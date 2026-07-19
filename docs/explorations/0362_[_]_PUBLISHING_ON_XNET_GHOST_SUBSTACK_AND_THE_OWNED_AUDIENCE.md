@@ -741,8 +741,8 @@ long-lived pin. *Open:* does a permanently pinned frontier interact badly with
 - [x] Define embed degradation tiers (`shell` / `link`) with a visible snapshot date.
 - [x] Add `PublicationSchema`; register in `packages/data/src/schema/schemas/index.ts`.
 - [x] Add `postFields` to `PageSchema` (slug, excerpt, publishedAt, canonicalUrl, publishedFrontier).
-- [ ] Enforce slug uniqueness per publication; generate from title with a collision suffix.
-- [ ] Wire `publishedFrontier` to 0329's pinning so publication pins its changes.
+- [x] Enforce slug uniqueness per publication; generate from title with a collision suffix.
+- [x] Wire `publishedFrontier` to 0329's pinning so publication pins its changes.
 - [x] Lift `buildBlogRss` from `site/src/lib/blog-feed.ts` into `@xnetjs/publish`.
 - [x] Emit `sitemap.xml`, OG/Twitter meta, and canonical URLs.
 - [ ] Add `xnet publish --static --out <dir>` to `packages/cli`.

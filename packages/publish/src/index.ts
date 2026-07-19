@@ -22,6 +22,19 @@ export {
 export { slugify, uniqueSlug, isValidSlug } from './slug'
 
 export {
+  publishPost,
+  unpublishPost,
+  frontierEquals,
+  hasUnpublishedChanges,
+  takenSlugsFor,
+  type Frontier,
+  type PostRecord,
+  type PostPatch,
+  type PublishInput,
+  type PublishResult
+} from './pipeline'
+
+export {
   buildRss,
   buildSitemap,
   publishedPosts,
