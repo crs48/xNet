@@ -1071,7 +1071,7 @@ fi
       to `packages/telemetry/test/charter-claims-ledger.test.ts`.
 - [x] Add assertion 4 (hub version parity) to `scripts/check-cloud-boundary.sh`
       and extend its self-test.
-- [ ] Write `docs/LICENSING.md` — outstanding from 0345; MIT core /
+- [x] Write `docs/LICENSING.md` — outstanding from 0345; MIT core /
       single-FSL-package / plugin allowlist, plus reopen tripwires. Record the
       OSI-boundary finding: tighten within it if ever necessary, never cross.
 - [x] Fix `docs/CHARTER.md:184`: `CURRENT_PROTOCOL_VERSION` is **4**, not 3.
