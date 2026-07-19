@@ -136,6 +136,7 @@ export {
   type Event,
   type Rsvp
 } from './schemas'
+export { PublicationSchema, type Publication } from './schemas'
 export {
   FOLDER_SCHEMA_IRI,
   FolderSchema,

@@ -1,0 +1,18 @@
+{
+  "id": "2026-07-18-publish-your-writing-as-a-static-site",
+  "date": "July 18, 2026",
+  "title": "Publish your writing as a static site",
+  "summary": "A new xnet publish command renders your pages to plain HTML, RSS and a sitemap you can host anywhere — no hub required.",
+  "highlights": [],
+  "tags": [
+    "editor",
+    "platform"
+  ],
+  "pr": 575,
+  "mergedAt": "2026-07-19T03:55:41Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

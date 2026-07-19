@@ -30,6 +30,7 @@ export {
   type Event,
   type Rsvp
 } from './event'
+export { PublicationSchema, type Publication } from './publication'
 export {
   FOLDER_SCHEMA_IRI,
   FolderSchema,
@@ -569,6 +570,8 @@ export const builtInSchemas = {
     import('./course').then((m) => m.LessonProgressSchema),
   'xnet://xnet.fyi/Event@1.0.0': () => import('./event').then((m) => m.EventSchema),
   'xnet://xnet.fyi/Rsvp@1.0.0': () => import('./event').then((m) => m.RsvpSchema),
+  'xnet://xnet.fyi/Publication@1.0.0': () =>
+    import('./publication').then((m) => m.PublicationSchema),
   'xnet://xnet.fyi/Folder@1.0.0': () => import('./folder').then((m) => m.FolderSchema),
   'xnet://xnet.fyi/Tag@1.0.0': () => import('./tag').then((m) => m.TagSchema),
   'xnet://xnet.fyi/Database@2.0.0': () => import('./database').then((m) => m.DatabaseSchema),
@@ -710,6 +713,7 @@ export const builtInSchemas = {
   'xnet://xnet.fyi/LessonProgress': () => import('./course').then((m) => m.LessonProgressSchema),
   'xnet://xnet.fyi/Event': () => import('./event').then((m) => m.EventSchema),
   'xnet://xnet.fyi/Rsvp': () => import('./event').then((m) => m.RsvpSchema),
+  'xnet://xnet.fyi/Publication': () => import('./publication').then((m) => m.PublicationSchema),
   'xnet://xnet.fyi/Folder': () => import('./folder').then((m) => m.FolderSchema),
   'xnet://xnet.fyi/Tag': () => import('./tag').then((m) => m.TagSchema),
   'xnet://xnet.fyi/Database': () => import('./database').then((m) => m.DatabaseSchema),
