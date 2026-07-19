@@ -93,6 +93,24 @@ export interface BlogPost {
 
 const posts: BlogPost[] = [
   {
+    slug: 'rig-the-game-or-play',
+    title: 'Rig the Game or Play',
+    description:
+      'The board game that taught a century of children to build monopolies ' +
+      'was patented in 1904 to show that monopolies are unjust — and the ' +
+      'cautionary rule set is the one that sold thirty million copies. On ' +
+      'runaway leaders and the dead zone, why every table removes the ' +
+      'auction and adds the Free Parking jackpot, what Hayek meant by ' +
+      'competition as a discovery procedure, and why the rules of a rigged ' +
+      'game are usually exposed by someone who got sued rather than by ' +
+      'anyone’s transparency report.',
+    pubDate: '2026-07-20T09:00:00Z',
+    authors: ['crs48', 'claude'],
+    tags: ['essay', 'economics', 'philosophy'],
+    readingMinutes: 14,
+    draft: true
+  },
+  {
     slug: 'the-worlds-greatest-record-store',
     title: 'The World’s Greatest Record Store',
     description:

@@ -1,0 +1,52 @@
+---
+// The honesty beat (series convention, modeled on the /why page's HonestyBox).
+// This essay leans on a history whose popular version is partly folklore, so
+// this box carries more weight than usual: an essay about honest games that
+// repeated a nice unverified story would refute itself in the first paragraph.
+const rows = [
+  {
+    isnt: 'We won’t claim the cooperative rules were ever popular.',
+    is: 'They almost certainly weren’t. Every account of how the game actually spread — Quaker households, college campuses, eventually Charles Darrow — describes the monopolist rules travelling. Any version of this story where players tried both and collectively learned better is a story. We’re telling you one too; we’re just labelling it.',
+  },
+  {
+    isnt: 'We won’t cite the two rule sets as though the patents contain them.',
+    is: 'They don’t. Magie’s 1904 and 1924 patents carry no alternate rules. The paired Prosperity and Monopolist sets come from a 1932 edition, and when Snopes went looking in 2024 it could not independently verify the connection. What is solid is the 1904 patent’s own statement of purpose, and her 1902 writing — both quoted above, both hers.',
+  },
+  {
+    isnt: 'We won’t pretend competition always produces more of everything.',
+    is: 'It doesn’t. The measured relationship between competition and innovation is an inverted U: markets that are too atomised innovate less too, because nobody has the margin to fund the attempt. Our claim is narrower than the one this essay would be more fun to write — entrenched, permanent monopoly is the worst point on that curve, and it is the point every dominant strategy walks toward.',
+  },
+  {
+    isnt: 'We won’t claim we’re immune.',
+    is: 'Our own portability inventory names four kinds of context that don’t travel out of xNet yet: share links, capability grants, the subscriber list, plugin licences. It’s published because the alternative — the thing that happened to Lizzie Magie — is someone spending ten years in discovery to find out.',
+  },
+]
+---
+
+<section class="not-prose my-12">
+  <div class="rounded-2xl border border-border bg-surface/30 p-6 dark:bg-surface/40 lg:p-8">
+    <h3 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+      What’s documented here — and what’s a good story
+    </h3>
+    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+      An essay about rigged games shouldn’t quietly stack its own deck. Here’s the honest version.
+    </p>
+
+    <ul class="mt-6 space-y-5">
+      {
+        rows.map((row) => (
+          <li class="grid gap-3 sm:grid-cols-[1fr_1.3fr] sm:gap-5">
+            <div class="flex gap-2.5">
+              <span class="select-none text-gray-400 dark:text-gray-600">✕</span>
+              <p class="text-sm leading-relaxed text-gray-500 dark:text-gray-400">{row.isnt}</p>
+            </div>
+            <div class="flex gap-2.5">
+              <span class="select-none text-emerald-500">✓</span>
+              <p class="text-sm leading-relaxed text-gray-700 dark:text-gray-200">{row.is}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>
