@@ -19,7 +19,7 @@ describe('publishPost', () => {
     const { patch, isFirstPublish } = publishPost({
       post: post(),
       takenSlugs: [],
-      frontier: { 'p1': 'h1' },
+      frontier: { p1: 'h1' },
       now: NOW
     })
     expect(patch.slug).toBe('the-owned-audience')
@@ -63,20 +63,20 @@ describe('publishPost', () => {
     const { patch, isFirstPublish } = publishPost({
       post: post({ slug: 's', publishedAt: 1_700_000_000_000 }),
       takenSlugs: [],
-      frontier: { 'p1': 'h2' },
+      frontier: { p1: 'h2' },
       now: NOW
     })
     expect(patch.publishedAt).toBeUndefined()
     expect(isFirstPublish).toBe(false)
     // Only the pin moves.
-    expect(patch.publishedFrontier).toEqual({ 'p1': 'h2' })
+    expect(patch.publishedFrontier).toEqual({ p1: 'h2' })
   })
 
   it('pins a copy of the frontier, not a live reference', () => {
-    const frontier = { 'p1': 'h1' }
+    const frontier = { p1: 'h1' }
     const { patch } = publishPost({ post: post(), takenSlugs: [], frontier, now: NOW })
     frontier['p1'] = 'mutated'
-    expect(patch.publishedFrontier).toEqual({ 'p1': 'h1' })
+    expect(patch.publishedFrontier).toEqual({ p1: 'h1' })
   })
 
   it('fills the excerpt only when the author left it empty', () => {
@@ -105,7 +105,7 @@ describe('publishPost', () => {
   })
 
   it('is pure — same inputs, same patch', () => {
-    const args = { post: post(), takenSlugs: [], frontier: { 'p1': 'h1' }, now: NOW }
+    const args = { post: post(), takenSlugs: [], frontier: { p1: 'h1' }, now: NOW }
     expect(publishPost(args).patch).toEqual(publishPost(args).patch)
   })
 })
