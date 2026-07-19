@@ -72,12 +72,7 @@ function isoDate(value: string): string {
   return new Date(value).toISOString().slice(0, 10)
 }
 
-function layout(opts: {
-  head: string
-  body: string
-  css: string
-  language: string
-}): string {
+function layout(opts: { head: string; body: string; css: string; language: string }): string {
   return `<!doctype html>
 <html lang="${escapeAttr(opts.language)}">
 <head>

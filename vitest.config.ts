@@ -31,6 +31,11 @@ const workspaceAliases = {
   '@xnetjs/cloud/cost': new URL('./packages/cloud/src/cost/index.ts', import.meta.url).pathname,
   '@xnetjs/cloud': new URL('./packages/cloud/src/index.ts', import.meta.url).pathname,
   '@xnetjs/dashboard': new URL('./packages/dashboard/src/index.ts', import.meta.url).pathname,
+  // Subpath export: MUST precede the bare '@xnetjs/data' below (Vite uses first
+  // match). Without it the specifier resolves through package `exports` into
+  // dist/ and only works after a build.
+  '@xnetjs/data/database': new URL('./packages/data/src/database/index.ts', import.meta.url)
+    .pathname,
   '@xnetjs/data': new URL('./packages/data/src/index.ts', import.meta.url).pathname,
   '@xnetjs/data-bridge': new URL('./packages/data-bridge/src/index.ts', import.meta.url).pathname,
   '@xnetjs/devkit': new URL('./packages/devkit/src/index.ts', import.meta.url).pathname,

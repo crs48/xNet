@@ -32,7 +32,9 @@ describe('LessonProgress', () => {
   })
 
   it('has a deterministic id so completing twice upserts', () => {
-    expect(lessonProgressId('lesson-1', 'did:key:alice')).toBe('lessonprogress:lesson-1:did:key:alice')
+    expect(lessonProgressId('lesson-1', 'did:key:alice')).toBe(
+      'lessonprogress:lesson-1:did:key:alice'
+    )
     expect(lessonProgressId('l', 'd')).toBe(lessonProgressId('l', 'd'))
   })
 })

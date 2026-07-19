@@ -149,7 +149,6 @@ describe('xnet publish (static)', () => {
     expect(html).not.toContain('xnet://')
     expect(html).not.toMatch(/<script(?![^>]*application\/ld\+json)/)
   })
-
 })
 
 describe('assertPublication', () => {
@@ -182,8 +181,8 @@ describe('assertPublication', () => {
   })
 
   it('demands rendered html and points at renderPost', () => {
-    expect(() =>
-      assertPublication({ ...valid, posts: [{ slug: 'a', title: 'A' }] })
-    ).toThrow(/renderPost/)
+    expect(() => assertPublication({ ...valid, posts: [{ slug: 'a', title: 'A' }] })).toThrow(
+      /renderPost/
+    )
   })
 })
