@@ -6,6 +6,29 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-18-a-fourth-test-for-every-way-xnet-makes-m",
+      "url": "https://xnet.fyi/changelog#2026-07-18-a-fourth-test-for-every-way-xnet-makes-m",
+      "title": "A fourth test for every way xNet makes money",
+      "content_text": "The Charter now carries a Sleep test alongside improvement, BATNA and vanish — asking not just whether a revenue lane is fair to you, but whether it would survive a competitor open-sourcing our whole feature set. A new ECONOMICS.md sets out how xNet earns, what it deliberately refuses to charge for, and what that position costs us; LICENSING.md settles why the core is MIT. The marketplace terms now commit to ranking neutrality: our own plugins get no placement preference.\n",
+      "date_published": "2026-07-19T00:43:34Z",
+      "tags": [
+        "platform",
+        "plugins"
+      ],
+      "_xnet": {
+        "date": "July 18, 2026",
+        "summary": "The Charter now carries a Sleep test alongside improvement, BATNA and vanish — asking not just whether a revenue lane is fair to you, but whether it would survive a competitor open-sourcing our whole feature set. A new ECONOMICS.md sets out how xNet earns, what it deliberately refuses to charge for, and what that position costs us; LICENSING.md settles why the core is MIT. The marketplace terms now commit to ranking neutrality: our own plugins get no placement preference.",
+        "highlights": [],
+        "mergedAt": "2026-07-19T00:43:34Z",
+        "pr": 567,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-18-one-sidebar-no-tab-strip",
       "url": "https://xnet.fyi/changelog#2026-07-18-one-sidebar-no-tab-strip",
       "title": "One sidebar, no tab strip",
