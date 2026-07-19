@@ -9,5 +9,12 @@
   ],
   "tags": [
     "identity"
+  ],
+  "pr": 589,
+  "mergedAt": "2026-07-19T19:08:50Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
   ]
 }
