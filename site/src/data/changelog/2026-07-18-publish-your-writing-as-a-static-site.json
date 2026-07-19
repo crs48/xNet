@@ -7,5 +7,12 @@
   "tags": [
     "editor",
     "platform"
+  ],
+  "pr": 575,
+  "mergedAt": "2026-07-19T03:55:41Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
   ]
 }
