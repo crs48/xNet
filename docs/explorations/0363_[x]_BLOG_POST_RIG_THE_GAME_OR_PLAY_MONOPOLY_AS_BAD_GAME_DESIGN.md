@@ -730,9 +730,9 @@ land outside `site/`, that changes — they should not.
 exploration attributed Magie's famous statement of purpose ("…how, under the
 present or prevailing system of land tenure, the landlord has an advantage over
 other enterprises…") to US 748,626 (1904). Fetching the patent proved that
-wrong: 748,626's stated object is *"to obtain as much Wealth or money as
+wrong: 748,626's stated object is _"to obtain as much Wealth or money as
 possible, the player having the greatest amount of wealth at the end of the game
-… being the winner."* The Georgist purpose clause appears in the **1924** patent
+… being the winner."_ The Georgist purpose clause appears in the **1924** patent
 (US 1,509,312). The essay was rewritten around the correction, which improved
 it: intent is documented in 1902 and 1924, on either side of a 1904 patent that
 describes only the extraction game.
@@ -740,17 +740,17 @@ describes only the extraction game.
 **2. The 1932 rule sets are named "The Landlord's Game" and "Prosperity".**
 The primary document uses neither "monopolist" nor "anti-monopolist" — those are
 historians' labels. Pulling the PDF also surfaced the Prosperity win condition
-verbatim — *"When the player with the least money has $7000 (double his original
+verbatim — _"When the player with the least money has $7000 (double his original
 capital), Prosperity is achieved. The game may continue at the pleasure of the
-players."* — whose final sentence is an infinite game stated on cardboard fifty
+players."_ — whose final sentence is an infinite game stated on cardboard fifty
 years before Carse. It became the hinge of §6, which the plan did not anticipate.
 
 **3. Hayek citation nuance.** The lecture is 1968; the Snow English translation
-quoted is *QJAE* 5(3), Summer 2002, p. 9. The essay dates the lecture, which is
+quoted is _QJAE_ 5(3), Summer 2002, p. 9. The essay dates the lecture, which is
 correct as written.
 
-**4. Anspach claim softened.** That the Magie record was reconstructed *through
-the litigation* is secondary-source-only (Pilon); the accessible appellate
+**4. Anspach claim softened.** That the Magie record was reconstructed _through
+the litigation_ is secondary-source-only (Pilon); the accessible appellate
 opinion (684 F.2d 1316) does not mention Magie. The essay now attributes the
 histories to what Anspach "dug up" rather than implying a court finding. The
 litigation ran 1974 → cert denied 1983 (nine years), not "about a decade".
@@ -809,19 +809,19 @@ not a regression from this post. Not fixed here; noted for whoever chases it.
       [`CLAUDE.md`](../../CLAUDE.md)
 - [x] Add an `og:image` if the hero warrants one (note: `Base.astro` has no
       default `og:*` — see 0316)
-- [ ] Flip `draft: false` and set `pubDate`
-- [ ] Add a changelog fragment tagged `skip-changelog` if site-only
+- [x] Flip `draft: false` and set `pubDate`
+- [x] Add a changelog fragment tagged `skip-changelog` if site-only
 
 ## Validation Checklist
 
 - [x] `pnpm --filter site build` succeeds (do **not** rely on `astro dev` —
       it has hung on blog/changelog routes before; verify via build)
 - [x] `/blog/rig-the-game-or-play` renders in light and dark themes
-- [ ] The post appears on `/blog` once `draft: false`, in correct date order
-- [ ] `/blog/rss.xml` includes the post with the correct description
-- [ ] `SeriesNav` resolves previous/next on both neighbouring posts
+- [x] The post appears on `/blog` once `draft: false`, in correct date order
+- [x] `/blog/rss.xml` includes the post with the correct description
+- [x] `SeriesNav` resolves previous/next on both neighbouring posts
 - [x] Mermaid figure renders and is legible at 375px width
-- [ ] No horizontal body scroll at 375px; hero art degrades gracefully
+- [x] No horizontal body scroll at 375px; hero art degrades gracefully
 - [x] `Byline` shows both authors with vendored avatars — **no third-party
       requests** (check the network panel; several essays promise this)
 - [x] `node scripts/check-humane-patterns.mjs` passes
@@ -830,7 +830,7 @@ not a regression from this post. Not fixed here; noted for whoever chases it.
 - [x] Every quotation in the published text maps to a §References entry
 - [x] The four `HonestBoard` rows are present and unsoftened
 - [x] Reading time on the card matches the drafted length within ~2 minutes
-- [ ] A reader who knows the Monopoly folklore finishes the essay knowing
+- [x] A reader who knows the Monopoly folklore finishes the essay knowing
       which parts are documented — the disclosure is legible, not buried
 
 ## References

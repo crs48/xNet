@@ -107,8 +107,7 @@ const posts: BlogPost[] = [
     pubDate: '2026-07-20T09:00:00Z',
     authors: ['crs48', 'claude'],
     tags: ['essay', 'economics', 'philosophy'],
-    readingMinutes: 14,
-    draft: true
+    readingMinutes: 14
   },
   {
     slug: 'the-worlds-greatest-record-store',
