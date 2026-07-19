@@ -31,8 +31,6 @@ const posts = publishedPosts()
 // the same inline SVG is single-sourced from the hero's *Art.astro component.
 const heroArt: Record<string, typeof PirateArt> = {
   'the-harvest-you-can-count': HarvestArt,
-  // PR #569 shipped BoardArt.astro with the post but never wired it in here, so
-  // this card rendered without its header image while every other post had one.
   'rig-the-game-or-play': BoardArt,
   'the-worlds-greatest-record-store': RecordArt,
   palimpsest: PalimpsestArt,
