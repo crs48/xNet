@@ -112,7 +112,7 @@ const posts: BlogPost[] = [
     pubDate: '2026-08-03T09:00:00Z',
     authors: ['crs48', 'claude'],
     tags: ['essay', 'economics', 'philosophy'],
-    readingMinutes: 16
+    readingMinutes: 18
   },
   {
     slug: 'rig-the-game-or-play',
