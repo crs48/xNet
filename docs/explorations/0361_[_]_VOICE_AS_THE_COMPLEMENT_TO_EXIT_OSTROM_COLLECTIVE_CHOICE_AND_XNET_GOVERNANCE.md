@@ -283,7 +283,7 @@ than one: the right to leave **and** the right to be heard on the record.
 - [x] Cross-link from [`CHARTER.md`](../CHARTER.md) §6 and
       [`ECONOMICS.md`](../ECONOMICS.md) — the rules those documents set are the
       ones in scope.
-- [ ] Add a `governance-rule-change-path` claim to the conformance ledger
+- [x] Add a `governance-rule-change-path` claim to the conformance ledger
       (`packages/telemetry/test/charter-claims-ledger.test.ts`), enforced by
       the existence of the decision log.
 

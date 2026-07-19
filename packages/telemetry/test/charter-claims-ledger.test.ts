@@ -18,7 +18,7 @@
  * matching `assert` fails the build — the cybernetic "sense the gap, correct"
  * loop from "Hand on the Tiller", applied to the project's own claims.
  */
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { DEFAULT_SECURITY_LEVEL } from '@xnetjs/crypto'
 import { createDID, isValidDID } from '@xnetjs/identity'
@@ -161,6 +161,38 @@ const CLAIMS: Claim[] = [
       'grants are hub-managed (packages/hub/src/storage/, schemas/auth-exempt.ts) and do NOT, ' +
       'and the DID-based subscriber list is unbuilt. Portable bytes, partly captive context — ' +
       'the inventory is disclosed in docs/ECONOMICS.md §3. Ship: exploration 0234 Wave 3.'
+  },
+  {
+    id: 'governance-rule-change-path',
+    source:
+      'GOVERNANCE.md — "the right to be heard, on the record" · Charter §6 — the refused rents ' +
+      'are an in-scope rule anyone affected can propose changing (0361)',
+    backing: 'architectural',
+    assert: () => {
+      // Ostrom principle 3 needs a *path*, not a vote — so the receipt is that
+      // the path and its record both exist. A governance promise whose decision
+      // log can be quietly deleted is exit-with-extra-steps, which is the exact
+      // posture 0361 set out to fix.
+      const required = [
+        'docs/RULE_CHANGES.md',
+        'docs/decisions/rule-changes.md',
+        '.github/ISSUE_TEMPLATE/rule-change.yml'
+      ]
+      for (const rel of required) {
+        const abs = fileURLToPath(new URL(rel, `file://${repoRoot}`))
+        expect(existsSync(abs), `missing rule-change surface: ${rel}`).toBe(true)
+      }
+
+      // A log of only the accepted proposals is marketing. Assert the record
+      // actually carries a refusal, so the honesty cannot be edited out.
+      const log = readFileSync(
+        fileURLToPath(new URL('docs/decisions/rule-changes.md', `file://${repoRoot}`)),
+        'utf8'
+      )
+      expect(log, 'decision log must record at least one declined proposal').toMatch(
+        /\*\*Declined\*\*/
+      )
+    }
   },
   {
     id: 'exit-reimport-roundtrip',
