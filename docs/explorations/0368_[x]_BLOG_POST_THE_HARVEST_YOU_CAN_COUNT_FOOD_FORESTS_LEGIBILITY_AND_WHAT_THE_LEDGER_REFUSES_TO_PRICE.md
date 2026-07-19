@@ -1488,47 +1488,47 @@ const heroArt: Record<string, any> = {
 - [x] Add `site/src/data/changelog/2026-08-03-new-essay-the-harvest-you-can-count.json`
       (deliberately reversing the recent `skip-changelog` drift)
 - [x] Flip `draft: false`
-- [ ] Commit as `docs(exploration): explore the harvest you can count (0368)`,
+- [x] Commit as `docs(exploration): explore the harvest you can count (0368)`,
       then the post separately
 
 ## Validation Checklist
 
-- [ ] **Grep the draft for every DO-NOT-USE item**: `2,000`, `40:1`,
+- [x] **Grep the draft for every DO-NOT-USE item**: `2,000`, `40:1`,
       `unlimited`, `every food forest`, `66`, `IBAMA`, `75%`, `51%`, `apêtê`,
       `Waldsterben`, `terra preta`, `Clearance`, `GIAHS`, `McConnell`,
       `639/2014`, `Cotta`, `Hartig`, `Carlowitz`, `Thünen`, `76,000`
-- [ ] The EU material claims an **incentive**, never a **removal**; if the
+- [x] The EU material claims an **incentive**, never a **removal**; if the
       Alliance Environnement evaluation is cited, its caveat is quoted too
-- [ ] The US fruit-and-vegetable rule is described as a payment-acre reduction,
+- [x] The US fruit-and-vegetable rule is described as a payment-acre reduction,
       **not a ban**; the EU threshold is cited as **640/2014**, not 639/2014
-- [ ] Kandyan structural figures are attributed to **Perera & Rajapakse 1991**,
+- [x] Kandyan structural figures are attributed to **Perera & Rajapakse 1991**,
       not McConnell; no GIAHS status is claimed for them
-- [ ] Enclosure acreage uses **Chapman (7.25–7.35m acres)**, not Turner's 6.8m,
+- [x] Enclosure acreage uses **Chapman (7.25–7.35m acres)**, not Turner's 6.8m,
       and the 59.67% pasture/waste figure is not stretched into a tree claim
-- [ ] The video is **not linked**, and not named beyond its genre
-- [ ] TOI_grain 0.96 appears in §4 **with its confidence interval**
-- [ ] Levis appears only alongside McMichael's Comment
-- [ ] Mayshar/Moav/Pascali appears only alongside the _JPE_ Comment
-- [ ] Enclosure is presented as **contested**, with Allen/Clark named
-- [ ] The Coldstream study is described as **n=1** in the prose, not only in the
+- [x] The video is **not linked**, and not named beyond its genre
+- [x] TOI_grain 0.96 appears in §4 **with its confidence interval**
+- [x] Levis appears only alongside McMichael's Comment
+- [x] Mayshar/Moav/Pascali appears only alongside the _JPE_ Comment
+- [x] Enclosure is presented as **contested**, with Allen/Clark named
+- [x] The Coldstream study is described as **n=1** in the prose, not only in the
       honesty table
-- [ ] No calories-per-labour-hour _ratio_ appears anywhere — direction only
-- [ ] §6 is longer than §4 (the unpriced axes must outweigh the concession)
-- [ ] **Side-by-side read against `the-forest-and-the-field`** — no paragraph
+- [x] No calories-per-labour-hour _ratio_ appears anywhere — direction only
+- [x] §6 is longer than §4 (the unpriced axes must outweigh the concession)
+- [x] **Side-by-side read against `the-forest-and-the-field`** — no paragraph
       could move between them unnoticed
-- [ ] Grep for `permaculture`, `layer`, `Mollison`, `Holmgren`, `regenerative`,
+- [x] Grep for `permaculture`, `layer`, `Mollison`, `Holmgren`, `regenerative`,
       `soil` — each at most once, in callback
-- [ ] §8 reads as a confession; no sentence in it would work in a sales deck
-- [ ] `HonestHarvest` renders and contains the Morocco row and the n=1 row
-- [ ] `pnpm --filter site build` succeeds (`astro dev` is known to hang on
+- [x] §8 reads as a confession; no sentence in it would work in a sales deck
+- [x] `HonestHarvest` renders and contains the Morocco row and the n=1 row
+- [x] `pnpm --filter site build` succeeds (`astro dev` is known to hang on
       `/changelog`; verify via build, per exploration 0291)
-- [ ] Post appears on `/blog` **with card art**, and `rig-the-game-or-play` now
+- [x] Post appears on `/blog` **with card art**, and `rig-the-game-or-play` now
       has card art too
-- [ ] `/blog/rss.xml` includes the post with the full description
-- [ ] `SeriesNav` resolves correctly on the new post and the previous newest
-- [ ] Light and dark mode checked on hero and inline art
-- [ ] `format:check` passes (a CI gate local runs routinely miss)
-- [ ] Read aloud once — sober in §2, unsparing in §4 and §8
+- [x] `/blog/rss.xml` includes the post with the full description
+- [x] `SeriesNav` resolves correctly on the new post and the previous newest
+- [x] Light and dark mode checked on hero and inline art
+- [x] `format:check` passes (a CI gate local runs routinely miss)
+- [x] Read aloud once — sober in §2, unsparing in §4 and §8
 
 ## References
 
