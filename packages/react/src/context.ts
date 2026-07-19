@@ -308,6 +308,8 @@ export interface XNetProviderProps {
  * xNet provider component
  *
  * Initializes NodeStore and provides it to the React tree.
+ *
+ * @public
  */
 export function XNetProvider({ config, children }: XNetProviderProps): JSX.Element {
   const [undoManager, setUndoManager] = useState<UndoManager | null>(null)

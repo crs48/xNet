@@ -256,6 +256,10 @@ pub fn verify_change(unsigned: &Value, signature: &[u8], public_key: &[u8]) -> b
 // ────────────────────────── L1 · LWW convergence ────────────────────────────
 
 /// Protocol version at which the grinding-resistant tiebreak key activates.
+///
+/// Mirrors `LWW_TIEBREAK_KEY_VERSION` in `packages/core/src/lww.ts`. Drift
+/// between the two is caught by
+/// `packages/sync/src/protocol-version-parity.test.ts` — update both together.
 const LWW_TIEBREAK_KEY_VERSION: i64 = 4;
 
 /// Grinding-resistant LWW final tiebreak key (exploration 0305 / spec §7.1):

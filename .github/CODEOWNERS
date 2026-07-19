@@ -1,0 +1,9 @@
+# API reports are the record of what xNet promises to keep working.
+# A change here means the public surface moved — see STABILITY.md.
+# rushstack (API Extractor's own repo) gates its reports the same way: the tool
+# forces acknowledgement, a human decides whether the change is acceptable.
+/packages/*/etc/            @crs48
+
+# The version/release gates themselves.
+/scripts/changeset/         @crs48
+/STABILITY.md               @crs48

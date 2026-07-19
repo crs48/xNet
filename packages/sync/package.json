@@ -12,8 +12,8 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     }
   },
   "files": [
@@ -30,7 +30,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "api:check": "api-extractor run",
+    "api:update": "api-extractor run --local"
   },
   "dependencies": {
     "@xnetjs/core": "workspace:*",
