@@ -213,6 +213,22 @@ it is durable for us, and it exists because those are not the same question:
 A lane that fails any test is redesigned or refused. Exploration documents
 that propose a revenue lane should apply the four tests explicitly.
 
+### Who can change this section
+
+The refused rents and the four tests bind people who cannot merge a PR — plugin
+authors, self-hosters, hub operators, paying customers. So they are an
+**in-scope operational rule** under the
+[Rule Change Proposal process](./RULE_CHANGES.md): anyone affected can propose
+changing them, and gets a public written answer with reasoning within 30 days,
+recorded in [`docs/decisions/rule-changes.md`](./decisions/rule-changes.md).
+
+This is what makes §6 answerable rather than merely stated. A covenant only the
+covenantor may amend, silently, is a preference. The decision log's seed entries
+include both of the refusals above that exploration 0358 added, a proposal we
+**declined** (relicensing the core under copyleft), and a revenue lane we
+**withdrew** after proposing it — because a record of only the flattering
+decisions is marketing (exploration 0361).
+
 ---
 
 ## Cryptographic posture (post‑quantum)

@@ -280,7 +280,7 @@ than one: the right to leave **and** the right to be heard on the record.
       with real entries.
 - [x] Amend `GOVERNANCE.md`: legitimate BDFL by exit **and** voice; link the
       RCP process from "How decisions are made".
-- [ ] Cross-link from [`CHARTER.md`](../CHARTER.md) §6 and
+- [x] Cross-link from [`CHARTER.md`](../CHARTER.md) §6 and
       [`ECONOMICS.md`](../ECONOMICS.md) — the rules those documents set are the
       ones in scope.
 - [ ] Add a `governance-rule-change-path` claim to the conformance ledger
