@@ -1062,7 +1062,7 @@ fi
       "rent fails all at once" framing sentence.
 - [x] Add the two silent refusals to §6: **no context capture** (stated
       generally) and **marketplace ranking neutrality**.
-- [ ] Produce the **context-portability inventory** — what `.xnetpack` carries
+- [x] Produce the **context-portability inventory** — what `.xnetpack` carries
       and what it does not — modelled on GitHub's non-migrating list. Every
       "does not" becomes a bug or a declared `pending`.
 - [ ] Add a neutrality clause to `site/src/pages/marketplace-terms.astro`.
