@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-18-only-a-space-s-owner-can-invite-people-t",
+      "url": "https://xnet.fyi/changelog#2026-07-18-only-a-space-s-owner-can-invite-people-t",
+      "title": "Only a space's owner can invite people to it",
+      "content_text": "Invite links for a space are now restricted to the person who created it, or someone they have made an admin. Previously the hub had no record of who owned a space, so anyone who learned a space's id could mint an invite link to it — and because a space invite grants access to everything filed beneath it, that covered the whole subtree. The hub now derives ownership from the signed change that created the space, so existing spaces are covered without any migration.\n",
+      "date_published": "2026-07-19T03:19:39Z",
+      "tags": [
+        "identity"
+      ],
+      "_xnet": {
+        "date": "July 18, 2026",
+        "summary": "Invite links for a space are now restricted to the person who created it, or someone they have made an admin. Previously the hub had no record of who owned a space, so anyone who learned a space's id could mint an invite link to it — and because a space invite grants access to everything filed beneath it, that covered the whole subtree. The hub now derives ownership from the signed change that created the space, so existing spaces are covered without any migration.",
+        "highlights": [],
+        "mergedAt": "2026-07-19T03:19:39Z",
+        "pr": 566,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-18-a-fourth-test-for-every-way-xnet-makes-m",
       "url": "https://xnet.fyi/changelog#2026-07-18-a-fourth-test-for-every-way-xnet-makes-m",
       "title": "A fourth test for every way xNet makes money",

@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Only a space's owner can invite people to it</title>
+      <link>https://xnet.fyi/changelog#2026-07-18-only-a-space-s-owner-can-invite-people-t</link>
+      <guid isPermaLink="false">2026-07-18-only-a-space-s-owner-can-invite-people-t</guid>
+      <pubDate>Sun, 19 Jul 2026 03:19:39 GMT</pubDate>
+      <description>Invite links for a space are now restricted to the person who created it, or someone they have made an admin. Previously the hub had no record of who owned a space, so anyone who learned a space's id could mint an invite link to it — and because a space invite grants access to everything filed beneath it, that covered the whole subtree. The hub now derives ownership from the signed change that created the space, so existing spaces are covered without any migration.</description>
+    </item>
+    <item>
       <title>A fourth test for every way xNet makes money</title>
       <link>https://xnet.fyi/changelog#2026-07-18-a-fourth-test-for-every-way-xnet-makes-m</link>
       <guid isPermaLink="false">2026-07-18-a-fourth-test-for-every-way-xnet-makes-m</guid>
