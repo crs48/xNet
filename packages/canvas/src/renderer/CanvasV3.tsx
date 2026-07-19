@@ -27,7 +27,8 @@ import {
   ContextMenuContent,
   ContextMenuRoot,
   ContextMenuTrigger,
-  type Action
+  type Action,
+  type TaskPersonOption
 } from '@xnetjs/ui'
 import React, {
   forwardRef,
@@ -289,6 +290,12 @@ export type CanvasProps = {
   onToggleShortcutHelp?: () => void
   onEditSelectionAlias?: () => void
   onCreateSelectionComment?: () => void
+  /**
+   * People for comment @mention typeahead and author-name resolution. The
+   * host owns profile lookup, so this is passed down rather than read here
+   * (0375).
+   */
+  commentPeople?: TaskPersonOption[]
   onDismissTransientUi?: () => boolean | void
   onUndoRedoShortcut?: (direction: 'undo' | 'redo') => boolean
   onSceneMutation?: () => void
@@ -2816,6 +2823,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
     onToggleShortcutHelp,
     onEditSelectionAlias,
     onCreateSelectionComment,
+    commentPeople,
     onDismissTransientUi,
     onUndoRedoShortcut,
     onSceneMutation,
@@ -6939,6 +6947,7 @@ export const Canvas = forwardRef<CanvasHandle, CanvasProps>(function CanvasV3(
           canvasSchema={canvasSchema}
           transform={{ panX: viewport.x, panY: viewport.y, zoom: viewport.zoom }}
           objects={commentsObjects}
+          people={commentPeople}
         />
       ) : null}
 

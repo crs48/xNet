@@ -835,7 +835,7 @@ replacing the hardcoded amber and the hand-written `.dark` block:
       (web + electron) with `CommentIsland` in `composing` mode.
 - [ ] Adopt `useCommentPopover` in all three surfaces, or delete it and export
       one shared machine — do not leave it with zero consumers.
-- [ ] Fix `authorDisplayName`: populate it in `CommentOverlay.tsx:188-210` and
+- [x] Fix `authorDisplayName`: populate it in `CommentOverlay.tsx:188-210` and
       `DatabaseView.tsx:399` so canvas and database stop showing raw DIDs.
 - [ ] Fix `DatabaseView.tsx:390-393` showing only `threads[0]` while the badge
       counts all threads on the cell.
@@ -846,7 +846,7 @@ replacing the hardcoded amber and the hand-written `.dark` block:
 - [ ] Migrate `apps/web/src/components/PageView.tsx:685`.
 - [ ] Migrate `apps/web/src/components/DatabaseView.tsx:1061`.
 - [ ] Migrate `apps/electron/src/renderer/components/DatabaseView.tsx:815`.
-- [ ] Migrate `packages/canvas/src/comments/CommentOverlay.tsx:279` to a virtual
+- [x] Migrate `packages/canvas/src/comments/CommentOverlay.tsx:279` to a virtual
       anchor that re-projects from the viewport transform; pass `people` so
       canvas gains @mentions.
 - [x] Token-ify the BlockNote thread marks in
