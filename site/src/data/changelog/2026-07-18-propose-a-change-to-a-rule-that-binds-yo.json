@@ -1,0 +1,17 @@
+{
+  "id": "2026-07-18-propose-a-change-to-a-rule-that-binds-yo",
+  "date": "July 18, 2026",
+  "title": "Propose a change to a rule that binds you",
+  "summary": "Plugin authors, self-hosters and hub operators can now file a Rule Change Proposal against an enumerated operational rule — the humane-patterns gate, allowed plugin licences, marketplace terms, the Charter's refused rents, the Moat Register, or plan quotas — and get a public written answer with reasoning within 30 days. Decisions, including refusals, are recorded in a public append-only log.",
+  "highlights": [],
+  "tags": [
+    "platform"
+  ],
+  "pr": 579,
+  "mergedAt": "2026-07-19T07:19:19Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

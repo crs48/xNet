@@ -97,6 +97,17 @@ owning a layer.
 > performance, a slow default, an undocumented requirement. If you are reading
 > this while making that argument, the argument is the symptom.
 
+**This register is an in-scope rule.** Which moats we refuse and which we keep
+binds everyone downstream of a pricing or positioning decision, and until
+recently it could be rewritten by a maintainer commit with no external path.
+Anyone affected can now propose changing it through the
+[Rule Change Proposal process](./RULE_CHANGES.md); the answer, including a
+refusal, is written down in
+[`docs/decisions/rule-changes.md`](./decisions/rule-changes.md). That is the
+mechanism by which the paragraph above is more than a promise to ourselves —
+the Red-Hat-shaped argument, if it ever gets made here, has to be made in
+public and answered on the record.
+
 ---
 
 ## 3. What actually travels — the context-portability inventory

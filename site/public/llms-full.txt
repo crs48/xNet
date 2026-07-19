@@ -88,6 +88,12 @@ Before reading this documentation, understand that xNet works differently:
 - When to use xNet (and when not to)
   
 
+**xNet is alpha software**
+Not pre-release — released, but early. The `@xnetjs/*` packages are on npm, the
+desktop app is downloadable, and the hub image ships. But APIs, schemas and wire
+formats still change between releases, sometimes without a migration path. Pin
+your versions, keep your own `.xnetpack` backups, and expect rough edges.
+
 ## The problem
 
 Building a modern collaborative app requires assembling a stack of 6+ services: a database, an API layer, auth, real-time sync, file storage, and deployment infrastructure. Each comes with its own SDK, its own data model, and its own failure modes.
@@ -9216,7 +9222,7 @@ The identity system has no concept of "creating an account" or "logging in" to a
 
 ## Overview
 
-xNet uses a **hybrid classical + post-quantum** cryptographic stack, hardened against both current threats and future quantum attacks. NIST finalized the post-quantum standards in August 2024 (FIPS 203/204/205). Since xNet is prerelease software, hybrid security ships as a clean implementation — no migration debt.
+xNet uses a **hybrid classical + post-quantum** cryptographic stack, hardened against both current threats and future quantum attacks. NIST finalized the post-quantum standards in August 2024 (FIPS 203/204/205). Because xNet is still alpha, hybrid security ships as a clean implementation — no migration debt.
 
 | Algorithm          | Role                     | Standard      | Package               |
 | ------------------ | ------------------------ | ------------- | --------------------- |

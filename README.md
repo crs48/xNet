@@ -16,6 +16,26 @@
 
 Decentralized data infrastructure and application. Local-first, P2P-synced, user-owned data.
 
+> ## ⚠️ xNet is alpha software
+>
+> Not pre-release — **released, but early.** The `@xnetjs/*` packages are
+> published on npm, the desktop app is downloadable, and the hub image ships.
+> You can build with it today.
+>
+> What that costs you: APIs, schemas, storage layouts and wire formats can
+> change between releases, sometimes without a migration path. Things move
+> and break. Pin your versions, read the
+> [changelog](https://xnet.fyi/changelog) before upgrading, and don't put
+> data you can't afford to lose anywhere but a backup you control
+> (`.xnetpack` export is built in).
+>
+> Package version numbers are **not** a maturity signal — the core packages
+> version in lockstep and are already past 2.x. Alpha is the project's stage,
+> not the semver range. npm does not allow renumbering downward, so rather
+> than fake a number we can't have, we wrote the promise down:
+> **[STABILITY.md](./STABILITY.md)** — what carries a compatibility promise,
+> what doesn't, and how protocol versions differ from package versions.
+
 xNet is both the underlying infrastructure and the user-facing app — one product, one brand. It starts with documents and databases, then expands via plugins to support ERP, MCP integrations, and more.
 
 > **This repository is one implementation of xNet.** xNet is also an open

@@ -52,7 +52,7 @@ public enum WireCodec {
             deleted: payloadDict["deleted"] as? Bool
         )
         return Change(
-            protocolVersion: (d["protocolVersion"] as? NSNumber)?.int64Value ?? 3,
+            protocolVersion: (d["protocolVersion"] as? NSNumber)?.int64Value ?? 4,
             id: id,
             type: d["type"] as? String ?? "node-change",
             payload: payload,
@@ -108,6 +108,12 @@ public final class HubConnection {
         guard handshake["type"] as? String == "handshake" else {
             throw HubError.unexpected("expected handshake, got \(handshake["type"] ?? "nil")")
         }
+        // NOTE: these are the *hub WebSocket handshake* protocol versions, which
+        // are deliberately NOT the change-record protocol version (`Change
+        // .protocolVersion`, currently 4). The hub advertises
+        // `hubProtocolVersion = 1` in packages/hub/src/ws/handlers/
+        // client-handshake.ts; sending 4 here would produce a spurious
+        // `version-mismatch`. Two different numbers, same field name.
         try await sendJSON([
             "type": "client-handshake",
             "did": did,

@@ -2,7 +2,7 @@
  * apps/web — verified ATProto handle chip (0322/0338).
  *
  * Shows a linked ATProto handle and asks the hub to confirm the bidirectional
- * `net.x.identity.binding` is genuine (`GET /atproto/binding/:did?xnet=…`).
+ * `fyi.xnet.identity.binding` is genuine (`GET /atproto/binding/:did?xnet=…`).
  * "Linked" (stored on the profile) and "verified" (hub-confirmed) are distinct:
  * the check runs against the hub the app is connected to and degrades to
  * "linked, unverified" when no hub is configured or the check fails.

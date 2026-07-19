@@ -83,8 +83,14 @@ async function suggest(diff, packages) {
     'no internal jargon). Bump rules: major = a breaking change to the public API ' +
     '(removed/renamed export, changed signature, changed protocol/hash/wire contract) ' +
     'EVEN IF the commit said feat/fix; minor = backward-compatible new feature; patch = ' +
-    'fix/perf/internal. Be conservative: when in doubt about breakage, choose the HIGHER ' +
-    'bump. Reply with STRICT JSON only, no prose, no code fences: ' +
+    'fix/perf/internal. ALWAYS major if the diff changes any of these wire-visible ' +
+    'constants, which the Stop hook also enforces: CURRENT_PROTOCOL_VERSION ' +
+    '(packages/sync/src/change.ts), LWW_TIEBREAK_KEY_VERSION (packages/core/src/lww.ts), ' +
+    'XNET_SYNC_ENVELOPE_VERSION / XNET_DATA_MODEL_VERSION / XNET_AWARENESS_VERSION / ' +
+    'XNET_PROTOCOL_VERSION (packages/runtime/src/protocol.ts), SCHEMA_VERSION ' +
+    '(packages/sqlite/src/schema.ts), XNETPACK_FORMAT_VERSION ' +
+    '(packages/data/src/portability/types.ts). Be conservative: when in doubt about ' +
+    'breakage, choose the HIGHER bump. Reply with STRICT JSON only, no prose, no fences: ' +
     '{"releases":[{"name":"@xnetjs/x","bump":"patch|minor|major","summary":"..."}]}'
 
   const res = await fetch(API_URL, {

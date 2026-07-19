@@ -1,0 +1,45 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/api-extractor/v7/api-extractor.schema.json",
+
+  // The committed API report (etc/react.api.md) is the reviewable record of this
+  // package's public surface. CI regenerates it and fails if it differs, so a
+  // change to what we export shows up as a PR diff instead of a surprise.
+  //
+  // Release tags (@public / @beta / @alpha / @internal) scope which exports carry
+  // a semver promise — see STABILITY.md. Missing tags are currently a warning,
+  // not an error: we are tagging incrementally rather than blocking on a
+  // whole-surface sweep (exploration 0370).
+  "mainEntryPointFilePath": "<projectFolder>/dist/index.d.ts",
+
+  "apiReport": {
+    "enabled": true,
+    "reportFolder": "<projectFolder>/etc/",
+    "reportTempFolder": "<projectFolder>/temp/",
+    "reportFileName": "core.api.md"
+  },
+
+  "docModel": { "enabled": false },
+  "dtsRollup": { "enabled": false },
+  "tsdocMetadata": { "enabled": false },
+
+  "compiler": {
+    "tsconfigFilePath": "<projectFolder>/tsconfig.json"
+  },
+
+  "messages": {
+    "compilerMessageReporting": {
+      "default": { "logLevel": "warning" }
+    },
+    "extractorMessageReporting": {
+      "default": { "logLevel": "warning" },
+      // We are not yet tagging every export; the report itself is the gate.
+      "ae-missing-release-tag": { "logLevel": "none" },
+      // Forgotten exports are informative but extremely noisy on a barrel-heavy
+      // package; the report lists them, which is the part we review.
+      "ae-forgotten-export": { "logLevel": "none" }
+    },
+    "tsdocMessageReporting": {
+      "default": { "logLevel": "none" }
+    }
+  }
+}

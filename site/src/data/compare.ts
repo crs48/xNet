@@ -81,7 +81,7 @@ export const layers: CompareLayer[] = [
         name: 'xNet App',
         url: 'https://github.com/crs48/xNet',
         highlight: true,
-        maturity: 'pre-release',
+        maturity: 'alpha',
         license: 'MIT',
         bestFor: 'A workspace you fully own — documents, databases, canvas, tasks, chat',
         dims: {
@@ -335,7 +335,7 @@ export const layers: CompareLayer[] = [
     footnotes: [
       {
         id: 'xnet-prerelease',
-        text: 'xNet is pre-release; its rows reflect shipped behavior (see the roadmap), not future plans.',
+        text: 'xNet is alpha software — released and usable, but early: APIs and formats still change. Its rows reflect shipped behavior (see the roadmap), not future plans.',
         sourceUrl: 'https://github.com/crs48/xNet'
       },
       {
@@ -387,7 +387,7 @@ export const layers: CompareLayer[] = [
         name: 'xNet',
         url: 'https://github.com/crs48/xNet',
         highlight: true,
-        maturity: 'pre-release',
+        maturity: 'alpha',
         license: 'MIT',
         bestFor: 'Full-stack local-first apps: typed data + rich text + canvas + comms',
         dims: {
@@ -652,7 +652,7 @@ export const layers: CompareLayer[] = [
     footnotes: [
       {
         id: 'fw-xnet-prerelease',
-        text: 'xNet is pre-release; rows reflect shipped behavior, not roadmap.',
+        text: 'xNet is alpha software — released but early; APIs and formats still change. Rows reflect shipped behavior, not roadmap.',
         sourceUrl: 'https://github.com/crs48/xNet'
       },
       {
@@ -1034,7 +1034,7 @@ export const layers: CompareLayer[] = [
         name: 'xNet',
         url: 'https://github.com/crs48/xNet',
         highlight: true,
-        maturity: 'pre-release',
+        maturity: 'alpha',
         license: 'MIT',
         bestFor: 'Owning a typed knowledge graph — protocol separate from any one app',
         dims: {
@@ -1222,7 +1222,8 @@ export const layers: CompareLayer[] = [
       {
         id: 'habitat-ods',
         text: "Habitat's Organizational Data Server hosts all member repositories on one org-owned server; member DIDs are minted by the org, and an OAuth credential for the org's DID can read every space on it. Access control is enforced at the server API, not by encryption — the inverse of xNet's hub, which never sees plaintext but also never gets a master read credential. Implements the draft atproto permissioned-spaces proposal (0016); pre-1.0 with breaking changes and a spaces→PDS migration announced.",
-        sourceUrl: 'https://github.com/habitat-network/habitat/blob/master/api-docs/docs/building/auth.mdx'
+        sourceUrl:
+          'https://github.com/habitat-network/habitat/blob/master/api-docs/docs/building/auth.mdx'
       },
       {
         id: 'iroh-1-0',

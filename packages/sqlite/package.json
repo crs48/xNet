@@ -12,40 +12,40 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     },
     "./electron": {
-      "import": "./dist/adapters/electron.js",
-      "types": "./dist/adapters/electron.d.ts"
+      "types": "./dist/adapters/electron.d.ts",
+      "import": "./dist/adapters/electron.js"
     },
     "./web": {
-      "import": "./dist/adapters/web.js",
-      "types": "./dist/adapters/web.d.ts"
+      "types": "./dist/adapters/web.d.ts",
+      "import": "./dist/adapters/web.js"
     },
     "./web-proxy": {
-      "import": "./dist/adapters/web-proxy.js",
-      "types": "./dist/adapters/web-proxy.d.ts"
+      "types": "./dist/adapters/web-proxy.d.ts",
+      "import": "./dist/adapters/web-proxy.js"
     },
     "./web-worker": {
-      "import": "./dist/adapters/web-worker.js",
-      "types": "./dist/adapters/web-worker.d.ts"
+      "types": "./dist/adapters/web-worker.d.ts",
+      "import": "./dist/adapters/web-worker.js"
     },
     "./web-router-worker": {
-      "import": "./dist/adapters/web-router-worker.js",
-      "types": "./dist/adapters/web-router-worker.d.ts"
+      "types": "./dist/adapters/web-router-worker.d.ts",
+      "import": "./dist/adapters/web-router-worker.js"
     },
     "./browser-support": {
-      "import": "./dist/browser-support.js",
-      "types": "./dist/browser-support.d.ts"
+      "types": "./dist/browser-support.d.ts",
+      "import": "./dist/browser-support.js"
     },
     "./expo": {
-      "import": "./dist/adapters/expo.js",
-      "types": "./dist/adapters/expo.d.ts"
+      "types": "./dist/adapters/expo.d.ts",
+      "import": "./dist/adapters/expo.js"
     },
     "./memory": {
-      "import": "./dist/adapters/memory.js",
-      "types": "./dist/adapters/memory.d.ts"
+      "types": "./dist/adapters/memory.d.ts",
+      "import": "./dist/adapters/memory.js"
     }
   },
   "files": [

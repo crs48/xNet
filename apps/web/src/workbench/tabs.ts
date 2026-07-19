@@ -73,13 +73,13 @@ export const TAB_VIEWS: Record<TabNodeType, TabViewEntry> = {
 
 const ROUTE_PREFIXES: Array<{ prefix: string; nodeType: TabNodeType }> = [
   { prefix: '/doc/', nodeType: 'page' },
-  { prefix: '/post/', nodeType: 'post' },
   { prefix: '/db/', nodeType: 'database' },
   { prefix: '/canvas/', nodeType: 'canvas' },
   { prefix: '/dashboard/', nodeType: 'dashboard' },
   { prefix: '/map/', nodeType: 'map' },
   { prefix: '/view/', nodeType: 'savedview' },
   { prefix: '/channel/', nodeType: 'channel' },
+  { prefix: '/post/', nodeType: 'post' },
   { prefix: '/tag/', nodeType: 'tag' },
   { prefix: '/person/', nodeType: 'person' },
   { prefix: '/lab/', nodeType: 'lab' },
