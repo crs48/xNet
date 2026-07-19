@@ -19,7 +19,7 @@ describe('publishPost', () => {
     const { patch, isFirstPublish } = publishPost({
       post: post(),
       takenSlugs: [],
-      frontier: { 'p1': 'h1' },
+      frontier: { p1: { hash: 'h1' } },
       now: NOW
     })
     expect(patch.slug).toBe('the-owned-audience')
@@ -63,20 +63,21 @@ describe('publishPost', () => {
     const { patch, isFirstPublish } = publishPost({
       post: post({ slug: 's', publishedAt: 1_700_000_000_000 }),
       takenSlugs: [],
-      frontier: { 'p1': 'h2' },
+      frontier: { p1: { hash: 'h2', yjsSnapshotRef: 'p1@2000' } },
       now: NOW
     })
     expect(patch.publishedAt).toBeUndefined()
     expect(isFirstPublish).toBe(false)
     // Only the pin moves.
-    expect(patch.publishedFrontier).toEqual({ 'p1': 'h2' })
+    expect(patch.publishedFrontier).toEqual({ p1: { hash: 'h2', yjsSnapshotRef: 'p1@2000' } })
   })
 
-  it('pins a copy of the frontier, not a live reference', () => {
-    const frontier = { 'p1': 'h1' }
+  it('pins a deep copy, so mutating the caller\'s frontier cannot rewrite history', () => {
+    const frontier = { p1: { hash: 'h1', yjsSnapshotRef: 'p1@1' } }
     const { patch } = publishPost({ post: post(), takenSlugs: [], frontier, now: NOW })
-    frontier['p1'] = 'mutated'
-    expect(patch.publishedFrontier).toEqual({ 'p1': 'h1' })
+    frontier.p1.hash = 'mutated'
+    frontier.p1.yjsSnapshotRef = 'p1@999'
+    expect(patch.publishedFrontier).toEqual({ p1: { hash: 'h1', yjsSnapshotRef: 'p1@1' } })
   })
 
   it('fills the excerpt only when the author left it empty', () => {
@@ -105,7 +106,7 @@ describe('publishPost', () => {
   })
 
   it('is pure — same inputs, same patch', () => {
-    const args = { post: post(), takenSlugs: [], frontier: { 'p1': 'h1' }, now: NOW }
+    const args = { post: post(), takenSlugs: [], frontier: { p1: { hash: 'h1' } }, now: NOW }
     expect(publishPost(args).patch).toEqual(publishPost(args).patch)
   })
 })
@@ -122,17 +123,27 @@ describe('unpublishPost', () => {
 
 describe('frontierEquals / hasUnpublishedChanges', () => {
   it('compares frontiers irrespective of key order', () => {
-    expect(frontierEquals({ a: '1', b: '2' }, { b: '2', a: '1' })).toBe(true)
-    expect(frontierEquals({ a: '1' }, { a: '2' })).toBe(false)
-    expect(frontierEquals({ a: '1' }, { a: '1', b: '2' })).toBe(false)
+    expect(
+      frontierEquals({ a: { hash: '1' }, b: { hash: '2' } }, { b: { hash: '2' }, a: { hash: '1' } })
+    ).toBe(true)
+    expect(frontierEquals({ a: { hash: '1' } }, { a: { hash: '2' } })).toBe(false)
+    expect(frontierEquals({ a: { hash: '1' } }, { a: { hash: '1' }, b: { hash: '2' } })).toBe(false)
+  })
+
+  it('compares entry contents, not object identity', () => {
+    // Two frontiers loaded from storage are never the same objects.
+    expect(frontierEquals({ a: { hash: '1' } }, { a: { hash: '1' } })).toBe(true)
+    expect(
+      frontierEquals({ a: { hash: '1', yjsSnapshotRef: 'a@1' } }, { a: { hash: '1' } })
+    ).toBe(false)
   })
 
   it('reports pending edits only for published posts', () => {
-    const published = post({ publishedAt: NOW, publishedFrontier: { p1: 'h1' } })
-    expect(hasUnpublishedChanges(published, { p1: 'h1' })).toBe(false)
-    expect(hasUnpublishedChanges(published, { p1: 'h2' })).toBe(true)
+    const published = post({ publishedAt: NOW, publishedFrontier: { p1: { hash: 'h1' } } })
+    expect(hasUnpublishedChanges(published, { p1: { hash: 'h1' } })).toBe(false)
+    expect(hasUnpublishedChanges(published, { p1: { hash: 'h2' } })).toBe(true)
     // A draft has nothing to diverge from.
-    expect(hasUnpublishedChanges(post(), { p1: 'h9' })).toBe(false)
+    expect(hasUnpublishedChanges(post(), { p1: { hash: 'h9' } })).toBe(false)
   })
 })
 
