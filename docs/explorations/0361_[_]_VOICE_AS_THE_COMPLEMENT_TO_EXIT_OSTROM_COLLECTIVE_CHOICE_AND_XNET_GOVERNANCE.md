@@ -275,7 +275,7 @@ than one: the right to leave **and** the right to be heard on the record.
 - [x] Write `docs/RULE_CHANGES.md` — definition, enumerated in-scope rule list,
       who may propose, and the response commitment.
 - [x] Add `.github/ISSUE_TEMPLATE/rule-change.yml` modelled on the XPP template.
-- [ ] Create the public decision log (`docs/decisions/rule-changes.md`),
+- [x] Create the public decision log (`docs/decisions/rule-changes.md`),
       seeded with the two refusals 0358 added to the Charter so the log starts
       with real entries.
 - [ ] Amend `GOVERNANCE.md`: legitimate BDFL by exit **and** voice; link the
