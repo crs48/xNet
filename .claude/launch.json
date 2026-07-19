@@ -113,6 +113,21 @@
       "port": 4391
     },
     {
+      "name": "site-dist-0364 (static 4394)",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "4394", "-d", "site/dist"],
+      "port": 4394
+    },
+    {
+      "name": "site-0364 (astro 4393)",
+      "runtimeExecutable": "/bin/sh",
+      "runtimeArgs": [
+        "-c",
+        "cd site && exec /Users/crs/.nvm/versions/node/v23.11.1/bin/node node_modules/astro/astro.js dev --port 4393 --strictPort"
+      ],
+      "port": 4393
+    },
+    {
       "name": "site-worktree (astro 4391)",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "site", "dev", "--port", "4391", "--strictPort"],
