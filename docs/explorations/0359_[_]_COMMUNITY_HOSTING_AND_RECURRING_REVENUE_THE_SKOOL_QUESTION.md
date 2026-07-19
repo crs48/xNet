@@ -725,7 +725,7 @@ export const welcomeQueue = (posts: readonly UnansweredPost[], now: number): Una
 
 - [x] Remove the seat meter from `PLAN_CATALOG.community` in `packages/entitlements/src/plans.ts`; document members-are-not-seats in the doc comment
 - [x] Add a `community` scenario to `PLAN_PRICING` in `packages/cloud/src/cost/pricing.ts` so the floor-margin test covers it
-- [ ] Audit `canManageShares` in `packages/hub/src/routes/share-links.ts`: assert Spaces always carry `DocMeta.ownerDid`, or remove the ownerless fallback for `docType: 'space'`
+- [x] Audit `canManageShares` in `packages/hub/src/routes/share-links.ts`: assert Spaces always carry `DocMeta.ownerDid`, or remove the ownerless fallback for `docType: 'space'`
 - [ ] Add a Charter §6 receipt for "no per-member pricing" alongside the existing refused rents
 
 ### Phase 1 — host it (no money, no legal exposure)
