@@ -800,6 +800,66 @@ stateDiagram-v2
   independents (`runtime` 0.5.5, `cli` 0.3.1). `check-publish-closure.mjs`
   guards the dependency closure but not version-range satisfiability.
 
+## Implementation Status
+
+**Phases 1–4 landed.** Phases 5–6 are deliberately open: they are time-based
+(a six-week measurement) or external (emailing a stranger, contacting npm
+support), and a judgement call (C2) that belongs to the maintainer.
+
+**What shipped:**
+
+- `STABILITY.md`, linked from README and `CONTRIBUTING.md#versioning`
+- Swift protocol drift `3` → `4` fixed, plus `protocol-version-parity.test.ts`
+  covering Rust and Swift (verified: it fails on the original drift)
+- `schema-check.yml` deleted — it could never fail
+- `PROTOCOL_SENTINELS` in the Stop hook (verified: blocks patch/minor on a
+  protocol constant, passes on major, no false positive on an unrelated edit)
+- api-extractor on react/core/data/sync, reports committed and CODEOWNERS-gated,
+  drift gate in CI
+- `publint` over all 19 publishable packages
+
+**Two real bugs surfaced by the new gates, both shipped-and-broken beforehand:**
+
+1. `types` was ordered *after* `import` in **48 export subpaths across 19
+   packages**. Export conditions are order-sensitive, so TypeScript could
+   mis-resolve types for every published package.
+2. `@xnetjs/data` advertised a `./portability` subpath that was never added to
+   its build — `@xnetjs/data/portability`, the `.xnetpack` codec that
+   `STABILITY.md` tells users to back up with, **did not resolve at all**.
+
+**Corrections made to this document's own plan while implementing:**
+
+- **`HubConnection.swift`'s `protocolVersion: 1` was correct and was left
+  alone.** It is the *hub WebSocket handshake* version (`hubProtocolVersion = 1`),
+  a different number sharing a field name. "Fixing" it to 4 would have caused a
+  spurious `version-mismatch`. Documented in place.
+- **Removing `hub`/`editor` from the changeset `ignore` list would be a no-op** —
+  both are `private: true`, so they are already outside the hook. Neither is on
+  npm, so there is no semver bump to demand. Recorded as a known gap instead.
+- **`LWW_TIEBREAK_KEY_VERSION` must not be collapsed into
+  `CURRENT_PROTOCOL_VERSION`.** They share the value 4 today but mean different
+  things — the LWW constant records the version the tiebreak *activated at*, and
+  stays pinned when the format moves on. The parity test asserts
+  `LWW <= CURRENT`, not equality.
+- **`api-extractor run` alone cannot gate.** It reports a changed signature as a
+  *warning* and exits 0 — the exact "gate that can't fail" this document
+  criticises. The gate runs `--local` and uses `git status` (not `git diff`,
+  which ignores untracked files) as the assertion.
+
+**One validation deliberately left failing — "deleting an `@internal` export
+does not trip the gate."** It *does* trip it. api-extractor treats untagged
+exports as `@public`, and we tagged 5 symbols out of ~372, so the reports are
+currently a **change-visibility** gate rather than a tiering gate. That is real
+value on its own — a removed export can no longer land silently — but it is not
+the scoped promise the recommendation describes. `STABILITY.md` states this
+plainly rather than implying the surface is already narrow. Completing the
+tagging sweep is the follow-on work, and it is the prerequisite for the Phase 5
+measurement.
+
+**Also unresolved:** `useXNet` is tagged `@internal ... Not part of public API`
+in source but listed as **stable root contract** in `packages/react/README.md`.
+Left untouched — that contradiction is a maintainer decision, not a cleanup.
+
 ## Implementation Checklist
 
 **Phase 1 — say what we mean (cheap, no code)**
