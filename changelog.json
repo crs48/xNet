@@ -6,6 +6,29 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-19-inline-comments-are-readable-again",
+      "url": "https://xnet.fyi/changelog#2026-07-19-inline-comments-are-readable-again",
+      "title": "Inline comments are readable again",
+      "content_text": "Comment threads now open as a proper floating island: the reply box stays out of the way until you need it, so you can actually read the conversation, and the card follows the text it is attached to when you scroll. Clicking a highlighted passage opens its thread — previously only the sidebar could.\n",
+      "date_published": "2026-07-19T23:06:09Z",
+      "tags": [
+        "editor",
+        "app"
+      ],
+      "_xnet": {
+        "date": "July 19, 2026",
+        "summary": "Comment threads now open as a proper floating island: the reply box stays out of the way until you need it, so you can actually read the conversation, and the card follows the text it is attached to when you scroll. Clicking a highlighted passage opens its thread — previously only the sidebar could.",
+        "highlights": [],
+        "mergedAt": "2026-07-19T23:06:09Z",
+        "pr": 596,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-19-a-shadow-copy-of-the-blog-rendered-by-xn",
       "url": "https://xnet.fyi/changelog#2026-07-19-a-shadow-copy-of-the-blog-rendered-by-xn",
       "title": "A shadow copy of the blog, rendered by xNet",
