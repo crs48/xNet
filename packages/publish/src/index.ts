@@ -31,8 +31,16 @@ export {
   type PostRecord,
   type PostPatch,
   type PublishInput,
-  type PublishResult
+  type PublishResult,
+  type FrontierEntry
 } from './pipeline'
+
+export {
+  resolvePublishedDoc,
+  documentEntry,
+  type SnapshotResolver,
+  type ResolvedDoc
+} from './published-doc'
 
 export {
   buildRss,

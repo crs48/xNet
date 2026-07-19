@@ -3,6 +3,19 @@
   "version": "0.0.1",
   "description": "Render xNet pages to static HTML, feeds and sitemaps — the publishing spine for owned-audience blogging (exploration 0362).",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/crs48/xNet"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -27,6 +40,5 @@
     "tsup": "^8.0.0",
     "typescript": "^5.4.0",
     "vitest": "^4.0.0"
-  },
-  "private": true
+  }
 }

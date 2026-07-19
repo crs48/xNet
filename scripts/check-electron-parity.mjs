@@ -68,6 +68,11 @@ const WAIVED = new Map([
     'companion agent surface is part of the web calm shell (0250); not yet wired into the desktop renderer'
   ],
   ['channel', 'chat/comms not yet ported to desktop (no apps/electron comms layer)'],
+  [
+    'post',
+    'community forum topics (0359) are a web-first social surface; desktop has no ' +
+      'comms/community layer yet, same reason as channel'
+  ],
   ['crm', 'CRM is a web-first business surface; desktop stays canvas/page/db focused'],
   ['dashboard', 'dashboard builder is web-first; deferred on desktop'],
   ['discover', 'discovery/feed is a web/social surface'],
