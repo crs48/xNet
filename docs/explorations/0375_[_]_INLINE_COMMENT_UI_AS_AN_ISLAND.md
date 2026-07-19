@@ -797,27 +797,27 @@ replacing the hardcoded amber and the hand-written `.dark` block:
 
 ## Implementation Checklist
 
-- [ ] Extract `place()` + clamping + listeners from
+- [x] Extract `place()` + clamping + listeners from
       `apps/web/src/coachmarks/Coachmark.tsx` into
       `packages/ui/src/motion/useAnchoredPosition.ts`; refactor `Coachmark` to
       consume it and correct its docstring.
-- [ ] Define `CommentAnchor = HTMLElement | { getBoundingClientRect(): DOMRect }`.
+- [x] Define `CommentAnchor = HTMLElement | { getBoundingClientRect(): DOMRect }`.
 - [ ] Extract the duplicated `ISLAND` class string
       (`FloatingFrame.tsx:30`, `SidebarIslands.tsx:51`, `FloatingDock.tsx:33`,
       `DevToolsIsland.tsx:24`, `MobileShell.tsx:69`) into a single exported
       constant or `Island` primitive in `packages/ui/src/primitives/`.
-- [ ] Build `packages/ui/src/composed/comments/CommentIsland.tsx` with the
+- [x] Build `packages/ui/src/composed/comments/CommentIsland.tsx` with the
       three-region layout, the shared island recipe plus `shadow-pop`
       (`bg-popover`, **not** the legacy `bg-island-pop` alias), and
       `max-h-[min(28rem,60vh)]`.
-- [ ] Scroll only the thread region (`min-h-0 flex-1 overflow-y-auto`); header
+- [x] Scroll only the thread region (`min-h-0 flex-1 overflow-y-auto`); header
       and composer `shrink-0`.
-- [ ] Collapse the composer behind a "Reply…" affordance, mirroring
+- [x] Collapse the composer behind a "Reply…" affordance, mirroring
       `CommentsSidebar.tsx:183`.
-- [ ] Add a `composing` mode that renders the quoted anchor text plus composer.
-- [ ] Portal the island to `document.body`, keeping `z-50` (the de facto
+- [x] Add a `composing` mode that renders the quoted anchor text plus composer.
+- [x] Portal the island to `document.body`, keeping `z-50` (the de facto
       overlay layer — **no z-index scale token exists**; see Risks).
-- [ ] Replace raw `animate-in` classes with the shared `Presence` vocabulary
+- [x] Replace raw `animate-in` classes with the shared `Presence` vocabulary
       (`packages/ui/src/motion/Presence.tsx`) so both anchor kinds animate
       identically, an exit animation exists, and reduced motion is honoured.
       Confirm `motion.css` is imported on every consuming surface — without it
@@ -852,7 +852,7 @@ replacing the hardcoded amber and the hand-written `.dark` block:
 - [ ] Token-ify the BlockNote thread marks in
       `packages/editor/src/styles/editor.css:158-179`; remove the hand-written
       `.dark` overrides.
-- [ ] Export `CommentIsland` via the scoped sub-barrel
+- [x] Export `CommentIsland` via the scoped sub-barrel
       `packages/ui/src/composed/comments/index.ts`, re-exported from the root
       barrel as one grouped named block (per the 0276 sub-barrel policy).
 - [ ] Mark `CommentPopover` `@deprecated` with a pointer to `CommentIsland`.

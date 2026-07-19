@@ -301,12 +301,15 @@ export { SettingsPanel, SettingsGroup, SettingRow, SettingToggle } from './compo
 // ─── Comment Components ───────────────────────────────────────────
 export {
   CommentBubble,
+  CommentIsland,
   CommentPopover,
   MentionTextArea,
   useCommentPopover,
   OrphanedThreadList,
   ThreadPicker,
   type CommentBubbleProps,
+  type CommentIslandProps,
+  type CommentIslandMode,
   type CommentPopoverProps,
   type MentionTextAreaProps,
   type CommentData,
@@ -336,6 +339,14 @@ export {
 // The canonical motion vocabulary's React surface. CSS tokens/keyframes
 // live in ./theme/motion.css; see docs/MOTION.md for the style guide.
 export { Presence, type PresenceProps, type PresenceMotion } from './motion/Presence'
+export {
+  useAnchoredPosition,
+  placeAnchored,
+  type AnchorLike,
+  type AnchorSide,
+  type AnchoredPosition,
+  type VirtualAnchor
+} from './motion/useAnchoredPosition'
 export {
   useViewTransition,
   startViewTransition,
