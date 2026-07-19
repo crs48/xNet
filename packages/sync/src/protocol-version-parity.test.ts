@@ -38,8 +38,8 @@ const CHANGE_VERSION_SOURCES: Source[] = [
   {
     lang: 'swift (XNetKit Change)',
     path: 'swift/XNetKit/Sources/XNetKit/Change.swift',
-    re: /public var protocolVersion:\s*Int64\s*=\s*(\d+)/,
-  },
+    re: /public var protocolVersion:\s*Int64\s*=\s*(\d+)/
+  }
 ]
 
 /**
@@ -52,8 +52,8 @@ const LWW_VERSION_SOURCES: Source[] = [
   {
     lang: 'rust (xnet-core)',
     path: 'rust/xnet-core/src/lib.rs',
-    re: /const\s+LWW_TIEBREAK_KEY_VERSION:\s*i64\s*=\s*(\d+)/,
-  },
+    re: /const\s+LWW_TIEBREAK_KEY_VERSION:\s*i64\s*=\s*(\d+)/
+  }
 ]
 
 function literalFrom({ path, re }: Source): number {
