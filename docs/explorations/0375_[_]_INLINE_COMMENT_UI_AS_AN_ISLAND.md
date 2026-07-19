@@ -823,29 +823,29 @@ replacing the hardcoded amber and the hand-written `.dark` block:
       Confirm `motion.css` is imported on every consuming surface — without it
       `Presence` never fires `animationend` and exiting nodes stay on screen
       forever (`apps/web/src/styles/globals.css:8-13`).
-- [ ] **Wire the page view's inline layer** — add a click/hover handler on
+- [x] **Wire the page view's inline layer** — add a click/hover handler on
       `.bn-thread-mark` that calls `showThreadPopover`, so clicking a commented
       passage opens the island. Today only the sidebar can.
-- [ ] Mount a composer host for creation (either BlockNote's
+- [x] Mount a composer host for creation (either BlockNote's
       `FloatingComposerController` or `CommentIsland` in `composing` mode) and
       connect `handleCreateComment`, which currently has no consumer.
-- [ ] **Delete `NewCommentInput`** from `apps/web/src/components/PageView.tsx`
+- [x] **Delete `NewCommentInput`** from `apps/web/src/components/PageView.tsx`
       (unreachable dead code) and route creation through the island instead.
-- [ ] Replace the bespoke no-thread composer at `DatabaseView.tsx:1073-1113`
+- [x] Replace the bespoke no-thread composer at `DatabaseView.tsx:1073-1113`
       (web + electron) with `CommentIsland` in `composing` mode.
 - [ ] Adopt `useCommentPopover` in all three surfaces, or delete it and export
       one shared machine — do not leave it with zero consumers.
 - [x] Fix `authorDisplayName`: populate it in `CommentOverlay.tsx:188-210` and
       `DatabaseView.tsx:399` so canvas and database stop showing raw DIDs.
-- [ ] Fix `DatabaseView.tsx:390-393` showing only `threads[0]` while the badge
+- [x] Fix `DatabaseView.tsx:390-393` showing only `threads[0]` while the badge
       counts all threads on the cell.
 - [x] Delete `packages/views/src/components/CommentIndicator.tsx` and its two
       barrel re-exports (dead, and holds a hardcoded `#f59e0b`).
 - [x] Token-ify the grid badge at `GridCell.tsx:304`
       (`text-amber-500` → comment-mark token).
-- [ ] Migrate `apps/web/src/components/PageView.tsx:685`.
-- [ ] Migrate `apps/web/src/components/DatabaseView.tsx:1061`.
-- [ ] Migrate `apps/electron/src/renderer/components/DatabaseView.tsx:815`.
+- [x] Migrate `apps/web/src/components/PageView.tsx:685`.
+- [x] Migrate `apps/web/src/components/DatabaseView.tsx:1061`.
+- [x] Migrate `apps/electron/src/renderer/components/DatabaseView.tsx:815`.
 - [x] Migrate `packages/canvas/src/comments/CommentOverlay.tsx:279` to a virtual
       anchor that re-projects from the viewport transform; pass `people` so
       canvas gains @mentions.

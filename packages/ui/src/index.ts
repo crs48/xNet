@@ -342,6 +342,8 @@ export { Presence, type PresenceProps, type PresenceMotion } from './motion/Pres
 export {
   useAnchoredPosition,
   placeAnchored,
+  pointAnchor,
+  toAnchorLike,
   type AnchorLike,
   type AnchorSide,
   type AnchoredPosition,

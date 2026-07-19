@@ -29,8 +29,8 @@ import {
 import { useBlobService } from '@xnetjs/editor/react'
 import { useGridDatabase, useIdentity, useNode } from '@xnetjs/react'
 import {
-  CommentPopover,
-  MentionTextArea,
+  CommentIsland,
+  toAnchorLike,
   Select,
   setNodeTransfer,
   type CommentThreadData
@@ -145,6 +145,8 @@ interface CommentPopoverState {
   rowId: string
   fieldId: string
   anchor: HTMLElement | { x: number; y: number }
+  /** Which of the cell's threads is showing — a cell can carry several (0375). */
+  threadIndex: number
 }
 
 export function DatabaseView({ docId }: DatabaseViewProps) {
@@ -376,43 +378,66 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
   const comments = useDatabaseComments({ databaseNodeId: docId })
   const [commentPopover, setCommentPopover] = useState<CommentPopoverState | null>(null)
 
+  const commentPeople = useCommentPeople()
+
   const openCellComments = useCallback(
     (rowId: string, fieldId: string, anchorEl: HTMLElement | null) => {
       setCommentPopover({
         rowId,
         fieldId,
-        anchor: anchorEl ?? { x: window.innerWidth / 2, y: 120 }
+        anchor: anchorEl ?? { x: window.innerWidth / 2, y: 120 },
+        threadIndex: 0
       })
     },
     []
   )
 
+  // Author DIDs resolve to profile names through the same list that drives
+  // @mention typeahead — otherwise the island shows raw DIDs (0375).
+  const resolveAuthorName = useCallback(
+    (did: string) => commentPeople.find((person) => person.did === did)?.name,
+    [commentPeople]
+  )
+
+  // A cell can carry several threads, and the badge counts all of them, so
+  // showing only threads[0] made the rest unreachable (0375). Expose the whole
+  // set and let the island page through it.
+  const cellThreads = useMemo(() => {
+    if (!commentPopover) return []
+    return comments.getThreadsForCell(commentPopover.rowId, commentPopover.fieldId)
+  }, [commentPopover, comments])
+
+  const activeThreadIndex = commentPopover
+    ? Math.min(commentPopover.threadIndex, Math.max(0, cellThreads.length - 1))
+    : 0
+
   const activeThread: CommentThreadData | null = useMemo(() => {
-    if (!commentPopover) return null
-    const threads = comments.getThreadsForCell(commentPopover.rowId, commentPopover.fieldId)
-    const thread = threads[0]
+    const thread = cellThreads[activeThreadIndex]
     if (!thread) return null
     return {
       root: {
         id: thread.root.id,
         author: thread.root.properties.createdBy,
-        authorDisplayName: undefined,
+        authorDisplayName: resolveAuthorName(thread.root.properties.createdBy),
         content: thread.root.properties.content,
         createdAt: thread.root.createdAt
       },
       replies: thread.replies.map((r) => ({
         id: r.id,
         author: r.properties.createdBy,
-        authorDisplayName: undefined,
+        authorDisplayName: resolveAuthorName(r.properties.createdBy),
         content: r.properties.content,
         createdAt: r.createdAt
       })),
       resolved: Boolean(thread.root.properties.resolved)
     }
-  }, [commentPopover, comments])
+  }, [cellThreads, activeThreadIndex, resolveAuthorName])
 
-  const [newCommentDraft, setNewCommentDraft] = useState('')
-  const commentPeople = useCommentPeople()
+  const stepThread = useCallback((delta: number) => {
+    setCommentPopover((prev) =>
+      prev ? { ...prev, threadIndex: Math.max(0, prev.threadIndex + delta) } : prev
+    )
+  }, [])
 
   // ─── Peek panel ───────────────────────────────────────────────────────────
   const [peekRowId, setPeekRowId] = useState<string | null>(null)
@@ -1056,91 +1081,36 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
         </div>
       )}
 
-      {/* Cell comments: existing thread popover or new-comment composer */}
-      {commentPopover && activeThread && (
-        <CommentPopover
+      {/* Cell comments — one island for both reading a thread and starting
+          the first one, replacing the bespoke composer that carried its own
+          hand-rolled positioning (0375). */}
+      {commentPopover && (
+        <CommentIsland
           thread={activeThread}
-          anchor={commentPopover.anchor}
-          mode="full"
+          anchor={toAnchorLike(commentPopover.anchor)}
+          mode={activeThread ? 'full' : 'composing'}
           open
+          side="bottom"
           people={commentPeople}
+          position={
+            cellThreads.length > 1
+              ? {
+                  index: activeThreadIndex,
+                  total: cellThreads.length,
+                  onPrev: () => stepThread(-1),
+                  onNext: () => stepThread(1)
+                }
+              : undefined
+          }
           onReply={(content) => {
             void comments.commentOnCell(commentPopover.rowId, commentPopover.fieldId, content)
           }}
+          onCreate={(content) => {
+            void comments.commentOnCell(commentPopover.rowId, commentPopover.fieldId, content)
+            setCommentPopover(null)
+          }}
           onDismiss={() => setCommentPopover(null)}
         />
-      )}
-      {commentPopover && !activeThread && (
-        <div
-          className="fixed inset-0 z-40"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) {
-              setCommentPopover(null)
-              setNewCommentDraft('')
-            }
-          }}
-        >
-          <div
-            className="absolute z-50 w-72 rounded-lg border border-hairline bg-popover shadow-pop p-3"
-            style={
-              commentPopover.anchor instanceof HTMLElement
-                ? {
-                    top: commentPopover.anchor.getBoundingClientRect().bottom + 4,
-                    left: Math.min(
-                      commentPopover.anchor.getBoundingClientRect().left,
-                      window.innerWidth - 300
-                    )
-                  }
-                : { top: commentPopover.anchor.y, left: commentPopover.anchor.x }
-            }
-          >
-            <MentionTextArea
-              data-testid="db-new-comment"
-              placeholder="Add a comment… (@ to mention)"
-              value={newCommentDraft}
-              people={commentPeople}
-              autoFocus
-              rows={2}
-              containerClassName="mb-2"
-              className="px-2 py-1 text-sm rounded border border-border bg-transparent outline-none focus:border-border-emphasis resize-none"
-              onChange={setNewCommentDraft}
-              onKeyDown={(e) => {
-                e.stopPropagation()
-                if (e.key === 'Escape') {
-                  setCommentPopover(null)
-                  setNewCommentDraft('')
-                }
-                if (e.key === 'Enter' && (e.metaKey || e.ctrlKey) && newCommentDraft.trim()) {
-                  void comments.commentOnCell(
-                    commentPopover.rowId,
-                    commentPopover.fieldId,
-                    newCommentDraft.trim()
-                  )
-                  setCommentPopover(null)
-                  setNewCommentDraft('')
-                }
-              }}
-            />
-            <div className="flex justify-end">
-              <button
-                type="button"
-                className="px-3 py-1 text-sm rounded bg-primary text-white hover:bg-primary/90 disabled:opacity-50"
-                disabled={!newCommentDraft.trim()}
-                onClick={() => {
-                  void comments.commentOnCell(
-                    commentPopover.rowId,
-                    commentPopover.fieldId,
-                    newCommentDraft.trim()
-                  )
-                  setCommentPopover(null)
-                  setNewCommentDraft('')
-                }}
-              >
-                Comment
-              </button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   )

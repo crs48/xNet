@@ -2,16 +2,16 @@
  * usePageComments - the shared page-comment subsystem behind PageView
  * (exploration 0276, Theme 3: well-traveled code paths).
  *
- * Since 0312 (TipTap → BlockNote) this hook is editor-decoupled: comments
- * are node-backed (LWW log) and surface in panels/popovers only. The
- * in-document comment *marks* were retired with the TipTap editor —
- * anchorData is still stored on each comment, so a future ThreadStore
- * integration can re-anchor them.
+ * Since 0312 (TipTap → BlockNote) comments are node-backed (LWW log). The
+ * in-document marks came back with BlockNote's CommentsExtension, but
+ * nothing listened to them until 0375 — the thread popover could only be
+ * opened from the sidebar, so clicking a highlighted passage did nothing.
+ * A delegated document listener (below) closes that gap.
  */
 import type { CommentThreadData, OrphanedThread } from '@xnetjs/ui'
 import { PageSchema } from '@xnetjs/data'
 import { useComments, type CommentThread } from '@xnetjs/react'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -30,10 +30,20 @@ const INITIAL_POPOVER_STATE: PageCommentPopoverState = {
   anchor: null
 }
 
+/** Hover dwell before a mark peeks its thread. Matches useCommentPopover. */
+const MARK_HOVER_DELAY_MS = 300
+
 /** State for creating a new comment (before submission). */
 export interface PageNewCommentState {
   visible: boolean
   anchorData: string
+  /**
+   * Viewport point of the selection the comment annotates, so the composer
+   * can anchor to it instead of floating in the middle of the screen (0375).
+   */
+  anchor: { x: number; y: number } | null
+  /** The selected text, echoed in the composer for context. */
+  quotedText?: string
 }
 
 export interface UsePageCommentsOptions {
@@ -62,6 +72,7 @@ export interface UsePageCommentsResult {
 
   // Popover
   showThreadPopover: (threadId: string, anchor: HTMLElement | null) => void
+  previewThreadPopover: (threadId: string, anchor: HTMLElement | null) => void
   handlePopoverMouseEnter: () => void
   handlePopoverMouseLeave: () => void
   handleDismiss: () => void
@@ -130,6 +141,7 @@ export function usePageComments({
   const [newCommentState, setNewCommentState] = useState<PageNewCommentState | null>(null)
   const [orphanedCollapsed, setOrphanedCollapsed] = useState(false)
   const dismissTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const popoverHoveredRef = useRef(false)
 
   // Without in-document marks there is no anchor-loss detection; the
@@ -207,6 +219,62 @@ export function usePageComments({
     setPopoverState({ visible: true, mode: 'full', threadId, anchor })
   }, [])
 
+  /** Peek at a thread on hover, without stealing focus from the document. */
+  const previewThreadPopover = useCallback((threadId: string, anchor: HTMLElement | null) => {
+    setPopoverState((prev) =>
+      // Never downgrade an open thread back to a hover peek.
+      prev.visible && prev.mode === 'full' ? prev : { visible: true, mode: 'preview', threadId, anchor }
+    )
+  }, [])
+
+  // Clicking (or hovering) a `.bn-thread-mark` in the document opens its
+  // thread. Delegated from the document rather than bound per mark: ProseMirror
+  // destroys and recreates mark spans on every doc update, so per-element
+  // listeners would be dropped constantly.
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+
+    const markFor = (target: EventTarget | null): HTMLElement | null => {
+      if (!(target instanceof HTMLElement)) return null
+      return target.closest<HTMLElement>('[data-bn-thread-id]')
+    }
+
+    const onClick = (event: MouseEvent) => {
+      const mark = markFor(event.target)
+      const threadId = mark?.dataset.bnThreadId
+      if (!mark || !threadId) return
+      showThreadPopover(threadId, mark)
+    }
+
+    const onOver = (event: MouseEvent) => {
+      const mark = markFor(event.target)
+      const threadId = mark?.dataset.bnThreadId
+      if (!mark || !threadId) return
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current)
+      hoverTimerRef.current = setTimeout(
+        () => previewThreadPopover(threadId, mark),
+        MARK_HOVER_DELAY_MS
+      )
+    }
+
+    const onOut = () => {
+      if (hoverTimerRef.current) {
+        clearTimeout(hoverTimerRef.current)
+        hoverTimerRef.current = null
+      }
+    }
+
+    document.addEventListener('click', onClick)
+    document.addEventListener('mouseover', onOver)
+    document.addEventListener('mouseout', onOut)
+    return () => {
+      document.removeEventListener('click', onClick)
+      document.removeEventListener('mouseover', onOver)
+      document.removeEventListener('mouseout', onOut)
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current)
+    }
+  }, [showThreadPopover, previewThreadPopover])
+
   // ─── Comment Actions ──────────────────────────────────────────────────────────
 
   const handleReply = useCallback(
@@ -245,10 +313,22 @@ export function usePageComments({
     [editComment]
   )
 
-  // Handler for initiating comment creation (e.g. a panel affordance).
-  // Shows the input UI; actual comment creation happens on submit.
+  // Handler for initiating comment creation (e.g. a panel affordance, or the
+  // editor's own "comment on selection" action). Shows the composer anchored
+  // to the current selection; the comment is created on submit.
   const handleCreateComment = useCallback(async (anchorData: string): Promise<string | null> => {
-    setNewCommentState({ visible: true, anchorData })
+    const selection = typeof window !== 'undefined' ? window.getSelection() : null
+    let anchor: { x: number; y: number } | null = null
+    let quotedText: string | undefined
+
+    if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
+      const rect = selection.getRangeAt(0).getBoundingClientRect()
+      anchor = { x: rect.left, y: rect.bottom }
+      const text = selection.toString().trim()
+      if (text) quotedText = text.length > 60 ? `${text.slice(0, 57)}…` : text
+    }
+
+    setNewCommentState({ visible: true, anchorData, anchor, quotedText })
     return null
   }, [])
 
@@ -365,6 +445,7 @@ export function usePageComments({
     popoverState,
     newCommentState,
     showThreadPopover,
+    previewThreadPopover,
     handlePopoverMouseEnter,
     handlePopoverMouseLeave,
     handleDismiss,

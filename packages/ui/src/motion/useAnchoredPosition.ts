@@ -29,6 +29,19 @@ export type AnchorLike = HTMLElement | VirtualAnchor
 
 export type AnchorSide = 'top' | 'right' | 'bottom' | 'left'
 
+/**
+ * A zero-size anchor at a viewport point, for callers that have coordinates
+ * rather than an element (a canvas pin, a caret position, a fallback centre).
+ */
+export function pointAnchor(x: number, y: number): VirtualAnchor {
+  return { getBoundingClientRect: () => new DOMRect(x, y, 0, 0) }
+}
+
+/** Coerce the `HTMLElement | {x, y}` shape older call sites carry. */
+export function toAnchorLike(anchor: HTMLElement | { x: number; y: number }): AnchorLike {
+  return 'x' in anchor ? pointAnchor(anchor.x, anchor.y) : anchor
+}
+
 export interface AnchoredPosition {
   left: number
   top: number
