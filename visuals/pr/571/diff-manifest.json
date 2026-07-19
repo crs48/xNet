@@ -10,20 +10,17 @@
       "label": "Data",
       "file": "routes/data.png",
       "status": "unchanged",
-      "ssim": 0.998194
+      "ssim": 1
     },
     {
       "id": "discover",
       "label": "Discover",
       "file": "routes/discover.png",
-      "status": "changed",
-      "ssim": 0.981429,
-      "before": "before/routes/discover.png",
-      "after": "routes/discover.png",
-      "diff": "diff/routes/discover.png"
+      "status": "unchanged",
+      "ssim": 1
     }
   ],
   "electron": [],
   "flows": [],
-  "changedCount": 1
+  "changedCount": 0
 }
