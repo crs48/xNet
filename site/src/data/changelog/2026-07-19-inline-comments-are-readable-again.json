@@ -1,0 +1,11 @@
+{
+  "id": "2026-07-19-inline-comments-are-readable-again",
+  "date": "July 19, 2026",
+  "title": "Inline comments are readable again",
+  "summary": "Comment threads now open as a proper floating island: the reply box stays out of the way until you need it, so you can actually read the conversation, and the card follows the text it is attached to when you scroll. Clicking a highlighted passage opens its thread — previously only the sidebar could.",
+  "highlights": [],
+  "tags": [
+    "editor",
+    "app"
+  ]
+}
