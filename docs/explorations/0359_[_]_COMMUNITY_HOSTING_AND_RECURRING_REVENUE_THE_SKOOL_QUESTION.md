@@ -730,7 +730,7 @@ export const welcomeQueue = (posts: readonly UnansweredPost[], now: number): Una
 
 ### Phase 1 — host it (no money, no legal exposure)
 
-- [ ] `Post` / `Thread` schemas with `spaceContributorAuthorization()`
+- [x] `Post` / `Thread` schemas with `spaceContributorAuthorization()`
 - [ ] Native compose surface (BlockNote via `XNetEditor`), chronological only
 - [ ] Community Space preset — `kind: 'community'`, public landing page via existing `public.ts`
 - [ ] Welcome queue (`packages/social/src/community/welcome.ts`) + admin surface
