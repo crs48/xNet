@@ -111,6 +111,12 @@ export default {
           foreground: 'hsl(var(--warning-foreground))'
         },
 
+        // Inline comment marks and cell indicators (0375).
+        comment: {
+          DEFAULT: 'hsl(var(--comment))',
+          strong: 'hsl(var(--comment-strong))'
+        },
+
         // Input & Ring
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',

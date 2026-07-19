@@ -301,7 +301,7 @@ function GridCellInner({
         <button
           type="button"
           aria-label={`${commentCount} comments`}
-          className="absolute top-0.5 right-0.5 flex items-center gap-0.5 text-amber-500 hover:text-amber-600"
+          className="absolute top-0.5 right-0.5 flex items-center gap-0.5 text-comment hover:text-comment-strong"
           onClick={(e) => {
             e.stopPropagation()
             onCommentClick?.(rowId, field.id, e.currentTarget)

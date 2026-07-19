@@ -839,9 +839,9 @@ replacing the hardcoded amber and the hand-written `.dark` block:
       `DatabaseView.tsx:399` so canvas and database stop showing raw DIDs.
 - [ ] Fix `DatabaseView.tsx:390-393` showing only `threads[0]` while the badge
       counts all threads on the cell.
-- [ ] Delete `packages/views/src/components/CommentIndicator.tsx` and its two
+- [x] Delete `packages/views/src/components/CommentIndicator.tsx` and its two
       barrel re-exports (dead, and holds a hardcoded `#f59e0b`).
-- [ ] Token-ify the grid badge at `GridCell.tsx:304`
+- [x] Token-ify the grid badge at `GridCell.tsx:304`
       (`text-amber-500` → comment-mark token).
 - [ ] Migrate `apps/web/src/components/PageView.tsx:685`.
 - [ ] Migrate `apps/web/src/components/DatabaseView.tsx:1061`.
@@ -849,7 +849,7 @@ replacing the hardcoded amber and the hand-written `.dark` block:
 - [ ] Migrate `packages/canvas/src/comments/CommentOverlay.tsx:279` to a virtual
       anchor that re-projects from the viewport transform; pass `people` so
       canvas gains @mentions.
-- [ ] Token-ify the BlockNote thread marks in
+- [x] Token-ify the BlockNote thread marks in
       `packages/editor/src/styles/editor.css:158-179`; remove the hand-written
       `.dark` overrides.
 - [x] Export `CommentIsland` via the scoped sub-barrel
