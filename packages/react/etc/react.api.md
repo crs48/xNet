@@ -64,6 +64,7 @@ import { Invoice } from '@xnetjs/billing';
 import { JSX as JSX_2 } from 'react';
 import { KeyBundle } from '@xnetjs/identity';
 import { LucideIcon } from 'lucide-react';
+import { MapViewport } from '@xnetjs/data';
 import { MergeDraftResult } from '@xnetjs/history';
 import { MetaBridge } from '@xnetjs/runtime';
 import { METABRIDGE_ORIGIN } from '@xnetjs/runtime';
@@ -159,6 +160,7 @@ import { VerificationResult } from '@xnetjs/crypto';
 import { VerificationResult as VerificationResult_2 } from '@xnetjs/history';
 import { ViewConfig } from '@xnetjs/data';
 import { ViewContribution } from '@xnetjs/plugins';
+import { ViewGroupMeta } from '@xnetjs/data';
 import { ViewType } from '@xnetjs/data';
 import { WebSocketSyncProvider } from '@xnetjs/runtime';
 import { WebSocketSyncProviderOptions } from '@xnetjs/runtime';
@@ -187,6 +189,14 @@ export interface AddReactionOptions {
 export interface AddRowOptions {
     id?: string;
     meta?: FormSubmissionMeta;
+}
+
+// @public
+export interface AtprotoCeremonyResult {
+    atprotoDid: string;
+    atprotoHandle: string;
+    displayName?: string;
+    writeBinding?: (xnetDid: string, signingKey: Uint8Array) => Promise<void>;
 }
 
 // @public (undocumented)
@@ -511,6 +521,26 @@ export interface DraftReviewMember {
     originalId: NodeId;
 }
 
+// @public
+export class EntangleBus {
+    // (undocumented)
+    isHovered(nodeId: string): boolean;
+    // (undocumented)
+    isSelected(nodeId: string): boolean;
+    // (undocumented)
+    setHovered(nodeId: string, on: boolean): void;
+    // (undocumented)
+    setSelected(nodeIds: readonly string[]): void;
+    snapshotHighlighted(): string[];
+    // (undocumented)
+    subscribe: (listener: () => void) => (() => void);
+}
+
+// @public
+export function EntangleProvider(input: {
+    children: ReactNode;
+}): JSX_2.Element;
+
 // Warning: (ae-forgotten-export) The symbol "ErrorBoundaryState" needs to be exported by the entry point index.d.ts
 //
 // @public (undocumented)
@@ -719,12 +749,52 @@ export interface GridRowModel {
     sortKey: string;
 }
 
+// @public
+export interface GridViewConfigPatch {
+    // (undocumented)
+    cardSize?: string | null;
+    // (undocumented)
+    collapsedGroups?: string[];
+    // (undocumented)
+    colorBy?: string | null;
+    // (undocumented)
+    coverField?: string | null;
+    // (undocumented)
+    coverFit?: string | null;
+    // (undocumented)
+    dateField?: string | null;
+    // (undocumented)
+    endDateField?: string | null;
+    // (undocumented)
+    groupBy?: string | null;
+    // (undocumented)
+    groupMeta?: Record<string, ViewGroupMeta>;
+    // (undocumented)
+    latField?: string | null;
+    // (undocumented)
+    lngField?: string | null;
+    // (undocumented)
+    mapViewport?: MapViewport | null;
+}
+
 // @public (undocumented)
 export interface GridViewModel {
     // (undocumented)
+    cardSize: string | null;
+    // (undocumented)
     collapsedGroups: string[];
     // (undocumented)
+    colorBy: string | null;
+    // (undocumented)
     columnSummaries: Record<string, SummaryFunction>;
+    // (undocumented)
+    coverField: string | null;
+    // (undocumented)
+    coverFit: string | null;
+    // (undocumented)
+    dateField: string | null;
+    // (undocumented)
+    endDateField: string | null;
     // (undocumented)
     fieldOrder: Record<string, string>;
     // (undocumented)
@@ -740,9 +810,17 @@ export interface GridViewModel {
     // (undocumented)
     groupBy: string | null;
     // (undocumented)
+    groupMeta: Record<string, ViewGroupMeta>;
+    // (undocumented)
     hiddenFields: string[];
     // (undocumented)
     id: string;
+    // (undocumented)
+    latField: string | null;
+    // (undocumented)
+    lngField: string | null;
+    // (undocumented)
+    mapViewport: MapViewport | null;
     // (undocumented)
     name: string;
     // (undocumented)
@@ -1111,6 +1189,8 @@ export type OnboardingContextValue = {
     state: OnboardingState;
     context: OnboardingMachineContext;
     send: (event: OnboardingEvent) => void;
+    atprotoEnabled: boolean;
+    startAtprotoCeremony: (handleOrPds: string) => void;
 };
 
 // @public (undocumented)
@@ -1170,6 +1250,16 @@ export type OnboardingEvent = {
     phrase: string;
 } | {
     type: 'PHRASE_SAVED';
+} | {
+    type: 'CONTINUE_WITH_ATPROTO';
+} | {
+    type: 'ATPROTO_LINKED';
+    atprotoDid: string;
+    atprotoHandle: string;
+    displayName?: string;
+} | {
+    type: 'ATPROTO_CEREMONY_FAILED';
+    error: Error;
 };
 
 // @public
@@ -1189,6 +1279,9 @@ export type OnboardingMachineContext = {
     error: Error | null;
     isDemo: boolean;
     recoveryPhrase: string | null;
+    atprotoDid: string | null;
+    atprotoHandle: string | null;
+    atprotoDisplayName: string | null;
 };
 
 // @public (undocumented)
@@ -1199,6 +1292,7 @@ export type OnboardingProviderProps = {
     children: ReactNode;
     defaultHubUrl?: string;
     onComplete?: (identity: Identity, keyBundle: KeyBundle) => void;
+    runAtprotoCeremony?: RunAtprotoCeremony;
 };
 
 // @public (undocumented)
@@ -1211,7 +1305,7 @@ export type OnboardingReducerState = {
 };
 
 // @public
-export type OnboardingState = 'welcome' | 'authenticating' | 'auth-error' | 'unsupported-browser' | 'import-identity' | 'qr-scan' | 'recovery-phrase' | 'guardian-recovery' | 'creating-recoverable' | 'show-recovery-phrase' | 'connecting-hub' | 'ready' | 'complete';
+export type OnboardingState = 'welcome' | 'authenticating' | 'auth-error' | 'unsupported-browser' | 'import-identity' | 'qr-scan' | 'recovery-phrase' | 'guardian-recovery' | 'atproto-ceremony' | 'creating-recoverable' | 'show-recovery-phrase' | 'connecting-hub' | 'ready' | 'complete';
 
 // @public (undocumented)
 export type PageTaskInput = TaskProjectionInput;
@@ -1545,6 +1639,11 @@ export interface ReverseRelation {
     sourceDatabaseId: string;
     sourceDatabaseTitle: string;
 }
+
+// @public
+export type RunAtprotoCeremony = (input: {
+    handleOrPds: string;
+}) => Promise<AtprotoCeremonyResult>;
 
 // @public (undocumented)
 export type SavedViewCanvasProjectionNode = {
@@ -2492,6 +2591,18 @@ export interface UseEffectiveSchemaResult {
     schema: Schema | null;
 }
 
+// @public
+export function useEntangleBind(nodeId: string | null | undefined): {
+    onMouseEnter?: () => void;
+    onMouseLeave?: () => void;
+};
+
+// @public
+export function useEntangleBus(): EntangleBus | null;
+
+// @public
+export function useEntangledHighlight(nodeId: string | null | undefined): boolean;
+
 // @public (undocumented)
 export function useFileUpload(): UseFileUploadReturn;
 
@@ -2552,8 +2663,10 @@ export function useGridDatabase(databaseId: string, options?: UseGridDatabaseOpt
 
 // @public (undocumented)
 export interface UseGridDatabaseOptions {
+    maxLoaded?: number;
     pageSize?: number;
     search?: string;
+    spatial?: QuerySpatialFilter;
     viewId?: string;
 }
 
@@ -2590,7 +2703,10 @@ export interface UseGridDatabaseResult {
     } | null;
     // (undocumented)
     deleteRows: (rowIds: string[]) => Promise<void>;
+    fetchMoreRows: () => Promise<void>;
     fields: GridFieldModel[];
+    hasMoreRows: boolean;
+    isFetchingMoreRows: boolean;
     // (undocumented)
     loading: boolean;
     // (undocumented)
@@ -2610,6 +2726,10 @@ export interface UseGridDatabaseResult {
     // (undocumented)
     resizeField: (fieldId: string, width: number) => Promise<void>;
     rows: GridRowModel[];
+    rowWindow: {
+        size: number;
+        total: number | null;
+    };
     // (undocumented)
     setColumnSummary: (fieldId: string, fn: SummaryFunction) => Promise<void>;
     // (undocumented)
@@ -2624,16 +2744,22 @@ export interface UseGridDatabaseResult {
     setFormRules: (rules: Record<string, FormFieldRule>) => Promise<void>;
     // (undocumented)
     setGroupBy: (fieldId: string | null) => Promise<void>;
+    setGroupCollapsed: (groupKey: string, collapsed: boolean) => Promise<void>;
     // (undocumented)
     setRowHeight: (rowHeight: RowHeight) => Promise<void>;
+    setViewConfig: (patch: GridViewConfigPatch) => Promise<void>;
     // (undocumented)
     toggleSort: (fieldId: string) => Promise<void>;
+    totalRowCount: number | null;
     // (undocumented)
     undo: () => Promise<boolean>;
     // (undocumented)
     updateCell: (rowId: string, fieldId: string, value: CellValue) => Promise<void>;
     // (undocumented)
     updateFieldConfig: (fieldId: string, config: FieldConfig) => Promise<void>;
+    updateRowCells: (rowId: string, cells: Record<string, CellValue>, opts?: {
+        sortKey?: string;
+    }) => Promise<void>;
     views: GridViewModel[];
     visibleFields: GridFieldModel[];
 }
@@ -2884,6 +3010,9 @@ export interface UsePresenceResult<T> {
     peers: Array<PresencePeer<T>>;
     setState: (patch: Partial<T>) => void;
 }
+
+// @public
+export function usePublishEntangleHover(): (nodeId: string, on: boolean) => void;
 
 // @public
 export function useQuery<P extends Record<string, PropertyBuilder>>(schema: DefinedSchema<P>): QueryListResult<P>;
@@ -3313,9 +3442,9 @@ export interface YDocRegistryLike {
 
 // Warnings were encountered during analysis:
 //
-// dist/core.d.ts:341:5 - (ae-forgotten-export) The symbol "ErrorBoundaryFallbackProps" needs to be exported by the entry point index.d.ts
-// dist/experimental-DyPoZcJT.d.ts:98:5 - (ae-forgotten-export) The symbol "TaskStatus" needs to be exported by the entry point index.d.ts
-// dist/experimental-DyPoZcJT.d.ts:103:5 - (ae-forgotten-export) The symbol "TaskNode" needs to be exported by the entry point index.d.ts
+// dist/core.d.ts:347:5 - (ae-forgotten-export) The symbol "ErrorBoundaryFallbackProps" needs to be exported by the entry point index.d.ts
+// dist/experimental-BJqDMWkN.d.ts:98:5 - (ae-forgotten-export) The symbol "TaskStatus" needs to be exported by the entry point index.d.ts
+// dist/experimental-BJqDMWkN.d.ts:103:5 - (ae-forgotten-export) The symbol "TaskNode" needs to be exported by the entry point index.d.ts
 // dist/index.d.ts:80:5 - (ae-forgotten-export) The symbol "QueryStatus" needs to be exported by the entry point index.d.ts
 // dist/index.d.ts:86:5 - (ae-forgotten-export) The symbol "QueryPlanSummary" needs to be exported by the entry point index.d.ts
 

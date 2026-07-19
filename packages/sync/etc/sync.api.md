@@ -212,7 +212,23 @@ export abstract class BaseSyncProvider<T = unknown> implements SyncProvider<T> {
 }
 
 // @public
+export interface BatchCommit extends UnsignedBatchCommit {
+    // (undocumented)
+    hash: ContentId;
+    // (undocumented)
+    signature: Uint8Array;
+}
+
+// @public
 export type BatchFlushCallback = (mergedUpdate: Uint8Array, updateCount: number) => void;
+
+// @public (undocumented)
+export interface BatchVerificationResult {
+    members: boolean[];
+    ok: boolean;
+    // (undocumented)
+    reason?: string;
+}
 
 // @public
 export function calculateChunkCount(totalSize: number, chunkSize?: number): number;
@@ -286,6 +302,9 @@ export function checkAndLogDeprecations(context: DeprecationContext): Deprecatio
 
 // @public
 export function checkDeprecations(context: DeprecationContext): DeprecationWarning[];
+
+// @public
+export function chunkForCommits<T>(changes: readonly T[], size?: number): T[][];
 
 // @public
 export function chunkUpdate(update: Uint8Array, chunkSize?: number): Uint8Array[];
@@ -383,6 +402,12 @@ export const COMPACTION_UPDATE_THRESHOLD = 100;
 export function compareLamportTimestamps(a: LamportTimestamp, b: LamportTimestamp): -1 | 0 | 1;
 
 // @public
+export function computeBatchCommitHash(unsigned: UnsignedBatchCommit): ContentId;
+
+// @public
+export function computeBatchRoot(changeHashes: readonly ContentId[]): ContentId;
+
+// @public
 export function computeChangeHash<T>(unsigned: UnsignedChange<T>): ContentId;
 
 // @public
@@ -398,6 +423,24 @@ export interface ContentKeyProvider {
 export interface CreateAttestationOptions {
     expiresInMs?: number;
     level?: SecurityLevel;
+}
+
+// @public (undocumented)
+export interface CreateBatchCommitOptions {
+    // (undocumented)
+    authorDID: DID;
+    // (undocumented)
+    changeHashes: readonly ContentId[];
+    // (undocumented)
+    id: string;
+    // (undocumented)
+    lamport: number;
+    // (undocumented)
+    protocolVersion?: number;
+    // (undocumented)
+    room?: string;
+    // (undocumented)
+    wallTime: number;
 }
 
 // @public
@@ -480,6 +523,9 @@ export function createSyncLifecycleState(input: SyncLifecycleInput, previous?: S
 
 // @public
 export function createTestContext(overrides?: Partial<HandlerContext>): HandlerContext;
+
+// @public
+export function createUnsignedBatchCommit(options: CreateBatchCommitOptions): UnsignedBatchCommit;
 
 // @public
 export function createUnsignedChange<T>(options: CreateChangeOptions<T>): UnsignedChange<T>;
@@ -1005,6 +1051,9 @@ export function loadVerifiedState(docId: string, record: Partial<PersistedDocSta
 export function logDeprecation(warning: DeprecationWarning): void;
 
 // @public
+export const MAX_COMMIT_CHANGES = 1000;
+
+// @public
 export const MAX_SECURITY_POLICY: SecurityPolicy;
 
 // @public
@@ -1164,6 +1213,9 @@ export interface RecipientKeyResolver {
 }
 
 // @public
+export function recomputeBatchCommitHash(commit: BatchCommit): ContentId;
+
+// @public
 export function recomputeChangeHash<T>(change: Change<T>): ContentId;
 
 // @public
@@ -1276,6 +1328,9 @@ export function serializeYjsEnvelope(envelope: SignedYjsEnvelopeV2): SignedYjsEn
 
 // @public
 export function shouldCompact(updateCount: number, persistedAt: number): boolean;
+
+// @public
+export function signBatchCommit(unsigned: UnsignedBatchCommit, signingKey: Uint8Array): BatchCommit;
 
 // @public
 export function signChange<T>(unsigned: UnsignedChange<T>, signingKey: Uint8Array): Change<T>;
@@ -1467,6 +1522,25 @@ export function toEncryptedData(state: EncryptedYjsState): EncryptedData;
 export function topologicalSort<T>(changes: Change<T>[]): Change<T>[];
 
 // @public
+export interface UnsignedBatchCommit {
+    // (undocumented)
+    authorDID: DID;
+    changeHashes: ContentId[];
+    // (undocumented)
+    id: string;
+    // (undocumented)
+    lamport: number;
+    // (undocumented)
+    protocolVersion: number;
+    room?: string;
+    root: ContentId;
+    // (undocumented)
+    type: 'batch-commit';
+    // (undocumented)
+    wallTime: number;
+}
+
+// @public
 export interface UnsignedChange<T = unknown> {
     // (undocumented)
     authorDID: DID;
@@ -1570,10 +1644,28 @@ export interface VerifyAttestationOptions {
 }
 
 // @public
+export function verifyBatch<T>(commit: BatchCommit, changes: readonly Change<T>[], publicKey: Uint8Array, recomputeChangeHash: (change: Change<T>) => ContentId): Promise<BatchVerificationResult>;
+
+// @public
+export function verifyBatchCommit(commit: BatchCommit, publicKey: Uint8Array): boolean;
+
+// @public
+export function verifyBatchCommitFast(commit: BatchCommit, publicKey: Uint8Array): Promise<boolean>;
+
+// @public
 export function verifyChange<T>(change: Change<T>, publicKey: Uint8Array): boolean;
 
 // @public
+export function verifyChangeFast<T>(change: Change<T>, publicKey: Uint8Array): Promise<boolean>;
+
+// @public
 export function verifyChangeHash<T>(change: Change<T>): boolean;
+
+// @public
+export function verifyChangesFast<T>(entries: readonly {
+    change: Change<T>;
+    publicKey: Uint8Array;
+}[]): Promise<boolean[]>;
 
 // @public
 export function verifyClientIdAttestation(attestation: ClientIdAttestationV1): AttestationVerifyResult;

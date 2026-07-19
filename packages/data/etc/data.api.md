@@ -578,6 +578,20 @@ export const AppealSchema: DefinedSchema<{
 }>;
 
 // @public (undocumented)
+export function applyBundle(store: NodeStore, source: BundleSource, options: ApplyBundleOptions): Promise<BundleApplyReport>;
+
+// @public (undocumented)
+export type ApplyBundleOptions = {
+    importerDid: string;
+    allowForeignOwner?: boolean;
+    allowUnsigned?: boolean;
+    ignoreMissingPrerequisites?: boolean;
+    blobPort?: BundleBlobPort;
+    yjsPort?: BundleYjsPort;
+    onQuarantine?: (record: QuarantinedRecord) => void;
+};
+
+// @public (undocumented)
 export interface ApplyNodeBatchInput extends SetNodeOptions {
     affectedSchemaIds: readonly SchemaIRI[];
     batchId: string;
@@ -648,6 +662,9 @@ export function batchComputeRollups(rows: RollupRow[], rollupColumn: ColumnDefin
 
 // @public (undocumented)
 export function between<P extends Record<string, PropertyBuilder>, K extends QueryASTField<P> = QueryASTField<P>>(field: K, from: InferCreateProps<P>[K], to: InferCreateProps<P>[K]): QueryASTPredicate;
+
+// @public
+export function blobEntryPath(cid: string): string;
 
 // @public (undocumented)
 export class BlobService {
@@ -753,6 +770,79 @@ export const builtInSchemas: {
         tags: PropertyBuilder<string[]>;
         space: PropertyBuilder<string>;
         visibility: PropertyBuilder<"public" | "private" | "unlisted" | "inherit">;
+        geometry: PropertyBuilder<"grid" | "space" | "stack">;
+        publication: PropertyBuilder<string>;
+        slug: PropertyBuilder<string>;
+        excerpt: PropertyBuilder<string>;
+        publishedAt: PropertyBuilder<number>;
+        canonicalUrl: PropertyBuilder<string>;
+        publishedFrontier: PropertyBuilder<unknown>;
+    }>>;
+    readonly 'xnet://xnet.fyi/Post@1.0.0': () => Promise<DefinedSchema<{
+        title: PropertyBuilder<string>;
+        space: PropertyBuilder<string>;
+        category: PropertyBuilder<string>;
+        pinned: PropertyBuilder<boolean>;
+        locked: PropertyBuilder<boolean>;
+        visibility: PropertyBuilder<"public" | "private" | "unlisted" | "inherit">;
+        createdAt: PropertyBuilder<number>;
+        createdBy: PropertyBuilder<`did:key:${string}`>;
+    }>>;
+    readonly 'xnet://xnet.fyi/Course@1.0.0': () => Promise<DefinedSchema<{
+        title: PropertyBuilder<string>;
+        description: PropertyBuilder<string>;
+        space: PropertyBuilder<string>;
+        icon: PropertyBuilder<string>;
+        sortKey: PropertyBuilder<string>;
+        published: PropertyBuilder<boolean>;
+        createdAt: PropertyBuilder<number>;
+        createdBy: PropertyBuilder<`did:key:${string}`>;
+    }>>;
+    readonly 'xnet://xnet.fyi/Lesson@1.0.0': () => Promise<DefinedSchema<{
+        title: PropertyBuilder<string>;
+        course: PropertyBuilder<string>;
+        space: PropertyBuilder<string>;
+        sortKey: PropertyBuilder<string>;
+        estimatedMinutes: PropertyBuilder<number>;
+        createdAt: PropertyBuilder<number>;
+        createdBy: PropertyBuilder<`did:key:${string}`>;
+    }>>;
+    readonly 'xnet://xnet.fyi/LessonProgress@1.0.0': () => Promise<DefinedSchema<{
+        lesson: PropertyBuilder<string>;
+        course: PropertyBuilder<string>;
+        space: PropertyBuilder<string>;
+        completedAt: PropertyBuilder<number>;
+        createdAt: PropertyBuilder<number>;
+        createdBy: PropertyBuilder<`did:key:${string}`>;
+    }>>;
+    readonly 'xnet://xnet.fyi/Event@1.0.0': () => Promise<DefinedSchema<{
+        title: PropertyBuilder<string>;
+        description: PropertyBuilder<string>;
+        space: PropertyBuilder<string>;
+        startsAt: PropertyBuilder<number>;
+        endsAt: PropertyBuilder<number>;
+        location: PropertyBuilder<string>;
+        timezone: PropertyBuilder<string>;
+        cancelled: PropertyBuilder<"cancelled" | "scheduled">;
+        createdAt: PropertyBuilder<number>;
+        createdBy: PropertyBuilder<`did:key:${string}`>;
+    }>>;
+    readonly 'xnet://xnet.fyi/Rsvp@1.0.0': () => Promise<DefinedSchema<{
+        event: PropertyBuilder<string>;
+        space: PropertyBuilder<string>;
+        response: PropertyBuilder<"going" | "maybe" | "declined">;
+        createdAt: PropertyBuilder<number>;
+        createdBy: PropertyBuilder<`did:key:${string}`>;
+    }>>;
+    readonly 'xnet://xnet.fyi/Publication@1.0.0': () => Promise<DefinedSchema<{
+        title: PropertyBuilder<string>;
+        description: PropertyBuilder<string>;
+        baseUrl: PropertyBuilder<string>;
+        basePath: PropertyBuilder<string>;
+        language: PropertyBuilder<string>;
+        space: PropertyBuilder<string>;
+        authors: PropertyBuilder<string[]>;
+        followable: PropertyBuilder<boolean>;
     }>>;
     readonly 'xnet://xnet.fyi/Folder@1.0.0': () => Promise<DefinedSchema<{
         name: PropertyBuilder<string>;
@@ -808,7 +898,7 @@ export const builtInSchemas: {
     readonly 'xnet://xnet.fyi/DatabaseView@1.0.0': () => Promise<DefinedSchema<{
         database: PropertyBuilder<string>;
         name: PropertyBuilder<string>;
-        type: PropertyBuilder<"list" | "table" | "timeline" | "board" | "gallery" | "calendar" | "form">;
+        type: PropertyBuilder<"map" | "list" | "table" | "timeline" | "board" | "gallery" | "calendar" | "form">;
         filters: PropertyBuilder<FilterGroup>;
         sorts: PropertyBuilder<SortConfig[]>;
         groupBy: PropertyBuilder<string>;
@@ -822,8 +912,14 @@ export const builtInSchemas: {
         sortKey: PropertyBuilder<string>;
         coverField: PropertyBuilder<string>;
         cardSize: PropertyBuilder<string>;
+        coverFit: PropertyBuilder<string>;
+        colorBy: PropertyBuilder<string>;
+        groupMeta: PropertyBuilder<Record<string, ViewGroupMeta>>;
         dateField: PropertyBuilder<string>;
         endDateField: PropertyBuilder<string>;
+        latField: PropertyBuilder<string>;
+        lngField: PropertyBuilder<string>;
+        mapViewport: PropertyBuilder<MapViewport>;
         formConfig: PropertyBuilder<FormViewConfig>;
         formRules: PropertyBuilder<Record<string, FormFieldRule>>;
         formAccepting: PropertyBuilder<boolean>;
@@ -847,7 +943,7 @@ export const builtInSchemas: {
         title: PropertyBuilder<string>;
         shortId: PropertyBuilder<string>;
         completed: PropertyBuilder<boolean>;
-        status: PropertyBuilder<"done" | "triage" | "backlog" | "todo" | "in-progress" | "in-review" | "cancelled">;
+        status: PropertyBuilder<"done" | "cancelled" | "triage" | "backlog" | "todo" | "in-progress" | "in-review">;
         priority: PropertyBuilder<"low" | "medium" | "high" | "urgent">;
         dueDate: PropertyBuilder<number>;
         assignee: PropertyBuilder<`did:key:${string}`>;
@@ -881,7 +977,7 @@ export const builtInSchemas: {
     readonly 'xnet://xnet.fyi/Project@1.0.0': () => Promise<DefinedSchema<{
         name: PropertyBuilder<string>;
         icon: PropertyBuilder<string>;
-        status: PropertyBuilder<"completed" | "in-progress" | "cancelled" | "planned" | "paused">;
+        status: PropertyBuilder<"cancelled" | "completed" | "in-progress" | "planned" | "paused">;
         lead: PropertyBuilder<`did:key:${string}`>;
         targetDate: PropertyBuilder<number>;
         folder: PropertyBuilder<string>;
@@ -1033,7 +1129,7 @@ export const builtInSchemas: {
         probability: PropertyBuilder<number>;
         closeDate: PropertyBuilder<number>;
         forecastCategory: PropertyBuilder<"pipeline" | "best-case" | "commit" | "closed">;
-        source: PropertyBuilder<"outbound" | "inbound" | "partner" | "referral" | "event" | "other">;
+        source: PropertyBuilder<"outbound" | "inbound" | "event" | "partner" | "referral" | "other">;
         owner: PropertyBuilder<`did:key:${string}`>;
         collaborators: PropertyBuilder<`did:key:${string}`[]>;
         wonAt: PropertyBuilder<number>;
@@ -1161,13 +1257,14 @@ export const builtInSchemas: {
         role: PropertyBuilder<"owner" | "admin" | "viewer" | "commenter" | "member">;
         addedBy: PropertyBuilder<`did:key:${string}`>;
         addedAt: PropertyBuilder<number>;
+        expiresAt: PropertyBuilder<number>;
         createdAt: PropertyBuilder<number>;
         createdBy: PropertyBuilder<`did:key:${string}`>;
     }>>;
     readonly 'xnet://xnet.fyi/ExternalReference@1.0.0': () => Promise<DefinedSchema<{
         url: PropertyBuilder<string>;
         provider: PropertyBuilder<"github" | "figma" | "youtube" | "loom" | "vimeo" | "codesandbox" | "spotify" | "twitter" | "instagram" | "tiktok" | "generic">;
-        kind: PropertyBuilder<"link" | "design" | "issue" | "pull-request" | "video" | "sandbox" | "social" | "audio">;
+        kind: PropertyBuilder<"link" | "social" | "design" | "issue" | "pull-request" | "video" | "sandbox" | "audio">;
         refId: PropertyBuilder<string>;
         title: PropertyBuilder<string>;
         subtitle: PropertyBuilder<string>;
@@ -1302,6 +1399,7 @@ export const builtInSchemas: {
         space: PropertyBuilder<string>;
         lane: PropertyBuilder<"user" | "auto" | "hub">;
         fingerprint: PropertyBuilder<string>;
+        issueKey: PropertyBuilder<string>;
         errorName: PropertyBuilder<string>;
         message: PropertyBuilder<string>;
         stack: PropertyBuilder<string>;
@@ -1314,6 +1412,7 @@ export const builtInSchemas: {
         didHash: PropertyBuilder<string>;
         occurrences: PropertyBuilder<number>;
         status: PropertyBuilder<"fixed" | "in-progress" | "new" | "acked" | "released">;
+        escalatedId: PropertyBuilder<string>;
         firstSeen: PropertyBuilder<number>;
         lastSeen: PropertyBuilder<number>;
         createdAt: PropertyBuilder<number>;
@@ -1326,6 +1425,9 @@ export const builtInSchemas: {
         avatar: PropertyBuilder<string>;
         statusEmoji: PropertyBuilder<string>;
         statusMessage: PropertyBuilder<string>;
+        atprotoDid: PropertyBuilder<string>;
+        atprotoHandle: PropertyBuilder<string>;
+        atprotoBindingUri: PropertyBuilder<string>;
         createdAt: PropertyBuilder<number>;
         createdBy: PropertyBuilder<`did:key:${string}`>;
     }>>;
@@ -1443,7 +1545,7 @@ export const builtInSchemas: {
     }>>;
     readonly 'xnet://xnet.fyi/RecoveryRecord@1.0.0': () => Promise<DefinedSchema<{
         account: PropertyBuilder<string>;
-        method: PropertyBuilder<"admin" | "social" | "phrase" | "hardware" | "backup-passkey">;
+        method: PropertyBuilder<"admin" | "phrase" | "social" | "hardware" | "backup-passkey">;
         label: PropertyBuilder<string>;
         publicKeyHash: PropertyBuilder<string>;
         status: PropertyBuilder<"active" | "revoked">;
@@ -1665,7 +1767,7 @@ export const builtInSchemas: {
         targetSchema: PropertyBuilder<string>;
         firstMessageRef: PropertyBuilder<string>;
         firstMessagePreview: PropertyBuilder<string>;
-        status: PropertyBuilder<"expired" | "pending" | "quarantined" | "accepted" | "declined" | "blocked">;
+        status: PropertyBuilder<"expired" | "pending" | "declined" | "quarantined" | "accepted" | "blocked">;
         admission: PropertyBuilder<"allow" | "quarantine" | "review" | "block" | "message-request">;
         reasonCodes: PropertyBuilder<("first-contact" | "trusted-sender" | "known-contact" | "sender-muted" | "sender-blocked" | "review-required" | "verified-identity-required" | "policy-allow" | "policy-slow-mode" | "policy-quarantine" | "policy-review" | "policy-block")[]>;
         confidence: PropertyBuilder<number>;
@@ -1922,6 +2024,79 @@ export const builtInSchemas: {
         tags: PropertyBuilder<string[]>;
         space: PropertyBuilder<string>;
         visibility: PropertyBuilder<"public" | "private" | "unlisted" | "inherit">;
+        geometry: PropertyBuilder<"grid" | "space" | "stack">;
+        publication: PropertyBuilder<string>;
+        slug: PropertyBuilder<string>;
+        excerpt: PropertyBuilder<string>;
+        publishedAt: PropertyBuilder<number>;
+        canonicalUrl: PropertyBuilder<string>;
+        publishedFrontier: PropertyBuilder<unknown>;
+    }>>;
+    readonly 'xnet://xnet.fyi/Post': () => Promise<DefinedSchema<{
+        title: PropertyBuilder<string>;
+        space: PropertyBuilder<string>;
+        category: PropertyBuilder<string>;
+        pinned: PropertyBuilder<boolean>;
+        locked: PropertyBuilder<boolean>;
+        visibility: PropertyBuilder<"public" | "private" | "unlisted" | "inherit">;
+        createdAt: PropertyBuilder<number>;
+        createdBy: PropertyBuilder<`did:key:${string}`>;
+    }>>;
+    readonly 'xnet://xnet.fyi/Course': () => Promise<DefinedSchema<{
+        title: PropertyBuilder<string>;
+        description: PropertyBuilder<string>;
+        space: PropertyBuilder<string>;
+        icon: PropertyBuilder<string>;
+        sortKey: PropertyBuilder<string>;
+        published: PropertyBuilder<boolean>;
+        createdAt: PropertyBuilder<number>;
+        createdBy: PropertyBuilder<`did:key:${string}`>;
+    }>>;
+    readonly 'xnet://xnet.fyi/Lesson': () => Promise<DefinedSchema<{
+        title: PropertyBuilder<string>;
+        course: PropertyBuilder<string>;
+        space: PropertyBuilder<string>;
+        sortKey: PropertyBuilder<string>;
+        estimatedMinutes: PropertyBuilder<number>;
+        createdAt: PropertyBuilder<number>;
+        createdBy: PropertyBuilder<`did:key:${string}`>;
+    }>>;
+    readonly 'xnet://xnet.fyi/LessonProgress': () => Promise<DefinedSchema<{
+        lesson: PropertyBuilder<string>;
+        course: PropertyBuilder<string>;
+        space: PropertyBuilder<string>;
+        completedAt: PropertyBuilder<number>;
+        createdAt: PropertyBuilder<number>;
+        createdBy: PropertyBuilder<`did:key:${string}`>;
+    }>>;
+    readonly 'xnet://xnet.fyi/Event': () => Promise<DefinedSchema<{
+        title: PropertyBuilder<string>;
+        description: PropertyBuilder<string>;
+        space: PropertyBuilder<string>;
+        startsAt: PropertyBuilder<number>;
+        endsAt: PropertyBuilder<number>;
+        location: PropertyBuilder<string>;
+        timezone: PropertyBuilder<string>;
+        cancelled: PropertyBuilder<"cancelled" | "scheduled">;
+        createdAt: PropertyBuilder<number>;
+        createdBy: PropertyBuilder<`did:key:${string}`>;
+    }>>;
+    readonly 'xnet://xnet.fyi/Rsvp': () => Promise<DefinedSchema<{
+        event: PropertyBuilder<string>;
+        space: PropertyBuilder<string>;
+        response: PropertyBuilder<"going" | "maybe" | "declined">;
+        createdAt: PropertyBuilder<number>;
+        createdBy: PropertyBuilder<`did:key:${string}`>;
+    }>>;
+    readonly 'xnet://xnet.fyi/Publication': () => Promise<DefinedSchema<{
+        title: PropertyBuilder<string>;
+        description: PropertyBuilder<string>;
+        baseUrl: PropertyBuilder<string>;
+        basePath: PropertyBuilder<string>;
+        language: PropertyBuilder<string>;
+        space: PropertyBuilder<string>;
+        authors: PropertyBuilder<string[]>;
+        followable: PropertyBuilder<boolean>;
     }>>;
     readonly 'xnet://xnet.fyi/Folder': () => Promise<DefinedSchema<{
         name: PropertyBuilder<string>;
@@ -1977,7 +2152,7 @@ export const builtInSchemas: {
     readonly 'xnet://xnet.fyi/DatabaseView': () => Promise<DefinedSchema<{
         database: PropertyBuilder<string>;
         name: PropertyBuilder<string>;
-        type: PropertyBuilder<"list" | "table" | "timeline" | "board" | "gallery" | "calendar" | "form">;
+        type: PropertyBuilder<"map" | "list" | "table" | "timeline" | "board" | "gallery" | "calendar" | "form">;
         filters: PropertyBuilder<FilterGroup>;
         sorts: PropertyBuilder<SortConfig[]>;
         groupBy: PropertyBuilder<string>;
@@ -1991,8 +2166,14 @@ export const builtInSchemas: {
         sortKey: PropertyBuilder<string>;
         coverField: PropertyBuilder<string>;
         cardSize: PropertyBuilder<string>;
+        coverFit: PropertyBuilder<string>;
+        colorBy: PropertyBuilder<string>;
+        groupMeta: PropertyBuilder<Record<string, ViewGroupMeta>>;
         dateField: PropertyBuilder<string>;
         endDateField: PropertyBuilder<string>;
+        latField: PropertyBuilder<string>;
+        lngField: PropertyBuilder<string>;
+        mapViewport: PropertyBuilder<MapViewport>;
         formConfig: PropertyBuilder<FormViewConfig>;
         formRules: PropertyBuilder<Record<string, FormFieldRule>>;
         formAccepting: PropertyBuilder<boolean>;
@@ -2016,7 +2197,7 @@ export const builtInSchemas: {
         title: PropertyBuilder<string>;
         shortId: PropertyBuilder<string>;
         completed: PropertyBuilder<boolean>;
-        status: PropertyBuilder<"done" | "triage" | "backlog" | "todo" | "in-progress" | "in-review" | "cancelled">;
+        status: PropertyBuilder<"done" | "cancelled" | "triage" | "backlog" | "todo" | "in-progress" | "in-review">;
         priority: PropertyBuilder<"low" | "medium" | "high" | "urgent">;
         dueDate: PropertyBuilder<number>;
         assignee: PropertyBuilder<`did:key:${string}`>;
@@ -2050,7 +2231,7 @@ export const builtInSchemas: {
     readonly 'xnet://xnet.fyi/Project': () => Promise<DefinedSchema<{
         name: PropertyBuilder<string>;
         icon: PropertyBuilder<string>;
-        status: PropertyBuilder<"completed" | "in-progress" | "cancelled" | "planned" | "paused">;
+        status: PropertyBuilder<"cancelled" | "completed" | "in-progress" | "planned" | "paused">;
         lead: PropertyBuilder<`did:key:${string}`>;
         targetDate: PropertyBuilder<number>;
         folder: PropertyBuilder<string>;
@@ -2202,7 +2383,7 @@ export const builtInSchemas: {
         probability: PropertyBuilder<number>;
         closeDate: PropertyBuilder<number>;
         forecastCategory: PropertyBuilder<"pipeline" | "best-case" | "commit" | "closed">;
-        source: PropertyBuilder<"outbound" | "inbound" | "partner" | "referral" | "event" | "other">;
+        source: PropertyBuilder<"outbound" | "inbound" | "event" | "partner" | "referral" | "other">;
         owner: PropertyBuilder<`did:key:${string}`>;
         collaborators: PropertyBuilder<`did:key:${string}`[]>;
         wonAt: PropertyBuilder<number>;
@@ -2330,13 +2511,14 @@ export const builtInSchemas: {
         role: PropertyBuilder<"owner" | "admin" | "viewer" | "commenter" | "member">;
         addedBy: PropertyBuilder<`did:key:${string}`>;
         addedAt: PropertyBuilder<number>;
+        expiresAt: PropertyBuilder<number>;
         createdAt: PropertyBuilder<number>;
         createdBy: PropertyBuilder<`did:key:${string}`>;
     }>>;
     readonly 'xnet://xnet.fyi/ExternalReference': () => Promise<DefinedSchema<{
         url: PropertyBuilder<string>;
         provider: PropertyBuilder<"github" | "figma" | "youtube" | "loom" | "vimeo" | "codesandbox" | "spotify" | "twitter" | "instagram" | "tiktok" | "generic">;
-        kind: PropertyBuilder<"link" | "design" | "issue" | "pull-request" | "video" | "sandbox" | "social" | "audio">;
+        kind: PropertyBuilder<"link" | "social" | "design" | "issue" | "pull-request" | "video" | "sandbox" | "audio">;
         refId: PropertyBuilder<string>;
         title: PropertyBuilder<string>;
         subtitle: PropertyBuilder<string>;
@@ -2450,6 +2632,7 @@ export const builtInSchemas: {
         space: PropertyBuilder<string>;
         lane: PropertyBuilder<"user" | "auto" | "hub">;
         fingerprint: PropertyBuilder<string>;
+        issueKey: PropertyBuilder<string>;
         errorName: PropertyBuilder<string>;
         message: PropertyBuilder<string>;
         stack: PropertyBuilder<string>;
@@ -2462,6 +2645,7 @@ export const builtInSchemas: {
         didHash: PropertyBuilder<string>;
         occurrences: PropertyBuilder<number>;
         status: PropertyBuilder<"fixed" | "in-progress" | "new" | "acked" | "released">;
+        escalatedId: PropertyBuilder<string>;
         firstSeen: PropertyBuilder<number>;
         lastSeen: PropertyBuilder<number>;
         createdAt: PropertyBuilder<number>;
@@ -2474,6 +2658,9 @@ export const builtInSchemas: {
         avatar: PropertyBuilder<string>;
         statusEmoji: PropertyBuilder<string>;
         statusMessage: PropertyBuilder<string>;
+        atprotoDid: PropertyBuilder<string>;
+        atprotoHandle: PropertyBuilder<string>;
+        atprotoBindingUri: PropertyBuilder<string>;
         createdAt: PropertyBuilder<number>;
         createdBy: PropertyBuilder<`did:key:${string}`>;
     }>>;
@@ -2591,7 +2778,7 @@ export const builtInSchemas: {
     }>>;
     readonly 'xnet://xnet.fyi/RecoveryRecord': () => Promise<DefinedSchema<{
         account: PropertyBuilder<string>;
-        method: PropertyBuilder<"admin" | "social" | "phrase" | "hardware" | "backup-passkey">;
+        method: PropertyBuilder<"admin" | "phrase" | "social" | "hardware" | "backup-passkey">;
         label: PropertyBuilder<string>;
         publicKeyHash: PropertyBuilder<string>;
         status: PropertyBuilder<"active" | "revoked">;
@@ -2813,7 +3000,7 @@ export const builtInSchemas: {
         targetSchema: PropertyBuilder<string>;
         firstMessageRef: PropertyBuilder<string>;
         firstMessagePreview: PropertyBuilder<string>;
-        status: PropertyBuilder<"expired" | "pending" | "quarantined" | "accepted" | "declined" | "blocked">;
+        status: PropertyBuilder<"expired" | "pending" | "declined" | "quarantined" | "accepted" | "blocked">;
         admission: PropertyBuilder<"allow" | "quarantine" | "review" | "block" | "message-request">;
         reasonCodes: PropertyBuilder<("first-contact" | "trusted-sender" | "known-contact" | "sender-muted" | "sender-blocked" | "review-required" | "verified-identity-required" | "policy-allow" | "policy-slow-mode" | "policy-quarantine" | "policy-review" | "policy-block")[]>;
         confidence: PropertyBuilder<number>;
@@ -3067,10 +3254,115 @@ export const builtInSchemas: {
 export function bumpSchemaVersion(current: string, type: VersionBumpType): string;
 
 // @public
+export const BUNDLE_ENTRY: {
+    readonly manifest: "manifest.json";
+    readonly changes: "changes.ndjson";
+    readonly commits: "commits.ndjson";
+    readonly blobIndex: "blobs.ndjson";
+    readonly yjsDocs: "yjs/docs.ndjson";
+};
+
+// @public (undocumented)
+export type BundleApplyReport = {
+    applied: number;
+    duplicates: number;
+    quarantined: QuarantinedRecord[];
+    blobsInstalled: number;
+    yjsDocsApplied: number;
+    missingPrerequisites: string[];
+};
+
+// @public (undocumented)
+export interface BundleBlobPort {
+    // (undocumented)
+    has(cid: string): Promise<boolean>;
+    // (undocumented)
+    list(): AsyncIterable<{
+        cid: string;
+        bytes: Uint8Array;
+        mimeType?: string;
+    }>;
+    // (undocumented)
+    put(bytes: Uint8Array, meta?: {
+        cid?: string;
+        mimeType?: string;
+    }): Promise<void>;
+}
+
+// @public
+export type BundleFrontier = {
+    lamport: number;
+    heads: string[];
+    changeCount: number;
+};
+
+// @public
+export class BundleImportError extends Error {
+    constructor(message: string, code: 'verify-failed' | 'unsigned-manifest' | 'foreign-owner' | 'missing-prerequisites');
+    // (undocumented)
+    readonly code: 'verify-failed' | 'unsigned-manifest' | 'foreign-owner' | 'missing-prerequisites';
+}
+
+// @public
+export type BundleScope = {
+    kind: 'full';
+} | {
+    kind: 'nodes';
+    nodeIds: readonly string[];
+} | {
+    kind: 'schemas';
+    schemaIds: readonly string[];
+} | {
+    kind: 'space';
+    spaceId: string;
+};
+
+// @public
+export interface BundleSink {
+    // (undocumented)
+    writeEntry(path: string, data: Uint8Array): Promise<void> | void;
+}
+
+// @public
+export interface BundleSource {
+    listEntries(prefix: string): Promise<string[]>;
+    readEntry(path: string): Promise<Uint8Array | null>;
+    readLines(path: string): AsyncIterable<string>;
+}
+
+// @public (undocumented)
+export type BundleVerifyIssue = {
+    severity: 'error' | 'warning';
+    code: 'unknown-format' | 'future-protocol' | 'manifest-unsigned' | 'manifest-signature-invalid' | 'content-digest-mismatch' | 'count-mismatch' | 'change-hash-invalid' | 'change-signature-invalid' | 'change-unparseable' | 'blob-digest-mismatch' | 'dangling-parent';
+    detail: string;
+    subject?: string;
+};
+
+// @public (undocumented)
+export type BundleVerifyReport = {
+    ok: boolean;
+    manifest: XnetpackManifest | null;
+    issues: BundleVerifyIssue[];
+    danglingParents: number;
+};
+
+// @public (undocumented)
+export interface BundleYjsPort {
+    apply(nodeId: string, update: Uint8Array): Promise<void>;
+    list(): AsyncIterable<{
+        nodeId: string;
+        update: Uint8Array;
+    }>;
+}
+
+// @public
 export const canManageSpace: (role: SpaceRole) => boolean;
 
 // @public
 export function canModifyColumn(schema: Schema, propertyName: string): boolean;
+
+// @public
+export function canonicalManifestBytes(manifest: XnetpackManifest): Uint8Array;
 
 // @public
 export type Canvas = InferNode<(typeof CanvasSchema)['_properties']>;
@@ -3138,10 +3430,16 @@ export interface CellFileRef {
 }
 
 // @public
+export interface CellGeoPoint {
+    lat: number;
+    lng: number;
+}
+
+// @public
 export function cellKey(columnId: string): string;
 
 // @public
-export type CellValue = string | number | boolean | CellDateRange | string[] | CellFileRef | null;
+export type CellValue = string | number | boolean | CellDateRange | CellGeoPoint | string[] | CellFileRef | null;
 
 // @public
 export function cellValueToText(value: CellValue, sourceType: FieldType, ctx?: ConvertContext): string;
@@ -3343,7 +3641,7 @@ export interface ColumnSummaryResult {
 }
 
 // @public
-export type ColumnType = 'text' | 'number' | 'checkbox' | 'date' | 'dateRange' | 'select' | 'multiSelect' | 'person' | 'url' | 'email' | 'phone' | 'file' | 'relation' | 'tasks' | 'rollup' | 'formula' | 'richText' | 'created' | 'createdBy' | 'updated' | 'updatedBy';
+export type ColumnType = 'text' | 'number' | 'checkbox' | 'date' | 'dateRange' | 'geo' | 'select' | 'multiSelect' | 'person' | 'url' | 'email' | 'phone' | 'file' | 'relation' | 'tasks' | 'rollup' | 'formula' | 'richText' | 'created' | 'createdBy' | 'updated' | 'updatedBy';
 
 // @public
 export function combineFiltersAnd(filters: FilterGroup[]): FilterGroup;
@@ -3397,6 +3695,9 @@ export const CommunityNoteSchema: DefinedSchema<{
     ratingSummary: PropertyBuilder<string>;
     reviewers: PropertyBuilder<`did:key:${string}`[]>;
 }>;
+
+// @public
+export const comparePostsForFeed: (a: Pick<Post, "pinned" | "createdAt">, b: Pick<Post, "pinned" | "createdAt">) => number;
 
 // @public
 export function compareSortKeys(a: string, b: string): number;
@@ -3572,6 +3873,30 @@ export interface CountNodesOptions {
     includeDeleted?: boolean;
     schemaId?: SchemaIRI;
 }
+
+// @public (undocumented)
+export type Course = InferNode<(typeof CourseSchema)['_properties']>;
+
+// @public (undocumented)
+export const COURSE_SCHEMA_IRI = "xnet://xnet.fyi/Course@1.0.0";
+
+// @public
+export const courseCompletion: (lessons: readonly Pick<Lesson, "id">[], ownProgress: readonly Pick<LessonProgress, "lesson" | "completedAt">[]) => {
+    completed: number;
+    total: number;
+};
+
+// @public (undocumented)
+export const CourseSchema: DefinedSchema<{
+    title: PropertyBuilder<string>;
+    description: PropertyBuilder<string>;
+    space: PropertyBuilder<string>;
+    icon: PropertyBuilder<string>;
+    sortKey: PropertyBuilder<string>;
+    published: PropertyBuilder<boolean>;
+    createdAt: PropertyBuilder<number>;
+    createdBy: PropertyBuilder<`did:key:${string}`>;
+}>;
 
 // @public
 export function createAccountRecord(args: {
@@ -3749,6 +4074,9 @@ export function createSort(columnId: string, direction?: 'asc' | 'desc'): SortCo
 export function createSortQuery(sorts: SortConfig[]): QueryOptions;
 
 // @public
+export function createStoreYjsPort(store: NodeStore): BundleYjsPort;
+
+// @public
 export function createVersionEntry(version: string, columns: StoredColumn[], changeType: SchemaVersionEntry['changeType'], changeDescription?: string): SchemaVersionEntry;
 
 // @public
@@ -3853,7 +4181,7 @@ export const crmSchemas: readonly [DefinedSchema<{
     probability: PropertyBuilder<number>;
     closeDate: PropertyBuilder<number>;
     forecastCategory: PropertyBuilder<"pipeline" | "best-case" | "commit" | "closed">;
-    source: PropertyBuilder<"outbound" | "inbound" | "partner" | "referral" | "event" | "other">;
+    source: PropertyBuilder<"outbound" | "inbound" | "event" | "partner" | "referral" | "other">;
     owner: PropertyBuilder<`did:key:${string}`>;
     collaborators: PropertyBuilder<`did:key:${string}`[]>;
     wonAt: PropertyBuilder<number>;
@@ -4093,7 +4421,7 @@ export type DatabaseView = InferNode<(typeof DatabaseViewSchema)['_properties']>
 export const DatabaseViewSchema: DefinedSchema<{
     database: PropertyBuilder<string>;
     name: PropertyBuilder<string>;
-    type: PropertyBuilder<"list" | "table" | "timeline" | "board" | "gallery" | "calendar" | "form">;
+    type: PropertyBuilder<"map" | "list" | "table" | "timeline" | "board" | "gallery" | "calendar" | "form">;
     filters: PropertyBuilder<FilterGroup>;
     sorts: PropertyBuilder<SortConfig[]>;
     groupBy: PropertyBuilder<string>;
@@ -4107,8 +4435,14 @@ export const DatabaseViewSchema: DefinedSchema<{
     sortKey: PropertyBuilder<string>;
     coverField: PropertyBuilder<string>;
     cardSize: PropertyBuilder<string>;
+    coverFit: PropertyBuilder<string>;
+    colorBy: PropertyBuilder<string>;
+    groupMeta: PropertyBuilder<Record<string, ViewGroupMeta>>;
     dateField: PropertyBuilder<string>;
     endDateField: PropertyBuilder<string>;
+    latField: PropertyBuilder<string>;
+    lngField: PropertyBuilder<string>;
+    mapViewport: PropertyBuilder<MapViewport>;
     formConfig: PropertyBuilder<FormViewConfig>;
     formRules: PropertyBuilder<Record<string, FormFieldRule>>;
     formAccepting: PropertyBuilder<boolean>;
@@ -4234,7 +4568,7 @@ export const DealSchema: DefinedSchema<{
     probability: PropertyBuilder<number>;
     closeDate: PropertyBuilder<number>;
     forecastCategory: PropertyBuilder<"pipeline" | "best-case" | "commit" | "closed">;
-    source: PropertyBuilder<"outbound" | "inbound" | "partner" | "referral" | "event" | "other">;
+    source: PropertyBuilder<"outbound" | "inbound" | "event" | "partner" | "referral" | "other">;
     owner: PropertyBuilder<`did:key:${string}`>;
     collaborators: PropertyBuilder<`did:key:${string}`[]>;
     wonAt: PropertyBuilder<number>;
@@ -4258,6 +4592,7 @@ export const DebugReportSchema: DefinedSchema<{
     space: PropertyBuilder<string>;
     lane: PropertyBuilder<"user" | "auto" | "hub">;
     fingerprint: PropertyBuilder<string>;
+    issueKey: PropertyBuilder<string>;
     errorName: PropertyBuilder<string>;
     message: PropertyBuilder<string>;
     stack: PropertyBuilder<string>;
@@ -4270,6 +4605,7 @@ export const DebugReportSchema: DefinedSchema<{
     didHash: PropertyBuilder<string>;
     occurrences: PropertyBuilder<number>;
     status: PropertyBuilder<"fixed" | "in-progress" | "new" | "acked" | "released">;
+    escalatedId: PropertyBuilder<string>;
     firstSeen: PropertyBuilder<number>;
     lastSeen: PropertyBuilder<number>;
     createdAt: PropertyBuilder<number>;
@@ -4668,8 +5004,33 @@ export type EvaluateExternalReferenceEmbedPolicyInput = {
     policy?: ExternalReferenceEmbedPolicy | null;
 };
 
+// @public
+export function evaluateLedgerWrite(input: {
+    schemaId: string | undefined;
+    authorDid: string;
+    properties: Record<string, unknown>;
+    state: LedgerEnforcementState;
+}): LedgerWriteDecision;
+
 // @public (undocumented)
 export function evaluateQueryASTPlannerGate(value: unknown): QueryASTPlannerGate;
+
+// @public (undocumented)
+export const EVENT_SCHEMA_IRI = "xnet://xnet.fyi/Event@1.0.0";
+
+// @public (undocumented)
+export const EventSchema: DefinedSchema<{
+    title: PropertyBuilder<string>;
+    description: PropertyBuilder<string>;
+    space: PropertyBuilder<string>;
+    startsAt: PropertyBuilder<number>;
+    endsAt: PropertyBuilder<number>;
+    location: PropertyBuilder<string>;
+    timezone: PropertyBuilder<string>;
+    cancelled: PropertyBuilder<"cancelled" | "scheduled">;
+    createdAt: PropertyBuilder<number>;
+    createdBy: PropertyBuilder<`did:key:${string}`>;
+}>;
 
 // @public
 export function executeQuery<T extends QueryableRow>(rows: T[], columns: ColumnDefinition[], options?: QueryOptions): QueryResult<T>;
@@ -4955,7 +5316,7 @@ export type ExternalReferenceResolvedMetadata = {
 export const ExternalReferenceSchema: DefinedSchema<{
     url: PropertyBuilder<string>;
     provider: PropertyBuilder<"github" | "figma" | "youtube" | "loom" | "vimeo" | "codesandbox" | "spotify" | "twitter" | "instagram" | "tiktok" | "generic">;
-    kind: PropertyBuilder<"link" | "design" | "issue" | "pull-request" | "video" | "sandbox" | "social" | "audio">;
+    kind: PropertyBuilder<"link" | "social" | "design" | "issue" | "pull-request" | "video" | "sandbox" | "audio">;
     refId: PropertyBuilder<string>;
     title: PropertyBuilder<string>;
     subtitle: PropertyBuilder<string>;
@@ -5138,6 +5499,9 @@ export function flattenGroups<T extends QueryableRow>(groups: RowGroup<T>[]): T[
 // @public (undocumented)
 export const flattenSpaceTree: typeof flattenFolderTree;
 
+// @public
+export function foldAccountRecord(properties: Record<string, unknown>): LedgerEnforcementState['account'];
+
 // @public (undocumented)
 export type Folder = InferNode<(typeof FolderSchema)['_properties']>;
 
@@ -5269,9 +5633,10 @@ export interface FormulaRow {
 
 // @public (undocumented)
 export class FormulaService {
-    batchCompute(rows: FormulaRow[], column: ColumnDefinition, columns: ColumnDefinition[]): Map<string, unknown>;
+    batchCompute(rows: FormulaRow[], column: ColumnDefinition, columns: ColumnDefinition[], scope?: FormulaScope): Map<string, unknown>;
     clearAstCache(): void;
-    compute(row: FormulaRow, column: ColumnDefinition, columns: ColumnDefinition[]): unknown;
+    // Warning: (ae-forgotten-export) The symbol "FormulaScope" needs to be exported by the entry point index.d.ts
+    compute(row: FormulaRow, column: ColumnDefinition, columns: ColumnDefinition[], scope?: FormulaScope): unknown;
     invalidate(rowId: string): void;
     invalidateAll(): void;
     validate(expression: string, columns: ColumnDefinition[]): FormulaValidationResult;
@@ -5320,6 +5685,9 @@ export function from<P extends Record<string, PropertyBuilder> = Record<string, 
 
 // @public
 export function fromCellProperties(properties: Record<string, unknown>): Record<string, CellValue>;
+
+// @public
+export function fromPortableChangeRecord(record: PortableChangeRecord): NodeChange;
 
 // @public (undocumented)
 export const GAME_ASSET_FORMATS: readonly [{
@@ -5484,6 +5852,9 @@ export function generateSortKeyWithJitter(before?: string, after?: string): stri
 export function generateUserColor(): string;
 
 // @public
+export function geo(options?: GeoOptions): PropertyBuilder<GeoPoint>;
+
+// @public
 export interface GeoFeature {
     // (undocumented)
     geometry: GeoGeometry | null;
@@ -5511,6 +5882,18 @@ export interface GeoGeometry {
     geometries?: GeoGeometry[];
     // (undocumented)
     type: 'Point' | 'MultiPoint' | 'LineString' | 'MultiLineString' | 'Polygon' | 'MultiPolygon' | 'GeometryCollection';
+}
+
+// @public (undocumented)
+export interface GeoOptions {
+    // (undocumented)
+    required?: boolean;
+}
+
+// @public
+export interface GeoPoint {
+    lat: number;
+    lng: number;
 }
 
 // @public
@@ -5948,6 +6331,9 @@ export function isCellDateRange(value: unknown): value is CellDateRange;
 export function isCellFileRef(value: unknown): value is CellFileRef;
 
 // @public
+export function isCellGeoPoint(value: unknown): value is CellGeoPoint;
+
+// @public
 export function isCellKey(key: string): boolean;
 
 // @public
@@ -5994,6 +6380,9 @@ export function isFormFieldTypeAllowed(type: FieldType, audience: FormAudience):
 
 // @public
 export function isFormQuestionVisible(rule: FormFieldRule | undefined, answers: Record<string, CellValue>, columns: ColumnDefinition[]): boolean;
+
+// @public
+export function isGeoPoint(value: unknown): value is GeoPoint;
 
 // @public (undocumented)
 export function isGrantActive(grant: GrantNode, now?: number): boolean;
@@ -6115,6 +6504,19 @@ export interface JsonParseOptions {
 }
 
 // @public
+export function ledgerAccountId(kind: LedgerWriteKind, properties: Record<string, unknown>): string | null;
+
+// @public
+export interface LedgerEnforcementState {
+    account: {
+        accountId: string;
+        controllers: readonly string[];
+        epoch: number;
+    } | null;
+    authorRevoked: boolean;
+}
+
+// @public
 export interface LedgerNodeIntent {
     // (undocumented)
     id: string;
@@ -6123,6 +6525,20 @@ export interface LedgerNodeIntent {
     // (undocumented)
     schemaId: SchemaIRI;
 }
+
+// Warning: (ae-forgotten-export) The symbol "LedgerWriteDenied" needs to be exported by the entry point index.d.ts
+//
+// @public (undocumented)
+export type LedgerWriteDecision = {
+    allowed: true;
+    genesis?: boolean;
+} | LedgerWriteDenied;
+
+// @public
+export type LedgerWriteKind = 'account' | 'device' | 'recovery' | 'revocation';
+
+// @public
+export function ledgerWriteKind(schemaId: string | undefined): LedgerWriteKind | null;
 
 // @public
 export interface LensOperation {
@@ -6148,6 +6564,42 @@ export class LensRegistry {
 
 // @public
 export const lensRegistry: LensRegistry;
+
+// @public (undocumented)
+export type Lesson = InferNode<(typeof LessonSchema)['_properties']>;
+
+// @public (undocumented)
+export const LESSON_PROGRESS_SCHEMA_IRI = "xnet://xnet.fyi/LessonProgress@1.0.0";
+
+// @public (undocumented)
+export const LESSON_SCHEMA_IRI = "xnet://xnet.fyi/Lesson@1.0.0";
+
+// @public (undocumented)
+export type LessonProgress = InferNode<(typeof LessonProgressSchema)['_properties']>;
+
+// @public
+export function lessonProgressId(lessonId: string, learnerDid: string): string;
+
+// @public
+export const LessonProgressSchema: DefinedSchema<{
+    lesson: PropertyBuilder<string>;
+    course: PropertyBuilder<string>;
+    space: PropertyBuilder<string>;
+    completedAt: PropertyBuilder<number>;
+    createdAt: PropertyBuilder<number>;
+    createdBy: PropertyBuilder<`did:key:${string}`>;
+}>;
+
+// @public (undocumented)
+export const LessonSchema: DefinedSchema<{
+    title: PropertyBuilder<string>;
+    course: PropertyBuilder<string>;
+    space: PropertyBuilder<string>;
+    sortKey: PropertyBuilder<string>;
+    estimatedMinutes: PropertyBuilder<number>;
+    createdAt: PropertyBuilder<number>;
+    createdBy: PropertyBuilder<`did:key:${string}`>;
+}>;
 
 // @public (undocumented)
 export const LINE_ITEM_SCHEMA_IRI: "xnet://xnet.fyi/LineItem@1.0.0";
@@ -6430,6 +6882,27 @@ export const MEMORY_KINDS: readonly [{
     readonly color: "green";
 }];
 
+// @public
+export class MemoryBundleSink implements BundleSink {
+    // (undocumented)
+    readonly entries: Map<string, Uint8Array<ArrayBufferLike>>;
+    // (undocumented)
+    toSource(): MemoryBundleSource;
+    // (undocumented)
+    writeEntry(path: string, data: Uint8Array): void;
+}
+
+// @public (undocumented)
+export class MemoryBundleSource implements BundleSource {
+    constructor(entries: ReadonlyMap<string, Uint8Array>);
+    // (undocumented)
+    listEntries(prefix: string): Promise<string[]>;
+    // (undocumented)
+    readEntry(path: string): Promise<Uint8Array | null>;
+    // (undocumented)
+    readLines(path: string): AsyncIterable<string>;
+}
+
 // @public (undocumented)
 export type MemoryItem = InferNode<(typeof MemoryItemSchema)['_properties']>;
 
@@ -6608,7 +7081,7 @@ export const MessageRequestSchema: DefinedSchema<{
     targetSchema: PropertyBuilder<string>;
     firstMessageRef: PropertyBuilder<string>;
     firstMessagePreview: PropertyBuilder<string>;
-    status: PropertyBuilder<"expired" | "pending" | "quarantined" | "accepted" | "declined" | "blocked">;
+    status: PropertyBuilder<"expired" | "pending" | "declined" | "quarantined" | "accepted" | "blocked">;
     admission: PropertyBuilder<"allow" | "quarantine" | "review" | "block" | "message-request">;
     reasonCodes: PropertyBuilder<("first-contact" | "trusted-sender" | "known-contact" | "sender-muted" | "sender-blocked" | "review-required" | "verified-identity-required" | "policy-allow" | "policy-slow-mode" | "policy-quarantine" | "policy-review" | "policy-block")[]>;
     confidence: PropertyBuilder<number>;
@@ -7245,11 +7718,14 @@ export interface NodeStorageAdapter {
     withTransaction?<T>(fn: (storage: NodeStorageAdapter) => Promise<T>): Promise<T>;
 }
 
-// @public
+// @public (undocumented)
 export class NodeStore {
     constructor(options: NodeStoreOptions);
     analyze(): Promise<void>;
-    applyRemoteChange(change: NodeChange): Promise<void>;
+    // Warning: (ae-forgotten-export) The symbol "ApplyRemoteChangeOptions" needs to be exported by the entry point index.d.ts
+    //
+    // (undocumented)
+    applyRemoteChange(change: NodeChange, options?: ApplyRemoteChangeOptions): Promise<void>;
     applyRemoteChanges(changes: NodeChange[]): Promise<void>;
     // (undocumented)
     readonly auth?: StoreAuthAPI;
@@ -7272,6 +7748,7 @@ export class NodeStore {
     getStorageAdapter(): NodeStorageAdapter;
     getSyncCursor(room: string): Promise<number>;
     getWithMigration(id: NodeId, options: GetWithMigrationOptions): Promise<MigratedNodeState | null>;
+    hasChange(hash: ContentId): Promise<boolean>;
     importDeterministicNodes(drafts: readonly DeterministicNodeImportDraft[], options?: ImportDeterministicNodesOptions): Promise<ImportDeterministicNodesResult>;
     initialize(): Promise<void>;
     // (undocumented)
@@ -7296,6 +7773,7 @@ export class NodeStore {
     // (undocumented)
     unmarkDraftPrivate(ids: readonly NodeId[]): void;
     update(id: NodeId, options: UpdateNodeOptions): Promise<NodeState>;
+    verifyRemoteChanges(changes: readonly NodeChange[]): Promise<boolean[]>;
 }
 
 // @public
@@ -7538,6 +8016,13 @@ export const PageSchema: DefinedSchema<{
     tags: PropertyBuilder<string[]>;
     space: PropertyBuilder<string>;
     visibility: PropertyBuilder<"public" | "private" | "unlisted" | "inherit">;
+    geometry: PropertyBuilder<"grid" | "space" | "stack">;
+    publication: PropertyBuilder<string>;
+    slug: PropertyBuilder<string>;
+    excerpt: PropertyBuilder<string>;
+    publishedAt: PropertyBuilder<number>;
+    canonicalUrl: PropertyBuilder<string>;
+    publishedFrontier: PropertyBuilder<unknown>;
 }>;
 
 // @public
@@ -7773,6 +8258,45 @@ export const PolicySubscriptionSchema: DefinedSchema<{
 }>;
 
 // @public
+export type PortableBlobRecord = {
+    cid: string;
+    path: string;
+    size: number;
+    mimeType?: string;
+};
+
+// @public
+export type PortableChangeRecord = {
+    id: string;
+    type: string;
+    hash: string;
+    nodeId: string;
+    schemaId?: string;
+    lamportTime: number;
+    authorDid: string;
+    wallTime: number;
+    parentHash: string | null;
+    payload: NodePayload;
+    signatureB64: string;
+    protocolVersion?: number;
+    batchId?: string;
+    batchIndex?: number;
+    batchSize?: number;
+};
+
+// @public
+export type PortableYjsDocRecord = {
+    nodeId: string;
+    updateB64: string;
+};
+
+// @public (undocumented)
+export type Post = InferNode<(typeof PostSchema)['_properties']>;
+
+// @public (undocumented)
+export const POST_SCHEMA_IRI = "xnet://xnet.fyi/Post@1.0.0";
+
+// @public
 export type Posting = InferNode<(typeof PostingSchema)['_properties']>;
 
 // @public (undocumented)
@@ -7786,6 +8310,18 @@ export const PostingSchema: DefinedSchema<{
     memo: PropertyBuilder<string>;
     space: PropertyBuilder<string>;
     visibility: PropertyBuilder<"public" | "private" | "unlisted" | "inherit">;
+}>;
+
+// @public (undocumented)
+export const PostSchema: DefinedSchema<{
+    title: PropertyBuilder<string>;
+    space: PropertyBuilder<string>;
+    category: PropertyBuilder<string>;
+    pinned: PropertyBuilder<boolean>;
+    locked: PropertyBuilder<boolean>;
+    visibility: PropertyBuilder<"public" | "private" | "unlisted" | "inherit">;
+    createdAt: PropertyBuilder<number>;
+    createdBy: PropertyBuilder<`did:key:${string}`>;
 }>;
 
 // @public (undocumented)
@@ -7910,6 +8446,9 @@ export const ProfileSchema: DefinedSchema<{
     avatar: PropertyBuilder<string>;
     statusEmoji: PropertyBuilder<string>;
     statusMessage: PropertyBuilder<string>;
+    atprotoDid: PropertyBuilder<string>;
+    atprotoHandle: PropertyBuilder<string>;
+    atprotoBindingUri: PropertyBuilder<string>;
     createdAt: PropertyBuilder<number>;
     createdBy: PropertyBuilder<`did:key:${string}`>;
 }>;
@@ -7921,7 +8460,7 @@ export type Project = InferNode<(typeof ProjectSchema)['_properties']>;
 export const ProjectSchema: DefinedSchema<{
     name: PropertyBuilder<string>;
     icon: PropertyBuilder<string>;
-    status: PropertyBuilder<"completed" | "in-progress" | "cancelled" | "planned" | "paused">;
+    status: PropertyBuilder<"cancelled" | "completed" | "in-progress" | "planned" | "paused">;
     lead: PropertyBuilder<`did:key:${string}`>;
     targetDate: PropertyBuilder<number>;
     folder: PropertyBuilder<string>;
@@ -7966,7 +8505,7 @@ export interface PropertyTimestamp {
 }
 
 // @public
-export type PropertyType = 'text' | 'number' | 'checkbox' | 'json' | 'date' | 'dateRange' | 'select' | 'multiSelect' | 'person' | 'relation' | 'rollup' | 'formula' | 'url' | 'email' | 'phone' | 'file' | 'created' | 'updated' | 'createdBy';
+export type PropertyType = 'text' | 'number' | 'checkbox' | 'json' | 'date' | 'dateRange' | 'geo' | 'select' | 'multiSelect' | 'person' | 'relation' | 'rollup' | 'formula' | 'url' | 'email' | 'phone' | 'file' | 'created' | 'updated' | 'createdBy';
 
 // @public
 export function pruneVersionHistory(history: SchemaVersionEntry[]): SchemaVersionEntry[];
@@ -8070,6 +8609,13 @@ export const QualitySignalSchema: DefinedSchema<{
     expiresAt: PropertyBuilder<number>;
     reviewers: PropertyBuilder<`did:key:${string}`[]>;
 }>;
+
+// @public (undocumented)
+export type QuarantinedRecord = {
+    kind: 'change' | 'blob' | 'yjs-doc';
+    subject: string;
+    reason: string;
+};
 
 // @public
 export const QUERY_AST_VERSION: 1;
@@ -8351,6 +8897,9 @@ export const ReactionSchema: DefinedSchema<{
 }>;
 
 // @public
+export function readBundleManifest(source: BundleSource): Promise<any>;
+
+// @public
 export function rebalanceDatabase(store: NodeStore, databaseId: string): Promise<void>;
 
 // @public
@@ -8371,7 +8920,7 @@ export function recoveryRecordId(accountId: string, recoveryKey: string): string
 // @public
 export const RecoveryRecordSchema: DefinedSchema<{
     account: PropertyBuilder<string>;
-    method: PropertyBuilder<"admin" | "social" | "phrase" | "hardware" | "backup-passkey">;
+    method: PropertyBuilder<"admin" | "phrase" | "social" | "hardware" | "backup-passkey">;
     label: PropertyBuilder<string>;
     publicKeyHash: PropertyBuilder<string>;
     status: PropertyBuilder<"active" | "revoked">;
@@ -8678,6 +9227,24 @@ export type RowHeight = 'short' | 'medium' | 'tall' | 'extraTall';
 
 // @public
 export function rowHeightLabel(height: RowHeight): string;
+
+// @public (undocumented)
+export type Rsvp = InferNode<(typeof RsvpSchema)['_properties']>;
+
+// @public (undocumented)
+export const RSVP_SCHEMA_IRI = "xnet://xnet.fyi/Rsvp@1.0.0";
+
+// @public
+export function rsvpId(eventId: string, memberDid: string): string;
+
+// @public
+export const RsvpSchema: DefinedSchema<{
+    event: PropertyBuilder<string>;
+    space: PropertyBuilder<string>;
+    response: PropertyBuilder<"going" | "maybe" | "declined">;
+    createdAt: PropertyBuilder<number>;
+    createdBy: PropertyBuilder<`did:key:${string}`>;
+}>;
 
 // @public
 export function sanitizeLinkPreviews(value: unknown): MessageLinkPreview[];
@@ -9109,6 +9676,7 @@ export const SpaceMembershipSchema: DefinedSchema<{
     role: PropertyBuilder<"owner" | "admin" | "viewer" | "commenter" | "member">;
     addedBy: PropertyBuilder<`did:key:${string}`>;
     addedAt: PropertyBuilder<number>;
+    expiresAt: PropertyBuilder<number>;
     createdAt: PropertyBuilder<number>;
     createdBy: PropertyBuilder<`did:key:${string}`>;
 }>;
@@ -9658,7 +10226,7 @@ export const TaskSchema: DefinedSchema<{
     title: PropertyBuilder<string>;
     shortId: PropertyBuilder<string>;
     completed: PropertyBuilder<boolean>;
-    status: PropertyBuilder<"done" | "triage" | "backlog" | "todo" | "in-progress" | "in-review" | "cancelled">;
+    status: PropertyBuilder<"done" | "cancelled" | "triage" | "backlog" | "todo" | "in-progress" | "in-review">;
     priority: PropertyBuilder<"low" | "medium" | "high" | "urgent">;
     dueDate: PropertyBuilder<number>;
     assignee: PropertyBuilder<`did:key:${string}`>;
@@ -9774,6 +10342,9 @@ export function toggleSortDirection(direction: 'asc' | 'desc'): 'asc' | 'desc';
 export function toggleViewGroupCollapsed(store: NodeStore, viewId: string, groupKey: string): Promise<void>;
 
 // @public
+export function toPortableChangeRecord(change: NodeChange): PortableChangeRecord;
+
+// @public
 export function toSelectOptionNode(node: {
     id: string;
     properties: Record<string, unknown>;
@@ -9858,6 +10429,11 @@ export type TranscriptionSourceId = 'inApp' | 'pushToTalk';
 export function transform(prop: string, forwardFn: (value: unknown) => unknown, backwardFn: (value: unknown) => unknown, options?: {
     lossless?: boolean;
 }): LensOperation;
+
+// Warning: (ae-forgotten-export) The symbol "Event_2" needs to be exported by the entry point index.d.ts
+//
+// @public
+export const upcomingEvents: <T extends Pick<Event_2, "startsAt" | "endsAt" | "cancelled">>(events: readonly T[], now: number) => T[];
 
 // @public
 export function updateCell(store: NodeStore, rowId: string, columnId: string, value: CellValue): Promise<void>;
@@ -10034,6 +10610,11 @@ export interface ValidationResult {
     valid: boolean;
 }
 
+// Warning: (ae-forgotten-export) The symbol "VerifyBundleOptions" needs to be exported by the entry point index.d.ts
+//
+// @public (undocumented)
+export function verifyBundle(source: BundleSource, options?: VerifyBundleOptions): Promise<BundleVerifyReport>;
+
 // @public
 export function verifyUpdate(update: SignedUpdate, getPublicKey: (did: string) => Uint8Array | null): boolean;
 
@@ -10058,6 +10639,12 @@ export interface ViewConfig {
     sorts?: SortConfig[];
     type: ViewType;
     visibleColumns: string[];
+}
+
+// @public
+export interface ViewGroupMeta {
+    hidden?: boolean;
+    sortKey?: string;
 }
 
 // @public
@@ -10095,7 +10682,7 @@ export interface ViewNode {
 }
 
 // @public
-export type ViewType = 'table' | 'board' | 'list' | 'gallery' | 'calendar' | 'timeline' | 'form';
+export type ViewType = 'table' | 'board' | 'list' | 'gallery' | 'calendar' | 'timeline' | 'form' | 'map';
 
 // @public
 export function visibleFormQuestions(config: FormViewConfig, rules: Record<string, FormFieldRule> | undefined, answers: Record<string, CellValue>, columns: ColumnDefinition[], audience: FormAudience): FormQuestion[];
@@ -10145,6 +10732,43 @@ export function wouldCreateFolderCycle(folderId: string, newParentId: string | n
 // @public (undocumented)
 export const wouldCreateSpaceCycle: typeof wouldCreateFolderCycle;
 
+// @public (undocumented)
+export function writeBundle(store: NodeStore, scope: BundleScope, sink: BundleSink, options: WriteBundleOptions): Promise<XnetpackManifest>;
+
+// @public (undocumented)
+export type WriteBundleOptions = {
+    ownerDid: string;
+    manifestSigner?: (bytes: Uint8Array) => Promise<Uint8Array> | Uint8Array;
+    commitSigner?: (bytes: Uint8Array) => Promise<Uint8Array> | Uint8Array;
+    since?: BundleFrontier;
+    blobPort?: BundleBlobPort;
+    yjsPort?: BundleYjsPort;
+};
+
+// @public
+export const XNETPACK_FORMAT_VERSION = "xnetpack/1";
+
+// @public (undocumented)
+export type XnetpackManifest = {
+    formatVersion: typeof XNETPACK_FORMAT_VERSION;
+    protocolVersion: {
+        change: number;
+    };
+    ownerDid: string;
+    scope: BundleScope;
+    createdAt: number;
+    frontier: BundleFrontier;
+    prerequisites?: BundleFrontier;
+    counts: {
+        changes: number;
+        blobs: number;
+        yjsDocs: number;
+        commits?: number;
+    };
+    contentDigest: string;
+    signatureB64?: string;
+};
+
 export { YArray }
 
 export { YDoc }
@@ -10161,7 +10785,7 @@ export { YXmlText }
 
 // Warnings were encountered during analysis:
 //
-// dist/types-BFnYlC8Z.d.ts:571:9 - (ae-forgotten-export) The symbol "GrantStatus" needs to be exported by the entry point index.d.ts
+// dist/types-oAs3TWog.d.ts:571:9 - (ae-forgotten-export) The symbol "GrantStatus" needs to be exported by the entry point index.d.ts
 
 // (No @packageDocumentation comment for this package)
 
