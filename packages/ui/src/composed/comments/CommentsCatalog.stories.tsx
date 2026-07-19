@@ -3,6 +3,7 @@ import { useMemo, useState, type ReactElement } from 'react'
 import { Button } from '../../primitives/Button'
 import { CatalogCard, CatalogGrid, CatalogPage, CatalogSection } from '../../storybook/Catalog'
 import { CommentBubble } from './CommentBubble'
+import { CommentIsland } from './CommentIsland'
 import { CommentPopover, type CommentData, type CommentThreadData } from './CommentPopover'
 import { CommentsSidebar } from './CommentsSidebar'
 import { OrphanedThreadList, type OrphanedThread } from './OrphanedThreadList'
@@ -282,4 +283,132 @@ function CommentsCatalogShowcase(): ReactElement {
 
 export const Overview: Story = {
   render: () => <CommentsCatalogShowcase />
+}
+
+// ─── CommentIsland per-state stories (0375) ────────────────────────────────────
+//
+// The island is position:fixed and portals to body, so each story renders a
+// real anchor element and hands the island a ref to it. `key` on the harness
+// forces a remount per story so state does not leak between them.
+
+function IslandStage({
+  label,
+  side = 'right',
+  children
+}: {
+  label: string
+  side?: 'top' | 'right' | 'bottom' | 'left'
+  children: (anchor: HTMLElement | null) => ReactElement | null
+}): ReactElement {
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null)
+  return (
+    <div className="flex min-h-[28rem] items-center justify-center p-12">
+      <span
+        ref={setAnchor}
+        className="rounded bg-comment/30 px-1 py-0.5 text-sm"
+        data-side={side}
+      >
+        {label}
+      </span>
+      {children(anchor)}
+    </div>
+  )
+}
+
+function islandThread(replyCount: number, resolved = false): CommentThreadData {
+  return {
+    root: createComment(
+      'island-root',
+      'Chris',
+      'The composer used to sit here permanently, which is what crowded the thread out of the box.',
+      20
+    ),
+    replies: Array.from({ length: replyCount }, (_, i) =>
+      createComment(`island-reply-${i}`, i % 2 ? 'Pat' : 'Morgan', `Reply number ${i + 1}.`, 18 - i)
+    ),
+    resolved
+  }
+}
+
+export const IslandSingleComment: Story = {
+  name: 'Island / single comment',
+  render: () => (
+    <IslandStage label="a commented passage">
+      {(anchor) => <CommentIsland thread={islandThread(0)} anchor={anchor} mode="full" open />}
+    </IslandStage>
+  )
+}
+
+export const IslandLongThread: Story = {
+  name: 'Island / long thread (20 replies)',
+  render: () => (
+    <IslandStage label="a much-discussed passage">
+      {(anchor) => <CommentIsland thread={islandThread(20)} anchor={anchor} mode="full" open />}
+    </IslandStage>
+  )
+}
+
+export const IslandResolved: Story = {
+  name: 'Island / resolved',
+  render: () => (
+    <IslandStage label="a settled passage">
+      {(anchor) => (
+        <CommentIsland thread={islandThread(2, true)} anchor={anchor} mode="full" open />
+      )}
+    </IslandStage>
+  )
+}
+
+export const IslandPreview: Story = {
+  name: 'Island / hover preview',
+  render: () => (
+    <IslandStage label="hover me">
+      {(anchor) => <CommentIsland thread={islandThread(3)} anchor={anchor} mode="preview" open />}
+    </IslandStage>
+  )
+}
+
+export const IslandComposing: Story = {
+  name: 'Island / composing (new comment)',
+  render: () => (
+    <IslandStage label="the selected text" side="bottom">
+      {(anchor) => (
+        <CommentIsland
+          anchor={anchor}
+          mode="composing"
+          open
+          side="bottom"
+          quotedText="the selected text"
+        />
+      )}
+    </IslandStage>
+  )
+}
+
+export const IslandOverlappingThreads: Story = {
+  name: 'Island / overlapping threads',
+  render: () => (
+    <IslandStage label="two threads overlap here">
+      {(anchor) => (
+        <CommentIsland
+          thread={islandThread(1)}
+          anchor={anchor}
+          mode="full"
+          open
+          position={{ index: 0, total: 3, onPrev: () => {}, onNext: () => {} }}
+        />
+      )}
+    </IslandStage>
+  )
+}
+
+export const IslandViewportEdge: Story = {
+  name: 'Island / near the viewport edge',
+  render: () => (
+    <div className="flex min-h-[28rem] justify-end p-2">
+      <IslandStage label="anchored at the right edge">
+        {(anchor) => <CommentIsland thread={islandThread(2)} anchor={anchor} mode="full" open />}
+      </IslandStage>
+    </div>
+  )
 }

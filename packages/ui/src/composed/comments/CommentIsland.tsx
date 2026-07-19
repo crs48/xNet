@@ -17,17 +17,16 @@
  *   │ composer  shrink-0         │  collapsed to a button until invited
  *   └────────────────────────────┘
  *
- * Chrome matches the island recipe shared by every other floating surface
- * (see ISLAND in apps/web/src/workbench/FloatingFrame.tsx): rounded-2xl,
- * hairline border, the one island fill, plus shadow-pop for overlay elevation.
- * Positioning and enter/exit come from the shared vocabulary rather than
- * hand-rolled rects and raw animate-in classes.
+ * Chrome comes from the shared ISLAND_OVERLAY recipe, so it cannot drift from
+ * the rest of the shell again. Positioning and enter/exit likewise come from
+ * the shared vocabulary rather than hand-rolled rects and raw animate-in.
  */
 import React, { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { Presence } from '../../motion/Presence'
 import { useAnchoredPosition, type AnchorLike, type AnchorSide } from '../../motion/useAnchoredPosition'
 import { Button } from '../../primitives/Button'
+import { ISLAND_OVERLAY } from '../../primitives/island'
 import { cn } from '../../utils'
 import { type TaskPersonOption } from '../tasks/people'
 import { CommentBubble } from './CommentBubble'
@@ -324,9 +323,8 @@ export function CommentIsland({
           role="dialog"
           aria-label={composing ? 'New comment' : 'Comment thread'}
           className={cn(
-            // Matches ISLAND (FloatingFrame.tsx) + overlay elevation.
-            'flex w-80 flex-col overflow-hidden',
-            'rounded-2xl border border-hairline bg-popover text-popover-foreground shadow-pop',
+            ISLAND_OVERLAY,
+            'flex w-80 flex-col text-popover-foreground',
             'max-h-[min(28rem,60vh)]',
             className
           )}

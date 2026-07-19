@@ -1,4 +1,9 @@
 /**
+ * @deprecated Superseded by `CommentIsland`, which owns its own open/preview
+ * state (exploration 0375). This hook had zero consumers — every surface
+ * reimplemented it inline with divergent hover timing — and is removed in the
+ * next major.
+ *
  * useCommentPopover - Hook for managing comment popover state.
  *
  * Handles preview/full mode transitions, hover delays, and dismissal.

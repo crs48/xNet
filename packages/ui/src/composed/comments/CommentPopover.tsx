@@ -1,4 +1,11 @@
 /**
+ * @deprecated Superseded by `CommentIsland` (exploration 0375), which fixes
+ * this component's three structural defects: a single scroll container for the
+ * whole body, an unconditionally-mounted reply composer, and one-shot anchor
+ * measurement with no reposition loop or viewport clamping. No surface renders
+ * this any more; it stays exported for one release so external consumers can
+ * migrate, and is removed in the next major.
+ *
  * CommentPopover - Inline popover for viewing and interacting with comment threads.
  *
  * Features:

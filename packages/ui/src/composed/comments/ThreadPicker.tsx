@@ -1,4 +1,10 @@
 /**
+ * @deprecated Overlapping threads are now disambiguated inside the island
+ * itself — `CommentIsland`'s `position` prop renders a `‹ 1 of 3 ›` switcher in
+ * its header (exploration 0375). This component was built for a flow that was
+ * never wired up and has had zero call sites since; it is removed in the next
+ * major.
+ *
  * ThreadPicker - Picker UI for selecting between overlapping comment threads.
  *
  * When clicking on text with multiple comment marks, this picker appears

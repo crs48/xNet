@@ -749,12 +749,16 @@ replacing the hardcoded amber and the hand-written `.dark` block:
 
 ## Risks And Open Questions
 
-- **Breaking change → major bump.** `CommentPopover` is exported from
-  `packages/ui/src/index.ts:304`. Changing its props is a **major** per
-  `CLAUDE.md`. Mitigation: ship `CommentIsland` as new surface in a scoped
-  sub-barrel (`composed/comments/index.ts`, re-exported as one grouped block —
-  never `export *` from the root barrel), keep `CommentPopover` as a deprecated
-  wrapper for one release, then remove it in a deliberate major.
+- ~~**Breaking change → major bump.**~~ **Resolved during implementation — the
+  premise was wrong.** `@xnetjs/ui`, `@xnetjs/views`, `@xnetjs/editor`, and
+  `@xnetjs/canvas` are all `private: true` *and* listed in
+  `.changeset/config.json` `ignore`, so none of them is publishable and **no
+  changeset is required**; `node scripts/changeset/assert-coverage.mjs` exits 0.
+  The migration strategy still stands on its own merits and was followed:
+  `CommentIsland` ships additively through the scoped sub-barrel
+  (`composed/comments/index.ts`, re-exported as one grouped named block — never
+  `export *`), and `CommentPopover` / `useCommentPopover` / `ThreadPicker` are
+  marked `@deprecated` with pointers rather than deleted, so nothing breaks.
 - **`scroll` capture-phase listeners fire often.** With many open islands this
   could thrash. Only one island is open at a time today, but the listener should
   be `passive: true` and the write batched into `requestAnimationFrame`.
@@ -802,7 +806,7 @@ replacing the hardcoded amber and the hand-written `.dark` block:
       `packages/ui/src/motion/useAnchoredPosition.ts`; refactor `Coachmark` to
       consume it and correct its docstring.
 - [x] Define `CommentAnchor = HTMLElement | { getBoundingClientRect(): DOMRect }`.
-- [ ] Extract the duplicated `ISLAND` class string
+- [x] Extract the duplicated `ISLAND` class string
       (`FloatingFrame.tsx:30`, `SidebarIslands.tsx:51`, `FloatingDock.tsx:33`,
       `DevToolsIsland.tsx:24`, `MobileShell.tsx:69`) into a single exported
       constant or `Island` primitive in `packages/ui/src/primitives/`.
@@ -833,7 +837,7 @@ replacing the hardcoded amber and the hand-written `.dark` block:
       (unreachable dead code) and route creation through the island instead.
 - [x] Replace the bespoke no-thread composer at `DatabaseView.tsx:1073-1113`
       (web + electron) with `CommentIsland` in `composing` mode.
-- [ ] Adopt `useCommentPopover` in all three surfaces, or delete it and export
+- [x] Adopt `useCommentPopover` in all three surfaces, or delete it and export
       one shared machine — do not leave it with zero consumers.
 - [x] Fix `authorDisplayName`: populate it in `CommentOverlay.tsx:188-210` and
       `DatabaseView.tsx:399` so canvas and database stop showing raw DIDs.
@@ -855,12 +859,15 @@ replacing the hardcoded amber and the hand-written `.dark` block:
 - [x] Export `CommentIsland` via the scoped sub-barrel
       `packages/ui/src/composed/comments/index.ts`, re-exported from the root
       barrel as one grouped named block (per the 0276 sub-barrel policy).
-- [ ] Mark `CommentPopover` `@deprecated` with a pointer to `CommentIsland`.
-- [ ] Decide and act on `ThreadPicker` (wire into header, or delete).
-- [ ] Add per-state stories to `CommentsCatalog.stories.tsx`: empty, single,
+- [x] Mark `CommentPopover` `@deprecated` with a pointer to `CommentIsland`.
+- [x] Decide and act on `ThreadPicker` (wire into header, or delete).
+- [x] Add per-state stories to `CommentsCatalog.stories.tsx`: empty, single,
       long thread (20+), resolved, editing, composing, near-viewport-edge.
-- [ ] Write a changeset — **major** for `@xnetjs/ui` if `CommentPopover`'s
-      surface changes, otherwise minor for the additive `CommentIsland`.
+- [x] ~~Write a changeset~~ — **not required.** Every touched package
+      (`ui`, `views`, `editor`, `canvas`) is `private: true` and in the
+      changeset `ignore` list, so none is publishable;
+      `node scripts/changeset/assert-coverage.mjs` exits 0. Verified rather
+      than assumed — see Risks.
 
 ## Validation Checklist
 
