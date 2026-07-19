@@ -1,0 +1,32 @@
+{
+  "name": "@xnetjs/publish",
+  "version": "0.0.1",
+  "description": "Render xNet pages to static HTML, feeds and sitemaps — the publishing spine for owned-audience blogging (exploration 0362).",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "yjs": "^13.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^4.0.0"
+  },
+  "private": true
+}

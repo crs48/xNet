@@ -735,16 +735,16 @@ long-lived pin. *Open:* does a permanently pinned frontier interact badly with
 ## Implementation Checklist
 
 **Phase 1 — Renderer and schema (the critical path)**
-- [ ] Create `packages/publish` (`@xnetjs/publish`), MIT, no hub dependency.
-- [ ] Implement `renderPost()`: `content-v4` → HTML, headless and deterministic, no DOM.
-- [ ] Handle custom specs: `wikilink`, `database-embed`, `task-view-embed`, `ai-generated`.
-- [ ] Define embed degradation tiers (`shell` / `link`) with a visible snapshot date.
+- [x] Create `packages/publish` (`@xnetjs/publish`), MIT, no hub dependency.
+- [x] Implement `renderPost()`: `content-v4` → HTML, headless and deterministic, no DOM.
+- [x] Handle custom specs: `wikilink`, `database-embed`, `task-view-embed`, `ai-generated`.
+- [x] Define embed degradation tiers (`shell` / `link`) with a visible snapshot date.
 - [ ] Add `PublicationSchema`; register in `packages/data/src/schema/schemas/index.ts`.
 - [ ] Add `postFields` to `PageSchema` (slug, excerpt, publishedAt, canonicalUrl, publishedFrontier).
 - [ ] Enforce slug uniqueness per publication; generate from title with a collision suffix.
 - [ ] Wire `publishedFrontier` to 0329's pinning so publication pins its changes.
-- [ ] Lift `buildBlogRss` from `site/src/lib/blog-feed.ts` into `@xnetjs/publish`.
-- [ ] Emit `sitemap.xml`, OG/Twitter meta, and canonical URLs.
+- [x] Lift `buildBlogRss` from `site/src/lib/blog-feed.ts` into `@xnetjs/publish`.
+- [x] Emit `sitemap.xml`, OG/Twitter meta, and canonical URLs.
 - [ ] Add `xnet publish --static --out <dir>` to `packages/cli`.
 - [ ] Seed coverage: Tier-1 seeder or `SEED_EXCLUDED_SCHEMA_IDS` entry per `packages/devtools/src/seed/README.md`.
 - [ ] Changeset for `data`, `cli`, and the new `publish` package.
