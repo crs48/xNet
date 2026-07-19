@@ -31,7 +31,10 @@ Decentralized data infrastructure and application. Local-first, P2P-synced, user
 >
 > Package version numbers are **not** a maturity signal — the core packages
 > version in lockstep and are already past 2.x. Alpha is the project's stage,
-> not the semver range.
+> not the semver range. npm does not allow renumbering downward, so rather
+> than fake a number we can't have, we wrote the promise down:
+> **[STABILITY.md](./STABILITY.md)** — what carries a compatibility promise,
+> what doesn't, and how protocol versions differ from package versions.
 
 xNet is both the underlying infrastructure and the user-facing app — one product, one brand. It starts with documents and databases, then expands via plugins to support ERP, MCP integrations, and more.
 

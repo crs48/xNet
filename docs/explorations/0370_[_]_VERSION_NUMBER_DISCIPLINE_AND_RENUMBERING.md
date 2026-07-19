@@ -804,11 +804,11 @@ stateDiagram-v2
 
 **Phase 1 — say what we mean (cheap, no code)**
 
-- [ ] Write `STABILITY.md` at the repo root, using the §Example Code sketch
-- [ ] Link it from the README alpha callout (added in #571) and from
+- [x] Write `STABILITY.md` at the repo root, using the §Example Code sketch
+- [x] Link it from the README alpha callout (added in #571) and from
       `site/src/content/docs/docs/introduction.mdx`
-- [ ] Add a `## Versioning` section to `CONTRIBUTING.md` pointing at it
-- [ ] State explicitly that `2.x` is not a maturity claim and why it can't be lowered
+- [x] Add a `## Versioning` section to `CONTRIBUTING.md` pointing at it
+- [x] State explicitly that `2.x` is not a maturity claim and why it can't be lowered
 
 **Phase 2 — fix what is already broken**
 
