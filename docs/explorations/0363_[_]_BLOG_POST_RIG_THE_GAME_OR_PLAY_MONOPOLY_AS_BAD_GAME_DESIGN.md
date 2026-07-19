@@ -724,6 +724,55 @@ railroad essay instead.
 changeset (`site/` is not a publishable `packages/*`). If new shared components
 land outside `site/`, that changes — they should not.
 
+## Deviations From The Plan (recorded during implementation)
+
+**1. The purpose quote is from the 1924 patent, not the 1904 one.** The
+exploration attributed Magie's famous statement of purpose ("…how, under the
+present or prevailing system of land tenure, the landlord has an advantage over
+other enterprises…") to US 748,626 (1904). Fetching the patent proved that
+wrong: 748,626's stated object is *"to obtain as much Wealth or money as
+possible, the player having the greatest amount of wealth at the end of the game
+… being the winner."* The Georgist purpose clause appears in the **1924** patent
+(US 1,509,312). The essay was rewritten around the correction, which improved
+it: intent is documented in 1902 and 1924, on either side of a 1904 patent that
+describes only the extraction game.
+
+**2. The 1932 rule sets are named "The Landlord's Game" and "Prosperity".**
+The primary document uses neither "monopolist" nor "anti-monopolist" — those are
+historians' labels. Pulling the PDF also surfaced the Prosperity win condition
+verbatim — *"When the player with the least money has $7000 (double his original
+capital), Prosperity is achieved. The game may continue at the pleasure of the
+players."* — whose final sentence is an infinite game stated on cardboard fifty
+years before Carse. It became the hinge of §6, which the plan did not anticipate.
+
+**3. Hayek citation nuance.** The lecture is 1968; the Snow English translation
+quoted is *QJAE* 5(3), Summer 2002, p. 9. The essay dates the lecture, which is
+correct as written.
+
+**4. Anspach claim softened.** That the Magie record was reconstructed *through
+the litigation* is secondary-source-only (Pilon); the accessible appellate
+opinion (684 F.2d 1316) does not mention Magie. The essay now attributes the
+histories to what Anspach "dug up" rather than implying a court finding. The
+litigation ran 1974 → cert denied 1983 (nine years), not "about a decade".
+
+**5. `og:image` skipped, deliberately.** The checklist item was conditional
+("if the hero warrants one"). `site/src/layouts/Base.astro` emits **no `og:*`
+tags at all** and no existing post populates the `hero` field, so adding one
+would be dead metadata. Wiring Open Graph into `Base.astro` affects all 42 pages
+and belongs to its own change (see exploration 0316, which already notes the
+gap).
+
+**6. Hero needed a scrim.** The board art is bright exactly where the deck sits;
+first render was unreadable. A gradient scrim lives in `BoardHero.astro` rather
+than `BoardArt.astro` so the blog-index card still gets the undimmed
+illustration. The gold tower was also moved left (x 920 → 856) because
+`preserveAspectRatio="slice"` cropped it off-screen at desktop width.
+
+**7. Pre-existing 1px horizontal overflow.** `document.body.scrollWidth` exceeds
+`clientWidth` by 1px at 375px — but identically on
+`/blog/the-worlds-greatest-record-store`, so it is a site-wide rounding artifact,
+not a regression from this post. Not fixed here; noted for whoever chases it.
+
 ## Implementation Checklist
 
 - [x] Confirm 0362 is left free for the _Making xNet Cloud Delightful_
@@ -758,29 +807,29 @@ land outside `site/`, that changes — they should not.
 - [x] Copy-edit to **en-GB** (series convention)
 - [x] Verify `xNet` casing in all prose per
       [`CLAUDE.md`](../../CLAUDE.md)
-- [ ] Add an `og:image` if the hero warrants one (note: `Base.astro` has no
+- [x] Add an `og:image` if the hero warrants one (note: `Base.astro` has no
       default `og:*` — see 0316)
 - [ ] Flip `draft: false` and set `pubDate`
 - [ ] Add a changelog fragment tagged `skip-changelog` if site-only
 
 ## Validation Checklist
 
-- [ ] `pnpm --filter site build` succeeds (do **not** rely on `astro dev` —
+- [x] `pnpm --filter site build` succeeds (do **not** rely on `astro dev` —
       it has hung on blog/changelog routes before; verify via build)
-- [ ] `/blog/rig-the-game-or-play` renders in light and dark themes
+- [x] `/blog/rig-the-game-or-play` renders in light and dark themes
 - [ ] The post appears on `/blog` once `draft: false`, in correct date order
 - [ ] `/blog/rss.xml` includes the post with the correct description
 - [ ] `SeriesNav` resolves previous/next on both neighbouring posts
-- [ ] Mermaid figure renders and is legible at 375px width
+- [x] Mermaid figure renders and is legible at 375px width
 - [ ] No horizontal body scroll at 375px; hero art degrades gracefully
-- [ ] `Byline` shows both authors with vendored avatars — **no third-party
+- [x] `Byline` shows both authors with vendored avatars — **no third-party
       requests** (check the network panel; several essays promise this)
-- [ ] `node scripts/check-humane-patterns.mjs` passes
-- [ ] Brand-casing check passes (`\bXNet\b` word-boundary sweep, fences
+- [x] `node scripts/check-humane-patterns.mjs` passes
+- [x] Brand-casing check passes (`\bXNet\b` word-boundary sweep, fences
       skipped)
-- [ ] Every quotation in the published text maps to a §References entry
-- [ ] The four `HonestBoard` rows are present and unsoftened
-- [ ] Reading time on the card matches the drafted length within ~2 minutes
+- [x] Every quotation in the published text maps to a §References entry
+- [x] The four `HonestBoard` rows are present and unsoftened
+- [x] Reading time on the card matches the drafted length within ~2 minutes
 - [ ] A reader who knows the Monopoly folklore finishes the essay knowing
       which parts are documented — the disclosure is legible, not buried
 
