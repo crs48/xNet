@@ -15,7 +15,9 @@
 import { useNavigate } from '@tanstack/react-router'
 import { PostSchema, comparePostsForFeed, canManageSpace, type Post } from '@xnetjs/data'
 import { useMutate, useQuery } from '@xnetjs/react'
-import { markFirstPosts, welcomeQueue } from '@xnetjs/social'
+// Subpath, not the bare barrel: `@xnetjs/social` re-exports the Node-only
+// archive importers, which breaks the browser bundle at build time.
+import { markFirstPosts, welcomeQueue } from '@xnetjs/social/community'
 import { DIDAvatar } from '@xnetjs/ui'
 import { MessageSquare, Pin, Lock as LockIcon, Sparkles } from 'lucide-react'
 import { useMemo, useState } from 'react'
