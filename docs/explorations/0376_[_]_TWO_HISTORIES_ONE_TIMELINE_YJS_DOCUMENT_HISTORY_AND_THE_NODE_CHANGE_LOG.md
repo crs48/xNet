@@ -769,8 +769,11 @@ sequenceDiagram
       as commit-grained `SignedUpdate`s (author + wall time + parent + signature)
       rather than anonymous blobs — the Automerge-`Change` shape already written
       and unconsumed in `packages/data/src/updates.ts`
-- [ ] Route batch signatures through `BatchCommit` (0357) so the 0350 envelope
-      cost is amortised per batch, not per keystroke
+- [ ] Do **not** route interactive document edits through `BatchCommit` — 0357
+      restricts it to lanes where a batch travels as a unit and forbids the
+      live-relay lane (a peer may receive a change but never its siblings).
+      Amortise by batching *updates into fewer changes*, not signatures.
+      See 0377 for the batch-window maths.
 - [ ] Benchmark against 0350's figures before/after — record bytes per keystroke
       and compare to Automerge's ~30% full-history overhead as a sanity ceiling
 - [ ] Surface unsigned/legacy snapshots as explicitly unverified, never as
