@@ -1067,7 +1067,7 @@ fi
 - [x] Add a neutrality clause to `site/src/pages/marketplace-terms.astro`.
 - [x] Add the **"integration you can walk out with"** design rule to
       `docs/VIBE.md`.
-- [ ] Add `economics-anchor-tenancy-parity` and `economics-no-context-capture`
+- [x] Add `economics-anchor-tenancy-parity` and `economics-no-context-capture`
       to `packages/telemetry/test/charter-claims-ledger.test.ts`.
 - [ ] Add assertion 4 (hub version parity) to `scripts/check-cloud-boundary.sh`
       and extend its self-test.
