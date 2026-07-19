@@ -5,6 +5,11 @@ Stripe **and** Bitcoin (BTCPay / Lightning) behind one `PaymentProvider` port,
 with a canonical billing model, webhook verification, and an idempotent billing
 store. See [exploration 0187](../../docs/explorations/0187_%5B_%5D_PLUG_AND_PLAY_BILLING_STRIPE_AND_BITCOIN.md).
 
+> **Alpha software.** xNet is released but early: this package is on npm and
+> usable today, but its API can change between releases, sometimes without a
+> migration path. Pin your version. See the
+> [project README](https://github.com/crs48/xNet#readme) for what alpha means here.
+
 **Zero runtime dependencies.** Webhook signatures are verified with `node:crypto`
 HMAC; checkout/portal sessions are created with `fetch` against the providers'
 REST APIs. No `stripe` SDK, no `@aws-sdk` — so the MIT hub can import this

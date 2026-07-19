@@ -88,6 +88,12 @@ Before reading this documentation, understand that xNet works differently:
 - When to use xNet (and when not to)
   
 
+**xNet is alpha software**
+Not pre-release — released, but early. The `@xnetjs/*` packages are on npm, the
+desktop app is downloadable, and the hub image ships. But APIs, schemas and wire
+formats still change between releases, sometimes without a migration path. Pin
+your versions, keep your own `.xnetpack` backups, and expect rough edges.
+
 ## The problem
 
 Building a modern collaborative app requires assembling a stack of 6+ services: a database, an API layer, auth, real-time sync, file storage, and deployment infrastructure. Each comes with its own SDK, its own data model, and its own failure modes.
