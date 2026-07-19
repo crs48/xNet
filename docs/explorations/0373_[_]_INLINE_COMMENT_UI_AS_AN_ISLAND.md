@@ -38,21 +38,39 @@ The comment *data layer* is in good shape — richer, in fact, than any UI
 currently exposes. The problem is entirely in the presentation layer, and it
 concentrates in one file: `packages/ui/src/composed/comments/CommentPopover.tsx`.
 
-Five findings drive the recommendation:
+Six findings drive the recommendation. The first is the most important, and it
+reframes the problem: **on the page view, inline comments are barely wired up at
+all.**
 
-- **The "giant text field" is a full-screen modal.** `NewCommentInput` in
-  `apps/web/src/components/PageView.tsx:745` renders
-  `fixed inset-0 z-50 flex items-center justify-center bg-black/20` — a
-  centred, scrim-backed dialog containing a bare textarea, opened when you
-  create an inline comment on selected text. It is detached from the text it
-  annotates and shows no existing thread. This is the single most visible
-  defect and the one the user is describing.
+- **Nothing listens to the highlighted text.** `.bn-thread-mark` is styled
+  `cursor: pointer` (`packages/editor/src/styles/editor.css:161`), but no click
+  or hover handler exists anywhere in the repo. The only reference to
+  `data-bn-thread-id` is a *scroll target* in `usePageComments.ts:282-286`,
+  reached exclusively from `handleSidebarSelectThread`. **Clicking a commented
+  passage does nothing; the popover only opens from the sidebar.** There is
+  likewise no `FloatingComposerController` (BlockNote's composer host) mounted
+  in `XNetEditor.tsx:741-753`, so the toolbar's comment action has nowhere to
+  render an input. Electron's page view says inline comments "return with the
+  BlockNote editor" — they never did.
+- **The `NewCommentInput` modal is unreachable dead code.** It renders
+  `fixed inset-0 … bg-black/20` — a centred, scrim-backed dialog — but the only
+  thing that would open it, `handleCreateComment`
+  (`usePageComments.ts:250`), is returned by the hook and **destructured by no
+  consumer**. It is a rendering of the wrong pattern that additionally cannot
+  fire. Delete it rather than fix it.
 - **The popover always renders its reply box.** `CommentPopover` unconditionally
   mounts a `min-h-[60px]` `MentionTextArea` plus a divider, plus a second
   divider and an action row — roughly 140px of fixed chrome inside a `max-h-96`
   (384px) box. The fix already exists *in the same folder*: `CommentsSidebar`
   gates its reply box behind `isReplying`
-  (`CommentsSidebar.tsx:183`). The popover never got that treatment.
+  (`CommentsSidebar.tsx:183`). The popover never got that treatment. **Because
+  the sidebar-driven popover is the only page-view comment surface that
+  functions, this is the defect actually on screen.**
+- **The shared state machine has zero consumers.** `useCommentPopover.ts` is
+  exported and imported by nothing outside the barrel. All three surfaces
+  reimplement it inline — `usePageComments.ts:129-208` (200ms dismiss),
+  `CommentOverlay.tsx:90-141` (300ms preview), and an ad-hoc `useState` at
+  `DatabaseView.tsx:377`. Hover timing differs per surface as a result.
 - **Positioning is hand-rolled and stale.** The popover measures
   `getBoundingClientRect()` at render time only — no scroll listener, no
   resize listener, no viewport clamping, no flip, no portal. It drifts away
@@ -150,7 +168,53 @@ TipTap editor. Threads still live as comment nodes and stay readable and
 actionable from the sidebar; creating new inline comments returns with the
 [BlockNote editor]." That restoration never happened.
 
-### Defect 1 — the full-screen "Add Comment" modal
+### Defect 0 — the page view has almost no inline interaction
+
+Before any styling question: on the page view, the inline layer is largely
+unwired.
+
+- **No listener on the marks.** `.bn-thread-mark` is `cursor: pointer`
+  (`editor.css:161`) but a repo-wide grep for `bn-thread-mark` and
+  `data-bn-thread-id` in `.ts`/`.tsx` returns exactly one hit —
+  `usePageComments.ts:282-286`, a `scrollIntoView` target:
+
+  ```ts
+  const markEl = document.querySelector<HTMLElement>(`[data-bn-thread-id="${threadId}"]`)
+  if (markEl) markEl.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  showThreadPopover(threadId, markEl)
+  ```
+
+  `showThreadPopover` is called from one place: `handleSidebarSelectThread`.
+  **Clicking highlighted text does nothing.**
+- **No composer host.** `BlockNoteView` (`XNetEditor.tsx:741-753`) mounts four
+  `SuggestionMenuController` children and no `FloatingComposerController`.
+  Grep for `FloatingComposer|ThreadPopover` outside `node_modules` returns
+  nothing. BlockNote's `CommentsExtension` is registered
+  (`XNetEditor.tsx:356-366`) and `addThreadToDocument = undefined` in
+  `xnet-thread-store.ts:137` defers anchoring to BlockNote's own mark — but the
+  UI that would create a thread is absent.
+
+So the page's working comment path is **sidebar → popover**, and the popover's
+cramped layout (Defect 2) is what a user actually experiences as "the inline
+comment UI".
+
+> **Repo gotcha worth recording:** `packages/editor/src/blocknote/XNetEditor.tsx`
+> contains a non-ASCII byte that trips `grep`'s binary heuristic, so plain
+> `grep` silently reports **zero** matches. Use `grep -a`. Same for
+> `packages/charts/src/spec.ts`, `packages/data/src/database/form-types.ts`,
+> `packages/hub/src/services/form-inbox-store.ts`,
+> `packages/social/src/connect/{psi,wave}.ts`,
+> `packages/sqlite/src/adapters/web-worker.ts`.
+
+### Defect 1 — the full-screen "Add Comment" modal (dead code)
+
+**This modal cannot currently appear.** `handleCreateComment`
+(`usePageComments.ts:250`) is the only thing that sets `newCommentState`, it is
+returned from the hook (`:377`), and **no consumer destructures it** —
+`PageView.tsx:247` takes `newCommentState` but never the setter's trigger. The
+component below is therefore unreachable. It is documented here because it
+encodes exactly the wrong pattern and must be deleted rather than repaired
+when the creation flow is wired up.
 
 `apps/web/src/components/PageView.tsx:720-760`:
 
@@ -163,10 +227,15 @@ return (
       <MentionTextArea … className="… min-h-[80px]" />
 ```
 
-Selecting text and choosing "comment" dims the entire workbench and centres a
-box in the viewport. The user loses sight of the text they selected and of any
-existing thread on it. Note the inner card *does* use the correct island recipe
-— the surrounding scrim is the mistake. This is a modal doing an island's job.
+Were it reachable, it would dim the entire workbench and centre a box in the
+viewport, losing sight of both the selected text and any existing thread on it.
+Note the inner card *does* use the correct island recipe — the surrounding
+scrim is the mistake. This is a modal doing an island's job.
+
+The same anti-pattern is live elsewhere: `DatabaseView.tsx:1073-1113` drops out
+of the shared component into a **bespoke inline composer** with its own manual
+`getBoundingClientRect()` (`:1086-1090`) whenever a cell has no thread yet —
+a fourth independent positioning implementation.
 
 ### Defect 2 — the popover's vertical budget
 
@@ -306,6 +375,29 @@ Crucially, `tokens.css:388-390` notes that `body:has(.wb-root)` extends the
 island palette to portal layers precisely so dialogs and menus that portal to
 `<body>` still resolve the island fill. **Portalling is safe for tokens.**
 
+### Defect 5 — correctness bugs found while auditing the surfaces
+
+These are not styling issues and should be fixed regardless of which option is
+chosen:
+
+- **Canvas and database show raw DIDs instead of names.**
+  `CommentOverlay.tsx:188-210` builds `CommentThreadData` without
+  `authorDisplayName`, and `DatabaseView.tsx:399` hardcodes
+  `authorDisplayName: undefined`. Page popovers show profile names; the other
+  two show `did:key:z6Mk…`.
+- **A cell with multiple threads silently shows only the first.**
+  `DatabaseView.tsx:390-393` takes `threads[0]`, while the cell badge
+  (`GridCell.tsx:299-313`) counts *all* of them. The count and the content
+  disagree, with no way to reach the rest.
+- **`CommentIndicator.tsx` is dead code** — referenced only by its own
+  definition and two barrel re-exports (`views/src/components/index.ts:5`,
+  `views/src/index.ts:124`). It also holds the worst token violation in the
+  comment code, a hardcoded hex pair at line 65:
+  `const color = resolved ? 'var(--color-muted-foreground, #9ca3af)' : '#f59e0b'`.
+- **The grid badge hardcodes amber too** — `GridCell.tsx:304` uses
+  `text-amber-500 hover:text-amber-600` rather than a token, matching the
+  untokenized `.bn-thread-mark` in `editor.css`.
+
 ### Data available but unused
 
 The DTO at `CommentPopover.tsx:18-34` is the bottleneck. `CommentSchema`
@@ -386,10 +478,13 @@ adopting it is a genuine new dependency decision, not a free reuse.
 
 ## Key Findings
 
-1. The reported "giant text field" is primarily `NewCommentInput`, a
-   full-screen scrim modal — not the popover.
-2. The popover's secondary contribution is an unconditional composer plus a
-   single shared scroll container inside a 384px ceiling.
+1. On the page view the inline layer is largely unwired: no listener on
+   `.bn-thread-mark`, no `FloatingComposerController`. The only working path is
+   sidebar → popover.
+2. The reported "giant text field" is that sidebar-driven popover — an
+   unconditional composer plus a single shared scroll container inside a 384px
+   ceiling. `NewCommentInput`, the full-screen scrim modal, encodes the same
+   mistake but is unreachable dead code.
 3. Fill tokens are correct; border, shadow, radius, and layering are drifted
    from the house island recipe used in six-plus other places.
 4. Positioning has no reposition loop, no clamping, no flip, and no portal.
@@ -403,6 +498,11 @@ adopting it is a genuine new dependency decision, not a free reuse.
    reactions are all available and unrendered.
 9. Comment UI has essentially no test or story coverage, so a redesign needs to
    bring its own safety net.
+10. `useCommentPopover` has zero consumers; its state machine is reimplemented
+    three times with divergent hover/dismiss timing.
+11. Independent correctness bugs: raw DIDs on canvas and database, only the
+    first thread shown on a multi-thread cell, dead `CommentIndicator`, and
+    hardcoded amber in three places.
 
 ## Options And Tradeoffs
 
@@ -674,6 +774,12 @@ replacing the hardcoded amber and the hand-written `.dark` block:
   uses `border-border` and no `shadow-pop`, unlike `Modal`. If `CommentIsland`
   is built on `Popover`, it inherits that drift. Prefer composing the island
   recipe directly, and note `Popover` as a separate cleanup.
+- **Scope creep is the real risk here.** The audit turned up three separable
+  bodies of work: (1) the island redesign, (2) *wiring* the page view's inline
+  layer, which is closer to finishing 0321 than to restyling, and (3) a handful
+  of correctness bugs. **Open question for the reader:** ship these as one PR or
+  three? Proposed: land (3) first as small independent fixes, then (1), then
+  (2) — so the visual work isn't blocked behind BlockNote controller plumbing.
 - **Electron restoration scope.** Restoring inline anchors on Electron's page
   view may be more than a UI change if BlockNote mark plumbing is absent there.
   **Open question:** is this in scope for this change, or a follow-up? Proposed:
@@ -717,8 +823,26 @@ replacing the hardcoded amber and the hand-written `.dark` block:
       Confirm `motion.css` is imported on every consuming surface — without it
       `Presence` never fires `animationend` and exiting nodes stay on screen
       forever (`apps/web/src/styles/globals.css:8-13`).
+- [ ] **Wire the page view's inline layer** — add a click/hover handler on
+      `.bn-thread-mark` that calls `showThreadPopover`, so clicking a commented
+      passage opens the island. Today only the sidebar can.
+- [ ] Mount a composer host for creation (either BlockNote's
+      `FloatingComposerController` or `CommentIsland` in `composing` mode) and
+      connect `handleCreateComment`, which currently has no consumer.
 - [ ] **Delete `NewCommentInput`** from `apps/web/src/components/PageView.tsx`
-      and route creation through `CommentIsland` in `composing` mode.
+      (unreachable dead code) and route creation through the island instead.
+- [ ] Replace the bespoke no-thread composer at `DatabaseView.tsx:1073-1113`
+      (web + electron) with `CommentIsland` in `composing` mode.
+- [ ] Adopt `useCommentPopover` in all three surfaces, or delete it and export
+      one shared machine — do not leave it with zero consumers.
+- [ ] Fix `authorDisplayName`: populate it in `CommentOverlay.tsx:188-210` and
+      `DatabaseView.tsx:399` so canvas and database stop showing raw DIDs.
+- [ ] Fix `DatabaseView.tsx:390-393` showing only `threads[0]` while the badge
+      counts all threads on the cell.
+- [ ] Delete `packages/views/src/components/CommentIndicator.tsx` and its two
+      barrel re-exports (dead, and holds a hardcoded `#f59e0b`).
+- [ ] Token-ify the grid badge at `GridCell.tsx:304`
+      (`text-amber-500` → comment-mark token).
 - [ ] Migrate `apps/web/src/components/PageView.tsx:685`.
 - [ ] Migrate `apps/web/src/components/DatabaseView.tsx:1061`.
 - [ ] Migrate `apps/electron/src/renderer/components/DatabaseView.tsx:815`.
@@ -740,8 +864,13 @@ replacing the hardcoded amber and the hand-written `.dark` block:
 
 ## Validation Checklist
 
+- [ ] **Page view:** click a highlighted (commented) passage → the island opens
+      anchored to it. This does nothing today.
 - [ ] **Page view:** select text → comment. No scrim, no centred dialog; the
-      island appears beside the selection.
+      island appears beside the selection, and a thread is actually created.
+- [ ] **Canvas + database:** author names render, not raw `did:key:…` strings.
+- [ ] **Database:** a cell with 3 threads is fully reachable, and the badge
+      count matches what the island shows.
 - [ ] **Page view:** open a thread with 10+ replies. Comments are visible and
       scroll; header and Resolve/Close stay pinned and reachable.
 - [ ] **Page view:** open a thread, scroll the document. The island tracks its
