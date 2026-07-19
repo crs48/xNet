@@ -9,18 +9,34 @@
       "id": "data",
       "label": "Data",
       "file": "routes/data.png",
-      "status": "unchanged",
-      "ssim": 1
+      "status": "changed",
+      "ssim": 0.772175,
+      "before": "before/routes/data.png",
+      "after": "routes/data.png",
+      "diff": "diff/routes/data.png"
+    },
+    {
+      "id": "discover",
+      "label": "Discover",
+      "file": "routes/discover.png",
+      "status": "changed",
+      "ssim": 0.848697,
+      "before": "before/routes/discover.png",
+      "after": "routes/discover.png",
+      "diff": "diff/routes/discover.png"
     },
     {
       "id": "home",
       "label": "Home",
       "file": "routes/home.png",
-      "status": "unchanged",
-      "ssim": 1
+      "status": "changed",
+      "ssim": 0.867836,
+      "before": "before/routes/home.png",
+      "after": "routes/home.png",
+      "diff": "diff/routes/home.png"
     }
   ],
   "electron": [],
   "flows": [],
-  "changedCount": 0
+  "changedCount": 3
 }
