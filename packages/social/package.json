@@ -37,6 +37,10 @@
       "import": "./src/feeds/index.ts",
       "types": "./src/feeds/index.ts"
     },
+    "./community": {
+      "import": "./src/community/index.ts",
+      "types": "./src/community/index.ts"
+    },
     "./lenses": {
       "import": "./src/lenses/index.ts",
       "types": "./src/lenses/index.ts"

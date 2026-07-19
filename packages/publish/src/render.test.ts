@@ -96,7 +96,11 @@ describe('renderPost', () => {
 
   it('nests child blocks inside their parent list item', () => {
     const doc = docWith([
-      { type: 'bulletListItem', text: 'parent', children: [{ type: 'bulletListItem', text: 'child' }] }
+      {
+        type: 'bulletListItem',
+        text: 'parent',
+        children: [{ type: 'bulletListItem', text: 'child' }]
+      }
     ])
     const { html } = renderPost(doc)
     expect(html).toBe('<ul><li>parent<ul><li>child</li></ul></li></ul>')
@@ -119,17 +123,13 @@ describe('renderPost', () => {
   })
 
   it('renders a code block with its language and escaped body', () => {
-    const doc = docWith([
-      { type: 'codeBlock', text: 'const a = 1 < 2', attrs: { language: 'ts' } }
-    ])
+    const doc = docWith([{ type: 'codeBlock', text: 'const a = 1 < 2', attrs: { language: 'ts' } }])
     const { html } = renderPost(doc)
     expect(html).toBe('<pre><code class="language-ts">const a = 1 &lt; 2</code></pre>')
   })
 
   it('collects image CIDs as assets and resolves them', () => {
-    const doc = docWith([
-      { type: 'image', attrs: { cid: 'bafyimage', alt: 'A diagram' } }
-    ])
+    const doc = docWith([{ type: 'image', attrs: { cid: 'bafyimage', alt: 'A diagram' } }])
     const { html, assets } = renderPost(doc, {
       resolveAsset: (cid) => `https://cdn.example/${cid}`
     })
@@ -262,10 +262,16 @@ describe('renderPost', () => {
 
   it('sorts assets stably regardless of document order', () => {
     const forward = renderPost(
-      docWith([{ type: 'image', attrs: { cid: 'zzz' } }, { type: 'image', attrs: { cid: 'aaa' } }])
+      docWith([
+        { type: 'image', attrs: { cid: 'zzz' } },
+        { type: 'image', attrs: { cid: 'aaa' } }
+      ])
     )
     const reverse = renderPost(
-      docWith([{ type: 'image', attrs: { cid: 'aaa' } }, { type: 'image', attrs: { cid: 'zzz' } }])
+      docWith([
+        { type: 'image', attrs: { cid: 'aaa' } },
+        { type: 'image', attrs: { cid: 'zzz' } }
+      ])
     )
     expect(forward.assets).toEqual(['aaa', 'zzz'])
     expect(reverse.assets).toEqual(forward.assets)

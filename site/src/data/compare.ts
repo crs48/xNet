@@ -81,7 +81,7 @@ export const layers: CompareLayer[] = [
         name: 'xNet App',
         url: 'https://github.com/crs48/xNet',
         highlight: true,
-        maturity: 'pre-release',
+        maturity: 'alpha',
         license: 'MIT',
         bestFor: 'A workspace you fully own — documents, databases, canvas, tasks, chat',
         dims: {
@@ -335,7 +335,7 @@ export const layers: CompareLayer[] = [
     footnotes: [
       {
         id: 'xnet-prerelease',
-        text: 'xNet is pre-release; its rows reflect shipped behavior (see the roadmap), not future plans.',
+        text: 'xNet is alpha software — released and usable, but early: APIs and formats still change. Its rows reflect shipped behavior (see the roadmap), not future plans.',
         sourceUrl: 'https://github.com/crs48/xNet'
       },
       {
@@ -387,7 +387,7 @@ export const layers: CompareLayer[] = [
         name: 'xNet',
         url: 'https://github.com/crs48/xNet',
         highlight: true,
-        maturity: 'pre-release',
+        maturity: 'alpha',
         license: 'MIT',
         bestFor: 'Full-stack local-first apps: typed data + rich text + canvas + comms',
         dims: {
@@ -652,7 +652,7 @@ export const layers: CompareLayer[] = [
     footnotes: [
       {
         id: 'fw-xnet-prerelease',
-        text: 'xNet is pre-release; rows reflect shipped behavior, not roadmap.',
+        text: 'xNet is alpha software — released but early; APIs and formats still change. Rows reflect shipped behavior, not roadmap.',
         sourceUrl: 'https://github.com/crs48/xNet'
       },
       {
@@ -1034,7 +1034,7 @@ export const layers: CompareLayer[] = [
         name: 'xNet',
         url: 'https://github.com/crs48/xNet',
         highlight: true,
-        maturity: 'pre-release',
+        maturity: 'alpha',
         license: 'MIT',
         bestFor: 'Owning a typed knowledge graph — protocol separate from any one app',
         dims: {
