@@ -8514,6 +8514,21 @@ export function pruneVersionHistory(history: SchemaVersionEntry[]): SchemaVersio
 export const PUBLIC_SAFE_FORM_FIELD_TYPES: readonly FieldType[];
 
 // @public
+export type Publication = InferNode<(typeof PublicationSchema)['_properties']>;
+
+// @public (undocumented)
+export const PublicationSchema: DefinedSchema<{
+    title: PropertyBuilder<string>;
+    description: PropertyBuilder<string>;
+    baseUrl: PropertyBuilder<string>;
+    basePath: PropertyBuilder<string>;
+    language: PropertyBuilder<string>;
+    space: PropertyBuilder<string>;
+    authors: PropertyBuilder<string[]>;
+    followable: PropertyBuilder<boolean>;
+}>;
+
+// @public
 export interface PublicFormDefinition {
     // (undocumented)
     confirmation?: FormConfirmation;
@@ -10785,7 +10800,7 @@ export { YXmlText }
 
 // Warnings were encountered during analysis:
 //
-// dist/types-oAs3TWog.d.ts:571:9 - (ae-forgotten-export) The symbol "GrantStatus" needs to be exported by the entry point index.d.ts
+// dist/types-gws1tSf-.d.ts:571:9 - (ae-forgotten-export) The symbol "GrantStatus" needs to be exported by the entry point index.d.ts
 
 // (No @packageDocumentation comment for this package)
 

@@ -87,6 +87,9 @@ export {
   // Built-in schemas
   PageSchema,
   type Page,
+  // Publishing (0362)
+  PublicationSchema,
+  type Publication,
   // Community discussion (0359)
   POST_SCHEMA_IRI,
   PostSchema,

@@ -14,6 +14,17 @@ export type HeadOptions = {
   imageUrl?: string
   /** `@handle` for `twitter:site`. */
   twitterSite?: string
+  /**
+   * `<meta name="robots">` content. Set `'noindex, nofollow'` for a shadow or
+   * staging copy so a duplicate of a live publication cannot be indexed.
+   */
+  robots?: string
+  /**
+   * Emit the `<link rel="alternate" type="application/rss+xml">` autodiscovery
+   * tag. Defaults to true; set false on a shadow copy so a reader cannot
+   * subscribe to a feed that is not the real one.
+   */
+  feedAutodiscovery?: boolean
 }
 
 function tag(attrs: Record<string, string | undefined>): string {
@@ -39,6 +50,7 @@ export function buildPostHead(
   const lines = [
     `<title>${escapeHtml(post.title)}</title>`,
     tag({ name: 'description', content: post.description }),
+    options.robots ? tag({ name: 'robots', content: options.robots }) : '',
     `<link rel="canonical" href="${escapeAttr(url)}" />`,
     tag({ property: 'og:type', content: 'article' }),
     tag({ property: 'og:title', content: post.title }),
@@ -62,9 +74,11 @@ export function buildPostHead(
     tag({ name: 'twitter:title', content: post.title }),
     tag({ name: 'twitter:description', content: post.description }),
     options.imageUrl ? tag({ name: 'twitter:image', content: options.imageUrl }) : '',
-    `<link rel="alternate" type="application/rss+xml" title="${escapeAttr(meta.title)}" href="${escapeAttr(
-      `${meta.siteUrl.replace(/\/+$/, '')}${(meta.basePath ?? '').replace(/\/+$/, '')}/rss.xml`
-    )}" />`
+    options.feedAutodiscovery === false
+      ? ''
+      : `<link rel="alternate" type="application/rss+xml" title="${escapeAttr(meta.title)}" href="${escapeAttr(
+          `${meta.siteUrl.replace(/\/+$/, '')}${(meta.basePath ?? '').replace(/\/+$/, '')}/rss.xml`
+        )}" />`
   ]
   return lines.filter(Boolean).join('\n')
 }

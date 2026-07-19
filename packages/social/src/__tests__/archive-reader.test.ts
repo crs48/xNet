@@ -7,7 +7,7 @@ import {
   createZipJsonEntryReader,
   createZipTextEntryReader,
   readZipArchiveManifest
-} from '../import'
+} from '../import/node'
 import {
   createBrowserZipJsonEntryReader,
   createBrowserZipTextEntryReader,
