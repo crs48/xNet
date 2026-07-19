@@ -1,11 +1,14 @@
 # Joining The ATmosphere — Adopt, Extend, Mint, And The Hub As A Knot
 
-> Exploration 0371 · 2026-07-19
+> Exploration 0372 · 2026-07-19
 > Fourth in the index line: [[0365_XNET_CLOUD_AS_A_SOCIAL_SUBSTRATE]] (two rails,
 > one-way door), [[0366_THE_XNET_INDEX]] (free admission), [[0367_THE_PROJECTION_MODEL]]
 > (the card, the body, `SchemaLens` as the projection primitive).
 > **This one amends 0367 in two places.** It keeps the projection model intact
 > and changes what we project *into*, and who we build *alongside*.
+>
+> Sibling: [[0371_INTEGRATING_WITH_THE_MATRIX_PROTOCOL]] independently reached the
+> same namespace conclusion and cites this document as 0372 for the evidence.
 
 > _"this is not a standard for site content"_
 > — Leaflet, on `site.standard.*`. The sentence that makes the whole thing
