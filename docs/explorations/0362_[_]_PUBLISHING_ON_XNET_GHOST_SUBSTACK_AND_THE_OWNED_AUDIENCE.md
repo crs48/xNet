@@ -747,7 +747,7 @@ long-lived pin. *Open:* does a permanently pinned frontier interact badly with
 - [x] Emit `sitemap.xml`, OG/Twitter meta, and canonical URLs.
 - [x] Add `xnet publish --static --out <dir>` to `packages/cli`.
 - [x] Seed coverage: Tier-1 seeder or `SEED_EXCLUDED_SCHEMA_IDS` entry per `packages/devtools/src/seed/README.md`.
-- [ ] Changeset for `data`, `cli`, and the new `publish` package.
+- [x] Changeset for `data`, `cli`, and the new `publish` package.
 
 **Phase 2 — Anchor tenant (not optional)**
 - [ ] Model the 19 existing posts as `Publication` + posts in a seeded space.
