@@ -324,13 +324,22 @@ Three conclusions fall straight out:
 
 ### `site.standard.*` — what it is and why it exists
 
-Origin: *"a conversation between developers building long-form platforms… Each
-had working implementations. Each had defined similar schemas. Coordination was
-the missing piece."* Leaflet, **pckt.blog** and **Offprint** agreed on one schema
-instead of three.
+Origin: announced **23 January 2026**. *"a conversation between developers
+building long-form platforms… Each had working implementations. Each had defined
+similar schemas. Coordination was the missing piece."* Leaflet, **pckt.blog** and
+**Offprint** agreed on one schema instead of three.
 
 Governance: *"minimal governance… coordination through adoption, not committee,"*
-*"maintained by the developers building on it."*
+*"maintained by the developers building on it."* Concretely that is a **three-person
+core** — one from each founding app — with the lexicon repo hosted on **Tangled,
+not GitHub**, under MIT. Consensus among active implementers; no committee.
+
+**The namespace is genuinely neutral, and DNS proves it:**
+`_lexicon.standard.site` → `did:plc:re3ebnp5v7ffagz6rb6xfei4`, while
+`_lexicon.leaflet.pub` → `did:plc:btxrwcaeyodrap5mnjw2fvmz`. **Different DIDs,
+different PDS hosts.** `site.standard.*` is not a rename of Leaflet's namespace
+under Leaflet's identity — it is a separate authority. That distinction is the
+whole reason adopting it is not vendor lock-in wearing a neutral hat.
 
 The four records: `publication`, `document`, `graph.subscription`,
 `graph.recommend` — plus `theme.basic`, `theme.color`, `authSocial`, `authFull`
@@ -461,6 +470,20 @@ rather than a PDS."* **This is a real-world counterexample to "put everything in
 the user's repo,"** and it points the same direction as 0367's card/body split:
 records for the things that must be portable, service storage for the rest.
 
+**And Tangled is not alone — this is the ecosystem-wide pattern.** Streamplace
+declares `place.stream.segment` as a `record` type but **never writes one to a
+repo**; segment metadata lives in SQLite and is converted to the lexicon shape at
+response time, making it a lexicon-typed *wire format* rather than repo state.
+Roomy keeps messages in Leaf, not atproto. Smoke Signal's index was always
+derived. **Across four independently-built apps, only small, low-frequency,
+public artefacts live in repos, and the heavy payload lives elsewhere.** The repo
+is being used as a pointer-and-identity layer.
+
+> That is 0367's card/body split, arrived at independently by four teams who had
+> no reason to coordinate. It is the strongest available evidence that the split
+> is forced by the medium rather than chosen by us — and it should raise our
+> confidence in 0367's Phase 2 considerably.
+
 ⚠️ **They break wire format without bumping NSIDs.** v1.14.0 changed
 `sh.tangled.repo.pull`, `.collaborator`, `.issue` and `sh.tangled.git.refUpdate`
 simultaneously. Viable only because their consumer set is small and known — it is
@@ -491,26 +514,125 @@ is the live one. For anything xNet needs that neither covers, the escalation pat
 should be: propose to Lexicon Community first, mint under `fyi.xnet.*` only if
 that fails or is too slow.
 
+### Cross-app reuse is real — and it fails for a reason worth internalising
+
+Three verified cases of one app reading or writing another's lexicon:
+
+- **`community.lexicon.calendar.*` across four apps with "zero coordination
+  between the projects."** Live records in one user's repo carry
+  `"createdWith": "https://atmo.rsvp"` while being indexed by Smoke Signal —
+  a different app, a different developer, the same schema, the same repo.
+- **Bookhive vendors Popfeed's lexicons into its own repo**, declaring the
+  *foreign* NSIDs (`social.popfeed.feed.list`, `.listItem`), subscribing to those
+  collections on Jetstream, and resolving foreign records into its own catalogue.
+- **WhiteWind reads `app.bsky.feed.post` for comments** rather than defining a
+  comment type — the cheapest possible reuse.
+
+**The negative result is the more useful one.** Bookhive and Skylights both
+*wanted* book interop and said so publicly. Neither ever read the other. The
+stated reason: *"there isn't a canonical identifier for a book."* That single
+disagreement drove opposite storage decisions — Bookhive put ISBN/Goodreads
+metadata on the PDS, Skylights kept a bare `{ref, value}` tuple keyed to
+OpenLibrary — and non-overlapping identifier spaces made cross-reads mechanically
+impossible. Events, by contrast, need no canonical external identifier, which is
+exactly why the calendar lexicon succeeded across four apps.
+
+> **The rule: shared lexicons fail on identifier schemes, not on schemas.**
+>
+> For us this lands directly on `site` + `path`. A `site.standard.document`'s
+> identity is *(publication at-URI, path)* — a scheme we do not control and
+> cannot extend. If our `slug` semantics ever drift from their `path` semantics,
+> interop breaks quietly and no schema check catches it. **Pin the identity
+> mapping in a golden test, not in a comment.**
+
+### The pattern most worth stealing — Flashes
+
+Flashes needed multi-photo carousels past Bluesky's four-image cap. Rather than
+mint a rival post type, `blue.flashes.feed.post` is a **thin wrapper** whose
+payload is a `childrenPostURIs` array pointing at *genuine* `app.bsky.feed.post`
+records in the same repo.
+
+**A custom NSID used purely as a grouping layer, whose leaves are canonical
+records.** It gets app-specific structure without forfeiting network reach: every
+Flashes post is also, really, a Bluesky post. This is a third option beyond
+"adopt theirs" and "mint ours", and it is worth holding in reserve for any xNet
+construct that groups things others already understand.
+
+### The ecosystem's pivot point: permissioned data
+
+This is the most strategically relevant late finding, because it sits directly on
+0365's gated rail.
+
+**Blacksky has shipped `rsky-space`** — *"Rust primitives for atproto
+permissioned data (spaces) — a parallel protocol to public atproto broadcast."*
+Its own description:
+
+> *"stores a user's records for a shared context ('space') in a per-user
+> permissioned repo on that user's own PDS, summarized by a deniable LtHash
+> commit, gated by short-lived credentials issued by a space authority. Apps sync
+> directly from each member's PDS (there is no relay)."*
+
+Modules include `lthash` (homomorphic, order-independent set hashing over
+BLAKE3-XOF), `commit` (deniable signature + HKDF/HMAC MAC), `credential` and
+`space_id`. **Blacksky, Northsky and Habitat are implementing proposal 0016 in
+parallel, and Roomy is explicitly blocked waiting for it.**
+
+Two things follow. First, 0367's advice — *revisit, do not build on it* — still
+holds: it remains a proposal on a WIP branch, and *"access control, not
+confidentiality"* is not our trusted tier. Second, and more importantly:
+**several independent teams are converging on "per-member repo on the member's
+own PDS, gated by credentials from an authority, no relay" — which is
+structurally very close to xNet's hub grants** (0359's *membership is a grant,
+not a row*; 0343's trusted tier). This is the one place where the ecosystem may
+arrive at our model rather than us adopting theirs, and it deserves its own
+exploration rather than a paragraph here.
+
 ### Other ecosystem members, briefly
 
-- **Blacksky** — a full independent Rust stack (`rsky`: PDS on Postgres + S3,
-  relay, AppView at `api.blacksky.community`), community-governed, dedicated to
-  Black social media. **It is the existence proof that an independent operator
-  can run the whole stack**, and it showed up unprompted in this research as the
-  PDS hosting a `site.standard.document` we sampled. Most relevant to 0359's
-  community-hosting line.
+- **Blacksky** — a full independent stack (`rsky`, ~20 crates: PDS on Postgres +
+  S3, relay tracking 36M+ accounts, Ozone labeler, AppView), community-governed,
+  dedicated to Black social media. **It is the existence proof that an independent
+  operator can run the whole stack**, and it showed up unprompted here as the PDS
+  hosting a `site.standard.document` we sampled. Two details worth carrying:
+  its labeler declares label values like **`misogynoir`** and
+  `antiblack-harassment`, localised — *that vocabulary is the entire argument for
+  independent moderation in one record*; and its PDS advertises
+  `availableUserDomains: ['.myatproto.social', '.blacksky.app',
+  '.cryptoanarchy.network', '.latinsky.app', '.afrolatinsky.app']`, i.e. **one
+  operator hosting several distinct communities** — directly relevant to 0359.
+  ⚠️ Its AppView is a **TypeScript fork** of Bluesky's with a Rust firehose
+  consumer, so "full Rust stack" is shorthand.
+- **Hubble** (microcosm.blue, announced March 2026) — a real-time **public mirror
+  of every public repo on the network**, for *"when a PDS disappears."* Funded by
+  a **$20,000 Bluesky grant** covering development *and* a year of operation, with
+  Bluesky adopting the instance if it proves unsustainable. Relevant to 0366 in
+  two ways: it is another datapoint that whole-network infrastructure is
+  cheap, and it is a funding model for public goods that does not involve rent.
 - **Leaflet / pckt.blog / Offprint** — the `site.standard.*` founding trio;
   Leaflet is the one whose gated-content handling 0367 already studied.
 - **Streamplace** (`place.stream.*`) — livestreaming; `place.stream.chat.message`
   at 2,539 DIDs is a reminder that high-frequency chat *does* get put on atproto,
   though it says nothing about whether it should.
 - **Smoke Signal** — events; the instructive case of a vendor lexicon losing to
-  the community one.
-- **Frontpage** (`fyi.unravel.frontpage.post`, 86 DIDs) — the link aggregator,
-  now effectively dormant. Worth remembering when estimating ATmosphere app
-  lifespans.
-- **Grain** (photos, 517/508), **WhiteWind** (647), **Skylights** (68),
-  **ATFile** (44) — the long tail. Most ATmosphere apps are small.
+  the community one. ⚠️ **And it is sunsetting as of July 2026** — verified live:
+  `GET /` returns **200** while `GET /event` and `GET /oauth/login` return
+  **410 Gone**. It is now a read-only archive of ~20,000 events. **But the records
+  survive on users' PDSes and are still readable by atmo.rsvp and
+  dandelion.events, because they are in the shared namespace.** That is the
+  clearest demonstration in the ATmosphere of why adopting a community lexicon is
+  a user-facing durability guarantee and not merely good manners: *the app died
+  and the data did not.*
+- **Frontpage** (`fyi.unravel.frontpage.post`, 86 DIDs) — ⚠️ **correction: alive**,
+  in maintenance mode (site returns 200; repo pushed July 2026). Low adoption is
+  not death. It has **not** published a `_lexicon` TXT record, so its namespace
+  authority is unproven — a reminder that most projects skip that step.
+- **Grain** (photos, 517/508) — note it minted **its own `graph.follow`**, a
+  fifth follow edge.
+- **Skylights** (68 DIDs) — ⚠️ **dead**; migrated to Popfeed. The clearest case
+  for depending on shared lexicons rather than on any single app.
+- **WhiteWind** (647) — running, but no code push since October 2025.
+- **Streamplace** — see the caution below; its `place.stream.segment` is declared
+  a record and **never actually written to a repo**.
 
 ### Protocol surfaces that changed since 0367
 
@@ -540,13 +662,25 @@ bundles with user-facing titles, cached by the auth server) came later.
 > ⚠️ Proposal `0011-auth-scopes` and the shipped spec have **diverged**. Trust
 > `/specs/permission`.
 
-- **Lexicon resolution is live**: `_lexicon.<reversed-nsid-authority>` TXT →
-  `did=…` → `com.atproto.lexicon.schema` records in that DID's repo. Explicitly
-  **non-hierarchical** — no recursing up or down the DNS tree, so each NSID group
-  needs its own TXT. 452 DIDs publish schemas this way. `@atproto/lexicon-resolver`
-  is at v0.4.10 (17 Jul 2026). Publication is *"not currently required"* but
-  *"strongly advised."* Verified end-to-end for `site.standard.*` while writing
-  this.
+- **Lexicon resolution is live — but the rails are built and the traffic is
+  not.** `_lexicon.<reversed-nsid-authority>` TXT → `did=…` →
+  `com.atproto.lexicon.schema` records in that DID's repo. 452 DIDs publish
+  schemas this way; `@atproto/lexicon-resolver` is at v0.4.10 (17 Jul 2026).
+  Verified end-to-end for `site.standard.*` while writing this. Three caveats,
+  each measured:
+  - **Resolution is non-hierarchical, and here is the proof.**
+    `_lexicon.lexicon.community` has **no TXT record**, while
+    `_lexicon.calendar.lexicon.community` resolves to
+    `did:plc:2uwoih2htodskvgocarwv5eq`. **Each NSID group needs its own record;
+    nothing cascades.** Plan one TXT per group, not one per domain.
+  - **The spec'd XRPC method is not deployed.**
+    `com.atproto.lexicon.resolveLexicon` returns
+    `{"error":"MethodNotImplemented"}` on `public.api.bsky.app` (verified).
+    Resolution today is **client-side DNS + `getRecord`**, not a service call.
+  - Publication is *"not currently required"* but *"strongly advised"*, and
+    Bluesky's own index (`lexidex.bsky.dev`) lists roughly **11 authorities**.
+    Adoption is in the low tens. **Publishing ours would put us in early
+    company, not late.**
 - **Lexicon etiquette, from the spec:** reuse freely; you may **not** redefine
   another org's lexicon; changes must be backward-compatible or you mint a new
   name. *"The primary mechanism for resolving protocol disputes is to fork
@@ -644,8 +778,24 @@ bundles with user-facing titles, cached by the auth server) came later.
     `sh.tangled.*`. `fyi.xnet.*` does not marry us to `xnet.fyi` forever.
 19. **Malformed records are confirmed in production**, validating 0367's E22.
     Separately, **`#tombstone` has been removed** — a correction to 0367's E17.
-20. **Most ATmosphere apps are small and some die** (Frontpage at 86 DIDs).
-    Depend on protocol surfaces and shared lexicons, not on any single app.
+20. **Shared lexicons fail on identifier schemes, not on schemas** (Bookhive ↔
+    Skylights, who both wanted interop and never achieved it). For us the risk
+    surface is `site` + `path` versus our `slug`. Pin it in a golden test.
+21. **Apps die and shared-lexicon data survives them.** Smoke Signal sunset in
+    July 2026 — write paths return 410 — yet its users' events remain readable by
+    atmo.rsvp and dandelion.events because they are in `community.lexicon.*`.
+    **This is the BATNA argument made concrete, by someone else's failure.**
+22. **Four independent teams keep the heavy payload off the PDS** (Tangled,
+    Streamplace, Roomy, Smoke Signal). 0367's card/body split is convergent
+    design, not our invention.
+23. **Permissioned data is the ecosystem's pivot point**, and Blacksky's
+    `rsky-space` — per-member repo on the member's own PDS, credentials from a
+    space authority, **no relay** — is structurally close to xNet hub grants.
+    Worth its own exploration.
+24. **Flashes' wrapper pattern** — a custom NSID whose leaves are canonical
+    foreign records — is a third option beyond adopt-or-mint. Keep it in reserve.
+25. **Lexicon resolution's XRPC method returns 501**; adoption is ~11 authorities.
+    The rails exist, the traffic does not. Publishing ours puts us early.
 
 ## Options And Tradeoffs
 
@@ -1040,9 +1190,20 @@ export const pagePublish: PublishDescriptor = {
   `followable: false` cannot prevent one being written. Is it a UI affordance, or
   a claim we cannot enforce? (Compare 0365's one-way door — this is the same
   shape.)
-- **Do we ever run a PDS?** Blacksky proves an independent operator can. 0367
-  put hosted PDS at "convenience, no margin." Unchanged, but the option is more
-  credible than it looked.
+- **Do we ever run a PDS?** Blacksky proves an independent operator can, and does
+  it for *several communities at once* under one deployment. 0367 put hosted PDS
+  at "convenience, no margin." Unchanged, but the option is more credible than it
+  looked — and it is the same shape as 0359's community hosting.
+- **Does permissioned data deserve its own exploration?** Almost certainly yes.
+  Blacksky, Northsky, Habitat and Roomy are all converging on a design that
+  resembles xNet hub grants, and 0367's "revisit, do not build on it" was written
+  before `rsky-space` existed. The question is not whether to adopt it but
+  whether our trusted tier (0343) and their space authority are the same idea
+  under two names.
+- **Do we ever need the Flashes wrapper pattern?** It is the right answer for any
+  xNet construct that *groups* records others already understand. Nothing in the
+  current plan needs it — but it belongs in the decision procedure if something
+  does.
 - **Does the hub announcement need proof of host control?** Tangled's does not.
   We could do better cheaply (sign the host string with the hub key), and
   probably should.
@@ -1076,6 +1237,9 @@ export const pagePublish: PublishDescriptor = {
       asserting it is never empty for a published post.
 - [ ] Fallback for loose Pages (`site` as `https://` base URL) — **R8**.
 - [ ] Golden-file tests: a real Page → a byte-exact `site.standard.document`.
+- [ ] **Pin the identity mapping** — `slug` ↔ `path`, `publication` ↔ `site` —
+      in a golden test with a comment explaining why (Finding 20: shared lexicons
+      break on identifier drift, silently, with no schema error).
 - [ ] Validate our output against the fetched lexicon, not a hand-written type.
 - [ ] `goat lex breaking` in CI against the pinned upstream.
 
@@ -1168,8 +1332,14 @@ export const pagePublish: PublishDescriptor = {
 - Live `sh.tangled.knot`, `sh.tangled.repo`, `site.standard.document`, `community.lexicon.calendar.event` records — shapes quoted in-line
 
 ### External — ecosystem
-- [Standard.site](https://standard.site/) — *"One schema. Every platform."*; governance
+- [Standard.site](https://standard.site/) — *"One schema. Every platform."*; governance · [FAQ](https://standard.site/docs/faq/) · [lexicon repo (on Tangled)](https://tangled.org/standard.site/lexicons)
 - [Leaflet Lab Notes — standard.site](https://lab.leaflet.pub/3md4qsktbms24) — *"this is not a standard for site content"*; migration
+- [The Lexicon Interop Problem](https://augment.leaflet.pub/3lxxnzrh6pc24) — the intellectual precursor: organic standardisation over committee
+- [atmo.rsvp](https://atmo.rsvp/) — shared calendar lexicon across apps with *"zero coordination between the projects"*
+- [Blacksky `rsky-space`](https://github.com/blacksky-algorithms/rsky) — permissioned-data spaces; LtHash commits, no relay
+- [Proposal PR #94 — spaces](https://github.com/bluesky-social/proposals/pull/94) · [atproto#5187](https://github.com/bluesky-social/atproto/pull/5187)
+- [Hubble — a public mirror for the whole ATmosphere](https://atproto.com/blog/introducing-hubble-a-public-mirror-for-the-whole-atmosphere) — $20k grant model
+- [Introducing Tap](https://docs.bsky.app/blog/introducing-tap) — verified backfill; webhook mode; *"Jetstream isn't going anywhere"*
 - [atproto.com — Standard.site in the Bluesky timeline](https://atproto.com/blog/standard-site-bluesky-timeline) — enhanced cards, 27 May 2026
 - [Tangled docs](https://docs.tangled.org/single-page) · [knot self-hosting](https://docs.tangled.org/knot-self-hosting-guide) — knot config, the `verify` step, the announcement record
 - [Tangled blog — Bobbin](https://blog.tangled.org/bobbin) — diskless in-memory appview; 100–200 MB whole-network index
