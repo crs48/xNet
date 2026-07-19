@@ -103,7 +103,10 @@ export function CommunityFeed({ spaceId, viewerDid }: CommunityFeedProps): JSX.E
           <ul>
             {welcome.map((entry) => (
               <li key={entry.postId}>
-                <button type="button" onClick={() => navigateToNode(navigate, 'post', entry.postId)}>
+                <button
+                  type="button"
+                  onClick={() => navigateToNode(navigate, 'post', entry.postId)}
+                >
                   <DIDAvatar did={entry.authorDid} size={20} />
                   <span>{resolveName(entry.authorDid, profiles)}</span>
                   <time className="muted">waiting {formatWait(entry.waitingMs)}</time>

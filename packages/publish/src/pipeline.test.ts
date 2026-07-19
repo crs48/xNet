@@ -72,7 +72,7 @@ describe('publishPost', () => {
     expect(patch.publishedFrontier).toEqual({ p1: { hash: 'h2', yjsSnapshotRef: 'p1@2000' } })
   })
 
-  it('pins a deep copy, so mutating the caller\'s frontier cannot rewrite history', () => {
+  it("pins a deep copy, so mutating the caller's frontier cannot rewrite history", () => {
     const frontier = { p1: { hash: 'h1', yjsSnapshotRef: 'p1@1' } }
     const { patch } = publishPost({ post: post(), takenSlugs: [], frontier, now: NOW })
     frontier.p1.hash = 'mutated'
@@ -133,9 +133,9 @@ describe('frontierEquals / hasUnpublishedChanges', () => {
   it('compares entry contents, not object identity', () => {
     // Two frontiers loaded from storage are never the same objects.
     expect(frontierEquals({ a: { hash: '1' } }, { a: { hash: '1' } })).toBe(true)
-    expect(
-      frontierEquals({ a: { hash: '1', yjsSnapshotRef: 'a@1' } }, { a: { hash: '1' } })
-    ).toBe(false)
+    expect(frontierEquals({ a: { hash: '1', yjsSnapshotRef: 'a@1' } }, { a: { hash: '1' } })).toBe(
+      false
+    )
   })
 
   it('reports pending edits only for published posts', () => {
