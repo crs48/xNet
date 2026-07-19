@@ -745,7 +745,7 @@ long-lived pin. *Open:* does a permanently pinned frontier interact badly with
 - [x] Wire `publishedFrontier` to 0329's pinning so publication pins its changes.
 - [x] Lift `buildBlogRss` from `site/src/lib/blog-feed.ts` into `@xnetjs/publish`.
 - [x] Emit `sitemap.xml`, OG/Twitter meta, and canonical URLs.
-- [ ] Add `xnet publish --static --out <dir>` to `packages/cli`.
+- [x] Add `xnet publish --static --out <dir>` to `packages/cli`.
 - [x] Seed coverage: Tier-1 seeder or `SEED_EXCLUDED_SCHEMA_IDS` entry per `packages/devtools/src/seed/README.md`.
 - [ ] Changeset for `data`, `cli`, and the new `publish` package.
 
