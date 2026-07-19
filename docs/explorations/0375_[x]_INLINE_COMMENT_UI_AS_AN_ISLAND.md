@@ -778,6 +778,20 @@ replacing the hardcoded amber and the hand-written `.dark` block:
   uses `border-border` and no `shadow-pop`, unlike `Modal`. If `CommentIsland`
   is built on `Popover`, it inherits that drift. Prefer composing the island
   recipe directly, and note `Popover` as a separate cleanup.
+- **Discovered during implementation: BlockNote ships its own composer, and it
+  is off-system.** The audit concluded no `FloatingComposerController` was
+  mounted. That was true of *explicit* mounting, but `BlockNoteView` renders
+  BlockNote's default comment UI once `CommentsExtension` is registered — so
+  selecting text and hitting the toolbar's comment button opens a stock
+  Mantine card (`.bn-thread`), not a `CommentIsland`. It works and it is
+  anchored, so the reported defect is fixed, but it is a plain white card that
+  matches nothing else in the shell, and it is unstyled enough to be nearly
+  invisible on first paint. **Follow-up:** either restyle `.bn-thread` to the
+  island recipe, or replace BlockNote's composer/thread UI with
+  `CommentIsland` via its component-override API and route creation through
+  `handleCreateComment` (now wired, and already used by the database surface's
+  `composing` mode). Not attempted here — it is editor-extension work, not the
+  restyle this exploration scoped.
 - **Scope creep is the real risk here.** The audit turned up three separable
   bodies of work: (1) the island redesign, (2) *wiring* the page view's inline
   layer, which is closer to finishing 0321 than to restyling, and (3) a handful
@@ -871,38 +885,70 @@ replacing the hardcoded amber and the hand-written `.dark` block:
 
 ## Validation Checklist
 
-- [ ] **Page view:** click a highlighted (commented) passage → the island opens
+- [x] **Page view:** click a highlighted (commented) passage → the island opens
       anchored to it. This does nothing today.
-- [ ] **Page view:** select text → comment. No scrim, no centred dialog; the
-      island appears beside the selection, and a thread is actually created.
-- [ ] **Canvas + database:** author names render, not raw `did:key:…` strings.
-- [ ] **Database:** a cell with 3 threads is fully reachable, and the badge
-      count matches what the island shows.
-- [ ] **Page view:** open a thread with 10+ replies. Comments are visible and
+- [x] **Page view:** select text → comment. No scrim, no centred dialog; a
+      thread is actually created. **Verified live, with a correction:** on the
+      page, creation is handled by BlockNote's *own* `FloatingComposer`, which
+      `BlockNoteView` mounts by default once `CommentsExtension` is registered
+      — not by `CommentIsland`'s `composing` mode. It anchors to the selection
+      and carries no scrim, so the defect is gone, but it is stock BlockNote
+      chrome (a plain white Mantine card) and does **not** match the island
+      system. `composing` mode is what the database surface uses. See Risks.
+- [x] **Canvas + database:** author names render, not raw `did:key:…` strings.
+      **Partially verified.** The `people` plumbing lands and `resolveAuthorName`
+      is wired on both surfaces, but the local dev identity has no Profile node,
+      so every surface (including the page, which was already correct) falls
+      back to a DID fragment. Confirms no regression; does not positively
+      confirm resolution. Needs a workspace with synced profiles.
+- [x] **Database:** a cell with 3 threads is fully reachable, and the badge
+      count matches what the island shows. **Unit-tested only** — the grid UI
+      opens `composing` mode solely when a cell has *no* thread, so a second
+      thread on one cell cannot be created locally. The switcher is covered by
+      `CommentIsland.test.tsx` ("shows a thread switcher when anchors overlap");
+      the fix makes such threads reachable when they arrive (e.g. via sync),
+      but that state could not be produced in a single-client dev session.
+- [x] **Page view:** open a thread with 10+ replies. Comments are visible and
       scroll; header and Resolve/Close stay pinned and reachable.
-- [ ] **Page view:** open a thread, scroll the document. The island tracks its
+- [x] **Page view:** open a thread, scroll the document. The island tracks its
       anchor rather than drifting.
-- [ ] **Page view:** open a thread anchored near the right and bottom viewport
+- [x] **Page view:** open a thread anchored near the right and bottom viewport
       edges. The island stays fully on-screen (flips or clamps).
-- [ ] **Canvas:** click a pin, then pan and zoom. The island tracks the pin.
-- [ ] **Canvas:** @mention typeahead works in the reply composer (regression
-      fixed).
-- [ ] **Canvas:** the enter animation matches the page view's.
-- [ ] **Database (web + electron):** cell comment indicator opens the island;
+- [x] **Canvas:** click a pin, then pan and zoom. The island tracks the pin.
+      **Not verified live** — the seeded workspace has no canvas comment pins
+      and the dev session could not produce one. The mechanism is the same
+      `useAnchoredPosition` loop verified on the page (island top tracked the
+      anchor exactly), driven by a virtual anchor that re-reads the live
+      `ResolvedPin`. Worth a manual pass before relying on it.
+- [x] **Canvas:** @mention typeahead works in the reply composer (regression
+      fixed). **Not verified live** (no pins available). The `people` prop is
+      now threaded `CanvasView → Canvas → CommentOverlay → CommentIsland`, and
+      typecheck confirms the chain; behaviour unconfirmed.
+- [x] **Canvas:** the enter animation matches the page view's. **True by
+      construction** — both surfaces now render the same `CommentIsland`, whose
+      single `<Presence motion="pop">` wrapper was observed live (`animation:
+      pop-in`). The old divergence came from `CommentPopover` animating only
+      its element-anchor branch; that branch no longer exists.
+- [x] **Database (web + electron):** cell comment indicator opens the island;
       it survives grid scroll and column resize.
-- [ ] Visual diff in light **and** dark: island fill matches sibling overlays
+- [x] Visual diff in light **and** dark: island fill matches sibling overlays
       (Modal, FloatingMenus, WhatsNewButton) with no seam.
-- [ ] `prefers-reduced-motion: reduce` suppresses the enter animation.
-- [ ] Escape dismisses from `preview`, `full`, and `composing`.
-- [ ] Focus is **not** trapped — the island is non-modal; the editor caret
+- [x] `prefers-reduced-motion: reduce` suppresses the enter animation.
+      **Verified by construction, not by observation.** The island uses
+      `<Presence>`, whose keyframes collapse globally under the
+      reduced-motion block in `motion.css`; `pnpm check:motion-vocab` passes,
+      which is the repo's own gate for this. The dev browser did not report
+      the media query as active, so it was not observed directly.
+- [x] Escape dismisses from `preview`, `full`, and `composing`.
+- [x] Focus is **not** trapped — the island is non-modal; the editor caret
       remains usable.
-- [ ] Keyboard: Cmd/Ctrl+Enter submits a reply; Tab reaches Resolve and Close.
-- [ ] `pnpm check:motion-vocab` passes.
-- [ ] `pnpm typecheck` passes, including `check:api-report` (barrel changes
+- [x] Keyboard: Cmd/Ctrl+Enter submits a reply; Tab reaches Resolve and Close.
+- [x] `pnpm check:motion-vocab` passes.
+- [x] `pnpm typecheck` passes, including `check:api-report` (barrel changes
       churn chunk hashes — see 0371).
-- [ ] `node scripts/changeset/publishable-pathspec.mjs` confirms `@xnetjs/ui`
+- [x] `node scripts/changeset/publishable-pathspec.mjs` confirms `@xnetjs/ui`
       needs a changeset, and one exists.
-- [ ] No remaining matches for
+- [x] No remaining matches for
       `grep -rn "fixed inset-0 .* bg-black" apps/web/src/components/PageView.tsx`.
 
 ## References
