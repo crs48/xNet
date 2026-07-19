@@ -7,7 +7,7 @@
 
 ## Problem Statement
 
-[0358](./0358_[_]_VALUE_CAPTURE_WITHOUT_ENCLOSURE_MOATS_SUBSTRATES_AND_THE_SLEEP_TEST.md)
+[0358](./0358_[x]_VALUE_CAPTURE_WITHOUT_ENCLOSURE_MOATS_SUBSTRATES_AND_THE_SLEEP_TEST.md)
 concluded that xNet earns through **operated trust and integration surplus**,
 not rent — and that the only durable lanes are ones a competitor could not
 erase by open-sourcing our feature set. The obvious next question is
@@ -1110,7 +1110,7 @@ And the honesty gate that keeps the index on the improvement slope:
 - [Heroku announces plans to eliminate free plans](https://techcrunch.com/2022/08/25/heroku-announces-plans-to-eliminate-free-plans-blaming-fraud-and-abuse/) · [RedMonk — The End of Heroku's Free Tier](https://redmonk.com/kholterhoff/2022/12/01/the-end-of-herokus-free-tier/) · [Heroku FAQ](https://help.heroku.com/RSBRUH58/removal-of-heroku-free-product-plans-faq)
 
 **Internal**
-- [0358 — Value capture without enclosure](./0358_[_]_VALUE_CAPTURE_WITHOUT_ENCLOSURE_MOATS_SUBSTRATES_AND_THE_SLEEP_TEST.md) — the Sleep test, the Moat Register, Option D refused
+- [0358 — Value capture without enclosure](./0358_[x]_VALUE_CAPTURE_WITHOUT_ENCLOSURE_MOATS_SUBSTRATES_AND_THE_SLEEP_TEST.md) — the Sleep test, the Moat Register, Option D refused
 - [`docs/CHARTER.md`](../CHARTER.md) §6 — No ground rent, the three tests
 - [`docs/VIBE.md`](../VIBE.md) — stewardship not standing
 - 0249 / **0253** — the cold-open stall (open, **seventh** attempt; ~17s on a 17-page workspace, now outside `execMs`)

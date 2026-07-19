@@ -1085,25 +1085,25 @@ fi
 
 ## Validation Checklist
 
-- [ ] `node scripts/check-humane-patterns.mjs --selftest` passes unchanged.
-- [ ] `scripts/check-cloud-boundary.sh` fails when `packages/cloud` is pinned
+- [x] `node scripts/check-humane-patterns.mjs --selftest` passes unchanged.
+- [x] `scripts/check-cloud-boundary.sh` fails when `packages/cloud` is pinned
       to a hub version outside the publishable hub's range (verify by
       temporarily pinning a bogus version).
-- [ ] `charter-claims-ledger.test.ts` fails if either new claim is added
+- [x] `charter-claims-ledger.test.ts` fails if either new claim is added
       without exactly one backing.
-- [ ] Every revenue lane in `packages/entitlements/src/plans.ts` has a written
+- [x] Every revenue lane in `packages/entitlements/src/plans.ts` has a written
       four-test verdict in `docs/ECONOMICS.md`, Sleep test included.
-- [ ] The Moat Register enumerates all four kept moats **and** both new
+- [x] The Moat Register enumerates all four kept moats **and** both new
       refusals, each labelled `Enforced` / `Architectural` / `Aspirational`.
-- [ ] The context-portability inventory exists and every gap is either fixed
+- [x] The context-portability inventory exists and every gap is either fixed
       or has a `pending` ledger entry — no silent omissions.
-- [ ] A reader who opens only `docs/ECONOMICS.md` can answer "how does xNet
+- [x] A reader who opens only `docs/ECONOMICS.md` can answer "how does xNet
       make money and why won't that rot?" without reading `docs/explorations/`.
-- [ ] `docs/ECONOMICS.md` states the no-friction-buffer cost explicitly — a
+- [x] `docs/ECONOMICS.md` states the no-friction-buffer cost explicitly — a
       reviewer should find the paragraph where we say what this position costs.
-- [ ] `docs/CHARTER.md` protocol version matches
+- [x] `docs/CHARTER.md` protocol version matches
       `packages/sync/src/change.ts:29`.
-- [ ] `pnpm -r exec node -p "require('./package.json').license"` reports a
+- [x] `pnpm -r exec node -p "require('./package.json').license"` reports a
       licence for every publishable package.
 
 ## References
