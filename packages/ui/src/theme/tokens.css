@@ -114,6 +114,12 @@
     --warning-muted: 38 92% 96%;
     --warning-foreground: 0 0% 9%;
 
+    /* Inline comment marks and indicators (0375). A distinct semantic role
+       from --warning even though the light ramp happens to share its hue:
+       a commented passage is annotated, not alarming. */
+    --comment: 43 96% 56%;
+    --comment-strong: 38 92% 50%;
+
     /* ─── Input & Ring ──────────────────────────────────────────── */
     --input: var(--hairline);
     --ring: var(--accent-ink);
@@ -199,6 +205,11 @@
     --warning-active: 38 92% 45%;
     --warning-foreground: 0 0% 9%;
     --warning-muted: 38 92% 15%;
+
+    /* Comment marks lift slightly in dark so the highlight stays legible
+       against the darker paper. */
+    --comment: 43 96% 62%;
+    --comment-strong: 43 96% 70%;
 
     /* ─── Input & Ring ──────────────────────────────────────────── */
     --input: var(--hairline);

@@ -121,7 +121,6 @@ export {
 } from './hooks/useDatabaseComments.js'
 
 // Shared components
-export { CommentIndicator, type CommentIndicatorProps } from './components/index.js'
 
 // Filter builder
 export { FilterBuilder, type FilterBuilderProps } from './filter/index.js'

@@ -12,6 +12,7 @@
  */
 import type { ReactNode } from 'react'
 import { useDevTools } from '@xnetjs/devtools'
+import { ISLAND_CHROME } from '@xnetjs/ui'
 import { useState } from 'react'
 import { GlobalSearch } from '../components/GlobalSearch'
 import { UndoToastProvider } from '../components/UndoToast'
@@ -27,7 +28,7 @@ import { SidebarIslands } from './SidebarIslands'
 import { useWorkbench } from './state'
 import { StatusBar } from './StatusBar'
 
-const ISLAND = 'overflow-hidden rounded-2xl border border-hairline bg-island-b'
+const ISLAND = ISLAND_CHROME
 
 export function FloatingFrame({ children }: { children: ReactNode }) {
   const sidebarCollapsed = useWorkbench((s) => s.sidebarCollapsed)

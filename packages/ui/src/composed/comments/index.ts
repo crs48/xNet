@@ -4,6 +4,7 @@
 
 export { CommentBubble, type CommentBubbleProps } from './CommentBubble'
 export { MentionTextArea, type MentionTextAreaProps } from './MentionTextArea'
+export { CommentIsland, type CommentIslandProps, type CommentIslandMode } from './CommentIsland'
 export {
   CommentPopover,
   type CommentPopoverProps,

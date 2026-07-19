@@ -67,6 +67,7 @@ import { nodePassportSection } from './NodePassport'
 import { useContextPanel, type ContextPanelSection } from '../workbench/context-panel'
 import { useWorkbench } from '../workbench/state'
 import { useIsCompact } from '../workbench/use-layout-mode'
+import { useCommentPeople } from '../hooks/useCommentPeople'
 import { DeskListProjection } from './DeskListProjection'
 import { DeskRadialMenu } from './DeskRadialMenu'
 import { ModeratedMedia } from './ModeratedMedia'
@@ -96,6 +97,8 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
   // it the first time creates it, so provisioning needs no separate write.
   const isDesk = isDeskId(docId)
   const compact = useIsCompact()
+  // @-mention candidates and author-name source for canvas comments (0375).
+  const commentPeople = useCommentPeople()
 
   const {
     data: canvas,
@@ -955,6 +958,7 @@ export function CanvasView({ docId }: CanvasViewProps): JSX.Element {
           onCreateObject={handleCreateObject}
           onEditSelectionAlias={controller.openAliasEditor}
           onCreateSelectionComment={controller.openCommentComposer}
+          commentPeople={commentPeople}
           onDismissTransientUi={() => {
             if (selectionPanel) {
               controller.closeSelectionPanel()

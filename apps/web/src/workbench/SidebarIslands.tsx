@@ -11,7 +11,7 @@
 import type { FloatingMenuName } from './FloatingMenus'
 import { useRouterState } from '@tanstack/react-router'
 import { getCommandRegistry } from '@xnetjs/plugins'
-import { usePrefersReducedMotion } from '@xnetjs/ui'
+import { usePrefersReducedMotion, ISLAND_CHROME } from '@xnetjs/ui'
 import {
   ChevronDown,
   ChevronRight,
@@ -48,7 +48,7 @@ import { isRealSpace } from './views/explorer-scope'
 
 type OpenMenu = (name: FloatingMenuName) => (e: React.MouseEvent) => void
 
-const ISLAND = 'flex flex-col overflow-hidden rounded-2xl border border-hairline bg-island-b'
+const ISLAND = `flex flex-col ${ISLAND_CHROME}`
 
 function useRouteActive(): (to: string | undefined) => boolean {
   const pathname = useRouterState({ select: (s) => s.location.pathname })

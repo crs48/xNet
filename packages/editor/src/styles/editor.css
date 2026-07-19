@@ -22,6 +22,10 @@
   --editor-caret: 37 99 235;
   --editor-selection-background: 191 219 254;
   --editor-selection-foreground: 24 24 27;
+  /* Inline comment marks (0375). Themeable like every other mark family —
+     these were hardcoded amber until the comment-island work. */
+  --editor-comment: 251 191 36;
+  --editor-comment-edge: 245 158 11;
   --editor-rhythm-1: 0.25rem;
   --editor-rhythm-2: 0.5rem;
   --editor-rhythm-3: 0.75rem;
@@ -48,6 +52,8 @@
   --editor-caret: 96 165 250;
   --editor-selection-background: 30 64 175;
   --editor-selection-foreground: 250 250 250;
+  --editor-comment: 251 191 36;
+  --editor-comment-edge: 251 191 36;
 }
 
 /* ─── BlockNote surface adoption (0321) ───
@@ -153,29 +159,20 @@
 
 /* ─── Inline comment marks (0321, BlockNote CommentsExtension) ───
    The amber highlight family from the 0276 TipTap marks, re-keyed to
-   BlockNote's thread-mark classes. */
+   BlockNote's thread-mark classes. Driven by --editor-comment* (0375) so
+   the family themes with every other mark instead of being hardcoded; the
+   dark ramp comes from the token, so no .dark override is needed here. */
 .ProseMirror .bn-thread-mark {
-  background-color: rgb(251 191 36 / 0.3); /* amber-400 */
-  border-bottom: 2px solid rgb(245 158 11); /* amber-500 */
+  background-color: rgb(var(--editor-comment) / 0.3);
+  border-bottom: 2px solid rgb(var(--editor-comment-edge));
   padding: 1px 0;
   cursor: pointer;
-  transition: background-color 150ms ease;
+  transition: background-color var(--duration-normal, 150ms) ease;
 }
 
 .ProseMirror .bn-thread-mark:hover,
 .ProseMirror .bn-thread-mark-selected {
-  background-color: rgb(251 191 36 / 0.5);
-  border-bottom-color: rgb(217 119 6); /* amber-600 */
-}
-
-.dark .ProseMirror .bn-thread-mark {
-  background-color: rgb(251 191 36 / 0.25);
-  border-bottom-color: rgb(251 191 36);
-}
-
-.dark .ProseMirror .bn-thread-mark:hover,
-.dark .ProseMirror .bn-thread-mark-selected {
-  background-color: rgb(251 191 36 / 0.4);
+  background-color: rgb(var(--editor-comment) / 0.5);
 }
 
 /* ─── Accessibility ─── */

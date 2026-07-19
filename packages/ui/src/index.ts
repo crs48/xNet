@@ -10,6 +10,7 @@ export { cn, cva, type VariantProps } from './utils'
 
 // ─── Primitives (existing, migrated to semantic tokens) ───────────
 export { Button, buttonVariants, type ButtonProps } from './primitives/Button'
+export { ISLAND_SURFACE, ISLAND_CHROME, ISLAND_OVERLAY } from './primitives/island'
 export {
   CodeEditor,
   codeMirrorLanguage,
@@ -301,12 +302,15 @@ export { SettingsPanel, SettingsGroup, SettingRow, SettingToggle } from './compo
 // ─── Comment Components ───────────────────────────────────────────
 export {
   CommentBubble,
+  CommentIsland,
   CommentPopover,
   MentionTextArea,
   useCommentPopover,
   OrphanedThreadList,
   ThreadPicker,
   type CommentBubbleProps,
+  type CommentIslandProps,
+  type CommentIslandMode,
   type CommentPopoverProps,
   type MentionTextAreaProps,
   type CommentData,
@@ -336,6 +340,16 @@ export {
 // The canonical motion vocabulary's React surface. CSS tokens/keyframes
 // live in ./theme/motion.css; see docs/MOTION.md for the style guide.
 export { Presence, type PresenceProps, type PresenceMotion } from './motion/Presence'
+export {
+  useAnchoredPosition,
+  placeAnchored,
+  pointAnchor,
+  toAnchorLike,
+  type AnchorLike,
+  type AnchorSide,
+  type AnchoredPosition,
+  type VirtualAnchor
+} from './motion/useAnchoredPosition'
 export {
   useViewTransition,
   startViewTransition,

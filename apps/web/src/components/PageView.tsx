@@ -29,17 +29,17 @@ import {
 } from '@xnetjs/editor/react'
 import { EntangleProvider, useNode, useIdentity, usePageTaskSync } from '@xnetjs/react'
 import {
-  CommentPopover,
+  CommentIsland,
   CommentsSidebar,
-  MentionTextArea,
   OrphanedThreadList,
+  toAnchorLike,
   getNodeTransfer,
   hasNodeTransfer,
   type CommentThreadData,
   type TaskPersonOption
 } from '@xnetjs/ui'
 import { MessageSquare } from 'lucide-react'
-import { useState, useCallback, useMemo, useRef, useEffect } from 'react'
+import { useCallback, useMemo, useRef, useEffect } from 'react'
 import { useEnsureProfiles, useProfiles } from '../comms/hooks'
 import { useCommentPeople } from '../hooks/useCommentPeople'
 import { useLinkTargets } from '../hooks/useLinkTargets'
@@ -590,7 +590,7 @@ export function PageView({ docId }: { docId: string }) {
           </div>
         </div>
 
-        <PageCommentPopoverOverlay
+        <PageCommentIslandOverlay
           popoverState={popoverState}
           thread={currentThread}
           people={commentPeople}
@@ -659,7 +659,7 @@ function PageToolbar({
 
 // ─── Comment overlays ──────────────────────────────────────────────────────────
 
-interface PageCommentPopoverOverlayProps {
+interface PageCommentIslandOverlayProps {
   popoverState: PageCommentPopoverState
   thread: CommentThreadData | null
   people: TaskPersonOption[]
@@ -674,15 +674,15 @@ interface PageCommentPopoverOverlayProps {
   onMouseLeave: () => void
 }
 
-function PageCommentPopoverOverlay({
+function PageCommentIslandOverlay({
   popoverState,
   thread,
   people,
   ...handlers
-}: PageCommentPopoverOverlayProps) {
+}: PageCommentIslandOverlayProps) {
   if (!popoverState.visible || !popoverState.anchor || !thread) return null
   return (
-    <CommentPopover
+    <CommentIsland
       thread={thread}
       anchor={popoverState.anchor}
       mode={popoverState.mode}
@@ -694,6 +694,11 @@ function PageCommentPopoverOverlay({
   )
 }
 
+/**
+ * New-comment composer. Anchored to the selection it annotates — this
+ * replaced a centred, scrim-backed modal that dimmed the whole workbench to
+ * show a single text field (0375).
+ */
 function PageNewCommentOverlay({
   state,
   people,
@@ -706,73 +711,16 @@ function PageNewCommentOverlay({
   onCancel: () => void
 }) {
   if (!state?.visible) return null
-  return <NewCommentInput people={people} onSubmit={onSubmit} onCancel={onCancel} />
-}
-
-// ─── New Comment Input ─────────────────────────────────────────────────────────
-
-interface NewCommentInputProps {
-  people: TaskPersonOption[]
-  onSubmit: (content: string) => void
-  onCancel: () => void
-}
-
-function NewCommentInput({ people, onSubmit, onCancel }: NewCommentInputProps) {
-  const [content, setContent] = useState('')
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
-
-  useEffect(() => {
-    textareaRef.current?.focus()
-  }, [])
-
-  const handleSubmit = () => {
-    if (content.trim()) {
-      onSubmit(content)
-    }
-  }
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
-      e.preventDefault()
-      handleSubmit()
-    }
-    if (e.key === 'Escape') {
-      onCancel()
-    }
-  }
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20">
-      <div className="w-80 rounded-lg border border-hairline bg-island-pop text-popover-foreground shadow-pop p-4">
-        <div className="text-sm font-medium mb-2">Add Comment</div>
-        <MentionTextArea
-          textareaRef={textareaRef}
-          className="p-2 text-sm rounded border bg-background resize-none focus:outline-none focus:ring-1 focus:ring-ring min-h-[80px]"
-          placeholder="Write a comment... (@ to mention)"
-          value={content}
-          onChange={setContent}
-          people={people}
-          onKeyDown={handleKeyDown}
-        />
-        <div className="flex justify-end gap-2 mt-3">
-          <button
-            onClick={onCancel}
-            className="px-3 py-1.5 text-sm rounded border hover:bg-accent transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={!content.trim()}
-            className="px-3 py-1.5 text-sm rounded bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            Comment
-          </button>
-        </div>
-        <div className="text-xs text-muted-foreground mt-2">
-          Press Cmd+Enter to submit, Esc to cancel
-        </div>
-      </div>
-    </div>
+    <CommentIsland
+      anchor={state.anchor ? toAnchorLike(state.anchor) : null}
+      mode="composing"
+      open
+      side="bottom"
+      people={people}
+      quotedText={state.quotedText}
+      onCreate={onSubmit}
+      onDismiss={onCancel}
+    />
   )
 }

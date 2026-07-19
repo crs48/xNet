@@ -22,7 +22,7 @@ import { useLocation, useNavigate } from '@tanstack/react-router'
 import { useDevTools } from '@xnetjs/devtools'
 import { getCommandRegistry } from '@xnetjs/plugins'
 import { DemoBanner, useDemoMode, useIdentity } from '@xnetjs/react'
-import { useTheme } from '@xnetjs/ui'
+import { useTheme, ISLAND_SURFACE } from '@xnetjs/ui'
 import {
   ChevronUp,
   FileText,
@@ -66,7 +66,7 @@ const FRAME =
   'wb-root relative mt-[var(--storage-banner-height,0px)] flex h-[calc(100dvh-var(--storage-banner-height,0px))] flex-col overflow-hidden bg-island font-sans text-ink-1'
 
 /** Island chrome shared by the floating cluster + status pill. */
-const ISLAND = 'border border-hairline bg-island-b'
+const ISLAND = ISLAND_SURFACE
 
 /** A bottom offset that clears the home-indicator safe area. */
 const sb = (px: number) => `calc(env(safe-area-inset-bottom, 0px) + ${px}px)`
