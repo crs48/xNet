@@ -789,17 +789,17 @@ long-lived pin. *Open:* does a permanently pinned frontier interact badly with
 
 ## Validation Checklist
 
-- [ ] `renderPost()` is deterministic — same fragment renders byte-identical HTML across runs and platforms.
-- [ ] Renderer runs in Node with no DOM shim and no browser dependency.
+- [x] `renderPost()` is deterministic — same fragment renders byte-identical HTML across runs and platforms.
+- [x] Renderer runs in Node with no DOM shim and no browser dependency.
 - [ ] A published post's HTML validates and scores clean on Lighthouse SEO.
 - [ ] A logged-out reader in a clean browser profile loads a published post **including its cover image and inline images** (R3/F5).
 - [ ] A private post is unreachable anonymously by direct URL, by slug guess, and by `/public/node/:id`.
 - [ ] A private attachment's CID is **not** retrievable through the anonymous blob path.
 - [ ] The generated RSS validates against the W3C feed validator and renders in Feedly, NetNewsWire, and Flipboard Surf.
-- [ ] `xnet publish --static` output serves correctly from a plain static host with **no xNet infrastructure running** (BATNA proof).
+- [x] `xnet publish --static` output serves correctly from a plain static host with **no xNet infrastructure running** (BATNA proof).
 - [ ] The same content renders identically from a self-hosted hub and from Cloud (BATNA proof).
 - [ ] xnet.fyi's blog is served from xNet nodes, with all 19 posts, correct bylines, and bespoke art intact (anchor tenant).
-- [ ] Unpublishing removes the post from the site, the sitemap, and the feed within one build/cache cycle.
+- [x] Unpublishing removes the post from the site, the sitemap, and the feed within one build/cache cycle.
 - [ ] Editing a published post does not alter the published version until re-published (frontier pin, D2).
 - [ ] A `.xnetpack` export contains the subscriber list, and importing it into a fresh workspace on a different hub reconstitutes the publication (vanish-test proof).
 - [ ] Newsletter send passes SPF, DKIM and DMARC alignment checks against the author's own domain, with a working one-click unsubscribe (mail-tester or equivalent).
@@ -807,6 +807,53 @@ long-lived pin. *Open:* does a permanently pinned frontier interact badly with
 - [ ] Revoking a paid grant blocks access on the next hub read, and the offline-cached case is documented as eventually-consistent (0349's known limit).
 - [ ] Public routes survive a crawler-rate load test without degrading authenticated sync.
 - [ ] `pnpm check-humane-patterns` passes — no scored-standing mechanics introduced with subscriber counts.
+
+## Implementation Notes (added during implementation)
+
+**Phase 1 landed; phases 2–5 did not.** 13 of 41 implementation items are
+done — the whole critical path (F3) and nothing beyond it. What shipped:
+
+- `packages/publish` (`@xnetjs/publish`, MIT, depends only on `yjs`):
+  `renderPost()` (`content-v4` → HTML, DOM-free and deterministic), the
+  slug/frontier publish transition, RSS + sitemap + robots, head tags
+  (canonical/OG/Twitter/JSON-LD), and `buildStaticSite()`.
+- `packages/data`: `PublicationSchema` plus publishing fields on `PageSchema`.
+- `packages/cli`: `xnet publish static`.
+- 74 tests, including an end-to-end test that renders a real Yjs page, writes
+  the site, serves it over plain HTTP with no xNet process running, and
+  asserts the draft 404s. That is the BATNA guarantee as an executable check.
+
+**Deviations worth recording:**
+
+1. **The frontier pin is stored but not yet enforced at render time.**
+   `publishedFrontier` is written on publish and `hasUnpublishedChanges()`
+   reports divergence, but `renderPost()` renders the *current* document, not
+   the document materialised at the pinned frontier. Rendering-at-a-frontier
+   needs `materializeMultipleAt` from `packages/history` and is the first task
+   of any follow-on work. The validation item "editing a published post does
+   not alter the published version" is therefore **left unchecked** — the
+   schema supports it, the renderer does not honour it yet.
+2. **The CLI takes a publication JSON file, not a live workspace.** Reading
+   posts from a store pulls in a native SQLite build; a plain JSON input keeps
+   `xnet publish` runnable anywhere Node runs and lets any producer feed it.
+   Wiring it to `createXNetServer()` is Phase 2 work.
+3. **`@xnetjs/publish` is `private: true`,** so it needs no changeset. Only
+   `data` and `cli` are publishable, and both changes are additive → `minor`.
+4. **Slugs are sticky.** Not in the original checklist, but falling out of it:
+   an assigned slug is never regenerated from a changed title, because the
+   slug is a promise to every inbound link. Renaming stays a deliberate act.
+5. **Determinism cost a `localeCompare`.** The feed's slug tie-break uses code
+   units, not ICU collation, which varies by platform — the same invariant the
+   fractional `sortKey` holds. Without it, "byte-identical across platforms"
+   would have been false.
+
+**Not started:** the anchor tenant (Phase 2), hub SSR and public blobs
+(Phase 3), subscribers and BYO ESP (Phase 4), paid reading (Phase 5), and the
+Charter §6 promotion — which stays **Aspirational** until Phase 4 lands, since
+nothing here yet gives an author a portable audience. Phases 3–5 also need
+infrastructure decisions (a TLS story, an ESP account, a Stripe platform
+account) and external validators (Lighthouse, the W3C feed validator,
+mail-tester) that are not available in a sandbox.
 
 ## References
 

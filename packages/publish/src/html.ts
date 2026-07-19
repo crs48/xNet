@@ -30,9 +30,15 @@ export function escapeAttr(value: string): string {
 export function safeUrl(value: string): string {
   const trimmed = value.trim()
   if (trimmed === '') return ''
-  // Strip control characters that can hide a scheme (e.g. `java\nscript:`).
-  const collapsed = trimmed.replace(/[\u0000-\u0020\u007f]/g, '').toLowerCase()
-  if (/^(javascript|vbscript|data):/.test(collapsed)) return ''
+  // Strip whitespace and control characters before testing the scheme: they
+  // can hide one (e.g. `java\nscript:`). Done by code point rather than a
+  // regex, because a control-character class is itself a lint hazard.
+  let collapsed = ''
+  for (const char of trimmed) {
+    const code = char.codePointAt(0) ?? 0
+    if (code > 0x20 && code !== 0x7f) collapsed += char
+  }
+  if (/^(javascript|vbscript|data):/i.test(collapsed)) return ''
   return trimmed
 }
 

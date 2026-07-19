@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { buildRss, buildSitemap, postUrl, publishedPosts, type FeedMeta } from './feed'
-import { slugify, uniqueSlug, isValidSlug } from './slug'
 import { buildJsonLd, buildPostHead } from './meta'
+import { slugify, uniqueSlug, isValidSlug } from './slug'
 
 const meta: FeedMeta = {
   siteUrl: 'https://xnet.fyi',

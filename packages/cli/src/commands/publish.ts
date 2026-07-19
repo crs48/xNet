@@ -6,12 +6,12 @@
  * and no xNet runtime in the read path. As long as this works, self-hosting
  * remains a real, undegraded alternative to any managed publishing tier.
  */
-import type { Command } from 'commander'
 import type { FeedMeta, SitePost } from '@xnetjs/publish'
-import { buildStaticSite } from '@xnetjs/publish'
-import chalk from 'chalk'
+import type { Command } from 'commander'
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
+import { buildStaticSite } from '@xnetjs/publish'
+import chalk from 'chalk'
 
 /**
  * The publication file format: metadata plus posts whose bodies are already

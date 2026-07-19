@@ -9,11 +9,17 @@
  * JavaScript. If this ever stops being true, the Charter's BATNA test has
  * failed and the feature is wrong.
  */
-import { buildRss, buildSitemap, postUrl, publishedPosts, type FeedMeta } from './feed'
-import { buildJsonLd, buildPostHead, type HeadOptions } from './meta'
-import { escapeAttr, escapeHtml } from './html'
-import type { PublishedPost } from './feed'
 import type { RenderedHeading } from './render'
+import {
+  buildRss,
+  buildSitemap,
+  postUrl,
+  publishedPosts,
+  type FeedMeta,
+  type PublishedPost
+} from './feed'
+import { escapeAttr, escapeHtml } from './html'
+import { buildJsonLd, buildPostHead, type HeadOptions } from './meta'
 
 /** A post plus its rendered body. */
 export type SitePost = PublishedPost & {

@@ -6,8 +6,8 @@
  * so published posts would inherit that gap. Emitting the head here keeps SEO
  * a property of the publishing pipeline rather than of one Astro layout.
  */
-import { escapeAttr, escapeHtml } from './html'
 import { postUrl, type FeedMeta, type PublishedPost } from './feed'
+import { escapeAttr, escapeHtml } from './html'
 
 export type HeadOptions = {
   /** Absolute URL of the social preview image. */
