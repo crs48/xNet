@@ -29,6 +29,7 @@ import { registerAgentEnrollCommand } from './commands/enroll.js'
 import { registerMcpCommand } from './commands/mcp.js'
 import { registerMigrateCommand } from './commands/migrate.js'
 import { registerPluginCommand } from './commands/plugin.js'
+import { registerPublishCommand } from './commands/publish.js'
 import { registerSchemaCommand } from './commands/schema.js'
 
 program
@@ -48,6 +49,7 @@ registerCodeCommand(program)
 registerDataCommand(program)
 registerPluginCommand(program)
 registerConnectorCommand(program)
+registerPublishCommand(program)
 
 // Parse and run
 program.parse()

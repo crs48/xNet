@@ -10,6 +10,7 @@ import {
   withAiBudget,
   withAiModels,
   withConcurrency,
+  isSeatMetered,
   withSeats,
   withStorage
 } from './plans'
@@ -19,6 +20,20 @@ describe('PLAN_CATALOG', () => {
     for (const plan of PLAN_ORDER) {
       expect(PLAN_CATALOG[plan]?.plan).toBe(plan)
     }
+  })
+
+  // Charter §6 (No ground rent), exploration 0359. Billing a community host per
+  // member charges them for access to an audience they brought — the margin
+  // would ride on a relationship we did not build, failing the improvement
+  // test. Community hosting is priced on operations, and membership is free to
+  // grow. This test is the receipt; it fails the build if the meter comes back.
+  it('never seat-meters the community plan — members are not seats', () => {
+    expect(PLAN_CATALOG.community.seats).toBe(0)
+    expect(isSeatMetered(PLAN_CATALOG.community)).toBe(false)
+  })
+
+  it('refuses to attach a seat count to a flat-billed plan', () => {
+    expect(() => withSeats(PLAN_CATALOG.community, 50)).toThrow(/flat-billed/)
   })
 
   it('keeps the free tier pooled and the enterprise tier region-pinned', () => {

@@ -20,6 +20,7 @@ import {
 } from '../src/services/share-access'
 import { createMemoryStorage } from '../src/storage/memory'
 import { authorizeRoomAction } from '../src/ws/authorize'
+import { syncSpaceAs } from './helpers/space-sync'
 
 const PORT = 14491
 const BASE = `http://localhost:${PORT}`
@@ -234,10 +235,15 @@ describe('Share Links', () => {
       'channel'
     ]
     for (const docType of docTypes) {
+      const docId = `doc-type-${docType}`
+      // Container-granting types need an attested owner before a link can be
+      // minted (see space-share-ownership.test.ts); this test is about the
+      // docType union round-tripping, not about who may share.
+      if (docType === 'space') await syncSpaceAs(PORT, owner, docId)
       const { status, json } = await api('/shares/links', {
         method: 'POST',
         token: owner.token,
-        body: { docId: `doc-type-${docType}`, docType, role: 'read' }
+        body: { docId, docType, role: 'read' }
       })
       expect(status, `docType=${docType}`).toBe(200)
       expect(json.docType).toBe(docType)

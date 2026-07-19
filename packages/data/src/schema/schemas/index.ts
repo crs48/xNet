@@ -6,6 +6,31 @@
  */
 
 export { PageSchema, type Page } from './page'
+export { POST_SCHEMA_IRI, PostSchema, comparePostsForFeed, type Post } from './post'
+export {
+  COURSE_SCHEMA_IRI,
+  LESSON_SCHEMA_IRI,
+  LESSON_PROGRESS_SCHEMA_IRI,
+  CourseSchema,
+  LessonSchema,
+  LessonProgressSchema,
+  lessonProgressId,
+  courseCompletion,
+  type Course,
+  type Lesson,
+  type LessonProgress
+} from './course'
+export {
+  EVENT_SCHEMA_IRI,
+  RSVP_SCHEMA_IRI,
+  EventSchema,
+  RsvpSchema,
+  rsvpId,
+  upcomingEvents,
+  type Event,
+  type Rsvp
+} from './event'
+export { PublicationSchema, type Publication } from './publication'
 export {
   FOLDER_SCHEMA_IRI,
   FolderSchema,
@@ -538,6 +563,15 @@ export {
 export const builtInSchemas = {
   // Versioned IRIs (canonical)
   'xnet://xnet.fyi/Page@1.0.0': () => import('./page').then((m) => m.PageSchema),
+  'xnet://xnet.fyi/Post@1.0.0': () => import('./post').then((m) => m.PostSchema),
+  'xnet://xnet.fyi/Course@1.0.0': () => import('./course').then((m) => m.CourseSchema),
+  'xnet://xnet.fyi/Lesson@1.0.0': () => import('./course').then((m) => m.LessonSchema),
+  'xnet://xnet.fyi/LessonProgress@1.0.0': () =>
+    import('./course').then((m) => m.LessonProgressSchema),
+  'xnet://xnet.fyi/Event@1.0.0': () => import('./event').then((m) => m.EventSchema),
+  'xnet://xnet.fyi/Rsvp@1.0.0': () => import('./event').then((m) => m.RsvpSchema),
+  'xnet://xnet.fyi/Publication@1.0.0': () =>
+    import('./publication').then((m) => m.PublicationSchema),
   'xnet://xnet.fyi/Folder@1.0.0': () => import('./folder').then((m) => m.FolderSchema),
   'xnet://xnet.fyi/Tag@1.0.0': () => import('./tag').then((m) => m.TagSchema),
   'xnet://xnet.fyi/Database@2.0.0': () => import('./database').then((m) => m.DatabaseSchema),
@@ -673,6 +707,13 @@ export const builtInSchemas = {
 
   // Legacy unversioned IRIs (aliases for the current version)
   'xnet://xnet.fyi/Page': () => import('./page').then((m) => m.PageSchema),
+  'xnet://xnet.fyi/Post': () => import('./post').then((m) => m.PostSchema),
+  'xnet://xnet.fyi/Course': () => import('./course').then((m) => m.CourseSchema),
+  'xnet://xnet.fyi/Lesson': () => import('./course').then((m) => m.LessonSchema),
+  'xnet://xnet.fyi/LessonProgress': () => import('./course').then((m) => m.LessonProgressSchema),
+  'xnet://xnet.fyi/Event': () => import('./event').then((m) => m.EventSchema),
+  'xnet://xnet.fyi/Rsvp': () => import('./event').then((m) => m.RsvpSchema),
+  'xnet://xnet.fyi/Publication': () => import('./publication').then((m) => m.PublicationSchema),
   'xnet://xnet.fyi/Folder': () => import('./folder').then((m) => m.FolderSchema),
   'xnet://xnet.fyi/Tag': () => import('./tag').then((m) => m.TagSchema),
   'xnet://xnet.fyi/Database': () => import('./database').then((m) => m.DatabaseSchema),
