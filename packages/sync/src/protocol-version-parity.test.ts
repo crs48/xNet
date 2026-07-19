@@ -33,12 +33,8 @@ interface Source {
   re: RegExp
 }
 
-const SOURCES: Source[] = [
-  {
-    lang: 'rust (LWW tiebreak key)',
-    path: 'rust/xnet-core/src/lib.rs',
-    re: /const\s+LWW_TIEBREAK_KEY_VERSION:\s*i64\s*=\s*(\d+)/,
-  },
+/** Sources that must equal the *current change format* version. */
+const CHANGE_VERSION_SOURCES: Source[] = [
   {
     lang: 'swift (XNetKit Change)',
     path: 'swift/XNetKit/Sources/XNetKit/Change.swift',
@@ -46,20 +42,44 @@ const SOURCES: Source[] = [
   },
 ]
 
-describe('protocol version parity across languages', () => {
-  it.each(SOURCES)('$lang agrees with CURRENT_PROTOCOL_VERSION', ({ path, re }) => {
-    const full = join(repoRoot, path)
-    expect(existsSync(full), `missing source file: ${path}`).toBe(true)
+/**
+ * Sources that must equal `LWW_TIEBREAK_KEY_VERSION` — a *different* constant
+ * that happens to share the value 4 today. It records the protocol version at
+ * which the grinding-resistant tiebreak activated, so it stays pinned when
+ * `CURRENT_PROTOCOL_VERSION` moves to 5. Do not collapse the two.
+ */
+const LWW_VERSION_SOURCES: Source[] = [
+  {
+    lang: 'rust (xnet-core)',
+    path: 'rust/xnet-core/src/lib.rs',
+    re: /const\s+LWW_TIEBREAK_KEY_VERSION:\s*i64\s*=\s*(\d+)/,
+  },
+]
 
-    const found = readFileSync(full, 'utf8').match(re)
-    expect(found, `no protocol version literal matched ${re} in ${path}`).toBeTruthy()
-    expect(Number(found![1])).toBe(CURRENT_PROTOCOL_VERSION)
+function literalFrom({ path, re }: Source): number {
+  const full = join(repoRoot, path)
+  expect(existsSync(full), `missing source file: ${path}`).toBe(true)
+  const found = readFileSync(full, 'utf8').match(re)
+  expect(found, `no version literal matched ${re} in ${path}`).toBeTruthy()
+  return Number(found![1])
+}
+
+describe('protocol version parity across languages', () => {
+  it.each(CHANGE_VERSION_SOURCES)('$lang agrees with CURRENT_PROTOCOL_VERSION', (source) => {
+    expect(literalFrom(source)).toBe(CURRENT_PROTOCOL_VERSION)
   })
 
-  it('the TypeScript LWW tiebreak key version matches too', async () => {
-    // Same integer, third hand-maintained copy — packages/core owns it.
+  it.each(LWW_VERSION_SOURCES)('$lang agrees with LWW_TIEBREAK_KEY_VERSION', async (source) => {
     const { LWW_TIEBREAK_KEY_VERSION } = await import('@xnetjs/core')
-    expect(LWW_TIEBREAK_KEY_VERSION).toBe(CURRENT_PROTOCOL_VERSION)
+    expect(literalFrom(source)).toBe(LWW_TIEBREAK_KEY_VERSION)
+  })
+
+  it('LWW_TIEBREAK_KEY_VERSION is a past-or-current protocol version', async () => {
+    // NOT an equality: the tiebreak activated *at* v4 and stays pinned there
+    // when the change format moves on. Asserting equality would go spuriously
+    // red on the next protocol bump and pressure someone into a wrong fix.
+    const { LWW_TIEBREAK_KEY_VERSION } = await import('@xnetjs/core')
+    expect(LWW_TIEBREAK_KEY_VERSION).toBeLessThanOrEqual(CURRENT_PROTOCOL_VERSION)
   })
 
   it('the frozen conformance vectors agree', () => {

@@ -819,7 +819,7 @@ stateDiagram-v2
       `"protocolVersion": 1` in the handshake
 - [x] Delete `.github/workflows/schema-check.yml` (or implement
       `xnet schema extract` and make it decidable) — do not leave it stubbed
-- [ ] Collapse the three `LWW_TIEBREAK_KEY_VERSION` literals to one generated
+- [x] Collapse the three `LWW_TIEBREAK_KEY_VERSION` literals to one generated
       source of truth where the language boundary allows
 
 **Phase 3 — scope the promise**
