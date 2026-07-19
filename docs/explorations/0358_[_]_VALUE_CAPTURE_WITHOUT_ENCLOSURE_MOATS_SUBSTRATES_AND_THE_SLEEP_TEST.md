@@ -1055,7 +1055,7 @@ fi
 
 ## Implementation Checklist
 
-- [ ] Write `docs/ECONOMICS.md` — rent-vs-improvement frame, Shapiro–Varian
+- [x] Write `docs/ECONOMICS.md` — rent-vs-improvement frame, Shapiro–Varian
       identity, Moat Register, four tests, anchor tenancy, the honest cost,
       and the named Red-Hat-shaped temptation.
 - [x] Add the **Sleep test** as test 4 in `docs/CHARTER.md` §6, with the
@@ -1078,7 +1078,7 @@ fi
 - [x] Fix `docs/CHARTER.md:184`: `CURRENT_PROTOCOL_VERSION` is **4**, not 3.
 - [ ] Add explicit `"license": "MIT"` to every published package missing one —
       starting with `@xnetjs/hub`.
-- [ ] Cross-link 0336, 0349, 0351, 0196 from `docs/ECONOMICS.md`.
+- [x] Cross-link 0336, 0349, 0351, 0196 from `docs/ECONOMICS.md`.
 - [ ] Open a follow-on exploration on **voice** (Ostrom 3 and 7) as the
       complement to exit.
 - [ ] Changeset: docs + telemetry test-only → likely `--empty` for any
