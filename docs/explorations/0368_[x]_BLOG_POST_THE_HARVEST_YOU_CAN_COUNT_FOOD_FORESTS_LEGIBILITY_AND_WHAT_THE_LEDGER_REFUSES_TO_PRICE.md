@@ -1465,6 +1465,29 @@ const heroArt: Record<string, any> = {
 9. **Publish date.** 3 August 2026 avoids three economics-tagged essays in five
    weeks. Confirm against whatever else is queued.
 
+## Deviations From The Plan (recorded during implementation)
+
+1. **The `Sources` section was missed, and this checklist is why.** The essay
+   shipped in PR #584 without one. Every recent post carries
+   `<hr />` → `<h3 id="sources">Sources</h3>` → a `<ul class="text-base">` of
+   narratively grouped citations → a closing `text-sm` caveat note, but **the
+   implementation checklist below never listed it**, and the build passes
+   happily without it. Exactly the failure mode 0363 hit (PR #581 retrofitted
+   the same section onto _Rig the Game or Play_). Added in a follow-up PR.
+   **Any future blog exploration must put `Sources` in the checklist.**
+2. **Two fabricated URLs were caught while writing that section**, which is
+   worth recording given the subject. A PNAS DOI constructed from memory
+   (`10.1073/pnas.2403187121`) **does not exist** — the real hazelnut-genetics
+   paper is `10.1073/pnas.2402304121`, and it carries its own published
+   correction. A WRI report URL 404'd. **Rule: verify every citation URL against
+   Crossref or an HTTP check before publishing — a 403 is a publisher bot-block,
+   a 404 is a fabrication.** ScienceDirect PIIs were swapped for Crossref-verified
+   DOIs, which are stabler and checkable.
+3. **The `BoardArt` defect fix landed independently** on main via PR #581 while
+   this branch was open; the redundant half was dropped in the merge.
+4. **`readingMinutes` calibration**: the repo's older posts imply 163–168 wpm,
+   the most recent implies ~270. Used 270 (18 min for 4,712 words).
+
 ## Implementation Checklist
 
 - [x] Re-verify `0368` is free immediately before committing (branches move)
