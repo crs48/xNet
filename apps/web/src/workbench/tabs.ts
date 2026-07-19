@@ -79,6 +79,7 @@ const ROUTE_PREFIXES: Array<{ prefix: string; nodeType: TabNodeType }> = [
   { prefix: '/map/', nodeType: 'map' },
   { prefix: '/view/', nodeType: 'savedview' },
   { prefix: '/channel/', nodeType: 'channel' },
+  { prefix: '/post/', nodeType: 'post' },
   { prefix: '/tag/', nodeType: 'tag' },
   { prefix: '/person/', nodeType: 'person' },
   { prefix: '/lab/', nodeType: 'lab' },
