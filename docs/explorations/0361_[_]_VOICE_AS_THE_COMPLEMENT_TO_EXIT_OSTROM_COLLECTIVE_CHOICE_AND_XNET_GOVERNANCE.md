@@ -273,7 +273,7 @@ than one: the right to leave **and** the right to be heard on the record.
 
 ## Implementation Checklist
 
-- [ ] Write `docs/RULE_CHANGES.md` — definition, enumerated in-scope rule list,
+- [x] Write `docs/RULE_CHANGES.md` — definition, enumerated in-scope rule list,
       who may propose, and the response commitment.
 - [ ] Add `.github/ISSUE_TEMPLATE/rule-change.yml` modelled on the XPP template.
 - [ ] Create the public decision log (`docs/decisions/rule-changes.md`),
