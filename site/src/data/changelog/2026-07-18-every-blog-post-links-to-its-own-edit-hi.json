@@ -1,0 +1,10 @@
+{
+  "id": "2026-07-18-every-blog-post-links-to-its-own-edit-hi",
+  "date": "July 18, 2026",
+  "title": "Every blog post links to its own edit history",
+  "summary": "Essays get revised after publication — corrections, tone passes, spelling sweeps — and a page showing only its publication date quietly implies it never changed. Each post's byline now carries a History link to the full commit history of that post's source file on GitHub, so anyone can check what was altered and when. It makes no claim that a given essay has changed; it just puts the record one click away.",
+  "highlights": [],
+  "tags": [
+    "platform"
+  ]
+}
