@@ -37,6 +37,48 @@
       "file": "stories/ui-comments-catalog--overview.png"
     },
     {
+      "id": "ui-comments-catalog--island-single-comment",
+      "title": "UI/Comments/Catalog",
+      "name": "Island / single comment",
+      "file": "stories/ui-comments-catalog--island-single-comment.png"
+    },
+    {
+      "id": "ui-comments-catalog--island-long-thread",
+      "title": "UI/Comments/Catalog",
+      "name": "Island / long thread (20 replies)",
+      "file": "stories/ui-comments-catalog--island-long-thread.png"
+    },
+    {
+      "id": "ui-comments-catalog--island-resolved",
+      "title": "UI/Comments/Catalog",
+      "name": "Island / resolved",
+      "file": "stories/ui-comments-catalog--island-resolved.png"
+    },
+    {
+      "id": "ui-comments-catalog--island-preview",
+      "title": "UI/Comments/Catalog",
+      "name": "Island / hover preview",
+      "file": "stories/ui-comments-catalog--island-preview.png"
+    },
+    {
+      "id": "ui-comments-catalog--island-composing",
+      "title": "UI/Comments/Catalog",
+      "name": "Island / composing (new comment)",
+      "file": "stories/ui-comments-catalog--island-composing.png"
+    },
+    {
+      "id": "ui-comments-catalog--island-overlapping-threads",
+      "title": "UI/Comments/Catalog",
+      "name": "Island / overlapping threads",
+      "file": "stories/ui-comments-catalog--island-overlapping-threads.png"
+    },
+    {
+      "id": "ui-comments-catalog--island-viewport-edge",
+      "title": "UI/Comments/Catalog",
+      "name": "Island / near the viewport edge",
+      "file": "stories/ui-comments-catalog--island-viewport-edge.png"
+    },
+    {
       "id": "ui-primitives-button--default",
       "title": "UI/Primitives/Button",
       "name": "Default",
