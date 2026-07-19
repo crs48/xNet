@@ -46,14 +46,18 @@
     "visuals:capture-set": "node scripts/visuals/changed-capture-set.mjs",
     "visuals:capture": "node scripts/visuals/capture.mjs",
     "visuals:diff": "node scripts/visuals/diff.mjs",
-    "prepare": "husky"
+    "prepare": "husky",
+    "check:api-report": "node scripts/check-api-report.mjs",
+    "check:packaging": "node scripts/check-packaging.mjs"
   },
   "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
     "@changesets/changelog-github": "^0.7.0",
     "@changesets/cli": "^2.29.7",
     "@commitlint/cli": "^20.4.1",
     "@commitlint/config-conventional": "^20.4.1",
     "@github-ui/storybook-addon-performance-panel": "^1.1.4",
+    "@microsoft/api-extractor": "^7.58.11",
     "@playwright/test": "1.58.1",
     "@storybook/addon-a11y": "^10.2.16",
     "@storybook/addon-links": "^10.2.16",
@@ -75,6 +79,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^16.2.7",
     "prettier": "^3.2.0",
+    "publint": "^0.3.21",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "storybook": "^10.2.16",

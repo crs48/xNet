@@ -824,15 +824,15 @@ stateDiagram-v2
 
 **Phase 3 — scope the promise**
 
-- [ ] Add `@microsoft/api-extractor` to `@xnetjs/react` first (its README
+- [x] Add `@microsoft/api-extractor` to `@xnetjs/react` first (its README
       already describes the stable/experimental/internal split)
-- [ ] Tag the root contract `@public`; tag `/database`, `/experimental` `@beta`;
+- [x] Tag the root contract `@public`; tag `/database`, `/experimental` `@beta`;
       tag `/internal` `@internal`
-- [ ] Commit `packages/react/etc/react.api.md`; fail CI on mismatch
-- [ ] Add `CODEOWNERS` on `packages/*/etc/` so report changes need a named reviewer
-- [ ] Roll out to `@xnetjs/core`, `@xnetjs/data`, `@xnetjs/sync` (the
+- [x] Commit `packages/react/etc/react.api.md`; fail CI on mismatch
+- [x] Add `CODEOWNERS` on `packages/*/etc/` so report changes need a named reviewer
+- [x] Roll out to `@xnetjs/core`, `@xnetjs/data`, `@xnetjs/sync` (the
       protocol-bearing three) before the rest of the fixed group
-- [ ] Add `attw` + `publint` to the release lane
+- [x] Add `attw` + `publint` to the release lane
 
 **Phase 4 — tighten the bump gate**
 

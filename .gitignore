@@ -57,3 +57,6 @@ ds-bundle/
 
 # SwiftPM build artifacts (apps/electron/native/*)
 .build/
+
+# API Extractor scratch output; the committed report lives in packages/*/etc/
+packages/*/temp/

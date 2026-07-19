@@ -122,6 +122,22 @@ jobs:
       - name: Build & Type check
         run: pnpm turbo run build typecheck
 
+      # The committed API reports (packages/*/etc/*.api.md) are the record of
+      # what we promise to keep working. api-extractor fails when the built
+      # surface no longer matches the report, so a change to what we export
+      # cannot land without showing up as a reviewable diff. Must run AFTER the
+      # build -- it reads dist/*.d.ts, which is why it is not in `lint` (that
+      # job is deliberately build-free, exploration 0193). (0370)
+      - name: API report drift (0370)
+        run: pnpm check:api-report
+
+      # publint over every publishable package: can a consumer actually install
+      # and import this? Upstream of any versioning promise -- a correct semver
+      # bump on a package whose export map doesn't resolve is worth nothing.
+      # Errors only; the suggestion tier is unpassable by design. (0370)
+      - name: Packaging validity (0370)
+        run: pnpm check:packaging
+
   test:
     runs-on: ubuntu-latest
     strategy:

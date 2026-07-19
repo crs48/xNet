@@ -35,11 +35,25 @@ The tiers are recorded in each package's committed API report
 (`packages/*/etc/*.api.md`), so a change to the promised surface shows up as a
 reviewable diff rather than a surprise.
 
-Today the `@public` surface is deliberately small — the root contract of
-`@xnetjs/react` (`XNetProvider`, `useXNet`, `useQuery`, `useMutate`, `useNode`,
-`useIdentity`, `ErrorBoundary`, `OfflineIndicator`). **A small promise we keep
-is worth more than a large one we don't.** We expect to promote more surface to
-`@public` over time, not less.
+> ⚠️ **Tiering is in progress — read this before relying on the table above.**
+> API Extractor treats an *untagged* export as `@public` by default, and most of
+> our surface is still untagged. So today the reports mark ~372 symbols
+> `@public` in `@xnetjs/react` alone, which is a description of what we
+> currently export, **not** a list of things we promise to keep.
+>
+> What is actually true today:
+>
+> - **The report is a change-visibility gate, and it works now.** Any change to
+>   an exported surface fails CI until the report is regenerated, so it lands as
+>   a reviewable diff.
+> - **The compatibility promise is being narrowed, not yet narrow.** We are
+>   tagging deliberately rather than blanket-tagging, starting with the
+>   `@xnetjs/react` root contract.
+> - **Until tagging completes, treat everything as alpha** — which is the same
+>   advice as the rest of this page.
+>
+> **A small promise we keep is worth more than a large one we don't**, so this
+> surface should shrink before it grows.
 
 ## What we do not promise
 

@@ -11,12 +11,12 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     },
     "./node": {
-      "import": "./dist/services/node.js",
-      "types": "./dist/services/node.d.ts"
+      "types": "./dist/services/node.d.ts",
+      "import": "./dist/services/node.js"
     }
   },
   "files": [
