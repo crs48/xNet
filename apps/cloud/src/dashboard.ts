@@ -10,6 +10,7 @@
 
 import type { TenantRecord } from './registry'
 import type { PlanId } from '@xnetjs/entitlements'
+import { isSeatMetered } from '@xnetjs/entitlements'
 import { sloForPlan } from './observability/slo'
 
 export interface DashboardView {
@@ -279,7 +280,7 @@ function hubCard(tenant: TenantRecord): string {
         <div><dt>Region</dt><dd><span id="t-region">${esc(tenant.region || 'auto')}</span></dd></div>
         <div><dt>Version</dt><dd><span id="t-version">${esc(tenant.targetVersion || '—')}</span></dd></div>
         <div><dt>Storage quota</dt><dd>${fmtBytes(e.quotaBytes)}</dd></div>
-        <div><dt>Seats</dt><dd>${e.seats}</dd></div>
+        <div><dt>Seats</dt><dd>${isSeatMetered(e) ? e.seats : 'Unlimited members'}</dd></div>
         <div><dt>SLA</dt><dd>${esc(sloForPlan(tenant.plan).label)}</dd></div>
         <div><dt>Backups</dt><dd>Continuous → R2 object storage</dd></div>
         <div><dt>Data identity</dt><dd>${
