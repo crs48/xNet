@@ -836,10 +836,10 @@ stateDiagram-v2
 
 **Phase 4 — tighten the bump gate**
 
-- [ ] Add `PROTOCOL_SENTINELS` to `assert-coverage.mjs` (§Example Code)
-- [ ] Remove `@xnetjs/hub` and `@xnetjs/editor` from `.changeset/config.json`
+- [x] Add `PROTOCOL_SENTINELS` to `assert-coverage.mjs` (§Example Code)
+- [x] Remove `@xnetjs/hub` and `@xnetjs/editor` from `.changeset/config.json`
       `ignore`, or document why a wire-visible package needs no release intent
-- [ ] Extend the `ai-generate.mjs` bump prompt to cite the sentinel list
+- [x] Extend the `ai-generate.mjs` bump prompt to cite the sentinel list
 - [ ] Decide C2: ship `3.0.0` as an explicit stability re-declaration, or not
 
 **Phase 5 — measure, then choose the channel**
