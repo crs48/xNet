@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-08-03-new-essay-the-harvest-you-can-count",
+      "url": "https://xnet.fyi/changelog#2026-08-03-new-essay-the-harvest-you-can-count",
+      "title": "New essay: The Harvest You Can Count",
+      "content_text": "Blog post #20 on why layered perennial food systems lost — not to a better design but to a better ledger. Grain genuinely won on calories and labour; the forest won on variance, soil carbon, micronutrients and input independence, and no ledger has a column for any of them. Includes two corrections to our own earlier essay.\n",
+      "date_published": "2026-07-19T08:04:20Z",
+      "tags": [
+        "platform"
+      ],
+      "_xnet": {
+        "date": "August 3, 2026",
+        "summary": "Blog post #20 on why layered perennial food systems lost — not to a better design but to a better ledger. Grain genuinely won on calories and labour; the forest won on variance, soil carbon, micronutrients and input independence, and no ledger has a column for any of them. Includes two corrections to our own earlier essay.",
+        "highlights": [],
+        "mergedAt": "2026-07-19T08:04:20Z",
+        "pr": 584,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-18-propose-a-change-to-a-rule-that-binds-yo",
       "url": "https://xnet.fyi/changelog#2026-07-18-propose-a-change-to-a-rule-that-binds-yo",
       "title": "Propose a change to a rule that binds you",

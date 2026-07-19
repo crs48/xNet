@@ -6,7 +6,19 @@
     <atom:link href="https://xnet.fyi/blog/rss.xml" rel="self" type="application/rss+xml" />
     <description>Essays on local-first software, data ownership, and the open web.</description>
     <language>en-us</language>
-    <lastBuildDate>Mon, 20 Jul 2026 09:00:00 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 03 Aug 2026 09:00:00 GMT</lastBuildDate>
+    <item>
+      <title>The Harvest You Can Count</title>
+      <link>https://xnet.fyi/blog/the-harvest-you-can-count</link>
+      <guid isPermaLink="true">https://xnet.fyi/blog/the-harvest-you-can-count</guid>
+      <description>A video claims every food forest on Earth was deliberately erased. It is wrong, and it is pointing at something real. Layered perennial food systems existed on every inhabited continent, and most of them lost — but not the way the romantic version tells it. Grain genuinely won on calories and on labour. What the forest was better at was variance, soil carbon, micronutrients and independence from inputs, and no ledger has ever had a column for any of them. On appropriability, why a tenant cannot plant a ten-year asset, and why a local-first tool is illegible to a procurement department for exactly the same reason.</description>
+      <dc:creator>crs48</dc:creator>
+      <dc:creator>Claude</dc:creator>
+      <pubDate>Mon, 03 Aug 2026 09:00:00 GMT</pubDate>
+      <category>essay</category>
+      <category>economics</category>
+      <category>philosophy</category>
+    </item>
     <item>
       <title>Rig the Game or Play</title>
       <link>https://xnet.fyi/blog/rig-the-game-or-play</link>
