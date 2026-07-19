@@ -48,7 +48,9 @@
     "visuals:diff": "node scripts/visuals/diff.mjs",
     "prepare": "husky",
     "check:api-report": "node scripts/check-api-report.mjs",
-    "check:packaging": "node scripts/check-packaging.mjs"
+    "check:packaging": "node scripts/check-packaging.mjs",
+    "build:blog-preview": "tsx scripts/build-blog-preview.ts",
+    "check:blog-preview": "tsx scripts/build-blog-preview.ts --check"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
@@ -69,6 +71,8 @@
     "@typescript-eslint/parser": "^7.0.0",
     "@vitest/coverage-istanbul": "^4.0.18",
     "@vitest/coverage-v8": "^4.0.0",
+    "@xnetjs/data": "workspace:*",
+    "@xnetjs/publish": "workspace:*",
     "autoprefixer": "^10.4.23",
     "changeset-conventional-commits": "^1.0.4",
     "eslint": "^8.57.0",
@@ -88,7 +92,8 @@
     "tsx": "^4.0.0",
     "turbo": "^2.0.0",
     "typescript": "^5.4.0",
-    "vitest": "^4.0.0"
+    "vitest": "^4.0.0",
+    "yjs": "^13.6.0"
   },
   "packageManager": "pnpm@10.30.3",
   "engines": {
