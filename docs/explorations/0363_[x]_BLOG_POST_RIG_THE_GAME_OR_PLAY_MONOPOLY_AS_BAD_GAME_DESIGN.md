@@ -773,6 +773,35 @@ illustration. The gold tower was also moved left (x 920 → 856) because
 `/blog/the-worlds-greatest-record-store`, so it is a site-wide rounding artifact,
 not a regression from this post. Not fixed here; noted for whoever chases it.
 
+**8. Two series conventions were missed on the first pass, fixed in a
+follow-up PR.** Both were real gaps, and both are things this checklist should
+have named explicitly:
+
+- **The blog-index card had no art.** `site/src/pages/blog/index.astro` keeps a
+  hand-maintained `heroArt` slug→component map; a post that isn't added to it
+  silently renders a card with no illustration. `BoardArt` is now registered.
+  Confirmed by eye that the card art is correctly _undimmed_ — the readability
+  scrim living in `BoardHero` rather than `BoardArt` (deviation 6) is what makes
+  that work.
+- **The essay had no Sources section.** Every substantial post in the series
+  ends with `<hr />` + `<h3 id="sources">Sources</h3>` + a `<ul class="text-base">`
+  of attributed links, and this one shipped without it. Eight entries added,
+  covering both patents, the 1932 rules, the Anspach litigation, the Hasbro
+  rulebook, the economics, the games, the Google ruling, and our own Charter.
+  **The "every quotation maps to a References entry" validation was checked off
+  in error** — the exploration's own `## References` section existed, but the
+  published essay had nowhere for a reader to follow.
+
+  Link-checked on the way in, which caught a genuinely dead source: the UCL
+  copy of Aghion et al. (2005) 404s, so it now points at NBER w9269. Justia
+  403s to `curl` but serves browsers, and the case citation is spelled out in
+  the prose regardless.
+
+**Lesson for the next blog exploration:** add "register the post in the
+`heroArt` map in `index.astro`" and "write the Sources section" as explicit
+checklist items. Neither is discoverable from the post page alone, and a build
+passes happily without either.
+
 ## Implementation Checklist
 
 - [x] Confirm 0362 is left free for the _Making xNet Cloud Delightful_
