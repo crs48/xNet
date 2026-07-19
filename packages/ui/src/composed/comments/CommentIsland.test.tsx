@@ -32,9 +32,7 @@ function anchorEl(): HTMLElement {
 
 describe('CommentIsland', () => {
   it('does not mount a composer until invited — the thread keeps the space', () => {
-    render(
-      <CommentIsland thread={makeThread(2)} anchor={anchorEl()} mode="full" open />
-    )
+    render(<CommentIsland thread={makeThread(2)} anchor={anchorEl()} mode="full" open />)
     // Regression guard for 0375: CommentPopover always rendered its textarea,
     // which is what crowded the thread out of a 384px box.
     expect(screen.queryByRole('textbox')).toBeNull()

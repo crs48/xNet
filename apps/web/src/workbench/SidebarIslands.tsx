@@ -11,9 +11,7 @@
 import type { FloatingMenuName } from './FloatingMenus'
 import { useRouterState } from '@tanstack/react-router'
 import { getCommandRegistry } from '@xnetjs/plugins'
-import { usePrefersReducedMotion,
-  ISLAND_CHROME
-} from '@xnetjs/ui'
+import { usePrefersReducedMotion, ISLAND_CHROME } from '@xnetjs/ui'
 import {
   ChevronDown,
   ChevronRight,

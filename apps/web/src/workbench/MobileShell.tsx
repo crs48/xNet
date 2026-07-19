@@ -22,9 +22,7 @@ import { useLocation, useNavigate } from '@tanstack/react-router'
 import { useDevTools } from '@xnetjs/devtools'
 import { getCommandRegistry } from '@xnetjs/plugins'
 import { DemoBanner, useDemoMode, useIdentity } from '@xnetjs/react'
-import { useTheme,
-  ISLAND_SURFACE
-} from '@xnetjs/ui'
+import { useTheme, ISLAND_SURFACE } from '@xnetjs/ui'
 import {
   ChevronUp,
   FileText,

@@ -223,7 +223,9 @@ export function usePageComments({
   const previewThreadPopover = useCallback((threadId: string, anchor: HTMLElement | null) => {
     setPopoverState((prev) =>
       // Never downgrade an open thread back to a hover peek.
-      prev.visible && prev.mode === 'full' ? prev : { visible: true, mode: 'preview', threadId, anchor }
+      prev.visible && prev.mode === 'full'
+        ? prev
+        : { visible: true, mode: 'preview', threadId, anchor }
     )
   }, [])
 

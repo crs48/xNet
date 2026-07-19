@@ -303,11 +303,7 @@ function IslandStage({
   const [anchor, setAnchor] = useState<HTMLElement | null>(null)
   return (
     <div className="flex min-h-[28rem] items-center justify-center p-12">
-      <span
-        ref={setAnchor}
-        className="rounded bg-comment/30 px-1 py-0.5 text-sm"
-        data-side={side}
-      >
+      <span ref={setAnchor} className="rounded bg-comment/30 px-1 py-0.5 text-sm" data-side={side}>
         {label}
       </span>
       {children(anchor)}
