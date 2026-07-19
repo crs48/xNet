@@ -755,8 +755,8 @@ export const welcomeQueue = (posts: readonly UnansweredPost[], now: number): Una
 
 ### Phase 3 — teach in it
 
-- [ ] `Course` / `Lesson` / `Progress` schemas; progress visible to the learner, never ranked
-- [ ] `Event` + `RSVP` schemas; `CalendarView` already renders them
+- [x] `Course` / `Lesson` / `Progress` schemas; progress visible to the learner, never ranked
+- [x] `Event` + `RSVP` schemas; `CalendarView` already renders them
 - [ ] Cohort calendar
 - [ ] Optional managed discovery listing (`DEFAULT_MARKETPLACE_FEE_BPS`, opt-in only)
 

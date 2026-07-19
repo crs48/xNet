@@ -114,6 +114,29 @@ export {
 export { PageSchema, type Page } from './schemas'
 export { POST_SCHEMA_IRI, PostSchema, comparePostsForFeed, type Post } from './schemas'
 export {
+  COURSE_SCHEMA_IRI,
+  LESSON_SCHEMA_IRI,
+  LESSON_PROGRESS_SCHEMA_IRI,
+  CourseSchema,
+  LessonSchema,
+  LessonProgressSchema,
+  lessonProgressId,
+  courseCompletion,
+  type Course,
+  type Lesson,
+  type LessonProgress
+} from './schemas'
+export {
+  EVENT_SCHEMA_IRI,
+  RSVP_SCHEMA_IRI,
+  EventSchema,
+  RsvpSchema,
+  rsvpId,
+  upcomingEvents,
+  type Event,
+  type Rsvp
+} from './schemas'
+export {
   FOLDER_SCHEMA_IRI,
   FolderSchema,
   buildFolderTree,
