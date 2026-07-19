@@ -6,6 +6,29 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-18-publish-your-writing-as-a-static-site",
+      "url": "https://xnet.fyi/changelog#2026-07-18-publish-your-writing-as-a-static-site",
+      "title": "Publish your writing as a static site",
+      "content_text": "A new xnet publish command renders your pages to plain HTML, RSS and a sitemap you can host anywhere — no hub required.\n",
+      "date_published": "2026-07-19T03:55:41Z",
+      "tags": [
+        "editor",
+        "platform"
+      ],
+      "_xnet": {
+        "date": "July 18, 2026",
+        "summary": "A new xnet publish command renders your pages to plain HTML, RSS and a sitemap you can host anywhere — no hub required.",
+        "highlights": [],
+        "mergedAt": "2026-07-19T03:55:41Z",
+        "pr": 575,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-18-only-a-space-s-owner-can-invite-people-t",
       "url": "https://xnet.fyi/changelog#2026-07-18-only-a-space-s-owner-can-invite-people-t",
       "title": "Only a space's owner can invite people to it",

@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Publish your writing as a static site</title>
+      <link>https://xnet.fyi/changelog#2026-07-18-publish-your-writing-as-a-static-site</link>
+      <guid isPermaLink="false">2026-07-18-publish-your-writing-as-a-static-site</guid>
+      <pubDate>Sun, 19 Jul 2026 03:55:41 GMT</pubDate>
+      <description>A new xnet publish command renders your pages to plain HTML, RSS and a sitemap you can host anywhere — no hub required.</description>
+    </item>
+    <item>
       <title>Only a space's owner can invite people to it</title>
       <link>https://xnet.fyi/changelog#2026-07-18-only-a-space-s-owner-can-invite-people-t</link>
       <guid isPermaLink="false">2026-07-18-only-a-space-s-owner-can-invite-people-t</guid>
