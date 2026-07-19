@@ -2,6 +2,7 @@
   "name": "@xnetjs/telemetry",
   "version": "0.0.1",
   "description": "Privacy-preserving telemetry and consent for xNet",
+  "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

@@ -1075,7 +1075,7 @@ fi
       single-FSL-package / plugin allowlist, plus reopen tripwires. Record the
       OSI-boundary finding: tighten within it if ever necessary, never cross.
 - [x] Fix `docs/CHARTER.md:184`: `CURRENT_PROTOCOL_VERSION` is **4**, not 3.
-- [ ] Add explicit `"license": "MIT"` to every published package missing one —
+- [x] Add explicit `"license": "MIT"` to every published package missing one —
       starting with `@xnetjs/hub`.
 - [x] Cross-link 0336, 0349, 0351, 0196 from `docs/ECONOMICS.md`.
 - [ ] Open a follow-on exploration on **voice** (Ostrom 3 and 7) as the
