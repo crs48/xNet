@@ -858,17 +858,25 @@ packages/matrix/src/
 (collision with hub-to-hub query federation). Verifies `hs_token`, dedupes on
 `txnId`, normalizes, and hands to the Phase-0 signer.
 
-Identity binding follows the ATProto template exactly
+Identity binding follows the ATProto template's *mechanism* exactly
 ([`binding.ts:26`](packages/identity/src/atproto/binding.ts:26)) — bidirectional
 social proof, version-prefixed canonical message, verified on demand rather than
-stored in a join table:
+stored in a join table.
+
+⚠️ **But not its namespace.** The shipped record is `net.x.identity.binding`, and
+exploration 0372 establishes with evidence that **`net.x.*` is permanently
+unclaimable**: NSIDs are DNS-rooted, so authority over `net.x.*` requires control
+of `x.net`, and `whois x.net` returns the Internet Assigned Numbers Authority.
+Lexicon resolution for `net.x.*` can never succeed. A *new* record minted there
+would be born broken, so this exploration specifies **`fyi.xnet.*`** and treats
+the existing `net.x.identity.binding` migration as 0372's problem, not this one's.
 
 ```mermaid
 erDiagram
   XNET_USER ||--o| MATRIX_BINDING : "signs with xNet key"
   MATRIX_USER ||--o| MATRIX_BINDING : "posts to account data"
   MATRIX_BINDING {
-    string  type          "net.x.identity.matrix-binding"
+    string  type          "fyi.xnet.identity.matrix-binding"
     string  xnetDid       "did:key:..."
     string  matrixUserId  "@alice:example.org"
     string  createdAt     "ISO 8601"
@@ -1046,7 +1054,7 @@ Open questions:
 - [ ] Mount at `/matrix/app`, **not** `/federation`
 - [ ] Transaction dedupe store keyed on `txnId`, with retention policy
 - [ ] Deterministic Channel derivation `mx-<sha256(roomId)[0:40]>`, mirroring `dm.ts:15`
-- [ ] `net.x.identity.matrix-binding` record + verifier, following `binding.ts`
+- [ ] `fyi.xnet.identity.matrix-binding` record + verifier, following `binding.ts`'s *shape* but **not** its namespace (see note below)
 - [ ] Add `matrix` to `EXTERNAL_ITEM_SOURCES` if routing through `external-item.ts:26`
 - [ ] Outbound path: xNet `ChatMessage` → `?user_id=` ghost send
 - [ ] Cross-sign the appservice device; **fail loudly at startup if not cross-signed**
