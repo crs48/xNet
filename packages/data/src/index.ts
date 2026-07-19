@@ -87,6 +87,11 @@ export {
   // Built-in schemas
   PageSchema,
   type Page,
+  // Community discussion (0359)
+  POST_SCHEMA_IRI,
+  PostSchema,
+  comparePostsForFeed,
+  type Post,
   FOLDER_SCHEMA_IRI,
   FolderSchema,
   buildFolderTree,

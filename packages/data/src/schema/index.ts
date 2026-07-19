@@ -112,6 +112,7 @@ export {
 
 // Built-in schemas
 export { PageSchema, type Page } from './schemas'
+export { POST_SCHEMA_IRI, PostSchema, comparePostsForFeed, type Post } from './schemas'
 export {
   FOLDER_SCHEMA_IRI,
   FolderSchema,

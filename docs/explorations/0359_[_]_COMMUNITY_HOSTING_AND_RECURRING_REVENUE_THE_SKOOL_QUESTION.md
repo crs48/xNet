@@ -731,10 +731,10 @@ export const welcomeQueue = (posts: readonly UnansweredPost[], now: number): Una
 ### Phase 1 — host it (no money, no legal exposure)
 
 - [x] `Post` / `Thread` schemas with `spaceContributorAuthorization()`
-- [ ] Native compose surface (BlockNote via `XNetEditor`), chronological only
-- [ ] Community Space preset — `kind: 'community'`, public landing page via existing `public.ts`
+- [x] Native compose surface (BlockNote via `XNetEditor`), chronological only
+- [x] Community Space preset — `kind: 'community'`, public landing page via existing `public.ts`
 - [x] Welcome queue (`packages/social/src/community/welcome.ts`) + admin surface
-- [ ] Member directory over `SpaceMembership` + `useEnsureProfiles`
+- [x] Member directory over `SpaceMembership` + `useEnsureProfiles`
 - [ ] Register the community section in `apps/web/src/workbench/sidebar/sections.ts` (the tabless successor to `SURFACES` — check 0353 Phase 3 before adding a `SurfaceDef`)
 - [ ] Wire `packages/abuse` into the public-read path (moderation scope already has `community`)
 - [ ] Cloud Community plan live, ops-priced, unlimited members

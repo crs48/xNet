@@ -23,12 +23,14 @@ import { MeetingsView } from '../components/MeetingsView'
 import { FrameTabView } from '../components/FrameTabView'
 import { PageView } from '../components/PageView'
 import { PersonView } from '../components/PersonView'
+import { PostView } from '../components/community/PostView'
 import { SpaceHomeView } from '../components/SpaceHomeView'
 import { TagView } from '../components/TagView'
 import { TasksView } from '../components/TasksView'
 
 const HOSTED_VIEWS: Record<TabNodeType, ComponentType<{ nodeId: string }>> = {
   page: ({ nodeId }) => <PageView docId={nodeId} />,
+  post: ({ nodeId }) => <PostView postId={nodeId} />,
   frame: ({ nodeId }) => <FrameTabView frameSpec={nodeId} />,
   database: ({ nodeId }) => <DatabaseView docId={nodeId} />,
   canvas: ({ nodeId }) => <CanvasView docId={nodeId} />,
