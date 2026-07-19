@@ -44,6 +44,8 @@ const firstRelationId = (value: unknown): string | null => {
 type ContainmentChange = {
   nodeId?: string
   schemaId?: string
+  /** Signed author of the change; verified at ingest. */
+  authorDid?: string
   payload?: {
     nodeId?: string
     schemaId?: string
@@ -57,10 +59,19 @@ type ContainmentChange = {
  * container (Space) grants resolve. A content node's container is its `space`;
  * a Space's container is its `parent`. Only updates when the relevant property
  * is actually present in the change (partial CRDT updates never clobber it).
+ *
+ * Also records Space OWNERSHIP (first writer wins), preferring the change's
+ * signed `authorDid` over the relaying session — the signature is verified at
+ * ingest, whereas the session's capability may be a self-issued wildcard. A
+ * Space grant is a container (subtree) grant, so "who may share this Space"
+ * has to be answerable without depending on the optional `index-update`
+ * publisher that writes `doc_meta` — see `canManageShares` in
+ * routes/share-links.ts.
  */
 export const maintainSpaceContainment = async (
   storage: HubStorage,
-  change: ContainmentChange
+  change: ContainmentChange,
+  relayingDid?: string
 ): Promise<void> => {
   const nodeId = change.payload?.nodeId ?? change.nodeId
   const schemaId = change.schemaId ?? change.payload?.schemaId
@@ -73,6 +84,8 @@ export const maintainSpaceContainment = async (
     await storage.setNodeVisibility(nodeId, typeof value === 'string' ? value : null)
   }
   if (schemaId.startsWith(SPACE_SCHEMA_PREFIX)) {
+    const ownerDid = change.authorDid ?? relayingDid
+    if (ownerDid) await storage.setNodeOwnerIfAbsent(nodeId, ownerDid)
     if (hasKey('parent')) await storage.setNodeContainer(nodeId, firstRelationId(properties.parent))
     await recordVisibility()
     return
@@ -163,7 +176,7 @@ const relayOneChange = async (
     const isNew = await deps.nodeRelay.handleNodeChange(message, ctx.authContext)
     // Maintain the Space containment index (best-effort, never blocks relay).
     try {
-      await maintainSpaceContainment(deps.storage, message.change)
+      await maintainSpaceContainment(deps.storage, message.change, ctx.session.did)
     } catch {
       /* containment is advisory; a failure must not drop the change */
     }

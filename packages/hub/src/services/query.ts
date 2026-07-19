@@ -109,7 +109,10 @@ export class QueryService {
 
     const meta: DocMeta = {
       docId,
-      ownerDid,
+      // First writer wins: a re-index by another DID must not transfer
+      // ownership. `index/write` is capability-gated, but a wildcard
+      // capability would otherwise make owner takeover a single message.
+      ownerDid: existing?.ownerDid ?? ownerDid,
       schemaIri: update.meta.schemaIri,
       title: update.meta.title,
       properties: {
