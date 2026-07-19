@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-19-sources-for-the-harvest-you-can-count",
+      "url": "https://xnet.fyi/changelog#2026-07-19-sources-for-the-harvest-you-can-count",
+      "title": "Sources for The Harvest You Can Count",
+      "content_text": "The new essay now carries its Sources section: ten grouped entries with every citation link verified.\n",
+      "date_published": "2026-07-19T17:00:33Z",
+      "tags": [
+        "platform"
+      ],
+      "_xnet": {
+        "date": "July 19, 2026",
+        "summary": "The new essay now carries its Sources section: ten grouped entries with every citation link verified.",
+        "highlights": [],
+        "mergedAt": "2026-07-19T17:00:33Z",
+        "pr": 586,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-08-03-new-essay-the-harvest-you-can-count",
       "url": "https://xnet.fyi/changelog#2026-08-03-new-essay-the-harvest-you-can-count",
       "title": "New essay: The Harvest You Can Count",
