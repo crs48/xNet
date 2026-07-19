@@ -728,20 +728,20 @@ land outside `site/`, that changes — they should not.
 
 - [x] Confirm 0362 is left free for the _Making xNet Cloud Delightful_
       renumber, and that no other branch has claimed 0363
-- [ ] Re-verify the Magie 1902 _Single Tax Review_ quote against the
+- [x] Re-verify the Magie 1902 _Single Tax Review_ quote against the
       landlordsgame.info primary scan
-- [ ] Re-verify the 1904 patent purpose clause against Google Patents
+- [x] Re-verify the 1904 patent purpose clause against Google Patents
       US748626A directly
-- [ ] Pull the 1932 _Landlord's Game and Prosperity_ rules PDF and describe
+- [x] Pull the 1932 _Landlord's Game and Prosperity_ rules PDF and describe
       the dual rule sets from the document itself, not from summaries
-- [ ] Verify the Hayek 1968 line against the Snow translation PDF
-- [ ] Verify the Carse opening lines against the published text
-- [ ] Verify the Mehta ruling quote and 5 August 2024 date against the opinion
+- [x] Verify the Hayek 1968 line against the Snow translation PDF
+- [x] Verify the Carse opening lines against the published text
+- [x] Verify the Mehta ruling quote and 5 August 2024 date against the opinion
       or first-tier legal press
-- [ ] Verify the official Monopoly auction rule and the absence of a Free
+- [x] Verify the official Monopoly auction rule and the absence of a Free
       Parking jackpot against the current Hasbro rulebook
-- [ ] Confirm Aghion et al. (2005) citation details (_QJE_ 120(2): 701–728)
-- [ ] Drop every unverified design quote (Johnson/Knizia/Rosewater/Garfield)
+- [x] Confirm Aghion et al. (2005) citation details (_QJE_ 120(2): 701–728)
+- [x] Drop every unverified design quote (Johnson/Knizia/Rosewater/Garfield)
       unless a primary source is found; drop the Banks phrase outright
 - [x] Add the `rig-the-game-or-play` entry to
       [`site/src/data/blog.ts`](../../site/src/data/blog.ts) with `draft: true`
@@ -751,12 +751,12 @@ land outside `site/`, that changes — they should not.
 - [x] Build `site/src/components/blog/HonestBoard.astro` with the four rows
 - [x] Write `site/src/pages/blog/rig-the-game-or-play.astro`, §1–§9
 - [x] Add the runaway-leader mermaid figure via `Mermaid.astro`
-- [ ] Cross-link [`docs/ECONOMICS.md`](../ECONOMICS.md) §1, §3, §4 and
+- [x] Cross-link [`docs/ECONOMICS.md`](../ECONOMICS.md) §1, §3, §4 and
       [`docs/CHARTER.md`](../CHARTER.md) §6 from the closing section
-- [ ] Cross-link _The Forest and the Field_, _The Right to Say No_, and
+- [x] Cross-link _The Forest and the Field_, _The Right to Say No_, and
       _The World's Greatest Record Store_ exactly once each
-- [ ] Copy-edit to **en-GB** (series convention)
-- [ ] Verify `xNet` casing in all prose per
+- [x] Copy-edit to **en-GB** (series convention)
+- [x] Verify `xNet` casing in all prose per
       [`CLAUDE.md`](../../CLAUDE.md)
 - [ ] Add an `og:image` if the hero warrants one (note: `Base.astro` has no
       default `og:*` — see 0316)
