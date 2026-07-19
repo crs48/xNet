@@ -230,17 +230,53 @@ number; "a content farm" suffices.
 
 ### Food forests that demonstrably existed
 
-**Solid, peer-reviewed, the keystone citation.** Armstrong et al. (2021),
-*"Historical Indigenous Land-Use Explains Plant Functional Trait Diversity,"*
-*Ecology and Society* 26(2):6. Four sites — Dałk Gyilakyaw and Kitselas Canyon
-(Ts'msyen), Shxwpópélem and Say-mah-mit (Coast Salish), British Columbia.
-Forest gardens still show markedly greater plant and functional-trait diversity
-than periphery forest **more than 150 years after management ceased** — ~12
-species per 25 m² plot inside versus 8 outside.
+**⚠️ Keystone citation downgraded — cite the 2023 and 2024 papers, not the
+famous 2021 one.** Armstrong et al. (2021), *Ecology and Society* 26(2):6, is
+the paper every popular account cites, and it is thinner than its press. Four
+sites (Dałk Gyilakyaw, Kitselas Canyon, Shxwpópélem, Say-mah-mit), **46 plots of
+5×5 m** — pseudo-replicates within only **four** sites, used as a 4-level random
+effect. Traits came from the TRY database, **not measured**. **No effect sizes,
+no confidence intervals, no R².** Functional divergence was **not significant**
+(P=0.07). And the paper **contains no dating evidence of any kind** — the
+"150 years" is arithmetic from a documented ~1870 abandonment.
 
-**This is the fact that disproves the conspiracy frame in the most useful way:
-nobody burned these. Their gardeners were removed, and the gardens kept
-producing without them for a century and a half.**
+Three confounds it does not address: **midden nutrient enrichment** (one site
+*is* a shell midden, and middens independently shift soil Ca, P and pH);
+**canopy gap** (gardens are clearings; canopy cover unmeasured); and **reserve
+protection** — all four sites sit on reserves exempt from industrial logging, so
+persistence may reflect 20th-century law rather than 19th-century design. The
+authors raise the last one themselves; every news outlet dropped it.
+
+**The press overstatement is itemisable, and it is on-thesis:** *Science* wrote
+"deliberately planted" (never demonstrated in the paper); "these plants never
+grow together in the wild" (inverts a joint co-occurrence claim — every species
+grows wild); "fire, fertilization, pruning" (**none measured**); and "remain
+productive" — **the paper contains no productivity data of any kind.** Richness
+is not productivity.
+
+**Use instead:** Armstrong et al. **2023** (*Ecosystems and People*, 7 gardens,
+155 species, **with soils, tree rings, radiocarbon and paleoethnobotany**) is
+the paper that actually argues pre-colonial management; Armstrong et al.
+**2024**, *PNAS* 121(48), on **hazelnut genetic differentiation**, is the
+strongest intentionality evidence, because population genetics can carry a claim
+that vegetation pattern cannot. A published scalar critique also exists (Oswald
+et al. 2023, *Ecosystems and People* 19(1):2240432, with a reply).
+
+**The underlying point survives and is still the best available answer to the
+conspiracy frame: nobody burned these. Their gardeners were removed, and
+something recognisable persisted for a century and a half.** State it that way —
+carried by the 2023/2024 evidence, not the 2021 headline.
+
+**And the general lesson, which the essay should name.** The Indigenous
+land-management claims that settled are the ones **with an artefact in them** —
+clam-garden rock walls (a wall cannot form naturally; oldest ≥3,500 years;
+butter clams 4× more abundant, with a *tagged-juvenile transplant experiment*
+showing 1.7× faster growth), Llanos de Moxos island geometry plus radiocarbon,
+hazelnut population genetics, terra mulata micromorphology. **Apêtê remain
+contested after thirty years precisely because nobody has put a trowel or a
+radiocarbon date into one.** Vegetation pattern and informant testimony did not
+settle those questions; measurable objects did. **That is the essay's thesis
+turned back on the evidence for the essay's thesis, and it should be in §2.**
 
 **Solid, with a published dispute.** Levis et al. (2017), *Science*
 355(6328):925–931 — 20 of 85 studied domesticated species are hyperdominant
@@ -249,9 +285,116 @@ formal Comment (McMichael et al., 2017) disputing the sampling and the
 proximity inference. If we cite Levis, we cite the Comment.** Cheap
 credibility, and correct.
 
-**Solid, but only as present-tense description.** Chagga home gardens,
-Kilimanjaro: 0.2–1.2 ha multistorey plots, 100+ crop species, a recognised
-Globally Important Agricultural Heritage System.
+**Chagga home gardens — corrected on three counts.** The first draft's "0.2–1.2
+ha multistorey plots, 100+ crop species, a recognised GIAHS" needs all three
+parts fixing.
+
+- **The species count is cumulative, not per-garden.** O'kting'ati et al. (1984),
+  *Agroforestry Systems* 2(3):177–186, found "over 100 plant species spread over
+  40 families" — **across 30 farms in 6 villages**, not in one garden. And the
+  even more widely quoted **"~500 species" is Hemp (2006), a botanical flora
+  survey**: of ~520 vascular plants, **over 400 are non-cultivated** — 194 forest
+  species, 128 ruderals including 41 invasive neophytes. Quoting it as crops per
+  garden compounds three errors: flora→crop list (~5×), cumulative→per-garden,
+  and Hemp's 2006 number attributed to Fernandes' 1984 paper. **The cultivated
+  component is ~100–120 species, system-wide.**
+- **The GIAHS listing is one village, not the system.** It is the **Shimbwe Juu
+  Kihamba site — 615 ha, 2,569 people**. FAO's materials give the year
+  inconsistently as 2011 and 2013. **Do not write "the Chagga home gardens are a
+  GIAHS."**
+- **The plot size understates dependence.** Households typically hold **two**
+  plots: the *kihamba* on the slope plus an annual-crop *kishamba* **10–16 km
+  away in the plains**. Omitting the second makes the garden look far more
+  self-sufficient than it is. Modern holding: **0.4 ha** (n=82, 2022).
+
+**And the third instance of "an old practice, a young system."** The canonical
+Chagga multistorey is banana–coffee–vegetable. **Arabica coffee was introduced
+by missionaries in the 1890s.** So the system in the form everybody describes
+cannot be more than ~125 years old, whatever the banana cultivation beneath it
+dates to. Meanwhile "2,000 years" traces to an assertion with no identified
+evidentiary basis, and "800 years" is **circular** — an undated assertion
+co-cited with a 2021 pollen study the authors hedge as "possibly associated
+with" homegardens, from a core that **cannot detect bananas at all** (sterile
+triploid *Musa* produces negligible pollen). There is **no excavated,
+radiocarbon-dated sequence for the kihamba system**.
+
+**The sharpest irony available:** Engaruka, the one northern Tanzanian
+irrigation landscape with genuine excavated archaeology, dates to **c. 1400–1720
+CE** — *younger* than what is claimed for Kilimanjaro on no archaeology at all.
+**The site with evidence gets modest dates; the site without evidence gets two
+millennia.** That sentence could carry §3 by itself.
+
+**Same area-versus-integrity split as Kandy, and it is now a pattern worth
+stating as one.** Chagga agroforestry area **more than doubled 1976–2022, to
+849 km²**. What contracted was per-household holding, structural complexity, and
+native content: total species per km² fell only ~10%, but **species from natural
+habitats fell 46% while neophytes rose ~25%**. **Replacement, not depletion.**
+Land use change, not climate, is the identified driver.
+
+### Javanese pekarangan — and the fact that most complicates this blog
+
+A third system, researched late, and it contains the single sharpest correction
+in the entire research base — **against the framing of our own earlier essay.**
+
+**Solid, verified against the full primary text** (Soemarwoto & Conway 1991,
+*J. Farming Systems Research-Extension* 2(3):95–118 — open access, which is why
+this one could actually be checked). Structure is 3–4 strata, but the
+**indigenous organising principle is horizontal and social**, not silvicultural:
+*buruan* (front yard), *pipir* (side), *kebon* (back).
+
+**Then, verbatim from the most-cited source in the field:**
+
+> "According to popular belief, the structure of the homegarden deliberately
+> mimics the natural forest, **but in Javanese culture forests have a low social
+> value. Indeed, Javanese feel offended when their homegarden is compared to a
+> forest.**"
+
+The authors attribute the forest-like structure to **convergent evolution, not
+imitation**. Forest clearing is culturally a noble deed; the *wayang* casts
+forests as dangerous places of wild animals and evil spirits.
+
+**This directly contradicts the standard permaculture framing of these systems
+as conscious "food forests" modelled on the rainforest — the framing
+`the-forest-and-the-field` used.** It has been sitting in plain sight in the
+field's most-cited paper the whole time. **This belongs in the essay, and it
+belongs pointed at us.**
+
+**Two more numbers that fail the same way as all the others.** "600+ species in
+a pekarangan" is **602 cumulative across 351 gardens over two seasons, including
+ornamentals and weeds** — a typical garden holds **~20** (mean range 19–24;
+modern re-measurement gives 27). And the circulating "**>40% of calories**" is a
+**produced-versus-consumed conflation**: the only traceable measured figure is
+**18% of calories and 14% of protein consumed** (Ochse & Terra 1934). Modern
+re-measurement is a very large downward revision — **2.4% of vitamin A RDA,
+23.6% vitamin C, 1.9% of carbohydrate or protein**, and ~11% of farm income.
+
+**Dating fails identically.** The "860 AD charter" rests on one line in a 1954
+geography review by an agronomist — no inscription named, no text, no
+epigraphic corroboration. The "10,000 years" is Hutterer's explicitly hedged
+*"probably"*, and it is **a universal hypothesis about how dooryard
+horticulture arises anywhere**, not a Javanese finding; downstream it hardens
+into "the 7th millennium BC." A claimed reference in the Ramayana Kakawin
+**could not be found at all — treat as spurious**, and Rumphius is routinely
+miscited (he worked on **Ambon, not Java**). **Firm documentation runs to the
+early 19th century; rigorous quantification only from the 1930s.**
+
+**One equity note the advocacy retellings drop:** Soemarwoto and Conway observe
+that pekarangan provide **little employment for the landless**. A system of
+household plots is not a commons.
+
+### The meta-finding — and it is about us
+
+During this research, a search engine's AI summary returned **Hemp's 2006
+520-species flora figure inside a summary of the Fernandes 1984 paper** — a
+miscitation manufactured on the spot. **The error is now being generated at
+scale, which means secondary sources on this topic will get worse over time,
+not better.**
+
+An essay about numbers that survived on repetition rather than evidence, which
+opens by refusing an AI content farm, and which was itself researched with AI
+assistance that reproduced the exact error it is describing — **that is the
+strongest closing material available, and declining to use it would be
+cowardice.** Strong candidate for §7 alongside Pasquier.
 
 Kandyan forest gardens, Sri Lanka — **cite Perera & Rajapakse (1991),
 *Forest Ecology and Management* 45(1–4):269–280**, n=50 random units in Central
@@ -616,6 +759,29 @@ an incentive the Commission's own evaluators call incoherent with EU
 biodiversity objectives.* **Any claim about how many trees came down is
 indefensible.** If we cite the evaluation, we quote its caveat too.
 
+**But there is a documented EU number, and it is better than the one we can't
+have.** Rural Development **Measure 8.2**, the EU's dedicated agroforestry
+establishment measure, 2014–2020: **planned 72,529 ha** (SFC database, January
+2017) against **~2,000 ha realised by end-2019** — a **97% shortfall**,
+documented in **European Court of Auditors Special Report 16/2021, Figure 23**.
+Hungary set a 2,000 ha target and established **26.6 ha (1.3%)**. Italy: 5 of 21
+regions allocated budget, **2 activated it**. M8.2 accounted for **0.2%** of
+EAFRD forestry spending.
+
+**Two details make this the strongest single policy fact in the essay.** First,
+**the second attempt performed worse in absolute terms than the first** — M8.2
+realised ~2,000 ha against predecessor M222's 2,905 ha, despite a target 23×
+larger. Second, and this is the one to close the paragraph on: **the successor
+programming period has no dedicated output indicator for agroforestry at all.**
+The EU CAP Network states there is "no data available in the public domain" on
+targets or progress. **A programme that failed by 97% stopped being counted.**
+For an essay about what gets a column, that is the perfect ending — nobody
+cancelled it, they just stopped measuring it.
+
+⚠️ The realised figure is a **2019** cut; no closure figure is published, and
+Member State ex-post reports are not due until end-2026 with Commission
+synthesis end-2027. **Say "by 2019," not "in total."**
+
 ### The Green Revolution — the modern, measurable version of the whole thesis
 
 **Solid, and this may be the best single dataset in the essay.** Punjab crop
@@ -670,6 +836,63 @@ Farmer-Managed Natural Regeneration now covers an estimated **7 million hectares
 **Change who owns the tree, and the trees come back.** Nobody planted a forest;
 they stopped removing one. That is the ledger being corrected, and it is the
 only unambiguously hopeful fact in the entire research base.
+
+### Three findings that indict the field itself — and one that indicts us
+
+**Solid, and it is the field's own verdict.** Kumar & Nair (2004), "The enigma
+of tropical homegardens," *Agroforestry Systems* 61:135–152 — the leading review
+— observes that homegardens are "considered to be an epitome of sustainability"
+yet have "received relatively little scientific attention," and that
+"**description and inventory of local systems dominated the 'research' efforts
+during the past 25 or more years.**" Their conclusion: "more convincing evidence
+based on rigorous research is needed."
+
+**Species inventories are abundant; productivity measurements are scarce. That
+asymmetry is the engine of nearly every overstatement in this document** — and
+it is the essay's thesis appearing inside the literature about the essay's
+subject. What was easy to count got counted. What mattered did not.
+
+**⚠️ And here is the one that lands on us.** The **"seven layers" model is a
+permaculture construct, not a description of any of these systems.** Kandyan
+gardens have 3–5 strata. Chagga have 4. Pekarangan are layered but to no fixed
+scheme, and are organised horizontally by social zone rather than vertically at
+all. **No traditional system in this research base is organised on seven
+layers.**
+
+[`the-forest-and-the-field`](../../site/src/pages/blog/the-forest-and-the-field.astro)
+says "**seven layers deep**." **We published the construct as though it were the
+observation.** Combined with the pekarangan finding that Javanese gardeners
+reject the forest comparison outright, this gives the new essay two independent
+corrections to our own prior post — which is the strongest possible answer to
+the charge that this is a fifth serving of the same dish. **Say it plainly in
+§7 or §8. Do not bury it.**
+
+**Solid, and it removes a poster child.** The dehesa — the standard European
+"ancient sustainable agroforestry" exemplar — **does not reproduce its own
+trees.** Pulido, Díaz & Hidalgo de Trucios (2001), *Forest Ecology and
+Management* 146(1–3):1–13: size structures are approximately **bell-shaped** in
+managed dehesas (a single ageing cohort, no recruitment) and only approach the
+self-replacing **inverse-J** of unmanaged holm oak forest after ~16 years of
+*abandonment*. Olea & San Miguel-Ayanz (2006) put it in their own capitals:
+"**TODAY, THE LACK OF REGENERATION OF THE TREE LAYER IS THE MOST IMPORTANT
+PROBLEM FOR SPANISH DEHESAS.**" The artificial workaround costs **~€30 per
+seedling** with shelters ≥1.80 m and fencing for ≥20 years, and the AGFORWARD
+protocol calls it "an inefficient method that cannot be afforded." **No Member
+State reports favourable conservation status for the habitat anywhere.**
+
+**Recruitment failure is inherent to the exploitation system, not a modern
+deviation** — and it is universally omitted from "sustainable ancient
+agroforestry" framings, including the one we would have written.
+
+⚠️ **Two systems are category errors as "food forests" — do not use them.**
+**Kuk Swamp** is wetland drainage horticulture in **open plots**, in a landscape
+its people progressively **deforested** (dense montane forest pre-25,000 BP →
+only isolated pockets by ~2,500 BP). **The Negev** is runoff-irrigated arable in
+terraced wadi plots, with vineyards and orchards in *separate* plots and
+per-tree microcatchments — a hydraulic geometry of **separation**, the opposite
+of a polyculture guild. Both are impressive; neither is agroforestry. (The
+"Negev agroforestry" idea appears to enter permaculture writing via a **modern**
+Ben-Gurion University intercropping experiment at Wadi Mashash, post-2018.)
 
 ### The honest counter-case — which is now load-bearing
 
@@ -1104,7 +1327,44 @@ checking:
   products".** All unsourced or internally inconsistent. **Do not use.**
 - **Any framing that presents growing national home-garden area as evidence
   Kandyan gardens are thriving.** Area is up; structure is fragmenting. Both are
-  true and the essay must say both.
+  true and the essay must say both. **The same split holds for Chagga**
+  (agroforestry area doubled 1976–2022 while native-habitat species fell 46%).
+- **Armstrong et al. 2021 as the keystone.** Cite the **2023** (soils, tree
+  rings, radiocarbon) and **2024** *PNAS* (hazelnut genetics) papers instead.
+  Never repeat the press claims "deliberately planted," "never grow together in
+  the wild," or "remain productive" — the last is especially bad, since the
+  paper reports **no productivity data at all**.
+- **Kuk Swamp or the Negev as food forests.** Category errors — open-plot
+  drainage horticulture and runoff-irrigated arable respectively.
+- **"Seven layers."** A permaculture construct. Kandyan 3–5, Chagga 4, no
+  traditional system on seven. **We used it in
+  `the-forest-and-the-field`; the new essay should correct it.**
+- **Streuobst: "the EC paid a premium for every high-stem tree felled, 78
+  million DM, until 1974."** ⚠️ **Overstated — I nearly used this.** The
+  documented EU premium (Reg. 2200/97) required a **minimum density of 300
+  trees/ha**; Streuobst is defined at a **maximum of 150/ha** and typically runs
+  80–100, so these stands were **categorically ineligible**. The 78m DM figure
+  appears only in campaign material. **What is documented verbatim is far
+  better: the *Emser Beschluss* of 15 October 1953, taken in the German federal
+  food ministry — "there will be no more room for high- and half-stems.
+  Streuobst cultivation, roadside cultivation and mixed cultivation are to be
+  rejected."** A stated policy of elimination beats an unsourced subsidy.
+- **Streuobst "6,000 cultivars" and "5,000 species."** Both uncited — the 5,000
+  is described as *geschätzt* (estimated) in BfN's own 2024 report, which then
+  contradicts itself on whether fungi are included. Use the **measured** figure
+  instead, which is more impressive: **3,623 species recorded on ten
+  Streuobstwiesen in Sachsen-Anhalt, 359 of them Red-Listed.** Also: the German
+  "20 million trees 1965 → 5.8 million 2017" comparison is **unsound** —
+  incompatible survey bases.
+- **Any oasis Land Equivalent Ratio.** **None exists in the literature.** Any
+  figure in circulation is transferred from an unrelated system or fabricated.
+  The rigorous comparison (southern Tunisia, IDEA framework) finds traditional
+  oases **more agro-ecologically sustainable but economically more vulnerable**
+  than modern monoculture — *not* more productive. Popular writing inverts this.
+- **The dehesa "will be gone by 2100."** Rhetorical extrapolation; no
+  peer-reviewed projection supports a date. The age-structure evidence is strong
+  and needs no embellishment. Also: the **97% *Phytophthora* mortality figure is
+  greenhouse inoculation of one-year-old seedlings**, not standing adult trees.
 - **Kayapó apêtê as proven intentional forest islands.** Posey's claims were
   substantially challenged by Parker (1992, *American Anthropologist*). Do not
   present as established.
