@@ -90,8 +90,17 @@ describe('PLAN_PRICING — margin floors (typical usage)', () => {
     personal: 0.8,
     family: 0.8,
     team: 0.7,
+    community: 0.75,
     enterprise: 0.5
   }
+
+  // Without this, a newly priced plan with no floor compares against
+  // `undefined` and fails with an unreadable message instead of naming itself.
+  it('declares a margin floor for every priced plan', () => {
+    for (const plan of Object.keys(PLAN_PRICING) as (keyof typeof PLAN_PRICING)[]) {
+      expect(floors[plan], `no margin floor declared for plan '${plan}'`).toBeTypeOf('number')
+    }
+  })
 
   for (const [plan, scenario] of Object.entries(PLAN_PRICING) as [
     keyof typeof PLAN_PRICING,
