@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Every blog post links to its own edit history</title>
+      <link>https://xnet.fyi/changelog#2026-07-18-every-blog-post-links-to-its-own-edit-hi</link>
+      <guid isPermaLink="false">2026-07-18-every-blog-post-links-to-its-own-edit-hi</guid>
+      <pubDate>Sun, 19 Jul 2026 19:48:41 GMT</pubDate>
+      <description>Essays get revised after publication — corrections, tone passes, spelling sweeps — and a page showing only its publication date quietly implies it never changed. Each post's byline now carries a History link to the full commit history of that post's source file on GitHub, so anyone can check what was altered and when. It makes no claim that a given essay has changed; it just puts the record one click away.</description>
+    </item>
+    <item>
       <title>Bluesky sign-in now writes the identity binding</title>
       <link>https://xnet.fyi/changelog#2026-07-19-bluesky-sign-in-now-writes-the-identity-</link>
       <guid isPermaLink="false">2026-07-19-bluesky-sign-in-now-writes-the-identity-</guid>

@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-18-every-blog-post-links-to-its-own-edit-hi",
+      "url": "https://xnet.fyi/changelog#2026-07-18-every-blog-post-links-to-its-own-edit-hi",
+      "title": "Every blog post links to its own edit history",
+      "content_text": "Essays get revised after publication — corrections, tone passes, spelling sweeps — and a page showing only its publication date quietly implies it never changed. Each post's byline now carries a History link to the full commit history of that post's source file on GitHub, so anyone can check what was altered and when. It makes no claim that a given essay has changed; it just puts the record one click away.\n",
+      "date_published": "2026-07-19T19:48:41Z",
+      "tags": [
+        "platform"
+      ],
+      "_xnet": {
+        "date": "July 18, 2026",
+        "summary": "Essays get revised after publication — corrections, tone passes, spelling sweeps — and a page showing only its publication date quietly implies it never changed. Each post's byline now carries a History link to the full commit history of that post's source file on GitHub, so anyone can check what was altered and when. It makes no claim that a given essay has changed; it just puts the record one click away.",
+        "highlights": [],
+        "mergedAt": "2026-07-19T19:48:41Z",
+        "pr": 573,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-19-bluesky-sign-in-now-writes-the-identity-",
       "url": "https://xnet.fyi/changelog#2026-07-19-bluesky-sign-in-now-writes-the-identity-",
       "title": "Bluesky sign-in now writes the identity binding",
