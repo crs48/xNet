@@ -11,28 +11,28 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
     },
     "./did": {
-      "import": "./dist/did.js",
-      "types": "./dist/did.d.ts"
+      "types": "./dist/did.d.ts",
+      "import": "./dist/did.js"
     },
     "./ucan": {
-      "import": "./dist/ucan.js",
-      "types": "./dist/ucan.d.ts"
+      "types": "./dist/ucan.d.ts",
+      "import": "./dist/ucan.js"
     },
     "./key-bundle": {
-      "import": "./dist/key-bundle-entry.js",
-      "types": "./dist/key-bundle-entry.d.ts"
+      "types": "./dist/key-bundle-entry.d.ts",
+      "import": "./dist/key-bundle-entry.js"
     },
     "./passkey": {
-      "import": "./dist/passkey/index.js",
-      "types": "./dist/passkey/index.d.ts"
+      "types": "./dist/passkey/index.d.ts",
+      "import": "./dist/passkey/index.js"
     },
     "./legacy": {
-      "import": "./dist/legacy.js",
-      "types": "./dist/legacy.d.ts"
+      "types": "./dist/legacy.d.ts",
+      "import": "./dist/legacy.js"
     }
   },
   "files": [

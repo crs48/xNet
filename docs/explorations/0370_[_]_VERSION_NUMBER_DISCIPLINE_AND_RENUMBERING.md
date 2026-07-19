@@ -800,46 +800,106 @@ stateDiagram-v2
   independents (`runtime` 0.5.5, `cli` 0.3.1). `check-publish-closure.mjs`
   guards the dependency closure but not version-range satisfiability.
 
+## Implementation Status
+
+**Phases 1–4 landed.** Phases 5–6 are deliberately open: they are time-based
+(a six-week measurement) or external (emailing a stranger, contacting npm
+support), and a judgement call (C2) that belongs to the maintainer.
+
+**What shipped:**
+
+- `STABILITY.md`, linked from README and `CONTRIBUTING.md#versioning`
+- Swift protocol drift `3` → `4` fixed, plus `protocol-version-parity.test.ts`
+  covering Rust and Swift (verified: it fails on the original drift)
+- `schema-check.yml` deleted — it could never fail
+- `PROTOCOL_SENTINELS` in the Stop hook (verified: blocks patch/minor on a
+  protocol constant, passes on major, no false positive on an unrelated edit)
+- api-extractor on react/core/data/sync, reports committed and CODEOWNERS-gated,
+  drift gate in CI
+- `publint` over all 19 publishable packages
+
+**Two real bugs surfaced by the new gates, both shipped-and-broken beforehand:**
+
+1. `types` was ordered *after* `import` in **48 export subpaths across 19
+   packages**. Export conditions are order-sensitive, so TypeScript could
+   mis-resolve types for every published package.
+2. `@xnetjs/data` advertised a `./portability` subpath that was never added to
+   its build — `@xnetjs/data/portability`, the `.xnetpack` codec that
+   `STABILITY.md` tells users to back up with, **did not resolve at all**.
+
+**Corrections made to this document's own plan while implementing:**
+
+- **`HubConnection.swift`'s `protocolVersion: 1` was correct and was left
+  alone.** It is the *hub WebSocket handshake* version (`hubProtocolVersion = 1`),
+  a different number sharing a field name. "Fixing" it to 4 would have caused a
+  spurious `version-mismatch`. Documented in place.
+- **Removing `hub`/`editor` from the changeset `ignore` list would be a no-op** —
+  both are `private: true`, so they are already outside the hook. Neither is on
+  npm, so there is no semver bump to demand. Recorded as a known gap instead.
+- **`LWW_TIEBREAK_KEY_VERSION` must not be collapsed into
+  `CURRENT_PROTOCOL_VERSION`.** They share the value 4 today but mean different
+  things — the LWW constant records the version the tiebreak *activated at*, and
+  stays pinned when the format moves on. The parity test asserts
+  `LWW <= CURRENT`, not equality.
+- **`api-extractor run` alone cannot gate.** It reports a changed signature as a
+  *warning* and exits 0 — the exact "gate that can't fail" this document
+  criticises. The gate runs `--local` and uses `git status` (not `git diff`,
+  which ignores untracked files) as the assertion.
+
+**One validation deliberately left failing — "deleting an `@internal` export
+does not trip the gate."** It *does* trip it. api-extractor treats untagged
+exports as `@public`, and we tagged 5 symbols out of ~372, so the reports are
+currently a **change-visibility** gate rather than a tiering gate. That is real
+value on its own — a removed export can no longer land silently — but it is not
+the scoped promise the recommendation describes. `STABILITY.md` states this
+plainly rather than implying the surface is already narrow. Completing the
+tagging sweep is the follow-on work, and it is the prerequisite for the Phase 5
+measurement.
+
+**Also unresolved:** `useXNet` is tagged `@internal ... Not part of public API`
+in source but listed as **stable root contract** in `packages/react/README.md`.
+Left untouched — that contradiction is a maintainer decision, not a cleanup.
+
 ## Implementation Checklist
 
 **Phase 1 — say what we mean (cheap, no code)**
 
-- [ ] Write `STABILITY.md` at the repo root, using the §Example Code sketch
-- [ ] Link it from the README alpha callout (added in #571) and from
+- [x] Write `STABILITY.md` at the repo root, using the §Example Code sketch
+- [x] Link it from the README alpha callout (added in #571) and from
       `site/src/content/docs/docs/introduction.mdx`
-- [ ] Add a `## Versioning` section to `CONTRIBUTING.md` pointing at it
-- [ ] State explicitly that `2.x` is not a maturity claim and why it can't be lowered
+- [x] Add a `## Versioning` section to `CONTRIBUTING.md` pointing at it
+- [x] State explicitly that `2.x` is not a maturity claim and why it can't be lowered
 
 **Phase 2 — fix what is already broken**
 
-- [ ] Fix the Swift protocol-version drift (`3` → `4`) in
+- [x] Fix the Swift protocol-version drift (`3` → `4`) in
       `swift/XNetKit/Sources/XNetKit/Change.swift:40` and the two doc comments
-- [ ] Add `protocol-version-parity.test.ts` (§Example Code) to CI
-- [ ] Reconcile `swift/.../HubConnection.swift:114`, which sends
+- [x] Add `protocol-version-parity.test.ts` (§Example Code) to CI
+- [x] Reconcile `swift/.../HubConnection.swift:114`, which sends
       `"protocolVersion": 1` in the handshake
-- [ ] Delete `.github/workflows/schema-check.yml` (or implement
+- [x] Delete `.github/workflows/schema-check.yml` (or implement
       `xnet schema extract` and make it decidable) — do not leave it stubbed
-- [ ] Collapse the three `LWW_TIEBREAK_KEY_VERSION` literals to one generated
+- [x] Collapse the three `LWW_TIEBREAK_KEY_VERSION` literals to one generated
       source of truth where the language boundary allows
 
 **Phase 3 — scope the promise**
 
-- [ ] Add `@microsoft/api-extractor` to `@xnetjs/react` first (its README
+- [x] Add `@microsoft/api-extractor` to `@xnetjs/react` first (its README
       already describes the stable/experimental/internal split)
-- [ ] Tag the root contract `@public`; tag `/database`, `/experimental` `@beta`;
+- [x] Tag the root contract `@public`; tag `/database`, `/experimental` `@beta`;
       tag `/internal` `@internal`
-- [ ] Commit `packages/react/etc/react.api.md`; fail CI on mismatch
-- [ ] Add `CODEOWNERS` on `packages/*/etc/` so report changes need a named reviewer
-- [ ] Roll out to `@xnetjs/core`, `@xnetjs/data`, `@xnetjs/sync` (the
+- [x] Commit `packages/react/etc/react.api.md`; fail CI on mismatch
+- [x] Add `CODEOWNERS` on `packages/*/etc/` so report changes need a named reviewer
+- [x] Roll out to `@xnetjs/core`, `@xnetjs/data`, `@xnetjs/sync` (the
       protocol-bearing three) before the rest of the fixed group
-- [ ] Add `attw` + `publint` to the release lane
+- [x] Add `attw` + `publint` to the release lane
 
 **Phase 4 — tighten the bump gate**
 
-- [ ] Add `PROTOCOL_SENTINELS` to `assert-coverage.mjs` (§Example Code)
-- [ ] Remove `@xnetjs/hub` and `@xnetjs/editor` from `.changeset/config.json`
+- [x] Add `PROTOCOL_SENTINELS` to `assert-coverage.mjs` (§Example Code)
+- [x] Remove `@xnetjs/hub` and `@xnetjs/editor` from `.changeset/config.json`
       `ignore`, or document why a wire-visible package needs no release intent
-- [ ] Extend the `ai-generate.mjs` bump prompt to cite the sentinel list
+- [x] Extend the `ai-generate.mjs` bump prompt to cite the sentinel list
 - [ ] Decide C2: ship `3.0.0` as an explicit stability re-declaration, or not
 
 **Phase 5 — measure, then choose the channel**
@@ -867,19 +927,19 @@ stateDiagram-v2
 
 ## Validation Checklist
 
-- [ ] `STABILITY.md` exists and answers "can I build on this?" in under a minute
-- [ ] A reader landing on npm sees the alpha notice (README banner, shipped #571)
+- [x] `STABILITY.md` exists and answers "can I build on this?" in under a minute
+- [x] A reader landing on npm sees the alpha notice (README banner, shipped #571)
       and can reach `STABILITY.md` in one click
-- [ ] `pnpm test` fails if any language's protocol-version literal is edited alone
-- [ ] Deliberately editing `CURRENT_PROTOCOL_VERSION` with a `patch` changeset
+- [x] `pnpm test` fails if any language's protocol-version literal is edited alone
+- [x] Deliberately editing `CURRENT_PROTOCOL_VERSION` with a `patch` changeset
       is **blocked** by the Stop hook
-- [ ] Deliberately deleting a `@public` export produces a failing CI check
+- [x] Deliberately deleting a `@public` export produces a failing CI check
       (stale `.api.md`) rather than a silent green
 - [ ] Deliberately deleting an `@internal` export does **not** trip the gate
       (the tiering is doing real work, not just adding friction)
-- [ ] `schema-check.yml` either reports a real number on a seeded breaking
+- [x] `schema-check.yml` either reports a real number on a seeded breaking
       change, or no longer exists
-- [ ] No workflow reports a hardcoded `breakingChanges: 0`
+- [x] No workflow reports a hardcoded `breakingChanges: 0`
 - [ ] `.changeset/` backlog is under 5 files and the release PR is <7 days old
       (the 0265 stall litmus)
 - [ ] Someone who is not the author can read a `.api.md` diff and say what tier

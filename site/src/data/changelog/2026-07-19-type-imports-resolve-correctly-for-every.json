@@ -1,0 +1,19 @@
+{
+  "id": "2026-07-19-type-imports-resolve-correctly-for-every",
+  "date": "July 19, 2026",
+  "title": "Type imports resolve correctly for every xNet package",
+  "summary": "Fixed export maps so TypeScript resolves types reliably, and shipped the .xnetpack codec that was advertised but never built.",
+  "highlights": [
+    "@xnetjs/data/portability now actually resolves — the .xnetpack export/import codec was declared in the package but missing from the build"
+  ],
+  "tags": [
+    "platform"
+  ],
+  "pr": 587,
+  "mergedAt": "2026-07-19T17:55:41Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
+}

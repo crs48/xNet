@@ -68,7 +68,7 @@ public enum XNetKernel {
 
     /// The content id of an unsigned change: "cid:blake3:" + hex(BLAKE3(canonical)).
     /// Legacy changes (protocolVersion 0/absent) drop the field before hashing;
-    /// xnet/1.0 (protocolVersion 3) keeps it. [L1 §6]
+    /// xnet/1.0 (protocolVersion 4) keeps it. [L1 §6]
     public static func changeHash(_ unsignedChange: [String: Any]) -> String {
         var toHash = unsignedChange
         if let pv = toHash["protocolVersion"] as? NSNumber, pv.int64Value == 0 {
