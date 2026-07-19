@@ -367,7 +367,37 @@ Nothing about the architecture changed. The pricing did.
 > **a single default namespace** is portable in theory and captive in
 > practice.
 
-Two consequences for us, and they are not optional garnish:
+**And npm — the ✅ exemplar above — is itself a chokepoint in three distinct
+ways.** Holding it up as a clean model without this caveat would be dishonest:
+
+1. **Operator discretion over names and content.** npm reassigned the `kik`
+   package name to a trademark claimant *without the author's permission*
+   ([npm's own postmortem](https://blog.npmjs.org/post/141577284765/kik-left-pad-and-npm.html));
+   it reverted `colors`/`faker` to prior versions after their author sabotaged
+   his own code; it seized `event-stream` outright. The governing standard in
+   the terms is *"deem unacceptable"* and *"reasonably believes"* — and npm has
+   since **deleted its published dispute-resolution process** from its docs.
+2. **The operator is the sole remediator.** The `ua-parser-js` maintainer,
+   whose account was hijacked, could not unpublish his own compromised
+   versions — *"I have sent a message to NPM support since I can't seem to
+   unpublish."* In 2018 npm revoked **every access token issued before a given
+   timestamp**, globally, in one action. The party that can save you is the
+   party that can silence you.
+3. **Jurisdictional capture, which is the one we cannot design around by
+   goodwill.** GitHub's OFAC position gated Iranian developers for ~17 months
+   and Syrian developers for ~6 years — and during it, trade-restricted users
+   could neither export **nor delete** their own private content:
+   *"our understanding of the law does not give us the option to allow
+   downloads or deletion."*
+
+That third one is the sharpest warning available for a company whose Charter
+promises free exit. **A hosted index inherits the jurisdiction of whoever runs
+it, and sanctions compliance can turn the host into a party that will neither
+release nor destroy your data on request.** Our architecture is the answer —
+the bundle lives on the user's device and is self-contained, so exit does not
+route through us — but it only holds if the *index* is genuinely optional.
+
+Four consequences for us, and they are not optional garnish:
 
 1. **Default-position rent is a form of rent.** 0358's Moat Register refuses
    tolls; being the hardcoded default and then changing terms is a toll
@@ -378,6 +408,15 @@ Two consequences for us, and they are not optional garnish:
    commitment — not a promise. This is exactly the Red-Hat-shaped temptation
    0358 warned about, and it will arrive dressed as spam-fighting or
    cost-control.
+3. **We must never hold name-reassignment power over a published artifact.**
+   Because a fork's identity is its content hash and author DID rather than a
+   row we own, we structurally *cannot* do what npm did to `kik` — provided we
+   never introduce a mutable central name mapping that we adjudicate. Resist
+   that; it will be requested for good reasons.
+4. **Ship the self-hostable index on day one, not "later."** An index that is
+   theoretically mirrorable but practically singular is Docker Hub. The
+   reproducibility gate belongs in CI from the first commit, and someone other
+   than us should be running a mirror before we call the property real.
 
 ### What makes people feel good about paying
 
@@ -422,12 +461,102 @@ sales-call-required pricing, and surprise bills** are what make paying feel
 bad. 0358's Charter already refuses the first; the free tier is where we are
 currently failing the spirit of the rest.
 
+### What the rigorous evidence actually says — and one correction to this document
+
+Most "activation" folklore does not survive checking. The canonical metrics —
+Facebook's "7 friends in 10 days," Dropbox's "one file in one folder,"
+Twitter's "30 follows" — all trace to **one blog post summarising four talks
+at one 2012 conference**
+([Richard Price](https://richardprice.io/post/34652740246/growth-hacking-leading-indicators-of-engaged)),
+with no data or methodology behind any of them. Facebook's own VP of Growth
+states a *different* number ("10 friends in 14 days"), and Alex Schultz is
+explicit that causation was never established. Slack's "2,000 messages" is the
+one that holds up as a first-person CEO claim
+([First Round, 2015](https://review.firstround.com/from-0-to-1b-slacks-founder-shares-their-epic-launch-strategy/)),
+and even that is a *selection* signal, not a causal lever. **There are no
+credible published time-to-value benchmarks for developer tools.** Set targets
+from our own instrumentation and say so.
+
+Two findings from the peer-reviewed literature do hold, and one of them
+corrects the framing of Phase 0:
+
+**⚠️ Cognitive load beats speed.** The only empirical test of the DevEx model
+(Forsgren, Kalliamvakou, Noda, Greiler, Houck & Storey, *ACM Queue* 21(6),
+2023, n=219, PLS-SEM) found **cognitive load significant across all three
+outcome levels** (0.422\*\*\* for team outcomes) while **feedback loops — the
+dimension most resembling "time to first value" — failed to reach
+significance** for developer and organisational outcomes
+([DevEx in Action](https://www.michaelagreiler.com/wp-content/uploads/2024/06/DevEx-in-Action.pdf)).
+
+That does not excuse a 17-second cold open — that is an outlier, not a tuning
+question. But it does mean **Phase 0's larger prize is the claim flow, not the
+milliseconds.** Our onboarding asks a new user to hold *two identities, three
+origins and eight steps* in their head. That is a cognitive-load problem
+wearing a speed problem's clothes, and the evidence says it is the more
+valuable of the two to fix. Fly.io reached the same conclusion empirically
+when rewriting `fly launch`: **decision paralysis, not technical difficulty,
+was the activation blocker.**
+
+**Examples are the highest-confidence intervention available — and this is the
+strongest argument for the Fork.** Two independent studies, sixteen years
+apart, different populations, different methods, same answer:
+
+- Robillard, ["What Makes APIs Hard to Learn?"](https://www.cs.mcgill.ca/~martin/papers/software2009a.pdf)
+  *IEEE Software* 26(6), 2009 — survey of Microsoft developers (n=83):
+  **resources, not API structure, topped the obstacle list**, and the largest
+  subcategory was **insufficient/inadequate examples**.
+- [SlashData Developer Nation, 29th wave](https://www.developernation.net/developer-reports/dn29/)
+  (>11,000 developers, 126 countries, 2024–25): the single biggest onboarding
+  obstacle is **"lack of examples tailored to skill level" (16.3%)**;
+  documentation (39.3%) and sample projects (28.9%) top the most-valuable list.
+
+> **A forkable public artifact *is* an example — a working one, with real data,
+> that you can run and modify rather than read.** The Fork is not only the
+> compounding network-effect play; it is also the highest-evidence answer to
+> the best-documented onboarding obstacle in the literature. Those two
+> arguments are independent and they point at the same build.
+
 ### The strongest objection: delight wins adoption, something else wins retention
 
 This is the argument that most threatens the recommendation, and it deserves a
 direct answer rather than a footnote.
 
-**The evidence for it is real.** Netlify shipped deploy previews on
+**The theory says so first.** Hamilton Helmer's *7 Powers* defines Power as
+requiring **both a Benefit and a Barrier** — the Barrier being why a competitor
+who watches you succeed still cannot copy you. The seven are Scale Economies,
+Network Economies, Counter-Positioning, Switching Costs, Branding, Cornered
+Resource, Process Power. **"Great UX" is not on the list, and that is the
+framework working correctly: delight is pure Benefit with no Barrier.** It
+becomes Power only indirectly — by congealing into Branding over years, or by
+driving adoption that produces Network Economies. In both cases the moat is
+the thing delight *produced*, not the delight.
+
+Three empirical scissors sharpen the point:
+
+- **Admiration and adoption are close to orthogonal.** Stack Overflow 2024–25:
+  **Cargo is 83% admired and 16% used**; VS Code holds ~76% usage while its own
+  users name Neovim as the tool they most want to try next
+  ([2025](https://survey.stackoverflow.co/2025/technology)). Being loved is not
+  being chosen. ⚠️ "Admired" means *used it and want to continue* — stated
+  preference among current users, not switching behaviour.
+- **Delight monetises at about 2%.** Dropbox's S-1: "over 500 million
+  registered users but only 11 million paying users" — **2.2%**. Eight years
+  later (FY2025 10-K): 700M registered, **18.08M paying (2.6%)**, and revenue
+  **down 1.1%** with paying users in outright decline. Dropbox is not dead —
+  it is a profitable ~$2.5B business — but the beloved-UX leader converted ~2%
+  of that love into revenue and then stopped compounding once the same
+  capability was bundled toward zero by firms selling something else. Its own
+  filings name the mechanism: competitors who "bundle and offer a broader
+  range of products and services."
+- **Retention comes from multiplayer structure, not from polish.** OpenView's
+  benchmarks put single-player retention at **40–60%** against team-based
+  products at **~80%**, with team products reaching 150%+ net retention. That
+  delta is a network/switching-cost effect — exactly what Helmer's taxonomy
+  predicts, and a direct argument for prioritising shared surfaces (the Fork,
+  the Living Link) over single-player refinement. ⚠️ Self-reported survey data
+  from self-selected PLG founders; treat as directional.
+
+**And the product evidence agrees.** Netlify shipped deploy previews on
 **20 July 2016**; Zeit/Vercel shipped the GitHub equivalent on
 **26 June 2018** — Netlify was ~2 years earlier and *lost the narrative
 anyway*. Vercel's preview mechanic was cloned by Netlify, Cloudflare Pages,
@@ -447,12 +576,18 @@ lock-in is wrong.
 
 1. **Lock-in did not save Heroku either.** It had genuine switching costs —
    proprietary buildpacks, addons, the dyno model — and they converted into
-   *resentment*, not retention. Users who feel trapped leave at the first
+   *resentment*, not retention. The arc is now complete: on **9 February 2026**
+   Salesforce moved Heroku to **"sustaining engineering"** — no new features,
+   no new Enterprise contracts — to redirect investment to AI
+   ([The Register](https://www.theregister.com/2026/02/09/heroku_freeze/)).
+   Fifteen years from acquisition to maintenance mode, and user affection never
+   once appeared in the owner's decision function. Users who feel trapped leave at the first
    forced migration, and they leave loudly. Lock-in retains only while the
    product is also good; when it stops being good, lock-in **accelerates** the
    exit. That is the empirical case that the thing we refused was worth less
    than it looks.
-2. **Our retention layer is operated trust, and it is a slope not a cliff**
+2. **Our retention layer is operated trust *plus multiplayer*, and both are
+   slopes not cliffs**
    (0358). Backups that verifiably restore, uptime, support, and someone on
    the hook at 3am are not copyable by open-sourcing our feature set — they
    are re-earned monthly, which is precisely why they don't produce the Gates
@@ -511,23 +646,29 @@ Two lessons, both uncomfortable:
    (2 Nov 2020) proves an open format does **not** prevent chokepoint
    behaviour when you are the hardcoded default. **Default-position rent is
    rent**, and governance rather than architecture is what precludes it.
-8. **Delight wins adoption; historically lock-in won retention** — Netlify
+8. **Cognitive load beats speed, and examples beat both.** The one empirical
+   test of DevEx found feedback loops non-significant while cognitive load
+   predicted every outcome; and "insufficient examples" is the #1 onboarding
+   obstacle in two independent studies 16 years apart. **This is independent
+   evidence for the Fork** — a forkable artifact is a runnable example — and it
+   reframes Phase 0's claim-flow work as load reduction, not just latency.
+9. **Delight wins adoption; historically lock-in won retention** — Netlify
    shipped previews first and lost the narrative; Vercel was retained by
    Next.js, GitHub by the captive graph. We must answer this with **operated
    trust** rather than pretending delight substitutes. Heroku is the evidence
    that the refused layer was worth less than it looks: its lock-in produced
    resentment, not retention.
-9. **Paying feels good when the paid thing is genuinely optional**, the books
+10. **Paying feels good when the paid thing is genuinely optional**, the books
    are public, there is a patronage instrument with no feature attached, and
    the free tier *widens* over time (Obsidian, Ghost, Tailscale Apr 2026).
-10. **Delight is a flow, not a stock** (Heroku). It must be continuously
+11. **Delight is a flow, not a stock** (Heroku). It must be continuously
     re-earned — which is exactly 0358's "improvement slope," and the reason
     this is a sustainable position rather than a one-time win.
-11. **We are charging to fix a defect.** `team`'s differentiator is
+12. **We are charging to fix a defect.** `team`'s differentiator is
     `dedicated-warm` — i.e. "no cold start" — while `personal`/`family` sleep.
     Selling the absence of a bug is the clearest Charter-adjacent smell in the
     current ladder.
-12. **`/open` is publishing sample data as fact.** This is a live honesty
+13. **`/open` is publishing sample data as fact.** This is a live honesty
     violation on the page whose entire premise is honesty.
 
 ## Options And Tradeoffs
@@ -659,6 +800,9 @@ Two targets, both measurable:
 - **Signed-in to data on screen: < 60s, zero pasted URLs, zero reloads.**
   Wire `cloud-claim.ts` into first-run, register the `xnet://` handler, and
   **delete the raw `wss://` text box** from Settings as the primary path.
+  Optimise for **decisions removed, not seconds saved** — the evidence says
+  cognitive load is the higher-value target, and the current flow asks the user
+  to reason about two identities across three origins.
 
 Also in Phase 0, because they are honesty debts rather than features:
 
@@ -816,6 +960,10 @@ And the honesty gate that keeps the index on the improvement slope:
   real fleet because the fleet has never run.
 - **Delight decays** (Heroku). Whatever we ship must have a named owner and a
   recurring measurement, or it becomes a migration source in three years.
+- **There are no credible external activation or TTFV benchmarks to target.**
+  The widely-cited ones are folklore (see External Research). Our numbers must
+  come from our own instrumentation, and the doc should not import a borrowed
+  target to look rigorous.
 - **Unverified / do not assert.** Tailscale "under two minutes" (the real
   quote is "a mesh network in two minutes!" from a 2020 engineering post);
   Obsidian's ARR (estimates span $2M–$25M); Figma S-1 figures were read via a
@@ -853,7 +1001,12 @@ And the honesty gate that keeps the index on the improvement slope:
 - [ ] Build the discovery crawler over public bundles; publish a **signed,
       downloadable index artifact**.
 - [ ] `scripts/check-index-reproducible.mjs` — CI gate proving an independent
-      crawl yields an equivalent index.
+      crawl yields an equivalent index. **Land this with the first index
+      commit, not after** — an index that is theoretically mirrorable but
+      practically singular is Docker Hub.
+- [ ] Get a third party running a mirror before claiming the property is real.
+- [ ] Confirm no mutable central name mapping exists that we could later be
+      asked to adjudicate (npm's `kik` failure mode).
 - [ ] Document "run your own index" in `site/src/content/docs`.
 - [ ] Seed the commons: publish first-party templates and our own explorations
       as forkable spaces.
@@ -934,6 +1087,16 @@ And the honesty gate that keeps the index on the improvement slope:
 
 **Portable vs captive network effects**
 - [Docker Hub pull limits](https://docs.docker.com/docker-hub/usage/pulls/) · [AWS advisory](https://aws.amazon.com/blogs/containers/advice-for-customers-dealing-with-docker-hub-rate-limits-and-a-coming-soon-announcement/) · [Red Hat advisory](https://www.redhat.com/en/blog/mitigate-impact-of-docker-hub-pull-request-limits) — **2 Nov 2020: open format, still a chokepoint, because we were the default**
+- [npm — kik, left-pad, and npm](https://blog.npmjs.org/post/141577284765/kik-left-pad-and-npm.html) — the registry reassigned a package name without the author's permission
+- [ua-parser-js advisory GHSA-pjwm-rvh2-c87w](https://github.com/advisories/GHSA-pjwm-rvh2-c87w) + [maintainer thread](https://github.com/faisalman/ua-parser-js/issues/536) — the owner **could not unpublish his own compromised versions**
+- [GitHub and trade controls](https://docs.github.com/en/site-policy/other-site-policies/github-and-trade-controls) — sanctioned users can neither export **nor delete** their private content; [Iran restored Jan 2021](https://github.blog/news-insights/policy-news-and-insights/advancing-developer-freedom-github-is-fully-available-in-iran/) after ~17 months, [Syria Sept 2025](https://github.blog/company/github-is-enabling-broader-access-for-developers-in-syria-following-new-government-trade-rules/) after ~6 years
+
+**The counter-case: delight is not a moat**
+- Hamilton Helmer, *7 Powers* — Power needs **both a Benefit and a Barrier**; "great UX" is not one of the seven
+- [Dropbox S-1 (2018)](https://www.sec.gov/Archives/edgar/data/1467623/000119312518055809/d451946ds1.htm) — 500M registered / 11M paying (**2.2%**); [FY2025 10-K](https://www.sec.gov/Archives/edgar/data/1467623/000146762326000008/dbx-20251231.htm) — 700M / 18.08M (2.6%), revenue **−1.1%**
+- [Stack Overflow 2025](https://survey.stackoverflow.co/2025/technology) — Cargo 83% admired / 16% used; admiration and adoption are near-orthogonal
+- [Heroku moved to "sustaining engineering", 9 Feb 2026](https://www.theregister.com/2026/02/09/heroku_freeze/) — fifteen years from acquisition to maintenance mode
+- [EC decision on Microsoft Teams bundling, 12 Sep 2025](https://ec.europa.eu/commission/presscorner/detail/en/ip_25_2048) — a regulator finding distribution advantaged a product independently of merit
 
 **Paying when free exists**
 - [Obsidian pricing](https://obsidian.md/pricing) — free app; **Catalyst is $25 one-time unlocking no features**; commercial licence became **optional Feb 2025**
