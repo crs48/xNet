@@ -6,6 +6,7 @@
  */
 
 export { PageSchema, type Page } from './page'
+export { PublicationSchema, type Publication } from './publication'
 export {
   FOLDER_SCHEMA_IRI,
   FolderSchema,
@@ -538,6 +539,8 @@ export {
 export const builtInSchemas = {
   // Versioned IRIs (canonical)
   'xnet://xnet.fyi/Page@1.0.0': () => import('./page').then((m) => m.PageSchema),
+  'xnet://xnet.fyi/Publication@1.0.0': () =>
+    import('./publication').then((m) => m.PublicationSchema),
   'xnet://xnet.fyi/Folder@1.0.0': () => import('./folder').then((m) => m.FolderSchema),
   'xnet://xnet.fyi/Tag@1.0.0': () => import('./tag').then((m) => m.TagSchema),
   'xnet://xnet.fyi/Database@2.0.0': () => import('./database').then((m) => m.DatabaseSchema),
@@ -673,6 +676,7 @@ export const builtInSchemas = {
 
   // Legacy unversioned IRIs (aliases for the current version)
   'xnet://xnet.fyi/Page': () => import('./page').then((m) => m.PageSchema),
+  'xnet://xnet.fyi/Publication': () => import('./publication').then((m) => m.PublicationSchema),
   'xnet://xnet.fyi/Folder': () => import('./folder').then((m) => m.FolderSchema),
   'xnet://xnet.fyi/Tag': () => import('./tag').then((m) => m.TagSchema),
   'xnet://xnet.fyi/Database': () => import('./database').then((m) => m.DatabaseSchema),

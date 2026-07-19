@@ -112,6 +112,7 @@ export {
 
 // Built-in schemas
 export { PageSchema, type Page } from './schemas'
+export { PublicationSchema, type Publication } from './schemas'
 export {
   FOLDER_SCHEMA_IRI,
   FolderSchema,
