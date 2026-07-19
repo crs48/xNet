@@ -1,0 +1,577 @@
+---
+import Base from '../../layouts/Base.astro'
+import Nav from '../../components/sections/Nav.astro'
+import Footer from '../../components/sections/Footer.astro'
+import SeriesNav from '../../components/blog/SeriesNav.astro'
+import HarvestHero from '../../components/blog/HarvestHero.astro'
+import Byline from '../../components/blog/Byline.astro'
+import HarvestArt from '../../components/blog/HarvestArt.astro'
+import HonestHarvest from '../../components/blog/HonestHarvest.astro'
+import Mermaid from '../../components/blog/Mermaid.astro'
+import { postBySlug, formatPostDate } from '../../data/blog'
+
+const post = postBySlug('the-harvest-you-can-count')!
+---
+
+<Base title={`${post.title} — xNet`} description={post.description}>
+  <Nav />
+
+  <main>
+    <HarvestHero
+      title={post.title}
+      deck={post.description}
+      date={formatPostDate(post.pubDate)}
+      readingMinutes={post.readingMinutes}
+      tags={post.tags}
+    />
+
+    <article
+      class="prose prose-lg mx-auto max-w-3xl px-6 py-16 dark:prose-invert prose-headings:tracking-tight prose-a:text-amber-600 dark:prose-a:text-amber-400"
+    >
+      <Byline post={post} />
+
+      <h2>The video I’m not going to link</h2>
+      <p>
+        It arrived the way these things do. A video, confidently narrated, titled
+        <em>Why They Erased Every Unlimited Food Forest On Earth</em>. The claim: layered,
+        perennial, self-feeding food systems once covered the inhabited world, and somebody took
+        them away from us.
+      </p>
+      <p>
+        I’m not going to link it, and you can probably guess why from its siblings. The same
+        content pattern has produced <em>The Unlimited Food Forests They Erased From Every City On
+        Earth</em>, and — the tell — <em>Tartaria Had Trees That Grew Infinite Food, Then They
+        Burned Them All</em>. This is a content farm working a well-worn conspiracy seam, much of
+        it machine-made, and sending it traffic would be the least useful thing I could do today.
+      </p>
+      <p>
+        There’s a smaller tell in the title itself. <strong>Unlimited</strong> is not a thing a
+        harvested system can be. Every crop you carry out of a plot is an export of minerals.
+        Nitrogen you can close biologically, with legumes; phosphorus and potassium you cannot,
+        because the phosphorus cycle runs one way — mined from rock, ending in marine sediment.
+        A food forest can be remarkably low-input and very long-lived. It cannot be a closed loop
+        you keep taking food out of. Anyone promising you otherwise has stopped doing arithmetic.
+      </p>
+      <p>
+        And yet. Underneath the nonsense is a real object, and it is more interesting than the
+        conspiracy. Layered perennial food systems did exist on every inhabited continent. Most of
+        them did lose. <strong>They did not lose to a better design. They lost to a better
+        ledger</strong> — and the honest version of that story cost me, over about a week, my
+        opening thesis and three of my favourite facts.
+      </p>
+
+      <h2>The gardens that are still there</h2>
+      <p>
+        Start with the easy part, because it disposes of the word <em>every</em>.
+      </p>
+      <p>
+        Chagga home gardens on the slopes of Kilimanjaro are working right now: multistorey plots
+        of a fraction of a hectare, carrying on the order of a hundred cultivated species between
+        them, with timber over bananas over coffee over taro and beans. Sri Lankan home gardens
+        were measured by satellite in 1992 at 818,394 hectares — 14.3 per cent of the surveyed
+        land — and supply more than half the country’s timber and eighty per cent of its fuelwood.
+        (You will see a larger figure for 2005 in circulation. It appears to be the 1992
+        measurement compounded forward at a policy document’s <em>assumed</em> one per cent a
+        year, which makes it evidence of an assumption rather than of growth. This will keep
+        happening.) Javanese <em>pekarangan</em>, the garden that wraps the house, went from 378,000
+        hectares in 1903 to over 1.6 million by 1986. None of these was erased. You can go and
+        stand in them.
+      </p>
+      <p>
+        Then there are the ones whose gardeners were removed. In coastal British Columbia,
+        ethnobotanists working with Ts’msyen and Coast Salish communities have documented forest
+        gardens at old village sites — hazelnut, crabapple, hawthorn, wild rose — that still carry
+        markedly more plant diversity than the forest around them, more than a century and a half
+        after the villages were emptied and the people confined to reserves. The strongest version
+        of that evidence isn’t the famous 2021 vegetation survey, which is thinner than its press
+        coverage and reports no productivity data at all despite what several outlets wrote. It’s
+        the later work: soils, tree rings, radiocarbon, and a 2024 genetics paper showing the
+        hazelnuts at these sites are genetically distinct from wild populations. Somebody moved
+        those trees.
+      </p>
+      <p>
+        <strong>This is the fact that answers the video, and it answers it better than any
+        rebuttal.</strong> Nobody burned these gardens. Their gardeners were taken away from them —
+        which was a real harm done to real people, not a lost aesthetic — and the gardens went on
+        producing without anyone for a hundred and fifty years.
+      </p>
+      <p>
+        There’s a lesson buried in which of these claims settled and which didn’t, and it’s the
+        essay’s own thesis pointed back at its evidence. The Indigenous land-management arguments
+        that stopped being controversial are the ones <strong>with an artefact in them</strong>:
+        clam-garden rock walls, which cannot form naturally and can be dated (the oldest run past
+        3,500 years, and a tagged-juvenile transplant experiment showed clams growing 1.7 times
+        faster inside them); the geometry and radiocarbon of Bolivian forest islands; hazelnut
+        population genetics. The Kayapó forest islands of the Amazon, argued over since the 1980s
+        on the strength of vegetation pattern and informant testimony, are contested to this day —
+        because in thirty years nobody has put a trowel or a radiocarbon date into one.
+        Measurable objects settle things. Patterns don’t.
+      </p>
+
+      <h2>Two numbers I had to give up</h2>
+      <p>
+        Here is where I have to hand something back, and I’d rather do it early.
+      </p>
+      <p>
+        The story I wanted to open with was the two-thousand-year-old food forest in the Moroccan
+        Atlas — sixty-five acres, eight hundred families, date palms over figs over pomegranates,
+        farmed continuously since before Christ. It’s a wonderful image and it is repeated
+        everywhere. It traces to a single practitioner’s visit in 1975. There is no dating study.
+        There is no named expert behind the “experts believe” that carries the date. The village’s
+        name changes between retellings — Inraren, Tamzargot, Aït Mansour — which is the classic
+        signature of something passed hand to hand rather than measured.
+      </p>
+      <p>
+        What does exist is better. Dendrochronologists working on the agroforestry parks of Azilal
+        read stump regrowth from long-rotation coppicing and traced the structure of those parks
+        back <strong>at least five hundred years</strong>. And in their study commune, the count of
+        isolated trees <em>rose</em> across the twentieth century — from 425 in 1919 to 537 in 2008.
+        A smaller number, actually measured, describing a system that was growing.
+      </p>
+      <p>
+        Then the same thing happened again. The Kandyan forest gardens of Sri Lanka are routinely
+        described as two and a half thousand years old. That figure appears to originate in a
+        single uncited sentence in an FAO document — “in chronicles there are references,” with no
+        chronicle named — and it has been transmitted by citation ever since. It is also refuted by
+        the gardens themselves. The signature Kandyan spice garden contains coffee, first
+        systematically cultivated in Ceylon by the Dutch in <strong>1740</strong>; nutmeg, whose
+        oldest trees at Peradeniya were planted in <strong>1840</strong>; tea, commercial from
+        <strong>1867</strong>; and a New World contingent of cassava, chilli, cashew and papaya
+        that could not have arrived before 1500. The only empirically grounded age statement in the
+        literature is the deliberately minimal one from the field survey: a typical garden is
+        <em>at least one generation old</em>.
+      </p>
+      <p>
+        <strong>An old practice; a young system.</strong> That’s the honest formulation, and it
+        fits all of them.
+      </p>
+      <p>
+        The sharpest version of the pattern is a comparison. Engaruka, in northern Tanzania, is an
+        abandoned irrigation landscape with genuine excavated archaeology, and it dates to roughly
+        1400–1720 CE. The Chagga gardens up the road, which have no excavated sequence at all, are
+        routinely given two thousand years. <strong>The site with evidence gets the modest date.
+        The site without evidence gets the millennia.</strong> Nobody is lying. Numbers just drift
+        upward when nothing is holding them down.
+      </p>
+
+      <h2>What grain actually won</h2>
+      <p>
+        Now the concession, which is larger than I expected and which the rest of the argument
+        depends on.
+      </p>
+      <p>
+        The number everyone quotes for polycultures is the land equivalent ratio, and it is real:
+        across 939 experiments, intercropping returns about 1.30 — you’d need 1.3 hectares of
+        monoculture to match a hectare of intercrop. Advocates stop there. The trouble is what that
+        ratio compares. It measures the intercrop against <em>each component’s own</em> sole crop.
+        It never asks the question a farmer actually faces, which is whether the mixture beats the
+        single best thing you could have grown instead.
+      </p>
+      <p>
+        When researchers asked that question of the same dataset, the answer inverted. Measured
+        against the best available monoculture, intercropping returns <strong>0.96 of the grain,
+        with a confidence interval of 0.93 to 0.98</strong> — a statistically significant calorie
+        penalty. Only about a third of the experiments beat the best single crop. This is from the
+        same research community that produced the favourable land-equivalent figures, not from a
+        sceptic. Both numbers describe the same experiments. Diversity saves land only if you
+        wanted the diverse basket.
+      </p>
+      <p>
+        Food forests specifically do worse. The only systematic measurement of a temperate food
+        forest’s output in the literature — <strong>and it is a sample of one</strong>, a 0.08
+        hectare garden in Coldstream, Scotland, ninety-nine species, established 1991, measured
+        across six years — scales to about 5.19 million kilocalories per hectare per year. Wheat
+        runs around 11.6 million. Potato 15.6. Most of what a food forest yields by weight is
+        water: 713 kilograms harvested, of which 85.6 kilograms was carbohydrate.
+      </p>
+      <p>
+        And then labour, where I can only give you the direction, because the comparison does not
+        exist in the literature. Nobody has published calories-per-labour-hour for polyculture
+        against grain. What’s established is that horticulture is consistently more
+        labour-intensive than staples, that multi-species staggered-ripening systems resist
+        mechanisation, and that farm-labour requirements vary across production systems by a factor
+        of roughly two hundred. In a high-wage economy that is decisive, and it is not a
+        conspiracy.
+      </p>
+      <p>
+        So: the wheat field won two arguments, fairly, on the merits. Any version of this essay
+        that skips past that is doing the thing the video does.
+      </p>
+
+      <h2>Grains make states</h2>
+      <p>
+        Except that winning on calories and labour is not what the historical record is actually
+        about. It’s about what could be taken.
+      </p>
+      <p>
+        Cereals ripen simultaneously, above ground, on fixed fields, in a narrow window. They can
+        be assessed standing, harvested on a known date, measured by volume, stored, divided,
+        transported, and lent against. A tuber can sit in the ground. A tree crop yields something
+        every few weeks for months. If you are a tax collector, the grain field is a single
+        appointment and the food forest is a permanent job.
+      </p>
+      <p>
+        This is not a metaphor, and it’s been tested. An instrumental-variable study across roughly
+        a thousand societies in the ethnographic record found that <strong>cereal cultivation
+        causally predicts political hierarchy, while land productivity does not</strong>. Not how
+        much food a place could grow — how <em>appropriable</em> that food was. (The journal has
+        since published a comment disputing it, which you should know; the popular version of this
+        argument, from James Scott, is the non-empirical one.) The crop that could be seized built
+        the states that then required it.
+      </p>
+      <p>
+        And there is a gardener’s-eye view of the same mechanism, three centuries before anyone
+        modelled it. Robert Knox spent nineteen years as a captive in the Kandyan kingdom and wrote
+        it up in 1681. He describes homesteads each in their own hedged and ditched plot, mixed
+        fruit trees, betel-nut standing in the villages “like unto Woods.” He also says, plainly,
+        that people barely planted any of it — the trees mostly seeded themselves — and he gives
+        the reason. The king requisitioned anything good. So the people, Knox writes, “regard not
+        to plant more than just to keep them alive.”
+      </p>
+      <p>
+        <strong>Asked to be visible, they chose to produce less.</strong>
+      </p>
+      <Mermaid
+        code={`flowchart LR
+  F["Food forest<br/>40 species · all year"] --> A["stability · soil carbon<br/>micronutrients · low input"]
+  W["Wheat field<br/>1 species · 1 date"] --> B["11.6M kcal/ha<br/>one number, one date"]
+  A --> N["<b>no column</b>"]
+  B --> Y["taxable · titleable · bankable"]
+  Y --> C["capital flows here"]
+  N --> D["unpriced, so unfunded"]`}
+        caption="Grain won two arguments fairly. The other four were never scored."
+      />
+      <p>
+        The same logic runs through the enclosures, though more carefully than the popular telling
+        allows. Parliamentary enclosure in England ran from 1604 to 1914 and covered something like
+        7.25 to 7.35 million acres — a figure built by sampling the actual awards, and about
+        eighteen per cent higher than the estimate usually quoted. What’s striking is the
+        composition: nearly sixty per cent of the enclosed land was common pasture and waste, not
+        open field. The target was the commons, which is exactly where the rights to gather wood,
+        graze pigs on mast and cut peat lived. Enclosure changed what could be <em>recorded</em>
+        more than it changed what grew.
+      </p>
+      <p>
+        But its effects are genuinely contested, and I’d be picking a side to pretend otherwise.
+        Robert Allen finds enclosure raised yields by only 2.5 to 8.4 per cent; a recent study
+        across fifteen thousand parishes finds a 45 per cent yield increase by 1830 — alongside a
+        thirty per cent rise in the parish Gini coefficient. Both can be true. A large gain,
+        regressively distributed, is a coherent description of the same event.
+      </p>
+      <p>
+        Where the record is unambiguous is colonial forest law. The Indian Forest Acts of 1865,
+        1878 and 1927 carved forest into reserved, protected and village categories and
+        criminalised shifting cultivation, grazing and gathering. Named administrators. Dated
+        statutes. A stated intent. The Acts converted customary <em>rights</em> into state-granted
+        <em>privileges</em> — a sentence about permissions rather than trees. If this story has a
+        villain, it is here and nowhere else, and India’s forest estate is still organised in the
+        1878 categories today.
+      </p>
+
+      <h2>The exception, which matters</h2>
+      <p>
+        A thesis that only ever cuts one way hasn’t been tested, so here is the case that cuts the
+        other.
+      </p>
+      <p>
+        Sri Lanka’s Crown Lands Encroachment Ordinance of 1840 presumed that forest, waste and
+        uncultivated land belonged to the Crown unless a claimant could prove otherwise. Swidden
+        plots in fallow looked, to that ordinance, like nothing. But a plot with standing coconut,
+        areca and jak was visibly and permanently cultivated, and therefore defensible. The trees
+        were the proof of occupation.
+      </p>
+      <p>
+        So the ledger destroyed the shifting cultivation and <em>preserved</em> the tree garden.
+        (I’ll flag that the land-use outcome here is well-grounded inference rather than a
+        demonstrated finding — the statute is documented; the response to it is reconstruction.)
+        Legibility isn’t hostile to trees as such. It’s indifferent to everything it can’t enter,
+        and occasionally that indifference lands in your favour.
+      </p>
+
+      <h2>The columns that don’t exist</h2>
+      <p>
+        Which brings me to what the food forest is actually better at. Every item on this list is
+        real, measured, and published. Every one of them is also something no ledger has ever had a
+        column for.
+      </p>
+      <p>
+        <strong>Variance.</strong> Cereal-legume intercropping significantly improves yield
+        stability against sole cropping. A garden of forty species does not fail all at once. No
+        tax assessment has a field for that.
+      </p>
+      <p>
+        <strong>Soil carbon.</strong> Agroforestry soils hold roughly 126 tonnes of carbon per
+        hectare to a metre’s depth, about nineteen per cent above cropland and pasture; a global
+        meta-analysis puts the soil organic carbon gain at 10.7 per cent, rising to 18.7 in arid
+        zones. No loan application has a field for that.
+      </p>
+      <p>
+        <strong>Erosion.</strong> This is the number that stopped me. In Sri Lanka’s mid-country
+        wet zone, measured soil loss runs at 70 tonnes per hectare per year under tobacco, 40 under
+        seedling tea with no conservation, 38 under capsicum — and <strong>0.05 under mixed home
+        gardens</strong>, against under 0.02 for natural forest. The polyculture performs within a
+        rounding error of undisturbed forest. That performance has never appeared on anybody’s
+        balance sheet, in any country, in any year.
+      </p>
+      <p>
+        <strong>Micronutrients.</strong> On-farm tree cover causally mediates zinc, vitamin A and
+        folate adequacy; in one Kenyan study each additional unit of species diversity was worth
+        about 12.7 per cent more micronutrient adequacy. Iron is the weak one — few common on-farm
+        tree fruits are iron-rich. No commodity price carries any of this.
+      </p>
+      <p>
+        And then the mechanism that finishes it, which isn’t about measurement at all but about
+        time. Perennial systems take years to return anything: coffee agroforestry needs seven or
+        eight to recoup its establishment cost, Shan tea about seven to reach an even chance of
+        positive cumulative cash flow. Combine that with insecure tenure and high discount rates
+        and you get the constraint that adoption research keeps rediscovering.
+        <strong>A tenant cannot plant a ten-year asset on land they may not hold in three.</strong>
+        No malice is required. Short tenures and annual accounting will select against perennial
+        polyculture forever, with nobody deciding anything.
+      </p>
+      <p>
+        There’s one more thing worth saying about why this list is so short, and it isn’t
+        flattering to anybody. The leading review of the field observes that these systems are
+        “considered to be an epitome of sustainability” while having received “relatively little
+        scientific attention,” and that description and inventory dominated the research for
+        twenty-five years or more. There are abundant species lists. There are almost no
+        measurements. <strong>What was easy to count got counted, including by the people who
+        love these systems most.</strong>
+      </p>
+
+      <HarvestArt class="not-prose my-12 h-56 w-full rounded-2xl border border-border object-cover sm:h-72" />
+
+      <h2>It is still happening</h2>
+      <p>
+        None of this is history. The ratchet is running now, and it is measurable.
+      </p>
+      <p>
+        Punjab, between 1970–71 and 2013–14: wheat and rice went from about 47 per cent of cropped
+        area to about 81. Rice alone from 6.87 to 36.30. <strong>Pulses fell from 7.29 per cent to
+        0.25</strong> — a twenty-nine-fold collapse. Oilseeds fell nearly ninefold. The mechanism
+        isn’t the seed. India announces a minimum support price for around twenty-three crops and
+        provides assured procurement at scale for two, and the Government of India’s own position
+        concedes that procurement “skews the production of crops in favour of wheat and paddy… and
+        does not offer an incentive for farmers to produce other items such as pulses.” The state
+        agricultural report notes the imbalance has “further sharpened <em>despite all efforts of
+        diversification</em>.”
+      </p>
+      <p>
+        Read that clause again. Decades of policy trying to reverse this, failing, because the
+        buyer of last resort still points the other way.
+      </p>
+      <p>
+        In the United States, the structure is in the statute. Base acres are frozen to plantings
+        from 1981–85; there are around 270 million of them, and the roughly twenty covered
+        commodities include no fruit, no nut, no vegetable, no tree crop. The current statutory
+        language on updating base acres describes eligible land as that planted to commodities
+        “other than covered commodities, <strong>trees</strong>, bushes, vines, grass, or pasture.”
+        Trees appear in federal farm law in a list of things that are not the thing being counted.
+      </p>
+      <p>
+        The details are sharper than the headline. A grower can avoid the fruit-and-vegetable
+        payment reduction by paying for an inspection confirming the crop was destroyed before
+        harvest — an escape hatch structurally unavailable to an orchard, which cannot be planted
+        and destroyed inside a crop year. The most generous exception, for double-cropping, is
+        written to cover <em>non-perennial</em> crops. And when the 2018 Farm Bill dealt with base
+        acres that had sat under grass for nine years, it suspended their payments but
+        <em>kept the base acres on the books</em> — preserving an option that only annual
+        commodity production can ever exercise.
+      </p>
+      <p>
+        Meanwhile the one federal instrument designed to insure a diversified farm as a diversified
+        farm — whole-farm revenue protection, which pays a discount for growing three or more
+        commodities — peaked at 2,833 policies in 2017 against roughly 1.2 million crop insurance
+        policies overall. About two-tenths of one per cent. The agency’s own bulletin concedes
+        growers “are unable to find an agent willing to sell and service these policies,” and one
+        of its remedies was moving a sales deadline so agents would have time to market it.
+      </p>
+      <p>
+        Europe is where I have to be most careful, because the claim everyone reaches for is not
+        supported. Until 2023 the Common Agricultural Policy paid by the eligible hectare and
+        counted trees against that hectare above a threshold — an incentive the Commission’s own
+        evaluators call incoherent with EU biodiversity objectives. Whether farmers actually
+        <em>felled</em> trees in response is asserted constantly, including in an EU-funded research
+        deliverable that says the rules “caused the removal of trees and shrubs… across Europe”
+        with no citation, no dataset and no figures. The Commission’s own evaluation concedes that
+        no direct evidence of it is known. So: the incentive is documented, the felling isn’t, and
+        I’m leaving the felling out.
+      </p>
+      <p>
+        What I can give you instead is better anyway. The EU ran a dedicated agroforestry
+        establishment measure from 2014. It planned <strong>72,529 hectares</strong>. By the end of
+        2019 it had delivered about <strong>2,000</strong> — a 97 per cent shortfall, audited by
+        the European Court of Auditors. Hungary set a 2,000-hectare target and established 26.6.
+        In Italy, five of twenty-one regions budgeted for it and two activated it. It performed
+        worse in absolute terms than the smaller programme it replaced, against a target
+        twenty-three times larger.
+      </p>
+      <p>
+        And then the part that belongs on a monument. <strong>The successor programme has no
+        dedicated output indicator for agroforestry at all.</strong> There is, in the EU network’s
+        own words, no data in the public domain on targets or progress. Nobody cancelled it.
+        It just stopped being counted.
+      </p>
+
+      <h2>A measurement that changed its mind</h2>
+      <p>
+        I want to be careful not to leave you with the impression that the counting problem belongs
+        to agribusiness and the ledger-keepers. It doesn’t. It belongs to whoever is holding the
+        pen, and for most of this research that was me.
+      </p>
+      <p>
+        The most-cited document arguing that forest gardens beat conventional agriculture on
+        calories is hosted by an agroforestry organisation, isn’t peer-reviewed, and states in its
+        own text that its authors are not farmers. It also concedes, outright, that the forest
+        garden is not very productive in calories. It then reverses that conclusion with two moves:
+        it subtracts fossil-energy inputs from the conventional yield but doesn’t subtract human
+        labour from the forest garden — noting, honestly enough, that labour “was not considered
+        for conventional agriculture either” — and then switches from calories produced to
+        “people actually fed” by applying a global food-waste adjustment, which is a property of
+        the distribution system and not of the field. Change the metric until the answer inverts.
+      </p>
+      <p>
+        The most repeated statistic in crop conservation — that three-quarters of agricultural
+        diversity was lost in the twentieth century — was traced by the conservation establishment
+        itself, in a 2022 review, to an FAO document from Earth Day 1993, and probably before that
+        to a book quoting a forward-looking prediction about <em>Europe’s vegetable seed</em>. It
+        became global, all-crops and retrospective purely by being repeated. The authors asked the
+        originators directly and still couldn’t source it. FAO’s own 1996 assessment says the
+        opposite: no one can say how much has been lost, because no comprehensive inventory was
+        ever made.
+      </p>
+      <p>
+        And then it happened to us. Partway through this research, a search engine’s AI summary
+        returned a 2006 botanical survey’s species count — a flora count, most of which is weeds
+        and forest remnants — attributed to a 1984 paper that makes no such claim. The exact error
+        this essay is about, manufactured on demand, in the middle of writing about it. We caught
+        that one.
+      </p>
+      <p>
+        We didn’t catch the earlier one. This blog has already published, in
+        <a href="/blog/the-forest-and-the-field">The Forest and the Field</a>, a food forest
+        “seven layers deep.” Seven layers is a permaculture teaching construct. Kandyan gardens run
+        three to five strata; Chagga run four; <em>pekarangan</em> are organised horizontally, by
+        social zone, rather than vertically at all. No traditional system in this record uses
+        seven. Worse: that essay treats these gardens as deliberate imitations of forest, and the
+        most-cited paper in the field records that Javanese gardeners find the comparison
+        <em>insulting</em> — forests have low social value there, and clearing one is the noble
+        act. The resemblance is convergent evolution, not homage.
+      </p>
+      <p>
+        We published the construct as though it were the observation. That is precisely the failure
+        mode, and we did it in an essay recommending the practice.
+      </p>
+
+      <HonestHarvest />
+
+      <h2>We are the crop with no column</h2>
+      <p>
+        Here’s why any of this is our business.
+      </p>
+      <p>
+        The software industry has a monoculture too, and it did not win on being better software.
+        It won on producing a seat count, a renewal date and a line item. A per-user monthly figure
+        is legible to a procurement department the way forty bushels an acre is legible to a tax
+        assessor: one number, one date, one counterparty, renewable. Everything a buyer’s process
+        needs to approve a purchase, an annual subscription supplies by construction.
+      </p>
+      <p>
+        Now look at what we actually sell. Data you keep when we’re gone. The right to leave with
+        everything. A fork that produces a complete working replica. No lock-in, so no switching
+        cost to amortise. Durability across a decade. Read that list again and notice its shape:
+        <strong>every one of those is a variance advantage or a soil-carbon advantage.</strong>
+        They are all real, and there is no field for any of them on the form. What is the
+        procurement value of a risk that didn’t materialise? Where does “you could leave, and
+        chose not to” go in a spreadsheet?
+      </p>
+      <p>
+        And we have the tenure problem too, in its own form. Building things that pay off over ten
+        years — a protocol people can still read, an archive that survives us, exit rights that
+        cost us revenue today and yield trust later — is planting a perennial in an industry whose
+        capital is priced on annual growth. The people who fund software are the tenant farmer in
+        this story, and so, on our worse days, are we.
+      </p>
+      <p>
+        I don’t think we’re victims of this. It’s the position we chose, on purpose, and it’s
+        written down: the
+        <a href="https://github.com/xnetjs/xnet/blob/main/docs/CHARTER.md">Charter</a> commits us
+        to margins earned from work we actually do rather than from access to things you would own
+        anyway, and the
+        <a href="https://github.com/xnetjs/xnet/blob/main/docs/ECONOMICS.md">economics</a> spell out
+        why. But choosing it doesn’t exempt us from the mechanism. It just means that when the
+        unpriced thing goes unfunded, we won’t be able to say we didn’t see it coming.
+      </p>
+      <p>
+        The <a href="/blog/rig-the-game-or-play">Monopoly essay</a> argued that rigging is a
+        dominant strategy and that dominance ends the game. This is the same disease at a different
+        scale, and it needs no villain at all. When the measuring apparatus is what allocates
+        capital, <em>being countable</em> becomes the dominant strategy — and everything that
+        cannot be counted is competed out on grounds that have nothing to do with whether it was
+        any good.
+      </p>
+
+      <h2>What actually worked</h2>
+      <p>
+        One thing in all this research reversed, and it’s worth ending on because of how unglamorous
+        it is.
+      </p>
+      <p>
+        In Niger, the inherited forest code made trees the property of the state. So through the
+        1960s and 70s farmers cleared their fields of them — why maintain an asset you don’t own
+        and can’t sell? In 1993 the forestry code was revised to transfer ownership of on-farm
+        trees from the state to the farmers standing under them. Nobody organised a planting
+        campaign. Nobody funded a restoration programme. The trees came back.
+      </p>
+      <p>
+        And then, because this essay has a shape and it is not going to stop having one in the last
+        five hundred words: the famous number for that is wrong too. You will read that
+        farmer-managed natural regeneration covers five million hectares and two hundred million
+        trees. The five million is the mapped extent of a <em>land-cover class</em>, not the area
+        where tree density rose. The two hundred million is not a count — it is forty trees per
+        hectare, a figure the authors explicitly stipulate rather than measure, multiplied by the
+        five million. Their own paper says so, in a sentence that begins “no study has
+        systematically quantified the impacts.”
+      </p>
+      <p>
+        A 2025 study using twenty-five years of satellite imagery and a model trained on nearly ten
+        billion individual trees put a measured number on it at last:
+        <strong>about 289,000 hectares of actual canopy gain in Niger</strong> — roughly six per
+        cent of the headline. In the best-studied corridor, average tree cover went from something
+        like one per cent in 1975 to about four in 2005, and then largely plateaued: on a
+        re-survey covering 2005 to 2013, seventy-three per cent of sample plots showed no change at
+        all.
+      </p>
+      <p>
+        I still think it’s the best thing in this essay. Four per cent canopy across a Sahelian
+        farming landscape is a serious achievement, it is attributable to the law change, and it
+        cost approximately nothing. <strong>Change who owns the tree and the trees come
+        back.</strong> They didn’t plant a forest; they stopped removing one. But notice what it
+        took to say that accurately — and notice that the inflated version was circulated by
+        people who were, unambiguously, on the trees’ side.
+      </p>
+      <p>
+        I’d love to end there, and I can’t quite. What Niger fixed was ownership, which is one of
+        the things a ledger is good at — it swapped a badly-entered column for a correctly-entered
+        one. It didn’t teach the ledger to price variance, or soil carbon, or the harvest that
+        arrives in small amounts every week for forty years. Nobody has managed that, including us.
+      </p>
+      <p>
+        So the lesson I’m taking isn’t the comfortable one. It is not enough to build the better
+        thing. The better thing has lost before, for three centuries, on four continents, to
+        systems that were simply able to see their competitors and not able to see it. Building it
+        is the easy half. The hard half is becoming countable without becoming a monoculture — and
+        I don’t know how to do that yet. What I can do is keep saying out loud which of our
+        advantages have no column, so that when they go unfunded, we know what happened.
+      </p>
+      <p>
+        Nobody erased the food forests. We just built an accounting system that couldn’t see them,
+        and then let it decide what got planted.
+      </p>
+    </article>
+  </main>
+
+  <SeriesNav slug={post.slug} />
+
+  <Footer />
+</Base>

@@ -23,6 +23,10 @@
  *   - "The Railroad and the Airline" — frontier economics without enclosure:
  *     railroad land grants, the airline margin trap, dumb pipes, and the
  *     Georgist operator position (exploration 0351). Tags: essay, economics.
+ *   - "The Landlord's Game Was About Enclosure" — the lineage from Magie's
+ *     board to the Inclosure Acts, common rights as the thing actually lost,
+ *     and ground rent as the oldest unpriced column (explorations 0351, 0368).
+ *     Tags: essay, economics, philosophy.
  */
 
 export type BlogTag =
@@ -92,6 +96,24 @@ export interface BlogPost {
 }
 
 const posts: BlogPost[] = [
+  {
+    slug: 'the-harvest-you-can-count',
+    title: 'The Harvest You Can Count',
+    description:
+      'A video claims every food forest on Earth was deliberately erased. It ' +
+      'is wrong, and it is pointing at something real. Layered perennial food ' +
+      'systems existed on every inhabited continent, and most of them lost — ' +
+      'but not the way the romantic version tells it. Grain genuinely won on ' +
+      'calories and on labour. What the forest was better at was variance, ' +
+      'soil carbon, micronutrients and independence from inputs, and no ' +
+      'ledger has ever had a column for any of them. On appropriability, why ' +
+      'a tenant cannot plant a ten-year asset, and why a local-first tool is ' +
+      'illegible to a procurement department for exactly the same reason.',
+    pubDate: '2026-08-03T09:00:00Z',
+    authors: ['crs48', 'claude'],
+    tags: ['essay', 'economics', 'philosophy'],
+    readingMinutes: 16
+  },
   {
     slug: 'rig-the-game-or-play',
     title: 'Rig the Game or Play',
