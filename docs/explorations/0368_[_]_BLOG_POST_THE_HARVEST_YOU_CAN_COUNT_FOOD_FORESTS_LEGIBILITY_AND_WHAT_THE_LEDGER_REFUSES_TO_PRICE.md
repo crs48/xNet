@@ -263,9 +263,45 @@ to them in the secondary literature is second-hand and should not be repeated.
 
 Scale, for the "still operating" claim: Sri Lankan home gardens covered
 **~977,700 ha across 20 districts in 2005, about 15% of the country's land
-area**, and provide **30–50% of household income** in Kandyan districts. ⚠️
-National area figures range 858,500–977,700 ha depending on source and year —
-**pick one and date it.**
+area** (FAO 2009), and supply **over 50% of national timber and 80% of
+fuelwood**. ⚠️ National area figures range **818,394 ha** (Ariyadasa 2002),
+**858,490 ha** (FSMP 1995) and **977,700 ha** (FAO 2009) — **pick one and date
+it.**
+
+⚠️ **Downgrade one figure the first draft treated as solid.** The
+much-quoted "**30–50% of household income**" appears in Pushpakumara et al.
+(2010) **with no citation attached**, and is then re-quoted onward as though
+sourced. Use instead the clean measured numbers from Thamilini et al. (2019,
+*Front. Sustain. Food Syst.* 3:94), n=40 gardens in Kandy district: mean
+monthly household income **LKR 40,958** for organised home gardens against
+**34,225** without, and homegarden share of nutrient intake — **vitamin C 25.0%
+vs 8.5%, vitamin A 14.8% vs 4.2%, iron 13.5% vs 3.8%**.
+
+**Solid, and the best unpriced-externality number in the whole research base.**
+Soil loss in the Mid-Country Wet Zone, measured at Peradeniya and Hanguranketha:
+**mixed home gardens 0.05 t/ha/yr** against **seedling tea with no conservation
+at 40**, **capsicum 38**, and **tobacco 70** — with natural forest below 0.02.
+**The polyculture performs within a rounding error of undisturbed forest, and
+that performance has never appeared on anybody's balance sheet.** This belongs
+in §6.
+
+**⚠️ Important correction to "still operating" — do not let it read as
+"healthy."** The direction of travel splits by unit. **National home-garden
+*area* is growing** (about 17% between 1983 and 1992; state planting drives such
+as *Divi Neguma* targeting millions of plots). **Kandyan gardens are
+simultaneously fragmenting and simplifying.** Pushpakumara's own issues list
+names "changing species composition and structure from multi-tree species rich
+HGs." deHaan et al. (2020, *Sustainability* 12(17):6866), n=24 Kandyan
+gardeners, codes land fragmentation 53 times and abandonment 41; Mohri et al.
+(2018) report substantial fragmentation over two decades.
+
+**And the fragmentation mechanism is on-thesis.** deHaan et al. find gardens are
+fragmenting **mostly through family inheritance** — subdivision across
+generations shrinking plots below the size a multi-strata system needs.
+**Nobody cleared these gardens either. They were divided by a rule about who
+gets what, applied to a system whose value was never in the parcel.** That is
+the essay's argument arriving through the front door, and it is worth two
+sentences in §6b.
 
 **Both still operating** — which makes "every … on Earth" false as a matter of
 record. **Do not attach an age to either** (see below), and **do not call the
@@ -1055,6 +1091,20 @@ checking:
   as settlements**. If used at all, use the honest cut: ~95% of titles went to
   individuals rather than communities, and 47,901 community-forest-resource
   claims were rejected.
+- **"Kandyan home gardens provide 30–50% of household income."** Uncited in
+  its most-quoted source. Use Thamilini et al. (2019) LKR and micronutrient
+  figures instead.
+- **"2,000-year-old Kandyan home gardens."** A *third* origin traced: deHaan et
+  al. (2020) source it to **Hochegger, *Farming Like the Forest* (Margraf, 1998)**
+   — a secondary monograph, not a chronicle, land record or excavation. The only
+  empirically grounded age statement in the literature is Perera & Rajapakse's
+  deliberately minimal "at least one generation old."
+- **KHG extent of "8,000 ha" or "280,000 ha", "1,700 species per ha", "30–35 m
+  tree height", "45–65 plants per hectare", "35.5% of income from plant
+  products".** All unsourced or internally inconsistent. **Do not use.**
+- **Any framing that presents growing national home-garden area as evidence
+  Kandyan gardens are thriving.** Area is up; structure is fragmenting. Both are
+  true and the essay must say both.
 - **Kayapó apêtê as proven intentional forest islands.** Posey's claims were
   substantially challenged by Parker (1992, *American Anthropologist*). Do not
   present as established.
