@@ -53,7 +53,7 @@ describe('binding record', () => {
       signingKey: privateKey,
       atprotoDid: PLC
     })
-    expect(record.$type).toBe('net.x.identity.binding')
+    expect(record.$type).toBe('fyi.xnet.identity.binding')
     expect(verifyAtprotoBinding(record)).toEqual({ valid: true })
   })
 

@@ -26,7 +26,7 @@ const makeFetch = (opts: { record: unknown; createdAt?: string; withAs?: boolean
     }
     if (url.includes('com.atproto.repo.getRecord')) {
       return new Response(
-        JSON.stringify({ uri: `at://${PLC}/net.x.identity.binding/self`, value: opts.record }),
+        JSON.stringify({ uri: `at://${PLC}/fyi.xnet.identity.binding/self`, value: opts.record }),
         { status: 200 }
       )
     }

@@ -1,0 +1,13 @@
+{
+  "id": "2026-07-19-bluesky-sign-in-now-writes-the-identity-",
+  "date": "July 19, 2026",
+  "title": "Bluesky sign-in now writes the identity binding",
+  "summary": "Linking a Bluesky or other ATProto account now actually records the identity binding in your repo. The sign-in flow previously requested identity-only permission, so the binding write was never authorised and silently did nothing.",
+  "highlights": [
+    "Requests the granular repo permission the binding write needs, falling back to broader legacy permission on older servers",
+    "Moves the binding record to the fyi.xnet namespace, which xNet controls"
+  ],
+  "tags": [
+    "identity"
+  ]
+}
