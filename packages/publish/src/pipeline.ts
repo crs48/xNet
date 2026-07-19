@@ -16,8 +16,24 @@
  */
 import { isValidSlug, uniqueSlug } from './slug'
 
-/** A frontier: the LWW-log analogue of Automerge heads (exploration 0329). */
-export type Frontier = Record<string, string>
+/**
+ * One node's position in a frontier (exploration 0329).
+ *
+ * Structurally the same shape as `FrontierEntry` in `@xnetjs/history`, redeclared
+ * here rather than imported so `@xnetjs/publish` keeps its single `yjs`
+ * dependency and stays runnable in a bare static build. The `yjsSnapshotRef` is
+ * what makes the pin real for prose: without it a frontier pins only the record
+ * lane, and a published post's body would drift with every edit.
+ */
+export type FrontierEntry = {
+  /** Change hash to view the record lane at. */
+  hash: string
+  /** `<nodeId>@<timestamp>` ref into the Yjs snapshot store, when the node has a document lane. */
+  yjsSnapshotRef?: string
+}
+
+/** A frontier: per-node, hash-anchored positions. */
+export type Frontier = Record<string, FrontierEntry>
 
 /** The publishing-relevant subset of a Page node. */
 export type PostRecord = {
@@ -84,8 +100,12 @@ export function publishPost(input: PublishInput): PublishResult {
   const isFirstPublish = post.publishedAt === undefined || post.publishedAt === null
   if (isFirstPublish) patch.publishedAt = now
 
-  // The pin: what readers see until the next publish (0329).
-  patch.publishedFrontier = { ...frontier }
+  // The pin: what readers see until the next publish (0329). Entries are
+  // copied too, so a later mutation of the caller's frontier cannot rewrite
+  // history for an already-published post.
+  patch.publishedFrontier = Object.fromEntries(
+    Object.entries(frontier).map(([nodeId, entry]) => [nodeId, { ...entry }])
+  )
 
   if (!post.excerpt?.trim() && input.excerpt?.trim()) patch.excerpt = input.excerpt.trim()
 
@@ -117,7 +137,14 @@ export function frontierEquals(a: Frontier | undefined, b: Frontier | undefined)
   const aKeys = Object.keys(a).sort()
   const bKeys = Object.keys(b).sort()
   if (aKeys.length !== bKeys.length) return false
-  return aKeys.every((k, i) => bKeys[i] === k && a[k] === b[k])
+  // Compare entry *contents*: FrontierEntry is an object, so `===` here would
+  // be reference equality and every reloaded frontier would look different.
+  return aKeys.every(
+    (k, i) =>
+      bKeys[i] === k &&
+      a[k].hash === b[k].hash &&
+      (a[k].yjsSnapshotRef ?? '') === (b[k].yjsSnapshotRef ?? '')
+  )
 }
 
 /** True when the post has unpublished edits pending. */

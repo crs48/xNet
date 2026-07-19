@@ -800,7 +800,7 @@ long-lived pin. *Open:* does a permanently pinned frontier interact badly with
 - [ ] The same content renders identically from a self-hosted hub and from Cloud (BATNA proof).
 - [ ] xnet.fyi's blog is served from xNet nodes, with all 19 posts, correct bylines, and bespoke art intact (anchor tenant).
 - [x] Unpublishing removes the post from the site, the sitemap, and the feed within one build/cache cycle.
-- [ ] Editing a published post does not alter the published version until re-published (frontier pin, D2).
+- [x] Editing a published post does not alter the published version until re-published (frontier pin, D2).
 - [ ] A `.xnetpack` export contains the subscriber list, and importing it into a fresh workspace on a different hub reconstitutes the publication (vanish-test proof).
 - [ ] Newsletter send passes SPF, DKIM and DMARC alignment checks against the author's own domain, with a working one-click unsubscribe (mail-tester or equivalent).
 - [ ] A paid post shows its teaser to anonymous readers and full content to a grant holder, with the grant verifying **offline**.
@@ -825,14 +825,27 @@ done — the whole critical path (F3) and nothing beyond it. What shipped:
 
 **Deviations worth recording:**
 
-1. **The frontier pin is stored but not yet enforced at render time.**
-   `publishedFrontier` is written on publish and `hasUnpublishedChanges()`
-   reports divergence, but `renderPost()` renders the *current* document, not
-   the document materialised at the pinned frontier. Rendering-at-a-frontier
-   needs `materializeMultipleAt` from `packages/history` and is the first task
-   of any follow-on work. The validation item "editing a published post does
-   not alter the published version" is therefore **left unchecked** — the
-   schema supports it, the renderer does not honour it yet.
+1. **The frontier pin is now honoured at render time (closed in a follow-up).**
+   Shipped first as "stored but not enforced", then completed: `resolvePublishedDoc()`
+   returns the `Y.Doc` a reader should see — the snapshot named by
+   `publishedFrontier[postId].yjsSnapshotRef`, or the live document when the
+   post pins no document lane.
+
+   Two corrections fell out of doing it. The frontier shape shipped in the
+   first pass was **wrong**: `Record<string, string>`, where the repo's real
+   contract (`packages/history/src/frontier.ts`) is
+   `Record<NodeId, { hash, yjsSnapshotRef? }>`. Without the `yjsSnapshotRef`
+   arm a frontier pins only the record lane, so a published post's prose would
+   drift with every keystroke — the pin would have looked correct and done
+   nothing. `frontierEquals` also had to start comparing entry *contents*
+   rather than `===`, which after the type change was reference equality and
+   would have reported every reloaded frontier as changed.
+
+   The snapshot store lives in `@xnetjs/history` (which depends on
+   `@xnetjs/data`), so the resolver is **injected** rather than imported —
+   `@xnetjs/publish` keeps its single `yjs` dependency and stays runnable in a
+   bare static build. A pin that cannot be resolved (pruned past the history
+   horizon) falls back to the live document **with a warning**, never silently.
 2. **The CLI takes a publication JSON file, not a live workspace.** Reading
    posts from a store pulls in a native SQLite build; a plain JSON input keeps
    `xnet publish` runnable anywhere Node runs and lets any producer feed it.

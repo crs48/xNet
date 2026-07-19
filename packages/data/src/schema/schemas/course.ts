@@ -124,7 +124,9 @@ export const courseCompletion = (
   ownProgress: readonly Pick<LessonProgress, 'lesson' | 'completedAt'>[]
 ): { completed: number; total: number } => {
   const done = new Set(
-    ownProgress.filter((p) => typeof p.completedAt === 'number' && p.completedAt > 0).map((p) => p.lesson)
+    ownProgress
+      .filter((p) => typeof p.completedAt === 'number' && p.completedAt > 0)
+      .map((p) => p.lesson)
   )
   return {
     completed: lessons.filter((l) => done.has(l.id)).length,
