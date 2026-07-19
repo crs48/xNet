@@ -1078,7 +1078,7 @@ fi
 - [x] Add explicit `"license": "MIT"` to every published package missing one —
       starting with `@xnetjs/hub`.
 - [x] Cross-link 0336, 0349, 0351, 0196 from `docs/ECONOMICS.md`.
-- [ ] Open a follow-on exploration on **voice** (Ostrom 3 and 7) as the
+- [x] Open a follow-on exploration on **voice** (Ostrom 3 and 7) as the
       complement to exit.
 - [ ] Changeset: docs + telemetry test-only → likely `--empty` for any
       publishable package touched.
