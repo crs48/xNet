@@ -8,5 +8,12 @@
   ],
   "tags": [
     "platform"
+  ],
+  "pr": 587,
+  "mergedAt": "2026-07-19T17:55:41Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
   ]
 }
