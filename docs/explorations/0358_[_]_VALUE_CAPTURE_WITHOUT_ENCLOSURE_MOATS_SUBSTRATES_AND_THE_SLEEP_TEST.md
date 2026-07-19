@@ -1066,7 +1066,7 @@ fi
       and what it does not — modelled on GitHub's non-migrating list. Every
       "does not" becomes a bug or a declared `pending`.
 - [ ] Add a neutrality clause to `site/src/pages/marketplace-terms.astro`.
-- [ ] Add the **"integration you can walk out with"** design rule to
+- [x] Add the **"integration you can walk out with"** design rule to
       `docs/VIBE.md`.
 - [ ] Add `economics-anchor-tenancy-parity` and `economics-no-context-capture`
       to `packages/telemetry/test/charter-claims-ledger.test.ts`.
