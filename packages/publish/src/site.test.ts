@@ -107,3 +107,37 @@ describe('buildStaticSite', () => {
     }
   })
 })
+
+describe('shadow mode (noindex, no autodiscovery)', () => {
+  const shadow = buildStaticSite({
+    ...input,
+    head: { robots: 'noindex, nofollow', feedAutodiscovery: false }
+  })
+
+  it('marks every page noindex', () => {
+    for (const page of ['index.html', 'palimpsest/index.html']) {
+      expect(shadow.get(page)).toContain('name="robots" content="noindex, nofollow"')
+    }
+  })
+
+  it('omits RSS autodiscovery so nobody can subscribe to the shadow feed', () => {
+    for (const page of ['index.html', 'palimpsest/index.html']) {
+      expect(shadow.get(page)).not.toContain('rel="alternate"')
+    }
+  })
+
+  it('does not advertise a sitemap in robots.txt', () => {
+    expect(shadow.get('robots.txt')).not.toContain('Sitemap:')
+  })
+
+  it('still emits the feed file itself, for byte-comparison against production', () => {
+    expect(shadow.get('rss.xml')).toContain('<title>Palimpsest</title>')
+  })
+
+  it('leaves normal mode indexable, with autodiscovery', () => {
+    const normal = buildStaticSite(input)
+    expect(normal.get('index.html')).not.toContain('name="robots"')
+    expect(normal.get('index.html')).toContain('rel="alternate"')
+    expect(normal.get('robots.txt')).toContain('Sitemap:')
+  })
+})

@@ -130,6 +130,9 @@ importers:
       vitest:
         specifier: ^4.0.0
         version: 4.0.18(@opentelemetry/api@1.9.1)(@types/node@20.19.30)(@vitest/browser-playwright@4.0.18)(jiti@1.21.7)(jsdom@26.1.0)(lightningcss@1.27.0)(msw@2.12.7(@types/node@20.19.30)(typescript@5.9.3))(terser@5.48.0)(tsx@4.21.0)(yaml@2.9.0)
+      yjs:
+        specifier: ^13.6.0
+        version: 13.6.29
 
   apps/cloud:
     dependencies:

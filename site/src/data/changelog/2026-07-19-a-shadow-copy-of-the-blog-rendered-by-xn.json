@@ -1,0 +1,10 @@
+{
+  "id": "2026-07-19-a-shadow-copy-of-the-blog-rendered-by-xn",
+  "date": "July 19, 2026",
+  "title": "A shadow copy of the blog, rendered by xNet",
+  "summary": "The blog now has a duplicate at /blog-preview built by the xNet publishing pipeline, so we can compare it against production before changing anything.",
+  "highlights": [],
+  "tags": [
+    "platform"
+  ]
+}

@@ -138,10 +138,15 @@ export function buildIndexPage(input: SiteInput): string {
     `<meta property="og:type" content="website" />`,
     `<meta property="og:title" content="${escapeAttr(input.meta.title)}" />`,
     `<meta property="og:description" content="${escapeAttr(input.meta.description)}" />`,
-    `<link rel="alternate" type="application/rss+xml" title="${escapeAttr(
-      input.meta.title
-    )}" href="${escapeAttr(`${base}/rss.xml`)}" />`
-  ].join('\n')
+    input.head?.robots ? `<meta name="robots" content="${escapeAttr(input.head.robots)}" />` : '',
+    input.head?.feedAutodiscovery === false
+      ? ''
+      : `<link rel="alternate" type="application/rss+xml" title="${escapeAttr(
+          input.meta.title
+        )}" href="${escapeAttr(`${base}/rss.xml`)}" />`
+  ]
+    .filter(Boolean)
+    .join('\n')
 
   const items = ordered
     .map((post) => {
@@ -195,7 +200,14 @@ export function buildStaticSite(input: SiteInput): Map<string, string> {
   out.set('sitemap.xml', buildSitemap(input.meta, input.posts))
 
   const base = `${trimSlash(input.meta.siteUrl)}${trimSlash(input.meta.basePath ?? '')}`
-  out.set('robots.txt', `User-agent: *\nAllow: /\nSitemap: ${base}/sitemap.xml\n`)
+  // A noindex publication gets no sitemap reference: pointing crawlers at a
+  // sitemap for pages you have asked them not to index is a mixed signal.
+  out.set(
+    'robots.txt',
+    input.head?.robots?.includes('noindex')
+      ? `User-agent: *\nDisallow:\n`
+      : `User-agent: *\nAllow: /\nSitemap: ${base}/sitemap.xml\n`
+  )
 
   return out
 }
