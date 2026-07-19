@@ -45,15 +45,17 @@ credibility problem, not just a missing feature.
   substantive post-publication prose revision (`7f61e8614`, 2026-07-04,
   "warm the tone and smooth awkward sentences across essays"). A naive
   git-derived picker would advertise "6 versions" of a post revised once.
-- **The infrastructure risk is half-retired, and the other half is a trap.**
-  `deploy-site.yml` checks out with `fetch-depth: 0` and already runs a
-  git-shelling prebuild step (`scripts/changelog/resolve-prs.mjs`) — so
-  production is safe and there is a house pattern to copy exactly. But
-  `deploy-pr-preview.yml` and `deploy-branch-preview.yml` check out **shallow**
-  (depth 1, no `fetch-depth` set). A git-derived revision list would render
-  correctly in production and silently empty on every preview — the surface
-  where it would be reviewed. Either add `fetch-depth: 0` there or make the
-  empty case visibly distinguishable from "no revisions".
+- **The infrastructure risk is half-retired, and the other half is worse than a
+  shallow clone.** `deploy-site.yml` checks out with `fetch-depth: 0` and
+  already runs a git-shelling prebuild step (`scripts/changelog/resolve-prs.mjs`)
+  — so production is safe and there is a house pattern to copy exactly. But the
+  preview workflows check out **shallow** (depth 1) *and* never build the Astro
+  site at all: `deploy-pr-preview.yml` builds only `xnet-web` and `xnet-demos`,
+  publishing `/pr/<n>/app/` and `/pr/<n>/play/`. **Blog changes are not
+  previewable on a PR** — verified on PR #573, where `/pr/573/blog/…` 404s.
+  Anything git-derived would therefore be unreviewable *and* silently empty
+  before it reached production. Verify blog work against a local production
+  build (`pnpm --filter site build`), not a preview URL.
 - **Recommendation: ship a curated Revision Record, verified against git.**
   Authors declare revisions in `site/src/data/blog.ts`; a build script resolves
   each to a real commit SHA, emits GitHub diff links, and **fails the build when
@@ -155,11 +157,18 @@ Astro build. `ci.yml:104-110` additionally runs the site validator and the
 resolver's `--check` dry run standalone via `npx --yes tsx`, without a workspace
 install — a cheap PR-time gate worth copying.
 
-**The preview trap.** `deploy-pr-preview.yml:27-29` checks out only
-`ref: <head.sha>`, and `deploy-branch-preview.yml:24` is a bare
-`actions/checkout@v4`. Both are depth 1. Any git-history-derived build step
-returns nothing on previews while working perfectly in production — the worst
-possible failure shape, because previews are where the feature gets reviewed.
+**The preview trap, in two layers.** `deploy-pr-preview.yml:27-29` checks out
+only `ref: <head.sha>`, and `deploy-branch-preview.yml:24` is a bare
+`actions/checkout@v4` — both depth 1, so any git-history-derived build step
+returns nothing there while working perfectly in production.
+
+The deeper layer: `deploy-pr-preview.yml` runs `pnpm --filter xnet-web build`
+and `pnpm --filter xnet-demos build` and **never builds the Astro site**. The
+preview comment offers `/pr/<n>/app/` and `/pr/<n>/play/` only — confirmed on
+PR #573, where `/pr/573/blog/palimpsest/` returns 404. So blog changes have no
+preview surface at all today, shallow or otherwise. The practical consequence
+for any work in this area: verify against a local `pnpm --filter site build`
+and the emitted `site/dist`, which is exactly what ships.
 
 Validation scripts follow a fixed convention
 ([site/scripts/validate-changelog.ts](site/scripts/validate-changelog.ts)) —
@@ -210,8 +219,7 @@ not be accurate on some deployment platforms, as hosts may perform shallow
 clones which do not retrieve the full git history*. Two notes for us: the
 remark-plugin route is irrelevant here (no markdown to transform — these are
 `.astro` pages), and the shallow-clone caveat is neutralised by `fetch-depth: 0`
-on the production deploy **but lands squarely on the preview deploys**, which
-are depth 1.
+on the production deploy — the only place the site is built at all.
 
 **NewsDiffs** (2012, Jennifer 8. Lee, Eric Price, Greg Price) archives article
 revisions from the New York Times, CNN, Politico, the Washington Post and the
@@ -556,9 +564,11 @@ const SUBSTANTIVE_LINES = 6
       of `astro build`.
 - [ ] Run `scripts/blog/revisions.mjs` in `deploy-site.yml` next to
       `resolve-prs.mjs` (both already covered by `fetch-depth: 0`).
-- [ ] Add `fetch-depth: 0` to `deploy-pr-preview.yml` and
-      `deploy-branch-preview.yml`, or accept degraded previews deliberately —
-      but not silently. Decide and write the reason into the workflow comment.
+- [ ] Decide the preview story deliberately: the site isn't built in
+      `deploy-pr-preview.yml` at all, so a git-derived list has no preview
+      surface. Either add a site build (plus `fetch-depth: 0`) there, or accept
+      that blog work is verified against a local production build — and write
+      the choice into the workflow comment rather than leaving it implicit.
 - [ ] Add a standalone PR-time invocation in `ci.yml` alongside the existing
       `npx --yes tsx site/scripts/validate-changelog.ts` line.
 - [ ] Follow the validator conventions exactly: doc-comment header, `errors[]`
@@ -594,9 +604,9 @@ const SUBSTANTIVE_LINES = 6
 - [ ] `the-right-to-say-no` renders exactly the backfilled revision(s) — not six.
 - [ ] `astro dev` in a tree with no git history (or a tarball export) still
       builds and renders posts, with links degraded rather than crashing.
-- [ ] Open a PR preview and confirm the revisions block renders there — this is
-      the shallow-checkout regression, and it will not show up in local builds
-      or production.
+- [ ] Confirm against `site/dist` from a local production build that the
+      revisions data is non-empty — there is no PR preview of the blog to check,
+      so this is the only pre-merge signal that the git-derived half works.
 - [ ] Every emitted GitHub link resolves to a real page (spot-check the diff
       anchor for one revision and one `commits/main/<path>` history link).
 - [ ] Article JSON-LD validates and shows `dateModified` on a revised post and
