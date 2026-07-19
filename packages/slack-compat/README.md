@@ -4,6 +4,11 @@ Slack wire-protocol compatibility primitives for xNet — the shared, pure-logic
 core that lets integrations written against Slack work against xNet
 (exploration [0198](../../docs/explorations/0198_%5B_%5D_SLACK_COMPATIBLE_INTEGRATIONS_AND_MIGRATION.md)).
 
+> **Alpha software.** xNet is released but early: this package is on npm and
+> usable today, but its API can change between releases, sometimes without a
+> migration path. Pin your version. See the
+> [project README](https://github.com/crs48/xNet#readme) for what alpha means here.
+
 Zero runtime dependencies (`node:crypto` only). Used by the Slack **migration
 connector** (`@xnetjs/plugins`) and the hub **`slack-compat` feature**
 (`@xnetjs/hub`).
