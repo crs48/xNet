@@ -6,6 +6,14 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Type imports resolve correctly for every xNet package</title>
+      <link>https://xnet.fyi/changelog#2026-07-19-type-imports-resolve-correctly-for-every</link>
+      <guid isPermaLink="false">2026-07-19-type-imports-resolve-correctly-for-every</guid>
+      <pubDate>Sun, 19 Jul 2026 17:55:41 GMT</pubDate>
+      <description>Fixed export maps so TypeScript resolves types reliably, and shipped the .xnetpack codec that was advertised but never built.
+- @xnetjs/data/portability now actually resolves — the .xnetpack export/import codec was declared in the package but missing from the build</description>
+    </item>
+    <item>
       <title>Sources for The Harvest You Can Count</title>
       <link>https://xnet.fyi/changelog#2026-07-19-sources-for-the-harvest-you-can-count</link>
       <guid isPermaLink="false">2026-07-19-sources-for-the-harvest-you-can-count</guid>

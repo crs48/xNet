@@ -6,6 +6,30 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-19-type-imports-resolve-correctly-for-every",
+      "url": "https://xnet.fyi/changelog#2026-07-19-type-imports-resolve-correctly-for-every",
+      "title": "Type imports resolve correctly for every xNet package",
+      "content_text": "Fixed export maps so TypeScript resolves types reliably, and shipped the .xnetpack codec that was advertised but never built.\n\n• @xnetjs/data/portability now actually resolves — the .xnetpack export/import codec was declared in the package but missing from the build",
+      "date_published": "2026-07-19T17:55:41Z",
+      "tags": [
+        "platform"
+      ],
+      "_xnet": {
+        "date": "July 19, 2026",
+        "summary": "Fixed export maps so TypeScript resolves types reliably, and shipped the .xnetpack codec that was advertised but never built.",
+        "highlights": [
+          "@xnetjs/data/portability now actually resolves — the .xnetpack export/import codec was declared in the package but missing from the build"
+        ],
+        "mergedAt": "2026-07-19T17:55:41Z",
+        "pr": 587,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-19-sources-for-the-harvest-you-can-count",
       "url": "https://xnet.fyi/changelog#2026-07-19-sources-for-the-harvest-you-can-count",
       "title": "Sources for The Harvest You Can Count",
