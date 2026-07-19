@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-18-propose-a-change-to-a-rule-that-binds-yo",
+      "url": "https://xnet.fyi/changelog#2026-07-18-propose-a-change-to-a-rule-that-binds-yo",
+      "title": "Propose a change to a rule that binds you",
+      "content_text": "Plugin authors, self-hosters and hub operators can now file a Rule Change Proposal against an enumerated operational rule — the humane-patterns gate, allowed plugin licences, marketplace terms, the Charter's refused rents, the Moat Register, or plan quotas — and get a public written answer with reasoning within 30 days. Decisions, including refusals, are recorded in a public append-only log.\n",
+      "date_published": "2026-07-19T07:19:19Z",
+      "tags": [
+        "platform"
+      ],
+      "_xnet": {
+        "date": "July 18, 2026",
+        "summary": "Plugin authors, self-hosters and hub operators can now file a Rule Change Proposal against an enumerated operational rule — the humane-patterns gate, allowed plugin licences, marketplace terms, the Charter's refused rents, the Moat Register, or plan quotas — and get a public written answer with reasoning within 30 days. Decisions, including refusals, are recorded in a public append-only log.",
+        "highlights": [],
+        "mergedAt": "2026-07-19T07:19:19Z",
+        "pr": 579,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-18-published-posts-stay-put-when-you-keep-e",
       "url": "https://xnet.fyi/changelog#2026-07-18-published-posts-stay-put-when-you-keep-e",
       "title": "Published posts stay put when you keep editing",

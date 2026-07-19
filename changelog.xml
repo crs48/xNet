@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Propose a change to a rule that binds you</title>
+      <link>https://xnet.fyi/changelog#2026-07-18-propose-a-change-to-a-rule-that-binds-yo</link>
+      <guid isPermaLink="false">2026-07-18-propose-a-change-to-a-rule-that-binds-yo</guid>
+      <pubDate>Sun, 19 Jul 2026 07:19:19 GMT</pubDate>
+      <description>Plugin authors, self-hosters and hub operators can now file a Rule Change Proposal against an enumerated operational rule — the humane-patterns gate, allowed plugin licences, marketplace terms, the Charter's refused rents, the Moat Register, or plan quotas — and get a public written answer with reasoning within 30 days. Decisions, including refusals, are recorded in a public append-only log.</description>
+    </item>
+    <item>
       <title>Published posts stay put when you keep editing</title>
       <link>https://xnet.fyi/changelog#2026-07-18-published-posts-stay-put-when-you-keep-e</link>
       <guid isPermaLink="false">2026-07-18-published-posts-stay-put-when-you-keep-e</guid>
