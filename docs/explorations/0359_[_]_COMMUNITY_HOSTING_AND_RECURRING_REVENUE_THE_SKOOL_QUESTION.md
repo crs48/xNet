@@ -719,6 +719,26 @@ export const welcomeQueue = (posts: readonly UnansweredPost[], now: number): Una
    writers left Substack, and it is the main hidden cost of self-hosting. A
    Community plan that cannot reliably deliver a digest is not a product.
 
+## Implementation Status
+
+**Phase 0 and Phase 1 shipped, plus the Phase 3 schemas (PR #576). Phase 2 is
+not built, deliberately** — its own first item is a blocking counsel review of
+Art. 9a / C-695/20, and Phase 1 was sequenced to carry no money precisely so it
+could ship while that review happens. Nothing in the shipped code moves funds.
+
+Two items are marked unchecked on purpose rather than deferred by accident:
+
+- **Community section in `sections.ts`** — declined. Communities *are* Spaces
+  and already appear in the one tree; a hardcoded nav entry would contradict
+  0353's "there is exactly one nav" doctrine. If a community lens is wanted
+  later it should be a curated section, which is a user action, not a default.
+- **Cohort calendar / managed discovery listing** — genuine remaining work.
+  Discovery carries an `application_fee`, so it belongs with the money phases.
+
+Also unbuilt: wiring `packages/abuse` into the public-read path, and the
+"Community plan live" operational step (the plan is now priced and
+margin-tested, but turning it on is a business action, not a code change).
+
 ## Implementation Checklist
 
 ### Phase 0 — corrections (do first, independently valuable)
