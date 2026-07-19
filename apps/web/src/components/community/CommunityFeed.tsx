@@ -4,21 +4,21 @@
  * Three panels, in the order a host actually needs them:
  *
  *  1. **Welcome** (admins only) — newcomers whose first post nobody answered,
- *     longest wait first. This is the surface that replaces a leaderboard:
- *     it shows *work to be done*, never *standing*. See
- *     `@xnetjs/social` `welcomeQueue`.
+ *     longest wait first. This is what a community surfaces *instead of*
+ *     ranked standing: work to be done, never position. The reasoning and
+ *     the evidence live with `welcomeQueue` in `@xnetjs/social`.
  *  2. **Compose** — start a topic. Title here, body in the editor on the
  *     topic page (Post carries a Y.Doc, same as Page).
  *  3. **Topics** — pinned first, then newest. `comparePostsForFeed` is the
  *     only ordering, and it reads no engagement signal (Charter §3).
  */
+import { useNavigate } from '@tanstack/react-router'
 import { PostSchema, comparePostsForFeed, canManageSpace, type Post } from '@xnetjs/data'
 import { useMutate, useQuery } from '@xnetjs/react'
 import { markFirstPosts, welcomeQueue } from '@xnetjs/social'
 import { DIDAvatar } from '@xnetjs/ui'
 import { MessageSquare, Pin, Lock as LockIcon, Sparkles } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { useNavigate } from '@tanstack/react-router'
 import { displayName as resolveName } from '../../comms/comms-utils'
 import { useEnsureProfiles, useProfiles } from '../../comms/hooks'
 import { useSpaceMembers } from '../../hooks/useSpaces'

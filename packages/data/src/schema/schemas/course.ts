@@ -15,8 +15,8 @@
  */
 
 import type { InferNode } from '../types'
-import { defineSchema } from '../define'
 import { allow, role } from '../../auth'
+import { defineSchema } from '../define'
 import { checkbox, created, createdBy, number, relation, text } from '../properties'
 import { spaceCascadeAuthorization } from './space-authorization'
 

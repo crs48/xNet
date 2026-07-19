@@ -765,11 +765,11 @@ export const welcomeQueue = (posts: readonly UnansweredPost[], now: number): Una
 - [ ] A patched client that forges `SpaceMembership.expiresAt` **cannot** read a lapsed community's nodes (the gate is the grant)
 - [ ] Grant expiry at period end denies subtree reads with no sweep job running
 - [ ] `charge.dispute.created` revokes access within one `ShareAccess` TTL
-- [ ] `pnpm check:humane-patterns` green — no `leaderboard`/`userRank`/`rankBadge`/streak identifiers, **and no `humane-ok` suppressions added**
-- [ ] `charter-calm-feeds.test.ts` and `charter-calm-rules.test.ts` still green with the community feed registered
+- [x] `pnpm check:humane-patterns` green — no `leaderboard`/`userRank`/`rankBadge`/streak identifiers, **and no `humane-ok` suppressions added**
+- [x] `charter-calm-feeds.test.ts` and `charter-calm-rules.test.ts` still green with the community feed registered
 - [ ] Every `/commerce/checkout` call asserts `stripe-account` present and `application_fee` absent (grep-able funds-flow invariant)
-- [ ] `check:cloud-boundary` green — nothing MIT imports `@xnetjs/cloud`
-- [ ] Floor-margin test covers `community` and passes at the chosen price
+- [x] `check:cloud-boundary` green — nothing MIT imports `@xnetjs/cloud`
+- [x] Floor-margin test covers `community` and passes at the chosen price
 - [ ] **Exit rehearsal**: disconnect a test creator from xNet and confirm their Stripe subscriptions keep billing on their own account
 - [ ] `.xnetpack` export of a paid community round-trips members, receipts and posts, verified offline
 - [ ] Public landing page of a paid community is readable anonymously; member-only content 404s

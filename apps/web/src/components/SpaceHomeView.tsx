@@ -45,10 +45,10 @@ import { useComms } from '../comms/CommsContext'
 import { useProfiles } from '../comms/hooks'
 import { useCreateInSpace } from '../hooks/useCreateInSpace'
 import { useSpaceMembers, useSpaces } from '../hooks/useSpaces'
-import { CommunityFeed } from './community/CommunityFeed'
 import { navigateToNode } from '../workbench/navigation'
 import { usePublishTitle } from '../workbench/route-title'
 import { type TabNodeType } from '../workbench/state'
+import { CommunityFeed } from './community/CommunityFeed'
 import { ShareDialog } from './ShareDialog'
 
 const KIND_META: Record<SpaceKind, { icon: LucideIcon; label: string }> = {
