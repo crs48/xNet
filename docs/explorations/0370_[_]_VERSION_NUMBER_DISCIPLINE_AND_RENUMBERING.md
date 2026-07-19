@@ -812,10 +812,10 @@ stateDiagram-v2
 
 **Phase 2 — fix what is already broken**
 
-- [ ] Fix the Swift protocol-version drift (`3` → `4`) in
+- [x] Fix the Swift protocol-version drift (`3` → `4`) in
       `swift/XNetKit/Sources/XNetKit/Change.swift:40` and the two doc comments
-- [ ] Add `protocol-version-parity.test.ts` (§Example Code) to CI
-- [ ] Reconcile `swift/.../HubConnection.swift:114`, which sends
+- [x] Add `protocol-version-parity.test.ts` (§Example Code) to CI
+- [x] Reconcile `swift/.../HubConnection.swift:114`, which sends
       `"protocolVersion": 1` in the handshake
 - [ ] Delete `.github/workflows/schema-check.yml` (or implement
       `xnet schema extract` and make it decidable) — do not leave it stubbed
