@@ -6,6 +6,15 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Bluesky sign-in now writes the identity binding</title>
+      <link>https://xnet.fyi/changelog#2026-07-19-bluesky-sign-in-now-writes-the-identity-</link>
+      <guid isPermaLink="false">2026-07-19-bluesky-sign-in-now-writes-the-identity-</guid>
+      <pubDate>Sun, 19 Jul 2026 19:08:50 GMT</pubDate>
+      <description>Linking a Bluesky or other ATProto account now actually records the identity binding in your repo. The sign-in flow previously requested identity-only permission, so the binding write was never authorised and silently did nothing.
+- Requests the granular repo permission the binding write needs, falling back to broader legacy permission on older servers
+- Moves the binding record to the fyi.xnet namespace, which xNet controls</description>
+    </item>
+    <item>
       <title>Type imports resolve correctly for every xNet package</title>
       <link>https://xnet.fyi/changelog#2026-07-19-type-imports-resolve-correctly-for-every</link>
       <guid isPermaLink="false">2026-07-19-type-imports-resolve-correctly-for-every</guid>

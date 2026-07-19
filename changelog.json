@@ -6,6 +6,31 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-19-bluesky-sign-in-now-writes-the-identity-",
+      "url": "https://xnet.fyi/changelog#2026-07-19-bluesky-sign-in-now-writes-the-identity-",
+      "title": "Bluesky sign-in now writes the identity binding",
+      "content_text": "Linking a Bluesky or other ATProto account now actually records the identity binding in your repo. The sign-in flow previously requested identity-only permission, so the binding write was never authorised and silently did nothing.\n\n• Requests the granular repo permission the binding write needs, falling back to broader legacy permission on older servers\n• Moves the binding record to the fyi.xnet namespace, which xNet controls",
+      "date_published": "2026-07-19T19:08:50Z",
+      "tags": [
+        "identity"
+      ],
+      "_xnet": {
+        "date": "July 19, 2026",
+        "summary": "Linking a Bluesky or other ATProto account now actually records the identity binding in your repo. The sign-in flow previously requested identity-only permission, so the binding write was never authorised and silently did nothing.",
+        "highlights": [
+          "Requests the granular repo permission the binding write needs, falling back to broader legacy permission on older servers",
+          "Moves the binding record to the fyi.xnet namespace, which xNet controls"
+        ],
+        "mergedAt": "2026-07-19T19:08:50Z",
+        "pr": 589,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-19-type-imports-resolve-correctly-for-every",
       "url": "https://xnet.fyi/changelog#2026-07-19-type-imports-resolve-correctly-for-every",
       "title": "Type imports resolve correctly for every xNet package",
