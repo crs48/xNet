@@ -1222,7 +1222,8 @@ export const layers: CompareLayer[] = [
       {
         id: 'habitat-ods',
         text: "Habitat's Organizational Data Server hosts all member repositories on one org-owned server; member DIDs are minted by the org, and an OAuth credential for the org's DID can read every space on it. Access control is enforced at the server API, not by encryption — the inverse of xNet's hub, which never sees plaintext but also never gets a master read credential. Implements the draft atproto permissioned-spaces proposal (0016); pre-1.0 with breaking changes and a spaces→PDS migration announced.",
-        sourceUrl: 'https://github.com/habitat-network/habitat/blob/master/api-docs/docs/building/auth.mdx'
+        sourceUrl:
+          'https://github.com/habitat-network/habitat/blob/master/api-docs/docs/building/auth.mdx'
       },
       {
         id: 'iroh-1-0',

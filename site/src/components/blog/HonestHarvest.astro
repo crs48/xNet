@@ -1,0 +1,66 @@
+---
+// The honesty beat (series convention, modeled on the /why page's HonestyBox).
+// This essay argues that numbers survive on repetition rather than evidence, so
+// the box carries more weight than usual: the research behind it killed this
+// essay's first thesis and three of its favourite facts, and a piece that hid
+// that would be doing the exact thing it spends nine sections describing.
+const rows = [
+  {
+    isnt: 'We won’t pretend the food forest out-produces the wheat field.',
+    is: 'It doesn’t. The land-equivalent numbers advocates cite (1.2–1.3) and a calorie penalty are the same dataset: measured against the single best crop you could have grown instead, intercropping returns 0.96 of the grain, with a confidence interval of 0.93 to 0.98. Grain won on calories, and it won on labour. The argument here is about the four things it did not win on, and that nobody priced.',
+  },
+  {
+    isnt: 'We won’t use the two-thousand-year-old Moroccan food forest.',
+    is: 'We tried. The date traces to one practitioner’s 1975 visit, no dating study, no named expert, and a village whose name changes between retellings. What the dendrochronology actually supports is about five hundred years — and in the study commune the tree count rose across the twentieth century, from 425 to 537. The smaller sourced number is the better story, which is most of this essay’s point.',
+  },
+  {
+    isnt: 'We won’t claim the yield data is solid, because it isn’t.',
+    is: 'There is exactly one systematic measurement of a temperate food forest’s output in the literature — a single 0.08-hectare garden in Scotland, measured over six years. Every calorie figure here rests on n=1. The field’s own leading review says description and inventory dominated its research for twenty-five years; there are plenty of species lists and almost no measurements.',
+  },
+  {
+    isnt: 'We won’t tell you a cabal erased anything.',
+    is: 'The verdict splits. Colonial forest law in India is genuinely deliberate — named administrators, dated statutes, a criminalised practice. English enclosure is contested enough that economic historians still argue about whether it raised yields at all. Everything else is emergent: nobody decided, and that is the part worth being frightened of.',
+  },
+  {
+    isnt: 'We won’t tell you how many trees European farm policy cut down.',
+    is: 'Nobody knows. The claim is everywhere, including in an EU-funded research deliverable that states it without a citation, and the Commission’s own evaluators concede there is no direct evidence of it. The incentive is documented in primary law. The felling is folklore, and we’re leaving it out.',
+  },
+  {
+    isnt: 'We won’t claim we spotted all of this ourselves.',
+    is: 'Mid-research, a search engine’s summary handed us a 2006 botanical survey’s species count attributed to a 1984 paper that never made the claim — the exact error this essay is about, generated on demand. We caught that one. We had already published “seven layers deep” as an observation when it is a permaculture construct, and no traditional system in the record uses it.',
+  },
+  {
+    isnt: 'We won’t pretend we know how to fix this for ourselves.',
+    is: 'The last section is a description of a trap we are in, not a solution to it. Becoming countable without becoming a monoculture is unsolved here, and the honest version of this essay ends without resolving it.',
+  },
+]
+---
+
+<section class="not-prose my-12">
+  <div class="rounded-2xl border border-border bg-surface/30 p-6 dark:bg-surface/40 lg:p-8">
+    <h3 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">
+      What survived the checking — and what didn’t
+    </h3>
+    <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+      An essay about numbers that lived on repetition should show its own working. Here’s the
+      honest version.
+    </p>
+
+    <ul class="mt-6 space-y-5">
+      {
+        rows.map((row) => (
+          <li class="grid gap-3 sm:grid-cols-[1fr_1.3fr] sm:gap-5">
+            <div class="flex gap-2.5">
+              <span class="select-none text-gray-400 dark:text-gray-600">✕</span>
+              <p class="text-sm leading-relaxed text-gray-500 dark:text-gray-400">{row.isnt}</p>
+            </div>
+            <div class="flex gap-2.5">
+              <span class="select-none text-emerald-500">✓</span>
+              <p class="text-sm leading-relaxed text-gray-700 dark:text-gray-200">{row.is}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+</section>

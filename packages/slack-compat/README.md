@@ -15,13 +15,13 @@ connector** (`@xnetjs/plugins`) and the hub **`slack-compat` feature**
 
 ## What's here
 
-| Export | Purpose |
-| --- | --- |
-| `slackMrkdwnToMarkdown(text)` | Translate Slack `mrkdwn` (`<url\|label>`, `<@U1>`, `*bold*`, escaped entities) → GitHub-flavored markdown. |
-| `blockKitToMarkdown(blocks)` | Best-effort Block Kit (`header`/`section`/`context`/`divider`) → markdown. Interactive blocks degrade to their text. |
-| `normalizeIncomingWebhook(payload)` | Collapse a Slack incoming-webhook body (blocks → attachments → text) into a transport-agnostic `{ content, channelHint?, username?, iconEmoji? }`. |
-| `parseSlashCommand(body)` / `formatSlashResponse(opts)` | Slack-compatible slash-command request parsing + response formatting (defaults to `ephemeral`, matching Slack). |
-| `verifySlackSignature(opts)` / `signSlackRequest(opts)` | `v0=HMAC_SHA256` signing-secret verification with replay protection. |
+| Export                                                  | Purpose                                                                                                                                            |
+| ------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `slackMrkdwnToMarkdown(text)`                           | Translate Slack `mrkdwn` (`<url\|label>`, `<@U1>`, `*bold*`, escaped entities) → GitHub-flavored markdown.                                         |
+| `blockKitToMarkdown(blocks)`                            | Best-effort Block Kit (`header`/`section`/`context`/`divider`) → markdown. Interactive blocks degrade to their text.                               |
+| `normalizeIncomingWebhook(payload)`                     | Collapse a Slack incoming-webhook body (blocks → attachments → text) into a transport-agnostic `{ content, channelHint?, username?, iconEmoji? }`. |
+| `parseSlashCommand(body)` / `formatSlashResponse(opts)` | Slack-compatible slash-command request parsing + response formatting (defaults to `ephemeral`, matching Slack).                                    |
+| `verifySlackSignature(opts)` / `signSlackRequest(opts)` | `v0=HMAC_SHA256` signing-secret verification with replay protection.                                                                               |
 
 ## Design notes
 
