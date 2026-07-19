@@ -11,6 +11,7 @@ import type { TabNodeType, WorkbenchTab } from './state'
 import type { ComponentType } from 'react'
 import { ChannelView } from '../comms/ChannelView'
 import { CanvasView } from '../components/CanvasView'
+import { PostView } from '../components/community/PostView'
 import { CrmView } from '../components/crm/CrmView'
 import { DashboardView } from '../components/DashboardView'
 import { DatabaseView } from '../components/DatabaseView'
@@ -29,6 +30,7 @@ import { TasksView } from '../components/TasksView'
 
 const HOSTED_VIEWS: Record<TabNodeType, ComponentType<{ nodeId: string }>> = {
   page: ({ nodeId }) => <PageView docId={nodeId} />,
+  post: ({ nodeId }) => <PostView postId={nodeId} />,
   frame: ({ nodeId }) => <FrameTabView frameSpec={nodeId} />,
   database: ({ nodeId }) => <DatabaseView docId={nodeId} />,
   canvas: ({ nodeId }) => <CanvasView docId={nodeId} />,

@@ -67,6 +67,7 @@ export type DiscloseLevel = 0 | 1 | 2
 /** Runtime list backing {@link TabNodeType} (migration filters against it). */
 export const TAB_NODE_TYPES = [
   'page',
+  'post',
   'database',
   'canvas',
   'dashboard',

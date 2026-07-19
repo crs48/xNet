@@ -53,7 +53,21 @@ export interface PlanEntitlements {
   maxBlobBytes: number
   /** Max concurrent connections — the concurrency lever (maps to hub `maxConnections`). */
   maxConnections: number
-  /** Billed seats (Stripe `SubscriptionItem.quantity`). */
+  /**
+   * Billed seats (Stripe `SubscriptionItem.quantity`).
+   *
+   * **`0` means the plan is not seat-metered** — it is billed flat, and the
+   * people it serves are unlimited and uncounted. Use {@link isSeatMetered} to
+   * branch rather than testing the number.
+   *
+   * A seat is a *collaborator we provision capacity for*, never an *audience
+   * member the customer brought*. The `community` plan is deliberately flat:
+   * billing a host per member would charge them for access to their own
+   * audience, which is ground rent under Charter §6 (it fails the improvement
+   * test — the margin would ride on a relationship we did not build). Price
+   * community hosting on the operations it actually consumes — storage,
+   * concurrency, AI — and let membership grow for free (exploration 0359).
+   */
   seats: number
   /** Whether the managed AI gateway is enabled for this tenant. */
   aiEnabled: boolean
@@ -172,7 +186,8 @@ export const PLAN_CATALOG: Record<PlanId, PlanEntitlements> = {
     quotaBytes: 500 * GiB,
     maxBlobBytes: 250 * MiB,
     maxConnections: 2000,
-    seats: 10,
+    // Flat-billed: members are not seats (see `seats` above, exploration 0359).
+    seats: 0,
     aiEnabled: true,
     includedAiUsd: 10,
     aiMonthlyBudgetUsd: 300,
@@ -246,8 +261,27 @@ export function withStorage(entitlements: PlanEntitlements, quotaBytes: number):
   return { ...entitlements, quotaBytes }
 }
 
-/** Change the billed seat count — flows to Stripe `SubscriptionItem.quantity`. */
+/**
+ * Whether this plan bills by seat at all. Flat plans (`seats === 0`) serve an
+ * unlimited, uncounted membership — see the `seats` field docs.
+ */
+export function isSeatMetered(entitlements: PlanEntitlements): boolean {
+  return entitlements.seats > 0
+}
+
+/**
+ * Change the billed seat count — flows to Stripe `SubscriptionItem.quantity`.
+ *
+ * Refuses on a flat plan: adding a seat count to `community` would quietly
+ * reintroduce the per-member meter Charter §6 refuses. Move the tenant to a
+ * seat-metered plan first if that is genuinely what is wanted.
+ */
 export function withSeats(entitlements: PlanEntitlements, seats: number): PlanEntitlements {
+  if (!isSeatMetered(entitlements)) {
+    throw new Error(
+      `Plan '${entitlements.plan}' is flat-billed (members are not seats); refusing to set seats`
+    )
+  }
   if (!Number.isInteger(seats) || seats < 1) {
     throw new Error(`Invalid seats: ${seats}`)
   }

@@ -122,7 +122,10 @@ export default defineConfig({
             'packages/social/src/connect/**/*.test.ts',
             // Feed-definition tests are pure (relative imports + @xnetjs/data
             // only), so they run safely in the shared pool (Charter §Calm, 0234).
-            'packages/social/src/feeds/**/*.test.ts'
+            'packages/social/src/feeds/**/*.test.ts',
+            // Community hosting primitives are pure and dependency-free
+            // (welcome queue — exploration 0359), same reasoning as feeds.
+            'packages/social/src/community/**/*.test.ts'
           ],
           // data-bridge tests run separately - they have Yjs module import order issues
           // when combined with other tests in the same worker thread

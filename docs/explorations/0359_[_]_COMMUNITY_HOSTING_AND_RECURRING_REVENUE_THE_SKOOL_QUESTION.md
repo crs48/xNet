@@ -719,22 +719,42 @@ export const welcomeQueue = (posts: readonly UnansweredPost[], now: number): Una
    writers left Substack, and it is the main hidden cost of self-hosting. A
    Community plan that cannot reliably deliver a digest is not a product.
 
+## Implementation Status
+
+**Phase 0 and Phase 1 shipped, plus the Phase 3 schemas (PR #576). Phase 2 is
+not built, deliberately** — its own first item is a blocking counsel review of
+Art. 9a / C-695/20, and Phase 1 was sequenced to carry no money precisely so it
+could ship while that review happens. Nothing in the shipped code moves funds.
+
+Two items are marked unchecked on purpose rather than deferred by accident:
+
+- **Community section in `sections.ts`** — declined. Communities *are* Spaces
+  and already appear in the one tree; a hardcoded nav entry would contradict
+  0353's "there is exactly one nav" doctrine. If a community lens is wanted
+  later it should be a curated section, which is a user action, not a default.
+- **Cohort calendar / managed discovery listing** — genuine remaining work.
+  Discovery carries an `application_fee`, so it belongs with the money phases.
+
+Also unbuilt: wiring `packages/abuse` into the public-read path, and the
+"Community plan live" operational step (the plan is now priced and
+margin-tested, but turning it on is a business action, not a code change).
+
 ## Implementation Checklist
 
 ### Phase 0 — corrections (do first, independently valuable)
 
-- [ ] Remove the seat meter from `PLAN_CATALOG.community` in `packages/entitlements/src/plans.ts`; document members-are-not-seats in the doc comment
-- [ ] Add a `community` scenario to `PLAN_PRICING` in `packages/cloud/src/cost/pricing.ts` so the floor-margin test covers it
-- [ ] Audit `canManageShares` in `packages/hub/src/routes/share-links.ts`: assert Spaces always carry `DocMeta.ownerDid`, or remove the ownerless fallback for `docType: 'space'`
-- [ ] Add a Charter §6 receipt for "no per-member pricing" alongside the existing refused rents
+- [x] Remove the seat meter from `PLAN_CATALOG.community` in `packages/entitlements/src/plans.ts`; document members-are-not-seats in the doc comment
+- [x] Add a `community` scenario to `PLAN_PRICING` in `packages/cloud/src/cost/pricing.ts` so the floor-margin test covers it
+- [x] Audit `canManageShares` in `packages/hub/src/routes/share-links.ts`: assert Spaces always carry `DocMeta.ownerDid`, or remove the ownerless fallback for `docType: 'space'`
+- [x] Add a Charter §6 receipt for "no per-member pricing" alongside the existing refused rents
 
 ### Phase 1 — host it (no money, no legal exposure)
 
-- [ ] `Post` / `Thread` schemas with `spaceContributorAuthorization()`
-- [ ] Native compose surface (BlockNote via `XNetEditor`), chronological only
-- [ ] Community Space preset — `kind: 'community'`, public landing page via existing `public.ts`
-- [ ] Welcome queue (`packages/social/src/community/welcome.ts`) + admin surface
-- [ ] Member directory over `SpaceMembership` + `useEnsureProfiles`
+- [x] `Post` / `Thread` schemas with `spaceContributorAuthorization()`
+- [x] Native compose surface (BlockNote via `XNetEditor`), chronological only
+- [x] Community Space preset — `kind: 'community'`, public landing page via existing `public.ts`
+- [x] Welcome queue (`packages/social/src/community/welcome.ts`) + admin surface
+- [x] Member directory over `SpaceMembership` + `useEnsureProfiles`
 - [ ] Register the community section in `apps/web/src/workbench/sidebar/sections.ts` (the tabless successor to `SURFACES` — check 0353 Phase 3 before adding a `SurfaceDef`)
 - [ ] Wire `packages/abuse` into the public-read path (moderation scope already has `community`)
 - [ ] Cloud Community plan live, ops-priced, unlimited members
@@ -755,8 +775,8 @@ export const welcomeQueue = (posts: readonly UnansweredPost[], now: number): Una
 
 ### Phase 3 — teach in it
 
-- [ ] `Course` / `Lesson` / `Progress` schemas; progress visible to the learner, never ranked
-- [ ] `Event` + `RSVP` schemas; `CalendarView` already renders them
+- [x] `Course` / `Lesson` / `Progress` schemas; progress visible to the learner, never ranked
+- [x] `Event` + `RSVP` schemas; `CalendarView` already renders them
 - [ ] Cohort calendar
 - [ ] Optional managed discovery listing (`DEFAULT_MARKETPLACE_FEE_BPS`, opt-in only)
 
@@ -765,11 +785,11 @@ export const welcomeQueue = (posts: readonly UnansweredPost[], now: number): Una
 - [ ] A patched client that forges `SpaceMembership.expiresAt` **cannot** read a lapsed community's nodes (the gate is the grant)
 - [ ] Grant expiry at period end denies subtree reads with no sweep job running
 - [ ] `charge.dispute.created` revokes access within one `ShareAccess` TTL
-- [ ] `pnpm check:humane-patterns` green — no `leaderboard`/`userRank`/`rankBadge`/streak identifiers, **and no `humane-ok` suppressions added**
-- [ ] `charter-calm-feeds.test.ts` and `charter-calm-rules.test.ts` still green with the community feed registered
+- [x] `pnpm check:humane-patterns` green — no `leaderboard`/`userRank`/`rankBadge`/streak identifiers, **and no `humane-ok` suppressions added**
+- [x] `charter-calm-feeds.test.ts` and `charter-calm-rules.test.ts` still green with the community feed registered
 - [ ] Every `/commerce/checkout` call asserts `stripe-account` present and `application_fee` absent (grep-able funds-flow invariant)
-- [ ] `check:cloud-boundary` green — nothing MIT imports `@xnetjs/cloud`
-- [ ] Floor-margin test covers `community` and passes at the chosen price
+- [x] `check:cloud-boundary` green — nothing MIT imports `@xnetjs/cloud`
+- [x] Floor-margin test covers `community` and passes at the chosen price
 - [ ] **Exit rehearsal**: disconnect a test creator from xNet and confirm their Stripe subscriptions keep billing on their own account
 - [ ] `.xnetpack` export of a paid community round-trips members, receipts and posts, verified offline
 - [ ] Public landing page of a paid community is readable anonymously; member-only content 404s
