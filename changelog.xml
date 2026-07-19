@@ -6,6 +6,20 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Published posts stay put when you keep editing</title>
+      <link>https://xnet.fyi/changelog#2026-07-18-published-posts-stay-put-when-you-keep-e</link>
+      <guid isPermaLink="false">2026-07-18-published-posts-stay-put-when-you-keep-e</guid>
+      <pubDate>Sun, 19 Jul 2026 06:39:24 GMT</pubDate>
+      <description>A published post now shows readers the version you published, not your latest draft, until you publish again.</description>
+    </item>
+    <item>
+      <title>Host a community on xNet</title>
+      <link>https://xnet.fyi/changelog#2026-07-18-host-a-community-on-xnet</link>
+      <guid isPermaLink="false">2026-07-18-host-a-community-on-xnet</guid>
+      <pubDate>Sun, 19 Jul 2026 04:13:36 GMT</pubDate>
+      <description>Community Spaces now have a discussion feed with topics, replies and a welcome queue that surfaces newcomers nobody has answered yet — plus schemas for courses, lessons and events.</description>
+    </item>
+    <item>
       <title>Publish your writing as a static site</title>
       <link>https://xnet.fyi/changelog#2026-07-18-publish-your-writing-as-a-static-site</link>
       <guid isPermaLink="false">2026-07-18-publish-your-writing-as-a-static-site</guid>
