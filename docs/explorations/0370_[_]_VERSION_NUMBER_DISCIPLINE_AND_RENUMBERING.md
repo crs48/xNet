@@ -867,19 +867,19 @@ stateDiagram-v2
 
 ## Validation Checklist
 
-- [ ] `STABILITY.md` exists and answers "can I build on this?" in under a minute
-- [ ] A reader landing on npm sees the alpha notice (README banner, shipped #571)
+- [x] `STABILITY.md` exists and answers "can I build on this?" in under a minute
+- [x] A reader landing on npm sees the alpha notice (README banner, shipped #571)
       and can reach `STABILITY.md` in one click
-- [ ] `pnpm test` fails if any language's protocol-version literal is edited alone
-- [ ] Deliberately editing `CURRENT_PROTOCOL_VERSION` with a `patch` changeset
+- [x] `pnpm test` fails if any language's protocol-version literal is edited alone
+- [x] Deliberately editing `CURRENT_PROTOCOL_VERSION` with a `patch` changeset
       is **blocked** by the Stop hook
-- [ ] Deliberately deleting a `@public` export produces a failing CI check
+- [x] Deliberately deleting a `@public` export produces a failing CI check
       (stale `.api.md`) rather than a silent green
 - [ ] Deliberately deleting an `@internal` export does **not** trip the gate
       (the tiering is doing real work, not just adding friction)
-- [ ] `schema-check.yml` either reports a real number on a seeded breaking
+- [x] `schema-check.yml` either reports a real number on a seeded breaking
       change, or no longer exists
-- [ ] No workflow reports a hardcoded `breakingChanges: 0`
+- [x] No workflow reports a hardcoded `breakingChanges: 0`
 - [ ] `.changeset/` backlog is under 5 files and the release PR is <7 days old
       (the 0265 stall litmus)
 - [ ] Someone who is not the author can read a `.api.md` diff and say what tier
