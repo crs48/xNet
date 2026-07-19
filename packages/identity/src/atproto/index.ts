@@ -1,6 +1,6 @@
 /**
  * ATProto identity bridge (explorations 0301/0322/0337): foreign-DID
- * representation and the `net.x.identity.binding` record. Represent-only —
+ * representation and the `fyi.xnet.identity.binding` record. Represent-only —
  * nothing here signs xNet data with a foreign key.
  */
 export {

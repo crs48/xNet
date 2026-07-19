@@ -1,10 +1,10 @@
 /**
- * `net.x.identity.binding` — the bidirectional identity binding record
+ * `fyi.xnet.identity.binding` — the bidirectional identity binding record
  * (explorations 0301/0322/0337).
  *
  * The binding is a *social proof* in both directions:
  *
- * - it lives in the user's ATProto repo (collection `net.x.identity.binding`,
+ * - it lives in the user's ATProto repo (collection `fyi.xnet.identity.binding`,
  *   rkey `self`), so only someone who controls the ATProto account could have
  *   put it there; and
  * - its `sig` is an Ed25519 signature by the **xNet** key over the canonical
@@ -20,7 +20,7 @@ import { sign, verify } from '@xnetjs/crypto'
 import { parseDID } from '../did'
 import { isAtprotoDid } from './did'
 
-export const ATPROTO_BINDING_COLLECTION = 'net.x.identity.binding'
+export const ATPROTO_BINDING_COLLECTION = 'fyi.xnet.identity.binding'
 export const ATPROTO_BINDING_RKEY = 'self'
 
 export interface AtprotoBindingRecord {

@@ -8,7 +8,7 @@
  *
  * Flow: popup sign-in with the user's handle → prove control of `did:plc` →
  * return the DID + handle so the machine can run the *existing* passkey-create
- * flow → then `writeBinding` signs `net.x.identity.binding` with the new xNet
+ * flow → then `writeBinding` signs `fyi.xnet.identity.binding` with the new xNet
  * key and `putRecord`s it into the user's repo via the DPoP-bound session.
  *
  * The client metadata is the static document served at
@@ -18,7 +18,22 @@ import type { RunAtprotoCeremony } from '@xnetjs/react'
 import { createAtprotoBinding, ATPROTO_BINDING_COLLECTION } from '@xnetjs/identity'
 import { BrowserOAuthClient } from '@atproto/oauth-client-browser'
 
+/**
+ * Two client metadata documents, because the OAuth scope lives *in* the
+ * document and `BrowserOAuthClient.load` fetches exactly one of them.
+ *
+ * The primary document asks for the granular `repo:` scope that actually
+ * authorises the `putRecord` below. Older self-hosted PDSes reject the granular
+ * scope syntax in `client-metadata.json` outright
+ * (bluesky-social/atproto#4118), so a single document cannot carry both — a
+ * PDS that chokes on `repo:` chokes on it whatever we go on to request. The
+ * compat document asks for the legacy `transition:generic` scope, which every
+ * PDS understands and which also covers the write.
+ *
+ * Order matters: granular first (least privilege), compat only on rejection.
+ */
 const CLIENT_METADATA_URL = 'https://xnet.fyi/oauth/atproto-client.json'
+const COMPAT_CLIENT_METADATA_URL = 'https://xnet.fyi/oauth/atproto-client-compat.json'
 const BINDING_RKEY = 'self'
 
 /**
@@ -51,16 +66,53 @@ export function clearPendingAtprotoLink(): void {
   }
 }
 
-let clientPromise: Promise<BrowserOAuthClient> | null = null
+const clientCache = new Map<string, Promise<BrowserOAuthClient>>()
 
-function getClient(): Promise<BrowserOAuthClient> {
-  if (!clientPromise) {
-    clientPromise = BrowserOAuthClient.load({
-      clientId: CLIENT_METADATA_URL,
-      handleResolver: 'https://bsky.social'
-    })
+function getClient(clientId: string): Promise<BrowserOAuthClient> {
+  let cached = clientCache.get(clientId)
+  if (!cached) {
+    cached = BrowserOAuthClient.load({ clientId, handleResolver: 'https://bsky.social' })
+    clientCache.set(clientId, cached)
+    // A failed load must not poison the cache — the compat retry needs a clean
+    // slate, and a transient network failure should not disable sign-in.
+    cached.catch(() => clientCache.delete(clientId))
   }
-  return clientPromise
+  return cached
+}
+
+/**
+ * Does this failure look like the PDS rejecting our scope *syntax* rather than
+ * the user declining, the popup closing, or the network dropping?
+ *
+ * Deliberately narrow: retrying on a user cancellation would reopen a popup
+ * they just dismissed, and retrying on a network error would double the wait
+ * before the real error surfaces. Anything we do not recognise propagates.
+ */
+export function isScopeSyntaxRejection(err: unknown): boolean {
+  const message = (err instanceof Error ? err.message : String(err ?? '')).toLowerCase()
+  if (!message) return false
+  // User-driven and transport failures are never scope problems.
+  if (/abort|cancel|closed|denied|timeout|network|offline/.test(message)) return false
+  return /scope|invalid_client_metadata|invalid_scope|unsupported|client metadata/.test(message)
+}
+
+/**
+ * Sign in against the granular-scope client, falling back to the compat client
+ * when the PDS rejects the granular scope syntax.
+ */
+async function signInWithFallback(handleOrPds: string) {
+  try {
+    const client = await getClient(CLIENT_METADATA_URL)
+    return await client.signInPopup(handleOrPds)
+  } catch (err) {
+    if (!isScopeSyntaxRejection(err)) throw err
+    console.warn(
+      '[xnet] PDS rejected the granular OAuth scope; retrying with transition:generic.',
+      err
+    )
+    const compat = await getClient(COMPAT_CLIENT_METADATA_URL)
+    return await compat.signInPopup(handleOrPds)
+  }
 }
 
 /**
@@ -68,8 +120,7 @@ function getClient(): Promise<BrowserOAuthClient> {
  * enable the "Continue with Bluesky (or any PDS)" door.
  */
 export const runAtprotoCeremony: RunAtprotoCeremony = async ({ handleOrPds }) => {
-  const client = await getClient()
-  const session = await client.signInPopup(handleOrPds)
+  const session = await signInWithFallback(handleOrPds)
   const atprotoDid = session.did
 
   // Best-effort handle + display name from the profile record (non-fatal).

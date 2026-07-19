@@ -3443,8 +3443,8 @@ export interface YDocRegistryLike {
 // Warnings were encountered during analysis:
 //
 // dist/core.d.ts:347:5 - (ae-forgotten-export) The symbol "ErrorBoundaryFallbackProps" needs to be exported by the entry point index.d.ts
-// dist/experimental-BJqDMWkN.d.ts:98:5 - (ae-forgotten-export) The symbol "TaskStatus" needs to be exported by the entry point index.d.ts
-// dist/experimental-BJqDMWkN.d.ts:103:5 - (ae-forgotten-export) The symbol "TaskNode" needs to be exported by the entry point index.d.ts
+// dist/experimental-S9T6neyx.d.ts:98:5 - (ae-forgotten-export) The symbol "TaskStatus" needs to be exported by the entry point index.d.ts
+// dist/experimental-S9T6neyx.d.ts:103:5 - (ae-forgotten-export) The symbol "TaskNode" needs to be exported by the entry point index.d.ts
 // dist/index.d.ts:80:5 - (ae-forgotten-export) The symbol "QueryStatus" needs to be exported by the entry point index.d.ts
 // dist/index.d.ts:86:5 - (ae-forgotten-export) The symbol "QueryPlanSummary" needs to be exported by the entry point index.d.ts
 

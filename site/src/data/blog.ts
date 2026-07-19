@@ -420,6 +420,26 @@ export function postAuthors(post: BlogPost): BlogAuthor[] {
   return post.authors.map((id) => AUTHORS[id])
 }
 
+/**
+ * GitHub commit history for a post's own source file (exploration 0364).
+ *
+ * Essays get edited after publication — tone passes, fact corrections, en-GB
+ * and `xNet` naming sweeps — and a page that shows only `pubDate` presents the
+ * current text as if it were the original. This link is the honest minimum: it
+ * doesn't claim a post *has* changed, it just makes the record reachable.
+ *
+ * Derived purely from the slug, which `BlogPost` already defines as matching
+ * the page filename, so there is no git shell-out at build time and nothing to
+ * keep in sync — every future post gets the link for free. (A git-derived
+ * revision list was considered and deferred: post-publication commits here are
+ * dominated by chrome sweeps that change no prose, and preview deploys check
+ * out shallow, so a derived list would render empty exactly where it's
+ * reviewed. See exploration 0364.)
+ */
+export function postHistoryUrl(post: BlogPost): string {
+  return `https://github.com/crs48/xNet/commits/main/site/src/pages/blog/${post.slug}.astro`
+}
+
 /** Human-friendly date, e.g. "June 27, 2026", rendered from the ISO instant. */
 export function formatPostDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', {

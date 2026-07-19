@@ -6,7 +6,7 @@
  *
  *   1. resolve the DID document (`plc.directory` for did:plc, well-known for
  *      did:web) — yields the canonical PDS endpoint + declared handle;
- *   2. fetch the `net.x.identity.binding` record from that canonical PDS —
+ *   2. fetch the `fyi.xnet.identity.binding` record from that canonical PDS —
  *      only the account holder can place records in the repo;
  *   3. verify the record's Ed25519 signature against the *xNet* key it names —
  *      only the xNet identity holder can produce it.
