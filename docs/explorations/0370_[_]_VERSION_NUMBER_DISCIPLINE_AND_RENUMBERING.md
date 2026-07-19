@@ -817,7 +817,7 @@ stateDiagram-v2
 - [x] Add `protocol-version-parity.test.ts` (§Example Code) to CI
 - [x] Reconcile `swift/.../HubConnection.swift:114`, which sends
       `"protocolVersion": 1` in the handshake
-- [ ] Delete `.github/workflows/schema-check.yml` (or implement
+- [x] Delete `.github/workflows/schema-check.yml` (or implement
       `xnet schema extract` and make it decidable) — do not leave it stubbed
 - [ ] Collapse the three `LWW_TIEBREAK_KEY_VERSION` literals to one generated
       source of truth where the language boundary allows
