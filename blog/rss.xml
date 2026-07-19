@@ -6,7 +6,19 @@
     <atom:link href="https://xnet.fyi/blog/rss.xml" rel="self" type="application/rss+xml" />
     <description>Essays on local-first software, data ownership, and the open web.</description>
     <language>en-us</language>
-    <lastBuildDate>Sun, 19 Jul 2026 17:00:00 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 20 Jul 2026 09:00:00 GMT</lastBuildDate>
+    <item>
+      <title>Rig the Game or Play</title>
+      <link>https://xnet.fyi/blog/rig-the-game-or-play</link>
+      <guid isPermaLink="true">https://xnet.fyi/blog/rig-the-game-or-play</guid>
+      <description>The board game that taught a century of children to build monopolies was patented in 1904 to show that monopolies are unjust — and the cautionary rule set is the one that sold thirty million copies. On runaway leaders and the dead zone, why every table removes the auction and adds the Free Parking jackpot, what Hayek meant by competition as a discovery procedure, and why the rules of a rigged game are usually exposed by someone who got sued rather than by anyone’s transparency report.</description>
+      <dc:creator>crs48</dc:creator>
+      <dc:creator>Claude</dc:creator>
+      <pubDate>Mon, 20 Jul 2026 09:00:00 GMT</pubDate>
+      <category>essay</category>
+      <category>economics</category>
+      <category>philosophy</category>
+    </item>
     <item>
       <title>The World’s Greatest Record Store</title>
       <link>https://xnet.fyi/blog/the-worlds-greatest-record-store</link>
