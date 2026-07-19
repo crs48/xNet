@@ -1,7 +1,8 @@
 # Publishing On xNet — Ghost, Substack, And The Owned Audience
 
-> Exploration 0360 · 2026-07-18
+> Exploration 0362 · 2026-07-18
 > Lineage: [[0346_COMPOSABLE_UI_FRAMES]] (the page substrate this publishes from),
+> [[0358_VALUE_CAPTURE_WITHOUT_ENCLOSURE]] (the Sleep test, applied below),
 > [[0349_FIRST_CLASS_PAYMENTS]] (payment-mints-capability, the paywall mechanism),
 > [[0344_EXPORT_IMPORT_PORTABLE_BUNDLES]] (what "portable audience" has to mean),
 > [[0334_MASTODON_VS_ATPROTO]] (which distribution rail buys what),
@@ -492,6 +493,19 @@ author's own ESP credentials.
   the published artifact is HTML on a domain the author controls. The failure
   mode to design against is a subscriber list that exists only in hub tables —
   **the hub may cache the audience, never own it.**
+- **Sleep test** (0358) — ⚠️ **this lane has no cliff, and also no moat, and the
+  competitor already exists.** The test asks what survives if a well-funded
+  rival open-sourced our entire feature set tomorrow. For publishing that is not
+  hypothetical: **Ghost is already that rival** — MIT-ish, self-hostable, 0%
+  take, and federating since 6.0. What survives is not the software but the
+  *running of it*: rendering, CDN, TLS, custom domains, certificate renewal, and
+  an ESP relay for people who do not want to operate any of it. That is
+  precisely Ghost Pro's own business, and it is demonstrably real at $18–199/mo
+  **despite** Ghost being free to self-host. So the lane passes — but it passes
+  as a thin, crowded operations margin with no defensibility, which is exactly
+  the "improvement fails gradually" shape 0358 tells us to prefer over a cliff.
+  The honest consequence: **publishing must not be modelled as a profit centre.**
+  It is a Charter obligation (§6) that should roughly pay for itself.
 
 Per 0349, take rate on paid subscriptions is **0%**, settled Stripe Connect
 Standard direct charges, xNet never in the flow of funds.
@@ -566,6 +580,14 @@ RSS is free (lift `site/src/lib/blog-feed.ts`), universally consumed, and
 resurgent. ActivityPub buys real reach (Ghost 6.0, WordPress, Flipboard Surf all
 speak it) at moderate cost. Steal Leaflet's primitive: **following a publication
 is distinct from following its author.**
+
+**Economic posture.** The managed-hosting lane passes all four Charter tests
+(worked through in Options above), but the Sleep test is the one that shapes the
+plan: Ghost already ships this feature set as open source at 0% take, so there
+is no defensible margin here and never will be. Publishing is therefore scoped
+as a **Charter obligation that pays for itself**, not a profit centre — which is
+also why phases 1–2 deliberately produce a static artifact that needs none of
+our infrastructure at all.
 
 ### Phasing
 
@@ -789,7 +811,7 @@ long-lived pin. *Open:* does a permanently pinned frontier interact badly with
 ## References
 
 ### Codebase
-- `docs/CHARTER.md` §6 — Commons, "No ground rent", the three tests, the aspirational "own your audience" entry
+- `docs/CHARTER.md` §6 — Commons, "No ground rent", the four tests (improvement / BATNA / vanish / sleep), the aspirational "own your audience" entry
 - `docs/VIBE.md` — "reciprocity legible, never scored"; "the scene outlives the server"
 - `packages/hub/src/routes/public.ts` — `resolveEffectiveVisibility()`, anonymous JSON read
 - `packages/hub/src/routes/share-links.ts` — `SHARE_DOC_TYPES`, bootstrap-grant model
@@ -814,7 +836,8 @@ long-lived pin. *Open:* does a permanently pinned frontier interact badly with
 - 0344 — portable `.xnetpack` bundles; Tier-2 honesty labels
 - 0346 — composable frames and the universal page substrate
 - 0349 — first-class payments; payment-mints-capability; 0% direct-sale take
-- 0351 — frontier economics; the three tests; the anchor-tenant rule
+- 0351 — frontier economics; the original three tests; the anchor-tenant rule
+- 0358 — value capture without enclosure; the Sleep test; `docs/ECONOMICS.md`
 - 0300 — running a hub on a Raspberry Pi
 
 ### External
