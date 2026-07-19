@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>A shadow copy of the blog, rendered by xNet</title>
+      <link>https://xnet.fyi/changelog#2026-07-19-a-shadow-copy-of-the-blog-rendered-by-xn</link>
+      <guid isPermaLink="false">2026-07-19-a-shadow-copy-of-the-blog-rendered-by-xn</guid>
+      <pubDate>Sun, 19 Jul 2026 20:32:17 GMT</pubDate>
+      <description>The blog now has a duplicate at /blog-preview built by the xNet publishing pipeline, so we can compare it against production before changing anything.</description>
+    </item>
+    <item>
       <title>Every blog post links to its own edit history</title>
       <link>https://xnet.fyi/changelog#2026-07-18-every-blog-post-links-to-its-own-edit-hi</link>
       <guid isPermaLink="false">2026-07-18-every-blog-post-links-to-its-own-edit-hi</guid>

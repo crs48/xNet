@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-19-a-shadow-copy-of-the-blog-rendered-by-xn",
+      "url": "https://xnet.fyi/changelog#2026-07-19-a-shadow-copy-of-the-blog-rendered-by-xn",
+      "title": "A shadow copy of the blog, rendered by xNet",
+      "content_text": "The blog now has a duplicate at /blog-preview built by the xNet publishing pipeline, so we can compare it against production before changing anything.\n",
+      "date_published": "2026-07-19T20:32:17Z",
+      "tags": [
+        "platform"
+      ],
+      "_xnet": {
+        "date": "July 19, 2026",
+        "summary": "The blog now has a duplicate at /blog-preview built by the xNet publishing pipeline, so we can compare it against production before changing anything.",
+        "highlights": [],
+        "mergedAt": "2026-07-19T20:32:17Z",
+        "pr": 594,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-18-every-blog-post-links-to-its-own-edit-hi",
       "url": "https://xnet.fyi/changelog#2026-07-18-every-blog-post-links-to-its-own-edit-hi",
       "title": "Every blog post links to its own edit history",
