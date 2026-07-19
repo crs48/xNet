@@ -1,0 +1,49 @@
+{
+  "threshold": 0.998,
+  "baseline": "https://xnet.fyi/visuals-baseline",
+  "fallbackUsed": false,
+  "unmappedFiles": [],
+  "stories": [],
+  "routes": [
+    {
+      "id": "data",
+      "label": "Data",
+      "file": "routes/data.png",
+      "status": "unchanged",
+      "ssim": 0.9993
+    }
+  ],
+  "electron": [
+    {
+      "id": "electron-canvas-home",
+      "label": "Desktop · Canvas home",
+      "file": "electron/electron-canvas-home.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "electron-canvas-objects",
+      "label": "Desktop · Canvas with objects",
+      "file": "electron/electron-canvas-objects.png",
+      "status": "unchanged",
+      "ssim": 1
+    }
+  ],
+  "flows": [
+    {
+      "id": "canvas",
+      "label": "Open a canvas",
+      "gif": "flows/canvas.gif",
+      "mp4": "flows/canvas.mp4",
+      "poster": "flows/canvas.poster.png"
+    },
+    {
+      "id": "create-page",
+      "label": "Create a page and use the editor",
+      "gif": "flows/create-page.gif",
+      "mp4": "flows/create-page.mp4",
+      "poster": "flows/create-page.poster.png"
+    }
+  ],
+  "changedCount": 2
+}
