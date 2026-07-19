@@ -28,6 +28,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as ViewViewIdRouteImport } from './routes/view.$viewId'
 import { Route as TagTagIdRouteImport } from './routes/tag.$tagId'
 import { Route as SpaceSpaceIdRouteImport } from './routes/space.$spaceId'
+import { Route as PostPostIdRouteImport } from './routes/post.$postId'
 import { Route as PersonDidRouteImport } from './routes/person.$did'
 import { Route as MapMapIdRouteImport } from './routes/map.$mapId'
 import { Route as LabLabIdRouteImport } from './routes/lab.$labId'
@@ -133,6 +134,11 @@ const SpaceSpaceIdRoute = SpaceSpaceIdRouteImport.update({
   path: '/space/$spaceId',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PostPostIdRoute = PostPostIdRouteImport.update({
+  id: '/post/$postId',
+  path: '/post/$postId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PersonDidRoute = PersonDidRouteImport.update({
   id: '/person/$did',
   path: '/person/$did',
@@ -205,6 +211,7 @@ export interface FileRoutesByFullPath {
   '/lab/$labId': typeof LabLabIdRoute
   '/map/$mapId': typeof MapMapIdRoute
   '/person/$did': typeof PersonDidRoute
+  '/post/$postId': typeof PostPostIdRoute
   '/space/$spaceId': typeof SpaceSpaceIdRoute
   '/tag/$tagId': typeof TagTagIdRoute
   '/view/$viewId': typeof ViewViewIdRoute
@@ -235,6 +242,7 @@ export interface FileRoutesByTo {
   '/lab/$labId': typeof LabLabIdRoute
   '/map/$mapId': typeof MapMapIdRoute
   '/person/$did': typeof PersonDidRoute
+  '/post/$postId': typeof PostPostIdRoute
   '/space/$spaceId': typeof SpaceSpaceIdRoute
   '/tag/$tagId': typeof TagTagIdRoute
   '/view/$viewId': typeof ViewViewIdRoute
@@ -266,6 +274,7 @@ export interface FileRoutesById {
   '/lab/$labId': typeof LabLabIdRoute
   '/map/$mapId': typeof MapMapIdRoute
   '/person/$did': typeof PersonDidRoute
+  '/post/$postId': typeof PostPostIdRoute
   '/space/$spaceId': typeof SpaceSpaceIdRoute
   '/tag/$tagId': typeof TagTagIdRoute
   '/view/$viewId': typeof ViewViewIdRoute
@@ -298,6 +307,7 @@ export interface FileRouteTypes {
     | '/lab/$labId'
     | '/map/$mapId'
     | '/person/$did'
+    | '/post/$postId'
     | '/space/$spaceId'
     | '/tag/$tagId'
     | '/view/$viewId'
@@ -328,6 +338,7 @@ export interface FileRouteTypes {
     | '/lab/$labId'
     | '/map/$mapId'
     | '/person/$did'
+    | '/post/$postId'
     | '/space/$spaceId'
     | '/tag/$tagId'
     | '/view/$viewId'
@@ -358,6 +369,7 @@ export interface FileRouteTypes {
     | '/lab/$labId'
     | '/map/$mapId'
     | '/person/$did'
+    | '/post/$postId'
     | '/space/$spaceId'
     | '/tag/$tagId'
     | '/view/$viewId'
@@ -389,6 +401,7 @@ export interface RootRouteChildren {
   LabLabIdRoute: typeof LabLabIdRoute
   MapMapIdRoute: typeof MapMapIdRoute
   PersonDidRoute: typeof PersonDidRoute
+  PostPostIdRoute: typeof PostPostIdRoute
   SpaceSpaceIdRoute: typeof SpaceSpaceIdRoute
   TagTagIdRoute: typeof TagTagIdRoute
   ViewViewIdRoute: typeof ViewViewIdRoute
@@ -529,6 +542,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SpaceSpaceIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/post/$postId': {
+      id: '/post/$postId'
+      path: '/post/$postId'
+      fullPath: '/post/$postId'
+      preLoaderRoute: typeof PostPostIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/person/$did': {
       id: '/person/$did'
       path: '/person/$did'
@@ -621,6 +641,7 @@ const rootRouteChildren: RootRouteChildren = {
   LabLabIdRoute: LabLabIdRoute,
   MapMapIdRoute: MapMapIdRoute,
   PersonDidRoute: PersonDidRoute,
+  PostPostIdRoute: PostPostIdRoute,
   SpaceSpaceIdRoute: SpaceSpaceIdRoute,
   TagTagIdRoute: TagTagIdRoute,
   ViewViewIdRoute: ViewViewIdRoute,

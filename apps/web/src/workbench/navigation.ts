@@ -30,6 +30,9 @@ export function navigateToNode(
     case 'page':
       void navigate({ to: '/doc/$docId', params: { docId: nodeId } })
       break
+    case 'post':
+      void navigate({ to: '/post/$postId', params: { postId: nodeId } })
+      break
     case 'database':
       void navigate({ to: '/db/$dbId', params: { dbId: nodeId } })
       break

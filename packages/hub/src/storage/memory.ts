@@ -74,6 +74,7 @@ export const createMemoryStorage = (): HubStorage => {
   const shareLinkPreviewsById = new Map<string, ShareLinkPreviewRecord>()
   const nodeContainers = new Map<string, string>()
   const nodeVisibility = new Map<string, string>()
+  const nodeOwners = new Map<string, string>()
   const nodeChangesByHash = new Map<string, SerializedNodeChange>()
   const nodeChangesByRoom = new Map<string, SerializedNodeChange[]>()
   const files = new Map<string, { data: Uint8Array; meta: FileMeta }>()
@@ -282,6 +283,32 @@ export const createMemoryStorage = (): HubStorage => {
 
   const getNodeVisibility = async (nodeId: string): Promise<string | null> =>
     nodeVisibility.get(nodeId) ?? null
+
+  const setNodeOwnerIfAbsent = async (nodeId: string, ownerDid: string): Promise<boolean> => {
+    if (!nodeId || !ownerDid || ownerDid === 'did:key:anonymous') return false
+    if (nodeOwners.has(nodeId)) return false
+    nodeOwners.set(nodeId, ownerDid)
+    return true
+  }
+
+  const getNodeOwner = async (nodeId: string): Promise<string | null> =>
+    nodeOwners.get(nodeId) ?? null
+
+  // Mirrors the sqlite ordering exactly: lamport ascending, hash breaking ties.
+  const getNodeCreatorDid = async (nodeId: string): Promise<string | null> => {
+    let earliest: SerializedNodeChange | null = null
+    for (const change of nodeChangesByHash.values()) {
+      if (change.nodeId !== nodeId) continue
+      if (
+        !earliest ||
+        change.lamportTime < earliest.lamportTime ||
+        (change.lamportTime === earliest.lamportTime && change.hash < earliest.hash)
+      ) {
+        earliest = change
+      }
+    }
+    return earliest?.authorDid ?? null
+  }
 
   const insertShareLink = async (record: ShareLinkRecord): Promise<void> => {
     shareLinksById.set(record.linkId, { ...record })
@@ -832,6 +859,7 @@ export const createMemoryStorage = (): HubStorage => {
     shareLinksById.clear()
     nodeContainers.clear()
     nodeVisibility.clear()
+    nodeOwners.clear()
     nodeChangesByHash.clear()
     nodeChangesByRoom.clear()
     roomChangeMappings.length = 0
@@ -1078,6 +1106,9 @@ export const createMemoryStorage = (): HubStorage => {
     listContainedNodes,
     setNodeVisibility,
     getNodeVisibility,
+    setNodeOwnerIfAbsent,
+    getNodeOwner,
+    getNodeCreatorDid,
     revokeGrant,
     insertShareLink,
     getShareLink,

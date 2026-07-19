@@ -135,6 +135,14 @@ const CLAIMS: Claim[] = [
     enforcedBy: 'packages/data/src/portability/portability.test.ts'
   },
   {
+    id: 'commons-no-per-member-pricing',
+    source:
+      'Charter §Commons/No ground rent — "no per-member pricing on communities: hosting is ' +
+      'billed on the operations we run, never on the size of the audience you brought" (0359)',
+    backing: 'enforced',
+    enforcedBy: 'packages/entitlements/src/plans.test.ts'
+  },
+  {
     id: 'economics-anchor-tenancy-parity',
     source:
       'Charter §Commons/No ground rent + ECONOMICS.md §5 — "xNet Cloud runs the same hub ' +

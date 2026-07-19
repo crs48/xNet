@@ -48,6 +48,7 @@ import { useSpaceMembers, useSpaces } from '../hooks/useSpaces'
 import { navigateToNode } from '../workbench/navigation'
 import { usePublishTitle } from '../workbench/route-title'
 import { type TabNodeType } from '../workbench/state'
+import { CommunityFeed } from './community/CommunityFeed'
 import { ShareDialog } from './ShareDialog'
 
 const KIND_META: Record<SpaceKind, { icon: LucideIcon; label: string }> = {
@@ -346,6 +347,7 @@ export function SpaceHomeView({ spaceId }: { spaceId: string }) {
   const Vis = VISIBILITY_META[space.visibility]
   const VisIcon = Vis.icon
   const isPersonal = space.kind === 'personal'
+  const isCommunity = space.kind === 'community'
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-6">
@@ -418,6 +420,17 @@ export function SpaceHomeView({ spaceId }: { spaceId: string }) {
           onUpdate={updateSpace}
           onClose={() => setEditing(false)}
         />
+      )}
+
+      {/*
+        A community leads with its discussion — the feed sits above the member
+        list and content, because what a community is *for* is the conversation
+        (exploration 0359). Other Space kinds keep the content-first layout.
+      */}
+      {isCommunity && (
+        <Section title="Discussion">
+          <CommunityFeed spaceId={spaceId} viewerDid={me?.did ?? null} />
+        </Section>
       )}
 
       {!isPersonal && (

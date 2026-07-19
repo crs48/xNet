@@ -42,6 +42,7 @@
     "@xnetjs/devkit": "workspace:*",
     "@xnetjs/identity": "workspace:*",
     "@xnetjs/plugins": "workspace:*",
+    "@xnetjs/publish": "workspace:*",
     "@xnetjs/runtime": "workspace:*",
     "@xnetjs/sqlite": "workspace:*",
     "@xnetjs/sync": "workspace:*",
@@ -50,6 +51,7 @@
   },
   "devDependencies": {
     "tsup": "^8.0.0",
+    "yjs": "^13.6.0",
     "tsx": "^4.0.0",
     "typescript": "^5.4.0",
     "vitest": "^4.0.0"

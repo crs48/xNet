@@ -152,6 +152,17 @@ things you would own anyway. The refused rents, each with its receipt:
   never phones home to us. **Architectural:** root [`LICENSE`](../LICENSE),
   [`packages/sync/src/change.ts`](../packages/sync/src/change.ts),
   [`packages/entitlements/`](../packages/entitlements/).
+- **No per‑member pricing on communities.** Hosting is billed on the
+  operations we run — storage, concurrency, AI — never on the size of the
+  audience you brought. A per‑member meter would charge you for access to a
+  relationship we did not build, and would make your own growth the thing you
+  pay us for. **Enforced:** the `community` plan is flat‑billed (`seats: 0`,
+  meaning *not seat‑metered*) and `withSeats()` refuses to attach a seat count
+  to it, so the meter cannot return through an override
+  ([`packages/entitlements/src/plans.ts`](../packages/entitlements/src/plans.ts));
+  the receipt is pinned by `never seat-meters the community plan` in
+  [`packages/entitlements/src/plans.test.ts`](../packages/entitlements/src/plans.test.ts)
+  (exploration 0359).
 - **No behavioural surplus.** Restates §1 as a refused rent. **Enforced:**
   [`scripts/check-humane-patterns.mjs`](../scripts/check-humane-patterns.mjs)
   (`surplus` rules).

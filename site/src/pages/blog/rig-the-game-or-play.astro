@@ -1,0 +1,527 @@
+---
+import Base from '../../layouts/Base.astro'
+import Nav from '../../components/sections/Nav.astro'
+import Footer from '../../components/sections/Footer.astro'
+import SeriesNav from '../../components/blog/SeriesNav.astro'
+import BoardHero from '../../components/blog/BoardHero.astro'
+import Byline from '../../components/blog/Byline.astro'
+import HonestBoard from '../../components/blog/HonestBoard.astro'
+import Mermaid from '../../components/blog/Mermaid.astro'
+import { postBySlug, formatPostDate } from '../../data/blog'
+
+const post = postBySlug('rig-the-game-or-play')!
+---
+
+<Base title={`${post.title} — xNet`} description={post.description}>
+  <Nav />
+
+  <main>
+    <BoardHero
+      title={post.title}
+      deck={post.description}
+      date={formatPostDate(post.pubDate)}
+      readingMinutes={post.readingMinutes}
+      tags={post.tags}
+    />
+
+    <article
+      class="prose prose-lg mx-auto max-w-3xl px-6 py-16 dark:prose-invert prose-headings:tracking-tight prose-a:text-amber-600 dark:prose-a:text-amber-400"
+    >
+      <Byline post={post} />
+
+      <p>
+        Everyone has a Monopoly story, and it is always the same story. Someone
+        flipped the board. Someone went to bed. The game was abandoned at
+        half past eleven with two players bankrupt, one player quietly reading
+        a book, and a winner counting notes on a board where nothing further
+        was going to happen. Nobody’s Monopoly story ends <em>and then we
+        finished it, and it was wonderful</em>.
+      </p>
+      <p>
+        Hold onto that memory, because it is evidence, and it is evidence about
+        something much larger than a board game. Then consider where the board
+        came from.
+      </p>
+
+      <h2>The rule set that was supposed to lose</h2>
+      <p>
+        On 5 January 1904 the United States Patent Office granted patent number
+        748,626 to a stenographer, poet, actress and committed Georgist from
+        Illinois named Elizabeth Magie. Read the patent today and the first
+        thing you notice is how flatly it describes what you already know:
+      </p>
+      <blockquote>
+        <p>
+          “The object of the game is to obtain as much Wealth or money as
+          possible, the player having the greatest amount of wealth at the end
+          of the game … being the winner.”
+        </p>
+      </blockquote>
+      <p>
+        That is the whole object, as filed. No mention of landlords, or
+        injustice, or the single tax. If the 1904 patent were the only surviving
+        document, you would conclude that Magie set out to invent exactly the
+        game we play.
+      </p>
+      <p>
+        But it isn’t the only document, and the other two are the interesting
+        ones. Two years <em>earlier</em>, in the autumn 1902 issue of the
+        <em>Single Tax Review</em>, she had already explained what the thing was
+        for: “It is a practical demonstration of the present system of
+        land-grabbing with all its usual outcomes and consequences.” Her hope
+        was pedagogical and, read now, rather touching — that if children could
+        “once see clearly the gross injustice of our present land system,” they
+        would grow up and remedy it. And twenty years <em>later</em>, when she
+        filed a second patent in 1924, she wrote the purpose into the
+        specification itself: the game was meant “not only to afford amusement
+        to the players, but to illustrate to them how under the present or
+        prevailing system of land tenure, the landlord has an advantage over
+        other enterprises and single tax would discourage land speculation.”
+      </p>
+      <p>
+        So the intent is documented, in her own words, on both sides of the
+        patent that doesn’t mention it. And the game itself is the one you have
+        played: buy land, build on it, charge rent to anyone unlucky enough to
+        arrive, and keep charging until they have nothing left. The board art
+        carries the slogan <span class="font-mono text-sm">LABOR UPON MOTHER
+        EARTH PRODUCES WAGES</span>. Magie was a follower of Henry George, who
+        argued that the value of land is created by the community around it and
+        collected by whoever happens to hold the deed. She built a machine to
+        make that feeling unmistakable — by doing it to you, over an evening,
+        with your friends.
+      </p>
+      <p>
+        It worked. That is the whole problem. The demonstration was so effective
+        that it detached from the lesson and travelled on its own — through
+        Quaker households in Atlantic City, through college campuses, hand-copied
+        and house-ruled for thirty years, until a version reached Charles Darrow,
+        who sold it to Parker Brothers in 1935 as his own Depression-era
+        invention. Parker Brothers bought Magie’s later patent separately, for
+        $500, and had shelved her game within a year. It has since sold
+        somewhere north of thirty million copies under the name of the thing it
+        was built to indict.
+      </p>
+      <p>
+        You will read, in a lot of places, that Magie wrote <em>two</em> sets of
+        rules so that players could try both and work out for themselves which
+        was better. Be careful with that story — the patents contain no such
+        thing, and we will come back to what is and isn’t documented at the foot
+        of this essay. What does exist is a 1932 edition, published by the
+        Adgame Company, that prints two ways to play side by side. One is called
+        <em>The Landlord’s Game</em>, and its object is “to become the Big
+        Landlord, which title he wins when he has accumulated $2,000.” The other
+        is called <em>Prosperity</em>, and its finish is a genuinely strange
+        thing to find on a board-game rules sheet:
+      </p>
+      <blockquote>
+        <p>
+          “When the player with the least money has $7000 (double his original
+          capital), Prosperity is achieved. The game may continue at the
+          pleasure of the players.”
+        </p>
+      </blockquote>
+      <p>
+        Read that twice. You do not win. <em>Prosperity is achieved</em> — a
+        state of the whole table, measured at its poorest member — and then the
+        game simply carries on for as long as everybody is enjoying it. Hold
+        onto that last sentence; we will need it later.
+      </p>
+      <p>
+        What is not in doubt is the direction of travel. Of the two ways to
+        play, the one that spread, and kept spreading, and is in a cupboard in
+        your house right now, is the one where you win by bankrupting your
+        friends.
+      </p>
+
+      <h2>A game that stops being a game</h2>
+      <p>
+        Set the politics aside for a moment and look at Monopoly the way a
+        working game designer would. It is, by the standards of the craft, a
+        catalogue of things you are taught not to do.
+      </p>
+      <p>
+        Its central engine is a <strong>positive feedback loop</strong>: money
+        buys property, property collects rent, rent buys more property. The
+        advantage of being ahead is that you get further ahead. Designers call
+        the result the <em>runaway leader</em> problem, and modern games are
+        built with elaborate machinery to prevent it — catch-up mechanics,
+        rubber-banding, escalating costs, turn order that favours the trailing
+        player. There is a long-running list on BoardGameGeek of nothing but
+        solutions to this one problem. Monopoly has none of them. It is, in a
+        precise sense, a machine for converting a small early lead into a
+        certainty.
+      </p>
+      <p>
+        It has <strong>player elimination</strong>, which means the punishment
+        for losing is being made to watch. And it has what is politely called a
+        long endgame and honestly called a dead zone: the stretch — often an
+        hour, sometimes two — between the moment the outcome is actually decided
+        and the moment the rules admit it. During that stretch the dice are
+        still rolling and nothing is being decided. The players who are out have
+        no moves. The players who are nearly out have no moves that matter. The
+        player who is winning is performing an arithmetic chore.
+      </p>
+      <p>
+        This is what a rigged game feels like from the inside, and the feeling
+        arrives long before the injustice does. You do not resent the winner. You
+        are just no longer playing anything. The decisions have drained out of
+        the evening and left the procedure behind.
+      </p>
+
+      <Mermaid
+        caption="A dominant strategy that terminates its own game."
+        code={`flowchart LR
+  P["Play"] --> V["Variety:<br/>surprising moves"]
+  V --> P
+  P --> R["Rig"]
+  R --> C["Advantage<br/>compounds"]
+  C --> E["Players leave<br/>or are removed"]
+  E --> S["Search stops.<br/>No new moves."]
+  S -.->|"a board nobody<br/>is playing on"| R`}
+      />
+
+      <h2>And then we make it worse on purpose</h2>
+      <p>
+        Here is the part that changed how I think about all of this.
+      </p>
+      <p>
+        Almost nobody plays Monopoly by its actual rules, and the two most
+        common house rules both push in the same direction.
+      </p>
+      <p>
+        The first: the official rules contain <strong>no jackpot on Free
+        Parking</strong>. Hasbro’s rulebook could hardly be blunter — a player
+        landing there “does not receive any money, property or reward of any
+        kind. This is just a ‘free’ resting place.” The near-universal table
+        custom of pooling fines and taxes in the middle and paying them out to
+        whoever lands on the corner is an invention, and what it invents is a
+        random cash injection — which lengthens the game and feeds the
+        snowball, because a windfall is worth far more to a player who already
+        owns things to build on.
+      </p>
+      <p>
+        The second, and the important one: the official rules
+        <strong>require an auction</strong>. “If you do not wish to buy the
+        property, the Banker sells it at auction to the highest bidder,” and —
+        this is the good part — “any player, including the one who declined the
+        option to buy it at the printed price, may bid. Bidding may start at any
+        price.” The property does not stay in the box. It goes to whoever wants
+        it most, immediately, at a price the table sets. Most people skip this
+        entirely. Many have never heard of it.
+      </p>
+      <p>
+        Think about what those two edits do together. The auction is the
+        game’s <em>only</em> real competitive mechanism: the one place where
+        judgement beats dice, where you must price an asset against your rivals
+        under cash-flow pressure, and where a player who is behind can strike.
+        The Free Parking jackpot is pure unearned windfall. So the two things
+        people reliably do to Monopoly are <strong>remove the competition and
+        add the extraction</strong> — and the result is the four-hour slog
+        everyone complains about, which is then blamed on the box.
+      </p>
+      <p>
+        That is not a fact about board games. That is a fact about people, and
+        it is the whole essay in miniature. Nobody sits down on a Tuesday and
+        decides to rig a market. They make a series of individually reasonable
+        edits — this bidding process is a hassle, this default is more
+        convenient, this integration should just work for our own products — and
+        each edit quietly removes a place where someone could have competed, or
+        quietly adds a place where value arrives without being earned. Rigging
+        is rarely a decision. It is an accumulation of house rules.
+      </p>
+
+      <h2>Boredom is a measurement</h2>
+      <p>
+        The instinct to treat “this isn’t fun any more” as a soft complaint is
+        wrong. In a system with many participants, fun is a fairly precise
+        proxy for something quite hard-edged: whether the system is still
+        generating moves nobody had thought of yet.
+      </p>
+      <p>
+        In 1968 Friedrich Hayek gave a lecture with the deliberately unromantic
+        title <em>Competition as a Discovery Procedure</em>, and the line that
+        matters is this one: competition, he said, is “a procedure for
+        discovering facts which, if the procedure did not exist, would remain
+        unknown or at least would not be used.” His deeper point is sharper than
+        the quotation. He thought the textbook idea of “perfect competition” —
+        every actor knowing every price, every cost, every preference — actually
+        describes a world in which competition has become <em>pointless</em>,
+        because there is nothing left to find out. Competition earns its keep
+        precisely because everyone is ignorant. It is a search.
+      </p>
+      <p>
+        A monopoly is what a search looks like when it stops. Not a search that
+        concluded — a search that was switched off, with most of the space
+        unvisited. And the monopolist is not merely indifferent to continuing
+        it; they are structurally disinclined. Kenneth Arrow made the argument
+        in 1962 and it has been awkward for incumbents ever since: a firm with a
+        monopoly has <em>less</em> incentive to innovate than a firm facing
+        competition, because its innovation mostly cannibalises its own existing
+        profits, while a challenger’s innovation displaces somebody else’s. The
+        economists call it the replacement effect. Anyone who has watched a
+        dominant product go quiet for five years has seen it.
+      </p>
+      <p>
+        So when a market stops producing surprising things — when every app
+        looks like every other app, when the interesting move is always the one
+        nobody is allowed to make — that is not a mood or a nostalgia. It is a
+        reading off an instrument. The boredom is the search having stopped.
+        (There is a version of this argument that runs through soil rather than
+        strategy — a field of identical corn is a search that stopped too. We
+        made it in <a href="/blog/the-forest-and-the-field">The Forest and the
+        Field</a>.)
+      </p>
+
+      <h2>The honest shape of the curve</h2>
+      <p>
+        Now the part that costs us something, because an essay that only
+        collects supporting evidence is an advertisement.
+      </p>
+      <p>
+        “Competition good, monopoly bad” is not what the economics says. The
+        best-known empirical treatment — Aghion, Bloom, Blundell, Griffith and
+        Howitt, in 2005 — found the relationship between competition and
+        innovation is an <strong>inverted U</strong>. Too little competition
+        suppresses innovation, as Arrow predicted. But so does too much: in a
+        market atomised to the point where margins are gone, nobody can fund the
+        attempt, and firms far enough behind stop trying at all because they
+        cannot see a path to catching up. The most inventive place on the curve
+        is the middle, where rivals are close enough to each other that pulling
+        ahead looks achievable — what the authors call escaping competition.
+      </p>
+      <p>
+        Schumpeter deserves his hearing too. His later argument was that scale
+        and market power are what make serious innovation affordable: someone
+        has to absorb the risk and fund the laboratory. But note what his
+        defence actually defends. It is a defence of <em>temporary</em> monopoly,
+        won by being first and held only until someone does better — monopoly as
+        the prize in a game still being played. It is not a defence of a
+        position that cannot be taken from you. Those are opposite things
+        wearing the same word.
+      </p>
+      <p>
+        So the claim worth making is narrower than the one that would be more
+        fun to write. It is not that competition is always good, or that scale
+        is bad, or that every large company is a parasite. It is this:
+        <strong>a monopoly that cannot be lost is the worst point on the curve,
+        and it is the point that every dominant strategy walks toward on its
+        own.</strong> The trouble with rent is not only that it is unfair. It is
+        that it is an absorbing state. Once you are in it, the cheapest way to
+        stay there is to keep the game from being played.
+      </p>
+
+      <h2>The third rule set</h2>
+      <p>
+        Which brings us back to the board, and to the possibility Magie’s
+        admirers wanted so badly to be true.
+      </p>
+      <p>
+        In 1986 the philosopher James Carse opened a small strange book with a
+        distinction that has been quietly rearranging people’s thinking ever
+        since: “A finite game is played for the purpose of winning, an infinite
+        game for the purpose of continuing the play.” Finite games have fixed
+        rules, fixed players and an ending. Infinite games have rules too — but
+        the rules exist to stop the game from ending, and they get changed
+        whenever they threaten to.
+      </p>
+      <p>
+        Carse was writing in 1986. But look again at that 1932 rules sheet,
+        which beat him to it by half a century and without any of the
+        vocabulary: <em>the game may continue at the pleasure of the players.</em>
+        That is an infinite game, written down on a piece of cardboard, as a
+        finish condition. The Landlord’s Game ends when one person has $2,000
+        and everyone else is finished. Prosperity doesn’t end at all; it reaches
+        a state, and then defers to whether people are still having a good time.
+      </p>
+      <p>
+        That is the real difference between the two ways of playing Magie’s
+        board, and it is not fundamentally about money. The monopolist rule set
+        is finite-game logic taken to its conclusion: you win by ending the
+        game, and the game ends because everyone else has been removed from it.
+        The other is infinite-game logic: you are trying to keep enough players
+        at the table that the thing keeps generating moves — including the moves
+        that beat you.
+      </p>
+      <p>
+        But cooperation is not a free win, and this is where the nice version of
+        the story has to be given up. Cooperative games have their own way of
+        collapsing, and it has a name: <strong>quarterbacking</strong>. In a
+        game like <em>Pandemic</em>, where everyone can see everything, one
+        strong player can simply compute the whole table’s optimal move, and the
+        others become an audience holding cards. Everybody wins and nobody
+        played. The best cooperative designs — <em>Spirit Island</em> is the
+        usual example — solve it structurally, by giving each player enough
+        private complexity that no single person can solve the table.
+      </p>
+      <p>
+        Which tells you the failure is not really about competition or
+        cooperation at all. Monopoly’s dead zone and co-op quarterbacking are
+        the same disease with opposite politics: <strong>the game collapsed
+        into one player and an audience.</strong> Every rule set has a way of
+        doing that. The design question is never “are we competing or
+        cooperating” — it is “which collapse are we guarding against, and what
+        in the rules does the guarding?”
+      </p>
+      <p>
+        Communities that get this right tend to arrive at the answer the hard
+        way, by writing rules that keep the table populated: who may join, who
+        watches, what happens on a first offence, who gets to change the rules.
+        We wrote about one such place — a members-only music library that
+        rebuilt most of Elinor Ostrom’s commons principles from scratch without
+        having read her — in <a href="/blog/the-worlds-greatest-record-store">The
+        World’s Greatest Record Store</a>.
+      </p>
+
+      <h2>How anyone knows any of this</h2>
+      <p>
+        There is one more thing about Lizzie Magie, and it is the part I find
+        hardest to shake.
+      </p>
+      <p>
+        For roughly forty years, the public story of Monopoly was the one Parker
+        Brothers printed: an unemployed salesman in Depression-era Pennsylvania
+        invented a game at his kitchen table and saved his family. Magie gave
+        interviews in January 1936 — she brought out her original boards, showed
+        them to the <em>Washington Post</em> and the <em>Washington Evening
+        Star</em>, and said plainly that this was hers. It changed nothing. The
+        company that owned the story had no reason to tell a different one, and
+        no obligation to.
+      </p>
+      <p>
+        What eventually changed it was a lawsuit, and not even one about her. In
+        1974 Parker Brothers sent a cease-and-desist to Ralph Anspach, an
+        economics professor who had made a game called Anti-Monopoly. He fought
+        it, and the litigation ground on for nine years, through a reversal, a
+        remand and a second appeal, until the Supreme Court declined to hear it
+        in 1983. Building his defence — that the trademark should not stand
+        because the game predated the 1935 purchase and had circulated for
+        thirty years as folk property — Anspach went looking for the game’s real
+        lineage, and found Magie’s patents, and the Quaker households, and the
+        hand-copied prehistory. The histories written since, Mary Pilon’s
+        especially, rest heavily on what he dug up. Essentially everything the
+        public now knows about the origin of the best-selling board game in
+        history surfaced because a large company sued a small one and the small
+        one would not settle.
+      </p>
+      <p>
+        Sit with the general form of that. <strong>The rules of a rigged game
+        are usually exposed by someone who got hurt and would not go away — not
+        by the operator’s transparency report.</strong> Nobody with the
+        documents volunteers them. The information asymmetry is not a bug in
+        the arrangement; it is a load-bearing part of it. Which is an
+        uncomfortable thing to notice if you are, as we are, a company writing
+        an essay about how honest it intends to be.
+      </p>
+
+      <h2>A court can name the rig without ending it</h2>
+      <p>
+        A modern example, in case the board game feels like a long way from
+        anything.
+      </p>
+      <p>
+        On 5 August 2024, in a 277-page opinion, Judge Amit Mehta wrote:
+        “Google is a monopolist, and it has acted as one to maintain its
+        monopoly.” The case turned substantially on default placement — the
+        payments that made Google the pre-set search engine on other people’s
+        devices and browsers. Not a better product forced on anyone: a position
+        purchased and held. The rig, found as fact, in a federal court.
+      </p>
+      <p>
+        And then the remedies were largely procedural. No divestiture, no
+        structural break-up. Which is the detail worth carrying away, and the
+        reason this section is not a triumphant one: a court can determine that
+        the game was rigged and still not restore the thing that was lost. The
+        lost thing was never the market share. It was fifteen years of moves
+        nobody got to make — the search engines not started, the ranking ideas
+        not tried, because the position at the top was not actually available to
+        compete for. You cannot order those into existence afterwards. The
+        dead zone does not get replayed.
+      </p>
+      <p>
+        This is why treating monopoly as purely a fairness problem
+        under-describes it. Unfairness can, in principle, be compensated. A
+        search that did not happen cannot be.
+      </p>
+
+      <h2>So: our rules, published in advance</h2>
+      <p>
+        We build a company, and one of the awkward facts about writing this
+        essay is that every incentive described in it applies to us. The
+        temptation to rig arrives dressed as reasonableness — as convenience,
+        as fairness to the people who do the work, as a default that would just
+        be better for everyone. It never arrives labelled.
+      </p>
+      <p>
+        The only defence we have found is the one that works on house rules:
+        write the rules down while nobody is losing, and make changing them
+        expensive. Ours are in
+        <a href="https://github.com/crs48/xNet/blob/main/docs/CHARTER.md">the
+        Charter</a>, and every new way we might make money has to pass four
+        tests before it ships.
+      </p>
+      <p>
+        Three of them ask whether a lane is fair to you. The
+        <strong>improvement test</strong>: does the margin pay for labour,
+        capital or operations we actually provide — or for access to something
+        you would own anyway? The <strong>BATNA test</strong>: after this ships,
+        is self-hosting still a real, undegraded alternative? The
+        <strong>vanish test</strong>: if this company disappeared tomorrow, does
+        what you paid for survive us?
+      </p>
+      <p>
+        The fourth one is different, and it is the one this essay is really
+        about. The <strong>sleep test</strong> asks: if a well-funded competitor
+        released our entire feature set as open source tomorrow, which of our
+        revenue lines would still be there? A business whose honest answer is
+        <em>none</em> is not a business, it is a position — and a company
+        defending a position will eventually break every promise in its charter
+        rather than fall off it. We would rather find that out now, on paper,
+        than discover it in a bad quarter.
+      </p>
+      <p>
+        The concrete version is unglamorous, and most of it is just
+        <a href="/blog/the-right-to-say-no">the right to leave</a> made
+        mechanical. Your data leaves in a signed, verifiable bundle, free, and
+        a fork is a complete replica rather than a reference. Your keys are yours and work on any hub. The wire format and
+        the hub are MIT-licensed, so a hub you run yourself never phones home to
+        us. There is no take rate on direct sales of your work. If we ever build
+        an index, it has to be reproducible by somebody else running the same
+        crawler, because an index you cannot reproduce is a chokepoint no matter
+        how open the format is.
+      </p>
+      <p>
+        None of that is charity, and we should be honest that it is not
+        primarily generosity either. It is a bet that <a
+        href="https://github.com/crs48/xNet/blob/main/docs/ECONOMICS.md">the
+        slope is a better place to stand than the cliff</a>: that being
+        genuinely better is a position you can lose gradually and win back,
+        whereas being unavoidable is a position you hold entirely until you
+        don’t. Rent fails all at once. Improvement fails a bit at a time. You
+        only lose sleep on cliffs.
+      </p>
+      <p>
+        And underneath the arithmetic there is a plainer reason, which is the
+        one I actually believe. The reason to keep a game honest is not that
+        rigging it is wicked. It is that a rigged game is not worth playing —
+        not even for the person winning. What the rig destroys first is the
+        thing everybody came for: the creative plays, the moves nobody
+        anticipated, the evolution that only happens when the outcome is
+        genuinely unsettled. Magie built a board to show people something about
+        land. What it demonstrates just as clearly, to anyone who has sat
+        through the last hour of a game, is that the winning strategy and the
+        good evening are two different things, and the first one eats the
+        second.
+      </p>
+      <p>
+        You can rig the game, or you can play. It turns out you cannot do both,
+        because a rigged game is not a game any more — it is just an
+        arrangement, and the dice on the table are decoration.
+      </p>
+
+      <HonestBoard />
+    </article>
+  </main>
+
+  <SeriesNav slug={post.slug} />
+  <Footer />
+</Base>

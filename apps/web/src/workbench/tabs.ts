@@ -40,6 +40,7 @@ export interface TabViewEntry {
 
 export const TAB_VIEWS: Record<TabNodeType, TabViewEntry> = {
   page: { label: 'Page', icon: FileText, toRoute: (id) => `/doc/${id}` },
+  post: { label: 'Topic', icon: MessageSquare, toRoute: (id) => `/post/${id}` },
   database: { label: 'Database', icon: Database, toRoute: (id) => `/db/${id}` },
   canvas: { label: 'Canvas', icon: Layout, toRoute: (id) => `/canvas/${id}` },
   dashboard: {
