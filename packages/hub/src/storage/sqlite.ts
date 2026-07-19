@@ -145,6 +145,22 @@ const SCHEMA_SQL = `
     visibility TEXT NOT NULL
   );
 
+  -- Node ownership, learned from the relay path (exploration 0358 security
+  -- follow-up). doc_meta.owner_did cannot carry this: it is written ONLY by
+  -- the optional index-update message, which is off by default, so in
+  -- practice no Space ever had a recorded owner. Ownership must not depend on
+  -- a best-effort search-index publisher, so it gets its own table, written
+  -- from the authenticated node-change relay.
+  --
+  -- FIRST WRITER WINS: there is no UPDATE path. The DID that first relays a
+  -- node is its creator (a node is authored locally, then synced), so a later
+  -- DID that merely learns the node id can never seize ownership.
+  CREATE TABLE IF NOT EXISTS node_owner (
+    node_id TEXT PRIMARY KEY,
+    owner_did TEXT NOT NULL,
+    recorded_at INTEGER NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS backups (
     key TEXT PRIMARY KEY,
     doc_id TEXT NOT NULL,
@@ -965,6 +981,22 @@ export const createSQLiteStorage = (
     `),
     clearNodeVisibility: db.prepare('DELETE FROM node_visibility WHERE node_id = ?'),
     getNodeVisibility: db.prepare('SELECT visibility FROM node_visibility WHERE node_id = ?'),
+    // DO NOTHING, never DO UPDATE — first writer wins is the security property.
+    setNodeOwnerIfAbsent: db.prepare(`
+      INSERT INTO node_owner (node_id, owner_did, recorded_at)
+      VALUES (?, ?, ?)
+      ON CONFLICT(node_id) DO NOTHING
+    `),
+    getNodeOwner: db.prepare('SELECT owner_did FROM node_owner WHERE node_id = ?'),
+    // Earliest change for a node = its creation. Rides
+    // idx_node_changes_node(node_id, lamport_time); hash breaks ties
+    // deterministically so concurrent lamports resolve the same way everywhere.
+    getNodeCreatorDid: db.prepare(`
+      SELECT author_did FROM node_changes
+      WHERE node_id = ?
+      ORDER BY lamport_time ASC, hash ASC
+      LIMIT 1
+    `),
     insertShareLink: db.prepare(`
       INSERT INTO share_links
         (link_id, doc_id, doc_type, role, secret_hash, created_by_did, label, expires_at, max_uses, use_count, disabled, created_at)
@@ -2070,6 +2102,21 @@ export const createSQLiteStorage = (
     return rows.map((row) => row.node_id)
   }
 
+  const setNodeOwnerIfAbsent = async (nodeId: string, ownerDid: string): Promise<boolean> => {
+    if (!nodeId || !ownerDid || ownerDid === 'did:key:anonymous') return false
+    return stmts.setNodeOwnerIfAbsent.run(nodeId, ownerDid, Date.now()).changes > 0
+  }
+
+  const getNodeOwner = async (nodeId: string): Promise<string | null> => {
+    const row = stmts.getNodeOwner.get(nodeId) as { owner_did: string } | undefined
+    return row?.owner_did ?? null
+  }
+
+  const getNodeCreatorDid = async (nodeId: string): Promise<string | null> => {
+    const row = stmts.getNodeCreatorDid.get(nodeId) as { author_did: string } | undefined
+    return row?.author_did ?? null
+  }
+
   const setNodeVisibility = async (nodeId: string, visibility: string | null): Promise<void> => {
     if (visibility) stmts.setNodeVisibility.run(nodeId, visibility)
     else stmts.clearNodeVisibility.run(nodeId)
@@ -2356,6 +2403,7 @@ export const createSQLiteStorage = (
     'share_link_previews',
     'node_container',
     'node_visibility',
+    'node_owner',
     'awareness_state',
     'backups',
     'file_meta'
@@ -2701,6 +2749,9 @@ export const createSQLiteStorage = (
     listContainedNodes,
     setNodeVisibility,
     getNodeVisibility,
+    setNodeOwnerIfAbsent,
+    getNodeOwner,
+    getNodeCreatorDid,
     insertShareLink,
     getShareLink,
     listShareLinks,

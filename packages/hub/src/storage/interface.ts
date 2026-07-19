@@ -413,6 +413,33 @@ export type HubStorage = {
   /** A node's own visibility, or null when unset/inherited. */
   getNodeVisibility: (nodeId: string) => Promise<string | null>
 
+  // ─── Node ownership (exploration 0358 security follow-up) ──────────────────
+  // Learned from the authenticated `node-change` relay, NOT from `doc_meta`:
+  // `doc_meta.ownerDid` is written only by the optional `index-update` message
+  // (`enableSearchIndex`, off by default and set by no shipped app), so relying
+  // on it meant every Space was ownerless. Authorization must not depend on a
+  // best-effort search-index publisher having run.
+  /**
+   * Record `ownerDid` as the node's owner IFF no owner is recorded yet.
+   * Returns whether this call was the one that recorded it.
+   *
+   * FIRST WRITER WINS, deliberately: the creator is always the first DID to
+   * relay a node, so an existing owner is never overwritten and a DID that
+   * merely learns a node id cannot seize ownership. There is no update path.
+   */
+  setNodeOwnerIfAbsent: (nodeId: string, ownerDid: string) => Promise<boolean>
+  /** The recorded owner DID, or null when ownership was never observed. */
+  getNodeOwner: (nodeId: string) => Promise<string | null>
+  /**
+   * The author of the node's EARLIEST recorded change — i.e. whoever created
+   * it. Signatures are verified on ingest (`NodeRelayService.handleNodeChange`
+   * → `verifyChangeFast`), so this is attested, not self-declared.
+   *
+   * Covers nodes that synced before ownership was recorded, so the fix for
+   * ownerless Spaces needs no backfill migration.
+   */
+  getNodeCreatorDid: (nodeId: string) => Promise<string | null>
+
   insertShareLink: (record: ShareLinkRecord) => Promise<void>
   getShareLink: (linkId: string) => Promise<ShareLinkRecord | null>
   listShareLinks: (docId: string) => Promise<ShareLinkRecord[]>
