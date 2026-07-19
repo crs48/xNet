@@ -11,6 +11,13 @@
       "file": "routes/data.png",
       "status": "unchanged",
       "ssim": 1
+    },
+    {
+      "id": "home",
+      "label": "Home",
+      "file": "routes/home.png",
+      "status": "unchanged",
+      "ssim": 1
     }
   ],
   "electron": [],
