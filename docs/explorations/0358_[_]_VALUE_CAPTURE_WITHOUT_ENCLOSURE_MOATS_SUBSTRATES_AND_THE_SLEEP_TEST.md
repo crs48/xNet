@@ -1069,7 +1069,7 @@ fi
       `docs/VIBE.md`.
 - [x] Add `economics-anchor-tenancy-parity` and `economics-no-context-capture`
       to `packages/telemetry/test/charter-claims-ledger.test.ts`.
-- [ ] Add assertion 4 (hub version parity) to `scripts/check-cloud-boundary.sh`
+- [x] Add assertion 4 (hub version parity) to `scripts/check-cloud-boundary.sh`
       and extend its self-test.
 - [ ] Write `docs/LICENSING.md` — outstanding from 0345; MIT core /
       single-FSL-package / plugin allowlist, plus reopen tripwires. Record the
