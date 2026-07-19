@@ -10,14 +10,14 @@
       "label": "Data",
       "file": "routes/data.png",
       "status": "unchanged",
-      "ssim": 0.999926
+      "ssim": 0.999141
     },
     {
       "id": "discover",
       "label": "Discover",
       "file": "routes/discover.png",
       "status": "changed",
-      "ssim": 0.982968,
+      "ssim": 0.982183,
       "before": "before/routes/discover.png",
       "after": "routes/discover.png",
       "diff": "diff/routes/discover.png"
