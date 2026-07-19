@@ -129,6 +129,12 @@
       "runtimeExecutable": "python3",
       "runtimeArgs": ["-m", "http.server", "4392", "-d", "site/dist"],
       "port": 4392
+    },
+    {
+      "name": "site-dist-worktree-4393 (static)",
+      "runtimeExecutable": "python3",
+      "runtimeArgs": ["-m", "http.server", "4393", "-d", "site/dist"],
+      "port": 4393
     }
   ]
 }
