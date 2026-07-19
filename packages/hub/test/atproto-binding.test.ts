@@ -40,7 +40,7 @@ const makeFetch = (fixture: FetchFixture): typeof fetch =>
       if (fixture.recordStatus) return new Response('{}', { status: fixture.recordStatus })
       return new Response(
         JSON.stringify({
-          uri: `at://${PLC}/net.x.identity.binding/self`,
+          uri: `at://${PLC}/fyi.xnet.identity.binding/self`,
           value: fixture.record
         }),
         { status: 200 }

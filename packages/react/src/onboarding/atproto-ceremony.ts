@@ -6,7 +6,7 @@
  * dependency-light and unit-testable, the ceremony is *injected*: the host app
  * (apps/web, apps/electron) provides a `runAtprotoCeremony` that resolves to
  * the linked identity, and — after the xNet passkey identity is created — a
- * `writeBinding` that puts the signed `net.x.identity.binding` record into the
+ * `writeBinding` that puts the signed `fyi.xnet.identity.binding` record into the
  * user's repo. The onboarding machine wires the two around the existing
  * passkey-create step.
  */
@@ -20,7 +20,7 @@ export interface AtprotoCeremonyResult {
   displayName?: string
   /**
    * Finish the binding once the xNet identity exists: sign
-   * `net.x.identity.binding` with the new xNet key and `putRecord` it. Called
+   * `fyi.xnet.identity.binding` with the new xNet key and `putRecord` it. Called
    * with the freshly created xNet DID + signing key. Optional — a login-only
    * flow may skip writing the binding record.
    */

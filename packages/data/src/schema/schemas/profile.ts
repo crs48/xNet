@@ -56,7 +56,7 @@ export const ProfileSchema = defineSchema({
     /**
      * Linked ATProto identity (explorations 0301/0322/0337). These fields are
      * the xNet half of the bidirectional binding: the PDS half is the signed
-     * `net.x.identity.binding` record at `atprotoBindingUri`. Foreign DIDs are
+     * `fyi.xnet.identity.binding` record at `atprotoBindingUri`. Foreign DIDs are
      * represent-only — they never sign xNet data — and a handle renders as
      * "verified" only after the hub has resolved the DID document, fetched the
      * binding record from the canonical PDS, and checked the xNet signature.

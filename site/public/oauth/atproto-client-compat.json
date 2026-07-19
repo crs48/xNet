@@ -1,12 +1,12 @@
 {
-  "client_id": "https://xnet.fyi/oauth/atproto-client.json",
+  "client_id": "https://xnet.fyi/oauth/atproto-client-compat.json",
   "client_name": "xNet",
   "client_uri": "https://xnet.fyi",
   "logo_uri": "https://xnet.fyi/favicon.svg",
   "application_type": "web",
   "grant_types": ["authorization_code", "refresh_token"],
   "response_types": ["code"],
-  "scope": "atproto repo:fyi.xnet.identity.binding?action=create&action=update",
+  "scope": "atproto transition:generic",
   "token_endpoint_auth_method": "none",
   "redirect_uris": ["https://xnet.fyi/app/"],
   "dpop_bound_access_tokens": true
