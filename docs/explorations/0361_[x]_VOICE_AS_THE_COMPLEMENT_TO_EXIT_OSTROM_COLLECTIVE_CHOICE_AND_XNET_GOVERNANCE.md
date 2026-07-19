@@ -289,15 +289,15 @@ than one: the right to leave **and** the right to be heard on the record.
 
 ## Validation Checklist
 
-- [ ] Every rule in the §"rules that bind people" inventory appears in
+- [x] Every rule in the §"rules that bind people" inventory appears in
       `docs/RULE_CHANGES.md`'s in-scope list, or is explicitly excluded with a
       reason.
-- [ ] A non-contributor can find the path from the repo root in two clicks
+- [x] A non-contributor can find the path from the repo root in two clicks
       (README → GOVERNANCE → RULE_CHANGES).
-- [ ] The decision log contains at least one **declined** proposal — a log of
+- [x] The decision log contains at least one **declined** proposal — a log of
       only acceptances is marketing.
-- [ ] `GOVERNANCE.md` no longer justifies BDFL by exit alone.
-- [ ] The claims ledger fails if the decision log is deleted.
+- [x] `GOVERNANCE.md` no longer justifies BDFL by exit alone.
+- [x] The claims ledger fails if the decision log is deleted.
 
 ## References
 
