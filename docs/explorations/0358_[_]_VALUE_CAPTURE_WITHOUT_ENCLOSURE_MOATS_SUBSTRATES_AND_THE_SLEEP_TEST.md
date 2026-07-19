@@ -1080,7 +1080,7 @@ fi
 - [x] Cross-link 0336, 0349, 0351, 0196 from `docs/ECONOMICS.md`.
 - [x] Open a follow-on exploration on **voice** (Ostrom 3 and 7) as the
       complement to exit.
-- [ ] Changeset: docs + telemetry test-only → likely `--empty` for any
+- [x] Changeset: docs + telemetry test-only → likely `--empty` for any
       publishable package touched.
 
 ## Validation Checklist
