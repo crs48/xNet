@@ -2,6 +2,7 @@
   "name": "@xnetjs/editor",
   "version": "0.0.1",
   "description": "Collaborative editor for xNet with Tiptap",
+  "license": "MIT",
   "type": "module",
   "main": "./src/index.ts",
   "types": "./src/index.ts",

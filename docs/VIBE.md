@@ -80,6 +80,26 @@ document, and it is architectural, not rhetorical
 [`packages/identity/src/keys.ts`](../packages/identity/src/keys.ts), the
 charter's §Exit).
 
+## Integration you can walk out with
+
+There is a delightful kind of stickiness and an extractive kind, and they look
+identical from the inside. Devices that hand off, a graph that follows you,
+things that simply work together — that surplus is real and worth paying for.
+A toll on the position that makes them work is not. The two are separable, and
+this is the test that separates them:
+
+> **Build the surplus, then make every piece of it work identically against a
+> hub you do not run.** The integration is earned if it survives the user
+> leaving. If it degrades on exit, it was a toll wearing integration's
+> clothes.
+
+This is the cultivation-side twin of the Charter's refused rents: §Commons
+says what we will not charge for, and this says what we should build instead.
+It is also the harder discipline, because the tolled version is always cheaper
+to ship. When a feature only works well on our hosting, that is the signal to
+look again — see [`ECONOMICS.md`](./ECONOMICS.md) §3 for the running inventory
+of what currently travels and what does not.
+
 ## What this feels like in practice, in order
 
 1. **Calm first.** The venue is monochrome, hairline, unhurried. Richness

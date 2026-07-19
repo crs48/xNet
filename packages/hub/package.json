@@ -2,6 +2,7 @@
   "name": "@xnetjs/hub",
   "version": "0.0.1",
   "description": "xNet Hub - signaling, sync relay, backup, and query server",
+  "license": "MIT",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",

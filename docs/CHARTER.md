@@ -162,9 +162,23 @@ things you would own anyway. The refused rents, each with its receipt:
   ([`packages/hub/src/cli.ts`](../packages/hub/src/cli.ts)).
 - **A FRAND trademark.** The name never fences the code (see
   [`TRADEMARK.md`](../TRADEMARK.md)).
+- **No context capture.** Portability covers the *context*, not just the
+  bytes: an audience, share grants, and plugin licences travel with the
+  export. Data you can move while your standing stays behind is the moat we
+  refuse — a repository is portable, a contribution graph is not.
+  **Building:** the `.xnetpack` inventory in
+  [`docs/ECONOMICS.md`](./ECONOMICS.md) names what travels today and what does
+  not, and the `economics-no-context-capture` claim tracks the gap
+  (exploration 0358).
+- **No marketplace self‑preferencing.** xNet's own listings receive no ranking
+  preference over anyone else's, and delisting is limited to the grounds
+  enumerated in the public marketplace terms.
+  **Architectural:** the sovereign 0% BYO‑billing path and the MIT catalog mean
+  a self‑hoster can run their own marketplace
+  ([exploration 0196](./explorations/0196_[_]_PAID_PLUGIN_MARKETPLACE_MONETIZATION_AND_LICENSING.md)).
 
 Covenants are tested in down quarters, not up ones — so the test lives here,
-not in anyone's memory. **Every new revenue lane must pass three tests before
+not in anyone's memory. **Every new revenue lane must pass four tests before
 it ships:**
 
 1. **Improvement test** — the margin pays for labour, capital, or operations
@@ -173,15 +187,26 @@ it ships:**
    undegraded alternative.
 3. **Vanish test** — if xNet‑the‑company disappeared tomorrow, what the
    customer paid for (their data, their audience, their workflows) survives.
+4. **Sleep test** — if a well‑funded competitor shipped our entire feature set
+   as open source tomorrow, which revenue lines survive? A lane whose answer is
+   "none" is a cliff (exploration 0358).
+
+The first three ask whether a lane is fair to the user. The fourth asks whether
+it is durable for us, and it exists because those are not the same question:
+
+> _Rent fails all at once; improvement fails gradually. We take improvement
+> margins not only because rent is unfair, but because a company defending a
+> cliff will eventually break every other promise in this document to keep
+> from falling off it._
 
 A lane that fails any test is redesigned or refused. Exploration documents
-that propose a revenue lane should apply the three tests explicitly.
+that propose a revenue lane should apply the four tests explicitly.
 
 ---
 
 ## Cryptographic posture (post‑quantum)
 
-The change protocol is versioned at `CURRENT_PROTOCOL_VERSION = 3`, which defines
+The change protocol is versioned at `CURRENT_PROTOCOL_VERSION = 4`, which defines
 **hybrid** signatures (Ed25519 + ML‑DSA). That machinery is built and tested
 ([`packages/crypto/src/hybrid-signing.ts`](../packages/crypto/src/hybrid-signing.ts)),
 so post‑quantum protection is available, not theoretical.

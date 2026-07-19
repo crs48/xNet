@@ -135,6 +135,26 @@ const CLAIMS: Claim[] = [
     enforcedBy: 'packages/data/src/portability/portability.test.ts'
   },
   {
+    id: 'economics-anchor-tenancy-parity',
+    source:
+      'Charter §Commons/No ground rent + ECONOMICS.md §5 — "xNet Cloud runs the same hub ' +
+      'anyone else can run"; no Cloud-only hub fork, images pinned to immutable tags (0358)',
+    backing: 'architectural',
+    enforcedBy: 'scripts/check-cloud-boundary.sh'
+  },
+  {
+    id: 'economics-no-context-capture',
+    source:
+      'Charter §Commons/No ground rent — "portability covers the context, not just the bytes: ' +
+      'an audience, share grants, and plugin licences travel with the export" (0358)',
+    backing: 'building',
+    pending:
+      'The signed change log, blobs and Yjs docs travel in a .xnetpack, but share links and ' +
+      'grants are hub-managed (packages/hub/src/storage/, schemas/auth-exempt.ts) and do NOT, ' +
+      'and the DID-based subscriber list is unbuilt. Portable bytes, partly captive context — ' +
+      'the inventory is disclosed in docs/ECONOMICS.md §3. Ship: exploration 0234 Wave 3.'
+  },
+  {
     id: 'exit-reimport-roundtrip',
     source: 'the-right-to-say-no — "leave with everything" (a door that swings both ways)',
     backing: 'building',
