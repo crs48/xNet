@@ -42,10 +42,11 @@ The short version of why:
 - **The unpublish escape hatch is closed.** npm allows post-72-hour unpublish
   only under 300 downloads/week. `@xnetjs/core` currently pulls **2,120/week**
   (§Current State). Whatever that traffic is, it's above the threshold.
-- **A true 0.x requires a scope rename** — `@xnet/*` from `0.1.0`, which
-  appears to be free (`@xnet/core` → 404). This is the only mechanism that
-  actually delivers what was asked for, and it is not obviously wrong given
-  our stage. It is costed as a real option in §Options.
+- **A true 0.x requires a scope rename, and the good scope is unavailable.**
+  `@xnet` is **taken as an npm org** (confirmed by attempting to claim it).
+  The remaining options are `@xnetts/*` and `@xnetfyi/*` — both now secured by
+  us — neither of which reads as well as `@xnetjs/*`. The rename option is
+  therefore *held, not exercised*: see §The Namespace Landscape.
 - **0.x buys safety through total friction, not through signalling.** Under
   node-semver, `^0.2.3` and `~0.2.3` are *identical* ranges. 0.x doesn't
   communicate instability to a resolver; it just stops every minor from
@@ -127,6 +128,97 @@ inflation is a matter of public record.
 >
 > Registry `depends:` search returned a nonsense total and could not be used to
 > confirm zero dependents; treat "no real consumers" as probable but unproven.
+
+## The Namespace Landscape
+
+Renaming keeps coming up as the escape hatch, so it's worth mapping the actual
+territory rather than assuming. **Two npm namespaces get conflated constantly,
+and the distinction decides the whole question:**
+
+- **Unscoped package names** (`xnet`) — one flat global namespace.
+- **Scopes** (`@xnet/core`) — derived from an **org or user** name, a *separate*
+  namespace from unscoped packages.
+
+`@xnetjs/*` is a scope. We have never needed the unscoped name `xnet` for
+publishing, and taking it would not by itself give us `@xnet/*`.
+
+### What's actually where
+
+| Name | Kind | Status | Evidence |
+| --- | --- | --- | --- |
+| `@xnetjs/*` | scope | **ours, in use** | 18 packages, `@xnetjs/core` 24 versions |
+| `@xnet` | **org** | ❌ **taken** — cannot be claimed | attempted directly |
+| `@xnet/core` | package | 404 | registry |
+| `xnet` | unscoped pkg | ❌ taken — `camilotd` | 6 versions, 1.0.6 |
+| `@xnetts` | org | ✅ **ours** (secured) | claimed |
+| `@xnetfyi` | org | ✅ **ours** (secured) | claimed |
+
+The `xnet` package itself:
+
+| Field | Value |
+| --- | --- |
+| Latest | `1.0.6` |
+| Created | 2019-10-24 |
+| Last published | **2022-05-25** (~4 years ago, not 7) |
+| Maintainer | `camilotd` &lt;camilotd1999@gmail.com&gt; |
+| Repository | **none declared** |
+| Description | "## Building bridges between languages and architectures" |
+| **Downloads** | **1 / week** |
+
+> 💡 **Hypothesis worth testing: the `xnet` package may be what blocks the
+> `@xnet` org.** `@xnet/core` returns 404 (nothing published) yet the org name
+> can't be claimed. npm is known to reserve org names that collide with
+> existing unscoped package names, to prevent typosquatting confusion. If
+> that's the mechanism here, then **acquiring the `xnet` package would also
+> unlock the `@xnet` scope** — which would make acquisition worth
+> substantially more than the name alone.
+>
+> ⚠️ Unverified. Could be a squatter, a reserved word, or an unrelated
+> account. Confirm with npm support before valuing the acquisition.
+
+### Acquiring `xnet`
+
+A dormant package with 1 download/week and a reachable maintainer email is
+close to the best case for a name request, but expectations should be set
+honestly:
+
+- **The clean path is voluntary transfer**, not dispute: the owner runs
+  `npm owner add <our-user> xnet` and then removes themselves. Fast, no npm
+  involvement, entirely at the owner's discretion. A polite email to
+  `camilotd1999@gmail.com` costs nothing and is the whole first step.
+- **The dispute path is slow and biased toward incumbents.** npm's package
+  name dispute policy requires contacting the owner first and waiting a
+  documented period before npm will intervene, and npm's general posture is
+  that they rarely transfer names away from a publisher who did nothing wrong.
+  "Abandoned" and "low download count" are not, on their own, grounds.
+- **Non-response is the likely outcome** for a four-year-dormant account, and
+  there is no reliable recourse from there.
+
+⚠️ I did not re-verify npm's current dispute policy text for this revision —
+treat the process description above as directionally right but confirm the
+specifics (current policy URL, waiting period) before acting.
+
+**Recommended posture: send the email, expect nothing, and don't let the
+outcome gate anything else.** It is a cheap lottery ticket with a genuinely
+valuable prize if the org-blocking hypothesis holds.
+
+### What securing `@xnetts` / `@xnetfyi` bought
+
+Not a rename — **optionality**. The failure mode we've now foreclosed is
+wanting to move in twelve months and finding every reasonable scope gone. Both
+can sit unused indefinitely at zero cost. Neither should be published to
+speculatively: an unused scope is free, but a half-published parallel scope
+splits our identity and our docs.
+
+### What's actually here
+
+**We do not have a good rename available.** `@xnet` is gone, and `@xnetts` /
+`@xnetfyi` are, by the maintainer's own assessment, worse reads than
+`@xnetjs`. A rename is only worth its very large cost if the destination is
+clearly better than the origin, and right now none is.
+
+That collapses the decision usefully: **stay on `@xnetjs/*`, and solve the
+honesty problem with a release channel rather than a namespace.**
 
 ### What our gates actually enforce
 
@@ -327,19 +419,22 @@ that the tool decides nothing.
 flowchart TD
     START["@xnetjs/core is 2.5.0<br/>but the project is alpha"] --> Q1{"Must the npm<br/>version literally<br/>read 0.x?"}
 
-    Q1 -->|yes| Q2{"Willing to<br/>rename the scope?"}
     Q1 -->|no| C["<b>Option C</b><br/>Keep numbers,<br/>add policy + gates"]
+    Q1 -->|yes| Q2{"Is a better scope<br/>available?"}
 
-    Q2 -->|yes| B["<b>Option B</b><br/>@xnet/* from 0.1.0<br/>deprecate @xnetjs/*"]
-    Q2 -->|no| X["<b>Blocked</b><br/>npm 11 refuses<br/>to lower `latest`;<br/>unpublish window shut"]
+    Q2 -->|"@xnet — TAKEN"| X["<b>Blocked</b><br/>npm 11 refuses to lower latest;<br/>unpublish window shut<br/>(2,120 dl/wk > 300)"]
+    Q2 -->|"@xnetts / @xnetfyi<br/>ours, but worse reads"| B["<b>Option B — HELD</b><br/>rename + deprecate<br/>revisit only if xnet acquired"]
 
-    C --> C1["C1: + prerelease<br/>channel (pre enter alpha)"]
-    C --> C2["C2: + one honest<br/>major (3.0.0)"]
+    C --> TIER["<b>Tier the surface first</b><br/>api-extractor @public/@beta<br/>⇒ finally able to COUNT<br/>breaking changes"]
+    TIER --> Q3{"How many @public<br/>breaks in 6 weeks?"}
+    Q3 -->|"a lot"| D["<b>Option D</b><br/>prerelease channel<br/>(D1 pre mode / D2 dist-tag)"]
+    Q3 -->|"few"| D3["<b>D3</b> — majors are fine;<br/>churn was never @public"]
 
     X -.->|"only escape"| B
 
     style X fill:#4a2020,stroke:#c04040,color:#fff
     style C fill:#1e4620,stroke:#4caf50,color:#fff
+    style TIER fill:#1e4620,stroke:#4caf50,color:#fff
     style B fill:#4a3a1a,stroke:#d9a441,color:#fff
 ```
 
@@ -352,23 +447,37 @@ Consumers on `^2.5.0` would never see it (different left-most non-zero element),
 `2.x` stays permanently installable, and the registry shows a backwards series
 with no explanation. Rejected.
 
-### Option B — Rename the scope to `@xnet/*`, restart at `0.1.0`
+### Option B — Rename the scope, restart at `0.1.0`
 
-The only path that actually delivers the ask. `@xnet/core` → 404, so the scope
-looks free (needs confirming with an authenticated `npm org` check).
+**Verdict: held, not exercised.** The scope that would justify the cost
+(`@xnet`) is unavailable; the ones available (`@xnetts`, `@xnetfyi`) read
+worse than what we have.
 
 - ✅ Genuinely honest numbers from day one; `^0.1.0` friction is real protection.
-- ✅ Aligns with the machine-surface convention already in `CLAUDE.md` (`@xnetjs/*`
-  is the odd one out; the bin is `xnet`, the URI scheme is `xnet://`).
 - ✅ Precedent: Electric did exactly this; Yjs is doing it for v14.
+- ❌ **No destination worth the move.** A rename is worth its cost only when the
+  new name is clearly better. `@xnetjs` → `@xnetts` is lateral at best.
 - ❌ 18 packages, every internal import, every doc/example/README, the
   marketplace registry, `docs/specs/protocol/`, `swift/`, `rust/`, conformance
   fixtures.
-- ❌ Splits our published history in two and orphans 24 releases.
+- ❌ Splits our published history and orphans 24 releases.
 - ❌ Costs the rename *and* still requires everything in Option C — a rename
-  with no policy or gates lands us back here at `@xnet/2.5.0` in a year.
+  with no policy or gates lands us back here at `@xnetts/2.5.0` in a year.
 
-**This is the crux: B is not an alternative to C. B is C plus a rename.**
+**The crux: B is not an alternative to C. B is C plus a rename.** Revisit only
+if `xnet` is acquired and the org unlocks with it.
+
+If we ever do exercise it, the deprecation path matters and is cheap:
+
+```bash
+# after publishing the new scope, point the old one at it
+npm deprecate "@xnetjs/core@*" "moved to @xnet/core — see https://xnet.fyi/stability"
+```
+
+`npm deprecate` accepts a semver range, removes nothing, and prints on every
+install. It's what Electric and Evolu used. Existing installs keep working;
+new ones get told. That's the whole migration story, and it's why a rename is
+survivable *when the destination is worth it*.
 
 ### Option C — Keep the numbers; fix the policy and the gates
 
@@ -383,16 +492,81 @@ the number.
   README/site banners (already shipped in #571) and by `STABILITY.md`, but not
   eliminated.
 
-**C1 — add an `alpha` dist-tag channel.** `changeset pre enter alpha` gives
-`2.6.0-alpha.0` published under an `alpha` tag while `latest` stays stable.
-⚠️ The Changesets maintainers' own docs say "Prereleases are very complicated!"
-and warn against running pre mode from your default branch, because it blocks
-all other releases until you exit. With a single `main` and an 11-file
-`.changeset/` backlog, this would hurt. **Defer.**
+### Option D — Ship under a prerelease flag
 
-**C2 — one honest major.** Ship `3.0.0` whose entire content is "this is alpha;
-here is the policy." Preserves monotonicity, costs one major, and has direct
-precedent in Zero's explicitly symbolic 1.0. Cheap and legible.
+The most promising idea raised, and it deserves a real answer rather than the
+deferral it got in the first draft. The reasoning behind it is sound:
+
+> If we're shipping this many breaking changes, we're too far from release —
+> so put it behind a prerelease flag and stop pretending each one is a major.
+
+**The instinct is right. The mechanism needs choosing carefully, and there's a
+prerequisite that comes first.**
+
+#### The prerequisite: we cannot currently count our breaking changes
+
+`2.5.0` was not produced by two deliberate breaking changes. It came from
+ordinary Changesets bumps, chosen per-PR, with **no mechanism able to tell a
+breaking change from a safe one** (§Key Findings 1, §External Research). So the
+premise "we ship a lot of breaking changes" is *probably* true but currently
+**unmeasured**.
+
+That matters, because a prerelease channel is a container for churn. Pointing
+one at unmeasured churn relabels the problem rather than solving it: we'd move
+from "majors that may not mean anything" to "alphas that definitely don't."
+**Ship the surface tiering (Recommendation 2) first**, so that six weeks later
+"how many `@public` breaking changes did we actually ship?" has a number. That
+number picks the scheme for us:
+
+- **A lot** → a prerelease channel is correct, and now provably so.
+- **Fewer than expected** → the churn was in `@beta`/`@internal` all along,
+  which the tiering already handles, and no version-scheme change is needed.
+
+#### The three mechanisms, compared
+
+**D1 — Changesets pre mode** (`changeset pre enter alpha`). Writes
+`.changeset/pre.json`; `changeset version` then produces `2.6.0-alpha.0`, `.1`,
+…, and the tag doubles as the npm dist-tag.
+
+- ✅ Purpose-built; the "Version Packages" PR keeps working.
+- ✅ Jazz runs exactly this today (`jazz-tools` `2.0.0-alpha.53` alongside
+  `0.20.19` on `latest`).
+- ❌ The maintainers' own docs say **"Prereleases are very complicated!"** and
+  "Mistakes can lead to repository and publish states that are very hard to fix."
+- ❌ They **explicitly warn against running pre mode from your default branch**
+  without a separate stable release branch, because it blocks all other releases
+  until you exit. We have a single `main` and an 11-file `.changeset/` backlog —
+  precisely the configuration warned about.
+- ❌ Prerelease versions don't satisfy normal ranges, so **dependents bump even
+  when they otherwise wouldn't**. With a 12-package fixed group, every package
+  moves on every release — noisier changelogs, not clearer ones.
+
+**D2 — a manual `alpha` dist-tag, no pre mode.** Keep `latest` where it is;
+publish an additional channel with `--tag alpha`.
+
+- ✅ Avoids every pre-mode failure mode above; no repo state to get stuck in.
+- ✅ Reversible in one command.
+- ❌ More bespoke release scripting; Changesets isn't managing it for us.
+- ❌ Doesn't change the version *number*, which is the stated irritant.
+
+**D3 — stop treating majors as expensive.** If the changes genuinely are
+breaking, frequent majors are **semver working correctly**, not a failure.
+`3.0.0`, `4.0.0`, `7.0.0` inside a year is an honest signal; it feels wrong
+because of convention, not information.
+
+- ✅ Zero mechanism, zero risk, strictly more informative than a prerelease
+  suffix — a consumer sees exactly which upgrades break them.
+- ✅ Directly answers "the version should map to something real."
+- ❌ Reads as instability to casual observers — but we *are* unstable, and
+  §Recommendation 1 says so in prose anyway.
+- ❌ Poor fit if most breakage is in surfaces nobody should depend on — which
+  is exactly what the tiering will reveal.
+
+#### C2 — one honest major
+
+Ship `3.0.0` whose entire content is "this is alpha; here is the policy."
+Preserves monotonicity, costs one major, direct precedent in Zero's explicitly
+symbolic 1.0. Cheap, legible, and composes with any of D1–D3.
 
 ### Revenue lanes
 
@@ -402,9 +576,13 @@ future reader knows it was considered rather than skipped.
 
 ## Recommendation
 
-**Take Option C now. Keep Option B on the table as a deliberate, separately
-scoped decision — but only *after* C's gates exist, because a rename without
-them buys nothing.**
+**Stay on `@xnetjs/*`. Take Option C now, let it produce the measurement that
+picks between D1/D2/D3, and treat the rename as held rather than pending.**
+
+The sequencing is the recommendation. Getting versioning "in order before
+adoption" is the right goal, and the trap is picking a *scheme* before we can
+measure what the scheme has to absorb. Tier the surface, count the breakage,
+then choose — that's weeks, not quarters, and every step is useful on its own.
 
 Concretely, in priority order:
 
@@ -430,8 +608,20 @@ Concretely, in priority order:
 5. **Extend the Stop hook where it's cheaply extendable**: flag a `patch` bump
    whose diff touches a known protocol constant, and stop treating
    `@xnetjs/hub`/`@xnetjs/editor` as ignorable when wire-visible constants move.
-6. **Then, separately, decide on `3.0.0` (C2)** — worth it only if we want the
-   "we re-declared our stability posture" moment to be legible in the registry.
+6. **Measure for ~6 weeks, then pick the release channel.** With tiering in
+   place, count `@public` breaking changes. A lot ⇒ D1/D2 (prerelease channel);
+   few ⇒ D3 (majors are fine, and the churn was never in the promised surface).
+   **Do not enter Changesets pre mode before this** — its own maintainers warn
+   against our exact configuration, and we'd be buying that risk blind.
+7. **Send one email about `xnet`.** Ask `camilotd1999@gmail.com` about a
+   voluntary transfer. Cheap, non-blocking, and worth more than it looks if the
+   org-blocking hypothesis holds. Expect no reply.
+8. **Optionally ship `3.0.0` (C2)** — worth it only if we want the "we
+   re-declared our stability posture" moment legible in the registry.
+
+**What not to do:** rename to `@xnetts`/`@xnetfyi` (no better than what we
+have), or renumber under `@xnetjs` (npm won't allow it coherently). Keep both
+scopes parked — they cost nothing and they close off the worst future.
 
 What this deliberately does *not* do: chase a number that npm will not let us
 have, or adopt a prerelease workflow whose own maintainers warn against our
@@ -578,10 +768,16 @@ stateDiagram-v2
 
 ## Risks And Open Questions
 
-- **Is the `@xnet` npm scope actually claimable?** `@xnet/core` returns 404 and
-  scope search is empty, but an unpublished-but-reserved scope looks identical
-  from outside. Needs an authenticated check before Option B is costed for
-  real.
+- **Why is `@xnet` unavailable when nothing is published under it?** Confirmed
+  taken by direct attempt, yet `@xnet/core` is 404. The leading hypothesis is
+  that the unscoped `xnet` package reserves the matching org name — if true,
+  acquiring the package unlocks the scope, and the acquisition is worth far
+  more than the name. **Unverified; ask npm support.**
+- **Is `xnet` acquirable at all?** One dormant maintainer, no repository, 1
+  download/week. Voluntary transfer is the only realistic path; npm's dispute
+  process is slow and favours incumbents, and "abandoned" is not itself
+  grounds. ⚠️ npm's current dispute-policy text was not re-verified for this
+  revision — confirm before relying on the process description.
 - **What is the 2,120/week download traffic?** If any of it is a real consumer,
   several assumptions here (and the "nobody is using it" premise) change. Worth
   a `npm view --json` on dependents plus a look at whether our own CI is a
@@ -646,14 +842,28 @@ stateDiagram-v2
 - [ ] Extend the `ai-generate.mjs` bump prompt to cite the sentinel list
 - [ ] Decide C2: ship `3.0.0` as an explicit stability re-declaration, or not
 
-**Phase 5 — decide on the rename (separate, deliberate)**
+**Phase 5 — measure, then choose the channel**
 
-- [ ] Confirm `@xnet` scope availability with an authenticated `npm org ls`
-- [ ] Cost the codemod: internal imports, docs, examples, registry, specs,
-      `swift/`, `rust/`, conformance fixtures
-- [ ] If yes: publish `@xnet/*` at `0.1.0`, `npm deprecate @xnetjs/*` pointing
-      at the new scope, write the rationale post (Electric's is the model)
-- [ ] If no: record the decision and its reasoning in this file, and close it
+- [ ] After ~6 weeks of tiering, count `@public` breaking changes shipped
+- [ ] Record the number in this file — it is the input to the D1/D2/D3 decision
+- [ ] If high: trial **D2** (manual `alpha` dist-tag) before **D1** (pre mode);
+      D2 is reversible in one command, D1 is a repo state that's hard to exit
+- [ ] If D1: create a stable release branch first — do **not** run pre mode from
+      `main` (Changesets' own warning, and we match the warned configuration)
+- [ ] Drain the `.changeset/` backlog before entering any pre mode
+
+**Phase 6 — namespace (held, non-blocking)**
+
+- [x] Secure `@xnetts` and `@xnetfyi` as fallbacks — **done**
+- [ ] Email `camilotd1999@gmail.com` re: voluntary transfer of `xnet`
+      (`npm owner add` / `npm owner rm`); expect no reply
+- [ ] Ask npm support whether the unscoped `xnet` package is what blocks the
+      `@xnet` org — this decides what an acquisition is actually worth
+- [ ] Do **not** publish to `@xnetts`/`@xnetfyi` speculatively; an unused scope
+      is free, a half-published parallel scope splits our identity
+- [ ] If `xnet` is ever acquired **and** the org unlocks: re-open Option B and
+      cost the codemod (imports, docs, examples, registry, specs, `swift/`,
+      `rust/`, conformance fixtures) with `npm deprecate` as the migration path
 
 ## Validation Checklist
 
