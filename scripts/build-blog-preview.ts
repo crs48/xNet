@@ -26,8 +26,14 @@ import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as Y from 'yjs'
-import { buildStaticSite, renderPost, type FeedMeta, type SitePost } from '@xnetjs/publish'
-import { PageSchema, PublicationSchema } from '@xnetjs/data'
+// Imported from source, not by package name. A `workspace:*` devDependency in
+// the ROOT package.json breaks every trimmed Docker image (the hub image copies
+// root package.json but only its own packages, so pnpm install fails with
+// ERR_PNPM_WORKSPACE_PKG_NOT_FOUND). Source imports also mean this script needs
+// no build step.
+import { buildStaticSite, renderPost } from '../packages/publish/src/index'
+import type { FeedMeta, SitePost } from '../packages/publish/src/index'
+import { PageSchema, PublicationSchema } from '../packages/data/src/schema/index'
 import { postAuthors, publishedPosts, type BlogPost } from '../site/src/data/blog'
 import { buildBlogRss } from '../site/src/lib/blog-feed'
 
