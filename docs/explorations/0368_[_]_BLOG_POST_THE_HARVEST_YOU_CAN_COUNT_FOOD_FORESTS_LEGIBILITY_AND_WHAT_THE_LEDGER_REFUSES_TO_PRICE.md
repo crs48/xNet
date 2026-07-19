@@ -249,11 +249,92 @@ formal Comment (McMichael et al., 2017) disputing the sampling and the
 proximity inference. If we cite Levis, we cite the Comment.** Cheap
 credibility, and correct.
 
-**Solid.** Chagga home gardens, Kilimanjaro: 0.2–1.2 ha multistorey plots, 100+
-crop species, a recognised Globally Important Agricultural Heritage System.
-Kandyan forest gardens, Sri Lanka: 0.1–0.4 ha, ~46 species per garden, 149 crop
-species system-wide. **Both still operating** — which makes "every … on Earth"
-false as a matter of record.
+**Solid, but only as present-tense description.** Chagga home gardens,
+Kilimanjaro: 0.2–1.2 ha multistorey plots, 100+ crop species, a recognised
+Globally Important Agricultural Heritage System.
+
+Kandyan forest gardens, Sri Lanka — **cite Perera & Rajapakse (1991),
+*Forest Ecology and Management* 45(1–4):269–280**, n=50 random units in Central
+Province: **0.1–0.4 ha, ~46 plant species and ~23 tree species per unit,
+500–1,500 trees, >70% canopy cover, 3–5 strata.** ⚠️ **This package is routinely
+misattributed to McConnell** — the McConnell reports (1973 UNDP/FAO Management
+Report No. 7; 1992 FAO monograph) are **not digitised**, so any figure sourced
+to them in the secondary literature is second-hand and should not be repeated.
+
+Scale, for the "still operating" claim: Sri Lankan home gardens covered
+**~977,700 ha across 20 districts in 2005, about 15% of the country's land
+area**, and provide **30–50% of household income** in Kandyan districts. ⚠️
+National area figures range 858,500–977,700 ha depending on source and year —
+**pick one and date it.**
+
+**Both still operating** — which makes "every … on Earth" false as a matter of
+record. **Do not attach an age to either** (see below), and **do not call the
+Kandyan gardens a GIAHS site.** Verified against three FAO documents: Sri
+Lanka's only designated system is the **Cascaded Tank-Village System, 2017**;
+Kandyan home gardens have never been designated and have never appeared even on
+the candidate list. Popular sources asserting otherwise are wrong.
+
+### The Kandyan antiquity claim — the Morocco problem, a second time
+
+Dedicated research on the dating evidence found the same failure mode, and
+finding it *twice* changes what the essay is about.
+
+**Asserted, unsourced.** "Kandyan home gardens are over 2,500 years old" traces
+to one sentence in FAO's *State of Forest Genetic Resources… in Sri Lanka*:
+gardens "go back to over 25 centuries," supported only by "in chronicles there
+are references…" — **no chronicle named, no citation, no passage quoted.** That
+uncited sentence appears to be the taproot of a figure now repeated across the
+agroforestry, NGO and tourism literature. A parallel tourism claim about
+"plaques dating back almost 2000 years" names no plaque, inscription or site.
+**No scholarly work anywhere dates or interrogates the age of these gardens** —
+this is a genuine gap in the literature, not a failure of searching. The
+academic literature begins in **1973** (McConnell & Dharmapala) and describes
+the 1970s–80s garden; the antiquity entered as background colour and has been
+transmitted by citation ever since.
+
+**Refuted by the crop list.** The signature "Kandyan spice garden" assemblage
+cannot be pre-colonial. Cashew, pineapple, maize, chilli and cassava are New
+World. Coffee's first systematic cultivation in Ceylon is Dutch, **1740**;
+Peradeniya's oldest nutmeg trees were planted **1840**; cocoa is mid-19th
+century; tea is **1867**; rubber **1876**. **The honest formulation the research
+landed on: an old practice, a young system.**
+
+**Solid, primary, and probably the best single anecdote available to this
+essay.** Robert Knox, *An Historical Relation of the Island Ceylon* (1681) —
+written by a captive inside the Kandyan Kingdom 1660–1679, i.e. genuinely
+inside the target polity and period. Knox documents dispersed settlement where
+"each man lives by himself in his own Plantation, having an hedg it may be and a
+ditch round about him," and his own purchase of a plot with mixed fruit trees.
+So garden compounds with mixed trees are securely ~360 years old at minimum.
+
+**But Knox also demolishes the designed-agroforest reading, and does it with a
+motive.** He is explicit that most of the tree component was self-seeded, not
+planted — of areca, the most economically important tree, he says people "plant
+them not, but the Nuts being ripe fall down in the grass and so grow up." And he
+gives the reason: the king requisitioned any good fruit, which is why "the
+People regard not to plant more than just to keep them alive."
+
+**That is an appropriability story told from inside the garden, in 1681, in the
+gardener's own economic logic** — people deliberately under-planting because
+anything visibly good would be taken. It is the Mayshar/Moav/Pascali mechanism
+observed three centuries before it was formalised, and it belongs in the essay.
+
+**Documented, and it inverts the thesis in a useful way.** The Crown Lands
+(Encroachments) Ordinance No. 12 of 1840 presumed forest, waste and
+uncultivated land to be Crown property unless the contrary was proved. A plot
+with standing coconut, areca and jak was visibly, permanently "cultivated" and
+therefore legally defensible; a chena in fallow was not. **Legibility does not
+always destroy the polyculture — here it destroyed the swidden and selected
+*for* the tree garden**, because trees were the proof of occupation.
+
+Two cautions on this one: the exact clause wording is behind a paywall and was
+not verified against the original statute, and the land-use *outcome* is
+well-grounded inference rather than a demonstrated finding. **Flag it as
+inference in the prose, or leave it out.** Related and equally unverified:
+Dewasiri's *The Adaptable Peasant* documents plots rising from 12,000 to over
+30,000 in thirty years to 1761 under Dutch fiscal pressure — but that is the
+**western lowlands, not the Kandyan highlands**, and Dewasiri says his model
+does not fit the mountains. An analogue, not evidence.
 
 ### The Morocco claim — corrected, and better for it
 
@@ -310,30 +391,94 @@ into state-granted privileges.** That is a sentence about permissions, not
 trees. If the essay wants a villain, this is the only place it honestly has
 one.
 
-**Contested — and we must say so.** English parliamentary enclosure ran
-1604–1914, bulk 1750–1830, via several thousand acts plus the General Enclosure
-Acts of 1801, 1836 and 1845; the deep legal root is the Statute of Merton
-(1235). The rights destroyed were specifically the woodland ones — estovers,
-pannage, turbary. Neeson's *Commoners* (1993) on what commoners lost; Rackham's
-*The History of the Countryside* on wood-pasture and pollard loss. **But there
-is a live revisionist debate — Robert Allen and Gregory Clark dispute whether
-enclosure raised productivity much at all, and the Hammonds' immiseration
-narrative is not the settled view.** Citing enclosure as straightforward
-destruction-of-abundance is picking one side of an open argument. Say which
-side and why, or don't lean on it.
+**Numbers corrected — use Chapman, not Turner.** The 6.8m acres figure (Turner
+1980) that the first draft cited is superseded. **Chapman (1987)**, *Agricultural
+History Review* 35(1), built a 10% random sample of all English and Welsh awards
+and summed **allotments** rather than trusting act estimates (which he shows err
+by up to 23.5%): **7.25–7.35m acres in England, ~8.42m England and Wales.** He
+states the widely used 6m figure understates by almost 18%. Roughly 5,000+ acts;
+core period 1750–1830; deep legal root the Statute of Merton (1235).
 
-**Solid, with two flags.** Prussian and Saxon "scientific forestry," late 18th
-century — Scott's central case in *Seeing Like a State*. Diverse forest replaced
-by rectangular grids of same-age Norway spruce to maximise measurable timber;
-the first rotation succeeded spectacularly, the second failed. **Flag one:**
-Scott's case studies have drawn serious historians' fire — Tauger's H-Net review
-argues the Tanzania and USSR centrepieces are so flawed by errors and omissions
-that they discredit rather than support the overall argument (he does not target
-the forestry chapter directly). **Flag two:** Scott links *Normalbaum*
-monoculture to *Waldsterben*, but Waldsterben as diagnosed in the 1980s was
-primarily an **acid rain** phenomenon. Treating it as the delayed verdict on
-18th-century forest science is a chronological stretch. **Use the forestry
-chapter; do not use the Waldsterben link.**
+**And Chapman answers our actual question.** His land-type breakdown:
+**England and Wales, 33.47% field land against 59.67% pasture and waste.** Nine
+English counties show zero arable. His conclusion is that parliamentary
+enclosure "was primarily concerned with common pasture and waste." **The popular
+"enclosure = open fields" story is wrong by area — the majority target was the
+commons, precisely where estovers, pannage and turbary lived.**
+
+**But do not overclaim the tree link.** "Waste" was heterogeneous — fens,
+marsh, dune, heath, downland, moor *and* wood-pasture — and Chapman's categories
+do not separate wood-pasture out. **The 59.67% supports "enclosure destroyed
+commons," not "enclosure destroyed tree-based subsistence." The tree-specific
+share is unquantified.**
+
+**Solid, and the sharpest single item in the enclosure material.** The **Black
+Act 1723** (9 Geo. I c. 22), passed in about four weeks with little debate, made
+**cutting down young trees and destroying fruit trees capital offences** without
+benefit of clergy. E.P. Thompson, *Whigs and Hunters* (1975). **Tree-based
+subsistence was, briefly and literally, a hanging matter.** Alongside it,
+Humphries (1990, *JEH* 50(1)) prices what the commons were worth: a cow c.1800
+yielded £7–10 a year — about half a male labourer's wage, and **up to 40% of
+total family wage income.**
+
+**Contested — and we must say so.** There is a live revisionist debate on
+effects. Allen (*Enclosure and the Yeoman*, 1992) finds enclosure raised yields
+only **2.5–8.4%**; Clark broadly concurs the net return was small. **Against
+them**, Heldring, Robinson & Vollmer (NBER WP 29772, 2022; >15,000 parishes)
+find a **45% yield increase by 1830 — and a 30% rise in the parish Gini.** Both
+can be true: large productivity gain, regressively distributed, and that is the
+honest line. On social impact, Shaw-Taylor is a serious challenge to the
+Hammonds — he found Midland common-right dwellings were overwhelmingly owned by
+wealthy individuals and institutions, not poor cottagers. **⚠️ Do not invoke
+Hoskins as an anti-enclosure authority: *The Making of the English Landscape*
+explicitly dispels the belief that the field pattern results from 18th-century
+enclosure.**
+
+**Solid at the core, with the popular version substantially wrong.** Prussian
+and Saxon "scientific forestry," c.1765–1800 — Scott's central case in *Seeing
+Like a State*. Diverse forest replaced by grids of same-age Norway spruce to
+maximise measurable timber; the real tree "replaced by an abstract tree
+representing a volume of lumber or firewood"; second-rotation decline of one to
+two site classes and 20–30% production loss. All solid. The *Normalbaum* and
+cone-volume material is sourced to Henry Lowood's "The Calculating Forester"
+(1990), which holds up. **Use this.**
+
+Four flags, from a check against the primary text rather than summaries:
+
+- **⚠️ Half the popular retelling is not in Scott.** A full-text search returns
+  **zero occurrences of Cotta, Hartig, Carlowitz, *Nachhaltigkeit*, Faustmann,
+  Dauerwald, *Nutzholz*/*Brennholz*, or "acid rain."** Thünen appears once, as
+  a location theorist, **not in the forestry chapter at all**. Placing any of
+  these in a *Normalbaum* narrative is a category error — and not Scott's.
+- **⚠️ The *Waldsterben* link is the chapter's real defect. Do not use it.**
+  Scott's endnote sources it to Plochmann (1968) **quoted via Chris Maser
+  (1988)** — a quotation of a quotation — and appends a term that entered German
+  usage in **1981** (Ulrich and Schütt; the *Spiegel* cover of 16 Nov 1981) to a
+  1968 silviculture claim. Waldsterben's entire scientific framing was **acid
+  deposition**. Worse, **the forecast catastrophe did not happen**: Kandler, FAO
+  *Unasylva* 174 (1993), reports 1984–92 grid surveys showing no predicted rise
+  in damage, no class shift, no rise in mortality, and tree rings showing
+  *improved* growth. Scott's own text is one subordinate clause; the popular
+  version ("scientific forestry killed the German forest") is stronger than
+  Scott and false.
+- **⚠️ Uniformity is overstated, and Scott's own footnote concedes it.** He
+  acknowledges Karl Gayer, exponent of the *Mischwald* (*Der gemischte Wald*,
+  1886), then argues as though he had not. Add Möller's *Der Dauerwaldgedanke*
+  (1922) and the long *Bodenreinertragslehre* dispute: **German forestry was
+  internally contested throughout.**
+- **Critiques exist but there is no canonical demolition.** Hölzl (*Science as
+  Culture* 19(4), 2010) treats the origin story as a founding narrative and
+  notes foresters "were rarely as rigid or prescriptive as their scientific
+  models suggested." Jönsson (*Ambio* 53(6), 2024) objects to scope. Tauger's
+  H-Net review targets the Tanzania and USSR cases, not forestry.
+
+**The irony worth using instead of Waldsterben.** German forests *are* now in
+serious trouble — **79% of trees sick, dying or dead; over 300,000 ha dead since
+the 2018 drought; spruce down ~17% of its area 2012–2022** — from drought and
+bark beetle, **hitting off-site spruce hardest**. Scott's structural intuition is
+being vindicated three decades late by a mechanism he never named, having named
+the wrong one. **That is a better paragraph than the one he wrote, and it is
+honest about him.**
 
 **Solid, contested, and better than Scott for our purposes.** Mayshar, Moav &
 Pascali, *"The Origin of the State: Land Productivity or Appropriability?"*,
@@ -347,14 +492,148 @@ a published Comment in *JPE* (2024/25) disputing it — cite both.** Scott's
 *Against the Grain* is the popular, non-empirical version of the same argument;
 this is the empirical one, and it is the better citation.
 
-**Solid on direction, thin on a clean citation.** Modern policy reproduces the
-bias without intent. US federal crop insurance and commodity programmes are
-built on base acres and single-commodity yield histories; diversified, specialty
-and organic operations are documented as under-served, and the same eligibility
-logic propagates into agricultural lending. **Do not assert a "polyculture is
-uninsurable" rule — none exists.** Assert the shape: instruments price what they
-can model, and they model one crop far better than forty. Cite NSAC and GAO
-(GAO-23-106228) for the access disparity only.
+### Modern farm policy — much stronger than the first draft assumed
+
+The first draft hedged this to "directional." Dedicated primary-law research
+found it is **documented in statute**, and it is now the essay's best modern
+evidence.
+
+**Solid, primary law — and the sentence writes itself.** US **base acres** are
+frozen to 1981–85 plantings (FAIR Act 1996 "contract acres," renamed 2002);
+**270.90m base acres** in 2021, of which corn 100.74m and wheat 69.72m. The
+~20 **covered commodities** (7 U.S.C. 9011) include no fruit, no nut, no
+vegetable, no tree crop. And the current statutory language on base-acre updates
+names the exclusions explicitly: acres planted to commodities **"other than
+covered commodities, trees, bushes, vines, grass, or pasture."** **Trees are
+named in the statute, in a list of things that are not the thing being
+counted.**
+
+**Solid, and sharper than the headline.** Three mechanisms make base acres
+tree-hostile in a way a ban never would:
+
+1. **The escape hatch is closed to perennials.** 7 CFR 1412.46 lets a grower
+   avoid the fruit-and-vegetable payment-acre reduction by paying for an FSA
+   visit verifying the crop was **destroyed before harvest**. An orchard cannot
+   be planted and destroyed within a crop year, so for a perennial the reduction
+   is **unavoidable and recurring for the life of the planting**.
+2. **The most generous exception is defined so trees cannot use it.** The
+   double-cropping exception covers *"non-perennial"* fruits and vegetables in
+   cycle with a covered commodity. An orchard cannot be in cycle with a grain
+   crop.
+3. **The 2018 Farm Bill preserved the entitlement against permanence.** §1102(b)
+   of P.L. 115-334: base acres in grass or pasture continuously from 2009 to
+   2017 **lost ARC/PLC payments for 2019–2023 but remained on the books as base
+   acres**. **The system holds the door open for a return to annual commodity
+   production — an option value only annual commodities can exercise.**
+
+**Correction to the first draft's framing.** The fruit-and-vegetable rule is
+**no longer a ban**. The 2014 Farm Bill converted it into a payment-acre haircut
+(7 U.S.C. 9014): reductions apply only above **15% of base acres** for ARC-CO/PLC
+and **35%** for ARC-IC. **Do not call it a prohibition.** Also worth one line
+because it is so on-thesis: the 2014 relaxation was driven by the WTO
+*Brazil — Upland Cotton* panel finding that the restriction disqualified US
+direct payments from the green box. **The rule was loosened to protect the
+subsidy, not to help the grower.**
+
+**Solid, and the proportion is the story.** Whole-Farm Revenue Protection is the
+one instrument designed to insure a diversified farm *as* a diversified farm —
+whole-farm revenue off five years of Schedule F records, cap raised to $17m for
+2023, and coverage at 80–85% requires **a minimum of three commodities**. Uptake:
+**2,833 policies at its 2017 peak, 1,821 in 2022, 2,256 in 2024** — against
+roughly **1.2 million** crop insurance policies annually. **WFRP is about 0.2% of
+the book.** Documented barriers include agent unwillingness to sell it; RMA's own
+2024 bulletin concedes producers "are unable to find an agent willing to sell
+and service these policies," and one of RMA's remedies was **moving a sales
+deadline so agents would have time to market it**. Loss ratios above 1.0 every
+year 2015–2019, peaking at 1.49.
+
+**Solid on the rule; the citation needed correcting.** The EU's 100-trees-per-
+hectare eligibility threshold is **Commission Delegated Regulation (EU) No
+640/2014, Article 9(3)** — **not 639/2014**, whose Article 9 is about hemp. **Get
+this right; it is an easy hit.** Two further corrections to the intuitive story:
+the 2014 rule was a **liberalisation** (from a ~50 trees/ha guideline to a 100
+ceiling, with carve-outs for fruit trees yielding repeated harvests and grazed
+trees). The stronger example of structural hostility is the **prior** regime —
+Reg. 1782/2003 Art. 44(2) excluded "areas under permanent crops, forests"
+from the eligible-hectare definition **outright**. And Reg. (EU) 2021/2115,
+applying from 1 January 2023, finally requires 'agricultural area' to include
+agroforestry systems — then devolves the definition to 27 Member States, of
+which explicit agroforestry eco-schemes appeared in **2 of 14** analysed.
+**Germany's paid €60/ha and attracted 55 farmers in its first year.** The
+barrier moved from prohibition to indifference.
+
+**⚠️ Contested — the claim everyone reaches for, and it is not evidenced.** That
+farmers actually *removed* trees to keep CAP eligibility is asserted constantly
+and demonstrated nowhere. AGFORWARD Deliverable 8.23 says the rules "caused the
+removal of trees and shrubs from agricultural land across Europe" **with no
+citation, no dataset, no country figures.** The Commission's own evaluator
+(Alliance Environnement/IEEP for DG AGRI, 2020) concedes at p.78 that whether
+such damage occurred "is very difficult to ascertain, and **no recent direct
+evidence of this is known of**." The ECA's LPIS audit (SR 25/2016) contains no
+such finding and criticises the opposite failure — agencies **overstating**
+eligibility on tree-covered parcels. Better-documented outcome: **abandonment,
+not felling.**
+
+**The defensible sentence, and the only one to publish:** *the CAP paid by the
+eligible hectare and, until 2023, counted trees against that hectare — creating
+an incentive the Commission's own evaluators call incoherent with EU
+biodiversity objectives.* **Any claim about how many trees came down is
+indefensible.** If we cite the evaluation, we quote its caveat too.
+
+### The Green Revolution — the modern, measurable version of the whole thesis
+
+**Solid, and this may be the best single dataset in the essay.** Punjab crop
+area, AERC Study No. 43 (Punjab Agricultural University), Table 2.2:
+
+| Crop | 1970–71 | 2013–14 |
+|---|---|---|
+| Wheat + rice | ~47% | **~81%** |
+| Rice alone | 6.87% | 36.30% |
+| **Pulses** | **7.29%** | **0.25%** |
+| Oilseeds | 5.20% | 0.60% |
+| Maize | 9.77% | 1.66% |
+
+**Pulses fell 29-fold.** The mechanism is not seeds: India announces a minimum
+support price for about **23 crops** and provides **assured procurement at scale
+for two**. The Government of India's own position concedes procurement "skews
+the production of crops in favour of wheat and paddy… and does not offer an
+incentive for farmers to produce other items such as pulses." And the AERC
+report notes the imbalance "has further sharpened **despite all efforts of
+diversification**."
+
+**That clause is the essay's thesis in seven words.** The state has been trying
+to reverse this for decades and cannot, because the buyer of last resort still
+points the other way. This is not history. It is a live, measured, ongoing
+monoculture ratchet driven purely by which crops had a guaranteed counterparty.
+
+Supporting mechanism, equally clean: the **IADP "Package Programme" (1960–61)**
+delivered seed, fertiliser, irrigation, plant protection and **credit** as a
+**single indivisible bundle**. You could not take the seed without the regime.
+And the **Seeds Act 1966** created "notified varieties" — 7,326 across 96 crops
+notified 1969–2024 — so **a landrace is not a notified variety, and is therefore
+invisible to credit and certification.**
+
+### Tree tenure — the Knox mechanism, generalised and then reversed
+
+**Solid.** Fortmann, *"The tree tenure factor in agroforestry,"* *Agroforestry
+Systems*: trees and land are owned and disposed of **separately** across
+Tanzania, Nigeria, Ghana, Uganda and Indonesia. The perverse consequence is
+documented: because **planting a tree establishes a claim to the land**,
+landholders **forbid** tree planting — recorded for Basotho chiefs from the
+1940s, the Luguru in Tanzania, the Yoruba in Nigeria. **Knox's 1681 Kandyan
+gardener, under-planting because the king would take anything good, is the same
+mechanism seen from the other end.**
+
+**Solid, and the cleanest natural experiment available — a candidate closing
+image.** In Niger, the derived forest code made trees **state property**, and in
+the 1960s–70s farmers commonly cleared farmland of all trees. The **1993
+Forestry Code revision transferred tree ownership from the state to farmers.**
+Farmer-Managed Natural Regeneration now covers an estimated **7 million hectares
+(2017)**, with sparse 1970s cover replaced by dense young parkland.
+
+**Change who owns the tree, and the trees come back.** Nobody planted a forest;
+they stopped removing one. That is the ledger being corrected, and it is the
+only unambiguously hopeful fact in the entire research base.
 
 ### The honest counter-case — which is now load-bearing
 
@@ -519,6 +798,30 @@ sequenceDiagram
    ~1,000 societies while land productivity does not. **The crop that could be
    seized built the states that then required it.**
 
+   And there is a primary-source version of this from inside a garden. Knox
+   (1681), captive in the Kandyan Kingdom, records that people barely planted
+   their fruit trees — because the king requisitioned anything good, so they
+   "regard not to plant more than just to keep them alive." **Three centuries
+   before the econometrics, a gardener's answer to being visible was to produce
+   less.**
+
+4b. **Two beloved antiquity claims failed the same way, which makes it a
+   pattern rather than an anecdote.** Morocco's "2,000 years" traces to one
+   practitioner with no dating study. Kandy's "2,500 years" traces to **one
+   uncited FAO sentence**, and the crop list refutes it outright — coffee
+   arrived 1740, nutmeg 1840, tea 1867, and half the assemblage is New World.
+   Both were transmitted by citation, never re-examined. **The formulation to
+   steal: an old practice, a young system.** An essay about measurement whose
+   own headline numbers dissolve under checking has a much better opening than
+   the one it planned.
+
+4c. **Legibility does not always destroy the polyculture.** Sri Lanka's 1840
+   Crown Lands Ordinance presumed uncultivated land to be Crown property — so
+   standing coconut, areca and jak became *proof of occupation*, defensible in a
+   way that fallow swidden was not. The ledger killed the chena and preserved
+   the tree garden. **Include this. A thesis that only ever cuts one way is a
+   thesis that hasn't been tested.**
+
 5. **Tenure is the quiet killer.** 4–10 years to first meaningful return means
    a tenant cannot plant a food forest, ever, regardless of policy. Short
    tenures plus high discount rates select against perennial polyculture with
@@ -620,13 +923,15 @@ readers and to us that this is not the fifth nature essay), 13–14 minutes.
 |---|---|---|---|
 | 1 | The video I'm not going to link | 300 | Name the genre, refuse it, state the object is real. Sets the honesty contract. |
 | 2 | The gardens that are still there | 400 | Armstrong 2021 as keystone; Chagga and Kandyan **still operating**. Kills "every … on Earth" with evidence. Sober register — forced removal is a real harm, not an aesthetic. |
-| 3 | The number I had to give up | 400 | The Morocco correction. 2,000 years → ~500 dendrochronological, and the tree count *grew*. **This is where the essay earns its credibility.** |
+| 3 | Two numbers I had to give up | 500 | **The credibility section.** Morocco: 2,000 years → ~500 dendrochronological, tree count *grew* 425→537. Kandy: 2,500 years → one uncited FAO sentence, refuted by a crop list where coffee is 1740 and tea is 1867. "An old practice, a young system." |
 | 4 | What grain actually won | 500 | The concession. TOI_grain 0.96. 11.6M vs 5.2M kcal/ha. Labour direction (no invented ratio). Concede fully and early. |
-| 5 | Grains make states | 400 | Mayshar/Moav/Pascali + the Comment. Appropriability, not productivity, predicts hierarchy. Scott's forestry chapter — **no Waldsterben link**. |
-| 6 | The columns that don't exist | 550 | The thesis. Variance, soil carbon, micronutrients, input independence — each real, each unpriceable. Plus tenure: a tenant cannot plant a ten-year asset. Modern echo in base acres and premiums, **hedged**. |
-| 7 | A measurement that changed its mind | 250 | The Pasquier document. Our own side doing the same trick. Cheapest, sharpest self-implication available. |
+| 5 | Grains make states | 450 | Mayshar/Moav/Pascali + the Comment. Appropriability, not productivity, predicts hierarchy. **Open on Knox 1681** — the gardener who planted less because the king took anything good. Scott's forestry chapter — **no Waldsterben link**. |
+| 5b | The exception | 200 | Sri Lanka 1840: the ledger killed the swidden and *saved* the tree garden, because trees proved occupation. Flag as inference. **The thesis has to survive cutting the other way.** |
+| 6 | The columns that don't exist | 550 | The thesis. Variance, soil carbon, micronutrients, input independence — each real, each unpriceable. Plus tenure: a tenant cannot plant a ten-year asset. |
+| 6b | It is still happening | 450 | **The strongest modern evidence, and it is not history.** Punjab pulses 7.29% → 0.25%. MSP for 23 crops, assured procurement for 2 — "sharpened despite all efforts of diversification." Then US base acres: **"trees" named in the statute** among the excluded, the destroy-before-harvest escape hatch closed to perennials, WFRP at 0.2% of policies. **Hedge the EU material and never claim tree removal.** |
+| 7 | A measurement that changed its mind | 250 | The Pasquier document — our own side changing the metric until the answer inverts. Optionally pair with the FAO 75% figure. Cheapest, sharpest self-implication available. |
 | 8 | We are the crop with no column | 450 | xNet's exposure: seat counts, renewal dates, line items. Our advantages are variance advantages. Link Monopoly, Charter, ECONOMICS. |
-| 9 | (closer) | 200 | No triumphalism. Building the better thing is not sufficient; becoming countable without becoming a monoculture is unsolved, including by us. |
+| 9 | (closer) | 250 | **Niger.** The 1993 code moved tree ownership from the state to the farmer, and ~7M ha of parkland came back — nobody planted a forest, they stopped removing one. Then decline to resolve it: becoming countable without becoming a monoculture is unsolved, including by us. |
 
 ### The `HonestHarvest` table
 
@@ -701,8 +1006,55 @@ checking:
   only as §7's specimen, with its method described.
 - **"51% of calories from cereals."** Use ~42% (FAOStat 2016–18) or a hedged
   range.
-- **FAO "75% of crop diversity lost."** Very widely repeated, provenance not
-  established. **Do not use.**
+- **FAO "75% of crop diversity lost since 1900."** **Definitively a myth**, and
+  we now have the citation that says so: Khoury et al. (2022), "Crop genetic
+  erosion," *New Phytologist* 233(1):84–118, **Box 1**, traces it to an FAO
+  Earth Day 1993 document, thence probably to Fowler & Mooney's *Shattering*
+  (1991) quoting Erna Bennett on **Europe's vegetable seed** — Europe only,
+  vegetables only, and a **forward-looking prediction**. It became global,
+  all-crops and retrospective purely in transmission; the authors asked the
+  originators directly and still could not source it. FAO's own *First Report on
+  the State of the World's PGRFA* (1996) says the opposite: **"no one can say
+  exactly how much has been lost historically."** This is the conservation
+  establishment debunking its own headline number. **Do not use — but it is a
+  candidate for §7 alongside Pasquier, as a second specimen of a number that
+  survived on repetition.**
+- **"93% of US vegetable varieties lost."** ⚠️ **More defensible than expected —
+  do not casually debunk it.** Heald & Chapman's correction moved survival from
+  3% to 7.4%, so ">90% of historical varieties no longer readily available"
+  *survives* reanalysis. Their real rebuttal is **replacement**: ~7,262
+  varieties across 48 crops in 1903 versus ~7,100 in 2004, a ~2% decline in
+  varietal richness. Use only with both halves.
+- **"Genetic diversity in released cultivars declined monotonically."** False —
+  van de Wouw et al. (2010, *TAG* 120:1241–1252), 44 publications across eight
+  crops: no overall decrease, a 1960s bottleneck then recovery.
+- **The Highland Clearances as an agroforestry story.** **Wrong frame — do not
+  use.** Caledonian deforestation predates the Clearances by millennia (half the
+  natural woodland gone by AD 82). Sheep did not clear forest; they **prevented
+  its return**. And Devine's corrections matter: rapid population increase was
+  the critical factor, many more Gaels emigrated voluntarily than were evicted,
+  and the same processes hit the rural Lowlands.
+- **"Farmers removed trees across Europe to keep CAP eligibility."** Asserted by
+  credible bodies, demonstrated by nobody; the Commission's own evaluator says
+  **"no recent direct evidence of this is known of."** Publish the *incentive*,
+  never the *removal*.
+- **The 100 trees/ha rule as Reg. 639/2014.** It is **640/2014 Art. 9(3)**.
+  639/2014 Art. 9 is hemp.
+- **The US fruit-and-vegetable rule as a "ban."** Since 2014 it is a 15%/35%
+  payment-acre reduction.
+- **Guha & Gadgil's "14,000 → 76,000 sq mi" Indian forest area figure.**
+  Circular attribution, no primary source located. Use FAO's series instead
+  (Reserved forest 1906–07 = 241,200 km²), or the continuity number: India's
+  Recorded Forest Area today is **768,436 km², of which 55.1% is Reserved — still
+  the 1878 categories.**
+- **Rackham's "87,230 ha → 1,450 ha" wood-pasture figure.** Could not be sourced
+  to his text. Unverified.
+- **Cotta, Hartig, Carlowitz, Thünen, *Nachhaltigkeit*, Faustmann, Dauerwald, or
+  "acid rain" attributed to Scott.** **None appear in the book.**
+- **India's FRA "85.40% of claims settled."** MoTA's figure **counts rejections
+  as settlements**. If used at all, use the honest cut: ~95% of titles went to
+  individuals rather than communities, and 47,901 community-forest-resource
+  claims were rejected.
 - **Kayapó apêtê as proven intentional forest islands.** Posey's claims were
   substantially challenged by Parker (1992, *American Anthropologist*). Do not
   present as established.
@@ -829,7 +1181,16 @@ const heroArt: Record<string, any> = {
 
 - [ ] **Grep the draft for every DO-NOT-USE item**: `2,000`, `40:1`,
       `unlimited`, `every food forest`, `66`, `IBAMA`, `75%`, `51%`, `apêtê`,
-      `Waldsterben`, `terra preta`
+      `Waldsterben`, `terra preta`, `Clearance`, `GIAHS`, `McConnell`,
+      `639/2014`, `Cotta`, `Hartig`, `Carlowitz`, `Thünen`, `76,000`
+- [ ] The EU material claims an **incentive**, never a **removal**; if the
+      Alliance Environnement evaluation is cited, its caveat is quoted too
+- [ ] The US fruit-and-vegetable rule is described as a payment-acre reduction,
+      **not a ban**; the EU threshold is cited as **640/2014**, not 639/2014
+- [ ] Kandyan structural figures are attributed to **Perera & Rajapakse 1991**,
+      not McConnell; no GIAHS status is claimed for them
+- [ ] Enclosure acreage uses **Chapman (7.25–7.35m acres)**, not Turner's 6.8m,
+      and the 59.67% pasture/waste figure is not stretched into a tree claim
 - [ ] The video is **not linked**, and not named beyond its genre
 - [ ] TOI_grain 0.96 appears in §4 **with its confidence interval**
 - [ ] Levis appears only alongside McMichael's Comment
@@ -928,10 +1289,77 @@ const heroArt: Record<string, any> = {
   biodynamics, not permaculture — cite precisely).
   https://gardenprofessors.com/permaculture-my-final-thoughts/
 
-**Modern policy**
-- NSAC, "Don't Harm Crop Insurance, Improve It!"
-  https://sustainableagriculture.net/blog/dont-harm-crop-insurance-improve-it/
+**Modern policy — US**
+- CRS IF12418, *Base Acres and Payment Yields*.
+  https://www.everycrsreport.com/reports/IF12418.html
+- CRS RL34019, *Eliminating the Planting Restrictions on Fruits and Vegetables*.
+  https://www.everycrsreport.com/reports/RL34019.html
+- 7 U.S.C. 9014, "Payment acres." https://www.law.cornell.edu/uscode/text/7/9014
+- **7 CFR 1412.46** — the destroy-before-harvest escape hatch and the
+  "non-perennial" double-cropping definition.
+  https://www.ecfr.gov/current/title-7/subtitle-B/chapter-XIV/subchapter-B/part-1412/subpart-D/section-1412.46
+- P.L. 115-334 §1102(b) — base acres retained without payments.
+  https://www.congress.gov/115/plaws/publ334/PLAW-115publ334.pdf
+- farmdoc daily on base-acre provisions — **"trees" named among the excluded**.
+  https://farmdocdaily.illinois.edu/2025/07/the-new-base-acre-provisions-in-the-2025-farm-bill.html
+- RMA, Whole-Farm Revenue Protection.
+  https://www.rma.usda.gov/policy-procedure/general-policies/whole-farm-revenue-protection
+- RMA MGR-24-001 — "unable to find an agent willing to sell."
+  https://www.rma.usda.gov/policy-procedure/bulletins-memos/managers-bulletin/2024/mgr-24-001-whole-farm-revenue-protection
+- NSAC WFRP analyses.
+  https://sustainableagriculture.net/blog/whole-farm-revenue-protection-analysis-new-enrollments-reveal-path-forward/
 - GAO-23-106228. https://www.gao.gov/products/gao-23-106228
+
+**Modern policy — EU (handle with the caveats)**
+- **Commission Delegated Reg. (EU) No 640/2014, Art. 9(3)** — the 100 trees/ha
+  ceiling. https://www.legislation.gov.uk/eur/2014/640/article/9
+- Reg. (EC) No 1782/2003 Art. 44(2) — permanent crops excluded outright; the
+  stronger example.
+  https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:32003R1782
+- Reg. (EU) 2021/2115 — agroforestry inside 'agricultural area' from 2023.
+  https://eur-lex.europa.eu/eli/reg/2021/2115/2023-01-01
+- **Alliance Environnement / IEEP for DG AGRI (2020)** — p.78, "no recent direct
+  evidence of this is known of." **Quote the caveat if citing at all.**
+  https://agriculture.ec.europa.eu/system/files/2020-03/ext-eval-biodiversity-final-report_2020_en_0.pdf
+- ECA Special Report 25/2016 (LPIS) — finds the *opposite* problem.
+  https://www.eca.europa.eu/lists/ecadocuments/sr16_25/sr_lpis_en.pdf
+- EPRS PE 651982, *Agroforestry in the European Union*.
+  https://www.europarl.europa.eu/RegData/etudes/BRIE/2020/651982/EPRS_BRI(2020)651982_EN.pdf
+
+**Green Revolution, tenure, and the reversal**
+- **AERC Study No. 43, Punjab Agricultural University** — the Punjab crop-area
+  table; pulses 7.29% → 0.25%. https://www.aercpau.com/assets/docs/AERC%2043.pdf
+- PRS India on MSP and public procurement — the state conceding the skew.
+  https://prsindia.org/theprsblog/msp-and-public-procurement
+- Stone, G. D. (2019). *Geographical Journal* 185:243–250 — the "seed-centric
+  narrative" critique. https://www.sbc.edu/live/files/2598-stone2019greenrevpdf
+- **Khoury et al. (2022), "Crop genetic erosion," *New Phytologist* 233(1):84–118**
+  — Box 1 dismantles the 75% figure.
+  https://cgspace.cgiar.org/items/2a7f845b-63ec-47c5-bb7d-2d889872b1c0
+- FAO, *First Report on the State of the World's PGRFA* (1996) — "no one can say
+  exactly how much has been lost."
+  https://ressources.semencespaysannes.org/docs/etat_biodiv_fao1.pdf
+- **Fortmann, L., "The tree tenure factor in agroforestry," *Agroforestry Systems***
+  — planting a tree as a land claim, and the resulting prohibitions.
+  https://liberiafti.wordpress.com/wp-content/uploads/2013/08/fortmann_tree-tenure-factor-in-agroforestry-with-particular-reference-to-africa1.pdf
+- **Niger's 1993 Forestry Code and FMNR (~7M ha)** — the natural experiment.
+  https://www.worldagroforestry.org/blog/2021/01/12/niger-formally-adopts-farmer-managed-natural-regeneration
+- Chapman, J. (1987), "The Extent and Nature of Parliamentary Enclosure,"
+  *Agricultural History Review* 35(1) — 7.25–7.35m acres; 59.67% pasture/waste.
+  https://www.bahs.org.uk/AGHR/ARTICLES/35n1a3.pdf
+- Heldring, Robinson & Vollmer, NBER WP 29772 (2022) — 45% yield, 30% Gini.
+  https://www.nber.org/system/files/working_papers/w29772/w29772.pdf
+- Thompson, E. P., *Whigs and Hunters* (1975) — the Black Act 1723.
+- Kandler, O., FAO *Unasylva* 174 (1993) — the Waldsterben forecast refuted.
+  https://www.fao.org/4/v0290e/v0290e07.htm
+- Perera, A. H. & Rajapakse, R. M. N. (1991), *Forest Ecology and Management*
+  45(1–4):269–280 — the real source of the "46 species / 3–5 strata" package.
+  https://www.sciencedirect.com/science/article/abs/pii/037811279190222H
+- Melvani et al. (2020/2023), "Forest gardens increase the financial viability of
+  farming enterprises in Sri Lanka," *Agroforestry Systems* 97:369–388.
+  https://doi.org/10.1007/s10457-020-00564-9
+- FAO GIAHS designated sites — confirming Sri Lanka's only entry is the CTVS.
+  https://www.fao.org/giahs/giahs-around-the-world/sri-lanka-cascaded-tank-village-system/en
 
 **The prompt, and its genre**
 - The video: `youtube.com/watch?v=ZhQk45Ra_Sw` — *recorded for provenance; not
