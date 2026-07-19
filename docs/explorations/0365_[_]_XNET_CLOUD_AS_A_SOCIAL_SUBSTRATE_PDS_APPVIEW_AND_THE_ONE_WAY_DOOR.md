@@ -13,6 +13,27 @@
 > It is not end-to-end encrypted."_
 > — AT Protocol proposal [`0016-permissioned-data`](https://github.com/bluesky-social/proposals/tree/main/0016-permissioned-data), merged 3 July 2026
 
+> ### ⚠️ Amended by [0366](./0366_[_]_THE_XNET_INDEX_DISCOVERY_FUNDED_BY_HOSTING_NOT_BY_ADMISSION.md)
+>
+> **The index lanes below are superseded.** This document recommended selling
+> access to an operated index ("L2"). 0366 withdraws that lane on evidence:
+>
+> - **Index reads are free and unauthenticated, permanently** — the L0/L1/L2
+>   layering and the refusal of L1 sale still stand, but **L2 is no longer sold
+>   as access** either.
+> - **The index is scoped to xNet's own content** (`net.x.*` records plus the
+>   plugin registry), not to the whole atproto network.
+> - **Its cost is absorbed into xNet Cloud hosting**, following Packagist and
+>   Open VSX — a model named in OpenSSF's 2025 joint statement.
+> - **Admission stays free**, because `registry/README.md` already promises it
+>   and because listing fees measurably do not deter abuse.
+> - What *is* sold sits on the other side of the listing: publisher analytics,
+>   priority re-crawl, commercial API quota (OpenSSF "value-added
+>   capabilities").
+>
+> Everything else in this document — the two rails, the one-way door, the
+> permissioned-data findings, the PDS phasing — is unchanged and still current.
+
 ## Problem Statement
 
 [0360](./0360_[_]_MAKING_XNET_CLOUD_DELIGHTFUL_THE_FORK_THE_COMMONS_AND_TIME_TO_FIRST_DELIGHT.md)
@@ -107,12 +128,13 @@ the third.** This is the whole answer to Danger 1:
 | --- | --- | --- | --- |
 | **L0 — Records** | The user's repo on their PDS | **The user, always** | Never |
 | **L1 — Raw index** | Firehose consumption, backlinks, the reproducible derived set | **Anyone; we publish how** | **No — this is ground rent** |
-| **L2 — Operated index** | Low latency, uptime, search quality, enrichment, abuse-resistance, support | **Us, and any competitor** | **Yes — this is improvement** |
+| **L2 — Operated index** | Low latency, uptime, search quality, enrichment, abuse-resistance, support | **Us, and any competitor** | ~~Yes~~ → **No, per [0366](./0366_[_]_THE_XNET_INDEX_DISCOVERY_FUNDED_BY_HOSTING_NOT_BY_ADMISSION.md): bundled into Cloud, reads free** |
 
 L1 is derivable from L0 by anyone who runs a relay. Charging for L1 means
 charging for access to public data that we did not create — the definition of
-rent. Charging for L2 means charging for a service we operate and could lose
-to someone who operates it better. **The test that keeps this honest is
+rent. Charging for L2 would mean charging for a service we operate and could
+lose to someone who operates it better — legitimate in principle, but **0366
+withdraws it in favour of bundling L2 into Cloud and keeping reads free.** **The test that keeps this honest is
 mechanical: L1 must be reproducible from public inputs by a third party, and
 CI must prove it from the first commit.**
 
@@ -575,7 +597,7 @@ explicitly. **Ratings are mine and are argued, not asserted.**
 | --- | --- | --- | --- | --- | --- |
 | **L-PDS** — hosted PDS | ✅ real ops (SMTP, TLS, backups, custody) | ✅ official `@atproto/pds` is one command | ✅ `did:plc` rotation key held by the *user* → migrate away | ❌ **commodity; a competitor at $5/mo erases it** | **Ship, price as convenience, expect no margin** |
 | **L-INDEX-L1** — access to raw derived index | ❌ **charges for public data we did not create** | ❌ if we are the only affordable index | ✅ records survive | ❌ | **REFUSE — this is the ground rent** |
-| **L-INDEX-L2** — operated index (latency, uptime, search, enrichment, abuse) | ✅ we run it | ✅ **only if** L1 is reproducible and documented | ✅ | ⚠️ survives only while we operate it best | **Ship, gated on the reproducibility gate** |
+| **L-INDEX-L2** — operated index (latency, uptime, search, enrichment, abuse) | ✅ we run it | ✅ **only if** L1 is reproducible and documented | ✅ | ⚠️ survives only while we operate it best | ~~Ship~~ → **WITHDRAWN by 0366: bundle into Cloud, keep reads free; sell value-added capabilities instead** |
 | **L-COMM** — community hosting (0359) | ✅ | ✅ self-host the hub | ✅ membership is a portable grant | ⚠️ ordinary competition | **Ship (0359's terms: price on ops, never seats)** |
 | **L-BLOG** — blog hosting (0362) | ✅ | ✅ static export proves it | ✅ | ⚠️ Ghost is already 0% | **Ship (0362's terms: never an ESP)** |
 | **L-COHERE** — one dial across private + public | ✅ integration surplus | ✅ | ✅ | ✅ **hard to copy without both halves** | **The only real moat here** |
@@ -603,7 +625,7 @@ flowchart TB
   P0["<b>Phase 0 — 0360's gate (UNCHANGED)</b><br/>cold open + real claim flow<br/>⛔ nothing below is perceptible until this lands"]
   P1["<b>Phase 1 — Speak the protocol</b><br/>publish net.x.* lexicons + _lexicon DNS<br/>Follow schema + social graph (does not exist today)<br/>write records to the user's EXISTING PDS<br/>NO infrastructure of ours"]
   P2["<b>Phase 2 — The one-way door</b><br/>asymmetric visibility in the type system<br/>Withdraw (never 'make private')<br/>gated content structurally barred from public rail"]
-  P3["<b>Phase 3 — The narrow index</b><br/>Jetstream → net.x.* + backlinks only<br/>L1 reproducible, documented, CI-gated<br/>L2 sold as an operated service"]
+  P3["<b>Phase 3 — The narrow index</b><br/>Jetstream → net.x.* + backlinks only<br/>L1 reproducible, documented, CI-gated<br/>L2 bundled into Cloud (0366)"]
   P4["<b>Phase 4 — Hosted PDS</b><br/>official @atproto/pds container<br/>user holds the higher-priority rotation key<br/>revise docs/hub-as-pds-spike.md first"]
   P0 --> P1 --> P2 --> P3 --> P4
 ```
@@ -623,8 +645,9 @@ published record.
 **Phase 3 — the narrow index, with the reproducibility gate in the same PR.**
 Not "later." 0360's rule 4 is explicit that an index which is theoretically
 mirrorable but practically singular is Docker Hub. Scope: `net.x.*` records
-plus backlinks — Constellation's shape, not Bluesky's. Sell L2; publish L1's
-recipe and prove it in CI.
+plus backlinks — Constellation's shape, not Bluesky's. Publish L1's recipe and
+prove it in CI. **Per 0366, L2 is bundled into Cloud rather than sold as
+access, and index reads stay free.**
 
 **Phase 4 — hosted PDS, and only after revising the spike doc.**
 `docs/hub-as-pds-spike.md` should be updated in the same change: trigger (a) is
@@ -790,8 +813,8 @@ export async function announcePack(pack: PackRef, agent: AtpAgent) {
 - [ ] Recruit **one third-party mirror operator** before claiming mirrorability.
 - [ ] Define the L1/L2 boundary in `docs/ECONOMICS.md` Moat Register, with
       L-INDEX-L1 added to the **Refused** table.
-- [ ] Meter and price L2 on operations (latency class, query volume), never on
-      records indexed.
+- [ ] ~~Meter and price L2 on operations.~~ **Superseded by 0366** — bundle L2
+      into Cloud, keep reads free, and sell value-added capabilities instead.
 - [ ] Add "no index chokepoint" to `packages/telemetry/test/charter-claims-ledger.test.ts`.
 
 ### Phase 4 — hosted PDS
