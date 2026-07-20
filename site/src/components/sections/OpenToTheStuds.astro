@@ -1,0 +1,72 @@
+---
+import SectionHeader from '../ui/SectionHeader.astro'
+import { rowCount, chipCount } from '../../data/compare'
+
+// One teaser row replaces four former full sections (UnderTheHood,
+// OpenProtocol, Hubs, Integrations) — each tile routes to the page that
+// carries the depth (exploration 0384). The sr-only shims keep the old
+// /#hubs-style anchor links landing somewhere sensible.
+const tiles = [
+  {
+    title: 'An open protocol',
+    body: 'A written standard, not just an app — anyone can re-implement it in any language. A ~100-line Python kernel already verifies TypeScript-signed changes byte-for-byte.',
+    href: '/docs/protocol/overview/',
+    cta: 'Read the protocol',
+  },
+  {
+    title: 'Cryptography-first',
+    body: 'Every change is signed, every node can be end-to-end encrypted, and the signatures are hybrid post-quantum (ML-DSA-65). You hold the keys, not us.',
+    href: '/docs/architecture/overview/',
+    cta: 'Under the hood',
+  },
+  {
+    title: 'Hubs for teams',
+    body: 'Optional always-on sync, encrypted backup, and team permissions on a $5 VPS or Railway. The Hub relays ciphertext — it never sees your data.',
+    href: '/docs/guides/hub/',
+    cta: 'Run a Hub',
+  },
+  {
+    title: 'Connectors',
+    body: 'GitHub, Notion, Linear, Slack, and more, synced into your workspace as normal, permissioned data — or define your own in a few lines.',
+    href: '/plugins',
+    cta: 'Browse connectors',
+  },
+]
+---
+
+<section id="open" class="py-24 lg:py-32">
+  <span id="under-the-hood" class="sr-only" aria-hidden="true"></span>
+  <span id="open-protocol" class="sr-only" aria-hidden="true"></span>
+  <span id="hubs" class="sr-only" aria-hidden="true"></span>
+  <span id="integrations" class="sr-only" aria-hidden="true"></span>
+  <span id="landscape" class="sr-only" aria-hidden="true"></span>
+  <div class="mx-auto max-w-6xl px-6">
+    <SectionHeader
+      title="Open to the studs"
+      subtitle="No magic, no lock-in. Every layer is documented, standardised, and yours to inspect."
+      align="center"
+    />
+
+    <div class="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      {tiles.map((tile) => (
+        <a
+          href={tile.href}
+          class="animate-on-scroll group rounded-xl border border-border bg-surface/40 dark:bg-surface/60 p-6 transition-all duration-300 hover:border-indigo-500/40"
+        >
+          <h3 class="font-semibold text-gray-800 dark:text-gray-100">{tile.title}</h3>
+          <p class="mt-2 text-sm text-gray-500 dark:text-gray-400 leading-relaxed">{tile.body}</p>
+          <span class="mt-4 inline-block text-sm font-medium text-indigo-600 dark:text-indigo-400 group-hover:underline">
+            {tile.cta} →
+          </span>
+        </a>
+      ))}
+    </div>
+
+    <p class="mt-10 text-center text-sm text-gray-500 dark:text-gray-400 animate-on-scroll">
+      Not the only ones building local-first.
+      <a href="/compare" class="text-indigo-600 dark:text-indigo-400 underline decoration-dotted underline-offset-2 hover:text-indigo-500">
+        See the landscape: {rowCount} projects compared, {chipCount} more acknowledged →
+      </a>
+    </p>
+  </div>
+</section>
