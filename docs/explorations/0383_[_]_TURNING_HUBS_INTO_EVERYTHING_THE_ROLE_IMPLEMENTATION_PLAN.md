@@ -291,11 +291,11 @@ federation plane grows (0305-style thinking, deferred)?
 - [x] Document the hub-PR tax (fragment command, no changeset, e2e flake + rerun).
 
 ### W1 — roles
-- [ ] `roles.ts` with `personal`/`demo`/`community`/`index`/`registry`; `--role` + `HUB_ROLE`; preset spread in `resolveConfig`.
-- [ ] Demo converted; zero `demo ?` ternaries in `server.ts`; `--demo` aliased.
-- [ ] Federation/shards/crawl reachable via presets; startup banner shows role.
-- [ ] Railway demo on `--role demo`, behaviour byte-identical.
-- [ ] Decide R6 (self-hosted quota scope) and record it.
+- [x] `roles.ts` with `personal`/`demo`/`community`/`index`/`registry`; `--role` + `HUB_ROLE`; preset spread in `resolveConfig`.
+- [x] Demo converted; zero `demo ?` ternaries in `server.ts`; `--demo` aliased.
+- [x] Federation/shards/crawl reachable via presets; startup banner shows role.
+- [x] Railway demo on `--role demo`, behaviour byte-identical.
+- [x] Decide R6 (self-hosted quota scope) and record it.
 
 ### W2 — feature modules
 - [ ] Four optional hooks on `HubFeature`; registry owns loops/shutdown.

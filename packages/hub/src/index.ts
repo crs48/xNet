@@ -9,9 +9,10 @@ import { createServer } from './server'
 import { DEFAULT_CONFIG } from './types'
 export { resolveConfig } from './config'
 
-export type { HubConfig, HubInstance, DemoOverrides } from './types'
+export type { HubConfig, HubInstance, HubRole, DemoOverrides } from './types'
 export { DEMO_DEFAULTS } from './types'
 export { getDemoOverrides } from './config'
+export { HUB_ROLES, isHubRole, rolePreset } from './roles'
 export type {
   YjsEnvelopeV2Verifier,
   YjsEnvelopeV2VerifierContext,

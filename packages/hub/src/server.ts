@@ -27,7 +27,14 @@ import {
   removeSession,
   toAuthContext
 } from './auth/ucan'
-import { resolvePerUserQuota } from './config'
+import {
+  resolveDiskWatchdogBytes,
+  resolveHandshakeDemoLimits,
+  resolveMaxBlobBytes,
+  resolvePerUserQuota,
+  resolveResetIntervalMs,
+  resolveResetOnCorruption
+} from './config'
 import { measureDataUsage, type DataUsage } from './data-usage'
 import { aiForwarderFeature } from './features/ai-forwarder'
 import { diagnosticsInboxFeature } from './features/diagnostics-inbox'
@@ -204,19 +211,20 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   // and boot rather than crash-loop (exploration 0206 follow-up). A real
   // self-host / production hub never does this.
   const storage = await createStorage(config.storage, config.dataDir, {
-    resetOnCorruption: !!config.demo
+    resetOnCorruption: resolveResetOnCorruption(config)
   })
-  // In demo mode, every per-user cap comes from the demo overrides (10 MB /
-  // 2 MB by default), not the 1 GB plan quota — otherwise a single visitor can
-  // fill the small demo volume (exploration 0291).
-  const demo = config.demo ? config.demoOverrides : undefined
+  // Every per-user cap goes through a config resolver — the single place the
+  // demo-override-vs-plan choice is made (#603's rule; 0383 W1). Server code
+  // never re-derives `demo ? x : y` inline.
   const perUserQuota = resolvePerUserQuota(config)
-  const maxBlobBytes = demo ? demo.maxBlob : config.maxBlobSize
-  // Demo-only: watch the data dir and shed relay writes before the volume fills
-  // (a full SQLite volume crashes the hub — exploration 0291 / the 0290 502).
-  const diskWatchdog = demo
-    ? new DiskWatchdog({ dataDir: config.dataDir, maxBytes: demo.diskLimitBytes })
-    : null
+  const maxBlobBytes = resolveMaxBlobBytes(config)
+  // Watchdog budget is demo-only (0291): watch the data dir and shed relay
+  // writes before the small disposable volume fills (the 0290 502).
+  const diskWatchdogBytes = resolveDiskWatchdogBytes(config)
+  const diskWatchdog =
+    diskWatchdogBytes !== null
+      ? new DiskWatchdog({ dataDir: config.dataDir, maxBytes: diskWatchdogBytes })
+      : null
   const isStorageFull = diskWatchdog ? () => diskWatchdog.isFull() : undefined
   const pool = new NodePool(storage, { isStorageFull })
   const relayIdentity = generateIdentity()
@@ -507,7 +515,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
 
     return c.json({
       schemaVersion: 1,
-      label: 'demo hub',
+      label: `${config.role ?? 'personal'} hub`,
       message: `online · ${uptimeStr}`,
       color: 'brightgreen'
     })
@@ -925,7 +933,8 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     }
     // Demo hub: guard the small disposable volume — watch disk usage and wipe
     // all user data on a fixed cadence so it can't grow unbounded (0291).
-    if (demo && diskWatchdog) {
+    const resetIntervalMs = resolveResetIntervalMs(config)
+    if (resetIntervalMs !== null && diskWatchdog) {
       diskWatchdog.start()
       demoResetInterval = setInterval(() => {
         storage
@@ -936,7 +945,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
               error: err instanceof Error ? err.message : String(err)
             })
           )
-      }, demo.resetInterval)
+      }, resetIntervalMs)
       demoResetInterval.unref?.()
     }
     await schemas.seedBuiltInSchemas([
@@ -1043,13 +1052,9 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
           hubDid: config.hubDid,
           isDemo: !!config.demo
         }
-        if (config.demo && config.demoOverrides) {
-          handshake.demoLimits = {
-            quotaBytes: config.demoOverrides.quota,
-            maxDocs: config.demoOverrides.maxDocs,
-            maxBlobBytes: config.demoOverrides.maxBlob,
-            evictionTtlMs: config.demoOverrides.evictionTtl
-          }
+        const demoLimits = resolveHandshakeDemoLimits(config)
+        if (demoLimits) {
+          handshake.demoLimits = demoLimits
         }
         if (ws.readyState === 1) {
           ws.send(JSON.stringify(handshake))
