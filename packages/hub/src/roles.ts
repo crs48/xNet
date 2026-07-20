@@ -33,7 +33,10 @@ export const HUB_ROLES: Record<HubRole, Partial<HubConfig>> = {
    * public face is discoverable across the fleet. The public-interaction
    * surface joins this preset in 0383 W2.
    */
-  community: { federation: { enabled: true } },
+  community: {
+    federation: { enabled: true },
+    publicInteractions: { enabled: true }
+  },
 
   /**
    * The Index (0374/0382): reads PUBLIC atproto records and serves derived
@@ -44,7 +47,8 @@ export const HUB_ROLES: Record<HubRole, Partial<HubConfig>> = {
   index: {
     federation: { enabled: false },
     shards: { enabled: false },
-    crawl: { enabled: false }
+    crawl: { enabled: false },
+    publicInteractions: { enabled: true }
   },
 
   /**

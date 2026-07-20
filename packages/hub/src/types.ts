@@ -119,6 +119,8 @@ export type HubConfig = {
   shards?: Partial<ShardConfig>
   /** Crawl coordination configuration (optional; merged over server defaults). */
   crawl?: Partial<CrawlConfig>
+  /** Public-interaction policy surface (0378/0383 W2; on in the community role). */
+  publicInteractions?: { enabled: boolean }
   /** Runtime metadata (platform info, region). */
   runtime?: {
     platform?: 'railway' | 'fly' | 'cloud-run' | 'fargate' | 'local' | 'unknown'

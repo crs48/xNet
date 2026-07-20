@@ -605,6 +605,7 @@ export {
   PolicyListSchema,
   PolicySubscriptionSchema,
   PublicInteractionPolicySchema,
+  publicInteractionPolicyId,
   QualitySignalSchema,
   ReviewTaskSchema,
   type AbuseReport,

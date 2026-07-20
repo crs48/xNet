@@ -298,10 +298,10 @@ federation plane grows (0305-style thinking, deferred)?
 - [x] Decide R6 (self-hosted quota scope) and record it.
 
 ### W2 — feature modules
-- [ ] Four optional hooks on `HubFeature`; registry owns loops/shutdown.
-- [ ] Migrate: public-interactions (born a feature; the 0378 route) → crawl → shards → federation.
-- [ ] Table-prefix discipline (`fed_*`/`crawl_*`/`idx_*`/`sub_*`) enforced in `storage?` hook.
-- [ ] `server.ts` assembly loop replaces the four subsystems' imperative wiring.
+- [x] Four optional hooks on `HubFeature`; registry owns loops/shutdown.
+- [x] Migrate: public-interactions (born a feature; the 0378 route) → crawl → shards → federation.
+- [x] Table-prefix discipline (`fed_*`/`crawl_*`/`idx_*`/`sub_*`) enforced in `storage?` hook.
+- [x] `server.ts` assembly loop replaces the four subsystems' imperative wiring.
 
 ### W3 — index role
 - [ ] `atprotoIndex` module wrapping 0374's pipeline.

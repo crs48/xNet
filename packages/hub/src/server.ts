@@ -43,6 +43,8 @@ import { billingFeature, tasksFeature, unfurlFeature } from './features/first-pa
 import { formInboxFeature } from './features/form-inbox'
 import { mountOidcProvider } from './features/oidc-provider'
 import { mountFeatures } from './features/registry'
+import { publicInteractionsFeature } from './features/public-interactions'
+import type { HubFeature } from './features/types'
 import { pagerdutyFeature, sentryFeature, stripeFeature } from './features/webhook-integrations'
 import { createLogger } from './logger'
 import { Metrics, HUB_METRICS } from './middleware/metrics'
@@ -615,8 +617,102 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   // not yet have. Until then the actions are reported (`{ ok, actions }`) but not
   // applied — matching the previous hand-written route, which also never wired
   // apply. See exploration 0189 (deferred: server-side action application).
-  mountFeatures(
+  // ── Infra subsystems as feature modules (0383 W2) ─────────────────────────
+  // Federation, shards and crawl assemble through the same registry as the
+  // integrations: mount + loops, with the REGISTRY owning start/stop. The
+  // services themselves are constructed above (they are interdependent —
+  // crawl feeds shard ingest) and the features close over them, the same
+  // pattern the integration features already use.
+  const federationFeature: HubFeature = {
+    id: 'fyi.xnet.hub.federation',
+    // Mounted even when disabled — the route 404s, preserving the previous
+    // always-mounted behaviour.
+    mount: ({ app, requireAuth }) =>
+      app.route('/federation', createFederationRoutes(federation, { requireAuth })),
+    loops: federationConfig.enabled
+      ? [
+          {
+            id: 'peer-health',
+            start: async () => {
+              await federation.loadPeers()
+              federationHealth.start()
+            },
+            stop: () => federationHealth.stop()
+          }
+        ]
+      : []
+  }
+  const shardsFeature: HubFeature = {
+    id: 'fyi.xnet.hub.shards',
+    mount: ({ app, requireAuth }) => {
+      if (!shardConfig.enabled) return
+      app.route(
+        '/shards',
+        createShardRoutes({
+          registry: shardRegistry,
+          ingest: shardIngest,
+          router: shardRouter,
+          rebalancer: shardRebalancer ?? undefined,
+          requireAuth
+        })
+      )
+    },
+    loops: shardConfig.enabled
+      ? [
+          {
+            id: 'shard-registry',
+            start: async () => {
+              await shardRegistry.init()
+              if (shardConfig.isRegistry && shardRebalancer && shardConfig.hubDid && shardConfig.hubUrl) {
+                await shardRebalancer.registerHost({
+                  hubDid: shardConfig.hubDid,
+                  url: shardConfig.hubUrl,
+                  capacity: shardConfig.maxDocsPerShard
+                })
+              }
+            },
+            stop: () => shardRegistry.stop()
+          }
+        ]
+      : []
+  }
+  const crawlFeature: HubFeature = {
+    id: 'fyi.xnet.hub.crawl',
+    mount: ({ app, requireAuth }) => {
+      if (!crawlConfig.enabled) return
+      app.route(
+        '/crawl',
+        createCrawlRoutes({
+          coordinator: crawlCoordinator,
+          requireAuth,
+          userAgent: crawlConfig.userAgent
+        })
+      )
+    },
+    loops: crawlConfig.enabled
+      ? [
+          {
+            id: 'crawl-coordinator',
+            start: async () => {
+              crawlCoordinator.start()
+              if (crawlConfig.seedUrls && crawlConfig.seedUrls.length > 0) {
+                await crawlCoordinator.seedUrls(crawlConfig.seedUrls)
+              }
+            },
+            stop: () => crawlCoordinator.stop()
+          }
+        ]
+      : []
+  }
+
+  const mounted = await mountFeatures(
     [
+      federationFeature,
+      shardsFeature,
+      crawlFeature,
+      // Public-interaction policy surface (0378/0383 W2) — on in the
+      // community and index roles.
+      ...(config.publicInteractions?.enabled ? [publicInteractionsFeature(storage)] : []),
       billingFeature(),
       tasksFeature(taskIdentifiers),
       unfurlFeature(crawlConfig.userAgent),
@@ -654,7 +750,8 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
       requireAuth,
       storage: config.storage,
       dataDir: config.dataDir,
-      appUrl: config.appUrl ?? DEFAULT_APP_URL
+      appUrl: config.appUrl ?? DEFAULT_APP_URL,
+      hubStorage: storage
     }
   )
   app.route('/dids', createDiscoveryRoutes(discovery, { requireAuth }))
@@ -666,30 +763,6 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
       requireAuth
     })
   )
-  app.route('/federation', createFederationRoutes(federation, { requireAuth }))
-  if (shardConfig.enabled) {
-    app.route(
-      '/shards',
-      createShardRoutes({
-        registry: shardRegistry,
-        ingest: shardIngest,
-        router: shardRouter,
-        rebalancer: shardRebalancer ?? undefined,
-        requireAuth
-      })
-    )
-  }
-  if (crawlConfig.enabled) {
-    app.route(
-      '/crawl',
-      createCrawlRoutes({
-        coordinator: crawlCoordinator,
-        requireAuth,
-        userAgent: crawlConfig.userAgent
-      })
-    )
-  }
-
   app.route(
     '/shares',
     createShareLinkRoutes({
@@ -911,26 +984,9 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     telemetry.start()
     awareness.start()
     discovery.start()
-    if (federationConfig.enabled) {
-      await federation.loadPeers()
-      federationHealth.start()
-    }
-    if (shardConfig.enabled) {
-      await shardRegistry.init()
-      if (shardConfig.isRegistry && shardRebalancer && shardConfig.hubDid && shardConfig.hubUrl) {
-        await shardRebalancer.registerHost({
-          hubDid: shardConfig.hubDid,
-          url: shardConfig.hubUrl,
-          capacity: shardConfig.maxDocsPerShard
-        })
-      }
-    }
-    if (crawlConfig.enabled) {
-      crawlCoordinator.start()
-      if (crawlConfig.seedUrls && crawlConfig.seedUrls.length > 0) {
-        await crawlCoordinator.seedUrls(crawlConfig.seedUrls)
-      }
-    }
+    // Feature loops (0383 W2): federation health, shard registry, crawl —
+    // started by the registry in feature order.
+    await mounted.start()
     // Demo hub: guard the small disposable volume — watch disk usage and wipe
     // all user data on a fixed cadence so it can't grow unbounded (0291).
     const resetIntervalMs = resolveResetIntervalMs(config)
@@ -1161,9 +1217,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     telemetry.stop()
     awareness.stop()
     discovery.stop()
-    federationHealth.stop()
-    shardRegistry.stop()
-    crawlCoordinator.stop()
+    await mounted.stop()
     signaling.destroy()
   }
 
