@@ -10,5 +10,12 @@
   "tags": [
     "platform",
     "sync"
+  ],
+  "pr": 603,
+  "mergedAt": "2026-07-20T18:21:12Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
   ]
 }
