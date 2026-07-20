@@ -1,90 +1,45 @@
 ---
 import SectionHeader from '../ui/SectionHeader.astro'
 
+// Six marquee surfaces only — the other eight are named in one line below.
+// The full pitch is the app itself (/app); this section teases, it doesn't
+// re-argue (exploration 0384).
 const tools = [
   {
     title: 'Documents',
-    description: 'Write and collaborate in real-time. Slash commands, blocks, formatting — everything syncs instantly between your devices and teammates.',
+    description: 'Write together in real time. Slash commands, blocks, formatting — synced across devices.',
     icon: 'doc',
     color: 'indigo',
   },
   {
     title: 'Databases',
-    description: 'Track anything with 15 field types. See your data as tables, boards, galleries, or calendars. Filter, sort, and group your way.',
+    description: 'Track anything with 15 field types. Tables, boards, galleries, calendars.',
     icon: 'db',
     color: 'emerald',
   },
   {
     title: 'Canvas',
-    description: 'Visual thinking on an infinite whiteboard. Arrange ideas freely, draw and edit connections, embed documents. Like Miro meets Obsidian.',
+    description: 'An infinite whiteboard for visual thinking. Draw connections, embed documents.',
     icon: 'canvas',
     color: 'amber',
   },
   {
     title: 'Tasks',
-    description: 'Manage projects with status, priority, assignees, and due dates. Edit tasks in place on any surface — boards, lists, pages, or the sidebar.',
+    description: 'Projects with status, priority, assignees, and due dates — editable on any surface.',
     icon: 'task',
     color: 'pink',
   },
   {
-    title: 'Dashboards',
-    description: 'Metrics, charts, and feeds over your live data. Pick from built-in widgets or write your own — they run sandboxed and sync like everything else.',
-    icon: 'dashboard',
-    color: 'cyan',
-  },
-  {
     title: 'Chat & Calls',
-    description: 'Channels, DMs, and peer-to-peer video calls — built on the same local-first sync as your documents. Every page gets its own discussion thread.',
+    description: 'Channels, DMs, and peer-to-peer video calls on the same local-first sync.',
     icon: 'chat',
     color: 'violet',
   },
   {
-    title: 'Notifications',
-    description: 'Mentions, assignments, and replies land in a private inbox derived locally from sync — no notification server reading your activity.',
-    icon: 'bell',
-    color: 'rose',
-  },
-  {
-    title: 'Instant search',
-    description: 'One palette (⌘K) opens anything, runs any command, and full-text searches every page — entirely on your device.',
-    icon: 'search',
-    color: 'sky',
-  },
-  {
     title: 'AI assistant',
-    description: 'A built-in assistant that retrieves over your own knowledge graph (GraphRAG) and scaffolds content — grounded in your workspace, with optional on-device semantic search.',
+    description: 'Answers grounded in your own knowledge graph, with optional on-device search. AI content is always badged, never passed off as yours.',
     icon: 'spark',
     color: 'violet',
-  },
-  {
-    title: 'CRM & contacts',
-    description: 'People, companies, and deals with a per-person dashboard. A relational CRM that is just nodes in your store — no separate database to wire up.',
-    icon: 'people',
-    color: 'cyan',
-  },
-  {
-    title: 'Finance',
-    description: 'Double-entry accounting with accounts, transactions, and postings. Money is kept as exact integer minor units, so the books always balance.',
-    icon: 'ledger',
-    color: 'emerald',
-  },
-  {
-    title: 'Experiments',
-    description: 'A habit and metric tracker with streaks and trend math. Run experiments on yourself or your team and watch the numbers move.',
-    icon: 'beaker',
-    color: 'amber',
-  },
-  {
-    title: 'Maps',
-    description: 'Live, query-driven layers over your data on a satellite or vector basemap — your places and routes plotted from the same nodes.',
-    icon: 'map',
-    color: 'rose',
-  },
-  {
-    title: 'Labs',
-    description: 'A sandboxed code surface to compute over your nodes on a tiered runtime ladder — notebooks and small tools, right inside the workspace.',
-    icon: 'code',
-    color: 'indigo',
   },
 ]
 
@@ -93,93 +48,21 @@ const colorMap: Record<string, { border: string, bg: string, text: string, iconB
   emerald: { border: 'border-emerald-500/20', bg: 'bg-emerald-500/[0.03]', text: 'text-emerald-400', iconBg: 'bg-emerald-500/10' },
   amber: { border: 'border-amber-500/20', bg: 'bg-amber-500/[0.03]', text: 'text-amber-400', iconBg: 'bg-amber-500/10' },
   pink: { border: 'border-pink-500/20', bg: 'bg-pink-500/[0.03]', text: 'text-pink-400', iconBg: 'bg-pink-500/10' },
-  cyan: { border: 'border-cyan-500/20', bg: 'bg-cyan-500/[0.03]', text: 'text-cyan-400', iconBg: 'bg-cyan-500/10' },
   violet: { border: 'border-violet-500/20', bg: 'bg-violet-500/[0.03]', text: 'text-violet-400', iconBg: 'bg-violet-500/10' },
-  rose: { border: 'border-rose-500/20', bg: 'bg-rose-500/[0.03]', text: 'text-rose-400', iconBg: 'bg-rose-500/10' },
-  sky: { border: 'border-sky-500/20', bg: 'bg-sky-500/[0.03]', text: 'text-sky-400', iconBg: 'bg-sky-500/10' },
 }
 ---
 
 <section id="app" class="border-y border-border/50 bg-surface/10 dark:bg-surface/20 py-24 lg:py-32">
+  <span id="ai" class="sr-only" aria-hidden="true"></span>
   <div class="mx-auto max-w-6xl px-6">
     <SectionHeader
       title="Your whole workspace. One app."
-      subtitle="Documents, databases, canvas, tasks, dashboards, an AI assistant, CRM, finance, maps, chat — in a keyboard-first workbench that works offline, syncs across your devices, and keeps your data private. No account required. Free forever."
+      subtitle="A keyboard-first workbench that works offline, syncs across your devices, and keeps your data private. No account. Free forever."
       align="center"
     />
 
-    <!-- App preview / CTA -->
-    <div class="mt-12 max-w-4xl mx-auto animate-on-scroll">
-      <div class="relative rounded-xl border border-border overflow-hidden bg-gradient-to-b from-surface/50 to-surface/30 dark:from-surface/80 dark:to-surface/50">
-        <!-- App window mockup -->
-        <div class="flex items-center gap-2 px-4 py-3 border-b border-border/50 bg-surface/50">
-          <div class="flex gap-1.5">
-            <span class="w-3 h-3 rounded-full bg-red-500/60"></span>
-            <span class="w-3 h-3 rounded-full bg-yellow-500/60"></span>
-            <span class="w-3 h-3 rounded-full bg-green-500/60"></span>
-          </div>
-          <span class="text-xs text-gray-500 ml-2">xNet</span>
-        </div>
-        <!-- Workbench screenshot (light/dark follow the page theme) -->
-        <img
-          src="/images/workbench-light.png"
-          alt="The xNet workbench in light mode: a Q3 Launch Plan document with a launch checklist, tabbed pages, and the Explorer sidebar showing spaces, folders, and tags"
-          class="block w-full dark:hidden"
-          width="1600"
-          height="1000"
-          loading="lazy"
-        />
-        <img
-          src="/images/workbench-dark.png"
-          alt="The xNet workbench in dark mode: a Q3 Launch Plan document with a launch checklist, tabbed pages, and the Explorer sidebar showing spaces, folders, and tags"
-          class="hidden w-full dark:block"
-          width="1600"
-          height="1000"
-          loading="lazy"
-        />
-      </div>
-      <div class="mt-6 text-center">
-        <a
-          href="/app"
-          class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-emerald-600 text-white font-medium hover:bg-emerald-500 transition-colors"
-        >
-          Try the App
-          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-          </svg>
-        </a>
-        <p class="mt-3 text-sm text-gray-500">Free in your browser — no account, no install.</p>
-      </div>
-    </div>
-
-    <!-- Key differentiators -->
-    <div class="mx-auto mt-12 max-w-3xl animate-on-scroll">
-      <div class="rounded-xl border border-border bg-surface/30 dark:bg-surface/50 p-6 sm:p-8">
-        <div class="grid gap-6 sm:grid-cols-2">
-          <div>
-            <div class="flex items-center gap-2 mb-2">
-              <svg class="h-4 w-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
-              <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200">Your data stays on your device</h4>
-            </div>
-            <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-              Unlike cloud apps, your files never leave your computer unless you want them to. No servers reading your notes. No accounts to create.
-            </p>
-          </div>
-          <div>
-            <div class="flex items-center gap-2 mb-2">
-              <svg class="h-4 w-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"/></svg>
-              <h4 class="text-sm font-semibold text-gray-700 dark:text-gray-200">Works offline, syncs automatically</h4>
-            </div>
-            <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
-              Edit on a plane, in the subway, anywhere. When you're back online, changes sync between your devices without you lifting a finger.
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tools grid -->
-    <div class="mt-12 grid gap-5 sm:grid-cols-2">
+    <!-- Tools grid: six marquee surfaces -->
+    <div class="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
       {tools.map((tool) => {
         const c = colorMap[tool.color]
         return (
@@ -190,16 +73,8 @@ const colorMap: Record<string, { border: string, bg: string, text: string, iconB
                 {tool.icon === 'db' && <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"/></svg>}
                 {tool.icon === 'canvas' && <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4zM4 15a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1H5a1 1 0 01-1-1v-4zM14 5a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1V5z"/></svg>}
                 {tool.icon === 'task' && <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>}
-                {tool.icon === 'dashboard' && <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>}
                 {tool.icon === 'chat' && <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>}
-                {tool.icon === 'bell' && <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>}
-                {tool.icon === 'search' && <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>}
                 {tool.icon === 'spark' && <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456z"/></svg>}
-                {tool.icon === 'people' && <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>}
-                {tool.icon === 'ledger' && <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>}
-                {tool.icon === 'beaker' && <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23-.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21a48.25 48.25 0 01-8.135-.687c-1.718-.293-2.3-2.379-1.067-3.61L5 14.5"/></svg>}
-                {tool.icon === 'map' && <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M9 6.75V15m6-6v8.25m.503 3.498l4.875-2.437c.381-.19.622-.58.622-1.006V4.82c0-.836-.88-1.38-1.628-1.006l-3.869 1.934c-.317.159-.69.159-1.006 0L9.503 3.252a1.125 1.125 0 00-1.006 0L3.622 5.689C3.24 5.88 3 6.27 3 6.695V19.18c0 .836.88 1.38 1.628 1.006l3.869-1.934c.317-.159.69-.159 1.006 0l4.994 2.497c.317.158.69.158 1.006 0z"/></svg>}
-                {tool.icon === 'code' && <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.6" d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5"/></svg>}
               </div>
               <h3 class={`font-semibold ${c.text}`}>{tool.title}</h3>
             </div>
@@ -209,19 +84,27 @@ const colorMap: Record<string, { border: string, bg: string, text: string, iconB
       })}
     </div>
 
-    <!-- Platforms + contribute CTA -->
-    <div class="mt-12 animate-on-scroll">
-      <div class="rounded-xl border border-border bg-code-bg p-6 sm:p-8">
-        <div class="grid gap-8 sm:grid-cols-3">
+    <p class="mt-8 text-center text-sm text-gray-500 dark:text-gray-400 animate-on-scroll">
+      &hellip;and eight more surfaces — dashboards, notifications, instant search,
+      CRM, finance, experiments, maps, and labs.
+      <a href="/app" class="text-indigo-600 dark:text-indigo-400 underline decoration-dotted underline-offset-2 hover:text-indigo-500">
+        All 14 in one workbench →
+      </a>
+    </p>
+
+    <!-- Platforms + CTA -->
+    <div class="mx-auto mt-12 max-w-3xl animate-on-scroll">
+      <div class="rounded-xl border border-border bg-code-bg p-6">
+        <div class="grid gap-6 sm:grid-cols-3">
           <div class="text-center">
             <svg class="mx-auto h-8 w-8 text-gray-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" stroke-width="1.5"/><line x1="8" y1="21" x2="16" y2="21" stroke-width="1.5"/><line x1="12" y1="17" x2="12" y2="21" stroke-width="1.5"/></svg>
             <strong class="text-sm text-gray-700 dark:text-gray-200">Desktop</strong>
-            <p class="text-xs text-gray-500 mt-1">Electron &mdash; full features, plugins, background services</p>
+            <p class="text-xs text-gray-500 mt-1">Electron &mdash; full features, plugins</p>
           </div>
           <div class="text-center">
             <svg class="mx-auto h-8 w-8 text-gray-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="1.5"/><line x1="2" y1="12" x2="22" y2="12" stroke-width="1.5"/><path d="M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z" stroke-width="1.5"/></svg>
             <strong class="text-sm text-gray-700 dark:text-gray-200">Web</strong>
-            <p class="text-xs text-gray-500 mt-1">PWA &mdash; works in any browser, installable</p>
+            <p class="text-xs text-gray-500 mt-1">PWA &mdash; any browser, installable</p>
           </div>
           <div class="text-center">
             <svg class="mx-auto h-8 w-8 text-gray-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" stroke-width="1.5"/><line x1="10" y1="18" x2="14" y2="18" stroke-width="1.5"/></svg>
@@ -229,9 +112,18 @@ const colorMap: Record<string, { border: string, bg: string, text: string, iconB
             <p class="text-xs text-gray-500 mt-1">Expo &mdash; iOS and Android (coming soon)</p>
           </div>
         </div>
-        <p class="mt-6 text-center text-sm text-gray-500">
-          Free forever. Self-hostable. Every feature is open source and will stay that way.
-        </p>
+      </div>
+      <div class="mt-8 text-center">
+        <a
+          href="/app"
+          class="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-emerald-600 text-white font-medium hover:bg-emerald-500 transition-colors"
+        >
+          Try the App
+          <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+          </svg>
+        </a>
+        <p class="mt-3 text-sm text-gray-500">Free forever. Self-hostable. Every feature is open source.</p>
       </div>
     </div>
   </div>
