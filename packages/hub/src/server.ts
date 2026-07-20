@@ -27,6 +27,7 @@ import {
   removeSession,
   toAuthContext
 } from './auth/ucan'
+import { resolvePerUserQuota } from './config'
 import { measureDataUsage, type DataUsage } from './data-usage'
 import { aiForwarderFeature } from './features/ai-forwarder'
 import { diagnosticsInboxFeature } from './features/diagnostics-inbox'
@@ -209,7 +210,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   // 2 MB by default), not the 1 GB plan quota — otherwise a single visitor can
   // fill the small demo volume (exploration 0291).
   const demo = config.demo ? config.demoOverrides : undefined
-  const perUserQuota = demo ? demo.quota : config.defaultQuota
+  const perUserQuota = resolvePerUserQuota(config)
   const maxBlobBytes = demo ? demo.maxBlob : config.maxBlobSize
   // Demo-only: watch the data dir and shed relay writes before the volume fills
   // (a full SQLite volume crashes the hub — exploration 0291 / the 0290 502).
@@ -324,8 +325,13 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     telemetryPeerHashSalt: config.telemetryPeerHashSalt
   }
   const shareAccess = new ShareAccessService(storage)
+  // The append-only change log is the primary grower and was metered only in
+  // demo mode, so a paying tenant's log could grow without bound while backups
+  // and files were capped (exploration 0381, R3). It shares the same per-user
+  // quota as those — the plan's, not the demo default. Eviction and the disk
+  // watchdog stay demo-only; this is the append gate alone.
   const nodeRelay = new NodeRelayService(storage, remoteMutationTelemetry, {
-    quotaBytes: demo ? demo.quota : undefined,
+    quotaBytes: perUserQuota,
     isStorageFull,
     // Fan channel nodes into their share room so grantees receive them (0298).
     shareAccess,

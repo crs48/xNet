@@ -98,6 +98,20 @@ export const getDemoOverrides = (isDemo: boolean): DemoOverrides | null => {
 }
 
 /**
+ * The single per-user storage cap every grower is metered against: the change
+ * log, backups, and file uploads. In demo mode that is the small disposable
+ * demo override (10 MB by default); otherwise it is the plan quota resolved from
+ * the signed `HUB_PLAN` entitlement, falling back to `DEFAULT_CONFIG` for a
+ * self-hosted hub (exploration 0291/0216, wired for managed hubs by 0381).
+ *
+ * One function so a new grower cannot pick a different cap than the meter the
+ * dashboard shows — the change log did exactly that and went ungated on every
+ * non-demo hub.
+ */
+export const resolvePerUserQuota = (config: HubConfig): number =>
+  config.demo && config.demoOverrides ? config.demoOverrides.quota : config.defaultQuota
+
+/**
  * Resolve Hub configuration from environment variables, CLI flags, and defaults.
  */
 export const resolveConfig = (cliOptions: Partial<HubConfig>): HubConfig => {
