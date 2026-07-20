@@ -1,5 +1,14 @@
 # @xnetjs/labs
 
+## 0.0.25
+
+### Patch Changes
+
+- Updated dependencies [[`c5ffa73`](https://github.com/crs48/xNet/commit/c5ffa7357c6e450560f15912d0a53eeb780695e6), [`7d065d7`](https://github.com/crs48/xNet/commit/7d065d7c4f0bf535ae842e4c98ba841da6e7d9fe), [`33f4b9e`](https://github.com/crs48/xNet/commit/33f4b9ef38c72b2e898f7a4a4de83cc08b0aea88), [`0edfbee`](https://github.com/crs48/xNet/commit/0edfbeefb6b7cf50c0f6a4c2a638bfe5d79ce6ce), [`e48eb34`](https://github.com/crs48/xNet/commit/e48eb345832db3fab41dd7e3ac70a08f8c86c343), [`22892a6`](https://github.com/crs48/xNet/commit/22892a674e2dc3ae7a86ac81d6c20de559b852ed), [`0f26bc9`](https://github.com/crs48/xNet/commit/0f26bc96b9261a8ee0589d94dd276c78017dcc1a), [`60337df`](https://github.com/crs48/xNet/commit/60337dfa61ab7afaa5768169d1a89e7398827b6c), [`a4097e5`](https://github.com/crs48/xNet/commit/a4097e58bf568a19a737ce78783838913fd89fc3), [`649cdf7`](https://github.com/crs48/xNet/commit/649cdf74eaf62aa2c08186857b3cd695efa5e3f6), [`649cdf7`](https://github.com/crs48/xNet/commit/649cdf74eaf62aa2c08186857b3cd695efa5e3f6)]:
+  - @xnetjs/data@3.0.0
+  - @xnetjs/plugins@3.0.0
+  - @xnetjs/trust@0.0.3
+
 ## 0.0.24
 
 ### Patch Changes

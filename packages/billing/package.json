@@ -1,6 +1,6 @@
 {
   "name": "@xnetjs/billing",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Plug-and-play, provider-agnostic billing (Stripe + Bitcoin/BTCPay) for the self-hostable hub — a PaymentProvider port, a canonical billing model, webhook verification, and an idempotent billing store. Zero runtime dependencies (node:crypto + fetch).",
   "license": "MIT",
   "type": "module",

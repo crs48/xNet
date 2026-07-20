@@ -1,6 +1,6 @@
 {
   "name": "@xnetjs/publish",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Render xNet pages to static HTML, feeds and sitemaps — the publishing spine for owned-audience blogging (exploration 0362).",
   "license": "MIT",
   "repository": {

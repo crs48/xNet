@@ -1,5 +1,86 @@
 # @xnetjs/runtime
 
+## 0.6.0
+
+### Minor Changes
+
+- [#563](https://github.com/crs48/xNet/pull/563) [`33f4b9e`](https://github.com/crs48/xNet/commit/33f4b9ef38c72b2e898f7a4a4de83cc08b0aea88) Thanks [@crs48](https://github.com/crs48)! - Bulk changes: batched push frames and batch commits (exploration 0357)
+
+  Large imports, deletes, and migrations are still N changes (one per node) —
+  that is what makes per-node history, per-property LWW, and selective sync
+  work — but they no longer pay a per-change price on the wire or in
+  verification.
+  - `@xnetjs/crypto` adds `verifyFast`/`verifyMany`, backed by WebCrypto
+    Ed25519 where the runtime has it (~13x faster than the pure-JS verifier,
+    measured 101µs vs 1374µs), with an automatic fallback.
+  - `@xnetjs/sync` adds `BatchCommit`: one signature covering up to 1000
+    ordered change hashes, so verifying a batch costs one signature check plus
+    the hash recomputations a verifier already owes. Additive — the change
+    record, its hash recipe, and LWW ordering are unchanged.
+  - `.xnetpack` bundles now carry `commits.ndjson`; importing a self-export
+    verifies with one signature per 1000 changes instead of one per change.
+    Bundles without it import exactly as before.
+  - Clients batch outbound changes into `node-change-batch` frames when the hub
+    advertises `batch-push`, and fall back to one frame per change otherwise.
+    Hub ingest of 10,000 changes drops from ~250s (wire-bound) to 570ms.
+
+  Batching is transport and authentication only: every change is still verified,
+  authorized, quota-checked, and LWW-applied individually.
+
+- [#607](https://github.com/crs48/xNet/pull/607) [`22892a6`](https://github.com/crs48/xNet/commit/22892a674e2dc3ae7a86ac81d6c20de559b852ed) Thanks [@crs48](https://github.com/crs48)! - Public-interaction policy resolution and the replication trust gate (explorations 0378/0258/0383).
+  - `@xnetjs/data`: new `publicInteractionPolicyId(targetId)` — the deterministic node id for a target's `PublicInteractionPolicy`, so servers resolve "what may strangers do to this node?" with one O(1) read and re-publishing a policy upserts instead of duplicating.
+  - `@xnetjs/runtime`: `MultiHubSyncManager.publishScoped` now enforces the 0258 trust tiers — plaintext payloads are withheld from `zero-knowledge` destinations and the call returns `{ published, withheld }` (previously `void`); new `mayReceivePayload(trust, payload)` and `PayloadClass` export the rule. Pass `{ payload: 'ciphertext' }` for recipient-scoped envelopes, which may go anywhere.
+
+- [#561](https://github.com/crs48/xNet/pull/561) [`ee9f4dc`](https://github.com/crs48/xNet/commit/ee9f4dcb66d52edcf73216a03b068de8555e57d7) Thanks [@crs48](https://github.com/crs48)! - Fix permanently skipped changes on a cold catch-up of more than one page. The
+  hub caps a `node-sync-response` at 1000 changes but reported the room-wide
+  high-water mark alongside it, so a client that applied the page and persisted
+  that mark as its cursor jumped straight past every change in between — and
+  because the cursor is monotonic and persisted, those changes were never
+  re-requested. A room with 2500 pending changes delivered 1000 and silently lost 1500.
+
+  `NodeSyncResponse` gains an optional `hasMore` flag, and the sync provider now
+  walks the remaining pages in-session (re-requesting from the cursor it just
+  persisted) before pushing local changes, instead of leaving the remainder for a
+  later reconnect. Talking to a hub that does not send `hasMore` is unchanged.
+
+### Patch Changes
+
+- [#571](https://github.com/crs48/xNet/pull/571) [`c5ffa73`](https://github.com/crs48/xNet/commit/c5ffa7357c6e450560f15912d0a53eeb780695e6) Thanks [@crs48](https://github.com/crs48)! - Document alpha status in every package README. xNet is released — these packages
+  are on npm and usable today — but it is early software: APIs can change between
+  releases, sometimes without a migration path. Each README now says so up front,
+  so the notice is visible on the npm package page. Docs only; no code changes.
+
+- [#587](https://github.com/crs48/xNet/pull/587) [`7d065d7`](https://github.com/crs48/xNet/commit/7d065d7c4f0bf535ae842e4c98ba841da6e7d9fe) Thanks [@crs48](https://github.com/crs48)! - Fix TypeScript type resolution for every package's export map, and ship
+  `@xnetjs/data/portability`.
+
+  `types` was ordered after `import` in 48 export subpaths across 19 packages.
+  Export conditions are order-sensitive, so TypeScript could resolve the wrong
+  entry — or no types at all — depending on the consumer's `moduleResolution`.
+  `types` is now first everywhere.
+
+  `@xnetjs/data` also advertised a `./portability` subpath that was never added to
+  its build, so `@xnetjs/data/portability` — the `.xnetpack` export/import codec —
+  did not resolve at all for consumers. It now builds and ships.
+
+  Both were found by adding `publint` to CI.
+
+- [#565](https://github.com/crs48/xNet/pull/565) [`649cdf7`](https://github.com/crs48/xNet/commit/649cdf74eaf62aa2c08186857b3cd695efa5e3f6) Thanks [@crs48](https://github.com/crs48)! - Spell the brand `xNet` consistently in source comments
+
+  Doc-comment and JSDoc prose only — no exported names, signatures, runtime
+  values, or wire contracts changed. Included so the release notes record why
+  these packages show a diff.
+
+- Updated dependencies [[`c5ffa73`](https://github.com/crs48/xNet/commit/c5ffa7357c6e450560f15912d0a53eeb780695e6), [`7d065d7`](https://github.com/crs48/xNet/commit/7d065d7c4f0bf535ae842e4c98ba841da6e7d9fe), [`215d61d`](https://github.com/crs48/xNet/commit/215d61d586048c7d7d2221947bdcde7966172907), [`33f4b9e`](https://github.com/crs48/xNet/commit/33f4b9ef38c72b2e898f7a4a4de83cc08b0aea88), [`0edfbee`](https://github.com/crs48/xNet/commit/0edfbeefb6b7cf50c0f6a4c2a638bfe5d79ce6ce), [`e48eb34`](https://github.com/crs48/xNet/commit/e48eb345832db3fab41dd7e3ac70a08f8c86c343), [`22892a6`](https://github.com/crs48/xNet/commit/22892a674e2dc3ae7a86ac81d6c20de559b852ed), [`0f26bc9`](https://github.com/crs48/xNet/commit/0f26bc96b9261a8ee0589d94dd276c78017dcc1a), [`60337df`](https://github.com/crs48/xNet/commit/60337dfa61ab7afaa5768169d1a89e7398827b6c), [`a4097e5`](https://github.com/crs48/xNet/commit/a4097e58bf568a19a737ce78783838913fd89fc3), [`649cdf7`](https://github.com/crs48/xNet/commit/649cdf74eaf62aa2c08186857b3cd695efa5e3f6), [`649cdf7`](https://github.com/crs48/xNet/commit/649cdf74eaf62aa2c08186857b3cd695efa5e3f6)]:
+  - @xnetjs/core@3.0.0
+  - @xnetjs/crypto@3.0.0
+  - @xnetjs/data@3.0.0
+  - @xnetjs/data-bridge@3.0.0
+  - @xnetjs/history@3.0.0
+  - @xnetjs/identity@3.0.0
+  - @xnetjs/plugins@3.0.0
+  - @xnetjs/storage@3.0.0
+  - @xnetjs/sync@3.0.0
+
 ## 0.5.5
 
 ### Patch Changes

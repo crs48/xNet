@@ -1,5 +1,51 @@
 # @xnetjs/identity
 
+## 3.0.0
+
+### Major Changes
+
+- [#589](https://github.com/crs48/xNet/pull/589) [`215d61d`](https://github.com/crs48/xNet/commit/215d61d586048c7d7d2221947bdcde7966172907) Thanks [@crs48](https://github.com/crs48)! - Move the ATProto identity binding to the `fyi.xnet.*` namespace.
+
+  `ATPROTO_BINDING_COLLECTION` changes from `net.x.identity.binding` to
+  `fyi.xnet.identity.binding`. NSIDs are DNS-rooted, so authority over `net.x.*`
+  requires control of `x.net` — which belongs to IANA and can never be ours. The
+  old collection was therefore unresolvable and indefensible; `xnet.fyi` is a
+  domain we actually hold.
+
+  This is a breaking wire-contract change: the collection name appears in the
+  record `$type`, in the `at://` URI of every binding, and in the hub's
+  verification path. In practice the migration cost is nil — the binding was held
+  by 0 DIDs network-wide, because the OAuth client requested identity-only scope
+  and the write was never authorised (fixed alongside this change).
+
+  Consumers reading or writing the binding directly must use the new collection;
+  records under the old name were never successfully created.
+
+### Patch Changes
+
+- [#571](https://github.com/crs48/xNet/pull/571) [`c5ffa73`](https://github.com/crs48/xNet/commit/c5ffa7357c6e450560f15912d0a53eeb780695e6) Thanks [@crs48](https://github.com/crs48)! - Document alpha status in every package README. xNet is released — these packages
+  are on npm and usable today — but it is early software: APIs can change between
+  releases, sometimes without a migration path. Each README now says so up front,
+  so the notice is visible on the npm package page. Docs only; no code changes.
+
+- [#587](https://github.com/crs48/xNet/pull/587) [`7d065d7`](https://github.com/crs48/xNet/commit/7d065d7c4f0bf535ae842e4c98ba841da6e7d9fe) Thanks [@crs48](https://github.com/crs48)! - Fix TypeScript type resolution for every package's export map, and ship
+  `@xnetjs/data/portability`.
+
+  `types` was ordered after `import` in 48 export subpaths across 19 packages.
+  Export conditions are order-sensitive, so TypeScript could resolve the wrong
+  entry — or no types at all — depending on the consumer's `moduleResolution`.
+  `types` is now first everywhere.
+
+  `@xnetjs/data` also advertised a `./portability` subpath that was never added to
+  its build, so `@xnetjs/data/portability` — the `.xnetpack` export/import codec —
+  did not resolve at all for consumers. It now builds and ships.
+
+  Both were found by adding `publint` to CI.
+
+- Updated dependencies [[`c5ffa73`](https://github.com/crs48/xNet/commit/c5ffa7357c6e450560f15912d0a53eeb780695e6), [`7d065d7`](https://github.com/crs48/xNet/commit/7d065d7c4f0bf535ae842e4c98ba841da6e7d9fe), [`33f4b9e`](https://github.com/crs48/xNet/commit/33f4b9ef38c72b2e898f7a4a4de83cc08b0aea88)]:
+  - @xnetjs/core@3.0.0
+  - @xnetjs/crypto@3.0.0
+
 ## 2.5.0
 
 ### Patch Changes
