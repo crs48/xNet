@@ -262,16 +262,17 @@ export class NodeRelayService {
       )
     }
 
-    // Per-user storage cap (demo mode). The append-only change log is the
-    // primary grower and, unlike backups/files, had no quota gate — one active
-    // user could fill the disk (exploration 0291).
+    // Per-user storage cap. The append-only change log is the primary grower
+    // and, unlike backups/files, had no quota gate — one active user could fill
+    // the disk (exploration 0291). Gated on every hub since 0381: demo hubs meter
+    // against the demo override, managed/self-hosted against the plan quota.
     if (this.options.quotaBytes !== undefined) {
       const used = await this.storage.getUsageBytesByDid(change.authorDID)
       if (used + changeUsageBytes(msg.change) > this.options.quotaBytes) {
         throw new NodeRelayError(
           'QUOTA_EXCEEDED',
           `Storage limit reached (${this.options.quotaBytes} bytes per user). ` +
-            `Delete some data or use your own hub for more space.`
+            `Delete some data, upgrade your plan, or use your own hub for more space.`
         )
       }
     }

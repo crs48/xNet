@@ -1,0 +1,14 @@
+{
+  "id": "2026-07-20-change-log-storage-quota-now-enforced-on",
+  "date": "July 20, 2026",
+  "title": "Change-log storage quota now enforced on managed and self-hosted hubs",
+  "summary": "The append-only change log is metered against the same per-user storage quota as backups and file uploads. Previously this gate ran only on demo hubs, so a hub's change log could grow past its plan quota without being rejected.",
+  "highlights": [
+    "Appends over quota are rejected with QUOTA_EXCEEDED, matching how backups and uploads already behave",
+    "Demo hubs are unaffected: they continue to meter against the demo override"
+  ],
+  "tags": [
+    "platform",
+    "sync"
+  ]
+}
