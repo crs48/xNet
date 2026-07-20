@@ -1,0 +1,10 @@
+{
+  "id": "2026-07-20-one-comment-ui-everywhere",
+  "date": "July 20, 2026",
+  "title": "One comment UI, everywhere",
+  "summary": "Placing your cursor inside a commented passage no longer pops up a second, differently-styled comment card. The comment island is now the only comment surface in the editor.",
+  "highlights": [],
+  "tags": [
+    "editor"
+  ]
+}
