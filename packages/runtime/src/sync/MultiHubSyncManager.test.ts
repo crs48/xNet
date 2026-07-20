@@ -225,3 +225,39 @@ describe('MultiHubSyncManager', () => {
     expect(community.connected).toBe(false)
   })
 })
+
+describe('0258 trust gate (0383 W4)', () => {
+  it('withholds plaintext from zero-knowledge destinations, delivers ciphertext', () => {
+    const sent: Array<{ hub: string; room: string }> = []
+    const transport = (hub: string) => ({
+      connect: () => {},
+      disconnect: () => {},
+      joinRoom: () => () => {},
+      publish: (room: string) => {
+        sent.push({ hub, room })
+      }
+    })
+    const manager = createMultiHubSyncManager({
+      hubs: [
+        { hubId: 'trusted-hub', url: 'ws://a', transport: transport('trusted-hub'), trust: 'trusted' },
+        { hubId: 'zk-hub', url: 'ws://b', transport: transport('zk-hub'), trust: 'zero-knowledge' },
+        { hubId: 'legacy-hub', url: 'ws://c', transport: transport('legacy-hub') }
+      ]
+    })
+    const ns = 'xnet://did:key:owner/space/s1/'
+
+    const plain = manager.publishScoped(ns, 'room-1', { type: 'sync-update' })
+    expect(plain.withheld).toEqual(['zk-hub'])
+    expect(plain.published.sort()).toEqual(['legacy-hub', 'trusted-hub'])
+    expect(sent.filter((s) => s.hub === 'zk-hub')).toHaveLength(0)
+
+    const cipher = manager.publishScoped(
+      ns,
+      'room-1',
+      { type: 'sync-update', sealed: true },
+      { payload: 'ciphertext' }
+    )
+    expect(cipher.withheld).toEqual([])
+    expect(cipher.published).toContain('zk-hub')
+  })
+})

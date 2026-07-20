@@ -3,6 +3,7 @@
  */
 
 import type { AtprotoIndexConfig } from './features/atproto-index'
+import type { HubSubscriptionsConfig } from './features/hub-subscriber'
 import type { CrawlConfig } from './services/crawl'
 import type { FederationConfig } from './services/federation'
 import type { ShardConfig } from './services/index-shards'
@@ -124,6 +125,8 @@ export type HubConfig = {
   publicInteractions?: { enabled: boolean }
   /** The atproto index engine (0374/0383 W3; the index role's plane). */
   atprotoIndex?: AtprotoIndexConfig
+  /** Hub-to-hub Space subscriptions (0258/0383 W4; the gateway role's plane). */
+  subscriptions?: HubSubscriptionsConfig
   /** Runtime metadata (platform info, region). */
   runtime?: {
     platform?: 'railway' | 'fly' | 'cloud-run' | 'fargate' | 'local' | 'unknown'
@@ -151,7 +154,7 @@ export type HubConfig = {
  * (0383 W4); adding a role means adding a preset in `roles.ts`, never a
  * scattered ternary (0382's "demo ternaries" anti-pattern).
  */
-export type HubRole = 'personal' | 'demo' | 'community' | 'index' | 'registry'
+export type HubRole = 'personal' | 'demo' | 'community' | 'index' | 'registry' | 'gateway'
 
 export const DEFAULT_CONFIG: HubConfig = {
   port: 4444,

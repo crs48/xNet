@@ -309,15 +309,15 @@ federation plane grows (0305-style thinking, deferred)?
 - [x] `--role index` wired into 0374's rebuild-and-diff CI gate.
 
 ### W4 — federation plane
-- [ ] Hub DID (init, config, `/health`); 0371 integrations consume it.
-- [ ] Embedded `MultiHubSyncManager` subscriber; public Spaces; `sub_*` namespace; no transitive re-export.
-- [ ] Enforce 0258's trust tiers at both flagged sites.
-- [ ] Cross-hub grants ADR merged.
-- [ ] `gateway` preset.
+- [x] Hub DID (init, config, `/health`); 0371 integrations consume it.
+- [x] Embedded `MultiHubSyncManager` subscriber; public Spaces; `sub_*` namespace; no transitive re-export.
+- [x] Enforce 0258's trust tiers at both flagged sites.
+- [x] Cross-hub grants ADR merged.
+- [x] `gateway` preset.
 
 ### W5 + standing
 - [ ] Hub+PDS compose template; provisioner sidecar slot; docs.
-- [ ] `@xnetjs/server` ADR decided and recorded.
+- [x] `@xnetjs/server` ADR decided and recorded.
 
 ## Validation Checklist
 

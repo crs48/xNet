@@ -60,7 +60,14 @@ export const HUB_ROLES: Record<HubRole, Partial<HubConfig>> = {
   registry: {
     shards: { enabled: true, isRegistry: true },
     crawl: { enabled: true }
-  }
+  },
+
+  /**
+   * The gateway (0383 W4): subscribes to other hubs' public Spaces and serves
+   * read-only mirrors under `/sub/*`. Mirrored state is never re-exported —
+   * the invariant that makes subscription cycles harmless.
+   */
+  gateway: { subscriptions: { enabled: true } }
 }
 
 export const isHubRole = (value: string): value is HubRole => value in HUB_ROLES

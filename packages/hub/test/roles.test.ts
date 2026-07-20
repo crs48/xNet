@@ -114,3 +114,27 @@ describe('hub roles (0382/0383 W1)', () => {
     }
   })
 })
+
+describe('hub system identity (0371/0383 W4)', () => {
+  it('mints a persistent DID, surfaces it on /health, and keeps it across restarts', async () => {
+    const dataDir = mkdtempSync(join(tmpdir(), 'xnet-hubid-'))
+    const boot = async (): Promise<{ did: string; stop: () => Promise<void> }> => {
+      const hub = await createHub(
+        resolveConfig({ port: 14486, storage: 'memory', dataDir, auth: false })
+      )
+      await hub.start()
+      const health = (await (await fetch('http://localhost:14486/health')).json()) as {
+        hubDid: string
+        role: string
+      }
+      expect(health.role).toBe('personal')
+      return { did: health.hubDid, stop: () => hub.stop() }
+    }
+    const first = await boot()
+    expect(first.did).toMatch(/^did:key:z/)
+    await first.stop()
+    const second = await boot()
+    expect(second.did).toBe(first.did) // stable across restarts — the 0371 fix
+    await second.stop()
+  })
+})

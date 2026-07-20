@@ -27,11 +27,29 @@ import type {
 /**
  * Trust class of a replication destination. A `trusted` hub holds plaintext and
  * can index/search/serve; a `zero-knowledge` hub holds only recipient-scoped
- * ciphertext and can relay but not read. Carried on the manifest shape here;
- * the plaintext-vs-ciphertext *gate* is a later phase (0258) and not yet
- * enforced.
+ * ciphertext and can relay but not read. The plaintext gate is ENFORCED at the
+ * publish path (`MultiHubSyncManager.publishScoped` withholds plaintext from
+ * zero-knowledge destinations — 0258, closed by 0383 W4); this predicate is
+ * the single definition of the rule.
  */
 export type ReplicaTrust = 'trusted' | 'zero-knowledge'
+
+/** Payload classification for the plaintext gate. */
+export type PayloadClass = 'plaintext' | 'ciphertext'
+
+/**
+ * May a destination of this trust class receive a payload of this class?
+ * Undefined trust is treated as `trusted` for compatibility with existing
+ * configs that never declared a class — tightening that default is a breaking
+ * change to make deliberately, not silently.
+ */
+export function mayReceivePayload(
+  trust: ReplicaTrust | undefined,
+  payload: PayloadClass
+): boolean {
+  if (payload === 'ciphertext') return true
+  return trust !== 'zero-knowledge'
+}
 
 /** The namespace for a Space's content — the routing key for the planner. */
 export function spaceNamespace(ownerDID: string, spaceId: string): string {

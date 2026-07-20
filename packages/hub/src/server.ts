@@ -15,7 +15,7 @@ import {
   TaskSchema,
   profileNodeId as profileNodeIdForDid
 } from '@xnetjs/data'
-import { generateIdentity, ucanTokenId, verifyUCAN } from '@xnetjs/identity'
+import { ucanTokenId, verifyUCAN } from '@xnetjs/identity'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { WebSocketServer } from 'ws'
@@ -36,6 +36,7 @@ import {
   resolveResetOnCorruption
 } from './config'
 import { measureDataUsage, type DataUsage } from './data-usage'
+import { loadOrCreateHubIdentity } from './hub-identity'
 import { aiForwarderFeature } from './features/ai-forwarder'
 import { diagnosticsInboxFeature } from './features/diagnostics-inbox'
 import { diagnosticsSharingFeature } from './features/diagnostics-sharing'
@@ -44,6 +45,7 @@ import { formInboxFeature } from './features/form-inbox'
 import { mountOidcProvider } from './features/oidc-provider'
 import { mountFeatures } from './features/registry'
 import { assertDerivedOnlyDataDir, atprotoIndexFeature } from './features/atproto-index'
+import { hubSubscriberFeature } from './features/hub-subscriber'
 import { publicInteractionsFeature } from './features/public-interactions'
 import type { HubFeature } from './features/types'
 import { pagerdutyFeature, sentryFeature, stripeFeature } from './features/webhook-integrations'
@@ -235,15 +237,18 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
       : null
   const isStorageFull = diskWatchdog ? () => diskWatchdog.isFull() : undefined
   const pool = new NodePool(storage, { isStorageFull })
-  const relayIdentity = generateIdentity()
+  // The hub's persistent system identity (0371/0383 W4): stable across
+  // restarts, surfaced on /health and used for relay envelope signing. It
+  // signs TRANSPORT only — never node authorship (0371's rule).
+  const hubIdentity = loadOrCreateHubIdentity(config.dataDir)
   const relay = new RelayService(pool, {
     replication: config.sync,
     verifyV2Envelope: config.syncVerification?.verifyV2Envelope,
     telemetry: config.telemetry,
     telemetryPeerHashSalt: config.telemetryPeerHashSalt,
     signing: {
-      authorDID: relayIdentity.identity.did,
-      signingKey: relayIdentity.privateKey
+      authorDID: hubIdentity.did,
+      signingKey: hubIdentity.privateKey
     }
   })
   const backup = new BackupService(storage, {
@@ -482,6 +487,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     const lastSyncMs = syncTracker.value
     return c.json({
       status: 'ok',
+      role: config.role ?? 'personal',
       uptime: Math.floor((Date.now() - startTime) / 1000),
       timestamp: Date.now(),
       rooms: signaling.getRoomCount(),
@@ -508,7 +514,9 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
       machineId: config.runtime?.machineId,
       // Hub identity (0307-B): clients mint UCANs with `aud` = this DID so a
       // token stolen for one hub is useless at another.
-      hubDid: config.hubDid,
+      // The persistent system identity (0371/0383 W4) unless the operator
+      // pinned an explicit hubDid for UCAN audience checks.
+      hubDid: config.hubDid ?? hubIdentity.did,
       version: '0.0.1'
     })
   })
@@ -723,6 +731,15 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
       // derived-only, deterministic, never the legacy search stack (0367).
       ...(config.atprotoIndex?.enabled
         ? [atprotoIndexFeature(config.dataDir, config.atprotoIndex)]
+        : []),
+      // Hub-to-hub subscription (0258/0383 W4) — the gateway role's plane.
+      ...(config.subscriptions?.enabled
+        ? [
+            hubSubscriberFeature(config.dataDir, config.subscriptions, {
+              publicUrl: config.publicUrl,
+              port: config.port
+            })
+          ]
         : []),
       billingFeature(),
       tasksFeature(taskIdentifiers),

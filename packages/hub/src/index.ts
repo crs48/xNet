@@ -12,6 +12,7 @@ export { resolveConfig } from './config'
 export type { HubConfig, HubInstance, HubRole, DemoOverrides } from './types'
 export { DEMO_DEFAULTS } from './types'
 export { getDemoOverrides } from './config'
+export { loadOrCreateHubIdentity, type HubIdentity } from './hub-identity'
 export { HUB_ROLES, isHubRole, rolePreset } from './roles'
 export {
   AtprotoIndexService,
@@ -24,6 +25,12 @@ export {
   type IndexSnapshot,
   type IndexSource
 } from './features/atproto-index'
+export {
+  HubSubscriberService,
+  hubSubscriberFeature,
+  type HubSubscriptionsConfig,
+  type SubscriptionPeer
+} from './features/hub-subscriber'
 export type {
   YjsEnvelopeV2Verifier,
   YjsEnvelopeV2VerifierContext,
