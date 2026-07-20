@@ -13,6 +13,17 @@ export type { HubConfig, HubInstance, HubRole, DemoOverrides } from './types'
 export { DEMO_DEFAULTS } from './types'
 export { getDemoOverrides } from './config'
 export { HUB_ROLES, isHubRole, rolePreset } from './roles'
+export {
+  AtprotoIndexService,
+  assertDerivedOnlyDataDir,
+  atprotoIndexFeature,
+  httpIndexSource,
+  DEFAULT_INDEX_COLLECTIONS,
+  type AtprotoIndexConfig,
+  type IndexEntry,
+  type IndexSnapshot,
+  type IndexSource
+} from './features/atproto-index'
 export type {
   YjsEnvelopeV2Verifier,
   YjsEnvelopeV2VerifierContext,

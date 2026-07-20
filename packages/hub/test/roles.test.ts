@@ -9,11 +9,14 @@
  * 3. Precedence is preset < explicit config < flags: a role never overrides a
  *    choice the operator made by hand.
  */
+import { mkdtempSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { resolveConfig } from '../src/config'
 import { createHub } from '../src/index'
 import { HUB_ROLES } from '../src/roles'
-import type { HubRole } from '../src/types'
+import type { HubConfig, HubRole } from '../src/types'
 
 const baseOptions = { port: 0, storage: 'memory' as const, dataDir: '/tmp/xnet-role-test' }
 
@@ -82,7 +85,26 @@ describe('hub roles (0382/0383 W1)', () => {
   it('every named preset resolves and boots', async () => {
     let port = 14480
     for (const role of Object.keys(HUB_ROLES) as HubRole[]) {
-      const resolved = resolveConfig({ ...baseOptions, port: port++, auth: false, role })
+      // The index role's engine gets a no-network override in CI; everything
+      // else boots exactly as the preset says.
+      const overrides: Partial<HubConfig> =
+        role === 'index'
+          ? {
+              atprotoIndex: {
+                enabled: true,
+                rebuildOnStart: false,
+                source: { listRepos: async () => [], listRecords: async () => [] }
+              }
+            }
+          : {}
+      const resolved = resolveConfig({
+        ...baseOptions,
+        dataDir: mkdtempSync(join(tmpdir(), `xnet-role-${role}-`)),
+        port: port++,
+        auth: false,
+        role,
+        ...overrides
+      })
       expect(resolved.role).toBe(role)
       const hub = await createHub(resolved)
       await hub.start()

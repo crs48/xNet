@@ -48,7 +48,8 @@ export const HUB_ROLES: Record<HubRole, Partial<HubConfig>> = {
     federation: { enabled: false },
     shards: { enabled: false },
     crawl: { enabled: false },
-    publicInteractions: { enabled: true }
+    publicInteractions: { enabled: true },
+    atprotoIndex: { enabled: true }
   },
 
   /**

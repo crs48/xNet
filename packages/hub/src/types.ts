@@ -2,6 +2,7 @@
  * @xnetjs/hub - Hub configuration and instance types.
  */
 
+import type { AtprotoIndexConfig } from './features/atproto-index'
 import type { CrawlConfig } from './services/crawl'
 import type { FederationConfig } from './services/federation'
 import type { ShardConfig } from './services/index-shards'
@@ -121,6 +122,8 @@ export type HubConfig = {
   crawl?: Partial<CrawlConfig>
   /** Public-interaction policy surface (0378/0383 W2; on in the community role). */
   publicInteractions?: { enabled: boolean }
+  /** The atproto index engine (0374/0383 W3; the index role's plane). */
+  atprotoIndex?: AtprotoIndexConfig
   /** Runtime metadata (platform info, region). */
   runtime?: {
     platform?: 'railway' | 'fly' | 'cloud-run' | 'fargate' | 'local' | 'unknown'

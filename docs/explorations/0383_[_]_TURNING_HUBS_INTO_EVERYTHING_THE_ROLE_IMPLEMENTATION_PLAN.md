@@ -304,9 +304,9 @@ federation plane grows (0305-style thinking, deferred)?
 - [x] `server.ts` assembly loop replaces the four subsystems' imperative wiring.
 
 ### W3 — index role
-- [ ] `atprotoIndex` module wrapping 0374's pipeline.
-- [ ] Derived-only startup guard; negative table test.
-- [ ] `--role index` wired into 0374's rebuild-and-diff CI gate.
+- [x] `atprotoIndex` module wrapping 0374's pipeline.
+- [x] Derived-only startup guard; negative table test.
+- [x] `--role index` wired into 0374's rebuild-and-diff CI gate.
 
 ### W4 — federation plane
 - [ ] Hub DID (init, config, `/health`); 0371 integrations consume it.

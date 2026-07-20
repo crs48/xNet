@@ -43,6 +43,7 @@ import { billingFeature, tasksFeature, unfurlFeature } from './features/first-pa
 import { formInboxFeature } from './features/form-inbox'
 import { mountOidcProvider } from './features/oidc-provider'
 import { mountFeatures } from './features/registry'
+import { assertDerivedOnlyDataDir, atprotoIndexFeature } from './features/atproto-index'
 import { publicInteractionsFeature } from './features/public-interactions'
 import type { HubFeature } from './features/types'
 import { pagerdutyFeature, sentryFeature, stripeFeature } from './features/webhook-integrations'
@@ -212,6 +213,11 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   // The demo hub's data is disposable, so let it auto-reset a corrupt base DB
   // and boot rather than crash-loop (exploration 0206 follow-up). A real
   // self-host / production hub never does this.
+  // Index-plane state discipline (0383 W3): a derived-only hub refuses a data
+  // dir holding tenant state, BEFORE any storage is opened.
+  if (config.atprotoIndex?.enabled && config.atprotoIndex.derivedOnly !== false) {
+    assertDerivedOnlyDataDir(config.dataDir)
+  }
   const storage = await createStorage(config.storage, config.dataDir, {
     resetOnCorruption: resolveResetOnCorruption(config)
   })
@@ -713,6 +719,11 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
       // Public-interaction policy surface (0378/0383 W2) — on in the
       // community and index roles.
       ...(config.publicInteractions?.enabled ? [publicInteractionsFeature(storage)] : []),
+      // The atproto index engine (0374/0383 W3) — the index role's plane;
+      // derived-only, deterministic, never the legacy search stack (0367).
+      ...(config.atprotoIndex?.enabled
+        ? [atprotoIndexFeature(config.dataDir, config.atprotoIndex)]
+        : []),
       billingFeature(),
       tasksFeature(taskIdentifiers),
       unfurlFeature(crawlConfig.userAgent),
