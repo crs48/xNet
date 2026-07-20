@@ -19,8 +19,8 @@ import { createHub, type HubInstance } from '../src'
 import { resolveConfig } from '../src/config'
 import type { SerializedNodeChange } from '../src/storage/interface'
 
-const PORT_A = 14497
-const PORT_B = 14498
+const PORT_A = 14591
+const PORT_B = 14592
 const ROOM = 'xnet-space-public-demo'
 
 const author = (() => {
@@ -190,13 +190,13 @@ describe('hub-to-hub subscription (0383 W4)', () => {
     await expect(
       createHub(
         resolveConfig({
-          port: 14499,
+          port: 14593,
           auth: false,
           storage: 'memory',
           dataDir: mkdtempSync(join(tmpdir(), 'xnet-subc-')),
           subscriptions: {
             enabled: true,
-            peers: [{ id: 'self', url: 'ws://localhost:14499', room: ROOM }]
+            peers: [{ id: 'self', url: 'ws://localhost:14593', room: ROOM }]
           }
         })
       )

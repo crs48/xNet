@@ -101,7 +101,7 @@ describe('index role (0374/0382/0383 W3)', () => {
   it('a booted --role index hub serves its plane and leaves hub storage empty', async () => {
     const dir = freshDir()
     const resolved = resolveConfig({
-      port: 14495,
+      port: 14594,
       storage: 'memory',
       dataDir: dir,
       auth: false,
@@ -112,18 +112,18 @@ describe('index role (0374/0382/0383 W3)', () => {
     await hub.start()
     try {
       const status = (await (
-        await fetch('http://localhost:14495/index/status')
+        await fetch('http://localhost:14594/index/status')
       ).json()) as { entries: number }
       expect(status.entries).toBe(3)
       const snapshot = (await (
-        await fetch('http://localhost:14495/index/snapshot')
+        await fetch('http://localhost:14594/index/snapshot')
       ).json()) as { entries: Array<{ uri: string }> }
       expect(snapshot.entries.map((e) => e.uri)).toEqual(
         [...snapshot.entries.map((e) => e.uri)].sort()
       )
       // The negative test: the index plane wrote NO tenant/search state — the
       // public read surface has nothing, because idx_* files are the only home.
-      expect((await fetch('http://localhost:14495/public/node/anything')).status).toBe(404)
+      expect((await fetch('http://localhost:14594/public/node/anything')).status).toBe(404)
       const raw = readFileSync(join(dir, 'idx_snapshot.json'), 'utf8')
       expect(raw).toContain('site.standard.document')
     } finally {

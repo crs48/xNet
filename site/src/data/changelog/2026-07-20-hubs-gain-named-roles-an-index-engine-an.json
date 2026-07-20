@@ -1,0 +1,11 @@
+{
+  "id": "2026-07-20-hubs-gain-named-roles-an-index-engine-an",
+  "date": "July 20, 2026",
+  "title": "Hubs gain named roles, an index engine, and hub-to-hub subscription",
+  "summary": "One hub binary now runs as named roles (personal, demo, community, index, registry, gateway) selected with --role. The index role rebuilds a deterministic public atproto index from source; gateway hubs mirror other hubs' public Spaces over the existing sync protocol; every hub gets a persistent system identity on /health; and a compose template runs a hub beside the official AT Protocol PDS behind one domain.",
+  "highlights": [],
+  "tags": [
+    "platform",
+    "sync"
+  ]
+}

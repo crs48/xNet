@@ -83,7 +83,7 @@ describe('hub roles (0382/0383 W1)', () => {
   })
 
   it('every named preset resolves and boots', async () => {
-    let port = 14480
+    let port = 14580
     for (const role of Object.keys(HUB_ROLES) as HubRole[]) {
       // The index role's engine gets a no-network override in CI; everything
       // else boots exactly as the preset says.
@@ -120,10 +120,10 @@ describe('hub system identity (0371/0383 W4)', () => {
     const dataDir = mkdtempSync(join(tmpdir(), 'xnet-hubid-'))
     const boot = async (): Promise<{ did: string; stop: () => Promise<void> }> => {
       const hub = await createHub(
-        resolveConfig({ port: 14486, storage: 'memory', dataDir, auth: false })
+        resolveConfig({ port: 14595, storage: 'memory', dataDir, auth: false })
       )
       await hub.start()
-      const health = (await (await fetch('http://localhost:14486/health')).json()) as {
+      const health = (await (await fetch('http://localhost:14595/health')).json()) as {
         hubDid: string
         role: string
       }
