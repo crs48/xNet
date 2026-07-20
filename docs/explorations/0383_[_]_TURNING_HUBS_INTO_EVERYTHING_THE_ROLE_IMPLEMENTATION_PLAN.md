@@ -316,7 +316,7 @@ federation plane grows (0305-style thinking, deferred)?
 - [x] `gateway` preset.
 
 ### W5 + standing
-- [ ] Hub+PDS compose template; provisioner sidecar slot; docs.
+- [x] Hub+PDS compose template; provisioner sidecar slot; docs.
 - [x] `@xnetjs/server` ADR decided and recorded.
 
 ## Validation Checklist
