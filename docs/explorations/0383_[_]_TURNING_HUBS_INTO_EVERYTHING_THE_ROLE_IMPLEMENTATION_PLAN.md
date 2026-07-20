@@ -287,7 +287,7 @@ federation plane grows (0305-style thinking, deferred)?
 ## Implementation Checklist
 
 ### W0 — paved road
-- [ ] RRF fuse-then-collapse + cross-hub-agreement test (federation.ts:364/375).
+- [x] RRF fuse-then-collapse + cross-hub-agreement test (federation.ts:364/375).
 - [ ] Document the hub-PR tax (fragment command, no changeset, e2e flake + rerun).
 
 ### W1 — roles
