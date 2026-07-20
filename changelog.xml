@@ -6,6 +6,15 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Change-log storage quota now enforced on managed and self-hosted hubs</title>
+      <link>https://xnet.fyi/changelog#2026-07-20-change-log-storage-quota-now-enforced-on</link>
+      <guid isPermaLink="false">2026-07-20-change-log-storage-quota-now-enforced-on</guid>
+      <pubDate>Mon, 20 Jul 2026 18:21:12 GMT</pubDate>
+      <description>The append-only change log is metered against the same per-user storage quota as backups and file uploads. Previously this gate ran only on demo hubs, so a hub's change log could grow past its plan quota without being rejected.
+- Appends over quota are rejected with QUOTA_EXCEEDED, matching how backups and uploads already behave
+- Demo hubs are unaffected: they continue to meter against the demo override</description>
+    </item>
+    <item>
       <title>One comment UI, everywhere</title>
       <link>https://xnet.fyi/changelog#2026-07-20-one-comment-ui-everywhere</link>
       <guid isPermaLink="false">2026-07-20-one-comment-ui-everywhere</guid>
