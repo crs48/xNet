@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-20-one-comment-ui-everywhere",
+      "url": "https://xnet.fyi/changelog#2026-07-20-one-comment-ui-everywhere",
+      "title": "One comment UI, everywhere",
+      "content_text": "Placing your cursor inside a commented passage no longer pops up a second, differently-styled comment card. The comment island is now the only comment surface in the editor.\n",
+      "date_published": "2026-07-20T15:48:18Z",
+      "tags": [
+        "editor"
+      ],
+      "_xnet": {
+        "date": "July 20, 2026",
+        "summary": "Placing your cursor inside a commented passage no longer pops up a second, differently-styled comment card. The comment island is now the only comment surface in the editor.",
+        "highlights": [],
+        "mergedAt": "2026-07-20T15:48:18Z",
+        "pr": 601,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-19-inline-comments-are-readable-again",
       "url": "https://xnet.fyi/changelog#2026-07-19-inline-comments-are-readable-again",
       "title": "Inline comments are readable again",
