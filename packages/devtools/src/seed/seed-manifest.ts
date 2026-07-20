@@ -7,7 +7,7 @@
  * explicitly excluded here.
  */
 
-import type { SeederModule } from './types'
+import type { SeederModule, SeedScale } from './types'
 import type { DefinedSchema, SchemaIRI } from '@xnetjs/data'
 import {
   AccountRecordSchema,
@@ -58,6 +58,25 @@ export const SEEDERS: readonly SeederModule[] = [
 
 /** Schemas a Tier-1 seeder is responsible for (canonical `_schemaId`s). */
 export const TIER1_SCHEMA_IDS: ReadonlySet<string> = new Set(SEEDERS.flatMap((s) => s.schemaIds))
+
+/**
+ * Curated first-visit demo profile for the landing-page "Try the app" flow
+ * (exploration 0384). A lived-in-looking subset — documents, tasks, a
+ * database, chat, CRM, and a canvas scene — small enough to seed in well
+ * under a second, without the auto-generated placeholder rows the full seed
+ * adds for exotic schemas. Pass to `runSeed`/`collectSeed`:
+ *
+ *   runSeed({ store, ...LANDING_SEED_PROFILE })
+ */
+export const LANDING_SEED_PROFILE: {
+  domains: string[]
+  scale: SeedScale
+  includeAuto: boolean
+} = {
+  domains: ['spaces', 'scene', 'work', 'docs', 'database', 'comms', 'crm'],
+  scale: 'small',
+  includeAuto: false,
+}
 
 /**
  * System / meta schemas intentionally left unseeded — infrastructure, not
