@@ -30,6 +30,7 @@ import { useStorageDurability } from './boot/use-storage-durability'
 import { BootTimelineProbe } from './components/BootTimelineProbe'
 import { BundledPluginInstaller } from './components/BundledPluginInstaller'
 import { ConsentBanner } from './components/ConsentBanner'
+import { DemoSeed } from './components/DemoSeed'
 import { ReportProblemDialog } from './components/ReportProblemDialog'
 import { StorageOptimiseHint } from './components/StorageOptimiseHint'
 import { StorageWarningBanner } from './components/StorageWarningBanner'
@@ -399,6 +400,7 @@ export function App(): JSX.Element {
           <WarmStartSnapshots did={identity.did} />
           <WorkingSetPrewarm />
           <BundledPluginInstaller />
+          <DemoSeed />
           <XNetDevToolsProvider
             position="bottom"
             defaultOpen={false}

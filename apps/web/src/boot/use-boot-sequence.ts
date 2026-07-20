@@ -43,6 +43,7 @@ import { recordDurabilityTransition } from '../lib/storage-durability'
 import { looksEvicted, probeStoreColdStart, recordColdStartProbe } from '../lib/store-cold-start'
 import { createWebTraceCollector } from '../lib/tracing'
 import { BOOT_TIMEOUT_MS } from './boot-machine'
+import { captureDemoSeedSignalFromLocation } from './demo-seed'
 
 // Hub/session URL resolution lives in ./hub-session (extracted so it's
 // testable without this module's SQLite worker imports — 0290 follow-up).
@@ -70,7 +71,12 @@ export interface BootSequence {
 
 export function useBootSequence(): BootSequence {
   const [appState, setAppState] = useState<AppState>({ status: 'initializing' })
-  const [{ hubUrl, authToken }] = useState(() => resolveHubSessionFromLocation())
+  const [{ hubUrl, authToken }] = useState(() => {
+    // Capture the landing CTA's ?demo=1 before the router sees the URL —
+    // <DemoSeed /> acts on it once the store is ready (boot/demo-seed.ts).
+    captureDemoSeedSignalFromLocation()
+    return resolveHubSessionFromLocation()
+  })
   const storageRef = useRef<StorageContext | null>(null)
   // Opt-in performance tracing (exploration 0190): one collector shared by the
   // hooks (config.tracing) and the devtools Traces panel. Off unless the user
