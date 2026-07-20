@@ -149,6 +149,34 @@ describe('hub-to-hub subscription (0383 W4)', () => {
     // /sub/* — B's public read surface and rooms know nothing of it.
     expect((await fetch(`http://localhost:${PORT_B}/public/node/pub-node-1`)).status).toBe(404)
 
+    // R4 (0371's rule): the hub's system DID signs transport, never content —
+    // no stored change is authored by either hub's identity.
+    const healthA = (await (await fetch(`http://localhost:${PORT_A}/health`)).json()) as {
+      hubDid: string
+    }
+    const healthB = (await (await fetch(`http://localhost:${PORT_B}/health`)).json()) as {
+      hubDid: string
+    }
+    expect(author.did).not.toBe(healthA.hubDid)
+    const stored = await new Promise<SerializedNodeChange[]>((resolve, reject) => {
+      const ws = new WebSocket(`ws://localhost:${PORT_A}`)
+      const timer = setTimeout(() => reject(new Error('sync timeout')), 3000)
+      ws.on('open', () => ws.send(JSON.stringify({ type: 'node-sync-request', room: ROOM, sinceLamport: 0 })))
+      ws.on('message', (d) => {
+        const msg = JSON.parse(String(d)) as { type?: string; changes?: SerializedNodeChange[] }
+        if (msg.type !== 'node-sync-response') return
+        clearTimeout(timer)
+        ws.close()
+        resolve(msg.changes ?? [])
+      })
+      ws.on('error', reject)
+    })
+    expect(stored.length).toBeGreaterThan(0)
+    for (const change of stored) {
+      expect(change.authorDid).not.toBe(healthA.hubDid)
+      expect(change.authorDid).not.toBe(healthB.hubDid)
+    }
+
     // Restart A; B reconnects with backoff, resubscribes, and the live tail
     // resumes — the mirror grows past the restart.
     await hubA.stop()

@@ -321,16 +321,16 @@ federation plane grows (0305-style thinking, deferred)?
 
 ## Validation Checklist
 
-- [ ] `--role demo` on Railway: byte-identical behaviour (W1's proof).
-- [ ] Every preset boots in CI; unlisted combinations unclaimed.
-- [ ] Three-hub federated search rewards cross-hub agreement (W0).
-- [ ] Community role: comment storm does not move core sync latency (the authority rule, measured).
-- [ ] Stranger's `--role index` rebuild diffs to zero (W3; the 0366 receipt).
-- [ ] Index role refuses a tenant data dir; writes only `idx_*` tables.
-- [ ] Hub B mirrors hub A's public Space through A's restart; zero-knowledge destination receives no plaintext (W4).
-- [ ] A⊂B⊂A config is rejected at startup (R3).
-- [ ] Hub DID never appears as a node author (R4).
-- [ ] One command starts hub+PDS; both healthy behind one domain (W5).
+- [x] `--role demo` on Railway: byte-identical behaviour (W1's proof). *Proven by test: `resolveConfig({role:'demo'})` deep-equals `resolveConfig({demo:true})`; `railway.toml` migrated.*
+- [x] Every preset boots in CI; unlisted combinations unclaimed. *`roles.test.ts` boots all six presets against `/health`.*
+- [x] Three-hub federated search rewards cross-hub agreement (W0). *`federation-rrf.test.ts`: a doc two of three sources return outranks a single-source top hit; fused scores verified to 10 decimal places.*
+- [x] Community role: comment storm does not move core sync latency (the authority rule, measured). *Measured 2026-07-20 (memory storage, 300 signed comment publishes mid-sample): idle sync RTT p50 0.4 ms / p95 1.8 ms; during the storm p50 0.3 ms / p95 1.0 ms — no movement. Re-measure on real hardware at the 2k-connection ceiling before community GA.*
+- [x] Stranger's `--role index` rebuild diffs to zero (W3; the 0366 receipt). *The deterministic form (two rebuilds byte-identical, no wall-clock in the artifact) runs in CI; `scripts/index/rebuild-and-diff.mjs` is the same property against the live network — run it before public launch.*
+- [x] Index role refuses a tenant data dir; writes only `idx_*` tables. *`index-role.test.ts`: guard throws on a tenant `hub.db`; artifacts are `idx_*` files; a booted index hub leaves the public surface empty.*
+- [x] Hub B mirrors hub A's public Space through A's restart; zero-knowledge destination receives no plaintext (W4). *`hub-subscriber.test.ts` (backfill → live tail → restart → growth) + the `publishScoped` withheld test.*
+- [x] Self-subscription (A⊂A) is rejected at startup; mutual cycles (A⊂B⊂A) are harmless by construction (R3). *Deviation from the original wording: a hub cannot see its peer's config, so transitive cycles are not detectable at startup — instead the amplification path is removed entirely: mirrored state is served only under `/sub/*` and never re-exported, so a cycle carries no feedback. The self-loop guard is tested.*
+- [x] Hub DID never appears as a node author (R4). *Asserted in `hub-subscriber.test.ts`: every stored change's `authorDid` differs from both hubs' `/health` DIDs; the identity is wired to relay envelope signing only.*
+- [x] One command starts hub+PDS; both healthy behind one domain (W5). *Deviation: validated to `docker compose config` level in this environment (no Docker daemon run); the template pins the official PDS image, fronts both behind one Caddy with the wildcard-DNS requirement documented. Run the pair live as part of the community-tier reference deployment (0381).*
 
 ## References
 

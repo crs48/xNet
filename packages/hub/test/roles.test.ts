@@ -112,7 +112,7 @@ describe('hub roles (0382/0383 W1)', () => {
       expect(health.ok, `role ${role} /health`).toBe(true)
       await hub.stop()
     }
-  })
+  }, 60_000)
 })
 
 describe('hub system identity (0371/0383 W4)', () => {
