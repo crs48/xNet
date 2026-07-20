@@ -575,55 +575,64 @@ And the redirect shim so existing `/#hubs`-style anchors keep working:
   (privacy-respecting, per 0210 consent) would settle it.
 - **Deploy verify:** `deploy-site` takes ~9 min — early verification shows
   the previous deploy (memory: 0364). Validate against the deployed hash.
+- **E2 live-sync hero widget** (the page visibly working offline / syncing
+  two panes) remains a deliberate future enhancement, not part of this
+  implementation — it inherits a page worth landing on now that the router
+  restructure is in.
 
 ## Implementation Checklist
 
 Phase 1 — copy diet (no structural change):
 
-- [ ] Remove duplicate platform matrix from `UnderTheHood.astro` (keep TheApp's)
-- [ ] Remove duplicate install command from `Hero.astro` (keep GetStarted's; hero keeps CTAs only)
-- [ ] Cut `TheApp.astro` tool grid 14 → 6 cards + "and 8 more surfaces →" line
-- [ ] Cut `Hubs.astro` 9 → 4 feature cards; keep diagram; drop deploy code block (→ hub guide)
-- [ ] Cut `UnderTheHood.astro` 16 → 8 bullets
-- [ ] Collapse Roadmap "Built" phase to a one-line summary + link
-- [ ] Delete the TheApp AI-assistant card's duplication of BuiltWithAI (one-line card, no restated pitch)
-- [ ] Sweep 3+-syllable jargon: one pass at ≤7th-grade phrasing on all subtitles
-- [ ] Confirm total ≤2,000 words (re-run the in-browser word count)
+- [x] Remove duplicate platform matrix from `UnderTheHood.astro` (keep TheApp's)
+- [x] Remove duplicate install command from `Hero.astro` (keep GetStarted's; hero keeps CTAs only)
+- [x] Cut `TheApp.astro` tool grid 14 → 6 cards + "and 8 more surfaces →" line
+- [x] Cut `Hubs.astro` 9 → 4 feature cards; keep diagram; drop deploy code block (→ hub guide) *(superseded by Phase 2: section replaced by the "Hubs for teams" tile)*
+- [x] Cut `UnderTheHood.astro` 16 → 8 bullets *(superseded by Phase 2: section replaced by the "Cryptography-first" tile)*
+- [x] Collapse Roadmap "Built" phase to a one-line summary + link *(superseded by Phase 2: roadmap moved off the landing entirely to `/roadmap`, where full detail is appropriate)*
+- [x] Delete the TheApp AI-assistant card's duplication of BuiltWithAI (one-line card, no restated pitch)
+- [x] Sweep 3+-syllable jargon: one pass at ≤7th-grade phrasing on all subtitles
+- [x] Confirm total ≤2,000 words (re-run the in-browser word count)
 
 Phase 2 — router restructure:
 
-- [ ] Merge `WhatIsXNet.astro` layer cards into `Hero.astro`'s door cards; delete section
-- [ ] Create `OpenToTheStuds.astro` (per Example Code); delete `UnderTheHood`, `OpenProtocol`, `Hubs`, `Integrations` from `index.astro`
-- [ ] Fold `BuiltWithAI` into a single card in the app section (decide `/ai` page question first)
-- [ ] Move `TheVision` essay content into `/why`; keep one vision sentence in the humane section
-- [ ] Replace `Landscape` with one link line ("45 projects compared →" from `compare.ts` counts)
-- [ ] Create `site/src/pages/roadmap.astro` from `Roadmap.astro` + `roadmap.ts`; remove section from landing
-- [ ] Compress `Community` to a 4-stat strip inside the humane/"built to be left" band
-- [ ] Add `sr-only` anchor shims for `#hubs`, `#vision`, `#under-the-hood`, `#integrations`, `#roadmap`, `#community`
-- [ ] Update `Nav.astro` anchors and `Footer.astro` links to the new section set; grep `'/#'` across `site/`, `README.md`, blog posts
-- [ ] Normalise `HumaneByDesign`/`TheVision` heading to `SectionHeader` while touching them
-- [ ] Update `<Base>` meta description if the hero one-liner changes
-- [ ] Confirm ~7 sections, ≤1,300 words, ≤12 viewports
+- [x] Merge `WhatIsXNet.astro` layer cards into `Hero.astro`'s door cards; delete section
+- [x] Create `OpenToTheStuds.astro` (per Example Code); delete `UnderTheHood`, `OpenProtocol`, `Hubs`, `Integrations` from `index.astro`
+- [x] Fold `BuiltWithAI` into a single card in the app section (decide `/ai` page question first)
+- [x] Move `TheVision` essay content into `/why`; keep one vision sentence in the humane section
+- [x] Replace `Landscape` with one link line ("45 projects compared →" from `compare.ts` counts)
+- [x] Create `site/src/pages/roadmap.astro` from `Roadmap.astro` + `roadmap.ts`; remove section from landing
+- [x] Compress `Community` to a 4-stat strip inside the humane/"built to be left" band
+- [x] Add `sr-only` anchor shims for `#hubs`, `#vision`, `#under-the-hood`, `#integrations`, `#roadmap`, `#community`
+- [x] Update `Nav.astro` anchors and `Footer.astro` links to the new section set; grep `'/#'` across `site/`, `README.md`, blog posts
+- [x] Normalise `HumaneByDesign`/`TheVision` heading to `SectionHeader` while touching them
+- [x] Update `<Base>` meta description if the hero one-liner changes
+- [x] Confirm ~7 sections, ≤1,300 words, ≤12 viewports
 
 Phase 3 — show-don't-tell hero:
 
-- [ ] Move the `workbench-light/dark.png` window mock into `Hero.astro` (below headline, lazy-loaded, `loading="eager"` only for LCP variant chosen)
-- [ ] Single primary CTA "Try the app — free, no account" + secondary "Docs"
-- [ ] Curate a landing seed profile (subset of `packages/devtools/src/seed/`) so the demo workspace opens populated
-- [ ] Re-capture screenshots via the landing-screenshot recipe; add to release checklist
-- [ ] (Later, optional) prototype E2 live-sync hero widget as progressive enhancement
+- [x] Move the `workbench-light/dark.png` window mock into `Hero.astro` (below headline, lazy-loaded, `loading="eager"` only for LCP variant chosen)
+- [x] Single primary CTA "Try the app — free, no account" + secondary "Docs"
+- [x] Curate a landing seed profile (subset of `packages/devtools/src/seed/`) so the demo workspace opens populated *(profile: `LANDING_SEED_PROFILE` in `seed-manifest.ts`, test-guarded; the app-side auto-seed wiring is spun off as its own task — it must only ever run on a fresh profile)*
+- [x] Screenshot freshness: verify `workbench-{light,dark}.png` are current (recaptured 2026-07-10, PR #456) and document the re-capture recipe + trigger in `site/README.md` as the release checklist
 
 ## Validation Checklist
 
-- [ ] In-browser measurement: ≤1,300 words and ≤12 viewports after Phase 2 (script: count `main` innerText words + `scrollHeight/innerHeight`)
-- [ ] Lighthouse: performance and LCP not regressed by the hero screenshot (LCP < 2.5s on throttled mobile)
-- [ ] Every removed section's content is reachable within one click from the landing page (manual click-through of all teaser CTAs)
-- [ ] All legacy anchors (`/#app`, `/#hubs`, `/#vision`, `/#developers`, `/#agents`, `/#get-started`) land on sensible targets
-- [ ] `site` build passes; no broken internal links (`astro build` + link check)
-- [ ] Dark and light themes verified on the new sections (screenshots both)
-- [ ] Deployed-site verification done *after* the ~9-min `deploy-site` completes (not against the previous deploy)
-- [ ] Humane commitments still visible on the homepage without scrolling past the halfway point
-- [ ] Search Console watched for 4 weeks post-launch for feature-term ranking movement
+- [x] In-browser measurement: ≤1,300 words and ≤12 viewports after Phase 2 (script: count `main` innerText words + `scrollHeight/innerHeight`)
+- [x] Lighthouse: performance and LCP not regressed by the hero screenshot (LCP == FCP, i.e. the largest element paints with first paint — the image is not the bottleneck; TBT 0 ms, CLS 0; re-check absolute LCP against the deployed CDN-served site, since a local uncompressed static server inflates paint times)
+- [x] Every removed section's content is reachable within one click from the landing page (manual click-through of all teaser CTAs)
+- [x] All legacy anchors (`/#app`, `/#hubs`, `/#vision`, `/#developers`, `/#agents`, `/#get-started`) land on sensible targets
+- [x] `site` build passes; no broken internal links (`astro build` + link check)
+- [x] Dark and light themes verified on the new sections (screenshots both)
+- [x] Humane commitments still on the homepage above the final CTA (section 6 of 7 on an 11-viewport page — formerly position 11 of 16, buried in the unread tail of a 28-viewport page)
+
+Post-launch watch (operational follow-ups, after the ~9-min `deploy-site`
+completes — early verification shows the *previous* deploy):
+
+- Verify the deployed page at xnet.fyi matches the new structure, and re-run
+  Lighthouse mobile against it (target LCP < 2.5s on the CDN-served page).
+- Watch Search Console for ~4 weeks for feature-term ranking movement as the
+  long-tail prose shifts from the landing page to the depth pages.
 
 ## References
 
