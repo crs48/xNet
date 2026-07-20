@@ -195,3 +195,24 @@ wins over the env-generated one. Backup freshness is published on `GET /health`
 ```bash
 pnpm --filter @xnetjs/hub test
 ```
+
+> Note: run tests through the **root** vitest config (`pnpm vitest run
+> packages/hub/test/<file>`) — the per-package filter breaks project
+> resolution.
+
+## Shipping a hub change (the PR tax)
+
+`@xnetjs/hub` is `private: true`, so hub-only changes take **no changeset**
+(confirm with `node scripts/changeset/publishable-pathspec.mjs`). Two things
+ARE required (exploration 0383 W0):
+
+1. **A changelog fragment** whenever behaviour is user-visible:
+   `node scripts/changelog/new.mjs --title "…" --summary "…" --tags platform,sync`
+   (valid tags are `KNOWN_TAGS` in that script). Pure refactors/CI can use the
+   `skip-changelog` PR label instead.
+2. **Expect one `electron-e2e` rerun.** The `xnet://` deep-link case
+   (`electron-smoke.spec.ts:161`) times out flakily and the lane runs
+   `--fail-on-flaky-tests`, so a single timeout reds the PR on identical code.
+   Before debugging, check `git log --oneline HEAD..origin/main` — if your
+   delta is docs-only or unrelated, it is the flake:
+   `gh run rerun <run-id> --failed`.

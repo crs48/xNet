@@ -288,7 +288,7 @@ federation plane grows (0305-style thinking, deferred)?
 
 ### W0 — paved road
 - [x] RRF fuse-then-collapse + cross-hub-agreement test (federation.ts:364/375).
-- [ ] Document the hub-PR tax (fragment command, no changeset, e2e flake + rerun).
+- [x] Document the hub-PR tax (fragment command, no changeset, e2e flake + rerun).
 
 ### W1 — roles
 - [ ] `roles.ts` with `personal`/`demo`/`community`/`index`/`registry`; `--role` + `HUB_ROLE`; preset spread in `resolveConfig`.
