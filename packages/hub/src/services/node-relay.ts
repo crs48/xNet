@@ -161,11 +161,39 @@ export type ShareAccessGate = {
 }
 
 export class NodeRelayService {
+  /**
+   * Per-author usage cache backing the quota gate. All relay appends flow
+   * through this service, so bumping on append keeps it exact for the hot
+   * path; the TTL bounds drift from out-of-band writers (pack import,
+   * eviction) and refreshUsageBytes re-reads storage before any rejection.
+   */
+  private usageByDid = new Map<string, { bytes: number; fetchedAt: number }>()
+  private static readonly USAGE_TTL_MS = 30_000
+
   constructor(
     private storage: HubStorage,
     private telemetryOptions: RemoteMutationTelemetryOptions = {},
     private options: NodeRelayOptions = {}
   ) {}
+
+  private async cachedUsageBytes(did: string): Promise<number> {
+    const entry = this.usageByDid.get(did)
+    if (entry && Date.now() - entry.fetchedAt < NodeRelayService.USAGE_TTL_MS) {
+      return entry.bytes
+    }
+    return this.refreshUsageBytes(did)
+  }
+
+  private async refreshUsageBytes(did: string): Promise<number> {
+    const bytes = await this.storage.getUsageBytesByDid(did)
+    this.usageByDid.set(did, { bytes, fetchedAt: Date.now() })
+    return bytes
+  }
+
+  private bumpUsageBytes(did: string, delta: number): void {
+    const entry = this.usageByDid.get(did)
+    if (entry) entry.bytes += delta
+  }
 
   async handleNodeChange(msg: NodeChangeMessage, auth: AuthContext): Promise<boolean> {
     if (!auth.can('hub/relay', msg.room)) {
@@ -266,14 +294,25 @@ export class NodeRelayService {
     // and, unlike backups/files, had no quota gate — one active user could fill
     // the disk (exploration 0291). Gated on every hub since 0381: demo hubs meter
     // against the demo override, managed/self-hosted against the plan quota.
+    //
+    // The check is O(1) on the hot path: usage is cached per author and bumped
+    // as appends land, because re-running the SUM over the author's whole log
+    // on every append is O(rows²) across a bulk ingest — exactly the 0357
+    // regression class. A write is never REJECTED on a cached number: at the
+    // quota boundary we re-read the truth first, since eviction and pack
+    // import move usage out of band.
+    const quotaDelta = changeUsageBytes(msg.change)
     if (this.options.quotaBytes !== undefined) {
-      const used = await this.storage.getUsageBytesByDid(change.authorDID)
-      if (used + changeUsageBytes(msg.change) > this.options.quotaBytes) {
-        throw new NodeRelayError(
-          'QUOTA_EXCEEDED',
-          `Storage limit reached (${this.options.quotaBytes} bytes per user). ` +
-            `Delete some data, upgrade your plan, or use your own hub for more space.`
-        )
+      let used = await this.cachedUsageBytes(change.authorDID)
+      if (used + quotaDelta > this.options.quotaBytes) {
+        used = await this.refreshUsageBytes(change.authorDID)
+        if (used + quotaDelta > this.options.quotaBytes) {
+          throw new NodeRelayError(
+            'QUOTA_EXCEEDED',
+            `Storage limit reached (${this.options.quotaBytes} bytes per user). ` +
+              `Delete some data, upgrade your plan, or use your own hub for more space.`
+          )
+        }
       }
     }
 
@@ -281,6 +320,7 @@ export class NodeRelayService {
       ...msg.change,
       room: msg.room
     })
+    this.bumpUsageBytes(change.authorDID, quotaDelta)
 
     // Channel sharing (0298): index a channel's nodes into its share room so a
     // grantee's `/channel/<id>` subscription receives the conversation. Never
