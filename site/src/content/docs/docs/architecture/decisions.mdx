@@ -550,3 +550,58 @@ behind an algorithm-agility seam, rather than a flag-day switch.
 **Tradeoff / open:** Larger signatures and a two-algorithm verification path. This
 is a documented _posture_, not shipped code — it stays `Proposed` until the seam
 and hybrid signing land, at which point it is superseded by an `Accepted` ADR.
+
+## ADR-26: Cross-hub grants — plane split before propagation
+
+**Status:** Accepted (design); implementation deferred to a follow-up
+**Context:** Explorations 0258/0382/0383 (W4). Hub-to-hub Space subscription
+shipped for **public** Spaces; grants do not cross hubs.
+
+**Decision:** Cross-hub access control splits by plane before any grant ever
+propagates. The **public plane** needs no grants: a hub mirrors another hub's
+public Space over the ordinary wire protocol, and mirrored state is **never
+re-exported** (served only under `/sub/*`), so subscription cycles cannot
+amplify. The **granted plane** stays single-hub until a dedicated design lands:
+a grant is a capability minted by a Space's home hub, and no mirror, gateway,
+or federation surface may widen it. When cross-hub grants are built, they will
+be **delegation chains rooted at the granting hub's persistent DID** (UCAN-style,
+matching the existing auth kernel) — never grant-table replication, which would
+turn every subscribed hub into a policy-enforcement point it cannot honestly be.
+
+**Rationale:**
+
+- Public-first delivered the hub-of-hubs primitive without touching the
+  security kernel (0383's subscription-first ordering).
+- Replicating grant rows would make revocation eventually-consistent across
+  hubs an attacker can choose among — a deny must always win (0359).
+- Delegation chains keep the home hub authoritative: a downstream hub can
+  *prove* access was granted without being able to *mint* it.
+
+**Tradeoff:** Members of a gated community cannot yet read it through a
+different hub. Accepted: correctness of revocation outranks read locality.
+
+## ADR-27: `@xnetjs/server` stays a separate product
+
+**Status:** Accepted
+**Context:** Exploration 0382/0383 (the standing question): "everything is a
+hub" unified the server surface into one binary with roles — except
+`@xnetjs/server`, the BYO-backend engine (exploration 0223), which does not
+depend on `@xnetjs/hub` at all.
+
+**Decision:** **Scope out.** `@xnetjs/server` is not a hub role and will not
+be absorbed. It serves a different buyer: an app team embedding xNet's data
+model inside *their* backend (their auth, their storage, their trust mode) —
+not an operator running xNet's server. The hub's role system covers every
+deployment of *our* server; `@xnetjs/server` remains the library for building
+*someone else's*.
+
+**Rationale:**
+
+- Absorbing it as a role would couple its `TrustMode`/storage hooks to hub
+  release cadence for zero operator benefit (the MinIO gateway lesson, 0382:
+  a role that cannot share the core's invariants is a neighbour, not a role).
+- The decision is recorded precisely so the "second server" cannot drift back
+  into ambiguity one layer up (0383 R6).
+
+**Tradeoff:** Two server documentation surfaces. Accepted; they answer
+different questions.

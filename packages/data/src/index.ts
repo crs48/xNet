@@ -570,6 +570,7 @@ export {
   PolicySubscriptionSchema,
   type PolicySubscription,
   PublicInteractionPolicySchema,
+  publicInteractionPolicyId,
   type PublicInteractionPolicy,
   QualitySignalSchema,
   type QualitySignal,

@@ -150,6 +150,11 @@ export class CloudRunLitestreamProvisioner implements Provisioner {
   }
 
   async provision(spec: ProvisionSpec): Promise<HubHandle> {
+    if (spec.sidecars?.length) {
+      // Cloud Run supports multi-container services, but this adapter does not
+      // wire them yet — refuse loudly instead of silently dropping a PDS.
+      throw new Error('cloud-run-litestream: sidecars not yet supported (0383 W5)')
+    }
     const project = this.allocator.allocate()
     const region = spec.region ?? this.config.region
     const ref: CloudRunRef = { project, region, service: serviceIdForTenant(spec.tenantId) }

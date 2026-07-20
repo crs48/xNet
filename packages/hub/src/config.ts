@@ -2,8 +2,9 @@
  * @xnetjs/hub - Configuration resolution.
  */
 
-import type { HubConfig, DemoOverrides } from './types'
+import type { HubConfig, HubRole, DemoOverrides } from './types'
 import { entitlementsFromEnv } from '@xnetjs/entitlements'
+import { HUB_ROLES, isHubRole, rolePreset } from './roles'
 import { DEFAULT_CONFIG, DEMO_DEFAULTS } from './types'
 
 const toNumber = (value: string | undefined): number | undefined => {
@@ -107,9 +108,52 @@ export const getDemoOverrides = (isDemo: boolean): DemoOverrides | null => {
  * One function so a new grower cannot pick a different cap than the meter the
  * dashboard shows — the change log did exactly that and went ungated on every
  * non-demo hub.
+ *
+ * DECIDED (0383 W1, R6): the cap applies to self-hosted hubs too — a
+ * self-hosted operator gets `DEFAULT_CONFIG.defaultQuota` (1 GiB/user) unless
+ * they raise it, for consistency with backups and files rather than a special
+ * uncapped change log. Operators who want no cap set `defaultQuota` explicitly;
+ * the discriminator for ever narrowing this to managed-only is `HUB_PLAN`
+ * presence, and that narrowing was considered and declined.
  */
 export const resolvePerUserQuota = (config: HubConfig): number =>
   config.demo && config.demoOverrides ? config.demoOverrides.quota : config.defaultQuota
+
+// ─── Per-cap resolvers (0383 W1) ─────────────────────────────────────────────
+// The #603 rule, applied wholesale: every demo-vs-plan decision is made HERE,
+// once, by name. Server code calls a resolver and branches on its result; it
+// never re-derives `demo ? x : y` inline (0382's "demo ternaries" anti-pattern
+// — the open-coded copies are exactly how the change-log quota gate was missed).
+
+/** Per-user blob ceiling: the demo override, else the plan/config ceiling. */
+export const resolveMaxBlobBytes = (config: HubConfig): number =>
+  config.demo && config.demoOverrides ? config.demoOverrides.maxBlob : config.maxBlobSize
+
+/** Disk-watchdog budget; `null` = no watchdog (watchdog stays demo-only, 0291). */
+export const resolveDiskWatchdogBytes = (config: HubConfig): number | null =>
+  config.demo && config.demoOverrides ? config.demoOverrides.diskLimitBytes : null
+
+/** Periodic full-reset cadence; `null` = never (demo's disposable volume only). */
+export const resolveResetIntervalMs = (config: HubConfig): number | null =>
+  config.demo && config.demoOverrides ? config.demoOverrides.resetInterval : null
+
+/** Whether a corrupt base DB is wiped-and-rebooted instead of crash-looping. */
+export const resolveResetOnCorruption = (config: HubConfig): boolean => !!config.demo
+
+/** The handshake's advertised per-user limits; `undefined` outside demo. */
+export const resolveHandshakeDemoLimits = (
+  config: HubConfig
+):
+  | { quotaBytes: number; maxDocs: number; maxBlobBytes: number; evictionTtlMs: number }
+  | undefined =>
+  config.demo && config.demoOverrides
+    ? {
+        quotaBytes: config.demoOverrides.quota,
+        maxDocs: config.demoOverrides.maxDocs,
+        maxBlobBytes: config.demoOverrides.maxBlob,
+        evictionTtlMs: config.demoOverrides.evictionTtl
+      }
+    : undefined
 
 /**
  * Resolve Hub configuration from environment variables, CLI flags, and defaults.
@@ -153,7 +197,19 @@ export const resolveConfig = (cliOptions: Partial<HubConfig>): HubConfig => {
     cliOptions.awarenessMaxUpdateSize ??
     DEFAULT_CONFIG.awarenessMaxUpdateSize
 
-  const demo = cliOptions.demo ?? process.env.HUB_MODE === 'demo'
+  // Role resolution (0382/0383 W1): explicit flag/env wins; the legacy `--demo`
+  // flag and `HUB_MODE=demo` env are aliases for `--role demo`.
+  const rawRole = cliOptions.role ?? process.env.HUB_ROLE
+  if (rawRole !== undefined && !isHubRole(rawRole)) {
+    throw new Error(
+      `Unknown hub role: ${JSON.stringify(rawRole)} (valid: ${Object.keys(HUB_ROLES).join(', ')})`
+    )
+  }
+  const legacyDemo = cliOptions.demo ?? process.env.HUB_MODE === 'demo'
+  const role: HubRole = rawRole ?? (legacyDemo ? 'demo' : 'personal')
+  const preset = rolePreset(role)
+
+  const demo = preset.demo ?? legacyDemo
   const demoOverrides = getDemoOverrides(demo) ?? undefined
 
   // Loudly flag security-relevant footguns at startup (exploration 0307). These
@@ -176,6 +232,9 @@ export const resolveConfig = (cliOptions: Partial<HubConfig>): HubConfig => {
 
   return {
     ...DEFAULT_CONFIG,
+    // Role preset (0383 W1): between defaults and explicit options, so a role
+    // can never override a choice the operator made by hand.
+    ...preset,
     ...cliOptions,
     // Plan-driven quotas (managed fleet) override defaults but not explicit fields below.
     ...resolvePlanLimits(),
@@ -198,6 +257,7 @@ export const resolveConfig = (cliOptions: Partial<HubConfig>): HubConfig => {
         .filter(Boolean) ?? cliOptions.androidCertSha256,
     runtime,
     shutdownGraceMs,
+    role,
     demo,
     demoOverrides
   }

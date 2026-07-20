@@ -25,7 +25,7 @@
  * passes `createConnectionManager(...)` per hub.
  */
 
-import type { ReplicaTrust } from './replication-scope'
+import { mayReceivePayload, type PayloadClass, type ReplicaTrust } from './replication-scope'
 import {
   planReplicationDestinations,
   type ReplicationPlan,
@@ -52,8 +52,8 @@ export interface HubConnection {
   /** The multiplexed transport for this hub. */
   transport: HubTransport
   /**
-   * Trust class of this hub. Reserved for the plaintext vs zero-knowledge gate
-   * (0258); surfaced on `plannedHubs` but not yet enforced.
+   * Trust class of this hub. ENFORCED at `publishScoped` (0258/0383 W4): a
+   * `zero-knowledge` destination never receives a plaintext payload.
    */
   trust?: ReplicaTrust
 }
@@ -97,8 +97,20 @@ export interface MultiHubSyncManager {
     namespace: string,
     handler: (data: Record<string, unknown>) => void
   ): ScopedRoomHandle
-  /** Publish to a room on exactly the hubs the namespace routes to. */
-  publishScoped(namespace: string, room: string, data: object): void
+  /**
+   * Publish to a room on exactly the hubs the namespace routes to. The 0258
+   * trust gate is enforced here: plaintext payloads (the default class) are
+   * WITHHELD from `zero-knowledge` destinations; pass `payload: 'ciphertext'`
+   * for recipient-scoped envelopes, which may go anywhere. Returns which hubs
+   * received and which were withheld, so callers can surface the gap instead
+   * of silently under-replicating.
+   */
+  publishScoped(
+    namespace: string,
+    room: string,
+    data: object,
+    opts?: { payload?: PayloadClass }
+  ): { published: string[]; withheld: string[] }
   /** Replace the routing policy; live rooms re-route to match (manifest-as-data). */
   setReplication(replication: SyncReplicationConfig | undefined): void
   /** Connect every hub transport. */
@@ -232,10 +244,21 @@ export function createMultiHubSyncManager(config: MultiHubSyncManagerConfig): Mu
       }
     },
 
-    publishScoped(namespace, room, data): void {
+    publishScoped(namespace, room, data, opts) {
+      const payload = opts?.payload ?? 'plaintext'
+      const published: string[] = []
+      const withheld: string[] = []
       for (const hubId of reachableHubIds(namespace)) {
-        hubs.get(hubId)?.transport.publish(room, data)
+        const hub = hubs.get(hubId)
+        if (!hub) continue
+        if (!mayReceivePayload(hub.trust, payload)) {
+          withheld.push(hubId)
+          continue
+        }
+        hub.transport.publish(room, data)
+        published.push(hubId)
       }
+      return { published, withheld }
     },
 
     setReplication(next): void {

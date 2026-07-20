@@ -91,6 +91,8 @@ export {
   systemNamespace,
   namespaceForNode,
   replicationConfigFromPolicies,
+  mayReceivePayload,
+  type PayloadClass,
   type ReplicaTrust,
   type ReplicationScopeNode,
   type ReplicationDestinationSpec,

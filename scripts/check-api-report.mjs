@@ -61,7 +61,11 @@ if (diff.length > 0) {
       `If the change is intended: run \`pnpm --filter <pkg> api:update\`, review the\n` +
       `diff, and commit the updated report — a reviewer signs off via CODEOWNERS.\n` +
       `If it is not intended, you have an accidental export.\n\n` +
-      execSync("git diff --stat -- packages/*/etc/", { cwd: ROOT, encoding: "utf8" })
+      execSync("git diff --stat -- packages/*/etc/", { cwd: ROOT, encoding: "utf8" }) +
+      // The patch itself: without it, a drift that only reproduces on CI (e.g.
+      // a platform-sensitive dts chunk name) is undebuggable from the log.
+      `\n` +
+      execSync("git diff -- packages/*/etc/", { cwd: ROOT, encoding: "utf8" })
   )
   failed = true
 }

@@ -778,3 +778,14 @@ export type QualitySignal = InferNode<(typeof QualitySignalSchema)['_properties'
 export type ContentProvenance = InferNode<(typeof ContentProvenanceSchema)['_properties']>
 export type Appeal = InferNode<(typeof AppealSchema)['_properties']>
 export type ReviewTask = InferNode<(typeof ReviewTaskSchema)['_properties']>
+
+/**
+ * Deterministic node id for the target-scoped PublicInteractionPolicy, so a
+ * hub can resolve "what may strangers do to this node?" with one O(1) meta
+ * read instead of a reverse property index, and re-publishing the policy
+ * upserts instead of duplicating (the `spaceMembershipId` convention;
+ * explorations 0378/0383 W2). One policy node per target.
+ */
+export function publicInteractionPolicyId(targetId: string): string {
+  return `pipolicy:${targetId}`
+}

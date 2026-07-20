@@ -8558,6 +8558,9 @@ export interface PublicFormQuestion extends FormQuestion {
 // @public (undocumented)
 export type PublicInteractionPolicy = InferNode<(typeof PublicInteractionPolicySchema)['_properties']>;
 
+// @public
+export function publicInteractionPolicyId(targetId: string): string;
+
 // @public (undocumented)
 export const PublicInteractionPolicySchema: DefinedSchema<{
     operators: PropertyBuilder<`did:key:${string}`[]>;

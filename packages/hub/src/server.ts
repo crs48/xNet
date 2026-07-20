@@ -15,7 +15,7 @@ import {
   TaskSchema,
   profileNodeId as profileNodeIdForDid
 } from '@xnetjs/data'
-import { generateIdentity, ucanTokenId, verifyUCAN } from '@xnetjs/identity'
+import { ucanTokenId, verifyUCAN } from '@xnetjs/identity'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { WebSocketServer } from 'ws'
@@ -27,8 +27,16 @@ import {
   removeSession,
   toAuthContext
 } from './auth/ucan'
-import { resolvePerUserQuota } from './config'
+import {
+  resolveDiskWatchdogBytes,
+  resolveHandshakeDemoLimits,
+  resolveMaxBlobBytes,
+  resolvePerUserQuota,
+  resolveResetIntervalMs,
+  resolveResetOnCorruption
+} from './config'
 import { measureDataUsage, type DataUsage } from './data-usage'
+import { loadOrCreateHubIdentity } from './hub-identity'
 import { aiForwarderFeature } from './features/ai-forwarder'
 import { diagnosticsInboxFeature } from './features/diagnostics-inbox'
 import { diagnosticsSharingFeature } from './features/diagnostics-sharing'
@@ -36,6 +44,10 @@ import { billingFeature, tasksFeature, unfurlFeature } from './features/first-pa
 import { formInboxFeature } from './features/form-inbox'
 import { mountOidcProvider } from './features/oidc-provider'
 import { mountFeatures } from './features/registry'
+import { assertDerivedOnlyDataDir, atprotoIndexFeature } from './features/atproto-index'
+import { hubSubscriberFeature } from './features/hub-subscriber'
+import { publicInteractionsFeature } from './features/public-interactions'
+import type { HubFeature } from './features/types'
 import { pagerdutyFeature, sentryFeature, stripeFeature } from './features/webhook-integrations'
 import { createLogger } from './logger'
 import { Metrics, HUB_METRICS } from './middleware/metrics'
@@ -203,31 +215,40 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   // The demo hub's data is disposable, so let it auto-reset a corrupt base DB
   // and boot rather than crash-loop (exploration 0206 follow-up). A real
   // self-host / production hub never does this.
+  // Index-plane state discipline (0383 W3): a derived-only hub refuses a data
+  // dir holding tenant state, BEFORE any storage is opened.
+  if (config.atprotoIndex?.enabled && config.atprotoIndex.derivedOnly !== false) {
+    assertDerivedOnlyDataDir(config.dataDir)
+  }
   const storage = await createStorage(config.storage, config.dataDir, {
-    resetOnCorruption: !!config.demo
+    resetOnCorruption: resolveResetOnCorruption(config)
   })
-  // In demo mode, every per-user cap comes from the demo overrides (10 MB /
-  // 2 MB by default), not the 1 GB plan quota — otherwise a single visitor can
-  // fill the small demo volume (exploration 0291).
-  const demo = config.demo ? config.demoOverrides : undefined
+  // Every per-user cap goes through a config resolver — the single place the
+  // demo-override-vs-plan choice is made (#603's rule; 0383 W1). Server code
+  // never re-derives `demo ? x : y` inline.
   const perUserQuota = resolvePerUserQuota(config)
-  const maxBlobBytes = demo ? demo.maxBlob : config.maxBlobSize
-  // Demo-only: watch the data dir and shed relay writes before the volume fills
-  // (a full SQLite volume crashes the hub — exploration 0291 / the 0290 502).
-  const diskWatchdog = demo
-    ? new DiskWatchdog({ dataDir: config.dataDir, maxBytes: demo.diskLimitBytes })
-    : null
+  const maxBlobBytes = resolveMaxBlobBytes(config)
+  // Watchdog budget is demo-only (0291): watch the data dir and shed relay
+  // writes before the small disposable volume fills (the 0290 502).
+  const diskWatchdogBytes = resolveDiskWatchdogBytes(config)
+  const diskWatchdog =
+    diskWatchdogBytes !== null
+      ? new DiskWatchdog({ dataDir: config.dataDir, maxBytes: diskWatchdogBytes })
+      : null
   const isStorageFull = diskWatchdog ? () => diskWatchdog.isFull() : undefined
   const pool = new NodePool(storage, { isStorageFull })
-  const relayIdentity = generateIdentity()
+  // The hub's persistent system identity (0371/0383 W4): stable across
+  // restarts, surfaced on /health and used for relay envelope signing. It
+  // signs TRANSPORT only — never node authorship (0371's rule).
+  const hubIdentity = loadOrCreateHubIdentity(config.dataDir)
   const relay = new RelayService(pool, {
     replication: config.sync,
     verifyV2Envelope: config.syncVerification?.verifyV2Envelope,
     telemetry: config.telemetry,
     telemetryPeerHashSalt: config.telemetryPeerHashSalt,
     signing: {
-      authorDID: relayIdentity.identity.did,
-      signingKey: relayIdentity.privateKey
+      authorDID: hubIdentity.did,
+      signingKey: hubIdentity.privateKey
     }
   })
   const backup = new BackupService(storage, {
@@ -466,6 +487,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     const lastSyncMs = syncTracker.value
     return c.json({
       status: 'ok',
+      role: config.role ?? 'personal',
       uptime: Math.floor((Date.now() - startTime) / 1000),
       timestamp: Date.now(),
       rooms: signaling.getRoomCount(),
@@ -492,7 +514,9 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
       machineId: config.runtime?.machineId,
       // Hub identity (0307-B): clients mint UCANs with `aud` = this DID so a
       // token stolen for one hub is useless at another.
-      hubDid: config.hubDid,
+      // The persistent system identity (0371/0383 W4) unless the operator
+      // pinned an explicit hubDid for UCAN audience checks.
+      hubDid: config.hubDid ?? hubIdentity.did,
       version: '0.0.1'
     })
   })
@@ -507,7 +531,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
 
     return c.json({
       schemaVersion: 1,
-      label: 'demo hub',
+      label: `${config.role ?? 'personal'} hub`,
       message: `online · ${uptimeStr}`,
       color: 'brightgreen'
     })
@@ -607,8 +631,121 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   // not yet have. Until then the actions are reported (`{ ok, actions }`) but not
   // applied — matching the previous hand-written route, which also never wired
   // apply. See exploration 0189 (deferred: server-side action application).
-  mountFeatures(
+  // ── Infra subsystems as feature modules (0383 W2) ─────────────────────────
+  // Federation, shards and crawl assemble through the same registry as the
+  // integrations: mount + loops, with the REGISTRY owning start/stop. The
+  // services themselves are constructed above (they are interdependent —
+  // crawl feeds shard ingest) and the features close over them, the same
+  // pattern the integration features already use.
+  const federationFeature: HubFeature = {
+    id: 'fyi.xnet.hub.federation',
+    // Mounted even when disabled — the route 404s, preserving the previous
+    // always-mounted behaviour.
+    mount: ({ app, requireAuth }) =>
+      app.route('/federation', createFederationRoutes(federation, { requireAuth })),
+    loops: federationConfig.enabled
+      ? [
+          {
+            id: 'peer-health',
+            start: async () => {
+              await federation.loadPeers()
+              federationHealth.start()
+            },
+            stop: () => federationHealth.stop()
+          }
+        ]
+      : []
+  }
+  const shardsFeature: HubFeature = {
+    id: 'fyi.xnet.hub.shards',
+    mount: ({ app, requireAuth }) => {
+      if (!shardConfig.enabled) return
+      app.route(
+        '/shards',
+        createShardRoutes({
+          registry: shardRegistry,
+          ingest: shardIngest,
+          router: shardRouter,
+          rebalancer: shardRebalancer ?? undefined,
+          requireAuth
+        })
+      )
+    },
+    loops: shardConfig.enabled
+      ? [
+          {
+            id: 'shard-registry',
+            start: async () => {
+              await shardRegistry.init()
+              if (
+                shardConfig.isRegistry &&
+                shardRebalancer &&
+                shardConfig.hubDid &&
+                shardConfig.hubUrl
+              ) {
+                await shardRebalancer.registerHost({
+                  hubDid: shardConfig.hubDid,
+                  url: shardConfig.hubUrl,
+                  capacity: shardConfig.maxDocsPerShard
+                })
+              }
+            },
+            stop: () => shardRegistry.stop()
+          }
+        ]
+      : []
+  }
+  const crawlFeature: HubFeature = {
+    id: 'fyi.xnet.hub.crawl',
+    mount: ({ app, requireAuth }) => {
+      if (!crawlConfig.enabled) return
+      app.route(
+        '/crawl',
+        createCrawlRoutes({
+          coordinator: crawlCoordinator,
+          requireAuth,
+          userAgent: crawlConfig.userAgent
+        })
+      )
+    },
+    loops: crawlConfig.enabled
+      ? [
+          {
+            id: 'crawl-coordinator',
+            start: async () => {
+              crawlCoordinator.start()
+              if (crawlConfig.seedUrls && crawlConfig.seedUrls.length > 0) {
+                await crawlCoordinator.seedUrls(crawlConfig.seedUrls)
+              }
+            },
+            stop: () => crawlCoordinator.stop()
+          }
+        ]
+      : []
+  }
+
+  const mounted = await mountFeatures(
     [
+      federationFeature,
+      shardsFeature,
+      crawlFeature,
+      // Public-interaction policy surface (0378/0383 W2) — on in the
+      // community and index roles.
+      ...(config.publicInteractions?.enabled ? [publicInteractionsFeature(storage)] : []),
+      // The atproto index engine (0374/0383 W3) — the index role's plane;
+      // derived-only, deterministic, never the legacy search stack (0367).
+      ...(config.atprotoIndex?.enabled
+        ? [atprotoIndexFeature(config.dataDir, config.atprotoIndex)]
+        : []),
+      // Hub-to-hub subscription (0258/0383 W4) — the gateway role's plane.
+      ...(config.subscriptions?.enabled
+        ? [
+            hubSubscriberFeature(config.dataDir, config.subscriptions, {
+              publicUrl: config.publicUrl,
+              port: config.port
+            })
+          ]
+        : []),
       billingFeature(),
       tasksFeature(taskIdentifiers),
       unfurlFeature(crawlConfig.userAgent),
@@ -646,7 +783,8 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
       requireAuth,
       storage: config.storage,
       dataDir: config.dataDir,
-      appUrl: config.appUrl ?? DEFAULT_APP_URL
+      appUrl: config.appUrl ?? DEFAULT_APP_URL,
+      hubStorage: storage
     }
   )
   app.route('/dids', createDiscoveryRoutes(discovery, { requireAuth }))
@@ -658,30 +796,6 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
       requireAuth
     })
   )
-  app.route('/federation', createFederationRoutes(federation, { requireAuth }))
-  if (shardConfig.enabled) {
-    app.route(
-      '/shards',
-      createShardRoutes({
-        registry: shardRegistry,
-        ingest: shardIngest,
-        router: shardRouter,
-        rebalancer: shardRebalancer ?? undefined,
-        requireAuth
-      })
-    )
-  }
-  if (crawlConfig.enabled) {
-    app.route(
-      '/crawl',
-      createCrawlRoutes({
-        coordinator: crawlCoordinator,
-        requireAuth,
-        userAgent: crawlConfig.userAgent
-      })
-    )
-  }
-
   app.route(
     '/shares',
     createShareLinkRoutes({
@@ -903,29 +1017,13 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     telemetry.start()
     awareness.start()
     discovery.start()
-    if (federationConfig.enabled) {
-      await federation.loadPeers()
-      federationHealth.start()
-    }
-    if (shardConfig.enabled) {
-      await shardRegistry.init()
-      if (shardConfig.isRegistry && shardRebalancer && shardConfig.hubDid && shardConfig.hubUrl) {
-        await shardRebalancer.registerHost({
-          hubDid: shardConfig.hubDid,
-          url: shardConfig.hubUrl,
-          capacity: shardConfig.maxDocsPerShard
-        })
-      }
-    }
-    if (crawlConfig.enabled) {
-      crawlCoordinator.start()
-      if (crawlConfig.seedUrls && crawlConfig.seedUrls.length > 0) {
-        await crawlCoordinator.seedUrls(crawlConfig.seedUrls)
-      }
-    }
+    // Feature loops (0383 W2): federation health, shard registry, crawl —
+    // started by the registry in feature order.
+    await mounted.start()
     // Demo hub: guard the small disposable volume — watch disk usage and wipe
     // all user data on a fixed cadence so it can't grow unbounded (0291).
-    if (demo && diskWatchdog) {
+    const resetIntervalMs = resolveResetIntervalMs(config)
+    if (resetIntervalMs !== null && diskWatchdog) {
       diskWatchdog.start()
       demoResetInterval = setInterval(() => {
         storage
@@ -936,7 +1034,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
               error: err instanceof Error ? err.message : String(err)
             })
           )
-      }, demo.resetInterval)
+      }, resetIntervalMs)
       demoResetInterval.unref?.()
     }
     await schemas.seedBuiltInSchemas([
@@ -1043,13 +1141,9 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
           hubDid: config.hubDid,
           isDemo: !!config.demo
         }
-        if (config.demo && config.demoOverrides) {
-          handshake.demoLimits = {
-            quotaBytes: config.demoOverrides.quota,
-            maxDocs: config.demoOverrides.maxDocs,
-            maxBlobBytes: config.demoOverrides.maxBlob,
-            evictionTtlMs: config.demoOverrides.evictionTtl
-          }
+        const demoLimits = resolveHandshakeDemoLimits(config)
+        if (demoLimits) {
+          handshake.demoLimits = demoLimits
         }
         if (ws.readyState === 1) {
           ws.send(JSON.stringify(handshake))
@@ -1156,9 +1250,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     telemetry.stop()
     awareness.stop()
     discovery.stop()
-    federationHealth.stop()
-    shardRegistry.stop()
-    crawlCoordinator.stop()
+    await mounted.stop()
     signaling.destroy()
   }
 
