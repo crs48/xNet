@@ -677,7 +677,12 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
             id: 'shard-registry',
             start: async () => {
               await shardRegistry.init()
-              if (shardConfig.isRegistry && shardRebalancer && shardConfig.hubDid && shardConfig.hubUrl) {
+              if (
+                shardConfig.isRegistry &&
+                shardRebalancer &&
+                shardConfig.hubDid &&
+                shardConfig.hubUrl
+              ) {
                 await shardRebalancer.registerHost({
                   hubDid: shardConfig.hubDid,
                   url: shardConfig.hubUrl,

@@ -239,7 +239,12 @@ describe('0258 trust gate (0383 W4)', () => {
     })
     const manager = createMultiHubSyncManager({
       hubs: [
-        { hubId: 'trusted-hub', url: 'ws://a', transport: transport('trusted-hub'), trust: 'trusted' },
+        {
+          hubId: 'trusted-hub',
+          url: 'ws://a',
+          transport: transport('trusted-hub'),
+          trust: 'trusted'
+        },
         { hubId: 'zk-hub', url: 'ws://b', transport: transport('zk-hub'), trust: 'zero-knowledge' },
         { hubId: 'legacy-hub', url: 'ws://c', transport: transport('legacy-hub') }
       ]

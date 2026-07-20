@@ -81,7 +81,11 @@ const pushChange = (change: SerializedNodeChange): Promise<void> =>
     const timer = setTimeout(() => reject(new Error('push timeout')), 3000)
     ws.on('open', () => {
       ws.send(
-        JSON.stringify({ type: 'publish', topic: ROOM, data: { type: 'node-change', room: ROOM, change } })
+        JSON.stringify({
+          type: 'publish',
+          topic: ROOM,
+          data: { type: 'node-change', room: ROOM, change }
+        })
       )
       // Give the relay a beat to persist before closing.
       setTimeout(() => {
@@ -161,7 +165,9 @@ describe('hub-to-hub subscription (0383 W4)', () => {
     const stored = await new Promise<SerializedNodeChange[]>((resolve, reject) => {
       const ws = new WebSocket(`ws://localhost:${PORT_A}`)
       const timer = setTimeout(() => reject(new Error('sync timeout')), 3000)
-      ws.on('open', () => ws.send(JSON.stringify({ type: 'node-sync-request', room: ROOM, sinceLamport: 0 })))
+      ws.on('open', () =>
+        ws.send(JSON.stringify({ type: 'node-sync-request', room: ROOM, sinceLamport: 0 }))
+      )
       ws.on('message', (d) => {
         const msg = JSON.parse(String(d)) as { type?: string; changes?: SerializedNodeChange[] }
         if (msg.type !== 'node-sync-response') return

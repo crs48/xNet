@@ -41,7 +41,11 @@ export function loadOrCreateHubIdentity(dataDir: string): HubIdentity {
   const generated = generateIdentity()
   writeFileSync(
     path,
-    JSON.stringify({ did: generated.identity.did, privateKeyB64: bytesToBase64(generated.privateKey) }, null, 2)
+    JSON.stringify(
+      { did: generated.identity.did, privateKeyB64: bytesToBase64(generated.privateKey) },
+      null,
+      2
+    )
   )
   return { did: generated.identity.did, privateKey: generated.privateKey }
 }

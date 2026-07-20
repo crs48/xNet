@@ -218,7 +218,8 @@ export class HubSubscriberService {
     if (!publicUrl && !port) return
     for (const peer of this.peers) {
       const self =
-        (publicUrl && peer.url.replace(/^ws/, 'http').startsWith(publicUrl.replace(/^ws/, 'http'))) ||
+        (publicUrl &&
+          peer.url.replace(/^ws/, 'http').startsWith(publicUrl.replace(/^ws/, 'http'))) ||
         peer.url.includes(`localhost:${port}`) ||
         peer.url.includes(`127.0.0.1:${port}`)
       if (self) {

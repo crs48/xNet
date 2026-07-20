@@ -27,7 +27,9 @@ import { createHub } from '../src/index'
 
 const fixtureSource = (): IndexSource => ({
   async listRepos(collection) {
-    return collection === 'site.standard.document' ? ['did:plc:alice', 'did:plc:bob'] : ['did:plc:alice']
+    return collection === 'site.standard.document'
+      ? ['did:plc:alice', 'did:plc:bob']
+      : ['did:plc:alice']
   },
   async listRecords(did, collection) {
     if (collection === 'site.standard.publication') {
@@ -111,13 +113,13 @@ describe('index role (0374/0382/0383 W3)', () => {
     const hub = await createHub(resolved)
     await hub.start()
     try {
-      const status = (await (
-        await fetch('http://localhost:14594/index/status')
-      ).json()) as { entries: number }
+      const status = (await (await fetch('http://localhost:14594/index/status')).json()) as {
+        entries: number
+      }
       expect(status.entries).toBe(3)
-      const snapshot = (await (
-        await fetch('http://localhost:14594/index/snapshot')
-      ).json()) as { entries: Array<{ uri: string }> }
+      const snapshot = (await (await fetch('http://localhost:14594/index/snapshot')).json()) as {
+        entries: Array<{ uri: string }>
+      }
       expect(snapshot.entries.map((e) => e.uri)).toEqual(
         [...snapshot.entries.map((e) => e.uri)].sort()
       )

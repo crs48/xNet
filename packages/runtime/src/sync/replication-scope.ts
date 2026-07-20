@@ -43,10 +43,7 @@ export type PayloadClass = 'plaintext' | 'ciphertext'
  * configs that never declared a class — tightening that default is a breaking
  * change to make deliberately, not silently.
  */
-export function mayReceivePayload(
-  trust: ReplicaTrust | undefined,
-  payload: PayloadClass
-): boolean {
+export function mayReceivePayload(trust: ReplicaTrust | undefined, payload: PayloadClass): boolean {
   if (payload === 'ciphertext') return true
   return trust !== 'zero-knowledge'
 }
