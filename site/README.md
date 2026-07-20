@@ -68,22 +68,29 @@ site/
 
 ## Landing Page
 
-The landing page (`src/pages/index.astro`) includes custom sections:
+The landing page (`src/pages/index.astro`) is a deliberately short router
+(exploration 0384): every section is a teaser that links to a depth page,
+never a full re-argument. Seven sections, ~1,000 words, ~11 viewports:
 
-- Hero with CTA
-- Problem statement
-- What you can build
-- Hooks showcase
-- Plugin system
-- Hub infrastructure
-- Developer experience
-- Efficiency metrics
-- Under the hood
-- Landscape comparison
-- Before/after comparison
-- Roadmap
-- Community
-- Get started
+- Hero — product screenshot + three doors (app / SDK / protocol)
+- The app (`#app`) — six marquee surfaces, links to `/app`
+- For developers (`#developers`) — code sample, links to `/react`, `/build-with`
+- Built for agents (`#agents`) — links to the agent-interfaces guide
+- Open to the studs (`#open`) — protocol / crypto / hubs / connectors tiles
+- Built to be left (`#humane`) — commitments + stat strip, links to `/commitments`, `/roadmap`, `/open`
+- Get started (`#get-started`)
+
+Before adding a section, ask which existing depth page should carry the
+content instead. Keep total visible prose under ~1,300 words (measure with
+`document.querySelector('main').innerText.split(/\s+/).length` in the console).
+
+### Release checklist: hero screenshots
+
+`public/images/workbench-{light,dark}.png` (1600×1000) are the hero art.
+When the workbench UI changes visibly, re-capture both via the scripted
+Playwright recipe (seed scale M → author the "Q3 Launch Plan" doc → light +
+dark capture → downscale with `sharp` to ~120 KB). Stale screenshots on the
+hero read as a stale product.
 
 ## Deployment
 
