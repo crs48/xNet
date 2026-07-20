@@ -75,7 +75,7 @@ export const LANDING_SEED_PROFILE: {
 } = {
   domains: ['spaces', 'scene', 'work', 'docs', 'database', 'comms', 'crm'],
   scale: 'small',
-  includeAuto: false,
+  includeAuto: false
 }
 
 /**
