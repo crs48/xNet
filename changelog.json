@@ -6,6 +6,29 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-20-hubs-gain-named-roles-an-index-engine-an",
+      "url": "https://xnet.fyi/changelog#2026-07-20-hubs-gain-named-roles-an-index-engine-an",
+      "title": "Hubs gain named roles, an index engine, and hub-to-hub subscription",
+      "content_text": "One hub binary now runs as named roles (personal, demo, community, index, registry, gateway) selected with --role. The index role rebuilds a deterministic public atproto index from source; gateway hubs mirror other hubs' public Spaces over the existing sync protocol; every hub gets a persistent system identity on /health; and a compose template runs a hub beside the official AT Protocol PDS behind one domain.\n",
+      "date_published": "2026-07-20T23:49:08Z",
+      "tags": [
+        "platform",
+        "sync"
+      ],
+      "_xnet": {
+        "date": "July 20, 2026",
+        "summary": "One hub binary now runs as named roles (personal, demo, community, index, registry, gateway) selected with --role. The index role rebuilds a deterministic public atproto index from source; gateway hubs mirror other hubs' public Spaces over the existing sync protocol; every hub gets a persistent system identity on /health; and a compose template runs a hub beside the official AT Protocol PDS behind one domain.",
+        "highlights": [],
+        "mergedAt": "2026-07-20T23:49:08Z",
+        "pr": 607,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-20-change-log-storage-quota-now-enforced-on",
       "url": "https://xnet.fyi/changelog#2026-07-20-change-log-storage-quota-now-enforced-on",
       "title": "Change-log storage quota now enforced on managed and self-hosted hubs",

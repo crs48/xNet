@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Hubs gain named roles, an index engine, and hub-to-hub subscription</title>
+      <link>https://xnet.fyi/changelog#2026-07-20-hubs-gain-named-roles-an-index-engine-an</link>
+      <guid isPermaLink="false">2026-07-20-hubs-gain-named-roles-an-index-engine-an</guid>
+      <pubDate>Mon, 20 Jul 2026 23:49:08 GMT</pubDate>
+      <description>One hub binary now runs as named roles (personal, demo, community, index, registry, gateway) selected with --role. The index role rebuilds a deterministic public atproto index from source; gateway hubs mirror other hubs' public Spaces over the existing sync protocol; every hub gets a persistent system identity on /health; and a compose template runs a hub beside the official AT Protocol PDS behind one domain.</description>
+    </item>
+    <item>
       <title>Change-log storage quota now enforced on managed and self-hosted hubs</title>
       <link>https://xnet.fyi/changelog#2026-07-20-change-log-storage-quota-now-enforced-on</link>
       <guid isPermaLink="false">2026-07-20-change-log-storage-quota-now-enforced-on</guid>
