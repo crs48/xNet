@@ -1,6 +1,6 @@
 {
   "name": "@xnetjs/trust",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Shared provenance→trust-tier primitives for xNet extensibility — the single source of truth consumed by @xnetjs/plugins and @xnetjs/labs.",
   "license": "MIT",
   "type": "module",

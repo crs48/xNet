@@ -1,6 +1,6 @@
 {
   "name": "@xnetjs/slack-compat",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Slack wire-protocol compatibility primitives — Block Kit + mrkdwn → GitHub-flavored markdown, incoming-webhook + slash-command parsing, and signing-secret verification. Pure logic, zero runtime dependencies (node:crypto only). The shared core under xNet's Slack migration connector and the hub slack-compat feature (exploration 0198).",
   "license": "MIT",
   "type": "module",
