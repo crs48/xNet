@@ -778,20 +778,19 @@ replacing the hardcoded amber and the hand-written `.dark` block:
   uses `border-border` and no `shadow-pop`, unlike `Modal`. If `CommentIsland`
   is built on `Popover`, it inherits that drift. Prefer composing the island
   recipe directly, and note `Popover` as a separate cleanup.
-- **Discovered during implementation: BlockNote ships its own composer, and it
-  is off-system.** The audit concluded no `FloatingComposerController` was
-  mounted. That was true of *explicit* mounting, but `BlockNoteView` renders
-  BlockNote's default comment UI once `CommentsExtension` is registered — so
-  selecting text and hitting the toolbar's comment button opens a stock
-  Mantine card (`.bn-thread`), not a `CommentIsland`. It works and it is
-  anchored, so the reported defect is fixed, but it is a plain white card that
-  matches nothing else in the shell, and it is unstyled enough to be nearly
-  invisible on first paint. **Follow-up:** either restyle `.bn-thread` to the
-  island recipe, or replace BlockNote's composer/thread UI with
-  `CommentIsland` via its component-override API and route creation through
-  `handleCreateComment` (now wired, and already used by the database surface's
-  `composing` mode). Not attempted here — it is editor-extension work, not the
-  restyle this exploration scoped.
+- **Resolved in follow-up: BlockNote's own comment UI is now off.** The audit
+  concluded no `FloatingComposerController` was mounted. That was true of
+  *explicit* mounting, but `BlockNoteView` renders BlockNote's default comment
+  UI — `FloatingComposer` **and** `FloatingThread` — once `CommentsExtension`
+  is registered, so a stock Mantine card appeared whenever the caret sat inside
+  a comment mark, alongside the island. Fixed by passing `comments={false}`
+  (the single prop gating both controllers) and re-publishing the state they
+  consumed (`selectedThreadId`, `pendingComment`) to the host via
+  `CommentStateBridge`, so `CommentIsland` opens from the same signals.
+  Creation routes through the extension's `createThread` — not the thread store
+  — because that is what also applies the in-document `.bn-thread-mark`;
+  writing to the store alone would leave a comment with nothing highlighting
+  it. See `packages/editor/src/blocknote/comments/inline-thread-actions.ts`.
 - **Scope creep is the real risk here.** The audit turned up three separable
   bodies of work: (1) the island redesign, (2) *wiring* the page view's inline
   layer, which is closer to finishing 0321 than to restyling, and (3) a handful

@@ -125,3 +125,11 @@ export type {
   UsePageCommentsOptions,
   UsePageCommentsResult
 } from './hooks/usePageComments'
+
+// Inline-thread actions the host needs now that BlockNote's own comment UI is
+// off and CommentIsland is the only comment surface (0375).
+export {
+  createInlineCommentThread,
+  cancelInlineCommentThread,
+  clearSelectedInlineThread
+} from './blocknote/comments/inline-thread-actions'

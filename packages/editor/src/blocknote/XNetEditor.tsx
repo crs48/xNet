@@ -15,6 +15,7 @@ import {
   SuggestionMenuController,
   getDefaultReactSlashMenuItems,
   useCreateBlockNote,
+  useExtensionState,
   type DefaultReactSuggestionItem
 } from '@blocknote/react'
 import type { MessageLinkPreview } from '@xnetjs/data'
@@ -161,6 +162,56 @@ export interface XNetEditorCommentsHost extends XNetThreadStoreHost {
   threads: readonly XNetCommentThread[]
   /** Resolve author DIDs to display users (0298 profiles). */
   resolveUsers: (userIds: string[]) => Promise<User[]>
+  /**
+   * The thread the caret currently sits inside, or null. BlockNote's own
+   * floating thread popover is disabled (`comments={false}`), so the host
+   * renders CommentIsland from this instead — otherwise two comment UIs
+   * would appear for the same selection (0375).
+   */
+  onSelectedThreadChange?: (threadId: string | null) => void
+  /**
+   * True while the toolbar's comment action has staged a new thread but the
+   * user has not written it yet. Drives CommentIsland's `composing` mode in
+   * place of BlockNote's FloatingComposer.
+   */
+  onPendingCommentChange?: (pending: boolean) => void
+}
+
+/**
+ * Bridges BlockNote's comment extension state out to the host.
+ *
+ * BlockNote ships two floating comment surfaces — FloatingComposer (staging a
+ * new thread) and FloatingThread (caret inside an existing mark) — both gated
+ * behind `BlockNoteView`'s `comments` prop. We turn that prop off so the app
+ * shows exactly one comment UI (CommentIsland), and re-publish the state those
+ * controllers consumed so the host can drive the island from the same signals.
+ *
+ * Must render inside `<BlockNoteView>`: `useExtensionState` needs editor
+ * context. Renders nothing.
+ */
+function CommentStateBridge({
+  onSelectedThreadChange,
+  onPendingCommentChange
+}: {
+  onSelectedThreadChange?: (threadId: string | null) => void
+  onPendingCommentChange?: (pending: boolean) => void
+}): null {
+  const selectedThreadId = useExtensionState(CommentsExtension, {
+    selector: (state) => state.selectedThreadId ?? null
+  })
+  const pendingComment = useExtensionState(CommentsExtension, {
+    selector: (state) => Boolean(state.pendingComment)
+  })
+
+  useEffect(() => {
+    onSelectedThreadChange?.(selectedThreadId ?? null)
+  }, [selectedThreadId, onSelectedThreadChange])
+
+  useEffect(() => {
+    onPendingCommentChange?.(pendingComment)
+  }, [pendingComment, onPendingCommentChange])
+
+  return null
 }
 
 function defaultNormalizeHashtagName(raw: string): string {
@@ -744,12 +795,23 @@ export function XNetEditor({
           editable={!readOnly}
           onChange={handleChange}
           slashMenu={false}
+          // 0375: BlockNote's own comment UI (FloatingComposer +
+          // FloatingThread) is stock Mantine chrome that does not match the
+          // shell. CommentIsland is the single comment surface; this prop is
+          // what stops the two from both rendering.
+          comments={false}
           aria-label={editorLabel}
         >
           <SuggestionMenuController triggerCharacter="/" getItems={getSlashItems} />
           <SuggestionMenuController triggerCharacter="@" getItems={getMentionItems} />
           <SuggestionMenuController triggerCharacter="#" getItems={getHashtagItems} />
           <SuggestionMenuController triggerCharacter="[[" getItems={getWikilinkItems} />
+          {comments ? (
+            <CommentStateBridge
+              onSelectedThreadChange={comments.onSelectedThreadChange}
+              onPendingCommentChange={comments.onPendingCommentChange}
+            />
+          ) : null}
         </BlockNoteView>
       </div>
     </XNetEditorHostProvider>

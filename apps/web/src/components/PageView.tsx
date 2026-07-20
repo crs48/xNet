@@ -20,7 +20,9 @@ import { useNavigate } from '@tanstack/react-router'
 import { PageSchema } from '@xnetjs/data'
 import {
   buildPersonMentionSuggestions,
+  cancelInlineCommentThread,
   createGravatarUrl,
+  createInlineCommentThread,
   usePageComments,
   type PageCommentPopoverState,
   type PageNewCommentState,
@@ -39,7 +41,7 @@ import {
   type TaskPersonOption
 } from '@xnetjs/ui'
 import { MessageSquare } from 'lucide-react'
-import { useCallback, useMemo, useRef, useEffect } from 'react'
+import { useCallback, useMemo, useRef, useState, useEffect } from 'react'
 import { useEnsureProfiles, useProfiles } from '../comms/hooks'
 import { useCommentPeople } from '../hooks/useCommentPeople'
 import { useLinkTargets } from '../hooks/useLinkTargets'
@@ -245,6 +247,7 @@ export function PageView({ docId }: { docId: string }) {
     toggleOrphanedCollapsed,
     popoverState,
     newCommentState,
+    showThreadPopover,
     handlePopoverMouseEnter,
     handlePopoverMouseLeave,
     handleDismiss,
@@ -293,19 +296,69 @@ export function PageView({ docId }: { docId: string }) {
       }),
     []
   )
-  const editorComments = useMemo(
-    () => ({ ...commentCrud, resolveUsers: resolveCommentUsers }),
-    [commentCrud, resolveCommentUsers]
-  )
-
-  const titleInputRef = useRef<HTMLInputElement | null>(null)
-
-  // The live BlockNote editor (0312); also serves the focus flow and
-  // node-drop insertion below.
+  // The live BlockNote editor (0312); also serves the focus flow, node-drop
+  // insertion, and the inline-comment actions below.
   const editorRef = useRef<XNetEditorInstance | null>(null)
   const handleEditorReady = useCallback((editor: XNetEditorInstance) => {
     editorRef.current = editor
   }, [])
+
+  // ─── One comment surface (0375) ─────────────────────────────────────────────
+  // BlockNote's own floating comment UI is disabled, so these two signals —
+  // caret-inside-a-mark, and a staged new comment — are what open CommentIsland.
+  // Without them the editor would have no comment UI at all.
+
+  const [composingInline, setComposingInline] = useState(false)
+
+  const handleSelectedThreadChange = useCallback(
+    (threadId: string | null) => {
+      // Opening only. The caret leaves the mark as soon as the user clicks into
+      // the island's own composer, so dismissing on null would close the card
+      // out from under them; Escape and ✕ are the deliberate exits.
+      if (!threadId) return
+      const mark = document.querySelector<HTMLElement>(`[data-bn-thread-id="${threadId}"]`)
+      showThreadPopover(threadId, mark)
+    },
+    [showThreadPopover]
+  )
+
+  const handlePendingCommentChange = useCallback((pending: boolean) => {
+    setComposingInline(pending)
+  }, [])
+
+  const inlineComposerAnchor = useMemo<{ x: number; y: number } | null>(() => {
+    if (!composingInline || typeof window === 'undefined') return null
+    const selection = window.getSelection()
+    if (!selection || selection.rangeCount === 0) return null
+    const rect = selection.getRangeAt(0).getBoundingClientRect()
+    return { x: rect.left, y: rect.bottom }
+  }, [composingInline])
+
+  const handleCreateInlineComment = useCallback((content: string) => {
+    const editor = editorRef.current
+    if (!editor) return
+    // createThread (not addComment) — it also applies the in-document mark.
+    void createInlineCommentThread(editor, content)
+    setComposingInline(false)
+  }, [])
+
+  const handleCancelInlineComment = useCallback(() => {
+    const editor = editorRef.current
+    if (editor) cancelInlineCommentThread(editor)
+    setComposingInline(false)
+  }, [])
+
+  const editorComments = useMemo(
+    () => ({
+      ...commentCrud,
+      resolveUsers: resolveCommentUsers,
+      onSelectedThreadChange: handleSelectedThreadChange,
+      onPendingCommentChange: handlePendingCommentChange
+    }),
+    [commentCrud, resolveCommentUsers, handleSelectedThreadChange, handlePendingCommentChange]
+  )
+
+  const titleInputRef = useRef<HTMLInputElement | null>(null)
 
   const handleSelectOrphaned = useCallback(
     (commentId: string) => {
@@ -605,6 +658,14 @@ export function PageView({ docId }: { docId: string }) {
           onMouseLeave={handlePopoverMouseLeave}
         />
 
+        <PageInlineComposerOverlay
+          open={composingInline}
+          anchor={inlineComposerAnchor}
+          people={commentPeople}
+          onSubmit={handleCreateInlineComment}
+          onCancel={handleCancelInlineComment}
+        />
+
         <PageNewCommentOverlay
           state={newCommentState}
           people={commentPeople}
@@ -695,9 +756,43 @@ function PageCommentIslandOverlay({
 }
 
 /**
- * New-comment composer. Anchored to the selection it annotates — this
- * replaced a centred, scrim-backed modal that dimmed the whole workbench to
- * show a single text field (0375).
+ * Inline composer for a thread staged from the editor toolbar (0375).
+ *
+ * Replaces BlockNote's FloatingComposer, which `comments={false}` disables.
+ * Submitting routes through `createInlineCommentThread` rather than the plain
+ * comment CRUD, because the thread also needs its in-document mark.
+ */
+function PageInlineComposerOverlay({
+  open,
+  anchor,
+  people,
+  onSubmit,
+  onCancel
+}: {
+  open: boolean
+  anchor: { x: number; y: number } | null
+  people: TaskPersonOption[]
+  onSubmit: (content: string) => void
+  onCancel: () => void
+}) {
+  if (!open || !anchor) return null
+  return (
+    <CommentIsland
+      anchor={toAnchorLike(anchor)}
+      mode="composing"
+      open
+      side="bottom"
+      people={people}
+      onCreate={onSubmit}
+      onDismiss={onCancel}
+    />
+  )
+}
+
+/**
+ * New-comment composer for the panel affordance. Anchored to the selection it
+ * annotates — this replaced a centred, scrim-backed modal that dimmed the
+ * whole workbench to show a single text field (0375).
  */
 function PageNewCommentOverlay({
   state,
