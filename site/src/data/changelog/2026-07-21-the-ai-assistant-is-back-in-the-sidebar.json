@@ -1,0 +1,14 @@
+{
+  "id": "2026-07-21-the-ai-assistant-is-back-in-the-sidebar",
+  "date": "July 21, 2026",
+  "title": "The AI assistant is back in the sidebar",
+  "summary": "The AI chat surface had lost its place in the left nav, and questions typed into the floating Assistant went nowhere. Both are fixed: AI is a section again, and the Assistant hands your question straight to it.",
+  "highlights": [
+    "Click AI in the sidebar to open the full assistant, with your own model or API key",
+    "Typing into the floating Assistant now opens the AI surface with your question carried over, instead of clearing it"
+  ],
+  "tags": [
+    "app",
+    "ai"
+  ]
+}
