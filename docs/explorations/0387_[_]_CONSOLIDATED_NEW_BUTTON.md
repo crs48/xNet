@@ -307,14 +307,14 @@ sequenceDiagram
       the section isn't mounted.
 - [x] Register `tasks.new` command (activate Tasks surface, focus quick-add;
       reuse `tasks.quickCreate` logic).
-- [ ] Add `createTask` / `createChannel` / `recordMeeting` / `createSpace`
+- [x] Add `createTask` / `createChannel` / `recordMeeting` / `createSpace`
       dispatchers to `useNewActions` (`apps/web/src/workbench/new-actions.ts`).
-- [ ] Regroup `NewMenu` in `FloatingMenus.tsx`: docs group, new
+- [x] Regroup `NewMenu` in `FloatingMenus.tsx`: docs group, new
       task/channel/meeting/space group, folder/Add-shared group.
-- [ ] Mirror the same groups in the mobile `NewSheet`
+- [x] Mirror the same groups in the mobile `NewSheet`
       (`mobile-overlays.tsx`).
-- [ ] Remove the unified-nav header "+" (`SidebarIslands.tsx:377-385`).
-- [ ] Remove the legacy surface-aware `create` block
+- [x] Remove the unified-nav header "+" (`SidebarIslands.tsx:377-385`).
+- [x] Remove the legacy surface-aware `create` block
       (`SidebarIslands.tsx:403-426`) and the `useNewActions` import.
 - [ ] Delete `CreateDocMenuItems` if grep confirms it is unconsumed.
 - [ ] Update any coachmarks/tests referencing the bottom-island plus.

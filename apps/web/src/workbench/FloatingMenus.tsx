@@ -60,9 +60,18 @@ const item =
   'flex w-full items-center gap-2.5 rounded-lg border-none bg-transparent px-2 py-1.5 text-left text-[13px] text-ink-1 transition-colors hover:bg-accent cursor-pointer'
 const eyebrow = 'px-2 pb-1 pt-1 text-[11px] font-semibold uppercase tracking-wider text-ink-3'
 
-/** The canonical, Space-aware New menu — one source for every "New" (0288). */
+/**
+ * The canonical, Space-aware New menu — the ONE place anything is created
+ * (0288, widened to every creatable noun in 0387).
+ *
+ * Three groups: documents (Space-filed), then the non-document creatables,
+ * then the filing/import verbs. The eyebrow's "Creating in <Space>" applies to
+ * the document group only — channels and Spaces carry their own membership
+ * semantics and are not filed by this menu.
+ */
 function NewMenu({ close }: { close: () => void }) {
-  const { types, targetName, createDoc, createFolder, addShared } = useNewActions()
+  const { types, otherActions, targetName, createDoc, createFolder, runOther, addShared } =
+    useNewActions()
   const run = (fn: () => void) => {
     fn()
     close()
@@ -85,6 +94,21 @@ function NewMenu({ close }: { close: () => void }) {
             {type === 'page' && (
               <span className="ml-auto font-mono text-[11px] text-ink-3">⌘T</span>
             )}
+          </button>
+        )
+      })}
+      <div className="mx-0.5 my-1 h-px bg-hairline" />
+      {otherActions.map((action) => {
+        const Icon = action.icon
+        return (
+          <button
+            key={action.id}
+            type="button"
+            className={item}
+            onClick={() => run(() => runOther(action))}
+          >
+            <Icon size={16} strokeWidth={1.75} className="text-ink-3" />
+            {action.label}
           </button>
         )
       })}
