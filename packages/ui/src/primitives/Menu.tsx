@@ -8,6 +8,7 @@ import { Menu as BaseMenu } from '@base-ui/react/menu'
 import { Check, ChevronRight, Circle } from 'lucide-react'
 import * as React from 'react'
 import { cn } from '../utils'
+import { POPUP_LAYER } from './layers'
 
 // ─── Simple Menu (Backward Compatible) ──────────────────────────────
 
@@ -33,7 +34,7 @@ export function Menu({ trigger, children, align = 'end', sideOffset = 4, classNa
     <BaseMenu.Root>
       <BaseMenu.Trigger render={trigger as React.ReactElement} />
       <BaseMenu.Portal>
-        <BaseMenu.Positioner align={align} sideOffset={sideOffset}>
+        <BaseMenu.Positioner className={POPUP_LAYER} align={align} sideOffset={sideOffset}>
           <BaseMenu.Popup
             className={cn(
               'z-50 min-w-[8rem] overflow-hidden',
@@ -148,7 +149,7 @@ export const DropdownMenuContent = React.forwardRef<
   }
 >(({ className, sideOffset = 4, align = 'end', ...props }, ref) => (
   <BaseMenu.Portal>
-    <BaseMenu.Positioner sideOffset={sideOffset} align={align}>
+    <BaseMenu.Positioner className={POPUP_LAYER} sideOffset={sideOffset} align={align}>
       <BaseMenu.Popup
         ref={ref}
         className={cn(
@@ -320,7 +321,7 @@ export const DropdownMenuSubContent = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof BaseMenu.Popup>
 >(({ className, ...props }, ref) => (
   <BaseMenu.Portal>
-    <BaseMenu.Positioner>
+    <BaseMenu.Positioner className={POPUP_LAYER}>
       <BaseMenu.Popup
         ref={ref}
         className={cn(

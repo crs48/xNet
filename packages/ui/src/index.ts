@@ -11,6 +11,7 @@ export { cn, cva, type VariantProps } from './utils'
 // ─── Primitives (existing, migrated to semantic tokens) ───────────
 export { Button, buttonVariants, type ButtonProps } from './primitives/Button'
 export { ISLAND_SURFACE, ISLAND_CHROME, ISLAND_OVERLAY } from './primitives/island'
+export { POPUP_LAYER } from './primitives/layers'
 export {
   CodeEditor,
   codeMirrorLanguage,

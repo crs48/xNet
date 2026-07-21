@@ -8,6 +8,7 @@ import { Select as BaseSelect } from '@base-ui/react/select'
 import { Check, ChevronDown } from 'lucide-react'
 import * as React from 'react'
 import { cn } from '../utils'
+import { POPUP_LAYER } from './layers'
 
 // ─── Simple Select (Backward Compatible) ────────────────────────────
 
@@ -83,7 +84,11 @@ export const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
             </BaseSelect.Icon>
           </BaseSelect.Trigger>
           <BaseSelect.Portal>
-            <BaseSelect.Positioner sideOffset={4} alignItemWithTrigger={false}>
+            <BaseSelect.Positioner
+              className={POPUP_LAYER}
+              sideOffset={4}
+              alignItemWithTrigger={false}
+            >
               <BaseSelect.Popup
                 className={cn(
                   'relative z-50 max-h-96 min-w-[8rem] overflow-hidden',
@@ -190,7 +195,11 @@ export const SelectContent = React.forwardRef<
   }
 >(({ className, children, sideOffset = 4, ...props }, ref) => (
   <BaseSelect.Portal>
-    <BaseSelect.Positioner sideOffset={sideOffset} alignItemWithTrigger={false}>
+    <BaseSelect.Positioner
+      className={POPUP_LAYER}
+      sideOffset={sideOffset}
+      alignItemWithTrigger={false}
+    >
       <BaseSelect.Popup
         ref={ref}
         className={cn(
