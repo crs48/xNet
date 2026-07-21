@@ -6,6 +6,29 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-21-files-in-database-cells-with-previews",
+      "url": "https://xnet.fyi/changelog#2026-07-21-files-in-database-cells-with-previews",
+      "title": "Files in database cells, with previews",
+      "content_text": "Database file cells now hold several attachments, show thumbnails inline, and open a full-screen viewer with paging and download when clicked. Attachment bytes sync between your devices through the hub instead of staying stranded on the device that uploaded them.\n",
+      "date_published": "2026-07-21T15:17:11Z",
+      "tags": [
+        "app",
+        "sync"
+      ],
+      "_xnet": {
+        "date": "July 21, 2026",
+        "summary": "Database file cells now hold several attachments, show thumbnails inline, and open a full-screen viewer with paging and download when clicked. Attachment bytes sync between your devices through the hub instead of staying stranded on the device that uploaded them.",
+        "highlights": [],
+        "mergedAt": "2026-07-21T15:17:11Z",
+        "pr": 614,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-21-scrollable-panels-now-fade-at-the-edge-w",
       "url": "https://xnet.fyi/changelog#2026-07-21-scrollable-panels-now-fade-at-the-edge-w",
       "title": "Scrollable panels now fade at the edge when there's more to see",

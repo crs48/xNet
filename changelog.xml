@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Files in database cells, with previews</title>
+      <link>https://xnet.fyi/changelog#2026-07-21-files-in-database-cells-with-previews</link>
+      <guid isPermaLink="false">2026-07-21-files-in-database-cells-with-previews</guid>
+      <pubDate>Tue, 21 Jul 2026 15:17:11 GMT</pubDate>
+      <description>Database file cells now hold several attachments, show thumbnails inline, and open a full-screen viewer with paging and download when clicked. Attachment bytes sync between your devices through the hub instead of staying stranded on the device that uploaded them.</description>
+    </item>
+    <item>
       <title>Scrollable panels now fade at the edge when there's more to see</title>
       <link>https://xnet.fyi/changelog#2026-07-21-scrollable-panels-now-fade-at-the-edge-w</link>
       <guid isPermaLink="false">2026-07-21-scrollable-panels-now-fade-at-the-edge-w</guid>
