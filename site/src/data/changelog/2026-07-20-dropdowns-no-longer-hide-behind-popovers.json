@@ -1,0 +1,11 @@
+{
+  "id": "2026-07-20-dropdowns-no-longer-hide-behind-popovers",
+  "date": "July 20, 2026",
+  "title": "Dropdowns no longer hide behind the popovers that open them",
+  "summary": "Changing a column's data type from the table view's ⋯ menu works again. The type dropdown was painting behind the field popover, so its options were unclickable — clicks landed on the menu underneath instead. Every portalled select, menu, popover, and tooltip now sits above the overlays it opens from.",
+  "highlights": [
+    "Table view: the column data-type selector is usable again",
+    "Selects and menus opened from inside modals and popovers stay on top"
+  ],
+  "tags": ["app", "ui"]
+}

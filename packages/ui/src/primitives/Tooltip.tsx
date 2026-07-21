@@ -9,6 +9,7 @@ import type { ReactNode } from 'react'
 import { Tooltip as BaseTooltip } from '@base-ui/react/tooltip'
 import * as React from 'react'
 import { cn } from '../utils'
+import { POPUP_LAYER } from './layers'
 
 // ─── Simple Tooltip (Backward Compatible) ──────────────────────────
 
@@ -43,7 +44,7 @@ export function Tooltip({
       <BaseTooltip.Root>
         <BaseTooltip.Trigger render={children as React.ReactElement} />
         <BaseTooltip.Portal>
-          <BaseTooltip.Positioner side={side} sideOffset={sideOffset}>
+          <BaseTooltip.Positioner className={POPUP_LAYER} side={side} sideOffset={sideOffset}>
             <BaseTooltip.Popup
               className={cn(
                 'z-50 overflow-hidden rounded-md',
@@ -151,7 +152,7 @@ export const TooltipContent = React.forwardRef<
   }
 >(({ className, side = 'top', sideOffset = 4, children, ...props }, ref) => (
   <BaseTooltip.Portal>
-    <BaseTooltip.Positioner side={side} sideOffset={sideOffset}>
+    <BaseTooltip.Positioner className={POPUP_LAYER} side={side} sideOffset={sideOffset}>
       <BaseTooltip.Popup
         ref={ref}
         className={cn(

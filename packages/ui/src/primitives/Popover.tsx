@@ -8,6 +8,7 @@ import type { ReactNode } from 'react'
 import { Popover as BasePopover } from '@base-ui/react/popover'
 import * as React from 'react'
 import { cn } from '../utils'
+import { POPUP_LAYER } from './layers'
 
 // ─── Simple Popover (Backward Compatible) ──────────────────────────
 
@@ -44,7 +45,12 @@ export function Popover({
     <BasePopover.Root open={open} onOpenChange={onOpenChange}>
       <BasePopover.Trigger render={trigger as React.ReactElement} />
       <BasePopover.Portal>
-        <BasePopover.Positioner side={side} align={align} sideOffset={sideOffset}>
+        <BasePopover.Positioner
+          className={POPUP_LAYER}
+          side={side}
+          align={align}
+          sideOffset={sideOffset}
+        >
           <BasePopover.Popup
             className={cn(
               'z-50 w-72 rounded-md',
@@ -165,7 +171,12 @@ export const PopoverContent = React.forwardRef<
   }
 >(({ className, side = 'bottom', align = 'center', sideOffset = 4, children, ...props }, ref) => (
   <BasePopover.Portal>
-    <BasePopover.Positioner side={side} align={align} sideOffset={sideOffset}>
+    <BasePopover.Positioner
+      className={POPUP_LAYER}
+      side={side}
+      align={align}
+      sideOffset={sideOffset}
+    >
       <BasePopover.Popup
         ref={ref}
         className={cn(
