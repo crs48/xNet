@@ -3,14 +3,39 @@
   "baseline": "https://xnet.fyi/visuals-baseline",
   "fallbackUsed": false,
   "unmappedFiles": [],
-  "stories": [],
+  "stories": [
+    {
+      "id": "web-storagewarningbanner--informational",
+      "title": "Web/StorageWarningBanner",
+      "name": "Informational",
+      "file": "stories/web-storagewarningbanner--informational.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-storagewarningbanner--success",
+      "title": "Web/StorageWarningBanner",
+      "name": "Success",
+      "file": "stories/web-storagewarningbanner--success.png",
+      "status": "unchanged",
+      "ssim": 1
+    },
+    {
+      "id": "web-storagewarningbanner--warning",
+      "title": "Web/StorageWarningBanner",
+      "name": "Warning",
+      "file": "stories/web-storagewarningbanner--warning.png",
+      "status": "unchanged",
+      "ssim": 1
+    }
+  ],
   "routes": [
     {
       "id": "home",
       "label": "Home",
       "file": "routes/home.png",
       "status": "unchanged",
-      "ssim": 0.998858
+      "ssim": 0.99879
     }
   ],
   "electron": [],
