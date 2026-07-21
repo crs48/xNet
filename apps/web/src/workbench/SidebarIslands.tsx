@@ -27,7 +27,6 @@ import { useLayoutEffect, useRef } from 'react'
 import { SelfAvatar } from '../components/SelfAvatar'
 import { useRequestCount } from '../hooks/useRequestCount'
 import { useSpaces } from '../hooks/useSpaces'
-import { useNewActions } from './new-actions'
 import { SettingsSectionsNav } from './SettingsSectionsNav'
 import { getSlotView } from './slot-registry'
 import { SectionRow, useSections } from './sidebar/SectionRows'
@@ -342,7 +341,6 @@ function BottomIsland() {
   // the same simplification, and shipping them apart would leave the
   // shell in a half-migrated grammar.
   const unifiedNav = useWorkbench((s) => !s.tabsEnabled)
-  const { createDoc } = useNewActions()
   const onSettings = useRouterState({
     select: (s) =>
       s.location.pathname === '/settings' || s.location.pathname.startsWith('/settings/')
@@ -373,16 +371,6 @@ function BottomIsland() {
         <div className="flex items-center gap-2 px-3 pb-1 pt-2.5">
           <Layers size={16} strokeWidth={1.75} className="text-ink-2" />
           <span className="text-[13px] font-semibold text-ink-1">{lensLabel}</span>
-          <span className="flex-1" />
-          <button
-            type="button"
-            title="New page"
-            aria-label="New page"
-            onClick={() => createDoc('page')}
-            className="flex h-6 w-6 cursor-pointer items-center justify-center rounded-md border-none bg-transparent text-ink-2 hover:bg-background-muted hover:text-ink-1"
-          >
-            <Plus size={15} strokeWidth={1.75} />
-          </button>
         </div>
         <div className="min-h-0 flex-1 overflow-hidden">
           <UnifiedTree />
@@ -397,33 +385,11 @@ function BottomIsland() {
   const Body = view?.component
   const Icon = panel.icon
 
-  // Surface-aware "+": Explorer files a page into the active Space, Data makes a
-  // database. Surfaces that carry their own in-panel create (Tasks/Chats/…) —
-  // or have nothing to create — hide the header +.
-  const create =
-    panel.id === 'explorer'
-      ? () => createDoc('page')
-      : panel.id === 'data'
-        ? () => createDoc('database')
-        : null
-
   return (
     <div className={`${ISLAND} min-h-0 flex-1`}>
       <div className="flex items-center gap-2 px-3 pb-2 pt-2.5">
         <Icon size={16} strokeWidth={1.75} className="text-ink-2" />
         <span className="text-[13px] font-semibold text-ink-1">{panel.label}</span>
-        <span className="flex-1" />
-        {create && (
-          <button
-            type="button"
-            title={`New in ${panel.label}`}
-            aria-label={`New in ${panel.label}`}
-            onClick={create}
-            className="flex h-6 w-6 items-center justify-center rounded-md border-none bg-transparent text-ink-2 cursor-pointer hover:bg-background-muted hover:text-ink-1"
-          >
-            <Plus size={15} strokeWidth={1.75} />
-          </button>
-        )}
       </div>
       <div className="min-h-0 flex-1 overflow-hidden">{Body ? <Body /> : null}</div>
     </div>

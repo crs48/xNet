@@ -483,7 +483,8 @@ function AssistantSheet({ reduced, onClose }: { reduced: boolean; onClose: () =>
 }
 
 function NewSheet({ reduced, onClose }: { reduced: boolean; onClose: () => void }) {
-  const { types, targetName, createDoc, createFolder, addShared } = useNewActions()
+  const { types, otherActions, targetName, createDoc, createFolder, runOther, addShared } =
+    useNewActions()
   const run = (fn: () => void) => {
     fn()
     onClose()
@@ -505,6 +506,21 @@ function NewSheet({ reduced, onClose }: { reduced: boolean; onClose: () => void 
             <Icon size={18} className="text-ink-3" />
             <span className="flex-1">New {route.label.toLowerCase()}</span>
             {type === 'page' && <span className="font-mono text-[11px] text-ink-3">⌘T</span>}
+          </button>
+        )
+      })}
+      <div className="mx-2 my-1.5 h-px bg-hairline" />
+      {otherActions.map((action) => {
+        const Icon = action.icon
+        return (
+          <button
+            key={action.id}
+            type="button"
+            className={ROW}
+            onClick={() => run(() => runOther(action))}
+          >
+            <Icon size={18} strokeWidth={1.75} className="text-ink-3" />
+            <span className="flex-1">{action.label}</span>
           </button>
         )
       })}
