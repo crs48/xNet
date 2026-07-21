@@ -22,8 +22,8 @@
  * — readers that understand it get fidelity, everyone else falls back to this.
  */
 
-import type { RecordLens, LexiconRecord, NodeProperties } from '../record-lens'
 import type { SchemaIRI } from '../node'
+import type { RecordLens, LexiconRecord, NodeProperties } from '../record-lens'
 
 /** The adopted lexicon this Page projects to. */
 export const SITE_STANDARD_DOCUMENT = 'site.standard.document'
