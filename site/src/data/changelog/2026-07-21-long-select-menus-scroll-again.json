@@ -1,0 +1,10 @@
+{
+  "id": "2026-07-21-long-select-menus-scroll-again",
+  "date": "July 21, 2026",
+  "title": "Long select menus scroll again",
+  "summary": "Dropdown selects with many options (like the database field-type picker) were capped at a fixed height with no way to scroll by mouse, hiding options past the twelfth. The list now scrolls and shows scroll arrows, so every option is reachable.",
+  "highlights": [],
+  "tags": [
+    "app"
+  ]
+}
