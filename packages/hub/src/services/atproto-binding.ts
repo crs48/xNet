@@ -234,9 +234,7 @@ export class AtprotoBindingVerifier {
       }
       const body = (await res.json()) as { uri?: unknown; value?: unknown }
       const uri =
-        typeof body.uri === 'string'
-          ? body.uri
-          : `at://${atprotoDid}/${collection}/${rkey}`
+        typeof body.uri === 'string' ? body.uri : `at://${atprotoDid}/${collection}/${rkey}`
       return { ok: true, uri, value: body.value }
     } catch (err) {
       return {

@@ -1,10 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import {
-  RecordLensRegistry,
-  projectRecord,
-  ingestRecord,
-  assertRoundTrip
-} from '../record-lens'
+import { RecordLensRegistry, projectRecord, ingestRecord, assertRoundTrip } from '../record-lens'
 import { pageToDocumentLens, SITE_STANDARD_DOCUMENT, XNET_BODY_BLOCK } from './page-document'
 import { registerBuiltinRecordLenses } from './index'
 

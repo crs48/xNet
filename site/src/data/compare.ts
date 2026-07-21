@@ -1222,7 +1222,7 @@ export const layers: CompareLayer[] = [
       },
       {
         id: 'atproto-complement',
-        text: "Not a competitor — a complement. AT Protocol is a public broadcast network; xNet is the end-to-end encrypted workspace for your ATProto identity, the private half the atmosphere is not built to hold. xNet is to workspaces what Germ is to DMs: sign in with your Bluesky identity, keep your drafts and members-only spaces private and live, and publish a card to the atmosphere only when the work is ready. Identity, discovery and recovery ride on ATProto; the confidential body stays on a hub that never sees plaintext.",
+        text: 'Not a competitor — a complement. AT Protocol is a public broadcast network; xNet is the end-to-end encrypted workspace for your ATProto identity, the private half the atmosphere is not built to hold. xNet is to workspaces what Germ is to DMs: sign in with your Bluesky identity, keep your drafts and members-only spaces private and live, and publish a card to the atmosphere only when the work is ready. Identity, discovery and recovery ride on ATProto; the confidential body stays on a hub that never sees plaintext.',
         sourceUrl: 'https://github.com/crs48/xNet/tree/main/docs/explorations'
       },
       {

@@ -41,9 +41,7 @@ function atmosphere(options: {
         JSON.stringify({
           id: ATPROTO_DID,
           alsoKnownAs: ['at://alice.example'],
-          service: [
-            { id: '#atproto_pds', type: 'AtprotoPersonalDataServer', serviceEndpoint: PDS }
-          ]
+          service: [{ id: '#atproto_pds', type: 'AtprotoPersonalDataServer', serviceEndpoint: PDS }]
         }),
         { status: 200 }
       )
@@ -261,9 +259,7 @@ describe('RecoveryChallengeStore', () => {
 
   it('mints unpredictable nonces', () => {
     const store = new RecoveryChallengeStore()
-    const seen = new Set(
-      Array.from({ length: 50 }, (_, i) => store.issue(`did:key:u${i}`).nonce)
-    )
+    const seen = new Set(Array.from({ length: 50 }, (_, i) => store.issue(`did:key:u${i}`).nonce))
     expect(seen.size).toBe(50)
     for (const nonce of seen) expect(nonce.length).toBeGreaterThanOrEqual(32)
   })

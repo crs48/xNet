@@ -133,10 +133,7 @@ export async function recoverWithAtproto(
       .json()
       .then((b: { reason?: string }) => b.reason)
       .catch(() => undefined)
-    throw new RecoveryError(
-      `Recovery was refused${detail ? `: ${detail}` : ''}`,
-      'release'
-    )
+    throw new RecoveryError(`Recovery was refused${detail ? `: ${detail}` : ''}`, 'release')
   }
   const body = (await releaseRes.json()) as { sealedEscrowB64?: string }
   if (!body.sealedEscrowB64) {

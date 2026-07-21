@@ -126,7 +126,9 @@ describe('AtprotoRecoveryAnchor.verifyCeremony', () => {
     const challenges = new RecoveryChallengeStore()
     const { nonce, record: challengeRecord } = freshChallenge(challenges, identity.did)
     const anchor = new AtprotoRecoveryAnchor(
-      new AtprotoBindingVerifier({ fetchImpl: makeFetch({ record, challengeRecord, withAs: false }) }),
+      new AtprotoBindingVerifier({
+        fetchImpl: makeFetch({ record, challengeRecord, withAs: false })
+      }),
       challenges
     )
     const result = await anchor.verifyCeremony({

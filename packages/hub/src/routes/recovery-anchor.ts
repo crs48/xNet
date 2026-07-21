@@ -20,10 +20,7 @@
 import type { AtprotoRecoveryAnchor } from '../services/atproto-recovery-anchor'
 import type { EscrowStore } from '../services/escrow-store'
 import type { RecoveryChallengeStore } from '../services/atproto-challenge'
-import {
-  ATPROTO_CHALLENGE_COLLECTION,
-  ATPROTO_CHALLENGE_RKEY
-} from '../services/atproto-challenge'
+import { ATPROTO_CHALLENGE_COLLECTION, ATPROTO_CHALLENGE_RKEY } from '../services/atproto-challenge'
 import { Hono } from 'hono'
 import { isRecord } from '../utils/validation'
 

@@ -96,7 +96,10 @@ describe('verifySpaceSnapshot', () => {
 
   it('rejects a tampered head (root no longer matches)', () => {
     const snap = make()
-    const tampered = { ...snap, heads: [...snap.heads, ...heads([['node-d', 'cid:blake3:ddd', 2]])] }
+    const tampered = {
+      ...snap,
+      heads: [...snap.heads, ...heads([['node-d', 'cid:blake3:ddd', 2]])]
+    }
     expect(verifySpaceSnapshot(tampered, pub)).toBe(false)
   })
 
@@ -131,7 +134,9 @@ describe('anti-entropy helpers', () => {
       ['node-b', 'cid:blake3:bbb2', 8],
       ['node-c', 'cid:blake3:ccc', 9]
     ])
-    const delta = snapshotDelta(have, target).map((h) => h.nodeId).sort()
+    const delta = snapshotDelta(have, target)
+      .map((h) => h.nodeId)
+      .sort()
     expect(delta).toEqual(['node-b', 'node-c'])
   })
 
