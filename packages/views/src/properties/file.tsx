@@ -18,12 +18,53 @@ import { useAttachmentLightbox } from '../attachments/AttachmentLightboxProvider
 
 export interface FileCellConfig {
   accept?: string[]
+  /** Keep several files per cell; otherwise a new upload replaces the old. */
+  allowMultiple?: boolean
   onUploadFile?: (file: File) => Promise<FileRef | null>
   onResolveFileUrl?: (ref: FileRef) => Promise<string>
 }
 
+/** A file cell holds one ref or, with allowMultiple, several. */
+export type FileCellValue = FileRef | FileRef[]
+
 export function isImageRef(ref: FileRef | null | undefined): boolean {
   return Boolean(ref?.mimeType?.startsWith('image/'))
+}
+
+/**
+ * Normalise a cell value to an array. The schema layer has always allowed
+ * `FileRef[]` (schema/properties/file.ts), so imports and plugins can already
+ * write arrays — every read path goes through here (exploration 0385 W2).
+ */
+export function toFileRefs(value: FileCellValue | null | undefined): FileRef[] {
+  if (!value) return []
+  const list = Array.isArray(value) ? value : [value]
+  return list.filter((ref): ref is FileRef => Boolean(ref?.cid))
+}
+
+/**
+ * Collapse back to the narrowest shape: single-file cells stay a bare object
+ * so existing data and consumers are untouched.
+ */
+function fromFileRefs(refs: FileRef[], allowMultiple?: boolean): FileCellValue | null {
+  if (refs.length === 0) return null
+  if (!allowMultiple) return refs[0]
+  return refs
+}
+
+/**
+ * Does this file satisfy the field's `accept` list? Entries are MIME types or
+ * wildcards ("image/*"), matching the HTML input attribute.
+ */
+export function acceptsFile(file: File, accept?: string[]): boolean {
+  if (!accept?.length) return true
+  return accept.some((entry) => {
+    const pattern = entry.trim().toLowerCase()
+    if (!pattern) return true
+    if (pattern.endsWith('/*')) return file.type.toLowerCase().startsWith(pattern.slice(0, -1))
+    if (pattern.startsWith('.')) return file.name.toLowerCase().endsWith(pattern)
+    return file.type.toLowerCase() === pattern
+  })
 }
 
 /**
@@ -183,26 +224,51 @@ function FileEditor({
   onBlur,
   autoFocus,
   disabled
-}: PropertyEditorProps<FileRef>) {
+}: PropertyEditorProps<FileCellValue>) {
   const cfg = (config ?? {}) as FileCellConfig
   const inputRef = useRef<HTMLInputElement>(null)
   const rootRef = useRef<HTMLDivElement>(null)
   const [uploading, setUploading] = useState(false)
   const [dragOver, setDragOver] = useState(false)
+  const [rejected, setRejected] = useState<string | null>(null)
+
+  const refs = toFileRefs(value)
+  const multiple = Boolean(cfg.allowMultiple)
 
   useEffect(() => {
     if (autoFocus) rootRef.current?.querySelector('button')?.focus()
   }, [autoFocus])
 
-  const uploadAndCommit = async (file: File): Promise<void> => {
-    if (!cfg.onUploadFile || disabled) return
+  const commitRefs = (next: FileRef[]): void => {
+    const collapsed = fromFileRefs(next, multiple)
+    onChange(collapsed)
+    onCommit?.(collapsed, 'picker-select')
+  }
+
+  /** Upload one or more files; appends when multiple, replaces otherwise. */
+  const uploadAndCommit = async (files: File[]): Promise<void> => {
+    if (!cfg.onUploadFile || disabled || files.length === 0) return
+    const allowed = files.filter((f) => acceptsFile(f, cfg.accept))
+    if (allowed.length < files.length) {
+      setRejected(
+        files.length === 1
+          ? `${files[0].name} isn’t an accepted file type`
+          : `${files.length - allowed.length} file(s) skipped — wrong type`
+      )
+    } else {
+      setRejected(null)
+    }
+    if (allowed.length === 0) return
+
+    const batch = multiple ? allowed : allowed.slice(0, 1)
     setUploading(true)
     try {
-      const ref = await cfg.onUploadFile(file)
-      if (ref) {
-        onChange(ref)
-        onCommit?.(ref, 'picker-select')
+      const uploaded: FileRef[] = []
+      for (const file of batch) {
+        const ref = await cfg.onUploadFile(file)
+        if (ref) uploaded.push(ref)
       }
+      if (uploaded.length) commitRefs(multiple ? [...refs, ...uploaded] : uploaded)
     } finally {
       setUploading(false)
     }
@@ -227,10 +293,10 @@ function FileEditor({
       onDragLeave={() => setDragOver(false)}
       onDrop={(e) => {
         setDragOver(false)
-        const file = e.dataTransfer.files?.[0]
-        if (file) {
+        const dropped = Array.from(e.dataTransfer.files ?? [])
+        if (dropped.length) {
           e.preventDefault()
-          void uploadAndCommit(file)
+          void uploadAndCommit(dropped)
         }
       }}
       onKeyDown={(e) => {
@@ -241,50 +307,52 @@ function FileEditor({
         }
       }}
     >
-      {value && (
+      {refs.map((ref) => (
         <FileChip
-          value={value}
+          key={ref.cid}
+          value={ref}
           config={config}
-          onRemove={
-            disabled
-              ? undefined
-              : () => {
-                  onChange(null)
-                  onCommit?.(null, 'picker-select')
-                }
-          }
+          siblings={refs}
+          onRemove={disabled ? undefined : () => commitRefs(refs.filter((r) => r.cid !== ref.cid))}
         />
-      )}
+      ))}
 
       {!disabled && cfg.onUploadFile && (
         <>
           <button
             type="button"
-            aria-label={value ? 'Replace file' : 'Upload file'}
+            aria-label={multiple ? 'Add file' : refs.length ? 'Replace file' : 'Upload file'}
             disabled={uploading}
             className="inline-flex items-center gap-1 rounded border border-dashed border-gray-300 dark:border-gray-600 px-1.5 py-0.5 text-xs text-gray-500 hover:border-blue-400 hover:text-blue-600 disabled:opacity-50"
             onMouseDown={(e) => e.preventDefault()}
             onClick={() => inputRef.current?.click()}
           >
             <Upload className="w-3 h-3" />
-            {uploading ? 'Uploading…' : value ? 'Replace' : 'Upload'}
+            {uploading ? 'Uploading…' : multiple ? 'Add' : refs.length ? 'Replace' : 'Upload'}
           </button>
           <input
             ref={inputRef}
             type="file"
             data-testid="file-input"
             accept={cfg.accept?.join(',')}
+            multiple={multiple}
             className="hidden"
             onChange={(e) => {
-              const file = e.target.files?.[0]
-              if (file) void uploadAndCommit(file)
+              const picked = Array.from(e.target.files ?? [])
+              if (picked.length) void uploadAndCommit(picked)
               e.target.value = ''
             }}
           />
         </>
       )}
 
-      {!cfg.onUploadFile && !value && (
+      {rejected && (
+        <span data-testid="file-rejected" className="text-xs text-red-500 truncate">
+          {rejected}
+        </span>
+      )}
+
+      {!cfg.onUploadFile && refs.length === 0 && (
         <span className="text-xs text-gray-400 italic">No upload configured</span>
       )}
     </div>
@@ -294,26 +362,47 @@ function FileEditor({
 /**
  * File property handler
  */
-export const fileHandler: PropertyHandler<FileRef> = {
+/** How many chips fit before collapsing the rest into a "+N" counter. */
+const MAX_VISIBLE_CHIPS = 3
+
+export const fileHandler: PropertyHandler<FileCellValue> = {
   type: 'file',
 
   render(value, config) {
-    if (!value || !value.cid) {
+    const refs = toFileRefs(value)
+    if (refs.length === 0) {
       return <span className="text-gray-400 dark:text-gray-500 italic">Empty</span>
     }
-    return <FileChip value={value} config={config} />
+    const visible = refs.slice(0, MAX_VISIBLE_CHIPS)
+    const overflow = refs.length - visible.length
+    return (
+      <span className="inline-flex items-center gap-1 max-w-full overflow-hidden">
+        {visible.map((ref) => (
+          <FileChip key={ref.cid} value={ref} config={config} siblings={refs} />
+        ))}
+        {overflow > 0 && (
+          <span
+            data-testid="file-chip-overflow"
+            className="shrink-0 text-xs text-gray-500 dark:text-gray-400"
+          >
+            +{overflow}
+          </span>
+        )}
+      </span>
+    )
   },
 
   compare(a, b) {
-    const aName = a?.name ?? ''
-    const bName = b?.name ?? ''
+    // Sort on the first attachment's name; empty cells sort last.
+    const aName = toFileRefs(a)[0]?.name ?? ''
+    const bName = toFileRefs(b)[0]?.name ?? ''
     return aName.localeCompare(bName)
   },
 
   filterOperators: ['isEmpty', 'isNotEmpty'],
 
   applyFilter(value, operator) {
-    const isEmpty = !value || !value.cid
+    const isEmpty = toFileRefs(value).length === 0
 
     switch (operator) {
       case 'isEmpty':

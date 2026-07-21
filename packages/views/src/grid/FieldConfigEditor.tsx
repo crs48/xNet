@@ -29,6 +29,14 @@ const AGGREGATIONS: RollupAggregation[] = [
   'concat'
 ]
 
+/** Accepted-type presets for file fields; empty value means "anything". */
+const ACCEPT_PRESETS: Array<{ key: string; label: string; value: string[] }> = [
+  { key: 'any', label: 'Any file type', value: [] },
+  { key: 'images', label: 'Images only', value: ['image/*'] },
+  { key: 'media', label: 'Images & video', value: ['image/*', 'video/*'] },
+  { key: 'documents', label: 'Documents', value: ['application/pdf', 'text/*'] }
+]
+
 export interface FieldConfigEditorProps {
   /** The field being configured */
   field: GridFieldModel
@@ -134,6 +142,48 @@ export function FieldConfigEditor({
               {a}
             </option>
           ))}
+        </select>
+      </div>
+    )
+  }
+
+  // ─── file: multi-attachment toggle + accepted types (exploration 0385) ────
+  if (field.type === 'file') {
+    const accept = (config.accept as string[] | undefined) ?? []
+    const acceptPreset =
+      ACCEPT_PRESETS.find((p) => p.value.join(',') === accept.join(','))?.key ??
+      (accept.length ? 'custom' : 'any')
+
+    return (
+      <div>
+        <label className="mb-2 flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={Boolean(config.allowMultiple)}
+            onChange={(e) => onSave({ ...config, allowMultiple: e.target.checked } as FieldConfig)}
+          />
+          Allow multiple files
+        </label>
+        <select
+          aria-label="Accepted file types"
+          className={selectClass}
+          value={acceptPreset}
+          onChange={(e) => {
+            const preset = ACCEPT_PRESETS.find((p) => p.key === e.target.value)
+            const next = { ...config }
+            if (!preset || preset.value.length === 0) delete next.accept
+            else next.accept = preset.value
+            onSave(next as FieldConfig)
+          }}
+        >
+          {ACCEPT_PRESETS.map((p) => (
+            <option key={p.key} value={p.key}>
+              {p.label}
+            </option>
+          ))}
+          {acceptPreset === 'custom' && (
+            <option value="custom">Custom ({accept.join(', ')})</option>
+          )}
         </select>
       </div>
     )

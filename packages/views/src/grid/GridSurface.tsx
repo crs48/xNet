@@ -17,7 +17,7 @@
 import type { CellPresence } from '../types.js'
 import type { CellRef, GridCallbacks, GridField, GridRowData } from './model.js'
 import type { GridCommand, GridPos, GridState, KeyInput } from './types.js'
-import type { CellValue, SortConfig } from '@xnetjs/data'
+import type { CellValue, FileRef, SortConfig } from '@xnetjs/data'
 import {
   DndContext,
   PointerSensor,
@@ -33,6 +33,12 @@ import { useEntangleBind, useEntangledHighlight } from '@xnetjs/react'
 import { cn } from '@xnetjs/ui'
 import { Expand, GripVertical, Plus } from 'lucide-react'
 import React, { useCallback, useEffect, useMemo, useReducer, useRef } from 'react'
+import {
+  acceptsFile,
+  toFileRefs,
+  type FileCellConfig,
+  type FileCellValue
+} from '../properties/file.js'
 import { coerceCellText, parseTsv, serializeTsv, type PasteField } from './clipboard.js'
 import { GridCell } from './GridCell.js'
 import { GridHeader } from './GridHeader.js'
@@ -301,13 +307,26 @@ export function GridSurface({
 
   // Drag-a-file-onto-a-cell → upload + write the FileRef directly
   const handleDropFile = useCallback(
-    (rowIndex: number, colIndex: number, file: File) => {
-      if (!onUploadFile) return
+    (rowIndex: number, colIndex: number, files: File[]) => {
+      if (!onUploadFile || files.length === 0) return
       const cell = cellAt({ row: rowIndex, col: colIndex })
       if (!cell || cell.field.type !== 'file') return
       if (isCellLocked(cell.row.id, cell.field.id)) return
-      void onUploadFile(file).then((ref) => {
-        if (ref) onUpdateCell?.(cell.row.id, cell.field.id, ref as unknown as CellValue)
+
+      // Multi-file fields append to what's already there; single-file fields
+      // take the first accepted drop and replace (exploration 0385 W2).
+      const cfg = (cell.field.config ?? {}) as FileCellConfig
+      const multiple = Boolean(cfg.allowMultiple)
+      const accepted = files.filter((f) => acceptsFile(f, cfg.accept))
+      if (accepted.length === 0) return
+      const batch = multiple ? accepted : accepted.slice(0, 1)
+      const existing = multiple ? toFileRefs(cell.row.cells[cell.field.id] as FileCellValue) : []
+
+      void Promise.all(batch.map((file) => onUploadFile(file))).then((results) => {
+        const uploaded = results.filter((r): r is FileRef => Boolean(r))
+        if (uploaded.length === 0) return
+        const next = multiple ? [...existing, ...uploaded] : uploaded[0]
+        onUpdateCell?.(cell.row.id, cell.field.id, next as unknown as CellValue)
       })
     },
     [onUploadFile, cellAt, onUpdateCell, isCellLocked]
@@ -845,7 +864,7 @@ interface GridRowProps {
   onCommentClick?: (rowId: string, fieldId: string, anchorEl: HTMLElement | null) => void
   onCreateOption?: (fieldId: string, name: string) => Promise<string | null>
   onUploadFile?: (file: File) => Promise<import('@xnetjs/data').FileRef | null>
-  onDropFile?: (rowIndex: number, colIndex: number, file: File) => void
+  onDropFile?: (rowIndex: number, colIndex: number, files: File[]) => void
   onResolveFileUrl?: (ref: import('@xnetjs/data').FileRef) => Promise<string>
   /** This is the ghost "type to add a row" row */
   isGhostRow?: boolean

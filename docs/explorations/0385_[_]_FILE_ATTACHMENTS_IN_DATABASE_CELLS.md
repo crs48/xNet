@@ -512,14 +512,14 @@ returns `{ url, state }` so `FileChip` can render a subtle
 
 ### W2 — Multi-file cells
 
-- [ ] `fileHandler` normalizes `FileRef | FileRef[]`; `render` shows chip
+- [x] `fileHandler` normalizes `FileRef | FileRef[]`; `render` shows chip
       row with `+N` overflow; `Editor` appends on upload/drop when
       `allowMultiple`, replaces otherwise; per-chip remove.
-- [ ] Honor `accept` in the file input and drop validation.
-- [ ] `FieldConfigEditor.tsx` + `GridFieldMenu.tsx`: expose
+- [x] Honor `accept` in the file input and drop validation.
+- [x] `FieldConfigEditor.tsx` + `GridFieldMenu.tsx`: expose
       `allowMultiple` toggle and `accept` presets (images / documents / any).
-- [ ] `GridCell` drop handler accepts multiple files when `allowMultiple`.
-- [ ] `card-bits.tsx` `firstFileRef` already handles arrays — verify and
+- [x] `GridCell` drop handler accepts multiple files when `allowMultiple`.
+- [x] `card-bits.tsx` `firstFileRef` already handles arrays — verify and
       test gallery cover from multi-file cells.
 - [ ] Changesets: `@xnetjs/views` minor (`@xnetjs/data` unchanged — schema
       already supports arrays).

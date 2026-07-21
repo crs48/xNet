@@ -209,3 +209,84 @@ describe('GridPeek image lightbox', () => {
     expect(screen.queryByTestId('lightbox')).toBeNull()
   })
 })
+
+// ─── Multi-file cells (exploration 0385 W2) ──────────────────────────────────
+
+describe('multi-file cells', () => {
+  it('renders every ref in an array value, collapsing past three', () => {
+    const many = [
+      imageRef,
+      pdfRef,
+      { ...pdfRef, cid: 'c3', name: 'c.txt' },
+      { ...pdfRef, cid: 'c4', name: 'd.txt' }
+    ]
+    render(<>{fileHandler.render(many, {})}</>)
+    expect(screen.getAllByTestId('file-chip')).toHaveLength(3)
+    expect(screen.getByTestId('file-chip-overflow').textContent).toBe('+1')
+  })
+
+  it('appends uploads when allowMultiple, replaces otherwise', async () => {
+    const onCommit = vi.fn()
+    const onUploadFile = vi.fn(async () => pdfRef)
+    const { rerender } = render(
+      <fileHandler.Editor
+        value={imageRef}
+        config={{ onUploadFile, allowMultiple: true }}
+        onChange={vi.fn()}
+        onCommit={onCommit}
+      />
+    )
+    const file = new File(['d'], 'report.pdf', { type: 'application/pdf' })
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('file-input'), { target: { files: [file] } })
+    })
+    await waitFor(() => expect(onCommit).toHaveBeenCalledWith([imageRef, pdfRef], 'picker-select'))
+
+    // Single-file fields still collapse to a bare ref.
+    onCommit.mockClear()
+    rerender(
+      <fileHandler.Editor
+        value={imageRef}
+        config={{ onUploadFile }}
+        onChange={vi.fn()}
+        onCommit={onCommit}
+      />
+    )
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('file-input'), { target: { files: [file] } })
+    })
+    await waitFor(() => expect(onCommit).toHaveBeenCalledWith(pdfRef, 'picker-select'))
+  })
+
+  it('removes one chip and keeps the rest', () => {
+    const onCommit = vi.fn()
+    render(
+      <fileHandler.Editor
+        value={[imageRef, pdfRef]}
+        config={{ onUploadFile: vi.fn(), allowMultiple: true }}
+        onChange={vi.fn()}
+        onCommit={onCommit}
+      />
+    )
+    fireEvent.click(screen.getByLabelText('Remove report.pdf'))
+    expect(onCommit).toHaveBeenCalledWith([imageRef], 'picker-select')
+  })
+
+  it('rejects files outside the accept list', async () => {
+    const onUploadFile = vi.fn(async () => pdfRef)
+    render(
+      <fileHandler.Editor
+        value={null}
+        config={{ onUploadFile, accept: ['image/*'] }}
+        onChange={vi.fn()}
+        onCommit={vi.fn()}
+      />
+    )
+    const file = new File(['d'], 'report.pdf', { type: 'application/pdf' })
+    await act(async () => {
+      fireEvent.change(screen.getByTestId('file-input'), { target: { files: [file] } })
+    })
+    expect(onUploadFile).not.toHaveBeenCalled()
+    expect(screen.getByTestId('file-rejected')).toBeTruthy()
+  })
+})

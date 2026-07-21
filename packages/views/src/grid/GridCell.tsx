@@ -50,7 +50,7 @@ export interface GridCellProps {
   /** Upload a file (file fields); returns the stored FileRef */
   onUploadFile?: (file: File) => Promise<import('@xnetjs/data').FileRef | null>
   /** A file was dropped onto this (non-editing) cell */
-  onDropFile?: (rowIndex: number, colIndex: number, file: File) => void
+  onDropFile?: (rowIndex: number, colIndex: number, files: File[]) => void
   /** Resolve a FileRef to a displayable URL */
   onResolveFileUrl?: (ref: import('@xnetjs/data').FileRef) => Promise<string>
 }
@@ -223,10 +223,10 @@ function GridCellInner({
       }}
       onDrop={(e) => {
         if (field.type !== 'file' || readOnly || !onDropFile) return
-        const file = e.dataTransfer.files?.[0]
-        if (!file) return
+        const dropped = Array.from(e.dataTransfer.files ?? [])
+        if (dropped.length === 0) return
         e.preventDefault()
-        onDropFile(rowIndex, colIndex, file)
+        onDropFile(rowIndex, colIndex, dropped)
       }}
     >
       {editing && !readOnly ? (
