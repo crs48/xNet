@@ -454,9 +454,33 @@ Verified in the running app: the `AI` row appears in `More` (hidden count
 composer; typing "what changed this week" into the dock from `/finance` lands
 on `/ai?q=what+changed+this+week` with the composer pre-filled.
 
-Today, Data, and Explorer remain unreachable — they are lower-stakes than a
-surface that ate messages, and their right home (route vs. lens vs. deleted) is
-a judgement the main recommendation should settle rather than this patch.
+Today, Data, and Explorer are settled separately, below.
+
+### The remaining orphaned panels — resolved
+
+Of the six legacy `kind: 'panel'` surfaces, AI was the only one with no
+successor. The rest are reachable again through the thing that replaced them,
+so no panel kind is reintroduced:
+
+| Panel | Verdict | Reached by |
+| --- | --- | --- |
+| Explorer | **Superseded** | the unified tree *is* the explorer (0353) |
+| Chats | **Superseded** | the `chats` lens (tree) + the `Chats` projection on `/` |
+| Tasks | **Superseded** | the `/tasks` route |
+| Data | **Restored** | the `Views` section → `/data` |
+| Today | **Retired from the nav** | its content is Inbox (`/requests`) + Tasks |
+| AI | **Restored** | the `AI` section → `/ai` |
+
+Their slot views stay registered in `builtin-slot-views.tsx`: the legacy
+(`tabsEnabled`) shell still resolves surfaces through `viewId`, and they remain
+draggable dock residents under 0280. What they no longer have is a *second*
+nav entry competing with the section that supersedes them — the point of 0353,
+finally true rather than merely intended.
+
+`TodayPanel` is the one with no destination at all. It is left registered but
+unlisted rather than deleted, because deleting a slot view is a change to the
+0280 dock contract and wants its own decision; the nav simply stops implying
+a surface that has nowhere to go.
 
 ## Example Code
 
@@ -559,7 +583,7 @@ it('every default section resolves to a destination', () => {
 - [x] Restore the AI surface as `/ai` with an `AI` section (F10)
 - [x] Fix the dock Assistant hand-off so it navigates and carries `?q=`
       instead of clearing the input into the void (F11)
-- [ ] Decide the fate of the remaining orphaned panels — `Today`, `Data`,
+- [x] Decide the fate of the remaining orphaned panels — `Today`, `Data`,
       `Explorer` — route, lens, or delete
 - [x] Add `route?: string` to `SidebarLens` in `sidebar/contracts.ts`
 - [x] Set `route` on all five built-in lenses in `sidebar/sources.tsx`
@@ -585,9 +609,9 @@ it('every default section resolves to a destination', () => {
 - [x] Add a Playwright spec that clicks all eleven sections and asserts the
       main region's text changed, wired into an existing workflow lane per
       CLAUDE.md §"CI lanes and tests"
-- [ ] Follow-up issue: fold `/tasks`' internal `VIEWS / PROJECTS` nav into the
+- [x] Follow-up issue: fold `/tasks`' internal `VIEWS / PROJECTS` nav into the
       one nav (F5)
-- [ ] No changeset — `apps/web` is not a publishable package; confirm with
+- [x] No changeset — `apps/web` is not a publishable package; confirm with
       `node scripts/changeset/publishable-pathspec.mjs`
 
 ## Validation Checklist
@@ -596,22 +620,22 @@ it('every default section resolves to a destination', () => {
       chat body, and composer in the main area
 - [x] Typing into the dock Assistant from another route lands on
       `/ai?q=…` with the composer pre-filled, and no message is lost
-- [ ] Clicking each of All, Docs, Chats, People, Views changes
+- [x] Clicking each of All, Docs, Chats, People, Views changes
       `location.pathname` *or* the main region's rendered content
-- [ ] `People` lands on the CRM surface; `Views` lands on the Data workspace
-- [ ] After `Views → Meetings`, exactly one sidebar row is highlighted and it is
+- [x] `People` lands on the CRM surface; `Views` lands on the Data workspace
+- [x] After `Views → Meetings`, exactly one sidebar row is highlighted and it is
       Meetings
-- [ ] With a non-pinned lens active, the `More` roll-out shows it as active
-- [ ] From `/finance`, clicking `Docs` returns to the document list (no
+- [x] With a non-pinned lens active, the `More` roll-out shows it as active
+- [x] From `/finance`, clicking `Docs` returns to the document list (no
       stranding)
-- [ ] `Views` shows at least one row in a `?demo=1` workspace, or an empty state
+- [x] `Views` shows at least one row in a `?demo=1` workspace, or an empty state
       with a working create action
-- [ ] `Analytics` is absent from the nav when `VITE_TELEMETRY_DASHBOARD` is unset
-- [ ] Reloading on `/crm` restores the `people` lens in the tree
-- [ ] Reloading on `/finance` with a persisted lens does not bounce the route
-- [ ] `pnpm test` green; new `sections.test.ts` fails if a section is added
+- [x] `Analytics` is absent from the nav when `VITE_TELEMETRY_DASHBOARD` is unset
+- [x] Reloading on `/crm` restores the `people` lens in the tree
+- [x] Reloading on `/finance` with a persisted lens does not bounce the route
+- [x] `pnpm test` green; new `sections.test.ts` fails if a section is added
       without a destination
-- [ ] The new Playwright spec is referenced by a workflow or gate script (no
+- [x] The new Playwright spec is referenced by a workflow or gate script (no
       orphan spec, per CLAUDE.md)
 
 ## References

@@ -143,7 +143,6 @@ function HeaderCaret({ compact, onToggle }: { compact: boolean; onToggle: () => 
 function TopIsland({ openMenu }: { openMenu: OpenMenu }) {
   const navPinned = useWorkbench((s) => s.navPinned)
   const unifiedNav = useWorkbench((s) => !s.tabsEnabled)
-  const activeLensId = useWorkbench((s) => s.activeLensId)
   const { pinned: sections, hidden: hiddenSections } = useSections()
   const currentSpaceId = useWorkbench((s) => s.currentSpaceId)
   const compact = useWorkbench((s) => s.sidebarCompact)
