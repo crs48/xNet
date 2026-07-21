@@ -122,6 +122,17 @@ export {
 
 // Shared components
 
+// Attachments (exploration 0385) — ONE grouped area block
+export {
+  AttachmentLightbox,
+  type AttachmentLightboxProps,
+  type AttachmentLightboxRequest,
+  AttachmentLightboxProvider,
+  type AttachmentLightboxProviderProps,
+  useAttachmentLightbox,
+  type OpenAttachmentLightbox
+} from './attachments/index.js'
+
 // Filter builder
 export { FilterBuilder, type FilterBuilderProps } from './filter/index.js'
 

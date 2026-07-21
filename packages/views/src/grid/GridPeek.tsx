@@ -10,6 +10,7 @@ import { isCellFileRef as isFileRef } from '@xnetjs/data'
 import { cn } from '@xnetjs/ui'
 import { Trash2, X } from 'lucide-react'
 import React, { useCallback, useState } from 'react'
+import { AttachmentLightbox } from '../attachments/AttachmentLightbox.js'
 import { isImageRef, useFileUrl } from '../properties/file.js'
 import { getPropertyHandler } from '../properties/index.js'
 
@@ -105,46 +106,6 @@ function PeekField({
           </button>
         )}
       </div>
-    </div>
-  )
-}
-
-/** Full-screen image overlay (Escape or click to close). */
-function Lightbox({
-  fileRef,
-  config,
-  onClose
-}: {
-  fileRef: FileRef
-  config?: Record<string, unknown>
-  onClose: () => void
-}): React.JSX.Element | null {
-  const url = useFileUrl(fileRef, config)
-  if (!url) return null
-  return (
-    <div
-      role="dialog"
-      aria-label={fileRef.name}
-      data-testid="lightbox"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
-      onClick={onClose}
-      onKeyDown={(e) => {
-        if (e.key === 'Escape') {
-          e.stopPropagation()
-          onClose()
-        }
-      }}
-      tabIndex={-1}
-    >
-      <img src={url} alt={fileRef.name} className="max-h-[90vh] max-w-[90vw] object-contain" />
-      <button
-        type="button"
-        aria-label="Close image"
-        className="absolute top-4 right-4 p-2 rounded-full bg-black/50 text-white hover:bg-black/70"
-        onClick={onClose}
-      >
-        <X className="w-5 h-5" />
-      </button>
     </div>
   )
 }
@@ -252,8 +213,8 @@ export function GridPeek({
       </div>
 
       {lightbox && (
-        <Lightbox
-          fileRef={lightbox}
+        <AttachmentLightbox
+          refs={[lightbox]}
           config={onResolveFileUrl ? { onResolveFileUrl } : undefined}
           onClose={() => setLightbox(null)}
         />

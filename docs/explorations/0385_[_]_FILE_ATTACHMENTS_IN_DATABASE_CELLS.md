@@ -105,13 +105,13 @@ interesting work and the only one touching sync. W4 layers on independently.
   134, fed to the generic `Select` at lines 990 and 1058) — which do include
   File, but hide it behind the scroll bug described in gap 0.
 - `packages/views/src/database-views/card-bits.tsx` — `firstFileRef(value)`
-  + `CardCover` give gallery/board cards cover images from file fields;
-  `GalleryView.tsx` resolves a cover field with cover/contain fit.
+  - `CardCover` give gallery/board cards cover images from file fields;
+    `GalleryView.tsx` resolves a cover field with cover/contain fit.
 
 ### Storage and upload (exists, local-only)
 
 - `packages/data/src/blob/blob-service.ts` — `BlobService.upload(file) →
-  FileRef`, `getUrl(ref)`, `getData`, `getMissingChunks`; 100 MB default cap.
+FileRef`, `getUrl(ref)`, `getData`, `getMissingChunks`; 100 MB default cap.
 - `packages/storage/src/blob-store.ts` — content-addressed `BlobStore`
   (blake3 CID, dedup on `hasBlob`), implements `ContentResolver`.
 - `packages/storage/src/chunk-manager.ts` — files ≥ 1 MB split into 256 KB
@@ -119,7 +119,7 @@ interesting work and the only one touching sync. W4 layers on independently.
   precisely to support partial sync but **has no consumer outside storage
   internals and tests**.
 - `packages/storage/src/adapters/sqlite.ts` — `blobs (cid, data, size,
-  created_at)` table; on web this SQLite lives on OPFS
+created_at)` table; on web this SQLite lives on OPFS
   (`apps/web/src/boot/use-boot-sequence.ts` builds
   `BlobStore → ChunkManager → BlobService` and injects it).
 - `apps/web/src/components/DatabaseView.tsx` — `useBlobService()` from
@@ -199,14 +199,14 @@ Every credible local-first stack keeps blobs **out of the CRDT document**:
   W3 borrows from: metadata rows sync through the sync engine; bytes go to
   object storage via a pluggable adapter; a local `attachments` table drives a
   five-state machine (`QUEUED_SYNC / QUEUED_UPLOAD / QUEUED_DOWNLOAD / SYNCED
-  / ARCHIVED`) with a persistent background queue and a 30 s retry loop that
+/ ARCHIVED`) with a persistent background queue and a 30 s retry loop that
   survives restarts.
 - **Anytype** (closest shipped product to xNet's design): files are local
   first, content-addressed (same image uploaded 3× stores once), synced as
   encrypted blocks through a **dedicated filenode service separate from the
   object/CRDT sync path**, and **streamed on demand** rather than
   bulk-replicated — precedent for a "remote, not yet local" cell state.
-- **Jazz** is the counter-example that chunks blobs *into* the synced DB
+- **Jazz** is the counter-example that chunks blobs _into_ the synced DB
   (`file_parts` rows + ordered `partIds`). Existence proof, but it re-couples
   blob volume to sync-log volume — exactly what our 1 MB
   `MAX_YJS_UPDATE_SIZE` (`packages/sync/src/yjs-limits.ts`) and the 0357
@@ -227,7 +227,7 @@ Every credible local-first stack keeps blobs **out of the CRDT document**:
   failing with `QuotaExceededError`. We should surface blob-store usage in
   devtools and request `navigator.storage.persist()`.
 - Thumbnailing: `createImageBitmap(blob, { resizeWidth, imageOrientation:
-  'from-image' })` → `OffscreenCanvas.convertToBlob({ type: 'image/webp' })`
+'from-image' })` → `OffscreenCanvas.convertToBlob({ type: 'image/webp' })`
   in a worker; video needs seek to ~0.1 s (frame 0 is often black) after
   `loadeddata`; pdf.js is ~1 MB and must be lazy-loaded (and its worker
   script bundled locally — our CSP blocks external hosts).
@@ -255,7 +255,7 @@ the pre-vetted fallback.
    `GridPeek.tsx`.
 3. **The dangerous gap is silent: attachments don't sync.** A teammate
    opening a shared database sees file chips whose bytes exist only on the
-   attacher's device. Because the `FileRef` metadata *does* sync, the UI
+   attacher's device. Because the `FileRef` metadata _does_ sync, the UI
    looks correct while `useFileUrl` quietly fails. This is worse than the
    feature not existing — it must be fixed (W3) or at minimum surfaced as an
    explicit "on another device" state before file fields are promoted.
@@ -408,9 +408,11 @@ function FileChip({ ref: fileRef, config }: FileChipProps) {
         openLightbox({ refs: cellRefs(fileRef), initial: fileRef })
       }}
     >
-      {isImageRef(fileRef) && url
-        ? <img src={url} className="h-5 w-5 rounded object-cover" alt="" />
-        : <FileTypeIcon mimeType={fileRef.mimeType} className="h-4 w-4" />}
+      {isImageRef(fileRef) && url ? (
+        <img src={url} className="h-5 w-5 rounded object-cover" alt="" />
+      ) : (
+        <FileTypeIcon mimeType={fileRef.mimeType} className="h-4 w-4" />
+      )}
       <span className="truncate text-xs">{fileRef.name}</span>
     </button>
   )
@@ -424,17 +426,19 @@ export class BlobTransferQueue {
   constructor(
     private blobs: BlobService,
     private hub: HubFilesClient, // PUT/GET/HEAD /files/:cid with UCAN auth
-    private states: TransferStateStore, // persisted, keyed by cid
+    private states: TransferStateStore // persisted, keyed by cid
   ) {}
 
   /** Called after BlobService.upload; enqueues and returns immediately. */
-  enqueueUpload(ref: FileRef): void { /* state → uploading, retry w/ backoff */ }
+  enqueueUpload(ref: FileRef): void {
+    /* state → uploading, retry w/ backoff */
+  }
 
   /** Called by useFileUrl when the blob is absent locally. */
   async ensureLocal(ref: FileRef): Promise<'synced' | 'remote-unavailable'> {
     if (await this.blobs.has(ref.cid)) return 'synced'
-    const bytes = await this.hub.get(ref.cid)          // 404 → remote-unavailable
-    await this.blobs.uploadData(bytes, ref)            // re-verifies blake3 CID
+    const bytes = await this.hub.get(ref.cid) // 404 → remote-unavailable
+    await this.blobs.uploadData(bytes, ref) // re-verifies blake3 CID
     return 'synced'
   }
 }
@@ -491,18 +495,18 @@ returns `{ url, state }` so `FileChip` can render a subtle
 
 ### W1 — Cell-click lightbox
 
-- [ ] Extract `Lightbox` from `packages/views/src/grid/GridPeek.tsx` into
+- [x] Extract `Lightbox` from `packages/views/src/grid/GridPeek.tsx` into
       `packages/views/src/attachments/AttachmentLightbox.tsx` (new
       `attachments/` sub-barrel per the 0276 barrel policy).
-- [ ] Add slide model `{ refs: FileRef[], initialIndex }`, prev/next
+- [x] Add slide model `{ refs: FileRef[], initialIndex }`, prev/next
       (buttons + arrow keys), download action, focus trap via `useFocusTrap`.
-- [ ] Provide `AttachmentLightboxProvider` + `useAttachmentLightbox` context
+- [x] Provide `AttachmentLightboxProvider` + `useAttachmentLightbox` context
       mounted once in `DatabaseView` (web + electron).
-- [ ] `FileChip` click opens the lightbox (stopPropagation vs cell edit);
+- [x] `FileChip` click opens the lightbox (stopPropagation vs cell edit);
       keep peek-panel behavior by routing `GridPeek` through the same
       component and delete its private copy.
-- [ ] Non-image refs render a file card slide (icon, name, size, download).
-- [ ] Tests: extend `file-cells.test.tsx`; new `AttachmentLightbox.test.tsx`
+- [x] Non-image refs render a file card slide (icon, name, size, download).
+- [x] Tests: extend `file-cells.test.tsx`; new `AttachmentLightbox.test.tsx`
       (open/close/navigate/keyboard).
 - [ ] Changeset: `@xnetjs/views` minor.
 

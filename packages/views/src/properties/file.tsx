@@ -14,6 +14,7 @@ import type { PropertyHandler, PropertyEditorProps } from '../types'
 import type { FileRef } from '@xnetjs/data'
 import { Paperclip, Upload, X } from 'lucide-react'
 import React, { useEffect, useRef, useState } from 'react'
+import { useAttachmentLightbox } from '../attachments/AttachmentLightboxProvider.js'
 
 export interface FileCellConfig {
   accept?: string[]
@@ -28,7 +29,7 @@ export function isImageRef(ref: FileRef | null | undefined): boolean {
 /**
  * Format file size for display
  */
-function formatFileSize(bytes: number): string {
+export function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 B'
   const k = 1024
   const sizes = ['B', 'KB', 'MB', 'GB']
@@ -79,20 +80,67 @@ export function useFileUrl(
   return url
 }
 
-/** Inline chip for a file value: image thumbnail or paperclip + name. */
+/**
+ * Inline chip for a file value: image thumbnail or paperclip + name.
+ *
+ * Clicking the chip opens the surface's AttachmentLightbox (0385 W1) with
+ * every ref in the cell, so arrows page between them. Without a provider the
+ * chip is inert — the property handlers stay usable standalone.
+ */
 function FileChip({
   value,
   config,
+  siblings,
   onRemove
 }: {
   value: FileRef
   config?: Record<string, unknown>
+  /** All refs in this cell, so the lightbox can page through them. */
+  siblings?: FileRef[]
   onRemove?: () => void
 }): React.JSX.Element {
   const url = useFileUrl(value, config)
+  const openLightbox = useAttachmentLightbox()
+
+  const refs = siblings?.length ? siblings : [value]
+  const previewable = Boolean(openLightbox)
 
   return (
-    <span className="inline-flex items-center gap-1.5 max-w-full rounded bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 text-xs text-gray-800 dark:text-gray-200">
+    <span
+      className={`inline-flex items-center gap-1.5 max-w-full rounded bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 text-xs text-gray-800 dark:text-gray-200${
+        previewable ? ' cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-700' : ''
+      }`}
+      role={previewable ? 'button' : undefined}
+      tabIndex={previewable ? 0 : undefined}
+      aria-label={previewable ? `Open ${value.name}` : undefined}
+      data-testid="file-chip"
+      onClick={
+        previewable
+          ? (e) => {
+              // Don't let the click fall through into cell edit mode.
+              e.stopPropagation()
+              openLightbox?.({
+                refs,
+                initialIndex: refs.findIndex((r) => r.cid === value.cid)
+              })
+            }
+          : undefined
+      }
+      onKeyDown={
+        previewable
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault()
+                e.stopPropagation()
+                openLightbox?.({
+                  refs,
+                  initialIndex: refs.findIndex((r) => r.cid === value.cid)
+                })
+              }
+            }
+          : undefined
+      }
+    >
       {isImageRef(value) && url ? (
         <img
           src={url}
@@ -111,7 +159,10 @@ function FileChip({
           aria-label={`Remove ${value.name}`}
           className="text-gray-400 hover:text-red-500"
           onMouseDown={(e) => e.preventDefault()}
-          onClick={onRemove}
+          onClick={(e) => {
+            e.stopPropagation()
+            onRemove()
+          }}
         >
           <X className="w-3 h-3" />
         </button>
