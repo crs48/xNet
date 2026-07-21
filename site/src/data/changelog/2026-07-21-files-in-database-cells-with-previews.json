@@ -1,0 +1,8 @@
+{
+  "id": "2026-07-21-files-in-database-cells-with-previews",
+  "date": "July 21, 2026",
+  "title": "Files in database cells, with previews",
+  "summary": "Database file cells now hold several attachments, show thumbnails inline, and open a full-screen viewer with paging and download when clicked. Attachment bytes sync between your devices through the hub instead of staying stranded on the device that uploaded them.",
+  "highlights": [],
+  "tags": ["app", "sync"]
+}
