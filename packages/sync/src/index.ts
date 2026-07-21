@@ -50,6 +50,26 @@ export {
   chunkForCommits
 } from './batch-commit'
 
+// Signed Space snapshots: a checkpoint over a Space frontier (0333/0258/0324/0389)
+export type {
+  SpaceSnapshot,
+  UnsignedSpaceSnapshot,
+  SnapshotHead,
+  CreateSpaceSnapshotOptions
+} from './space-snapshot'
+export {
+  MAX_SNAPSHOT_HEADS,
+  computeSnapshotRoot,
+  computeSnapshotHash,
+  createUnsignedSpaceSnapshot,
+  signSpaceSnapshot,
+  recomputeSnapshotHash,
+  verifySpaceSnapshot,
+  verifySpaceSnapshotFast,
+  snapshotsAgree,
+  snapshotDelta
+} from './space-snapshot'
+
 // Lamport clock utilities
 export type { LamportTimestamp, LamportClock } from './clock'
 export {

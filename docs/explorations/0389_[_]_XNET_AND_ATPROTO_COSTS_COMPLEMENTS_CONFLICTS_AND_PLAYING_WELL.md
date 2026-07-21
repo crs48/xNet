@@ -569,7 +569,7 @@ sequence.)
       capability is declared (0380)
 - [x] **Knot handshake** — `GET /xrpc/fyi.xnet.owner` + `fyi.xnet.hub`
       record with hostname rkey and hub-key countersignature (0372)
-- [ ] **Snapshot/checkpoint primitive** — signed Space snapshot; bounded
+- [x] **Snapshot/checkpoint primitive** — signed Space snapshot; bounded
       replay window on hubs behind it (0333; unblocks 0258 anti-entropy and
       future encrypted atmosphere backup per 0324)
 - [x] **Withdraw semantics in the type system** — asymmetric visibility
