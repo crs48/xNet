@@ -58,7 +58,7 @@ function LensRows({ sources, lensId }: { sources: SidebarRowSource[]; lensId: st
   }
 
   return (
-    <div className="min-h-0 flex-1 overflow-y-auto px-1 pb-2">
+    <div className="scroll-fade min-h-0 flex-1 overflow-y-auto px-1 pb-2">
       {sorted.map((row) => (
         <TreeRow key={`${row.nodeType}:${row.id}`} row={row} />
       ))}

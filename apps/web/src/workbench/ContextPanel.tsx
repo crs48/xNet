@@ -147,7 +147,7 @@ export function ContextPanel() {
           <X size={13} strokeWidth={1.5} />
         </button>
       </header>
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="scroll-fade min-h-0 flex-1 overflow-y-auto">
         {active ? (
           active.content
         ) : (

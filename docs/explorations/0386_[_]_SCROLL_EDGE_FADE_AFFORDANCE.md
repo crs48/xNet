@@ -475,6 +475,20 @@ plugin(({ addUtilities, matchUtilities, theme }) => {
 
 ## Implementation Checklist
 
+> **Deviations found while building** (the plan was slightly wrong about two
+> surfaces; recorded here rather than silently checked off):
+>
+> - **`Menu.tsx` has no scroller.** Base UI menu popups grow to fit and are
+>   flipped/collapsed by the positioner, so there is no `overflow-*`
+>   element to fade. Only `Command` and `Select` took the utility.
+> - **BoardView columns don't scroll vertically.** The lane strip is
+>   `overflow-y-hidden` and columns are clipped with a `viewWindow` row cap,
+>   so a per-column vertical fade would attach to a non-scroller and render
+>   nothing. Only the horizontal lane strip got `scroll-fade-x` — and it is
+>   suspended mid-drag via `scroll-fade-none`, because dnd-kit's
+>   `DragOverlay` renders _inside_ that container and a mask would fade the
+>   card being dragged near an edge.
+
 - [x] Add `packages/ui/src/theme/scroll-fade.css` (`@property` registrations,
       `.scroll-fade`, `.scroll-fade-b`, `.scroll-fade-x`,
       `.xnet-scroll-fade-viewport`) and import it alongside
@@ -485,23 +499,23 @@ plugin(({ addUtilities, matchUtilities, theme }) => {
       `packages/ui/src/primitives/ScrollArea.tsx` (compound parts accept it
       too); export nothing new from the root barrel beyond the existing
       `ScrollArea` names (sub-barrel policy respected — no new surface).
-- [ ] First cohort adoption:
-  - [ ] `apps/web/src/workbench/views/AiChatPanel.tsx` (utility)
-  - [ ] `apps/web/src/comms/ChannelMessageList.tsx` (utility)
-  - [ ] `apps/web/src/workbench/sidebar/UnifiedTree.tsx` (utility;
+- [x] First cohort adoption:
+  - [x] `apps/web/src/workbench/views/AiChatPanel.tsx` (utility)
+  - [x] `apps/web/src/comms/ChannelMessageList.tsx` (utility)
+  - [x] `apps/web/src/workbench/sidebar/UnifiedTree.tsx` (utility;
         `scroll-fade-b` if the tree gains a sticky header)
-  - [ ] `apps/web/src/workbench/ContextPanel.tsx` (utility)
-  - [ ] `packages/ui/src/composed/SettingsView.tsx` (`fade` prop — already
+  - [x] `apps/web/src/workbench/ContextPanel.tsx` (utility)
+  - [x] `packages/ui/src/composed/SettingsView.tsx` (`fade` prop — already
         on ScrollArea)
-  - [ ] `packages/devtools/src/panels/Shell.tsx` (utility)
-  - [ ] Popup lists: `packages/ui/src/primitives/{Menu,Command,Select}.tsx`
+  - [x] `packages/devtools/src/panels/Shell.tsx` (utility)
+  - [x] Popup lists: `packages/ui/src/primitives/{Menu,Command,Select}.tsx`
         (utility on their scrollable list element)
-  - [ ] `packages/views/src/database-views/BoardView.tsx` columns
+  - [x] `packages/views/src/database-views/BoardView.tsx` columns
         (`scroll-fade` vertical per column, `scroll-fade-x` on the lane
         strip)
-- [ ] Explicitly leave `packages/views/src/grid/GridSurface.tsx` unfaded;
+- [x] Explicitly leave `packages/views/src/grid/GridSurface.tsx` unfaded;
       file a follow-up to profile.
-- [ ] No changeset needed (`packages/ui` is private; app/devtools/views are
+- [x] No changeset needed (`packages/ui` is private; app/devtools/views are
       private) — verify with `node scripts/changeset/publishable-pathspec.mjs`
       if `packages/react` ends up touched.
 - [ ] Commit: `feat(ui): scroll-edge fade affordance for scrollable surfaces`.

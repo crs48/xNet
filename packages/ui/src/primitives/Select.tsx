@@ -107,7 +107,7 @@ export const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
                     scroll-arrow visibility from the List's scrollHeight, so a
                     height-clamped Popup with an unclamped List never shows
                     arrows and swallows wheel scrolling. */}
-                <BaseSelect.List className="max-h-96 overflow-y-auto p-1">
+                <BaseSelect.List className="scroll-fade max-h-96 overflow-y-auto p-1">
                   {options.map((option) => (
                     <BaseSelect.Item
                       key={option.value}
@@ -223,7 +223,9 @@ export const SelectContent = React.forwardRef<
         </BaseSelect.ScrollUpArrow>
         {/* max-height lives on the List, not the Popup — see the simple
             Select variant above for why. */}
-        <BaseSelect.List className="max-h-96 overflow-y-auto p-1">{children}</BaseSelect.List>
+        <BaseSelect.List className="scroll-fade max-h-96 overflow-y-auto p-1">
+          {children}
+        </BaseSelect.List>
         <BaseSelect.ScrollDownArrow className="flex cursor-default items-center justify-center py-1">
           <ChevronDown className="h-4 w-4" />
         </BaseSelect.ScrollDownArrow>

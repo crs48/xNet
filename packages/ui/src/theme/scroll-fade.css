@@ -27,6 +27,11 @@
  * isn't scrollable, which is the exact thing this affordance exists to
  * avoid. Surfaces that need the effect cross-browser should use the
  * ScrollArea primitive's `fade` prop instead (see below).
+ *
+ * One characteristic to know: a mask applies to the whole element box, so a
+ * scroller that draws its OWN border will see that border fade at the
+ * masked edges too. Put the fade on the inner scroller and the border on
+ * its parent (which is how every current consumer is already built).
  */
 
 /* Registered so the browser can interpolate them. The `0px` initial value
