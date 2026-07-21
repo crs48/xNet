@@ -33,6 +33,7 @@ import { docsSeeder } from './seeders/docs'
 import { integrationSeeder } from './seeders/integration'
 import { meetingsSeeder } from './seeders/meetings'
 import { metricsSeeder } from './seeders/metrics'
+import { savedViewsSeeder } from './seeders/saved-views'
 import { sceneSeeder } from './seeders/scene'
 import { spacesSeeder } from './seeders/spaces'
 import { vizSeeder } from './seeders/viz'
@@ -47,6 +48,7 @@ export const SEEDERS: readonly SeederModule[] = [
   docsSeeder,
   meetingsSeeder,
   databaseSeeder,
+  savedViewsSeeder,
   vizSeeder,
   commsSeeder,
   metricsSeeder,
@@ -73,7 +75,9 @@ export const LANDING_SEED_PROFILE: {
   scale: SeedScale
   includeAuto: boolean
 } = {
-  domains: ['spaces', 'scene', 'work', 'docs', 'database', 'comms', 'crm'],
+  // `saved-views` is in the demo set because the Views section of the left nav
+  // is otherwise empty on first contact (0388).
+  domains: ['spaces', 'scene', 'work', 'docs', 'database', 'saved-views', 'comms', 'crm'],
   scale: 'small',
   includeAuto: false
 }

@@ -83,6 +83,17 @@ export interface SidebarLens {
    * policy applies (the mixed case, e.g. the All lens).
    */
   sortPolicy?: SidebarSortPolicy
+  /**
+   * Where the main area goes when this lens is picked (exploration 0388).
+   *
+   * A lens is a **destination**, not only a filter. Selecting one used to
+   * re-project the tree and leave the main area untouched, which — in a
+   * vertical list of otherwise-navigating rows — is indistinguishable from
+   * a broken button. Several lenses may share a route (`/` renders whichever
+   * projection is active); a lens with its own route (`people` → `/crm`)
+   * additionally lets the route restore the lens on reload.
+   */
+  route?: string
 }
 
 /**

@@ -19,7 +19,7 @@ async function advanceOnboarding(page: import('@playwright/test').Page): Promise
       break
     }
 
-    const homeHeading = page.getByRole('heading', { name: /all documents/i })
+    const homeHeading = page.getByRole('heading', { name: /all documents|everything/i })
     const pagesText = page.getByText('Pages', { exact: true })
     if (
       ((await homeHeading.count()) > 0 && (await homeHeading.first().isVisible())) ||
@@ -47,7 +47,7 @@ test.describe('Editor UX desktop', () => {
     await advanceOnboarding(page)
     await expect(
       page
-        .getByRole('heading', { name: /all documents/i })
+        .getByRole('heading', { name: /all documents|everything/i })
         .or(page.getByText('Pages', { exact: true }))
     ).toBeVisible({ timeout: 30_000 })
 

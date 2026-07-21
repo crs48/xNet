@@ -20,15 +20,18 @@
  */
 import {
   BarChart3,
+  Bot,
   CheckSquare2,
   Compass,
   Contact,
   Database,
   Files,
+  FlaskConical,
+  Import,
   Inbox,
   MessageSquare,
   Mic,
-  Sunrise,
+  Sparkles,
   Wallet,
   type LucideIcon
 } from 'lucide-react'
@@ -56,12 +59,14 @@ const ICONS: Record<string, LucideIcon> = {
   'lens:views': Database,
   'route:/requests': Inbox,
   'route:/tasks': CheckSquare2,
-  'route:/today': Sunrise,
   'route:/meetings': Mic,
   'route:/discover': Compass,
   'route:/finance': Wallet,
   'route:/analytics': BarChart3,
-  'route:/crm': Contact
+  'route:/ai': Bot,
+  'route:/companion': Sparkles,
+  'route:/experiments': FlaskConical,
+  'route:/social-import': Import
 }
 
 export function sectionIcon(section: SidebarSection): LucideIcon {
@@ -88,11 +93,33 @@ export const DEFAULT_SECTIONS: SidebarSection[] = [
   { id: 'tasks', kind: 'route', label: 'Tasks', target: '/tasks' },
   { id: 'people', kind: 'lens', label: 'People', target: 'people' },
   { id: 'views', kind: 'lens', label: 'Views', target: 'views' },
+  // The BYO-model chat surface (0174/0192). It was a `panel` surface, a kind
+  // this list doesn't have, so 0353 dropped it and left it unreachable —
+  // restored as a route (0388).
+  { id: 'ai', kind: 'route', label: 'AI', target: '/ai' },
   { id: 'meetings', kind: 'route', label: 'Meetings', target: '/meetings' },
   { id: 'discover', kind: 'route', label: 'Discover', target: '/discover' },
   { id: 'finance', kind: 'route', label: 'Finance', target: '/finance' },
+  { id: 'companion', kind: 'route', label: 'Companion', target: '/companion' },
+  { id: 'experiments', kind: 'route', label: 'Experiments', target: '/experiments' },
+  { id: 'social-import', kind: 'route', label: 'Import', target: '/social-import' },
   { id: 'analytics', kind: 'route', label: 'Analytics', target: '/analytics' }
 ]
+
+/**
+ * Whether a section is available in this build (exploration 0388).
+ *
+ * A nav row that always dead-ends is worse than a missing one: it teaches
+ * people the nav lies. Analytics renders "this surface is off by default"
+ * unless the telemetry dashboard is compiled in, so it is absent rather than
+ * dead when the flag is unset — the UI restatement of the CI-lane rule that a
+ * gate nobody can pass is worse than no gate.
+ */
+export function isSectionEnabled(section: SidebarSection): boolean {
+  if (section.id !== 'analytics') return true
+  const env = (import.meta as { env?: Record<string, unknown> }).env
+  return env?.VITE_TELEMETRY_DASHBOARD === '1' || env?.VITE_TELEMETRY_DASHBOARD === 'true'
+}
 
 /** Section ids shown as primary rows for a fresh identity. */
 export const DEFAULT_PINNED_SECTION_IDS = ['all', 'docs', 'chats', 'inbox']
@@ -103,10 +130,101 @@ export const DEFAULT_PINNED_SECTION_IDS = ['all', 'docs', 'chats', 'inbox']
  * the 0280 migration lesson) and new defaults append.
  */
 export function resolveSections(order: string[]): SidebarSection[] {
-  const byId = new Map(DEFAULT_SECTIONS.map((section) => [section.id, section]))
+  const available = DEFAULT_SECTIONS.filter(isSectionEnabled)
+  const byId = new Map(available.map((section) => [section.id, section]))
   const ordered = order
     .map((id) => byId.get(id))
     .filter((section): section is SidebarSection => Boolean(section))
   const seen = new Set(ordered.map((section) => section.id))
-  return [...ordered, ...DEFAULT_SECTIONS.filter((section) => !seen.has(section.id))]
+  return [...ordered, ...available.filter((section) => !seen.has(section.id))]
+}
+
+/**
+ * Where a section sends the main area (exploration 0388).
+ *
+ * The one rule this nav is held to: **every primary row changes the main
+ * area**. Lens sections resolve through the registered lens's `route`, so the
+ * destination lives with the lens rather than in a switch here.
+ */
+export function sectionDestination(
+  section: SidebarSection,
+  lensRoute: (lensId: string) => string | undefined
+): string | undefined {
+  if (section.kind === 'lens') return lensRoute(section.target)
+  if (section.kind === 'route') return section.target
+  return undefined
+}
+
+/**
+ * Whether a section is the one the user is currently looking at.
+ *
+ * Derived from the **route** first, so the sidebar and the main area can never
+ * disagree — the pre-0388 predicate compared only `activeLensId`, which left
+ * "Views" highlighted while the main area showed Meetings, and highlighted
+ * nothing at all when the active lens wasn't pinned.
+ *
+ * Lenses sharing a route (the three home lenses on `/`) additionally require
+ * the lens to match; a lens with its own route (`people` → `/crm`) is active
+ * on that route regardless, so a reload lands with the right row lit.
+ */
+export function isSectionActive({
+  section,
+  pathname,
+  activeLensId,
+  lensRoute
+}: {
+  section: SidebarSection
+  pathname: string
+  activeLensId: string
+  lensRoute: (lensId: string) => string | undefined
+}): boolean {
+  const destination = sectionDestination(section, lensRoute)
+  if (!destination) return false
+
+  const onRoute =
+    destination === '/'
+      ? pathname === '/'
+      : pathname === destination || pathname.startsWith(`${destination}/`)
+  if (!onRoute) return false
+
+  if (section.kind !== 'lens') {
+    // A route section loses the highlight to a lens that owns this exact
+    // route (People owns /crm), so only one row is ever lit.
+    return !lensOwningRoute(destination, lensRoute)
+  }
+
+  const owner = lensOwningRoute(destination, lensRoute)
+  return owner ? owner === section.target : section.target === activeLensId
+}
+
+/**
+ * The lens that exclusively owns a route, if exactly one does. Shared routes
+ * (`/`) have no owner — there the active lens decides.
+ */
+function lensOwningRoute(
+  route: string,
+  lensRoute: (lensId: string) => string | undefined
+): string | undefined {
+  const owners = LENS_SECTION_IDS.filter((id) => lensRoute(id) === route)
+  return owners.length === 1 ? owners[0] : undefined
+}
+
+/** Lens ids that ship as sections — the candidates for route ownership. */
+const LENS_SECTION_IDS = DEFAULT_SECTIONS.filter((section) => section.kind === 'lens').map(
+  (section) => section.target
+)
+
+/**
+ * The lens a route restores on load, when the route belongs to exactly one
+ * lens. `/crm` → `people`, `/data` → `views`; `/` keeps whatever lens the user
+ * last chose.
+ */
+export function lensForRoute(
+  pathname: string,
+  lensRoute: (lensId: string) => string | undefined
+): string | undefined {
+  return LENS_SECTION_IDS.find((id) => {
+    const route = lensRoute(id)
+    return route && route !== '/' && (pathname === route || pathname.startsWith(`${route}/`))
+  })
 }

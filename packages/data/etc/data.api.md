@@ -669,10 +669,15 @@ export function blobEntryPath(cid: string): string;
 // @public (undocumented)
 export class BlobService {
     constructor(chunkManager: ChunkManager, options?: BlobServiceOptions);
+    chunkCidsOf(data: Uint8Array): string[];
     getData(ref: FileRef): Promise<Uint8Array | null>;
     getMissingChunks(ref: FileRef): Promise<ContentId[]>;
+    getRawBlob(cid: string): Promise<Uint8Array | null>;
+    getThumbUrl(ref: FileRef): Promise<string | null>;
+    getTransferCids(ref: FileRef): Promise<string[]>;
     getUrl(ref: FileRef): Promise<string>;
     has(ref: FileRef): Promise<boolean>;
+    putRawBlob(data: Uint8Array): Promise<string>;
     revokeAllUrls(): void;
     revokeUrl(ref: FileRef): void;
     upload(file: File): Promise<FileRef>;
@@ -684,8 +689,55 @@ export class BlobService {
 
 // @public
 export interface BlobServiceOptions {
+    generateThumbnails?: boolean;
     maxSize?: number;
 }
+
+// @public (undocumented)
+export class BlobTransferQueue {
+    constructor(options: BlobTransferQueueOptions);
+    enqueueUpload(ref: FileRef): void;
+    ensureLocal(ref: FileRef): Promise<BlobTransferState>;
+    ensureThumbnail(ref: FileRef): Promise<boolean>;
+    // (undocumented)
+    getRecord(cid: string): BlobTransferRecord | undefined;
+    getState(cid: string): BlobTransferState;
+    resume(refs: FileRef[]): void;
+    subscribe(listener: (record: BlobTransferRecord) => void): () => void;
+}
+
+// @public (undocumented)
+export interface BlobTransferQueueOptions {
+    backoffMs?: number[];
+    // (undocumented)
+    blobs: BlobService;
+    hub?: HubFilesClient;
+    scheduler?: (fn: () => void, ms: number) => void;
+    // (undocumented)
+    store?: TransferStateStore;
+}
+
+// @public (undocumented)
+export interface BlobTransferRecord {
+    // (undocumented)
+    attempts: number;
+    // (undocumented)
+    cid: string;
+    error?: string;
+    // (undocumented)
+    state: BlobTransferState;
+}
+
+// @public
+export type BlobTransferState =
+/** Bytes are here; the hub hasn't confirmed them yet. */
+'local' | 'uploading'
+/** Both sides hold the bytes. */
+| 'synced'
+/** A ref arrived by sync but the bytes aren't local yet. */
+| 'remote' | 'downloading'
+/** Terminal-ish: the hub refused (quota, too large) — needs user action. */
+| 'failed';
 
 // @public
 export interface BlockDefinition {
@@ -3424,9 +3476,12 @@ export interface CellDateRange {
 // @public
 export interface CellFileRef {
     cid: string;
+    height?: number;
     mimeType: string;
     name: string;
     size: number;
+    thumbCid?: string;
+    width?: number;
 }
 
 // @public
@@ -5435,9 +5490,12 @@ export interface FileOptions {
 // @public
 export interface FileRef {
     cid: string;
+    height?: number;
     mimeType: string;
     name: string;
     size: number;
+    thumbCid?: string;
+    width?: number;
 }
 
 // @public
@@ -6159,6 +6217,38 @@ export function hideColumn(doc: Y.Doc, viewId: string, columnId: string): void;
 
 // @public
 export function hubActionsForSpaceRole(schema: Schema, spaceRole: string): string[];
+
+// @public (undocumented)
+export class HubFilesClient {
+    constructor(options: HubFilesClientOptions);
+    get(cid: string): Promise<Uint8Array>;
+    has(cid: string): Promise<boolean>;
+    put(cid: string, data: Uint8Array, meta: {
+        name: string;
+        mimeType: string;
+    }): Promise<void>;
+}
+
+// @public (undocumented)
+export interface HubFilesClientOptions {
+    // (undocumented)
+    fetchImpl?: typeof fetch;
+    getAuthToken?: () => Promise<string> | string;
+    hubUrl: string;
+}
+
+// @public
+export class HubFilesError extends Error {
+    constructor(message: string, code: 'NOT_FOUND' | 'QUOTA_EXCEEDED' | 'FILE_TOO_LARGE' | 'UNAUTHORIZED' | 'CID_MISMATCH' | 'NETWORK', status?: number | undefined, options?: {
+        cause?: unknown;
+    });
+    // (undocumented)
+    readonly code: 'NOT_FOUND' | 'QUOTA_EXCEEDED' | 'FILE_TOO_LARGE' | 'UNAUTHORIZED' | 'CID_MISMATCH' | 'NETWORK';
+    // (undocumented)
+    readonly status?: number | undefined;
+    // (undocumented)
+    readonly _tag = "HubFilesError";
+}
 
 // @public
 export interface HubPolicy {
@@ -6996,6 +7086,16 @@ export class MemoryNodeStorageAdapter implements NodeStorageAdapter {
     setSyncCursor(room: string, lamport: number): Promise<void>;
     // (undocumented)
     withTransaction<T>(fn: (storage: NodeStorageAdapter) => Promise<T>): Promise<T>;
+}
+
+// @public (undocumented)
+export class MemoryTransferStateStore implements TransferStateStore {
+    // (undocumented)
+    all(): BlobTransferRecord[];
+    // (undocumented)
+    get(cid: string): BlobTransferRecord | undefined;
+    // (undocumented)
+    set(record: BlobTransferRecord): void;
 }
 
 // @public
@@ -10442,6 +10542,16 @@ export const TranscriptionSchema: DefinedSchema<{
 
 // @public (undocumented)
 export type TranscriptionSourceId = 'inApp' | 'pushToTalk';
+
+// @public
+export interface TransferStateStore {
+    // (undocumented)
+    all(): BlobTransferRecord[];
+    // (undocumented)
+    get(cid: string): BlobTransferRecord | undefined;
+    // (undocumented)
+    set(record: BlobTransferRecord): void;
+}
 
 // @public
 export function transform(prop: string, forwardFn: (value: unknown) => unknown, backwardFn: (value: unknown) => unknown, options?: {
