@@ -547,10 +547,10 @@ The consolidated interop backlog, in order. (Items marked with their source
 doc; this list supersedes the scattered per-doc checklists as the single
 sequence.)
 
-- [ ] **D1 scope fix** — granular OAuth scope in `client-metadata.json`;
+- [x] **D1 scope fix** — granular OAuth scope in `client-metadata.json`;
       end-to-end ceremony test against a reference PDS; downgrade path for
       old PDSes (0372)
-- [ ] **Server-side re-verification** of issuer↔DID-doc at the escrow
+- [x] **Server-side re-verification** of issuer↔DID-doc at the escrow
       release gate (0322)
 - [ ] **F2 boundary split** — `AnyDid` accepted at represent-only surfaces;
       `did:key` unchanged at signing surfaces (0367/0380)

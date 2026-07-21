@@ -183,31 +183,65 @@ export class AtprotoBindingVerifier {
     }
   }
 
+  /**
+   * Fetch an arbitrary record from the DID's **canonical** PDS.
+   *
+   * Resolving the PDS from the DID document (rather than taking it from the
+   * request) is the whole security property: a caller cannot point record
+   * lookups at a repo they control. Used by the recovery anchor to read the
+   * challenge record that proves live account control.
+   */
+  async fetchCanonicalRecord(
+    atprotoDid: string,
+    collection: string,
+    rkey: string
+  ): Promise<{ ok: true; uri: string; value: unknown } | { ok: false; reason: string }> {
+    const doc = await this.resolveDidDoc(atprotoDid)
+    if (!doc.ok) return doc
+    return this.fetchRepoRecord(doc.pds, atprotoDid, collection, rkey)
+  }
+
   private async fetchBindingRecord(
     pds: string,
     atprotoDid: string
   ): Promise<{ ok: true; uri: string; value: unknown } | { ok: false; reason: string }> {
+    return this.fetchRepoRecord(
+      pds,
+      atprotoDid,
+      ATPROTO_BINDING_COLLECTION,
+      ATPROTO_BINDING_RKEY,
+      'binding'
+    )
+  }
+
+  private async fetchRepoRecord(
+    pds: string,
+    atprotoDid: string,
+    collection: string,
+    rkey: string,
+    label = 'record'
+  ): Promise<{ ok: true; uri: string; value: unknown } | { ok: false; reason: string }> {
     const url =
       `${pds}/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(atprotoDid)}` +
-      `&collection=${ATPROTO_BINDING_COLLECTION}&rkey=${ATPROTO_BINDING_RKEY}`
+      `&collection=${encodeURIComponent(collection)}&rkey=${encodeURIComponent(rkey)}`
     try {
       const res = await this.fetchImpl(url)
       if (res.status === 400 || res.status === 404) {
-        return { ok: false, reason: 'No binding record in the ATProto repo' }
+        return { ok: false, reason: `No ${label} record in the ATProto repo` }
       }
       if (!res.ok) {
-        return { ok: false, reason: `Binding record fetch failed (${res.status})` }
+        return { ok: false, reason: `${label} record fetch failed (${res.status})` }
       }
       const body = (await res.json()) as { uri?: unknown; value?: unknown }
       const uri =
         typeof body.uri === 'string'
           ? body.uri
-          : `at://${atprotoDid}/${ATPROTO_BINDING_COLLECTION}/${ATPROTO_BINDING_RKEY}`
+          : `at://${atprotoDid}/${collection}/${rkey}`
       return { ok: true, uri, value: body.value }
     } catch (err) {
       return {
         ok: false,
-        reason: `Binding record fetch failed: ${err instanceof Error ? err.message : err}`
+        reason: `${label} record fetch failed: ${err instanceof Error ? err.message : err}`
       }
     }
   }

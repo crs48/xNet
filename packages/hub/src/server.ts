@@ -71,6 +71,7 @@ import { createShareLinkRoutes } from './routes/share-links'
 import { createTelemetryRoutes } from './routes/telemetry'
 import { AtprotoBindingVerifier } from './services/atproto-binding'
 import { AtprotoRecoveryAnchor } from './services/atproto-recovery-anchor'
+import { RecoveryChallengeStore } from './services/atproto-challenge'
 import { AwarenessService } from './services/awareness'
 import { BackupService } from './services/backup'
 import { CrawlCoordinator } from './services/crawl'
@@ -262,7 +263,11 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   const files = new FileService(storage, { maxStoragePerUser: perUserQuota })
   const keyRegistry = new KeyRegistryService()
   const atprotoBindingVerifier = new AtprotoBindingVerifier()
-  const atprotoRecoveryAnchor = new AtprotoRecoveryAnchor(atprotoBindingVerifier)
+  const recoveryChallenges = new RecoveryChallengeStore()
+  const atprotoRecoveryAnchor = new AtprotoRecoveryAnchor(
+    atprotoBindingVerifier,
+    recoveryChallenges
+  )
   const escrowStore = new EscrowStore()
   const taskIdentifiers = new TaskIdentifierService()
   const query = new QueryService(storage)
@@ -609,6 +614,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     createRecoveryAnchorRoutes({
       store: escrowStore,
       anchor: atprotoRecoveryAnchor,
+      challenges: recoveryChallenges,
       callerDid: (ctx) => {
         const header =
           (ctx as { req: { header(name: string): string | undefined } }).req.header(

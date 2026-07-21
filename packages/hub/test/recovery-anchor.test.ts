@@ -6,12 +6,22 @@ import { createAtprotoBinding, generateIdentity } from '@xnetjs/identity'
 import { describe, expect, it } from 'vitest'
 import { AtprotoBindingVerifier } from '../src/services/atproto-binding'
 import { AtprotoRecoveryAnchor } from '../src/services/atproto-recovery-anchor'
+import { RecoveryChallengeStore } from '../src/services/atproto-challenge'
 import { EscrowStore } from '../src/services/escrow-store'
 
 const PLC = 'did:plc:ewvi7nxzyoun6zhxrhs64oiz'
 const PDS = 'https://pds.example.com'
 
-const makeFetch = (opts: { record: unknown; createdAt?: string; withAs?: boolean }): typeof fetch =>
+/**
+ * A fake atmosphere. `challengeRecord` is what sits in the repo under
+ * `fyi.xnet.identity.challenge` — omit it to model a repo with no proof written
+ * (the attacker case), or pass one to model the honest recovering user.
+ */
+const makeFetch = (opts: {
+  record: unknown
+  challengeRecord?: unknown
+  withAs?: boolean
+}): typeof fetch =>
   (async (input: string | URL | Request) => {
     const url = String(input)
     if (url.includes('plc.directory')) {
@@ -25,6 +35,16 @@ const makeFetch = (opts: { record: unknown; createdAt?: string; withAs?: boolean
       )
     }
     if (url.includes('com.atproto.repo.getRecord')) {
+      if (url.includes('fyi.xnet.identity.challenge')) {
+        if (!opts.challengeRecord) return new Response('nf', { status: 404 })
+        return new Response(
+          JSON.stringify({
+            uri: `at://${PLC}/fyi.xnet.identity.challenge/self`,
+            value: opts.challengeRecord
+          }),
+          { status: 200 }
+        )
+      }
       return new Response(
         JSON.stringify({ uri: `at://${PLC}/fyi.xnet.identity.binding/self`, value: opts.record }),
         { status: 200 }
@@ -35,25 +55,38 @@ const makeFetch = (opts: { record: unknown; createdAt?: string; withAs?: boolean
         JSON.stringify(
           opts.withAs === false ? {} : { authorization_servers: ['https://as.example.com'] }
         ),
-        { status: opts.withAs === false ? 200 : 200 }
+        { status: 200 }
       )
     }
     return new Response('nf', { status: 404 })
   }) as typeof fetch
 
+/** Issue a nonce and return both it and the record a user would write. */
+const freshChallenge = (challenges: RecoveryChallengeStore, xnetDid: string) => {
+  const challenge = challenges.issue(xnetDid)
+  return {
+    nonce: challenge.nonce,
+    record: { nonce: challenge.nonce, xnetDid, createdAt: new Date().toISOString() }
+  }
+}
+
 describe('AtprotoRecoveryAnchor.verifyCeremony', () => {
-  it('verifies a genuine bound ATProto identity', async () => {
+  it('verifies a genuine bound ATProto identity that proved live control', async () => {
     const { identity, privateKey } = generateIdentity()
     const record = createAtprotoBinding({
       xnetDid: identity.did,
       signingKey: privateKey,
       atprotoDid: PLC
     })
-    const verifier = new AtprotoBindingVerifier({ fetchImpl: makeFetch({ record }) })
-    const anchor = new AtprotoRecoveryAnchor(verifier)
+    const challenges = new RecoveryChallengeStore()
+    const { nonce, record: challengeRecord } = freshChallenge(challenges, identity.did)
+    const verifier = new AtprotoBindingVerifier({
+      fetchImpl: makeFetch({ record, challengeRecord })
+    })
+    const anchor = new AtprotoRecoveryAnchor(verifier, challenges)
 
     const result = await anchor.verifyCeremony({
-      code: 'ignored',
+      code: nonce,
       expectedSubject: PLC,
       boundXnetDid: identity.did
     })
@@ -69,11 +102,14 @@ describe('AtprotoRecoveryAnchor.verifyCeremony', () => {
       signingKey: alice.privateKey,
       atprotoDid: PLC
     })
+    const challenges = new RecoveryChallengeStore()
+    const { nonce, record: challengeRecord } = freshChallenge(challenges, mallory.identity.did)
     const anchor = new AtprotoRecoveryAnchor(
-      new AtprotoBindingVerifier({ fetchImpl: makeFetch({ record }) })
+      new AtprotoBindingVerifier({ fetchImpl: makeFetch({ record, challengeRecord }) }),
+      challenges
     )
     const result = await anchor.verifyCeremony({
-      code: 'x',
+      code: nonce,
       expectedSubject: PLC,
       boundXnetDid: mallory.identity.did
     })
@@ -87,11 +123,14 @@ describe('AtprotoRecoveryAnchor.verifyCeremony', () => {
       signingKey: privateKey,
       atprotoDid: PLC
     })
+    const challenges = new RecoveryChallengeStore()
+    const { nonce, record: challengeRecord } = freshChallenge(challenges, identity.did)
     const anchor = new AtprotoRecoveryAnchor(
-      new AtprotoBindingVerifier({ fetchImpl: makeFetch({ record, withAs: false }) })
+      new AtprotoBindingVerifier({ fetchImpl: makeFetch({ record, challengeRecord, withAs: false }) }),
+      challenges
     )
     const result = await anchor.verifyCeremony({
-      code: 'x',
+      code: nonce,
       expectedSubject: PLC,
       boundXnetDid: identity.did
     })
@@ -107,17 +146,54 @@ describe('AtprotoRecoveryAnchor.verifyCeremony', () => {
       atprotoDid: PLC,
       now: new Date(1000)
     })
+    // Anchor clock is pinned far in the future so the year-old binding is
+    // stale. The challenge store shares that clock (a nonce it issues is
+    // "now"), and the challenge record is stamped at the same instant, so the
+    // proof-of-control stage passes and the binding-freshness stage is the one
+    // that rejects.
+    const nowMs = 10_000_000
+    const challenges = new RecoveryChallengeStore({ now: () => nowMs })
+    const challenge = challenges.issue(identity.did)
+    const challengeRecord = {
+      nonce: challenge.nonce,
+      xnetDid: identity.did,
+      createdAt: new Date(nowMs).toISOString()
+    }
     const anchor = new AtprotoRecoveryAnchor(
-      new AtprotoBindingVerifier({ fetchImpl: makeFetch({ record }) }),
-      { maxBindingAgeMs: 1000, now: () => 10_000_000 }
+      new AtprotoBindingVerifier({ fetchImpl: makeFetch({ record, challengeRecord }) }),
+      challenges,
+      { maxBindingAgeMs: 1000, now: () => nowMs }
     )
     const result = await anchor.verifyCeremony({
-      code: 'x',
+      code: challenge.nonce,
       expectedSubject: PLC,
       boundXnetDid: identity.did
     })
     expect(result.verified).toBe(false)
     expect(result.reason).toMatch(/freshness/)
+  })
+
+  it('rejects the pre-0389 attack: valid binding, no proof of live control', async () => {
+    // The exact hole: everything the old gate checked is public, and the
+    // attacker supplies an arbitrary code. With no challenge record in the repo
+    // and no issued nonce, release must fail.
+    const { identity, privateKey } = generateIdentity()
+    const record = createAtprotoBinding({
+      xnetDid: identity.did,
+      signingKey: privateKey,
+      atprotoDid: PLC
+    })
+    const anchor = new AtprotoRecoveryAnchor(
+      new AtprotoBindingVerifier({ fetchImpl: makeFetch({ record }) }),
+      new RecoveryChallengeStore()
+    )
+    const result = await anchor.verifyCeremony({
+      code: 'attacker-supplied',
+      expectedSubject: PLC,
+      boundXnetDid: identity.did
+    })
+    expect(result.verified).toBe(false)
+    expect(result.reason).toMatch(/challenge/i)
   })
 })
 
