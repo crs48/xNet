@@ -182,6 +182,8 @@ before and after each click.
 | 9 | Discover | route | `/discover` | `Discover people` | Works |
 | 10 | Finance | route | `/finance` | `Set up your finances` | Works |
 | 11 | Analytics | route | `/analytics` | *"This surface is off by default. Set `VITE_TELEMETRY_DASHBOARD=1`"* | **Dead end** |
+| — | *AI* | *(absent)* | — | — | **Missing entirely — see F10** |
+| — | *Today, Data, Explorer* | *(absent)* | — | — | **Missing entirely — see F10** |
 
 Screenshot evidence (the decisive one): with the `Views` section active, the
 sidebar header reads **Views**, the tree reads **"Nothing here yet."**, and the
@@ -233,6 +235,26 @@ distrust the nav.
 **F9 — Clicking a lens strands you.** If you are on `/finance` and click
 `Docs`, you stay on `/finance` with a docs-filtered sidebar. There is no path
 back to the document list except the browser Back button or a tree row.
+
+**F10 — The whole `panel` surface class lost its nav, taking the AI surface
+with it.** *(Found after the first pass, on the report "we're also missing the
+AI panel".)* The legacy `SURFACES` list had six `kind: 'panel'` entries —
+Explorer, Chats, Tasks, Today, Data, **AI**. `SidebarSection` only has
+`lens | route | node`. There is no panel kind, and `BottomIsland` returns
+`<UnifiedTree />` unconditionally under unified nav
+(`SidebarIslands.tsx:367-380`) *before* it ever reads `activeSurface`. So every
+panel surface became unreachable. Tasks survived only because it also carried a
+route; `AiChatPanel`, `TodayPanel`, `DataPanelView` and `Explorer` are still
+registered in `builtin-slot-views.tsx` and still fully functional, with no way
+in.
+
+**F11 — The dock's Assistant silently destroyed every message.** Worse than a
+dead click. `FloatingDock.tsx`'s `send()` called `setActiveSurface('ai')` and
+then `setValue('')`. Under unified nav `activeSurface` is never read, so
+submitting the compact Assistant set a store field nobody consumes, **cleared
+the user's typed question**, and left the screen unchanged. Verified in the
+running app: `activeSurface: 'ai'`, input emptied, URL and main area identical.
+Every question typed into the dock since 0353 has been dropped on the floor.
 
 ## External Research
 
@@ -401,6 +423,41 @@ stateDiagram-v2
     so exactly one row is ever highlighted
 ```
 
+### Landed ahead of the rest: the AI surface (F10 + F11)
+
+The AI surface was restored immediately rather than waiting for the full fix,
+because F11 is active data loss, not just a dead click.
+
+It comes back as a **route**, not a sidebar panel. Reviving `kind: 'panel'`
+would have put a BYO-model chat — connector picker, budget gauge, streaming
+replies — into a 260px column *and* would have added a second section kind that
+doesn't change the main area, which is the exact defect this exploration is
+about. `/ai` satisfies both readings of "bring the AI panel back": the surface
+returns, and it obeys the one rule.
+
+- `apps/web/src/routes/ai.tsx` — new; renders `AiChatPanel` in the main area,
+  capped at `max-w-3xl` so chat lines stay readable, and reads `?q=` to seed
+  the composer.
+- `apps/web/src/workbench/sidebar/sections.ts` — `{ id: 'ai', kind: 'route',
+  label: 'AI', target: '/ai' }` plus a `Bot` icon.
+- `apps/web/src/workbench/views/AiChatPanel.tsx` — optional `initialPrompt`
+  prop seeding the composer. No other call site passes props, so the slot
+  registration is unaffected.
+- `apps/web/src/workbench/FloatingDock.tsx` — `send()` now
+  `navigate({ to: '/ai', search: { q } })` instead of `setActiveSurface('ai')`,
+  and no longer clears the input on an empty submit. The hand-off the file's
+  own docstring promised ("a compact launcher into the real AI surface") now
+  actually happens.
+
+Verified in the running app: the `AI` row appears in `More` (hidden count
+7 → 8), clicking it navigates to `/ai` and renders the connector bar and
+composer; typing "what changed this week" into the dock from `/finance` lands
+on `/ai?q=what+changed+this+week` with the composer pre-filled.
+
+Today, Data, and Explorer remain unreachable — they are lower-stakes than a
+surface that ate messages, and their right home (route vs. lens vs. deleted) is
+a judgement the main recommendation should settle rather than this patch.
+
 ## Example Code
 
 The activation seam, after (`apps/web/src/workbench/sidebar/SectionRows.tsx`):
@@ -499,6 +556,11 @@ it('every default section resolves to a destination', () => {
 
 ## Implementation Checklist
 
+- [x] Restore the AI surface as `/ai` with an `AI` section (F10)
+- [x] Fix the dock Assistant hand-off so it navigates and carries `?q=`
+      instead of clearing the input into the void (F11)
+- [ ] Decide the fate of the remaining orphaned panels — `Today`, `Data`,
+      `Explorer` — route, lens, or delete
 - [ ] Add `route?: string` to `SidebarLens` in `sidebar/contracts.ts`
 - [ ] Set `route` on all five built-in lenses in `sidebar/sources.tsx`
       (`people → /crm`, `views → /data`, rest → `/`)
@@ -530,6 +592,10 @@ it('every default section resolves to a destination', () => {
 
 ## Validation Checklist
 
+- [x] The `AI` section appears in the nav and `/ai` renders the connector bar,
+      chat body, and composer in the main area
+- [x] Typing into the dock Assistant from another route lands on
+      `/ai?q=…` with the composer pre-filled, and no message is lost
 - [ ] Clicking each of All, Docs, Chats, People, Views changes
       `location.pathname` *or* the main region's rendered content
 - [ ] `People` lands on the CRM surface; `Views` lands on the Data workspace

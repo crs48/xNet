@@ -20,6 +20,7 @@
  */
 import {
   BarChart3,
+  Bot,
   CheckSquare2,
   Compass,
   Contact,
@@ -61,6 +62,7 @@ const ICONS: Record<string, LucideIcon> = {
   'route:/discover': Compass,
   'route:/finance': Wallet,
   'route:/analytics': BarChart3,
+  'route:/ai': Bot,
   'route:/crm': Contact
 }
 
@@ -88,6 +90,10 @@ export const DEFAULT_SECTIONS: SidebarSection[] = [
   { id: 'tasks', kind: 'route', label: 'Tasks', target: '/tasks' },
   { id: 'people', kind: 'lens', label: 'People', target: 'people' },
   { id: 'views', kind: 'lens', label: 'Views', target: 'views' },
+  // The BYO-model chat surface (0174/0192). It was a `panel` surface, a kind
+  // this list doesn't have, so 0353 dropped it and left it unreachable —
+  // restored as a route (0388).
+  { id: 'ai', kind: 'route', label: 'AI', target: '/ai' },
   { id: 'meetings', kind: 'route', label: 'Meetings', target: '/meetings' },
   { id: 'discover', kind: 'route', label: 'Discover', target: '/discover' },
   { id: 'finance', kind: 'route', label: 'Finance', target: '/finance' },
