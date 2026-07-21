@@ -14,6 +14,20 @@ SQLite, a hub upload/serve endpoint with per-user quota, image thumbnails in
 grid/gallery/board cells, and a working (image-only) lightbox in the row peek
 panel. What remains is a set of well-scoped gaps:
 
+0. **The File type is undiscoverable in the field-type picker** (found live,
+   2026-07-21). `file` is the 13th entry in `FIELD_TYPES`, but the picker's
+   `Select` popup clamps at `max-h-96` (384 px ≈ exactly 12 items) with
+   `overflow-hidden`, so the menu visually ends at "Phone". Root cause: Base
+   UI's scroll-arrow logic uses the `Select.List` element as its scroller
+   (`listElement || popupRef`), but `packages/ui/src/primitives/Select.tsx`
+   puts the max-height/overflow on the `Popup` and leaves the `List`
+   unconstrained — the List reports itself unscrollable, so the
+   `ScrollUpArrow`/`ScrollDownArrow` never render and wheel events die on the
+   hidden-overflow popup. Keyboard ArrowDown/typeahead still reaches File
+   (programmatic scroll works), but mouse users cannot. Verified in the live
+   app: moving `max-h-96` + `overflow-y-auto` onto `BaseSelect.List` makes
+   both arrows render and the list wheel-scrollable. Fix both popup variants
+   (lines ~94 and ~206). Every long `Select` in the app shares this bug.
 1. **No lightbox from the cell itself** — clicking a file chip in a grid cell
    does nothing; the lightbox only opens from the peek panel.
 2. **Blob bytes never leave the device** — the `FileRef` syncs through the
@@ -83,8 +97,13 @@ interesting work and the only one touching sync. W4 layers on independently.
   cell when `field.type === 'file'`; threads `onUploadFile`, `onDropFile`,
   `onResolveFileUrl` into the editor config. Covered by
   `packages/views/src/grid/file-cells.test.tsx`.
-- `packages/views/src/columns/AddColumnModal.tsx` — "File 📎" is already a
-  first-class option in the field picker.
+- `packages/views/src/columns/AddColumnModal.tsx` — a categorized field
+  picker with "File 📎" as a first-class option, but it is **dead code**:
+  exported from `packages/views/src/columns/index.ts` and used by neither
+  app. The pickers users actually see are hand-rolled popovers in
+  `apps/web/src/components/DatabaseView.tsx` (`FIELD_TYPE_OPTIONS` at line
+  134, fed to the generic `Select` at lines 990 and 1058) — which do include
+  File, but hide it behind the scroll bug described in gap 0.
 - `packages/views/src/database-views/card-bits.tsx` — `firstFileRef(value)`
   + `CardCover` give gallery/board cards cover images from file fields;
   `GalleryView.tsx` resolves a cover field with cover/contain fit.
@@ -455,6 +474,20 @@ returns `{ url, state }` so `FileChip` can render a subtle
   never fetch — acceptable, with the chip state making it honest.
 
 ## Implementation Checklist
+
+### W0 — Make the File type reachable (bug fix, do first)
+
+- [ ] `packages/ui/src/primitives/Select.tsx`: move `max-h-96` off the
+      `Popup` onto `BaseSelect.List` with `overflow-y-auto` (both popup
+      variants, ~lines 94 and 206) so Base UI's scroll detection sees the
+      List as the scroller; arrows render and wheel scrolling works.
+- [ ] Consider surfacing common types sooner: either shorten the flat list
+      (group computed types under a divider) or wire up the categorized
+      `AddColumnModal` — or delete it if the popover stays (0294: unconsumed
+      code rots).
+- [ ] Regression test: a `Select` with 18 options shows a scroll-down arrow
+      and can reach the last option by mouse.
+- [ ] Changeset: `@xnetjs/ui` patch.
 
 ### W1 — Cell-click lightbox
 
