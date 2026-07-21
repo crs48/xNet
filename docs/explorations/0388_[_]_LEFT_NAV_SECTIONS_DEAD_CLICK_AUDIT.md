@@ -582,7 +582,7 @@ it('every default section resolves to a destination', () => {
       `/experiments`, `/companion`, `/social-import`
 - [x] Add `sidebar/sections.test.ts` with the "every section resolves to a
       destination" invariant
-- [ ] Add a Playwright spec that clicks all eleven sections and asserts the
+- [x] Add a Playwright spec that clicks all eleven sections and asserts the
       main region's text changed, wired into an existing workflow lane per
       CLAUDE.md §"CI lanes and tests"
 - [ ] Follow-up issue: fold `/tasks`' internal `VIEWS / PROJECTS` nav into the
