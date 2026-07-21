@@ -85,9 +85,12 @@
 
     /* The shorthand resets animation-timeline/-range, so those longhands
        MUST follow it. */
-    animation: sf-in linear both, sf-out linear both;
+    animation:
+      sf-in linear both,
+      sf-out linear both;
     animation-timeline: scroll(self block), scroll(self block);
-    animation-range: 0px var(--scroll-fade-reveal),
+    animation-range:
+      0px var(--scroll-fade-reveal),
       calc(100% - var(--scroll-fade-reveal)) 100%;
     /* Ignored for progress-based timelines, but Firefox refuses to apply an
        animation with a zero duration. */
@@ -97,11 +100,7 @@
   /* Bottom edge only — for containers with a sticky header, which a top
      fade would dim. */
   .scroll-fade-b {
-    -webkit-mask-image: linear-gradient(
-      to bottom,
-      black calc(100% - var(--sf-end)),
-      transparent
-    );
+    -webkit-mask-image: linear-gradient(to bottom, black calc(100% - var(--sf-end)), transparent);
     mask-image: linear-gradient(to bottom, black calc(100% - var(--sf-end)), transparent);
     -webkit-mask-repeat: no-repeat;
     mask-repeat: no-repeat;
@@ -132,9 +131,12 @@
     -webkit-mask-repeat: no-repeat;
     mask-repeat: no-repeat;
 
-    animation: sf-in linear both, sf-out linear both;
+    animation:
+      sf-in linear both,
+      sf-out linear both;
     animation-timeline: scroll(self inline), scroll(self inline);
-    animation-range: 0px var(--scroll-fade-reveal),
+    animation-range:
+      0px var(--scroll-fade-reveal),
       calc(100% - var(--scroll-fade-reveal)) 100%;
     animation-duration: 1ms, 1ms;
   }
@@ -207,16 +209,14 @@
     to bottom,
     transparent,
     black min(var(--scroll-fade-size), var(--scroll-area-overflow-y-start, 0px)),
-    black
-      calc(100% - min(var(--scroll-fade-size), var(--scroll-area-overflow-y-end, 0px))),
+    black calc(100% - min(var(--scroll-fade-size), var(--scroll-area-overflow-y-end, 0px))),
     transparent
   );
   mask-image: linear-gradient(
     to bottom,
     transparent,
     black min(var(--scroll-fade-size), var(--scroll-area-overflow-y-start, 0px)),
-    black
-      calc(100% - min(var(--scroll-fade-size), var(--scroll-area-overflow-y-end, 0px))),
+    black calc(100% - min(var(--scroll-fade-size), var(--scroll-area-overflow-y-end, 0px))),
     transparent
   );
   -webkit-mask-repeat: no-repeat;
