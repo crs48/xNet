@@ -28,11 +28,18 @@ export interface AttachmentLightboxProps extends AttachmentLightboxRequest {
   onClose: () => void
 }
 
-function slideKind(ref: FileRef): 'image' | 'video' | 'audio' | 'pdf' | 'file' {
+/**
+ * Note on documents: we deliberately do NOT frame the blob URL of an upload.
+ * A blob: iframe inherits this origin, and an attachment named `.pdf` can
+ * contain anything — framing it would turn any upload into stored XSS. The
+ * app CSP blocks `frame-src blob:` for exactly that reason, so documents get
+ * the download card instead. `<img>`/`<video>`/`<audio>` are safe because
+ * they decode as media rather than executing as a document.
+ */
+function slideKind(ref: FileRef): 'image' | 'video' | 'audio' | 'file' {
   if (isImageRef(ref)) return 'image'
   if (ref.mimeType?.startsWith('video/')) return 'video'
   if (ref.mimeType?.startsWith('audio/')) return 'audio'
-  if (ref.mimeType === 'application/pdf') return 'pdf'
   return 'file'
 }
 
@@ -75,19 +82,6 @@ function Slide({
         autoPlay
         data-testid="lightbox-video"
         className="max-h-[90vh] max-w-[90vw]"
-      />
-    )
-  }
-
-  if (kind === 'pdf') {
-    // The browser's own PDF viewer: no pdf.js bundle, no worker script to
-    // serve past the CSP. Falls back to the download card if it can't embed.
-    return (
-      <iframe
-        src={url}
-        title={fileRef.name}
-        data-testid="lightbox-pdf"
-        className="h-[90vh] w-[90vw] rounded bg-white"
       />
     )
   }

@@ -56,6 +56,23 @@ describe('AttachmentLightbox', () => {
     expect(link.getAttribute('download')).toBe('archive.zip')
   })
 
+  it('never frames an upload — documents get the download card', async () => {
+    // A blob: iframe inherits this origin and an attachment named .pdf can
+    // contain HTML, so framing uploads would be stored XSS. The app CSP
+    // blocks frame-src blob: for the same reason.
+    const pdfRef: FileRef = {
+      cid: 'cid:blake3:pdf1',
+      name: 'notes.pdf',
+      mimeType: 'application/pdf',
+      size: 1024
+    }
+    const { container } = render(
+      <AttachmentLightbox refs={[pdfRef]} config={config} onClose={vi.fn()} />
+    )
+    expect(await screen.findByTestId('lightbox-file-card')).toBeTruthy()
+    expect(container.querySelector('iframe')).toBeNull()
+  })
+
   it('renders a video slide with native controls', async () => {
     render(<AttachmentLightbox refs={[videoRef]} config={config} onClose={vi.fn()} />)
     const video = await screen.findByTestId('lightbox-video')

@@ -32,6 +32,7 @@
     "@xnetjs/crypto": "workspace:*",
     "@xnetjs/data": "workspace:*",
     "@xnetjs/identity": "workspace:*",
+    "@xnetjs/storage": "workspace:*",
     "@xnetjs/runtime": "workspace:*",
     "@xnetjs/telemetry": "workspace:*",
     "@xnetjs/slack-compat": "workspace:*",

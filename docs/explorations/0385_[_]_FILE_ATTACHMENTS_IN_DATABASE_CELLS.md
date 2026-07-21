@@ -462,6 +462,16 @@ returns `{ url, state }` so `FileChip` can render a subtle
 - **Web CSP.** The web app's CSP blocks custom hubs (0300); blob fetches go
   to the same hub origin as the relay so this should hold, but verify
   `connect-src` covers `GET /files/*` on all deployment shapes.
+- **Never frame an uploaded blob (found during implementation).** The first
+  cut rendered PDFs in an `<iframe src={blobUrl}>`; the app CSP blocked it
+  (`frame-src` has no `blob:`) and the CSP is correct — a blob: iframe
+  inherits this origin, and an attachment named `.pdf` can contain HTML, so
+  framing uploads would turn any attachment into stored XSS. Documents use
+  the download card instead; `<img>`/`<video>`/`<audio>` stay safe because
+  they decode as media rather than executing as a document. Pinned by a
+  regression test in `AttachmentLightbox.test.tsx`. **Do not "fix" this by
+  adding `blob:` to `frame-src`.** A real in-app PDF viewer needs pdf.js
+  rendering to a canvas (never a frame) — its own piece of work.
 - **Large-file ceiling.** Client `BlobService` caps at 100 MB, hub at 100 MB
   — aligned today, but both are config; W3 should read one shared constant
   so they can't drift.
@@ -508,7 +518,7 @@ returns `{ url, state }` so `FileChip` can render a subtle
 - [x] Non-image refs render a file card slide (icon, name, size, download).
 - [x] Tests: extend `file-cells.test.tsx`; new `AttachmentLightbox.test.tsx`
       (open/close/navigate/keyboard).
-- [ ] Changeset: `@xnetjs/views` minor.
+- [x] Changeset: `@xnetjs/views` minor.
 
 ### W2 — Multi-file cells
 
@@ -521,7 +531,7 @@ returns `{ url, state }` so `FileChip` can render a subtle
 - [x] `GridCell` drop handler accepts multiple files when `allowMultiple`.
 - [x] `card-bits.tsx` `firstFileRef` already handles arrays — verify and
       test gallery cover from multi-file cells.
-- [ ] Changesets: `@xnetjs/views` minor (`@xnetjs/data` unchanged — schema
+- [x] Changesets: `@xnetjs/views` minor (`@xnetjs/data` unchanged — schema
       already supports arrays).
 
 ### W3 — Blob transfer
@@ -541,9 +551,9 @@ returns `{ url, state }` so `FileChip` can render a subtle
       (client-side mirror of the hub's `CID_MISMATCH` check).
 - [x] Hub-less workspaces: queue idles cleanly; chip shows "on another
       device" instead of erroring.
-- [ ] E2E: attach on client A, fetch+view on client B through a test hub
+- [x] E2E: attach on client A, fetch+view on client B through a test hub
       (ports per the claimed 14580–95 range convention).
-- [ ] Changesets: `@xnetjs/data` minor, `@xnetjs/react` minor.
+- [x] Changesets: `@xnetjs/data` minor, `@xnetjs/react` minor.
 
 ### W4 — Rich previews
 
@@ -561,7 +571,7 @@ returns `{ url, state }` so `FileChip` can render a subtle
 - [x] Lightbox slides: `<video controls>` for `video/*`, audio element for
       `audio/*`, PDF pages via `packages/canvas` PDF machinery, file card
       otherwise.
-- [ ] Changesets: `@xnetjs/data` minor, `@xnetjs/views` minor,
+- [x] Changesets: `@xnetjs/data` minor, `@xnetjs/views` minor,
       `@xnetjs/editor` minor if the image service is extended.
 
 ### Cross-cutting
@@ -580,12 +590,14 @@ returns `{ url, state }` so `FileChip` can render a subtle
 
 ## Validation Checklist
 
-- [ ] Grid cell with an image file shows a thumbnail chip; clicking it opens
+- [x] Grid cell with an image file shows a thumbnail chip; clicking it opens
       the lightbox at that image; arrows navigate; Escape closes; download
       works.
-- [ ] Non-image file (zip/pdf) chip opens a file-card slide with a working
-      download; PDF shows page previews.
-- [ ] `allowMultiple` field accepts multi-select upload and multi-file drop;
+- [x] Non-image file (zip/pdf) chip opens a file-card slide with a working
+      download. **PDF page previews deliberately dropped** — see the
+      never-frame-an-upload risk above; a canvas-based pdf.js viewer is
+      separate work.
+- [x] `allowMultiple` field accepts multi-select upload and multi-file drop;
       chips overflow gracefully in a narrow column; gallery card uses the
       first file as cover.
 - [ ] Attach a 5 MB image on device A; device B (same hub) sees the
@@ -597,7 +609,7 @@ returns `{ url, state }` so `FileChip` can render a subtle
       no infinite retry hammering.
 - [ ] Hub-less workspace: attach/view works locally; peer chip says "on
       another device", no console errors.
-- [ ] A 100 MB+ file is rejected client-side with a clear message before any
+- [x] A 100 MB+ file is rejected client-side with a clear message before any
       bytes move.
 - [ ] `pnpm test` green including `file-cells`, `seed-coverage`,
       `files.quota`; changesets present for every touched publishable

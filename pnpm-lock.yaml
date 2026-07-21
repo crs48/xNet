@@ -1409,6 +1409,9 @@ importers:
       '@xnetjs/slack-compat':
         specifier: workspace:*
         version: link:../slack-compat
+      '@xnetjs/storage':
+        specifier: workspace:*
+        version: link:../storage
       '@xnetjs/sync':
         specifier: workspace:*
         version: link:../sync
