@@ -100,7 +100,7 @@ export {
 } from './components/canvasPluginFallbacks'
 
 // Blob context
-export { BlobProvider, useBlobService } from './context/BlobContext'
+export { BlobProvider, useBlobService, useBlobTransfers } from './context/BlobContext'
 export type { BlobContextValue, BlobProviderProps } from './context/BlobContext'
 
 // Upload hooks

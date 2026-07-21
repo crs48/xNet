@@ -22,7 +22,7 @@ import {
   parseCSV,
   parseRow
 } from '@xnetjs/data'
-import { useBlobService } from '@xnetjs/editor/react'
+import { useBlobService, useBlobTransfers } from '@xnetjs/editor/react'
 import { useGridDatabase, useIdentity, useNode } from '@xnetjs/react'
 import { CommentIsland, toAnchorLike, type CommentThreadData } from '@xnetjs/ui'
 import {
@@ -30,6 +30,7 @@ import {
   type DatabaseViewConfig,
   type DatabaseViewRow,
   type GridField,
+  AttachmentLightboxProvider,
   EMPTY_VIEW_CONFIG,
   FieldConfigEditor,
   FormView,
@@ -109,24 +110,52 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
 
   // ─── File attachments (BlobService: local-first, chunked) ─────────────────
   const blobService = useBlobService()
+  const blobTransfers = useBlobTransfers()
   const handleUploadFile = useCallback(
     async (file: File): Promise<FileRef | null> => {
       if (!blobService) return null
       try {
-        return await blobService.upload(file)
+        const ref = await blobService.upload(file)
+        // Bytes go to the hub in the background so peers can fetch them;
+        // attaching never waits on the network (exploration 0385 W3).
+        blobTransfers?.enqueueUpload(ref)
+        return ref
       } catch (err) {
         console.error('[DatabaseView] file upload failed:', err)
         return null
       }
     },
-    [blobService]
+    [blobService, blobTransfers]
   )
   const handleResolveFileUrl = useCallback(
     async (ref: FileRef): Promise<string> => {
       if (!blobService) throw new Error('BlobService unavailable')
+      // A ref that arrived by sync has no local bytes yet — fetch on first
+      // view rather than bulk-replicating every attachment.
+      if (blobTransfers) {
+        const state = await blobTransfers.ensureLocal(ref)
+        if (state !== 'synced' && state !== 'local') {
+          throw new Error(`File unavailable (${state}): ${ref.name}`)
+        }
+      }
       return blobService.getUrl(ref)
     },
-    [blobService]
+    [blobService, blobTransfers]
+  )
+  const handleResolveThumbUrl = useCallback(
+    async (ref: FileRef): Promise<string | null> => {
+      if (!blobService) return null
+      // Previews are kilobytes — fetch the thumbnail alone so a remote cell
+      // renders without pulling the whole original (exploration 0385 W4).
+      if (blobTransfers) await blobTransfers.ensureThumbnail(ref)
+      return blobService.getThumbUrl(ref)
+    },
+    [blobService, blobTransfers]
+  )
+  // Config for the surface-wide attachment lightbox (exploration 0385)
+  const lightboxConfig = useMemo(
+    () => (blobService ? { onResolveFileUrl: handleResolveFileUrl } : undefined),
+    [blobService, handleResolveFileUrl]
   )
 
   // ─── CSV/JSON import & export (engines in @xnetjs/data) ──────────────────
@@ -425,437 +454,447 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
   }
 
   return (
-    <div className="flex-1 flex flex-col overflow-hidden h-full -m-6">
-      {/* Header */}
-      {!minimalChrome && (
-        <div className="flex items-center gap-2 p-3 border-b border-border bg-secondary">
-          <input
-            type="text"
-            className="text-lg font-semibold border-none bg-transparent text-foreground outline-none placeholder:text-muted-foreground"
-            value={database?.title || ''}
-            onChange={(event) => updateDatabase({ title: event.target.value })}
-            placeholder="Untitled"
-          />
-          <div className="flex-1" />
-          <PresenceAvatars presence={presence} />
-          <ShareButton docId={docId} docType="database" />
-        </div>
-      )}
+    <AttachmentLightboxProvider config={lightboxConfig}>
+      <div className="flex-1 flex flex-col overflow-hidden h-full -m-6">
+        {/* Header */}
+        {!minimalChrome && (
+          <div className="flex items-center gap-2 p-3 border-b border-border bg-secondary">
+            <input
+              type="text"
+              className="text-lg font-semibold border-none bg-transparent text-foreground outline-none placeholder:text-muted-foreground"
+              value={database?.title || ''}
+              onChange={(event) => updateDatabase({ title: event.target.value })}
+              placeholder="Untitled"
+            />
+            <div className="flex-1" />
+            <PresenceAvatars presence={presence} />
+            <ShareButton docId={docId} docType="database" />
+          </div>
+        )}
 
-      {/* Toolbar */}
-      <GridToolbar
-        views={grid.views.map((v) => ({ id: v.id, name: v.name, type: v.type }))}
-        activeViewId={activeView?.id}
-        onSelectView={setActiveViewId}
-        addViewTypes={ADD_VIEW_TYPES}
-        onAddViewOfType={(type) => {
-          void (async () => {
-            const label = ADD_VIEW_TYPES.find((t) => t.type === type)?.label
-            const name = label ?? `View ${grid.views.length + 1}`
-            const id = await grid.addView(name, type)
-            if (id) setActiveViewId(id)
-          })()
-        }}
-        fields={grid.fields.map((f) => ({
-          id: f.id,
-          name: f.name,
-          type: f.type,
-          config: f.config as Record<string, unknown>,
-          width: f.width,
-          options: f.options
-        }))}
-        hiddenFieldIds={activeView?.hiddenFields ?? []}
-        onToggleFieldVisible={(fieldId, hidden) => {
-          void grid.setFieldHidden(fieldId, hidden)
-        }}
-        sorts={activeView?.sorts ?? []}
-        onToggleSort={(fieldId) => {
-          void grid.toggleSort(fieldId)
-        }}
-        onClearSorts={() => {
-          if (activeView?.sorts.length) void grid.toggleSort(activeView.sorts[0].columnId)
-        }}
-        filters={activeView?.filters ?? null}
-        onChangeFilters={(filters) => {
-          void grid.setFilters(filters)
-        }}
-        groupBy={activeView?.groupBy ?? null}
-        onChangeGroupBy={(fieldId) => {
-          void grid.setGroupBy(fieldId)
-        }}
-        search={search}
-        onSearchChange={setSearch}
-        onExportCsv={handleExportCsv}
-        onExportJson={handleExportJson}
-        onImportCsv={(file) => {
-          void handleImportCsv(file)
-        }}
-        rowCount={grid.rows.length}
-      />
-
-      {/* Body: form view or grid + peek */}
-      {activeView?.type === 'form' ? (
-        <FormView
+        {/* Toolbar */}
+        <GridToolbar
+          views={grid.views.map((v) => ({ id: v.id, name: v.name, type: v.type }))}
+          activeViewId={activeView?.id}
+          onSelectView={setActiveViewId}
+          addViewTypes={ADD_VIEW_TYPES}
+          onAddViewOfType={(type) => {
+            void (async () => {
+              const label = ADD_VIEW_TYPES.find((t) => t.type === type)?.label
+              const name = label ?? `View ${grid.views.length + 1}`
+              const id = await grid.addView(name, type)
+              if (id) setActiveViewId(id)
+            })()
+          }}
           fields={grid.fields.map((f) => ({
             id: f.id,
             name: f.name,
             type: f.type,
             config: f.config as Record<string, unknown>,
             width: f.width,
-            isTitle: f.isTitle,
             options: f.options
           }))}
-          config={activeView.formConfig}
-          rules={activeView.formRules}
-          accepting={activeView.formAccepting}
-          databaseTitle={database?.title}
-          editable
-          onSubmit={async (cells) =>
-            (await grid.addRow(undefined, cells, {
-              meta: { via: 'form', viewId: activeView.id, submittedAt: Date.now() }
-            })) !== null
-          }
-          onChangeConfig={(next) => {
-            void grid.setFormConfig(next)
+          hiddenFieldIds={activeView?.hiddenFields ?? []}
+          onToggleFieldVisible={(fieldId, hidden) => {
+            void grid.setFieldHidden(fieldId, hidden)
           }}
-          onChangeRules={(next) => {
-            void grid.setFormRules(next)
+          sorts={activeView?.sorts ?? []}
+          onToggleSort={(fieldId) => {
+            void grid.toggleSort(fieldId)
           }}
-          onChangeAccepting={(next) => {
-            void grid.setFormAccepting(next)
+          onClearSorts={() => {
+            if (activeView?.sorts.length) void grid.toggleSort(activeView.sorts[0].columnId)
           }}
-          onUploadFile={blobService ? handleUploadFile : undefined}
-          onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
-          className="flex-1"
+          filters={activeView?.filters ?? null}
+          onChangeFilters={(filters) => {
+            void grid.setFilters(filters)
+          }}
+          groupBy={activeView?.groupBy ?? null}
+          onChangeGroupBy={(fieldId) => {
+            void grid.setGroupBy(fieldId)
+          }}
+          search={search}
+          onSearchChange={setSearch}
+          onExportCsv={handleExportCsv}
+          onExportJson={handleExportJson}
+          onImportCsv={(file) => {
+            void handleImportCsv(file)
+          }}
+          rowCount={grid.rows.length}
         />
-      ) : registryViewType && registration ? (
-        <div className="flex-1 flex overflow-hidden">
-          <div className="flex-1 flex flex-col overflow-hidden">
-            <ViewOptionsBar
-              configFields={registration.configFields ?? []}
-              fields={allFields}
-              config={viewConfig}
-              onPatchConfig={(patch) => {
-                void grid.setViewConfig(patch)
-              }}
-            />
-            <div className="flex-1 overflow-hidden">
-              <ViewRenderer
-                type={registryViewType}
+
+        {/* Body: form view or grid + peek */}
+        {activeView?.type === 'form' ? (
+          <FormView
+            fields={grid.fields.map((f) => ({
+              id: f.id,
+              name: f.name,
+              type: f.type,
+              config: f.config as Record<string, unknown>,
+              width: f.width,
+              isTitle: f.isTitle,
+              options: f.options
+            }))}
+            config={activeView.formConfig}
+            rules={activeView.formRules}
+            accepting={activeView.formAccepting}
+            databaseTitle={database?.title}
+            editable
+            onSubmit={async (cells) =>
+              (await grid.addRow(undefined, cells, {
+                meta: { via: 'form', viewId: activeView.id, submittedAt: Date.now() }
+              })) !== null
+            }
+            onChangeConfig={(next) => {
+              void grid.setFormConfig(next)
+            }}
+            onChangeRules={(next) => {
+              void grid.setFormRules(next)
+            }}
+            onChangeAccepting={(next) => {
+              void grid.setFormAccepting(next)
+            }}
+            onUploadFile={blobService ? handleUploadFile : undefined}
+            onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
+            onResolveThumbUrl={blobService ? handleResolveThumbUrl : undefined}
+            className="flex-1"
+          />
+        ) : registryViewType && registration ? (
+          <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex flex-col overflow-hidden">
+              <ViewOptionsBar
+                configFields={registration.configFields ?? []}
                 fields={allFields}
-                visibleFields={gridFields}
-                rows={viewRows}
-                window={grid.rowWindow}
                 config={viewConfig}
-                sorted={(activeView?.sorts.length ?? 0) > 0}
                 onPatchConfig={(patch) => {
                   void grid.setViewConfig(patch)
                 }}
+              />
+              <div className="flex-1 overflow-hidden">
+                <ViewRenderer
+                  type={registryViewType}
+                  fields={allFields}
+                  visibleFields={gridFields}
+                  rows={viewRows}
+                  window={grid.rowWindow}
+                  config={viewConfig}
+                  sorted={(activeView?.sorts.length ?? 0) > 0}
+                  onPatchConfig={(patch) => {
+                    void grid.setViewConfig(patch)
+                  }}
+                  onUpdateCell={(rowId, fieldId, value) => {
+                    void grid.updateCell(rowId, fieldId, value)
+                  }}
+                  onMoveCard={(rowId, cells, opts) => {
+                    void grid.updateRowCells(rowId, cells, opts)
+                  }}
+                  onToggleGroupCollapsed={(groupKey, collapsed) => {
+                    void grid.setGroupCollapsed(groupKey, collapsed)
+                  }}
+                  onOpenRow={setPeekRowId}
+                  onCreateRow={(cells) => {
+                    void grid.addRow(undefined, cells)
+                  }}
+                  onCreateOption={grid.createOption}
+                  onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
+                  onResolveThumbUrl={blobService ? handleResolveThumbUrl : undefined}
+                />
+              </div>
+            </div>
+
+            {peekRow && (
+              <div className="w-[420px] shrink-0">
+                <GridPeek
+                  row={{ id: peekRow.id, cells: peekRow.cells }}
+                  fields={allFields}
+                  onClose={() => setPeekRowId(null)}
+                  onUpdateCell={(rowId, fieldId, value) => {
+                    void grid.updateCell(rowId, fieldId, value)
+                  }}
+                  onDeleteRow={(rowId) => {
+                    void grid.deleteRows([rowId])
+                  }}
+                  onCreateOption={grid.createOption}
+                  onUploadFile={blobService ? handleUploadFile : undefined}
+                  onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
+                  onResolveThumbUrl={blobService ? handleResolveThumbUrl : undefined}
+                >
+                  <div className="text-xs text-gray-500">
+                    {comments.rowCommentCounts.get(peekRow.id) ?? 0} comments on this row
+                  </div>
+                </GridPeek>
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 overflow-hidden">
+              <GridSurface
+                fields={gridFields}
+                rows={gridRows}
+                sorts={activeView?.sorts}
+                presences={cellPresences}
+                cellCommentCounts={comments.cellCommentCounts}
                 onUpdateCell={(rowId, fieldId, value) => {
                   void grid.updateCell(rowId, fieldId, value)
                 }}
-                onMoveCard={(rowId, cells, opts) => {
-                  void grid.updateRowCells(rowId, cells, opts)
+                onClearCells={(cells) => {
+                  void grid.clearCells(cells)
                 }}
-                onToggleGroupCollapsed={(groupKey, collapsed) => {
-                  void grid.setGroupCollapsed(groupKey, collapsed)
+                onAddRow={(afterRowId) => {
+                  void grid.addRow(afterRowId)
                 }}
-                onOpenRow={setPeekRowId}
-                onCreateRow={(cells) => {
+                onAddRowWithCells={(cells) => {
                   void grid.addRow(undefined, cells)
                 }}
+                onAddFieldWithCell={(rowId, value) => {
+                  void (async () => {
+                    const fieldId = await grid.addField(`Column ${grid.fields.length + 1}`, 'text')
+                    if (fieldId) await grid.updateCell(rowId, fieldId, value)
+                  })()
+                }}
+                onDeleteRows={(rowIds) => {
+                  void grid.deleteRows(rowIds)
+                }}
+                onMoveRow={(rowId, targetIndex) => {
+                  void grid.moveRowToIndex(rowId, targetIndex)
+                }}
+                onMoveField={(fieldId, targetIndex) => {
+                  void grid.moveFieldToIndex(fieldId, targetIndex)
+                }}
+                onResizeField={(fieldId, width) => {
+                  void grid.resizeField(fieldId, width)
+                }}
+                onToggleSort={(fieldId) => {
+                  void grid.toggleSort(fieldId)
+                }}
+                onFieldMenu={(fieldId, anchorEl) => setFieldMenu({ fieldId, anchor: anchorEl })}
+                onAddField={() => setAddingField(true)}
                 onCreateOption={grid.createOption}
+                onUploadFile={blobService ? handleUploadFile : undefined}
                 onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
+                onResolveThumbUrl={blobService ? handleResolveThumbUrl : undefined}
+                onOpenRow={setPeekRowId}
+                onUndo={() => {
+                  void grid.undo()
+                }}
+                onRedo={() => {
+                  void grid.redo()
+                }}
+                onCommentCell={openCellComments}
+                onCellFocus={handleCellFocus}
+                onCellBlur={handleCellBlur}
               />
             </div>
+
+            {peekRow && (
+              <div className="w-[420px] shrink-0">
+                <GridPeek
+                  row={{ id: peekRow.id, cells: peekRow.cells }}
+                  fields={grid.fields.map((f) => ({
+                    id: f.id,
+                    name: f.name,
+                    type: f.type,
+                    config: f.config as Record<string, unknown>,
+                    width: f.width,
+                    isTitle: f.isTitle,
+                    options: f.options
+                  }))}
+                  onClose={() => setPeekRowId(null)}
+                  onUpdateCell={(rowId, fieldId, value) => {
+                    void grid.updateCell(rowId, fieldId, value)
+                  }}
+                  onDeleteRow={(rowId) => {
+                    void grid.deleteRows([rowId])
+                  }}
+                  onCreateOption={grid.createOption}
+                  onUploadFile={blobService ? handleUploadFile : undefined}
+                  onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
+                  onResolveThumbUrl={blobService ? handleResolveThumbUrl : undefined}
+                >
+                  {/* Row comments summary */}
+                  <div className="text-xs text-gray-500">
+                    {comments.rowCommentCounts.get(peekRow.id) ?? 0} comments on this row
+                  </div>
+                </GridPeek>
+              </div>
+            )}
           </div>
+        )}
 
-          {peekRow && (
-            <div className="w-[420px] shrink-0">
-              <GridPeek
-                row={{ id: peekRow.id, cells: peekRow.cells }}
-                fields={allFields}
-                onClose={() => setPeekRowId(null)}
-                onUpdateCell={(rowId, fieldId, value) => {
-                  void grid.updateCell(rowId, fieldId, value)
-                }}
-                onDeleteRow={(rowId) => {
-                  void grid.deleteRows([rowId])
-                }}
-                onCreateOption={grid.createOption}
-                onUploadFile={blobService ? handleUploadFile : undefined}
-                onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
-              >
-                <div className="text-xs text-gray-500">
-                  {comments.rowCommentCounts.get(peekRow.id) ?? 0} comments on this row
-                </div>
-              </GridPeek>
-            </div>
-          )}
-        </div>
-      ) : (
-        <div className="flex-1 flex overflow-hidden">
-          <div className="flex-1 overflow-hidden">
-            <GridSurface
-              fields={gridFields}
-              rows={gridRows}
-              sorts={activeView?.sorts}
-              presences={cellPresences}
-              cellCommentCounts={comments.cellCommentCounts}
-              onUpdateCell={(rowId, fieldId, value) => {
-                void grid.updateCell(rowId, fieldId, value)
-              }}
-              onClearCells={(cells) => {
-                void grid.clearCells(cells)
-              }}
-              onAddRow={(afterRowId) => {
-                void grid.addRow(afterRowId)
-              }}
-              onAddRowWithCells={(cells) => {
-                void grid.addRow(undefined, cells)
-              }}
-              onAddFieldWithCell={(rowId, value) => {
-                void (async () => {
-                  const fieldId = await grid.addField(`Column ${grid.fields.length + 1}`, 'text')
-                  if (fieldId) await grid.updateCell(rowId, fieldId, value)
-                })()
-              }}
-              onDeleteRows={(rowIds) => {
-                void grid.deleteRows(rowIds)
-              }}
-              onMoveRow={(rowId, targetIndex) => {
-                void grid.moveRowToIndex(rowId, targetIndex)
-              }}
-              onMoveField={(fieldId, targetIndex) => {
-                void grid.moveFieldToIndex(fieldId, targetIndex)
-              }}
-              onResizeField={(fieldId, width) => {
-                void grid.resizeField(fieldId, width)
-              }}
-              onToggleSort={(fieldId) => {
-                void grid.toggleSort(fieldId)
-              }}
-              onFieldMenu={(fieldId, anchorEl) => setFieldMenu({ fieldId, anchor: anchorEl })}
-              onAddField={() => setAddingField(true)}
-              onCreateOption={grid.createOption}
-              onUploadFile={blobService ? handleUploadFile : undefined}
-              onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
-              onOpenRow={setPeekRowId}
-              onUndo={() => {
-                void grid.undo()
-              }}
-              onRedo={() => {
-                void grid.redo()
-              }}
-              onCommentCell={openCellComments}
-              onCellFocus={handleCellFocus}
-              onCellBlur={handleCellBlur}
-            />
-          </div>
-
-          {peekRow && (
-            <div className="w-[420px] shrink-0">
-              <GridPeek
-                row={{ id: peekRow.id, cells: peekRow.cells }}
-                fields={grid.fields.map((f) => ({
-                  id: f.id,
-                  name: f.name,
-                  type: f.type,
-                  config: f.config as Record<string, unknown>,
-                  width: f.width,
-                  isTitle: f.isTitle,
-                  options: f.options
-                }))}
-                onClose={() => setPeekRowId(null)}
-                onUpdateCell={(rowId, fieldId, value) => {
-                  void grid.updateCell(rowId, fieldId, value)
-                }}
-                onDeleteRow={(rowId) => {
-                  void grid.deleteRows([rowId])
-                }}
-                onCreateOption={grid.createOption}
-                onUploadFile={blobService ? handleUploadFile : undefined}
-                onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
-              >
-                {/* Row comments summary */}
-                <div className="text-xs text-gray-500">
-                  {comments.rowCommentCounts.get(peekRow.id) ?? 0} comments on this row
-                </div>
-              </GridPeek>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Field menu popover */}
-      {fieldMenu && menuField && (
-        <div
-          className="fixed inset-0 z-40"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) setFieldMenu(null)
-          }}
-        >
+        {/* Field menu popover */}
+        {fieldMenu && menuField && (
           <div
-            className="absolute z-50 w-64 rounded-lg border border-border bg-white dark:bg-gray-900 shadow-xl p-2"
-            style={{
-              top: fieldMenu.anchor.getBoundingClientRect().bottom + 4,
-              left: Math.min(fieldMenu.anchor.getBoundingClientRect().left, window.innerWidth - 280)
+            className="fixed inset-0 z-40"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) setFieldMenu(null)
             }}
           >
-            <input
-              type="text"
-              aria-label="Field name"
-              defaultValue={menuField.name}
-              autoFocus
-              className="w-full mb-2 px-2 py-1 text-sm rounded border border-border bg-transparent outline-none focus:border-blue-400"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  const name = (e.target as HTMLInputElement).value.trim()
+            <div
+              className="absolute z-50 w-64 rounded-lg border border-border bg-white dark:bg-gray-900 shadow-xl p-2"
+              style={{
+                top: fieldMenu.anchor.getBoundingClientRect().bottom + 4,
+                left: Math.min(
+                  fieldMenu.anchor.getBoundingClientRect().left,
+                  window.innerWidth - 280
+                )
+              }}
+            >
+              <input
+                type="text"
+                aria-label="Field name"
+                defaultValue={menuField.name}
+                autoFocus
+                className="w-full mb-2 px-2 py-1 text-sm rounded border border-border bg-transparent outline-none focus:border-blue-400"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const name = (e.target as HTMLInputElement).value.trim()
+                    if (name && name !== menuField.name) void grid.renameField(menuField.id, name)
+                    setFieldMenu(null)
+                  }
+                  if (e.key === 'Escape') setFieldMenu(null)
+                  e.stopPropagation()
+                }}
+                onBlur={(e) => {
+                  const name = e.target.value.trim()
                   if (name && name !== menuField.name) void grid.renameField(menuField.id, name)
-                  setFieldMenu(null)
-                }
-                if (e.key === 'Escape') setFieldMenu(null)
-                e.stopPropagation()
-              }}
-              onBlur={(e) => {
-                const name = e.target.value.trim()
-                if (name && name !== menuField.name) void grid.renameField(menuField.id, name)
-              }}
-            />
-            <select
-              aria-label="Field type"
-              value={menuField.type}
-              className="w-full mb-2 px-2 py-1 text-sm rounded border border-border bg-transparent"
-              onChange={(e) => {
-                void grid.changeFieldType(menuField.id, e.target.value as FieldType)
-              }}
-            >
-              {CREATABLE_FIELD_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-            <FieldConfigEditor
-              field={menuField}
-              fields={grid.fields}
-              onSave={(config) => {
-                void grid.updateFieldConfig(menuField.id, config)
-              }}
-            />
-            <button
-              type="button"
-              className="w-full px-2 py-1 text-left text-sm rounded hover:bg-gray-50 dark:hover:bg-gray-800"
-              onClick={() => {
-                void grid.setFieldHidden(menuField.id, true)
-                setFieldMenu(null)
-              }}
-            >
-              Hide in view
-            </button>
-            <button
-              type="button"
-              className="w-full px-2 py-1 flex items-center gap-1 text-left text-sm rounded text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-              onClick={() => {
-                if (window.confirm(`Delete field "${menuField.name}"?`)) {
-                  void grid.removeField(menuField.id)
-                }
-                setFieldMenu(null)
-              }}
-            >
-              <Trash2 className="w-3.5 h-3.5" /> Delete field
-            </button>
-          </div>
-        </div>
-      )}
-
-      {/* Add field popover */}
-      {addingField && (
-        <div
-          className="fixed inset-0 z-40 flex items-start justify-center pt-32"
-          onMouseDown={(e) => {
-            if (e.target === e.currentTarget) setAddingField(false)
-          }}
-        >
-          <div className="w-72 rounded-lg border border-border bg-white dark:bg-gray-900 shadow-xl p-3">
-            <h3 className="text-sm font-medium mb-2">New field</h3>
-            <input
-              type="text"
-              aria-label="New field name"
-              placeholder="Field name"
-              value={newFieldName}
-              autoFocus
-              className="w-full mb-2 px-2 py-1 text-sm rounded border border-border bg-transparent outline-none focus:border-blue-400"
-              onChange={(e) => setNewFieldName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') void submitAddField()
-                if (e.key === 'Escape') setAddingField(false)
-                e.stopPropagation()
-              }}
-            />
-            <select
-              aria-label="New field type"
-              value={newFieldType}
-              className="w-full mb-3 px-2 py-1 text-sm rounded border border-border bg-transparent"
-              onChange={(e) => setNewFieldType(e.target.value as FieldType)}
-            >
-              {CREATABLE_FIELD_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
-              ))}
-            </select>
-            <div className="flex justify-end gap-2">
+                }}
+              />
+              <select
+                aria-label="Field type"
+                value={menuField.type}
+                className="w-full mb-2 px-2 py-1 text-sm rounded border border-border bg-transparent"
+                onChange={(e) => {
+                  void grid.changeFieldType(menuField.id, e.target.value as FieldType)
+                }}
+              >
+                {CREATABLE_FIELD_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+              <FieldConfigEditor
+                field={menuField}
+                fields={grid.fields}
+                onSave={(config) => {
+                  void grid.updateFieldConfig(menuField.id, config)
+                }}
+              />
               <button
                 type="button"
-                className="px-3 py-1 text-sm rounded hover:bg-gray-50 dark:hover:bg-gray-800"
-                onClick={() => setAddingField(false)}
+                className="w-full px-2 py-1 text-left text-sm rounded hover:bg-gray-50 dark:hover:bg-gray-800"
+                onClick={() => {
+                  void grid.setFieldHidden(menuField.id, true)
+                  setFieldMenu(null)
+                }}
               >
-                Cancel
+                Hide in view
               </button>
               <button
                 type="button"
-                className="px-3 py-1 text-sm rounded bg-primary text-white hover:bg-primary/90 disabled:opacity-50"
-                disabled={!newFieldName.trim()}
-                onClick={() => void submitAddField()}
+                className="w-full px-2 py-1 flex items-center gap-1 text-left text-sm rounded text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                onClick={() => {
+                  if (window.confirm(`Delete field "${menuField.name}"?`)) {
+                    void grid.removeField(menuField.id)
+                  }
+                  setFieldMenu(null)
+                }}
               >
-                Add
+                <Trash2 className="w-3.5 h-3.5" /> Delete field
               </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Cell comments — one island for reading a thread and for starting
+        {/* Add field popover */}
+        {addingField && (
+          <div
+            className="fixed inset-0 z-40 flex items-start justify-center pt-32"
+            onMouseDown={(e) => {
+              if (e.target === e.currentTarget) setAddingField(false)
+            }}
+          >
+            <div className="w-72 rounded-lg border border-border bg-white dark:bg-gray-900 shadow-xl p-3">
+              <h3 className="text-sm font-medium mb-2">New field</h3>
+              <input
+                type="text"
+                aria-label="New field name"
+                placeholder="Field name"
+                value={newFieldName}
+                autoFocus
+                className="w-full mb-2 px-2 py-1 text-sm rounded border border-border bg-transparent outline-none focus:border-blue-400"
+                onChange={(e) => setNewFieldName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') void submitAddField()
+                  if (e.key === 'Escape') setAddingField(false)
+                  e.stopPropagation()
+                }}
+              />
+              <select
+                aria-label="New field type"
+                value={newFieldType}
+                className="w-full mb-3 px-2 py-1 text-sm rounded border border-border bg-transparent"
+                onChange={(e) => setNewFieldType(e.target.value as FieldType)}
+              >
+                {CREATABLE_FIELD_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  className="px-3 py-1 text-sm rounded hover:bg-gray-50 dark:hover:bg-gray-800"
+                  onClick={() => setAddingField(false)}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  className="px-3 py-1 text-sm rounded bg-primary text-white hover:bg-primary/90 disabled:opacity-50"
+                  disabled={!newFieldName.trim()}
+                  onClick={() => void submitAddField()}
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Cell comments — one island for reading a thread and for starting
           the first one, replacing the bespoke composer that carried its own
           hand-rolled positioning (0375). */}
-      {commentPopover && (
-        <CommentIsland
-          thread={activeThread}
-          anchor={toAnchorLike(commentPopover.anchor)}
-          mode={activeThread ? 'full' : 'composing'}
-          open
-          side="bottom"
-          position={
-            cellThreads.length > 1
-              ? {
-                  index: activeThreadIndex,
-                  total: cellThreads.length,
-                  onPrev: () => stepThread(-1),
-                  onNext: () => stepThread(1)
-                }
-              : undefined
-          }
-          onReply={(content) => {
-            void comments.commentOnCell(commentPopover.rowId, commentPopover.fieldId, content)
-          }}
-          onCreate={(content) => {
-            void comments.commentOnCell(commentPopover.rowId, commentPopover.fieldId, content)
-            setCommentPopover(null)
-          }}
-          onDismiss={() => setCommentPopover(null)}
-        />
-      )}
-    </div>
+        {commentPopover && (
+          <CommentIsland
+            thread={activeThread}
+            anchor={toAnchorLike(commentPopover.anchor)}
+            mode={activeThread ? 'full' : 'composing'}
+            open
+            side="bottom"
+            position={
+              cellThreads.length > 1
+                ? {
+                    index: activeThreadIndex,
+                    total: cellThreads.length,
+                    onPrev: () => stepThread(-1),
+                    onNext: () => stepThread(1)
+                  }
+                : undefined
+            }
+            onReply={(content) => {
+              void comments.commentOnCell(commentPopover.rowId, commentPopover.fieldId, content)
+            }}
+            onCreate={(content) => {
+              void comments.commentOnCell(commentPopover.rowId, commentPopover.fieldId, content)
+              setCommentPopover(null)
+            }}
+            onDismiss={() => setCommentPopover(null)}
+          />
+        )}
+      </div>
+    </AttachmentLightboxProvider>
   )
 }

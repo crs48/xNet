@@ -15,8 +15,8 @@
  * "timezone semantics" decision.
  */
 
-import type { CellValue, FileRef, MapViewport, ViewGroupMeta } from '@xnetjs/data'
 import type { GridField } from '../grid/model.js'
+import type { CellValue, FileRef, MapViewport, ViewGroupMeta } from '@xnetjs/data'
 
 // ─── Rows and windowing ─────────────────────────────────────────────────────
 
@@ -115,6 +115,8 @@ export interface DatabaseViewProps {
   onCreateOption?: (fieldId: string, name: string) => Promise<string | null>
   /** Resolve a FileRef to a displayable URL (covers, thumbnails) */
   onResolveFileUrl?: (ref: FileRef) => Promise<string>
+  /** Resolve a ref's small preview, preferred over the full file (0385 W4) */
+  onResolveThumbUrl?: (ref: FileRef) => Promise<string | null>
   /**
    * Map views: the visible `[west, south, east, north]` bounds changed.
    * The shell feeds this back as a spatial query window so only visible
