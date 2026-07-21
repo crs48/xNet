@@ -31,11 +31,24 @@
   ],
   "routes": [
     {
+      "id": "data",
+      "label": "Data",
+      "file": "routes/data.png",
+      "status": "changed",
+      "ssim": 0.996832,
+      "before": "before/routes/data.png",
+      "after": "routes/data.png",
+      "diff": "diff/routes/data.png"
+    },
+    {
       "id": "home",
       "label": "Home",
       "file": "routes/home.png",
-      "status": "unchanged",
-      "ssim": 0.99879
+      "status": "changed",
+      "ssim": 0.981635,
+      "before": "before/routes/home.png",
+      "after": "routes/home.png",
+      "diff": "diff/routes/home.png"
     }
   ],
   "electron": [],
@@ -48,5 +61,5 @@
       "poster": "flows/create-page.poster.png"
     }
   ],
-  "changedCount": 1
+  "changedCount": 3
 }
