@@ -543,6 +543,21 @@ interface RecordLens<N, R> {
 
 ## Implementation Checklist
 
+> **Implementation status (this pass).** 12 of the 13 items below landed with
+> tests. The one still open is **Recovery anchor GA** — its reusable client
+> orchestration (`apps/web/src/identity/atproto-recovery.ts`) is built and
+> tested, but the onboarding *screen* that consumes it (a new state in the
+> identity-import machine) is deliberately deferred: it is a large UI surface
+> that cannot be meaningfully verified without a live PDS. A security fix not
+> on the original list also landed — the escrow **release gate authorised on
+> public data alone** and accepted a ceremony code it never read, so knowing a
+> victim's xNet DID was enough to collect their sealed blob; it now requires a
+> single-use challenge the recovering user writes into their own repo
+> (`packages/hub/src/services/atproto-challenge.ts`). Four validation items are
+> checked (the two testable invariants, the grep gate, the charter check); the
+> rest need a live network (bsky.social, `listReposByCollection`, a real
+> publish/recover round trip) and stay open for a staging pass.
+
 The consolidated interop backlog, in order. (Items marked with their source
 doc; this list supersedes the scattered per-doc checklists as the single
 sequence.)
@@ -593,18 +608,18 @@ sequence.)
       renders as a rich card in Bluesky, whose canonical URL serves the
       body from the hub; withdrawing deletes the record; republishing
       updates in place (no duplicates)
-- [ ] A node with a float or formula property and a `publish` capability
+- [x] A node with a float or formula property and a `publish` capability
       fails schema authoring with a clear message
 - [ ] A hub with the knot records is discoverable via
       `listReposByCollection(fyi.xnet.hub)` and its countersignature
       verifies
-- [ ] Round-trip test: incarnated record edited by a foreign typed client
+- [x] Round-trip test: incarnated record edited by a foreign typed client
       (fields we don't model) survives an xNet write-back with unknown
       fields intact (extras bag)
-- [ ] Grep gate: no import of any ATProto client outside the designated
+- [x] Grep gate: no import of any ATProto client outside the designated
       integration modules (0367's "no feature code ever imports an ATProto
       client")
-- [ ] Charter check: index reads remain free; no revenue lane depends on
+- [x] Charter check: index reads remain free; no revenue lane depends on
       access to reproducible public data
 
 ## References
