@@ -1,4 +1,21 @@
 import tailwindcssAnimate from 'tailwindcss-animate'
+import plugin from 'tailwindcss/plugin'
+
+/**
+ * Size modifiers for the scroll-edge fade (exploration 0386).
+ *
+ * The utilities themselves live in `src/theme/scroll-fade.css` — they need
+ * `@property` registrations and `@supports`, which a config can't express.
+ * This only exposes the depth knob on the spacing scale, so
+ * `scroll-fade scroll-fade-4` or `scroll-fade-[3rem]` tune the fade without
+ * hand-writing a custom property.
+ */
+const scrollFade = plugin(({ matchUtilities, theme }) => {
+  matchUtilities(
+    { 'scroll-fade': (value) => ({ '--scroll-fade-size': value }) },
+    { values: theme('spacing') }
+  )
+})
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -389,5 +406,5 @@ export default {
       }
     }
   },
-  plugins: [tailwindcssAnimate]
+  plugins: [tailwindcssAnimate, scrollFade]
 }

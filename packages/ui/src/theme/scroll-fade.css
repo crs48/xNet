@@ -1,0 +1,224 @@
+/**
+ * Scroll-edge fade affordance (exploration 0386)
+ *
+ * A subtle gradient at the edge of a scrollable container: content
+ * dissolves toward the background when there is more to scroll, and the
+ * fade collapses to nothing once you reach that edge (or when the
+ * container does not scroll at all).
+ *
+ * The fade is a `mask-image`, not an overlay gradient — it fades the
+ * CONTENT's alpha rather than painting a background-coloured scrim on top.
+ * That is what makes it correct on every surface we have: the `--surface-*`
+ * ramp, the `.wb-root` island planes, and the `linear`/`cozy`/`true-black`
+ * variants all differ, and a hard-coded gradient colour would be wrong on
+ * most of them. A mask needs no colour at all.
+ *
+ * Scroll awareness comes from scroll-driven animations. The two fade
+ * distances are `@property`-registered lengths animated against
+ * `scroll(self)`. When a container has no overflow its scroll timeline is
+ * inert, the animations apply nothing, and the registered `0px` initial
+ * values render no fade — so "fade out when there is nothing left to
+ * scroll" falls out of the platform rather than being detected.
+ *
+ * Browser support: Chromium 115+ (incl. Electron 33's ~130) and Safari 26+.
+ * Firefox stable still flags scroll-driven animations, so the whole block
+ * is `@supports`-gated and degrades to NO fade there. That is deliberate:
+ * a static always-on fade would half-hide the last row of a list that
+ * isn't scrollable, which is the exact thing this affordance exists to
+ * avoid. Surfaces that need the effect cross-browser should use the
+ * ScrollArea primitive's `fade` prop instead (see below).
+ *
+ * One characteristic to know: a mask applies to the whole element box, so a
+ * scroller that draws its OWN border will see that border fade at the
+ * masked edges too. Put the fade on the inner scroller and the border on
+ * its parent (which is how every current consumer is already built).
+ */
+
+/* Registered so the browser can interpolate them. The `0px` initial value
+   is load-bearing: it is what renders when the timeline is inert. */
+@property --sf-start {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --sf-end {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+.scroll-fade,
+.scroll-fade-b,
+.scroll-fade-x {
+  /* Depth of the fade at a fully-scrollable edge. */
+  --scroll-fade-size: 2rem;
+  /* Scroll distance over which the fade ramps in/out at each edge. Keeps
+     the fade from popping, and keeps short scrollers from flashing a
+     full-depth fade over a few pixels of overflow. */
+  --scroll-fade-reveal: 96px;
+}
+
+.scroll-fade-none {
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+@supports (animation-timeline: scroll(self)) {
+  .scroll-fade {
+    -webkit-mask-image: linear-gradient(
+      to bottom,
+      transparent,
+      black var(--sf-start),
+      black calc(100% - var(--sf-end)),
+      transparent
+    );
+    mask-image: linear-gradient(
+      to bottom,
+      transparent,
+      black var(--sf-start),
+      black calc(100% - var(--sf-end)),
+      transparent
+    );
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+
+    /* The shorthand resets animation-timeline/-range, so those longhands
+       MUST follow it. */
+    animation:
+      sf-in linear both,
+      sf-out linear both;
+    animation-timeline: scroll(self block), scroll(self block);
+    animation-range:
+      0px var(--scroll-fade-reveal),
+      calc(100% - var(--scroll-fade-reveal)) 100%;
+    /* Ignored for progress-based timelines, but Firefox refuses to apply an
+       animation with a zero duration. */
+    animation-duration: 1ms, 1ms;
+  }
+
+  /* Bottom edge only — for containers with a sticky header, which a top
+     fade would dim. */
+  .scroll-fade-b {
+    -webkit-mask-image: linear-gradient(to bottom, black calc(100% - var(--sf-end)), transparent);
+    mask-image: linear-gradient(to bottom, black calc(100% - var(--sf-end)), transparent);
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+
+    animation: sf-out linear both;
+    animation-timeline: scroll(self block);
+    animation-range: calc(100% - var(--scroll-fade-reveal)) 100%;
+    animation-duration: 1ms;
+  }
+
+  /* Horizontal. `scroll(self inline)` is already direction-aware, so only
+     the gradient's physical direction needs flipping for RTL. */
+  .scroll-fade-x {
+    -webkit-mask-image: linear-gradient(
+      to right,
+      transparent,
+      black var(--sf-start),
+      black calc(100% - var(--sf-end)),
+      transparent
+    );
+    mask-image: linear-gradient(
+      to right,
+      transparent,
+      black var(--sf-start),
+      black calc(100% - var(--sf-end)),
+      transparent
+    );
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+
+    animation:
+      sf-in linear both,
+      sf-out linear both;
+    animation-timeline: scroll(self inline), scroll(self inline);
+    animation-range:
+      0px var(--scroll-fade-reveal),
+      calc(100% - var(--scroll-fade-reveal)) 100%;
+    animation-duration: 1ms, 1ms;
+  }
+
+  [dir='rtl'] .scroll-fade-x {
+    -webkit-mask-image: linear-gradient(
+      to left,
+      transparent,
+      black var(--sf-start),
+      black calc(100% - var(--sf-end)),
+      transparent
+    );
+    mask-image: linear-gradient(
+      to left,
+      transparent,
+      black var(--sf-start),
+      black calc(100% - var(--sf-end)),
+      transparent
+    );
+  }
+
+  /* `both` fill is what encodes the four states. At scroll 0 the sf-out
+     range has not been entered, so it fills backwards from its `from`
+     frame (a full end fade) while sf-in holds `--sf-start` at 0 — i.e.
+     "more below, nothing above". At the far edge sf-out reaches its `to`
+     frame and the end fade collapses to 0. */
+  @keyframes sf-in {
+    from {
+      --sf-start: 0px;
+    }
+    to {
+      --sf-start: var(--scroll-fade-size);
+    }
+  }
+
+  @keyframes sf-out {
+    from {
+      --sf-end: var(--scroll-fade-size);
+    }
+    to {
+      --sf-end: 0px;
+    }
+  }
+
+  /* `.scroll-fade-none` must win over the utilities above regardless of
+     source order. */
+  .scroll-fade-none {
+    -webkit-mask-image: none;
+    mask-image: none;
+    animation: none;
+  }
+}
+
+/**
+ * ScrollArea primitive integration.
+ *
+ * Base UI publishes live per-edge overflow distances on the Viewport as
+ * `--scroll-area-overflow-y-start/end`, so the same mask works with no
+ * keyframes, no timelines and no `@supports` gate — including Firefox.
+ * `min()` clamps the fade to the distance actually left to scroll, which
+ * gives the same continuous collapse at each edge.
+ *
+ * Masking the Viewport (rather than the Root) also leaves the scrollbar
+ * crisp: it is a sibling of the Viewport, not a descendant.
+ */
+.xnet-scroll-fade-viewport {
+  --scroll-fade-size: 2rem;
+
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    black min(var(--scroll-fade-size), var(--scroll-area-overflow-y-start, 0px)),
+    black calc(100% - min(var(--scroll-fade-size), var(--scroll-area-overflow-y-end, 0px))),
+    transparent
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    black min(var(--scroll-fade-size), var(--scroll-area-overflow-y-start, 0px)),
+    black calc(100% - min(var(--scroll-fade-size), var(--scroll-area-overflow-y-end, 0px))),
+    transparent
+  );
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}

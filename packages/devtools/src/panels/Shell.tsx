@@ -129,7 +129,7 @@ export function DevToolsPanel() {
               </button>
             }
           >
-            <div className="w-56 max-h-[50vh] overflow-y-auto py-1">
+            <div className="scroll-fade w-56 max-h-[50vh] overflow-y-auto py-1">
               {secondaryPanelsByGroup().map(({ group, panels }) => (
                 <div key={group} className="py-1">
                   <div className="px-3 py-0.5 text-[9px] font-bold uppercase tracking-wide text-ink-3">

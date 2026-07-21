@@ -9,6 +9,7 @@
  * `groupMeta`); collapse state persists per view in `collapsedGroups`.
  */
 
+import type { GridField } from '../grid/model.js'
 import {
   DndContext,
   DragOverlay,
@@ -37,7 +38,6 @@ import { useEntangleBind, useEntangledHighlight } from '@xnetjs/react'
 import { cn } from '@xnetjs/ui'
 import { ChevronRight, Plus } from 'lucide-react'
 import React, { useCallback, useMemo, useState } from 'react'
-import type { GridField } from '../grid/model.js'
 import { optionChipStyle } from '../properties/optionColors.js'
 import { CardCover, FieldValueChip, WindowFootnote, firstFileRef } from './card-bits.js'
 import {
@@ -425,7 +425,16 @@ export function BoardView(props: DatabaseViewProps): React.JSX.Element {
 
   return (
     <div className={cn('flex h-full flex-col overflow-hidden', className)} data-testid="board-view">
-      <div className={cn('flex-1 overflow-x-auto overflow-y-hidden', compact ? 'p-2' : 'p-4')}>
+      {/* Lane strip fades at whichever inline edge still has lanes (0386).
+          Suspended mid-drag: DragOverlay renders inside this container, so
+          the mask would fade the card being dragged near an edge. */}
+      <div
+        className={cn(
+          'flex-1 overflow-x-auto overflow-y-hidden',
+          activeCard ? 'scroll-fade-none' : 'scroll-fade-x',
+          compact ? 'p-2' : 'p-4'
+        )}
+      >
         <DndContext
           sensors={sensors}
           collisionDetection={collisionDetection}
