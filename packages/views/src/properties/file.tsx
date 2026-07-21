@@ -16,6 +16,13 @@ import { Paperclip, Upload, X } from 'lucide-react'
 import React, { useEffect, useRef, useState } from 'react'
 import { useAttachmentLightbox } from '../attachments/AttachmentLightboxProvider.js'
 
+/**
+ * Where a file's bytes are, as far as this device knows. Mirrors
+ * BlobTransferState in @xnetjs/data (exploration 0385 W3) but kept structural
+ * so @xnetjs/views doesn't depend on the transfer queue.
+ */
+export type FileAvailability = 'available' | 'downloading' | 'unavailable'
+
 export interface FileCellConfig {
   accept?: string[]
   /** Keep several files per cell; otherwise a new upload replaces the old. */
@@ -89,28 +96,57 @@ export function useFileUrl(
   ref: FileRef | null | undefined,
   config?: Record<string, unknown>
 ): string | null {
+  return useFileResource(ref, config).url
+}
+
+/**
+ * Resolve a ref and report where its bytes are.
+ *
+ * `onResolveFileUrl` goes through the app's BlobService, which (with a
+ * transfer queue wired in, 0385 W3) fetches missing bytes from the hub. A
+ * rejection therefore means "not here and not fetchable" — an attachment
+ * stranded on the device that created it — which the chip says out loud
+ * instead of rendering an empty box.
+ */
+export function useFileResource(
+  ref: FileRef | null | undefined,
+  config?: Record<string, unknown>
+): { url: string | null; availability: FileAvailability } {
   const resolver = (config as FileCellConfig | undefined)?.onResolveFileUrl
   const cached = ref ? (urlCache.get(ref.cid) ?? null) : null
   const [url, setUrl] = useState<string | null>(cached)
+  const [availability, setAvailability] = useState<FileAvailability>('available')
 
   useEffect(() => {
     if (!ref || !resolver) {
+      // No resolver is not evidence of a missing file — the surface simply
+      // isn't wired for previews (read-only hosts, tests). Only a resolver
+      // that *fails* means the bytes are stranded elsewhere.
       setUrl(null)
+      setAvailability('available')
       return
     }
     const hit = urlCache.get(ref.cid)
     if (hit) {
       setUrl(hit)
+      setAvailability('available')
       return
     }
     let mounted = true
+    setAvailability('downloading')
     resolver(ref)
       .then((resolved) => {
         urlCache.set(ref.cid, resolved)
-        if (mounted) setUrl(resolved)
+        if (mounted) {
+          setUrl(resolved)
+          setAvailability('available')
+        }
       })
       .catch(() => {
-        if (mounted) setUrl(null)
+        if (mounted) {
+          setUrl(null)
+          setAvailability('unavailable')
+        }
       })
     return () => {
       mounted = false
@@ -118,7 +154,7 @@ export function useFileUrl(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ref?.cid, resolver])
 
-  return url
+  return { url, availability }
 }
 
 /**
@@ -140,11 +176,14 @@ function FileChip({
   siblings?: FileRef[]
   onRemove?: () => void
 }): React.JSX.Element {
-  const url = useFileUrl(value, config)
+  const { url, availability } = useFileResource(value, config)
   const openLightbox = useAttachmentLightbox()
 
   const refs = siblings?.length ? siblings : [value]
-  const previewable = Boolean(openLightbox)
+  const stranded = availability === 'unavailable'
+  // A file whose bytes we can't get can't be opened — say so rather than
+  // presenting an affordance that does nothing.
+  const previewable = Boolean(openLightbox) && !stranded
 
   return (
     <span
@@ -193,7 +232,17 @@ function FileChip({
         <Paperclip className="w-3 h-3 text-gray-500 shrink-0" />
       )}
       <span className="truncate">{value.name}</span>
-      <span className="text-gray-400 shrink-0">({formatFileSize(value.size)})</span>
+      {stranded ? (
+        <span
+          data-testid="file-unavailable"
+          title="This file was added on another device and hasn’t synced here yet"
+          className="shrink-0 text-gray-400 italic"
+        >
+          (on another device)
+        </span>
+      ) : (
+        <span className="text-gray-400 shrink-0">({formatFileSize(value.size)})</span>
+      )}
       {onRemove && (
         <button
           type="button"

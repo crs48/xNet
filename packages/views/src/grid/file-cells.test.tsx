@@ -272,6 +272,21 @@ describe('multi-file cells', () => {
     expect(onCommit).toHaveBeenCalledWith([imageRef], 'picker-select')
   })
 
+  it('says "on another device" only when a resolver actually fails', async () => {
+    // Stranded: the surface can resolve, but these bytes aren't reachable.
+    const failing = vi.fn(async () => {
+      throw new Error('not here')
+    })
+    const { unmount } = render(<>{fileHandler.render(pdfRef, { onResolveFileUrl: failing })}</>)
+    expect(await screen.findByTestId('file-unavailable')).toBeTruthy()
+    unmount()
+
+    // No resolver at all is not evidence of absence — show the size.
+    render(<>{fileHandler.render(pdfRef, {})}</>)
+    expect(screen.queryByTestId('file-unavailable')).toBeNull()
+    expect(screen.getByText('(4 KB)')).toBeTruthy()
+  })
+
   it('rejects files outside the accept list', async () => {
     const onUploadFile = vi.fn(async () => pdfRef)
     render(

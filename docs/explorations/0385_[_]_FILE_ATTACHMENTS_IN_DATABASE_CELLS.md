@@ -526,20 +526,20 @@ returns `{ url, state }` so `FileChip` can render a subtle
 
 ### W3 — Blob transfer
 
-- [ ] `HubFilesClient` in `@xnetjs/react` or `@xnetjs/data`: `put`/`get`/
+- [x] `HubFilesClient` in `@xnetjs/react` or `@xnetjs/data`: `put`/`get`/
       `head /files/:cid` with UCAN auth (fold in/replace
       `packages/react/src/hooks/useFileUpload.ts` so there is one client).
-- [ ] `BlobTransferQueue` in `packages/data/src/blob/`: persisted per-CID
+- [x] `BlobTransferQueue` in `packages/data/src/blob/`: persisted per-CID
       state (`local | uploading | synced | remote | downloading`),
       exponential backoff, resume on boot; unit tests with a memory adapter
       (no real timers — 0294).
-- [ ] Wire into both boot sequences next to `BlobService` construction;
+- [x] Wire into both boot sequences next to `BlobService` construction;
       `handleUploadFile` enqueues upload after local store.
-- [ ] `useFileUrl` → `{ url, state }`; chip renders downloading/unavailable
+- [x] `useFileUrl` → `{ url, state }`; chip renders downloading/unavailable
       states.
-- [ ] Verify downloaded bytes hash to the requested CID before storing
+- [x] Verify downloaded bytes hash to the requested CID before storing
       (client-side mirror of the hub's `CID_MISMATCH` check).
-- [ ] Hub-less workspaces: queue idles cleanly; chip shows "on another
+- [x] Hub-less workspaces: queue idles cleanly; chip shows "on another
       device" instead of erroring.
 - [ ] E2E: attach on client A, fetch+view on client B through a test hub
       (ports per the claimed 14580–95 range convention).

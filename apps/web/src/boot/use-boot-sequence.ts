@@ -9,7 +9,12 @@ import type { AppState, StorageContext } from './boot-machine'
 import type { SQLiteAdapter } from '@xnetjs/sqlite'
 import type { TraceCollector } from '@xnetjs/telemetry'
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react'
-import { SQLiteNodeStorageAdapter, BlobService } from '@xnetjs/data'
+import {
+  SQLiteNodeStorageAdapter,
+  BlobService,
+  BlobTransferQueue,
+  HubFilesClient
+} from '@xnetjs/data'
 import {
   checkBrowserSupport,
   checkPersistentStorage,
@@ -33,7 +38,6 @@ import { scheduleChangeLogCompaction } from '../lib/change-log-compaction'
 import { getDataRuntime, isWorkerRuntimeEnabled } from '../lib/data-runtime'
 import { schedulePeriodicOptimize } from '../lib/db-optimize'
 import { scheduleOneTimeVacuum } from '../lib/db-vacuum'
-import { resolveHubSessionFromLocation } from './hub-session'
 import { identityManager } from '../lib/identity'
 import { startMainThreadStallDetector } from '../lib/main-thread-stall'
 import { scheduleStalePresenceCleanup } from '../lib/presence-blob-cleanup'
@@ -44,6 +48,7 @@ import { looksEvicted, probeStoreColdStart, recordColdStartProbe } from '../lib/
 import { createWebTraceCollector } from '../lib/tracing'
 import { BOOT_TIMEOUT_MS } from './boot-machine'
 import { captureDemoSeedSignalFromLocation } from './demo-seed'
+import { resolveHubSessionFromLocation } from './hub-session'
 
 // Hub/session URL resolution lives in ./hub-session (extracted so it's
 // testable without this module's SQLite worker imports — 0290 follow-up).
@@ -254,6 +259,18 @@ export function useBootSequence(): BootSequence {
         const blobStore = new BlobStore(storageAdapter)
         const chunkManager = new ChunkManager(blobStore)
         const blobService = new BlobService(chunkManager)
+        // Attachment bytes ride a sideband to the hub, never the change log
+        // (exploration 0385 W3). Without a hub the queue idles and files stay
+        // local-only — a supported state, surfaced in the cell.
+        const blobTransfers = new BlobTransferQueue({
+          blobs: blobService,
+          hub: hubUrl
+            ? new HubFilesClient({
+                hubUrl,
+                getAuthToken: () => authToken ?? ''
+              })
+            : undefined
+        })
 
         if (cancelled) {
           await storageAdapter.close()
@@ -270,6 +287,7 @@ export function useBootSequence(): BootSequence {
           storageAdapter,
           blobStore,
           blobService,
+          blobTransfers,
           dataWorkerStoragePort
         }
 

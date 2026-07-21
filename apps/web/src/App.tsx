@@ -36,8 +36,8 @@ import { StorageOptimiseHint } from './components/StorageOptimiseHint'
 import { StorageWarningBanner } from './components/StorageWarningBanner'
 import { WarmStartSnapshots } from './components/WarmStartSnapshots'
 import { WorkingSetPrewarm } from './components/WorkingSetPrewarm'
-import { AtprotoProfileLinker } from './identity/AtprotoProfileLinker'
 import { runAtprotoCeremony } from './identity/atproto-ceremony'
+import { AtprotoProfileLinker } from './identity/AtprotoProfileLinker'
 import { reportBootFailure } from './lib/boot-diagnostics'
 import {
   clearXNetBrowserStorage,
@@ -409,7 +409,7 @@ export function App(): JSX.Element {
             traceCollector={traceCollector}
             onResetLocalData={requestXNetBrowserStorageReset}
           >
-            <BlobProvider blobService={storage.blobService}>
+            <BlobProvider blobService={storage.blobService} blobTransfers={storage.blobTransfers}>
               <OfflineIndicator />
               <RouterProvider router={router} />
             </BlobProvider>

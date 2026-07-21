@@ -27,7 +27,7 @@ import {
   parseRow,
   resolveRowHeightPx
 } from '@xnetjs/data'
-import { useBlobService } from '@xnetjs/editor/react'
+import { useBlobService, useBlobTransfers } from '@xnetjs/editor/react'
 import { useGridDatabase, useIdentity, useNode } from '@xnetjs/react'
 import {
   CommentIsland,
@@ -203,24 +203,37 @@ export function DatabaseView({ docId }: DatabaseViewProps) {
 
   // ─── File attachments (BlobService: local-first, chunked) ─────────────────
   const blobService = useBlobService()
+  const blobTransfers = useBlobTransfers()
   const handleUploadFile = useCallback(
     async (file: File): Promise<FileRef | null> => {
       if (!blobService) return null
       try {
-        return await blobService.upload(file)
+        const ref = await blobService.upload(file)
+        // Bytes go to the hub in the background so peers can fetch them;
+        // attaching never waits on the network (exploration 0385 W3).
+        blobTransfers?.enqueueUpload(ref)
+        return ref
       } catch (err) {
         console.error('[DatabaseView] file upload failed:', err)
         return null
       }
     },
-    [blobService]
+    [blobService, blobTransfers]
   )
   const handleResolveFileUrl = useCallback(
     async (ref: FileRef): Promise<string> => {
       if (!blobService) throw new Error('BlobService unavailable')
+      // A ref that arrived by sync has no local bytes yet — fetch on first
+      // view rather than bulk-replicating every attachment.
+      if (blobTransfers) {
+        const state = await blobTransfers.ensureLocal(ref)
+        if (state !== 'synced' && state !== 'local') {
+          throw new Error(`File unavailable (${state}): ${ref.name}`)
+        }
+      }
       return blobService.getUrl(ref)
     },
-    [blobService]
+    [blobService, blobTransfers]
   )
   // Config for the surface-wide attachment lightbox (exploration 0385)
   const lightboxConfig = useMemo(

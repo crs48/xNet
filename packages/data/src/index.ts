@@ -939,7 +939,19 @@ export {
 } from './auth'
 
 // Blob service
-export { BlobService, type BlobServiceOptions } from './blob'
+export {
+  BlobService,
+  type BlobServiceOptions,
+  BlobTransferQueue,
+  MemoryTransferStateStore,
+  HubFilesClient,
+  HubFilesError,
+  type BlobTransferQueueOptions,
+  type BlobTransferRecord,
+  type BlobTransferState,
+  type HubFilesClientOptions,
+  type TransferStateStore
+} from './blob'
 
 // Database operations
 export {
