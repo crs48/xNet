@@ -572,7 +572,7 @@ sequence.)
 - [ ] **Snapshot/checkpoint primitive** — signed Space snapshot; bounded
       replay window on hubs behind it (0333; unblocks 0258 anti-entropy and
       future encrypted atmosphere backup per 0324)
-- [ ] **Withdraw semantics in the type system** — asymmetric visibility
+- [x] **Withdraw semantics in the type system** — asymmetric visibility
       dial; no "make private" affordance anywhere (0365)
 - [ ] **Positioning copy** — "the E2E-encrypted workspace for your ATProto
       identity"; Germ-slot framing on the site (0324)

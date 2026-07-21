@@ -656,6 +656,15 @@ export {
   BUILTIN_RECORD_LENSES,
   registerBuiltinRecordLenses,
 
+  // Atmosphere publish state — the one-way door (0365/0389)
+  type AtmospherePublishState,
+  type AtmospherePublishAction,
+  type NodeVisibilityValue,
+  applyAtmosphereAction,
+  availableAtmosphereActions,
+  canEnterAtmosphere,
+  assertCanPublish,
+
   // Lens builder utilities
   rename,
   convert,
