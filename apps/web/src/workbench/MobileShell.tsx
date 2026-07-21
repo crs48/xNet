@@ -46,6 +46,7 @@ import { EditorArea } from './EditorArea'
 import { useFocusRing } from './focus'
 import { DoubleStar, MobileOverlays } from './mobile-overlays'
 import { navigateToNode } from './navigation'
+import { QuickCreateHost } from './QuickCreateHost'
 import { selectActiveTab, useWorkbench, type WorkbenchTab } from './state'
 import { CHIP } from './SyncStatus'
 import { useRouteTitle } from './route-title'
@@ -404,6 +405,7 @@ export function MobileShell({ children }: { children: ReactNode }) {
     <div className={FRAME} data-wb-shell="mobile">
       <WorkspaceCommands />
       <GlobalSearch />
+      <QuickCreateHost />
       <MobileDemoBanner />
 
       <Header

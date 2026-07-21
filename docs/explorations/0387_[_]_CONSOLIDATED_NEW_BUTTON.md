@@ -300,12 +300,12 @@ sequenceDiagram
 
 ## Implementation Checklist
 
-- [ ] Register `chats.newChannel` command in the Chats panel (activates
+- [x] Register `chats.newChannel` command in the Chats panel (activates
       Chats surface, opens the existing inline channel creator).
-- [ ] Register `spaces.new` command (activates Explorer/Spaces context,
+- [x] Register `spaces.new` command (activates Explorer/Spaces context,
       opens the existing new-space name input) — host-component pattern if
       the section isn't mounted.
-- [ ] Register `tasks.new` command (activate Tasks surface, focus quick-add;
+- [x] Register `tasks.new` command (activate Tasks surface, focus quick-add;
       reuse `tasks.quickCreate` logic).
 - [ ] Add `createTask` / `createChannel` / `recordMeeting` / `createSpace`
       dispatchers to `useNewActions` (`apps/web/src/workbench/new-actions.ts`).

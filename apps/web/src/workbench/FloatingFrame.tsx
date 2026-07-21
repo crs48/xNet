@@ -24,6 +24,7 @@ import { EditorArea } from './EditorArea'
 import { EditorHeader } from './EditorHeader'
 import { FloatingDock } from './FloatingDock'
 import { FloatingMenus, type FloatingMenuName, type FloatingMenuState } from './FloatingMenus'
+import { QuickCreateHost } from './QuickCreateHost'
 import { SidebarIslands } from './SidebarIslands'
 import { useWorkbench } from './state'
 import { StatusBar } from './StatusBar'
@@ -84,6 +85,7 @@ export function FloatingFrame({ children }: { children: ReactNode }) {
 
         <FloatingMenus menu={menu} onClose={() => setMenu(null)} />
         <AddSharedHost />
+        <QuickCreateHost />
       </div>
     </UndoToastProvider>
   )
