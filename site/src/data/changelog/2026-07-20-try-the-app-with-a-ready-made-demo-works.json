@@ -1,0 +1,14 @@
+{
+  "id": "2026-07-20-try-the-app-with-a-ready-made-demo-works",
+  "date": "July 20, 2026",
+  "title": "Try the app with a ready-made demo workspace",
+  "summary": "Arriving from the landing page's Try-the-app link now opens a lived-in demo workspace — sample documents, a tasks database, chat channels, and CRM records — instead of an empty screen. The demo only seeds brand-new profiles; existing workspaces are never touched.",
+  "highlights": [
+    "Landing-page try links carry the demo signal (/app?demo=1)",
+    "Seed runs once, only for a fresh profile with no user content"
+  ],
+  "tags": [
+    "app"
+  ],
+  "pr": 609
+}
