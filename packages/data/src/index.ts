@@ -634,6 +634,21 @@ export {
   LensRegistry,
   lensRegistry,
 
+  // Record lenses (node ↔ foreign lexicon, explorations 0380/0389)
+  type RecordLens,
+  type RecordLensMode,
+  type LexiconRecord,
+  type Nsid,
+  type RoundTripReport,
+  RecordLensRegistry,
+  recordLensRegistry,
+  assertRoundTrip,
+  ingestRecord,
+  partitionRecord,
+  projectRecord,
+  recoverExtras,
+  stashExtras,
+
   // Lens builder utilities
   rename,
   convert,
