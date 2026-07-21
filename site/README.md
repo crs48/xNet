@@ -76,7 +76,7 @@ never a full re-argument. Seven sections, ~1,000 words, ~11 viewports:
 - The app (`#app`) — six marquee surfaces, links to `/app`
 - For developers (`#developers`) — code sample, links to `/react`, `/build-with`
 - Built for agents (`#agents`) — links to the agent-interfaces guide
-- Open to the studs (`#open`) — protocol / crypto / hubs / connectors tiles
+- No black boxes (`#open`) — protocol / crypto / hubs / connectors tiles
 - Built to be left (`#humane`) — commitments + stat strip, links to `/commitments`, `/roadmap`, `/open`
 - Get started (`#get-started`)
 
