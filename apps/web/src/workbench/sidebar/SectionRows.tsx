@@ -5,12 +5,18 @@
  * One grammar: a lens switches the tree below, a route navigates, a
  * pinned node opens. No panel/route fork, and no per-feature nav.
  */
-import { useNavigate } from '@tanstack/react-router'
+import { useNavigate, useRouterState } from '@tanstack/react-router'
 import { useMemo } from 'react'
 import { useRequestCount } from '../../hooks/useRequestCount'
 import { useWorkbench } from '../state'
 import { NavRow } from './NavRow'
-import { resolveSections, sectionIcon, type SidebarSection } from './sections'
+import { sidebarRegistry } from './registry'
+import {
+  isSectionActive,
+  resolveSections,
+  sectionIcon,
+  type SidebarSection
+} from './sections'
 
 /** Sections in user order, split into primary rows and the rest. */
 export function useSections(): { pinned: SidebarSection[]; hidden: SidebarSection[] } {
@@ -26,7 +32,11 @@ export function useSections(): { pinned: SidebarSection[]; hidden: SidebarSectio
   }, [sectionOrder, pinnedSectionIds])
 }
 
-/** Activate a section: lens switches the tree, route navigates. */
+/**
+ * Activate a section. Every kind moves the main area (exploration 0388) — a
+ * lens re-projects the tree *and* navigates to the lens's own destination,
+ * because a row that only re-filters the sidebar reads as a broken click.
+ */
 export function useActivateSection(): (section: SidebarSection) => void {
   const navigate = useNavigate()
   const setActiveLens = useWorkbench((s) => s.setActiveLens)
@@ -35,6 +45,7 @@ export function useActivateSection(): (section: SidebarSection) => void {
     () => (section: SidebarSection) => {
       if (section.kind === 'lens') {
         setActiveLens(section.target)
+        void navigate({ to: sidebarRegistry.getLens(section.target)?.route ?? '/' })
         return
       }
       if (section.kind === 'route') {
@@ -47,14 +58,28 @@ export function useActivateSection(): (section: SidebarSection) => void {
   )
 }
 
-export function SectionRow({
-  section,
-  active
-}: {
-  section: SidebarSection
-  active: boolean
-}): React.JSX.Element {
+/** Is this section the one currently open? Route-derived, so exactly one is. */
+export function useSectionActive(): (section: SidebarSection) => boolean {
+  const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const activeLensId = useWorkbench((s) => s.activeLensId)
+
+  return useMemo(
+    () => (section: SidebarSection) =>
+      isSectionActive({
+        section,
+        pathname,
+        activeLensId,
+        lensRoute: (lensId) => sidebarRegistry.getLens(lensId)?.route
+      }),
+    [pathname, activeLensId]
+  )
+}
+
+export function SectionRow({ section }: { section: SidebarSection }): React.JSX.Element {
   const activate = useActivateSection()
+  // Active state is derived here from the route rather than passed in, so
+  // there is exactly one answer to "where am I" (0388).
+  const active = useSectionActive()(section)
   const requestCount = useRequestCount()
   const Icon = sectionIcon(section)
   const count = section.badge === 'requests' ? requestCount : undefined

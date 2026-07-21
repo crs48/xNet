@@ -21,6 +21,7 @@ import { useRestoringFromHub } from '../lib/use-restoring'
 import { navigateToNode } from '../workbench/navigation'
 import { tabIdFor, useWorkbench } from '../workbench/state'
 import { setPreviewIntent } from '../workbench/tabs'
+import { HomeChats, homeHeading, lensShowsChats, lensShowsDocs } from './home-lens'
 import { hasOnboarded } from './welcome'
 
 export const Route = createFileRoute('/')({
@@ -36,16 +37,28 @@ interface DocInfo {
   updatedAt: number
 }
 
+/**
+ * Whether the 0166 startup-surface redirect has already run this session. Not
+ * component state: it must outlive HomePage remounts (see the effect below).
+ */
+let startupRedirectDone = false
+
 function HomePage() {
   const navigate = useNavigate()
   const [showCreateMenu, setShowCreateMenu] = useState(false)
 
-  // Configurable startup tab (0166): '/' opens the chosen surface.
+  // Configurable startup tab (0166): '/' opens the chosen surface — but only
+  // on the app's first landing. Since 0388 the All/Docs/Chats sections
+  // navigate to '/' deliberately, and a redirect that fired on every arrival
+  // would bounce the user straight back out of the surface they just asked
+  // for. `startupRedirectDone` is module-scoped, so it survives HomePage
+  // remounts and resets only on a real reload.
   const startupTab = useWorkbench((state) => state.startupTab)
+  const redirecting = Boolean(startupTab) && !startupRedirectDone
   useEffect(() => {
-    if (startupTab) {
-      navigateToNode(navigate, startupTab.nodeType, startupTab.nodeId)
-    }
+    if (!startupTab || startupRedirectDone) return
+    startupRedirectDone = true
+    navigateToNode(navigate, startupTab.nodeType, startupTab.nodeId)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
@@ -80,6 +93,11 @@ function HomePage() {
   const restoring = useRestoringFromHub()
   const { did } = useIdentity()
   const setStartupTab = useWorkbench((state) => state.setStartupTab)
+  // `/` is home for the All/Docs/Chats lenses (0388): the section that
+  // navigated here decides which projection this surface paints.
+  const activeLensId = useWorkbench((state) => state.activeLensId)
+  const showDocs = lensShowsDocs(activeLensId)
+  const showChats = lensShowsChats(activeLensId)
 
   // Combine and sort whatever the overlay has (snapshot first, then live). Each
   // section fills in independently, so the list grows as sections resolve
@@ -155,12 +173,13 @@ function HomePage() {
   // A configured startup surface (0166) redirects away from '/' in the effect
   // above, which runs after paint. Render nothing meanwhile so the user does
   // not see the full document-list chrome flash before navigation lands (0212).
-  if (startupTab) return null
+  // Once that redirect has run, '/' is an ordinary destination again (0388).
+  if (redirecting) return null
 
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-semibold">All Documents</h1>
+        <h1 className="text-2xl font-semibold">{homeHeading(activeLensId)}</h1>
         <div className="relative">
           <div className="flex items-center gap-2">
             <Link
@@ -215,7 +234,9 @@ function HomePage() {
         </span>
       </Link>
 
-      {allLoaded && !anyRows ? (
+      {showChats && <HomeChats heading={showDocs ? 'Chats' : undefined} standalone={!showDocs} />}
+
+      {!showDocs ? null : allLoaded && !anyRows ? (
         restoring ? (
           <RestoringNotice />
         ) : (

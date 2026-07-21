@@ -561,26 +561,26 @@ it('every default section resolves to a destination', () => {
       instead of clearing the input into the void (F11)
 - [ ] Decide the fate of the remaining orphaned panels — `Today`, `Data`,
       `Explorer` — route, lens, or delete
-- [ ] Add `route?: string` to `SidebarLens` in `sidebar/contracts.ts`
-- [ ] Set `route` on all five built-in lenses in `sidebar/sources.tsx`
+- [x] Add `route?: string` to `SidebarLens` in `sidebar/contracts.ts`
+- [x] Set `route` on all five built-in lenses in `sidebar/sources.tsx`
       (`people → /crm`, `views → /data`, rest → `/`)
-- [ ] Navigate on the lens branch of `useActivateSection`
+- [x] Navigate on the lens branch of `useActivateSection`
       (`sidebar/SectionRows.tsx`)
-- [ ] Make `routes/index.tsx` render the `all` / `docs` / `chats` projections
+- [x] Make `routes/index.tsx` render the `all` / `docs` / `chats` projections
       from `activeLensId`
-- [ ] Verify the `startupTab` redirect fires on boot only, not on lens-driven
+- [x] Verify the `startupTab` redirect fires on boot only, not on lens-driven
       remounts of `/`
-- [ ] Derive the row highlight from the route; sync `activeLensId` from the
+- [x] Derive the row highlight from the route; sync `activeLensId` from the
       route rather than the reverse (`SidebarIslands.tsx:308`)
-- [ ] Delete the dead `route:/today` and `route:/crm` keys from `ICONS`
+- [x] Delete the dead `route:/today` and `route:/crm` keys from `ICONS`
       (`sections.ts:57-64`) once `/crm` is reachable via the lens
-- [ ] Gate the `Analytics` section behind `VITE_TELEMETRY_DASHBOARD` so it is
+- [x] Gate the `Analytics` section behind `VITE_TELEMETRY_DASHBOARD` so it is
       absent rather than dead
 - [ ] Seed at least one `SavedView` in `packages/devtools/src/seed/`, or give
       the `Views` lens a real empty state with a create action
-- [ ] Add `More` entries (or a documented URL-only rationale) for
+- [x] Add `More` entries (or a documented URL-only rationale) for
       `/experiments`, `/companion`, `/social-import`
-- [ ] Add `sidebar/sections.test.ts` with the "every section resolves to a
+- [x] Add `sidebar/sections.test.ts` with the "every section resolves to a
       destination" invariant
 - [ ] Add a Playwright spec that clicks all eleven sections and asserts the
       main region's text changed, wired into an existing workflow lane per

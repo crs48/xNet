@@ -31,7 +31,7 @@ import { useSpaces } from '../hooks/useSpaces'
 import { DOC_TYPE_ROUTES } from '../lib/doc-creation'
 import { logout } from '../lib/identity'
 import { useNewActions } from './new-actions'
-import { useActivateSection, useSections } from './sidebar/SectionRows'
+import { useActivateSection, useSectionActive, useSections } from './sidebar/SectionRows'
 import { sectionIcon } from './sidebar/sections'
 import { useWorkbench } from './state'
 import { SURFACES, surfaceTabId, useSurfaceActivation } from './surfaces'
@@ -287,11 +287,12 @@ function ProfileMenu({ close }: { close: () => void }) {
 function SectionsMenu({ close }: { close: () => void }) {
   const { pinned, hidden } = useSections()
   const activate = useActivateSection()
+  const isActive = useSectionActive()
   const toggleSectionPinned = useWorkbench((s) => s.toggleSectionPinned)
   const pinnedIds = new Set(pinned.map((section) => section.id))
 
   return (
-    <div className="w-[256px] p-1.5">
+    <div data-sections-menu="true" className="w-[256px] p-1.5">
       <div className="flex items-center justify-between px-2 pb-1 pt-1">
         <span className="text-[11px] font-semibold uppercase tracking-wider text-ink-3">
           Sections
@@ -308,7 +309,11 @@ function SectionsMenu({ close }: { close: () => void }) {
           <div key={section.id} className="flex items-center">
             <button
               type="button"
-              className={`${item} flex-1`}
+              // The roll-out is where a non-pinned section lives, so it has to
+              // be able to show that section as the current one (0388).
+              aria-current={isActive(section) ? 'page' : undefined}
+              data-section-menu-item={section.id}
+              className={`${item} flex-1 ${isActive(section) ? 'bg-accent font-medium text-ink-1' : ''}`}
               onClick={() => {
                 activate(section)
                 close()

@@ -32,6 +32,7 @@ import { getSlotView } from './slot-registry'
 import { SectionRow, useSections } from './sidebar/SectionRows'
 import { sidebarRegistry } from './sidebar/registry'
 import { UnifiedTree } from './sidebar/UnifiedTree'
+import { useLensRouteSync } from './sidebar/use-lens-route-sync'
 import { useWorkbench } from './state'
 import { WorkingSet } from './WorkingSet'
 import {
@@ -301,13 +302,7 @@ function TopIsland({ openMenu }: { openMenu: OpenMenu }) {
           {/* Primary rows: user sections (0353) or legacy surfaces + More */}
           <div className="flex flex-col gap-px px-2 pt-1">
             {unifiedNav
-              ? sections.map((section) => (
-                  <SectionRow
-                    key={section.id}
-                    section={section}
-                    active={section.kind === 'lens' && section.target === activeLensId}
-                  />
-                ))
+              ? sections.map((section) => <SectionRow key={section.id} section={section} />)
               : pinned.map((surface) => <PrimaryRow key={surface.id} surface={surface} />)}
             <button
               type="button"
@@ -398,6 +393,8 @@ function BottomIsland() {
 
 export function SidebarIslands({ openMenu }: { openMenu: OpenMenu }) {
   const sidebarWidth = useWorkbench((s) => s.sidebarWidth)
+  // A route that belongs to one lens adopts it, so tree and main area agree.
+  useLensRouteSync()
   return (
     <div
       className="flex min-h-0 shrink-0 flex-col gap-2"
