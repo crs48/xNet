@@ -1,0 +1,18 @@
+{
+  "id": "2026-07-21-every-sidebar-section-opens-something",
+  "date": "July 21, 2026",
+  "title": "Every section in the sidebar now opens something",
+  "summary": "All, Docs, Chats, People and Views used to re-filter the sidebar and leave the main screen exactly as it was. Now every section in the left nav takes you somewhere \u2014 and People, Views and AI have their surfaces back.",
+  "highlights": [
+    "People opens your contacts again, and Views opens the data workspace",
+    "All, Docs and Chats each give the home screen a different shape",
+    "Click AI in the sidebar for the full assistant, with your own model or API key",
+    "Typing into the floating Assistant now carries your question over instead of clearing it",
+    "The highlighted section always matches what you are looking at",
+    "Companion, Experiments and Import are reachable without typing a URL"
+  ],
+  "tags": [
+    "app",
+    "ai"
+  ]
+}
