@@ -567,7 +567,7 @@ sequence.)
 - [x] **Authoring-time projection guardrails** — `defineSchema` warns on
       unmappable properties (float, formula, rollup) when a `publish`
       capability is declared (0380)
-- [ ] **Knot handshake** — `GET /xrpc/fyi.xnet.owner` + `fyi.xnet.hub`
+- [x] **Knot handshake** — `GET /xrpc/fyi.xnet.owner` + `fyi.xnet.hub`
       record with hostname rkey and hub-key countersignature (0372)
 - [ ] **Snapshot/checkpoint primitive** — signed Space snapshot; bounded
       replay window on hubs behind it (0333; unblocks 0258 anti-entropy and

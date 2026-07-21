@@ -54,6 +54,7 @@ import { Metrics, HUB_METRICS } from './middleware/metrics'
 import { RateLimiter } from './middleware/rate-limit'
 import { NodePool } from './pool/node-pool'
 import { createAtprotoRoutes } from './routes/atproto'
+import { createKnotRoutes } from './routes/knot'
 import { createAuditRoutes } from './routes/audit'
 import { createBackupRoutes } from './routes/backup'
 import { createCrawlRoutes } from './routes/crawl'
@@ -603,6 +604,18 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   // and binding records so clients can render verified handles.
   app.use('/atproto/*', requireAuth)
   app.route('/atproto', createAtprotoRoutes(atprotoBindingVerifier))
+
+  // Knot handshake (0372/0389): unauthenticated discovery — a self-hosted hub
+  // announces its owner + a hostname attestation so the ATmosphere can
+  // enumerate it via the owner's `fyi.xnet.hub` records, with no registry.
+  app.route(
+    '/xrpc',
+    createKnotRoutes({
+      hubDid: hubIdentity.did,
+      hubSigningKey: hubIdentity.privateKey,
+      ownerDid: config.ownerDid
+    })
+  )
 
   // Recovery-anchor escrow (0243/0322/0338): enroll requires auth (a DID may
   // only enroll for itself); release is the recovery path and is public (the
