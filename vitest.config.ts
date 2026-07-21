@@ -39,6 +39,9 @@ const workspaceAliases = {
   '@xnetjs/data': new URL('./packages/data/src/index.ts', import.meta.url).pathname,
   '@xnetjs/data-bridge': new URL('./packages/data-bridge/src/index.ts', import.meta.url).pathname,
   '@xnetjs/devkit': new URL('./packages/devkit/src/index.ts', import.meta.url).pathname,
+  // Subpath export: MUST precede the bare '@xnetjs/devtools' (Vite uses first match).
+  '@xnetjs/devtools/seed': new URL('./packages/devtools/src/seed/index.ts', import.meta.url)
+    .pathname,
   '@xnetjs/devtools': new URL('./packages/devtools/src/index.ts', import.meta.url).pathname,
   '@xnetjs/dictation': new URL('./packages/dictation/src/index.ts', import.meta.url).pathname,
   '@xnetjs/experiments': new URL('./packages/experiments/src/index.ts', import.meta.url).pathname,
