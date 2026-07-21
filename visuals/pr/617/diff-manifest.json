@@ -35,7 +35,7 @@
       "label": "Data",
       "file": "routes/data.png",
       "status": "changed",
-      "ssim": 0.996832,
+      "ssim": 0.996819,
       "before": "before/routes/data.png",
       "after": "routes/data.png",
       "diff": "diff/routes/data.png"
@@ -45,7 +45,7 @@
       "label": "Home",
       "file": "routes/home.png",
       "status": "changed",
-      "ssim": 0.981635,
+      "ssim": 0.981622,
       "before": "before/routes/home.png",
       "after": "routes/home.png",
       "diff": "diff/routes/home.png"
