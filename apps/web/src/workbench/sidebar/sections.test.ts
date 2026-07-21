@@ -62,7 +62,10 @@ describe('isSectionActive', () => {
       const lit = DEFAULT_SECTIONS.filter((section) =>
         isSectionActive({ section, pathname, activeLensId, lensRoute })
       )
-      expect(lit.map((s) => s.id), `at ${pathname} (lens ${activeLensId})`).toHaveLength(1)
+      expect(
+        lit.map((s) => s.id),
+        `at ${pathname} (lens ${activeLensId})`
+      ).toHaveLength(1)
     }
   })
 

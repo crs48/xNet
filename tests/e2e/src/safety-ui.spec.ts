@@ -49,10 +49,12 @@ const SIGNED_BLOCKLIST_FIXTURE = JSON.stringify({
 
 /** Click through the passkey-bypass onboarding into the shell. */
 async function advanceOnboarding(page: Page): Promise<void> {
-  // Shell-neutral readiness signal: the home surface's "All Documents" heading
-  // renders in both the workbench and the calm shell (0250), so this works
-  // regardless of the active layout default.
-  const ready = page.getByRole('heading', { name: /all documents/i })
+  // Shell-neutral readiness signal: the home surface's heading renders in both
+  // the workbench and the calm shell (0250), so this works regardless of the
+  // active layout default. Since 0388 the heading names the active lens —
+  // "Everything" under All (the default), "All Documents" under Docs — so the
+  // gate matches either.
+  const ready = page.getByRole('heading', { name: /all documents|everything/i })
   for (let i = 0; i < 10; i++) {
     if ((await ready.count()) > 0) return
     const start = page.getByRole('button', { name: /Get started/i })

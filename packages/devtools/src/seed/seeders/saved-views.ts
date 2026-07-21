@@ -25,18 +25,29 @@ import { seedId } from '../seed-ids'
 
 export const savedViewId = (slug: string): string => seedId('saved-view', slug)
 
+/**
+ * Serialize a saved view exactly as the runtime writes it, so the row is
+ * executable rather than merely shaped like a view.
+ *
+ * The descriptor is built per view rather than mapped over a list of schemas:
+ * `defineNodeQueryAST` is generic in the schema's property map, and a
+ * heterogeneous array collapses that to a union it can't accept.
+ */
+const descriptorFor = (title: string, query: ReturnType<typeof defineNodeQueryAST>): string =>
+  JSON.stringify(defineSavedViewDescriptor({ title, scope: 'workspace', query }))
+
 const VIEWS = [
   {
     slug: 'my-open-work',
     title: 'My open work',
     description: 'Everything still in flight, newest first.',
-    schema: TaskSchema
+    descriptor: () => descriptorFor('My open work', defineNodeQueryAST(TaskSchema))
   },
   {
     slug: 'recently-edited',
     title: 'Recently edited',
     description: 'Pages touched in the last stretch of work.',
-    schema: PageSchema
+    descriptor: () => descriptorFor('Recently edited', defineNodeQueryAST(PageSchema))
   }
 ] as const
 
@@ -52,15 +63,7 @@ export const savedViewsSeeder: SeederModule = {
         title: view.title,
         description: view.description,
         scope: 'workspace',
-        // Serialized like the runtime writes it, so the view is executable and
-        // not just a row that looks like one.
-        descriptor: JSON.stringify(
-          defineSavedViewDescriptor({
-            title: view.title,
-            scope: 'workspace',
-            query: defineNodeQueryAST(view.schema)
-          })
-        ),
+        descriptor: view.descriptor(),
         space
       }
     }))

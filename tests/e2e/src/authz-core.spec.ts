@@ -31,7 +31,7 @@ async function advanceOnboarding(page: Page) {
     }
 
     // Check if we're already on the home screen
-    const homeHeading = page.getByRole('heading', { name: /all documents/i })
+    const homeHeading = page.getByRole('heading', { name: /all documents|everything/i })
     if ((await homeHeading.count()) > 0 && (await homeHeading.first().isVisible())) {
       console.log('✓ Already on home screen')
       break
@@ -70,7 +70,7 @@ test.describe('Authorization Core Functionality', () => {
     // Wait for home screen
     await expect(
       page
-        .getByRole('heading', { name: /all documents/i })
+        .getByRole('heading', { name: /all documents|everything/i })
         .or(page.getByText('Pages', { exact: true }))
     ).toBeVisible({ timeout: 10_000 })
 

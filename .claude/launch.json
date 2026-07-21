@@ -252,6 +252,19 @@
         "--strictPort"
       ],
       "port": 5215
+    },
+    {
+      "name": "web-0388-ci (vite 5217)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "xnet-web",
+        "dev",
+        "--port",
+        "5217",
+        "--strictPort"
+      ],
+      "port": 5217
     }
   ]
 }

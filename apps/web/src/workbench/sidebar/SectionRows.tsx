@@ -11,12 +11,7 @@ import { useRequestCount } from '../../hooks/useRequestCount'
 import { useWorkbench } from '../state'
 import { NavRow } from './NavRow'
 import { sidebarRegistry } from './registry'
-import {
-  isSectionActive,
-  resolveSections,
-  sectionIcon,
-  type SidebarSection
-} from './sections'
+import { isSectionActive, resolveSections, sectionIcon, type SidebarSection } from './sections'
 
 /** Sections in user order, split into primary rows and the rest. */
 export function useSections(): { pinned: SidebarSection[]; hidden: SidebarSection[] } {
