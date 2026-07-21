@@ -81,6 +81,35 @@ describe('attachment transfer between devices', () => {
     expect(Array.from(data ?? [])).toEqual([10, 20, 30, 40, 50])
   })
 
+  it('carries a multi-megabyte file, which travels as chunks', async () => {
+    const deviceA = makeDevice()
+    const deviceB = makeDevice()
+
+    // Over ChunkManager's 1 MB threshold, so this exercises the chunked path
+    // (256 KB chunks + manifest) rather than a single blob.
+    const size = 5 * 1024 * 1024
+    const payload = new Uint8Array(size)
+    for (let i = 0; i < size; i++) payload[i] = i % 251
+    const file = new File([payload], 'big.png', { type: 'image/png' })
+
+    const ref = await deviceA.blobs.upload(file)
+    deviceA.queue.enqueueUpload(ref)
+    await vi.waitFor(
+      () => {
+        const st = deviceA.queue.getState(ref.cid)
+        if (st !== 'synced')
+          throw new Error(`st=${st} err=${deviceA.queue.getRecord(ref.cid)?.error ?? '-'}`)
+      },
+      { timeout: 10000 }
+    )
+
+    expect(await deviceB.queue.ensureLocal(ref)).toBe('synced')
+    const data = await deviceB.blobs.getData(ref)
+    expect(data?.byteLength).toBe(size)
+    expect(data?.[0]).toBe(0)
+    expect(data?.[size - 1]).toBe((size - 1) % 251)
+  })
+
   it('reports remote for a ref the hub never received', async () => {
     const device = makeDevice()
     const stranded: FileRef = {
@@ -91,6 +120,43 @@ describe('attachment transfer between devices', () => {
     }
     // Not an exception: this is the "on another device" state the cell shows.
     expect(await device.queue.ensureLocal(stranded)).toBe('remote')
+  })
+
+  it('surfaces a real quota rejection as a terminal failed state', async () => {
+    // A hub with almost no room: the upload must fail visibly and stop, not
+    // retry forever against a ceiling that will not move.
+    const tinyPort = PORT + 1
+    const tinyHub = await createHub({
+      port: tinyPort,
+      auth: true,
+      storage: 'memory',
+      defaultQuota: 1024
+    })
+    await tinyHub.start()
+    try {
+      const blobs = new BlobService(new ChunkManager(new BlobStore(new MemoryAdapter())))
+      const queue = new BlobTransferQueue({
+        blobs,
+        hub: new HubFilesClient({
+          hubUrl: `http://localhost:${tinyPort}`,
+          getAuthToken: () => token
+        }),
+        scheduler: (fn, ms) => void setTimeout(fn, ms)
+      })
+
+      const file = new File([new Uint8Array(4096)], 'too-big.bin', {
+        type: 'application/octet-stream'
+      })
+      const ref = await blobs.upload(file)
+      queue.enqueueUpload(ref)
+
+      await vi.waitFor(() => expect(queue.getState(ref.cid)).toBe('failed'), { timeout: 5000 })
+      expect(queue.getRecord(ref.cid)?.error ?? '').toMatch(/quota|storage/i)
+      // Terminal: one attempt, no retry loop.
+      expect(queue.getRecord(ref.cid)?.attempts).toBe(1)
+    } finally {
+      await tinyHub.stop()
+    }
   })
 
   it('rejects an unauthenticated client with a typed error', async () => {

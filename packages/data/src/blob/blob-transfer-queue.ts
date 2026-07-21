@@ -146,13 +146,24 @@ export class BlobTransferQueue {
       // Thumbnails are kilobytes: send them first so a peer's cell can show a
       // preview even while the original is still uploading (0385 W4).
       await this.uploadThumbnail(ref)
-      const data = await this.blobs.getData(ref)
-      if (!data) {
+      // Send the RAW stored blobs, never the reassembled file: a chunked
+      // file's ref carries its manifest's CID, so uploading the reassembled
+      // bytes under it fails the hub's content-hash check. Chunks go first so
+      // a manifest is never on the hub without the pieces it names.
+      const cids = await this.blobs.getTransferCids(ref)
+      if (cids.length === 0) {
         // Nothing to send — the bytes aren't here after all.
         this.update(ref.cid, { state: 'remote' })
         return
       }
-      await this.hub.put(ref.cid, data, { name: ref.name, mimeType: ref.mimeType })
+      for (const cid of cids) {
+        const raw = await this.blobs.getRawBlob(cid)
+        if (!raw) continue
+        await this.hub.put(cid, raw, {
+          name: cid === ref.cid ? ref.name : `${ref.name}.part`,
+          mimeType: cid === ref.cid ? ref.mimeType : 'application/octet-stream'
+        })
+      }
       this.update(ref.cid, { state: 'synced', error: undefined })
     } catch (err) {
       const code = err instanceof HubFilesError ? err.code : 'NETWORK'
@@ -233,20 +244,16 @@ export class BlobTransferQueue {
     if (!this.hub) return 'remote'
     this.update(ref.cid, { state: 'downloading' })
     try {
-      const data = await this.hub.get(ref.cid)
+      // Fetch the entry blob first: for a chunked file that's the manifest,
+      // which then tells us which chunks to pull.
+      const entry = await this.fetchVerified(ref.cid)
+      if (!entry) return 'failed'
 
-      // A CID is a claim until the bytes hash to it — mirror of the hub's own
-      // CID_MISMATCH check, so a compromised or buggy hub can't poison us.
-      const actual = `cid:blake3:${hashHex(data)}`
-      if (actual !== ref.cid) {
-        this.update(ref.cid, {
-          state: 'failed',
-          error: `Hash mismatch: expected ${ref.cid}, got ${actual}`
-        })
-        return 'failed'
+      for (const chunkCid of this.blobs.chunkCidsOf(entry)) {
+        const chunk = await this.fetchVerified(chunkCid)
+        if (!chunk) return 'failed'
       }
 
-      await this.blobs.uploadData(data, { filename: ref.name, mimeType: ref.mimeType })
       this.update(ref.cid, { state: 'synced', error: undefined })
       return 'synced'
     } catch (err) {
@@ -255,6 +262,27 @@ export class BlobTransferQueue {
       this.update(ref.cid, { state: 'remote', error: message })
       return 'remote'
     }
+  }
+
+  /**
+   * Fetch one blob and store it only if the bytes hash to the CID we asked
+   * for — the client-side mirror of the hub's CID_MISMATCH check, so a
+   * compromised or buggy hub can't poison the local store. Records the
+   * failure and returns null on mismatch.
+   */
+  private async fetchVerified(cid: string): Promise<Uint8Array | null> {
+    if (!this.hub) return null
+    const data = await this.hub.get(cid)
+    const actual = `cid:blake3:${hashHex(data)}`
+    if (actual !== cid) {
+      this.update(cid, {
+        state: 'failed',
+        error: `Hash mismatch: expected ${cid}, got ${actual}`
+      })
+      return null
+    }
+    await this.blobs.putRawBlob(data)
+    return data
   }
 
   /** Re-drive anything left mid-flight by a previous session. */

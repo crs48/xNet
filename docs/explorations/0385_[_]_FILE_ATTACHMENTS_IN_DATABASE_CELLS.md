@@ -491,17 +491,19 @@ returns `{ url, state }` so `FileChip` can render a subtle
 
 ### W0 — Make the File type reachable (bug fix, do first)
 
-- [ ] `packages/ui/src/primitives/Select.tsx`: move `max-h-96` off the
+- [x] `packages/ui/src/primitives/Select.tsx`: move `max-h-96` off the
       `Popup` onto `BaseSelect.List` with `overflow-y-auto` (both popup
       variants, ~lines 94 and 206) so Base UI's scroll detection sees the
       List as the scroller; arrows render and wheel scrolling works.
-- [ ] Consider surfacing common types sooner: either shorten the flat list
-      (group computed types under a divider) or wire up the categorized
-      `AddColumnModal` — or delete it if the popover stays (0294: unconsumed
-      code rots).
-- [ ] Regression test: a `Select` with 18 options shows a scroll-down arrow
+- [x] Consider surfacing common types sooner: **no change needed.** The
+      scroll fix alone restored discoverability (every type is now reachable
+      by mouse), so shortening the list would be churn. `AddColumnModal` is
+      kept rather than deleted: it is a public export of `@xnetjs/views`, so
+      removing it is a **major** bump for a component plugin hosts may embed
+      — not worth it to tidy an unused-in-app path.
+- [x] Regression test: a `Select` with 18 options shows a scroll-down arrow
       and can reach the last option by mouse.
-- [ ] Changeset: `@xnetjs/ui` patch.
+- [x] Changeset: `@xnetjs/ui` patch.
 
 ### W1 — Cell-click lightbox
 
@@ -600,18 +602,18 @@ returns `{ url, state }` so `FileChip` can render a subtle
 - [x] `allowMultiple` field accepts multi-select upload and multi-file drop;
       chips overflow gracefully in a narrow column; gallery card uses the
       first file as cover.
-- [ ] Attach a 5 MB image on device A; device B (same hub) sees the
+- [x] Attach a 5 MB image on device A; device B (same hub) sees the
       thumbnail within seconds and the full image on lightbox open —
       verified in the two-client e2e.
-- [ ] Kill the network mid-upload; queue retries and completes after
+- [x] Kill the network mid-upload; queue retries and completes after
       reconnect; state chip reflects progress throughout.
-- [ ] Hub returns 507 (quota): cell shows a persistent failed-upload state,
+- [x] Hub returns 507 (quota): cell shows a persistent failed-upload state,
       no infinite retry hammering.
-- [ ] Hub-less workspace: attach/view works locally; peer chip says "on
+- [x] Hub-less workspace: attach/view works locally; peer chip says "on
       another device", no console errors.
 - [x] A 100 MB+ file is rejected client-side with a clear message before any
       bytes move.
-- [ ] `pnpm test` green including `file-cells`, `seed-coverage`,
+- [x] `pnpm test` green including `file-cells`, `seed-coverage`,
       `files.quota`; changesets present for every touched publishable
       package.
 

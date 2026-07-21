@@ -149,6 +149,30 @@ export class BlobService {
   }
 
   /**
+   * Raw stored bytes for a CID, without reassembling a chunked file, so
+   * `blake3(result) === cid`. Transfer must send these, not the reassembled
+   * file — a chunked ref's CID is its manifest's (exploration 0385 W3).
+   */
+  async getRawBlob(cid: string): Promise<Uint8Array | null> {
+    return this.chunkManager.getRaw(cid as ContentId)
+  }
+
+  /** Store raw transferred bytes under their own content hash. */
+  async putRawBlob(data: Uint8Array): Promise<string> {
+    return this.chunkManager.putRaw(data)
+  }
+
+  /** Every CID that must travel for this file: chunks first, manifest last. */
+  async getTransferCids(ref: FileRef): Promise<string[]> {
+    return this.chunkManager.getTransferCids(ref.cid as ContentId)
+  }
+
+  /** Chunk CIDs a manifest blob references, or [] if it isn't a manifest. */
+  chunkCidsOf(data: Uint8Array): string[] {
+    return this.chunkManager.chunkCidsOf(data)
+  }
+
+  /**
    * Revoke a blob URL to free memory.
    */
   revokeUrl(ref: FileRef): void {

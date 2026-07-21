@@ -19,13 +19,27 @@ const cid = `cid:blake3:${hashHex(bytes)}`
 
 const ref: FileRef = { cid, name: 'photo.png', mimeType: 'image/png', size: bytes.byteLength }
 
-/** BlobService stub: `present` decides whether the bytes are local. */
+/**
+ * BlobService stub: `present` decides whether the bytes are local.
+ *
+ * Models the raw-blob surface the queue actually uses — a single unchunked
+ * blob, so its CID is the content hash. The chunked case (where the ref's CID
+ * is a manifest's) is covered against a real hub in
+ * `packages/hub/test/attachment-transfer.test.ts`.
+ */
 function stubBlobs(present: boolean): BlobService & { stored: Uint8Array[] } {
   const stored: Uint8Array[] = []
   return {
     stored,
     has: vi.fn(async () => present),
     getData: vi.fn(async () => (present ? bytes : null)),
+    getTransferCids: vi.fn(async () => (present ? [cid] : [])),
+    getRawBlob: vi.fn(async () => (present ? bytes : null)),
+    putRawBlob: vi.fn(async (data: Uint8Array) => {
+      stored.push(data)
+      return cid
+    }),
+    chunkCidsOf: vi.fn(() => []),
     uploadData: vi.fn(async (data: Uint8Array) => {
       stored.push(data)
       return ref
@@ -96,6 +110,43 @@ describe('BlobTransferQueue upload', () => {
     expect(hub.put).toHaveBeenCalledTimes(1)
     expect(scheduler.delays).toEqual([])
     expect(queue.getRecord(cid)?.error).toContain('quota')
+  })
+
+  it('uploads raw blobs, chunks before the manifest', async () => {
+    // A chunked file's ref carries its MANIFEST's cid, so the reassembled
+    // bytes would fail the hub's content-hash check. Every blob must go up
+    // under its own hash, and a manifest must never land before its chunks.
+    const chunkA = 'cid:blake3:chunk-a'
+    const chunkB = 'cid:blake3:chunk-b'
+    const manifestCid = 'cid:blake3:manifest'
+    const manifestRef: FileRef = { ...ref, cid: manifestCid }
+    const raw: Record<string, Uint8Array> = {
+      [chunkA]: new Uint8Array([1]),
+      [chunkB]: new Uint8Array([2]),
+      [manifestCid]: new Uint8Array([3])
+    }
+    const blobs = {
+      has: vi.fn(async () => true),
+      getData: vi.fn(async () => bytes),
+      getTransferCids: vi.fn(async () => [chunkA, chunkB, manifestCid]),
+      getRawBlob: vi.fn(async (c: string) => raw[c] ?? null),
+      putRawBlob: vi.fn(async () => manifestCid),
+      chunkCidsOf: vi.fn(() => [])
+    } as unknown as BlobService
+
+    const sent: string[] = []
+    const hub = stubHub({
+      put: vi.fn(async (c: string) => {
+        sent.push(c)
+      })
+    })
+    const queue = new BlobTransferQueue({ blobs, hub })
+
+    queue.enqueueUpload(manifestRef)
+    await vi.waitFor(() => expect(queue.getState(manifestCid)).toBe('synced'))
+    expect(sent).toEqual([chunkA, chunkB, manifestCid])
+    // Never the reassembled file.
+    expect(blobs.getData).not.toHaveBeenCalled()
   })
 
   it('idles without a hub, leaving the ref local', async () => {

@@ -177,6 +177,42 @@ export class ChunkManager {
   }
 
   /**
+   * Raw stored bytes for a CID — the manifest JSON for a chunked file, the
+   * file itself otherwise. Unlike `retrieve` this does NOT reassemble, so
+   * `blake3(result) === cid` always holds.
+   *
+   * Transfer needs this: a chunked file's ref carries the *manifest* CID, so
+   * sending reassembled bytes under it fails content verification at the
+   * other end (exploration 0385 W3).
+   */
+  async getRaw(cid: ContentId): Promise<Uint8Array | null> {
+    return this.blobStore.get(cid)
+  }
+
+  /** Store raw bytes under their own content hash. */
+  async putRaw(data: Uint8Array): Promise<ContentId> {
+    return this.blobStore.put(data)
+  }
+
+  /**
+   * Every CID that must travel for this file to be complete: the entry blob
+   * plus, when it's a manifest, all of its chunks — in transfer order
+   * (chunks first, manifest last, so a manifest never lands without them).
+   */
+  async getTransferCids(cid: ContentId): Promise<ContentId[]> {
+    const data = await this.blobStore.get(cid)
+    if (!data) return []
+    const manifest = this.parseManifest(data)
+    if (!manifest) return [cid]
+    return [...manifest.chunks, cid]
+  }
+
+  /** Chunk CIDs listed by a manifest blob, or [] if it isn't one. */
+  chunkCidsOf(data: Uint8Array): ContentId[] {
+    return this.parseManifest(data)?.chunks ?? []
+  }
+
+  /**
    * Try to parse data as a ChunkManifest.
    * Returns null if it's not a valid manifest.
    */
