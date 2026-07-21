@@ -574,7 +574,7 @@ sequence.)
       future encrypted atmosphere backup per 0324)
 - [x] **Withdraw semantics in the type system** — asymmetric visibility
       dial; no "make private" affordance anywhere (0365)
-- [ ] **Positioning copy** — "the E2E-encrypted workspace for your ATProto
+- [x] **Positioning copy** — "the E2E-encrypted workspace for your ATProto
       identity"; Germ-slot framing on the site (0324)
 - [x] Docs sweep: update 0301/0322/0324/0333/0365/0367 references from
       `net.x.*` to `fyi.xnet.*` (stale namespace in prose)
