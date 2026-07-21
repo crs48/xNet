@@ -6,6 +6,31 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-20-try-the-app-with-a-ready-made-demo-works",
+      "url": "https://xnet.fyi/changelog#2026-07-20-try-the-app-with-a-ready-made-demo-works",
+      "title": "Try the app with a ready-made demo workspace",
+      "content_text": "Arriving from the landing page's Try-the-app link now opens a lived-in demo workspace — sample documents, a tasks database, chat channels, and CRM records — instead of an empty screen. The demo only seeds brand-new profiles; existing workspaces are never touched.\n\n• Landing-page try links carry the demo signal (/app?demo=1)\n• Seed runs once, only for a fresh profile with no user content",
+      "date_published": "2026-07-21T00:25:03Z",
+      "tags": [
+        "app"
+      ],
+      "_xnet": {
+        "date": "July 20, 2026",
+        "summary": "Arriving from the landing page's Try-the-app link now opens a lived-in demo workspace — sample documents, a tasks database, chat channels, and CRM records — instead of an empty screen. The demo only seeds brand-new profiles; existing workspaces are never touched.",
+        "highlights": [
+          "Landing-page try links carry the demo signal (/app?demo=1)",
+          "Seed runs once, only for a fresh profile with no user content"
+        ],
+        "mergedAt": "2026-07-21T00:25:03Z",
+        "pr": 609,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-20-hubs-gain-named-roles-an-index-engine-an",
       "url": "https://xnet.fyi/changelog#2026-07-20-hubs-gain-named-roles-an-index-engine-an",
       "title": "Hubs gain named roles, an index engine, and hub-to-hub subscription",

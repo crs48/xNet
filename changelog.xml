@@ -6,6 +6,15 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Try the app with a ready-made demo workspace</title>
+      <link>https://xnet.fyi/changelog#2026-07-20-try-the-app-with-a-ready-made-demo-works</link>
+      <guid isPermaLink="false">2026-07-20-try-the-app-with-a-ready-made-demo-works</guid>
+      <pubDate>Tue, 21 Jul 2026 00:25:03 GMT</pubDate>
+      <description>Arriving from the landing page's Try-the-app link now opens a lived-in demo workspace — sample documents, a tasks database, chat channels, and CRM records — instead of an empty screen. The demo only seeds brand-new profiles; existing workspaces are never touched.
+- Landing-page try links carry the demo signal (/app?demo=1)
+- Seed runs once, only for a fresh profile with no user content</description>
+    </item>
+    <item>
       <title>Hubs gain named roles, an index engine, and hub-to-hub subscription</title>
       <link>https://xnet.fyi/changelog#2026-07-20-hubs-gain-named-roles-an-index-engine-an</link>
       <guid isPermaLink="false">2026-07-20-hubs-gain-named-roles-an-index-engine-an</guid>
