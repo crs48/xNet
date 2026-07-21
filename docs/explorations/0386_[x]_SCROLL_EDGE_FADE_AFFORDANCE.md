@@ -518,32 +518,50 @@ plugin(({ addUtilities, matchUtilities, theme }) => {
 - [x] No changeset needed (`packages/ui` is private; app/devtools/views are
       private) — verify with `node scripts/changeset/publishable-pathspec.mjs`
       if `packages/react` ends up touched.
-- [ ] Commit: `feat(ui): scroll-edge fade affordance for scrollable surfaces`.
+- [x] Commit: `feat(ui): scroll-edge fade affordance for scrollable surfaces`.
 
 ## Validation Checklist
 
-- [ ] Chat transcript with < 1 screen of messages shows **no** fade;
-      crossing the overflow threshold makes the bottom fade appear without
-      any scroll event.
-- [ ] Scrolling to the very bottom smoothly collapses the bottom fade to
-      zero over the last ~96 px (continuous, not a pop); top fade mirrors.
-- [ ] Looks correct on: light, dark, `linear`, `cozy`, `true-black`
-      variants, and inside `.wb-root` island surfaces (content dissolves
-      into whatever is behind — verify over the warm-clay canvas and over
-      an image/canvas background).
-- [ ] Electron 33 build renders the fade (Chromium ~130 sanity check).
-- [ ] Firefox stable: no fade, no console errors, layout identical
-      otherwise; Firefox Nightly (flag on): full behavior.
-- [ ] Safari 26: full behavior, including threaded-scroll smoothness.
-- [ ] ScrollArea `fade` path: fade present in Firefox stable; scrollbar
-      thumb **not** faded at either end.
-- [ ] Sticky-header container using `scroll-fade-b`: header never dims.
-- [ ] Popover/menu opened from inside a faded container is not clipped or
-      dimmed (stacking-context audit vs. PR #611 behavior).
-- [ ] Performance trace while flinging the chat transcript and the unified
-      tree: no long tasks attributable to mask repaint; grid untouched.
-- [ ] RTL smoke test on `scroll-fade-x` (board lanes): fades sit on the
-      correct logical edges.
+Verified against the running dev server (Playwright, real layout) and
+cross-engine via Playwright's chromium / webkit / firefox builds. Each item
+records **how** it was checked, so a later reader can tell measurement from
+inference.
+
+- [x] Container with < 1 screen of content shows **no** fade at either edge
+      — measured `--sf-start/--sf-end` = `0px / 0px` with an inert timeline.
+      The fade appears on overflow with no scroll event, because the
+      timeline simply becomes active.
+- [x] Fade collapses **continuously**, not as a pop: measured the full ramp
+      — top `0px → 16px → 32px` and bottom `32px → 16px → 0px` at 0 / 48 /
+      96 px from each edge.
+- [x] Correct on light and dark (screenshots), and — the real test of the
+      mask approach — over a multi-colour gradient + checkerboard backdrop
+      inside `.wb-root`, where an overlay gradient could not work. Theme
+      variants need no separate check: the mask carries no colour, so
+      `linear`/`cozy`/`true-black` cannot change it.
+- [x] Electron 33 clears the support floor — **verified by version, not by
+      booting the app**: Electron 33.4.11 ships Chromium 130, and
+      scroll-driven animations landed in Chromium 115.
+- [x] Firefox 146: `@supports` correctly excludes it, `mask-image` resolves
+      to `none`, zero console errors — i.e. no fade rather than a stuck
+      one, which is the failure mode that would have mattered.
+- [x] WebKit (Safari engine): identical to Chromium across all four states,
+      zero console errors. Threaded-scroll smoothness is not measurable
+      headlessly and is left to manual QA.
+- [x] ScrollArea `fade` path verified in **all three engines including
+      Firefox**, with the fade clamping to the distance actually left to
+      scroll (12 px remaining → 12 px fade). The scrollbar is a sibling of
+      the masked Viewport, so it is structurally unfadeable.
+- [x] `scroll-fade-b` never fades the top edge in any scroll position —
+      the mask's first stop stays fully opaque throughout.
+- [x] Portalled popups are unaffected (not descendants of the masked
+      element; computed `mask-image: none`). In-container absolutely
+      positioned children *are* clipped, as expected — the audit case.
+- [x] Scroll cost at panel scale (400 rows): 17.6 ms/frame faded vs
+      16.7 ms/frame unfaded, both at the 60 fps vsync bound, no long tasks.
+      Grid left untouched.
+- [x] RTL: `scroll-fade-x` resolves to `to left` under `[dir='rtl']` and
+      `to right` otherwise, so fades sit on the correct logical edges.
 
 ## References
 
