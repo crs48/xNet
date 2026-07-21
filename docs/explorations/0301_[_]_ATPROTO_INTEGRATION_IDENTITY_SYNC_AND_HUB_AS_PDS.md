@@ -1,5 +1,11 @@
 # ATProto Integration — Identity, Sync, And The Hub As A PDS/Relay
 
+> **Namespace note (0372/0389).** This document was written when the xNet
+> lexicon namespace was `net.x.*`. That namespace was **squatting** — `x.net`
+> belongs to IANA and can never be claimed — so exploration 0372 moved it to
+> **`fyi.xnet.*`**, which is what shipped. The NSIDs below have been rewritten
+> accordingly; the reasoning is unchanged.
+
 ## Problem Statement
 
 AT Protocol (atproto, the protocol under Bluesky) has become the largest live
@@ -67,7 +73,7 @@ xNet need — consume **Jetstream** with a `wantedCollections` filter instead.
 **Recommendation: a three-phase bridge, no kernel changes.**
 Phase 1 — atproto identity linking (OAuth client + key-binding attestation +
 verified handles on profiles). Phase 2 — "Publish to the atmosphere": public
-pages/posts written to the user's PDS under xNet lexicons (`net.x.*`), the
+pages/posts written to the user's PDS under xNet lexicons (`fyi.xnet.*`), the
 existing share-link flow gaining an atproto distribution channel, and hub-side
 Jetstream ingestion for backlinks/mentions. Phase 3 (option, demand-gated) —
 hub-embedded PDS so self-hosters and the managed cloud fleet host real atproto
@@ -207,7 +213,7 @@ flowchart LR
     arelay["Relay firehose · Jetstream · AppViews"]
   end
   xid <-. "key-binding attestation<br/>(Phase 1)" .-> aid
-  xhub -- "publish public subset<br/>net.x.* lexicons (Phase 2)" --> apds
+  xhub -- "publish public subset<br/>fyi.xnet.* lexicons (Phase 2)" --> apds
   arelay -- "Jetstream ingest<br/>(Phase 2)" --> xfed
   xhub -. "embedded PDS surface<br/>(Phase 3, optional)" .-> apds
 ```
@@ -323,7 +329,7 @@ Every serious attempt converged on the same architecture:
    JSON/BLAKE3/rooms). Embedding is a real project, not an adapter.
 4. **"Relay" is the wrong ambition; "Jetstream consumer" is the right one.**
    Nothing in xNet needs a merged full-network firehose. Watching
-   `net.x.*` lexicons (and mentions of linked DIDs) via Jetstream gives
+   `fyi.xnet.*` lexicons (and mentions of linked DIDs) via Jetstream gives
    cross-hub discovery for near-zero cost.
 5. **The multi-home manifest (0258) is the pre-built integration seam.**
    "Which changes go to which destination" already exists as policy-as-data;
@@ -341,7 +347,7 @@ Every serious attempt converged on the same architecture:
 Two sub-modes, not mutually exclusive:
 
 - **A1: Link (recommended first).** Existing xNet identities attach an
-  atproto account. OAuth proves control of the atproto DID; a `net.x.identity
+  atproto account. OAuth proves control of the atproto DID; a `fyi.xnet.identity
   .binding` record in the PDS attests the xNet `did:key`; the xNet profile
   node gains `atprotoDid` + `atprotoHandle` fields, rendered as a verified
   handle. No change to key management, signing, or recovery.
@@ -377,15 +383,15 @@ canonical form).
 ### Option C — atproto as a distribution layer ("Publish to the atmosphere")
 
 The public subset — published pages, blog-style posts, public profiles, share
-links — mirrored as `net.x.*` lexicon records in the user's PDS. Hub consumes
-Jetstream filtered to `net.x.*` for backlinks, mentions, and cross-hub
+links — mirrored as `fyi.xnet.*` lexicon records in the user's PDS. Hub consumes
+Jetstream filtered to `fyi.xnet.*` for backlinks, mentions, and cross-hub
 discovery. Complements the existing public routes (`/public/node/:id`) and
 share-link machinery (0290/0295/0298): a share link gains an "also publish to
 atproto" toggle; WhiteWind proved the lexicon-blog pattern works.
 
 | For | Against |
 |---|---|
-| Real network effects: xNet content becomes citable/likeable/followable in the atmosphere; discovery without running any infra; rides existing share-link UX | Requires A first (need an atproto account to write to); public-only — UX must make the public/private boundary unmistakable; lexicon design is a public API commitment (NSID = domain-owned, e.g. `net.x.*` needs the domain) |
+| Real network effects: xNet content becomes citable/likeable/followable in the atmosphere; discovery without running any infra; rides existing share-link UX | Requires A first (need an atproto account to write to); public-only — UX must make the public/private boundary unmistakable; lexicon design is a public API commitment (NSID = domain-owned, e.g. `fyi.xnet.*` needs the domain) |
 
 ### Option D — hub embeds a PDS ("your hub is your PDS")
 
@@ -405,7 +411,7 @@ usage proves users want their atmosphere presence attached to their hub.
 
 **Rejected (relay); deferred (AppView).** A relay serves whole-network
 mirroring needs xNet doesn't have; Jetstream covers consumption. A tiny
-"xNet AppView" — an index over all public `net.x.*` records network-wide —
+"xNet AppView" — an index over all public `fyi.xnet.*` records network-wide —
 is just Option C's Jetstream consumer grown up, and can live inside the
 existing crawl/shard-index machinery (`services/crawl.ts`,
 `shard-ingest.ts`) if cross-hub public search demands it.
@@ -414,7 +420,7 @@ existing crawl/shard-index machinery (`services/crawl.ts`,
 flowchart TD
   Q1{"Need atproto<br/>identity?"} -->|yes| A["Option A: OAuth link +<br/>key-binding attestation"]
   A --> Q2{"Public content<br/>to distribute?"}
-  Q2 -->|yes| C["Option C: publish net.x.*<br/>to user's PDS + Jetstream ingest"]
+  Q2 -->|yes| C["Option C: publish fyi.xnet.*<br/>to user's PDS + Jetstream ingest"]
   Q2 -->|no| STOP1["Stop here — identity alone is valuable"]
   C --> Q3{"Users want hub-attached<br/>atmosphere accounts?"}
   Q3 -->|"proven demand"| D["Option D: hub embeds PDS"]
@@ -430,17 +436,17 @@ Adopt the **bridge, don't merge** posture, phased:
 **Phase 1 — Identity link (small, ship first).** `@atproto/oauth-client-*`
 integration; extend the DID type system to *represent* foreign DIDs
 (`AnyDid = XNetDid | AtprotoDid`) without touching signing; bidirectional
-binding — `net.x.identity.binding` record in the PDS (atproto side) +
+binding — `fyi.xnet.identity.binding` record in the PDS (atproto side) +
 `atprotoDid`/`atprotoHandle`/`atprotoBindingUri` on the profile schema (xNet
 side); hub verifies bindings by resolving the DID doc + fetching the record,
 caches the verification, renders verified handles. Electron/web use the
 browser client; hub/cloud act as the confidential client for long sessions.
 
 **Phase 2 — Publish to the atmosphere.** Design 2–3 lexicons max
-(`net.x.page.publication`, `net.x.profile.workspace`, arguably that's it —
+(`fyi.xnet.page.publication`, `fyi.xnet.profile.workspace`, arguably that's it —
 lexicons are forever); wire an "also publish to atproto" toggle into the
 share-link flow; write-through on publish/update within rate limits; hub
-Jetstream consumer for `net.x.*` → backlink/mention nodes. Model the PDS as a
+Jetstream consumer for `fyi.xnet.*` → backlink/mention nodes. Model the PDS as a
 0258 replication destination kind (`kind: 'atproto-pds'`, public-only,
 snapshot cadence) so routing stays manifest-as-data.
 
@@ -463,7 +469,7 @@ sequenceDiagram
   Note over U,P: Phase 1 — link atproto identity
   U->>P: OAuth (PAR + DPoP): prove control of did:plc
   P-->>U: tokens (session)
-  U->>P: putRecord net.x.identity.binding<br/>{ xnetDid, sig by xNet Ed25519 key }
+  U->>P: putRecord fyi.xnet.identity.binding<br/>{ xnetDid, sig by xNet Ed25519 key }
   U->>X: profile change: atprotoDid + handle + bindingUri<br/>(signed with xNet did:key as usual)
   X->>PLC: resolve did:plc → DID doc (handle, PDS url)
   X->>P: getRecord binding → verify xnetDid matches + Ed25519 sig
@@ -471,19 +477,19 @@ sequenceDiagram
 
   Note over U,P: Phase 2 — publish public page
   U->>X: publish page (share-link flow, existing)
-  U->>P: putRecord net.x.page.publication { title, content, canonicalUrl }
-  P-->>X: (via Jetstream, wantedCollections=net.x.*)<br/>backlinks & mentions ingested
+  U->>P: putRecord fyi.xnet.page.publication { title, content, canonicalUrl }
+  P-->>X: (via Jetstream, wantedCollections=fyi.xnet.*)<br/>backlinks & mentions ingested
 ```
 
 ## Example Code
 
 **Lexicon: the key-binding attestation (Phase 1).** Record lives in the
-user's PDS at `net.x.identity.binding/self`:
+user's PDS at `fyi.xnet.identity.binding/self`:
 
 ```json
 {
   "lexicon": 1,
-  "id": "net.x.identity.binding",
+  "id": "fyi.xnet.identity.binding",
   "defs": {
     "main": {
       "type": "record",
@@ -527,7 +533,7 @@ export async function verifyAtprotoBinding(
 
   const res = await fetch(
     `${pds}/xrpc/com.atproto.repo.getRecord?repo=${atprotoDid}` +
-      `&collection=net.x.identity.binding&rkey=self`,
+      `&collection=fyi.xnet.identity.binding&rkey=self`,
   )
   if (!res.ok) return null
   const { value } = await res.json()
@@ -553,12 +559,12 @@ surface there.
 - **Two DIDs, one person.** The UX must never suggest the atproto key can
   recover or control xNet data. Binding is a *claim pair*, revocable from
   either side (delete the PDS record / clear the profile fields). What does
-  un-linking do to already-published `net.x.*` records?
+  un-linking do to already-published `fyi.xnet.*` records?
 - **PDS availability as login dependency (A2).** If login-with-atproto is
   offered, a down PDS blocks onboarding — keep passkey/recovery-phrase
   primary; atproto is an *additional* door.
 - **Lexicon = forever API.** NSIDs are domain-anchored; committing to
-  `net.x.*` (or whichever domain) publishes a schema the atmosphere may build
+  `fyi.xnet.*` (or whichever domain) publishes a schema the atmosphere may build
   on. Version fields from day one; keep the surface tiny.
 - **plc.directory centralization.** Acceptable for a linked-identity layer
   (worst case: handles stop resolving; xNet identities unaffected). Track the
@@ -587,7 +593,7 @@ Phase 1 — identity link:
 - [ ] Add `AtprotoDid` representation type alongside `did:key` (extend
       `packages/identity/src/types.ts` without loosening `parseDID`'s
       signing-DID guarantees — foreign DIDs are represent-only, never sign)
-- [ ] `net.x.identity.binding` lexicon (schema JSON, docs, version field)
+- [ ] `fyi.xnet.identity.binding` lexicon (schema JSON, docs, version field)
 - [ ] Client: atproto OAuth via `@atproto/oauth-client-browser` (web/Electron
       SPA path) — link flow writes the binding record via `putRecord`
 - [ ] Hub/cloud: confidential OAuth client (`@atproto/oauth-client-node`,
@@ -603,12 +609,12 @@ Phase 1 — identity link:
 
 Phase 2 — publish to the atmosphere:
 
-- [ ] Design + freeze `net.x.page.publication` (and at most one more) lexicon
+- [ ] Design + freeze `fyi.xnet.page.publication` (and at most one more) lexicon
 - [ ] Share-link flow: "Also publish to atproto" toggle; write-through on
       publish/update/unpublish with `applyWrites` batching + 429 backoff
 - [ ] 0258 manifest: `atproto-pds` destination kind (public-only, explicit
       user opt-in, `trust: 'zero-knowledge'` semantics)
-- [ ] Hub: Jetstream consumer (`wantedCollections: ['net.x.*']`) → backlink/
+- [ ] Hub: Jetstream consumer (`wantedCollections: ['fyi.xnet.*']`) → backlink/
       mention ingestion (feature-flagged, off by default like crawl)
 - [ ] Changesets for every publishable package touched (identity, crypto?,
       data, hub, runtime) — bump per diff policy
@@ -630,12 +636,12 @@ Phase 3 — demand-gated (do not start without Phase 1+2 usage data):
 - [ ] Login-with-atproto (if A2 shipped): fresh onboarding via a *self-hosted*
       PDS (not bsky.social) succeeds; PDS-down scenario falls back cleanly to
       passkey onboarding
-- [ ] Publish: a published page appears as a `net.x.page.publication` record
+- [ ] Publish: a published page appears as a `fyi.xnet.page.publication` record
       fetchable via `getRecord` from an unrelated atproto client; updating the
       page updates the record; unpublishing deletes it; a burst of 50 edits
       coalesces into few writes (rate-limit budget respected)
-- [ ] Jetstream ingest: a `net.x.*` record created on a *different* PDS
-      surfaces as a backlink node on the hub within seconds; non-`net.x.*`
+- [ ] Jetstream ingest: a `fyi.xnet.*` record created on a *different* PDS
+      surfaces as a backlink node on the hub within seconds; non-`fyi.xnet.*`
       traffic is not stored
 - [ ] Privacy invariant: automated test asserting no private-visibility node
       content can reach any atproto write path (mirror of the

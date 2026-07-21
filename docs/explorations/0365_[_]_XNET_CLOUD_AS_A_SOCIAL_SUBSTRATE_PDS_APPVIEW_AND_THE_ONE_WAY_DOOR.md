@@ -1,5 +1,11 @@
 # xNet Cloud As A Social Substrate — The PDS, The AppView, And The One-Way Door
 
+> **Namespace note (0372/0389).** This document was written when the xNet
+> lexicon namespace was `net.x.*`. That namespace was **squatting** — `x.net`
+> belongs to IANA and can never be claimed — so exploration 0372 moved it to
+> **`fyi.xnet.*`**, which is what shipped. The NSIDs below have been rewritten
+> accordingly; the reasoning is unchanged.
+
 > Exploration 0365 · 2026-07-18
 > Follow-up to [[0360_MAKING_XNET_CLOUD_DELIGHTFUL]] (the Fork, the commons,
 > "index = mirror not master").
@@ -21,7 +27,7 @@
 > - **Index reads are free and unauthenticated, permanently** — the L0/L1/L2
 >   layering and the refusal of L1 sale still stand, but **L2 is no longer sold
 >   as access** either.
-> - **The index is scoped to xNet's own content** (`net.x.*` records plus the
+> - **The index is scoped to xNet's own content** (`fyi.xnet.*` records plus the
 >   plugin registry), not to the whole atproto network.
 > - **Its cost is absorbed into xNet Cloud hosting**, following Packagist and
 >   Open VSX — a model named in OpenSSF's 2025 joint statement.
@@ -82,7 +88,7 @@ to the raw index, and the "make it private again" button must never be built.**
 unexpected place.** xNet already writes records into users' PDSes in
 production. [`apps/web/src/identity/atproto-ceremony.ts`](../../apps/web/src/identity/atproto-ceremony.ts)
 runs a real OAuth ceremony and calls `com.atproto.repo.putRecord` (line 108)
-to write a `net.x.identity.binding` record. The hub resolves `did:plc` via
+to write a `fyi.xnet.identity.binding` record. The hub resolves `did:plc` via
 `plc.directory` and `did:web` via `.well-known`, verifies the binding
 signature, and caches it
 ([`packages/hub/src/services/atproto-binding.ts`](../../packages/hub/src/services/atproto-binding.ts)).
@@ -179,12 +185,12 @@ tests exist, never run for real), **ABSENT**.
 | Profile linker UI | [`apps/web/src/identity/AtprotoProfileLinker.tsx`](../../apps/web/src/identity/AtprotoProfileLinker.tsx) | **SHIPPED** |
 | Verified handle badge | [`apps/web/src/identity/VerifiedHandle.tsx`](../../apps/web/src/identity/VerifiedHandle.tsx) | **SHIPPED** |
 | DID parsing / classification | [`packages/identity/src/atproto/did.ts`](../../packages/identity/src/atproto/did.ts) | **SHIPPED** — `AtprotoDid`, `parseAnyDid`, handle validation |
-| Binding record + signature | [`packages/identity/src/atproto/binding.ts`](../../packages/identity/src/atproto/binding.ts) | **SHIPPED** — collection `net.x.identity.binding`, rkey `self` |
+| Binding record + signature | [`packages/identity/src/atproto/binding.ts`](../../packages/identity/src/atproto/binding.ts) | **SHIPPED** — collection `fyi.xnet.identity.binding`, rkey `self` |
 | `did:plc` rotation key | [`packages/identity/src/atproto/rotation-key.ts`](../../packages/identity/src/atproto/rotation-key.ts) | **SHIPPED (derive only)** — explicitly does **not** submit the PLC operation |
 | Server-side DID resolution | [`packages/hub/src/services/atproto-binding.ts`](../../packages/hub/src/services/atproto-binding.ts) | **SHIPPED** — `plc.directory` + `.well-known`, 1h TTL, `revoke()` |
 | Binding routes | [`packages/hub/src/routes/atproto.ts`](../../packages/hub/src/routes/atproto.ts) | **SHIPPED** — behind auth (`server.ts:569`) |
 | Recovery anchor | [`packages/hub/src/services/atproto-recovery-anchor.ts`](../../packages/hub/src/services/atproto-recovery-anchor.ts) | **SHIPPED** |
-| Lexicons (published schemas) | — | **ABSENT** — `net.x.identity.binding` is a hand-written TS interface, no `lexicons/`, no codegen, no `_lexicon` DNS record |
+| Lexicons (published schemas) | — | **ABSENT** — `fyi.xnet.identity.binding` is a hand-written TS interface, no `lexicons/`, no codegen, no `_lexicon` DNS record |
 | PDS | `docs/hub-as-pds-spike.md` | **ABSENT** — "Status: **not built** — decision record + ops sketch" |
 | Firehose / `subscribeRepos` | — | **ABSENT** — zero hits |
 | Feed generator / `getFeedSkeleton` | — | **ABSENT** |
@@ -334,7 +340,7 @@ across *every* lexicon in the network at **<2 GB/day on a single Raspberry Pi
 5** with a 1 TB NVMe; its predecessor ran on a Pi 4b against a 31M-user
 network. **The cost is a function of index scope, not of network size.** A
 global Bluesky-shaped timeline is expensive; a narrow index over
-`net.x.*` records is a hobbyist expense.
+`fyi.xnet.*` records is a hobbyist expense.
 
 > ⚠️ **Do not cite the circulating AppView cost figures.** The
 > "~$500,000 in hardware" number traces to a **Lobsters comment** (~Nov 2024),
@@ -502,7 +508,7 @@ standardised, and remain Bluesky-defined.
 **Lexicon fragmentation is the live unsolved problem**: Leaflet, WhiteWind and
 Offprint all publish longform and **none can read each other's records**.
 Leaflet names this a *social* problem rather than a technical one. Publishing
-`net.x.*` longform means joining that fragmentation, not escaping it — a cost
+`fyi.xnet.*` longform means joining that fragmentation, not escaping it — a cost
 worth stating plainly in any marketing copy.
 
 ## Key Findings
@@ -551,7 +557,7 @@ Keep the binding record; never run a PDS or index.
 
 ### Option B — Publish public artifacts as atproto records; run no infrastructure
 
-Define `net.x.*` lexicons; write records to whichever PDS the user already has
+Define `fyi.xnet.*` lexicons; write records to whichever PDS the user already has
 (Bluesky's or their own). Consume via Jetstream for our own reads.
 
 - **For:** genuinely cheap ($5/mo class); no PDS ops, no SMTP, no wildcard DNS,
@@ -576,7 +582,7 @@ Run the whole thing, Bluesky-shaped.
 ### Option D — Two rails, narrow index, layered pricing **(recommended)**
 
 Public artifacts on atproto; gated content on hub grants; an index scoped to
-`net.x.*` plus backlinks rather than a general timeline; PDS hosting offered as
+`fyi.xnet.*` plus backlinks rather than a general timeline; PDS hosting offered as
 convenience, never as a requirement; money attaches only to L2.
 
 - **For:** matches the ecosystem's convergent pattern and our existing
@@ -623,9 +629,9 @@ Two conclusions from that table that I want to state rather than bury:
 ```mermaid
 flowchart TB
   P0["<b>Phase 0 — 0360's gate (UNCHANGED)</b><br/>cold open + real claim flow<br/>⛔ nothing below is perceptible until this lands"]
-  P1["<b>Phase 1 — Speak the protocol</b><br/>publish net.x.* lexicons + _lexicon DNS<br/>Follow schema + social graph (does not exist today)<br/>write records to the user's EXISTING PDS<br/>NO infrastructure of ours"]
+  P1["<b>Phase 1 — Speak the protocol</b><br/>publish fyi.xnet.* lexicons + _lexicon DNS<br/>Follow schema + social graph (does not exist today)<br/>write records to the user's EXISTING PDS<br/>NO infrastructure of ours"]
   P2["<b>Phase 2 — The one-way door</b><br/>asymmetric visibility in the type system<br/>Withdraw (never 'make private')<br/>gated content structurally barred from public rail"]
-  P3["<b>Phase 3 — The narrow index</b><br/>Jetstream → net.x.* + backlinks only<br/>L1 reproducible, documented, CI-gated<br/>L2 bundled into Cloud (0366)"]
+  P3["<b>Phase 3 — The narrow index</b><br/>Jetstream → fyi.xnet.* + backlinks only<br/>L1 reproducible, documented, CI-gated<br/>L2 bundled into Cloud (0366)"]
   P4["<b>Phase 4 — Hosted PDS</b><br/>official @atproto/pds container<br/>user holds the higher-priority rotation key<br/>revise docs/hub-as-pds-spike.md first"]
   P0 --> P1 --> P2 --> P3 --> P4
 ```
@@ -644,7 +650,7 @@ published record.
 
 **Phase 3 — the narrow index, with the reproducibility gate in the same PR.**
 Not "later." 0360's rule 4 is explicit that an index which is theoretically
-mirrorable but practically singular is Docker Hub. Scope: `net.x.*` records
+mirrorable but practically singular is Docker Hub. Scope: `fyi.xnet.*` records
 plus backlinks — Constellation's shape, not Bluesky's. Publish L1's recipe and
 prove it in CI. **Per 0366, L2 is bundled into Cloud rather than sold as
 access, and index reads stay free.**
@@ -723,10 +729,10 @@ export type GatedRail = Exclude<Rail, { kind: 'atproto' }>;
 export async function announcePack(pack: PackRef, agent: AtpAgent) {
   return agent.com.atproto.repo.putRecord({
     repo: agent.did!,
-    collection: 'net.x.pack.announcement', // NSID chosen ONCE — see 0365
+    collection: 'fyi.xnet.pack.announcement', // NSID chosen ONCE — see 0365
     rkey: pack.slug,
     record: {
-      $type: 'net.x.pack.announcement',
+      $type: 'fyi.xnet.pack.announcement',
       title: pack.title,
       // The bundle itself is NOT in the record. This is a pointer.
       href: pack.url,
@@ -755,10 +761,11 @@ export async function announcePack(pack: PackRef, agent: AtpAgent) {
 
 ### Open questions
 
-- **Should the namespace be `net.x.*`, and is `x.net` DNS control durable?** The
-  binding already uses `net.x.identity.binding` and `create-share.ts:11`
-  hardcodes `did:web:xnet.fyi` — **two different domains are already implied in
-  the codebase.** This must be resolved before Phase 1, not during it.
+- ~~**Should the namespace be `net.x.*`, and is `x.net` DNS control durable?**~~
+  **RESOLVED by 0372:** it is not durable — `x.net` belongs to IANA and can
+  never be claimed, so `net.x.*` was squatting. The namespace is **`fyi.xnet.*`**,
+  which collapses the two implied domains onto the `did:web:xnet.fyi` that
+  `create-share.ts:11` already hardcodes.
 - **Does `unlisted` become "on atproto, not promoted by our index"?** It is
   currently defined with no distinct behaviour, which is either a bug or a
   vacancy.
@@ -766,7 +773,7 @@ export async function announcePack(pack: PackRef, agent: AtpAgent) {
   Cloud has never launched and the metric therefore cannot move?
 - **Do we publish a Labeler?** It is the moderation seam and we have
   `@xnetjs/abuse` (~30 modules), but it is also a governance commitment.
-- **Does the Fork (0360) publish as `net.x.pack.announcement`, or does it join
+- **Does the Fork (0360) publish as `fyi.xnet.pack.announcement`, or does it join
   `sh.tangled.*`?** Joining Tangled's namespace buys an existing ecosystem and
   spends our independence; it deserves its own decision.
 - **What happens to a published record when a user leaves xNet Cloud?** The
@@ -784,11 +791,11 @@ export async function announcePack(pack: PackRef, agent: AtpAgent) {
 - [ ] ADR: choose the NSID namespace once; resolve the `x.net` vs `xnet.fyi`
       split already implied by `binding.ts` and `create-share.ts:11`.
 - [ ] Create `lexicons/` with real JSON schemas + codegen; convert
-      `net.x.identity.binding` from a hand-written interface to a published lexicon.
+      `fyi.xnet.identity.binding` from a hand-written interface to a published lexicon.
 - [ ] Publish `_lexicon.<domain>` DNS TXT records — **one per NSID group**
       (resolution does not cascade).
 - [ ] Add the `Follow` schema and social-graph edges (**absent today**).
-- [ ] Add `net.x.actor.profile`, mapping the existing `ProfileSchema`.
+- [ ] Add `fyi.xnet.actor.profile`, mapping the existing `ProfileSchema`.
 - [ ] Write public records to the user's existing PDS via the shipped ceremony.
 - [ ] Consume via **Jetstream** (~850 MB/day, $5/mo class) — no relay yet.
 - [ ] Document the lexicon-evolution constraints (optional-only additions, no
@@ -805,7 +812,7 @@ export async function announcePack(pack: PackRef, agent: AtpAgent) {
 
 ### Phase 3 — the narrow index
 
-- [ ] Index scope written down and scoped to `net.x.*` + backlinks
+- [ ] Index scope written down and scoped to `fyi.xnet.*` + backlinks
       (Constellation's shape, not Bluesky's).
 - [ ] **`scripts/verify-index-reproducible.mjs`** — rebuild L1 from public
       inputs and diff against production; **CI-gated, in the same PR as the index.**
@@ -841,7 +848,7 @@ export async function announcePack(pack: PackRef, agent: AtpAgent) {
 
 ## Validation Checklist
 
-- [ ] A `net.x.*` record written by xNet is readable by a **third-party**
+- [ ] A `fyi.xnet.*` record written by xNet is readable by a **third-party**
       atproto client with no xNet code.
 - [ ] `_lexicon` TXT resolution succeeds via `goat` and `@atproto/lexicon-resolver`.
 - [ ] A user with a **self-hosted** PDS (not `bsky.social`) completes the full
@@ -873,7 +880,7 @@ export async function announcePack(pack: PackRef, agent: AtpAgent) {
 ### Codebase
 - `apps/web/src/identity/atproto-ceremony.ts` — the shipped OAuth ceremony; `putRecord` at :108
 - `apps/web/src/identity/{AtprotoProfileLinker,VerifiedHandle}.tsx`
-- `packages/identity/src/atproto/{did,binding,rotation-key}.ts` — `net.x.identity.binding`; PLC rotation key derived, not submitted
+- `packages/identity/src/atproto/{did,binding,rotation-key}.ts` — `fyi.xnet.identity.binding`; PLC rotation key derived, not submitted
 - `packages/hub/src/services/atproto-binding.ts` — `plc.directory` + `.well-known` resolution, 1h TTL
 - `packages/hub/src/routes/atproto.ts`, `packages/hub/src/server.ts:569`
 - `packages/hub/src/routes/public.ts` — `resolveEffectiveVisibility`, defaults `private`, 500-node cap

@@ -576,7 +576,7 @@ sequence.)
       dial; no "make private" affordance anywhere (0365)
 - [ ] **Positioning copy** — "the E2E-encrypted workspace for your ATProto
       identity"; Germ-slot framing on the site (0324)
-- [ ] Docs sweep: update 0301/0322/0324/0333/0365/0367 references from
+- [x] Docs sweep: update 0301/0322/0324/0333/0365/0367 references from
       `net.x.*` to `fyi.xnet.*` (stale namespace in prose)
 
 ## Validation Checklist
