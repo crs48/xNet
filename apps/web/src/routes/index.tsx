@@ -21,7 +21,7 @@ import { useRestoringFromHub } from '../lib/use-restoring'
 import { navigateToNode } from '../workbench/navigation'
 import { tabIdFor, useWorkbench } from '../workbench/state'
 import { setPreviewIntent } from '../workbench/tabs'
-import { HomeChats, homeHeading, lensShowsChats, lensShowsDocs } from './home-lens'
+import { HomeChats, homeHeading, lensShowsChats, lensShowsDocs } from '../components/HomeLens'
 import { hasOnboarded } from './welcome'
 
 export const Route = createFileRoute('/')({

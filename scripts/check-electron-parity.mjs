@@ -62,6 +62,12 @@ const WAIVED = new Map([
     'frame',
     'frame tabs (0346) ride the web workbench tab machinery; desktop adopts them with the deferred ShellFrame port (0280 risk 6)'
   ],
+  [
+    'ai',
+    'the BYO-model assistant (0174/0192) restored to the nav in 0388 rides the web ' +
+      'workbench slot registry; the desktop renderer has no AI surface wired, same ' +
+      'reason as companion'
+  ],
   ['analytics', 'usage analytics is a web/cloud surface, not a desktop workflow'],
   [
     'companion',
