@@ -7,5 +7,15 @@
     "Table view: the column data-type selector is usable again",
     "Selects and menus opened from inside modals and popovers stay on top"
   ],
-  "tags": ["app", "ui"]
+  "tags": [
+    "app",
+    "ui"
+  ],
+  "pr": 611,
+  "mergedAt": "2026-07-21T03:32:01Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
