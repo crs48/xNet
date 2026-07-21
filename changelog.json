@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-21-long-select-menus-scroll-again",
+      "url": "https://xnet.fyi/changelog#2026-07-21-long-select-menus-scroll-again",
+      "title": "Long select menus scroll again",
+      "content_text": "Dropdown selects with many options (like the database field-type picker) were capped at a fixed height with no way to scroll by mouse, hiding options past the twelfth. The list now scrolls and shows scroll arrows, so every option is reachable.\n",
+      "date_published": "2026-07-21T10:43:50Z",
+      "tags": [
+        "app"
+      ],
+      "_xnet": {
+        "date": "July 21, 2026",
+        "summary": "Dropdown selects with many options (like the database field-type picker) were capped at a fixed height with no way to scroll by mouse, hiding options past the twelfth. The list now scrolls and shows scroll arrows, so every option is reachable.",
+        "highlights": [],
+        "mergedAt": "2026-07-21T10:43:50Z",
+        "pr": 612,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-20-dropdowns-no-longer-hide-behind-popovers",
       "url": "https://xnet.fyi/changelog#2026-07-20-dropdowns-no-longer-hide-behind-popovers",
       "title": "Dropdowns no longer hide behind the popovers that open them",
