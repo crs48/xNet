@@ -576,7 +576,7 @@ it('every default section resolves to a destination', () => {
       (`sections.ts:57-64`) once `/crm` is reachable via the lens
 - [x] Gate the `Analytics` section behind `VITE_TELEMETRY_DASHBOARD` so it is
       absent rather than dead
-- [ ] Seed at least one `SavedView` in `packages/devtools/src/seed/`, or give
+- [x] Seed at least one `SavedView` in `packages/devtools/src/seed/`, or give
       the `Views` lens a real empty state with a create action
 - [x] Add `More` entries (or a documented URL-only rationale) for
       `/experiments`, `/companion`, `/social-import`

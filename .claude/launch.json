@@ -4,25 +4,50 @@
     {
       "name": "web (vite)",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "xnet-web", "dev"],
+      "runtimeArgs": [
+        "--filter",
+        "xnet-web",
+        "dev"
+      ],
       "port": 5173
     },
     {
       "name": "web-worktree (vite)",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "xnet-web", "dev", "--port", "5199", "--strictPort"],
+      "runtimeArgs": [
+        "--filter",
+        "xnet-web",
+        "dev",
+        "--port",
+        "5199",
+        "--strictPort"
+      ],
       "port": 5199
     },
     {
       "name": "web-worktree-5203 (vite)",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "xnet-web", "dev", "--port", "5203", "--strictPort"],
+      "runtimeArgs": [
+        "--filter",
+        "xnet-web",
+        "dev",
+        "--port",
+        "5203",
+        "--strictPort"
+      ],
       "port": 5203
     },
     {
       "name": "web-worktree-5201 (vite)",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "xnet-web", "dev", "--port", "5201", "--strictPort"],
+      "runtimeArgs": [
+        "--filter",
+        "xnet-web",
+        "dev",
+        "--port",
+        "5201",
+        "--strictPort"
+      ],
       "port": 5201
     },
     {
@@ -55,7 +80,14 @@
     {
       "name": "demos (vite 5207)",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "xnet-demos", "dev", "--port", "5207", "--strictPort"],
+      "runtimeArgs": [
+        "--filter",
+        "xnet-demos",
+        "dev",
+        "--port",
+        "5207",
+        "--strictPort"
+      ],
       "port": 5207
     },
     {
@@ -70,37 +102,63 @@
     {
       "name": "hub (sync server)",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "@xnetjs/hub", "dev"],
+      "runtimeArgs": [
+        "--filter",
+        "@xnetjs/hub",
+        "dev"
+      ],
       "port": 4444
     },
     {
       "name": "electron (hub + app)",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "xnet-desktop", "dev"],
+      "runtimeArgs": [
+        "--filter",
+        "xnet-desktop",
+        "dev"
+      ],
       "port": 4444
     },
     {
       "name": "expo (mobile)",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "xnet-mobile", "start"],
+      "runtimeArgs": [
+        "--filter",
+        "xnet-mobile",
+        "start"
+      ],
       "port": 8081
     },
     {
       "name": "storybook",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["run", "dev:stories"],
+      "runtimeArgs": [
+        "run",
+        "dev:stories"
+      ],
       "port": 6006
     },
     {
       "name": "site (astro docs)",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "site", "dev"],
+      "runtimeArgs": [
+        "--filter",
+        "site",
+        "dev"
+      ],
       "port": 4321
     },
     {
       "name": "site-preview (astro 4388)",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "site", "dev", "--port", "4388", "--strictPort"],
+      "runtimeArgs": [
+        "--filter",
+        "site",
+        "dev",
+        "--port",
+        "4388",
+        "--strictPort"
+      ],
       "port": 4388
     },
     {
@@ -115,7 +173,13 @@
     {
       "name": "site-dist-0364 (static 4394)",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "4394", "-d", "site/dist"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "4394",
+        "-d",
+        "site/dist"
+      ],
       "port": 4394
     },
     {
@@ -130,26 +194,64 @@
     {
       "name": "site-worktree (astro 4391)",
       "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["--filter", "site", "dev", "--port", "4391", "--strictPort"],
+      "runtimeArgs": [
+        "--filter",
+        "site",
+        "dev",
+        "--port",
+        "4391",
+        "--strictPort"
+      ],
       "port": 4391
     },
     {
       "name": "site-dist (static 4389)",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "4389", "-d", "site/dist"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "4389",
+        "-d",
+        "site/dist"
+      ],
       "port": 4389
     },
     {
       "name": "site-dist-worktree (static 4392)",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "4392", "-d", "site/dist"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "4392",
+        "-d",
+        "site/dist"
+      ],
       "port": 4392
     },
     {
       "name": "site-dist-worktree-4393 (static)",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "4393", "-d", "site/dist"],
+      "runtimeArgs": [
+        "-m",
+        "http.server",
+        "4393",
+        "-d",
+        "site/dist"
+      ],
       "port": 4393
+    },
+    {
+      "name": "web-0388 (vite 5215)",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": [
+        "--filter",
+        "xnet-web",
+        "dev",
+        "--port",
+        "5215",
+        "--strictPort"
+      ],
+      "port": 5215
     }
   ]
 }
