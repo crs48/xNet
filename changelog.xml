@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Scrollable panels now fade at the edge when there's more to see</title>
+      <link>https://xnet.fyi/changelog#2026-07-21-scrollable-panels-now-fade-at-the-edge-w</link>
+      <guid isPermaLink="false">2026-07-21-scrollable-panels-now-fade-at-the-edge-w</guid>
+      <pubDate>Tue, 21 Jul 2026 14:51:48 GMT</pubDate>
+      <description>Lists, chat transcripts, the sidebar tree and long menus now fade their content into the background at any edge that still has more to scroll, and the fade disappears once you reach the end. Works in light and dark mode on every surface.</description>
+    </item>
+    <item>
       <title>Long select menus scroll again</title>
       <link>https://xnet.fyi/changelog#2026-07-21-long-select-menus-scroll-again</link>
       <guid isPermaLink="false">2026-07-21-long-select-menus-scroll-again</guid>
