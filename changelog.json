@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-21-one-new-button-for-everything-you-can-cr",
+      "url": "https://xnet.fyi/changelog#2026-07-21-one-new-button-for-everything-you-can-cr",
+      "title": "One New button for everything you can create",
+      "content_text": "The top-left New menu now creates tasks, channels, meetings and spaces alongside pages, databases and canvases. The plus button in the corner of the sidebar has been removed — it always made a page even when you were looking at chats.\n",
+      "date_published": "2026-07-21T17:01:16Z",
+      "tags": [
+        "app"
+      ],
+      "_xnet": {
+        "date": "July 21, 2026",
+        "summary": "The top-left New menu now creates tasks, channels, meetings and spaces alongside pages, databases and canvases. The plus button in the corner of the sidebar has been removed — it always made a page even when you were looking at chats.",
+        "highlights": [],
+        "mergedAt": "2026-07-21T17:01:16Z",
+        "pr": 615,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-21-files-in-database-cells-with-previews",
       "url": "https://xnet.fyi/changelog#2026-07-21-files-in-database-cells-with-previews",
       "title": "Files in database cells, with previews",
