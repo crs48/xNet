@@ -295,8 +295,11 @@ sequenceDiagram
   palette (⌘K-style) is the next step — out of scope here.
 - Should **Task** creation from the New menu inherit the active Space?
   Tasks today are not Space-filed by the quick-add; keep parity for now.
-- Is `CreateDocMenuItems` (`lib/doc-creation.tsx`) still used anywhere, or
-  dead code to delete in the same pass?
+- ~~Is `CreateDocMenuItems` (`lib/doc-creation.tsx`) still used anywhere, or
+  dead code to delete in the same pass?~~ **Resolved during implementation:**
+  it is live — `routes/index.tsx` renders it for the home view's
+  page/database/canvas dropdown. Kept as-is; that dropdown is a
+  home-screen empty-state creator, not a competing global hub.
 
 ## Implementation Checklist
 
@@ -316,22 +319,22 @@ sequenceDiagram
 - [x] Remove the unified-nav header "+" (`SidebarIslands.tsx:377-385`).
 - [x] Remove the legacy surface-aware `create` block
       (`SidebarIslands.tsx:403-426`) and the `useNewActions` import.
-- [ ] Delete `CreateDocMenuItems` if grep confirms it is unconsumed.
-- [ ] Update any coachmarks/tests referencing the bottom-island plus.
+- [x] Delete `CreateDocMenuItems` if grep confirms it is unconsumed.
+- [x] Update any coachmarks/tests referencing the bottom-island plus.
 
 ## Validation Checklist
 
-- [ ] Top New menu creates every listed type; doc types file into the active
+- [x] Top New menu creates every listed type; doc types file into the active
       Space (eyebrow shows "Creating in <Space>").
-- [ ] New → Channel lands in an inline name input in the Chats panel; naming
+- [x] New → Channel lands in an inline name input in the Chats panel; naming
       it creates the channel.
-- [ ] New → Meeting opens the recorder (`/meetings?record=1`).
-- [ ] New → Space opens the new-space input; New → Task focuses quick-add.
-- [ ] Bottom island header shows no "+" on any lens or legacy surface.
-- [ ] Mobile New sheet mirrors the desktop menu.
-- [ ] ⌘T still opens a new page; Chats/Tasks/Today/CRM in-panel creators
+- [x] New → Meeting opens the recorder (`/meetings?record=1`).
+- [x] New → Space opens the new-space input; New → Task focuses quick-add.
+- [x] Bottom island header shows no "+" on any lens or legacy surface.
+- [x] Mobile New sheet mirrors the desktop menu.
+- [x] ⌘T still opens a new page; Chats/Tasks/Today/CRM in-panel creators
       untouched.
-- [ ] `pnpm -w test` web suites green; no orphaned imports
+- [x] `pnpm -w test` web suites green; no orphaned imports
       (`useNewActions` consumer count drops to 2).
 
 ## References
