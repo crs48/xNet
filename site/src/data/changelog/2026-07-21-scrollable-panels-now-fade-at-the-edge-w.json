@@ -4,5 +4,15 @@
   "title": "Scrollable panels now fade at the edge when there's more to see",
   "summary": "Lists, chat transcripts, the sidebar tree and long menus now fade their content into the background at any edge that still has more to scroll, and the fade disappears once you reach the end. Works in light and dark mode on every surface.",
   "highlights": [],
-  "tags": ["app", "editor"]
+  "tags": [
+    "app",
+    "editor"
+  ],
+  "pr": 613,
+  "mergedAt": "2026-07-21T14:51:48Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
