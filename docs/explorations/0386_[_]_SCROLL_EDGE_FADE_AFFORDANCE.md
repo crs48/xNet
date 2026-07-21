@@ -21,7 +21,7 @@ fade, but naive implementations have two failure modes we must avoid:
    color breaks somewhere.
 2. **Static fades.** A fade that is always present lies at the end of the
    list: the last row looks half-hidden even when there is nothing below it.
-   The fade must *react* to scroll state — visible only when content is
+   The fade must _react_ to scroll state — visible only when content is
    actually clipped in that direction.
 
 The request: a composable, near-zero-cost affordance that any scroll surface
@@ -39,7 +39,7 @@ complementary pure-CSS mechanisms:**
    (`animation-timeline: scroll(self)`) animating `@property`-registered
    custom properties that feed the mask's fade distances. Zero JavaScript,
    compositor-fed, and — crucially — when a container has no overflow the
-   scroll timeline is *inert*, so the custom properties hold their initial
+   scroll timeline is _inert_, so the custom properties hold their initial
    `0px` values and no fade renders. The requested "fade out when nothing
    left to scroll" behavior falls out of the platform for free.
 2. **A `fade` prop on the existing `ScrollArea` primitive**
@@ -54,7 +54,7 @@ through — any background, any theme, both color schemes, no configuration.
 
 Support: the utility works in Chrome/Edge 115+, Safari 26+, and Electron 33
 (Chromium ~130). Firefox stable still flags scroll-driven animations, so the
-utility is `@supports`-gated and degrades to *no fade* there (honest, not
+utility is `@supports`-gated and degrades to _no fade_ there (honest, not
 broken); ScrollArea-based surfaces get the full effect everywhere.
 
 ## Current State In The Repository
@@ -108,14 +108,14 @@ Findings from a full-repo survey:
 
 ### Technique landscape
 
-| Technique | Detection | Rendering | Any background? | Zero JS? | Support |
-|---|---|---|---|---|---|
-| Overlay gradient (absolutely-positioned pseudo) | JS or SDA | bg-colored gradient on top | **No** — must match bg | possible | universal |
-| Lea Verou `background-attachment: local` shadows | free (bg scroll trick) | background gradients | **No** — solid bg only, and content scrolls *over* the shadow | yes | universal |
-| **Mask + scroll-driven animations** | `animation-timeline: scroll(self)` | `mask-image` alpha fade | **Yes** | **yes** | Chrome/Edge 115+, Safari 26+, Firefox flagged |
-| `scroll-state()` container queries | `@container scroll-state(scrollable: bottom)` | any | yes | yes | Chromium 133+ only — **exceeds Electron 33 (~130)** |
-| JS hook → data attributes | scroll + ResizeObserver | mask or overlay | yes (with mask) | no (~1 kB) | universal |
-| Base UI ScrollArea CSS vars | library-provided (`--scroll-area-overflow-y-*`) | mask | **Yes** | yes (JS already paid for) | universal (library does the measuring) |
+| Technique                                        | Detection                                       | Rendering                  | Any background?                                               | Zero JS?                  | Support                                             |
+| ------------------------------------------------ | ----------------------------------------------- | -------------------------- | ------------------------------------------------------------- | ------------------------- | --------------------------------------------------- |
+| Overlay gradient (absolutely-positioned pseudo)  | JS or SDA                                       | bg-colored gradient on top | **No** — must match bg                                        | possible                  | universal                                           |
+| Lea Verou `background-attachment: local` shadows | free (bg scroll trick)                          | background gradients       | **No** — solid bg only, and content scrolls _over_ the shadow | yes                       | universal                                           |
+| **Mask + scroll-driven animations**              | `animation-timeline: scroll(self)`              | `mask-image` alpha fade    | **Yes**                                                       | **yes**                   | Chrome/Edge 115+, Safari 26+, Firefox flagged       |
+| `scroll-state()` container queries               | `@container scroll-state(scrollable: bottom)`   | any                        | yes                                                           | yes                       | Chromium 133+ only — **exceeds Electron 33 (~130)** |
+| JS hook → data attributes                        | scroll + ResizeObserver                         | mask or overlay            | yes (with mask)                                               | no (~1 kB)                | universal                                           |
+| Base UI ScrollArea CSS vars                      | library-provided (`--scroll-area-overflow-y-*`) | mask                       | **Yes**                                                       | yes (JS already paid for) | universal (library does the measuring)              |
 
 ### Prior art
 
@@ -131,14 +131,14 @@ Findings from a full-repo survey:
   `--scroll-fade-reveal` easing distance (96 px default), fade depth
   defaulting to 12% of container height capped at 40 px. Mask-based: "it
   adapts to any background without configuration." Falls back to a
-  *static* fade in unsupported browsers (we deliberately diverge — see
+  _static_ fade in unsupported browsers (we deliberately diverge — see
   Options).
 - **petekp/tw-fade**: an equivalent Tailwind v4 plugin, confirming the
   pattern is stable community practice.
 - **Base UI ScrollArea docs**: Root/Viewport/Content carry
   `data-has-overflow-{x,y}` and `data-overflow-{x,y}-{start,end}`
   attributes, and the Viewport exposes
-  `--scroll-area-overflow-{x,y}-{start,end}` *pixel distances* — purpose-
+  `--scroll-area-overflow-{x,y}-{start,end}` _pixel distances_ — purpose-
   built hooks for exactly this effect.
 
 ### Browser support (as of July 2026)
@@ -175,7 +175,7 @@ Findings from a full-repo survey:
    behavior requested, and it behaves well for both 40 px and 40,000 px of
    overflow.
 4. **Base UI already measured everything.** For `ScrollArea` consumers,
-   `min(var(--scroll-fade-size), var(--scroll-area-overflow-y-end))` *is*
+   `min(var(--scroll-fade-size), var(--scroll-area-overflow-y-end))` _is_
    the fade distance — cross-browser, continuous, updated by the library.
    This also sidesteps the scrollbar-masking problem: in `ScrollArea` the
    scrollbar is a sibling of the Viewport, so masking the Viewport leaves
@@ -213,8 +213,8 @@ right. Fails the core requirement.
 
 ### Option B — `background-attachment: local` shadows (rejected)
 
-The classic Lea Verou trick needs a solid, known background *on the
-container itself* and paints shadows the content scrolls over (not a fade of
+The classic Lea Verou trick needs a solid, known background _on the
+container itself_ and paints shadows the content scrolls over (not a fade of
 the content). Same coupling problem as A, with less fidelity.
 
 ### Option C — JS hook + data attributes (fallback-only)
@@ -234,7 +234,7 @@ One class, zero JS, self-contained per element. Degrades to no fade under
 `@supports` failure (Firefox stable). We deliberately diverge from shadcn's
 static-fade fallback: a static fade on a non-scrollable container half-hides
 the last row and violates the stated requirement ("if there is nothing left
-to scroll the gradient can fade out"); *no fade* is the honest degradation,
+to scroll the gradient can fade out"); _no fade_ is the honest degradation,
 and Firefox is one flag-flip from parity.
 
 Costs: animating `@property` custom lengths runs the animation on the main
@@ -357,12 +357,20 @@ stateDiagram-v2
   }
 
   @keyframes sf-in {
-    from { --sf-start: 0px; }
-    to   { --sf-start: var(--scroll-fade-size); }
+    from {
+      --sf-start: 0px;
+    }
+    to {
+      --sf-start: var(--scroll-fade-size);
+    }
   }
   @keyframes sf-out {
-    from { --sf-end: var(--scroll-fade-size); }
-    to   { --sf-end: 0px; }
+    from {
+      --sf-end: var(--scroll-fade-size);
+    }
+    to {
+      --sf-end: 0px;
+    }
   }
 }
 ```
@@ -389,11 +397,7 @@ Usage — one class on any scroll container:
 // Viewport gains an optional fade. Base UI maintains
 // --scroll-area-overflow-y-start/end as live pixel distances.
 <ScrollAreaPrimitive.Viewport
-  className={cn(
-    'h-full w-full',
-    fade && 'xnet-scroll-fade-viewport',
-    className,
-  )}
+  className={cn('h-full w-full', fade && 'xnet-scroll-fade-viewport', className)}
 />
 ```
 
@@ -423,9 +427,9 @@ plugin(({ addUtilities, matchUtilities, theme }) => {
   // theme/scroll-fade.css; here we add size modifiers:
   matchUtilities(
     { 'scroll-fade': (value) => ({ '--scroll-fade-size': value }) },
-    { values: theme('spacing') },
-  );
-});
+    { values: theme('spacing') }
+  )
+})
 ```
 
 ## Risks And Open Questions
@@ -460,24 +464,24 @@ plugin(({ addUtilities, matchUtilities, theme }) => {
 - **RTL.** Vertical fades are direction-agnostic; `scroll-fade-x` must use
   logical `to right`/`inline` semantics (shadcn's `-s/-e` naming is the
   model). Board columns are the first horizontal consumer.
-- **Reduced motion.** The fade is scroll-*state*, not decorative motion —
+- **Reduced motion.** The fade is scroll-_state_, not decorative motion —
   it moves only as far as the user scrolls — so it does not need a
   `prefers-reduced-motion` gate (consistent with WCAG interpretation of
   scroll-driven effects that track input 1:1). Revisit if we ever animate
   fade appearance on a clock.
-- **Open question:** should `fade` become the ScrollArea *default* after a
+- **Open question:** should `fade` become the ScrollArea _default_ after a
   bake period, making the affordance ambient wherever the primitive is
   adopted? Leaning yes; decide after the first cohort ships.
 
 ## Implementation Checklist
 
-- [ ] Add `packages/ui/src/theme/scroll-fade.css` (`@property` registrations,
+- [x] Add `packages/ui/src/theme/scroll-fade.css` (`@property` registrations,
       `.scroll-fade`, `.scroll-fade-b`, `.scroll-fade-x`,
       `.xnet-scroll-fade-viewport`) and import it alongside
       `responsive.css`.
-- [ ] Register size-modifier utilities in `packages/ui/tailwind.config.js`
+- [x] Register size-modifier utilities in `packages/ui/tailwind.config.js`
       (spacing-scale values for `--scroll-fade-size`).
-- [ ] Add `fade?: boolean` to `ScrollArea` / `ScrollAreaViewport` in
+- [x] Add `fade?: boolean` to `ScrollArea` / `ScrollAreaViewport` in
       `packages/ui/src/primitives/ScrollArea.tsx` (compound parts accept it
       too); export nothing new from the root barrel beyond the existing
       `ScrollArea` names (sub-barrel policy respected — no new surface).

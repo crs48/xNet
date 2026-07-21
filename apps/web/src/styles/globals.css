@@ -5,6 +5,10 @@
    insets, scrollbar + tap-highlight utilities. Declares an `@layer
    utilities` block, so it must run through the Tailwind pipeline here. */
 @import '@xnetjs/ui/responsive.css';
+/* Scroll-edge fade affordance (exploration 0386): mask-based edge fades for
+   scrollable surfaces. Plain top-level rules (not an `@layer utilities`
+   block) so the `@supports`-gated utilities always emit. */
+@import '@xnetjs/ui/scroll-fade.css';
 /* Motion vocabulary (exploration 0199): keyframes + duration/easing tokens.
    REQUIRED for <Presence> — its unmount waits on `animationend`, so without
    these rules an exiting child (UndoToast, StorageOptimiseHint) never fires

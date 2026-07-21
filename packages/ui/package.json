@@ -15,6 +15,7 @@
     "./base-ui-animations.css": "./src/theme/base-ui-animations.css",
     "./accessibility.css": "./src/theme/accessibility.css",
     "./responsive.css": "./src/theme/responsive.css",
+    "./scroll-fade.css": "./src/theme/scroll-fade.css",
     "./tailwind.config": "./tailwind.config.js"
   },
   "scripts": {
