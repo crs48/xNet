@@ -91,7 +91,7 @@ export const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
             >
               <BaseSelect.Popup
                 className={cn(
-                  'relative z-50 max-h-96 min-w-[8rem] overflow-hidden',
+                  'relative z-50 min-w-[8rem] overflow-hidden',
                   'rounded-md border border-border bg-popover text-popover-foreground',
                   // Animation
                   'opacity-0 scale-95',
@@ -103,7 +103,11 @@ export const Select = React.forwardRef<HTMLButtonElement, SelectProps>(
                 <BaseSelect.ScrollUpArrow className="flex cursor-default items-center justify-center py-1">
                   <ChevronDown className="h-4 w-4 rotate-180" />
                 </BaseSelect.ScrollUpArrow>
-                <BaseSelect.List className="p-1">
+                {/* max-height lives on the List, not the Popup: Base UI derives
+                    scroll-arrow visibility from the List's scrollHeight, so a
+                    height-clamped Popup with an unclamped List never shows
+                    arrows and swallows wheel scrolling. */}
+                <BaseSelect.List className="max-h-96 overflow-y-auto p-1">
                   {options.map((option) => (
                     <BaseSelect.Item
                       key={option.value}
@@ -203,7 +207,7 @@ export const SelectContent = React.forwardRef<
       <BaseSelect.Popup
         ref={ref}
         className={cn(
-          'relative z-50 max-h-96 min-w-[8rem] overflow-hidden',
+          'relative z-50 min-w-[8rem] overflow-hidden',
           'rounded-md border border-border bg-popover text-popover-foreground',
           // Animation
           'opacity-0 scale-95',
@@ -217,7 +221,9 @@ export const SelectContent = React.forwardRef<
         <BaseSelect.ScrollUpArrow className="flex cursor-default items-center justify-center py-1">
           <ChevronDown className="h-4 w-4 rotate-180" />
         </BaseSelect.ScrollUpArrow>
-        <BaseSelect.List className="p-1">{children}</BaseSelect.List>
+        {/* max-height lives on the List, not the Popup — see the simple
+            Select variant above for why. */}
+        <BaseSelect.List className="max-h-96 overflow-y-auto p-1">{children}</BaseSelect.List>
         <BaseSelect.ScrollDownArrow className="flex cursor-default items-center justify-center py-1">
           <ChevronDown className="h-4 w-4" />
         </BaseSelect.ScrollDownArrow>
