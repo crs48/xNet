@@ -9,7 +9,12 @@
 import type { RecordLensRegistry } from '../record-lens'
 import { pageToDocumentLens, SITE_STANDARD_DOCUMENT } from './page-document'
 
-export { pageToDocumentLens, SITE_STANDARD_DOCUMENT } from './page-document'
+export {
+  pageToDocumentLens,
+  SITE_STANDARD_DOCUMENT,
+  XNET_BODY_BLOCK,
+  type XNetBodyBlock
+} from './page-document'
 
 /** Every built-in projection lens, in registration order. */
 export const BUILTIN_RECORD_LENSES = [pageToDocumentLens] as const

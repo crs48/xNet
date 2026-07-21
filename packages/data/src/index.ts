@@ -653,6 +653,8 @@ export {
   // Projection lexicons (node → adopted foreign lexicon, 0367/0372/0389)
   pageToDocumentLens,
   SITE_STANDARD_DOCUMENT,
+  XNET_BODY_BLOCK,
+  type XNetBodyBlock,
   BUILTIN_RECORD_LENSES,
   registerBuiltinRecordLenses,
 

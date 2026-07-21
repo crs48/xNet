@@ -562,7 +562,7 @@ sequence.)
 - [x] **First projection**: `PageSchema` → `site.standard.document`; card
       on PDS, body on hub; `lexiconRef` stamped on the node so republish is
       `putRecord`, never a duplicate create (0367/0372/0380)
-- [ ] **One `fyi.xnet.*` content block** minted in the `site.standard`
+- [x] **One `fyi.xnet.*` content block** minted in the `site.standard`
       open content union; publish the lexicon via DNS + repo record (0372)
 - [x] **Authoring-time projection guardrails** — `defineSchema` warns on
       unmappable properties (float, formula, rollup) when a `publish`

@@ -5,7 +5,7 @@ import {
   ingestRecord,
   assertRoundTrip
 } from '../record-lens'
-import { pageToDocumentLens, SITE_STANDARD_DOCUMENT } from './page-document'
+import { pageToDocumentLens, SITE_STANDARD_DOCUMENT, XNET_BODY_BLOCK } from './page-document'
 import { registerBuiltinRecordLenses } from './index'
 
 const PAGE_NODE = {
@@ -55,6 +55,29 @@ describe('Page → site.standard.document projection', () => {
     }
     const report = assertRoundTrip(pageToDocumentLens, foreign)
     expect(report).toEqual({ ok: true, lost: [] })
+  })
+
+  it('extends the open content union with exactly one fyi.xnet.* block', () => {
+    const card = projectRecord(pageToDocumentLens, PAGE_NODE)
+    const content = card.content as Array<{ $type: string; hubUrl?: string }>
+    // The plain fallback block every reader understands…
+    expect(content.some((b) => b.$type === `${SITE_STANDARD_DOCUMENT}.textContent`)).toBe(true)
+    // …plus the one minted xNet block pointing at the hub body.
+    const xnetBlocks = content.filter((b) => b.$type.startsWith('fyi.xnet.'))
+    expect(xnetBlocks).toHaveLength(1)
+    expect(xnetBlocks[0].$type).toBe(XNET_BODY_BLOCK)
+    expect(xnetBlocks[0].hubUrl).toBe('https://hub.example/p/hello')
+  })
+
+  it('carries the published content hash on the body block when present', () => {
+    const card = projectRecord(pageToDocumentLens, {
+      ...PAGE_NODE,
+      publishedContentHash: 'cid:blake3:abc'
+    })
+    const block = (card.content as Array<Record<string, unknown>>).find(
+      (b) => b.$type === XNET_BODY_BLOCK
+    )
+    expect(block?.contentHash).toBe('cid:blake3:abc')
   })
 
   it('registers as the sole lens for Page', () => {

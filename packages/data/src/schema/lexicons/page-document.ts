@@ -28,6 +28,29 @@ import type { SchemaIRI } from '../node'
 /** The adopted lexicon this Page projects to. */
 export const SITE_STANDARD_DOCUMENT = 'site.standard.document'
 
+/**
+ * The ONE block type xNet mints into `site.standard.document`'s open content
+ * union (0372's adopt-and-extend rule: adopt the shared lexicon, extend it with
+ * exactly one `fyi.xnet.*` block, mint nothing else).
+ *
+ * `site.standard.document.content` is `closed: false`, so a reader that
+ * understands this block gets the live, hub-hosted rich body; every other
+ * reader ignores it and falls back to the plain `textContent` block emitted
+ * alongside. The block is a POINTER, never the body itself — the write budget
+ * makes syncing a document into a repo impossible (0367), and the body stays
+ * where it can be live and collaborative.
+ */
+export const XNET_BODY_BLOCK = 'fyi.xnet.richBody'
+
+/** The shape of the {@link XNET_BODY_BLOCK} block. */
+export interface XNetBodyBlock {
+  $type: typeof XNET_BODY_BLOCK
+  /** Absolute URL of the full rich body on the hub. */
+  hubUrl: string
+  /** The published frontier hash, so a reader can detect edits-since-publish. */
+  contentHash?: string
+}
+
 /** Page's versioned IRI — the lens source. Kept local to avoid a schema import cycle. */
 const PAGE_IRI = 'xnet://xnet.fyi/Page@1.0.0' as SchemaIRI
 
@@ -71,11 +94,21 @@ export const pageToDocumentLens: RecordLens = {
     if (publishedAt) record.publishedAt = publishedAt
     const canonical = str(node.canonicalUrl)
     if (canonical) record.canonicalUrl = canonical
-    // Open content union: a single text fallback block. `content` is where the
-    // one fyi.xnet.* block will later be added (0372 adopt-and-extend).
+    // Open content union (0372 adopt-and-extend): a plain textContent block
+    // every reader understands, PLUS the one fyi.xnet.* block xNet mints — a
+    // pointer to the live hub body. A reader that knows fyi.xnet.richBody
+    // follows it for fidelity; everyone else falls back to the text.
+    const content: Array<Record<string, unknown>> = []
     if (description) {
-      record.content = [{ $type: `${SITE_STANDARD_DOCUMENT}.textContent`, text: description }]
+      content.push({ $type: `${SITE_STANDARD_DOCUMENT}.textContent`, text: description })
     }
+    if (canonical) {
+      const block: XNetBodyBlock = { $type: XNET_BODY_BLOCK, hubUrl: canonical }
+      const hash = str(node.publishedContentHash)
+      if (hash) block.contentHash = hash
+      content.push({ ...block })
+    }
+    if (content.length) record.content = content
     return record
   },
 

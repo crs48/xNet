@@ -711,6 +711,8 @@ export {
 export {
   pageToDocumentLens,
   SITE_STANDARD_DOCUMENT,
+  XNET_BODY_BLOCK,
+  type XNetBodyBlock,
   BUILTIN_RECORD_LENSES,
   registerBuiltinRecordLenses
 } from './lexicons'
