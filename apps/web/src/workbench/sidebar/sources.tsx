@@ -173,19 +173,34 @@ export function registerBuiltinSidebarSources(): void {
   sidebarRegistry.registerSource(peopleSource)
   sidebarRegistry.registerSource(savedViewsSource)
 
-  sidebarRegistry.registerLens({ id: 'all', label: 'All', sources: [] })
+  // Each lens carries the destination its section navigates to (0388). The
+  // three home lenses share `/`, which renders whichever projection is
+  // active; People and Views recover the routes the 0353 rewrite dropped.
+  sidebarRegistry.registerLens({ id: 'all', label: 'All', sources: [], route: '/' })
   sidebarRegistry.registerLens({
     id: 'docs',
     label: 'Docs',
     sources: ['documents'],
-    sortPolicy: 'manual'
+    sortPolicy: 'manual',
+    route: '/'
   })
   sidebarRegistry.registerLens({
     id: 'chats',
     label: 'Chats',
     sources: ['channels'],
-    sortPolicy: 'recency'
+    sortPolicy: 'recency',
+    route: '/'
   })
-  sidebarRegistry.registerLens({ id: 'people', label: 'People', sources: ['people'] })
-  sidebarRegistry.registerLens({ id: 'views', label: 'Views', sources: ['saved-views'] })
+  sidebarRegistry.registerLens({
+    id: 'people',
+    label: 'People',
+    sources: ['people'],
+    route: '/crm'
+  })
+  sidebarRegistry.registerLens({
+    id: 'views',
+    label: 'Views',
+    sources: ['saved-views'],
+    route: '/data'
+  })
 }

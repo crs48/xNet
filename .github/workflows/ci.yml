@@ -253,6 +253,14 @@ jobs:
           CI: 'true'
           PLAYWRIGHT_TEST_BASE_URL: 'http://127.0.0.1:5173'
 
+      # Desktop only: the mobile shell doesn't render sections at all (0388
+      # open question), so this spec has nothing to assert under mobile-chromium.
+      - name: Run left-nav section tests (desktop)
+        run: pnpm --filter @xnetjs/e2e-tests exec playwright test src/left-nav.spec.ts --project=chromium --fail-on-flaky-tests
+        env:
+          CI: 'true'
+          PLAYWRIGHT_TEST_BASE_URL: 'http://127.0.0.1:5173'
+
       # Preserve the screenshots these smoke specs already take (they were
       # written to tmp/playwright and discarded). The richer changed-UI gallery
       # lives in the visual-capture workflow; this just keeps debug evidence.

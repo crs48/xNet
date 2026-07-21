@@ -89,7 +89,7 @@ const writeSetting = (key: string, value: string): void => {
   else window.localStorage.removeItem(key)
 }
 
-export function AiChatPanel() {
+export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) {
   const [detections, setDetections] = useState<ConnectorDetection[]>([])
   const [selectedTier, setSelectedTier] = useState<ConnectorTier | null>(
     () => (readSetting(AI_CHAT_STORAGE_KEYS.tier) as ConnectorTier) || null
@@ -99,7 +99,9 @@ export function AiChatPanel() {
     () => (readSetting(AI_CHAT_STORAGE_KEYS.cloudProvider) as CloudProvider) || 'anthropic'
   )
   const [messages, setMessages] = useState<ChatMessage[]>([])
-  const [input, setInput] = useState('')
+  // Seeded by the dock hand-off (0388): the compact Assistant carries the
+  // question the user already typed instead of discarding it.
+  const [input, setInput] = useState(initialPrompt ?? '')
   const [streaming, setStreaming] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [ready, setReady] = useState(false)

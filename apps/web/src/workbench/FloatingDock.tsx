@@ -8,6 +8,7 @@
  * design but only mounts when a call is live (`floatCall`, off until a real
  * calling backend is wired). Each island is independently dismissable.
  */
+import { useNavigate } from '@tanstack/react-router'
 import { useIdentity } from '@xnetjs/react'
 import { DIDAvatar } from '@xnetjs/ui'
 import { ArrowUp, Camera, Mic, Minus, PhoneOff, Sparkles, X } from 'lucide-react'
@@ -19,13 +20,18 @@ const GAP = 8
 
 function Assistant() {
   const setFloatAi = useWorkbench((s) => s.setFloatAi)
-  const setActiveSurface = useWorkbench((s) => s.setActiveSurface)
+  const navigate = useNavigate()
   const [value, setValue] = useState('')
 
   const send = () => {
     // The compact dock hands off to the full assistant surface — no local
-    // model/connector state is duplicated here.
-    setActiveSurface('ai')
+    // model/connector state is duplicated here. The question rides along in
+    // `?q=` so the hand-off never loses what the user typed: this used to call
+    // setActiveSurface('ai'), which under unified nav opened nothing and
+    // cleared the input (0388).
+    const question = value.trim()
+    if (!question) return
+    void navigate({ to: '/ai', search: { q: question } })
     setValue('')
   }
 
