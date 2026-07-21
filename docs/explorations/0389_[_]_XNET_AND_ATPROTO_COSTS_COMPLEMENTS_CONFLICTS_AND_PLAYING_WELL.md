@@ -564,7 +564,7 @@ sequence.)
       `putRecord`, never a duplicate create (0367/0372/0380)
 - [ ] **One `fyi.xnet.*` content block** minted in the `site.standard`
       open content union; publish the lexicon via DNS + repo record (0372)
-- [ ] **Authoring-time projection guardrails** — `defineSchema` warns on
+- [x] **Authoring-time projection guardrails** — `defineSchema` warns on
       unmappable properties (float, formula, rollup) when a `publish`
       capability is declared (0380)
 - [ ] **Knot handshake** — `GET /xrpc/fyi.xnet.owner` + `fyi.xnet.hub`

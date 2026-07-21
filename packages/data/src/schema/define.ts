@@ -71,6 +71,47 @@ export interface DefineSchemaOptions<
    * When present, nodes are subject to encrypted access control.
    */
   authorization?: A
+
+  /**
+   * Declares that nodes of this schema may be *projected* onto a foreign
+   * ATProto lexicon — published as a public card while the body stays on the
+   * hub (explorations 0367/0380/0389). Declaring it opts the schema into an
+   * authoring-time guard: properties a lexicon cannot represent (floats,
+   * computed values) are flagged here rather than silently dropped at
+   * `putRecord` time.
+   *
+   * This is a capability, not the projection itself — the `RecordLens` that
+   * does the mapping is registered separately.
+   */
+  publish?: PublishCapability
+}
+
+/** How a schema opts into projection onto a foreign lexicon (0389). */
+export interface PublishCapability {
+  /** Target lexicon NSID, e.g. `site.standard.document`. */
+  lexicon: string
+}
+
+/**
+ * Property types a Lexicon record cannot faithfully carry, so projecting them
+ * would lose or corrupt data (exploration 0380):
+ *
+ * - **float** — Lexicon `number` has no non-integer form; a float projects as a
+ *   truncated or rejected value. (`number({ integer: true })` is fine.)
+ * - **formula / rollup** — computed at read time from other data; a projected
+ *   snapshot would be a stale duplicate that cannot be recomputed by a reader.
+ */
+function unmappableProjectionReason(def: PropertyDefinition): string | null {
+  if (def.type === 'formula' || def.type === 'rollup') {
+    return `${def.type} is computed at read time and must never be projected as a stored field`
+  }
+  if (def.type === 'number') {
+    const integer = (def.config as { integer?: boolean } | undefined)?.integer
+    if (integer !== true) {
+      return 'Lexicon `number` has no float form — declare number({ integer: true }) or omit it from projection'
+    }
+  }
+  return null
 }
 
 /**
@@ -139,6 +180,24 @@ export function defineSchema<P extends Record<string, PropertyBuilder>>(
     }
   }
 
+  // ─── Authoring-time guard: a schema that opts into projection must not carry
+  // properties a lexicon cannot represent, or they are silently dropped or
+  // corrupted at `putRecord` time (exploration 0380/0389). Warn rather than
+  // throw, matching the file's other authoring guards, and dev-gated so test
+  // schemas stay quiet — but name the property and the reason so the fix is
+  // obvious.
+  if (options.publish && process.env.NODE_ENV !== 'production') {
+    for (const def of properties) {
+      const reason = unmappableProjectionReason(def)
+      if (reason) {
+        console.warn(
+          `[xNet Schema] "${options.name}.${def.name}" cannot be projected to ` +
+            `${options.publish.lexicon}: ${reason}.`
+        )
+      }
+    }
+  }
+
   // The schema definition (JSON-LD compatible)
   const schema: Schema = {
     '@id': schemaId,
@@ -150,7 +209,10 @@ export function defineSchema<P extends Record<string, PropertyBuilder>>(
     properties,
     extends: options.extends?.schema['@id'],
     document: options.document,
-    authorization: options.authorization ? serializeAuthorization(options.authorization) : undefined
+    authorization: options.authorization
+      ? serializeAuthorization(options.authorization)
+      : undefined,
+    publish: options.publish ? { lexicon: options.publish.lexicon } : undefined
   }
 
   // ─── Dev-time guard rail: every schema should declare an authorization block

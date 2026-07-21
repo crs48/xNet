@@ -20,6 +20,7 @@ export {
   // Schema definition
   defineSchema,
   type DefineSchemaOptions,
+  type PublishCapability,
 
   // Types
   type PropertyType,

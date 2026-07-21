@@ -27,6 +27,7 @@ export {
 export {
   defineSchema,
   type DefineSchemaOptions,
+  type PublishCapability,
   DEFAULT_SCHEMA_VERSION as SCHEMA_VERSION
 } from './define'
 
