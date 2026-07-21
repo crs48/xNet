@@ -6,6 +6,32 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-20-dropdowns-no-longer-hide-behind-popovers",
+      "url": "https://xnet.fyi/changelog#2026-07-20-dropdowns-no-longer-hide-behind-popovers",
+      "title": "Dropdowns no longer hide behind the popovers that open them",
+      "content_text": "Changing a column's data type from the table view's ⋯ menu works again. The type dropdown was painting behind the field popover, so its options were unclickable — clicks landed on the menu underneath instead. Every portalled select, menu, popover, and tooltip now sits above the overlays it opens from.\n\n• Table view: the column data-type selector is usable again\n• Selects and menus opened from inside modals and popovers stay on top",
+      "date_published": "2026-07-21T03:32:01Z",
+      "tags": [
+        "app",
+        "ui"
+      ],
+      "_xnet": {
+        "date": "July 20, 2026",
+        "summary": "Changing a column's data type from the table view's ⋯ menu works again. The type dropdown was painting behind the field popover, so its options were unclickable — clicks landed on the menu underneath instead. Every portalled select, menu, popover, and tooltip now sits above the overlays it opens from.",
+        "highlights": [
+          "Table view: the column data-type selector is usable again",
+          "Selects and menus opened from inside modals and popovers stay on top"
+        ],
+        "mergedAt": "2026-07-21T03:32:01Z",
+        "pr": 611,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-20-try-the-app-with-a-ready-made-demo-works",
       "url": "https://xnet.fyi/changelog#2026-07-20-try-the-app-with-a-ready-made-demo-works",
       "title": "Try the app with a ready-made demo workspace",

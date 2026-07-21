@@ -6,6 +6,15 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Dropdowns no longer hide behind the popovers that open them</title>
+      <link>https://xnet.fyi/changelog#2026-07-20-dropdowns-no-longer-hide-behind-popovers</link>
+      <guid isPermaLink="false">2026-07-20-dropdowns-no-longer-hide-behind-popovers</guid>
+      <pubDate>Tue, 21 Jul 2026 03:32:01 GMT</pubDate>
+      <description>Changing a column's data type from the table view's ⋯ menu works again. The type dropdown was painting behind the field popover, so its options were unclickable — clicks landed on the menu underneath instead. Every portalled select, menu, popover, and tooltip now sits above the overlays it opens from.
+- Table view: the column data-type selector is usable again
+- Selects and menus opened from inside modals and popovers stay on top</description>
+    </item>
+    <item>
       <title>Try the app with a ready-made demo workspace</title>
       <link>https://xnet.fyi/changelog#2026-07-20-try-the-app-with-a-ready-made-demo-works</link>
       <guid isPermaLink="false">2026-07-20-try-the-app-with-a-ready-made-demo-works</guid>
