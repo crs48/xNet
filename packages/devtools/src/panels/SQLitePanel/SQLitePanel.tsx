@@ -6,7 +6,7 @@ import { Tooltip } from '@xnetjs/ui'
 import { useCallback, useState } from 'react'
 import { useDevTools } from '../../provider/useDevTools'
 import { buildSqlDump, type QueryFn } from './sql-dump'
-import { useSQLitePanel, useSQLiteStatus } from './useSQLitePanel'
+import { useBlobStoreStats, useSQLitePanel, useSQLiteStatus } from './useSQLitePanel'
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -29,6 +29,7 @@ export function SQLitePanel() {
   const sqliteStatus = useSQLiteStatus(store)
   const sqliteDotClass = getSQLiteHealthDotClass(sqliteStatus.health)
   const [snapshotting, setSnapshotting] = useState(false)
+  const blobStats = useBlobStoreStats(store)
 
   // Tier-2 snapshot (0344): SQL text dump through the adapter's query()
   // surface — restorable with `sqlite3 new.db < dump.sql` by any tool.
@@ -144,6 +145,21 @@ export function SQLitePanel() {
               )}
             </div>
             <p className="text-xs text-ink-2">{storageDurability.message}</p>
+          </div>
+        )}
+
+        {/* Attachment blobs (exploration 0385): file cells and editor uploads
+            share this store, and it's the fastest-growing table on a device
+            that attaches media. */}
+        {blobStats && (
+          <div className="bg-background-emphasis rounded p-3 space-y-2">
+            <h3 className="text-xs font-semibold text-ink-2 uppercase">Attachment Blobs</h3>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+              <span className="text-ink-3">Files</span>
+              <span>{blobStats.blobCount.toLocaleString()}</span>
+              <span className="text-ink-3">Total size</span>
+              <span>{formatBytes(blobStats.blobTotalSize)}</span>
+            </div>
           </div>
         )}
 

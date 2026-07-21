@@ -29,6 +29,12 @@ export interface FileCellConfig {
   allowMultiple?: boolean
   onUploadFile?: (file: File) => Promise<FileRef | null>
   onResolveFileUrl?: (ref: FileRef) => Promise<string>
+  /**
+   * Resolve a ref's small preview (0385 W4). Cells prefer this over the full
+   * file: it's kilobytes and syncs first, so a remote attachment previews
+   * before its original arrives. Falls back to onResolveFileUrl when absent.
+   */
+  onResolveThumbUrl?: (ref: FileRef) => Promise<string | null>
 }
 
 /** A file cell holds one ref or, with allowMultiple, several. */
@@ -158,6 +164,44 @@ export function useFileResource(
 }
 
 /**
+ * Preview URL for a chip: the small thumbnail when the surface can supply one
+ * and the ref has one, otherwise the full file (0385 W4).
+ */
+function useThumbUrl(
+  ref: FileRef | null | undefined,
+  config?: Record<string, unknown>
+): { url: string | null; availability: FileAvailability } {
+  const cfg = config as FileCellConfig | undefined
+  const resolveThumb = cfg?.onResolveThumbUrl
+  const [thumbUrl, setThumbUrl] = useState<string | null>(null)
+  const wantsThumb = Boolean(ref?.thumbCid && resolveThumb)
+
+  useEffect(() => {
+    if (!ref?.thumbCid || !resolveThumb) {
+      setThumbUrl(null)
+      return
+    }
+    let mounted = true
+    resolveThumb(ref)
+      .then((url) => {
+        if (mounted) setThumbUrl(url)
+      })
+      .catch(() => {
+        if (mounted) setThumbUrl(null)
+      })
+    return () => {
+      mounted = false
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ref?.cid, ref?.thumbCid, resolveThumb])
+
+  // Only pay for the full file when there's no usable thumbnail.
+  const full = useFileResource(wantsThumb && thumbUrl ? null : ref, config)
+  if (thumbUrl) return { url: thumbUrl, availability: 'available' }
+  return full
+}
+
+/**
  * Inline chip for a file value: image thumbnail or paperclip + name.
  *
  * Clicking the chip opens the surface's AttachmentLightbox (0385 W1) with
@@ -176,7 +220,7 @@ function FileChip({
   siblings?: FileRef[]
   onRemove?: () => void
 }): React.JSX.Element {
-  const { url, availability } = useFileResource(value, config)
+  const { url, availability } = useThumbUrl(value, config)
   const openLightbox = useAttachmentLightbox()
 
   const refs = siblings?.length ? siblings : [value]

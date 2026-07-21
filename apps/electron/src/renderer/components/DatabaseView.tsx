@@ -142,6 +142,16 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
     },
     [blobService, blobTransfers]
   )
+  const handleResolveThumbUrl = useCallback(
+    async (ref: FileRef): Promise<string | null> => {
+      if (!blobService) return null
+      // Previews are kilobytes — fetch the thumbnail alone so a remote cell
+      // renders without pulling the whole original (exploration 0385 W4).
+      if (blobTransfers) await blobTransfers.ensureThumbnail(ref)
+      return blobService.getThumbUrl(ref)
+    },
+    [blobService, blobTransfers]
+  )
   // Config for the surface-wide attachment lightbox (exploration 0385)
   const lightboxConfig = useMemo(
     () => (blobService ? { onResolveFileUrl: handleResolveFileUrl } : undefined),
@@ -546,6 +556,7 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
             }}
             onUploadFile={blobService ? handleUploadFile : undefined}
             onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
+            onResolveThumbUrl={blobService ? handleResolveThumbUrl : undefined}
             className="flex-1"
           />
         ) : registryViewType && registration ? (
@@ -586,6 +597,7 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
                   }}
                   onCreateOption={grid.createOption}
                   onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
+                  onResolveThumbUrl={blobService ? handleResolveThumbUrl : undefined}
                 />
               </div>
             </div>
@@ -605,6 +617,7 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
                   onCreateOption={grid.createOption}
                   onUploadFile={blobService ? handleUploadFile : undefined}
                   onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
+                  onResolveThumbUrl={blobService ? handleResolveThumbUrl : undefined}
                 >
                   <div className="text-xs text-gray-500">
                     {comments.rowCommentCounts.get(peekRow.id) ?? 0} comments on this row
@@ -660,6 +673,7 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
                 onCreateOption={grid.createOption}
                 onUploadFile={blobService ? handleUploadFile : undefined}
                 onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
+                onResolveThumbUrl={blobService ? handleResolveThumbUrl : undefined}
                 onOpenRow={setPeekRowId}
                 onUndo={() => {
                   void grid.undo()
@@ -696,6 +710,7 @@ export function DatabaseView({ docId, minimalChrome = false }: DatabaseViewProps
                   onCreateOption={grid.createOption}
                   onUploadFile={blobService ? handleUploadFile : undefined}
                   onResolveFileUrl={blobService ? handleResolveFileUrl : undefined}
+                  onResolveThumbUrl={blobService ? handleResolveThumbUrl : undefined}
                 >
                   {/* Row comments summary */}
                   <div className="text-xs text-gray-500">

@@ -53,6 +53,8 @@ export interface GridCellProps {
   onDropFile?: (rowIndex: number, colIndex: number, files: File[]) => void
   /** Resolve a FileRef to a displayable URL */
   onResolveFileUrl?: (ref: import('@xnetjs/data').FileRef) => Promise<string>
+  /** Resolve a ref's small preview, preferred over the full file (0385 W4) */
+  onResolveThumbUrl?: (ref: import('@xnetjs/data').FileRef) => Promise<string | null>
 }
 
 /** Seed text -> initial draft value for replace-mode editing. */
@@ -98,7 +100,8 @@ function GridCellInner({
   onCreateOption,
   onUploadFile,
   onDropFile,
-  onResolveFileUrl
+  onResolveFileUrl,
+  onResolveThumbUrl
 }: GridCellProps): React.JSX.Element {
   const handler = getPropertyHandler(field.type)
   const cellRef = useRef<HTMLDivElement>(null)
@@ -140,11 +143,12 @@ function GridCellInner({
         : {}),
       ...(onUploadFile ? { onUploadFile } : {}),
       ...(onResolveFileUrl ? { onResolveFileUrl } : {}),
+      ...(onResolveThumbUrl ? { onResolveThumbUrl } : {}),
       // Type-to-replace on picker cells: the typed character becomes the
       // initial autocomplete query instead of being dropped
       ...(editing && editSeed !== undefined ? { initialQuery: editSeed } : {})
     }),
-    [field, onCreateOption, onUploadFile, onResolveFileUrl, editing, editSeed]
+    [field, onCreateOption, onUploadFile, onResolveFileUrl, onResolveThumbUrl, editing, editSeed]
   )
 
   const handleChange = useCallback(

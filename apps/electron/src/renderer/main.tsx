@@ -847,7 +847,8 @@ async function init() {
   // ChunkManager expects a BlobStore, but our IPC blob store has the same interface
   const providerBlobStore = ipcBlobStore as unknown as ConstructorParameters<typeof ChunkManager>[0]
   const chunkManager = new ChunkManager(providerBlobStore)
-  const blobService = new BlobService(chunkManager)
+  // Thumbnails are generated at attach time in the renderer (0385 W4).
+  const blobService = new BlobService(chunkManager, { generateThumbnails: true })
 
   // Listen for devtools toggle from main process menu.
   // Keep only one active listener across HMR reloads.

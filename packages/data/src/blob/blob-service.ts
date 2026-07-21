@@ -7,10 +7,17 @@
 import type { FileRef } from '../schema/properties/file'
 import type { ContentId } from '@xnetjs/core'
 import type { ChunkManager } from '@xnetjs/storage'
+import { canThumbnail, generateThumbnail } from './thumbnail'
 
 export interface BlobServiceOptions {
   /** Maximum file size in bytes (default: 100MB) */
   maxSize?: number
+  /**
+   * Generate a small preview alongside images/video at attach time
+   * (exploration 0385 W4). Off by default so non-DOM hosts (tests, node)
+   * aren't asked for canvas APIs.
+   */
+  generateThumbnails?: boolean
 }
 
 export class BlobService {
@@ -34,17 +41,53 @@ export class BlobService {
     const arrayBuffer = await file.arrayBuffer()
     const data = new Uint8Array(arrayBuffer)
 
+    const mimeType = file.type || 'application/octet-stream'
     const { cid } = await this.chunkManager.store(data, {
       filename: file.name,
-      mimeType: file.type || 'application/octet-stream'
+      mimeType
     })
 
-    return {
+    const ref: FileRef = {
       cid,
       name: file.name,
-      mimeType: file.type || 'application/octet-stream',
+      mimeType,
       size: file.size
     }
+
+    // A preview is stored as its own (tiny) blob so it can sync ahead of the
+    // original — see exploration 0385 W4. Failure here is never fatal.
+    if (this.options.generateThumbnails && canThumbnail(mimeType)) {
+      const thumb = await generateThumbnail(file, mimeType).catch(() => null)
+      if (thumb) {
+        const stored = await this.chunkManager.store(thumb.data, {
+          filename: `${file.name}.thumb`,
+          mimeType: thumb.mimeType
+        })
+        ref.thumbCid = stored.cid
+        ref.width = thumb.width
+        ref.height = thumb.height
+      }
+    }
+
+    return ref
+  }
+
+  /**
+   * Resolve a ref's thumbnail to a URL, falling back to the full file.
+   * Returns null when neither is available locally.
+   */
+  async getThumbUrl(ref: FileRef): Promise<string | null> {
+    if (ref.thumbCid) {
+      const cached = this.urlCache.get(ref.thumbCid)
+      if (cached) return cached
+      const data = await this.chunkManager.retrieve(ref.thumbCid as ContentId)
+      if (data) {
+        const url = URL.createObjectURL(new Blob([data as unknown as BlobPart]))
+        this.urlCache.set(ref.thumbCid, url)
+        return url
+      }
+    }
+    return this.getUrl(ref).catch(() => null)
   }
 
   /**

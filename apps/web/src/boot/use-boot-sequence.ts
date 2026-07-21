@@ -258,7 +258,8 @@ export function useBootSequence(): BootSequence {
 
         const blobStore = new BlobStore(storageAdapter)
         const chunkManager = new ChunkManager(blobStore)
-        const blobService = new BlobService(chunkManager)
+        // Thumbnails are generated at attach time in the browser (0385 W4).
+        const blobService = new BlobService(chunkManager, { generateThumbnails: true })
         // Attachment bytes ride a sideband to the hub, never the change log
         // (exploration 0385 W3). Without a hub the queue idles and files stay
         // local-only — a supported state, surfaced in the cell.

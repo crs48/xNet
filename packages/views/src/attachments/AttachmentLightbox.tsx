@@ -28,10 +28,11 @@ export interface AttachmentLightboxProps extends AttachmentLightboxRequest {
   onClose: () => void
 }
 
-function slideKind(ref: FileRef): 'image' | 'video' | 'audio' | 'file' {
+function slideKind(ref: FileRef): 'image' | 'video' | 'audio' | 'pdf' | 'file' {
   if (isImageRef(ref)) return 'image'
   if (ref.mimeType?.startsWith('video/')) return 'video'
   if (ref.mimeType?.startsWith('audio/')) return 'audio'
+  if (ref.mimeType === 'application/pdf') return 'pdf'
   return 'file'
 }
 
@@ -74,6 +75,19 @@ function Slide({
         autoPlay
         data-testid="lightbox-video"
         className="max-h-[90vh] max-w-[90vw]"
+      />
+    )
+  }
+
+  if (kind === 'pdf') {
+    // The browser's own PDF viewer: no pdf.js bundle, no worker script to
+    // serve past the CSP. Falls back to the download card if it can't embed.
+    return (
+      <iframe
+        src={url}
+        title={fileRef.name}
+        data-testid="lightbox-pdf"
+        className="h-[90vh] w-[90vw] rounded bg-white"
       />
     )
   }

@@ -22,6 +22,19 @@ export interface FileRef {
   mimeType: string
   /** File size in bytes */
   size: number
+  /**
+   * Optional preview metadata (exploration 0385 W4). All additive: refs
+   * written before this existed stay valid.
+   */
+  /** Intrinsic width in pixels, for images and video */
+  width?: number
+  /** Intrinsic height in pixels, for images and video */
+  height?: number
+  /**
+   * CID of a small preview image stored as its own blob. Uploaded ahead of
+   * the full file so a remote cell can render before the bytes arrive.
+   */
+  thumbCid?: string
 }
 
 /**

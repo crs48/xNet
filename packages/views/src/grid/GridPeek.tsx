@@ -23,6 +23,8 @@ export interface GridPeekProps {
   onCreateOption?: (fieldId: string, name: string) => Promise<string | null>
   onUploadFile?: (file: File) => Promise<FileRef | null>
   onResolveFileUrl?: (ref: FileRef) => Promise<string>
+  /** Resolve a ref's small preview, preferred over the full file (0385 W4) */
+  onResolveThumbUrl?: (ref: FileRef) => Promise<string | null>
   readOnly?: boolean
   /** Extra content (row comments thread, activity, …) */
   children?: React.ReactNode
@@ -36,6 +38,7 @@ function PeekField({
   onCreateOption,
   onUploadFile,
   onResolveFileUrl,
+  onResolveThumbUrl,
   onOpenImage,
   readOnly
 }: {
@@ -45,6 +48,7 @@ function PeekField({
   onCreateOption?: GridPeekProps['onCreateOption']
   onUploadFile?: GridPeekProps['onUploadFile']
   onResolveFileUrl?: GridPeekProps['onResolveFileUrl']
+  onResolveThumbUrl?: GridPeekProps['onResolveThumbUrl']
   onOpenImage?: (ref: FileRef) => void
   readOnly?: boolean
 }): React.JSX.Element {
@@ -57,7 +61,8 @@ function PeekField({
     options: field.options,
     ...(onCreateOption ? { onCreateOption: (name: string) => onCreateOption(field.id, name) } : {}),
     ...(onUploadFile ? { onUploadFile } : {}),
-    ...(onResolveFileUrl ? { onResolveFileUrl } : {})
+    ...(onResolveFileUrl ? { onResolveFileUrl } : {}),
+    ...(onResolveThumbUrl ? { onResolveThumbUrl } : {})
   }
 
   const fileValue = field.type === 'file' && isFileRef(value) ? value : null
@@ -119,6 +124,7 @@ export function GridPeek({
   onCreateOption,
   onUploadFile,
   onResolveFileUrl,
+  onResolveThumbUrl,
   readOnly,
   children,
   className
@@ -200,6 +206,7 @@ export function GridPeek({
               onCreateOption={onCreateOption}
               onUploadFile={onUploadFile}
               onResolveFileUrl={onResolveFileUrl}
+              onResolveThumbUrl={onResolveThumbUrl}
               onOpenImage={setLightbox}
               readOnly={readOnly}
             />

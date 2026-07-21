@@ -143,6 +143,9 @@ export class BlobTransferQueue {
     if (!this.hub) return
     this.update(ref.cid, { state: 'uploading' })
     try {
+      // Thumbnails are kilobytes: send them first so a peer's cell can show a
+      // preview even while the original is still uploading (0385 W4).
+      await this.uploadThumbnail(ref)
       const data = await this.blobs.getData(ref)
       if (!data) {
         // Nothing to send — the bytes aren't here after all.
@@ -163,6 +166,42 @@ export class BlobTransferQueue {
       }
       this.update(ref.cid, { state: 'local', error: message, attempts })
       this.schedule(() => void this.runUpload(ref), this.backoff[attempts - 1])
+    }
+  }
+
+  /**
+   * Push a ref's thumbnail blob, if it has one. Best-effort: a missing or
+   * failed preview must not hold up (or fail) the real upload.
+   */
+  private async uploadThumbnail(ref: FileRef): Promise<void> {
+    if (!this.hub || !ref.thumbCid) return
+    try {
+      const data = await this.blobs.getData({ ...ref, cid: ref.thumbCid })
+      if (!data) return
+      await this.hub.put(ref.thumbCid, data, {
+        name: `${ref.name}.thumb`,
+        mimeType: 'image/webp'
+      })
+    } catch {
+      // Preview sync is opportunistic; the original still matters.
+    }
+  }
+
+  /** Fetch just the preview bytes — cheap enough to do on cell render. */
+  async ensureThumbnail(ref: FileRef): Promise<boolean> {
+    if (!ref.thumbCid) return false
+    const thumbRef: FileRef = { ...ref, cid: ref.thumbCid }
+    if (await this.blobs.has(thumbRef)) return true
+    if (!this.hub) return false
+    try {
+      const data = await this.hub.get(ref.thumbCid)
+      await this.blobs.uploadData(data, {
+        filename: `${ref.name}.thumb`,
+        mimeType: 'image/webp'
+      })
+      return true
+    } catch {
+      return false
     }
   }
 

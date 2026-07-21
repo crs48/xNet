@@ -148,6 +148,7 @@ export function GridSurface({
   onCreateOption,
   onUploadFile,
   onResolveFileUrl,
+  onResolveThumbUrl,
   onOpenRow,
   onUndo,
   onRedo,
@@ -804,6 +805,7 @@ export function GridSurface({
                       onUploadFile={onUploadFile}
                       onDropFile={handleDropFile}
                       onResolveFileUrl={onResolveFileUrl}
+                      onResolveThumbUrl={onResolveThumbUrl}
                       isGhostRow={row.id === '__ghost__'}
                       hasGhostCol={hasGhostCol}
                       colWindow={colWindow}
@@ -866,6 +868,8 @@ interface GridRowProps {
   onUploadFile?: (file: File) => Promise<import('@xnetjs/data').FileRef | null>
   onDropFile?: (rowIndex: number, colIndex: number, files: File[]) => void
   onResolveFileUrl?: (ref: import('@xnetjs/data').FileRef) => Promise<string>
+  /** Resolve a ref's small preview, preferred over the full file (0385 W4) */
+  onResolveThumbUrl?: (ref: import('@xnetjs/data').FileRef) => Promise<string | null>
   /** This is the ghost "type to add a row" row */
   isGhostRow?: boolean
   /** Append the ghost "type to add a field" column cell */

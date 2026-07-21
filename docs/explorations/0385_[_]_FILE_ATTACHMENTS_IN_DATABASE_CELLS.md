@@ -547,18 +547,18 @@ returns `{ url, state }` so `FileChip` can render a subtle
 
 ### W4 — Rich previews
 
-- [ ] Add optional `width`, `height`, `thumbCid` to `FileRef`
+- [x] Add optional `width`, `height`, `thumbCid` to `FileRef`
       (`cell-types.ts`) and to `isValidFileRef`; additive only.
-- [ ] Thumbnail worker: images via
+- [x] Thumbnail worker: images via
       `createImageBitmap` (+`imageOrientation: 'from-image'`) →
       `OffscreenCanvas.convertToBlob('image/webp')`; video first-frame at
       0.1 s; pdf.js first page, lazy-loaded, worker script bundled locally
       (CSP). Reuse/extend `packages/editor/src/services/image-upload.ts`.
-- [ ] Attach path stores thumb as its own blob, sets `thumbCid`, uploads it
+- [x] Attach path stores thumb as its own blob, sets `thumbCid`, uploads it
       eagerly ahead of the main blob.
-- [ ] `FileChip`/`CardCover` prefer `thumbCid`; fall back to full blob then
+- [x] `FileChip`/`CardCover` prefer `thumbCid`; fall back to full blob then
       to type icon.
-- [ ] Lightbox slides: `<video controls>` for `video/*`, audio element for
+- [x] Lightbox slides: `<video controls>` for `video/*`, audio element for
       `audio/*`, PDF pages via `packages/canvas` PDF machinery, file card
       otherwise.
 - [ ] Changesets: `@xnetjs/data` minor, `@xnetjs/views` minor,
@@ -566,11 +566,16 @@ returns `{ url, state }` so `FileChip` can render a subtle
 
 ### Cross-cutting
 
-- [ ] Seed: give `auto-generator.ts` a real seeded image blob (deterministic
-      bytes → stable CID) so demo databases show attachments;
-      `seed-coverage.test.ts` and `seed-render.test.ts` updated.
-- [ ] Devtools: blob-store usage panel from `getStats()`.
-- [ ] Docs: user-facing note in the database views docs; this file renamed
+- [x] Seed: **deliberately not done.** `SeedContext`
+      (`packages/devtools/src/seed/types.ts`) has no BlobService, so a seeded
+      file field could only carry a fake CID like the existing
+      `bafyseedshowcasefile` refs. Since W3 makes an unresolvable ref render
+      as "on another device", that would put a _broken-looking_ chip in the
+      demo workspace — worse than the empty cell `auto-generator.ts` produces
+      today. Plumbing real bytes into the seed runner is its own change;
+      leaving `case 'file': return undefined` until then.
+- [x] Devtools: blob-store usage panel from `getStats()`.
+- [x] Docs: user-facing note in the database views docs; this file renamed
       to `[x]` when W1–W3 land.
 
 ## Validation Checklist
