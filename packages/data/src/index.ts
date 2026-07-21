@@ -650,6 +650,12 @@ export {
   recoverExtras,
   stashExtras,
 
+  // Projection lexicons (node → adopted foreign lexicon, 0367/0372/0389)
+  pageToDocumentLens,
+  SITE_STANDARD_DOCUMENT,
+  BUILTIN_RECORD_LENSES,
+  registerBuiltinRecordLenses,
+
   // Lens builder utilities
   rename,
   convert,

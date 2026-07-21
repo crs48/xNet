@@ -96,7 +96,11 @@ export const PageSchema = defineSchema({
   },
   document: 'yjs', // Collaborative Y.Doc for rich text
   // Inherits access from its home Space (exploration 0181/0192).
-  authorization: spaceCascadeAuthorization()
+  authorization: spaceCascadeAuthorization(),
+  // A published Page projects to the adopted site.standard.document lexicon as
+  // a card; the body stays on the hub (explorations 0367/0372/0389). Declaring
+  // this turns on the authoring-time guard against unprojectable properties.
+  publish: { lexicon: 'site.standard.document' }
 })
 
 /**

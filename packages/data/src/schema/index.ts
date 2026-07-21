@@ -707,6 +707,14 @@ export {
   stashExtras
 } from './record-lens'
 
+// Projection lexicons (node → adopted foreign lexicon, 0367/0372/0389)
+export {
+  pageToDocumentLens,
+  SITE_STANDARD_DOCUMENT,
+  BUILTIN_RECORD_LENSES,
+  registerBuiltinRecordLenses
+} from './lexicons'
+
 // Lens builder utilities
 export {
   rename,

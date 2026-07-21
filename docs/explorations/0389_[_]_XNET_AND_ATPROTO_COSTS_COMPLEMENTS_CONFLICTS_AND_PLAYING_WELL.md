@@ -559,7 +559,7 @@ sequence.)
       recovery flow UI (0322)
 - [x] **`RecordLens`** with `backward(record, prior)` and the
       `ext:<nsid>/<field>` extras bag honored on write-back (0380)
-- [ ] **First projection**: `PageSchema` → `site.standard.document`; card
+- [x] **First projection**: `PageSchema` → `site.standard.document`; card
       on PDS, body on hub; `lexiconRef` stamped on the node so republish is
       `putRecord`, never a duplicate create (0367/0372/0380)
 - [ ] **One `fyi.xnet.*` content block** minted in the `site.standard`
