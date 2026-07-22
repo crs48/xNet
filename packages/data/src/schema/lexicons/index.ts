@@ -7,7 +7,7 @@
  */
 
 import type { RecordLensRegistry } from '../record-lens'
-import { pageToDocumentLens, SITE_STANDARD_DOCUMENT } from './page-document'
+import { pageToDocumentLens } from './page-document'
 
 export {
   pageToDocumentLens,

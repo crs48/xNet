@@ -13,11 +13,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import { AtprotoBindingVerifier } from './atproto-binding'
 import { AtprotoRecoveryAnchor } from './atproto-recovery-anchor'
-import {
-  RecoveryChallengeStore,
-  ATPROTO_CHALLENGE_COLLECTION,
-  ATPROTO_CHALLENGE_RKEY
-} from './atproto-challenge'
+import { RecoveryChallengeStore, ATPROTO_CHALLENGE_COLLECTION } from './atproto-challenge'
 import { createAtprotoBinding } from '@xnetjs/identity'
 import { generateIdentity } from '@xnetjs/identity'
 
