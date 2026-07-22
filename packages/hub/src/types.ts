@@ -49,6 +49,13 @@ export type HubConfig = {
   /** Hub's own DID for UCAN audience verification (optional). */
   hubDid?: string
   /**
+   * The operator's xNet DID this hub belongs to (explorations 0372/0389). When
+   * set, the knot handshake (`GET /xrpc/fyi.xnet.owner`) advertises it, and a
+   * matching `fyi.xnet.hub` record in that DID's repo (rkey = hostname)
+   * completes the two-sided binding that makes the hub network-discoverable.
+   */
+  ownerDid?: string
+  /**
    * Delegation roots this hub trusts (exploration 0337). When set, a
    * presented UCAN is only honored if every root issuer of its proof chain
    * is in this list — a self-issued `{with:'*', can:'*'}` token roots at the

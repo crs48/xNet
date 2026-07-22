@@ -54,6 +54,7 @@ import { Metrics, HUB_METRICS } from './middleware/metrics'
 import { RateLimiter } from './middleware/rate-limit'
 import { NodePool } from './pool/node-pool'
 import { createAtprotoRoutes } from './routes/atproto'
+import { createKnotRoutes } from './routes/knot'
 import { createAuditRoutes } from './routes/audit'
 import { createBackupRoutes } from './routes/backup'
 import { createCrawlRoutes } from './routes/crawl'
@@ -71,6 +72,7 @@ import { createShareLinkRoutes } from './routes/share-links'
 import { createTelemetryRoutes } from './routes/telemetry'
 import { AtprotoBindingVerifier } from './services/atproto-binding'
 import { AtprotoRecoveryAnchor } from './services/atproto-recovery-anchor'
+import { RecoveryChallengeStore } from './services/atproto-challenge'
 import { AwarenessService } from './services/awareness'
 import { BackupService } from './services/backup'
 import { CrawlCoordinator } from './services/crawl'
@@ -262,7 +264,11 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   const files = new FileService(storage, { maxStoragePerUser: perUserQuota })
   const keyRegistry = new KeyRegistryService()
   const atprotoBindingVerifier = new AtprotoBindingVerifier()
-  const atprotoRecoveryAnchor = new AtprotoRecoveryAnchor(atprotoBindingVerifier)
+  const recoveryChallenges = new RecoveryChallengeStore()
+  const atprotoRecoveryAnchor = new AtprotoRecoveryAnchor(
+    atprotoBindingVerifier,
+    recoveryChallenges
+  )
   const escrowStore = new EscrowStore()
   const taskIdentifiers = new TaskIdentifierService()
   const query = new QueryService(storage)
@@ -599,6 +605,18 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
   app.use('/atproto/*', requireAuth)
   app.route('/atproto', createAtprotoRoutes(atprotoBindingVerifier))
 
+  // Knot handshake (0372/0389): unauthenticated discovery — a self-hosted hub
+  // announces its owner + a hostname attestation so the ATmosphere can
+  // enumerate it via the owner's `fyi.xnet.hub` records, with no registry.
+  app.route(
+    '/xrpc',
+    createKnotRoutes({
+      hubDid: hubIdentity.did,
+      hubSigningKey: hubIdentity.privateKey,
+      ownerDid: config.ownerDid
+    })
+  )
+
   // Recovery-anchor escrow (0243/0322/0338): enroll requires auth (a DID may
   // only enroll for itself); release is the recovery path and is public (the
   // caller has, by definition, lost their key) but gated by full server-side
@@ -609,6 +627,7 @@ export const createServer = async (config: HubConfig): Promise<HubInstance> => {
     createRecoveryAnchorRoutes({
       store: escrowStore,
       anchor: atprotoRecoveryAnchor,
+      challenges: recoveryChallenges,
       callerDid: (ctx) => {
         const header =
           (ctx as { req: { header(name: string): string | undefined } }).req.header(

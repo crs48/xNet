@@ -15,7 +15,7 @@ Where do xNet and ATProto genuinely complement each other, where are they in
 irreconcilable conflict, and what — concretely, in priority order — should
 xNet do to play well with the ATmosphere?**
 
-This exploration is the synthesis. It is deliberately a *map* of the
+This exploration is the synthesis. It is deliberately a _map_ of the
 territory the earlier docs surveyed plot by plot, updated with the external
 state of ATProto as of mid-2026 (Sync v1.1 shipped, PLC governance moved to
 an independent Swiss association, an IETF working group formed, the
@@ -29,7 +29,7 @@ are currently scattered across five different documents' checklists.
   organs" (0301).** Both systems bet on DIDs, signed hash-linked logs,
   content addressing, and self-hostable servers. Every concrete choice
   underneath differs — curves, hashes, encodings, defaults — and the deepest
-  difference is not technical but *directional*: ATProto is a **shared heap**
+  difference is not technical but _directional_: ATProto is a **shared heap**
   optimized for global public broadcast; xNet is **small-world encrypted
   spaces** optimized for private live collaboration. Each architecture is
   structurally incapable of the other's core promise.
@@ -50,15 +50,15 @@ are currently scattered across five different documents' checklists.
   Yjs experiment) has independently converged on the same division of labor
   xNet chose: **ATProto for identity, discovery, and public artifacts; your
   own channel for private live data.** xNet is not fighting the ecosystem
-  pattern — it *is* the ecosystem pattern, with a better-armored private
+  pattern — it _is_ the ecosystem pattern, with a better-armored private
   half.
 - **The conflicts are structural, not fixable by diplomacy.** There is no
   private firehose (0333's two-way door): a global heap and E2EE cannot
   coexist. Permissioned Data — Bluesky's own primary 2026 protocol effort —
-  explicitly states *encryption at rest is not a goal*; the PDS always sees
+  explicitly states _encryption at rest is not a goal_; the PDS always sees
   plaintext, because moderation, search, and indexing depend on it. xNet's
   hosts must never see plaintext. This trust inversion is permanent, and it
-  is why "hub as PDS" can only ever mean *ciphertext in, ciphertext out*.
+  is why "hub as PDS" can only ever mean _ciphertext in, ciphertext out_.
 - **Playing well is already 70% designed and ~40% shipped — but the shipped
   40% is silently broken.** The identity binding
   (`fyi.xnet.identity.binding`), the derive-only PLC rotation key, the
@@ -78,17 +78,17 @@ are currently scattered across five different documents' checklists.
 
 ### What prior explorations already decided (the settled law)
 
-| Doc | Question | Settled position |
-| --- | --- | --- |
-| 0301 | Use ATProto for identity / sync / serving? | Identity **yes** (bridge, represent-only); sync **no** (public-only, 0.46 creates/s, latency); relay **no** (consume Jetstream); hub-as-PDS feasible but sequenced last |
-| 0322 | Sign in with ATProto? | "Yes to the door, no to the keys" — onboarding, **recovery anchor**, verified handles; never live sessions (UCAN stays) |
-| 0324 | Their "spaces" vs our Spaces? | Convergent evolution, **inverted trust** — their access control vs our confidentiality; watch, build nothing on the draft; harvest the credential two-step and LtHash |
-| 0333 | Scale lessons? | Speaking is cheap, listening is expensive; harvest bounded replay + checkpoints; **no global chokepoint tier** reaffirmed (now Charter §6 law) |
-| 0334 | vs ActivityPub? | "AP decentralizes communities, AT decentralizes individuals, xNet decentralizes the data itself" — xNet took both bets at once |
-| 0365 | Cloud as PDS/AppView? | PDS yes, narrow index yes, selling raw index access **never** (ground rent); publish is a **one-way door** — Withdraw, never "make private" |
-| 0367 | What is the index? | The index is a **lens** — declarative projection; card on PDS (~1–4 KB), body on hub; write budget makes the split mandatory |
-| 0372 | Which namespace, which lexicons? | `net.x.*` unclaimable → **`fyi.xnet.*`**; **adopt `site.standard.*`** (11k+ DIDs) over minting; hub = a Tangled-style **knot**; found shipped defect D1 |
-| 0380 | Node↔record mechanics? | **Projection ≠ incarnation**; `SchemaLens.backward` cannot round-trip (needs `put: A×C→C`); `ext:<nsid>/<field>` is the unknown-field bag; never project floats/formulas |
+| Doc  | Question                                   | Settled position                                                                                                                                                         |
+| ---- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 0301 | Use ATProto for identity / sync / serving? | Identity **yes** (bridge, represent-only); sync **no** (public-only, 0.46 creates/s, latency); relay **no** (consume Jetstream); hub-as-PDS feasible but sequenced last  |
+| 0322 | Sign in with ATProto?                      | "Yes to the door, no to the keys" — onboarding, **recovery anchor**, verified handles; never live sessions (UCAN stays)                                                  |
+| 0324 | Their "spaces" vs our Spaces?              | Convergent evolution, **inverted trust** — their access control vs our confidentiality; watch, build nothing on the draft; harvest the credential two-step and LtHash    |
+| 0333 | Scale lessons?                             | Speaking is cheap, listening is expensive; harvest bounded replay + checkpoints; **no global chokepoint tier** reaffirmed (now Charter §6 law)                           |
+| 0334 | vs ActivityPub?                            | "AP decentralizes communities, AT decentralizes individuals, xNet decentralizes the data itself" — xNet took both bets at once                                           |
+| 0365 | Cloud as PDS/AppView?                      | PDS yes, narrow index yes, selling raw index access **never** (ground rent); publish is a **one-way door** — Withdraw, never "make private"                              |
+| 0367 | What is the index?                         | The index is a **lens** — declarative projection; card on PDS (~1–4 KB), body on hub; write budget makes the split mandatory                                             |
+| 0372 | Which namespace, which lexicons?           | `net.x.*` unclaimable → **`fyi.xnet.*`**; **adopt `site.standard.*`** (11k+ DIDs) over minting; hub = a Tangled-style **knot**; found shipped defect D1                  |
+| 0380 | Node↔record mechanics?                     | **Projection ≠ incarnation**; `SchemaLens.backward` cannot round-trip (needs `put: A×C→C`); `ext:<nsid>/<field>` is the unknown-field bag; never project floats/formulas |
 
 ### What actually ships today
 
@@ -105,7 +105,7 @@ docs assume:
   over the binding message proves xNet control.
 - [`packages/identity/src/atproto/rotation-key.ts`](../../packages/identity/src/atproto/rotation-key.ts)
   — derives a user-controlled P-256 PLC rotation key from the recovery seed
-  and orders it *ahead* of the PDS's key. Deliberately derive-only; never
+  and orders it _ahead_ of the PDS's key. Deliberately derive-only; never
   submits the PLC operation.
 - [`apps/web/src/identity/atproto-ceremony.ts`](../../apps/web/src/identity/atproto-ceremony.ts)
   — the OAuth ceremony + `putRecord`, surfaced in `AtprotoProfileLinker.tsx`
@@ -145,7 +145,7 @@ tree is `@atproto/oauth-client-browser`.
 2. **F2 — the `did:key` hardcode (0367/0380).**
    [`packages/data/src/schema/node.ts:144`](../../packages/data/src/schema/node.ts)
    types `DID` as `` `did:key:${string}` `` and `isNode` hard-checks the
-   prefix. Correct for the *signing* kernel; wrong for every *represent-only*
+   prefix. Correct for the _signing_ kernel; wrong for every _represent-only_
    surface (a foreign author on an incarnated `app.bsky.feed.post` is
    `did:plc`). The fix is `AnyDid` at representation boundaries, `did:key`
    at signing boundaries — the split `parseAnyDid` already implements.
@@ -239,7 +239,7 @@ State of ATProto as of mid-2026, distilled to what changes xNet's calculus:
   parties). Bryan Newbold's
   [reply](https://whtwnd.com/bnewbold.net/3lbvbtqrg5t2t) accepted the
   framing and defended **credible exit** as the actual design goal. Both are
-  right, and the exchange locates xNet precisely: xNet is a *third* answer —
+  right, and the exchange locates xNet precisely: xNet is a _third_ answer —
   neither heap nor message passing but **replicated encrypted logs among
   chosen peers** — that borrows credible exit from AT and privacy from
   neither camp (from E2EE, which both lack).
@@ -249,40 +249,40 @@ State of ATProto as of mid-2026, distilled to what changes xNet's calculus:
 1. **The cost/benefit ledger is a mirror.** Nearly every ATProto strength is
    an xNet weakness and vice versa (see table below). This is why the
    relationship is complementary rather than competitive: the two systems
-   are not rival answers to one question; they are answers to *different
-   questions* (global public broadcast vs private live collaboration) that
+   are not rival answers to one question; they are answers to _different
+   questions_ (global public broadcast vs private live collaboration) that
    happen to share primitives (DIDs, signed logs, self-hosting, exit).
 
-   | Dimension | ATProto | xNet |
-   | --- | --- | --- |
-   | Default visibility | Public, plaintext to host | Private, E2E-encrypted envelopes |
-   | Identity | `did:plc`/`did:web`, DNS handles, rotation, continuity | `did:key` — key is the account; anchors for recovery; no native rotation |
-   | Data model | Whole-record CBOR, single-writer per repo, per-record LWW | Sparse per-property LWW deltas + Yjs CRDT; multi-writer merge |
-   | Live collaboration | No (0.46 creates/s budget; seconds of latency) | Yes (sub-100ms rooms) |
-   | Offline | Read yes; no merge story | First-class multi-writer merge |
-   | Discovery | Global firehose, `listReposByCollection`, 43M users | None beyond your hubs |
-   | Ecosystem | 1,000+ apps, shared lexicons, IETF WG | One vendor (us) |
-   | Serving cost | Speaking cheap ($20–34/mo relay); listening expensive (AppView) | Hub cheap; **no global tier by charter law** |
-   | Exit | Whole-repo migration, credible exit | `.xnetpack` export, multi-home replication |
-   | Deletion | One-way door; downstream *should* comply | Withdraw semantics modeled honestly (0365) |
-   | Moderation/search | Host reads plaintext — structurally easy | Host is blind — structurally hard, ours to solve |
+   | Dimension          | ATProto                                                         | xNet                                                                     |
+   | ------------------ | --------------------------------------------------------------- | ------------------------------------------------------------------------ |
+   | Default visibility | Public, plaintext to host                                       | Private, E2E-encrypted envelopes                                         |
+   | Identity           | `did:plc`/`did:web`, DNS handles, rotation, continuity          | `did:key` — key is the account; anchors for recovery; no native rotation |
+   | Data model         | Whole-record CBOR, single-writer per repo, per-record LWW       | Sparse per-property LWW deltas + Yjs CRDT; multi-writer merge            |
+   | Live collaboration | No (0.46 creates/s budget; seconds of latency)                  | Yes (sub-100ms rooms)                                                    |
+   | Offline            | Read yes; no merge story                                        | First-class multi-writer merge                                           |
+   | Discovery          | Global firehose, `listReposByCollection`, 43M users             | None beyond your hubs                                                    |
+   | Ecosystem          | 1,000+ apps, shared lexicons, IETF WG                           | One vendor (us)                                                          |
+   | Serving cost       | Speaking cheap ($20–34/mo relay); listening expensive (AppView) | Hub cheap; **no global tier by charter law**                             |
+   | Exit               | Whole-repo migration, credible exit                             | `.xnetpack` export, multi-home replication                               |
+   | Deletion           | One-way door; downstream _should_ comply                        | Withdraw semantics modeled honestly (0365)                               |
+   | Moderation/search  | Host reads plaintext — structurally easy                        | Host is blind — structurally hard, ours to solve                         |
 
 2. **The complement has a name in each direction.** What ATProto gives xNet:
-   *a face* — globally unique handles, social discovery, distribution
+   _a face_ — globally unique handles, social discovery, distribution
    (Bluesky renders `site.standard.document` cards), account continuity, and
    a recovery anchor for every Bluesky user at zero custodial cost. What
-   xNet gives ATProto users: *a private room* — the workspace, the draft,
+   xNet gives ATProto users: _a private room_ — the workspace, the draft,
    the members-only Space that the atmosphere structurally cannot host, with
    a publish door onto the heap when work is ready. The Germ positioning
    slot generalizes: **xNet is to workspaces what Germ is to DMs** — the
    E2E-encrypted half of an ATProto citizen's life.
 
 3. **The conflicts are load-bearing on both sides, so neither will move.**
-   The PDS reads plaintext *because* ATProto's moderation, search, and
-   legal-compliance stories depend on it; xNet's hosts are blind *because*
+   The PDS reads plaintext _because_ ATProto's moderation, search, and
+   legal-compliance stories depend on it; xNet's hosts are blind _because_
    the charter's confidentiality commitment depends on that. The write
-   budget exists *because* the whole network replays everyone's writes; the
-   40 changes/s xNet client throttle exists *because* only your Space
+   budget exists _because_ the whole network replays everyone's writes; the
+   40 changes/s xNet client throttle exists _because_ only your Space
    replays yours. These are not bugs to lobby about — they are each side's
    foundations. Interop designs that require either side to move (live sync
    through a PDS; E2EE records in the firehose) are dead on arrival, and the
@@ -296,7 +296,7 @@ State of ATProto as of mid-2026, distilled to what changes xNet's calculus:
 5. **The one-way doors are already law; the new external facts respect
    them.** Publish is irreversible (0365: Withdraw, never "make private") —
    confirmed by sync v1.1 removing `#tombstone`. No global chokepoint tier
-   (Charter §6) — confirmed as *wise* by the AppView economics gap: even
+   (Charter §6) — confirmed as _wise_ by the AppView economics gap: even
    Bluesky's ecosystem has found no business model for the indispensable
    middle, which is exactly why the charter refuses to build one.
 
@@ -304,7 +304,7 @@ State of ATProto as of mid-2026, distilled to what changes xNet's calculus:
    integration paths share.** Encrypted Space backup into permissioned-data
    buckets (0324), bounded replay + verified checkpoints (0333), and 0258
    anti-entropy all converge on "a signed, verifiable snapshot of a Space at
-   a point in time." It is the highest-value *non-ATProto* work item on the
+   a point in time." It is the highest-value _non-ATProto_ work item on the
    interop path.
 
 ## Options And Tradeoffs
@@ -321,7 +321,7 @@ Build nothing; delete the bridge code.
   kernel stays maximally simple.
 - **Against:** throws away shipped leverage (recovery anchor, verified
   handles, distribution via rich cards); abandons the only credible answer
-  to "how does anyone *find* an xNet publication?"; concedes the
+  to "how does anyone _find_ an xNet publication?"; concedes the
   local-first × social frontier to Roomy et al. Also weakens the charter's
   BATNA test — users' published artifacts would live in a vendor-only
   format when a shared one (`site.standard.*`) exists.
@@ -477,16 +477,16 @@ The D1 fix, in essence (client metadata served by the web app):
 ```
 
 The F2 boundary split — representation vs signing (types already shipped in
-`packages/identity/src/atproto/did.ts`; the change is *using* them at the
+`packages/identity/src/atproto/did.ts`; the change is _using_ them at the
 right boundaries):
 
 ```ts
-import { parseAnyDid, type AnyDid, type XNetDid } from '@xnetjs/identity';
+import { parseAnyDid, type AnyDid, type XNetDid } from '@xnetjs/identity'
 
 // Represent-only surface: display, bindings, incarnated foreign authors.
 function displayAuthor(did: AnyDid): AuthorRef {
-  const parsed = parseAnyDid(did); // 'xnet' | 'atproto-plc' | 'atproto-web'
-  return { did, kind: parsed.kind };
+  const parsed = parseAnyDid(did) // 'xnet' | 'atproto-plc' | 'atproto-web'
+  return { did, kind: parsed.kind }
 }
 
 // Signing surface: unchanged, still hard-required.
@@ -501,10 +501,10 @@ The projection direction of the `RecordLens` (0380's corrected signature —
 
 ```ts
 interface RecordLens<N, R> {
-  lexicon: string;             // e.g. 'site.standard.document'
-  mode: 'projection';          // node is truth; card is lossy
-  forward(state: NodeState<N>): R;              // card from materialized state
-  backward(record: R, prior: NodeState<N>): NodeState<N>; // put: A×C→C
+  lexicon: string // e.g. 'site.standard.document'
+  mode: 'projection' // node is truth; card is lossy
+  forward(state: NodeState<N>): R // card from materialized state
+  backward(record: R, prior: NodeState<N>): NodeState<N> // put: A×C→C
 }
 ```
 
@@ -543,40 +543,55 @@ interface RecordLens<N, R> {
 
 ## Implementation Checklist
 
+> **Implementation status (this pass).** 12 of the 13 items below landed with
+> tests. The one still open is **Recovery anchor GA** — its reusable client
+> orchestration (`apps/web/src/identity/atproto-recovery.ts`) is built and
+> tested, but the onboarding *screen* that consumes it (a new state in the
+> identity-import machine) is deliberately deferred: it is a large UI surface
+> that cannot be meaningfully verified without a live PDS. A security fix not
+> on the original list also landed — the escrow **release gate authorised on
+> public data alone** and accepted a ceremony code it never read, so knowing a
+> victim's xNet DID was enough to collect their sealed blob; it now requires a
+> single-use challenge the recovering user writes into their own repo
+> (`packages/hub/src/services/atproto-challenge.ts`). Four validation items are
+> checked (the two testable invariants, the grep gate, the charter check); the
+> rest need a live network (bsky.social, `listReposByCollection`, a real
+> publish/recover round trip) and stay open for a staging pass.
+
 The consolidated interop backlog, in order. (Items marked with their source
 doc; this list supersedes the scattered per-doc checklists as the single
 sequence.)
 
-- [ ] **D1 scope fix** — granular OAuth scope in `client-metadata.json`;
+- [x] **D1 scope fix** — granular OAuth scope in `client-metadata.json`;
       end-to-end ceremony test against a reference PDS; downgrade path for
       old PDSes (0372)
-- [ ] **Server-side re-verification** of issuer↔DID-doc at the escrow
+- [x] **Server-side re-verification** of issuer↔DID-doc at the escrow
       release gate (0322)
-- [ ] **F2 boundary split** — `AnyDid` accepted at represent-only surfaces;
+- [x] **F2 boundary split** — `AnyDid` accepted at represent-only surfaces;
       `did:key` unchanged at signing surfaces (0367/0380)
 - [ ] **Recovery anchor GA** — surface "Recover with Bluesky" in the app;
       wire `RecoveryAnchorProvider` (ATProto + WorkOS siblings) into the
       recovery flow UI (0322)
-- [ ] **`RecordLens`** with `backward(record, prior)` and the
+- [x] **`RecordLens`** with `backward(record, prior)` and the
       `ext:<nsid>/<field>` extras bag honored on write-back (0380)
-- [ ] **First projection**: `PageSchema` → `site.standard.document`; card
+- [x] **First projection**: `PageSchema` → `site.standard.document`; card
       on PDS, body on hub; `lexiconRef` stamped on the node so republish is
       `putRecord`, never a duplicate create (0367/0372/0380)
-- [ ] **One `fyi.xnet.*` content block** minted in the `site.standard`
+- [x] **One `fyi.xnet.*` content block** minted in the `site.standard`
       open content union; publish the lexicon via DNS + repo record (0372)
-- [ ] **Authoring-time projection guardrails** — `defineSchema` warns on
+- [x] **Authoring-time projection guardrails** — `defineSchema` warns on
       unmappable properties (float, formula, rollup) when a `publish`
       capability is declared (0380)
-- [ ] **Knot handshake** — `GET /xrpc/fyi.xnet.owner` + `fyi.xnet.hub`
+- [x] **Knot handshake** — `GET /xrpc/fyi.xnet.owner` + `fyi.xnet.hub`
       record with hostname rkey and hub-key countersignature (0372)
-- [ ] **Snapshot/checkpoint primitive** — signed Space snapshot; bounded
+- [x] **Snapshot/checkpoint primitive** — signed Space snapshot; bounded
       replay window on hubs behind it (0333; unblocks 0258 anti-entropy and
       future encrypted atmosphere backup per 0324)
-- [ ] **Withdraw semantics in the type system** — asymmetric visibility
+- [x] **Withdraw semantics in the type system** — asymmetric visibility
       dial; no "make private" affordance anywhere (0365)
-- [ ] **Positioning copy** — "the E2E-encrypted workspace for your ATProto
+- [x] **Positioning copy** — "the E2E-encrypted workspace for your ATProto
       identity"; Germ-slot framing on the site (0324)
-- [ ] Docs sweep: update 0301/0322/0324/0333/0365/0367 references from
+- [x] Docs sweep: update 0301/0322/0324/0333/0365/0367 references from
       `net.x.*` to `fyi.xnet.*` (stale namespace in prose)
 
 ## Validation Checklist
@@ -593,23 +608,24 @@ sequence.)
       renders as a rich card in Bluesky, whose canonical URL serves the
       body from the hub; withdrawing deletes the record; republishing
       updates in place (no duplicates)
-- [ ] A node with a float or formula property and a `publish` capability
+- [x] A node with a float or formula property and a `publish` capability
       fails schema authoring with a clear message
 - [ ] A hub with the knot records is discoverable via
       `listReposByCollection(fyi.xnet.hub)` and its countersignature
       verifies
-- [ ] Round-trip test: incarnated record edited by a foreign typed client
+- [x] Round-trip test: incarnated record edited by a foreign typed client
       (fields we don't model) survives an xNet write-back with unknown
       fields intact (extras bag)
-- [ ] Grep gate: no import of any ATProto client outside the designated
+- [x] Grep gate: no import of any ATProto client outside the designated
       integration modules (0367's "no feature code ever imports an ATProto
       client")
-- [ ] Charter check: index reads remain free; no revenue lane depends on
+- [x] Charter check: index reads remain free; no revenue lane depends on
       access to reproducible public data
 
 ## References
 
 ### In-repo
+
 - Explorations 0301, 0322, 0324, 0333, 0334, 0365, 0367, 0372, 0380
   (`docs/explorations/`) — the per-domain analyses this doc synthesizes
 - `docs/CHARTER.md` §6 — the four tests and "no global chokepoint tier"
@@ -624,6 +640,7 @@ sequence.)
   contrasted
 
 ### External
+
 - Sync v1.1: <https://atproto.com/blog/relay-updates-sync-v1-1>;
   fall 2025 check-in: <https://docs.bsky.app/blog/protocol-checkin-fall-2025>;
   spring 2026 roadmap: <https://atproto.com/blog/2026-spring-roadmap>

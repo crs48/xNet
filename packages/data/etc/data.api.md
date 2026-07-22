@@ -577,6 +577,11 @@ export const AppealSchema: DefinedSchema<{
     reviewers: PropertyBuilder<`did:key:${string}`[]>;
 }>;
 
+// Warning: (ae-forgotten-export) The symbol "TransitionResult" needs to be exported by the entry point index.d.ts
+//
+// @public
+export function applyAtmosphereAction(state: AtmospherePublishState, action: AtmospherePublishAction): TransitionResult;
+
 // @public (undocumented)
 export function applyBundle(store: NodeStore, source: BundleSource, options: ApplyBundleOptions): Promise<BundleApplyReport>;
 
@@ -619,6 +624,24 @@ export function applySignedUpdate(doc: YDoc, update: SignedUpdate): void;
 // @public
 export function asRowHeight(height: string | null | undefined): RowHeight;
 
+// @public
+export function assertCanPublish(visibility: NodeVisibilityValue): TransitionResult | null;
+
+// @public
+export function assertRoundTrip(lens: RecordLens, record: LexiconRecord): RoundTripReport;
+
+// @public
+export type AtmospherePublishAction = 'publish' | 'withdraw' | 'republish';
+
+// @public
+export type AtmospherePublishState =
+/** Never projected. The only state from which a node is still fully private. */
+'unpublished'
+/** A card is live in the repo and on the firehose. */
+| 'published'
+/** The record was deleted; downstream SHOULD stop serving, no guarantee. */
+| 'withdrawn';
+
 export { AUTH_ACTIONS }
 
 export { AuthAction }
@@ -653,6 +676,9 @@ export interface AuthGrant {
 
 // @public
 export function autoColor(name: string): SelectColor;
+
+// @public
+export function availableAtmosphereActions(state: AtmospherePublishState): AtmospherePublishAction[];
 
 // @public (undocumented)
 export function avg(field: string, alias?: string): QueryASTAggregate;
@@ -807,6 +833,9 @@ export function buildSystemNamespace(subjectDid: DID, kind: SystemNamespaceKind)
 
 // @public (undocumented)
 export function buildSystemNodeId(subjectDid: DID, kind: SystemNamespaceKind, localId: string): string;
+
+// @public
+export const BUILTIN_RECORD_LENSES: readonly [RecordLens];
 
 // @public
 export type BuiltInSchemaIRI = keyof typeof builtInSchemas;
@@ -3408,6 +3437,9 @@ export interface BundleYjsPort {
 }
 
 // @public
+export function canEnterAtmosphere(visibility: NodeVisibilityValue): boolean;
+
+// @public
 export const canManageSpace: (role: SpaceRole) => boolean;
 
 // @public
@@ -4772,6 +4804,7 @@ export interface DefineSchemaOptions<P extends Record<string, PropertyBuilder>, 
     name: string;
     namespace: `xnet://${string}/`;
     properties: P;
+    publish?: PublishCapability;
     version?: string;
 }
 
@@ -6381,6 +6414,11 @@ export interface InferredColumn {
 // @public
 export function inferTypeFromValues(values: unknown[]): ColumnType;
 
+// Warning: (ae-forgotten-export) The symbol "NodeProperties" needs to be exported by the entry point index.d.ts
+//
+// @public
+export function ingestRecord(lens: RecordLens, record: LexiconRecord, priorNode?: NodeProperties): NodeProperties;
+
 // @public
 export function initializeDatabaseDoc(doc: Y.Doc): void;
 
@@ -6690,6 +6728,9 @@ export const LessonSchema: DefinedSchema<{
     createdAt: PropertyBuilder<number>;
     createdBy: PropertyBuilder<`did:key:${string}`>;
 }>;
+
+// @public
+export type LexiconRecord = Record<string, unknown>;
 
 // @public (undocumented)
 export const LINE_ITEM_SCHEMA_IRI: "xnet://xnet.fyi/LineItem@1.0.0";
@@ -7914,6 +7955,9 @@ export interface NodeStoreOptions {
 // @public (undocumented)
 export type NodeVisibility = (typeof NODE_VISIBILITY)[number];
 
+// @public
+export type NodeVisibilityValue = 'inherit' | 'private' | 'unlisted' | 'public';
+
 // @public (undocumented)
 export function normalizeExternalReferenceUrl(input: string): string | null;
 
@@ -7954,6 +7998,9 @@ export interface NotificationPrefs {
     keywords?: string[];
     silenceDesktop?: boolean;
 }
+
+// @public
+export type Nsid = string;
 
 // @public
 export function number(options?: NumberOptions): PropertyBuilder<number>;
@@ -8126,6 +8173,9 @@ export const PageSchema: DefinedSchema<{
 }>;
 
 // @public
+export const pageToDocumentLens: RecordLens;
+
+// @public
 export function parseCSV(text: string, options?: CsvParseOptions): ParsedCSV;
 
 // @public
@@ -8207,6 +8257,12 @@ export function parseVersion(version: string): {
     minor: number;
     patch: number;
 } | null;
+
+// @public
+export function partitionRecord(record: LexiconRecord, modelled: readonly string[]): {
+    modelled: LexiconRecord;
+    unmodelled: LexiconRecord;
+};
 
 // @public
 export class PermissionError extends TaggedError<'PermissionError'> {
@@ -8556,6 +8612,9 @@ export const ProfileSchema: DefinedSchema<{
 // @public
 export type Project = InferNode<(typeof ProjectSchema)['_properties']>;
 
+// @public
+export function projectRecord(lens: RecordLens, node: NodeProperties, priorRecord?: LexiconRecord): LexiconRecord;
+
 // @public (undocumented)
 export const ProjectSchema: DefinedSchema<{
     name: PropertyBuilder<string>;
@@ -8704,6 +8763,11 @@ export const PublicInteractionPolicySchema: DefinedSchema<{
     blockedDIDs: PropertyBuilder<`did:key:${string}`[]>;
     rationale: PropertyBuilder<string>;
 }>;
+
+// @public
+export interface PublishCapability {
+    lexicon: string;
+}
 
 // @public (undocumented)
 export type QualitySignal = InferNode<(typeof QualitySignalSchema)['_properties']>;
@@ -9026,6 +9090,37 @@ export function rebalanceSortKeys(rowIds: string[]): Map<string, string>;
 // @public (undocumented)
 export type RebuildNodeIndexesOptions = SetNodeOptions;
 
+// @public
+export interface RecordLens {
+    backward: (record: LexiconRecord, priorNode?: NodeProperties) => NodeProperties;
+    forward: (node: NodeProperties, priorRecord?: LexiconRecord) => LexiconRecord;
+    lexicon: Nsid;
+    lossless: boolean;
+    mode: RecordLensMode;
+    modelled: readonly string[];
+    source: SchemaIRI;
+}
+
+// @public
+export type RecordLensMode = 'projection' | 'incarnation';
+
+// @public
+export class RecordLensRegistry {
+    // (undocumented)
+    clear(): void;
+    // (undocumented)
+    get(source: SchemaIRI): RecordLens | undefined;
+    lexicons(): Nsid[];
+    // (undocumented)
+    register(lens: RecordLens): void;
+}
+
+// @public
+export const recordLensRegistry: RecordLensRegistry;
+
+// @public
+export function recoverExtras(lexicon: Nsid, node: NodeProperties): LexiconRecord;
+
 // @public (undocumented)
 export const RECOVERY_RECORD_SCHEMA_IRI = "xnet://xnet.fyi/RecoveryRecord@1.0.0";
 
@@ -9053,6 +9148,9 @@ export const redactInstruction: (instruction: string, digestHex: string) => stri
 
 // @public
 export function registerBlockType(definition: BlockDefinition): void;
+
+// @public
+export function registerBuiltinRecordLenses(registry: RecordLensRegistry): void;
 
 // @public
 export function relation(options: RelationOptions & {
@@ -9320,6 +9418,13 @@ export interface RollupRow {
 }
 
 // @public
+export interface RoundTripReport {
+    lost: string[];
+    // (undocumented)
+    ok: boolean;
+}
+
+// @public
 export const ROW_HEIGHT_PX: Record<RowHeight, number>;
 
 // @public
@@ -9416,6 +9521,9 @@ export interface Schema {
     name: string;
     namespace: string;
     properties: PropertyDefinition_2[];
+    publish?: {
+        lexicon: string;
+    };
     version: string;
 }
 
@@ -9730,6 +9838,9 @@ export interface SignUpdateOptions {
 }
 
 // @public
+export const SITE_STANDARD_DOCUMENT = "site.standard.document";
+
+// @public
 export interface SortableRow {
     // (undocumented)
     cells: Record<string, unknown>;
@@ -10006,6 +10117,9 @@ export const StageSchema: DefinedSchema<{
 
 // @public (undocumented)
 export function startsWith<P extends Record<string, PropertyBuilder>, K extends QueryASTField<P> = QueryASTField<P>>(field: K, value: string): QueryASTPredicate;
+
+// @public
+export function stashExtras(lexicon: Nsid, unmodelled: LexiconRecord): NodeProperties;
 
 // @public (undocumented)
 export class StoreAuth implements StoreAuthAPI {
@@ -10874,6 +10988,17 @@ export type WriteBundleOptions = {
 };
 
 // @public
+export const XNET_BODY_BLOCK = "fyi.xnet.richBody";
+
+// @public
+export interface XNetBodyBlock {
+    // (undocumented)
+    $type: typeof XNET_BODY_BLOCK;
+    contentHash?: string;
+    hubUrl: string;
+}
+
+// @public
 export const XNETPACK_FORMAT_VERSION = "xnetpack/1";
 
 // @public (undocumented)
@@ -10913,7 +11038,7 @@ export { YXmlText }
 
 // Warnings were encountered during analysis:
 //
-// dist/types-gws1tSf-.d.ts:571:9 - (ae-forgotten-export) The symbol "GrantStatus" needs to be exported by the entry point index.d.ts
+// dist/types-B6XgymUK.d.ts:571:9 - (ae-forgotten-export) The symbol "GrantStatus" needs to be exported by the entry point index.d.ts
 
 // (No @packageDocumentation comment for this package)
 

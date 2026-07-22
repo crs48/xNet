@@ -60,10 +60,21 @@ describe('atproto OAuth scope covers the ceremony write path', () => {
     expect(granted.has('update')).toBe(true)
   })
 
+  it('the primary client authorises putRecord on the challenge collection (0389)', () => {
+    // Recovery proves live control by writing a hub-issued nonce into
+    // fyi.xnet.identity.challenge; without this grant that write fails and the
+    // recovering user can never prove control.
+    const granted = grantedActions(primary.scope, 'fyi.xnet.identity.challenge')
+    expect(granted.has('create')).toBe(true)
+    expect(granted.has('update')).toBe(true)
+  })
+
   it('the compat client also authorises the write, via transition:generic', () => {
     const granted = grantedActions(compat.scope, ATPROTO_BINDING_COLLECTION)
     expect(granted.has('create')).toBe(true)
     expect(granted.has('update')).toBe(true)
+    // transition:generic is repo-wide, so it also covers the challenge write.
+    expect(grantedActions(compat.scope, 'fyi.xnet.identity.challenge').has('create')).toBe(true)
   })
 
   it('both clients declare the mandatory `atproto` scope', () => {

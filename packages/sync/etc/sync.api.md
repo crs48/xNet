@@ -411,6 +411,12 @@ export function computeBatchRoot(changeHashes: readonly ContentId[]): ContentId;
 export function computeChangeHash<T>(unsigned: UnsignedChange<T>): ContentId;
 
 // @public
+export function computeSnapshotHash(unsigned: UnsignedSpaceSnapshot): ContentId;
+
+// @public
+export function computeSnapshotRoot(heads: readonly SnapshotHead[]): ContentId;
+
+// @public
 export function configureDeprecationPolicy(options: Partial<typeof DEPRECATION_POLICY>): void;
 
 // @public (undocumented)
@@ -519,6 +525,22 @@ export function createSecurityPolicy(options?: Partial<SecurityPolicy>): Securit
 export function createSerializerRegistry(defaultVersion?: number, serializers?: ChangeSerializer[]): SerializerRegistry;
 
 // @public (undocumented)
+export interface CreateSpaceSnapshotOptions {
+    // (undocumented)
+    heads: readonly SnapshotHead[];
+    // (undocumented)
+    id: string;
+    // (undocumented)
+    protocolVersion?: number;
+    // (undocumented)
+    snapshotterDID: DID;
+    // (undocumented)
+    space: string;
+    // (undocumented)
+    wallTime: number;
+}
+
+// @public (undocumented)
 export function createSyncLifecycleState(input: SyncLifecycleInput, previous?: SyncLifecycleState): SyncLifecycleState;
 
 // @public
@@ -529,6 +551,9 @@ export function createUnsignedBatchCommit(options: CreateBatchCommitOptions): Un
 
 // @public
 export function createUnsignedChange<T>(options: CreateChangeOptions<T>): UnsignedChange<T>;
+
+// @public
+export function createUnsignedSpaceSnapshot(options: CreateSpaceSnapshotOptions): UnsignedSpaceSnapshot;
 
 // @public
 export function createUnsignedYjsChange(options: Omit<CreateYjsChangeOptions, 'privateKey'>): UnsignedYjsChange;
@@ -1057,6 +1082,9 @@ export const MAX_COMMIT_CHANGES = 1000;
 export const MAX_SECURITY_POLICY: SecurityPolicy;
 
 // @public
+export const MAX_SNAPSHOT_HEADS = 100000;
+
+// @public
 export const MAX_YJS_AWARENESS_UPDATE_SIZE = 65536;
 
 // @public
@@ -1219,6 +1247,9 @@ export function recomputeBatchCommitHash(commit: BatchCommit): ContentId;
 export function recomputeChangeHash<T>(change: Change<T>): ContentId;
 
 // @public
+export function recomputeSnapshotHash(snapshot: SpaceSnapshot): ContentId;
+
+// @public
 export function registerDeprecation(notice: DeprecationNotice): void;
 
 // @public
@@ -1375,6 +1406,9 @@ export interface SignedYjsEnvelopeWire {
 }
 
 // @public
+export function signSpaceSnapshot(unsigned: UnsignedSpaceSnapshot, signingKey: Uint8Array): SpaceSnapshot;
+
+// @public
 export function signYjsUpdate(update: Uint8Array, authorDID: string, privateKey: Uint8Array, clientId: number): SignedYjsEnvelopeV1;
 
 // @public
@@ -1396,6 +1430,27 @@ export function simulateSyncPolicyRevision(input: {
     revision?: SyncReplicationConfig;
     fallbackHubUrls?: string[];
 }): PolicyRevisionSimulation;
+
+// @public
+export function snapshotDelta(have: readonly SnapshotHead[], target: readonly SnapshotHead[]): SnapshotHead[];
+
+// @public
+export interface SnapshotHead {
+    head: ContentId;
+    lamport: number;
+    nodeId: string;
+}
+
+// @public
+export function snapshotsAgree(a: SpaceSnapshot, b: SpaceSnapshot): boolean;
+
+// @public
+export interface SpaceSnapshot extends UnsignedSpaceSnapshot {
+    // (undocumented)
+    hash: ContentId;
+    // (undocumented)
+    signature: Uint8Array;
+}
 
 // @public (undocumented)
 export interface SyncCompatibilityConfig {
@@ -1567,6 +1622,23 @@ export interface UnsignedChange<T = unknown> {
 }
 
 // @public
+export interface UnsignedSpaceSnapshot {
+    heads: SnapshotHead[];
+    highWaterMark: number;
+    // (undocumented)
+    id: string;
+    // (undocumented)
+    protocolVersion: number;
+    root: ContentId;
+    snapshotterDID: DID;
+    space: string;
+    // (undocumented)
+    type: 'space-snapshot';
+    // (undocumented)
+    wallTime: number;
+}
+
+// @public
 export type UnsignedYjsChange = UnsignedChange<YjsUpdatePayload>;
 
 // @public
@@ -1709,6 +1781,12 @@ export function verifySingleChange(change: Change<unknown>, options?: VerifyOpti
     valid: boolean;
     issues: IntegrityIssue[];
 }>;
+
+// @public
+export function verifySpaceSnapshot(snapshot: SpaceSnapshot, publicKey: Uint8Array): boolean;
+
+// @public
+export function verifySpaceSnapshotFast(snapshot: SpaceSnapshot, publicKey: Uint8Array): Promise<boolean>;
 
 // @public
 export function verifyYjsEnvelope(envelope: SignedYjsEnvelopeV1): EnvelopeVerifyResult;

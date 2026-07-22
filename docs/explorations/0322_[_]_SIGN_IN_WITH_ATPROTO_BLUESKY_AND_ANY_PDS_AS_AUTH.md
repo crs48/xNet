@@ -1,5 +1,11 @@
 # Sign In With ATProto — Bluesky And Any PDS As An Authentication Door
 
+> **Namespace note (0372/0389).** This document was written when the xNet
+> lexicon namespace was `net.x.*`. That namespace was **squatting** — `x.net`
+> belongs to IANA and can never be claimed — so exploration 0372 moved it to
+> **`fyi.xnet.*`**, which is what shipped. The NSIDs below have been rewritten
+> accordingly; the reasoning is unchanged.
+
 ## Problem Statement
 
 Can xNet support **authentication via AT Protocol** — "Sign in with Bluesky,"
@@ -368,7 +374,7 @@ sequenceDiagram
   W->>W: SDK verifies iss ↔ DID doc (client-side check)
   W->>H: request escrow release { did:plc:X, ceremony proof }
   H->>PLC: independently resolve did:plc:X → DID doc
-  H->>AS: verify issuer matches; verify binding record<br/>(net.x.identity.binding ↔ this account's did:key)
+  H->>AS: verify issuer matches; verify binding record<br/>(fyi.xnet.identity.binding ↔ this account's did:key)
   H-->>W: sealed escrow blob (only if bound DID matches)
   U->>W: enters PIN
   W->>W: openEscrow(blob, PIN) → seed → did:key restored
@@ -383,7 +389,7 @@ binding attestation) as the shared foundation, since both the login door and
 the recovery anchor depend on the binding existing.
 
 **Increment 1 — Linking (= 0301 Phase 1, unchanged).** OAuth ceremony from
-the browser client, `net.x.identity.binding` record in the PDS, profile
+the browser client, `fyi.xnet.identity.binding` record in the PDS, profile
 fields + hub-side verification service. Ship the hub handle-resolver helper
 here (it's needed by every subsequent increment).
 
@@ -479,7 +485,7 @@ export async function authorizeEscrowRelease(
   const as = await resolveAuthServer(pdsEndpoint(doc))
   if (!(await verifyProofAgainstIssuer(ceremonyProof, as, atprotoDid))) return null
   // 3. The escrow must be bound to exactly this ATProto DID (binding was
-  //    verified at enrollment via the net.x.identity.binding record).
+  //    verified at enrollment via the fyi.xnet.identity.binding record).
   const envelope = await store.getByAtprotoDid(atprotoDid)
   return envelope ?? null
   // Client still needs the PIN: openEscrow(envelope, pin) happens locally.
@@ -553,7 +559,7 @@ export type AppState =
 
 Foundation (= 0301 Phase 1, tracked there; prerequisites here):
 
-- [ ] 0301 Phase 1 linking shipped (`net.x.identity.binding`, profile fields,
+- [ ] 0301 Phase 1 linking shipped (`fyi.xnet.identity.binding`, profile fields,
       hub binding verification service)
 - [ ] Hub handle-resolver helper: `GET /atproto/resolve?handle=` doing
       DNS-over-HTTPS TXT + `.well-known/atproto-did`, XRPC-compatible response

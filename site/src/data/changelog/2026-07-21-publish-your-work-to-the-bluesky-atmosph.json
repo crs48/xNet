@@ -1,0 +1,9 @@
+{
+  "id": "2026-07-21-publish-your-work-to-the-bluesky-atmosph",
+  "date": "July 21, 2026",
+  "title": "Publish your work to the Bluesky atmosphere, keep the rest private",
+  "summary": "xNet can now project a published page onto the shared site.standard lexicon as a rich card while the body stays on your hub, sign in and recover with your Bluesky identity, and make a self-hosted hub discoverable across the network — the private half of the atmosphere.",
+  "highlights": [],
+  "tags": ["identity", "platform"],
+  "pr": 619
+}

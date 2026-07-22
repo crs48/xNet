@@ -1056,7 +1056,8 @@ export const layers: CompareLayer[] = [
           dataModel: 'Signed repos (Lexicons)',
           sync: 'Federated relays',
           identity: 'DID:plc'
-        }
+        },
+        footnotes: ['atproto-complement']
       },
       {
         name: 'Habitat',
@@ -1218,6 +1219,11 @@ export const layers: CompareLayer[] = [
         id: 'xnet-kernel',
         text: "xNet's interop kernel is a signed, hash-chained, last-write-wins change log over schema-typed nodes (not Yjs, which travels as an opaque document body). A normative spec ships with a language-agnostic conformance corpus and a reference Python kernel. Hub-to-hub federation is on the roadmap, not yet shipped.",
         sourceUrl: 'https://github.com/crs48/xNet/tree/main/docs/specs/protocol'
+      },
+      {
+        id: 'atproto-complement',
+        text: 'Not a competitor — a complement. AT Protocol is a public broadcast network; xNet is the end-to-end encrypted workspace for your ATProto identity, the private half the atmosphere is not built to hold. xNet is to workspaces what Germ is to DMs: sign in with your Bluesky identity, keep your drafts and members-only spaces private and live, and publish a card to the atmosphere only when the work is ready. Identity, discovery and recovery ride on ATProto; the confidential body stays on a hub that never sees plaintext.',
+        sourceUrl: 'https://github.com/crs48/xNet/tree/main/docs/explorations'
       },
       {
         id: 'habitat-ods',

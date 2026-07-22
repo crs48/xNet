@@ -7,14 +7,21 @@
  * the check runs against the hub the app is connected to and degrades to
  * "linked, unverified" when no hub is configured or the check fails.
  */
+import { type AnyDid, type XNetDid, isAtprotoDid } from '@xnetjs/identity'
 import { useEffect, useState } from 'react'
 
 type VerifyState = 'checking' | 'verified' | 'unverified'
 
 export function VerifiedHandle(props: {
-  atprotoDid: string
+  /**
+   * The foreign ATProto DID. Typed `AnyDid` — this is a represent-only display
+   * surface (F2, 0389): a `did:plc`/`did:web` is shown and resolved, never
+   * signed with. The signing type (`did:key`) is a different boundary and stays
+   * on `xnetDid`.
+   */
+  atprotoDid: AnyDid
   atprotoHandle: string
-  xnetDid: string
+  xnetDid: XNetDid
   /** Hub HTTPS base URL, e.g. https://hub.xnet.fyi. Omit to skip verification. */
   hubHttpUrl?: string
 }): JSX.Element {
@@ -22,7 +29,9 @@ export function VerifiedHandle(props: {
   const [state, setState] = useState<VerifyState>(hubHttpUrl ? 'checking' : 'unverified')
 
   useEffect(() => {
-    if (!hubHttpUrl) {
+    // A malformed stored DID must never be sent to the hub as a binding lookup —
+    // degrade to "linked, unverified" rather than issue a bogus request.
+    if (!hubHttpUrl || !isAtprotoDid(atprotoDid)) {
       setState('unverified')
       return
     }

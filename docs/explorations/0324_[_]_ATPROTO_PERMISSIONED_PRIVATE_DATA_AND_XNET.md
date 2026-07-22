@@ -1,5 +1,11 @@
 # ATProto Permissioned Private Data ("Spaces") And How It Intersects With xNet
 
+> **Namespace note (0372/0389).** This document was written when the xNet
+> lexicon namespace was `net.x.*`. That namespace was **squatting** — `x.net`
+> belongs to IANA and can never be claimed — so exploration 0372 moved it to
+> **`fyi.xnet.*`**, which is what shipped. The NSIDs below have been rewritten
+> accordingly; the reasoning is unchanged.
+
 ## Problem Statement
 
 Exploration [0301](0301_%5B_%5D_ATPROTO_INTEGRATION_IDENTITY_SYNC_AND_HUB_AS_PDS.md)
@@ -441,7 +447,7 @@ sequenceDiagram
   participant Hub as xNet hub
 
   Note over App,Auth: Option B — encrypted Space backup into a personal permissioned space
-  App->>PDS: OAuth w/ scope space:net.x.backup?action=create (SHIPPED grammar)
+  App->>PDS: OAuth w/ scope space:fyi.xnet.backup?action=create (SHIPPED grammar)
   App->>PDS: getDelegationToken (single-use, 60s)
   App->>Auth: getSpaceCredential(delegation token)
   Auth-->>App: space credential (2h, authority-signed)
@@ -536,7 +542,7 @@ Trigger-gated — when PR #5187 merges and a sandbox exists:
 
 - [ ] Snapshot/compaction primitive scheduled (own exploration if needed —
       it is the critical path for Option B)
-- [ ] Flagged prototype: personal `net.x.backup` space type lexicon;
+- [ ] Flagged prototype: personal `fyi.xnet.backup` space type lexicon;
       snapshot → `EncryptedEnvelope` records via `applyWrites`; restore
       path verifies LtHash state against local set
 - [ ] Privacy gate test: no plaintext node content and no non-empty

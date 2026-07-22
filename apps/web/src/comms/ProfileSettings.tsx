@@ -247,9 +247,12 @@ export function ProfileSettings() {
             Global identity
           </span>
           <VerifiedHandle
-            atprotoDid={String(profile.atprotoDid ?? '')}
+            // Cast at the untyped-storage boundary: atprotoDid is a text()
+            // field, did is a native did:key. VerifiedHandle re-validates the
+            // foreign DID before it ever reaches the hub (F2, 0389).
+            atprotoDid={String(profile.atprotoDid ?? '') as `did:web:${string}`}
             atprotoHandle={String(profile.atprotoHandle)}
-            xnetDid={did}
+            xnetDid={did as `did:key:${string}`}
             hubHttpUrl={atprotoHubHttpUrl()}
           />
         </div>

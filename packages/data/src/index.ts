@@ -20,6 +20,7 @@ export {
   // Schema definition
   defineSchema,
   type DefineSchemaOptions,
+  type PublishCapability,
 
   // Types
   type PropertyType,
@@ -633,6 +634,38 @@ export {
   MigrationError,
   LensRegistry,
   lensRegistry,
+
+  // Record lenses (node ↔ foreign lexicon, explorations 0380/0389)
+  type RecordLens,
+  type RecordLensMode,
+  type LexiconRecord,
+  type Nsid,
+  type RoundTripReport,
+  RecordLensRegistry,
+  recordLensRegistry,
+  assertRoundTrip,
+  ingestRecord,
+  partitionRecord,
+  projectRecord,
+  recoverExtras,
+  stashExtras,
+
+  // Projection lexicons (node → adopted foreign lexicon, 0367/0372/0389)
+  pageToDocumentLens,
+  SITE_STANDARD_DOCUMENT,
+  XNET_BODY_BLOCK,
+  type XNetBodyBlock,
+  BUILTIN_RECORD_LENSES,
+  registerBuiltinRecordLenses,
+
+  // Atmosphere publish state — the one-way door (0365/0389)
+  type AtmospherePublishState,
+  type AtmospherePublishAction,
+  type NodeVisibilityValue,
+  applyAtmosphereAction,
+  availableAtmosphereActions,
+  canEnterAtmosphere,
+  assertCanPublish,
 
   // Lens builder utilities
   rename,

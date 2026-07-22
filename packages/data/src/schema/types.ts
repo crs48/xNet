@@ -120,6 +120,12 @@ export interface Schema {
    * When present, nodes of this schema are encrypted and access is controlled.
    */
   authorization?: SerializedAuthorization
+
+  /**
+   * Projection capability (0389): the foreign lexicon nodes of this schema may
+   * be published to. Present only when the schema opted in via `publish`.
+   */
+  publish?: { lexicon: string }
 }
 
 /**

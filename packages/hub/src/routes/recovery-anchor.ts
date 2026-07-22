@@ -1,22 +1,33 @@
 /**
- * @xnetjs/hub - Recovery-anchor escrow routes (explorations 0243/0322/0338).
+ * @xnetjs/hub - Recovery-anchor escrow routes (explorations 0243/0322/0338/0389).
  *
- * - POST /enroll  — store a PIN-sealed escrow blob under an ATProto anchor.
+ * - POST /enroll    — store a PIN-sealed escrow blob under an ATProto anchor.
  *   Enrollment is authenticated (the enrolling DID must equal the xNet DID it
  *   is enrolling for), so nobody can plant an escrow record for someone else.
- * - POST /release — the recovery path: the anchor verifies the ceremony fully
- *   server-side (DID doc, AS issuer, binding record, freshness) and only then
- *   returns the sealed blob. The hub never sees the PIN or the opened secret.
+ * - POST /challenge — mint the single-use nonce the recovering user must write
+ *   into their own ATProto repo. Unauthenticated by necessity: the whole point
+ *   is that the caller has lost the key that would authenticate them.
+ * - POST /release   — the recovery path: the anchor verifies live control (the
+ *   challenge record in the DID document's repo) plus the standing binding, AS
+ *   issuer and freshness, and only then returns the sealed blob. The hub never
+ *   sees the PIN or the opened secret.
+ *
+ * `/challenge` and `/release` are deliberately uniform in what they reveal:
+ * neither confirms whether a DID has escrow enrolled, or a challenge endpoint
+ * would enumerate users for an attacker.
  */
 
 import type { AtprotoRecoveryAnchor } from '../services/atproto-recovery-anchor'
 import type { EscrowStore } from '../services/escrow-store'
+import type { RecoveryChallengeStore } from '../services/atproto-challenge'
+import { ATPROTO_CHALLENGE_COLLECTION, ATPROTO_CHALLENGE_RKEY } from '../services/atproto-challenge'
 import { Hono } from 'hono'
 import { isRecord } from '../utils/validation'
 
 export const createRecoveryAnchorRoutes = (input: {
   store: EscrowStore
   anchor: AtprotoRecoveryAnchor
+  challenges: RecoveryChallengeStore
   /** The authenticated caller's DID, from the requireAuth middleware. */
   callerDid: (c: unknown) => string | null
 }): Hono => {
@@ -44,6 +55,25 @@ export const createRecoveryAnchorRoutes = (input: {
       enrolledAt: Date.now()
     })
     return c.json({ ok: true })
+  })
+
+  app.post('/challenge', async (c) => {
+    const body = await c.req.json().catch(() => null)
+    if (!isRecord(body)) return c.json({ error: 'Invalid body' }, 400)
+    const xnetDid = typeof body.xnetDid === 'string' ? body.xnetDid : ''
+    if (!xnetDid) return c.json({ error: 'Missing xnetDid' }, 400)
+
+    input.challenges.sweep()
+    // Minted whether or not an escrow exists: an endpoint that only issued
+    // challenges for enrolled DIDs would be a membership oracle. A nonce for a
+    // DID with no escrow is simply useless.
+    const challenge = input.challenges.issue(xnetDid)
+    return c.json({
+      nonce: challenge.nonce,
+      expiresAt: challenge.expiresAt,
+      collection: ATPROTO_CHALLENGE_COLLECTION,
+      rkey: ATPROTO_CHALLENGE_RKEY
+    })
   })
 
   app.post('/release', async (c) => {

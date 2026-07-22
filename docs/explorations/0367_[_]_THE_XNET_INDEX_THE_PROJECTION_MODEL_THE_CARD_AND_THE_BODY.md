@@ -1,5 +1,11 @@
 # The xNet Index — The Projection Model, The Card, And The Body
 
+> **Namespace note (0372/0389).** This document was written when the xNet
+> lexicon namespace was `net.x.*`. That namespace was **squatting** — `x.net`
+> belongs to IANA and can never be claimed — so exploration 0372 moved it to
+> **`fyi.xnet.*`**, which is what shipped. The NSIDs below have been rewritten
+> accordingly; the reasoning is unchanged.
+
 > Exploration 0367 · 2026-07-19
 > Third in the index line: [[0365_XNET_CLOUD_AS_A_SOCIAL_SUBSTRATE]] (the two
 > rails and the one-way door), [[0366_THE_XNET_INDEX]] (free admission, funded
@@ -105,7 +111,7 @@ specifically for it.** Three findings, in ascending order of how much they
 change the plan:
 
 - **Jetstream supports `wantedCollections` with NSID prefixes**, max 100
-  entries. `net.x.*` is one subscription. (`subscribeRepos`, by contrast, has
+  entries. `fyi.xnet.*` is one subscription. (`subscribeRepos`, by contrast, has
   **no** filtering at all.)
 - **`com.atproto.sync.listReposByCollection` enumerates every DID holding a
   given collection.** Measured live: `sh.tangled.repo` → **4,288 DIDs in
@@ -237,7 +243,7 @@ Four frictions, each of which needs a decision rather than a workaround:
 | --- | --- | --- |
 | **F1** | **Delta log vs whole records** | `NodePayload` (`store/types.ts:44-56`) is `{nodeId, schemaId?, properties, deleted?}` — *sparse*, per-property LWW. atproto records are whole CBOR docs. **Project from `NodeState`, post-LWW — never from the change log.** |
 | **F2** | **`did:key` is hardcoded** | `DID = \`did:key:${string}\`` (`node.ts:144`); `isNode` (:184) and both `validate()` paths hard-check the prefix. **`did:plc` fails validation as written.** |
-| **F3** | **Versioned IRIs vs unversioned NSIDs** | `xnet://xnet.fyi/Page@1.0.0` vs `net.x.blog.post`. Needs an explicit version-erasure policy, and a place to put the discarded version. |
+| **F3** | **Versioned IRIs vs unversioned NSIDs** | `xnet://xnet.fyi/Page@1.0.0` vs `fyi.xnet.blog.post`. Needs an explicit version-erasure policy, and a place to put the discarded version. |
 | **F4** | **`ext:` overlay keys have no analogue** | `ext:acme.com/leadScore` as a *property name* cannot survive a lexicon round-trip (`schema/extension.ts`). |
 
 Two more that limit third-party flexibility today:
@@ -263,7 +269,7 @@ flowchart LR
     SH["shard postings<br/>⚠️ 8-bit term hash<br/>⚠️ per-shard BM25 unsound"]
   end
   subgraph T2["Tier 2 — the Index (NEW)"]
-    IX["net.x.* only<br/>Jetstream wantedCollections<br/>or Tap Collection Signal"]
+    IX["fyi.xnet.* only<br/>Jetstream wantedCollections<br/>or Tap Collection Signal"]
   end
   L --> F5
   F5 --> FED
@@ -460,7 +466,7 @@ explicit permission."
 > ⚠️ **PDS validation is optimistic by default: if the lexicon is not
 > resolvable, the write is allowed. Relays explicitly do not validate.** Never
 > assume a record on the wire was validated. **The Index must validate on
-> ingest and must expect malformed `net.x.*` records.**
+> ingest and must expect malformed `fyi.xnet.*` records.**
 
 ### Leaflet already hit our one-way door
 
@@ -533,12 +539,12 @@ nobody else can consume. **Rejected on every axis.**
 ### What the Index ingests
 
 **Option D — index from our own hubs.** Cheap, but the index then reflects *us*,
-not the network — and it cannot see `net.x.*` records written by non-xNet
+not the network — and it cannot see `fyi.xnet.*` records written by non-xNet
 software. **Fails 0360's mirror-not-master rule.**
 
-**Option E — index from atproto only (recommended).** Subscribe to `net.x.*`
+**Option E — index from atproto only (recommended).** Subscribe to `fyi.xnet.*`
 via Jetstream/Tap; discover via `listReposByCollection`. Anyone writing
-`net.x.*` records with any software appears, including people who never touch
+`fyi.xnet.*` records with any software appears, including people who never touch
 xNet. **This is what keeps it a mirror.**
 
 **Option F — both, reconciled.** Hub-side for latency, atproto for truth.
@@ -587,7 +593,7 @@ flowchart TB
     H["static/HTML output (@xnetjs/publish)"]
   end
   subgraph IDX["The Index — reads atproto, not hubs"]
-    J["Jetstream wantedCollections: net.x.*<br/>or Tap Collection Signal"]
+    J["Jetstream wantedCollections: fyi.xnet.*<br/>or Tap Collection Signal"]
     B["backfill: listReposByCollection<br/>sub-second, then listRecords"]
     V["validate on ingest — records are UNTRUSTED"]
     VW["Views: enrichment, never records"]
@@ -599,7 +605,7 @@ flowchart TB
   B --> V
 ```
 
-**Phase 1 — the card, one schema, no PDS.** Define `net.x.blog.post` as a
+**Phase 1 — the card, one schema, no PDS.** Define `fyi.xnet.blog.post` as a
 lexicon, write the `SchemaLens` for `Page`, and render the card to JSON in
 tests. Fix `publishedFrontier` (E2) and implement `registerSchema` (F5). No
 network yet. This is where the design is proven cheaply.
@@ -609,12 +615,12 @@ enforces the `GatedRail` invariant from 0365, respects `RateLimit-*` headers,
 and is idempotent against its own echo. Publish to the user's existing PDS.
 
 **Phase 3 — the Index.** Tap Collection Signal (falling back to Jetstream
-`wantedCollections: ['net.x.*']`), `listReposByCollection` for backfill,
+`wantedCollections: ['fyi.xnet.*']`), `listReposByCollection` for backfill,
 validate-on-ingest, and a **Record/View split** where everything computed is a
 View. New service; do not extend `search_index` or the shard index.
 
-**Phase 4 — breadth and metering.** Additional lexicons (`net.x.actor.profile`,
-`net.x.community.*`, `net.x.pack.announcement`), publisher analytics, and the
+**Phase 4 — breadth and metering.** Additional lexicons (`fyi.xnet.actor.profile`,
+`fyi.xnet.community.*`, `fyi.xnet.pack.announcement`), publisher analytics, and the
 commercial consumption tier.
 
 ### The round trip, and the race that must not happen
@@ -638,13 +644,13 @@ sequenceDiagram
     H-->>O: materialized NodeState (post-LWW)
     Note over O: gate: public rail only (0365)
     O->>O: lens.forward → card, record idempotency key
-    O->>P: putRecord net.x.blog.post
+    O->>P: putRecord fyi.xnet.blog.post
     P-->>J: firehose commit
     rect rgba(180,60,60,.18)
     J-->>O: echo of OUR OWN write
     Note over O,H: MUST be a no-op.<br/>Inbound never overwrites hub state.
     end
-    J->>I: net.x.* only (wantedCollections)
+    J->>I: fyi.xnet.* only (wantedCollections)
     I->>I: validate — records are UNTRUSTED
     I->>I: compute View (indexedAt, counts)
     Note over I: Views are never written back to the record
@@ -672,7 +678,7 @@ sequenceDiagram
 
 export interface PublishDescriptor {
   /** NSID. Chosen once and forever — NSIDs are DNS-rooted and immortal. */
-  readonly lexicon: `net.x.${string}`
+  readonly lexicon: `fyi.xnet.${string}`
   /**
    * Node → record. Structurally a SchemaLens with lossless: false, because
    * the BODY never travels — only the card does.
@@ -687,7 +693,7 @@ export interface PublishDescriptor {
 //   export const PageSchema = defineSchema({
 //     name: 'Page',
 //     publish: {
-//       lexicon: 'net.x.blog.post',
+//       lexicon: 'fyi.xnet.blog.post',
 //       rkey: 'slug',
 //       lens: pageToBlogPost,   // forward: node → card
 //     },
@@ -749,7 +755,7 @@ This is the core deliverable of the request. **H** = happy path, **E** = edge.
 | --- | --- | --- |
 | **H1** | Publish a public post | Outbox → `putRecord`; card on PDS, body on hub |
 | **H2** | Reader finds it via the Index | Index serves a **View**; link resolves to hub or static site |
-| **H3** | Someone publishes `net.x.*` **without xNet** | **Indexed normally.** This is the mirror-not-master property working |
+| **H3** | Someone publishes `fyi.xnet.*` **without xNet** | **Indexed normally.** This is the mirror-not-master property working |
 | **E1** | Edit after publish | Body changes; card is republished only on explicit re-publish (`hasUnpublishedChanges`) |
 | **E2** | **Reader sees unpublished edits** | **CURRENT BUG** — `publishedFrontier` is stored but no renderer reads it. Fix before Phase 2 |
 | **E3** | Withdraw | `unpublishPost()` + `deleteRecord`; slug retained. **A request, not a retraction** (0365) |
@@ -771,11 +777,11 @@ This is the core deliverable of the request. **H** = happy path, **E** = edge.
 | **E19** | PDS offline / write fails | Outbox retries with backoff; local state is authoritative meanwhile |
 | **E20** | Slug collision | `uniqueSlug` against `takenSlugsFor`; slug is **sticky** thereafter |
 | **E21** | Index drifts from PDS | Periodic reconcile via `listReposByCollection` + `listRecords` |
-| **E22** | **Malformed `net.x.*` record** | **Expected.** PDS validation is optimistic; relays do not validate. Validate on ingest, quarantine, never crash |
+| **E22** | **Malformed `fyi.xnet.*` record** | **Expected.** PDS validation is optimistic; relays do not validate. Validate on ingest, quarantine, never crash |
 | **E23** | **Firehose echo clobbers local state** | Idempotency key from our own write; **inbound never overwrites hub state** (Leaflet's documented race) |
 | **E24** | Stale Jetstream cursor | **Silently clamped — data lost with no error.** Track a high-water mark and alarm on gaps |
 | **E25** | Takedown request | Withdraw + `blocked.json`; P2B Art. 4 statement of reasons (0366) |
-| **E26** | A `net.x.*` record we cannot map | Index it as an opaque card; degrade, **do not fail closed** (contra `parseSchemaDefinition`) |
+| **E26** | A `fyi.xnet.*` record we cannot map | Index it as an opaque card; degrade, **do not fail closed** (contra `parseSchemaDefinition`) |
 
 ### Open questions
 
@@ -783,9 +789,11 @@ This is the core deliverable of the request. **H** = happy path, **E** = edge.
   atproto's permissioned-data *spaces* offer an authority DID that can transfer
   between users — but they are 3 weeks old, unstable, and have no firehose
   (0365). Revisit, do not build on it.
-- **`net.x.*` or something else?** Still unresolved from 0365: the binding uses
-  `net.x.identity.binding` while `create-share.ts:11` hardcodes
-  `did:web:xnet.fyi`. **ADR before Phase 1.**
+- ~~**`net.x.*` or something else?**~~ **RESOLVED by 0372:** `x.net` belongs to
+  IANA and is unclaimable, so the namespace is **`fyi.xnet.*`** — matching the
+  `did:web:xnet.fyi` that `create-share.ts:11` already hardcodes. The two
+  implied domains collapsed into one; the binding shipped as
+  `fyi.xnet.identity.binding`.
 - **Do we depend on `listReposByCollection`** given it is Bluesky-relay-only?
   Suggest: use it, but keep Jetstream as the primary and treat it as an
   optimisation, so an independent relay ecosystem does not strand us.
@@ -803,7 +811,7 @@ This is the core deliverable of the request. **H** = happy path, **E** = edge.
 
 ### Phase 0 — prerequisites
 
-- [ ] ADR: fix the NSID namespace (`net.x.*` vs `xnet.fyi`), once and forever.
+- [x] ADR: fix the NSID namespace, once and forever — **`fyi.xnet.*`** (0372).
 - [ ] **E2:** honour `publishedFrontier` at render time in `render.ts`/`site.ts`/`feed.ts`.
 - [ ] **F2:** widen `DID` beyond `did:key`; relax `isNode` and both `validate()` paths.
 - [ ] **F5:** implement `registerSchema` in `packages/plugins/src/context.ts:225`.
@@ -811,7 +819,7 @@ This is the core deliverable of the request. **H** = happy path, **E** = edge.
 
 ### Phase 1 — the card
 
-- [ ] `lexicons/net.x.blog.post.json`; codegen with **`@atproto/lex`**.
+- [ ] `lexicons/fyi.xnet.blog.post.json`; codegen with **`@atproto/lex`**.
 - [ ] `PublishDescriptor` + `publish` field on `defineSchema`.
 - [ ] `pageToBlogPost` lens (`lossless: false`); property-type mapping table for the 21 `PropertyType`s.
 - [ ] Adopt the idioms: minimal required fields, `createdAt` client-declared, facets for rich text (**UTF-8 byte offsets**), strongRef vs at-uri chosen deliberately.
@@ -829,7 +837,7 @@ This is the core deliverable of the request. **H** = happy path, **E** = edge.
 
 ### Phase 3 — the Index
 
-- [ ] Ingest via **Tap Collection Signal**; fall back to Jetstream `wantedCollections: ['net.x.*']`.
+- [ ] Ingest via **Tap Collection Signal**; fall back to Jetstream `wantedCollections: ['fyi.xnet.*']`.
 - [ ] Backfill via `listReposByCollection` → `listRecords`.
 - [ ] **Validate on ingest**; quarantine malformed records (**E22**).
 - [ ] High-water mark + gap alarm for cursor clamping (**E24**).
@@ -840,14 +848,14 @@ This is the core deliverable of the request. **H** = happy path, **E** = edge.
 
 ### Phase 4 — breadth and metering
 
-- [ ] `net.x.actor.profile`, `net.x.community.*`, `net.x.pack.announcement`.
+- [ ] `fyi.xnet.actor.profile`, `fyi.xnet.community.*`, `fyi.xnet.pack.announcement`.
 - [ ] Consume `PublicationSchema.followable`.
 - [ ] Commercial tier metered on consumption; publisher analytics consent-gated.
 - [ ] `ECONOMICS.md`: free reads/listing on the Kept side; paid admission stays Refused.
 
 ## Validation Checklist
 
-- [ ] A `net.x.blog.post` written by xNet is readable by a **third-party atproto client** with no xNet code.
+- [ ] A `fyi.xnet.blog.post` written by xNet is readable by a **third-party atproto client** with no xNet code.
 - [ ] A record written by **non-xNet software** appears in the Index (**H3** — the mirror property).
 - [ ] The card is **under 4 KB** for a 10,000-word post; the body never appears in any record.
 - [ ] A gated/paid node **cannot** produce a public rail — asserted by a failing build, not review (**E6**).
@@ -856,7 +864,7 @@ This is the core deliverable of the request. **H** = happy path, **E** = edge.
 - [ ] **Editing a published post does not change what readers see until re-publish** (**E2**).
 - [ ] Withdraw removes it from the Index within one cycle and shows the third-party-retention caveat **before** the action.
 - [ ] The firehose echo of our own write is a **no-op** and never overwrites hub state (**E23**).
-- [ ] A deliberately malformed `net.x.*` record is quarantined, not fatal (**E22**).
+- [ ] A deliberately malformed `fyi.xnet.*` record is quarantined, not fatal (**E22**).
 - [ ] A truncated Jetstream cursor raises a gap alarm rather than silently losing data (**E24**).
 - [ ] A `did:plc` user completes the full publish flow (**E16**).
 - [ ] A user with **no** atproto identity publishes a static site successfully (**E14** — the BATNA proof).
