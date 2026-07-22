@@ -6,6 +6,29 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-21-publish-your-work-to-the-bluesky-atmosph",
+      "url": "https://xnet.fyi/changelog#2026-07-21-publish-your-work-to-the-bluesky-atmosph",
+      "title": "Publish your work to the Bluesky atmosphere, keep the rest private",
+      "content_text": "xNet can now project a published page onto the shared site.standard lexicon as a rich card while the body stays on your hub, sign in and recover with your Bluesky identity, and make a self-hosted hub discoverable across the network — the private half of the atmosphere.\n",
+      "date_published": "2026-07-22T14:48:08Z",
+      "tags": [
+        "identity",
+        "platform"
+      ],
+      "_xnet": {
+        "date": "July 21, 2026",
+        "summary": "xNet can now project a published page onto the shared site.standard lexicon as a rich card while the body stays on your hub, sign in and recover with your Bluesky identity, and make a self-hosted hub discoverable across the network — the private half of the atmosphere.",
+        "highlights": [],
+        "mergedAt": "2026-07-22T14:48:08Z",
+        "pr": 619,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-21-every-sidebar-section-opens-something",
       "url": "https://xnet.fyi/changelog#2026-07-21-every-sidebar-section-opens-something",
       "title": "Every section in the sidebar now opens something",

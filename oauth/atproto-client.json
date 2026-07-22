@@ -6,7 +6,7 @@
   "application_type": "web",
   "grant_types": ["authorization_code", "refresh_token"],
   "response_types": ["code"],
-  "scope": "atproto repo:fyi.xnet.identity.binding?action=create&action=update",
+  "scope": "atproto repo:fyi.xnet.identity.binding?action=create&action=update repo:fyi.xnet.identity.challenge?action=create&action=update",
   "token_endpoint_auth_method": "none",
   "redirect_uris": ["https://xnet.fyi/app/"],
   "dpop_bound_access_tokens": true

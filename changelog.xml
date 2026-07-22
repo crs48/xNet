@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Publish your work to the Bluesky atmosphere, keep the rest private</title>
+      <link>https://xnet.fyi/changelog#2026-07-21-publish-your-work-to-the-bluesky-atmosph</link>
+      <guid isPermaLink="false">2026-07-21-publish-your-work-to-the-bluesky-atmosph</guid>
+      <pubDate>Wed, 22 Jul 2026 14:48:08 GMT</pubDate>
+      <description>xNet can now project a published page onto the shared site.standard lexicon as a rich card while the body stays on your hub, sign in and recover with your Bluesky identity, and make a self-hosted hub discoverable across the network — the private half of the atmosphere.</description>
+    </item>
+    <item>
       <title>Every section in the sidebar now opens something</title>
       <link>https://xnet.fyi/changelog#2026-07-21-every-sidebar-section-opens-something</link>
       <guid isPermaLink="false">2026-07-21-every-sidebar-section-opens-something</guid>
