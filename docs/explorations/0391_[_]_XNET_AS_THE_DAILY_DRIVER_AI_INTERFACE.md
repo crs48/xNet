@@ -488,10 +488,10 @@ of buffering (`sendSse` becomes incremental), and threads an
 
 Phase 1 — bridge feels like Claude:
 
-- [ ] Add `cliStreamingChatAgent` to `packages/devkit/src/chat-agent.ts`
+- [x] Add `cliStreamingChatAgent` to `packages/devkit/src/chat-agent.ts`
       (stream-json parsing, `--resume` session reuse, idle-based timeout,
       injectable spawner for tests)
-- [ ] Make `bridge-server.ts` stream SSE deltas incrementally (replace
+- [x] Make `bridge-server.ts` stream SSE deltas incrementally (replace
       buffered `sendSse`); map conversation id → CLI session id
 - [ ] Run bridge agents in a dedicated cwd (`~/.xnet/agent-home`) so chat
       sessions don't pollute repo sessions

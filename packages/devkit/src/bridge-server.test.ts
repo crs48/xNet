@@ -5,7 +5,7 @@ import {
   type BridgeServerConfig,
   type BridgeServerHandle
 } from './bridge-server'
-import { fakeChatAgent } from './chat-agent'
+import { fakeChatAgent, type StreamingChatAgent, type StreamTurnRequest } from './chat-agent'
 
 /**
  * Raw loopback GET with a caller-chosen `Host` header. `fetch`/undici silently
@@ -221,5 +221,110 @@ describe('createBridgeServer', () => {
       body: JSON.stringify({ taskId: 't1', prompt: 'x' })
     })
     expect(res.status).toBe(502)
+  })
+})
+
+// ─── Streaming agent path (exploration 0391) ────────────────────────────────────
+
+/** A scripted StreamingChatAgent that records planned turns. */
+function fakeStreamingAgent(reply = 'live reply', sessionId = 'sess-1'): StreamingChatAgent & {
+  turns: StreamTurnRequest[]
+} {
+  const turns: StreamTurnRequest[] = []
+  return {
+    turns,
+    async streamTurn(turn, onDelta) {
+      turns.push(turn)
+      for (const piece of reply.split(/(?<= )/)) {
+        onDelta(piece)
+        await Promise.resolve()
+      }
+      return { text: reply, sessionId }
+    },
+    async chat() {
+      return reply
+    }
+  }
+}
+
+describe('createBridgeServer with a streaming agent', () => {
+  it('streams live deltas as separate SSE chunks', async () => {
+    const url = await start({ agent: fakeStreamingAgent('one two three') })
+    const res = await fetch(`${url}/v1/chat/completions`, {
+      method: 'POST',
+      headers: authed,
+      body: JSON.stringify({ stream: true, messages: [{ role: 'user', content: 'hi' }] })
+    })
+    expect(res.headers.get('content-type')).toContain('text/event-stream')
+    const text = await res.text()
+    const contentChunks = [...text.matchAll(/"content":"([^"]*)"/g)].map((m) => m[1])
+    expect(contentChunks).toEqual(['one ', 'two ', 'three'])
+    expect(text).toContain('data: [DONE]')
+  })
+
+  it('resumes the CLI session on the conversation follow-up turn', async () => {
+    const agent = fakeStreamingAgent('hi there', 'sess-42')
+    const url = await start({ agent })
+    const turn1 = [{ role: 'user', content: 'hello' }]
+    await fetch(`${url}/v1/chat/completions`, {
+      method: 'POST',
+      headers: authed,
+      body: JSON.stringify({ messages: turn1 })
+    })
+    expect(agent.turns[0].resumeSessionId).toBeUndefined()
+
+    const turn2 = [
+      ...turn1,
+      { role: 'assistant', content: 'hi there' },
+      { role: 'user', content: 'follow-up' }
+    ]
+    await fetch(`${url}/v1/chat/completions`, {
+      method: 'POST',
+      headers: authed,
+      body: JSON.stringify({ messages: turn2 })
+    })
+    expect(agent.turns[1].resumeSessionId).toBe('sess-42')
+    expect(agent.turns[1].prompt).toBe('follow-up')
+  })
+
+  it('answers 502 when the agent fails before any delta', async () => {
+    const failing: StreamingChatAgent = {
+      async streamTurn() {
+        throw new Error('spawn failed')
+      },
+      async chat() {
+        return ''
+      }
+    }
+    const url = await start({ agent: failing })
+    const res = await fetch(`${url}/v1/chat/completions`, {
+      method: 'POST',
+      headers: authed,
+      body: JSON.stringify({ stream: true, messages: [{ role: 'user', content: 'hi' }] })
+    })
+    expect(res.status).toBe(502)
+  })
+
+  it('surfaces a mid-stream failure as visible text before [DONE]', async () => {
+    const failing: StreamingChatAgent = {
+      async streamTurn(_turn, onDelta) {
+        onDelta('partial ')
+        throw new Error('cli died')
+      },
+      async chat() {
+        return ''
+      }
+    }
+    const url = await start({ agent: failing })
+    const res = await fetch(`${url}/v1/chat/completions`, {
+      method: 'POST',
+      headers: authed,
+      body: JSON.stringify({ stream: true, messages: [{ role: 'user', content: 'hi' }] })
+    })
+    expect(res.status).toBe(200)
+    const text = await res.text()
+    expect(text).toContain('partial ')
+    expect(text).toContain('bridge error: cli died')
+    expect(text).toContain('data: [DONE]')
   })
 })

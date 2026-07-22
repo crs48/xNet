@@ -2,7 +2,13 @@ import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { FakeCommandRunner, NodeCommandRunner, cmd } from './command-runner'
+import {
+  FakeCommandRunner,
+  FakeLineRunner,
+  NodeCommandRunner,
+  NodeLineRunner,
+  cmd
+} from './command-runner'
 
 describe('FakeCommandRunner', () => {
   it('records calls and replies from the first matching script', async () => {
@@ -115,5 +121,77 @@ describe('NodeCommandRunner (real subprocess)', () => {
         rmSync(other, { recursive: true, force: true })
       }
     })
+  })
+})
+
+describe('NodeLineRunner', () => {
+  it('yields stdout lines as they arrive and completes on exit 0', async () => {
+    const runner = new NodeLineRunner()
+    const lines: string[] = []
+    for await (const line of runner.stream(
+      process.execPath,
+      ['-e', 'console.log("a"); console.log("b")'],
+      { cwd: process.cwd() }
+    )) {
+      lines.push(line)
+    }
+    expect(lines).toEqual(['a', 'b'])
+  })
+
+  it('throws with the stderr tail when the process exits non-zero', async () => {
+    const runner = new NodeLineRunner()
+    const consume = async (): Promise<void> => {
+      for await (const _line of runner.stream(
+        process.execPath,
+        ['-e', 'console.error("kaput"); process.exit(3)'],
+        { cwd: process.cwd() }
+      )) {
+        // drain
+      }
+    }
+    await expect(consume()).rejects.toThrow(/code 3.*kaput|kaput/s)
+  })
+
+  it('kills a silent process after the idle timeout', async () => {
+    const runner = new NodeLineRunner()
+    const consume = async (): Promise<void> => {
+      for await (const _line of runner.stream(
+        process.execPath,
+        ['-e', 'setTimeout(() => {}, 60000)'],
+        { cwd: process.cwd(), idleTimeoutMs: 150 }
+      )) {
+        // drain
+      }
+    }
+    await expect(consume()).rejects.toThrow(/no output for 150ms/)
+  }, 10_000)
+
+  it('throws a spawn error for a missing binary', async () => {
+    const runner = new NodeLineRunner()
+    const consume = async (): Promise<void> => {
+      for await (const _line of runner.stream('definitely-not-a-real-binary-xyz', [], {
+        cwd: process.cwd()
+      })) {
+        // drain
+      }
+    }
+    await expect(consume()).rejects.toThrow(/could not spawn/)
+  })
+})
+
+describe('FakeLineRunner', () => {
+  it('records calls and yields scripted lines, then a scripted error', async () => {
+    const runner = new FakeLineRunner([
+      { match: (c) => c === 'claude', lines: ['l1', 'l2'], error: new Error('after') }
+    ])
+    const seen: string[] = []
+    const consume = async (): Promise<void> => {
+      for await (const line of runner.stream('claude', ['-p', 'x'], { cwd: '/ws' })) {
+        seen.push(line)
+      }
+    }
+    await expect(consume()).rejects.toThrow('after')
+    expect(seen).toEqual(['l1', 'l2'])
+    expect(runner.calls[0]).toEqual({ command: 'claude', args: ['-p', 'x'], cwd: '/ws' })
   })
 })

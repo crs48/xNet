@@ -37,6 +37,33 @@ export interface AgentLaunchOptions {
 export const DEFAULT_XNET_ALLOWED_TOOLS = 'mcp__xnet__*'
 
 /**
+ * Build the argv that drives Claude Code headlessly with **live streaming and
+ * session continuity** (exploration 0391): `stream-json` NDJSON events with
+ * partial deltas (`--verbose` is required by the CLI in this mode), plus
+ * `--resume <id>` when continuing a stored session. Claude-only — Codex has no
+ * equivalent; it stays on the one-shot {@link buildAgentArgs} path.
+ */
+export function buildStreamingAgentArgs(
+  prompt: string,
+  options: AgentLaunchOptions & { resumeSessionId?: string } = {}
+): string[] {
+  const args = [
+    '-p',
+    prompt,
+    '--output-format',
+    'stream-json',
+    '--include-partial-messages',
+    '--verbose'
+  ]
+  if (options.resumeSessionId) args.push('--resume', options.resumeSessionId)
+  if (options.mcpConfigPath) {
+    args.push('--mcp-config', options.mcpConfigPath)
+    args.push('--allowedTools', options.allowedTools ?? DEFAULT_XNET_ALLOWED_TOOLS)
+  }
+  return args
+}
+
+/**
  * Build the arg template (containing a literal `{prompt}` token for
  * {@link cliChatAgent} to substitute) that drives a known agent CLI headlessly.
  */
