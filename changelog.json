@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-22-structured-agent-frames-and-durable-sess",
+      "url": "https://xnet.fyi/changelog#2026-07-22-structured-agent-frames-and-durable-sess",
+      "title": "Structured agent frames and durable sessions for the AI bridge",
+      "content_text": "The local AI bridge can now stream tool calls, cost, and session info as structured frames over a new endpoint, keeps chat sessions across restarts, and sources model info from models.dev.\n",
+      "date_published": "2026-07-23T03:07:34Z",
+      "tags": [
+        "ai"
+      ],
+      "_xnet": {
+        "date": "July 22, 2026",
+        "summary": "The local AI bridge can now stream tool calls, cost, and session info as structured frames over a new endpoint, keeps chat sessions across restarts, and sources model info from models.dev.",
+        "highlights": [],
+        "mergedAt": "2026-07-23T03:07:34Z",
+        "pr": 623,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-22-agent-bridge-pairs-with-the-deployed-web",
       "url": "https://xnet.fyi/changelog#2026-07-22-agent-bridge-pairs-with-the-deployed-web",
       "title": "Agent bridge pairs with the deployed web app again",
