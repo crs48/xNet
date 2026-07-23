@@ -25,6 +25,8 @@ import { join } from 'node:path'
 import {
   buildAgentArgs,
   cliAgentRunner,
+  DEFAULT_XNET_ALLOWED_TOOLS,
+  XNET_READONLY_ALLOWED_TOOLS,
   cliChatAgent,
   cliStreamingChatAgent,
   createBridgeServer,
@@ -55,6 +57,11 @@ export interface BridgeServeOptions {
   cwd?: string
   /** Path to an MCP config JSON giving the agent xNet's workspace tools. */
   mcpConfigPath?: string
+  /**
+   * Allow MUTATING workspace tools (create/update/delete/apply). Off by
+   * default: without explicit consent the agent gets the read-only tool tier.
+   */
+  allowWrites?: boolean
   /** Enable `POST /run` — agentic code tasks (worktree → gate → checkpoint/PR). */
   code?: boolean
   /**
@@ -94,11 +101,11 @@ export function buildBridgeServer(
     agent = cliStreamingChatAgent(lineRunner, {
       command,
       cwd,
-      ...(options.mcpConfigPath ? { launch: { mcpConfigPath: options.mcpConfigPath } } : {})
+      ...(options.mcpConfigPath ? { launch: mcpLaunchOptions(options) } : {})
     })
   } else {
     const args = buildAgentArgs(command, {
-      ...(options.mcpConfigPath ? { mcpConfigPath: options.mcpConfigPath } : {})
+      ...(options.mcpConfigPath ? mcpLaunchOptions(options) : {})
     })
     agent = cliChatAgent(runner, { command, cwd, args })
   }
@@ -128,6 +135,17 @@ export function buildBridgeServer(
     ...(options.allowOrigin ? { allowedOrigins: options.allowOrigin } : {}),
     ...(options.token ? { pairingToken: options.token } : {})
   })
+}
+
+/** MCP launch wiring: read-only tool tier unless writes were consented to. */
+function mcpLaunchOptions(options: BridgeServeOptions): {
+  mcpConfigPath?: string
+  allowedTools: string | readonly string[]
+} {
+  return {
+    ...(options.mcpConfigPath ? { mcpConfigPath: options.mcpConfigPath } : {}),
+    allowedTools: options.allowWrites ? DEFAULT_XNET_ALLOWED_TOOLS : XNET_READONLY_ALLOWED_TOOLS
+  }
 }
 
 type BridgeServeCliOptions = BridgeServeOptions & { mcp?: boolean; mcpApiUrl?: string }
@@ -238,6 +256,10 @@ export function registerBridgeCommand(program: Command): void {
     .option('--code', 'Enable POST /run agentic code tasks (worktree → gate → checkpoint/PR)')
     .option('--no-mcp', "Don't give the agent xNet's workspace tools (on by default for claude)")
     .option(
+      '--allow-writes',
+      'Consent to MUTATING workspace tools (create/update/delete); default is read-only'
+    )
+    .option(
       '--mcp-api-url <url>',
       'xNet local API URL the MCP server talks to (default http://127.0.0.1:31415)'
     )
@@ -247,10 +269,13 @@ export function registerBridgeCommand(program: Command): void {
       const handle = buildBridgeServer(resolved)
       await handle.start()
       // stderr so stdout stays clean for any tooling that scrapes it.
+      const toolsNote = resolved.mcpConfigPath
+        ? options.allowWrites
+          ? ', workspace tools: read + write'
+          : ', workspace tools: read-only (--allow-writes to consent to writes)'
+        : ''
       console.error(
-        `xNet agent bridge listening on ${handle.url} (agent: ${options.agent ?? 'claude'}${
-          resolved.mcpConfigPath ? ', workspace tools enabled' : ''
-        })`
+        `xNet agent bridge listening on ${handle.url} (agent: ${options.agent ?? 'claude'}${toolsNote})`
       )
       // The pairing code the daemon now requires on its data endpoints. Printed
       // here so the user can paste it into the web app's AI settings ("Local

@@ -26,15 +26,33 @@ export interface AgentLaunchOptions {
   /** Path to an MCP config JSON file — gives the agent xNet's workspace tools. */
   mcpConfigPath?: string
   /**
-   * allowedTools pattern auto-approved for the MCP server (Claude Code print
-   * mode — `--permission-mode acceptEdits` does NOT cover MCP tools). Default
-   * `mcp__xnet__*` (all xNet tools).
+   * allowedTools pattern(s) auto-approved for the MCP server (Claude Code
+   * print mode — `--permission-mode acceptEdits` does NOT cover MCP tools).
+   * Default `mcp__xnet__*` (all xNet tools); pass
+   * {@link XNET_READONLY_ALLOWED_TOOLS} for the read-only consent tier.
    */
-  allowedTools?: string
+  allowedTools?: string | readonly string[]
 }
 
 /** Default allow pattern: every tool exposed by the `xnet` MCP server. */
 export const DEFAULT_XNET_ALLOWED_TOOLS = 'mcp__xnet__*'
+
+/**
+ * The read-only consent tier (exploration 0391): the agent can search, read,
+ * and dry-run-plan against the workspace, but every mutating tool stays
+ * behind an explicit opt-in (`xnet bridge serve --allow-writes`). Keep this
+ * list in sync with the `xnet_*` tools in `@xnetjs/plugins` `mcp-server.ts`.
+ */
+export const XNET_READONLY_ALLOWED_TOOLS: readonly string[] = [
+  'xnet_get',
+  'xnet_query',
+  'xnet_search',
+  'xnet_schemas',
+  'xnet_read_page_markdown',
+  'xnet_database_query',
+  'xnet_plan_page_patch',
+  'xnet_get_write_audit'
+].map((tool) => `mcp__xnet__${tool}`)
 
 /**
  * Build the argv that drives Claude Code headlessly with **live streaming and
@@ -58,9 +76,14 @@ export function buildStreamingAgentArgs(
   if (options.resumeSessionId) args.push('--resume', options.resumeSessionId)
   if (options.mcpConfigPath) {
     args.push('--mcp-config', options.mcpConfigPath)
-    args.push('--allowedTools', options.allowedTools ?? DEFAULT_XNET_ALLOWED_TOOLS)
+    args.push('--allowedTools', ...normalizeAllowedTools(options.allowedTools))
   }
   return args
+}
+
+function normalizeAllowedTools(allowed: AgentLaunchOptions['allowedTools']): string[] {
+  if (allowed === undefined) return [DEFAULT_XNET_ALLOWED_TOOLS]
+  return typeof allowed === 'string' ? [allowed] : [...allowed]
 }
 
 /**
@@ -77,7 +100,7 @@ export function buildAgentArgs(agent: string, options: AgentLaunchOptions = {}):
   const args = ['-p', '{prompt}', '--output-format', 'text']
   if (options.mcpConfigPath) {
     args.push('--mcp-config', options.mcpConfigPath)
-    args.push('--allowedTools', options.allowedTools ?? DEFAULT_XNET_ALLOWED_TOOLS)
+    args.push('--allowedTools', ...normalizeAllowedTools(options.allowedTools))
   }
   return args
 }

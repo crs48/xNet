@@ -34,6 +34,7 @@ import {
   type ManagedBudgetSnapshot,
   type PromptApiAvailability
 } from '@xnetjs/plugins'
+import { useDataBridge } from '@xnetjs/react'
 import { useNodeStore } from '@xnetjs/react/internal'
 import { Bot, Loader2, Send } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -55,6 +56,7 @@ import {
   type CloudProvider,
   type ManagedModel
 } from './ai-chat-connector'
+import { createAiConversationLog, type AiConversationLog } from './ai-chat-persistence'
 import { AI_SYSTEM_PROMPT, formatContextMessages } from './ai-context'
 import { createGraphContextRetriever, keywordEntrySearch } from './ai-graph-retriever'
 import { schemaRegistryApi } from './ai-schemas'
@@ -184,10 +186,24 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
     writeSetting(AI_CHAT_STORAGE_KEYS.semanticSearch, next ? 'on' : '')
   }, [])
 
+  // Conversation persistence (0391 Phase 2): the thread and its turns land as
+  // Channel/ChatMessage nodes so research survives the panel. The assistant
+  // reply is buffered from deltas and logged once, when the turn settles.
+  const dataBridge = useDataBridge()
+  const conversationLogRef = useRef<AiConversationLog | null>(null)
+  const assistantBufferRef = useRef('')
+
   const handlers = useMemo(
     () => ({
-      onDelta: (text: string) => setMessages((prev) => appendToAssistant(prev, text)),
-      onSettled: () => setStreaming(false),
+      onDelta: (text: string) => {
+        assistantBufferRef.current += text
+        setMessages((prev) => appendToAssistant(prev, text))
+      },
+      onSettled: () => {
+        setStreaming(false)
+        void conversationLogRef.current?.logAssistantReply(assistantBufferRef.current)
+        assistantBufferRef.current = ''
+      },
       onError: (message: string) => setError(message)
     }),
     []
@@ -459,6 +475,13 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
     setInput('')
     setMessages((prev) => [...prev, { role: 'user', content }, { role: 'assistant', content: '' }])
     setStreaming(true)
+    // Fire-and-forget: the turn must never wait on (or fail with) persistence.
+    if (dataBridge) {
+      conversationLogRef.current ??= createAiConversationLog(dataBridge)
+      const connectorLabel = bridgeHealth?.agent ?? selected?.tier ?? 'model'
+      assistantBufferRef.current = ''
+      void conversationLogRef.current.logUserMessage(content, connectorLabel)
+    }
     try {
       threadIdRef.current ??= (await runtime.createThread({ title: 'AI chat' })).id
       await runtime.runTurn({ threadId: threadIdRef.current, content })
@@ -466,7 +489,7 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
       setStreaming(false)
       setError(errorMessage(err))
     }
-  }, [input, streaming])
+  }, [input, streaming, dataBridge, bridgeHealth, selected])
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-surface-1">

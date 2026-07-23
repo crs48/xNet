@@ -1,5 +1,5 @@
 import type { BridgeServerHandle } from '@xnetjs/devkit'
-import { FakeCommandRunner, FakeLineRunner } from '@xnetjs/devkit'
+import { FakeCommandRunner, FakeLineRunner, XNET_READONLY_ALLOWED_TOOLS } from '@xnetjs/devkit'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
   bridgeAgentHome,
@@ -82,7 +82,7 @@ describe('buildBridgeServer', () => {
     expect(handle.pairingToken).toBe('pinned-code')
   })
 
-  it('hands xNet workspace tools to the claude agent when mcpConfigPath is set', async () => {
+  it('defaults MCP tools to the READ-ONLY tier (writes need explicit consent)', async () => {
     const lines = new FakeLineRunner([{ match: () => true, lines: claudeTurn('ok') }])
     handle = buildBridgeServer(
       { agent: 'claude', port: 0, mcpConfigPath: '/tmp/cfg.json', token: 'test-token' },
@@ -95,18 +95,33 @@ describe('buildBridgeServer', () => {
       headers: { 'content-type': 'application/json', authorization: 'Bearer test-token' },
       body: JSON.stringify({ messages: [{ role: 'user', content: 'hi' }] })
     })
-    expect(lines.calls[0].args).toEqual([
-      '-p',
-      'hi',
-      '--output-format',
-      'stream-json',
-      '--include-partial-messages',
-      '--verbose',
-      '--mcp-config',
-      '/tmp/cfg.json',
-      '--allowedTools',
-      'mcp__xnet__*'
-    ])
+    const args = lines.calls[0].args
+    expect(args).toContain('--mcp-config')
+    expect(args).toEqual(expect.arrayContaining([...XNET_READONLY_ALLOWED_TOOLS]))
+    expect(args).not.toContain('mcp__xnet__*')
+    expect(args).not.toContain('mcp__xnet__xnet_create')
+  })
+
+  it('grants the full tool set with --allow-writes', async () => {
+    const lines = new FakeLineRunner([{ match: () => true, lines: claudeTurn('ok') }])
+    handle = buildBridgeServer(
+      {
+        agent: 'claude',
+        port: 0,
+        mcpConfigPath: '/tmp/cfg.json',
+        allowWrites: true,
+        token: 'test-token'
+      },
+      new FakeCommandRunner(),
+      lines
+    )
+    await handle.start()
+    await fetch(`${handle.url}/v1/chat/completions`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', authorization: 'Bearer test-token' },
+      body: JSON.stringify({ messages: [{ role: 'user', content: 'hi' }] })
+    })
+    expect(lines.calls[0].args).toContain('mcp__xnet__*')
   })
 
   it('resumes the claude session on a follow-up turn', async () => {

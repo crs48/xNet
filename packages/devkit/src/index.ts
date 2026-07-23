@@ -99,6 +99,7 @@ export {
   buildStreamingAgentArgs,
   mcpConfigFor,
   DEFAULT_XNET_ALLOWED_TOOLS,
+  XNET_READONLY_ALLOWED_TOOLS,
   type AgentLaunchOptions,
   type McpServerSpec
 } from './agent-launch'

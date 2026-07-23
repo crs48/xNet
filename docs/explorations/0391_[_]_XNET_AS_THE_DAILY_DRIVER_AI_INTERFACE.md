@@ -506,11 +506,11 @@ Phase 2 — chat becomes workspace data:
 
 - [x] Point `keywordEntrySearch` (`ai-graph-retriever.ts`) and
       `AiSurfaceService.search` at `nodes_fts` `bm25()` (0379)
-- [ ] Conversation + message schema; persist threads as nodes (searchable,
+- [x] Conversation + message schema; persist threads as nodes (searchable,
       linkable); seed coverage per dev-tools rules
-- [ ] Consented MCP writes: agent-created documents, lists/databases, and
+- [x] Consented MCP writes: agent-created documents, lists/databases, and
       canvas mind-map nodes land in the workspace with clear attribution
-- [ ] Surface the assistant beyond the floating dock (0250's calmer shell is
+- [x] Surface the assistant beyond the floating dock (0250's calmer shell is
       the companion exploration for making chat the front door)
 
 Phase 3 — fallbacks and hardening:
