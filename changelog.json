@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-22-the-ai-assistant-now-streams-live-replie",
+      "url": "https://xnet.fyi/changelog#2026-07-22-the-ai-assistant-now-streams-live-replie",
+      "title": "The AI assistant now streams live replies from your own Claude Code subscription",
+      "content_text": "The local bridge streams tokens as they arrive, remembers your conversation across turns, and every AI thread is saved as a searchable chat in your workspace. New: one-command login-item install (xnet bridge install), a helpful offline card with the exact command to start the bridge, read-only workspace tools by default with explicit write consent, faster workspace search behind AI answers, and an OpenRouter account-connect flow for machines without the bridge.\n",
+      "date_published": "2026-07-23T01:12:34Z",
+      "tags": [
+        "ai"
+      ],
+      "_xnet": {
+        "date": "July 22, 2026",
+        "summary": "The local bridge streams tokens as they arrive, remembers your conversation across turns, and every AI thread is saved as a searchable chat in your workspace. New: one-command login-item install (xnet bridge install), a helpful offline card with the exact command to start the bridge, read-only workspace tools by default with explicit write consent, faster workspace search behind AI answers, and an OpenRouter account-connect flow for machines without the bridge.",
+        "highlights": [],
+        "mergedAt": "2026-07-23T01:12:34Z",
+        "pr": 620,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-21-publish-your-work-to-the-bluesky-atmosph",
       "url": "https://xnet.fyi/changelog#2026-07-21-publish-your-work-to-the-bluesky-atmosph",
       "title": "Publish your work to the Bluesky atmosphere, keep the rest private",
