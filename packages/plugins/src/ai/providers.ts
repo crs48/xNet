@@ -245,6 +245,25 @@ const createCapabilities = (overrides: Partial<AIModelCapabilities> = {}): AIMod
 
 const normalizeBaseUrl = (baseUrl: string): string => baseUrl.replace(/\/+$/, '')
 
+/**
+ * App-attribution headers OpenRouter reads to credit traffic to xNet on its
+ * public rankings/analytics (exploration 0392). `HTTP-Referer` is the app
+ * identity; `X-Title` its display name. Sent only to OpenRouter.
+ */
+export const OPENROUTER_ATTRIBUTION_HEADERS: Readonly<Record<string, string>> = Object.freeze({
+  'HTTP-Referer': 'https://xnet.fyi',
+  'X-Title': 'xNet'
+})
+
+/** True when the base URL targets OpenRouter (attribution headers apply). */
+export function isOpenRouterBaseUrl(baseUrl: string): boolean {
+  try {
+    return new URL(baseUrl).hostname.endsWith('openrouter.ai')
+  } catch {
+    return baseUrl.includes('openrouter.ai')
+  }
+}
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value)
 
@@ -634,6 +653,9 @@ export class OpenAICompatibleProvider implements AIProvider {
   private createHeaders(): Record<string, string> {
     return {
       'content-type': 'application/json',
+      // OpenRouter reads these for app attribution → public rankings/analytics
+      // (exploration 0392). Only sent to OpenRouter; user headers still win.
+      ...(isOpenRouterBaseUrl(this.baseUrl) ? OPENROUTER_ATTRIBUTION_HEADERS : {}),
       ...this.defaultHeaders,
       ...(this.apiKey ? { authorization: `Bearer ${this.apiKey}` } : {})
     }
