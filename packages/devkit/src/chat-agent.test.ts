@@ -186,7 +186,12 @@ describe('cliStreamingChatAgent', () => {
       type: 'stream_event',
       event: { type: 'content_block_delta', delta: { type: 'text_delta', text: 'world' } }
     }),
-    JSON.stringify({ type: 'result', subtype: 'success', result: 'Hello world', session_id: 'sess-1' })
+    JSON.stringify({
+      type: 'result',
+      subtype: 'success',
+      result: 'Hello world',
+      session_id: 'sess-1'
+    })
   ]
 
   it('streams deltas live and reports the session id', async () => {
@@ -235,9 +240,7 @@ describe('cliStreamingChatAgent', () => {
     const runner = new FakeLineRunner([
       {
         match: () => true,
-        lines: [
-          JSON.stringify({ type: 'result', subtype: 'error_max_turns', session_id: 's' })
-        ]
+        lines: [JSON.stringify({ type: 'result', subtype: 'error_max_turns', session_id: 's' })]
       }
     ])
     const agent = cliStreamingChatAgent(runner, { command: 'claude', cwd: '/ws' })

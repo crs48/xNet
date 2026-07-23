@@ -64,7 +64,10 @@ export function createBridgeSessionStore(limit = 256): BridgeSessionStore {
         if (sessionId) {
           // Resume: send only what's new since that reply — any freshly
           // injected system context plus the user's turn.
-          return { prompt: flattenChat(messages.slice(lastAssistant + 1)), resumeSessionId: sessionId }
+          return {
+            prompt: flattenChat(messages.slice(lastAssistant + 1)),
+            resumeSessionId: sessionId
+          }
         }
       }
       return { prompt: flattenChat(messages) }

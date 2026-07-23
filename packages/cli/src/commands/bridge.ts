@@ -96,7 +96,10 @@ export function buildBridgeServer(
   // `--upstream` fronts a raw OpenAI-compatible model server through the bridge.
   let agent: ChatAgent
   if (options.upstream) {
-    agent = openAiChatAgent({ baseUrl: options.upstream, model: options.upstreamModel ?? 'llama3.2' })
+    agent = openAiChatAgent({
+      baseUrl: options.upstream,
+      model: options.upstreamModel ?? 'llama3.2'
+    })
   } else if (command === 'claude') {
     agent = cliStreamingChatAgent(lineRunner, {
       command,
@@ -155,7 +158,8 @@ function resolveMcpConfig(options: BridgeServeCliOptions): BridgeServeOptions {
   const resolved: BridgeServeOptions = { ...options }
   // Workspace tools are ON by default for Claude (--no-mcp opts out); other
   // agents load MCP from their own global config, and --upstream has no CLI.
-  const wantMcp = options.mcp !== false && (options.agent ?? 'claude') === 'claude' && !options.upstream
+  const wantMcp =
+    options.mcp !== false && (options.agent ?? 'claude') === 'claude' && !options.upstream
   if (wantMcp) {
     // Point the agent's MCP server at THIS CLI (`node <cli> mcp serve …`), so
     // it resolves without `xnet` needing to be on PATH.
@@ -190,10 +194,7 @@ export interface BridgeInstallOptions {
 /** The LaunchAgent plist that keeps the bridge running from login. */
 export function launchdPlist(execPath: string, cliPath: string, args: string[]): string {
   const xml = (value: string): string =>
-    value
-      .replaceAll('&', '&amp;')
-      .replaceAll('<', '&lt;')
-      .replaceAll('>', '&gt;')
+    value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
   const programArguments = [execPath, cliPath, ...args]
     .map((arg) => `    <string>${xml(arg)}</string>`)
     .join('\n')

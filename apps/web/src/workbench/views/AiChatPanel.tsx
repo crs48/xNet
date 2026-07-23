@@ -34,8 +34,7 @@ import {
   type ManagedBudgetSnapshot,
   type PromptApiAvailability
 } from '@xnetjs/plugins'
-import { useDataBridge } from '@xnetjs/react'
-import { useNodeStore } from '@xnetjs/react/internal'
+import { useDataBridge, useNodeStore } from '@xnetjs/react/internal'
 import { Bot, Loader2, Send } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {

@@ -7844,6 +7844,7 @@ export interface NodeStorageAdapter {
     queryNodes?(descriptor: NodeQueryDescriptor): Promise<NodeQueryResult>;
     rebuildIndexesForSchemas?(schemaIds: readonly SchemaIRI[], options?: RebuildNodeIndexesOptions): Promise<void>;
     resetOperationStats?(): Promise<void> | void;
+    searchText?(query: string, limit: number): Promise<NodeTextSearchResult[] | null>;
     // (undocumented)
     setAppState?(key: string, value: string): Promise<void>;
     // (undocumented)
@@ -7902,6 +7903,7 @@ export class NodeStore {
     // (undocumented)
     rebuildIndexesForSchemas(schemaIds: readonly SchemaIRI[]): Promise<void>;
     restore(id: NodeId): Promise<NodeState>;
+    searchText(query: string, limit: number): Promise<NodeTextSearchResult[] | null>;
     setCheckedOutDraft(overlay: CheckedOutDraftOverlay | null): void;
     setDocumentContent(nodeId: NodeId, content: Uint8Array): Promise<void>;
     setSyncCursor(room: string, lamport: number): Promise<void>;
@@ -7950,6 +7952,13 @@ export interface NodeStoreOptions {
         }): void;
         reportSecurityEvent(eventName: string, severity: 'low' | 'medium' | 'high' | 'critical'): void;
     };
+}
+
+// @public
+export interface NodeTextSearchResult {
+    // (undocumented)
+    nodeId: NodeId;
+    rank: number;
 }
 
 // @public (undocumented)
@@ -10059,6 +10068,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
         docState: Uint8Array;
         byteSize: number;
     }): Promise<void>;
+    searchText(query: string, limit: number): Promise<NodeTextSearchResult[] | null>;
     // (undocumented)
     setAppState(key: string, value: string): Promise<void>;
     // (undocumented)
@@ -11038,7 +11048,7 @@ export { YXmlText }
 
 // Warnings were encountered during analysis:
 //
-// dist/types-B6XgymUK.d.ts:571:9 - (ae-forgotten-export) The symbol "GrantStatus" needs to be exported by the entry point index.d.ts
+// dist/types-6DSGyGBB.d.ts:571:9 - (ae-forgotten-export) The symbol "GrantStatus" needs to be exported by the entry point index.d.ts
 
 // (No @packageDocumentation comment for this package)
 

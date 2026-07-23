@@ -48,9 +48,17 @@ vi.mock('./ai-webllm-engine', () => ({
 
 // The panel reads the workspace store + schema registry to ground replies.
 vi.mock('@xnetjs/react/internal', () => ({
-  useNodeStore: () => ({ store: { name: 'fake-store' }, isReady: true, error: null })
+  useNodeStore: () => ({ store: { name: 'fake-store' }, isReady: true, error: null }),
+  // Conversation persistence (0391) is fire-and-forget; no bridge → no writes.
+  useDataBridge: () => null
 }))
-vi.mock('@xnetjs/data', () => ({ schemaRegistry: {} }))
+vi.mock('@xnetjs/data', () => ({
+  schemaRegistry: {},
+  // Conversation persistence (0391) imports the real schemas; the panel tests
+  // only need stable identities, not schema behavior.
+  ChannelSchema: { schema: { '@id': 'xnet://xnet.fyi/Channel@1.0.0', name: 'Channel' } },
+  ChatMessageSchema: { schema: { '@id': 'xnet://xnet.fyi/ChatMessage@1.0.0', name: 'ChatMessage' } }
+}))
 
 // Imported after the mock so the panel binds to the mocked module.
 const { AiChatPanel } = await import('./AiChatPanel')

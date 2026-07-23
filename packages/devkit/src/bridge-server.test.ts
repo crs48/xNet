@@ -227,7 +227,10 @@ describe('createBridgeServer', () => {
 // ─── Streaming agent path (exploration 0391) ────────────────────────────────────
 
 /** A scripted StreamingChatAgent that records planned turns. */
-function fakeStreamingAgent(reply = 'live reply', sessionId = 'sess-1'): StreamingChatAgent & {
+function fakeStreamingAgent(
+  reply = 'live reply',
+  sessionId = 'sess-1'
+): StreamingChatAgent & {
   turns: StreamTurnRequest[]
 } {
   const turns: StreamTurnRequest[] = []

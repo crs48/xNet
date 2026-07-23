@@ -41,10 +41,7 @@ export interface GraphRetrieverStore {
    * Cross-schema FTS5 search (`NodeStore.searchText`, exploration 0391).
    * `null`/absent means no FTS in this storage — fall back to scanning.
    */
-  searchText?(
-    query: string,
-    limit: number
-  ): Promise<Array<{ nodeId: string; rank: number }> | null>
+  searchText?(query: string, limit: number): Promise<Array<{ nodeId: string; rank: number }> | null>
 }
 
 /** Resolve the relation-valued property names for a schema. */

@@ -634,7 +634,9 @@ async function printBridgeHealth(chalk: Chalk): Promise<void> {
   } catch {
     console.log(chalk.gray('○ No bridge daemon at :31416.'))
     console.log(
-      chalk.gray('  Start one with `xnet bridge serve`, or install at login: `xnet bridge install`.')
+      chalk.gray(
+        '  Start one with `xnet bridge serve`, or install at login: `xnet bridge install`.'
+      )
     )
   }
   console.log()

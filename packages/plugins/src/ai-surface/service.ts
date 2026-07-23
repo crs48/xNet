@@ -521,7 +521,9 @@ export class AiSurfaceService {
         .searchText(query, Math.min(scanLimit, offset + resultLimit * 4))
         .catch(() => null)
       if (ftsMatches !== null && ftsMatches !== undefined) {
-        const loaded = await Promise.all(ftsMatches.map((match) => this.config.store.get(match.nodeId)))
+        const loaded = await Promise.all(
+          ftsMatches.map((match) => this.config.store.get(match.nodeId))
+        )
         const normalizedQuery = query.toLocaleLowerCase()
         const results: AiSearchResult[] = []
         for (const [index, node] of loaded.entries()) {

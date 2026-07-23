@@ -281,7 +281,10 @@ export function parseBridgeHealth(data: unknown): BridgeHealth {
 export const OPENROUTER_VERIFIER_KEY = 'xnet:ai-openrouter-verifier'
 
 const base64Url = (bytes: Uint8Array): string =>
-  btoa(String.fromCharCode(...bytes)).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '')
+  btoa(String.fromCharCode(...bytes))
+    .replaceAll('+', '-')
+    .replaceAll('/', '_')
+    .replace(/=+$/, '')
 
 /** A fresh high-entropy PKCE code verifier (RFC 7636 §4.1). */
 export function createPkceVerifier(
