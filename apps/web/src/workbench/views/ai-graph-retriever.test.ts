@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   createGraphContextRetriever,
+  keywordEntrySearch,
   nodeTextParts,
   type GraphRetrieverNode,
   type GraphRetrieverStore
@@ -72,5 +73,50 @@ describe('createGraphContextRetriever', () => {
   it('returns nothing for an empty query', async () => {
     const retrieve = createGraphContextRetriever(makeStore(NODES), { relationFieldsOf })
     expect(await retrieve('   ', { limit: 6 })).toEqual([])
+  })
+})
+
+describe('keywordEntrySearch FTS path (exploration 0391)', () => {
+  it('prefers store.searchText and negates the BM25 rank into the score', async () => {
+    const calls: Array<{ query: string; limit: number }> = []
+    const store: GraphRetrieverStore = {
+      ...makeStore(NODES),
+      async searchText(query, limit) {
+        calls.push({ query, limit })
+        return [
+          { nodeId: 'item1', rank: -2.5 },
+          { nodeId: 'inv1', rank: -0.5 }
+        ]
+      }
+    }
+    const search = keywordEntrySearch(store)
+    const hits = await search('sword', 5)
+    expect(calls).toEqual([{ query: 'sword', limit: 5 }])
+    expect(hits).toEqual([
+      { nodeId: 'item1', score: 2.5, source: 'keyword' },
+      { nodeId: 'inv1', score: 0.5, source: 'keyword' }
+    ])
+  })
+
+  it('falls back to the substring scan when searchText reports no FTS', async () => {
+    const store: GraphRetrieverStore = {
+      ...makeStore(NODES),
+      async searchText() {
+        return null
+      }
+    }
+    const hits = await keywordEntrySearch(store)('sword', 5)
+    expect(hits.map((hit) => hit.nodeId)).toEqual(['item1'])
+  })
+
+  it('falls back to the substring scan when searchText throws', async () => {
+    const store: GraphRetrieverStore = {
+      ...makeStore(NODES),
+      async searchText() {
+        throw new Error('fts5 syntax error')
+      }
+    }
+    const hits = await keywordEntrySearch(store)('sword', 5)
+    expect(hits.map((hit) => hit.nodeId)).toEqual(['item1'])
   })
 })

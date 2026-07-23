@@ -504,7 +504,7 @@ Phase 1 — bridge feels like Claude:
 
 Phase 2 — chat becomes workspace data:
 
-- [ ] Point `keywordEntrySearch` (`ai-graph-retriever.ts`) and
+- [x] Point `keywordEntrySearch` (`ai-graph-retriever.ts`) and
       `AiSurfaceService.search` at `nodes_fts` `bm25()` (0379)
 - [ ] Conversation + message schema; persist threads as nodes (searchable,
       linkable); seed coverage per dev-tools rules

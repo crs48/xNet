@@ -18,6 +18,7 @@ import type {
   NodeState,
   NodeStorageAdapter,
   NodeStoreOptions,
+  NodeTextSearchResult,
   CreateNodeOptions,
   UpdateNodeOptions,
   PropertyTimestamp,
@@ -971,6 +972,20 @@ export class NodeStore {
       })
       throw err
     }
+  }
+
+  /**
+   * Cross-schema full-text search over the FTS5 index (exploration 0391 — the
+   * AI retrieval entry point). Returns `null` when the backing storage has no
+   * FTS support so callers can fall back to a scan. Results are id + rank
+   * only; loading the nodes (and thus read authorization + decryption) stays
+   * with the caller's `get()` calls.
+   */
+  async searchText(query: string, limit: number): Promise<NodeTextSearchResult[] | null> {
+    if (!this.storage.searchText) return null
+    const trimmed = query.trim()
+    if (!trimmed) return []
+    return this.storage.searchText(trimmed, limit)
   }
 
   /**

@@ -15,6 +15,7 @@ import type {
   AuthorizationStateVersion,
   ListNodesOptions,
   CountNodesOptions,
+  NodeTextSearchResult,
   SetNodeOptions,
   ImportNodesOptions,
   RebuildNodeIndexesOptions,
@@ -40,6 +41,7 @@ import {
   detectSQLiteCapabilities,
   getIndexInfo,
   runAnalyze,
+  searchNodes,
   timeQuery
 } from '@xnetjs/sqlite'
 import { SYSTEM_SCHEMA_BASE_IRIS } from '../schema/schemas/system'
@@ -1017,6 +1019,17 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
 
     const row = await this.db.queryOne<{ count: number }>(sql, params)
     return row?.count ?? 0
+  }
+
+  /**
+   * Cross-schema BM25 search over `nodes_fts` (exploration 0391). `null` when
+   * this build has no FTS5 (sql.js), so callers fall back to scanning.
+   */
+  async searchText(query: string, limit: number): Promise<NodeTextSearchResult[] | null> {
+    const capabilities = await detectSQLiteCapabilities(this.db)
+    if (!capabilities.fts5) return null
+    const results = await searchNodes(this.db, query, { limit })
+    return results.map((result) => ({ nodeId: result.nodeId, rank: result.rank }))
   }
 
   async queryNodes(descriptor: NodeQueryDescriptor): Promise<NodeQueryResult> {
