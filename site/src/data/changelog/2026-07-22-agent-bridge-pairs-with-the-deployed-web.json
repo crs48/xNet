@@ -1,0 +1,11 @@
+{
+  "id": "2026-07-22-agent-bridge-pairs-with-the-deployed-web",
+  "date": "July 22, 2026",
+  "title": "Agent bridge pairs with the deployed web app again",
+  "summary": "The agent bridge's default origin allowlist (and the CLI/docs examples) pointed at app.xnet.fyi, which no longer exists — the deployed app at xnet.fyi/app could never pair. The default is now https://xnet.fyi; XNET_BRIDGE_ALLOWED_ORIGINS still extends the list.",
+  "highlights": [],
+  "tags": [
+    "app",
+    "ai"
+  ]
+}
