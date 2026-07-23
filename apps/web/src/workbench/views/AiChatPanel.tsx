@@ -406,10 +406,14 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
     (selected?.tier === 'webllm' && selected.available && !webllmArmed && !ready) ||
     (selected?.tier === 'prompt-api' && nanoNeedsDownload)
 
+  // The offline-bridge block explains itself (exact start command + recheck),
+  // so the generic setupHint line must not double up under it.
+  const bridgeOffline = selected?.tier === 'bridge' && !selected.available
+
   // Why the composer is disabled right now, so a not-ready box is never silent
   // (the old failure mode: a selected-but-unbuildable tier showed nothing).
   const notReadyReason =
-    ready || error || awaitingInTabGesture
+    ready || error || awaitingInTabGesture || bridgeOffline
       ? null
       : !selected
         ? null // the empty-state ChatBody already invites picking a model
@@ -472,22 +476,25 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
         onSelect={selectTier}
         hasSelection={!!selected}
       />
-      {selected?.tier === 'bridge' && (
-        <>
-          <BridgeStatus
-            health={bridgeHealth}
-            canSwitch={typeof window !== 'undefined' && !!window.xnetAgentBridge}
-            onSwitchAgent={switchBridgeAgent}
-          />
-          <BridgePairing
-            token={bridgeToken}
-            onToken={(value) => {
-              setBridgeToken(value)
-              writeSetting(AI_CHAT_STORAGE_KEYS.bridgeToken, value)
-            }}
-          />
-        </>
-      )}
+      {selected?.tier === 'bridge' &&
+        (selected.available ? (
+          <>
+            <BridgeStatus
+              health={bridgeHealth}
+              canSwitch={typeof window !== 'undefined' && !!window.xnetAgentBridge}
+              onSwitchAgent={switchBridgeAgent}
+            />
+            <BridgePairing
+              token={bridgeToken}
+              onToken={(value) => {
+                setBridgeToken(value)
+                writeSetting(AI_CHAT_STORAGE_KEYS.bridgeToken, value)
+              }}
+            />
+          </>
+        ) : (
+          <BridgeOffline onRecheck={() => setDetectNonce((nonce) => nonce + 1)} />
+        ))}
       {(selected?.tier === 'bridge' || selected?.tier === 'local-server') &&
         loopbackPermission === 'denied' && (
           <p className="border-b border-hairline px-3 py-2 text-[11px] text-amber-600">
@@ -803,6 +810,61 @@ function BridgePairing({ token, onToken }: { token: string; onToken: (value: str
       <p className="text-[10px] text-ink-3">
         Paste the code <code>xnet bridge serve</code> prints. Sent only to your local bridge — never
         to our servers.
+      </p>
+    </div>
+  )
+}
+
+/**
+ * The bridge tier is selected but no daemon answered at :31416 — show the ONE
+ * command that fixes it (with this page's origin pre-filled), a login-item
+ * hint, the heads-up about Chrome's local-network permission prompt, and a
+ * recheck affordance (exploration 0391: an offline bridge must never be a
+ * dead end).
+ */
+function BridgeOffline({ onRecheck }: { onRecheck: () => void }) {
+  const [copied, setCopied] = useState(false)
+  const origin = typeof location !== 'undefined' ? location.origin : ''
+  const loopback = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|$)/.test(origin)
+  // Loopback origins are always allowed by the daemon; a deployed origin must
+  // be allowlisted explicitly.
+  const command = loopback ? 'xnet bridge serve' : `xnet bridge serve --allow-origin ${origin}`
+  const copy = () => {
+    void navigator.clipboard?.writeText(command).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    })
+  }
+  return (
+    <div className="flex flex-col gap-1.5 border-b border-hairline px-3 py-2">
+      <div className="flex items-center gap-2 text-[11px]">
+        <span aria-hidden className="h-2 w-2 shrink-0 rounded-full bg-ink-3" />
+        <span className="text-ink-2">Bridge offline — start it in a terminal:</span>
+        <button
+          type="button"
+          onClick={onRecheck}
+          className="ml-auto rounded-md border border-hairline bg-surface-0 px-2 py-0.5 text-[11px] text-ink-1 hover:bg-surface-2"
+        >
+          Check again
+        </button>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <code className="min-w-0 flex-1 truncate rounded-md border border-hairline bg-surface-0 px-2 py-1 text-[11px] text-ink-1">
+          {command}
+        </code>
+        <button
+          type="button"
+          onClick={copy}
+          className="shrink-0 rounded-md border border-hairline bg-surface-0 px-2 py-1 text-[11px] text-ink-1 hover:bg-surface-2"
+        >
+          {copied ? 'Copied' : 'Copy'}
+        </button>
+      </div>
+      <p className="text-[10px] text-ink-3">
+        Uses your own Claude Code / Codex subscription — nothing leaves this machine. Start it at
+        login with <code>xnet bridge install</code>. Your browser may ask to allow local network
+        access on first connect; allow it. Safari blocks local connections from https pages — use
+        Chrome or the desktop app.
       </p>
     </div>
   )

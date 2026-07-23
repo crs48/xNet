@@ -498,7 +498,7 @@ Phase 1 — bridge feels like Claude:
 - [x] Wire `--mcp` (xnet workspace tools) on by default for `--agent claude`
 - [x] `xnet bridge install` (or documented launchd plist) so the daemon
       starts at login; `xnet doctor` reports bridge health
-- [ ] Panel: "bridge offline" state shows the exact one-liner to start it;
+- [x] Panel: "bridge offline" state shows the exact one-liner to start it;
       pairing flow explains the Chrome LNA prompt
 - [x] Changesets for `@xnetjs/devkit` (minor) and `@xnetjs/cli` (minor)
 
