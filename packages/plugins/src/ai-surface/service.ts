@@ -512,6 +512,51 @@ export class AiSurfaceService {
     const scanLimit = this.limits.maxSearchScan
     const resultLimit = clampLimit(options.limit, this.limits.maxSearchResults)
     const offset = Math.max(0, options.offset ?? 0)
+
+    // Indexed path first (exploration 0391): BM25 over `nodes_fts` instead of
+    // scanning `maxSearchScan` nodes. Falls through to the scan when the
+    // storage has no FTS (memory adapter) or the probe errors.
+    if (this.config.store.searchText) {
+      const ftsMatches = await this.config.store
+        .searchText(query, Math.min(scanLimit, offset + resultLimit * 4))
+        .catch(() => null)
+      if (ftsMatches !== null && ftsMatches !== undefined) {
+        const loaded = await Promise.all(
+          ftsMatches.map((match) => this.config.store.get(match.nodeId))
+        )
+        const normalizedQuery = query.toLocaleLowerCase()
+        const results: AiSearchResult[] = []
+        for (const [index, node] of loaded.entries()) {
+          if (!node || node.deleted) continue
+          if (options.schemaId && node.schemaId !== options.schemaId) continue
+          // Preserve BM25 order; borrow the substring snippet when the match
+          // is visible in the node's property text, else lead with its head.
+          const scored = scoreNode(node, normalizedQuery)
+          results.push(
+            scored ?? {
+              id: node.id,
+              schemaId: node.schemaId,
+              title: nodeTitle(node),
+              snippet: createSnippet(searchableText(node), 0, 0),
+              score: -ftsMatches[index].rank,
+              revision: revisionForNode(node),
+              updatedAt: node.updatedAt
+            }
+          )
+        }
+        return {
+          query,
+          schemaId: options.schemaId,
+          count: results.length,
+          limit: resultLimit,
+          offset,
+          scanned: ftsMatches.length,
+          index: 'fts5',
+          results: results.slice(offset, offset + resultLimit)
+        }
+      }
+    }
+
     const nodes = await this.config.store.list({
       schemaId: options.schemaId,
       limit: scanLimit,

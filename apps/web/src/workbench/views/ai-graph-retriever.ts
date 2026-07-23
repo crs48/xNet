@@ -37,6 +37,11 @@ export interface GraphRetrieverNode {
 export interface GraphRetrieverStore {
   get(id: string): Promise<GraphRetrieverNode | null>
   list(options?: { limit?: number }): Promise<GraphRetrieverNode[]>
+  /**
+   * Cross-schema FTS5 search (`NodeStore.searchText`, exploration 0391).
+   * `null`/absent means no FTS in this storage — fall back to scanning.
+   */
+  searchText?(query: string, limit: number): Promise<Array<{ nodeId: string; rank: number }> | null>
 }
 
 /** Resolve the relation-valued property names for a schema. */
@@ -101,13 +106,30 @@ function registryRelationFields(): RelationFieldsLookup {
   }
 }
 
-/** Keyword entry search: title-boosted substring match over the local store. */
+/**
+ * Keyword entry search. Prefers the indexed FTS5 path (`store.searchText`,
+ * BM25-ranked over `nodes_fts` — exploration 0379's fix, wired in 0391); falls
+ * back to the title-boosted substring scan when the storage has no FTS
+ * (memory adapter, sql.js).
+ */
 export function keywordEntrySearch(
   store: GraphRetrieverStore
 ): (query: string, k: number) => Promise<EntryHit[]> {
   return async (query, k) => {
     const needle = query.trim().toLocaleLowerCase()
     if (!needle) return []
+    if (store.searchText) {
+      const matches = await store.searchText(query, k).catch(() => null)
+      if (matches !== null && matches !== undefined) {
+        // BM25 rank: more negative = better. Negate so bigger score wins,
+        // matching EntryHit's convention.
+        return matches.map((match) => ({
+          nodeId: match.nodeId,
+          score: -match.rank,
+          source: 'keyword' as const
+        }))
+      }
+    }
     const nodes = await store.list({ limit: SCAN_LIMIT })
     const hits: EntryHit[] = []
     for (const node of nodes) {

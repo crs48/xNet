@@ -161,6 +161,8 @@ async function doctorCommand(options: DoctorOptions): Promise<void> {
   console.log(chalk.bold('\nxNet Health Check\n'))
   console.log(chalk.dim('─'.repeat(50)))
 
+  if (!options.json) await printBridgeHealth(chalk)
+
   try {
     // Find data directory
     let dataDir: string
@@ -607,6 +609,37 @@ async function importCommand(options: ImportOptions): Promise<void> {
     console.error(chalk.red(`Error: ${error instanceof Error ? error.message : String(error)}`))
     process.exit(1)
   }
+}
+
+// ─── Agent bridge health (exploration 0391) ──────────────────────────────────
+
+/**
+ * Report whether the local agent bridge daemon (`xnet bridge serve`, :31416)
+ * is up — the AI panel's "Local bridge" tier depends on it. Never fatal: the
+ * bridge is optional, so this only informs.
+ */
+async function printBridgeHealth(chalk: Chalk): Promise<void> {
+  const url = 'http://127.0.0.1:31416/health'
+  console.log(chalk.bold('Agent bridge'))
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(1500) })
+    const body = (await res.json()) as { ok?: boolean; agent?: string; version?: string }
+    if (body.ok === true) {
+      console.log(
+        chalk.green(`✓ Bridge daemon running at :31416 (agent: ${body.agent ?? 'unknown'})`)
+      )
+    } else {
+      console.log(chalk.yellow('⚠ Something answered :31416 but it is not the xNet bridge.'))
+    }
+  } catch {
+    console.log(chalk.gray('○ No bridge daemon at :31416.'))
+    console.log(
+      chalk.gray(
+        '  Start one with `xnet bridge serve`, or install at login: `xnet bridge install`.'
+      )
+    )
+  }
+  console.log()
 }
 
 // ─── Command Registration ────────────────────────────────────────────────────

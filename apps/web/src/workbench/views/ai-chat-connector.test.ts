@@ -4,8 +4,13 @@ import {
   applyRuntimeEvent,
   baseUrlFromDetail,
   canSendMessage,
+  createPkceVerifier,
   errorMessage,
+  exchangeOpenRouterCode,
   fetchManagedModels,
+  openRouterAuthUrl,
+  openRouterCallbackCode,
+  pkceChallengeS256,
   formatModelOption,
   groupModelsByFamily,
   isUsableTier,
@@ -310,5 +315,49 @@ describe('KNOWN_BRIDGE_AGENTS', () => {
     const ids = KNOWN_BRIDGE_AGENTS.map((agent) => agent.id)
     expect(ids).toContain('claude')
     expect(ids).toContain('codex')
+  })
+})
+
+describe('OpenRouter PKCE connect (exploration 0391)', () => {
+  it('builds a verifier and S256 challenge in base64url', async () => {
+    const verifier = createPkceVerifier(() => new Uint8Array(32).fill(7))
+    expect(verifier).toMatch(/^[A-Za-z0-9_-]+$/)
+    const challenge = await pkceChallengeS256(verifier)
+    expect(challenge).toMatch(/^[A-Za-z0-9_-]{43}$/)
+  })
+
+  it('builds the authorization URL with callback + challenge', () => {
+    const url = new URL(openRouterAuthUrl('https://app.xnet.fyi/ai', 'chal-123'))
+    expect(url.origin).toBe('https://openrouter.ai')
+    expect(url.pathname).toBe('/auth')
+    expect(url.searchParams.get('callback_url')).toBe('https://app.xnet.fyi/ai')
+    expect(url.searchParams.get('code_challenge')).toBe('chal-123')
+    expect(url.searchParams.get('code_challenge_method')).toBe('S256')
+  })
+
+  it('exchanges a code for a key and returns null on failure', async () => {
+    const ok = vi.fn(async (_url: unknown, init: RequestInit | undefined) => {
+      expect(JSON.parse(init?.body as string)).toMatchObject({
+        code: 'c1',
+        code_verifier: 'v1',
+        code_challenge_method: 'S256'
+      })
+      return new Response(JSON.stringify({ key: 'sk-or-user-key' }), { status: 200 })
+    }) as unknown as typeof fetch
+    expect(await exchangeOpenRouterCode('c1', 'v1', ok)).toBe('sk-or-user-key')
+
+    const bad = (async () => new Response('nope', { status: 403 })) as unknown as typeof fetch
+    expect(await exchangeOpenRouterCode('c1', 'v1', bad)).toBeNull()
+
+    const boom = (async () => {
+      throw new Error('offline')
+    }) as unknown as typeof fetch
+    expect(await exchangeOpenRouterCode('c1', 'v1', boom)).toBeNull()
+  })
+
+  it('extracts the callback code from a search string', () => {
+    expect(openRouterCallbackCode('?code=abc&x=1')).toBe('abc')
+    expect(openRouterCallbackCode('?x=1')).toBeNull()
+    expect(openRouterCallbackCode('')).toBeNull()
   })
 })

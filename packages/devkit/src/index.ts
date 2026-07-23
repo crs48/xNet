@@ -11,11 +11,16 @@
 export {
   NodeCommandRunner,
   FakeCommandRunner,
+  NodeLineRunner,
+  FakeLineRunner,
   cmd,
   type CommandRunner,
   type CommandResult,
   type RunOptions,
-  type FakeCommandScript
+  type FakeCommandScript,
+  type LineRunner,
+  type StreamRunOptions,
+  type FakeLineScript
 } from './command-runner'
 
 export { Git, GitError, type GitCheckpoint } from './git'
@@ -57,14 +62,30 @@ export {
 
 export {
   cliChatAgent,
+  cliStreamingChatAgent,
+  isStreamingChatAgent,
   fakeChatAgent,
   openAiChatAgent,
   flattenChat,
+  reduceStreamJsonLine,
+  initialStreamJsonState,
   type ChatAgent,
   type ChatMessage,
   type CliChatAgentOptions,
-  type OpenAiChatAgentOptions
+  type CliStreamingChatAgentOptions,
+  type OpenAiChatAgentOptions,
+  type StreamingChatAgent,
+  type StreamTurnRequest,
+  type StreamTurnResult,
+  type StreamJsonState
 } from './chat-agent'
+
+export {
+  createBridgeSessionStore,
+  transcriptKey,
+  type BridgeSessionStore,
+  type BridgeTurnPlan
+} from './bridge-sessions'
 
 export {
   createBridgeServer,
@@ -75,8 +96,10 @@ export {
 
 export {
   buildAgentArgs,
+  buildStreamingAgentArgs,
   mcpConfigFor,
   DEFAULT_XNET_ALLOWED_TOOLS,
+  XNET_READONLY_ALLOWED_TOOLS,
   type AgentLaunchOptions,
   type McpServerSpec
 } from './agent-launch'

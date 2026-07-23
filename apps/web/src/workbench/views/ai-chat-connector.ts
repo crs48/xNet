@@ -268,6 +268,79 @@ export function parseBridgeHealth(data: unknown): BridgeHealth {
   }
 }
 
+// ─── OpenRouter PKCE connect (exploration 0391, Phase 3) ────────────────────────
+//
+// The one "use my existing account" flow a provider explicitly designed for
+// third-party apps: the user authorizes on openrouter.ai, we exchange the
+// callback code (+ PKCE verifier) for a USER-SCOPED key that bills their own
+// OpenRouter balance. No key copy-paste, no xNet billing relationship. This
+// is the no-daemon fallback tier — the bridge (their Claude/Codex
+// subscription) stays the daily-driver path.
+
+/** localStorage key holding the in-flight PKCE verifier (cleared on finish). */
+export const OPENROUTER_VERIFIER_KEY = 'xnet:ai-openrouter-verifier'
+
+const base64Url = (bytes: Uint8Array): string =>
+  btoa(String.fromCharCode(...bytes))
+    .replaceAll('+', '-')
+    .replaceAll('/', '_')
+    .replace(/=+$/, '')
+
+/** A fresh high-entropy PKCE code verifier (RFC 7636 §4.1). */
+export function createPkceVerifier(
+  getRandomValues: (bytes: Uint8Array) => Uint8Array = (bytes) => crypto.getRandomValues(bytes)
+): string {
+  return base64Url(getRandomValues(new Uint8Array(32)))
+}
+
+/** S256 code challenge for a verifier (RFC 7636 §4.2). */
+export async function pkceChallengeS256(
+  verifier: string,
+  subtle: SubtleCrypto = crypto.subtle
+): Promise<string> {
+  const digest = await subtle.digest('SHA-256', new TextEncoder().encode(verifier))
+  return base64Url(new Uint8Array(digest))
+}
+
+/** The openrouter.ai authorization URL for a callback + challenge. */
+export function openRouterAuthUrl(callbackUrl: string, challenge: string): string {
+  const url = new URL('https://openrouter.ai/auth')
+  url.searchParams.set('callback_url', callbackUrl)
+  url.searchParams.set('code_challenge', challenge)
+  url.searchParams.set('code_challenge_method', 'S256')
+  return url.toString()
+}
+
+/** Exchange the callback `code` for a user-scoped key; null on any failure. */
+export async function exchangeOpenRouterCode(
+  code: string,
+  verifier: string,
+  fetchImpl: typeof fetch = fetch
+): Promise<string | null> {
+  try {
+    const res = await fetchImpl('https://openrouter.ai/api/v1/auth/keys', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        code,
+        code_verifier: verifier,
+        code_challenge_method: 'S256'
+      })
+    })
+    if (!res.ok) return null
+    const data = (await res.json()) as { key?: unknown }
+    return typeof data.key === 'string' && data.key ? data.key : null
+  } catch {
+    return null
+  }
+}
+
+/** The `?code=` an OpenRouter callback landed with, if any. */
+export function openRouterCallbackCode(search: string): string | null {
+  const code = new URLSearchParams(search).get('code')
+  return code && code.length > 0 ? code : null
+}
+
 // ─── Chat runtime event handling (extracted so it stays pure + tested) ──────────
 
 export interface RuntimeEventLike {

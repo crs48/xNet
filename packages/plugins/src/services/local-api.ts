@@ -82,6 +82,11 @@ export interface NodeStoreAPI {
   get(id: string): Promise<NodeData | null>
   list(options?: { schemaId?: string; limit?: number; offset?: number }): Promise<NodeData[]>
   query?(descriptor: NodeQueryDescriptor): Promise<NodeQueryResult>
+  /**
+   * Cross-schema FTS5 search (`NodeStore.searchText`, exploration 0391).
+   * BM25 rank: more negative = better. `null` = no FTS in this storage.
+   */
+  searchText?(query: string, limit: number): Promise<Array<{ nodeId: string; rank: number }> | null>
   create(options: {
     /** Optional deterministic id (LWW upsert on collision — exploration 0337). */
     id?: string

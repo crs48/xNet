@@ -67,14 +67,47 @@ yet, so it's chat/summarize only.
 
 ## Local bridge (use your Claude Code / Codex subscription)
 
-A small local daemon exposes a loopback endpoint to the app and drives the
+The daily-driver tier
+([exploration 0391](../explorations/0391_[_]_XNET_AS_THE_DAILY_DRIVER_AI_INTERFACE.md)):
+a small local daemon exposes a loopback endpoint to the app and drives the
 official `claude` / `codex` CLI, so requests ride the subscription you already
 pay for. The daemon **spawns the official CLI** (which holds its own auth) — xNet
-never handles your tokens. This is the flagship path for the **Electron** app,
-where the browser sandbox (CORS / Local Network Access / Safari) doesn't apply.
+never handles your tokens.
 
-> Subscription-automation terms change; xNet defaults to cloud-key/local and
-> treats the bridge as opt-in. Verify your provider's current terms.
+```sh
+xnet bridge serve                      # one-off; prints a pairing code
+xnet bridge install                    # macOS: start at login, stable pairing code
+xnet bridge serve --allow-origin https://app.xnet.fyi   # for the deployed app
+```
+
+Paste the pairing code into the AI panel ("Local bridge" tier) once. With
+Claude Code the bridge streams tokens live and carries the conversation across
+turns (`--resume`), so long research threads don't re-send their history.
+
+- **Workspace tools** are on by default in **read-only** mode — the agent can
+  search and read your workspace but not change it. Consent to writes
+  explicitly with `--allow-writes` (creates/updates then flow through the AI
+  surface's audited write path).
+- **Chrome Local Network Access** — Chrome 142+ shows a one-time prompt before
+  an HTTPS page may reach a loopback daemon. Click **Allow**; declining leaves
+  the bridge tier unavailable until you re-allow it in site settings.
+- **Safari** blocks HTTPS→localhost entirely (the same WebKit limitation as
+  the local-server tier): use Chrome/Edge for the web app, or the Electron
+  app, where the daemon is built in and pairs automatically.
+- A future browser-extension transport (`packages/native-bridge-extension`,
+  exploration 0289 Option C) removes the loopback port entirely; it stays a
+  spike until the daemon path has proven itself as the daily driver.
+
+> Subscription-automation terms change; the bridge only ever spawns your own
+> installed, already-authenticated CLI on your own machine — never embedded
+> logins, never your tokens. Verify your provider's current terms.
+
+## OpenRouter connect (no daemon, your own account)
+
+If you can't run a daemon (another machine, a tablet), the cloud-key tier's
+**Connect OpenRouter account** button runs OpenRouter's PKCE flow: authorize on
+openrouter.ai and xNet receives a key scoped to **your** OpenRouter account and
+balance — no key copy-paste, and xNet is never in the billing path.
 
 ## See also
 

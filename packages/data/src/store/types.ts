@@ -229,6 +229,12 @@ export interface NodeStorageAdapter {
   countNodes(options?: CountNodesOptions): Promise<number>
   queryNodes?(descriptor: NodeQueryDescriptor): Promise<NodeQueryResult>
   /**
+   * Cross-schema full-text search over the `nodes_fts` FTS5 index
+   * (exploration 0391 — the AI retrieval path). Returns `null` when the
+   * backing store has no FTS support, so callers can fall back to a scan.
+   */
+  searchText?(query: string, limit: number): Promise<NodeTextSearchResult[] | null>
+  /**
    * Inject the read-authorization filter the adapter applies before persisting
    * a materialized view's id list (exploration 0226). `NodeStore` wires this to
    * its `filterReadableNodes` so a materialization is authorized exactly once,
@@ -517,6 +523,13 @@ export interface CountNodesOptions {
   schemaId?: SchemaIRI
   /** Include soft-deleted nodes */
   includeDeleted?: boolean
+}
+
+/** One full-text match from {@link NodeStorageAdapter.searchText}. */
+export interface NodeTextSearchResult {
+  nodeId: NodeId
+  /** BM25 rank — MORE NEGATIVE is a better match (SQLite FTS5 convention). */
+  rank: number
 }
 
 // ============================================================================

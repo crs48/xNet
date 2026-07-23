@@ -34,7 +34,7 @@ import {
   type ManagedBudgetSnapshot,
   type PromptApiAvailability
 } from '@xnetjs/plugins'
-import { useNodeStore } from '@xnetjs/react/internal'
+import { useDataBridge, useNodeStore } from '@xnetjs/react/internal'
 import { Bot, Loader2, Send } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
@@ -42,19 +42,26 @@ import {
   applyRuntimeEvent,
   baseUrlFromDetail,
   canSendMessage,
+  createPkceVerifier,
   errorMessage,
+  exchangeOpenRouterCode,
   fetchManagedModels,
   formatModelOption,
   groupModelsByFamily,
   KNOWN_BRIDGE_AGENTS,
+  OPENROUTER_VERIFIER_KEY,
+  openRouterAuthUrl,
+  openRouterCallbackCode,
   parseBridgeHealth,
   pickUsableConnector,
+  pkceChallengeS256,
   providerConfigForConnector,
   type AiChatSettings,
   type BridgeHealth,
   type CloudProvider,
   type ManagedModel
 } from './ai-chat-connector'
+import { createAiConversationLog, type AiConversationLog } from './ai-chat-persistence'
 import { AI_SYSTEM_PROMPT, formatContextMessages } from './ai-context'
 import { createGraphContextRetriever, keywordEntrySearch } from './ai-graph-retriever'
 import { schemaRegistryApi } from './ai-schemas'
@@ -184,10 +191,24 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
     writeSetting(AI_CHAT_STORAGE_KEYS.semanticSearch, next ? 'on' : '')
   }, [])
 
+  // Conversation persistence (0391 Phase 2): the thread and its turns land as
+  // Channel/ChatMessage nodes so research survives the panel. The assistant
+  // reply is buffered from deltas and logged once, when the turn settles.
+  const dataBridge = useDataBridge()
+  const conversationLogRef = useRef<AiConversationLog | null>(null)
+  const assistantBufferRef = useRef('')
+
   const handlers = useMemo(
     () => ({
-      onDelta: (text: string) => setMessages((prev) => appendToAssistant(prev, text)),
-      onSettled: () => setStreaming(false),
+      onDelta: (text: string) => {
+        assistantBufferRef.current += text
+        setMessages((prev) => appendToAssistant(prev, text))
+      },
+      onSettled: () => {
+        setStreaming(false)
+        void conversationLogRef.current?.logAssistantReply(assistantBufferRef.current)
+        assistantBufferRef.current = ''
+      },
       onError: (message: string) => setError(message)
     }),
     []
@@ -197,6 +218,48 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
   const selectTier = useCallback((tier: ConnectorTier) => {
     setSelectedTier(tier)
     writeSetting(AI_CHAT_STORAGE_KEYS.tier, tier)
+  }, [])
+
+  // OpenRouter PKCE connect (0391 Phase 3): send the user to openrouter.ai to
+  // authorize; the callback lands back here with ?code=.
+  const connectOpenRouter = useCallback(async () => {
+    const verifier = createPkceVerifier()
+    writeSetting(OPENROUTER_VERIFIER_KEY, verifier)
+    const challenge = await pkceChallengeS256(verifier)
+    window.location.href = openRouterAuthUrl(
+      `${window.location.origin}${window.location.pathname}`,
+      challenge
+    )
+  }, [])
+
+  // Complete an in-flight OpenRouter connect: exchange ?code= for a
+  // user-scoped key, store it as the cloud-key tier, and clean the URL.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const verifier = readSetting(OPENROUTER_VERIFIER_KEY)
+    const code = openRouterCallbackCode(window.location.search)
+    if (!verifier || !code) return
+    let cancelled = false
+    void exchangeOpenRouterCode(code, verifier).then((key) => {
+      writeSetting(OPENROUTER_VERIFIER_KEY, '')
+      const url = new URL(window.location.href)
+      url.searchParams.delete('code')
+      window.history.replaceState(null, '', url.toString())
+      if (cancelled) return
+      if (!key) {
+        setError('OpenRouter connect failed — try again or paste a key manually.')
+        return
+      }
+      setApiKey(key)
+      writeSetting(AI_CHAT_STORAGE_KEYS.apiKey, key)
+      setCloudProvider('openrouter')
+      writeSetting(AI_CHAT_STORAGE_KEYS.cloudProvider, 'openrouter')
+      setSelectedTier('cloud-key')
+      writeSetting(AI_CHAT_STORAGE_KEYS.tier, 'cloud-key')
+    })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   // Detect connectors (re-runs when the key changes so cloud-key flips available).
@@ -406,10 +469,14 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
     (selected?.tier === 'webllm' && selected.available && !webllmArmed && !ready) ||
     (selected?.tier === 'prompt-api' && nanoNeedsDownload)
 
+  // The offline-bridge block explains itself (exact start command + recheck),
+  // so the generic setupHint line must not double up under it.
+  const bridgeOffline = selected?.tier === 'bridge' && !selected.available
+
   // Why the composer is disabled right now, so a not-ready box is never silent
   // (the old failure mode: a selected-but-unbuildable tier showed nothing).
   const notReadyReason =
-    ready || error || awaitingInTabGesture
+    ready || error || awaitingInTabGesture || bridgeOffline
       ? null
       : !selected
         ? null // the empty-state ChatBody already invites picking a model
@@ -455,6 +522,13 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
     setInput('')
     setMessages((prev) => [...prev, { role: 'user', content }, { role: 'assistant', content: '' }])
     setStreaming(true)
+    // Fire-and-forget: the turn must never wait on (or fail with) persistence.
+    if (dataBridge) {
+      conversationLogRef.current ??= createAiConversationLog(dataBridge)
+      const connectorLabel = bridgeHealth?.agent ?? selected?.tier ?? 'model'
+      assistantBufferRef.current = ''
+      void conversationLogRef.current.logUserMessage(content, connectorLabel)
+    }
     try {
       threadIdRef.current ??= (await runtime.createThread({ title: 'AI chat' })).id
       await runtime.runTurn({ threadId: threadIdRef.current, content })
@@ -462,7 +536,7 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
       setStreaming(false)
       setError(errorMessage(err))
     }
-  }, [input, streaming])
+  }, [input, streaming, dataBridge, bridgeHealth, selected])
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-surface-1">
@@ -472,22 +546,25 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
         onSelect={selectTier}
         hasSelection={!!selected}
       />
-      {selected?.tier === 'bridge' && (
-        <>
-          <BridgeStatus
-            health={bridgeHealth}
-            canSwitch={typeof window !== 'undefined' && !!window.xnetAgentBridge}
-            onSwitchAgent={switchBridgeAgent}
-          />
-          <BridgePairing
-            token={bridgeToken}
-            onToken={(value) => {
-              setBridgeToken(value)
-              writeSetting(AI_CHAT_STORAGE_KEYS.bridgeToken, value)
-            }}
-          />
-        </>
-      )}
+      {selected?.tier === 'bridge' &&
+        (selected.available ? (
+          <>
+            <BridgeStatus
+              health={bridgeHealth}
+              canSwitch={typeof window !== 'undefined' && !!window.xnetAgentBridge}
+              onSwitchAgent={switchBridgeAgent}
+            />
+            <BridgePairing
+              token={bridgeToken}
+              onToken={(value) => {
+                setBridgeToken(value)
+                writeSetting(AI_CHAT_STORAGE_KEYS.bridgeToken, value)
+              }}
+            />
+          </>
+        ) : (
+          <BridgeOffline onRecheck={() => setDetectNonce((nonce) => nonce + 1)} />
+        ))}
       {(selected?.tier === 'bridge' || selected?.tier === 'local-server') &&
         loopbackPermission === 'denied' && (
           <p className="border-b border-hairline px-3 py-2 text-[11px] text-amber-600">
@@ -507,6 +584,7 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
             setCloudProvider(value)
             writeSetting(AI_CHAT_STORAGE_KEYS.cloudProvider, value)
           }}
+          onConnectOpenRouter={() => void connectOpenRouter()}
         />
       )}
       {selected?.tier === 'managed' && selected.available && (
@@ -808,6 +886,61 @@ function BridgePairing({ token, onToken }: { token: string; onToken: (value: str
   )
 }
 
+/**
+ * The bridge tier is selected but no daemon answered at :31416 — show the ONE
+ * command that fixes it (with this page's origin pre-filled), a login-item
+ * hint, the heads-up about Chrome's local-network permission prompt, and a
+ * recheck affordance (exploration 0391: an offline bridge must never be a
+ * dead end).
+ */
+function BridgeOffline({ onRecheck }: { onRecheck: () => void }) {
+  const [copied, setCopied] = useState(false)
+  const origin = typeof location !== 'undefined' ? location.origin : ''
+  const loopback = /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:|$)/.test(origin)
+  // Loopback origins are always allowed by the daemon; a deployed origin must
+  // be allowlisted explicitly.
+  const command = loopback ? 'xnet bridge serve' : `xnet bridge serve --allow-origin ${origin}`
+  const copy = () => {
+    void navigator.clipboard?.writeText(command).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 1500)
+    })
+  }
+  return (
+    <div className="flex flex-col gap-1.5 border-b border-hairline px-3 py-2">
+      <div className="flex items-center gap-2 text-[11px]">
+        <span aria-hidden className="h-2 w-2 shrink-0 rounded-full bg-ink-3" />
+        <span className="text-ink-2">Bridge offline — start it in a terminal:</span>
+        <button
+          type="button"
+          onClick={onRecheck}
+          className="ml-auto rounded-md border border-hairline bg-surface-0 px-2 py-0.5 text-[11px] text-ink-1 hover:bg-surface-2"
+        >
+          Check again
+        </button>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <code className="min-w-0 flex-1 truncate rounded-md border border-hairline bg-surface-0 px-2 py-1 text-[11px] text-ink-1">
+          {command}
+        </code>
+        <button
+          type="button"
+          onClick={copy}
+          className="shrink-0 rounded-md border border-hairline bg-surface-0 px-2 py-1 text-[11px] text-ink-1 hover:bg-surface-2"
+        >
+          {copied ? 'Copied' : 'Copy'}
+        </button>
+      </div>
+      <p className="text-[10px] text-ink-3">
+        Uses your own Claude Code / Codex subscription — nothing leaves this machine. Start it at
+        login with <code>xnet bridge install</code>. Your browser may ask to allow local network
+        access on first connect; allow it. Safari blocks local connections from https pages — use
+        Chrome or the desktop app.
+      </p>
+    </div>
+  )
+}
+
 function ConnectorBar({
   detections,
   selectedTier,
@@ -857,12 +990,14 @@ function CloudKeyFields({
   apiKey,
   cloudProvider,
   onApiKey,
-  onProvider
+  onProvider,
+  onConnectOpenRouter
 }: {
   apiKey: string
   cloudProvider: CloudProvider
   onApiKey: (value: string) => void
   onProvider: (value: CloudProvider) => void
+  onConnectOpenRouter?: () => void
 }) {
   return (
     <div className="flex flex-col gap-1 border-b border-hairline px-3 py-2">
@@ -884,8 +1019,19 @@ function CloudKeyFields({
           className="min-w-0 flex-1 rounded-md border border-hairline bg-surface-0 px-2 py-1 text-[11px] text-ink-1 outline-none placeholder:text-ink-3"
         />
       </div>
+      {cloudProvider === 'openrouter' && !apiKey && onConnectOpenRouter && (
+        <button
+          type="button"
+          onClick={onConnectOpenRouter}
+          className="self-start rounded-md border border-hairline bg-surface-0 px-2 py-1 text-[11px] text-ink-1 hover:bg-surface-2"
+        >
+          Connect OpenRouter account…
+        </button>
+      )}
       <p className="text-[10px] text-ink-3">
         Stored in this browser and sent only to {cloudProvider} — never to our servers.
+        {cloudProvider === 'openrouter' &&
+          ' Connecting issues a key scoped to your own OpenRouter account and balance.'}
       </p>
     </div>
   )
