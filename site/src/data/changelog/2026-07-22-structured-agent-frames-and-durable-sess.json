@@ -1,0 +1,10 @@
+{
+  "id": "2026-07-22-structured-agent-frames-and-durable-sess",
+  "date": "July 22, 2026",
+  "title": "Structured agent frames and durable sessions for the AI bridge",
+  "summary": "The local AI bridge can now stream tool calls, cost, and session info as structured frames over a new endpoint, keeps chat sessions across restarts, and sources model info from models.dev.",
+  "highlights": [],
+  "tags": [
+    "ai"
+  ]
+}
