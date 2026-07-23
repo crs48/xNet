@@ -656,7 +656,7 @@ sequenceDiagram
 - [x] Durable session map in the daemon (persist under `~/.xnet/agent-home`); fingerprint map demoted to OpenAI-compat shim
 - [x] Consume `models.dev/api.json` (with vendored snapshot fallback) for cloud-key/local model pickers; add OpenRouter `HTTP-Referer`/`X-OpenRouter-Title` attribution headers
 - [ ] Update `xnet bridge serve --agent` help + docs; extend `bridge install` beyond launchd (systemd user unit, Windows scheduled task) — separate PR
-- [ ] Changesets: `@xnetjs/devkit` (minor — new frames/endpoint), `@xnetjs/cli` (minor), plugins/apps per diff
+- [x] Changesets: `@xnetjs/devkit` (minor — new frames/endpoint), `@xnetjs/cli` (minor), plugins/apps per diff
 
 ## Validation Checklist
 
