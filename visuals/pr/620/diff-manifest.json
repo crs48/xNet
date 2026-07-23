@@ -10,14 +10,14 @@
       "label": "Data",
       "file": "routes/data.png",
       "status": "unchanged",
-      "ssim": 0.999146
+      "ssim": 0.999106
     },
     {
       "id": "home",
       "label": "Home",
       "file": "routes/home.png",
       "status": "changed",
-      "ssim": 0.981924,
+      "ssim": 0.981884,
       "before": "before/routes/home.png",
       "after": "routes/home.png",
       "diff": "diff/routes/home.png"
