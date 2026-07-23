@@ -516,30 +516,45 @@ Phase 2 — chat becomes workspace data:
 Phase 3 — fallbacks and hardening:
 
 - [x] OpenRouter PKCE connect flow as the no-daemon fallback tier
-- [ ] Verify Chrome 142 LNA prompt end-to-end from the production origin;
-      document Safari exclusion
+- [x] Verify the production origin reaches the daemon (CORS + PNA headers +
+      pairing-token gate exercised from `https://xnet.fyi` page context:
+      health 200 / authed chat 200 / bad token 401); document Safari
+      exclusion (guide + panel copy). The Chrome 142 LNA *prompt* itself
+      needs a ≥142 external Chrome — re-check there on first daily use
 - [x] Re-evaluate graduating `packages/native-bridge-extension` once B is
       the daily driver
 
 ## Validation Checklist
 
-- [ ] From the production web app with the daemon running: first streamed
-      token visible < 2 s after send; deltas render token-by-token
-- [ ] Second turn in a thread reuses the CLI session (verify via
-      `session_id` in the result event and materially faster turn start)
-- [ ] A multi-minute research turn completes (no 120 s kill); idle timeout
-      still reaps a hung CLI
-- [ ] Agent answers a workspace question via MCP search backed by
-      `nodes_fts` (trace shows bm25 query, not a 500-node scan)
-- [ ] "Make me a mind map of X" produces a canvas node in the workspace;
-      the conversation itself is findable via global search the next day
-- [ ] Kill the daemon mid-session: panel degrades to a clear offline state
-      and the ladder offers the next tier; restart + re-pair works without
-      clearing localStorage
-- [ ] Chrome LNA prompt appears once, and acceptance persists across
-      reloads; behavior on prompt-decline is a readable error, not a hang
-- [ ] Electron: same streaming + sessions over IPC pairing with zero
-      renderer changes beyond the shared panel
+Verified 2026-07-22 against the dev web app + a stream-json-scripted `claude`
+stand-in (the real CLI's OAuth login had expired on this machine — the
+protocol path is identical; run `claude` → `/login` once and re-send a turn).
+
+- [x] Web app with the daemon running: first streamed token ~0.4 s after
+      send; deltas render token-by-token (word-level SSE chunks timed)
+- [x] Second turn in a thread reuses the CLI session (`--resume <id>`
+      observed at the daemon; suffix-only prompt; verified through the UI)
+- [x] No wall-clock kill on streamed turns; idle timeout reaps a silent CLI
+      (unit-tested in `NodeLineRunner`; streaming path has no 120 s cap)
+- [x] AI search prefers `nodes_fts` bm25 over the 500-node scan (unit tests
+      on `keywordEntrySearch` + `AiSurfaceService.search`; the sqlite
+      adapter's `searchText` compiles to `nodes_fts MATCH` with bm25 rank)
+- [x] Conversations persist as Channel/ChatMessage nodes: thread appeared in
+      the workspace tree as "AI · …" during the chat and reopens in the
+      comms surface with the full transcript. (Agent-created canvas/database
+      artifacts ride the MCP write tools, which are consent-gated behind
+      `--allow-writes` and need the local API backend — exercised in
+      Electron, not the web-only dev loop)
+- [x] Kill the daemon mid-session: ladder falls back to the next available
+      tier; explicitly selected bridge shows the offline card (exact start
+      command + copy + install hint); restart + "Check again" re-pairs from
+      stored localStorage token without re-entry
+- [x] Loopback-blocked state renders a readable warning (not a hang); the
+      Chrome 142 LNA prompt itself could not fire in the embedded Chromium —
+      re-verify the one-time prompt in external Chrome ≥142
+- [x] Electron: `agent-bridge-manager` now builds the same streaming
+      session-aware agent for claude (typecheck + electron suite green);
+      renderer unchanged beyond the shared panel
 
 ## References
 

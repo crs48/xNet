@@ -9,18 +9,23 @@
  * It only advertises the bridge when the agent CLI is actually runnable
  * (a `--version` probe), so the panel never shows an "available" bridge that
  * errors on first message. The HTTP server itself is in-process; the agent CLI
- * is spawned per chat turn by `cliChatAgent`.
+ * is spawned per chat turn — Claude Code over the streaming, session-aware
+ * path (`cliStreamingChatAgent`, exploration 0391), other agents one-shot via
+ * `cliChatAgent`.
  */
 
-import { writeFileSync } from 'node:fs'
+import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   buildAgentArgs,
   cliChatAgent,
+  cliStreamingChatAgent,
   createBridgeServer,
   mcpConfigFor,
   NodeCommandRunner,
-  type BridgeServerHandle
+  NodeLineRunner,
+  type BridgeServerHandle,
+  type ChatAgent
 } from '@xnetjs/devkit'
 import { app, ipcMain } from 'electron'
 
@@ -86,7 +91,10 @@ export async function startAgentBridge(
 ): Promise<AgentBridgeStatus> {
   if (handle) return status
   const agentCmd = resolveAgent(options.agent)
-  const cwd = options.cwd ?? app.getPath('home')
+  // Chat turns run in a dedicated home (Claude Code stores sessions per cwd),
+  // so bridge sessions never interleave with real coding sessions in repos.
+  const cwd = options.cwd ?? join(app.getPath('home'), '.xnet', 'agent-home')
+  mkdirSync(cwd, { recursive: true })
   const runner = new NodeCommandRunner()
 
   const probe = await runner.run(agentCmd, ['--version'], { cwd, timeoutMs: 4000 })
@@ -96,8 +104,19 @@ export async function startAgentBridge(
   }
 
   const mcpConfigPath = resolveMcpConfigPath()
-  const args = buildAgentArgs(agentCmd, { ...(mcpConfigPath ? { mcpConfigPath } : {}) })
-  const agent = cliChatAgent(runner, { command: agentCmd, cwd, args })
+  let agent: ChatAgent
+  if (agentCmd === 'claude') {
+    // Streaming + session continuity (exploration 0391): live deltas over SSE,
+    // --resume across turns.
+    agent = cliStreamingChatAgent(new NodeLineRunner(), {
+      command: agentCmd,
+      cwd,
+      ...(mcpConfigPath ? { launch: { mcpConfigPath } } : {})
+    })
+  } else {
+    const args = buildAgentArgs(agentCmd, { ...(mcpConfigPath ? { mcpConfigPath } : {}) })
+    agent = cliChatAgent(runner, { command: agentCmd, cwd, args })
+  }
   const server = createBridgeServer({
     agent,
     agentName: agentCmd,
