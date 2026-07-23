@@ -648,7 +648,7 @@ sequenceDiagram
 ## Implementation Checklist
 
 - [x] Define `AgentFrame` union + reducer mapping in `packages/devkit/src/agent-frames.ts`; emit tool-use/cost/session frames from `reduceStreamJsonLine()` instead of discarding them
-- [ ] Add framed streaming endpoint to `bridge-server.ts` (`/v1/agent/stream`), token- and origin-guarded like the existing endpoints; keep `/v1/chat/completions` unchanged
+- [x] Add framed streaming endpoint to `bridge-server.ts` (`/v1/agent/stream`), token- and origin-guarded like the existing endpoints; keep `/v1/chat/completions` unchanged
 - [ ] Implement `codexAppServerChatAgent` (JSON-RPC over stdio to `codex app-server`): thread start/resume mapped to conversations; approvals → `permission_request` frames
 - [ ] Add `gemini --experimental-acp` agent behind the same frames
 - [ ] Panel: render tool-call frames + in-chat approval UI wired to `permission_request`; per-action consent supersedes launch-time `--allow-writes` (flag remains the ceiling)
