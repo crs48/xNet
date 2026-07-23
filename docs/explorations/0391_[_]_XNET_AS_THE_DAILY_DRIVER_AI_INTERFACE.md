@@ -493,14 +493,14 @@ Phase 1 — bridge feels like Claude:
       injectable spawner for tests)
 - [x] Make `bridge-server.ts` stream SSE deltas incrementally (replace
       buffered `sendSse`); map conversation id → CLI session id
-- [ ] Run bridge agents in a dedicated cwd (`~/.xnet/agent-home`) so chat
+- [x] Run bridge agents in a dedicated cwd (`~/.xnet/agent-home`) so chat
       sessions don't pollute repo sessions
-- [ ] Wire `--mcp` (xnet workspace tools) on by default for `--agent claude`
-- [ ] `xnet bridge install` (or documented launchd plist) so the daemon
+- [x] Wire `--mcp` (xnet workspace tools) on by default for `--agent claude`
+- [x] `xnet bridge install` (or documented launchd plist) so the daemon
       starts at login; `xnet doctor` reports bridge health
 - [ ] Panel: "bridge offline" state shows the exact one-liner to start it;
       pairing flow explains the Chrome LNA prompt
-- [ ] Changesets for `@xnetjs/devkit` (minor) and `@xnetjs/cli` (minor)
+- [x] Changesets for `@xnetjs/devkit` (minor) and `@xnetjs/cli` (minor)
 
 Phase 2 — chat becomes workspace data:
 

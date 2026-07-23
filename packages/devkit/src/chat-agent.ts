@@ -38,7 +38,7 @@ export interface CliChatAgentOptions {
 }
 
 /** Flatten a conversation into a single prompt for headless CLIs. */
-export function flattenChat(messages: ChatMessage[]): string {
+export function flattenChat(messages: readonly ChatMessage[]): string {
   return messages
     .map((message) =>
       message.role === 'user' ? message.content : `${message.role}: ${message.content}`
