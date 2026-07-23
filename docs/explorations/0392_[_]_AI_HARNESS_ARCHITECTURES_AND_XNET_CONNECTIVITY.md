@@ -662,11 +662,11 @@ sequenceDiagram
 
 - [ ] Bridge streaming test: a Claude turn producing an MCP write emits `tool_call` → `permission_request` → confirmed apply, and the panel renders each frame (integration test against a stubbed CLI emitting canned stream-json)
 - [ ] Codex thread resume: two turns in one conversation hit the same app-server thread (no full-history replay); interrupt works
-- [ ] Daemon restart: conversation continues on its persisted session id (no fingerprint fallback logged)
-- [ ] Plain OpenAI clients (curl, other tools) still work against `/v1/chat/completions` byte-for-byte as before
-- [ ] models.dev outage: pickers fall back to vendored snapshot; no hardcoded price drift vs hub catalog for managed
+- [x] Daemon restart: conversation continues on its persisted session id (no fingerprint fallback logged)
+- [x] Plain OpenAI clients (curl, other tools) still work against `/v1/chat/completions` byte-for-byte as before
+- [x] models.dev outage: pickers fall back to vendored snapshot; no hardcoded price drift vs hub catalog for managed
 - [ ] Consent: with `--allow-writes` absent, a write tool call is refused before any `permission_request` reaches the panel (flag stays the ceiling)
-- [ ] Security regression suite: Host/Origin/token checks green on the new endpoint (reuse 0289 tests)
+- [x] Security regression suite: Host/Origin/token checks green on the new endpoint (reuse 0289 tests)
 
 ## References
 
