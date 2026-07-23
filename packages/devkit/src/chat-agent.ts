@@ -9,8 +9,9 @@
  * back to xNet's chat panel.
  */
 
-import { buildStreamingAgentArgs, type AgentLaunchOptions } from './agent-launch'
 import type { CommandRunner, LineRunner } from './command-runner'
+import { foldStreamJsonFrames, initialStreamJsonFrameState, type AgentFrame } from './agent-frames'
+import { buildStreamingAgentArgs, type AgentLaunchOptions } from './agent-launch'
 
 export interface ChatMessage {
   role: 'system' | 'user' | 'assistant'
@@ -149,6 +150,24 @@ export function isStreamingChatAgent(agent: ChatAgent): agent is StreamingChatAg
   return typeof (agent as Partial<StreamingChatAgent>).streamTurn === 'function'
 }
 
+/**
+ * A {@link StreamingChatAgent} that can also stream a turn as structured
+ * {@link AgentFrame}s (exploration 0392): tool calls, cost, and session id in
+ * addition to text deltas. The bridge's framed endpoint (`/v1/agent/stream`)
+ * uses this; the OpenAI-compatible endpoint stays on {@link StreamingChatAgent}
+ * so its wire is unchanged.
+ */
+export interface FramedChatAgent extends StreamingChatAgent {
+  streamTurnFrames(
+    turn: StreamTurnRequest,
+    onFrame: (frame: AgentFrame) => void
+  ): Promise<StreamTurnResult>
+}
+
+export function isFramedChatAgent(agent: ChatAgent): agent is FramedChatAgent {
+  return typeof (agent as Partial<FramedChatAgent>).streamTurnFrames === 'function'
+}
+
 /** Reducer state while consuming one turn's `stream-json` NDJSON events. */
 export interface StreamJsonState {
   text: string
@@ -259,10 +278,35 @@ export interface CliStreamingChatAgentOptions {
 export function cliStreamingChatAgent(
   lines: LineRunner,
   options: CliStreamingChatAgentOptions
-): StreamingChatAgent {
+): FramedChatAgent {
   const idleTimeoutMs = options.idleTimeoutMs ?? 180_000
   return {
+    async streamTurnFrames(turn, onFrame) {
+      const args = buildStreamingAgentArgs(turn.prompt, {
+        ...options.launch,
+        ...(turn.resumeSessionId ? { resumeSessionId: turn.resumeSessionId } : {})
+      })
+      let state = initialStreamJsonFrameState()
+      for await (const line of lines.stream(options.command, args, {
+        cwd: options.cwd,
+        idleTimeoutMs
+      })) {
+        const step = foldStreamJsonFrames(state, line)
+        state = step.state
+        for (const frame of step.frames) onFrame(frame)
+        if (state.error) break
+      }
+      if (state.error) throw new Error(state.error)
+      return {
+        text: state.text.trim(),
+        ...(state.sessionId ? { sessionId: state.sessionId } : {})
+      }
+    },
     async streamTurn(turn, onDelta) {
+      // Kept on the original delta reducer (not re-expressed via frames): the
+      // OpenAI-compatible endpoint depends on its exact behaviour, including
+      // the `result`-only text fallback, which the frame reducer folds into
+      // the terminal `result` frame instead of a `delta`.
       const args = buildStreamingAgentArgs(turn.prompt, {
         ...options.launch,
         ...(turn.resumeSessionId ? { resumeSessionId: turn.resumeSessionId } : {})

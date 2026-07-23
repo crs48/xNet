@@ -22,17 +22,17 @@ it, and recommends the harness architecture that keeps the most doors open.
 
 ## Executive Summary
 
-- The industry has converged on a **five-concern separation**: model *catalog*
-  (models.dev), wire *protocol* (Vercel AI SDK / OpenAI-compatible),
-  *auth* (keys in local stores, sanctioned OAuth, PKCE-provisioned gateway
-  keys), *transport aggregation* (OpenRouter, Zen, LiteLLM), and *harness
-  composition* (spawn-the-vendor-CLI, JSON-RPC agent servers, ACP).
+- The industry has converged on a **five-concern separation**: model _catalog_
+  (models.dev), wire _protocol_ (Vercel AI SDK / OpenAI-compatible),
+  _auth_ (keys in local stores, sanctioned OAuth, PKCE-provisioned gateway
+  keys), _transport aggregation_ (OpenRouter, Zen, LiteLLM), and _harness
+  composition_ (spawn-the-vendor-CLI, JSON-RPC agent servers, ACP).
 - There are **two distinct things to connect to**, and conflating them is the
   central design mistake to avoid: **raw models** (a stateless
-  completion/streaming endpoint you build an agent loop *around*) and
+  completion/streaming endpoint you build an agent loop _around_) and
   **agents** (a stateful harness with its own loop, tools, sessions, and auth
-  that you drive *as a client*). OpenCode is the best-in-class *model*
-  harness; T3 Code, Zed, and Codex desktop are best-in-class *agent* clients.
+  that you drive _as a client_). OpenCode is the best-in-class _model_
+  harness; T3 Code, Zed, and Codex desktop are best-in-class _agent_ clients.
   xNet needs both lanes, and already has both — half-wired.
 - **Anthropic's Jan–Feb 2026 enforcement** settled the auth question:
   consumer OAuth tokens outside official surfaces are banned ("Using OAuth
@@ -70,12 +70,12 @@ abstraction — a six-tier ladder:
 
 ```ts
 export type ConnectorTier =
-  | 'managed'      // xNet Cloud metered AI (hub → OpenRouter gateway)
-  | 'webllm'       // in-tab WebGPU model
+  | 'managed' // xNet Cloud metered AI (hub → OpenRouter gateway)
+  | 'webllm' // in-tab WebGPU model
   | 'local-server' // Ollama / LM Studio over localhost
-  | 'prompt-api'   // Chrome built-in Gemini Nano
-  | 'cloud-key'    // BYO cloud API key (Anthropic / OpenAI / OpenRouter)
-  | 'bridge'       // local daemon driving a Claude Code / Codex subscription
+  | 'prompt-api' // Chrome built-in Gemini Nano
+  | 'cloud-key' // BYO cloud API key (Anthropic / OpenAI / OpenRouter)
+  | 'bridge' // local daemon driving a Claude Code / Codex subscription
 ```
 
 `packages/plugins/src/ai/connectors/detect.ts` probes all tiers concurrently
@@ -105,7 +105,7 @@ export interface AIProvider {
 Concrete classes: `AnthropicProvider` (line 349, direct Messages API with the
 `anthropic-dangerous-direct-browser-access` header for BYO-key CORS),
 `OpenAICompatibleProvider` (line 464 — OpenAI, OpenRouter, Ollama `/v1`,
-LM Studio, vLLM, *and the bridge*), `OllamaProvider`, `ManagedProvider`
+LM Studio, vLLM, _and the bridge_), `OllamaProvider`, `ManagedProvider`
 (line 1093, hub-mediated metered OpenRouter with typed `AiBudgetError` on
 402), and a capability-based `AIProviderRouter` (line 789). A full tool-use
 type system exists (`AIToolSpec`, `generateWithTools`, tool-call stream
@@ -131,14 +131,14 @@ Three files in `packages/devkit/src/` plus the CLI command:
   streaming, session-aware `cliStreamingChatAgent` (line 259, **Claude
   only**). No Agent SDK: it spawns the installed CLI with
   `--output-format stream-json --include-partial-messages --verbose
-  [--resume <id>]` (`agent-launch.ts:64`) and folds NDJSON via the pure
+[--resume <id>]` (`agent-launch.ts:64`) and folds NDJSON via the pure
   reducer `reduceStreamJsonLine()` (line 178).
 - `bridge-sessions.ts` — the fingerprint→resume map: SHA-256 over
   user/assistant content only (`transcriptKey()`, line 40), so the stateless
   OpenAI protocol can ride durable `--resume` sessions with no client
   protocol change. In-memory, bounded at 256, per-daemon-launch.
 - `packages/cli/src/commands/bridge.ts` — `xnet bridge serve` with `--agent
-  claude|codex`, `--upstream <url>` (front raw Ollama/LM Studio through the
+claude|codex`, `--upstream <url>` (front raw Ollama/LM Studio through the
   hardened bridge), `--allow-writes`, MCP-on-by-default for Claude
   (`resolveMcpConfig()`, line 157, pointing back at `xnet mcp serve`), and
   `xnet bridge install` (launchd LaunchAgent, macOS only, label
@@ -178,8 +178,8 @@ embedding OAuth or reusing tokens is banned.
 ### The seams and limitations (what this exploration must answer to)
 
 1. **Two agent surfaces, no shared loop.** The bridge treats Claude Code as an
-   opaque chat engine — xNet's MCP tools run *inside the spawned CLI's own
-   harness*, invisible to xNet's runtime. Meanwhile the in-app
+   opaque chat engine — xNet's MCP tools run _inside the spawned CLI's own
+   harness_, invisible to xNet's runtime. Meanwhile the in-app
    `AIProvider.generateWithTools` + `AiSurfaceService` tool system sits
    unwired (Phase-0 badge).
 2. **Text-only wire.** App↔bridge speaks OpenAI SSE; tool-call events, cost,
@@ -194,7 +194,7 @@ embedding OAuth or reusing tokens is banned.
 5. **Coarse consent.** One launch-time flag plus `confirm:true` re-calls; no
    interactive approval.
 6. **The bridge is a URL, not a provider type.** The `AIProvider` abstraction
-   spans managed/cloud-key/local; the bridge is reached *as* an
+   spans managed/cloud-key/local; the bridge is reached _as_ an
    `openai-compatible` provider pointed at loopback. Ladder, provider classes,
    and `ChatAgent` port only loosely compose.
 7. **Platform gaps**: Safari blocks https→localhost; `bridge install` is
@@ -207,7 +207,7 @@ embedding OAuth or reusing tokens is banned.
 
 ### How each harness connects (survey)
 
-#### OpenCode (sst/opencode) — the maximum-flexibility *model* harness
+#### OpenCode (sst/opencode) — the maximum-flexibility _model_ harness
 
 Client/server: `opencode` starts a headless local server (`127.0.0.1:4096`,
 OpenAPI 3.1 at `/doc`) plus a TUI; desktop app, IDE extensions, web UI, and CI
@@ -267,7 +267,7 @@ oriented around parallel agents. It independently converged on exactly xNet's
 
 - **CLI**: agentic loop + built-in tools calling the Messages API. Headless:
   `claude -p --output-format stream-json --input-format stream-json
-  --verbose`, `--resume <id>`/`--continue`, `--allowedTools`,
+--verbose`, `--resume <id>`/`--continue`, `--allowedTools`,
   `--permission-mode`, `--mcp-config`, and the new `--bare` mode (skips
   hooks/skills/CLAUDE.md/MCP auto-discovery; "recommended for scripted and
   SDK calls"). Stream events now include a `capabilities` feature-detection
@@ -283,14 +283,14 @@ oriented around parallel agents. It independently converged on exactly xNet's
 - **ToS timeline**: Jan 9 2026 server-side enforcement (consumer OAuth tokens
   outside Claude Code/claude.ai return "This credential is only authorized
   for use with Claude Code"); Feb 20 2026 ToS text bans consumer OAuth tokens
-  in any other product *including the Agent SDK*; full cut-off reported
+  in any other product _including the Agent SDK_; full cut-off reported
   Apr 4 2026. OpenCode/OpenClaw/Cline were cut off. What survives: the user
   running the genuine `claude` binary under their own login — including
-  `claude -p` spawned by another app as *the user's tool*. That is xNet's
+  `claude -p` spawned by another app as _the user's tool_. That is xNet's
   bridge, and T3 Code's model.
 - **Claude Desktop**: claude.ai backend; MCP stdio servers via
   `claude_desktop_config.json` and one-click `.mcpb` Desktop Extensions. MCP
-  is its only extension seam and it is *inbound* (tools for Claude) — there
+  is its only extension seam and it is _inbound_ (tools for Claude) — there
   is **no outbound embedding surface**; you cannot drive Claude Desktop from
   your app.
 
@@ -340,7 +340,7 @@ cannot spawn subprocesses; the bridge daemon must be the ACP client and relay
 to the browser.
 
 (AG-UI — CopilotKit's web-frontend↔agent-state protocol — is the adjacent
-standard for the *browser* leg; it complements rather than competes with ACP.)
+standard for the _browser_ leg; it complements rather than competes with ACP.)
 
 #### Aggregators and other harnesses
 
@@ -427,11 +427,11 @@ flowchart LR
    built on the Agent SDK and therefore **cannot carry a Claude
    subscription** (API-key only). For Claude-subscription users, xNet must
    keep its own stream-json spawn and translate to ACP-shaped frames itself.
-   ACP is the *shape* of the wire; it is not a free pass around the Claude
+   ACP is the _shape_ of the wire; it is not a free pass around the Claude
    auth boundary.
 
 6. **Codex deserves promotion from one-shot to first-class.** `codex
-   app-server` gives threads, resume, fork, steer, interrupt, and
+app-server` gives threads, resume, fork, steer, interrupt, and
    server-initiated approvals over documented JSON-RPC with versioned
    schemas — strictly better than the current `codex exec` one-shot, and
    explicitly sanctioned with ChatGPT-plan auth.
@@ -441,7 +441,7 @@ flowchart LR
    protocol is stateless. An ACP/app-server-shaped wire has native session
    identity; the fingerprint map remains as the compatibility shim for the
    plain OpenAI endpoint (which should stay — it makes the bridge useful to
-   *other* OpenAI-compatible clients on the user's machine, an
+   _other_ OpenAI-compatible clients on the user's machine, an
    underappreciated asset).
 
 8. **xNet has assets none of the surveyed harnesses have**: chats as
@@ -470,12 +470,12 @@ with runtime package loading.
 - Pros: N providers for one dependency; community-maintained protocol
   adapters; AI SDK 7's harness abstractions might eventually cover the agent
   lane too.
-- Cons: xNet runs in the *browser* (OpenCode runs on Bun server-side) —
+- Cons: xNet runs in the _browser_ (OpenCode runs on Bun server-side) —
   dynamic npm-at-runtime is off the table, and bundling every provider
   package bloats the web app; `providers.ts` already covers the six tiers
   xNet actually ships, including two (webllm, prompt-api) the AI SDK handles
   poorly; migration churn with little user-visible payoff. **Adopt the
-  *pattern* (catalog/protocol separation), not the dependency.**
+  _pattern_ (catalog/protocol separation), not the dependency.**
 
 ### Option C — Become an OpenCode client (embed `opencode serve` as the agent runtime)
 
@@ -499,13 +499,13 @@ hardened loopback channel (SSE/WebSocket — ACP's remote transport is still
 WIP, so this is "ACP-shaped", pragmatically framed). Behind the daemon, speak
 each agent's best native protocol:
 
-| Agent | Transport | Auth |
-|---|---|---|
-| Claude Code | spawn user's CLI, stream-json (existing) | user's own login — ToS-safe |
-| Codex | `codex app-server` JSON-RPC over stdio | ChatGPT plan or API key — sanctioned |
-| Gemini CLI | `gemini --experimental-acp` (native ACP) | user's Google OAuth |
-| OpenCode / Goose / others | ACP adapters as they mature | per-agent |
-| Raw models (managed, cloud-key, local, webllm) | existing `AIProvider` classes, now emitting the same frame vocabulary | existing |
+| Agent                                          | Transport                                                             | Auth                                 |
+| ---------------------------------------------- | --------------------------------------------------------------------- | ------------------------------------ |
+| Claude Code                                    | spawn user's CLI, stream-json (existing)                              | user's own login — ToS-safe          |
+| Codex                                          | `codex app-server` JSON-RPC over stdio                                | ChatGPT plan or API key — sanctioned |
+| Gemini CLI                                     | `gemini --experimental-acp` (native ACP)                              | user's Google OAuth                  |
+| OpenCode / Goose / others                      | ACP adapters as they mature                                           | per-agent                            |
+| Raw models (managed, cloud-key, local, webllm) | existing `AIProvider` classes, now emitting the same frame vocabulary | existing                             |
 
 - Pros: one event vocabulary unifies both lanes and both agent surfaces
   (finding 1's split heals); in-chat consent and tool-call visibility become
@@ -527,7 +527,7 @@ each agent's best native protocol:
 
 Charter §6 note: this exploration proposes no new revenue lane. The existing
 managed tier (metered OpenRouter pass-through, 0244) already passed the
-no-ground-rent tests; everything recommended here strengthens the *free*
+no-ground-rent tests; everything recommended here strengthens the _free_
 paths (user's own CLI, own keys, own local models), which is the BATNA test
 working as intended.
 
@@ -628,7 +628,7 @@ sequenceDiagram
 - **Claude ToS drift**: spawning the user's CLI is defensible but Anthropic
   has published no bright-line safe harbor. Mitigation is already built: the
   ladder degrades to cloud-key/OpenRouter-PKCE/local tiers. Watch for any
-  Anthropic statement on third-party *drivers* of the CLI.
+  Anthropic statement on third-party _drivers_ of the CLI.
 - **Consent semantics across lanes**: the guardrail's `confirm: true`
   re-call, Claude's `--allowedTools`, Codex's server-initiated approvals, and
   ACP permission requests are four consent grammars; the frame vocabulary
@@ -647,7 +647,7 @@ sequenceDiagram
 
 ## Implementation Checklist
 
-- [ ] Define `AgentFrame` union + reducer mapping in `packages/devkit/src/agent-frames.ts`; emit tool-use/cost/session frames from `reduceStreamJsonLine()` instead of discarding them
+- [x] Define `AgentFrame` union + reducer mapping in `packages/devkit/src/agent-frames.ts`; emit tool-use/cost/session frames from `reduceStreamJsonLine()` instead of discarding them
 - [ ] Add framed streaming endpoint to `bridge-server.ts` (`/v1/agent/stream`), token- and origin-guarded like the existing endpoints; keep `/v1/chat/completions` unchanged
 - [ ] Implement `codexAppServerChatAgent` (JSON-RPC over stdio to `codex app-server`): thread start/resume mapped to conversations; approvals → `permission_request` frames
 - [ ] Add `gemini --experimental-acp` agent behind the same frames
