@@ -1,6 +1,6 @@
+import type { ChatMessage } from './chat-agent'
 import { describe, expect, it } from 'vitest'
 import { createBridgeSessionStore, transcriptKey } from './bridge-sessions'
-import type { ChatMessage } from './chat-agent'
 
 const m = (role: ChatMessage['role'], content: string): ChatMessage => ({ role, content })
 

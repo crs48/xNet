@@ -141,12 +141,12 @@ describe('NodeLineRunner', () => {
   it('throws with the stderr tail when the process exits non-zero', async () => {
     const runner = new NodeLineRunner()
     const consume = async (): Promise<void> => {
-      for await (const _line of runner.stream(
+      for await (const line of runner.stream(
         process.execPath,
         ['-e', 'console.error("kaput"); process.exit(3)'],
         { cwd: process.cwd() }
       )) {
-        // drain
+        void line // drain
       }
     }
     await expect(consume()).rejects.toThrow(/code 3.*kaput|kaput/s)
@@ -155,12 +155,12 @@ describe('NodeLineRunner', () => {
   it('kills a silent process after the idle timeout', async () => {
     const runner = new NodeLineRunner()
     const consume = async (): Promise<void> => {
-      for await (const _line of runner.stream(
+      for await (const line of runner.stream(
         process.execPath,
         ['-e', 'setTimeout(() => {}, 60000)'],
         { cwd: process.cwd(), idleTimeoutMs: 150 }
       )) {
-        // drain
+        void line // drain
       }
     }
     await expect(consume()).rejects.toThrow(/no output for 150ms/)
@@ -169,10 +169,10 @@ describe('NodeLineRunner', () => {
   it('throws a spawn error for a missing binary', async () => {
     const runner = new NodeLineRunner()
     const consume = async (): Promise<void> => {
-      for await (const _line of runner.stream('definitely-not-a-real-binary-xyz', [], {
+      for await (const line of runner.stream('definitely-not-a-real-binary-xyz', [], {
         cwd: process.cwd()
       })) {
-        // drain
+        void line // drain
       }
     }
     await expect(consume()).rejects.toThrow(/could not spawn/)

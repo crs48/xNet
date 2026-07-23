@@ -125,7 +125,7 @@ describe('reduceStreamJsonLine', () => {
   })
 
   it('ignores thinking deltas and non-JSON noise', () => {
-    let state = initialStreamJsonState()
+    const state = initialStreamJsonState()
     expect(reduceStreamJsonLine(state, 'not json').delta).toBeUndefined()
     const step = reduceStreamJsonLine(
       state,
