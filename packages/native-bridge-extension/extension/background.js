@@ -20,7 +20,7 @@ const NATIVE_HOST = 'fyi.xnet.bridge'
 
 // Belt-and-braces alongside `externally_connectable`: the exact origins allowed
 // to drive the local model. Keep in lockstep with the manifest matches.
-const ALLOWED_ORIGINS = new Set(['https://app.xnet.fyi', 'http://localhost', 'http://127.0.0.1'])
+const ALLOWED_ORIGINS = new Set(['https://xnet.fyi', 'http://localhost', 'http://127.0.0.1'])
 
 function originOf(sender) {
   if (sender.origin) return new URL(sender.origin).origin

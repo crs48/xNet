@@ -161,7 +161,7 @@ describe('buildBridgeServer', () => {
 describe('launchd install helpers', () => {
   it('serializes serve args with a stable token and origins', () => {
     const args = installServeArgs(
-      { allowOrigin: ['https://app.xnet.fyi'], port: 31416, agent: 'claude' },
+      { allowOrigin: ['https://xnet.fyi'], port: 31416, agent: 'claude' },
       'tok-1'
     )
     expect(args).toEqual([
@@ -174,7 +174,7 @@ describe('launchd install helpers', () => {
       '--port',
       '31416',
       '--allow-origin',
-      'https://app.xnet.fyi'
+      'https://xnet.fyi'
     ])
   })
 

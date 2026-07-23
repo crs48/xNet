@@ -67,7 +67,7 @@ export interface ConnectorEnv {
   /** Bridge daemon base URL. Default: `http://127.0.0.1:31416`. */
   bridgeUrl?: string
   /**
-   * This app's own origin (e.g. `https://app.xnet.fyi`). When provided, the
+   * This app's own origin (e.g. `https://xnet.fyi`). When provided, the
    * `local-server` setup hint names the *exact* `OLLAMA_ORIGINS=<origin>` line to
    * run — never a wildcard, which would let any site drive the user's local
    * model. Default: unset (a generic hint).

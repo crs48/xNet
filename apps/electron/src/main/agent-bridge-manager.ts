@@ -52,16 +52,17 @@ function resolveAgent(explicit?: string): string {
 
 /**
  * Browser origins allowed to reach the loopback bridge, on top of loopback
- * origins. The deployed PWA must be listed here or its `https://app.xnet.fyi`
- * origin is rejected by the daemon's origin gate. Self-hosters extend the set
- * via `XNET_BRIDGE_ALLOWED_ORIGINS` (comma-separated).
+ * origins. The deployed PWA lives at `https://xnet.fyi/app`, so its origin is
+ * `https://xnet.fyi` — that must be listed here or the daemon's origin gate
+ * rejects it. Self-hosters extend the set via `XNET_BRIDGE_ALLOWED_ORIGINS`
+ * (comma-separated).
  */
-function resolveAllowedOrigins(): string[] {
+export function resolveAllowedOrigins(): string[] {
   const extra = (process.env.XNET_BRIDGE_ALLOWED_ORIGINS ?? '')
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean)
-  return ['https://app.xnet.fyi', ...extra]
+  return ['https://xnet.fyi', ...extra]
 }
 
 /**

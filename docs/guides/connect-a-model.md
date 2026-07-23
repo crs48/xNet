@@ -11,13 +11,13 @@ Detection is implemented in `@xnetjs/plugins` (`detectConnectors()` /
 
 ## The tiers
 
-| Tier | What it is | Install | Works in Safari | Cost to you | Tool calling |
-| --- | --- | --- | --- | --- | --- |
-| **Cloud key** | Your Anthropic / OpenAI / OpenRouter API key | paste a key | ✅ | metered (your key) | best |
-| **Local server** | Ollama / LM Studio on your machine | model app | ❌ (mixed content) | free | good |
-| **In-browser (WebLLM)** | a small model running in the tab via WebGPU | none | ✅ (Safari 26+) | free | weak |
-| **Chrome built-in** | Gemini Nano via the Prompt API | none | ❌ (Chrome only) | free | none yet |
-| **Local bridge** | a daemon driving your Claude Code / Codex subscription | daemon / Electron | ❌ in web (✅ Electron) | your subscription | best |
+| Tier                    | What it is                                             | Install           | Works in Safari         | Cost to you        | Tool calling |
+| ----------------------- | ------------------------------------------------------ | ----------------- | ----------------------- | ------------------ | ------------ |
+| **Cloud key**           | Your Anthropic / OpenAI / OpenRouter API key           | paste a key       | ✅                      | metered (your key) | best         |
+| **Local server**        | Ollama / LM Studio on your machine                     | model app         | ❌ (mixed content)      | free               | good         |
+| **In-browser (WebLLM)** | a small model running in the tab via WebGPU            | none              | ✅ (Safari 26+)         | free               | weak         |
+| **Chrome built-in**     | Gemini Nano via the Prompt API                         | none              | ❌ (Chrome only)        | free               | none yet     |
+| **Local bridge**        | a daemon driving your Claude Code / Codex subscription | daemon / Electron | ❌ in web (✅ Electron) | your subscription  | best         |
 
 xNet prefers them in capability order: **bridge → cloud key → local server →
 WebLLM → Chrome built-in**. When the active model can't reliably call tools,
@@ -77,7 +77,7 @@ never handles your tokens.
 ```sh
 xnet bridge serve                      # one-off; prints a pairing code
 xnet bridge install                    # macOS: start at login, stable pairing code
-xnet bridge serve --allow-origin https://app.xnet.fyi   # for the deployed app
+xnet bridge serve --allow-origin https://xnet.fyi       # for the deployed app
 ```
 
 Paste the pairing code into the AI panel ("Local bridge" tier) once. With

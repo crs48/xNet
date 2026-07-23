@@ -239,7 +239,7 @@ export function registerBridgeCommand(program: Command): void {
     .option('--port <n>', `Port (default ${DEFAULT_BRIDGE_PORT})`, parseIntOption)
     .option(
       '--allow-origin <origin...>',
-      'Browser origins permitted (e.g. https://app.xnet.fyi for the web deployment)'
+      'Browser origins permitted (e.g. https://xnet.fyi for the web deployment)'
     )
     .option(
       '--token <token>',
@@ -299,7 +299,7 @@ export function registerBridgeCommand(program: Command): void {
     .option('--port <n>', `Port (default ${DEFAULT_BRIDGE_PORT})`, parseIntOption)
     .option(
       '--allow-origin <origin...>',
-      'Browser origins permitted (e.g. https://app.xnet.fyi for the web deployment)'
+      'Browser origins permitted (e.g. https://xnet.fyi for the web deployment)'
     )
     .option('--token <token>', 'Pin the pairing code (default: generate one and keep it stable)')
     .action(async (options: BridgeInstallOptions) => {
