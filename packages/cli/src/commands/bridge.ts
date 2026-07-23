@@ -30,6 +30,8 @@ import {
   cliChatAgent,
   cliStreamingChatAgent,
   createBridgeServer,
+  createBridgeSessionStore,
+  fileSessionPersistence,
   DEFAULT_BRIDGE_PORT,
   defaultXnetGate,
   Git,
@@ -95,6 +97,11 @@ export function buildBridgeServer(
   // agent (exploration 0391). Codex and friends stay on the one-shot template;
   // `--upstream` fronts a raw OpenAI-compatible model server through the bridge.
   let agent: ChatAgent
+  // Durable session map for the streaming (Claude) path only — the agent that
+  // actually produces --resume session ids. Persisted next to the cwd where
+  // Claude Code keeps those sessions, so a daemon restart continues them
+  // instead of re-seeding every open conversation (exploration 0392).
+  let sessions: ReturnType<typeof createBridgeSessionStore> | undefined
   if (options.upstream) {
     agent = openAiChatAgent({
       baseUrl: options.upstream,
@@ -105,6 +112,9 @@ export function buildBridgeServer(
       command,
       cwd,
       ...(options.mcpConfigPath ? { launch: mcpLaunchOptions(options) } : {})
+    })
+    sessions = createBridgeSessionStore({
+      persistence: fileSessionPersistence(join(cwd, 'bridge-sessions.json'))
     })
   } else {
     const args = buildAgentArgs(command, {
@@ -132,6 +142,7 @@ export function buildBridgeServer(
   return createBridgeServer({
     agent,
     agentName: command,
+    ...(sessions ? { sessions } : {}),
     ...(run ? { run } : {}),
     ...(options.host ? { host: options.host } : {}),
     ...(options.port !== undefined ? { port: options.port } : {}),

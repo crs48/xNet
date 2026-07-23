@@ -32,7 +32,7 @@ import type { AgentTaskResult } from './dev-loop'
 import { randomBytes, timingSafeEqual } from 'node:crypto'
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import { bridgeHealth, type BridgeRunRequest } from './bridge'
-import { createBridgeSessionStore } from './bridge-sessions'
+import { createBridgeSessionStore, type BridgeSessionStore } from './bridge-sessions'
 import {
   isFramedChatAgent,
   isStreamingChatAgent,
@@ -76,6 +76,12 @@ export interface BridgeServerConfig {
    * gate), so callers enable it explicitly.
    */
   run?: (request: BridgeRunRequest) => Promise<AgentTaskResult>
+  /**
+   * Conversation → CLI-session map. Defaults to an in-memory store (lost on
+   * restart); pass a durable one (see `createBridgeSessionStore` with
+   * {@link SessionPersistence}) so sessions survive a daemon restart.
+   */
+  sessions?: BridgeSessionStore
 }
 
 export interface BridgeServerHandle {
@@ -99,9 +105,10 @@ export function createBridgeServer(config: BridgeServerConfig): BridgeServerHand
   const pairingToken = config.pairingToken ?? randomBytes(24).toString('base64url')
   const agentName = config.agentName ?? 'agent'
   const version = config.version ?? '0.1.0'
-  // Conversation → CLI-session map (per daemon launch; a restart just means
-  // the next turn re-seeds a fresh session with full history).
-  const sessions = createBridgeSessionStore()
+  // Conversation → CLI-session map. In-memory by default (a restart re-seeds a
+  // fresh session with full history); a durable store injected via config.sessions
+  // continues sessions across restarts (exploration 0392).
+  const sessions = config.sessions ?? createBridgeSessionStore()
   let boundPort = requestedPort
   let server: Server | undefined
 

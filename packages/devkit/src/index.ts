@@ -92,8 +92,11 @@ export {
 
 export {
   createBridgeSessionStore,
+  fileSessionPersistence,
   transcriptKey,
   type BridgeSessionStore,
+  type BridgeSessionStoreOptions,
+  type SessionPersistence,
   type BridgeTurnPlan
 } from './bridge-sessions'
 
