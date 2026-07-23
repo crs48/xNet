@@ -43,13 +43,19 @@ import {
   applyRuntimeEvent,
   baseUrlFromDetail,
   canSendMessage,
+  createPkceVerifier,
   errorMessage,
+  exchangeOpenRouterCode,
   fetchManagedModels,
   formatModelOption,
   groupModelsByFamily,
   KNOWN_BRIDGE_AGENTS,
+  OPENROUTER_VERIFIER_KEY,
+  openRouterAuthUrl,
+  openRouterCallbackCode,
   parseBridgeHealth,
   pickUsableConnector,
+  pkceChallengeS256,
   providerConfigForConnector,
   type AiChatSettings,
   type BridgeHealth,
@@ -213,6 +219,48 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
   const selectTier = useCallback((tier: ConnectorTier) => {
     setSelectedTier(tier)
     writeSetting(AI_CHAT_STORAGE_KEYS.tier, tier)
+  }, [])
+
+  // OpenRouter PKCE connect (0391 Phase 3): send the user to openrouter.ai to
+  // authorize; the callback lands back here with ?code=.
+  const connectOpenRouter = useCallback(async () => {
+    const verifier = createPkceVerifier()
+    writeSetting(OPENROUTER_VERIFIER_KEY, verifier)
+    const challenge = await pkceChallengeS256(verifier)
+    window.location.href = openRouterAuthUrl(
+      `${window.location.origin}${window.location.pathname}`,
+      challenge
+    )
+  }, [])
+
+  // Complete an in-flight OpenRouter connect: exchange ?code= for a
+  // user-scoped key, store it as the cloud-key tier, and clean the URL.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const verifier = readSetting(OPENROUTER_VERIFIER_KEY)
+    const code = openRouterCallbackCode(window.location.search)
+    if (!verifier || !code) return
+    let cancelled = false
+    void exchangeOpenRouterCode(code, verifier).then((key) => {
+      writeSetting(OPENROUTER_VERIFIER_KEY, '')
+      const url = new URL(window.location.href)
+      url.searchParams.delete('code')
+      window.history.replaceState(null, '', url.toString())
+      if (cancelled) return
+      if (!key) {
+        setError('OpenRouter connect failed — try again or paste a key manually.')
+        return
+      }
+      setApiKey(key)
+      writeSetting(AI_CHAT_STORAGE_KEYS.apiKey, key)
+      setCloudProvider('openrouter')
+      writeSetting(AI_CHAT_STORAGE_KEYS.cloudProvider, 'openrouter')
+      setSelectedTier('cloud-key')
+      writeSetting(AI_CHAT_STORAGE_KEYS.tier, 'cloud-key')
+    })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   // Detect connectors (re-runs when the key changes so cloud-key flips available).
@@ -537,6 +585,7 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
             setCloudProvider(value)
             writeSetting(AI_CHAT_STORAGE_KEYS.cloudProvider, value)
           }}
+          onConnectOpenRouter={() => void connectOpenRouter()}
         />
       )}
       {selected?.tier === 'managed' && selected.available && (
@@ -942,12 +991,14 @@ function CloudKeyFields({
   apiKey,
   cloudProvider,
   onApiKey,
-  onProvider
+  onProvider,
+  onConnectOpenRouter
 }: {
   apiKey: string
   cloudProvider: CloudProvider
   onApiKey: (value: string) => void
   onProvider: (value: CloudProvider) => void
+  onConnectOpenRouter?: () => void
 }) {
   return (
     <div className="flex flex-col gap-1 border-b border-hairline px-3 py-2">
@@ -969,8 +1020,19 @@ function CloudKeyFields({
           className="min-w-0 flex-1 rounded-md border border-hairline bg-surface-0 px-2 py-1 text-[11px] text-ink-1 outline-none placeholder:text-ink-3"
         />
       </div>
+      {cloudProvider === 'openrouter' && !apiKey && onConnectOpenRouter && (
+        <button
+          type="button"
+          onClick={onConnectOpenRouter}
+          className="self-start rounded-md border border-hairline bg-surface-0 px-2 py-1 text-[11px] text-ink-1 hover:bg-surface-2"
+        >
+          Connect OpenRouter account…
+        </button>
+      )}
       <p className="text-[10px] text-ink-3">
         Stored in this browser and sent only to {cloudProvider} — never to our servers.
+        {cloudProvider === 'openrouter' &&
+          ' Connecting issues a key scoped to your own OpenRouter account and balance.'}
       </p>
     </div>
   )

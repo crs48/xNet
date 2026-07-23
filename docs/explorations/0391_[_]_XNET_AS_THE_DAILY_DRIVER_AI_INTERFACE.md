@@ -515,10 +515,10 @@ Phase 2 — chat becomes workspace data:
 
 Phase 3 — fallbacks and hardening:
 
-- [ ] OpenRouter PKCE connect flow as the no-daemon fallback tier
+- [x] OpenRouter PKCE connect flow as the no-daemon fallback tier
 - [ ] Verify Chrome 142 LNA prompt end-to-end from the production origin;
       document Safari exclusion
-- [ ] Re-evaluate graduating `packages/native-bridge-extension` once B is
+- [x] Re-evaluate graduating `packages/native-bridge-extension` once B is
       the daily driver
 
 ## Validation Checklist
