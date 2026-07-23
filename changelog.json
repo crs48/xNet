@@ -6,6 +6,29 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-22-agent-bridge-pairs-with-the-deployed-web",
+      "url": "https://xnet.fyi/changelog#2026-07-22-agent-bridge-pairs-with-the-deployed-web",
+      "title": "Agent bridge pairs with the deployed web app again",
+      "content_text": "The agent bridge's default origin allowlist (and the CLI/docs examples) pointed at app.xnet.fyi, which no longer exists — the deployed app at xnet.fyi/app could never pair. The default is now https://xnet.fyi; XNET_BRIDGE_ALLOWED_ORIGINS still extends the list.\n",
+      "date_published": "2026-07-23T01:28:45Z",
+      "tags": [
+        "app",
+        "ai"
+      ],
+      "_xnet": {
+        "date": "July 22, 2026",
+        "summary": "The agent bridge's default origin allowlist (and the CLI/docs examples) pointed at app.xnet.fyi, which no longer exists — the deployed app at xnet.fyi/app could never pair. The default is now https://xnet.fyi; XNET_BRIDGE_ALLOWED_ORIGINS still extends the list.",
+        "highlights": [],
+        "mergedAt": "2026-07-23T01:28:45Z",
+        "pr": 621,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-22-the-ai-assistant-now-streams-live-replie",
       "url": "https://xnet.fyi/changelog#2026-07-22-the-ai-assistant-now-streams-live-replie",
       "title": "The AI assistant now streams live replies from your own Claude Code subscription",

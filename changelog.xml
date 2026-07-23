@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Agent bridge pairs with the deployed web app again</title>
+      <link>https://xnet.fyi/changelog#2026-07-22-agent-bridge-pairs-with-the-deployed-web</link>
+      <guid isPermaLink="false">2026-07-22-agent-bridge-pairs-with-the-deployed-web</guid>
+      <pubDate>Thu, 23 Jul 2026 01:28:45 GMT</pubDate>
+      <description>The agent bridge's default origin allowlist (and the CLI/docs examples) pointed at app.xnet.fyi, which no longer exists — the deployed app at xnet.fyi/app could never pair. The default is now https://xnet.fyi; XNET_BRIDGE_ALLOWED_ORIGINS still extends the list.</description>
+    </item>
+    <item>
       <title>The AI assistant now streams live replies from your own Claude Code subscription</title>
       <link>https://xnet.fyi/changelog#2026-07-22-the-ai-assistant-now-streams-live-replie</link>
       <guid isPermaLink="false">2026-07-22-the-ai-assistant-now-streams-live-replie</guid>
