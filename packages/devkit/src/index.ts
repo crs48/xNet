@@ -64,6 +64,7 @@ export {
   cliChatAgent,
   cliStreamingChatAgent,
   isStreamingChatAgent,
+  isFramedChatAgent,
   fakeChatAgent,
   openAiChatAgent,
   flattenChat,
@@ -75,15 +76,27 @@ export {
   type CliStreamingChatAgentOptions,
   type OpenAiChatAgentOptions,
   type StreamingChatAgent,
+  type FramedChatAgent,
   type StreamTurnRequest,
   type StreamTurnResult,
   type StreamJsonState
 } from './chat-agent'
 
 export {
+  foldStreamJsonFrames,
+  initialStreamJsonFrameState,
+  AGENT_FRAME_TYPES,
+  type AgentFrame,
+  type StreamJsonFrameState
+} from './agent-frames'
+
+export {
   createBridgeSessionStore,
+  fileSessionPersistence,
   transcriptKey,
   type BridgeSessionStore,
+  type BridgeSessionStoreOptions,
+  type SessionPersistence,
   type BridgeTurnPlan
 } from './bridge-sessions'
 

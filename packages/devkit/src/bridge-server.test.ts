@@ -1,3 +1,4 @@
+import type { AgentFrame } from './agent-frames'
 import { request } from 'node:http'
 import { afterEach, describe, expect, it } from 'vitest'
 import {
@@ -5,7 +6,12 @@ import {
   type BridgeServerConfig,
   type BridgeServerHandle
 } from './bridge-server'
-import { fakeChatAgent, type StreamingChatAgent, type StreamTurnRequest } from './chat-agent'
+import {
+  fakeChatAgent,
+  type FramedChatAgent,
+  type StreamingChatAgent,
+  type StreamTurnRequest
+} from './chat-agent'
 
 /**
  * Raw loopback GET with a caller-chosen `Host` header. `fetch`/undici silently
@@ -329,5 +335,181 @@ describe('createBridgeServer with a streaming agent', () => {
     expect(text).toContain('partial ')
     expect(text).toContain('bridge error: cli died')
     expect(text).toContain('data: [DONE]')
+  })
+})
+
+// ─── Framed endpoint (exploration 0392) ─────────────────────────────────────────
+
+/** Parse the `data: <json>` frames from a framed-endpoint SSE body. */
+function parseFrames(body: string): Array<Record<string, unknown>> {
+  return body
+    .split('\n\n')
+    .map((block) => block.replace(/^data: /, '').trim())
+    .filter((line) => line && line !== '[DONE]')
+    .map((line) => JSON.parse(line) as Record<string, unknown>)
+}
+
+/** A FramedChatAgent that replays a scripted frame sequence. */
+function fakeFramedAgent(
+  frames: AgentFrame[],
+  sessionId = 'sess-1'
+): FramedChatAgent & { turns: StreamTurnRequest[] } {
+  const turns: StreamTurnRequest[] = []
+  // Mirror cliStreamingChatAgent: the returned text is the streamed deltas, or
+  // the terminal result frame's text when nothing streamed.
+  const deltaText = frames
+    .filter((f): f is Extract<AgentFrame, { type: 'delta' }> => f.type === 'delta')
+    .map((f) => f.text)
+    .join('')
+  const resultText = frames.find(
+    (f): f is Extract<AgentFrame, { type: 'result' }> => f.type === 'result'
+  )?.text
+  const text = deltaText || resultText || ''
+  return {
+    turns,
+    async streamTurnFrames(turn, onFrame) {
+      turns.push(turn)
+      for (const frame of frames) {
+        onFrame(frame)
+        await Promise.resolve()
+      }
+      return { text, sessionId }
+    },
+    async streamTurn(turn, onDelta) {
+      turns.push(turn)
+      onDelta(text)
+      return { text, sessionId }
+    },
+    async chat() {
+      return text
+    }
+  }
+}
+
+describe('createBridgeServer framed endpoint (/v1/agent/stream)', () => {
+  it('requires the pairing token', async () => {
+    const url = await start()
+    const res = await fetch(`${url}/v1/agent/stream`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ messages: [{ role: 'user', content: 'hi' }] })
+    })
+    expect(res.status).toBe(401)
+  })
+
+  it('forwards structured frames (session, delta, tool_call, result) as SSE', async () => {
+    const agent = fakeFramedAgent(
+      [
+        { type: 'session', sessionId: 'sess-9' },
+        { type: 'delta', text: 'work' },
+        { type: 'tool_call', id: 'tu-1', name: 'xnet_update', input: { id: 'n1' } },
+        { type: 'tool_result', id: 'tu-1', ok: true },
+        { type: 'result', ok: true, text: 'work', sessionId: 'sess-9' }
+      ],
+      'sess-9'
+    )
+    const url = await start({ agent })
+    const res = await fetch(`${url}/v1/agent/stream`, {
+      method: 'POST',
+      headers: authed,
+      body: JSON.stringify({ messages: [{ role: 'user', content: 'go' }] })
+    })
+    expect(res.headers.get('content-type')).toContain('text/event-stream')
+    const frames = parseFrames(await res.text())
+    expect(frames.map((f) => f.type)).toEqual([
+      'session',
+      'delta',
+      'tool_call',
+      'tool_result',
+      'result'
+    ])
+    expect(frames[2]).toMatchObject({ name: 'xnet_update', input: { id: 'n1' } })
+  })
+
+  it('resumes the CLI session on the conversation follow-up turn', async () => {
+    const agent = fakeFramedAgent(
+      [{ type: 'result', ok: true, text: 'hi there', sessionId: 'sess-42' }],
+      'sess-42'
+    )
+    const url = await start({ agent })
+    const turn1 = [{ role: 'user', content: 'hello' }]
+    await fetch(`${url}/v1/agent/stream`, {
+      method: 'POST',
+      headers: authed,
+      body: JSON.stringify({ messages: turn1 })
+    })
+    expect(agent.turns[0].resumeSessionId).toBeUndefined()
+    await fetch(`${url}/v1/agent/stream`, {
+      method: 'POST',
+      headers: authed,
+      body: JSON.stringify({
+        messages: [
+          ...turn1,
+          { role: 'assistant', content: 'hi there' },
+          { role: 'user', content: 'more' }
+        ]
+      })
+    })
+    expect(agent.turns[1].resumeSessionId).toBe('sess-42')
+    expect(agent.turns[1].prompt).toBe('more')
+  })
+
+  it('synthesizes delta+result frames for a plain (non-framed) agent', async () => {
+    const url = await start({ agent: fakeChatAgent(() => 'plain reply') })
+    const res = await fetch(`${url}/v1/agent/stream`, {
+      method: 'POST',
+      headers: authed,
+      body: JSON.stringify({ messages: [{ role: 'user', content: 'hi' }] })
+    })
+    const frames = parseFrames(await res.text())
+    expect(frames).toEqual([
+      { type: 'delta', text: 'plain reply' },
+      { type: 'result', ok: true, text: 'plain reply' }
+    ])
+  })
+
+  it('surfaces a mid-stream failure as a terminal error result frame', async () => {
+    const failing: FramedChatAgent = {
+      async streamTurnFrames(_turn, onFrame) {
+        onFrame({ type: 'delta', text: 'partial' })
+        throw new Error('cli died')
+      },
+      async streamTurn() {
+        return { text: '' }
+      },
+      async chat() {
+        return ''
+      }
+    }
+    const url = await start({ agent: failing })
+    const res = await fetch(`${url}/v1/agent/stream`, {
+      method: 'POST',
+      headers: authed,
+      body: JSON.stringify({ messages: [{ role: 'user', content: 'hi' }] })
+    })
+    expect(res.status).toBe(200)
+    const frames = parseFrames(await res.text())
+    expect(frames.at(-1)).toEqual({ type: 'result', ok: false, error: 'cli died' })
+  })
+
+  it('answers 502 when a framed agent fails before any frame', async () => {
+    const failing: FramedChatAgent = {
+      async streamTurnFrames() {
+        throw new Error('spawn failed')
+      },
+      async streamTurn() {
+        return { text: '' }
+      },
+      async chat() {
+        return ''
+      }
+    }
+    const url = await start({ agent: failing })
+    const res = await fetch(`${url}/v1/agent/stream`, {
+      method: 'POST',
+      headers: authed,
+      body: JSON.stringify({ messages: [{ role: 'user', content: 'hi' }] })
+    })
+    expect(res.status).toBe(502)
   })
 })

@@ -1,6 +1,14 @@
 import type { ChatMessage } from './chat-agent'
-import { describe, expect, it } from 'vitest'
-import { createBridgeSessionStore, transcriptKey } from './bridge-sessions'
+import { mkdtempSync, readFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { afterEach, describe, expect, it } from 'vitest'
+import {
+  createBridgeSessionStore,
+  fileSessionPersistence,
+  transcriptKey,
+  type SessionPersistence
+} from './bridge-sessions'
 
 const m = (role: ChatMessage['role'], content: string): ChatMessage => ({ role, content })
 
@@ -78,5 +86,67 @@ describe('createBridgeSessionStore', () => {
     expect(
       store.plan([m('user', 'c'), m('assistant', 'rc'), m('user', 'more')]).resumeSessionId
     ).toBe('s-c')
+  })
+})
+
+describe('durable session persistence (exploration 0392)', () => {
+  it('seeds from persistence and writes through on record', () => {
+    const backing: Array<[string, string]> = []
+    const persistence: SessionPersistence = {
+      load: () => backing.slice(),
+      save: (entries) => {
+        backing.length = 0
+        backing.push(...entries)
+      }
+    }
+    const store = createBridgeSessionStore({ persistence })
+    store.record([m('user', 'q')], 'a', 'sess-9')
+    expect(backing).toHaveLength(1)
+
+    // A "restart": a brand-new store seeded from the same backing resumes it.
+    const restarted = createBridgeSessionStore({ persistence })
+    const plan = restarted.plan([m('user', 'q'), m('assistant', 'a'), m('user', 'next')])
+    expect(plan.resumeSessionId).toBe('sess-9')
+  })
+
+  it('respects the limit when seeding a large persisted map', () => {
+    const persisted: Array<[string, string]> = [
+      ['k1', 's1'],
+      ['k2', 's2'],
+      ['k3', 's3']
+    ]
+    const store = createBridgeSessionStore({
+      limit: 2,
+      persistence: { load: () => persisted, save: () => {} }
+    })
+    expect(store.size).toBe(2)
+  })
+})
+
+describe('fileSessionPersistence', () => {
+  const dirs: string[] = []
+  afterEach(() => {
+    dirs.length = 0
+  })
+
+  it('round-trips the map across a simulated daemon restart', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'xnet-bridge-sess-'))
+    dirs.push(dir)
+    const file = join(dir, 'nested', 'bridge-sessions.json')
+
+    const first = createBridgeSessionStore({ persistence: fileSessionPersistence(file) })
+    first.record([m('user', 'hello')], 'hi there', 'sess-1')
+    expect(JSON.parse(readFileSync(file, 'utf8'))).toMatchObject({ version: 1 })
+
+    const second = createBridgeSessionStore({ persistence: fileSessionPersistence(file) })
+    const plan = second.plan([m('user', 'hello'), m('assistant', 'hi there'), m('user', 'again')])
+    expect(plan.resumeSessionId).toBe('sess-1')
+  })
+
+  it('loads empty (not throwing) when the file is missing or corrupt', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'xnet-bridge-sess-'))
+    dirs.push(dir)
+    const missing = fileSessionPersistence(join(dir, 'does-not-exist.json'))
+    expect(missing.load()).toBeUndefined()
   })
 })

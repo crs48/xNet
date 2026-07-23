@@ -16,9 +16,18 @@
  * When nothing matches (daemon restarted, edited history, first turn) we fall
  * back to a fresh session seeded with the full flattened history — never a
  * context-less resume, so a miss costs latency, not correctness.
+ *
+ * A daemon restart used to lose the whole map (exploration 0391 called this
+ * out), forcing every open conversation to re-seed. Exploration 0392 makes the
+ * map optionally **durable**: pass a {@link SessionPersistence} (the CLI wires
+ * {@link fileSessionPersistence} under `~/.xnet/agent-home`) and the map is
+ * seeded on start and written through on every record, so a restart continues
+ * the CLI sessions instead of amnesia.
  */
 
 import { createHash } from 'node:crypto'
+import { readFileSync, writeFileSync, mkdirSync } from 'node:fs'
+import { dirname } from 'node:path'
 import { flattenChat, type ChatMessage } from './chat-agent'
 
 /** One planned bridge turn: what to send, and which session to continue. */
@@ -36,6 +45,26 @@ export interface BridgeSessionStore {
   readonly size: number
 }
 
+/**
+ * A durable backing store for the fingerprint → session map. Injected (rather
+ * than hard-coding `fs`) so the store stays unit-testable; {@link fileSessionPersistence}
+ * is the production file-backed implementation.
+ */
+export interface SessionPersistence {
+  /** Return the persisted `[fingerprint, sessionId]` entries, oldest-first, or `undefined`. */
+  load(): Array<[string, string]> | undefined
+  /** Persist the current entries (oldest-first). Called on every record. */
+  save(entries: Array<[string, string]>): void
+}
+
+/** Options for {@link createBridgeSessionStore} (a bare number stays the limit). */
+export interface BridgeSessionStoreOptions {
+  /** Max fingerprints retained (oldest evicted). Default 256. */
+  limit?: number
+  /** Optional durable backing — seeds on start, writes through on record. */
+  persistence?: SessionPersistence
+}
+
 /** Hash of the user/assistant transcript (system/context messages excluded). */
 export function transcriptKey(messages: readonly ChatMessage[]): string {
   const hash = createHash('sha256')
@@ -49,8 +78,22 @@ export function transcriptKey(messages: readonly ChatMessage[]): string {
   return hash.digest('base64')
 }
 
-export function createBridgeSessionStore(limit = 256): BridgeSessionStore {
+export function createBridgeSessionStore(
+  options: number | BridgeSessionStoreOptions = {}
+): BridgeSessionStore {
+  const { limit = 256, persistence } =
+    typeof options === 'number' ? { limit: options, persistence: undefined } : options
   const sessions = new Map<string, string>()
+  // Seed from the durable store (oldest-first, so eviction order is preserved).
+  const persisted = persistence?.load()
+  if (persisted) {
+    for (const [key, sessionId] of persisted) sessions.set(key, sessionId)
+    while (sessions.size > limit) {
+      const oldest = sessions.keys().next().value
+      if (oldest === undefined) break
+      sessions.delete(oldest)
+    }
+  }
   return {
     get size() {
       return sessions.size
@@ -81,6 +124,39 @@ export function createBridgeSessionStore(limit = 256): BridgeSessionStore {
         const oldest = sessions.keys().next().value
         if (oldest === undefined) break
         sessions.delete(oldest)
+      }
+      persistence?.save([...sessions.entries()])
+    }
+  }
+}
+
+/**
+ * A file-backed {@link SessionPersistence}. Stores the map as JSON
+ * (`{ version, entries: [[fingerprint, sessionId], …] }`) at `filePath`. A
+ * missing or corrupt file loads as empty (so a restart degrades to full-history
+ * re-seed, never a crash); the parent directory is created on first save.
+ */
+export function fileSessionPersistence(filePath: string): SessionPersistence {
+  return {
+    load() {
+      try {
+        const parsed = JSON.parse(readFileSync(filePath, 'utf8')) as unknown
+        const entries = (parsed as { entries?: unknown })?.entries
+        if (!Array.isArray(entries)) return undefined
+        return entries.filter(
+          (e): e is [string, string] =>
+            Array.isArray(e) && typeof e[0] === 'string' && typeof e[1] === 'string'
+        )
+      } catch {
+        return undefined // missing / unreadable / corrupt → start fresh
+      }
+    },
+    save(entries) {
+      try {
+        mkdirSync(dirname(filePath), { recursive: true })
+        writeFileSync(filePath, JSON.stringify({ version: 1, entries }), 'utf8')
+      } catch {
+        // Best-effort durability: a write failure must never break a live turn.
       }
     }
   }
