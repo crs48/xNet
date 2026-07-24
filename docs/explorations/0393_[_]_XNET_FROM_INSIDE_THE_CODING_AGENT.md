@@ -504,14 +504,14 @@ Phase 3 — distribution and polish:
 
 ## Validation Checklist
 
-- [ ] Fresh machine, app **not running**: `xnet search foo --db <path>` returns FTS hits
-- [ ] `xnet checkout → edit → commit --apply` round-trips a page with no frontmatter loss; revision bumps; change is signed
+- [x] Fresh machine, app **not running**: `xnet search foo --db <path>` returns FTS hits
+- [x] `xnet checkout → edit → commit --apply` round-trips a page with no frontmatter loss; revision bumps; change is signed
 - [ ] `xnet connect claude-code --project` then a new Claude Code session: agent discovers the skill unprompted and uses `xnet search` (not MCP) for a read task
 - [ ] Same session: a write task produces a plan and asks before applying
 - [ ] `claude mcp list` shows `xnet` healthy; a shell-less client (Claude Desktop) can search via MCP
 - [ ] Codex: `AGENTS.md` route works with `codex exec` on a vault; MCP config detected by CLI
-- [ ] Conflict test: app edit + vault edit on the same node → `xnet status` reports conflict, no silent overwrite
-- [ ] Token sanity: transcript of a read task via CLI lane consumes materially fewer tokens than the same task MCP-only
+- [x] Conflict test: app edit + vault edit on the same node → `xnet status` reports conflict, no silent overwrite
+- [x] Token sanity: transcript of a read task via CLI lane consumes materially fewer tokens than the same task MCP-only
 - [ ] Passport-scoped agent cannot write outside its granted space/schema
 
 ## References
