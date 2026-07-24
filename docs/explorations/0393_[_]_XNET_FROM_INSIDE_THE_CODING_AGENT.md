@@ -494,13 +494,13 @@ Phase 2 — `xnet connect`:
 
 Phase 3 — distribution and polish:
 
-- [ ] First-party Claude Code plugin (`.claude-plugin/plugin.json` bundling skill + MCP config)
-- [ ] Skill text: CLI-first hierarchy, scoped-checkout guidance, write-consent rules
-- [ ] CI guard: packaged skill ≡ `xnet skill` output
-- [ ] Concurrent-edit test (app write + vault commit on same node → conflict in `status`)
-- [ ] Daemon: debounce + frontmatter-parse verification before planning (audit current code)
-- [ ] Site docs page: "Use xNet from Claude Code / Codex"
-- [ ] Changesets for `@xnetjs/cli` (minor) and any `@xnetjs/plugins` surface touched
+- [x] First-party Claude Code plugin (`.claude-plugin/plugin.json` bundling skill + MCP config)
+- [x] Skill text: CLI-first hierarchy, scoped-checkout guidance, write-consent rules
+- [x] CI guard: packaged skill ≡ `xnet skill` output
+- [x] Concurrent-edit test (app write + vault commit on same node → conflict in `status`)
+- [x] Daemon: debounce + frontmatter-parse verification before planning (audit current code)
+- [x] Site docs page: "Use xNet from Claude Code / Codex"
+- [x] Changesets for `@xnetjs/cli` (minor) and any `@xnetjs/plugins` surface touched
 
 ## Validation Checklist
 

@@ -87,6 +87,7 @@ export const sidebar = [
       { slug: 'docs/guides/collaboration' },
       { slug: 'docs/guides/plugins' },
       { slug: 'docs/guides/agent-interfaces' },
+      { slug: 'docs/guides/coding-agents' },
       { slug: 'docs/guides/hub' },
       { slug: 'docs/guides/server' },
       { slug: 'docs/guides/frameworks' },

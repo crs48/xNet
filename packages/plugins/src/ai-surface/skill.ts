@@ -18,6 +18,19 @@ This folder is a checkout of the user's xNet workspace. The xNet database
 stays the source of truth; these files are a working tree. Identity lives in
 frontmatter and the manifest, never in filenames.
 
+## Lanes (cheapest first)
+
+1. **CLI** — \`xnet search\`/\`query\`/\`db get\` print plain stdout; grep and
+   pipe them. Reach here first: it costs the fewest tokens.
+2. **Vault** — Grep/Read/Edit these files, then \`xnet commit\`.
+3. **MCP** — the \`xnet\` MCP tools are a fallback for shell-less clients; when
+   the CLI can do it, the CLI is cheaper.
+
+Reads are free; **writes are deliberate**. Edits become validated mutation
+plans that only persist on \`xnet commit --apply\`; the MCP server is read-only
+unless it was connected with \`--writes\`. Scope every \`checkout\` (\`--query\`,
+\`--schema\`, \`--node\`, \`--kind\`) — never materialize the whole workspace.
+
 ## Layout
 
 - \`Pages/<slug>.md\` — pages as Markdown with YAML frontmatter
