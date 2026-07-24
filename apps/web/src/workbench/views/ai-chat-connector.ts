@@ -350,10 +350,19 @@ export interface RuntimeEventLike {
 }
 
 /** The state change a runtime event implies, or null if it's not interesting. */
+/** What the assistant is doing with a tool, for the activity line. */
+export interface ChatToolActivity {
+  kind: 'call' | 'result'
+  tool: string
+  denied?: boolean
+}
+
+/** The state change a runtime event implies, or null if it's not interesting. */
 export interface ChatEventEffect {
   delta?: string
   settled?: boolean
   error?: string
+  activity?: ChatToolActivity
 }
 
 export function reduceRuntimeEvent(event: RuntimeEventLike): ChatEventEffect | null {
@@ -361,12 +370,29 @@ export function reduceRuntimeEvent(event: RuntimeEventLike): ChatEventEffect | n
     const text = (event.payload as { text?: string } | undefined)?.text
     return text ? { delta: text } : null
   }
-  if (event.type === 'run.completed' || event.type === 'model.completed') {
+  if (event.type === 'tool.call') {
+    const call = (event.payload as { toolCall?: { name?: string } } | undefined)?.toolCall
+    return call?.name ? { activity: { kind: 'call', tool: call.name } } : null
+  }
+  if (event.type === 'tool.result') {
+    const payload = event.payload as { toolCall?: { name?: string }; denied?: boolean } | undefined
+    return payload?.toolCall?.name
+      ? { activity: { kind: 'result', tool: payload.toolCall.name, denied: payload.denied } }
+      : null
+  }
+  // NOT `model.completed`: with the tool loop (0394) a single run makes several
+  // model round trips, so that fires mid-turn. Settling on it would end the
+  // stream early and drop everything the assistant said after its first tool
+  // call. `run.completed` is the only event that means the turn is over.
+  if (event.type === 'run.completed') {
     return { settled: true }
   }
   if (event.type === 'run.failed') {
     const message = (event.payload as { error?: string } | undefined)?.error
     return { settled: true, error: message ?? 'run failed' }
+  }
+  if (event.type === 'run.cancelled') {
+    return { settled: true }
   }
   return null
 }
@@ -375,6 +401,8 @@ export interface ChatEventHandlers {
   onDelta: (text: string) => void
   onSettled: () => void
   onError: (message: string) => void
+  /** Optional: surface tool activity while the turn is still running. */
+  onActivity?: (activity: ChatToolActivity) => void
 }
 
 /** Apply a runtime event to the chat handlers, filtered to the active thread. */
@@ -387,6 +415,7 @@ export function applyRuntimeEvent(
   const effect = reduceRuntimeEvent(event)
   if (!effect) return
   if (effect.delta) handlers.onDelta(effect.delta)
+  if (effect.activity) handlers.onActivity?.(effect.activity)
   if (effect.settled) handlers.onSettled()
   if (effect.error) handlers.onError(effect.error)
 }

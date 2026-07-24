@@ -552,7 +552,7 @@ Deterministic (no model calls), fast, and every future change to `RRF_K`,
 - [ ] Inventory real `connect-src` needs in the web app, then remove the bare
       `https://*`/`wss://*` from `apps/web/index.html` in favor of the
       explicit allowlist (custom-hub story from 0300 resolved explicitly). > **Inventory done; removal deliberately not made — see the callout in > Risks below.** `https://*` was added in `c8e2e96ad` (0341) so > crash-report ingest reaches a user-configured custom hub, and > `wss://*` carries that hub's sync socket. Both origins are typed by > the user at runtime, so no static policy can name them. The wildcard > is now documented in `apps/web/index.html` and pinned by > `apps/electron/src/renderer/csp.test.ts`; actually removing it is a > product decision (drop custom hubs from the web build), not a cleanup.
-- [ ] Phase 1: pass read-only tools (`xnet_search`, `xnet_read_page_markdown`,
+- [x] Phase 1: pass read-only tools (`xnet_search`, `xnet_read_page_markdown`,
       `xnet_database_query`) into `AiAgentRuntime`, rendering `tool_call` /
       `tool_result` frames in `AiChatPanel`.
 - [ ] Phase 2: surface the approval ceremony in-chat via
