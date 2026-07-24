@@ -1140,6 +1140,20 @@ export const layers: CompareLayer[] = [
         footnotes: ['iroh-1-0']
       },
       {
+        name: 'Freenet',
+        url: 'https://freenet.org',
+        maturity: 'beta',
+        license: 'AGPL-3.0',
+        bestFor: 'Serverless apps on a global peer-to-peer key-value store',
+        dims: {
+          scope: 'Decentralized app platform',
+          dataModel: { v: 'Wasm "contracts" over CRDT state', fn: 'freenet-model' },
+          sync: 'Small-world routing; summary/delta',
+          identity: 'Cryptographic keys (anonymous)'
+        },
+        footnotes: ['freenet-model']
+      },
+      {
         name: 'libp2p',
         url: 'https://libp2p.io',
         maturity: 'production',
@@ -1235,6 +1249,11 @@ export const layers: CompareLayer[] = [
         id: 'iroh-1-0',
         text: '1.0 release candidates published; the final 1.0 was not yet confirmed at the time of writing.',
         sourceUrl: 'https://www.iroh.computer/blog/road-to-1-0'
+      },
+      {
+        id: 'freenet-model',
+        text: "A rebuilt Freenet (formerly 'Locutus'): a global key-value store where keys are WebAssembly contracts that define how their state merges (a commutative monoid / CRDT), reached by small-world routing with no servers. Shares xNet's merge-not-consensus premise; differs by removing accountable operators — data durability is demand-driven rather than an operator's promise, identity is anonymous rather than DID-accountable, and the transport is a bespoke stack rather than TLS. A live network ships pre-1.0 v0.2.x releases.",
+        sourceUrl: 'https://freenet.org/'
       }
     ]
   }
