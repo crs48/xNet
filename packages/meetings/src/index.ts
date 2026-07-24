@@ -61,6 +61,7 @@ export {
   type TranscriptChatContext
 } from './enhance/chat'
 export { polishTranscript, type RetainedChannelAudio, type PolishResult } from './enhance/polish'
+export { screenGroundedness, type GroundednessReport } from './enhance/groundedness'
 
 export {
   DEFAULT_CONSENT_SETTINGS,
