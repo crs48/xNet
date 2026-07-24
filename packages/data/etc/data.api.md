@@ -7844,7 +7844,7 @@ export interface NodeStorageAdapter {
     queryNodes?(descriptor: NodeQueryDescriptor): Promise<NodeQueryResult>;
     rebuildIndexesForSchemas?(schemaIds: readonly SchemaIRI[], options?: RebuildNodeIndexesOptions): Promise<void>;
     resetOperationStats?(): Promise<void> | void;
-    searchText?(query: string, limit: number): Promise<NodeTextSearchResult[] | null>;
+    searchText?(query: string, limit: number, options?: NodeTextSearchOptions): Promise<NodeTextSearchResult[] | null>;
     // (undocumented)
     setAppState?(key: string, value: string): Promise<void>;
     // (undocumented)
@@ -7903,7 +7903,7 @@ export class NodeStore {
     // (undocumented)
     rebuildIndexesForSchemas(schemaIds: readonly SchemaIRI[]): Promise<void>;
     restore(id: NodeId): Promise<NodeState>;
-    searchText(query: string, limit: number): Promise<NodeTextSearchResult[] | null>;
+    searchText(query: string, limit: number, options?: NodeTextSearchOptions): Promise<NodeTextSearchResult[] | null>;
     setCheckedOutDraft(overlay: CheckedOutDraftOverlay | null): void;
     setDocumentContent(nodeId: NodeId, content: Uint8Array): Promise<void>;
     setSyncCursor(room: string, lamport: number): Promise<void>;
@@ -7952,6 +7952,11 @@ export interface NodeStoreOptions {
         }): void;
         reportSecurityEvent(eventName: string, severity: 'low' | 'medium' | 'high' | 'critical'): void;
     };
+}
+
+// @public
+export interface NodeTextSearchOptions {
+    schemaId?: SchemaIRI;
 }
 
 // @public
@@ -10068,7 +10073,7 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
         docState: Uint8Array;
         byteSize: number;
     }): Promise<void>;
-    searchText(query: string, limit: number): Promise<NodeTextSearchResult[] | null>;
+    searchText(query: string, limit: number, options?: NodeTextSearchOptions): Promise<NodeTextSearchResult[] | null>;
     // (undocumented)
     setAppState(key: string, value: string): Promise<void>;
     // (undocumented)
@@ -11048,7 +11053,7 @@ export { YXmlText }
 
 // Warnings were encountered during analysis:
 //
-// dist/types-6DSGyGBB.d.ts:571:9 - (ae-forgotten-export) The symbol "GrantStatus" needs to be exported by the entry point index.d.ts
+// dist/types-DWM7rhNJ.d.ts:571:9 - (ae-forgotten-export) The symbol "GrantStatus" needs to be exported by the entry point index.d.ts
 
 // (No @packageDocumentation comment for this package)
 
