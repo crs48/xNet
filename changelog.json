@@ -6,6 +6,30 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-24-use-xnet-from-claude-code-and-codex",
+      "url": "https://xnet.fyi/changelog#2026-07-24-use-xnet-from-claude-code-and-codex",
+      "title": "Use xNet from Claude Code and Codex",
+      "content_text": "New `xnet connect claude-code|codex` wires a coding agent to your workspace in one step; the agent CLI verbs now work with the app closed via a standalone SQLite store.\n",
+      "date_published": "2026-07-24T17:53:11Z",
+      "tags": [
+        "ai",
+        "platform",
+        "devtools"
+      ],
+      "_xnet": {
+        "date": "July 24, 2026",
+        "summary": "New `xnet connect claude-code|codex` wires a coding agent to your workspace in one step; the agent CLI verbs now work with the app closed via a standalone SQLite store.",
+        "highlights": [],
+        "mergedAt": "2026-07-24T17:53:11Z",
+        "pr": 627,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-22-structured-agent-frames-and-durable-sess",
       "url": "https://xnet.fyi/changelog#2026-07-22-structured-agent-frames-and-durable-sess",
       "title": "Structured agent frames and durable sessions for the AI bridge",
