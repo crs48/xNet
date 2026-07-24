@@ -517,8 +517,13 @@ export class AiSurfaceService {
     // scanning `maxSearchScan` nodes. Falls through to the scan when the
     // storage has no FTS (memory adapter) or the probe errors.
     if (this.config.store.searchText) {
+      // `schemaId` is pushed into the index query (0394) so the window holds
+      // `limit` matches *of that schema* — post-filtering a cross-schema
+      // window under-returns whenever the schema's hits sit past it.
       const ftsMatches = await this.config.store
-        .searchText(query, Math.min(scanLimit, offset + resultLimit * 4))
+        .searchText(query, Math.min(scanLimit, offset + resultLimit * 4), {
+          schemaId: options.schemaId
+        })
         .catch(() => null)
       if (ftsMatches !== null && ftsMatches !== undefined) {
         const loaded = await Promise.all(
@@ -552,6 +557,7 @@ export class AiSurfaceService {
           offset,
           scanned: ftsMatches.length,
           index: 'fts5',
+          degraded: false,
           results: results.slice(offset, offset + resultLimit)
         }
       }
@@ -570,6 +576,11 @@ export class AiSurfaceService {
       .filter((result): result is AiSearchResult => result !== null)
       .sort((a, b) => b.score - a.score || b.updatedAt - a.updatedAt)
 
+    // Reaching here means BM25 was unavailable, so recall is whatever a
+    // substring scan of the first `scanLimit` nodes found. Say so in the
+    // payload (0394): a silent scan reads to the model exactly like an
+    // exhaustive search, and it will state "no such node" with confidence.
+    const truncated = nodes.length >= scanLimit
     return {
       query,
       schemaId: options.schemaId,
@@ -577,6 +588,14 @@ export class AiSurfaceService {
       limit: resultLimit,
       offset,
       scanned: nodes.length,
+      index: 'scan',
+      degraded: true,
+      degradedReason: this.config.store.searchText
+        ? 'fts-unavailable'
+        : 'fts-unsupported-by-storage',
+      notice: truncated
+        ? `Full-text index unavailable — matched by substring over the first ${nodes.length} nodes only. Results may be incomplete; do not conclude that something does not exist from this search alone.`
+        : `Full-text index unavailable — matched by substring over all ${nodes.length} scanned nodes. Ranking is weaker than BM25.`,
       results: matches.slice(offset, offset + resultLimit)
     }
   }

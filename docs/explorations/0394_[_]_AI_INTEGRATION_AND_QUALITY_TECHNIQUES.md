@@ -13,7 +13,7 @@ tags: [ai, retrieval, agents, safety, quality]
 > BYO-model connector ladder, spawn-your-own-CLI agent harnessing, a governed
 > plan-first tool surface, token economics as a measured quality metric,
 > layered retrieval (BM25 → graph expansion → optional vector RRF) with
-> authorization filtering *before* the model sees anything, trust-boundary
+> authorization filtering _before_ the model sees anything, trust-boundary
 > wrapping of external content, fail-open AI in build pipelines, structural
 > validation that never trusts the model, exact-cost managed metering, and
 > contract-style system prompts. The playbook is real and mostly shipped —
@@ -72,8 +72,8 @@ composes some subset of them:
 > `writeModeFor()` downgrading weak tool-callers to propose-only. Quality is
 > never delegated to the prompt alone.
 
-The biggest weakness is symmetrical: we measure *interfaces* (token cost per
-task, via a real benchmark in CI) but we do not measure *outputs* — there is
+The biggest weakness is symmetrical: we measure _interfaces_ (token cost per
+task, via a real benchmark in CI) but we do not measure _outputs_ — there is
 no golden-set retrieval eval, no answer-quality scoring, no prompt regression
 suite anywhere in the repo.
 
@@ -104,15 +104,15 @@ flowchart TD
 
 Quality techniques embedded in the ladder:
 
-| Technique | Where | Why it matters |
-| --- | --- | --- |
-| **Capability-based degradation** | `writeModeFor()` in `connectors/types.ts` | A model that can't call tools reliably is structurally limited to proposing, not applying — quality enforced by type, not hope. |
-| **Vendored catalog fallback** | `packages/plugins/src/ai/models-dev.ts` (`MODELS_DEV_SNAPSHOT`) | The model picker never hangs on a models.dev outage. |
-| **User-billed OAuth** | PKCE S256 flow in `apps/web/src/workbench/views/ai-chat-connector.ts:271-340` | OpenRouter keys are minted against the *user's* account; no shared key, no xNet spend. |
-| **Attribution headers** | `OPENROUTER_ATTRIBUTION_HEADERS` in `packages/plugins/src/ai/providers.ts:249-265`, sent only when the base URL is OpenRouter | Correct app attribution without leaking headers to other providers. |
-| **Egress hygiene in hints** | `localServerSetupHint()` names the exact `OLLAMA_ORIGINS=<origin>`, never `*` | Setup help that doesn't teach users to open a hole. |
-| **Settings reuse across features** | `apps/web/src/lib/meeting-ai.ts` reuses the same `xnet:ai-*` storage + ladder | One connector configuration powers chat *and* meeting enhancement — no second config surface to drift. |
-| **Risk-based provider routing** | `AIProviderRouter` in `providers.ts:806-950` | Low-risk requests can prefer local models; high/critical route to strong models. |
+| Technique                          | Where                                                                                                                         | Why it matters                                                                                                                  |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| **Capability-based degradation**   | `writeModeFor()` in `connectors/types.ts`                                                                                     | A model that can't call tools reliably is structurally limited to proposing, not applying — quality enforced by type, not hope. |
+| **Vendored catalog fallback**      | `packages/plugins/src/ai/models-dev.ts` (`MODELS_DEV_SNAPSHOT`)                                                               | The model picker never hangs on a models.dev outage.                                                                            |
+| **User-billed OAuth**              | PKCE S256 flow in `apps/web/src/workbench/views/ai-chat-connector.ts:271-340`                                                 | OpenRouter keys are minted against the _user's_ account; no shared key, no xNet spend.                                          |
+| **Attribution headers**            | `OPENROUTER_ATTRIBUTION_HEADERS` in `packages/plugins/src/ai/providers.ts:249-265`, sent only when the base URL is OpenRouter | Correct app attribution without leaking headers to other providers.                                                             |
+| **Egress hygiene in hints**        | `localServerSetupHint()` names the exact `OLLAMA_ORIGINS=<origin>`, never `*`                                                 | Setup help that doesn't teach users to open a hole.                                                                             |
+| **Settings reuse across features** | `apps/web/src/lib/meeting-ai.ts` reuses the same `xnet:ai-*` storage + ladder                                                 | One connector configuration powers chat _and_ meeting enhancement — no second config surface to drift.                          |
+| **Risk-based provider routing**    | `AIProviderRouter` in `providers.ts:806-950`                                                                                  | Low-risk requests can prefer local models; high/critical route to strong models.                                                |
 
 ### 2. Access — spawn-your-own-CLI agent harness
 
@@ -131,7 +131,7 @@ the bridge spawns the user's own `claude`/`codex`/`aider` binary
   daemon restarts.
 - **ACP-aligned framed protocol** — `packages/devkit/src/agent-frames.ts`
   defines `AgentFrame` (`session | delta | tool_call | tool_result |
-  permission_request | cost | result`) and `foldStreamJsonFrames()`, the
+permission_request | cost | result`) and `foldStreamJsonFrames()`, the
   un-flattening of the plain chat endpoint that makes tool visibility,
   in-chat consent, and cost display possible.
 - **Isolated agent home** — chat turns run in `~/.xnet/agent-home`
@@ -139,7 +139,7 @@ the bridge spawns the user's own `claude`/`codex`/`aider` binary
   repos.
 - **The reverse direction** — `xnet connect claude-code|codex`
   (`packages/cli/src/commands/connect.ts`) is an idempotent on-ramp that puts
-  xNet *inside* the coding agent: skill file, `.mcp.json`/`.codex` config,
+  xNet _inside_ the coding agent: skill file, `.mcp.json`/`.codex` config,
   read-only by default, plus `xnet doctor --agent-access` as a self-check and
   a first-party plugin (`packages/cli/plugin/`) whose SKILL.md is held
   byte-identical to `xnet skill` output by a CI parity test
@@ -162,14 +162,14 @@ flowchart LR
     PACK --> MSG[formatContextMessages<br/>ai-context.ts]
 ```
 
-| Layer | Files | Quality property |
-| --- | --- | --- |
-| BM25 keyword | `packages/sqlite/src/{schema.ts,fts.ts}`, seam at `packages/data/src/store/types.ts:236` | Zero-cost, deterministic entry search; `snippet()` provenance. |
-| Graph expansion | `packages/brain/src/{retrieve.ts,expand.ts}`, wired via `apps/web/src/workbench/views/ai-graph-retriever.ts` | Schema-resolved typed relations, per-hop decay, human-readable `pathLabel` provenance — GraphRAG with **zero embedding cost by design**. |
-| Vector tier (opt-in) | `apps/web/src/workbench/views/ai-vector-search.ts`, `packages/vectors/src/*` | RRF (`RRF_K = 60`) fusion; dynamic import; **keyword fallback on any failure** — the tier can only improve results, never break them. |
-| Authorization | `packages/brain/src/retrieve.ts` stage 3 | Nodes the caller can't read are filtered **before** ranking/packing — the model can never leak what the user can't see. |
-| Budget packing | `packages/brain/src/pack.ts` | Greedy keep-best under a token budget; overflow becomes `expandable` refs for just-in-time retrieval instead of silent truncation. |
-| Prompt contract | `AI_SYSTEM_PROMPT` in `apps/web/src/workbench/views/ai-context.ts` | Cite-or-say-you-don't-know; `MAX_RESOURCE_CHARS = 2000` per resource; empty pack → no context messages at all. |
+| Layer                | Files                                                                                                        | Quality property                                                                                                                         |
+| -------------------- | ------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| BM25 keyword         | `packages/sqlite/src/{schema.ts,fts.ts}`, seam at `packages/data/src/store/types.ts:236`                     | Zero-cost, deterministic entry search; `snippet()` provenance.                                                                           |
+| Graph expansion      | `packages/brain/src/{retrieve.ts,expand.ts}`, wired via `apps/web/src/workbench/views/ai-graph-retriever.ts` | Schema-resolved typed relations, per-hop decay, human-readable `pathLabel` provenance — GraphRAG with **zero embedding cost by design**. |
+| Vector tier (opt-in) | `apps/web/src/workbench/views/ai-vector-search.ts`, `packages/vectors/src/*`                                 | RRF (`RRF_K = 60`) fusion; dynamic import; **keyword fallback on any failure** — the tier can only improve results, never break them.    |
+| Authorization        | `packages/brain/src/retrieve.ts` stage 3                                                                     | Nodes the caller can't read are filtered **before** ranking/packing — the model can never leak what the user can't see.                  |
+| Budget packing       | `packages/brain/src/pack.ts`                                                                                 | Greedy keep-best under a token budget; overflow becomes `expandable` refs for just-in-time retrieval instead of silent truncation.       |
+| Prompt contract      | `AI_SYSTEM_PROMPT` in `apps/web/src/workbench/views/ai-context.ts`                                           | Cite-or-say-you-don't-know; `MAX_RESOURCE_CHARS = 2000` per resource; empty pack → no context messages at all.                           |
 
 > [!WARNING]
 > Retrieval silently degrades on non-SQLite adapters: `searchText` returns
@@ -177,7 +177,7 @@ flowchart LR
 > dropping search to a 500-node linear scan with **no signal to the model or
 > user** that recall just fell off a cliff. And the FTS path in
 > `packages/plugins/src/ai-surface/service.ts:519` applies `schemaId` filters
-> *after* loading, so scoped searches can under-return even when matches
+> _after_ loading, so scoped searches can under-return even when matches
 > exist. Known, unfixed.
 
 ### 4. Action — the governed tool surface
@@ -229,13 +229,13 @@ stateDiagram-v2
 
 Exploration 0161 turned "agents are expensive" into an engineering loop:
 
-| Technique | Where | Effect |
-| --- | --- | --- |
-| **Interface benchmark in CI** | `packages/plugins/src/benchmarks/agent-surface-benchmark.ts` + `scripts/benchmark-agent-surfaces.ts` | 15 tasks × 3 surfaces (`files-cli`/`mcp-legacy`/`mcp-slim`) measuring standing definitions, args, responses, diffs; acts as a token-budget regression guard. |
-| **Deferred tool loading** | `packages/plugins/src/services/mcp-server.ts:574` | Core tools standing, everything else `defer_loading: true` — ~85 % standing-definition reduction. |
-| **TSV over JSON** | `packages/plugins/src/ai-surface/format.ts` | ~2× cheaper tabular reads; shared by exporter sidecars, CLI, and MCP. |
-| **Skill token budget + cache stability** | `packages/plugins/src/ai-surface/skill.ts` | SKILL.md held under ~1k tokens and byte-stable between releases for prompt caching, guarded by tests. |
-| **Suffix-only resume** | `packages/devkit/src/bridge-sessions.ts` | Only the new turn crosses the wire once a session is fingerprint-matched. |
+| Technique                                | Where                                                                                                | Effect                                                                                                                                                       |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Interface benchmark in CI**            | `packages/plugins/src/benchmarks/agent-surface-benchmark.ts` + `scripts/benchmark-agent-surfaces.ts` | 15 tasks × 3 surfaces (`files-cli`/`mcp-legacy`/`mcp-slim`) measuring standing definitions, args, responses, diffs; acts as a token-budget regression guard. |
+| **Deferred tool loading**                | `packages/plugins/src/services/mcp-server.ts:574`                                                    | Core tools standing, everything else `defer_loading: true` — ~85 % standing-definition reduction.                                                            |
+| **TSV over JSON**                        | `packages/plugins/src/ai-surface/format.ts`                                                          | ~2× cheaper tabular reads; shared by exporter sidecars, CLI, and MCP.                                                                                        |
+| **Skill token budget + cache stability** | `packages/plugins/src/ai-surface/skill.ts`                                                           | SKILL.md held under ~1k tokens and byte-stable between releases for prompt caching, guarded by tests.                                                        |
+| **Suffix-only resume**                   | `packages/devkit/src/bridge-sessions.ts`                                                             | Only the new turn crosses the wire once a session is fingerprint-matched.                                                                                    |
 
 ### 6. Quality — structural validation, fail-open pipelines, provenance
 
@@ -283,18 +283,18 @@ budget snapshot rides back to the client and drives the panel's gauge.
 <details>
 <summary>Full survey table — every AI-related file found (10 areas)</summary>
 
-| Area | Key paths |
-| --- | --- |
-| Chat UI | `apps/web/src/workbench/views/AiChatPanel.tsx`, `apps/web/src/routes/ai.tsx`, `apps/web/src/workbench/FloatingDock.tsx`, `packages/devtools/src/panels/AgentAuditPanel/` |
-| Connectors | `packages/plugins/src/ai/connectors/{types,detect,webllm-provider,prompt-api-provider}.ts`, `packages/plugins/src/ai/{providers,models-dev}.ts`, `apps/web/src/workbench/views/{ai-chat-connector,ai-webllm-engine}.ts` |
-| Managed AI | `packages/hub/src/features/ai-forwarder.ts`, `apps/cloud/src/ai/{route,models,budget-form}.ts`, `packages/cloud/src/ai/{metered-gateway,openrouter-gateway,gateway,metering,credits,keys,openrouter-keys,sse,agent-runner}.ts`, `packages/entitlements/src/plans.ts`, `scripts/cloud-openrouter-setup.mjs` |
-| Retrieval | `packages/sqlite/src/fts.ts`, `packages/brain/src/{retrieve,expand,pack,indexer,memory,locality,persist,schema}.ts`, `packages/vectors/src/*`, `apps/web/src/workbench/views/{ai-graph-retriever,ai-vector-search,ai-vector-storage,ai-context,ai-schemas}.ts`, `packages/plugins/src/ai-surface/service.ts` |
-| Bridge/harness | `packages/devkit/src/{bridge-server,agent-frames,chat-agent,bridge-sessions,agent-launch,agent,dev-loop,validation-gate,bridge}.ts`, `apps/electron/src/main/agent-bridge-manager.ts`, `packages/cli/src/commands/bridge.ts` |
-| Coding-agent | `packages/cli/src/utils/agent-backend.ts`, `packages/cli/src/commands/{connect,mcp,agent,doctor,code}.ts`, `packages/cli/plugin/`, `packages/plugins/src/services/ai-workspace-exporter.ts`, `packages/plugins/src/connectors/cli-wrap.ts` |
-| Tools | `packages/plugins/src/ai-surface/tools/{index,entry,search,page-mutation,database,canvas,frames,audit}.ts`, `agent-ceremony-tools.ts`, `packages/labs/src/agent-tools.ts`, `packages/plugins/src/workspace-plugins/agent-tools.ts` |
-| Safety | `docs/AI_SURFACE_CONTRACT.md`, `packages/plugins/src/ai-surface/{validation,agent-audit}.ts`, `packages/plugins/src/services/mcp-guardrail.ts`, `packages/plugins/src/sandbox/ast-validator.ts`, `apps/web/index.html` CSP |
-| Persistence | `apps/web/src/workbench/views/ai-chat-persistence.ts` |
-| Prompts/evals | `packages/plugins/src/ai/{prompt,generator,runtime}.ts`, `packages/meetings/src/enhance/{templates,chat,enhance-notes,polish,diarization}.ts`, `packages/plugins/src/benchmarks/agent-surface-benchmark.ts`, `scripts/{changelog/ai-release-notes,changeset/ai-generate}.mjs` |
+| Area           | Key paths                                                                                                                                                                                                                                                                                                    |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Chat UI        | `apps/web/src/workbench/views/AiChatPanel.tsx`, `apps/web/src/routes/ai.tsx`, `apps/web/src/workbench/FloatingDock.tsx`, `packages/devtools/src/panels/AgentAuditPanel/`                                                                                                                                     |
+| Connectors     | `packages/plugins/src/ai/connectors/{types,detect,webllm-provider,prompt-api-provider}.ts`, `packages/plugins/src/ai/{providers,models-dev}.ts`, `apps/web/src/workbench/views/{ai-chat-connector,ai-webllm-engine}.ts`                                                                                      |
+| Managed AI     | `packages/hub/src/features/ai-forwarder.ts`, `apps/cloud/src/ai/{route,models,budget-form}.ts`, `packages/cloud/src/ai/{metered-gateway,openrouter-gateway,gateway,metering,credits,keys,openrouter-keys,sse,agent-runner}.ts`, `packages/entitlements/src/plans.ts`, `scripts/cloud-openrouter-setup.mjs`   |
+| Retrieval      | `packages/sqlite/src/fts.ts`, `packages/brain/src/{retrieve,expand,pack,indexer,memory,locality,persist,schema}.ts`, `packages/vectors/src/*`, `apps/web/src/workbench/views/{ai-graph-retriever,ai-vector-search,ai-vector-storage,ai-context,ai-schemas}.ts`, `packages/plugins/src/ai-surface/service.ts` |
+| Bridge/harness | `packages/devkit/src/{bridge-server,agent-frames,chat-agent,bridge-sessions,agent-launch,agent,dev-loop,validation-gate,bridge}.ts`, `apps/electron/src/main/agent-bridge-manager.ts`, `packages/cli/src/commands/bridge.ts`                                                                                 |
+| Coding-agent   | `packages/cli/src/utils/agent-backend.ts`, `packages/cli/src/commands/{connect,mcp,agent,doctor,code}.ts`, `packages/cli/plugin/`, `packages/plugins/src/services/ai-workspace-exporter.ts`, `packages/plugins/src/connectors/cli-wrap.ts`                                                                   |
+| Tools          | `packages/plugins/src/ai-surface/tools/{index,entry,search,page-mutation,database,canvas,frames,audit}.ts`, `agent-ceremony-tools.ts`, `packages/labs/src/agent-tools.ts`, `packages/plugins/src/workspace-plugins/agent-tools.ts`                                                                           |
+| Safety         | `docs/AI_SURFACE_CONTRACT.md`, `packages/plugins/src/ai-surface/{validation,agent-audit}.ts`, `packages/plugins/src/services/mcp-guardrail.ts`, `packages/plugins/src/sandbox/ast-validator.ts`, `apps/web/index.html` CSP                                                                                   |
+| Persistence    | `apps/web/src/workbench/views/ai-chat-persistence.ts`                                                                                                                                                                                                                                                        |
+| Prompts/evals  | `packages/plugins/src/ai/{prompt,generator,runtime}.ts`, `packages/meetings/src/enhance/{templates,chat,enhance-notes,polish,diarization}.ts`, `packages/plugins/src/benchmarks/agent-surface-benchmark.ts`, `scripts/{changelog/ai-release-notes,changeset/ai-generate}.mjs`                                |
 
 </details>
 
@@ -311,7 +311,7 @@ practice:
   ([agentclientprotocol.com](https://agentclientprotocol.com/get-started/introduction),
   [GitHub](https://github.com/agentclientprotocol/agent-client-protocol),
   [JetBrains ACP](https://www.jetbrains.com/acp/)). xNet's `AgentFrame` union
-  is deliberately ACP-*aligned* rather than ACP-*dependent* — exploration
+  is deliberately ACP-_aligned_ rather than ACP-_dependent_ — exploration
   0392 found the official adapters are API-key-only, which conflicts with the
   spawn-own-CLI, user-subscription model.
 - **Reciprocal Rank Fusion** — `RRF_K = 60` in `ai-vector-search.ts` matches
@@ -376,20 +376,20 @@ practice:
    CSP's bare `https://*`/`wss://*` makes its careful AI-host allowlist
    decorative.
 
-| Technique | Status | Evidence |
-| --- | --- | --- |
-| Connector ladder + capability degradation | ✅ Shipped | `connectors/*`, panel wiring |
-| Spawn-own-CLI bridge + sessions | ✅ Shipped | #620, `bridge-server.ts` |
-| Agent frames (`/v1/agent/stream`) | 🚧 Built, no client | `agent-frames.ts`, #623 |
-| Governed tools via MCP/CLI | ✅ Shipped | 28 tools, guardrail, ceremony |
-| Tools in the **in-app** chat | ❌ Unwired | `AiChatPanel.tsx:429-439` |
-| FTS/BM25 + graph retrieval | ✅ Shipped | `ai-graph-retriever.ts` |
-| Vector tier (RRF) | ✅ Shipped (opt-in) | `ai-vector-search.ts` |
-| Brain indexer / memory / locality | ❌ Unwired | only self-tests |
-| Token-economics benchmark | ✅ Shipped, in CI | `agent-surface-benchmark.ts` |
-| LLM-output evals | 🛑 Absent | repo-wide |
-| Managed metering | ✅ Shipped | 0208/0244 chain |
-| Script generator loop | ❌ Unwired | `ai/generator.ts` |
+| Technique                                 | Status              | Evidence                      |
+| ----------------------------------------- | ------------------- | ----------------------------- |
+| Connector ladder + capability degradation | ✅ Shipped          | `connectors/*`, panel wiring  |
+| Spawn-own-CLI bridge + sessions           | ✅ Shipped          | #620, `bridge-server.ts`      |
+| Agent frames (`/v1/agent/stream`)         | 🚧 Built, no client | `agent-frames.ts`, #623       |
+| Governed tools via MCP/CLI                | ✅ Shipped          | 28 tools, guardrail, ceremony |
+| Tools in the **in-app** chat              | ❌ Unwired          | `AiChatPanel.tsx:429-439`     |
+| FTS/BM25 + graph retrieval                | ✅ Shipped          | `ai-graph-retriever.ts`       |
+| Vector tier (RRF)                         | ✅ Shipped (opt-in) | `ai-vector-search.ts`         |
+| Brain indexer / memory / locality         | ❌ Unwired          | only self-tests               |
+| Token-economics benchmark                 | ✅ Shipped, in CI   | `agent-surface-benchmark.ts`  |
+| LLM-output evals                          | 🛑 Absent           | repo-wide                     |
+| Managed metering                          | ✅ Shipped          | 0208/0244 chain               |
+| Script generator loop                     | ❌ Unwired          | `ai/generator.ts`             |
 
 ---
 
@@ -439,7 +439,7 @@ Add HuggingFace hosts to the Electron CSP; replace the web CSP's bare
 `https://*` with the explicit allowlist it already contains.
 
 - ➕ Small, unblocks WebLLM/vectors in the packaged desktop app; makes the
-  egress story honest (0379 warned retrieval quality *widens* the egress
+  egress story honest (0379 warned retrieval quality _widens_ the egress
   hole — a real allowlist is the counterpart).
 - ➖ Tightening web CSP risks breaking legitimate connections; needs an
   inventory pass first.
@@ -478,17 +478,21 @@ import { seedDemoWorkspace } from '@xnetjs/devtools/seed'
 // retriever must surface (curated once, updated when the seed changes).
 const GOLDEN: Array<{ query: string; mustInclude: string[] }> = [
   { query: 'quarterly planning doc', mustInclude: ['seed:page:q3-plan'] },
-  { query: 'who owns the hub migration', mustInclude: ['seed:task:hub-migration'] },
+  { query: 'who owns the hub migration', mustInclude: ['seed:task:hub-migration'] }
   // …
 ]
 
 it('meets recall@12 ≥ 0.9 on the golden set', async () => {
   const store = await seedDemoWorkspace()
-  let hits = 0, total = 0
+  let hits = 0,
+    total = 0
   for (const { query, mustInclude } of GOLDEN) {
     const pack = await retrieve(store, query, { maxEntries: 12 })
     const got = new Set(pack.items.map((i) => i.nodeId))
-    for (const id of mustInclude) { total++; if (got.has(id)) hits++ }
+    for (const id of mustInclude) {
+      total++
+      if (got.has(id)) hits++
+    }
   }
   expect(hits / total).toBeGreaterThanOrEqual(0.9)
 })
@@ -503,7 +507,7 @@ Deterministic (no model calls), fast, and every future change to `RRF_K`,
   live next to `seed-coverage.test.ts` discipline (deterministic ids) or it
   becomes flaky theater.
 - **In-app tool consent UX** — the ceremony was designed for external
-  agents; in-app, the operator's key is *right there*, which makes high-risk
+  agents; in-app, the operator's key is _right there_, which makes high-risk
   approval easier but also makes over-approval one habitual click away.
 - **Weak-tool-calling tiers** — WebLLM/Prompt API tiers report `weak`/`none`
   fidelity; the in-app agentic chat must visibly degrade (propose-only
@@ -541,10 +545,10 @@ Deterministic (no model calls), fast, and every future change to `RRF_K`,
 - [ ] Point the panel's bridge tier at `/v1/agent/stream` (first real client
       for the framed endpoint), keeping `/v1/chat/completions` for
       OpenAI-compat consumers.
-- [ ] Fix the FTS `schemaId` post-filter under-return in
+- [x] Fix the FTS `schemaId` post-filter under-return in
       `packages/plugins/src/ai-surface/service.ts` (push the filter into the
       query or widen the window until `limit` is met).
-- [ ] Emit a degraded-search signal when `searchText` returns `null`
+- [x] Emit a degraded-search signal when `searchText` returns `null`
       (adapter lacks FTS) so the model/user can see recall dropped to a scan.
 
 ## Validation Checklist
@@ -554,9 +558,9 @@ Deterministic (no model calls), fast, and every future change to `RRF_K`,
 - [ ] `RRF_K`/`HOP_DECAY` values in code match the committed eval results.
 - [ ] Packaged Electron app downloads WebLLM weights and builds the vector
       index with the new CSP (manual smoke on macOS).
-- [ ] Web app works with the tightened CSP against xnet.fyi/app *and* a
+- [ ] Web app works with the tightened CSP against xnet.fyi/app _and_ a
       custom hub origin.
-- [ ] In-app assistant answers a workspace question by *calling*
+- [ ] In-app assistant answers a workspace question by _calling_
       `xnet_search` (visible tool frame) rather than relying on injected
       context; propose-only tiers show the degraded banner.
 - [ ] A medium-risk in-chat approval round-trips through the existing nonce

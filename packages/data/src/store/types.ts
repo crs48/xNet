@@ -233,7 +233,11 @@ export interface NodeStorageAdapter {
    * (exploration 0391 — the AI retrieval path). Returns `null` when the
    * backing store has no FTS support, so callers can fall back to a scan.
    */
-  searchText?(query: string, limit: number): Promise<NodeTextSearchResult[] | null>
+  searchText?(
+    query: string,
+    limit: number,
+    options?: NodeTextSearchOptions
+  ): Promise<NodeTextSearchResult[] | null>
   /**
    * Inject the read-authorization filter the adapter applies before persisting
    * a materialized view's id list (exploration 0226). `NodeStore` wires this to
@@ -523,6 +527,16 @@ export interface CountNodesOptions {
   schemaId?: SchemaIRI
   /** Include soft-deleted nodes */
   includeDeleted?: boolean
+}
+
+/** Scoping options for {@link NodeStorageAdapter.searchText}. */
+export interface NodeTextSearchOptions {
+  /**
+   * Restrict matches to one schema, pushed down into the index query. Callers
+   * that post-filter a cross-schema window instead silently under-return once
+   * the schema's matches sit past that window (exploration 0394).
+   */
+  schemaId?: SchemaIRI
 }
 
 /** One full-text match from {@link NodeStorageAdapter.searchText}. */
