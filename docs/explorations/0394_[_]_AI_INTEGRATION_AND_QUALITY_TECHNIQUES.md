@@ -515,6 +515,22 @@ Deterministic (no model calls), fast, and every future change to `RRF_K`,
 - **CSP tightening blast radius** — the bare `https://*` may be load-bearing
   for user-configured custom hubs (0300 noted web CSP blocks custom hubs);
   tightening needs that inventory first.
+
+  > [!CAUTION]
+  > **Resolved during implementation: the web `connect-src` wildcard cannot be
+  > removed as a cleanup.** The inventory found only two classes of outbound
+  > origin the browser reaches directly — a fixed set of known hosts (model
+  > weights, map tiles, oEmbed, hub/cloud) and **user-typed origins**: the
+  > custom hub (`https://*` added in `c8e2e96ad` for crash-report ingest,
+  > `wss://*` for its sync socket) and a self-hosted OpenAI-compatible AI base
+  > URL. Link previews are _not_ in this set — they proxy through the hub's
+  > SSRF-guarded `/unfurl`. Because a static meta-tag CSP can never name an
+  > origin the user types at runtime, removing the wildcard drops custom-hub
+  > support from the web build. It stays, now documented in place; the
+  > Electron shell (which has no wildcard, and correspondingly cannot reach
+  > custom hubs) is where a real allowlist is enforced. Treat any future
+  > removal as a product decision with a migration story, not a chore.
+
 - **Does the vector tier earn its complexity?** Nobody knows — that is the
   point of Option B. If RRF fusion doesn't beat FTS+graph on the golden set
   for typical workspace sizes, the honest move is to keep it opt-in
@@ -531,11 +547,11 @@ Deterministic (no model calls), fast, and every future change to `RRF_K`,
       "never invent" against a fixture transcript).
 - [ ] Sweep `RRF_K` and `HOP_DECAY` against the eval; commit the winning
       constants with the eval as the justification.
-- [ ] Add HuggingFace hosts (`huggingface.co`, `*.hf.co`) to the Electron
+- [x] Add HuggingFace hosts (`huggingface.co`, `*.hf.co`) to the Electron
       renderer CSP (`apps/electron/src/renderer/index.html`).
 - [ ] Inventory real `connect-src` needs in the web app, then remove the bare
       `https://*`/`wss://*` from `apps/web/index.html` in favor of the
-      explicit allowlist (custom-hub story from 0300 resolved explicitly).
+      explicit allowlist (custom-hub story from 0300 resolved explicitly). > **Inventory done; removal deliberately not made — see the callout in > Risks below.** `https://*` was added in `c8e2e96ad` (0341) so > crash-report ingest reaches a user-configured custom hub, and > `wss://*` carries that hub's sync socket. Both origins are typed by > the user at runtime, so no static policy can name them. The wildcard > is now documented in `apps/web/index.html` and pinned by > `apps/electron/src/renderer/csp.test.ts`; actually removing it is a > product decision (drop custom hubs from the web build), not a cleanup.
 - [ ] Phase 1: pass read-only tools (`xnet_search`, `xnet_read_page_markdown`,
       `xnet_database_query`) into `AiAgentRuntime`, rendering `tool_call` /
       `tool_result` frames in `AiChatPanel`.

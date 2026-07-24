@@ -2,9 +2,20 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <!--
+      On-device AI needs four things the packaged renderer used to deny
+      (exploration 0394): 'wasm-unsafe-eval' to compile the WebLLM / ONNX
+      runtimes, `worker-src blob:` because both spawn blob workers,
+      huggingface.co + raw.githubusercontent.com for model weights and the
+      MLC model libraries, and the 127.0.0.1 loopback the connector ladder
+      actually probes for the agent bridge (:31416) and Ollama.
+
+      Unlike the web build this connect-src has no `https://*`, so it is a
+      real allowlist: adding an outbound host means adding it here.
+    -->
     <meta
       http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' ws://localhost:* http://localhost:* https://hub.xnet.fyi https://*.xnet.fyi https://www.youtube.com https://publish.twitter.com; font-src 'self' data:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://open.spotify.com https://w.soundcloud.com https://platform.twitter.com https://www.instagram.com https://instagram.com https://www.tiktok.com https://codepen.io https://codesandbox.io https://stackblitz.com https://figma.com https://www.figma.com"
+      content="default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' ws://localhost:* http://localhost:* ws://127.0.0.1:* http://127.0.0.1:* https://hub.xnet.fyi https://*.xnet.fyi https://www.youtube.com https://publish.twitter.com https://huggingface.co https://*.huggingface.co https://*.hf.co https://raw.githubusercontent.com; font-src 'self' data:; worker-src 'self' blob:; frame-src https://www.youtube.com https://www.youtube-nocookie.com https://player.vimeo.com https://open.spotify.com https://w.soundcloud.com https://platform.twitter.com https://www.instagram.com https://instagram.com https://www.tiktok.com https://codepen.io https://codesandbox.io https://stackblitz.com https://figma.com https://www.figma.com"
     />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>xNet</title>
