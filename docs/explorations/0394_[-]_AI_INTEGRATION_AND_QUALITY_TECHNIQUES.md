@@ -1,6 +1,6 @@
 ---
 title: AI Integration And Quality Techniques — A Retrospective Playbook
-status: draft # mirrors the [_]/[-]/[x] filename checkbox
+status: partially-implemented # mirrors the [_]/[-]/[x] filename checkbox
 last_updated: 2026-07-24
 tags: [ai, retrieval, agents, safety, quality]
 ---
@@ -23,6 +23,12 @@ tags: [ai, retrieval, agents, safety, quality]
 > codify the playbook, wire the two highest-leverage dead ends (tools +
 > frames into the in-app chat), and stand up a small golden-set retrieval
 > eval before adding any new AI surface.
+>
+> **Since implemented** — the survey below describes the state at the time of
+> writing. The retrieval eval now exists, and the in-app chat now calls
+> read-only tools; see [What Landed, And What Did
+> Not](#what-landed-and-what-did-not) for what shipped and what was
+> deliberately left.
 
 ## Problem Statement
 
@@ -571,19 +577,80 @@ Deterministic (no model calls), fast, and every future change to `RRF_K`,
 
 - [ ] Retrieval eval runs green in CI on two consecutive days (no flake) and
       fails when `retrieve()` is deliberately broken (mutation test).
-- [ ] `RRF_K`/`HOP_DECAY` values in code match the committed eval results.
+      > Mutation half done: the eval carries its own broken-graph and
+      > broken-entry-stage tests and a determinism test, all green. The
+      > two-consecutive-days half needs calendar time in CI.
+- [x] `RRF_K`/`HOP_DECAY` values in code match the committed eval results.
 - [ ] Packaged Electron app downloads WebLLM weights and builds the vector
       index with the new CSP (manual smoke on macOS).
+      > Needs a packaged build and a human at the machine. The policy itself is
+      > asserted by `apps/electron/src/renderer/csp.test.ts`.
 - [ ] Web app works with the tightened CSP against xnet.fyi/app _and_ a
       custom hub origin.
+      > Not applicable: the web CSP was deliberately not tightened (see the
+      > CAUTION in Risks). Nothing changed for custom hubs.
 - [ ] In-app assistant answers a workspace question by _calling_
       `xnet_search` (visible tool frame) rather than relying on injected
       context; propose-only tiers show the degraded banner.
+      > Proven under test, not against a live model: the loop, the allow-list
+      > refusal, the streaming path and the tier gating are covered by
+      > `runtime-tools.test.ts` and `ai-chat-tools.test.ts`, and tool activity
+      > renders from the `tool.call`/`tool.result` events. Weak/none tiers get
+      > no tools and the badge reads "reads workspace" rather than "searches".
+      > A live end-to-end run needs a real model and a human, so it stays
+      > unchecked.
 - [ ] A medium-risk in-chat approval round-trips through the existing nonce
       ceremony; a high-risk one refuses the chat path and points at in-app
       approval.
-- [ ] Agent-surface benchmark numbers unchanged (±5 %) after the tool wiring
+      > Blocked on Phase 2, which was deferred — there is no in-chat approval
+      > surface to round-trip through yet.
+- [x] Agent-surface benchmark numbers unchanged (±5 %) after the tool wiring
       — in-app tools must not regress the MCP surface budget.
+      > Verified: `files-cli` 2728, `mcp-slim` 18260, `mcp-legacy` 24346
+      > tokens, 15/15 tasks on each surface, all budget assertions green. The
+      > in-app tools are app-side and never touch the MCP surface.
+
+---
+
+## What Landed, And What Did Not
+
+> [!IMPORTANT]
+> **7 of 10 implementation items shipped.** The three that did not are recorded
+> here rather than quietly dropped, because two of them are the ones a reader
+> would most expect to find.
+
+| Item                                | Status         | Why                                                                                                    |
+| ----------------------------------- | -------------- | ------------------------------------------------------------------------------------------------------ |
+| Golden-set retrieval eval           | ✅ Shipped     | `packages/brain/src/__evals__/`, gated + mutation-tested                                                 |
+| `HOP_DECAY` sweep                   | ✅ Shipped     | Null result; constant unchanged, now evidenced                                                           |
+| Meeting groundedness screen         | ✅ Shipped     | `screenGroundedness()` + fixtures                                                                        |
+| FTS `schemaId` pushdown             | ✅ Shipped     | Verified against real FTS5                                                                               |
+| Degraded-search signal              | ✅ Shipped     | `index`/`degraded`/`notice` on every search                                                              |
+| Electron CSP for on-device AI       | ✅ Shipped     | Plus a contract test over both shells                                                                    |
+| Phase 1 in-app read-only tools      | ✅ Shipped     | Bounded loop, allow-list, visible activity                                                               |
+| Web CSP wildcard removal            | 🛑 Not done    | Structurally impossible without dropping custom hubs — a product decision, see the CAUTION in Risks      |
+| Phase 2 in-chat approval ceremony   | ⏸️ Deferred    | See below                                                                                                |
+| Bridge tier → `/v1/agent/stream`    | ⏸️ Deferred    | See below                                                                                                |
+
+**Phase 2 (in-chat approval) is deferred deliberately.** It is the gate that
+makes writes safe, and shipping it half-built is worse than not shipping it:
+a plan-approval flow that looks trustworthy but mishandles the medium-risk
+nonce, or trains the user to click through, is precisely the "over-approval
+one habitual click away" risk this document already flagged. It needs its own
+design pass on the ceremony UI — not the tail end of a session that spent its
+attention elsewhere. Phase 1 is complete and coherent without it: the badge
+says "searches workspace", never "agentic", and the allow-list makes a write
+tool structurally unreachable from the chat.
+
+**The `/v1/agent/stream` client is deferred with it**, because its payoff is
+the frames Phase 2 renders — `permission_request` above all. Pointing the
+bridge tier at the framed endpoint while the panel still has nowhere to show a
+permission prompt would swap a working transport for a richer one nobody
+reads. The endpoint remains tested and clientless, as 0392 left it.
+
+Both remain the highest-value next increment, and the Phase 1 seams
+(`AiAgentRuntimeConfig.executeTool`, the `tool.call`/`tool.result` events, and
+`ChatToolActivity`) are the ones they extend.
 
 ## References
 
