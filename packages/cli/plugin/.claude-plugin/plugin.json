@@ -1,0 +1,9 @@
+{
+  "name": "xnet",
+  "description": "Read, search, and edit the user's xNet workspace from Claude Code — CLI-first, with the xnet MCP server as a fallback lane.",
+  "version": "0.1.0",
+  "author": { "name": "xNet" },
+  "homepage": "https://xnet.fyi",
+  "skills": ["./skills/xnet/SKILL.md"],
+  "mcpServers": "./.mcp.json"
+}

@@ -97,6 +97,43 @@ describe('startMcpServe (http mode)', () => {
   })
 })
 
+describe('startMcpServe (read-only)', () => {
+  it('denies writes but still serves reads (exploration 0393)', async () => {
+    handle = await startMcpServe(memoryFactory, {
+      http: true,
+      port: 0,
+      pairingToken: TOKEN,
+      readOnly: true
+    })
+    const http = handle.http
+    if (!http) throw new Error('expected http handle')
+
+    const call = (name: string, args: unknown) =>
+      fetch(`${http.url}${http.path}`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-xnet-pairing': TOKEN },
+        body: JSON.stringify({
+          jsonrpc: '2.0',
+          id: 1,
+          method: 'tools/call',
+          params: { name, arguments: args }
+        })
+      }).then((r) => r.json() as Promise<{ result?: unknown; error?: { message: string } }>)
+
+    // A read still works.
+    const read = await call('xnet_search', { query: 'seed' })
+    expect(read.result).toBeDefined()
+    expect(read.error).toBeUndefined()
+
+    // A write is refused with a clear read-only error.
+    const write = await call('xnet_create', {
+      schemaId: 'xnet://xnet.dev/Task',
+      properties: { title: 'nope' }
+    })
+    expect(write.error?.message).toMatch(/read-only/i)
+  })
+})
+
 describe('openClawHttpConfigSnippet', () => {
   it('produces a streamable-http config carrying the pairing token', async () => {
     handle = await startMcpServe(memoryFactory, { http: true, port: 0, pairingToken: TOKEN })

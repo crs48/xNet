@@ -1,0 +1,12 @@
+{
+  "id": "2026-07-24-use-xnet-from-claude-code-and-codex",
+  "date": "July 24, 2026",
+  "title": "Use xNet from Claude Code and Codex",
+  "summary": "New `xnet connect claude-code|codex` wires a coding agent to your workspace in one step; the agent CLI verbs now work with the app closed via a standalone SQLite store.",
+  "highlights": [],
+  "tags": [
+    "ai",
+    "platform",
+    "devtools"
+  ]
+}
