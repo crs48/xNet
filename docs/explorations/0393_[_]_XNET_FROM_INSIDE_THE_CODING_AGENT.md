@@ -485,12 +485,12 @@ Phase 1 — standalone backend:
 
 Phase 2 — `xnet connect`:
 
-- [ ] `commands/connect.ts`: `claude-code` and `codex` targets, `--project/--user/--writes/--vault`
-- [ ] Skill install (project `.claude/skills/xnet/` / user scope) from `XNET_AGENT_SKILL_MD`
-- [ ] MCP registration: `claude mcp add` invocation + `.mcp.json` writer; `.codex/config.toml` writer
-- [ ] Vault bootstrap: `checkout` + `CLAUDE.md` (mirroring `AGENTS.md`) + `index.md`
-- [ ] `xnet doctor --agent-access` self-check (backend, FTS, identity, lanes)
-- [ ] Idempotency: re-running prints "already configured" diff, changes nothing
+- [x] `commands/connect.ts`: `claude-code` and `codex` targets, `--project/--user/--writes/--vault`
+- [x] Skill install (project `.claude/skills/xnet/` / user scope) from `XNET_AGENT_SKILL_MD`
+- [x] MCP registration: `claude mcp add` invocation + `.mcp.json` writer; `.codex/config.toml` writer
+- [x] Vault bootstrap: `checkout` + `CLAUDE.md` (mirroring `AGENTS.md`) + `index.md`
+- [x] `xnet doctor --agent-access` self-check (backend, FTS, identity, lanes)
+- [x] Idempotency: re-running prints "already configured" diff, changes nothing
 
 Phase 3 — distribution and polish:
 

@@ -75,6 +75,26 @@ export type McpServeOptions = {
   db?: string
   /** Space id the audit records are homed in. */
   auditSpace?: string
+  /**
+   * Expose read tools only — the write tools error instead of mutating. Also
+   * honoured from `$XNET_READONLY` so `xnet connect` can register a read-only
+   * server purely through the config file's `env`. (exploration 0393)
+   */
+  readOnly?: boolean
+}
+
+/**
+ * Wrap a store so create/update/delete throw. The MCP write tools still appear
+ * in `tools/list`, but any attempt to mutate returns a clear error — the
+ * connect command's default posture until the user opts into `--writes`.
+ */
+function readOnlyStore(store: AgentBackend['store']): AgentBackend['store'] {
+  const deny = (): never => {
+    throw new Error(
+      'This xNet MCP server is read-only. Re-run `xnet connect … --writes` to enable writes.'
+    )
+  }
+  return { ...store, create: deny, update: deny, delete: deny }
 }
 
 export type McpServeHandle = {
@@ -132,6 +152,10 @@ export async function startMcpServe(
     backend = await backendFactory({
       ...(options.apiUrl ? { apiUrl: options.apiUrl } : {})
     })
+  }
+  const readOnly = options.readOnly || process.env.XNET_READONLY === '1'
+  if (readOnly) {
+    backend = { ...backend, store: readOnlyStore(backend.store) }
   }
   const server = buildMcpServer(backend, agent)
 
@@ -198,6 +222,7 @@ export function registerMcpCommand(
     .option('--agent <name>', 'Serve as an enrolled agent passport (exploration 0337)')
     .option('--db <path>', 'With --agent: agent-signed local SQLite store')
     .option('--audit-space <id>', 'With --agent: Space to home audit records in')
+    .option('--read-only', 'Expose read tools only; writes error ($XNET_READONLY=1)')
     .action(async (options: McpServeOptions) => {
       const handle = await startMcpServe(backendFactory, options)
       if (handle.mode === 'http' && handle.http) {
