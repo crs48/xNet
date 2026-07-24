@@ -540,13 +540,13 @@ Deterministic (no model calls), fast, and every future change to `RRF_K`,
 
 **Status:** ░░░░░░░░░░ 0/10 items
 
-- [ ] Build a deterministic golden-set retrieval eval over the seeded demo
+- [x] Build a deterministic golden-set retrieval eval over the seeded demo
       workspace (recall@k + MRR), wired into CI as a non-flaky lane with a
-      named consumer (0294 rules).
+      named consumer (0294 rules). > Built as `packages/brain/src/__evals__/` — but over a **pinned corpus, > not the devtools demo seed**. The seed exists to cover every schema and > changes whenever one is added, which would move the eval's numbers > without anyone touching the retriever: exactly the "eval-set drift" > failure this document's own Risks section warns about. It runs in the > existing `unit` project rather than a new lane, per 0294's rule against > lanes nobody consumes. Scored at **k=5**, not 12 — at 12 recall is 1.00 > for every case on a corpus this size, and a gate that cannot fail is > decoration. Baseline as committed: recall@5 `all=0.81`, > `keyword=1.00`, `graph=0.50`, `mrr=0.69`.
 - [ ] Add a groundedness spot-check for meeting enhancement (contract rule 2
       "never invent" against a fixture transcript).
-- [ ] Sweep `RRF_K` and `HOP_DECAY` against the eval; commit the winning
-      constants with the eval as the justification.
+- [x] Sweep `RRF_K` and `HOP_DECAY` against the eval; commit the winning
+      constants with the eval as the justification. > `HOP_DECAY` swept for real over [0.20, 1.00] > (`hop-decay.sweep.test.ts`), which required making it injectable via > `RetrievalBudget.hopDecay`. **The honest result is a null one**: every > value in [0.35, 0.85] scores identically, and the best (0.20, recall > 0.85 vs 0.81) wins by 0.04 — one golden item on a 13-query set, below > the eval's `1/|GOLDEN|` = 0.08 resolution. So 0.55 stays: not > vindicated, just unfalsified. The gate asserts no candidate beats it by > more than one item, so a real signal turns the lane red. > > **`RRF_K` was deliberately not swept.** It needs a second, genuinely > semantic ranking; a mock embedding model would only measure the mock, > and real MiniLM weights mean a network download in a lane that must not > flake. It stays at the literature default of 60 (documented flat across > k ∈ [20, 100]) until the vector tier can be measured honestly — see > Risks.
 - [x] Add HuggingFace hosts (`huggingface.co`, `*.hf.co`) to the Electron
       renderer CSP (`apps/electron/src/renderer/index.html`).
 - [ ] Inventory real `connect-src` needs in the web app, then remove the bare

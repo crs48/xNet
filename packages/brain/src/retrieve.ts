@@ -26,9 +26,6 @@ import {
   type RetrieveDeps
 } from './types'
 
-/** Score decay applied per hop away from an entry node. */
-const HOP_DECAY = 0.55
-
 async function passesAuthorization(
   nodeId: string,
   authorize: Authorizer | undefined
@@ -107,7 +104,7 @@ export async function retrieve(
       nodeId,
       title: text.title,
       snippet: text.snippet,
-      score: baseScore * Math.pow(HOP_DECAY, hops),
+      score: baseScore * Math.pow(b.hopDecay, hops),
       hops,
       source,
       path,

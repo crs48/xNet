@@ -15,6 +15,7 @@
  */
 import type { AiContextRetriever } from '@xnetjs/plugins'
 import {
+  DEFAULT_HOP_DECAY,
   retrieve,
   schemaRelationFields,
   type EntryHit,
@@ -80,7 +81,8 @@ const DEFAULT_BUDGET: RetrievalBudget = {
   maxTokens: 24_000,
   maxHops: 1,
   maxEntries: 12,
-  maxNodes: 48
+  maxNodes: 48,
+  hopDecay: DEFAULT_HOP_DECAY
 }
 
 /** Title (first text-bearing property) + joined body of a node's text. */
