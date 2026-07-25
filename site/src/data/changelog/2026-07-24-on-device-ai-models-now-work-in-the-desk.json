@@ -4,5 +4,14 @@
   "title": "On-device AI models now work in the desktop app",
   "summary": "The desktop app can download and run in-browser AI models and build its on-device search index — its content policy previously blocked the model weights, WebAssembly, and the local agent bridge.",
   "highlights": [],
-  "tags": ["ai"]
+  "tags": [
+    "ai"
+  ],
+  "pr": 629,
+  "mergedAt": "2026-07-25T00:08:29Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }

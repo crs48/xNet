@@ -4,5 +4,14 @@
   "title": "The assistant can now search your workspace itself",
   "summary": "On models that call tools reliably, the in-app assistant searches and reads your workspace directly instead of only answering from context it was handed — and shows you each lookup as it happens. It still cannot make changes.",
   "highlights": [],
-  "tags": ["ai"]
+  "tags": [
+    "ai"
+  ],
+  "pr": 629,
+  "mergedAt": "2026-07-25T00:08:29Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
