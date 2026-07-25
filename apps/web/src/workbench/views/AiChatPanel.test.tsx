@@ -83,8 +83,10 @@ describe('AiChatPanel', () => {
   it('shows the cloud-key fields and the capability badge for the active tier', async () => {
     render(<AiChatPanel />)
     await waitFor(() => expect(screen.getByPlaceholderText(/API key/)).toBeTruthy())
-    // Phase 1: the assistant reads the workspace but can't write yet.
-    expect(screen.getByText('reads workspace')).toBeTruthy()
+    // The fixture's AiSurfaceService stub exposes no getTools, so no tools are
+    // advertised and the badge stays at the context-only wording. Either way it
+    // must never claim the assistant can write (0394 Phase 1).
+    expect(screen.getByText(/reads workspace|searches workspace/)).toBeTruthy()
   })
 
   it('disables the composer until a model is ready, without telling a user with a tier selected to pick one', async () => {

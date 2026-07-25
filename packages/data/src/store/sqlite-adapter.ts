@@ -15,6 +15,7 @@ import type {
   AuthorizationStateVersion,
   ListNodesOptions,
   CountNodesOptions,
+  NodeTextSearchOptions,
   NodeTextSearchResult,
   SetNodeOptions,
   ImportNodesOptions,
@@ -1025,10 +1026,14 @@ export class SQLiteNodeStorageAdapter implements NodeStorageAdapter {
    * Cross-schema BM25 search over `nodes_fts` (exploration 0391). `null` when
    * this build has no FTS5 (sql.js), so callers fall back to scanning.
    */
-  async searchText(query: string, limit: number): Promise<NodeTextSearchResult[] | null> {
+  async searchText(
+    query: string,
+    limit: number,
+    options?: NodeTextSearchOptions
+  ): Promise<NodeTextSearchResult[] | null> {
     const capabilities = await detectSQLiteCapabilities(this.db)
     if (!capabilities.fts5) return null
-    const results = await searchNodes(this.db, query, { limit })
+    const results = await searchNodes(this.db, query, { limit, schemaId: options?.schemaId })
     return results.map((result) => ({ nodeId: result.nodeId, rank: result.rank }))
   }
 

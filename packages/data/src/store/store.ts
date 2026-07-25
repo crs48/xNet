@@ -18,6 +18,7 @@ import type {
   NodeState,
   NodeStorageAdapter,
   NodeStoreOptions,
+  NodeTextSearchOptions,
   NodeTextSearchResult,
   CreateNodeOptions,
   UpdateNodeOptions,
@@ -981,11 +982,15 @@ export class NodeStore {
    * only; loading the nodes (and thus read authorization + decryption) stays
    * with the caller's `get()` calls.
    */
-  async searchText(query: string, limit: number): Promise<NodeTextSearchResult[] | null> {
+  async searchText(
+    query: string,
+    limit: number,
+    options?: NodeTextSearchOptions
+  ): Promise<NodeTextSearchResult[] | null> {
     if (!this.storage.searchText) return null
     const trimmed = query.trim()
     if (!trimmed) return []
-    return this.storage.searchText(trimmed, limit)
+    return this.storage.searchText(trimmed, limit, options)
   }
 
   /**

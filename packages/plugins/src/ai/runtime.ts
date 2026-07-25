@@ -10,6 +10,7 @@ import type {
   AIProvider,
   AIStreamChunk,
   AIToolCall,
+  AIToolSpec,
   AIUsage
 } from './providers'
 import type { AiMutationPlan, AiRiskLevel, AiScope } from '../ai-surface'
@@ -44,6 +45,7 @@ export type AiAgentEventType =
   | 'model.delta'
   | 'model.completed'
   | 'tool.call'
+  | 'tool.result'
   | 'usage'
   | 'approval.requested'
   | 'approval.resolved'
@@ -177,7 +179,31 @@ export type AiAgentRuntimeConfig = {
    * `draft` is never the default — it must be set explicitly.
    */
   assistMode?: AiAssistMode
+  /**
+   * Tools advertised to the model each turn. Advertising alone changes
+   * nothing — without {@link AiAgentRuntimeConfig.executeTool} the model's
+   * calls are recorded and never run (exploration 0394).
+   */
+  tools?: AIToolSpec[]
+  /**
+   * Runs an approved tool call and returns its result. Typically
+   * `(call) => surface.callTool(call.name, call.arguments)`.
+   */
+  executeTool?: AiAgentToolExecutor
+  /**
+   * Allow-list enforced in code, not by the prompt: a call to anything outside
+   * it is refused before execution and reported back to the model. Omit to
+   * allow every advertised tool.
+   */
+  allowedTools?: string[]
+  /** Bound on model↔tool round trips per turn. Default 4. */
+  maxToolSteps?: number
 }
+
+/** Executes one tool call on the model's behalf. */
+export type AiAgentToolExecutor = (call: AIToolCall) => Promise<unknown>
+
+const DEFAULT_MAX_TOOL_STEPS = 4
 
 export type AiAgentThreadCreateInput = {
   title: string
@@ -574,24 +600,42 @@ export class AiAgentRuntime {
     startedAt: number
   }): Promise<void> {
     try {
-      const messages = await this.buildRunMessages(
+      let messages = await this.buildRunMessages(
         input.threadId,
         input.assistantTurnId,
         input.content
       )
-      const request = createGenerateRequest(messages, input.request)
-      if (this.config.provider.stream) {
-        await this.completeStreamingRun(input, request)
-      } else {
-        const response = await this.config.provider.generateWithTools?.(request)
-        if (response) {
-          await this.applyGenerateResponse(input, response)
-        } else {
-          // Providers with only `generate(prompt)` (e.g. Anthropic) can't take a
-          // message array, so flatten the composed messages into one prompt.
-          const text = await this.config.provider.generate(flattenMessagesToPrompt(messages))
-          await this.appendAssistantText(input.threadId, input.assistantTurnId, text)
+      const tools = this.config.tools
+      const maxSteps = this.config.maxToolSteps ?? DEFAULT_MAX_TOOL_STEPS
+
+      // Tool-use loop (exploration 0394). Without an executor this runs exactly
+      // once and behaves as it always did — the model may still *report* tool
+      // calls, they simply never run. With one, each round trip feeds results
+      // back as `role: 'tool'` messages and asks the model again, bounded by
+      // `maxSteps` so a model that keeps calling tools cannot spin forever.
+      for (let step = 0; ; step++) {
+        const request = createGenerateRequest(messages, {
+          ...input.request,
+          ...(tools?.length ? { tools } : {})
+        })
+        const toolCalls = await this.runModelOnce(input, request, messages)
+
+        if (toolCalls.length === 0 || !this.config.executeTool) break
+        if (step >= maxSteps) {
+          await this.appendAssistantText(
+            input.threadId,
+            input.assistantTurnId,
+            `\n\n_Stopped after ${maxSteps} tool steps._`
+          )
+          break
         }
+
+        const results = await this.runToolCalls(input, toolCalls)
+        messages = [
+          ...messages,
+          { role: 'assistant', content: describeToolCalls(toolCalls) },
+          ...results
+        ]
       }
       await this.finishRun(input, 'completed')
     } catch (err) {
@@ -605,6 +649,71 @@ export class AiAgentRuntime {
     }
   }
 
+  /**
+   * One model round trip. Streams or generates, appending text to the turn
+   * exactly as before, and returns whatever tool calls it asked for.
+   */
+  private async runModelOnce(
+    input: { runId: string; threadId: string; assistantTurnId: string; signal: AbortSignal },
+    request: AIGenerateRequest,
+    messages: AIMessage[]
+  ): Promise<AIToolCall[]> {
+    if (this.config.provider.stream) {
+      return this.completeStreamingRun(input, request)
+    }
+    const response = await this.config.provider.generateWithTools?.(request)
+    if (response) {
+      await this.applyGenerateResponse(input, response)
+      return response.toolCalls ?? []
+    }
+    // Providers with only `generate(prompt)` (e.g. Anthropic) can't take a
+    // message array, so flatten the composed messages into one prompt.
+    const text = await this.config.provider.generate(flattenMessagesToPrompt(messages))
+    await this.appendAssistantText(input.threadId, input.assistantTurnId, text)
+    return []
+  }
+
+  /**
+   * Execute the model's tool calls and render each result as a `tool` message.
+   *
+   * `allowedTools` is enforced here rather than trusted to the prompt: a tool
+   * outside the list is never executed, and the model is told it was denied so
+   * it can proceed instead of silently hanging on a missing result.
+   */
+  private async runToolCalls(
+    input: { threadId: string; assistantTurnId: string },
+    toolCalls: AIToolCall[]
+  ): Promise<AIMessage[]> {
+    const executeTool = this.config.executeTool
+    const allowed = this.config.allowedTools
+    const messages: AIMessage[] = []
+
+    for (const call of toolCalls) {
+      let content: string
+      let denied = false
+      if (allowed && !allowed.includes(call.name)) {
+        denied = true
+        content = `Denied: "${call.name}" is not available in this conversation.`
+      } else {
+        try {
+          content = stringifyToolResult(await executeTool!(call))
+        } catch (err) {
+          // A failing tool is information, not a dead end — hand the model the
+          // error so it can recover or explain, rather than aborting the turn.
+          content = `Error: ${err instanceof Error ? err.message : String(err)}`
+        }
+      }
+      messages.push({ role: 'tool', content, name: call.name, toolCallId: call.id })
+      await this.emit(
+        'tool.result',
+        { toolCall: call, content, denied },
+        input.threadId,
+        input.assistantTurnId
+      )
+    }
+    return messages
+  }
+
   private async completeStreamingRun(
     input: {
       runId: string
@@ -613,13 +722,16 @@ export class AiAgentRuntime {
       signal: AbortSignal
     },
     request: AIGenerateRequest
-  ): Promise<void> {
-    if (!this.config.provider.stream) return
+  ): Promise<AIToolCall[]> {
+    if (!this.config.provider.stream) return []
 
+    const toolCalls: AIToolCall[] = []
     for await (const chunk of this.config.provider.stream({ ...request, stream: true })) {
       if (input.signal.aborted) throw new Error('Run cancelled')
+      if (chunk.type === 'tool_call') toolCalls.push(chunk.toolCall)
       await this.applyStreamChunk(input.threadId, input.assistantTurnId, chunk)
     }
+    return toolCalls
   }
 
   private async applyGenerateResponse(
@@ -1028,6 +1140,24 @@ export function classifyAiAgentDisplayState(input: {
   return {
     kind: 'read-only-answer',
     label: 'Read-only answer'
+  }
+}
+
+/** Compact record of what the model asked for, fed back as its own turn. */
+function describeToolCalls(toolCalls: AIToolCall[]): string {
+  return toolCalls
+    .map((call) => `[tool_call ${call.name} ${JSON.stringify(call.arguments ?? {})}]`)
+    .join('\n')
+}
+
+/** Render a tool result as text for the model, keeping strings verbatim. */
+function stringifyToolResult(result: unknown): string {
+  if (typeof result === 'string') return result
+  if (result === undefined) return ''
+  try {
+    return JSON.stringify(result)
+  } catch {
+    return String(result)
   }
 }
 

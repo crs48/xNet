@@ -29,6 +29,7 @@ import {
   type AiAgentRuntime,
   type AiSurfaceService,
   type AIProvider,
+  type AIToolCall,
   type ConnectorDetection,
   type ConnectorTier,
   type ManagedBudgetSnapshot,
@@ -58,10 +59,12 @@ import {
   providerConfigForConnector,
   type AiChatSettings,
   type BridgeHealth,
+  type ChatToolActivity,
   type CloudProvider,
   type ManagedModel
 } from './ai-chat-connector'
 import { createAiConversationLog, type AiConversationLog } from './ai-chat-persistence'
+import { AI_TOOLS_PROMPT, readOnlyToolSpecs, toolsEnabledFor } from './ai-chat-tools'
 import { AI_SYSTEM_PROMPT, formatContextMessages } from './ai-context'
 import { createGraphContextRetriever, keywordEntrySearch } from './ai-graph-retriever'
 import { schemaRegistryApi } from './ai-schemas'
@@ -197,6 +200,7 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
   const dataBridge = useDataBridge()
   const conversationLogRef = useRef<AiConversationLog | null>(null)
   const assistantBufferRef = useRef('')
+  const [activity, setActivity] = useState<ChatToolActivity | null>(null)
 
   const handlers = useMemo(
     () => ({
@@ -206,10 +210,15 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
       },
       onSettled: () => {
         setStreaming(false)
+        setActivity(null)
         void conversationLogRef.current?.logAssistantReply(assistantBufferRef.current)
         assistantBufferRef.current = ''
       },
-      onError: (message: string) => setError(message)
+      onError: (message: string) => setError(message),
+      // Tool use is visible while it happens (0394): an assistant that goes
+      // quiet for two seconds mid-answer has to be seen looking something up,
+      // not appear stuck. Cleared when the turn settles.
+      onActivity: (next: ChatToolActivity) => setActivity(next)
     }),
     []
   )
@@ -426,15 +435,28 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
     void resolveProvider(selected, settings, onBudget, setWebllmProgress)
       .then((provider) => {
         if (cancelled || !provider) return
+        // Read-only tools, on tiers that can actually call them (0394 Phase 1).
+        // The context pack still runs on every turn — tools let the assistant
+        // go looking for what the pack didn't happen to retrieve.
+        const tools = readOnlyToolSpecs(surface, selected.toolCalling)
         const runtime = createAiAgentRuntime({
           provider,
-          systemPrompt: AI_SYSTEM_PROMPT,
+          systemPrompt: tools.length
+            ? `${AI_SYSTEM_PROMPT}\n\n${AI_TOOLS_PROMPT}`
+            : AI_SYSTEM_PROMPT,
           ...(surface
             ? {
                 contextProvider: async ({ content }) => {
                   const pack = await surface.createContextPack({ query: content, limit: 6 })
                   return formatContextMessages(pack)
                 }
+              }
+            : {}),
+          ...(tools.length && surface
+            ? {
+                tools,
+                allowedTools: tools.map((tool) => tool.name),
+                executeTool: (call: AIToolCall) => surface.callTool(call.name, call.arguments ?? {})
               }
             : {})
         })
@@ -545,6 +567,7 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
         selectedTier={selectedTier}
         onSelect={selectTier}
         hasSelection={!!selected}
+        searchesWorkspace={!!surface && toolsEnabledFor(selected?.toolCalling)}
       />
       {selected?.tier === 'bridge' &&
         (selected.available ? (
@@ -612,6 +635,7 @@ export function AiChatPanel({ initialPrompt }: { initialPrompt?: string } = {}) 
       )}
 
       <ChatBody messages={messages} streaming={streaming} />
+      {activity && <ToolActivityLine activity={activity} />}
       {error && <p className="px-3 py-1 text-[11px] text-rose-500">{error}</p>}
       <SemanticSearchToggle enabled={semanticSearch} onToggle={toggleSemanticSearch} />
       <ChatComposer
@@ -945,12 +969,14 @@ function ConnectorBar({
   detections,
   selectedTier,
   onSelect,
-  hasSelection
+  hasSelection,
+  searchesWorkspace
 }: {
   detections: ConnectorDetection[]
   selectedTier: ConnectorTier | null
   onSelect: (tier: ConnectorTier) => void
   hasSelection: boolean
+  searchesWorkspace: boolean
 }) {
   return (
     <div className="flex items-center gap-2 border-b border-hairline px-3 py-2">
@@ -966,23 +992,58 @@ function ConnectorBar({
           </option>
         ))}
       </select>
-      {hasSelection && <CapabilityBadge />}
+      {hasSelection && <CapabilityBadge searches={searchesWorkspace} />}
     </div>
   )
 }
 
-// Phase 0: the in-app chat is reply-only on every tier because the workspace
-// tool surface (AiSurfaceService) is not yet wired into the runtime. Until then
-// we don't advertise "agentic" — that would over-promise. Reintroduce a
-// tool-calling badge once tools are passed to the runtime (Phase 1).
-function CapabilityBadge() {
+// Phase 1 (0394): tiers that call tools reliably now search and read the
+// workspace themselves; weaker tiers still answer from the injected context
+// pack alone. Neither can write — that waits on an in-chat approval ceremony,
+// so the badge stops at "searches" and never claims "agentic".
+function CapabilityBadge({ searches }: { searches: boolean }) {
   return (
     <span
-      title="This assistant can read your workspace for context. Making changes is coming soon."
+      title={
+        searches
+          ? 'This assistant can search and read your workspace itself. It cannot make changes.'
+          : 'This assistant is given workspace context to read. It cannot search on its own, or make changes.'
+      }
       className="shrink-0 rounded-full border border-hairline px-2 py-0.5 text-[10px] uppercase tracking-wider text-ink-3"
     >
-      reads workspace
+      {searches ? 'searches workspace' : 'reads workspace'}
     </span>
+  )
+}
+
+/** What the assistant is doing right now, in the user's words not the tool's. */
+const TOOL_LABELS: Record<string, string> = {
+  xnet_search: 'Searching your workspace',
+  xnet_graph_expand: 'Following links between your notes',
+  xnet_read_page_markdown: 'Reading a page',
+  xnet_database_describe: 'Looking at a database',
+  xnet_database_query: 'Querying a database',
+  xnet_database_sample: 'Sampling a database',
+  xnet_canvas_list: 'Listing your canvases',
+  xnet_canvas_read_viewport: 'Reading a canvas',
+  xnet_canvas_search: 'Searching a canvas',
+  xnet_get_audit_log: 'Checking the audit log'
+}
+
+function ToolActivityLine({ activity }: { activity: ChatToolActivity }) {
+  const label = TOOL_LABELS[activity.tool] ?? activity.tool
+  if (activity.denied) {
+    return (
+      <p className="flex items-center gap-1.5 px-3 py-1 text-[11px] text-ink-3">
+        Blocked: {label.toLowerCase()} is not allowed here.
+      </p>
+    )
+  }
+  return (
+    <p className="flex items-center gap-1.5 px-3 py-1 text-[11px] text-ink-3">
+      {activity.kind === 'call' && <Loader2 size={11} className="animate-spin" />}
+      {activity.kind === 'call' ? `${label}…` : `${label} — done`}
+    </p>
   )
 }
 

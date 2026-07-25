@@ -57,6 +57,7 @@ export type {
   NodeBatchWriteTimings,
   ListNodesOptions,
   CountNodesOptions,
+  NodeTextSearchOptions,
   NodeTextSearchResult,
   ConflictResult,
   MergeConflict,

@@ -799,6 +799,7 @@ export {
   type NodeBatchWriteTimings,
   type ListNodesOptions,
   type CountNodesOptions,
+  type NodeTextSearchOptions,
   type NodeTextSearchResult,
   type SortDirection,
   type SystemOrderField,

@@ -201,9 +201,28 @@ describe('reduceRuntimeEvent', () => {
   it('ignores an empty delta', () => {
     expect(reduceRuntimeEvent({ type: 'model.delta', payload: { text: '' } })).toBeNull()
   })
-  it('marks completion as settled', () => {
+  it('settles on run completion, and cancellation', () => {
     expect(reduceRuntimeEvent({ type: 'run.completed' })).toEqual({ settled: true })
-    expect(reduceRuntimeEvent({ type: 'model.completed' })).toEqual({ settled: true })
+    expect(reduceRuntimeEvent({ type: 'run.cancelled' })).toEqual({ settled: true })
+  })
+
+  it('does NOT settle on model.completed', () => {
+    // With the tool loop (0394) one run makes several model round trips, so
+    // model.completed fires mid-turn. Settling there ended the stream early
+    // and dropped everything said after the assistant's first tool call.
+    expect(reduceRuntimeEvent({ type: 'model.completed' })).toBeNull()
+  })
+
+  it('maps tool call and result events to activity', () => {
+    expect(
+      reduceRuntimeEvent({ type: 'tool.call', payload: { toolCall: { name: 'xnet_search' } } })
+    ).toEqual({ activity: { kind: 'call', tool: 'xnet_search' } })
+    expect(
+      reduceRuntimeEvent({
+        type: 'tool.result',
+        payload: { toolCall: { name: 'xnet_search' }, denied: true }
+      })
+    ).toEqual({ activity: { kind: 'result', tool: 'xnet_search', denied: true } })
   })
   it('maps a failure to settled + error', () => {
     expect(reduceRuntimeEvent({ type: 'run.failed', payload: { error: 'boom' } })).toEqual({

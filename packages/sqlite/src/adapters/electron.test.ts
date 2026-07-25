@@ -12,6 +12,7 @@ import { unlinkSync, existsSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'
 import { describe, it, expect, beforeEach, afterEach, beforeAll, afterAll } from 'vitest'
+import { searchNodes } from '../fts'
 import { SCHEMA_VERSION } from '../schema'
 import { ElectronSQLiteAdapter, createElectronSQLiteAdapter } from './electron'
 
@@ -320,6 +321,70 @@ describeNativeSQLite('ElectronSQLiteAdapter', () => {
 
       expect(results).toHaveLength(1)
       expect(results[0].node_id).toBe('node-1')
+    })
+
+    // Exploration 0394: scoping used to be a post-filter over a cross-schema
+    // BM25 window, so a schema whose matches ranked below the window came back
+    // empty even though plenty existed. `searchNodes` pushes it into SQL.
+    describe('schema scoping (0394)', () => {
+      const NOTE_SCHEMA = 'xnet://xnet.fyi/Note@1.0.0'
+      const TASK_SCHEMA = 'xnet://xnet.fyi/Task@1.0.0'
+
+      async function seedNode(
+        id: string,
+        schemaId: string,
+        title: string,
+        content: string,
+        deletedAt: number | null = null
+      ): Promise<void> {
+        await adapter.run(
+          'INSERT INTO nodes (id, schema_id, created_at, updated_at, created_by, deleted_at) VALUES (?, ?, ?, ?, ?, ?)',
+          [id, schemaId, 1, 1, 'did:test', deletedAt]
+        )
+        await adapter.run('INSERT INTO nodes_fts (node_id, title, content) VALUES (?, ?, ?)', [
+          id,
+          title,
+          content
+        ])
+      }
+
+      it('returns a full page of one schema even when it ranks below the window', async () => {
+        // 30 strong Note matches crowd out the Tasks, which mention the term
+        // once each. A limit-5 cross-schema window is all Notes.
+        for (let i = 0; i < 30; i++) {
+          await seedNode(`note-${i}`, NOTE_SCHEMA, 'Roadmap', 'roadmap roadmap roadmap roadmap')
+        }
+        for (let i = 0; i < 5; i++) {
+          await seedNode(`task-${i}`, TASK_SCHEMA, `Task ${i}`, 'a note about the roadmap someday')
+        }
+
+        const unscoped = await searchNodes(adapter, 'roadmap', { limit: 5 })
+        expect(unscoped.every((r) => r.nodeId.startsWith('note-'))).toBe(true)
+
+        const scoped = await searchNodes(adapter, 'roadmap', { limit: 5, schemaId: TASK_SCHEMA })
+        expect(scoped).toHaveLength(5)
+        expect(scoped.every((r) => r.nodeId.startsWith('task-'))).toBe(true)
+      })
+
+      it('excludes soft-deleted nodes from a scoped search', async () => {
+        await seedNode('task-live', TASK_SCHEMA, 'Live', 'quarterly roadmap')
+        await seedNode('task-gone', TASK_SCHEMA, 'Gone', 'quarterly roadmap', 123)
+
+        const scoped = await searchNodes(adapter, 'roadmap', { limit: 10, schemaId: TASK_SCHEMA })
+        expect(scoped.map((r) => r.nodeId)).toEqual(['task-live'])
+      })
+
+      it('still supports snippets while scoped', async () => {
+        await seedNode('task-1', TASK_SCHEMA, 'Planning', 'the quarterly roadmap is due')
+
+        const scoped = await searchNodes(adapter, 'roadmap', {
+          limit: 10,
+          schemaId: TASK_SCHEMA,
+          includeSnippets: true
+        })
+        expect(scoped).toHaveLength(1)
+        expect(scoped[0].snippet).toContain('<mark>')
+      })
     })
 
     it('supports porter stemming', async () => {
