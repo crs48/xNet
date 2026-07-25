@@ -6,6 +6,50 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-24-the-assistant-can-now-search-your-worksp",
+      "url": "https://xnet.fyi/changelog#2026-07-24-the-assistant-can-now-search-your-worksp",
+      "title": "The assistant can now search your workspace itself",
+      "content_text": "On models that call tools reliably, the in-app assistant searches and reads your workspace directly instead of only answering from context it was handed — and shows you each lookup as it happens. It still cannot make changes.\n",
+      "date_published": "2026-07-25T00:08:29Z",
+      "tags": [
+        "ai"
+      ],
+      "_xnet": {
+        "date": "July 24, 2026",
+        "summary": "On models that call tools reliably, the in-app assistant searches and reads your workspace directly instead of only answering from context it was handed — and shows you each lookup as it happens. It still cannot make changes.",
+        "highlights": [],
+        "mergedAt": "2026-07-25T00:08:29Z",
+        "pr": 629,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
+      "id": "2026-07-24-on-device-ai-models-now-work-in-the-desk",
+      "url": "https://xnet.fyi/changelog#2026-07-24-on-device-ai-models-now-work-in-the-desk",
+      "title": "On-device AI models now work in the desktop app",
+      "content_text": "The desktop app can download and run in-browser AI models and build its on-device search index — its content policy previously blocked the model weights, WebAssembly, and the local agent bridge.\n",
+      "date_published": "2026-07-25T00:08:29Z",
+      "tags": [
+        "ai"
+      ],
+      "_xnet": {
+        "date": "July 24, 2026",
+        "summary": "The desktop app can download and run in-browser AI models and build its on-device search index — its content policy previously blocked the model weights, WebAssembly, and the local agent bridge.",
+        "highlights": [],
+        "mergedAt": "2026-07-25T00:08:29Z",
+        "pr": 629,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-24-use-xnet-from-claude-code-and-codex",
       "url": "https://xnet.fyi/changelog#2026-07-24-use-xnet-from-claude-code-and-codex",
       "title": "Use xNet from Claude Code and Codex",

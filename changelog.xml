@@ -6,6 +6,20 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>The assistant can now search your workspace itself</title>
+      <link>https://xnet.fyi/changelog#2026-07-24-the-assistant-can-now-search-your-worksp</link>
+      <guid isPermaLink="false">2026-07-24-the-assistant-can-now-search-your-worksp</guid>
+      <pubDate>Sat, 25 Jul 2026 00:08:29 GMT</pubDate>
+      <description>On models that call tools reliably, the in-app assistant searches and reads your workspace directly instead of only answering from context it was handed — and shows you each lookup as it happens. It still cannot make changes.</description>
+    </item>
+    <item>
+      <title>On-device AI models now work in the desktop app</title>
+      <link>https://xnet.fyi/changelog#2026-07-24-on-device-ai-models-now-work-in-the-desk</link>
+      <guid isPermaLink="false">2026-07-24-on-device-ai-models-now-work-in-the-desk</guid>
+      <pubDate>Sat, 25 Jul 2026 00:08:29 GMT</pubDate>
+      <description>The desktop app can download and run in-browser AI models and build its on-device search index — its content policy previously blocked the model weights, WebAssembly, and the local agent bridge.</description>
+    </item>
+    <item>
       <title>Use xNet from Claude Code and Codex</title>
       <link>https://xnet.fyi/changelog#2026-07-24-use-xnet-from-claude-code-and-codex</link>
       <guid isPermaLink="false">2026-07-24-use-xnet-from-claude-code-and-codex</guid>
