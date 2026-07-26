@@ -38,6 +38,10 @@ const workspaceAliases = {
     .pathname,
   '@xnetjs/data': new URL('./packages/data/src/index.ts', import.meta.url).pathname,
   '@xnetjs/data-bridge': new URL('./packages/data-bridge/src/index.ts', import.meta.url).pathname,
+  // Subpath export: MUST precede the bare '@xnetjs/devkit' (Vite uses first match).
+  // Browser-safe leaf — the devkit barrel reaches for node:child_process.
+  '@xnetjs/devkit/blast-radius': new URL('./packages/devkit/src/blast-radius.ts', import.meta.url)
+    .pathname,
   '@xnetjs/devkit': new URL('./packages/devkit/src/index.ts', import.meta.url).pathname,
   // Subpath export: MUST precede the bare '@xnetjs/devtools' (Vite uses first match).
   '@xnetjs/devtools/seed': new URL('./packages/devtools/src/seed/index.ts', import.meta.url)
@@ -124,6 +128,10 @@ export default defineConfig({
             'apps/cloud/src/**/*.test.ts',
             // Demo apps — pure logic only (Connect Four fold, exploration 0314)
             'apps/demos/src/lib/**/*.test.ts',
+            // Build-time plugins for the web app (source stamping, 0399) — pure
+            // functions and a Babel visitor, so they run in the node project
+            // rather than dragging jsdom in.
+            'apps/web/vite-plugins/**/*.test.ts',
             // Social matching layer — pure connect modules only; the
             // social importer/view tests need package subpath resolution that
             // this shared pool doesn't provide, so they stay on the package config.

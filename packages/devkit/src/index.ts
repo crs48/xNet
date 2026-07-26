@@ -26,6 +26,21 @@ export {
 export { Git, GitError, type GitCheckpoint } from './git'
 
 export {
+  KERNEL_PACKAGES,
+  fileOf,
+  isKernel,
+  lane3Prompt,
+  packageOf,
+  resolveLane,
+  workspaceOf,
+  type ChangeScope,
+  type Lane,
+  type PointedElement,
+  type Resolution,
+  type WorkspaceRef
+} from './blast-radius'
+
+export {
   runValidationGate,
   defaultXnetGate,
   type ValidationStep,

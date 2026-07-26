@@ -12,8 +12,8 @@ tags: [ai, agents, devkit, self-modification, ui, git, safety]
 > [`packages/devkit`](../../packages/devkit/src/) (exploration 0190) is the
 > complete loop — worktree isolation → your own agent CLI → validation gate →
 > checkpoint or hard-reset → `git push` → `gh pr create` — and it is called by
-> **nothing but its own tests**. What is missing is the *pointing device* and a
-> *routing discipline*. The naive version ("point at anything, agent edits core
+> **nothing but its own tests**. What is missing is the _pointing device_ and a
+> _routing discipline_. The naive version ("point at anything, agent edits core
 > source, hot reload") does break fast, for one structural reason: **JavaScript
 > has a build step, so the app can brick the thing it is editing from inside
 > itself** — the exact hazard Smalltalk and Emacs don't have. The fix is to make
@@ -25,14 +25,14 @@ tags: [ai, agents, devkit, self-modification, ui, git, safety]
 
 ## Problem Statement
 
-The ask, in the user's words: *"click on any part of the UI and say change
-this"* — colour, shape, behaviour, add a feature, remove a feature, simplify —
+The ask, in the user's words: _"click on any part of the UI and say change
+this"_ — colour, shape, behaviour, add a feature, remove a feature, simplify —
 and have an agent modify the code, commit it, PR it, and merge it. Worktrees,
 git, the whole coding workflow, inside xNet itself.
 
-And the honest doubts that came with it: *"It seems like it could get really
+And the honest doubts that came with it: _"It seems like it could get really
 broken really fast. But it also seems like it's obviously how I'd want my UI to
-work given AI agents."*
+work given AI agents."_
 
 Both halves are correct, and the exploration's job is to separate them. Three
 questions:
@@ -59,13 +59,13 @@ questions:
   mapping anywhere in the repo** — no `data-source`, no `data-oid`, no
   inspector. Pointing is the unbuilt half.
 - **The recursion is the real hazard, not the agent.** Onlook, Fusion, v0 and
-  Lovable all edit a *target* project from a *separate* tool. xNet editing xNet
+  Lovable all edit a _target_ project from a _separate_ tool. xNet editing xNet
   means a type error can blank the surface you were editing from. Smalltalk and
   Emacs survive self-modification because there is no build step between the
   edit and the running image; a Vite app has one.
 - **Therefore: route by layer, not by intent.** Most "change this" requests —
-  colour, spacing, density, which panel is where — are *not source-code
-  changes* in xNet's architecture. They are theme tokens
+  colour, spacing, density, which panel is where — are _not source-code
+  changes_ in xNet's architecture. They are theme tokens
   ([`packages/ui/src/theme/tokens.css`](../../packages/ui/src/theme/tokens.css))
   and layout-tree moves (the `SlotContribution` registry already registers
   every panel's movement verbs as palette commands). Those want zero git.
@@ -75,7 +75,7 @@ questions:
   how this feature becomes a support burden.
 - **The precedent is already in-repo and already correct.**
   [`workspace-agent-module.ts`](../../apps/web/src/plugins/workspace-agent-module.ts)
-  lets the agent rearrange the shell *by emitting registered commands*, with an
+  lets the agent rearrange the shell _by emitting registered commands_, with an
   undo snapshot and a toast. That is Lane 1 for layout, shipped. Generalise it.
 
 ---
@@ -97,21 +97,21 @@ flowchart LR
   style P fill:#bbf7d0,stroke:#15803d
 ```
 
-| Piece | File | LOC | Callers outside devkit |
-| --- | --- | --- | --- |
-| Command port (real + fake) | [`command-runner.ts`](../../packages/devkit/src/command-runner.ts) | 273 | — |
-| Worktrees, checkpoint, restore | [`git.ts`](../../packages/devkit/src/git.ts) | 130 | — |
-| Bring-your-own agent CLI | [`agent.ts`](../../packages/devkit/src/agent.ts) | 71 | — |
-| Validation gate | [`validation-gate.ts`](../../packages/devkit/src/validation-gate.ts) | 64 | — |
-| Loop + `openPullRequest` + `publishPluginRepo` | [`dev-loop.ts`](../../packages/devkit/src/dev-loop.ts) | 189 | 🛑 **none** |
-| Bridge daemon (loopback, pairing token) | [`bridge-server.ts`](../../packages/devkit/src/bridge-server.ts) | 567 | ✅ CLI |
-| Agent frames (ACP-aligned) | [`agent-frames.ts`](../../packages/devkit/src/agent-frames.ts) | 248 | ✅ 0392 |
+| Piece                                          | File                                                                 | LOC | Callers outside devkit |
+| ---------------------------------------------- | -------------------------------------------------------------------- | --- | ---------------------- |
+| Command port (real + fake)                     | [`command-runner.ts`](../../packages/devkit/src/command-runner.ts)   | 273 | —                      |
+| Worktrees, checkpoint, restore                 | [`git.ts`](../../packages/devkit/src/git.ts)                         | 130 | —                      |
+| Bring-your-own agent CLI                       | [`agent.ts`](../../packages/devkit/src/agent.ts)                     | 71  | —                      |
+| Validation gate                                | [`validation-gate.ts`](../../packages/devkit/src/validation-gate.ts) | 64  | —                      |
+| Loop + `openPullRequest` + `publishPluginRepo` | [`dev-loop.ts`](../../packages/devkit/src/dev-loop.ts)               | 189 | 🛑 **none**            |
+| Bridge daemon (loopback, pairing token)        | [`bridge-server.ts`](../../packages/devkit/src/bridge-server.ts)     | 567 | ✅ CLI                 |
+| Agent frames (ACP-aligned)                     | [`agent-frames.ts`](../../packages/devkit/src/agent-frames.ts)       | 248 | ✅ 0392                |
 
 `dev-loop.ts`'s own header is unambiguous about what it is:
 
-> *"The heart of 'vibe coding xNet from within xNet' … isolate (worktree) →
+> _"The heart of 'vibe coding xNet from within xNet' … isolate (worktree) →
 > agent edits → validation gate → checkpoint | roll back. It never touches the
-> live checkout … and it always lands on a known-good state."*
+> live checkout … and it always lands on a known-good state."_
 
 > [!IMPORTANT]
 > Exploration [0190](0190_[_]_IN_APP_AGENTIC_VIBE_CODING_AND_SELF_MODIFICATION.md)
@@ -137,10 +137,10 @@ xNet's UI is already layered, which is what makes the routing idea cheap:
 ```
 
 - **Lane 1 exists and works.** [`ThemeProvider.tsx`](../../packages/ui/src/theme/ThemeProvider.tsx)
-  + `tokens.css`; and every panel is a `SlotContribution` whose movement verbs
-  are *already* palette commands, per
-  [`slot-registry.tsx`](../../apps/web/src/workbench/slot-registry.tsx):
-  *"Registering a view also registers its movement verbs as palette commands."*
+  - `tokens.css`; and every panel is a `SlotContribution` whose movement verbs
+    are _already_ palette commands, per
+    [`slot-registry.tsx`](../../apps/web/src/workbench/slot-registry.tsx):
+    _"Registering a view also registers its movement verbs as palette commands."_
 - **Lane 2 exists and is unsurfaced** — the 2,469-LOC spec→plugin loop from
   0331, with trust derived from provenance and never from the payload
   ([`packages/labs/src/trust.ts`](../../packages/labs/src/trust.ts)).
@@ -161,16 +161,16 @@ is the only piece nobody has started.**
 
 ### Who does what
 
-| System | What it does | Edits *itself*? | Lesson for us |
-| --- | --- | --- | --- |
-| **[Onlook](https://github.com/onlook-dev/onlook)** | Click element in live React preview → patch the JSX → HMR. Instruments the bundle with `data-oid` at build time. | ❌ target project | **The mechanism to copy.** Build-time id → locate JSX → patch → reload. |
-| **[Builder.io Fusion](https://www.builder.io/fusion)** | Select an element, prompt, get a PR; `@builderio-bot` iterates on review comments. | ❌ target project, hosted | Closest to the literal ask. Proves point→prompt→PR is a shippable product. |
-| **v0 / Lovable / Bolt** | Prompt → whole app. | ❌ | Not the same gesture — no pointing at a running thing. |
-| **[Utopia](https://github.com/concrete-utopia/utopia)** | Two-way sync, React code as source of truth, in-browser. | ❌ | The hard case, attempted honestly. Two-way sync is where these projects sink. |
-| **Plasmic codegen** | Studio → source files you commit. | ❌ | Documented failure mode: studio changes **blow away manual edits**. Round-trip engineering is a known-hard problem, not a detail. |
-| **Chrome DevTools Workspaces** | Edit CSS in the inspector, save to disk. | ❌ | Ships, is reliable, and is *narrow on purpose*. **The model for Lane 1.** |
-| **Smalltalk / Pharo** | The IDE *is* the running image; modify a live system with no compile-run cycle. | ✅ | The genuine ancestor of the ask — and the reason it works there is the absence of a build step. |
-| **Emacs** | Redefine a function, eval, it is live. Self-documenting, self-modifying. | ✅ | Same lesson: no build step, and a culture of `M-x` granularity. |
+| System                                                  | What it does                                                                                                     | Edits _itself_?           | Lesson for us                                                                                                                     |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| **[Onlook](https://github.com/onlook-dev/onlook)**      | Click element in live React preview → patch the JSX → HMR. Instruments the bundle with `data-oid` at build time. | ❌ target project         | **The mechanism to copy.** Build-time id → locate JSX → patch → reload.                                                           |
+| **[Builder.io Fusion](https://www.builder.io/fusion)**  | Select an element, prompt, get a PR; `@builderio-bot` iterates on review comments.                               | ❌ target project, hosted | Closest to the literal ask. Proves point→prompt→PR is a shippable product.                                                        |
+| **v0 / Lovable / Bolt**                                 | Prompt → whole app.                                                                                              | ❌                        | Not the same gesture — no pointing at a running thing.                                                                            |
+| **[Utopia](https://github.com/concrete-utopia/utopia)** | Two-way sync, React code as source of truth, in-browser.                                                         | ❌                        | The hard case, attempted honestly. Two-way sync is where these projects sink.                                                     |
+| **Plasmic codegen**                                     | Studio → source files you commit.                                                                                | ❌                        | Documented failure mode: studio changes **blow away manual edits**. Round-trip engineering is a known-hard problem, not a detail. |
+| **Chrome DevTools Workspaces**                          | Edit CSS in the inspector, save to disk.                                                                         | ❌                        | Ships, is reliable, and is _narrow on purpose_. **The model for Lane 1.**                                                         |
+| **Smalltalk / Pharo**                                   | The IDE _is_ the running image; modify a live system with no compile-run cycle.                                  | ✅                        | The genuine ancestor of the ask — and the reason it works there is the absence of a build step.                                   |
+| **Emacs**                                               | Redefine a function, eval, it is live. Self-documenting, self-modifying.                                         | ✅                        | Same lesson: no build step, and a culture of `M-x` granularity.                                                                   |
 
 > [!NOTE]
 > Nobody in the JavaScript world ships the recursive case. That is not a market
@@ -184,12 +184,12 @@ Plasmic's forum has the canonical symptom (studio edits clobbering hand edits),
 and the general problem — keeping a visual model and generated code in sync
 both ways — has a Wikipedia page and forty years of failed attempts behind it.
 Every tool above either (a) makes code the single source of truth and treats the
-visual layer as a *view* (Onlook, Utopia), or (b) accepts one-way generation.
+visual layer as a _view_ (Onlook, Utopia), or (b) accepts one-way generation.
 
 > [!IMPORTANT]
 > **Design consequence:** never let point-and-change create a second source of
-> truth. The visual gesture must compile down to *an edit in the existing
-> representation* — a token value, a command, a JSX patch — never to a parallel
+> truth. The visual gesture must compile down to _an edit in the existing
+> representation_ — a token value, a command, a JSX patch — never to a parallel
 > "visual override" store that then has to be reconciled.
 
 ---
@@ -198,13 +198,13 @@ visual layer as a *view* (Onlook, Utopia), or (b) accepts one-way generation.
 
 ### F1 — "Change this" is at least four different operations
 
-| What the user says | What it actually is | Lane | Needs git? |
-| --- | --- | --- | --- |
-| "make this blue" / "tighter spacing" | theme token value | 1 | ❌ |
-| "move this panel to the right" | `LayoutTree` command | 1 | ❌ |
-| "add a column that computes X" | a Lab / plugin | 2 | ❌ |
-| "this table should paginate" | core source change | 3 | ✅ |
-| "simplify this whole view" | core source, **unbounded** | 3 | ✅ + review |
+| What the user says                   | What it actually is        | Lane | Needs git?  |
+| ------------------------------------ | -------------------------- | ---- | ----------- |
+| "make this blue" / "tighter spacing" | theme token value          | 1    | ❌          |
+| "move this panel to the right"       | `LayoutTree` command       | 1    | ❌          |
+| "add a column that computes X"       | a Lab / plugin             | 2    | ❌          |
+| "this table should paginate"         | core source change         | 3    | ✅          |
+| "simplify this whole view"           | core source, **unbounded** | 3    | ✅ + review |
 
 Treating these as one feature is what makes it feel dangerous. Treating them as
 four makes three of them boring.
@@ -235,17 +235,17 @@ sequenceDiagram
 
 ### F3 — Element→source mapping: three options, one right answer
 
-| Approach | How | Verdict |
-| --- | --- | --- |
-| React fiber `_debugSource` | Free in dev with `@vitejs/plugin-react` | ⚠️ Works on our React 18.3 — **removed in React 19**. A trap with a fuse on it. |
-| `data-xnet-src` via Babel/Vite plugin | Emit `file:line:col` on host elements in dev | ✅ **Recommended** — explicit, version-independent, greppable |
-| Source maps + DOM heuristics | Reverse-engineer from bundle | ❌ Fragile, slow, ambiguous |
+| Approach                              | How                                          | Verdict                                                                         |
+| ------------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------- |
+| React fiber `_debugSource`            | Free in dev with `@vitejs/plugin-react`      | ⚠️ Works on our React 18.3 — **removed in React 19**. A trap with a fuse on it. |
+| `data-xnet-src` via Babel/Vite plugin | Emit `file:line:col` on host elements in dev | ✅ **Recommended** — explicit, version-independent, greppable                   |
+| Source maps + DOM heuristics          | Reverse-engineer from bundle                 | ❌ Fragile, slow, ambiguous                                                     |
 
 <details>
 <summary>Why the mapping is many-to-one, and what to do about it</summary>
 
 One `<Row>` component renders 400 rows. Pointing at row 37 and saying "make
-this red" is ambiguous between *this row*, *rows like this*, and *all rows*.
+this red" is ambiguous between _this row_, _rows like this_, and _all rows_.
 Onlook and Fusion both resolve this by mapping to the **JSX site**, not the
 instance — the edit applies to the component. That is usually right and
 occasionally surprising.
@@ -259,14 +259,14 @@ than magic.
 
 ### F4 — We already have the three safety primitives; we lack the fourth
 
-| Primitive | Status | Where |
-| --- | --- | --- |
-| Isolation (worktree per task) | ✅ | `git.ts` |
-| Verification (typecheck→lint→test→fallow) | ✅ | `validation-gate.ts` |
-| Time travel (checkpoint / hard reset) | ✅ | `git.ts` + `dev-loop.ts` |
-| **Blast-radius classification** | 🛑 **missing** | — |
+| Primitive                                 | Status         | Where                    |
+| ----------------------------------------- | -------------- | ------------------------ |
+| Isolation (worktree per task)             | ✅             | `git.ts`                 |
+| Verification (typecheck→lint→test→fallow) | ✅             | `validation-gate.ts`     |
+| Time travel (checkpoint / hard reset)     | ✅             | `git.ts` + `dev-loop.ts` |
+| **Blast-radius classification**           | 🛑 **missing** | —                        |
 
-Nothing today can answer *"is this edit a token tweak or a kernel change?"*
+Nothing today can answer _"is this edit a token tweak or a kernel change?"_
 before the agent starts. That classification is what lets the UI be calm: a
 Lane 1 change needs no ceremony at all, and a Lane 3 change to
 `packages/sync` should be visibly a big deal.
@@ -275,7 +275,7 @@ Lane 1 change needs no ceremony at all, and a Lane 3 change to
 
 Lane 3 needs a git checkout, a package manager, `gh`, and the user's own agent
 CLI. That excludes the shipped web app entirely and most Electron users. But it
-precisely *includes* the people who would use it most — us, and self-hosters
+precisely _includes_ the people who would use it most — us, and self-hosters
 who already run from source. Exploration
 [0393](0393_[_]_XNET_FROM_INSIDE_THE_CODING_AGENT.md) already built the
 detection ladder for exactly this kind of "is a dev environment present?"
@@ -293,13 +293,13 @@ it satisfies the "not overwhelming" requirement by being invisible by default.
 
 ## Options And Tradeoffs
 
-| Option | Shape | Cost | Verdict |
-| --- | --- | --- | --- |
-| **A. Full self-modification** | Point at anything → agent edits core source → HMR into the running app | Bootstrap paradox; bricks itself; needs source checkout | 🛑 Rejected as the *default* |
-| **B. Visual-override store** | Point-and-change writes overrides to a store, rendered on top | Creates a second source of truth; the Plasmic failure mode | 🛑 Rejected |
-| **C. Three-lane routing** | Resolve the pointed element to its owning layer; lowest lane that satisfies wins | Moderate; reuses devkit + 0331 + theme + slot registry | ✅ **Recommended** |
-| **D. Lane 3 only, dev-mode** | Wire the existing dev loop to a UI, skip lanes 1–2 | Cheapest to *build*; but the common case (colour, spacing) drags a whole PR through CI | ❌ Wrong default |
-| **E. Nothing** | Keep `devkit` unwired | Zero; the loop stays a library nobody runs | ❌ |
+| Option                        | Shape                                                                            | Cost                                                                                   | Verdict                      |
+| ----------------------------- | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- | ---------------------------- |
+| **A. Full self-modification** | Point at anything → agent edits core source → HMR into the running app           | Bootstrap paradox; bricks itself; needs source checkout                                | 🛑 Rejected as the _default_ |
+| **B. Visual-override store**  | Point-and-change writes overrides to a store, rendered on top                    | Creates a second source of truth; the Plasmic failure mode                             | 🛑 Rejected                  |
+| **C. Three-lane routing**     | Resolve the pointed element to its owning layer; lowest lane that satisfies wins | Moderate; reuses devkit + 0331 + theme + slot registry                                 | ✅ **Recommended**           |
+| **D. Lane 3 only, dev-mode**  | Wire the existing dev loop to a UI, skip lanes 1–2                               | Cheapest to _build_; but the common case (colour, spacing) drags a whole PR through CI | ❌ Wrong default             |
+| **E. Nothing**                | Keep `devkit` unwired                                                            | Zero; the loop stays a library nobody runs                                             | ❌                           |
 
 <details>
 <summary>Why not A — and what "really broken really fast" concretely means</summary>
@@ -308,7 +308,7 @@ Four failure modes, each observed in the prior art or forced by our toolchain:
 
 1. **Self-bricking** (F2) — a type error blanks the editing surface.
 2. **Unbounded scope** — "simplify this" against a kernel package. The
-   validation gate catches *broken*, not *unwise*: `packages/sync/src/change.ts`
+   validation gate catches _broken_, not _unwise_: `packages/sync/src/change.ts`
    passing typecheck is not the same as the wire format still being compatible.
 3. **Ambiguous targets** (F3) — one JSX site, 400 instances.
 4. **Merge decay** — every accepted Lane 3 change is a real PR against a real
@@ -330,7 +330,7 @@ from its source. Every subsequent code change either ignores the overrides or
 fights them, and there is no migration path back. Round-trip engineering has
 eaten better-resourced teams than ours; the way to not lose is not to play.
 
-Lane 1 avoids this precisely because a theme token *is* the existing
+Lane 1 avoids this precisely because a theme token _is_ the existing
 representation — changing it is not an override, it is the value.
 
 </details>
@@ -348,8 +348,7 @@ from [CHARTER.md](../CHARTER.md) §6 at that time.
 ## Recommendation
 
 > [!TIP]
-> **Build the pointing device, then Lane 1, then Lane 3-in-dev-mode, then Lane
-> 2.** The gesture is the product; the lanes are how it stays safe. Do not
+> **Build the pointing device, then Lane 1, then Lane 3-in-dev-mode, then Lane 2.** The gesture is the product; the lanes are how it stays safe. Do not
 > start with the agent — start with resolution and the sentence that tells the
 > user what is about to change.
 
@@ -367,7 +366,7 @@ flowchart TD
 **W1 — The pointing device.** A dev/Electron-only Vite plugin stamping
 `data-xnet-src="file:line:col"` on host elements; an <kbd>⌥</kbd>-hover overlay
 that highlights the element, names its **owning lane**, and states the blast
-radius in one sentence. Ship this with *no* editing at all first — an inspector
+radius in one sentence. Ship this with _no_ editing at all first — an inspector
 that explains what owns each pixel is independently useful and it is how we
 find out whether the resolution is actually right.
 
@@ -380,7 +379,7 @@ which token. This is where the `workspace-agent-module.ts` pattern generalises:
 **W3 — Lane 3, developer mode.** Wire `dev-loop.ts` to a UI behind an explicit
 "Developer mode" that probes for a checkout (0393's ladder). Non-negotiables:
 the worktree gets its **own preview server**; the gate runs before anything is
-offered; the diff is shown before the PR; and the PR is the *output*, not an
+offered; the diff is shown before the PR; and the PR is the _output_, not an
 automatic merge.
 
 **W4 — Lane 2.** Surface 0331's spec→plugin loop as the middle path for
@@ -432,9 +431,12 @@ export function resolveLane(el: PointedElement): Resolution {
     return { lane: 1, explain: `Moves or hides the “${el.slotLabel}” panel. One Undo away.` }
   }
   if (el.pluginId) {
-    return { lane: 2, explain: `Edits the “${el.pluginName}” plugin. Sandboxed; no rebuild of xNet.` }
+    return {
+      lane: 2,
+      explain: `Edits the “${el.pluginName}” plugin. Sandboxed; no rebuild of xNet.`
+    }
   }
-  const pkg = packageOf(el.source)               // from data-xnet-src
+  const pkg = packageOf(el.source) // from data-xnet-src
   return {
     lane: 3,
     pkg,
@@ -476,14 +478,14 @@ export async function previewWorktree(
 > entirely in v1.
 
 - **Prompt injection reaches the source tree.** Once an agent with edit rights
-  is one click from any element, workspace *content* becomes a potential
+  is one click from any element, workspace _content_ becomes a potential
   instruction channel. A page whose text says "also add a webhook to
   evil.example" must not influence a Lane 3 task. **Open:** does the Lane 3
-  prompt get the pointed element's *source location only*, never its
+  prompt get the pointed element's _source location only_, never its
   user-authored content?
 - **Review capacity.** A gesture that generates PRs faster than they can be
   reviewed hurts more than it helps. **Open:** should Lane 3 default to a
-  *draft* PR, or to a local checkpoint the user promotes manually?
+  _draft_ PR, or to a local checkpoint the user promotes manually?
 - **`_debugSource` is a fuse.** It works on React 18.3 and is gone in React 19.
   The `data-xnet-src` plugin must land before any upgrade, or the inspector
   silently loses its mapping.
@@ -508,11 +510,11 @@ export async function previewWorktree(
 
 ### W1 — The pointing device
 
-- [ ] Vite plugin stamping `data-xnet-src="file:line:col"` on host elements,
+- [x] Vite plugin stamping `data-xnet-src="file:line:col"` on host elements,
       **dev/Electron only**
-- [ ] Guard asserting the attribute never appears in a production bundle
-- [ ] <kbd>⌥</kbd>-hover overlay: highlight the element, show its owning lane
-- [ ] `resolveLane()` in `packages/devkit` — token / slot / plugin / package
+- [x] Guard asserting the attribute never appears in a production bundle
+- [x] <kbd>⌥</kbd>-hover overlay: highlight the element, show its owning lane
+- [x] `resolveLane()` in `packages/devkit` — token / slot / plugin / package
 - [ ] Ship W1 with **no editing** and use it ourselves for a week
 
 ### W2 — Lane 1 (tokens and layout)
@@ -521,7 +523,7 @@ export async function previewWorktree(
 - [ ] Token changes apply through `ThemeProvider`, not an override store
 - [ ] Layout changes emit registered `SlotContribution` commands (the
       `workspace-agent-module.ts` pattern), with one Undo
-- [ ] Show the blast-radius sentence *before* applying, every time
+- [ ] Show the blast-radius sentence _before_ applying, every time
 
 ### W3 — Lane 3 (core source, developer mode)
 
