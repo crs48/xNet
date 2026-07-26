@@ -10,7 +10,7 @@
       "label": "Home",
       "file": "routes/home.png",
       "status": "unchanged",
-      "ssim": 0.998395
+      "ssim": 0.998507
     }
   ],
   "electron": [
