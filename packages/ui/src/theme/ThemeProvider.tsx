@@ -1,4 +1,20 @@
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react'
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode
+} from 'react'
+import {
+  applyTokenOverrides,
+  clearThemeToken,
+  clearThemeTokens,
+  readTokenOverrides,
+  setThemeToken,
+  type TokenOverrides
+} from './tokens'
 
 export type Theme = 'light' | 'dark' | 'system'
 
@@ -26,6 +42,14 @@ interface ThemeContextValue {
   setVariant: (variant: ThemeVariant) => void
   density: Density
   setDensity: (density: Density) => void
+  /** Currently overridden tokens. Empty by default. */
+  tokenOverrides: TokenOverrides
+  /** Set one token's value, e.g. `setToken('--accent', '210 90% 60%')`. */
+  setToken: (name: string, value: string) => void
+  /** Drop one override, restoring the stylesheet's value. */
+  clearToken: (name: string) => void
+  /** Drop every override. */
+  clearTokens: () => void
 }
 
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined)
@@ -77,6 +101,10 @@ export function ThemeProvider({
     }
   })
 
+  const [tokenOverrides, setTokenOverridesState] = useState<TokenOverrides>(() =>
+    readTokenOverrides(storageKey)
+  )
+
   // Listen for system theme changes
   useEffect(() => {
     if (!enableSystem) return
@@ -118,6 +146,33 @@ export function ThemeProvider({
       root.dataset.density = density
     }
   }, [resolvedTheme, attribute, variant, density])
+
+  // Keep :root in sync with this provider's view of the overrides. Removal is
+  // scoped to what THIS provider applied, so a second provider — or the
+  // point-and-change overlay writing through the same contract — never has its
+  // properties wiped.
+  const appliedTokens = useRef<string[]>([])
+  useEffect(() => {
+    appliedTokens.current = applyTokenOverrides(tokenOverrides, appliedTokens.current)
+  }, [tokenOverrides])
+
+  const setToken = useCallback(
+    (name: string, value: string) => {
+      setTokenOverridesState(setThemeToken(storageKey, name, value))
+    },
+    [storageKey]
+  )
+
+  const clearToken = useCallback(
+    (name: string) => {
+      setTokenOverridesState(clearThemeToken(storageKey, name))
+    },
+    [storageKey]
+  )
+
+  const clearTokens = useCallback(() => {
+    setTokenOverridesState(clearThemeTokens(storageKey))
+  }, [storageKey])
 
   // Persist theme choice
   const setTheme = useCallback(
@@ -170,7 +225,11 @@ export function ThemeProvider({
         variant,
         setVariant,
         density,
-        setDensity
+        setDensity,
+        tokenOverrides,
+        setToken,
+        clearToken,
+        clearTokens
       }}
     >
       {children}

@@ -6,6 +6,7 @@ import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import { coopCoepHeaders } from './vite-plugins/coop-coep-headers'
+import { JSX_IMPORT_SOURCE, sourceStampPlugin } from './vite-plugins/source-stamp'
 
 // Base path for deployment (default: '/', set VITE_BASE_PATH for custom paths like '/app/')
 const basePath = process.env.VITE_BASE_PATH || '/'
@@ -38,7 +39,15 @@ function resolveAppVersion(): string {
 }
 const appVersion = resolveAppVersion()
 
-export default defineConfig({
+/** The dev-only shim that folds esbuild's JSX source arg into element props. */
+const sourceStampShim = path.resolve(__dirname, 'src/dev/jsx-dev-runtime-stamp.ts')
+
+// Point-and-change needs the DOM to know which JSX produced it (0399). The
+// stamp is DEV ONLY — in a production bundle these attributes would publish the
+// source-tree layout to every visitor — so it is gated on `command`, the one
+// signal Vite hands the config directly. `scripts/guard-no-source-stamp.mjs`
+// catches it if this gate is ever weakened.
+export default defineConfig(({ command }) => ({
   base: basePath,
   define: {
     'import.meta.env.VITE_APP_VERSION': JSON.stringify(appVersion)
@@ -89,6 +98,13 @@ export default defineConfig({
   resolve: {
     alias: {
       // Use source files directly for hot reload during development
+      // The blast-radius leaf only (0399): it is browser-safe, while the devkit
+      // barrel reaches for node:child_process. Aliased rather than added as a
+      // dependency so the lockfile stays untouched.
+      '@xnetjs/devkit/blast-radius': path.resolve(
+        __dirname,
+        '../../packages/devkit/src/blast-radius.ts'
+      ),
       '@xnetjs/react': path.resolve(__dirname, '../../packages/react/src'),
       '@xnetjs/maps': path.resolve(__dirname, '../../packages/maps/src')
     }
@@ -104,7 +120,11 @@ export default defineConfig({
   plugins: [
     coopCoepHeaders(),
     TanStackRouterVite(),
-    react(),
+    // Dev only: route JSX through the stamping shim so the DOM knows which
+    // source produced it. In a build this is plain `react` and no attribute
+    // is ever emitted.
+    ...(command === 'serve' ? [sourceStampPlugin({ shimPath: sourceStampShim })] : []),
+    react(command === 'serve' ? { jsxImportSource: JSX_IMPORT_SOURCE } : {}),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: [
@@ -155,4 +175,4 @@ export default defineConfig({
       }
     })
   ]
-})
+}))

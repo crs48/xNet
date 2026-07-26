@@ -1,5 +1,15 @@
 # In-App Agentic Vibe Coding: Modding Plugins And The Repo Itself
 
+> [!IMPORTANT]
+> **Superseded in part by [0399](0399_[_]_POINT_AND_CHANGE_XNET_EDITING_ITSELF.md).**
+> The dev-loop body this exploration specified was built — `packages/devkit`
+> ships worktree isolation, the validation gate, checkpoint/rollback, and
+> `openPullRequest()` — but had no product surface. 0399 is the front end for
+> it: the element→source pointing device, a three-lane routing rule that keeps
+> most "change this" requests out of git entirely, and the safety argument for
+> what the front end is allowed to do. Read 0399 first; this document remains
+> the fuller survey of host tiers and the plugin-publish path.
+
 ## Problem Statement
 
 A user is in xNet, hits a bug or wants a feature, and instead of filing an issue

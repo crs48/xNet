@@ -336,6 +336,18 @@ export {
   type ThemeVariant,
   type Density
 } from './theme/ThemeProvider'
+// The token-override contract without React — usable from outside a provider
+// (the point-and-change overlay is mounted at the app root, 0399).
+export {
+  applyTokenOverrides,
+  clearThemeToken,
+  clearThemeTokens,
+  readTokenOverrides,
+  setThemeToken,
+  tokenStorageKey,
+  writeTokenOverrides,
+  type TokenOverrides
+} from './theme/tokens'
 
 // ─── Motion (exploration 0199) ─────────────────────────────────────
 // The canonical motion vocabulary's React surface. CSS tokens/keyframes

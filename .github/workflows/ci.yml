@@ -67,6 +67,12 @@ jobs:
       - name: Humane patterns (0234)
         run: pnpm check:humane-patterns
 
+      # The dev-only point-and-change source stamp must never reach a
+      # production bundle — it would publish the repo's directory layout in the
+      # DOM of every page. A diff cannot show that; this can. (0399.)
+      - name: Source stamp is dev-only (0399)
+        run: pnpm guard:no-source-stamp
+
       - name: Publish closure (0220)
         run: pnpm check:publish-closure
 

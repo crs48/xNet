@@ -112,3 +112,133 @@ describe('ThemeProvider — cozy variant + density axis (0232)', () => {
     expect(document.documentElement.dataset.density).toBe('comfortable')
   })
 })
+
+/**
+ * Covers the 0399 addition: per-TOKEN value overrides. Point-and-change writes
+ * here when a user retints something, and the distinction that matters is that
+ * the map is keyed by custom-property name — never by element — so it stays a
+ * change to the representation the stylesheet already uses rather than a second
+ * source of truth layered on top of it.
+ */
+function TokenControls() {
+  const { tokenOverrides, setToken, clearToken, clearTokens } = useTheme()
+  return (
+    <div>
+      <span data-testid="overrides">{JSON.stringify(tokenOverrides)}</span>
+      <button onClick={() => setToken('--accent', '210 90% 60%')}>set-accent</button>
+      <button onClick={() => setToken('--accent', '0 0% 10%')}>set-accent-again</button>
+      <button onClick={() => setToken('--surface-1', '0 0% 12%')}>set-surface</button>
+      <button onClick={() => clearToken('--accent')}>clear-accent</button>
+      <button onClick={() => clearTokens()}>clear-all</button>
+    </div>
+  )
+}
+
+function renderTokenProvider() {
+  return render(
+    <ThemeProvider storageKey={KEY} enableSystem={false} defaultTheme="light">
+      <TokenControls />
+    </ThemeProvider>
+  )
+}
+
+describe('ThemeProvider — token overrides (0399)', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    document.documentElement.style.removeProperty('--accent')
+    document.documentElement.style.removeProperty('--surface-1')
+  })
+
+  afterEach(() => {
+    localStorage.clear()
+    document.documentElement.style.removeProperty('--accent')
+    document.documentElement.style.removeProperty('--surface-1')
+  })
+
+  it('starts with no overrides and touches no custom properties', () => {
+    renderTokenProvider()
+    expect(screen.getByTestId('overrides').textContent).toBe('{}')
+    expect(document.documentElement.style.getPropertyValue('--accent')).toBe('')
+  })
+
+  it('applies a token as an inline custom property on :root', () => {
+    renderTokenProvider()
+    act(() => {
+      fireEvent.click(screen.getByText('set-accent'))
+    })
+    expect(document.documentElement.style.getPropertyValue('--accent')).toBe('210 90% 60%')
+    expect(screen.getByTestId('overrides').textContent).toContain('--accent')
+  })
+
+  it('clearing a token REMOVES the property so the stylesheet value wins again', () => {
+    renderTokenProvider()
+    act(() => {
+      fireEvent.click(screen.getByText('set-accent'))
+    })
+    act(() => {
+      fireEvent.click(screen.getByText('clear-accent'))
+    })
+    // Not "set back to the old value" — an inline copy would shadow the
+    // stylesheet forever and stop following theme/variant changes.
+    expect(document.documentElement.style.getPropertyValue('--accent')).toBe('')
+  })
+
+  it('keeps other overrides when one is cleared', () => {
+    renderTokenProvider()
+    act(() => {
+      fireEvent.click(screen.getByText('set-accent'))
+      fireEvent.click(screen.getByText('set-surface'))
+    })
+    act(() => {
+      fireEvent.click(screen.getByText('clear-accent'))
+    })
+    expect(document.documentElement.style.getPropertyValue('--surface-1')).toBe('0 0% 12%')
+    expect(document.documentElement.style.getPropertyValue('--accent')).toBe('')
+  })
+
+  it('clearTokens drops every override', () => {
+    renderTokenProvider()
+    act(() => {
+      fireEvent.click(screen.getByText('set-accent'))
+      fireEvent.click(screen.getByText('set-surface'))
+    })
+    act(() => {
+      fireEvent.click(screen.getByText('clear-all'))
+    })
+    expect(screen.getByTestId('overrides').textContent).toBe('{}')
+    expect(document.documentElement.style.getPropertyValue('--surface-1')).toBe('')
+  })
+
+  it('persists overrides under the storage key', () => {
+    renderTokenProvider()
+    act(() => {
+      fireEvent.click(screen.getByText('set-accent'))
+    })
+    expect(JSON.parse(localStorage.getItem(`${KEY}-tokens`) as string)).toEqual({
+      '--accent': '210 90% 60%'
+    })
+  })
+
+  it('restores persisted overrides on mount', () => {
+    localStorage.setItem(`${KEY}-tokens`, JSON.stringify({ '--accent': '1 2% 3%' }))
+    renderTokenProvider()
+    expect(document.documentElement.style.getPropertyValue('--accent')).toBe('1 2% 3%')
+  })
+
+  it('treats a malformed stored value as NO overrides, not a partial theme', () => {
+    localStorage.setItem(`${KEY}-tokens`, '["not", "a", "map"]')
+    renderTokenProvider()
+    expect(screen.getByTestId('overrides').textContent).toBe('{}')
+  })
+
+  it('drops stored entries that are not token names or not strings', () => {
+    localStorage.setItem(
+      `${KEY}-tokens`,
+      JSON.stringify({ '--accent': '1 2% 3%', 'not-a-token': 'x', '--bad': 5 })
+    )
+    renderTokenProvider()
+    expect(JSON.parse(screen.getByTestId('overrides').textContent as string)).toEqual({
+      '--accent': '1 2% 3%'
+    })
+  })
+})
