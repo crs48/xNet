@@ -79,6 +79,10 @@ export interface Resolution {
   kernel?: boolean
   /** Echoed back so the caller can hand the agent a location without re-parsing. */
   source?: string
+  /** Echoed back for Lane 1 token changes — the token the applier must set. */
+  tokenRef?: string
+  /** Echoed back for Lane 1 layout changes — the slot whose commands apply. */
+  slotId?: string
 }
 
 /** Where a source ref lives: which workspace root, and which directory in it. */
@@ -145,6 +149,7 @@ export function resolveLane(element: PointedElement): Resolution {
       scope: 'global',
       allowed: true,
       source: element.source,
+      tokenRef: element.tokenRef,
       explain: `Changes the ${element.tokenRef} theme token everywhere it is used — this restyles the whole app, not just this element.`
     }
   }
@@ -156,6 +161,7 @@ export function resolveLane(element: PointedElement): Resolution {
       scope: 'surface',
       allowed: true,
       source: element.source,
+      slotId: element.slotId,
       explain: `Moves or hides the ${label} panel. Applies immediately and is one Undo away.`
     }
   }

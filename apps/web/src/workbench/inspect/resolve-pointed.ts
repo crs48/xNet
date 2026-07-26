@@ -69,24 +69,72 @@ export function resolvePointed(
 }
 
 /**
+ * Turns a token's declared value into the string a computed style would report.
+ *
+ * Needed because the two sides are written in different languages: xNet's tokens
+ * hold bare HSL COMPONENTS (`0 0% 98%`) for use as `hsl(var(--surface-1))`,
+ * while `getComputedStyle(el).backgroundColor` reports `rgb(250, 250, 250)`.
+ * Comparing them directly never matches, which silently disables the whole
+ * Lane 1 path.
+ */
+export type ColorNormalizer = (declaredValue: string) => string
+
+/**
+ * A normalizer that lets the browser do the conversion.
+ *
+ * Exact by construction — no hand-rolled HSL→RGB rounding to disagree with the
+ * engine. Uses one reused probe element rather than one per call, and returns
+ * the input unchanged for values the engine refuses (a token holding a shadow,
+ * a font stack, or a number is not a colour and must not be indexed as one).
+ */
+export function browserColorNormalizer(): ColorNormalizer {
+  let probe: HTMLElement | undefined
+  return (declaredValue: string) => {
+    if (typeof document === 'undefined') return declaredValue
+    if (!probe) {
+      probe = document.createElement('span')
+      probe.style.display = 'none'
+      document.body.append(probe)
+    }
+    // Only an HSL component triple needs wrapping; anything else is passed
+    // through so an already-resolved colour still normalizes.
+    const candidate = /^-?[\d.]+(deg)?\s+[\d.]+%\s+[\d.]+%$/.test(declaredValue)
+      ? `hsl(${declaredValue})`
+      : declaredValue
+    probe.style.color = ''
+    probe.style.color = candidate
+    const resolved = getComputedStyle(probe).color
+    return probe.style.color ? resolved : declaredValue
+  }
+}
+
+/**
  * Build a value→token map from the custom properties declared on `:root`.
  *
  * This is how a hovered element gets attributed to a theme token without any
- * component opting in: read the computed custom properties once, then match an
- * element's resolved paint back to whichever token carries that value.
+ * component opting in: read the computed custom properties once, normalize each
+ * to the form a computed style reports, then match an element's resolved paint
+ * back to whichever token carries that value.
  *
  * The inversion is inherently lossy — two tokens can hold the same colour — so
  * ties are broken by declaration order and the result is a *candidate*, shown
  * to the user for confirmation, never applied silently.
  */
-export function buildTokenIndex(rootStyle: CSSStyleDeclaration): Map<string, string> {
+export function buildTokenIndex(
+  rootStyle: CSSStyleDeclaration,
+  normalize: ColorNormalizer = (value) => value
+): Map<string, string> {
   const index = new Map<string, string>()
   for (let i = 0; i < rootStyle.length; i += 1) {
     const name = rootStyle.item(i)
     if (!name.startsWith('--')) continue
-    const value = rootStyle.getPropertyValue(name).trim()
-    if (!value || index.has(value)) continue
-    index.set(value, name)
+    const declared = rootStyle.getPropertyValue(name).trim()
+    if (!declared) continue
+    // Index both forms: the declared value (so an already-rgb token matches)
+    // and the normalized one (so an HSL triple matches a computed colour).
+    for (const key of new Set([declared, normalize(declared)])) {
+      if (key && !index.has(key)) index.set(key, name)
+    }
   }
   return index
 }

@@ -519,11 +519,11 @@ export async function previewWorktree(
 
 ### W2 — Lane 1 (tokens and layout)
 
-- [ ] <kbd>⌥</kbd>-click → inline prompt pinned to the element
-- [ ] Token changes apply through `ThemeProvider`, not an override store
-- [ ] Layout changes emit registered `SlotContribution` commands (the
+- [x] <kbd>⌥</kbd>-click → inline prompt pinned to the element
+- [x] Token changes apply through `ThemeProvider`, not an override store
+- [x] Layout changes emit registered `SlotContribution` commands (the
       `workspace-agent-module.ts` pattern), with one Undo
-- [ ] Show the blast-radius sentence _before_ applying, every time
+- [x] Show the blast-radius sentence _before_ applying, every time
 
 ### W3 — Lane 3 (core source, developer mode)
 

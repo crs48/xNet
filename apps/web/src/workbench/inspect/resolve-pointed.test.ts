@@ -4,6 +4,7 @@ import {
   PLUGIN_ATTR,
   SLOT_ATTR,
   SOURCE_ATTR,
+  browserColorNormalizer,
   buildTokenIndex,
   resolvePointed,
   tokenRefFor
@@ -148,5 +149,53 @@ describe('tokenRefFor', () => {
     expect(
       tokenRefFor(el, index, computedWith({ 'background-color': 'rgb(9, 9, 9)' }))
     ).toBeUndefined()
+  })
+})
+
+describe('browserColorNormalizer', () => {
+  it('resolves an HSL component triple to the form computed styles report', () => {
+    // The whole reason this exists: `--surface-1: 0 0% 98%` must compare equal
+    // to `getComputedStyle(el).backgroundColor === 'rgb(250, 250, 250)'`.
+    expect(browserColorNormalizer()('0 0% 98%')).toBe('rgb(250, 250, 250)')
+  })
+
+  it('passes through an already-resolved colour', () => {
+    expect(browserColorNormalizer()('rgb(1, 2, 3)')).toBe('rgb(1, 2, 3)')
+  })
+
+  it('leaves a non-colour token alone rather than indexing it as one', () => {
+    const normalize = browserColorNormalizer()
+    expect(normalize('0.25rem')).toBe('0.25rem')
+    expect(normalize('ui-sans-serif, system-ui')).toBe('ui-sans-serif, system-ui')
+  })
+})
+
+describe('buildTokenIndex with a normalizer', () => {
+  function fakeRootStyle(vars: Record<string, string>): CSSStyleDeclaration {
+    const names = Object.keys(vars)
+    return {
+      length: names.length,
+      item: (i: number) => names[i] ?? '',
+      getPropertyValue: (name: string) => vars[name] ?? ''
+    } as unknown as CSSStyleDeclaration
+  }
+
+  it('indexes both the declared and the normalized form', () => {
+    const index = buildTokenIndex(fakeRootStyle({ '--surface-1': '0 0% 98%' }), (value) =>
+      value === '0 0% 98%' ? 'rgb(250, 250, 250)' : value
+    )
+    expect(index.get('0 0% 98%')).toBe('--surface-1')
+    expect(index.get('rgb(250, 250, 250)')).toBe('--surface-1')
+  })
+
+  it('lets a hovered element resolve through the normalized key', () => {
+    const index = buildTokenIndex(fakeRootStyle({ '--surface-1': '0 0% 98%' }), (value) =>
+      value === '0 0% 98%' ? 'rgb(250, 250, 250)' : value
+    )
+    const computed = () =>
+      ({
+        getPropertyValue: (p: string) => (p === 'background-color' ? 'rgb(250, 250, 250)' : '')
+      }) as unknown as CSSStyleDeclaration
+    expect(tokenRefFor(document.createElement('div'), index, computed)).toBe('--surface-1')
   })
 })
