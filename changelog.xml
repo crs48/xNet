@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Hold Option to see which layer owns any part of the UI</title>
+      <link>https://xnet.fyi/changelog#2026-07-26-hold-option-to-see-which-layer-owns-any-</link>
+      <guid isPermaLink="false">2026-07-26-hold-option-to-see-which-layer-owns-any-</guid>
+      <pubDate>Sun, 26 Jul 2026 22:25:34 GMT</pubDate>
+      <description>Hold Option and hover to see whether a piece of the interface comes from a theme token, a panel, a plugin, or xNet's own source — and one sentence on what changing it would affect. Option-click to adjust a token or move a panel, with one Undo.</description>
+    </item>
+    <item>
       <title>The assistant can now search your workspace itself</title>
       <link>https://xnet.fyi/changelog#2026-07-24-the-assistant-can-now-search-your-worksp</link>
       <guid isPermaLink="false">2026-07-24-the-assistant-can-now-search-your-worksp</guid>

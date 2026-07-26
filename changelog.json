@@ -6,6 +6,29 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-26-hold-option-to-see-which-layer-owns-any-",
+      "url": "https://xnet.fyi/changelog#2026-07-26-hold-option-to-see-which-layer-owns-any-",
+      "title": "Hold Option to see which layer owns any part of the UI",
+      "content_text": "Hold Option and hover to see whether a piece of the interface comes from a theme token, a panel, a plugin, or xNet's own source — and one sentence on what changing it would affect. Option-click to adjust a token or move a panel, with one Undo.\n",
+      "date_published": "2026-07-26T22:25:34Z",
+      "tags": [
+        "app",
+        "devtools"
+      ],
+      "_xnet": {
+        "date": "July 26, 2026",
+        "summary": "Hold Option and hover to see whether a piece of the interface comes from a theme token, a panel, a plugin, or xNet's own source — and one sentence on what changing it would affect. Option-click to adjust a token or move a panel, with one Undo.",
+        "highlights": [],
+        "mergedAt": "2026-07-26T22:25:34Z",
+        "pr": 631,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-24-the-assistant-can-now-search-your-worksp",
       "url": "https://xnet.fyi/changelog#2026-07-24-the-assistant-can-now-search-your-worksp",
       "title": "The assistant can now search your workspace itself",
