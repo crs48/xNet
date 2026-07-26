@@ -98,6 +98,13 @@ export default defineConfig(({ command }) => ({
   resolve: {
     alias: {
       // Use source files directly for hot reload during development
+      // The blast-radius leaf only (0399): it is browser-safe, while the devkit
+      // barrel reaches for node:child_process. Aliased rather than added as a
+      // dependency so the lockfile stays untouched.
+      '@xnetjs/devkit/blast-radius': path.resolve(
+        __dirname,
+        '../../packages/devkit/src/blast-radius.ts'
+      ),
       '@xnetjs/react': path.resolve(__dirname, '../../packages/react/src'),
       '@xnetjs/maps': path.resolve(__dirname, '../../packages/maps/src')
     }
