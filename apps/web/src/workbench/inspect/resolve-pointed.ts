@@ -139,16 +139,48 @@ export function buildTokenIndex(
   return index
 }
 
-/** Paint properties worth attributing, most specific first. */
-const PAINT_PROPERTIES = ['background-color', 'border-color', 'color'] as const
+/** A colour that paints nothing. */
+function isInvisible(value: string): boolean {
+  return !value || value === 'rgba(0, 0, 0, 0)' || value === 'transparent'
+}
+
+/** Does this element actually draw a border? */
+function hasBorder(style: CSSStyleDeclaration): boolean {
+  for (const side of [
+    'border-top-width',
+    'border-right-width',
+    'border-bottom-width',
+    'border-left-width'
+  ]) {
+    if (Number.parseFloat(style.getPropertyValue(side)) > 0) return true
+  }
+  return false
+}
+
+/** Does this element render text of its own (not just its children's)? */
+function hasOwnText(element: Element): boolean {
+  for (const node of Array.from(element.childNodes)) {
+    if (node.nodeType === 3 && (node.textContent ?? '').trim()) return true
+  }
+  return false
+}
 
 /**
  * Find the theme token backing an element's paint, if any.
  *
- * Fully transparent backgrounds are skipped — almost every element in the tree
- * has `rgba(0, 0, 0, 0)`, and attributing all of them to whichever token
- * happens to hold that value would make the overlay claim a token change for
- * elements that paint nothing.
+ * Only attributes properties the element ACTUALLY PAINTS, which is a much
+ * stricter test than "has a computed value" and the difference is the whole
+ * feature working:
+ *
+ * - a transparent background is what almost every element in the tree has;
+ * - Tailwind's preflight sets `border-color` on **every element** (with
+ *   `border-width: 0`), so an unguarded border check made nearly everything
+ *   claim to be a token change and hid Lanes 2 and 3 completely;
+ * - `color` is inherited by everything, so it only means something on an
+ *   element that renders its own text.
+ *
+ * Getting this wrong is not a cosmetic bug — it makes the overlay confidently
+ * name the wrong owner, which is worse than naming none.
  */
 export function tokenRefFor(
   element: Element,
@@ -156,11 +188,28 @@ export function tokenRefFor(
   computed: (el: Element) => CSSStyleDeclaration
 ): string | undefined {
   const style = computed(element)
-  for (const property of PAINT_PROPERTIES) {
-    const value = style.getPropertyValue(property).trim()
-    if (!value || value === 'rgba(0, 0, 0, 0)' || value === 'transparent') continue
-    const token = index.get(value)
+
+  const background = style.getPropertyValue('background-color').trim()
+  if (!isInvisible(background)) {
+    const token = index.get(background)
     if (token) return token
   }
+
+  if (hasBorder(style)) {
+    const border = style.getPropertyValue('border-color').trim()
+    if (!isInvisible(border)) {
+      const token = index.get(border)
+      if (token) return token
+    }
+  }
+
+  if (hasOwnText(element)) {
+    const color = style.getPropertyValue('color').trim()
+    if (!isInvisible(color)) {
+      const token = index.get(color)
+      if (token) return token
+    }
+  }
+
   return undefined
 }

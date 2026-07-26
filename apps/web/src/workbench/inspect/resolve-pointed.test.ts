@@ -110,27 +110,23 @@ describe('buildTokenIndex', () => {
 describe('tokenRefFor', () => {
   const index = new Map([
     ['rgb(10, 20, 30)', '--surface-1'],
-    ['rgb(200, 0, 0)', '--danger']
+    ['rgb(200, 0, 0)', '--danger'],
+    ['rgb(230, 230, 230)', '--border']
   ])
   const computedWith = (values: Record<string, string>) => () =>
     ({ getPropertyValue: (p: string) => values[p] ?? '' }) as unknown as CSSStyleDeclaration
+  const NO_BORDER = {
+    'border-top-width': '0px',
+    'border-right-width': '0px',
+    'border-bottom-width': '0px',
+    'border-left-width': '0px'
+  }
 
   it('attributes a background colour to its token', () => {
     const el = mount('<div></div>')
-    expect(tokenRefFor(el, index, computedWith({ 'background-color': 'rgb(10, 20, 30)' }))).toBe(
-      '--surface-1'
-    )
-  })
-
-  it('falls through to text colour when the background paints nothing', () => {
-    const el = mount('<div></div>')
     expect(
-      tokenRefFor(
-        el,
-        index,
-        computedWith({ 'background-color': 'rgba(0, 0, 0, 0)', color: 'rgb(200, 0, 0)' })
-      )
-    ).toBe('--danger')
+      tokenRefFor(el, index, computedWith({ ...NO_BORDER, 'background-color': 'rgb(10, 20, 30)' }))
+    ).toBe('--surface-1')
   })
 
   it('skips fully transparent paint — otherwise every element claims a token', () => {
@@ -139,15 +135,81 @@ describe('tokenRefFor', () => {
       tokenRefFor(
         el,
         new Map([['rgba(0, 0, 0, 0)', '--ghost']]),
-        computedWith({ 'background-color': 'rgba(0, 0, 0, 0)' })
+        computedWith({ ...NO_BORDER, 'background-color': 'rgba(0, 0, 0, 0)' })
       )
     ).toBeUndefined()
   })
 
-  it('returns undefined when nothing matches a token', () => {
+  it('IGNORES border-color when no border is drawn', () => {
+    // Tailwind's preflight sets `border-color` on every element with
+    // `border-width: 0`. Attributing it made nearly the whole tree claim to be
+    // a Lane 1 token change, which hid Lanes 2 and 3 entirely.
     const el = mount('<div></div>')
     expect(
-      tokenRefFor(el, index, computedWith({ 'background-color': 'rgb(9, 9, 9)' }))
+      tokenRefFor(
+        el,
+        index,
+        computedWith({
+          ...NO_BORDER,
+          'background-color': 'rgba(0, 0, 0, 0)',
+          'border-color': 'rgb(230, 230, 230)'
+        })
+      )
+    ).toBeUndefined()
+  })
+
+  it('attributes border-color when a border IS drawn', () => {
+    const el = mount('<div></div>')
+    expect(
+      tokenRefFor(
+        el,
+        index,
+        computedWith({
+          ...NO_BORDER,
+          'border-top-width': '1px',
+          'background-color': 'rgba(0, 0, 0, 0)',
+          'border-color': 'rgb(230, 230, 230)'
+        })
+      )
+    ).toBe('--border')
+  })
+
+  it('IGNORES color on an element with no text of its own', () => {
+    // `color` is inherited by everything; on a bare container it says nothing
+    // about what that element paints.
+    const el = mount('<div><span>child text</span></div>')
+    expect(
+      tokenRefFor(
+        el,
+        index,
+        computedWith({
+          ...NO_BORDER,
+          'background-color': 'rgba(0, 0, 0, 0)',
+          color: 'rgb(200, 0, 0)'
+        })
+      )
+    ).toBeUndefined()
+  })
+
+  it('attributes color on an element that renders its own text', () => {
+    const el = mount('<div>hello</div>')
+    expect(
+      tokenRefFor(
+        el,
+        index,
+        computedWith({
+          ...NO_BORDER,
+          'background-color': 'rgba(0, 0, 0, 0)',
+          color: 'rgb(200, 0, 0)'
+        })
+      )
+    ).toBe('--danger')
+  })
+
+  it('returns undefined when nothing matches a token', () => {
+    const el = mount('<div>text</div>')
+    expect(
+      tokenRefFor(el, index, computedWith({ ...NO_BORDER, 'background-color': 'rgb(9, 9, 9)' }))
     ).toBeUndefined()
   })
 })

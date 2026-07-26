@@ -143,6 +143,35 @@ describe('openPullRequest', () => {
     expect(gh?.args).toContain('--base')
   })
 
+  it('opens a DRAFT by default', async () => {
+    // A one-click gesture that produces review-ready PRs faster than humans
+    // review them costs maintainers more than it saves (0399).
+    const runner = new FakeCommandRunner([
+      { match: cmd('git', ['push']), result: { stdout: '' } },
+      { match: cmd('gh', ['pr', 'create']), result: { stdout: 'https://github.com/x/y/pull/2\n' } }
+    ])
+    await openPullRequest(runner, '/tmp/wt', 'agent/XN-2')
+    expect(runner.calls.find((c) => c.command === 'gh')?.args).toContain('--draft')
+  })
+
+  it('opens a ready PR only when draft is explicitly false', async () => {
+    const runner = new FakeCommandRunner([
+      { match: cmd('git', ['push']), result: { stdout: '' } },
+      { match: cmd('gh', ['pr', 'create']), result: { stdout: 'https://github.com/x/y/pull/3\n' } }
+    ])
+    await openPullRequest(runner, '/tmp/wt', 'agent/XN-3', { draft: false })
+    expect(runner.calls.find((c) => c.command === 'gh')?.args).not.toContain('--draft')
+  })
+
+  it('never merges — opening the PR is the end of the automated path', async () => {
+    const runner = new FakeCommandRunner([
+      { match: cmd('git', ['push']), result: { stdout: '' } },
+      { match: cmd('gh', ['pr', 'create']), result: { stdout: 'https://github.com/x/y/pull/4\n' } }
+    ])
+    await openPullRequest(runner, '/tmp/wt', 'agent/XN-4')
+    expect(runner.calls.some((c) => c.args.includes('merge'))).toBe(false)
+  })
+
   it('throws when the push fails', async () => {
     const runner = new FakeCommandRunner([
       { match: cmd('git', ['push']), result: { code: 1, stderr: 'rejected' } }
