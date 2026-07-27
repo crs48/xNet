@@ -6,6 +6,31 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-27-explorations-can-now-carry-a-visual-comp",
+      "url": "https://xnet.fyi/changelog#2026-07-27-explorations-can-now-carry-a-visual-comp",
+      "title": "Explorations can now carry a visual companion",
+      "content_text": "UI explorations can ship an MDX page rendered in Storybook against the real design system, with a wireframe kit for UI that does not exist yet.\n\n• Wireframe primitives themed from the real token ramp\n• A guard keeps the markdown exploration the single source of truth",
+      "date_published": "2026-07-27T23:32:44Z",
+      "tags": [
+        "devtools"
+      ],
+      "_xnet": {
+        "date": "July 27, 2026",
+        "summary": "UI explorations can ship an MDX page rendered in Storybook against the real design system, with a wireframe kit for UI that does not exist yet.",
+        "highlights": [
+          "Wireframe primitives themed from the real token ramp",
+          "A guard keeps the markdown exploration the single source of truth"
+        ],
+        "mergedAt": "2026-07-27T23:32:44Z",
+        "pr": 633,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-26-hold-option-to-see-which-layer-owns-any-",
       "url": "https://xnet.fyi/changelog#2026-07-26-hold-option-to-see-which-layer-owns-any-",
       "title": "Hold Option to see which layer owns any part of the UI",

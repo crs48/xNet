@@ -6,6 +6,15 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Explorations can now carry a visual companion</title>
+      <link>https://xnet.fyi/changelog#2026-07-27-explorations-can-now-carry-a-visual-comp</link>
+      <guid isPermaLink="false">2026-07-27-explorations-can-now-carry-a-visual-comp</guid>
+      <pubDate>Mon, 27 Jul 2026 23:32:44 GMT</pubDate>
+      <description>UI explorations can ship an MDX page rendered in Storybook against the real design system, with a wireframe kit for UI that does not exist yet.
+- Wireframe primitives themed from the real token ramp
+- A guard keeps the markdown exploration the single source of truth</description>
+    </item>
+    <item>
       <title>Hold Option to see which layer owns any part of the UI</title>
       <link>https://xnet.fyi/changelog#2026-07-26-hold-option-to-see-which-layer-owns-any-</link>
       <guid isPermaLink="false">2026-07-26-hold-option-to-see-which-layer-owns-any-</guid>
