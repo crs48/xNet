@@ -17,11 +17,11 @@ tags: [ai, agents, tooling, skills, ui, docs, storybook, mdx]
 > pieces are three, and none is a server: **(1)** `@storybook/addon-docs` (one
 > dependency — Storybook currently cannot render an MDX page at all); **(2)** a
 > <mark>two-tier component vocabulary</mark> — agent-native's `--wf-*` wireframe
-> layer for UI that *doesn't exist yet*, real `@xnetjs/ui` primitives for
-> surfaces that *do*; **(3)** a `visual-exploration` skill carrying the wireframe
+> layer for UI that _doesn't exist yet_, real `@xnetjs/ui` primitives for
+> surfaces that _do_; **(3)** a `visual-exploration` skill carrying the wireframe
 > quality bar. The real hazard is not technical: a `.mdx` companion beside a
 > `.md` exploration is **exactly the two-source drift 0401 just documented in
-> `CLAUDE.md`/`AGENTS.md`**, so the split must be by *content type*, never by
+> `CLAUDE.md`/`AGENTS.md`**, so the split must be by _content type_, never by
 > duplication. And do not route this through the site — `deploy-site.yml` runs
 > `pnpm install --ignore-workspace`, which structurally forbids importing
 > `@xnetjs/ui` there.
@@ -47,7 +47,7 @@ collapsibles. But 470 explorations later, three limits are structural:
    control the design system cannot build, and nobody notices until
    implementation.
 
-The ask: an MDX workflow where an agent quickly builds a *visual* exploration
+The ask: an MDX workflow where an agent quickly builds a _visual_ exploration
 from a real component library, with skills to drive it. The question this
 exploration answers: **what is the smallest thing that delivers that, given how
 much of it xNet already has running?**
@@ -71,8 +71,8 @@ much of it xNet already has running?**
   cannot currently render a docs page.
 - **agent-native's real contribution is not its renderer — it's the contract.**
   Its `visual-plan` skill is 509 lines plus **839 lines of references**, and the
-  load-bearing idea is one sentence: *the renderer owns the look, the agent owns
-  the content.* That plus a `--wf-*` token vocabulary is fully portable and needs
+  load-bearing idea is one sentence: _the renderer owns the look, the agent owns
+  the content._ That plus a `--wf-*` token vocabulary is fully portable and needs
   none of their hosted service.
 - **Two tiers, and the rule between them is the whole design.** Wireframe HTML
   for speculative UI; real components for existing surfaces. Using real
@@ -86,21 +86,21 @@ much of it xNet already has running?**
 
 ### What's already running
 
-| Layer | Status | Where |
-| --- | --- | --- |
-| Vite renderer + HMR | ✅ Running | Storybook 10.2.16, `@storybook/react-vite` |
-| Agent-drivable dev server | ✅ Wired | [`.claude/launch.json`](../../.claude/launch.json) → `storybook :6006` → `pnpm dev:stories` |
-| Workspace aliasing | ✅ Done | [`.storybook/workspace-aliases.ts`](../../.storybook/workspace-aliases.ts) |
-| Design tokens | ✅ Shipped | [`packages/ui/src/theme/tokens.css`](../../packages/ui/src/theme/tokens.css), `tokens.ts` |
-| Primitives / components | ✅ 28 / 24 | [`packages/ui/src/primitives`](../../packages/ui/src/primitives), [`components`](../../packages/ui/src/components) |
-| Light/dark switching | ✅ Addon | `@storybook/addon-themes` |
-| A11y checking | ✅ Addon | `@storybook/addon-a11y` |
-| Screenshot → PR comment | ✅ Shipped | [`scripts/visuals/`](../../scripts/visuals/README.md), `visual-capture.yml` |
-| Token/motion guards | ✅ 2 lanes | `check-surface-tokens.mjs`, `check-motion-vocab.mjs` |
-| **MDX docs rendering** | ❌ **Absent** | `@storybook/addon-docs` not installed; **0** `.mdx` under `packages/`/`apps/` |
-| **Explorations published** | ❌ **Absent** | Not in `site/src/sidebar.mjs` or `deploy-site.yml` |
-| **Wireframe vocabulary** | ❌ Absent | No `--wf-*` layer, no `<Screen>` primitive |
-| **Visual-authoring skill** | ❌ Absent | `.claude/skills/` has 3 skills, none visual |
+| Layer                      | Status        | Where                                                                                                              |
+| -------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Vite renderer + HMR        | ✅ Running    | Storybook 10.2.16, `@storybook/react-vite`                                                                         |
+| Agent-drivable dev server  | ✅ Wired      | [`.claude/launch.json`](../../.claude/launch.json) → `storybook :6006` → `pnpm dev:stories`                        |
+| Workspace aliasing         | ✅ Done       | [`.storybook/workspace-aliases.ts`](../../.storybook/workspace-aliases.ts)                                         |
+| Design tokens              | ✅ Shipped    | [`packages/ui/src/theme/tokens.css`](../../packages/ui/src/theme/tokens.css), `tokens.ts`                          |
+| Primitives / components    | ✅ 28 / 24    | [`packages/ui/src/primitives`](../../packages/ui/src/primitives), [`components`](../../packages/ui/src/components) |
+| Light/dark switching       | ✅ Addon      | `@storybook/addon-themes`                                                                                          |
+| A11y checking              | ✅ Addon      | `@storybook/addon-a11y`                                                                                            |
+| Screenshot → PR comment    | ✅ Shipped    | [`scripts/visuals/`](../../scripts/visuals/README.md), `visual-capture.yml`                                        |
+| Token/motion guards        | ✅ 2 lanes    | `check-surface-tokens.mjs`, `check-motion-vocab.mjs`                                                               |
+| **MDX docs rendering**     | ❌ **Absent** | `@storybook/addon-docs` not installed; **0** `.mdx` under `packages/`/`apps/`                                      |
+| **Explorations published** | ❌ **Absent** | Not in `site/src/sidebar.mjs` or `deploy-site.yml`                                                                 |
+| **Wireframe vocabulary**   | ❌ Absent     | No `--wf-*` layer, no `<Screen>` primitive                                                                         |
+| **Visual-authoring skill** | ❌ Absent     | `.claude/skills/` has 3 skills, none visual                                                                        |
 
 `.storybook/main.ts` already globs seven packages for `*.stories.@(ts|tsx|mdx)` —
 the `mdx` extension is in the pattern and matches nothing, because the addon that
@@ -140,17 +140,17 @@ flowchart TD
 
 [0401](0401_[_]_AGENT_NATIVE_SKILLS_AUDIT.md) rejected all five visual skills
 because they require `plan.agent-native.com`. That verdict stands for the
-*tooling*. But re-reading them for the **contract** rather than the transport
+_tooling_. But re-reading them for the **contract** rather than the transport
 yields the most reusable material in their entire library:
 
-| Reference | Lines | What it encodes | Portable? |
-| --- | ---: | --- | --- |
-| `wireframe.md` | 312 | Renderer-owns-look contract, `--wf-*` tokens, `.wf-*` classes, surface presets, icon markers | ✅ **Fully** |
-| `document-quality.md` | 186 | Block vocabulary, no-duplication rule, "plan not marketing" | ✅ Mostly |
-| `canvas.md` | 129 | Artboard placement, lane spacing arithmetic | 🚧 Only if a canvas is built |
-| `local-files.md` | 99 | Offline mode — still needs their CLI + hosted renderer | 🛑 No |
-| `exemplar.md` | 62 | Worked good/bad example | ✅ Fully |
-| `connection.md` | 51 | MCP connector reconnect steps | 🛑 No |
+| Reference             | Lines | What it encodes                                                                              | Portable?                    |
+| --------------------- | ----: | -------------------------------------------------------------------------------------------- | ---------------------------- |
+| `wireframe.md`        |   312 | Renderer-owns-look contract, `--wf-*` tokens, `.wf-*` classes, surface presets, icon markers | ✅ **Fully**                 |
+| `document-quality.md` |   186 | Block vocabulary, no-duplication rule, "plan not marketing"                                  | ✅ Mostly                    |
+| `canvas.md`           |   129 | Artboard placement, lane spacing arithmetic                                                  | 🚧 Only if a canvas is built |
+| `local-files.md`      |    99 | Offline mode — still needs their CLI + hosted renderer                                       | 🛑 No                        |
+| `exemplar.md`         |    62 | Worked good/bad example                                                                      | ✅ Fully                     |
+| `connection.md`       |    51 | MCP connector reconnect steps                                                                | 🛑 No                        |
 
 The load-bearing sentence, from `wireframe.md`:
 
@@ -160,12 +160,12 @@ The load-bearing sentence, from `wireframe.md`:
 
 And the vocabulary it defines — directly transplantable:
 
-| Kind | Names |
-| --- | --- |
-| Colour tokens | `--wf-ink`, `--wf-muted`, `--wf-line`, `--wf-paper`, `--wf-card`, `--wf-accent`, `--wf-accent-fg`, `--wf-accent-soft`, `--wf-warn`, `--wf-ok`, `--wf-radius` |
-| Helper classes | `.wf-card`, `.wf-box`, `.wf-pill`, `.wf-chip`, `.wf-muted`, `.accent`, `button.primary` |
-| Icon markers | `<span data-icon="mail">` → renderer swaps in an SVG |
-| Surface presets | `browser`, `desktop`, `mobile`, `popover`, `panel` |
+| Kind            | Names                                                                                                                                                        |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Colour tokens   | `--wf-ink`, `--wf-muted`, `--wf-line`, `--wf-paper`, `--wf-card`, `--wf-accent`, `--wf-accent-fg`, `--wf-accent-soft`, `--wf-warn`, `--wf-ok`, `--wf-radius` |
+| Helper classes  | `.wf-card`, `.wf-box`, `.wf-pill`, `.wf-chip`, `.wf-muted`, `.accent`, `button.primary`                                                                      |
+| Icon markers    | `<span data-icon="mail">` → renderer swaps in an SVG                                                                                                         |
+| Surface presets | `browser`, `desktop`, `mobile`, `popover`, `panel`                                                                                                           |
 
 <details>
 <summary><b>The rules worth stealing verbatim</b> — each exists because an agent broke it</summary>
@@ -174,20 +174,20 @@ And the vocabulary it defines — directly transplantable:
   flips tokens on light/dark; a hex makes the mockup wrong in one theme.
 - **Never use host/Tailwind theme classes** (`bg-white`, `text-slate-400`,
   `shadow-xl`) inside wireframe HTML — they leak the host app's CSS into the
-  mockup and make dark-mode frames unreadable. This is the *same failure* that
+  mockup and make dark-mode frames unreadable. This is the _same failure_ that
   xNet's own `check-surface-tokens.mjs` guards against in product code (0299).
 - **Use literal CSS lengths for spacing, not tokens.** `padding:16px`, not
   `var(--wf-space-4)` — a spacing token that doesn't exist collapses padding and
   content hugs the border. Tokens are for colour only.
 - **No decorative shadows.** Mockups read as flat bordered surfaces; use
   spacing, borders, and labels for separation.
-- **Match the real footprint.** *"A sidebar popover renders as a small surface,
-  not a desktop page and a phone frame."* Do not emit `desktop` + `mobile`
+- **Match the real footprint.** _"A sidebar popover renders as a small surface,
+  not a desktop page and a phone frame."_ Do not emit `desktop` + `mobile`
   variants unless responsive behaviour actually changes.
 - **Visuals and document never duplicate each other.** The visual carries the UI
   story; the document carries file maps, contracts, migration phases, risks, and
-  validation. *"Repeat a wireframe in the document only for a genuinely new
-  detail view."*
+  validation. _"Repeat a wireframe in the document only for a genuinely new
+  detail view."_
 
 </details>
 
@@ -206,19 +206,19 @@ and a file in git is the whole point.
 
 Verified via the GitHub API on **2026-07-27**:
 
-| Tool | ⭐ | Last push | Verdict for xNet |
-| --- | ---: | --- | --- |
-| [storybookjs/storybook](https://github.com/storybookjs/storybook) | 90,685 | 2026-07-27 | ✅ Already installed at 10.2.16 |
-| [withastro/astro](https://github.com/withastro/astro) | 61,348 | 2026-07-27 | ✅ Already the site — but `--ignore-workspace` blocks this use |
-| [mdx-js/mdx](https://github.com/mdx-js/mdx) | 19,713 | 2026-07-25 | ✅ Healthy; the compiler under both |
-| [codesandbox/sandpack](https://github.com/codesandbox/sandpack) | 6,197 | **2025-04-24** | 🛑 **15 months stale** |
+| Tool                                                              |     ⭐ | Last push      | Verdict for xNet                                               |
+| ----------------------------------------------------------------- | -----: | -------------- | -------------------------------------------------------------- |
+| [storybookjs/storybook](https://github.com/storybookjs/storybook) | 90,685 | 2026-07-27     | ✅ Already installed at 10.2.16                                |
+| [withastro/astro](https://github.com/withastro/astro)             | 61,348 | 2026-07-27     | ✅ Already the site — but `--ignore-workspace` blocks this use |
+| [mdx-js/mdx](https://github.com/mdx-js/mdx)                       | 19,713 | 2026-07-25     | ✅ Healthy; the compiler under both                            |
+| [codesandbox/sandpack](https://github.com/codesandbox/sandpack)   |  6,197 | **2025-04-24** | 🛑 **15 months stale**                                         |
 
 > [!WARNING]
 > **Sandpack is effectively unmaintained.** Its last push was 2025-04-24 —
 > fifteen months before this exploration — and reporting in March 2026 said it
 > would no longer be actively maintained. It is the default answer to "live code
 > preview in MDX" and it is the wrong one here. xNet does not need in-browser
-> code *editing* anyway: the agent edits files on disk and Vite HMR reloads. The
+> code _editing_ anyway: the agent edits files on disk and Vite HMR reloads. The
 > editing surface is the agent, not a browser sandbox.
 
 Also surveyed and set aside: `ok-mdx` (jxnblk's browser MDX editor — unmaintained,
@@ -252,13 +252,13 @@ registration.
 Everything else is plumbing. This is the part that determines whether visual
 explorations help or mislead:
 
-| | Tier W — wireframe | Tier R — real components |
-| --- | --- | --- |
-| **Import** | `@xnetjs/ui/wireframe` (`<Screen>`, `.wf-*`) | `@xnetjs/ui` (`Button`, `Popover`, `Tabs`, …) |
-| **Use for** | UI that does not exist yet | Changes to surfaces that already ship |
-| **Says** | "here is the shape I propose" | "here is the current thing, modified" |
-| **Rots when** | Never — it's inert HTML | The component API changes |
-| **Fails by** | Sketching a control the design system can't build | Looking shipped when nothing shipped |
+|               | Tier W — wireframe                                | Tier R — real components                      |
+| ------------- | ------------------------------------------------- | --------------------------------------------- |
+| **Import**    | `@xnetjs/ui/wireframe` (`<Screen>`, `.wf-*`)      | `@xnetjs/ui` (`Button`, `Popover`, `Tabs`, …) |
+| **Use for**   | UI that does not exist yet                        | Changes to surfaces that already ship         |
+| **Says**      | "here is the shape I propose"                     | "here is the current thing, modified"         |
+| **Rots when** | Never — it's inert HTML                           | The component API changes                     |
+| **Fails by**  | Sketching a control the design system can't build | Looking shipped when nothing shipped          |
 
 > [!IMPORTANT]
 > **Speculative UI must never be mocked with real components.** A screenshot of
@@ -267,13 +267,13 @@ explorations help or mislead:
 > [0397](0397_[_]_AGENT_NATIVE_FRAMEWORK_LESSONS.md) recorded five times.
 > Conversely, **changes to an existing surface must never be mocked in Tier W** —
 > a sketch will happily render a control the design system cannot produce, and
-> the lie surfaces at implementation. The tier is chosen by *what exists*, not by
+> the lie surfaces at implementation. The tier is chosen by _what exists_, not by
 > what is convenient.
 
 ### 3. The token layer should derive from xNet's, not be invented
 
 agent-native's `--wf-*` set exists because they had no design system to point at.
-xNet does. So `--wf-ink` should *be* xNet's foreground token, `--wf-line` its
+xNet does. So `--wf-ink` should _be_ xNet's foreground token, `--wf-line` its
 border token, `--wf-paper` and `--wf-card` the 0299 two-plane surfaces
 (`--canvas` / `--island-b`). Derived that way, a wireframe is automatically
 correct in both themes, and the sketch inherits the same brand a real component
@@ -284,7 +284,7 @@ does — while remaining structurally unable to claim a component exists.
 `visual-capture.yml` already screenshots Storybook stories, diffs them against a
 `main` baseline, publishes to gh-pages under `visuals/`, and upserts a sticky PR
 comment — with age-based reaping so merged-PR galleries survive (0189). An
-exploration's MDX page is *just another story* to that pipeline. What it lacks is
+exploration's MDX page is _just another story_ to that pipeline. What it lacks is
 a durable, human-shareable URL per exploration rather than per PR.
 
 > [!NOTE]
@@ -297,13 +297,13 @@ a durable, human-shareable URL per exploration rather than per PR.
 
 ## Options And Tradeoffs
 
-| Option | New code | New daemons | Real components? | Verdict |
-| --- | --- | --- | --- | --- |
-| **A. Storybook Docs MDX** | 1 dep + 1 glob + component kit | 0 | ✅ Yes | ✅ **Recommended** |
-| **B. Astro/Starlight + React islands** | `@astrojs/react` + UI import | 0 | ⚠️ Breaks `--ignore-workspace` | 🛑 Blocked |
-| **C. New Vite "proto server" in devkit** | A whole server | +1 | ✅ Yes | 🛑 Duplicates Storybook |
-| **D. Hosted agent-native Plan** | 0 | 0 | ❌ No | 🛑 Rejected in 0401 |
-| **E. Status quo — markdown + mermaid** | 0 | 0 | ❌ No | ➖ The baseline to beat |
+| Option                                   | New code                       | New daemons | Real components?               | Verdict                 |
+| ---------------------------------------- | ------------------------------ | ----------- | ------------------------------ | ----------------------- |
+| **A. Storybook Docs MDX**                | 1 dep + 1 glob + component kit | 0           | ✅ Yes                         | ✅ **Recommended**      |
+| **B. Astro/Starlight + React islands**   | `@astrojs/react` + UI import   | 0           | ⚠️ Breaks `--ignore-workspace` | 🛑 Blocked              |
+| **C. New Vite "proto server" in devkit** | A whole server                 | +1          | ✅ Yes                         | 🛑 Duplicates Storybook |
+| **D. Hosted agent-native Plan**          | 0                              | 0           | ❌ No                          | 🛑 Rejected in 0401     |
+| **E. Status quo — markdown + mermaid**   | 0                              | 0           | ❌ No                          | ➖ The baseline to beat |
 
 <details>
 <summary><b>Why not C — the "MDX prototyping server" as literally asked for</b></summary>
@@ -364,12 +364,12 @@ flowchart TD
 ```
 
 **① Renderer.** Add `@storybook/addon-docs` and register it. Add **one narrow
-glob** — `docs/explorations/visuals/**/*.mdx`, *not* `docs/explorations/**` — so
+glob** — `docs/explorations/visuals/**/*.mdx`, _not_ `docs/explorations/**` — so
 Storybook's boot time scales with visual explorations, not with all 470.
 
 **② Wireframe vocabulary.** A new `packages/ui/src/wireframe/` exporting a
 `<Screen surface="panel|popover|browser|desktop|mobile">` component and a
-`wireframe.css` whose `--wf-*` tokens are *aliases of* `theme/tokens.css`. Port
+`wireframe.css` whose `--wf-*` tokens are _aliases of_ `theme/tokens.css`. Port
 agent-native's rules (MIT, attributed): no hex, no `font-family`, no
 width/height, no host Tailwind classes, literal CSS lengths for spacing, flat
 surfaces.
@@ -403,7 +403,7 @@ docs/explorations/
 > a repeat here is a hard content split, borrowed from agent-native's
 > `document-quality.md`: **the visual carries what only pixels can say; the
 > markdown carries every decision, file path, risk, and checklist.** Neither
-> restates the other. If the MDX starts explaining *why*, it has become a second
+> restates the other. If the MDX starts explaining _why_, it has become a second
 > source of truth and must be cut back. A `check:visual-explorations` guard
 > asserts the mechanical half — every `visuals/NNNN/` has a matching `NNNN_*.md`
 > that links to it, and vice versa.
@@ -429,9 +429,9 @@ import { LensChips } from '@xnetjs/views'
 # Tasks nav consolidation
 
 <Callout tone="decision">
-  Decisions, risks and the checklist live in
-  [the exploration](../../0390_[_]_TASKS_SECOND_NAV_INTO_ONE_NAV.md).
-  This page shows only what prose cannot.
+  Decisions, risks and the checklist live in [the
+  exploration](../../0390_[_]_TASKS_SECOND_NAV_INTO_ONE_NAV.md). This page shows only what prose
+  cannot.
 </Callout>
 
 ## Today — real components
@@ -475,8 +475,8 @@ The token layer, derived rather than invented:
   --wf-ink: var(--fg);
   --wf-muted: var(--fg-muted);
   --wf-line: var(--border);
-  --wf-paper: var(--canvas);   /* Plane A */
-  --wf-card: var(--island-b);  /* Plane B */
+  --wf-paper: var(--canvas); /* Plane A */
+  --wf-card: var(--island-b); /* Plane B */
   --wf-accent: var(--accent);
   --wf-accent-fg: var(--accent-fg);
   --wf-radius: var(--radius-md);
@@ -542,9 +542,9 @@ screenshots it — the same loop `visual-capture.yml` already runs in CI.
 
 ### Spike first — prove the renderer before building the kit
 
-- [ ] Add `@storybook/addon-docs` and register it in `.storybook/main.ts`.
-- [ ] Add the `docs/explorations/visuals/**/*.mdx` glob (narrow, not `**`).
-- [ ] Write one throwaway `.mdx` page importing a real `@xnetjs/ui` primitive;
+- [x] Add `@storybook/addon-docs` and register it in `.storybook/main.ts`.
+- [x] Add the `docs/explorations/visuals/**/*.mdx` glob (narrow, not `**`).
+- [x] Write one throwaway `.mdx` page importing a real `@xnetjs/ui` primitive;
       confirm it renders at `:6006` under both themes. **Stop here if it doesn't.**
 
 ### Wireframe vocabulary

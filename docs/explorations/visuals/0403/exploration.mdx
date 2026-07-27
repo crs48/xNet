@@ -1,0 +1,20 @@
+import { Meta } from '@storybook/addon-docs/blocks'
+import { Button } from '../../../../packages/ui/src/primitives/Button'
+
+<Meta title="Explorations/0403 MDX visual explorations" />
+
+# 0403 — MDX visual explorations
+
+Decisions, risks and the checklist live in
+[the exploration](https://github.com/xnetjs/xnet/blob/main/docs/explorations/0403_%5B_%5D_MDX_VISUAL_EXPLORATIONS_ON_STORYBOOK.md).
+This page carries only what prose cannot.
+
+## Tier R — real components
+
+`Button` ships today, so render the real thing. Anything drawn here is something
+the design system can actually build.
+
+<div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+  <Button>Save changes</Button>
+  <Button variant="outline">Cancel</Button>
+</div>

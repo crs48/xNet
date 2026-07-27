@@ -63,6 +63,7 @@
     "@microsoft/api-extractor": "^7.58.11",
     "@playwright/test": "1.58.1",
     "@storybook/addon-a11y": "^10.2.16",
+    "@storybook/addon-docs": "^10.2.16",
     "@storybook/addon-links": "^10.2.16",
     "@storybook/addon-themes": "^10.2.16",
     "@storybook/addon-vitest": "^10.2.16",
