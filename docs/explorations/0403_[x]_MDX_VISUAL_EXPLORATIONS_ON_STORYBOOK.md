@@ -589,25 +589,51 @@ screenshots it — the same loop `visual-capture.yml` already runs in CI.
 
 ## Validation Checklist
 
-- [ ] `pnpm dev:stories` boots and an exploration MDX page renders at
+- [x] `pnpm dev:stories` boots and an exploration MDX page renders at
       `http://127.0.0.1:6006` — measured boot delta under +5s versus baseline.
-- [ ] The same page renders correctly in **both** themes via
+- [x] The same page renders correctly in **both** themes via
       `@storybook/addon-themes`, with no hard-coded colour anywhere in it.
-- [ ] `@storybook/addon-a11y` reports zero violations on the wireframe kit's own
+- [x] `@storybook/addon-a11y` reports zero violations on the wireframe kit's own
       catalog page.
-- [ ] A wireframe containing a raw Tailwind palette class (`bg-white`) is caught
+- [x] A wireframe containing a raw Tailwind palette class (`bg-white`) is caught
       — either by `check-surface-tokens.mjs` or by an added wireframe lint.
-- [ ] `preview_start {name: "storybook"}` from an agent session reaches the page
+- [x] `preview_start {name: "storybook"}` from an agent session reaches the page
       and screenshots it without any new launch.json entry.
-- [ ] Deleting a `visuals/NNNN/` directory without updating the parent `.md`
+- [x] Deleting a `visuals/NNNN/` directory without updating the parent `.md`
       makes `pnpm check:visual-explorations` fail; restoring it passes.
-- [ ] Deliberately breaking a Tier R import does **not** turn a PR red — it
+- [x] Deliberately breaking a Tier R import does **not** turn a PR red — it
       degrades the informational capture only.
-- [ ] One real exploration (0390 or 0387 — both UI-shaped and already written) is
+- [x] One real exploration (0390 or 0387 — both UI-shaped and already written) is
       retrofitted with a visual companion, and a reviewer who reads only the
       `.md` still gets every decision. **No content appears in both files.**
 
 ---
+
+## Measured Results
+
+Recorded at implementation time, per the validation checklist.
+
+| Measure | Result |
+| --- | --- |
+| Storybook boot, with the `visuals/**` glob | **2s** to a served `index.json` |
+| Storybook boot, glob removed | **2s** — delta **0s**, target was <+5s |
+| Index entries | 67 → 69 (the two companions) |
+| a11y on the wireframe catalog (wcag2a + wcag2aa) | **0 violations**, 11 passes |
+| Wireframe tokens, light | `bg rgb(255,255,255)` · `text rgb(17,17,17)` |
+| Wireframe tokens, dark | `bg rgb(10,10,10)` · `text rgb(237,237,237)` |
+| Broken Tier R import → `typecheck` | exit **0** (required check unaffected) |
+| Broken Tier R import → `lint` | exit **0** (required check unaffected) |
+| Broken Tier R import → `build:stories` | exit **1** (informational, `continue-on-error` job) |
+
+Three defects were found by validation rather than by reading the code:
+
+1. `--wf-paper` resolved to **empty** — `--canvas`/`--island-b` are scoped to
+   `.wb-root` (0299), so a wireframe rendered with no background at all. Invisible
+   by eye (transparent over a white page); caught by reading computed styles.
+2. Icon markers rendered **0 SVGs** — `resolveIcon` guarded on
+   `typeof === 'function'`, but lucide icons are `forwardRef` **objects**.
+3. `aria-label` on a bare `<span>` is prohibited (`aria-prohibited-attr`); the
+   renderer now sets `role="img"`.
 
 ## References
 
