@@ -203,6 +203,28 @@ Prefer mermaid once there are branches, cycles, or more than ~5 nodes.
 - TL;DR callout + frontmatter at the top; checklists + progress line
   at the bottom — the document scans end-to-end without reading prose.
 
+## Visual companions (`--visual`)
+
+When the topic is fundamentally about **interface** — a layout, a control's
+placement, whether something survives at 320px — prose and mermaid cannot show
+it. Invoke the **`visual-exploration`** skill to add an MDX companion at
+`docs/explorations/visuals/NNNN/exploration.mdx`, rendered in Storybook against
+the real design system (exploration 0403).
+
+This is **opt-in**. Add a companion only when a reviewer would be misled by
+prose alone. Protocol, sync, economics and CI explorations have nothing to show,
+and a companion for them is pure overhead.
+
+Two rules carry over into the markdown doc:
+
+- **The `.md` stays canonical.** Every decision, file path, risk and checklist
+  lives here; the MDX carries only what pixels can say. If the MDX starts
+  explaining _why_, it has become a second source of truth. Link to it from this
+  doc — `pnpm check:visual-explorations` fails if either direction is missing.
+- **The tier rule.** UI that does not exist yet is a wireframe (`<Screen>`); a
+  change to a surface that already ships imports the real component. A
+  screenshot of real primitives is indistinguishable from shipped software.
+
 ## Committing
 
 Commit the new doc with:
