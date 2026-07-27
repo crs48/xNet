@@ -549,19 +549,19 @@ screenshots it — the same loop `visual-capture.yml` already runs in CI.
 
 ### Wireframe vocabulary
 
-- [ ] Create `packages/ui/src/wireframe/` with `wireframe.css` aliasing `--wf-*`
+- [x] Create `packages/ui/src/wireframe/` with `wireframe.css` aliasing `--wf-*`
       to `theme/tokens.css` (including the 0299 `--canvas` / `--island-b` planes).
-- [ ] Implement `<Screen surface="browser|desktop|mobile|popover|panel">`.
-- [ ] Implement the `data-icon` marker swap using the existing icon set.
-- [ ] Export via `@xnetjs/ui/wireframe` — **not** the root barrel (sub-barrel
+- [x] Implement `<Screen surface="browser|desktop|mobile|popover|panel">`.
+- [x] Implement the `data-icon` marker swap using the existing icon set.
+- [x] Export via `@xnetjs/ui/wireframe` — **not** the root barrel (sub-barrel
       policy, [CLAUDE.md](../../CLAUDE.md)).
 
 ### Document blocks
 
-- [ ] Add `packages/ui/src/exploration/` with `<Callout>`, `<Diagram>`,
+- [x] Add `packages/ui/src/exploration/` with `<Callout>`, `<Diagram>`,
       `<FileTree>`, `<AnnotatedCode>`, `<Columns>`, `<Checklist>`,
       `<OpenQuestions>`.
-- [ ] Port the site's mermaid rehype shim from
+- [x] Port the site's mermaid rehype shim from
       [`site/astro.config.mjs`](../../site/astro.config.mjs) for `<Diagram>`.
 
 ### Skill
