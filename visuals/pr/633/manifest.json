@@ -1,0 +1,51 @@
+{
+  "stories": [
+    {
+      "id": "explorations-0390-tasks-second-nav--docs",
+      "title": "Explorations/0390 Tasks second nav",
+      "name": "Docs",
+      "file": "stories/explorations-0390-tasks-second-nav--docs.png"
+    },
+    {
+      "id": "explorations-0403-mdx-visual-explorations--docs",
+      "title": "Explorations/0403 MDX visual explorations",
+      "name": "Docs",
+      "file": "stories/explorations-0403-mdx-visual-explorations--docs.png"
+    },
+    {
+      "id": "ui-wireframe-screen--docs",
+      "title": "UI/Wireframe/Screen",
+      "name": "Docs",
+      "file": "stories/ui-wireframe-screen--docs.png"
+    },
+    {
+      "id": "ui-wireframe-screen--icon-markers",
+      "title": "UI/Wireframe/Screen",
+      "name": "Icon Markers",
+      "file": "stories/ui-wireframe-screen--icon-markers.png"
+    },
+    {
+      "id": "ui-wireframe-screen--surfaces",
+      "title": "UI/Wireframe/Screen",
+      "name": "Surfaces",
+      "file": "stories/ui-wireframe-screen--surfaces.png"
+    },
+    {
+      "id": "ui-wireframe-screen--vocabulary",
+      "title": "UI/Wireframe/Screen",
+      "name": "Vocabulary",
+      "file": "stories/ui-wireframe-screen--vocabulary.png"
+    }
+  ],
+  "routes": [],
+  "flows": [],
+  "electron": [
+    {
+      "id": "electron-canvas-home",
+      "label": "Desktop · Canvas home",
+      "file": "electron/electron-canvas-home.png"
+    }
+  ],
+  "fallbackUsed": false,
+  "unmappedFiles": []
+}
