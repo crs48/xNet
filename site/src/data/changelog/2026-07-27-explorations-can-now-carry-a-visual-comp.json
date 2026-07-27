@@ -7,5 +7,14 @@
     "Wireframe primitives themed from the real token ramp",
     "A guard keeps the markdown exploration the single source of truth"
   ],
-  "tags": ["devtools"]
+  "tags": [
+    "devtools"
+  ],
+  "pr": 633,
+  "mergedAt": "2026-07-27T23:32:44Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
