@@ -1,20 +1,106 @@
 import { Meta } from '@storybook/addon-docs/blocks'
+import { Callout, Columns, Column, Diagram, FileTree, Screen } from '@xnetjs/ui/exploration'
 import { Button } from '../../../../packages/ui/src/primitives/Button'
 
 <Meta title="Explorations/0403 MDX visual explorations" />
 
 # 0403 — MDX visual explorations
 
-Decisions, risks and the checklist live in
-[the exploration](https://github.com/xnetjs/xnet/blob/main/docs/explorations/0403_%5B_%5D_MDX_VISUAL_EXPLORATIONS_ON_STORYBOOK.md).
-This page carries only what prose cannot.
+<Callout tone="decision">
+  Decisions, risks and the checklist live in the canonical exploration:
+  `docs/explorations/0403_[_]_MDX_VISUAL_EXPLORATIONS_ON_STORYBOOK.md`. This page
+  is the kit demonstrating itself.
+</Callout>
 
-## Tier R — real components
+## The tier rule
 
-`Button` ships today, so render the real thing. Anything drawn here is something
-the design system can actually build.
+<Columns>
+  <Column title="Tier R — real components">
+    `Button` ships today, so render the real thing. Anything drawn here is
+    something the design system can actually build.
 
-<div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-  <Button>Save changes</Button>
-  <Button variant="outline">Cancel</Button>
+    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', paddingTop: '8px' }}>
+      <Button>Save changes</Button>
+      <Button variant="outline">Cancel</Button>
+    </div>
+
+  </Column>
+
+  <Column title="Tier W — wireframe">
+    A sketch, for UI that does not exist yet. Bare elements are auto-themed;
+    `--wf-*` aliases the real ramp, so this is correct in both themes without a
+    single colour written by hand.
+
+    <div style={{ paddingTop: '8px' }}>
+      <Screen surface="popover">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <span data-icon="search" aria-label="Search" />
+            <input placeholder="Filter…" />
+          </div>
+          <hr />
+          <span className="wf-pill accent">Recent</span>
+          <p>Q3 launch</p>
+          <p className="wf-muted">4 open · 2h ago</p>
+        </div>
+      </Screen>
+    </div>
+
+  </Column>
+</Columns>
+
+<Callout tone="caution">
+  Never mock speculative UI with real components — a screenshot of real
+  primitives is indistinguishable from shipped software. Never sketch an existing
+  surface — a wireframe will happily draw a control the design system cannot
+  build.
+</Callout>
+
+## Surfaces
+
+Pick the footprint the user will actually see. A sidebar popover is a `popover`,
+not a desktop page plus a phone frame.
+
+<div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+  <Screen surface="panel" label='surface="panel"'>
+    <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <h2>Inspector</h2>
+      <div className="wf-card">
+        <p>Title</p>
+        <input value="Q3 launch" readOnly />
+      </div>
+      <button className="primary">Apply</button>
+    </div>
+  </Screen>
+
+  <Screen surface="mobile" label='surface="mobile"'>
+    <div style={{ padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <h2>Tasks</h2>
+      <span className="wf-pill accent">Today</span>
+      <div className="wf-card">
+        <p>Fix import dedupe</p>
+        <p className="wf-muted">2h ago</p>
+      </div>
+    </div>
+  </Screen>
 </div>
+
+## Where a companion lives
+
+<FileTree
+  entries={[
+    { path: 'docs/explorations/0403_[_]_….md', note: 'canonical — decisions, risks, checklist' },
+    { path: 'docs/explorations/visuals/0403/exploration.mdx', note: 'this page', changed: true },
+    { path: 'packages/ui/src/wireframe/', note: 'Screen + --wf-* tokens', changed: true },
+    { path: 'packages/ui/src/exploration/', note: 'document blocks', changed: true },
+    { path: 'scripts/check-visual-explorations.mjs', note: 'pairing + colour guard', changed: true }
+  ]}
+/>
+
+<Diagram
+  chart={`flowchart LR
+  A[".md — canonical"] -->|links| B[".mdx — companion"]
+  B -->|renders in| C["Storybook :6006"]
+  C -->|screenshots to| D["gh-pages visuals/"]`}
+  label="The companion never becomes a second source of truth — the guard enforces the pairing, the skill enforces the split."
+/>

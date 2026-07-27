@@ -1,0 +1,136 @@
+import { Meta } from '@storybook/addon-docs/blocks'
+import { Callout, Columns, Column, Screen } from '@xnetjs/ui/exploration'
+import { LensChips } from '../../../../apps/web/src/workbench/sidebar/LensChips'
+
+<Meta title="Explorations/0390 Tasks second nav" />
+
+# 0390 — Folding the `/tasks` second nav into the one nav
+
+<Callout tone="decision">
+  Decisions, risks, options and the checklist live in the canonical exploration:
+  `docs/explorations/0390_[_]_TASKS_SECOND_NAV_INTO_ONE_NAV.md`. This page carries
+  only what prose cannot — the two left columns, and what one column looks like.
+</Callout>
+
+## Tier R — the primitive that already ships
+
+`LensChips` is the 0353 view-switcher primitive, live in
+`apps/web/src/workbench/sidebar/LensChips.tsx`. Rendering the real component is
+the point: it proves the recommended switcher needs no new UI, only a new
+mounting place.
+
+<div style={{ padding: '12px 0' }}>
+  <LensChips
+    choices={[
+      { id: 'all', label: 'All Issues' },
+      { id: 'mine', label: 'My Issues' },
+      { id: 'triage', label: 'Triage' }
+    ]}
+    activeId="all"
+    onSelect={() => {}}
+  />
+</div>
+
+## Tier W — the two columns, and the one
+
+The proposed header does not exist yet, so both frames are sketches. Nothing
+here should read as shipped.
+
+<Columns>
+  <Column title="Today — two left columns">
+    <Screen surface="desktop" label="The second nav 0353 set out to delete">
+      <div style={{ display: 'flex', height: '100%' }}>
+        <div
+          style={{
+            width: '92px',
+            borderRight: '1px solid var(--wf-line)',
+            padding: '12px 8px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px'
+          }}
+        >
+          <span className="wf-muted">SECTIONS</span>
+          <span>Home</span>
+          <span className="wf-pill accent">Tasks</span>
+          <span>Data</span>
+        </div>
+        <div
+          style={{
+            width: '118px',
+            borderRight: '1px solid var(--wf-line)',
+            padding: '12px 8px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '6px'
+          }}
+        >
+          <span className="wf-muted">VIEWS</span>
+          <span>All Issues</span>
+          <span>My Issues</span>
+          <span>Triage</span>
+          <hr />
+          <span className="wf-muted">PROJECTS</span>
+          <span>Q3 launch</span>
+          <span>Billing</span>
+        </div>
+        <div style={{ flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <h1>All Issues</h1>
+          <div className="wf-card">
+            <p>Fix duplicate deals on import</p>
+            <p className="wf-muted">Q3 launch · updated 2h ago</p>
+          </div>
+          <div className="wf-card">
+            <p>Hub roles: subscriber mirrors /sub/*</p>
+            <p className="wf-muted">Billing · updated yesterday</p>
+          </div>
+        </div>
+      </div>
+    </Screen>
+  </Column>
+
+  <Column title="Proposed — one column">
+    <Screen surface="desktop" label="Views become header chips; Projects become tree rows">
+      <div style={{ display: 'flex', height: '100%' }}>
+        <div
+          style={{
+            width: '132px',
+            borderRight: '1px solid var(--wf-line)',
+            padding: '12px 8px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '6px'
+          }}
+        >
+          <span className="wf-muted">SECTIONS</span>
+          <span>Home</span>
+          <span className="wf-pill accent">Tasks</span>
+          <span>Data</span>
+          <hr />
+          <span className="wf-muted">TREE</span>
+          <span>Q3 launch</span>
+          <span>Billing</span>
+        </div>
+        <div style={{ flex: 1, padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h1>Tasks</h1>
+            <span className="wf-pill accent">All Issues</span>
+            <span className="wf-pill">My Issues</span>
+            <span className="wf-pill">Triage</span>
+            <button className="primary" style={{ marginLeft: 'auto' }}>
+              <span data-icon="plus" aria-label="New" /> New
+            </button>
+          </div>
+          <div className="wf-card">
+            <p>Fix duplicate deals on import</p>
+            <p className="wf-muted">Q3 launch · updated 2h ago</p>
+          </div>
+          <div className="wf-card">
+            <p>Hub roles: subscriber mirrors /sub/*</p>
+            <p className="wf-muted">Billing · updated yesterday</p>
+          </div>
+        </div>
+      </div>
+    </Screen>
+  </Column>
+</Columns>

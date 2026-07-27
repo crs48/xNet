@@ -26,8 +26,13 @@
   --wf-ink: hsl(var(--ink-1));
   --wf-muted: hsl(var(--ink-2));
   --wf-line: hsl(var(--hairline));
-  --wf-paper: hsl(var(--canvas)); /* Plane A */
-  --wf-card: hsl(var(--island-b)); /* Plane B */
+  /* Plane A / Plane B when inside the workbench, falling back to the global
+     ramp everywhere else. `--canvas` and `--island-b` are scoped to `.wb-root`
+     (0299) — a bare `hsl(var(--canvas))` resolves to NOTHING in Storybook and
+     the frame renders with no background at all. The fallback is what makes a
+     wireframe correct both in a docs page and inside the app shell. */
+  --wf-paper: hsl(var(--canvas, var(--surface-0)));
+  --wf-card: hsl(var(--island-b, var(--surface-1)));
   --wf-accent: hsl(var(--accent-ink));
   --wf-accent-fg: hsl(var(--surface-0));
   --wf-accent-soft: hsl(var(--accent));
