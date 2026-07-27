@@ -61,13 +61,21 @@ const ICONS: Record<string, keyof typeof lucide> = {
   arrowRight: 'ArrowRight'
 }
 
-/** Resolve a marker name to a lucide component, or null if unknown. */
+/**
+ * Resolve a marker name to a lucide component, or null if unknown.
+ *
+ * lucide icons are built with `forwardRef`, so they are **objects**, not
+ * functions — a `typeof === 'function'` guard rejects every one of them and the
+ * markers silently stay empty. Accept any non-null object or function, which is
+ * what React itself treats as a valid element type.
+ */
 export function resolveIcon(name: string): React.ComponentType<{ className?: string }> | null {
   const key = ICONS[name]
   if (!key) return null
   const Icon = lucide[key] as unknown
+  const renderable = typeof Icon === 'function' || (typeof Icon === 'object' && Icon !== null)
 
-  return typeof Icon === 'function' ? (Icon as React.ComponentType<{ className?: string }>) : null
+  return renderable ? (Icon as React.ComponentType<{ className?: string }>) : null
 }
 
 /**
@@ -90,6 +98,10 @@ function mountIcons(host: HTMLElement, roots: Root[]): void {
     }
     el.dataset.wfIconMounted = 'true'
     el.classList.add('wf-icon')
+    // `aria-label` on a bare <span> is prohibited (axe: aria-prohibited-attr) —
+    // the attribute needs a role that supports a name. The renderer owns this so
+    // authors keep writing the plain marker.
+    if (el.getAttribute('aria-label')) el.setAttribute('role', 'img')
     const root = createRoot(el)
     root.render(<Icon className="wf-icon" />)
     roots.push(root)
