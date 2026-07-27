@@ -77,18 +77,25 @@ async function captureStories(browser) {
   try {
     for (const story of set.stories) {
       const page = await ctx.newPage()
+      // Visual exploration companions (0403) are `docs` entries: they render at
+      // viewMode=docs into #storybook-docs, not #storybook-root. Everything else
+      // about the capture — settle, screenshot, manifest — is identical.
+      const isDocs = story.type === 'docs'
+      const viewMode = isDocs ? 'docs' : 'story'
+      const rootSelector = isDocs ? '#storybook-docs' : '#storybook-root'
       try {
-        await page.goto(`${server.url}/iframe.html?id=${story.id}&viewMode=story`, {
+        await page.goto(`${server.url}/iframe.html?id=${story.id}&viewMode=${viewMode}`, {
           waitUntil: 'load',
           timeout: 30_000
         })
-        const root = page.locator('#storybook-root')
+        const root = page.locator(rootSelector)
         await root.waitFor({ state: 'visible', timeout: 15_000 })
         await page.waitForFunction(
-          () => {
-            const el = document.querySelector('#storybook-root')
+          (selector) => {
+            const el = document.querySelector(selector)
             return el && el.children.length > 0
           },
+          rootSelector,
           { timeout: 15_000 }
         )
         await settle(page)

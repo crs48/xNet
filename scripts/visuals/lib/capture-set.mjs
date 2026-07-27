@@ -81,6 +81,9 @@ export function computeCaptureSet(input, opts = {}) {
   }
   const stories = storyEntries.filter(storyIsAffected).map((entry) => ({
     kind: 'story',
+    // `docs` entries (visual exploration companions, 0403) render at a
+    // different viewMode and root element; capture.mjs branches on this.
+    type: entry.type ?? 'story',
     id: entry.id,
     title: entry.title,
     name: entry.name,

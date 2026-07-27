@@ -412,6 +412,11 @@ docs/explorations/
 
 ## Example Code
 
+> [!NOTE]
+> This exploration has a visual companion at
+> [`visuals/0403/exploration.mdx`](visuals/0403/exploration.mdx) — run
+> `pnpm dev:stories` and open it under **Explorations** in Storybook.
+
 A visual exploration, showing both tiers and the split:
 
 ```mdx
@@ -566,18 +571,18 @@ screenshots it — the same loop `visual-capture.yml` already runs in CI.
 
 ### Skill
 
-- [ ] Add `.claude/skills/visual-exploration/SKILL.md` (<500 lines) with
+- [x] Add `.claude/skills/visual-exploration/SKILL.md` (<500 lines) with
       `references/wireframe.md`, `references/blocks.md`, `references/exemplar.md`
       — adapted from agent-native (MIT) with `metadata.source` attribution.
-- [ ] Extend `.claude/skills/explore/SKILL.md` with a `--visual` path and the
+- [x] Extend `.claude/skills/explore/SKILL.md` with a `--visual` path and the
       **two-tier rule** stated as a hard constraint.
 
 ### Guard and publish
 
-- [ ] Add `check:visual-explorations` — every `visuals/NNNN/` has a matching
+- [x] Add `check:visual-explorations` — every `visuals/NNNN/` has a matching
       `NNNN_*.md` linking it, and vice versa. Decidable; named consumer is
       `/explore`.
-- [ ] Extend `scripts/visuals/manifests.json` so exploration docs pages capture,
+- [x] Extend `scripts/visuals/manifests.json` so exploration docs pages capture,
       keeping `continue-on-error` and **never** a required check.
 
 ---
