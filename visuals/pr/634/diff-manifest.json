@@ -9,11 +9,14 @@
       "id": "home",
       "label": "Home",
       "file": "routes/home.png",
-      "status": "unchanged",
-      "ssim": 0.999922
+      "status": "changed",
+      "ssim": 0.997455,
+      "before": "before/routes/home.png",
+      "after": "routes/home.png",
+      "diff": "diff/routes/home.png"
     }
   ],
   "electron": [],
   "flows": [],
-  "changedCount": 0
+  "changedCount": 1
 }
