@@ -6,6 +6,29 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-28-the-desktop-app-has-an-assistant",
+      "url": "https://xnet.fyi/changelog#2026-07-28-the-desktop-app-has-an-assistant",
+      "title": "The desktop app has an Assistant",
+      "content_text": "Open Assistant from the system menu or command palette to chat with your workspace on desktop. It finds your Claude Code or Codex subscription automatically and pairs with one click — your model, your machine, and it can search and read your actual pages and data.\n",
+      "date_published": "2026-07-28T20:33:29Z",
+      "tags": [
+        "ai",
+        "app"
+      ],
+      "_xnet": {
+        "date": "July 28, 2026",
+        "summary": "Open Assistant from the system menu or command palette to chat with your workspace on desktop. It finds your Claude Code or Codex subscription automatically and pairs with one click — your model, your machine, and it can search and read your actual pages and data.",
+        "highlights": [],
+        "mergedAt": "2026-07-28T20:33:29Z",
+        "pr": 648,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-28-the-deploy-your-own-hub-link-works-again",
       "url": "https://xnet.fyi/changelog#2026-07-28-the-deploy-your-own-hub-link-works-again",
       "title": "The Deploy your own hub link works again",

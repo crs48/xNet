@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>The desktop app has an Assistant</title>
+      <link>https://xnet.fyi/changelog#2026-07-28-the-desktop-app-has-an-assistant</link>
+      <guid isPermaLink="false">2026-07-28-the-desktop-app-has-an-assistant</guid>
+      <pubDate>Tue, 28 Jul 2026 20:33:29 GMT</pubDate>
+      <description>Open Assistant from the system menu or command palette to chat with your workspace on desktop. It finds your Claude Code or Codex subscription automatically and pairs with one click — your model, your machine, and it can search and read your actual pages and data.</description>
+    </item>
+    <item>
       <title>The Deploy your own hub link works again</title>
       <link>https://xnet.fyi/changelog#2026-07-28-the-deploy-your-own-hub-link-works-again</link>
       <guid isPermaLink="false">2026-07-28-the-deploy-your-own-hub-link-works-again</guid>
