@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Agent instructions are now one tree</title>
+      <link>https://xnet.fyi/changelog#2026-07-27-agent-instructions-are-now-one-tree</link>
+      <guid isPermaLink="false">2026-07-27-agent-instructions-are-now-one-tree</guid>
+      <pubDate>Tue, 28 Jul 2026 00:57:10 GMT</pubDate>
+      <description>Contributor-facing docs for AI agents are single-sourced in AGENTS.md, with surface-specific guidance loaded only where it applies.</description>
+    </item>
+    <item>
       <title>Open Storybook from the app's bottom bar</title>
       <link>https://xnet.fyi/changelog#2026-07-27-open-storybook-from-the-app-s-bottom-bar</link>
       <guid isPermaLink="false">2026-07-27-open-storybook-from-the-app-s-bottom-bar</guid>
