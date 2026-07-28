@@ -5,6 +5,7 @@
 ---
 
 <a href="/" class="site-title sl-flex">
+  <span class="site-title-mark" aria-hidden="true"></span>
   <span class="site-title-text">xNet</span>
   <span class="site-title-separator">/</span>
   <a href="/docs/introduction/" class="site-title-docs">Docs</a>
@@ -19,6 +20,47 @@
     text-decoration: none;
     color: var(--sl-color-white);
     white-space: nowrap;
+  }
+
+  /* Debossed brand mark — see Nav.astro for the same treatment on the
+     landing header. Two offset copies of one alpha mask: a dark incision
+     over a light lower edge. */
+  .site-title-mark {
+    position: relative;
+    width: 1.4rem;
+    height: 1.4rem;
+    flex: none;
+  }
+
+  .site-title-mark::before,
+  .site-title-mark::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    -webkit-mask: url('/mark.png') center / contain no-repeat;
+    mask: url('/mark.png') center / contain no-repeat;
+  }
+
+  /* Dark is Starlight's default: on a near-black bar the lit lower edge has to
+     carry the shape, so the groove is etched rather than pressed. */
+  .site-title-mark::before {
+    background: rgba(0, 0, 0, 0.9);
+    transform: translate(-0.5px, -0.5px);
+  }
+
+  .site-title-mark::after {
+    background: rgba(255, 255, 255, 0.50);
+  }
+
+  /* Starlight ships a light theme too — there the groove reads as a genuine
+     deboss: dark incision over a white lower edge. */
+  :global([data-theme='light']) .site-title-mark::before {
+    background: rgba(255, 255, 255, 0.9);
+    transform: translate(0.5px, 0.5px);
+  }
+
+  :global([data-theme='light']) .site-title-mark::after {
+    background: rgba(15, 23, 42, 0.62);
   }
 
   .site-title-text:hover {
