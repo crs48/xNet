@@ -4,5 +4,14 @@
   "title": "Open Storybook from the app's bottom bar",
   "summary": "A Storybook button now sits next to the dev-tools button when the component catalog is running, and Storybook has a Back to app button.",
   "highlights": [],
-  "tags": ["devtools"]
+  "tags": [
+    "devtools"
+  ],
+  "pr": 634,
+  "mergedAt": "2026-07-28T00:20:47Z",
+  "authors": [
+    {
+      "login": "crs48"
+    }
+  ]
 }
