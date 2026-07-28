@@ -395,9 +395,14 @@ export class MCPServer {
       inputSchema: {
         type: 'object',
         properties: {
+          schemaId: {
+            type: 'string',
+            description:
+              'Schema IRI to query, exactly as it appears on a node (e.g. xnet://xnet.fyi/Task@1.0.0). Required.'
+          },
           schema: {
             type: 'string',
-            description: 'Schema IRI to query (e.g., xnet://xnet.dev/Task)'
+            description: 'Deprecated alias for schemaId.'
           },
           limit: {
             type: 'number',
@@ -408,7 +413,7 @@ export class MCPServer {
             description: 'Number of results to skip for pagination'
           }
         },
-        required: ['schema']
+        required: ['schemaId']
       }
     })
 
@@ -434,9 +439,13 @@ export class MCPServer {
       inputSchema: {
         type: 'object',
         properties: {
+          schemaId: {
+            type: 'string',
+            description: 'Schema IRI for the new node (e.g. xnet://xnet.fyi/Task@1.0.0). Required.'
+          },
           schema: {
             type: 'string',
-            description: 'Schema IRI for the new node'
+            description: 'Deprecated alias for schemaId.'
           },
           properties: {
             type: 'object',
@@ -445,7 +454,7 @@ export class MCPServer {
           confirm: CONFIRM_SCHEMA,
           provenance: PROVENANCE_SCHEMA
         },
-        required: ['schema', 'properties']
+        required: ['schemaId', 'properties']
       }
     })
 
@@ -596,7 +605,7 @@ export class MCPServer {
 
     switch (name) {
       case 'xnet_query': {
-        const schemaId = toolArgs.schema as string
+        const schemaId = requiredSchemaArg(toolArgs, 'xnet_query')
         const limit = (toolArgs.limit as number) ?? 20
         const offset = (toolArgs.offset as number) ?? 0
 
@@ -616,7 +625,7 @@ export class MCPServer {
       }
 
       case 'xnet_create': {
-        const schema = toolArgs.schema as string
+        const schema = requiredSchemaArg(toolArgs, 'xnet_create')
         const properties = toolArgs.properties as Record<string, unknown>
         result = await this.guardedWrite(
           { kind: 'create', schemaId: schema, ...readWriteGate(toolArgs) },
@@ -841,6 +850,23 @@ const PROVENANCE_SCHEMA: MCPPropertySchema = {
   type: 'object',
   description:
     'Optional AI provenance for the write: { sourceType: "local-ai"|"cloud-ai", modelProvider, modelName }.'
+}
+
+/**
+ * Read the schema IRI off a tool call, accepting either spelling.
+ *
+ * Agents reach for `schemaId` — it is the field name on every node the tools
+ * hand back — while these tools were declared with `schema`. Reading only
+ * `schema` turned a filtered query into an unfiltered one (`store.list` treats
+ * an absent `schemaId` as "every schema"), so `xnet_query` silently answered
+ * "my pages" with canvases. A missing filter must fail, never widen.
+ */
+function requiredSchemaArg(args: Record<string, unknown>, tool: string): string {
+  const value = args.schemaId ?? args.schema
+  if (typeof value !== 'string' || value.trim() === '') {
+    throw new Error(`${tool} requires a schemaId (schema IRI) argument`)
+  }
+  return value
 }
 
 /** Read the shared write-gate args (confirm + provenance) off a tool call. */

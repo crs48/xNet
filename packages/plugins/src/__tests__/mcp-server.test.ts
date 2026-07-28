@@ -256,6 +256,80 @@ describe('MCPServer', () => {
         const data = JSON.parse(result.content[0].text)
         expect(data.nodes).toHaveLength(2)
       })
+
+      it('returns only nodes of the requested schema', async () => {
+        await mockStore.create({
+          schemaId: 'xnet://xnet.dev/Task',
+          properties: { title: 'Task 1' }
+        })
+        await mockStore.create({
+          schemaId: 'xnet://xnet.dev/Project',
+          properties: { name: 'Project 1' }
+        })
+
+        const response = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_query',
+            arguments: { schema: 'xnet://xnet.dev/Task' }
+          })
+        )
+
+        const result = response.result as { content: Array<{ type: string; text: string }> }
+        const data = JSON.parse(result.content[0].text) as {
+          nodes: Array<{ schemaId: string }>
+          count: number
+        }
+        expect(data.nodes).toHaveLength(1)
+        expect(data.count).toBe(1)
+        for (const node of data.nodes) {
+          expect(node.schemaId).toBe('xnet://xnet.dev/Task')
+        }
+      })
+
+      // Agents reach for `schemaId` because that is the field name on every node
+      // the tools hand back. Dropping it used to silently return every schema.
+      it('accepts schemaId as an alias and still filters', async () => {
+        await mockStore.create({
+          schemaId: 'xnet://xnet.dev/Task',
+          properties: { title: 'Task 1' }
+        })
+        await mockStore.create({
+          schemaId: 'xnet://xnet.dev/Project',
+          properties: { name: 'Project 1' }
+        })
+
+        const response = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_query',
+            arguments: { schemaId: 'xnet://xnet.dev/Task' }
+          })
+        )
+
+        expect(response.error).toBeUndefined()
+        const result = response.result as { content: Array<{ type: string; text: string }> }
+        const data = JSON.parse(result.content[0].text) as {
+          nodes: Array<{ schemaId: string }>
+        }
+        expect(data.nodes).toHaveLength(1)
+        expect(data.nodes[0].schemaId).toBe('xnet://xnet.dev/Task')
+      })
+
+      it('fails loudly instead of returning every node when no schema is given', async () => {
+        await mockStore.create({
+          schemaId: 'xnet://xnet.dev/Task',
+          properties: { title: 'Task 1' }
+        })
+
+        const response = await server.handleRequest(
+          createRequest('tools/call', {
+            name: 'xnet_query',
+            arguments: { limit: 3 }
+          })
+        )
+
+        expect(response.result).toBeUndefined()
+        expect(response.error?.message).toContain('schemaId')
+      })
     })
 
     describe('tools/call - xnet_get', () => {
