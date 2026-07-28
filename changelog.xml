@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>Agent queries return only the type you asked for</title>
+      <link>https://xnet.fyi/changelog#2026-07-27-agent-queries-return-only-the-type-you-a</link>
+      <guid isPermaLink="false">2026-07-27-agent-queries-return-only-the-type-you-a</guid>
+      <pubDate>Tue, 28 Jul 2026 02:45:32 GMT</pubDate>
+      <description>The xnet_query tool used to ignore a schemaId filter and return nodes of every type, so an agent asked about your pages could answer with canvases. It now filters correctly, and a query with no type at all fails loudly instead of quietly returning everything.</description>
+    </item>
+    <item>
       <title>Faster desktop dev startup</title>
       <link>https://xnet.fyi/changelog#2026-07-27-faster-desktop-dev-startup</link>
       <guid isPermaLink="false">2026-07-27-faster-desktop-dev-startup</guid>
