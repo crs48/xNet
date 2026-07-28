@@ -27,8 +27,12 @@
     "zustand": "^5.0.14",
     "@xnetjs/brain": "workspace:*",
     "@xnetjs/data": "workspace:*",
+    "@xnetjs/comms": "workspace:*",
+    "@xnetjs/labs": "workspace:*",
     "@xnetjs/react": "workspace:*",
     "@xnetjs/social": "workspace:*",
+    "@xnetjs/sqlite": "workspace:*",
+    "@xnetjs/ui": "workspace:*",
     "@xnetjs/vectors": "workspace:*",
     "@mlc-ai/web-llm": "^0.2.84"
   },

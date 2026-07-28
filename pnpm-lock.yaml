@@ -2384,9 +2384,15 @@ importers:
       '@xnetjs/brain':
         specifier: workspace:*
         version: link:../brain
+      '@xnetjs/comms':
+        specifier: workspace:*
+        version: link:../comms
       '@xnetjs/data':
         specifier: workspace:*
         version: link:../data
+      '@xnetjs/labs':
+        specifier: workspace:*
+        version: link:../labs
       '@xnetjs/plugins':
         specifier: workspace:*
         version: link:../plugins
@@ -2396,6 +2402,12 @@ importers:
       '@xnetjs/social':
         specifier: workspace:*
         version: link:../social
+      '@xnetjs/sqlite':
+        specifier: workspace:*
+        version: link:../sqlite
+      '@xnetjs/ui':
+        specifier: workspace:*
+        version: link:../ui
       '@xnetjs/vectors':
         specifier: workspace:*
         version: link:../vectors
