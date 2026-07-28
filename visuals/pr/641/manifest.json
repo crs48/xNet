@@ -1,0 +1,104 @@
+{
+  "stories": [
+    {
+      "id": "electron-systemmenu--default",
+      "title": "Electron/SystemMenu",
+      "name": "Default",
+      "file": "stories/electron-systemmenu--default.png"
+    },
+    {
+      "id": "electron-systemmenu--docs",
+      "title": "Electron/SystemMenu",
+      "name": "Docs",
+      "file": "stories/electron-systemmenu--docs.png"
+    },
+    {
+      "id": "electron-systemmenu--empty-recent",
+      "title": "Electron/SystemMenu",
+      "name": "Empty Recent",
+      "file": "stories/electron-systemmenu--empty-recent.png"
+    },
+    {
+      "id": "ui-primitives-button--default",
+      "title": "UI/Primitives/Button",
+      "name": "Default",
+      "file": "stories/ui-primitives-button--default.png"
+    },
+    {
+      "id": "ui-primitives-button--docs",
+      "title": "UI/Primitives/Button",
+      "name": "Docs",
+      "file": "stories/ui-primitives-button--docs.png"
+    },
+    {
+      "id": "ui-primitives-button--loading",
+      "title": "UI/Primitives/Button",
+      "name": "Loading",
+      "file": "stories/ui-primitives-button--loading.png"
+    },
+    {
+      "id": "ui-primitives-button--variants",
+      "title": "UI/Primitives/Button",
+      "name": "Variants",
+      "file": "stories/ui-primitives-button--variants.png"
+    },
+    {
+      "id": "ui-primitives-button--with-icons",
+      "title": "UI/Primitives/Button",
+      "name": "With Icons",
+      "file": "stories/ui-primitives-button--with-icons.png"
+    },
+    {
+      "id": "ui-primitives-catalog--docs",
+      "title": "UI/Primitives/Catalog",
+      "name": "Docs",
+      "file": "stories/ui-primitives-catalog--docs.png"
+    },
+    {
+      "id": "ui-primitives-catalog--overview",
+      "title": "UI/Primitives/Catalog",
+      "name": "Overview",
+      "file": "stories/ui-primitives-catalog--overview.png"
+    },
+    {
+      "id": "ui-primitives-contextmenu--docs",
+      "title": "UI/Primitives/ContextMenu",
+      "name": "Docs",
+      "file": "stories/ui-primitives-contextmenu--docs.png"
+    },
+    {
+      "id": "ui-primitives-contextmenu--from-descriptors",
+      "title": "UI/Primitives/ContextMenu",
+      "name": "From Descriptors",
+      "file": "stories/ui-primitives-contextmenu--from-descriptors.png"
+    },
+    {
+      "id": "ui-primitives-contextmenu--primitive",
+      "title": "UI/Primitives/ContextMenu",
+      "name": "Primitive",
+      "file": "stories/ui-primitives-contextmenu--primitive.png"
+    }
+  ],
+  "routes": [
+    {
+      "id": "home",
+      "label": "Home",
+      "file": "routes/home.png"
+    }
+  ],
+  "flows": [],
+  "electron": [
+    {
+      "id": "electron-canvas-home",
+      "label": "Desktop · Canvas home",
+      "file": "electron/electron-canvas-home.png"
+    },
+    {
+      "id": "electron-canvas-objects",
+      "label": "Desktop · Canvas with objects",
+      "file": "electron/electron-canvas-objects.png"
+    }
+  ],
+  "fallbackUsed": false,
+  "unmappedFiles": []
+}
