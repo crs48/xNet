@@ -99,6 +99,8 @@ export interface ChannelEntry {
   kind?: string
   members?: string[]
   topic?: string
+  updatedAt?: number
+  createdAt?: number
 }
 
 export interface WorkbenchCommsHost {

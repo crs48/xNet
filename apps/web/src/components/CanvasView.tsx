@@ -50,6 +50,8 @@ import {
   type CanvasUndoDomain,
   type UseCanvasUndoLadderResult
 } from '@xnetjs/views'
+import { useContextPanel, type ContextPanelSection } from '@xnetjs/workbench'
+import { useIsCompact } from '@xnetjs/workbench'
 import {
   FileImage,
   FileText,
@@ -64,9 +66,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { useCommentPeople } from '../hooks/useCommentPeople'
 import { DESK_TITLE, isDeskId, isDeskRadialEnabled } from '../lib/desk'
-import { useContextPanel, type ContextPanelSection } from '../workbench/context-panel'
 import { useWorkbench } from '../workbench/state'
-import { useIsCompact } from '../workbench/use-layout-mode'
 import { DeskListProjection } from './DeskListProjection'
 import { DeskRadialMenu } from './DeskRadialMenu'
 import { ModeratedMedia } from './ModeratedMedia'

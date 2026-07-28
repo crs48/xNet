@@ -5,7 +5,7 @@
  * substrate answer made visible: every page carries the same passport
  * regardless of which surface renders it.
  */
-import type { ContextPanelSection } from '../workbench/context-panel'
+import type { ContextPanelSection } from '@xnetjs/workbench'
 import { useNodeStore } from '@xnetjs/react'
 import { useEffect, useState, type JSX } from 'react'
 

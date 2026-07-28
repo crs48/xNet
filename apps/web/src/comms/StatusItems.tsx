@@ -5,11 +5,10 @@
  * Notifications tray; clicking presence opens the Room section.
  */
 import { useRouterState } from '@tanstack/react-router'
+import { revealContextSection, useStatusBarItem } from '@xnetjs/workbench'
 import { useMemo } from 'react'
 import { useFormSubmissionDrain } from '../hooks/useFormSubmissionDrain'
-import { revealContextSection } from '../workbench/context-panel'
 import { useWorkbench } from '../workbench/state'
-import { useStatusBarItem } from '../workbench/status'
 import { tabFromPathname } from '../workbench/tabs'
 import { useComms } from './CommsContext'
 import { useInbox } from './hooks'

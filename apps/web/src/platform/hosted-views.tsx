@@ -8,6 +8,9 @@
  * table.
  */
 import { registerHostedViews, type HostedView, type TabNodeType } from '@xnetjs/workbench'
+// Frame source renderers (0346) — registered here so shell containers
+// (SplitPane, frame tabs) resolve them without importing app components.
+import '../lib/frame-renderers'
 import { ChannelView } from '../comms/ChannelView'
 import { CanvasView } from '../components/CanvasView'
 import { PostView } from '../components/community/PostView'

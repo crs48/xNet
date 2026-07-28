@@ -10,10 +10,10 @@
  * overlay and boot marks of 0212/0249 hang off it), so this module only adds
  * what the doc list can't express.
  */
+import { effectiveBadge, sortSidebarRows } from '@xnetjs/workbench'
+import { channelsSource } from '@xnetjs/workbench'
 import { navigateToNode } from '../workbench/navigation'
 import { useNavigateTo } from '../workbench/platform'
-import { effectiveBadge, sortSidebarRows } from '../workbench/sidebar/contracts'
-import { channelsSource } from '../workbench/sidebar/sources'
 import { TAB_VIEWS } from '../workbench/tabs'
 
 /** Heading for the home surface under each lens. */

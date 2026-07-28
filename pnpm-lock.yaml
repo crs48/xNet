@@ -2381,15 +2381,24 @@ importers:
       '@mlc-ai/web-llm':
         specifier: ^0.2.84
         version: 0.2.84
+      '@tanstack/react-virtual':
+        specifier: ^3.14.2
+        version: 3.14.2(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@xnetjs/brain':
         specifier: workspace:*
         version: link:../brain
+      '@xnetjs/canvas':
+        specifier: workspace:*
+        version: link:../canvas
       '@xnetjs/comms':
         specifier: workspace:*
         version: link:../comms
       '@xnetjs/data':
         specifier: workspace:*
         version: link:../data
+      '@xnetjs/devtools':
+        specifier: workspace:*
+        version: link:../devtools
       '@xnetjs/labs':
         specifier: workspace:*
         version: link:../labs
@@ -2411,9 +2420,15 @@ importers:
       '@xnetjs/vectors':
         specifier: workspace:*
         version: link:../vectors
+      '@xnetjs/views':
+        specifier: workspace:*
+        version: link:../views
       lucide-react:
         specifier: ^0.453.0
         version: 0.453.0(react@18.3.1)
+      react-resizable-panels:
+        specifier: ^4.4.1
+        version: 4.4.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       zustand:
         specifier: ^5.0.14
         version: 5.0.14(@types/react@18.3.27)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
@@ -2424,6 +2439,9 @@ importers:
       '@types/react':
         specifier: ^18.3.0
         version: 18.3.27
+      '@types/react-dom':
+        specifier: ^18.3.7
+        version: 18.3.7(@types/react@18.3.27)
       react:
         specifier: ^18.3.1
         version: 18.3.1
