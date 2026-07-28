@@ -25,6 +25,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { Awareness, applyAwarenessUpdate, encodeAwarenessUpdate } from 'y-protocols/awareness'
 import * as Y from 'yjs'
 import { App } from './App'
+import { ShellErrorBoundary } from './components/ShellErrorBoundary'
 import { configuredHubUrl } from './lib/hub-url'
 import { createIPCBlobStore } from './lib/ipc-blob-store'
 import { IPCNodeStorageAdapter } from './lib/ipc-node-storage'
@@ -938,7 +939,11 @@ async function init() {
               >
                 <SyncInstrumentation syncManager={ipcSyncManager} />
                 <LocalAPIStoreHandler />
-                <App />
+                {/* Inside the providers so the fallback keeps app chrome and
+                    theme; a shell crash must not take the window with it. */}
+                <ShellErrorBoundary>
+                  <App />
+                </ShellErrorBoundary>
               </XNetDevToolsProvider>
             </BlobProvider>
           </XNetProvider>

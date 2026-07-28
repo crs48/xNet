@@ -523,11 +523,11 @@ export class ShellErrorBoundary extends React.Component<Props, State> {
 
 ### Phase 0 — stop the bleeding (independently shippable)
 
-- [ ] Fix `MenuLabel` to stop rendering `BaseMenu.GroupLabel` outside a group
-- [ ] Add `ShellErrorBoundary` around the desktop shell tree
-- [ ] Add a regression test that opening `SystemMenu` does not throw
-- [ ] Delete the orphaned `apps/electron/src/renderer/components/Sidebar.tsx`
-- [ ] Remove the unused `@tanstack/react-router` dep from `apps/electron` (or adopt it in phase 1)
+- [x] Fix `MenuLabel` to stop rendering `BaseMenu.GroupLabel` outside a group
+- [x] Add `ShellErrorBoundary` around the desktop shell tree
+- [x] Add a regression test that opening `SystemMenu` does not throw
+- [x] Delete the orphaned `apps/electron/src/renderer/components/Sidebar.tsx`
+- [x] Remove the unused `@tanstack/react-router` dep from `apps/electron` (or adopt it in phase 1)
 
 ### Phase 1 — define the seam
 
