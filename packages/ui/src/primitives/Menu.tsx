@@ -114,12 +114,18 @@ export function MenuSeparator() {
 
 /**
  * A label for use with the simple Menu component.
+ *
+ * Deliberately a plain element rather than `BaseMenu.GroupLabel`: that part
+ * throws unless it finds a `<Menu.Group>` ancestor, and the simple `Menu` above
+ * has no notion of groups — so using it here crashed every consumer the moment
+ * the menu opened. Reach for `DropdownMenuGroup` + `DropdownMenuLabel` when you
+ * want real grouping semantics.
  */
 export function MenuLabel({ children }: { children: React.ReactNode }) {
   return (
-    <BaseMenu.GroupLabel className="px-2 py-1.5 text-xs font-semibold text-foreground-muted">
+    <div role="presentation" className="px-2 py-1.5 text-xs font-semibold text-foreground-muted">
       {children}
-    </BaseMenu.GroupLabel>
+    </div>
   )
 }
 
