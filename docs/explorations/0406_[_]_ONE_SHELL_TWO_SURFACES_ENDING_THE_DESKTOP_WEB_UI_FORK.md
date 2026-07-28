@@ -531,9 +531,9 @@ export class ShellErrorBoundary extends React.Component<Props, State> {
 
 ### Phase 1 — define the seam
 
-- [ ] Add `PlatformPort` / `NavTarget` / `PlatformCapabilities` types
+- [x] Add `PlatformPort` / `NavTarget` / `PlatformCapabilities` types
 - [ ] Replace direct `@tanstack/react-router` imports in `workbench/` with port calls
-- [ ] Add `WebPlatformPort` in `apps/web`; web behaviour unchanged
+- [x] Add `WebPlatformPort` in `apps/web`; web behaviour unchanged
 - [ ] Add an ESLint rule banning `@tanstack/*` imports from workbench sources
 
 ### Phase 2 — extract the package
@@ -568,7 +568,7 @@ export class ShellErrorBoundary extends React.Component<Props, State> {
 ## Validation Checklist
 
 - [ ] Desktop and web render the same island frame, explorer, and panels from one module
-- [ ] `SystemMenu` opens with zero console errors; a thrown child shows the crash panel, not a blank window
+- [x] `SystemMenu` opens with zero console errors; a thrown child shows the crash panel, not a blank window
 - [ ] A shell change made once appears on both surfaces with no second edit — **the user's actual acceptance criterion**
 - [ ] Desktop-only capabilities (native menus, meetings, agent bridge) still work
 - [ ] Web-only paths are unaffected: no URL/deep-link/back-button regressions
