@@ -538,7 +538,7 @@ export class ShellErrorBoundary extends React.Component<Props, State> {
 
 ### Phase 2 — extract the package
 
-- [ ] Create `packages/workbench` (private, React peer dep)
+- [x] Create `packages/workbench` (private, React peer dep)
 - [ ] `git mv apps/web/src/workbench/*` into it; rewrite imports
 - [ ] Relocate app-local deps the shell pulls in (`useSpaces`, `doc-creation`, `SelfAvatar`, `CoachmarkLayer`)
 - [ ] Web imports `@xnetjs/workbench`; full web e2e green with no visual diff

@@ -1,0 +1,38 @@
+{
+  "name": "@xnetjs/workbench",
+  "version": "0.0.1",
+  "description": "xNet workbench core — the host-agnostic shell state, tabs, navigation intent, and PlatformPort shared by the web and desktop surfaces (exploration 0406)",
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsup src/index.ts --format esm --dts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@xnetjs/plugins": "workspace:*",
+    "lucide-react": "^0.453.0",
+    "zustand": "^5.0.14"
+  },
+  "peerDependencies": {
+    "react": "^18.0.0"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^16.0.0",
+    "@types/react": "^18.3.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.0",
+    "vitest": "^4.0.0"
+  },
+  "private": true
+}

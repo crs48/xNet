@@ -47,6 +47,7 @@
     "@xnetjs/ui": "workspace:*",
     "@xnetjs/vectors": "workspace:*",
     "@xnetjs/views": "workspace:*",
+    "@xnetjs/workbench": "workspace:*",
     "fflate": "0.8.3",
     "lucide-react": "^0.453.0",
     "maplibre-gl": "^5.0.0",
