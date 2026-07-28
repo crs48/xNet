@@ -23,7 +23,7 @@ peer-to-peer or through a hub you control, and signed with your own keys.
   hours of inactivity).
 - **[Download the desktop app](https://xnet.fyi/download)** for permanent
   backups and reliable cross-device sync.
-- **[Deploy your own hub](https://railway.app/template/xnet-hub)** — an
+- **[Deploy your own hub](https://railway.com/deploy/xnet-hub)** — an
   always-on relay and backup node that you run.
 
 > **Alpha software.** The `@xnetjs/*` packages, desktop app, and hub image all
