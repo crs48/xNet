@@ -28,6 +28,7 @@ import { QuickCreateHost } from './QuickCreateHost'
 import { SidebarIslands } from './SidebarIslands'
 import { useWorkbench } from './state'
 import { StatusBar } from './StatusBar'
+import { StorybookIsland } from './StorybookIsland'
 
 const ISLAND = ISLAND_CHROME
 
@@ -75,12 +76,13 @@ export function FloatingFrame({ children }: { children: ReactNode }) {
           <FloatingDock />
         </div>
 
-        {/* Status-bar island (+ dev-tools island in dev builds) */}
+        {/* Status-bar island (+ dev-tools and Storybook islands in dev builds) */}
         <div className="flex h-8 shrink-0 items-stretch gap-2">
           <div className="min-w-0 flex-1 overflow-hidden rounded-[14px] border border-hairline bg-island-b">
             <StatusBar variant="island" />
           </div>
           {devtoolsAvailable && <DevToolsIsland />}
+          <StorybookIsland />
         </div>
 
         <FloatingMenus menu={menu} onClose={() => setMenu(null)} />
