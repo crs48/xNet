@@ -13,7 +13,6 @@
 import type { ExplorerSort } from './views/explorer-sort'
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import { DEFAULT_PINNED_SECTION_IDS, DEFAULT_SECTIONS } from './sidebar/sections'
 import {
   createDefaultTree,
   createPresetTree,
@@ -28,6 +27,7 @@ import {
   type SlotTier,
   type WorkspacePayload
 } from './layout-tree'
+import { DEFAULT_PINNED_SECTION_IDS, DEFAULT_SECTIONS } from './sidebar/sections'
 
 export type WorkbenchMode = 'default' | 'zen'
 export type PanelSide = 'left' | 'right' | 'bottom'

@@ -16,7 +16,6 @@
  *   the same comment nodes, so panel and marks stay in lockstep.
  * - Real-time presence indicators
  */
-import { useNavigate } from '@tanstack/react-router'
 import { PageSchema } from '@xnetjs/data'
 import {
   buildPersonMentionSuggestions,
@@ -53,6 +52,7 @@ import {
 } from '../workbench/context-panel'
 import { DraftSwitcher } from '../workbench/drafts/DraftSwitcher'
 import { navigateToNode } from '../workbench/navigation'
+import { useNavigateTo } from '../workbench/platform'
 import { usePublishTitle } from '../workbench/route-title'
 import { useWorkbench, type TabNodeType } from '../workbench/state'
 import { useStatusBarItem, type StatusBarItem } from '../workbench/status'
@@ -140,7 +140,7 @@ function focusEditorNear(editor: XNetEditorInstance | null): void {
 }
 
 export function PageView({ docId }: { docId: string }) {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   // selfDid covers restored sessions too (authorDID without an unlocked
   // identity); `did` keeps the live-identity semantics for sync/cursors.
   const { identity, did: selfDid } = useIdentity()
@@ -537,7 +537,7 @@ export function PageView({ docId }: { docId: string }) {
       navigateToNode(navigate, match[1] as TabNodeType, match[2])
       return
     }
-    navigate({ to: '/doc/$docId', params: { docId: targetDocId } })
+    navigate({ kind: 'node', nodeType: 'page', nodeId: targetDocId, preview: false })
   }
 
   // Dropping a node onto the editor (0346 drop-to-relate): a database

@@ -6,17 +6,22 @@
  * `sourceId` guard that pair lands on the new route: wrong header title,
  * and a recents entry minted under the new id with the old node's name.
  */
+import type { ReactNode } from 'react'
 import { renderHook } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import React from 'react'
+import { beforeEach, describe, expect, it } from 'vitest'
 import { usePublishTitle } from './route-title'
 import { useWorkbench } from './state'
+import { createTestPlatform, TestPlatformProvider } from './test-platform'
 
-const pathname = vi.hoisted(() => ({ current: '/doc/page-a' }))
+// The hook reads the pathname through the PlatformPort (0406), so the test
+// provides a port instead of mocking the router module.
+const pathname = { current: '/doc/page-a' }
+const platform = createTestPlatform({ pathname: () => pathname.current })
 
-vi.mock('@tanstack/react-router', () => ({
-  useLocation: ({ select }: { select: (l: { pathname: string }) => unknown }) =>
-    select({ pathname: pathname.current })
-}))
+function wrapper({ children }: { children: ReactNode }) {
+  return <TestPlatformProvider platform={platform}>{children}</TestPlatformProvider>
+}
 
 beforeEach(() => {
   pathname.current = '/doc/page-a'
@@ -32,7 +37,7 @@ beforeEach(() => {
 
 describe('usePublishTitle', () => {
   it('publishes when the title belongs to the rendered node', () => {
-    renderHook(() => usePublishTitle('page-a', 'Alpha', 'page-a'))
+    renderHook(() => usePublishTitle('page-a', 'Alpha', 'page-a'), { wrapper })
     expect(useWorkbench.getState().routeTitles['/doc/page-a']).toBe('Alpha')
     expect(useWorkbench.getState().recents[0]).toMatchObject({ nodeId: 'page-a', title: 'Alpha' })
   })
@@ -41,7 +46,7 @@ describe('usePublishTitle', () => {
     const { rerender } = renderHook(
       ({ id, title, source }: { id: string; title: string; source: string }) =>
         usePublishTitle(id, title, source),
-      { initialProps: { id: 'page-a', title: 'Alpha', source: 'page-a' } }
+      { initialProps: { id: 'page-a', title: 'Alpha', source: 'page-a' }, wrapper }
     )
 
     // Navigate: route + nodeId flip immediately, data lags one render.
@@ -58,7 +63,7 @@ describe('usePublishTitle', () => {
   })
 
   it('still publishes when no sourceId is given (synchronous derivations)', () => {
-    renderHook(() => usePublishTitle('page-a', 'Alpha'))
+    renderHook(() => usePublishTitle('page-a', 'Alpha'), { wrapper })
     expect(useWorkbench.getState().routeTitles['/doc/page-a']).toBe('Alpha')
   })
 })

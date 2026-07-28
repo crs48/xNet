@@ -13,7 +13,7 @@
  * hosts the naming step at the shell so it works even when that panel isn't
  * mounted. This hook stays a menu model, not a place domain logic accretes.
  */
-import { useNavigate } from '@tanstack/react-router'
+import type { CreatableDocType } from '../lib/doc-creation'
 import { FolderSchema } from '@xnetjs/data'
 import { getCommandRegistry } from '@xnetjs/plugins'
 import { useMutate } from '@xnetjs/react'
@@ -21,7 +21,8 @@ import { CheckSquare2, Hash, Layers, Mic, type LucideIcon } from 'lucide-react'
 import { useCallback } from 'react'
 import { useCreateInSpace } from '../hooks/useCreateInSpace'
 import { useSpaces } from '../hooks/useSpaces'
-import { navigateToNewDoc, type CreatableDocType, type NavigateLike } from '../lib/doc-creation'
+import { navigateToNewDoc } from './navigation'
+import { useNavigateTo } from './platform'
 import { useWorkbench } from './state'
 import { isRealSpace } from './views/explorer-scope'
 
@@ -73,7 +74,7 @@ export interface NewActions {
 }
 
 export function useNewActions(): NewActions {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const createInSpace = useCreateInSpace()
   const { create } = useMutate()
   const currentSpaceId = useWorkbench((state) => state.currentSpaceId)
@@ -87,7 +88,7 @@ export function useNewActions(): NewActions {
       if (filed) {
         void createInSpace(type, currentSpaceId)
       } else {
-        navigateToNewDoc(navigate as unknown as NavigateLike, type)
+        navigateToNewDoc(navigate, type)
       }
     },
     [filed, currentSpaceId, createInSpace, navigate]

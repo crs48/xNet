@@ -12,7 +12,6 @@ import type { TabNodeType } from '../workbench/state'
 import type { AbuseLabel } from '@xnetjs/abuse'
 import type { PresenceStatus } from '@xnetjs/comms'
 import type { WikilinkTarget } from '@xnetjs/editor/react'
-import { useNavigate } from '@tanstack/react-router'
 import { sanitizeLinkPreviews } from '@xnetjs/data'
 import {
   cn,
@@ -28,6 +27,7 @@ import { ModeratedPost } from '../components/ModeratedMedia'
 import { PersonMentionChip } from '../components/PersonHovercard'
 import { useWorkspaceTags } from '../hooks/useWorkspaceTags'
 import { navigateToNode } from '../workbench/navigation'
+import { useNavigateTo } from '../workbench/platform'
 import { ChatAvatar } from './ChatAvatar'
 import { displayName, type ProfileEntry } from './hooks'
 import { nodeIdFromHref } from './link-composer'
@@ -108,7 +108,7 @@ function MessageMentionChips({ message }: { message: ChatRow }) {
 }
 
 function MessageTagChips({ message }: { message: ChatRow }) {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const { allTags } = useWorkspaceTags()
   const tagIds = message.tags ?? []
   if (tagIds.length === 0 || message.redacted) return null
@@ -135,7 +135,7 @@ function MessageLinkChips({
   message: ChatRow
   linkTargets: WikilinkTarget[]
 }) {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const linkIds = message.links ?? []
   if (linkIds.length === 0 || message.redacted) return null
   return (

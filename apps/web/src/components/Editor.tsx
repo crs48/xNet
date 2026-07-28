@@ -4,7 +4,6 @@
  * Uses the shared @xnetjs/editor package (BlockNote-based XNetEditor,
  * exploration 0312) for rich text editing.
  */
-import { useCallback, type JSX } from 'react'
 import type * as Y from 'yjs'
 import { normalizeTagName } from '@xnetjs/data'
 import {
@@ -22,6 +21,7 @@ import {
   type XNetEditorInstance
 } from '@xnetjs/editor/react'
 import { TaskCollectionEmbed, useNodeStore } from '@xnetjs/react'
+import { useCallback, type JSX } from 'react'
 import { useLinkPreviewResolver } from '../hooks/useLinkPreviewResolver'
 import { DatabaseEmbed } from './DatabaseEmbed'
 import { useDatabaseViewPicker } from './DatabaseViewPicker'

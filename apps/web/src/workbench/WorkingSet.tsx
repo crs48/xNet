@@ -11,10 +11,10 @@
  * Rows route through `navigateToNode`, so they work identically whether
  * tabs are on or off.
  */
-import { useNavigate } from '@tanstack/react-router'
 import { Pin, PinOff } from 'lucide-react'
 import { useMemo } from 'react'
 import { navigateToNode } from './navigation'
+import { useNavigateTo } from './platform'
 import { useWorkbench, type RecentEntry, type TabNodeType } from './state'
 import { TAB_VIEWS } from './tabs'
 
@@ -39,7 +39,7 @@ function WorkingSetRow({
   title: string
   pinned: boolean
 }) {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const togglePinnedNode = useWorkbench((state) => state.togglePinnedNode)
   const entry = TAB_VIEWS[nodeType]
   const Icon = entry?.icon

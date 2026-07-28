@@ -7,8 +7,8 @@
  * tabs are still on the same call also writes the tab title, so a view
  * has exactly ONE title call either way.
  */
-import { useLocation } from '@tanstack/react-router'
 import { useEffect } from 'react'
+import { usePathname } from './platform'
 import { useWorkbench } from './state'
 import { tabFromPathname } from './tabs'
 
@@ -29,7 +29,7 @@ export function usePublishTitle(
   title: string | null | undefined,
   sourceId?: string | null
 ): void {
-  const pathname = useLocation({ select: (location) => location.pathname })
+  const pathname = usePathname()
 
   useEffect(() => {
     if (!title) return
@@ -47,6 +47,6 @@ export function usePublishTitle(
 
 /** The current route's published title, if a view has published one. */
 export function useRouteTitle(): string | null {
-  const pathname = useLocation({ select: (location) => location.pathname })
+  const pathname = usePathname()
   return useWorkbench((state) => state.routeTitles[pathname] ?? null)
 }

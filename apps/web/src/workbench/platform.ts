@@ -16,7 +16,7 @@
 
 import type { TabNodeType } from './state'
 import type { ComponentType, ReactNode } from 'react'
-import { createContext, useContext } from 'react'
+import React, { createContext, createElement, useContext } from 'react'
 
 /** Where the shell wants to send the user, independent of how the host gets there. */
 export type NavTarget =
@@ -34,9 +34,14 @@ export type NavTarget =
    */
   | { kind: 'path'; path: string }
 
+/** Query-string-shaped state (`/tasks?task=…`, `/ai?q=…`). */
+export type SearchParams = Record<string, string | number | boolean>
+
 export interface NavigateOptions {
   /** Replace the current history entry instead of pushing (web); no-op elsewhere. */
   replace?: boolean
+  /** Search params for the destination. Hosts without URLs keep them in memory. */
+  search?: SearchParams
 }
 
 /**
@@ -59,10 +64,16 @@ export interface PlatformCapabilities {
 /** Props the shell passes to the host's link component. */
 export interface PlatformLinkProps {
   target: NavTarget
+  /** Search params for the destination (`/tasks?task=…`). */
+  search?: SearchParams
   children: ReactNode
   className?: string
   title?: string
   onClick?: () => void
+  /** Rows are drag sources (the tasks panel drags onto the board). */
+  draggable?: boolean
+  onDragStart?: (event: React.DragEvent) => void
+  'data-testid'?: string
 }
 
 export interface PlatformPort {
@@ -73,6 +84,8 @@ export interface PlatformPort {
    * active nav rows with one code path.
    */
   usePathname(): string
+  /** The current location's search params (`?section=…`). */
+  useSearch(): Readonly<Record<string, unknown>>
   /** Anchor-or-equivalent for a nav target. Web renders a real `<a href>`. */
   Link: ComponentType<PlatformLinkProps>
   capabilities: Readonly<PlatformCapabilities>
@@ -100,4 +113,22 @@ export function usePlatform(): PlatformPort {
 /** Convenience for the common case — the shell navigates far more than it reads. */
 export function useNavigateTo(): (target: NavTarget, options?: NavigateOptions) => void {
   return usePlatform().navigate
+}
+
+/** The current pathname, host-agnostic. */
+export function usePathname(): string {
+  return usePlatform().usePathname()
+}
+
+/** The current search params, host-agnostic. */
+export function useSearch(): Readonly<Record<string, unknown>> {
+  return usePlatform().useSearch()
+}
+
+/**
+ * The host's link component, resolved from context. `createElement` rather
+ * than JSX keeps this module a plain `.ts` file.
+ */
+export function PlatformLink(props: PlatformLinkProps): React.ReactElement {
+  return createElement(usePlatform().Link, props)
 }

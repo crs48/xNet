@@ -8,11 +8,11 @@
  * design but only mounts when a call is live (`floatCall`, off until a real
  * calling backend is wired). Each island is independently dismissable.
  */
-import { useNavigate } from '@tanstack/react-router'
 import { useIdentity } from '@xnetjs/react'
 import { DIDAvatar } from '@xnetjs/ui'
 import { ArrowUp, Camera, Mic, Minus, PhoneOff, Sparkles, X } from 'lucide-react'
 import { useState } from 'react'
+import { useNavigateTo } from './platform'
 import { useWorkbench } from './state'
 
 const RIGHT_ISLAND = 300
@@ -20,7 +20,7 @@ const GAP = 8
 
 function Assistant() {
   const setFloatAi = useWorkbench((s) => s.setFloatAi)
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const [value, setValue] = useState('')
 
   const send = () => {
@@ -31,7 +31,7 @@ function Assistant() {
     // cleared the input (0388).
     const question = value.trim()
     if (!question) return
-    void navigate({ to: '/ai', search: { q: question } })
+    navigate({ kind: 'path', path: '/ai' }, { search: { q: question } })
     setValue('')
   }
 

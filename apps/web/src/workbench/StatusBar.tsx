@@ -7,7 +7,6 @@
  * items published by the active view via useStatusBarItem, then the theme
  * toggle. Ambient, glanceable, never modal.
  */
-import { useNavigate } from '@tanstack/react-router'
 import { getCommandRegistry } from '@xnetjs/plugins'
 import { useTheme } from '@xnetjs/ui'
 import { HardDrive, Moon, Sun, Users } from 'lucide-react'
@@ -17,6 +16,7 @@ import { formatBytes } from '../lib/format-bytes'
 import { WhatsNewButton } from '../whats-new/WhatsNewButton'
 import { statusContributionText, useWorkbenchContributions } from './contributions'
 import { navigateToNode } from './navigation'
+import { useNavigateTo } from './platform'
 import { useWorkbench } from './state'
 import { useWorkbenchStatus, type StatusBarItem } from './status'
 import { SyncStatus } from './SyncStatus'
@@ -43,7 +43,7 @@ function StatusEntry({ item }: { item: StatusBarItem }) {
 
 /** Ambient echo of the active workspace scope (exploration 0190). */
 function ScopeStatus() {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
   const currentSpaceId = useWorkbench((state) => state.currentSpaceId)
   const filter = useWorkbench((state) => state.spaceFilter)
   const { getSpace } = useSpaces()

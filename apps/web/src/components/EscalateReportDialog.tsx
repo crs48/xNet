@@ -9,9 +9,9 @@
  * shows what has already been shared.
  */
 
+import type { IngestRequest } from '../lib/debug-report-drain'
 import type { NodeStore } from '@xnetjs/data'
 import { useMemo, useState } from 'react'
-import type { IngestRequest } from '../lib/debug-report-drain'
 import {
   composeEscalationPayload,
   escalateDebugReport,

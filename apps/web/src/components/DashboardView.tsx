@@ -3,7 +3,7 @@
  * schema registry widget queries may target and routes node opens to the
  * right surface.
  */
-import { useNavigate } from '@tanstack/react-router'
+import type { TabNodeType } from '../workbench/state'
 import { DashboardSurface, widgetRegistry } from '@xnetjs/dashboard'
 import {
   CANVAS_DASHBOARD_SCHEMA_REGISTRY,
@@ -13,7 +13,7 @@ import {
 import { useCallback, useMemo } from 'react'
 import { WORKBENCH_SAVED_VIEW_REGISTRY } from '../lib/saved-view-registry'
 import { navigateToNode } from '../workbench/navigation'
-import type { TabNodeType } from '../workbench/state'
+import { useNavigateTo } from '../workbench/platform'
 import '../lib/frame-renderers'
 
 // The generic frame widget (0346): any node through any registered view.
@@ -43,7 +43,7 @@ function nodeOpenOptions(
 }
 
 export function DashboardView({ dashboardId }: { dashboardId: string }) {
-  const navigate = useNavigate()
+  const navigate = useNavigateTo()
 
   const handleOpenNode = useCallback(
     (nodeId: string, schemaId: string) => {
@@ -60,7 +60,7 @@ export function DashboardView({ dashboardId }: { dashboardId: string }) {
         navigateToNode(navigate, match[1] as TabNodeType, match[2])
         return
       }
-      void navigate({ to: '/doc/$docId', params: { docId: href } })
+      navigate({ kind: 'node', nodeType: 'page', nodeId: href, preview: false })
     },
     [navigate]
   )
