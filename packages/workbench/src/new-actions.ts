@@ -19,6 +19,7 @@ import { getCommandRegistry } from '@xnetjs/plugins'
 import { useMutate } from '@xnetjs/react'
 import { CheckSquare2, Hash, Layers, Mic, type LucideIcon } from 'lucide-react'
 import { useCallback } from 'react'
+import { useSpaces } from './hooks/useSpaces'
 import { workbenchHost } from './host'
 import { navigateToNewDoc } from './navigation'
 import { useNavigateTo } from './platform'
@@ -77,7 +78,7 @@ export function useNewActions(): NewActions {
   const createInSpace = workbenchHost().useCreateInSpace()
   const { create } = useMutate()
   const currentSpaceId = useWorkbench((state) => state.currentSpaceId)
-  const { getSpace } = workbenchHost().useSpaces()
+  const { getSpace } = useSpaces()
 
   const filed = isRealSpace(currentSpaceId)
   const targetName = filed ? (getSpace(currentSpaceId)?.name ?? null) : null

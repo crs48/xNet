@@ -14,7 +14,7 @@ import { useQuery } from '@xnetjs/react'
 import { useViewTransition } from '@xnetjs/ui'
 import { FolderClosed, Users } from 'lucide-react'
 import { Fragment, useMemo } from 'react'
-import { workbenchHost } from './host'
+import { useSpaces } from './hooks/useSpaces'
 import { useWorkbench, type WorkbenchTab } from './state'
 import { folderPathNames } from './views/explorer-folders'
 import { EXPLORER_SCHEMAS, isExplorerNodeType } from './views/explorer-items'
@@ -52,7 +52,7 @@ function useBreadcrumb(tab: WorkbenchTab | null): {
 
 export function TabBreadcrumb({ tab }: { tab: WorkbenchTab | null }) {
   const { folderNames, spaceId } = useBreadcrumb(tab)
-  const { getSpace } = workbenchHost().useSpaces()
+  const { getSpace } = useSpaces()
   const setCurrentSpace = useWorkbench((state) => state.setCurrentSpace)
   const withTransition = useViewTransition()
   const space = getSpace(spaceId)

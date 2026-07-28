@@ -13,7 +13,7 @@ import { CanvasSchema, DashboardSchema, DatabaseSchema, MapSchema, PageSchema } 
 import { useQuery } from '@xnetjs/react'
 import { ArrowUpDown, Check } from 'lucide-react'
 import { useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { workbenchHost } from '../host'
+import { useSpaces } from '../hooks/useSpaces'
 import { useWorkbench } from '../state'
 import { filterExplorerItems } from './explorer-filter'
 import { partitionByFolder } from './explorer-folders'
@@ -316,7 +316,7 @@ export function Explorer() {
   const currentSpaceId = useWorkbench((state) => state.currentSpaceId)
   const explorerSort = useWorkbench((state) => state.explorerSort)
   const setExplorerSort = useWorkbench((state) => state.setExplorerSort)
-  const { getSpace } = workbenchHost().useSpaces()
+  const { getSpace } = useSpaces()
 
   // The Space new docs file into (null = All / No-workspace → unfiled).
   const createTarget = isRealSpace(currentSpaceId) ? getSpace(currentSpaceId) : null

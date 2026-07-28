@@ -21,17 +21,18 @@ import { EditorArea } from './EditorArea'
 import { EditorHeader } from './EditorHeader'
 import { FloatingDock } from './FloatingDock'
 import { FloatingMenus, type FloatingMenuName, type FloatingMenuState } from './FloatingMenus'
-import { workbenchHost } from './host'
+import { GlobalSearch } from './GlobalSearch'
 import { QuickCreateHost } from './QuickCreateHost'
 import { SidebarIslands } from './SidebarIslands'
 import { useWorkbench } from './state'
 import { StatusBar } from './StatusBar'
 import { StorybookIsland } from './StorybookIsland'
+import { UndoToastProvider } from './UndoToast'
+import { WorkspaceCommands } from './WorkspaceCommands'
 
 const ISLAND = ISLAND_CHROME
 
 export function FloatingFrame({ children }: { children: ReactNode }) {
-  const { GlobalSearch, UndoToastProvider, WorkspaceCommands } = workbenchHost()
   const sidebarCollapsed = useWorkbench((s) => s.sidebarCollapsed)
   const rightOpen = useWorkbench((s) => s.right.open)
   // Show the docked dev-tools island whenever the real devtools provider is

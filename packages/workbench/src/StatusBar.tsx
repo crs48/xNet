@@ -11,6 +11,7 @@ import { getCommandRegistry } from '@xnetjs/plugins'
 import { useTheme } from '@xnetjs/ui'
 import { HardDrive, Moon, Sun, Users } from 'lucide-react'
 import { statusContributionText, useWorkbenchContributions } from './contributions'
+import { useSpaces } from './hooks/useSpaces'
 import { workbenchHost } from './host'
 import { formatBytes } from './lib/format-bytes'
 import { navigateToNode } from './navigation'
@@ -44,7 +45,7 @@ function ScopeStatus() {
   const navigate = useNavigateTo()
   const currentSpaceId = useWorkbench((state) => state.currentSpaceId)
   const filter = useWorkbench((state) => state.spaceFilter)
-  const { getSpace } = workbenchHost().useSpaces()
+  const { getSpace } = useSpaces()
 
   if (filter.length > 1) {
     return (

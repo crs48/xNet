@@ -17,49 +17,14 @@
  *    a silently absent host is indistinguishable from a broken shell.
  */
 import type { CreatableDocType } from './doc-id'
-import type { ExplorerItem } from './views/explorer-items'
 import type { InboxItem, InboxStateData, UserCard } from '@xnetjs/comms'
-import type { SpaceKind, SpaceTreeNode, SpaceVisibility } from '@xnetjs/data'
 import type { PersistentStorageStatus } from '@xnetjs/sqlite'
-import type { Action } from '@xnetjs/ui'
-import type { ComponentType, ReactNode } from 'react'
+import type { ComponentType } from 'react'
 
-/** A workspace space, as the sidebar/explorer/status chrome reads it. */
-export interface SpaceEntry {
-  id: string
-  name: string
-  kind: SpaceKind
-  parent?: string | null
-  visibility: SpaceVisibility
-  description?: string
-  icon?: string
-  color?: string
-  archived?: boolean
-  sortKey?: string
-  owners: string[]
-}
-
-export interface SpacesApi {
-  allSpaces: SpaceEntry[]
-  spaces: SpaceEntry[]
-  tree: Array<SpaceTreeNode<SpaceEntry>>
-  getSpace: (spaceId: string | null | undefined) => SpaceEntry | null
-  createSpace: (input: {
-    name: string
-    kind?: SpaceKind
-    parent?: string | null
-    description?: string
-  }) => Promise<string | null>
-  renameSpace: (spaceId: string, name: string) => Promise<void>
-  updateSpace: (
-    spaceId: string,
-    patch: Partial<Pick<SpaceEntry, 'name' | 'description' | 'icon' | 'color'>>
-  ) => Promise<void>
-  archiveSpace: (spaceId: string) => Promise<void>
-  setSpaceParent: (spaceId: string, parentId: string | null) => Promise<void>
-  setNodeSpace: (nodeId: string, spaceId: string | null) => Promise<void>
-  setSpaceVisibility: (spaceId: string, visibility: SpaceVisibility) => Promise<void>
-}
+// Space data hooks live in this package now (they are pure @xnetjs/react data
+// hooks); the type re-export keeps chrome imports of `SpaceEntry` from
+// './host' stable.
+export type { SpaceEntry, SpacesApi } from './hooks/useSpaces'
 
 export interface TagEntry {
   id: string
@@ -202,24 +167,14 @@ export interface CoachTip {
   order?: number
 }
 
-export interface UseNodeActionsOptions {
-  item: ExplorerItem
-  pinned: boolean
-  onOpen: () => void
-  onRename: () => void
-}
-
 export interface WorkbenchHost {
   /** Lock the identity and restart the surface. */
   logout(): Promise<void>
 
   // Workspace data hooks (call-through: stable as long as the host is set once).
-  useSpaces(): SpacesApi
-  useRequestCount(): number
   useStorageStatus(): PersistentStorageStatus | null
   useCreateInSpace(): (type: CreatableDocType, spaceId: string | null) => Promise<void>
   useWorkspaceTags(): { allTags: TagEntry[] }
-  useNodeActions(options: UseNodeActionsOptions): Action[]
 
   comms: WorkbenchCommsHost
   experiments: WorkbenchExperimentsHost
@@ -229,10 +184,6 @@ export interface WorkbenchHost {
   // AddSharedDialog, CoachmarkLayer, ChatsPanel, InboxTray all navigate).
   SelfAvatar: ComponentType<{ size?: number; className?: string }>
   ShareDialog: ComponentType<ShareDialogProps>
-  GlobalSearch: ComponentType
-  WorkspaceCommands: ComponentType
-  UndoToastProvider: ComponentType<{ children: ReactNode }>
-  useUndoToast(): { showUndoToast: (message: string) => void }
   ErrorFallback: ComponentType<{ error: Error; reset: () => void }>
   AddSharedDialog: ComponentType<{ isOpen: boolean; onClose: () => void }>
   WinddownOverlay: ComponentType

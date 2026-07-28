@@ -10,7 +10,7 @@
  * not collect it as a suite.
  */
 
-import type { SpacesApi, WorkbenchHost } from './host'
+import type { WorkbenchHost } from './host'
 import type { NavigateOptions, NavTarget, PlatformCapabilities, PlatformPort } from './platform'
 import type { ReactNode } from 'react'
 import React from 'react'
@@ -98,27 +98,11 @@ const NullComponent = (): null => null
  * before rendering chrome that reads the host adapter.
  */
 export function createTestWorkbenchHost(overrides: Partial<WorkbenchHost> = {}): WorkbenchHost {
-  const spacesApi: SpacesApi = {
-    allSpaces: [],
-    spaces: [],
-    tree: [],
-    getSpace: () => null,
-    createSpace: async () => null,
-    renameSpace: async () => undefined,
-    updateSpace: async () => undefined,
-    archiveSpace: async () => undefined,
-    setSpaceParent: async () => undefined,
-    setNodeSpace: async () => undefined,
-    setSpaceVisibility: async () => undefined
-  }
   return {
     logout: async () => undefined,
-    useSpaces: () => spacesApi,
-    useRequestCount: () => 0,
     useStorageStatus: () => null,
     useCreateInSpace: () => async () => undefined,
     useWorkspaceTags: () => ({ allTags: [] }),
-    useNodeActions: () => [],
     comms: {
       useComms: () => {
         throw new Error('[test-host] no comms provider in tests')
@@ -161,10 +145,6 @@ export function createTestWorkbenchHost(overrides: Partial<WorkbenchHost> = {}):
     },
     SelfAvatar: NullComponent,
     ShareDialog: NullComponent,
-    GlobalSearch: NullComponent,
-    WorkspaceCommands: NullComponent,
-    UndoToastProvider: ({ children }) => <>{children}</>,
-    useUndoToast: () => ({ showUndoToast: () => undefined }),
     ErrorFallback: NullComponent,
     AddSharedDialog: NullComponent,
     WinddownOverlay: NullComponent,

@@ -15,8 +15,10 @@ import { useShellEscape, useWorkbenchCommands, useZenEscape } from './commands'
 import { EditorArea } from './EditorArea'
 import { FloatingFrame } from './FloatingFrame'
 import { useFocusRing } from './focus'
-import { workbenchHost } from './host'
+import { GlobalSearch } from './GlobalSearch'
 import { useWorkbench } from './state'
+import { UndoToastProvider } from './UndoToast'
+import { WorkspaceCommands } from './WorkspaceCommands'
 
 const FRAME =
   'mt-[var(--storage-banner-height,0px)] flex h-[calc(100dvh-var(--storage-banner-height,0px))] flex-col text-ink-1'
@@ -29,7 +31,6 @@ function Surface({ tree, children }: { tree: LayoutTree; children: ReactNode }) 
 
 /** Bare frame: no chrome, the surface owns the viewport (focus / zen). */
 function ZenFrame({ tree, children }: { tree: LayoutTree; children: ReactNode }) {
-  const { GlobalSearch, WorkspaceCommands } = workbenchHost()
   return (
     <div className={`${FRAME} bg-surface-0`}>
       <WorkspaceCommands />
@@ -42,7 +43,6 @@ function ZenFrame({ tree, children }: { tree: LayoutTree; children: ReactNode })
 }
 
 export function ShellFrame({ children }: { children: ReactNode }) {
-  const { UndoToastProvider } = workbenchHost()
   useWorkbenchCommands()
   useZenEscape()
   useShellEscape()

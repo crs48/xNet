@@ -19,6 +19,7 @@ import {
   type LucideIcon
 } from 'lucide-react'
 import { useState } from 'react'
+import { useSpaces } from '../hooks/useSpaces'
 import { workbenchHost } from '../host'
 import { navigateToNode } from '../navigation'
 import { useNavigateTo } from '../platform'
@@ -45,7 +46,7 @@ const CREATE_KINDS: Array<{ id: SpaceKind; label: string }> = [
 export function ExplorerSpacesSection() {
   const { ShareDialog } = workbenchHost()
   const navigate = useNavigateTo()
-  const { tree, createSpace } = workbenchHost().useSpaces()
+  const { tree, createSpace } = useSpaces()
   const currentSpaceId = useWorkbench((s) => s.currentSpaceId)
   const setCurrentSpace = useWorkbench((s) => s.setCurrentSpace)
   const [creating, setCreating] = useState(false)

@@ -11,7 +11,6 @@
  */
 import { useMutate } from '@xnetjs/react'
 import { type Action } from '@xnetjs/ui'
-import { useExplorerFolders } from '@xnetjs/workbench'
 import {
   FolderInput,
   LampDesk,
@@ -22,8 +21,9 @@ import {
   Users
 } from 'lucide-react'
 import { createElement } from 'react'
-import { useWorkbench } from '../workbench/state'
-import { SCHEMA_IDS, type ExplorerItem } from '../workbench/views/explorer-items'
+import { useWorkbench } from '../state'
+import { useExplorerFolders } from '../views/explorer-folders-context'
+import { SCHEMA_IDS, type ExplorerItem } from '../views/explorer-items'
 import { useSpaces } from './useSpaces'
 
 export interface UseNodeActionsOptions {

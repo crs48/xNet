@@ -32,6 +32,7 @@
     "@xnetjs/labs": "workspace:*",
     "@xnetjs/plugins": "workspace:*",
     "@xnetjs/react": "workspace:*",
+    "@xnetjs/sdk": "workspace:*",
     "@xnetjs/social": "workspace:*",
     "@xnetjs/sqlite": "workspace:*",
     "@xnetjs/ui": "workspace:*",
@@ -39,6 +40,7 @@
     "@xnetjs/views": "workspace:*",
     "lucide-react": "^0.453.0",
     "react-resizable-panels": "^4.4.1",
+    "yjs": "^13.6.24",
     "zustand": "^5.0.14"
   },
   "peerDependencies": {
