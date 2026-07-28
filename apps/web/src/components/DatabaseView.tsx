@@ -57,14 +57,14 @@ import {
   useDatabaseComments,
   viewRegistry
 } from '@xnetjs/views'
+import { useContextPanel, type ContextPanelSection } from '@xnetjs/workbench'
+import { useIsCompact } from '@xnetjs/workbench'
 import { Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useCommentPeople } from '../hooks/useCommentPeople'
-import { useContextPanel, type ContextPanelSection } from '../workbench/context-panel'
 import { navigateToFrame, navigateToNode } from '../workbench/navigation'
 import { useNavigateTo } from '../workbench/platform'
 import { usePublishTitle } from '../workbench/route-title'
-import { useIsCompact } from '../workbench/use-layout-mode'
 import { FormShareBar } from './FormShareBar'
 import { nodePassportSection } from './NodePassport'
 import { PresenceAvatars } from './PresenceAvatars'

@@ -39,12 +39,12 @@ import {
   type TaskBoardStatusChange,
   type TaskGroupRef
 } from '@xnetjs/views'
+import { useContextPanel, type ContextPanelSection } from '@xnetjs/workbench'
+import { DraftSwitcher } from '@xnetjs/workbench'
 import { CalendarDays, Hash, Inbox, KanbanSquare, List, Plus, User, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type JSX } from 'react'
 import { useWorkspacePeople } from '../hooks/useWorkspacePeople'
 import { useWorkspaceTags } from '../hooks/useWorkspaceTags'
-import { useContextPanel, type ContextPanelSection } from '../workbench/context-panel'
-import { DraftSwitcher } from '../workbench/drafts/DraftSwitcher'
 import { ProjectHeader } from './ProjectHeader'
 import {
   EMPTY_TASK_FILTER,

@@ -8,15 +8,23 @@
  * publish into shell contribution points.
  */
 import { createRootRoute, Outlet } from '@tanstack/react-router'
+import { Workbench } from '@xnetjs/workbench'
 import { CallProvider, CommsDock } from '../comms/CallDock'
 import { CommsProvider } from '../comms/CommsContext'
 import { useSharedRoomBootSync } from '../comms/hooks'
 import { RoomSection } from '../comms/RoomSection'
 import { FormInboxItem, InboxBellItem, PresenceStatusItem } from '../comms/StatusItems'
 import { AppLinkUpres } from '../components/AppLinkUpres'
+import { registerWebHostedViews } from '../platform/hosted-views'
 import { useWebPlatformPort } from '../platform/web-platform'
+import { setWebWorkbenchHost } from '../platform/workbench-host'
 import { PlatformProvider } from '../workbench/platform'
-import { Workbench } from '../workbench/Workbench'
+
+// The shell renders tab content through the view registry and reaches app
+// services through the WorkbenchHost (0406); fill both before anything under
+// the root layout renders.
+registerWebHostedViews()
+setWebWorkbenchHost()
 
 export const Route = createRootRoute({
   component: RootLayout

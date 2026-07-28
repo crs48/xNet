@@ -14,8 +14,8 @@
  * the panel, and the panel leads with the blast-radius sentence.
  */
 import { resolveLane, type Resolution } from '@xnetjs/devkit/blast-radius'
+import { getSlotView } from '@xnetjs/workbench'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { getSlotView } from '../slot-registry'
 import { InspectPrompt } from './InspectPrompt'
 import {
   browserColorNormalizer,

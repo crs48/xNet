@@ -39,23 +39,24 @@ import {
   type CommentThreadData,
   type TaskPersonOption
 } from '@xnetjs/ui'
+import {
+  revealContextSection,
+  useContextPanel,
+  type ContextPanelSection,
+  useStatusBarItem,
+  type StatusBarItem
+} from '@xnetjs/workbench'
+import { DraftSwitcher } from '@xnetjs/workbench'
 import { MessageSquare } from 'lucide-react'
 import { useCallback, useMemo, useRef, useState, useEffect } from 'react'
 import { useEnsureProfiles, useProfiles } from '../comms/hooks'
 import { useCommentPeople } from '../hooks/useCommentPeople'
 import { useLinkTargets } from '../hooks/useLinkTargets'
 import { useWorkspaceTags } from '../hooks/useWorkspaceTags'
-import {
-  revealContextSection,
-  useContextPanel,
-  type ContextPanelSection
-} from '../workbench/context-panel'
-import { DraftSwitcher } from '../workbench/drafts/DraftSwitcher'
 import { navigateToNode } from '../workbench/navigation'
 import { useNavigateTo } from '../workbench/platform'
 import { usePublishTitle } from '../workbench/route-title'
 import { useWorkbench, type TabNodeType } from '../workbench/state'
-import { useStatusBarItem, type StatusBarItem } from '../workbench/status'
 import { BacklinksPanel } from './BacklinksPanel'
 import { Editor as EditorComponent } from './Editor'
 import { nodePassportSection } from './NodePassport'

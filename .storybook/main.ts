@@ -44,7 +44,10 @@ const config: StorybookConfig = {
             ? viteConfig.build?.rollupOptions?.external
             : []) as string[]),
           'mermaid',
-          'web-worker'
+          'web-worker',
+          // Native Node HNSW addon — @xnetjs/vectors dynamic-imports it and
+          // falls back to the pure-JS index in the browser (same as apps/web).
+          'usearch'
         ]
       }
     },

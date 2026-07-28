@@ -7,7 +7,7 @@
  * the source; stale references keep resolving because archived tags are
  * never deleted. Phase 3 attaches a discussion channel via Channel.target.
  */
-import type { ExplorerNodeType } from '../workbench/views/explorer-rows'
+import type { ExplorerNodeType } from '@xnetjs/workbench'
 import { createChannel } from '@xnetjs/comms'
 import {
   CanvasSchema,

@@ -3,29 +3,22 @@
  * and the "New …" dropdown items used by both the sidebar and the home page.
  */
 export { newDocId, type CreatableDocType } from '@xnetjs/workbench'
-import type { CreatableDocType } from '@xnetjs/workbench'
-import type { ComponentType } from 'react'
-import { Code2, Database, FileText, Layout, LayoutDashboard, MapPin } from 'lucide-react'
+import { DOC_TYPE_META, type CreatableDocType, type DocTypeMeta } from '@xnetjs/workbench'
 
-export interface DocTypeRoute {
+export interface DocTypeRoute extends DocTypeMeta {
   to: string
   paramKey: string
-  label: string
-  icon: ComponentType<{ size?: number | string; className?: string }>
 }
 
+// Routes are the web-only half; labels/icons come from the shell's shared
+// DOC_TYPE_META so both surfaces render the same "New …" affordances.
 export const DOC_TYPE_ROUTES: Record<CreatableDocType, DocTypeRoute> = {
-  page: { to: '/doc/$docId', paramKey: 'docId', label: 'Page', icon: FileText },
-  database: { to: '/db/$dbId', paramKey: 'dbId', label: 'Database', icon: Database },
-  canvas: { to: '/canvas/$canvasId', paramKey: 'canvasId', label: 'Canvas', icon: Layout },
-  dashboard: {
-    to: '/dashboard/$dashboardId',
-    paramKey: 'dashboardId',
-    label: 'Dashboard',
-    icon: LayoutDashboard
-  },
-  map: { to: '/map/$mapId', paramKey: 'mapId', label: 'Map', icon: MapPin },
-  lab: { to: '/lab/$labId', paramKey: 'labId', label: 'Lab', icon: Code2 }
+  page: { to: '/doc/$docId', paramKey: 'docId', ...DOC_TYPE_META.page },
+  database: { to: '/db/$dbId', paramKey: 'dbId', ...DOC_TYPE_META.database },
+  canvas: { to: '/canvas/$canvasId', paramKey: 'canvasId', ...DOC_TYPE_META.canvas },
+  dashboard: { to: '/dashboard/$dashboardId', paramKey: 'dashboardId', ...DOC_TYPE_META.dashboard },
+  map: { to: '/map/$mapId', paramKey: 'mapId', ...DOC_TYPE_META.map },
+  lab: { to: '/lab/$labId', paramKey: 'labId', ...DOC_TYPE_META.lab }
 }
 
 /** The shared "New …" dropdown entries. */
