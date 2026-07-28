@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>The desktop system menu no longer blanks the window</title>
+      <link>https://xnet.fyi/changelog#2026-07-28-the-desktop-system-menu-no-longer-blanks</link>
+      <guid isPermaLink="false">2026-07-28-the-desktop-system-menu-no-longer-blanks</guid>
+      <pubDate>Tue, 28 Jul 2026 15:53:55 GMT</pubDate>
+      <description>Opening the menu in the desktop app crashed it to a black screen with no way back. It works again, and a shell error now shows a recoverable panel instead of taking the whole window down.</description>
+    </item>
+    <item>
       <title>A new xNet app icon</title>
       <link>https://xnet.fyi/changelog#2026-07-27-a-new-xnet-app-icon</link>
       <guid isPermaLink="false">2026-07-27-a-new-xnet-app-icon</guid>
