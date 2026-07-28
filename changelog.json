@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-28-a-refined-xnet-mark-now-in-the-site-head",
+      "url": "https://xnet.fyi/changelog#2026-07-28-a-refined-xnet-mark-now-in-the-site-head",
+      "title": "A refined xNet mark, now in the site header",
+      "content_text": "The app icon and favicon use a refined geometric mandala, and the mark now appears as a subtle debossed engraving beside the wordmark in the site and docs headers.\n",
+      "date_published": "2026-07-28T18:18:57Z",
+      "tags": [
+        "platform"
+      ],
+      "_xnet": {
+        "date": "July 28, 2026",
+        "summary": "The app icon and favicon use a refined geometric mandala, and the mark now appears as a subtle debossed engraving beside the wordmark in the site and docs headers.",
+        "highlights": [],
+        "mergedAt": "2026-07-28T18:18:57Z",
+        "pr": 643,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-28-the-desktop-system-menu-no-longer-blanks",
       "url": "https://xnet.fyi/changelog#2026-07-28-the-desktop-system-menu-no-longer-blanks",
       "title": "The desktop system menu no longer blanks the window",

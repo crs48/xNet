@@ -6,6 +6,13 @@
     <description>What's new in xNet.</description>
     <language>en</language>
     <item>
+      <title>A refined xNet mark, now in the site header</title>
+      <link>https://xnet.fyi/changelog#2026-07-28-a-refined-xnet-mark-now-in-the-site-head</link>
+      <guid isPermaLink="false">2026-07-28-a-refined-xnet-mark-now-in-the-site-head</guid>
+      <pubDate>Tue, 28 Jul 2026 18:18:57 GMT</pubDate>
+      <description>The app icon and favicon use a refined geometric mandala, and the mark now appears as a subtle debossed engraving beside the wordmark in the site and docs headers.</description>
+    </item>
+    <item>
       <title>The desktop system menu no longer blanks the window</title>
       <link>https://xnet.fyi/changelog#2026-07-28-the-desktop-system-menu-no-longer-blanks</link>
       <guid isPermaLink="false">2026-07-28-the-desktop-system-menu-no-longer-blanks</guid>
