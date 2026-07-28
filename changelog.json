@@ -6,6 +6,28 @@
   "description": "What's new in xNet.",
   "items": [
     {
+      "id": "2026-07-27-open-storybook-from-the-app-s-bottom-bar",
+      "url": "https://xnet.fyi/changelog#2026-07-27-open-storybook-from-the-app-s-bottom-bar",
+      "title": "Open Storybook from the app's bottom bar",
+      "content_text": "A Storybook button now sits next to the dev-tools button when the component catalog is running, and Storybook has a Back to app button.\n",
+      "date_published": "2026-07-28T00:20:47Z",
+      "tags": [
+        "devtools"
+      ],
+      "_xnet": {
+        "date": "July 27, 2026",
+        "summary": "A Storybook button now sits next to the dev-tools button when the component catalog is running, and Storybook has a Back to app button.",
+        "highlights": [],
+        "mergedAt": "2026-07-28T00:20:47Z",
+        "pr": 634,
+        "authors": [
+          {
+            "login": "crs48"
+          }
+        ]
+      }
+    },
+    {
       "id": "2026-07-27-explorations-can-now-carry-a-visual-comp",
       "url": "https://xnet.fyi/changelog#2026-07-27-explorations-can-now-carry-a-visual-comp",
       "title": "Explorations can now carry a visual companion",
