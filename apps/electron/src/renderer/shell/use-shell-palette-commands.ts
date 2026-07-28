@@ -26,6 +26,7 @@ export interface ShellPaletteCommandsOptions {
   handleOpenSocialImport: () => void
   handleOpenDataWorkspace: () => void
   handleOpenStories: () => void
+  handleOpenAssistant: () => void
 }
 
 export function useShellPaletteCommands(options: ShellPaletteCommandsOptions): PaletteCommand[] {
@@ -41,7 +42,8 @@ export function useShellPaletteCommands(options: ShellPaletteCommandsOptions): P
     handleOpenSettings,
     handleOpenSocialImport,
     handleOpenDataWorkspace,
-    handleOpenStories
+    handleOpenStories,
+    handleOpenAssistant
   } = options
 
   return useMemo<PaletteCommand[]>(
@@ -505,6 +507,15 @@ export function useShellPaletteCommands(options: ShellPaletteCommandsOptions): P
         keywords: ['data', 'workspace', 'social', 'saved views', 'lenses'],
         execute: handleOpenDataWorkspace
       },
+      {
+        id: 'open-assistant',
+        name: 'Open Assistant',
+        description: 'Chat with your workspace — Claude Code arrives with the xnet tools attached',
+        icon: 'sparkles',
+        group: 'Navigate',
+        keywords: ['ai', 'chat', 'claude', 'assistant', 'agent'],
+        execute: handleOpenAssistant
+      },
       ...(STORIES_ENABLED
         ? [
             {
@@ -540,6 +551,7 @@ export function useShellPaletteCommands(options: ShellPaletteCommandsOptions): P
       handleOpenSettings,
       handleOpenSocialImport,
       handleOpenStories,
+      handleOpenAssistant,
       canvasCommandState,
       isCanvasInteractiveShell,
       recentDocuments,

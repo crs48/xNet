@@ -9,6 +9,10 @@
     ".": {
       "import": "./src/index.ts",
       "types": "./src/index.ts"
+    },
+    "./ai": {
+      "import": "./src/views/ai.ts",
+      "types": "./src/views/ai.ts"
     }
   },
   "scripts": {
@@ -20,7 +24,12 @@
   "dependencies": {
     "@xnetjs/plugins": "workspace:*",
     "lucide-react": "^0.453.0",
-    "zustand": "^5.0.14"
+    "zustand": "^5.0.14",
+    "@xnetjs/brain": "workspace:*",
+    "@xnetjs/data": "workspace:*",
+    "@xnetjs/react": "workspace:*",
+    "@xnetjs/vectors": "workspace:*",
+    "@mlc-ai/web-llm": "^0.2.84"
   },
   "peerDependencies": {
     "react": "^18.0.0"

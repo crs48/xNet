@@ -26,6 +26,7 @@ export type ShellState =
   | { kind: 'social-import' }
   | { kind: 'meetings' }
   | { kind: 'stories' }
+  | { kind: 'assistant' }
 
 export type DocumentItem = {
   id: string
@@ -56,6 +57,7 @@ export type ShellAction =
   | { type: 'open-social-import' }
   | { type: 'open-meetings' }
   | { type: 'open-stories' }
+  | { type: 'open-assistant' }
 
 export function shellReducer(_state: ShellState, action: ShellAction): ShellState {
   switch (action.type) {
@@ -77,6 +79,8 @@ export function shellReducer(_state: ShellState, action: ShellAction): ShellStat
       return { kind: 'meetings' }
     case 'open-stories':
       return { kind: 'stories' }
+    case 'open-assistant':
+      return { kind: 'assistant' }
   }
 }
 
@@ -88,6 +92,7 @@ export function overlayTitleFor(kind: ShellState['kind']): string | null {
   if (kind === 'social-import') return 'Social Import'
   if (kind === 'meetings') return 'Meetings'
   if (kind === 'stories') return 'Stories'
+  if (kind === 'assistant') return 'Assistant'
   return null
 }
 

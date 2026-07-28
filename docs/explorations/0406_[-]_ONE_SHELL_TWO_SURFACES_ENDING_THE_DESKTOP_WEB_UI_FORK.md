@@ -558,7 +558,7 @@ export class ShellErrorBoundary extends React.Component<Props, State> {
 
 ### Phase 5 — the agent gets a face
 
-- [ ] Mount `AiChatPanel` on desktop, wired to `window.xnetAgentBridge` (#638)
+- [x] Mount `AiChatPanel` on desktop, wired to `window.xnetAgentBridge` (#638)
 - [ ] Confirm a chat turn creates a node in the desktop store from the panel
 
 ### Phase 6 — make re-divergence a red build

@@ -16,6 +16,7 @@ import {
   Moon,
   Settings,
   Share2,
+  Sparkles,
   Sun
 } from 'lucide-react'
 import React from 'react'
@@ -32,6 +33,7 @@ interface SystemMenuProps {
   onOpenSettings: () => void
   onOpenDataWorkspace: () => void
   onOpenMeetings: () => void
+  onOpenAssistant: () => void
   onOpenSocialImport: () => void
   onOpenStories?: () => void
   onAddShared: () => void
@@ -77,6 +79,7 @@ export function SystemMenu({
   onOpenSettings,
   onOpenDataWorkspace,
   onOpenMeetings,
+  onOpenAssistant,
   onOpenSocialImport,
   onOpenStories,
   onAddShared,
@@ -126,6 +129,12 @@ export function SystemMenu({
         <span className="flex items-center gap-2">
           <Mic size={14} />
           Meetings
+        </span>
+      </MenuItem>
+      <MenuItem onSelect={onOpenAssistant}>
+        <span className="flex items-center gap-2">
+          <Sparkles size={14} />
+          Assistant
         </span>
       </MenuItem>
       <MenuItem onSelect={onOpenSocialImport}>
